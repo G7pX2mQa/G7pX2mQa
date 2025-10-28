@@ -30,9 +30,9 @@ let eventsBound = false;
 const IS_MOBILE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
 const ICON_DIR = 'img/sc_upg_icons/';
-const BASE_ICON_SRC = 'img/coin/coin_base.png';
+const BASE_ICON_SRC = 'img/currencies/coin/coin_base.png';
 const CURRENCY_ICON_SRC = {
-  coins: 'img/coin/coin.png',
+  coins: 'img/currencies/coin/coin.png',
 };
 
 function stripTags(html) {
