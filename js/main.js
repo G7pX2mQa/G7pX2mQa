@@ -233,7 +233,7 @@ function enterArea(areaID) {
 
       if (!spawner) {
         spawner = createSpawner({
-          coinSrc: 'img/coin/coin.png',
+          coinSrc: 'img/currencies/coin/coin.png',
           coinSize: 40,
           initialRate: 1,
           surgeLifetimeMs: 1800,
@@ -343,9 +343,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const ASSET_MANIFEST = {
     images: [
       'img/hot_dog_with_mustard.png',
-      'img/coin/coin.png',
-      'img/coin/coin_base.png',
-      'img/coin/coin_plus_base.png',
+      'img/currencies/coin/coin.png',
+      'img/currencies/coin/coin_base.png',
+      'img/currencies/coin/coin_plus_base.png',
       'img/sc_upg_icons/faster_coins_id_1.png',
       'img/misc/merchant.png',
     ],
@@ -371,7 +371,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   finishAndHideLoader(loader);
 
-  await warmImage('img/coin/coin_plus_base.png');
+  await warmImage('img/currencies/coin/coin_plus_base.png');
 
   ensureStorageDefaults();
 
