@@ -1,0 +1,620 @@
+/* css/ui/shop.css */
+/* Full-screen bottom sheet shop overlay (UI framework only) */
+
+:root {
+  --shop-bg: hsl(220 18% 7% / 0.92);          /* dark translucent */
+  --shop-card: hsl(220 18% 12% / 1);           /* inner surface */
+  --shop-border: hsl(210 16% 20% / 1);
+  --shop-shadow: 0 20px 60px hsl(0 0% 0% / .45);
+  --shop-radius: 20px;
+  --shop-anim: 220ms cubic-bezier(.2, .8, .2, 1);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.shop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;              /* Above HUD */
+  pointer-events: none;       /* disabled until open */
+  user-select: none;
+}
+
+.shop-overlay.is-open {
+  pointer-events: auto;
+}
+
+.shop-sheet {
+  position: absolute;
+  inset: 0;
+  background: var(--shop-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  transform: translateY(100%);
+  transition: transform var(--shop-anim);
+  box-shadow: var(--shop-shadow);
+}
+
+/* When open -> slide in */
+.shop-overlay.is-open .shop-sheet {
+  transform: translateY(0);
+}
+
+/* Top grabber strip */
+.shop-grabber {
+  padding-top: calc(8px + var(--safe-top));
+  padding-bottom: 12px;
+  display: grid;
+  place-items: center;
+  touch-action: none;         /* enables smooth pointer tracking */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.shop-grabber .grab-handle {
+  width: 56px;
+  height: 6px;
+  border-radius: 999px;
+  background: hsl(0 0% 100% / .35);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / .25);
+}
+
+/* Main content shell (placeholder only for now) */
+.shop-content {
+  padding: 16px;
+  display: grid;
+  place-items: center;
+}
+
+.shop-placeholder {
+  width: min(680px, 92vw);
+  padding: 24px;
+  border-radius: var(--shop-radius);
+  background: var(--shop-card);
+  border: 1px solid var(--shop-border);
+  text-align: center;
+  font: 600 1rem/1.3 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: hsl(0 0% 100% / .9);
+}
+
+/* Bottom actions */
+.shop-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px; /* space between Close and Delve */
+  padding: 12px 16px calc(12px + var(--safe-bottom));
+  flex-wrap: wrap; /* gracefully wrap on very narrow viewports */
+}
+
+/* Close (tinted translucent red) */
+.shop-actions .shop-close {
+  min-width: 180px;
+  height: 44px;
+  border-radius: 0;
+  border: 1px solid hsla(0, 80%, 40%, 0.45);
+  background: hsla(0, 80%, 40%, 0.15);
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: .2px;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+.shop-actions .shop-close:hover {
+  background: hsla(0, 80%, 40%, 0.22);
+}
+.shop-actions .shop-close:active {
+  transform: translateY(1px);
+  background: hsla(0, 80%, 40%, 0.28);
+}
+
+/* Delve (tinted translucent green) */
+.shop-actions .shop-delve {
+  min-width: 180px;
+  height: 44px;
+  border-radius: 0;
+  border: 1px solid hsla(150, 60%, 35%, 0.45);
+  background: hsla(150, 60%, 35%, 0.15);
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: .2px;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+.shop-actions .shop-delve:hover {
+  background: hsla(150, 60%, 35%, 0.22);
+}
+.shop-actions .shop-delve:active {
+  transform: translateY(1px);
+  background: hsla(150, 60%, 35%, 0.28);
+}
+
+@media (max-width: 480px) and (orientation: portrait) {
+  .shop-actions .shop-close,
+  .shop-actions .shop-delve {
+    min-width: 140px;
+  }
+}
+
+/* Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .shop-sheet { transition: none; }
+  .upg-sheet { transition: none; }
+}
+
+/* === SHOP GRID === */
+
+/* Default (desktop / general) */
+.shop-sheet {
+  --shop-tile: clamp(84px, 24vw, 128px);
+  --shop-gap:  clamp(8px, 2.5vw, 16px);
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--shop-tile), 1fr));
+  gap: clamp(8px, 2vw, 16px);
+  width: min(1200px, 100%);
+  margin-inline: auto;
+  padding: 4px;
+  justify-content: center;
+}
+
+.shop-upgrade {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  outline-offset: 4px;
+}
+
+.shop-tile {
+  position: relative;
+  width: var(--shop-tile);
+  height: var(--shop-tile);
+  display: block;
+  margin: 0 auto;
+}
+
+/* Icon layout */
+.shop-tile img.base {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.shop-tile img.icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 68%;
+  height: 68%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Placeholder upgrade level badge (bottom center) */
+.shop-tile .level-badge {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  transform: translateX(-50%);
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 700;
+  color: #fff;
+
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+
+  pointer-events: none;
+  z-index: 3; /* ensures visible above both coin and icon */
+}
+
+/* === Mobile-specific tweaks === */
+@media (hover: none) and (pointer: coarse) {
+  .shop-sheet {
+    --grid-pad: 12px;
+    --gap: 12px;
+    --cols: 3;
+
+    /* exact-fit tile: ensures 3 icons + gaps fit perfectly in viewport */
+    --tile-fit: calc(
+      (100vw - env(safe-area-inset-left) - env(safe-area-inset-right)
+        - (2 * var(--grid-pad)) - ((var(--cols) - 1) * var(--gap))
+      ) / var(--cols)
+    );
+
+    --shop-tile: clamp(76px, var(--tile-fit), 120px);
+  }
+
+  .shop-grid {
+    padding-inline: var(--grid-pad);
+    gap: var(--gap);
+    box-sizing: border-box;
+  }
+
+  .shop-content {
+    overflow-x: clip;
+  }
+}
+
+/* === Shop header === */
+/* The content area is the scroller that the header sticks to */
+.shop-content {
+  overflow-y: auto;                 /* scrolls on overflow */
+  display: block;
+  padding: 0;                       /* header/grid manage spacing */
+  min-height: 0;                    /* allows the 1fr track to shrink and scroll */
+  -webkit-overflow-scrolling: touch;
+  /* dark scrollbar (same styling you were using before) */
+  scrollbar-width: thin;
+  scrollbar-color: hsl(0 0% 100% / .22) hsl(220 18% 7% / .55);
+  scrollbar-gutter: stable both-edges;
+}
+.shop-content::-webkit-scrollbar { width: 12px; }
+.shop-content::-webkit-scrollbar-track {
+  background: hsl(220 18% 7% / .55);
+  border-left: 1px solid var(--shop-border);
+}
+.shop-content::-webkit-scrollbar-thumb {
+  background: hsl(0 0% 100% / .22);
+  border-radius: 10px;
+}
+.shop-content::-webkit-scrollbar-thumb:hover {
+  background: hsl(0 0% 100% / .32);
+}
+
+/* Sticky SHOP + full-width line (no darker band) */
+.shop-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(
+    to bottom,
+    var(--shop-bg) 0,
+    var(--shop-bg) calc(100% - 2px),
+    transparent calc(100% - 2px)
+  );
+
+  /* keep your existing props as-is */
+  backdrop-filter: inherit;
+  -webkit-backdrop-filter: inherit;
+  display: block;
+  width: 100%;
+  padding: 10px 12px 8px;
+}
+
+
+
+.shop-title { margin: 0 0 8px 0; font-weight: 700; text-align: center; }
+
+.shop-line {
+  height: 2px;
+  width: 100%;
+  background: var(--shop-border);  /* the line itself is the clip edge */
+}
+
+/* The grid now scrolls in its own viewport so items are cut off at the line */
+.shop-scroller {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  padding: 12px 12px 16px;
+  scrollbar-gutter: stable both-edges;   /* no re-centering when scrollbar appears */
+}
+
+/* Dark scrollbar styling */
+/* Firefox */
+.shop-scroller {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(0 0% 100% / .22) hsl(220 18% 7% / .55);
+}
+/* Chromium/WebKit */
+.shop-scroller::-webkit-scrollbar { width: 12px; }
+.shop-scroller::-webkit-scrollbar-track {
+  background: hsl(220 18% 7% / .55);
+  border-left: 1px solid var(--shop-border);
+}
+.shop-scroller::-webkit-scrollbar-thumb {
+  background: hsl(0 0% 100% / .22);
+  border-radius: 10px;
+}
+.shop-scroller::-webkit-scrollbar-thumb:hover {
+  background: hsl(0 0% 100% / .32);
+}
+
+/* Hide native scrollbars cross-browser (we’ll draw our own) */
+.shop-content {
+  scrollbar-width: none;              /* Firefox */
+}
+.shop-content::-webkit-scrollbar {    /* Chromium/WebKit (incl. iOS) */
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* Overlay scrollbar (same look on desktop + mobile) */
+.shop-scrollbar {
+  position: absolute;                 /* lives inside .shop-sheet */
+  right: 6px;
+  /* top/bottom are set from JS so it respects grabber/header/actions */
+  width: 8px;
+  border-radius: 6px;
+  background: transparent;            /* no track fill */
+  pointer-events: none;               /* won’t block clicks/scroll */
+  z-index: 4;                         /* above grid/header */
+}
+.shop-scrollbar__thumb {
+  width: 100%;
+  min-height: 28px;                   /* readable minimum */
+  border-radius: 6px;
+  background: hsl(0 0% 100% / .28);
+  box-shadow: inset 0 0 0 1px hsl(0 0% 100% / .12);
+  transform: translateY(0);           /* JS updates this */
+  transition: background .15s ease;
+}
+.shop-scrollbar__thumb:hover {        /* desktop hover only; harmless on mobile */
+  background: hsl(0 0% 100% / .36);
+}
+
+/* allow interaction (we previously set pointer-events:none) */
+.shop-scrollbar { pointer-events: auto; }
+
+/* nice cursors when dragging */
+.shop-scrollbar__thumb { cursor: grab; }
+.shop-scrollbar__thumb.dragging { cursor: grabbing; }
+
+/* Mobile: hide custom scrollbar until actively scrolling or dragging */
+@media (hover: none) and (pointer: coarse) {
+  .shop-scrollbar {
+    opacity: 0;
+    pointer-events: none;              /* don’t steal touches when hidden */
+    transition: opacity .2s ease;
+  }
+  .shop-sheet.is-scrolling .shop-scrollbar,
+  .shop-scrollbar__thumb.dragging {
+    opacity: 1;
+    pointer-events: auto;              /* interactive when visible */
+  }
+}
+
+
+/* =========================================================
+   Upgrades submenu
+   ========================================================= */
+
+.upg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+}
+.upg-overlay.is-open { pointer-events: auto; }
+.upg-overlay.is-open .upg-sheet { transform: translateY(0); }
+
+.upg-sheet {
+  position: absolute;
+  left: 0; right: 0; bottom: 0; top: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;   /* header | content | actions */
+  background: rgba(12,16,20,.92);
+  backdrop-filter: blur(6px);
+  transform: translateY(100%);
+  transition: transform 180ms ease;
+  box-shadow: 0 -14px 40px rgba(0,0,0,.45);
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+}
+
+.upg-grabber { display: grid; place-items: center; padding: 8px 0 4px; }
+.upg-grabber .grab-handle {
+  width: 52px; height: 5px; border-radius: 4px;
+  background: rgba(255,255,255,.35);
+}
+
+.upg-header {
+  padding: 10px 18px 0;
+  text-align: center;
+  color: #fff;
+}
+.upg-title { font-size: clamp(44px, 6vw, 72px); font-weight: 700; }
+.upg-level { font-size: clamp(18px, 2.6vw, 28px); opacity: .92; }
+
+/* Content baseline */
+.upg-content{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding-bottom:2vh;
+  will-change: transform; /* smoother GPU translate */
+}
+
+/* Non-MAX: lift a bit more */
+.upg-sheet:not(.is-maxed) .upg-content { 
+  transform: translateY(-12vh);
+  padding-top: 2vh;
+}
+
+/* MAX: push much higher toward the middle */
+.upg-sheet.is-maxed .upg-content{
+  transform: translateY(-20vh);
+  padding-top: 0.5vh;
+  padding-bottom: 3vh;
+}
+
+/* centered description + lines (large type) */
+.upg-desc.centered{
+  text-align:center;
+  font-size: clamp(28px, 4vw, 44px);
+  margin-top: 4px;
+}
+
+.upg-info{
+  display:grid;
+  gap:14px;                /* overall spacing */
+  margin:14px 0 4px;
+  text-align:center;
+  color:#fff;
+}
+
+.upg-costs{ gap:2px; margin-top:2px; }
+
+/* big, readable lines */
+.upg-line{
+  font-size: clamp(32px, 4.6vw, 50px);
+  line-height:1.25;
+}
+
+.upg-line .coin-ico{
+  width: 0.9em; height: 0.9em; 
+  vertical-align: -0.14em;
+  margin-right: -0.1em;
+}
+
+/* Actions: ~quarter-width buttons */
+.upg-actions{
+  display:flex !important;
+  justify-content:center;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:.8vw;
+  padding:1vh 0;
+}
+.upg-actions .shop-close,
+.upg-actions .shop-delve{
+  flex:0 1 24vw;                       /* ≈ quarter width (3-up ~72%, 4-up ~96%) */
+  height:clamp(76px,10vh,126px);
+  font-size:clamp(24px,2.8vw,36px);
+  border-radius:0;
+  color:#fff;
+  font-weight:600;
+  letter-spacing:.2px;
+  cursor:pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.upg-actions .shop-close{
+  border:1px solid hsl(0 80% 40% / .45);
+  background:hsl(0 80% 40% / .15);
+}
+.upg-actions .shop-delve{
+  border:1px solid hsl(150 60% 35% / .45);
+  background:hsl(150 60% 35% / .15);
+}
+.upg-actions .shop-delve:hover{ background:hsl(150 60% 35% / .22); }
+.upg-actions .shop-delve:active{ transform:translateY(1px); background:hsl(150 60% 35% / .28); }
+.upg-actions .shop-close:hover { background: hsla(0, 80%, 40%, 0.22); }
+.upg-actions .shop-close:active { transform: translateY(1px); background: hsla(0, 80%, 40%, 0.28); }
+
+@media (max-width:520px){
+  .upg-title{ font-size:clamp(26px,6vw,40px); }
+  .upg-line { font-size:clamp(18px,4.8vw,24px); }
+  .upg-actions .shop-close,
+  .upg-actions .shop-delve{
+    flex-basis: clamp(140px,44vw,240px);
+    height:clamp(50px,9vh,80px);
+    font-size:clamp(16px,4.2vw,22px);
+  }
+}
+
+.shop-tile .level-badge.can-buy {
+  color: hsl(150, 70%, 60%);
+  text-shadow: 0 0 10px hsla(150, 60%, 45%, 0.6);
+}
+
+.upg-desc.centered,
+.upg-line {
+  color: hsl(0 0% 100%);
+  mix-blend-mode: normal;
+  -webkit-text-fill-color: hsl(0 0% 100%);
+  -webkit-text-stroke: 0 transparent;
+  opacity: 1;
+}
+
+@media (hover: none) and (pointer: coarse) {
+
+  .upg-content{
+    overflow-y: auto;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  :root{
+    --upg-title-size: clamp(28px, 6vmin, 44px);
+    --upg-desc-size:  clamp(16px, 2.8vmin, 22px);
+    --upg-line-size:  clamp(18px, 3.2vmin, 24px);
+  }
+
+  .upg-header .upg-title{ font-size: var(--upg-title-size); }
+  .upg-desc.centered{     font-size: var(--upg-desc-size);  }
+  .upg-line{              font-size: var(--upg-line-size);   }
+
+  .upg-actions{
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+
+  .upg-sheet:not(.is-maxed) .upg-content,
+  .upg-sheet.is-maxed .upg-content{
+    transform: none;
+    padding-top: 0.5vh;
+    padding-bottom: 0.5vh;
+  }
+
+  .upg-header { padding: 6px 12px 0; }
+  .upg-desc.centered {
+    margin: 0.25rem 0 0.35rem;
+    line-height: 1.1;
+  }
+
+  .upg-info{
+    gap: 0.25rem;
+    margin: 0.3rem 0 0.2rem;
+  }
+
+  .upg-line{
+    line-height: 1.1;
+    margin: 0.15rem 0;
+  }
+
+  .bonus-line{ margin-block: 0.15rem; }
+
+  .upg-actions{
+    gap: 0.4rem;
+    padding-top: 4px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .upg-actions .shop-close,
+  .upg-actions .shop-delve{
+    height: clamp(40px, 12vh, 54px);
+    font-size: clamp(13px, 2vmin, 17px);
+  }
+}
+
+
+.bonus-line .infty {
+  display: inline-block;
+  transform: translateY(0.03em);
+}

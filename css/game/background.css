@@ -1,0 +1,81 @@
+/* css/game/background.css */
+.area[hidden] { display: none !important; }
+
+/* === Starter Cove (Area 1) ===================================== */
+
+.area-cove {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 1fr;
+  height: 100svh;
+  overflow: hidden;
+  z-index: 0;
+}
+
+/* Base playfield (color + very soft broad dunes) */
+.area-cove .playfield {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
+
+  background-image:
+    radial-gradient(1200px 800px at 30% 35%, hsl(40 35% 70% / 0.25), transparent 60%),
+    radial-gradient(1400px 900px at 75% 65%, hsl(40 40% 82% / 0.22), transparent 65%),
+    linear-gradient(to bottom, hsl(40 70% 82%), hsl(40 60% 68%));
+  background-size: 1200px 800px, 1400px 900px, 100% 100%;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+}
+
+/* --- Grain overlay (visible speckle) ---------------------------- */
+.area-cove .playfield::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 0;
+
+  /* coarse visible clumps + fine sparkle; both tile seamlessly */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.22' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeGaussianBlur stdDeviation='0.7'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.45'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.15'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 512px 512px, 256px 256px;
+  background-repeat: repeat, repeat;
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+}
+
+/* --- Depth dunes (highlights + shadows; no seams) --------------- */
+.area-cove .playfield::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 1;
+
+  /* layer 1: shadows (multiply)
+     layer 2: highlights (screen) with gamma to push brights */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1024' height='1024'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='4' seed='23' stitchTiles='stitch'/%3E%3CfeGaussianBlur stdDeviation='1.2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.35'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1024' height='1024'%3E%3Cfilter id='h'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.015' numOctaves='3' seed='31' stitchTiles='stitch'/%3E%3CfeGaussianBlur stdDeviation='1.2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='gamma' amplitude='1' exponent='0.6' offset='0'/%3E%3CfeFuncG type='gamma' amplitude='1' exponent='0.6' offset='0'/%3E%3CfeFuncB type='gamma' amplitude='1' exponent='0.6' offset='0'/%3E%3CfeFuncA type='table' tableValues='0 0.40'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23h)'/%3E%3C/svg%3E");
+
+  background-size: 1024px 1024px, 1024px 1024px;  /* dune scale */
+  background-repeat: repeat, repeat;
+  background-blend-mode: multiply, screen;        /* shadows + highlights */
+  opacity: 0.65;                                  /* overall intensity */
+}
+
+/* larger tiles on ultrawide for slower repetition */
+@media (min-width: 1600px) {
+  .area-cove .playfield::after { background-size: 1280px 1280px, 1280px 1280px; }
+}
+
+/* ===== Disable text/image selection and long-press highlight in playfield ===== */
+@media (pointer: coarse) {
+* {
+  -webkit-user-select: none;  /* Safari / iOS */
+  -moz-user-select: none;     /* Firefox */
+  -ms-user-select: none;      /* Old IE */
+  -webkit-touch-callout: none; /* Disable tap & hold context menu on iOS */
+  -webkit-tap-highlight-color: transparent; /* Remove grey tap highlight */
+  -webkit-user-drag: none;
+  }
+}

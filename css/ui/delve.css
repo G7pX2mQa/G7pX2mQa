@@ -1,0 +1,376 @@
+/* css/ui/delve.css */
+.merchant-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4001;
+  pointer-events: none;
+  user-select: none;
+}
+.merchant-overlay.is-open { pointer-events: auto; }
+
+/* Merchant sheet adopts the same animation variables */
+.merchant-sheet {
+  position: absolute;
+  inset: 0;
+  background: var(--shop-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  transform: translateY(100%);
+  transition: transform var(--shop-anim);
+  box-shadow: var(--shop-shadow);
+}
+.merchant-overlay.is-open .merchant-sheet { transform: translateY(0); }
+
+/* Pull bar (share look with shop) */
+.shop-grabber, .merchant-grabber {
+  padding-top: calc(8px + var(--safe-top));
+  padding-bottom: 12px;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.shop-grabber .grab-handle,
+.merchant-grabber .grab-handle {
+  width: 56px;
+  height: 6px;
+  border-radius: 999px;
+  background: hsl(0 0% 100% / .35);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / .25);
+}
+
+/* Content + header */
+.merchant-content { overflow-y: auto; padding: 0; scrollbar-gutter: stable both-edges; }
+.merchant-header {
+  position: sticky; top: 0; z-index: 10;
+  background: linear-gradient(to bottom, var(--shop-bg) 0, var(--shop-bg) calc(100% - 2px), transparent calc(100% - 2px));
+  padding: 10px 12px 8px;
+}
+.merchant-title { margin: 0 0 8px; font-weight: 700; text-align: center; color: white; }
+.merchant-line  { height: 2px; width: 100%; background: var(--shop-border); }
+
+/* Dialog row */
+.merchant-dialog { padding: 16px; display: grid; }
+.merchant-bubble {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  background: var(--shop-card);
+  border: 1px solid var(--shop-border);
+  border-radius: var(--shop-radius);
+  padding: 14px;
+}
+/* Regular Merchant dialogue bubble icon */
+.merchant-icon {
+  width: clamp(60px, 12vw, 96px);
+  height: clamp(60px, 12vw, 96px);
+  object-fit: contain;
+  display: block;
+}
+
+.merchant-text {
+  color: hsl(0 0% 100% / .9);
+  font: 500 1rem/1.3 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+/* Merchant actions (footer) */
+.merchant-actions {
+  display: flex; justify-content: center; align-items: center; gap: 12px;
+  padding: 12px 16px calc(12px + var(--safe-bottom));
+}
+.merchant-actions .merchant-close {
+  min-width: 180px; height: 44px; border-radius: 0;
+  border: 1px solid var(--shop-border);
+  background: hsl(0 0% 100% / .06);
+  color: #fff; font-weight: 600; letter-spacing: .2px; cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease;
+}
+.merchant-actions .merchant-close:active { transform: translateY(1px); }
+
+/* First-time chat overlay (full-sheet scrim + centered card, no animation) */
+.merchant-firstchat {
+  position: absolute;
+  inset: 0;
+  display: none;               /* stays hidden until .is-visible */
+  place-items: center;
+  z-index: 50;                 /* above other sheet content */
+  pointer-events: none;        /* we'll re-enable on the card */
+  isolation: isolate;          /* keep blur from affecting the card */
+}
+
+/* When visible: show and absorb clicks */
+.merchant-firstchat.is-visible {
+  display: grid;
+  pointer-events: auto;        /* absorb clicks so background is inert */
+}
+
+/* The blurred/dimmed scrim */
+.merchant-firstchat::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(12px) brightness(0.6);
+  -webkit-backdrop-filter: blur(12px) brightness(0.6);
+  background: rgba(0, 0, 0, 0.50);
+}
+
+/* While first-chat is up, hide the sheet content and footer controls */
+.merchant-overlay.firstchat-active .merchant-content,
+.merchant-overlay.firstchat-active .merchant-actions {
+  visibility: hidden;
+}
+
+
+/* The card sits above the blur and stays crisp */
+.merchant-firstchat__card {
+  position: relative;          /* create a new stacking context over ::before */
+  width: min(720px, 92vw);
+  background: var(--shop-card);
+  border: 1px solid var(--shop-border);
+  box-shadow: var(--shop-shadow);
+  padding: 16px;
+  pointer-events: auto;        /* clickable while the scrim eats background clicks */
+}
+
+/* Header + rule (unchanged, included here for completeness) */
+.merchant-firstchat__header .name {
+  font-weight: 700; color: white; margin-bottom: 8px; text-align: left;
+}
+.merchant-firstchat__header .rule {
+  height: 2px; width: 100%; background: var(--shop-border); margin-bottom: 12px;
+}
+
+/* Row layout (icon left, text right) */
+.merchant-firstchat__row {
+  display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start;
+}
+.merchant-firstchat__icon {
+  width: clamp(60px, 12vw, 96px);
+  height: clamp(60px, 12vw, 96px);
+  object-fit: contain;
+}
+.merchant-firstchat__text { color: hsl(0 0% 100% / .9); }
+
+/* Actions */
+.merchant-firstchat__actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+.merchant-firstchat__continue {
+  min-width: 140px; height: 38px;
+  border: 1px solid hsla(150, 60%, 35%, 0.45);
+  background: hsla(150, 60%, 35%, 0.15);
+  color: #fff; font-weight: 600; letter-spacing: .2px; cursor: pointer;
+}
+
+/* Make the text feel interactive while it’s typing (tap/click to skip) */
+.merchant-firstchat__text.is-typing {
+  cursor: pointer;
+}
+
+.merchant-firstchat__choices {
+  display: grid;
+  gap: clamp(6px, 1.2vw, 10px);
+  margin-top: 12px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 140ms ease, transform 140ms ease;
+  pointer-events: none;                 /* <— prevent early clicks */
+}
+.merchant-firstchat__choices.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;                 /* <— clickable only when visible */
+}
+
+.merchant-firstchat__choices .choice {
+  min-height: 38px;
+  padding: 8px 12px;
+  text-align: left;
+  border-radius: 8px;
+  border: 1px solid var(--shop-border);
+  background: hsl(0 0% 100% / .06);
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: .2px;
+  cursor: pointer;
+  transition: background 120ms ease, transform 90ms ease;
+}
+.merchant-firstchat__choices .choice:hover {
+  background: hsl(0 0% 100% / .10);
+}
+.merchant-firstchat__choices .choice:active {
+  transform: translateY(1px);
+}
+
+/* Tabs bar (under the Merchant header) */
+.merchant-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 0;
+}
+
+/* Individual tab buttons */
+.merchant-tab {
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--shop-border);
+  background: hsl(0 0% 100% / .04);
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: .2px;
+  cursor: pointer;
+  transition: background 120ms ease, transform 90ms ease, opacity 120ms ease;
+}
+.merchant-tab:hover { background: hsl(0 0% 100% / .08); }
+.merchant-tab:active { transform: translateY(1px); }
+
+.merchant-tab.is-active {
+  background: hsl(0 0% 100% / .12);
+  box-shadow: inset 0 -2px 0 hsl(0 0% 100% / .18);
+}
+
+.merchant-tab.is-locked {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+/* Panels */
+.merchant-panels { padding: 12px; }
+.merchant-panel { display: none; }
+.merchant-panel.is-active { display: block; }
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .merchant-firstchat {
+    align-items: flex-start; 
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px 0;
+  }
+
+  .merchant-firstchat__card {
+    margin: auto;
+    max-height: unset;
+  }
+}
+
+/* Scrollable list that works on phones and desktop */
+.merchant-dialogue-list {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+  max-height: min(42vh, 520px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px; /* avoid scrollbar overlay on text */
+  -ms-overflow-style: none;     /* IE/Edge */
+  scrollbar-width: none;        /* Firefox */
+}
+.merchant-dialogue-list::-webkit-scrollbar { width: 0; height: 0; }
+
+/* Dialogue entry cards */
+.dlg-card {
+  position: relative;              /* allow absolute-positioned right label */
+  display: grid;
+  grid-template-columns: 1fr;      /* left column only; right label is absolute */
+  grid-auto-rows: min-content;
+  gap: 4px;
+  align-items: start;
+  text-align: left;
+  padding: clamp(8px,1.2vw,12px) clamp(10px,2vw,14px);
+  border-radius: 12px;
+  border: 2px solid var(--shop-border, rgba(255,255,255,.12));
+  color: #fff;
+  cursor: pointer;
+  transition: background 120ms ease, transform 90ms ease, opacity 120ms ease;
+}
+.dlg-card:not(.is-complete):hover { background: rgba(255,255,255,.18); }
+.dlg-card:active { transform: none; }
+.dlg-card.is-locked,
+.dlg-card:disabled { opacity: .45; cursor: not-allowed; }
+.dlg-card:not(.is-complete) { background: rgba(255,255,255,.12);  }
+.dlg-card.is-complete { background: rgba(255,255,255,.03); }
+
+/* When the replay hint exists, pad the right so it won't overlap text */
+.dlg-card.has-again {
+  padding-right: calc(clamp(10px,2vw,14px) + 110px);
+}
+
+/* Left column content */
+.dlg-title { font-weight: 700; letter-spacing: .2px; }
+.dlg-blurb { opacity: .75; font-size: .95em; }
+
+/* Reward line */
+.dlg-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: .95em;
+  opacity: .85;
+  margin-top: 2px;
+  justify-self: start;
+  align-self: start;
+  width: max-content;
+  position: relative;
+}
+
+.dlg-reward .reward-label { opacity: .85; margin-right: 3px; }
+.dlg-reward .coin { display: inline-flex; align-items: center; gap: 2px; }
+.dlg-reward .coin-icon {
+  width: 0.85em;
+  height: 0.85em;
+  flex: 0 0 0.85em;
+  background: url('../../img/coin/coin.png') center / contain no-repeat;
+  position: relative;
+  top: 1px; /* slight downward nudge */
+}
+
+/* Completed / claimed dialogues */
+.dlg-card.is-complete .dlg-title,
+.dlg-card.is-complete .dlg-blurb,
+.dlg-card.is-complete .dlg-reward {
+  color: rgba(255,255,255,.55);
+  opacity: .9;
+}
+
+/* Strike-through only across the reward content width */
+.dlg-card.is-complete .dlg-reward::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 55%;
+  width: calc(100% + 1px);
+  height: 2px;
+  background: #888888;
+  transform: translateY(-50%);
+  pointer-events: none;
+  border-radius: 1px;         /* softer edges */
+}
+
+/* Replay hint (“Ask Again?”) */
+.dlg-again {
+  position: absolute;
+  right: clamp(10px,2vw,14px);
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255,255,255,.5);
+  font-weight: 400;
+  font-size: .95em;
+  white-space: nowrap;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0;
+}
+.dlg-again::before {
+  content: '↻';
+  opacity: .75;
+  font-weight: 400;
+}
+
+/* Tighten for short viewports (landscape phones) */
+@media (max-height: 500px) and (orientation: landscape) {
+  .merchant-dialogue-list { max-height: 46vh; }
+}

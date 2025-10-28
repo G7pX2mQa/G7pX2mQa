@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>CCC</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
+  <link rel="shortcut icon" href="favicon/favicon.ico" type="image/x-icon">
+  <!-- Prevent UI flicker on refresh by reading the flag before CSS paints -->
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem('ccc:hasOpenedSaveSlot') === 'true') {
+          document.documentElement.classList.add('has-opened');
+        }
+      } catch (e) { }
+    })();
+  </script>
+  <!-- Boot CSS: parsed before external styles -->
+<style>
+  /* Force a hard black cover immediately */
+  .loading-screen {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    z-index: 2147483647;
+  }
+  .loading-screen__text { font-size: 1.1rem; opacity: .9; }
+
+  /* While booting, don't show menu or game at all */
+  .booting .menu-root,
+  .booting #game-root { display: none !important; }
+</style>
+
+<!-- Add a 'booting' class ASAP so CSS can hide UI immediately -->
+<script>
+  document.documentElement.classList.add('booting');
+</script>
+
+  <link rel="stylesheet" href="css/core/variables.css">
+  <link rel="stylesheet" href="css/core/base.css">
+  <link rel="stylesheet" href="css/core/layout.css">
+  <link rel="stylesheet" href="css/core/utilities.css">
+  <link rel="stylesheet" href="css/components_menu.css">
+  <link rel="stylesheet" href="css/game/background.css">
+  <link rel="stylesheet" href="css/ui/hud.css">
+  <link rel="stylesheet" href="css/game/waves.css">
+  <link rel="stylesheet" href="css/game/coin.css">
+  <link rel="stylesheet" href="css/ui/shop.css">
+  <link rel="stylesheet" href="css/ui/delve.css">
+</head>
+
+<body class="menu-bg">
+  <main class="menu-root">
+    <header class="menu-header">
+      <h1 class="game-title">
+        C<span class="sr-only"></span><span class="coin-o" aria-hidden="true"></span>in
+        C<span class="sr-only"></span><span class="coin-o" aria-hidden="true"></span>llecting
+        C<span class="sr-only"></span><span class="coin-o" aria-hidden="true"></span>ve
+      </h1>
+    </header>
+
+    <section class="menu-panel" role="region" aria-labelledby="panel-title">
+      <div class="panel-header">
+        <h2 id="panel-title" class="panel-title">Select a Save Slot</h2>
+        <div class="panel-actions">
+          <button class="btn btn-ghost" type="button" id="manage-saves">
+            Manage save slots
+          </button>
+        </div>
+      </div>
+
+      <div class="slots-grid">
+        <button class="slot-card" type="button" aria-label="Save Slot 1">
+          <div class="slot-badge">Slot 1</div>
+          <div class="slot-title">No save data</div>
+        </button>
+
+        <button class="slot-card" type="button" aria-label="Save Slot 2">
+          <div class="slot-badge">Slot 2</div>
+          <div class="slot-title">No save data</div>
+        </button>
+
+        <button class="slot-card" type="button" aria-label="Save Slot 3">
+          <div class="slot-badge">Slot 3</div>
+          <div class="slot-title">No save data</div>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Game root (starter cove) -->
+  <main id="game-root" class="area area-cove" hidden>
+	<!-- Coin Counter HUD -->
+	<div class="hud-top">
+	  <div class="coin-counter">
+        <img src="img/coin/coin_plus_base.png" alt="" class="coin-plus">
+	    <div class="coin-bar">
+        <span class="coin-amount">0</span>
+        </div>
+	  </div>
+	</div>
+
+    <section class="playfield" aria-label="Starter Cove Sand">
+      <div class="waves" id="waves">
+        <div class="water-base" id="water-base"></div>
+        <div class="surges" id="surges"></div>
+      </div>
+
+      <div class="coins-layer" id="coins-layer"></div>
+    </section>
+
+    <nav class="hud-bottom" id="hud-bottom">
+      <button class="game-btn btn-help" data-btn="help"><span>Help</span></button>
+	  <button class="game-btn btn-shop" data-btn="shop"><span>Shop</span></button>
+      <button class="game-btn btn-stats" data-btn="stats"><span>Stats &amp; Settings</span></button>
+      <button class="game-btn btn-map" data-btn="map"><span>Map</span></button>
+    </nav>
+  </main>
+  <script>
+    window.__MAINTENANCE__ = false;
+    window.__MAINTENANCE_MESSAGE = 'This game is not released yet, please come back another time.';
+	/* 
+	will change this message to "Update in progress. Please wait a few minutes." when game is released.
+	If you wish to break the mechanisms of this maintenance lock, just know this public repository is currently very barebones and not too much content is hiding here.
+	*/
+  </script>
+  <script type="module" src="js/main.js"></script>
+  </body>
+</html>

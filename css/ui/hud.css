@@ -1,0 +1,344 @@
+/* css/ui/hud.css */
+
+/* Bottom HUD */
+.hud-bottom {
+position: absolute;
+left: 0;
+right: 0;
+bottom: 0;
+z-index: 999;
+display: grid;
+gap: 10px;
+padding: 10px;
+padding-bottom: calc(env(safe-area-inset-bottom) + 10px);
+grid-template-columns: repeat(4, 1fr);
+grid-auto-rows: clamp(64px, 10svh, 110px);
+align-items: end;
+align-content: end;
+background: linear-gradient(to top, rgba(0,0,0,0.03), rgba(0,0,0,0));
+}
+
+/* Base button appearance: rectangular w/ black outline, slight rounding */
+.game-btn {
+-webkit-tap-highlight-color: transparent;
+appearance: none;
+border: 4px solid #000;       /* black outline */
+border-radius: 8px;
+padding: 0;
+margin: 0;
+width: 100%;
+height: 100%;
+display: grid;
+place-items: center;
+cursor: pointer;
+outline: none;
+font-weight: 900;
+font-size: clamp(18px, 3.5vw, 32px);
+color: #fff;
+box-shadow: 0 6px 10px rgba(0,0,0,0.18);
+transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+user-select: none;
+}
+
+/* Pressed state */
+.game-btn:active {
+transform: translateY(1px) scale(0.997);
+box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+}
+
+/* Hide via attribute */
+.game-btn[hidden] { display: none !important; }
+
+/* Theme colors (vertical-ish gradient per button) */
+.btn-help  { background: linear-gradient(180deg,#f7d64b,#e8b800); }  /* yellow */
+.btn-shop  { background: linear-gradient(180deg,#62b447,#2a8a2b); }  /* green  */
+.btn-stats { background: linear-gradient(180deg,#e04a3f,#b92b20); }  /* red    */
+.btn-map   { background: linear-gradient(180deg,#39e6df,#00aabb); }  /* cyan   */
+
+/* Desktop: crisp 1px stroke for text (where supported), plus light shadow */
+.game-btn {
+-webkit-text-stroke: 1px #000; /* desktop outline */
+text-stroke: 1px #000;
+text-shadow: 0 1px 0 rgba(0,0,0,0.35); /* small helper shadow for browsers without stroke */
+}
+
+/* Touch devices: smoother fake stroke for the coin counter only */
+@media (pointer: coarse) {
+   .coin-amount, .game-btn {
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    -webkit-text-fill-color: #fff;
+    text-shadow:
+      0 0.5px 0 #000, 0 -0.5px 0 #000,
+      0.5px 0 0 #000, -0.5px 0 0 #000,
+      0.5px 0.5px 0 #000, 0.5px -0.5px 0 #000,
+      -0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000,
+      0 1px 0 rgba(0,0,0,0.28);
+  }
+}
+
+
+
+/* Portrait / phone: 2x2 layout, keep gaps, adjust sizes */
+@media (hover: none) and (pointer: coarse) and (max-aspect-ratio: 1/1) {
+.hud-bottom {
+grid-template-columns: repeat(2, 1fr);
+grid-auto-rows: minmax(72px, 1fr);
+gap: 8px;
+padding: 8px;
+padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
+height: min(40svh, 360px);
+}
+.game-btn {
+font-size: clamp(16px, 6.4vw, 30px);
+}
+}
+
+/* Corner rounding: keep outermost corners rounded, inner seams remain sharp */
+.hud-bottom > .game-btn:first-child  { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+.hud-bottom > .game-btn:last-child   { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+
+@media (max-aspect-ratio: 1/1) {
+/* 2x2 layout corners */
+.hud-bottom > .game-btn:nth-child(1) { border-top-left-radius: 10px; }
+.hud-bottom > .game-btn:nth-child(2) { border-top-right-radius: 10px; }
+.hud-bottom > .game-btn:nth-child(3) { border-bottom-left-radius: 10px; }
+.hud-bottom > .game-btn:nth-child(4) { border-bottom-right-radius: 10px; }
+}
+
+/* Portrait fine-tuning */
+@media (pointer: coarse) and (max-aspect-ratio: 1/1) {
+.hud-bottom {
+height: min(20svh, 160px);
+grid-auto-rows: minmax(48px, 1fr);
+gap: 6px;
+padding: 6px;
+padding-bottom: calc(env(safe-area-inset-bottom) + 6px);
+}
+
+.game-btn {
+font-size: clamp(15px, 4.8vw, 24px);
+line-height: 1.1;
+}
+}
+
+.hud-bottom { container-type: inline-size; }
+.hud-bottom .game-btn { white-space: nowrap; }
+.hud-bottom .game-btn[data-btn="stats"] {
+  font-size: clamp(18px, 2.5cqw, 32px);
+}
+
+/* ===== Layout helpers driven by JS ===== */
+
+/* Mobile portrait 2x2: when 3 buttons (Help, Settings, Shop), let Shop span full width */
+@media (max-aspect-ratio: 1/1) {
+.hud-bottom .game-btn[data-btn="shop"].span-2 {
+grid-column: 1 / -1; /* takes both columns */
+}
+}
+
+/* (No extra CSS needed for the desktop 2-button centering;
+  JS sets grid-template-columns inline and positions the two items.) */
+
+/* Landscape fine-tuning for small-height devices */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 480px) {
+.hud-bottom {
+height: auto;
+grid-template-columns: repeat(4, 1fr);
+grid-auto-rows: clamp(44px, 12vh, 60px);
+gap: 8px;
+padding: 8px;
+padding-bottom: calc(env(safe-area-inset-bottom) + 6px);
+}
+.game-btn {
+font-size: clamp(14px, 2.2vw, 22px);
+white-space: nowrap;
+-webkit-text-stroke: 0;
+text-stroke: 0;
+text-shadow:
+1px 0   0 #000,
+-1px 0   0 #000,
+0   1px 0 #000,
+0  -1px 0 #000,
+0   0.5px 0 rgba(0,0,0,0.2);
+}
+.hud-bottom [data-btn="stats"] {
+font-size: clamp(13px, 2.0vw, 20px);
+}
+}
+
+/* ===== Top HUD: Coin Counter ===== */
+.hud-top{
+position: fixed;
+top: calc(env(safe-area-inset-top) + 12px);
+left: 0;
+right: 0;
+z-index: 1000;
+display: flex;
+justify-content: center;   /* centers the bar container perfectly */
+align-items: center;
+pointer-events: none;
+}
+
+/* ===== Defaults (desktop / general) — your values kept ===== */
+:root{
+--coin-h: clamp(48px, 6svh, 72px);       /* BAR height */
+--coin-plus-extra: 20px;                  /* your default */
+--coin-plus-size: calc(var(--coin-h) + var(--coin-plus-extra));
+
+--coin-bar-w: clamp(200px, 36vw, 520px);  /* BAR width (desktop / general) */
+--coin-outline: 4px;
+
+--bar-underlap: 0.50;                     /* bar tucks under coin */
+--hud-x-nudge: 0px;
+
+--bar-y-nudge: 9px;
+}
+
+/* Center by BAR (container width = bar width); clicks enabled on the counter */
+.coin-counter{
+position: relative;
+width: var(--coin-bar-w);                 /* centered by .hud-top flex */
+height: max(var(--coin-plus-size), var(--coin-h));
+pointer-events: auto;
+filter: drop-shadow(0 6px 10px rgba(0,0,0,.18));
+}
+
+/* Coin+base image overlaps from the left; doesn’t affect centering */
+.coin-plus{
+position:absolute;
+top:50%;
+left: calc((var(--bar-underlap) - 1) * var(--coin-plus-size)); /* = -(1 - underlap) * size */
+transform: translateY(-50%);
+z-index:2;
+height: var(--coin-plus-size);
+width:  var(--coin-plus-size);
+object-fit: contain;
+border: none;
+pointer-events: none;
+user-select: none;
+}
+
+/* The BAR: simple centered text, symmetric padding */
+.coin-bar{
+position:relative;
+z-index:1;                 /* behind coin image */
+height: var(--coin-h);
+width: 100%;
+border: var(--coin-outline) solid #000;
+border-radius: 0;
+background: linear-gradient(180deg,#ffd34c,#ffb800);
+
+display:flex;              /* centers the number */
+align-items:center;
+justify-content:center;
+padding: 0 16px;
+box-sizing: border-box;
+overflow: hidden;
+
+/* vertical alignment fix */
+transform: translateY(var(--bar-y-nudge));
+}
+
+/* Optional inner gloss */
+.coin-bar::after{
+content:"";
+position:absolute;
+inset:2px;
+border-radius:0;
+box-shadow:
+inset 0 6px 10px rgba(255,255,255,.18),
+inset 0 -6px 10px rgba(0,0,0,.15);
+pointer-events:none;
+}
+
+/* Number (centered by flex above) */
+.coin-amount{
+position: relative;
+z-index: 1;
+font-weight: 900;
+font-size: clamp(18px, 3.6vw, 32px);
+color: #fff;
+letter-spacing: .5px;
+-webkit-text-stroke: 1px #000; text-stroke: 1px #000;
+text-shadow: 0 1px 0 rgba(0,0,0,.35);
+line-height: 1;
+font-variant-numeric: tabular-nums lining-nums;
+font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* --- Mobile fix: remove boxy drop-shadow on coin counter --- */
+@media (hover: none) and (pointer: coarse) {
+  .coin-counter, .coin-plus {
+    filter: none !important; /* disable shadow for mobile only */
+  }
+}
+
+/* ===== Mobile tweaks ===== */
+
+/* Phone PORTRAIT:
+  - smaller bar
+  - symmetrical gutters so bar remains truly centered
+  - keep coin from clipping without shifting center */
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 600px){
+.hud-top{
+/* reserve space equally on both sides:
+      - safe area
+      - a base gutter
+      - coin overhang requirement */
+--pp-gutter: max(7vw, 24px);
+--pp-reserve: max(
+var(--pp-gutter),
+calc((1 - var(--bar-underlap)) * var(--coin-plus-size) + 10px)
+);
+padding-left:  max(env(safe-area-inset-left),  var(--pp-reserve));
+padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
+}
+:root{
+--coin-bar-w: clamp(240px, 65vw, 320px);
+--coin-plus-extra: 4px;
+--bar-underlap: 0.48;
+--bar-y-nudge: 2px; 
+}
+}
+
+/* Mobile LANDSCAPE: PC-like length (not full width) */
+@media (pointer: coarse) and (orientation: landscape){
+:root{
+--coin-bar-w: clamp(220px, 38vw, 560px);
+}
+}
+
+/* iPad PORTRAIT: slightly shorter bar */
+@media (pointer: coarse) and (orientation: portrait) and (min-width: 768px) and (max-width: 1024px){
+:root{
+--coin-bar-w: min(72vw, 560px);
+}
+}
+
+/* Mobile/tablet only: smoother outline for the coin counter (WebKit stroke off) */
+@media (pointer: coarse){
+  .hud-top .coin-amount{
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    -webkit-text-fill-color: #fff;
+    /* 8-direction “fake stroke” with sub-pixel offsets for Retina */
+    text-shadow:
+      0   0.5px 0 #000,  0  -0.5px 0 #000,
+      0.5px 0   0 #000, -0.5px 0   0 #000,
+      0.5px 0.5px 0 #000,  0.5px -0.5px 0 #000,
+     -0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000,
+      0 1px 0 rgba(0,0,0,0.28) !important;
+  }
+}
+
+/* Endgame nonsense */
+.infinity-symbol {
+  position: relative;
+  color: #fff200;
+  font-weight: 900;
+}
+
+.coin-amount .infinity-symbol {
+  top: -0.11em;
+}

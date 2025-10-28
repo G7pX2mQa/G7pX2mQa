@@ -1,0 +1,140 @@
+/* ===== Waves & Water Layers ===== */
+
+/* Ensure all positioned children stack inside the playfield */
+.area-cove .playfield {
+  position: relative;
+}
+
+/* Layer order: sand (default) < coins (2) < water-base (3) < surges (4) */
+
+/* Coins — behind water & surges */
+.area-cove .playfield .coins-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Static water band (visible at the top) */
+.area-cove .playfield .water-base {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: min(22svh, 22%);
+  z-index: 3;
+
+  background: linear-gradient(
+    to bottom,
+    hsl(194 66% 59%) 0%,
+    hsl(191 64% 56%) 35%,
+    hsl(188 60% 54% / 0.5) 65%,
+    transparent 100%
+  );
+
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
+
+  animation: water-drift 10s linear infinite;
+}
+
+/* Surges (big waves) — wash over water & coins */
+.area-cove .playfield .surges {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* Small continuous horizontal movement for water */
+@keyframes water-drift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 480px 0; }
+}
+
+/* ===== Surge Animation ===== */
+
+.wave-surge {
+  position: absolute;
+  height: clamp(34px, 10svh, 120px);
+  border-radius: 999px;
+  opacity: 1;
+  transform-origin: 50% 0%;
+  background: radial-gradient(
+    85% 70% at 50% 60%,
+    rgba(61,178,204,0.45) 0 55%,
+    rgba(61,178,204,0.18) 70%,
+    rgba(61,178,204,0) 78%
+  );
+  filter: blur(0.2px);
+  --surge-duration: 2600ms;
+  --surge-distance: clamp(100px, 16svh, 240px);
+  --surge-fade-delay: 500ms;
+  --surge-fade-duration: 300ms;
+  transform: translateY(-8px) scaleX(.92); /* match 0% of surge-move */
+  transition: none;
+}
+
+.wave-surge::before,
+.wave-surge::after{ transition: none; }
+
+/* White foam crest */
+/* Foam crest — moved forward toward the leading (downward) edge */
+.wave-surge::after{
+  content:"";
+  position:absolute;
+  /* push the foam down: bigger top inset, smaller bottom inset */
+  inset: 26% 12% 14% 12%;     /* was ~16% 12% 30% 12% */
+  border-radius: inherit;
+
+  /* center of the foam shifted lower (74%) so the highlight sits forward */
+  background:
+    radial-gradient(84% 68% at 58% 74%,
+      rgba(255,255,255,.98) 0 46%,
+      rgba(255,255,255,.70) 60%,
+      rgba(255,255,255,0)   82%),
+    /* subtle cool tint right under the crest adds thickness */
+    radial-gradient(120% 90% at 50% 84%,
+      rgba(51,152,180,.22) 0 40%,
+      transparent 70%);
+
+  transform: translateY(2%);  /* slight forward nudge */
+  animation: foam-breathe 1.6s ease-in-out infinite alternate; /* keep your existing wobble */
+  will-change: transform;
+}
+
+
+/* Movement starts immediately; fade begins 0.5s in */
+.wave-surge.run {
+  animation-name: surge-move, surge-fadeout;
+  animation-duration: var(--surge-duration), var(--surge-fade-duration);
+  animation-delay: 0ms, var(--surge-fade-delay);
+  animation-timing-function: cubic-bezier(.25,.6,.2,1), linear;
+  animation-fill-mode: forwards, forwards;
+}
+
+/* Downward movement */
+@keyframes surge-move {
+  0%   { transform: translateY(-8px) scaleX(.92); opacity: 1; }
+  100% { transform: translateY(var(--surge-distance)) scaleX(1.06); opacity: 1; }
+}
+
+/* Fast fade after 0.5s delay */
+@keyframes surge-fadeout {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ===== Coin Animation ===== */
+
+@keyframes coin-from-wave {
+  0% {
+    transform: translate3d(var(--x0), var(--y0), 0) rotate(-10deg) scale(.96);
+    opacity: .9;
+  }
+  66% {
+    transform: translate3d(var(--x1), var(--y1), 0) rotate(-2deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--x1), var(--y1), 0) rotate(0deg) scale(1);
+  }
+}

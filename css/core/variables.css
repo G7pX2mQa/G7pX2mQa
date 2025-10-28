@@ -1,0 +1,43 @@
+:root {
+  /* Colors */
+  --bg-1: #0a0f1a;
+  --bg-2: #0f1b2e;
+  --panel: #0f1420cc;
+  --card: #141a27;
+  --card-hover: #182133;
+  --text-1: #e8edf7;
+  --text-2: #c2cbe0;
+  --accent: #58b8ff;
+  --accent-2: #7de4c7;
+  --ring: #6fb6ff55;
+
+  /* Animated background base */
+  --bg-3: hsl(188 60% 50%);
+
+  /* Density & speed */
+  --coin-step: clamp(72px, 6.5vw, 120px); /* spacing: bigger = fewer tiles */
+  --coin-speed: 3s;
+
+  /* Sizing & spacing */
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --space-1: .25rem;
+  --space-2: .5rem;
+  --space-3: .75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 3rem;
+
+  /* Shadows */
+  --shadow-1: 0 8px 24px rgba(0,0,0,.35);
+  --shadow-2: 0 2px 0 rgba(255,255,255,.03) inset;
+
+  /* Typography */
+  --font-ui: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --h1: clamp(1.6rem, 3vw, 2.4rem);
+  --h2: clamp(1.1rem, 2vw, 1.3rem);
+  --body: 1rem;
+  --tiny: .8rem;
+}

@@ -1,0 +1,14 @@
+/* css/game/coin.css */
+@keyframes cccCoinCollect {
+  0%   { transform: var(--ccc-start, translate3d(0,0,0)) scale(1);   opacity: 1;    filter: brightness(1); }
+  70%  { transform: var(--ccc-start, translate3d(0,0,0)) scale(1.35) translateY(-12px); opacity: .35; }
+  100% { transform: var(--ccc-start, translate3d(0,0,0)) scale(1.5)  translateY(-14px); opacity: 0; }
+}
+
+/* Use a single-class selector so we don't depend on other classes,
+   and make sure it beats any earlier animation via !important */
+.coin--collected {
+  pointer-events: none !important;
+  animation: cccCoinCollect 220ms cubic-bezier(.2,.9,.35,1) forwards !important;
+  will-change: transform, opacity;
+}
