@@ -946,9 +946,40 @@ export function getUpgrade(areaKey, upgId) {
   return REGISTRY.find(u => u.area === areaKey && u.id === upgId) || null;
 }
 
+function normalizeUpgradeIconPath(iconPath) {
+  const raw = String(iconPath ?? '').trim();
+  if (!raw) return '';
+
+  if (/^(?:https?:|data:|blob:)/i.test(raw)) return raw;
+  if (raw.startsWith('//')) return raw;
+
+  if (raw.startsWith('/')) {
+    return raw.replace(/\/{2,}/g, '/');
+  }
+
+  let path = raw;
+
+  if (path.startsWith('./')) {
+    path = path.replace(/^\.\/+/u, '');
+  }
+
+  while (path.startsWith('../')) {
+    path = path.slice(3);
+  }
+
+  path = path.replace(/^img\//i, '');
+  path = path.replace(/^sc_upgrade_icons\//i, 'sc_upg_icons/');
+
+  if (!path.includes('/')) {
+    path = `sc_upg_icons/${path}`;
+  }
+
+  return `img/${path}`;
+}
+
 export function getIconUrl(upg) {
-  const dir = 'img/';
-  return dir + upg.icon;
+  if (!upg) return '';
+  return normalizeUpgradeIconPath(upg.icon);
 }
 
 /* ------------------------------ Cost helpers ------------------------------ */
