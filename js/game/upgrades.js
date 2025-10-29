@@ -385,6 +385,17 @@ function log10OnePlusPow10(exponent) {
   return Math.log1p(pow) / LN10;
 }
 
+const MAX_LEVEL_DELTA_LIMIT = (() => {
+  try {
+    const approx = levelBigNumToNumber(MAX_LEVEL_DELTA);
+    if (!Number.isFinite(approx)) return Number.POSITIVE_INFINITY;
+    if (approx <= 0) return 0;
+    return Math.floor(approx);
+  } catch {
+    return Number.MAX_SAFE_INTEGER;
+  }
+})();
+
 function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_DELTA, options = {}) {
   const scaling = ensureUpgradeScaling(upg);
   const zero = BigNum.fromInt(0);
@@ -398,15 +409,17 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
 
   const cap = Number.isFinite(upg.lvlCap)
     ? Math.max(0, Math.floor(upg.lvlCap))
-    : Infinity;
+    : Number.POSITIVE_INFINITY;
   const maxLevelsNum = typeof maxLevels === 'number'
     ? maxLevels
     : levelBigNumToNumber(maxLevels);
-  const capRoom = Number.isFinite(cap) ? Math.max(0, cap - startLevelNum) : MAX_LEVEL_DELTA;
+  const capRoom = Number.isFinite(cap)
+    ? Math.max(0, cap - startLevelNum)
+    : MAX_LEVEL_DELTA_LIMIT;
   let room = Number.isFinite(maxLevelsNum)
     ? Math.max(0, Math.floor(maxLevelsNum))
-    : MAX_LEVEL_DELTA;
-  room = Math.min(room, MAX_LEVEL_DELTA, capRoom);
+    : MAX_LEVEL_DELTA_LIMIT;
+  room = Math.min(room, MAX_LEVEL_DELTA_LIMIT, capRoom);
   if (!(room > 0)) {
     const nextPrice = capRoom <= 0 ? zero : BigNum.fromAny(upg.costAtLevel(startLevelNum));
     return { count: zero, spent: zero, nextPrice, numericCount: 0 };
@@ -709,7 +722,7 @@ const REGISTRY = [
     baseCost: 100,
     costType: "coins",
     upgType: "NM",
-    icon: "stats/xp.png",
+    icon: "stats/xp/xp.png",
     costAtLevel(level) {
       return nmCostBN(this, level);
     },
