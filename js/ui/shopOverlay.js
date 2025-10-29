@@ -452,9 +452,20 @@ function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
     if (!Number.isFinite(cap)) {
       return BigNum.fromAny('Infinity');
     }
-    const capBn = BigNum.fromAny(cap);
-    const remaining = capBn.sub(lvlBn);
-    return remaining.isZero?.() ? BigNum.fromInt(0) : remaining;
+    const capBn = upg?.lvlCapBn?.clone?.()
+      ?? BigNum.fromAny(cap);
+    let remaining;
+    try {
+      remaining = capBn.sub(lvlBn);
+    } catch {
+      try {
+        remaining = BigNum.fromAny(cap).sub(lvlBn);
+      } catch {
+        remaining = BigNum.fromInt(0);
+      }
+    }
+    if (!remaining || remaining.isZero?.()) return BigNum.fromInt(0);
+    return remaining;
   }
 
   if (Number.isFinite(cap) && lvl >= cap) return BigNum.fromInt(0);
@@ -791,12 +802,15 @@ export function openUpgradeOverlay(upgDef) {
 
     // gap + total bonus
     info.appendChild(spacer('12px'));
-    const mult = model.upg.effectMultiplier(model.lvl);
-	const multStr = formatMult(mult);
-	const multHtml = multStr.includes('∞') ? multStr.replace('∞', '<span class="infty">∞</span>') : multStr;
-	info.appendChild(
-	  makeLine(`<span class="bonus-line">Total coin spawn rate bonus: ${multHtml}</span>`)
-	);
+    const effectMultiplierFn = model.upg.effectMultiplier;
+    if (typeof effectMultiplierFn === 'function') {
+      const mult = effectMultiplierFn(model.lvl);
+      const multStr = formatMult(mult);
+      const multHtml = multStr.includes('∞') ? multStr.replace('∞', '<span class="infty">∞</span>') : multStr;
+      info.appendChild(
+        makeLine(`<span class="bonus-line">Total coin spawn rate bonus: ${multHtml}</span>`)
+      );
+    }
     info.appendChild(spacer('12px'));
 
     // dynamic currency icon based on costType
