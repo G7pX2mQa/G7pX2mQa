@@ -12,6 +12,9 @@ const KEY_PROGRESS = (slot) => `${KEY_PREFIX}:progress:${slot}`;
 let lastSlot = null;
 let stateLoaded = false;
 let requirementBn = BigNum.fromInt(10);
+const xpRequirementCache = new Map();
+xpRequirementCache.set('0', requirementBn);
+let highestCachedLevel = 0n;
 
 const xpState = {
   unlocked: false,
@@ -117,12 +120,56 @@ function xpRequirementForXpLevel(xpLevelInput) {
     return BigNum.fromAny('Infinity');
   }
 
-  const base = BigNum.fromDecimal('1.1');
-  const req = base.pow(xpLvlBn);
+  let levelPlain = '0';
+  try {
+    levelPlain = xpLvlBn.toPlainIntegerString?.() ?? xpLvlBn.toString?.() ?? '0';
+  } catch {
+    levelPlain = '0';
+  }
 
-  return req.isZero?.() && typeof req.isZero === 'function' && req.isZero()
-    ? BigNum.fromInt(1)
-    : req;
+  if (!levelPlain || levelPlain === 'Infinity') {
+    return BigNum.fromAny('Infinity');
+  }
+
+  let targetLevel;
+  try {
+    targetLevel = BigInt(levelPlain);
+  } catch {
+    targetLevel = 0n;
+  }
+
+  if (targetLevel <= 0n) {
+    const baseRequirement = xpRequirementCache.get('0');
+    return baseRequirement.clone?.() ?? baseRequirement;
+  }
+
+  if (targetLevel > highestCachedLevel) {
+    let currentLevel = highestCachedLevel;
+    let currentRequirement = xpRequirementCache.get(currentLevel.toString());
+    if (!currentRequirement) {
+      currentRequirement = BigNum.fromInt(10);
+      xpRequirementCache.set(currentLevel.toString(), currentRequirement);
+    }
+
+    while (currentLevel < targetLevel) {
+      const nextLevel = currentLevel + 1n;
+      let nextRequirement = currentRequirement.mulDecimalFloor('1.1');
+      if (nextLevel > 1n && ((nextLevel - 1n) % 10n === 0n)) {
+        nextRequirement = nextRequirement.mulDecimalFloor('2.5');
+      }
+      xpRequirementCache.set(nextLevel.toString(), nextRequirement);
+      currentRequirement = nextRequirement;
+      currentLevel = nextLevel;
+    }
+    highestCachedLevel = currentLevel;
+  }
+
+  const cached = xpRequirementCache.get(targetLevel.toString());
+  if (cached) {
+    return cached.clone?.() ?? cached;
+  }
+
+  return BigNum.fromInt(1);
 }
 
 function updateXpRequirement() {
