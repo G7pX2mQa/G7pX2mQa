@@ -679,6 +679,7 @@ function ensureShopOverlay() {
 let upgOverlayEl = null;
 let upgSheetEl = null;
 let upgOpen = false;
+let upgOverlayCleanup = null;
 
 function ensureUpgradeOverlay() {
   if (upgOverlayEl) return;
@@ -747,6 +748,12 @@ function ensureUpgradeOverlay() {
 }
 
 function closeUpgradeMenu() {
+  if (typeof upgOverlayCleanup === 'function') {
+    const fn = upgOverlayCleanup;
+    upgOverlayCleanup = null;
+    try { fn(); } catch {}
+  }
+
   upgOpen = false;
   if (!upgOverlayEl || !upgSheetEl) return;
   upgSheetEl.style.transition = '';
@@ -963,6 +970,19 @@ export function openUpgradeOverlay(upgDef) {
     }
   };
 
+  const onCurrencyChange = () => {
+    if (!upgOpenLocal) return;
+    rerender();
+  };
+
+  const onUpgradesChanged = () => {
+    if (!upgOpenLocal) return;
+    rerender();
+  };
+
+  window.addEventListener('currency:change', onCurrencyChange);
+  document.addEventListener('ccc:upgrades:changed', onUpgradesChanged);
+
   // open + animate
   rerender();
   upgOverlayEl.classList.add('is-open');
@@ -982,10 +1002,16 @@ export function openUpgradeOverlay(upgDef) {
       e.preventDefault();
       upgOpenLocal = false;
       closeUpgradeMenu();
-      window.removeEventListener('keydown', onKey, true);
     }
   };
   window.addEventListener('keydown', onKey, true);
+
+  upgOverlayCleanup = () => {
+    upgOpenLocal = false;
+    window.removeEventListener('currency:change', onCurrencyChange);
+    document.removeEventListener('ccc:upgrades:changed', onUpgradesChanged);
+    window.removeEventListener('keydown', onKey, true);
+  };
 }
 
 // ---------- Controls ----------
