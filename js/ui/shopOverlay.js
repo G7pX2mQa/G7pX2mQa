@@ -15,6 +15,7 @@ import {
   getUpgradesForArea,
   getLevel,
   getLevelNumber,
+  getIconUrl,
   upgradeUiModel,
   buyOne,
   buyMax,
@@ -404,7 +405,7 @@ function buildUpgradesData() {
     const lvlNum = getLevelNumber(areaKey, def.id);
     upgrades[def.id] = {
       id: def.id,
-      icon: `${ICON_DIR}${def.icon}`,
+      icon: getIconUrl(def),
       title: def.title,
       level: lvlBn,
       levelNumeric: lvlNum,
@@ -412,6 +413,58 @@ function buildUpgradesData() {
       meta: def,
     };
   }
+}
+
+function levelsRemainingToCap(upg, currentLevelBn, currentLevelNumber) {
+  if (!upg) return BigNum.fromInt(0);
+
+  const capBn = upg.lvlCapBn?.clone?.() ?? (Number.isFinite(upg.lvlCap)
+    ? BigNum.fromAny(upg.lvlCap)
+    : null);
+
+  if (!capBn) return BigNum.fromInt(0);
+  if (capBn.isInfinite?.()) return BigNum.fromAny('Infinity');
+
+  let lvlBn;
+  try {
+    lvlBn = currentLevelBn instanceof BigNum
+      ? currentLevelBn
+      : BigNum.fromAny(currentLevelBn ?? currentLevelNumber ?? 0);
+  } catch {
+    const fallback = Math.max(0, Math.floor(Number(currentLevelNumber) || 0));
+    lvlBn = BigNum.fromInt(fallback);
+  }
+
+  if (lvlBn.isInfinite?.()) return BigNum.fromInt(0);
+
+  try {
+    const capPlain = capBn.toPlainIntegerString?.();
+    const lvlPlain = lvlBn.toPlainIntegerString?.();
+    if (capPlain === 'Infinity') return BigNum.fromAny('Infinity');
+    if (capPlain && lvlPlain && capPlain !== 'Infinity' && lvlPlain !== 'Infinity') {
+      const capInt = BigInt(capPlain);
+      const lvlInt = BigInt(lvlPlain);
+      const delta = capInt - lvlInt;
+      if (delta > 0n) {
+        return BigNum.fromAny(delta.toString());
+      }
+      return BigNum.fromInt(0);
+    }
+  } catch {}
+
+  const capNumber = Number.isFinite(upg.lvlCap)
+    ? Math.max(0, Math.floor(upg.lvlCap))
+    : Infinity;
+  if (!Number.isFinite(capNumber)) return BigNum.fromAny('Infinity');
+
+  const lvlNumber = Math.max(0, Math.floor(Number(currentLevelNumber) || 0));
+  const room = Math.max(0, capNumber - lvlNumber);
+  if (room > 0) {
+    try { return BigNum.fromAny(room); }
+    catch { return BigNum.fromInt(room | 0); }
+  }
+
+  return BigNum.fromInt(0);
 }
 
 function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
@@ -453,20 +506,7 @@ function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
     if (!Number.isFinite(cap)) {
       return BigNum.fromAny('Infinity');
     }
-    const capBn = upg?.lvlCapBn?.clone?.()
-      ?? BigNum.fromAny(cap);
-    let remaining;
-    try {
-      remaining = capBn.sub(lvlBn);
-    } catch {
-      try {
-        remaining = BigNum.fromAny(cap).sub(lvlBn);
-      } catch {
-        remaining = BigNum.fromInt(0);
-      }
-    }
-    if (!remaining || remaining.isZero?.()) return BigNum.fromInt(0);
-    return remaining;
+    return levelsRemainingToCap(upg, lvlBn, currentLevelNumeric);
   }
 
   if (Number.isFinite(cap) && lvl >= cap) return BigNum.fromInt(0);
