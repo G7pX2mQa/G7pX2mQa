@@ -423,6 +423,7 @@ opacity: 0.85;
   position: relative;
   color: #fff200;
   font-weight: 900;
+  -webkit-text-fill-color: currentColor;
 }
 
 .coin-amount .infinity-symbol {
