@@ -148,6 +148,32 @@ function levelBigNumToNumber(value) {
 
 const LN10 = Math.log(10);
 
+function plainLevelDelta(nextLevelBn, prevLevelBn) {
+  const next = ensureLevelBigNum(nextLevelBn);
+  const prev = ensureLevelBigNum(prevLevelBn);
+
+  if (next.isInfinite?.()) {
+    return prev.isInfinite?.() ? BigNum.fromInt(0) : BigNum.fromAny('Infinity');
+  }
+  if (prev.isInfinite?.()) {
+    return BigNum.fromInt(0);
+  }
+
+  try {
+    const nextPlain = next.toPlainIntegerString?.();
+    const prevPlain = prev.toPlainIntegerString?.();
+    if (!nextPlain || !prevPlain) return BigNum.fromInt(0);
+    if (nextPlain === 'Infinity') return BigNum.fromAny('Infinity');
+    if (prevPlain === 'Infinity') return BigNum.fromInt(0);
+    if (nextPlain === prevPlain) return BigNum.fromInt(0);
+    const diff = BigInt(nextPlain) - BigInt(prevPlain);
+    if (diff <= 0n) return BigNum.fromInt(0);
+    return BigNum.fromAny(diff.toString());
+  } catch {
+    return BigNum.fromInt(0);
+  }
+}
+
 function decimalMultiplierString(value) {
   if (!Number.isFinite(value) || value <= 0) return '1';
   let out = value.toFixed(12);
@@ -1105,6 +1131,7 @@ export function buyMax(areaKey, upgId) {
   if (wallet.isInfinite?.()) {
     const prevLevel = lvlBn.clone?.() ?? ensureLevelBigNum(lvlBn);
     const prevLevelNum = levelBigNumToNumber(prevLevel);
+    const prevLevelStorage = prevLevel.toStorage?.();
     let targetLevelBn;
 
     if (upg.upgType === 'HM') {
@@ -1122,7 +1149,24 @@ export function buyMax(areaKey, upgId) {
       targetLevelBn = capBn?.clone?.() ?? capBn;
     }
 
-    const purchased = targetLevelBn.sub(prevLevel);
+    let purchased = targetLevelBn.sub(prevLevel);
+    if (purchased.isZero?.()) {
+      const plainDelta = plainLevelDelta(targetLevelBn, prevLevel);
+      if (!plainDelta.isZero?.()) {
+        purchased = plainDelta;
+      }
+    }
+    if (purchased.isZero?.()) {
+      const nextStorage = targetLevelBn.toStorage?.();
+      if (prevLevelStorage && nextStorage && prevLevelStorage !== nextStorage) {
+        if (targetLevelBn.isInfinite?.()) {
+          try { purchased = BigNum.fromAny('Infinity'); }
+          catch { purchased = BigNum.fromInt(1); }
+        } else {
+          purchased = BigNum.fromInt(1);
+        }
+      }
+    }
     state.lvlBn = targetLevelBn.clone?.() ?? targetLevelBn;
     if (upg.upgType === 'NM' && Number.isFinite(upg.lvlCap)) {
       state.lvl = upg.lvlCap;
