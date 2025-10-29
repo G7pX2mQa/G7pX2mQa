@@ -720,7 +720,7 @@ const REGISTRY = [
     id: 1,
     title: "Faster Coins",
     desc: "Increases coin spawn rate by +10% per level",
-    lvlCap: "BN:18:118000000000000000:1e999",
+    lvlCap: 10,
     baseCost: 10,
     costType: "coins",
     upgType: "NM",
