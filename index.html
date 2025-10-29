@@ -10,7 +10,6 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
   <link rel="shortcut icon" href="favicon/favicon.ico" type="image/x-icon">
-  <!-- Prevent UI flicker on refresh by reading the flag before CSS paints -->
   <script>
     (function () {
       try {
@@ -20,7 +19,6 @@
       } catch (e) { }
     })();
   </script>
-  <!-- Boot CSS: parsed before external styles -->
 <style>
   /* Force a hard black cover immediately */
   .loading-screen {
@@ -39,8 +37,6 @@
   .booting .menu-root,
   .booting #game-root { display: none !important; }
 </style>
-
-<!-- Add a 'booting' class ASAP so CSS can hide UI immediately -->
 <script>
   document.documentElement.classList.add('booting');
 </script>
@@ -97,17 +93,26 @@
     </section>
   </main>
 
-  <!-- Game root (starter cove) -->
   <main id="game-root" class="area area-cove" hidden>
-	<!-- Coin Counter HUD -->
-	<div class="hud-top">
-	  <div class="coin-counter">
+        <div class="hud-top">
+          <div class="coin-counter">
         <img src="img/currencies/coin/coin_plus_base.png" alt="" class="coin-plus">
-	    <div class="coin-bar">
+            <div class="coin-bar">
         <span class="coin-amount">0</span>
         </div>
-	  </div>
-	</div>
+          </div>
+
+          <div class="xp-counter" data-xp-hud hidden>
+            <img src="img/stats/xp/xp_plus_base.png" alt="" class="xp-plus">
+            <div class="xp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0 / 10 XP">
+              <div class="xp-bar__fill" style="width: 0%;"></div>
+              <div class="xp-bar__frame">
+                <div class="xp-bar__level">Lv <span class="xp-level-value">0</span></div>
+                <div class="xp-bar__progress" data-xp-progress>0<span class="xp-progress-separator">/</span>10<span class="xp-progress-suffix">XP</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
 
     <section class="playfield" aria-label="Starter Cove Sand">
       <div class="waves" id="waves">
