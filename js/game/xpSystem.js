@@ -6,7 +6,7 @@ import { formatNumber } from '../util/numFormat.js';
 
 const KEY_PREFIX = 'ccc:xp';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
-const KEY_LEVEL = (slot) => `${KEY_PREFIX}:level:${slot}`;
+const KEY_XP_LEVEL = (slot) => `${KEY_PREFIX}:level:${slot}`;
 const KEY_PROGRESS = (slot) => `${KEY_PREFIX}:progress:${slot}`;
 
 let lastSlot = null;
@@ -15,7 +15,7 @@ let requirementBn = BigNum.fromInt(10);
 
 const xpState = {
   unlocked: false,
-  level: BigNum.fromInt(0),
+  xpLevel: BigNum.fromInt(0),
   progress: BigNum.fromInt(0),
 };
 
@@ -23,7 +23,7 @@ const hudRefs = {
   container: null,
   bar: null,
   fill: null,
-  level: null,
+  xpLevelValue: null,
   progress: null,
 };
 
@@ -97,45 +97,40 @@ function ensureHudRefs() {
   if (!hudRefs.container) return false;
   hudRefs.bar = hudRefs.container.querySelector('.xp-bar');
   hudRefs.fill = hudRefs.container.querySelector('.xp-bar__fill');
-  hudRefs.level = hudRefs.container.querySelector('.xp-level-value');
+  hudRefs.xpLevelValue = hudRefs.container.querySelector('.xp-level-value');
   hudRefs.progress = hudRefs.container.querySelector('[data-xp-progress]');
   return true;
 }
 
-function xpRequirementFor(levelInput) {
-  let lvlBn;
+function xpRequirementForXpLevel(xpLevelInput) {
+  let xpLvlBn;
   try {
-    lvlBn = levelInput instanceof BigNum ? (levelInput.clone?.() ?? levelInput) : BigNum.fromAny(levelInput ?? 0);
+    xpLvlBn = xpLevelInput instanceof BigNum
+      ? (xpLevelInput.clone?.() ?? xpLevelInput)
+      : BigNum.fromAny(xpLevelInput ?? 0);
   } catch {
-    lvlBn = BigNum.fromInt(0);
+    xpLvlBn = BigNum.fromInt(0);
   }
-  const lvlIsInf = lvlBn.isInfinite?.() || (typeof lvlBn.isInfinite === 'function' && lvlBn.isInfinite());
+
+  const lvlIsInf = xpLvlBn.isInfinite?.() || (typeof xpLvlBn.isInfinite === 'function' && xpLvlBn.isInfinite());
   if (lvlIsInf) {
     return BigNum.fromAny('Infinity');
   }
-  const base = BigNum.fromInt(10);
-  const linear = typeof lvlBn.mulSmall === 'function' ? lvlBn.mulSmall(2) : BigNum.fromInt(0);
-  const slow = typeof lvlBn.mulDecimalFloor === 'function' ? lvlBn.mulDecimalFloor('0.75') : BigNum.fromInt(0);
-  let quad = BigNum.fromInt(0);
-  if (typeof lvlBn.mulBigNumInteger === 'function' && typeof lvlBn.mulDecimalFloor === 'function') {
-    try {
-      quad = lvlBn.mulBigNumInteger(lvlBn).mulDecimalFloor('0.1');
-    } catch {
-      quad = BigNum.fromInt(0);
-    }
-  }
-  const req = base.add(linear).add(slow).add(quad);
+
+  const base = BigNum.fromDecimal('1.1');
+  const req = base.pow(xpLvlBn);
+
   return req.isZero?.() && typeof req.isZero === 'function' && req.isZero()
     ? BigNum.fromInt(1)
     : req;
 }
 
-function updateRequirement() {
-  requirementBn = xpRequirementFor(xpState.level);
+function updateXpRequirement() {
+  requirementBn = xpRequirementForXpLevel(xpState.xpLevel);
 }
 
 function normalizeProgress(applyRewards = false) {
-  updateRequirement();
+  updateXpRequirement();
   const reqIsInf = requirementBn.isInfinite?.() || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
   if (reqIsInf) {
     xpState.progress = bnZero();
@@ -146,10 +141,10 @@ function normalizeProgress(applyRewards = false) {
   while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
     try { xpState.progress = xpState.progress.sub(requirementBn); }
     catch { xpState.progress = bnZero(); }
-    try { xpState.level = xpState.level.add(bnOne()); }
-    catch { xpState.level = bnZero(); }
-    if (applyRewards) handleLevelUpRewards();
-    updateRequirement();
+    try { xpState.xpLevel = xpState.xpLevel.add(bnOne()); }
+    catch { xpState.xpLevel = bnZero(); }
+    if (applyRewards) handleXpLevelUpRewards();
+    updateXpRequirement();
     const nextReqInf = requirementBn.isInfinite?.() || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
     if (nextReqInf) {
       xpState.progress = bnZero();
@@ -168,9 +163,9 @@ function ensureStateLoaded() {
     lastSlot = null;
     stateLoaded = false;
     xpState.unlocked = false;
-    xpState.level = bnZero();
+    xpState.xpLevel = bnZero();
     xpState.progress = bnZero();
-    updateRequirement();
+    updateXpRequirement();
     return xpState;
   }
   if (stateLoaded && slot === lastSlot) return xpState;
@@ -183,16 +178,16 @@ function ensureStateLoaded() {
     xpState.unlocked = false;
   }
   try {
-    xpState.level = BigNum.fromAny(localStorage.getItem(KEY_LEVEL(slot)) ?? '0');
+    xpState.xpLevel = BigNum.fromAny(localStorage.getItem(KEY_XP_LEVEL(slot)) ?? '0');
   } catch {
-    xpState.level = bnZero();
+    xpState.xpLevel = bnZero();
   }
   try {
     xpState.progress = BigNum.fromAny(localStorage.getItem(KEY_PROGRESS(slot)) ?? '0');
   } catch {
     xpState.progress = bnZero();
   }
-  updateRequirement();
+  updateXpRequirement();
   normalizeProgress(false);
   return xpState;
 }
@@ -201,11 +196,11 @@ function persistState() {
   const slot = getActiveSlot();
   if (slot == null) return;
   try { localStorage.setItem(KEY_UNLOCK(slot), xpState.unlocked ? '1' : '0'); } catch {}
-  try { localStorage.setItem(KEY_LEVEL(slot), xpState.level.toStorage()); } catch {}
+  try { localStorage.setItem(KEY_XP_LEVEL(slot), xpState.xpLevel.toStorage()); } catch {}
   try { localStorage.setItem(KEY_PROGRESS(slot), xpState.progress.toStorage()); } catch {}
 }
 
-function handleLevelUpRewards() {
+function handleXpLevelUpRewards() {
   try {
     if (bank?.coins?.mult?.multiplyByDecimal) {
       bank.coins.mult.multiplyByDecimal('1.1');
@@ -220,7 +215,7 @@ function handleLevelUpRewards() {
 
 function updateHud() {
   if (!ensureHudRefs()) return;
-  const { container, bar, fill, level, progress } = hudRefs;
+  const { container, bar, fill, xpLevelValue, progress } = hudRefs;
   if (!container) return;
   if (!xpState.unlocked) {
     container.setAttribute('hidden', '');
@@ -228,7 +223,7 @@ function updateHud() {
       fill.style.setProperty('--xp-fill', '0%');
       fill.style.width = '0%';
     }
-    if (level) level.textContent = '0';
+    if (xpLevelValue) xpLevelValue.textContent = '0';
     if (progress) {
       const reqHtml = formatNumber(requirementBn);
       progress.innerHTML = `<span class="xp-progress-current">0</span><span class="xp-progress-separator">/</span><span class="xp-progress-required">${reqHtml}</span><span class="xp-progress-suffix">XP</span>`;
@@ -249,8 +244,8 @@ function updateHud() {
     fill.style.setProperty('--xp-fill', pct);
     fill.style.width = pct;
   }
-  if (level) {
-    level.innerHTML = formatNumber(xpState.level);
+  if (xpLevelValue) {
+    xpLevelValue.innerHTML = formatNumber(xpState.xpLevel);
   }
   if (progress) {
     const currentHtml = formatNumber(xpState.progress);
@@ -268,7 +263,7 @@ function updateHud() {
 export function initXpSystem() {
   ensureHudRefs();
   ensureStateLoaded();
-  updateRequirement();
+  updateXpRequirement();
   updateHud();
   return getXpState();
 }
@@ -291,7 +286,7 @@ export function unlockXpSystem() {
 export function addXp(amount, { silent = false } = {}) {
   ensureStateLoaded();
   if (!xpState.unlocked) {
-    return { unlocked: false, levelsGained: bnZero(), xpAdded: bnZero(), level: xpState.level, requirement: requirementBn };
+    return { unlocked: false, xpLevelsGained: bnZero(), xpAdded: bnZero(), xpLevel: xpState.xpLevel, requirement: requirementBn };
   }
   let inc;
   try {
@@ -301,19 +296,19 @@ export function addXp(amount, { silent = false } = {}) {
   }
   if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
     updateHud();
-    return { unlocked: true, levelsGained: bnZero(), xpAdded: inc, level: xpState.level, requirement: requirementBn };
+    return { unlocked: true, xpLevelsGained: bnZero(), xpAdded: inc, xpLevel: xpState.xpLevel, requirement: requirementBn };
   }
   xpState.progress = xpState.progress.add(inc);
-  updateRequirement();
-  let levelsGained = bnZero();
+  updateXpRequirement();
+  let xpLevelsGained = bnZero();
   let guard = 0;
   const limit = 100000;
   while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
     xpState.progress = xpState.progress.sub(requirementBn);
-    xpState.level = xpState.level.add(bnOne());
-    levelsGained = levelsGained.add(bnOne());
-    handleLevelUpRewards();
-    updateRequirement();
+    xpState.xpLevel = xpState.xpLevel.add(bnOne());
+    xpLevelsGained = xpLevelsGained.add(bnOne());
+    handleXpLevelUpRewards();
+    updateXpRequirement();
     const reqIsInf = requirementBn.isInfinite?.() || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
     if (reqIsInf) {
       xpState.progress = bnZero();
@@ -328,9 +323,9 @@ export function addXp(amount, { silent = false } = {}) {
   updateHud();
   const detail = {
     unlocked: true,
-    levelsGained,
+    xpLevelsGained,
     xpAdded: inc,
-    level: xpState.level.clone?.() ?? xpState.level,
+    xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
     progress: xpState.progress.clone?.() ?? xpState.progress,
     requirement: requirementBn.clone?.() ?? requirementBn,
   };
@@ -344,7 +339,7 @@ export function getXpState() {
   ensureStateLoaded();
   return {
     unlocked: xpState.unlocked,
-    level: xpState.level.clone?.() ?? xpState.level,
+    xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
     progress: xpState.progress.clone?.() ?? xpState.progress,
     requirement: requirementBn.clone?.() ?? requirementBn,
   };
@@ -355,8 +350,8 @@ export function isXpSystemUnlocked() {
   return !!xpState.unlocked;
 }
 
-export function getXpRequirementForLevel(level) {
-  return xpRequirementFor(level);
+export function getXpRequirementForXpLevel(xpLevel) {
+  return xpRequirementForXpLevel(xpLevel);
 }
 
 if (typeof window !== 'undefined') {
@@ -367,6 +362,6 @@ if (typeof window !== 'undefined') {
     addXp,
     getXpState,
     isXpSystemUnlocked,
-    getXpRequirementForLevel,
+    getXpRequirementForXpLevel,
   });
 }
