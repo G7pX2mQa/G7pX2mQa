@@ -2,6 +2,7 @@
 import { bank, getActiveSlot } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
+import { unlockXpSystem } from './xpSystem.js';
 
 export const MAX_LEVEL_DELTA = BigNum.INF || BigNum.fromAny('1e100000000'); 
 
@@ -624,6 +625,40 @@ function formatBigNumAsPlain(bn) {
   return formatBigNumAsHtml(bn).replace(/<[^>]*>/g, '');
 }
 
+function safeCloneBigNum(value) {
+  if (value instanceof BigNum) {
+    try { return value.clone?.() ?? BigNum.fromAny(value); }
+    catch { return BigNum.fromInt(0); }
+  }
+  try {
+    return BigNum.fromAny(value ?? 0);
+  } catch {
+    return BigNum.fromInt(0);
+  }
+}
+
+function emitUpgradeLevelChange(upg, prevLevelNum, prevLevelBn, nextLevelNum, nextLevelBn) {
+  if (!upg || typeof upg.onLevelChange !== 'function') return;
+
+  const oldBn = safeCloneBigNum(prevLevelBn ?? prevLevelNum ?? 0);
+  const newBn = safeCloneBigNum(nextLevelBn ?? nextLevelNum ?? 0);
+  const payload = {
+    upgrade: upg,
+    oldLevel: Number.isFinite(prevLevelNum)
+      ? prevLevelNum
+      : levelBigNumToNumber(oldBn),
+    newLevel: Number.isFinite(nextLevelNum)
+      ? nextLevelNum
+      : levelBigNumToNumber(newBn),
+    oldLevelBn: oldBn,
+    newLevelBn: newBn,
+  };
+
+  try {
+    upg.onLevelChange(payload);
+  } catch {}
+}
+
 function nmCostBN(upg, level) {
   return costAtLevelUsingScaling(upg, level);
 }
@@ -646,7 +681,7 @@ const REGISTRY = [
     id: 1,
     title: "Faster Coins",
     desc: "Increases coin spawn rate by +10% per level",
-    lvlCap: 10,
+    lvlCap: "BN:18:118000000000000000:1e999",
     baseCost: 10,
     costType: "coins",
     upgType: "NM",
@@ -848,6 +883,8 @@ export function setLevel(areaKey, upgId, lvl, clampToCap = true) {
   const state = ensureUpgradeState(areaKey, upgId);
   const upg = state.upg;
   const cap = upg?.lvlCap ?? Infinity;
+  const prevLevelNum = state.lvl;
+  const prevLevelBn = safeCloneBigNum(state.lvlBn ?? ensureLevelBigNum(state.lvl ?? 0));
   let desiredBn = ensureLevelBigNum(lvl);
   if (desiredBn.isInfinite?.()) {
     desiredBn = BigNum.fromAny('Infinity');
@@ -881,6 +918,7 @@ export function setLevel(areaKey, upgId, lvl, clampToCap = true) {
 
   commitUpgradeState(state);
   invalidateUpgradeState(areaKey, upgId);
+  emitUpgradeLevelChange(upg, prevLevelNum, prevLevelBn, state.lvl, state.lvlBn);
   notifyChanged();
   return state.lvl;
 }
@@ -926,6 +964,7 @@ export function buyOne(areaKey, upgId) {
 
   const lvlNum = state.lvl;
   const lvlBn = state.lvlBn ?? ensureLevelBigNum(lvlNum);
+  const prevLevelBn = safeCloneBigNum(lvlBn);
   if (lvlNum >= upg.lvlCap) return { bought: 0, spent: 0 };
 
   const price = state.nextCostBn ?? BigNum.fromAny(upg.costAtLevel(lvlNum));
@@ -950,6 +989,7 @@ export function buyOne(areaKey, upgId) {
   );
   commitUpgradeState(state);
   invalidateUpgradeState(areaKey, upgId);
+  emitUpgradeLevelChange(upg, lvlNum, prevLevelBn, state.lvl, state.lvlBn);
   notifyChanged();
   return { bought: 1, spent };
 }
@@ -976,6 +1016,7 @@ export function buyMax(areaKey, upgId) {
 
   if (wallet.isInfinite?.()) {
     const prevLevel = lvlBn.clone?.() ?? ensureLevelBigNum(lvlBn);
+    const prevLevelNum = levelBigNumToNumber(prevLevel);
     let targetLevelBn;
 
     if (upg.upgType === 'HM') {
@@ -1006,6 +1047,13 @@ export function buyMax(areaKey, upgId) {
 
     commitUpgradeState(state);
     invalidateUpgradeState(areaKey, upgId);
+    emitUpgradeLevelChange(
+      upg,
+      prevLevelNum,
+      prevLevel,
+      state.lvl,
+      state.lvlBn,
+    );
     notifyChanged();
 
     return { bought: purchased, spent: BigNum.fromInt(0) };
@@ -1045,6 +1093,7 @@ export function buyMax(areaKey, upgId) {
   }
   commitUpgradeState(state);
   invalidateUpgradeState(areaKey, upgId);
+  emitUpgradeLevelChange(upg, lvlNum, lvlBn, state.lvl, state.lvlBn);
   notifyChanged();
 
   return { bought: countBn, spent };
