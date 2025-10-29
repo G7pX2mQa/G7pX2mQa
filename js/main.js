@@ -354,6 +354,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       'img/currencies/coin/coin_base.png',
       'img/currencies/coin/coin_plus_base.png',
 	  'img/currencies/book/book.png',
+	  'img/currencies/book/book_base.png',
+      'img/currencies/book/book_plus_base.png',
       'img/sc_upg_icons/faster_coins.png',
 	  'img/stats/xp/xp.png',
 	  'img/stats/xp/xp_base.png',
