@@ -312,7 +312,12 @@ export class BigNum {
   cmp(b) {
     b = BigNum.fromAny(b, this.p);
     if (this.inf || b.inf) return this.inf === b.inf ? 0 : this.inf ? 1 : -1;
-    if (this.isZero() && b.isZero()) return 0;
+    const thisIsZero = this.isZero();
+    const otherIsZero = typeof b.isZero === 'function' ? b.isZero() : false;
+    if (thisIsZero || otherIsZero) {
+      if (thisIsZero && otherIsZero) return 0;
+      return thisIsZero ? -1 : 1;
+    }
     const expCmp = this.#compareExponent(b);
     if (expCmp !== 0) return expCmp;
     if (this.sig === b.sig) return 0;
