@@ -613,8 +613,9 @@
   }
 }
 
-
-.bonus-line .infty {
+.bonus-line .infinity-symbol {
   display: inline-block;
   transform: translateY(0.03em);
+  text-shadow: 0 0.08em 0.18em rgba(0, 0, 0, 0.4);
+  -webkit-text-fill-color: currentColor;
 }
