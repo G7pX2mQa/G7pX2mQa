@@ -685,7 +685,7 @@ const REGISTRY = [
     baseCost: 10,
     costType: "coins",
     upgType: "NM",
-    icon: "faster_coins_id_1.png",
+    icon: "sc_upgrade_icons/faster_coins.png",
     costAtLevel(level) {
       return nmCostBN(this, level);
     },
@@ -709,7 +709,7 @@ const REGISTRY = [
     baseCost: 100,
     costType: "coins",
     upgType: "NM",
-    icon: "unlock_xp_id_2.png",
+    icon: "stats/xp.png",
     costAtLevel(level) {
       return nmCostBN(this, level);
     },
@@ -934,7 +934,7 @@ export function getUpgrade(areaKey, upgId) {
 }
 
 export function getIconUrl(upg) {
-  const dir = 'img/sc_upg_icons/';
+  const dir = 'img/';
   return dir + upg.icon;
 }
 
