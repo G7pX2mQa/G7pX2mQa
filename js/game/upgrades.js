@@ -953,28 +953,72 @@ function normalizeUpgradeIconPath(iconPath) {
   if (/^(?:https?:|data:|blob:)/i.test(raw)) return raw;
   if (raw.startsWith('//')) return raw;
 
-  if (raw.startsWith('/')) {
-    return raw.replace(/\/{2,}/g, '/');
+  const replaceSlashes = (value) => value.replace(/\\+/g, '/');
+  let path = replaceSlashes(raw);
+
+  if (path.startsWith('/')) {
+    return path.replace(/\/{2,}/g, '/');
   }
 
-  let path = raw;
-
-  if (path.startsWith('./')) {
-    path = path.replace(/^\.\/+/u, '');
-  }
-
+  path = path.replace(/^\.\/+/u, '');
   while (path.startsWith('../')) {
     path = path.slice(3);
   }
 
-  path = path.replace(/^img\//i, '');
-  path = path.replace(/^sc_upgrade_icons\//i, 'sc_upg_icons/');
+  const segments = path
+    .split('/')
+    .map(seg => seg.trim())
+    .filter(seg => seg && seg !== '.');
 
-  if (!path.includes('/')) {
-    path = `sc_upg_icons/${path}`;
+  if (!segments.length) return '';
+
+  const normalized = [];
+  for (const segment of segments) {
+    if (segment === '..') {
+      normalized.pop();
+      continue;
+    }
+    normalized.push(segment);
   }
 
-  return `img/${path}`;
+  if (!normalized.length) return '';
+
+  const SHARED_ROOTS = new Set(['stats', 'currencies', 'misc']);
+
+  for (let i = 0; i < normalized.length; i += 1) {
+    const lower = normalized[i].toLowerCase();
+    if (lower === 'img') {
+      normalized.splice(i, 1);
+      i -= 1;
+      continue;
+    }
+
+    if (lower === 'sc_upgrade_icons' || lower === 'sc_upg_icons') {
+      normalized[i] = 'sc_upg_icons';
+      while (normalized[i + 1] && /^(?:sc_upgrade_icons|sc_upg_icons)$/i.test(normalized[i + 1])) {
+        normalized.splice(i + 1, 1);
+      }
+    }
+  }
+
+  if (!normalized.length) return '';
+
+  if (
+    normalized.length > 1
+    && normalized[0].toLowerCase() === 'sc_upg_icons'
+    && SHARED_ROOTS.has(normalized[1].toLowerCase())
+  ) {
+    normalized.shift();
+  }
+
+  if (normalized.length === 1) {
+    normalized.unshift('sc_upg_icons');
+  }
+
+  const result = normalized.join('/');
+  if (!result) return '';
+
+  return `img/${result}`;
 }
 
 export function getIconUrl(upg) {
