@@ -346,7 +346,11 @@ export function addXp(amount, { silent = false } = {}) {
   }
   let inc;
   try {
-    inc = amount instanceof BigNum ? amount : BigNum.fromAny(amount ?? 0);
+    if (amount instanceof BigNum) {
+      inc = amount.clone?.() ?? BigNum.fromAny(amount ?? 0);
+    } else {
+      inc = BigNum.fromAny(amount ?? 0);
+    }
   } catch {
     inc = bnZero();
   }
@@ -379,8 +383,8 @@ export function addXp(amount, { silent = false } = {}) {
   updateHud();
   const detail = {
     unlocked: true,
-    xpLevelsGained,
-    xpAdded: inc,
+    xpLevelsGained: xpLevelsGained.clone?.() ?? xpLevelsGained,
+    xpAdded: inc.clone?.() ?? inc,
     xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
     progress: xpState.progress.clone?.() ?? xpState.progress,
     requirement: requirementBn.clone?.() ?? requirementBn,
