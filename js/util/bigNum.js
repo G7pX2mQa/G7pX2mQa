@@ -323,7 +323,6 @@ export class BigNum {
     if (this.sig === b.sig) return 0;
     return this.sig > b.sig ? 1 : -1;
   }
-  
   // ----- Decimal multiply (exact, integer-safe) & flooring -----
 
   // Parse decimal like "2.345" (or number) into { numer: BigInt, scale: int } with up to maxScale frac digits.
