@@ -176,6 +176,12 @@ function updateXpRequirement() {
   requirementBn = xpRequirementForXpLevel(xpState.xpLevel);
 }
 
+function resetLockedXpState() {
+  xpState.xpLevel = bnZero();
+  xpState.progress = bnZero();
+  updateXpRequirement();
+}
+
 function normalizeProgress(applyRewards = false) {
   updateXpRequirement();
   const reqIsInf = requirementBn.isInfinite?.() || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
@@ -210,9 +216,7 @@ function ensureStateLoaded() {
     lastSlot = null;
     stateLoaded = false;
     xpState.unlocked = false;
-    xpState.xpLevel = bnZero();
-    xpState.progress = bnZero();
-    updateXpRequirement();
+    resetLockedXpState();
     return xpState;
   }
   if (stateLoaded && slot === lastSlot) return xpState;
@@ -233,6 +237,10 @@ function ensureStateLoaded() {
     xpState.progress = BigNum.fromAny(localStorage.getItem(KEY_PROGRESS(slot)) ?? '0');
   } catch {
     xpState.progress = bnZero();
+  }
+  if (!xpState.unlocked) {
+    resetLockedXpState();
+    return xpState;
   }
   updateXpRequirement();
   normalizeProgress(false);
@@ -321,6 +329,7 @@ export function unlockXpSystem() {
     updateHud();
     return false;
   }
+  resetLockedXpState();
   xpState.unlocked = true;
   persistState();
   updateHud();
