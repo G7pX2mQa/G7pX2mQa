@@ -4,10 +4,13 @@ import { bank, getActiveSlot } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { unlockShop } from '../ui/hudButtons.js';
+import { addXp, isXpSystemUnlocked } from './xpSystem.js';
 
 let coinPickup = null;
 
+const XP_PER_COIN = BigNum.fromInt(1);
 let COIN_MULTIPLIER = '1';
+
 export function setCoinMultiplier(x) {
   COIN_MULTIPLIER = x;
   try {
@@ -252,17 +255,18 @@ export function initCoinPickup({
     if (!isCoin(el)) return false;
     el.dataset.collected = '1';
 
-    // SFX/FX
     playSound();
     animateAndRemove(el);
 
-    // amount to increment
     const base = resolveCoinBase(el);
-    const inc  = bank.coins.mult.applyTo(base); // BN
-
-    // Persist coins + update HUD
-    coins = bank.coins.add(inc);   // returns new BigNum total
+    const inc  = bank.coins.mult.applyTo(base);
+	
+    coins = bank.coins.add(inc);
     updateHud();
+
+    if (typeof isXpSystemUnlocked === 'function' && isXpSystemUnlocked()) {
+      try { addXp?.(XP_PER_COIN); } catch {}
+    }
 
     // progress toward shop unlock (slot-scoped)
     if (localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
