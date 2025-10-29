@@ -167,7 +167,7 @@ font-size: clamp(13px, 2.0vw, 20px);
 }
 }
 
-/* ===== Top HUD: Coin Counter ===== */
+/* ===== Top HUD: Coin Counter + Other stuff ===== */
 .hud-top{
 position: fixed;
 top: calc(env(safe-area-inset-top) + 12px);
@@ -175,40 +175,40 @@ left: 0;
 right: 0;
 z-index: 1000;
 display: flex;
-justify-content: center;   /* centers the bar container perfectly */
+justify-content: center;
 align-items: center;
+flex-direction: column;
+gap: clamp(6px, 1.2svh, 12px);
 pointer-events: none;
 }
 
-/* ===== Defaults (desktop / general) — your values kept ===== */
+/* ===== Defaults (desktop / general) ===== */
 :root{
---coin-h: clamp(48px, 6svh, 72px);       /* BAR height */
---coin-plus-extra: 20px;                  /* your default */
+--coin-h: clamp(48px, 6svh, 72px);
+--coin-plus-extra: 20px;
 --coin-plus-size: calc(var(--coin-h) + var(--coin-plus-extra));
 
---coin-bar-w: clamp(200px, 36vw, 520px);  /* BAR width (desktop / general) */
+--coin-bar-w: clamp(200px, 36vw, 520px);
 --coin-outline: 4px;
 
---bar-underlap: 0.50;                     /* bar tucks under coin */
+--bar-underlap: 0.50;
 --hud-x-nudge: 0px;
 
 --bar-y-nudge: 9px;
 }
 
-/* Center by BAR (container width = bar width); clicks enabled on the counter */
 .coin-counter{
 position: relative;
-width: var(--coin-bar-w);                 /* centered by .hud-top flex */
+width: var(--coin-bar-w);
 height: max(var(--coin-plus-size), var(--coin-h));
 pointer-events: auto;
 filter: drop-shadow(0 6px 10px rgba(0,0,0,.18));
 }
 
-/* Coin+base image overlaps from the left; doesn’t affect centering */
 .coin-plus{
 position:absolute;
 top:50%;
-left: calc((var(--bar-underlap) - 1) * var(--coin-plus-size)); /* = -(1 - underlap) * size */
+left: calc((var(--bar-underlap) - 1) * var(--coin-plus-size));
 transform: translateY(-50%);
 z-index:2;
 height: var(--coin-plus-size);
@@ -219,28 +219,25 @@ pointer-events: none;
 user-select: none;
 }
 
-/* The BAR: simple centered text, symmetric padding */
 .coin-bar{
 position:relative;
-z-index:1;                 /* behind coin image */
+z-index:1;
 height: var(--coin-h);
 width: 100%;
 border: var(--coin-outline) solid #000;
 border-radius: 0;
 background: linear-gradient(180deg,#ffd34c,#ffb800);
 
-display:flex;              /* centers the number */
+display:flex;
 align-items:center;
 justify-content:center;
 padding: 0 16px;
 box-sizing: border-box;
 overflow: hidden;
 
-/* vertical alignment fix */
 transform: translateY(var(--bar-y-nudge));
 }
 
-/* Optional inner gloss */
 .coin-bar::after{
 content:"";
 position:absolute;
@@ -252,7 +249,6 @@ inset 0 -6px 10px rgba(0,0,0,.15);
 pointer-events:none;
 }
 
-/* Number (centered by flex above) */
 .coin-amount{
 position: relative;
 z-index: 1;
@@ -267,25 +263,14 @@ font-variant-numeric: tabular-nums lining-nums;
 font-feature-settings: "tnum" 1, "lnum" 1;
 }
 
-/* --- Mobile fix: remove boxy drop-shadow on coin counter --- */
 @media (hover: none) and (pointer: coarse) {
   .coin-counter, .coin-plus {
-    filter: none !important; /* disable shadow for mobile only */
+    filter: none !important;
   }
 }
 
-/* ===== Mobile tweaks ===== */
-
-/* Phone PORTRAIT:
-  - smaller bar
-  - symmetrical gutters so bar remains truly centered
-  - keep coin from clipping without shifting center */
 @media (pointer: coarse) and (orientation: portrait) and (max-width: 600px){
 .hud-top{
-/* reserve space equally on both sides:
-      - safe area
-      - a base gutter
-      - coin overhang requirement */
 --pp-gutter: max(7vw, 24px);
 --pp-reserve: max(
 var(--pp-gutter),
@@ -302,33 +287,134 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
 }
 }
 
-/* Mobile LANDSCAPE: PC-like length (not full width) */
 @media (pointer: coarse) and (orientation: landscape){
 :root{
 --coin-bar-w: clamp(220px, 38vw, 560px);
 }
 }
 
-/* iPad PORTRAIT: slightly shorter bar */
 @media (pointer: coarse) and (orientation: portrait) and (min-width: 768px) and (max-width: 1024px){
 :root{
 --coin-bar-w: min(72vw, 560px);
 }
 }
 
-/* Mobile/tablet only: smoother outline for the coin counter (WebKit stroke off) */
 @media (pointer: coarse){
   .hud-top .coin-amount{
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
     -webkit-text-fill-color: #fff;
-    /* 8-direction “fake stroke” with sub-pixel offsets for Retina */
     text-shadow:
       0   0.5px 0 #000,  0  -0.5px 0 #000,
       0.5px 0   0 #000, -0.5px 0   0 #000,
       0.5px 0.5px 0 #000,  0.5px -0.5px 0 #000,
      -0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000,
       0 1px 0 rgba(0,0,0,0.28) !important;
+  }
+}
+
+/* ===== XP HUD ===== */
+.xp-counter{
+position: relative;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: clamp(6px, 1.4svh, 12px);
+pointer-events: none;
+}
+
+.xp-counter[hidden]{
+display: none !important;
+}
+
+.xp-plus{
+height: clamp(32px, 4.6svh, 56px);
+width: auto;
+object-fit: contain;
+pointer-events: none;
+filter: drop-shadow(0 4px 10px rgba(0,0,0,0.28));
+}
+
+.xp-bar{
+--xp-bar-h: clamp(20px, 3.8svh, 26px);
+width: clamp(180px, 34vw, 360px);
+height: var(--xp-bar-h);
+border-radius: 12px;
+border: 3px solid rgba(0,0,0,0.85);
+background: linear-gradient(180deg, rgba(8,18,38,0.82), rgba(12,22,42,0.65));
+box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+position: relative;
+overflow: hidden;
+pointer-events: none;
+}
+
+.xp-bar__fill{
+position: absolute;
+inset: 0;
+width: var(--xp-fill, 0%);
+background: linear-gradient(90deg, rgba(70,128,240,0.55) 0%, rgba(108,186,255,0.85) 60%, rgba(160,228,255,0.95) 100%);
+transition: width 160ms ease-out;
+}
+
+.xp-bar__fill::after{
+content: "";
+position: absolute;
+inset: 0;
+background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0));
+opacity: 0.65;
+mix-blend-mode: screen;
+}
+
+.xp-bar__frame{
+position: relative;
+z-index: 1;
+height: 100%;
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 0 clamp(10px, 2.4vw, 18px);
+font-size: clamp(12px, 2.4vw, 18px);
+font-weight: 700;
+color: #f0f7ff;
+text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+pointer-events: none;
+}
+
+.xp-bar__level{
+display: flex;
+align-items: baseline;
+gap: 4px;
+letter-spacing: 0.04em;
+}
+
+.xp-level-value{
+font-size: clamp(15px, 3.2vw, 22px);
+}
+
+.xp-bar__progress{
+display: flex;
+align-items: baseline;
+gap: 4px;
+font-size: clamp(11px, 2vw, 16px);
+white-space: nowrap;
+}
+
+.xp-progress-suffix{
+font-weight: 600;
+letter-spacing: 0.05em;
+}
+
+.xp-progress-separator{
+opacity: 0.85;
+}
+
+@media (pointer: coarse) and (orientation: portrait){
+  .xp-bar{
+    width: clamp(200px, 72vw, 340px);
+  }
+
+  .xp-plus{
+    height: clamp(30px, 9vw, 46px);
   }
 }
 
