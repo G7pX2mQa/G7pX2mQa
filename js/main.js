@@ -10,6 +10,7 @@ let setHasOpenedSaveSlot;
 let ensureStorageDefaults;
 let getUpgAreaKey;
 let computeUpgradeEffects;
+let initXpSystem;
 let onUpgradesChanged;
 let registerPreloadedAudio;
 
@@ -240,18 +241,21 @@ function enterArea(areaID) {
           surgeWidthVw: 22,
         });
         initCoinPickup();
-		const applyUpgradesToSpawner = () => {
-		try {
-			const areaKey = getUpgAreaKey();
-			const eff = computeUpgradeEffects(areaKey);
-			if (spawner && eff?.coinsPerSecondMult) {
-			  spawner.setRate(1 * eff.coinsPerSecondMult);
-			}
-		  } catch {}
-		};
-		applyUpgradesToSpawner();
-		onUpgradesChanged(applyUpgradesToSpawner);
+                const applyUpgradesToSpawner = () => {
+                try {
+                        const areaKey = getUpgAreaKey();
+                        const eff = computeUpgradeEffects(areaKey);
+                        if (spawner && eff?.coinsPerSecondMult) {
+                          spawner.setRate(1 * eff.coinsPerSecondMult);
+                        }
+                  } catch {}
+                };
+                applyUpgradesToSpawner();
+                onUpgradesChanged(applyUpgradesToSpawner);
 
+      }
+      if (typeof initXpSystem === 'function') {
+        try { initXpSystem(); } catch {}
       }
       spawner.start();
       if (spawner && typeof spawner.playEntranceWave === 'function') {
@@ -320,6 +324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     storageModule,
     upgradesModule,
     audioCacheModule,
+    xpModule,
   ] = await Promise.all([
     import('./util/slots.js'),
     import('./game/spawner.js'),
@@ -328,6 +333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./util/storage.js'),
     import('./game/upgrades.js'),
     import('./util/audioCache.js'),
+    import('./game/xpSystem.js'),
   ]);
 
   ({ initSlots } = slotsModule);
@@ -337,6 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults } = storageModule);
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
   ({ registerPreloadedAudio } = audioCacheModule);
+  ({ initXpSystem } = xpModule);
 
   window.bank = bank;
 
@@ -347,6 +354,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       'img/currencies/coin/coin_base.png',
       'img/currencies/coin/coin_plus_base.png',
       'img/sc_upg_icons/faster_coins_id_1.png',
+      'img/sc_upg_icons/unlock_xp_id_2.png',
+	  'img/stats/xp/xp.png',
+	  'img/stats/xp/xp_base.png',
+      'img/stats/xp/xp_plus_base.png',
       'img/misc/merchant.png',
     ],
     audio: [
@@ -371,7 +382,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   finishAndHideLoader(loader);
 
-  await warmImage('img/currencies/coin/coin_plus_base.png');
+  await Promise.all([
+    warmImage('img/currencies/coin/coin_plus_base.png'),
+    warmImage('img/stats/xp/xp_plus_base.png'),
+  ]);
 
   ensureStorageDefaults();
 
