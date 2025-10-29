@@ -1,7 +1,9 @@
 // js/game/upgrades.js
+
 import { bank, getActiveSlot } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
+import { unlockXpSystem } from './xpSystem.js';
 
 export const MAX_LEVEL_DELTA = BigNum.INF || BigNum.fromAny('1e100000000'); 
 
@@ -665,6 +667,36 @@ const REGISTRY = [
       return 1 + (0.10 * level);
     }
   },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 2,
+    title: "Unlock XP",
+    desc: "Unlocks the XP system and a new merchant dialogue",
+    lvlCap: 1,
+    baseCost: 100,
+    costType: "coins",
+    upgType: "NM",
+    icon: "unlock_xp_id_2.png",
+    costAtLevel(level) {
+      return nmCostBN(this, level);
+    },
+    nextCostAfter(_, nextLevel) {
+      return nmCostBN(this, nextLevel);
+    },
+    effectSummary(level) {
+      return level >= 1
+        ? 'XP System unlocked'
+        : 'Unlocks the XP HUD and XP levels';
+    },
+    onLevelChange({ newLevel, newLevelBn }) {
+      const reached = Number.isFinite(newLevel)
+        ? newLevel >= 1
+        : (newLevelBn?.cmp?.(BigNum.fromInt(1)) ?? -1) >= 0;
+      if (reached) {
+        try { unlockXpSystem(); } catch {}
+      }
+    },
+  },
 ];
 
 for (const upg of REGISTRY) {
@@ -817,6 +849,8 @@ export function peekNextPrice(areaKey, upgId) {
 export function setLevel(areaKey, upgId, lvl, clampToCap = true) {
   const state = ensureUpgradeState(areaKey, upgId);
   const upg = state.upg;
+  const prevLevelBn = state.lvlBn?.clone?.() ?? ensureLevelBigNum(state.lvl ?? 0);
+  const prevLevelNum = state.lvl ?? levelBigNumToNumber(prevLevelBn);
   const cap = upg?.lvlCap ?? Infinity;
   let desiredBn = ensureLevelBigNum(lvl);
   if (desiredBn.isInfinite?.()) {
@@ -850,6 +884,21 @@ export function setLevel(areaKey, upgId, lvl, clampToCap = true) {
   }
 
   commitUpgradeState(state);
+  const deltaBn = nextBn.sub(prevLevelBn);
+  if (!(deltaBn.isZero?.() || (typeof deltaBn.isZero === 'function' && deltaBn.isZero()))) {
+    fireLevelChange(upg, {
+      areaKey,
+      upgId,
+      upgrade: upg,
+      state,
+      previousLevel: prevLevelNum,
+      previousLevelBn: prevLevelBn,
+      newLevel: state.lvl,
+      newLevelBn: nextBn.clone?.() ?? nextBn,
+      levelsGained: levelBigNumToNumber(deltaBn),
+      levelsGainedBn: deltaBn,
+    });
+  }
   invalidateUpgradeState(areaKey, upgId);
   notifyChanged();
   return state.lvl;
@@ -868,6 +917,15 @@ export function getUpgrade(areaKey, upgId) {
 export function getIconUrl(upg) {
   const dir = 'img/sc_upg_icons/';
   return dir + upg.icon;
+}
+
+function fireLevelChange(upg, context) {
+  if (!upg || typeof upg.onLevelChange !== 'function') return;
+  try {
+    upg.onLevelChange(context);
+  } catch (err) {
+    console.warn('[upgrades] onLevelChange failed', err);
+  }
 }
 
 /* ------------------------------ Cost helpers ------------------------------ */
@@ -919,6 +977,21 @@ export function buyOne(areaKey, upgId) {
       : upg.costAtLevel(state.lvl)
   );
   commitUpgradeState(state);
+  const deltaBn = nextLevelBn.sub(lvlBn);
+  if (!(deltaBn.isZero?.() || (typeof deltaBn.isZero === 'function' && deltaBn.isZero()))) {
+    fireLevelChange(upg, {
+      areaKey,
+      upgId,
+      upgrade: upg,
+      state,
+      previousLevel: lvlNum,
+      previousLevelBn: lvlBn.clone?.() ?? lvlBn,
+      newLevel: state.lvl,
+      newLevelBn: nextLevelBn.clone?.() ?? nextLevelBn,
+      levelsGained: levelBigNumToNumber(deltaBn),
+      levelsGainedBn: deltaBn,
+    });
+  }
   invalidateUpgradeState(areaKey, upgId);
   notifyChanged();
   return { bought: 1, spent };
@@ -1014,6 +1087,21 @@ export function buyMax(areaKey, upgId) {
     state.nextCostBn = BigNum.fromAny('Infinity');
   }
   commitUpgradeState(state);
+  const deltaBn = countBn.clone?.() ?? countBn;
+  if (!(deltaBn.isZero?.() || (typeof deltaBn.isZero === 'function' && deltaBn.isZero()))) {
+    fireLevelChange(upg, {
+      areaKey,
+      upgId,
+      upgrade: upg,
+      state,
+      previousLevel: lvlNum,
+      previousLevelBn: lvlBn.clone?.() ?? lvlBn,
+      newLevel: state.lvl,
+      newLevelBn: nextLevelBn.clone?.() ?? nextLevelBn,
+      levelsGained: levelBigNumToNumber(deltaBn),
+      levelsGainedBn: deltaBn,
+    });
+  }
   invalidateUpgradeState(areaKey, upgId);
   notifyChanged();
 
