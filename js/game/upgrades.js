@@ -58,6 +58,23 @@ export function bigNumFromLog10(log10Value) {
   return new BigNum(sig, exp, p);
 }
 
+function normalizeUpgradeId(upgId) {
+  if (typeof upgId === 'number') {
+    if (!Number.isFinite(upgId)) return upgId;
+    return Math.trunc(upgId);
+  }
+  if (typeof upgId === 'string') {
+    const trimmed = upgId.trim();
+    if (!trimmed) return trimmed;
+    if (/^[+-]?\d+$/.test(trimmed)) {
+      const parsed = Number.parseInt(trimmed, 10);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return trimmed;
+  }
+  return upgId;
+}
+
 function ensureLevelBigNum(value) {
   try {
     const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 0);
@@ -817,19 +834,21 @@ function saveAreaState(areaKey, stateArr) {
 const upgradeStateCache = new Map(); // key → { areaKey, upgId, upg, rec, arr, lvl, nextCostBn }
 
 function upgradeCacheKey(areaKey, upgId) {
-  return `${areaKey}:${upgId}`;
+  return `${areaKey}:${normalizeUpgradeId(upgId)}`;
 }
 
 function ensureUpgradeState(areaKey, upgId) {
-  const key = upgradeCacheKey(areaKey, upgId);
+  const normalizedId = normalizeUpgradeId(upgId);
+  const key = upgradeCacheKey(areaKey, normalizedId);
   let state = upgradeStateCache.get(key);
   if (state) return state;
 
-  const upg = getUpgrade(areaKey, upgId);
+  const upg = getUpgrade(areaKey, normalizedId);
   const arr = loadAreaState(areaKey);
-  let rec = arr.find(u => u && u.id === upgId);
+  let rec = arr.find(u => u && normalizeUpgradeId(u.id) === normalizedId);
+  let recNeedsSave = false;
   if (!rec) {
-    rec = { id: upgId, lvl: BigNum.fromInt(0).toStorage() };
+    rec = { id: normalizedId, lvl: BigNum.fromInt(0).toStorage() };
     if (upg) {
       try {
         rec.nextCost = BigNum.fromAny(upg.costAtLevel(0)).toStorage();
@@ -839,6 +858,9 @@ function ensureUpgradeState(areaKey, upgId) {
     }
     arr.push(rec);
     saveAreaState(areaKey, arr);
+  } else if (rec.id !== normalizedId) {
+    rec.id = normalizedId;
+    recNeedsSave = true;
   }
 
   const lvlBn = ensureLevelBigNum(rec.lvl);
@@ -866,6 +888,11 @@ function ensureUpgradeState(areaKey, upgId) {
     } catch {}
   }
 
+  if (recNeedsSave) {
+    try { saveAreaState(areaKey, arr); }
+    catch {}
+  }
+
   if (upg?.upgType === 'HM' && lvlBn?.isInfinite?.()) {
     if (!upg.lvlCapBn?.isInfinite?.()) {
       const infCap = BigNum.fromAny('Infinity');
@@ -876,7 +903,7 @@ function ensureUpgradeState(areaKey, upgId) {
     }
   }
 
-  state = { areaKey, upgId, upg, rec, arr, lvl, lvlBn, nextCostBn };
+  state = { areaKey, upgId: normalizedId, upg, rec, arr, lvl, lvlBn, nextCostBn };
   upgradeStateCache.set(key, state);
   return state;
 }
@@ -969,7 +996,8 @@ export function getUpgradesForArea(areaKey) {
 }
 
 export function getUpgrade(areaKey, upgId) {
-  return REGISTRY.find(u => u.area === areaKey && u.id === upgId) || null;
+  const normalizedId = normalizeUpgradeId(upgId);
+  return REGISTRY.find(u => u.area === areaKey && normalizeUpgradeId(u.id) === normalizedId) || null;
 }
 
 function normalizeUpgradeIconPath(iconPath) {
