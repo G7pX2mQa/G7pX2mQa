@@ -395,7 +395,7 @@ background: linear-gradient(90deg,
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(2px, 0.5svh, 6px);
+  gap: clamp(3px, 0.5svh, 6px);
   padding: clamp(3px, 0.9svh, 5px) clamp(10px, 2.4vw, 16px);
   font-size: clamp(10px, 1.6vw, 14px);
   font-weight: 700;
