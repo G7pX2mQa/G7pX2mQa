@@ -14,7 +14,114 @@ let stateLoaded = false;
 let requirementBn = BigNum.fromInt(10);
 const xpRequirementCache = new Map();
 xpRequirementCache.set('0', requirementBn);
-let highestCachedLevel = 0n;
+let highestCachedExactLevel = 0n;
+const infinityRequirementBn = BigNum.fromAny('Infinity');
+
+let lastSyncedCoinLevel = null;
+let lastSyncedCoinLevelWasInfinite = false;
+let lastSyncedCoinUsedApproximation = false;
+let lastSyncedCoinApproxKey = null;
+
+const EXACT_REQUIREMENT_CACHE_LEVEL = 5000n;
+const LOG_STEP = Math.log10(11 / 10);
+const LOG_DECADE_BONUS = Math.log10(5 / 2);
+const EXACT_COIN_LEVEL_LIMIT = 200n;
+const LOG_STEP_DECIMAL = '0.04139268515822507';
+const LOG_DECADE_BONUS_DECIMAL = '0.3979400086720376';
+const TEN_DIVISOR_DECIMAL = '0.1';
+const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
+
+function bigIntToFloatApprox(value) {
+  if (value === 0n) return 0;
+  const str = value.toString();
+  const len = str.length;
+  const headDigits = Math.min(len, 15);
+  const head = Number(str.slice(0, headDigits));
+  const exponent = len - headDigits;
+  if (!Number.isFinite(head)) return Number.POSITIVE_INFINITY;
+  const scaled = head * Math.pow(10, exponent);
+  return Number.isFinite(scaled) ? scaled : Number.POSITIVE_INFINITY;
+}
+
+function bigNumIsInfinite(bn) {
+  return !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
+}
+
+function bigNumIsZero(bn) {
+  return !bn || typeof bn !== 'object' || (bn.isZero?.() || (typeof bn.isZero === 'function' && bn.isZero()));
+}
+
+function bigNumToFiniteNumber(bn) {
+  if (!bn || typeof bn !== 'object') return 0;
+  if (bigNumIsInfinite(bn)) return Number.POSITIVE_INFINITY;
+  const sci = typeof bn.toScientific === 'function' ? bn.toScientific(18) : String(bn);
+  if (!sci || sci === 'Infinity') return Number.POSITIVE_INFINITY;
+  const match = sci.match(/^([0-9]+(?:\.[0-9]+)?)e([+-]?\d+)$/i);
+  if (match) {
+    const mant = parseFloat(match[1]);
+    const exp = parseInt(match[2], 10);
+    if (!Number.isFinite(mant) || !Number.isFinite(exp)) return Number.POSITIVE_INFINITY;
+    if (exp >= 309) return Number.POSITIVE_INFINITY;
+    return mant * Math.pow(10, exp);
+  }
+  const num = Number(sci);
+  return Number.isFinite(num) ? num : Number.POSITIVE_INFINITY;
+}
+
+function logBigNumToNumber(bn) {
+  if (!bn || typeof bn !== 'object') return 0;
+  if (bigNumIsInfinite(bn)) return Number.POSITIVE_INFINITY;
+  if (typeof bn.cmp === 'function' && bn.cmp(maxLog10Bn) >= 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return bigNumToFiniteNumber(bn);
+}
+
+function computeBonusCountBn(levelBn) {
+  if (!levelBn || typeof levelBn !== 'object') return BigNum.fromInt(0);
+  const divided = levelBn.mulDecimal(TEN_DIVISOR_DECIMAL, 1);
+  const floored = divided.floorToInteger();
+  if (typeof divided.cmp === 'function' && divided.cmp(floored) === 0) {
+    if (floored.isZero?.() || (typeof floored.isZero === 'function' && floored.isZero())) {
+      return floored;
+    }
+    return floored.sub?.(bnOne()) ?? BigNum.fromInt(0);
+  }
+  return floored;
+}
+
+function computeLevelLogTerm(levelBn) {
+  if (!levelBn || typeof levelBn !== 'object') return BigNum.fromInt(0);
+  return levelBn.mulDecimal(LOG_STEP_DECIMAL, 18);
+}
+
+function computeBonusLogTerm(levelBn) {
+  const bonusCount = computeBonusCountBn(levelBn);
+  if (bigNumIsZero(bonusCount)) return null;
+  return bonusCount.mulDecimal(LOG_DECADE_BONUS_DECIMAL, 18);
+}
+
+function approximateCoinMultiplierFromBigNum(levelBn) {
+  if (!levelBn || typeof levelBn !== 'object') {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+  const levelLog = computeLevelLogTerm(levelBn);
+  let totalLog = levelLog;
+  const bonusLog = computeBonusLogTerm(levelBn);
+  if (bonusLog) {
+    totalLog = totalLog.add?.(bonusLog) ?? totalLog;
+  }
+  const logNumber = logBigNumToNumber(totalLog);
+  if (!Number.isFinite(logNumber)) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+  const approx = bigNumFromLog10(logNumber);
+  const approxIsInf = approx.isInfinite?.() || (typeof approx.isInfinite === 'function' && approx.isInfinite());
+  if (approxIsInf) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+  return approx;
+}
 
 const xpState = {
   unlocked: false,
@@ -52,7 +159,7 @@ function approxLog10(bn) {
     return Number.NEGATIVE_INFINITY;
   }
   try {
-    const sci = typeof bn.toScientific === 'function' ? bn.toScientific(6) : String(bn);
+    const sci = typeof bn.toScientific === 'function' ? bn.toScientific(12) : String(bn);
     if (!sci || sci === '0') return Number.NEGATIVE_INFINITY;
     if (sci === 'Infinity') return Number.POSITIVE_INFINITY;
     const match = sci.match(/^([0-9]+(?:\.[0-9]+)?)e([+-]?\d+)$/i);
@@ -68,6 +175,117 @@ function approxLog10(bn) {
   } catch {
     return Number.NEGATIVE_INFINITY;
   }
+}
+
+function bonusMultipliersCount(levelBigInt) {
+  if (levelBigInt <= 1n) return 0n;
+  return (levelBigInt - 1n) / 10n;
+}
+
+function ensureExactRequirementCacheUpTo(levelBigInt) {
+  const target = levelBigInt < EXACT_REQUIREMENT_CACHE_LEVEL ? levelBigInt : EXACT_REQUIREMENT_CACHE_LEVEL;
+  if (target <= highestCachedExactLevel) return;
+
+  let currentLevel = highestCachedExactLevel;
+  let currentRequirement = xpRequirementCache.get(currentLevel.toString());
+  if (!currentRequirement) {
+    currentRequirement = BigNum.fromInt(10);
+    xpRequirementCache.set(currentLevel.toString(), currentRequirement);
+  }
+
+  while (currentLevel < target) {
+    const nextLevel = currentLevel + 1n;
+    let nextRequirement = currentRequirement.mulScaledIntFloor(11n, 1);
+    if (nextLevel > 1n && ((nextLevel - 1n) % 10n === 0n)) {
+      nextRequirement = nextRequirement.mulScaledIntFloor(25n, 1);
+    }
+    xpRequirementCache.set(nextLevel.toString(), nextRequirement);
+    currentRequirement = nextRequirement;
+    currentLevel = nextLevel;
+    const isInfinite = currentRequirement.isInfinite?.() || (typeof currentRequirement.isInfinite === 'function' && currentRequirement.isInfinite());
+    if (isInfinite) {
+      highestCachedExactLevel = currentLevel;
+      return;
+    }
+  }
+
+  highestCachedExactLevel = currentLevel;
+}
+
+function bigNumFromLog10(log10Value) {
+  if (!Number.isFinite(log10Value) || log10Value >= BigNum.MAX_E) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  let exponent = Math.floor(log10Value);
+  let fractional = log10Value - exponent;
+  if (!Number.isFinite(fractional)) {
+    fractional = 0;
+  }
+
+  let mantissa = Math.pow(10, fractional);
+  if (!Number.isFinite(mantissa) || mantissa <= 0) {
+    mantissa = 1;
+  }
+
+  if (mantissa >= 10) {
+    mantissa /= 10;
+    exponent += 1;
+  }
+
+  let exponentStr;
+  try {
+    exponentStr = Number.isFinite(exponent)
+      ? exponent.toLocaleString('en', { useGrouping: false })
+      : String(exponent);
+  } catch {
+    exponentStr = String(exponent);
+  }
+
+  const sci = `${mantissa.toPrecision(18)}e${exponentStr}`;
+  try {
+    return BigNum.fromScientific(sci).floorToInteger();
+  } catch {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+}
+
+function approximateRequirementFromLevel(levelBn) {
+  const baseLevel = highestCachedExactLevel > 0n ? highestCachedExactLevel : 0n;
+  const baseRequirement = xpRequirementCache.get(baseLevel.toString());
+  if (!baseRequirement || bigNumIsInfinite(baseRequirement)) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  const baseLevelBn = BigNum.fromAny(baseLevel.toString());
+  const baseLog = approxLog10(baseRequirement);
+  let totalLog = BigNum.fromInt(0);
+  if (Number.isFinite(baseLog) && baseLog > 0) {
+    try {
+      totalLog = BigNum.fromScientific(baseLog.toString());
+    } catch {
+      totalLog = BigNum.fromInt(0);
+    }
+  }
+
+  const deltaLevel = levelBn.sub?.(baseLevelBn) ?? BigNum.fromInt(0);
+  if (!bigNumIsZero(deltaLevel)) {
+    totalLog = totalLog.add?.(deltaLevel.mulDecimal(LOG_STEP_DECIMAL, 18)) ?? totalLog;
+  }
+
+  const targetBonus = computeBonusCountBn(levelBn);
+  const baseBonus = computeBonusCountBn(baseLevelBn);
+  const deltaBonus = targetBonus.sub?.(baseBonus) ?? BigNum.fromInt(0);
+  if (!bigNumIsZero(deltaBonus)) {
+    totalLog = totalLog.add?.(deltaBonus.mulDecimal(LOG_DECADE_BONUS_DECIMAL, 18)) ?? totalLog;
+  }
+
+  const logNumber = logBigNumToNumber(totalLog);
+  if (!Number.isFinite(logNumber)) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  return bigNumFromLog10(logNumber);
 }
 
 function progressRatio(progressBn, requirement) {
@@ -127,49 +345,43 @@ function xpRequirementForXpLevel(xpLevelInput) {
     levelPlain = '0';
   }
 
-  if (!levelPlain || levelPlain === 'Infinity') {
-    return BigNum.fromAny('Infinity');
+  let targetLevelInfo = { bigInt: null, finite: true };
+  if (levelPlain && levelPlain !== 'Infinity') {
+    try {
+      targetLevelInfo = { bigInt: BigInt(levelPlain), finite: true };
+    } catch {
+      targetLevelInfo = { bigInt: null, finite: true };
+    }
+  } else {
+    targetLevelInfo = { bigInt: null, finite: true };
   }
 
-  let targetLevel;
-  try {
-    targetLevel = BigInt(levelPlain);
-  } catch {
-    targetLevel = 0n;
-  }
+  const targetLevel = targetLevelInfo.bigInt ?? 0n;
 
-  if (targetLevel <= 0n) {
+  if (targetLevelInfo.bigInt != null && targetLevel <= 0n) {
     const baseRequirement = xpRequirementCache.get('0');
     return baseRequirement.clone?.() ?? baseRequirement;
   }
 
-  if (targetLevel > highestCachedLevel) {
-    let currentLevel = highestCachedLevel;
-    let currentRequirement = xpRequirementCache.get(currentLevel.toString());
-    if (!currentRequirement) {
-      currentRequirement = BigNum.fromInt(10);
-      xpRequirementCache.set(currentLevel.toString(), currentRequirement);
+  if (targetLevelInfo.bigInt != null) {
+    ensureExactRequirementCacheUpTo(targetLevel);
+    const targetKey = targetLevel.toString();
+    const cachedExact = xpRequirementCache.get(targetKey);
+    if (cachedExact) {
+      return cachedExact.clone?.() ?? cachedExact;
     }
-
-    while (currentLevel < targetLevel) {
-      const nextLevel = currentLevel + 1n;
-      let nextRequirement = currentRequirement.mulDecimalFloor('1.1');
-      if (nextLevel > 1n && ((nextLevel - 1n) % 10n === 0n)) {
-        nextRequirement = nextRequirement.mulDecimalFloor('2.5');
-      }
-      xpRequirementCache.set(nextLevel.toString(), nextRequirement);
-      currentRequirement = nextRequirement;
-      currentLevel = nextLevel;
-    }
-    highestCachedLevel = currentLevel;
   }
 
-  const cached = xpRequirementCache.get(targetLevel.toString());
-  if (cached) {
-    return cached.clone?.() ?? cached;
+  const approximate = approximateRequirementFromLevel(xpLvlBn);
+  const approxIsInf = approximate.isInfinite?.() || (typeof approximate.isInfinite === 'function' && approximate.isInfinite());
+  if (approxIsInf) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
 
-  return BigNum.fromInt(1);
+  if (targetLevelInfo.bigInt != null) {
+    xpRequirementCache.set(targetLevelInfo.bigInt.toString(), approximate);
+  }
+  return approximate.clone?.() ?? approximate;
 }
 
 function updateXpRequirement() {
@@ -180,6 +392,7 @@ function resetLockedXpState() {
   xpState.xpLevel = bnZero();
   xpState.progress = bnZero();
   updateXpRequirement();
+  syncCoinMultiplierWithXpLevel(true);
 }
 
 function normalizeProgress(applyRewards = false) {
@@ -207,6 +420,94 @@ function normalizeProgress(applyRewards = false) {
   }
   if (guard >= limit) {
     xpState.progress = bnZero();
+  }
+}
+
+function xpLevelBigIntInfo(xpLevelValue) {
+  if (!xpLevelValue || typeof xpLevelValue !== 'object') {
+    return { bigInt: 0n, finite: false };
+  }
+  const levelIsInfinite = xpLevelValue.isInfinite?.() || (typeof xpLevelValue.isInfinite === 'function' && xpLevelValue.isInfinite());
+  if (levelIsInfinite) {
+    return { bigInt: null, finite: false };
+  }
+  let plain = '0';
+  try {
+    plain = xpLevelValue.toPlainIntegerString?.() ?? xpLevelValue.toString?.() ?? '0';
+  } catch {
+    plain = '0';
+  }
+  if (!plain || plain === 'Infinity') {
+    return { bigInt: null, finite: true };
+  }
+  try {
+    return { bigInt: BigInt(plain), finite: true };
+  } catch {
+    return { bigInt: null, finite: true };
+  }
+}
+
+function syncCoinMultiplierWithXpLevel(force = false) {
+  const multApi = bank?.coins?.mult;
+  if (!multApi || typeof multApi.set !== 'function' || typeof multApi.multiplyByDecimal !== 'function') {
+    return;
+  }
+
+  const levelInfo = xpLevelBigIntInfo(xpState.xpLevel);
+  const levelBigInt = levelInfo.bigInt;
+  const levelIsInfinite = !levelInfo.finite;
+  const levelStorageKey = typeof xpState.xpLevel?.toStorage === 'function' ? xpState.xpLevel.toStorage() : null;
+
+  if (!force) {
+    if (levelIsInfinite && lastSyncedCoinLevelWasInfinite) {
+      return;
+    }
+    if (!levelIsInfinite && levelBigInt != null && !lastSyncedCoinLevelWasInfinite && !lastSyncedCoinUsedApproximation && lastSyncedCoinLevel != null && levelBigInt === lastSyncedCoinLevel) {
+      return;
+    }
+    if (!levelIsInfinite && levelBigInt == null && lastSyncedCoinUsedApproximation && levelStorageKey && lastSyncedCoinApproxKey && levelStorageKey === lastSyncedCoinApproxKey) {
+      return;
+    }
+  }
+
+  if (levelIsInfinite) {
+    try { multApi.set(infinityRequirementBn); } catch {}
+    lastSyncedCoinLevel = null;
+    lastSyncedCoinLevelWasInfinite = true;
+    lastSyncedCoinUsedApproximation = false;
+    lastSyncedCoinApproxKey = null;
+    return;
+  }
+
+  let multiplierBn;
+  if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
+    let working = BigNum.fromInt(1);
+    const iterations = Number(levelBigInt);
+    for (let i = 0; i < iterations; i += 1) {
+      working = working.mulDecimal('1.1', 18);
+    }
+    multiplierBn = working.floorToInteger();
+  } else {
+    multiplierBn = approximateCoinMultiplierFromBigNum(xpState.xpLevel);
+  }
+
+  const multIsInf = multiplierBn.isInfinite?.() || (typeof multiplierBn.isInfinite === 'function' && multiplierBn.isInfinite());
+  try { multApi.set(multiplierBn.clone?.() ?? multiplierBn); } catch {}
+  if (multIsInf) {
+    lastSyncedCoinLevel = null;
+    lastSyncedCoinLevelWasInfinite = true;
+    lastSyncedCoinUsedApproximation = false;
+    lastSyncedCoinApproxKey = null;
+  } else if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
+    lastSyncedCoinLevel = levelBigInt;
+    lastSyncedCoinLevelWasInfinite = false;
+    lastSyncedCoinUsedApproximation = false;
+    lastSyncedCoinApproxKey = null;
+  } else {
+    lastSyncedCoinLevel = null;
+    lastSyncedCoinLevelWasInfinite = false;
+    lastSyncedCoinUsedApproximation = true;
+    lastSyncedCoinApproxKey = levelStorageKey;
   }
 }
 
@@ -244,6 +545,7 @@ function ensureStateLoaded() {
   }
   updateXpRequirement();
   normalizeProgress(false);
+  syncCoinMultiplierWithXpLevel();
   return xpState;
 }
 
@@ -266,6 +568,23 @@ function handleXpLevelUpRewards() {
       bank.books.add(bnOne());
     }
   } catch {}
+  const syncedLevelInfo = xpLevelBigIntInfo(xpState.xpLevel);
+  if (!syncedLevelInfo.finite) {
+    lastSyncedCoinLevel = null;
+    lastSyncedCoinLevelWasInfinite = true;
+    lastSyncedCoinUsedApproximation = false;
+    lastSyncedCoinApproxKey = null;
+  } else if (syncedLevelInfo.bigInt != null) {
+    lastSyncedCoinLevel = syncedLevelInfo.bigInt;
+    lastSyncedCoinLevelWasInfinite = false;
+    lastSyncedCoinUsedApproximation = false;
+    lastSyncedCoinApproxKey = null;
+  } else {
+    lastSyncedCoinLevel = null;
+    lastSyncedCoinLevelWasInfinite = false;
+    lastSyncedCoinUsedApproximation = true;
+    lastSyncedCoinApproxKey = typeof xpState.xpLevel?.toStorage === 'function' ? xpState.xpLevel.toStorage() : null;
+  }
 }
 
 function updateHud() {
@@ -333,6 +652,7 @@ export function unlockXpSystem() {
   xpState.unlocked = true;
   persistState();
   updateHud();
+  syncCoinMultiplierWithXpLevel(true);
   try {
     window.dispatchEvent(new CustomEvent('xp:unlock', { detail: getXpState() }));
   } catch {}
@@ -381,6 +701,23 @@ export function addXp(amount, { silent = false } = {}) {
   }
   persistState();
   updateHud();
+  const syncedLevelAfterAdd = xpLevelBigIntInfo(xpState.xpLevel);
+  if (!syncedLevelAfterAdd.finite) {
+    lastSyncedCoinLevel = null;
+    lastSyncedCoinLevelWasInfinite = true;
+    lastSyncedCoinUsedApproximation = false;
+    lastSyncedCoinApproxKey = null;
+  } else if (syncedLevelAfterAdd.bigInt != null) {
+    lastSyncedCoinLevel = syncedLevelAfterAdd.bigInt;
+    lastSyncedCoinLevelWasInfinite = false;
+    lastSyncedCoinUsedApproximation = false;
+    lastSyncedCoinApproxKey = null;
+  } else {
+    lastSyncedCoinLevel = null;
+    lastSyncedCoinLevelWasInfinite = false;
+    lastSyncedCoinUsedApproximation = true;
+    lastSyncedCoinApproxKey = typeof xpState.xpLevel?.toStorage === 'function' ? xpState.xpLevel.toStorage() : null;
+  }
   const detail = {
     unlocked: true,
     xpLevelsGained: xpLevelsGained.clone?.() ?? xpLevelsGained,
