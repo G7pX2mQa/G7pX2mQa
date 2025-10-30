@@ -526,7 +526,7 @@ function syncCoinMultiplierWithXpLevel(force = false) {
     for (let i = 0; i < iterations; i += 1) {
       working = working.mulDecimal('1.1', 18);
     }
-    multiplierBn = working.floorToInteger();
+    multiplierBn = working.clone?.() ?? working;
   } else {
     multiplierBn = approximateCoinMultiplierFromBigNum(xpState.xpLevel);
   }
