@@ -113,5 +113,5 @@ body.menu-bg {
   -webkit-touch-callout: none; /* Disable tap & hold context menu on iOS */
   -webkit-tap-highlight-color: transparent; /* Remove grey tap highlight */
   -webkit-user-drag: none;
-}
+  }
 }
