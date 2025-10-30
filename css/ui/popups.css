@@ -83,7 +83,7 @@
 /* Mobile adjustments */
 @media (pointer: coarse) {
   .currency-popups {
-    top: 48vh; /* a little lower on mobile for better visual balance */
+    top: 30vh;
     right: calc(env(safe-area-inset-right) + 12px);
     gap: 8px;
   }
@@ -94,6 +94,6 @@
   .currency-popup__icon {
     width: clamp(18px, 5vw, 22px);
     height: clamp(18px, 5vw, 22px);
-    top: 1px;
+    top: 2px;
   }
 }
