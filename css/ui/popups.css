@@ -2,8 +2,8 @@
 
 .currency-popups {
   position: fixed;
-  top: calc(env(safe-area-inset-top) + 20px);
-  right: calc(env(safe-area-inset-right) + 20px);
+  top: 30vh; /* centered vertically, slightly above midpoint */
+  right: calc(env(safe-area-inset-right) + 16px);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -15,20 +15,16 @@
 .currency-popup {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
+  gap: 4px;
   color: #fff;
-  font-size: clamp(1.9rem, 3.7vw, 2.5rem);
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-size: clamp(1.5rem, 2.6vw, 1.9rem);
+  font-weight: 800;
   line-height: 1;
   opacity: 0;
   transform: translateX(16px);
   transition: opacity 180ms ease, transform 180ms ease;
-  pointer-events: none;
   white-space: nowrap;
+  pointer-events: none;
 }
 
 .currency-popup.is-visible { opacity: 1; transform: translateX(0); }
@@ -45,58 +41,59 @@
     -0.5px 0.5px 0 #000,
     0.5px -0.5px 0 #000,
     -0.5px -0.5px 0 #000,
-    0 1px 0 rgba(0,0,0,0.6);
+    0 1px 0 rgba(0,0,0,0.55);
 }
 
 .currency-popup__plus {
   font-size: 1.1em;
-  margin-right: -3px;
+  margin-right: -2px;
   position: relative;
   top: -1px;
 }
 
 .currency-popup__icon {
-  width: clamp(24px, 2.6vw, 32px);
-  height: clamp(24px, 2.6vw, 32px);
+  width: clamp(20px, 2.2vw, 26px);
+  height: clamp(20px, 2.2vw, 26px);
   flex: 0 0 auto;
   filter: drop-shadow(0 1px 1px rgba(0,0,0,0.45));
   position: relative;
-  top: 3px;
+  top: 1.5px;
   margin-right: 2px;
 }
 
 .currency-popup__text {
   display: inline-flex;
   align-items: center;
-  font-weight: 700;
+  gap: 5px;
+  font-weight: 800;
 }
 
 .currency-popup__amount { display: inline-block; min-width: 0; }
-.currency-popup__amount .infinity-symbol { font-size: 1.25em; }
-
 
 @media (pointer: fine) {
   .currency-popup__plus,
   .currency-popup__amount {
     -webkit-text-fill-color: #fff;
-    -webkit-text-stroke: 1px rgba(0, 0, 0, 0.95);
-    text-stroke: 1px rgba(0, 0, 0, 0.95);
+    -webkit-text-stroke: 1px rgba(0,0,0,0.95);
+    text-stroke: 1x rgba(0,0,0,0.95);
     text-shadow: 0 1px 0 rgba(0,0,0,0.25);
   }
 }
 
-@media (max-width: 720px) {
+/* Mobile adjustments */
+@media (pointer: coarse) {
   .currency-popups {
+    top: 48vh; /* a little lower on mobile for better visual balance */
     right: calc(env(safe-area-inset-right) + 12px);
-    top: calc(env(safe-area-inset-top) + 16px);
-    gap: 10px;
+    gap: 8px;
   }
   .currency-popup {
-    gap: 2px;
-    font-size: clamp(1.65rem, 6vw, 2.1rem); /* larger text on mobile */
+    font-size: clamp(1rem, 4.2vw, 1.3rem);
+    gap: 5px;
   }
   .currency-popup__icon {
-    width: clamp(22px, 5vw, 28px); /* smaller icon for mobile too */
-    height: clamp(22px, 5vw, 28px);
+    width: clamp(18px, 5vw, 22px);
+    height: clamp(18px, 5vw, 22px);
+    top: 1px;
   }
 }
