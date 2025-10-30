@@ -460,11 +460,11 @@
   padding-bottom: 3vh;
 }
 
-/* centered description + lines (large type) */
 .upg-desc.centered{
   text-align:center;
   font-size: clamp(28px, 4vw, 44px);
   margin-top: 4px;
+  white-space: pre-line;
 }
 
 .upg-info{
