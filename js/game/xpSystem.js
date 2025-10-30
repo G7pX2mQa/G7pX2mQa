@@ -158,23 +158,63 @@ function approxLog10(bn) {
   if (bn.isZero?.() || (typeof bn.isZero === 'function' && bn.isZero())) {
     return Number.NEGATIVE_INFINITY;
   }
-  try {
-    const sci = typeof bn.toScientific === 'function' ? bn.toScientific(12) : String(bn);
-    if (!sci || sci === '0') return Number.NEGATIVE_INFINITY;
-    if (sci === 'Infinity') return Number.POSITIVE_INFINITY;
-    const match = sci.match(/^([0-9]+(?:\.[0-9]+)?)e([+-]?\d+)$/i);
-    if (match) {
-      const mant = parseFloat(match[1]);
-      const exp = parseInt(match[2], 10) || 0;
-      if (!(mant > 0) || !Number.isFinite(mant)) return Number.NEGATIVE_INFINITY;
-      return Math.log10(mant) + exp;
-    }
-    const num = Number(sci);
-    if (!Number.isFinite(num) || num <= 0) return Number.NEGATIVE_INFINITY;
-    return Math.log10(num);
-  } catch {
-    return Number.NEGATIVE_INFINITY;
+
+  // Prefer the BigNum internal representation so we can handle chained-exponent
+  // values (e.g. 1e8.11e21) without going through lossy string parsing.
+  const sig = bn.sig;
+  const expBase = typeof bn.e === 'number' ? bn.e : Number(bn.e ?? 0);
+  const expOffset = typeof bn._eOffset === 'bigint'
+    ? bigIntToFloatApprox(bn._eOffset)
+    : Number(bn._eOffset ?? 0);
+
+  if (!Number.isFinite(expBase)) {
+    return expBase > 0 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
   }
+  if (!Number.isFinite(expOffset)) {
+    return expOffset > 0 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+  }
+
+  const totalExponent = expBase + expOffset;
+  if (!Number.isFinite(totalExponent)) {
+    return totalExponent > 0 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+  }
+
+  let mantissaLog = 0;
+  if (typeof sig === 'bigint') {
+    const sigStr = sig.toString();
+    const trimmed = sigStr.replace(/^0+/, '');
+    if (!trimmed) return Number.NEGATIVE_INFINITY;
+    const digits = trimmed.length;
+    const headDigits = Math.min(digits, 15);
+    const headSlice = trimmed.slice(0, headDigits);
+    const head = Number.parseFloat(headSlice);
+    if (Number.isFinite(head) && head > 0) {
+      mantissaLog = Math.log10(head) + (digits - headDigits);
+    } else {
+      mantissaLog = digits - 1;
+    }
+  } else {
+    try {
+      const sci = typeof bn.toScientific === 'function' ? bn.toScientific(12) : String(bn);
+      if (!sci || sci === '0') return Number.NEGATIVE_INFINITY;
+      if (sci === 'Infinity') return Number.POSITIVE_INFINITY;
+      const match = sci.match(/^([0-9]+(?:\.[0-9]+)?)e([+-]?\d+)$/i);
+      if (match) {
+        const mant = parseFloat(match[1]);
+        const exp = parseInt(match[2], 10) || 0;
+        if (!(mant > 0) || !Number.isFinite(mant)) return Number.NEGATIVE_INFINITY;
+        mantissaLog = Math.log10(mant) + exp;
+      } else {
+        const num = Number(sci);
+        if (!Number.isFinite(num) || num <= 0) return Number.NEGATIVE_INFINITY;
+        mantissaLog = Math.log10(num);
+      }
+    } catch {
+      return Number.NEGATIVE_INFINITY;
+    }
+  }
+
+  return totalExponent + mantissaLog;
 }
 
 function bonusMultipliersCount(levelBigInt) {
