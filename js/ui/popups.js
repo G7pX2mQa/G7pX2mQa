@@ -1,4 +1,4 @@
-// js/ui/currencyPopups.js
+// js/ui/popups.js
 
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
@@ -6,30 +6,20 @@ import { CURRENCIES, getAllCurrencies } from '../util/storage.js';
 
 const DEFAULT_DURATION = 3200;
 
+const POPUP_ORDER = ['coins', 'xp', 'books'];
+
 const POPUP_META = {
   [CURRENCIES.COINS]: {
-    icon: 'img/currencies/coin/coin_plus_base.png',
+    icon: 'img/currencies/coin/coin.png',
     iconAlt: 'Coin',
-    singularLabel: 'Coin',
-    pluralLabel: 'Coins',
-  },
-  [CURRENCIES.BOOKS]: {
-    icon: 'img/currencies/book/book_plus_base.png',
-    iconAlt: 'Book',
-    singularLabel: 'Book',
-    pluralLabel: 'Books',
   },
   xp: {
-    icon: 'img/stats/xp/xp_plus_base.png',
+    icon: 'img/stats/xp/xp.png',
     iconAlt: 'XP',
-    singularLabel: 'XP',
-    pluralLabel: 'XP',
   },
-  xpLevel: {
-    icon: 'img/stats/xp/xp_plus_base.png',
-    iconAlt: 'Level up',
-    singularLabel: 'Level',
-    pluralLabel: 'Levels',
+  [CURRENCIES.BOOKS]: {
+    icon: 'img/currencies/book/book.png',
+    iconAlt: 'Book',
   },
 };
 
@@ -50,56 +40,31 @@ function ensureContainer() {
 
 function bnFromAny(value) {
   if (value == null) return null;
-  if (value instanceof BigNum) {
-    return value.clone?.() ?? value;
-  }
+  if (value instanceof BigNum) return value.clone?.() ?? value;
   if (typeof value.clone === 'function' && value.sig != null) {
-    try { return value.clone(); }
-    catch { /* fall through */ }
+    try { return value.clone(); } catch {}
   }
-  try { return BigNum.fromAny(value); }
-  catch { return null; }
+  try { return BigNum.fromAny(value); } catch { return null; }
 }
 
 function isZero(bn) {
   if (!bn) return true;
   if (typeof bn.isZero === 'function') {
-    try { return bn.isZero(); }
-    catch { return false; }
+    try { return bn.isZero(); } catch { return false; }
   }
   return false;
 }
 
-function labelFor(meta, amount) {
-  if (!meta) return '';
-  if (typeof meta.labelBuilder === 'function') {
-    try { return meta.labelBuilder(amount); }
-    catch { return meta.pluralLabel || meta.singularLabel || meta.label || ''; }
-  }
-  if (meta.singularLabel && meta.pluralLabel) {
-    let plain = '';
-    if (amount && typeof amount.toPlainIntegerString === 'function') {
-      try { plain = amount.toPlainIntegerString(); }
-      catch { plain = ''; }
-    }
-    if (plain === '1') return meta.singularLabel;
-    return meta.pluralLabel;
-  }
-  return meta.label || meta.pluralLabel || meta.singularLabel || '';
-}
-
 function updateEntry(entry) {
   if (!entry) return;
-  const { element, amountEl, labelEl, amount, meta } = entry;
-  if (!element) return;
+  const { amountEl, amount, meta } = entry;
   const formatted = meta.formatAmount ? meta.formatAmount(amount) : formatNumber(amount);
   if (amountEl) amountEl.innerHTML = formatted;
-  if (labelEl) labelEl.textContent = labelFor(meta, amount);
 }
 
 function scheduleRemoval(entry, duration = DEFAULT_DURATION) {
   if (!entry) return;
-  if (entry.timeoutId) clearTimeout(entry.timeoutId);
+  if (entry.timeoutId) return; // already scheduled; do NOT reset
   entry.timeoutId = window.setTimeout(() => {
     activePopups.delete(entry.type);
     entry.element.classList.remove('is-visible');
@@ -135,10 +100,7 @@ function createPopupEntry(type, meta, amount) {
   const amountEl = document.createElement('span');
   amountEl.className = 'currency-popup__amount';
 
-  const labelEl = document.createElement('span');
-  labelEl.className = 'currency-popup__label';
-
-  text.append(amountEl, labelEl);
+  text.append(amountEl);
   element.append(plus, icon, text);
 
   return {
@@ -146,7 +108,6 @@ function createPopupEntry(type, meta, amount) {
     meta,
     element,
     amountEl,
-    labelEl,
     amount: amount.clone?.() ?? amount,
     timeoutId: null,
   };
@@ -160,16 +121,13 @@ function showPopup(type, amount, overrides = {}) {
   const bnAmount = bnFromAny(amount);
   if (!bnAmount || isZero(bnAmount)) return;
 
-  const accumulate = meta.accumulate !== false;
-  const existing = accumulate ? activePopups.get(type) : null;
+  const existing = meta.accumulate !== false ? activePopups.get(type) : null;
 
   if (existing) {
+    // Update the number but DO NOT reset its lifetime or animations.
     existing.amount = existing.amount.add(bnAmount);
     existing.meta = meta;
     updateEntry(existing);
-    existing.element.classList.remove('is-leaving');
-    existing.element.classList.add('is-visible');
-    scheduleRemoval(existing, meta.duration);
     return;
   }
 
@@ -177,12 +135,27 @@ function showPopup(type, amount, overrides = {}) {
   entry.meta = meta;
   updateEntry(entry);
   activePopups.set(type, entry);
+
   const host = ensureContainer();
-  host.prepend(entry.element);
-  requestAnimationFrame(() => {
-    entry.element.classList.add('is-visible');
-  });
-  scheduleRemoval(entry, meta.duration);
+
+  // Insert based on order (coins first, xp second, books last)
+  const index = POPUP_ORDER.indexOf(type);
+  let insertBefore = null;
+  if (index >= 0) {
+    for (let i = index + 1; i < POPUP_ORDER.length; i++) {
+      const next = activePopups.get(POPUP_ORDER[i]);
+      if (next?.element?.parentNode === host) {
+        insertBefore = next.element;
+        break;
+      }
+    }
+  }
+
+  if (insertBefore) host.insertBefore(entry.element, insertBefore);
+  else host.appendChild(entry.element);
+
+  requestAnimationFrame(() => entry.element.classList.add('is-visible'));
+  scheduleRemoval(entry, meta.duration); // scheduled ONCE at creation
 }
 
 function syncLastKnown() {
@@ -222,13 +195,7 @@ function handleXpChange(event) {
   const detail = event?.detail;
   if (!detail) return;
   const xpAdded = bnFromAny(detail.xpAdded);
-  if (xpAdded && !isZero(xpAdded)) {
-    showPopup('xp', xpAdded);
-  }
-  const levels = bnFromAny(detail.xpLevelsGained);
-  if (levels && !isZero(levels)) {
-    showPopup('xpLevel', levels, { accumulate: true, duration: DEFAULT_DURATION + 600 });
-  }
+  if (xpAdded && !isZero(xpAdded)) showPopup('xp', xpAdded);
 }
 
 function handleSlotChange() {
@@ -236,18 +203,17 @@ function handleSlotChange() {
   syncLastKnown();
 }
 
-export function initCurrencyPopups() {
+export function initPopups() {
   if (initialized) return;
   initialized = true;
   ensureContainer();
   syncLastKnown();
-
   window.addEventListener('currency:change', handleCurrencyChange);
   window.addEventListener('xp:change', handleXpChange);
   window.addEventListener('saveSlot:change', handleSlotChange);
 }
 
-export function teardownCurrencyPopups() {
+export function teardownpopups() {
   if (!initialized) return;
   window.removeEventListener('currency:change', handleCurrencyChange);
   window.removeEventListener('xp:change', handleXpChange);
