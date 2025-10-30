@@ -4,23 +4,21 @@ import { formatNumber } from '../util/numFormat.js';
 
 const PREFIX = 'ccc:';
 
-// precision used to accumulate decimal-y multiplier steps
 const MULT_SCALE = 18;
-const MULT_SCALE_TAG = 'XM:'; // tag to mark "theoretical × 10^MULT_SCALE" payloads
+const MULT_SCALE_TAG = 'XM:';
 
 // -------------------- KEYS --------------------
 export const KEYS = {
   HAS_OPENED_SAVE_SLOT: `${PREFIX}hasOpenedSaveSlot`,
   SAVE_SLOT:            `${PREFIX}saveSlot`,
-  CURRENCY:   {},   // per-currency amount
-  MULTIPLIER: {},   // per-currency multiplier (single key; holds scaled theoretical)
+  CURRENCY:   {},
+  MULTIPLIER: {},
 };
 
 // -------------------- CURRENCIES --------------------
 export const CURRENCIES = {
   COINS: 'coins',
   BOOKS: 'books',
-  // add more here (e.g., PEARLS: 'pearls')
 };
 
 export function getActiveSlot() {
