@@ -13,7 +13,7 @@ let computeUpgradeEffects;
 let initXpSystem;
 let onUpgradesChanged;
 let registerPreloadedAudio;
-let initCurrencyPopups;
+let initPopups;
 
 export const AREAS = {
   MENU: 0,
@@ -326,7 +326,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     upgradesModule,
     audioCacheModule,
     xpModule,
-    currencyPopupModule,
+    popupModule,
   ] = await Promise.all([
     import('./util/slots.js'),
     import('./game/spawner.js'),
@@ -336,7 +336,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/upgrades.js'),
     import('./util/audioCache.js'),
     import('./game/xpSystem.js'),
-    import('./ui/currencyPopups.js'),
+    import('./ui/popups.js'),
   ]);
 
   ({ initSlots } = slotsModule);
@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
   ({ registerPreloadedAudio } = audioCacheModule);
   ({ initXpSystem } = xpModule);
-  ({ initCurrencyPopups } = currencyPopupModule);
+  ({ initPopups } = popupModule);
 
   window.bank = bank;
 
@@ -394,7 +394,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ]);
 
   ensureStorageDefaults();
-  initCurrencyPopups();
+  initPopups();
 
   const titleEl = document.getElementById('panel-title');
   if (getHasOpenedSaveSlot()) {
