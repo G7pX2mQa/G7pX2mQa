@@ -1,0 +1,131 @@
+/* css/ui/popups.css */
+
+.currency-popups {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 20px);
+  right: calc(env(safe-area-inset-right) + 20px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  pointer-events: none;
+  z-index: 1600;
+  font-family: var(--font-ui, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif);
+}
+
+.currency-popup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #fff;
+  font-size: clamp(0.85rem, 1.8vw, 1.1rem);
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  transform: translateX(16px);
+  transition: opacity 180ms ease, transform 180ms ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.currency-popup.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.currency-popup.is-leaving {
+  opacity: 0;
+  transform: translateX(16px);
+}
+
+.currency-popup__plus,
+.currency-popup__amount,
+.currency-popup__label {
+  -webkit-text-fill-color: #fff;
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.85);
+  text-stroke: 1px rgba(0, 0, 0, 0.85);
+  text-shadow:
+    0 0.5px 0 #000,
+    0 -0.5px 0 #000,
+    0.5px 0 0 #000,
+    -0.5px 0 0 #000,
+    0.5px 0.5px 0 #000,
+    -0.5px 0.5px 0 #000,
+    0.5px -0.5px 0 #000,
+    -0.5px -0.5px 0 #000,
+    0 1.5px 0 rgba(0, 0, 0, 0.4);
+}
+
+.currency-popup__plus {
+  font-size: 1.05em;
+}
+
+.currency-popup__icon {
+  width: clamp(22px, 2.8vw, 28px);
+  height: clamp(22px, 2.8vw, 28px);
+  flex: 0 0 auto;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.35));
+}
+
+.currency-popup__text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.currency-popup__amount {
+  display: inline-block;
+  min-width: 0;
+}
+
+.currency-popup__amount .infinity-symbol {
+  font-size: 1.1em;
+}
+
+.currency-popup__label {
+  display: inline-block;
+  font-size: 0.82em;
+  opacity: 0.92;
+}
+
+@media (pointer: coarse) {
+  .currency-popup__plus,
+  .currency-popup__amount,
+  .currency-popup__label {
+    -webkit-text-stroke: 0;
+    text-stroke: 0;
+    text-shadow:
+      0 0.5px 0 #000,
+      0 -0.5px 0 #000,
+      0.5px 0 0 #000,
+      -0.5px 0 0 #000,
+      0.5px 0.5px 0 #000,
+      -0.5px 0.5px 0 #000,
+      0.5px -0.5px 0 #000,
+      -0.5px -0.5px 0 #000,
+      0 1.5px 0 rgba(0, 0, 0, 0.4);
+  }
+}
+
+@media (max-width: 720px) {
+  .currency-popups {
+    right: calc(env(safe-area-inset-right) + 12px);
+    top: calc(env(safe-area-inset-top) + 16px);
+    gap: 6px;
+  }
+
+  .currency-popup {
+    gap: 5px;
+    font-size: clamp(0.8rem, 4vw, 0.98rem);
+  }
+
+  .currency-popup__icon {
+    width: clamp(20px, 4vw, 26px);
+    height: clamp(20px, 4vw, 26px);
+  }
+}
