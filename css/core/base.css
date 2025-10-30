@@ -25,8 +25,7 @@ button {
 }
 button:focus-visible {
   outline: 0;
-  box-shadow: 0 0 0 3px var(--ring);
-  border-radius: 10px;
+  box-shadow: none;
 }
 
 html, body {
