@@ -31,6 +31,9 @@ export function getActiveSlot() {
 export function setActiveSlot(n) {
   const v = Math.max(1, parseInt(n, 10) || 1);
   localStorage.setItem(KEYS.SAVE_SLOT, String(v));
+  try {
+    window.dispatchEvent(new CustomEvent('saveSlot:change', { detail: { slot: v } }));
+  } catch {}
 }
 
 function keyFor(base, slot = getActiveSlot()) {
