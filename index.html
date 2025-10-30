@@ -20,6 +20,17 @@
     })();
   </script>
 <style>
+@media (pointer: coarse) {
+  * {
+  -webkit-user-select: none;  /* Safari / iOS */
+  -moz-user-select: none;     /* Firefox */
+  -ms-user-select: none;      /* Old IE */
+  user-select: none;
+  -webkit-touch-callout: none; /* Disable tap & hold context menu on iOS */
+  -webkit-tap-highlight-color: transparent; /* Remove grey tap highlight */
+  -webkit-user-drag: none;
+  }
+}
   /* Force a hard black cover immediately */
   .loading-screen {
     position: fixed;
