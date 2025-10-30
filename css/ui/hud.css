@@ -343,7 +343,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   height: auto;
   object-fit: contain;
   pointer-events: none;
-  user-select: none;
   z-index: 2;
   filter: drop-shadow(0 6px 12px rgba(0,0,0,0.32));
 }
@@ -404,6 +403,27 @@ background: linear-gradient(90deg,
   text-shadow: 0 1px 2px rgba(0,0,0,0.75);
   pointer-events: none;
   box-sizing: border-box;
+}
+
+@media (pointer: fine) {
+  .xp-counter,
+  .xp-bar,
+  .xp-bar__frame {
+    pointer-events: auto;
+  }
+
+  .xp-bar__frame,
+  .xp-bar__frame *,
+  .xp-bar__progress,
+  .xp-bar__progress *,
+  .xp-bar__level,
+  .xp-bar__level * {
+    user-select: text;
+  }
+  
+  .xp-plus {
+	  user-select: none;
+  }
 }
 
 .xp-bar__level{
