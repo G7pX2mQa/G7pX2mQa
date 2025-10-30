@@ -120,7 +120,17 @@ function approximateCoinMultiplierFromBigNum(levelBn) {
   if (approxIsInf) {
     return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
-  return approx;
+  const levelTerm = levelBn.clone?.() ?? (() => {
+    try { return BigNum.fromAny(levelBn ?? 0); }
+    catch { return BigNum.fromInt(0); }
+  })();
+  let combined = approx.clone?.() ?? approx;
+  if (typeof combined.add === 'function') {
+    combined = combined.add(levelTerm);
+  } else if (typeof levelTerm.add === 'function') {
+    combined = levelTerm.add(combined);
+  }
+  return combined;
 }
 
 const xpState = {
@@ -526,6 +536,14 @@ function syncCoinMultiplierWithXpLevel(force = false) {
     for (let i = 0; i < iterations; i += 1) {
       working = working.mulDecimal('1.1', 18);
     }
+    let levelAdd;
+    try { levelAdd = BigNum.fromAny(levelBigInt.toString()); }
+    catch { levelAdd = BigNum.fromInt(iterations); }
+    if (typeof working.add === 'function') {
+      working = working.add(levelAdd);
+    } else if (typeof levelAdd.add === 'function') {
+      working = levelAdd.add(working);
+    }
     multiplierBn = working.clone?.() ?? working;
   } else {
     multiplierBn = approximateCoinMultiplierFromBigNum(xpState.xpLevel);
@@ -598,11 +616,7 @@ function persistState() {
 }
 
 function handleXpLevelUpRewards() {
-  try {
-    if (bank?.coins?.mult?.multiplyByDecimal) {
-      bank.coins.mult.multiplyByDecimal('1.1');
-    }
-  } catch {}
+  syncCoinMultiplierWithXpLevel(true);
   try {
     if (bank?.books?.add) {
       bank.books.add(bnOne());
