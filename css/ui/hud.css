@@ -452,6 +452,14 @@ background: linear-gradient(90deg,
   }
 }
 
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 600px) {
+  .xp-plus {
+    transform: translateY(-50%) scale(0.88);
+    left: calc((var(--xp-bar-underlap) - 1) * var(--xp-plus-size) + 4px);
+  }
+}
+
+
 /* Endgame nonsense */
 .infinity-symbol {
   position: relative;
