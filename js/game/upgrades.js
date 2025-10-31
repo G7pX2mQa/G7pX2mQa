@@ -875,10 +875,10 @@ const REGISTRY = [
     nextCostAfter(_, nextLevel) {
       return nmCostBN(this, nextLevel);
     },
-    effectSummary(level) {␊
-      const pct = level * 10;␊
+    effectSummary(level) {
+      const pct = level * 10;
       return `Coin spawn rate bonus: +${pct}%`;
-    },␊
+    },
     effectMultiplier(level) {
       return 1 + (0.10 * level);
     }
