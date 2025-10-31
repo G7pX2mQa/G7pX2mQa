@@ -2,7 +2,15 @@
 import { bank, getActiveSlot } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
-import { unlockXpSystem } from './xpSystem.js';
+import {
+  unlockXpSystem,
+  isXpSystemUnlocked,
+  getXpState,
+  setExternalCoinMultiplierProvider,
+  setExternalBookRewardProvider,
+  setExternalXpGainMultiplierProvider,
+  refreshCoinMultiplierFromXpLevel,
+} from './xpSystem.js';
 
 export const MAX_LEVEL_DELTA = BigNum.INF || BigNum.fromAny('1e100000000'); 
 
@@ -56,6 +64,64 @@ export function bigNumFromLog10(log10Value) {
   const sig = BigInt(Math.max(1, Math.round(mantissa)));
   const exp = intPart - (p - 1);
   return new BigNum(sig, exp, p);
+}
+
+const UNLOCK_XP_UPGRADE_ID = 2;
+const LOCKED_UPGRADE_ICON_DATA_URL = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="%23000"/></svg>';
+const HIDDEN_UPGRADE_TITLE = 'Hidden Upgrade';
+const HIDDEN_UPGRADE_DESC = 'This upgrade will be revealed after reaching XP Level 31';
+
+function safeIsXpUnlocked() {
+  try {
+    return !!isXpSystemUnlocked();
+  } catch {
+    return false;
+  }
+}
+
+function currentXpLevelBigNum() {
+  try {
+    const state = typeof getXpState === 'function' ? getXpState() : null;
+    if (state?.xpLevel instanceof BigNum) {
+      return state.xpLevel.clone?.() ?? state.xpLevel;
+    }
+    if (state?.xpLevel != null) {
+      return BigNum.fromAny(state.xpLevel);
+    }
+  } catch {}
+  return BigNum.fromInt(0);
+}
+
+function bookValueMultiplierBn(level) {
+  const numeric = Number(level);
+  const lvl = Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
+  let mult = BigNum.fromInt(1);
+  if (lvl === 0) return mult;
+  for (let i = 0; i < lvl; i += 1) {
+    mult = typeof mult.mulSmall === 'function'
+      ? mult.mulSmall(2)
+      : mult.mulBigNumInteger(BigNum.fromInt(2));
+  }
+  return mult;
+}
+
+function mergeLockStates(base, override) {
+  const merged = Object.assign({ locked: false }, base || {});
+  if (!override || typeof override !== 'object') return merged;
+  const keys = [
+    'locked',
+    'iconOverride',
+    'titleOverride',
+    'descOverride',
+    'reason',
+    'hideCost',
+    'badgeOverride',
+    'hideEffect',
+  ];
+  for (const key of keys) {
+    if (override[key] !== undefined) merged[key] = override[key];
+  }
+  return merged;
 }
 
 function normalizeUpgradeId(upgId) {
@@ -786,6 +852,148 @@ const REGISTRY = [
       }
     },
   },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 3,
+    title: "Faster Coins II",
+    desc: "Increases coin spawn rate by +5% per level",
+    lvlCap: 25,
+    baseCost: 1,
+    costType: "books",
+    upgType: "NM",
+    icon: "sc_upgrade_icons/faster_coins.png",
+    requiresUnlockXp: true,
+    costAtLevel() {
+      return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1);
+    },
+    nextCostAfter() {
+      return this.costAtLevel();
+    },
+    effectSummary(level) {
+      const lvl = Math.max(0, Math.floor(Number(level) || 0));
+      const pct = lvl * 5;
+      return `Coins/second: +${pct}%`;
+    },
+    effectMultiplier(level) {
+      const lvl = Math.max(0, Number(level) || 0);
+      return 1 + (0.05 * lvl);
+    },
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 4,
+    title: "Coin Value",
+    desc: "Increases coin value by +50% per level",
+    lvlCap: 100,
+    baseCost: 1,
+    costType: "books",
+    upgType: "NM",
+    icon: "sc_upgrade_icons/coin_val1.png",
+    requiresUnlockXp: true,
+    costAtLevel() {
+      return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1);
+    },
+    nextCostAfter() {
+      return this.costAtLevel();
+    },
+    effectSummary(level) {
+      const lvl = Math.max(0, Number(level) || 0);
+      const mult = 1 + (0.5 * lvl);
+      let display = mult.toFixed(2);
+      display = display.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+      return `Coin value: ×${display}`;
+    },
+    onLevelChange() {
+      try { refreshCoinMultiplierFromXpLevel(); } catch {}
+    },
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 5,
+    title: "Book Value",
+    desc: "Doubles books gained when increasing XP level",
+    lvlCap: 100,
+    baseCost: 1,
+    costType: "books",
+    upgType: "NM",
+    icon: "sc_upgrade_icons/book_val1.png",
+    requiresUnlockXp: true,
+    costAtLevel() {
+      return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1);
+    },
+    nextCostAfter() {
+      return this.costAtLevel();
+    },
+    effectSummary(level) {
+      const mult = bookValueMultiplierBn(level);
+      return `Books per XP level: ×${formatNumber(mult)}`;
+    },
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 6,
+    title: "XP Value",
+    desc: "Increases XP value by +100% per level",
+    lvlCap: 10,
+    baseCost: 2500,
+    costType: "coins",
+    upgType: "NM",
+    icon: "sc_upgrade_icons/xp_val1.png",
+    requiresUnlockXp: true,
+    costAtLevel(level) {
+      return nmCostBN(this, level);
+    },
+    nextCostAfter(_, nextLevel) {
+      return nmCostBN(this, nextLevel);
+    },
+    effectSummary(level) {
+      const lvl = Math.max(0, Number(level) || 0);
+      const mult = BigNum.fromAny(1 + lvl);
+      return `XP gain per coin: ×${formatNumber(mult)}`;
+    },
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 7,
+    title: "Unlock Forge",
+    desc: "placeholder desc",
+    lvlCap: 1,
+    baseCost: 100000,
+    costType: "coins",
+    upgType: "NM",
+    icon: "misc/mysterious.png",
+    requiresUnlockXp: true,
+    costAtLevel(level) {
+      return nmCostBN(this, level);
+    },
+    nextCostAfter(_, nextLevel) {
+      return nmCostBN(this, nextLevel);
+    },
+    computeLockState({ xpUnlocked }) {
+      if (!xpUnlocked) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
+          descOverride: 'Unlock the XP system to reveal this upgrade.',
+          reason: 'Purchase "Unlock XP" to reveal this upgrade.',
+          hideCost: true,
+          badgeOverride: 'LOCKED',
+          hideEffect: true,
+        };
+      }
+      return {
+        locked: true,
+        iconOverride: 'img/misc/mysterious.png',
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: HIDDEN_UPGRADE_DESC,
+        reason: 'Reach XP Level 31 to reveal this upgrade.',
+        hideCost: true,
+        badgeOverride: 'LOCKED',
+        hideEffect: true,
+      };
+    },
+  },
 ];
 
 for (const upg of REGISTRY) {
@@ -934,6 +1142,54 @@ export function getLevelNumber(areaKey, upgId) {
   return ensureUpgradeState(areaKey, upgId).lvl;
 }
 
+function computeUpgradeLockStateFor(areaKey, upg) {
+  if (!upg) return { locked: false };
+
+  const xpUnlocked = safeIsXpUnlocked();
+  const xpLevelBn = xpUnlocked ? currentXpLevelBigNum() : BigNum.fromInt(0);
+  const xpLevel = xpUnlocked ? levelBigNumToNumber(xpLevelBn) : 0;
+
+  let baseState = { locked: false };
+  if (upg.requiresUnlockXp && !xpUnlocked) {
+    baseState = {
+      locked: true,
+      iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+      descOverride: 'Unlock the XP system to reveal this upgrade.',
+      reason: 'Purchase "Unlock XP" to unlock this upgrade.',
+      badgeOverride: 'LOCKED',
+    };
+  }
+
+  let state = mergeLockStates({ locked: false }, baseState);
+  if (typeof upg.computeLockState === 'function') {
+    try {
+      const context = {
+        areaKey,
+        upg,
+        xpUnlocked,
+        xpLevelBn,
+        xpLevel,
+        baseLocked: state.locked,
+        getUpgradeLevel(targetId) {
+          return getLevelNumber(areaKey, targetId);
+        },
+      };
+      const custom = upg.computeLockState(context);
+      state = mergeLockStates(state, custom);
+    } catch {}
+  }
+
+  if (state.locked && upg.requiresUnlockXp && !xpUnlocked && !state.iconOverride) {
+    state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
+  }
+
+  return state;
+}
+
+function isUpgradeLocked(areaKey, upg) {
+  return !!computeUpgradeLockStateFor(areaKey, upg).locked;
+}
+
 export function getLevel(areaKey, upgId) {
   const state = ensureUpgradeState(areaKey, upgId);
   if (state.lvlBn?.clone) return state.lvlBn.clone();
@@ -998,6 +1254,11 @@ export function getUpgradesForArea(areaKey) {
 export function getUpgrade(areaKey, upgId) {
   const normalizedId = normalizeUpgradeId(upgId);
   return REGISTRY.find(u => u.area === areaKey && normalizeUpgradeId(u.id) === normalizedId) || null;
+}
+
+export function getUpgradeLockState(areaKey, upgId) {
+  const upg = typeof upgId === 'object' && upgId ? upgId : getUpgrade(areaKey, upgId);
+  return computeUpgradeLockStateFor(areaKey, upg);
 }
 
 function normalizeUpgradeIconPath(iconPath) {
@@ -1104,6 +1365,10 @@ export function buyOne(areaKey, upgId) {
   const upg = state.upg;
   if (!upg) return { bought: 0, spent: 0 };
 
+  if (isUpgradeLocked(areaKey, upg)) {
+    return { bought: 0, spent: 0 };
+  }
+
   const lvlNum = state.lvl;
   const lvlBn = state.lvlBn ?? ensureLevelBigNum(lvlNum);
   const prevLevelBn = safeCloneBigNum(lvlBn);
@@ -1140,7 +1405,11 @@ export function buyMax(areaKey, upgId) {
   const state = ensureUpgradeState(areaKey, upgId);
   const upg = state.upg;
   if (!upg) return { bought: 0, spent: BigNum.fromInt(0) };
-  
+
+  if (isUpgradeLocked(areaKey, upg)) {
+    return { bought: BigNum.fromInt(0), spent: BigNum.fromInt(0) };
+  }
+
   const lvlNum = state.lvl;
   const lvlBn = state.lvlBn ?? ensureLevelBigNum(lvlNum);
   const cap = Number.isFinite(upg.lvlCap)
@@ -1277,6 +1546,9 @@ const BASE_CPS = 1;
 export function computeUpgradeEffects(areaKey) {
   const ups = getUpgradesForArea(areaKey);
   let cpsMult = 1.0;
+  let coinValueMultBn = BigNum.fromInt(1);
+  let xpGainMultBn = BigNum.fromInt(1);
+  let bookRewardMultBn = BigNum.fromInt(1);
 
   for (const u of ups) {
     const lvlBn = getLevel(areaKey, u.id);
@@ -1284,6 +1556,21 @@ export function computeUpgradeEffects(areaKey) {
     if (u.id === 1) {
       // Faster Coins
       cpsMult *= u.effectMultiplier(lvlNum);
+    } else if (u.id === 3) {
+      cpsMult *= u.effectMultiplier(lvlNum);
+    } else if (u.id === 4) {
+      const lvl = Math.max(0, Number.isFinite(lvlNum) ? lvlNum : 0);
+      if (lvl > 0) {
+        const factor = 1 + (0.5 * lvl);
+        let str = factor.toFixed(6);
+        str = str.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+        coinValueMultBn = coinValueMultBn.mulDecimal(str, 18);
+      }
+    } else if (u.id === 5) {
+      bookRewardMultBn = bookValueMultiplierBn(lvlNum);
+    } else if (u.id === 6) {
+      const lvl = Math.max(0, Number.isFinite(lvlNum) ? lvlNum : 0);
+      xpGainMultBn = BigNum.fromAny(1 + lvl);
     }
     // future upgrades here...
   }
@@ -1291,8 +1578,85 @@ export function computeUpgradeEffects(areaKey) {
   return {
     coinsPerSecondMult: cpsMult,
     coinsPerSecondAbsolute: BASE_CPS * cpsMult,
+    coinValueMultiplier: coinValueMultBn,
+    xpGainMultiplier: xpGainMultBn,
+    bookRewardMultiplier: bookRewardMultBn,
   };
 }
+
+function registerXpUpgradeEffects() {
+  try {
+    setExternalCoinMultiplierProvider(({ baseMultiplier, xpUnlocked }) => {
+      if (!xpUnlocked) return baseMultiplier;
+      let result;
+      try {
+        result = baseMultiplier instanceof BigNum
+          ? baseMultiplier.clone?.() ?? baseMultiplier
+          : BigNum.fromAny(baseMultiplier ?? 0);
+      } catch {
+        result = BigNum.fromInt(0);
+      }
+      const lvl = getLevelNumber(AREA_KEYS.STARTER_COVE, 4);
+      const safeLevel = Math.max(0, Number.isFinite(lvl) ? lvl : 0);
+      if (safeLevel <= 0) return result;
+      let str = (1 + (0.5 * safeLevel)).toFixed(6);
+      str = str.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+      try {
+        return result.mulDecimal(str, 18);
+      } catch {
+        return result;
+      }
+    });
+  } catch {}
+
+  try {
+    setExternalXpGainMultiplierProvider(({ baseGain, xpUnlocked }) => {
+      if (!xpUnlocked) return baseGain;
+      let gain;
+      try {
+        gain = baseGain instanceof BigNum
+          ? baseGain.clone?.() ?? baseGain
+          : BigNum.fromAny(baseGain ?? 0);
+      } catch {
+        gain = BigNum.fromInt(0);
+      }
+      const lvl = getLevelNumber(AREA_KEYS.STARTER_COVE, 6);
+      const safeLevel = Math.max(0, Number.isFinite(lvl) ? lvl : 0);
+      if (safeLevel <= 0) return gain;
+      try {
+        const factor = BigNum.fromAny(1 + safeLevel);
+        return gain.mulBigNumInteger(factor);
+      } catch {
+        return gain;
+      }
+    });
+  } catch {}
+
+  try {
+    setExternalBookRewardProvider(({ baseReward, xpUnlocked }) => {
+      if (!xpUnlocked) return baseReward;
+      let reward;
+      try {
+        reward = baseReward instanceof BigNum
+          ? baseReward.clone?.() ?? baseReward
+          : BigNum.fromAny(baseReward ?? 0);
+      } catch {
+        reward = BigNum.fromInt(0);
+      }
+      const lvl = getLevelNumber(AREA_KEYS.STARTER_COVE, 5);
+      const safeLevel = Math.max(0, Number.isFinite(lvl) ? lvl : 0);
+      if (safeLevel <= 0) return reward;
+      try {
+        const multiplier = bookValueMultiplierBn(safeLevel);
+        return reward.mulBigNumInteger(multiplier);
+      } catch {
+        return reward;
+      }
+    });
+  } catch {}
+}
+
+registerXpUpgradeEffects();
 
 // tiny event system for “upgrades changed”
 let listeners = [];
@@ -1334,7 +1698,15 @@ export function upgradeUiModel(areaKey, upgId) {
   const have = haveRaw instanceof BigNum
     ? haveRaw
     : BigNum.fromAny(haveRaw ?? 0);
-  const effect = upg.effectSummary(lvl);
+  const lockState = getUpgradeLockState(areaKey, upgId);
+  const locked = !!lockState.locked;
+  const displayTitle = lockState.titleOverride ?? upg.title;
+  const displayDesc = lockState.descOverride ?? upg.desc;
+  let effect = '';
+  if (typeof upg.effectSummary === 'function' && !(locked && lockState.hideEffect)) {
+    effect = upg.effectSummary(lvl);
+  }
+  const iconUrl = lockState.iconOverride ?? getIconUrl(upg);
   return {
     upg,
     lvl,
@@ -1349,7 +1721,11 @@ export function upgradeUiModel(areaKey, upgId) {
     have,
     haveFmt: bank[upg.costType]?.fmt(have) ?? String(have),
     effect,
-    iconUrl: getIconUrl(upg),
+    iconUrl,
+    lockState,
+    locked,
+    displayTitle,
+    displayDesc,
   };
 }
 
