@@ -102,3 +102,9 @@
     top: 1px;
   }
 }
+
+@media (pointer: coarse) and (min-width: 1000px) {
+  .currency-popup__amount {
+    top: 2px;
+  }
+}
