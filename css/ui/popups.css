@@ -102,8 +102,7 @@
     top: 1px;
   }
 }
-
-@media (pointer: coarse) and (min-width: 1000px) {
+@media (pointer: coarse) and (min-width: 1000px), (pointer: coarse) and (orientation: portrait) and (min-width: 600px) {
   .currency-popup__amount {
     top: 2px;
   }
