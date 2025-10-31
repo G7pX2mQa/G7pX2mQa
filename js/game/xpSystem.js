@@ -21,6 +21,9 @@ let lastSyncedCoinLevel = null;
 let lastSyncedCoinLevelWasInfinite = false;
 let lastSyncedCoinUsedApproximation = false;
 let lastSyncedCoinApproxKey = null;
+let externalCoinMultiplierProvider = null;
+let externalXpGainMultiplierProvider = null;
+let externalBookRewardProvider = null;
 
 const EXACT_REQUIREMENT_CACHE_LEVEL = 5000n;
 const LOG_STEP = Math.log10(11 / 10);
@@ -549,8 +552,24 @@ function syncCoinMultiplierWithXpLevel(force = false) {
     multiplierBn = approximateCoinMultiplierFromBigNum(xpState.xpLevel);
   }
 
-  const multIsInf = multiplierBn.isInfinite?.() || (typeof multiplierBn.isInfinite === 'function' && multiplierBn.isInfinite());
-  try { multApi.set(multiplierBn.clone?.() ?? multiplierBn); } catch {}
+  let finalMultiplier = multiplierBn.clone?.() ?? multiplierBn;
+  if (typeof externalCoinMultiplierProvider === 'function') {
+    try {
+      const maybe = externalCoinMultiplierProvider({
+        baseMultiplier: finalMultiplier.clone?.() ?? finalMultiplier,
+        xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
+        xpUnlocked: xpState.unlocked,
+      });
+      if (maybe instanceof BigNum) {
+        finalMultiplier = maybe.clone?.() ?? maybe;
+      } else if (maybe != null) {
+        finalMultiplier = BigNum.fromAny(maybe);
+      }
+    } catch {}
+  }
+
+  const multIsInf = finalMultiplier.isInfinite?.() || (typeof finalMultiplier.isInfinite === 'function' && finalMultiplier.isInfinite());
+  try { multApi.set(finalMultiplier.clone?.() ?? finalMultiplier); } catch {}
   if (multIsInf) {
     lastSyncedCoinLevel = null;
     lastSyncedCoinLevelWasInfinite = true;
@@ -617,9 +636,26 @@ function persistState() {
 
 function handleXpLevelUpRewards() {
   syncCoinMultiplierWithXpLevel(true);
+
+  let reward = bnOne();
+  if (typeof externalBookRewardProvider === 'function') {
+    try {
+      const maybe = externalBookRewardProvider({
+        baseReward: reward.clone?.() ?? reward,
+        xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
+        xpUnlocked: xpState.unlocked,
+      });
+      if (maybe instanceof BigNum) {
+        reward = maybe.clone?.() ?? maybe;
+      } else if (maybe != null) {
+        reward = BigNum.fromAny(maybe);
+      }
+    } catch {}
+  }
+
   try {
     if (bank?.books?.add) {
-      bank.books.add(bnOne());
+      bank.books.add(reward);
     }
   } catch {}
   const syncedLevelInfo = xpLevelBigIntInfo(xpState.xpLevel);
@@ -728,6 +764,21 @@ export function addXp(amount, { silent = false } = {}) {
   } catch {
     inc = bnZero();
   }
+  if (typeof externalXpGainMultiplierProvider === 'function' && !inc.isZero?.()) {
+    try {
+      const maybe = externalXpGainMultiplierProvider({
+        baseGain: inc.clone?.() ?? inc,
+        xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
+        xpUnlocked: xpState.unlocked,
+      });
+      if (maybe instanceof BigNum) {
+        inc = maybe.clone?.() ?? maybe;
+      } else if (maybe != null) {
+        inc = BigNum.fromAny(maybe);
+      }
+    } catch {}
+  }
+
   if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
     updateHud();
     return { unlocked: true, xpLevelsGained: bnZero(), xpAdded: inc, xpLevel: xpState.xpLevel, requirement: requirementBn };
@@ -805,6 +856,25 @@ export function getXpRequirementForXpLevel(xpLevel) {
   return xpRequirementForXpLevel(xpLevel);
 }
 
+export function setExternalCoinMultiplierProvider(fn) {
+  externalCoinMultiplierProvider = typeof fn === 'function' ? fn : null;
+  ensureStateLoaded();
+  syncCoinMultiplierWithXpLevel(true);
+}
+
+export function refreshCoinMultiplierFromXpLevel() {
+  ensureStateLoaded();
+  syncCoinMultiplierWithXpLevel(true);
+}
+
+export function setExternalXpGainMultiplierProvider(fn) {
+  externalXpGainMultiplierProvider = typeof fn === 'function' ? fn : null;
+}
+
+export function setExternalBookRewardProvider(fn) {
+  externalBookRewardProvider = typeof fn === 'function' ? fn : null;
+}
+
 if (typeof window !== 'undefined') {
   window.xpSystem = window.xpSystem || {};
   Object.assign(window.xpSystem, {
@@ -814,5 +884,9 @@ if (typeof window !== 'undefined') {
     getXpState,
     isXpSystemUnlocked,
     getXpRequirementForXpLevel,
+    setExternalCoinMultiplierProvider,
+    refreshCoinMultiplierFromXpLevel,
+    setExternalXpGainMultiplierProvider,
+    setExternalBookRewardProvider,
   });
 }
