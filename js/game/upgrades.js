@@ -69,7 +69,6 @@ export function bigNumFromLog10(log10Value) {
 const UNLOCK_XP_UPGRADE_ID = 2;
 const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/mysterious.png';
 const HIDDEN_UPGRADE_TITLE = 'Hidden Upgrade';
-const HIDDEN_UPGRADE_DESC = 'This upgrade will be revealed after reaching XP Level 31';
 
 function safeIsXpUnlocked() {
   try {
@@ -545,6 +544,72 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
     return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
   }
 
+  let secondPrice = null;
+  try {
+    secondPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum + 1));
+  } catch {
+    secondPrice = null;
+  }
+
+  const limit = Number.isFinite(room)
+    ? Math.max(0, Math.floor(room))
+    : Number.MAX_VALUE;
+
+  const pricePlain = firstPrice.toPlainIntegerString?.();
+  const walletPlain = walletBn.toPlainIntegerString?.();
+  const priceInt = pricePlain && pricePlain !== 'Infinity' ? BigInt(pricePlain) : null;
+  const walletInt = walletPlain && walletPlain !== 'Infinity' ? BigInt(walletPlain) : null;
+  const isConstantCost = secondPrice && secondPrice.cmp(firstPrice) === 0;
+
+  if (isConstantCost && priceInt != null && priceInt > 0n) {
+    const limitNum = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 0;
+    const limitInt = Number.isFinite(limit) ? BigInt(limitNum) : null;
+
+    const finalizeConstant = (countInt) => {
+      if (countInt <= 0n) return null;
+      const countBn = BigNum.fromAny(countInt.toString());
+      const spent = firstPrice.mulBigNumInteger(countBn);
+      if (spent.cmp(walletBn) > 0) return null;
+      const numericCount = Number(countInt <= BigInt(Number.MAX_SAFE_INTEGER)
+        ? Number(countInt)
+        : Number.MAX_SAFE_INTEGER);
+      const finalLevel = startLevelNum + numericCount;
+      const atCap = Number.isFinite(cap) && finalLevel >= cap;
+      const nextPrice = atCap
+        ? zero
+        : BigNum.fromAny(upg.costAtLevel(finalLevel));
+      return {
+        count: countBn,
+        spent,
+        nextPrice,
+        numericCount,
+      };
+    };
+
+    if (walletInt != null) {
+      if (walletInt < priceInt) {
+        return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
+      }
+      let countInt = walletInt / priceInt;
+      if (limitInt != null && countInt > limitInt) countInt = limitInt;
+      const result = finalizeConstant(countInt);
+      if (result) return result;
+    } else if (limitInt != null && limitInt > 0n) {
+      let countNum = limitNum;
+      if (!(countNum > 0)) {
+        return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
+      }
+      let candidateInt = BigInt(countNum);
+      let result = finalizeConstant(candidateInt);
+      while (!result && countNum > 0) {
+        countNum -= 1;
+        candidateInt = BigInt(countNum);
+        result = finalizeConstant(candidateInt);
+      }
+      if (result) return result;
+    }
+  }
+
   const ratioLog10 = scaling.ratioLog10;
   const ratioMinus1 = scaling.ratioMinus1;
   if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
@@ -555,10 +620,6 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
   if (!Number.isFinite(ratioMinus1Log)) {
     return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
   }
-
-  const limit = Number.isFinite(room)
-    ? Math.max(0, Math.floor(room))
-    : Number.MAX_VALUE;
 
   const startPriceLog = scaling.baseLog10 + (startLevelNum * ratioLog10);
   const logTarget = log10OnePlusPow10(walletLog + ratioMinus1Log - startPriceLog);
@@ -814,10 +875,10 @@ const REGISTRY = [
     nextCostAfter(_, nextLevel) {
       return nmCostBN(this, nextLevel);
     },
-    effectSummary(level) {
-      const pct = level * 10;
-      return `Coins/second: +${pct}%`;
-    },
+    effectSummary(level) {␊
+      const pct = level * 10;␊
+      return `Coin spawn rate bonus: +${pct}%`;
+    },␊
     effectMultiplier(level) {
       return 1 + (0.10 * level);
     }
@@ -838,10 +899,8 @@ const REGISTRY = [
     nextCostAfter(_, nextLevel) {
       return nmCostBN(this, nextLevel);
     },
-    effectSummary(level) {
-      return level >= 1
-        ? 'XP System unlocked'
-        : 'Unlocks the XP HUD and XP levels';
+    effectSummary() {
+      return '';
     },
     onLevelChange({ newLevel, newLevelBn }) {
       const reached = Number.isFinite(newLevel)
@@ -872,7 +931,7 @@ const REGISTRY = [
     effectSummary(level) {
       const lvl = Math.max(0, Math.floor(Number(level) || 0));
       const pct = lvl * 5;
-      return `Coins/second: +${pct}%`;
+      return `Coin spawn rate bonus: +${pct}%`;
     },
     effectMultiplier(level) {
       const lvl = Math.max(0, Number(level) || 0);
@@ -901,7 +960,7 @@ const REGISTRY = [
       const mult = 1 + (0.5 * lvl);
       let display = mult.toFixed(2);
       display = display.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
-      return `Coin value: ×${display}`;
+      return `Coin value bonus: ${display}x`;
     },
     onLevelChange() {
       try { refreshCoinMultiplierFromXpLevel(); } catch {}
@@ -926,7 +985,7 @@ const REGISTRY = [
     },
     effectSummary(level) {
       const mult = bookValueMultiplierBn(level);
-      return `Books per XP level: ×${formatNumber(mult)}`;
+      return `Book value bonus: ${formatNumber(mult)}x`;
     },
   },
   {
@@ -949,7 +1008,7 @@ const REGISTRY = [
     effectSummary(level) {
       const lvl = Math.max(0, Number(level) || 0);
       const mult = BigNum.fromAny(1 + lvl * 2);
-      return `XP gain per coin: ×${formatNumber(mult)}`;
+      return `XP value bonus: ${formatNumber(mult)}x`;
     },
   },
   {
@@ -963,13 +1022,14 @@ const REGISTRY = [
     upgType: "NM",
     icon: "misc/mysterious.png",
     requiresUnlockXp: true,
+    revealRequirement: 'Reach XP Level 31 to reveal this upgrade',
     costAtLevel(level) {
       return nmCostBN(this, level);
     },
     nextCostAfter(_, nextLevel) {
       return nmCostBN(this, nextLevel);
     },
-    computeLockState({ xpUnlocked }) {
+    computeLockState({ xpUnlocked, upg }) {
       if (!xpUnlocked) {
         return {
           locked: true,
@@ -981,12 +1041,13 @@ const REGISTRY = [
           hideEffect: true,
         };
       }
+      const requirement = upg?.revealRequirement || 'Reach XP Level 31 to reveal this upgrade';
       return {
         locked: true,
         iconOverride: 'img/misc/mysterious.png',
         titleOverride: HIDDEN_UPGRADE_TITLE,
-        descOverride: HIDDEN_UPGRADE_DESC,
-        reason: 'Reach XP Level 31 to reveal this upgrade',
+        descOverride: requirement,
+        reason: requirement,
         hideCost: true,
         hideEffect: true,
       };
@@ -1157,7 +1218,6 @@ function computeUpgradeLockStateFor(areaKey, upg) {
       reason: 'Purchase "Unlock XP" to reveal this upgrade',
       hideCost: true,
       hideEffect: true,
-      hidden: true,
     };
   }
 
@@ -1183,10 +1243,17 @@ function computeUpgradeLockStateFor(areaKey, upg) {
   if (state.locked) {
     if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
     if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
+    if (!state.reason && upg?.revealRequirement) {
+      state.reason = upg.revealRequirement;
+    }
     if (!state.descOverride) {
-      state.descOverride = state.reason
-        ? `${state.reason}`
-        : HIDDEN_UPGRADE_DESC;
+      if (state.reason) {
+        state.descOverride = `${state.reason}`;
+      } else if (upg?.revealRequirement) {
+        state.descOverride = upg.revealRequirement;
+      } else {
+        state.descOverride = 'This upgrade is currently hidden.';
+      }
     }
   }
 
