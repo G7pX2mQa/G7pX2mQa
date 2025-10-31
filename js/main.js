@@ -15,6 +15,33 @@ let onUpgradesChanged;
 let registerPreloadedAudio;
 let initPopups;
 
+const IS_TOUCH_DEVICE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
+
+function disableMobileZoomGestures() {
+  if (!IS_TOUCH_DEVICE) return;
+
+  let lastTouchEnd = 0;
+  const TOUCH_DELAY_MS = 350;
+
+  document.addEventListener('touchend', (event) => {
+    const now = performance.now();
+    if (now - lastTouchEnd <= TOUCH_DELAY_MS) {
+      event.preventDefault();
+    }
+    lastTouchEnd = now;
+  }, { passive: false });
+
+  document.addEventListener('gesturestart', (event) => {
+    event.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('dblclick', (event) => {
+    event.preventDefault();
+  }, { passive: false });
+}
+
+disableMobileZoomGestures();
+
 export const AREAS = {
   MENU: 0,
   STARTER_COVE: 1,
