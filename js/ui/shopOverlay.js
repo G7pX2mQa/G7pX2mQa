@@ -537,7 +537,10 @@ function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
 
       while (lo < hi) {
         const mid = Math.floor((lo + hi + 1) / 2);
-        const total = c0.mul(BigNum.fromInt(mid));
+        const midBn = BigNum.fromInt(mid);
+        const total = typeof c0.mulBigNumInteger === 'function'
+          ? c0.mulBigNumInteger(midBn)
+          : BigNum.fromAny(c0 ?? 0).mulBigNumInteger(midBn);
         if (total.cmp(walletBn) <= 0) {
           lo = mid;
         } else {
@@ -591,26 +594,35 @@ function renderShopGrid() {
     let badgeHtml;
     let badgePlain;
     if (locked) {
-      const override = upg.lockState?.badgeOverride;
-      badgeHtml = override || 'LOCKED';
-      badgePlain = override || 'LOCKED';
-      btn.setAttribute('aria-label', `${upg.title} (Locked)`);
+      badgeHtml = '';
+      badgePlain = '';
+      const reason = upg.lockState?.reason;
+      const ariaLabel = reason
+        ? `${upg.title} (Locked, ${reason})`
+        : `${upg.title} (Locked)`;
+      btn.setAttribute('aria-label', ariaLabel);
     } else {
       badgeHtml = hasPlus ? `${levelHtml} (+${plusHtml})` : levelHtml;
       badgePlain = hasPlus ? `${levelPlain} (+${plusPlain})` : levelPlain;
       btn.setAttribute('aria-label', `${upg.title}, level ${badgePlain}`);
     }
-    btn.title = 'Left-click: Details • Right-click: Buy Max';
+    if (locked) {
+      btn.title = upg.lockState?.reason || 'Locked upgrade';
+    } else {
+      btn.title = 'Left-click: Details • Right-click: Buy Max';
+    }
 
     const tile = document.createElement('div');
     tile.className = 'shop-tile';
 
 
     const baseImg = document.createElement('img');
-	baseImg.className = 'upgrade-base';
-	const costType = upg.meta?.costType || 'coins';
-	baseImg.src = BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins;
+    baseImg.className = 'base';
+    const costType = upg.meta?.costType || 'coins';
+    baseImg.src = BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins;
     baseImg.alt = '';
+    baseImg.decoding = 'async';
+    baseImg.loading = 'lazy';
 
     const iconImg = document.createElement('img');
     iconImg.className = 'icon';
@@ -620,16 +632,6 @@ function renderShopGrid() {
     iconImg.loading = 'lazy';
     iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
 
-    const badge = document.createElement('span');
-    badge.className = 'level-badge';
-    if (locked && badgeHtml === badgePlain) {
-      badge.textContent = badgeHtml;
-    } else {
-      badge.innerHTML = badgeHtml;
-    }
-    if (hasPlus && !locked) badge.classList.add('can-buy');
-
-    // Left-click: open the focused upgrade overlay
     btn.addEventListener('click', () => openUpgradeOverlay(upg.meta));
 
     // Right-click: Buy Max (desktop)
@@ -648,7 +650,19 @@ function renderShopGrid() {
       }
     });
 
-    tile.append(baseImg, iconImg, badge);
+    if (!locked) {
+      const badge = document.createElement('span');
+      badge.className = 'level-badge';
+      if (badgeHtml === badgePlain) {
+        badge.textContent = badgeHtml;
+      } else {
+        badge.innerHTML = badgeHtml;
+      }
+      if (hasPlus) badge.classList.add('can-buy');
+      tile.append(baseImg, iconImg, badge);
+    } else {
+      tile.append(baseImg, iconImg);
+    }
     btn.appendChild(tile);
     grid.appendChild(btn);
   }
