@@ -94,6 +94,5 @@
   .currency-popup__icon {
     width: clamp(18px, 5vw, 22px);
     height: clamp(18px, 5vw, 22px);
-    top: -1px;
   }
 }
