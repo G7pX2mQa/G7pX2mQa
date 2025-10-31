@@ -20,6 +20,7 @@ import {
   buyOne,
   buyMax,
   evaluateBulkPurchase,
+  getUpgradeLockState,
 } from '../game/upgrades.js';
 
 
@@ -403,14 +404,22 @@ function buildUpgradesData() {
   for (const def of defs) {
     const lvlBn = getLevel(areaKey, def.id);
     const lvlNum = getLevelNumber(areaKey, def.id);
+    const lockState = getUpgradeLockState(areaKey, def);
+    const icon = lockState.iconOverride ?? getIconUrl(def);
+    const title = lockState.titleOverride ?? def.title;
+    const desc = lockState.descOverride ?? def.desc;
+    const locked = !!lockState.locked;
     upgrades[def.id] = {
       id: def.id,
-      icon: getIconUrl(def),
-      title: def.title,
+      icon,
+      title,
+      desc,
       level: lvlBn,
       levelNumeric: lvlNum,
       area: def.area,
       meta: def,
+      locked,
+      lockState,
     };
   }
 }
@@ -531,20 +540,42 @@ function renderShopGrid() {
     btn.setAttribute('role', 'gridcell');
     btn.dataset.upgId = String(upg.id);
 
-    const canPlusBn = computeAffordableLevels(upg.meta, upg.levelNumeric, upg.level);
+    const locked = !!upg.locked;
+    btn.classList.toggle('is-locked', locked);
+    if (locked) {
+      btn.setAttribute('aria-disabled', 'true');
+      btn.dataset.locked = '1';
+    } else {
+      btn.removeAttribute('aria-disabled');
+      btn.dataset.locked = '0';
+    }
+
+    const canPlusBn = locked
+      ? BigNum.fromInt(0)
+      : computeAffordableLevels(upg.meta, upg.levelNumeric, upg.level);
     const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
     const levelHtml = formatNumber(upg.level);
     const levelPlain = stripTags(levelHtml);
     const plusHtml = formatNumber(plusBn);
     const plusPlain = stripTags(plusHtml);
     const hasPlus = !plusBn.isZero?.();
-    const badgeHtml = hasPlus ? `${levelHtml} (+${plusHtml})` : levelHtml;
-    const badgePlain = hasPlus ? `${levelPlain} (+${plusPlain})` : levelPlain;
-    btn.setAttribute('aria-label', `${upg.title}, level ${badgePlain}`);
+    let badgeHtml;
+    let badgePlain;
+    if (locked) {
+      const override = upg.lockState?.badgeOverride;
+      badgeHtml = override || 'LOCKED';
+      badgePlain = override || 'LOCKED';
+      btn.setAttribute('aria-label', `${upg.title} (Locked)`);
+    } else {
+      badgeHtml = hasPlus ? `${levelHtml} (+${plusHtml})` : levelHtml;
+      badgePlain = hasPlus ? `${levelPlain} (+${plusPlain})` : levelPlain;
+      btn.setAttribute('aria-label', `${upg.title}, level ${badgePlain}`);
+    }
     btn.title = 'Left-click: Details • Right-click: Buy Max';
 
     const tile = document.createElement('div');
     tile.className = 'shop-tile';
+
 
     const baseImg = document.createElement('img');
     baseImg.className = 'base';
@@ -561,8 +592,12 @@ function renderShopGrid() {
 
     const badge = document.createElement('span');
     badge.className = 'level-badge';
-    badge.innerHTML = badgeHtml;
-    if (hasPlus) badge.classList.add('can-buy');
+    if (locked && badgeHtml === badgePlain) {
+      badge.textContent = badgeHtml;
+    } else {
+      badge.innerHTML = badgeHtml;
+    }
+    if (hasPlus && !locked) badge.classList.add('can-buy');
 
     // Left-click: open the focused upgrade overlay
     btn.addEventListener('click', () => openUpgradeOverlay(upg.meta));
@@ -570,6 +605,7 @@ function renderShopGrid() {
     // Right-click: Buy Max (desktop)
     btn.addEventListener('contextmenu', (e) => {
       if (IS_MOBILE) return;
+      if (locked) return;
       e.preventDefault();
       e.stopPropagation();
       const areaKey = getCurrentAreaKey();
@@ -812,7 +848,7 @@ export function openUpgradeOverlay(upgDef) {
 
     const title = document.createElement('div');
     title.className = 'upg-title';
-    title.textContent = model.upg.title;
+    title.textContent = model.displayTitle || model.upg.title;
 
     const capReached = model.lvlBn?.isInfinite?.()
       ? true
@@ -842,7 +878,7 @@ export function openUpgradeOverlay(upgDef) {
     // description
     const desc = document.createElement('div');
     desc.className = 'upg-desc centered';
-    desc.textContent = model.upg.desc;
+    desc.textContent = model.displayDesc || model.upg.desc;
     content.appendChild(desc);
 
     const info = document.createElement('div');
@@ -850,16 +886,29 @@ export function openUpgradeOverlay(upgDef) {
 
     // gap + total bonus
     info.appendChild(spacer('12px'));
+    const lockState = model.lockState || getUpgradeLockState(areaKey, upgDef.id);
+    const locked = !!lockState?.locked;
+    if (locked && lockState?.reason) {
+      const note = document.createElement('div');
+      note.className = 'upg-line lock-note';
+      note.textContent = lockState.reason;
+      info.appendChild(note);
+      info.appendChild(spacer('12px'));
+    }
     const effectMultiplierFn = model.upg.effectMultiplier;
-    if (typeof effectMultiplierFn === 'function') {
+    if (!locked && typeof effectMultiplierFn === 'function') {
       const mult = effectMultiplierFn(model.lvl);
       const multStr = formatMult(mult);
       const multHtml = multStr.includes('∞') ? multStr.replace('∞', '<span class="infty">∞</span>') : multStr;
       info.appendChild(
         makeLine(`<span class="bonus-line">Total coin spawn rate bonus: ${multHtml}</span>`)
       );
+      info.appendChild(spacer('12px'));
     }
-    info.appendChild(spacer('12px'));
+    if (model.effect && !(locked && lockState?.hideEffect)) {
+      info.appendChild(makeLine(`<span class="bonus-line">${model.effect}</span>`));
+      info.appendChild(spacer('12px'));
+    }
 
     // dynamic currency icon based on costType
     const iconHTML    = currencyIconHTML(model.upg.costType);
@@ -868,7 +917,7 @@ export function openUpgradeOverlay(upgDef) {
       : BigNum.fromAny(model.nextPrice || 0);
 
     // costs only if not capped
-    if (!capReached) {
+    if (!capReached && (!locked || !lockState?.hideCost)) {
       const costs = document.createElement('div');
       costs.className = 'upg-costs';
 
@@ -906,7 +955,10 @@ export function openUpgradeOverlay(upgDef) {
     closeBtn.textContent = 'Close';
     closeBtn.addEventListener('click', () => { upgOpenLocal = false; closeUpgradeMenu(); });
 
-    if (capReached) {
+    if (locked) {
+      actions.append(closeBtn);
+      closeBtn.focus();
+    } else if (capReached) {
       // MAX: only Close (no Buy/Buy Max/Buy Next)
       actions.append(closeBtn);
       closeBtn.focus();
