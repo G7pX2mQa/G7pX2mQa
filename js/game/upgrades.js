@@ -67,7 +67,7 @@ export function bigNumFromLog10(log10Value) {
 }
 
 const UNLOCK_XP_UPGRADE_ID = 2;
-const LOCKED_UPGRADE_ICON_DATA_URL = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="%23000"/></svg>';
+const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/mysterious.png';
 const HIDDEN_UPGRADE_TITLE = 'Hidden Upgrade';
 const HIDDEN_UPGRADE_DESC = 'This upgrade will be revealed after reaching XP Level 31';
 
@@ -115,8 +115,8 @@ function mergeLockStates(base, override) {
     'descOverride',
     'reason',
     'hideCost',
-    'badgeOverride',
     'hideEffect',
+    'hidden',
   ];
   for (const key of keys) {
     if (override[key] !== undefined) merged[key] = override[key];
@@ -978,7 +978,6 @@ const REGISTRY = [
           descOverride: 'Unlock the XP system to reveal this upgrade.',
           reason: 'Purchase "Unlock XP" to reveal this upgrade.',
           hideCost: true,
-          badgeOverride: 'LOCKED',
           hideEffect: true,
         };
       }
@@ -989,7 +988,6 @@ const REGISTRY = [
         descOverride: HIDDEN_UPGRADE_DESC,
         reason: 'Reach XP Level 31 to reveal this upgrade.',
         hideCost: true,
-        badgeOverride: 'LOCKED',
         hideEffect: true,
       };
     },
@@ -1150,19 +1148,18 @@ function computeUpgradeLockStateFor(areaKey, upg) {
   const xpLevel = xpUnlocked ? levelBigNumToNumber(xpLevelBn) : 0;
 
   let baseState = { locked: false };
-if (upg.requiresUnlockXp && !xpUnlocked) {
-  baseState = {
-    locked: true,
-    iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-    titleOverride: HIDDEN_UPGRADE_TITLE,
-    descOverride: 'Unlock the XP system to reveal this upgrade.',
-    reason: 'Purchase "Unlock XP" to unlock this upgrade.',
-    badgeOverride: 'LOCKED',
-    hideCost: true,
-    hideEffect: true,
-    hidden: true,        // <— NEW: let the UI skip rendering entirely until XP is unlocked
-  };
-}
+  if (upg.requiresUnlockXp && !xpUnlocked) {
+    baseState = {
+      locked: true,
+      iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+      titleOverride: HIDDEN_UPGRADE_TITLE,
+      descOverride: 'Unlock the XP system to reveal this upgrade.',
+      reason: 'Purchase "Unlock XP" to reveal this upgrade.',
+      hideCost: true,
+      hideEffect: true,
+      hidden: true,
+    };
+  }
 
   let state = mergeLockStates({ locked: false }, baseState);
   if (typeof upg.computeLockState === 'function') {
@@ -1181,6 +1178,16 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
       const custom = upg.computeLockState(context);
       state = mergeLockStates(state, custom);
     } catch {}
+  }
+
+  if (state.locked) {
+    if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
+    if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
+    if (!state.descOverride) {
+      state.descOverride = state.reason
+        ? `${state.reason}`
+        : HIDDEN_UPGRADE_DESC;
+    }
   }
 
   if (state.locked && upg.requiresUnlockXp && !xpUnlocked && !state.iconOverride) {
@@ -1709,6 +1716,7 @@ export function upgradeUiModel(areaKey, upgId) {
   let effect = '';
   if (typeof upg.effectSummary === 'function' && !(locked && lockState.hideEffect)) {
     effect = upg.effectSummary(lvl);
+    if (typeof effect === 'string') effect = effect.trim();
   }
   const iconUrl = lockState.iconOverride ?? getIconUrl(upg);
   return {
