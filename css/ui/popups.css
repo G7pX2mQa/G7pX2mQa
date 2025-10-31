@@ -80,7 +80,6 @@
   }
 }
 
-/* Mobile adjustments */
 @media (pointer: coarse) {
   .currency-popups {
     top: 30vh;
@@ -95,4 +94,8 @@
     width: clamp(18px, 5vw, 22px);
     height: clamp(18px, 5vw, 22px);
   }
+  .currency-popup__plus {
+    top: 1px;
+  }
 }
+
