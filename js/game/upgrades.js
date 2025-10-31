@@ -795,7 +795,7 @@ export const AREA_KEYS = {
  *  - "HM" = Has Milestones
  *
  * Optional fields:
- *  - scalingPreset: string key referencing DEFAULT_SCALING_PRESETS for custom defaults
+ *  - scalingPreset: string key referencing DEFAULT_SCALING_PRESETS for custom defaults.
  */
 const REGISTRY = [
   {
@@ -912,8 +912,8 @@ const REGISTRY = [
     id: 5,
     title: "Book Value",
     desc: "Doubles books gained when increasing XP level",
-    lvlCap: 100,
-    baseCost: 1,
+    lvlCap: 1,
+    baseCost: 10,
     costType: "books",
     upgType: "NM",
     icon: "sc_upgrade_icons/book_val1.png",
@@ -933,7 +933,7 @@ const REGISTRY = [
     area: AREA_KEYS.STARTER_COVE,
     id: 6,
     title: "XP Value",
-    desc: "Increases XP value by +100% per level",
+    desc: "Increases XP value by +200% per level",
     lvlCap: 10,
     baseCost: 2500,
     costType: "coins",
@@ -948,7 +948,7 @@ const REGISTRY = [
     },
     effectSummary(level) {
       const lvl = Math.max(0, Number(level) || 0);
-      const mult = BigNum.fromAny(1 + lvl);
+      const mult = BigNum.fromAny(1 + lvl * 2);
       return `XP gain per coin: ×${formatNumber(mult)}`;
     },
   },
@@ -1150,15 +1150,19 @@ function computeUpgradeLockStateFor(areaKey, upg) {
   const xpLevel = xpUnlocked ? levelBigNumToNumber(xpLevelBn) : 0;
 
   let baseState = { locked: false };
-  if (upg.requiresUnlockXp && !xpUnlocked) {
-    baseState = {
-      locked: true,
-      iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-      descOverride: 'Unlock the XP system to reveal this upgrade.',
-      reason: 'Purchase "Unlock XP" to unlock this upgrade.',
-      badgeOverride: 'LOCKED',
-    };
-  }
+if (upg.requiresUnlockXp && !xpUnlocked) {
+  baseState = {
+    locked: true,
+    iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+    titleOverride: HIDDEN_UPGRADE_TITLE,
+    descOverride: 'Unlock the XP system to reveal this upgrade.',
+    reason: 'Purchase "Unlock XP" to unlock this upgrade.',
+    badgeOverride: 'LOCKED',
+    hideCost: true,
+    hideEffect: true,
+    hidden: true,        // <— NEW: let the UI skip rendering entirely until XP is unlocked
+  };
+}
 
   let state = mergeLockStates({ locked: false }, baseState);
   if (typeof upg.computeLockState === 'function') {
@@ -1570,7 +1574,7 @@ export function computeUpgradeEffects(areaKey) {
       bookRewardMultBn = bookValueMultiplierBn(lvlNum);
     } else if (u.id === 6) {
       const lvl = Math.max(0, Number.isFinite(lvlNum) ? lvlNum : 0);
-      xpGainMultBn = BigNum.fromAny(1 + lvl);
+      xpGainMultBn = BigNum.fromAny(1 + lvl * 2);
     }
     // future upgrades here...
   }
@@ -1624,7 +1628,7 @@ function registerXpUpgradeEffects() {
       const safeLevel = Math.max(0, Number.isFinite(lvl) ? lvl : 0);
       if (safeLevel <= 0) return gain;
       try {
-        const factor = BigNum.fromAny(1 + safeLevel);
+        const factor = BigNum.fromAny(1 + safeLevel * 2);
         return gain.mulBigNumInteger(factor);
       } catch {
         return gain;
