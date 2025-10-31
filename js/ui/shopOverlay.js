@@ -945,7 +945,7 @@ export function openUpgradeOverlay(upgDef) {
       const multStr = formatMult(mult);
       const multHtml = multStr.includes('∞') ? multStr.replace('∞', '<span class="infty">∞</span>') : multStr;
       info.appendChild(
-        makeLine(`<span class="bonus-line">Total coin spawn rate bonus: ${multHtml}</span>`)
+        makeLine(`<span class="bonus-line">Coin spawn rate bonus: ${multHtml}</span>`)
       );
       info.appendChild(spacer('12px'));
     }
