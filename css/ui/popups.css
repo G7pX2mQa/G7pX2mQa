@@ -97,5 +97,8 @@
   .currency-popup__plus {
     top: 1px;
   }
+  .currency-popup__amount {
+    position: relative;
+    top: 1px;
+  }
 }
-
