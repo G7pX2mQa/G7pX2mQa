@@ -885,7 +885,12 @@ export function openUpgradeOverlay(upgDef) {
     const model = ui();
     if (!model) return;
 
-    // ---------- header ----------
+    const lockState = model.lockState || getUpgradeLockState(areaKey, upgDef.id);
+    const locked = !!lockState?.locked;
+    const isHiddenUpgrade = locked && (
+      lockState?.hidden || lockState?.hideEffect || lockState?.hideCost
+    );
+
     const header = upgSheetEl.querySelector('.upg-header');
     header.innerHTML = '';
 
@@ -910,15 +915,20 @@ export function openUpgradeOverlay(upgDef) {
       : `Level ${model.lvlFmtText} / ${capPlain}`;
     level.innerHTML = levelHtml;
     level.setAttribute('aria-label', levelPlain);
+    if (isHiddenUpgrade) {
+      level.hidden = true;
+      level.setAttribute('aria-hidden', 'true');
+    } else {
+      level.hidden = false;
+      level.removeAttribute('aria-hidden');
+    }
 
     upgSheetEl.classList.toggle('is-maxed', capReached);
     header.append(title, level);
 
-    // ---------- content ----------
     const content = upgSheetEl.querySelector('.upg-content');
     content.innerHTML = '';
 
-    // description
     const desc = document.createElement('div');
     desc.className = 'upg-desc centered';
     desc.textContent = model.displayDesc || model.upg.desc;
@@ -927,11 +937,8 @@ export function openUpgradeOverlay(upgDef) {
     const info = document.createElement('div');
     info.className = 'upg-info';
 
-    // gap + total bonus
     info.appendChild(spacer('12px'));
-    const lockState = model.lockState || getUpgradeLockState(areaKey, upgDef.id);
-    const locked = !!lockState?.locked;
-    if (locked && lockState?.reason) {
+    if (locked && lockState?.reason && !isHiddenUpgrade) {
       const descText = (model.displayDesc || '').trim();
       const reasonText = String(lockState.reason ?? '').trim();
       const isDuplicateNote = descText && descText === reasonText;
@@ -944,6 +951,7 @@ export function openUpgradeOverlay(upgDef) {
       }
     }
     const effectMultiplierFn = model.upg.effectMultiplier;
+    let hasMultiplierLine = false;
     if (!locked && typeof effectMultiplierFn === 'function') {
       const mult = effectMultiplierFn(model.lvl);
       const multStr = formatMult(mult);
@@ -952,10 +960,16 @@ export function openUpgradeOverlay(upgDef) {
         makeLine(`<span class="bonus-line">Coin spawn rate bonus: ${multHtml}</span>`)
       );
       info.appendChild(spacer('12px'));
+      hasMultiplierLine = true;
     }
     if (model.effect && !(locked && lockState?.hideEffect)) {
-      info.appendChild(makeLine(`<span class="bonus-line">${model.effect}</span>`));
-      info.appendChild(spacer('12px'));
+      const effectText = model.effect;
+      const effectPrefix = effectText.split(':')[0]?.trim().toLowerCase();
+      const duplicateBonus = hasMultiplierLine && effectPrefix === 'coin spawn rate bonus';
+      if (!duplicateBonus) {
+        info.appendChild(makeLine(`<span class="bonus-line">${effectText}</span>`));
+        info.appendChild(spacer('12px'));
+      }
     }
 
     // dynamic currency icon based on costType
