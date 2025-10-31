@@ -102,3 +102,13 @@
     top: 1px;
   }
 }
+
+@supports (-webkit-touch-callout: none) {
+  @media (pointer: coarse) and (orientation: portrait) and (min-width: 768px) and (min-height: 1024px),
+         (pointer: coarse) and (orientation: landscape) and (min-width: 1024px) and (min-height: 768px) {
+    .currency-popup__amount {
+      position: relative;
+      top: 2px;
+    }
+  }
+}
