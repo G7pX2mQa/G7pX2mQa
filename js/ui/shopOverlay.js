@@ -32,7 +32,10 @@ let eventsBound = false;
 const IS_MOBILE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
 const ICON_DIR = 'img/';
-const BASE_ICON_SRC = 'img/currencies/coin/coin_base.png';
+const BASE_ICON_SRC_BY_COST = {
+  coins: 'img/currencies/coin/coin_base.png',
+  books: 'img/currencies/book/book_base.png',
+};
 const CURRENCY_ICON_SRC = {
   coins: 'img/currencies/coin/coin.png',
   books: 'img/currencies/book/book.png',
@@ -401,14 +404,15 @@ function buildUpgradesData() {
   const areaKey = getCurrentAreaKey();
   const defs = getUpgradesForArea(areaKey);
   upgrades = {}; // reset
-  for (const def of defs) {
-    const lvlBn = getLevel(areaKey, def.id);
-    const lvlNum = getLevelNumber(areaKey, def.id);
-    const lockState = getUpgradeLockState(areaKey, def);
-    const icon = lockState.iconOverride ?? getIconUrl(def);
-    const title = lockState.titleOverride ?? def.title;
-    const desc = lockState.descOverride ?? def.desc;
-    const locked = !!lockState.locked;
+for (const def of defs) {
+  const lvlBn = getLevel(areaKey, def.id);
+  const lvlNum = getLevelNumber(areaKey, def.id);
+  const lockState = getUpgradeLockState(areaKey, def);
+  if (lockState?.hidden) continue;
+  const icon = lockState.iconOverride ?? getIconUrl(def);
+  const title = lockState.titleOverride ?? def.title;
+  const desc = lockState.descOverride ?? def.desc;
+  const locked = !!lockState.locked;
     upgrades[def.id] = {
       id: def.id,
       icon,
@@ -520,6 +524,31 @@ function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
 
   if (Number.isFinite(cap) && lvl >= cap) return BigNum.fromInt(0);
 
+  try {
+    const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
+    const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1));
+    const isFlat = c0?.cmp?.(c1) === 0;
+
+    if (isFlat) {
+      const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : Number.MAX_SAFE_INTEGER;
+
+      let lo = 0;
+      let hi = Math.max(0, room);
+
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi + 1) / 2);
+        const total = c0.mul(BigNum.fromInt(mid));
+        if (total.cmp(walletBn) <= 0) {
+          lo = mid;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      return BigNum.fromInt(lo);
+    }
+  } catch {
+  }
+
   const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : undefined;
   const { count } = evaluateBulkPurchase(upg, lvl, walletBn, room, { fastOnly: true });
   return count ?? BigNum.fromInt(0);
@@ -578,8 +607,9 @@ function renderShopGrid() {
 
 
     const baseImg = document.createElement('img');
-    baseImg.className = 'base';
-    baseImg.src = BASE_ICON_SRC;
+	baseImg.className = 'upgrade-base';
+	const costType = upg.meta?.costType || 'coins';
+	baseImg.src = BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins;
     baseImg.alt = '';
 
     const iconImg = document.createElement('img');
