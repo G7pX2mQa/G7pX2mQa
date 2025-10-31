@@ -404,15 +404,14 @@ function buildUpgradesData() {
   const areaKey = getCurrentAreaKey();
   const defs = getUpgradesForArea(areaKey);
   upgrades = {}; // reset
-for (const def of defs) {
-  const lvlBn = getLevel(areaKey, def.id);
-  const lvlNum = getLevelNumber(areaKey, def.id);
-  const lockState = getUpgradeLockState(areaKey, def);
-  if (lockState?.hidden) continue;
-  const icon = lockState.iconOverride ?? getIconUrl(def);
-  const title = lockState.titleOverride ?? def.title;
-  const desc = lockState.descOverride ?? def.desc;
-  const locked = !!lockState.locked;
+  for (const def of defs) {
+    const lvlBn = getLevel(areaKey, def.id);
+    const lvlNum = getLevelNumber(areaKey, def.id);
+    const lockState = getUpgradeLockState(areaKey, def);
+    const icon = lockState.iconOverride ?? getIconUrl(def);
+    const title = lockState.titleOverride ?? def.title;
+    const desc = lockState.descOverride ?? def.desc;
+    const locked = !!lockState.locked;
     upgrades[def.id] = {
       id: def.id,
       icon,
@@ -933,11 +932,16 @@ export function openUpgradeOverlay(upgDef) {
     const lockState = model.lockState || getUpgradeLockState(areaKey, upgDef.id);
     const locked = !!lockState?.locked;
     if (locked && lockState?.reason) {
-      const note = document.createElement('div');
-      note.className = 'upg-line lock-note';
-      note.textContent = lockState.reason;
-      info.appendChild(note);
-      info.appendChild(spacer('12px'));
+      const descText = (model.displayDesc || '').trim();
+      const reasonText = String(lockState.reason ?? '').trim();
+      const isDuplicateNote = descText && descText === reasonText;
+      if (!isDuplicateNote) {
+        const note = document.createElement('div');
+        note.className = 'upg-line lock-note';
+        note.textContent = lockState.reason;
+        info.appendChild(note);
+        info.appendChild(spacer('12px'));
+      }
     }
     const effectMultiplierFn = model.upg.effectMultiplier;
     if (!locked && typeof effectMultiplierFn === 'function') {
