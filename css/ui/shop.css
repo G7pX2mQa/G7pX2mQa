@@ -170,6 +170,15 @@
   outline-offset: 4px;
 }
 
+.shop-upgrade.is-locked {
+  opacity: 0.78;
+}
+
+.shop-upgrade.is-locked .shop-tile .level-badge {
+  background: rgba(0, 0, 0, 0.72);
+  color: #d9d9d9;
+}
+
 .shop-tile {
   position: relative;
   width: var(--shop-tile);
@@ -469,7 +478,7 @@
 
 .upg-info{
   display:grid;
-  gap:14px;                /* overall spacing */
+  gap:14px;
   margin:14px 0 4px;
   text-align:center;
   color:#fff;
@@ -477,10 +486,15 @@
 
 .upg-costs{ gap:2px; margin-top:2px; }
 
-/* big, readable lines */
 .upg-line{
   font-size: clamp(32px, 4.6vw, 50px);
   line-height:1.25;
+}
+
+.upg-line.lock-note{
+  font-size: clamp(26px, 3.6vw, 40px);
+  color: #ffcc6f;
+  font-weight: 600;
 }
 
 .upg-line .coin-ico{
