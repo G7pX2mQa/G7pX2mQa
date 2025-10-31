@@ -264,7 +264,7 @@ font-feature-settings: "tnum" 1, "lnum" 1;
 }
 
 @media (hover: none) and (pointer: coarse) {
-  .coin-counter, .coin-plus {
+  .coin-counter, .coin-plus, .xp-counter, .xp-plus {
     filter: none !important;
   }
 }
@@ -327,7 +327,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   justify-content: flex-end;
   margin-top: -2px;
   pointer-events: none;
-  filter: drop-shadow(0 5px 12px rgba(0,0,0,0.28));
+  filter: drop-shadow(0 5px 8px rgba(0,0,0,.18));
 }
 
 .xp-counter[hidden]{
@@ -344,7 +344,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   object-fit: contain;
   pointer-events: none;
   z-index: 2;
-  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.32));
+  filter: drop-shadow(0 5px 8px rgba(0,0,0,.18));
 }
 
 .xp-bar{
