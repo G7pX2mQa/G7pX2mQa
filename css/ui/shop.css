@@ -168,10 +168,15 @@
   padding: 0;
   cursor: pointer;
   outline-offset: 4px;
+  user-select: none;
 }
 
 .shop-upgrade.is-locked {
   opacity: 0.78;
+}
+
+.shop-upgrade.is-locked-plain {
+  cursor: default;
 }
 
 .shop-upgrade.is-locked .shop-tile .level-badge {
