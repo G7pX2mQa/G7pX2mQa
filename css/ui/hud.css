@@ -15,7 +15,7 @@ grid-template-columns: repeat(4, 1fr);
 grid-auto-rows: clamp(64px, 10svh, 110px);
 align-items: end;
 align-content: end;
-background: linear-gradient(to top, rgba(0,0,0,0.03), rgba(0,0,0,0));
+background: none;
 }
 
 /* Base button appearance: rectangular w/ black outline, slight rounding */
