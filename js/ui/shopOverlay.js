@@ -36,6 +36,7 @@ const BASE_ICON_SRC_BY_COST = {
   coins: 'img/currencies/coin/coin_base.png',
   books: 'img/currencies/book/book_base.png',
 };
+const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.png';
 const CURRENCY_ICON_SRC = {
   coins: 'img/currencies/coin/coin.png',
   books: 'img/currencies/book/book.png',
@@ -423,6 +424,7 @@ function buildUpgradesData() {
       meta: def,
       locked,
       lockState,
+      useLockedBase: !!lockState.useLockedBase || locked,
     };
   }
 }
@@ -614,11 +616,13 @@ function renderShopGrid() {
     const tile = document.createElement('div');
     tile.className = 'shop-tile';
 
-
     const baseImg = document.createElement('img');
     baseImg.className = 'base';
     const costType = upg.meta?.costType || 'coins';
-    baseImg.src = BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins;
+    const useLockedBase = upg.useLockedBase || locked;
+    baseImg.src = useLockedBase
+      ? LOCKED_BASE_ICON_SRC
+      : (BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins);
     baseImg.alt = '';
     baseImg.decoding = 'async';
     baseImg.loading = 'lazy';
@@ -890,6 +894,9 @@ export function openUpgradeOverlay(upgDef) {
     const isHiddenUpgrade = locked && (
       lockState?.hidden || lockState?.hideEffect || lockState?.hideCost
     );
+    const lockHidden = locked && isHiddenUpgrade;
+
+    upgSheetEl.classList.toggle('is-locked-hidden', lockHidden);
 
     const header = upgSheetEl.querySelector('.upg-header');
     header.innerHTML = '';
@@ -931,6 +938,7 @@ export function openUpgradeOverlay(upgDef) {
 
     const desc = document.createElement('div');
     desc.className = 'upg-desc centered';
+    if (lockHidden) desc.classList.add('lock-desc');
     desc.textContent = model.displayDesc || model.upg.desc;
     content.appendChild(desc);
 
