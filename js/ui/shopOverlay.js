@@ -574,8 +574,11 @@ function renderShopGrid() {
     btn.dataset.upgId = String(upg.id);
 
     const locked = !!upg.locked;
-    const isMysterious = locked && !!upg.lockState?.hidden;
-    const isPlainLocked = locked && !isMysterious;
+	const isMysterious = locked && (
+      upg.lockState?.hidden || upg.lockState?.hideEffect || upg.lockState?.hideCost
+	);
+	const isPlainLocked = locked && !isMysterious;
+
     btn.classList.toggle('is-locked', locked);
     btn.classList.toggle('is-locked-plain', isPlainLocked);
     btn.disabled = isPlainLocked;
