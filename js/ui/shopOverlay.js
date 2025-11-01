@@ -579,8 +579,10 @@ function renderShopGrid() {
     btn.disabled = locked && !isMysterious;
     if (locked && !isMysterious) {
       btn.setAttribute('aria-disabled', 'true');
+      btn.setAttribute('tabindex', '-1');
     } else {
       btn.removeAttribute('aria-disabled');
+      btn.removeAttribute('tabindex');
     }
     btn.dataset.locked = locked ? '1' : '0';
 
@@ -641,6 +643,13 @@ function renderShopGrid() {
     btn.addEventListener('click', () => {
       if (locked && !isMysterious) return;
       openUpgradeOverlay(upg.meta);
+    });
+
+    btn.addEventListener('pointerdown', (event) => {
+      if (locked && !isMysterious) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
     });
 
     // Right-click: Buy Max (desktop)
