@@ -574,14 +574,15 @@ function renderShopGrid() {
     btn.dataset.upgId = String(upg.id);
 
     const locked = !!upg.locked;
+    const isMysterious = locked && !!upg.lockState?.hidden;
     btn.classList.toggle('is-locked', locked);
-    if (locked) {
+    btn.disabled = locked && !isMysterious;
+    if (locked && !isMysterious) {
       btn.setAttribute('aria-disabled', 'true');
-      btn.dataset.locked = '1';
     } else {
       btn.removeAttribute('aria-disabled');
-      btn.dataset.locked = '0';
     }
+    btn.dataset.locked = locked ? '1' : '0';
 
     const canPlusBn = locked
       ? BigNum.fromInt(0)
@@ -597,7 +598,7 @@ function renderShopGrid() {
     if (locked) {
       badgeHtml = '';
       badgePlain = '';
-      const reason = upg.lockState?.reason;
+      const reason = isMysterious ? (upg.lockState?.reason || '').trim() : '';
       const ariaLabel = reason
         ? `${upg.title} (Locked, ${reason})`
         : `${upg.title} (Locked)`;
@@ -608,7 +609,9 @@ function renderShopGrid() {
       btn.setAttribute('aria-label', `${upg.title}, level ${badgePlain}`);
     }
     if (locked) {
-      btn.title = upg.lockState?.reason || 'Locked upgrade';
+      btn.title = isMysterious
+        ? (upg.lockState?.reason || 'Locked upgrade')
+        : 'Locked upgrade';
     } else {
       btn.title = 'Left-click: Details • Right-click: Buy Max';
     }
@@ -635,7 +638,10 @@ function renderShopGrid() {
     iconImg.loading = 'lazy';
     iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
 
-    btn.addEventListener('click', () => openUpgradeOverlay(upg.meta));
+    btn.addEventListener('click', () => {
+      if (locked && !isMysterious) return;
+      openUpgradeOverlay(upg.meta);
+    });
 
     // Right-click: Buy Max (desktop)
     btn.addEventListener('contextmenu', (e) => {
