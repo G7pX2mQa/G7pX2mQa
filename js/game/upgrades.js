@@ -1214,7 +1214,27 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
   const storageKey = keyForArea(areaKey, slot);
   if (!storageKey) return [];
 
+  const backupKey = `${storageKey}:backup`;
   const primary = readStateFromAvailableStorage(storageKey);
+  const backup = readStateFromAvailableStorage(backupKey);
+
+  if (primary.storageChecked && !primary.storageFound && backup.data) {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(backupKey);
+      }
+    } catch {}
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(backupKey);
+      }
+    } catch {}
+
+    clearCachedAreaState(storageKey);
+    clearCachedUpgradeStates(areaKey, slot);
+    return [];
+  }
+
   if (primary.data) {
     cacheAreaState(storageKey, primary.data, primary.raw);
     try {
@@ -1225,8 +1245,6 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
     return primary.data;
   }
 
-  const backupKey = `${storageKey}:backup`;
-  const backup = readStateFromAvailableStorage(backupKey);
   if (backup.data) {
     cacheAreaState(storageKey, backup.data, backup.raw);
     try {
