@@ -640,13 +640,21 @@ function renderShopGrid() {
     iconImg.loading = 'lazy';
     iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
 
+    const isLockedAndNotMysterious = () => {
+      const areaKey = getCurrentAreaKey();
+      const state = getUpgradeLockState(areaKey, upg.id) || upg.lockState || {};
+      const lockedNow = !!state.locked;
+      const mysteriousNow = lockedNow && !!state.hidden;
+      return lockedNow && !mysteriousNow;
+    };
+
     btn.addEventListener('click', () => {
-      if (locked && !isMysterious) return;
+      if (isLockedAndNotMysterious()) return;
       openUpgradeOverlay(upg.meta);
     });
 
     btn.addEventListener('pointerdown', (event) => {
-      if (locked && !isMysterious) {
+      if (isLockedAndNotMysterious()) {
         event.preventDefault();
         event.stopPropagation();
       }
@@ -893,6 +901,13 @@ export function openUpgradeOverlay(upgDef) {
   let upgOpenLocal = true;
 
   const areaKey = getCurrentAreaKey();
+  const initialLockState = getUpgradeLockState(areaKey, upgDef.id) || {};
+  const initialLocked = !!initialLockState.locked;
+  const initialMysterious = initialLocked && !!initialLockState.hidden;
+  if (initialLocked && !initialMysterious) {
+    upgOpen = false;
+    return;
+  }
   const isHM = (upgDef.upgType === 'HM');
   const ui = () => upgradeUiModel(areaKey, upgDef.id);
 
