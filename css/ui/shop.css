@@ -446,27 +446,30 @@
 .upg-title { font-size: clamp(44px, 6vw, 72px); font-weight: 700; }
 .upg-level { font-size: clamp(18px, 2.6vw, 28px); opacity: .92; }
 
-/* Content baseline */
 .upg-content{
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
   padding-bottom:2vh;
-  will-change: transform; /* smoother GPU translate */
+  will-change: transform;
 }
 
-/* Non-MAX: lift a bit more */
 .upg-sheet:not(.is-maxed) .upg-content { 
   transform: translateY(-12vh);
   padding-top: 2vh;
 }
 
-/* MAX: push much higher toward the middle */
 .upg-sheet.is-maxed .upg-content{
   transform: translateY(-20vh);
   padding-top: 0.5vh;
   padding-bottom: 3vh;
+}
+
+.upg-sheet.is-locked-hidden .upg-content{
+  transform: translateY(-24vh);
+  padding-top: 0;
+  padding-bottom: 2vh;
 }
 
 .upg-desc.centered{
@@ -476,12 +479,20 @@
   white-space: pre-line;
 }
 
+.upg-desc.centered.lock-desc{
+  margin-top: 0;
+}
+
 .upg-info{
   display:grid;
   gap:14px;
   margin:14px 0 4px;
   text-align:center;
   color:#fff;
+}
+
+.upg-sheet.is-locked-hidden .upg-info{
+  margin-top: 6px;
 }
 
 .upg-costs{ gap:2px; margin-top:2px; }
