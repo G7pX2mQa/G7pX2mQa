@@ -1133,7 +1133,6 @@ function parseUpgradeStateArray(raw) {
 function readStateFromAvailableStorage(key, options = {}) {
   const {
     includeLocal = true,
-    includeSession = true,
   } = options || {};
 
   const result = {
@@ -1142,9 +1141,7 @@ function readStateFromAvailableStorage(key, options = {}) {
     storageChecked: false,
     storageFound: false,
     checkedLocal: false,
-    checkedSession: false,
     foundLocal: false,
-    foundSession: false,
     sourceType: null,
   };
 
@@ -1158,13 +1155,6 @@ function readStateFromAvailableStorage(key, options = {}) {
       result.checkedLocal = true;
     }
   } catch {}
-  try {
-    if (includeSession && typeof sessionStorage !== 'undefined') {
-      storages.push({ storage: sessionStorage, type: 'session' });
-      result.storageChecked = true;
-      result.checkedSession = true;
-    }
-  } catch {}
 
   for (const entry of storages) {
     const { storage, type } = entry || {};
@@ -1176,7 +1166,6 @@ function readStateFromAvailableStorage(key, options = {}) {
     if (raw != null) {
       result.storageFound = true;
       if (type === 'local') result.foundLocal = true;
-      if (type === 'session') result.foundSession = true;
     }
     const parsed = parseUpgradeStateArray(raw);
     if (parsed) {
@@ -1232,27 +1221,12 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
   const backupKey = `${storageKey}:backup`;
   const primary = readStateFromAvailableStorage(storageKey, {
     includeLocal: true,
-    includeSession: false,
   });
   const backup = readStateFromAvailableStorage(backupKey, {
     includeLocal: true,
-    includeSession: true,
   });
 
-  if (primary.checkedLocal && !primary.foundLocal) {
-    try {
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem(storageKey);
-      }
-    } catch {}
-  }
-
   if (primary.storageChecked && !primary.storageFound && backup.data) {
-    try {
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem(backupKey);
-      }
-    } catch {}
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(backupKey);
@@ -1268,12 +1242,10 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
     cacheAreaState(storageKey, primary.data, primary.raw);
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem(`${storageKey}:backup`);
-      }
-    } catch {}
-    try {
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem(storageKey);
+        const backupPayload = primary.raw ?? JSON.stringify(primary.data);
+        if (backupPayload != null) {
+          localStorage.setItem(`${storageKey}:backup`, backupPayload);
+        }
       }
     } catch {}
     return primary.data;
@@ -1283,8 +1255,9 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
     cacheAreaState(storageKey, backup.data, backup.raw);
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(storageKey, backup.raw ?? JSON.stringify(backup.data));
-        localStorage.removeItem(backupKey);
+        const backupPayload = backup.raw ?? JSON.stringify(backup.data);
+        localStorage.setItem(storageKey, backupPayload);
+        localStorage.setItem(backupKey, backupPayload);
       }
     } catch {}
     return backup.data;
@@ -1334,56 +1307,16 @@ function saveAreaState(areaKey, stateArr, slot = getActiveSlot()) {
 
   cacheAreaState(storageKey, arr, payload);
 
-  const storages = [];
-  let usedLocalStorage = false;
   try {
     if (typeof localStorage !== 'undefined') {
-      storages.push(localStorage);
-      usedLocalStorage = true;
+      localStorage.setItem(storageKey, payload);
     }
   } catch {}
-  if (!storages.length) {
-    try {
-      if (typeof sessionStorage !== 'undefined') {
-        storages.push(sessionStorage);
-      }
-    } catch {}
-  }
-
-  for (const storage of storages) {
-    const setItem = storage?.setItem;
-    if (typeof setItem !== 'function') continue;
-    try { setItem.call(storage, storageKey, payload); } catch {}
-  }
-
-  if (usedLocalStorage) {
-    try {
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem(storageKey);
-      }
-    } catch {}
-  }
 
   const backupKey = `${storageKey}:backup`;
-  let backupStored = false;
-  try {
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.setItem(backupKey, payload);
-      backupStored = true;
-    }
-  } catch {}
-
-  if (!backupStored) {
-    try {
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem(backupKey);
-      }
-    } catch {}
-  }
-
   try {
     if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(backupKey);
+      localStorage.setItem(backupKey, payload);
     }
   } catch {}
 
