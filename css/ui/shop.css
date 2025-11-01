@@ -168,11 +168,19 @@
   padding: 0;
   cursor: pointer;
   outline-offset: 4px;
-  user-select: none;
 }
 
 .shop-upgrade.is-locked {
   opacity: 0.78;
+}
+.shop-upgrade.is-locked {
+  opacity: 0.78;
+  cursor: default;
+  user-select: none;
+}
+
+.shop-upgrade.is-locked:hover {
+  user-select: none;
 }
 
 .shop-upgrade.is-locked-plain {
