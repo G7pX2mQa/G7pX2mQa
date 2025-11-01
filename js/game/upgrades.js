@@ -1323,8 +1323,6 @@ function saveAreaState(areaKey, stateArr, slot = getActiveSlot()) {
   } catch {}
 }
 
-const upgradeStateCache = new Map(); // key → { areaKey, upgId, upg, rec, arr, lvl, nextCostBn }
-
 function upgradeCacheKey(areaKey, upgId, slot = getActiveSlot()) {
   const slotKey = slot == null ? 'null' : String(slot);
   return `${slotKey}:${areaKey}:${normalizeUpgradeId(upgId)}`;
