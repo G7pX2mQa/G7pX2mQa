@@ -642,16 +642,15 @@ function renderShopGrid() {
     iconImg.loading = 'lazy';
     iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
 
-    const isLockedAndNotMysterious = () => {
+    const isLockedUpgrade = () => {
       const areaKey = getCurrentAreaKey();
       const state = getUpgradeLockState(areaKey, upg.id) || upg.lockState || {};
       const lockedNow = !!state.locked;
-      const mysteriousNow = lockedNow && !!state.hidden;
-      return lockedNow && !mysteriousNow;
+      return lockedNow;
     };
 
     btn.addEventListener('click', (event) => {
-      if (isLockedAndNotMysterious()) {
+      if (isLockedUpgrade()) {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
@@ -660,7 +659,7 @@ function renderShopGrid() {
     });
 
     btn.addEventListener('pointerdown', (event) => {
-      if (isLockedAndNotMysterious()) {
+      if (isLockedUpgrade()) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation?.();
