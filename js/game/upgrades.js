@@ -1080,7 +1080,7 @@ const REGISTRY = [
           reason: 'Purchase "Unlock XP" to reveal this upgrade',
           hideCost: true,
           hideEffect: true,
-          hidden: true,
+          hidden: false,
           useLockedBase: true,
         };
       }
