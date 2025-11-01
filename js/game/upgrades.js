@@ -1118,6 +1118,7 @@ for (const upg of REGISTRY) {
 
 const areaStatePayloadCache = new Map(); // key → last serialized payload
 const areaStateMemoryCache = new Map(); // key → last parsed array reference
+const upgradeStateCache = new Map(); // key → { areaKey, upgId, upg, rec, arr, lvl, nextCostBn }
 
 function parseUpgradeStateArray(raw) {
   if (typeof raw !== 'string' || !raw) return null;
@@ -1130,25 +1131,51 @@ function parseUpgradeStateArray(raw) {
 }
 
 function readStateFromAvailableStorage(key) {
-  if (!key) return null;
+  const result = {
+    data: null,
+    raw: null,
+    storageChecked: false,
+    storageFound: false,
+  };
+
+  if (!key) return result;
+
   const storages = [];
-  try { if (typeof localStorage !== 'undefined') storages.push(localStorage); } catch {}
-  try { if (typeof sessionStorage !== 'undefined') storages.push(sessionStorage); } catch {}
+  try {
+    if (typeof localStorage !== 'undefined') {
+      storages.push(localStorage);
+      result.storageChecked = true;
+    }
+  } catch {}
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      storages.push(sessionStorage);
+      result.storageChecked = true;
+    }
+  } catch {}
+
   for (const storage of storages) {
     const getItem = storage?.getItem;
     if (typeof getItem !== 'function') continue;
     let raw;
     try { raw = getItem.call(storage, key); }
     catch { raw = null; }
+    if (raw != null) result.storageFound = true;
     const parsed = parseUpgradeStateArray(raw);
     if (parsed) {
       const payload = typeof raw === 'string' && raw ? raw : (() => {
         try { return JSON.stringify(parsed); } catch { return null; }
       })();
-      return { data: parsed, raw: payload };
+      return {
+        data: parsed,
+        raw: payload,
+        storageChecked: true,
+        storageFound: true,
+      };
     }
   }
-  return null;
+
+  return result;
 }
 
 function cacheAreaState(key, arr, raw) {
@@ -1158,6 +1185,22 @@ function cacheAreaState(key, arr, raw) {
   }
   if (typeof raw === 'string') {
     areaStatePayloadCache.set(key, raw);
+  }
+}
+
+function clearCachedAreaState(storageKey) {
+  if (!storageKey) return;
+  areaStateMemoryCache.delete(storageKey);
+  areaStatePayloadCache.delete(storageKey);
+}
+
+function clearCachedUpgradeStates(areaKey, slot) {
+  const slotKey = slot == null ? 'null' : String(slot);
+  const prefix = `${slotKey}:${areaKey}:`;
+  for (const key of upgradeStateCache.keys()) {
+    if (key.startsWith(prefix)) {
+      upgradeStateCache.delete(key);
+    }
   }
 }
 
@@ -1171,36 +1214,54 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
   const storageKey = keyForArea(areaKey, slot);
   if (!storageKey) return [];
 
-  if (forceReload) {
-    const fresh = readStateFromAvailableStorage(storageKey);
-    if (fresh) {
-      cacheAreaState(storageKey, fresh.data, fresh.raw);
-      return fresh.data;
-    }
-  }
-
   const primary = readStateFromAvailableStorage(storageKey);
-  if (primary) {
+  if (primary.data) {
     cacheAreaState(storageKey, primary.data, primary.raw);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(`${storageKey}:backup`);
+      }
+    } catch {}
     return primary.data;
   }
 
   const backupKey = `${storageKey}:backup`;
   const backup = readStateFromAvailableStorage(backupKey);
-  if (backup) {
+  if (backup.data) {
     cacheAreaState(storageKey, backup.data, backup.raw);
-    try { localStorage.setItem(storageKey, backup.raw ?? JSON.stringify(backup.data)); } catch {}
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(storageKey, backup.raw ?? JSON.stringify(backup.data));
+        localStorage.removeItem(backupKey);
+      }
+    } catch {}
     return backup.data;
   }
 
-  const cached = areaStateMemoryCache.get(storageKey);
-  if (Array.isArray(cached)) return cached;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(backupKey);
+    }
+  } catch {}
 
-  const cachedPayload = areaStatePayloadCache.get(storageKey);
-  const parsed = parseUpgradeStateArray(cachedPayload);
-  if (parsed) {
-    cacheAreaState(storageKey, parsed, cachedPayload);
-    return parsed;
+  const storagesChecked = primary.storageChecked || backup.storageChecked;
+  const storageHadValue = primary.storageFound || backup.storageFound;
+
+  if (!forceReload && !storagesChecked) {
+    const cached = areaStateMemoryCache.get(storageKey);
+    if (Array.isArray(cached)) return cached;
+
+    const cachedPayload = areaStatePayloadCache.get(storageKey);
+    const parsed = parseUpgradeStateArray(cachedPayload);
+    if (parsed) {
+      cacheAreaState(storageKey, parsed, cachedPayload);
+      return parsed;
+    }
+  }
+
+  if (!storageHadValue) {
+    clearCachedAreaState(storageKey);
+    clearCachedUpgradeStates(areaKey, slot);
   }
 
   return [];
@@ -1231,7 +1292,28 @@ function saveAreaState(areaKey, stateArr, slot = getActiveSlot()) {
     try { setItem.call(storage, storageKey, payload); } catch {}
   }
 
-  try { localStorage.setItem(`${storageKey}:backup`, payload); } catch {}
+  const backupKey = `${storageKey}:backup`;
+  let backupStored = false;
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(backupKey, payload);
+      backupStored = true;
+    }
+  } catch {}
+
+  if (!backupStored) {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(backupKey);
+      }
+    } catch {}
+  }
+
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(backupKey);
+    }
+  } catch {}
 
   try {
     const verify = localStorage.getItem(storageKey);
