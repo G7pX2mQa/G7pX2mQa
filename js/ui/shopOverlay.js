@@ -587,6 +587,7 @@ function renderShopGrid() {
       btn.removeAttribute('tabindex');
     }
     btn.dataset.locked = locked ? '1' : '0';
+    btn.dataset.lockedPlain = isPlainLocked ? '1' : '0';
 
     const canPlusBn = locked
       ? BigNum.fromInt(0)
@@ -642,17 +643,10 @@ function renderShopGrid() {
     iconImg.loading = 'lazy';
     iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
 
-    const isPlainLockedUpgrade = () => {
-      const areaKey = getCurrentAreaKey();
-      const state = getUpgradeLockState(areaKey, upg.id) || {};
-      const baseState = upg.lockState || {};
-      const lockedNow = (state.locked ?? baseState.locked ?? upg.locked) || false;
-      const hiddenNow = (state.hidden ?? baseState.hidden ?? false) || false;
-      return !!lockedNow && !hiddenNow;
-    };
+    const isPlainLockedUpgrade = () => btn.dataset.lockedPlain === '1';
 
     btn.addEventListener('click', (event) => {
-      if (isPlainLockedUpgrade()) {
+      if (btn.disabled || isPlainLockedUpgrade()) {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
@@ -661,7 +655,7 @@ function renderShopGrid() {
     });
 
     btn.addEventListener('pointerdown', (event) => {
-      if (isPlainLockedUpgrade()) {
+      if (btn.disabled || isPlainLockedUpgrade()) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation?.();
