@@ -1130,48 +1130,63 @@ function parseUpgradeStateArray(raw) {
   }
 }
 
-function readStateFromAvailableStorage(key) {
+function readStateFromAvailableStorage(key, options = {}) {
+  const {
+    includeLocal = true,
+    includeSession = true,
+  } = options || {};
+
   const result = {
     data: null,
     raw: null,
     storageChecked: false,
     storageFound: false,
+    checkedLocal: false,
+    checkedSession: false,
+    foundLocal: false,
+    foundSession: false,
+    sourceType: null,
   };
 
   if (!key) return result;
 
   const storages = [];
   try {
-    if (typeof localStorage !== 'undefined') {
-      storages.push(localStorage);
+    if (includeLocal && typeof localStorage !== 'undefined') {
+      storages.push({ storage: localStorage, type: 'local' });
       result.storageChecked = true;
+      result.checkedLocal = true;
     }
   } catch {}
   try {
-    if (typeof sessionStorage !== 'undefined') {
-      storages.push(sessionStorage);
+    if (includeSession && typeof sessionStorage !== 'undefined') {
+      storages.push({ storage: sessionStorage, type: 'session' });
       result.storageChecked = true;
+      result.checkedSession = true;
     }
   } catch {}
 
-  for (const storage of storages) {
+  for (const entry of storages) {
+    const { storage, type } = entry || {};
     const getItem = storage?.getItem;
     if (typeof getItem !== 'function') continue;
     let raw;
     try { raw = getItem.call(storage, key); }
     catch { raw = null; }
-    if (raw != null) result.storageFound = true;
+    if (raw != null) {
+      result.storageFound = true;
+      if (type === 'local') result.foundLocal = true;
+      if (type === 'session') result.foundSession = true;
+    }
     const parsed = parseUpgradeStateArray(raw);
     if (parsed) {
       const payload = typeof raw === 'string' && raw ? raw : (() => {
         try { return JSON.stringify(parsed); } catch { return null; }
       })();
-      return {
-        data: parsed,
-        raw: payload,
-        storageChecked: true,
-        storageFound: true,
-      };
+      result.data = parsed;
+      result.raw = payload;
+      result.sourceType = type;
+      return result;
     }
   }
 
@@ -1215,8 +1230,22 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
   if (!storageKey) return [];
 
   const backupKey = `${storageKey}:backup`;
-  const primary = readStateFromAvailableStorage(storageKey);
-  const backup = readStateFromAvailableStorage(backupKey);
+  const primary = readStateFromAvailableStorage(storageKey, {
+    includeLocal: true,
+    includeSession: false,
+  });
+  const backup = readStateFromAvailableStorage(backupKey, {
+    includeLocal: true,
+    includeSession: true,
+  });
+
+  if (primary.checkedLocal && !primary.foundLocal) {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(storageKey);
+      }
+    } catch {}
+  }
 
   if (primary.storageChecked && !primary.storageFound && backup.data) {
     try {
@@ -1240,6 +1269,11 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(`${storageKey}:backup`);
+      }
+    } catch {}
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(storageKey);
       }
     } catch {}
     return primary.data;
@@ -1301,13 +1335,33 @@ function saveAreaState(areaKey, stateArr, slot = getActiveSlot()) {
   cacheAreaState(storageKey, arr, payload);
 
   const storages = [];
-  try { if (typeof localStorage !== 'undefined') storages.push(localStorage); } catch {}
-  try { if (typeof sessionStorage !== 'undefined') storages.push(sessionStorage); } catch {}
+  let usedLocalStorage = false;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      storages.push(localStorage);
+      usedLocalStorage = true;
+    }
+  } catch {}
+  if (!storages.length) {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        storages.push(sessionStorage);
+      }
+    } catch {}
+  }
 
   for (const storage of storages) {
     const setItem = storage?.setItem;
     if (typeof setItem !== 'function') continue;
     try { setItem.call(storage, storageKey, payload); } catch {}
+  }
+
+  if (usedLocalStorage) {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(storageKey);
+      }
+    } catch {}
   }
 
   const backupKey = `${storageKey}:backup`;
