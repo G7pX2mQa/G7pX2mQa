@@ -1237,17 +1237,16 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
     clearCachedUpgradeStates(areaKey, slot);
     return [];
   }
-
+  
   if (primary.data) {
     cacheAreaState(storageKey, primary.data, primary.raw);
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const backupPayload = primary.raw ?? JSON.stringify(primary.data);
-        if (backupPayload != null) {
-          localStorage.setItem(`${storageKey}:backup`, backupPayload);
+    if (backup.storageFound) {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(backupKey);
         }
-      }
-    } catch {}
+      } catch {}
+    }
     return primary.data;
   }
 
@@ -1257,7 +1256,7 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
       if (typeof localStorage !== 'undefined') {
         const backupPayload = backup.raw ?? JSON.stringify(backup.data);
         localStorage.setItem(storageKey, backupPayload);
-        localStorage.setItem(backupKey, backupPayload);
+        localStorage.removeItem(backupKey);
       }
     } catch {}
     return backup.data;
@@ -1313,17 +1312,16 @@ function saveAreaState(areaKey, stateArr, slot = getActiveSlot()) {
     }
   } catch {}
 
-  const backupKey = `${storageKey}:backup`;
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(backupKey, payload);
-    }
-  } catch {}
-
   try {
     const verify = localStorage.getItem(storageKey);
     if (verify !== payload) {
       localStorage.setItem(storageKey, payload);
+    }
+  } catch {}
+
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(`${storageKey}:backup`);
     }
   } catch {}
 }
