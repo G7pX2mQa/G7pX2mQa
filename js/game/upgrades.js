@@ -70,6 +70,7 @@ const UNLOCK_XP_UPGRADE_ID = 2;
 const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.png';
 const MYSTERIOUS_UPGRADE_ICON_DATA_URL = 'img/misc/mysterious.png';
 const HIDDEN_UPGRADE_TITLE = 'Hidden Upgrade';
+const LOCKED_UPGRADE_TITLE = 'Locked Upgrade';
 const XP_MYSTERY_UPGRADE_KEYS = new Set([
   'starter_cove:3',
   'starter_cove:4',
@@ -1072,18 +1073,17 @@ const REGISTRY = [
     },
     computeLockState({ xpUnlocked, upg }) {
       if (!xpUnlocked) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: 'Unlock the XP system to reveal this upgrade',
-          reason: 'Purchase "Unlock XP" to reveal this upgrade',
-          hideCost: true,
-          hideEffect: true,
-          hidden: false,
-          useLockedBase: true,
-        };
-      }
+		return {
+		  locked: true,
+		  iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+		  titleOverride: LOCKED_UPGRADE_TITLE,
+		  hidden: false,
+		  hideCost: false,
+		  hideEffect: false,
+		  useLockedBase: true,
+	    };
+	  }
+
       const requirement = upg?.revealRequirement || 'Reach XP Level 31 to reveal this upgrade';
       return {
         locked: true,
