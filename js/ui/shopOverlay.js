@@ -642,15 +642,17 @@ function renderShopGrid() {
     iconImg.loading = 'lazy';
     iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
 
-    const isLockedUpgrade = () => {
+    const isPlainLockedUpgrade = () => {
       const areaKey = getCurrentAreaKey();
-      const state = getUpgradeLockState(areaKey, upg.id) || upg.lockState || {};
-      const lockedNow = !!state.locked;
-      return lockedNow;
+      const state = getUpgradeLockState(areaKey, upg.id) || {};
+      const baseState = upg.lockState || {};
+      const lockedNow = (state.locked ?? baseState.locked ?? upg.locked) || false;
+      const hiddenNow = (state.hidden ?? baseState.hidden ?? false) || false;
+      return !!lockedNow && !hiddenNow;
     };
 
     btn.addEventListener('click', (event) => {
-      if (isLockedUpgrade()) {
+      if (isPlainLockedUpgrade()) {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
@@ -659,7 +661,7 @@ function renderShopGrid() {
     });
 
     btn.addEventListener('pointerdown', (event) => {
-      if (isLockedUpgrade()) {
+      if (isPlainLockedUpgrade()) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation?.();
