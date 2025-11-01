@@ -616,13 +616,11 @@ function renderShopGrid() {
       badgePlain = hasPlus ? `${levelPlain} (+${plusPlain})` : levelPlain;
       btn.setAttribute('aria-label', `${upg.title}, level ${badgePlain}`);
     }
-    if (locked) {
-      btn.title = isMysterious
-        ? (upg.lockState?.reason || 'Locked upgrade')
-        : 'Locked upgrade';
-    } else {
-      btn.title = 'Left-click: Details • Right-click: Buy Max';
-    }
+	if (locked) {
+	  btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
+	} else {
+	  btn.title = 'Left-click: Details • Right-click: Buy Max';
+	}
 
     const tile = document.createElement('div');
     tile.className = 'shop-tile';
