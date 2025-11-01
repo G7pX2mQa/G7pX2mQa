@@ -83,13 +83,24 @@
   padding: 12px 16px calc(12px + var(--safe-bottom));
 }
 .merchant-actions .merchant-close {
-  min-width: 180px; height: 44px; border-radius: 0;
-  border: 1px solid var(--shop-border);
-  background: hsl(0 0% 100% / .06);
-  color: #fff; font-weight: 600; letter-spacing: .2px; cursor: pointer;
-  transition: transform 120ms ease, background 120ms ease;
+  min-width: 180px;
+  height: 44px;
+  border-radius: 0;
+  border: 1px solid hsla(0, 80%, 40%, 0.45);
+  background: hsla(0, 80%, 40%, 0.15);
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: .2px;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
 }
-.merchant-actions .merchant-close:active { transform: translateY(1px); }
+.merchant-actions .merchant-close:hover {
+  background: hsla(0, 80%, 40%, 0.22);
+}
+.merchant-actions .merchant-close:active {
+  transform: translateY(1px);
+  background: hsla(0, 80%, 40%, 0.28);
+}
 
 /* First-time chat overlay (full-sheet scrim + centered card, no animation) */
 .merchant-firstchat {
