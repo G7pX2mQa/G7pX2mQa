@@ -176,6 +176,7 @@
 }
 
 .shop-upgrade.is-locked-plain,
+.shop-upgrade[data-locked-plain='1'],
 .shop-upgrade:disabled {
   cursor: not-allowed;
 }
