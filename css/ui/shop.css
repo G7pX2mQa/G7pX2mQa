@@ -181,6 +181,14 @@
   cursor: not-allowed;
 }
 
+.shop-upgrade .shop-tile { cursor: inherit; }
+
+.shop-upgrade.is-locked-plain .shop-tile,
+.shop-upgrade[data-locked-plain='1'] .shop-tile,
+.shop-upgrade:disabled .shop-tile {
+  cursor: not-allowed;
+}
+
 .shop-upgrade.is-locked .shop-tile .level-badge {
   background: rgba(0, 0, 0, 0.72);
   color: #d9d9d9;
