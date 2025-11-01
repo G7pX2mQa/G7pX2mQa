@@ -395,7 +395,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 	  'img/stats/xp/xp_base.png',
       'img/stats/xp/xp_plus_base.png',
       'img/misc/merchant.png',
-	  'img/misc/mysterious.png',
+      'img/misc/locked.png',
+      'img/misc/locked_base.png',
+      'img/misc/mysterious.png',
     ],
     audio: [
       'sounds/coin_pickup.mp3',
