@@ -575,9 +575,11 @@ function renderShopGrid() {
 
     const locked = !!upg.locked;
     const isMysterious = locked && !!upg.lockState?.hidden;
+    const isPlainLocked = locked && !isMysterious;
     btn.classList.toggle('is-locked', locked);
-    btn.disabled = locked && !isMysterious;
-    if (locked && !isMysterious) {
+    btn.classList.toggle('is-locked-plain', isPlainLocked);
+    btn.disabled = isPlainLocked;
+    if (isPlainLocked) {
       btn.setAttribute('aria-disabled', 'true');
       btn.setAttribute('tabindex', '-1');
     } else {
@@ -648,8 +650,12 @@ function renderShopGrid() {
       return lockedNow && !mysteriousNow;
     };
 
-    btn.addEventListener('click', () => {
-      if (isLockedAndNotMysterious()) return;
+    btn.addEventListener('click', (event) => {
+      if (isLockedAndNotMysterious()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
       openUpgradeOverlay(upg.meta);
     });
 
@@ -657,6 +663,7 @@ function renderShopGrid() {
       if (isLockedAndNotMysterious()) {
         event.preventDefault();
         event.stopPropagation();
+        event.stopImmediatePropagation?.();
       }
     });
 
