@@ -67,8 +67,48 @@ export function bigNumFromLog10(log10Value) {
 }
 
 const UNLOCK_XP_UPGRADE_ID = 2;
-const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/mysterious.png';
+const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.png';
+const MYSTERIOUS_UPGRADE_ICON_DATA_URL = 'img/misc/mysterious.png';
 const HIDDEN_UPGRADE_TITLE = 'Hidden Upgrade';
+const XP_MYSTERY_UPGRADE_KEYS = new Set([
+  'starter_cove:3',
+  'starter_cove:4',
+  'starter_cove:5',
+  'starter_cove:6',
+]);
+
+function normalizeAreaKey(areaKey) {
+  if (typeof areaKey === 'string') {
+    const trimmed = areaKey.trim();
+    if (trimmed) return trimmed.toLowerCase();
+  }
+  return '';
+}
+
+function isXpAdjacentUpgrade(areaKey, upg) {
+  const normalizedId = normalizeUpgradeId(upg?.id);
+  const numericId = typeof normalizedId === 'number'
+    ? normalizedId
+    : Number.parseInt(normalizedId, 10);
+  const idKey = Number.isFinite(numericId)
+    ? String(numericId)
+    : (normalizedId != null ? String(normalizedId) : '');
+  if (!idKey) return false;
+
+  const areaCandidates = [];
+  if (areaKey != null) areaCandidates.push(areaKey);
+  if (upg?.area != null) areaCandidates.push(upg.area);
+
+  for (const candidate of areaCandidates) {
+    const normArea = normalizeAreaKey(candidate);
+    if (!normArea) continue;
+    if (XP_MYSTERY_UPGRADE_KEYS.has(`${normArea}:${idKey}`)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 function safeIsXpUnlocked() {
   try {
@@ -116,6 +156,7 @@ function mergeLockStates(base, override) {
     'hideCost',
     'hideEffect',
     'hidden',
+    'useLockedBase',
   ];
   for (const key of keys) {
     if (override[key] !== undefined) merged[key] = override[key];
@@ -1039,17 +1080,21 @@ const REGISTRY = [
           reason: 'Purchase "Unlock XP" to reveal this upgrade',
           hideCost: true,
           hideEffect: true,
+          hidden: true,
+          useLockedBase: true,
         };
       }
       const requirement = upg?.revealRequirement || 'Reach XP Level 31 to reveal this upgrade';
       return {
         locked: true,
-        iconOverride: 'img/misc/mysterious.png',
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
         titleOverride: HIDDEN_UPGRADE_TITLE,
         descOverride: requirement,
         reason: requirement,
         hideCost: true,
         hideEffect: true,
+        hidden: true,
+        useLockedBase: true,
       };
     },
   },
@@ -1071,6 +1116,51 @@ for (const upg of REGISTRY) {
 
 /* ----------------------- Storage (per slot, per area) ---------------------- */
 
+const areaStatePayloadCache = new Map(); // key → last serialized payload
+const areaStateMemoryCache = new Map(); // key → last parsed array reference
+
+function parseUpgradeStateArray(raw) {
+  if (typeof raw !== 'string' || !raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function readStateFromAvailableStorage(key) {
+  if (!key) return null;
+  const storages = [];
+  try { if (typeof localStorage !== 'undefined') storages.push(localStorage); } catch {}
+  try { if (typeof sessionStorage !== 'undefined') storages.push(sessionStorage); } catch {}
+  for (const storage of storages) {
+    const getItem = storage?.getItem;
+    if (typeof getItem !== 'function') continue;
+    let raw;
+    try { raw = getItem.call(storage, key); }
+    catch { raw = null; }
+    const parsed = parseUpgradeStateArray(raw);
+    if (parsed) {
+      const payload = typeof raw === 'string' && raw ? raw : (() => {
+        try { return JSON.stringify(parsed); } catch { return null; }
+      })();
+      return { data: parsed, raw: payload };
+    }
+  }
+  return null;
+}
+
+function cacheAreaState(key, arr, raw) {
+  if (!key) return;
+  if (Array.isArray(arr)) {
+    areaStateMemoryCache.set(key, arr);
+  }
+  if (typeof raw === 'string') {
+    areaStatePayloadCache.set(key, raw);
+  }
+}
+
 function keyForArea(areaKey) {
   const slot = getActiveSlot();
   if (slot == null) return null;
@@ -1078,23 +1168,68 @@ function keyForArea(areaKey) {
 }
 
 function loadAreaState(areaKey) {
-  const k = keyForArea(areaKey);
-  if (!k) return [];
-  const raw = localStorage.getItem(k);
-  if (!raw) return [];
-  try {
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
+  const storageKey = keyForArea(areaKey);
+  if (!storageKey) return [];
+
+  const primary = readStateFromAvailableStorage(storageKey);
+  if (primary) {
+    cacheAreaState(storageKey, primary.data, primary.raw);
+    return primary.data;
   }
+
+  const backupKey = `${storageKey}:backup`;
+  const backup = readStateFromAvailableStorage(backupKey);
+  if (backup) {
+    cacheAreaState(storageKey, backup.data, backup.raw);
+    try { localStorage.setItem(storageKey, backup.raw ?? JSON.stringify(backup.data)); } catch {}
+    return backup.data;
+  }
+
+  const cached = areaStateMemoryCache.get(storageKey);
+  if (Array.isArray(cached)) return cached;
+
+  const cachedPayload = areaStatePayloadCache.get(storageKey);
+  const parsed = parseUpgradeStateArray(cachedPayload);
+  if (parsed) {
+    cacheAreaState(storageKey, parsed, cachedPayload);
+    return parsed;
+  }
+
+  return [];
 }
 
 function saveAreaState(areaKey, stateArr) {
-  const k = keyForArea(areaKey);
-  if (!k) return;
+  const storageKey = keyForArea(areaKey);
+  if (!storageKey) return;
+
+  const arr = Array.isArray(stateArr) ? stateArr : [];
+  let payload = null;
   try {
-    localStorage.setItem(k, JSON.stringify(stateArr));
+    payload = JSON.stringify(arr);
+  } catch {
+    try { payload = JSON.stringify([]); }
+    catch { payload = '[]'; }
+  }
+
+  cacheAreaState(storageKey, arr, payload);
+
+  const storages = [];
+  try { if (typeof localStorage !== 'undefined') storages.push(localStorage); } catch {}
+  try { if (typeof sessionStorage !== 'undefined') storages.push(sessionStorage); } catch {}
+
+  for (const storage of storages) {
+    const setItem = storage?.setItem;
+    if (typeof setItem !== 'function') continue;
+    try { setItem.call(storage, storageKey, payload); } catch {}
+  }
+
+  try { localStorage.setItem(`${storageKey}:backup`, payload); } catch {}
+
+  try {
+    const verify = localStorage.getItem(storageKey);
+    if (verify !== payload) {
+      localStorage.setItem(storageKey, payload);
+    }
   } catch {}
 }
 
@@ -1210,14 +1345,20 @@ function computeUpgradeLockStateFor(areaKey, upg) {
 
   let baseState = { locked: false };
   if (upg.requiresUnlockXp && !xpUnlocked) {
+    const isXpAdjacent = isXpAdjacentUpgrade(areaKey, upg);
+    const xpRevealText = 'Unlock the XP system to reveal this upgrade';
     baseState = {
       locked: true,
-      iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+      iconOverride: isXpAdjacent
+        ? MYSTERIOUS_UPGRADE_ICON_DATA_URL
+        : LOCKED_UPGRADE_ICON_DATA_URL,
       titleOverride: HIDDEN_UPGRADE_TITLE,
-      descOverride: 'Unlock the XP system to reveal this upgrade',
-      reason: 'Purchase "Unlock XP" to reveal this upgrade',
+      descOverride: xpRevealText,
+      reason: isXpAdjacent ? xpRevealText : 'Purchase "Unlock XP" to reveal this upgrade',
       hideCost: true,
       hideEffect: true,
+      hidden: true,
+      useLockedBase: true,
     };
   }
 
@@ -1243,6 +1384,7 @@ function computeUpgradeLockStateFor(areaKey, upg) {
   if (state.locked) {
     if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
     if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
+    if (state.useLockedBase == null) state.useLockedBase = true;
     if (!state.reason && upg?.revealRequirement) {
       state.reason = upg.revealRequirement;
     }
