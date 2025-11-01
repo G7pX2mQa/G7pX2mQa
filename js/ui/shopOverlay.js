@@ -408,7 +408,7 @@ function buildUpgradesData() {
   for (const def of defs) {
     const lvlBn = getLevel(areaKey, def.id);
     const lvlNum = getLevelNumber(areaKey, def.id);
-    const lockState = getUpgradeLockState(areaKey, def);
+    const lockState = getUpgradeLockState(areaKey, def.id);
     const icon = lockState.iconOverride ?? getIconUrl(def);
     const title = lockState.titleOverride ?? def.title;
     const desc = lockState.descOverride ?? def.desc;
