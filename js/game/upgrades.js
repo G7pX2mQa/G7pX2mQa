@@ -1161,15 +1161,23 @@ function cacheAreaState(key, arr, raw) {
   }
 }
 
-function keyForArea(areaKey) {
-  const slot = getActiveSlot();
+function keyForArea(areaKey, slot = getActiveSlot()) {
   if (slot == null) return null;
   return `ccc:upgrades:${areaKey}:${slot}`;
 }
 
-function loadAreaState(areaKey) {
-  const storageKey = keyForArea(areaKey);
+function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
+  const { forceReload = false } = options || {};
+  const storageKey = keyForArea(areaKey, slot);
   if (!storageKey) return [];
+
+  if (forceReload) {
+    const fresh = readStateFromAvailableStorage(storageKey);
+    if (fresh) {
+      cacheAreaState(storageKey, fresh.data, fresh.raw);
+      return fresh.data;
+    }
+  }
 
   const primary = readStateFromAvailableStorage(storageKey);
   if (primary) {
@@ -1198,8 +1206,8 @@ function loadAreaState(areaKey) {
   return [];
 }
 
-function saveAreaState(areaKey, stateArr) {
-  const storageKey = keyForArea(areaKey);
+function saveAreaState(areaKey, stateArr, slot = getActiveSlot()) {
+  const storageKey = keyForArea(areaKey, slot);
   if (!storageKey) return;
 
   const arr = Array.isArray(stateArr) ? stateArr : [];
@@ -1235,18 +1243,20 @@ function saveAreaState(areaKey, stateArr) {
 
 const upgradeStateCache = new Map(); // key → { areaKey, upgId, upg, rec, arr, lvl, nextCostBn }
 
-function upgradeCacheKey(areaKey, upgId) {
-  return `${areaKey}:${normalizeUpgradeId(upgId)}`;
+function upgradeCacheKey(areaKey, upgId, slot = getActiveSlot()) {
+  const slotKey = slot == null ? 'null' : String(slot);
+  return `${slotKey}:${areaKey}:${normalizeUpgradeId(upgId)}`;
 }
 
 function ensureUpgradeState(areaKey, upgId) {
   const normalizedId = normalizeUpgradeId(upgId);
-  const key = upgradeCacheKey(areaKey, normalizedId);
+  const slot = getActiveSlot();
+  const key = upgradeCacheKey(areaKey, normalizedId, slot);
   let state = upgradeStateCache.get(key);
   if (state) return state;
 
   const upg = getUpgrade(areaKey, normalizedId);
-  const arr = loadAreaState(areaKey);
+  const arr = loadAreaState(areaKey, slot);
   let rec = arr.find(u => u && normalizeUpgradeId(u.id) === normalizedId);
   let recNeedsSave = false;
   if (!rec) {
@@ -1259,7 +1269,7 @@ function ensureUpgradeState(areaKey, upgId) {
       }
     }
     arr.push(rec);
-    saveAreaState(areaKey, arr);
+    saveAreaState(areaKey, arr, slot);
   } else if (rec.id !== normalizedId) {
     rec.id = normalizedId;
     recNeedsSave = true;
@@ -1286,12 +1296,12 @@ function ensureUpgradeState(areaKey, upgId) {
     try {
       rec.nextCost = nextCostBn.toStorage();
       rec.lvl = lvlBn.toStorage();
-      saveAreaState(areaKey, arr);
+      saveAreaState(areaKey, arr, slot);
     } catch {}
   }
 
   if (recNeedsSave) {
-    try { saveAreaState(areaKey, arr); }
+    try { saveAreaState(areaKey, arr, slot); }
     catch {}
   }
 
@@ -1305,31 +1315,52 @@ function ensureUpgradeState(areaKey, upgId) {
     }
   }
 
-  state = { areaKey, upgId: normalizedId, upg, rec, arr, lvl, lvlBn, nextCostBn };
+  state = { areaKey, upgId: normalizedId, upg, rec, arr, lvl, lvlBn, nextCostBn, slot };
   upgradeStateCache.set(key, state);
   return state;
 }
 
 function commitUpgradeState(state) {
   if (!state) return;
-  const { areaKey, arr, rec } = state;
+  const { areaKey } = state;
+  const slot = state.slot ?? getActiveSlot();
+  if (!areaKey || slot == null) return;
+
+  const normalizedId = normalizeUpgradeId(state.upgId ?? state.rec?.id);
+  let arr = loadAreaState(areaKey, slot, { forceReload: true });
+  if (!Array.isArray(arr)) arr = [];
+
+  let rec = arr.find(u => u && normalizeUpgradeId(u.id) === normalizedId);
+  if (!rec) {
+    rec = { id: normalizedId };
+    arr.push(rec);
+  } else if (rec.id !== normalizedId) {
+    rec.id = normalizedId;
+  }
+
   try {
     rec.lvl = state.lvlBn?.toStorage?.() ?? ensureLevelBigNum(state.lvlBn ?? state.lvl).toStorage();
   } catch {
     rec.lvl = ensureLevelBigNum(state.lvl ?? 0).toStorage();
   }
-  if (state.nextCostBn) {
+
+  if (state.nextCostBn != null) {
     try {
-      rec.nextCost = state.nextCostBn.toStorage();
-    } catch {
       rec.nextCost = BigNum.fromAny(state.nextCostBn).toStorage();
+    } catch {
+      try { rec.nextCost = BigNum.fromAny(state.nextCostBn ?? 0).toStorage(); }
+      catch { rec.nextCost = BigNum.fromInt(0).toStorage(); }
     }
   }
-  saveAreaState(areaKey, arr);
+
+  saveAreaState(areaKey, arr, slot);
+  state.rec = rec;
+  state.arr = arr;
+  state.slot = slot;
 }
 
-function invalidateUpgradeState(areaKey, upgId) {
-  upgradeStateCache.delete(upgradeCacheKey(areaKey, upgId));
+function invalidateUpgradeState(areaKey, upgId, slot = getActiveSlot()) {
+  upgradeStateCache.delete(upgradeCacheKey(areaKey, upgId, slot));
 }
 
 export function getLevelNumber(areaKey, upgId) {
