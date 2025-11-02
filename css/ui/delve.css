@@ -232,9 +232,17 @@
   margin-top: 18px;
 }
 
-.merchant-lockinfo__close {
-  min-width: 130px;
+.merchant-lockinfo__close{
+  min-width:130px;
+  height:44px;
+  border-radius:0;
+  border:1px solid hsla(0,80%,40%,0.45);
+  background:hsla(0,80%,40%,0.15);
+  color:#fff; font-weight:600; letter-spacing:.2px; cursor:pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
 }
+.merchant-lockinfo__close:hover { background: hsla(0,80%,40%,0.22); }
+.merchant-lockinfo__close:active{ transform: translateY(1px); background: hsla(0,80%,40%,0.28); }
 
 .merchant-tabs {
   display: flex;
@@ -318,15 +326,21 @@
 .dlg-card:not(.is-complete):hover { background: rgba(255,255,255,.18); }
 .dlg-card:active { transform: none; }
 .dlg-card.is-locked,
-.dlg-card:disabled { opacity: .45; cursor: not-allowed; }
-.dlg-card.is-mystery {
-  border-style: dashed;
-  border-color: hsla(150, 60%, 65%, 0.45);
-  opacity: .85;
+.dlg-card:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  background: #1f1f1f;
 }
-.dlg-card.is-mystery:hover { background: rgba(255,255,255,.16); }
-.dlg-card:not(.is-complete) { background: rgba(255,255,255,.12);  }
-.dlg-card.is-complete { background: rgba(255,255,255,.03); }
+
+.dlg-card.is-mystery {
+  opacity: .95;
+  background: #272831;
+  border-style: solid;
+}
+
+.dlg-card.is-mystery:hover { background: #272831; }
+.dlg-card:not(.is-complete):not(.is-mystery):not(.is-locked) { background: rgba(255,255,255,0.12); }
+.dlg-card.is-complete { background: rgba(255,255,255,0.03); }
 
 .dlg-card.has-again {
   padding-right: calc(clamp(10px,2vw,14px) + 110px);
