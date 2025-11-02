@@ -144,15 +144,21 @@ function resolveDialogueLock(meta, progress) {
     return info;
   }
 
-  info.title = rawObj?.title ?? '???';
-  info.blurb = rawObj?.blurb ?? (status === 'mystery' ? DEFAULT_MYSTERY_BLURB : DEFAULT_LOCKED_BLURB);
-  info.tooltip = rawObj?.tooltip ?? (status === 'locked' ? 'Locked' : '');
-  info.message = rawObj?.message ?? (status === 'mystery' ? DEFAULT_LOCK_MESSAGE : '');
-  info.icon = rawObj?.icon ?? (status === 'mystery' ? MYSTERY_ICON_SRC : null);
-  info.headerTitle = rawObj?.headerTitle ?? (status === 'mystery' ? HIDDEN_DIALOGUE_TITLE : LOCKED_DIALOGUE_TITLE);
-  info.ariaLabel = rawObj?.ariaLabel ?? (status === 'mystery'
-    ? 'Hidden merchant dialogue'
-    : 'Locked merchant dialogue');
+info.title = rawObj?.title ?? '???'
+info.blurb = rawObj?.requirement
+  ?? rawObj?.message
+  ?? rawObj?.tooltip
+  ?? (status === 'mystery' ? DEFAULT_MYSTERY_BLURB : DEFAULT_LOCKED_BLURB)
+info.tooltip = rawObj?.tooltip
+  ?? (status === 'locked' ? 'Locked Dialogue' : 'Hidden Dialogue');
+
+info.message = rawObj?.message ?? (status === 'mystery' ? DEFAULT_LOCK_MESSAGE : '');
+info.icon = rawObj?.icon ?? (status === 'mystery' ? MYSTERY_ICON_SRC : null);
+info.headerTitle = rawObj?.headerTitle ?? (status === 'mystery' ? HIDDEN_DIALOGUE_TITLE : LOCKED_DIALOGUE_TITLE);
+info.ariaLabel = rawObj?.ariaLabel ?? (status === 'mystery'
+  ? 'Hidden merchant dialogue'
+  : 'Locked merchant dialogue');
+
 
   return info;
 }
@@ -222,48 +228,46 @@ const DLG_CATALOG = {
     title: 'Experience Broker',
     blurb: 'Talk about the freshly unlocked XP system.',
     scriptId: 2,
-    unlock: (progress) => {
-      if (!progress?.xpUnlocked) {
-        return {
-          status: 'mystery',
-          title: '???',
-          blurb: 'A sealed conversation hums with latent power.',
-          tooltip: 'Unlock the XP system to reveal this dialogue.',
-          message: 'Unlock the XP system to reveal this dialogue.',
-          icon: MYSTERY_ICON_SRC,
-          headerTitle: HIDDEN_DIALOGUE_TITLE,
-          ariaLabel: 'Hidden merchant dialogue. Unlock the XP system to reveal this dialogue.',
-        };
-      }
-      return true;
-    },
+unlock: (progress) => {
+  if (!progress?.xpUnlocked) {
+    return {
+      status: 'mystery',
+      requirement: 'Unlock the XP system to reveal this dialogue.',
+      message: 'Unlock the XP system to reveal this dialogue.',
+      icon: MYSTERY_ICON_SRC,
+      headerTitle: HIDDEN_DIALOGUE_TITLE,
+      ariaLabel: 'Hidden merchant dialogue. Unlock the XP system to reveal this dialogue.',
+    };
+  }
+  return true;
+},
     once: false,
   },
   3: {
     title: 'Edge of Mastery',
     blurb: 'Placeholder musings for reaching XP level 999.',
     scriptId: 3,
-    unlock: (progress) => {
-      if (!progress?.xpUnlocked) {
-        return {
-          status: 'locked',
-          title: '???',
-          blurb: DEFAULT_LOCKED_BLURB,
-          tooltip: 'Locked',
-          ariaLabel: 'Locked merchant dialogue.',
-        };
-      }
-      if ((progress?.xpLevel ?? 0) < 999) {
-        return {
-          status: 'locked',
-          title: '???',
-          blurb: DEFAULT_LOCKED_BLURB,
-          tooltip: 'Locked',
-          ariaLabel: 'Locked merchant dialogue.',
-        };
-      }
-      return true;
-    },
+unlock: (progress) => {
+  if (!progress?.xpUnlocked) {
+    return {
+      status: 'locked',
+      title: '???',
+      blurb: DEFAULT_LOCKED_BLURB,
+      tooltip: 'Locked',
+      ariaLabel: 'Locked merchant dialogue.',
+    };
+  }
+  if ((progress?.xpLevel ?? 0) < 999) {
+    return {
+      status: 'locked',
+      title: '???',
+      blurb: DEFAULT_LOCKED_BLURB,
+      tooltip: 'Locked',
+      ariaLabel: 'Locked merchant dialogue.',
+    };
+  }
+  return true;
+},
     once: false,
   },
 };
