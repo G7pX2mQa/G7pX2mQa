@@ -6,7 +6,9 @@ import { formatNumber } from '../util/numFormat.js';
 import { openMerchant,
     ensureMerchantOverlay,
     primeTypingSfx,
-    unlockMerchantTabs
+    unlockMerchantTabs,
+    hasMetMerchant,
+    MERCHANT_MET_EVENT
 } from './delveTabDlg.js';
 import { takePreloadedAudio } from '../util/audioCache.js';
 import {
@@ -27,8 +29,10 @@ import {
 let shopOverlayEl = null;
 let shopSheetEl = null;
 let shopOpen = false;
-let drag = null; // {startY, lastY, startT, moved, canceled}
+let drag = null;
 let eventsBound = false;
+let delveBtnEl = null;
+let updateDelveGlow = null;
 const IS_MOBILE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
 const ICON_DIR = 'img/';
@@ -753,6 +757,14 @@ function ensureShopOverlay() {
     openMerchant();
   });
 
+  delveBtnEl = delveBtn;
+  updateDelveGlow = () => {
+    if (!delveBtnEl) return;
+    const met = hasMetMerchant();
+    delveBtnEl.classList.toggle('is-new', !met);
+  };
+  updateDelveGlow();
+
   actions.appendChild(closeBtn);
   actions.append(delveBtn);
 
@@ -780,6 +792,10 @@ function ensureShopOverlay() {
         buildUpgradesData();
         renderShopGrid();
       }, 60); // debounce avoids spamming on rapid tick updates
+    });
+
+    window.addEventListener(MERCHANT_MET_EVENT, () => {
+      if (typeof updateDelveGlow === 'function') updateDelveGlow();
     });
   }
 }
@@ -1180,8 +1196,8 @@ function onKeydownForShop(e) {
 
 export function openShop() {
   ensureShopOverlay();
-
-  // Always rebuild UI data & recompute potential levels on open
+  
+  if (typeof updateDelveGlow === 'function') updateDelveGlow();
   buildUpgradesData();
   renderShopGrid();
 
