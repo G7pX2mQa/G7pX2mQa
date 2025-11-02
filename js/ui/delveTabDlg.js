@@ -3,6 +3,7 @@
 import { bank, getActiveSlot } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { MERCHANT_DIALOGUES } from '../misc/merchantDialogues.js';
+import { getXpState, isXpSystemUnlocked } from '../game/xpSystem.js';
 import {
   markGhostTapTarget,
   shouldSkipGhostTap,
@@ -30,10 +31,149 @@ const MERCHANT_TABS_DEF = [
   { key: 'minigames', label: '???',      unlocked: false },
 ];
 
+const MYSTERY_ICON_SRC = 'img/misc/mysterious.png';
+const HIDDEN_DIALOGUE_TITLE = 'Hidden Dialogue';
+const LOCKED_DIALOGUE_TITLE = 'Locked Dialogue';
+const DEFAULT_MYSTERY_BLURB = 'Something hums behind the counter.';
+const DEFAULT_LOCKED_BLURB = 'Locked';
+const DEFAULT_LOCK_MESSAGE = 'This dialogue is hidden for now.';
+
 const IS_MOBILE =
   (typeof window.IS_MOBILE !== 'undefined')
     ? window.IS_MOBILE
     : (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
+
+let progressEventsBound = false;
+
+function bigNumToSafeInteger(value) {
+  if (value && typeof value === 'object') {
+    if (typeof value.toPlainIntegerString === 'function') {
+      try {
+        const plain = value.toPlainIntegerString();
+        if (plain != null) {
+          const parsed = Number.parseInt(plain, 10);
+          if (Number.isFinite(parsed)) return parsed;
+        }
+      } catch {}
+    }
+    if (typeof value.toString === 'function') {
+      try {
+        const str = value.toString();
+        if (str != null) {
+          const parsed = Number.parseInt(str, 10);
+          if (Number.isFinite(parsed)) return parsed;
+        }
+      } catch {}
+    }
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  if (numeric <= 0) return 0;
+  return Math.floor(numeric);
+}
+
+function getPlayerProgress() {
+  const progress = {
+    xpUnlocked: false,
+    xpLevel: 0,
+  };
+
+  try {
+    progress.xpUnlocked = typeof isXpSystemUnlocked === 'function' && isXpSystemUnlocked();
+  } catch {
+    progress.xpUnlocked = false;
+  }
+
+  if (progress.xpUnlocked) {
+    try {
+      const state = typeof getXpState === 'function' ? getXpState() : null;
+      if (state && typeof state === 'object') {
+        progress.xpLevel = bigNumToSafeInteger(state.xpLevel);
+      }
+    } catch {
+      progress.xpLevel = 0;
+    }
+  }
+
+  return progress;
+}
+
+function resolveDialogueLock(meta, progress) {
+  let rawState;
+  try {
+    rawState = typeof meta.unlock === 'function' ? meta.unlock(progress) : true;
+  } catch {
+    rawState = false;
+  }
+
+  const rawObj = (rawState && typeof rawState === 'object') ? rawState : null;
+  let status = 'locked';
+
+  if (rawState === true) {
+    status = 'unlocked';
+  } else if (rawObj) {
+    const normalized = String(rawObj.status ?? '').toLowerCase();
+    if (normalized === 'unlocked' || rawObj.unlocked === true) {
+      status = 'unlocked';
+    } else if (normalized === 'mystery') {
+      status = 'mystery';
+    } else {
+      status = 'locked';
+    }
+  } else if (rawState === false || rawState == null) {
+    status = 'locked';
+  }
+
+  const info = {
+    status,
+    unlocked: status === 'unlocked',
+    title: status === 'unlocked' ? meta.title : '???',
+    blurb: status === 'unlocked'
+      ? meta.blurb
+      : (status === 'mystery' ? DEFAULT_MYSTERY_BLURB : DEFAULT_LOCKED_BLURB),
+    tooltip: '',
+    message: '',
+    icon: null,
+    headerTitle: null,
+    ariaLabel: '',
+  };
+
+  if (status === 'unlocked') {
+    info.ariaLabel = meta.title || 'Merchant dialogue';
+    return info;
+  }
+
+  info.title = rawObj?.title ?? '???';
+  info.blurb = rawObj?.blurb ?? (status === 'mystery' ? DEFAULT_MYSTERY_BLURB : DEFAULT_LOCKED_BLURB);
+  info.tooltip = rawObj?.tooltip ?? (status === 'locked' ? 'Locked' : '');
+  info.message = rawObj?.message ?? (status === 'mystery' ? DEFAULT_LOCK_MESSAGE : '');
+  info.icon = rawObj?.icon ?? (status === 'mystery' ? MYSTERY_ICON_SRC : null);
+  info.headerTitle = rawObj?.headerTitle ?? (status === 'mystery' ? HIDDEN_DIALOGUE_TITLE : LOCKED_DIALOGUE_TITLE);
+  info.ariaLabel = rawObj?.ariaLabel ?? (status === 'mystery'
+    ? 'Hidden merchant dialogue'
+    : 'Locked merchant dialogue');
+
+  return info;
+}
+
+function ensureProgressEvents() {
+  if (progressEventsBound) return;
+  progressEventsBound = true;
+
+  const handler = onProgressChanged;
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('xp:change', handler);
+    window.addEventListener('xp:unlock', handler);
+  }
+
+  document.addEventListener('ccc:upgrades:changed', handler);
+}
+
+function onProgressChanged() {
+  renderDialogueList();
+}
 
 function completeDialogueOnce(id, meta) {
   const state = loadDlgState();
@@ -78,8 +218,54 @@ const DLG_CATALOG = {
     unlock: (progress) => true,
     once: true,
   },
-  // future:
-  // 2: { title:'...', blurb:'...', scriptId: 2, reward:{...}, unlock:(p)=>..., once:true },
+  2: {
+    title: 'Experience Broker',
+    blurb: 'Talk about the freshly unlocked XP system.',
+    scriptId: 2,
+    unlock: (progress) => {
+      if (!progress?.xpUnlocked) {
+        return {
+          status: 'mystery',
+          title: '???',
+          blurb: 'A sealed conversation hums with latent power.',
+          tooltip: 'Unlock the XP system to reveal this dialogue.',
+          message: 'Unlock the XP system to reveal this dialogue.',
+          icon: MYSTERY_ICON_SRC,
+          headerTitle: HIDDEN_DIALOGUE_TITLE,
+          ariaLabel: 'Hidden merchant dialogue. Unlock the XP system to reveal this dialogue.',
+        };
+      }
+      return true;
+    },
+    once: false,
+  },
+  3: {
+    title: 'Edge of Mastery',
+    blurb: 'Placeholder musings for reaching XP level 999.',
+    scriptId: 3,
+    unlock: (progress) => {
+      if (!progress?.xpUnlocked) {
+        return {
+          status: 'locked',
+          title: '???',
+          blurb: DEFAULT_LOCKED_BLURB,
+          tooltip: 'Locked',
+          ariaLabel: 'Locked merchant dialogue.',
+        };
+      }
+      if ((progress?.xpLevel ?? 0) < 999) {
+        return {
+          status: 'locked',
+          title: '???',
+          blurb: DEFAULT_LOCKED_BLURB,
+          tooltip: 'Locked',
+          ariaLabel: 'Locked merchant dialogue.',
+        };
+      }
+      return true;
+    },
+    once: false,
+  },
 };
 
 function loadDlgState() {
@@ -88,10 +274,6 @@ function loadDlgState() {
 
 function saveDlgState(s) {
   try { localStorage.setItem(sk(MERCHANT_DLG_STATE_KEY_BASE), JSON.stringify(s)); } catch {}
-}
-
-function getPlayerProgress() {
-  return { layer: 1 };
 }
 
 // ----- Module state -----
@@ -413,14 +595,82 @@ await this.goto(opt.to);
   }
 }
 
-function openDialogueModal(id, meta) {
-  // Ensure audio is primed for mobile
+function openDialogueLockInfo(lockInfo = {}) {
+  if (!merchantOverlayEl) return;
+
   primeTypingSfx();
 
-  // Reuse the same visual language as first-time chat, but this one is dismissible
   const overlay = document.createElement('div');
-  overlay.className = 'merchant-firstchat'; // reuse styles
-  overlay.setAttribute('data-dismissible', '1'); // <— flag for clarity
+  overlay.className = 'merchant-firstchat merchant-lockinfo';
+  overlay.setAttribute('data-dismissible', '1');
+  overlay.innerHTML = `
+    <div class="merchant-firstchat__card" role="dialog" aria-label="${lockInfo.ariaLabel || HIDDEN_DIALOGUE_TITLE}">
+      <div class="merchant-firstchat__header">
+        <div class="name"></div>
+        <div class="rule" aria-hidden="true"></div>
+      </div>
+      <div class="merchant-firstchat__row merchant-lockinfo__row">
+        <img class="merchant-firstchat__icon" src="${lockInfo.icon || MYSTERY_ICON_SRC}" alt="">
+        <div class="merchant-firstchat__text merchant-lockinfo__message"></div>
+      </div>
+      <div class="merchant-firstchat__actions merchant-lockinfo__actions">
+        <button type="button" class="merchant-firstchat__continue merchant-lockinfo__close">Close</button>
+      </div>
+    </div>
+  `;
+
+  merchantOverlayEl.appendChild(overlay);
+
+  const cardEl = overlay.querySelector('.merchant-firstchat__card');
+  const nameEl = overlay.querySelector('.merchant-firstchat__header .name');
+  const messageEl = overlay.querySelector('.merchant-lockinfo__message');
+  const closeBtn = overlay.querySelector('.merchant-lockinfo__close');
+
+  nameEl.textContent = lockInfo.headerTitle || HIDDEN_DIALOGUE_TITLE;
+  messageEl.textContent = lockInfo.message || DEFAULT_LOCK_MESSAGE;
+
+  requestAnimationFrame(() => overlay.classList.add('is-visible'));
+  merchantOverlayEl.classList.add('firstchat-active');
+
+  let closed = false;
+
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    overlay.classList.remove('is-visible');
+    merchantOverlayEl.classList.remove('firstchat-active');
+    stopTypingSfx();
+    __isTypingActive = false;
+    document.removeEventListener('keydown', onEsc, true);
+    setTimeout(() => overlay.remove(), 160);
+  };
+
+  const onEsc = (e) => {
+    if (e.key !== 'Escape') return;
+    e.preventDefault();
+    close();
+  };
+
+  document.addEventListener('keydown', onEsc, true);
+
+  overlay.addEventListener('pointerdown', (e) => {
+    if (!cardEl.contains(e.target)) {
+      e.preventDefault();
+      close();
+    }
+  });
+
+  closeBtn.addEventListener('click', () => close());
+
+  closeBtn.focus?.();
+}
+
+function openDialogueModal(id, meta) {
+  primeTypingSfx();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'merchant-firstchat';
+  overlay.setAttribute('data-dismissible', '1');
   overlay.innerHTML = `
     <div class="merchant-firstchat__card" role="dialog" aria-label="${meta.title}">
       <div class="merchant-firstchat__header">
@@ -686,6 +936,7 @@ function initDialogueTab() {
   panel.appendChild(list);
 
   panel.__dlgList = list;
+  ensureProgressEvents();
   renderDialogueList();
 }
 
@@ -702,26 +953,41 @@ function renderDialogueList() {
   list.innerHTML = '';
 
   Object.entries(DLG_CATALOG).forEach(([id, meta]) => {
-    const unlocked = !!meta.unlock(progress);
+    const lockInfo = resolveDialogueLock(meta, progress);
+    const unlocked = lockInfo.unlocked;
+    const isMystery = lockInfo.status === 'mystery';
+    const locked = lockInfo.status === 'locked';
     const entryState = state[id] || {};
     const claimed = !!entryState.claimed;
-    const isComplete = !!(meta.once && claimed);
+    const showComplete = unlocked && !!(meta.once && claimed);
 
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'dlg-card';
-    // Disable only if locked; completed entries remain clickable for replay
-    card.disabled = !unlocked;
+    card.dataset.dlgStatus = lockInfo.status;
+    card.disabled = !!locked;
+
+    if (locked) {
+      card.classList.add('is-locked');
+      card.setAttribute('aria-disabled', 'true');
+      card.setAttribute('tabindex', '-1');
+    } else {
+      card.removeAttribute('aria-disabled');
+      card.removeAttribute('tabindex');
+    }
+
+    if (isMystery) {
+      card.classList.add('is-mystery');
+    }
 
     const title = document.createElement('div');
     title.className = 'dlg-title';
-    title.textContent = unlocked ? meta.title : '???';
+    title.textContent = unlocked ? meta.title : (lockInfo.title ?? '???');
 
     const blurb = document.createElement('div');
     blurb.className = 'dlg-blurb';
-    blurb.textContent = unlocked ? meta.blurb : 'Locked';
+    blurb.textContent = unlocked ? meta.blurb : (lockInfo.blurb ?? '');
 
-    // Reward line (under blurb, left column)
     const reward = document.createElement('div');
     reward.className = 'dlg-reward';
     if (unlocked && meta.reward) {
@@ -742,24 +1008,37 @@ function renderDialogueList() {
       reward.textContent = '';
     }
 
-    if (!unlocked) card.classList.add('is-locked');
-	if (isComplete) {
-	  card.classList.add('is-complete');
-	  const again = document.createElement('div');
-	  again.className = 'dlg-again';
-	  again.textContent = 'Ask Again?'
-	  again.setAttribute('aria-hidden', 'true');
-	  card.classList.add('has-again');
-	  card.append(again);
-	}
+    const ariaLabel = unlocked
+      ? `${meta.title}${showComplete ? ' (completed)' : ''}`
+      : (lockInfo.ariaLabel || (isMystery ? 'Hidden merchant dialogue' : 'Locked merchant dialogue'));
+    card.setAttribute('aria-label', ariaLabel);
 
-    // Order matters for grid placement (left column content first)
+    if (lockInfo.tooltip) {
+      card.title = lockInfo.tooltip;
+    } else if (unlocked) {
+      card.title = 'Open dialogue';
+    } else {
+      card.removeAttribute('title');
+    }
+
     card.append(title, blurb, reward);
+
+    if (showComplete) {
+      card.classList.add('is-complete');
+      const again = document.createElement('div');
+      again.className = 'dlg-again';
+      again.textContent = 'Ask Again?';
+      again.setAttribute('aria-hidden', 'true');
+      card.classList.add('has-again');
+      card.append(again);
+    }
+
     list.appendChild(card);
 
-    // Clicking opens modal; onEnd already avoids re-granting when claimed
     if (unlocked) {
       card.addEventListener('click', () => openDialogueModal(id, meta));
+    } else if (isMystery) {
+      card.addEventListener('click', () => openDialogueLockInfo(lockInfo));
     }
   });
 }
