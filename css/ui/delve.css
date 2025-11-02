@@ -345,6 +345,7 @@
 .dlg-card.is-mysterious:hover { background: #272831; }
 .dlg-card:not(.is-complete):not(.is-mysterious):not(.is-locked) { background: rgba(255,255,255,0.12); }
 .dlg-card.is-complete { background: rgba(255,255,255,0.03); }
+.dlg-card.is-complete:hover { background: rgba(255,255,255,0.06); }
 .dlg-card:not(.is-locked):not(.is-mysterious):not(.is-complete):hover {
   background: rgba(255,255,255,.15);
   transition: background 120ms ease;
