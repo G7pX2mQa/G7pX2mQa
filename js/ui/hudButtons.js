@@ -200,7 +200,12 @@ export function initHudButtons() {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
-        markSkipClick(btn);
+        if (consumeGhostTapGuard()) {
+          clearGhostTapTarget(btn);
+          e.preventDefault();
+          return;
+        }
+        markGhostTapTarget(btn);
         activate(btn);
         e.preventDefault();
       };
