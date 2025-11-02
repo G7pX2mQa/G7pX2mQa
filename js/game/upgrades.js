@@ -77,6 +77,100 @@ const XP_MYSTERY_UPGRADE_KEYS = new Set([
   'starter_cove:5',
   'starter_cove:6',
 ]);
+const SHOP_REVEAL_STATE_KEY_BASE = 'ccc:shop:reveals';
+const SHOP_REVEAL_STATUS_ORDER = { locked: 0, mysterious: 1, unlocked: 2 };
+const shopRevealStateCache = new Map();
+
+function shopStatusRank(status) {
+  return SHOP_REVEAL_STATUS_ORDER[status] ?? 0;
+}
+
+function classifyUpgradeStatus(lockState) {
+  if (!lockState || lockState.locked === false) return 'unlocked';
+  if (lockState.hidden || lockState.hideCost || lockState.hideEffect || lockState.useLockedBase) {
+    return 'mysterious';
+  }
+  return 'locked';
+}
+
+function upgradeRevealKey(areaKey, upg) {
+  const normArea = normalizeAreaKey(areaKey || upg?.area);
+  if (!normArea) return null;
+  const rawId = normalizeUpgradeId(upg?.id);
+  let idStr = '';
+  if (typeof rawId === 'number') {
+    if (!Number.isFinite(rawId)) return null;
+    idStr = String(Math.trunc(rawId));
+  } else if (typeof rawId === 'string') {
+    const trimmed = rawId.trim();
+    if (!trimmed) return null;
+    idStr = trimmed;
+  } else {
+    return null;
+  }
+  return `${normArea}:${idStr}`;
+}
+
+function ensureShopRevealState(slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (shopRevealStateCache.has(slotKey)) {
+    return shopRevealStateCache.get(slotKey);
+  }
+
+  let parsed = { upgrades: {} };
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(`${SHOP_REVEAL_STATE_KEY_BASE}:${slotKey}`);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        if (obj && typeof obj === 'object') {
+          const upgrades = (obj.upgrades && typeof obj.upgrades === 'object') ? obj.upgrades : {};
+          parsed = { upgrades };
+        }
+      }
+    } catch {}
+  }
+
+  if (!parsed || typeof parsed !== 'object') parsed = { upgrades: {} };
+  if (!parsed.upgrades || typeof parsed.upgrades !== 'object') parsed.upgrades = {};
+
+  shopRevealStateCache.set(slotKey, parsed);
+  return parsed;
+}
+
+function saveShopRevealState(state, slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (!state || typeof state !== 'object') {
+    state = { upgrades: {} };
+  }
+  if (!state.upgrades || typeof state.upgrades !== 'object') {
+    state.upgrades = {};
+  }
+  shopRevealStateCache.set(slotKey, state);
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(`${SHOP_REVEAL_STATE_KEY_BASE}:${slotKey}`, JSON.stringify(state));
+  } catch {}
+}
+
+function snapshotUpgradeLockState(lockState) {
+  if (!lockState || typeof lockState !== 'object') return null;
+  const snapshot = {};
+  const keys = [
+    'iconOverride',
+    'titleOverride',
+    'descOverride',
+    'reason',
+    'hideCost',
+    'hideEffect',
+    'hidden',
+    'useLockedBase',
+  ];
+  for (const key of keys) {
+    if (lockState[key] !== undefined) snapshot[key] = lockState[key];
+  }
+  return snapshot;
+}
 
 function normalizeAreaKey(areaKey) {
   if (typeof areaKey === 'string') {
@@ -1609,6 +1703,84 @@ function computeUpgradeLockStateFor(areaKey, upg) {
   if (state.locked && upg.requiresUnlockXp && !xpUnlocked && !state.iconOverride) {
     state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
   }
+
+  const revealKey = upgradeRevealKey(areaKey, upg);
+  if (revealKey) {
+    const slot = getActiveSlot();
+    const revealState = ensureShopRevealState(slot);
+    const record = revealState.upgrades[revealKey] || {};
+    const storedStatus = record.status || 'locked';
+    const storedRank = shopStatusRank(storedStatus);
+    const currentStatus = classifyUpgradeStatus(state);
+    const currentRank = shopStatusRank(currentStatus);
+    let shouldSaveReveal = false;
+
+    if (currentRank > storedRank) {
+      record.status = currentStatus;
+      if (currentStatus === 'mysterious') {
+        record.snapshot = snapshotUpgradeLockState(state);
+      } else if (currentStatus === 'unlocked') {
+        delete record.snapshot;
+      }
+      revealState.upgrades[revealKey] = record;
+      shouldSaveReveal = true;
+    } else if (currentRank < storedRank) {
+      if (storedStatus === 'unlocked') {
+        const warnings = [];
+        if (!xpUnlocked) {
+          warnings.push('Unlock the XP system again to use this upgrade.');
+        } else if (currentStatus === 'mysterious') {
+          const requirement = state.reason || upg?.revealRequirement || 'Meet the original requirement again to reactivate this upgrade.';
+          warnings.push(`${requirement} (previously unlocked)`);
+        }
+
+        const baseDesc = (() => {
+          const currentDesc = typeof state.descOverride === 'string' ? state.descOverride.trim() : '';
+          const upgDesc = typeof upg?.desc === 'string' ? upg.desc.trim() : '';
+          if (currentDesc && (!upgDesc || currentDesc !== upgDesc)) return currentDesc;
+          return upgDesc;
+        })();
+
+        const warningText = warnings.join(' ').trim();
+        const combinedDesc = warningText
+          ? (baseDesc ? `${warningText}\n\n${baseDesc}` : warningText)
+          : baseDesc;
+
+        state = Object.assign({}, state, {
+          locked: false,
+          hidden: false,
+          hideCost: false,
+          hideEffect: false,
+          useLockedBase: false,
+          iconOverride: state.iconOverride ?? getIconUrl(upg),
+          titleOverride: upg?.title ?? state.titleOverride,
+          descOverride: combinedDesc,
+        });
+
+        if (record.status !== 'unlocked') {
+          record.status = 'unlocked';
+          shouldSaveReveal = true;
+        }
+        if (revealState.upgrades[revealKey] !== record) {
+          revealState.upgrades[revealKey] = record;
+          shouldSaveReveal = true;
+        }
+      } else if (storedStatus === 'mysterious') {
+        const snapshot = record.snapshot || {};
+        state = mergeLockStates(state, snapshot);
+        state.locked = true;
+        if (state.hidden == null) state.hidden = true;
+        if (state.useLockedBase == null) state.useLockedBase = true;
+      }
+    }
+
+    if (shouldSaveReveal) {
+      saveShopRevealState(revealState, slot);
+    }
+  }
+
+  return state;
+}
 
   return state;
 }
