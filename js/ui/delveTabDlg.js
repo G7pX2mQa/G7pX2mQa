@@ -49,7 +49,6 @@ const IS_MOBILE =
     : (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
 let progressEventsBound = false;
-
 let merchantDlgWatcherInitialized = false;
 let merchantDlgWatcherSlot = null;
 let merchantDlgWatcherCleanup = null;
@@ -309,7 +308,7 @@ function cleanupMerchantDlgStateWatcher() {
 }
 
 function handleMerchantDlgStateChange(_, meta = {}) {
-  if (!meta?.rawChanged && !meta?.valueChanged) return;
+  if (!meta?.rawChanged) return;
   renderDialogueList();
 }
 
