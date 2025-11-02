@@ -52,6 +52,27 @@ const CURRENCY_ICON_SRC = {
   books: 'img/currencies/book/book.png',
 };
 
+function blockInteraction(ms = 140) {
+  const isCoarse = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
+  if (!isCoarse) return;
+
+  let shield = document.getElementById('ccc-tap-shield');
+  if (!shield) {
+    shield = document.createElement('div');
+    shield.id = 'ccc-tap-shield';
+    Object.assign(shield.style, {
+      position: 'fixed', inset: '0', zIndex: '2147483647',
+      pointerEvents: 'auto', background: 'transparent'
+    });
+    const eat = (e) => { e.stopPropagation(); e.preventDefault(); };
+    ['pointerdown','pointerup','click','touchstart','touchend','mousedown','mouseup']
+      .forEach(ev => shield.addEventListener(ev, eat, { capture: true, passive: false }));
+  }
+  document.body.appendChild(shield);
+  clearTimeout(shield.__t);
+  shield.__t = setTimeout(() => shield.remove(), ms);
+}
+
 function stripTags(html) {
   return String(html ?? '').replace(/<[^>]*>/g, '');
 }
@@ -1226,6 +1247,7 @@ export function openUpgradeOverlay(upgDef) {
   upgOverlayEl.classList.add('is-open');
   upgOverlayEl.setAttribute('aria-hidden', 'false');
   upgOverlayEl.style.pointerEvents = 'auto';
+  blockInteraction(140);
   upgSheetEl.style.transition = 'none';
   upgSheetEl.style.transform = 'translateY(100%)';
   void upgSheetEl.offsetHeight;
@@ -1285,6 +1307,7 @@ export function openShop() {
   requestAnimationFrame(() => {
     shopSheetEl.style.transition = '';
     shopOverlayEl.classList.add('is-open');
+	blockInteraction(140);
     ensureCustomScrollbar();
     const focusable =
       shopOverlayEl.querySelector('#shop-grid .shop-upgrade') ||
