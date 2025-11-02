@@ -1,5 +1,5 @@
 // js/util/ghostTapGuard.js
-// Fixes issue with buttons on mobile that cannot be spam clicked
+// Fixes issue with buttons on mobile that prevents them from being spam clicked
 
 const DEFAULT_TIMEOUT_MS = 400;
 const ELEMENT_SKIP_PROP = Symbol('ccc:ghostTap:skip');
