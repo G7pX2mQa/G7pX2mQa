@@ -39,9 +39,41 @@ const MERCHANT_TABS_DEF = [
 const MYSTERIOUS_ICON_SRC = 'img/misc/mysterious.png';
 const HIDDEN_DIALOGUE_TITLE = 'Hidden Dialogue';
 const LOCKED_DIALOGUE_TITLE = 'Locked Dialogue';
-const DEFAULT_MYSTERIOUS_BLURB = 'Something hums behind the counter.';
+const DEFAULT_MYSTERIOUS_BLURB = 'Hidden Dialogue';
 const DEFAULT_LOCKED_BLURB = 'Locked';
-const DEFAULT_LOCK_MESSAGE = 'This dialogue is hidden for now';
+const DEFAULT_LOCK_MESSAGE = 'Locked Dialogue';
+const DIALOGUE_STATUS_ORDER = { locked: 0, mysterious: 1, unlocked: 2 };
+
+function dialogueStatusRank(status) {
+  return DIALOGUE_STATUS_ORDER[status] ?? 0;
+}
+
+function snapshotLockDisplay(info) {
+  if (!info || typeof info !== 'object') return null;
+  return {
+    title: info.title ?? null,
+    blurb: info.blurb ?? null,
+    tooltip: info.tooltip ?? null,
+    message: info.message ?? null,
+    icon: info.icon ?? null,
+    headerTitle: info.headerTitle ?? null,
+    ariaLabel: info.ariaLabel ?? null,
+  };
+}
+
+function buildUnlockedDialogueInfo(meta) {
+  return {
+    status: 'unlocked',
+    unlocked: true,
+    title: meta.title,
+    blurb: meta.blurb,
+    tooltip: '',
+    message: '',
+    icon: null,
+    headerTitle: null,
+    ariaLabel: meta.title || 'Merchant dialogue',
+  };
+}
 
 const IS_MOBILE =
   (typeof window.IS_MOBILE !== 'undefined')
@@ -1019,22 +1051,61 @@ function renderDialogueList() {
 
   const progress = getPlayerProgress();
   const state = loadDlgState();
+  let stateDirty = false;
 
   list.innerHTML = '';
 
   Object.entries(DLG_CATALOG).forEach(([id, meta]) => {
-    const lockInfo = resolveDialogueLock(meta, progress);
-    const unlocked = lockInfo.unlocked;
-    const isMysterious = lockInfo.status === 'mysterious';
-    const locked = lockInfo.status === 'locked';
     const entryState = state[id] || {};
+    const storedStatus = entryState.status || 'locked';
+    const storedRank = dialogueStatusRank(storedStatus);
+
+    let lockInfo = resolveDialogueLock(meta, progress);
+    let status = lockInfo.status;
+    let rank = dialogueStatusRank(status);
+
+    if (rank > storedRank) {
+      entryState.status = status;
+      if (status === 'mysterious') {
+        entryState.lockSnapshot = snapshotLockDisplay(lockInfo);
+      } else if (status === 'unlocked') {
+        delete entryState.lockSnapshot;
+      }
+      state[id] = entryState;
+      stateDirty = true;
+    } else if (rank < storedRank) {
+      if (storedStatus === 'unlocked') {
+        lockInfo = buildUnlockedDialogueInfo(meta);
+        status = 'unlocked';
+        rank = dialogueStatusRank(status);
+      } else if (storedStatus === 'mysterious') {
+        const snapshot = entryState.lockSnapshot || snapshotLockDisplay(lockInfo) || {};
+        lockInfo = {
+          status: 'mysterious',
+          unlocked: false,
+          title: snapshot.title ?? lockInfo.title ?? '???',
+          blurb: snapshot.blurb ?? lockInfo.blurb ?? DEFAULT_MYSTERIOUS_BLURB,
+          tooltip: snapshot.tooltip ?? lockInfo.tooltip ?? 'Hidden Dialogue',
+          message: snapshot.message ?? lockInfo.message ?? DEFAULT_LOCK_MESSAGE,
+          icon: snapshot.icon ?? lockInfo.icon ?? MYSTERIOUS_ICON_SRC,
+          headerTitle: snapshot.headerTitle ?? lockInfo.headerTitle ?? HIDDEN_DIALOGUE_TITLE,
+          ariaLabel: snapshot.ariaLabel ?? lockInfo.ariaLabel ?? 'Hidden merchant dialogue',
+        };
+        status = 'mysterious';
+        rank = dialogueStatusRank(status);
+      }
+    }
+
+    const unlocked = status === 'unlocked';
+    const isMysterious = status === 'mysterious';
+    const locked = status === 'locked';
     const claimed = !!entryState.claimed;
     const showComplete = unlocked && !!(meta.once && claimed);
 
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'dlg-card';
-    card.dataset.dlgStatus = lockInfo.status;
+    card.dataset.dlgStatus = status;
     card.disabled = !!locked;
 
     if (locked) {
@@ -1111,6 +1182,10 @@ function renderDialogueList() {
       card.addEventListener('click', () => openDialogueLockInfo(lockInfo));
     }
   });
+
+  if (stateDirty) {
+    saveDlgState(state);
+  }
 }
 
 // Runs a conversation inside the Dialogue tab (not the first-time overlay)
