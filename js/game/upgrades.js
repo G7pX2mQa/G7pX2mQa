@@ -1,4 +1,4 @@
-// js/game/upgrades.
+// js/game/upgrades.js
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
@@ -2178,4 +2178,3 @@ export function upgradeUiModel(areaKey, upgId) {
 export function normalizeBigNum(value) {
   return bigNumFromLog10(approxLog10BigNum(value ?? 0));
 }
-
