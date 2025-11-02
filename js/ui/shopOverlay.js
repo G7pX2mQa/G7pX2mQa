@@ -24,6 +24,11 @@ import {
   evaluateBulkPurchase,
   getUpgradeLockState,
 } from '../game/upgrades.js';
+import {
+  markGhostTapTarget,
+  shouldSkipGhostTap,
+  suppressNextGhostTap,
+} from '../util/ghostTapGuard.js';
 
 
 let shopOverlayEl = null;
@@ -35,51 +40,6 @@ let delveBtnEl = null;
 let updateDelveGlow = null;
 let shopCloseTimer = null;
 const IS_MOBILE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
-
-const SKIP_CLICK_PROP = Symbol('ccc:shop:skipClick');
-const SKIP_CLICK_TIMER_PROP = Symbol('ccc:shop:skipTimer');
-const SKIP_CLICK_TIMEOUT_MS = 400;
-const SHOP_BUTTON_SKIP_PROP = '__cccHudShopSkipUntil';
-
-function nowMs() {
-  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
-    return performance.now();
-  }
-  return Date.now();
-}
-
-function markSkipClick(el) {
-  if (!el) return;
-  el[SKIP_CLICK_PROP] = true;
-  if (el[SKIP_CLICK_TIMER_PROP]) {
-    clearTimeout(el[SKIP_CLICK_TIMER_PROP]);
-  }
-  el[SKIP_CLICK_TIMER_PROP] = setTimeout(() => {
-    el[SKIP_CLICK_PROP] = false;
-    el[SKIP_CLICK_TIMER_PROP] = null;
-  }, SKIP_CLICK_TIMEOUT_MS);
-}
-
-function shouldSkipClick(el) {
-  if (!el) return false;
-  if (!el[SKIP_CLICK_PROP]) return false;
-  el[SKIP_CLICK_PROP] = false;
-  if (el[SKIP_CLICK_TIMER_PROP]) {
-    clearTimeout(el[SKIP_CLICK_TIMER_PROP]);
-    el[SKIP_CLICK_TIMER_PROP] = null;
-  }
-  return true;
-}
-
-function suppressNextShopButtonClick(timeout = SKIP_CLICK_TIMEOUT_MS) {
-  if (typeof window === 'undefined') return;
-  const now = nowMs();
-  const target = now + Math.max(0, timeout);
-  const current = typeof window[SHOP_BUTTON_SKIP_PROP] === 'number'
-    ? window[SHOP_BUTTON_SKIP_PROP]
-    : 0;
-  window[SHOP_BUTTON_SKIP_PROP] = Math.max(current, target);
-}
 
 const ICON_DIR = 'img/';
 const BASE_ICON_SRC_BY_COST = {
@@ -823,7 +783,7 @@ function ensureShopOverlay() {
     eventsBound = true;
 
     const onCloseClick = () => {
-      if (shouldSkipClick(closeBtn)) return;
+      if (shouldSkipGhostTap(closeBtn)) return;
       closeShop();
     };
 
@@ -834,15 +794,15 @@ function ensureShopOverlay() {
       closeBtn.addEventListener('pointerdown', (e) => {
         if (e.pointerType === 'mouse') return;
         if (typeof e.button === 'number' && e.button !== 0) return;
-        markSkipClick(closeBtn);
-        suppressNextShopButtonClick();
+        markGhostTapTarget(closeBtn);
+        suppressNextGhostTap();
         closeShop();
         e.preventDefault();
       }, { passive: false });
     } else {
       closeBtn.addEventListener('touchstart', (e) => {
-        markSkipClick(closeBtn);
-        suppressNextShopButtonClick();
+        markGhostTapTarget(closeBtn);
+        suppressNextGhostTap();
         closeShop();
         e.preventDefault();
       }, { passive: false });
@@ -1362,7 +1322,7 @@ function onDragEnd() {
   const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
 
   if (shouldClose) {
-    suppressNextShopButtonClick();
+    suppressNextGhostTap();
     shopSheetEl.style.transition = 'transform 140ms ease-out';
     shopSheetEl.style.transform = 'translateY(100%)';
     shopOpen = false;
