@@ -31,10 +31,10 @@ const MERCHANT_TABS_DEF = [
   { key: 'minigames', label: '???',      unlocked: false },
 ];
 
-const MYSTERY_ICON_SRC = 'img/misc/mysterious.png';
+const MYSTERIOUS_ICON_SRC = 'img/misc/mysterious.png';
 const HIDDEN_DIALOGUE_TITLE = 'Hidden Dialogue';
 const LOCKED_DIALOGUE_TITLE = 'Locked Dialogue';
-const DEFAULT_MYSTERY_BLURB = 'Something hums behind the counter.';
+const DEFAULT_MYSTERIOUS_BLURB = 'Something hums behind the counter.';
 const DEFAULT_LOCKED_BLURB = 'Locked';
 const DEFAULT_LOCK_MESSAGE = 'This dialogue is hidden for now';
 
@@ -116,8 +116,8 @@ function resolveDialogueLock(meta, progress) {
     const normalized = String(rawObj.status ?? '').toLowerCase();
     if (normalized === 'unlocked' || rawObj.unlocked === true) {
       status = 'unlocked';
-    } else if (normalized === 'mystery') {
-      status = 'mystery';
+    } else if (normalized === 'mysterious') {
+      status = 'mysterious';
     } else {
       status = 'locked';
     }
@@ -131,7 +131,7 @@ function resolveDialogueLock(meta, progress) {
     title: status === 'unlocked' ? meta.title : '???',
     blurb: status === 'unlocked'
       ? meta.blurb
-      : (status === 'mystery' ? DEFAULT_MYSTERY_BLURB : DEFAULT_LOCKED_BLURB),
+      : (status === 'mysterious' ? DEFAULT_MYSTERIOUS_BLURB : DEFAULT_LOCKED_BLURB),
     tooltip: '',
     message: '',
     icon: null,
@@ -148,14 +148,14 @@ info.title = rawObj?.title ?? '???'
 info.blurb = rawObj?.requirement
   ?? rawObj?.message
   ?? rawObj?.tooltip
-  ?? (status === 'mystery' ? DEFAULT_MYSTERY_BLURB : DEFAULT_LOCKED_BLURB)
+  ?? (status === 'mysterious' ? DEFAULT_MYSTERIOUS_BLURB : DEFAULT_LOCKED_BLURB)
 info.tooltip = rawObj?.tooltip
   ?? (status === 'locked' ? 'Locked Dialogue' : 'Hidden Dialogue');
 
-info.message = rawObj?.message ?? (status === 'mystery' ? DEFAULT_LOCK_MESSAGE : '');
-info.icon = rawObj?.icon ?? (status === 'mystery' ? MYSTERY_ICON_SRC : null);
-info.headerTitle = rawObj?.headerTitle ?? (status === 'mystery' ? HIDDEN_DIALOGUE_TITLE : LOCKED_DIALOGUE_TITLE);
-info.ariaLabel = rawObj?.ariaLabel ?? (status === 'mystery'
+info.message = rawObj?.message ?? (status === 'mysterious' ? DEFAULT_LOCK_MESSAGE : '');
+info.icon = rawObj?.icon ?? (status === 'mysterious' ? MYSTERIOUS_ICON_SRC : null);
+info.headerTitle = rawObj?.headerTitle ?? (status === 'mysterious' ? HIDDEN_DIALOGUE_TITLE : LOCKED_DIALOGUE_TITLE);
+info.ariaLabel = rawObj?.ariaLabel ?? (status === 'mysterious'
   ? 'Hidden merchant dialogue'
   : 'Locked merchant dialogue');
 
@@ -231,10 +231,10 @@ const DLG_CATALOG = {
 unlock: (progress) => {
   if (!progress?.xpUnlocked) {
     return {
-      status: 'mystery',
+      status: 'mysterious',
       requirement: 'Unlock the XP system to reveal this dialogue',
       message: 'Unlock the XP system to reveal this dialogue',
-      icon: MYSTERY_ICON_SRC,
+      icon: MYSTERIOUS_ICON_SRC,
       headerTitle: HIDDEN_DIALOGUE_TITLE,
       ariaLabel: 'Hidden merchant dialogue. Unlock the XP system to reveal this dialogue',
     };
@@ -259,10 +259,10 @@ unlock: (progress) => {
   }
   if ((progress?.xpLevel ?? 0) < 999) {
     return {
-      status: 'mystery',
+      status: 'mysterious',
       requirement: 'Reach XP level 999 to reveal this dialogue',
       message: 'Reach XP level 999 to reveal this dialogue',
-      icon: MYSTERY_ICON_SRC,
+      icon: MYSTERIOUS_ICON_SRC,
       headerTitle: HIDDEN_DIALOGUE_TITLE,
       ariaLabel: 'Reach XP level 999 to reveal this dialogue',
     };
@@ -615,7 +615,7 @@ function openDialogueLockInfo(lockInfo = {}) {
         <div class="rule" aria-hidden="true"></div>
       </div>
       <div class="merchant-firstchat__row merchant-lockinfo__row">
-        <img class="merchant-firstchat__icon" src="${lockInfo.icon || MYSTERY_ICON_SRC}" alt="">
+        <img class="merchant-firstchat__icon" src="${lockInfo.icon || MYSTERIOUS_ICON_SRC}" alt="">
         <div class="merchant-firstchat__text merchant-lockinfo__message"></div>
       </div>
       <div class="merchant-firstchat__actions merchant-lockinfo__actions">
@@ -961,7 +961,7 @@ function renderDialogueList() {
   Object.entries(DLG_CATALOG).forEach(([id, meta]) => {
     const lockInfo = resolveDialogueLock(meta, progress);
     const unlocked = lockInfo.unlocked;
-    const isMystery = lockInfo.status === 'mystery';
+    const isMysterious = lockInfo.status === 'mysterious';
     const locked = lockInfo.status === 'locked';
     const entryState = state[id] || {};
     const claimed = !!entryState.claimed;
@@ -982,8 +982,8 @@ function renderDialogueList() {
       card.removeAttribute('tabindex');
     }
 
-    if (isMystery) {
-      card.classList.add('is-mystery');
+    if (isMysterious) {
+      card.classList.add('is-mysterious');
     }
 
     const title = document.createElement('div');
@@ -1016,7 +1016,7 @@ function renderDialogueList() {
 
     const ariaLabel = unlocked
       ? `${meta.title}${showComplete ? ' (completed)' : ''}`
-      : (lockInfo.ariaLabel || (isMystery ? 'Hidden merchant dialogue' : 'Locked merchant dialogue'));
+      : (lockInfo.ariaLabel || (isMysterious ? 'Hidden merchant dialogue' : 'Locked merchant dialogue'));
     card.setAttribute('aria-label', ariaLabel);
 
     if (lockInfo.tooltip) {
@@ -1043,7 +1043,7 @@ function renderDialogueList() {
 
     if (unlocked) {
       card.addEventListener('click', () => openDialogueModal(id, meta));
-    } else if (isMystery) {
+    } else if (isMysterious) {
       card.addEventListener('click', () => openDialogueLockInfo(lockInfo));
     }
   });
