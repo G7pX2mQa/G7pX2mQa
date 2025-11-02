@@ -8,7 +8,16 @@ const MERCHANT_ICON_SRC = 'img/misc/merchant.png';
 const MERCHANT_MET_KEY_BASE  = 'ccc:merchantMet';
 const MERCHANT_TAB_KEY_BASE  = 'ccc:merchantTab';
 const MERCHANT_DLG_STATE_KEY_BASE = 'ccc:merchant:dlgState';
+export const MERCHANT_MET_EVENT = 'ccc:merchant:met';
 const sk = (base) => `${base}:${getActiveSlot()}`;
+
+export function hasMetMerchant() {
+  try {
+    return localStorage.getItem(sk(MERCHANT_MET_KEY_BASE)) === '1';
+  } catch {
+    return false;
+  }
+}
 
 const MERCHANT_TABS_DEF = [
   { key: 'dialogue',  label: 'Dialogue', unlocked: true },
@@ -775,6 +784,7 @@ function runFirstMeet() {
     skipTargets: [textEl, rowEl, cardEl],
     onEnd: () => {
       try { localStorage.setItem(sk(MERCHANT_MET_KEY_BASE), '1'); } catch {}
+      try { window.dispatchEvent(new Event(MERCHANT_MET_EVENT)); } catch {}
       fc.classList.remove('is-visible');
       merchantOverlayEl.classList.remove('firstchat-active');
     }
