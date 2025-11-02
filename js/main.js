@@ -467,3 +467,4 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.cccRequestBackup = () => flushBackupSnapshot('manual', { immediate: true });
     } catch {}
   }
+});
