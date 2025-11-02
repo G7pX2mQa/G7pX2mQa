@@ -79,17 +79,15 @@
   color: hsl(0 0% 100% / .9);
 }
 
-/* Bottom actions */
 .shop-actions {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px; /* space between Close and Delve */
+  gap: 12px;
   padding: 12px 16px calc(12px + var(--safe-bottom));
-  flex-wrap: wrap; /* gracefully wrap on very narrow viewports */
+  flex-wrap: wrap;
 }
 
-/* Close (tinted translucent red) */
 .shop-actions .shop-close {
   min-width: 180px;
   height: 44px;
@@ -100,6 +98,7 @@
   font-weight: 600;
   letter-spacing: .2px;
   cursor: pointer;
+  touch-action: manipulation;
   transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
 }
 .shop-actions .shop-close:hover {
@@ -110,7 +109,6 @@
   background: hsla(0, 80%, 40%, 0.28);
 }
 
-/* Delve (tinted translucent green) */
 .shop-actions .shop-delve {
   min-width: 180px;
   height: 44px;
@@ -121,7 +119,30 @@
   font-weight: 600;
   letter-spacing: .2px;
   cursor: pointer;
+  touch-action: manipulation;
   transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+.shop-actions .shop-delve:hover {
+  background: hsla(150, 60%, 35%, 0.22);
+}
+.shop-actions .shop-delve:active {
+  transform: translateY(1px);
+  background: hsla(150, 60%, 35%, 0.28);
+}
+
+.shop-actions .shop-delve.is-new {
+  box-shadow: 0 0 0 0 hsla(150, 70%, 60%, 0.45);
+  animation: shop-delve-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes shop-delve-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsla(150, 70%, 60%, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 22px 6px hsla(150, 70%, 62%, 0.75);
+  }
 }
 .shop-actions .shop-delve:hover {
   background: hsla(150, 60%, 35%, 0.22);
@@ -529,7 +550,6 @@
   margin-right: -0.1em;
 }
 
-/* Actions: ~quarter-width buttons */
 .upg-actions{
   display:flex !important;
   justify-content:center;
@@ -538,9 +558,10 @@
   gap:.8vw;
   padding:1vh 0;
 }
+
 .upg-actions .shop-close,
 .upg-actions .shop-delve{
-  flex:0 1 24vw;                       /* ≈ quarter width (3-up ~72%, 4-up ~96%) */
+  flex:0 1 24vw;
   height:clamp(76px,10vh,126px);
   font-size:clamp(24px,2.8vw,36px);
   border-radius:0;
@@ -548,6 +569,7 @@
   font-weight:600;
   letter-spacing:.2px;
   cursor:pointer;
+  touch-action: manipulation;
   transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
 }
 
@@ -599,9 +621,9 @@
   }
 
   :root{
-    --upg-title-size: clamp(28px, 6vmin, 44px);
-    --upg-desc-size:  clamp(16px, 2.8vmin, 22px);
-    --upg-line-size:  clamp(18px, 3.2vmin, 24px);
+    --upg-title-size: clamp(32px, 5vmin, 52px);
+    --upg-desc-size:  clamp(18px, 3vmin, 26px);
+    --upg-line-size:  clamp(22px, 3.4vmin, 30px);
   }
 
   .upg-header .upg-title{ font-size: var(--upg-title-size); }
@@ -610,6 +632,14 @@
 
   .upg-actions{
     padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (max-width: 600px) {
+  :root{
+    --upg-title-size: clamp(28px, 6vmin, 44px);
+    --upg-desc-size:  clamp(16px, 2.8vmin, 22px);
+    --upg-line-size:  clamp(18px, 3.2vmin, 24px);
   }
 }
 
