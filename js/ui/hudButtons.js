@@ -53,6 +53,33 @@ function phonePortrait() {
 let listenersBound = false;
 let actionsBound = false;
 
+const SKIP_CLICK_PROP = Symbol('ccc:hud:skipClick');
+const SKIP_CLICK_TIMER_PROP = Symbol('ccc:hud:skipTimer');
+const SKIP_CLICK_TIMEOUT_MS = 400;
+
+function markSkipClick(el) {
+  if (!el) return;
+  el[SKIP_CLICK_PROP] = true;
+  if (el[SKIP_CLICK_TIMER_PROP]) {
+    clearTimeout(el[SKIP_CLICK_TIMER_PROP]);
+  }
+  el[SKIP_CLICK_TIMER_PROP] = setTimeout(() => {
+    el[SKIP_CLICK_PROP] = false;
+    el[SKIP_CLICK_TIMER_PROP] = null;
+  }, SKIP_CLICK_TIMEOUT_MS);
+}
+
+function shouldSkipClick(el) {
+  if (!el) return false;
+  if (!el[SKIP_CLICK_PROP]) return false;
+  el[SKIP_CLICK_PROP] = false;
+  if (el[SKIP_CLICK_TIMER_PROP]) {
+    clearTimeout(el[SKIP_CLICK_TIMER_PROP]);
+    el[SKIP_CLICK_TIMER_PROP] = null;
+  }
+  return true;
+}
+
 // ===============================
 // HUD layout
 // ===============================
@@ -155,15 +182,54 @@ export function initHudButtons() {
     actionsBound = true;
     const hud = document.querySelector('.hud-bottom');
     if (hud) {
-      hud.addEventListener('click', (e) => {
-        const btn = e.target.closest('.game-btn');
+      const activate = (btn) => {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key === 'shop') {
           openShop();
         }
         // future: help/settings/map can import their own modules, too
-      }, { passive: true });
+      };
+
+      const onClick = (e) => {
+        const btn = e.target.closest('.game-btn');
+        if (!btn) return;
+        const key = btn.getAttribute('data-btn');
+        if (key !== 'shop') return;
+        if (shouldSkipClick(btn)) return;
+        activate(btn);
+      };
+
+      const hasPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
+
+      const onPointerDown = (e) => {
+        if (e.pointerType === 'mouse') return;
+        if (typeof e.button === 'number' && e.button !== 0) return;
+        const btn = e.target.closest('.game-btn');
+        if (!btn) return;
+        const key = btn.getAttribute('data-btn');
+        if (key !== 'shop') return;
+        markSkipClick(btn);
+        activate(btn);
+        e.preventDefault();
+      };
+
+      const onTouchStart = (e) => {
+        const btn = e.target.closest('.game-btn');
+        if (!btn) return;
+        const key = btn.getAttribute('data-btn');
+        if (key !== 'shop') return;
+        markSkipClick(btn);
+        activate(btn);
+        e.preventDefault();
+      };
+
+      hud.addEventListener('click', onClick, { passive: true });
+      if (hasPointerEvents) {
+        hud.addEventListener('pointerdown', onPointerDown, { passive: false });
+      } else {
+        hud.addEventListener('touchstart', onTouchStart, { passive: false });
+      }
     }
   }
 }
