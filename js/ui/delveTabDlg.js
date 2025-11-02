@@ -36,7 +36,7 @@ const HIDDEN_DIALOGUE_TITLE = 'Hidden Dialogue';
 const LOCKED_DIALOGUE_TITLE = 'Locked Dialogue';
 const DEFAULT_MYSTERY_BLURB = 'Something hums behind the counter.';
 const DEFAULT_LOCKED_BLURB = 'Locked';
-const DEFAULT_LOCK_MESSAGE = 'This dialogue is hidden for now.';
+const DEFAULT_LOCK_MESSAGE = 'This dialogue is hidden for now';
 
 const IS_MOBILE =
   (typeof window.IS_MOBILE !== 'undefined')
@@ -259,11 +259,12 @@ unlock: (progress) => {
   }
   if ((progress?.xpLevel ?? 0) < 999) {
     return {
-      status: 'locked',
-      title: '???',
-      blurb: DEFAULT_LOCKED_BLURB,
-      tooltip: 'Locked Dialogue',
-      ariaLabel: 'Locked Dialogue',
+      status: 'mystery',
+      requirement: 'Reach XP level 999 to reveal this dialogue',
+      message: 'Reach XP level 999 to reveal this dialogue',
+      icon: MYSTERY_ICON_SRC,
+      headerTitle: HIDDEN_DIALOGUE_TITLE,
+      ariaLabel: 'Reach XP level 999 to reveal this dialogue',
     };
   }
   return true;
@@ -728,14 +729,15 @@ document.addEventListener('keydown', onEscToCancel, { capture: true });
     renderDialogueList();       // refresh UI state
   };
 
-  // Click/tap outside the card cancels (NO reward)
-  overlay.addEventListener('pointerdown', (e) => {
-    // If the initial down was outside card, treat it as backdrop dismiss
-    if (!cardEl.contains(e.target)) {
-      e.preventDefault();
-      cancelWithoutReward();
+overlay.addEventListener('pointerdown', (e) => {
+  if (!cardEl.contains(e.target)) {
+    if (e.pointerType !== 'mouse' || (typeof e.button !== 'number' || e.button === 0)) {
+      suppressNextGhostTap();
     }
-  });
+    e.preventDefault();
+    cancelWithoutReward();
+  }
+});
 
 const engine = new DialogueEngine({
   textEl,
