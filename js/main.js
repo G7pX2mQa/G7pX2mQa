@@ -351,8 +351,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     coinPickupModule,
     hudButtonsModule,
     storageModule,
-    hudButtonsModule,
-    storageModule,
     upgradesModule,
     audioCacheModule,
     xpModule,
