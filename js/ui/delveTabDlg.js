@@ -253,7 +253,7 @@ unlock: (progress) => {
       status: 'locked',
       title: '???',
       blurb: DEFAULT_LOCKED_BLURB,
-      tooltip: 'Locked',
+      tooltip: 'Locked Dialogue',
       ariaLabel: 'Locked merchant dialogue.',
     };
   }
@@ -262,7 +262,7 @@ unlock: (progress) => {
       status: 'locked',
       title: '???',
       blurb: DEFAULT_LOCKED_BLURB,
-      tooltip: 'Locked',
+      tooltip: 'Locked Dialogue',
       ariaLabel: 'Locked merchant dialogue.',
     };
   }
