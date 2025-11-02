@@ -757,11 +757,13 @@ function ensureShopOverlay() {
   delveBtn.className = 'shop-delve';
   delveBtn.textContent = 'Delve';
 
-delveBtn.addEventListener('click', () => {
-  if (shouldSkipGhostTap(delveBtn)) return;
-  primeTypingSfx();
-  openMerchant();
-});
+  const openDelveOverlay = () => {
+    if (shouldSkipGhostTap(delveBtn)) return;
+    primeTypingSfx();
+    openMerchant();
+  };
+
+  delveBtn.addEventListener('click', openDelveOverlay);
 
   delveBtnEl = delveBtn;
   updateDelveGlow = () => {
@@ -810,29 +812,35 @@ delveBtn.addEventListener('click', () => {
       }, { passive: false });
     }
 	
-if (hasPointerEvents) {
-  delveBtn.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'mouse') return;
-    if (typeof e.button === 'number' && e.button !== 0) return;
-    markGhostTapTarget(delveBtn);
-    primeTypingSfx();
-    openMerchant();
-    e.preventDefault();
-  }, { passive: false });
-} else {
-  delveBtn.addEventListener('touchstart', (e) => {
-    markGhostTapTarget(delveBtn);
-    primeTypingSfx();
-    openMerchant();
-    e.preventDefault();
-  }, { passive: false });
-}
+    const onDelvePointerDown = (e) => {
+      if (e.pointerType === 'mouse') return;
+      if (typeof e.button === 'number' && e.button !== 0) return;
+      if (shouldSkipGhostTap(delveBtn)) {
+        e.preventDefault();
+        return;
+      }
+      markGhostTapTarget(delveBtn);
+      primeTypingSfx();
+      openMerchant();
+      e.preventDefault();
+    };
 
-delveBtn.addEventListener('click', () => {
-  if (shouldSkipGhostTap(delveBtn)) return;
-  primeTypingSfx();
-  openMerchant();
-});
+    const onDelveTouchStart = (e) => {
+      if (shouldSkipGhostTap(delveBtn)) {
+        e.preventDefault();
+        return;
+      }
+      markGhostTapTarget(delveBtn);
+      primeTypingSfx();
+      openMerchant();
+      e.preventDefault();
+    };
+
+    if (hasPointerEvents) {
+      delveBtn.addEventListener('pointerdown', onDelvePointerDown, { passive: false });
+    } else {
+      delveBtn.addEventListener('touchstart', onDelveTouchStart, { passive: false });
+    }
 
     document.addEventListener('keydown', onKeydownForShop);
     grabber.addEventListener('pointerdown', onDragStart);
