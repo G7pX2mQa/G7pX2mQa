@@ -1782,9 +1782,6 @@ function computeUpgradeLockStateFor(areaKey, upg) {
   return state;
 }
 
-  return state;
-}
-
 function isUpgradeLocked(areaKey, upg) {
   return !!computeUpgradeLockStateFor(areaKey, upg).locked;
 }
