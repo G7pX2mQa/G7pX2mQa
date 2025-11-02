@@ -1020,7 +1020,7 @@ function renderDialogueList() {
     if (lockInfo.tooltip) {
       card.title = lockInfo.tooltip;
     } else if (unlocked) {
-      card.title = 'Open dialogue';
+      card.title = 'Left-click: Start Dialogue';
     } else {
       card.removeAttribute('title');
     }
