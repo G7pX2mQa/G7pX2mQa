@@ -3,8 +3,6 @@
 import { openShop } from './shopOverlay.js';
 import { getActiveSlot } from '../util/storage.js';
 import {
-  clearGhostTapTarget,
-  consumeGhostTapGuard,
   markGhostTapTarget,
   shouldSkipGhostTap,
 } from '../util/ghostTapGuard.js';
@@ -185,11 +183,6 @@ export function initHudButtons() {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
-        if (consumeGhostTapGuard()) {
-          clearGhostTapTarget(btn);
-          e.preventDefault();
-          return;
-        }
         markGhostTapTarget(btn);
         activate(btn);
         e.preventDefault();
@@ -200,11 +193,6 @@ export function initHudButtons() {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
-        if (consumeGhostTapGuard()) {
-          clearGhostTapTarget(btn);
-          e.preventDefault();
-          return;
-        }
         markGhostTapTarget(btn);
         activate(btn);
         e.preventDefault();
