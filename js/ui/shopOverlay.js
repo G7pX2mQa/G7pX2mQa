@@ -884,6 +884,7 @@ function closeUpgradeMenu() {
   upgSheetEl.style.transition = '';
   upgSheetEl.style.transform = '';
   upgOverlayEl.classList.remove('is-open');
+  upgOverlayEl.style.pointerEvents = 'none';
   upgOverlayEl.setAttribute('aria-hidden', 'true');
 }
 
@@ -1158,6 +1159,7 @@ export function openUpgradeOverlay(upgDef) {
   rerender();
   upgOverlayEl.classList.add('is-open');
   upgOverlayEl.setAttribute('aria-hidden', 'false');
+  upgOverlayEl.style.pointerEvents = 'auto';
   upgSheetEl.style.transition = 'none';
   upgSheetEl.style.transform = 'translateY(100%)';
   void upgSheetEl.offsetHeight;
@@ -1196,7 +1198,7 @@ function onKeydownForShop(e) {
 
 export function openShop() {
   ensureShopOverlay();
-  
+
   if (typeof updateDelveGlow === 'function') updateDelveGlow();
   buildUpgradesData();
   renderShopGrid();
@@ -1206,6 +1208,7 @@ export function openShop() {
   shopOpen = true;
   shopSheetEl.style.transition = 'none';
   shopSheetEl.style.transform = '';
+  shopOverlayEl.style.pointerEvents = 'auto';
   shopOverlayEl.setAttribute('aria-hidden', 'false');
 
   void shopSheetEl.offsetHeight;
@@ -1228,6 +1231,7 @@ export function closeShop() {
   }
   shopOpen = false;
   shopOverlayEl.classList.remove('is-open');
+  shopOverlayEl.style.pointerEvents = 'none';
   shopOverlayEl.setAttribute('aria-hidden', 'true');
 }
 
