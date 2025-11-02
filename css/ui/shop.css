@@ -632,6 +632,33 @@
 
   .upg-actions{
     padding-bottom: calc(8px + env(safe-area-inset-bottom));
+   }
+}
+
+@media (hover: none) and (pointer: coarse) and (min-width: 700px) {
+  :root{
+    --upg-title-size: clamp(36px, 4.8vmin, 60px);
+    --upg-desc-size:  clamp(22px, 3.2vmin, 32px);
+    --upg-line-size:  clamp(26px, 3.6vmin, 38px);
+  }
+
+  .upg-info{ gap: 18px; }
+}
+
+@media (hover: none) and (pointer: coarse) and (orientation: portrait) and (min-width: 700px) {
+  .upg-sheet:not(.is-maxed) .upg-content {
+    transform: translateY(-18vh);
+    padding-top: 3vh;
+  }
+
+  .upg-sheet.is-maxed .upg-content {
+    transform: translateY(-26vh);
+    padding-top: 1vh;
+  }
+
+  .upg-sheet.is-locked-hidden .upg-content {
+    transform: translateY(-30vh);
+    padding-top: 0.5vh;
   }
 }
 
