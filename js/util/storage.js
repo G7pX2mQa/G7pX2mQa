@@ -7,6 +7,229 @@ const PREFIX = 'ccc:';
 const MULT_SCALE = 18;
 const MULT_SCALE_TAG = 'XM:';
 
+const STORAGE_WATCH_INTERVAL_MS = 140;
+
+const storageWatchers = new Map();
+let storageWatcherTimer = null;
+
+function ensureStorageWatcherTimer() {
+  if (storageWatcherTimer != null || storageWatchers.size === 0) return;
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  storageWatcherTimer = root.setInterval(runStorageWatchers, STORAGE_WATCH_INTERVAL_MS);
+}
+
+function stopStorageWatcherTimerIfIdle() {
+  if (storageWatchers.size !== 0 || storageWatcherTimer == null) return;
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  root.clearInterval(storageWatcherTimer);
+  storageWatcherTimer = null;
+}
+
+function parseWith(entry, raw) {
+  if (!entry || typeof entry.parse !== 'function') return raw;
+  try {
+    return entry.parse(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function valuesEqual(entry, a, b) {
+  if (!entry || typeof entry.equals !== 'function') {
+    return Object.is(a, b);
+  }
+  try {
+    return entry.equals(a, b);
+  } catch {
+    return Object.is(a, b);
+  }
+}
+
+function runStorageWatchers() {
+  if (storageWatchers.size === 0) {
+    stopStorageWatcherTimerIfIdle();
+    return;
+  }
+  storageWatchers.forEach((entries, key) => {
+    if (!entries || entries.size === 0) return;
+    let raw;
+    try {
+      raw = localStorage.getItem(key);
+    } catch {
+      raw = null;
+    }
+    entries.forEach((entry) => {
+      if (!entry) return;
+      const parsed = parseWith(entry, raw);
+      if (!entry.initialized) {
+        entry.lastRaw = raw;
+        entry.lastValue = parsed;
+        entry.initialized = true;
+        if (entry.emitCurrentValue) {
+          try {
+            entry.onChange?.(parsed, {
+              key,
+              raw,
+              previous: undefined,
+              previousRaw: undefined,
+              initial: true,
+              rawChanged: true,
+              valueChanged: true,
+            });
+          } catch {}
+        }
+        return;
+      }
+      const rawChanged = raw !== entry.lastRaw;
+      const valueChanged = !valuesEqual(entry, entry.lastValue, parsed);
+      if (!rawChanged && !valueChanged) return;
+      const previousValue = entry.lastValue;
+      const previousRaw = entry.lastRaw;
+      entry.lastRaw = raw;
+      entry.lastValue = parsed;
+      try {
+        entry.onChange?.(parsed, {
+          key,
+          raw,
+          previous: previousValue,
+          previousRaw,
+          rawChanged,
+          valueChanged,
+        });
+      } catch {}
+    });
+  });
+}
+
+export function watchStorageKey(key, {
+  parse,
+  equals,
+  onChange,
+  emitCurrentValue = false,
+} = {}) {
+  if (!key || typeof localStorage === 'undefined') {
+    return () => {};
+  }
+  const entry = {
+    parse,
+    equals,
+    onChange,
+    emitCurrentValue,
+    lastRaw: undefined,
+    lastValue: undefined,
+    initialized: false,
+  };
+  let set = storageWatchers.get(key);
+  if (!set) {
+    set = new Set();
+    storageWatchers.set(key, set);
+  }
+  set.add(entry);
+  ensureStorageWatcherTimer();
+  return () => {
+    const entries = storageWatchers.get(key);
+    if (!entries) return;
+    entries.delete(entry);
+    if (entries.size === 0) {
+      storageWatchers.delete(key);
+      stopStorageWatcherTimerIfIdle();
+    }
+  };
+}
+
+export function primeStorageWatcherSnapshot(key, rawValue) {
+  if (!key) return;
+  const entries = storageWatchers.get(key);
+  if (!entries || entries.size === 0) return;
+  let raw = rawValue;
+  if (raw === undefined) {
+    try {
+      raw = localStorage.getItem(key);
+    } catch {
+      raw = null;
+    }
+  }
+  entries.forEach((entry) => {
+    if (!entry) return;
+    entry.lastRaw = raw;
+    entry.lastValue = parseWith(entry, raw);
+    entry.initialized = true;
+  });
+}
+
+function bigNumEquals(a, b) {
+  if (a === b) return true;
+  if (a == null || b == null) return a == null && b == null;
+  if (a instanceof BigNum && typeof a.cmp === 'function') {
+    try { return a.cmp(b) === 0; } catch {}
+  }
+  if (b instanceof BigNum && typeof b.cmp === 'function') {
+    try { return b.cmp(a) === 0; } catch {}
+  }
+  if (typeof a?.cmp === 'function') {
+    try { return a.cmp(b) === 0; } catch {}
+  }
+  if (typeof b?.cmp === 'function') {
+    try { return b.cmp(a) === 0; } catch {}
+  }
+  try {
+    return Object.is(String(a), String(b));
+  } catch {
+    return Object.is(a, b);
+  }
+}
+
+function parseBigNumOrZero(raw) {
+  if (raw == null) return BigNum.fromInt(0);
+  try {
+    return BigNum.fromAny(raw);
+  } catch {
+    return BigNum.fromInt(0);
+  }
+}
+
+const currencyWatcherCleanup = new Map();
+let currencyWatcherBoundSlot = null;
+
+function cleanupCurrencyWatchers() {
+  currencyWatcherCleanup.forEach((stop) => {
+    try { stop?.(); } catch {}
+  });
+  currencyWatcherCleanup.clear();
+}
+
+function bindCurrencyWatchersForSlot(slot) {
+  if (slot === currencyWatcherBoundSlot) return;
+  cleanupCurrencyWatchers();
+  currencyWatcherBoundSlot = slot ?? null;
+  if (slot == null) return;
+  for (const currencyKey of Object.values(CURRENCIES)) {
+    const storageKey = `${KEYS.CURRENCY[currencyKey]}:${slot}`;
+    const stop = watchStorageKey(storageKey, {
+      parse: parseBigNumOrZero,
+      equals: bigNumEquals,
+      onChange: (value, meta) => {
+        if (!meta?.valueChanged) return;
+        if (typeof window === 'undefined') return;
+        try {
+          window.dispatchEvent(new CustomEvent('currency:change', { detail: { key: currencyKey, value } }));
+        } catch {}
+      },
+    });
+    currencyWatcherCleanup.set(storageKey, stop);
+  }
+}
+
+function initCurrencyStorageWatchers() {
+  if (typeof window === 'undefined') return;
+  bindCurrencyWatchersForSlot(getActiveSlot());
+  window.addEventListener('saveSlot:change', () => {
+    bindCurrencyWatchersForSlot(getActiveSlot());
+  });
+}
+
+initCurrencyStorageWatchers();
+
 // -------------------- KEYS --------------------
 export const KEYS = {
   HAS_OPENED_SAVE_SLOT: `${PREFIX}hasOpenedSaveSlot`,
@@ -99,10 +322,13 @@ export function setCurrency(key, value) {
   try {
     let bn = BigNum.fromAny(value);
     if (bn.isNegative?.()) bn = BigNum.fromInt(0);
-    localStorage.setItem(k, bn.toStorage());
+    const raw = bn.toStorage();
+    localStorage.setItem(k, raw);
+    primeStorageWatcherSnapshot(k, raw);
     try { window.dispatchEvent(new CustomEvent('currency:change', { detail: { key, value: bn } })); } catch {}
   } catch (e) { console.warn('Currency save failed:', key, value, e); }
 }
+
 
 function scaledFromIntBN(intBN) {
   return intBN.mulScaledIntFloor(1n, -MULT_SCALE);
