@@ -713,9 +713,27 @@
 
 @media (hover: none) and (pointer: coarse) and (orientation: portrait) and (min-width: 700px) {
   .upg-level {
-    font-size: clamp(30px, 5vmin, 50px);
+    font-size: clamp(20px, 3vmin, 35px);
   }
 }
+
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) and (min-width: 700px) {
+  .upg-sheet:not(.is-maxed) .upg-content {
+    transform: translateY(-8vh);
+    padding-top: 2vh;
+  }
+
+  .upg-sheet.is-maxed .upg-content {
+    transform: translateY(-14vh);
+    padding-top: 1vh;
+  }
+
+  .upg-sheet.is-locked-hidden .upg-content {
+    transform: translateY(-16vh);
+    padding-top: 0.5vh;
+  }
+}
+
 
 .bonus-line .infinity-symbol {
   display: inline-block;
