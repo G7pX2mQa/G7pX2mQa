@@ -20,24 +20,25 @@ background: none;
 
 /* Base button appearance: rectangular w/ black outline, slight rounding */
 .game-btn {
--webkit-tap-highlight-color: transparent;
-appearance: none;
-border: 4px solid #000;       /* black outline */
-border-radius: 8px;
-padding: 0;
-margin: 0;
-width: 100%;
-height: 100%;
-display: grid;
-place-items: center;
-cursor: pointer;
-outline: none;
-font-weight: 900;
-font-size: clamp(18px, 3.5vw, 32px);
-color: #fff;
-box-shadow: 0 6px 10px rgba(0,0,0,0.18);
-transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  border: 4px solid #000;
+  border-radius: 8px;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  outline: none;
+  font-weight: 900;
+  font-size: clamp(18px, 3.5vw, 32px);
+  color: #fff;
+  box-shadow: 0 6px 10px rgba(0,0,0,0.18);
+  transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+  user-select: none;
 }
 
 /* Pressed state */
