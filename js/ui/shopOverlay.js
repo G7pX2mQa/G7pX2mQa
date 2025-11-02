@@ -791,6 +791,13 @@ function ensureShopOverlay() {
       }, 60); // debounce avoids spamming on rapid tick updates
     });
 
+    const onUpgradesChanged = () => {
+      if (!shopOpen) return;
+      updateShopOverlay();
+    };
+
+    document.addEventListener('ccc:upgrades:changed', onUpgradesChanged);
+
     window.addEventListener(MERCHANT_MET_EVENT, () => {
       if (typeof updateDelveGlow === 'function') updateDelveGlow();
     });
