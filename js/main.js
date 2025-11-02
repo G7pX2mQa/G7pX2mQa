@@ -1,9 +1,12 @@
 // js/main.js
 
+import { installGhostTapGuard } from './ui/ghostTapGuard.js';
+
 let initSlots;
 let createSpawner;
 let initCoinPickup;
 let initHudButtons;
+let installGhostTapGuard;
 let bank;
 let getHasOpenedSaveSlot;
 let setHasOpenedSaveSlot;
@@ -350,10 +353,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     coinPickupModule,
     hudButtonsModule,
     storageModule,
+    hudButtonsModule,
+    storageModule,
     upgradesModule,
     audioCacheModule,
     xpModule,
     popupModule,
+	guardModule,
   ] = await Promise.all([
     import('./util/slots.js'),
     import('./game/spawner.js'),
@@ -364,6 +370,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./util/audioCache.js'),
     import('./game/xpSystem.js'),
     import('./ui/popups.js'),
+    import('./util/ghostTapGuard.js'),
   ]);
 
   ({ initSlots } = slotsModule);
@@ -375,6 +382,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ registerPreloadedAudio } = audioCacheModule);
   ({ initXpSystem } = xpModule);
   ({ initPopups } = popupModule);
+  ({ installGhostTapGuard } = guardModule);
 
   window.bank = bank;
 
