@@ -757,10 +757,11 @@ function ensureShopOverlay() {
   delveBtn.className = 'shop-delve';
   delveBtn.textContent = 'Delve';
 
-  delveBtn.addEventListener('click', () => {
-    primeTypingSfx();
-    openMerchant();
-  });
+delveBtn.addEventListener('click', () => {
+  if (shouldSkipGhostTap(delveBtn)) return;
+  primeTypingSfx();
+  openMerchant();
+});
 
   delveBtnEl = delveBtn;
   updateDelveGlow = () => {
@@ -807,6 +808,30 @@ function ensureShopOverlay() {
         e.preventDefault();
       }, { passive: false });
     }
+	
+if (hasPointerEvents) {
+  delveBtn.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (typeof e.button === 'number' && e.button !== 0) return;
+    markGhostTapTarget(delveBtn);
+    primeTypingSfx();
+    openMerchant();
+    e.preventDefault();
+  }, { passive: false });
+} else {
+  delveBtn.addEventListener('touchstart', (e) => {
+    markGhostTapTarget(delveBtn);
+    primeTypingSfx();
+    openMerchant();
+    e.preventDefault();
+  }, { passive: false });
+}
+
+delveBtn.addEventListener('click', () => {
+  if (shouldSkipGhostTap(delveBtn)) return;
+  primeTypingSfx();
+  openMerchant();
+});
 
     document.addEventListener('keydown', onKeydownForShop);
     grabber.addEventListener('pointerdown', onDragStart);
