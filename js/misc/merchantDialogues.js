@@ -4,9 +4,9 @@ export const MERCHANT_DIALOGUES = {
     nodes: {
       n0: { type: 'line', say: 'So you want to delve deeper within my shop, do you?', next: 'c1' },
 
-      r_who:     { type: 'line', say: 'I am the Merchant.', next: 'c2' },
-      r_where:   { type: 'line', say: 'The cove.',          next: 'c2' },
-      r_confused:{ type: 'line', say: 'Ok.',                next: 'c2' },
+      r_who: { type: 'line', say: 'I am the Merchant.', next: 'c2' },
+      r_where: { type: 'line', say: 'The cove.',          next: 'c2' },
+      r_confused: { type: 'line', say: 'Ok.',                next: 'c2' },
 
       c1: { type: 'choice', options: [
         { label: 'Who are you?', to: 'r_who' },
@@ -81,6 +81,55 @@ export const MERCHANT_DIALOGUES = {
         { label: 'On second thought, maybe I do want the coins. Give them to me now.', to: 'end' },
         { label: 'Okay, bye, I don’t need your filthy coins anyway.', to: 'end_nr' },
       ]},
+    }
+  },
+  2: {
+    start: 'n0',
+    nodes: {
+      n0: { type: 'line', say: 'Ah, the XP system hums through the shelves now. I felt the unlock from here.', next: 'c0' },
+
+      c0: { type: 'choice', options: [
+        { label: 'What changes with XP?', to: 'r0' },
+        { label: 'This sounds complicated.', to: 'r1' },
+        { label: 'Do I get more coins?', to: 'r2' },
+      ]},
+
+      r0: { type: 'line', say: 'Levels will shape future stock. Each tier unlocks new questions and, eventually, new goods.', next: 'c1' },
+      r1: { type: 'line', say: 'Growth is rarely simple. Earn XP, gather Books, and we will weave something grand.', next: 'c1' },
+      r2: { type: 'line', say: 'Every level feeds coin value and nudges other systems awake. Keep the flow steady.', next: 'c1' },
+
+      c1: { type: 'choice', options: [
+        { label: 'Books?', to: 'r3' },
+        { label: 'Future systems?', to: 'r4' },
+        { label: 'I’ll get back to grinding.', to: 'end' },
+      ]},
+
+      r3: { type: 'line', say: 'Books will be a ledger of mastery. Placeholder for now, but save your questions.', next: 'c1' },
+      r4: { type: 'line', say: 'Milestones. Unlocks. Entire conversations. XP is the key that opens each.', next: 'c1' },
+    }
+  },
+  3: {
+    start: 'n0',
+    nodes: {
+      n0: { type: 'line', say: 'Level 999. I hoped to see it one day. Placeholder admiration intensifies.', next: 'c0' },
+
+      c0: { type: 'choice', options: [
+        { label: 'Was it worth it?', to: 'q0' },
+        { label: 'What happens next?', to: 'q1' },
+        { label: 'I need a break.', to: 'end' },
+      ]},
+
+      q0: { type: 'line', say: 'Only you can decide that. But the data you gathered will fuel upcoming secrets.', next: 'c1' },
+      q1: { type: 'line', say: 'Beyond this? More systems, more bargains, and more reasons to climb. Placeholder, of course.', next: 'c1' },
+
+      c1: { type: 'choice', options: [
+        { label: 'Where are the rewards?', to: 'q2' },
+        { label: 'I’ll keep going.', to: 'end' },
+        { label: 'I need another hint.', to: 'q3' },
+      ]},
+
+      q2: { type: 'line', say: 'For now, take pride. The tangible prizes arrive in a future update.', next: 'c1' },
+      q3: { type: 'line', say: 'Watch the Merchant tab. New dialogues will appear at milestones beyond this.', next: 'c1' },
     }
   },
 };
