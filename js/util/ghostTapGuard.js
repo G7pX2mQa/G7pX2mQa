@@ -9,6 +9,8 @@ const TARGET_SELECTOR = '[data-ghost-tap-target], button, [role="button"], [data
 
 let guardInstalled = false;
 let selector = TARGET_SELECTOR;
+let hasPointerEvents = false;
+let hasTouchEvents = false;
 
 function nowMs() {
   if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
@@ -114,6 +116,8 @@ function onTouchStart(event) {
 }
 
 function onClickCapture(event) {
+  // Only handle click fallback on browsers that lack pointer/touch events.
+  if (hasPointerEvents || hasTouchEvents) return;
   const target = findTapTarget(event.target);
   if (!target) return;
   if (consumeGhostTapGuard()) {
@@ -129,15 +133,17 @@ export function installGhostTapGuard(options = {}) {
   if (!doc || typeof window === 'undefined') return;
 
   guardInstalled = true;
+  hasPointerEvents = 'PointerEvent' in window;
+  hasTouchEvents = !hasPointerEvents && 'ontouchstart' in window;
   if (options.selector) {
     selector = `${options.selector}, ${TARGET_SELECTOR}`;
   }
 
   doc.addEventListener('click', onClickCapture, true);
 
-  if ('PointerEvent' in window) {
+  if (hasPointerEvents) {
     doc.addEventListener('pointerdown', onPointerStart, { capture: true, passive: false });
-  } else if ('ontouchstart' in window) {
+  } else if (hasTouchEvents) {
     doc.addEventListener('touchstart', onTouchStart, { capture: true, passive: false });
   }
 }
