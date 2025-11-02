@@ -200,21 +200,6 @@ export function initHudButtons() {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
-        if (consumeGhostTapGuard()) {
-          clearGhostTapTarget(btn);
-          e.preventDefault();
-          return;
-        }
-        markGhostTapTarget(btn);
-        activate(btn);
-        e.preventDefault();
-      };
-
-      const onTouchStart = (e) => {
-        const btn = e.target.closest('.game-btn');
-        if (!btn) return;
-        const key = btn.getAttribute('data-btn');
-        if (key !== 'shop') return;
         markSkipClick(btn);
         activate(btn);
         e.preventDefault();
