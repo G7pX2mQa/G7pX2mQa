@@ -39,6 +39,14 @@ const IS_MOBILE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('o
 const SKIP_CLICK_PROP = Symbol('ccc:shop:skipClick');
 const SKIP_CLICK_TIMER_PROP = Symbol('ccc:shop:skipTimer');
 const SKIP_CLICK_TIMEOUT_MS = 400;
+const SHOP_BUTTON_SKIP_PROP = '__cccHudShopSkipUntil';
+
+function nowMs() {
+  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    return performance.now();
+  }
+  return Date.now();
+}
 
 function markSkipClick(el) {
   if (!el) return;
@@ -61,6 +69,16 @@ function shouldSkipClick(el) {
     el[SKIP_CLICK_TIMER_PROP] = null;
   }
   return true;
+}
+
+function suppressNextShopButtonClick(timeout = SKIP_CLICK_TIMEOUT_MS) {
+  if (typeof window === 'undefined') return;
+  const now = nowMs();
+  const target = now + Math.max(0, timeout);
+  const current = typeof window[SHOP_BUTTON_SKIP_PROP] === 'number'
+    ? window[SHOP_BUTTON_SKIP_PROP]
+    : 0;
+  window[SHOP_BUTTON_SKIP_PROP] = Math.max(current, target);
 }
 
 const ICON_DIR = 'img/';
@@ -817,12 +835,14 @@ function ensureShopOverlay() {
         if (e.pointerType === 'mouse') return;
         if (typeof e.button === 'number' && e.button !== 0) return;
         markSkipClick(closeBtn);
+        suppressNextShopButtonClick();
         closeShop();
         e.preventDefault();
       }, { passive: false });
     } else {
       closeBtn.addEventListener('touchstart', (e) => {
         markSkipClick(closeBtn);
+        suppressNextShopButtonClick();
         closeShop();
         e.preventDefault();
       }, { passive: false });
@@ -1342,6 +1362,7 @@ function onDragEnd() {
   const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
 
   if (shouldClose) {
+    suppressNextShopButtonClick();
     shopSheetEl.style.transition = 'transform 140ms ease-out';
     shopSheetEl.style.transform = 'translateY(100%)';
     shopOpen = false;
