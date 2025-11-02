@@ -33,6 +33,7 @@ let drag = null;
 let eventsBound = false;
 let delveBtnEl = null;
 let updateDelveGlow = null;
+let shopCloseTimer = null;
 const IS_MOBILE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
 const ICON_DIR = 'img/';
@@ -1193,6 +1194,11 @@ function onKeydownForShop(e) {
 export function openShop() {
   ensureShopOverlay();
 
+  if (shopCloseTimer) {
+    clearTimeout(shopCloseTimer);
+    shopCloseTimer = null;
+  }
+
   if (typeof updateDelveGlow === 'function') updateDelveGlow();
   updateShopOverlay(true);
 
@@ -1216,13 +1222,28 @@ export function openShop() {
   });
 }
 
-export function closeShop() {
-  if (!shopOpen) return;
+export function closeShop(force = false) {
+  const forceClose = force === true;
+  const overlayOpen = shopOverlayEl?.classList?.contains('is-open');
+
+  if (!forceClose && !shopOpen && !overlayOpen) {
+    if (shopCloseTimer) {
+      clearTimeout(shopCloseTimer);
+      shopCloseTimer = null;
+    }
+    return;
+  }
+
+  if (shopCloseTimer) {
+    clearTimeout(shopCloseTimer);
+    shopCloseTimer = null;
+  }
+
+  shopOpen = false;
   if (shopSheetEl) {
     shopSheetEl.style.transition = '';
     shopSheetEl.style.transform = '';
   }
-  shopOpen = false;
   shopOverlayEl.classList.remove('is-open');
   shopOverlayEl.style.pointerEvents = 'none';
   shopOverlayEl.setAttribute('aria-hidden', 'true');
@@ -1266,7 +1287,14 @@ function onDragEnd() {
   if (shouldClose) {
     shopSheetEl.style.transition = 'transform 140ms ease-out';
     shopSheetEl.style.transform = 'translateY(100%)';
-    setTimeout(closeShop, 150);
+    shopOpen = false;
+    if (shopCloseTimer) {
+      clearTimeout(shopCloseTimer);
+    }
+    shopCloseTimer = setTimeout(() => {
+      shopCloseTimer = null;
+      closeShop(true);
+    }, 150);
   } else {
     shopSheetEl.style.transition = 'transform 180ms ease';
     shopSheetEl.style.transform = 'translateY(0)';
