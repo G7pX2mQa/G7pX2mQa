@@ -56,6 +56,38 @@ let actionsBound = false;
 const SKIP_CLICK_PROP = Symbol('ccc:hud:skipClick');
 const SKIP_CLICK_TIMER_PROP = Symbol('ccc:hud:skipTimer');
 const SKIP_CLICK_TIMEOUT_MS = 400;
+const GLOBAL_SHOP_SKIP_PROP = '__cccHudShopSkipUntil';
+
+function nowMs() {
+  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    return performance.now();
+  }
+  return Date.now();
+}
+
+function clearSkipClick(el) {
+  if (!el) return;
+  el[SKIP_CLICK_PROP] = false;
+  if (el[SKIP_CLICK_TIMER_PROP]) {
+    clearTimeout(el[SKIP_CLICK_TIMER_PROP]);
+    el[SKIP_CLICK_TIMER_PROP] = null;
+  }
+}
+
+function consumeGlobalSkip() {
+  if (typeof window === 'undefined') return false;
+  const until = window[GLOBAL_SHOP_SKIP_PROP];
+  if (typeof until !== 'number') return false;
+
+  const now = nowMs();
+  if (now <= until) {
+    window[GLOBAL_SHOP_SKIP_PROP] = null;
+    return true;
+  }
+
+  window[GLOBAL_SHOP_SKIP_PROP] = null;
+  return false;
+}
 
 function markSkipClick(el) {
   if (!el) return;
@@ -71,12 +103,12 @@ function markSkipClick(el) {
 
 function shouldSkipClick(el) {
   if (!el) return false;
-  if (!el[SKIP_CLICK_PROP]) return false;
-  el[SKIP_CLICK_PROP] = false;
-  if (el[SKIP_CLICK_TIMER_PROP]) {
-    clearTimeout(el[SKIP_CLICK_TIMER_PROP]);
-    el[SKIP_CLICK_TIMER_PROP] = null;
+  if (consumeGlobalSkip()) {
+    clearSkipClick(el);
+    return true;
   }
+  if (!el[SKIP_CLICK_PROP]) return false;
+  clearSkipClick(el);
   return true;
 }
 
@@ -190,7 +222,7 @@ export function initHudButtons() {
         }
         // future: help/settings/map can import their own modules, too
       };
-
+	  
       const onClick = (e) => {
         const btn = e.target.closest('.game-btn');
         if (!btn) return;
@@ -209,6 +241,11 @@ export function initHudButtons() {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
+        if (consumeGlobalSkip()) {
+          clearSkipClick(btn);
+          e.preventDefault();
+          return;
+        }
         markSkipClick(btn);
         activate(btn);
         e.preventDefault();
@@ -219,6 +256,11 @@ export function initHudButtons() {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
+        if (consumeGlobalSkip()) {
+          clearSkipClick(btn);
+          e.preventDefault();
+          return;
+        }
         markSkipClick(btn);
         activate(btn);
         e.preventDefault();
