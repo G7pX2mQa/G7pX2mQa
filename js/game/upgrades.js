@@ -984,8 +984,8 @@ const REGISTRY = [
     area: AREA_KEYS.STARTER_COVE,
     id: 3,
     title: "Faster Coins II",
-    desc: "Increases coin spawn rate by +5% per level",
-    lvlCap: 25,
+    desc: "Increases coin spawn rate by +10% per level",
+    lvlCap: 15,
     baseCost: 1,
     costType: "books",
     upgType: "NM",
@@ -999,12 +999,12 @@ const REGISTRY = [
     },
     effectSummary(level) {
       const lvl = Math.max(0, Math.floor(Number(level) || 0));
-      const pct = lvl * 5;
+      const pct = lvl * 10;
       return `Coin spawn rate bonus: +${pct}%`;
     },
     effectMultiplier(level) {
       const lvl = Math.max(0, Number(level) || 0);
-      return 1 + (0.05 * lvl);
+      return 1 + (0.10 * lvl);
     },
   },
   {
