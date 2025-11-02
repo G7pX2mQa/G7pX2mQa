@@ -60,6 +60,27 @@ export function applyHudLayout() {
   const hud = document.querySelector('.hud-bottom');
   if (!hud) return;
 
+  const mapBtn = hud.querySelector('[data-btn="map"]');
+  const isMapVisible = !!(mapBtn && !mapBtn.hidden);
+  const isPhonePortrait = phonePortrait();
+  const baseOrder = ['help', 'shop', 'stats', 'map'];
+  const mobileMapOrder = ['help', 'stats', 'shop', 'map'];
+
+  const desiredOrder = isPhonePortrait && isMapVisible ? mobileMapOrder : baseOrder;
+
+  const desiredNodes = desiredOrder
+    .map(key => hud.querySelector(`.game-btn[data-btn="${key}"]`))
+    .filter(Boolean);
+  const remainingNodes = [...hud.children].filter(el => !desiredNodes.includes(el));
+  const finalOrder = [...desiredNodes, ...remainingNodes];
+
+  const needsReorder = finalOrder.length && finalOrder.some((el, idx) => hud.children[idx] !== el);
+  if (needsReorder) {
+    const frag = document.createDocumentFragment();
+    finalOrder.forEach(node => frag.appendChild(node));
+    hud.appendChild(frag);
+  }
+
   const all = [...hud.querySelectorAll('.game-btn')];
   const visible = all.filter(el => !el.hidden);
 
@@ -75,7 +96,7 @@ export function applyHudLayout() {
   hud.classList.add(`is-${visible.length}`);
 
   // Desktop centering
-  if (!phonePortrait()) {
+  if (!isPhonePortrait) {
     const cs  = getComputedStyle(hud);
     const gap = parseFloat(cs.columnGap || cs.gap || '0') || 0;
     const cw  = hud.clientWidth;
@@ -97,7 +118,7 @@ export function applyHudLayout() {
   }
 
   // Mobile portrait (2×2): Help & Stats top; Shop full width bottom
-  if (phonePortrait() && visible.length === 3) {
+  if (isPhonePortrait && visible.length === 3) {
     const help  = hud.querySelector('[data-btn="help"]:not([hidden])');
     const stats = hud.querySelector('[data-btn="stats"]:not([hidden])');
     const shop  = hud.querySelector('[data-btn="shop"]:not([hidden])');
