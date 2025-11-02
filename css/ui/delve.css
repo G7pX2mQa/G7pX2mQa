@@ -336,16 +336,16 @@
   background: #272831;
 }
 
-.dlg-card.is-mystery {
+.dlg-card.is-mysterious {
   opacity: .45;
   background: #1f1f1f;
   border-style: solid;
 }
 
-.dlg-card.is-mystery:hover { background: #272831; }
-.dlg-card:not(.is-complete):not(.is-mystery):not(.is-locked) { background: rgba(255,255,255,0.12); }
+.dlg-card.is-mysterious:hover { background: #272831; }
+.dlg-card:not(.is-complete):not(.is-mysterious):not(.is-locked) { background: rgba(255,255,255,0.12); }
 .dlg-card.is-complete { background: rgba(255,255,255,0.03); }
-.dlg-card:not(.is-locked):not(.is-mystery):not(.is-complete):hover {
+.dlg-card:not(.is-locked):not(.is-mysterious):not(.is-complete):hover {
   background: rgba(255,255,255,.14);
   transition: background 120ms ease;
 }
