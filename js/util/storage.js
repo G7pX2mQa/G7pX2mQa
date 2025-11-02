@@ -228,8 +228,6 @@ function initCurrencyStorageWatchers() {
   });
 }
 
-initCurrencyStorageWatchers();
-
 // -------------------- KEYS --------------------
 export const KEYS = {
   HAS_OPENED_SAVE_SLOT: `${PREFIX}hasOpenedSaveSlot`,
@@ -263,11 +261,12 @@ function keyFor(base, slot = getActiveSlot()) {
 }
 
 
-// build per-currency keys
 for (const key of Object.values(CURRENCIES)) {
   KEYS.CURRENCY[key]   = `${PREFIX}${key}`;
   KEYS.MULTIPLIER[key] = `${PREFIX}mult:${key}`; // one key only
 }
+
+initCurrencyStorageWatchers();
 
 // -------------------- SAVE-SLOT HELPERS --------------------
 export function getHasOpenedSaveSlot() {
@@ -533,4 +532,3 @@ if (typeof window !== 'undefined') {
   window.coins = bank.coins;
   window.books = bank.books;
 }
-
