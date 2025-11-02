@@ -1,6 +1,11 @@
 // js/ui/delveTabDlg.js
 
-import { bank, getActiveSlot } from '../util/storage.js';
+import {
+  bank,
+  getActiveSlot,
+  watchStorageKey,
+  primeStorageWatcherSnapshot,
+} from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { MERCHANT_DIALOGUES } from '../misc/merchantDialogues.js';
 import { getXpState, isXpSystemUnlocked } from '../game/xpSystem.js';
@@ -44,6 +49,10 @@ const IS_MOBILE =
     : (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
 let progressEventsBound = false;
+
+let merchantDlgWatcherInitialized = false;
+let merchantDlgWatcherSlot = null;
+let merchantDlgWatcherCleanup = null;
 
 function bigNumToSafeInteger(value) {
   if (value && typeof value === 'object') {
@@ -278,8 +287,64 @@ function loadDlgState() {
 }
 
 function saveDlgState(s) {
-  try { localStorage.setItem(sk(MERCHANT_DLG_STATE_KEY_BASE), JSON.stringify(s)); } catch {}
+  const key = sk(MERCHANT_DLG_STATE_KEY_BASE);
+  try {
+    const payload = JSON.stringify(s);
+    localStorage.setItem(key, payload);
+    try { primeStorageWatcherSnapshot(key, payload); } catch {}
+  } catch {}
 }
+
+function parseDlgStateRaw(raw) {
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { return {}; }
+}
+
+function cleanupMerchantDlgStateWatcher() {
+  const stop = merchantDlgWatcherCleanup;
+  merchantDlgWatcherCleanup = null;
+  if (typeof stop === 'function') {
+    try { stop(); } catch {}
+  }
+}
+
+function handleMerchantDlgStateChange(_, meta = {}) {
+  if (!meta?.rawChanged && !meta?.valueChanged) return;
+  renderDialogueList();
+}
+
+function bindMerchantDlgStateWatcherForSlot(slot) {
+  if (slot === merchantDlgWatcherSlot) return;
+  cleanupMerchantDlgStateWatcher();
+  merchantDlgWatcherSlot = slot ?? null;
+  if (slot == null) {
+    renderDialogueList();
+    return;
+  }
+  const storageKey = `${MERCHANT_DLG_STATE_KEY_BASE}:${slot}`;
+  merchantDlgWatcherCleanup = watchStorageKey(storageKey, {
+    parse: parseDlgStateRaw,
+    onChange: handleMerchantDlgStateChange,
+  });
+  try { primeStorageWatcherSnapshot(storageKey); } catch {}
+  renderDialogueList();
+}
+
+function ensureMerchantDlgStateWatcher() {
+  if (merchantDlgWatcherInitialized) {
+    bindMerchantDlgStateWatcherForSlot(getActiveSlot());
+    return;
+  }
+  merchantDlgWatcherInitialized = true;
+  bindMerchantDlgStateWatcherForSlot(getActiveSlot());
+  if (typeof window !== 'undefined') {
+    window.addEventListener('saveSlot:change', () => {
+      bindMerchantDlgStateWatcherForSlot(getActiveSlot());
+    });
+  }
+}
+
+ensureMerchantDlgStateWatcher();
 
 // ----- Module state -----
 let merchantOverlayEl = null;
