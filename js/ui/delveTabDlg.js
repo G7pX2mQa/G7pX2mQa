@@ -218,7 +218,7 @@ function rewardLabel(reward) {
 const DLG_CATALOG = {
   1: {
     title: 'A Generous Offer',
-    blurb: 'The Merchant is feeling extra nice today.',
+    blurb: 'The Merchant is feeling extra nice today',
     scriptId: 1,
     reward: { type: 'coins', amount: 100 },
     unlock: (progress) => true,
@@ -226,17 +226,17 @@ const DLG_CATALOG = {
   },
   2: {
     title: 'Experience Broker',
-    blurb: 'Talk about the freshly unlocked XP system.',
+    blurb: 'Talk about the freshly unlocked XP system',
     scriptId: 2,
 unlock: (progress) => {
   if (!progress?.xpUnlocked) {
     return {
       status: 'mystery',
-      requirement: 'Unlock the XP system to reveal this dialogue.',
-      message: 'Unlock the XP system to reveal this dialogue.',
+      requirement: 'Unlock the XP system to reveal this dialogue',
+      message: 'Unlock the XP system to reveal this dialogue',
       icon: MYSTERY_ICON_SRC,
       headerTitle: HIDDEN_DIALOGUE_TITLE,
-      ariaLabel: 'Hidden merchant dialogue. Unlock the XP system to reveal this dialogue.',
+      ariaLabel: 'Hidden merchant dialogue. Unlock the XP system to reveal this dialogue',
     };
   }
   return true;
@@ -254,7 +254,7 @@ unlock: (progress) => {
       title: '???',
       blurb: DEFAULT_LOCKED_BLURB,
       tooltip: 'Locked Dialogue',
-      ariaLabel: 'Locked merchant dialogue.',
+      ariaLabel: 'Locked Dialogue.',
     };
   }
   if ((progress?.xpLevel ?? 0) < 999) {
@@ -263,7 +263,7 @@ unlock: (progress) => {
       title: '???',
       blurb: DEFAULT_LOCKED_BLURB,
       tooltip: 'Locked Dialogue',
-      ariaLabel: 'Locked merchant dialogue.',
+      ariaLabel: 'Locked Dialogue',
     };
   }
   return true;
