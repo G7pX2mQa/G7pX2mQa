@@ -3,6 +3,11 @@
 import { bank, getActiveSlot } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { MERCHANT_DIALOGUES } from '../misc/merchantDialogues.js';
+import {
+  markGhostTapTarget,
+  shouldSkipGhostTap,
+  suppressNextGhostTap,
+} from '../util/ghostTapGuard.js';
 
 const MERCHANT_ICON_SRC = 'img/misc/merchant.png';
 const MERCHANT_MET_KEY_BASE  = 'ccc:merchantMet';
@@ -633,10 +638,34 @@ function ensureMerchantOverlay() {
   document.body.appendChild(merchantOverlayEl);
   initDialogueTab();
 
-  // One-time events
   if (!merchantEventsBound) {
     merchantEventsBound = true;
-    closeBtn.addEventListener('click', closeMerchant);
+
+    const onCloseClick = () => {
+      if (shouldSkipGhostTap(closeBtn)) return;
+      closeMerchant();
+    };
+
+    closeBtn.addEventListener('click', onCloseClick);
+    const hasPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
+    if (hasPointerEvents) {
+      closeBtn.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse') return;
+        if (typeof e.button === 'number' && e.button !== 0) return;
+        markGhostTapTarget(closeBtn);
+        suppressNextGhostTap();
+        closeMerchant();
+        e.preventDefault();
+      }, { passive: false });
+    } else {
+      closeBtn.addEventListener('touchstart', (e) => {
+        markGhostTapTarget(closeBtn);
+        suppressNextGhostTap();
+        closeMerchant();
+        e.preventDefault();
+      }, { passive: false });
+    }
+
     document.addEventListener('keydown', onKeydownForMerchant);
     grabber.addEventListener('pointerdown', onMerchantDragStart);
     grabber.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
@@ -890,6 +919,7 @@ function onMerchantDragEnd() {
   const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
 
   if (shouldClose) {
+    suppressNextGhostTap();
     merchantSheetEl.style.transition = 'transform 140ms ease-out';
     merchantSheetEl.style.transform = 'translateY(100%)';
     setTimeout(() => { closeMerchant(); }, 150);
