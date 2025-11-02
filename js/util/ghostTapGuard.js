@@ -73,11 +73,11 @@ function consumeGhostTapGuard() {
 }
 
 function shouldSkipGhostTap(el) {
-  if (!el) return false;
   if (consumeGhostTapGuard()) {
-    clearGhostTapTarget(el);
+    if (el) clearGhostTapTarget(el);
     return true;
   }
+  if (!el) return false;
   if (!el[ELEMENT_SKIP_PROP]) return false;
   clearGhostTapTarget(el);
   return true;
