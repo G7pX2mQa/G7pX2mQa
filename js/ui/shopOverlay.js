@@ -784,7 +784,8 @@ delveBtn.addEventListener('click', () => {
     eventsBound = true;
 
     const onCloseClick = () => {
-      if (shouldSkipGhostTap(closeBtn)) return;
+      markGhostTapTarget(closeBtn);
+      suppressNextGhostTap();
       closeShop();
     };
 
