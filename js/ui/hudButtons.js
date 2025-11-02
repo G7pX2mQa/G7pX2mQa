@@ -1,10 +1,13 @@
 // js/ui/hudButtons.js
-// Controls visibility (unlock/lock) and layout of HUD buttons across desktop & mobile.
-// DOM order: Help → Shop → Stats & Settings → Map
-// Mobile portrait (2×2): if 3 visible, put Help & Stats on row 1, Shop full width on row 2.
 
 import { openShop } from './shopOverlay.js';
 import { getActiveSlot } from '../util/storage.js';
+import {
+  clearGhostTapTarget,
+  consumeGhostTapGuard,
+  markGhostTapTarget,
+  shouldSkipGhostTap,
+} from '../util/ghostTapGuard.js';
 
 const BASE_KEYS = {
   SHOP: 'ccc:unlock:shop',
@@ -52,65 +55,6 @@ function phonePortrait() {
 
 let listenersBound = false;
 let actionsBound = false;
-
-const SKIP_CLICK_PROP = Symbol('ccc:hud:skipClick');
-const SKIP_CLICK_TIMER_PROP = Symbol('ccc:hud:skipTimer');
-const SKIP_CLICK_TIMEOUT_MS = 400;
-const GLOBAL_SHOP_SKIP_PROP = '__cccHudShopSkipUntil';
-
-function nowMs() {
-  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
-    return performance.now();
-  }
-  return Date.now();
-}
-
-function clearSkipClick(el) {
-  if (!el) return;
-  el[SKIP_CLICK_PROP] = false;
-  if (el[SKIP_CLICK_TIMER_PROP]) {
-    clearTimeout(el[SKIP_CLICK_TIMER_PROP]);
-    el[SKIP_CLICK_TIMER_PROP] = null;
-  }
-}
-
-function consumeGlobalSkip() {
-  if (typeof window === 'undefined') return false;
-  const until = window[GLOBAL_SHOP_SKIP_PROP];
-  if (typeof until !== 'number') return false;
-
-  const now = nowMs();
-  if (now <= until) {
-    window[GLOBAL_SHOP_SKIP_PROP] = null;
-    return true;
-  }
-
-  window[GLOBAL_SHOP_SKIP_PROP] = null;
-  return false;
-}
-
-function markSkipClick(el) {
-  if (!el) return;
-  el[SKIP_CLICK_PROP] = true;
-  if (el[SKIP_CLICK_TIMER_PROP]) {
-    clearTimeout(el[SKIP_CLICK_TIMER_PROP]);
-  }
-  el[SKIP_CLICK_TIMER_PROP] = setTimeout(() => {
-    el[SKIP_CLICK_PROP] = false;
-    el[SKIP_CLICK_TIMER_PROP] = null;
-  }, SKIP_CLICK_TIMEOUT_MS);
-}
-
-function shouldSkipClick(el) {
-  if (!el) return false;
-  if (consumeGlobalSkip()) {
-    clearSkipClick(el);
-    return true;
-  }
-  if (!el[SKIP_CLICK_PROP]) return false;
-  clearSkipClick(el);
-  return true;
-}
 
 // ===============================
 // HUD layout
@@ -222,13 +166,13 @@ export function initHudButtons() {
         }
         // future: help/settings/map can import their own modules, too
       };
-	  
+
       const onClick = (e) => {
         const btn = e.target.closest('.game-btn');
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
-        if (shouldSkipClick(btn)) return;
+        if (shouldSkipGhostTap(btn)) return;
         activate(btn);
       };
 
@@ -241,12 +185,12 @@ export function initHudButtons() {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
-        if (consumeGlobalSkip()) {
-          clearSkipClick(btn);
+        if (consumeGhostTapGuard()) {
+          clearGhostTapTarget(btn);
           e.preventDefault();
           return;
         }
-        markSkipClick(btn);
+        markGhostTapTarget(btn);
         activate(btn);
         e.preventDefault();
       };
@@ -256,11 +200,21 @@ export function initHudButtons() {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
-        if (consumeGlobalSkip()) {
-          clearSkipClick(btn);
+        if (consumeGhostTapGuard()) {
+          clearGhostTapTarget(btn);
           e.preventDefault();
           return;
         }
+        markGhostTapTarget(btn);
+        activate(btn);
+        e.preventDefault();
+      };
+
+      const onTouchStart = (e) => {
+        const btn = e.target.closest('.game-btn');
+        if (!btn) return;
+        const key = btn.getAttribute('data-btn');
+        if (key !== 'shop') return;
         markSkipClick(btn);
         activate(btn);
         e.preventDefault();
