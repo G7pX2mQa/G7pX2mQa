@@ -1060,7 +1060,6 @@ const REGISTRY = [
       syncBookCurrencyMultiplierFromUpgrade(newLevel);
     },
   },
-  },
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 6,
