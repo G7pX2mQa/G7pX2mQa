@@ -157,6 +157,14 @@
     const testButton = document.getElementById('unlock-map-test-btn');
 
     if (testButton) {
+      Object.assign(testButton.style, {
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: '2147483646',
+      });
+
       const disableButton = () => {
         testButton.disabled = true;
         testButton.textContent = 'Map unlocked';
