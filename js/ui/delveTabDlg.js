@@ -994,7 +994,8 @@ function ensureMerchantOverlay() {
     merchantEventsBound = true;
 
     const onCloseClick = () => {
-      if (shouldSkipGhostTap(closeBtn)) return;
+      markGhostTapTarget(closeBtn);
+      suppressNextGhostTap();
       closeMerchant();
     };
 
