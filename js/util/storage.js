@@ -528,9 +528,9 @@ export const bank = new Proxy({}, {
   }
 });
 
-// Optional globals for console/dev
 if (typeof window !== 'undefined') {
   window.bank = bank;
   window.coins = bank.coins;
   window.books = bank.books;
 }
+
