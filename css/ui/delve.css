@@ -215,14 +215,33 @@
   transform: translateY(1px);
 }
 
-/* Tabs bar (under the Merchant header) */
+.merchant-lockinfo .merchant-firstchat__card {
+  max-width: clamp(320px, 62vw, 420px);
+}
+
+.merchant-lockinfo__row {
+  align-items: flex-start;
+  gap: clamp(12px, 3vw, 18px);
+}
+
+.merchant-lockinfo__message {
+  line-height: 1.45;
+}
+
+.merchant-lockinfo__actions {
+  margin-top: 18px;
+}
+
+.merchant-lockinfo__close {
+  min-width: 130px;
+}
+
 .merchant-tabs {
   display: flex;
   gap: 8px;
   padding: 10px 12px 0;
 }
 
-/* Individual tab buttons */
 .merchant-tab {
   padding: 6px 12px;
   border-radius: 10px;
@@ -300,10 +319,15 @@
 .dlg-card:active { transform: none; }
 .dlg-card.is-locked,
 .dlg-card:disabled { opacity: .45; cursor: not-allowed; }
+.dlg-card.is-mystery {
+  border-style: dashed;
+  border-color: hsla(150, 60%, 65%, 0.45);
+  opacity: .85;
+}
+.dlg-card.is-mystery:hover { background: rgba(255,255,255,.16); }
 .dlg-card:not(.is-complete) { background: rgba(255,255,255,.12);  }
 .dlg-card.is-complete { background: rgba(255,255,255,.03); }
 
-/* When the replay hint exists, pad the right so it won't overlap text */
 .dlg-card.has-again {
   padding-right: calc(clamp(10px,2vw,14px) + 110px);
 }
