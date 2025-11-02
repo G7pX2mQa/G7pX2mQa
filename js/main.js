@@ -15,6 +15,10 @@ let initXpSystem;
 let onUpgradesChanged;
 let registerPreloadedAudio;
 let initPopups;
+let installSuspendSafeguards;
+let restoreSuspendBackup;
+let markProgressDirty;
+let flushBackupSnapshot;
 
 const IS_TOUCH_DEVICE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
@@ -355,7 +359,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     audioCacheModule,
     xpModule,
     popupModule,
-	guardModule,
+    safetyModule,
+    guardModule,
   ] = await Promise.all([
     import('./util/slots.js'),
     import('./game/spawner.js'),
@@ -366,6 +371,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./util/audioCache.js'),
     import('./game/xpSystem.js'),
     import('./ui/popups.js'),
+    import('./util/suspendSafeguard.js'),
     import('./util/ghostTapGuard.js'),
   ]);
 
@@ -378,9 +384,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ registerPreloadedAudio } = audioCacheModule);
   ({ initXpSystem } = xpModule);
   ({ initPopups } = popupModule);
+  ({ installSuspendSafeguards, restoreFromBackupIfNeeded: restoreSuspendBackup, markProgressDirty, flushBackupSnapshot } = safetyModule);
   ({ installGhostTapGuard } = guardModule);
 
   window.bank = bank;
+
+  installSuspendSafeguards?.();
+  try {
+    await restoreSuspendBackup?.();
+  } catch {}
 
   const ASSET_MANIFEST = {
     images: [
@@ -431,6 +443,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ]);
 
   ensureStorageDefaults();
+  markProgressDirty?.('ensure-defaults');
   initPopups();
 
   const titleEl = document.getElementById('panel-title');
@@ -446,5 +459,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.body.classList.add('has-opened');
     if (titleEl) titleEl.style.opacity = '0';
     enterArea(AREAS.STARTER_COVE);
+    markProgressDirty?.('slot-entered');
   });
-});
+
+  if (typeof window !== 'undefined' && flushBackupSnapshot) {
+    try {
+      window.cccRequestBackup = () => flushBackupSnapshot('manual', { immediate: true });
+    } catch {}
+  }
