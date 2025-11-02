@@ -36,6 +36,33 @@ let updateDelveGlow = null;
 let shopCloseTimer = null;
 const IS_MOBILE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
+const SKIP_CLICK_PROP = Symbol('ccc:shop:skipClick');
+const SKIP_CLICK_TIMER_PROP = Symbol('ccc:shop:skipTimer');
+const SKIP_CLICK_TIMEOUT_MS = 400;
+
+function markSkipClick(el) {
+  if (!el) return;
+  el[SKIP_CLICK_PROP] = true;
+  if (el[SKIP_CLICK_TIMER_PROP]) {
+    clearTimeout(el[SKIP_CLICK_TIMER_PROP]);
+  }
+  el[SKIP_CLICK_TIMER_PROP] = setTimeout(() => {
+    el[SKIP_CLICK_PROP] = false;
+    el[SKIP_CLICK_TIMER_PROP] = null;
+  }, SKIP_CLICK_TIMEOUT_MS);
+}
+
+function shouldSkipClick(el) {
+  if (!el) return false;
+  if (!el[SKIP_CLICK_PROP]) return false;
+  el[SKIP_CLICK_PROP] = false;
+  if (el[SKIP_CLICK_TIMER_PROP]) {
+    clearTimeout(el[SKIP_CLICK_TIMER_PROP]);
+    el[SKIP_CLICK_TIMER_PROP] = null;
+  }
+  return true;
+}
+
 const ICON_DIR = 'img/';
 const BASE_ICON_SRC_BY_COST = {
   coins: 'img/currencies/coin/coin_base.png',
@@ -777,7 +804,30 @@ function ensureShopOverlay() {
   if (!eventsBound) {
     eventsBound = true;
 
-    closeBtn.addEventListener('click', closeShop);
+    const onCloseClick = () => {
+      if (shouldSkipClick(closeBtn)) return;
+      closeShop();
+    };
+
+    closeBtn.addEventListener('click', onCloseClick);
+
+    const hasPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
+    if (hasPointerEvents) {
+      closeBtn.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse') return;
+        if (typeof e.button === 'number' && e.button !== 0) return;
+        markSkipClick(closeBtn);
+        closeShop();
+        e.preventDefault();
+      }, { passive: false });
+    } else {
+      closeBtn.addEventListener('touchstart', (e) => {
+        markSkipClick(closeBtn);
+        closeShop();
+        e.preventDefault();
+      }, { passive: false });
+    }
+
     document.addEventListener('keydown', onKeydownForShop);
     grabber.addEventListener('pointerdown', onDragStart);
     grabber.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
