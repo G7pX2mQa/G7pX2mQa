@@ -183,6 +183,10 @@ export function initHudButtons() {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
+        if (shouldSkipGhostTap(btn)) {
+          e.preventDefault();
+          return;
+        }
         markGhostTapTarget(btn);
         activate(btn);
         e.preventDefault();
@@ -193,6 +197,10 @@ export function initHudButtons() {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
+        if (shouldSkipGhostTap(btn)) {
+          e.preventDefault();
+          return;
+        }
         markGhostTapTarget(btn);
         activate(btn);
         e.preventDefault();
