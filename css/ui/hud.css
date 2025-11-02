@@ -36,15 +36,12 @@ background: none;
   font-weight: 900;
   font-size: clamp(18px, 3.5vw, 32px);
   color: #fff;
-  box-shadow: 0 6px 10px rgba(0,0,0,0.18);
-  transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+  transition: transform 120ms ease, filter 120ms ease;
   user-select: none;
 }
 
-/* Pressed state */
 .game-btn:active {
 transform: translateY(1px) scale(0.997);
-box-shadow: 0 3px 6px rgba(0,0,0,0.16);
 }
 
 /* Hide via attribute */
