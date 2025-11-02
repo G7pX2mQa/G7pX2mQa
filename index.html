@@ -136,11 +136,9 @@
       <div class="coins-layer" id="coins-layer"></div>
     </section>
 
-    <button type="button" id="unlock-map-test-btn">Unlock Map (Test)</button>
-
     <nav class="hud-bottom" id="hud-bottom">
       <button class="game-btn btn-help" data-btn="help"><span>Help</span></button>
-          <button class="game-btn btn-shop" data-btn="shop"><span>Shop</span></button>
+	  <button class="game-btn btn-shop" data-btn="shop"><span>Shop</span></button>
       <button class="game-btn btn-stats" data-btn="stats"><span>Stats &amp; Settings</span></button>
       <button class="game-btn btn-map" data-btn="map"><span>Map</span></button>
     </nav>
@@ -148,53 +146,6 @@
   <script>
     window.__MAINTENANCE__ = false;
     window.__MAINTENANCE_MESSAGE = 'Update in progress. Please wait a few minutes.';
-  </script>
-  <script type="module">
-    import { unlockMap } from './js/ui/hudButtons.js';
-
-    const MAP_KEY = 'ccc:unlock:map';
-    const ACTIVE_SLOT_KEY = 'ccc:saveSlot';
-    const testButton = document.getElementById('unlock-map-test-btn');
-
-    if (testButton) {
-      Object.assign(testButton.style, {
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: '2147483646',
-      });
-
-      const disableButton = () => {
-        testButton.disabled = true;
-        testButton.textContent = 'Map unlocked';
-      };
-
-      const isMapUnlocked = () => {
-        try {
-          if (localStorage.getItem(MAP_KEY) === '1') return true;
-          const activeSlot = localStorage.getItem(ACTIVE_SLOT_KEY);
-          if (!activeSlot) return false;
-          return localStorage.getItem(`${MAP_KEY}:${activeSlot}`) === '1';
-        } catch (error) {
-          console.warn('Unable to determine map unlock state for test button', error);
-          return false;
-        }
-      };
-
-      if (isMapUnlocked()) {
-        disableButton();
-      }
-
-      testButton.addEventListener('click', () => {
-        try {
-          unlockMap?.();
-          disableButton();
-        } catch (error) {
-          console.error('Failed to unlock map from test button', error);
-        }
-      }, { passive: true });
-    }
   </script>
   <script type="module" src="js/main.js"></script>
   </body>
