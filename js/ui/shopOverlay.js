@@ -678,8 +678,7 @@ function renderShopGrid() {
       const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
       if (!boughtBn.isZero?.()) {
         playPurchaseSfx();
-        buildUpgradesData();
-        renderShopGrid();
+        updateShopOverlay();
       }
     });
 
@@ -772,8 +771,7 @@ function ensureShopOverlay() {
   shopOverlayEl.appendChild(shopSheetEl);
   document.body.appendChild(shopOverlayEl);
 
-  buildUpgradesData();
-  renderShopGrid();
+  updateShopOverlay(true);
 
   if (!eventsBound) {
     eventsBound = true;
@@ -783,14 +781,12 @@ function ensureShopOverlay() {
     grabber.addEventListener('pointerdown', onDragStart);
     grabber.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
 
-    // === Debounced live update for (+N) badge and green state ===
     let _shopBadgeTimer = null;
     window.addEventListener('currency:change', () => {
       if (!shopOpen) return;
       clearTimeout(_shopBadgeTimer);
       _shopBadgeTimer = setTimeout(() => {
-        buildUpgradesData();
-        renderShopGrid();
+        updateShopOverlay();
       }, 60); // debounce avoids spamming on rapid tick updates
     });
 
@@ -1102,8 +1098,7 @@ export function openUpgradeOverlay(upgDef) {
         const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
         if (!boughtBn.isZero?.()) {
           playPurchaseSfx();
-          buildUpgradesData();
-          renderShopGrid();
+          updateShopOverlay();
           rerender();
         }
       });
@@ -1120,8 +1115,7 @@ export function openUpgradeOverlay(upgDef) {
         const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
         if (!boughtBn.isZero?.()) {
           playPurchaseSfx();
-          buildUpgradesData();
-          renderShopGrid();
+          updateShopOverlay();
           rerender();
         }
       });
@@ -1200,8 +1194,7 @@ export function openShop() {
   ensureShopOverlay();
 
   if (typeof updateDelveGlow === 'function') updateDelveGlow();
-  buildUpgradesData();
-  renderShopGrid();
+  updateShopOverlay(true);
 
   if (shopOpen) return;
 
@@ -1296,7 +1289,12 @@ function cleanupDrag() {
   drag = null;
 }
 
-// ---------- API ----------
-export function setUpgradeCount() { buildUpgradesData(); renderShopGrid(); }
+export function updateShopOverlay(force = false) {
+  if (!force && !shopOpen) return;
+  buildUpgradesData();
+  renderShopGrid();
+}
+
+export function setUpgradeCount() { updateShopOverlay(true); }
 
 export function getUpgrades() { return upgrades; }
