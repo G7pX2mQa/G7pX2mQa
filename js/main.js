@@ -1,7 +1,5 @@
 // js/main.js
 
-import { installGhostTapGuard } from './ui/ghostTapGuard.js';
-
 let initSlots;
 let createSpawner;
 let initCoinPickup;
