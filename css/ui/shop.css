@@ -622,7 +622,7 @@
 
   :root{
     --upg-title-size: clamp(32px, 5vmin, 52px);
-    --upg-desc-size:  clamp(18px, 3vmin, 26px);
+    --upg-desc-size:  clamp(22px, 3.4vmin, 30px);
     --upg-line-size:  clamp(22px, 3.4vmin, 30px);
   }
 
@@ -708,6 +708,12 @@
   .upg-actions .shop-delve{
     height: clamp(40px, 12vh, 54px);
     font-size: clamp(13px, 2vmin, 17px);
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (orientation: portrait) and (min-width: 700px) {
+  .upg-level {
+    font-size: clamp(30px, 5vmin, 50px);
   }
 }
 
