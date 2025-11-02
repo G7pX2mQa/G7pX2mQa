@@ -1,7 +1,7 @@
 // js/game/xpSystem.js
 
 import { BigNum } from '../util/bigNum.js';
-import { bank, getActiveSlot } from '../util/storage.js';
+import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
 
 const KEY_PREFIX = 'ccc:xp';
@@ -156,6 +156,143 @@ function bnZero() {
 
 function bnOne() {
   return BigNum.fromInt(1);
+}
+
+const xpStorageWatcherCleanups = [];
+let xpStorageWatchersInitialized = false;
+let xpStorageWatcherSlot = null;
+let handlingExternalXpStorage = false;
+
+function cloneBigNumSafe(value) {
+  if (!value) return bnZero();
+  if (typeof value.clone === 'function') {
+    try { return value.clone(); } catch {}
+  }
+  try { return BigNum.fromAny(value); } catch { return bnZero(); }
+}
+
+function bigNumEqualsSafe(a, b) {
+  if (a === b) return true;
+  if (a == null || b == null) return a == null && b == null;
+  if (typeof a?.cmp === 'function') {
+    try { return a.cmp(b) === 0; } catch {}
+  }
+  if (typeof b?.cmp === 'function') {
+    try { return b.cmp(a) === 0; } catch {}
+  }
+  try { return Object.is(String(a), String(b)); }
+  catch { return false; }
+}
+
+function cleanupXpStorageWatchers() {
+  while (xpStorageWatcherCleanups.length > 0) {
+    const stop = xpStorageWatcherCleanups.pop();
+    try { stop?.(); } catch {}
+  }
+}
+
+function parseBigNumOrZero(raw) {
+  if (raw == null) return bnZero();
+  try { return BigNum.fromAny(raw); }
+  catch { return bnZero(); }
+}
+
+function handleExternalXpStorageChange(reason) {
+  if (handlingExternalXpStorage) return;
+  handlingExternalXpStorage = true;
+  try {
+    const prev = {
+      unlocked: xpState.unlocked,
+      xpLevel: cloneBigNumSafe(xpState.xpLevel),
+      progress: cloneBigNumSafe(xpState.progress),
+      requirement: cloneBigNumSafe(requirementBn),
+    };
+    ensureStateLoaded(true);
+    updateHud();
+    syncCoinMultiplierWithXpLevel(true);
+    const current = {
+      unlocked: xpState.unlocked,
+      xpLevel: cloneBigNumSafe(xpState.xpLevel),
+      progress: cloneBigNumSafe(xpState.progress),
+      requirement: cloneBigNumSafe(requirementBn),
+    };
+    const unlockedChanged = prev.unlocked !== current.unlocked;
+    const levelChanged = !bigNumEqualsSafe(prev.xpLevel, current.xpLevel);
+    const progressChanged = !bigNumEqualsSafe(prev.progress, current.progress);
+    if (!unlockedChanged && !levelChanged && !progressChanged) {
+      return;
+    }
+    let xpLevelsGained = bnZero();
+    if (levelChanged) {
+      try { xpLevelsGained = current.xpLevel.sub?.(prev.xpLevel) ?? bnZero(); }
+      catch { xpLevelsGained = bnZero(); }
+    }
+    let xpAdded = null;
+    if (!levelChanged && progressChanged) {
+      try { xpAdded = current.progress.sub?.(prev.progress) ?? null; }
+      catch { xpAdded = null; }
+    }
+    if (typeof window !== 'undefined') {
+      const detail = {
+        unlocked: current.unlocked,
+        xpLevelsGained: xpLevelsGained?.clone?.() ?? xpLevelsGained,
+        xpAdded: xpAdded?.clone?.() ?? xpAdded,
+        xpLevel: current.xpLevel?.clone?.() ?? current.xpLevel,
+        progress: current.progress?.clone?.() ?? current.progress,
+        requirement: current.requirement?.clone?.() ?? current.requirement,
+        source: 'storage',
+        changeType: reason,
+      };
+      try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
+    }
+  } finally {
+    handlingExternalXpStorage = false;
+  }
+}
+
+function bindXpStorageWatchersForSlot(slot) {
+  if (slot === xpStorageWatcherSlot) return;
+  cleanupXpStorageWatchers();
+  xpStorageWatcherSlot = slot ?? null;
+  if (slot == null) return;
+  const watch = (key, options) => {
+    const stop = watchStorageKey(key, options);
+    if (typeof stop === 'function') {
+      xpStorageWatcherCleanups.push(stop);
+    }
+  };
+  watch(KEY_UNLOCK(slot), {
+    parse: (raw) => raw === '1',
+    equals: (a, b) => a === b,
+    onChange: () => handleExternalXpStorageChange('unlock'),
+  });
+  watch(KEY_XP_LEVEL(slot), {
+    parse: parseBigNumOrZero,
+    equals: bigNumEqualsSafe,
+    onChange: () => handleExternalXpStorageChange('xpLevel'),
+  });
+  watch(KEY_PROGRESS(slot), {
+    parse: parseBigNumOrZero,
+    equals: bigNumEqualsSafe,
+    onChange: () => handleExternalXpStorageChange('progress'),
+  });
+}
+
+function ensureXpStorageWatchers() {
+  if (xpStorageWatchersInitialized) {
+    bindXpStorageWatchersForSlot(getActiveSlot());
+    return;
+  }
+  xpStorageWatchersInitialized = true;
+  bindXpStorageWatchersForSlot(getActiveSlot());
+  if (typeof window !== 'undefined') {
+    window.addEventListener('saveSlot:change', () => {
+      bindXpStorageWatchersForSlot(getActiveSlot());
+      ensureStateLoaded(true);
+      updateHud();
+      syncCoinMultiplierWithXpLevel(true);
+    });
+  }
 }
 
 function stripHtml(value) {
@@ -588,7 +725,7 @@ function syncCoinMultiplierWithXpLevel(force = false) {
   }
 }
 
-function ensureStateLoaded() {
+function ensureStateLoaded(force = false) {
   const slot = getActiveSlot();
   if (slot == null) {
     lastSlot = null;
@@ -597,7 +734,7 @@ function ensureStateLoaded() {
     resetLockedXpState();
     return xpState;
   }
-  if (stateLoaded && slot === lastSlot) return xpState;
+  if (!force && stateLoaded && slot === lastSlot) return xpState;
   lastSlot = slot;
   stateLoaded = true;
   try {
@@ -623,15 +760,28 @@ function ensureStateLoaded() {
   updateXpRequirement();
   normalizeProgress(false);
   syncCoinMultiplierWithXpLevel();
+  ensureXpStorageWatchers();
   return xpState;
 }
 
 function persistState() {
   const slot = getActiveSlot();
   if (slot == null) return;
-  try { localStorage.setItem(KEY_UNLOCK(slot), xpState.unlocked ? '1' : '0'); } catch {}
-  try { localStorage.setItem(KEY_XP_LEVEL(slot), xpState.xpLevel.toStorage()); } catch {}
-  try { localStorage.setItem(KEY_PROGRESS(slot), xpState.progress.toStorage()); } catch {}
+  try {
+    const raw = xpState.unlocked ? '1' : '0';
+    localStorage.setItem(KEY_UNLOCK(slot), raw);
+    primeStorageWatcherSnapshot(KEY_UNLOCK(slot), raw);
+  } catch {}
+  try {
+    const raw = xpState.xpLevel.toStorage();
+    localStorage.setItem(KEY_XP_LEVEL(slot), raw);
+    primeStorageWatcherSnapshot(KEY_XP_LEVEL(slot), raw);
+  } catch {}
+  try {
+    const raw = xpState.progress.toStorage();
+    localStorage.setItem(KEY_PROGRESS(slot), raw);
+    primeStorageWatcherSnapshot(KEY_PROGRESS(slot), raw);
+  } catch {}
 }
 
 function handleXpLevelUpRewards() {
@@ -729,6 +879,7 @@ export function initXpSystem() {
   ensureStateLoaded();
   updateXpRequirement();
   updateHud();
+  ensureXpStorageWatchers();
   return getXpState();
 }
 
