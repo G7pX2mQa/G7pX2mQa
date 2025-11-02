@@ -892,6 +892,33 @@ export const AREA_KEYS = {
   STARTER_COVE: 'starter_cove',
 };
 
+function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
+  const multHandle = bank?.books?.mult;
+  if (!multHandle || typeof multHandle.set !== 'function') return;
+
+  let resolvedLevel = 0;
+  const xpUnlocked = safeIsXpUnlocked();
+  if (xpUnlocked) {
+    if (Number.isFinite(levelOverride)) {
+      resolvedLevel = Math.max(0, Math.floor(levelOverride));
+    } else {
+      const storedLevel = getLevelNumber(AREA_KEYS.STARTER_COVE, 5);
+      resolvedLevel = Math.max(0, Number.isFinite(storedLevel) ? storedLevel : 0);
+    }
+  }
+
+  let multiplier;
+  try {
+    multiplier = bookValueMultiplierBn(resolvedLevel);
+  } catch {
+    multiplier = BigNum.fromInt(1);
+  }
+
+  try {
+    multHandle.set(multiplier.clone?.() ?? multiplier);
+  } catch {}
+}
+
 /**
  * upgType:
  *  - "NM" = No Milestones (numUpgEvolutions = 0)
@@ -1029,6 +1056,10 @@ const REGISTRY = [
       const mult = bookValueMultiplierBn(level);
       return `Book value bonus: ${formatNumber(mult)}x`;
     },
+    onLevelChange({ newLevel }) {
+      syncBookCurrencyMultiplierFromUpgrade(newLevel);
+    },
+  },
   },
   {
     area: AREA_KEYS.STARTER_COVE,
@@ -2031,7 +2062,6 @@ function registerXpUpgradeEffects() {
 
   try {
     setExternalBookRewardProvider(({ baseReward, xpUnlocked }) => {
-      if (!xpUnlocked) return baseReward;
       let reward;
       try {
         reward = baseReward instanceof BigNum
@@ -2040,8 +2070,13 @@ function registerXpUpgradeEffects() {
       } catch {
         reward = BigNum.fromInt(0);
       }
+      if (!xpUnlocked) {
+        syncBookCurrencyMultiplierFromUpgrade(0);
+        return reward;
+      }
       const lvl = getLevelNumber(AREA_KEYS.STARTER_COVE, 5);
       const safeLevel = Math.max(0, Number.isFinite(lvl) ? lvl : 0);
+      syncBookCurrencyMultiplierFromUpgrade(safeLevel);
       if (safeLevel <= 0) return reward;
       try {
         const multiplier = bookValueMultiplierBn(safeLevel);
@@ -2051,6 +2086,20 @@ function registerXpUpgradeEffects() {
       }
     });
   } catch {}
+
+  syncBookCurrencyMultiplierFromUpgrade();
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('saveSlot:change', () => {
+      syncBookCurrencyMultiplierFromUpgrade();
+    });
+  }
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('ccc:upgrades:changed', () => {
+      syncBookCurrencyMultiplierFromUpgrade();
+    });
+  }
 }
 
 registerXpUpgradeEffects();
