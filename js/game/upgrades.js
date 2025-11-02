@@ -1,5 +1,5 @@
 // js/game/upgrades.js
-import { bank, getActiveSlot } from '../util/storage.js';
+import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import {
@@ -1213,6 +1213,67 @@ function keyForArea(areaKey, slot = getActiveSlot()) {
   return `ccc:upgrades:${areaKey}:${slot}`;
 }
 
+const upgradeStorageWatcherCleanup = new Map();
+let upgradeStorageWatcherBoundSlot = null;
+
+function cleanupUpgradeStorageWatchers() {
+  upgradeStorageWatcherCleanup.forEach((stop) => {
+    try { stop?.(); } catch {}
+  });
+  upgradeStorageWatcherCleanup.clear();
+}
+
+function handleUpgradeStorageChange(areaKey, slot, storageKey, rawPayload, meta = {}) {
+  if (!storageKey) return;
+  const { rawChanged, valueChanged } = meta;
+  if (!rawChanged && !valueChanged) return;
+
+  try {
+    if (typeof rawPayload === 'string') {
+      const arr = parseUpgradeStateArray(rawPayload);
+      if (arr) {
+        cacheAreaState(storageKey, arr, rawPayload);
+      } else {
+        clearCachedAreaState(storageKey);
+      }
+    } else {
+      clearCachedAreaState(storageKey);
+    }
+  } catch {
+    clearCachedAreaState(storageKey);
+  }
+
+  clearCachedUpgradeStates(areaKey, slot);
+  notifyChanged();
+}
+
+function bindUpgradeStorageWatchersForSlot(slot) {
+  if (slot === upgradeStorageWatcherBoundSlot) return;
+  cleanupUpgradeStorageWatchers();
+  upgradeStorageWatcherBoundSlot = slot ?? null;
+  if (slot == null) return;
+
+  for (const areaKey of Object.values(AREA_KEYS)) {
+    const storageKey = keyForArea(areaKey, slot);
+    if (!storageKey) continue;
+    const stop = watchStorageKey(storageKey, {
+      parse: (raw) => (typeof raw === 'string' ? raw : null),
+      onChange: (rawPayload, meta) => {
+        if (!meta?.rawChanged && !meta?.valueChanged) return;
+        handleUpgradeStorageChange(areaKey, slot, storageKey, rawPayload, meta);
+      },
+    });
+    upgradeStorageWatcherCleanup.set(storageKey, stop);
+  }
+}
+
+if (typeof window !== 'undefined') {
+  bindUpgradeStorageWatchersForSlot(getActiveSlot());
+  window.addEventListener('saveSlot:change', () => {
+    bindUpgradeStorageWatchersForSlot(getActiveSlot());
+  });
+}
+
 function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
   const { forceReload = false } = options || {};
   const storageKey = keyForArea(areaKey, slot);
@@ -1309,6 +1370,7 @@ function saveAreaState(areaKey, stateArr, slot = getActiveSlot()) {
   try {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(storageKey, payload);
+      try { primeStorageWatcherSnapshot(storageKey, payload); } catch {}
     }
   } catch {}
 
@@ -1316,6 +1378,7 @@ function saveAreaState(areaKey, stateArr, slot = getActiveSlot()) {
     const verify = localStorage.getItem(storageKey);
     if (verify !== payload) {
       localStorage.setItem(storageKey, payload);
+      try { primeStorageWatcherSnapshot(storageKey, payload); } catch {}
     }
   } catch {}
 
