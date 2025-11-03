@@ -253,16 +253,22 @@ function grantReward(reward) {
     }
     return;
   }
+  if (reward.type === 'books') {
+    try { bank.books.add(reward.amount); } catch (e) {
+      console.warn('Failed to grant book reward:', reward, e);
+    }
+    return;
+  }
   try { window.dispatchEvent(new CustomEvent('merchantReward', { detail: reward })); } catch {}
 }
 
 function rewardLabel(reward) {
   if (!reward) return '';
   if (reward.type === 'coins') return `Reward: ${reward.amount} coins`;
+  if (reward.type === 'books') return `Reward: ${reward.amount} Books`;
   return 'Reward available';
 }
 
-// Dialogue catalog (add new entries over time)
 const DLG_CATALOG = {
   1: {
     title: 'A Generous Offer',
@@ -276,19 +282,21 @@ const DLG_CATALOG = {
     title: 'Experience Broker',
     blurb: 'Talk about the freshly unlocked XP system',
     scriptId: 2,
-unlock: (progress) => {
-  if (!progress?.xpUnlocked) {
-    return {
-      status: 'mysterious',
-      requirement: 'Unlock the XP system to reveal this dialogue',
-      message: 'Unlock the XP system to reveal this dialogue',
-      icon: MYSTERIOUS_ICON_SRC,
-      headerTitle: HIDDEN_DIALOGUE_TITLE,
-      ariaLabel: 'Hidden merchant dialogue. Unlock the XP system to reveal this dialogue',
-    };
-  }
-  return true;
-},
+    reward: { type: 'books', amount: 5 },   // <-- added
+    once: true,                              // <-- ask-again after claiming
+    unlock: (progress) => {
+      if (!progress?.xpUnlocked) {
+        return {
+          status: 'mysterious',
+          requirement: 'Unlock the XP system to reveal this dialogue',
+          message: 'Unlock the XP system to reveal this dialogue',
+          icon: MYSTERIOUS_ICON_SRC,
+          headerTitle: HIDDEN_DIALOGUE_TITLE,
+          ariaLabel: 'Hidden merchant dialogue. Unlock the XP system to reveal this dialogue',
+        };
+      }
+      return true;
+    },
     once: false,
   },
   3: {
@@ -881,34 +889,33 @@ const engine = new DialogueEngine({
     ended = true;
 
     if (info && info.noReward) {
-      // deliberate no-reward ending
       closeModal();
       renderDialogueList();
       return;
     }
 
-    // normal completion path (claim + reward)
     completeDialogueOnce(id, meta);
     closeModal();
     renderDialogueList();
   }
 });
 
-  // --- Modify dialogue text if this is a replay (Ask Again) ---
   const state = loadDlgState();
   const claimed = !!state[id]?.claimed;
 
-  // Make a safe copy so we can modify text dynamically
   const script = structuredClone(MERCHANT_DIALOGUES[meta.scriptId]);
 
-  if (claimed && script.nodes.m2b && script.nodes.c2a) {
-    // The player already did this once — surreal variant
-    script.nodes.m2b.say = 'I already gave you coins, goodbye.';
+  if (claimed && script.nodes.m2b && script.nodes.c2a && meta.scriptId === 1) {
+    script.nodes.m2b.say = 'I\'ve already given you Coins, goodbye.';
     script.nodes.c2a.options = [
       { label: 'Goodbye.', to: 'end_nr' },
       { label: 'Goodbye.', to: 'end_nr' },
       { label: 'Goodbye.', to: 'end_nr' },
     ];
+  }
+
+  if (claimed && meta.scriptId === 2 && script.nodes.m2a) {
+    script.nodes.m2a.say = 'I\'ve already given you Books, goodbye.';
   }
 
   engine.load(script);
@@ -1180,6 +1187,16 @@ function renderDialogueList() {
           </span>
         `;
         reward.setAttribute('aria-label', `Reward: ${meta.reward.amount} coins`);
+      } else if (meta.reward.type === 'books') {
+        reward.classList.add('has-reward');
+        reward.innerHTML = `
+          <span class="reward-label">Reward:</span>
+          <span class="book">
+            <span class="book-icon" aria-hidden="true"></span>
+            <span class="amt">${meta.reward.amount}</span>
+          </span>
+        `;
+        reward.setAttribute('aria-label', `Reward: ${meta.reward.amount} Books`);
       } else {
         reward.textContent = rewardLabel(meta.reward);
       }
