@@ -743,7 +743,7 @@ if (needBnSearch) {
   }
 
   // Bound the affordable count using only BigNum compares
-  const hardLimit = Number.isFinite(limit) ? Math.max(1, Math.floor(limit)) : Number.MAX_VALUE;
+  const hardLimit = Number.isFinite(room) ? Math.max(1, Math.floor(room)) : Number.MAX_VALUE;
   let lo = 1;
   let hi = 1;
   let steps = 0;
