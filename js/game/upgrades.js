@@ -1901,8 +1901,23 @@ export function getLevel(areaKey, upgId) {
 
 export function peekNextPrice(areaKey, upgId) {
   const state = ensureUpgradeState(areaKey, upgId);
-  return state.nextCostBn?.clone?.() ?? BigNum.fromAny(state.nextCostBn ?? 0);
+  const upg = state.upg;
+  if (!upg) return BigNum.fromInt(0);
+
+  if (state.nextCostBn && !state.nextCostBn.isZero?.()) {
+    return state.nextCostBn.clone?.() ?? BigNum.fromAny(state.nextCostBn);
+  }
+
+  const lvlBn  = state.lvlBn ?? ensureLevelBigNum(state.lvl ?? 0);
+  const nextBn = lvlBn.add(BigNum.fromInt(1));
+  const nextNum = levelBigNumToNumber(nextBn);
+  try {
+    return BigNum.fromAny(upg.costAtLevel(nextNum));
+  } catch {
+    return BigNum.fromInt(0);
+  }
 }
+
 
 export function setLevel(areaKey, upgId, lvl, clampToCap = true) {
   const state = ensureUpgradeState(areaKey, upgId);
