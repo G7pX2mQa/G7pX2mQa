@@ -374,6 +374,7 @@
 }
 
 .dlg-reward .reward-label { opacity: .85; margin-right: 3px; }
+
 .dlg-reward .coin { display: inline-flex; align-items: center; gap: 2px; }
 .dlg-reward .coin-icon {
   width: 0.85em;
@@ -384,6 +385,7 @@
   top: 1px;
 }
 
+.dlg-reward .book { display: inline-flex; align-items: center; gap: 2px; }
 .dlg-reward .book-icon {
   width: 0.85em;
   height: 0.85em;
