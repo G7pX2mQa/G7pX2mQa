@@ -52,7 +52,7 @@ const CURRENCY_ICON_SRC = {
   books: 'img/currencies/book/book.png',
 };
 
-function blockInteraction(ms = 140) {
+export function blockInteraction(ms = 140) {
   const isCoarse = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
   if (!isCoarse) return;
 
