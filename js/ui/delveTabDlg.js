@@ -297,7 +297,6 @@ const DLG_CATALOG = {
       }
       return true;
     },
-    once: false,
   },
   3: {
     title: 'Edge of Mastery',
@@ -916,6 +915,13 @@ const engine = new DialogueEngine({
 
   if (claimed && meta.scriptId === 2 && script.nodes.m2a) {
     script.nodes.m2a.say = 'I\'ve already given you Books, goodbye.';
+	if (script.nodes.c2a) {
+      script.nodes.c2a.options = [
+        { label: 'Goodbye.', to: 'end_nr' },
+        { label: 'Goodbye.', to: 'end_nr' },
+        { label: 'Goodbye.', to: 'end_nr' },
+      ];
+    }
   }
 
   engine.load(script);
