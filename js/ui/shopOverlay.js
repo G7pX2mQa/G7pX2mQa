@@ -557,12 +557,14 @@ function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
   if (Number.isFinite(cap) && lvl >= cap) return BigNum.fromInt(0);
 
   try {
-    const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
-    const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1));
+	const nextLvlNum = levelBigNumToNumber(lvlBn.add(BigNum.fromInt(1)));
+	const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
+	const c1 = BigNum.fromAny(upg.costAtLevel(nextLvlNum));
     const isFlat = c0?.cmp?.(c1) === 0;
 
     if (isFlat) {
-      const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : Number.MAX_SAFE_INTEGER;
+      const remainingBn = levelsRemainingToCap(upg, lvlBn, lvl);
+	  const room = Number.isFinite(upg.lvlCap) ? Math.min(Math.max(0, Math.floor(levelBigNumToNumber(remainingBn))), Number.MAX_SAFE_INTEGER - 2) : Number.MAX_SAFE_INTEGER;
 
       let lo = 0;
       let hi = Math.max(0, room);
