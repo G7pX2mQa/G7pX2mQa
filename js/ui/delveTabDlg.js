@@ -9,11 +9,19 @@ import {
 import { BigNum } from '../util/bigNum.js';
 import { MERCHANT_DIALOGUES } from '../misc/merchantDialogues.js';
 import { getXpState, isXpSystemUnlocked } from '../game/xpSystem.js';
+import { blockInteraction } from './shopOverlay.js';
 import {
   markGhostTapTarget,
   shouldSkipGhostTap,
   suppressNextGhostTap,
 } from '../util/ghostTapGuard.js';
+
+function nowMs() {
+  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    return performance.now();
+  }
+  return Date.now();
+}
 
 const MERCHANT_ICON_SRC = 'img/misc/merchant.png';
 const MERCHANT_MET_KEY_BASE  = 'ccc:merchantMet';
@@ -1263,6 +1271,7 @@ export function openMerchant() {
   requestAnimationFrame(() => {
     merchantSheetEl.style.transition = '';
     merchantOverlayEl.classList.add('is-open');
+	blockInteraction(140);
 
     // Restore last tab
     let last = 'dialogue';
