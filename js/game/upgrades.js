@@ -766,28 +766,23 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
   if (!Number.isFinite(count)) count = limit;
   if (count <= 0) count = 1;
 
-  const EPS = 1e-7;
+  const EPS = 1e-9;
   let spentLog = logSeriesTotal(upg, startLevelNum, count);
   let tuneSteps = 0;
   const MAX_TUNE_STEPS = 2048;
 
-while (count > 0 && (!Number.isFinite(spentLog) || spentLog > walletLog + EPS) && tuneSteps < MAX_TUNE_STEPS) {
-  const overshoot = Number.isFinite(spentLog)
-    ? Math.max(1, Math.ceil((spentLog - walletLog) / Math.max(ratioLog10, 1e-12)))
-    : Math.max(1, Math.floor(count / 2));
-  count = Math.max(0, count - overshoot);
-  spentLog = count > 0 ? logSeriesTotal(upg, startLevelNum, count) : Number.NEGATIVE_INFINITY;
-  tuneSteps += 1;
-}
+  while (count > 0 && (!Number.isFinite(spentLog) || spentLog > walletLog + EPS) && tuneSteps < MAX_TUNE_STEPS) {
+    const overshoot = Number.isFinite(spentLog)
+      ? Math.max(1, Math.ceil((spentLog - walletLog) / Math.max(ratioLog10, 1e-12)))
+      : Math.max(1, Math.floor(count / 2));
+    count = Math.max(0, count - overshoot);
+    spentLog = count > 0 ? logSeriesTotal(upg, startLevelNum, count) : Number.NEGATIVE_INFINITY;
+    tuneSteps += 1;
+  }
 
-if (count <= 0 || !Number.isFinite(count)) {
-  if (walletBn.cmp(firstPrice) >= 0) {
-    count = 1;
-    spentLog = approxLog10BigNum(firstPrice);
-  } else {
+  if (count <= 0 || !Number.isFinite(count)) {
     return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
   }
-}
 
   if (count < limit) {
     let step = Math.max(1, Math.floor(Math.max(count, 1) * 0.5));
@@ -875,23 +870,26 @@ function computeBulkMeta(upg) {
 }
 
 export function estimateGeometricBulk(priceBn, walletBn, meta, maxLevels) {
-  if (!meta || !(maxLevels > 0)) return { count: 0 };
-
+  if (!meta || maxLevels <= 0) return { count: 0 };
   const walletLog = approxLog10BigNum(walletBn);
-  const priceLog  = approxLog10BigNum(priceBn);
+  const priceLog = approxLog10BigNum(priceBn);
   if (!Number.isFinite(walletLog) || !Number.isFinite(priceLog)) return { count: 0 };
   if (walletLog < priceLog) return { count: 0 };
 
-  const top = log10OnePlusPow10(walletLog - priceLog + meta.logDenom);
-  let hi = Math.floor(top / meta.ratioLog);
-  if (!Number.isFinite(hi) || hi <= 0) hi = 1;
-  hi = Math.min(hi, maxLevels);
+  const numerator = walletLog - priceLog + meta.logDenom;
+  if (!Number.isFinite(numerator) || numerator <= 0) return { count: 0 };
 
-  let lo = 0, hiBound = hi;
-  while (lo < hiBound) {
+  let hi = Math.floor(numerator / meta.ratioLog);
+  if (!Number.isFinite(hi) || hi <= 0) return { count: 0 };
+  hi = Math.min(hi, maxLevels);
+  if (hi <= 0) return { count: 0 };
+
+  let lo = 0;
+  let hiBound = hi;
+  for (let iter = 0; iter < 64 && lo < hiBound; iter += 1) {
     const mid = Math.max(0, Math.floor((lo + hiBound + 1) / 2));
-    const spentLog = priceLog + (mid * meta.ratioLog) - meta.logDenom;
-    if (Number.isFinite(spentLog) && spentLog <= walletLog) {
+    const spentLog = priceLog + mid * meta.ratioLog - meta.logDenom;
+    if (spentLog <= walletLog) {
       lo = mid;
     } else {
       hiBound = mid - 1;
@@ -902,12 +900,15 @@ export function estimateGeometricBulk(priceBn, walletBn, meta, maxLevels) {
   if (best <= 0) return { count: 0 };
   const spentLog = priceLog + best * meta.ratioLog - meta.logDenom;
   if (spentLog > walletLog) return { count: 0 };
+  const nextPriceLog = priceLog + best * meta.ratioLog;
+  const spent = bigNumFromLog10(spentLog);
+  const nextPrice = bigNumFromLog10(nextPriceLog);
   return {
     count: best,
-    spent: bigNumFromLog10(spentLog),
-    nextPrice: bigNumFromLog10(priceLog + best * meta.ratioLog),
+    spent,
+    nextPrice,
     spentLog,
-    nextPriceLog: priceLog + best * meta.ratioLog,
+    nextPriceLog,
   };
 }
 
@@ -1026,7 +1027,7 @@ const REGISTRY = [
     id: 1,
     title: "Faster Coins",
     desc: "Increases coin spawn rate by +10% per level",
-    lvlCap: 10,
+    lvlCap: 1e300,
     baseCost: 10,
     costType: "coins",
     upgType: "NM",
