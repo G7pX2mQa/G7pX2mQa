@@ -762,14 +762,43 @@ function openDialogueLockInfo(lockInfo = {}) {
 
   document.addEventListener('keydown', onEsc, true);
 
-  overlay.addEventListener('pointerdown', (e) => {
-    if (!cardEl.contains(e.target)) {
-      e.preventDefault();
-      close();
+overlay.addEventListener('pointerdown', (e) => {
+  if (!cardEl.contains(e.target)) {
+    // Suppress the synthetic click that follows a touch tap
+    if (e.pointerType !== 'mouse' || (typeof e.button !== 'number' || e.button === 0)) {
+      suppressNextGhostTap();
     }
-  });
+    e.preventDefault();
+    close();
+  }
+});
 
-  closeBtn.addEventListener('click', () => close());
+// Harden the Close button against generating/receiving ghost taps
+const hasPE = typeof window !== 'undefined' && 'PointerEvent' in window;
+const doCloseFromBtn = () => {
+  markGhostTapTarget(closeBtn);
+  suppressNextGhostTap();
+  close();
+};
+
+closeBtn.addEventListener('click', () => {
+  if (shouldSkipGhostTap(closeBtn)) return;
+  doCloseFromBtn();
+}, { passive: true });
+
+if (hasPE) {
+  closeBtn.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (typeof e.button === 'number' && e.button !== 0) return;
+    doCloseFromBtn();
+    e.preventDefault();
+  }, { passive: false });
+} else {
+  closeBtn.addEventListener('touchstart', (e) => {
+    doCloseFromBtn();
+    e.preventDefault();
+  }, { passive: false });
+}
 
   closeBtn.focus?.();
 }
