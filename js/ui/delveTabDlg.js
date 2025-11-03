@@ -279,11 +279,11 @@ const DLG_CATALOG = {
     once: true,
   },
   2: {
-    title: 'Experience Broker',
-    blurb: 'Talk about the freshly unlocked XP system',
+    title: 'A New Experience',
+    blurb: 'Discuss the XP system with the Merchant',
     scriptId: 2,
-    reward: { type: 'books', amount: 5 },   // <-- added
-    once: true,                              // <-- ask-again after claiming
+    reward: { type: 'books', amount: 5 },
+    once: true,
     unlock: (progress) => {
       if (!progress?.xpUnlocked) {
         return {
