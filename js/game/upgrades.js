@@ -640,6 +640,53 @@ const MAX_LEVEL_DELTA_LIMIT = (() => {
   }
 })();
 
+const FLOAT64_BUFFER = new ArrayBuffer(8);
+const FLOAT64_VIEW = new Float64Array(FLOAT64_BUFFER);
+const INT64_VIEW = new BigInt64Array(FLOAT64_BUFFER);
+
+function nextDownPositive(value) {
+  if (!(value > 0) || !Number.isFinite(value)) return value;
+  FLOAT64_VIEW[0] = value;
+  if (FLOAT64_VIEW[0] <= 0) return 0;
+  INT64_VIEW[0] -= 1n;
+  const next = FLOAT64_VIEW[0];
+  return next > 0 ? next : 0;
+}
+
+function nextUpPositive(value) {
+  if (!(value >= 0) || !Number.isFinite(value)) return value;
+  FLOAT64_VIEW[0] = value;
+  INT64_VIEW[0] += 1n;
+  const next = FLOAT64_VIEW[0];
+  return next > value ? next : value;
+}
+
+function safeDecrementCount(value) {
+  if (!(value > 0)) return 0;
+  const dec = Math.floor(value - 1);
+  if (dec < value) return dec;
+  const next = nextDownPositive(value);
+  if (next < value) return next;
+  return value > 1 ? value / 2 : 0;
+}
+
+function countToBigNum(count) {
+  if (!(count > 0) || !Number.isFinite(count)) return BigNum.fromInt(0);
+  const floored = Math.floor(count);
+  if (!(floored > 0)) return BigNum.fromInt(0);
+  if (floored <= Number.MAX_SAFE_INTEGER) {
+    return BigNum.fromInt(floored);
+  }
+  let str;
+  try {
+    str = floored.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 0 });
+  } catch {
+    str = floored.toString();
+  }
+  if (!str || !/\d/.test(str)) return BigNum.fromInt(0);
+  return BigNum.fromAny(str);
+}
+
 function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_DELTA, options = {}) {
   const scaling = ensureUpgradeScaling(upg);
   const zero = BigNum.fromInt(0);
@@ -782,24 +829,36 @@ if (SAFE_NEXT_PROBE) {
     const overshoot = Number.isFinite(spentLog)
       ? Math.max(1, Math.ceil((spentLog - walletLog) / Math.max(ratioLog10, 1e-12)))
       : Math.max(1, Math.floor(count / 2));
-    count = Math.max(0, count - overshoot);
+    const reduced = Math.max(0, Math.floor(count - overshoot));
+    if (reduced < count) {
+      count = reduced;
+    } else {
+      const next = nextDownPositive(count);
+      if (!(next < count)) break;
+      count = next;
+    }
     spentLog = count > 0 ? logSeriesTotal(upg, startLevelNum, count) : Number.NEGATIVE_INFINITY;
     tuneSteps += 1;
   }
 
   if (count <= 0 || !Number.isFinite(count)) {
     if (walletBn.cmp(firstPrice) >= 0) {
-    count = 1;
-    spentLog = approxLog10BigNum(firstPrice);
+      count = 1;
+      spentLog = approxLog10BigNum(firstPrice);
     } else {
-    return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
-  }
+      return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
+    }
   }
 
   if (count < limit) {
     let step = Math.max(1, Math.floor(Math.max(count, 1) * 0.5));
     while (count < limit && tuneSteps < MAX_TUNE_STEPS) {
-      const candidate = Math.min(limit, count + step);
+      let candidate = count + step;
+      if (!(candidate > count)) {
+        candidate = nextUpPositive(count);
+      }
+      if (!(candidate > count)) break;
+      candidate = Math.min(limit, candidate);
       if (candidate === count) break;
       const candidateLog = logSeriesTotal(upg, startLevelNum, candidate);
       if (Number.isFinite(candidateLog) && candidateLog <= walletLog + EPS) {
@@ -815,8 +874,11 @@ if (SAFE_NEXT_PROBE) {
     }
 
     while (count < limit && tuneSteps < MAX_TUNE_STEPS) {
-      const next = count + 1;
-      if (next > limit) break;
+      let next = count + 1;
+      if (!(next > count)) {
+        next = nextUpPositive(count);
+      }
+      if (!(next > count) || next > limit) break;
       const nextLog = logSeriesTotal(upg, startLevelNum, next);
       if (Number.isFinite(nextLog) && nextLog <= walletLog + EPS) {
         count = next;
@@ -831,9 +893,13 @@ if (SAFE_NEXT_PROBE) {
   let spent = null;
   if (!fastOnly) {
     spent = totalCostBigNum(upg, startLevelNum, count);
-    while (spent.cmp(walletBn) > 0 && count > 0) {
-      count -= 1;
+    let guard = 0;
+    while (spent.cmp(walletBn) > 0 && count > 0 && guard < MAX_TUNE_STEPS) {
+      const decremented = safeDecrementCount(count);
+      if (!(decremented < count)) break;
+      count = decremented;
       spent = totalCostBigNum(upg, startLevelNum, count);
+      guard += 1;
     }
     if (count <= 0) {
       return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
@@ -874,7 +940,7 @@ if (!fastOnly) {
   }
 }
 
-  const countBn = BigNum.fromAny(count.toString());
+  const countBn = countToBigNum(count);
   return {
     count: countBn,
     spent,
