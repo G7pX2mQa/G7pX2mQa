@@ -585,7 +585,7 @@ function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
   }
 
   const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : undefined;
-  const { count } = evaluateBulkPurchase(upg, lvl, walletBn, room, { fastOnly: true });
+  const { count } = evaluateBulkPurchase(upg, lvlBn, walletBn, room, { fastOnly: true });
   return count ?? BigNum.fromInt(0);
 }
 
