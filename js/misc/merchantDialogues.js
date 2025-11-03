@@ -6,7 +6,7 @@ export const MERCHANT_DIALOGUES = {
 
       r_who: { type: 'line', say: 'I am the Merchant.', next: 'c2' },
       r_where: { type: 'line', say: 'The cove.',          next: 'c2' },
-      r_confused: { type: 'line', say: 'Ok.',                next: 'c2' },
+      r_confused: { type: 'line', say: 'Okay.',                next: 'c2' },
 
       c1: { type: 'choice', options: [
         { label: 'Who are you?', to: 'r_who' },
@@ -16,16 +16,16 @@ export const MERCHANT_DIALOGUES = {
 
       c2: { type: 'choice', options: [
         { label: 'What?', to: 'r2_what' }, 
-        { label: 'That’s not helpful.', to: 'r2_ok' }, 
-        { label: 'Ok.', to: 'r2_ok' }, 
+        { label: 'That’s not helpful.', to: 'r2_okay' }, 
+        { label: 'Okay.', to: 'r2_okay' }, 
       ]},
 
       r2_what: { type: 'line', say: 'What?', next: 'c3' },
-      r2_ok:   { type: 'line', say: 'Ok.',   next: 'c3' },
+      r2_okay:   { type: 'line', say: 'Okay.',   next: 'c3' },
 
       c3: { type: 'choice', options: [
         { label: 'What?', to: 'r2_what' },
-        { label: 'That’s not helpful.', to: 'r2_ok' },
+        { label: 'That’s not helpful.', to: 'r2_okay' },
         { label: 'Goodbye.', to: 'end' },
       ]},
     }
@@ -44,37 +44,37 @@ export const MERCHANT_DIALOGUES = {
 
       m1a: { type: 'line', say: 'Yes I did.', next: 'c1a' },
       m1b: { type: 'line', say: 'Hello.',    next: 'c1b' },
-      m1c: { type: 'line', say: 'Ok.',       next: 'c1c' },
+      m1c: { type: 'line', say: 'Okay.',       next: 'c1c' },
 
       c1a: { type: 'choice', options: [
         { label: 'No you didn’t.', to: 'm1a' },
         { label: 'Liar.',          to: 'm2a' },
-        { label: 'Ok I guess you’re right.', to: 'm2b' },
+        { label: 'Okay I guess you’re right.', to: 'm2b' },
       ]},
 
       c1b: { type: 'choice', options: [
         { label: 'You never answered my questions.', to: 'm1a' },
         { label: 'That does not help.',              to: 'm1c' },
-        { label: 'Ok.',                              to: 'm2b' },
+        { label: 'Okay.',                              to: 'm2b' },
       ]},
 
       c1c: { type: 'choice', options: [
         { label: 'Yes.',  to: 'm2a' },
         { label: 'Hmm…',  to: 'm1c' },
-        { label: 'Ok.',   to: 'm2b' },
+        { label: 'Okay.',   to: 'm2b' },
       ]},
 
       m2a: { type: 'line', say: 'No.', next: 'c1c' },
-      m2b: { type: 'line', say: 'Would you like some coins? Free of charge. You look like you could use some right now.', next: 'c2a' },
+      m2b: { type: 'line', say: 'Would you like some Coins? Free of charge. You look like you could use some right now.', next: 'c2a' },
 
       c2a: { type: 'choice', options: [
         { label: 'What?',                to: 'm3a' },
-        { label: 'No thank you.',        to: 'm3b' },
+        { label: 'No.',        to: 'm3b' },
         { label: 'Give me the coins now.', to: 'end' },
       ]},
 
       m3a: { type: 'line', say: 'What?', next: 'c2a' },
-      m3b: { type: 'line', say: 'Okay, no coins for you then.', next: 'c2b' },
+      m3b: { type: 'line', say: 'Okay, no Coins for you then.', next: 'c2b' },
 
       c2b: { type: 'choice', options: [
         { label: 'No wait, actually I want the coins. Give them to me now.', to: 'end' },
@@ -86,26 +86,69 @@ export const MERCHANT_DIALOGUES = {
   2: {
     start: 'n0',
     nodes: {
-      n0: { type: 'line', say: 'Ah, the XP system hums through the shelves now. I felt the unlock from here.', next: 'c0' },
+      n0: { type: 'line', say: 'I see you’ve unlocked the XP system.', next: 'c0' },
 
       c0: { type: 'choice', options: [
-        { label: 'What changes with XP?', to: 'r0' },
-        { label: 'This sounds complicated.', to: 'r1' },
-        { label: 'Do I get more coins?', to: 'r2' },
+        { label: 'What does it do?',      to: 'm1a' },
+        { label: 'What does that mean?',  to: 'm1b' },
+        { label: 'Yes I did that.',       to: 'm1c' },
       ]},
 
-      r0: { type: 'line', say: 'Levels will shape future stock. Each tier unlocks new questions and, eventually, new goods.', next: 'c1' },
-      r1: { type: 'line', say: 'Growth is rarely simple. Earn XP, gather Books, and we will weave something grand.', next: 'c1' },
-      r2: { type: 'line', say: 'Every level feeds coin value and nudges other systems awake. Keep the flow steady.', next: 'c1' },
+      m1a: { type: 'line', say: 'The XP system is a powerful ancient mechanism, designed to allow rapid influx of coin-collecting power. Increasing your XP level grants you Books infused with my power, capable of great things.', next: 'c1a' },
+      m1b: { type: 'line', say: 'It means you can grow passively stronger by collecting coins.', next: 'c1b' },
+      m1c: { type: 'line', say: 'And do you know how the XP system works?', next: 'c1c' },
 
-      c1: { type: 'choice', options: [
-        { label: 'Books?', to: 'r3' },
-        { label: 'Future systems?', to: 'r4' },
-        { label: 'I’ll get back to grinding.', to: 'end' },
+      c1a: { type: 'choice', options: [
+        { label: 'This XP system, by whom was it designed, exactly?', to: 'm2b' },
+        { label: 'What does that mean?',                               to: 'm1b' },
+        { label: 'Okay.',                                              to: 'm2a' },
+      ]},
+      c1b: { type: 'choice', options: [
+        { label: 'Can you explain in more depth?', to: 'm1a' },
+        { label: 'Why?',                           to: 'm2c' },
+        { label: 'Okay.',                          to: 'm2a' },
+      ]},
+      c1c: { type: 'choice', options: [
+        { label: 'I have no idea.',              to: 'm1a' },
+        { label: 'I don’t know the full details.', to: 'm1a' },
+        { label: 'Yes.',                         to: 'm2a' },
       ]},
 
-      r3: { type: 'line', say: 'Books will be a ledger of mastery. Placeholder for now, but save your questions.', next: 'c1' },
-      r4: { type: 'line', say: 'Milestones. Unlocks. Entire conversations. XP is the key that opens each.', next: 'c1' },
+      m2a: { type: 'line', say: 'Would you like some Books, free of charge? They will help you accelerate your coin-collecting power.', next: 'c2a' },
+      m2b: { type: 'line', say: 'I’m afraid I cannot answer that question.', next: 'c2b' },
+      m2c: { type: 'line', say: 'Why not?', next: 'c2c' },
+      m2d: { type: 'line', say: 'What?',    next: 'c2c' },
+      m2e: { type: 'line', say: 'I’ve already told you, so you can increase your coin-collecting power.', next: 'c2d' },
+      m2f: { type: 'line', say: 'Are you sure you don’t want free Books?', next: 'c3a' },
+
+      c2a: { type: 'choice', options: [
+        { label: 'No.',                               to: 'm2f' },
+        { label: 'Why are you giving me all this free stuff?', to: 'm2e' },
+        { label: 'Yeah, sure.',                       to: 'end' },
+      ]},
+      c2b: { type: 'choice', options: [
+        { label: 'What?', to: 'm2d' },
+        { label: 'Why?',  to: 'm2c' },
+        { label: '…',     to: 'm2a' },
+      ]},
+      c2c: { type: 'choice', options: [
+        { label: '…', to: 'm2a' },
+        { label: '…', to: 'm2a' },
+        { label: '…', to: 'm2a' },
+      ]},
+      c2d: { type: 'choice', options: [
+        { label: 'But why does that matter?',   to: 'm3a' },
+        { label: 'But what does that mean?',    to: 'm3a' },
+        { label: '…',                           to: 'm3a' },
+      ]},
+
+      m3a: { type: 'line', say: 'If you want free Books, then don’t ask further questions.', next: 'c3a' },
+
+      c3a: { type: 'choice', options: [
+        { label: 'Okay, actually give me the free stuff.',        to: 'end' },
+        { label: 'Okay fine, I’ll take those books off your hands.', to: 'end' },
+        { label: 'I don’t need your charity.',                    to: 'end_nr' },
+      ]},
     }
   },
   3: {
