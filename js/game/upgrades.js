@@ -880,8 +880,6 @@ if (SAFE_NEXT_PROBE) {
     }
   }
 
-  const ratioLog10 = scaling.ratioLog10;
-  const ratioMinus1 = scaling.ratioMinus1;
   if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
     return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
   }
@@ -891,7 +889,6 @@ if (SAFE_NEXT_PROBE) {
     return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
   }
 
-  const startPriceLog = scaling.baseLog10 + (startLevelNum * ratioLog10);
   const logTarget = log10OnePlusPow10(walletLog + ratioMinus1Log - startPriceLog);
   let approxCount = logTarget / ratioLog10;
   if (!Number.isFinite(approxCount) || approxCount < 0) approxCount = 0;
