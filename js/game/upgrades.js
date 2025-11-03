@@ -1027,10 +1027,10 @@ const REGISTRY = [
     id: 1,
     title: "Faster Coins",
     desc: "Increases coin spawn rate by +10% per level",
-    lvlCap: 1e300,
+    lvlCap: 10,
     baseCost: 10,
     costType: "coins",
-    upgType: "NM",
+    upgType: "HM",
     icon: "sc_upgrade_icons/faster_coins.png",
     costAtLevel(level) {
       return nmCostBN(this, level);
