@@ -716,11 +716,91 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
     return { count: zero, spent: zero, nextPrice, numericCount: 0 };
   }
 
-  const walletLog = approxLog10BigNum(walletBn);
-  if (!Number.isFinite(walletLog)) {
-    const nextPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum));
-    return { count: zero, spent: zero, nextPrice, numericCount: 0 };
+  // Compute logs, but be prepared to fall back for astronomically large finites
+let walletLog = approxLog10BigNum(walletBn);
+
+// We'll also need these a little earlier now
+const ratioLog10 = scaling.ratioLog10;
+const ratioMinus1 = scaling.ratioMinus1;
+if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
+  const firstPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum));
+  return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
+}
+
+const startPriceLog = scaling.baseLog10 + (startLevelNum * ratioLog10);
+
+// Fallback: if walletLog isn't finite *or* magnitudes are so huge that
+// double-precision subtraction will be meaningless, do a pure-BigNum search.
+const needBnSearch =
+  !Number.isFinite(walletLog) ||
+  (Math.abs(walletLog) > 1e6 && Math.abs(startPriceLog) > 1e6);
+
+if (needBnSearch) {
+  // Quick "can't even buy 1" check
+  const firstPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum));
+  if (walletBn.cmp(firstPrice) < 0) {
+    return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
   }
+
+  // Bound the affordable count using only BigNum compares
+  const hardLimit = Number.isFinite(limit) ? Math.max(1, Math.floor(limit)) : Number.MAX_VALUE;
+  let lo = 1;
+  let hi = 1;
+  let steps = 0;
+
+  // Exponential growth until we exceed the wallet (or hit limit)
+  while (hi < hardLimit && steps < 64) {
+    const spentLog = logSeriesTotal(upg, startLevelNum, hi);          // log10(total_cost)
+    const spentBn  = bigNumFromLog10(spentLog);                        // BigNum(total_cost)
+    if (spentBn.cmp(walletBn) <= 0) {
+      lo = hi;
+      hi = Math.min(hi * 2, hardLimit);
+    } else {
+      break;
+    }
+    steps++;
+  }
+
+  // Binary search between lo and hi
+  while (lo < hi && steps < 256) {
+    const mid = Math.max(lo + 1, Math.floor((lo + hi + 1) / 2));
+    const spentLog = logSeriesTotal(upg, startLevelNum, mid);
+    const spentBn  = bigNumFromLog10(spentLog);
+    if (spentBn.cmp(walletBn) <= 0) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+    steps++;
+  }
+
+  const count = Math.max(1, lo);
+  const countBn = countToBigNum(count);
+
+  // In fastOnly mode we can skip exact 'spent'; otherwise compute precisely.
+  let spent = zero;
+  let nextPrice = zero;
+  if (!fastOnly) {
+    spent = totalCostBigNum(upg, startLevelNum, count);
+    if (Number.isFinite(cap)) {
+      const capRoom = Math.max(0, Math.floor(cap - Math.min(startLevelNum, cap)));
+      if (count >= capRoom) {
+        nextPrice = zero;
+      } else {
+        nextPrice = bigNumFromLog10(startPriceLog + count * ratioLog10);
+      }
+    } else {
+      nextPrice = bigNumFromLog10(startPriceLog + count * ratioLog10);
+    }
+  }
+
+  return {
+    count: countBn,
+    spent,
+    nextPrice,
+    numericCount: count,
+  };
+}
 
   const firstPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum));
   if (walletBn.cmp(firstPrice) < 0) {
@@ -1134,7 +1214,7 @@ const REGISTRY = [
     id: 1,
     title: "Faster Coins",
     desc: "Increases coin spawn rate by +10% per level",
-    lvlCap: 1e300,
+    lvlCap: "BN:18:100000000000000000:1e999",
     baseCost: 10,
     costType: "coins",
     upgType: "NM",
