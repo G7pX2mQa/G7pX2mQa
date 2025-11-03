@@ -746,22 +746,21 @@ if (needBnSearch) {
   const hardLimit = Number.isFinite(room) ? Math.max(1, Math.floor(room)) : Number.MAX_VALUE;
   let lo = 1;
   let hi = 1;
-  let steps = 0;
 
-  // Exponential growth until we exceed the wallet (or hit limit)
-  while (hi < hardLimit && steps < 64) {
-    const spentLog = logSeriesTotal(upg, startLevelNum, hi);          // log10(total_cost)
-    const spentBn  = bigNumFromLog10(spentLog);                        // BigNum(total_cost)
-    if (spentBn.cmp(walletBn) <= 0) {
-      lo = hi;
-      hi = Math.min(hi * 2, hardLimit);
-    } else {
-      break;
-    }
-    steps++;
+while (hi < hardLimit) {
+  const spentLog = logSeriesTotal(upg, startLevelNum, hi);
+  const spentBn  = bigNumFromLog10(spentLog);
+  if (spentBn.cmp(walletBn) <= 0) {
+    const doubled = hi * 2;
+    if (!Number.isFinite(doubled) || doubled <= hi) { hi = hardLimit; break; }
+    lo = hi;
+    hi = Math.min(doubled, hardLimit);
+  } else {
+    break;
   }
+}
 
-  // Binary search between lo and hi
+  let steps = 0;
   while (lo < hi && steps < 256) {
     const mid = Math.max(lo + 1, Math.floor((lo + hi + 1) / 2));
     const spentLog = logSeriesTotal(upg, startLevelNum, mid);
