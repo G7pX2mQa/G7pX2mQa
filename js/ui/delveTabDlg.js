@@ -271,7 +271,7 @@ function rewardLabel(reward) {
 
 const DLG_CATALOG = {
   1: {
-    title: 'A Generous Offer',
+    title: 'A Generous Gift',
     blurb: 'The Merchant is feeling extra nice today',
     scriptId: 1,
     reward: { type: 'coins', amount: 100 },
