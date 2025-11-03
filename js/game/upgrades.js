@@ -870,26 +870,27 @@ function computeBulkMeta(upg) {
 }
 
 export function estimateGeometricBulk(priceBn, walletBn, meta, maxLevels) {
-  if (!meta || maxLevels <= 0) return { count: 0 };
+  if (!meta || !(maxLevels > 0)) return { count: 0 };
+
   const walletLog = approxLog10BigNum(walletBn);
-  const priceLog = approxLog10BigNum(priceBn);
+  const priceLog  = approxLog10BigNum(priceBn);
   if (!Number.isFinite(walletLog) || !Number.isFinite(priceLog)) return { count: 0 };
   if (walletLog < priceLog) return { count: 0 };
 
-  const numerator = walletLog - priceLog + meta.logDenom;
-  if (!Number.isFinite(numerator) || numerator <= 0) return { count: 0 };
-
-  let hi = Math.floor(numerator / meta.ratioLog);
-  if (!Number.isFinite(hi) || hi <= 0) return { count: 0 };
+  const xExp = walletLog - priceLog + meta.logDenom;
+  const top  = log10OnePlusPow10(xExp);
+  let hi     = Math.floor(top / meta.ratioLog);
+  if (!Number.isFinite(hi) || hi <= 0) hi = 1;
   hi = Math.min(hi, maxLevels);
-  if (hi <= 0) return { count: 0 };
 
-  let lo = 0;
-  let hiBound = hi;
-  for (let iter = 0; iter < 64 && lo < hiBound; iter += 1) {
+  const LN10 = Math.log(10);
+  let lo = 0, hiBound = hi;
+  for (let i = 0; i < 64 && lo < hiBound; i += 1) {
     const mid = Math.max(0, Math.floor((lo + hiBound + 1) / 2));
-    const spentLog = priceLog + mid * meta.ratioLog - meta.logDenom;
-    if (spentLog <= walletLog) {
+    const growthLn = meta.ratioLog * LN10 * mid;
+    const spentLog = priceLog + (logExpMinus1(growthLn) / LN10)
+                               - meta.logDenom;
+    if (Number.isFinite(spentLog) && spentLog <= walletLog) {
       lo = mid;
     } else {
       hiBound = mid - 1;
@@ -898,15 +899,16 @@ export function estimateGeometricBulk(priceBn, walletBn, meta, maxLevels) {
 
   const best = Math.min(lo, maxLevels);
   if (best <= 0) return { count: 0 };
-  const spentLog = priceLog + best * meta.ratioLog - meta.logDenom;
+
+  const growthLnFinal = meta.ratioLog * LN10 * best;
+  const spentLog = priceLog + (logExpMinus1(growthLnFinal) / LN10) - meta.logDenom;
   if (spentLog > walletLog) return { count: 0 };
+
   const nextPriceLog = priceLog + best * meta.ratioLog;
-  const spent = bigNumFromLog10(spentLog);
-  const nextPrice = bigNumFromLog10(nextPriceLog);
   return {
     count: best,
-    spent,
-    nextPrice,
+    spent: bigNumFromLog10(spentLog),
+    nextPrice: bigNumFromLog10(nextPriceLog),
     spentLog,
     nextPriceLog,
   };
