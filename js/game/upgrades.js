@@ -680,12 +680,20 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
     return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
   }
 
-  let secondPrice = null;
+let secondPrice = null;
+let isConstantCost = false;
+const SAFE_NEXT_PROBE = Number.isFinite(startLevelNum) && startLevelNum < Number.MAX_SAFE_INTEGER - 2;
+if (SAFE_NEXT_PROBE) {
   try {
     secondPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum + 1));
+    isConstantCost = secondPrice.cmp(firstPrice) === 0;
   } catch {
     secondPrice = null;
   }
+} else {
+  isConstantCost = false;
+}
+
 
   const limit = Number.isFinite(room)
     ? Math.max(0, Math.floor(room))
@@ -695,7 +703,6 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
   const walletPlain = walletBn.toPlainIntegerString?.();
   const priceInt = pricePlain && pricePlain !== 'Infinity' ? BigInt(pricePlain) : null;
   const walletInt = walletPlain && walletPlain !== 'Infinity' ? BigInt(walletPlain) : null;
-  const isConstantCost = secondPrice && secondPrice.cmp(firstPrice) === 0;
 
   if (isConstantCost && priceInt != null && priceInt > 0n) {
     const limitNum = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 0;
@@ -766,7 +773,7 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
   if (!Number.isFinite(count)) count = limit;
   if (count <= 0) count = 1;
 
-  const EPS = 1e-9;
+  const EPS = 1e-7;
   let spentLog = logSeriesTotal(upg, startLevelNum, count);
   let tuneSteps = 0;
   const MAX_TUNE_STEPS = 2048;
@@ -781,7 +788,12 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
   }
 
   if (count <= 0 || !Number.isFinite(count)) {
+    if (walletBn.cmp(firstPrice) >= 0) {
+    count = 1;
+    spentLog = approxLog10BigNum(firstPrice);
+    } else {
     return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
+  }
   }
 
   if (count < limit) {
@@ -828,11 +840,40 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
     }
   }
 
-  const finalLevel = startLevelNum + count;
-  const atCap = Number.isFinite(cap) && finalLevel >= cap;
-  const nextPrice = atCap || fastOnly
-    ? zero
-    : BigNum.fromAny(upg.costAtLevel(finalLevel));
+let nextPrice = zero;
+
+// Only compute a numeric finalLevel when both operands are safe.
+const canUseNumericFinal =
+  !fastOnly &&
+  Number.isFinite(startLevelNum) &&
+  Number.isFinite(count) &&
+  startLevelNum < Number.MAX_SAFE_INTEGER / 2 &&
+  count < Number.MAX_SAFE_INTEGER / 2;
+
+if (!fastOnly) {
+  if (Number.isFinite(cap)) {
+    const capRoom = Math.max(0, Math.floor(cap - Math.min(startLevelNum, cap)));
+    if (count >= capRoom) {
+      nextPrice = zero;
+    } else if (canUseNumericFinal) {
+      const finalLevel = Math.floor(startLevelNum + count);
+      nextPrice = BigNum.fromAny(upg.costAtLevel(finalLevel));
+    } else {
+      // Fallback: compute via logs to avoid unsafe integer math
+      const nextLog = startPriceLog + count * ratioLog10;
+      nextPrice = bigNumFromLog10(nextLog);
+    }
+  } else {
+    if (canUseNumericFinal) {
+      const finalLevel = Math.floor(startLevelNum + count);
+      nextPrice = BigNum.fromAny(upg.costAtLevel(finalLevel));
+    } else {
+      const nextLog = startPriceLog + count * ratioLog10;
+      nextPrice = bigNumFromLog10(nextLog);
+    }
+  }
+}
+
   const countBn = BigNum.fromAny(count.toString());
   return {
     count: countBn,
@@ -2094,7 +2135,7 @@ export function buyMax(areaKey, upgId) {
     return { bought: BigNum.fromInt(0), spent: BigNum.fromInt(0) };
   }
 
-  const outcome = calculateBulkPurchase(upg, lvlNum, wallet, room);
+  const outcome = calculateBulkPurchase(upg, lvlBn, wallet, room);
   const countBn = outcome.count instanceof BigNum
     ? outcome.count
     : BigNum.fromAny(outcome.count ?? 0);
