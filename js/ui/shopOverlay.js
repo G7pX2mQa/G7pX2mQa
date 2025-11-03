@@ -806,13 +806,14 @@ function ensureShopOverlay() {
   if (!eventsBound) {
     eventsBound = true;
 
-    const onCloseClick = () => {
-      markGhostTapTarget(closeBtn);
-      suppressNextGhostTap();
-      closeShop();
-    };
+const onCloseClick = () => {
+  if (shouldSkipGhostTap(closeBtn)) return;
+  markGhostTapTarget(closeBtn);
+  suppressNextGhostTap();
+  closeShop();
+};
 
-    closeBtn.addEventListener('click', onCloseClick);
+closeBtn.addEventListener('click', onCloseClick, { passive: true });
 
     const hasPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
     if (hasPointerEvents) {
