@@ -381,10 +381,18 @@
   flex: 0 0 0.85em;
   background: url('../../img/currencies/coin/coin.png') center / contain no-repeat;
   position: relative;
-  top: 1px; /* slight downward nudge */
+  top: 1px;
 }
 
-/* Completed / claimed dialogues */
+.dlg-reward .book-icon {
+  width: 0.85em;
+  height: 0.85em;
+  flex: 0 0 0.85em;
+  background: url('../../img/currencies/book/book.png') center / contain no-repeat;
+  position: relative;
+  top: 1px;
+}
+
 .dlg-card.is-complete .dlg-title,
 .dlg-card.is-complete .dlg-blurb,
 .dlg-card.is-complete .dlg-reward {
