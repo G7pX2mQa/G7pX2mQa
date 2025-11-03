@@ -104,7 +104,7 @@ export const MERCHANT_DIALOGUES = {
         { label: 'Okay.',                                              to: 'm2a' },
       ]},
       c1b: { type: 'choice', options: [
-        { label: 'Can you explain in more depth?', to: 'm1a' },
+        { label: 'Can you explain in more detail?', to: 'm1a' },
         { label: 'Why?',                           to: 'm2c' },
         { label: 'Okay.',                          to: 'm2a' },
       ]},
