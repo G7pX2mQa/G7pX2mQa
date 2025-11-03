@@ -766,23 +766,28 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
   if (!Number.isFinite(count)) count = limit;
   if (count <= 0) count = 1;
 
-  const EPS = 1e-9;
+  const EPS = 1e-7;
   let spentLog = logSeriesTotal(upg, startLevelNum, count);
   let tuneSteps = 0;
   const MAX_TUNE_STEPS = 2048;
 
-  while (count > 0 && (!Number.isFinite(spentLog) || spentLog > walletLog + EPS) && tuneSteps < MAX_TUNE_STEPS) {
-    const overshoot = Number.isFinite(spentLog)
-      ? Math.max(1, Math.ceil((spentLog - walletLog) / Math.max(ratioLog10, 1e-12)))
-      : Math.max(1, Math.floor(count / 2));
-    count = Math.max(0, count - overshoot);
-    spentLog = count > 0 ? logSeriesTotal(upg, startLevelNum, count) : Number.NEGATIVE_INFINITY;
-    tuneSteps += 1;
-  }
+while (count > 0 && (!Number.isFinite(spentLog) || spentLog > walletLog + EPS) && tuneSteps < MAX_TUNE_STEPS) {
+  const overshoot = Number.isFinite(spentLog)
+    ? Math.max(1, Math.ceil((spentLog - walletLog) / Math.max(ratioLog10, 1e-12)))
+    : Math.max(1, Math.floor(count / 2));
+  count = Math.max(0, count - overshoot);
+  spentLog = count > 0 ? logSeriesTotal(upg, startLevelNum, count) : Number.NEGATIVE_INFINITY;
+  tuneSteps += 1;
+}
 
-  if (count <= 0 || !Number.isFinite(count)) {
+if (count <= 0 || !Number.isFinite(count)) {
+  if (walletBn.cmp(firstPrice) >= 0) {
+    count = 1;
+    spentLog = approxLog10BigNum(firstPrice);
+  } else {
     return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
   }
+}
 
   if (count < limit) {
     let step = Math.max(1, Math.floor(Math.max(count, 1) * 0.5));
@@ -877,19 +882,15 @@ export function estimateGeometricBulk(priceBn, walletBn, meta, maxLevels) {
   if (!Number.isFinite(walletLog) || !Number.isFinite(priceLog)) return { count: 0 };
   if (walletLog < priceLog) return { count: 0 };
 
-  const xExp = walletLog - priceLog + meta.logDenom;
-  const top  = log10OnePlusPow10(xExp);
-  let hi     = Math.floor(top / meta.ratioLog);
+  const top = log10OnePlusPow10(walletLog - priceLog + meta.logDenom);
+  let hi = Math.floor(top / meta.ratioLog);
   if (!Number.isFinite(hi) || hi <= 0) hi = 1;
   hi = Math.min(hi, maxLevels);
 
-  const LN10 = Math.log(10);
   let lo = 0, hiBound = hi;
-  for (let i = 0; i < 64 && lo < hiBound; i += 1) {
+  while (lo < hiBound) {
     const mid = Math.max(0, Math.floor((lo + hiBound + 1) / 2));
-    const growthLn = meta.ratioLog * LN10 * mid;
-    const spentLog = priceLog + (logExpMinus1(growthLn) / LN10)
-                               - meta.logDenom;
+    const spentLog = priceLog + (mid * meta.ratioLog) - meta.logDenom;
     if (Number.isFinite(spentLog) && spentLog <= walletLog) {
       lo = mid;
     } else {
@@ -899,18 +900,14 @@ export function estimateGeometricBulk(priceBn, walletBn, meta, maxLevels) {
 
   const best = Math.min(lo, maxLevels);
   if (best <= 0) return { count: 0 };
-
-  const growthLnFinal = meta.ratioLog * LN10 * best;
-  const spentLog = priceLog + (logExpMinus1(growthLnFinal) / LN10) - meta.logDenom;
+  const spentLog = priceLog + best * meta.ratioLog - meta.logDenom;
   if (spentLog > walletLog) return { count: 0 };
-
-  const nextPriceLog = priceLog + best * meta.ratioLog;
   return {
     count: best,
     spent: bigNumFromLog10(spentLog),
-    nextPrice: bigNumFromLog10(nextPriceLog),
+    nextPrice: bigNumFromLog10(priceLog + best * meta.ratioLog),
     spentLog,
-    nextPriceLog,
+    nextPriceLog: priceLog + best * meta.ratioLog,
   };
 }
 
