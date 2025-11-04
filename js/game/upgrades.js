@@ -14,7 +14,6 @@ import {
 
 export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
 
-const SCALED_INFINITY_LVL_LOG10 = 303;
 function hasScaling(upg) {
   try {
     const scaling = ensureUpgradeScaling(upg);
@@ -29,6 +28,8 @@ function hasScaling(upg) {
     return false;
   }
 }
+
+const SCALED_INFINITY_LVL_LOG10 = 303;
 function isInfinityLevelForScaled(upg, lvlBn) {
   if (!hasScaling(upg)) return false;
   try {
