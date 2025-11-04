@@ -1181,11 +1181,20 @@ export function estimateFlatBulk(priceBn, walletBn, roomBn) {
   if (priceBn.isZero?.()) return { count: 0 };
   if (walletBn.isZero?.()) return { count: 0 };
 
-  const wl = approxLog10BigNum(walletBn);
-  const pl = approxLog10BigNum(priceBn);
-  if (!Number.isFinite(wl) || !Number.isFinite(pl) || wl < pl) return { count: 0 };
+const wPlain = walletBn.toPlainIntegerString?.();
+const pPlain = priceBn.toPlainIntegerString?.();
+if (wPlain && wPlain !== 'Infinity' && pPlain && pPlain !== 'Infinity') {
+  const q = BigInt(wPlain) / BigInt(pPlain);
+  let countBn = BigNum.fromAny(q.toString());
+  if (!roomBn.isInfinite?.() && countBn.cmp(roomBn) > 0) countBn = roomBn;
+  const spent = priceBn.mulBigNumInteger(countBn);
+  return { count: levelCapToNumber(countBn), countBn, spent, nextPrice: priceBn };
+}
 
-  let countBn = bigNumFromLog10(wl - pl).floorToInteger();
+const wl = approxLog10BigNum(walletBn);
+const pl = approxLog10BigNum(priceBn);
+if (!Number.isFinite(wl) || !Number.isFinite(pl) || wl < pl) return { count: 0 };
+let countBn = bigNumFromLog10(wl - pl).floorToInteger();
   
   if (!roomBn.isInfinite?.() && countBn.cmp(roomBn) > 0) countBn = roomBn;
   
