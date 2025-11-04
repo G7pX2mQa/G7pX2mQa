@@ -5,6 +5,7 @@ import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { unlockShop } from '../ui/hudButtons.js';
 import { addXp, isXpSystemUnlocked } from './xpSystem.js';
+import { addMutationPower, isMutationUnlocked } from './mutationSystem.js';
 
 let coinPickup = null;
 
@@ -52,6 +53,8 @@ export function initCoinPickup({
   const pf  = document.querySelector(playfieldSelector);
   const cl  = document.querySelector(coinsLayerSelector);
   const amt = document.querySelector(hudAmountSelector);
+  const goldHud = document.querySelector('[data-gold-hud] .gold-amount');
+  const pearlHud = document.querySelector('[data-pearl-hud] .pearl-amount');
   if (!pf || !cl || !amt) {
     console.warn('[coinPickup] missing required nodes', { pf: !!pf, cl: !!cl, amt: !!amt });
     return { destroy(){} };
@@ -71,6 +74,27 @@ export function initCoinPickup({
     }
   };
   updateHud();
+
+  const updateGoldHud = () => {
+    if (!goldHud) return;
+    try {
+      goldHud.innerHTML = formatNumber(bank.gold.value);
+    } catch {
+      goldHud.textContent = bank.gold.value?.toString?.() ?? '0';
+    }
+  };
+
+  const updatePearlHud = () => {
+    if (!pearlHud) return;
+    try {
+      pearlHud.innerHTML = formatNumber(bank.pearls.value);
+    } catch {
+      pearlHud.textContent = bank.pearls.value?.toString?.() ?? '0';
+    }
+  };
+
+  updateGoldHud();
+  updatePearlHud();
   try {
     if (bank.coins?.mult?.get && bank.coins?.mult?.set) {
       const curr = bank.coins.mult.get(); // BN
@@ -82,9 +106,14 @@ export function initCoinPickup({
 
   // keep HUD in sync if other systems change coins
   window.addEventListener('currency:change', (e) => {
-    if (e.detail?.key === 'coins') {
+    if (!e?.detail) return;
+    if (e.detail.key === 'coins') {
       coins = e.detail.value;   // BigNum
       updateHud();
+    } else if (e.detail.key === 'gold') {
+      updateGoldHud();
+    } else if (e.detail.key === 'pearls') {
+      updatePearlHud();
     }
   });
 
@@ -260,7 +289,7 @@ export function initCoinPickup({
 
     const base = resolveCoinBase(el);
     const inc  = bank.coins.mult.applyTo(base);
-	
+
     coins = bank.coins.add(inc);
     updateHud();
 
@@ -268,7 +297,15 @@ export function initCoinPickup({
       try { addXp?.(XP_PER_COIN); } catch {}
     }
 
-    // progress toward shop unlock (slot-scoped)
+    if (el.dataset.pearl === '1') {
+      try { bank.pearls.add(BigNum.fromInt(1)); } catch {}
+      updatePearlHud();
+    }
+
+    if (typeof isMutationUnlocked === 'function' && isMutationUnlocked()) {
+      try { addMutationPower(BigNum.fromInt(1)); } catch {}
+    }
+	
     if (localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
       const next = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10) + 1;
       localStorage.setItem(SHOP_PROGRESS_KEY, String(next));
