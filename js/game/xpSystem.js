@@ -900,6 +900,17 @@ export function unlockXpSystem() {
   return true;
 }
 
+export function resetXpProgress({ keepUnlock = true } = {}) {
+  ensureStateLoaded();
+  const wasUnlocked = xpState.unlocked;
+  resetLockedXpState();
+  xpState.unlocked = keepUnlock ? (wasUnlocked || xpState.unlocked) : false;
+  persistState();
+  updateHud();
+  syncCoinMultiplierWithXpLevel(true);
+  return getXpState();
+}
+
 export function addXp(amount, { silent = false } = {}) {
   ensureStateLoaded();
   if (!xpState.unlocked) {
@@ -1039,5 +1050,6 @@ if (typeof window !== 'undefined') {
     refreshCoinMultiplierFromXpLevel,
     setExternalXpGainMultiplierProvider,
     setExternalBookRewardProvider,
+    resetXpProgress,
   });
 }
