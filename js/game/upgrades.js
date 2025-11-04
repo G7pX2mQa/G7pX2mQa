@@ -1544,7 +1544,7 @@ const REGISTRY = [
 
   {
     area: AREA_KEYS.STARTER_COVE,
-    id: 8,
+    id: 8, // remove this upgrade once another upgrade takes its place
     title: "Placeholder Upgrade",
     desc: "This is a placeholder upgrade to demonstrate a 1.2x compounding upgrade",
     lvlCap: "BN:18:100000000000000000:1e999",
