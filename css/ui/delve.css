@@ -279,6 +279,148 @@
 .merchant-panel { display: none; }
 .merchant-panel.is-active { display: block; }
 
+.merchant-reset {
+  display: grid;
+  grid-template-columns: minmax(140px, 160px) 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.merchant-reset__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.merchant-reset__layer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  color: #f5f8ff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.merchant-reset__layer img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.merchant-reset__layer.is-active {
+  background: linear-gradient(180deg, rgba(255,169,0,0.4), rgba(255,115,0,0.25));
+  box-shadow: inset 0 0 0 2px rgba(255,179,0,0.35);
+}
+
+.merchant-reset__main {
+  background: rgba(9,17,30,0.72);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.merchant-reset__header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.merchant-reset__icon {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.merchant-reset__titles h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #ffe6c4;
+}
+
+.merchant-reset__titles p {
+  margin: 4px 0 0;
+  color: #d7deff;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.merchant-reset__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.merchant-reset__reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255,186,0,0.12);
+  border-radius: 12px;
+  color: #ffd27f;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.merchant-reset__reward img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.merchant-reset__status {
+  color: #f0f3ff;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  min-height: 44px;
+}
+
+.merchant-reset__action {
+  align-self: flex-start;
+  padding: 10px 22px;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 0;
+  background: linear-gradient(180deg, rgba(255,170,0,0.9), rgba(225,110,0,0.9));
+  color: #200a00;
+  cursor: pointer;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.merchant-reset__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.merchant-reset__action:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 900px) {
+  .merchant-reset {
+    grid-template-columns: 1fr;
+  }
+
+  .merchant-reset__sidebar {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .merchant-reset__layer {
+    min-width: 140px;
+    justify-content: center;
+  }
+}
+
 @media (max-height: 500px) and (orientation: landscape) {
   .merchant-firstchat {
     align-items: flex-start; 
