@@ -912,23 +912,25 @@ while (hi < hardLimit) {
     return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
   }
 
-let secondPrice = null;
 let isConstantCost = false;
-const SAFE_NEXT_PROBE = Number.isFinite(startLevelNum) && startLevelNum < Number.MAX_SAFE_INTEGER - 2;
-if (SAFE_NEXT_PROBE) {
+let secondPrice = null, farPrice = null;
+const SAFE_PROBE = Number.isFinite(startLevelNum) && startLevelNum < Number.MAX_SAFE_INTEGER - 64;
+
+if (SAFE_PROBE) {
+  try { secondPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum + 1)); } catch {}
   try {
-    secondPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum + 1));
-isConstantCost = secondPrice.cmp(firstPrice) === 0;
+    const farProbe = Math.min(
+      Number.isFinite(cap) ? Math.max(startLevelNum + 1, Math.floor(cap)) : startLevelNum + 32,
+      startLevelNum + 32
+    );
+    farPrice = BigNum.fromAny(upg.costAtLevel(farProbe));
+  } catch {}
 
-if (isConstantCost && scaling.ratioMinus1 > 1e-12) {
-  isConstantCost = false;
-}
-
-  } catch {
-    secondPrice = null;
+  if (secondPrice && farPrice) {
+    isConstantCost =
+      secondPrice.cmp(firstPrice) === 0 &&
+      farPrice.cmp(firstPrice) === 0;
   }
-} else {
-  isConstantCost = false;
 }
 
   const limit = Number.isFinite(room)
@@ -1330,7 +1332,7 @@ const REGISTRY = [
     id: 1,
     title: "Faster Coins",
     desc: "Increases coin spawn rate by +10% per level",
-    lvlCap: "BN:18:100000000000000000:1e999",
+    lvlCap: 10,
     baseCost: 10,
     costType: "coins",
     upgType: "NM",
@@ -1370,7 +1372,7 @@ const REGISTRY = [
     id: 3,
     title: "Faster Coins II",
     desc: "Increases coin spawn rate by +10% per level",
-    lvlCap: "BN:18:100000000000000000:1e999",
+    lvlCap: 15,
     baseCost: 1,
     costType: "books",
     upgType: "NM",
@@ -1443,7 +1445,7 @@ const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `XP value bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addFlatPerLevel(2), // 1 + 2*level
+    effectMultiplier: E.addFlatPerLevel(2),
   },
 
   {
