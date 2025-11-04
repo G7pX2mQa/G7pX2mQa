@@ -12,7 +12,23 @@ import {
   refreshCoinMultiplierFromXpLevel,
 } from './xpSystem.js';
 
-export const MAX_LEVEL_DELTA = BigNum.INF || BigNum.fromAny('1e100000000'); 
+export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
+
+const SCALED_INFINITY_LVL_LOG10 = 303;
+function hasScaling(upg) {
+  try { return !!(upg && (upg.bulkMeta || computeBulkMeta(upg))); } catch { return false; }
+}
+function isInfinityLevelForScaled(upg, lvlBn) {
+  if (!hasScaling(upg)) return false;
+  try {
+    const bn = lvlBn?.clone ? lvlBn : BigNum.fromAny(lvlBn ?? 0);
+    if (bn.isInfinite?.()) return true;
+    const log10 = approxLog10BigNum(bn);
+    return Number.isFinite(log10) && log10 >= SCALED_INFINITY_LVL_LOG10;
+  } catch {
+    return false;
+  }
+}
 
 export function approxLog10BigNum(value) {
   if (!(value instanceof BigNum)) {
@@ -80,6 +96,87 @@ const XP_MYSTERY_UPGRADE_KEYS = new Set([
 const SHOP_REVEAL_STATE_KEY_BASE = 'ccc:shop:reveals';
 const SHOP_REVEAL_STATUS_ORDER = { locked: 0, mysterious: 1, unlocked: 2 };
 const shopRevealStateCache = new Map();
+
+const BN = BigNum;
+const toBn = (x) => BN.fromAny(x ?? 0);
+
+function effectBN(fn) {
+  return (level) => {
+    const L = toBn(level);
+    let out;
+    try { out = fn({ L, BN }); } catch { out = 1; }
+    if (out instanceof BN) return out;
+    const n = Number(out);
+    if (Number.isFinite(n)) return n;
+    try { return BN.fromAny(out ?? 1); } catch { return BN.fromInt(1); }
+  };
+}
+
+const E = {
+  addPctPerLevel(p) {
+    const pNum = Number(p);
+    const pStr = String(pNum);
+    return (level) => {
+      const L = toBn(level);
+      try {
+        const plain = L.toPlainIntegerString?.();
+        if (plain && plain !== 'Infinity' && plain.length <= 15) {
+          const lvl = Math.max(0, Number(plain));
+          return 1 + pNum * lvl;
+        }
+      } catch {}
+      try { return BN.fromInt(1).add(L.mulDecimal(pStr)); } catch { return 1; }
+    };
+  },
+
+  addFlatPerLevel(x) {
+    const xNum = Number(x);
+    const xStr = String(xNum);
+    return (level) => {
+      const L = toBn(level);
+      try {
+        const plain = L.toPlainIntegerString?.();
+        if (plain && plain !== 'Infinity' && plain.length <= 15) {
+          const lvl = Math.max(0, Number(plain));
+          return 1 + xNum * lvl;
+        }
+      } catch {}
+      try { return BN.fromInt(1).add(L.mulDecimal(xStr)); } catch { return 1; }
+    };
+  },
+  
+  powPerLevel(base) {
+  const baseNum = Number(base);
+  const b = Number.isFinite(baseNum) ? baseNum : Number(toBn(base).toScientific(6));
+  const log10b = Math.log10(b);
+
+  return (level) => {
+    const L = toBn(level);
+
+    try {
+      const plain = L.toPlainIntegerString?.();
+      if (plain && plain !== 'Infinity' && plain.length <= 7) {
+        const lvl = Math.max(0, Number(plain));
+        const log10 = log10b * lvl;
+
+        if (log10 < 308) {
+          const val = Math.pow(b, lvl);
+          if (Number.isFinite(val)) return val;
+        }
+        return bigNumFromLog10(log10);
+      }
+    } catch {}
+	
+      try {
+      const approxLvl = levelBigNumToNumber(L);
+      const log10 = log10b * approxLvl;
+      return bigNumFromLog10(log10);
+      } catch {
+      return BigNum.fromInt(1);
+      }
+    };
+  }
+};
 
 function shopStatusRank(status) {
   return SHOP_REVEAL_STATUS_ORDER[status] ?? 0;
@@ -489,11 +586,20 @@ function ensureUpgradeScaling(upg) {
       }
     }
 
-    ratio = Math.max(1.0001, Number.isFinite(ratio) ? ratio : 1.0001);
-    ratioStr = decimalMultiplierString(ratio);
-    ratioLog10 = Math.log10(ratio);
-    ratioLn = Math.log(ratio);
-    const ratioMinus1 = Math.max(1e-6, ratio - 1);
+    if (!(ratio > 1)) {
+      ratio = 1;
+      ratioStr = '1';
+      ratioLog10 = 0;
+      ratioLn = 0;
+      var ratioMinus1 = 0;
+    } else {
+      ratio = Number(ratio);
+      ratioStr = decimalMultiplierString(ratio);
+      ratioLog10 = Math.log10(ratio);
+      ratioLn = Math.log(ratio);
+      var ratioMinus1 = Math.max(1e-12, ratio - 1);
+    }
+
     const baseLog10 = approxLog10BigNum(baseBn);
 
     const scaling = Object.assign({}, providedScaling, {
@@ -812,14 +918,18 @@ const SAFE_NEXT_PROBE = Number.isFinite(startLevelNum) && startLevelNum < Number
 if (SAFE_NEXT_PROBE) {
   try {
     secondPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum + 1));
-    isConstantCost = secondPrice.cmp(firstPrice) === 0;
+isConstantCost = secondPrice.cmp(firstPrice) === 0;
+
+if (isConstantCost && scaling.ratioMinus1 > 1e-12) {
+  isConstantCost = false;
+}
+
   } catch {
     secondPrice = null;
   }
 } else {
   isConstantCost = false;
 }
-
 
   const limit = Number.isFinite(room)
     ? Math.max(0, Math.floor(room))
@@ -830,54 +940,26 @@ if (SAFE_NEXT_PROBE) {
   const priceInt = pricePlain && pricePlain !== 'Infinity' ? BigInt(pricePlain) : null;
   const walletInt = walletPlain && walletPlain !== 'Infinity' ? BigInt(walletPlain) : null;
 
-  if (isConstantCost && priceInt != null && priceInt > 0n) {
-    const limitNum = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 0;
-    const limitInt = Number.isFinite(limit) ? BigInt(limitNum) : null;
+  if (isConstantCost) {
+  const capBn = toUpgradeBigNum(upg.lvlCapBn ?? 'Infinity', 'Infinity');
+  const lvlBn = toUpgradeBigNum(startLevel ?? 0, 0);
+  const roomBn = capBn.isInfinite?.()
+    ? BigNum.fromAny('Infinity')
+    : capBn.sub(lvlBn).floorToInteger();
 
-    const finalizeConstant = (countInt) => {
-      if (countInt <= 0n) return null;
-      const countBn = BigNum.fromAny(countInt.toString());
-      const spent = firstPrice.mulBigNumInteger(countBn);
-      if (spent.cmp(walletBn) > 0) return null;
-      const numericCount = Number(countInt <= BigInt(Number.MAX_SAFE_INTEGER)
-        ? Number(countInt)
-        : Number.MAX_SAFE_INTEGER);
-      const finalLevel = startLevelNum + numericCount;
-      const atCap = Number.isFinite(cap) && finalLevel >= cap;
-      const nextPrice = atCap
-        ? zero
-        : BigNum.fromAny(upg.costAtLevel(finalLevel));
-      return {
-        count: countBn,
-        spent,
-        nextPrice,
-        numericCount,
-      };
-    };
+  const { count, countBn, spent, nextPrice } = estimateFlatBulk(
+    firstPrice,
+    walletBn,
+    roomBn
+  );
 
-    if (walletInt != null) {
-      if (walletInt < priceInt) {
-        return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
-      }
-      let countInt = walletInt / priceInt;
-      if (limitInt != null && countInt > limitInt) countInt = limitInt;
-      const result = finalizeConstant(countInt);
-      if (result) return result;
-    } else if (limitInt != null && limitInt > 0n) {
-      let countNum = limitNum;
-      if (!(countNum > 0)) {
-        return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
-      }
-      let candidateInt = BigInt(countNum);
-      let result = finalizeConstant(candidateInt);
-      while (!result && countNum > 0) {
-        countNum -= 1;
-        candidateInt = BigInt(countNum);
-        result = finalizeConstant(candidateInt);
-      }
-      if (result) return result;
-    }
-  }
+  return {
+    count: countBn,
+    spent,
+    nextPrice,
+    numericCount: count,
+  };
+}
 
   if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
     return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
@@ -927,44 +1009,34 @@ if (SAFE_NEXT_PROBE) {
   }
 
   if (count < limit) {
-    let step = Math.max(1, Math.floor(Math.max(count, 1) * 0.5));
-    while (count < limit && tuneSteps < MAX_TUNE_STEPS) {
-      let candidate = count + step;
-      if (!(candidate > count)) {
-        candidate = nextUpPositive(count);
-      }
-      if (!(candidate > count)) break;
-      candidate = Math.min(limit, candidate);
-      if (candidate === count) break;
-      const candidateLog = logSeriesTotal(upg, startLevelNum, candidate);
-      if (Number.isFinite(candidateLog) && candidateLog <= walletLog + EPS) {
-        count = candidate;
-        spentLog = candidateLog;
-        step = Math.min(Math.max(1, step * 2), Math.max(1, Math.floor(Math.max(count, 1) * 0.5)));
-      } else {
-        if (step === 1) break;
-        step = Math.max(1, Math.floor(step / 2));
-      }
-      tuneSteps += 1;
-      if (step === 1) break;
-    }
+  const safeTimes2 = (x) => {
+    const y = x * 2;
+    return Number.isFinite(y) ? y : Number.MAX_VALUE;
+  };
 
-    while (count < limit && tuneSteps < MAX_TUNE_STEPS) {
-      let next = count + 1;
-      if (!(next > count)) {
-        next = nextUpPositive(count);
-      }
-      if (!(next > count) || next > limit) break;
-      const nextLog = logSeriesTotal(upg, startLevelNum, next);
-      if (Number.isFinite(nextLog) && nextLog <= walletLog + EPS) {
-        count = next;
-        spentLog = nextLog;
-      } else {
-        break;
-      }
-      tuneSteps += 1;
+  let lo = count;
+  let hi = Math.min(limit, Math.max(count + 1, safeTimes2(count)));
+  let hiLog = logSeriesTotal(upg, startLevelNum, hi);
+
+  while (lo < hi && Number.isFinite(hiLog) && hiLog <= walletLog + EPS && hi < limit) {
+    lo = hi;
+    hi = Math.min(limit, safeTimes2(hi));
+    hiLog = logSeriesTotal(upg, startLevelNum, hi);
+  }
+
+  let left = lo, right = hi;
+  for (let i = 0; i < 256 && left < right; i += 1) {
+    const mid = Math.floor((left + right + 1) / 2);
+    const midLog = logSeriesTotal(upg, startLevelNum, mid);
+    if (Number.isFinite(midLog) && midLog <= walletLog + EPS) {
+      left = mid;
+      spentLog = midLog;
+    } else {
+      right = mid - 1;
     }
   }
+  count = left;
+}
 
   let spent = null;
   if (!fastOnly) {
@@ -1052,6 +1124,28 @@ function computeBulkMeta(upg) {
   }
 }
 
+export function estimateFlatBulk(priceBn, walletBn, roomBn) {
+  // Guardrails
+  if (!(priceBn instanceof BigNum)) priceBn = BigNum.fromAny(priceBn ?? 0);
+  if (!(walletBn instanceof BigNum)) walletBn = BigNum.fromAny(walletBn ?? 0);
+  if (!(roomBn instanceof BigNum)) roomBn = BigNum.fromAny(roomBn ?? 0);
+  if (priceBn.isZero?.()) return { count: 0 };
+  if (walletBn.isZero?.()) return { count: 0 };
+
+  const wl = approxLog10BigNum(walletBn);
+  const pl = approxLog10BigNum(priceBn);
+  if (!Number.isFinite(wl) || !Number.isFinite(pl) || wl < pl) return { count: 0 };
+
+  let countBn = bigNumFromLog10(wl - pl).floorToInteger();
+  
+  if (!roomBn.isInfinite?.() && countBn.cmp(roomBn) > 0) countBn = roomBn;
+  
+  const spent = priceBn.mulBigNumInteger(countBn);
+  const nextPrice = priceBn;
+  
+  return { count: levelCapToNumber(countBn), countBn, spent, nextPrice };
+}
+
 export function estimateGeometricBulk(priceBn, walletBn, meta, maxLevels) {
   if (!meta || maxLevels <= 0) return { count: 0 };
   const walletLog = approxLog10BigNum(walletBn);
@@ -1122,6 +1216,32 @@ function levelCapToNumber(bn) {
 function formatBigNumAsHtml(bn) {
   return formatNumber(bn instanceof BigNum ? bn : BigNum.fromAny(bn ?? 0));
 }
+
+function formatMultForUi(value) {
+  try {
+    if (value && (value instanceof BigNum || value.toPlainIntegerString)) {
+      const log10 = approxLog10BigNum(value);
+      if (Number.isFinite(log10) && log10 < 3) {
+        const approx = Math.pow(10, log10);
+        return String(approx.toFixed(3))
+          .replace(/\.0+$/, '')
+          .replace(/(\.\d*?)0+$/, '$1');
+      }
+      return formatNumber(value);
+    }
+
+    const n = Number(value) || 0;
+    if (Math.abs(n) < 1000) {
+      return String(n.toFixed(3))
+        .replace(/\.0+$/, '')
+        .replace(/(\.\d*?)0+$/, '$1');
+    }
+    return formatNumber(n);
+  } catch {
+    return '1';
+  }
+}
+
 
 function formatBigNumAsPlain(bn) {
   return formatBigNumAsHtml(bn).replace(/<[^>]*>/g, '');
@@ -1215,20 +1335,15 @@ const REGISTRY = [
     costType: "coins",
     upgType: "NM",
     icon: "sc_upgrade_icons/faster_coins.png",
-    costAtLevel(level) {
-      return nmCostBN(this, level);
-    },
-    nextCostAfter(_, nextLevel) {
-      return nmCostBN(this, nextLevel);
-    },
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     effectSummary(level) {
-      const pct = level * 10;
-      return `Coin spawn rate bonus: +${pct}%`;
+      const mult = this.effectMultiplier(level);
+      return `Coin spawn rate bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier(level) {
-      return 1 + (0.10 * level);
-    }
+    effectMultiplier: E.addPctPerLevel(0.10),
   },
+
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 2,
@@ -1239,51 +1354,37 @@ const REGISTRY = [
     costType: "coins",
     upgType: "NM",
     icon: "stats/xp/xp.png",
-    costAtLevel(level) {
-      return nmCostBN(this, level);
-    },
-    nextCostAfter(_, nextLevel) {
-      return nmCostBN(this, nextLevel);
-    },
-    effectSummary() {
-      return '';
-    },
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    effectSummary() { return ""; },
     onLevelChange({ newLevel, newLevelBn }) {
       const reached = Number.isFinite(newLevel)
         ? newLevel >= 1
         : (newLevelBn?.cmp?.(BigNum.fromInt(1)) ?? -1) >= 0;
-      if (reached) {
-        try { unlockXpSystem(); } catch {}
-      }
+      if (reached) { try { unlockXpSystem(); } catch {} }
     },
   },
+
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 3,
     title: "Faster Coins II",
     desc: "Increases coin spawn rate by +10% per level",
-    lvlCap: 15,
+    lvlCap: "BN:18:100000000000000000:1e999",
     baseCost: 1,
     costType: "books",
     upgType: "NM",
     icon: "sc_upgrade_icons/faster_coins.png",
     requiresUnlockXp: true,
-    costAtLevel() {
-      return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1);
-    },
-    nextCostAfter() {
-      return this.costAtLevel();
-    },
+    costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
+    nextCostAfter() { return this.costAtLevel(); },
     effectSummary(level) {
-      const lvl = Math.max(0, Math.floor(Number(level) || 0));
-      const pct = lvl * 10;
-      return `Coin spawn rate bonus: +${pct}%`;
+      const mult = this.effectMultiplier(level);
+      return `Coin spawn rate bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier(level) {
-      const lvl = Math.max(0, Number(level) || 0);
-      return 1 + (0.10 * lvl);
-    },
+    effectMultiplier: E.addPctPerLevel(0.10),
   },
+
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 4,
@@ -1295,23 +1396,16 @@ const REGISTRY = [
     upgType: "NM",
     icon: "sc_upgrade_icons/coin_val1.png",
     requiresUnlockXp: true,
-    costAtLevel() {
-      return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1);
-    },
-    nextCostAfter() {
-      return this.costAtLevel();
-    },
+    costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
+    nextCostAfter() { return this.costAtLevel(); },
     effectSummary(level) {
-      const lvl = Math.max(0, Number(level) || 0);
-      const mult = 1 + (0.5 * lvl);
-      let display = mult.toFixed(2);
-      display = display.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
-      return `Coin value bonus: ${display}x`;
+      const mult = this.effectMultiplier(level);
+      return `Coin value bonus: ${formatMultForUi(mult)}x`;
     },
-    onLevelChange() {
-      try { refreshCoinMultiplierFromXpLevel(); } catch {}
-    },
+    effectMultiplier: E.addPctPerLevel(0.50),
+    onLevelChange() { try { refreshCoinMultiplierFromXpLevel(); } catch {} },
   },
+
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 5,
@@ -1323,20 +1417,15 @@ const REGISTRY = [
     upgType: "NM",
     icon: "sc_upgrade_icons/book_val1.png",
     requiresUnlockXp: true,
-    costAtLevel() {
-      return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1);
-    },
-    nextCostAfter() {
-      return this.costAtLevel();
-    },
+    costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
+    nextCostAfter() { return this.costAtLevel(); },
     effectSummary(level) {
       const mult = bookValueMultiplierBn(level);
-      return `Book value bonus: ${formatNumber(mult)}x`;
+      return `Book value bonus: ${formatMultForUi(mult)}x`;
     },
-    onLevelChange({ newLevel }) {
-      syncBookCurrencyMultiplierFromUpgrade(newLevel);
-    },
+    onLevelChange({ newLevel }) { syncBookCurrencyMultiplierFromUpgrade(newLevel); },
   },
+
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 6,
@@ -1348,18 +1437,15 @@ const REGISTRY = [
     upgType: "NM",
     icon: "sc_upgrade_icons/xp_val1.png",
     requiresUnlockXp: true,
-    costAtLevel(level) {
-      return nmCostBN(this, level);
-    },
-    nextCostAfter(_, nextLevel) {
-      return nmCostBN(this, nextLevel);
-    },
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     effectSummary(level) {
-      const lvl = Math.max(0, Number(level) || 0);
-      const mult = BigNum.fromAny(1 + lvl * 2);
-      return `XP value bonus: ${formatNumber(mult)}x`;
+      const mult = this.effectMultiplier(level);
+      return `XP value bonus: ${formatMultForUi(mult)}x`;
     },
+    effectMultiplier: E.addFlatPerLevel(2), // 1 + 2*level
   },
+
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 7,
@@ -1372,25 +1458,18 @@ const REGISTRY = [
     icon: "misc/mysterious.png",
     requiresUnlockXp: true,
     revealRequirement: 'Reach XP Level 31 to reveal this upgrade',
-    costAtLevel(level) {
-      return nmCostBN(this, level);
-    },
-    nextCostAfter(_, nextLevel) {
-      return nmCostBN(this, nextLevel);
-    },
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     computeLockState({ xpUnlocked, upg }) {
       if (!xpUnlocked) {
-		return {
-		  locked: true,
-		  iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-		  titleOverride: LOCKED_UPGRADE_TITLE,
-		  hidden: false,
-		  hideCost: false,
-		  hideEffect: false,
-		  useLockedBase: true,
-	    };
-	  }
-
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          hidden: false, hideCost: false, hideEffect: false,
+          useLockedBase: true,
+        };
+      }
       const requirement = upg?.revealRequirement || 'Reach XP Level 31 to reveal this upgrade';
       return {
         locked: true,
@@ -1398,12 +1477,30 @@ const REGISTRY = [
         titleOverride: HIDDEN_UPGRADE_TITLE,
         descOverride: requirement,
         reason: requirement,
-        hideCost: true,
-        hideEffect: true,
+        hideCost: true, hideEffect: true,
         hidden: true,
         useLockedBase: true,
       };
     },
+  },
+
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 8,
+    title: "Placeholder Upgrade",
+    desc: "This is a placeholder upgrade to demonstrate a 1.2x compounding upgrade",
+    lvlCap: "BN:18:100000000000000000:1e999",
+    baseCost: 1,
+    costType: "coins",
+    upgType: "NM",
+    icon: "sc_upgrade_icons/faster_coins.png",
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Placeholder bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.powPerLevel(1.2),
   },
 ];
 
@@ -2005,7 +2102,16 @@ export function setLevel(areaKey, upgId, lvl, clampToCap = true) {
   if (desiredBn.isInfinite?.()) {
     desiredBn = BigNum.fromAny('Infinity');
   }
-  let nextBn = desiredBn;
+   let nextBn = desiredBn;
+  try {
+    if (upg && isInfinityLevelForScaled(upg, nextBn)) {
+      nextBn = BigNum.fromAny('Infinity');
+    }
+  } catch {}
+  if (clampToCap && Number.isFinite(cap)) {
+    const capBn = ensureLevelBigNum(cap);
+    if (nextBn.cmp(capBn) > 0) nextBn = capBn;
+  }
   if (clampToCap && Number.isFinite(cap)) {
     const capBn = ensureLevelBigNum(cap);
     if (nextBn.cmp(capBn) > 0) nextBn = capBn;
@@ -2167,6 +2273,16 @@ export function buyOne(areaKey, upgId) {
   const lvlBn = state.lvlBn ?? ensureLevelBigNum(lvlNum);
   const prevLevelBn = safeCloneBigNum(lvlBn);
   if (lvlNum >= upg.lvlCap) return { bought: 0, spent: 0 };
+  if (isInfinityLevelForScaled(upg, lvlBn)) {
+  state.lvlBn = BigNum.fromAny('Infinity');
+  state.lvl = levelBigNumToNumber(state.lvlBn);
+  state.nextCostBn = BigNum.fromAny('Infinity');
+  commitUpgradeState(state);
+  invalidateUpgradeState(areaKey, upgId);
+  notifyChanged();
+  return { bought: 0, spent: 0 };
+  }
+
 
   const price = state.nextCostBn ?? BigNum.fromAny(upg.costAtLevel(lvlNum));
   const haveRaw = bank[upg.costType]?.value;
