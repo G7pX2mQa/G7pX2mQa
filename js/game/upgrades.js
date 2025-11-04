@@ -29,7 +29,7 @@ function hasScaling(upg) {
   }
 }
 
-const SCALED_INFINITY_LVL_LOG10 = 303;
+const SCALED_INFINITY_LVL_LOG10 = 308;
 function isInfinityLevelForScaled(upg, lvlBn) {
   if (!hasScaling(upg)) return false;
   try {
