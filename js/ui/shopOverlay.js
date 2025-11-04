@@ -522,33 +522,24 @@ function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
     const fallback = Math.max(0, Math.floor(Number(currentLevelNumeric) || 0));
     lvlBn = BigNum.fromInt(fallback);
   }
+  if (lvlBn.isInfinite?.()) return BigNum.fromInt(0);
 
-  if (lvlBn.isInfinite?.()) {
-    return BigNum.fromInt(0);
-  }
-
+  const lvl = Math.max(0, Math.floor(Number(currentLevelNumeric) || 0));
   const cap = Number.isFinite(upg.lvlCap)
     ? Math.max(0, Math.floor(upg.lvlCap))
     : Infinity;
-  const lvl = Math.max(0, Math.floor(Number(currentLevelNumeric) || 0));
 
   const walletEntry = bank[upg.costType];
   const walletValue = walletEntry?.value;
   const walletBn = walletValue instanceof BigNum
     ? walletValue
     : BigNum.fromAny(walletValue ?? 0);
-
   if (walletBn.isZero?.()) return BigNum.fromInt(0);
 
   if (walletBn.isInfinite?.()) {
-    const isHmType = (upg?.upgType === 'HM');
-    const maxed = Number.isFinite(cap) && (lvl >= cap);
-
-    if (isHmType && !maxed) {
-      return BigNum.fromAny('Infinity');
-    }
-
-    if (!Number.isFinite(cap)) {
+    const isHmType = upg?.upgType === 'HM';
+    const maxed = Number.isFinite(cap) && lvl >= cap;
+    if ((isHmType && !maxed) || !Number.isFinite(cap)) {
       return BigNum.fromAny('Infinity');
     }
     return levelsRemainingToCap(upg, lvlBn, currentLevelNumeric);
@@ -557,32 +548,44 @@ function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
   if (Number.isFinite(cap) && lvl >= cap) return BigNum.fromInt(0);
 
   try {
-	const nextLvlNum = levelBigNumToNumber(lvlBn.add(BigNum.fromInt(1)));
-	const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
-	const c1 = BigNum.fromAny(upg.costAtLevel(nextLvlNum));
-    const isFlat = c0?.cmp?.(c1) === 0;
+    const nextLvlNum = levelBigNumToNumber(lvlBn.add(BigNum.fromInt(1)));
+    const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
+    const c1 = BigNum.fromAny(upg.costAtLevel(nextLvlNum));
 
-    if (isFlat) {
+    const farProbeLevel = Math.min(
+      Number.isFinite(cap) ? cap : lvl + 32,
+      lvl + 32
+    );
+    const cFar = BigNum.fromAny(upg.costAtLevel(farProbeLevel));
+
+    const isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
+
+    if (isTrulyFlat) {
       const remainingBn = levelsRemainingToCap(upg, lvlBn, lvl);
-	  const room = Number.isFinite(upg.lvlCap) ? Math.min(Math.max(0, Math.floor(levelBigNumToNumber(remainingBn))), Number.MAX_SAFE_INTEGER - 2) : Number.MAX_SAFE_INTEGER;
+      const room = Number.isFinite(upg.lvlCap)
+        ? Math.min(
+            Math.max(0, Math.floor(levelBigNumToNumber(remainingBn))),
+            Number.MAX_SAFE_INTEGER - 2
+          )
+        : Number.MAX_SAFE_INTEGER;
 
       let lo = 0;
       let hi = Math.max(0, room);
-
       while (lo < hi) {
         const mid = Math.floor((lo + hi + 1) / 2);
         const midBn = BigNum.fromInt(mid);
         const total = typeof c0.mulBigNumInteger === 'function'
           ? c0.mulBigNumInteger(midBn)
           : BigNum.fromAny(c0 ?? 0).mulBigNumInteger(midBn);
-        if (total.cmp(walletBn) <= 0) {
-          lo = mid;
-        } else {
-          hi = mid - 1;
-        }
+        if (total.cmp(walletBn) <= 0) lo = mid;
+        else hi = mid - 1;
       }
       return BigNum.fromInt(lo);
     }
+
+    const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : undefined;
+    const { count } = evaluateBulkPurchase(upg, lvlBn, walletBn, room, { fastOnly: true });
+    return count ?? BigNum.fromInt(0);
   } catch {
   }
 
@@ -636,6 +639,7 @@ function renderShopGrid() {
     const hasPlus = !plusBn.isZero?.();
     let badgeHtml;
     let badgePlain;
+	let needsTwoLines = false;
     if (locked) {
       badgeHtml = '';
       badgePlain = '';
@@ -645,10 +649,26 @@ function renderShopGrid() {
         : `${upg.title} (Locked)`;
       btn.setAttribute('aria-label', ariaLabel);
     } else {
-      badgeHtml = hasPlus ? `${levelHtml} (+${plusHtml})` : levelHtml;
-      badgePlain = hasPlus ? `${levelPlain} (+${plusPlain})` : levelPlain;
-      btn.setAttribute('aria-label', `${upg.title}, level ${badgePlain}`);
-    }
+  const numericLevel = Number.isFinite(upg.levelNumeric) ? upg.levelNumeric : NaN;
+  const plainDigits  = String(levelPlain || '').replace(/,/g, '');
+  const isInf        = /∞|Infinity/i.test(plainDigits);
+  const over999      = Number.isFinite(numericLevel)
+    ? numericLevel >= 1000
+    : (isInf || /^\d{4,}$/.test(plainDigits));
+
+  needsTwoLines = hasPlus && over999;
+
+  if (needsTwoLines) {
+    const lvlSpan  = `<span class="badge-lvl">${levelHtml}</span>`;
+    const plusSpan = `<span class="badge-plus">(+${plusHtml})</span>`;
+    badgeHtml  = `${lvlSpan}${plusSpan}`;
+    badgePlain = `${levelPlain} (+${plusPlain})`;
+  } else {
+    badgeHtml  = hasPlus ? `${levelHtml} (+${plusHtml})` : levelHtml;
+    badgePlain = hasPlus ? `${levelPlain} (+${plusPlain})` : levelPlain;
+  }
+  btn.setAttribute('aria-label', `${upg.title}, level ${badgePlain}`);
+}
 	if (locked) {
 	  btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
 	} else {
@@ -712,8 +732,10 @@ function renderShopGrid() {
     });
 
     if (!locked) {
-      const badge = document.createElement('span');
-      badge.className = 'level-badge';
+    const badge = document.createElement('span');
+	badge.className = 'level-badge';
+	if (needsTwoLines) badge.classList.add('two-line');
+	
       if (badgeHtml === badgePlain) {
         badge.textContent = badgeHtml;
       } else {
@@ -981,30 +1003,54 @@ function closeUpgradeMenu() {
 }
 
 function formatMult(value) {
-  if (value instanceof BigNum) {
-    return `${formatNumber(value)}x`;
-  }
+  if (value instanceof BigNum) return `${formatNumber(value)}x`;
 
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value) || Number.isNaN(value)) {
-      const bn = BigNum.fromAny(value);
-      return `${formatNumber(bn)}x`;
-    }
-
-    let s = value.toFixed(3);
-    s = s.replace(/\.?0+$/, '');
-    return s + 'x';
+  const asNum = Number(value);
+  if (Number.isFinite(asNum)) {
+    return formatFourDigitsFloorNumber(asNum) + 'x';
   }
 
   try {
-    const bn = BigNum.fromAny(value ?? 0);
+    const bn = BigNum.fromAny(value);
     return `${formatNumber(bn)}x`;
   } catch {
-    const fallback = Number(value) || 0;
-    let s = fallback.toFixed(3);
-    s = s.replace(/\.?0+$/, '');
-    return s + 'x';
+    return '0x';
   }
+}
+
+function formatFourDigitsFloorNumber(v) {
+  const abs = Math.abs(v);
+
+  if (abs >= 10000) {
+    return formatNumber(BigNum.fromAny(v));
+  }
+
+  const intDigits = abs >= 1 ? Math.floor(abs).toString().length : 0;
+  const decimals = Math.max(0, 4 - intDigits);
+
+  const groupThousands = (s) => {
+    let sign = '';
+    if (s.startsWith('-')) { sign = '-'; s = s.slice(1); }
+    return sign + s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  };
+
+  if (decimals === 0) {
+    const floored = (v >= 0) ? Math.floor(v) : Math.ceil(v);
+    let s = String(floored);
+    if (Math.abs(floored) >= 1000) s = groupThousands(s);
+    return s;
+  }
+
+  const factor = Math.pow(10, decimals);
+  const floored = (v >= 0)
+    ? Math.floor(v * factor) / factor
+    : Math.ceil(v * factor) / factor;
+
+  let s = floored.toFixed(decimals);
+  let [i, f = ''] = s.split('.');
+  if (Math.abs(floored) >= 1000) i = groupThousands(i);
+  f = f.replace(/0+$/, '');
+  return f ? `${i}.${f}` : i;
 }
 
 export function openUpgradeOverlay(upgDef) {
@@ -1101,10 +1147,12 @@ export function openUpgradeOverlay(upgDef) {
       }
     }
     const effectMultiplierFn = model.upg.effectMultiplier;
-    let hasMultiplierLine = false;
-    if (!locked && typeof effectMultiplierFn === 'function') {
-      const mult = effectMultiplierFn(model.lvl);
-      const multStr = formatMult(mult);
+	let hasMultiplierLine = false;
+	if (!locked && typeof effectMultiplierFn === 'function') {
+	  const levelArg = model.lvlBn ?? model.lvl;
+	  const mult = effectMultiplierFn(levelArg);
+	  const multStr = formatMult(mult);
+
       const multHtml = multStr.includes('∞') ? multStr.replace('∞', '<span class="infty">∞</span>') : multStr;
       info.appendChild(
         makeLine(`<span class="bonus-line">Coin spawn rate bonus: ${multHtml}</span>`)
