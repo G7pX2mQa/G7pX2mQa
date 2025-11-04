@@ -273,6 +273,13 @@ function enterArea(areaID) {
           surgeLifetimeMs: 1800,
           surgeWidthVw: 22,
         });
+        window.spawner = spawner;
+        const applyMutationSprite = () => {
+          if (!spawner || typeof spawner.setCoinSprite !== 'function') return;
+          try { spawner.setCoinSprite(getMutationCoinSprite?.()); } catch {}
+        };
+        applyMutationSprite();
+        onMutationChangeGame?.(applyMutationSprite);
         initCoinPickup();
                 const applyUpgradesToSpawner = () => {
                 try {
@@ -358,6 +365,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     upgradesModule,
     audioCacheModule,
     xpModule,
+    resetModule,
+    mutationModule,
     popupModule,
     safetyModule,
     guardModule,
@@ -370,6 +379,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/upgrades.js'),
     import('./util/audioCache.js'),
     import('./game/xpSystem.js'),
+    import('./game/resetSystem.js'),
+    import('./game/mutationSystem.js'),
     import('./ui/popups.js'),
     import('./util/suspendSafeguard.js'),
     import('./util/ghostTapGuard.js'),
@@ -383,11 +394,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
   ({ registerPreloadedAudio } = audioCacheModule);
   ({ initXpSystem } = xpModule);
+  ({ initResetSystem: initResetSystemGame } = resetModule);
+  ({ initMutationSystem, getMutationCoinSprite, onMutationChange: onMutationChangeGame } = mutationModule);
   ({ initPopups } = popupModule);
   ({ installSuspendSafeguards, restoreFromBackupIfNeeded: restoreSuspendBackup, markProgressDirty, flushBackupSnapshot } = safetyModule);
   ({ installGhostTapGuard } = guardModule);
 
   window.bank = bank;
+
+  initMutationSystem?.();
+  initResetSystemGame?.();
 
   installSuspendSafeguards?.();
   try {
