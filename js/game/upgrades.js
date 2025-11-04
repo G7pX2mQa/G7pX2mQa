@@ -11,6 +11,13 @@ import {
   setExternalXpGainMultiplierProvider,
   refreshCoinMultiplierFromXpLevel,
 } from './xpSystem.js';
+import { getMutationMultiplier } from './mutationSystem.js';
+import {
+  initResetSystem,
+  onForgeUpgradeUnlocked,
+  isForgeUnlocked,
+  arePearlsUnlocked,
+} from './resetSystem.js';
 
 export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
 
@@ -1508,37 +1515,55 @@ const REGISTRY = [
     area: AREA_KEYS.STARTER_COVE,
     id: 7,
     title: "Unlock Forge",
-    desc: "placeholder desc",
+    desc: "Unlocks the Forge reset tab in the Merchant",
     lvlCap: 1,
-    baseCost: 100000,
-    costType: "coins",
+    baseCost: 0,
+    costType: "gold",
     upgType: "NM",
     icon: "misc/merchant.png",
     requiresUnlockXp: true,
     revealRequirement: 'Reach XP Level 31 to reveal this upgrade',
-    costAtLevel(level) { return nmCostBN(this, level); },
-    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    unlockUpgrade: true,
+    costAtLevel() { return BigNum.fromInt(0); },
+    nextCostAfter() { return BigNum.fromInt(0); },
     computeLockState({ xpUnlocked, upg }) {
       if (!xpUnlocked) {
         return {
           locked: true,
           iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
           titleOverride: LOCKED_UPGRADE_TITLE,
-          hidden: false, hideCost: false, hideEffect: false,
+          descOverride: 'Unlock the XP system to reveal this upgrade',
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
           useLockedBase: true,
         };
       }
-      const requirement = upg?.revealRequirement || 'Reach XP Level 31 to reveal this upgrade';
-      return {
-        locked: true,
-        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-        titleOverride: HIDDEN_UPGRADE_TITLE,
-        descOverride: requirement,
-        reason: requirement,
-        hideCost: true, hideEffect: true,
-        hidden: true,
-        useLockedBase: true,
-      };
+      let xpLevel = 0;
+      try {
+        const xpState = getXpState();
+        xpLevel = levelBigNumToNumber(xpState?.xpLevel ?? 0);
+      } catch {}
+      const requirementText = upg?.revealRequirement || 'Reach XP Level 31 to reveal this upgrade';
+      if (xpLevel < 31) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: upg.title,
+          descOverride: requirementText,
+          reason: requirementText,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
+      return { locked: false };
+    },
+    onLevelChange({ newLevel }) {
+      if ((newLevel ?? 0) >= 1) {
+        try { onForgeUpgradeUnlocked(); } catch {}
+      }
     },
   },
 
@@ -1559,6 +1584,138 @@ const REGISTRY = [
       return `Placeholder bonus: ${formatMultForUi(mult)}x`;
     },
     effectMultiplier: E.powPerLevel(1.2),
+  },
+
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 9,
+    title: "Forge Efficiency",
+    desc: "Placeholder forge upgrade that boosts Gold gain by +10% per level",
+    lvlCap: 25,
+    baseCost: 5,
+    costType: "gold",
+    upgType: "NM",
+    icon: "misc/merchant.png",
+    requiresUnlockXp: true,
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    computeLockState() {
+      if (!isForgeUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: 'Forge Locked',
+          descOverride: 'Unlock the Forge to access this upgrade',
+          useLockedBase: true,
+          hidden: false,
+        };
+      }
+      return { locked: false };
+    },
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Gold gain bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.addPctPerLevel(0.10),
+  },
+
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 10,
+    title: "Forge Insight",
+    desc: "Placeholder forge upgrade that increases Gold from resets",
+    lvlCap: 20,
+    baseCost: 25,
+    costType: "gold",
+    upgType: "NM",
+    icon: "misc/merchant.png",
+    requiresUnlockXp: true,
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    computeLockState() {
+      if (!isForgeUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: 'Forge Locked',
+          descOverride: 'Unlock the Forge to access this upgrade',
+          useLockedBase: true,
+          hidden: false,
+        };
+      }
+      return { locked: false };
+    },
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Forge reward multiplier: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.addPctPerLevel(0.15),
+  },
+
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 11,
+    title: "Pearl Collector",
+    desc: "Placeholder pearl upgrade that boosts Pearl spawn chance",
+    lvlCap: 30,
+    baseCost: 10,
+    costType: "pearls",
+    upgType: "NM",
+    icon: "misc/merchant.png",
+    requiresUnlockXp: true,
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    computeLockState() {
+      if (!arePearlsUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: 'Pearls Locked',
+          descOverride: 'Complete a Forge reset to unlock Pearls',
+          useLockedBase: true,
+          hidden: false,
+        };
+      }
+      return { locked: false };
+    },
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Pearl spawn bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.addPctPerLevel(0.05),
+  },
+
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 12,
+    title: "Pearl Wisdom",
+    desc: "Placeholder pearl upgrade that increases XP gained from Pearls",
+    lvlCap: 15,
+    baseCost: 50,
+    costType: "pearls",
+    upgType: "NM",
+    icon: "misc/merchant.png",
+    requiresUnlockXp: true,
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    computeLockState() {
+      if (!arePearlsUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: 'Pearls Locked',
+          descOverride: 'Complete a Forge reset to unlock Pearls',
+          useLockedBase: true,
+          hidden: false,
+        };
+      }
+      return { locked: false };
+    },
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Pearl XP bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.addPctPerLevel(0.08),
   },
 ];
 
@@ -2412,6 +2569,13 @@ export function buyMax(areaKey, upgId) {
     ? walletValue.clone?.() ?? BigNum.fromAny(walletValue)
     : BigNum.fromAny(walletValue ?? 0);
 
+  if (upg.unlockUpgrade) {
+    const nextCost = state.nextCostBn?.clone?.() ?? BigNum.fromInt(0);
+    if (nextCost.isZero?.()) {
+      return buyOne(areaKey, upgId);
+    }
+  }
+
   if (wallet.isZero?.()) return { bought: BigNum.fromInt(0), spent: BigNum.fromInt(0) };
 
   if (wallet.isInfinite?.()) {
@@ -2564,6 +2728,14 @@ export function computeUpgradeEffects(areaKey) {
     // future upgrades here...
   }
 
+  try {
+    const mutationMult = getMutationMultiplier();
+    if (mutationMult && typeof mutationMult.isZero === 'function' && !mutationMult.isZero()) {
+      coinValueMultBn = coinValueMultBn.mulBigNumInteger(mutationMult);
+      xpGainMultBn = xpGainMultBn.mulBigNumInteger(mutationMult);
+    }
+  } catch {}
+
   return {
     coinsPerSecondMult: cpsMult,
     coinsPerSecondAbsolute: BASE_CPS * cpsMult,
@@ -2574,6 +2746,7 @@ export function computeUpgradeEffects(areaKey) {
 }
 
 function registerXpUpgradeEffects() {
+  try { initResetSystem(); } catch {}
   try {
     setExternalCoinMultiplierProvider(({ baseMultiplier, xpUnlocked }) => {
       if (!xpUnlocked) return baseMultiplier;
@@ -2591,7 +2764,14 @@ function registerXpUpgradeEffects() {
       let str = (1 + (0.5 * safeLevel)).toFixed(6);
       str = str.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
       try {
-        return result.mulDecimal(str, 18);
+        let next = result.mulDecimal(str, 18);
+        try {
+          const mutationMult = getMutationMultiplier();
+          if (mutationMult && typeof mutationMult.isZero === 'function' && !mutationMult.isZero()) {
+            next = next.mulBigNumInteger(mutationMult);
+          }
+        } catch {}
+        return next;
       } catch {
         return result;
       }
@@ -2613,8 +2793,14 @@ function registerXpUpgradeEffects() {
       const safeLevel = Math.max(0, Number.isFinite(lvl) ? lvl : 0);
       if (safeLevel <= 0) return gain;
       try {
-        const factor = BigNum.fromAny(1 + safeLevel * 2);
-        return gain.mulBigNumInteger(factor);
+        let next = gain.mulBigNumInteger(BigNum.fromAny(1 + safeLevel * 2));
+        try {
+          const mutationMult = getMutationMultiplier();
+          if (mutationMult && typeof mutationMult.isZero === 'function' && !mutationMult.isZero()) {
+            next = next.mulBigNumInteger(mutationMult);
+          }
+        } catch {}
+        return next;
       } catch {
         return gain;
       }
@@ -2734,6 +2920,7 @@ export function upgradeUiModel(areaKey, upgId) {
     locked,
     displayTitle,
     displayDesc,
+    unlockUpgrade: !!upg.unlockUpgrade,
   };
 }
 
