@@ -1513,7 +1513,7 @@ const REGISTRY = [
     baseCost: 100000,
     costType: "coins",
     upgType: "NM",
-    icon: "misc/mysterious.png",
+    icon: "misc/merchant.png",
     requiresUnlockXp: true,
     revealRequirement: 'Reach XP Level 31 to reveal this upgrade',
     costAtLevel(level) { return nmCostBN(this, level); },
