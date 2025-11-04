@@ -16,7 +16,18 @@ export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
 
 const SCALED_INFINITY_LVL_LOG10 = 303;
 function hasScaling(upg) {
-  try { return !!(upg && (upg.bulkMeta || computeBulkMeta(upg))); } catch { return false; }
+  try {
+    const scaling = ensureUpgradeScaling(upg);
+    if (!scaling) return false;
+    if (scaling.ratioMinus1 > 0) return true;
+
+    const c0 = BigNum.fromAny(upg.costAtLevel?.(0) ?? 0);
+    const c1 = BigNum.fromAny(upg.costAtLevel?.(1) ?? 0);
+    const cF = BigNum.fromAny(upg.costAtLevel?.(32) ?? 0);
+    return !(c0.cmp(c1) === 0 && c0.cmp(cF) === 0);
+  } catch {
+    return false;
+  }
 }
 function isInfinityLevelForScaled(upg, lvlBn) {
   if (!hasScaling(upg)) return false;
@@ -125,7 +136,16 @@ const E = {
           return 1 + pNum * lvl;
         }
       } catch {}
-      try { return BN.fromInt(1).add(L.mulDecimal(pStr)); } catch { return 1; }
+      try { return BN.fromInt(1).add(L.mulDecimal(pStr)); }
+catch {
+  const logL = approxLog10BigNum(L);
+  if (Number.isFinite(logL)) {
+    const logTerm = logL + Math.log10(Math.abs(pNum || 0));
+    return bigNumFromLog10(logTerm);
+  }
+  return BigNum.fromAny('Infinity');
+}
+
     };
   },
 
@@ -324,17 +344,19 @@ function currentXpLevelBigNum() {
 }
 
 function bookValueMultiplierBn(level) {
-  const numeric = Number(level);
-  const lvl = Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;
-  let mult = BigNum.fromInt(1);
-  if (lvl === 0) return mult;
-  for (let i = 0; i < lvl; i += 1) {
-    mult = typeof mult.mulSmall === 'function'
-      ? mult.mulSmall(2)
-      : mult.mulBigNumInteger(BigNum.fromInt(2));
-  }
-  return mult;
+  const L = ensureLevelBigNum(level);
+  try {
+    const plain = L.toPlainIntegerString?.();
+    if (plain && plain !== 'Infinity' && plain.length <= 15) {
+      const lvl = Math.max(0, Number(plain));
+      return bigNumFromLog10(lvl * Math.log10(2)).floorToInteger();
+    }
+  } catch {}
+
+  return BigNum.fromAny('Infinity');
 }
+
+
 
 function mergeLockStates(base, override) {
   const merged = Object.assign({ locked: false }, base || {});
@@ -612,6 +634,20 @@ function ensureUpgradeScaling(upg) {
       ratioStr,
       defaultPreset: defaultPreset ?? providedScaling.defaultPreset,
     });
+
+try {
+  const c0 = BigNum.fromAny(upg.costAtLevel?.(0) ?? 0);
+  const c1 = BigNum.fromAny(upg.costAtLevel?.(1) ?? 0);
+  const cF = BigNum.fromAny(upg.costAtLevel?.(32) ?? 0);
+  if (c0.cmp(c1) === 0 && c0.cmp(cF) === 0) {
+    scaling.ratio = 1;
+    scaling.ratioMinus1 = 0;
+    scaling.ratioLog10 = 0;
+    scaling.ratioLn = 0;
+    scaling.ratioStr = '1';
+  }
+} catch {}
+
     upg.scaling = scaling;
     return scaling;
   } catch {
@@ -822,24 +858,22 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
     return { count: zero, spent: zero, nextPrice, numericCount: 0 };
   }
 
-  // Compute logs, but be prepared to fall back for astronomically large finites
 let walletLog = approxLog10BigNum(walletBn);
 
-// We'll also need these a little earlier now
 const ratioLog10 = scaling.ratioLog10;
 const ratioMinus1 = scaling.ratioMinus1;
-if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
-  const firstPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum));
-  return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
-}
+const firstPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum));
+
 
 const startPriceLog = scaling.baseLog10 + (startLevelNum * ratioLog10);
 
 // Fallback: if walletLog isn't finite *or* magnitudes are so huge that
 // double-precision subtraction will be meaningless, do a pure-BigNum search.
 const needBnSearch =
-  !Number.isFinite(walletLog) ||
-  (Math.abs(walletLog) > 1e6 && Math.abs(startPriceLog) > 1e6);
+  (ratioMinus1 > 0) && (
+    !Number.isFinite(walletLog) ||
+    (Math.abs(walletLog) > 1e6 && Math.abs(startPriceLog) > 1e6)
+  );
 
 if (needBnSearch) {
   // Quick "can't even buy 1" check
@@ -907,30 +941,33 @@ while (hi < hardLimit) {
   };
 }
 
-  const firstPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum));
   if (walletBn.cmp(firstPrice) < 0) {
     return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
   }
 
 let isConstantCost = false;
 let secondPrice = null, farPrice = null;
-const SAFE_PROBE = Number.isFinite(startLevelNum) && startLevelNum < Number.MAX_SAFE_INTEGER - 64;
 
-if (SAFE_PROBE) {
-  try { secondPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum + 1)); } catch {}
-  try {
-    const farProbe = Math.min(
-      Number.isFinite(cap) ? Math.max(startLevelNum + 1, Math.floor(cap)) : startLevelNum + 32,
-      startLevelNum + 32
-    );
-    farPrice = BigNum.fromAny(upg.costAtLevel(farProbe));
-  } catch {}
+try { secondPrice = BigNum.fromAny(upg.costAtLevel(startLevelNum + 1)); } catch {}
+try {
+  const farProbe = Math.min(
+    Number.isFinite(cap) ? Math.max(startLevelNum + 1, Math.floor(cap)) : startLevelNum + 32,
+    startLevelNum + 32
+  );
+  farPrice = BigNum.fromAny(upg.costAtLevel(farProbe));
+} catch {}
+if (!isConstantCost && !(scaling.ratioMinus1 > 0)) {
+  isConstantCost = true;
+}
 
-  if (secondPrice && farPrice) {
-    isConstantCost =
-      secondPrice.cmp(firstPrice) === 0 &&
-      farPrice.cmp(firstPrice) === 0;
-  }
+if (secondPrice && farPrice) {
+  isConstantCost =
+    secondPrice.cmp(firstPrice) === 0 &&
+    farPrice.cmp(firstPrice) === 0;
+}
+
+if (!isConstantCost && !(scaling.ratioMinus1 > 0)) {
+  isConstantCost = true;
 }
 
   const limit = Number.isFinite(room)
@@ -963,9 +1000,18 @@ if (SAFE_PROBE) {
   };
 }
 
-  if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
-    return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
-  }
+if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
+  const capBn = toUpgradeBigNum(upg.lvlCapBn ?? 'Infinity', 'Infinity');
+  const lvlBn = toUpgradeBigNum(startLevel ?? 0, 0);
+  const roomBn = capBn.isInfinite?.()
+    ? BigNum.fromAny('Infinity')
+    : capBn.sub(lvlBn).floorToInteger();
+
+  const { count, countBn, spent, nextPrice } =
+    estimateFlatBulk(firstPrice, walletBn, roomBn);
+
+  return { count: countBn, spent, nextPrice, numericCount: count };
+}
 
   const ratioMinus1Log = Math.log10(ratioMinus1);
   if (!Number.isFinite(ratioMinus1Log)) {
@@ -1372,7 +1418,7 @@ const REGISTRY = [
     id: 3,
     title: "Faster Coins II",
     desc: "Increases coin spawn rate by +10% per level",
-    lvlCap: 15,
+    lvlCap: "BN:18:100000000000000000:1e999",
     baseCost: 1,
     costType: "books",
     upgType: "NM",
@@ -1392,7 +1438,7 @@ const REGISTRY = [
     id: 4,
     title: "Coin Value",
     desc: "Increases coin value by +50% per level",
-    lvlCap: 100,
+    lvlCap: "BN:18:100000000000000000:1e999",
     baseCost: 1,
     costType: "books",
     upgType: "NM",
@@ -1413,7 +1459,7 @@ const REGISTRY = [
     id: 5,
     title: "Book Value",
     desc: "Doubles books gained when increasing XP level",
-    lvlCap: 1,
+    lvlCap: "BN:18:100000000000000000:1e999",
     baseCost: 10,
     costType: "books",
     upgType: "NM",
@@ -1433,7 +1479,7 @@ const REGISTRY = [
     id: 6,
     title: "XP Value",
     desc: "Increases XP value by +200% per level",
-    lvlCap: 10,
+    lvlCap: "BN:18:100000000000000000:1e999",
     baseCost: 2500,
     costType: "coins",
     upgType: "NM",
@@ -1829,6 +1875,17 @@ function ensureUpgradeState(areaKey, upgId) {
 
   const lvlBn = ensureLevelBigNum(rec.lvl);
   let lvl = levelBigNumToNumber(lvlBn);
+try {
+  const capBn = upg?.lvlCapBn ?? BigNum.fromAny('Infinity');
+  if (!(capBn.isInfinite?.()) && lvlBn.cmp(capBn) > 0) {
+    const clamped = capBn.clone?.() ?? capBn;
+    lvl = levelBigNumToNumber(clamped);
+    rec.lvl = clamped.toStorage();
+    rec.nextCost = BigNum.fromInt(0).toStorage();
+    saveAreaState(areaKey, arr, slot);
+  }
+} catch {}
+
   let nextCostBn = null;
   if (rec.nextCost != null) {
     try { nextCostBn = BigNum.fromAny(rec.nextCost); }
@@ -1889,6 +1946,16 @@ function commitUpgradeState(state) {
   } else if (rec.id !== normalizedId) {
     rec.id = normalizedId;
   }
+
+try {
+  const capBn = state.upg?.lvlCapBn ?? BigNum.fromAny('Infinity');
+  let inBn = state.lvlBn?.clone?.() ?? ensureLevelBigNum(state.lvlBn ?? state.lvl);
+  if (!(capBn.isInfinite?.()) && inBn.cmp(capBn) > 0) {
+    inBn = capBn.clone?.() ?? capBn;
+    state.lvlBn = inBn;
+    state.lvl = levelBigNumToNumber(inBn);
+  }
+} catch {}
 
   try {
     rec.lvl = state.lvlBn?.toStorage?.() ?? ensureLevelBigNum(state.lvlBn ?? state.lvl).toStorage();
