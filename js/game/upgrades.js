@@ -1490,7 +1490,7 @@ const REGISTRY = [
     title: "XP Value",
     desc: "Increases XP value by +200% per level",
     lvlCap: 10,
-    baseCost: 2500,
+    baseCost: 1000,
     costType: "coins",
     upgType: "NM",
     icon: "sc_upgrade_icons/xp_val1.png",
