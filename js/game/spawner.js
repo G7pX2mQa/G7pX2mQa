@@ -1,6 +1,7 @@
 // spawner.js
 
 import { takePreloadedAudio } from '../util/audioCache.js';
+import { arePearlsUnlocked } from './resetSystem.js';
 
 export function createSpawner({
     playfieldSelector = '.area-cove .playfield',
@@ -8,34 +9,34 @@ export function createSpawner({
     surgesHost = '.surges',
     coinsHost = '.coins-layer',
     coinSrc = 'img/coin/coin.png',
-    coinSize = 40, // px
+    coinSize = 40,
     animationName = 'coin-from-wave',
     animationDurationMs = 1500,
     surgeLifetimeMs = 1400,
-    surgeWidthVw = 22, // width of wave in vw of playfield
+    surgeWidthVw = 22,
     coinsPerSecond = 1,
-    perFrameBudget = 24, // max spawns committed per RAF
-    backlogCap = 600, // queue backpressure
-    maxActiveCoins = 1250, // coin capacity before coins are recycled
-    initialBurst = 1, // the amount of coins that spawn on room enter
-	coinTtlMs = 60000, // auto-despawn each coin after 60s
+    perFrameBudget = 24,
+    backlogCap = 600,
+    maxActiveCoins = 1500,
+    initialBurst = 1,
+	coinTtlMs = 60000,
 	waveSoundSrc = 'sounds/wave_spawn.mp3',
     waveSoundDesktopVolume = 0.40,
     waveSoundMobileVolume  = 0.16,
     waveSoundMinIntervalMs = 160,
-    enableDropShadow = false, // if I ever want to enable drop shadow on the spawned coins
+    enableDropShadow = false,
 } = {}) {
-	
-	// Mobile burst after returning from background
-	const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+
+    let currentCoinSrc = coinSrc;
+    const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 	const MOBILE_BACKLOG_CAP = 50;
 	let burstUntil = 0;
 
-	const BURST_WINDOW_MS        = 120;  // how long we allow boosted spawning
-	const BURST_TIME_BUDGET_MS   = 10.0; // per-frame time budget during burst
-	const BURST_HARD_CAP         = 400;  // max coins to spawn in a single burst frame
-	const ONE_SHOT_THRESHOLD     = 180;  // if backlog <= this, flush in ~1 frame
-	const NORMAL_TIME_BUDGET_MS  = 2.0;  // small safety cap for normal frames
+	const BURST_WINDOW_MS        = 120;
+	const BURST_TIME_BUDGET_MS   = 10.0;
+	const BURST_HARD_CAP         = 400;
+	const ONE_SHOT_THRESHOLD     = 180;
+	const NORMAL_TIME_BUDGET_MS  = 2.0;
 
 
     // ---------- resolve and keep DOM references ----------
@@ -110,7 +111,7 @@ export function createSpawner({
         el.style.position = 'absolute';
         el.style.width = `${coinSize}px`;
         el.style.height = `${coinSize}px`;
-        el.style.background = `url(${coinSrc}) center/contain no-repeat`;
+        el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
         el.style.borderRadius = '50%';
         el.style.pointerEvents = 'none';
         el.style.willChange = 'transform, opacity';
@@ -127,6 +128,9 @@ export function createSpawner({
     delete el.dataset.dieAt;
     delete el.dataset.jitter;
     delete el.dataset.collected;
+    delete el.dataset.pearl;
+    const pearl = el.querySelector('.coin-pearl');
+    if (pearl) pearl.remove();
 
    if (el.parentNode)
      el.remove();
@@ -368,17 +372,27 @@ function playWaveOncePerBurst() {
             wavesFrag.appendChild(surge);
             newSurges.push(surge);
 
-            // coin
             const el = getCoin();
+            el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
             el.style.setProperty('--x0', `${coin.x0}px`);
             el.style.setProperty('--y0', `${coin.y0}px`);
             el.style.setProperty('--xmid', `${coin.xMid}px`);
             el.style.setProperty('--y1', `${coin.y1}px`);
             el.style.setProperty('--x1', `${coin.x1}px`);
-            // baseline so it's visible even if animation doesn't kick this frame
             el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0)`;
             el.dataset.jitter = String(coin.jitterMs);
-			el.dataset.dieAt = String(performance.now() + coinTtlMs);
+            if (el.dataset.pearl) delete el.dataset.pearl;
+            if (el.querySelector('.coin-pearl')) {
+              el.querySelector('.coin-pearl').remove();
+            }
+            if (arePearlsUnlocked() && Math.random() < 0.01) {
+              el.dataset.pearl = '1';
+              const pearl = document.createElement('div');
+              pearl.className = 'coin-pearl';
+              pearl.style.backgroundImage = 'url(img/misc/merchant.png)';
+              el.appendChild(pearl);
+            }
+            el.dataset.dieAt = String(performance.now() + coinTtlMs);
 
             coinsFrag.appendChild(el);
             newCoins.push(el);
@@ -533,6 +547,11 @@ if (due > 0) {
         rate = Math.max(0, Number(n) || 0);
     }
 
+    function setCoinSprite(src) {
+      if (!src) return;
+      currentCoinSrc = src;
+    }
+
     // Resume clean when tab is visible again
    document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
@@ -544,6 +563,7 @@ if (due > 0) {
     return {
         start,
         stop,
-        setRate
+        setRate,
+        setCoinSprite,
     };
 }
