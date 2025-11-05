@@ -233,13 +233,6 @@ function handleMutationChange(event) {
   }
 }
 
-function handleXpChange(event) {
-  const detail = event?.detail;
-  if (!detail) return;
-  const xpAdded = bnFromAny(detail.xpAdded);
-  if (xpAdded && !isZero(xpAdded)) showPopup('xp', xpAdded);
-}
-
 function handleSlotChange() {
   clearActivePopups();
   syncLastKnown();
