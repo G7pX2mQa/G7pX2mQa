@@ -614,15 +614,15 @@ function renderShopGrid() {
     btn.dataset.upgId = String(upg.id);
 
     const locked = !!upg.locked;
-	const isMysterious = locked && (
+    const isMysterious = locked && (
       upg.lockState?.hidden || upg.lockState?.hideEffect || upg.lockState?.hideCost
-	);
-	const isPlainLocked = locked && !isMysterious;
+    );
+    const isPlainLocked = locked && !isMysterious;
 
     btn.classList.toggle('is-locked', locked);
     btn.classList.toggle('is-locked-plain', isPlainLocked);
-    btn.disabled = isPlainLocked;
-    if (isPlainLocked) {
+    btn.disabled = locked;
+    if (locked) {
       btn.setAttribute('aria-disabled', 'true');
       btn.setAttribute('tabindex', '-1');
     } else {
@@ -673,8 +673,14 @@ function renderShopGrid() {
   }
   btn.setAttribute('aria-label', `${upg.title}, level ${badgePlain}`);
 }
+
         if (locked) {
-          btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
+          const reason = (upg.lockState?.reason || '').trim();
+          if (reason) {
+            btn.title = reason;
+          } else {
+            btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
+          }
         } else if (upg.meta?.unlockUpgrade) {
           btn.title = 'Left-click: Details • Right-click: Unlock';
         } else {
@@ -703,22 +709,37 @@ function renderShopGrid() {
     iconImg.loading = 'lazy';
     iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
 
-    const isPlainLockedUpgrade = () => btn.dataset.lockedPlain === '1';
+    markGhostTapTarget(btn);
 
     btn.addEventListener('click', (event) => {
-      if (btn.disabled || isPlainLockedUpgrade()) {
+      if (btn.disabled || locked) {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
       }
+      if (shouldSkipGhostTap(btn)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+      markGhostTapTarget(btn);
       openUpgradeOverlay(upg.meta);
     });
 
     btn.addEventListener('pointerdown', (event) => {
-      if (btn.disabled || isPlainLockedUpgrade()) {
+      if (btn.disabled || locked) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation?.();
+        return;
+      }
+      if (event.pointerType !== 'mouse') {
+        if (shouldSkipGhostTap(btn)) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
+        markGhostTapTarget(btn);
       }
     });
 
@@ -1069,8 +1090,7 @@ export function openUpgradeOverlay(upgDef) {
   const areaKey = getCurrentAreaKey();
   const initialLockState = getUpgradeLockState(areaKey, upgDef.id) || {};
   const initialLocked = !!initialLockState.locked;
-  const initialMysterious = initialLocked && !!initialLockState.hidden;
-  if (initialLocked && !initialMysterious) {
+  if (initialLocked) {
     upgOpen = false;
     return;
   }
@@ -1154,28 +1174,10 @@ export function openUpgradeOverlay(upgDef) {
         info.appendChild(spacer('12px'));
       }
     }
-    const effectMultiplierFn = model.upg.effectMultiplier;
-	let hasMultiplierLine = false;
-	if (!locked && typeof effectMultiplierFn === 'function') {
-	  const levelArg = model.lvlBn ?? model.lvl;
-	  const mult = effectMultiplierFn(levelArg);
-	  const multStr = formatMult(mult);
-
-      const multHtml = multStr.includes('∞') ? multStr.replace('∞', '<span class="infty">∞</span>') : multStr;
-      info.appendChild(
-        makeLine(`<span class="bonus-line">Coin spawn rate bonus: ${multHtml}</span>`)
-      );
-      info.appendChild(spacer('12px'));
-      hasMultiplierLine = true;
-    }
     if (model.effect && !(locked && lockState?.hideEffect)) {
       const effectText = model.effect;
-      const effectPrefix = effectText.split(':')[0]?.trim().toLowerCase();
-      const duplicateBonus = hasMultiplierLine && effectPrefix === 'coin spawn rate bonus';
-      if (!duplicateBonus) {
-        info.appendChild(makeLine(`<span class="bonus-line">${effectText}</span>`));
-        info.appendChild(spacer('12px'));
-      }
+      info.appendChild(makeLine(`<span class="bonus-line">${effectText}</span>`));
+      info.appendChild(spacer('12px'));
     }
 
     // dynamic currency icon based on costType
