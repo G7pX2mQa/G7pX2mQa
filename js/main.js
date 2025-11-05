@@ -434,6 +434,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       'img/misc/locked.png',
       'img/misc/locked_base.png',
       'img/misc/mysterious.png',
+	  ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.png`),
     ],
     audio: [
       'sounds/coin_pickup.mp3',
