@@ -2,6 +2,7 @@
 
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { arePearlsUnlocked } from './resetSystem.js';
+import { getMutationMultiplier } from './mutationSystem.js';
 
 export function createSpawner({
     playfieldSelector = '.area-cove .playfield',
@@ -349,77 +350,77 @@ function playWaveOncePerBurst() {
         };
     }
 
-    // ---------- commit spawns: batch DOM writes; start animations after append ----------
-    function commitBatch(batch) {
-        if (!batch.length || !validRefs())
-            return;
+function commitBatch(batch) {
+  if (!batch.length || !validRefs()) return;
 
-        const wavesFrag = document.createDocumentFragment();
-        const coinsFrag = document.createDocumentFragment();
-        const newCoins = [];
-        const newSurges = [];
+  const wavesFrag = document.createDocumentFragment();
+  const coinsFrag = document.createDocumentFragment();
+  const newCoins = [];
+  const newSurges = [];
 
-        for (const {
-            wave,
-            coin
-        }
-            of batch) {
-            // wave
-            const surge = getSurge();
-            surge.style.left = `${wave.x}px`;
-            surge.style.top = `${wave.y}px`;
-            surge.style.width = `${wave.w}px`;
-            wavesFrag.appendChild(surge);
-            newSurges.push(surge);
+  for (const { wave, coin } of batch) {
+    const surge = getSurge();
+    surge.style.left = `${wave.x}px`;
+    surge.style.top = `${wave.y}px`;
+    surge.style.width = `${wave.w}px`;
+    wavesFrag.appendChild(surge);
+    newSurges.push(surge);
 
-            const el = getCoin();
-            el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
-            el.style.setProperty('--x0', `${coin.x0}px`);
-            el.style.setProperty('--y0', `${coin.y0}px`);
-            el.style.setProperty('--xmid', `${coin.xMid}px`);
-            el.style.setProperty('--y1', `${coin.y1}px`);
-            el.style.setProperty('--x1', `${coin.x1}px`);
-            el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0)`;
-            el.dataset.jitter = String(coin.jitterMs);
-            if (el.dataset.pearl) delete el.dataset.pearl;
-            if (el.querySelector('.coin-pearl')) {
-              el.querySelector('.coin-pearl').remove();
-            }
-            if (arePearlsUnlocked() && Math.random() < 0.01) {
-              el.dataset.pearl = '1';
-              const pearl = document.createElement('div');
-              pearl.className = 'coin-pearl';
-              pearl.style.backgroundImage = 'url(img/misc/merchant.png)';
-              el.appendChild(pearl);
-            }
-            el.dataset.dieAt = String(performance.now() + coinTtlMs);
-
-            coinsFrag.appendChild(el);
-            newCoins.push(el);
-        }
-
-        refs.s.appendChild(wavesFrag);
-        refs.c.appendChild(coinsFrag);
-
-        // Kick animations after append (pool-safe, restart-safe)
-        requestAnimationFrame(() => {
-  if (newSurges.length) playWaveOncePerBurst();  // <-- add this line
-
-  for (const surge of newSurges) {
-    surge.classList.remove('run');
-    void surge.offsetWidth;
-    surge.classList.add('run');
-    const onEnd = (e) => { if (e.target === surge) releaseSurge(surge); };
-    surge.addEventListener('animationend', onEnd, { once: true });
-  }
-  for (const el of newCoins) {
-    const jitter = Number(el.dataset.jitter) || 0;
-    el.style.animation = 'none';
-    void el.offsetWidth;
-    el.style.animation = `${animationName} ${animationDurationMs}ms ease-out ${jitter}ms 1 both`;
-  }
-});
+    const el = getCoin();
+    el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
+    el.style.setProperty('--x0', `${coin.x0}px`);
+    el.style.setProperty('--y0', `${coin.y0}px`);
+    el.style.setProperty('--xmid', `${coin.xMid}px`);
+    el.style.setProperty('--y1', `${coin.y1}px`);
+    el.style.setProperty('--x1', `${coin.x1}px`);
+    el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0)`;
+    el.dataset.jitter = String(coin.jitterMs);
+    if (el.dataset.pearl) delete el.dataset.pearl;
+    if (el.querySelector('.coin-pearl')) {
+      el.querySelector('.coin-pearl').remove();
     }
+    if (arePearlsUnlocked() && Math.random() < 0.01) {
+      el.dataset.pearl = '1';
+      const pearl = document.createElement('div');
+      pearl.className = 'coin-pearl';
+      pearl.style.backgroundImage = 'url(img/misc/merchant.png)';
+      el.appendChild(pearl);
+    }
+    el.dataset.dieAt = String(performance.now() + coinTtlMs);
+
+    try {
+      el.dataset.mut = getMutationMultiplier()?.toStorage?.() || 'BN:18:1:0';
+    } catch {
+      el.dataset.mut = 'BN:18:1:0';
+    }
+
+    coinsFrag.appendChild(el);
+    newCoins.push(el);
+  }
+
+  refs.s.appendChild(wavesFrag);
+  refs.c.appendChild(coinsFrag);
+
+  requestAnimationFrame(() => {
+    if (newSurges.length) playWaveOncePerBurst();
+
+    for (const surge of newSurges) {
+      surge.classList.remove('run');
+      void surge.offsetWidth;
+      surge.classList.add('run');
+      const onEnd = (e) => {
+        if (e.target === surge) releaseSurge(surge);
+      };
+      surge.addEventListener('animationend', onEnd, { once: true });
+    }
+    for (const el of newCoins) {
+      const jitter = Number(el.dataset.jitter) || 0;
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = `${animationName} ${animationDurationMs}ms ease-out ${jitter}ms 1 both`;
+    }
+  });
+}
 
     function spawnBurst(n = 1) {
         if (!validRefs())
