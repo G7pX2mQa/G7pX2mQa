@@ -1520,7 +1520,7 @@ const REGISTRY = [
     baseCost: 0,
     costType: "gold",
     upgType: "NM",
-    icon: "misc/merchant.png",
+    icon: "misc/forge.png",
     requiresUnlockXp: true,
     revealRequirement: 'Reach XP Level 31 to reveal this upgrade',
     unlockUpgrade: true,
