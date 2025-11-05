@@ -52,8 +52,8 @@ const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.png';
 const CURRENCY_ICON_SRC = {
   coins: 'img/currencies/coin/coin.png',
   books: 'img/currencies/book/book.png',
-  gold: 'img/misc/gold.png',
-  pearls: 'img/misc/pearl.png',
+  gold: 'img/currencies/gold/gold.png',
+  pearls: 'img/currencies/pearl/pearl.png',
 };
 
 export function blockInteraction(ms = 140) {
