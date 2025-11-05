@@ -96,7 +96,7 @@ function computeRequirement(levelBn) {
   if (!Number.isFinite(levelNum)) {
     return BN.fromAny('Infinity');
   }
-  const m = Math.max(0, levelNum);
+  const m = Math.max(0, levelNum + 1);
   const tail = Math.max(0, m - 10);
   const poly = -0.0022175354763501742 * m * m
     + 0.20449967884058884 * m
