@@ -31,7 +31,7 @@ const BN = BigNum;
 const bnZero = () => BN.fromInt(0);
 const bnOne = () => BN.fromInt(1);
 
-const GOLD_ICON_SRC = 'img/misc/gold.png';
+const GOLD_ICON_SRC = 'img/currencies/gold/gold.png';
 const RESET_ICON_SRC = 'img/misc/forge.png';
 
 const PEARL_UNLOCK_KEY = (slot) => `ccc:reset:pearls:${slot}`;
