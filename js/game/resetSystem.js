@@ -1,0 +1,444 @@
+// js/game/resetSystem.js
+
+import { BigNum } from '../util/bigNum.js';
+import {
+  bank,
+  getActiveSlot,
+  watchStorageKey,
+  primeStorageWatcherSnapshot,
+} from '../util/storage.js';
+import { formatNumber } from '../util/numFormat.js';
+import {
+  getXpState,
+  resetXpProgress,
+} from './xpSystem.js';
+import {
+  AREA_KEYS,
+  getUpgradesForArea,
+  getLevelNumber,
+  setLevel,
+  approxLog10BigNum,
+  bigNumFromLog10,
+} from './upgrades.js';
+import {
+  initMutationSystem,
+  unlockMutationSystem,
+  getMutationCoinSprite,
+  onMutationChange,
+} from './mutationSystem.js';
+
+const BN = BigNum;
+const bnZero = () => BN.fromInt(0);
+const bnOne = () => BN.fromInt(1);
+
+const GOLD_ICON_SRC = 'img/misc/merchant.png';
+const RESET_ICON_SRC = 'img/misc/merchant.png';
+
+const PEARL_UNLOCK_KEY = (slot) => `ccc:reset:pearls:${slot}`;
+const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
+
+const resetState = {
+  slot: null,
+  forgeUnlocked: false,
+  pearlsUnlocked: false,
+  pendingGold: bnZero(),
+  panel: null,
+  pendingEl: null,
+  requirementEl: null,
+  actionBtn: null,
+  statusEl: null,
+  layerButtons: {},
+};
+
+const watchers = [];
+let watchersBoundSlot = null;
+let initialized = false;
+let mutationUnsub = null;
+
+function cleanupWatchers() {
+  while (watchers.length) {
+    const stop = watchers.pop();
+    try { stop?.(); } catch {}
+  }
+}
+
+function levelToNumber(levelBn) {
+  if (!levelBn || typeof levelBn !== 'object') return 0;
+  if (levelBn.isInfinite?.()) return Number.POSITIVE_INFINITY;
+  try {
+    const plain = levelBn.toPlainIntegerString?.();
+    if (plain && plain !== 'Infinity' && plain.length <= 15) {
+      const num = Number(plain);
+      if (Number.isFinite(num)) return num;
+    }
+  } catch {}
+  const approx = approxLog10BigNum(levelBn);
+  if (!Number.isFinite(approx)) return Number.POSITIVE_INFINITY;
+  if (approx > 15) return Number.POSITIVE_INFINITY;
+  return Math.pow(10, approx);
+}
+
+function getXpLevelBn() {
+  try {
+    const state = getXpState();
+    if (state && state.xpLevel) return state.xpLevel;
+  } catch {}
+  return bnZero();
+}
+
+function computeForgeGold(coinsBn, levelBn) {
+  if (!coinsBn || typeof coinsBn !== 'object') return bnZero();
+  if (coinsBn.isZero?.()) return bnZero();
+  const logCoins = approxLog10BigNum(coinsBn);
+  if (!Number.isFinite(logCoins)) {
+    return logCoins > 0 ? BN.fromAny('Infinity') : bnZero();
+  }
+  const logScaled = logCoins - 5;
+  if (!Number.isFinite(logScaled)) return bnZero();
+  const pow2 = bigNumFromLog10(logScaled * Math.log10(2));
+  const levelNum = Math.max(0, levelToNumber(levelBn));
+  const levelFactor = Math.max(0, (levelNum - 30) / 5);
+  const pow14 = levelFactor <= 0
+    ? bnOne()
+    : bigNumFromLog10(levelFactor * Math.log10(1.4));
+  const floorLog = Math.floor(logScaled);
+  const pow115 = floorLog <= 0
+    ? bnOne()
+    : bigNumFromLog10(floorLog * Math.log10(1.15));
+  let total = BN.fromInt(10);
+  total = total.mulBigNumInteger(pow2);
+  total = total.mulBigNumInteger(pow14);
+  total = total.mulBigNumInteger(pow115);
+  const floored = total.floorToInteger();
+  return floored.isZero?.() ? bnZero() : floored;
+}
+
+function getXpLevelNumber() {
+  return Math.max(0, levelToNumber(getXpLevelBn()));
+}
+
+function setPearlsUnlocked(value) {
+  const slot = resetState.slot;
+  if (slot == null) return;
+  resetState.pearlsUnlocked = !!value;
+  try { localStorage.setItem(PEARL_UNLOCK_KEY(slot), resetState.pearlsUnlocked ? '1' : '0'); }
+  catch {}
+  primeStorageWatcherSnapshot(PEARL_UNLOCK_KEY(slot));
+  updateHudVisibility();
+}
+
+function setForgeUnlocked(value) {
+  const slot = resetState.slot;
+  if (slot == null) return;
+  resetState.forgeUnlocked = !!value;
+  try { localStorage.setItem(FORGE_UNLOCK_KEY(slot), resetState.forgeUnlocked ? '1' : '0'); }
+  catch {}
+  primeStorageWatcherSnapshot(FORGE_UNLOCK_KEY(slot));
+  updateHudVisibility();
+}
+
+function readPersistentFlags(slot) {
+  if (slot == null) {
+    resetState.pearlsUnlocked = false;
+    resetState.forgeUnlocked = false;
+    return;
+  }
+  try {
+    resetState.pearlsUnlocked = localStorage.getItem(PEARL_UNLOCK_KEY(slot)) === '1';
+  } catch {
+    resetState.pearlsUnlocked = false;
+  }
+  try {
+    resetState.forgeUnlocked = localStorage.getItem(FORGE_UNLOCK_KEY(slot)) === '1';
+  } catch {
+    resetState.forgeUnlocked = false;
+  }
+}
+
+function bindStorageWatchers(slot) {
+  if (watchersBoundSlot === slot) return;
+  cleanupWatchers();
+  watchersBoundSlot = slot;
+  if (slot == null) return;
+  watchers.push(watchStorageKey(PEARL_UNLOCK_KEY(slot), {
+    onChange(value) {
+      const next = value === '1';
+      if (resetState.pearlsUnlocked !== next) {
+        resetState.pearlsUnlocked = next;
+        updateHudVisibility();
+        updateResetPanel();
+      }
+    },
+  }));
+  watchers.push(watchStorageKey(FORGE_UNLOCK_KEY(slot), {
+    onChange(value) {
+      const next = value === '1';
+      if (resetState.forgeUnlocked !== next) {
+        resetState.forgeUnlocked = next;
+        updateHudVisibility();
+        updateResetPanel();
+      }
+    },
+  }));
+}
+
+function updateHudVisibility() {
+  const goldHud = document.querySelector('[data-gold-hud]');
+  const pearlHud = document.querySelector('[data-pearl-hud]');
+  if (goldHud) {
+    if (isForgeUnlocked()) {
+      goldHud.removeAttribute('hidden');
+    } else {
+      goldHud.setAttribute('hidden', '');
+    }
+  }
+  if (pearlHud) {
+    if (resetState.pearlsUnlocked) {
+      pearlHud.removeAttribute('hidden');
+    } else {
+      pearlHud.setAttribute('hidden', '');
+    }
+  }
+}
+
+function recomputePendingGold() {
+  const coins = bank.coins?.value ?? bnZero();
+  const level = getXpLevelBn();
+  resetState.pendingGold = computeForgeGold(coins, level);
+  updateResetPanel();
+}
+
+function canAccessForgeTab() {
+  return resetState.forgeUnlocked || getLevelNumber(AREA_KEYS.STARTER_COVE, 7) >= 1;
+}
+
+function meetsLevelRequirement() {
+  return getXpLevelNumber() >= 31;
+}
+
+export function arePearlsUnlocked() {
+  return !!resetState.pearlsUnlocked;
+}
+
+export function isForgeUnlocked() {
+  return !!resetState.forgeUnlocked || canAccessForgeTab();
+}
+
+export function computePendingForgeGold() {
+  recomputePendingGold();
+  return resetState.pendingGold.clone?.() ?? resetState.pendingGold;
+}
+
+export function canPerformForgeReset() {
+  if (!isForgeUnlocked()) return false;
+  if (!meetsLevelRequirement()) return false;
+  if (resetState.pendingGold.isZero?.()) return false;
+  const coins = bank.coins?.value;
+  if (!coins || coins.isZero?.()) return false;
+  return true;
+}
+
+function resetUpgrades() {
+  const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
+  for (const upg of upgrades) {
+    if (!upg) continue;
+    if (upg.id === 2 || upg.id === 7) continue;
+    if (upg.costType === 'gold' || upg.costType === 'pearls') continue;
+    setLevel(AREA_KEYS.STARTER_COVE, upg.id, 0);
+  }
+}
+
+export function performForgeReset() {
+  if (!canPerformForgeReset()) return false;
+  const reward = resetState.pendingGold.clone?.() ?? resetState.pendingGold;
+  try { bank.gold.add(reward); } catch {}
+  try { bank.coins.set(0); } catch {}
+  try { bank.books.set(0); } catch {}
+  try { resetXpProgress({ keepUnlock: true }); } catch {}
+  resetUpgrades();
+  recomputePendingGold();
+  setForgeUnlocked(true);
+  if (!resetState.pearlsUnlocked) {
+    setPearlsUnlocked(true);
+  }
+  initMutationSystem();
+  unlockMutationSystem();
+  updateResetPanel();
+  return true;
+}
+
+function formatBn(value) {
+  try { return formatNumber(value); }
+  catch { return value?.toString?.() ?? '0'; }
+}
+
+function setLayerActive(layer) {
+  for (const key in resetState.layerButtons) {
+    resetState.layerButtons[key].classList.toggle('is-active', key === layer);
+  }
+}
+
+function buildPanel(panelEl) {
+  panelEl.innerHTML = `
+    <div class="merchant-reset">
+      <aside class="merchant-reset__sidebar">
+        <button type="button" class="merchant-reset__layer is-active" data-reset-layer="forge">
+          <img src="${RESET_ICON_SRC}" alt="">
+          <span>Forge</span>
+        </button>
+      </aside>
+      <div class="merchant-reset__main">
+        <header class="merchant-reset__header">
+          <img src="${RESET_ICON_SRC}" alt="" class="merchant-reset__icon">
+          <div class="merchant-reset__titles">
+            <h3>Forge Reset</h3>
+            <p>Reset coins, XP, and upgrades (except Unlock XP & Forge) to earn Gold.</p>
+          </div>
+        </header>
+        <div class="merchant-reset__body">
+          <div class="merchant-reset__reward">
+            <img src="${GOLD_ICON_SRC}" alt="">
+            <span data-reset-pending>0</span>
+          </div>
+          <div class="merchant-reset__status" data-reset-status></div>
+          <button type="button" class="merchant-reset__action" data-reset-action>Perform Forge Reset</button>
+        </div>
+      </div>
+    </div>
+  `;
+  resetState.panel = panelEl;
+  resetState.pendingEl = panelEl.querySelector('[data-reset-pending]');
+  resetState.statusEl = panelEl.querySelector('[data-reset-status]');
+  resetState.actionBtn = panelEl.querySelector('[data-reset-action]');
+  resetState.layerButtons = {
+    forge: panelEl.querySelector('[data-reset-layer="forge"]'),
+  };
+  Object.entries(resetState.layerButtons).forEach(([key, btn]) => {
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      setLayerActive(key);
+      updateResetPanel();
+    });
+  });
+  if (resetState.actionBtn) {
+    resetState.actionBtn.addEventListener('click', () => {
+      if (performForgeReset()) {
+        updateResetPanel();
+      }
+    });
+  }
+  updateResetPanel();
+}
+
+export function initResetPanel(panelEl) {
+  if (!panelEl || panelEl.__resetInit) return;
+  panelEl.__resetInit = true;
+  buildPanel(panelEl);
+}
+
+function updatePendingDisplay() {
+  if (!resetState.pendingEl) return;
+  resetState.pendingEl.innerHTML = formatBn(resetState.pendingGold);
+}
+
+function updateStatusDisplay() {
+  if (!resetState.statusEl) return;
+  if (!isForgeUnlocked()) {
+    resetState.statusEl.textContent = 'Unlock the Forge upgrade to access resets.';
+    return;
+  }
+  if (!meetsLevelRequirement()) {
+    resetState.statusEl.textContent = 'Reach XP Level 31 to perform a Forge reset.';
+    return;
+  }
+  if (resetState.pendingGold.isZero?.()) {
+    resetState.statusEl.textContent = 'Collect more coins to earn Gold from a Forge reset.';
+    return;
+  }
+  resetState.statusEl.textContent = `Resetting will grant ${formatBn(resetState.pendingGold)} Gold.`;
+}
+
+function updateActionState() {
+  if (!resetState.actionBtn) return;
+  const disabled = !canPerformForgeReset();
+  resetState.actionBtn.disabled = disabled;
+}
+
+export function updateResetPanel() {
+  if (!resetState.panel) return;
+  updatePendingDisplay();
+  updateStatusDisplay();
+  updateActionState();
+}
+
+export function onForgeUpgradeUnlocked() {
+  initResetSystem();
+  setForgeUnlocked(true);
+  updateResetPanel();
+}
+
+function bindGlobalEvents() {
+  if (typeof window === 'undefined') return;
+  window.addEventListener('currency:change', (e) => {
+    if (e.detail?.key === 'coins') {
+      recomputePendingGold();
+    }
+  });
+  window.addEventListener('xp:change', () => {
+    recomputePendingGold();
+    updateResetPanel();
+  });
+}
+
+export function initResetSystem() {
+  if (initialized) {
+    recomputePendingGold();
+    updateHudVisibility();
+    return;
+  }
+  initialized = true;
+  initMutationSystem();
+  const slot = getActiveSlot();
+  resetState.slot = slot;
+  readPersistentFlags(slot);
+  if (!resetState.forgeUnlocked && canAccessForgeTab()) {
+    setForgeUnlocked(true);
+  }
+  bindStorageWatchers(slot);
+  bindGlobalEvents();
+  updateHudVisibility();
+  recomputePendingGold();
+  if (mutationUnsub) {
+    try { mutationUnsub(); } catch {}
+    mutationUnsub = null;
+  }
+  mutationUnsub = onMutationChange(() => {
+    const sprite = getMutationCoinSprite();
+    if (typeof window !== 'undefined' && window.spawner && typeof window.spawner.setCoinSprite === 'function') {
+      try { window.spawner.setCoinSprite(sprite); } catch {}
+    }
+  });
+  if (typeof window !== 'undefined') {
+    window.addEventListener('saveSlot:change', () => {
+      const nextSlot = getActiveSlot();
+      resetState.slot = nextSlot;
+      readPersistentFlags(nextSlot);
+      if (!resetState.forgeUnlocked && canAccessForgeTab()) {
+        setForgeUnlocked(true);
+      }
+      bindStorageWatchers(nextSlot);
+      updateHudVisibility();
+      recomputePendingGold();
+      updateResetPanel();
+    });
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.resetSystem = window.resetSystem || {};
+  Object.assign(window.resetSystem, {
+    initResetSystem,
+    performForgeReset,
+    computePendingForgeGold,
+  });
+}
