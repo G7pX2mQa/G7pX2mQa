@@ -11,12 +11,6 @@
   will-change: transform, opacity;
 }
 
-.coin .coin-pearl{
-  position: absolute;
-  inset: 6px;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  pointer-events: none;
+.coin.coin--pearl {
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
 }
