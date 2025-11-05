@@ -438,10 +438,19 @@ export function getMutationMultiplier() {
 }
 
 export function getMutationCoinSprite() {
-  return mutationState.unlocked && !mutationState.level.isZero?.()
-    ? 'img/misc/merchant.png'
-    : 'img/currencies/coin/coin.png';
+  if (!mutationState.unlocked || mutationState.level.isZero?.()) {
+    return 'img/currencies/coin/coin.png';
+  }
+
+  const levelNum = levelToNumber(mutationState.level);
+  if (!Number.isFinite(levelNum)) {
+    return 'img/mutations/m25.png';
+  }
+  const idx = Math.max(1, Math.min(25, Math.floor(levelNum)));
+
+  return `img/mutations/m${idx}.png`;
 }
+
 
 export function onMutationChange(callback) {
   if (typeof callback !== 'function') return () => {};
