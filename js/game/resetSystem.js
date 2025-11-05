@@ -78,7 +78,7 @@ function levelToNumber(levelBn) {
   if (!Number.isFinite(approx)) return Number.POSITIVE_INFINITY;
   if (approx > 308) return Number.POSITIVE_INFINITY;
   return Math.pow(10, approx);
-}␊
+}
 
 function getXpLevelBn() {
   try {
