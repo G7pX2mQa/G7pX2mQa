@@ -31,8 +31,8 @@ const BN = BigNum;
 const bnZero = () => BN.fromInt(0);
 const bnOne = () => BN.fromInt(1);
 
-const GOLD_ICON_SRC = 'img/misc/merchant.png';
-const RESET_ICON_SRC = 'img/misc/merchant.png';
+const GOLD_ICON_SRC = 'img/misc/gold.png';
+const RESET_ICON_SRC = 'img/misc/forge.png';
 
 const PEARL_UNLOCK_KEY = (slot) => `ccc:reset:pearls:${slot}`;
 const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
