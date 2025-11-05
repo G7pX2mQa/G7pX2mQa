@@ -434,6 +434,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       'img/misc/locked.png',
       'img/misc/locked_base.png',
       'img/misc/mysterious.png',
+	  // will add the other stuff like pearls and gold and everything else when they don't use placeholder images
 	  ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.png`),
     ],
     audio: [
