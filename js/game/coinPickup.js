@@ -38,32 +38,25 @@ export function initCoinPickup({
   playfieldSelector   = '.area-cove .playfield',
   coinsLayerSelector  = '.area-cove .coins-layer',
   hudAmountSelector   = '.hud-top .coin-amount',
-  // A tolerant default: supports class, data-attr, or prior sprite class names.
   coinSelector        = '.coin, [data-coin], .coin-sprite',
   soundSrc            = 'sounds/coin_pickup.mp3',
   storageKey          = 'ccc:coins',
   disableAnimation    = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window),
 } = {}) {
-  // Clean up previous init if any
   if (coinPickup?.destroy) {
     coinPickup.destroy();
   }
-
-  // ----- DOM -----
+  
   const pf  = document.querySelector(playfieldSelector);
   const cl  = document.querySelector(coinsLayerSelector);
   const amt = document.querySelector(hudAmountSelector);
-  const goldHud = document.querySelector('[data-gold-hud] .gold-amount');
-  const pearlHud = document.querySelector('[data-pearl-hud] .pearl-amount');
   if (!pf || !cl || !amt) {
     console.warn('[coinPickup] missing required nodes', { pf: !!pf, cl: !!cl, amt: !!amt });
     return { destroy(){} };
   }
-
-  // Avoid browser gestures hijacking touch while keeping pointer events flowing
+  
   pf.style.touchAction = 'none';
 
-  // ----- HUD / storage -----
   let coins = bank.coins.value;
   const updateHud = () => {
     const formatted = formatNumber(coins);
@@ -75,26 +68,6 @@ export function initCoinPickup({
   };
   updateHud();
 
-  const updateGoldHud = () => {
-    if (!goldHud) return;
-    try {
-      goldHud.innerHTML = formatNumber(bank.gold.value);
-    } catch {
-      goldHud.textContent = bank.gold.value?.toString?.() ?? '0';
-    }
-  };
-
-  const updatePearlHud = () => {
-    if (!pearlHud) return;
-    try {
-      pearlHud.innerHTML = formatNumber(bank.pearls.value);
-    } catch {
-      pearlHud.textContent = bank.pearls.value?.toString?.() ?? '0';
-    }
-  };
-
-  updateGoldHud();
-  updatePearlHud();
   try {
     if (bank.coins?.mult?.get && bank.coins?.mult?.set) {
       const curr = bank.coins.mult.get(); // BN
@@ -104,16 +77,11 @@ export function initCoinPickup({
     }
   } catch {}
 
-  // keep HUD in sync if other systems change coins
   window.addEventListener('currency:change', (e) => {
     if (!e?.detail) return;
     if (e.detail.key === 'coins') {
-      coins = e.detail.value;   // BigNum
+      coins = e.detail.value;
       updateHud();
-    } else if (e.detail.key === 'gold') {
-      updateGoldHud();
-    } else if (e.detail.key === 'pearls') {
-      updatePearlHud();
     }
   });
 
