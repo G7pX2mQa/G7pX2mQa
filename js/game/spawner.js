@@ -30,8 +30,10 @@ export function createSpawner({
 
     let currentCoinSrc = coinSrc;
     const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const PEARL_SPRITE_SRC = 'img/currencies/pearl/pearl.png';
 	const MOBILE_BACKLOG_CAP = 50;
 	let burstUntil = 0;
+	let PEARL_SPAWN_CHANCE = 0.01;
 
 	const BURST_WINDOW_MS        = 120;
 	const BURST_TIME_BUDGET_MS   = 10.0;
@@ -130,8 +132,7 @@ export function createSpawner({
     delete el.dataset.jitter;
     delete el.dataset.collected;
     delete el.dataset.pearl;
-    const pearl = el.querySelector('.coin-pearl');
-    if (pearl) pearl.remove();
+    el.classList.remove('coin--pearl');
 
    if (el.parentNode)
      el.remove();
@@ -345,7 +346,8 @@ function playWaveOncePerBurst() {
                 xMid: midX,
                 y1: endY,
                 x1: endX,
-                jitterMs
+                jitterMs,
+                isPearl: false
             }
         };
     }
@@ -359,15 +361,19 @@ function commitBatch(batch) {
   const newSurges = [];
 
   for (const { wave, coin } of batch) {
-    const surge = getSurge();
-    surge.style.left = `${wave.x}px`;
-    surge.style.top = `${wave.y}px`;
-    surge.style.width = `${wave.w}px`;
-    wavesFrag.appendChild(surge);
-    newSurges.push(surge);
+    if (wave) {
+      const surge = getSurge();
+      surge.style.left = `${wave.x}px`;
+      surge.style.top = `${wave.y}px`;
+      surge.style.width = `${wave.w}px`;
+      wavesFrag.appendChild(surge);
+      newSurges.push(surge);
+    }
 
     const el = getCoin();
-    el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
+    const isPearl = coin?.isPearl === true;
+    const spriteSrc = isPearl ? PEARL_SPRITE_SRC : currentCoinSrc;
+    el.style.background = `url(${spriteSrc}) center/contain no-repeat`;
     el.style.setProperty('--x0', `${coin.x0}px`);
     el.style.setProperty('--y0', `${coin.y0}px`);
     el.style.setProperty('--xmid', `${coin.xMid}px`);
@@ -375,16 +381,12 @@ function commitBatch(batch) {
     el.style.setProperty('--x1', `${coin.x1}px`);
     el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0)`;
     el.dataset.jitter = String(coin.jitterMs);
-    if (el.dataset.pearl) delete el.dataset.pearl;
-    if (el.querySelector('.coin-pearl')) {
-      el.querySelector('.coin-pearl').remove();
-    }
-    if (arePearlsUnlocked() && Math.random() < 0.01) {
+    if (isPearl) {
       el.dataset.pearl = '1';
-      const pearl = document.createElement('div');
-      pearl.className = 'coin-pearl';
-      pearl.style.backgroundImage = 'url(img/currencies/pearl/pearl.png)';
-      el.appendChild(pearl);
+      el.classList.add('coin--pearl');
+    } else {
+      if (el.dataset.pearl) delete el.dataset.pearl;
+      el.classList.remove('coin--pearl');
     }
     el.dataset.dieAt = String(performance.now() + coinTtlMs);
 
@@ -430,8 +432,18 @@ function commitBatch(batch) {
         const batch = [];
         for (let i = 0; i < n; i++) {
             const plan = planSpawn();
-            if (plan)
+            if (plan) {
+                plan.coin.isPearl = !!plan.coin.isPearl;
                 batch.push(plan);
+                if (plan.coin.isPearl !== true && arePearlsUnlocked() && Math.random() < PEARL_SPAWN_CHANCE) {
+                    const pearlPlan = planSpawn();
+                    if (pearlPlan) {
+                        pearlPlan.coin.isPearl = true;
+                        pearlPlan.wave = null;
+                        batch.push(pearlPlan);
+                    }
+                }
+            }
         }
         if (batch.length)
             commitBatch(batch);
