@@ -9,6 +9,7 @@ import {
 import { BigNum } from '../util/bigNum.js';
 import { MERCHANT_DIALOGUES } from '../misc/merchantDialogues.js';
 import { getXpState, isXpSystemUnlocked } from '../game/xpSystem.js';
+import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked } from '../game/resetSystem.js';
 import { blockInteraction } from './shopOverlay.js';
 import {
   markGhostTapTarget,
@@ -40,7 +41,7 @@ export function hasMetMerchant() {
 
 const MERCHANT_TABS_DEF = [
   { key: 'dialogue',  label: 'Dialogue', unlocked: true },
-  { key: 'reset',     label: '???',      unlocked: false },
+  { key: 'reset',     label: 'Reset',    unlocked: false },
   { key: 'minigames', label: '???',      unlocked: false },
 ];
 
@@ -970,12 +971,10 @@ function ensureMerchantOverlay() {
   const panelsWrap = document.createElement('div');
   panelsWrap.className = 'merchant-panels';
 
-  // Dialogue panel
   const panelDialogue = document.createElement('section');
   panelDialogue.className = 'merchant-panel is-active';
   panelDialogue.id = 'merchant-panel-dialogue';
 
-  // Other panels (locked initially)
   const panelReset = document.createElement('section');
   panelReset.className = 'merchant-panel';
   panelReset.id = 'merchant-panel-reset';
@@ -984,13 +983,12 @@ function ensureMerchantOverlay() {
   panelMinigames.className = 'merchant-panel';
   panelMinigames.id = 'merchant-panel-minigames';
 
-  // Tabs setup
   MERCHANT_TABS_DEF.forEach(def => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'merchant-tab';
     btn.dataset.tab = def.key;
-    btn.textContent = def.unlocked ? def.label : '???';
+    btn.textContent = def.label;
     if (!def.unlocked) {
       btn.classList.add('is-locked');
       btn.disabled = true;
@@ -1008,6 +1006,15 @@ function ensureMerchantOverlay() {
 
   panelsWrap.append(panelDialogue, panelReset, panelMinigames);
   content.append(header, tabs, panelsWrap);
+
+  try { initResetSystem(); } catch {}
+  try { initResetPanel(panelReset); } catch {}
+  try { updateResetPanel(); } catch {}
+  try {
+    if (isForgeUnlocked?.()) {
+      unlockMerchantTabs(['reset']);
+    }
+  } catch {}
 
   // Actions
   const actions = document.createElement('div');
