@@ -45,11 +45,15 @@ const ICON_DIR = 'img/';
 const BASE_ICON_SRC_BY_COST = {
   coins: 'img/currencies/coin/coin_base.png',
   books: 'img/currencies/book/book_base.png',
+  gold: 'img/misc/locked_base.png',
+  pearls: 'img/misc/locked_base.png',
 };
 const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.png';
 const CURRENCY_ICON_SRC = {
   coins: 'img/currencies/coin/coin.png',
   books: 'img/currencies/book/book.png',
+  gold: 'img/misc/merchant.png',
+  pearls: 'img/misc/merchant.png',
 };
 
 export function blockInteraction(ms = 140) {
@@ -669,11 +673,13 @@ function renderShopGrid() {
   }
   btn.setAttribute('aria-label', `${upg.title}, level ${badgePlain}`);
 }
-	if (locked) {
-	  btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
-	} else {
-	  btn.title = 'Left-click: Details • Right-click: Buy Max';
-	}
+        if (locked) {
+          btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
+        } else if (upg.meta?.unlockUpgrade) {
+          btn.title = 'Left-click: Details • Right-click: Unlock';
+        } else {
+          btn.title = 'Left-click: Details • Right-click: Buy Max';
+        }
 
     const tile = document.createElement('div');
     tile.className = 'shop-tile';
@@ -716,7 +722,6 @@ function renderShopGrid() {
       }
     });
 
-    // Right-click: Buy Max (desktop)
     btn.addEventListener('contextmenu', (e) => {
       if (IS_MOBILE) return;
       if (locked) return;
@@ -727,6 +732,9 @@ function renderShopGrid() {
       const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
       if (!boughtBn.isZero?.()) {
         playPurchaseSfx();
+        if (upg.meta?.unlockUpgrade) {
+          try { unlockMerchantTabs(['reset']); } catch {}
+        }
         updateShopOverlay();
       }
     });
@@ -1219,13 +1227,35 @@ export function openUpgradeOverlay(upgDef) {
       actions.append(closeBtn);
       closeBtn.focus();
     } else if (capReached) {
-      // MAX: only Close (no Buy/Buy Max/Buy Next)
       actions.append(closeBtn);
       closeBtn.focus();
     } else {
       const canAffordNext = model.have.cmp(nextPriceBn) >= 0;
 
-      // Buy 1 — with fresh re-check before spending
+      if (model.unlockUpgrade) {
+        const unlockBtn = document.createElement('button');
+        unlockBtn.type = 'button';
+        unlockBtn.className = 'shop-delve';
+        unlockBtn.textContent = 'Unlock';
+        unlockBtn.disabled = !canAffordNext;
+        unlockBtn.addEventListener('click', () => {
+          const { bought } = buyOne(areaKey, upgDef.id);
+          const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+          if (!boughtBn.isZero?.()) {
+            playPurchaseSfx();
+            if (upgDef.id === 7) {
+              try { unlockMerchantTabs(['reset']); } catch {}
+            }
+            updateShopOverlay();
+            rerender();
+          }
+        });
+
+        actions.append(closeBtn, unlockBtn);
+        (canAffordNext ? unlockBtn : closeBtn).focus();
+        return;
+      }
+
       const buyBtn = document.createElement('button');
       buyBtn.type = 'button';
       buyBtn.className = 'shop-delve';
