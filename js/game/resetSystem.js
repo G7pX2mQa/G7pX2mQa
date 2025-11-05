@@ -36,11 +36,13 @@ const RESET_ICON_SRC = 'img/misc/forge.png';
 
 const PEARL_UNLOCK_KEY = (slot) => `ccc:reset:pearls:${slot}`;
 const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
+const FORGE_COMPLETED_KEY = (slot) => `ccc:reset:forge:completed:${slot}`;
 
 const resetState = {
   slot: null,
   forgeUnlocked: false,
   pearlsUnlocked: false,
+  hasCompletedForgeReset: false,
   pendingGold: bnZero(),
   panel: null,
   pendingEl: null,
@@ -74,9 +76,9 @@ function levelToNumber(levelBn) {
   } catch {}
   const approx = approxLog10BigNum(levelBn);
   if (!Number.isFinite(approx)) return Number.POSITIVE_INFINITY;
-  if (approx > 15) return Number.POSITIVE_INFINITY;
+  if (approx > 308) return Number.POSITIVE_INFINITY;
   return Math.pow(10, approx);
-}
+}␊
 
 function getXpLevelBn() {
   try {
@@ -127,6 +129,15 @@ function setPearlsUnlocked(value) {
   updateHudVisibility();
 }
 
+function setForgeResetCompleted(value) {
+  const slot = resetState.slot;
+  if (slot == null) return;
+  resetState.hasCompletedForgeReset = !!value;
+  try { localStorage.setItem(FORGE_COMPLETED_KEY(slot), resetState.hasCompletedForgeReset ? '1' : '0'); }
+  catch {}
+  primeStorageWatcherSnapshot(FORGE_COMPLETED_KEY(slot));
+}
+
 function setForgeUnlocked(value) {
   const slot = resetState.slot;
   if (slot == null) return;
@@ -141,6 +152,7 @@ function readPersistentFlags(slot) {
   if (slot == null) {
     resetState.pearlsUnlocked = false;
     resetState.forgeUnlocked = false;
+    resetState.hasCompletedForgeReset = false;
     return;
   }
   try {
@@ -152,6 +164,11 @@ function readPersistentFlags(slot) {
     resetState.forgeUnlocked = localStorage.getItem(FORGE_UNLOCK_KEY(slot)) === '1';
   } catch {
     resetState.forgeUnlocked = false;
+  }
+  try {
+    resetState.hasCompletedForgeReset = localStorage.getItem(FORGE_COMPLETED_KEY(slot)) === '1';
+  } catch {
+    resetState.hasCompletedForgeReset = false;
   }
 }
 
@@ -176,6 +193,15 @@ function bindStorageWatchers(slot) {
       if (resetState.forgeUnlocked !== next) {
         resetState.forgeUnlocked = next;
         updateHudVisibility();
+        updateResetPanel();
+      }
+    },
+  }));
+  watchers.push(watchStorageKey(FORGE_COMPLETED_KEY(slot), {
+    onChange(value) {
+      const next = value === '1';
+      if (resetState.hasCompletedForgeReset !== next) {
+        resetState.hasCompletedForgeReset = next;
         updateResetPanel();
       }
     },
@@ -224,6 +250,10 @@ export function isForgeUnlocked() {
   return !!resetState.forgeUnlocked || canAccessForgeTab();
 }
 
+export function hasCompletedForgeReset() {
+  return !!resetState.hasCompletedForgeReset;
+}
+
 export function computePendingForgeGold() {
   recomputePendingGold();
   return resetState.pendingGold.clone?.() ?? resetState.pendingGold;
@@ -260,6 +290,9 @@ export function performForgeReset() {
   setForgeUnlocked(true);
   if (!resetState.pearlsUnlocked) {
     setPearlsUnlocked(true);
+  }
+  if (!resetState.hasCompletedForgeReset) {
+    setForgeResetCompleted(true);
   }
   initMutationSystem();
   unlockMutationSystem();
@@ -401,8 +434,14 @@ export function initResetSystem() {
   const slot = getActiveSlot();
   resetState.slot = slot;
   readPersistentFlags(slot);
+  if (resetState.pearlsUnlocked && !resetState.hasCompletedForgeReset) {
+    setForgeResetCompleted(true);
+  }
   if (!resetState.forgeUnlocked && canAccessForgeTab()) {
     setForgeUnlocked(true);
+  }
+  if (resetState.hasCompletedForgeReset && !resetState.pearlsUnlocked) {
+    setPearlsUnlocked(true);
   }
   bindStorageWatchers(slot);
   bindGlobalEvents();
