@@ -41,7 +41,7 @@ export function hasMetMerchant() {
 
 const MERCHANT_TABS_DEF = [
   { key: 'dialogue',  label: 'Dialogue', unlocked: true },
-  { key: 'reset',     label: 'Reset',    unlocked: false },
+  { key: 'reset',     label: 'Reset',    unlocked: false, lockedLabel: '???' },
   { key: 'minigames', label: '???',      unlocked: false },
 ];
 
@@ -675,7 +675,13 @@ class DialogueEngine {
       btn.type = 'button';
       btn.className = 'choice';
       btn.textContent = opt.label;
+      markGhostTapTarget(btn);
       btn.addEventListener('click', async (e) => {
+        if (shouldSkipGhostTap(btn)) {
+          e.preventDefault();
+          return;
+        }
+        markGhostTapTarget(btn);
         e.stopPropagation();
         this._reservedH = this.choicesEl.offsetHeight | 0;
         this.choicesEl.style.minHeight = this._reservedH + 'px';
@@ -988,13 +994,54 @@ function ensureMerchantOverlay() {
     btn.type = 'button';
     btn.className = 'merchant-tab';
     btn.dataset.tab = def.key;
-    btn.textContent = def.label;
+    const lockedLabel = def.lockedLabel || '???';
+    btn.textContent = def.unlocked ? def.label : lockedLabel;
     if (!def.unlocked) {
       btn.classList.add('is-locked');
       btn.disabled = true;
       btn.title = 'Locked';
     }
-    btn.addEventListener('click', () => selectMerchantTab(def.key));
+    markGhostTapTarget(btn);
+
+    const onTabClick = (event) => {
+      if (btn.disabled) {
+        event.preventDefault();
+        return;
+      }
+      if (shouldSkipGhostTap(btn)) {
+        event.preventDefault();
+        return;
+      }
+      markGhostTapTarget(btn);
+      selectMerchantTab(def.key);
+    };
+
+    btn.addEventListener('click', onTabClick);
+
+    btn.addEventListener('pointerdown', (event) => {
+      if (event.pointerType === 'mouse') return;
+      if (btn.disabled) {
+        event.preventDefault();
+        return;
+      }
+      if (shouldSkipGhostTap(btn)) {
+        event.preventDefault();
+        return;
+      }
+      markGhostTapTarget(btn);
+    }, { passive: false });
+
+    if (!('PointerEvent' in window)) {
+      btn.addEventListener('touchstart', (event) => {
+        if (btn.disabled) return;
+        if (shouldSkipGhostTap(btn)) {
+          event.preventDefault();
+          return;
+        }
+        markGhostTapTarget(btn);
+      }, { passive: false });
+    }
+
     tabs.appendChild(btn);
     merchantTabs.buttons[def.key] = btn;
   });
@@ -1232,6 +1279,8 @@ function renderDialogueList() {
 
     card.append(title, blurb, reward);
 
+    markGhostTapTarget(card);
+
     if (showComplete) {
       card.classList.add('is-complete');
       const again = document.createElement('div');
@@ -1244,10 +1293,43 @@ function renderDialogueList() {
 
     list.appendChild(card);
 
-    if (unlocked) {
-      card.addEventListener('click', () => openDialogueModal(id, meta));
-    } else if (isMysterious) {
-      card.addEventListener('click', () => openDialogueLockInfo(lockInfo));
+    const handleCardClick = (event) => {
+      if (card.classList.contains('is-locked')) {
+        event.preventDefault();
+        return;
+      }
+      if (shouldSkipGhostTap(card)) {
+        event.preventDefault();
+        return;
+      }
+      markGhostTapTarget(card);
+      if (unlocked) {
+        openDialogueModal(id, meta);
+      } else if (isMysterious) {
+        openDialogueLockInfo(lockInfo);
+      }
+    };
+
+    if (unlocked || isMysterious) {
+      card.addEventListener('click', handleCardClick);
+      if ('PointerEvent' in window) {
+        card.addEventListener('pointerdown', (event) => {
+          if (event.pointerType === 'mouse') return;
+          if (shouldSkipGhostTap(card)) {
+            event.preventDefault();
+            return;
+          }
+          markGhostTapTarget(card);
+        }, { passive: false });
+      } else {
+        card.addEventListener('touchstart', (event) => {
+          if (shouldSkipGhostTap(card)) {
+            event.preventDefault();
+            return;
+          }
+          markGhostTapTarget(card);
+        }, { passive: false });
+      }
     }
   });
 
@@ -1462,6 +1544,8 @@ export function unlockMerchantTabs(keys = []) {
       btn.disabled = false;
       btn.classList.remove('is-locked');
       btn.textContent = def.label;
+      btn.title = def.label || 'Tab';
+      markGhostTapTarget(btn);
     }
   });
 }
