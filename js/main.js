@@ -19,6 +19,10 @@ let installSuspendSafeguards;
 let restoreSuspendBackup;
 let markProgressDirty;
 let flushBackupSnapshot;
+let initResetSystemGame;
+let initMutationSystem;
+let getMutationCoinSprite;
+let onMutationChangeGame;
 
 const IS_TOUCH_DEVICE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
