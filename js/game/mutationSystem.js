@@ -87,7 +87,7 @@ function levelToNumber(level) {
   } catch {}
   const approxLog = approxLog10BigNum(level);
   if (!Number.isFinite(approxLog)) return Number.POSITIVE_INFINITY;
-  if (approxLog > 15) return Number.POSITIVE_INFINITY;
+  if (approxLog > 308) return Number.POSITIVE_INFINITY;
   return Math.pow(10, approxLog);
 }
 
@@ -127,9 +127,6 @@ function computeRequirement(levelBn) {
 function ensureRequirement() {
   const req = computeRequirement(mutationState.level);
   mutationState.requirement = req;
-  if (req.isInfinite?.()) {
-    mutationState.progress = bnZero();
-  }
 }
 
 function progressRatio(progressBn, requirement) {
@@ -248,7 +245,6 @@ function normalizeProgress() {
   if (!mutationState.unlocked) return;
   const reqInf = req.isInfinite?.();
   if (reqInf) {
-    mutationState.progress = bnZero();
     return;
   }
   let guard = 0;
@@ -419,11 +415,27 @@ export function addMutationPower(amount) {
     inc = bnZero();
   }
   if (inc.isZero?.()) return getMutationState();
-  mutationState.progress = mutationState.progress.add(inc);
+  const incClone = inc.clone?.() ?? inc;
+  const prevLevel = mutationState.level.clone?.() ?? mutationState.level;
+  const prevProgress = mutationState.progress.clone?.() ?? mutationState.progress;
+  mutationState.progress = mutationState.progress.add(incClone);
   normalizeProgress();
   persistState();
   updateHud();
   emitChange('progress');
+  const levelsGained = mutationState.level.sub(prevLevel);
+  if (typeof window !== 'undefined') {
+    const detail = {
+      delta: incClone.clone?.() ?? incClone,
+      levelsGained: levelsGained.clone?.() ?? levelsGained,
+      level: mutationState.level.clone?.() ?? mutationState.level,
+      progress: mutationState.progress.clone?.() ?? mutationState.progress,
+      requirement: mutationState.requirement.clone?.() ?? mutationState.requirement,
+      previousLevel: prevLevel.clone?.() ?? prevLevel,
+      previousProgress: prevProgress.clone?.() ?? prevProgress,
+    };
+    try { window.dispatchEvent(new CustomEvent('mutation:change', { detail })); } catch {}
+  }
   return getMutationState();
 }
 
