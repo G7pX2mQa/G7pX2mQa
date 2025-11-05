@@ -2728,14 +2728,6 @@ export function computeUpgradeEffects(areaKey) {
     // future upgrades here...
   }
 
-  try {
-    const mutationMult = getMutationMultiplier();
-    if (mutationMult && typeof mutationMult.isZero === 'function' && !mutationMult.isZero()) {
-      coinValueMultBn = coinValueMultBn.mulBigNumInteger(mutationMult);
-      xpGainMultBn = xpGainMultBn.mulBigNumInteger(mutationMult);
-    }
-  } catch {}
-
   return {
     coinsPerSecondMult: cpsMult,
     coinsPerSecondAbsolute: BASE_CPS * cpsMult,
@@ -2765,12 +2757,6 @@ function registerXpUpgradeEffects() {
       str = str.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
       try {
         let next = result.mulDecimal(str, 18);
-        try {
-          const mutationMult = getMutationMultiplier();
-          if (mutationMult && typeof mutationMult.isZero === 'function' && !mutationMult.isZero()) {
-            next = next.mulBigNumInteger(mutationMult);
-          }
-        } catch {}
         return next;
       } catch {
         return result;
