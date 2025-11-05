@@ -17,6 +17,7 @@ import {
   onForgeUpgradeUnlocked,
   isForgeUnlocked,
   arePearlsUnlocked,
+  hasCompletedForgeReset,
 } from './resetSystem.js';
 
 export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
@@ -1526,7 +1527,7 @@ const REGISTRY = [
     unlockUpgrade: true,
     costAtLevel() { return BigNum.fromInt(0); },
     nextCostAfter() { return BigNum.fromInt(0); },
-    computeLockState({ xpUnlocked, upg }) {
+    computeLockState({ xpUnlocked, upg, areaKey }) {
       if (!xpUnlocked) {
         return {
           locked: true,
@@ -1539,6 +1540,12 @@ const REGISTRY = [
           useLockedBase: true,
         };
       }
+      const currentLevel = typeof upg?.id !== 'undefined'
+        ? getLevelNumber(areaKey || AREA_KEYS.STARTER_COVE, upg.id)
+        : 0;
+      if (currentLevel >= 1) {
+        return { locked: false, hidden: false, useLockedBase: false };
+      }
       let xpLevel = 0;
       try {
         const xpState = getXpState();
@@ -1548,11 +1555,11 @@ const REGISTRY = [
       if (xpLevel < 31) {
         return {
           locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: upg.title,
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: requirementText,
           reason: requirementText,
-          hidden: false,
+          hidden: true,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true,
@@ -1566,7 +1573,6 @@ const REGISTRY = [
       }
     },
   },
-  
     {
     area: AREA_KEYS.STARTER_COVE,
     id: 9,
@@ -1581,6 +1587,19 @@ const REGISTRY = [
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     computeLockState() {
+      if (!hasCompletedForgeReset()) {
+        return {
+          locked: true,
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
+          descOverride: 'Complete a Forge reset to reveal this upgrade',
+          reason: 'Complete a Forge reset to reveal this upgrade',
+          hidden: true,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
       if (!isForgeUnlocked()) {
         return {
           locked: true,
@@ -1614,6 +1633,19 @@ const REGISTRY = [
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     computeLockState() {
+      if (!hasCompletedForgeReset()) {
+        return {
+          locked: true,
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
+          descOverride: 'Complete a Forge reset to reveal this upgrade',
+          reason: 'Complete a Forge reset to reveal this upgrade',
+          hidden: true,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
       if (!isForgeUnlocked()) {
         return {
           locked: true,
@@ -1650,11 +1682,14 @@ const REGISTRY = [
       if (!arePearlsUnlocked()) {
         return {
           locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: 'Pearls Locked',
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: 'Complete a Forge reset to unlock Pearls',
+          reason: 'Complete a Forge reset to unlock Pearls',
           useLockedBase: true,
-          hidden: false,
+          hidden: true,
+          hideCost: true,
+          hideEffect: true,
         };
       }
       return { locked: false };
@@ -1683,11 +1718,14 @@ const REGISTRY = [
       if (!arePearlsUnlocked()) {
         return {
           locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: 'Pearls Locked',
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: 'Complete a Forge reset to unlock Pearls',
+          reason: 'Complete a Forge reset to unlock Pearls',
           useLockedBase: true,
-          hidden: false,
+          hidden: true,
+          hideCost: true,
+          hideEffect: true,
         };
       }
       return { locked: false };
