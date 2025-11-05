@@ -2780,12 +2780,6 @@ function registerXpUpgradeEffects() {
       if (safeLevel <= 0) return gain;
       try {
         let next = gain.mulBigNumInteger(BigNum.fromAny(1 + safeLevel * 2));
-        try {
-          const mutationMult = getMutationMultiplier();
-          if (mutationMult && typeof mutationMult.isZero === 'function' && !mutationMult.isZero()) {
-            next = next.mulBigNumInteger(mutationMult);
-          }
-        } catch {}
         return next;
       } catch {
         return gain;
