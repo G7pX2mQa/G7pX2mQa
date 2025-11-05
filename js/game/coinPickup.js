@@ -287,15 +287,20 @@ export function initCoinPickup({
     playSound();
     animateAndRemove(el);
 
-    const base = resolveCoinBase(el);
-    const inc  = bank.coins.mult.applyTo(base);
+  let inc = bank.coins.mult.applyTo(base);
+  let xpInc = XP_PER_COIN;
 
-    coins = bank.coins.add(inc);
+  try {
+	const m = el.dataset.mut ? BigNum.fromAny(el.dataset.mut) : null;
+	if (m && !m.isZero?.()) {
+	  inc   = inc.mulBigNumInteger(m);
+	  xpInc = xpInc.mulBigNumInteger(m);
+	  }
+	} catch {}
+
+	try { bank.coins.add(inc); } catch {}
+	try { addXp(xpInc); } catch {}
     updateHud();
-
-    if (typeof isXpSystemUnlocked === 'function' && isXpSystemUnlocked()) {
-      try { addXp?.(XP_PER_COIN); } catch {}
-    }
 
     if (el.dataset.pearl === '1') {
       try { bank.pearls.add(BigNum.fromInt(1)); } catch {}
