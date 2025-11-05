@@ -280,48 +280,52 @@ export function initCoinPickup({
     setTimeout(done, 600);
   }
 
-  function collect(el){
-    if (!isCoin(el)) return false;
-    el.dataset.collected = '1';
+function collect(el) {
+  if (!isCoin(el)) return false;
+  el.dataset.collected = '1';
 
-    playSound();
-    animateAndRemove(el);
+  playSound();
+  animateAndRemove(el);
+
+  // Define base coin value first
+  const base = resolveCoinBase(el);
 
   let inc = bank.coins.mult.applyTo(base);
   let xpInc = XP_PER_COIN;
 
+  // Apply the mutation multiplier stamped on this coin (if any)
   try {
-	const m = el.dataset.mut ? BigNum.fromAny(el.dataset.mut) : null;
-	if (m && !m.isZero?.()) {
-	  inc   = inc.mulBigNumInteger(m);
-	  xpInc = xpInc.mulBigNumInteger(m);
-	  }
-	} catch {}
-
-	try { bank.coins.add(inc); } catch {}
-	try { addXp(xpInc); } catch {}
-    updateHud();
-
-    if (el.dataset.pearl === '1') {
-      try { bank.pearls.add(BigNum.fromInt(1)); } catch {}
-      updatePearlHud();
+    const m = el.dataset.mut ? BigNum.fromAny(el.dataset.mut) : null;
+    if (m && !m.isZero?.()) {
+      inc   = inc.mulBigNumInteger(m);
+      xpInc = xpInc.mulBigNumInteger(m);
     }
+  } catch {}
 
-    if (typeof isMutationUnlocked === 'function' && isMutationUnlocked()) {
-      try { addMutationPower(BigNum.fromInt(1)); } catch {}
-    }
-	
-    if (localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
-      const next = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10) + 1;
-      localStorage.setItem(SHOP_PROGRESS_KEY, String(next));
-      if (next >= 10) {
-        try { unlockShop(); } catch {}
-        localStorage.setItem(SHOP_UNLOCK_KEY, '1');
-      }
-    }
+  try { bank.coins.add(inc); } catch {}
+  try { addXp(xpInc); } catch {}
+  updateHud();
 
-    return true;
+  if (el.dataset.pearl === '1') {
+    try { bank.pearls.add(BigNum.fromInt(1)); } catch {}
+    updatePearlHud();
   }
+
+  if (typeof isMutationUnlocked === 'function' && isMutationUnlocked()) {
+    try { addMutationPower(BigNum.fromInt(1)); } catch {}
+  }
+
+  if (localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
+    const next = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10) + 1;
+    localStorage.setItem(SHOP_PROGRESS_KEY, String(next));
+    if (next >= 10) {
+      try { unlockShop(); } catch {}
+      localStorage.setItem(SHOP_UNLOCK_KEY, '1');
+    }
+  }
+
+  return true;
+}
 
   // direct coin events as a safety net (helps if elementsFromPoint misses due to CSS)
   function bindCoinDirect(coin){
