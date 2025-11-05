@@ -6,7 +6,7 @@ import { CURRENCIES, getAllCurrencies } from '../util/storage.js';
 
 const DEFAULT_DURATION = 3200;
 
-const POPUP_ORDER = ['coins', 'xp', 'books'];
+const POPUP_ORDER = ['coins', 'xp', 'books', 'gold', 'mp', 'pearls'];
 
 const POPUP_META = {
   [CURRENCIES.COINS]: {
@@ -20,6 +20,18 @@ const POPUP_META = {
   [CURRENCIES.BOOKS]: {
     icon: 'img/currencies/book/book.png',
     iconAlt: 'Book',
+  },
+  [CURRENCIES.GOLD]: {
+    icon: 'img/currencies/gold/gold.png',
+    iconAlt: 'Gold',
+  },
+  [CURRENCIES.PEARLS]: {
+    icon: 'img/currencies/pearl/pearl.png',
+    iconAlt: 'Pearl',
+  },
+  mp: {
+    icon: 'img/stats/mp/mp.png',
+    iconAlt: 'Mutation Power',
   },
 };
 
@@ -165,6 +177,9 @@ function syncLastKnown() {
       const bn = bnFromAny(value) || BigNum.fromInt(0);
       lastKnownAmounts.set(key, bn.clone?.() ?? bn);
     });
+    if (!lastKnownAmounts.has('mp')) {
+      lastKnownAmounts.set('mp', BigNum.fromInt(0));
+    }
   } catch {
     lastKnownAmounts.clear();
   }
@@ -184,11 +199,38 @@ function handleCurrencyChange(event) {
   const key = detail.key;
   const current = bnFromAny(detail.value) || BigNum.fromInt(0);
   const prev = lastKnownAmounts.get(key) || BigNum.fromInt(0);
-  if (typeof current.cmp === 'function' && current.cmp(prev) > 0) {
-    const delta = current.sub(prev);
+  const zero = BigNum.fromInt(0);
+  let delta = null;
+  const detailDelta = detail.delta != null ? bnFromAny(detail.delta) : null;
+  if (detailDelta && typeof detailDelta.cmp === 'function' && detailDelta.cmp(zero) > 0) {
+    delta = detailDelta;
+  } else if (typeof current.cmp === 'function' && current.cmp(prev) > 0) {
+    delta = current.sub(prev);
+  }
+  if (delta && !(typeof delta.isZero === 'function' && delta.isZero())) {
     showPopup(key, delta);
   }
   lastKnownAmounts.set(key, current.clone?.() ?? current);
+}
+
+function handleXpChange(event) {
+  const detail = event?.detail;
+  if (!detail) return;
+  const xpAdded = bnFromAny(detail.xpAdded);
+  if (xpAdded && !isZero(xpAdded)) showPopup('xp', xpAdded);
+}
+
+function handleMutationChange(event) {
+  const detail = event?.detail;
+  if (!detail) return;
+  const delta = bnFromAny(detail.delta);
+  if (delta && !isZero(delta)) {
+    showPopup('mp', delta);
+  }
+  const nextProgress = bnFromAny(detail.progress);
+  if (nextProgress) {
+    lastKnownAmounts.set('mp', nextProgress.clone?.() ?? nextProgress);
+  }
 }
 
 function handleXpChange(event) {
@@ -210,6 +252,7 @@ export function initPopups() {
   syncLastKnown();
   window.addEventListener('currency:change', handleCurrencyChange);
   window.addEventListener('xp:change', handleXpChange);
+  window.addEventListener('mutation:change', handleMutationChange);
   window.addEventListener('saveSlot:change', handleSlotChange);
 }
 
@@ -217,6 +260,7 @@ export function teardownpopups() {
   if (!initialized) return;
   window.removeEventListener('currency:change', handleCurrencyChange);
   window.removeEventListener('xp:change', handleXpChange);
+  window.removeEventListener('mutation:change', handleMutationChange);
   window.removeEventListener('saveSlot:change', handleSlotChange);
   clearActivePopups();
   lastKnownAmounts.clear();
