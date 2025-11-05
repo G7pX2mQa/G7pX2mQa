@@ -383,7 +383,7 @@ function commitBatch(batch) {
       el.dataset.pearl = '1';
       const pearl = document.createElement('div');
       pearl.className = 'coin-pearl';
-      pearl.style.backgroundImage = 'url(img/misc/pearl.png)';
+      pearl.style.backgroundImage = 'url(img/currencies/pearl/pearl.png)';
       el.appendChild(pearl);
     }
     el.dataset.dieAt = String(performance.now() + coinTtlMs);
