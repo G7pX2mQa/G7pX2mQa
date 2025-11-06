@@ -10,6 +10,7 @@ import { addMutationPower, isMutationUnlocked } from './mutationSystem.js';
 let coinPickup = null;
 
 const XP_PER_COIN = BigNum.fromInt(1);
+const BASE_COIN_VALUE = BigNum.fromInt(1);
 let COIN_MULTIPLIER = '1';
 
 export function setCoinMultiplier(x) {
@@ -21,17 +22,15 @@ export function setCoinMultiplier(x) {
   } catch {}
 }
 
-// Optional: per-coin base amount via data attributes
 function resolveCoinBase(el) {
-  // Prefer explicit BN: <div class="coin" data-bn="BN:18:100000000000000000:-17">
   if (el?.dataset?.bn) {
     try { return BigNum.fromAny(el.dataset.bn); } catch {}
   }
-  // Or numeric/scientific: <div class="coin" data-value="1e2">
   if (el?.dataset?.value) {
     try { return BigNum.fromAny(el.dataset.value); } catch {}
   }
-  return BigNum.fromInt(1); // default base = 1 coin
+  try { return BASE_COIN_VALUE.clone?.() ?? BigNum.fromInt(1); }
+  catch { return BigNum.fromInt(1); }
 }
 
 export function initCoinPickup({
@@ -255,20 +254,23 @@ function collect(el) {
   playSound();
   animateAndRemove(el);
 
-  // Define base coin value first
   const base = resolveCoinBase(el);
 
   let inc = bank.coins.mult.applyTo(base);
   let xpInc = XP_PER_COIN;
 
-  // Apply the mutation multiplier stamped on this coin (if any)
-  try {
-    const m = el.dataset.mut ? BigNum.fromAny(el.dataset.mut) : null;
-    if (m && !m.isZero?.()) {
-      inc   = inc.mulBigNumInteger(m);
-      xpInc = xpInc.mulBigNumInteger(m);
-    }
-  } catch {}
+  const mutStamp = el.__mutBn;
+  let mutMultiplier = null;
+  if (mutStamp) {
+    mutMultiplier = mutStamp.clone?.() ?? mutStamp;
+  } else if (el.dataset?.mut) {
+    try { mutMultiplier = BigNum.fromAny(el.dataset.mut); } catch {}
+  }
+
+  if (mutMultiplier && !mutMultiplier.isZero?.()) {
+    inc   = inc.mulBigNumInteger(mutMultiplier);
+    xpInc = xpInc.mulBigNumInteger(mutMultiplier);
+  }
 
   try { bank.coins.add(inc); } catch {}
   try { addXp(xpInc); } catch {}
