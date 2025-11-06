@@ -2,7 +2,7 @@
 
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
-import { CURRENCIES, getAllCurrencies } from '../util/storage.js';
+import { CURRENCIES } from '../util/storage.js';
 
 const DEFAULT_DURATION = 3200;
 
