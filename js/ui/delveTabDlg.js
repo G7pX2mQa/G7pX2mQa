@@ -45,6 +45,12 @@ const MERCHANT_TABS_DEF = [
   { key: 'minigames', label: '???',      unlocked: false },
 ];
 
+const merchantTabUnlockState = new Map([
+  ['dialogue', true],
+  ['reset', false],
+  ['minigames', false],
+]);
+
 const MYSTERIOUS_ICON_SRC = 'img/misc/mysterious.png';
 const HIDDEN_DIALOGUE_TITLE = 'Hidden Dialogue';
 const LOCKED_DIALOGUE_TITLE = 'Locked Dialogue';
@@ -939,29 +945,24 @@ const engine = new DialogueEngine({
 function ensureMerchantOverlay() {
   if (merchantOverlayEl) return;
 
-  // Overlay
   merchantOverlayEl = document.createElement('div');
   merchantOverlayEl.className = 'merchant-overlay';
   merchantOverlayEl.id = 'merchant-overlay';
   merchantOverlayEl.setAttribute('aria-hidden', 'true');
 
-  // Sheet
   merchantSheetEl = document.createElement('div');
   merchantSheetEl.className = 'merchant-sheet';
   merchantSheetEl.setAttribute('role', 'dialog');
   merchantSheetEl.setAttribute('aria-modal', 'false');
   merchantSheetEl.setAttribute('aria-label', 'Merchant');
 
-  // Grabber
   const grabber = document.createElement('div');
   grabber.className = 'merchant-grabber';
   grabber.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
 
-  // Content
   const content = document.createElement('div');
   content.className = 'merchant-content';
 
-  // Header
   const header = document.createElement('header');
   header.className = 'merchant-header';
   header.innerHTML = `
@@ -969,7 +970,6 @@ function ensureMerchantOverlay() {
     <div class="merchant-line" aria-hidden="true"></div>
   `;
 
-  // Tabs + Panels
   const tabs = document.createElement('div');
   tabs.className = 'merchant-tabs';
   tabs.setAttribute('role', 'tablist');
@@ -989,18 +989,31 @@ function ensureMerchantOverlay() {
   panelMinigames.className = 'merchant-panel';
   panelMinigames.id = 'merchant-panel-minigames';
 
+  const resetUnlocked = (() => {
+    try { return !!isForgeUnlocked?.(); }
+    catch { return false; }
+  })();
+  merchantTabUnlockState.set('reset', resetUnlocked);
+
   MERCHANT_TABS_DEF.forEach(def => {
+    if (def.key === 'dialogue') merchantTabUnlockState.set('dialogue', true);
+    const stored = merchantTabUnlockState.get(def.key);
+    const unlocked = stored != null ? stored : !!def.unlocked;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'merchant-tab';
     btn.dataset.tab = def.key;
     const lockedLabel = def.lockedLabel || '???';
-    btn.textContent = def.unlocked ? def.label : lockedLabel;
-    if (!def.unlocked) {
+    btn.textContent = unlocked ? def.label : lockedLabel;
+    if (!unlocked) {
       btn.classList.add('is-locked');
       btn.disabled = true;
       btn.title = 'Locked';
+    } else {
+      btn.title = def.label || 'Tab';
     }
+    def.unlocked = unlocked;
+    merchantTabUnlockState.set(def.key, unlocked);
     markGhostTapTarget(btn);
 
     const onTabClick = (event) => {
@@ -1520,10 +1533,10 @@ function cleanupMerchantDrag() {
   merchantDrag = null;
 }
 
-// Tabs
 function selectMerchantTab(key) {
   const def = MERCHANT_TABS_DEF.find(t => t.key === key);
-  if (!def || !def.unlocked) key = 'dialogue';
+  const unlocked = merchantTabUnlockState.get(key);
+  if (!def || !unlocked) key = 'dialogue';
 
   for (const k in merchantTabs.buttons) {
     merchantTabs.buttons[k].classList.toggle('is-active', k === key);
@@ -1538,6 +1551,7 @@ export function unlockMerchantTabs(keys = []) {
   keys.forEach(key => {
     const def = MERCHANT_TABS_DEF.find(t => t.key === key);
     if (!def) return;
+    merchantTabUnlockState.set(key, true);
     def.unlocked = true;
     const btn = merchantTabs.buttons[key];
     if (btn) {
