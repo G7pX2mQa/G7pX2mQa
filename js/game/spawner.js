@@ -104,6 +104,7 @@ export function createSpawner({
     // ---------- pools ----------
     const COIN_POOL_MAX = Math.max(2000, maxActiveCoins * 3);
     const SURGE_POOL_MAX = 800;
+    const COIN_MARGIN = 12;
 
     const coinPool = [];
     const surgePool = [];
@@ -132,6 +133,8 @@ export function createSpawner({
     delete el.dataset.jitter;
     delete el.dataset.collected;
     delete el.dataset.pearl;
+    delete el.dataset.mut;
+    delete el.__mutBn;
     el.classList.remove('coin--pearl');
 
    if (el.parentNode)
@@ -294,13 +297,39 @@ function playWaveOncePerBurst() {
 
 
     // ---------- spawn planning ----------
+    function planCoinFromWave(wave) {
+        if (!wave) return null;
+        const { x: waveX, y: waveTop, w: waveW } = wave;
+
+        const crestCenter = waveX + waveW / 2 + (Math.random() * 60 - 30);
+        const startX = crestCenter - coinSize / 2;
+        const startY = waveTop + 10 - coinSize / 2;
+
+        const drift = Math.random() * 100 - 50;
+        const endX = clamp(startX + drift, COIN_MARGIN, M.pfW - coinSize - COIN_MARGIN);
+        const minY = Math.max(M.wRect.height + 80, 120);
+        const maxY = Math.max(minY + 40, M.safeBottom - coinSize - 6);
+        const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
+
+        const midX = startX + (endX - startX) * 0.66;
+        const jitterMs = Math.random() * 100;
+
+        return {
+            x0: startX,
+            y0: startY,
+            xMid: midX,
+            y1: endY,
+            x1: endX,
+            jitterMs,
+        };
+    }
+
     function planSpawn() {
         if (!validRefs())
             return null;
         if (!M.pfRect || !M.wRect)
             computeMetrics();
 
-        // soft cap active coins: recycle oldest to prevent DOM runaway
         if (maxActiveCoins !== Infinity && refs.c.childElementCount >= maxActiveCoins) {
             const oldest = refs.c.firstElementChild;
             if (oldest)
@@ -309,47 +338,43 @@ function playWaveOncePerBurst() {
 
         const pfW = M.pfW;
         const waveW = clamp(pfW * (surgeWidthVw / 100), 220, 520);
-        const margin = 12;
-        const leftMax = Math.max(1, pfW - waveW - margin * 2);
-        const waveX = Math.random() * leftMax + margin;
+        const leftMax = Math.max(1, pfW - waveW - COIN_MARGIN * 2);
+        const waveX = Math.random() * leftMax + COIN_MARGIN;
 
-        // position wave just below water band
         const waterToPfTop = M.wRect.top - M.pfRect.top;
         const waveTop = Math.max(0, waterToPfTop + M.wRect.height * 0.05);
 
-        // coin emerges under crest with slight random offset
-        const crestCenter = waveX + waveW / 2 + (Math.random() * 60 - 30);
-        const startX = crestCenter - coinSize / 2;
-        const startY = waveTop + 10 - coinSize / 2;
+        const wave = {
+            x: waveX,
+            y: waveTop,
+            w: waveW
+        };
 
-        // shoreline landing with +/- drift
-        const drift = Math.random() * 100 - 50;
-        const endX = clamp(startX + drift, margin, pfW - coinSize - margin);
-        const minY = Math.max(M.wRect.height + 80, 120);
-        const maxY = Math.max(minY + 40, M.safeBottom - coinSize - 6);
-        const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
-
-        // mid point to finish Y early then slide X (matches CSS keyframes 66%)
-        const midX = startX + (endX - startX) * 0.66;
-
-        const jitterMs = Math.random() * 100;
+        const coinPlan = planCoinFromWave(wave);
+        if (!coinPlan) return null;
 
         return {
-            wave: {
-                x: waveX,
-                y: waveTop,
-                w: waveW
-            },
-            coin: {
-                x0: startX,
-                y0: startY,
-                xMid: midX,
-                y1: endY,
-                x1: endX,
-                jitterMs,
-                isPearl: false
-            }
+            wave,
+            coin: Object.assign({ isPearl: false }, coinPlan)
         };
+    }
+
+    function planPearlFromWave(wave, compareCoin) {
+        if (!wave) return null;
+        const attempts = 5;
+        let fallback = null;
+        for (let i = 0; i < attempts; i++) {
+            const plan = planCoinFromWave(wave);
+            if (!plan) continue;
+            if (!compareCoin) return plan;
+            const dx = Math.abs(plan.x1 - compareCoin.x1);
+            const dy = Math.abs(plan.y1 - compareCoin.y1);
+            if (dx > coinSize * 0.4 || dy > coinSize * 0.4) {
+                return plan;
+            }
+            fallback = plan;
+        }
+        return fallback;
     }
 
 function commitBatch(batch) {
@@ -359,6 +384,20 @@ function commitBatch(batch) {
   const coinsFrag = document.createDocumentFragment();
   const newCoins = [];
   const newSurges = [];
+
+  let mutationStamp = null;
+  let mutationStorage = null;
+  try {
+    const currentMut = getMutationMultiplier();
+    if (currentMut) {
+      mutationStamp = currentMut.clone?.() ?? currentMut;
+      if (typeof mutationStamp.toStorage === 'function') {
+        mutationStorage = mutationStamp.toStorage();
+      } else if (typeof mutationStamp.toString === 'function') {
+        mutationStorage = mutationStamp.toString();
+      }
+    }
+  } catch {}
 
   for (const { wave, coin } of batch) {
     if (wave) {
@@ -390,10 +429,20 @@ function commitBatch(batch) {
     }
     el.dataset.dieAt = String(performance.now() + coinTtlMs);
 
-    try {
-      el.dataset.mut = getMutationMultiplier()?.toStorage?.() || 'BN:18:1:0';
-    } catch {
-      el.dataset.mut = 'BN:18:1:0';
+    if (mutationStamp) {
+      try {
+        el.__mutBn = mutationStamp.clone?.() ?? mutationStamp;
+      } catch {
+        el.__mutBn = mutationStamp;
+      }
+      if (mutationStorage) {
+        el.dataset.mut = mutationStorage;
+      } else {
+        delete el.dataset.mut;
+      }
+    } else {
+      delete el.__mutBn;
+      delete el.dataset.mut;
     }
 
     coinsFrag.appendChild(el);
@@ -432,18 +481,20 @@ function commitBatch(batch) {
         const batch = [];
         for (let i = 0; i < n; i++) {
             const plan = planSpawn();
-            if (plan) {
+                if (plan) {
                 plan.coin.isPearl = !!plan.coin.isPearl;
                 batch.push(plan);
                 if (plan.coin.isPearl !== true && arePearlsUnlocked() && Math.random() < PEARL_SPAWN_CHANCE) {
-                    const pearlPlan = planSpawn();
-                    if (pearlPlan) {
-                        pearlPlan.coin.isPearl = true;
-                        pearlPlan.wave = null;
+                    const pearlCoin = planPearlFromWave(plan.wave, plan.coin);
+                    if (pearlCoin) {
+                        const pearlPlan = {
+                            wave: null,
+                            coin: Object.assign({ isPearl: true }, pearlCoin)
+                        };
                         batch.push(pearlPlan);
                     }
                 }
-            }
+                }
         }
         if (batch.length)
             commitBatch(batch);
