@@ -317,7 +317,7 @@ export function getCurrency(key) {
   try { return BigNum.fromAny(raw); } catch { return BigNum.fromInt(0); }
 }
 
-export function setCurrency(key, value) {
+export function setCurrency(key, value, { delta = null } = {}) {
   const k = keyFor(KEYS.CURRENCY[key]);
   if (!k) return;
   try {
@@ -326,7 +326,16 @@ export function setCurrency(key, value) {
     const raw = bn.toStorage();
     localStorage.setItem(k, raw);
     primeStorageWatcherSnapshot(k, raw);
-    try { window.dispatchEvent(new CustomEvent('currency:change', { detail: { key, value: bn } })); } catch {}
+    const detail = { key, value: bn };
+    if (delta) {
+      try {
+        const deltaBn = delta instanceof BigNum ? delta : BigNum.fromAny(delta);
+        detail.delta = deltaBn;
+      } catch {
+        detail.delta = undefined;
+      }
+    }
+    try { window.dispatchEvent(new CustomEvent('currency:change', { detail })); } catch {}
   } catch (e) { console.warn('Currency save failed:', key, value, e); }
 }
 
@@ -403,21 +412,6 @@ export function clearAllStorage() {
   });
 }
 
-export function getAllCurrencies() {
-  const all = {};
-  for (const key of Object.values(CURRENCIES)) all[key] = getCurrency(key);
-  return all;
-}
-
-// -------------------- Optional direct currency{} --------------------
-export const currency = {
-  get coins() { return getCurrency(CURRENCIES.COINS); },
-  set coins(v) { setCurrency(CURRENCIES.COINS, v); },
-
-  get books() { return getCurrency(CURRENCIES.BOOKS); },
-  set books(v) { setCurrency(CURRENCIES.BOOKS, v); },
-};
-
 // -------------------- BANK FACADE --------------------
 function makeCurrencyHandle(key) {
   // callable preview: bank.coins("1e3")
@@ -442,7 +436,7 @@ function makeCurrencyHandle(key) {
   fn.add = function add(x) {
     const amt  = BigNum.fromAny(x);
     const next = this.value.add(amt);
-    setCurrency(key, next);
+    setCurrency(key, next, { delta: amt });
     return next;
   };
 
@@ -461,7 +455,14 @@ fn.sub = function sub(x) {
 
   fn.set = function set(x) {
     const val = BigNum.fromAny(x);
-    setCurrency(key, val);
+    let delta = null;
+    try {
+      const current = this.value;
+      if (current && typeof current.sub === 'function') {
+        delta = val.sub(current);
+      }
+    } catch {}
+    setCurrency(key, val, { delta });
     return val;
   };
 
