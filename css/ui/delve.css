@@ -33,6 +33,29 @@
   -webkit-user-select: none;
   user-select: none;
 }
+
+@media (pointer: fine) {
+  .merchant-overlay,
+  .merchant-content,
+  .merchant-dialog,
+  .merchant-dialog *,
+  #merchant-panel-reset,
+  .merchant-reset,
+  .merchant-reset *,
+  .merchant-reset__status,
+  .merchant-reset__status * {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  .merchant-grabber,
+  .merchant-tab,
+  .merchant-reset__layer,
+  .merchant-reset__action {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
 .shop-grabber .grab-handle,
 .merchant-grabber .grab-handle {
   width: 56px;
