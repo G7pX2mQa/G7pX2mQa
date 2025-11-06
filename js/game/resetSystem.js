@@ -388,7 +388,8 @@ function updateStatusDisplay() {
     resetState.statusEl.textContent = 'Collect more coins to earn Gold from a Forge reset.';
     return;
   }
-  resetState.statusEl.textContent = `Resetting will grant ${formatBn(resetState.pendingGold)} Gold.`;
+  const rewardHtml = formatBn(resetState.pendingGold);
+  resetState.statusEl.innerHTML = `Resetting will grant ${rewardHtml} Gold.`;
 }
 
 function updateActionState() {
