@@ -346,22 +346,6 @@ function collect(el) {
   let inc = bank.coins.mult.applyTo(base);
   let xpInc = cloneBn(XP_PER_COIN);
 
-  const mutStamp = el.__mutBn;
-  let mutMultiplier = null;
-  if (mutStamp) {
-    mutMultiplier = mutStamp;
-  } else if (el.dataset?.mut) {
-    try {
-      mutMultiplier = BigNum.fromAny(el.dataset.mut);
-      el.__mutBn = mutMultiplier;
-    } catch {}
-  }
-
-  if (mutMultiplier && !mutMultiplier.isZero?.()) {
-    inc   = inc.mulBigNumInteger(mutMultiplier);
-    xpInc = xpInc.mulBigNumInteger(mutMultiplier);
-  }
-
   const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
   if (!incIsZero) {
     try {
