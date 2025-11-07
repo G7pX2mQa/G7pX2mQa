@@ -1,9 +1,8 @@
 // js/util/ghostTapGuard.js
-// Fixes issue with buttons on mobile that prevents them from being spam clicked
+// Fixes issue with buttons on mobile that prevents them from being spam clicked; it is important this is applied to every clickable button in the game
 
-const DEFAULT_TIMEOUT_MS = 400;
-const ELEMENT_SKIP_PROP = Symbol('ccc:ghostTap:skip');
-const ELEMENT_TIMER_PROP = Symbol('ccc:ghostTap:timer');
+const DEFAULT_TIMEOUT_MS = 90;
+const ELEMENT_SKIP_PROP = Symbol('ccc:ghostTap:skipUntil');
 const GLOBAL_SKIP_PROP = '__cccGhostTapSkipUntil';
 const TARGET_SELECTOR = '[data-ghost-tap-target], button, [role="button"], [data-btn], .game-btn, .btn, .slot-card, a[href], input, select, textarea, summary';
 
@@ -38,23 +37,15 @@ function findTapTarget(node) {
 
 function clearGhostTapTarget(el) {
   if (!el) return;
-  el[ELEMENT_SKIP_PROP] = false;
-  if (el[ELEMENT_TIMER_PROP]) {
-    clearTimeout(el[ELEMENT_TIMER_PROP]);
-    el[ELEMENT_TIMER_PROP] = null;
-  }
+  el[ELEMENT_SKIP_PROP] = 0;
 }
 
 function markGhostTapTarget(el, timeout = DEFAULT_TIMEOUT_MS) {
   if (!el) return;
-  el[ELEMENT_SKIP_PROP] = true;
-  if (el[ELEMENT_TIMER_PROP]) {
-    clearTimeout(el[ELEMENT_TIMER_PROP]);
-  }
-  el[ELEMENT_TIMER_PROP] = setTimeout(() => {
-    el[ELEMENT_SKIP_PROP] = false;
-    el[ELEMENT_TIMER_PROP] = null;
-  }, timeout);
+  const now = nowMs();
+  const delay = Number.isFinite(timeout) ? Math.max(0, Number(timeout)) : DEFAULT_TIMEOUT_MS;
+  el[ELEMENT_SKIP_PROP] = now + delay;
+  suppressNextGhostTap(delay);
 }
 
 function consumeGhostTapGuard() {
@@ -78,9 +69,15 @@ function shouldSkipGhostTap(el) {
     return true;
   }
   if (!el) return false;
-  if (!el[ELEMENT_SKIP_PROP]) return false;
+  const until = Number(el[ELEMENT_SKIP_PROP] || 0);
+  if (!Number.isFinite(until) || until <= 0) return false;
+  const now = nowMs();
+  if (now <= until) {
+    clearGhostTapTarget(el);
+    return true;
+  }
   clearGhostTapTarget(el);
-  return true;
+  return false;
 }
 
 function suppressNextGhostTap(timeout = DEFAULT_TIMEOUT_MS) {
