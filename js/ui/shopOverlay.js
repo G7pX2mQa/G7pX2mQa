@@ -675,12 +675,7 @@ function renderShopGrid() {
 }
 
         if (locked) {
-          const reason = (upg.lockState?.reason || '').trim();
-          if (reason) {
-            btn.title = reason;
-          } else {
-            btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
-          }
+          btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
         } else if (upg.meta?.unlockUpgrade) {
           btn.title = 'Left-click: Details • Right-click: Unlock';
         } else {
