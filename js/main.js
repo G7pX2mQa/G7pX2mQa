@@ -406,6 +406,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   window.bank = bank;
 
+  installGhostTapGuard?.();
   initMutationSystem?.();
   initResetSystemGame?.();
 
