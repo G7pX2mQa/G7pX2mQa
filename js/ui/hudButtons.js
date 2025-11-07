@@ -171,11 +171,12 @@ export function initHudButtons() {
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
         if (shouldSkipGhostTap(btn)) return;
+        markGhostTapTarget(btn);
         activate(btn);
       };
 
       const hasPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
-
+	  
       const onPointerDown = (e) => {
         if (e.pointerType === 'mouse') return;
         if (typeof e.button === 'number' && e.button !== 0) return;
@@ -183,10 +184,6 @@ export function initHudButtons() {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
-        if (shouldSkipGhostTap(btn)) {
-          e.preventDefault();
-          return;
-        }
         markGhostTapTarget(btn);
         activate(btn);
         e.preventDefault();
@@ -197,10 +194,6 @@ export function initHudButtons() {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
-        if (shouldSkipGhostTap(btn)) {
-          e.preventDefault();
-          return;
-        }
         markGhostTapTarget(btn);
         activate(btn);
         e.preventDefault();
