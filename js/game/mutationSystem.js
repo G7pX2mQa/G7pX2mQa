@@ -9,6 +9,11 @@ import {
 import { formatNumber } from '../util/numFormat.js';
 import { approxLog10BigNum, bigNumFromLog10 } from './upgrades.js';
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
+import {
+  addExternalCoinMultiplierProvider,
+  addExternalXpGainMultiplierProvider,
+  refreshCoinMultiplierFromXpLevel,
+} from './xpSystem.js';
 
 const KEY_PREFIX = 'ccc:mutation';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
@@ -42,6 +47,53 @@ const listeners = new Set();
 const watcherCleanups = [];
 let watchersBoundSlot = null;
 let initialized = false;
+let unregisterCoinMultiplierProvider = null;
+let unregisterXpGainMultiplierProvider = null;
+
+function scheduleCoinMultiplierRefresh() {
+  try { refreshCoinMultiplierFromXpLevel(); } catch {}
+}
+
+function ensureExternalMultiplierProviders() {
+  if (!unregisterCoinMultiplierProvider && typeof addExternalCoinMultiplierProvider === 'function') {
+    try {
+      unregisterCoinMultiplierProvider = addExternalCoinMultiplierProvider(({ baseMultiplier, xpUnlocked }) => {
+        if (!xpUnlocked) return baseMultiplier;
+        initMutationSystem();
+        if (!mutationState.unlocked) return baseMultiplier;
+        const mut = getMutationMultiplier();
+        if (!mut || mut.isZero?.()) return baseMultiplier;
+        try {
+          const source = baseMultiplier instanceof BN
+            ? baseMultiplier.clone?.() ?? baseMultiplier
+            : BigNum.fromAny(baseMultiplier ?? 0);
+          return source.mulBigNumInteger(mut);
+        } catch {
+          return baseMultiplier;
+        }
+      });
+    } catch { unregisterCoinMultiplierProvider = null; }
+  }
+  if (!unregisterXpGainMultiplierProvider && typeof addExternalXpGainMultiplierProvider === 'function') {
+    try {
+      unregisterXpGainMultiplierProvider = addExternalXpGainMultiplierProvider(({ baseGain, xpUnlocked }) => {
+        if (!xpUnlocked) return baseGain;
+        initMutationSystem();
+        if (!mutationState.unlocked) return baseGain;
+        const mut = getMutationMultiplier();
+        if (!mut || mut.isZero?.()) return baseGain;
+        try {
+          const source = baseGain instanceof BN
+            ? baseGain.clone?.() ?? baseGain
+            : BigNum.fromAny(baseGain ?? 0);
+          return source.mulBigNumInteger(mut);
+        } catch {
+          return baseGain;
+        }
+      });
+    } catch { unregisterXpGainMultiplierProvider = null; }
+  }
+}
 
 function cloneBigNum(value) {
   if (value instanceof BN) {
@@ -325,6 +377,7 @@ function bindStorageWatchers(slot) {
         ensureRequirement();
         updateHud();
         emitChange('storage');
+        scheduleCoinMultiplierRefresh();
       }
     },
   }));
@@ -338,6 +391,7 @@ function bindStorageWatchers(slot) {
           ensureRequirement();
           updateHud();
           emitChange('storage');
+          scheduleCoinMultiplierRefresh();
         }
       } catch {}
     },
@@ -359,6 +413,7 @@ function bindStorageWatchers(slot) {
 }
 
 export function initMutationSystem() {
+  ensureExternalMultiplierProviders();
   if (initialized) {
     ensureHudRefs();
     updateHud();
@@ -371,6 +426,7 @@ export function initMutationSystem() {
   readStateFromStorage(slot);
   bindStorageWatchers(slot);
   updateHud();
+  scheduleCoinMultiplierRefresh();
   if (typeof window !== 'undefined') {
     window.addEventListener('saveSlot:change', () => {
       const nextSlot = getActiveSlot();
@@ -378,6 +434,7 @@ export function initMutationSystem() {
       readStateFromStorage(nextSlot);
       bindStorageWatchers(nextSlot);
       updateHud();
+      scheduleCoinMultiplierRefresh();
       emitChange('slot');
     });
   }
@@ -405,6 +462,7 @@ export function unlockMutationSystem() {
   persistState();
   updateHud();
   emitChange('unlock');
+  scheduleCoinMultiplierRefresh();
   return true;
 }
 
@@ -427,6 +485,9 @@ export function addMutationPower(amount) {
   updateHud();
   emitChange('progress');
   const levelsGained = mutationState.level.sub(prevLevel);
+  if (!levelsGained.isZero?.()) {
+    scheduleCoinMultiplierRefresh();
+  }
   if (typeof window !== 'undefined') {
     const detail = {
       delta: incClone.clone?.() ?? incClone,
