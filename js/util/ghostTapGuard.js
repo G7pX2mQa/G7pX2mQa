@@ -10,6 +10,7 @@ let guardInstalled = false;
 let selector = TARGET_SELECTOR;
 let hasPointerEvents = false;
 let hasTouchEvents = false;
+let lastMarkedTarget = null;
 
 function nowMs() {
   if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
@@ -45,10 +46,11 @@ function markGhostTapTarget(el, timeout = DEFAULT_TIMEOUT_MS) {
   const now = nowMs();
   const delay = Number.isFinite(timeout) ? Math.max(0, Number(timeout)) : DEFAULT_TIMEOUT_MS;
   el[ELEMENT_SKIP_PROP] = now + delay;
+  lastMarkedTarget = el;
   suppressNextGhostTap(delay);
 }
 
-function consumeGhostTapGuard() {
+function consumeGhostTapGuard(target) {
   if (typeof window === 'undefined') return false;
   const until = window[GLOBAL_SKIP_PROP];
   if (typeof until !== 'number') return false;
@@ -56,6 +58,9 @@ function consumeGhostTapGuard() {
   const now = nowMs();
   if (now <= until) {
     window[GLOBAL_SKIP_PROP] = null;
+    if (target && lastMarkedTarget && target === lastMarkedTarget) {
+      return false;
+    }
     return true;
   }
 
@@ -64,7 +69,7 @@ function consumeGhostTapGuard() {
 }
 
 function shouldSkipGhostTap(el) {
-  if (consumeGhostTapGuard()) {
+  if (consumeGhostTapGuard(el)) {
     if (el) clearGhostTapTarget(el);
     return true;
   }
@@ -73,6 +78,10 @@ function shouldSkipGhostTap(el) {
   if (!Number.isFinite(until) || until <= 0) return false;
   const now = nowMs();
   if (now <= until) {
+    if (lastMarkedTarget && el === lastMarkedTarget) {
+      clearGhostTapTarget(el);
+      return false;
+    }
     clearGhostTapTarget(el);
     return true;
   }
@@ -95,7 +104,7 @@ function onPointerStart(event) {
   if (typeof event.button === 'number' && event.button !== 0) return;
   const target = findTapTarget(event.target);
   if (!target) return;
-  if (consumeGhostTapGuard()) {
+  if (consumeGhostTapGuard(target)) {
     clearGhostTapTarget(target);
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -105,7 +114,7 @@ function onPointerStart(event) {
 function onTouchStart(event) {
   const target = findTapTarget(event.target);
   if (!target) return;
-  if (consumeGhostTapGuard()) {
+  if (consumeGhostTapGuard(target)) {
     clearGhostTapTarget(target);
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -113,11 +122,10 @@ function onTouchStart(event) {
 }
 
 function onClickCapture(event) {
-  // Only handle click fallback on browsers that lack pointer/touch events.
   if (hasPointerEvents || hasTouchEvents) return;
   const target = findTapTarget(event.target);
   if (!target) return;
-  if (consumeGhostTapGuard()) {
+  if (consumeGhostTapGuard(target)) {
     clearGhostTapTarget(target);
     event.preventDefault();
     event.stopImmediatePropagation();
