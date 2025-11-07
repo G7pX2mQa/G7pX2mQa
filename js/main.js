@@ -409,8 +409,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   installGhostTapGuard?.();
   initMutationSystem?.();
   initResetSystemGame?.();
-
   installSuspendSafeguards?.();
+  
   try {
     await restoreSuspendBackup?.();
   } catch {}
