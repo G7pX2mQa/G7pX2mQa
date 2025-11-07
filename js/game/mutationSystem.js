@@ -282,7 +282,13 @@ function emitChange(reason = 'update') {
 }
 
 function persistState() {
-  const slot = mutationState.slot;
+  let slot = mutationState.slot;
+  if (slot == null) {
+    slot = getActiveSlot();
+    if (slot != null) {
+      mutationState.slot = slot;
+    }
+  }
   if (slot == null) return;
   try { localStorage.setItem(KEY_UNLOCK(slot), mutationState.unlocked ? '1' : '0'); }
   catch {}
@@ -296,19 +302,26 @@ function persistState() {
 }
 
 function normalizeProgress() {
-  const req = mutationState.requirement;
   if (!mutationState.unlocked) return;
-  const reqInf = req.isInfinite?.();
-  if (reqInf) {
+  ensureRequirement();
+  let currentReq = mutationState.requirement;
+  if (!currentReq || typeof currentReq !== 'object') return;
+  if (currentReq.isInfinite?.()) {
+    mutationState.progress = bnZero();
     return;
   }
   let guard = 0;
   const limit = 100000;
-  while (mutationState.progress.cmp?.(req) >= 0 && guard < limit) {
-    mutationState.progress = mutationState.progress.sub(req);
+  while (mutationState.progress.cmp?.(currentReq) >= 0 && guard < limit) {
+    mutationState.progress = mutationState.progress.sub(currentReq);
     mutationState.level = mutationState.level.add(bnOne());
     ensureRequirement();
-    if (mutationState.requirement.isInfinite?.()) {
+    currentReq = mutationState.requirement;
+    if (!currentReq || typeof currentReq !== 'object') {
+      mutationState.progress = bnZero();
+      break;
+    }
+    if (currentReq.isInfinite?.()) {
       mutationState.progress = bnZero();
       break;
     }
@@ -330,28 +343,31 @@ function applyState(newState, { skipPersist = false } = {}) {
   if (!skipPersist) persistState();
   updateHud();
   emitChange('load');
+  scheduleCoinMultiplierRefresh();
 }
 
 function readStateFromStorage(slot) {
-  if (slot == null) {
+  const targetSlot = slot ?? getActiveSlot();
+  if (targetSlot == null) {
     applyState({ unlocked: false, level: bnZero(), progress: bnZero() }, { skipPersist: true });
+    mutationState.slot = null;
     return;
   }
   let unlocked = false;
   let level = bnZero();
   let progress = bnZero();
-  try { unlocked = localStorage.getItem(KEY_UNLOCK(slot)) === '1'; }
+  try { unlocked = localStorage.getItem(KEY_UNLOCK(targetSlot)) === '1'; }
   catch {}
   try {
-    const rawLvl = localStorage.getItem(KEY_LEVEL(slot));
+    const rawLvl = localStorage.getItem(KEY_LEVEL(targetSlot));
     if (rawLvl) level = BN.fromAny(rawLvl);
   } catch {}
   try {
-    const rawProg = localStorage.getItem(KEY_PROGRESS(slot));
+    const rawProg = localStorage.getItem(KEY_PROGRESS(targetSlot));
     if (rawProg) progress = BN.fromAny(rawProg);
   } catch {}
   applyState({ unlocked, level, progress }, { skipPersist: true });
-  mutationState.slot = slot;
+  mutationState.slot = targetSlot;
 }
 
 function cleanupWatchers() {
