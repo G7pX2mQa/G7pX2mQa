@@ -24,6 +24,8 @@ let lastSyncedCoinUsedApproximation = false;
 let lastSyncedCoinApproxKey = null;
 let externalCoinMultiplierProvider = null;
 let externalXpGainMultiplierProvider = null;
+const coinMultiplierProviders = new Set();
+const xpGainMultiplierProviders = new Set();
 let externalBookRewardProvider = null;
 
 const EXACT_REQUIREMENT_CACHE_LEVEL = 5000n;
@@ -690,9 +692,13 @@ function syncCoinMultiplierWithXpLevel(force = false) {
   }
 
   let finalMultiplier = multiplierBn.clone?.() ?? multiplierBn;
-  if (typeof externalCoinMultiplierProvider === 'function') {
+  const providers = coinMultiplierProviders.size > 0
+    ? Array.from(coinMultiplierProviders)
+    : (typeof externalCoinMultiplierProvider === 'function' ? [externalCoinMultiplierProvider] : []);
+  for (const provider of providers) {
+    if (typeof provider !== 'function') continue;
     try {
-      const maybe = externalCoinMultiplierProvider({
+      const maybe = provider({
         baseMultiplier: finalMultiplier.clone?.() ?? finalMultiplier,
         xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
         xpUnlocked: xpState.unlocked,
@@ -928,19 +934,25 @@ export function addXp(amount, { silent = false } = {}) {
   } catch {
     inc = bnZero();
   }
-  if (typeof externalXpGainMultiplierProvider === 'function' && !inc.isZero?.()) {
-    try {
-      const maybe = externalXpGainMultiplierProvider({
-        baseGain: inc.clone?.() ?? inc,
-        xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
-        xpUnlocked: xpState.unlocked,
-      });
-      if (maybe instanceof BigNum) {
-        inc = maybe.clone?.() ?? maybe;
-      } else if (maybe != null) {
-        inc = BigNum.fromAny(maybe);
-      }
-    } catch {}
+  if (!inc.isZero?.()) {
+    const providers = xpGainMultiplierProviders.size > 0
+      ? Array.from(xpGainMultiplierProviders)
+      : (typeof externalXpGainMultiplierProvider === 'function' ? [externalXpGainMultiplierProvider] : []);
+    for (const provider of providers) {
+      if (typeof provider !== 'function') continue;
+      try {
+        const maybe = provider({
+          baseGain: inc.clone?.() ?? inc,
+          xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
+          xpUnlocked: xpState.unlocked,
+        });
+        if (maybe instanceof BigNum) {
+          inc = maybe.clone?.() ?? maybe;
+        } else if (maybe != null) {
+          inc = BigNum.fromAny(maybe);
+        }
+      } catch {}
+    }
   }
 
   if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
@@ -1021,6 +1033,10 @@ export function getXpRequirementForXpLevel(xpLevel) {
 
 export function setExternalCoinMultiplierProvider(fn) {
   externalCoinMultiplierProvider = typeof fn === 'function' ? fn : null;
+  coinMultiplierProviders.clear();
+  if (externalCoinMultiplierProvider) {
+    coinMultiplierProviders.add(externalCoinMultiplierProvider);
+  }
   ensureStateLoaded();
   syncCoinMultiplierWithXpLevel(true);
 }
@@ -1032,6 +1048,31 @@ export function refreshCoinMultiplierFromXpLevel() {
 
 export function setExternalXpGainMultiplierProvider(fn) {
   externalXpGainMultiplierProvider = typeof fn === 'function' ? fn : null;
+  xpGainMultiplierProviders.clear();
+  if (externalXpGainMultiplierProvider) {
+    xpGainMultiplierProviders.add(externalXpGainMultiplierProvider);
+  }
+}
+
+export function addExternalCoinMultiplierProvider(fn) {
+  if (typeof fn !== 'function') return () => {};
+  coinMultiplierProviders.add(fn);
+  ensureStateLoaded();
+  syncCoinMultiplierWithXpLevel(true);
+  return () => {
+    coinMultiplierProviders.delete(fn);
+    ensureStateLoaded();
+    syncCoinMultiplierWithXpLevel(true);
+  };
+}
+
+export function addExternalXpGainMultiplierProvider(fn) {
+  if (typeof fn !== 'function') return () => {};
+  xpGainMultiplierProviders.add(fn);
+  ensureStateLoaded();
+  return () => {
+    xpGainMultiplierProviders.delete(fn);
+  };
 }
 
 export function setExternalBookRewardProvider(fn) {
@@ -1048,8 +1089,10 @@ if (typeof window !== 'undefined') {
     isXpSystemUnlocked,
     getXpRequirementForXpLevel,
     setExternalCoinMultiplierProvider,
+    addExternalCoinMultiplierProvider,
     refreshCoinMultiplierFromXpLevel,
     setExternalXpGainMultiplierProvider,
+    addExternalXpGainMultiplierProvider,
     setExternalBookRewardProvider,
     resetXpProgress,
   });
