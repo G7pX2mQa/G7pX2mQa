@@ -1403,7 +1403,10 @@ const REGISTRY = [
     icon: "sc_upgrade_icons/faster_coins.png",
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
-    effectSummary() { return ''; },
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Coin spawn rate bonus: ${formatMultForUi(mult)}x`;
+    },
     effectMultiplier: E.addPctPerLevel(0.10),
   },
 
@@ -1441,7 +1444,10 @@ const REGISTRY = [
     requiresUnlockXp: true,
     costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
     nextCostAfter() { return this.costAtLevel(); },
-    effectSummary() { return ''; },
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Coin spawn rate bonus: ${formatMultForUi(mult)}x`;
+    },
     effectMultiplier: E.addPctPerLevel(0.10),
   },
 
