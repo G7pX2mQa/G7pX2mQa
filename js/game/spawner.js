@@ -361,20 +361,50 @@ function playWaveOncePerBurst() {
 
     function planPearlFromWave(wave, compareCoin) {
         if (!wave) return null;
-        const attempts = 5;
-        let fallback = null;
-        for (let i = 0; i < attempts; i++) {
-            const plan = planCoinFromWave(wave);
-            if (!plan) continue;
-            if (!compareCoin) return plan;
-            const dx = Math.abs(plan.x1 - compareCoin.x1);
-            const dy = Math.abs(plan.y1 - compareCoin.y1);
-            if (dx > coinSize * 0.4 || dy > coinSize * 0.4) {
-                return plan;
-            }
-            fallback = plan;
+        if (!compareCoin) return planCoinFromWave(wave);
+
+        const crestCenter = wave.x + wave.w / 2 + (Math.random() * 36 - 18);
+        const startX = clamp(crestCenter - coinSize / 2, COIN_MARGIN, M.pfW - coinSize - COIN_MARGIN);
+        const startY = wave.y + 10 - coinSize / 2;
+
+        const compareDx = compareCoin.x1 - compareCoin.x0;
+        let direction;
+        if (Math.abs(compareDx) < 1) {
+            direction = Math.random() < 0.5 ? -1 : 1;
+        } else {
+            direction = compareDx > 0 ? -1 : 1;
         }
-        return fallback;
+
+        const driftBase = Math.abs(compareDx) + coinSize * (0.5 + Math.random() * 0.4);
+        const drift = driftBase * (0.9 + Math.random() * 0.8);
+        let endX = startX + drift * direction;
+        endX = clamp(endX, COIN_MARGIN, M.pfW - coinSize - COIN_MARGIN);
+        if (Math.abs(endX - startX) < coinSize * 0.25) {
+            direction *= -1;
+            endX = clamp(startX + drift * direction, COIN_MARGIN, M.pfW - coinSize - COIN_MARGIN);
+        }
+
+        const minY = Math.max(M.wRect.height + 80, 120);
+        const maxY = Math.max(minY + 60, M.safeBottom - coinSize - 6);
+        const verticalRange = Math.max(140, Math.abs(compareCoin.y1 - compareCoin.y0) * (0.6 + Math.random() * 0.5));
+        const endY = clamp(startY + verticalRange, minY, maxY);
+
+        const bend = 0.35 + Math.random() * 0.3;
+        let midX = startX + (endX - startX) * bend;
+        midX += Math.random() * 40 - 20;
+        const jitterMs = Math.random() * 140;
+        const durationScale = 0.78 + Math.random() * 0.4;
+        const durationMs = Math.max(720, animationDurationMs * durationScale);
+
+        return {
+            x0: startX,
+            y0: startY,
+            xMid: midX,
+            y1: endY,
+            x1: endX,
+            jitterMs,
+            durationMs
+        };
     }
 
 function commitBatch(batch) {
@@ -420,6 +450,12 @@ function commitBatch(batch) {
     el.style.setProperty('--x1', `${coin.x1}px`);
     el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0)`;
     el.dataset.jitter = String(coin.jitterMs);
+    const animMs = Number(coin.durationMs);
+    if (Number.isFinite(animMs) && animMs > 0) {
+      el.dataset.animMs = String(Math.max(300, animMs));
+    } else if (el.dataset.animMs) {
+      delete el.dataset.animMs;
+    }
     if (isPearl) {
       el.dataset.pearl = '1';
       el.classList.add('coin--pearl');
@@ -431,7 +467,7 @@ function commitBatch(batch) {
 
     if (mutationStamp) {
       try {
-        el.__mutBn = mutationStamp.clone?.() ?? mutationStamp;
+        el.__mutBn = mutationStamp;
       } catch {
         el.__mutBn = mutationStamp;
       }
@@ -464,12 +500,14 @@ function commitBatch(batch) {
       };
       surge.addEventListener('animationend', onEnd, { once: true });
     }
-    for (const el of newCoins) {
-      const jitter = Number(el.dataset.jitter) || 0;
-      el.style.animation = 'none';
-      void el.offsetWidth;
-      el.style.animation = `${animationName} ${animationDurationMs}ms ease-out ${jitter}ms 1 both`;
-    }
+      for (const el of newCoins) {
+        const jitter = Number(el.dataset.jitter) || 0;
+        const animMs = Number(el.dataset.animMs);
+        const duration = Number.isFinite(animMs) && animMs > 0 ? Math.max(300, animMs) : animationDurationMs;
+        el.style.animation = 'none';
+        void el.offsetWidth;
+        el.style.animation = `${animationName} ${duration}ms ease-out ${jitter}ms 1 both`;
+      }
   });
 }
 
