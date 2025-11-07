@@ -67,6 +67,93 @@ export function initCoinPickup({
   };
   updateHud();
 
+  const cloneBn = (value) => {
+    if (!value) return BigNum.fromInt(0);
+    if (typeof value.clone === 'function') {
+      try { return value.clone(); } catch {}
+    }
+    try { return BigNum.fromAny(value); } catch { return BigNum.fromInt(0); }
+  };
+
+  let pendingCoinGain = null;
+  let pendingXpGain = null;
+  let pendingMutGain = null;
+  let pendingPearlCount = 0;
+  let flushScheduled = false;
+
+  const mergeGain = (current, gain) => {
+    if (!gain) return current;
+    if (!current) return cloneBn(gain);
+    try { return current.add(gain); }
+    catch {
+      try {
+        const base = cloneBn(current);
+        return base.add(gain);
+      } catch {
+        return cloneBn(gain);
+      }
+    }
+  };
+
+  const flushPendingGains = () => {
+    const coinGain = pendingCoinGain;
+    pendingCoinGain = null;
+    if (coinGain && !coinGain.isZero?.()) {
+      try { bank.coins.add(coinGain); } catch {}
+    }
+
+    const xpGain = pendingXpGain;
+    pendingXpGain = null;
+    if (xpGain && !xpGain.isZero?.()) {
+      try { addXp(xpGain); } catch {}
+    }
+
+    const mutGain = pendingMutGain;
+    pendingMutGain = null;
+    if (mutGain && !mutGain.isZero?.()) {
+      try { addMutationPower(mutGain); } catch {}
+    }
+
+    if (pendingPearlCount > 0) {
+      try { bank.pearls.add(BigNum.fromInt(pendingPearlCount)); } catch {}
+      try { updatePearlHud(); } catch {}
+      pendingPearlCount = 0;
+    }
+  };
+
+  const scheduleFlush = () => {
+    if (flushScheduled) return;
+    flushScheduled = true;
+    requestAnimationFrame(() => {
+      flushScheduled = false;
+      flushPendingGains();
+    });
+  };
+
+  const queueCoinGain = (gain) => {
+    pendingCoinGain = mergeGain(pendingCoinGain, gain);
+    scheduleFlush();
+  };
+
+  const queueXpGain = (gain) => {
+    pendingXpGain = mergeGain(pendingXpGain, gain);
+    scheduleFlush();
+  };
+
+  const queueMutationGain = (gain) => {
+    pendingMutGain = mergeGain(pendingMutGain, gain);
+    scheduleFlush();
+  };
+
+  const queuePearlGain = (count = 1) => {
+    pendingPearlCount += count;
+    scheduleFlush();
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', flushPendingGains, { passive: true });
+  }
+
   try {
     if (bank.coins?.mult?.get && bank.coins?.mult?.set) {
       const curr = bank.coins.mult.get(); // BN
@@ -257,14 +344,17 @@ function collect(el) {
   const base = resolveCoinBase(el);
 
   let inc = bank.coins.mult.applyTo(base);
-  let xpInc = XP_PER_COIN;
+  let xpInc = cloneBn(XP_PER_COIN);
 
   const mutStamp = el.__mutBn;
   let mutMultiplier = null;
   if (mutStamp) {
-    mutMultiplier = mutStamp.clone?.() ?? mutStamp;
+    mutMultiplier = mutStamp;
   } else if (el.dataset?.mut) {
-    try { mutMultiplier = BigNum.fromAny(el.dataset.mut); } catch {}
+    try {
+      mutMultiplier = BigNum.fromAny(el.dataset.mut);
+      el.__mutBn = mutMultiplier;
+    } catch {}
   }
 
   if (mutMultiplier && !mutMultiplier.isZero?.()) {
@@ -272,17 +362,31 @@ function collect(el) {
     xpInc = xpInc.mulBigNumInteger(mutMultiplier);
   }
 
-  try { bank.coins.add(inc); } catch {}
-  try { addXp(xpInc); } catch {}
-  updateHud();
+  const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
+  if (!incIsZero) {
+    try {
+      coins = coins?.add ? coins.add(inc) : cloneBn(inc);
+    } catch {
+      coins = cloneBn(inc);
+    }
+    updateHud();
+    queueCoinGain(inc);
+  } else {
+    updateHud();
+  }
+
+  const xpEnabled = typeof isXpSystemUnlocked === 'function' ? isXpSystemUnlocked() : true;
+  const xpIsZero = typeof xpInc?.isZero === 'function' ? xpInc.isZero() : false;
+  if (xpEnabled && !xpIsZero) {
+    queueXpGain(xpInc);
+  }
 
   if (el.dataset.pearl === '1') {
-    try { bank.pearls.add(BigNum.fromInt(1)); } catch {}
-    updatePearlHud();
+    queuePearlGain(1);
   }
 
   if (typeof isMutationUnlocked === 'function' && isMutationUnlocked()) {
-    try { addMutationPower(BigNum.fromInt(1)); } catch {}
+    queueMutationGain(BigNum.fromInt(1));
   }
 
   if (localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
@@ -348,6 +452,10 @@ function collect(el) {
   }
 
   const destroy = () => {
+    flushPendingGains();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('beforeunload', flushPendingGains);
+    }
     try { mo.disconnect(); } catch {}
     try { ['pointerdown','pointermove','pointerup','mousemove'].forEach(evt => pf.replaceWith(pf.cloneNode(true))); } catch {}
     // We don’t tear down window warm handlers; they’re once:true so harmless.
