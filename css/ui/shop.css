@@ -36,6 +36,11 @@
   box-shadow: var(--shop-shadow);
 }
 
+.shop-overlay:not(.is-open) .shop-sheet,
+.upg-overlay:not(.is-open) .upg-sheet {
+  box-shadow: none;
+}
+
 /* When open -> slide in */
 .shop-overlay.is-open .shop-sheet {
   transform: translateY(0);
