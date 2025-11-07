@@ -402,8 +402,10 @@ ensureMerchantDlgStateWatcher();
 // ----- Module state -----
 let merchantOverlayEl = null;
 let merchantSheetEl   = null;
+let merchantCloseBtn  = null;
 let merchantOpen      = false;
 let merchantDrag      = null;
+let merchantLastFocus = null;
 let merchantEventsBound = false;
 let merchantTabs = { buttons: {}, panels: {}, tablist: null };
 
@@ -949,6 +951,7 @@ function ensureMerchantOverlay() {
   merchantOverlayEl.className = 'merchant-overlay';
   merchantOverlayEl.id = 'merchant-overlay';
   merchantOverlayEl.setAttribute('aria-hidden', 'true');
+  merchantOverlayEl.setAttribute('inert', '');
 
   merchantSheetEl = document.createElement('div');
   merchantSheetEl.className = 'merchant-sheet';
@@ -1005,11 +1008,11 @@ function ensureMerchantOverlay() {
     btn.dataset.tab = def.key;
     const lockedLabel = def.lockedLabel || '???';
     btn.textContent = unlocked ? def.label : lockedLabel;
-    if (!unlocked) {
-      btn.classList.add('is-locked');
-      btn.disabled = true;
-      btn.title = 'Locked';
-    } else {
+      if (!unlocked) {
+        btn.classList.add('is-locked');
+        btn.disabled = true;
+        btn.title = '???';
+      } else {
       btn.title = def.label || 'Tab';
     }
     def.unlocked = unlocked;
@@ -1031,18 +1034,21 @@ function ensureMerchantOverlay() {
 
     btn.addEventListener('click', onTabClick);
 
-    btn.addEventListener('pointerdown', (event) => {
-      if (event.pointerType === 'mouse') return;
-      if (btn.disabled) {
-        event.preventDefault();
-        return;
+      btn.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse') return;
+        if (btn.disabled) {
+          event.preventDefault();
+          return;
+        }
+        markGhostTapTarget(btn);
+      }, { passive: false });
+
+      if (!('PointerEvent' in window)) {
+        btn.addEventListener('touchstart', (event) => {
+          if (btn.disabled) return;
+          markGhostTapTarget(btn);
+        }, { passive: false });
       }
-      if (shouldSkipGhostTap(btn)) {
-        event.preventDefault();
-        return;
-      }
-      markGhostTapTarget(btn);
-    }, { passive: false });
 
     if (!('PointerEvent' in window)) {
       btn.addEventListener('touchstart', (event) => {
@@ -1076,14 +1082,14 @@ function ensureMerchantOverlay() {
     }
   } catch {}
 
-  // Actions
-  const actions = document.createElement('div');
-  actions.className = 'merchant-actions';
-  const closeBtn = document.createElement('button');
-  closeBtn.type = 'button';
-  closeBtn.className = 'merchant-close';
-  closeBtn.textContent = 'Close';
-  actions.appendChild(closeBtn);
+    const actions = document.createElement('div');
+    actions.className = 'merchant-actions';
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'merchant-close';
+    closeBtn.textContent = 'Close';
+    merchantCloseBtn = closeBtn;
+    actions.appendChild(closeBtn);
 
   // First-time chat overlay
   const firstChat = document.createElement('div');
@@ -1325,24 +1331,16 @@ function renderDialogueList() {
 
     if (unlocked || isMysterious) {
       card.addEventListener('click', handleCardClick);
-      if ('PointerEvent' in window) {
-        card.addEventListener('pointerdown', (event) => {
-          if (event.pointerType === 'mouse') return;
-          if (shouldSkipGhostTap(card)) {
-            event.preventDefault();
-            return;
-          }
-          markGhostTapTarget(card);
-        }, { passive: false });
-      } else {
-        card.addEventListener('touchstart', (event) => {
-          if (shouldSkipGhostTap(card)) {
-            event.preventDefault();
-            return;
-          }
-          markGhostTapTarget(card);
-        }, { passive: false });
-      }
+        if ('PointerEvent' in window) {
+          card.addEventListener('pointerdown', (event) => {
+            if (event.pointerType === 'mouse') return;
+            markGhostTapTarget(card);
+          }, { passive: false });
+        } else {
+          card.addEventListener('touchstart', () => {
+            markGhostTapTarget(card);
+          }, { passive: false });
+        }
     }
   });
 
@@ -1410,22 +1408,33 @@ function runFirstMeet() {
   engine.start();
 }
 
-export function openMerchant() {
-  ensureMerchantOverlay();
-  if (merchantOpen) return;
-  merchantOpen = true;
+  export function openMerchant() {
+    ensureMerchantOverlay();
+    if (merchantOpen) return;
+    const activeEl = document.activeElement;
+    if (activeEl instanceof HTMLElement && !merchantOverlayEl.contains(activeEl)) {
+      merchantLastFocus = activeEl;
+    } else {
+      merchantLastFocus = null;
+    }
+    merchantOpen = true;
 
-  // Reset transform and transition
-  merchantSheetEl.style.transition = 'none';
-  merchantSheetEl.style.transform = '';
-  merchantOverlayEl.setAttribute('aria-hidden', 'false');
+    // Reset transform and transition
+    merchantSheetEl.style.transition = 'none';
+    merchantSheetEl.style.transform = '';
+    merchantOverlayEl.removeAttribute('inert');
+    merchantOverlayEl.setAttribute('aria-hidden', 'false');
 
   // Animate in next frame
   void merchantSheetEl.offsetHeight;
   requestAnimationFrame(() => {
-    merchantSheetEl.style.transition = '';
-    merchantOverlayEl.classList.add('is-open');
-	blockInteraction(140);
+      merchantSheetEl.style.transition = '';
+      merchantOverlayEl.classList.add('is-open');
+      blockInteraction(140);
+
+      if (merchantCloseBtn && typeof merchantCloseBtn.focus === 'function') {
+        try { merchantCloseBtn.focus({ preventScroll: true }); } catch {}
+      }
 
     // Restore last tab
     let last = 'dialogue';
@@ -1447,16 +1456,28 @@ export function openMerchant() {
   });
 }
 
-export function closeMerchant() {
-  if (!merchantOpen) return;
-  merchantOpen = false;
-  merchantSheetEl.style.transition = '';
-  merchantSheetEl.style.transform = '';
-  merchantOverlayEl.classList.remove('is-open');
-  merchantOverlayEl.setAttribute('aria-hidden', 'true');
-  stopTypingSfx();
-  __isTypingActive = false;
-}
+  export function closeMerchant() {
+    if (!merchantOpen) return;
+    merchantOpen = false;
+    merchantSheetEl.style.transition = '';
+    merchantSheetEl.style.transform = '';
+    merchantOverlayEl.classList.remove('is-open');
+    const activeEl = document.activeElement;
+    if (activeEl && merchantOverlayEl.contains(activeEl)) {
+      let target = merchantLastFocus;
+      if (!target || !target.isConnected) {
+        target = document.querySelector('[data-btn="shop"], .btn-shop');
+      }
+      if (target && typeof target.focus === 'function') {
+        try { target.focus({ preventScroll: true }); } catch {}
+      }
+    }
+    merchantOverlayEl.setAttribute('aria-hidden', 'true');
+    merchantOverlayEl.setAttribute('inert', '');
+    merchantLastFocus = null;
+    stopTypingSfx();
+    __isTypingActive = false;
+  }
 
 function onKeydownForMerchant(e) {
   if (!merchantOpen) return;
