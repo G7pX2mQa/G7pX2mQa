@@ -1516,7 +1516,7 @@ const REGISTRY = [
     area: AREA_KEYS.STARTER_COVE,
     id: 7,
     title: "Unlock Forge",
-    desc: "Unlocks the Forge reset tab in the Merchant",
+    desc: "Unlocks the Reset tab and the Forge reset in the Delve menu",
     lvlCap: 1,
     baseCost: 0,
     costType: "gold",
