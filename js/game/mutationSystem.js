@@ -8,6 +8,7 @@ import {
 } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
 import { approxLog10BigNum, bigNumFromLog10 } from './upgrades.js';
+import { syncXpMpHudLayout } from '../ui/hudLayout.js';
 
 const KEY_PREFIX = 'ccc:mutation';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
@@ -192,6 +193,7 @@ function updateHud() {
       const reqPlain = formatBn(mutationState.requirement).replace(/<[^>]*>/g, '');
       bar.setAttribute('aria-valuetext', `0 / ${reqPlain || '10'} MP`);
     }
+    syncXpMpHudLayout();
     return;
   }
 
@@ -217,6 +219,7 @@ function updateHud() {
     const reqPlain = formatBn(req).replace(/<[^>]*>/g, '');
     bar.setAttribute('aria-valuetext', `${currPlain} / ${reqPlain} MP`);
   }
+  syncXpMpHudLayout();
 }
 
 function emitChange(reason = 'update') {
