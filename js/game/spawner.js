@@ -2,7 +2,6 @@
 
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { arePearlsUnlocked } from './resetSystem.js';
-import { getMutationMultiplier } from './mutationSystem.js';
 
 export function createSpawner({
     playfieldSelector = '.area-cove .playfield',
@@ -133,8 +132,6 @@ export function createSpawner({
     delete el.dataset.jitter;
     delete el.dataset.collected;
     delete el.dataset.pearl;
-    delete el.dataset.mut;
-    delete el.__mutBn;
     el.classList.remove('coin--pearl');
 
    if (el.parentNode)
@@ -353,13 +350,13 @@ function playWaveOncePerBurst() {
         const coinPlan = planCoinFromWave(wave);
         if (!coinPlan) return null;
 
-        return {
-            wave,
-            coin: Object.assign({ isPearl: false }, coinPlan)
-        };
-    }
+    return {
+        wave,
+        coin: Object.assign({ isPearl: false }, coinPlan)
+    };
+}
 
-    function planPearlFromWave(wave, compareCoin) {
+function planPearlFromWave(wave, compareCoin) {
         if (!wave) return null;
         if (!compareCoin) return planCoinFromWave(wave);
 
@@ -415,20 +412,6 @@ function commitBatch(batch) {
   const newCoins = [];
   const newSurges = [];
 
-  let mutationStamp = null;
-  let mutationStorage = null;
-  try {
-    const currentMut = getMutationMultiplier();
-    if (currentMut) {
-      mutationStamp = currentMut.clone?.() ?? currentMut;
-      if (typeof mutationStamp.toStorage === 'function') {
-        mutationStorage = mutationStamp.toStorage();
-      } else if (typeof mutationStamp.toString === 'function') {
-        mutationStorage = mutationStamp.toString();
-      }
-    }
-  } catch {}
-
   for (const { wave, coin } of batch) {
     if (wave) {
       const surge = getSurge();
@@ -465,22 +448,6 @@ function commitBatch(batch) {
     }
     el.dataset.dieAt = String(performance.now() + coinTtlMs);
 
-    if (mutationStamp) {
-      try {
-        el.__mutBn = mutationStamp;
-      } catch {
-        el.__mutBn = mutationStamp;
-      }
-      if (mutationStorage) {
-        el.dataset.mut = mutationStorage;
-      } else {
-        delete el.dataset.mut;
-      }
-    } else {
-      delete el.__mutBn;
-      delete el.dataset.mut;
-    }
-
     coinsFrag.appendChild(el);
     newCoins.push(el);
   }
@@ -511,6 +478,20 @@ function commitBatch(batch) {
   });
 }
 
+function maybeQueuePearlCompanion(batch, plan) {
+  if (!plan || !plan.coin || plan.coin.isPearl === true) return 0;
+  if (!arePearlsUnlocked()) return 0;
+  if (Math.random() >= PEARL_SPAWN_CHANCE) return 0;
+  const pearlCoin = planPearlFromWave(plan.wave, plan.coin);
+  if (!pearlCoin) return 0;
+  const pearlPlan = {
+    wave: null,
+    coin: Object.assign({ isPearl: true }, pearlCoin),
+  };
+  batch.push(pearlPlan);
+  return 1;
+}
+
     function spawnBurst(n = 1) {
         if (!validRefs())
             return;
@@ -519,20 +500,10 @@ function commitBatch(batch) {
         const batch = [];
         for (let i = 0; i < n; i++) {
             const plan = planSpawn();
-                if (plan) {
+            if (plan) {
                 plan.coin.isPearl = !!plan.coin.isPearl;
                 batch.push(plan);
-                if (plan.coin.isPearl !== true && arePearlsUnlocked() && Math.random() < PEARL_SPAWN_CHANCE) {
-                    const pearlCoin = planPearlFromWave(plan.wave, plan.coin);
-                    if (pearlCoin) {
-                        const pearlPlan = {
-                            wave: null,
-                            coin: Object.assign({ isPearl: true }, pearlCoin)
-                        };
-                        batch.push(pearlPlan);
-                    }
-                }
-                }
+            }
         }
         if (batch.length)
             commitBatch(batch);
@@ -604,14 +575,21 @@ if (due > 0) {
   if (spawnTarget > 0) {
     const t0 = performance.now();
     const batch = [];
+    let baseSpawned = 0;
     for (let i = 0; i < spawnTarget; i++) {
       if (performance.now() - t0 > timeBudgetMs) break;
       const plan = planSpawn();
-      if (plan) batch.push(plan);
+      if (plan) {
+        batch.push(plan);
+        baseSpawned += 1;
+        maybeQueuePearlCompanion(batch, plan);
+      }
     }
     if (batch.length) {
       commitBatch(batch);
-      queued -= batch.length;
+      if (baseSpawned > 0) {
+        queued = Math.max(0, queued - baseSpawned);
+      }
     }
   }
 
