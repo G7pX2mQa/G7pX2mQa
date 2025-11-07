@@ -621,8 +621,8 @@ function renderShopGrid() {
 
     btn.classList.toggle('is-locked', locked);
     btn.classList.toggle('is-locked-plain', isPlainLocked);
-    btn.disabled = locked;
-    if (locked) {
+    btn.disabled = isPlainLocked;
+    if (isPlainLocked) {
       btn.setAttribute('aria-disabled', 'true');
       btn.setAttribute('tabindex', '-1');
     } else {
@@ -709,10 +709,8 @@ function renderShopGrid() {
     iconImg.loading = 'lazy';
     iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
 
-    markGhostTapTarget(btn);
-
     btn.addEventListener('click', (event) => {
-      if (btn.disabled || locked) {
+      if (btn.disabled || isPlainLocked) {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
@@ -727,18 +725,13 @@ function renderShopGrid() {
     });
 
     btn.addEventListener('pointerdown', (event) => {
-      if (btn.disabled || locked) {
+      if (btn.disabled || isPlainLocked) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation?.();
         return;
       }
       if (event.pointerType !== 'mouse') {
-        if (shouldSkipGhostTap(btn)) {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          return;
-        }
         markGhostTapTarget(btn);
       }
     });
@@ -833,6 +826,7 @@ function ensureShopOverlay() {
 
   const openDelveOverlay = () => {
     if (shouldSkipGhostTap(delveBtn)) return;
+    markGhostTapTarget(delveBtn);
     primeTypingSfx();
     openMerchant();
   };
@@ -890,10 +884,6 @@ closeBtn.addEventListener('click', onCloseClick, { passive: true });
     const onDelvePointerDown = (e) => {
       if (e.pointerType === 'mouse') return;
       if (typeof e.button === 'number' && e.button !== 0) return;
-      if (shouldSkipGhostTap(delveBtn)) {
-        e.preventDefault();
-        return;
-      }
       markGhostTapTarget(delveBtn);
       primeTypingSfx();
       openMerchant();
@@ -901,10 +891,6 @@ closeBtn.addEventListener('click', onCloseClick, { passive: true });
     };
 
     const onDelveTouchStart = (e) => {
-      if (shouldSkipGhostTap(delveBtn)) {
-        e.preventDefault();
-        return;
-      }
       markGhostTapTarget(delveBtn);
       primeTypingSfx();
       openMerchant();
@@ -922,13 +908,17 @@ closeBtn.addEventListener('click', onCloseClick, { passive: true });
     grabber.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
 
     let _shopBadgeTimer = null;
-    window.addEventListener('currency:change', () => {
-      if (!shopOpen) return;
-      clearTimeout(_shopBadgeTimer);
-      _shopBadgeTimer = setTimeout(() => {
-        updateShopOverlay();
-      }, 60); // debounce avoids spamming on rapid tick updates
-    });
+      const scheduleShopRerender = () => {
+        if (!shopOpen) return;
+        clearTimeout(_shopBadgeTimer);
+        _shopBadgeTimer = setTimeout(() => {
+          updateShopOverlay();
+        }, 60);
+      };
+
+      window.addEventListener('currency:change', scheduleShopRerender);
+      window.addEventListener('xp:change', scheduleShopRerender);
+      window.addEventListener('xp:unlock', scheduleShopRerender);
 
     const onUpgradesChanged = () => {
       if (!shopOpen) return;
@@ -1322,8 +1312,10 @@ export function openUpgradeOverlay(upgDef) {
     rerender();
   };
 
-  window.addEventListener('currency:change', onCurrencyChange);
-  document.addEventListener('ccc:upgrades:changed', onUpgradesChanged);
+    window.addEventListener('currency:change', onCurrencyChange);
+    window.addEventListener('xp:change', onCurrencyChange);
+    window.addEventListener('xp:unlock', onCurrencyChange);
+    document.addEventListener('ccc:upgrades:changed', onUpgradesChanged);
 
   // open + animate
   rerender();
@@ -1352,9 +1344,11 @@ export function openUpgradeOverlay(upgDef) {
 
   upgOverlayCleanup = () => {
     upgOpenLocal = false;
-    window.removeEventListener('currency:change', onCurrencyChange);
-    document.removeEventListener('ccc:upgrades:changed', onUpgradesChanged);
-    window.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('currency:change', onCurrencyChange);
+      window.removeEventListener('xp:change', onCurrencyChange);
+      window.removeEventListener('xp:unlock', onCurrencyChange);
+	  document.removeEventListener('ccc:upgrades:changed', onUpgradesChanged);
+      window.removeEventListener('keydown', onKey, true);
   };
 }
 
