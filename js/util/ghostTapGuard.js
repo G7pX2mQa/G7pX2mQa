@@ -1,7 +1,7 @@
 // js/util/ghostTapGuard.js
 // Fixes issue with buttons on mobile that prevents them from being spam clicked; it is important this is applied to every clickable button in the game
 
-const DEFAULT_TIMEOUT_MS = 90;
+const DEFAULT_TIMEOUT_MS = 0;
 const ELEMENT_SKIP_PROP = Symbol('ccc:ghostTap:skipUntil');
 const GLOBAL_SKIP_PROP = '__cccGhostTapSkipUntil';
 const TARGET_SELECTOR = '[data-ghost-tap-target], button, [role="button"], [data-btn], .game-btn, .btn, .slot-card, a[href], input, select, textarea, summary';
