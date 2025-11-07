@@ -3,6 +3,7 @@
 import { BigNum } from '../util/bigNum.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
+import { syncXpMpHudLayout } from '../ui/hudLayout.js';
 
 const KEY_PREFIX = 'ccc:xp';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
@@ -589,7 +590,6 @@ function normalizeProgress(applyRewards = false) {
   updateXpRequirement();
   const reqIsInf = requirementBn.isInfinite?.() || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
   if (reqIsInf) {
-    xpState.progress = bnZero();
     return;
   }
   let guard = 0;
@@ -847,6 +847,7 @@ function updateHud() {
       const reqPlain = stripHtml(formatNumber(requirementBn));
       bar.setAttribute('aria-valuetext', `0 / ${reqPlain || '10'} XP`);
     }
+    syncXpMpHudLayout();
     return;
   }
 
@@ -872,6 +873,7 @@ function updateHud() {
     const reqPlain = stripHtml(formatNumber(requirement));
     bar.setAttribute('aria-valuetext', `${currPlain} / ${reqPlain} XP`);
   }
+  syncXpMpHudLayout();
 }
 
 export function initXpSystem() {
@@ -958,7 +960,6 @@ export function addXp(amount, { silent = false } = {}) {
     updateXpRequirement();
     const reqIsInf = requirementBn.isInfinite?.() || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
     if (reqIsInf) {
-      xpState.progress = bnZero();
       break;
     }
     guard += 1;
