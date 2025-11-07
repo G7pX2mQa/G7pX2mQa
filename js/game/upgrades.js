@@ -6,9 +6,9 @@ import {
   unlockXpSystem,
   isXpSystemUnlocked,
   getXpState,
-  setExternalCoinMultiplierProvider,
+  addExternalCoinMultiplierProvider,
   setExternalBookRewardProvider,
-  setExternalXpGainMultiplierProvider,
+  addExternalXpGainMultiplierProvider,
   refreshCoinMultiplierFromXpLevel,
 } from './xpSystem.js';
 import { getMutationMultiplier } from './mutationSystem.js';
@@ -1587,13 +1587,46 @@ const REGISTRY = [
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     computeLockState() {
+      if (!isXpSystemUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Unlock the XP system to reveal this upgrade',
+          reason: 'Unlock the XP system to reveal this upgrade',
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
+      let xpLevel = 0;
+      try {
+        const xpState = getXpState();
+        xpLevel = levelBigNumToNumber(xpState?.xpLevel ?? 0);
+      } catch {}
+      const revealMessage = 'Reach XP Level 31 to reveal this upgrade';
+      if (!Number.isFinite(xpLevel) || xpLevel < 31) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: revealMessage,
+          reason: revealMessage,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
       if (!hasCompletedForgeReset()) {
+        const resetMessage = 'Complete a Forge reset to reveal this upgrade';
         return {
           locked: true,
           iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: 'Complete a Forge reset to reveal this upgrade',
-          reason: 'Complete a Forge reset to reveal this upgrade',
+          descOverride: resetMessage,
+          reason: resetMessage,
           hidden: true,
           hideCost: true,
           hideEffect: true,
@@ -1633,13 +1666,46 @@ const REGISTRY = [
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     computeLockState() {
+      if (!isXpSystemUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Unlock the XP system to reveal this upgrade',
+          reason: 'Unlock the XP system to reveal this upgrade',
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
+      let xpLevel = 0;
+      try {
+        const xpState = getXpState();
+        xpLevel = levelBigNumToNumber(xpState?.xpLevel ?? 0);
+      } catch {}
+      const revealMessage = 'Reach XP Level 31 to reveal this upgrade';
+      if (!Number.isFinite(xpLevel) || xpLevel < 31) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: revealMessage,
+          reason: revealMessage,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
       if (!hasCompletedForgeReset()) {
+        const resetMessage = 'Complete a Forge reset to reveal this upgrade';
         return {
           locked: true,
           iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: 'Complete a Forge reset to reveal this upgrade',
-          reason: 'Complete a Forge reset to reveal this upgrade',
+          descOverride: resetMessage,
+          reason: resetMessage,
           hidden: true,
           hideCost: true,
           hideEffect: true,
@@ -1679,17 +1745,60 @@ const REGISTRY = [
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     computeLockState() {
-      if (!arePearlsUnlocked()) {
+      if (!isXpSystemUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Unlock the XP system to reveal this upgrade',
+          reason: 'Unlock the XP system to reveal this upgrade',
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
+      let xpLevel = 0;
+      try {
+        const xpState = getXpState();
+        xpLevel = levelBigNumToNumber(xpState?.xpLevel ?? 0);
+      } catch {}
+      const revealMessage = 'Reach XP Level 31 to reveal this upgrade';
+      if (!Number.isFinite(xpLevel) || xpLevel < 31) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: revealMessage,
+          reason: revealMessage,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
+      if (!hasCompletedForgeReset()) {
+        const resetMessage = 'Complete a Forge reset to reveal this upgrade';
         return {
           locked: true,
           iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: 'Complete a Forge reset to unlock Pearls',
-          reason: 'Complete a Forge reset to unlock Pearls',
-          useLockedBase: true,
+          descOverride: resetMessage,
+          reason: resetMessage,
           hidden: true,
           hideCost: true,
           hideEffect: true,
+          useLockedBase: true,
+        };
+      }
+      if (!isForgeUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: 'Forge Locked',
+          descOverride: 'Unlock the Forge to access this upgrade',
+          useLockedBase: true,
+          hidden: false,
         };
       }
       return { locked: false };
@@ -1715,17 +1824,60 @@ const REGISTRY = [
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     computeLockState() {
-      if (!arePearlsUnlocked()) {
+      if (!isXpSystemUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Unlock the XP system to reveal this upgrade',
+          reason: 'Unlock the XP system to reveal this upgrade',
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
+      let xpLevel = 0;
+      try {
+        const xpState = getXpState();
+        xpLevel = levelBigNumToNumber(xpState?.xpLevel ?? 0);
+      } catch {}
+      const revealMessage = 'Reach XP Level 31 to reveal this upgrade';
+      if (!Number.isFinite(xpLevel) || xpLevel < 31) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: revealMessage,
+          reason: revealMessage,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
+      if (!hasCompletedForgeReset()) {
+        const resetMessage = 'Complete a Forge reset to reveal this upgrade';
         return {
           locked: true,
           iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: 'Complete a Forge reset to unlock Pearls',
-          reason: 'Complete a Forge reset to unlock Pearls',
-          useLockedBase: true,
+          descOverride: resetMessage,
+          reason: resetMessage,
           hidden: true,
           hideCost: true,
           hideEffect: true,
+          useLockedBase: true,
+        };
+      }
+      if (!isForgeUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          titleOverride: 'Forge Locked',
+          descOverride: 'Unlock the Forge to access this upgrade',
+          useLockedBase: true,
+          hidden: false,
         };
       }
       return { locked: false };
@@ -2778,7 +2930,7 @@ export function computeUpgradeEffects(areaKey) {
 function registerXpUpgradeEffects() {
   try { initResetSystem(); } catch {}
   try {
-    setExternalCoinMultiplierProvider(({ baseMultiplier, xpUnlocked }) => {
+    addExternalCoinMultiplierProvider(({ baseMultiplier, xpUnlocked }) => {
       if (!xpUnlocked) return baseMultiplier;
       let result;
       try {
@@ -2803,7 +2955,7 @@ function registerXpUpgradeEffects() {
   } catch {}
 
   try {
-    setExternalXpGainMultiplierProvider(({ baseGain, xpUnlocked }) => {
+    addExternalXpGainMultiplierProvider(({ baseGain, xpUnlocked }) => {
       if (!xpUnlocked) return baseGain;
       let gain;
       try {
