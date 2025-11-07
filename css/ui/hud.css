@@ -220,6 +220,12 @@ pointer-events: none;
     grid-row: 2;
     justify-self: start;
   }
+  .hud-top.hud-top--xp-mp > [data-xp-hud] {
+    margin-right: 18px;
+  }
+  .hud-top.hud-top--xp-mp > [data-mp-hud] {
+    margin-left: 18px;
+  }
 
   .hud-top.hud-top--xp-only {
     grid-template-columns: auto;
