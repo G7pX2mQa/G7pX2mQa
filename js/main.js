@@ -275,6 +275,10 @@ function enterArea(areaID) {
         initHudButtons();
       }
 
+      if (typeof initResetSystemGame === 'function') {
+        try { initResetSystemGame(); } catch {}
+      }
+
       if (typeof initMutationSystem === 'function') {
         try { initMutationSystem(); } catch {}
       }
@@ -468,7 +472,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   installGhostTapGuard?.();
-  initResetSystemGame?.();
   installSuspendSafeguards?.();
 
   try {
