@@ -66,6 +66,7 @@ function bindRapidActivation(target, handler, { once = false } = {}) {
   if (!target || typeof handler !== 'function') return () => {};
   let used = false;
   let pointerTriggered = false;
+  let activePointerId = null;
 
   const run = (event) => {
     if (once && used) return;
@@ -79,9 +80,14 @@ function bindRapidActivation(target, handler, { once = false } = {}) {
     if (once) cleanup();
   };
 
+  const resetPointerTrigger = () => {
+    pointerTriggered = false;
+    activePointerId = null;
+  };
+
   const onClick = (event) => {
     if (pointerTriggered) {
-      pointerTriggered = false;
+      resetPointerTrigger();
       return;
     }
     run(event);
@@ -91,32 +97,62 @@ function bindRapidActivation(target, handler, { once = false } = {}) {
     if (event.pointerType === 'mouse') return;
     if (typeof event.button === 'number' && event.button !== 0) return;
     pointerTriggered = true;
+    activePointerId = typeof event.pointerId === 'number' ? event.pointerId : null;
     suppressNextGhostTap();
-    event.preventDefault();
+  };
+
+  const onPointerUp = (event) => {
+    if (!pointerTriggered) return;
+    if (activePointerId != null && typeof event.pointerId === 'number' && event.pointerId !== activePointerId) {
+      return;
+    }
+    resetPointerTrigger();
     run(event);
+  };
+
+  const onPointerCancel = () => {
+    if (!pointerTriggered) return;
+    resetPointerTrigger();
   };
 
   const onTouchStart = (event) => {
     pointerTriggered = true;
     suppressNextGhostTap();
-    event.preventDefault();
+  };
+
+  const onTouchEnd = (event) => {
+    if (!pointerTriggered) return;
+    resetPointerTrigger();
     run(event);
+  };
+
+  const onTouchCancel = () => {
+    if (!pointerTriggered) return;
+    resetPointerTrigger();
   };
 
   const cleanup = () => {
     target.removeEventListener('click', onClick);
     if (HAS_POINTER_EVENTS) {
       target.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
     } else if (HAS_TOUCH_EVENTS) {
       target.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchCancel);
     }
   };
 
   target.addEventListener('click', onClick);
   if (HAS_POINTER_EVENTS) {
     target.addEventListener('pointerdown', onPointerDown, { passive: false });
+    window.addEventListener('pointerup', onPointerUp, { passive: false });
+    window.addEventListener('pointercancel', onPointerCancel, { passive: false });
   } else if (HAS_TOUCH_EVENTS) {
     target.addEventListener('touchstart', onTouchStart, { passive: false });
+    window.addEventListener('touchend', onTouchEnd, { passive: false });
+    window.addEventListener('touchcancel', onTouchCancel, { passive: false });
   }
 
   return cleanup;
