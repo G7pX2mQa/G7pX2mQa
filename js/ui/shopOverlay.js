@@ -614,15 +614,15 @@ function renderShopGrid() {
     btn.dataset.upgId = String(upg.id);
 
     const locked = !!upg.locked;
-    const isMysterious = locked && (
-      upg.lockState?.hidden || upg.lockState?.hideEffect || upg.lockState?.hideCost
-    );
+    const lockIcon = upg.lockState?.iconOverride;
+    const hasMysteriousIcon = typeof lockIcon === 'string' && lockIcon.includes('mysterious');
+    const isMysterious = locked && (upg.lockState?.hidden || hasMysteriousIcon);
     const isPlainLocked = locked && !isMysterious;
 
     btn.classList.toggle('is-locked', locked);
     btn.classList.toggle('is-locked-plain', isPlainLocked);
-    btn.disabled = locked;
-    if (locked) {
+    btn.disabled = isPlainLocked;
+    if (isPlainLocked) {
       btn.setAttribute('aria-disabled', 'true');
       btn.setAttribute('tabindex', '-1');
     } else {
@@ -631,6 +631,7 @@ function renderShopGrid() {
     }
     btn.dataset.locked = locked ? '1' : '0';
     btn.dataset.lockedPlain = isPlainLocked ? '1' : '0';
+    btn.dataset.mysterious = isMysterious ? '1' : '0';
 
     const canPlusBn = locked
       ? BigNum.fromInt(0)
@@ -705,7 +706,7 @@ function renderShopGrid() {
     iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
 
     btn.addEventListener('click', (event) => {
-      if (btn.disabled || locked) {
+      if (btn.disabled || isPlainLocked) {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
@@ -720,7 +721,7 @@ function renderShopGrid() {
     });
 
     btn.addEventListener('pointerdown', (event) => {
-      if (btn.disabled || locked) {
+      if (btn.disabled || isPlainLocked) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation?.();
