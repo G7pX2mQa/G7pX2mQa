@@ -2457,19 +2457,14 @@ function computeUpgradeLockStateFor(areaKey, upg) {
   }
 
 if (state.locked) {
-  const hiddenState = !!(state.hidden || state.hideEffect || state.hideCost);
-
-  if (hiddenState) {
-    state.iconOverride = MYSTERIOUS_UPGRADE_ICON_DATA_URL;
-    if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
-  } else {
-    if (!state.iconOverride || state.iconOverride === MYSTERIOUS_UPGRADE_ICON_DATA_URL) {
-      state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
-    }
-    if (!state.titleOverride || state.titleOverride === HIDDEN_UPGRADE_TITLE) {
-      state.titleOverride = LOCKED_UPGRADE_TITLE;
-    }
-  }
+const hiddenState = !!state.hidden;
+if (hiddenState) {
+  if (!state.iconOverride) state.iconOverride = MYSTERIOUS_UPGRADE_ICON_DATA_URL;
+  if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
+} else {
+  if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
+  if (!state.titleOverride) state.titleOverride = LOCKED_UPGRADE_TITLE;
+}
 
   if (state.useLockedBase == null) state.useLockedBase = true;
   if (!state.reason && upg?.revealRequirement) state.reason = upg.revealRequirement;
@@ -2512,32 +2507,30 @@ if (state.locked) {
     let currentStatus = classifyUpgradeStatus(state);
     let currentRank = shopStatusRank(currentStatus);
 
-    const applyStoredMysterious = () => {
-      state.locked = true;
-      const snap = rec.snapshot;
-      if (snap && typeof snap === 'object') {
-        state = mergeLockStates(state, snap);
-      }
-      if (state.iconOverride == null) {
-        state.iconOverride = MYSTERIOUS_UPGRADE_ICON_DATA_URL;
-      }
-      if (state.titleOverride == null) {
-        state.titleOverride = HIDDEN_UPGRADE_TITLE;
-      }
-      if (state.descOverride == null) {
-        const reasonText = state.reason || upg?.revealRequirement || 'This upgrade is currently hidden.';
-        state.descOverride = reasonText;
-      }
-      if (state.reason == null && upg?.revealRequirement) {
-        state.reason = upg.revealRequirement;
-      }
-      state.hidden = true;
-      state.hideCost = true;
-      state.hideEffect = true;
-      if (state.useLockedBase == null) {
-        state.useLockedBase = true;
-      }
-    };
+const applyStoredMysterious = () => {
+  state.locked = true;
+
+  const snap = rec.snapshot;
+  if (snap && typeof snap === 'object') {
+    state = mergeLockStates(state, snap);
+  }
+  
+  state.iconOverride  = MYSTERIOUS_UPGRADE_ICON_DATA_URL;
+  state.titleOverride = HIDDEN_UPGRADE_TITLE;
+
+  if (state.descOverride == null) {
+    const reasonText = state.reason || upg?.revealRequirement || 'This upgrade is currently hidden.';
+    state.descOverride = reasonText;
+  }
+  if (state.reason == null && upg?.revealRequirement) {
+    state.reason = upg.revealRequirement;
+  }
+
+  state.hidden      = true;
+  state.hideCost    = true;
+  state.hideEffect  = true;
+  if (state.useLockedBase == null) state.useLockedBase = true;
+}
 
     if (storedRank > currentRank) {
       if (storedStatus === 'unlocked') {
