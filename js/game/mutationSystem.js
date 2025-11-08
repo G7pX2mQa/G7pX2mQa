@@ -431,6 +431,12 @@ function bindStorageWatchers(slot) {
 export function initMutationSystem() {
   ensureExternalMultiplierProviders();
   if (initialized) {
+    const activeSlot = getActiveSlot();
+    const slotChanged = activeSlot !== mutationState.slot;
+    if (slotChanged) {
+      readStateFromStorage(activeSlot);
+    }
+    bindStorageWatchers(activeSlot);
     ensureHudRefs();
     updateHud();
     return getMutationState();
