@@ -213,7 +213,7 @@ function shopStatusRank(status) {
 
 function classifyUpgradeStatus(lockState) {
   if (!lockState || lockState.locked === false) return 'unlocked';
-  if (lockState.hidden || lockState.hideCost || lockState.hideEffect || lockState.useLockedBase) {
+  if (lockState.hidden || lockState.hideCost || lockState.hideEffect) {
     return 'mysterious';
   }
   return 'locked';
@@ -2403,6 +2403,17 @@ function computeUpgradeLockStateFor(areaKey, upg) {
       } else {
         state.descOverride = 'This upgrade is currently hidden.';
       }
+    }
+  } else {
+    state.hidden = false;
+    state.hideCost = false;
+    state.hideEffect = false;
+    state.useLockedBase = false;
+    if (state.iconOverride === LOCKED_UPGRADE_ICON_DATA_URL || state.iconOverride === MYSTERIOUS_UPGRADE_ICON_DATA_URL) {
+      delete state.iconOverride;
+    }
+    if (state.titleOverride === HIDDEN_UPGRADE_TITLE || state.titleOverride === LOCKED_UPGRADE_TITLE) {
+      delete state.titleOverride;
     }
   }
 
