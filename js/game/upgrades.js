@@ -2483,6 +2483,8 @@ function computeUpgradeLockStateFor(areaKey, upg) {
         state.titleOverride === LOCKED_UPGRADE_TITLE) {
       delete state.titleOverride;
     }
+    delete state.descOverride;
+    delete state.reason;
   }
 
   if (state.locked && upg.requiresUnlockXp && !xpUnlocked && !state.iconOverride) {
