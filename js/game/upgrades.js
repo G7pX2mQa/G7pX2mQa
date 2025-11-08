@@ -2497,8 +2497,49 @@ function computeUpgradeLockStateFor(areaKey, upg) {
     const storedStatus = rec.status || 'locked';
     const storedRank = shopStatusRank(storedStatus);
 
-    const currentStatus = classifyUpgradeStatus(state);
-    const currentRank = shopStatusRank(currentStatus);
+    let currentStatus = classifyUpgradeStatus(state);
+    let currentRank = shopStatusRank(currentStatus);
+
+    const applyStoredMysterious = () => {
+      state.locked = true;
+      const snap = rec.snapshot;
+      if (snap && typeof snap === 'object') {
+        state = mergeLockStates(state, snap);
+      }
+      if (state.iconOverride == null) {
+        state.iconOverride = MYSTERIOUS_UPGRADE_ICON_DATA_URL;
+      }
+      if (state.titleOverride == null) {
+        state.titleOverride = HIDDEN_UPGRADE_TITLE;
+      }
+      if (state.descOverride == null) {
+        const reasonText = state.reason || upg?.revealRequirement || 'This upgrade is currently hidden.';
+        state.descOverride = reasonText;
+      }
+      if (state.reason == null && upg?.revealRequirement) {
+        state.reason = upg.revealRequirement;
+      }
+      state.hidden = true;
+      state.hideCost = true;
+      state.hideEffect = true;
+      if (state.useLockedBase == null) {
+        state.useLockedBase = true;
+      }
+    };
+
+    if (storedRank > currentRank) {
+      if (storedStatus === 'unlocked') {
+        state.locked = false;
+        state.hidden = false;
+        state.hideCost = false;
+        state.hideEffect = false;
+        state.useLockedBase = false;
+      } else if (storedStatus === 'mysterious') {
+        applyStoredMysterious();
+      }
+      currentStatus = classifyUpgradeStatus(state);
+      currentRank = shopStatusRank(currentStatus);
+    }
 
     let shouldSave = false;
 
@@ -2529,7 +2570,7 @@ function computeUpgradeLockStateFor(areaKey, upg) {
       }
       delete state.descOverride;
       delete state.reason;
-	  
+
       if (rec.status !== 'unlocked') {
         rec.status = 'unlocked';
         delete rec.snapshot;
@@ -2537,11 +2578,15 @@ function computeUpgradeLockStateFor(areaKey, upg) {
         shouldSave = true;
       }
       markUpgradePermanentlyUnlocked(areaKey, upg, slot);
+    } else if (storedStatus === 'mysterious' && currentStatus !== 'mysterious') {
+      applyStoredMysterious();
+      currentStatus = classifyUpgradeStatus(state);
+      currentRank = shopStatusRank(currentStatus);
     }
 
     if (shouldSave) saveShopRevealState(revealState, slot);
   }
-
+  
   return state;
 }
 
