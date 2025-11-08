@@ -59,6 +59,69 @@ const DEFAULT_LOCKED_BLURB = 'Locked';
 const DEFAULT_LOCK_MESSAGE = 'Locked Dialogue';
 const DIALOGUE_STATUS_ORDER = { locked: 0, mysterious: 1, unlocked: 2 };
 
+const HAS_POINTER_EVENTS = typeof window !== 'undefined' && 'PointerEvent' in window;
+const HAS_TOUCH_EVENTS = !HAS_POINTER_EVENTS && typeof window !== 'undefined' && 'ontouchstart' in window;
+
+function bindRapidActivation(target, handler, { once = false } = {}) {
+  if (!target || typeof handler !== 'function') return () => {};
+  let used = false;
+  let pointerTriggered = false;
+
+  const run = (event) => {
+    if (once && used) return;
+    if (shouldSkipGhostTap(target)) {
+      event?.preventDefault?.();
+      return;
+    }
+    markGhostTapTarget(target);
+    used = once ? true : used;
+    Promise.resolve(handler(event)).catch(() => {});
+    if (once) cleanup();
+  };
+
+  const onClick = (event) => {
+    if (pointerTriggered) {
+      pointerTriggered = false;
+      return;
+    }
+    run(event);
+  };
+
+  const onPointerDown = (event) => {
+    if (event.pointerType === 'mouse') return;
+    if (typeof event.button === 'number' && event.button !== 0) return;
+    pointerTriggered = true;
+    suppressNextGhostTap();
+    event.preventDefault();
+    run(event);
+  };
+
+  const onTouchStart = (event) => {
+    pointerTriggered = true;
+    suppressNextGhostTap();
+    event.preventDefault();
+    run(event);
+  };
+
+  const cleanup = () => {
+    target.removeEventListener('click', onClick);
+    if (HAS_POINTER_EVENTS) {
+      target.removeEventListener('pointerdown', onPointerDown);
+    } else if (HAS_TOUCH_EVENTS) {
+      target.removeEventListener('touchstart', onTouchStart);
+    }
+  };
+
+  target.addEventListener('click', onClick);
+  if (HAS_POINTER_EVENTS) {
+    target.addEventListener('pointerdown', onPointerDown, { passive: false });
+  } else if (HAS_TOUCH_EVENTS) {
+    target.addEventListener('touchstart', onTouchStart, { passive: false });
+  }
+
+  return cleanup;
+}
+
 function dialogueStatusRank(status) {
   return DIALOGUE_STATUS_ORDER[status] ?? 0;
 }
@@ -683,14 +746,8 @@ class DialogueEngine {
       btn.type = 'button';
       btn.className = 'choice';
       btn.textContent = opt.label;
-      markGhostTapTarget(btn);
-      btn.addEventListener('click', async (e) => {
-        if (shouldSkipGhostTap(btn)) {
-          e.preventDefault();
-          return;
-        }
-        markGhostTapTarget(btn);
-        e.stopPropagation();
+      bindRapidActivation(btn, async (event) => {
+        event?.stopPropagation?.();
         this._reservedH = this.choicesEl.offsetHeight | 0;
         this.choicesEl.style.minHeight = this._reservedH + 'px';
         this._hideChoices();
@@ -698,15 +755,14 @@ class DialogueEngine {
 
         this.deferNextChoices = true;
 
-		if (opt.to === 'end') {
-		  return this.onEnd({ noReward: false });
-		}
-		if (opt.to === 'end_nr') {
-		  return this.onEnd({ noReward: true });
-		}
+        if (opt.to === 'end') {
+          return this.onEnd({ noReward: false });
+        }
+        if (opt.to === 'end_nr') {
+          return this.onEnd({ noReward: true });
+        }
 
-await this.goto(opt.to);
-
+        await this.goto(opt.to);
       }, { once: true });
       this.choicesEl.appendChild(btn);
     }
@@ -795,32 +851,11 @@ overlay.addEventListener('pointerdown', (e) => {
   }
 });
 
-// Harden the Close button against generating/receiving ghost taps
-const hasPE = typeof window !== 'undefined' && 'PointerEvent' in window;
-const doCloseFromBtn = () => {
-  markGhostTapTarget(closeBtn);
-  suppressNextGhostTap();
-  close();
-};
+  const doCloseFromBtn = () => {
+    close();
+  };
 
-closeBtn.addEventListener('click', () => {
-  if (shouldSkipGhostTap(closeBtn)) return;
-  doCloseFromBtn();
-}, { passive: true });
-
-if (hasPE) {
-  closeBtn.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'mouse') return;
-    if (typeof e.button === 'number' && e.button !== 0) return;
-    doCloseFromBtn();
-    e.preventDefault();
-  }, { passive: false });
-} else {
-  closeBtn.addEventListener('touchstart', (e) => {
-    doCloseFromBtn();
-    e.preventDefault();
-  }, { passive: false });
-}
+  bindRapidActivation(closeBtn, () => { doCloseFromBtn(); }, { once: true });
 
   closeBtn.focus?.();
 }
@@ -1017,49 +1052,13 @@ function ensureMerchantOverlay() {
     }
     def.unlocked = unlocked;
     merchantTabUnlockState.set(def.key, unlocked);
-    markGhostTapTarget(btn);
-
-    const onTabClick = (event) => {
+    bindRapidActivation(btn, (event) => {
       if (btn.disabled) {
-        event.preventDefault();
+        event?.preventDefault?.();
         return;
       }
-      if (shouldSkipGhostTap(btn)) {
-        event.preventDefault();
-        return;
-      }
-      markGhostTapTarget(btn);
       selectMerchantTab(def.key);
-    };
-
-    btn.addEventListener('click', onTabClick);
-
-      btn.addEventListener('pointerdown', (event) => {
-        if (event.pointerType === 'mouse') return;
-        if (btn.disabled) {
-          event.preventDefault();
-          return;
-        }
-        markGhostTapTarget(btn);
-      }, { passive: false });
-
-      if (!('PointerEvent' in window)) {
-        btn.addEventListener('touchstart', (event) => {
-          if (btn.disabled) return;
-          markGhostTapTarget(btn);
-        }, { passive: false });
-      }
-
-    if (!('PointerEvent' in window)) {
-      btn.addEventListener('touchstart', (event) => {
-        if (btn.disabled) return;
-        if (shouldSkipGhostTap(btn)) {
-          event.preventDefault();
-          return;
-        }
-        markGhostTapTarget(btn);
-      }, { passive: false });
-    }
+    });
 
     tabs.appendChild(btn);
     merchantTabs.buttons[def.key] = btn;
@@ -1116,32 +1115,9 @@ function ensureMerchantOverlay() {
   if (!merchantEventsBound) {
     merchantEventsBound = true;
 
-    const onCloseClick = () => {
-      markGhostTapTarget(closeBtn);
-      suppressNextGhostTap();
-      closeMerchant();
-    };
+    const onCloseClick = () => { closeMerchant(); };
 
-    closeBtn.addEventListener('click', onCloseClick);
-    const hasPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
-    if (hasPointerEvents) {
-      closeBtn.addEventListener('pointerdown', (e) => {
-        if (e.pointerType === 'mouse') return;
-        if (typeof e.button === 'number' && e.button !== 0) return;
-        markGhostTapTarget(closeBtn);
-        suppressNextGhostTap();
-        closeMerchant();
-        e.preventDefault();
-      }, { passive: false });
-    } else {
-      closeBtn.addEventListener('touchstart', (e) => {
-        markGhostTapTarget(closeBtn);
-        suppressNextGhostTap();
-        closeMerchant();
-        e.preventDefault();
-      }, { passive: false });
-    }
-
+    bindRapidActivation(closeBtn, onCloseClick, { once: false });
     document.addEventListener('keydown', onKeydownForMerchant);
     grabber.addEventListener('pointerdown', onMerchantDragStart);
     grabber.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
@@ -1298,8 +1274,6 @@ function renderDialogueList() {
 
     card.append(title, blurb, reward);
 
-    markGhostTapTarget(card);
-
     if (showComplete) {
       card.classList.add('is-complete');
       const again = document.createElement('div');
@@ -1313,15 +1287,10 @@ function renderDialogueList() {
     list.appendChild(card);
 
     const handleCardClick = (event) => {
-      if (card.classList.contains('is-locked')) {
-        event.preventDefault();
+      if (card.classList.contains('is-locked') && !isMysterious) {
+        event?.preventDefault?.();
         return;
       }
-      if (shouldSkipGhostTap(card)) {
-        event.preventDefault();
-        return;
-      }
-      markGhostTapTarget(card);
       if (unlocked) {
         openDialogueModal(id, meta);
       } else if (isMysterious) {
@@ -1330,17 +1299,7 @@ function renderDialogueList() {
     };
 
     if (unlocked || isMysterious) {
-      card.addEventListener('click', handleCardClick);
-        if ('PointerEvent' in window) {
-          card.addEventListener('pointerdown', (event) => {
-            if (event.pointerType === 'mouse') return;
-            markGhostTapTarget(card);
-          }, { passive: false });
-        } else {
-          card.addEventListener('touchstart', () => {
-            markGhostTapTarget(card);
-          }, { passive: false });
-        }
+      bindRapidActivation(card, handleCardClick);
     }
   });
 
@@ -1580,7 +1539,6 @@ export function unlockMerchantTabs(keys = []) {
       btn.classList.remove('is-locked');
       btn.textContent = def.label;
       btn.title = def.label || 'Tab';
-      markGhostTapTarget(btn);
     }
   });
 }
