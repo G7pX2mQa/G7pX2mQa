@@ -23,6 +23,7 @@ import {
 import {
   initMutationSystem,
   unlockMutationSystem,
+  isMutationUnlocked,
   getMutationCoinSprite,
   onMutationChange,
 } from './mutationSystem.js';
@@ -435,6 +436,9 @@ export function initResetSystem() {
   const slot = getActiveSlot();
   resetState.slot = slot;
   readPersistentFlags(slot);
+  if (resetState.hasDoneForgeReset && !isMutationUnlocked()) {
+    try { unlockMutationSystem(); } catch {}
+  }
   if (resetState.pearlsUnlocked && !resetState.hasDoneForgeReset) {
     setForgeResetCompleted(true);
   }
@@ -463,6 +467,9 @@ export function initResetSystem() {
       const nextSlot = getActiveSlot();
       resetState.slot = nextSlot;
       readPersistentFlags(nextSlot);
+      if (resetState.hasDoneForgeReset && !isMutationUnlocked()) {
+        try { unlockMutationSystem(); } catch {}
+      }
       if (!resetState.forgeUnlocked && canAccessForgeTab()) {
         setForgeUnlocked(true);
       }
