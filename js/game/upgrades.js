@@ -114,8 +114,10 @@ const XP_MYSTERY_UPGRADE_KEYS = new Set([
   'starter_cove:6',
 ]);
 const SHOP_REVEAL_STATE_KEY_BASE = 'ccc:shop:reveals';
+const SHOP_PERMA_UNLOCK_KEY_BASE = 'ccc:shop:permaUnlocks';
 const SHOP_REVEAL_STATUS_ORDER = { locked: 0, mysterious: 1, unlocked: 2 };
 const shopRevealStateCache = new Map();
+const shopPermaUnlockStateCache = new Map();
 
 const BN = BigNum;
 const toBn = (x) => BN.fromAny(x ?? 0);
@@ -277,6 +279,64 @@ function saveShopRevealState(state, slot = getActiveSlot()) {
   try {
     localStorage.setItem(`${SHOP_REVEAL_STATE_KEY_BASE}:${slotKey}`, JSON.stringify(state));
   } catch {}
+}
+
+function ensureShopPermaUnlockState(slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (shopPermaUnlockStateCache.has(slotKey)) {
+    return shopPermaUnlockStateCache.get(slotKey);
+  }
+
+  let parsed = { upgrades: {} };
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(`${SHOP_PERMA_UNLOCK_KEY_BASE}:${slotKey}`);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        if (obj && typeof obj === 'object') {
+          const upgrades = (obj.upgrades && typeof obj.upgrades === 'object') ? obj.upgrades : {};
+          parsed = { upgrades };
+        }
+      }
+    } catch {}
+  }
+
+  if (!parsed || typeof parsed !== 'object') parsed = { upgrades: {} };
+  if (!parsed.upgrades || typeof parsed.upgrades !== 'object') parsed.upgrades = {};
+
+  shopPermaUnlockStateCache.set(slotKey, parsed);
+  return parsed;
+}
+
+function saveShopPermaUnlockState(state, slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (!state || typeof state !== 'object') {
+    state = { upgrades: {} };
+  }
+  if (!state.upgrades || typeof state.upgrades !== 'object') {
+    state.upgrades = {};
+  }
+  shopPermaUnlockStateCache.set(slotKey, state);
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(`${SHOP_PERMA_UNLOCK_KEY_BASE}:${slotKey}`, JSON.stringify(state));
+  } catch {}
+}
+
+function markUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlot()) {
+  const key = upgradeRevealKey(areaKey, upg);
+  if (!key) return;
+  const state = ensureShopPermaUnlockState(slot);
+  if (state.upgrades[key]) return;
+  state.upgrades[key] = true;
+  saveShopPermaUnlockState(state, slot);
+}
+
+function isUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlot()) {
+  const key = upgradeRevealKey(areaKey, upg);
+  if (!key) return false;
+  const state = ensureShopPermaUnlockState(slot);
+  return !!state.upgrades[key];
 }
 
 function snapshotUpgradeLockState(lockState) {
@@ -2384,9 +2444,21 @@ function computeUpgradeLockStateFor(areaKey, upg) {
     } catch {}
   }
 
+  const slot = getActiveSlot();
+  const revealKey = upgradeRevealKey(areaKey, upg);
+  const permaUnlocked = revealKey ? isUpgradePermanentlyUnlocked(areaKey, upg, slot) : false;
+  if (permaUnlocked) {
+    state.locked = false;
+  }
+
   if (state.locked) {
+    const hiddenState = !!(state.hidden || state.hideEffect || state.hideCost);
     if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
-    if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
+    if (hiddenState) {
+      if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
+    } else if (!state.titleOverride || state.titleOverride === HIDDEN_UPGRADE_TITLE) {
+      state.titleOverride = LOCKED_UPGRADE_TITLE;
+    }
     if (state.useLockedBase == null) state.useLockedBase = true;
     if (!state.reason && upg?.revealRequirement) state.reason = upg.revealRequirement;
     if (!state.descOverride) {
@@ -2417,9 +2489,7 @@ function computeUpgradeLockStateFor(areaKey, upg) {
     state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
   }
 
-  const revealKey = upgradeRevealKey(areaKey, upg);
   if (revealKey) {
-    const slot = getActiveSlot();
     const revealState = ensureShopRevealState(slot);
     const rec = revealState.upgrades[revealKey] || {};
     const storedStatus = rec.status || 'locked';
@@ -2435,6 +2505,9 @@ function computeUpgradeLockStateFor(areaKey, upg) {
       rec.snapshot = (currentStatus === 'mysterious') ? snapshotUpgradeLockState(state) : undefined;
       revealState.upgrades[revealKey] = rec;
       shouldSave = true;
+      if (currentStatus === 'unlocked') {
+        markUpgradePermanentlyUnlocked(areaKey, upg, slot);
+      }
     }
 
     if (storedStatus === 'unlocked') {
@@ -2461,6 +2534,7 @@ function computeUpgradeLockStateFor(areaKey, upg) {
         revealState.upgrades[revealKey] = rec;
         shouldSave = true;
       }
+      markUpgradePermanentlyUnlocked(areaKey, upg, slot);
     }
 
     if (shouldSave) saveShopRevealState(revealState, slot);
