@@ -10,31 +10,21 @@ import {
   isMutationUnlocked,
   getMutationState,
   onMutationChange,
+  computeMutationMultiplierForLevel,
 } from './mutationSystem.js';
-import { bigNumFromLog10 } from './upgrades.js';
-
-const LOG10_2 = Math.log10(2);
-const LARGE_DELTA_THRESHOLD = 1_000_000n;
 
 let mutationUnlockedSnapshot = false;
-let mutationLevelSnapshot = 0n;
 let mutationUnsub = null;
 
 function updateMutationSnapshot(state) {
   if (!state || typeof state !== 'object') {
     mutationUnlockedSnapshot = false;
-    mutationLevelSnapshot = 0n;
+    mutationMultiplierCache.clear();
     return;
   }
   mutationUnlockedSnapshot = !!state.unlocked;
-  try {
-    const level = state.level;
-    const plain = typeof level?.toPlainIntegerString === 'function'
-      ? level.toPlainIntegerString()
-      : null;
-    mutationLevelSnapshot = plain && plain !== 'Infinity' ? BigInt(plain) : 0n;
-  } catch {
-    mutationLevelSnapshot = 0n;
+  if (!mutationUnlockedSnapshot) {
+    mutationMultiplierCache.clear();
   }
 }
 
@@ -46,7 +36,7 @@ function initMutationSnapshot() {
     updateMutationSnapshot(getMutationState());
   } catch {
     mutationUnlockedSnapshot = false;
-    mutationLevelSnapshot = 0n;
+    mutationMultiplierCache.clear();
   }
   try {
     mutationUnsub = onMutationChange((snapshot) => { updateMutationSnapshot(snapshot); });
@@ -59,6 +49,8 @@ let coinPickup = null;
 
 const XP_PER_COIN = BigNum.fromInt(1);
 const BASE_COIN_VALUE = BigNum.fromInt(1);
+const BN_ONE = BigNum.fromInt(1);
+const mutationMultiplierCache = new Map();
 let COIN_MULTIPLIER = '1';
 
 export function setCoinMultiplier(x) {
@@ -186,40 +178,39 @@ export function initCoinPickup({
     try { return BigNum.fromAny(value); } catch { return BigNum.fromInt(0); }
   };
 
-  const computeMutationRatio = (spawnLevelStr) => {
+  const computeMutationMultiplier = (spawnLevelStr) => {
     if (!mutationUnlockedSnapshot) return null;
     if (!spawnLevelStr) return null;
-    let delta;
+    const key = String(spawnLevelStr).trim();
+    if (!key) return null;
+
+    const cached = mutationMultiplierCache.get(key);
+    if (cached) {
+      try { return cached.clone?.() ?? BigNum.fromAny(cached); }
+      catch { mutationMultiplierCache.delete(key); }
+    }
+
+    let levelBn;
     try {
-      const spawnLevel = BigInt(spawnLevelStr);
-      delta = spawnLevel - mutationLevelSnapshot;
+      levelBn = BigNum.fromAny(key);
     } catch {
       return null;
     }
-    if (delta === 0n) return null;
-    const absDelta = delta > 0n ? delta : -delta;
-    if (absDelta > LARGE_DELTA_THRESHOLD) {
-      if (delta > 0n) {
-        try { return BigNum.fromAny('Infinity'); }
-        catch { return BigNum.fromInt(Number.MAX_SAFE_INTEGER); }
-      }
-      return BigNum.fromInt(0);
-    }
-    const deltaNumber = Number(delta);
-    if (!Number.isFinite(deltaNumber) || deltaNumber === 0) return null;
-    const ratioLog = deltaNumber * LOG10_2;
-    if (!Number.isFinite(ratioLog)) {
-      if (deltaNumber > 0) {
-        try { return BigNum.fromAny('Infinity'); }
-        catch { return BigNum.fromInt(Number.MAX_SAFE_INTEGER); }
-      }
-      return BigNum.fromInt(0);
-    }
+
+    let multiplier;
     try {
-      return bigNumFromLog10(ratioLog);
+      multiplier = computeMutationMultiplierForLevel(levelBn);
     } catch {
-      return deltaNumber > 0 ? BigNum.fromAny('Infinity') : BigNum.fromInt(0);
+      multiplier = null;
     }
+
+    if (!multiplier) return null;
+    const isIdentity = multiplier.cmp?.(BN_ONE) === 0;
+    const stored = multiplier.clone?.() ?? multiplier;
+    mutationMultiplierCache.set(key, stored);
+    if (isIdentity) return null;
+    try { return stored.clone?.() ?? BigNum.fromAny(stored); }
+    catch { return multiplier; }
   };
 
   let pendingCoinGain = null;
@@ -514,10 +505,10 @@ function collect(el) {
   let xpInc = cloneBn(XP_PER_COIN);
 
   const spawnLevelStr = el.dataset.mutationLevel || null;
-  const mutationRatio = computeMutationRatio(spawnLevelStr);
-  if (mutationRatio) {
-    try { inc = inc.mulBigNumInteger(mutationRatio); } catch {}
-    try { xpInc = xpInc.mulBigNumInteger(mutationRatio); } catch {}
+  const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
+  if (mutationMultiplier) {
+    try { inc = inc.mulBigNumInteger(mutationMultiplier); } catch {}
+    try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
   }
 
   const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
