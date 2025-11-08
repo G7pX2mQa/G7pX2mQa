@@ -1076,7 +1076,14 @@ export function openUpgradeOverlay(upgDef) {
   const areaKey = getCurrentAreaKey();
   const initialLockState = getUpgradeLockState(areaKey, upgDef.id) || {};
   const initialLocked = !!initialLockState.locked;
-  if (initialLocked) {
+  const initialMysterious = initialLocked && (
+    initialLockState.hidden ||
+    initialLockState.hideEffect ||
+    initialLockState.hideCost ||
+    (typeof initialLockState.iconOverride === 'string' &&
+      initialLockState.iconOverride.includes('mysterious'))
+  );
+  if (initialLocked && !initialMysterious) {
     upgOpen = false;
     return;
   }
