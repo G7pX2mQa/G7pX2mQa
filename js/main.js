@@ -149,52 +149,15 @@ function showLoader(text = 'Loading assets...') {
   root.__label = label;
   root.__stuckMsg = stuckMsg;
   root.__stuckTimeout = stuckTimeout;
-  root.__progress = 0;
-  root.__heartbeatCancel = null;
   return root;
 }
 
 function setLoaderProgress(loaderEl, fraction) {
   if (!loaderEl || !loaderEl.__fill || !loaderEl.__pct) return;
-  const previous = typeof loaderEl.__progress === 'number' ? loaderEl.__progress : 0;
-  const f = Math.max(previous, Math.max(0, Math.min(1, fraction || 0)));
-  loaderEl.__progress = f;
+  const f = Math.max(0, Math.min(1, fraction || 0));
   const pct = Math.round(f * 100);
   loaderEl.__fill.style.width = pct + '%';
   loaderEl.__pct.textContent = pct + '%';
-}
-
-function startLoaderHeartbeat(loaderEl, {
-  target = 0.2,
-  step = 0.004,
-  interval = 16,
-} = {}) {
-  if (!loaderEl) return () => {};
-  let rafId = null;
-  let stopped = false;
-  const tick = () => {
-    if (stopped) return;
-    const current = typeof loaderEl.__progress === 'number' ? loaderEl.__progress : 0;
-    if (current >= target) return;
-    const next = Math.min(target, current + step);
-    setLoaderProgress(loaderEl, next);
-    rafId = window.requestAnimationFrame(() => {
-      if (stopped) return;
-      window.setTimeout(() => {
-        if (!stopped) tick();
-      }, interval);
-    });
-  };
-  tick();
-  const cancel = () => {
-    stopped = true;
-    if (rafId != null) {
-      window.cancelAnimationFrame(rafId);
-      rafId = null;
-    }
-  };
-  loaderEl.__heartbeatCancel = cancel;
-  return cancel;
 }
 
 function finishAndHideLoader(loaderEl) {
@@ -364,11 +327,6 @@ function enterArea(areaID) {
 ----------------------------*/
 document.addEventListener('DOMContentLoaded', async () => {
   const loader = showLoader('Loading assets...');
-  let stopLoaderHeartbeat = null;
-  if (typeof window !== 'undefined') {
-    try { stopLoaderHeartbeat = startLoaderHeartbeat(loader, { target: 0.18, step: 0.003 }); }
-    catch {}
-  }
 
   if (window.__MAINTENANCE__) {
     const message = window.__MAINTENANCE_MESSAGE || 'Update in progress. Please wait a few minutes.';
@@ -397,9 +355,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (loader?.__wrap) {
       loader.__wrap.style.display = 'grid';
       loader.__wrap.style.gap = '18px';
-    }
-    if (typeof stopLoaderHeartbeat === 'function') {
-      try { stopLoaderHeartbeat(); } catch {}
     }
     document.documentElement.classList.remove('booting');
     return;
@@ -434,10 +389,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./util/suspendSafeguard.js'),
     import('./util/ghostTapGuard.js'),
   ]);
-  if (typeof stopLoaderHeartbeat === 'function') {
-    try { stopLoaderHeartbeat(); } catch {}
-  }
-  setLoaderProgress(loader, 0.25);
 
   ({ initSlots } = slotsModule);
   ({ createSpawner } = spawnerModule);
@@ -499,8 +450,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let progress = 0;
   await preloadAssetsWithProgress(ASSET_MANIFEST, f => {
     progress = f;
-    const scaled = 0.25 + (Math.max(0, Math.min(1, f)) * 0.75);
-    setLoaderProgress(loader, scaled);
+    setLoaderProgress(loader, f);
   });
 
   await twoFrames(); 
