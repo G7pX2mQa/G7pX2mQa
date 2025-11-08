@@ -269,6 +269,10 @@ function enterArea(areaID) {
         initHudButtons();
       }
 
+      if (typeof initMutationSystem === 'function') {
+        try { initMutationSystem(); } catch {}
+      }
+
       if (!spawner) {
         spawner = createSpawner({
           coinSrc: 'img/currencies/coin/coin.png',
@@ -407,7 +411,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.bank = bank;
 
   installGhostTapGuard?.();
-  initMutationSystem?.();
   initResetSystemGame?.();
   installSuspendSafeguards?.();
   
