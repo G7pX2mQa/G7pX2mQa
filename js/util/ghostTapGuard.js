@@ -45,9 +45,13 @@ function markGhostTapTarget(el, timeout = DEFAULT_TIMEOUT_MS) {
   if (!el) return;
   const now = nowMs();
   const delay = Number.isFinite(timeout) ? Math.max(0, Number(timeout)) : DEFAULT_TIMEOUT_MS;
-  el[ELEMENT_SKIP_PROP] = now + delay;
+  if (delay > 0) {
+    el[ELEMENT_SKIP_PROP] = now + delay;
+  } else {
+    el[ELEMENT_SKIP_PROP] = 0;
+  }
   lastMarkedTarget = el;
-  suppressNextGhostTap(delay);
+  if (delay > 0) suppressNextGhostTap(delay);
 }
 
 function consumeGhostTapGuard(target) {
@@ -92,7 +96,12 @@ function shouldSkipGhostTap(el) {
 function suppressNextGhostTap(timeout = DEFAULT_TIMEOUT_MS) {
   if (typeof window === 'undefined') return;
   const now = nowMs();
-  const target = now + Math.max(0, timeout);
+  const targetDelay = Math.max(0, Number.isFinite(timeout) ? timeout : DEFAULT_TIMEOUT_MS);
+  if (targetDelay <= 0) {
+    window[GLOBAL_SKIP_PROP] = null;
+    return;
+  }
+  const target = now + targetDelay;
   const current = typeof window[GLOBAL_SKIP_PROP] === 'number'
     ? window[GLOBAL_SKIP_PROP]
     : 0;
