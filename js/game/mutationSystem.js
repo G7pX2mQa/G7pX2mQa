@@ -9,11 +9,7 @@ import {
 import { formatNumber } from '../util/numFormat.js';
 import { approxLog10BigNum, bigNumFromLog10 } from './upgrades.js';
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
-import {
-  addExternalCoinMultiplierProvider,
-  addExternalXpGainMultiplierProvider,
-  refreshCoinMultiplierFromXpLevel,
-} from './xpSystem.js';
+import { refreshCoinMultiplierFromXpLevel } from './xpSystem.js';
 
 const KEY_PREFIX = 'ccc:mutation';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
@@ -55,43 +51,13 @@ function scheduleCoinMultiplierRefresh() {
 }
 
 function ensureExternalMultiplierProviders() {
-  if (!unregisterCoinMultiplierProvider && typeof addExternalCoinMultiplierProvider === 'function') {
-    try {
-      unregisterCoinMultiplierProvider = addExternalCoinMultiplierProvider(({ baseMultiplier, xpUnlocked }) => {
-        if (!xpUnlocked) return baseMultiplier;
-        initMutationSystem();
-        if (!mutationState.unlocked) return baseMultiplier;
-        const mut = getMutationMultiplier();
-        if (!mut || mut.isZero?.()) return baseMultiplier;
-        try {
-          const source = baseMultiplier instanceof BN
-            ? baseMultiplier.clone?.() ?? baseMultiplier
-            : BigNum.fromAny(baseMultiplier ?? 0);
-          return source.mulBigNumInteger(mut);
-        } catch {
-          return baseMultiplier;
-        }
-      });
-    } catch { unregisterCoinMultiplierProvider = null; }
+  if (typeof unregisterCoinMultiplierProvider === 'function') {
+    try { unregisterCoinMultiplierProvider(); } catch {}
+    unregisterCoinMultiplierProvider = null;
   }
-  if (!unregisterXpGainMultiplierProvider && typeof addExternalXpGainMultiplierProvider === 'function') {
-    try {
-      unregisterXpGainMultiplierProvider = addExternalXpGainMultiplierProvider(({ baseGain, xpUnlocked }) => {
-        if (!xpUnlocked) return baseGain;
-        initMutationSystem();
-        if (!mutationState.unlocked) return baseGain;
-        const mut = getMutationMultiplier();
-        if (!mut || mut.isZero?.()) return baseGain;
-        try {
-          const source = baseGain instanceof BN
-            ? baseGain.clone?.() ?? baseGain
-            : BigNum.fromAny(baseGain ?? 0);
-          return source.mulBigNumInteger(mut);
-        } catch {
-          return baseGain;
-        }
-      });
-    } catch { unregisterXpGainMultiplierProvider = null; }
+  if (typeof unregisterXpGainMultiplierProvider === 'function') {
+    try { unregisterXpGainMultiplierProvider(); } catch {}
+    unregisterXpGainMultiplierProvider = null;
   }
 }
 
@@ -525,14 +491,29 @@ export function addMutationPower(amount) {
   return getMutationState();
 }
 
+export function computeMutationMultiplierForLevel(levelValue) {
+  let levelBn;
+  if (levelValue instanceof BN) {
+    try { levelBn = levelValue.clone?.() ?? levelValue; }
+    catch { levelBn = bnZero(); }
+  } else if (typeof levelValue === 'bigint') {
+    try { levelBn = BigNum.fromAny(levelValue.toString()); }
+    catch { levelBn = bnZero(); }
+  } else {
+    try { levelBn = BigNum.fromAny(levelValue ?? 0); }
+    catch { levelBn = bnZero(); }
+  }
+  const levelNum = levelToNumber(levelBn);
+  if (!Number.isFinite(levelNum) || levelNum <= 0) return bnOne();
+  const log10 = levelNum * MP_LOG10_BASE;
+  return bigNumFromLog10(log10);
+}
+
 export function getMutationMultiplier() {
   initMutationSystem();
   if (!mutationState.unlocked) return bnOne();
-  const levelNum = levelToNumber(mutationState.level);
-  if (!Number.isFinite(levelNum)) return BN.fromAny('Infinity');
-  if (levelNum <= 0) return bnOne();
-  const log10 = levelNum * MP_LOG10_BASE;
-  return bigNumFromLog10(log10);
+  try { return computeMutationMultiplierForLevel(mutationState.level); }
+  catch { return bnOne(); }
 }
 
 export function getMutationCoinSprite() {
