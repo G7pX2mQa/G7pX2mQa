@@ -621,8 +621,8 @@ function renderShopGrid() {
 
     btn.classList.toggle('is-locked', locked);
     btn.classList.toggle('is-locked-plain', isPlainLocked);
-    btn.disabled = isPlainLocked;
-    if (isPlainLocked) {
+    btn.disabled = locked;
+    if (locked) {
       btn.setAttribute('aria-disabled', 'true');
       btn.setAttribute('tabindex', '-1');
     } else {
@@ -705,7 +705,7 @@ function renderShopGrid() {
     iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
 
     btn.addEventListener('click', (event) => {
-      if (btn.disabled || isPlainLocked) {
+      if (btn.disabled || locked) {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
@@ -720,7 +720,7 @@ function renderShopGrid() {
     });
 
     btn.addEventListener('pointerdown', (event) => {
-      if (btn.disabled || isPlainLocked) {
+      if (btn.disabled || locked) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation?.();
