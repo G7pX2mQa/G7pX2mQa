@@ -2,6 +2,39 @@
 
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { arePearlsUnlocked } from './resetSystem.js';
+import { getMutationState, onMutationChange } from './mutationSystem.js';
+
+let mutationUnlockedSnapshot = false;
+let mutationLevelSnapshot = 0n;
+
+function updateMutationSnapshot(state) {
+  if (!state || typeof state !== 'object') {
+    mutationUnlockedSnapshot = false;
+    mutationLevelSnapshot = 0n;
+    return;
+  }
+  mutationUnlockedSnapshot = !!state.unlocked;
+  try {
+    const level = state.level;
+    const plain = typeof level?.toPlainIntegerString === 'function'
+      ? level.toPlainIntegerString()
+      : null;
+    mutationLevelSnapshot = plain && plain !== 'Infinity' ? BigInt(plain) : 0n;
+  } catch {
+    mutationLevelSnapshot = 0n;
+  }
+}
+
+try {
+  updateMutationSnapshot(getMutationState());
+} catch {
+  mutationUnlockedSnapshot = false;
+  mutationLevelSnapshot = 0n;
+}
+
+try {
+  onMutationChange((snapshot) => { updateMutationSnapshot(snapshot); });
+} catch {}
 
 export function createSpawner({
     playfieldSelector = '.area-cove .playfield',
@@ -447,6 +480,11 @@ function commitBatch(batch) {
       el.classList.remove('coin--pearl');
     }
     el.dataset.dieAt = String(performance.now() + coinTtlMs);
+    if (mutationUnlockedSnapshot) {
+      el.dataset.mutationLevel = mutationLevelSnapshot.toString();
+    } else {
+      el.dataset.mutationLevel = '0';
+    }
 
     coinsFrag.appendChild(el);
     newCoins.push(el);
