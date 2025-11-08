@@ -2494,8 +2494,8 @@ function computeUpgradeLockStateFor(areaKey, upg) {
   if (revealKey) {
     const revealState = ensureShopRevealState(slot);
     const rec = revealState.upgrades[revealKey] || {};
-    const storedStatus = rec.status || 'locked';
-    const storedRank = shopStatusRank(storedStatus);
+	let storedStatus = rec.status || 'locked';
+	let storedRank = shopStatusRank(storedStatus);
 
     let currentStatus = classifyUpgradeStatus(state);
     let currentRank = shopStatusRank(currentStatus);
