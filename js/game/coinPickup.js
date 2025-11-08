@@ -5,7 +5,55 @@ import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { unlockShop } from '../ui/hudButtons.js';
 import { addXp, isXpSystemUnlocked } from './xpSystem.js';
-import { addMutationPower, isMutationUnlocked } from './mutationSystem.js';
+import {
+  addMutationPower,
+  isMutationUnlocked,
+  getMutationState,
+  onMutationChange,
+} from './mutationSystem.js';
+import { bigNumFromLog10 } from './upgrades.js';
+
+const LOG10_2 = Math.log10(2);
+const LARGE_DELTA_THRESHOLD = 1_000_000n;
+
+let mutationUnlockedSnapshot = false;
+let mutationLevelSnapshot = 0n;
+let mutationUnsub = null;
+
+function updateMutationSnapshot(state) {
+  if (!state || typeof state !== 'object') {
+    mutationUnlockedSnapshot = false;
+    mutationLevelSnapshot = 0n;
+    return;
+  }
+  mutationUnlockedSnapshot = !!state.unlocked;
+  try {
+    const level = state.level;
+    const plain = typeof level?.toPlainIntegerString === 'function'
+      ? level.toPlainIntegerString()
+      : null;
+    mutationLevelSnapshot = plain && plain !== 'Infinity' ? BigInt(plain) : 0n;
+  } catch {
+    mutationLevelSnapshot = 0n;
+  }
+}
+
+function initMutationSnapshot() {
+  if (typeof mutationUnsub === 'function') {
+    try { mutationUnsub(); } catch {}
+  }
+  try {
+    updateMutationSnapshot(getMutationState());
+  } catch {
+    mutationUnlockedSnapshot = false;
+    mutationLevelSnapshot = 0n;
+  }
+  try {
+    mutationUnsub = onMutationChange((snapshot) => { updateMutationSnapshot(snapshot); });
+  } catch {
+    mutationUnsub = null;
+  }
+}
 
 let coinPickup = null;
 
@@ -53,6 +101,8 @@ export function initCoinPickup({
     console.warn('[coinPickup] missing required nodes', { pf: !!pf, cl: !!cl, amt: !!amt });
     return { destroy(){} };
   }
+
+  initMutationSnapshot();
   
   pf.style.touchAction = 'none';
 
@@ -134,6 +184,42 @@ export function initCoinPickup({
       try { return value.clone(); } catch {}
     }
     try { return BigNum.fromAny(value); } catch { return BigNum.fromInt(0); }
+  };
+
+  const computeMutationRatio = (spawnLevelStr) => {
+    if (!mutationUnlockedSnapshot) return null;
+    if (!spawnLevelStr) return null;
+    let delta;
+    try {
+      const spawnLevel = BigInt(spawnLevelStr);
+      delta = spawnLevel - mutationLevelSnapshot;
+    } catch {
+      return null;
+    }
+    if (delta === 0n) return null;
+    const absDelta = delta > 0n ? delta : -delta;
+    if (absDelta > LARGE_DELTA_THRESHOLD) {
+      if (delta > 0n) {
+        try { return BigNum.fromAny('Infinity'); }
+        catch { return BigNum.fromInt(Number.MAX_SAFE_INTEGER); }
+      }
+      return BigNum.fromInt(0);
+    }
+    const deltaNumber = Number(delta);
+    if (!Number.isFinite(deltaNumber) || deltaNumber === 0) return null;
+    const ratioLog = deltaNumber * LOG10_2;
+    if (!Number.isFinite(ratioLog)) {
+      if (deltaNumber > 0) {
+        try { return BigNum.fromAny('Infinity'); }
+        catch { return BigNum.fromInt(Number.MAX_SAFE_INTEGER); }
+      }
+      return BigNum.fromInt(0);
+    }
+    try {
+      return bigNumFromLog10(ratioLog);
+    } catch {
+      return deltaNumber > 0 ? BigNum.fromAny('Infinity') : BigNum.fromInt(0);
+    }
   };
 
   let pendingCoinGain = null;
@@ -427,6 +513,13 @@ function collect(el) {
   let inc = applyCoinMultiplier(base);
   let xpInc = cloneBn(XP_PER_COIN);
 
+  const spawnLevelStr = el.dataset.mutationLevel || null;
+  const mutationRatio = computeMutationRatio(spawnLevelStr);
+  if (mutationRatio) {
+    try { inc = inc.mulBigNumInteger(mutationRatio); } catch {}
+    try { xpInc = xpInc.mulBigNumInteger(mutationRatio); } catch {}
+  }
+
   const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
   if (!incIsZero) {
     try {
@@ -523,9 +616,12 @@ function collect(el) {
       window.removeEventListener('currency:multiplier', onCoinMultiplierChange);
       window.removeEventListener('currency:change', onCurrencyChange);
     }
+    if (typeof mutationUnsub === 'function') {
+      try { mutationUnsub(); } catch {}
+      mutationUnsub = null;
+    }
     try { mo.disconnect(); } catch {}
     try { ['pointerdown','pointermove','pointerup','mousemove'].forEach(evt => pf.replaceWith(pf.cloneNode(true))); } catch {}
-    // We don’t tear down window warm handlers; they’re once:true so harmless.
   };
 
   coinPickup = { destroy };
