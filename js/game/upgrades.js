@@ -2456,26 +2456,33 @@ function computeUpgradeLockStateFor(areaKey, upg) {
     state.locked = false;
   }
 
-  if (state.locked) {
-    const hiddenState = !!(state.hidden || state.hideEffect || state.hideCost);
-    if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
-    if (hiddenState) {
-      if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
-    } else if (!state.titleOverride || state.titleOverride === HIDDEN_UPGRADE_TITLE) {
+if (state.locked) {
+  const hiddenState = !!(state.hidden || state.hideEffect || state.hideCost);
+
+  if (hiddenState) {
+    state.iconOverride = MYSTERIOUS_UPGRADE_ICON_DATA_URL;
+    if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
+  } else {
+    if (!state.iconOverride || state.iconOverride === MYSTERIOUS_UPGRADE_ICON_DATA_URL) {
+      state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
+    }
+    if (!state.titleOverride || state.titleOverride === HIDDEN_UPGRADE_TITLE) {
       state.titleOverride = LOCKED_UPGRADE_TITLE;
     }
-    if (state.useLockedBase == null) state.useLockedBase = true;
-    if (!state.reason && upg?.revealRequirement) state.reason = upg.revealRequirement;
-    if (!state.descOverride) {
-      if (state.reason) {
-        state.descOverride = `${state.reason}`;
-      } else if (upg?.revealRequirement) {
-        state.descOverride = upg.revealRequirement;
-      } else {
-        state.descOverride = 'This upgrade is currently hidden.';
-      }
+  }
+
+  if (state.useLockedBase == null) state.useLockedBase = true;
+  if (!state.reason && upg?.revealRequirement) state.reason = upg.revealRequirement;
+  if (!state.descOverride) {
+    if (state.reason) {
+      state.descOverride = `${state.reason}`;
+    } else if (upg?.revealRequirement) {
+      state.descOverride = upg.revealRequirement;
+    } else {
+      state.descOverride = 'This upgrade is currently hidden.';
     }
-  } else {
+  }
+} else {
     state.hidden = false;
     state.hideCost = false;
     state.hideEffect = false;
@@ -2593,6 +2600,14 @@ function computeUpgradeLockStateFor(areaKey, upg) {
       currentStatus = classifyUpgradeStatus(state);
       currentRank = shopStatusRank(currentStatus);
     }
+	
+if (storedStatus === 'mysterious' && currentStatus === 'mysterious') {
+  if (state.iconOverride === LOCKED_UPGRADE_ICON_DATA_URL || !state.iconOverride) {
+    applyStoredMysterious();
+    currentStatus = classifyUpgradeStatus(state);
+    currentRank = shopStatusRank(currentStatus);
+  }
+}
 
     if (shouldSave) saveShopRevealState(revealState, slot);
   }
