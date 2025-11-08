@@ -2544,14 +2544,19 @@ function computeUpgradeLockStateFor(areaKey, upg) {
     let shouldSave = false;
 
     if (currentRank > storedRank) {
-      rec.status = currentStatus;
-      rec.snapshot = (currentStatus === 'mysterious') ? snapshotUpgradeLockState(state) : undefined;
-      revealState.upgrades[revealKey] = rec;
-      shouldSave = true;
-      if (currentStatus === 'unlocked') {
+	  rec.status = currentStatus;
+	  rec.snapshot = (currentStatus === 'mysterious') ? snapshotUpgradeLockState(state) : undefined;
+	  revealState.upgrades[revealKey] = rec;
+	  shouldSave = true;
+
+	  storedStatus = currentStatus;
+	  storedRank   = currentRank;
+
+	  if (currentStatus === 'unlocked') {
         markUpgradePermanentlyUnlocked(areaKey, upg, slot);
-      }
+	  }
     }
+
 
     if (storedStatus === 'unlocked') {
       state.locked = false;
