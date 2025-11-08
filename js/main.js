@@ -24,6 +24,8 @@ let initMutationSystem;
 let getMutationCoinSprite;
 let onMutationChangeGame;
 
+const pendingPreloadedAudio = [];
+
 const IS_TOUCH_DEVICE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
 function disableMobileZoomGestures() {
@@ -217,7 +219,11 @@ function preloadAudio(sources, onEach) {
     const a = new Audio();
     const done = () => { try { onEach?.(url); } catch {} resolve(url); };
     a.addEventListener('canplaythrough', () => {
-      registerPreloadedAudio?.(url, a);
+      if (typeof registerPreloadedAudio === 'function') {
+        registerPreloadedAudio(url, a);
+      } else {
+        pendingPreloadedAudio.push({ url, audio: a });
+      }
       done();
     }, { once: true });
     a.addEventListener('error', done, { once: true });
@@ -364,21 +370,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  const [
-    slotsModule,
-    spawnerModule,
-    coinPickupModule,
-    hudButtonsModule,
-    storageModule,
-    upgradesModule,
-    audioCacheModule,
-    xpModule,
-    resetModule,
-    mutationModule,
-    popupModule,
-    safetyModule,
-    guardModule,
-  ] = await Promise.all([
+  await nextFrame();
+
+  const modulePromise = Promise.all([
     import('./util/slots.js'),
     import('./game/spawner.js'),
     import('./game/coinPickup.js'),
@@ -393,6 +387,60 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./util/suspendSafeguard.js'),
     import('./util/ghostTapGuard.js'),
   ]);
+
+  const ASSET_MANIFEST = {
+    images: [
+      'img/hot_dog_with_mustard.png',
+      'img/currencies/coin/coin.png',
+      'img/currencies/coin/coin_base.png',
+      'img/currencies/coin/coin_plus_base.png',
+          'img/currencies/book/book.png',
+          'img/currencies/book/book_base.png',
+      'img/currencies/book/book_plus_base.png',
+      'img/sc_upg_icons/faster_coins.png',
+          'img/sc_upg_icons/book_val1.png',
+          'img/sc_upg_icons/coin_val1.png',
+          'img/sc_upg_icons/xp_val1.png',
+          'img/stats/xp/xp.png',
+          'img/stats/xp/xp_base.png',
+      'img/stats/xp/xp_plus_base.png',
+      'img/misc/merchant.png',
+      'img/misc/locked.png',
+      'img/misc/locked_base.png',
+      'img/misc/mysterious.png',
+          // will add the other stuff like pearls and gold and everything else when they don't use placeholder images
+          ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.png`),
+    ],
+    audio: [
+      'sounds/coin_pickup.mp3',
+      'sounds/wave_spawn.mp3',
+      'sounds/merchant_typing.mp3',
+      'sounds/purchase_upg.mp3',
+    ],
+    fonts: true,
+  };
+
+  let progress = 0;
+  const assetsPromise = preloadAssetsWithProgress(ASSET_MANIFEST, f => {
+    progress = f;
+    setLoaderProgress(loader, f);
+  });
+
+  const [
+    slotsModule,
+    spawnerModule,
+    coinPickupModule,
+    hudButtonsModule,
+    storageModule,
+    upgradesModule,
+    audioCacheModule,
+    xpModule,
+    resetModule,
+    mutationModule,
+    popupModule,
+    safetyModule,
+    guardModule,
+  ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
   ({ createSpawner } = spawnerModule);
@@ -410,53 +458,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   window.bank = bank;
 
+  if (typeof registerPreloadedAudio === 'function' && pendingPreloadedAudio.length) {
+    while (pendingPreloadedAudio.length) {
+      const entry = pendingPreloadedAudio.shift();
+      if (!entry) continue;
+      try { registerPreloadedAudio(entry.url, entry.audio); }
+      catch {}
+    }
+  }
+
   installGhostTapGuard?.();
   initResetSystemGame?.();
   installSuspendSafeguards?.();
-  
+
   try {
     await restoreSuspendBackup?.();
   } catch {}
 
-  const ASSET_MANIFEST = {
-    images: [
-      'img/hot_dog_with_mustard.png',
-      'img/currencies/coin/coin.png',
-      'img/currencies/coin/coin_base.png',
-      'img/currencies/coin/coin_plus_base.png',
-	  'img/currencies/book/book.png',
-	  'img/currencies/book/book_base.png',
-      'img/currencies/book/book_plus_base.png',
-      'img/sc_upg_icons/faster_coins.png',
-	  'img/sc_upg_icons/book_val1.png',
-	  'img/sc_upg_icons/coin_val1.png',
-	  'img/sc_upg_icons/xp_val1.png',
-	  'img/stats/xp/xp.png',
-	  'img/stats/xp/xp_base.png',
-      'img/stats/xp/xp_plus_base.png',
-      'img/misc/merchant.png',
-      'img/misc/locked.png',
-      'img/misc/locked_base.png',
-      'img/misc/mysterious.png',
-	  // will add the other stuff like pearls and gold and everything else when they don't use placeholder images
-	  ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.png`),
-    ],
-    audio: [
-      'sounds/coin_pickup.mp3',
-      'sounds/wave_spawn.mp3',
-      'sounds/merchant_typing.mp3',
-      'sounds/purchase_upg.mp3',
-    ],
-    fonts: true,
-  };
+  await assetsPromise;
 
-  let progress = 0;
-  await preloadAssetsWithProgress(ASSET_MANIFEST, f => {
-    progress = f;
-    setLoaderProgress(loader, f);
-  });
-
-  await twoFrames(); 
+  await twoFrames();
   document.documentElement.classList.remove('booting');
 
   await nextFrame();
