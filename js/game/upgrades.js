@@ -215,7 +215,12 @@ function shopStatusRank(status) {
 
 function classifyUpgradeStatus(lockState) {
   if (!lockState || lockState.locked === false) return 'unlocked';
-  if (lockState.hidden || lockState.hideCost || lockState.hideEffect) {
+
+  const looksMysteriousIcon =
+    typeof lockState.iconOverride === 'string' &&
+    lockState.iconOverride === MYSTERIOUS_UPGRADE_ICON_DATA_URL;
+
+  if (lockState.hidden || lockState.hideCost || lockState.hideEffect || looksMysteriousIcon) {
     return 'mysterious';
   }
   return 'locked';
