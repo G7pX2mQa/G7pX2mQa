@@ -1075,13 +1075,11 @@ export function openUpgradeOverlay(upgDef) {
   const areaKey = getCurrentAreaKey();
   const initialLockState = getUpgradeLockState(areaKey, upgDef.id) || {};
   const initialLocked = !!initialLockState.locked;
-  const initialHidden = initialLocked && (
-    initialLockState.hidden || initialLockState.hideEffect || initialLockState.hideCost
-  );
-  if (initialLocked && !initialHidden) {
+  if (initialLocked) {
     upgOpen = false;
     return;
   }
+
   const isHM = (upgDef.upgType === 'HM');
   const ui = () => upgradeUiModel(areaKey, upgDef.id);
 
