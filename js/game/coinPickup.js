@@ -57,6 +57,66 @@ export function initCoinPickup({
   pf.style.touchAction = 'none';
 
   let coins = bank.coins.value;
+  let coinMultiplierBn = null;
+  let coinMultiplierIsInfinite = false;
+
+  const refreshCoinMultiplierCache = () => {
+    try {
+      const multHandle = bank?.coins?.mult;
+      if (!multHandle || typeof multHandle.get !== 'function') {
+        coinMultiplierBn = null;
+        coinMultiplierIsInfinite = false;
+        return;
+      }
+      const next = multHandle.get();
+      if (!next) {
+        coinMultiplierBn = BigNum.fromInt(1);
+        coinMultiplierIsInfinite = false;
+        return;
+      }
+      coinMultiplierBn = next.clone?.() ?? BigNum.fromAny(next);
+      coinMultiplierIsInfinite = !!coinMultiplierBn?.isInfinite?.();
+    } catch {
+      coinMultiplierBn = null;
+      coinMultiplierIsInfinite = false;
+    }
+  };
+
+  const applyCoinMultiplier = (value) => {
+    let base;
+    try {
+      base = value instanceof BigNum
+        ? (value.clone?.() ?? value)
+        : BigNum.fromAny(value ?? 0);
+    } catch {
+      try {
+        return bank?.coins?.mult?.applyTo ? bank.coins.mult.applyTo(value) : BigNum.fromInt(0);
+      } catch {
+        return BigNum.fromInt(0);
+      }
+    }
+
+    if (!coinMultiplierBn) refreshCoinMultiplierCache();
+    const mult = coinMultiplierBn;
+    if (!mult) {
+      try { return bank?.coins?.mult?.applyTo ? bank.coins.mult.applyTo(base) : base.clone?.() ?? base; }
+      catch { return base.clone?.() ?? base; }
+    }
+    const multIsInf = coinMultiplierIsInfinite || mult.isInfinite?.();
+    if (multIsInf) {
+      try { return BigNum.fromAny('Infinity'); }
+      catch { return base.clone?.() ?? base; }
+    }
+    if (base.isZero?.()) {
+      return base.clone?.() ?? base;
+    }
+    try {
+      return base.mulBigNumInteger(mult);
+    } catch {
+      try { return bank?.coins?.mult?.applyTo ? bank.coins.mult.applyTo(base) : base.clone?.() ?? base; }
+      catch { return base.clone?.() ?? base; }
+    }
+  };
   const updateHud = () => {
     const formatted = formatNumber(coins);
     if (formatted.includes('<span')) {
@@ -65,6 +125,7 @@ export function initCoinPickup({
       amt.textContent = formatted;
     }
   };
+  refreshCoinMultiplierCache();
   updateHud();
 
   const cloneBn = (value) => {
@@ -163,13 +224,33 @@ export function initCoinPickup({
     }
   } catch {}
 
-  window.addEventListener('currency:change', (e) => {
+  const onCurrencyChange = (e) => {
     if (!e?.detail) return;
     if (e.detail.key === 'coins') {
       coins = e.detail.value;
       updateHud();
     }
-  });
+  };
+  window.addEventListener('currency:change', onCurrencyChange);
+
+  const onCoinMultiplierChange = (event) => {
+    if (!event?.detail || event.detail.key !== 'coins') return;
+    try {
+      const { mult } = event.detail;
+      if (mult instanceof BigNum) {
+        coinMultiplierBn = mult.clone?.() ?? mult;
+      } else if (mult != null) {
+        coinMultiplierBn = BigNum.fromAny(mult);
+      } else {
+        coinMultiplierBn = BigNum.fromInt(1);
+      }
+      coinMultiplierIsInfinite = !!coinMultiplierBn?.isInfinite?.();
+    } catch {
+      coinMultiplierBn = null;
+      coinMultiplierIsInfinite = false;
+    }
+  };
+  window.addEventListener('currency:multiplier', onCoinMultiplierChange);
 
   // ----- Slot-scoped shop unlock/progress keys -----
   const slot = getActiveSlot();
@@ -343,7 +424,7 @@ function collect(el) {
 
   const base = resolveCoinBase(el);
 
-  let inc = bank.coins.mult.applyTo(base);
+  let inc = applyCoinMultiplier(base);
   let xpInc = cloneBn(XP_PER_COIN);
 
   const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
@@ -439,6 +520,8 @@ function collect(el) {
     flushPendingGains();
     if (typeof window !== 'undefined') {
       window.removeEventListener('beforeunload', flushPendingGains);
+      window.removeEventListener('currency:multiplier', onCoinMultiplierChange);
+      window.removeEventListener('currency:change', onCurrencyChange);
     }
     try { mo.disconnect(); } catch {}
     try { ['pointerdown','pointermove','pointerup','mousemove'].forEach(evt => pf.replaceWith(pf.cloneNode(true))); } catch {}
