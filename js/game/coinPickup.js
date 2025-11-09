@@ -243,10 +243,39 @@ export function initCoinPickup({
 const xpGain = pendingXpGain;
 pendingXpGain = null;
 if (xpGain && !xpGain.isZero?.()) {
-  try {
-    addXp(xpGain, { applyProviders: false });
-  } catch (e) {
-    pendingXpGain = pendingXpGain ? pendingXpGain.add(xpGain) : xpGain;
+  // Try once; if it throws, progressively split the packet and feed it safely.
+  let rest = xpGain;
+  let delivered = false;
+
+  for (let splits = 0; splits < 8; splits++) {
+    try {
+      addXp(rest, { applyProviders: false });
+      delivered = true;
+      break;
+    } catch {
+      // Split into two: try half now, re-queue the other half.
+      let half;
+      try {
+        // Prefer true fractional split; fall back if the lib can’t.
+        half = rest.mul?.(BigNum.fromAny('0.5')) ?? rest;
+      } catch {
+        half = rest;
+      }
+
+      // If we can’t split (mul returned the same object/amount), stop to avoid loops.
+      if (half === rest) break;
+
+      const other = rest.sub?.(half) ?? null;
+      if (other && !other.isZero?.()) {
+        pendingXpGain = pendingXpGain ? pendingXpGain.add(other) : other;
+      }
+      rest = half;
+    }
+  }
+
+  if (!delivered) {
+    // Re-queue whatever remains; it will retry next frame (and keep splitting if needed).
+    pendingXpGain = pendingXpGain ? pendingXpGain.add(rest) : rest;
     scheduleFlush();
   }
 }
