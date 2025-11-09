@@ -7,7 +7,7 @@ import {
   primeStorageWatcherSnapshot,
 } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
-import { approxLog10BigNum, bigNumFromLog10 } from './upgrades.js';
+import { approxLog10BigNum, bigNumFromLog10 } from '../util/bnMath.js';
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
 import { refreshCoinMultiplierFromXpLevel } from './xpSystem.js';
 
@@ -490,6 +490,7 @@ export function addMutationPower(amount) {
   }
   return getMutationState();
 }
+
 export function computeMutationMultiplierForLevel(levelValue) {
   let levelBn;
   if (levelValue instanceof BN) {
@@ -509,7 +510,7 @@ export function computeMutationMultiplierForLevel(levelValue) {
     try { return BigNum.fromAny('Infinity'); } catch { return bnOne(); }
   }
 
-  // Exact 2^level for small integer levels to avoid float rounding (e.g., 2^10 === 1024)
+  // Exact 2^level for small integer levels (e.g., 2^10 === 1024)
   const asPlain = (() => {
     try { return levelBn.toPlainIntegerString?.(); } catch { return null; }
   })();
@@ -518,11 +519,8 @@ export function computeMutationMultiplierForLevel(levelValue) {
   if (isSmallIntegerLevel) {
     try {
       const n = BigInt(asPlain);
-      // Limit the exact path to safe range; 2048 is fine for performance,
-      // and easily covers m10 / early game.
       if (n >= 0n && n <= 2048n) {
-        // 2^n using BigInt, then into BigNum
-        const exact = 1n << n;
+        const exact = 1n << n; // 2^n via BigInt
         return BigNum.fromAny(exact.toString());
       }
     } catch {
@@ -530,11 +528,10 @@ export function computeMutationMultiplierForLevel(levelValue) {
     }
   }
 
-  // General path (very large / non-integer): 2^level = 10^(level*log10(2))
+  // General path: 2^level = 10^(level * log10(2))
   const log10 = levelNum * MP_LOG10_BASE;
   return bigNumFromLog10(log10);
 }
-
 
 export function getMutationMultiplier() {
   initMutationSystem();
