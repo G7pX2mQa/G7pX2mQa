@@ -217,9 +217,7 @@ function shopStatusRank(status) {
 
 function classifyUpgradeStatus(lockState) {
   if (!lockState || lockState.locked === false) return 'unlocked';
-  if (lockState.hidden || lockState.hideCost || lockState.hideEffect) {
-    return 'mysterious';
-  }
+  if (lockState.hidden) return 'mysterious';
   return 'locked';
 }
 
@@ -422,14 +420,19 @@ function determineLockState(ctx) {
     if (!xpUnlocked) {
       return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
     }
-    // Before 31 -> MYSTERIOUS (hidden)
+    // Before 31 -> show same requirement text as mysterious, but without generic "hidden" line
     let xp31 = false;
     try { const xpBn = currentXpLevelBigNum(); xp31 = levelBigNumToNumber(xpBn) >= 31; } catch {}
     if (!xp31) {
+      const revealText = (upgRef?.revealRequirement) || 'Reach XP Level 31 to reveal this upgrade';
       return {
         locked: true,
         iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-        hidden: true, hideCost: true, hideEffect: true, useLockedBase: true,
+        hidden: true,
+        hideCost: true, hideEffect: true, useLockedBase: true,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: revealText,
+        reason: revealText,
       };
     }
     // XP ≥ 31 -> visible/unlocked
@@ -448,13 +451,16 @@ function determineLockState(ctx) {
     return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
   }
 
-  // If we’ve already burned perma-mysterious, keep it mysterious forever
-  // (until Forge unlock), regardless of the *current* XP level.
+  // If we’ve already burned perma-mysterious, keep it mysterious forever (until Forge unlock).
   if (isUpgradePermanentlyMysterious(area, upgRef)) {
+    const revealText = 'Do a Forge reset to reveal this upgrade';
     return {
       locked: true,
       iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
       hidden: true, hideCost: true, hideEffect: true, useLockedBase: true,
+      titleOverride: HIDDEN_UPGRADE_TITLE,
+      descOverride: revealText,
+      reason: revealText,
     };
   }
 
@@ -462,10 +468,21 @@ function determineLockState(ctx) {
   let xp31 = false;
   try { const xpBn = currentXpLevelBigNum(); xp31 = levelBigNumToNumber(xpBn) >= 31; } catch {}
 
-  // Before 31 -> LOCKED padlock (not mysterious)
-  if (!xp31) {
-    return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
-  }
+// Before 31 -> hard LOCKED (not mysterious, not clickable)
+if (!xp31) {
+  const revealText = 'Do a Forge reset to reveal this upgrade';
+  return {
+    locked: true,
+    iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+    useLockedBase: true,
+    titleOverride: LOCKED_UPGRADE_TITLE,
+    descOverride: revealText,
+    reason: revealText,
+    hidden: false,
+    hideCost: false,
+    hideEffect: false,
+  };
+}
 
   // First time hitting 31 -> burn perma-mysterious and show MYSTERIOUS
   try { markUpgradePermanentlyMysterious(area, upgRef); } catch {}
@@ -2256,21 +2273,38 @@ function computeUpgradeLockStateFor(areaKey, upg) {
   const xpLevel = xpUnlocked ? levelBigNumToNumber(xpLevelBn) : 0;
 
   let baseState = { locked: false };
-  if (upg.requiresUnlockXp && !xpUnlocked) {
-    const isXpAdj = isXpAdjacentUpgrade(areaKey, upg);
-    const xpRevealText = 'Unlock the XP system to reveal this upgrade';
+if (upg.requiresUnlockXp && !xpUnlocked) {
+  const isXpAdj = isXpAdjacentUpgrade(areaKey, upg);
+  const xpRevealText = 'Unlock the XP system to reveal this upgrade';
+
+  if (isXpAdj) {
+    // XP-adjacent tiles show as mysterious (“?”)
     baseState = {
       locked: true,
-      iconOverride: isXpAdj ? MYSTERIOUS_UPGRADE_ICON_DATA_URL : LOCKED_UPGRADE_ICON_DATA_URL,
+      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
       titleOverride: HIDDEN_UPGRADE_TITLE,
       descOverride: xpRevealText,
-      reason: isXpAdj ? xpRevealText : 'Purchase "Unlock XP" to reveal this upgrade',
+      reason: xpRevealText,
+      hidden: true,
       hideCost: true,
       hideEffect: true,
-      hidden: true,
+      useLockedBase: true,
+    };
+  } else {
+    // Everyone else is a plain locked padlock (not mysterious / not clickable)
+    baseState = {
+      locked: true,
+      iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+      titleOverride: LOCKED_UPGRADE_TITLE,
+      descOverride: xpRevealText,
+      reason: 'Purchase "Unlock XP" to reveal this upgrade',
+      hidden: false,
+      hideCost: false,
+      hideEffect: false,
       useLockedBase: true,
     };
   }
+}
 
   let state = mergeLockStates({ locked: false }, baseState);
   if (typeof upg.computeLockState === 'function') {
@@ -2310,26 +2344,29 @@ if (revealKey) {
   }
 }
 
-  if (state.locked) {
-    const hiddenState = !!(state.hidden || state.hideEffect || state.hideCost);
-    if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
-    if (hiddenState) {
-      if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
-    } else if (!state.titleOverride || state.titleOverride === HIDDEN_UPGRADE_TITLE) {
-      state.titleOverride = LOCKED_UPGRADE_TITLE;
+if (state.locked) {
+  const hiddenState = !!state.hidden;
+  if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
+
+  if (hiddenState) {
+    if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
+  } else if (!state.titleOverride || state.titleOverride === HIDDEN_UPGRADE_TITLE) {
+    state.titleOverride = LOCKED_UPGRADE_TITLE;
+  }
+
+  if (state.useLockedBase == null) state.useLockedBase = true;
+  if (!state.reason && upg?.revealRequirement) state.reason = upg.revealRequirement;
+
+  if (!state.descOverride) {
+    if (state.reason) {
+      state.descOverride = `${state.reason}`;
+    } else if (upg?.revealRequirement) {
+      state.descOverride = upg.revealRequirement;
+    } else if (hiddenState) {
+      state.descOverride = 'This upgrade is currently hidden.';
     }
-    if (state.useLockedBase == null) state.useLockedBase = true;
-    if (!state.reason && upg?.revealRequirement) state.reason = upg.revealRequirement;
-    if (!state.descOverride) {
-      if (state.reason) {
-        state.descOverride = `${state.reason}`;
-      } else if (upg?.revealRequirement) {
-        state.descOverride = upg.revealRequirement;
-      } else {
-        state.descOverride = 'This upgrade is currently hidden.';
-      }
-    }
-  } else {
+  }
+} else {
     state.hidden = false;
     state.hideCost = false;
     state.hideEffect = false;
