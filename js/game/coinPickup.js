@@ -245,8 +245,9 @@ pendingXpGain = null;
 if (xpGain && !xpGain.isZero?.()) {
   try {
     addXp(xpGain, { applyProviders: false });
-  } catch {
-    try { addXp(BigNum.fromAny('Infinity'), { applyProviders: false }); } catch {}
+  } catch (e) {
+    pendingXpGain = pendingXpGain ? pendingXpGain.add(xpGain) : xpGain;
+    scheduleFlush();
   }
 }
 
