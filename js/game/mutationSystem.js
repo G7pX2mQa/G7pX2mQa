@@ -490,7 +490,6 @@ export function addMutationPower(amount) {
   }
   return getMutationState();
 }
-
 export function computeMutationMultiplierForLevel(levelValue) {
   let levelBn;
   if (levelValue instanceof BN) {
@@ -504,8 +503,11 @@ export function computeMutationMultiplierForLevel(levelValue) {
     catch { levelBn = bnZero(); }
   }
   const levelNum = levelToNumber(levelBn);
-  if (!Number.isFinite(levelNum) || levelNum <= 0) return bnOne();
-  const log10 = levelNum * MP_LOG10_BASE;
+  if (levelNum <= 0) return bnOne();
+  if (!Number.isFinite(levelNum)) {
+    try { return BigNum.fromAny('Infinity'); } catch { return bnOne(); }
+  }
+  const log10 = levelNum * MP_LOG10_BASE; // 2^level ⇒ log10 = level * log10(2)
   return bigNumFromLog10(log10);
 }
 
