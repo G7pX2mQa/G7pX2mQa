@@ -4,6 +4,7 @@ import { BigNum } from '../util/bigNum.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
+import { bigNumFromLog10 } from '../util/bnMath.js';
 
 const KEY_PREFIX = 'ccc:xp';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
@@ -557,44 +558,6 @@ function ensureExactRequirementCacheUpTo(levelBigInt) {
   }
 
   highestCachedExactLevel = currentLevel;
-}
-
-function bigNumFromLog10(log10Value) {
-  if (!Number.isFinite(log10Value) || log10Value >= BigNum.MAX_E) {
-    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-  }
-
-  let exponent = Math.floor(log10Value);
-  let fractional = log10Value - exponent;
-  if (!Number.isFinite(fractional)) {
-    fractional = 0;
-  }
-
-  let mantissa = Math.pow(10, fractional);
-  if (!Number.isFinite(mantissa) || mantissa <= 0) {
-    mantissa = 1;
-  }
-
-  if (mantissa >= 10) {
-    mantissa /= 10;
-    exponent += 1;
-  }
-
-  let exponentStr;
-  try {
-    exponentStr = Number.isFinite(exponent)
-      ? exponent.toLocaleString('en', { useGrouping: false })
-      : String(exponent);
-  } catch {
-    exponentStr = String(exponent);
-  }
-
-  const sci = `${mantissa.toPrecision(18)}e${exponentStr}`;
-  try {
-    return BigNum.fromScientific(sci).floorToInteger();
-  } catch {
-    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-  }
 }
 
 function approximateRequirementFromLevel(levelBn) {
