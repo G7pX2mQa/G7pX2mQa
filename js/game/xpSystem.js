@@ -746,54 +746,6 @@ function normalizeProgress(applyRewards = false) {
   fastNormalizeAndApplyRewards({ applyRewards });
 }
 
-// --- Incremental level-up pump to avoid frame jank ---
-let xpPumpScheduled = false;
-const PUMP_STEP_LIMIT = 2000;
-
-function pumpXpLevelUps() {
-  // Process up to PUMP_STEP_LIMIT level-ups this frame
-  let iter = 0;
-  updateXpRequirement();
-  while (xpState.progress.cmp?.(requirementBn) >= 0 && iter < PUMP_STEP_LIMIT) {
-    try { xpState.progress = xpState.progress.sub(requirementBn); } catch { xpState.progress = bnZero(); }
-    try { xpState.xpLevel   = xpState.xpLevel.add(bnOne()); }      catch { xpState.xpLevel   = bnZero(); }
-    handleXpLevelUpRewards();
-    updateXpRequirement();
-
-    const reqIsInf = requirementBn.isInfinite?.() ||
-                     (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
-    if (reqIsInf) {
-      xpState.progress = bnZero();
-      break;
-    }
-    iter += 1;
-  }
-
-  persistState();
-  updateHud();
-
-  // If more to do, continue next frame; otherwise clear the flag
-  if (xpState.progress.cmp?.(requirementBn) >= 0) {
-    if (typeof window !== 'undefined') {
-      requestAnimationFrame(pumpXpLevelUps);
-    } else {
-      pumpXpLevelUps(); // non-DOM fallback
-    }
-  } else {
-    xpPumpScheduled = false;
-  }
-}
-
-function scheduleXpPump() {
-  if (xpPumpScheduled) return;
-  xpPumpScheduled = true;
-  if (typeof window !== 'undefined') {
-    requestAnimationFrame(pumpXpLevelUps);
-  } else {
-    pumpXpLevelUps();
-  }
-}
-
 function xpLevelBigIntInfo(xpLevelValue) {
   if (!xpLevelValue || typeof xpLevelValue !== 'object') {
     return { bigInt: 0n, finite: false };
@@ -1098,7 +1050,7 @@ export function resetXpProgress({ keepUnlock = true } = {}) {
   return getXpState();
 }
 
-export function addXp(amount, { silent = false } = {}) {
+export function addXp(amount, { silent = false, applyProviders = true } = {}) {
   ensureStateLoaded();
   if (!xpState.unlocked) {
     return {
@@ -1123,7 +1075,7 @@ export function addXp(amount, { silent = false } = {}) {
   }
 
   // Apply external XP gain providers (if any)
-  if (!inc.isZero?.()) {
+  if (applyProviders && !inc.isZero?.()) {
     const providers = xpGainMultiplierProviders.size > 0
       ? Array.from(xpGainMultiplierProviders)
       : (typeof externalXpGainMultiplierProvider === 'function' ? [externalXpGainMultiplierProvider] : []);
