@@ -1062,7 +1062,7 @@ export function addXp(amount, { silent = false, applyProviders = true } = {}) {
     };
   }
 
-  // Parse incoming XP to BigNum
+  // Parse -> BigNum
   let inc;
   try {
     if (amount instanceof BigNum) {
@@ -1074,7 +1074,7 @@ export function addXp(amount, { silent = false, applyProviders = true } = {}) {
     inc = bnZero();
   }
 
-  // Apply external XP gain providers (if any)
+  // Providers (disabled for coin-pickup path)
   if (applyProviders && !inc.isZero?.()) {
     const providers = xpGainMultiplierProviders.size > 0
       ? Array.from(xpGainMultiplierProviders)
@@ -1096,7 +1096,7 @@ export function addXp(amount, { silent = false, applyProviders = true } = {}) {
     }
   }
 
-  // No-op if zero after providers
+  // No-op if zero
   if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
     updateHud();
     return {
@@ -1108,7 +1108,7 @@ export function addXp(amount, { silent = false, applyProviders = true } = {}) {
     };
   }
 
-  // Accept truly unbounded packets: ∞ XP → level ∞, progress 0 (no loops)
+  // Truly unbounded packet: set level to ∞-requirement sentinel, progress 0
   if (bigNumIsInfinite(inc)) {
     xpState.progress = bnZero();
     try {
@@ -1123,7 +1123,7 @@ export function addXp(amount, { silent = false, applyProviders = true } = {}) {
 
     const detailInf = {
       unlocked: true,
-      xpLevelsGained: infinityRequirementBn, // represents "jumped to ∞"
+      xpLevelsGained: infinityRequirementBn, // interpret as "jumped to ∞"
       xpAdded: inc,
       xpLevel: xpState.xpLevel,
       progress: xpState.progress,
@@ -1135,28 +1135,26 @@ export function addXp(amount, { silent = false, applyProviders = true } = {}) {
     return detailInf;
   }
 
-  // Regular (finite) packet: add, then fast-bulk normalize (O(log N))
-  xpState.progress = xpState.progress.add(inc);
-  updateXpRequirement();
+  // Finite packet: add progress, then try to level up (no-ops if requirement is ∞)
+  const levelBefore = xpState.xpLevel.clone?.() ?? xpState.xpLevel;
+  try { xpState.progress = xpState.progress.add(inc); }
+  catch { xpState.progress = inc.clone?.() ?? inc; }
 
-  const prevLevel = xpState.xpLevel.clone?.() ?? xpState.xpLevel;
-  fastNormalizeAndApplyRewards({ applyRewards: true });
+  // This function already skips when requirement is ∞ (no levels gained),
+  // but we still keep the added progress and fire xp:change so HUD/popup shows gain.
+  fastNormalizeAndApplyRewards({ applyRewards: !silent });
 
-  let xpLevelsGained = bnZero();
-  try {
-    xpLevelsGained = xpState.xpLevel.sub?.(prevLevel) ?? bnZero();
-  } catch {
-    xpLevelsGained = bnZero();
-  }
-
-  // Persist + HUD + coin sync once
   persistState();
   updateHud();
-  syncCoinMultiplierWithXpLevel(true);
+
+  const levelsGained = (() => {
+    try { return xpState.xpLevel.sub?.(levelBefore) ?? bnZero(); }
+    catch { return bnZero(); }
+  })();
 
   const detail = {
     unlocked: true,
-    xpLevelsGained,
+    xpLevelsGained: levelsGained,
     xpAdded: inc,
     xpLevel: xpState.xpLevel,
     progress: xpState.progress,
