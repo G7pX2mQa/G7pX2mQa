@@ -523,26 +523,34 @@ function collect(el) {
   let inc = applyCoinMultiplier(base);
   let xpInc = cloneBn(XP_PER_COIN);
   
-  const spawnLevelStr = el.dataset.mutationLevel || null;
-  const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
-  if (mutationMultiplier) {
-    const multIsInf = mutationMultiplier.isInfinite?.()
-      || (typeof mutationMultiplier.isInfinite === 'function' && mutationMultiplier.isInfinite());
+const spawnLevelStr = el.dataset.mutationLevel || null;
+const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
+if (mutationMultiplier) {
+  // Use integer path only for small integers; otherwise use generic multiply.
+  let isInt = false, isSmallInt = false;
+  try {
+    const s = mutationMultiplier.toPlainIntegerString?.();
+    isInt = !!s && s !== 'Infinity';
+    // "Small enough" to use mulBigNumInteger safely
+    isSmallInt = isInt && s.length <= 18;
+  } catch {}
 
-    if (multIsInf) {
-      // Explicit ∞ so downstream can handle it cleanly
-      try { inc  = BigNum.fromAny('Infinity'); } catch {}
-      try { xpInc = BigNum.fromAny('Infinity'); } catch {}
-    } else if (isBigNumInteger(mutationMultiplier)) {
-      // True integer path = fast + exact
-      try { inc  = inc.mulBigNumInteger(mutationMultiplier); } catch {}
-      try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
-    } else {
-      // Non-integer (from rounding / log path) → generic multiply
-      try { inc  = inc.mul(mutationMultiplier); } catch {}
-      try { xpInc = xpInc.mul(mutationMultiplier); } catch {}
-    }
+  if (isSmallInt) {
+    try { inc  = inc.mulBigNumInteger(mutationMultiplier); } catch { try { inc  = inc.mul(mutationMultiplier); } catch {} }
+    try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch { try { xpInc = xpInc.mul(mutationMultiplier); } catch {} }
+  } else {
+    // Large (e.g., 2^1000 ≈ 1e301) or non-integer → generic multiply avoids overflow-to-∞
+    try { inc  = inc.mul(mutationMultiplier); } catch {}
+    try { xpInc = xpInc.mul(mutationMultiplier); } catch {}
   }
+}
+
+// If XP multiply collapsed (zero) while coin multiply didn’t, retry safely once.
+if (mutationMultiplier &&
+    typeof xpInc?.isZero === 'function' && xpInc.isZero() &&
+    inc && typeof inc.isZero === 'function' && !inc.isZero()) {
+  try { xpInc = BigNum.fromInt(1).mul(mutationMultiplier); } catch {}
+}
 
   const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
   if (!incIsZero) {
