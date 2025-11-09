@@ -506,16 +506,29 @@ function collect(el) {
 
 const spawnLevelStr = el.dataset.mutationLevel || null;
 const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
+
+// helper: be robust to libraries that mutate in place and return void
+const mulSafe = (x, m) => {
+  try {
+    const r = x?.mulBigNumInteger?.(m);
+    // if the method mutated in place and returned undefined, keep the (now-mutated) x
+    return (r == null ? x : r);
+  } catch {}
+  try {
+    const r2 = x?.mul?.(m);
+    return (r2 == null ? x : r2);
+  } catch {}
+  return x;
+};
+
 if (mutationMultiplier) {
-  try {
-    const incMul = inc?.mulBigNumInteger?.(mutationMultiplier) ?? inc?.mul?.(mutationMultiplier);
-    if (incMul) inc = incMul;
-  } catch {}
-  try {
-    const xpMul = xpInc?.mulBigNumInteger?.(mutationMultiplier) ?? xpInc?.mul?.(mutationMultiplier);
-    if (xpMul) xpInc = xpMul;
-  } catch {}
+  inc   = mulSafe(inc, mutationMultiplier);
+  xpInc = mulSafe(xpInc, mutationMultiplier);
 }
+
+// sanity: ensure we still hold valid BigNums (prevents silent drops later)
+try { if (!(inc   instanceof BigNum)) inc   = BigNum.fromAny(inc);   } catch {}
+try { if (!(xpInc instanceof BigNum)) xpInc = BigNum.fromAny(xpInc); } catch {}
 
 if (!inc  || typeof inc.add   !== 'function') inc  = cloneBn(BASE_COIN_VALUE);
 if (!xpInc || typeof xpInc.add !== 'function') xpInc = cloneBn(XP_PER_COIN);
