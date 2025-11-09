@@ -240,11 +240,11 @@ export function initCoinPickup({
       try { bank.coins.add(coinGain); } catch {}
     }
 
-    const xpGain = pendingXpGain;
-    pendingXpGain = null;
-    if (xpGain && !xpGain.isZero?.()) {
-      try { addXp(xpGain); } catch {}
-    }
+const xpGain = pendingXpGain;
+pendingXpGain = null;
+if (xpGain && !xpGain.isZero?.()) {
+  try { addXp(xpGain, { applyProviders: false }); } catch {}
+}
 
     const mutGain = pendingMutGain;
     pendingMutGain = null;
