@@ -507,7 +507,7 @@ function collect(el) {
   const spawnLevelStr = el.dataset.mutationLevel || null;
   const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
   if (mutationMultiplier) {
-    try { inc = inc.mulBigNumInteger(mutationMultiplier); } catch {}
+    try { inc  = inc.mulBigNumInteger(mutationMultiplier); } catch {}
     try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
   }
 
