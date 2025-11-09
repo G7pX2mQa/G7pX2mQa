@@ -243,41 +243,7 @@ export function initCoinPickup({
 const xpGain = pendingXpGain;
 pendingXpGain = null;
 if (xpGain && !xpGain.isZero?.()) {
-  // Try once; if it throws, progressively split the packet and feed it safely.
-  let rest = xpGain;
-  let delivered = false;
-
-  for (let splits = 0; splits < 8; splits++) {
-    try {
-      addXp(rest, { applyProviders: false });
-      delivered = true;
-      break;
-    } catch {
-      // Split into two: try half now, re-queue the other half.
-      let half;
-      try {
-        // Prefer true fractional split; fall back if the lib can’t.
-        half = rest.mul?.(BigNum.fromAny('0.5')) ?? rest;
-      } catch {
-        half = rest;
-      }
-
-      // If we can’t split (mul returned the same object/amount), stop to avoid loops.
-      if (half === rest) break;
-
-      const other = rest.sub?.(half) ?? null;
-      if (other && !other.isZero?.()) {
-        pendingXpGain = pendingXpGain ? pendingXpGain.add(other) : other;
-      }
-      rest = half;
-    }
-  }
-
-  if (!delivered) {
-    // Re-queue whatever remains; it will retry next frame (and keep splitting if needed).
-    pendingXpGain = pendingXpGain ? pendingXpGain.add(rest) : rest;
-    scheduleFlush();
-  }
+  try { addXp(xpGain, { applyProviders: false }); } catch {}
 }
 
     const mutGain = pendingMutGain;
@@ -540,31 +506,20 @@ function collect(el) {
 
 const spawnLevelStr = el.dataset.mutationLevel || null;
 const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
-
-// robust multiply: handle libs that mutate-in-place and return void
-const mulSafe = (x, m) => {
-  try {
-    const r = x?.mulBigNumInteger?.(m);
-    return (r == null ? x : r);   // keep mutated x if r is undefined
-  } catch {}
-  try {
-    const r2 = x?.mul?.(m);
-    return (r2 == null ? x : r2);
-  } catch {}
-  return x;
-};
-
 if (mutationMultiplier) {
-  inc   = mulSafe(inc, mutationMultiplier);
-  xpInc = mulSafe(xpInc, mutationMultiplier);
+  const multIsInf = mutationMultiplier.isInfinite?.()
+    || (typeof mutationMultiplier.isInfinite === 'function' && mutationMultiplier.isInfinite());
+
+  if (multIsInf) {
+    // Explicitly pass ∞ through (XP system handles this fast-path safely)
+    try { inc  = BigNum.fromAny('Infinity'); } catch {}
+    try { xpInc = BigNum.fromAny('Infinity'); } catch {}
+  } else {
+    // Keep the integer fast-path; if it ever fails, keep the base values
+    try { inc  = inc.mulBigNumInteger(mutationMultiplier); } catch {}
+    try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
+  }
 }
-
-// ensure they’re still real BigNums (prevents silent drops later)
-try { if (!(inc   instanceof BigNum)) inc   = BigNum.fromAny(inc);   } catch {}
-try { if (!(xpInc instanceof BigNum)) xpInc = BigNum.fromAny(xpInc); } catch {}
-
-if (!inc  || typeof inc.add   !== 'function') inc  = cloneBn(BASE_COIN_VALUE);
-if (!xpInc || typeof xpInc.add !== 'function') xpInc = cloneBn(XP_PER_COIN);
 
   const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
   if (!incIsZero) {
