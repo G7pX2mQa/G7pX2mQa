@@ -492,6 +492,16 @@ if (xpGain && !xpGain.isZero?.()) {
     setTimeout(done, 600);
   }
 
+const isBigNumInteger = (bn) => {
+  if (!bn || typeof bn !== 'object') return false;
+  try {
+    const s = bn.toPlainIntegerString?.();
+    return !!s && s !== 'Infinity';
+  } catch {
+    return false;
+  }
+};
+
 function collect(el) {
   if (!isCoin(el)) return false;
   el.dataset.collected = '1';
@@ -511,13 +521,17 @@ if (mutationMultiplier) {
     || (typeof mutationMultiplier.isInfinite === 'function' && mutationMultiplier.isInfinite());
 
   if (multIsInf) {
-    // Explicitly pass ∞ through (XP system handles this fast-path safely)
+    // Infinite multiplier → explicit ∞ (XP system handles this safely)
     try { inc  = BigNum.fromAny('Infinity'); } catch {}
     try { xpInc = BigNum.fromAny('Infinity'); } catch {}
-  } else {
-    // Keep the integer fast-path; if it ever fails, keep the base values
+  } else if (isBigNumInteger(mutationMultiplier)) {
+    // True integer → use the fast integer path
     try { inc  = inc.mulBigNumInteger(mutationMultiplier); } catch {}
     try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
+  } else {
+    // Non-integer (e.g., float rounding): use generic BigNum multiply
+    try { inc  = inc.mul(mutationMultiplier); } catch {}
+    try { xpInc = xpInc.mul(mutationMultiplier); } catch {}
   }
 }
 
