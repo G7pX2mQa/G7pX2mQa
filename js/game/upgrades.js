@@ -115,9 +115,11 @@ const XP_MYSTERY_UPGRADE_KEYS = new Set([
 ]);
 const SHOP_REVEAL_STATE_KEY_BASE = 'ccc:shop:reveals';
 const SHOP_PERMA_UNLOCK_KEY_BASE = 'ccc:shop:permaUnlocks';
+const SHOP_PERMA_MYST_KEY_BASE   = 'ccc:shop:permaMyst';
 const SHOP_REVEAL_STATUS_ORDER = { locked: 0, mysterious: 1, unlocked: 2 };
 const shopRevealStateCache = new Map();
 const shopPermaUnlockStateCache = new Map();
+const shopPermaMystStateCache   = new Map();
 
 const BN = BigNum;
 const toBn = (x) => BN.fromAny(x ?? 0);
@@ -215,12 +217,7 @@ function shopStatusRank(status) {
 
 function classifyUpgradeStatus(lockState) {
   if (!lockState || lockState.locked === false) return 'unlocked';
-
-  const looksMysteriousIcon =
-    typeof lockState.iconOverride === 'string' &&
-    lockState.iconOverride === MYSTERIOUS_UPGRADE_ICON_DATA_URL;
-
-  if (lockState.hidden || lockState.hideCost || lockState.hideEffect || looksMysteriousIcon) {
+  if (lockState.hidden || lockState.hideCost || lockState.hideEffect) {
     return 'mysterious';
   }
   return 'locked';
@@ -328,6 +325,57 @@ function saveShopPermaUnlockState(state, slot = getActiveSlot()) {
   } catch {}
 }
 
+function ensureShopPermaMystState(slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (shopPermaMystStateCache.has(slotKey)) {
+    return shopPermaMystStateCache.get(slotKey);
+  }
+  let parsed = { upgrades: {} };
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(`${SHOP_PERMA_MYST_KEY_BASE}:${slotKey}`);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        if (obj && typeof obj === 'object') {
+          const upgrades = (obj.upgrades && typeof obj.upgrades === 'object') ? obj.upgrades : {};
+          parsed = { upgrades };
+        }
+      }
+    } catch {}
+  }
+  if (!parsed || typeof parsed !== 'object') parsed = { upgrades: {} };
+  if (!parsed.upgrades || typeof parsed.upgrades !== 'object') parsed.upgrades = {};
+  shopPermaMystStateCache.set(slotKey, parsed);
+  return parsed;
+}
+
+function saveShopPermaMystState(state, slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (!state || typeof state !== 'object') state = { upgrades: {} };
+  if (!state.upgrades || typeof state.upgrades !== 'object') state.upgrades = {};
+  shopPermaMystStateCache.set(slotKey, state);
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(`${SHOP_PERMA_MYST_KEY_BASE}:${slotKey}`, JSON.stringify(state));
+  } catch {}
+}
+
+function markUpgradePermanentlyMysterious(areaKey, upg, slot = getActiveSlot()) {
+  const key = upgradeRevealKey(areaKey, upg);
+  if (!key) return;
+  const state = ensureShopPermaMystState(slot);
+  if (state.upgrades[key]) return;
+  state.upgrades[key] = true;
+  saveShopPermaMystState(state, slot);
+}
+
+function isUpgradePermanentlyMysterious(areaKey, upg, slot = getActiveSlot()) {
+  const key = upgradeRevealKey(areaKey, upg);
+  if (!key) return false;
+  const state = ensureShopPermaMystState(slot);
+  return !!state.upgrades[key];
+}
+
 function markUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlot()) {
   const key = upgradeRevealKey(areaKey, upg);
   if (!key) return;
@@ -342,6 +390,90 @@ function isUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlot()) {
   if (!key) return false;
   const state = ensureShopPermaUnlockState(slot);
   return !!state.upgrades[key];
+}
+
+function determineLockState(ctx) {
+  // Be robust if called unbound or without ctx.upg
+  const upgRef = (ctx && ctx.upg) ? ctx.upg : (this && typeof this === 'object' ? this : null);
+  const idNum = Number(normalizeUpgradeId(upgRef?.id));
+  const area = ctx?.areaKey || AREA_KEYS.STARTER_COVE;
+
+  // Defensive default: only handle ids 7 and 8–11
+  if (![7, 8, 9, 10, 11].includes(idNum)) {
+    return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
+  }
+
+  // If any level has already been bought, it’s unlocked.
+  let currentLevel = 0;
+  try {
+    currentLevel = (upgRef && typeof upgRef.id !== 'undefined') ? getLevelNumber(area, upgRef.id) : 0;
+  } catch {}
+  if (currentLevel >= 1) return { locked: false, hidden: false, useLockedBase: false };
+
+  // XPs unlocked?
+  let xpUnlocked = false;
+  try {
+    xpUnlocked = (ctx && typeof ctx.xpUnlocked !== 'undefined') ? !!ctx.xpUnlocked : safeIsXpUnlocked();
+  } catch {}
+
+  // ==== Upgrade 7 (Unlock Forge) ====
+  if (idNum === 7) {
+    // No XP system -> LOCKED padlock
+    if (!xpUnlocked) {
+      return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
+    }
+    // Before 31 -> MYSTERIOUS (hidden)
+    let xp31 = false;
+    try { const xpBn = currentXpLevelBigNum(); xp31 = levelBigNumToNumber(xpBn) >= 31; } catch {}
+    if (!xp31) {
+      return {
+        locked: true,
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+        hidden: true, hideCost: true, hideEffect: true, useLockedBase: true,
+      };
+    }
+    // XP ≥ 31 -> visible/unlocked
+    return { locked: false };
+  }
+
+  // ==== Upgrades 8–11 (Forge-tied placeholders) ====
+  // If Forge reset already done, or perma-unlocked, unlock forever.
+  if (hasDoneForgeReset() || isUpgradePermanentlyUnlocked(area, upgRef)) {
+    try { markUpgradePermanentlyUnlocked(area, upgRef); } catch {}
+    return { locked: false, hidden: false, useLockedBase: false };
+  }
+
+  // No XP system -> LOCKED padlock
+  if (!xpUnlocked) {
+    return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
+  }
+
+  // If we’ve already burned perma-mysterious, keep it mysterious forever
+  // (until Forge unlock), regardless of the *current* XP level.
+  if (isUpgradePermanentlyMysterious(area, upgRef)) {
+    return {
+      locked: true,
+      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+      hidden: true, hideCost: true, hideEffect: true, useLockedBase: true,
+    };
+  }
+
+  // Compute XP ≥ 31 once (for the *first-time* reveal/burn)
+  let xp31 = false;
+  try { const xpBn = currentXpLevelBigNum(); xp31 = levelBigNumToNumber(xpBn) >= 31; } catch {}
+
+  // Before 31 -> LOCKED padlock (not mysterious)
+  if (!xp31) {
+    return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
+  }
+
+  // First time hitting 31 -> burn perma-mysterious and show MYSTERIOUS
+  try { markUpgradePermanentlyMysterious(area, upgRef); } catch {}
+  return {
+    locked: true,
+    iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+    hidden: true, hideCost: true, hideEffect: true, useLockedBase: true,
+  };
 }
 
 function snapshotUpgradeLockState(lockState) {
@@ -366,10 +498,13 @@ function snapshotUpgradeLockState(lockState) {
 function normalizeAreaKey(areaKey) {
   if (typeof areaKey === 'string') {
     const trimmed = areaKey.trim();
-    if (trimmed) return trimmed.toLowerCase();
+    if (trimmed) {
+      return trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+    }
   }
   return '';
 }
+
 
 function isXpAdjacentUpgrade(areaKey, upg) {
   const normalizedId = normalizeUpgradeId(upg?.id);
@@ -1556,7 +1691,6 @@ const REGISTRY = [
     },
     onLevelChange({ newLevel }) { syncBookCurrencyMultiplierFromUpgrade(newLevel); },
   },
-
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 6,
@@ -1576,402 +1710,108 @@ const REGISTRY = [
     },
     effectMultiplier: E.addFlatPerLevel(2),
   },
-
-  {
-    area: AREA_KEYS.STARTER_COVE,
-    id: 7,
-    title: "Unlock Forge",
-    desc: "Unlocks the Reset tab and the Forge reset in the Delve menu",
-    lvlCap: 1,
-    baseCost: 0,
-    costType: "gold",
-    upgType: "NM",
-    icon: "misc/forge.png",
-    requiresUnlockXp: true,
-    revealRequirement: 'Reach XP Level 31 to reveal this upgrade',
-    unlockUpgrade: true,
-    costAtLevel() { return BigNum.fromInt(0); },
-    nextCostAfter() { return BigNum.fromInt(0); },
-    computeLockState({ xpUnlocked, upg, areaKey }) {
-      if (!xpUnlocked) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: 'Unlock the XP system to reveal this upgrade',
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      const currentLevel = typeof upg?.id !== 'undefined'
-        ? getLevelNumber(areaKey || AREA_KEYS.STARTER_COVE, upg.id)
-        : 0;
-      if (currentLevel >= 1) {
-        return { locked: false, hidden: false, useLockedBase: false };
-      }
-      let xpLevel = 0;
-      try {
-        const xpState = getXpState();
-        xpLevel = levelBigNumToNumber(xpState?.xpLevel ?? 0);
-      } catch {}
-      const requirementText = upg?.revealRequirement || 'Reach XP Level 31 to reveal this upgrade';
-      if (xpLevel < 31) {
-        return {
-          locked: true,
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: requirementText,
-          reason: requirementText,
-          hidden: true,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      return { locked: false };
-    },
-    onLevelChange({ newLevel }) {
-      if ((newLevel ?? 0) >= 1) {
-        try { onForgeUpgradeUnlocked(); } catch {}
-      }
-    },
+{
+  area: AREA_KEYS.STARTER_COVE,
+  id: 7,
+  title: "Unlock Forge",
+  desc: "Unlocks the Reset tab and the Forge reset in the Delve menu",
+  lvlCap: 1,
+  baseCost: 0,
+  costType: "gold",
+  upgType: "NM",
+  icon: "misc/forge.png",
+  requiresUnlockXp: true,
+  revealRequirement: 'Reach XP Level 31 to reveal this upgrade',
+  unlockUpgrade: true,
+  costAtLevel() { return BigNum.fromInt(0); },
+  nextCostAfter() { return BigNum.fromInt(0); },
+  computeLockState: determineLockState,
+  onLevelChange({ newLevel }) {
+    if ((newLevel ?? 0) >= 1) {
+      try { onForgeUpgradeUnlocked(); } catch {}
+    }
   },
-    {
-    area: AREA_KEYS.STARTER_COVE,
-    id: 9,
-    title: "Forge Efficiency",
-    desc: "Placeholder forge upgrade that boosts Gold gain by +10% per level",
-    lvlCap: 25,
-    baseCost: 5,
-    costType: "gold",
-    upgType: "NM",
-    icon: "misc/merchant.png",
-    requiresUnlockXp: true,
-    costAtLevel(level) { return nmCostBN(this, level); },
-    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
-    computeLockState() {
-      if (!isXpSystemUnlocked()) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: 'Do a Forge reset to unlock this upgrade',
-          reason: 'Do a Forge reset to unlock this upgrade',
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      let xpLevel = 0;
-      try {
-        const xpState = getXpState();
-        xpLevel = levelBigNumToNumber(xpState?.xpLevel ?? 0);
-      } catch {}
-      const revealMessage = 'Do a Forge reset to unlock this upgrade';
-      if (!Number.isFinite(xpLevel) || xpLevel < 31) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: revealMessage,
-          reason: revealMessage,
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      if (!hasDoneForgeReset()) {
-        const resetMessage = 'Do a Forge reset to unlock this upgrade';
-        return {
-          locked: true,
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: resetMessage,
-          reason: resetMessage,
-          hidden: true,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      if (!isForgeUnlocked()) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: 'Do a Forge reset to unlock this upgrade',
-          descOverride: 'Do a Forge reset to unlock this upgrade',
-          useLockedBase: true,
-          hidden: false,
-        };
-      }
-      return { locked: false };
-    },
-    effectSummary(level) {
-      const mult = this.effectMultiplier(level);
-      return `Gold gain bonus: ${formatMultForUi(mult)}x`;
-    },
-    effectMultiplier: E.addPctPerLevel(0.10),
+},
+{
+  area: AREA_KEYS.STARTER_COVE,
+  id: 8,
+  title: "Forge Efficiency",
+  desc: "Placeholder forge upgrade that boosts Gold gain by +10% per level",
+  lvlCap: 25,
+  baseCost: 5,
+  costType: "gold",
+  upgType: "NM",
+  icon: "misc/merchant.png",
+  requiresUnlockXp: true,
+  costAtLevel(level) { return nmCostBN(this, level); },
+  nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+  computeLockState: determineLockState,
+  effectSummary(level) {
+    const mult = this.effectMultiplier(level);
+    return `Gold gain bonus: ${formatMultForUi(mult)}x`;
   },
-
-  {
-    area: AREA_KEYS.STARTER_COVE,
-    id: 10,
-    title: "Forge Insight",
-    desc: "Placeholder forge upgrade that increases Gold from resets",
-    lvlCap: 20,
-    baseCost: 25,
-    costType: "gold",
-    upgType: "NM",
-    icon: "misc/merchant.png",
-    requiresUnlockXp: true,
-    costAtLevel(level) { return nmCostBN(this, level); },
-    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
-    computeLockState() {
-      if (!isXpSystemUnlocked()) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: 'Do a Forge reset to unlock this upgrade',
-          reason: 'Do a Forge reset to unlock this upgrade',
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      let xpLevel = 0;
-      try {
-        const xpState = getXpState();
-        xpLevel = levelBigNumToNumber(xpState?.xpLevel ?? 0);
-      } catch {}
-      const revealMessage = 'Do a Forge reset to unlock this upgrade';
-      if (!Number.isFinite(xpLevel) || xpLevel < 31) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: revealMessage,
-          reason: revealMessage,
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      if (!hasDoneForgeReset()) {
-        const resetMessage = 'Do a Forge reset to unlock this upgrade';
-        return {
-          locked: true,
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: resetMessage,
-          reason: resetMessage,
-          hidden: true,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      if (!isForgeUnlocked()) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: 'Do a Forge reset to unlock this upgrade',
-          descOverride: 'Do a Forge reset to unlock this upgrade',
-          useLockedBase: true,
-          hidden: false,
-        };
-      }
-      return { locked: false };
-    },
-    effectSummary(level) {
-      const mult = this.effectMultiplier(level);
-      return `Forge reward multiplier: ${formatMultForUi(mult)}x`;
-    },
-    effectMultiplier: E.addPctPerLevel(0.15),
+  effectMultiplier: E.addPctPerLevel(0.10),
+},
+{
+  area: AREA_KEYS.STARTER_COVE,
+  id: 9,
+  title: "Forge Insight",
+  desc: "Placeholder forge upgrade that increases Gold from resets",
+  lvlCap: 20,
+  baseCost: 25,
+  costType: "gold",
+  upgType: "NM",
+  icon: "misc/merchant.png",
+  requiresUnlockXp: true,
+  costAtLevel(level) { return nmCostBN(this, level); },
+  nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+  computeLockState: determineLockState,
+  effectSummary(level) {
+    const mult = this.effectMultiplier(level);
+    return `Forge reward multiplier: ${formatMultForUi(mult)}x`;
   },
-
-  {
-    area: AREA_KEYS.STARTER_COVE,
-    id: 11,
-    title: "Pearl Collector",
-    desc: "Placeholder pearl upgrade that boosts Pearl spawn chance",
-    lvlCap: 30,
-    baseCost: 10,
-    costType: "pearls",
-    upgType: "NM",
-    icon: "misc/merchant.png",
-    requiresUnlockXp: true,
-    costAtLevel(level) { return nmCostBN(this, level); },
-    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
-    computeLockState() {
-      if (!isXpSystemUnlocked()) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: 'Do a Forge reset to unlock this upgrade',
-          reason: 'Do a Forge reset to unlock this upgrade',
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      let xpLevel = 0;
-      try {
-        const xpState = getXpState();
-        xpLevel = levelBigNumToNumber(xpState?.xpLevel ?? 0);
-      } catch {}
-      const revealMessage = 'Do a Forge reset to unlock this upgrade';
-      if (!Number.isFinite(xpLevel) || xpLevel < 31) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: revealMessage,
-          reason: revealMessage,
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      if (!hasDoneForgeReset()) {
-        const resetMessage = 'Do a Forge reset to unlock this upgrade';
-        return {
-          locked: true,
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: resetMessage,
-          reason: resetMessage,
-          hidden: true,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      if (!isForgeUnlocked()) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: 'Do a Forge reset to unlock this upgrade',
-          descOverride: 'Do a Forge reset to unlock this upgrade',
-          useLockedBase: true,
-          hidden: false,
-        };
-      }
-      return { locked: false };
-    },
-    effectSummary(level) {
-      const mult = this.effectMultiplier(level);
-      return `Pearl spawn bonus: ${formatMultForUi(mult)}x`;
-    },
-    effectMultiplier: E.addPctPerLevel(0.05),
+  effectMultiplier: E.addPctPerLevel(0.15),
+},
+{
+  area: AREA_KEYS.STARTER_COVE,
+  id: 10,
+  title: "Pearl Collector",
+  desc: "Placeholder pearl upgrade that boosts Pearl spawn chance",
+  lvlCap: 30,
+  baseCost: 10,
+  costType: "pearls",
+  upgType: "NM",
+  icon: "misc/merchant.png",
+  requiresUnlockXp: true,
+  costAtLevel(level) { return nmCostBN(this, level); },
+  nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+  computeLockState: determineLockState,
+  effectSummary(level) {
+    const mult = this.effectMultiplier(level);
+    return `Pearl spawn bonus: ${formatMultForUi(mult)}x`;
   },
-
-  {
-    area: AREA_KEYS.STARTER_COVE,
-    id: 12,
-    title: "Pearl Wisdom",
-    desc: "Placeholder pearl upgrade that increases XP gained from Pearls",
-    lvlCap: 15,
-    baseCost: 50,
-    costType: "pearls",
-    upgType: "NM",
-    icon: "misc/merchant.png",
-    requiresUnlockXp: true,
-    costAtLevel(level) { return nmCostBN(this, level); },
-    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
-    computeLockState() {
-      if (!isXpSystemUnlocked()) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: 'Do a Forge reset to unlock this upgrade',
-          reason: 'Do a Forge reset to unlock this upgrade',
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      let xpLevel = 0;
-      try {
-        const xpState = getXpState();
-        xpLevel = levelBigNumToNumber(xpState?.xpLevel ?? 0);
-      } catch {}
-      const revealMessage = 'Do a Forge reset to unlock this upgrade';
-      if (!Number.isFinite(xpLevel) || xpLevel < 31) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: revealMessage,
-          reason: revealMessage,
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      if (!hasDoneForgeReset()) {
-        const resetMessage = 'Do a Forge reset to unlock this upgrade';
-        return {
-          locked: true,
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: resetMessage,
-          reason: resetMessage,
-          hidden: true,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      if (!isForgeUnlocked()) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          titleOverride: 'Do a Forge reset to unlock this upgrade',
-          descOverride: 'Do a Forge reset to unlock this upgrade',
-          useLockedBase: true,
-          hidden: false,
-        };
-      }
-      return { locked: false };
-    },
-    effectSummary(level) {
-      const mult = this.effectMultiplier(level);
-      return `Pearl XP bonus: ${formatMultForUi(mult)}x`;
-    },
-    effectMultiplier: E.addPctPerLevel(0.08),
+  effectMultiplier: E.addPctPerLevel(0.05),
+},
+{
+  area: AREA_KEYS.STARTER_COVE,
+  id: 11,
+  title: "Pearl Wisdom",
+  desc: "Placeholder pearl upgrade that increases XP gained from Pearls",
+  lvlCap: 15,
+  baseCost: 50,
+  costType: "pearls",
+  upgType: "NM",
+  icon: "misc/merchant.png",
+  requiresUnlockXp: true,
+  costAtLevel(level) { return nmCostBN(this, level); },
+  nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+  computeLockState: determineLockState,
+  effectSummary(level) {
+    const mult = this.effectMultiplier(level);
+    return `XP gain from Pearls bonus: ${formatMultForUi(mult)}x`;
   },
-
-  {
-    area: AREA_KEYS.STARTER_COVE,
-    id: 8, // remove this upgrade once another upgrade takes its place
-    title: "Placeholder Upgrade",
-    desc: "This is a placeholder upgrade to demonstrate a 1.2x compounding upgrade",
-    lvlCap: "BN:18:100000000000000000:1e999",
-    baseCost: 1,
-    costType: "coins",
-    upgType: "NM",
-    icon: "sc_upgrade_icons/faster_coins.png",
-    costAtLevel(level) { return nmCostBN(this, level); },
-    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
-    effectSummary(level) {
-      const mult = this.effectMultiplier(level);
-      return `Placeholder bonus: ${formatMultForUi(mult)}x`;
-    },
-    effectMultiplier: E.powPerLevel(1.2),
-  },
+  effectMultiplier: E.addPctPerLevel(0.10),
+}
 ];
 
 for (const upg of REGISTRY) {
@@ -2452,32 +2292,44 @@ function computeUpgradeLockStateFor(areaKey, upg) {
   const slot = getActiveSlot();
   const revealKey = upgradeRevealKey(areaKey, upg);
   const permaUnlocked = revealKey ? isUpgradePermanentlyUnlocked(areaKey, upg, slot) : false;
-  if (permaUnlocked) {
-    state.locked = false;
-  }
+if (revealKey) {
+  const slot = getActiveSlot();
+  const revealState = ensureShopRevealState(slot);
+  const permaState  = ensureShopPermaUnlockState(slot);
+  const hyphenKey   = revealKey.replace(/_/g, '-');
 
-if (state.locked) {
-const hiddenState = !!state.hidden;
-if (hiddenState) {
-  if (!state.iconOverride) state.iconOverride = MYSTERIOUS_UPGRADE_ICON_DATA_URL;
-  if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
-} else {
-  if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
-  if (!state.titleOverride) state.titleOverride = LOCKED_UPGRADE_TITLE;
+  if (!revealState.upgrades[revealKey] && revealState.upgrades[hyphenKey]) {
+    revealState.upgrades[revealKey] = revealState.upgrades[hyphenKey];
+    delete revealState.upgrades[hyphenKey];
+    saveShopRevealState(revealState, slot);
+  }
+  if (!permaState.upgrades[revealKey] && permaState.upgrades[hyphenKey]) {
+    permaState.upgrades[revealKey] = permaState.upgrades[hyphenKey];
+    delete permaState.upgrades[hyphenKey];
+    saveShopPermaUnlockState(permaState, slot);
+  }
 }
 
-  if (state.useLockedBase == null) state.useLockedBase = true;
-  if (!state.reason && upg?.revealRequirement) state.reason = upg.revealRequirement;
-  if (!state.descOverride) {
-    if (state.reason) {
-      state.descOverride = `${state.reason}`;
-    } else if (upg?.revealRequirement) {
-      state.descOverride = upg.revealRequirement;
-    } else {
-      state.descOverride = 'This upgrade is currently hidden.';
+  if (state.locked) {
+    const hiddenState = !!(state.hidden || state.hideEffect || state.hideCost);
+    if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
+    if (hiddenState) {
+      if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
+    } else if (!state.titleOverride || state.titleOverride === HIDDEN_UPGRADE_TITLE) {
+      state.titleOverride = LOCKED_UPGRADE_TITLE;
     }
-  }
-} else {
+    if (state.useLockedBase == null) state.useLockedBase = true;
+    if (!state.reason && upg?.revealRequirement) state.reason = upg.revealRequirement;
+    if (!state.descOverride) {
+      if (state.reason) {
+        state.descOverride = `${state.reason}`;
+      } else if (upg?.revealRequirement) {
+        state.descOverride = upg.revealRequirement;
+      } else {
+        state.descOverride = 'This upgrade is currently hidden.';
+      }
+    }
+  } else {
     state.hidden = false;
     state.hideCost = false;
     state.hideEffect = false;
@@ -2501,8 +2353,27 @@ if (hiddenState) {
   if (revealKey) {
     const revealState = ensureShopRevealState(slot);
     const rec = revealState.upgrades[revealKey] || {};
-	let storedStatus = rec.status || 'locked';
-	let storedRank = shopStatusRank(storedStatus);
+let storedStatus = rec.status || 'locked';
+
+if (isUpgradePermanentlyUnlocked(areaKey, upg, slot)) {
+  storedStatus = 'unlocked';
+} else if (
+  isUpgradePermanentlyMysterious(areaKey, upg, slot) &&
+  storedStatus === 'locked'
+) {
+  // Forge placeholders (9–12) must not appear MYSTERIOUS until XP ≥ 31 in this run.
+  const idNum = Number(normalizeUpgradeId(upg?.id));
+  const isForgePlaceholder =
+    normalizeAreaKey(areaKey || upg?.area) === 'starter_cove' &&
+    [8, 9, 10, 11].includes(idNum);
+
+  let xpReached31 = false;
+  try { xpReached31 = levelBigNumToNumber(currentXpLevelBigNum()) >= 31; } catch {}
+
+  storedStatus = (isForgePlaceholder && !xpReached31) ? 'locked' : 'mysterious';
+}
+let storedRank = shopStatusRank(storedStatus);
+
 
     let currentStatus = classifyUpgradeStatus(state);
     let currentRank = shopStatusRank(currentStatus);
@@ -2514,23 +2385,24 @@ const applyStoredMysterious = () => {
   if (snap && typeof snap === 'object') {
     state = mergeLockStates(state, snap);
   }
-  
+
   state.iconOverride  = MYSTERIOUS_UPGRADE_ICON_DATA_URL;
   state.titleOverride = HIDDEN_UPGRADE_TITLE;
 
-  if (state.descOverride == null) {
-    const reasonText = state.reason || upg?.revealRequirement || 'This upgrade is currently hidden.';
-    state.descOverride = reasonText;
-  }
-  if (state.reason == null && upg?.revealRequirement) {
-    state.reason = upg.revealRequirement;
-  }
+  const reasonText =
+    upg?.revealRequirement ||
+    state.reason ||
+    state.descOverride ||
+    'This upgrade is currently hidden.';
+  state.descOverride = reasonText;
+  if (!state.reason && upg?.revealRequirement) state.reason = upg.revealRequirement;
 
   state.hidden      = true;
   state.hideCost    = true;
   state.hideEffect  = true;
-  if (state.useLockedBase == null) state.useLockedBase = true;
-}
+  state.useLockedBase = true;
+};
+
 
     if (storedRank > currentRank) {
       if (storedStatus === 'unlocked') {
@@ -2547,59 +2419,83 @@ const applyStoredMysterious = () => {
     }
 
     let shouldSave = false;
+let normalizedStatus = (rec && typeof rec === 'object' && typeof rec.status === 'string')
+  ? rec.status
+  : 'locked';
 
-    if (currentRank > storedRank) {
-	  rec.status = currentStatus;
-	  rec.snapshot = (currentStatus === 'mysterious') ? snapshotUpgradeLockState(state) : undefined;
-	  revealState.upgrades[revealKey] = rec;
-	  shouldSave = true;
+const idNumForSave = Number(normalizeUpgradeId(upg?.id));
+const isForgePlaceholderForSave =
+  normalizeAreaKey(areaKey || upg?.area) === 'starter_cove' &&
+  [8, 9, 10, 11].includes(idNumForSave);
 
-	  storedStatus = currentStatus;
-	  storedRank   = currentRank;
+let xpReached31Now = false;
+try { xpReached31Now = levelBigNumToNumber(currentXpLevelBigNum()) >= 31; } catch {}
 
-	  if (currentStatus === 'unlocked') {
-        markUpgradePermanentlyUnlocked(areaKey, upg, slot);
-	  }
+if (isForgePlaceholderForSave && !xpReached31Now && normalizedStatus === 'mysterious') {
+  normalizedStatus = 'locked';
+}
+
+if (!rec || typeof rec !== 'object' || Object.keys(rec).length !== 1 || rec.status !== normalizedStatus) {
+  revealState.upgrades[revealKey] = { status: normalizedStatus };
+  shouldSave = true;
+}
+
+
+if (currentRank > storedRank) {
+  rec.status = currentStatus;
+  revealState.upgrades[revealKey] = { status: rec.status };
+  shouldSave = true;
+
+  storedStatus = currentStatus;
+  storedRank   = currentRank;
+
+  if (currentStatus === 'unlocked') {
+    markUpgradePermanentlyUnlocked(areaKey, upg, slot);
+  } else if (currentStatus === 'mysterious') {
+    // Only burn perma-myst for forge placeholders (9–12) once XP ≥ 31.
+    const idNum = Number(normalizeUpgradeId(upg?.id));
+    const isForgePlaceholder =
+      normalizeAreaKey(areaKey || upg?.area) === 'starter_cove' &&
+      [8, 9, 10, 11].includes(idNum);
+
+    let xpReached31 = false;
+    try { xpReached31 = levelBigNumToNumber(currentXpLevelBigNum()) >= 31; } catch {}
+
+    if (!isForgePlaceholder || xpReached31) {
+      markUpgradePermanentlyMysterious(areaKey, upg, slot);
     }
-
-
-    if (storedStatus === 'unlocked') {
-      state.locked = false;
-      state.hidden = false;
-      state.hideCost = false;
-      state.hideEffect = false;
-      state.useLockedBase = false;
-
-      if (state.iconOverride === LOCKED_UPGRADE_ICON_DATA_URL ||
-          state.iconOverride === MYSTERIOUS_UPGRADE_ICON_DATA_URL) {
-        delete state.iconOverride;
-      }
-      if (state.titleOverride === HIDDEN_UPGRADE_TITLE ||
-          state.titleOverride === LOCKED_UPGRADE_TITLE) {
-        delete state.titleOverride;
-      }
-      delete state.descOverride;
-      delete state.reason;
-
-      if (rec.status !== 'unlocked') {
-        rec.status = 'unlocked';
-        delete rec.snapshot;
-        revealState.upgrades[revealKey] = rec;
-        shouldSave = true;
-      }
-      markUpgradePermanentlyUnlocked(areaKey, upg, slot);
-    } else if (storedStatus === 'mysterious' && currentStatus !== 'mysterious') {
-      applyStoredMysterious();
-      currentStatus = classifyUpgradeStatus(state);
-      currentRank = shopStatusRank(currentStatus);
-    }
-	
-if (storedStatus === 'mysterious' && currentStatus === 'mysterious') {
-  if (state.iconOverride === LOCKED_UPGRADE_ICON_DATA_URL || !state.iconOverride) {
-    applyStoredMysterious();
-    currentStatus = classifyUpgradeStatus(state);
-    currentRank = shopStatusRank(currentStatus);
   }
+}
+
+
+if (storedStatus === 'unlocked') {
+  state.locked = false;
+  state.hidden = false;
+  state.hideCost = false;
+  state.hideEffect = false;
+  state.useLockedBase = false;
+
+  if (state.iconOverride === LOCKED_UPGRADE_ICON_DATA_URL ||
+      state.iconOverride === MYSTERIOUS_UPGRADE_ICON_DATA_URL) {
+    delete state.iconOverride;
+  }
+  if (state.titleOverride === HIDDEN_UPGRADE_TITLE ||
+      state.titleOverride === LOCKED_UPGRADE_TITLE) {
+    delete state.titleOverride;
+  }
+  delete state.descOverride;
+  delete state.reason;
+
+  if (rec.status !== 'unlocked') {
+    revealState.upgrades[revealKey] = { status: 'unlocked' };
+    shouldSave = true;
+  }
+  markUpgradePermanentlyUnlocked(areaKey, upg, slot);
+
+} else if (storedStatus === 'mysterious' && currentStatus !== 'mysterious') {
+  applyStoredMysterious();
+  currentStatus = classifyUpgradeStatus(state);
+  currentRank = shopStatusRank(currentStatus);
 }
 
     if (shouldSave) saveShopRevealState(revealState, slot);
@@ -3142,7 +3038,6 @@ function registerXpUpgradeEffects() {
 
 registerXpUpgradeEffects();
 
-// tiny event system for “upgrades changed”
 let listeners = [];
 export function onUpgradesChanged(cb) {
   if (typeof cb === 'function') listeners.push(cb);
@@ -3150,17 +3045,14 @@ export function onUpgradesChanged(cb) {
 }
 function notifyChanged() {
   try { listeners.forEach(cb => cb()); } catch {}
-  // also fire a DOM event in case you want to hook somewhere else
   try { document.dispatchEvent(new CustomEvent('ccc:upgrades:changed')); } catch {}
 }
 
 /* ----------------------- Area detection (DOM mapping) ---------------------- */
 
 export function getCurrentAreaKey() {
-  // Map DOM class to registry key. Starter Cove DOM has ".area-cove".
   const gameRoot = document.getElementById('game-root');
   if (gameRoot?.classList?.contains('area-cove')) return AREA_KEYS.STARTER_COVE;
-  // fallback: starter cove
   return AREA_KEYS.STARTER_COVE;
 }
 
