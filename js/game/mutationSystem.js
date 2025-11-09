@@ -502,14 +502,39 @@ export function computeMutationMultiplierForLevel(levelValue) {
     try { levelBn = BigNum.fromAny(levelValue ?? 0); }
     catch { levelBn = bnZero(); }
   }
+
   const levelNum = levelToNumber(levelBn);
   if (levelNum <= 0) return bnOne();
   if (!Number.isFinite(levelNum)) {
     try { return BigNum.fromAny('Infinity'); } catch { return bnOne(); }
   }
-  const log10 = levelNum * MP_LOG10_BASE; // 2^level ⇒ log10 = level * log10(2)
+
+  // Exact 2^level for small integer levels to avoid float rounding (e.g., 2^10 === 1024)
+  const asPlain = (() => {
+    try { return levelBn.toPlainIntegerString?.(); } catch { return null; }
+  })();
+  const isSmallIntegerLevel = !!asPlain && asPlain.indexOf('.') === -1;
+
+  if (isSmallIntegerLevel) {
+    try {
+      const n = BigInt(asPlain);
+      // Limit the exact path to safe range; 2048 is fine for performance,
+      // and easily covers m10 / early game.
+      if (n >= 0n && n <= 2048n) {
+        // 2^n using BigInt, then into BigNum
+        const exact = 1n << n;
+        return BigNum.fromAny(exact.toString());
+      }
+    } catch {
+      // fall through to approximate
+    }
+  }
+
+  // General path (very large / non-integer): 2^level = 10^(level*log10(2))
+  const log10 = levelNum * MP_LOG10_BASE;
   return bigNumFromLog10(log10);
 }
+
 
 export function getMutationMultiplier() {
   initMutationSystem();
