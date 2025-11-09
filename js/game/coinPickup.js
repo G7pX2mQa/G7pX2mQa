@@ -243,7 +243,11 @@ export function initCoinPickup({
 const xpGain = pendingXpGain;
 pendingXpGain = null;
 if (xpGain && !xpGain.isZero?.()) {
-  try { addXp(xpGain); } catch {}
+  try {
+    addXp(xpGain, { applyProviders: false });
+  } catch {
+    try { addXp(BigNum.fromAny('Infinity'), { applyProviders: false }); } catch {}
+  }
 }
 
     const mutGain = pendingMutGain;
@@ -507,12 +511,11 @@ function collect(el) {
 const spawnLevelStr = el.dataset.mutationLevel || null;
 const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
 
-// helper: be robust to libraries that mutate in place and return void
+// robust multiply: handle libs that mutate-in-place and return void
 const mulSafe = (x, m) => {
   try {
     const r = x?.mulBigNumInteger?.(m);
-    // if the method mutated in place and returned undefined, keep the (now-mutated) x
-    return (r == null ? x : r);
+    return (r == null ? x : r);   // keep mutated x if r is undefined
   } catch {}
   try {
     const r2 = x?.mul?.(m);
@@ -526,7 +529,7 @@ if (mutationMultiplier) {
   xpInc = mulSafe(xpInc, mutationMultiplier);
 }
 
-// sanity: ensure we still hold valid BigNums (prevents silent drops later)
+// ensure they’re still real BigNums (prevents silent drops later)
 try { if (!(inc   instanceof BigNum)) inc   = BigNum.fromAny(inc);   } catch {}
 try { if (!(xpInc instanceof BigNum)) xpInc = BigNum.fromAny(xpInc); } catch {}
 
