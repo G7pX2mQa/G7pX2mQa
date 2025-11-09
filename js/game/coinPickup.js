@@ -50,6 +50,15 @@ let coinPickup = null;
 const XP_PER_COIN = BigNum.fromInt(1);
 const BASE_COIN_VALUE = BigNum.fromInt(1);
 const BN_ONE = BigNum.fromInt(1);
+const isBigNumInteger = (bn) => {
+  if (!bn || typeof bn !== 'object') return false;
+  try {
+    const s = bn.toPlainIntegerString?.() ?? bn.toPlainString?.();
+    return !!s && s !== 'Infinity';
+  } catch {
+    return false;
+  }
+};
 const mutationMultiplierCache = new Map();
 let COIN_MULTIPLIER = '1';
 
@@ -513,27 +522,27 @@ function collect(el) {
 
   let inc = applyCoinMultiplier(base);
   let xpInc = cloneBn(XP_PER_COIN);
+  
+  const spawnLevelStr = el.dataset.mutationLevel || null;
+  const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
+  if (mutationMultiplier) {
+    const multIsInf = mutationMultiplier.isInfinite?.()
+      || (typeof mutationMultiplier.isInfinite === 'function' && mutationMultiplier.isInfinite());
 
-const spawnLevelStr = el.dataset.mutationLevel || null;
-const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
-if (mutationMultiplier) {
-  const multIsInf = mutationMultiplier.isInfinite?.()
-    || (typeof mutationMultiplier.isInfinite === 'function' && mutationMultiplier.isInfinite());
-
-  if (multIsInf) {
-    // Infinite multiplier → explicit ∞ (XP system handles this safely)
-    try { inc  = BigNum.fromAny('Infinity'); } catch {}
-    try { xpInc = BigNum.fromAny('Infinity'); } catch {}
-  } else if (isBigNumInteger(mutationMultiplier)) {
-    // True integer → use the fast integer path
-    try { inc  = inc.mulBigNumInteger(mutationMultiplier); } catch {}
-    try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
-  } else {
-    // Non-integer (e.g., float rounding): use generic BigNum multiply
-    try { inc  = inc.mul(mutationMultiplier); } catch {}
-    try { xpInc = xpInc.mul(mutationMultiplier); } catch {}
+    if (multIsInf) {
+      // Explicit ∞ so downstream can handle it cleanly
+      try { inc  = BigNum.fromAny('Infinity'); } catch {}
+      try { xpInc = BigNum.fromAny('Infinity'); } catch {}
+    } else if (isBigNumInteger(mutationMultiplier)) {
+      // True integer path = fast + exact
+      try { inc  = inc.mulBigNumInteger(mutationMultiplier); } catch {}
+      try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
+    } else {
+      // Non-integer (from rounding / log path) → generic multiply
+      try { inc  = inc.mul(mutationMultiplier); } catch {}
+      try { xpInc = xpInc.mul(mutationMultiplier); } catch {}
+    }
   }
-}
 
   const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
   if (!incIsZero) {
