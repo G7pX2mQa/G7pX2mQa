@@ -17,9 +17,8 @@ import {
   getUpgradesForArea,
   getLevelNumber,
   setLevel,
-  approxLog10BigNum,
-  bigNumFromLog10,
 } from './upgrades.js';
+import { approxLog10BigNum, bigNumFromLog10 } from '../util/bnMath.js';
 import {
   initMutationSystem,
   unlockMutationSystem,
