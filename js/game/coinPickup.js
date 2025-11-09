@@ -243,7 +243,7 @@ export function initCoinPickup({
 const xpGain = pendingXpGain;
 pendingXpGain = null;
 if (xpGain && !xpGain.isZero?.()) {
-  try { addXp(xpGain, { applyProviders: false }); } catch {}
+  try { addXp(xpGain); } catch {}
 }
 
     const mutGain = pendingMutGain;
@@ -504,12 +504,21 @@ function collect(el) {
   let inc = applyCoinMultiplier(base);
   let xpInc = cloneBn(XP_PER_COIN);
 
-  const spawnLevelStr = el.dataset.mutationLevel || null;
-  const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
-  if (mutationMultiplier) {
-    try { inc  = inc.mulBigNumInteger(mutationMultiplier); } catch {}
-    try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
-  }
+const spawnLevelStr = el.dataset.mutationLevel || null;
+const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
+if (mutationMultiplier) {
+  try {
+    const incMul = inc?.mulBigNumInteger?.(mutationMultiplier) ?? inc?.mul?.(mutationMultiplier);
+    if (incMul) inc = incMul;
+  } catch {}
+  try {
+    const xpMul = xpInc?.mulBigNumInteger?.(mutationMultiplier) ?? xpInc?.mul?.(mutationMultiplier);
+    if (xpMul) xpInc = xpMul;
+  } catch {}
+}
+
+if (!inc  || typeof inc.add   !== 'function') inc  = cloneBn(BASE_COIN_VALUE);
+if (!xpInc || typeof xpInc.add !== 'function') xpInc = cloneBn(XP_PER_COIN);
 
   const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
   if (!incIsZero) {
