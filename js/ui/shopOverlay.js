@@ -40,6 +40,9 @@ let delveBtnEl = null;
 let updateDelveGlow = null;
 let shopCloseTimer = null;
 const IS_MOBILE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
+let __shopOpenStamp = 0;
+let __shopPostOpenPointer = false;
+
 
 const ICON_DIR = 'img/';
 const BASE_ICON_SRC_BY_COST = {
@@ -844,7 +847,23 @@ function ensureShopOverlay() {
   shopOverlayEl.appendChild(shopSheetEl);
   document.body.appendChild(shopOverlayEl);
 
+  shopOverlayEl.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    __shopPostOpenPointer = true;
+  }, { capture: true, passive: true });
+
+  shopOverlayEl.addEventListener('click', (e) => {
+    if (!IS_MOBILE) return;
+    const dt = performance.now() - __shopOpenStamp;
+    if (!__shopPostOpenPointer && dt >= 80 && dt <= 480) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      return;
+    }
+  }, { capture: true });
+
   updateShopOverlay(true);
+
 
   if (!eventsBound) {
     eventsBound = true;
@@ -1442,6 +1461,9 @@ export function openShop() {
 requestAnimationFrame(() => {
   shopSheetEl.style.transition = '';
   shopOverlayEl.classList.add('is-open');
+
+  __shopOpenStamp = performance.now();
+  __shopPostOpenPointer = false;
 
   if (IS_MOBILE) {
     try {
