@@ -847,20 +847,23 @@ function ensureShopOverlay() {
   shopOverlayEl.appendChild(shopSheetEl);
   document.body.appendChild(shopOverlayEl);
 
-  shopOverlayEl.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'mouse') return;
-    __shopPostOpenPointer = true;
-  }, { capture: true, passive: true });
+shopOverlayEl.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'mouse') return;
+  __shopPostOpenPointer = true;
+}, { capture: true, passive: true });
 
-  shopOverlayEl.addEventListener('click', (e) => {
-    if (!IS_MOBILE) return;
-    const dt = performance.now() - __shopOpenStamp;
-    if (!__shopPostOpenPointer && dt >= 80 && dt <= 480) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      return;
-    }
-  }, { capture: true });
+shopOverlayEl.addEventListener('touchstart', () => {
+  __shopPostOpenPointer = true;
+}, { capture: true, passive: true });
+
+shopOverlayEl.addEventListener('click', (e) => {
+  if (!IS_MOBILE) return;
+  if (!__shopPostOpenPointer) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    return;
+  }
+}, { capture: true });
 
   updateShopOverlay(true);
 
@@ -1459,17 +1462,18 @@ export function openShop() {
 
   void shopSheetEl.offsetHeight;
 requestAnimationFrame(() => {
-  shopSheetEl.style.transition = '';
-  shopOverlayEl.classList.add('is-open');
+shopSheetEl.style.transition = '';
+shopOverlayEl.classList.add('is-open');
 
-  __shopOpenStamp = performance.now();
-  __shopPostOpenPointer = false;
+__shopOpenStamp = performance.now(); // harmless to keep
+__shopPostOpenPointer = false;
 
-  if (IS_MOBILE) {
-    try {
-      setTimeout(() => suppressNextGhostTap(240), 120);
-    } catch {}
-  }
+// Optional now; can keep or delete
+if (IS_MOBILE) {
+  try {
+    setTimeout(() => suppressNextGhostTap(240), 120);
+  } catch {}
+}
 
   blockInteraction(10);
   ensureCustomScrollbar();
@@ -1505,6 +1509,7 @@ export function closeShop(force = false) {
   shopOverlayEl.classList.remove('is-open');
   shopOverlayEl.style.pointerEvents = 'none';
   shopOverlayEl.setAttribute('aria-hidden', 'true');
+  __shopPostOpenPointer = false;
 }
 
 // ---------- Drag ----------
