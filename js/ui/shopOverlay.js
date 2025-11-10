@@ -849,12 +849,11 @@ function ensureShopOverlay() {
   if (!eventsBound) {
     eventsBound = true;
 
-const onCloseClick = () => {
-  if (shouldSkipGhostTap(closeBtn)) return;
-  markGhostTapTarget(closeBtn);
-  suppressNextGhostTap();
+function onCloseClick() {
+  suppressNextGhostTap(320);
+  blockInteraction(200);
   closeShop();
-};
+}
 
 closeBtn.addEventListener('click', onCloseClick, { passive: true });
 
@@ -1459,19 +1458,19 @@ function onDragEnd() {
   const velocity = dy / dt;
   const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
 
-  if (shouldClose) {
-    suppressNextGhostTap();
-    shopSheetEl.style.transition = 'transform 140ms ease-out';
-    shopSheetEl.style.transform = 'translateY(100%)';
-    shopOpen = false;
-    if (shopCloseTimer) {
-      clearTimeout(shopCloseTimer);
-    }
-    shopCloseTimer = setTimeout(() => {
-      shopCloseTimer = null;
-      closeShop(true);
-    }, 150);
-  } else {
+if (shouldClose) {
+  suppressNextGhostTap(320);
+  blockInteraction(200);
+  shopSheetEl.style.transition = 'transform 140ms ease-out';
+  shopSheetEl.style.transform = 'translateY(100%)';
+  shopOpen = false;
+  …
+  shopCloseTimer = setTimeout(() => {
+    shopCloseTimer = null;
+    closeShop(true);
+  }, 150);
+}
+} else {
     shopSheetEl.style.transition = 'transform 180ms ease';
     shopSheetEl.style.transform = 'translateY(0)';
   }
