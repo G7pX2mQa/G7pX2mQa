@@ -878,18 +878,17 @@ function openDialogueLockInfo(lockInfo = {}) {
 
 overlay.addEventListener('pointerdown', (e) => {
   if (!cardEl.contains(e.target)) {
-    // Suppress the synthetic click that follows a touch tap
-    if (e.pointerType !== 'mouse' || (typeof e.button !== 'number' || e.button === 0)) {
-      suppressNextGhostTap(320);
-    }
+    // Don’t arm global ghost guard for background taps — just shield briefly
     e.preventDefault();
+    blockInteraction(160);
     close();
   }
 });
 
-  const doCloseFromBtn = () => {
-    close();
-  };
+const doCloseFromBtn = () => {
+  blockInteraction(160);
+  close();
+};
 
   bindRapidActivation(closeBtn, () => { doCloseFromBtn(); }, { once: true });
 
@@ -957,10 +956,8 @@ document.addEventListener('keydown', onEscToCancel, { capture: true });
 
 overlay.addEventListener('pointerdown', (e) => {
   if (!cardEl.contains(e.target)) {
-    if (e.pointerType !== 'mouse' || (typeof e.button !== 'number' || e.button === 0)) {
-      suppressNextGhostTap(320);
-    }
     e.preventDefault();
+    blockInteraction(160);
     cancelWithoutReward();
   }
 });
