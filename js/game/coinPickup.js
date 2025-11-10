@@ -50,15 +50,6 @@ let coinPickup = null;
 const XP_PER_COIN = BigNum.fromInt(1);
 const BASE_COIN_VALUE = BigNum.fromInt(1);
 const BN_ONE = BigNum.fromInt(1);
-const isBigNumInteger = (bn) => {
-  if (!bn || typeof bn !== 'object') return false;
-  try {
-    const s = bn.toPlainIntegerString?.() ?? bn.toPlainString?.();
-    return !!s && s !== 'Infinity';
-  } catch {
-    return false;
-  }
-};
 const mutationMultiplierCache = new Map();
 let COIN_MULTIPLIER = '1';
 
@@ -249,11 +240,11 @@ export function initCoinPickup({
       try { bank.coins.add(coinGain); } catch {}
     }
 
-const xpGain = pendingXpGain;
-pendingXpGain = null;
-if (xpGain && !xpGain.isZero?.()) {
-  try { addXp(xpGain, { applyProviders: false }); } catch {}
-}
+    const xpGain = pendingXpGain;
+    pendingXpGain = null;
+    if (xpGain && !xpGain.isZero?.()) {
+      try { addXp(xpGain); } catch {}
+    }
 
     const mutGain = pendingMutGain;
     pendingMutGain = null;
@@ -501,16 +492,6 @@ if (xpGain && !xpGain.isZero?.()) {
     setTimeout(done, 600);
   }
 
-const isBigNumInteger = (bn) => {
-  if (!bn || typeof bn !== 'object') return false;
-  try {
-    const s = bn.toPlainIntegerString?.();
-    return !!s && s !== 'Infinity';
-  } catch {
-    return false;
-  }
-};
-
 function collect(el) {
   if (!isCoin(el)) return false;
   el.dataset.collected = '1';
@@ -522,35 +503,13 @@ function collect(el) {
 
   let inc = applyCoinMultiplier(base);
   let xpInc = cloneBn(XP_PER_COIN);
-  
-const spawnLevelStr = el.dataset.mutationLevel || null;
-const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
-if (mutationMultiplier) {
-  // Use integer path only for small integers; otherwise use generic multiply.
-  let isInt = false, isSmallInt = false;
-  try {
-    const s = mutationMultiplier.toPlainIntegerString?.();
-    isInt = !!s && s !== 'Infinity';
-    // "Small enough" to use mulBigNumInteger safely
-    isSmallInt = isInt && s.length <= 18;
-  } catch {}
 
-  if (isSmallInt) {
-    try { inc  = inc.mulBigNumInteger(mutationMultiplier); } catch { try { inc  = inc.mul(mutationMultiplier); } catch {} }
-    try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch { try { xpInc = xpInc.mul(mutationMultiplier); } catch {} }
-  } else {
-    // Large (e.g., 2^1000 ≈ 1e301) or non-integer → generic multiply avoids overflow-to-∞
-    try { inc  = inc.mul(mutationMultiplier); } catch {}
-    try { xpInc = xpInc.mul(mutationMultiplier); } catch {}
+  const spawnLevelStr = el.dataset.mutationLevel || null;
+  const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
+  if (mutationMultiplier) {
+    try { inc = inc.mulBigNumInteger(mutationMultiplier); } catch {}
+    try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
   }
-}
-
-// If XP multiply collapsed (zero) while coin multiply didn’t, retry safely once.
-if (mutationMultiplier &&
-    typeof xpInc?.isZero === 'function' && xpInc.isZero() &&
-    inc && typeof inc.isZero === 'function' && !inc.isZero()) {
-  try { xpInc = BigNum.fromInt(1).mul(mutationMultiplier); } catch {}
-}
 
   const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
   if (!incIsZero) {
