@@ -19,7 +19,6 @@ import {
   arePearlsUnlocked,
   hasDoneForgeReset,
 } from './resetSystem.js';
-import { approxLog10BigNum, bigNumFromLog10 } from '../util/bnMath.js';
 
 export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
 
@@ -49,6 +48,58 @@ function isInfinityLevelForScaled(upg, lvlBn) {
   } catch {
     return false;
   }
+}
+
+export function approxLog10BigNum(value) {
+  if (!(value instanceof BigNum)) {
+    try {
+      value = BigNum.fromAny(value ?? 0);
+    } catch {
+      return Number.NEGATIVE_INFINITY;
+    }
+  }
+  if (!value) return Number.NEGATIVE_INFINITY;
+  if (value.isZero?.()) return Number.NEGATIVE_INFINITY;
+  if (value.isInfinite?.()) return Number.POSITIVE_INFINITY;
+  let storage;
+  try {
+    storage = value.toStorage();
+  } catch {
+    return Number.NEGATIVE_INFINITY;
+  }
+  const parts = storage.split(':');
+  const sigStr = parts[2] ?? '0';
+  let expPart = parts[3] ?? '0';
+  let offsetStr = '0';
+  const caret = expPart.indexOf('^');
+  if (caret >= 0) {
+    offsetStr = expPart.slice(caret + 1) || '0';
+    expPart = expPart.slice(0, caret) || '0';
+  }
+  const baseExp = Number(expPart || '0');
+  const offset = Number(offsetStr || '0');
+  const sigNum = Number(sigStr || '0');
+  if (!Number.isFinite(sigNum) || sigNum <= 0) return Number.NEGATIVE_INFINITY;
+  const expSum = (Number.isFinite(baseExp) ? baseExp : 0) + (Number.isFinite(offset) ? offset : 0);
+  return Math.log10(sigNum) + expSum;
+}
+
+export function bigNumFromLog10(log10Value) {
+  if (!Number.isFinite(log10Value)) {
+    return log10Value > 0 ? BigNum.fromAny('Infinity') : BigNum.fromInt(0);
+  }
+  if (log10Value <= -1e12) return BigNum.fromInt(0);
+  const p = BigNum.DEFAULT_PRECISION;
+  let intPart = Math.floor(log10Value);
+  let frac = log10Value - intPart;
+  if (frac < 0) {
+    frac += 1;
+    intPart -= 1;
+  }
+  const mantissa = Math.pow(10, frac + (p - 1));
+  const sig = BigInt(Math.max(1, Math.round(mantissa)));
+  const exp = intPart - (p - 1);
+  return new BigNum(sig, exp, p);
 }
 
 const UNLOCK_XP_UPGRADE_ID = 2;
