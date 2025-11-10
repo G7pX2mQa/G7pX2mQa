@@ -969,14 +969,16 @@ function ensureUpgradeOverlay() {
 
   const IS_COARSE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
-  upgOverlayEl.addEventListener('pointerdown', (e) => {
-    if (!IS_COARSE) return;
-    if (e.pointerType === 'mouse') return;
-    if (e.target === upgOverlayEl) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  }, true);
+upgOverlayEl.addEventListener('pointerdown', (e) => {
+  if (!IS_COARSE) return;
+  if (e.pointerType === 'mouse') return;
+  if (e.target === upgOverlayEl) {
+    e.preventDefault();
+    e.stopPropagation();
+    try { suppressNextGhostTap(360); } catch {}
+    try { blockInteraction(120); } catch {}
+  }
+}, true);
 
   let drag = null;
   function onDragStart(e) {
