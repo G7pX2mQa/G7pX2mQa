@@ -98,7 +98,7 @@ const onPointerDown = (event) => {
   if (typeof event.button === 'number' && event.button !== 0) return;
   pointerTriggered = true;
   activePointerId = typeof event.pointerId === 'number' ? event.pointerId : null;
-  suppressNextGhostTap(320);
+  suppressNextGhostTap(160);
 };
 
   const onPointerUp = (event) => {
@@ -117,7 +117,7 @@ const onPointerDown = (event) => {
 
 const onTouchStart = (event) => {
   pointerTriggered = true;
-  suppressNextGhostTap(320);
+  suppressNextGhostTap(160);
 };
 
   const onTouchEnd = (event) => {
@@ -1457,8 +1457,8 @@ export function closeMerchant() {
       : (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
   if (IS_MOBILE) {
-    try { suppressNextGhostTap(320); } catch {}
-    try { blockInteraction(200); } catch {}
+    try { suppressNextGhostTap(100); } catch {}
+    try { blockInteraction(80); } catch {}
   }
 
   merchantOpen = false;
@@ -1533,7 +1533,7 @@ function onMerchantDragEnd() {
   const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
 
   if (shouldClose) {
-    suppressNextGhostTap(320);
+    suppressNextGhostTap(160);
     merchantSheetEl.style.transition = 'transform 140ms ease-out';
     merchantSheetEl.style.transform = 'translateY(100%)';
     setTimeout(() => { closeMerchant(); }, 150);
