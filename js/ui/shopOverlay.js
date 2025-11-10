@@ -950,19 +950,16 @@ function ensureUpgradeOverlay() {
   upgSheetEl.setAttribute('aria-modal', 'false');
   upgSheetEl.setAttribute('aria-label', 'Upgrade');
 
-  // Top grabber (visual consistency with other sheets)
   const grab = document.createElement('div');
   grab.className = 'upg-grabber';
   grab.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
 
-  // Header + content areas
   const header = document.createElement('header');
   header.className = 'upg-header';
 
   const content = document.createElement('div');
-  content.className = 'upg-content'; // scroll area
+  content.className = 'upg-content';
 
-  // Actions row at bottom (reuse shop button tints)
   const actions = document.createElement('div');
   actions.className = 'upg-actions';
 
@@ -970,7 +967,17 @@ function ensureUpgradeOverlay() {
   upgOverlayEl.appendChild(upgSheetEl);
   document.body.appendChild(upgOverlayEl);
 
-  // Pull-up drag to close (same feel as other sheets)
+  const IS_COARSE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
+
+  upgOverlayEl.addEventListener('pointerdown', (e) => {
+    if (!IS_COARSE) return;
+    if (e.pointerType === 'mouse') return;
+    if (e.target === upgOverlayEl) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+
   let drag = null;
   function onDragStart(e) {
     if (!upgOpen) return;
@@ -990,12 +997,18 @@ function ensureUpgradeOverlay() {
     drag.moved = dy;
     upgSheetEl.style.transform = `translateY(${dy}px)`;
   }
-  function onDragEnd() {
+  function onDragEnd(e) {
     if (!drag) return;
     const shouldClose = drag.moved > 140;
     upgSheetEl.style.transition = 'transform 160ms ease';
     upgSheetEl.style.transform = shouldClose ? 'translateY(100%)' : 'translateY(0)';
-    if (shouldClose) setTimeout(closeUpgradeMenu, 160);
+    if (shouldClose) {
+      if (IS_COARSE && (!e || e.pointerType !== 'mouse')) {
+        try { suppressNextGhostTap(320); } catch {}
+        try { blockInteraction(200); } catch {}
+      }
+      setTimeout(closeUpgradeMenu, 160);
+    }
     drag = null;
     window.removeEventListener('pointermove', onDragMove);
     window.removeEventListener('pointerup', onDragEnd);
@@ -1005,6 +1018,14 @@ function ensureUpgradeOverlay() {
 }
 
 function closeUpgradeMenu() {
+  const IS_COARSE =
+    (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
+
+  if (IS_COARSE) {
+    try { suppressNextGhostTap(320); } catch {}
+    try { blockInteraction(200); } catch {}
+  }
+
   if (typeof upgOverlayCleanup === 'function') {
     const fn = upgOverlayCleanup;
     upgOverlayCleanup = null;
