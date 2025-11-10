@@ -967,7 +967,7 @@ function ensureUpgradeOverlay() {
   upgOverlayEl.appendChild(upgSheetEl);
   document.body.appendChild(upgOverlayEl);
 
-  const IS_COARSE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
+const IS_COARSE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
 upgOverlayEl.addEventListener('pointerdown', (e) => {
   if (!IS_COARSE) return;
@@ -975,8 +975,14 @@ upgOverlayEl.addEventListener('pointerdown', (e) => {
   if (e.target === upgOverlayEl) {
     e.preventDefault();
     e.stopPropagation();
-    try { suppressNextGhostTap(360); } catch {}
-    try { blockInteraction(120); } catch {}
+  }
+}, true);
+
+upgOverlayEl.addEventListener('click', (e) => {
+  if (!IS_COARSE) return;
+  if (e.target === upgOverlayEl) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
   }
 }, true);
 
