@@ -394,7 +394,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const ASSET_MANIFEST = {
     images: [
-      'img/hot_dog_with_mustard.png',
       'img/currencies/coin/coin.png',
       'img/currencies/coin/coin_base.png',
       'img/currencies/coin/coin_plus_base.png',
