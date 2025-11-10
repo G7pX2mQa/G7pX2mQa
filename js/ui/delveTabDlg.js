@@ -68,17 +68,17 @@ function bindRapidActivation(target, handler, { once = false } = {}) {
   let pointerTriggered = false;
   let activePointerId = null;
 
-  const run = (event) => {
-    if (once && used) return;
-    if (shouldSkipGhostTap(target)) {
-      event?.preventDefault?.();
-      return;
-    }
-    markGhostTapTarget(target);
-    used = once ? true : used;
-    Promise.resolve(handler(event)).catch(() => {});
-    if (once) cleanup();
-  };
+const run = (event) => {
+  if (once && used) return;
+  if (event?.type === 'click' && shouldSkipGhostTap(target)) {
+    event.preventDefault?.();
+    return;
+  }
+  markGhostTapTarget(target);
+  used = once ? true : used;
+  Promise.resolve(handler(event)).catch(() => {});
+  if (once) cleanup();
+};
 
   const resetPointerTrigger = () => {
     pointerTriggered = false;
