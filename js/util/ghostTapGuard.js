@@ -131,7 +131,6 @@ function onTouchStart(event) {
 }
 
 function onClickCapture(event) {
-  if (hasPointerEvents || hasTouchEvents) return;
   const target = findTapTarget(event.target);
   if (!target) return;
   if (consumeGhostTapGuard(target)) {
@@ -140,6 +139,7 @@ function onClickCapture(event) {
     event.stopImmediatePropagation();
   }
 }
+
 
 export function installGhostTapGuard(options = {}) {
   if (guardInstalled) return;
