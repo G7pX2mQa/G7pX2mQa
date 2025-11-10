@@ -4,7 +4,6 @@ import { BigNum } from '../util/bigNum.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
-import { bigNumFromLog10 } from '../util/bnMath.js';
 
 const KEY_PREFIX = 'ccc:xp';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
@@ -37,160 +36,6 @@ const LOG_STEP_DECIMAL = '0.04139268515822507';
 const LOG_DECADE_BONUS_DECIMAL = '0.3979400086720376';
 const TEN_DIVISOR_DECIMAL = '0.1';
 const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
-// === FAST XP BULK CONSUMER (decade-skip with binary search) =================
-const RATIO_PER_LEVEL_NUM = 1.1;
-const DECADE_BONUS_NUM    = 2.5;
-const LOG10_R             = Math.log10(RATIO_PER_LEVEL_NUM);
-const LOG10_Q             = Math.log10(Math.pow(RATIO_PER_LEVEL_NUM, 10) * DECADE_BONUS_NUM);
-
-// Parse a BigNum level into a (finite) BigInt if possible
-function levelToBigIntSafe(levelBn) {
-  let s = '0';
-  try { s = levelBn.toPlainIntegerString?.() ?? levelBn.toString?.() ?? '0'; } catch {}
-  try { return BigInt(s); } catch { return 0n; }
-}
-
-function bnFromBigInt(i) {
-  try { return BigNum.fromAny(i.toString()); } catch { return BigNum.fromInt(0); }
-}
-
-// Sum requirements for <=10 levels starting at a specific *integer* level.
-function sumRequirementsFromLevel(startLevelBigInt, count /* 0..10 */) {
-  let sum = bnZero();
-  if (count <= 0) return sum;
-  for (let k = 0n; k < BigInt(count); k++) {
-    const lvl = startLevelBigInt + k;
-    const req = xpRequirementForXpLevel(bnFromBigInt(lvl));
-    sum = sum.add(req);
-  }
-  return sum;
-}
-
-// Geometric series factor for d whole decades:  S10 * (q^d - 1) / (q - 1)
-function decadesFactorBn(d /* Number */) {
-  if (!(d > 0)) return bnZero();
-  const q = Math.pow(RATIO_PER_LEVEL_NUM, 10) * DECADE_BONUS_NUM;
-
-  // Avoid overflow in Math.pow for huge d
-  let log10Factor;
-  const A = d * LOG10_Q; // log10(q^d)
-  if (A > 12) {
-    // For big A, log10((q^d - 1)/(q - 1)) ≈ A - log10(q - 1)
-    log10Factor = A - Math.log10(q - 1);
-  } else {
-    const series = (Math.pow(q, d) - 1) / (q - 1);
-    log10Factor = Math.log10(series <= 0 ? 0.0000000001 : series);
-  }
-  return bigNumFromLog10(log10Factor);
-}
-
-// Cost of buying n levels starting at integer level L0, using
-//  - partial to finish the current decade (≤10 terms, exact),
-//  - whole decades with geometric sum (closed form),
-//  - partial remainder in final decade (≤9 terms, exact).
-function costForNLevels(L0BigInt, nBigInt /* BigInt */) {
-  let spent = bnZero();
-  let remaining = nBigInt < 0n ? 0n : nBigInt;
-  let L = L0BigInt;
-
-  // 1) finish current decade
-  const off = L % 10n;
-  const firstChunk = remaining < (10n - off) ? remaining : (10n - off);
-  if (firstChunk > 0n) {
-    spent = spent.add(sumRequirementsFromLevel(L, Number(firstChunk)));
-    L += firstChunk;
-    remaining -= firstChunk;
-  }
-  if (remaining <= 0n) return { spent, endLevelBigInt: L };
-
-  // 2) whole decades
-  const dBig = remaining / 10n;
-  if (dBig > 0n) {
-    const S10 = sumRequirementsFromLevel(L, 10); // exact 10-term sum at this boundary
-    // For very large d, clamp the numeric used for factor to keep it finite;
-    // the log-space path handles magnitude anyway.
-    const dNum = Number(dBig > 9007199254740991n ? 9007199254740991n : dBig);
-    const factor = decadesFactorBn(dNum);         // (q^d - 1)/(q - 1) as BN
-    spent = spent.add(S10.mul(factor));
-    L += dBig * 10n;
-    remaining -= dBig * 10n;
-  }
-
-  // 3) remainder inside the last decade
-  if (remaining > 0n) {
-    spent = spent.add(sumRequirementsFromLevel(L, Number(remaining)));
-    L += remaining;
-    remaining = 0n;
-  }
-
-  return { spent, endLevelBigInt: L };
-}
-
-function maxAffordableLevels(L0BigInt, progressBn) {
-  let lo = 0n, hi = 1n;
-  while (true) {
-    const { spent } = costForNLevels(L0BigInt, hi);
-    if (spent.cmp?.(progressBn) > 0) break;
-    if (bigNumIsInfinite(spent)) break;
-    lo = hi;
-    hi <<= 1n;
-  }
-
-  while (lo + 1n < hi) {
-    const mid = (lo + hi) >> 1n;
-    const { spent } = costForNLevels(L0BigInt, mid);
-    if (spent.cmp?.(progressBn) <= 0) lo = mid;
-    else hi = mid;
-  }
-  const { spent } = costForNLevels(L0BigInt, lo);
-  return { levels: lo, spent };
-}
-
-function awardBooksBulk(levelsGainedBn) {
-  try {
-    if (typeof externalBookRewardProvider?.bulk === 'function') {
-      const maybe = externalBookRewardProvider.bulk({
-        levels: levelsGainedBn.clone?.() ?? levelsGainedBn,
-        basePerLevel: bnOne(),
-        xpLevelBefore: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
-      });
-      if (maybe instanceof BigNum) {
-        bank.books.add(maybe.clone?.() ?? maybe);
-        return;
-      } else if (maybe != null) {
-        bank.books.add(BigNum.fromAny(maybe));
-        return;
-      }
-    }
-  } catch {}
-  try { bank.books.add(levelsGainedBn.clone?.() ?? levelsGainedBn); } catch {}
-}
-
-function fastNormalizeAndApplyRewards({ applyRewards = false } = {}) {
-  if (bigNumIsInfinite(xpState.progress)) {
-    try { xpState.xpLevel = infinityRequirementBn.clone?.() ?? infinityRequirementBn; } catch {}
-    xpState.progress = bnZero();
-    updateXpRequirement();
-    syncCoinMultiplierWithXpLevel(true);
-    return;
-  }
-  updateXpRequirement();
-  if (requirementBn.isInfinite?.() || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite())) return;
-
-  const L0 = levelToBigIntSafe(xpState.xpLevel);
-  const { levels, spent } = maxAffordableLevels(L0, xpState.progress);
-
-  if (levels > 0n) {
-    const levelsBn = bnFromBigInt(levels);
-    try { xpState.xpLevel = xpState.xpLevel.add(levelsBn); } catch {}
-    try { xpState.progress = xpState.progress.sub(spent); }  catch { xpState.progress = bnZero(); }
-
-    if (applyRewards) {
-      awardBooksBulk(levelsBn);
-    }
-    updateXpRequirement();
-  }
-}
 
 function bigIntToFloatApprox(value) {
   if (value === 0n) return 0;
@@ -560,6 +405,44 @@ function ensureExactRequirementCacheUpTo(levelBigInt) {
   highestCachedExactLevel = currentLevel;
 }
 
+function bigNumFromLog10(log10Value) {
+  if (!Number.isFinite(log10Value) || log10Value >= BigNum.MAX_E) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  let exponent = Math.floor(log10Value);
+  let fractional = log10Value - exponent;
+  if (!Number.isFinite(fractional)) {
+    fractional = 0;
+  }
+
+  let mantissa = Math.pow(10, fractional);
+  if (!Number.isFinite(mantissa) || mantissa <= 0) {
+    mantissa = 1;
+  }
+
+  if (mantissa >= 10) {
+    mantissa /= 10;
+    exponent += 1;
+  }
+
+  let exponentStr;
+  try {
+    exponentStr = Number.isFinite(exponent)
+      ? exponent.toLocaleString('en', { useGrouping: false })
+      : String(exponent);
+  } catch {
+    exponentStr = String(exponent);
+  }
+
+  const sci = `${mantissa.toPrecision(18)}e${exponentStr}`;
+  try {
+    return BigNum.fromScientific(sci).floorToInteger();
+  } catch {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+}
+
 function approximateRequirementFromLevel(levelBn) {
   const baseLevel = highestCachedExactLevel > 0n ? highestCachedExactLevel : 0n;
   const baseRequirement = xpRequirementCache.get(baseLevel.toString());
@@ -706,7 +589,43 @@ function resetLockedXpState() {
 }
 
 function normalizeProgress(applyRewards = false) {
-  fastNormalizeAndApplyRewards({ applyRewards });
+  updateXpRequirement();
+
+  // NEW: If progress is infinite, keep it as-is. Do not normalize or clamp.
+  const progIsInf = xpState.progress?.isInfinite?.()
+    || (typeof xpState.progress?.isInfinite === 'function' && xpState.progress.isInfinite());
+  if (progIsInf) {
+    return;
+  }
+
+  const reqIsInf = requirementBn.isInfinite?.()
+    || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
+  if (reqIsInf) {
+    return;
+  }
+
+  let guard = 0;
+  const limit = 10000;
+  while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
+    try { xpState.progress = xpState.progress.sub(requirementBn); }
+    catch { xpState.progress = bnZero(); }
+    try { xpState.xpLevel = xpState.xpLevel.add(bnOne()); }
+    catch { xpState.xpLevel = bnZero(); }
+    if (applyRewards) handleXpLevelUpRewards();
+    updateXpRequirement();
+    const nextReqInf = requirementBn.isInfinite?.()
+      || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
+    if (nextReqInf) {
+      // Keep current infinite progress intact instead of zeroing if it ever occurs.
+      // (We won't reach here when progress is infinite due to early return above.)
+      break;
+    }
+    guard += 1;
+  }
+  if (guard >= limit) {
+    // Only clamp when progress is finite (infinite path returned earlier).
+    xpState.progress = bnZero();
+  }
 }
 
 function xpLevelBigIntInfo(xpLevelValue) {
@@ -1013,7 +932,7 @@ export function resetXpProgress({ keepUnlock = true } = {}) {
   return getXpState();
 }
 
-export function addXp(amount, { silent = false, applyProviders = true } = {}) {
+export function addXp(amount, { silent = false } = {}) {
   ensureStateLoaded();
   if (!xpState.unlocked) {
     return {
@@ -1021,11 +940,10 @@ export function addXp(amount, { silent = false, applyProviders = true } = {}) {
       xpLevelsGained: bnZero(),
       xpAdded: bnZero(),
       xpLevel: xpState.xpLevel,
-      requirement: requirementBn,
+      requirement: requirementBn
     };
   }
 
-  // Parse -> BigNum
   let inc;
   try {
     if (amount instanceof BigNum) {
@@ -1037,8 +955,8 @@ export function addXp(amount, { silent = false, applyProviders = true } = {}) {
     inc = bnZero();
   }
 
-  // Providers (disabled for coin-pickup path)
-  if (applyProviders && !inc.isZero?.()) {
+  // External XP gain multipliers
+  if (!inc.isZero?.()) {
     const providers = xpGainMultiplierProviders.size > 0
       ? Array.from(xpGainMultiplierProviders)
       : (typeof externalXpGainMultiplierProvider === 'function' ? [externalXpGainMultiplierProvider] : []);
@@ -1059,7 +977,6 @@ export function addXp(amount, { silent = false, applyProviders = true } = {}) {
     }
   }
 
-  // No-op if zero
   if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
     updateHud();
     return {
@@ -1067,61 +984,87 @@ export function addXp(amount, { silent = false, applyProviders = true } = {}) {
       xpLevelsGained: bnZero(),
       xpAdded: inc,
       xpLevel: xpState.xpLevel,
-      requirement: requirementBn,
+      requirement: requirementBn
     };
   }
 
-  // Truly unbounded packet: set level to ∞-requirement sentinel, progress 0
-  if (bigNumIsInfinite(inc)) {
-    xpState.progress = bnZero();
-    try {
-      xpState.xpLevel = infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-    } catch {
-      xpState.xpLevel = infinityRequirementBn;
-    }
-    updateXpRequirement();
+  // Apply gain
+  xpState.progress = xpState.progress.add(inc);
+  updateXpRequirement();
+
+  // NEW: If progress is infinite, do NOT attempt to normalize or clamp.
+  const progressIsInf = xpState.progress?.isInfinite?.()
+    || (typeof xpState.progress?.isInfinite === 'function' && xpState.progress.isInfinite());
+  if (progressIsInf) {
     persistState();
     updateHud();
-    syncCoinMultiplierWithXpLevel(true);
-
-    const detailInf = {
+    const detail = {
       unlocked: true,
-      xpLevelsGained: infinityRequirementBn, // interpret as "jumped to ∞"
-      xpAdded: inc,
-      xpLevel: xpState.xpLevel,
-      progress: xpState.progress,
-      requirement: requirementBn,
+      xpLevelsGained: bnZero(),
+      xpAdded: inc.clone?.() ?? inc,
+      xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
+      progress: xpState.progress.clone?.() ?? xpState.progress,
+      requirement: requirementBn.clone?.() ?? requirementBn,
     };
     if (!silent) {
-      try { window.dispatchEvent(new CustomEvent('xp:change', { detail: detailInf })); } catch {}
+      try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
     }
-    return detailInf;
+    return detail;
   }
 
-  // Finite packet: add progress, then try to level up (no-ops if requirement is ∞)
-  const levelBefore = xpState.xpLevel.clone?.() ?? xpState.xpLevel;
-  try { xpState.progress = xpState.progress.add(inc); }
-  catch { xpState.progress = inc.clone?.() ?? inc; }
-
-  // This function already skips when requirement is ∞ (no levels gained),
-  // but we still keep the added progress and fire xp:change so HUD/popup shows gain.
-  fastNormalizeAndApplyRewards({ applyRewards: !silent });
+  // Normal finite-path level up loop
+  let xpLevelsGained = bnZero();
+  let guard = 0;
+  const limit = 100000;
+  while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
+    xpState.progress = xpState.progress.sub(requirementBn);
+    xpState.xpLevel = xpState.xpLevel.add(bnOne());
+    xpLevelsGained = xpLevelsGained.add(bnOne());
+    handleXpLevelUpRewards();
+    updateXpRequirement();
+    const reqIsInf = requirementBn.isInfinite?.()
+      || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
+    if (reqIsInf) {
+      break;
+    }
+    guard += 1;
+  }
+  if (guard >= limit) {
+    // Only clamp finite progress if we truly hit the guard.
+    xpState.progress = bnZero();
+  }
 
   persistState();
   updateHud();
 
-  const levelsGained = (() => {
-    try { return xpState.xpLevel.sub?.(levelBefore) ?? bnZero(); }
-    catch { return bnZero(); }
-  })();
+  // Maintain sync flags
+  const syncedLevelAfterAdd = xpLevelBigIntInfo(xpState.xpLevel);
+  if (!syncedLevelAfterAdd.finite) {
+    lastSyncedCoinLevel = null;
+    lastSyncedCoinLevelWasInfinite = true;
+    lastSyncedCoinUsedApproximation = false;
+    lastSyncedCoinApproxKey = null;
+  } else if (syncedLevelAfterAdd.bigInt != null) {
+    lastSyncedCoinLevel = syncedLevelAfterAdd.bigInt;
+    lastSyncedCoinLevelWasInfinite = false;
+    lastSyncedCoinUsedApproximation = false;
+    lastSyncedCoinApproxKey = null;
+  } else {
+    lastSyncedCoinLevel = null;
+    lastSyncedCoinLevelWasInfinite = false;
+    lastSyncedCoinUsedApproximation = true;
+    lastSyncedCoinApproxKey = typeof xpState.xpLevel?.toStorage === 'function'
+      ? xpState.xpLevel.toStorage()
+      : null;
+  }
 
   const detail = {
     unlocked: true,
-    xpLevelsGained: levelsGained,
-    xpAdded: inc,
-    xpLevel: xpState.xpLevel,
-    progress: xpState.progress,
-    requirement: requirementBn,
+    xpLevelsGained: xpLevelsGained.clone?.() ?? xpLevelsGained,
+    xpAdded: inc.clone?.() ?? inc,
+    xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
+    progress: xpState.progress.clone?.() ?? xpState.progress,
+    requirement: requirementBn.clone?.() ?? requirementBn,
   };
   if (!silent) {
     try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
