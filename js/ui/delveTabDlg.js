@@ -93,13 +93,13 @@ function bindRapidActivation(target, handler, { once = false } = {}) {
     run(event);
   };
 
-  const onPointerDown = (event) => {
-    if (event.pointerType === 'mouse') return;
-    if (typeof event.button === 'number' && event.button !== 0) return;
-    pointerTriggered = true;
-    activePointerId = typeof event.pointerId === 'number' ? event.pointerId : null;
-    suppressNextGhostTap();
-  };
+const onPointerDown = (event) => {
+  if (event.pointerType === 'mouse') return;
+  if (typeof event.button === 'number' && event.button !== 0) return;
+  pointerTriggered = true;
+  activePointerId = typeof event.pointerId === 'number' ? event.pointerId : null;
+  suppressNextGhostTap(320);
+};
 
   const onPointerUp = (event) => {
     if (!pointerTriggered) return;
@@ -115,10 +115,10 @@ function bindRapidActivation(target, handler, { once = false } = {}) {
     resetPointerTrigger();
   };
 
-  const onTouchStart = (event) => {
-    pointerTriggered = true;
-    suppressNextGhostTap();
-  };
+const onTouchStart = (event) => {
+  pointerTriggered = true;
+  suppressNextGhostTap(320);
+};
 
   const onTouchEnd = (event) => {
     if (!pointerTriggered) return;
@@ -880,7 +880,7 @@ overlay.addEventListener('pointerdown', (e) => {
   if (!cardEl.contains(e.target)) {
     // Suppress the synthetic click that follows a touch tap
     if (e.pointerType !== 'mouse' || (typeof e.button !== 'number' || e.button === 0)) {
-      suppressNextGhostTap();
+      suppressNextGhostTap(320);
     }
     e.preventDefault();
     close();
@@ -958,7 +958,7 @@ document.addEventListener('keydown', onEscToCancel, { capture: true });
 overlay.addEventListener('pointerdown', (e) => {
   if (!cardEl.contains(e.target)) {
     if (e.pointerType !== 'mouse' || (typeof e.button !== 'number' || e.button === 0)) {
-      suppressNextGhostTap();
+      suppressNextGhostTap(320);
     }
     e.preventDefault();
     cancelWithoutReward();
@@ -1523,7 +1523,7 @@ function onMerchantDragEnd() {
   const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
 
   if (shouldClose) {
-    suppressNextGhostTap();
+    suppressNextGhostTap(320);
     merchantSheetEl.style.transition = 'transform 140ms ease-out';
     merchantSheetEl.style.transform = 'translateY(100%)';
     setTimeout(() => { closeMerchant(); }, 150);
