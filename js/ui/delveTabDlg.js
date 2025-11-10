@@ -885,8 +885,8 @@ overlay.addEventListener('pointerdown', (e) => {
   }
 });
 
-const doCloseFromBtn = () => {
-  blockInteraction(160);
+const doCloseFromBtn = (e) => {
+  if (!e || e.pointerType !== 'mouse') blockInteraction(160);
   close();
 };
 
@@ -957,7 +957,7 @@ document.addEventListener('keydown', onEscToCancel, { capture: true });
 overlay.addEventListener('pointerdown', (e) => {
   if (!cardEl.contains(e.target)) {
     e.preventDefault();
-    blockInteraction(160);
+    if (e.pointerType !== 'mouse') blockInteraction(160);
     cancelWithoutReward();
   }
 });
