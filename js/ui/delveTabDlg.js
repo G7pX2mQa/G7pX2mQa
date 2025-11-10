@@ -1448,28 +1448,41 @@ function runFirstMeet() {
   });
 }
 
-  export function closeMerchant() {
-    if (!merchantOpen) return;
-    merchantOpen = false;
-    merchantSheetEl.style.transition = '';
-    merchantSheetEl.style.transform = '';
-    merchantOverlayEl.classList.remove('is-open');
-    const activeEl = document.activeElement;
-    if (activeEl && merchantOverlayEl.contains(activeEl)) {
-      let target = merchantLastFocus;
-      if (!target || !target.isConnected) {
-        target = document.querySelector('[data-btn="shop"], .btn-shop');
-      }
-      if (target && typeof target.focus === 'function') {
-        try { target.focus({ preventScroll: true }); } catch {}
-      }
-    }
-    merchantOverlayEl.setAttribute('aria-hidden', 'true');
-    merchantOverlayEl.setAttribute('inert', '');
-    merchantLastFocus = null;
-    stopTypingSfx();
-    __isTypingActive = false;
+export function closeMerchant() {
+  if (!merchantOpen) return;
+
+  const IS_MOBILE =
+    (typeof window !== 'undefined' && typeof window.IS_MOBILE !== 'undefined')
+      ? !!window.IS_MOBILE
+      : (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
+
+  if (IS_MOBILE) {
+    try { suppressNextGhostTap(320); } catch {}
+    try { blockInteraction(200); } catch {}
   }
+
+  merchantOpen = false;
+  merchantSheetEl.style.transition = '';
+  merchantSheetEl.style.transform = '';
+  merchantOverlayEl.classList.remove('is-open');
+
+  const activeEl = document.activeElement;
+  if (activeEl && merchantOverlayEl.contains(activeEl)) {
+    let target = merchantLastFocus;
+    if (!target || !target.isConnected) {
+      target = document.querySelector('[data-btn="shop"], .btn-shop');
+    }
+    if (target && typeof target.focus === 'function') {
+      try { target.focus({ preventScroll: true }); } catch {}
+    }
+  }
+
+  merchantOverlayEl.setAttribute('aria-hidden', 'true');
+  merchantOverlayEl.setAttribute('inert', '');
+  merchantLastFocus = null;
+  stopTypingSfx();
+  __isTypingActive = false;
+}
 
 function onKeydownForMerchant(e) {
   if (!merchantOpen) return;
