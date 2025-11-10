@@ -11,6 +11,7 @@ let selector = TARGET_SELECTOR;
 let hasPointerEvents = false;
 let hasTouchEvents = false;
 let lastMarkedTarget = null;
+let lastTouchMs = 0;
 
 function nowMs() {
   if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
