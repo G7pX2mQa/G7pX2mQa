@@ -852,7 +852,7 @@ function ensureShopOverlay() {
 function onCloseClick(e) {
   if (IS_MOBILE) {
     suppressNextGhostTap(320);
-    blockInteraction(200);
+    blockInteraction(80);
   }
   closeShop();
 }
@@ -866,7 +866,7 @@ if (hasPointerEvents) {
     if (typeof e.button === 'number' && e.button !== 0) return;
     markGhostTapTarget(closeBtn);
     suppressNextGhostTap(320);
-    blockInteraction(200);
+    blockInteraction(80);
     closeShop();
     e.preventDefault();
   }, { passive: false });
@@ -874,7 +874,7 @@ if (hasPointerEvents) {
   closeBtn.addEventListener('touchstart', (e) => {
     markGhostTapTarget(closeBtn);
     suppressNextGhostTap(320);
-    blockInteraction(200);
+    blockInteraction(80);
     closeShop();
     e.preventDefault();
   }, { passive: false });
@@ -1014,7 +1014,7 @@ upgOverlayEl.addEventListener('click', (e) => {
     if (shouldClose) {
       if (IS_COARSE && (!e || e.pointerType !== 'mouse')) {
         try { suppressNextGhostTap(320); } catch {}
-        try { blockInteraction(200); } catch {}
+        try { blockInteraction(80); } catch {}
       }
       setTimeout(closeUpgradeMenu, 160);
     }
@@ -1439,16 +1439,17 @@ export function openShop() {
   shopOverlayEl.setAttribute('aria-hidden', 'false');
 
   void shopSheetEl.offsetHeight;
-  requestAnimationFrame(() => {
-    shopSheetEl.style.transition = '';
-    shopOverlayEl.classList.add('is-open');
-	blockInteraction(140);
-    ensureCustomScrollbar();
-    const focusable =
-      shopOverlayEl.querySelector('#shop-grid .shop-upgrade') ||
-      shopOverlayEl.querySelector('#shop-grid');
-    if (focusable) focusable.focus();
-  });
+requestAnimationFrame(() => {
+  shopSheetEl.style.transition = '';
+  shopOverlayEl.classList.add('is-open');
+  if (IS_MOBILE) { try { suppressNextGhostTap(360); } catch {} }
+  blockInteraction(40);
+  ensureCustomScrollbar();
+  const focusable =
+    shopOverlayEl.querySelector('#shop-grid .shop-upgrade') ||
+    shopOverlayEl.querySelector('#shop-grid');
+  if (focusable) focusable.focus();
+});
 }
 
 export function closeShop(force = false) {
