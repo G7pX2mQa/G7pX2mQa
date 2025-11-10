@@ -107,6 +107,7 @@ function suppressNextGhostTap(timeout = DEFAULT_TIMEOUT_MS) {
 function onPointerStart(event) {
   if (event.pointerType === 'mouse') return;
   if (typeof event.button === 'number' && event.button !== 0) return;
+  lastTouchMs = nowMs();
   const target = findTapTarget(event.target);
   if (!target) return;
   if (consumeGhostTapGuard(target)) {
@@ -117,6 +118,7 @@ function onPointerStart(event) {
 }
 
 function onTouchStart(event) {
+  lastTouchMs = nowMs();
   const target = findTapTarget(event.target);
   if (!target) return;
   if (consumeGhostTapGuard(target)) {
@@ -127,6 +129,8 @@ function onTouchStart(event) {
 }
 
 function onClickCapture(event) {
+  if (nowMs() - lastTouchMs > 450) return;
+
   const target = findTapTarget(event.target);
   if (!target) return;
   if (consumeGhostTapGuard(target)) {
