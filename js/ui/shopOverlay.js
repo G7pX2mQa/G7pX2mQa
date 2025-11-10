@@ -978,6 +978,15 @@ upgOverlayEl.addEventListener('pointerdown', (e) => {
   }
 }, true);
 
+upgOverlayEl.addEventListener('click', (e) => {
+  const IS_COARSE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
+  if (!IS_COARSE) return;
+  if (e.target === upgOverlayEl) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+}, true);
+
   let drag = null;
   function onDragStart(e) {
     if (!upgOpen) return;
@@ -1236,12 +1245,33 @@ export function openUpgradeOverlay(upgDef) {
     const actions = upgSheetEl.querySelector('.upg-actions');
     actions.innerHTML = '';
 
-    // Close (always)
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'shop-close';
-    closeBtn.textContent = 'Close';
-    closeBtn.addEventListener('click', () => { upgOpenLocal = false; closeUpgradeMenu(); });
+const closeBtn = document.createElement('button');
+closeBtn.type = 'button';
+closeBtn.className = 'shop-close';
+closeBtn.textContent = 'Close';
+closeBtn.addEventListener('click', () => { upgOpenLocal = false; closeUpgradeMenu(); });
+
+if ('PointerEvent' in window) {
+  closeBtn.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (typeof e.button === 'number' && e.button !== 0) return;
+    markGhostTapTarget(closeBtn);
+    suppressNextGhostTap(320);
+    blockInteraction(160);
+    upgOpenLocal = false;
+    closeUpgradeMenu();
+    e.preventDefault();
+  }, { passive: false });
+} else {
+  closeBtn.addEventListener('touchstart', (e) => {
+    markGhostTapTarget(closeBtn);
+    suppressNextGhostTap(320);
+    blockInteraction(160);
+    upgOpenLocal = false;
+    closeUpgradeMenu();
+    e.preventDefault();
+  }, { passive: false });
+}
 
     if (locked) {
       actions.append(closeBtn);
