@@ -978,14 +978,6 @@ upgOverlayEl.addEventListener('pointerdown', (e) => {
   }
 }, true);
 
-upgOverlayEl.addEventListener('click', (e) => {
-  if (!IS_COARSE) return;
-  if (e.target === upgOverlayEl) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-  }
-}, true);
-
   let drag = null;
   function onDragStart(e) {
     if (!upgOpen) return;
