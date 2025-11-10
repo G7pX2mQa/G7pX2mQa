@@ -7,7 +7,7 @@ import {
   primeStorageWatcherSnapshot,
 } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
-import { approxLog10BigNum, bigNumFromLog10 } from '../util/bnMath.js';
+import { approxLog10BigNum, bigNumFromLog10 } from './upgrades.js';
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
 import { refreshCoinMultiplierFromXpLevel } from './xpSystem.js';
 
@@ -503,32 +503,8 @@ export function computeMutationMultiplierForLevel(levelValue) {
     try { levelBn = BigNum.fromAny(levelValue ?? 0); }
     catch { levelBn = bnZero(); }
   }
-
   const levelNum = levelToNumber(levelBn);
-  if (levelNum <= 0) return bnOne();
-  if (!Number.isFinite(levelNum)) {
-    try { return BigNum.fromAny('Infinity'); } catch { return bnOne(); }
-  }
-
-  // Exact 2^level for small integer levels (e.g., 2^10 === 1024)
-  const asPlain = (() => {
-    try { return levelBn.toPlainIntegerString?.(); } catch { return null; }
-  })();
-  const isSmallIntegerLevel = !!asPlain && asPlain.indexOf('.') === -1;
-
-  if (isSmallIntegerLevel) {
-    try {
-      const n = BigInt(asPlain);
-      if (n >= 0n && n <= 2048n) {
-        const exact = 1n << n; // 2^n via BigInt
-        return BigNum.fromAny(exact.toString());
-      }
-    } catch {
-      // fall through to approximate
-    }
-  }
-
-  // General path: 2^level = 10^(level * log10(2))
+  if (!Number.isFinite(levelNum) || levelNum <= 0) return bnOne();
   const log10 = levelNum * MP_LOG10_BASE;
   return bigNumFromLog10(log10);
 }
