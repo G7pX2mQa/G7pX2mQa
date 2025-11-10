@@ -1442,7 +1442,13 @@ export function openShop() {
 requestAnimationFrame(() => {
   shopSheetEl.style.transition = '';
   shopOverlayEl.classList.add('is-open');
-  if (IS_MOBILE) { try { suppressNextGhostTap(20); } catch {} }
+
+  if (IS_MOBILE) {
+    try {
+      setTimeout(() => suppressNextGhostTap(240), 120);
+    } catch {}
+  }
+
   blockInteraction(10);
   ensureCustomScrollbar();
   const focusable =
