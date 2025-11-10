@@ -1442,8 +1442,8 @@ export function openShop() {
 requestAnimationFrame(() => {
   shopSheetEl.style.transition = '';
   shopOverlayEl.classList.add('is-open');
-  if (IS_MOBILE) { try { suppressNextGhostTap(80); } catch {} }
-  blockInteraction(40);
+  if (IS_MOBILE) { try { suppressNextGhostTap(20); } catch {} }
+  blockInteraction(10);
   ensureCustomScrollbar();
   const focusable =
     shopOverlayEl.querySelector('#shop-grid .shop-upgrade') ||
