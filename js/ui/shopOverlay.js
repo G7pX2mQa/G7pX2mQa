@@ -849,32 +849,36 @@ function ensureShopOverlay() {
   if (!eventsBound) {
     eventsBound = true;
 
-function onCloseClick() {
-  suppressNextGhostTap(320);
-  blockInteraction(200);
+function onCloseClick(e) {
+  if (IS_MOBILE) {
+    suppressNextGhostTap(320);
+    blockInteraction(200);
+  }
   closeShop();
 }
 
 closeBtn.addEventListener('click', onCloseClick, { passive: true });
 
-    const hasPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
-    if (hasPointerEvents) {
-      closeBtn.addEventListener('pointerdown', (e) => {
-        if (e.pointerType === 'mouse') return;
-        if (typeof e.button === 'number' && e.button !== 0) return;
-        markGhostTapTarget(closeBtn);
-        suppressNextGhostTap();
-        closeShop();
-        e.preventDefault();
-      }, { passive: false });
-    } else {
-      closeBtn.addEventListener('touchstart', (e) => {
-        markGhostTapTarget(closeBtn);
-        suppressNextGhostTap();
-        closeShop();
-        e.preventDefault();
-      }, { passive: false });
-    }
+const hasPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
+if (hasPointerEvents) {
+  closeBtn.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (typeof e.button === 'number' && e.button !== 0) return;
+    markGhostTapTarget(closeBtn);
+    suppressNextGhostTap(320);
+    blockInteraction(200);
+    closeShop();
+    e.preventDefault();
+  }, { passive: false });
+} else {
+  closeBtn.addEventListener('touchstart', (e) => {
+    markGhostTapTarget(closeBtn);
+    suppressNextGhostTap(320);
+    blockInteraction(200);
+    closeShop();
+    e.preventDefault();
+  }, { passive: false });
+}
 	
     const onDelvePointerDown = (e) => {
       if (e.pointerType === 'mouse') return;
@@ -1458,22 +1462,22 @@ function onDragEnd() {
   const velocity = dy / dt;
   const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
 
-if (shouldClose) {
-  suppressNextGhostTap(320);
-  blockInteraction(200);
-  shopSheetEl.style.transition = 'transform 140ms ease-out';
-  shopSheetEl.style.transform = 'translateY(100%)';
-  shopOpen = false;
-  …
-  shopCloseTimer = setTimeout(() => {
-    shopCloseTimer = null;
-    closeShop(true);
-  }, 150);
-}
-} else {
+  if (shouldClose) {
+    suppressNextGhostTap(320);
+    blockInteraction(200);
+    shopSheetEl.style.transition = 'transform 140ms ease-out';
+    shopSheetEl.style.transform = 'translateY(100%)';
+    shopOpen = false;
+
+    shopCloseTimer = setTimeout(() => {
+      shopCloseTimer = null;
+      closeShop(true);
+    }, 150);
+  } else {
     shopSheetEl.style.transition = 'transform 180ms ease';
     shopSheetEl.style.transform = 'translateY(0)';
   }
+
   cleanupDrag();
 }
 
