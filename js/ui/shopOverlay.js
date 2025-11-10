@@ -1442,7 +1442,7 @@ export function openShop() {
 requestAnimationFrame(() => {
   shopSheetEl.style.transition = '';
   shopOverlayEl.classList.add('is-open');
-  if (IS_MOBILE) { try { suppressNextGhostTap(360); } catch {} }
+  if (IS_MOBILE) { try { suppressNextGhostTap(80); } catch {} }
   blockInteraction(40);
   ensureCustomScrollbar();
   const focusable =
@@ -1515,8 +1515,8 @@ function onDragEnd() {
   const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
 
   if (shouldClose) {
-    suppressNextGhostTap(320);
-    blockInteraction(200);
+    suppressNextGhostTap(100);
+    blockInteraction(80);
     shopSheetEl.style.transition = 'transform 140ms ease-out';
     shopSheetEl.style.transform = 'translateY(100%)';
     shopOpen = false;
