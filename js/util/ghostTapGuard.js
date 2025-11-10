@@ -73,10 +73,6 @@ function consumeGhostTapGuard(target) {
 }
 
 function shouldSkipGhostTap(el) {
-  if (consumeGhostTapGuard(el)) {
-    if (el) clearGhostTapTarget(el);
-    return true;
-  }
   if (!el) return false;
   const until = Number(el[ELEMENT_SKIP_PROP] || 0);
   if (!Number.isFinite(until) || until <= 0) return false;
