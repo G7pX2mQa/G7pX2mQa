@@ -1018,7 +1018,6 @@ function ensureMerchantOverlay() {
   merchantOverlayEl = document.createElement('div');
   merchantOverlayEl.className = 'merchant-overlay';
   merchantOverlayEl.id = 'merchant-overlay';
-  merchantOverlayEl.setAttribute('aria-hidden', 'true');
   merchantOverlayEl.setAttribute('inert', '');
 
   merchantSheetEl = document.createElement('div');
@@ -1477,7 +1476,6 @@ export function closeMerchant() {
     }
   }
 
-  merchantOverlayEl.setAttribute('aria-hidden', 'true');
   merchantOverlayEl.setAttribute('inert', '');
   merchantLastFocus = null;
   stopTypingSfx();
