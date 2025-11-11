@@ -1396,7 +1396,6 @@ if ('PointerEvent' in window) {
   // open + animate
   rerender();
   upgOverlayEl.classList.add('is-open');
-  upgOverlayEl.setAttribute('aria-hidden', 'false');
   upgOverlayEl.style.pointerEvents = 'auto';
   blockInteraction(140);
   upgSheetEl.style.transition = 'none';
@@ -1454,7 +1453,6 @@ export function openShop() {
   shopSheetEl.style.transition = 'none';
   shopSheetEl.style.transform = '';
   shopOverlayEl.style.pointerEvents = 'auto';
-  shopOverlayEl.setAttribute('aria-hidden', 'false');
 
   void shopSheetEl.offsetHeight;
 requestAnimationFrame(() => {
