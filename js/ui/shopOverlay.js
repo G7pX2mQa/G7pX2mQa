@@ -1186,7 +1186,6 @@ export function openUpgradeOverlay(upgDef) {
     level.setAttribute('aria-label', levelPlain);
     if (isHiddenUpgrade) {
       level.hidden = true;
-      level.setAttribute('aria-hidden', 'true');
     } else {
       level.hidden = false;
       level.removeAttribute('aria-hidden');
