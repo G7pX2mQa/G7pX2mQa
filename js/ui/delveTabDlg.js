@@ -804,7 +804,6 @@ class DialogueEngine {
 
     if (prepare) {
       this.choicesEl.classList.remove('is-visible');
-      this.choicesEl.setAttribute('aria-hidden', 'true');
       return;
     }
     this.choicesEl.setAttribute('aria-hidden', 'false');
