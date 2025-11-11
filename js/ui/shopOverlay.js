@@ -779,7 +779,6 @@ function ensureShopOverlay() {
   shopOverlayEl = document.createElement('div');
   shopOverlayEl.className = 'shop-overlay';
   shopOverlayEl.id = 'shop-overlay';
-  shopOverlayEl.setAttribute('aria-hidden', 'true');
 
   shopSheetEl = document.createElement('div');
   shopSheetEl.className = 'shop-sheet';
@@ -964,7 +963,6 @@ function ensureUpgradeOverlay() {
   if (upgOverlayEl) return;
   upgOverlayEl = document.createElement('div');
   upgOverlayEl.className = 'upg-overlay';
-  upgOverlayEl.setAttribute('aria-hidden', 'true');
 
   upgSheetEl = document.createElement('div');
   upgSheetEl.className = 'upg-sheet';
@@ -1069,7 +1067,6 @@ function closeUpgradeMenu() {
   upgSheetEl.style.transform = '';
   upgOverlayEl.classList.remove('is-open');
   upgOverlayEl.style.pointerEvents = 'none';
-  upgOverlayEl.setAttribute('aria-hidden', 'true');
 }
 
 function formatMult(value) {
@@ -1508,7 +1505,6 @@ export function closeShop(force = false) {
   }
   shopOverlayEl.classList.remove('is-open');
   shopOverlayEl.style.pointerEvents = 'none';
-  shopOverlayEl.setAttribute('aria-hidden', 'true');
   __shopPostOpenPointer = false;
 }
 
