@@ -104,7 +104,6 @@ function createPopupEntry(type, meta, amount) {
   icon.className = 'currency-popup__icon';
   icon.src = meta.icon;
   icon.alt = meta.iconAlt || '';
-  icon.setAttribute('aria-hidden', 'true');
 
   const text = document.createElement('span');
   text.className = 'currency-popup__text';
@@ -261,3 +260,4 @@ export function teardownpopups() {
   container = null;
   initialized = false;
 }
+
