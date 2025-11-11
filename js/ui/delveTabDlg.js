@@ -806,12 +806,10 @@ class DialogueEngine {
       this.choicesEl.classList.remove('is-visible');
       return;
     }
-    this.choicesEl.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.choicesEl.classList.add('is-visible'));
   }
 
   _revealPreparedChoices() {
-    this.choicesEl.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.choicesEl.classList.add('is-visible'));
   }
 }
@@ -1410,7 +1408,6 @@ function runFirstMeet() {
     merchantSheetEl.style.transition = 'none';
     merchantSheetEl.style.transform = '';
     merchantOverlayEl.removeAttribute('inert');
-    merchantOverlayEl.setAttribute('aria-hidden', 'false');
 
   // Animate in next frame
   void merchantSheetEl.offsetHeight;
