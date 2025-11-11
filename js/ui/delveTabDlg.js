@@ -1309,7 +1309,6 @@ function renderDialogueList() {
       const again = document.createElement('div');
       again.className = 'dlg-again';
       again.textContent = 'Ask Again?';
-      again.setAttribute('aria-hidden', 'true');
       card.classList.add('has-again');
       card.append(again);
     }
@@ -1350,7 +1349,6 @@ function startConversation(id, meta) {
 
   // Ensure blank + hide choices before typing
   choicesEl.classList.remove('is-visible');
-  choicesEl.setAttribute('aria-hidden', 'true');
   choicesEl.innerHTML = '';
 
   const engine = new DialogueEngine({
