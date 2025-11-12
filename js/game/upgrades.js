@@ -1631,7 +1631,7 @@ const REGISTRY = [
     area: AREA_KEYS.STARTER_COVE,
     id: 2,
     title: "Unlock XP",
-    desc: "Unlocks the XP system and a new merchant dialogue\nXP system: Collect coins for XP to level up and gain Books\nEach XP level also boosts coin value by a decent amount",
+    desc: "Unlocks the XP system and a new Merchant dialogue\nXP system: Collect coins for XP to level up and gain Books\nEach XP level also boosts coin value by a decent amount",
     lvlCap: 1,
     baseCost: 100,
     costType: "coins",
