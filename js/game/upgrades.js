@@ -1727,68 +1727,111 @@ const REGISTRY = [
     },
     effectMultiplier: E.addFlatPerLevel(2),
   },
-{
-  area: AREA_KEYS.STARTER_COVE,
-  id: 7,
-  title: "Unlock Forge",
-  desc: "Unlocks the Reset tab and the Forge reset in the Delve menu",
-  lvlCap: 1,
-  baseCost: 0,
-  costType: "gold",
-  upgType: "NM",
-  icon: "misc/forge.png",
-  requiresUnlockXp: true,
-  revealRequirement: 'Reach XP Level 31 to reveal this upgrade',
-  unlockUpgrade: true,
-  costAtLevel() { return BigNum.fromInt(0); },
-  nextCostAfter() { return BigNum.fromInt(0); },
-  computeLockState: determineLockState,
-  onLevelChange({ newLevel }) {
-    if ((newLevel ?? 0) >= 1) {
-      try { onForgeUpgradeUnlocked(); } catch {}
-    }
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 7,
+    title: "Unlock Forge",
+    desc: "Unlocks the Reset tab and the Forge reset in the Delve menu",
+    lvlCap: 1,
+    baseCost: 0,
+    costType: "gold",
+    upgType: "NM",
+    icon: "misc/forge.png",
+    baseIconOverride: "img/stats/mp/mp_base.png",
+    requiresUnlockXp: true,
+    revealRequirement: 'Reach XP Level 31 to reveal this upgrade',
+    unlockUpgrade: true,
+    costAtLevel() { return BigNum.fromInt(0); },
+    nextCostAfter() { return BigNum.fromInt(0); },
+    computeLockState: determineLockState,
+    onLevelChange({ newLevel }) {
+      if ((newLevel ?? 0) >= 1) {
+        try { onForgeUpgradeUnlocked(); } catch {}
+      }
+    },
   },
-},
-{
-  area: AREA_KEYS.STARTER_COVE,
-  id: 8,
-  title: "Forge Efficiency",
-  desc: "Placeholder forge upgrade that boosts Gold gain by +10% per level",
-  lvlCap: 25,
-  baseCost: 5,
-  costType: "gold",
-  upgType: "NM",
-  icon: "misc/merchant.png",
-  requiresUnlockXp: true,
-  costAtLevel(level) { return nmCostBN(this, level); },
-  nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
-  computeLockState: determineLockState,
-  effectSummary(level) {
-    const mult = this.effectMultiplier(level);
-    return `Gold gain bonus: ${formatMultForUi(mult)}x`;
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 8,
+    title: "Gilded Output",
+    desc: "Placeholder gold upgrade that boosts coin earnings during Forge runs",
+    lvlCap: 25,
+    baseCost: 5,
+    costType: "gold",
+    upgType: "NM",
+    icon: "sc_upgrade_icons/coin_val2.png",
+    requiresUnlockXp: true,
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    computeLockState: determineLockState,
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Gold gain bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.addPctPerLevel(0.10),
   },
-  effectMultiplier: E.addPctPerLevel(0.10),
-},
-{
-  area: AREA_KEYS.STARTER_COVE,
-  id: 9,
-  title: "Forge Insight",
-  desc: "Placeholder forge upgrade that increases Gold from resets",
-  lvlCap: 20,
-  baseCost: 25,
-  costType: "gold",
-  upgType: "NM",
-  icon: "misc/merchant.png",
-  requiresUnlockXp: true,
-  costAtLevel(level) { return nmCostBN(this, level); },
-  nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
-  computeLockState: determineLockState,
-  effectSummary(level) {
-    const mult = this.effectMultiplier(level);
-    return `Forge reward multiplier: ${formatMultForUi(mult)}x`;
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 9,
+    title: "Forge Insight",
+    desc: "Placeholder gold upgrade that amplifies XP-themed rewards from Forge resets",
+    lvlCap: 20,
+    baseCost: 25,
+    costType: "gold",
+    upgType: "NM",
+    icon: "sc_upgrade_icons/xp_val2.png",
+    requiresUnlockXp: true,
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    computeLockState: determineLockState,
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Forge reward multiplier: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.addPctPerLevel(0.15),
   },
-  effectMultiplier: E.addPctPerLevel(0.15),
-},
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 10,
+    title: "Arcane Pulse",
+    desc: "Placeholder gold upgrade that infuses Forge gains with a surge of mana",
+    lvlCap: 15,
+    baseCost: 15,
+    costType: "gold",
+    upgType: "NM",
+    icon: "sc_upgrade_icons/mp_val1.png",
+    requiresUnlockXp: true,
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    computeLockState: determineLockState,
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Mana resonance bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.addPctPerLevel(0.12),
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 11,
+    title: "Magnetic Hoard",
+    desc: "Placeholder gold upgrade that strengthens how Gold rushes toward you",
+    lvlCap: 18,
+    baseCost: 35,
+    costType: "gold",
+    upgType: "NM",
+    icon: "sc_upgrade_icons/magnet.png",
+    requiresUnlockXp: true,
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    computeLockState: determineLockState,
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Auto-collect pull bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.addPctPerLevel(0.08),
+  },
+/*
+Will remove these upgrades later when I remove the pearl system
 {
   area: AREA_KEYS.STARTER_COVE,
   id: 10,
@@ -1829,6 +1872,7 @@ const REGISTRY = [
   },
   effectMultiplier: E.addPctPerLevel(0.10),
 }
+*/
 ];
 
 for (const upg of REGISTRY) {
