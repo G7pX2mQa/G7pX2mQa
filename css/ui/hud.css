@@ -513,11 +513,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
 }
 
 @media (pointer: coarse) and (orientation: portrait){
-  .gold-counter,
-  .pearl-counter{
-    width: min(var(--coin-bar-w), clamp(180px, 70vw, 360px));
-  }
-
   .mp-counter{
     --mp-bar-h: clamp(32px, 8vw, 44px);
     --mp-plus-size: clamp(48px, 15vw, 70px);
