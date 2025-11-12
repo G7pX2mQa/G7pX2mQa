@@ -463,6 +463,7 @@ function buildUpgradesData() {
       locked,
       lockState,
       useLockedBase: !!lockState.useLockedBase || locked,
+      baseIconOverride: def.baseIconOverride || lockState.baseIconOverride || null,
     };
   }
 }
@@ -693,9 +694,11 @@ function renderShopGrid() {
     baseImg.className = 'base';
     const costType = upg.meta?.costType || 'coins';
     const useLockedBase = upg.useLockedBase || locked;
+    const fallbackBaseSrc = BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins;
+    const resolvedBaseSrc = upg.baseIconOverride || fallbackBaseSrc;
     baseImg.src = useLockedBase
       ? LOCKED_BASE_ICON_SRC
-      : (BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins);
+      : resolvedBaseSrc;
     baseImg.alt = '';
     baseImg.decoding = 'async';
     baseImg.loading = 'lazy';
