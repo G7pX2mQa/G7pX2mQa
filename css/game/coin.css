@@ -10,7 +10,3 @@
   animation: cccCoinCollect 220ms cubic-bezier(.2,.9,.35,1) forwards !important;
   will-change: transform, opacity;
 }
-
-.coin.coin--pearl {
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
-}
