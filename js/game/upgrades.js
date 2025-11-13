@@ -1666,11 +1666,10 @@ const REGISTRY = [
     upgType: "NM",
     icon: "stats/xp/xp.png",
     baseIconOverride: "img/stats/xp/xp_base.png",
-    revealRequirement: MEET_MERCHANT_REVEAL_TEXT,
     unlockUpgrade: true,
     costAtLevel() { return BigNum.fromInt(0); },
     nextCostAfter() { return BigNum.fromInt(0); },
-    computeLockState: determineUnlockXpLockState,
+    computeLockState: determineLockState,
     effectSummary() { return ""; },
     onLevelChange({ newLevel, newLevelBn }) {
       const reached = Number.isFinite(newLevel)
