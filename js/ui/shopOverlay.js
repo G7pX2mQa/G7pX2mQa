@@ -48,7 +48,7 @@ const ICON_DIR = 'img/';
 const BASE_ICON_SRC_BY_COST = {
   coins: 'img/currencies/coin/coin_base.png',
   books: 'img/currencies/book/book_base.png',
-  gold: 'img/misc/locked_base.png',
+  gold: 'img/currencies/gold/gold_base.png',
 };
 const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.png';
 const CURRENCY_ICON_SRC = {
