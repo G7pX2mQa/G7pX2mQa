@@ -181,7 +181,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--shop-tile), 1fr));
   gap: clamp(8px, 2vw, 16px);
-  width: min(1200px, 100%);
+  width: 100%;
+  max-width: none;
   margin-inline: auto;
   padding: 4px;
   justify-content: center;
