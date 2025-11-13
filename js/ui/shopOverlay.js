@@ -1168,6 +1168,39 @@ export function openUpgradeOverlay(upgDef) {
   const spacer = (h) => { const s = document.createElement('div'); s.style.height = h; return s; };
   const makeLine = (html) => { const d = document.createElement('div'); d.className = 'upg-line'; d.innerHTML = html; return d; };
 
+  function recenterUnlockOverlayIfNeeded(model) {
+    // Only do special layout for unlock-type upgrades
+    const content = upgSheetEl.querySelector('.upg-content');
+    if (!content) return;
+
+    if (!model || !model.unlockUpgrade) {
+      // Reset if we were previously an unlock sheet
+      content.style.marginTop = '';
+      return;
+    }
+
+    const header  = upgSheetEl.querySelector('.upg-header');
+    const actions = upgSheetEl.querySelector('.upg-actions');
+    if (!header || !actions) return;
+
+    // Reset first so measurements are clean
+    content.style.marginTop = '';
+
+    const headerRect  = header.getBoundingClientRect();
+    const actionsRect = actions.getBoundingClientRect();
+    const contentRect = content.getBoundingClientRect();
+
+    const available = actionsRect.top - headerRect.bottom;
+    const freeSpace = available - contentRect.height;
+    if (freeSpace <= 0) return;
+
+    // 0.5 = exact center; a bit higher looks nicer
+    const BIAS = 0.60;
+    const topOffset = freeSpace * BIAS;
+
+    content.style.marginTop = `${topOffset}px`;
+  }
+
   const rerender = () => {
     const model = ui();
     if (!model) return;
@@ -1213,7 +1246,7 @@ export function openUpgradeOverlay(upgDef) {
     }
 
     upgSheetEl.classList.toggle('is-maxed', capReached);
-	upgSheetEl.classList.toggle('is-unlock-upgrade', !!model.unlockUpgrade);
+    upgSheetEl.classList.toggle('is-unlock-upgrade', !!model.unlockUpgrade);
     header.append(title, level);
 
     const content = upgSheetEl.querySelector('.upg-content');
@@ -1398,6 +1431,7 @@ if ('PointerEvent' in window) {
 
       (canAffordNext ? buyBtn : closeBtn).focus();
     }
+	recenterUnlockOverlayIfNeeded(model);
   };
 
   const onCurrencyChange = () => {
