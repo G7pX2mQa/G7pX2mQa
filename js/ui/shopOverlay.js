@@ -809,6 +809,7 @@ function renderShopGrid() {
         badge.innerHTML = badgeHtml;
       }
       if (hasPlus || showUnlockableBadge) badge.classList.add('can-buy');
+      if (capReached) badge.classList.add('is-maxed');
       tile.append(baseImg, iconImg, badge);
     } else {
       tile.append(baseImg, iconImg);
