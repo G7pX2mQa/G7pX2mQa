@@ -13,6 +13,7 @@ import { openMerchant,
 import { takePreloadedAudio } from '../util/audioCache.js';
 import {
   AREA_KEYS,
+  UPGRADE_TIES,
   getCurrentAreaKey,
   getUpgradesForArea,
   getLevel,
@@ -663,17 +664,23 @@ function renderShopGrid() {
     const plusHtml = formatNumber(plusBn);
     const plusPlain = stripTags(plusHtml);
     const hasPlus = !plusBn.isZero?.();
-    const isUnlockUpgrade = !!upg.meta?.unlockUpgrade;
-    const capNumber = Number.isFinite(upg.lvlCap)
-      ? Math.max(0, Math.floor(upg.lvlCap))
+    const rawCap = Number.isFinite(upg.lvlCap)
+      ? upg.lvlCap
+      : (Number.isFinite(upg.meta?.lvlCap) ? upg.meta.lvlCap : Infinity);
+    const capNumber = Number.isFinite(rawCap)
+      ? Math.max(0, Math.floor(rawCap))
       : Infinity;
     const levelDigits = Number.parseFloat(String(levelPlain || '').replace(/,/g, ''));
     const levelNumber = Number.isFinite(upg.levelNumeric)
       ? upg.levelNumeric
       : (Number.isFinite(levelDigits) ? levelDigits : NaN);
-    const capReached = Number.isFinite(capNumber) && Number.isFinite(levelNumber)
+    const hasFiniteCap = Number.isFinite(capNumber);
+    const capReached = hasFiniteCap && Number.isFinite(levelNumber)
       ? levelNumber >= capNumber
       : false;
+    const isBookValueUpgrade = upg.meta?.tie === UPGRADE_TIES.BOOK_VALUE_I;
+    const isSingleLevelCap = hasFiniteCap && capNumber === 1;
+    const isUnlockUpgrade = !!upg.meta?.unlockUpgrade || (isSingleLevelCap && !isBookValueUpgrade);
     const showUnlockableBadge = !locked && isUnlockUpgrade && !capReached;
     const showUnlockedBadge = !locked && isUnlockUpgrade && !showUnlockableBadge && capReached;
     let badgeHtml;
