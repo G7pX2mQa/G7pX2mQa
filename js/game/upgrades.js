@@ -101,12 +101,41 @@ export function bigNumFromLog10(log10Value) {
   return new BigNum(sig, exp, p);
 }
 
-const UNLOCK_XP_UPGRADE_ID = 2;
+export const UPGRADE_TIES = {
+  FASTER_COINS: 'coin_0',
+  UNLOCK_XP: 'none_0',
+  FASTER_COINS_II: 'book_0',
+  COIN_VALUE_I: 'book_1',
+  BOOK_VALUE_I: 'book_2',
+  XP_VALUE_I: 'coin_1',
+  UNLOCK_FORGE: 'none_1',
+  COIN_VALUE_II: 'gold_0',
+  XP_VALUE_II: 'gold_1',
+  MP_VALUE_I: 'gold_2',
+  MAGNET: 'gold_3',
+};
 const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.png';
 const MYSTERIOUS_UPGRADE_ICON_DATA_URL = 'img/misc/mysterious.png';
 const HIDDEN_UPGRADE_TITLE = 'Hidden Upgrade';
 const LOCKED_UPGRADE_TITLE = 'Locked Upgrade';
-const XP_MYSTERY_UPGRADE_KEYS = new Set([
+const FORGE_PLACEHOLDER_TIES = new Set([
+  UPGRADE_TIES.COIN_VALUE_II,
+  UPGRADE_TIES.XP_VALUE_II,
+  UPGRADE_TIES.MP_VALUE_I,
+  UPGRADE_TIES.MAGNET,
+]);
+const SPECIAL_LOCK_STATE_TIES = new Set([
+  UPGRADE_TIES.UNLOCK_XP,
+  UPGRADE_TIES.UNLOCK_FORGE,
+  ...FORGE_PLACEHOLDER_TIES,
+]);
+const XP_MYSTERY_UPGRADE_TIES = new Set([
+  UPGRADE_TIES.FASTER_COINS_II,
+  UPGRADE_TIES.COIN_VALUE_I,
+  UPGRADE_TIES.BOOK_VALUE_I,
+  UPGRADE_TIES.XP_VALUE_I,
+]);
+const XP_MYSTERY_LEGACY_KEYS = new Set([
   'starter_cove:3',
   'starter_cove:4',
   'starter_cove:5',
@@ -120,6 +149,7 @@ const SHOP_REVEAL_STATUS_ORDER = { locked: 0, mysterious: 1, unlocked: 2 };
 const shopRevealStateCache = new Map();
 const shopPermaUnlockStateCache = new Map();
 const shopPermaMystStateCache   = new Map();
+const upgradeTieLookup = new Map();
 
 const BN = BigNum;
 const toBn = (x) => BN.fromAny(x ?? 0);
@@ -224,6 +254,10 @@ function classifyUpgradeStatus(lockState) {
 function upgradeRevealKey(areaKey, upg) {
   const normArea = normalizeAreaKey(areaKey || upg?.area);
   if (!normArea) return null;
+  const tieKey = normalizeUpgradeTie(upg?.tie ?? upg?.tieKey);
+  if (tieKey) {
+    return `${normArea}:${tieKey}`;
+  }
   const rawId = normalizeUpgradeId(upg?.id);
   let idStr = '';
   if (typeof rawId === 'number') {
@@ -237,6 +271,29 @@ function upgradeRevealKey(areaKey, upg) {
     return null;
   }
   return `${normArea}:${idStr}`;
+}
+
+function upgradeLegacyRevealKey(areaKey, upg) {
+  const normArea = normalizeAreaKey(areaKey || upg?.area);
+  if (!normArea) return null;
+  const rawId = normalizeUpgradeId(upg?.id);
+  if (rawId == null) return null;
+  if (typeof rawId === 'number') {
+    if (!Number.isFinite(rawId)) return null;
+    return `${normArea}:${Math.trunc(rawId)}`;
+  }
+  const trimmed = String(rawId).trim();
+  return trimmed ? `${normArea}:${trimmed}` : null;
+}
+
+function migrateUpgradeStateKey(state, fromKey, toKey) {
+  if (!state || !state.upgrades || typeof state.upgrades !== 'object') return false;
+  if (!fromKey || !toKey || fromKey === toKey) return false;
+  if (state.upgrades[toKey]) return false;
+  if (!state.upgrades[fromKey]) return false;
+  state.upgrades[toKey] = state.upgrades[fromKey];
+  delete state.upgrades[fromKey];
+  return true;
 }
 
 function ensureShopRevealState(slot = getActiveSlot()) {
@@ -361,44 +418,66 @@ function saveShopPermaMystState(state, slot = getActiveSlot()) {
 function markUpgradePermanentlyMysterious(areaKey, upg, slot = getActiveSlot()) {
   const key = upgradeRevealKey(areaKey, upg);
   if (!key) return;
+  const legacyKey = upgradeLegacyRevealKey(areaKey, upg);
   const state = ensureShopPermaMystState(slot);
   if (state.upgrades[key]) return;
   state.upgrades[key] = true;
+  if (legacyKey && state.upgrades[legacyKey]) {
+    delete state.upgrades[legacyKey];
+  }
   saveShopPermaMystState(state, slot);
 }
 
 function isUpgradePermanentlyMysterious(areaKey, upg, slot = getActiveSlot()) {
   const key = upgradeRevealKey(areaKey, upg);
   if (!key) return false;
+  const legacyKey = upgradeLegacyRevealKey(areaKey, upg);
   const state = ensureShopPermaMystState(slot);
-  return !!state.upgrades[key];
+  if (state.upgrades[key]) return true;
+  if (legacyKey && state.upgrades[legacyKey]) {
+    state.upgrades[key] = state.upgrades[legacyKey];
+    delete state.upgrades[legacyKey];
+    saveShopPermaMystState(state, slot);
+    return true;
+  }
+  return false;
 }
 
 function markUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlot()) {
   const key = upgradeRevealKey(areaKey, upg);
   if (!key) return;
+  const legacyKey = upgradeLegacyRevealKey(areaKey, upg);
   const state = ensureShopPermaUnlockState(slot);
   if (state.upgrades[key]) return;
   state.upgrades[key] = true;
+  if (legacyKey && state.upgrades[legacyKey]) {
+    delete state.upgrades[legacyKey];
+  }
   saveShopPermaUnlockState(state, slot);
 }
 
 function isUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlot()) {
   const key = upgradeRevealKey(areaKey, upg);
   if (!key) return false;
+  const legacyKey = upgradeLegacyRevealKey(areaKey, upg);
   const state = ensureShopPermaUnlockState(slot);
-  return !!state.upgrades[key];
+  if (state.upgrades[key]) return true;
+  if (legacyKey && state.upgrades[legacyKey]) {
+    state.upgrades[key] = state.upgrades[legacyKey];
+    delete state.upgrades[legacyKey];
+    saveShopPermaUnlockState(state, slot);
+    return true;
+  }
+  return false;
 }
 
 function determineLockState(ctx) {
   // Be robust if called unbound or without ctx.upg
   const upgRef = (ctx && ctx.upg) ? ctx.upg : (this && typeof this === 'object' ? this : null);
-  const idNum = Number(normalizeUpgradeId(upgRef?.id));
+  const tieKey = normalizeUpgradeTie(upgRef?.tie ?? upgRef?.tieKey);
   const area = ctx?.areaKey || AREA_KEYS.STARTER_COVE;
 
-  // Defensive default: only handle Unlock XP (id 2) and ids 7–11
-  const handledIds = [UNLOCK_XP_UPGRADE_ID, 7, 8, 9, 10, 11];
-  if (!handledIds.includes(idNum)) {
+  if (!tieKey || !SPECIAL_LOCK_STATE_TIES.has(tieKey)) {
     return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
   }
 
@@ -446,13 +525,13 @@ function determineLockState(ctx) {
     };
   }
 
-  // ==== Upgrade 2 (Unlock XP) ====
-  if (idNum === UNLOCK_XP_UPGRADE_ID) {
+  // ==== Unlock XP ====
+  if (tieKey === UPGRADE_TIES.UNLOCK_XP) {
     return determineUnlockXpLockState();
   }
 
-  // ==== Upgrade 7 (Unlock Forge) ====
-  if (idNum === 7) {
+  // ==== Unlock Forge ====
+  if (tieKey === UPGRADE_TIES.UNLOCK_FORGE) {
     // No XP system -> LOCKED padlock
     if (!xpUnlocked) {
       return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
@@ -476,8 +555,6 @@ function determineLockState(ctx) {
     return { locked: false };
   }
 
-  // ==== Upgrades 8–11 (Forge-tied placeholders) ====
-  // If Forge reset already done, or perma-unlocked, unlock forever.
   if (hasDoneForgeReset() || isUpgradePermanentlyUnlocked(area, upgRef)) {
     try { markUpgradePermanentlyUnlocked(area, upgRef); } catch {}
     return { locked: false, hidden: false, useLockedBase: false };
@@ -488,7 +565,6 @@ function determineLockState(ctx) {
     return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
   }
 
-  // If we’ve already burned perma-mysterious, keep it mysterious forever (until Forge unlock).
   if (isUpgradePermanentlyMysterious(area, upgRef)) {
     const revealText = 'Do a Forge reset to reveal this upgrade';
     return {
@@ -559,8 +635,22 @@ function normalizeAreaKey(areaKey) {
   return '';
 }
 
+function normalizeUpgradeTie(tieValue) {
+  if (typeof tieValue === 'string') {
+    const trimmed = tieValue.trim();
+    if (trimmed) {
+      return trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+    }
+  }
+  return '';
+}
+
 
 function isXpAdjacentUpgrade(areaKey, upg) {
+  const tieKey = normalizeUpgradeTie(upg?.tie ?? upg?.tieKey);
+  if (tieKey && XP_MYSTERY_UPGRADE_TIES.has(tieKey)) {
+    return true;
+  }
   const normalizedId = normalizeUpgradeId(upg?.id);
   const numericId = typeof normalizedId === 'number'
     ? normalizedId
@@ -577,7 +667,7 @@ function isXpAdjacentUpgrade(areaKey, upg) {
   for (const candidate of areaCandidates) {
     const normArea = normalizeAreaKey(candidate);
     if (!normArea) continue;
-    if (XP_MYSTERY_UPGRADE_KEYS.has(`${normArea}:${idKey}`)) {
+    if (XP_MYSTERY_LEGACY_KEYS.has(`${normArea}:${idKey}`)) {
       return true;
     }
   }
@@ -1629,7 +1719,7 @@ function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
     if (Number.isFinite(levelOverride)) {
       resolvedLevel = Math.max(0, Math.floor(levelOverride));
     } else {
-      const storedLevel = getLevelNumber(AREA_KEYS.STARTER_COVE, 5);
+      const storedLevel = getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.BOOK_VALUE_I);
       resolvedLevel = Math.max(0, Number.isFinite(storedLevel) ? storedLevel : 0);
     }
   }
@@ -1658,6 +1748,7 @@ const REGISTRY = [
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 1,
+    tie: UPGRADE_TIES.FASTER_COINS,
     title: "Faster Coins",
     desc: "Increases coin spawn rate by +10% per level",
     lvlCap: 10,
@@ -1676,6 +1767,7 @@ const REGISTRY = [
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 2,
+    tie: UPGRADE_TIES.UNLOCK_XP,
     title: "Unlock XP",
     desc: "Unlocks the XP system and a new Merchant dialogue\nXP system: Collect coins for XP to level up and gain Books\nEach XP level also boosts coin value by a decent amount",
     lvlCap: 1,
@@ -1697,6 +1789,7 @@ const REGISTRY = [
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 3,
+    tie: UPGRADE_TIES.FASTER_COINS_II,
     title: "Faster Coins II",
     desc: "Increases coin spawn rate by +10% per level",
     lvlCap: 15,
@@ -1713,10 +1806,10 @@ const REGISTRY = [
     },
     effectMultiplier: E.addPctPerLevel(0.10),
   },
-
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 4,
+    tie: UPGRADE_TIES.COIN_VALUE_I,
     title: "Coin Value",
     desc: "Increases coin value by +50% per level",
     lvlCap: 100,
@@ -1734,10 +1827,10 @@ const REGISTRY = [
     effectMultiplier: E.addPctPerLevel(0.50),
     onLevelChange() { try { refreshCoinMultiplierFromXpLevel(); } catch {} },
   },
-
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 5,
+    tie: UPGRADE_TIES.BOOK_VALUE_I,
     title: "Book Value",
     desc: "Doubles books gained when increasing XP level",
     lvlCap: 1,
@@ -1757,6 +1850,7 @@ const REGISTRY = [
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 6,
+    tie: UPGRADE_TIES.XP_VALUE_I,
     title: "XP Value",
     desc: "Increases XP value by +200% per level",
     lvlCap: 10,
@@ -1776,6 +1870,7 @@ const REGISTRY = [
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 7,
+    tie: UPGRADE_TIES.UNLOCK_FORGE,
     title: "Unlock Forge",
     desc: "Unlocks the Reset tab and the Forge reset in the Delve menu",
     lvlCap: 1,
@@ -1797,7 +1892,8 @@ const REGISTRY = [
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 8,
-    title: "Gilded Output",
+    tie: UPGRADE_TIES.COIN_VALUE_II,
+    title: "Coin Value II",
     desc: "Placeholder gold upgrade that boosts coin earnings during Forge runs",
     lvlCap: 25,
     baseCost: 5,
@@ -1817,7 +1913,8 @@ const REGISTRY = [
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 9,
-    title: "Forge Insight",
+    tie: UPGRADE_TIES.XP_VALUE_II,
+    title: "XP Value II",
     desc: "Placeholder gold upgrade that amplifies XP-themed rewards from Forge resets",
     lvlCap: 20,
     baseCost: 25,
@@ -1837,7 +1934,8 @@ const REGISTRY = [
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 10,
-    title: "Arcane Pulse",
+    tie: UPGRADE_TIES.MP_VALUE_I,
+    title: "MP Value",
     desc: "Placeholder gold upgrade that infuses Forge gains with a surge of mana",
     lvlCap: 15,
     baseCost: 15,
@@ -1857,7 +1955,8 @@ const REGISTRY = [
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 11,
-    title: "Magnetic Hoard",
+    tie: UPGRADE_TIES.MAGNET,
+    title: "Magnet",
     desc: "Placeholder gold upgrade that strengthens how Gold rushes toward you",
     lvlCap: 18,
     baseCost: 35,
@@ -1877,6 +1976,11 @@ const REGISTRY = [
 ];
 
 for (const upg of REGISTRY) {
+  const tieKey = normalizeUpgradeTie(upg.tie ?? upg.tieKey);
+  upg.tieKey = tieKey;
+  if (tieKey && !upgradeTieLookup.has(tieKey)) {
+    upgradeTieLookup.set(tieKey, upg);
+  }
   upg.baseCost = toUpgradeBigNum(upg.baseCost ?? 0, 0);
   upg.baseCostBn = upg.baseCost;
   upg.numUpgEvolutions = Number.isFinite(Number(upg.numUpgEvolutions))
@@ -2248,13 +2352,38 @@ function saveAreaState(areaKey, stateArr, slot = getActiveSlot()) {
   } catch {}
 }
 
+function resolveUpgradeIdentifier(areaKey, upgId) {
+  if (upgId && typeof upgId === 'object' && typeof upgId.id !== 'undefined') {
+    return normalizeUpgradeId(upgId.id);
+  }
+  const normalized = normalizeUpgradeId(upgId);
+  if (typeof normalized === 'number' || normalized == null) {
+    return normalized;
+  }
+  if (typeof normalized === 'string') {
+    const tieKey = normalizeUpgradeTie(normalized);
+    if (tieKey) {
+      const upg = upgradeTieLookup.get(tieKey);
+      if (upg) {
+        const requestedArea = normalizeAreaKey(areaKey);
+        if (!requestedArea || normalizeAreaKey(upg.area) === requestedArea) {
+          return normalizeUpgradeId(upg.id);
+        }
+      }
+    }
+  }
+  return normalized;
+}
+
 function upgradeCacheKey(areaKey, upgId, slot = getActiveSlot()) {
   const slotKey = slot == null ? 'null' : String(slot);
-  return `${slotKey}:${areaKey}:${normalizeUpgradeId(upgId)}`;
+  const resolvedId = resolveUpgradeIdentifier(areaKey, upgId);
+  return `${slotKey}:${areaKey}:${normalizeUpgradeId(resolvedId)}`;
 }
 
 function ensureUpgradeState(areaKey, upgId) {
-  const normalizedId = normalizeUpgradeId(upgId);
+  const resolvedId = resolveUpgradeIdentifier(areaKey, upgId);
+  const normalizedId = normalizeUpgradeId(resolvedId);
   const slot = getActiveSlot();
   const key = upgradeCacheKey(areaKey, normalizedId, slot);
   let state = upgradeStateCache.get(key);
@@ -2470,47 +2599,70 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
   const slot = getActiveSlot();
   const revealKey = upgradeRevealKey(areaKey, upg);
   const permaUnlocked = revealKey ? isUpgradePermanentlyUnlocked(areaKey, upg, slot) : false;
-if (revealKey) {
-  const slot = getActiveSlot();
-  const revealState = ensureShopRevealState(slot);
-  const permaState  = ensureShopPermaUnlockState(slot);
-  const hyphenKey   = revealKey.replace(/_/g, '-');
+  if (revealKey) {
+    const revealState = ensureShopRevealState(slot);
+    const permaState  = ensureShopPermaUnlockState(slot);
+    const permaMystState = ensureShopPermaMystState(slot);
+    const hyphenKey   = revealKey.replace(/_/g, '-');
+    const legacyKey   = upgradeLegacyRevealKey(areaKey, upg);
 
-  if (!revealState.upgrades[revealKey] && revealState.upgrades[hyphenKey]) {
-    revealState.upgrades[revealKey] = revealState.upgrades[hyphenKey];
-    delete revealState.upgrades[hyphenKey];
-    saveShopRevealState(revealState, slot);
-  }
-  if (!permaState.upgrades[revealKey] && permaState.upgrades[hyphenKey]) {
-    permaState.upgrades[revealKey] = permaState.upgrades[hyphenKey];
-    delete permaState.upgrades[hyphenKey];
-    saveShopPermaUnlockState(permaState, slot);
-  }
-}
+    let needsRevealSave = false;
+    if (migrateUpgradeStateKey(revealState, hyphenKey, revealKey)) {
+      needsRevealSave = true;
+    }
+    if (legacyKey && migrateUpgradeStateKey(revealState, legacyKey, revealKey)) {
+      needsRevealSave = true;
+    }
+    if (needsRevealSave) {
+      saveShopRevealState(revealState, slot);
+    }
 
-if (state.locked) {
-  const hiddenState = !!state.hidden;
-  if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
+    let needsPermaSave = false;
+    if (migrateUpgradeStateKey(permaState, hyphenKey, revealKey)) {
+      needsPermaSave = true;
+    }
+    if (legacyKey && migrateUpgradeStateKey(permaState, legacyKey, revealKey)) {
+      needsPermaSave = true;
+    }
+    if (needsPermaSave) {
+      saveShopPermaUnlockState(permaState, slot);
+    }
 
-  if (hiddenState) {
-    if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
-  } else if (!state.titleOverride || state.titleOverride === HIDDEN_UPGRADE_TITLE) {
-    state.titleOverride = LOCKED_UPGRADE_TITLE;
-  }
-
-  if (state.useLockedBase == null) state.useLockedBase = true;
-  if (!state.reason && upg?.revealRequirement) state.reason = upg.revealRequirement;
-
-  if (!state.descOverride) {
-    if (state.reason) {
-      state.descOverride = `${state.reason}`;
-    } else if (upg?.revealRequirement) {
-      state.descOverride = upg.revealRequirement;
-    } else if (hiddenState) {
-      state.descOverride = 'This upgrade is currently hidden.';
+    let needsPermaMystSave = false;
+    if (migrateUpgradeStateKey(permaMystState, hyphenKey, revealKey)) {
+      needsPermaMystSave = true;
+    }
+    if (legacyKey && migrateUpgradeStateKey(permaMystState, legacyKey, revealKey)) {
+      needsPermaMystSave = true;
+    }
+    if (needsPermaMystSave) {
+      saveShopPermaMystState(permaMystState, slot);
     }
   }
-} else {
+
+  if (state.locked) {
+    const hiddenState = !!state.hidden;
+    if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
+
+    if (hiddenState) {
+      if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
+    } else if (!state.titleOverride || state.titleOverride === HIDDEN_UPGRADE_TITLE) {
+      state.titleOverride = LOCKED_UPGRADE_TITLE;
+    }
+
+    if (state.useLockedBase == null) state.useLockedBase = true;
+    if (!state.reason && upg?.revealRequirement) state.reason = upg.revealRequirement;
+
+    if (!state.descOverride) {
+      if (state.reason) {
+        state.descOverride = `${state.reason}`;
+      } else if (upg?.revealRequirement) {
+        state.descOverride = upg.revealRequirement;
+      } else if (hiddenState) {
+        state.descOverride = 'This upgrade is currently hidden.';
+      }
+    }
+  } else {
     state.hidden = false;
     state.hideCost = false;
     state.hideEffect = false;
@@ -2534,56 +2686,52 @@ if (state.locked) {
   if (revealKey) {
     const revealState = ensureShopRevealState(slot);
     const rec = revealState.upgrades[revealKey] || {};
-let storedStatus = rec.status || 'locked';
+    const tieKey = normalizeUpgradeTie(upg?.tie ?? upg?.tieKey);
+    const isForgePlaceholder = tieKey && FORGE_PLACEHOLDER_TIES.has(tieKey);
 
-if (isUpgradePermanentlyUnlocked(areaKey, upg, slot)) {
-  storedStatus = 'unlocked';
-} else if (
-  isUpgradePermanentlyMysterious(areaKey, upg, slot) &&
-  storedStatus === 'locked'
-) {
-  // Forge placeholders (9–12) must not appear MYSTERIOUS until XP ≥ 31 in this run.
-  const idNum = Number(normalizeUpgradeId(upg?.id));
-  const isForgePlaceholder =
-    normalizeAreaKey(areaKey || upg?.area) === 'starter_cove' &&
-    [8, 9, 10, 11].includes(idNum);
+    let storedStatus = rec.status || 'locked';
 
-  let xpReached31 = false;
-  try { xpReached31 = levelBigNumToNumber(currentXpLevelBigNum()) >= 31; } catch {}
+    if (isUpgradePermanentlyUnlocked(areaKey, upg, slot)) {
+      storedStatus = 'unlocked';
+    } else if (
+      isUpgradePermanentlyMysterious(areaKey, upg, slot) &&
+      storedStatus === 'locked'
+    ) {
+      let xpReached31 = false;
+      try { xpReached31 = levelBigNumToNumber(currentXpLevelBigNum()) >= 31; } catch {}
 
-  storedStatus = (isForgePlaceholder && !xpReached31) ? 'locked' : 'mysterious';
-}
-let storedRank = shopStatusRank(storedStatus);
+      storedStatus = (isForgePlaceholder && !xpReached31) ? 'locked' : 'mysterious';
+    }
 
+    let storedRank = shopStatusRank(storedStatus);
 
     let currentStatus = classifyUpgradeStatus(state);
     let currentRank = shopStatusRank(currentStatus);
 
-const applyStoredMysterious = () => {
-  state.locked = true;
+    const applyStoredMysterious = () => {
+      state.locked = true;
 
-  const snap = rec.snapshot;
-  if (snap && typeof snap === 'object') {
-    state = mergeLockStates(state, snap);
-  }
+      const snap = rec.snapshot;
+      if (snap && typeof snap === 'object') {
+        state = mergeLockStates(state, snap);
+      }
 
-  state.iconOverride  = MYSTERIOUS_UPGRADE_ICON_DATA_URL;
-  state.titleOverride = HIDDEN_UPGRADE_TITLE;
+      state.iconOverride  = MYSTERIOUS_UPGRADE_ICON_DATA_URL;
+      state.titleOverride = HIDDEN_UPGRADE_TITLE;
 
-  const reasonText =
-    upg?.revealRequirement ||
-    state.reason ||
-    state.descOverride ||
-    'This upgrade is currently hidden.';
-  state.descOverride = reasonText;
-  if (!state.reason && upg?.revealRequirement) state.reason = upg.revealRequirement;
+      const reasonText =
+        upg?.revealRequirement ||
+        state.reason ||
+        state.descOverride ||
+        'This upgrade is currently hidden.';
+      state.descOverride = reasonText;
+      if (!state.reason && upg?.revealRequirement) state.reason = upg.revealRequirement;
 
-  state.hidden      = true;
-  state.hideCost    = true;
-  state.hideEffect  = true;
-  state.useLockedBase = true;
-};
-
+      state.hidden      = true;
+      state.hideCost    = true;
+      state.hideEffect  = true;
+      state.useLockedBase = true;
+    };
 
     if (storedRank > currentRank) {
       if (storedStatus === 'unlocked') {
@@ -2600,84 +2748,73 @@ const applyStoredMysterious = () => {
     }
 
     let shouldSave = false;
-let normalizedStatus = (rec && typeof rec === 'object' && typeof rec.status === 'string')
-  ? rec.status
-  : 'locked';
+    let normalizedStatus = (rec && typeof rec === 'object' && typeof rec.status === 'string')
+      ? rec.status
+      : 'locked';
 
-const idNumForSave = Number(normalizeUpgradeId(upg?.id));
-const isForgePlaceholderForSave =
-  normalizeAreaKey(areaKey || upg?.area) === 'starter_cove' &&
-  [8, 9, 10, 11].includes(idNumForSave);
+    const isForgePlaceholderForSave = isForgePlaceholder;
 
-let xpReached31Now = false;
-try { xpReached31Now = levelBigNumToNumber(currentXpLevelBigNum()) >= 31; } catch {}
+    let xpReached31Now = false;
+    try { xpReached31Now = levelBigNumToNumber(currentXpLevelBigNum()) >= 31; } catch {}
 
-if (isForgePlaceholderForSave && !xpReached31Now && normalizedStatus === 'mysterious') {
-  normalizedStatus = 'locked';
-}
-
-if (!rec || typeof rec !== 'object' || Object.keys(rec).length !== 1 || rec.status !== normalizedStatus) {
-  revealState.upgrades[revealKey] = { status: normalizedStatus };
-  shouldSave = true;
-}
-
-
-if (currentRank > storedRank) {
-  rec.status = currentStatus;
-  revealState.upgrades[revealKey] = { status: rec.status };
-  shouldSave = true;
-
-  storedStatus = currentStatus;
-  storedRank   = currentRank;
-
-  if (currentStatus === 'unlocked') {
-    markUpgradePermanentlyUnlocked(areaKey, upg, slot);
-  } else if (currentStatus === 'mysterious') {
-    // Only burn perma-myst for forge placeholders (9–12) once XP ≥ 31.
-    const idNum = Number(normalizeUpgradeId(upg?.id));
-    const isForgePlaceholder =
-      normalizeAreaKey(areaKey || upg?.area) === 'starter_cove' &&
-      [8, 9, 10, 11].includes(idNum);
-
-    let xpReached31 = false;
-    try { xpReached31 = levelBigNumToNumber(currentXpLevelBigNum()) >= 31; } catch {}
-
-    if (!isForgePlaceholder || xpReached31) {
-      markUpgradePermanentlyMysterious(areaKey, upg, slot);
+    if (isForgePlaceholderForSave && !xpReached31Now && normalizedStatus === 'mysterious') {
+      normalizedStatus = 'locked';
     }
-  }
-}
 
+    if (!rec || typeof rec !== 'object' || Object.keys(rec).length !== 1 || rec.status !== normalizedStatus) {
+      revealState.upgrades[revealKey] = { status: normalizedStatus };
+      shouldSave = true;
+    }
 
-if (storedStatus === 'unlocked') {
-  state.locked = false;
-  state.hidden = false;
-  state.hideCost = false;
-  state.hideEffect = false;
-  state.useLockedBase = false;
+    if (currentRank > storedRank) {
+      rec.status = currentStatus;
+      revealState.upgrades[revealKey] = { status: rec.status };
+      shouldSave = true;
 
-  if (state.iconOverride === LOCKED_UPGRADE_ICON_DATA_URL ||
-      state.iconOverride === MYSTERIOUS_UPGRADE_ICON_DATA_URL) {
-    delete state.iconOverride;
-  }
-  if (state.titleOverride === HIDDEN_UPGRADE_TITLE ||
-      state.titleOverride === LOCKED_UPGRADE_TITLE) {
-    delete state.titleOverride;
-  }
-  delete state.descOverride;
-  delete state.reason;
+      storedStatus = currentStatus;
+      storedRank   = currentRank;
 
-  if (rec.status !== 'unlocked') {
-    revealState.upgrades[revealKey] = { status: 'unlocked' };
-    shouldSave = true;
-  }
-  markUpgradePermanentlyUnlocked(areaKey, upg, slot);
+      if (currentStatus === 'unlocked') {
+        markUpgradePermanentlyUnlocked(areaKey, upg, slot);
+      } else if (currentStatus === 'mysterious') {
+        let xpReached31 = false;
+        try { xpReached31 = levelBigNumToNumber(currentXpLevelBigNum()) >= 31; } catch {}
 
-} else if (storedStatus === 'mysterious' && currentStatus !== 'mysterious') {
-  applyStoredMysterious();
-  currentStatus = classifyUpgradeStatus(state);
-  currentRank = shopStatusRank(currentStatus);
-}
+        if (!isForgePlaceholder || xpReached31) {
+          markUpgradePermanentlyMysterious(areaKey, upg, slot);
+        }
+      }
+    }
+
+    if (storedStatus === 'unlocked') {
+      state.locked = false;
+      state.hidden = false;
+      state.hideCost = false;
+      state.hideEffect = false;
+      state.useLockedBase = false;
+
+      if (state.iconOverride === LOCKED_UPGRADE_ICON_DATA_URL ||
+          state.iconOverride === MYSTERIOUS_UPGRADE_ICON_DATA_URL) {
+        delete state.iconOverride;
+      }
+      if (state.titleOverride === HIDDEN_UPGRADE_TITLE ||
+          state.titleOverride === LOCKED_UPGRADE_TITLE) {
+        delete state.titleOverride;
+      }
+      delete state.descOverride;
+      delete state.reason;
+
+      if (rec.status !== 'unlocked') {
+        revealState.upgrades[revealKey] = { status: 'unlocked' };
+        shouldSave = true;
+      }
+      markUpgradePermanentlyUnlocked(areaKey, upg, slot);
+
+    } else if (storedStatus === 'mysterious' && currentStatus !== 'mysterious') {
+      applyStoredMysterious();
+      currentStatus = classifyUpgradeStatus(state);
+      currentRank = shopStatusRank(currentStatus);
+    }
 
     if (shouldSave) saveShopRevealState(revealState, slot);
   }
@@ -2776,8 +2913,17 @@ export function getUpgradesForArea(areaKey) {
 }
 
 export function getUpgrade(areaKey, upgId) {
+  const normalizedArea = normalizeAreaKey(areaKey);
   const normalizedId = normalizeUpgradeId(upgId);
-  return REGISTRY.find(u => u.area === areaKey && normalizeUpgradeId(u.id) === normalizedId) || null;
+  const tieKey = (typeof normalizedId === 'string')
+    ? normalizeUpgradeTie(normalizedId)
+    : normalizeUpgradeTie(upgId);
+  return REGISTRY.find((u) => {
+    if (normalizedArea && normalizeAreaKey(u.area) !== normalizedArea) return false;
+    if (normalizeUpgradeId(u.id) === normalizedId) return true;
+    if (tieKey && u.tieKey === tieKey) return true;
+    return false;
+  }) || null;
 }
 
 export function getUpgradeLockState(areaKey, upgId) {
@@ -3114,12 +3260,13 @@ export function computeUpgradeEffects(areaKey) {
   for (const u of ups) {
     const lvlBn = getLevel(areaKey, u.id);
     const lvlNum = levelBigNumToNumber(lvlBn);
-    if (u.id === 1) {
+    const tieKey = u.tieKey || normalizeUpgradeTie(u.tie);
+    if (tieKey === UPGRADE_TIES.FASTER_COINS) {
       // Faster Coins
       cpsMult *= u.effectMultiplier(lvlNum);
-    } else if (u.id === 3) {
+    } else if (tieKey === UPGRADE_TIES.FASTER_COINS_II) {
       cpsMult *= u.effectMultiplier(lvlNum);
-    } else if (u.id === 4) {
+    } else if (tieKey === UPGRADE_TIES.COIN_VALUE_I) {
       const lvl = Math.max(0, Number.isFinite(lvlNum) ? lvlNum : 0);
       if (lvl > 0) {
         const factor = 1 + (0.5 * lvl);
@@ -3127,9 +3274,9 @@ export function computeUpgradeEffects(areaKey) {
         str = str.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
         coinValueMultBn = coinValueMultBn.mulDecimal(str, 18);
       }
-    } else if (u.id === 5) {
+    } else if (tieKey === UPGRADE_TIES.BOOK_VALUE_I) {
       bookRewardMultBn = bookValueMultiplierBn(lvlNum);
-    } else if (u.id === 6) {
+    } else if (tieKey === UPGRADE_TIES.XP_VALUE_I) {
       const lvl = Math.max(0, Number.isFinite(lvlNum) ? lvlNum : 0);
       xpGainMultBn = BigNum.fromAny(1 + lvl * 2);
     }
@@ -3158,7 +3305,7 @@ function registerXpUpgradeEffects() {
       } catch {
         result = BigNum.fromInt(0);
       }
-      const lvl = getLevelNumber(AREA_KEYS.STARTER_COVE, 4);
+      const lvl = getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_VALUE_I);
       const safeLevel = Math.max(0, Number.isFinite(lvl) ? lvl : 0);
       if (safeLevel <= 0) return result;
       let str = (1 + (0.5 * safeLevel)).toFixed(6);
@@ -3183,7 +3330,7 @@ function registerXpUpgradeEffects() {
       } catch {
         gain = BigNum.fromInt(0);
       }
-      const lvl = getLevelNumber(AREA_KEYS.STARTER_COVE, 6);
+      const lvl = getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.XP_VALUE_I);
       const safeLevel = Math.max(0, Number.isFinite(lvl) ? lvl : 0);
       if (safeLevel <= 0) return gain;
       try {
@@ -3209,7 +3356,7 @@ function registerXpUpgradeEffects() {
         syncBookCurrencyMultiplierFromUpgrade(0);
         return reward;
       }
-      const lvl = getLevelNumber(AREA_KEYS.STARTER_COVE, 5);
+      const lvl = getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.BOOK_VALUE_I);
       const safeLevel = Math.max(0, Number.isFinite(lvl) ? lvl : 0);
       syncBookCurrencyMultiplierFromUpgrade(safeLevel);
       if (safeLevel <= 0) return reward;
