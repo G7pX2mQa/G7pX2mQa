@@ -407,6 +407,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       'img/sc_upg_icons/book_val1.png',
       'img/sc_upg_icons/coin_val1.png',
       'img/sc_upg_icons/xp_val1.png',
+	  'img/sc_upg_icons/faster_coins2.png',
       'img/sc_upg_icons/coin_val2.png',
       'img/sc_upg_icons/xp_val2.png',
 	  'img/sc_upg_icons/mp_val1.png',
