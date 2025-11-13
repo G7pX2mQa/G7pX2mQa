@@ -519,6 +519,11 @@
   padding-bottom: 2vh;
 }
 
+.upg-sheet.is-unlock-upgrade:not(.is-maxed):not(.is-locked-hidden) .upg-content {
+  transform: translateY(-16vh);
+  padding-top: 1vh;
+}
+
 .upg-desc.centered{
   text-align:center;
   font-size: clamp(28px, 4vw, 44px);
@@ -742,6 +747,11 @@
   .upg-sheet.is-locked-hidden .upg-content {
     transform: translateY(-16vh);
     padding-top: 0.5vh;
+  }
+  
+  .upg-sheet.is-unlock-upgrade:not(.is-maxed):not(.is-locked-hidden) .upg-content {
+    transform: translateY(-10vh);
+    padding-top: 1vh;
   }
 }
 
