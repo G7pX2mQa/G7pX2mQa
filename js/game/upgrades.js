@@ -1797,7 +1797,7 @@ const REGISTRY = [
     baseCost: 1,
     costType: "books",
     upgType: "NM",
-    icon: "sc_upgrade_icons/faster_coins.png",
+    icon: "sc_upgrade_icons/faster_coins_2.png",
     requiresUnlockXp: true,
     costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
     nextCostAfter() { return this.costAtLevel(); },
