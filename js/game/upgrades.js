@@ -396,8 +396,9 @@ function determineLockState(ctx) {
   const idNum = Number(normalizeUpgradeId(upgRef?.id));
   const area = ctx?.areaKey || AREA_KEYS.STARTER_COVE;
 
-  // Defensive default: only handle ids 7 and 8–11
-  if (![7, 8, 9, 10, 11].includes(idNum)) {
+  // Defensive default: only handle Unlock XP (id 2) and ids 7–11
+  const handledIds = [UNLOCK_XP_UPGRADE_ID, 7, 8, 9, 10, 11];
+  if (!handledIds.includes(idNum)) {
     return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
   }
 
@@ -406,19 +407,31 @@ function determineLockState(ctx) {
   try {
     currentLevel = (upgRef && typeof upgRef.id !== 'undefined') ? getLevelNumber(area, upgRef.id) : 0;
   } catch {}
-  if (currentLevel >= 1) return { locked: false, hidden: false, useLockedBase: false };
+  if (currentLevel >= 1) {
+    return { locked: false, hidden: false, useLockedBase: false };
+  }
 
   // XPs unlocked?
   let xpUnlocked = false;
   try {
-    xpUnlocked = (ctx && typeof ctx.xpUnlocked !== 'undefined') ? !!ctx.xpUnlocked : safeIsXpUnlocked();
+    xpUnlocked = (ctx && typeof ctx.xpUnlocked !== 'undefined')
+      ? !!ctx.xpUnlocked
+      : safeIsXpUnlocked();
   } catch {}
-  
+
   function determineUnlockXpLockState() {
     if (safeHasMetMerchant()) {
-      return { locked: false };
+      // Merchant met -> upgrade is fully visible and purchasable
+      return {
+        locked: false,
+        hidden: false,
+        hideCost: false,
+        hideEffect: false,
+        useLockedBase: false,
+      };
     }
 
+    // Merchant not met -> mysterious placeholder
     const revealText = 'Explore the Delve menu to reveal this upgrade';
     return {
       locked: true,
@@ -431,6 +444,11 @@ function determineLockState(ctx) {
       hideEffect: true,
       useLockedBase: true,
     };
+  }
+
+  // ==== Upgrade 2 (Unlock XP) ====
+  if (idNum === UNLOCK_XP_UPGRADE_ID) {
+    return determineUnlockXpLockState();
   }
 
   // ==== Upgrade 7 (Unlock Forge) ====
