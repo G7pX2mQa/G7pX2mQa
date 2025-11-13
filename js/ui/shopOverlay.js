@@ -663,9 +663,22 @@ function renderShopGrid() {
     const plusHtml = formatNumber(plusBn);
     const plusPlain = stripTags(plusHtml);
     const hasPlus = !plusBn.isZero?.();
+    const isUnlockUpgrade = !!upg.meta?.unlockUpgrade;
+    const capNumber = Number.isFinite(upg.lvlCap)
+      ? Math.max(0, Math.floor(upg.lvlCap))
+      : Infinity;
+    const levelDigits = Number.parseFloat(String(levelPlain || '').replace(/,/g, ''));
+    const levelNumber = Number.isFinite(upg.levelNumeric)
+      ? upg.levelNumeric
+      : (Number.isFinite(levelDigits) ? levelDigits : NaN);
+    const capReached = Number.isFinite(capNumber) && Number.isFinite(levelNumber)
+      ? levelNumber >= capNumber
+      : false;
+    const showUnlockableBadge = !locked && isUnlockUpgrade && !capReached && hasPlus;
+    const showUnlockedBadge = !locked && isUnlockUpgrade && !showUnlockableBadge && capReached;
     let badgeHtml;
     let badgePlain;
-	let needsTwoLines = false;
+        let needsTwoLines = false;
     if (locked) {
       badgeHtml = '';
       badgePlain = '';
@@ -675,25 +688,31 @@ function renderShopGrid() {
         : `${upg.title} (Locked)`;
       btn.setAttribute('aria-label', ariaLabel);
     } else {
-  const numericLevel = Number.isFinite(upg.levelNumeric) ? upg.levelNumeric : NaN;
-  const plainDigits  = String(levelPlain || '').replace(/,/g, '');
-  const isInf        = /∞|Infinity/i.test(plainDigits);
-  const over999      = Number.isFinite(numericLevel)
-    ? numericLevel >= 1000
-    : (isInf || /^\d{4,}$/.test(plainDigits));
-
-  needsTwoLines = hasPlus && over999;
-
-  if (needsTwoLines) {
-    const lvlSpan  = `<span class="badge-lvl">${levelHtml}</span>`;
-    const plusSpan = `<span class="badge-plus">(+${plusHtml})</span>`;
-    badgeHtml  = `${lvlSpan}${plusSpan}`;
-    badgePlain = `${levelPlain} (+${plusPlain})`;
+  if (showUnlockableBadge || showUnlockedBadge) {
+    badgeHtml = showUnlockableBadge ? 'Unlockable' : 'Unlocked';
+    badgePlain = badgeHtml;
+    btn.setAttribute('aria-label', `${upg.title}, ${badgePlain}`);
   } else {
-    badgeHtml  = hasPlus ? `${levelHtml} (+${plusHtml})` : levelHtml;
-    badgePlain = hasPlus ? `${levelPlain} (+${plusPlain})` : levelPlain;
+    const numericLevel = Number.isFinite(upg.levelNumeric) ? upg.levelNumeric : NaN;
+    const plainDigits  = String(levelPlain || '').replace(/,/g, '');
+    const isInf        = /∞|Infinity/i.test(plainDigits);
+    const over999      = Number.isFinite(numericLevel)
+      ? numericLevel >= 1000
+      : (isInf || /^\d{4,}$/.test(plainDigits));
+
+    needsTwoLines = hasPlus && over999;
+
+    if (needsTwoLines) {
+      const lvlSpan  = `<span class="badge-lvl">${levelHtml}</span>`;
+      const plusSpan = `<span class="badge-plus">(+${plusHtml})</span>`;
+      badgeHtml  = `${lvlSpan}${plusSpan}`;
+      badgePlain = `${levelPlain} (+${plusPlain})`;
+    } else {
+      badgeHtml  = hasPlus ? `${levelHtml} (+${plusHtml})` : levelHtml;
+      badgePlain = hasPlus ? `${levelPlain} (+${plusPlain})` : levelPlain;
+    }
+    btn.setAttribute('aria-label', `${upg.title}, level ${badgePlain}`);
   }
-  btn.setAttribute('aria-label', `${upg.title}, level ${badgePlain}`);
 }
 
         if (locked) {
@@ -782,7 +801,7 @@ function renderShopGrid() {
       } else {
         badge.innerHTML = badgeHtml;
       }
-      if (hasPlus) badge.classList.add('can-buy');
+      if (hasPlus || showUnlockableBadge) badge.classList.add('can-buy');
       tile.append(baseImg, iconImg, badge);
     } else {
       tile.append(baseImg, iconImg);
