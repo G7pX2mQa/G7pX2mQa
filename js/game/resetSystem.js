@@ -6,11 +6,14 @@ import {
   getActiveSlot,
   watchStorageKey,
   primeStorageWatcherSnapshot,
+  KEYS,
+  CURRENCIES,
 } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
 import {
   getXpState,
   resetXpProgress,
+  getXpLevelStorageKey,
 } from './xpSystem.js';
 import {
   AREA_KEYS,
@@ -58,6 +61,14 @@ const watchers = [];
 let watchersBoundSlot = null;
 let initialized = false;
 let mutationUnsub = null;
+let pendingGoldInputSignature = null;
+let pendingGoldPollTimer = null;
+
+const PENDING_GOLD_POLL_INTERVAL_MS = 60;
+
+function resetPendingGoldSignature() {
+  pendingGoldInputSignature = null;
+}
 
 function cleanupWatchers() {
   while (watchers.length) {
@@ -187,13 +198,55 @@ function bindStorageWatchers(slot) {
       }
     },
   }));
+  const coinKeyBase = KEYS?.CURRENCY?.[CURRENCIES.COINS];
+  if (coinKeyBase) {
+    const coinKey = `${coinKeyBase}:${slot}`;
+    watchers.push(watchStorageKey(coinKey, {
+      onChange(_, meta = {}) {
+        if (!meta.rawChanged && !meta.valueChanged) return;
+        recomputePendingGold();
+      },
+    }));
+  }
+  const xpLevelKey = getXpLevelStorageKey(slot);
+  if (xpLevelKey) {
+    watchers.push(watchStorageKey(xpLevelKey, {
+      onChange(_, meta = {}) {
+        if (!meta.rawChanged && !meta.valueChanged) return;
+        recomputePendingGold();
+      },
+    }));
+  }
 }
 
-function recomputePendingGold() {
+function getPendingInputSignature(coins, level) {
+  const coinSig = coins?.toStorage?.()
+    ?? coins?.toString?.()
+    ?? String(coins ?? '');
+  const levelSig = level?.toStorage?.()
+    ?? level?.toString?.()
+    ?? String(level ?? '');
+  return `${coinSig}|${levelSig}`;
+}
+
+function recomputePendingGold(force = false) {
   const coins = bank.coins?.value ?? bnZero();
   const level = getXpLevelBn();
+  const signature = getPendingInputSignature(coins, level);
+  if (!force && pendingGoldInputSignature === signature) {
+    return;
+  }
+  pendingGoldInputSignature = signature;
   resetState.pendingGold = computeForgeGold(coins, level);
   updateResetPanel();
+}
+
+function ensurePendingGoldPoller() {
+  if (pendingGoldPollTimer != null || typeof window === 'undefined') return;
+  pendingGoldPollTimer = window.setInterval(() => {
+    try { recomputePendingGold(); }
+    catch {}
+  }, PENDING_GOLD_POLL_INTERVAL_MS);
 }
 
 function canAccessForgeTab() {
@@ -389,12 +442,14 @@ function bindGlobalEvents() {
 export function initResetSystem() {
   if (initialized) {
     recomputePendingGold();
+    ensurePendingGoldPoller();
     return;
   }
   initialized = true;
   initMutationSystem();
   const slot = getActiveSlot();
   resetState.slot = slot;
+  resetPendingGoldSignature();
   readPersistentFlags(slot);
   if (resetState.hasDoneForgeReset && !isMutationUnlocked()) {
     try { unlockMutationSystem(); } catch {}
@@ -404,7 +459,8 @@ export function initResetSystem() {
   }
   bindStorageWatchers(slot);
   bindGlobalEvents();
-  recomputePendingGold();
+  recomputePendingGold(true);
+  ensurePendingGoldPoller();
   if (mutationUnsub) {
     try { mutationUnsub(); } catch {}
     mutationUnsub = null;
@@ -419,6 +475,7 @@ export function initResetSystem() {
     window.addEventListener('saveSlot:change', () => {
       const nextSlot = getActiveSlot();
       resetState.slot = nextSlot;
+      resetPendingGoldSignature();
       readPersistentFlags(nextSlot);
       if (resetState.hasDoneForgeReset && !isMutationUnlocked()) {
         try { unlockMutationSystem(); } catch {}
@@ -427,7 +484,7 @@ export function initResetSystem() {
         setForgeUnlocked(true);
       }
       bindStorageWatchers(nextSlot);
-      recomputePendingGold();
+      recomputePendingGold(true);
       updateResetPanel();
     });
   }
