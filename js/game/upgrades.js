@@ -16,7 +16,6 @@ import {
   initResetSystem,
   onForgeUpgradeUnlocked,
   isForgeUnlocked,
-  arePearlsUnlocked,
   hasDoneForgeReset,
 } from './resetSystem.js';
 
@@ -1830,49 +1829,6 @@ const REGISTRY = [
     },
     effectMultiplier: E.addPctPerLevel(0.08),
   },
-/*
-Will remove these upgrades later when I remove the pearl system
-{
-  area: AREA_KEYS.STARTER_COVE,
-  id: 10,
-  title: "Pearl Collector",
-  desc: "Placeholder pearl upgrade that boosts Pearl spawn chance",
-  lvlCap: 30,
-  baseCost: 10,
-  costType: "pearls",
-  upgType: "NM",
-  icon: "misc/merchant.png",
-  requiresUnlockXp: true,
-  costAtLevel(level) { return nmCostBN(this, level); },
-  nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
-  computeLockState: determineLockState,
-  effectSummary(level) {
-    const mult = this.effectMultiplier(level);
-    return `Pearl spawn bonus: ${formatMultForUi(mult)}x`;
-  },
-  effectMultiplier: E.addPctPerLevel(0.05),
-},
-{
-  area: AREA_KEYS.STARTER_COVE,
-  id: 11,
-  title: "Pearl Wisdom",
-  desc: "Placeholder pearl upgrade that increases XP gained from Pearls",
-  lvlCap: 15,
-  baseCost: 50,
-  costType: "pearls",
-  upgType: "NM",
-  icon: "misc/merchant.png",
-  requiresUnlockXp: true,
-  costAtLevel(level) { return nmCostBN(this, level); },
-  nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
-  computeLockState: determineLockState,
-  effectSummary(level) {
-    const mult = this.effectMultiplier(level);
-    return `XP gain from Pearls bonus: ${formatMultForUi(mult)}x`;
-  },
-  effectMultiplier: E.addPctPerLevel(0.10),
-}
-*/
 ];
 
 for (const upg of REGISTRY) {
