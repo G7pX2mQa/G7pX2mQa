@@ -520,8 +520,8 @@
 }
 
 .upg-sheet.is-unlock-upgrade .upg-content {
-  transform: translateY(-26vh);
-  padding-top: 1vh;
+  transform: translateY(-30vh);
+  padding-top: 1.5vh;
 }
 
 .upg-desc.centered{
