@@ -216,7 +216,6 @@ export function initCoinPickup({
   let pendingCoinGain = null;
   let pendingXpGain = null;
   let pendingMutGain = null;
-  let pendingPearlCount = 0;
   let flushScheduled = false;
 
   const mergeGain = (current, gain) => {
@@ -251,12 +250,6 @@ export function initCoinPickup({
     if (mutGain && !mutGain.isZero?.()) {
       try { addMutationPower(mutGain); } catch {}
     }
-
-    if (pendingPearlCount > 0) {
-      try { bank.pearls.add(BigNum.fromInt(pendingPearlCount)); } catch {}
-      try { updatePearlHud(); } catch {}
-      pendingPearlCount = 0;
-    }
   };
 
   const scheduleFlush = () => {
@@ -280,11 +273,6 @@ export function initCoinPickup({
 
   const queueMutationGain = (gain) => {
     pendingMutGain = mergeGain(pendingMutGain, gain);
-    scheduleFlush();
-  };
-
-  const queuePearlGain = (count = 1) => {
-    pendingPearlCount += count;
     scheduleFlush();
   };
 
@@ -528,10 +516,6 @@ function collect(el) {
   const xpIsZero = typeof xpInc?.isZero === 'function' ? xpInc.isZero() : false;
   if (xpEnabled && !xpIsZero) {
     queueXpGain(xpInc);
-  }
-
-  if (el.dataset.pearl === '1') {
-    queuePearlGain(1);
   }
 
   if (typeof isMutationUnlocked === 'function' && isMutationUnlocked()) {
