@@ -513,6 +513,10 @@
   padding-bottom: 3vh;
 }
 
+.upg-sheet.is-unlock-short .upg-content {
+  transform: none;
+}
+
 .upg-sheet.is-locked-hidden .upg-content{
   transform: translateY(-24vh);
   padding-top: 0;
@@ -520,7 +524,7 @@
 }
 
 .upg-sheet.is-unlock-upgrade .upg-content {
-  transform: translateY(-30vh);
+  transform: none;
   padding-top: 1.5vh;
 }
 
@@ -677,6 +681,10 @@
     transform: translateY(-30vh);
     padding-top: 0.5vh;
   }
+  
+  .upg-sheet.is-unlock-short .upg-content {
+    transform: none;
+  }
 }
 
 @media (hover: none) and (pointer: coarse) and (max-width: 600px) {
@@ -750,7 +758,7 @@
   }
   
   .upg-sheet.is-unlock-upgrade .upg-content {
-    transform: translateY(-32vh);
+    transform: none;
     padding-top: 2vh;
   }
 }
