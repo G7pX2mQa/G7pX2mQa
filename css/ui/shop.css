@@ -479,6 +479,10 @@
   border-top-right-radius: 14px;
 }
 
+.upg-sheet.is-unlock-upgrade {
+  grid-template-rows: auto auto 1fr auto;
+}
+
 .upg-grabber { display: grid; place-items: center; padding: 8px 0 4px; }
 .upg-grabber .grab-handle {
   width: 52px; height: 5px; border-radius: 4px;
