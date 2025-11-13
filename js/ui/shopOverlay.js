@@ -950,6 +950,7 @@ if (hasPointerEvents) {
 
     window.addEventListener(MERCHANT_MET_EVENT, () => {
       if (typeof updateDelveGlow === 'function') updateDelveGlow();
+      if (shopOpen) updateShopOverlay();
     });
   }
 }
@@ -1232,8 +1233,8 @@ export function openUpgradeOverlay(upgDef) {
       ? model.nextPrice
       : BigNum.fromAny(model.nextPrice || 0);
 
-    // costs only if not capped
-    if (!capReached && (!locked || !lockState?.hideCost)) {
+    // costs only if not capped and not an unlock-type
+    if (!model.unlockUpgrade && !capReached && (!locked || !lockState?.hideCost)) {
       const costs = document.createElement('div');
       costs.className = 'upg-costs';
 
