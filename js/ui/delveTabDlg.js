@@ -447,11 +447,6 @@ const DLG_CATALOG = {
     once: false,
   },
 };
-  return true;
-},
-    once: false,
-  },
-};
 
 function loadDlgState() {
   try { return JSON.parse(localStorage.getItem(sk(MERCHANT_DLG_STATE_KEY_BASE)) || '{}'); } catch { return {}; }
