@@ -1217,16 +1217,16 @@ export function openUpgradeOverlay(upgDef) {
     const actionsRect = actions.getBoundingClientRect();
     const contentRect = content.getBoundingClientRect();
 
-    const available = actionsRect.top - headerRect.bottom;
-    const freeSpace = available - contentRect.height;
-    if (freeSpace <= 0) return;
+  const available = actionsRect.top - headerRect.bottom;
+  const freeSpace = available - contentRect.height;
+  if (freeSpace <= 0) return;
 
-    // 0.5 = exact center; a bit higher looks nicer
-    const BIAS = 0.60;
-    const topOffset = freeSpace * BIAS;
+  const BIAS = 0.42;
+  const topOffset = freeSpace * BIAS;
 
-    content.style.marginTop = `${topOffset}px`;
-  }
+  content.style.marginTop = `${topOffset}px`;
+}
+
 
   const rerender = () => {
     const model = ui();
