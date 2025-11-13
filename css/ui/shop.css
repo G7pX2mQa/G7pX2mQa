@@ -519,8 +519,8 @@
   padding-bottom: 2vh;
 }
 
-.upg-sheet.is-unlock-upgrade:not(.is-maxed):not(.is-locked-hidden) .upg-content {
-  transform: translateY(-16vh);
+.upg-sheet.is-unlock-upgrade .upg-content {
+  transform: translateY(-26vh);
   padding-top: 1vh;
 }
 
@@ -749,9 +749,9 @@
     padding-top: 0.5vh;
   }
   
-  .upg-sheet.is-unlock-upgrade:not(.is-maxed):not(.is-locked-hidden) .upg-content {
-    transform: translateY(-10vh);
-    padding-top: 1vh;
+  .upg-sheet.is-unlock-upgrade .upg-content {
+    transform: translateY(-32vh);
+    padding-top: 2vh;
   }
 }
 
