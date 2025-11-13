@@ -118,8 +118,15 @@ function getXpLevelNumber() {
   return Math.max(0, levelToNumber(getXpLevelBn()));
 }
 
+function ensureResetSlot() {
+  if (resetState.slot != null) return resetState.slot;
+  const slot = getActiveSlot();
+  resetState.slot = slot;
+  return slot;
+}
+
 function setForgeResetCompleted(value) {
-  const slot = resetState.slot;
+  const slot = ensureResetSlot();
   if (slot == null) return;
   resetState.hasDoneForgeReset = !!value;
   try { localStorage.setItem(FORGE_COMPLETED_KEY(slot), resetState.hasDoneForgeReset ? '1' : '0'); }
@@ -128,7 +135,7 @@ function setForgeResetCompleted(value) {
 }
 
 function setForgeUnlocked(value) {
-  const slot = resetState.slot;
+  const slot = ensureResetSlot();
   if (slot == null) return;
   resetState.forgeUnlocked = !!value;
   try { localStorage.setItem(FORGE_UNLOCK_KEY(slot), resetState.forgeUnlocked ? '1' : '0'); }
