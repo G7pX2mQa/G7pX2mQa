@@ -603,7 +603,13 @@
   font-weight: 400;
 }
 
-/* Tighten for short viewports (landscape phones) */
 @media (max-height: 500px) and (orientation: landscape) {
   .merchant-dialogue-list { max-height: 46vh; }
+}
+
+@media (pointer: coarse) {
+  .dlg-reward .coin-icon,
+  .dlg-reward .book-icon {
+    top: 0;
+  }
 }
