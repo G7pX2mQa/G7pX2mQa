@@ -2896,29 +2896,47 @@ export function buyOne(areaKey, upgId) {
   const lvlNum = state.lvl;
   const lvlBn = state.lvlBn ?? ensureLevelBigNum(lvlNum);
   const prevLevelBn = safeCloneBigNum(lvlBn);
+
   if (lvlNum >= upg.lvlCap) return { bought: 0, spent: 0 };
+
   if (isInfinityLevelForScaled(upg, lvlBn)) {
-  state.lvlBn = BigNum.fromAny('Infinity');
-  state.lvl = levelBigNumToNumber(state.lvlBn);
-  state.nextCostBn = BigNum.fromAny('Infinity');
-  commitUpgradeState(state);
-  invalidateUpgradeState(areaKey, upgId);
-  notifyChanged();
-  return { bought: 0, spent: 0 };
-  }
-
-
-  const price = state.nextCostBn ?? BigNum.fromAny(upg.costAtLevel(lvlNum));
-  const haveRaw = bank[upg.costType]?.value;
-  const have = haveRaw instanceof BigNum
-    ? haveRaw
-    : BigNum.fromAny(haveRaw ?? 0);
-
-  if (have.cmp(BigNum.fromAny(price)) < 0) {
+    state.lvlBn = BigNum.fromAny('Infinity');
+    state.lvl = levelBigNumToNumber(state.lvlBn);
+    state.nextCostBn = BigNum.fromAny('Infinity');
+    commitUpgradeState(state);
+    invalidateUpgradeState(areaKey, upgId);
+    notifyChanged();
     return { bought: 0, spent: 0 };
   }
-  const spent = BigNum.fromAny(price);
-  bank[upg.costType].sub(spent);
+
+  const rawPrice = state.nextCostBn ?? BigNum.fromAny(upg.costAtLevel(lvlNum));
+  const priceBn = rawPrice instanceof BigNum
+    ? rawPrice
+    : BigNum.fromAny(rawPrice ?? 0);
+
+  const costType = upg.costType;
+  const walletEntry = costType ? bank[costType] : null;
+
+  let spent = BigNum.fromInt(0);
+
+  if (walletEntry && !priceBn.isZero?.()) {
+    const haveRaw = walletEntry.value;
+    const have = haveRaw instanceof BigNum
+      ? haveRaw
+      : BigNum.fromAny(haveRaw ?? 0);
+
+    if (have.cmp(priceBn) < 0) {
+      return { bought: 0, spent: 0 };
+    }
+
+    spent = priceBn.clone?.() ?? BigNum.fromAny(priceBn);
+    walletEntry.sub(spent);
+  } else {
+    if (!priceBn.isZero?.()) {
+      return { bought: 0, spent: 0 };
+    }
+    spent = BigNum.fromInt(0);
+  }
 
   const nextLevelBn = lvlBn.add(BigNum.fromInt(1));
   state.lvlBn = nextLevelBn;
@@ -2928,10 +2946,12 @@ export function buyOne(areaKey, upgId) {
       ? upg.nextCostAfter(spent, state.lvl)
       : upg.costAtLevel(state.lvl)
   );
+
   commitUpgradeState(state);
   invalidateUpgradeState(areaKey, upgId);
   emitUpgradeLevelChange(upg, lvlNum, prevLevelBn, state.lvl, state.lvlBn);
   notifyChanged();
+
   return { bought: 1, spent };
 }
 
