@@ -227,15 +227,22 @@
   margin: 0 auto;
 }
 
-/* Icon layout */
-.shop-tile img.base {
+.shop-tile img.base,
+.shop-tile img.maxed-overlay {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
   pointer-events: none;
+}
+
+.shop-tile img.base {
   z-index: 1;
+}
+
+.shop-tile img.maxed-overlay {
+  z-index: 2;
 }
 
 .shop-tile img.icon {
@@ -247,7 +254,7 @@
   height: 68%;
   object-fit: contain;
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
 }
 
 .shop-tile .level-badge {
