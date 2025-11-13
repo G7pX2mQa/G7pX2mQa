@@ -622,6 +622,11 @@
   text-shadow: 0 0 10px hsla(150, 60%, 45%, 0.6);
 }
 
+.shop-tile .level-badge.is-maxed {
+  color: hsl(330, 80%, 75%);
+  text-shadow: 0 0 10px hsla(330, 70%, 45%, 0.65);
+}
+
 .upg-desc.centered,
 .upg-line {
   color: hsl(0 0% 100%);
