@@ -10,6 +10,11 @@ const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
 const KEY_XP_LEVEL = (slot) => `${KEY_PREFIX}:level:${slot}`;
 const KEY_PROGRESS = (slot) => `${KEY_PREFIX}:progress:${slot}`;
 
+export function getXpLevelStorageKey(slot = getActiveSlot()) {
+  const resolvedSlot = slot ?? getActiveSlot();
+  return resolvedSlot == null ? null : KEY_XP_LEVEL(resolvedSlot);
+}
+
 let lastSlot = null;
 let stateLoaded = false;
 let requirementBn = BigNum.fromInt(10);
