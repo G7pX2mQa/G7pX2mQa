@@ -674,7 +674,7 @@ function renderShopGrid() {
     const capReached = Number.isFinite(capNumber) && Number.isFinite(levelNumber)
       ? levelNumber >= capNumber
       : false;
-    const showUnlockableBadge = !locked && isUnlockUpgrade && !capReached && hasPlus;
+    const showUnlockableBadge = !locked && isUnlockUpgrade && !capReached;
     const showUnlockedBadge = !locked && isUnlockUpgrade && !showUnlockableBadge && capReached;
     let badgeHtml;
     let badgePlain;
