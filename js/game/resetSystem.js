@@ -397,9 +397,6 @@ export function initResetSystem() {
   if (resetState.hasDoneForgeReset && !isMutationUnlocked()) {
     try { unlockMutationSystem(); } catch {}
   }
-  if (resetState.pearlsUnlocked && !resetState.hasDoneForgeReset) {
-    setForgeResetCompleted(true);
-  }
   if (!resetState.forgeUnlocked && canAccessForgeTab()) {
     setForgeUnlocked(true);
   }
