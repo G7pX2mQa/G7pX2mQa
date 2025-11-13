@@ -35,14 +35,12 @@ const bnOne = () => BN.fromInt(1);
 const GOLD_ICON_SRC = 'img/currencies/gold/gold.png';
 const RESET_ICON_SRC = 'img/misc/forge.png';
 
-const PEARL_UNLOCK_KEY = (slot) => `ccc:reset:pearls:${slot}`;
 const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
 const FORGE_COMPLETED_KEY = (slot) => `ccc:reset:forge:completed:${slot}`;
 
 const resetState = {
   slot: null,
   forgeUnlocked: false,
-  pearlsUnlocked: false,
   hasDoneForgeReset: false,
   pendingGold: bnZero(),
   panel: null,
@@ -120,16 +118,6 @@ function getXpLevelNumber() {
   return Math.max(0, levelToNumber(getXpLevelBn()));
 }
 
-function setPearlsUnlocked(value) {
-  const slot = resetState.slot;
-  if (slot == null) return;
-  resetState.pearlsUnlocked = !!value;
-  try { localStorage.setItem(PEARL_UNLOCK_KEY(slot), resetState.pearlsUnlocked ? '1' : '0'); }
-  catch {}
-  primeStorageWatcherSnapshot(PEARL_UNLOCK_KEY(slot));
-  updateHudVisibility();
-}
-
 function setForgeResetCompleted(value) {
   const slot = resetState.slot;
   if (slot == null) return;
@@ -151,15 +139,9 @@ function setForgeUnlocked(value) {
 
 function readPersistentFlags(slot) {
   if (slot == null) {
-    resetState.pearlsUnlocked = false;
     resetState.forgeUnlocked = false;
     resetState.hasDoneForgeReset = false;
     return;
-  }
-  try {
-    resetState.pearlsUnlocked = localStorage.getItem(PEARL_UNLOCK_KEY(slot)) === '1';
-  } catch {
-    resetState.pearlsUnlocked = false;
   }
   try {
     resetState.forgeUnlocked = localStorage.getItem(FORGE_UNLOCK_KEY(slot)) === '1';
@@ -178,16 +160,6 @@ function bindStorageWatchers(slot) {
   cleanupWatchers();
   watchersBoundSlot = slot;
   if (slot == null) return;
-  watchers.push(watchStorageKey(PEARL_UNLOCK_KEY(slot), {
-    onChange(value) {
-      const next = value === '1';
-      if (resetState.pearlsUnlocked !== next) {
-        resetState.pearlsUnlocked = next;
-        updateHudVisibility();
-        updateResetPanel();
-      }
-    },
-  }));
   watchers.push(watchStorageKey(FORGE_UNLOCK_KEY(slot), {
     onChange(value) {
       const next = value === '1';
@@ -211,19 +183,11 @@ function bindStorageWatchers(slot) {
 
 function updateHudVisibility() {
   const goldHud = document.querySelector('[data-gold-hud]');
-  const pearlHud = document.querySelector('[data-pearl-hud]');
   if (goldHud) {
     if (isForgeUnlocked()) {
       goldHud.removeAttribute('hidden');
     } else {
       goldHud.setAttribute('hidden', '');
-    }
-  }
-  if (pearlHud) {
-    if (resetState.pearlsUnlocked) {
-      pearlHud.removeAttribute('hidden');
-    } else {
-      pearlHud.setAttribute('hidden', '');
     }
   }
 }
