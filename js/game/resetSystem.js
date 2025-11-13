@@ -194,10 +194,6 @@ function meetsLevelRequirement() {
   return getXpLevelNumber() >= 31;
 }
 
-export function arePearlsUnlocked() {
-  return !!resetState.pearlsUnlocked;
-}
-
 export function isForgeUnlocked() {
   return !!resetState.forgeUnlocked || canAccessForgeTab();
 }
