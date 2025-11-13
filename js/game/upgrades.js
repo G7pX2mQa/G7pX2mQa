@@ -1850,6 +1850,61 @@ for (const upg of REGISTRY) {
 const areaStatePayloadCache = new Map(); // key → last serialized payload
 const areaStateMemoryCache = new Map(); // key → last parsed array reference
 const upgradeStateCache = new Map(); // key → { areaKey, upgId, upg, rec, arr, lvl, nextCostBn }
+const areaUpgradeOrderCache = new Map();
+
+function getAreaUpgradeOrder(areaKey) {
+  const normalizedArea = normalizeAreaKey(areaKey);
+  if (!normalizedArea) return null;
+
+  if (areaUpgradeOrderCache.has(normalizedArea)) {
+    return areaUpgradeOrderCache.get(normalizedArea);
+  }
+
+  const order = new Map();
+  let rank = 0;
+  for (const upg of REGISTRY) {
+    if (normalizeAreaKey(upg?.area) !== normalizedArea) continue;
+    const normalizedId = normalizeUpgradeId(upg?.id);
+    if (normalizedId == null || order.has(normalizedId)) continue;
+    order.set(normalizedId, rank);
+    rank += 1;
+  }
+
+  areaUpgradeOrderCache.set(normalizedArea, order);
+  return order;
+}
+
+function normalizeAreaStateRecordOrder(areaKey, arr) {
+  if (!Array.isArray(arr) || arr.length <= 1) return false;
+  const order = getAreaUpgradeOrder(areaKey);
+  if (!(order?.size)) return false;
+
+  const baseRank = order.size;
+  const entries = arr.map((rec, idx) => {
+    const normalizedId = normalizeUpgradeId(rec?.id);
+    const rank = order.has(normalizedId)
+      ? order.get(normalizedId)
+      : baseRank + idx;
+    return { rec, rank, idx };
+  });
+
+  let needsSort = false;
+  for (let i = 1; i < entries.length; i += 1) {
+    const prev = entries[i - 1];
+    const curr = entries[i];
+    if (curr.rank < prev.rank || (curr.rank === prev.rank && curr.idx < prev.idx)) {
+      needsSort = true;
+      break;
+    }
+  }
+
+  if (!needsSort) return false;
+
+  entries.sort((a, b) => (a.rank - b.rank) || (a.idx - b.idx));
+  arr.length = 0;
+  for (const entry of entries) arr.push(entry.rec);
+  return true;
+}
 
 function parseUpgradeStateArray(raw) {
   if (typeof raw !== 'string' || !raw) return null;
@@ -2031,7 +2086,12 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
   }
   
   if (primary.data) {
-    cacheAreaState(storageKey, primary.data, primary.raw);
+    const normalized = normalizeAreaStateRecordOrder(areaKey, primary.data);
+    if (normalized) {
+      saveAreaState(areaKey, primary.data, slot);
+    } else {
+      cacheAreaState(storageKey, primary.data, primary.raw);
+    }
     if (backup.storageFound) {
       try {
         if (typeof localStorage !== 'undefined') {
@@ -2043,7 +2103,12 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
   }
 
   if (backup.data) {
-    cacheAreaState(storageKey, backup.data, backup.raw);
+    const normalized = normalizeAreaStateRecordOrder(areaKey, backup.data);
+    if (normalized) {
+      saveAreaState(areaKey, backup.data, slot);
+    } else {
+      cacheAreaState(storageKey, backup.data, backup.raw);
+    }
     try {
       if (typeof localStorage !== 'undefined') {
         const backupPayload = backup.raw ?? JSON.stringify(backup.data);
@@ -2065,12 +2130,20 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
 
   if (!forceReload && !storagesChecked) {
     const cached = areaStateMemoryCache.get(storageKey);
-    if (Array.isArray(cached)) return cached;
+    if (Array.isArray(cached)) {
+      normalizeAreaStateRecordOrder(areaKey, cached);
+      return cached;
+    }
 
     const cachedPayload = areaStatePayloadCache.get(storageKey);
     const parsed = parseUpgradeStateArray(cachedPayload);
     if (parsed) {
-      cacheAreaState(storageKey, parsed, cachedPayload);
+      const normalized = normalizeAreaStateRecordOrder(areaKey, parsed);
+      if (normalized) {
+        saveAreaState(areaKey, parsed, slot);
+      } else {
+        cacheAreaState(storageKey, parsed, cachedPayload);
+      }
       return parsed;
     }
   }
@@ -2088,6 +2161,7 @@ function saveAreaState(areaKey, stateArr, slot = getActiveSlot()) {
   if (!storageKey) return;
 
   const arr = Array.isArray(stateArr) ? stateArr : [];
+  normalizeAreaStateRecordOrder(areaKey, arr);
   let payload = null;
   try {
     payload = JSON.stringify(arr);
