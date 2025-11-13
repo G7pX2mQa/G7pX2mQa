@@ -150,6 +150,7 @@ const shopRevealStateCache = new Map();
 const shopPermaUnlockStateCache = new Map();
 const shopPermaMystStateCache   = new Map();
 const upgradeTieLookup = new Map();
+const BOOK_VALUE_TIE_KEY = normalizeUpgradeTie(UPGRADE_TIES.BOOK_VALUE_I);
 
 const BN = BigNum;
 const toBn = (x) => BN.fromAny(x ?? 0);
@@ -1991,7 +1992,9 @@ for (const upg of REGISTRY) {
   upg.lvlCapFmtHtml = formatBigNumAsHtml(upg.lvlCapBn);
   upg.lvlCapFmtText = formatBigNumAsPlain(upg.lvlCapBn);
 
-  if (Number.isFinite(upg.lvlCap) && Math.max(0, Math.floor(upg.lvlCap)) === 1) {
+  const isSingleLevelCap = Number.isFinite(upg.lvlCap) && Math.max(0, Math.floor(upg.lvlCap)) === 1;
+  const isBookValueUpgrade = tieKey === BOOK_VALUE_TIE_KEY;
+  if (isSingleLevelCap && !isBookValueUpgrade) {
     upg.unlockUpgrade = true;
     upg.baseCost = BigNum.fromInt(0);
     upg.baseCostBn = upg.baseCost;
