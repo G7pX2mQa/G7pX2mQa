@@ -14,6 +14,7 @@ import {
 } from './xpSystem.js';
 import {
   AREA_KEYS,
+  UPGRADE_TIES,
   getUpgradesForArea,
   getLevelNumber,
   setLevel,
@@ -196,7 +197,7 @@ function recomputePendingGold() {
 }
 
 function canAccessForgeTab() {
-  return resetState.forgeUnlocked || getLevelNumber(AREA_KEYS.STARTER_COVE, 7) >= 1;
+  return resetState.forgeUnlocked || getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.UNLOCK_FORGE) >= 1;
 }
 
 function meetsLevelRequirement() {
@@ -235,7 +236,8 @@ function resetUpgrades() {
   const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
   for (const upg of upgrades) {
     if (!upg) continue;
-    if (upg.id === 2 || upg.id === 7) continue;
+    const tieKey = upg.tieKey || upg.tie;
+    if (tieKey === UPGRADE_TIES.UNLOCK_XP || tieKey === UPGRADE_TIES.UNLOCK_FORGE) continue;
     if (upg.costType === 'gold') continue;
     setLevel(AREA_KEYS.STARTER_COVE, upg.id, 0);
   }
