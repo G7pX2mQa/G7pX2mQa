@@ -1194,6 +1194,7 @@ export function openUpgradeOverlay(upgDef) {
     }
 
     upgSheetEl.classList.toggle('is-maxed', capReached);
+	upgSheetEl.classList.toggle('is-unlock-upgrade', !!model.unlockUpgrade);
     header.append(title, level);
 
     const content = upgSheetEl.querySelector('.upg-content');
