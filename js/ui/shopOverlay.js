@@ -52,6 +52,7 @@ const BASE_ICON_SRC_BY_COST = {
   gold: 'img/currencies/gold/gold_base.png',
 };
 const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.png';
+const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.png';
 const CURRENCY_ICON_SRC = {
   coins: 'img/currencies/coin/coin.png',
   books: 'img/currencies/book/book.png',
@@ -798,11 +799,23 @@ function renderShopGrid() {
       }
     });
 
+    tile.appendChild(baseImg);
+    if (!locked && capReached) {
+      const maxedOverlay = document.createElement('img');
+      maxedOverlay.className = 'maxed-overlay';
+      maxedOverlay.src = MAXED_BASE_OVERLAY_SRC;
+      maxedOverlay.alt = '';
+      maxedOverlay.decoding = 'async';
+      maxedOverlay.loading = 'lazy';
+      tile.appendChild(maxedOverlay);
+    }
+    tile.appendChild(iconImg);
+
     if (!locked) {
-    const badge = document.createElement('span');
-	badge.className = 'level-badge';
-	if (needsTwoLines) badge.classList.add('two-line');
-	
+      const badge = document.createElement('span');
+      badge.className = 'level-badge';
+      if (needsTwoLines) badge.classList.add('two-line');
+
       if (badgeHtml === badgePlain) {
         badge.textContent = badgeHtml;
       } else {
@@ -810,9 +823,7 @@ function renderShopGrid() {
       }
       if (hasPlus || showUnlockableBadge) badge.classList.add('can-buy');
       if (capReached) badge.classList.add('is-maxed');
-      tile.append(baseImg, iconImg, badge);
-    } else {
-      tile.append(baseImg, iconImg);
+      tile.appendChild(badge);
     }
     btn.appendChild(tile);
     grid.appendChild(btn);
