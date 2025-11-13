@@ -1258,10 +1258,10 @@ export function openUpgradeOverlay(upgDef) {
     const capHtml = model.lvlCapFmtHtml ?? model.upg.lvlCapFmtHtml ?? formatNumber(model.lvlCapBn);
     const capPlain = model.lvlCapFmtText ?? model.upg.lvlCapFmtText ?? stripTags(capHtml);
     const levelHtml = capReached
-      ? `Level ${model.lvlFmtHtml} / ${capHtml} (MAX)`
+      ? `Level ${model.lvlFmtHtml} / ${capHtml} (MAXED)`
       : `Level ${model.lvlFmtHtml} / ${capHtml}`;
     const levelPlain = capReached
-      ? `Level ${model.lvlFmtText} / ${capPlain} (MAX)`
+      ? `Level ${model.lvlFmtText} / ${capPlain} (MAXED)`
       : `Level ${model.lvlFmtText} / ${capPlain}`;
     level.innerHTML = levelHtml;
     level.setAttribute('aria-label', levelPlain);
