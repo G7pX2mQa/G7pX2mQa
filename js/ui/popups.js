@@ -6,7 +6,7 @@ import { CURRENCIES } from '../util/storage.js';
 
 const DEFAULT_DURATION = 3200;
 
-const POPUP_ORDER = ['coins', 'xp', 'books', 'gold', 'mp', 'pearls'];
+const POPUP_ORDER = ['coins', 'xp', 'books', 'gold', 'mp'];
 
 const POPUP_META = {
   [CURRENCIES.COINS]: {
@@ -260,4 +260,3 @@ export function teardownpopups() {
   container = null;
   initialized = false;
 }
-
