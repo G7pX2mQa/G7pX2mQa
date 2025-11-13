@@ -112,6 +112,7 @@ const XP_MYSTERY_UPGRADE_KEYS = new Set([
   'starter_cove:5',
   'starter_cove:6',
 ]);
+const MERCHANT_MET_KEY_BASE = 'ccc:merchantMet';
 const SHOP_REVEAL_STATE_KEY_BASE = 'ccc:shop:reveals';
 const SHOP_PERMA_UNLOCK_KEY_BASE = 'ccc:shop:permaUnlocks';
 const SHOP_PERMA_MYST_KEY_BASE   = 'ccc:shop:permaMyst';
@@ -412,6 +413,24 @@ function determineLockState(ctx) {
   try {
     xpUnlocked = (ctx && typeof ctx.xpUnlocked !== 'undefined') ? !!ctx.xpUnlocked : safeIsXpUnlocked();
   } catch {}
+  
+  function determineUnlockXpLockState() {
+  if (safeHasMetMerchant()) {
+    return { locked: false };
+  }
+
+  const revealText = 'Explore the Delve menu to reveal this upgrade';
+  return {
+    locked: true,
+    iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+    titleOverride: HIDDEN_UPGRADE_TITLE,
+    descOverride: revealText,
+    reason: revealText,
+    hidden: true,
+    hideCost: true,
+    hideEffect: true,
+    useLockedBase: true,
+  };
 
   // ==== Upgrade 7 (Unlock Forge) ====
   if (idNum === 7) {
@@ -550,6 +569,16 @@ function isXpAdjacentUpgrade(areaKey, upg) {
 function safeIsXpUnlocked() {
   try {
     return !!isXpSystemUnlocked();
+  } catch {
+    return false;
+  }
+}
+
+function safeHasMetMerchant(slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    return localStorage.getItem(`${MERCHANT_MET_KEY_BASE}:${slotKey}`) === '1';
   } catch {
     return false;
   }
@@ -1625,19 +1654,22 @@ const REGISTRY = [
     },
     effectMultiplier: E.addPctPerLevel(0.10),
   },
-
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 2,
     title: "Unlock XP",
     desc: "Unlocks the XP system and a new Merchant dialogue\nXP system: Collect coins for XP to level up and gain Books\nEach XP level also boosts coin value by a decent amount",
     lvlCap: 1,
-    baseCost: 100,
+    baseCost: 0,
     costType: "coins",
     upgType: "NM",
     icon: "stats/xp/xp.png",
-    costAtLevel(level) { return nmCostBN(this, level); },
-    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    baseIconOverride: "img/stats/xp/xp_base.png",
+    revealRequirement: MEET_MERCHANT_REVEAL_TEXT,
+    unlockUpgrade: true,
+    costAtLevel() { return BigNum.fromInt(0); },
+    nextCostAfter() { return BigNum.fromInt(0); },
+    computeLockState: determineUnlockXpLockState,
     effectSummary() { return ""; },
     onLevelChange({ newLevel, newLevelBn }) {
       const reached = Number.isFinite(newLevel)
@@ -1646,7 +1678,6 @@ const REGISTRY = [
       if (reached) { try { unlockXpSystem(); } catch {} }
     },
   },
-
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 3,
@@ -1841,6 +1872,15 @@ for (const upg of REGISTRY) {
   upg.lvlCap = levelCapToNumber(upg.lvlCapBn);
   upg.lvlCapFmtHtml = formatBigNumAsHtml(upg.lvlCapBn);
   upg.lvlCapFmtText = formatBigNumAsPlain(upg.lvlCapBn);
+
+  if (Number.isFinite(upg.lvlCap) && Math.max(0, Math.floor(upg.lvlCap)) === 1) {
+    upg.unlockUpgrade = true;
+    upg.baseCost = BigNum.fromInt(0);
+    upg.baseCostBn = upg.baseCost;
+    upg.costAtLevel = () => BigNum.fromInt(0);
+    upg.nextCostAfter = () => BigNum.fromInt(0);
+  }
+
   upg.bulkMeta = computeBulkMeta(upg);
   ensureUpgradeScaling(upg);
 }
@@ -2350,20 +2390,36 @@ function computeUpgradeLockStateFor(areaKey, upg) {
 if (upg.requiresUnlockXp && !xpUnlocked) {
   const isXpAdj = isXpAdjacentUpgrade(areaKey, upg);
   const xpRevealText = 'Unlock the XP system to reveal this upgrade';
+  const unlockXpVisible = safeHasMetMerchant();
 
   if (isXpAdj) {
-    // XP-adjacent tiles show as mysterious (“?”)
-    baseState = {
-      locked: true,
-      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-      titleOverride: HIDDEN_UPGRADE_TITLE,
-      descOverride: xpRevealText,
-      reason: xpRevealText,
-      hidden: true,
-      hideCost: true,
-      hideEffect: true,
-      useLockedBase: true,
-    };
+    if (!unlockXpVisible) {
+      const meetText = 'Meet the Merchant to reveal "Unlock XP"';
+      baseState = {
+        locked: true,
+        iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+        titleOverride: LOCKED_UPGRADE_TITLE,
+        descOverride: meetText,
+        reason: meetText,
+        hidden: false,
+        hideCost: false,
+        hideEffect: false,
+        useLockedBase: true,
+      };
+    } else {
+      // XP-adjacent tiles show as mysterious (“?”)
+      baseState = {
+        locked: true,
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: xpRevealText,
+        reason: xpRevealText,
+        hidden: true,
+        hideCost: true,
+        hideEffect: true,
+        useLockedBase: true,
+      };
+    }
   } else {
     // Everyone else is a plain locked padlock (not mysterious / not clickable)
     baseState = {
