@@ -236,7 +236,7 @@ function resetUpgrades() {
   for (const upg of upgrades) {
     if (!upg) continue;
     if (upg.id === 2 || upg.id === 7) continue;
-    if (upg.costType === 'gold' || upg.costType === 'pearls') continue;
+    if (upg.costType === 'gold') continue;
     setLevel(AREA_KEYS.STARTER_COVE, upg.id, 0);
   }
 }
@@ -251,9 +251,6 @@ export function performForgeReset() {
   resetUpgrades();
   recomputePendingGold();
   setForgeUnlocked(true);
-  if (!resetState.pearlsUnlocked) {
-    setPearlsUnlocked(true);
-  }
   if (!resetState.hasDoneForgeReset) {
     setForgeResetCompleted(true);
   }
@@ -405,9 +402,6 @@ export function initResetSystem() {
   }
   if (!resetState.forgeUnlocked && canAccessForgeTab()) {
     setForgeUnlocked(true);
-  }
-  if (resetState.hasDoneForgeReset && !resetState.pearlsUnlocked) {
-    setPearlsUnlocked(true);
   }
   bindStorageWatchers(slot);
   bindGlobalEvents();
