@@ -1336,35 +1336,35 @@ export function openUpgradeOverlay(upgDef) {
     // ---------- actions ----------
     const actions = upgSheetEl.querySelector('.upg-actions');
     actions.innerHTML = '';
+	
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'shop-close';
+    closeBtn.textContent = 'Close';
+    closeBtn.addEventListener('click', () => { upgOpenLocal = false; closeUpgradeMenu(); });
 
-const closeBtn = document.createElement('button');
-closeBtn.type = 'button';
-closeBtn.className = 'shop-close';
-closeBtn.textContent = 'Close';
-closeBtn.addEventListener('click', () => { upgOpenLocal = false; closeUpgradeMenu(); });
-
-if ('PointerEvent' in window) {
-  closeBtn.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'mouse') return;
-    if (typeof e.button === 'number' && e.button !== 0) return;
-    markGhostTapTarget(closeBtn);
-    suppressNextGhostTap(320);
-    blockInteraction(160);
-    upgOpenLocal = false;
-    closeUpgradeMenu();
-    e.preventDefault();
-  }, { passive: false });
-} else {
-  closeBtn.addEventListener('touchstart', (e) => {
-    markGhostTapTarget(closeBtn);
-    suppressNextGhostTap(320);
-    blockInteraction(160);
-    upgOpenLocal = false;
-    closeUpgradeMenu();
-    e.preventDefault();
-  }, { passive: false });
-}
-
+    if ('PointerEvent' in window) {
+      closeBtn.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse') return;
+        if (typeof e.button === 'number' && e.button !== 0) return;
+        markGhostTapTarget(closeBtn);
+        suppressNextGhostTap(320);
+        blockInteraction(160);
+        upgOpenLocal = false;
+        closeUpgradeMenu();
+        e.preventDefault();
+      }, { passive: false });
+    } else {
+      closeBtn.addEventListener('touchstart', (e) => {
+        markGhostTapTarget(closeBtn);
+        suppressNextGhostTap(320);
+        blockInteraction(160);
+        upgOpenLocal = false;
+        closeUpgradeMenu();
+        e.preventDefault();
+      }, { passive: false });
+    }
+	
     if (locked) {
       actions.append(closeBtn);
       closeBtn.focus();
@@ -1392,9 +1392,10 @@ if ('PointerEvent' in window) {
             rerender();
           }
         });
-
+		
         actions.append(closeBtn, unlockBtn);
         (canAffordNext ? unlockBtn : closeBtn).focus();
+        recenterUnlockOverlayIfNeeded(model);
         return;
       }
 
@@ -1450,6 +1451,7 @@ if ('PointerEvent' in window) {
 
       (canAffordNext ? buyBtn : closeBtn).focus();
     }
+	
 	recenterUnlockOverlayIfNeeded(model);
   };
 
