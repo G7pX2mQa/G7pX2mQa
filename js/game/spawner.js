@@ -1,7 +1,6 @@
 // spawner.js
 
 import { takePreloadedAudio } from '../util/audioCache.js';
-import { arePearlsUnlocked } from './resetSystem.js';
 import { getMutationState, onMutationChange } from './mutationSystem.js';
 
 let mutationUnlockedSnapshot = false;
@@ -62,10 +61,8 @@ export function createSpawner({
 
     let currentCoinSrc = coinSrc;
     const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-    const PEARL_SPRITE_SRC = 'img/currencies/pearl/pearl.png';
 	const MOBILE_BACKLOG_CAP = 50;
 	let burstUntil = 0;
-	let PEARL_SPAWN_CHANCE = 0.01;
 
 	const BURST_WINDOW_MS        = 120;
 	const BURST_TIME_BUDGET_MS   = 10.0;
@@ -164,8 +161,6 @@ export function createSpawner({
     delete el.dataset.dieAt;
     delete el.dataset.jitter;
     delete el.dataset.collected;
-    delete el.dataset.pearl;
-    el.classList.remove('coin--pearl');
 
    if (el.parentNode)
      el.remove();
@@ -385,57 +380,9 @@ function playWaveOncePerBurst() {
 
     return {
         wave,
-        coin: Object.assign({ isPearl: false }, coinPlan)
+        coin: coinPlan
     };
 }
-
-function planPearlFromWave(wave, compareCoin) {
-        if (!wave) return null;
-        if (!compareCoin) return planCoinFromWave(wave);
-
-        const crestCenter = wave.x + wave.w / 2 + (Math.random() * 36 - 18);
-        const startX = clamp(crestCenter - coinSize / 2, COIN_MARGIN, M.pfW - coinSize - COIN_MARGIN);
-        const startY = wave.y + 10 - coinSize / 2;
-
-        const compareDx = compareCoin.x1 - compareCoin.x0;
-        let direction;
-        if (Math.abs(compareDx) < 1) {
-            direction = Math.random() < 0.5 ? -1 : 1;
-        } else {
-            direction = compareDx > 0 ? -1 : 1;
-        }
-
-        const driftBase = Math.abs(compareDx) + coinSize * (0.5 + Math.random() * 0.4);
-        const drift = driftBase * (0.9 + Math.random() * 0.8);
-        let endX = startX + drift * direction;
-        endX = clamp(endX, COIN_MARGIN, M.pfW - coinSize - COIN_MARGIN);
-        if (Math.abs(endX - startX) < coinSize * 0.25) {
-            direction *= -1;
-            endX = clamp(startX + drift * direction, COIN_MARGIN, M.pfW - coinSize - COIN_MARGIN);
-        }
-
-        const minY = Math.max(M.wRect.height + 80, 120);
-        const maxY = Math.max(minY + 60, M.safeBottom - coinSize - 6);
-        const verticalRange = Math.max(140, Math.abs(compareCoin.y1 - compareCoin.y0) * (0.6 + Math.random() * 0.5));
-        const endY = clamp(startY + verticalRange, minY, maxY);
-
-        const bend = 0.35 + Math.random() * 0.3;
-        let midX = startX + (endX - startX) * bend;
-        midX += Math.random() * 40 - 20;
-        const jitterMs = Math.random() * 140;
-        const durationScale = 0.78 + Math.random() * 0.4;
-        const durationMs = Math.max(720, animationDurationMs * durationScale);
-
-        return {
-            x0: startX,
-            y0: startY,
-            xMid: midX,
-            y1: endY,
-            x1: endX,
-            jitterMs,
-            durationMs
-        };
-    }
 
 function commitBatch(batch) {
   if (!batch.length || !validRefs()) return;
@@ -456,9 +403,7 @@ function commitBatch(batch) {
     }
 
     const el = getCoin();
-    const isPearl = coin?.isPearl === true;
-    const spriteSrc = isPearl ? PEARL_SPRITE_SRC : currentCoinSrc;
-    el.style.background = `url(${spriteSrc}) center/contain no-repeat`;
+    el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
     el.style.setProperty('--x0', `${coin.x0}px`);
     el.style.setProperty('--y0', `${coin.y0}px`);
     el.style.setProperty('--xmid', `${coin.xMid}px`);
@@ -471,13 +416,6 @@ function commitBatch(batch) {
       el.dataset.animMs = String(Math.max(300, animMs));
     } else if (el.dataset.animMs) {
       delete el.dataset.animMs;
-    }
-    if (isPearl) {
-      el.dataset.pearl = '1';
-      el.classList.add('coin--pearl');
-    } else {
-      if (el.dataset.pearl) delete el.dataset.pearl;
-      el.classList.remove('coin--pearl');
     }
     el.dataset.dieAt = String(performance.now() + coinTtlMs);
     if (mutationUnlockedSnapshot) {
@@ -516,20 +454,6 @@ function commitBatch(batch) {
   });
 }
 
-function maybeQueuePearlCompanion(batch, plan) {
-  if (!plan || !plan.coin || plan.coin.isPearl === true) return 0;
-  if (!arePearlsUnlocked()) return 0;
-  if (Math.random() >= PEARL_SPAWN_CHANCE) return 0;
-  const pearlCoin = planPearlFromWave(plan.wave, plan.coin);
-  if (!pearlCoin) return 0;
-  const pearlPlan = {
-    wave: null,
-    coin: Object.assign({ isPearl: true }, pearlCoin),
-  };
-  batch.push(pearlPlan);
-  return 1;
-}
-
     function spawnBurst(n = 1) {
         if (!validRefs())
             return;
@@ -539,7 +463,6 @@ function maybeQueuePearlCompanion(batch, plan) {
         for (let i = 0; i < n; i++) {
             const plan = planSpawn();
             if (plan) {
-                plan.coin.isPearl = !!plan.coin.isPearl;
                 batch.push(plan);
             }
         }
@@ -620,7 +543,6 @@ if (due > 0) {
       if (plan) {
         batch.push(plan);
         baseSpawned += 1;
-        maybeQueuePearlCompanion(batch, plan);
       }
     }
     if (batch.length) {
