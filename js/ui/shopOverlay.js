@@ -57,6 +57,25 @@ const CURRENCY_ICON_SRC = {
   gold: 'img/currencies/gold/gold.png',
 };
 
+const FORGE_UNLOCK_UPGRADE_ID = 7;
+
+function resolveUpgradeId(upgLike) {
+  if (!upgLike) return null;
+  const rawId = typeof upgLike.id !== 'undefined' ? upgLike.id : upgLike;
+  if (typeof rawId === 'number') {
+    return Number.isFinite(rawId) ? Math.trunc(rawId) : null;
+  }
+  if (typeof rawId === 'string') {
+    const parsed = Number.parseInt(rawId.trim(), 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function isForgeUnlockUpgrade(upgLike) {
+  return resolveUpgradeId(upgLike) === FORGE_UNLOCK_UPGRADE_ID;
+}
+
 export function blockInteraction(ms = 140) {
   const isCoarse = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
   if (!isCoarse) return;
@@ -746,7 +765,7 @@ function renderShopGrid() {
       const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
       if (!boughtBn.isZero?.()) {
         playPurchaseSfx();
-        if (upg.meta?.unlockUpgrade) {
+        if (isForgeUnlockUpgrade(upg.meta)) {
           try { unlockMerchantTabs(['reset']); } catch {}
         }
         updateShopOverlay();
@@ -1314,7 +1333,7 @@ if ('PointerEvent' in window) {
           const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
           if (!boughtBn.isZero?.()) {
             playPurchaseSfx();
-            if (upgDef.id === 7) {
+            if (isForgeUnlockUpgrade(upgDef)) {
               try { unlockMerchantTabs(['reset']); } catch {}
             }
             updateShopOverlay();
