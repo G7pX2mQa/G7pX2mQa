@@ -38,6 +38,8 @@ const RESET_ICON_SRC = 'img/misc/forge.png';
 const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
 const FORGE_COMPLETED_KEY = (slot) => `ccc:reset:forge:completed:${slot}`;
 
+const MIN_FORGE_LEVEL = BN.fromInt(31);
+
 const resetState = {
   slot: null,
   forgeUnlocked: false,
@@ -198,7 +200,13 @@ function canAccessForgeTab() {
 }
 
 function meetsLevelRequirement() {
-  return getXpLevelNumber() >= 31;
+  try {
+    const levelBn = getXpLevelBn();
+    if (levelBn && typeof levelBn.cmp === 'function') {
+      return levelBn.cmp(MIN_FORGE_LEVEL) >= 0;
+    }
+  } catch {}
+  return false;
 }
 
 export function isForgeUnlocked() {
