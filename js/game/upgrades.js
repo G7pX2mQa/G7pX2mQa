@@ -415,22 +415,23 @@ function determineLockState(ctx) {
   } catch {}
   
   function determineUnlockXpLockState() {
-  if (safeHasMetMerchant()) {
-    return { locked: false };
-  }
+    if (safeHasMetMerchant()) {
+      return { locked: false };
+    }
 
-  const revealText = 'Explore the Delve menu to reveal this upgrade';
-  return {
-    locked: true,
-    iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-    titleOverride: HIDDEN_UPGRADE_TITLE,
-    descOverride: revealText,
-    reason: revealText,
-    hidden: true,
-    hideCost: true,
-    hideEffect: true,
-    useLockedBase: true,
-  };
+    const revealText = 'Explore the Delve menu to reveal this upgrade';
+    return {
+      locked: true,
+      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+      titleOverride: HIDDEN_UPGRADE_TITLE,
+      descOverride: revealText,
+      reason: revealText,
+      hidden: true,
+      hideCost: true,
+      hideEffect: true,
+      useLockedBase: true,
+    };
+  }
 
   // ==== Upgrade 7 (Unlock Forge) ====
   if (idNum === 7) {
