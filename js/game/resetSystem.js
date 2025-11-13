@@ -134,7 +134,6 @@ function setForgeUnlocked(value) {
   try { localStorage.setItem(FORGE_UNLOCK_KEY(slot), resetState.forgeUnlocked ? '1' : '0'); }
   catch {}
   primeStorageWatcherSnapshot(FORGE_UNLOCK_KEY(slot));
-  updateHudVisibility();
 }
 
 function readPersistentFlags(slot) {
@@ -165,7 +164,6 @@ function bindStorageWatchers(slot) {
       const next = value === '1';
       if (resetState.forgeUnlocked !== next) {
         resetState.forgeUnlocked = next;
-        updateHudVisibility();
         updateResetPanel();
       }
     },
@@ -179,17 +177,6 @@ function bindStorageWatchers(slot) {
       }
     },
   }));
-}
-
-function updateHudVisibility() {
-  const goldHud = document.querySelector('[data-gold-hud]');
-  if (goldHud) {
-    if (isForgeUnlocked()) {
-      goldHud.removeAttribute('hidden');
-    } else {
-      goldHud.setAttribute('hidden', '');
-    }
-  }
 }
 
 function recomputePendingGold() {
@@ -392,7 +379,6 @@ function bindGlobalEvents() {
 export function initResetSystem() {
   if (initialized) {
     recomputePendingGold();
-    updateHudVisibility();
     return;
   }
   initialized = true;
@@ -414,7 +400,6 @@ export function initResetSystem() {
   }
   bindStorageWatchers(slot);
   bindGlobalEvents();
-  updateHudVisibility();
   recomputePendingGold();
   if (mutationUnsub) {
     try { mutationUnsub(); } catch {}
@@ -438,7 +423,6 @@ export function initResetSystem() {
         setForgeUnlocked(true);
       }
       bindStorageWatchers(nextSlot);
-      updateHudVisibility();
       recomputePendingGold();
       updateResetPanel();
     });
