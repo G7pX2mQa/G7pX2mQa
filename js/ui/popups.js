@@ -25,10 +25,6 @@ const POPUP_META = {
     icon: 'img/currencies/gold/gold.png',
     iconAlt: 'Gold',
   },
-  [CURRENCIES.PEARLS]: {
-    icon: 'img/currencies/pearl/pearl.png',
-    iconAlt: 'Pearl',
-  },
   mp: {
     icon: 'img/stats/mp/mp.png',
     iconAlt: 'Mutation Power',
