@@ -805,8 +805,6 @@ function renderShopGrid() {
       maxedOverlay.className = 'maxed-overlay';
       maxedOverlay.src = MAXED_BASE_OVERLAY_SRC;
       maxedOverlay.alt = '';
-      maxedOverlay.decoding = 'async';
-      maxedOverlay.loading = 'lazy';
       tile.appendChild(maxedOverlay);
     }
     tile.appendChild(iconImg);
