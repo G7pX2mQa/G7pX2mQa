@@ -530,6 +530,19 @@ export function addMutationPower(amount) {
   initMutationSystem();
   if (!mutationState.unlocked) return getMutationState();
 
+  // --- NEW: once mutation level is BN Infinity, do nothing expensive ---
+  if (mutationState.level && mutationState.level.isInfinite?.()) {
+    // Make sure progress + requirement stay at Infinity too.
+    if (!mutationState.progress?.isInfinite?.()) {
+      try { mutationState.progress = BN.fromAny('Infinity'); } catch {}
+    }
+    if (!mutationState.requirement?.isInfinite?.()) {
+      try { mutationState.requirement = BN.fromAny('Infinity'); } catch {}
+    }
+    // No normalizeProgress, no localStorage writes, no HUD churn per coin.
+    return getMutationState();
+  }
+
   let inc;
   try {
     inc = amount instanceof BN ? amount : BN.fromAny(amount ?? 0);
@@ -551,7 +564,9 @@ export function addMutationPower(amount) {
     try {
       mutationState.level = BN.fromAny('Infinity');
     } catch {}
-    mutationState.progress = bnZero();
+    try {
+      mutationState.progress = BN.fromAny('Infinity');   // <--- keep progress at Infinity
+    } catch {}
     try {
       mutationState.requirement = BN.fromAny('Infinity');
     } catch {}
