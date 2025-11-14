@@ -62,10 +62,6 @@ let watchersBoundSlot = null;
 let initialized = false;
 let mutationUnsub = null;
 let pendingGoldInputSignature = null;
-let pendingGoldPollTimer = null;
-
-const PENDING_GOLD_POLL_INTERVAL_MS = 60;
-
 function resetPendingGoldSignature() {
   pendingGoldInputSignature = null;
 }
@@ -239,14 +235,6 @@ function recomputePendingGold(force = false) {
   pendingGoldInputSignature = signature;
   resetState.pendingGold = computeForgeGold(coins, level);
   updateResetPanel();
-}
-
-function ensurePendingGoldPoller() {
-  if (pendingGoldPollTimer != null || typeof window === 'undefined') return;
-  pendingGoldPollTimer = window.setInterval(() => {
-    try { recomputePendingGold(); }
-    catch {}
-  }, PENDING_GOLD_POLL_INTERVAL_MS);
 }
 
 function canAccessForgeTab() {
@@ -442,7 +430,6 @@ function bindGlobalEvents() {
 export function initResetSystem() {
   if (initialized) {
     recomputePendingGold();
-    ensurePendingGoldPoller();
     return;
   }
   initialized = true;
@@ -460,7 +447,6 @@ export function initResetSystem() {
   bindStorageWatchers(slot);
   bindGlobalEvents();
   recomputePendingGold(true);
-  ensurePendingGoldPoller();
   if (mutationUnsub) {
     try { mutationUnsub(); } catch {}
     mutationUnsub = null;
