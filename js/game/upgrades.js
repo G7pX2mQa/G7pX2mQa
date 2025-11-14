@@ -87,6 +87,7 @@ export function bigNumFromLog10(log10Value) {
   if (!Number.isFinite(log10Value)) {
     return log10Value > 0 ? BigNum.fromAny('Infinity') : BigNum.fromInt(0);
   }
+  
   if (log10Value <= -1e12) return BigNum.fromInt(0);
   const p = BigNum.DEFAULT_PRECISION;
   let intPart = Math.floor(log10Value);
@@ -114,6 +115,7 @@ export const UPGRADE_TIES = {
   MP_VALUE_I: 'gold_2',
   MAGNET: 'gold_3',
 };
+
 const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.png';
 const MYSTERIOUS_UPGRADE_ICON_DATA_URL = 'img/misc/mysterious.png';
 const HIDDEN_UPGRADE_TITLE = 'Hidden Upgrade';
@@ -720,7 +722,46 @@ function bookValueMultiplierBn(level) {
   return BigNum.fromAny('Infinity');
 }
 
+function normalizedUpgradeLevel(levelValue) {
+  if (typeof levelValue === 'number' && Number.isFinite(levelValue)) {
+    return Math.max(0, Math.floor(levelValue));
+  }
+  if (typeof levelValue === 'bigint') {
+    if (levelValue < 0n) return 0;
+    const maxSafe = BigInt(Number.MAX_SAFE_INTEGER);
+    const clamped = levelValue > maxSafe ? maxSafe : levelValue;
+    return Number(clamped);
+  }
+  if (levelValue instanceof BigNum) {
+    try {
+      const plain = levelValue.toPlainIntegerString?.();
+      if (plain && plain !== 'Infinity') {
+        const parsed = Number.parseInt(plain, 10);
+        if (Number.isFinite(parsed)) {
+          return Math.max(0, parsed);
+        }
+      }
+    } catch {}
+  }
+  return 0;
+}
 
+function hundredPercentPerLevelMultiplier(levelValue) {
+  const lvl = normalizedUpgradeLevel(levelValue);
+  if (lvl <= 0) {
+    return BigNum.fromInt(1);
+  }
+  try {
+    const asBigInt = BigInt(lvl) + 1n;
+    return BigNum.fromAny(asBigInt.toString());
+  } catch {
+    try {
+      return BigNum.fromAny(String(lvl + 1));
+    } catch {
+      return BigNum.fromInt(1);
+    }
+  }
+}
 
 function mergeLockStates(base, override) {
   const merged = Object.assign({ locked: false }, base || {});
@@ -1909,7 +1950,8 @@ const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `Coin value bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addPctPerLevel(0.10),
+    effectMultiplier: E.addPctPerLevel(1),
+    onLevelChange() { try { refreshCoinMultiplierFromXpLevel(); } catch {} },
   },
   {
     area: AREA_KEYS.STARTER_COVE,
@@ -1930,7 +1972,7 @@ const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `XP value bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addPctPerLevel(0.15),
+    effectMultiplier: E.addPctPerLevel(1),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
@@ -1951,14 +1993,14 @@ const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `MP value bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addPctPerLevel(0.12),
+    effectMultiplier: E.addPctPerLevel(1),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 11,
     tie: UPGRADE_TIES.MAGNET,
     title: "Magnet",
-    desc: "Placeholder", // Don't worry about adding the functionality for this upgrade yet
+    desc: "Increases Magnet radius by +1 per level\nMagnet: Increases the distance from which you can collect Coins",
     lvlCap: 10,
     baseCost: 100,
     costType: "gold",
@@ -2523,6 +2565,12 @@ function invalidateUpgradeState(areaKey, upgId, slot = getActiveSlot()) {
 
 export function getLevelNumber(areaKey, upgId) {
   return ensureUpgradeState(areaKey, upgId).lvl;
+}
+
+export function getMpValueMultiplierBn() {
+  return hundredPercentPerLevelMultiplier(
+    getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MP_VALUE_I)
+  );
 }
 
 function computeUpgradeLockStateFor(areaKey, upg) {
@@ -3277,11 +3325,27 @@ export function computeUpgradeEffects(areaKey) {
         str = str.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
         coinValueMultBn = coinValueMultBn.mulDecimal(str, 18);
       }
+    } else if (tieKey === UPGRADE_TIES.COIN_VALUE_II) {
+      const lvl = normalizedUpgradeLevel(lvlNum);
+      if (lvl > 0) {
+        try {
+          const bonus = hundredPercentPerLevelMultiplier(lvl);
+          coinValueMultBn = coinValueMultBn.mulBigNumInteger(bonus);
+        } catch {}
+      }
     } else if (tieKey === UPGRADE_TIES.BOOK_VALUE_I) {
       bookRewardMultBn = bookValueMultiplierBn(lvlNum);
     } else if (tieKey === UPGRADE_TIES.XP_VALUE_I) {
       const lvl = Math.max(0, Number.isFinite(lvlNum) ? lvlNum : 0);
       xpGainMultBn = BigNum.fromAny(1 + lvl * 2);
+    } else if (tieKey === UPGRADE_TIES.XP_VALUE_II) {
+      const lvl = normalizedUpgradeLevel(lvlNum);
+      if (lvl > 0) {
+        try {
+          const bonus = hundredPercentPerLevelMultiplier(lvl);
+          xpGainMultBn = xpGainMultBn.mulBigNumInteger(bonus);
+        } catch {}
+      }
     }
     // future upgrades here...
   }
@@ -3315,6 +3379,15 @@ function registerXpUpgradeEffects() {
       str = str.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
       try {
         let next = result.mulDecimal(str, 18);
+        const coinValueIiLevel = normalizedUpgradeLevel(
+          getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_VALUE_II)
+        );
+        if (coinValueIiLevel > 0) {
+          try {
+            const bonus = hundredPercentPerLevelMultiplier(coinValueIiLevel);
+            next = next.mulBigNumInteger(bonus);
+          } catch {}
+        }
         return next;
       } catch {
         return result;
@@ -3338,6 +3411,15 @@ function registerXpUpgradeEffects() {
       if (safeLevel <= 0) return gain;
       try {
         let next = gain.mulBigNumInteger(BigNum.fromAny(1 + safeLevel * 2));
+        const xpValueIiLevel = normalizedUpgradeLevel(
+          getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.XP_VALUE_II)
+        );
+        if (xpValueIiLevel > 0) {
+          try {
+            const bonus = hundredPercentPerLevelMultiplier(xpValueIiLevel);
+            next = next.mulBigNumInteger(bonus);
+          } catch {}
+        }
         return next;
       } catch {
         return gain;
