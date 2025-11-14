@@ -691,11 +691,9 @@ function typeText(el, full, msPerChar = 22, skipTargets = []) {
 
     const targets = skipTargets.length ? skipTargets : [el];
 
-    requestAnimationFrame(() => {
-      armed = true;
-      targets.forEach(t => t.addEventListener('click', skip, { once: true }));
-      document.addEventListener('keydown', onKey, { once: true });
-    });
+    armed = true;
+    targets.forEach(t => t.addEventListener('click', skip, { once: true }));
+    document.addEventListener('keydown', onKey, { once: true });
 
     el.classList.add('is-typing');
     el.textContent = '';
