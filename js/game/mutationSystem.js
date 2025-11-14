@@ -111,60 +111,75 @@ function levelToNumber(level) {
 }
 
 function computeRequirement(levelBn) {
+  // Helper: original requirement curve expressed as log10(requirement)
+  function baseRequirementLog10(baseLevel) {
+    const m = Math.max(0, baseLevel + 1);
+    const tail = Math.max(0, m - 10);
+
+    const poly = -0.0022175354763501742 * m * m
+      + 0.20449967884058884 * m
+      + 2.016778189084622
+      + 0.20418426693226513 * Math.pow(tail, 1.6418337930413576);
+
+    if (!Number.isFinite(poly)) {
+      return Number.POSITIVE_INFINITY;
+    }
+
+    let factor = 1;
+    if (m > 10) {
+      const powTerm = Math.pow(1.12, m - 10);
+      if (!Number.isFinite(powTerm)) {
+        return Number.POSITIVE_INFINITY;
+      }
+      factor += CONST_RATIO * (powTerm - 1);
+      if (!Number.isFinite(factor)) {
+        return Number.POSITIVE_INFINITY;
+      }
+    }
+
+    const totalLog10 = poly * factor;
+    if (!Number.isFinite(totalLog10)) {
+      return Number.POSITIVE_INFINITY;
+    }
+    return totalLog10;
+  }
+
   const levelNum = levelToNumber(levelBn);
   if (!Number.isFinite(levelNum)) {
-    // Infinite (or unrepresentable) level -> infinite requirement
+    // If the stored level itself is infinite / unrepresentable, the requirement is infinite.
     return BN.fromAny('Infinity');
   }
 
-  // Treat this as the numeric mutation level (0, 1, 2, ...)
   const baseLevel = Math.max(0, levelNum);
 
-  // Hard wall: once you try to go beyond mutation 100, the MP requirement is infinite.
-  // This makes mutation 101+ impossible to legitimately reach.
+  // Hard wall: mutation 101+ is impossible.
   if (baseLevel >= 101) {
     return BN.fromAny('Infinity');
   }
 
-  // Original shape, but expressed in terms of baseLevel
-  const m = baseLevel + 1;
-  const tail = Math.max(0, m - 10);
-  const poly = -0.0022175354763501742 * m * m
-    + 0.20449967884058884 * m
-    + 2.016778189084622
-    + 0.20418426693226513 * Math.pow(tail, 1.6418337930413576);
-  if (!Number.isFinite(poly)) {
+  // Log10 at level 50 on the original curve (used as the starting point for the "skyrocket")
+  const logAt50 = baseRequirementLog10(50);
+  if (!Number.isFinite(logAt50)) {
     return BN.fromAny('Infinity');
   }
 
-  let factor = 1;
-  if (m > 10) {
-    const powTerm = Math.pow(1.12, m - 10);
-    if (!Number.isFinite(powTerm)) {
-      return BN.fromAny('Infinity');
-    }
-    factor += CONST_RATIO * (powTerm - 1);
-    if (!Number.isFinite(factor)) {
-      return BN.fromAny('Infinity');
-    }
+  let totalLog10;
+
+  if (baseLevel <= 50) {
+    // Levels 0–50: original scaling
+    totalLog10 = baseRequirementLog10(baseLevel);
+  } else {
+    // Levels 51–100: ramp insanely from the level-50 value up to ~1e308
+    // so requirement ~ 10^(1e308) by level 100.
+    const t = (baseLevel - 50) / 50;      // 0 at 50, 1 at 100
+    const targetLog = 1e308;              // HUGE: log10(requirement) ≈ 1e308
+    const eased = Math.pow(t, 4);         // strongly convex, so it "skyrockets"
+
+    totalLog10 = logAt50 + (targetLog - logAt50) * eased;
   }
 
-  let totalLog10 = poly * factor;
-  if (!Number.isFinite(totalLog10)) {
+  if (!Number.isFinite(totalLog10) || totalLog10 <= 0) {
     return BN.fromAny('Infinity');
-  }
-
-  // After mutation 50, make the scaling absolutely explode.
-  if (baseLevel > 50) {
-    const over = baseLevel - 50;
-    // Grows ~ 50 * (over^2), so 51–100 becomes outrageously expensive.
-    const skyMult = 1 + over * over * 50;
-    totalLog10 *= skyMult;
-
-    // Clamp to something absurdly huge but still representable
-    if (!Number.isFinite(totalLog10) || totalLog10 > 1e9) {
-      totalLog10 = 1e9;
-    }
   }
 
   const raw = bigNumFromLog10(totalLog10);
