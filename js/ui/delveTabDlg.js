@@ -1423,14 +1423,13 @@ function runFirstMeet() {
 
   // Animate in next frame
   void merchantSheetEl.offsetHeight;
-  requestAnimationFrame(() => {
-      merchantSheetEl.style.transition = '';
-      merchantOverlayEl.classList.add('is-open');
-      blockInteraction(140);
+requestAnimationFrame(() => {
+  merchantSheetEl.style.transition = '';
+  merchantOverlayEl.classList.add('is-open');
 
-      if (merchantCloseBtn && typeof merchantCloseBtn.focus === 'function') {
-        try { merchantCloseBtn.focus({ preventScroll: true }); } catch {}
-      }
+  if (merchantCloseBtn && typeof merchantCloseBtn.focus === 'function') {
+    try { merchantCloseBtn.focus({ preventScroll: true }); } catch {}
+  }
 
     // Restore last tab
     let last = 'dialogue';
