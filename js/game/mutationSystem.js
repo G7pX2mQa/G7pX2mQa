@@ -111,7 +111,7 @@ function levelToNumber(level) {
 }
 
 function computeRequirement(levelBn) {
-  // Original requirement curve, but returning log10(requirement)
+  // Original requirement curve, returning log10(requirement)
   function baseRequirementLog10(baseLevel) {
     const m = Math.max(0, baseLevel + 1);
     const tail = Math.max(0, m - 10);
@@ -145,13 +145,13 @@ function computeRequirement(levelBn) {
 
   const levelNum = levelToNumber(levelBn);
   if (!Number.isFinite(levelNum)) {
-    // If the stored level is infinite / NaN, requirement is infinite.
+    // Infinite / NaN level → infinite requirement
     return BN.fromAny('Infinity');
   }
 
   const baseLevel = Math.max(0, levelNum);
 
-  // Hard wall: mutation 100+ is impossible.
+  // Hard wall: mutation 100+ is impossible
   if (baseLevel >= 100) {
     return BN.fromAny('Infinity');
   }
@@ -164,32 +164,27 @@ function computeRequirement(levelBn) {
   } else {
     // 50–99: double-exponential insanity zone.
     //
-    // We define a "second exponent":
+    // Define x so:
+    //   level 50 → x = 1
+    //   level 99 → x = 50
+    const x = baseLevel - 49; // 1..50
+
+    // We work in "second exponent" space:
     //   secondExp = log10( log10(requirement) )
     //
-    // We want:
-    //   level 50 → secondExp ≈ 3     (so log10 ≈ 1e3 → ~1e1000 MP)
-    //   level 99 → secondExp ≈ 308   (so log10 ≈ 1e308 → ~1e1e308 MP)
+    // Targets:
+    //   level 50 (x=1)  → secondExp ≈ 3    → log10 ≈ 1e3   → ~1e1000 MP
+    //   level 99 (x=50) → secondExp ≈ 303  → log10 ≈ 1e303 → ~1e1e303 MP
     //
-    // Let x = baseLevel - 49:
-    //   level 50 ⇒ x = 1
-    //   level 99 ⇒ x = 50
-    //
-    // Use a quadratic:
-    //   secondExp(x) = A * x^2 + B
-    // with:
-    //   secondExp(1)  = 3
-    //   secondExp(50) = 308
-    //
+    // Use quadratic: secondExp(x) = A * x^2 + B
     // Solve:
     //   A + B        = 3
-    //   A * 2500 + B = 308
-    // ⇒ A = 305 / 2499, B = 3 - A
-    const x = baseLevel - 49; // 1 at level 50, 50 at level 99
-    const A = 305 / (50 * 50 - 1); // 305 / 2499
+    //   2500*A + B   = 303
+    // ⇒ A = 300 / 2499, B = 3 - A
+    const A = 300 / (50 * 50 - 1); // 300 / 2499
     const B = 3 - A;
 
-    const secondExp = A * x * x + B; // grows faster and faster
+    const secondExp = A * x * x + B;
     if (!Number.isFinite(secondExp)) {
       return BN.fromAny('Infinity');
     }
