@@ -12,6 +12,7 @@ import {
   onMutationChange,
   computeMutationMultiplierForLevel,
 } from './mutationSystem.js';
+import { getMpValueMultiplierBn } from './upgrades.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationUnsub = null;
@@ -52,6 +53,8 @@ const BASE_COIN_VALUE = BigNum.fromInt(1);
 const BN_ONE = BigNum.fromInt(1);
 const mutationMultiplierCache = new Map();
 let COIN_MULTIPLIER = '1';
+let mpValueMultiplierBn = BigNum.fromInt(1);
+let mpMultiplierListenersBound = false;
 
 export function setCoinMultiplier(x) {
   COIN_MULTIPLIER = x;
@@ -60,6 +63,33 @@ export function setCoinMultiplier(x) {
       bank.coins.mult.set(x);
     }
   } catch {}
+}
+
+function refreshMpValueMultiplierCache() {
+  try {
+    const next = getMpValueMultiplierBn();
+    if (next instanceof BigNum) {
+      mpValueMultiplierBn = next.clone?.() ?? next;
+    } else if (next != null) {
+      mpValueMultiplierBn = BigNum.fromAny(next);
+    } else {
+      mpValueMultiplierBn = BigNum.fromInt(1);
+    }
+  } catch {
+    mpValueMultiplierBn = BigNum.fromInt(1);
+  }
+}
+
+function ensureMpValueMultiplierSync() {
+  if (mpMultiplierListenersBound) return;
+  mpMultiplierListenersBound = true;
+  refreshMpValueMultiplierCache();
+  if (typeof document !== 'undefined') {
+    document.addEventListener('ccc:upgrades:changed', refreshMpValueMultiplierCache);
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('saveSlot:change', refreshMpValueMultiplierCache);
+  }
 }
 
 function resolveCoinBase(el) {
@@ -95,6 +125,7 @@ export function initCoinPickup({
   }
 
   initMutationSnapshot();
+  ensureMpValueMultiplierSync();
   
   pf.style.touchAction = 'none';
 
@@ -519,7 +550,10 @@ function collect(el) {
   }
 
   if (typeof isMutationUnlocked === 'function' && isMutationUnlocked()) {
-    queueMutationGain(BigNum.fromInt(1));
+    const mpGain = cloneBn(mpValueMultiplierBn);
+    if (!mpGain.isZero?.()) {
+      queueMutationGain(mpGain);
+    }
   }
 
   if (localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
