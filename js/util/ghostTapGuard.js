@@ -1,5 +1,5 @@
 // js/util/ghostTapGuard.js
-// Fixes issue with buttons on mobile that prevents them from being spam clicked; it is important this is applied to every clickable button in the game
+// Fixes issue with buttons on mobile that prevents them from being spam clicked due to weird Safari interactions; it is important this is applied to every clickable button in the game
 
 const DEFAULT_TIMEOUT_MS = 0;
 const ELEMENT_SKIP_PROP = Symbol('ccc:ghostTap:skipUntil');
