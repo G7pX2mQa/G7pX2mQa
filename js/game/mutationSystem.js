@@ -113,15 +113,20 @@ function levelToNumber(level) {
 function computeRequirement(levelBn) {
   const levelNum = levelToNumber(levelBn);
   if (!Number.isFinite(levelNum)) {
+    // Infinite (or unrepresentable) level -> infinite requirement
     return BN.fromAny('Infinity');
   }
 
+  // Treat this as the numeric mutation level (0, 1, 2, ...)
   const baseLevel = Math.max(0, levelNum);
 
+  // Hard wall: once you try to go beyond mutation 100, the MP requirement is infinite.
+  // This makes mutation 101+ impossible to legitimately reach.
   if (baseLevel >= 101) {
     return BN.fromAny('Infinity');
   }
 
+  // Original shape, but expressed in terms of baseLevel
   const m = baseLevel + 1;
   const tail = Math.max(0, m - 10);
   const poly = -0.0022175354763501742 * m * m
@@ -149,16 +154,15 @@ function computeRequirement(levelBn) {
     return BN.fromAny('Infinity');
   }
 
+  // After mutation 50, make the scaling absolutely explode.
   if (baseLevel > 50) {
     const over = baseLevel - 50;
+    // Grows ~ 50 * (over^2), so 51–100 becomes outrageously expensive.
     const skyMult = 1 + over * over * 50;
     totalLog10 *= skyMult;
 
-    if (!Number.isFinite(totalLog10)) {
-      return BN.fromAny('Infinity');
-    }
-
-    if (totalLog10 > 1e9) {
+    // Clamp to something absurdly huge but still representable
+    if (!Number.isFinite(totalLog10) || totalLog10 > 1e9) {
       totalLog10 = 1e9;
     }
   }
@@ -293,29 +297,44 @@ function persistState() {
 
 function normalizeProgress() {
   if (!mutationState.unlocked) return;
+
   ensureRequirement();
   let currentReq = mutationState.requirement;
   if (!currentReq || typeof currentReq !== 'object') return;
+
+  // If the requirement is infinite, you can keep stacking MP forever,
+  // but you'll never spend it to gain more levels.
   if (currentReq.isInfinite?.()) {
     return;
   }
+
   let guard = 0;
   const limit = 100000;
+
   while (mutationState.progress.cmp?.(currentReq) >= 0 && guard < limit) {
+    // Spend MP to gain a level
     mutationState.progress = mutationState.progress.sub(currentReq);
     mutationState.level = mutationState.level.add(bnOne());
+
+    // Recompute requirement for the new level
     ensureRequirement();
     currentReq = mutationState.requirement;
+
     if (!currentReq || typeof currentReq !== 'object') {
       mutationState.progress = bnZero();
       break;
     }
+
+    // If the requirement becomes infinite while levelling up,
+    // stop levelling, but KEEP the leftover progress instead of nuking it.
     if (currentReq.isInfinite?.()) {
-      mutationState.progress = bnZero();
       break;
     }
+
     guard += 1;
   }
+
+  // Safety: if we somehow loop too much, just bail and zero progress
   if (guard >= limit) {
     mutationState.progress = bnZero();
   }
@@ -480,6 +499,7 @@ export function unlockMutationSystem() {
 export function addMutationPower(amount) {
   initMutationSystem();
   if (!mutationState.unlocked) return getMutationState();
+
   let inc;
   try {
     inc = amount instanceof BN ? amount : BN.fromAny(amount ?? 0);
@@ -487,11 +507,15 @@ export function addMutationPower(amount) {
     inc = bnZero();
   }
   if (inc.isZero?.()) return getMutationState();
+
   const incClone = inc.clone?.() ?? inc;
   const prevLevel = mutationState.level.clone?.() ?? mutationState.level;
   const prevProgress = mutationState.progress.clone?.() ?? mutationState.progress;
+
+  // Add MP
   mutationState.progress = mutationState.progress.add(incClone);
 
+  // If MP overflows to BigNum Infinity, treat that as reaching mutation Infinity.
   const progInf = mutationState.progress.isInfinite?.();
   if (progInf) {
     try {
@@ -502,16 +526,19 @@ export function addMutationPower(amount) {
       mutationState.requirement = BN.fromAny('Infinity');
     } catch {}
   } else {
+    // Normal levelling logic (now friendly to ∞ requirements)
     normalizeProgress();
   }
 
   persistState();
   updateHud();
   emitChange('progress');
+
   const levelsGained = mutationState.level.sub(prevLevel);
   if (!levelsGained.isZero?.()) {
     scheduleCoinMultiplierRefresh();
   }
+
   if (typeof window !== 'undefined') {
     const detail = {
       delta: incClone.clone?.() ?? incClone,
@@ -524,6 +551,7 @@ export function addMutationPower(amount) {
     };
     try { window.dispatchEvent(new CustomEvent('mutation:change', { detail })); } catch {}
   }
+
   return getMutationState();
 }
 
@@ -539,8 +567,25 @@ export function computeMutationMultiplierForLevel(levelValue) {
     try { levelBn = BigNum.fromAny(levelValue ?? 0); }
     catch { levelBn = bnZero(); }
   }
+
+  // If the stored mutation level itself is infinite, every multiplier that
+  // depends on it becomes infinite as well.
+  if (levelBn && levelBn.isInfinite?.()) {
+    try { return BN.fromAny('Infinity'); }
+    catch { return bnOne(); }
+  }
+
   const levelNum = levelToNumber(levelBn);
-  if (!Number.isFinite(levelNum) || levelNum <= 0) return bnOne();
+
+  // If levelToNumber can't represent this cleanly (NaN / Infinity), also
+  // treat that as infinite multiplier.
+  if (!Number.isFinite(levelNum)) {
+    try { return BN.fromAny('Infinity'); }
+    catch { return bnOne(); }
+  }
+
+  if (levelNum <= 0) return bnOne();
+
   const log10 = levelNum * MP_LOG10_BASE;
   return bigNumFromLog10(log10);
 }
