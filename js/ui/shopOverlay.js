@@ -1353,27 +1353,27 @@ export function openUpgradeOverlay(upgDef) {
     closeBtn.textContent = 'Close';
     closeBtn.addEventListener('click', () => { upgOpenLocal = false; closeUpgradeMenu(); });
 
-    if ('PointerEvent' in window) {
-      closeBtn.addEventListener('pointerdown', (e) => {
-        if (e.pointerType === 'mouse') return;
-        if (typeof e.button === 'number' && e.button !== 0) return;
-        markGhostTapTarget(closeBtn);
-        suppressNextGhostTap(320);
-        blockInteraction(160);
-        upgOpenLocal = false;
-        closeUpgradeMenu();
-        e.preventDefault();
-      }, { passive: false });
-    } else {
-      closeBtn.addEventListener('touchstart', (e) => {
-        markGhostTapTarget(closeBtn);
-        suppressNextGhostTap(320);
-        blockInteraction(160);
-        upgOpenLocal = false;
-        closeUpgradeMenu();
-        e.preventDefault();
-      }, { passive: false });
-    }
+if ('PointerEvent' in window) {
+  closeBtn.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (typeof e.button === 'number' && e.button !== 0) return;
+    markGhostTapTarget(closeBtn);
+    suppressNextGhostTap(320);
+    // no blockInteraction here – relies on ghostTapGuard instead
+    upgOpenLocal = false;
+    closeUpgradeMenu();
+    e.preventDefault();
+  }, { passive: false });
+} else {
+  closeBtn.addEventListener('touchstart', (e) => {
+    markGhostTapTarget(closeBtn);
+    suppressNextGhostTap(320);
+    // no blockInteraction here – relies on ghostTapGuard instead
+    upgOpenLocal = false;
+    closeUpgradeMenu();
+    e.preventDefault();
+  }, { passive: false });
+}
 	
     if (locked) {
       actions.append(closeBtn);
@@ -1480,18 +1480,18 @@ export function openUpgradeOverlay(upgDef) {
     window.addEventListener('xp:unlock', onCurrencyChange);
     document.addEventListener('ccc:upgrades:changed', onUpgradesChanged);
 
-  // open + animate
-  rerender();
-  upgOverlayEl.classList.add('is-open');
-  upgOverlayEl.style.pointerEvents = 'auto';
-  blockInteraction(140);
-  upgSheetEl.style.transition = 'none';
-  upgSheetEl.style.transform = 'translateY(100%)';
-  void upgSheetEl.offsetHeight;
-  requestAnimationFrame(() => {
-    upgSheetEl.style.transition = '';
-    upgSheetEl.style.transform = '';
-  });
+rerender();
+upgOverlayEl.classList.add('is-open');
+upgOverlayEl.style.pointerEvents = 'auto';
+// removed blockInteraction(140); so taps can land immediately
+upgSheetEl.style.transition = 'none';
+upgSheetEl.style.transform = 'translateY(100%)';
+void upgSheetEl.offsetHeight;
+requestAnimationFrame(() => {
+  upgSheetEl.style.transition = '';
+  upgSheetEl.style.transform = '';
+});
+
 
   // ESC to close
   const onKey = (e) => {
