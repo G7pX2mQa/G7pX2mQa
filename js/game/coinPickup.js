@@ -49,6 +49,7 @@ function initMutationSnapshot() {
 let coinPickup = null;
 
 const XP_PER_COIN = BigNum.fromInt(1);
+const MP_PER_COIN = BigNum.fromInt(1);
 const BASE_COIN_VALUE = BigNum.fromInt(1);
 const BN_ONE = BigNum.fromInt(1);
 const mutationMultiplierCache = new Map();
@@ -207,6 +208,34 @@ export function initCoinPickup({
       try { return value.clone(); } catch {}
     }
     try { return BigNum.fromAny(value); } catch { return BigNum.fromInt(0); }
+  };
+
+  const cloneMultiplier = (multiplier) => {
+    if (!multiplier) return cloneBn(BN_ONE);
+    if (typeof multiplier.clone === 'function') {
+      try { return multiplier.clone(); } catch {}
+    }
+    try { return BigNum.fromAny(multiplier); } catch { return cloneBn(BN_ONE); }
+  };
+
+  const multiplyGain = (gain, multiplier) => {
+    if (!gain || !multiplier) return gain;
+    const multIsIdentity = typeof multiplier.cmp === 'function' && multiplier.cmp(BN_ONE) === 0;
+    if (multIsIdentity) return gain;
+    const gainIsOne = typeof gain.cmp === 'function' && gain.cmp(BN_ONE) === 0;
+    if (gainIsOne) {
+      return cloneMultiplier(multiplier);
+    }
+    try {
+      return gain.mulBigNumInteger(multiplier);
+    } catch {
+      try {
+        const cloned = gain.clone?.() ?? BigNum.fromAny(gain);
+        return cloned.mulBigNumInteger(multiplier);
+      } catch {
+        return cloneMultiplier(multiplier);
+      }
+    }
   };
 
   const computeMutationMultiplier = (spawnLevelStr) => {
@@ -511,62 +540,65 @@ export function initCoinPickup({
     setTimeout(done, 600);
   }
 
-function collect(el) {
-  if (!isCoin(el)) return false;
-  el.dataset.collected = '1';
+  function collect(el) {
+    if (!isCoin(el)) return false;
+    el.dataset.collected = '1';
 
-  playSound();
-  animateAndRemove(el);
+    playSound();
+    animateAndRemove(el);
 
-  const base = resolveCoinBase(el);
+    const base = resolveCoinBase(el);
 
-  let inc = applyCoinMultiplier(base);
-  let xpInc = cloneBn(XP_PER_COIN);
+    let inc = applyCoinMultiplier(base);
+    let xpInc = cloneBn(XP_PER_COIN);
+    let mpInc = cloneBn(MP_PER_COIN);
 
-  const spawnLevelStr = el.dataset.mutationLevel || null;
-  const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
-  if (mutationMultiplier) {
-    try { inc = inc.mulBigNumInteger(mutationMultiplier); } catch {}
-    try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
-  }
-
-  const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
-  if (!incIsZero) {
-    try {
-      coins = coins?.add ? coins.add(inc) : cloneBn(inc);
-    } catch {
-      coins = cloneBn(inc);
+    const spawnLevelStr = el.dataset.mutationLevel || null;
+    const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
+    if (mutationMultiplier) {
+      inc = multiplyGain(inc, mutationMultiplier);
+      xpInc = multiplyGain(xpInc, mutationMultiplier);
+      mpInc = multiplyGain(mpInc, mutationMultiplier);
     }
-    updateHud();
-    queueCoinGain(inc);
-  } else {
-    updateHud();
-  }
 
-  const xpEnabled = typeof isXpSystemUnlocked === 'function' ? isXpSystemUnlocked() : true;
-  const xpIsZero = typeof xpInc?.isZero === 'function' ? xpInc.isZero() : false;
-  if (xpEnabled && !xpIsZero) {
-    queueXpGain(xpInc);
-  }
-
-  if (typeof isMutationUnlocked === 'function' && isMutationUnlocked()) {
-    const mpGain = cloneBn(mpValueMultiplierBn);
-    if (!mpGain.isZero?.()) {
-      queueMutationGain(mpGain);
+    const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
+    if (!incIsZero) {
+      try {
+        coins = coins?.add ? coins.add(inc) : cloneBn(inc);
+      } catch {
+        coins = cloneBn(inc);
+      }
+      updateHud();
+      queueCoinGain(inc);
+    } else {
+      updateHud();
     }
-  }
 
-  if (localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
-    const next = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10) + 1;
-    localStorage.setItem(SHOP_PROGRESS_KEY, String(next));
-    if (next >= 10) {
-      try { unlockShop(); } catch {}
-      localStorage.setItem(SHOP_UNLOCK_KEY, '1');
+    const xpEnabled = typeof isXpSystemUnlocked === 'function' ? isXpSystemUnlocked() : true;
+    const xpIsZero = typeof xpInc?.isZero === 'function' ? xpInc.isZero() : false;
+    if (xpEnabled && !xpIsZero) {
+      queueXpGain(xpInc);
     }
-  }
 
-  return true;
-}
+    if (typeof isMutationUnlocked === 'function' && isMutationUnlocked()) {
+      let mpGain = mpInc;
+      mpGain = multiplyGain(mpGain, mpValueMultiplierBn);
+      if (mpGain && !mpGain.isZero?.()) {
+        queueMutationGain(mpGain);
+      }
+    }
+
+    if (localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
+      const next = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10) + 1;
+      localStorage.setItem(SHOP_PROGRESS_KEY, String(next));
+      if (next >= 10) {
+        try { unlockShop(); } catch {}
+        localStorage.setItem(SHOP_UNLOCK_KEY, '1');
+      }
+    }
+
+    return true;
+  }
 
   // direct coin events as a safety net (helps if elementsFromPoint misses due to CSS)
   function bindCoinDirect(coin){
