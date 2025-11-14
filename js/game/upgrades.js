@@ -1907,7 +1907,7 @@ const REGISTRY = [
     computeLockState: determineLockState,
     effectSummary(level) {
       const mult = this.effectMultiplier(level);
-      return `Gold gain bonus: ${formatMultForUi(mult)}x`;
+      return `Coin value bonus: ${formatMultForUi(mult)}x`;
     },
     effectMultiplier: E.addPctPerLevel(0.10),
   },
@@ -1928,7 +1928,7 @@ const REGISTRY = [
     computeLockState: determineLockState,
     effectSummary(level) {
       const mult = this.effectMultiplier(level);
-      return `Forge reward multiplier: ${formatMultForUi(mult)}x`;
+      return `XP value bonus: ${formatMultForUi(mult)}x`;
     },
     effectMultiplier: E.addPctPerLevel(0.15),
   },
@@ -1949,7 +1949,7 @@ const REGISTRY = [
     computeLockState: determineLockState,
     effectSummary(level) {
       const mult = this.effectMultiplier(level);
-      return `Mana resonance bonus: ${formatMultForUi(mult)}x`;
+      return `MP value bonus: ${formatMultForUi(mult)}x`;
     },
     effectMultiplier: E.addPctPerLevel(0.12),
   },
@@ -1970,7 +1970,7 @@ const REGISTRY = [
     computeLockState: determineLockState,
     effectSummary(level) {
       const mult = this.effectMultiplier(level);
-      return `Auto-collect pull bonus: ${formatMultForUi(mult)}x`;
+      return `Magnet radius: ${formatMultForUi(mult)} Units`;
     },
     effectMultiplier: E.addPctPerLevel(0.08),
   },
