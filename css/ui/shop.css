@@ -538,6 +538,7 @@
 .upg-sheet.is-unlock-upgrade .upg-content {
   transform: none;
   padding-top: 1.5vh;
+  padding-bottom: 2vh;
 }
 
 .upg-desc.centered{
