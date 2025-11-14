@@ -140,7 +140,7 @@ function showLoader(text = 'Loading assets...') {
 
   const stuckTimeout = setTimeout(() => {
     if (!root.__done) stuckMsg.style.opacity = '1';
-  }, 15000);
+  }, 25000);
 
   root.__mountedAt = performance.now();
   root.__done = false;
