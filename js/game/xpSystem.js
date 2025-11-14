@@ -150,6 +150,29 @@ const xpState = {
   progress: BigNum.fromInt(0),
 };
 
+const xpChangeSubscribers = new Set();
+
+function notifyXpSubscribers(detail = {}) {
+  if (xpChangeSubscribers.size === 0) return;
+  xpChangeSubscribers.forEach((entry) => {
+    if (!entry || typeof entry.handler !== 'function') return;
+    if (entry.slot != null && detail.slot != null && entry.slot !== detail.slot) return;
+    try { entry.handler(detail); }
+    catch {}
+  });
+}
+
+export function onXpChange(handler, { slot = null } = {}) {
+  if (typeof handler !== 'function') {
+    return () => {};
+  }
+  const entry = { handler, slot: slot ?? null };
+  xpChangeSubscribers.add(entry);
+  return () => {
+    xpChangeSubscribers.delete(entry);
+  };
+}
+
 const hudRefs = {
   container: null,
   bar: null,
@@ -209,6 +232,7 @@ function handleExternalXpStorageChange(reason) {
   if (handlingExternalXpStorage) return;
   handlingExternalXpStorage = true;
   try {
+    const slot = xpStorageWatcherSlot ?? getActiveSlot();
     const prev = {
       unlocked: xpState.unlocked,
       xpLevel: cloneBigNumSafe(xpState.xpLevel),
@@ -240,7 +264,7 @@ function handleExternalXpStorageChange(reason) {
       try { xpAdded = current.progress.sub?.(prev.progress) ?? null; }
       catch { xpAdded = null; }
     }
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' || xpChangeSubscribers.size > 0) {
       const detail = {
         unlocked: current.unlocked,
         xpLevelsGained: xpLevelsGained?.clone?.() ?? xpLevelsGained,
@@ -250,8 +274,12 @@ function handleExternalXpStorageChange(reason) {
         requirement: current.requirement?.clone?.() ?? current.requirement,
         source: 'storage',
         changeType: reason,
+        slot,
       };
-      try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
+      notifyXpSubscribers(detail);
+      if (typeof window !== 'undefined') {
+        try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
+      }
     }
   } finally {
     handlingExternalXpStorage = false;
@@ -939,6 +967,7 @@ export function resetXpProgress({ keepUnlock = true } = {}) {
 
 export function addXp(amount, { silent = false } = {}) {
   ensureStateLoaded();
+  const slot = lastSlot ?? getActiveSlot();
   if (!xpState.unlocked) {
     return {
       unlocked: false,
@@ -1010,8 +1039,10 @@ export function addXp(amount, { silent = false } = {}) {
       xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
       progress: xpState.progress.clone?.() ?? xpState.progress,
       requirement: requirementBn.clone?.() ?? requirementBn,
+      slot,
     };
-    if (!silent) {
+    notifyXpSubscribers(detail);
+    if (!silent && typeof window !== 'undefined') {
       try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
     }
     return detail;
@@ -1070,11 +1101,14 @@ export function addXp(amount, { silent = false } = {}) {
     xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
     progress: xpState.progress.clone?.() ?? xpState.progress,
     requirement: requirementBn.clone?.() ?? requirementBn,
+    slot,
   };
-  if (!silent) {
+  notifyXpSubscribers(detail);
+  if (!silent && typeof window !== 'undefined') {
     try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
   }
   return detail;
+}
 }
 
 export function getXpState() {
