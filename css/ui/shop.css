@@ -701,7 +701,7 @@
   }
   
   .upg-sheet.is-unlock-short .upg-content {
-    transform: none;
+    transform: translateY(10vh);
   }
 }
 
