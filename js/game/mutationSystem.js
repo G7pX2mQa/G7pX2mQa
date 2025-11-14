@@ -165,13 +165,11 @@ function computeRequirement(levelBn) {
 
   let totalLog10;
 
-  if (baseLevel <= 50) {
-    // Levels 0–50: original scaling
+  if (baseLevel <= 49) {
+    // Levels 0–49: original scaling
     totalLog10 = baseRequirementLog10(baseLevel);
   } else {
-    // Levels 51–100: ramp insanely from the level-50 value up to ~1e308
-    // so requirement ~ 10^(1e308) by level 100.
-    const t = (baseLevel - 50) / 50;      // 0 at 50, 1 at 100
+    const t = (baseLevel - 49) / 49;      // 0 at 50, 1 at 100
     const targetLog = 1e308;              // HUGE: log10(requirement) ≈ 1e308
     const eased = Math.pow(t, 4);         // strongly convex, so it "skyrockets"
 
