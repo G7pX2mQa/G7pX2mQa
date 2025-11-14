@@ -12,6 +12,34 @@ const STORAGE_WATCH_INTERVAL_MS = 140;
 const storageWatchers = new Map();
 let storageWatcherTimer = null;
 
+const currencyChangeSubscribers = new Set();
+
+function notifyCurrencySubscribers(detail = {}) {
+  if (currencyChangeSubscribers.size === 0) return;
+  currencyChangeSubscribers.forEach((entry) => {
+    if (!entry || typeof entry.handler !== 'function') return;
+    if (entry.key && detail.key && entry.key !== detail.key) return;
+    if (entry.slot != null && detail.slot != null && entry.slot !== detail.slot) return;
+    try { entry.handler(detail); }
+    catch {}
+  });
+}
+
+export function onCurrencyChange(handler, { key = null, slot = null } = {}) {
+  if (typeof handler !== 'function') {
+    return () => {};
+  }
+  const entry = {
+    handler,
+    key: key ?? null,
+    slot: slot ?? null,
+  };
+  currencyChangeSubscribers.add(entry);
+  return () => {
+    currencyChangeSubscribers.delete(entry);
+  };
+}
+
 function ensureStorageWatcherTimer() {
   if (storageWatcherTimer != null || storageWatchers.size === 0) return;
   const root = typeof window !== 'undefined' ? window : globalThis;
@@ -211,8 +239,10 @@ function bindCurrencyWatchersForSlot(slot) {
       onChange: (value, meta) => {
         if (!meta?.valueChanged) return;
         if (typeof window === 'undefined') return;
+        const detail = { key: currencyKey, value, slot };
+        notifyCurrencySubscribers(detail);
         try {
-          window.dispatchEvent(new CustomEvent('currency:change', { detail: { key: currencyKey, value } }));
+          window.dispatchEvent(new CustomEvent('currency:change', { detail }));
         } catch {}
       },
     });
@@ -317,7 +347,8 @@ export function getCurrency(key) {
 }
 
 export function setCurrency(key, value, { delta = null } = {}) {
-  const k = keyFor(KEYS.CURRENCY[key]);
+  const slot = getActiveSlot();
+  const k = keyFor(KEYS.CURRENCY[key], slot);
   if (!k) return;
   try {
     let bn = BigNum.fromAny(value);
@@ -325,7 +356,7 @@ export function setCurrency(key, value, { delta = null } = {}) {
     const raw = bn.toStorage();
     localStorage.setItem(k, raw);
     primeStorageWatcherSnapshot(k, raw);
-    const detail = { key, value: bn };
+    const detail = { key, value: bn, slot };
     if (delta) {
       try {
         const deltaBn = delta instanceof BigNum ? delta : BigNum.fromAny(delta);
@@ -334,10 +365,10 @@ export function setCurrency(key, value, { delta = null } = {}) {
         detail.delta = undefined;
       }
     }
+    notifyCurrencySubscribers(detail);
     try { window.dispatchEvent(new CustomEvent('currency:change', { detail })); } catch {}
   } catch (e) { console.warn('Currency save failed:', key, value, e); }
 }
-
 
 function scaledFromIntBN(intBN) {
   return intBN.mulScaledIntFloor(1n, -MULT_SCALE);
