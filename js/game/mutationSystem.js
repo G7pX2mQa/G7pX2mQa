@@ -111,7 +111,7 @@ function levelToNumber(level) {
 }
 
 function computeRequirement(levelBn) {
-  // Original requirement curve expressed as log10(requirement)
+  // Original requirement curve, but returning log10(requirement)
   function baseRequirementLog10(baseLevel) {
     const m = Math.max(0, baseLevel + 1);
     const tail = Math.max(0, m - 10);
@@ -120,7 +120,6 @@ function computeRequirement(levelBn) {
       + 0.20449967884058884 * m
       + 2.016778189084622
       + 0.20418426693226513 * Math.pow(tail, 1.6418337930413576);
-
     if (!Number.isFinite(poly)) {
       return Number.POSITIVE_INFINITY;
     }
@@ -146,14 +145,14 @@ function computeRequirement(levelBn) {
 
   const levelNum = levelToNumber(levelBn);
   if (!Number.isFinite(levelNum)) {
-    // Infinite / unrepresentable level → infinite requirement
+    // If the stored level is infinite / NaN, requirement is infinite.
     return BN.fromAny('Infinity');
   }
 
   const baseLevel = Math.max(0, levelNum);
 
-  // Hard wall: mutation 101+ is impossible
-  if (baseLevel >= 101) {
+  // Hard wall: mutation 100+ is impossible.
+  if (baseLevel >= 100) {
     return BN.fromAny('Infinity');
   }
 
@@ -163,39 +162,40 @@ function computeRequirement(levelBn) {
     // 0–49: original scaling
     totalLog10 = baseRequirementLog10(baseLevel);
   } else {
-    // 50–100: double-exponential "insanity" zone.
+    // 50–99: double-exponential insanity zone.
     //
-    // We work in "second exponent" space:
+    // We define a "second exponent":
     //   secondExp = log10( log10(requirement) )
-    // and make that a convex (quadratic) function from:
-    //   level 50 → secondExp ≈ 3    (log10 ≈ 1e3  → ~1e1000 MP)
-    //   level 100 → secondExp ≈ 308 (log10 ≈ 1e308 → ~1e(1e308) MP)
     //
-    // Let x = level - 49, so:
+    // We want:
+    //   level 50 → secondExp ≈ 3     (so log10 ≈ 1e3 → ~1e1000 MP)
+    //   level 99 → secondExp ≈ 308   (so log10 ≈ 1e308 → ~1e1e308 MP)
+    //
+    // Let x = baseLevel - 49:
     //   level 50 ⇒ x = 1
-    //   level 100 ⇒ x = 51
+    //   level 99 ⇒ x = 50
     //
-    // Choose secondExp(x) = A * x^2 + B
-    // such that secondExp(1) = 3 and secondExp(51) = 308.
+    // Use a quadratic:
+    //   secondExp(x) = A * x^2 + B
+    // with:
+    //   secondExp(1)  = 3
+    //   secondExp(50) = 308
+    //
     // Solve:
-    //   A + B = 3
-    //   A * 51^2 + B = 308
-    // ⇒ A = 305 / (51^2 - 1), B = 3 - A
-
-    const x = baseLevel - 49; // 1 at level 50, 51 at level 100
-    const A = 305 / (51 * 51 - 1); // ≈ 0.1173076923
+    //   A + B        = 3
+    //   A * 2500 + B = 308
+    // ⇒ A = 305 / 2499, B = 3 - A
+    const x = baseLevel - 49; // 1 at level 50, 50 at level 99
+    const A = 305 / (50 * 50 - 1); // 305 / 2499
     const B = 3 - A;
 
-    const secondExp = A * x * x + B;   // grows faster and faster
-    totalLog10 = Math.pow(10, secondExp); // log10(requirement)
+    const secondExp = A * x * x + B; // grows faster and faster
+    if (!Number.isFinite(secondExp)) {
+      return BN.fromAny('Infinity');
+    }
 
-    // So roughly:
-    // level 50: secondExp ≈ 3       → log10 ≈ 1e3
-    // level 60: secondExp ≈ 17.08   → log10 ≈ 1e17
-    // level 70: secondExp ≈ 54.62   → log10 ≈ 1e54
-    // level 80: secondExp ≈ 115.62  → log10 ≈ 1e115
-    // level 90: secondExp ≈ 200.08  → log10 ≈ 1e200
-    // level 100: secondExp ≈ 308    → log10 ≈ 1e308 (just under BN ∞)
+    // log10(requirement) = 10 ^ secondExp
+    totalLog10 = Math.pow(10, secondExp);
   }
 
   if (!Number.isFinite(totalLog10) || totalLog10 <= 0) {
