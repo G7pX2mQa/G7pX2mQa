@@ -63,7 +63,7 @@ function consumeGhostTapGuard(target) {
   const now = nowMs();
   if (now <= until) {
     window[GLOBAL_SKIP_PROP] = null;
-	
+
     if (target && lastMarkedTarget && target === lastMarkedTarget) {
       return true;
     }
