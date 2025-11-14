@@ -111,7 +111,7 @@ function levelToNumber(level) {
 }
 
 function computeRequirement(levelBn) {
-  // Helper: original requirement curve expressed as log10(requirement)
+  // Original requirement curve expressed as log10(requirement)
   function baseRequirementLog10(baseLevel) {
     const m = Math.max(0, baseLevel + 1);
     const tail = Math.max(0, m - 10);
@@ -146,34 +146,56 @@ function computeRequirement(levelBn) {
 
   const levelNum = levelToNumber(levelBn);
   if (!Number.isFinite(levelNum)) {
-    // If the stored level itself is infinite / unrepresentable, the requirement is infinite.
+    // Infinite / unrepresentable level → infinite requirement
     return BN.fromAny('Infinity');
   }
 
   const baseLevel = Math.max(0, levelNum);
 
-  // Hard wall: mutation 101+ is impossible.
+  // Hard wall: mutation 101+ is impossible
   if (baseLevel >= 101) {
-    return BN.fromAny('Infinity');
-  }
-
-  // Log10 at level 50 on the original curve (used as the starting point for the "skyrocket")
-  const logAt50 = baseRequirementLog10(50);
-  if (!Number.isFinite(logAt50)) {
     return BN.fromAny('Infinity');
   }
 
   let totalLog10;
 
   if (baseLevel <= 49) {
-    // Levels 0–49: original scaling
+    // 0–49: original scaling
     totalLog10 = baseRequirementLog10(baseLevel);
   } else {
-    const t = (baseLevel - 49) / 49;      // 0 at 50, 1 at 100
-    const targetLog = 1e308;              // HUGE: log10(requirement) ≈ 1e308
-    const eased = Math.pow(t, 4);         // strongly convex, so it "skyrockets"
+    // 50–100: double-exponential "insanity" zone.
+    //
+    // We work in "second exponent" space:
+    //   secondExp = log10( log10(requirement) )
+    // and make that a convex (quadratic) function from:
+    //   level 50 → secondExp ≈ 3    (log10 ≈ 1e3  → ~1e1000 MP)
+    //   level 100 → secondExp ≈ 308 (log10 ≈ 1e308 → ~1e(1e308) MP)
+    //
+    // Let x = level - 49, so:
+    //   level 50 ⇒ x = 1
+    //   level 100 ⇒ x = 51
+    //
+    // Choose secondExp(x) = A * x^2 + B
+    // such that secondExp(1) = 3 and secondExp(51) = 308.
+    // Solve:
+    //   A + B = 3
+    //   A * 51^2 + B = 308
+    // ⇒ A = 305 / (51^2 - 1), B = 3 - A
 
-    totalLog10 = logAt50 + (targetLog - logAt50) * eased;
+    const x = baseLevel - 49; // 1 at level 50, 51 at level 100
+    const A = 305 / (51 * 51 - 1); // ≈ 0.1173076923
+    const B = 3 - A;
+
+    const secondExp = A * x * x + B;   // grows faster and faster
+    totalLog10 = Math.pow(10, secondExp); // log10(requirement)
+
+    // So roughly:
+    // level 50: secondExp ≈ 3       → log10 ≈ 1e3
+    // level 60: secondExp ≈ 17.08   → log10 ≈ 1e17
+    // level 70: secondExp ≈ 54.62   → log10 ≈ 1e54
+    // level 80: secondExp ≈ 115.62  → log10 ≈ 1e115
+    // level 90: secondExp ≈ 200.08  → log10 ≈ 1e200
+    // level 100: secondExp ≈ 308    → log10 ≈ 1e308 (just under BN ∞)
   }
 
   if (!Number.isFinite(totalLog10) || totalLog10 <= 0) {
