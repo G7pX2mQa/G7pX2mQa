@@ -1109,7 +1109,6 @@ export function addXp(amount, { silent = false } = {}) {
   }
   return detail;
 }
-}
 
 export function getXpState() {
   ensureStateLoaded();
