@@ -55,6 +55,7 @@ const resetState = {
   actionBtn: null,
   statusEl: null,
   layerButtons: {},
+  flagsPrimed: false,
 };
 
 const watchers = [];
@@ -176,6 +177,7 @@ function readPersistentFlags(slot) {
   if (slot == null) {
     resetState.forgeUnlocked = false;
     resetState.hasDoneForgeReset = false;
+    resetState.flagsPrimed = false;
     return;
   }
   try {
@@ -187,6 +189,23 @@ function readPersistentFlags(slot) {
     resetState.hasDoneForgeReset = localStorage.getItem(FORGE_COMPLETED_KEY(slot)) === '1';
   } catch {
     resetState.hasDoneForgeReset = false;
+  }
+  resetState.flagsPrimed = true;
+}
+
+function ensurePersistentFlagsPrimed() {
+  const slot = getActiveSlot();
+  if (slot == null) {
+    resetState.flagsPrimed = false;
+    return;
+  }
+  if (resetState.slot !== slot) {
+    resetState.slot = slot;
+    resetPendingGoldSignature();
+    resetState.flagsPrimed = false;
+  }
+  if (!resetState.flagsPrimed) {
+    readPersistentFlags(slot);
   }
 }
 
@@ -252,12 +271,15 @@ function meetsLevelRequirement() {
 }
 
 export function isForgeUnlocked() {
+  ensurePersistentFlagsPrimed();
   return !!resetState.forgeUnlocked || canAccessForgeTab();
 }
 
 export function hasDoneForgeReset() {
+  ensurePersistentFlagsPrimed();
   return !!resetState.hasDoneForgeReset;
 }
+
 
 export function computePendingForgeGold() {
   recomputePendingGold();
