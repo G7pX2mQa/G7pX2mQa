@@ -63,10 +63,11 @@ function consumeGhostTapGuard(target) {
   const now = nowMs();
   if (now <= until) {
     window[GLOBAL_SKIP_PROP] = null;
+	
     if (target && lastMarkedTarget && target === lastMarkedTarget) {
-      return false;
+      return true;
     }
-    return true;
+    return false;
   }
 
   window[GLOBAL_SKIP_PROP] = null;
@@ -77,18 +78,21 @@ function shouldSkipGhostTap(el) {
   if (!el) return false;
   const until = Number(el[ELEMENT_SKIP_PROP] || 0);
   if (!Number.isFinite(until) || until <= 0) return false;
+
   const now = nowMs();
   if (now <= until) {
-    if (lastMarkedTarget && el === lastMarkedTarget) {
-      clearGhostTapTarget(el);
-      return false;
-    }
     clearGhostTapTarget(el);
-    return true;
+
+    if (lastMarkedTarget && el === lastMarkedTarget) {
+      return true;
+    }
+    return false;
   }
+
   clearGhostTapTarget(el);
   return false;
 }
+
 
 function suppressNextGhostTap(timeout = DEFAULT_TIMEOUT_MS) {
   if (typeof window === 'undefined') return;
