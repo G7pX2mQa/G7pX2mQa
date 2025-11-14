@@ -273,6 +273,7 @@ function normalizeProgress() {
   let currentReq = mutationState.requirement;
   if (!currentReq || typeof currentReq !== 'object') return;
   if (currentReq.isInfinite?.()) {
+    mutationState.progress = bnZero();
     return;
   }
   let guard = 0;
