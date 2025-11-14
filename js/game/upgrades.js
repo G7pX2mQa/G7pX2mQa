@@ -1990,9 +1990,11 @@ const REGISTRY = [
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     computeLockState: determineLockState,
     effectSummary(level) {
-      const mult = this.effectMultiplier(level);
-      return `MP value bonus: ${formatMultForUi(mult)}x`;
-    },
+	  const mult = this.effectMultiplier(level);
+	  const unitsText = formatMultForUi(mult);
+	  const suffix = (unitsText === '1') ? 'Unit' : 'Units';
+	  return `Magnet radius: ${unitsText} ${suffix}`;
+	},
     effectMultiplier: E.addPctPerLevel(1),
   },
   {
