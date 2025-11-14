@@ -115,7 +115,14 @@ function computeRequirement(levelBn) {
   if (!Number.isFinite(levelNum)) {
     return BN.fromAny('Infinity');
   }
-  const m = Math.max(0, levelNum + 1);
+
+  const baseLevel = Math.max(0, levelNum);
+
+  if (baseLevel >= 101) {
+    return BN.fromAny('Infinity');
+  }
+
+  const m = baseLevel + 1;
   const tail = Math.max(0, m - 10);
   const poly = -0.0022175354763501742 * m * m
     + 0.20449967884058884 * m
@@ -124,6 +131,7 @@ function computeRequirement(levelBn) {
   if (!Number.isFinite(poly)) {
     return BN.fromAny('Infinity');
   }
+
   let factor = 1;
   if (m > 10) {
     const powTerm = Math.pow(1.12, m - 10);
@@ -135,10 +143,26 @@ function computeRequirement(levelBn) {
       return BN.fromAny('Infinity');
     }
   }
-  const totalLog10 = poly * factor;
+
+  let totalLog10 = poly * factor;
   if (!Number.isFinite(totalLog10)) {
     return BN.fromAny('Infinity');
   }
+
+  if (baseLevel > 50) {
+    const over = baseLevel - 50;
+    const skyMult = 1 + over * over * 50;
+    totalLog10 *= skyMult;
+
+    if (!Number.isFinite(totalLog10)) {
+      return BN.fromAny('Infinity');
+    }
+
+    if (totalLog10 > 1e9) {
+      totalLog10 = 1e9;
+    }
+  }
+
   const raw = bigNumFromLog10(totalLog10);
   return quantizeRequirement(raw);
 }
@@ -467,7 +491,20 @@ export function addMutationPower(amount) {
   const prevLevel = mutationState.level.clone?.() ?? mutationState.level;
   const prevProgress = mutationState.progress.clone?.() ?? mutationState.progress;
   mutationState.progress = mutationState.progress.add(incClone);
-  normalizeProgress();
+
+  const progInf = mutationState.progress.isInfinite?.();
+  if (progInf) {
+    try {
+      mutationState.level = BN.fromAny('Infinity');
+    } catch {}
+    mutationState.progress = bnZero();
+    try {
+      mutationState.requirement = BN.fromAny('Infinity');
+    } catch {}
+  } else {
+    normalizeProgress();
+  }
+
   persistState();
   updateHud();
   emitChange('progress');
