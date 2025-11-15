@@ -924,7 +924,6 @@ shopOverlayEl.addEventListener('click', (e) => {
 
 function onCloseClick(e) {
   if (IS_MOBILE) {
-    suppressNextGhostTap(320);
     blockInteraction(80);
   }
   closeShop();
@@ -937,8 +936,8 @@ if (hasPointerEvents) {
   closeBtn.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'mouse') return;
     if (typeof e.button === 'number' && e.button !== 0) return;
+    // Keep marking for safety, but no global suppression
     markGhostTapTarget(closeBtn);
-    suppressNextGhostTap(320);
     blockInteraction(80);
     closeShop();
     e.preventDefault();
@@ -946,7 +945,6 @@ if (hasPointerEvents) {
 } else {
   closeBtn.addEventListener('touchstart', (e) => {
     markGhostTapTarget(closeBtn);
-    suppressNextGhostTap(320);
     blockInteraction(80);
     closeShop();
     e.preventDefault();
@@ -1086,8 +1084,7 @@ upgOverlayEl.addEventListener('click', (e) => {
     upgSheetEl.style.transform = shouldClose ? 'translateY(100%)' : 'translateY(0)';
     if (shouldClose) {
       if (IS_COARSE && (!e || e.pointerType !== 'mouse')) {
-        try { suppressNextGhostTap(320); } catch {}
-        try { blockInteraction(80); } catch {}
+        try { blockInteraction(120); } catch {}
       }
       setTimeout(closeUpgradeMenu, 160);
     }
@@ -1104,8 +1101,7 @@ function closeUpgradeMenu() {
     (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
   if (IS_COARSE) {
-    try { suppressNextGhostTap(320); } catch {}
-    try { blockInteraction(200); } catch {}
+    try { blockInteraction(160); } catch {}
   }
 
   if (typeof upgOverlayCleanup === 'function') {
@@ -1417,21 +1413,32 @@ export function openUpgradeOverlay(upgDef) {
       buyBtn.className = 'shop-delve';
       buyBtn.textContent = 'Buy';
       buyBtn.disabled = !canAffordNext;
-      buyBtn.addEventListener('click', () => {
-        const fresh = upgradeUiModel(areaKey, upgDef.id);
-        const priceNow = fresh.nextPrice instanceof BigNum
-          ? fresh.nextPrice
-          : BigNum.fromAny(fresh.nextPrice || 0);
-        if (fresh.have.cmp(priceNow) < 0) return;
+      buyBtn.addEventListener('click', (event) => {
+  if (typeof shouldSkipGhostTap === 'function' && shouldSkipGhostTap(buyBtn)) {
+    event.preventDefault();
+    event.stopImmediatePropagation?.();
+    return;
+  }
 
-        const { bought } = buyOne(areaKey, upgDef.id);
-        const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
-        if (!boughtBn.isZero?.()) {
-          playPurchaseSfx();
-          updateShopOverlay();
-          rerender();
-        }
-      });
+  if (typeof markGhostTapTarget === 'function') {
+    markGhostTapTarget(buyBtn, 0);
+  }
+
+  const fresh = upgradeUiModel(areaKey, upgDef.id);
+  const priceNow = fresh.nextPrice instanceof BigNum
+    ? fresh.nextPrice
+    : BigNum.fromAny(fresh.nextPrice || 0);
+  if (fresh.have.cmp(priceNow) < 0) return;
+
+  const { bought } = buyOne(areaKey, upgDef.id);
+  const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+  if (!boughtBn.isZero?.()) {
+    playPurchaseSfx();
+    updateShopOverlay();
+    rerender();
+  }
+});
+
 
       const buyMaxBtn = document.createElement('button');
       buyMaxBtn.type = 'button';
