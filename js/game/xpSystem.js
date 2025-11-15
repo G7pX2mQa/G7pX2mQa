@@ -1026,12 +1026,27 @@ export function addXp(amount, { silent = false } = {}) {
   xpState.progress = xpState.progress.add(inc);
   updateXpRequirement();
 
-  // NEW: If progress is infinite, do NOT attempt to normalize or clamp.
+  // If the gain, the current progress, or the current level is infinite,
+  // snap the entire XP system (level, progress, requirement, and coin multiplier) to ∞.
   const progressIsInf = xpState.progress?.isInfinite?.()
     || (typeof xpState.progress?.isInfinite === 'function' && xpState.progress.isInfinite());
-  if (progressIsInf) {
+  const levelIsInf = xpState.xpLevel?.isInfinite?.()
+    || (typeof xpState.xpLevel?.isInfinite === 'function' && xpState.xpLevel.isInfinite());
+  const gainIsInf = inc?.isInfinite?.()
+    || (typeof inc?.isInfinite === 'function' && inc.isInfinite());
+
+  if (progressIsInf || levelIsInf || gainIsInf) {
+    const inf = infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+
+    xpState.xpLevel = inf.clone?.() ?? inf;
+    xpState.progress = inf.clone?.() ?? inf;
+    requirementBn = inf.clone?.() ?? inf;
+
     persistState();
     updateHud();
+    // Make sure the coin multiplier from XP is also locked to ∞.
+    syncCoinMultiplierWithXpLevel(true);
+
     const detail = {
       unlocked: true,
       xpLevelsGained: bnZero(),
