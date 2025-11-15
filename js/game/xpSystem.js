@@ -150,6 +150,18 @@ const xpState = {
   progress: BigNum.fromInt(0),
 };
 
+function enforceXpInfinityInvariant() {
+  const levelIsInf = bigNumIsInfinite(xpState.xpLevel);
+  const progIsInf = bigNumIsInfinite(xpState.progress);
+  if (!levelIsInf && !progIsInf) return false;
+
+  const inf = infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  xpState.xpLevel = inf.clone?.() ?? inf;
+  xpState.progress = inf.clone?.() ?? inf;
+  requirementBn = inf.clone?.() ?? inf;
+  return true;
+}
+
 const xpChangeSubscribers = new Set();
 
 function notifyXpSubscribers(detail = {}) {
@@ -516,15 +528,24 @@ function approximateRequirementFromLevel(levelBn) {
 
 function progressRatio(progressBn, requirement) {
   if (!requirement || typeof requirement !== 'object') return 0;
-  const reqIsInf = requirement.isInfinite?.() || (typeof requirement.isInfinite === 'function' && requirement.isInfinite());
-  if (reqIsInf) return 0;
-  const reqIsZero = requirement.isZero?.() || (typeof requirement.isZero === 'function' && requirement.isZero());
-  if (reqIsZero) return 0;
   if (!progressBn || typeof progressBn !== 'object') return 0;
-  const progIsZero = progressBn.isZero?.() || (typeof progressBn.isZero === 'function' && progressBn.isZero());
+
+  const reqIsInf = bigNumIsInfinite(requirement);
+  const progIsInf = bigNumIsInfinite(progressBn);
+
+  // If both are infinite, treat as a full bar.
+  if (reqIsInf) {
+    return progIsInf ? 1 : 0;
+  }
+
+  const reqIsZero = bigNumIsZero(requirement);
+  if (reqIsZero) return 0;
+
+  const progIsZero = bigNumIsZero(progressBn);
   if (progIsZero) return 0;
+
   const logProg = approxLog10(progressBn);
-  const logReq = approxLog10(requirement);
+  const logReq  = approxLog10(requirement);
   if (!Number.isFinite(logProg) || !Number.isFinite(logReq)) {
     return logProg >= logReq ? 1 : 0;
   }
@@ -622,18 +643,15 @@ function resetLockedXpState() {
 }
 
 function normalizeProgress(applyRewards = false) {
-  updateXpRequirement();
-
-  // NEW: If progress is infinite, keep it as-is. Do not normalize or clamp.
-  const progIsInf = xpState.progress?.isInfinite?.()
-    || (typeof xpState.progress?.isInfinite === 'function' && xpState.progress.isInfinite());
-  if (progIsInf) {
+  // If either level or progress is already ∞, enforce the invariant and bail.
+  if (enforceXpInfinityInvariant()) {
     return;
   }
 
-  const reqIsInf = requirementBn.isInfinite?.()
-    || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
-  if (reqIsInf) {
+  updateXpRequirement();
+
+  // If the requirement is infinite, there is nothing meaningful to normalize.
+  if (bigNumIsInfinite(requirementBn)) {
     return;
   }
 
@@ -642,21 +660,20 @@ function normalizeProgress(applyRewards = false) {
   while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
     try { xpState.progress = xpState.progress.sub(requirementBn); }
     catch { xpState.progress = bnZero(); }
+
     try { xpState.xpLevel = xpState.xpLevel.add(bnOne()); }
     catch { xpState.xpLevel = bnZero(); }
+
     if (applyRewards) handleXpLevelUpRewards();
     updateXpRequirement();
-    const nextReqInf = requirementBn.isInfinite?.()
-      || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
-    if (nextReqInf) {
-      // Keep current infinite progress intact instead of zeroing if it ever occurs.
-      // (We won't reach here when progress is infinite due to early return above.)
+
+    if (bigNumIsInfinite(requirementBn)) {
       break;
     }
     guard += 1;
   }
+
   if (guard >= limit) {
-    // Only clamp when progress is finite (infinite path returned earlier).
     xpState.progress = bnZero();
   }
 }
@@ -809,9 +826,12 @@ function ensureStateLoaded(force = false) {
     resetLockedXpState();
     return xpState;
   }
+
+  enforceXpInfinityInvariant();
+
   updateXpRequirement();
   normalizeProgress(false);
-  syncCoinMultiplierWithXpLevel();
+  syncCoinMultiplierWithXpLevel(true);
   ensureXpStorageWatchers();
   return xpState;
 }
