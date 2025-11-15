@@ -15,16 +15,23 @@ import {
 import { getMpValueMultiplierBn } from './upgrades.js';
 
 let mutationUnlockedSnapshot = false;
+let mutationLevelIsInfiniteSnapshot = false;
 let mutationUnsub = null;
 
 function updateMutationSnapshot(state) {
   if (!state || typeof state !== 'object') {
     mutationUnlockedSnapshot = false;
+    mutationLevelIsInfiniteSnapshot = false;
     mutationMultiplierCache.clear();
     return;
   }
+
   mutationUnlockedSnapshot = !!state.unlocked;
+  mutationLevelIsInfiniteSnapshot = !!state.level?.isInfinite?.?.();
+
   if (!mutationUnlockedSnapshot) {
+    mutationMultiplierCache.clear();
+  } else if (mutationLevelIsInfiniteSnapshot) {
     mutationMultiplierCache.clear();
   }
 }
@@ -51,6 +58,14 @@ let coinPickup = null;
 const XP_PER_COIN = BigNum.fromInt(1);
 const BASE_COIN_VALUE = BigNum.fromInt(1);
 const BN_ONE = BigNum.fromInt(1);
+
+let BN_INF;
+try {
+  BN_INF = BigNum.fromAny('Infinity');
+} catch {
+  BN_INF = null;
+}
+
 const mutationMultiplierCache = new Map();
 let COIN_MULTIPLIER = '1';
 let mpValueMultiplierBn = BigNum.fromInt(1);
@@ -209,40 +224,52 @@ export function initCoinPickup({
     try { return BigNum.fromAny(value); } catch { return BigNum.fromInt(0); }
   };
 
-  const computeMutationMultiplier = (spawnLevelStr) => {
-    if (!mutationUnlockedSnapshot) return null;
-    if (!spawnLevelStr) return null;
-    const key = String(spawnLevelStr).trim();
-    if (!key) return null;
+const computeMutationMultiplier = (spawnLevelStr) => {
+  if (!mutationUnlockedSnapshot) return null;
 
-    const cached = mutationMultiplierCache.get(key);
-    if (cached) {
-      try { return cached.clone?.() ?? BigNum.fromAny(cached); }
-      catch { mutationMultiplierCache.delete(key); }
+  // Global override: once mutation level itself is ∞,
+  // every coin gets an ∞ multiplier regardless of its spawn level.
+  if (mutationLevelIsInfiniteSnapshot) {
+    if (BN_INF) {
+      try { return BN_INF.clone?.() ?? BN_INF; }
+      catch { return BN_INF; }
     }
+    // Fallback if Infinity construction failed for some reason
+    return null;
+  }
 
-    let levelBn;
-    try {
-      levelBn = BigNum.fromAny(key);
-    } catch {
-      return null;
-    }
+  if (!spawnLevelStr) return null;
+  const key = String(spawnLevelStr).trim();
+  if (!key) return null;
 
-    let multiplier;
-    try {
-      multiplier = computeMutationMultiplierForLevel(levelBn);
-    } catch {
-      multiplier = null;
-    }
+  const cached = mutationMultiplierCache.get(key);
+  if (cached) {
+    try { return cached.clone?.() ?? BigNum.fromAny(cached); }
+    catch { mutationMultiplierCache.delete(key); }
+  }
 
-    if (!multiplier) return null;
-    const isIdentity = multiplier.cmp?.(BN_ONE) === 0;
-    const stored = multiplier.clone?.() ?? multiplier;
-    mutationMultiplierCache.set(key, stored);
-    if (isIdentity) return null;
-    try { return stored.clone?.() ?? BigNum.fromAny(stored); }
-    catch { return multiplier; }
-  };
+  let levelBn;
+  try {
+    levelBn = BigNum.fromAny(key);
+  } catch {
+    return null;
+  }
+
+  let multiplier;
+  try {
+    multiplier = computeMutationMultiplierForLevel(levelBn);
+  } catch {
+    multiplier = null;
+  }
+
+  if (!multiplier) return null;
+  const isIdentity = multiplier.cmp?.(BN_ONE) === 0;
+  const stored = multiplier.clone?.() ?? multiplier;
+  mutationMultiplierCache.set(key, stored);
+  if (isIdentity) return null;
+  try { return stored.clone?.() ?? stored; }
+  catch { return stored; }
+};
 
   let pendingCoinGain = null;
   let pendingXpGain = null;
