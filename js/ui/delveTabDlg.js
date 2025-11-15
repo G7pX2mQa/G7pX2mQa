@@ -1,3 +1,4 @@
+
 // js/ui/delveTabDlg.js
 
 import {
@@ -9,7 +10,7 @@ import {
 import { BigNum } from '../util/bigNum.js';
 import { MERCHANT_DIALOGUES } from '../misc/merchantDialogues.js';
 import { getXpState, isXpSystemUnlocked } from '../game/xpSystem.js';
-import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset } from '../game/resetSystem.js';
+import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked } from '../game/resetSystem.js';
 import { blockInteraction } from './shopOverlay.js';
 import {
   markGhostTapTarget,
@@ -58,7 +59,6 @@ const DEFAULT_MYSTERIOUS_BLURB = 'Hidden Dialogue';
 const DEFAULT_LOCKED_BLURB = 'Locked';
 const DEFAULT_LOCK_MESSAGE = 'Locked Dialogue';
 const DIALOGUE_STATUS_ORDER = { locked: 0, mysterious: 1, unlocked: 2 };
-const FORGE_COMPLETED_KEY_BASE = 'ccc:reset:forge:completed';
 
 const HAS_POINTER_EVENTS = typeof window !== 'undefined' && 'PointerEvent' in window;
 const HAS_TOUCH_EVENTS = !HAS_POINTER_EVENTS && typeof window !== 'undefined' && 'ontouchstart' in window;
@@ -232,7 +232,6 @@ function getPlayerProgress() {
   const progress = {
     xpUnlocked: false,
     xpLevel: 0,
-    hasForgeReset: false,
   };
 
   try {
@@ -251,13 +250,7 @@ function getPlayerProgress() {
       progress.xpLevel = 0;
     }
   }
-  
-  try {
-    progress.hasForgeReset = typeof hasDoneForgeReset === 'function' && hasDoneForgeReset();
-  } catch {
-    progress.hasForgeReset = false;
-  }
-  
+
   return progress;
 }
 
@@ -337,12 +330,6 @@ function ensureProgressEvents() {
   }
 
   document.addEventListener('ccc:upgrades:changed', handler);
-
-  const slot = getActiveSlot();
-  if (slot != null) {
-    const key = `${FORGE_COMPLETED_KEY_BASE}:${slot}`;
-    watchStorageKey(key, { onChange: handler });
-  }
 }
 
 function onProgressChanged() {
@@ -420,30 +407,30 @@ const DLG_CATALOG = {
   },
   3: {
     title: 'Edge of Mastery',
-    blurb: 'Placeholder musings earned through the Forge.',
+    blurb: 'Placeholder musings for reaching XP level 999.',
     scriptId: 3,
-    unlock: (progress) => {
-      if (progress?.hasForgeReset) {
-        return true;
-      }
-      if (!progress?.xpUnlocked || (progress?.xpLevel ?? 0) < 31) {
-        return {
-          status: 'locked',
-          title: '???',
-          blurb: DEFAULT_LOCKED_BLURB,
-          tooltip: 'Locked Dialogue',
-          ariaLabel: 'Locked Dialogue.',
-        };
-      }
-      return {
-        status: 'mysterious',
-        requirement: 'Do a Forge reset to reveal this dialogue',
-        message: 'Do a Forge reset to reveal this dialogue',
-        icon: MYSTERIOUS_ICON_SRC,
-        headerTitle: HIDDEN_DIALOGUE_TITLE,
-        ariaLabel: 'Hidden merchant dialogue. Do a Forge reset to reveal this dialogue',
-      };
-    },
+unlock: (progress) => {
+  if (!progress?.xpUnlocked) {
+    return {
+      status: 'locked',
+      title: '???',
+      blurb: DEFAULT_LOCKED_BLURB,
+      tooltip: 'Locked Dialogue',
+      ariaLabel: 'Locked Dialogue.',
+    };
+  }
+  if ((progress?.xpLevel ?? 0) < 999) {
+    return {
+      status: 'mysterious',
+      requirement: 'Reach XP level 999 to reveal this dialogue',
+      message: 'Reach XP level 999 to reveal this dialogue',
+      icon: MYSTERIOUS_ICON_SRC,
+      headerTitle: HIDDEN_DIALOGUE_TITLE,
+      ariaLabel: 'Reach XP level 999 to reveal this dialogue',
+    };
+  }
+  return true;
+},
     once: false,
   },
 };
@@ -691,9 +678,11 @@ function typeText(el, full, msPerChar = 22, skipTargets = []) {
 
     const targets = skipTargets.length ? skipTargets : [el];
 
-    armed = true;
-    targets.forEach(t => t.addEventListener('click', skip, { once: true }));
-    document.addEventListener('keydown', onKey, { once: true });
+    requestAnimationFrame(() => {
+      armed = true;
+      targets.forEach(t => t.addEventListener('click', skip, { once: true }));
+      document.addEventListener('keydown', onKey, { once: true });
+    });
 
     el.classList.add('is-typing');
     el.textContent = '';
@@ -1423,13 +1412,14 @@ function runFirstMeet() {
 
   // Animate in next frame
   void merchantSheetEl.offsetHeight;
-requestAnimationFrame(() => {
-  merchantSheetEl.style.transition = '';
-  merchantOverlayEl.classList.add('is-open');
+  requestAnimationFrame(() => {
+      merchantSheetEl.style.transition = '';
+      merchantOverlayEl.classList.add('is-open');
+      blockInteraction(140);
 
-  if (merchantCloseBtn && typeof merchantCloseBtn.focus === 'function') {
-    try { merchantCloseBtn.focus({ preventScroll: true }); } catch {}
-  }
+      if (merchantCloseBtn && typeof merchantCloseBtn.focus === 'function') {
+        try { merchantCloseBtn.focus({ preventScroll: true }); } catch {}
+      }
 
     // Restore last tab
     let last = 'dialogue';
