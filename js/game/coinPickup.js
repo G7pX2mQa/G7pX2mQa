@@ -27,7 +27,7 @@ function updateMutationSnapshot(state) {
   }
 
   mutationUnlockedSnapshot = !!state.unlocked;
-  mutationLevelIsInfiniteSnapshot = !!state.level?.isInfinite?.?.();
+  mutationLevelIsInfiniteSnapshot = !!state.level?.isInfinite?.();
 
   if (!mutationUnlockedSnapshot) {
     mutationMultiplierCache.clear();
