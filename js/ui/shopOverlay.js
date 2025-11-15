@@ -744,15 +744,11 @@ function renderShopGrid() {
       ? LOCKED_BASE_ICON_SRC
       : resolvedBaseSrc;
     baseImg.alt = '';
-    baseImg.decoding = 'async';
-    baseImg.loading = 'lazy';
 
     const iconImg = document.createElement('img');
     iconImg.className = 'icon';
     iconImg.src = upg.icon || TRANSPARENT_PX;
     iconImg.alt = '';
-    iconImg.decoding = 'async';
-    iconImg.loading = 'lazy';
     iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
 
     btn.addEventListener('click', (event) => {
