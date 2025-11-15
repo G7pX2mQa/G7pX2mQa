@@ -202,9 +202,34 @@ function computeRequirement(levelBn) {
 }
 
 function ensureRequirement() {
+  const lvl = mutationState.level;
+
+  const levelIsInf = !!(
+    lvl &&
+    typeof lvl === 'object' &&
+    (lvl.isInfinite?.() || (typeof lvl.isInfinite === 'function' && lvl.isInfinite()))
+  );
+
+  if (levelIsInf) {
+    try {
+      const inf = BigNum.fromAny('Infinity');
+      mutationState.requirement = inf.clone?.() ?? inf;
+      mutationState.progress = inf.clone?.() ?? inf;
+    } catch {
+      if (!mutationState.requirement || typeof mutationState.requirement !== 'object') {
+        mutationState.requirement = BigNum.fromInt(0);
+      }
+      if (!mutationState.progress || typeof mutationState.progress !== 'object') {
+        mutationState.progress = BigNum.fromInt(0);
+      }
+    }
+    return;
+  }
+
   const req = computeRequirement(mutationState.level);
   mutationState.requirement = req;
 }
+
 
 function progressRatio(progressBn, requirement) {
   if (!requirement || typeof requirement !== 'object') return 0;
