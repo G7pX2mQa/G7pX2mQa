@@ -1090,11 +1090,11 @@ upgOverlayEl.addEventListener('click', (e) => {
     upgSheetEl.style.transform = shouldClose ? 'translateY(100%)' : 'translateY(0)';
     if (shouldClose) {
       if (IS_COARSE && (!e || e.pointerType !== 'mouse')) {
+        try { suppressNextGhostTap(320); } catch {}
         try { blockInteraction(80); } catch {}
       }
       setTimeout(closeUpgradeMenu, 160);
     }
-
     drag = null;
     window.removeEventListener('pointermove', onDragMove);
     window.removeEventListener('pointerup', onDragEnd);
@@ -1104,6 +1104,14 @@ upgOverlayEl.addEventListener('click', (e) => {
 }
 
 function closeUpgradeMenu() {
+  const IS_COARSE =
+    (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
+
+  if (IS_COARSE) {
+    try { suppressNextGhostTap(320); } catch {}
+    try { blockInteraction(200); } catch {}
+  }
+
   if (typeof upgOverlayCleanup === 'function') {
     const fn = upgOverlayCleanup;
     upgOverlayCleanup = null;
@@ -1117,7 +1125,6 @@ function closeUpgradeMenu() {
   upgOverlayEl.classList.remove('is-open');
   upgOverlayEl.style.pointerEvents = 'none';
 }
-
 
 function formatMult(value) {
   if (value instanceof BigNum) return `${formatNumber(value)}x`;
@@ -1353,27 +1360,27 @@ export function openUpgradeOverlay(upgDef) {
     closeBtn.textContent = 'Close';
     closeBtn.addEventListener('click', () => { upgOpenLocal = false; closeUpgradeMenu(); });
 
-if ('PointerEvent' in window) {
-  closeBtn.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'mouse') return;
-    if (typeof e.button === 'number' && e.button !== 0) return;
-    markGhostTapTarget(closeBtn);
-    suppressNextGhostTap(320);
-    // no blockInteraction here – relies on ghostTapGuard instead
-    upgOpenLocal = false;
-    closeUpgradeMenu();
-    e.preventDefault();
-  }, { passive: false });
-} else {
-  closeBtn.addEventListener('touchstart', (e) => {
-    markGhostTapTarget(closeBtn);
-    suppressNextGhostTap(320);
-    // no blockInteraction here – relies on ghostTapGuard instead
-    upgOpenLocal = false;
-    closeUpgradeMenu();
-    e.preventDefault();
-  }, { passive: false });
-}
+    if ('PointerEvent' in window) {
+      closeBtn.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse') return;
+        if (typeof e.button === 'number' && e.button !== 0) return;
+        markGhostTapTarget(closeBtn);
+        suppressNextGhostTap(320);
+        blockInteraction(160);
+        upgOpenLocal = false;
+        closeUpgradeMenu();
+        e.preventDefault();
+      }, { passive: false });
+    } else {
+      closeBtn.addEventListener('touchstart', (e) => {
+        markGhostTapTarget(closeBtn);
+        suppressNextGhostTap(320);
+        blockInteraction(160);
+        upgOpenLocal = false;
+        closeUpgradeMenu();
+        e.preventDefault();
+      }, { passive: false });
+    }
 	
     if (locked) {
       actions.append(closeBtn);
@@ -1480,18 +1487,18 @@ if ('PointerEvent' in window) {
     window.addEventListener('xp:unlock', onCurrencyChange);
     document.addEventListener('ccc:upgrades:changed', onUpgradesChanged);
 
-rerender();
-upgOverlayEl.classList.add('is-open');
-upgOverlayEl.style.pointerEvents = 'auto';
-// removed blockInteraction(140); so taps can land immediately
-upgSheetEl.style.transition = 'none';
-upgSheetEl.style.transform = 'translateY(100%)';
-void upgSheetEl.offsetHeight;
-requestAnimationFrame(() => {
-  upgSheetEl.style.transition = '';
-  upgSheetEl.style.transform = '';
-});
-
+  // open + animate
+  rerender();
+  upgOverlayEl.classList.add('is-open');
+  upgOverlayEl.style.pointerEvents = 'auto';
+  blockInteraction(140);
+  upgSheetEl.style.transition = 'none';
+  upgSheetEl.style.transform = 'translateY(100%)';
+  void upgSheetEl.offsetHeight;
+  requestAnimationFrame(() => {
+    upgSheetEl.style.transition = '';
+    upgSheetEl.style.transform = '';
+  });
 
   // ESC to close
   const onKey = (e) => {
