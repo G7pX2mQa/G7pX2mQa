@@ -208,18 +208,29 @@ function ensureRequirement() {
 
 function progressRatio(progressBn, requirement) {
   if (!requirement || typeof requirement !== 'object') return 0;
+  if (!progressBn || typeof progressBn !== 'object') return 0;
+
   const reqInf = requirement.isInfinite?.();
-  if (reqInf) return 0;
+  const progInf = progressBn.isInfinite?.();
+
+  // If both are infinite, treat the bar as "full".
+  if (reqInf) {
+    if (progInf) return 1;
+    return 0;
+  }
+
   const reqZero = requirement.isZero?.();
   if (reqZero) return 0;
-  if (!progressBn || typeof progressBn !== 'object') return 0;
+
   const progZero = progressBn.isZero?.();
   if (progZero) return 0;
+
   const logProg = approxLog10BigNum(progressBn);
   const logReq = approxLog10BigNum(requirement);
   if (!Number.isFinite(logProg) || !Number.isFinite(logReq)) {
     return logProg >= logReq ? 1 : 0;
   }
+
   const diff = logProg - logReq;
   const ratio = Math.pow(10, diff);
   if (!Number.isFinite(ratio)) {
@@ -564,9 +575,14 @@ export function addMutationPower(amount) {
     try {
       mutationState.level = BN.fromAny('Infinity');
     } catch {}
+
+    // Keep progress locked at Infinity once we reach mutation ∞
     try {
-      mutationState.progress = BN.fromAny('Infinity');   // <--- keep progress at Infinity
-    } catch {}
+      mutationState.progress = BN.fromAny('Infinity');
+    } catch {
+      mutationState.progress = bnZero();
+    }
+
     try {
       mutationState.requirement = BN.fromAny('Infinity');
     } catch {}
