@@ -1,9 +1,9 @@
 /* css/ui/delve.css */
 :root {
-  --merchant-bg: var(--shop-bg, hsla(215, 32%, 7%, 0.75));
-  --merchant-card: var(--shop-card, hsl(220 18% 14% / 1));
-  --merchant-card-soft: hsla(220, 18%, 14%, 0.85);
-  --merchant-border: var(--shop-border, hsl(210 18% 28% / 1));
+  --merchant-bg: hsla(215, 32%, 7%, 0.78);
+  --merchant-card: hsla(220, 18%, 18%, 0.72);
+  --merchant-card-soft: hsla(220, 18%, 14%, 0.58);
+  --merchant-border: hsla(213, 26%, 60%, 0.45);
 }
 
 .merchant-overlay {
@@ -116,7 +116,7 @@
 
 .merchant-content::-webkit-scrollbar-track {
   background: hsl(220 18% 7% / .55);
-  border-left: 1px solid var(--shop-border);
+  border-left: 1px solid var(--merchant-border);
 }
 
 .merchant-content::-webkit-scrollbar-thumb {
@@ -208,7 +208,7 @@
   right: 0;
   top: calc(100% - 1px);
   height: var(--merchant-fade-size);
-  background: linear-gradient(180deg, var(--shop-bg), hsla(215, 32%, 7%, 0));
+  background: linear-gradient(180deg, var(--merchant-bg), hsla(215, 32%, 7%, 0));
   opacity: 0;
   pointer-events: none;
   transition: opacity 160ms ease;
@@ -363,17 +363,23 @@
   padding: 8px 12px;
   text-align: left;
   border-radius: 8px;
-  border: 1px solid var(--shop-border);
-  background: hsl(0 0% 100% / .06);
+  border: 1px solid var(--merchant-border);
+  background: var(--merchant-card-soft);
   color: #fff;
   font-weight: 600;
   letter-spacing: .2px;
   cursor: pointer;
   transition: background 120ms ease, transform 90ms ease;
 }
+
+.merchant-firstchat__choices .choice:hover {
+  background: hsla(0, 0%, 100%, 0.12);
+}
+
 .merchant-firstchat__choices .choice:hover {
   background: hsl(0 0% 100% / .10);
 }
+
 .merchant-firstchat__choices .choice:active {
   transform: translateY(1px);
 }
@@ -416,19 +422,19 @@
 .merchant-tab {
   padding: 6px 12px;
   border-radius: 10px;
-  border: 1px solid var(--shop-border);
-  background: hsl(0 0% 100% / .04);
+  border: 1px solid var(--merchant-border);
+  background: var(--merchant-card-soft);
   color: #fff;
   font-weight: 600;
   letter-spacing: .2px;
   cursor: pointer;
   transition: background 120ms ease, transform 90ms ease, opacity 120ms ease;
 }
-.merchant-tab:hover { background: hsl(0 0% 100% / .08); }
+.merchant-tab:hover { background: hsla(0, 0%, 100%, 0.12); }
 .merchant-tab:active { transform: translateY(1px); }
 
 .merchant-tab.is-active {
-  background: hsl(0 0% 100% / .12);
+  background: hsla(0, 0%, 100%, 0.18);
   box-shadow: inset 0 -2px 0 hsl(0 0% 100% / .18);
 }
 
@@ -460,9 +466,9 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 12px;
-  background: rgba(255,255,255,0.04);
+  background: var(--merchant-card-soft);
   color: #f5f8ff;
   font-weight: 600;
   cursor: pointer;
@@ -476,12 +482,12 @@
 }
 
 .merchant-reset__layer.is-active {
-  background: linear-gradient(180deg, rgba(255,169,0,0.4), rgba(255,115,0,0.25));
-  box-shadow: inset 0 0 0 2px rgba(255,179,0,0.35);
+  background: linear-gradient(180deg, rgba(255,169,0,0.25), rgba(255,115,0,0.18));
+  border-color: rgba(255,179,0,0.4);
 }
 
 .merchant-reset__main {
-  background: var(--merchant-card-soft);
+  background: var(--merchant-card);
   border: 1px solid var(--merchant-border);
   border-radius: 16px;
   padding: 18px 20px;
@@ -623,36 +629,37 @@
   text-align: left;
   padding: clamp(8px,1.2vw,12px) clamp(10px,2vw,14px);
   border-radius: 12px;
-  border: 2px solid var(--shop-border, rgba(255,255,255,.12));
+  border: 1px solid var(--merchant-border);
+  background: var(--merchant-card);
   color: #fff;
   cursor: pointer;
   transition: background 120ms ease, transform 90ms ease, opacity 120ms ease;
 }
-.dlg-card:not(.is-complete):hover { background: rgba(255,255,255,.18); }
+.dlg-card:not(.is-complete):hover { background: hsla(0, 0%, 100%, 0.18); }
 .dlg-card:active { transform: none; }
 .dlg-card.is-locked,
 .dlg-card:disabled {
   opacity: .45;
   cursor: not-allowed;
-  background: #1f1f1f;
+  background: hsla(220, 18%, 12%, 0.68);
 }
 
 .dlg-card.is-locked:hover {
-  background: #272831;
+  background: hsla(220, 18%, 14%, 0.72);
 }
 
 .dlg-card.is-mysterious {
   opacity: .45;
-  background: #1f1f1f;
+  background: hsla(220, 18%, 12%, 0.68);
   border-style: solid;
 }
 
-.dlg-card.is-mysterious:hover { background: #272831; }
-.dlg-card:not(.is-complete):not(.is-mysterious):not(.is-locked) { background: rgba(255,255,255,0.12); }
-.dlg-card.is-complete { background: rgba(255,255,255,0.03); }
-.dlg-card.is-complete:hover { background: rgba(255,255,255,0.06); }
+.dlg-card.is-mysterious:hover { background: hsla(220, 18%, 14%, 0.72); }
+.dlg-card:not(.is-complete):not(.is-mysterious):not(.is-locked) { background: var(--merchant-card); }
+.dlg-card.is-complete { background: hsla(0, 0%, 100%, 0.04); }
+.dlg-card.is-complete:hover { background: hsla(0, 0%, 100%, 0.08); }
 .dlg-card:not(.is-locked):not(.is-mysterious):not(.is-complete):hover {
-  background: rgba(255,255,255,.15);
+  background: hsla(0, 0%, 100%, 0.12);
   transition: background 120ms ease;
 }
 
