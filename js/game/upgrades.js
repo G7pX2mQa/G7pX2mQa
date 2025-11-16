@@ -2011,7 +2011,7 @@ const REGISTRY = [
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     computeLockState: determineLockState,
     effectSummary(level) {
-	  const mult = this.effectMultiplier(level);
+	   const mult = normalizedUpgradeLevel(mult); // so it's zero-based (because it starts at +0 Units not 1x Units or something)
 	  const unitsText = formatMultForUi(mult);
 	  const suffix = (unitsText === '1') ? 'Unit' : 'Units';
 	  return `Magnet radius: ${unitsText} ${suffix}`;
