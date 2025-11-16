@@ -71,7 +71,86 @@
   padding: 0;
   scrollbar-gutter: stable both-edges;
   background: var(--shop-bg);
+
+  /* smooth scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+
+  /* we’ll draw our own overlay scrollbar */
+  scrollbar-width: none;              /* Firefox */
 }
+
+.merchant-content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;                      /* Chromium/WebKit */
+}
+
+/* Chromium/WebKit (incl. iOS) */
+.merchant-content::-webkit-scrollbar {
+  width: 12px;
+}
+
+.merchant-content::-webkit-scrollbar-track {
+  background: hsl(220 18% 7% / .55);
+  border-left: 1px solid var(--shop-border);
+}
+
+.merchant-content::-webkit-scrollbar-thumb {
+  background: hsl(0 0% 100% / .22);
+  border-radius: 10px;
+}
+
+.merchant-content::-webkit-scrollbar-thumb:hover {
+  background: hsl(0 0% 100% / .32);
+}
+
+/* Overlay scrollbar for Merchant (same look as Shop) */
+.merchant-scrollbar {
+  position: absolute;                 /* lives inside .merchant-sheet */
+  right: 6px;
+  /* top/bottom are set from JS so it respects grabber/header/actions */
+  width: 8px;
+  border-radius: 6px;
+  background: transparent;            /* no track fill */
+  pointer-events: auto;
+  z-index: 4;                         /* above content/header */
+}
+
+.merchant-scrollbar__thumb {
+  width: 100%;
+  min-height: 28px;                   /* readable minimum */
+  border-radius: 6px;
+  background: hsl(0 0% 100% / .28);
+  box-shadow: inset 0 0 0 1px hsl(0 0% 100% / .12);
+  transform: translateY(0);           /* JS updates this */
+  transition: background .15s ease;
+  cursor: grab;
+}
+
+.merchant-scrollbar__thumb:hover {
+  /* desktop hover; harmless on mobile */
+  background: hsl(0 0% 100% / .36);
+}
+
+.merchant-scrollbar__thumb.dragging {
+  cursor: grabbing;
+}
+
+/* Mobile: hide custom scrollbar until actively scrolling or dragging */
+@media (hover: none) and (pointer: coarse) {
+  .merchant-scrollbar {
+    opacity: 0;
+    pointer-events: none;              /* don’t steal touches when hidden */
+    transition: opacity .2s ease;
+  }
+
+  .merchant-sheet.is-scrolling .merchant-scrollbar,
+  .merchant-scrollbar__thumb.dragging {
+    opacity: 1;
+    pointer-events: auto;              /* interactive when visible */
+  }
+}
+
 .merchant-header {
   position: sticky; top: 0; z-index: 10;
   background: linear-gradient(to bottom, var(--shop-bg) 0, var(--shop-bg) calc(100% - 2px), transparent calc(100% - 2px));
