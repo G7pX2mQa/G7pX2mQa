@@ -20,6 +20,7 @@
   transform: translateY(100%);
   transition: transform var(--shop-anim);
   box-shadow: var(--shop-shadow);
+  --merchant-fade-size: clamp(18px, 5vw, 40px);
 }
 .merchant-overlay.is-open .merchant-sheet { transform: translateY(0); }
 
@@ -77,6 +78,17 @@
 
   /* we’ll draw our own overlay scrollbar */
   scrollbar-width: none;              /* Firefox */
+}
+
+.merchant-sheet.has-scroll-shadow .merchant-content {
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 var(--merchant-fade-size), #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 var(--merchant-fade-size), #000 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.merchant-sheet.has-scroll-shadow .merchant-header::after {
+  opacity: 1;
 }
 
 .merchant-content::-webkit-scrollbar {
@@ -152,12 +164,44 @@
 }
 
 .merchant-header {
-  position: sticky; top: 0; z-index: 10;
-  background: linear-gradient(to bottom, var(--shop-bg) 0, var(--shop-bg) calc(100% - 2px), transparent calc(100% - 2px));
+  position: sticky;
+  top: 0;
+  z-index: 10;
   padding: 10px 12px 8px;
+  background: transparent;
+  backdrop-filter: inherit;
+  -webkit-backdrop-filter: inherit;
+  isolation: isolate;
 }
-.merchant-title { margin: 0 0 8px; font-weight: 700; text-align: center; color: white; }
-.merchant-line  { height: 2px; width: 100%; background: var(--shop-border); }
+.merchant-title {
+  margin: 0 0 8px;
+  font-weight: 700;
+  text-align: center;
+  color: white;
+  position: relative;
+  z-index: 2;
+}
+.merchant-line  {
+  height: 2px;
+  width: 100%;
+  background: var(--shop-border);
+  position: relative;
+  z-index: 2;
+}
+
+.merchant-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% - 1px);
+  height: var(--merchant-fade-size);
+  background: linear-gradient(180deg, var(--shop-bg), hsla(215, 32%, 7%, 0));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+  z-index: 1;
+}
 
 /* Dialog row */
 .merchant-dialog { padding: 12px; display: grid; }
