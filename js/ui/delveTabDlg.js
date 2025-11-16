@@ -1285,8 +1285,8 @@ function ensureMerchantOverlay() {
     actions.appendChild(closeBtn);
 
   // First-time chat overlay
-  const firstChat = document.createElement('div');
-  firstChat.className = 'merchant-firstchat';
+  const firstChat = document.createElement('div');␊
+  firstChat.className = 'merchant-firstchat merchant-firstchat--initial';
   firstChat.innerHTML = `
     <div class="merchant-firstchat__card" role="dialog" aria-label="First chat">
       <div class="merchant-firstchat__header">
@@ -1553,6 +1553,7 @@ function runFirstMeet() {
       try { window.dispatchEvent(new Event(MERCHANT_MET_EVENT)); } catch {}
       fc.classList.remove('is-visible');
       merchantOverlayEl.classList.remove('firstchat-active');
+      merchantOverlayEl.classList.remove('firstchat-instant');
     }
   });
 
@@ -1576,10 +1577,17 @@ function runFirstMeet() {
     merchantSheetEl.style.transform = '';
     merchantOverlayEl.removeAttribute('inert');
 
-  // Animate in next frame
-  void merchantSheetEl.offsetHeight;
-  requestAnimationFrame(() => {
+    let met = false;
+    try { met = localStorage.getItem(sk(MERCHANT_MET_KEY_BASE)) === '1'; } catch {}
+    const needsFirstChat = !met;
+
+    // Animate in next frame
+    void merchantSheetEl.offsetHeight;
+    requestAnimationFrame(() => {
       merchantSheetEl.style.transition = '';
+      if (needsFirstChat) {
+        merchantOverlayEl.classList.add('firstchat-instant');
+      }
       merchantOverlayEl.classList.add('is-open');
       blockInteraction(140);
 
@@ -1596,9 +1604,7 @@ function runFirstMeet() {
     stopTypingSfx();
 
     // First-time chat
-    let met = false;
-    try { met = localStorage.getItem(sk(MERCHANT_MET_KEY_BASE)) === '1'; } catch {}
-    if (!met) {
+    if (needsFirstChat) {
       const fc = merchantOverlayEl.querySelector('.merchant-firstchat');
       fc?.classList.add('is-visible');
       merchantOverlayEl.classList.add('firstchat-active');
@@ -1624,6 +1630,7 @@ export function closeMerchant() {
   merchantSheetEl.style.transition = '';
   merchantSheetEl.style.transform = '';
   merchantOverlayEl.classList.remove('is-open');
+  merchantOverlayEl.classList.remove('firstchat-instant');
 
   const activeEl = document.activeElement;
   if (activeEl && merchantOverlayEl.contains(activeEl)) {
