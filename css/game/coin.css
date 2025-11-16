@@ -10,3 +10,22 @@
   animation: cccCoinCollect 220ms cubic-bezier(.2,.9,.35,1) forwards !important;
   will-change: transform, opacity;
 }
+
+.area-cove .magnet-indicator {
+  position: absolute;
+  pointer-events: none;
+  border: 2px solid hsl(205 90% 70% / 0.85);
+  border-radius: 50%;
+  box-shadow:
+    0 0 18px hsl(205 100% 70% / 0.7),
+    inset 0 0 20px hsl(205 100% 90% / 0.55);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: translate3d(-9999px, -9999px, 0);
+  transition: opacity 90ms ease-out;
+  z-index: 6;
+}
+
+.area-cove .magnet-indicator.is-visible {
+  opacity: 0.9;
+}
