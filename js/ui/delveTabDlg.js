@@ -1285,7 +1285,7 @@ function ensureMerchantOverlay() {
     actions.appendChild(closeBtn);
 
   // First-time chat overlay
-  const firstChat = document.createElement('div');␊
+  const firstChat = document.createElement('div');
   firstChat.className = 'merchant-firstchat merchant-firstchat--initial';
   firstChat.innerHTML = `
     <div class="merchant-firstchat__card" role="dialog" aria-label="First chat">
