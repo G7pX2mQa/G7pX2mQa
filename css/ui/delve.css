@@ -24,6 +24,12 @@
 }
 .merchant-overlay.is-open .merchant-sheet { transform: translateY(0); }
 
+/* When the very first chat is running, pin the sheet in place immediately */
+.merchant-overlay.firstchat-instant .merchant-sheet {
+  transform: translateY(0);
+  transition: none !important;
+}
+
 .shop-grabber, .merchant-grabber {
   padding-top: calc(8px + var(--safe-top));
   padding-bottom: 12px;
@@ -278,6 +284,12 @@
   backdrop-filter: blur(12px) brightness(0.6);
   -webkit-backdrop-filter: blur(12px) brightness(0.6);
   background: rgba(0, 0, 0, 0.50);
+}
+
+.merchant-firstchat--initial::before {
+  background: #000;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* While first-chat is up, hide the sheet content and footer controls */
