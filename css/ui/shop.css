@@ -1,7 +1,7 @@
 /* css/ui/shop.css */
 
 :root {
-  --shop-bg: hsla(215, 32%, 7%, 0.9);
+  --shop-bg: hsla(215, 32%, 7%, 0.75);
   --shop-card: hsl(220 18% 14% / 1);
   --shop-border: hsl(210 18% 28% / 1);
   --shop-shadow: 0 20px 60px hsl(0 0% 0% / .45);
