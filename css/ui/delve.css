@@ -1,11 +1,4 @@
 /* css/ui/delve.css */
-:root {
-  --merchant-bg: hsla(215, 32%, 7%, 0.78);
-  --merchant-card: hsla(220, 18%, 18%, 0.72);
-  --merchant-card-soft: hsla(220, 18%, 14%, 0.58);
-  --merchant-border: hsla(213, 26%, 60%, 0.45);
-}
-
 .merchant-overlay {
   position: fixed;
   inset: 0;
@@ -19,7 +12,7 @@
 .merchant-sheet {
   position: absolute;
   inset: 0;
-  background: var(--merchant-bg);
+  background: var(--shop-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: grid;
@@ -39,11 +32,6 @@
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
-}
-
-.merchant-grabber,
-.merchant-actions {
-  background: var(--merchant-bg);
 }
 
 @media (pointer: fine) {
@@ -83,7 +71,7 @@
   overflow-y: auto;
   padding: 0;
   scrollbar-gutter: stable both-edges;
-  background: var(--merchant-bg);
+  background: var(--shop-bg);
 
   /* smooth scrolling on iOS */
   -webkit-overflow-scrolling: touch;
@@ -116,7 +104,7 @@
 
 .merchant-content::-webkit-scrollbar-track {
   background: hsl(220 18% 7% / .55);
-  border-left: 1px solid var(--merchant-border);
+  border-left: 1px solid var(--shop-border);
 }
 
 .merchant-content::-webkit-scrollbar-thumb {
@@ -208,7 +196,7 @@
   right: 0;
   top: calc(100% - 1px);
   height: var(--merchant-fade-size);
-  background: linear-gradient(180deg, var(--merchant-bg), hsla(215, 32%, 7%, 0));
+  background: linear-gradient(180deg, var(--shop-bg), hsla(215, 32%, 7%, 0));
   opacity: 0;
   pointer-events: none;
   transition: opacity 160ms ease;
@@ -222,8 +210,8 @@
   grid-template-columns: auto 1fr;
   gap: 12px;
   align-items: start;
-  background: var(--merchant-card);
-  border: 1px solid var(--merchant-border);
+  background: var(--shop-card);
+  border: 1px solid var(--shop-border);
   border-radius: var(--shop-radius);
   padding: 14px;
 }
@@ -289,7 +277,7 @@
   inset: 0;
   backdrop-filter: blur(12px) brightness(0.6);
   -webkit-backdrop-filter: blur(12px) brightness(0.6);
-  background: var(--merchant-bg);
+  background: rgba(0, 0, 0, 0.50);
 }
 
 /* While first-chat is up, hide the sheet content and footer controls */
@@ -303,8 +291,8 @@
 .merchant-firstchat__card {
   position: relative;          /* create a new stacking context over ::before */
   width: min(720px, 92vw);
-  background: var(--merchant-card);
-  border: 1px solid var(--merchant-border);
+  background: var(--shop-card);
+  border: 1px solid var(--shop-border);
   box-shadow: var(--shop-shadow);
   padding: 16px;
   pointer-events: auto;        /* clickable while the scrim eats background clicks */
@@ -363,23 +351,17 @@
   padding: 8px 12px;
   text-align: left;
   border-radius: 8px;
-  border: 1px solid var(--merchant-border);
-  background: var(--merchant-card-soft);
+  border: 1px solid var(--shop-border);
+  background: hsl(0 0% 100% / .06);
   color: #fff;
   font-weight: 600;
   letter-spacing: .2px;
   cursor: pointer;
   transition: background 120ms ease, transform 90ms ease;
 }
-
-.merchant-firstchat__choices .choice:hover {
-  background: hsla(0, 0%, 100%, 0.12);
-}
-
 .merchant-firstchat__choices .choice:hover {
   background: hsl(0 0% 100% / .10);
 }
-
 .merchant-firstchat__choices .choice:active {
   transform: translateY(1px);
 }
@@ -422,19 +404,19 @@
 .merchant-tab {
   padding: 6px 12px;
   border-radius: 10px;
-  border: 1px solid var(--merchant-border);
-  background: var(--merchant-card-soft);
+  border: 1px solid var(--shop-border);
+  background: hsl(0 0% 100% / .04);
   color: #fff;
   font-weight: 600;
   letter-spacing: .2px;
   cursor: pointer;
   transition: background 120ms ease, transform 90ms ease, opacity 120ms ease;
 }
-.merchant-tab:hover { background: hsla(0, 0%, 100%, 0.12); }
+.merchant-tab:hover { background: hsl(0 0% 100% / .08); }
 .merchant-tab:active { transform: translateY(1px); }
 
 .merchant-tab.is-active {
-  background: hsla(0, 0%, 100%, 0.18);
+  background: hsl(0 0% 100% / .12);
   box-shadow: inset 0 -2px 0 hsl(0 0% 100% / .18);
 }
 
@@ -466,9 +448,9 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: 12px;
-  background: var(--merchant-card-soft);
+  background: rgba(255,255,255,0.04);
   color: #f5f8ff;
   font-weight: 600;
   cursor: pointer;
@@ -482,13 +464,12 @@
 }
 
 .merchant-reset__layer.is-active {
-  background: linear-gradient(180deg, rgba(255,169,0,0.25), rgba(255,115,0,0.18));
-  border-color: rgba(255,179,0,0.4);
+  background: linear-gradient(180deg, rgba(255,169,0,0.4), rgba(255,115,0,0.25));
+  box-shadow: inset 0 0 0 2px rgba(255,179,0,0.35);
 }
 
 .merchant-reset__main {
-  background: var(--merchant-card);
-  border: 1px solid var(--merchant-border);
+  background: rgba(9,17,30,0.72);
   border-radius: 16px;
   padding: 18px 20px;
   display: flex;
@@ -629,37 +610,36 @@
   text-align: left;
   padding: clamp(8px,1.2vw,12px) clamp(10px,2vw,14px);
   border-radius: 12px;
-  border: 1px solid var(--merchant-border);
-  background: var(--merchant-card);
+  border: 2px solid var(--shop-border, rgba(255,255,255,.12));
   color: #fff;
   cursor: pointer;
   transition: background 120ms ease, transform 90ms ease, opacity 120ms ease;
 }
-.dlg-card:not(.is-complete):hover { background: hsla(0, 0%, 100%, 0.18); }
+.dlg-card:not(.is-complete):hover { background: rgba(255,255,255,.18); }
 .dlg-card:active { transform: none; }
 .dlg-card.is-locked,
 .dlg-card:disabled {
   opacity: .45;
   cursor: not-allowed;
-  background: hsla(220, 18%, 12%, 0.68);
+  background: #1f1f1f;
 }
 
 .dlg-card.is-locked:hover {
-  background: hsla(220, 18%, 14%, 0.72);
+  background: #272831;
 }
 
 .dlg-card.is-mysterious {
   opacity: .45;
-  background: hsla(220, 18%, 12%, 0.68);
+  background: #1f1f1f;
   border-style: solid;
 }
 
-.dlg-card.is-mysterious:hover { background: hsla(220, 18%, 14%, 0.72); }
-.dlg-card:not(.is-complete):not(.is-mysterious):not(.is-locked) { background: var(--merchant-card); }
-.dlg-card.is-complete { background: hsla(0, 0%, 100%, 0.04); }
-.dlg-card.is-complete:hover { background: hsla(0, 0%, 100%, 0.08); }
+.dlg-card.is-mysterious:hover { background: #272831; }
+.dlg-card:not(.is-complete):not(.is-mysterious):not(.is-locked) { background: rgba(255,255,255,0.12); }
+.dlg-card.is-complete { background: rgba(255,255,255,0.03); }
+.dlg-card.is-complete:hover { background: rgba(255,255,255,0.06); }
 .dlg-card:not(.is-locked):not(.is-mysterious):not(.is-complete):hover {
-  background: hsla(0, 0%, 100%, 0.12);
+  background: rgba(255,255,255,.15);
   transition: background 120ms ease;
 }
 
