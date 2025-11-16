@@ -118,7 +118,7 @@ function resolveCoinBase(el) {
   catch { return BigNum.fromInt(1); }
 }
 
-const MAGNET_UNIT_RATIO = 0.05;
+const MAGNET_UNIT_RATIO = 0.03;
 const MAGNET_COLLECTION_BUFFER = 8;
 
 function computeMagnetUnitPx() {
