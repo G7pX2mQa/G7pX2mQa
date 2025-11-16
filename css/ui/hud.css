@@ -259,7 +259,6 @@ position: relative;
 width: var(--coin-bar-w);
 height: max(var(--coin-plus-size), var(--coin-h));
 pointer-events: auto;
-filter: drop-shadow(0 6px 10px rgba(0,0,0,.18));
 }
 
 .coin-plus{
@@ -383,7 +382,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   justify-content: flex-end;
   margin-top: -2px;
   pointer-events: none;
-  filter: drop-shadow(0 5px 8px rgba(0,0,0,.18));
 }
 
 .xp-counter[hidden]{
@@ -403,7 +401,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   justify-content: flex-end;
   margin-top: -2px;
   pointer-events: none;
-  filter: drop-shadow(0 5px 8px rgba(0,0,0,.18));
 }
 
 .mp-counter[hidden]{
@@ -420,7 +417,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   object-fit: contain;
   pointer-events: none;
   z-index: 2;
-  filter: drop-shadow(0 5px 8px rgba(0,0,0,.18));
 }
 
 .mp-bar{
@@ -541,7 +537,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   object-fit: contain;
   pointer-events: none;
   z-index: 2;
-  filter: drop-shadow(0 5px 8px rgba(0,0,0,.18));
 }
 
 .xp-bar{
@@ -660,6 +655,27 @@ background: linear-gradient(90deg,
   opacity: 0.8;
 }
 
+@media (pointer: fine) {
+  .mp-counter,
+  .mp-bar,
+  .mp-bar__frame {
+    pointer-events: auto;
+  }
+
+  .mp-bar__frame,
+  .mp-bar__frame *,
+  .mp-bar__progress,
+  .mp-bar__progress *,
+  .mp-bar__level,
+  .mp-bar__level * {
+    user-select: text;
+  }
+
+  .mp-plus {
+    user-select: none;
+  }
+}
+
 @media (pointer: coarse) and (orientation: portrait){
   .xp-counter{
     --xp-bar-h: clamp(32px, 8vw, 44px);
@@ -679,8 +695,6 @@ background: linear-gradient(90deg,
   }
 }
 
-
-/* Endgame nonsense */
 .infinity-symbol {
   position: relative;
   color: #fff200;
