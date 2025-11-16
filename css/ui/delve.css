@@ -27,6 +27,7 @@
 /* When the very first chat is running, pin the sheet in place immediately */
 .merchant-overlay.firstchat-instant .merchant-sheet {
   transition: none !important;
+  transform: translateY(0) !important;
 }
 
 .shop-grabber, .merchant-grabber {
