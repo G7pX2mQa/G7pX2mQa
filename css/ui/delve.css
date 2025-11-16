@@ -12,7 +12,7 @@
 .merchant-sheet {
   position: absolute;
   inset: 0;
-  background: var(--shop-bg);
+  background: var(--shop-overlay-bg, var(--shop-bg));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: grid;
