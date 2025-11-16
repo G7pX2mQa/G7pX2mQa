@@ -828,7 +828,7 @@ function collect(el) {
     set count(v){
       coins = BigNum.fromAny ? BigNum.fromAny(v) : BigNum.fromInt(Number(v) || 0);
       updateHud();
-      // Note: saving is handled via bank.set inside bank.coins.add in your storage layer
+      // Note: saving is handled via bank.set inside bank.coins.add in storage
     },
     setMobileVolume,
     destroy,
