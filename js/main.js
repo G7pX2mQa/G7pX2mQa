@@ -501,7 +501,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await Promise.all([ // fixes some image preload issue on mobile
     warmImage('img/currencies/coin/coin_plus_base.png'),
     warmImage('img/stats/xp/xp_plus_base.png'),
-	warmImage('img/stats/xp/mp_plus_base.png'),
+	warmImage('img/stats/mp/mp_plus_base.png'),
   ]);
 
   ensureStorageDefaults();
