@@ -2,6 +2,12 @@
 
 :root {
   --shop-bg: rgba(12, 16, 20, 0.92);
+  --shop-overlay-bg: linear-gradient(
+    180deg,
+    rgba(8, 12, 16, 0.88) 0%,
+    rgba(12, 16, 20, 0.94) 38%,
+    rgba(12, 16, 20, 0.97) 100%
+  );
   --shop-card: hsl(220 18% 12% / 1);
   --shop-border: hsl(210 16% 20% / 1);
   --shop-shadow: 0 20px 60px hsl(0 0% 0% / .45);
@@ -26,7 +32,7 @@
 .shop-sheet {
   position: absolute;
   inset: 0;
-  background: var(--shop-bg);
+  background: var(--shop-overlay-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: grid;
@@ -55,6 +61,12 @@
   touch-action: none;         /* enables smooth pointer tracking */
   -webkit-user-select: none;
   user-select: none;
+  background: linear-gradient(
+    180deg,
+    rgba(12, 16, 20, 0.98) 0%,
+    rgba(12, 16, 20, 0.9) 100%
+  );
+  border-bottom: 1px solid hsl(210 16% 20% / 0.6);
 }
 
 .shop-grabber .grab-handle {
@@ -72,6 +84,12 @@
   gap: 12px;
   padding: 12px 16px calc(12px + var(--safe-bottom));
   flex-wrap: wrap;
+  background: linear-gradient(
+    0deg,
+    rgba(12, 16, 20, 0.98) 0%,
+    rgba(12, 16, 20, 0.9) 100%
+  );
+  border-top: 1px solid hsl(210 16% 20% / 0.6);
 }
 
 .shop-actions .shop-close {
