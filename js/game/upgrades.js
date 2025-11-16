@@ -2007,15 +2007,16 @@ const REGISTRY = [
     upgType: "NM",
     icon: "sc_upgrade_icons/magnet.png",
     requiresUnlockXp: true,
+    scaling: { ratio: 2 },
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     computeLockState: determineLockState,
     effectSummary(level) {
-	  const units = normalizedUpgradeLevel(level); // so it's zero-based (because it starts at +0 Units not 1x Units or something)
-	  const unitsText = formatMultForUi(units);
-	  const suffix = (unitsText === '1') ? 'Unit' : 'Units';
-	  return `Magnet radius: ${unitsText} ${suffix}`;
-	},
+      const units = normalizedUpgradeLevel(level); // zero-based (+0 units at level 0)
+      const unitsText = formatMultForUi(units);
+      const suffix = (unitsText === '1') ? 'Unit' : 'Units';
+      return `Magnet radius: ${unitsText} ${suffix}`;
+    },
     effectMultiplier: E.addPctPerLevel(1), // this probably wouldn't work the same way as normal upgrades (so it needs to be changed when functionality is added)
   },
 ];
@@ -2573,6 +2574,14 @@ export function getMpValueMultiplierBn() {
   return hundredPercentPerLevelMultiplier(
     getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MP_VALUE_I)
   );
+}
+
+export function getMagnetLevel() {
+  const lvl = getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MAGNET);
+  if (!Number.isFinite(lvl)) {
+    return 0;
+  }
+  return Math.max(0, Math.floor(lvl));
 }
 
 function computeUpgradeLockStateFor(areaKey, upg) {
