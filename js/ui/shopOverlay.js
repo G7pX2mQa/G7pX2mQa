@@ -1413,31 +1413,64 @@ export function openUpgradeOverlay(upgDef) {
       buyBtn.className = 'shop-delve';
       buyBtn.textContent = 'Buy';
       buyBtn.disabled = !canAffordNext;
+
+      // Core buy logic shared by pointer/touch and click fallback
+      const performBuy = () => {
+        const fresh = upgradeUiModel(areaKey, upgDef.id);
+        const priceNow = fresh.nextPrice instanceof BigNum
+          ? fresh.nextPrice
+          : BigNum.fromAny(fresh.nextPrice || 0);
+        if (fresh.have.cmp(priceNow) < 0) return;
+
+        const { bought } = buyOne(areaKey, upgDef.id);
+        const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+        if (boughtBn.isZero?.()) return;
+
+        playPurchaseSfx();
+        updateShopOverlay();
+        rerender();
+      };
+
+      // Mobile: drive purchase off pointer/touch so Safari's click
+      // cancellation doesn't limit how fast you can spam the button.
+      if ('PointerEvent' in window) {
+        buyBtn.addEventListener('pointerdown', (event) => {
+          // Ignore mouse here; desktop uses the click handler below
+          if (event.pointerType === 'mouse') return;
+          if (typeof event.button === 'number' && event.button !== 0) return;
+
+          if (typeof markGhostTapTarget === 'function') {
+            // Small window: eats ghost taps that land elsewhere,
+            // but repeated taps on this button are still allowed
+            markGhostTapTarget(buyBtn, 160);
+          }
+
+          performBuy();
+          event.preventDefault();
+        }, { passive: false });
+      } else {
+        // Older touch-only browsers
+        buyBtn.addEventListener('touchstart', (event) => {
+          if (typeof markGhostTapTarget === 'function') {
+            markGhostTapTarget(buyBtn, 160);
+          }
+
+          performBuy();
+          event.preventDefault();
+        }, { passive: false });
+      }
+
+      // Desktop / non-touch fallback – simple click is fine here.
       buyBtn.addEventListener('click', (event) => {
-  if (typeof shouldSkipGhostTap === 'function' && shouldSkipGhostTap(buyBtn)) {
-    event.preventDefault();
-    event.stopImmediatePropagation?.();
-    return;
-  }
+        // On mobile we already handled the tap in pointer/touch handler
+        if (IS_MOBILE) return;
 
-  if (typeof markGhostTapTarget === 'function') {
-    markGhostTapTarget(buyBtn, 0);
-  }
+        if (typeof markGhostTapTarget === 'function') {
+          markGhostTapTarget(buyBtn, 160);
+        }
 
-  const fresh = upgradeUiModel(areaKey, upgDef.id);
-  const priceNow = fresh.nextPrice instanceof BigNum
-    ? fresh.nextPrice
-    : BigNum.fromAny(fresh.nextPrice || 0);
-  if (fresh.have.cmp(priceNow) < 0) return;
-
-  const { bought } = buyOne(areaKey, upgDef.id);
-  const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
-  if (!boughtBn.isZero?.()) {
-    playPurchaseSfx();
-    updateShopOverlay();
-    rerender();
-  }
-});
+        performBuy();
+      });
 
 
       const buyMaxBtn = document.createElement('button');
