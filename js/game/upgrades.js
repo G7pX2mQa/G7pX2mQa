@@ -2011,12 +2011,12 @@ const REGISTRY = [
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     computeLockState: determineLockState,
     effectSummary(level) {
-	   const mult = normalizedUpgradeLevel(mult); // so it's zero-based (because it starts at +0 Units not 1x Units or something)
-	  const unitsText = formatMultForUi(mult);
+	  const units = normalizedUpgradeLevel(level); // so it's zero-based (because it starts at +0 Units not 1x Units or something)
+	  const unitsText = formatMultForUi(units);
 	  const suffix = (unitsText === '1') ? 'Unit' : 'Units';
 	  return `Magnet radius: ${unitsText} ${suffix}`;
 	},
-    effectMultiplier: E.addPctPerLevel(0.08),
+    effectMultiplier: E.addPctPerLevel(1), // this probably wouldn't work the same way as normal upgrades (so it needs to be changed when functionality is added)
   },
 ];
 
