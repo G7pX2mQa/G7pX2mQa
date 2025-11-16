@@ -1783,8 +1783,8 @@ function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
  *  - "NM" = No Milestones (numUpgEvolutions = 0)
  *  - "HM" = Has Milestones
  *
- * Optional fields:
- *  - scalingPreset: string key referencing DEFAULT_SCALING_PRESETS for custom defaults.
+ * Optional field:
+ *  - scaling: Manually change the multiplicative scaling ratio of an upgrade; not necessary for upgrades that have no scaling
  */
 const REGISTRY = [
   {
