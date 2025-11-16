@@ -64,9 +64,7 @@
   touch-action: none;         /* enables smooth pointer tracking */
   -webkit-user-select: none;
   user-select: none;
-  background:
-    linear-gradient(180deg, hsla(215, 42%, 12%, 0.85) 0%, hsla(215, 28%, 6%, 0.82) 100%),
-    var(--shop-overlay-bg);
+  background: var(--shop-bg);
   border-bottom: 1px solid hsl(210 30% 34% / 0.55);
 }
 
@@ -85,9 +83,7 @@
   gap: 12px;
   padding: 12px 16px calc(12px + var(--safe-bottom));
   flex-wrap: wrap;
-  background:
-    linear-gradient(0deg, hsla(215, 42%, 12%, 0.85) 0%, hsla(215, 28%, 6%, 0.82) 100%),
-    var(--shop-overlay-bg);
+  background: var(--shop-bg);
   border-top: 1px solid hsl(210 30% 34% / 0.55);
 }
 
