@@ -12,7 +12,7 @@ import {
   onMutationChange,
   computeMutationMultiplierForLevel,
 } from './mutationSystem.js';
-import { getMpValueMultiplierBn } from './upgrades.js';
+import { getMpValueMultiplierBn, getMagnetLevel } from './upgrades.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelIsInfiniteSnapshot = false;
@@ -118,6 +118,155 @@ function resolveCoinBase(el) {
   catch { return BigNum.fromInt(1); }
 }
 
+const MAGNET_UNIT_RATIO = 0.05;
+const MAGNET_COLLECTION_BUFFER = 8;
+
+function computeMagnetUnitPx() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return 0;
+  const root = document.documentElement;
+  const vw = Math.max(0, window.innerWidth || root?.clientWidth || 0);
+  const vh = Math.max(0, window.innerHeight || root?.clientHeight || 0);
+  if (!(vw > 0 && vh > 0)) return 0;
+  const minDim = Math.min(vw, vh);
+  return minDim * MAGNET_UNIT_RATIO;
+}
+
+function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn }) {
+  if (!playfield || !coinsLayer || typeof collectFn !== 'function') {
+    return { destroy() {} };
+  }
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return { destroy() {} };
+  }
+
+  const indicator = document.createElement('div');
+  indicator.className = 'magnet-indicator';
+  indicator.setAttribute('aria-hidden', 'true');
+  playfield.appendChild(indicator);
+
+  let pointerInside = false;
+  let pointerClientX = 0;
+  let pointerClientY = 0;
+  let localX = 0;
+  let localY = 0;
+  let unitPx = computeMagnetUnitPx();
+  let magnetLevel = 0;
+  let radiusPx = 0;
+  let rafId = 0;
+  let destroyed = false;
+
+  const hideIndicator = () => {
+    indicator.classList.remove('is-visible');
+    indicator.style.transform = 'translate3d(-9999px, -9999px, 0)';
+  };
+
+  const updateIndicator = () => {
+    if (!pointerInside || radiusPx <= 0) {
+      hideIndicator();
+      return;
+    }
+    const diameter = radiusPx * 2;
+    indicator.style.width = `${diameter}px`;
+    indicator.style.height = `${diameter}px`;
+    indicator.style.transform = `translate3d(${localX - radiusPx}px, ${localY - radiusPx}px, 0)`;
+    indicator.classList.add('is-visible');
+  };
+
+  const sweepCoins = () => {
+    if (!pointerInside || radiusPx <= 0) return;
+    const coins = coinsLayer.querySelectorAll(coinSelector);
+    const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
+    for (let i = 0; i < coins.length; i += 1) {
+      const coin = coins[i];
+      if (!(coin instanceof HTMLElement) || coin.dataset.collected === '1') continue;
+      const rect = coin.getBoundingClientRect();
+      const coinX = rect.left + rect.width / 2;
+      const coinY = rect.top + rect.height / 2;
+      const dx = coinX - pointerClientX;
+      const dy = coinY - pointerClientY;
+      if (Math.hypot(dx, dy) <= radiusWithBuffer) {
+        collectFn(coin);
+      }
+    }
+  };
+
+  const runSweep = () => {
+    rafId = 0;
+    if (!pointerInside || radiusPx <= 0 || destroyed) return;
+    sweepCoins();
+    ensureSweepLoop();
+  };
+
+  const ensureSweepLoop = () => {
+    if (!pointerInside || radiusPx <= 0 || rafId || destroyed) return;
+    rafId = requestAnimationFrame(runSweep);
+  };
+
+  const updatePointerFromEvent = (e) => {
+    if (!e || destroyed) return;
+    if (typeof e.clientX !== 'number' || typeof e.clientY !== 'number') return;
+    pointerClientX = e.clientX;
+    pointerClientY = e.clientY;
+    const rect = playfield.getBoundingClientRect();
+    localX = pointerClientX - rect.left;
+    localY = pointerClientY - rect.top;
+    pointerInside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
+    updateIndicator();
+    ensureSweepLoop();
+  };
+
+  const handlePointerLeave = () => {
+    pointerInside = false;
+    hideIndicator();
+  };
+
+  const refreshMagnetLevel = () => {
+    const nextLevel = getMagnetLevel();
+    magnetLevel = nextLevel;
+    radiusPx = magnetLevel * unitPx;
+    updateIndicator();
+    ensureSweepLoop();
+  };
+
+  const handleResize = () => {
+    unitPx = computeMagnetUnitPx();
+    radiusPx = magnetLevel * unitPx;
+    updateIndicator();
+    ensureSweepLoop();
+  };
+
+  const destroy = () => {
+    destroyed = true;
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+    try { window.removeEventListener('resize', handleResize); } catch {}
+    try { window.removeEventListener('saveSlot:change', refreshMagnetLevel); } catch {}
+    try { document.removeEventListener('ccc:upgrades:changed', refreshMagnetLevel); } catch {}
+    try { playfield.removeEventListener('pointermove', updatePointerFromEvent); } catch {}
+    try { playfield.removeEventListener('pointerdown', updatePointerFromEvent); } catch {}
+    try { playfield.removeEventListener('pointerenter', updatePointerFromEvent); } catch {}
+    try { playfield.removeEventListener('pointerleave', handlePointerLeave); } catch {}
+    try { playfield.removeEventListener('pointercancel', handlePointerLeave); } catch {}
+    try { indicator.remove(); } catch {}
+  };
+
+  const pointerOpts = { passive: true };
+  playfield.addEventListener('pointermove', updatePointerFromEvent, pointerOpts);
+  playfield.addEventListener('pointerdown', updatePointerFromEvent, pointerOpts);
+  playfield.addEventListener('pointerenter', updatePointerFromEvent, pointerOpts);
+  playfield.addEventListener('pointerleave', handlePointerLeave, pointerOpts);
+  playfield.addEventListener('pointercancel', handlePointerLeave, pointerOpts);
+  window.addEventListener('resize', handleResize);
+  window.addEventListener('saveSlot:change', refreshMagnetLevel);
+  document.addEventListener('ccc:upgrades:changed', refreshMagnetLevel);
+
+  refreshMagnetLevel();
+
+  return { destroy };
+}
+
 export function initCoinPickup({
   playfieldSelector   = '.area-cove .playfield',
   coinsLayerSelector  = '.area-cove .coins-layer',
@@ -141,9 +290,10 @@ export function initCoinPickup({
 
   initMutationSnapshot();
   ensureMpValueMultiplierSync();
-  
+
   pf.style.touchAction = 'none';
 
+  let magnetController = null;
   let coins = bank.coins.value;
   let coinMultiplierBn = null;
   let coinMultiplierIsInfinite = false;
@@ -595,6 +745,13 @@ function collect(el) {
   return true;
 }
 
+  magnetController = createMagnetController({
+    playfield: pf,
+    coinsLayer: cl,
+    coinSelector,
+    collectFn: collect,
+  });
+
   // direct coin events as a safety net (helps if elementsFromPoint misses due to CSS)
   function bindCoinDirect(coin){
     coin.addEventListener('pointerdown', (e) => { collect(coin); }, { passive: true });
@@ -655,6 +812,10 @@ function collect(el) {
     if (typeof mutationUnsub === 'function') {
       try { mutationUnsub(); } catch {}
       mutationUnsub = null;
+    }
+    if (magnetController?.destroy) {
+      try { magnetController.destroy(); } catch {}
+      magnetController = null;
     }
     try { mo.disconnect(); } catch {}
     try { ['pointerdown','pointermove','pointerup','mousemove'].forEach(evt => pf.replaceWith(pf.cloneNode(true))); } catch {}
