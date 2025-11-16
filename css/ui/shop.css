@@ -1,15 +1,18 @@
 /* css/ui/shop.css */
 
 :root {
-  --shop-bg: rgba(12, 16, 20, 0.92);
-  --shop-overlay-bg: linear-gradient(
-    180deg,
-    rgba(8, 12, 16, 0.88) 0%,
-    rgba(12, 16, 20, 0.94) 38%,
-    rgba(12, 16, 20, 0.97) 100%
-  );
-  --shop-card: hsl(220 18% 12% / 1);
-  --shop-border: hsl(210 16% 20% / 1);
+  --shop-bg: hsla(215, 32%, 7%, 0.94);
+  --shop-overlay-bg:
+    radial-gradient(circle at 20% -10%, hsla(195, 70%, 46%, 0.45), transparent 55%),
+    radial-gradient(circle at 82% -18%, hsla(312, 62%, 46%, 0.32), transparent 50%),
+    linear-gradient(
+      180deg,
+      hsla(215, 35%, 8%, 0.96) 0%,
+      hsla(215, 32%, 7%, 0.97) 40%,
+      hsla(215, 30%, 6%, 0.99) 100%
+    );
+  --shop-card: hsl(220 18% 14% / 1);
+  --shop-border: hsl(210 18% 28% / 1);
   --shop-shadow: 0 20px 60px hsl(0 0% 0% / .45);
   --shop-radius: 20px;
   --shop-anim: 220ms cubic-bezier(.2, .8, .2, 1);
@@ -61,12 +64,10 @@
   touch-action: none;         /* enables smooth pointer tracking */
   -webkit-user-select: none;
   user-select: none;
-  background: linear-gradient(
-    180deg,
-    rgba(12, 16, 20, 0.98) 0%,
-    rgba(12, 16, 20, 0.9) 100%
-  );
-  border-bottom: 1px solid hsl(210 16% 20% / 0.6);
+  background:
+    linear-gradient(180deg, hsla(215, 42%, 12%, 0.85) 0%, hsla(215, 28%, 6%, 0.82) 100%),
+    var(--shop-overlay-bg);
+  border-bottom: 1px solid hsl(210 30% 34% / 0.55);
 }
 
 .shop-grabber .grab-handle {
@@ -84,12 +85,10 @@
   gap: 12px;
   padding: 12px 16px calc(12px + var(--safe-bottom));
   flex-wrap: wrap;
-  background: linear-gradient(
-    0deg,
-    rgba(12, 16, 20, 0.98) 0%,
-    rgba(12, 16, 20, 0.9) 100%
-  );
-  border-top: 1px solid hsl(210 16% 20% / 0.6);
+  background:
+    linear-gradient(0deg, hsla(215, 42%, 12%, 0.85) 0%, hsla(215, 28%, 6%, 0.82) 100%),
+    var(--shop-overlay-bg);
+  border-top: 1px solid hsl(210 30% 34% / 0.55);
 }
 
 .shop-actions .shop-close {
