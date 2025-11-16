@@ -848,7 +848,7 @@ function ensureShopOverlay() {
   const header = document.createElement('header');
   header.className = 'shop-header';
   header.innerHTML = `
-    <div class="shop-title">SHOP</div>
+    <div class="shop-title">Shop</div>
     <div class="shop-line" aria-hidden="true"></div>
   `;
 
