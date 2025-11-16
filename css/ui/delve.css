@@ -26,7 +26,6 @@
 
 /* When the very first chat is running, pin the sheet in place immediately */
 .merchant-overlay.firstchat-instant .merchant-sheet {
-  transform: translateY(0);
   transition: none !important;
 }
 
