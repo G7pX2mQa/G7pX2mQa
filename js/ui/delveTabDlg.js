@@ -1040,6 +1040,11 @@ function ensureMerchantScrollbar() {
   const supportsScrollEnd = 'onscrollend' in window;
   let fadeTimer = null;
 
+  const syncScrollShadow = () => {
+    const hasShadow = (scroller.scrollTop || 0) > 0;
+    merchantSheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
+  };
+
   const updateBounds = () => {
     const grabber = merchantOverlayEl.querySelector('.merchant-grabber');
     const header  = merchantOverlayEl.querySelector('.merchant-header');
@@ -1072,6 +1077,7 @@ function ensureMerchantScrollbar() {
   const updateAll = () => {
     updateBounds();
     updateThumb();
+    syncScrollShadow();
   };
 
   const showBar = () => {
@@ -1090,6 +1096,7 @@ function ensureMerchantScrollbar() {
 
   const onScroll = () => {
     updateThumb();
+    syncScrollShadow();
     if (isTouch) showBar();
     if (!supportsScrollEnd) scheduleHide(FADE_SCROLL_MS);
   };
