@@ -2000,7 +2000,7 @@ const REGISTRY = [
     id: 11,
     tie: UPGRADE_TIES.MAGNET,
     title: "Magnet",
-    desc: "Increases Magnet radius by +1 per level\nMagnet: Increases the distance from which you can collect Coins",
+    desc: "Increases Magnet radius by +1 Unit per level\nMagnet: Increases the distance from which you can collect Coins",
     lvlCap: 10,
     baseCost: 100,
     costType: "gold",
