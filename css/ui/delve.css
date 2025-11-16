@@ -1,4 +1,11 @@
 /* css/ui/delve.css */
+:root {
+  --merchant-bg: var(--shop-bg, hsla(215, 32%, 7%, 0.75));
+  --merchant-card: var(--shop-card, hsl(220 18% 14% / 1));
+  --merchant-card-soft: hsla(220, 18%, 14%, 0.85);
+  --merchant-border: var(--shop-border, hsl(210 18% 28% / 1));
+}
+
 .merchant-overlay {
   position: fixed;
   inset: 0;
@@ -12,7 +19,7 @@
 .merchant-sheet {
   position: absolute;
   inset: 0;
-  background: var(--shop-bg);
+  background: var(--merchant-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: grid;
@@ -32,6 +39,11 @@
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+.merchant-grabber,
+.merchant-actions {
+  background: var(--merchant-bg);
 }
 
 @media (pointer: fine) {
@@ -71,7 +83,7 @@
   overflow-y: auto;
   padding: 0;
   scrollbar-gutter: stable both-edges;
-  background: var(--shop-bg);
+  background: var(--merchant-bg);
 
   /* smooth scrolling on iOS */
   -webkit-overflow-scrolling: touch;
@@ -210,8 +222,8 @@
   grid-template-columns: auto 1fr;
   gap: 12px;
   align-items: start;
-  background: var(--shop-card);
-  border: 1px solid var(--shop-border);
+  background: var(--merchant-card);
+  border: 1px solid var(--merchant-border);
   border-radius: var(--shop-radius);
   padding: 14px;
 }
@@ -277,7 +289,7 @@
   inset: 0;
   backdrop-filter: blur(12px) brightness(0.6);
   -webkit-backdrop-filter: blur(12px) brightness(0.6);
-  background: rgba(0, 0, 0, 0.50);
+  background: var(--merchant-bg);
 }
 
 /* While first-chat is up, hide the sheet content and footer controls */
@@ -291,8 +303,8 @@
 .merchant-firstchat__card {
   position: relative;          /* create a new stacking context over ::before */
   width: min(720px, 92vw);
-  background: var(--shop-card);
-  border: 1px solid var(--shop-border);
+  background: var(--merchant-card);
+  border: 1px solid var(--merchant-border);
   box-shadow: var(--shop-shadow);
   padding: 16px;
   pointer-events: auto;        /* clickable while the scrim eats background clicks */
@@ -469,7 +481,8 @@
 }
 
 .merchant-reset__main {
-  background: rgba(9,17,30,0.72);
+  background: var(--merchant-card-soft);
+  border: 1px solid var(--merchant-border);
   border-radius: 16px;
   padding: 18px 20px;
   display: flex;
