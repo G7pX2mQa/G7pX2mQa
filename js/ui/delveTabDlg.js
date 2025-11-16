@@ -1,4 +1,3 @@
-
 // js/ui/delveTabDlg.js
 
 import {
@@ -10,7 +9,7 @@ import {
 import { BigNum } from '../util/bigNum.js';
 import { MERCHANT_DIALOGUES } from '../misc/merchantDialogues.js';
 import { getXpState, isXpSystemUnlocked } from '../game/xpSystem.js';
-import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked } from '../game/resetSystem.js';
+import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset } from '../game/resetSystem.js';
 import { blockInteraction } from './shopOverlay.js';
 import {
   markGhostTapTarget,
@@ -59,6 +58,7 @@ const DEFAULT_MYSTERIOUS_BLURB = 'Hidden Dialogue';
 const DEFAULT_LOCKED_BLURB = 'Locked';
 const DEFAULT_LOCK_MESSAGE = 'Locked Dialogue';
 const DIALOGUE_STATUS_ORDER = { locked: 0, mysterious: 1, unlocked: 2 };
+const FORGE_COMPLETED_KEY_BASE = 'ccc:reset:forge:completed';
 
 const HAS_POINTER_EVENTS = typeof window !== 'undefined' && 'PointerEvent' in window;
 const HAS_TOUCH_EVENTS = !HAS_POINTER_EVENTS && typeof window !== 'undefined' && 'ontouchstart' in window;
@@ -232,6 +232,7 @@ function getPlayerProgress() {
   const progress = {
     xpUnlocked: false,
     xpLevel: 0,
+    hasForgeReset: false,
   };
 
   try {
@@ -250,7 +251,13 @@ function getPlayerProgress() {
       progress.xpLevel = 0;
     }
   }
-
+  
+  try {
+    progress.hasForgeReset = typeof hasDoneForgeReset === 'function' && hasDoneForgeReset();
+  } catch {
+    progress.hasForgeReset = false;
+  }
+  
   return progress;
 }
 
@@ -330,6 +337,12 @@ function ensureProgressEvents() {
   }
 
   document.addEventListener('ccc:upgrades:changed', handler);
+
+  const slot = getActiveSlot();
+  if (slot != null) {
+    const key = `${FORGE_COMPLETED_KEY_BASE}:${slot}`;
+    watchStorageKey(key, { onChange: handler });
+  }
 }
 
 function onProgressChanged() {
@@ -407,30 +420,30 @@ const DLG_CATALOG = {
   },
   3: {
     title: 'Edge of Mastery',
-    blurb: 'Placeholder musings for reaching XP level 999.',
+    blurb: 'Placeholder musings earned through the Forge.',
     scriptId: 3,
-unlock: (progress) => {
-  if (!progress?.xpUnlocked) {
-    return {
-      status: 'locked',
-      title: '???',
-      blurb: DEFAULT_LOCKED_BLURB,
-      tooltip: 'Locked Dialogue',
-      ariaLabel: 'Locked Dialogue.',
-    };
-  }
-  if ((progress?.xpLevel ?? 0) < 999) {
-    return {
-      status: 'mysterious',
-      requirement: 'Reach XP level 999 to reveal this dialogue',
-      message: 'Reach XP level 999 to reveal this dialogue',
-      icon: MYSTERIOUS_ICON_SRC,
-      headerTitle: HIDDEN_DIALOGUE_TITLE,
-      ariaLabel: 'Reach XP level 999 to reveal this dialogue',
-    };
-  }
-  return true;
-},
+    unlock: (progress) => {
+      if (progress?.hasForgeReset) {
+        return true;
+      }
+      if (!progress?.xpUnlocked || (progress?.xpLevel ?? 0) < 31) {
+        return {
+          status: 'locked',
+          title: '???',
+          blurb: DEFAULT_LOCKED_BLURB,
+          tooltip: 'Locked Dialogue',
+          ariaLabel: 'Locked Dialogue.',
+        };
+      }
+      return {
+        status: 'mysterious',
+        requirement: 'Do a Forge reset to reveal this dialogue',
+        message: 'Do a Forge reset to reveal this dialogue',
+        icon: MYSTERIOUS_ICON_SRC,
+        headerTitle: HIDDEN_DIALOGUE_TITLE,
+        ariaLabel: 'Hidden merchant dialogue. Do a Forge reset to reveal this dialogue',
+      };
+    },
     once: false,
   },
 };
@@ -1009,6 +1022,151 @@ const engine = new DialogueEngine({
 }
 
 // ========================= Merchant Overlay (Delve) =========================
+function ensureMerchantScrollbar() {
+  const scroller = merchantOverlayEl?.querySelector('.merchant-content');
+  if (!scroller || scroller.__customScroll) return;
+  if (!merchantSheetEl) return;
+
+  const bar = document.createElement('div');
+  bar.className = 'merchant-scrollbar';
+  const thumb = document.createElement('div');
+  thumb.className = 'merchant-scrollbar__thumb';
+  bar.appendChild(thumb);
+  merchantSheetEl.appendChild(bar);
+
+  const isTouch = window.matchMedia?.('(hover: none) and (pointer: coarse)')?.matches;
+  const FADE_SCROLL_MS = 150;
+  const FADE_DRAG_MS = 120;
+  const supportsScrollEnd = 'onscrollend' in window;
+  let fadeTimer = null;
+
+  const updateBounds = () => {
+    const grabber = merchantOverlayEl.querySelector('.merchant-grabber');
+    const header  = merchantOverlayEl.querySelector('.merchant-header');
+    const actions = merchantOverlayEl.querySelector('.merchant-actions');
+
+    const top = ((grabber?.offsetHeight || 0) + (header?.offsetHeight || 0)) | 0;
+    const bottom = (actions?.offsetHeight || 0) | 0;
+
+    bar.style.top = top + 'px';
+    bar.style.bottom = bottom + 'px';
+  };
+
+  const updateThumb = () => {
+    const { scrollHeight, clientHeight, scrollTop } = scroller;
+    const barH = bar.clientHeight || 1;
+
+    const visibleRatio = clientHeight / Math.max(1, scrollHeight);
+    const thumbH = Math.max(28, Math.round(barH * visibleRatio));
+
+    const maxScroll = Math.max(1, scrollHeight - clientHeight);
+    const range = Math.max(0, barH - thumbH);
+    const y = Math.round((scrollTop / maxScroll) * range);
+
+    thumb.style.height = thumbH + 'px';
+    thumb.style.transform = `translateY(${y}px)`;
+
+    bar.style.display = (scrollHeight <= clientHeight + 1) ? 'none' : '';
+  };
+
+  const updateAll = () => {
+    updateBounds();
+    updateThumb();
+  };
+
+  const showBar = () => {
+    if (!isTouch) return;
+    merchantSheetEl.classList.add('is-scrolling');
+    if (fadeTimer) clearTimeout(fadeTimer);
+  };
+
+  const scheduleHide = (delay) => {
+    if (!isTouch) return;
+    if (fadeTimer) clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(() => {
+      merchantSheetEl.classList.remove('is-scrolling');
+    }, delay);
+  };
+
+  const onScroll = () => {
+    updateThumb();
+    if (isTouch) showBar();
+    if (!supportsScrollEnd) scheduleHide(FADE_SCROLL_MS);
+  };
+
+  const onScrollEnd = () => scheduleHide(FADE_SCROLL_MS);
+
+  scroller.addEventListener('scroll', onScroll, { passive: true });
+  if (supportsScrollEnd) {
+    scroller.addEventListener('scrollend', onScrollEnd, { passive: true });
+  }
+
+  const ro = new ResizeObserver(updateAll);
+  ro.observe(scroller);
+  window.addEventListener('resize', updateAll);
+  requestAnimationFrame(updateAll);
+
+  // ----- Drag thumb to scroll -----
+  let dragging = false;
+  let dragStartY = 0;
+  let startScrollTop = 0;
+
+  const startDrag = (e) => {
+    dragging = true;
+    dragStartY = e.clientY;
+    startScrollTop = scroller.scrollTop;
+    thumb.classList.add('dragging');
+    showBar();
+    try { thumb.setPointerCapture(e.pointerId); } catch {}
+    e.preventDefault();
+  };
+
+  const onDragMove = (e) => {
+    if (!dragging) return;
+    const barH = bar.clientHeight || 1;
+    const thH = thumb.clientHeight || 1;
+    const range = Math.max(1, barH - thH);
+    const scrollMax = Math.max(1, scroller.scrollHeight - scroller.clientHeight);
+    const deltaY = e.clientY - dragStartY;
+    const scrollDelta = (deltaY / range) * scrollMax;
+    scroller.scrollTop = startScrollTop + scrollDelta;
+  };
+
+  const endDrag = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    thumb.classList.remove('dragging');
+    scheduleHide(FADE_DRAG_MS);
+    try { thumb.releasePointerCapture(e.pointerId); } catch {}
+  };
+
+  thumb.addEventListener('pointerdown', startDrag);
+  window.addEventListener('pointermove', onDragMove, { passive: true });
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+
+  // Click track to jump
+  bar.addEventListener('pointerdown', (e) => {
+    if (e.target === thumb) return;
+    const rect = bar.getBoundingClientRect();
+    const clickY = e.clientY - rect.top;
+
+    const barH = bar.clientHeight || 1;
+    const thH = thumb.clientHeight || 1;
+    const range = Math.max(0, barH - thH);
+    const targetY = Math.max(0, Math.min(clickY - thH / 2, range));
+
+    const scrollMax = Math.max(1, scroller.scrollHeight - scroller.clientHeight);
+    scroller.scrollTop = (targetY / Math.max(1, range)) * scrollMax;
+
+    showBar();
+    scheduleHide(FADE_SCROLL_MS);
+  });
+
+  // mark so we don't double-init
+  scroller.__customScroll = { bar, thumb, ro, updateAll };
+}
+
 function ensureMerchantOverlay() {
   if (merchantOverlayEl) return;
 
@@ -1140,6 +1298,7 @@ function ensureMerchantOverlay() {
   merchantOverlayEl.appendChild(merchantSheetEl);
   document.body.appendChild(merchantOverlayEl);
   initDialogueTab();
+  ensureMerchantScrollbar();
 
   if (!merchantEventsBound) {
     merchantEventsBound = true;
