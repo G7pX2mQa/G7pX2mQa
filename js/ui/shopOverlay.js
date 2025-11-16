@@ -322,7 +322,7 @@ let upgrades = {};
 
 // ---------- Custom Scrollbar ----------
 function ensureCustomScrollbar() {
-  const scroller = shopOverlayEl?.querySelector('.shop-content');
+  const scroller = shopOverlayEl?.querySelector('.shop-scroller');
   if (!scroller || scroller.__customScroll) return;
 
   const bar = document.createElement('div');
@@ -338,6 +338,12 @@ function ensureCustomScrollbar() {
   const FADE_SCROLL_MS = 150;
   const FADE_DRAG_MS = 120;
   const supportsScrollEnd = 'onscrollend' in window;
+
+  const syncScrollShadow = () => {
+    const hasShadow = (scroller.scrollTop || 0) > 0;
+    shopSheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
+  };
+
 
   const updateBounds = () => {
     const grab = shopOverlayEl.querySelector('.shop-grabber');
@@ -366,7 +372,11 @@ function ensureCustomScrollbar() {
     bar.style.display = (scrollHeight <= clientHeight + 1) ? 'none' : '';
   };
 
-  const updateAll = () => { updateBounds(); updateThumb(); };
+  const updateAll = () => {
+    updateBounds();
+    updateThumb();
+    syncScrollShadow();
+  };
 
   const showBar = () => {
     if (!isTouch) return;
@@ -383,6 +393,7 @@ function ensureCustomScrollbar() {
 
   const onScroll = () => {
     updateThumb();
+    syncScrollShadow();
     if (isTouch) showBar();
     if (!supportsScrollEnd) scheduleHide(FADE_SCROLL_MS);
   };
@@ -858,7 +869,11 @@ function ensureShopOverlay() {
   grid.setAttribute('role', 'grid');
   grid.setAttribute('aria-label', 'Shop Upgrades');
 
-  content.append(header, grid);
+  const scroller = document.createElement('div');
+  scroller.className = 'shop-scroller';
+  scroller.appendChild(grid);
+
+  content.append(header, scroller);
   ensureCustomScrollbar();
 
   const actions = document.createElement('div');
