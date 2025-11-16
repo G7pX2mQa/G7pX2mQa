@@ -158,6 +158,7 @@
 .shop-sheet {
   --shop-tile: clamp(84px, 24vw, 128px);
   --shop-gap:  clamp(8px, 2.5vw, 16px);
+  --shop-fade-size: clamp(18px, 5vw, 40px);
 }
 
 .shop-grid {
@@ -298,36 +299,19 @@
     box-sizing: border-box;
   }
 
-  .shop-content {
+  .shop-scroller {
     overflow-x: clip;
   }
 }
 
 /* === Shop header === */
 .shop-content {
-  overflow-y: auto;
-  display: block;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   padding: 0;
   min-height: 0;
-  place-items: center;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: hsl(0 0% 100% / .22) hsl(220 18% 7% / .55);
-  scrollbar-gutter: stable both-edges;
   background: var(--shop-bg);
-}
-
-.shop-content::-webkit-scrollbar { width: 12px; }
-.shop-content::-webkit-scrollbar-track {
-  background: hsl(220 18% 7% / .55);
-  border-left: 1px solid var(--shop-border);
-}
-.shop-content::-webkit-scrollbar-thumb {
-  background: hsl(0 0% 100% / .22);
-  border-radius: 10px;
-}
-.shop-content::-webkit-scrollbar-thumb:hover {
-  background: hsl(0 0% 100% / .32);
 }
 
 /* Sticky SHOP + full-width line (no darker band) */
@@ -346,25 +330,41 @@
   display: block;
   width: 100%;
   padding: 10px 12px 8px;
+  isolation: isolate;
 }
 
-
-
-
-.shop-title { margin: 0 0 8px 0; font-weight: 700; text-align: center; }
+.shop-title { margin: 0 0 8px 0; font-weight: 700; text-align: center; position: relative; z-index: 2; }
 
 .shop-line {
   height: 2px;
   width: 100%;
   background: var(--shop-border);  /* the line itself is the clip edge */
+  position: relative;
+  z-index: 2;
+}
+
+.shop-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% - 1px);
+  height: var(--shop-fade-size);
+  background: linear-gradient(180deg, var(--shop-bg), hsla(215, 32%, 7%, 0));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+  z-index: 1;
 }
 
 /* The grid now scrolls in its own viewport so items are cut off at the line */
 .shop-scroller {
   overflow-y: auto;
   flex: 1 1 auto;
+  min-height: 0;
   padding: 12px 12px 16px;
   scrollbar-gutter: stable both-edges;   /* no re-centering when scrollbar appears */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Dark scrollbar styling */
@@ -388,13 +388,24 @@
 }
 
 /* Hide native scrollbars cross-browser (we’ll draw our own) */
-.shop-content {
+.shop-scroller {
   scrollbar-width: none;              /* Firefox */
 }
-.shop-content::-webkit-scrollbar {    /* Chromium/WebKit (incl. iOS) */
+.shop-scroller::-webkit-scrollbar {    /* Chromium/WebKit (incl. iOS) */
   width: 0;
   height: 0;
   display: none;
+}
+
+.shop-sheet.has-scroll-shadow .shop-header::after {
+  opacity: 1;
+}
+
+.shop-sheet.has-scroll-shadow .shop-scroller {
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 var(--shop-fade-size), #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 var(--shop-fade-size), #000 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 
 /* Overlay scrollbar (same look on desktop + mobile) */
