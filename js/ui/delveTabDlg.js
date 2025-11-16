@@ -786,6 +786,7 @@ class DialogueEngine {
 
   _hideChoices() {
     this.choicesEl.classList.remove('is-visible');
+    this._applyInlineChoiceHide();
   }
 
   _renderChoices(options, prepare = false) {
@@ -818,13 +819,28 @@ class DialogueEngine {
 
     if (prepare) {
       this.choicesEl.classList.remove('is-visible');
+      this._applyInlineChoiceHide();
       return;
     }
+    this._clearInlineChoiceHide();
     requestAnimationFrame(() => this.choicesEl.classList.add('is-visible'));
   }
 
   _revealPreparedChoices() {
+    this._clearInlineChoiceHide();
     requestAnimationFrame(() => this.choicesEl.classList.add('is-visible'));
+  }
+
+  _applyInlineChoiceHide() {
+    this.choicesEl.style.opacity = '0';
+    this.choicesEl.style.transform = 'translateY(6px)';
+    this.choicesEl.style.pointerEvents = 'none';
+  }
+
+  _clearInlineChoiceHide() {
+    this.choicesEl.style.opacity = '';
+    this.choicesEl.style.transform = '';
+    this.choicesEl.style.pointerEvents = '';
   }
 }
 
@@ -1553,7 +1569,6 @@ function runFirstMeet() {
       try { window.dispatchEvent(new Event(MERCHANT_MET_EVENT)); } catch {}
       fc.classList.remove('is-visible');
       merchantOverlayEl.classList.remove('firstchat-active');
-      merchantOverlayEl.classList.remove('firstchat-instant');
     }
   });
 
@@ -1561,39 +1576,76 @@ function runFirstMeet() {
   engine.start();
 }
 
-  export function openMerchant() {
-    ensureMerchantOverlay();
-    if (merchantOpen) return;
-    const activeEl = document.activeElement;
-    if (activeEl instanceof HTMLElement && !merchantOverlayEl.contains(activeEl)) {
-      merchantLastFocus = activeEl;
-    } else {
-      merchantLastFocus = null;
-    }
-    merchantOpen = true;
+function resetFirstChatOverlayState() {
+  if (!merchantOverlayEl) return;
+  const fc = merchantOverlayEl.querySelector('.merchant-firstchat--initial');
+  if (!fc) return;
 
-    // Reset transform and transition
-    merchantSheetEl.style.transition = 'none';
-    merchantSheetEl.style.transform = '';
-    merchantOverlayEl.removeAttribute('inert');
+  fc.classList.remove('is-visible');
 
-    let met = false;
-    try { met = localStorage.getItem(sk(MERCHANT_MET_KEY_BASE)) === '1'; } catch {}
-    const needsFirstChat = !met;
+  const textEl = fc.querySelector('#merchant-first-line');
+  if (textEl) {
+    textEl.classList.remove('is-typing');
+    textEl.textContent = '…';
+  }
 
-    // Animate in next frame
-    void merchantSheetEl.offsetHeight;
-    requestAnimationFrame(() => {
+  const choicesEl = fc.querySelector('#merchant-first-choices');
+  if (choicesEl) {
+    choicesEl.classList.remove('is-visible');
+    choicesEl.style.opacity = '0';
+    choicesEl.style.transform = 'translateY(6px)';
+    choicesEl.style.pointerEvents = 'none';
+    choicesEl.style.minHeight = '';
+    choicesEl.innerHTML = '';
+  }
+
+  merchantOverlayEl.classList.remove('firstchat-active');
+}
+
+export function openMerchant() {
+  ensureMerchantOverlay();
+  if (merchantOpen) return;
+
+  const activeEl = document.activeElement;
+  if (activeEl instanceof HTMLElement && !merchantOverlayEl.contains(activeEl)) {
+    merchantLastFocus = activeEl;
+  } else {
+    merchantLastFocus = null;
+  }
+  merchantOpen = true;
+
+  // Check whether this is the very first time we’re meeting the Merchant
+  let met = false;
+  try {
+    met = localStorage.getItem(sk(MERCHANT_MET_KEY_BASE)) === '1';
+  } catch {
+    met = false;
+  }
+
+  // For the very first chat, pin the sheet in place (no slide-up animation)
+  if (!met) {
+    merchantOverlayEl.classList.add('firstchat-instant');
+  }
+
+  // Reset transform and transition
+  merchantSheetEl.style.transition = 'none';
+  merchantSheetEl.style.transform = '';
+  merchantOverlayEl.removeAttribute('inert');
+
+  // Animate in next frame
+  void merchantSheetEl.offsetHeight;
+  requestAnimationFrame(() => {
+    // Only restore the sheet transition for normal opens
+    if (!merchantOverlayEl.classList.contains('firstchat-instant')) {
       merchantSheetEl.style.transition = '';
-      if (needsFirstChat) {
-        merchantOverlayEl.classList.add('firstchat-instant');
-      }
-      merchantOverlayEl.classList.add('is-open');
-      blockInteraction(140);
+    }
 
-      if (merchantCloseBtn && typeof merchantCloseBtn.focus === 'function') {
-        try { merchantCloseBtn.focus({ preventScroll: true }); } catch {}
-      }
+    merchantOverlayEl.classList.add('is-open');
+    blockInteraction(140);
+
+    if (merchantCloseBtn && typeof merchantCloseBtn.focus === 'function') {
+      try { merchantCloseBtn.focus({ preventScroll: true }); } catch {}
+    }
 
     // Restore last tab
     let last = 'dialogue';
@@ -1604,7 +1656,7 @@ function runFirstMeet() {
     stopTypingSfx();
 
     // First-time chat
-    if (needsFirstChat) {
+    if (!met) {
       const fc = merchantOverlayEl.querySelector('.merchant-firstchat');
       fc?.classList.add('is-visible');
       merchantOverlayEl.classList.add('firstchat-active');
@@ -1631,6 +1683,7 @@ export function closeMerchant() {
   merchantSheetEl.style.transform = '';
   merchantOverlayEl.classList.remove('is-open');
   merchantOverlayEl.classList.remove('firstchat-instant');
+  resetFirstChatOverlayState();
 
   const activeEl = document.activeElement;
   if (activeEl && merchantOverlayEl.contains(activeEl)) {
