@@ -1,4 +1,13 @@
 /* css/ui/delve.css */
+:root {
+  --merchant-bg: hsl(220 32% 7% / 1);
+  --merchant-card: hsl(220 26% 12% / 1);
+  --merchant-border: hsl(215 28% 26% / 1);
+  --merchant-shadow: 0 28px 80px hsl(215 60% 2% / 0.65);
+  --merchant-radius: 20px;
+  --merchant-anim: 220ms cubic-bezier(.2, .8, .2, 1);
+}
+
 .merchant-overlay {
   position: fixed;
   inset: 0;
@@ -8,18 +17,17 @@
 }
 .merchant-overlay.is-open { pointer-events: auto; }
 
-/* Merchant sheet adopts the same animation variables */
 .merchant-sheet {
   position: absolute;
   inset: 0;
-  background: var(--shop-bg);
+  background: var(--merchant-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: grid;
   grid-template-rows: auto 1fr auto;
   transform: translateY(100%);
-  transition: transform var(--shop-anim);
-  box-shadow: var(--shop-shadow);
+  transition: transform var(--merchant-anim);
+  box-shadow: var(--merchant-shadow);
   --merchant-fade-size: clamp(18px, 5vw, 40px);
 }
 .merchant-overlay.is-open .merchant-sheet { transform: translateY(0); }
@@ -38,6 +46,11 @@
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+.merchant-grabber {
+  background: var(--merchant-bg);
+  border-bottom: 1px solid var(--merchant-border);
 }
 
 @media (pointer: fine) {
@@ -77,7 +90,7 @@
   overflow-y: auto;
   padding: 0;
   scrollbar-gutter: stable both-edges;
-  background: var(--shop-bg);
+  background: var(--merchant-bg);
 
   /* smooth scrolling on iOS */
   -webkit-overflow-scrolling: touch;
@@ -109,8 +122,8 @@
 }
 
 .merchant-content::-webkit-scrollbar-track {
-  background: hsl(220 18% 7% / .55);
-  border-left: 1px solid var(--shop-border);
+  background: hsl(220 30% 10% / .85);
+  border-left: 1px solid var(--merchant-border);
 }
 
 .merchant-content::-webkit-scrollbar-thumb {
@@ -174,10 +187,11 @@
   top: 0;
   z-index: 10;
   padding: 10px 12px 8px;
-  background: transparent;
+  background: var(--merchant-bg);
   backdrop-filter: inherit;
   -webkit-backdrop-filter: inherit;
   isolation: isolate;
+  border-bottom: 1px solid var(--merchant-border);
 }
 .merchant-title {
   margin: 0 0 8px;
@@ -187,10 +201,11 @@
   position: relative;
   z-index: 2;
 }
+
 .merchant-line  {
   height: 2px;
   width: 100%;
-  background: var(--shop-border);
+  background: var(--merchant-border);
   position: relative;
   z-index: 2;
 }
@@ -202,7 +217,7 @@
   right: 0;
   top: calc(100% - 1px);
   height: var(--merchant-fade-size);
-  background: linear-gradient(180deg, var(--shop-bg), hsla(215, 32%, 7%, 0));
+  background: linear-gradient(180deg, var(--merchant-bg), hsl(220 32% 7% / 0));
   opacity: 0;
   pointer-events: none;
   transition: opacity 160ms ease;
@@ -216,9 +231,9 @@
   grid-template-columns: auto 1fr;
   gap: 12px;
   align-items: start;
-  background: var(--shop-card);
-  border: 1px solid var(--shop-border);
-  border-radius: var(--shop-radius);
+  background: var(--merchant-card);
+  border: 1px solid var(--merchant-border);
+  border-radius: var(--merchant-radius);
   padding: 14px;
 }
 /* Regular Merchant dialogue bubble icon */
@@ -238,6 +253,8 @@
 .merchant-actions {
   display: flex; justify-content: center; align-items: center; gap: 12px;
   padding: 12px 16px calc(12px + var(--safe-bottom));
+  background: var(--merchant-bg);
+  border-top: 1px solid var(--merchant-border);
 }
 .merchant-actions .merchant-close {
   min-width: 180px;
@@ -303,9 +320,9 @@
 .merchant-firstchat__card {
   position: relative;          /* create a new stacking context over ::before */
   width: min(720px, 92vw);
-  background: var(--shop-card);
-  border: 1px solid var(--shop-border);
-  box-shadow: var(--shop-shadow);
+  background: var(--merchant-card);
+  border: 1px solid var(--merchant-border);
+  box-shadow: var(--merchant-shadow);
   padding: 16px;
   pointer-events: auto;        /* clickable while the scrim eats background clicks */
 }
@@ -314,8 +331,9 @@
 .merchant-firstchat__header .name {
   font-weight: 700; color: white; margin-bottom: 8px; text-align: left;
 }
+
 .merchant-firstchat__header .rule {
-  height: 2px; width: 100%; background: var(--shop-border); margin-bottom: 12px;
+  height: 2px; width: 100%; background: var(--merchant-border); margin-bottom: 12px;
 }
 
 /* Row layout (icon left, text right) */
@@ -363,7 +381,7 @@
   padding: 8px 12px;
   text-align: left;
   border-radius: 8px;
-  border: 1px solid var(--shop-border);
+  border: 1px solid var(--merchant-border);
   background: hsl(0 0% 100% / .06);
   color: #fff;
   font-weight: 600;
@@ -416,7 +434,7 @@
 .merchant-tab {
   padding: 6px 12px;
   border-radius: 10px;
-  border: 1px solid var(--shop-border);
+  border: 1px solid var(--merchant-border);
   background: hsl(0 0% 100% / .04);
   color: #fff;
   font-weight: 600;
@@ -481,7 +499,7 @@
 }
 
 .merchant-reset__main {
-  background: rgba(9,17,30,0.72);
+  background: var(--merchant-card);
   border-radius: 16px;
   padding: 18px 20px;
   display: flex;
@@ -622,7 +640,7 @@
   text-align: left;
   padding: clamp(8px,1.2vw,12px) clamp(10px,2vw,14px);
   border-radius: 12px;
-  border: 2px solid var(--shop-border, rgba(255,255,255,.12));
+  border: 2px solid var(--merchant-border, rgba(255,255,255,.12));
   color: #fff;
   cursor: pointer;
   transition: background 120ms ease, transform 90ms ease, opacity 120ms ease;
