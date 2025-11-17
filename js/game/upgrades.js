@@ -2452,6 +2452,7 @@ function ensureUpgradeState(areaKey, upgId) {
         rec.nextCost = BigNum.fromInt(0).toStorage();
       }
     }
+    rec.nextCostLvl = rec.lvl;
     arr.push(rec);
     saveAreaState(areaKey, arr, slot);
   } else if (rec.id !== normalizedId) {
@@ -2466,19 +2467,37 @@ try {
   if (!(capBn.isInfinite?.()) && lvlBn.cmp(capBn) > 0) {
     const clamped = capBn.clone?.() ?? capBn;
     lvl = levelBigNumToNumber(clamped);
-    rec.lvl = clamped.toStorage();
+    const clampedStorage = clamped.toStorage();
+    rec.lvl = clampedStorage;
     rec.nextCost = BigNum.fromInt(0).toStorage();
+    rec.nextCostLvl = clampedStorage;
     saveAreaState(areaKey, arr, slot);
   }
 } catch {}
 
-  let nextCostBn = null;
-  if (rec.nextCost != null) {
-    try { nextCostBn = BigNum.fromAny(rec.nextCost); }
-    catch { nextCostBn = null; }
+  let normalizedLvlStorage = null;
+  try {
+    normalizedLvlStorage = lvlBn?.toStorage?.() ?? ensureLevelBigNum(lvl).toStorage();
+  } catch {}
+  if (normalizedLvlStorage && rec.lvl !== normalizedLvlStorage) {
+    rec.lvl = normalizedLvlStorage;
+    recNeedsSave = true;
   }
 
-  if (!nextCostBn) {
+  const costLevelStorage = typeof rec.nextCostLvl === 'string' ? rec.nextCostLvl : null;
+  let nextCostStale = !costLevelStorage || costLevelStorage !== normalizedLvlStorage;
+
+  let nextCostBn = null;
+  if (!nextCostStale && rec.nextCost != null) {
+    try {
+      nextCostBn = BigNum.fromAny(rec.nextCost);
+    } catch {
+      nextCostBn = null;
+      nextCostStale = true;
+    }
+  }
+
+  if (!nextCostBn || nextCostStale) {
     if (upg) {
       try {
         nextCostBn = BigNum.fromAny(upg.costAtLevel(lvl));
@@ -2490,8 +2509,12 @@ try {
     }
     try {
       rec.nextCost = nextCostBn.toStorage();
-      rec.lvl = lvlBn.toStorage();
-      saveAreaState(areaKey, arr, slot);
+      if (normalizedLvlStorage) {
+        rec.nextCostLvl = normalizedLvlStorage;
+      } else {
+        delete rec.nextCostLvl;
+      }
+      recNeedsSave = true;
     } catch {}
   }
 
@@ -2548,6 +2571,7 @@ try {
   } catch {
     rec.lvl = ensureLevelBigNum(state.lvl ?? 0).toStorage();
   }
+  const currentLvlStorage = rec.lvl;
 
   if (state.nextCostBn != null) {
     try {
@@ -2556,6 +2580,9 @@ try {
       try { rec.nextCost = BigNum.fromAny(state.nextCostBn ?? 0).toStorage(); }
       catch { rec.nextCost = BigNum.fromInt(0).toStorage(); }
     }
+    rec.nextCostLvl = currentLvlStorage;
+  } else {
+    delete rec.nextCostLvl;
   }
 
   saveAreaState(areaKey, arr, slot);
