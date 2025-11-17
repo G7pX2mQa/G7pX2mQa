@@ -50,7 +50,6 @@
 
 .merchant-grabber {
   background: var(--merchant-bg);
-  border-bottom: 1px solid var(--merchant-border);
 }
 
 @media (pointer: fine) {
@@ -191,7 +190,6 @@
   backdrop-filter: inherit;
   -webkit-backdrop-filter: inherit;
   isolation: isolate;
-  border-bottom: 1px solid var(--merchant-border);
 }
 .merchant-title {
   margin: 0 0 8px;
@@ -254,7 +252,6 @@
   display: flex; justify-content: center; align-items: center; gap: 12px;
   padding: 12px 16px calc(12px + var(--safe-bottom));
   background: var(--merchant-bg);
-  border-top: 1px solid var(--merchant-border);
 }
 .merchant-actions .merchant-close {
   min-width: 180px;
