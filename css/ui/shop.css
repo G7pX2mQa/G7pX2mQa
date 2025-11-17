@@ -128,7 +128,7 @@
     box-shadow: 0 0 0 0 hsla(150, 70%, 60%, 0.45);
   }
   50% {
-    box-shadow: 0 0 22px 6px hsla(150, 70%, 62%, 0.75);
+    box-shadow: 0 0 13px 3px hsla(150, 70%, 62%, 0.75);
   }
 }
 .shop-actions .shop-delve:hover {
@@ -291,6 +291,32 @@
     );
 
     --shop-tile: clamp(76px, var(--tile-fit), 120px);
+  }
+
+  .shop-grid {
+    padding-inline: var(--grid-pad);
+    gap: var(--gap);
+    box-sizing: border-box;
+  }
+
+  .shop-scroller {
+    overflow-x: clip;
+  }
+}
+
+@media (max-width: 520px) {
+  .shop-sheet {
+    --grid-pad: 10px;
+    --gap: 10px;
+    --cols: 3;
+
+    --tile-fit: calc(
+      (100vw - env(safe-area-inset-left) - env(safe-area-inset-right)
+        - (2 * var(--grid-pad)) - ((var(--cols) - 1) * var(--gap))
+      ) / var(--cols)
+    );
+
+    --shop-tile: clamp(68px, var(--tile-fit), 110px);
   }
 
   .shop-grid {
