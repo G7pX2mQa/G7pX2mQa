@@ -1040,20 +1040,22 @@ function ensureUpgradeScaling(upg) {
       defaultPreset: defaultPreset ?? providedScaling.defaultPreset,
     });
 
-try {
-  const c0 = BigNum.fromAny(upg.costAtLevel?.(0) ?? 0);
-  const c1 = BigNum.fromAny(upg.costAtLevel?.(1) ?? 0);
-  const cF = BigNum.fromAny(upg.costAtLevel?.(32) ?? 0);
-  if (c0.cmp(c1) === 0 && c0.cmp(cF) === 0) {
-    scaling.ratio = 1;
-    scaling.ratioMinus1 = 0;
-    scaling.ratioLog10 = 0;
-    scaling.ratioLn = 0;
-    scaling.ratioStr = '1';
-  }
-} catch {}
-
+    // Expose the in-progress scaling so recursive cost checks can use it
     upg.scaling = scaling;
+
+    try {
+      const c0 = BigNum.fromAny(upg.costAtLevel?.(0) ?? 0);
+      const c1 = BigNum.fromAny(upg.costAtLevel?.(1) ?? 0);
+      const cF = BigNum.fromAny(upg.costAtLevel?.(32) ?? 0);
+      if (c0.cmp(c1) === 0 && c0.cmp(cF) === 0) {
+        scaling.ratio = 1;
+        scaling.ratioMinus1 = 0;
+        scaling.ratioLog10 = 0;
+        scaling.ratioLn = 0;
+        scaling.ratioStr = '1';
+      }
+    } catch {}
+
     return scaling;
   } catch {
     return null;
@@ -1780,7 +1782,7 @@ function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
 
 /**
  * upgType:
- *  - "NM" = No Milestones (numUpgEvolutions = 0)
+ *  - "NM" = No Milestones
  *  - "HM" = Has Milestones
  *
  * Optional field:
