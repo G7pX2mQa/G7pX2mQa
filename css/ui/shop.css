@@ -159,6 +159,7 @@
   --shop-tile: clamp(84px, 24vw, 128px);
   --shop-gap:  clamp(8px, 2.5vw, 16px);
   --shop-fade-size: clamp(18px, 5vw, 40px);
+  --shop-scroller-pad: 12px;
 }
 
 .shop-grid {
@@ -279,18 +280,21 @@
 /* === Mobile-specific tweaks === */
 @media (hover: none) and (pointer: coarse) {
   .shop-sheet {
-    --grid-pad: 12px;
-    --gap: 12px;
+    --grid-pad: clamp(8px, 4vw, 14px);
+    --gap: clamp(8px, 3.5vw, 14px);
     --cols: 3;
+    --shop-scroller-pad: clamp(8px, 4vw, 14px);
 
     /* exact-fit tile: ensures 3 icons + gaps fit perfectly in viewport */
     --tile-fit: calc(
       (100vw - env(safe-area-inset-left) - env(safe-area-inset-right)
-        - (2 * var(--grid-pad)) - ((var(--cols) - 1) * var(--gap))
+        - (2 * var(--shop-scroller-pad))
+        - (2 * var(--grid-pad))
+        - ((var(--cols) - 1) * var(--gap))
       ) / var(--cols)
     );
 
-    --shop-tile: clamp(76px, var(--tile-fit), 120px);
+    --shop-tile: clamp(72px, var(--tile-fit), 110px);
   }
 
   .shop-grid {
@@ -301,6 +305,7 @@
 
   .shop-scroller {
     overflow-x: clip;
+    padding-inline: var(--shop-scroller-pad);
   }
 }
 
@@ -357,12 +362,11 @@
   z-index: 1;
 }
 
-/* The grid now scrolls in its own viewport so items are cut off at the line */
 .shop-scroller {
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;
-  padding: 12px 12px 16px;
+  padding: 12px var(--shop-scroller-pad) 16px;
   scrollbar-gutter: stable both-edges;   /* no re-centering when scrollbar appears */
   -webkit-overflow-scrolling: touch;
 }
