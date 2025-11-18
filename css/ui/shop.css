@@ -284,20 +284,23 @@
     --gap: clamp(8px, 3.5vw, 14px);
     --cols: 3;
     --shop-scroller-pad: clamp(8px, 4vw, 14px);
+
+    /* exact-fit tile: ensures 3 icons + gaps fit perfectly in viewport */
+    --tile-fit: calc(
+      (100vw - env(safe-area-inset-left) - env(safe-area-inset-right)
+        - (2 * var(--shop-scroller-pad))
+        - (2 * var(--grid-pad))
+        - ((var(--cols) - 1) * var(--gap))
+      ) / var(--cols)
+    );
+
+    --shop-tile: clamp(72px, var(--tile-fit), 110px);
   }
 
   .shop-grid {
-    /* exact-fit tile width: fills thin viewports with exactly --cols cards */
-    --tile-fit: calc(
-      (100% - ((var(--cols) - 1) * var(--gap))) / var(--cols)
-    );
-    --shop-tile: min(var(--tile-fit), 110px);
-
     padding-inline: var(--grid-pad);
     gap: var(--gap);
     box-sizing: border-box;
-    grid-template-columns: repeat(auto-fit, minmax(var(--shop-tile), var(--shop-tile)));
-    justify-content: center;
   }
 
   .shop-scroller {
