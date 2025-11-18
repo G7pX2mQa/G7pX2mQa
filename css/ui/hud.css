@@ -47,11 +47,11 @@ transform: translateY(1px) scale(0.997);
 /* Hide via attribute */
 .game-btn[hidden] { display: none !important; }
 
-/* Theme colors (vertical-ish gradient per button) */
-.btn-help  { background: linear-gradient(180deg,#f7d64b,#e8b800); }  /* yellow */
-.btn-shop  { background: linear-gradient(180deg,#62b447,#2a8a2b); }  /* green  */
-.btn-stats { background: linear-gradient(180deg,#e04a3f,#b92b20); }  /* red    */
-.btn-map   { background: linear-gradient(180deg,#39e6df,#00aabb); }  /* cyan   */
+.btn-help  { background: linear-gradient(180deg,#f7d64b,#e8b800); }
+.btn-shop  { background: linear-gradient(180deg,#62b447,#2a8a2b); }
+.btn-shop.btn-shop--modified { background: linear-gradient(180deg,#a9793d,#5d3716); }
+.btn-stats { background: linear-gradient(180deg,#e04a3f,#b92b20); }
+.btn-map   { background: linear-gradient(180deg,#39e6df,#00aabb); }
 
 /* Desktop: crisp 1px stroke for text (where supported), plus light shadow */
 .game-btn {
