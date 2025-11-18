@@ -11,6 +11,25 @@ import {
 
 const SIGNATURE_POLL_INTERVAL_MS = 10000;
 let watcherId = null;
+const sessionSignatures = new Map();
+
+function rememberSessionSignature(slot, signature) {
+  if (!slot || slot <= 0) return;
+  if (signature == null) {
+    sessionSignatures.delete(slot);
+  } else {
+    sessionSignatures.set(slot, signature);
+  }
+}
+
+function hasSessionSignature(slot) {
+  if (!slot || slot <= 0) return false;
+  return sessionSignatures.has(slot);
+}
+
+function resetSessionSignatures() {
+  sessionSignatures.clear();
+}
 
 function hasLocalStorage() {
   try {
@@ -78,18 +97,23 @@ function verifySlotIntegrity(slot, entries) {
   const stored = getSlotSignature(slot);
   if (list.length === 0) {
     if (stored) {
-      markSaveSlotModified(slot);
+      if (!hasSessionSignature(slot)) {
+        markSaveSlotModified(slot);
+      }
       setSlotSignature(slot, null);
     }
+    rememberSessionSignature(slot, null);
     return;
   }
   const signature = computeSignature(list);
-  if (stored && signature !== stored) {
+  const mismatch = signature !== stored;
+  if (stored && mismatch && !hasSessionSignature(slot)) {
     markSaveSlotModified(slot);
   }
   if (signature !== stored) {
     setSlotSignature(slot, signature);
   }
+  rememberSessionSignature(slot, signature);
 }
 
 function runIntegrityCheck() {
@@ -115,7 +139,10 @@ function init() {
   window.addEventListener('saveSlot:change', () => runIntegrityCheck());
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) runIntegrityCheck();
+      if (!document.hidden) {
+        resetSessionSignatures();
+        runIntegrityCheck();
+      }
     });
   }
 }
