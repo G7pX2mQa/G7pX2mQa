@@ -1,7 +1,7 @@
 // js/ui/hudButtons.js
 
 import { openShop } from './shopOverlay.js';
-import { getActiveSlot } from '../util/storage.js';
+import { getActiveSlot, hasModifiedSave } from '../util/storage.js';
 import {
   markGhostTapTarget,
   shouldSkipGhostTap,
@@ -43,6 +43,12 @@ function ensureUnlockDefaults() {
 function setButtonVisible(key, visible) {
   const el = document.querySelector(`.hud-bottom [data-btn="${key}"]`);
   if (el) el.hidden = !visible;
+}
+
+function updateShopButtonTamperState() {
+  const btn = document.querySelector('.hud-bottom [data-btn="shop"]');
+  if (!btn) return;
+  btn.classList.toggle('btn-shop--modified', hasModifiedSave());
 }
 
 function phonePortrait() {
@@ -139,9 +145,9 @@ export function initHudButtons() {
   setButtonVisible('help',  true);
   setButtonVisible('stats', true);
 
-  // Default-locked buttons (now slot-aware reads)
   setButtonVisible('shop', isUnlocked(BASE_KEYS.SHOP));
   setButtonVisible('map',  isUnlocked(BASE_KEYS.MAP));
+  updateShopButtonTamperState();
 
   applyHudLayout();
 
@@ -149,6 +155,18 @@ export function initHudButtons() {
     listenersBound = true;
     window.addEventListener('resize', applyHudLayout);
     window.addEventListener('orientationchange', applyHudLayout);
+    window.addEventListener('saveSlot:change', () => {
+      setButtonVisible('shop', isUnlocked(BASE_KEYS.SHOP));
+      setButtonVisible('map',  isUnlocked(BASE_KEYS.MAP));
+      updateShopButtonTamperState();
+      applyHudLayout();
+    });
+    window.addEventListener('saveSlot:modified', (event) => {
+      const active = getActiveSlot();
+      const slot = event?.detail?.slot;
+      if (slot != null && active != null && slot !== active) return;
+      updateShopButtonTamperState();
+    });
   }
 
   // Bind actions once (click → open shop)
