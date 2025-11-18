@@ -1475,7 +1475,7 @@ function ensureMerchantOverlay() {
   merchantTabs.panels['minigames'] = panelMinigames;
   merchantTabs.tablist = tabs;
 
-  panelsWrap.append(panelDialogue, panelReset, panelMinigames);␊
+  panelsWrap.append(panelDialogue, panelReset, panelMinigames);
   content.append(tabs, panelsWrap);
 
   try { initResetSystem(); } catch {}
