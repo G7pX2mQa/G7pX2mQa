@@ -1475,8 +1475,8 @@ function ensureMerchantOverlay() {
   merchantTabs.panels['minigames'] = panelMinigames;
   merchantTabs.tablist = tabs;
 
-  panelsWrap.append(panelDialogue, panelReset, panelMinigames);
-  content.append(header, tabs, panelsWrap);
+  panelsWrap.append(panelDialogue, panelReset, panelMinigames);␊
+  content.append(tabs, panelsWrap);
 
   try { initResetSystem(); } catch {}
   try { initResetPanel(panelReset); } catch {}
@@ -1513,7 +1513,7 @@ function ensureMerchantOverlay() {
     </div>
   `;
 
-  merchantSheetEl.append(grabber, content, actions, firstChat);
+  merchantSheetEl.append(grabber, header, content, actions, firstChat);
   merchantOverlayEl.appendChild(merchantSheetEl);
   document.body.appendChild(merchantOverlayEl);
   initDialogueTab();
