@@ -448,6 +448,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     coinPickupModule,
     hudButtonsModule,
     storageModule,
+    saveIntegrityModule,
     upgradesModule,
     audioCacheModule,
     xpModule,
@@ -456,7 +457,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     popupModule,
     safetyModule,
     guardModule,
-	saveIntegrityModule
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -464,6 +464,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ initCoinPickup } = coinPickupModule);
   ({ initHudButtons } = hudButtonsModule);
   ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults } = storageModule);
+  void saveIntegrityModule;
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
   ({ registerPreloadedAudio } = audioCacheModule);
   ({ initXpSystem } = xpModule);
@@ -472,7 +473,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ initPopups } = popupModule);
   ({ installSuspendSafeguards, restoreFromBackupIfNeeded: restoreSuspendBackup, markProgressDirty, flushBackupSnapshot } = safetyModule);
   ({ installGhostTapGuard } = guardModule);
-  void saveIntegrityModule;
 
   window.bank = bank;
 
