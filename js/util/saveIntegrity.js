@@ -10,25 +10,38 @@ import {
 } from './storage.js';
 
 const SIGNATURE_POLL_INTERVAL_MS = 10000;
+const TRUSTED_MUTATION_GRACE_MS = 750;
+const TRUSTED_SWEEP_DELAY_MS = 50;
 let watcherId = null;
-const sessionSignatures = new Map();
+let trustedSweepTimer = null;
 
-function rememberSessionSignature(slot, signature) {
-  if (!slot || slot <= 0) return;
-  if (signature == null) {
-    sessionSignatures.delete(slot);
-  } else {
-    sessionSignatures.set(slot, signature);
+const trustedSlotsUntil = new Map();
+
+function nowMs() {
+  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    return performance.now();
   }
+  return Date.now();
 }
 
-function hasSessionSignature(slot) {
+function noteTrustedSlot(slot, ttl = TRUSTED_MUTATION_GRACE_MS) {
+  if (!slot || slot <= 0) return;
+  trustedSlotsUntil.set(slot, nowMs() + ttl);
+}
+
+function slotRecentlyTrusted(slot) {
   if (!slot || slot <= 0) return false;
-  return sessionSignatures.has(slot);
+  const expiry = trustedSlotsUntil.get(slot);
+  if (expiry == null) return false;
+  if (expiry <= nowMs()) {
+    trustedSlotsUntil.delete(slot);
+    return false;
+  }
+  return true;
 }
 
-function resetSessionSignatures() {
-  sessionSignatures.clear();
+function resetTrustedSlots() {
+  trustedSlotsUntil.clear();
 }
 
 function hasLocalStorage() {
@@ -97,23 +110,21 @@ function verifySlotIntegrity(slot, entries) {
   const stored = getSlotSignature(slot);
   if (list.length === 0) {
     if (stored) {
-      if (!hasSessionSignature(slot)) {
+      if (!slotRecentlyTrusted(slot)) {
         markSaveSlotModified(slot);
       }
       setSlotSignature(slot, null);
     }
-    rememberSessionSignature(slot, null);
     return;
   }
   const signature = computeSignature(list);
   const mismatch = signature !== stored;
-  if (stored && mismatch && !hasSessionSignature(slot)) {
+  if (stored && mismatch && !slotRecentlyTrusted(slot)) {
     markSaveSlotModified(slot);
   }
   if (signature !== stored) {
     setSlotSignature(slot, signature);
   }
-  rememberSessionSignature(slot, signature);
 }
 
 function runIntegrityCheck() {
@@ -124,6 +135,30 @@ function runIntegrityCheck() {
     const entries = entriesBySlot.get(slot) ?? [];
     verifySlotIntegrity(slot, entries);
   });
+}
+
+function scheduleTrustedMutationSweep() {
+  if (trustedSweepTimer != null) return;
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  trustedSweepTimer = root.setTimeout(() => {
+    trustedSweepTimer = null;
+    runIntegrityCheck();
+  }, TRUSTED_SWEEP_DELAY_MS);
+}
+
+function handleStorageMutationEvent(event) {
+  const detail = event?.detail;
+  if (!detail) return;
+  const rawSlot = typeof detail.slot === 'number' ? detail.slot : Number.parseInt(detail.slot, 10);
+  const slot = Number.isFinite(rawSlot) ? rawSlot : null;
+  if (!Number.isFinite(slot) || slot <= 0) return;
+  if (detail.trusted) {
+    noteTrustedSlot(slot);
+    scheduleTrustedMutationSweep();
+    return;
+  }
+  trustedSlotsUntil.delete(slot);
+  runIntegrityCheck();
 }
 
 function ensureWatcher() {
@@ -137,10 +172,11 @@ function init() {
   runIntegrityCheck();
   ensureWatcher();
   window.addEventListener('saveSlot:change', () => runIntegrityCheck());
+  window.addEventListener('saveIntegrity:storageMutation', handleStorageMutationEvent, { passive: true });
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
-        resetSessionSignatures();
+        resetTrustedSlots();
         runIntegrityCheck();
       }
     });
