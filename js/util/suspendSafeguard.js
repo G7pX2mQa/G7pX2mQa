@@ -1,5 +1,5 @@
 // js/util/suspendSafeguard.js
-// Protects against localstorage obliteration in rare cases
+// Protects against local storage obliteration in rare cases
 
 const STORAGE_PREFIX = 'ccc:';
 const DB_NAME = 'ccc:safety';
