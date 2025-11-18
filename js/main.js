@@ -456,6 +456,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     popupModule,
     safetyModule,
     guardModule,
+	saveIntegrityModule
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -471,6 +472,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ initPopups } = popupModule);
   ({ installSuspendSafeguards, restoreFromBackupIfNeeded: restoreSuspendBackup, markProgressDirty, flushBackupSnapshot } = safetyModule);
   ({ installGhostTapGuard } = guardModule);
+  void saveIntegrityModule;
 
   window.bank = bank;
 
