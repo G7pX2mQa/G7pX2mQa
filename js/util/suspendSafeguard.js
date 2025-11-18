@@ -6,7 +6,9 @@ const DB_NAME = 'ccc:safety';
 const DB_VERSION = 1;
 const STORE_NAME = 'snapshots';
 const SNAPSHOT_KEY = 'latest';
-const FLUSH_DEBOUNCE_MS = 1500;
+const SLOT_SIGNATURE_PREFIX = `${STORAGE_PREFIX}slotSig`;
+const SLOT_MOD_FLAG_PREFIX = `${STORAGE_PREFIX}slotMod`;
+const FLUSH_DEBOUNCE_MS = 1000;
 
 let dbPromise = null;
 let flushTimer = null;
@@ -175,6 +177,47 @@ function requestPersistentStorage() {
   } catch {}
 }
 
+function captureStackTrace() {
+  try {
+    throw new Error('ccc-storage-write');
+  } catch (err) {
+    return err?.stack || '';
+  }
+}
+
+function parseSlotFromKey(key) {
+  if (!key) return null;
+  const match = /:(\d+)$/.exec(String(key));
+  if (!match) return null;
+  const slot = parseInt(match[1], 10);
+  return Number.isFinite(slot) && slot > 0 ? slot : null;
+}
+
+const TRUSTED_STACK_FRAME_RE = /(?:https?:\/\/|file:\/\/|\/)[^\n]+\.js:\d+:\d+/;
+
+function isTrustedStorageStack(stack) {
+  if (!stack) return false;
+  return TRUSTED_STACK_FRAME_RE.test(stack);
+}
+
+function notifySaveIntegrityOfStorageMutation(key, stack) {
+  if (typeof window === 'undefined') return;
+  if (!key) return;
+  const strKey = String(key);
+  if (!strKey.startsWith(STORAGE_PREFIX)) return;
+  if (strKey.startsWith(SLOT_SIGNATURE_PREFIX) || strKey.startsWith(SLOT_MOD_FLAG_PREFIX)) return;
+  const slot = parseSlotFromKey(strKey);
+  if (slot == null) return;
+  try {
+    const detail = {
+      key: strKey,
+      slot,
+      trusted: isTrustedStorageStack(stack),
+    };
+    window.dispatchEvent(new CustomEvent('saveIntegrity:storageMutation', { detail }));
+  } catch {}
+}
+
 function installStorageHooks() {
   if (typeof localStorage === 'undefined') return;
   try {
@@ -187,6 +230,7 @@ function installStorageHooks() {
 
     if (typeof originalSet === 'function') {
       proto.setItem = function patchedSetItem(key, value) {
+        const stack = captureStackTrace();
         let result;
         try {
           result = originalSet.apply(this, arguments);
@@ -194,6 +238,7 @@ function installStorageHooks() {
           try {
             if (this === localStorage && String(key).startsWith(STORAGE_PREFIX)) {
               markProgressDirty('setItem');
+              notifySaveIntegrityOfStorageMutation(key, stack);
             }
           } catch {}
         }
@@ -203,6 +248,7 @@ function installStorageHooks() {
 
     if (typeof originalRemove === 'function') {
       proto.removeItem = function patchedRemoveItem(key) {
+        const stack = captureStackTrace();
         let result;
         try {
           result = originalRemove.apply(this, arguments);
@@ -210,6 +256,7 @@ function installStorageHooks() {
           try {
             if (this === localStorage && String(key).startsWith(STORAGE_PREFIX)) {
               markProgressDirty('removeItem');
+              notifySaveIntegrityOfStorageMutation(key, stack);
             }
           } catch {}
         }
@@ -219,6 +266,7 @@ function installStorageHooks() {
 
     if (typeof originalClear === 'function') {
       proto.clear = function patchedClear() {
+        const stack = captureStackTrace();
         let result;
         try {
           result = originalClear.apply(this, arguments);
@@ -226,6 +274,7 @@ function installStorageHooks() {
           try {
             if (this === localStorage) {
               markProgressDirty('clear');
+              notifySaveIntegrityOfStorageMutation(null, stack);
             }
           } catch {}
         }
