@@ -24,7 +24,7 @@
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto 1fr auto;
   transform: translateY(100%);
   transition: transform var(--merchant-anim);
   box-shadow: var(--merchant-shadow);
@@ -613,17 +613,12 @@
   }
 }
 
-/* Scrollable list that works on phones and desktop */
 .merchant-dialogue-list {
   display: grid;
   gap: 10px;
-  max-height: min(42vh, 520px);
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-right: 2px; /* avoid scrollbar overlay on text */
-  -ms-overflow-style: none;     /* IE/Edge */
-  scrollbar-width: none;        /* Firefox */
+  padding-right: 2px;
 }
+
 .merchant-dialogue-list::-webkit-scrollbar { width: 0; height: 0; }
 
 /* Dialogue entry cards */
