@@ -3,6 +3,10 @@ import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 
 const PREFIX = 'ccc:';
+export const STORAGE_PREFIX = PREFIX;
+
+const SLOT_SIGNATURE_PREFIX = `${PREFIX}slotSig`;
+const SLOT_MODIFIED_PREFIX = `${PREFIX}slotMod`;
 
 const MULT_SCALE = 18;
 const MULT_SCALE_TAG = 'XM:';
@@ -13,6 +17,23 @@ const storageWatchers = new Map();
 let storageWatcherTimer = null;
 
 const currencyChangeSubscribers = new Set();
+
+function normalizeSlotValue(slot) {
+  const n = parseInt(slot, 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function slotSignatureKey(slot) {
+  const normalized = normalizeSlotValue(slot);
+  if (normalized == null) return null;
+  return `${SLOT_SIGNATURE_PREFIX}:${normalized}`;
+}
+
+function slotModifiedKey(slot) {
+  const normalized = normalizeSlotValue(slot);
+  if (normalized == null) return null;
+  return `${SLOT_MODIFIED_PREFIX}:${normalized}`;
+}
 
 function notifyCurrencySubscribers(detail = {}) {
   if (currencyChangeSubscribers.size === 0) return;
@@ -289,6 +310,58 @@ export function setActiveSlot(n) {
 function keyFor(base, slot = getActiveSlot()) {
   if (slot == null) return null;
   return `${base}:${slot}`;
+}
+
+export function getSlotSignatureKey(slot = getActiveSlot()) {
+  return slotSignatureKey(slot);
+}
+
+export function getSlotModifiedFlagKey(slot = getActiveSlot()) {
+  return slotModifiedKey(slot);
+}
+
+export function getSlotSignature(slot = getActiveSlot()) {
+  if (typeof localStorage === 'undefined') return null;
+  const key = slotSignatureKey(slot);
+  if (!key) return null;
+  try { return localStorage.getItem(key); }
+  catch { return null; }
+}
+
+export function setSlotSignature(slot, signature) {
+  if (typeof localStorage === 'undefined') return;
+  const key = slotSignatureKey(slot);
+  if (!key) return;
+  try {
+    if (signature == null) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, String(signature));
+    }
+  } catch {}
+}
+
+export function hasModifiedSave(slot = getActiveSlot()) {
+  if (typeof localStorage === 'undefined') return false;
+  const key = slotModifiedKey(slot);
+  if (!key) return false;
+  try { return localStorage.getItem(key) === '1'; }
+  catch { return false; }
+}
+
+export function markSaveSlotModified(slot = getActiveSlot()) {
+  if (typeof localStorage === 'undefined') return;
+  const normalized = normalizeSlotValue(slot);
+  if (normalized == null) return;
+  if (hasModifiedSave(normalized)) return;
+  const key = slotModifiedKey(normalized);
+  if (!key) return;
+  try {
+    localStorage.setItem(key, '1');
+  } catch { return; }
+  try {
+    window.dispatchEvent(new CustomEvent('saveSlot:modified', { detail: { slot: normalized } }));
+  } catch {}
 }
 
 
