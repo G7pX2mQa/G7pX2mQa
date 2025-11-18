@@ -1,5 +1,7 @@
 // js/util/suspendSafeguard.js
-// Protects against local storage obliteration in rare cases
+// Improves local storage tracking by supplying helper functions for saveIntegrity.js,
+// And also supplies a frequent IndexedDB snapshot to back up progress if corrupted
+import { beforeSlotWrite, afterSlotWrite } from './saveIntegrity.js';
 
 const STORAGE_PREFIX = 'ccc:';
 const DB_NAME = 'ccc:safety';
@@ -193,11 +195,14 @@ function parseSlotFromKey(key) {
   return Number.isFinite(slot) && slot > 0 ? slot : null;
 }
 
-const TRUSTED_STACK_FRAME_RE = /\/storage\.js:\d+:\d+/;
+const DEVTOOLS_CONSOLE_FRAME_RE = /\bat <anonymous>:\d+:\d+\b/;
 
 function isTrustedStorageStack(stack) {
   if (typeof stack !== 'string' || stack.length === 0) return false;
-  return TRUSTED_STACK_FRAME_RE.test(stack);
+  
+  if (DEVTOOLS_CONSOLE_FRAME_RE.test(stack)) return false;
+
+  return true;
 }
 
 function notifySaveIntegrityOfStorageMutation(key, stack) {
@@ -228,23 +233,46 @@ function installStorageHooks() {
     const originalRemove = proto.removeItem;
     const originalClear = proto.clear;
 
-    if (typeof originalSet === 'function') {
-      proto.setItem = function patchedSetItem(key, value) {
-        const stack = captureStackTrace();
-        let result;
-        try {
-          result = originalSet.apply(this, arguments);
-        } finally {
+if (typeof originalSet === 'function') {
+  proto.setItem = function patchedSetItem(key, value) {
+    const stack = captureStackTrace();
+    const strKey = String(key);
+
+	const isTrackedGameKey =
+      this === localStorage &&
+      strKey.startsWith(STORAGE_PREFIX);
+
+
+    // Before we write, verify nothing in this slot changed behind our back.
+    if (isTrackedGameKey) {
+      try {
+        beforeSlotWrite(strKey);
+      } catch {}
+    }
+
+    let result;
+    try {
+      result = originalSet.apply(this, arguments);
+    } finally {
+      try {
+        if (isTrackedGameKey) {
+          markProgressDirty('setItem');
+          // Keep the in-memory expected state in sync with what we just wrote.
           try {
-            if (this === localStorage && String(key).startsWith(STORAGE_PREFIX)) {
-              markProgressDirty('setItem');
-              notifySaveIntegrityOfStorageMutation(key, stack);
-            }
+            afterSlotWrite(strKey, value);
           } catch {}
         }
-        return result;
-      };
+
+        // We still want integrity events for game keys, but we've already
+        // excluded slotSig/slotMod inside notifySaveIntegrityOfStorageMutation.
+        if (this === localStorage && strKey.startsWith(STORAGE_PREFIX)) {
+          notifySaveIntegrityOfStorageMutation(strKey, stack);
+        }
+      } catch {}
     }
+    return result;
+  };
+}
 
     if (typeof originalRemove === 'function') {
       proto.removeItem = function patchedRemoveItem(key) {
