@@ -193,10 +193,10 @@ function parseSlotFromKey(key) {
   return Number.isFinite(slot) && slot > 0 ? slot : null;
 }
 
-const TRUSTED_STACK_FRAME_RE = /(?:https?:\/\/|file:\/\/|\/)[^\n]+\.js:\d+:\d+/;
+const TRUSTED_STACK_FRAME_RE = /\/storage\.js:\d+:\d+/;
 
 function isTrustedStorageStack(stack) {
-  if (!stack) return false;
+  if (typeof stack !== 'string' || stack.length === 0) return false;
   return TRUSTED_STACK_FRAME_RE.test(stack);
 }
 
