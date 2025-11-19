@@ -1211,13 +1211,21 @@ export function openUpgradeOverlay(upgDef) {
   const spacer = (h) => { const s = document.createElement('div'); s.style.height = h; return s; };
   const makeLine = (html) => { const d = document.createElement('div'); d.className = 'upg-line'; d.innerHTML = html; return d; };
 
-  function recenterUnlockOverlayIfNeeded(model) {
-    // Only do special layout for unlock-type upgrades
+    function recenterUnlockOverlayIfNeeded(model) {
     const content = upgSheetEl.querySelector('.upg-content');
     if (!content) return;
 
-    if (!model || !model.unlockUpgrade) {
-      // Reset if we were previously an unlock sheet
+    // Check current lock state so we can skip hidden/mysterious sheets
+    const lockState = model?.lockState || getUpgradeLockState(areaKey, upgDef.id) || {};
+    const isHiddenUpgrade = !!(
+      lockState.hidden ||
+      lockState.hideEffect ||
+      lockState.hideCost
+    );
+
+    // Only do special layout for *visible* unlock-type upgrades.
+    // Hidden upgrades should use the normal hidden layout.
+    if (!model || !model.unlockUpgrade || isHiddenUpgrade) {
       content.style.marginTop = '';
       return;
     }
@@ -1233,16 +1241,15 @@ export function openUpgradeOverlay(upgDef) {
     const actionsRect = actions.getBoundingClientRect();
     const contentRect = content.getBoundingClientRect();
 
-  const available = actionsRect.top - headerRect.bottom;
-  const freeSpace = available - contentRect.height;
-  if (freeSpace <= 0) return;
+    const available = actionsRect.top - headerRect.bottom;
+    const freeSpace = available - contentRect.height;
+    if (freeSpace <= 0) return;
 
-  const BIAS = 0.42;
-  const topOffset = freeSpace * BIAS;
+    const BIAS = 0.42;
+    const topOffset = freeSpace * BIAS;
 
-  content.style.marginTop = `${topOffset}px`;
-}
-
+    content.style.marginTop = `${topOffset}px`;
+  }
 
   const rerender = () => {
     const model = ui();
@@ -1254,6 +1261,8 @@ export function openUpgradeOverlay(upgDef) {
       lockState?.hidden || lockState?.hideEffect || lockState?.hideCost
     );
     const lockHidden = locked && isHiddenUpgrade;
+
+    const isUnlockVisible = !!model.unlockUpgrade && !lockHidden;
 
     upgSheetEl.classList.toggle('is-locked-hidden', lockHidden);
 
@@ -1289,7 +1298,7 @@ export function openUpgradeOverlay(upgDef) {
     }
 
     upgSheetEl.classList.toggle('is-maxed', capReached);
-    upgSheetEl.classList.toggle('is-unlock-upgrade', !!model.unlockUpgrade);
+    upgSheetEl.classList.toggle('is-unlock-upgrade', isUnlockVisible);
     header.append(title, level);
 
     const content = upgSheetEl.querySelector('.upg-content');
