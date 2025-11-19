@@ -252,9 +252,16 @@ function recomputePendingGold(force = false) {
     return;
   }
   pendingGoldInputSignature = signature;
-  resetState.pendingGold = computeForgeGold(coins, level);
+
+  if (!meetsLevelRequirement()) {
+    resetState.pendingGold = bnZero();
+  } else {
+    resetState.pendingGold = computeForgeGold(coins, level);
+  }
+
   updateResetPanel();
 }
+
 
 function canAccessForgeTab() {
   return resetState.forgeUnlocked || getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.UNLOCK_FORGE) >= 1;
