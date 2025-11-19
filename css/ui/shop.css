@@ -532,8 +532,9 @@
 
 .upg-sheet.is-locked-hidden .upg-content{
   transform: translateY(-24vh);
-  padding-top: 0;
+  padding-top: 2vh;
   padding-bottom: 2vh;
+  justify-content: flex-start;
 }
 
 .upg-sheet.is-unlock-upgrade .upg-content {
