@@ -1,6 +1,7 @@
 // js/util/suspendSafeguard.js
 // Improves local storage tracking by supplying helper functions for saveIntegrity.js,
-// And also supplies a frequent IndexedDB snapshot to back up progress if corrupted
+// And also supplies frequent IndexedDB snapshots to back up progress if
+// Local storage ever becomes corrupted (safeguard against abrupt page suspensions)
 import { beforeSlotWrite, afterSlotWrite } from './saveIntegrity.js';
 
 const STORAGE_PREFIX = 'ccc:';
