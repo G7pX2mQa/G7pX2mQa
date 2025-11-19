@@ -280,12 +280,13 @@
 /* === Mobile-specific tweaks === */
 @media (hover: none) and (pointer: coarse) {
   .shop-sheet {
-    --grid-pad: clamp(8px, 4vw, 14px);
-    --gap: clamp(8px, 3.5vw, 14px);
+    /* use more of the width on phones */
+    --grid-pad: clamp(2px, 2.5vw, 8px);           /* was clamp(8px, 4vw, 14px) */
+    --gap: clamp(8px, 3.5vw, 14px);               /* keep similar column gap */
     --cols: 3;
-    --shop-scroller-pad: clamp(8px, 4vw, 14px);
+    --shop-scroller-pad: clamp(2px, 2.5vw, 8px);  /* was clamp(8px, 4vw, 14px) */
 
-    /* exact-fit tile: ensures 3 icons + gaps fit perfectly in viewport */
+    /* exact-fit tile: 3 icons + gaps fill the viewport more tightly */
     --tile-fit: calc(
       (100vw - env(safe-area-inset-left) - env(safe-area-inset-right)
         - (2 * var(--shop-scroller-pad))
@@ -294,7 +295,8 @@
       ) / var(--cols)
     );
 
-    --shop-tile: clamp(72px, var(--tile-fit), 110px);
+    /* let tiles grow a bit bigger so 3-per-row hugs the sides more */
+    --shop-tile: clamp(72px, var(--tile-fit), 124px); /* was 110px max */
   }
 
   .shop-grid {
@@ -308,6 +310,7 @@
     padding-inline: var(--shop-scroller-pad);
   }
 }
+
 
 /* === Shop header === */
 .shop-content {
