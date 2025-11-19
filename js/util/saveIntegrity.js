@@ -100,13 +100,8 @@ function ensureExpectedStateForSlot(slot) {
   return rebuildExpectedStateForSlot(slot);
 }
 
-// Called *before* any game code writes to localStorage for a ccc slot.
-// If anything in that slot changed compared to our last snapshot, we
-// treat it as manual / out-of-band modification and flag the slot.
 export function beforeSlotWrite(key) {
   if (!hasLocalStorage()) return;
-  // If we're in the middle of an internal integrity write (e.g. setting slotMod),
-  // don't run snapshot checks to avoid recursion.
   if (integrityInternalWriteDepth > 0) return;
 
   const strKey = String(key);
@@ -128,7 +123,6 @@ export function beforeSlotWrite(key) {
         actualValue = '';
       }
       if (actualValue !== expectedValue) {
-        // Something changed outside our normal flow.
         if (integrityInternalWriteDepth === 0) {
           integrityInternalWriteDepth += 1;
           try {
@@ -137,7 +131,6 @@ export function beforeSlotWrite(key) {
             integrityInternalWriteDepth -= 1;
           }
         }
-        // Resync snapshot so we don't keep screaming forever.
         rebuildExpectedStateForSlot(slot);
         return;
       }
@@ -145,7 +138,6 @@ export function beforeSlotWrite(key) {
   } catch {}
 }
 
-// Called *after* we successfully write a ccc key so the snapshot stays in sync.
 export function afterSlotWrite(key, value) {
   const strKey = String(key);
   if (!strKey.startsWith(STORAGE_PREFIX)) return;
