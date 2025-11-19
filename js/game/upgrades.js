@@ -1507,11 +1507,37 @@ if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
     if (count <= 0) {
       return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
     }
+
+    if (count < limit && guard < MAX_TUNE_STEPS) {
+      while (count < limit && guard < MAX_TUNE_STEPS) {
+        const nextLevel = startLevelNum + count;
+        let nextCost;
+
+        try {
+          if (Number.isFinite(nextLevel) && nextLevel < Number.MAX_SAFE_INTEGER / 2) {
+            nextCost = BigNum.fromAny(upg.costAtLevel(nextLevel));
+          } else {
+            const nextLog = startPriceLog + (count * ratioLog10);
+            nextCost = bigNumFromLog10(nextLog).floorToInteger();
+          }
+        } catch {
+          break;
+        }
+
+        const newSpent = spent.add(nextCost);
+        if (newSpent.cmp(walletBn) > 0) {
+          break;
+        }
+
+        spent = newSpent;
+        count += 1;
+        guard += 1;
+      }
+    }
   }
 
 let nextPrice = zero;
 
-// Only compute a numeric finalLevel when both operands are safe.
 const canUseNumericFinal =
   !fastOnly &&
   Number.isFinite(startLevelNum) &&
