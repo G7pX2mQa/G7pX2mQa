@@ -10,6 +10,7 @@ import {
   setSlotSignature,
   markSaveSlotModified,
   getSlotSignatureKey,
+  hasModifiedSave,
 } from './storage.js';
 
 const SIGNATURE_POLL_INTERVAL_MS = 10000;
@@ -270,10 +271,61 @@ function ensureWatcher() {
   watcherId = window.setInterval(runIntegrityCheck, SIGNATURE_POLL_INTERVAL_MS);
 }
 
+const POOP_SHOP_BG  = 'linear-gradient(180deg,#a9793d,#7b5534)';
+
+let poopShopTimer = null;
+
+function getShopButtonElement() {
+  if (typeof document === 'undefined') return null;
+  return document.querySelector('.hud-bottom .game-btn[data-btn="shop"]');
+}
+
+function enforcePoopShopStyle() {
+  const btn = getShopButtonElement();
+  if (!btn) return;
+
+  const isModded = hasModifiedSave();
+
+  if (!isModded) {
+    const bg = btn.style.backgroundImage || btn.style.background;
+    if (bg === POOP_SHOP_BG) {
+      btn.style.backgroundImage = '';
+      btn.style.background = '';
+    }
+    return;
+  }
+
+  const current = btn.style.backgroundImage || btn.style.background;
+  if (current !== POOP_SHOP_BG) {
+    btn.style.backgroundImage = POOP_SHOP_BG;
+  }
+}
+
+function startPoopShopEnforcer() {
+  if (typeof window === 'undefined') return;
+  if (poopShopTimer != null) return;
+
+  enforcePoopShopStyle();
+  poopShopTimer = window.setInterval(enforcePoopShopStyle, 50);
+
+  window.addEventListener('saveSlot:change', enforcePoopShopStyle);
+  window.addEventListener('saveSlot:modified', (ev) => {
+    try {
+      const active = getActiveSlot();
+      if (ev?.detail?.slot === active) {
+        enforcePoopShopStyle();
+      }
+    } catch {
+      enforcePoopShopStyle();
+    }
+  });
+}
+
 function init() {
   if (typeof window === 'undefined') return;
   runIntegrityCheck();
   ensureWatcher();
+  startPoopShopEnforcer();
   window.addEventListener('saveSlot:change', () => runIntegrityCheck());
   window.addEventListener('saveIntegrity:storageMutation', handleStorageMutationEvent, { passive: true });
   if (typeof document !== 'undefined') {
@@ -281,6 +333,7 @@ function init() {
       if (!document.hidden) {
         resetTrustedSlots();
         runIntegrityCheck();
+        enforcePoopShopStyle();
       }
     });
   }
