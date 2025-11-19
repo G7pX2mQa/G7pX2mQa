@@ -159,8 +159,21 @@ function enforceXpInfinityInvariant() {
   xpState.xpLevel = inf.clone?.() ?? inf;
   xpState.progress = inf.clone?.() ?? inf;
   requirementBn = inf.clone?.() ?? inf;
+
+  if (bank?.books) {
+    try {
+      if (typeof bank.books.set === 'function') {
+        bank.books.set(inf.clone?.() ?? inf);
+      } else if (typeof bank.books.add === 'function') {
+        bank.books.add(inf.clone?.() ?? inf);
+      }
+    } catch {
+    }
+  }
+  
   return true;
 }
+
 
 const xpChangeSubscribers = new Set();
 
