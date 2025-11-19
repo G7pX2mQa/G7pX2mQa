@@ -116,7 +116,7 @@ export const MERCHANT_DIALOGUES = {
 
       m2a: { type: 'line', say: 'Would you like some Books, free of charge? They will help you accelerate your coin-collecting power.', next: 'c2a' },
       m2b: { type: 'line', say: 'I dunno.', next: 'c2b' },
-      m2c: { type: 'line', say: 'Why not?', next: 'c2c' },
+      m2c: { type: 'line', say: 'Because I dunno.', next: 'c2c' },
       m2d: { type: 'line', say: 'What?',    next: 'c2c' },
       m2e: { type: 'line', say: 'I’ve already told you, so you can increase your coin-collecting power.', next: 'c2d' },
       m2f: { type: 'line', say: 'Are you sure you don’t want free Books?', next: 'c3a' },
@@ -176,4 +176,3 @@ export const MERCHANT_DIALOGUES = {
     }
   },
 };
-
