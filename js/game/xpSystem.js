@@ -1075,6 +1075,9 @@ export function addXp(amount, { silent = false } = {}) {
     xpState.progress = inf.clone?.() ?? inf;
     requirementBn = inf.clone?.() ?? inf;
 
+    // NEW: also enforce the Books = ∞ rule
+    enforceXpInfinityInvariant();
+
     persistState();
     updateHud();
     // Make sure the coin multiplier from XP is also locked to ∞.
