@@ -1,5 +1,5 @@
 // js/util/saveIntegrity.js
-// Basically, if a player modifies their save file manually (e.g., console commands, local storage editing, JSON tampering),
+// If a player modifies their save file manually (e.g., console commands, local storage editing, JSON tampering),
 // A one-way flag, `hasModifiedSave`, will become true and turn the shop button's color brown,
 // Which I like to call the poop-shop of shame.
 // Used to detect cheaters.
