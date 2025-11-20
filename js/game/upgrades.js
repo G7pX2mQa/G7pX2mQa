@@ -21,7 +21,7 @@ import {
 
 export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
 
-const HM_EVOLUTION_INTERVAL = 1000;
+export const HM_EVOLUTION_INTERVAL = 1000;
 const HM_EVOLUTION_EFFECT_MULT_BN = BigNum.fromInt(1000);
 const DEFAULT_AREA_KEY = '';
 
@@ -1421,6 +1421,7 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
   const zero = BigNum.fromInt(0);
   const opts = options || {};
   const fastOnly = !!opts.fastOnly;
+  walletBn = walletBn instanceof BigNum ? walletBn : BigNum.fromAny(walletBn ?? 0);
   if (!scaling) {
     return { count: zero, spent: zero, nextPrice: zero, numericCount: 0 };
   }
@@ -1468,12 +1469,37 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
 
     const nextLevel = startLevelNum + count;
     const reachedCap = Number.isFinite(cap) && nextLevel >= cap;
-    const nextPrice = reachedCap
-      ? zero
-      : BigNum.fromAny(upg.costAtLevel(nextLevel));
     const countBn = countToBigNum(count);
 
-    return { count: countBn, spent, nextPrice, numericCount: count };
+    if (count < limit || reachedCap || room <= count) {
+      const nextPrice = reachedCap
+        ? zero
+        : BigNum.fromAny(upg.costAtLevel(nextLevel));
+      return { count: countBn, spent, nextPrice, numericCount: count };
+    }
+
+    const nextStartLevel = (() => {
+      try { return toUpgradeBigNum(startLevel ?? startLevelNum, startLevelNum).add(countBn); }
+      catch { return startLevelNum + count; }
+    })();
+    const tail = calculateBulkPurchase(
+      upg,
+      nextStartLevel,
+      walletBn.sub(spent),
+      room - count,
+      options,
+    );
+
+    const tailCount = tail?.count instanceof BigNum ? tail.count : countToBigNum(tail?.numericCount ?? 0);
+    const totalCount = countBn.add(tailCount);
+    const totalSpent = (tail?.spent ?? zero).add(spent);
+
+    return {
+      count: totalCount,
+      spent: totalSpent,
+      nextPrice: tail?.nextPrice ?? zero,
+      numericCount: count + (tail?.numericCount ?? 0),
+    };
   }
 
 let walletLog = approxLog10BigNum(walletBn);
