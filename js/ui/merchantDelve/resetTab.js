@@ -370,6 +370,7 @@ function buildPanel(panelEl) {
     <h3>Forge</h3>
     <p>
       Resets your Coins, Books, XP, Coin upgrades, and Book upgrades for Gold<br>
+	  Increase pending Gold amount by increasing Coins and XP Level
       The button below shows how much Gold you will get upon reset
     </p>
   </div>
@@ -445,7 +446,7 @@ function updateStatusDisplay() {
   <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
     Forging for the first time will unlock
     <span style="color:#ffb347; text-shadow: 0 3px 6px rgba(0,0,0,0.55);
-    ">Mutations</span><br>
+    ">Mutations</span> and a new Merchant dialogue<br>
     Mutated Coins will yield more Coin and XP value than normal
   </span>
 `;
