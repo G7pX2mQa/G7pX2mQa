@@ -123,12 +123,17 @@ function openHmMilestoneDialog(lines) {
   list.className = 'hm-milestones-list';
   for (const line of lines) {
     const li = document.createElement('li');
+    const text = document.createElement('span');
+    text.className = 'hm-milestone-text';
+
     if (line && typeof line === 'object') {
-      li.textContent = line.text ?? '';
+      text.textContent = line.text ?? '';
       if (line.achieved) li.classList.add('hm-milestone-achieved');
     } else {
-      li.textContent = line;
+      text.textContent = line;
     }
+
+    li.appendChild(text);
     list.appendChild(li);
   }
 
@@ -1394,15 +1399,13 @@ export function openUpgradeOverlay(upgDef) {
     const desc = document.createElement('div');
     desc.className = 'upg-desc centered';
     if (lockHidden) desc.classList.add('lock-desc');
-    desc.textContent = model.displayDesc || model.upg.desc;
-    content.appendChild(desc);
-
     if (evolveReady) {
-      const evolveNote = document.createElement('div');
-      evolveNote.className = 'upg-line hm-evolve-note';
-      evolveNote.textContent = 'Evolve this upgrade to multiply its effect by 1000x';
-      content.appendChild(evolveNote);
+      desc.classList.add('hm-evolve-note');
+      desc.textContent = 'Evolve this upgrade to multiply its effect by 1000x';
+    } else {
+      desc.textContent = model.displayDesc || model.upg.desc;
     }
+    content.appendChild(desc);
 
     const info = document.createElement('div');
     info.className = 'upg-info';
