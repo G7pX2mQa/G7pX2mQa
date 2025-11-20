@@ -386,7 +386,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/upgrades.js'),
     import('./util/audioCache.js'),
     import('./game/xpSystem.js'),
-    import('./game/resetSystem.js'),
+    import('./ui/merchantDelve/resetTab.js'),
     import('./game/mutationSystem.js'),
     import('./ui/popups.js'),
     import('./util/suspendSafeguard.js'),
