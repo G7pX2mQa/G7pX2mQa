@@ -21,6 +21,9 @@ import {
 
 export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
 
+const HM_EVOLUTION_INTERVAL = 1000;
+const HM_EVOLUTION_EFFECT_MULT_BN = BigNum.fromInt(1000);
+
 function hasScaling(upg) {
   try {
     const scaling = ensureUpgradeScaling(upg);
@@ -114,6 +117,7 @@ export const UPGRADE_TIES = {
   XP_VALUE_II: 'gold_1',
   MP_VALUE_I: 'gold_2',
   MAGNET: 'gold_3',
+  ENDLESS_XP: 'hm_xp_0',
 };
 
 const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.png';
@@ -928,9 +932,7 @@ const DEFAULT_SCALING_PRESETS = {
   STANDARD(upg) {
     const upgType = `${upg?.upgType ?? ''}`.toUpperCase();
     if (upgType === 'HM') {
-      const evol = Number.isFinite(Number(upg?.numUpgEvolutions))
-        ? Number(upg.numUpgEvolutions)
-        : 0;
+      const evol = activeEvolutionsForUpgrade(upg);
       return 1.25 + (0.05 * evol);
     }
     return 1.20;
@@ -942,6 +944,166 @@ const DEFAULT_SCALING_PRESETS = {
     return 1.20;
   },
 };
+
+function normalizeHmEvolutionCount(value) {
+  const n = Number(value);
+  if (Number.isFinite(n) && n > 0) return Math.max(0, Math.floor(n));
+  return 0;
+}
+
+function activeEvolutionsForUpgrade(upg) {
+  if (!upg) return 0;
+  const active = Number(upg.activeEvolutions);
+  if (Number.isFinite(active) && active >= 0) return active;
+  return normalizeHmEvolutionCount(upg.numUpgEvolutions);
+}
+
+function hmLevelCapForEvolutions(evolutions) {
+  const cycles = normalizeHmEvolutionCount(evolutions);
+  const cap = HM_EVOLUTION_INTERVAL * (cycles + 1);
+  const capBn = BigNum.fromAny(cap);
+  return {
+    cap,
+    capBn,
+    capFmtHtml: formatBigNumAsHtml(capBn),
+    capFmtText: formatBigNumAsPlain(capBn),
+  };
+}
+
+function hmMilestoneHits(levelBn, milestoneLevel) {
+  if (!levelBn || typeof milestoneLevel !== 'number') return 0;
+  try {
+    const plain = levelBn.toPlainIntegerString?.();
+    if (!plain || plain === 'Infinity') return 0;
+    const lvl = BigInt(plain);
+    const base = BigInt(Math.max(0, Math.floor(milestoneLevel)));
+    const interval = BigInt(HM_EVOLUTION_INTERVAL);
+    if (lvl < base) return 0;
+    const delta = lvl - base;
+    const cycles = delta / interval;
+    return Number(cycles + 1n);
+  } catch {
+    const approx = levelBigNumToNumber(levelBn);
+    if (!Number.isFinite(approx) || approx < milestoneLevel) return 0;
+    const delta = approx - milestoneLevel;
+    return Math.max(0, Math.floor(delta / HM_EVOLUTION_INTERVAL) + 1);
+  }
+}
+
+function hmMilestoneMultiplier(multiplier, hits) {
+  if (!(hits > 0)) return BigNum.fromInt(1);
+  let out;
+  try { out = BigNum.fromAny(multiplier ?? 1); }
+  catch { out = BigNum.fromInt(1); }
+  let result = out.clone?.() ?? out;
+  for (let i = 1; i < hits; i += 1) {
+    try { result = result.mulBigNumInteger(out); }
+    catch {
+      try { result = result.mulDecimal(String(out), 18); }
+      catch { return BigNum.fromAny('Infinity'); }
+    }
+  }
+  return result;
+}
+
+function safeMultiplyBigNum(base, factor) {
+  let out = base instanceof BigNum ? base : BigNum.fromAny(base ?? 1);
+  let f = factor instanceof BigNum ? factor : null;
+  if (!f) {
+    try { f = BigNum.fromAny(factor ?? 1); }
+    catch { return out; }
+  }
+  try { return out.mulBigNumInteger(f); }
+  catch {}
+  try { return out.mulDecimal(f.toScientific?.(12) ?? String(factor ?? '1'), 18); }
+  catch {}
+  return out;
+}
+
+function applyHmEvolutionMeta(upg, evolutions = 0) {
+  if (!upg || upg.upgType !== 'HM') return;
+  const { cap, capBn, capFmtHtml, capFmtText } = hmLevelCapForEvolutions(evolutions);
+  upg.activeEvolutions = evolutions;
+  upg.lvlCap = cap;
+  upg.lvlCapBn = capBn;
+  upg.lvlCapFmtHtml = capFmtHtml;
+  upg.lvlCapFmtText = capFmtText;
+}
+
+function computeHmMultipliers(upg, levelBn) {
+  if (!upg || upg.upgType !== 'HM') {
+    return {
+      selfMult: BigNum.fromInt(1),
+      xpMult: BigNum.fromInt(1),
+      coinMult: BigNum.fromInt(1),
+      mpMult: BigNum.fromInt(1),
+    };
+  }
+
+  const milestones = Array.isArray(upg.hmMilestones) ? upg.hmMilestones : [];
+  let selfMult = BigNum.fromInt(1);
+  let xpMult = BigNum.fromInt(1);
+  let coinMult = BigNum.fromInt(1);
+  let mpMult = BigNum.fromInt(1);
+
+  for (const m of milestones) {
+    const hits = hmMilestoneHits(levelBn, Number(m?.level ?? m?.lvl ?? 0));
+    if (!(hits > 0)) continue;
+    const mult = hmMilestoneMultiplier(m.multiplier ?? m.mult ?? m.value ?? 1, hits);
+    const target = `${m.target ?? m.type ?? 'self'}`.toLowerCase();
+    if (target === 'xp') {
+      xpMult = safeMultiplyBigNum(xpMult, mult);
+    } else if (target === 'coin' || target === 'coins') {
+      coinMult = safeMultiplyBigNum(coinMult, mult);
+    } else if (target === 'mp') {
+      mpMult = safeMultiplyBigNum(mpMult, mult);
+    } else {
+      selfMult = safeMultiplyBigNum(selfMult, mult);
+    }
+  }
+
+  const evolutions = activeEvolutionsForUpgrade(upg);
+  for (let i = 0; i < evolutions; i += 1) {
+    selfMult = safeMultiplyBigNum(selfMult, HM_EVOLUTION_EFFECT_MULT_BN);
+  }
+
+  return { selfMult, xpMult, coinMult, mpMult };
+}
+
+function hmNextMilestoneLevel(upg, levelBn) {
+  if (!upg || upg.upgType !== 'HM') return null;
+  const milestones = Array.isArray(upg.hmMilestones) ? upg.hmMilestones : [];
+  if (!milestones.length) return null;
+
+  let best = null;
+  for (const m of milestones) {
+    const lvl = Math.max(0, Math.floor(Number(m?.level ?? m?.lvl ?? 0)));
+    const hits = hmMilestoneHits(levelBn, lvl);
+    let candidate = null;
+    try {
+      const base = BigInt(lvl);
+      const nextHits = BigInt(Math.max(0, hits));
+      const targetBi = base + (BigInt(HM_EVOLUTION_INTERVAL) * nextHits);
+      if (targetBi > 0n) {
+        candidate = BigNum.fromAny(targetBi.toString());
+      }
+    } catch {}
+    if (!candidate) {
+      const increment = BigNum.fromAny(HM_EVOLUTION_INTERVAL * Math.max(0, hits));
+      try { candidate = increment.add(BigNum.fromAny(lvl)); }
+      catch { candidate = BigNum.fromAny(lvl + HM_EVOLUTION_INTERVAL * hits); }
+    }
+    if (!candidate) continue;
+    if (levelBn?.cmp?.(candidate) >= 0) {
+      try { candidate = candidate.add(BigNum.fromAny(HM_EVOLUTION_INTERVAL)); }
+      catch {}
+    }
+    if (!best || best.cmp(candidate) > 0) {
+      best = candidate;
+    }
+  }
+  return best;
+}
 
 function resolveDefaultScalingRatio(upg) {
   if (!upg) return null;
@@ -2076,7 +2238,57 @@ const REGISTRY = [
       const suffix = (unitsText === '1') ? 'Unit' : 'Units';
       return `Magnet radius: ${unitsText} ${suffix}`;
     },
-    effectMultiplier: E.addPctPerLevel(1), // this probably wouldn't work the same way as normal upgrades (so it needs to be changed when functionality is added)
+    effectMultiplier: E.addPctPerLevel(1),
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 12,
+    tie: UPGRADE_TIES.ENDLESS_XP,
+    title: "Endless XP",
+    desc: "Multiplies XP value by 1.2x per level",
+    lvlCap: HM_EVOLUTION_INTERVAL,
+    baseCost: 1_000_000,
+    costType: "coins",
+    upgType: "HM",
+    icon: "sc_upg_icons/xp_val_hm.png",
+    baseIconOverride: "img/stats/xp/xp_base.png",
+    requiresUnlockXp: true,
+    scalingPreset: 'HM',
+    hmMilestones: [
+      { level: 10, multiplier: 1.5, target: 'self' },
+      { level: 25, multiplier: 2, target: 'self' },
+      { level: 50, multiplier: 5, target: 'mp' },
+      { level: 100, multiplier: 10, target: 'xp' },
+      { level: 200, multiplier: 15, target: 'coin' },
+      { level: 400, multiplier: 25, target: 'self' },
+      { level: 800, multiplier: 100, target: 'self' },
+    ],
+    costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
+    nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
+    computeLockState(ctx) {
+      const base = determineLockState(ctx);
+      if (!hasDoneForgeReset()) {
+        const reason = 'Complete a Forge reset to unlock this upgrade';
+        return mergeLockStates(base, {
+          locked: true,
+          reason,
+          descOverride: reason,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+        });
+      }
+      return base;
+    },
+    effectSummary(level) {
+      const lvlBn = ensureLevelBigNum(level);
+      let baseMult;
+      try { baseMult = this.effectMultiplier(lvlBn); }
+      catch { baseMult = 1; }
+      const { selfMult } = computeHmMultipliers(this, lvlBn);
+      const total = safeMultiplyBigNum(baseMult, selfMult);
+      return `XP value bonus: ${formatMultForUi(total)}x`;
+    },
+    effectMultiplier: E.powPerLevel(1.2),
   },
 ];
 
@@ -2088,13 +2300,15 @@ for (const upg of REGISTRY) {
   }
   upg.baseCost = toUpgradeBigNum(upg.baseCost ?? 0, 0);
   upg.baseCostBn = upg.baseCost;
-  upg.numUpgEvolutions = Number.isFinite(Number(upg.numUpgEvolutions))
-    ? Number(upg.numUpgEvolutions)
-    : 0;
-  upg.lvlCapBn = toUpgradeBigNum(upg.lvlCap ?? Infinity, Infinity);
-  upg.lvlCap = levelCapToNumber(upg.lvlCapBn);
-  upg.lvlCapFmtHtml = formatBigNumAsHtml(upg.lvlCapBn);
-  upg.lvlCapFmtText = formatBigNumAsPlain(upg.lvlCapBn);
+  upg.numUpgEvolutions = normalizeHmEvolutionCount(upg.numUpgEvolutions);
+  if (upg.upgType === 'HM') {
+    applyHmEvolutionMeta(upg, upg.numUpgEvolutions);
+  } else {
+    upg.lvlCapBn = toUpgradeBigNum(upg.lvlCap ?? Infinity, Infinity);
+    upg.lvlCap = levelCapToNumber(upg.lvlCapBn);
+    upg.lvlCapFmtHtml = formatBigNumAsHtml(upg.lvlCapBn);
+    upg.lvlCapFmtText = formatBigNumAsPlain(upg.lvlCapBn);
+  }
 
   const isSingleLevelCap = Number.isFinite(upg.lvlCap) && Math.max(0, Math.floor(upg.lvlCap)) === 1;
   const isBookValueUpgrade = tieKey === BOOK_VALUE_TIE_KEY;
@@ -2517,6 +2731,14 @@ function ensureUpgradeState(areaKey, upgId) {
     recNeedsSave = true;
   }
 
+  let hmEvolutions = 0;
+  if (upg?.upgType === 'HM') {
+    hmEvolutions = normalizeHmEvolutionCount(
+      rec.hmEvolutions ?? rec.evolutions ?? rec.evol ?? upg.numUpgEvolutions
+    );
+    applyHmEvolutionMeta(upg, hmEvolutions);
+  }
+
   const lvlBn = ensureLevelBigNum(rec.lvl);
   let lvl = levelBigNumToNumber(lvlBn);
 try {
@@ -2590,7 +2812,7 @@ try {
     }
   }
 
-  state = { areaKey, upgId: normalizedId, upg, rec, arr, lvl, lvlBn, nextCostBn, slot };
+  state = { areaKey, upgId: normalizedId, upg, rec, arr, lvl, lvlBn, nextCostBn, slot, hmEvolutions };
   upgradeStateCache.set(key, state);
   return state;
 }
@@ -2642,6 +2864,10 @@ try {
     delete rec.nextCostLvl;
   }
 
+  if (state.hmEvolutions != null) {
+    rec.hmEvolutions = normalizeHmEvolutionCount(state.hmEvolutions);
+  }
+
   saveAreaState(areaKey, arr, slot);
   state.rec = rec;
   state.arr = arr;
@@ -2656,10 +2882,21 @@ export function getLevelNumber(areaKey, upgId) {
   return ensureUpgradeState(areaKey, upgId).lvl;
 }
 
+export function getHmEvolutions(areaKey, upgId) {
+  return ensureUpgradeState(areaKey, upgId).hmEvolutions ?? 0;
+}
+
 export function getMpValueMultiplierBn() {
-  return hundredPercentPerLevelMultiplier(
+  let mult = hundredPercentPerLevelMultiplier(
     getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MP_VALUE_I)
   );
+  try {
+    const hmUpg = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
+    const hmLvl = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
+    const { mpMult } = computeHmMultipliers(hmUpg, hmLvl);
+    mult = safeMultiplyBigNum(mult, mpMult);
+  } catch {}
+  return mult;
 }
 
 export function getMagnetLevel() {
@@ -2970,9 +3207,20 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
   return state;
 }
 
-
 function isUpgradeLocked(areaKey, upg) {
   return !!computeUpgradeLockStateFor(areaKey, upg).locked;
+}
+
+function isHmReadyToEvolve(upg, lvlBn, evolutions = null) {
+  if (!upg || upg.upgType !== 'HM') return false;
+  const safeEvol = Number.isFinite(evolutions)
+    ? evolutions
+    : activeEvolutionsForUpgrade(upg);
+  const { capBn, cap } = hmLevelCapForEvolutions(safeEvol);
+  try { return lvlBn?.cmp?.(capBn) >= 0; }
+  catch {}
+  const lvlNum = levelBigNumToNumber(lvlBn);
+  return Number.isFinite(lvlNum) && lvlNum >= cap;
 }
 
 export function getLevel(areaKey, upgId) {
@@ -3249,6 +3497,31 @@ export function buyOne(areaKey, upgId) {
   return { bought: 1, spent };
 }
 
+export function evolveUpgrade(areaKey, upgId) {
+  const state = ensureUpgradeState(areaKey, upgId);
+  const upg = state.upg;
+  if (!upg || upg.upgType !== 'HM') return { evolved: false };
+
+  const lvlBn = state.lvlBn ?? ensureLevelBigNum(state.lvl);
+  if (!isHmReadyToEvolve(upg, lvlBn, state.hmEvolutions)) {
+    return { evolved: false };
+  }
+
+  const nextEvol = normalizeHmEvolutionCount(state.hmEvolutions) + 1;
+  state.hmEvolutions = nextEvol;
+  applyHmEvolutionMeta(upg, nextEvol);
+
+  try { state.nextCostBn = BigNum.fromAny(upg.costAtLevel(state.lvl)); }
+  catch { state.nextCostBn = BigNum.fromAny('Infinity'); }
+
+  commitUpgradeState(state);
+  invalidateUpgradeState(areaKey, upgId);
+  emitUpgradeLevelChange(upg, state.lvl, lvlBn, state.lvl, lvlBn);
+  notifyChanged();
+
+  return { evolved: true };
+}
+
 export function buyMax(areaKey, upgId) {
   const state = ensureUpgradeState(areaKey, upgId);
   const upg = state.upg;
@@ -3352,6 +3625,68 @@ export function buyMax(areaKey, upgId) {
   if (!(room > 0)) {
     return { bought: BigNum.fromInt(0), spent: BigNum.fromInt(0) };
   }
+
+  const outcome = calculateBulkPurchase(upg, lvlBn, wallet, room);
+  const countBn = outcome.count instanceof BigNum
+    ? outcome.count
+    : BigNum.fromAny(outcome.count ?? 0);
+  if (countBn.isZero?.()) {
+    return { bought: BigNum.fromInt(0), spent: BigNum.fromInt(0) };
+  }
+
+  const spent = outcome.spent ?? BigNum.fromInt(0);
+  const remaining = wallet.sub(spent);
+  bank[upg.costType].set(remaining);
+
+  const nextLevelBn = lvlBn.add(countBn);
+  state.lvlBn = nextLevelBn;
+  state.lvl = levelBigNumToNumber(nextLevelBn);
+  if (outcome.nextPrice) {
+    state.nextCostBn = outcome.nextPrice;
+  } else if (Number.isFinite(state.lvl)) {
+    state.nextCostBn = BigNum.fromAny(upg.costAtLevel(state.lvl));
+  } else {
+    state.nextCostBn = BigNum.fromAny('Infinity');
+  }
+  commitUpgradeState(state);
+  invalidateUpgradeState(areaKey, upgId);
+  emitUpgradeLevelChange(upg, lvlNum, lvlBn, state.lvl, state.lvlBn);
+  notifyChanged();
+
+  return { bought: countBn, spent };
+}
+
+export function buyTowards(areaKey, upgId, maxLevels) {
+  const state = ensureUpgradeState(areaKey, upgId);
+  const upg = state.upg;
+  if (!upg) return { bought: 0, spent: BigNum.fromInt(0) };
+
+  if (isUpgradeLocked(areaKey, upg)) {
+    return { bought: BigNum.fromInt(0), spent: BigNum.fromInt(0) };
+  }
+
+  const lvlNum = state.lvl;
+  const lvlBn = state.lvlBn ?? ensureLevelBigNum(lvlNum);
+  const cap = Number.isFinite(upg.lvlCap)
+    ? Math.max(0, Math.floor(upg.lvlCap))
+    : Infinity;
+  if (Number.isFinite(cap) && lvlNum >= cap) return { bought: 0, spent: BigNum.fromInt(0) };
+
+  const walletHandle = bank[upg.costType];
+  const walletValue = walletHandle?.value;
+  const wallet = walletValue instanceof BigNum
+    ? walletValue.clone?.() ?? BigNum.fromAny(walletValue)
+    : BigNum.fromAny(walletValue ?? 0);
+
+  if (wallet.isZero?.()) return { bought: BigNum.fromInt(0), spent: BigNum.fromInt(0) };
+
+  const capRoom = Number.isFinite(cap) ? Math.max(0, cap - lvlNum) : undefined;
+  const maxRoom = Number.isFinite(maxLevels)
+    ? Math.max(0, Math.floor(maxLevels))
+    : (maxLevels instanceof BigNum ? levelBigNumToNumber(maxLevels) : undefined);
+  const room = Number.isFinite(capRoom)
+    ? (Number.isFinite(maxRoom) ? Math.min(capRoom, maxRoom) : capRoom)
+    : maxRoom;
 
   const outcome = calculateBulkPurchase(upg, lvlBn, wallet, room);
   const countBn = outcome.count instanceof BigNum
@@ -3499,6 +3834,14 @@ function registerXpUpgradeEffects() {
         }
       } catch {}
 
+      // Endless XP (HM): milestone bonuses to coin value
+      try {
+        const hmUpg = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
+        const hmLvl = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
+        const { coinMult } = computeHmMultipliers(hmUpg, hmLvl);
+        result = safeMultiplyBigNum(result, coinMult);
+      } catch {}
+
       return result;
     });
   } catch {}
@@ -3539,6 +3882,17 @@ function registerXpUpgradeEffects() {
             gain = gain.mulBigNumInteger(bonus);
           } catch {}
         }
+      } catch {}
+
+      // Endless XP (HM): core effect + milestones
+      try {
+        const hmUpg = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
+        const hmLvl = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
+        let base = 1;
+        try { base = hmUpg?.effectMultiplier?.(hmLvl) ?? 1; } catch {}
+        const { selfMult, xpMult } = computeHmMultipliers(hmUpg, hmLvl);
+        gain = safeMultiplyBigNum(gain, safeMultiplyBigNum(base, selfMult));
+        gain = safeMultiplyBigNum(gain, xpMult);
       } catch {}
 
       return gain;
@@ -3662,7 +4016,17 @@ export function upgradeUiModel(areaKey, upgId) {
     displayTitle,
     displayDesc,
     unlockUpgrade: !!upg.unlockUpgrade,
+    hmEvolutions: upg.upgType === 'HM' ? getHmEvolutions(areaKey, upgId) : 0,
+    hmReadyToEvolve: upg.upgType === 'HM' ? isHmReadyToEvolve(upg, lvlBn, getHmEvolutions(areaKey, upgId)) : false,
+    hmNextMilestone: upg.upgType === 'HM' ? hmNextMilestoneLevel(upg, lvlBn) : null,
   };
+}
+
+export function getHmNextMilestoneLevel(areaKey, upgId) {
+  const upg = getUpgrade(areaKey, upgId);
+  if (!upg || upg.upgType !== 'HM') return null;
+  const lvlBn = getLevel(areaKey, upgId);
+  return hmNextMilestoneLevel(upg, lvlBn);
 }
 
 export function normalizeBigNum(value) {
