@@ -321,7 +321,7 @@ function resetUpgrades() {
     const tieKey = upg.tieKey || upg.tie;
     if (tieKey === UPGRADE_TIES.UNLOCK_XP || tieKey === UPGRADE_TIES.UNLOCK_FORGE) continue;
     if (upg.costType === 'gold') continue;
-    setLevel(AREA_KEYS.STARTER_COVE, upg.id, 0);
+    setLevel(AREA_KEYS.STARTER_COVE, upg.id, 0, true, { resetHmEvolutions: true });
   }
 }
 
