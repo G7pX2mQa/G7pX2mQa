@@ -815,6 +815,11 @@
   text-align: center;
 }
 
+.hm-milestones-list li.hm-milestone-achieved {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
 .hm-milestones-close {
   display: inline-flex;
   align-items: center;
