@@ -413,6 +413,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       'img/sc_upg_icons/xp_val2.png',
 	  'img/sc_upg_icons/mp_val1.png',
 	  'img/sc_upg_icons/magnet.png',
+	  'img/sc_upg_icons/xp_val_hm.png',
       'img/stats/xp/xp.png',
       'img/stats/xp/xp_base.png',
       'img/stats/xp/xp_plus_base.png',
