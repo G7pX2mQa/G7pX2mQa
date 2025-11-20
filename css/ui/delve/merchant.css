@@ -739,6 +739,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
   margin-inline: auto;        /* center the description without shifting siblings */
 }
 
