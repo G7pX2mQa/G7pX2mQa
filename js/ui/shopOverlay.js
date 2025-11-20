@@ -1322,6 +1322,8 @@ export function openUpgradeOverlay(upgDef) {
 
     const content = upgSheetEl.querySelector('.upg-content');
     content.innerHTML = '';
+    content.scrollTop = 0;
+    upgSheetEl.classList.toggle('is-hm-upgrade', isHM);
 
     const desc = document.createElement('div');
     desc.className = 'upg-desc centered';
