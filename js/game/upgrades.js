@@ -1265,6 +1265,34 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
     return { count: zero, spent: zero, nextPrice, numericCount: 0 };
   }
 
+  // For small levels we can cheaply compute an exact floored progression, which
+  // avoids undercounting caused by geometric approximations that ignore per-step
+  // flooring (e.g., costs like 3 → 3 → 4 instead of 3 → 3.6 → 4.32).
+  const remainingToHundred = 100 - startLevelNum;
+  if (Number.isFinite(startLevelNum) && remainingToHundred > 0) {
+    const limit = Math.min(room, remainingToHundred);
+    let price = BigNum.fromAny(upg.costAtLevel(startLevelNum));
+    let spent = zero;
+    let count = 0;
+
+    while (count < limit) {
+      const newSpent = spent.add(price);
+      if (newSpent.cmp(walletBn) > 0) break;
+      spent = newSpent;
+      count += 1;
+      if (count >= limit) break;
+      price = price.mulDecimalFloor(scaling.ratioStr);
+    }
+
+    const nextLevel = startLevelNum + count;
+    const nextPrice = count >= limit || (Number.isFinite(cap) && nextLevel >= cap)
+      ? zero
+      : BigNum.fromAny(upg.costAtLevel(nextLevel));
+    const countBn = countToBigNum(count);
+
+    return { count: countBn, spent, nextPrice, numericCount: count };
+  }
+
 let walletLog = approxLog10BigNum(walletBn);
 
 const ratioLog10 = scaling.ratioLog10;
