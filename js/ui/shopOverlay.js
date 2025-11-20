@@ -110,14 +110,14 @@ function openHmMilestoneDialog(lines) {
   overlay.className = 'hm-milestones-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-label', 'Hard Mode milestones');
+  overlay.setAttribute('aria-label', 'Milestones');
 
   const dialog = document.createElement('div');
   dialog.className = 'hm-milestones-dialog';
 
   const title = document.createElement('h3');
   title.className = 'hm-milestones-title';
-  title.textContent = 'Hard Mode Milestones';
+  title.textContent = 'Milestones';
 
   const list = document.createElement('ul');
   list.className = 'hm-milestones-list';
@@ -1487,10 +1487,10 @@ export function openUpgradeOverlay(upgDef) {
             const lvl = Math.max(0, Math.floor(Number(m?.level ?? 0)));
             const mult = formatMultForUi(m?.multiplier ?? m?.mult ?? m?.value ?? 1);
             const target = `${m?.target ?? m?.type ?? 'self'}`.toLowerCase();
-            if (target === 'xp') return `L${lvl}: Multiplies XP value by ${mult}x`;
-            if (target === 'coin' || target === 'coins') return `L${lvl}: Multiplies Coin value by ${mult}x`;
-            if (target === 'mp') return `L${lvl}: Multiplies MP value by ${mult}x`;
-            return `L${lvl}: Multiplies this upgrade’s effect by ${mult}x`;
+            if (target === 'xp') return `Level ${lvl}: Multiplies XP value by ${mult}x`;
+            if (target === 'coin' || target === 'coins') return `Level ${lvl}: Multiplies Coin value by ${mult}x`;
+            if (target === 'mp') return `Level ${lvl}: Multiplies MP value by ${mult}x`;
+            return `Level ${lvl}: Multiplies this upgrade’s effect by ${mult}x`;
           });
         openHmMilestoneDialog(lines);
       });
