@@ -393,6 +393,7 @@ function buildPanel(panelEl) {
   resetState.pendingEl = panelEl.querySelector('[data-reset-pending]');
   resetState.statusEl = panelEl.querySelector('[data-reset-status]');
   resetState.actionBtn = panelEl.querySelector('[data-reset-action]');
+  resetState.mainEl = panelEl.querySelector('.merchant-reset__main');
   resetState.layerButtons = {
     forge: panelEl.querySelector('[data-reset-layer="forge"]'),
   };
@@ -435,6 +436,7 @@ function updateStatusDisplay() {
 
   // Make sure we know if the player has already forged
   ensurePersistentFlagsPrimed();
+  resetState.mainEl?.classList.toggle('is-forge-complete', !!resetState.hasDoneForgeReset);
   if (resetState.hasDoneForgeReset) {
     return; // no extra text after the first Forge
   }
