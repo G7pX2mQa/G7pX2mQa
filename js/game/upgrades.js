@@ -17,7 +17,7 @@ import {
   onForgeUpgradeUnlocked,
   isForgeUnlocked,
   hasDoneForgeReset,
-} from './resetSystem.js';
+} from '../ui/merchantDelve/resetTab.js';
 
 export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
 
