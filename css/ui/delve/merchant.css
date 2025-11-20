@@ -739,12 +739,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-inline: auto;        /* center the description without shifting siblings */
 }
 
-.merchant-reset__status.is-ready {
-  color: #e9ff9a;
-  text-shadow: 0 0 8px rgba(179, 255, 101, 0.4);
-  font-weight: 600;
+.merchant-reset__status:empty {
+  display: none;
+  min-height: 0;
 }
 
 .merchant-reset__status strong {
