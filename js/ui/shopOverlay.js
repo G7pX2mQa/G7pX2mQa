@@ -22,8 +22,10 @@ import {
   upgradeUiModel,
   buyOne,
   buyMax,
+  buyTowards,
   evaluateBulkPurchase,
   getUpgradeLockState,
+  evolveUpgrade,
 } from '../game/upgrades.js';
 import {
   markGhostTapTarget,
@@ -481,6 +483,9 @@ function buildUpgradesData() {
     const title = lockState.titleOverride ?? def.title;
     const desc = lockState.descOverride ?? def.desc;
     const locked = !!lockState.locked;
+    const hmReady = (def.upgType === 'HM')
+      ? !!upgradeUiModel(areaKey, def.id)?.hmReadyToEvolve
+      : false;
     upgrades[def.id] = {
       id: def.id,
       icon,
@@ -494,6 +499,7 @@ function buildUpgradesData() {
       lockState,
       useLockedBase: !!lockState.useLockedBase || locked,
       baseIconOverride: def.baseIconOverride || lockState.baseIconOverride || null,
+      hmReady,
     };
   }
 }
@@ -667,6 +673,10 @@ function renderShopGrid() {
     btn.dataset.lockedPlain = isPlainLocked ? '1' : '0';
     btn.dataset.mysterious = isMysterious ? '1' : '0';
 
+    const isHM = upg.meta?.upgType === 'HM';
+    const evolveReady = isHM && upg.hmReady;
+    btn.classList.toggle('hm-evolve-ready', evolveReady);
+
     const canPlusBn = locked
       ? BigNum.fromInt(0)
       : computeAffordableLevels(upg.meta, upg.levelNumeric, upg.level);
@@ -687,9 +697,9 @@ function renderShopGrid() {
       ? upg.levelNumeric
       : (Number.isFinite(levelDigits) ? levelDigits : NaN);
     const hasFiniteCap = Number.isFinite(capNumber);
-    const capReached = hasFiniteCap && Number.isFinite(levelNumber)
+    const capReached = evolveReady ? false : (hasFiniteCap && Number.isFinite(levelNumber)
       ? levelNumber >= capNumber
-      : false;
+      : false);
     const isBookValueUpgrade = upg.meta?.tie === UPGRADE_TIES.BOOK_VALUE_I;
     const isSingleLevelCap = hasFiniteCap && capNumber === 1;
     const isUnlockUpgrade = !!upg.meta?.unlockUpgrade || (isSingleLevelCap && !isBookValueUpgrade);
@@ -1273,21 +1283,28 @@ export function openUpgradeOverlay(upgDef) {
     title.className = 'upg-title';
     title.textContent = model.displayTitle || model.upg.title;
 
-    const capReached = model.lvlBn?.isInfinite?.()
-      ? true
-      : (Number.isFinite(model.upg.lvlCap)
-        ? model.lvl >= model.upg.lvlCap
-        : false);
+    const evolveReady = !!model.hmReadyToEvolve;
+    const capReached = evolveReady
+      ? false
+      : (model.lvlBn?.isInfinite?.()
+        ? true
+        : (Number.isFinite(model.upg.lvlCap)
+          ? model.lvl >= model.upg.lvlCap
+          : false));
     const level = document.createElement('div');
     level.className = 'upg-level';
     const capHtml = model.lvlCapFmtHtml ?? model.upg.lvlCapFmtHtml ?? formatNumber(model.lvlCapBn);
     const capPlain = model.lvlCapFmtText ?? model.upg.lvlCapFmtText ?? stripTags(capHtml);
-    const levelHtml = capReached
-      ? `Level ${model.lvlFmtHtml} / ${capHtml} (MAXED)`
-      : `Level ${model.lvlFmtHtml} / ${capHtml}`;
-    const levelPlain = capReached
-      ? `Level ${model.lvlFmtText} / ${capPlain} (MAXED)`
-      : `Level ${model.lvlFmtText} / ${capPlain}`;
+    const levelHtml = evolveReady
+      ? `Level ${model.lvlFmtHtml} / ${capHtml} (EVOLVE READY)`
+      : (capReached
+        ? `Level ${model.lvlFmtHtml} / ${capHtml} (MAXED)`
+        : `Level ${model.lvlFmtHtml} / ${capHtml}`);
+    const levelPlain = evolveReady
+      ? `Level ${model.lvlFmtText} / ${capPlain} (EVOLVE READY)`
+      : (capReached
+        ? `Level ${model.lvlFmtText} / ${capPlain} (MAXED)`
+        : `Level ${model.lvlFmtText} / ${capPlain}`);
     level.innerHTML = levelHtml;
     level.setAttribute('aria-label', levelPlain);
     if (isHiddenUpgrade) {
@@ -1298,6 +1315,7 @@ export function openUpgradeOverlay(upgDef) {
     }
 
     upgSheetEl.classList.toggle('is-maxed', capReached);
+    upgSheetEl.classList.toggle('hm-evolve-ready', evolveReady);
     upgSheetEl.classList.toggle('is-unlock-upgrade', isUnlockVisible);
     header.append(title, level);
 
@@ -1309,6 +1327,13 @@ export function openUpgradeOverlay(upgDef) {
     if (lockHidden) desc.classList.add('lock-desc');
     desc.textContent = model.displayDesc || model.upg.desc;
     content.appendChild(desc);
+
+    if (evolveReady) {
+      const evolveNote = document.createElement('div');
+      evolveNote.className = 'upg-line hm-evolve-note';
+      evolveNote.textContent = 'Evolve this upgrade to multiply its effect by 1000x';
+      content.appendChild(evolveNote);
+    }
 
     const info = document.createElement('div');
     info.className = 'upg-info';
@@ -1339,7 +1364,8 @@ export function openUpgradeOverlay(upgDef) {
       : BigNum.fromAny(model.nextPrice || 0);
 
     // costs only if not capped and not an unlock-type
-    if (!model.unlockUpgrade && !capReached && (!locked || !lockState?.hideCost)) {
+    const stopBuying = capReached || evolveReady;
+    if (!model.unlockUpgrade && !stopBuying && (!locked || !lockState?.hideCost)) {
       const costs = document.createElement('div');
       costs.className = 'upg-costs';
 
@@ -1351,8 +1377,25 @@ export function openUpgradeOverlay(upgDef) {
       if (isHM) {
         const lineMilestone = document.createElement('div');
         lineMilestone.className = 'upg-line';
-        // milestone total cost will be wired later
-        lineMilestone.innerHTML = `Cost to next milestone: ${iconHTML} —`;
+        let milestoneCost = '—';
+        try {
+          if (model.hmNextMilestone && model.hmNextMilestone.cmp(model.lvlBn) > 0) {
+            const deltaBn = model.hmNextMilestone.sub(model.lvlBn);
+            const deltaPlain = deltaBn.toPlainIntegerString?.();
+            const deltaNum = Math.max(
+              0,
+              Math.floor(Number(deltaPlain && deltaPlain !== 'Infinity' ? deltaPlain : Number(deltaBn.toString() || 0)))
+            );
+            const { spent } = evaluateBulkPurchase(
+              model.upg,
+              model.lvlBn,
+              BigNum.fromAny('Infinity'),
+              deltaNum,
+            );
+            milestoneCost = bank[model.upg.costType].fmt(spent);
+          }
+        } catch {}
+        lineMilestone.innerHTML = `Cost to next milestone: ${iconHTML} ${milestoneCost}`;
         costs.appendChild(lineMilestone);
       }
 
@@ -1365,6 +1408,33 @@ export function openUpgradeOverlay(upgDef) {
     }
 
     content.appendChild(info);
+
+    if (isHM) {
+      const milestonesRow = document.createElement('div');
+      milestonesRow.className = 'hm-view-milestones-row';
+      const viewMilestonesBtn = document.createElement('button');
+      viewMilestonesBtn.type = 'button';
+      viewMilestonesBtn.className = 'shop-delve hm-view-milestones';
+      viewMilestonesBtn.textContent = 'View Milestones';
+      viewMilestonesBtn.addEventListener('click', () => {
+        const milestones = Array.isArray(model.upg.hmMilestones) ? model.upg.hmMilestones : [];
+        if (!milestones.length) return;
+        const lines = milestones
+          .sort((a, b) => (Number(a?.level ?? 0) - Number(b?.level ?? 0)))
+          .map((m) => {
+            const lvl = Math.max(0, Math.floor(Number(m?.level ?? 0)));
+            const mult = formatMultForUi(m?.multiplier ?? m?.mult ?? m?.value ?? 1);
+            const target = `${m?.target ?? m?.type ?? 'self'}`.toLowerCase();
+            if (target === 'xp') return `L${lvl}: Multiplies XP value by ${mult}x`;
+            if (target === 'coin' || target === 'coins') return `L${lvl}: Multiplies Coin value by ${mult}x`;
+            if (target === 'mp') return `L${lvl}: Multiplies MP value by ${mult}x`;
+            return `L${lvl}: Multiplies this upgrade’s effect by ${mult}x`;
+          });
+        alert(lines.join('\n'));
+      });
+      milestonesRow.appendChild(viewMilestonesBtn);
+      content.appendChild(milestonesRow);
+    }
 
     // ---------- actions ----------
     const actions = upgSheetEl.querySelector('.upg-actions');
@@ -1406,6 +1476,24 @@ export function openUpgradeOverlay(upgDef) {
       closeBtn.focus();
     } else {
       const canAffordNext = model.have.cmp(nextPriceBn) >= 0;
+
+      if (evolveReady) {
+        const evolveBtn = document.createElement('button');
+        evolveBtn.type = 'button';
+        evolveBtn.className = 'shop-delve hm-evolve-btn';
+        evolveBtn.textContent = 'Evolve';
+        evolveBtn.addEventListener('click', () => {
+          const { evolved } = evolveUpgrade(areaKey, upgDef.id);
+          if (!evolved) return;
+          playPurchaseSfx();
+          updateShopOverlay();
+          rerender();
+        });
+        actions.append(closeBtn, evolveBtn);
+        evolveBtn.focus();
+        recenterUnlockOverlayIfNeeded(model);
+        return;
+      }
 
       if (model.unlockUpgrade) {
         const unlockBtn = document.createElement('button');
@@ -1522,7 +1610,55 @@ export function openUpgradeOverlay(upgDef) {
         buyNextBtn.type = 'button';
         buyNextBtn.className = 'shop-delve';
         buyNextBtn.textContent = 'Buy Next';
-        // TODO: hook milestone purchasing when milestones are added
+        buyNextBtn.disabled = model.have.cmp(BigNum.fromInt(1)) < 0;
+        buyNextBtn.addEventListener('click', () => {
+          const fresh = upgradeUiModel(areaKey, upgDef.id);
+          if (fresh.hmReadyToEvolve) return;
+          const target = fresh.hmNextMilestone;
+          if (!target || !fresh.lvlBn || target.cmp(fresh.lvlBn) <= 0) {
+            const { bought } = buyMax(areaKey, upgDef.id);
+            const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+            if (!boughtBn.isZero?.()) {
+              playPurchaseSfx();
+              updateShopOverlay();
+              rerender();
+            }
+            return;
+          }
+
+          let deltaNum = 0;
+          try {
+            const diffPlain = target.sub(fresh.lvlBn).toPlainIntegerString?.();
+            if (diffPlain && diffPlain !== 'Infinity') deltaNum = Number(diffPlain);
+            else deltaNum = Number(target.sub(fresh.lvlBn).toString());
+          } catch {}
+          deltaNum = Math.max(0, Math.floor(deltaNum));
+
+          const walletRaw = bank[fresh.upg.costType]?.value;
+          const walletBn = walletRaw instanceof BigNum
+            ? walletRaw
+            : BigNum.fromAny(walletRaw ?? 0);
+          const evalResult = evaluateBulkPurchase(fresh.upg, fresh.lvlBn, walletBn, deltaNum);
+          const count = evalResult.count;
+          let reachable = false;
+          try {
+            const plain = count?.toPlainIntegerString?.();
+            if (plain && plain !== 'Infinity') reachable = Number(plain) >= deltaNum;
+            else reachable = Number(count ?? 0) >= deltaNum;
+          } catch {}
+
+          const purchase = reachable
+            ? buyTowards(areaKey, upgDef.id, deltaNum)
+            : buyMax(areaKey, upgDef.id);
+          const boughtBn = purchase.bought instanceof BigNum
+            ? purchase.bought
+            : BigNum.fromAny(purchase.bought ?? 0);
+          if (!boughtBn.isZero?.()) {
+            playPurchaseSfx();
+            updateShopOverlay();
+            rerender();
+          }
+        });
         actions.appendChild(buyNextBtn);
       }
 
