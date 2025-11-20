@@ -1417,7 +1417,7 @@ export function openUpgradeOverlay(upgDef) {
       viewMilestonesBtn.className = 'shop-delve hm-view-milestones';
       viewMilestonesBtn.textContent = 'View Milestones';
       viewMilestonesBtn.addEventListener('click', () => {
-        const milestones = Array.isArray(model.upg.hmMilestones) ? model.upg.hmMilestones : [];
+        const milestones = Array.isArray(model.hmMilestones) ? model.hmMilestones : [];
         if (!milestones.length) return;
         const lines = milestones
           .sort((a, b) => (Number(a?.level ?? 0) - Number(b?.level ?? 0)))
