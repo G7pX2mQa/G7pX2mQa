@@ -904,6 +904,10 @@
   min-height: 0;
 }
 
+.upg-sheet.is-hm-upgrade.hm-evolve-ready .upg-content {
+  justify-content: center;
+}
+
 .upg-sheet.is-hm-upgrade .upg-info {
   width: 100%;
   text-align: center;
