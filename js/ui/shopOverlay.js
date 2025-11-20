@@ -19,6 +19,7 @@ import {
   getLevel,
   getLevelNumber,
   getIconUrl,
+  formatMultForUi,
   upgradeUiModel,
   buyOne,
   buyMax,
