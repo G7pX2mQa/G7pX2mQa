@@ -905,7 +905,10 @@
 }
 
 .upg-sheet.is-hm-upgrade.hm-evolve-ready .upg-content {
-  justify-content: center;
+  justify-content: flex-start;
+  padding-top: clamp(10px, 4vh, 60px);
+  padding-bottom: clamp(10px, 3vh, 32px);
+  gap: clamp(12px, 3vh, 24px);
 }
 
 .upg-sheet.is-hm-upgrade .upg-info {
