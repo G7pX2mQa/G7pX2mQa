@@ -3279,9 +3279,15 @@ export function peekNextPrice(areaKey, upgId) {
 }
 
 
-export function setLevel(areaKey, upgId, lvl, clampToCap = true) {
+export function setLevel(areaKey, upgId, lvl, clampToCap = true, options = {}) {
   const state = ensureUpgradeState(areaKey, upgId);
   const upg = state.upg;
+  const { resetHmEvolutions = false } = options ?? {};
+
+  if (resetHmEvolutions && upg?.upgType === 'HM') {
+    state.hmEvolutions = 0;
+    applyHmEvolutionMeta(upg, 0);
+  }
   const cap = upg?.lvlCap ?? Infinity;
   const prevLevelNum = state.lvl;
   const prevLevelBn = safeCloneBigNum(state.lvlBn ?? ensureLevelBigNum(state.lvl ?? 0));
