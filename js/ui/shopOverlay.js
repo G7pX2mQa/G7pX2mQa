@@ -102,6 +102,65 @@ export function blockInteraction(ms = 140) {
   shield.__t = setTimeout(() => shield.remove(), ms);
 }
 
+function openHmMilestoneDialog(lines) {
+  const existing = document.querySelector('.hm-milestones-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'hm-milestones-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Hard Mode milestones');
+
+  const dialog = document.createElement('div');
+  dialog.className = 'hm-milestones-dialog';
+
+  const title = document.createElement('h3');
+  title.className = 'hm-milestones-title';
+  title.textContent = 'Hard Mode Milestones';
+
+  const list = document.createElement('ul');
+  list.className = 'hm-milestones-list';
+  for (const line of lines) {
+    const li = document.createElement('li');
+    li.textContent = line;
+    list.appendChild(li);
+  }
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'hm-milestones-close';
+  closeBtn.textContent = 'Close';
+
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener('keydown', onKeydown);
+  };
+
+  const onKeydown = (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      close();
+    }
+  };
+
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) close();
+  });
+  closeBtn.addEventListener('click', close);
+  document.addEventListener('keydown', onKeydown);
+
+  dialog.appendChild(title);
+  dialog.appendChild(list);
+  dialog.appendChild(closeBtn);
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+
+  if (typeof closeBtn.focus === 'function') {
+    closeBtn.focus({ preventScroll: true });
+  }
+}
+
 function stripTags(html) {
   return String(html ?? '').replace(/<[^>]*>/g, '');
 }
@@ -1433,7 +1492,7 @@ export function openUpgradeOverlay(upgDef) {
             if (target === 'mp') return `L${lvl}: Multiplies MP value by ${mult}x`;
             return `L${lvl}: Multiplies this upgrade’s effect by ${mult}x`;
           });
-        alert(lines.join('\n'));
+        openHmMilestoneDialog(lines);
       });
       milestonesRow.appendChild(viewMilestonesBtn);
       content.appendChild(milestonesRow);
