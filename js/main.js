@@ -386,7 +386,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/upgrades.js'),
     import('./util/audioCache.js'),
     import('./game/xpSystem.js'),
-    import('./ui/merchantDelve/dlgTab.js'),
     import('./ui/merchantDelve/resetTab.js'),
     import('./game/mutationSystem.js'),
     import('./ui/popups.js'),
@@ -453,7 +452,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     upgradesModule,
     audioCacheModule,
     xpModule,
-    merchantDlgModule,
     resetModule,
     mutationModule,
     popupModule,
@@ -470,7 +468,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
   ({ registerPreloadedAudio } = audioCacheModule);
   ({ initXpSystem } = xpModule);
-  void merchantDlgModule;
   ({ initResetSystem: initResetSystemGame } = resetModule);
   ({ initMutationSystem, getMutationCoinSprite, onMutationChange: onMutationChangeGame } = mutationModule);
   ({ initPopups } = popupModule);
