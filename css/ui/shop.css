@@ -661,6 +661,7 @@
 }
 
 .shop-upgrade.hm-evolve-ready .shop-tile {
+  border-radius: 50%;
   box-shadow: 0 0 16px hsla(30, 90%, 55%, 0.65);
   animation: hm-evolve-glow 1.6s ease-in-out infinite;
 }
@@ -743,9 +744,10 @@
 }
 
 .hm-evolve-note {
-  color: hsl(30, 90%, 75%);
+  color: hsl(32, 95%, 70%);
   font-weight: 800;
   text-align: center;
+  text-shadow: 0 0 12px hsla(30, 90%, 55%, 0.75);
 }
 
 @keyframes hm-evolve-glow {
