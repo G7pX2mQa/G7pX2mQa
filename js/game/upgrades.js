@@ -23,6 +23,7 @@ export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
 
 const HM_EVOLUTION_INTERVAL = 1000;
 const HM_EVOLUTION_EFFECT_MULT_BN = BigNum.fromInt(1000);
+const DEFAULT_AREA_KEY = '';
 
 function hasScaling(upg) {
   try {
@@ -1006,6 +1007,22 @@ function hmMilestoneMultiplier(multiplier, hits) {
   return result;
 }
 
+function resolveHmMilestones(upg, areaKey = DEFAULT_AREA_KEY) {
+  const milestones = upg?.hmMilestones;
+  if (Array.isArray(milestones)) return milestones;
+  if (!milestones || typeof milestones !== 'object') return [];
+
+  const normalizedArea = normalizeAreaKey(areaKey || upg?.area || DEFAULT_AREA_KEY);
+
+  if (normalizedArea) {
+    if (Array.isArray(milestones[normalizedArea])) return milestones[normalizedArea];
+    if (Array.isArray(milestones[areaKey])) return milestones[areaKey];
+  }
+
+  if (Array.isArray(milestones.default)) return milestones.default;
+  return [];
+}
+
 function safeMultiplyBigNum(base, factor) {
   let out = base instanceof BigNum ? base : BigNum.fromAny(base ?? 1);
   let f = factor instanceof BigNum ? factor : null;
@@ -1030,7 +1047,7 @@ function applyHmEvolutionMeta(upg, evolutions = 0) {
   upg.lvlCapFmtText = capFmtText;
 }
 
-function computeHmMultipliers(upg, levelBn) {
+function computeHmMultipliers(upg, levelBn, areaKey = DEFAULT_AREA_KEY) {
   if (!upg || upg.upgType !== 'HM') {
     return {
       selfMult: BigNum.fromInt(1),
@@ -1040,7 +1057,7 @@ function computeHmMultipliers(upg, levelBn) {
     };
   }
 
-  const milestones = Array.isArray(upg.hmMilestones) ? upg.hmMilestones : [];
+  const milestones = resolveHmMilestones(upg, areaKey);
   let selfMult = BigNum.fromInt(1);
   let xpMult = BigNum.fromInt(1);
   let coinMult = BigNum.fromInt(1);
@@ -1070,9 +1087,9 @@ function computeHmMultipliers(upg, levelBn) {
   return { selfMult, xpMult, coinMult, mpMult };
 }
 
-function hmNextMilestoneLevel(upg, levelBn) {
+function hmNextMilestoneLevel(upg, levelBn, areaKey = DEFAULT_AREA_KEY) {
   if (!upg || upg.upgType !== 'HM') return null;
-  const milestones = Array.isArray(upg.hmMilestones) ? upg.hmMilestones : [];
+  const milestones = resolveHmMilestones(upg, areaKey);
   if (!milestones.length) return null;
 
   let best = null;
@@ -2265,26 +2282,13 @@ const REGISTRY = [
     ],
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
     nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
-    computeLockState(ctx) {
-      const base = determineLockState(ctx);
-      if (!hasDoneForgeReset()) {
-        const reason = 'Complete a Forge reset to unlock this upgrade';
-        return mergeLockStates(base, {
-          locked: true,
-          reason,
-          descOverride: reason,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-        });
-      }
-      return base;
-    },
+    computeLockState: determineLockState,
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
       let baseMult;
       try { baseMult = this.effectMultiplier(lvlBn); }
       catch { baseMult = 1; }
-      const { selfMult } = computeHmMultipliers(this, lvlBn);
+      const { selfMult } = computeHmMultipliers(this, lvlBn, this.area);
       const total = safeMultiplyBigNum(baseMult, selfMult);
       return `XP value bonus: ${formatMultForUi(total)}x`;
     },
@@ -2893,7 +2897,7 @@ export function getMpValueMultiplierBn() {
   try {
     const hmUpg = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
     const hmLvl = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
-    const { mpMult } = computeHmMultipliers(hmUpg, hmLvl);
+    const { mpMult } = computeHmMultipliers(hmUpg, hmLvl, AREA_KEYS.STARTER_COVE);
     mult = safeMultiplyBigNum(mult, mpMult);
   } catch {}
   return mult;
@@ -3838,7 +3842,7 @@ function registerXpUpgradeEffects() {
       try {
         const hmUpg = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
         const hmLvl = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
-        const { coinMult } = computeHmMultipliers(hmUpg, hmLvl);
+        const { coinMult } = computeHmMultipliers(hmUpg, hmLvl, AREA_KEYS.STARTER_COVE);
         result = safeMultiplyBigNum(result, coinMult);
       } catch {}
 
@@ -3890,7 +3894,7 @@ function registerXpUpgradeEffects() {
         const hmLvl = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
         let base = 1;
         try { base = hmUpg?.effectMultiplier?.(hmLvl) ?? 1; } catch {}
-        const { selfMult, xpMult } = computeHmMultipliers(hmUpg, hmLvl);
+        const { selfMult, xpMult } = computeHmMultipliers(hmUpg, hmLvl, AREA_KEYS.STARTER_COVE);
         gain = safeMultiplyBigNum(gain, safeMultiplyBigNum(base, selfMult));
         gain = safeMultiplyBigNum(gain, xpMult);
       } catch {}
@@ -3990,6 +3994,7 @@ export function upgradeUiModel(areaKey, upgId) {
   const locked = !!lockState.locked;
   const displayTitle = lockState.titleOverride ?? upg.title;
   const displayDesc = lockState.descOverride ?? upg.desc;
+  const hmMilestones = resolveHmMilestones(upg, areaKey);
   let effect = '';
   if (typeof upg.effectSummary === 'function' && !(locked && lockState.hideEffect)) {
     effect = upg.effectSummary(lvl);
@@ -4013,12 +4018,14 @@ export function upgradeUiModel(areaKey, upgId) {
     iconUrl,
     lockState,
     locked,
+    areaKey,
+    hmMilestones,
     displayTitle,
     displayDesc,
     unlockUpgrade: !!upg.unlockUpgrade,
     hmEvolutions: upg.upgType === 'HM' ? getHmEvolutions(areaKey, upgId) : 0,
     hmReadyToEvolve: upg.upgType === 'HM' ? isHmReadyToEvolve(upg, lvlBn, getHmEvolutions(areaKey, upgId)) : false,
-    hmNextMilestone: upg.upgType === 'HM' ? hmNextMilestoneLevel(upg, lvlBn) : null,
+    hmNextMilestone: upg.upgType === 'HM' ? hmNextMilestoneLevel(upg, lvlBn, areaKey) : null,
   };
 }
 
@@ -4026,7 +4033,7 @@ export function getHmNextMilestoneLevel(areaKey, upgId) {
   const upg = getUpgrade(areaKey, upgId);
   if (!upg || upg.upgType !== 'HM') return null;
   const lvlBn = getLevel(areaKey, upgId);
-  return hmNextMilestoneLevel(upg, lvlBn);
+  return hmNextMilestoneLevel(upg, lvlBn, areaKey);
 }
 
 export function normalizeBigNum(value) {
