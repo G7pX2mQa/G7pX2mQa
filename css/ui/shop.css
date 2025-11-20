@@ -758,6 +758,35 @@
   color: #ffe6c7;
   padding: 10px 14px;
 }
+
+.upg-sheet.is-hm-upgrade {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.upg-sheet.is-hm-upgrade .upg-content {
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 12px 18px 16px;
+  transform: none;
+  gap: 12px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.upg-sheet.is-hm-upgrade .upg-info {
+  width: 100%;
+  text-align: left;
+  gap: 10px;
+}
+
+.upg-sheet.is-hm-upgrade .upg-desc.centered {
+  text-align: left;
+}
+
+.upg-sheet.is-hm-upgrade .hm-view-milestones-row {
+  width: 100%;
+  margin-top: 4px;
+}
 .hm-view-milestones:hover { background:hsl(30 90% 50% / .22); }
 .hm-view-milestones:active { transform:translateY(1px); background:hsl(30 90% 50% / .28); }
 
