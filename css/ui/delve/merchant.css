@@ -694,6 +694,9 @@
 
 .merchant-reset__main.is-forge-complete {
   justify-content: flex-start;
+  padding: 16px 18px 18px;
+  min-height: 220px;
+  gap: 14px;
 }
 
 .merchant-reset__content {
@@ -706,7 +709,12 @@
 }
 
 .merchant-reset__main.is-forge-complete .merchant-reset__content {
-  justify-content: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.merchant-reset__main.is-forge-complete .merchant-reset__layout {
+  gap: 14px;
 }
 
 .merchant-reset__actions {
