@@ -1275,6 +1275,7 @@ export function openUpgradeOverlay(upgDef) {
   }
 
   const isHM = (upgDef.upgType === 'HM');
+  const isEndlessXp = (upgDef.tie === UPGRADE_TIES.ENDLESS_XP);
   const ui = () => upgradeUiModel(areaKey, upgDef.id);
 
   // small helpers
@@ -1383,6 +1384,7 @@ export function openUpgradeOverlay(upgDef) {
     content.innerHTML = '';
     content.scrollTop = 0;
     upgSheetEl.classList.toggle('is-hm-upgrade', isHM);
+    upgSheetEl.classList.toggle('is-endless-xp', isEndlessXp);
 
     const desc = document.createElement('div');
     desc.className = 'upg-desc centered';
