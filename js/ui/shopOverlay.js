@@ -771,6 +771,7 @@ function renderShopGrid() {
 
     const isHM = upg.meta?.upgType === 'HM';
     const evolveReady = isHM && upg.hmReady;
+    const levelIsInfinite = isHM && upg.level?.isInfinite?.();
     btn.classList.toggle('hm-evolve-ready', evolveReady);
 
     const canPlusBn = locked
@@ -793,9 +794,13 @@ function renderShopGrid() {
       ? upg.levelNumeric
       : (Number.isFinite(levelDigits) ? levelDigits : NaN);
     const hasFiniteCap = Number.isFinite(capNumber);
-    const capReached = evolveReady ? false : (hasFiniteCap && Number.isFinite(levelNumber)
-      ? levelNumber >= capNumber
-      : false);
+    const capReached = evolveReady
+      ? false
+      : (levelIsInfinite
+        ? true
+        : (hasFiniteCap && Number.isFinite(levelNumber)
+          ? levelNumber >= capNumber
+          : false));
     const isBookValueUpgrade = upg.meta?.tie === UPGRADE_TIES.BOOK_VALUE_I;
     const isSingleLevelCap = hasFiniteCap && capNumber === 1;
     const isUnlockUpgrade = !!upg.meta?.unlockUpgrade || (isSingleLevelCap && !isBookValueUpgrade);
@@ -1526,6 +1531,7 @@ export function openUpgradeOverlay(upgDef) {
           catch { return 0n; }
         })();
         const formatMilestoneLevel = (levelBn) => {
+          if (model.lvlBn?.isInfinite?.()) return 'Infinity';
           try {
             const plain = levelBn?.toPlainIntegerString?.();
             if (plain && plain !== 'Infinity') {
@@ -1543,6 +1549,7 @@ export function openUpgradeOverlay(upgDef) {
           .map((m) => {
             const lvl = Math.max(0, Math.floor(Number(m?.level ?? 0)));
             const milestoneLevelBn = (() => {
+              if (model.lvlBn?.isInfinite?.()) return BigNum.fromAny('Infinity');
               try { return BigNum.fromAny((BigInt(lvl) + evolutionOffset).toString()); }
               catch { return BigNum.fromAny(lvl + (HM_EVOLUTION_INTERVAL * evolutions)); }
             })();
@@ -1551,6 +1558,7 @@ export function openUpgradeOverlay(upgDef) {
             const mult = formatMultForUi(m?.multiplier ?? m?.mult ?? m?.value ?? 1);
             const target = `${m?.target ?? m?.type ?? 'self'}`.toLowerCase();
             const achieved = (() => {
+              if (model.lvlBn?.isInfinite?.()) return true;
               try { return model.lvlBn?.cmp?.(milestoneLevelBn) >= 0; }
               catch {}
               if (Number.isFinite(model.lvl) && milestonePlain && milestonePlain !== 'Infinity') {
