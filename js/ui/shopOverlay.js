@@ -123,7 +123,12 @@ function openHmMilestoneDialog(lines) {
   list.className = 'hm-milestones-list';
   for (const line of lines) {
     const li = document.createElement('li');
-    li.textContent = line;
+    if (line && typeof line === 'object') {
+      li.textContent = line.text ?? '';
+      if (line.achieved) li.classList.add('hm-milestone-achieved');
+    } else {
+      li.textContent = line;
+    }
     list.appendChild(li);
   }
 
@@ -1489,10 +1494,14 @@ export function openUpgradeOverlay(upgDef) {
             const lvl = Math.max(0, Math.floor(Number(m?.level ?? 0)));
             const mult = formatMultForUi(m?.multiplier ?? m?.mult ?? m?.value ?? 1);
             const target = `${m?.target ?? m?.type ?? 'self'}`.toLowerCase();
-            if (target === 'xp') return `Level ${lvl}: Multiplies XP value by ${mult}x`;
-            if (target === 'coin' || target === 'coins') return `Level ${lvl}: Multiplies Coin value by ${mult}x`;
-            if (target === 'mp') return `Level ${lvl}: Multiplies MP value by ${mult}x`;
-            return `Level ${lvl}: Multiplies this upgrade’s effect by ${mult}x`;
+            const achieved = (() => {
+              try { return model.lvlBn?.cmp?.(BigNum.fromAny(lvl)) >= 0; }
+              catch { return model.lvl >= lvl; }
+            })();
+            if (target === 'xp') return { text: `Level ${lvl}: Multiplies XP value by ${mult}x`, achieved };
+            if (target === 'coin' || target === 'coins') return { text: `Level ${lvl}: Multiplies Coin value by ${mult}x`, achieved };
+            if (target === 'mp') return { text: `Level ${lvl}: Multiplies MP value by ${mult}x`, achieved };
+            return { text: `Level ${lvl}: Multiplies this upgrade’s effect by ${mult}x`, achieved };
           });
         openHmMilestoneDialog(lines);
       });
