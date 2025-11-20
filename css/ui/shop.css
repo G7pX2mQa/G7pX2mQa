@@ -55,6 +55,8 @@
   -webkit-user-select: none;
   user-select: none;
   background: var(--shop-bg);
+  position: relative;
+  z-index: 6;
 }
 
 .shop-grabber .grab-handle {
