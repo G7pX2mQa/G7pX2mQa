@@ -9,7 +9,7 @@ import { openMerchant,
     unlockMerchantTabs,
     hasMetMerchant,
     MERCHANT_MET_EVENT
-} from './delveTabDlg.js';
+} from './merchantDelve/dlgTab.js';
 import { takePreloadedAudio } from '../util/audioCache.js';
 import {
   AREA_KEYS,
