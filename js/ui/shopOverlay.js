@@ -177,207 +177,232 @@ function stripTags(html) {
 }
 
 const PURCHASE_SFX_SRC = 'sounds/purchase_upg.mp3';
+const EVOLVE_SFX_SRC = 'sounds/evolve_upg.mp3';
 const MOBILE_PURCHASE_VOLUME = 0.12;
 const DESKTOP_PURCHASE_VOLUME = 0.3;
 
-let __purchaseBase = null;
-let __purchaseAc = null;
-let __purchaseGain = null;
-let __purchaseBuffer = null;
-let __purchaseBufferPromise = null;
-let __purchaseBufferPromiseHandled = false;
-let __purchasePendingPlays = 0;
+function createSfxPlayer({ src, mobileVolume, desktopVolume }) {
+  let base = null;
+  let ac = null;
+  let gain = null;
+  let buffer = null;
+  let bufferPromise = null;
+  let bufferPromiseHandled = false;
+  let pendingPlays = 0;
 
-function ensurePurchaseBase() {
-  if (__purchaseBase) return __purchaseBase;
+  function ensureBase() {
+    if (base) return base;
 
-  const preloaded = takePreloadedAudio(PURCHASE_SFX_SRC);
-  const el = preloaded || new Audio(PURCHASE_SFX_SRC);
-  el.preload = 'auto';
-  el.playsInline = true;
-  el.crossOrigin = 'anonymous';
-  el.load?.();
-  __purchaseBase = el;
-  return __purchaseBase;
-}
-
-function ensurePurchaseWebAudio() {
-  if (!IS_MOBILE) return false;
-  const base = ensurePurchaseBase();
-  if (!base) return false;
-
-  if (!('AudioContext' in window || 'webkitAudioContext' in window)) {
-    return false;
+    const preloaded = takePreloadedAudio(src);
+    const el = preloaded || new Audio(src);
+    el.preload = 'auto';
+    el.playsInline = true;
+    el.crossOrigin = 'anonymous';
+    el.load?.();
+    base = el;
+    return base;
   }
 
-  try {
-    __purchaseAc = __purchaseAc || new (window.AudioContext || window.webkitAudioContext)();
-  } catch (_) {
-    __purchaseAc = null;
-    return false;
-  }
+  function ensureWebAudio() {
+    if (!IS_MOBILE) return false;
+    const baseAudio = ensureBase();
+    if (!baseAudio) return false;
 
-  if (!__purchaseAc) return false;
-
-  if (__purchaseAc.state === 'suspended') {
-    try { __purchaseAc.resume(); } catch (_) {}
-  }
-
-  if (!__purchaseGain) {
-    __purchaseGain = __purchaseAc.createGain();
-    __purchaseGain.connect(__purchaseAc.destination);
-  }
-
-  return true;
-}
-
-function ensurePurchaseBuffer() {
-  if (!__purchaseAc) return null;
-  if (__purchaseBuffer) return __purchaseBuffer;
-  if (__purchaseBufferPromise) return null;
-
-  const src = ensurePurchaseBase()?.currentSrc || PURCHASE_SFX_SRC;
-
-  try {
-    __purchaseBufferPromise = fetch(src)
-      .then((resp) => (resp.ok ? resp.arrayBuffer() : Promise.reject(resp.status)))
-      .then((buf) => new Promise((resolve, reject) => {
-        let settled = false;
-        const onOk = (decoded) => {
-          if (settled) return;
-          settled = true;
-          resolve(decoded);
-        };
-        const onErr = (err) => {
-          if (settled) return;
-          settled = true;
-          reject(err);
-        };
-        const ret = __purchaseAc.decodeAudioData(buf, onOk, onErr);
-        if (ret && typeof ret.then === 'function') {
-          ret.then(onOk, onErr);
-        }
-      }))
-      .then((decoded) => {
-        __purchaseBuffer = decoded;
-        __purchaseBufferPromise = null;
-        __purchaseBufferPromiseHandled = false;
-        return decoded;
-      })
-      .catch(() => {
-        __purchaseBufferPromise = null;
-        __purchaseBufferPromiseHandled = false;
-        return null;
-      });
-    __purchaseBufferPromiseHandled = false;
-  } catch (_) {
-    __purchaseBufferPromise = null;
-    __purchaseBufferPromiseHandled = false;
-  }
-
-  return __purchaseBuffer || null;
-}
-
-function playPurchaseMobileWebAudio() {
-  if (!ensurePurchaseWebAudio()) return false;
-
-  if (!__purchaseAc || !__purchaseGain) return false;
-
-  const playBuffer = (buffer) => {
-    if (!buffer) return false;
-    try {
-      const node = __purchaseAc.createBufferSource();
-      node.buffer = buffer;
-      node.connect(__purchaseGain);
-
-      const t = __purchaseAc.currentTime;
-      try {
-        __purchaseGain.gain.setValueAtTime(MOBILE_PURCHASE_VOLUME, t);
-      } catch (_) {
-        __purchaseGain.gain.value = MOBILE_PURCHASE_VOLUME;
-      }
-
-      node.start();
-      return true;
-    } catch (_) {
+    if (!('AudioContext' in window || 'webkitAudioContext' in window)) {
       return false;
     }
-  };
 
-  if (__purchaseBuffer) {
-    return playBuffer(__purchaseBuffer);
-  }
-
-  __purchasePendingPlays += 1;
-
-  if (!__purchaseBufferPromise) {
-    ensurePurchaseBuffer();
-  }
-
-  if (!__purchaseBufferPromise) {
-    const plays = Math.max(1, __purchasePendingPlays);
-    __purchasePendingPlays = 0;
-    for (let i = 0; i < plays; i += 1) {
-      playPurchaseMobileFallback();
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    } catch (_) {
+      ac = null;
+      return false;
     }
+
+    if (!ac) return false;
+
+    if (ac.state === 'suspended') {
+      try { ac.resume(); } catch (_) {}
+    }
+
+    if (!gain) {
+      gain = ac.createGain();
+      gain.connect(ac.destination);
+    }
+
     return true;
   }
 
-  if (__purchaseBufferPromise && !__purchaseBufferPromiseHandled) {
-    __purchaseBufferPromiseHandled = true;
-    __purchaseBufferPromise.then((buffer) => {
-      const plays = Math.max(1, __purchasePendingPlays);
-      __purchasePendingPlays = 0;
+  function ensureBuffer() {
+    if (!ac) return null;
+    if (buffer) return buffer;
+    if (bufferPromise) return null;
 
-      if (!buffer) {
-        for (let i = 0; i < plays; i += 1) {
-          playPurchaseMobileFallback();
-        }
-        return;
-      }
+    const srcUrl = ensureBase()?.currentSrc || src;
 
-      for (let i = 0; i < plays; i += 1) {
-        if (!playBuffer(buffer)) {
-          playPurchaseMobileFallback();
-          break;
-        }
-      }
-    });
-  }
-
-  return true;
-}
-
-function playPurchaseMobileFallback() {
-  const base = ensurePurchaseBase();
-  if (!base) return;
-
-  base.muted = false;
-  base.volume = MOBILE_PURCHASE_VOLUME;
-  try { base.currentTime = 0; } catch (_) {}
-  base.play().catch(() => {});
-}
-
-function playPurchaseDesktop() {
-  const base = ensurePurchaseBase();
-  if (!base) return;
-
-  base.volume = DESKTOP_PURCHASE_VOLUME;
-  const a = base.cloneNode();
-  a.volume = DESKTOP_PURCHASE_VOLUME;
-  a.play().catch(() => {});
-}
-
-function playPurchaseSfx() {
-  try {
-    if (IS_MOBILE) {
-      if (playPurchaseMobileWebAudio()) return;
-      playPurchaseMobileFallback();
-      return;
+    try {
+      bufferPromise = fetch(srcUrl)
+        .then((resp) => (resp.ok ? resp.arrayBuffer() : Promise.reject(resp.status)))
+        .then((buf) => new Promise((resolve, reject) => {
+          let settled = false;
+          const onOk = (decoded) => {
+            if (settled) return;
+            settled = true;
+            resolve(decoded);
+          };
+          const onErr = (err) => {
+            if (settled) return;
+            settled = true;
+            reject(err);
+          };
+          const ret = ac.decodeAudioData(buf, onOk, onErr);
+          if (ret && typeof ret.then === 'function') {
+            ret.then(onOk, onErr);
+          }
+        }))
+        .then((decoded) => {
+          buffer = decoded;
+          bufferPromise = null;
+          bufferPromiseHandled = false;
+          return decoded;
+        })
+        .catch(() => {
+          bufferPromise = null;
+          bufferPromiseHandled = false;
+          return null;
+        });
+      bufferPromiseHandled = false;
+    } catch (_) {
+      bufferPromise = null;
+      bufferPromiseHandled = false;
     }
 
-    playPurchaseDesktop();
-  } catch {}
+    return buffer || null;
+  }
+
+  function playMobileFallback() {
+    const baseAudio = ensureBase();
+    if (!baseAudio) return;
+
+    baseAudio.muted = false;
+    baseAudio.volume = mobileVolume;
+    try { baseAudio.currentTime = 0; } catch (_) {}
+    baseAudio.play().catch(() => {});
+  }
+
+  function playMobileWebAudio() {
+    if (!ensureWebAudio()) return false;
+
+    if (!ac || !gain) return false;
+
+    const playBuffer = (decoded) => {
+      if (!decoded) return false;
+      try {
+        const node = ac.createBufferSource();
+        node.buffer = decoded;
+        node.connect(gain);
+
+        const t = ac.currentTime;
+        try {
+          gain.gain.setValueAtTime(mobileVolume, t);
+        } catch (_) {
+          gain.gain.value = mobileVolume;
+        }
+
+        node.start();
+        return true;
+      } catch (_) {
+        return false;
+      }
+    };
+
+    if (buffer) {
+      return playBuffer(buffer);
+    }
+
+    pendingPlays += 1;
+
+    if (!bufferPromise) {
+      ensureBuffer();
+    }
+
+    if (!bufferPromise) {
+      const plays = Math.max(1, pendingPlays);
+      pendingPlays = 0;
+      for (let i = 0; i < plays; i += 1) {
+        playMobileFallback();
+      }
+      return true;
+    }
+
+    if (bufferPromise && !bufferPromiseHandled) {
+      bufferPromiseHandled = true;
+      bufferPromise.then((decoded) => {
+        const plays = Math.max(1, pendingPlays);
+        pendingPlays = 0;
+
+        if (!decoded) {
+          for (let i = 0; i < plays; i += 1) {
+            playMobileFallback();
+          }
+          return;
+        }
+
+        for (let i = 0; i < plays; i += 1) {
+          if (!playBuffer(decoded)) {
+            playMobileFallback();
+            break;
+          }
+        }
+      });
+    }
+
+    return true;
+  }
+
+  function playDesktop() {
+    const baseAudio = ensureBase();
+    if (!baseAudio) return;
+
+    baseAudio.volume = desktopVolume;
+    const a = baseAudio.cloneNode();
+    a.volume = desktopVolume;
+    a.play().catch(() => {});
+  }
+
+  return {
+    play() {
+      try {
+        if (IS_MOBILE) {
+          if (playMobileWebAudio()) return;
+          playMobileFallback();
+          return;
+        }
+
+        playDesktop();
+      } catch {}
+    },
+  };
+}
+
+const purchaseSfx = createSfxPlayer({
+  src: PURCHASE_SFX_SRC,
+  mobileVolume: MOBILE_PURCHASE_VOLUME,
+  desktopVolume: DESKTOP_PURCHASE_VOLUME,
+});
+
+const evolveSfx = createSfxPlayer({
+  src: EVOLVE_SFX_SRC,
+  mobileVolume: MOBILE_PURCHASE_VOLUME * 2,
+  desktopVolume: DESKTOP_PURCHASE_VOLUME * 2,
+});
+
+function playPurchaseSfx() {
+  purchaseSfx.play();
+}
+
+function playEvolveSfx() {
+  evolveSfx.play();
 }
 
 function currencyIconHTML(type) {
@@ -1594,7 +1619,7 @@ export function openUpgradeOverlay(upgDef) {
         evolveBtn.addEventListener('click', () => {
           const { evolved } = evolveUpgrade(areaKey, upgDef.id);
           if (!evolved) return;
-          playPurchaseSfx();
+          playEvolveSfx();
           updateShopOverlay();
           rerender();
         });
