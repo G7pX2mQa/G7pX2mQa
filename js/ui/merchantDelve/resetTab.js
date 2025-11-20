@@ -365,27 +365,33 @@ function buildPanel(panelEl) {
         </button>
       </aside>
       <div class="merchant-reset__main">
-        <header class="merchant-reset__header">
-  <div class="merchant-reset__titles">
-    <h3>Forge</h3>
-    <p>
-      Resets Coins, Books, XP, Coin upgrades, and Book upgrades for Gold<br>
-	  Increase pending Gold amount by increasing Coins and XP Level<br>
-      The button below shows how much Gold you will get upon reset
-    </p>
-  </div>
-</header>
+        <div class="merchant-reset__layout">
+          <header class="merchant-reset__header">
+            <div class="merchant-reset__titles">
+              <h3>Forge</h3>
+            </div>
+          </header>
 
+          <div class="merchant-reset__content">
+            <div class="merchant-reset__titles">
+              <p>
+                Resets Coins, Books, XP, Coin upgrades, and Book upgrades for Gold<br>
+                Increase pending Gold amount by increasing Coins and XP Level<br>
+                The button below shows how much Gold you will get upon reset
+              </p>
+            </div>
+            <div class="merchant-reset__status" data-reset-status></div>
+          </div>
 
-        <div class="merchant-reset__body">
-          <div class="merchant-reset__status" data-reset-status></div>
-          <button type="button" class="merchant-reset__action" data-reset-action>
-            <span class="merchant-reset__action-plus">+</span>
-            <span class="merchant-reset__action-icon">
-              <img src="${GOLD_ICON_SRC}" alt="">
-            </span>
-            <span class="merchant-reset__action-amount" data-reset-pending>0</span>
-          </button>
+          <div class="merchant-reset__actions">
+            <button type="button" class="merchant-reset__action" data-reset-action>
+              <span class="merchant-reset__action-plus">+</span>
+              <span class="merchant-reset__action-icon">
+                <img src="${GOLD_ICON_SRC}" alt="">
+              </span>
+              <span class="merchant-reset__action-amount" data-reset-pending>0</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
