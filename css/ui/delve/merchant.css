@@ -686,14 +686,20 @@
   justify-content: flex-start;
 }
 
-.merchant-reset__main.is-forge-complete {
-  justify-content: flex-start;
+/* When the first-time blurb is gone, keep only the description text vertically centered
+   without shifting the title or action button. */
+.merchant-reset__main.is-forge-complete .merchant-reset__header {
+  min-height: 150px;
 }
 
 .merchant-reset__main.is-forge-complete .merchant-reset__titles {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  justify-items: center;
+}
+
+.merchant-reset__main.is-forge-complete .merchant-reset__titles p {
+  align-self: center;
 }
 
 .merchant-reset__header {
