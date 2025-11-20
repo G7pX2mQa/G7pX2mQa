@@ -723,6 +723,9 @@
   font-size: 0.95rem;
   line-height: 1.4;
   align-self: center;
+}
+
+.merchant-reset__main.is-forge-complete .merchant-reset__titles p {
   transform: translateY(4vh);
 }
 
