@@ -1040,6 +1040,7 @@ function safeMultiplyBigNum(base, factor) {
 
 function applyHmEvolutionMeta(upg, evolutions = 0) {
   if (!upg || upg.upgType !== 'HM') return;
+  delete upg.scaling;
   const { cap, capBn, capFmtHtml, capFmtText } = hmLevelCapForEvolutions(evolutions);
   upg.activeEvolutions = evolutions;
   upg.lvlCap = cap;
