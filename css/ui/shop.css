@@ -752,7 +752,7 @@
   margin-inline: auto;
   align-items: center;
   justify-content: center;
-  padding: 0.1em 0 0.05em;
+  padding-block: clamp(48px, 8vh, 116px);
   color: hsl(30, 94%, 68%) !important;
   -webkit-text-fill-color: hsl(30, 94%, 68%) !important;
   font-weight: 800;
