@@ -618,6 +618,16 @@
   border:1px solid hsl(150 60% 35% / .45);
   background:hsl(150 60% 35% / .15);
 }
+.upg-actions .shop-delve.hm-evolve-btn,
+.upg-actions .shop-delve.hm-view-milestones {
+  border-color: hsl(30 90% 55% / 0.65);
+  background: hsl(30 90% 50% / 0.15);
+  color: #ffe6c7;
+}
+.upg-actions .shop-delve.hm-evolve-btn:hover,
+.upg-actions .shop-delve.hm-view-milestones:hover { background:hsl(30 90% 50% / .22); }
+.upg-actions .shop-delve.hm-evolve-btn:active,
+.upg-actions .shop-delve.hm-view-milestones:active { transform:translateY(1px); background:hsl(30 90% 50% / .28); }
 .upg-actions .shop-delve:hover{ background:hsl(150 60% 35% / .22); }
 .upg-actions .shop-delve:active{ transform:translateY(1px); background:hsl(150 60% 35% / .28); }
 .upg-actions .shop-close:hover { background: hsla(0, 80%, 40%, 0.22); }
@@ -642,6 +652,21 @@
 .shop-tile .level-badge.is-maxed {
   color: hsl(330, 80%, 75%);
   text-shadow: 0 0 10px hsla(330, 70%, 45%, 0.65);
+}
+
+.shop-tile .shop-upgrade.hm-evolve-ready .level-badge,
+.shop-upgrade.hm-evolve-ready .level-badge {
+  color: hsl(30, 90%, 70%);
+  text-shadow: 0 0 10px hsla(30, 90%, 55%, 0.65);
+}
+
+.shop-upgrade.hm-evolve-ready {
+  box-shadow: 0 0 14px hsla(30, 90%, 55%, 0.65);
+}
+
+.upg-sheet.hm-evolve-ready .upg-level {
+  color: hsl(30, 90%, 75%);
+  text-shadow: 0 0 12px hsla(30, 90%, 55%, 0.75);
 }
 
 .upg-desc.centered,
@@ -715,6 +740,26 @@
     --upg-line-size:  clamp(18px, 3.2vmin, 24px);
   }
 }
+
+.hm-evolve-note {
+  color: hsl(30, 90%, 70%);
+  font-weight: 700;
+}
+
+.hm-view-milestones-row {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0;
+}
+
+.hm-view-milestones {
+  border:1px solid hsl(30 90% 55% / 0.65);
+  background: hsl(30 90% 50% / 0.15);
+  color: #ffe6c7;
+  padding: 10px 14px;
+}
+.hm-view-milestones:hover { background:hsl(30 90% 50% / .22); }
+.hm-view-milestones:active { transform:translateY(1px); background:hsl(30 90% 50% / .28); }
 
 @media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
 
