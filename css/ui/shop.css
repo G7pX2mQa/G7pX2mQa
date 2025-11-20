@@ -743,12 +743,13 @@
   }
 }
 
-.hm-evolve-note {
+.hm-evolve-note,
+.upg-desc.centered.hm-evolve-note {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: hsl(30, 94%, 68%);
-  -webkit-text-fill-color: hsl(30, 94%, 68%);
+  color: hsl(30, 94%, 68%) !important;
+  -webkit-text-fill-color: hsl(30, 94%, 68%) !important;
   font-weight: 800;
   text-align: center;
   line-height: 1.2;
