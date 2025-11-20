@@ -1242,7 +1242,6 @@ function ensureUpgradeScaling(upg) {
   }
 }
 
-// Replace your entire costAtLevelUsingScaling with this
 function costAtLevelUsingScaling(upg, level) {
   const scaling = ensureUpgradeScaling(upg);
   if (!scaling) return BigNum.fromInt(0);
