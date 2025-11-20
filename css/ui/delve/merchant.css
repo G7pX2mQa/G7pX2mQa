@@ -690,11 +690,20 @@
   justify-content: flex-start;
 }
 
+.merchant-reset__main.is-forge-complete .merchant-reset__header {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
 .merchant-reset__main.is-forge-complete .merchant-reset__titles {
   display: grid;
   grid-template-rows: auto 1fr;
   justify-items: center;
   height: 100%;
+}
+
+.merchant-reset__main.is-forge-complete .merchant-reset__titles p {
+  align-self: center;
 }
 
 .merchant-reset__header {
