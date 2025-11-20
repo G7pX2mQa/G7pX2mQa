@@ -27,6 +27,7 @@ import {
   evaluateBulkPurchase,
   getUpgradeLockState,
   evolveUpgrade,
+  HM_EVOLUTION_INTERVAL,
 } from '../game/upgrades.js';
 import {
   markGhostTapTarget,
@@ -1399,11 +1400,14 @@ export function openUpgradeOverlay(upgDef) {
     const desc = document.createElement('div');
     desc.className = 'upg-desc centered';
     if (lockHidden) desc.classList.add('lock-desc');
+    const baseDesc = (model.displayDesc || model.upg.desc || '').trim();
     if (evolveReady) {
       desc.classList.add('hm-evolve-note');
       desc.textContent = 'Evolve this upgrade to multiply its effect by 1000x';
+    } else if (baseDesc) {
+      desc.textContent = baseDesc;
     } else {
-      desc.textContent = model.displayDesc || model.upg.desc;
+      desc.hidden = true;
     }
     content.appendChild(desc);
 
@@ -1491,20 +1495,49 @@ export function openUpgradeOverlay(upgDef) {
       viewMilestonesBtn.addEventListener('click', () => {
         const milestones = Array.isArray(model.hmMilestones) ? model.hmMilestones : [];
         if (!milestones.length) return;
+        const evolutions = Math.max(0, Math.floor(Number(model.hmEvolutions ?? 0)));
+        const evolutionOffset = (() => {
+          try { return BigInt(HM_EVOLUTION_INTERVAL) * BigInt(evolutions); }
+          catch { return 0n; }
+        })();
+        const formatMilestoneLevel = (levelBn) => {
+          try {
+            const plain = levelBn?.toPlainIntegerString?.();
+            if (plain && plain !== 'Infinity') {
+              if (plain.length <= 15) {
+                const asNum = Number(plain);
+                if (Number.isFinite(asNum)) return asNum.toLocaleString();
+              }
+              return plain.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
+          } catch {}
+          return formatNumber(levelBn);
+        };
         const lines = milestones
           .sort((a, b) => (Number(a?.level ?? 0) - Number(b?.level ?? 0)))
           .map((m) => {
             const lvl = Math.max(0, Math.floor(Number(m?.level ?? 0)));
+            const milestoneLevelBn = (() => {
+              try { return BigNum.fromAny((BigInt(lvl) + evolutionOffset).toString()); }
+              catch { return BigNum.fromAny(lvl + (HM_EVOLUTION_INTERVAL * evolutions)); }
+            })();
+            const milestonePlain = milestoneLevelBn?.toPlainIntegerString?.();
+            const levelText = formatMilestoneLevel(milestoneLevelBn);
             const mult = formatMultForUi(m?.multiplier ?? m?.mult ?? m?.value ?? 1);
             const target = `${m?.target ?? m?.type ?? 'self'}`.toLowerCase();
             const achieved = (() => {
-              try { return model.lvlBn?.cmp?.(BigNum.fromAny(lvl)) >= 0; }
-              catch { return model.lvl >= lvl; }
+              try { return model.lvlBn?.cmp?.(milestoneLevelBn) >= 0; }
+              catch {}
+              if (Number.isFinite(model.lvl) && milestonePlain && milestonePlain !== 'Infinity') {
+                const approxTarget = Number(milestonePlain);
+                if (Number.isFinite(approxTarget)) return model.lvl >= approxTarget;
+              }
+              return false;
             })();
-            if (target === 'xp') return { text: `Level ${lvl}: Multiplies XP value by ${mult}x`, achieved };
-            if (target === 'coin' || target === 'coins') return { text: `Level ${lvl}: Multiplies Coin value by ${mult}x`, achieved };
-            if (target === 'mp') return { text: `Level ${lvl}: Multiplies MP value by ${mult}x`, achieved };
-            return { text: `Level ${lvl}: Multiplies this upgrade’s effect by ${mult}x`, achieved };
+            if (target === 'xp') return { text: `Level ${levelText}: Multiplies XP value by ${mult}x`, achieved };
+            if (target === 'coin' || target === 'coins') return { text: `Level ${levelText}: Multiplies Coin value by ${mult}x`, achieved };
+            if (target === 'mp') return { text: `Level ${levelText}: Multiplies MP value by ${mult}x`, achieved };
+            return { text: `Level ${levelText}: Multiplies this upgrade’s effect by ${mult}x`, achieved };
           });
         openHmMilestoneDialog(lines);
       });
