@@ -1,4 +1,4 @@
-/* css/ui/delve/merchant.css */
+/* css/ui/delve_merchant.css */
 :root {
   --merchant-bg: hsl(220 32% 7% / 1);
   --merchant-card: hsl(220 26% 12% / 1);
@@ -517,7 +517,7 @@
   width: 0.85em;
   height: 0.85em;
   flex: 0 0 0.85em;
-  background: url('../../img/currencies/coin/coin.png') center / contain no-repeat;
+  background: url('/img/currencies/coin/coin.png') center / contain no-repeat;
   position: relative;
   top: 1px;
 }
@@ -527,7 +527,7 @@
   width: 0.85em;
   height: 0.85em;
   flex: 0 0 0.85em;
-  background: url('../../img/currencies/book/book.png') center / contain no-repeat;
+  background: url('/img/currencies/book/book.png') center / contain no-repeat;
   position: relative;
   top: 1px;
 }
@@ -842,5 +842,4 @@
     min-width: 140px;
     justify-content: center;
   }
-
 }
