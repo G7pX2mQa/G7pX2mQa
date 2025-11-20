@@ -744,9 +744,14 @@
 }
 
 .hm-evolve-note {
-  color: hsl(32, 95%, 70%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: hsl(30, 94%, 68%);
+  -webkit-text-fill-color: hsl(30, 94%, 68%);
   font-weight: 800;
   text-align: center;
+  line-height: 1.2;
   text-shadow: 0 0 12px hsla(30, 90%, 55%, 0.75);
 }
 
