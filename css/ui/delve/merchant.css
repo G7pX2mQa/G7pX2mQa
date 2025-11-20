@@ -776,10 +776,6 @@
   min-height: 44px;
 }
 
-.merchant-reset__main.is-forge-complete .merchant-reset__status:empty {
-  min-height: 0;
-}
-
 .merchant-reset__status strong {
   font-weight: 800;
 }
