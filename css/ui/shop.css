@@ -749,6 +749,7 @@
   width: 100%;
   align-items: center;
   justify-content: center;
+  padding: 0.1em 0 0.05em;
   color: hsl(30, 94%, 68%) !important;
   -webkit-text-fill-color: hsl(30, 94%, 68%) !important;
   font-weight: 800;
