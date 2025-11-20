@@ -94,7 +94,7 @@ export const MERCHANT_DIALOGUES = {
         { label: 'Yes I did that.',       to: 'm1c' },
       ]},
 
-      m1a: { type: 'line', say: 'The XP system is a powerful ancient mechanism, designed to allow rapid influx of coin-collecting power. Increasing your XP level grants you Books infused with my power, capable of great things.', next: 'c1a' },
+      m1a: { type: 'line', say: 'The XP system is a powerful ancient mechanism, designed to allow rapid influx of coin-collecting power. Increasing your XP Level grants you Books infused with my power, capable of great things.', next: 'c1a' },
       m1b: { type: 'line', say: 'It means you can grow passively stronger by collecting coins.', next: 'c1b' },
       m1c: { type: 'line', say: 'And do you know how the XP system works?', next: 'c1c' },
 
