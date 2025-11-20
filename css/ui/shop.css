@@ -745,7 +745,8 @@
 
 .hm-evolve-note,
 .upg-desc.centered.hm-evolve-note {
-  display: inline-flex;
+  display: flex;
+  width: 100%;
   align-items: center;
   justify-content: center;
   color: hsl(30, 94%, 68%) !important;
@@ -800,13 +801,14 @@
 
 .hm-milestones-dialog {
   width: min(520px, 90vw);
-  max-height: min(70vh, 640px);
+  max-height: min(calc(80vh + var(--safe-bottom)), 720px);
   overflow: auto;
   background: linear-gradient(150deg, rgba(15, 22, 38, 0.96), rgba(18, 26, 42, 0.94));
   border: 1px solid hsl(30 90% 55% / 0.5);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
   border-radius: 14px;
   padding: clamp(14px, 2.4vw, 20px);
+  padding-bottom: calc(clamp(14px, 2.4vw, 20px) + var(--safe-bottom));
   color: #f7f2e9;
   font-family: var(--font-ui, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
 }
@@ -926,6 +928,26 @@
 
 .upg-sheet.is-hm-upgrade.is-endless-xp .upg-line {
   font-size: clamp(26px, 3.7vw, 40px);
+}
+.hm-view-milestones:hover { background:hsl(30 90% 50% / .22); }
+.hm-view-milestones:active { transform:translateY(1px); background:hsl(30 90% 50% / .28); }
+
+@media (max-width: 640px) {
+  .upg-sheet.is-hm-upgrade .upg-desc.centered {
+    font-size: clamp(26px, 4vw, 42px);
+  }
+
+  .upg-sheet.is-hm-upgrade.is-endless-xp .upg-desc.centered {
+    font-size: clamp(22px, 3.4vw, 34px);
+  }
+
+  .upg-sheet.is-hm-upgrade .upg-line {
+    font-size: clamp(26px, 4vmin, 42px);
+  }
+
+  .upg-sheet.is-hm-upgrade.is-endless-xp .upg-line {
+    font-size: clamp(22px, 3.4vw, 34px);
+  }
 }
 .hm-view-milestones:hover { background:hsl(30 90% 50% / .22); }
 .hm-view-milestones:active { transform:translateY(1px); background:hsl(30 90% 50% / .28); }
