@@ -1276,16 +1276,19 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
     let count = 0;
 
     while (count < limit) {
+      // Use the exact per-level cost function (with its own flooring logic)
+      // instead of multiplying by ratio, so we don't drift when costs change
+      // non-geometrically around low levels.
+      price = BigNum.fromAny(upg.costAtLevel(startLevelNum + count));
       const newSpent = spent.add(price);
       if (newSpent.cmp(walletBn) > 0) break;
       spent = newSpent;
       count += 1;
-      if (count >= limit) break;
-      price = price.mulDecimalFloor(scaling.ratioStr);
     }
 
     const nextLevel = startLevelNum + count;
-    const nextPrice = count >= limit || (Number.isFinite(cap) && nextLevel >= cap)
+    const reachedCap = Number.isFinite(cap) && nextLevel >= cap;
+    const nextPrice = reachedCap
       ? zero
       : BigNum.fromAny(upg.costAtLevel(nextLevel));
     const countBn = countToBigNum(count);
