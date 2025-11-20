@@ -690,20 +690,10 @@
   justify-content: flex-start;
 }
 
-.merchant-reset__main.is-forge-complete .merchant-reset__header {
-  flex: 1 1 auto;
-  width: 100%;
-}
-
 .merchant-reset__main.is-forge-complete .merchant-reset__titles {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  justify-items: center;
-  height: 100%;
-}
-
-.merchant-reset__main.is-forge-complete .merchant-reset__titles p {
-  align-self: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .merchant-reset__header {
@@ -732,17 +722,18 @@
   color: #e6f5ff;
   font-size: 0.95rem;
   line-height: 1.4;
+  align-self: center;
+  transform: translateY(4vh);
 }
 
 .merchant-reset__body {
-  display: grid;
-  grid-template-rows: 1fr auto;
-  row-gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   align-items: center;
-  justify-items: center;
   text-align: center;
+  justify-content: flex-start;
   width: 100%;
-  flex: 1 0 auto;
 }
 
 .merchant-reset__status {
