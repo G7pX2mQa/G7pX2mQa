@@ -2269,7 +2269,6 @@ const REGISTRY = [
     costType: "coins",
     upgType: "HM",
     icon: "sc_upg_icons/xp_val_hm.png",
-    baseIconOverride: "img/stats/xp/xp_base.png",
     requiresUnlockXp: true,
     scalingPreset: 'HM',
     hmMilestones: [
