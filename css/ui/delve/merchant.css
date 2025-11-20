@@ -725,13 +725,14 @@
 }
 
 .merchant-reset__body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  row-gap: 16px;
   align-items: center;
+  justify-items: center;
   text-align: center;
-  justify-content: flex-start;
   width: 100%;
+  flex: 1 0 auto;
 }
 
 .merchant-reset__status {
