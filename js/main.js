@@ -434,6 +434,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       'sounds/merchant_typing.mp3',
       'sounds/purchase_upg.mp3',
 	  'sounds/forge_reset.mp3',
+	  'sounds/evolve_upg.mp3',
     ],
     fonts: true,
   };
