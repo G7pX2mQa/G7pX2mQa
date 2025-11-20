@@ -682,6 +682,16 @@
   border: 1px solid hsl(35 84% 55% / 0.85);
 }
 
+.merchant-reset__main.is-forge-complete {
+  justify-content: center;
+}
+
+.merchant-reset__main.is-forge-complete .merchant-reset__titles {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .merchant-reset__header {
   display: flex;
   flex-direction: column;
@@ -716,15 +726,19 @@
   gap: 16px;
   align-items: center;
   text-align: center;
+  justify-content: center;   /* keep the stack centered even when status text is absent */
+  width: 100%;
 }
 
-/* status line, with “ready” glow when we have pending gold */
 .merchant-reset__status {
   color: #f0f8ff;
   font-size: 0.96rem;
   line-height: 1.55;
   min-height: 44px;
   max-width: 540px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .merchant-reset__status.is-ready {
@@ -741,7 +755,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px; /* closer together */
+  gap: 4px;
   align-self: center;
   min-width: min(430px, 100%);
   padding: 12px 26px;
@@ -750,20 +764,13 @@
   letter-spacing: 0.04em;
   border-radius: 999px;
   border: 0;
-  background:
-    linear-gradient(180deg,
-      hsl(36 95% 60%),   /* forge-y minty gold button */
-      hsl(28 85% 47%));
+  background: linear-gradient(180deg, hsl(36 95% 60%), hsl(28 85% 47%));
   box-shadow:
     0 6px 0 hsl(24 90% 20%),
     0 0 0 3px hsl(24 96% 10% / 0.9);
   color: #ffffff;
   cursor: pointer;
-  transition:
-    transform 100ms ease,
-    box-shadow 100ms ease,
-    filter 120ms ease,
-    opacity 120ms ease;
+  position: relative;
 }
 
 /* pieces inside + icon amount */
@@ -821,11 +828,41 @@
     0 1px 0 rgba(0,0,0,0.55);
 }
 
-.merchant-reset__action:not(:disabled):hover {
-    background: linear-gradient(180deg,
-        hsl(36 100% 68%), 
-        hsl(28 85% 47%) 
-    );
+@keyframes forgeFirePulse {
+  0% {
+    box-shadow:
+      0 0 10px 2px hsl(28 100% 60% / 0.3),
+      0 6px 0 hsl(24 90% 20%),
+      0 0 0 3px hsl(24 96% 10% / 0.9);
+  }
+  50% {
+    box-shadow:
+      0 0 18px 5px hsl(28 100% 65% / 0.55),
+      0 6px 0 hsl(24 90% 20%),
+      0 0 0 3px hsl(24 96% 12% / 1);
+  }
+  100% {
+    box-shadow:
+      0 0 10px 2px hsl(28 100% 60% / 0.3),
+      0 6px 0 hsl(24 90% 20%),
+      0 0 0 3px hsl(24 96% 10% / 0.9);
+  }
+}
+
+.merchant-reset__action:not(:disabled):hover,
+.merchant-reset__action:not(:disabled):focus-visible {
+  background: linear-gradient(
+    180deg,
+    hsl(36 95% 63%),
+    hsl(28 85% 48%)
+  );
+
+  animation: forgeFirePulse 1.1s infinite ease-in-out;
+}
+
+.merchant-reset__action.disabled,
+.merchant-reset__action:disabled {
+    cursor: not-allowed !important;
 }
 
 @media (max-width: 900px) {
