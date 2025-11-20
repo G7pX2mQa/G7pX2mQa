@@ -433,6 +433,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       'sounds/wave_spawn.mp3',
       'sounds/merchant_typing.mp3',
       'sounds/purchase_upg.mp3',
+	  'sounds/forge_reset.mp3',
     ],
     fonts: true,
   };
