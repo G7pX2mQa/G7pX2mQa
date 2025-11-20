@@ -2262,7 +2262,7 @@ const REGISTRY = [
     id: 12,
     tie: UPGRADE_TIES.ENDLESS_XP,
     title: "Endless XP",
-    desc: "Multiplies XP value by 1.2x per level",
+    desc: "The first Milestone-type upgrade\nMilestones: Reach a certain upgrade level for powerful buffs\nMultiplies XP value by 1.2x per level",
     lvlCap: HM_EVOLUTION_INTERVAL,
     baseCost: 1_000_000,
     costType: "coins",
