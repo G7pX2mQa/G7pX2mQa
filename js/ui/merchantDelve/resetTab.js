@@ -370,7 +370,7 @@ function buildPanel(panelEl) {
     <h3>Forge</h3>
     <p>
       Resets your Coins, Books, XP, Coin upgrades, and Book upgrades for Gold<br>
-	  Increase pending Gold amount by increasing Coins and XP Level
+	  Increase pending Gold amount by increasing Coins and XP Level<br>
       The button below shows how much Gold you will get upon reset
     </p>
   </div>
