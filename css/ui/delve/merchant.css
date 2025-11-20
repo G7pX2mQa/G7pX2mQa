@@ -675,7 +675,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: center;       /* horizontal centering of the stack */
+  align-items: stretch;
   gap: 20px;
   min-height: 260px;         /* <-- gives room so centering is visible */
   box-shadow:
@@ -684,18 +684,35 @@
   border: 1px solid hsl(35 84% 55% / 0.85);
 }
 
-.merchant-reset__main.is-forge-complete {
-  justify-content: flex-start;
+.merchant-reset__layout {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 20px;
+  width: 100%;
+  height: 100%;
 }
 
 .merchant-reset__main.is-forge-complete {
   justify-content: flex-start;
 }
 
-.merchant-reset__main.is-forge-complete .merchant-reset__titles {
+.merchant-reset__content {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.merchant-reset__main.is-forge-complete .merchant-reset__content {
   justify-content: center;
+}
+
+.merchant-reset__actions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .merchant-reset__header {
@@ -757,6 +774,10 @@
 .merchant-reset__status:empty {
   visibility: hidden;
   min-height: 44px;
+}
+
+.merchant-reset__main.is-forge-complete .merchant-reset__status:empty {
+  min-height: 0;
 }
 
 .merchant-reset__status strong {
