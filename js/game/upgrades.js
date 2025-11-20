@@ -1091,6 +1091,7 @@ function computeHmMultipliers(upg, levelBn, areaKey = DEFAULT_AREA_KEY) {
 
 function hmNextMilestoneLevel(upg, levelBn, areaKey = DEFAULT_AREA_KEY) {
   if (!upg || upg.upgType !== 'HM') return null;
+  if (levelBn?.isInfinite?.()) return BigNum.fromAny('Infinity');
   const milestones = resolveHmMilestones(upg, areaKey);
   if (!milestones.length) return null;
 
@@ -3243,6 +3244,10 @@ function isUpgradeLocked(areaKey, upg) {
 
 function isHmReadyToEvolve(upg, lvlBn, evolutions = null) {
   if (!upg || upg.upgType !== 'HM') return false;
+
+  // Once an HM upgrade reaches BN Infinity, treat it as permanently maxed
+  // and suppress further evolutions so the UI can show the maxed frame.
+  if (lvlBn?.isInfinite?.()) return false;
   const safeEvol = Number.isFinite(evolutions)
     ? evolutions
     : activeEvolutionsForUpgrade(upg);
