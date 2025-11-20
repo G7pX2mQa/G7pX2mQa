@@ -865,6 +865,10 @@
   font-size: clamp(28px, 3.9vw, 44px);
 }
 
+.upg-sheet.is-hm-upgrade.is-endless-xp .upg-desc.centered {
+  font-size: clamp(28px, 3.9vw, 44px);
+}
+
 .upg-sheet.is-hm-upgrade .hm-view-milestones-row {
   width: 100%;
   margin-top: 4px;
@@ -872,6 +876,10 @@
 
 .upg-sheet.is-hm-upgrade .upg-line {
   font-size: clamp(20px, 2.6vmin, 30px);
+}
+
+.upg-sheet.is-hm-upgrade.is-endless-xp .upg-line {
+  font-size: clamp(18px, 2.2vmin, 26px);
 }
 .hm-view-milestones:hover { background:hsl(30 90% 50% / .22); }
 .hm-view-milestones:active { transform:translateY(1px); background:hsl(30 90% 50% / .28); }
