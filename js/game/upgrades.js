@@ -1918,7 +1918,7 @@ function formatBigNumAsHtml(bn) {
   return formatNumber(bn instanceof BigNum ? bn : BigNum.fromAny(bn ?? 0));
 }
 
-function formatMultForUi(value) {
+export function formatMultForUi(value) {
   try {
     if (value && (value instanceof BigNum || value.toPlainIntegerString)) {
       const log10 = approxLog10BigNum(value);
