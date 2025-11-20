@@ -935,7 +935,7 @@ const DEFAULT_SCALING_PRESETS = {
     const upgType = `${upg?.upgType ?? ''}`.toUpperCase();
     if (upgType === 'HM') {
       const evol = activeEvolutionsForUpgrade(upg);
-      return 1.25 + (0.05 * evol);
+      return 1.35 + (0.10 * evol);
     }
     return 1.20;
   },
