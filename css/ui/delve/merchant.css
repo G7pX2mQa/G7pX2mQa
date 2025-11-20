@@ -46,6 +46,8 @@
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+  position: relative;
+  z-index: 6;
 }
 
 .merchant-grabber {
