@@ -3,6 +3,7 @@
 import { bank } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
+import { IS_MOBILE } from '../main.js';
 import { openMerchant,
     ensureMerchantOverlay,
     primeTypingSfx,
@@ -44,7 +45,6 @@ let eventsBound = false;
 let delveBtnEl = null;
 let updateDelveGlow = null;
 let shopCloseTimer = null;
-const IS_MOBILE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 let __shopOpenStamp = 0;
 let __shopPostOpenPointer = false;
 
@@ -83,8 +83,7 @@ function isForgeUnlockUpgrade(upgLike) {
 }
 
 export function blockInteraction(ms = 140) {
-  const isCoarse = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
-  if (!isCoarse) return;
+  if (!IS_MOBILE) return;
 
   let shield = document.getElementById('ccc-tap-shield');
   if (!shield) {
@@ -1164,8 +1163,6 @@ function ensureUpgradeOverlay() {
   upgOverlayEl.appendChild(upgSheetEl);
   document.body.appendChild(upgOverlayEl);
 
-const IS_COARSE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
-
 upgOverlayEl.addEventListener('pointerdown', (e) => {
   if (!IS_COARSE) return;
   if (e.pointerType === 'mouse') return;
@@ -1176,7 +1173,6 @@ upgOverlayEl.addEventListener('pointerdown', (e) => {
 }, true);
 
 upgOverlayEl.addEventListener('click', (e) => {
-  const IS_COARSE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
   if (!IS_COARSE) return;
   if (e.target === upgOverlayEl) {
     e.preventDefault();
@@ -1223,10 +1219,7 @@ upgOverlayEl.addEventListener('click', (e) => {
 }
 
 function closeUpgradeMenu() {
-  const IS_COARSE =
-    (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
-
-  if (IS_COARSE) {
+  if (IS_MOBILE) {
     try { blockInteraction(160); } catch {}
   }
 
