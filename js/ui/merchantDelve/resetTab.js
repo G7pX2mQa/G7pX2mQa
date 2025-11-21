@@ -515,6 +515,11 @@ function bindGlobalEvents() {
     recomputePendingGold();
     updateResetPanel();
   });
+  window.addEventListener('debug:change', (e) => {
+    if (e?.detail?.slot != null && resetState.slot != null && e.detail.slot !== resetState.slot) return;
+    recomputePendingGold();
+    updateResetPanel();
+  });
 }
 
 export function initResetSystem() {
