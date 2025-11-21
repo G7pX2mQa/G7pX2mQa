@@ -936,7 +936,7 @@ function buildDebugPanel() {
 
     const shortcuts = document.createElement('div');
     shortcuts.className = 'debug-panel-shortcuts';
-    shortcuts.textContent = 'C: Close and preserve panels\nShift+C: Close and collapse all panels';
+    shortcuts.textContent = '';
 
     const closeButton = document.createElement('button');
     closeButton.className = 'debug-panel-close';
@@ -949,7 +949,7 @@ function buildDebugPanel() {
     if (!IS_MOBILE) {
         const shortcuts = document.createElement('div');
         shortcuts.className = 'debug-panel-shortcuts';
-        shortcuts.textContent = 'C: Close and collapse all panels\nShift+C: Close and preserve panels';
+        shortcuts.textContent = 'C: Close and preserve panels\nShift+C: Close and collapse all panels';
         titleContainer.appendChild(shortcuts);
     }
 
