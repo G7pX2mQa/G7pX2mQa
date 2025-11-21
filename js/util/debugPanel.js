@@ -582,6 +582,31 @@ function getStatOverride(slot, key) {
     return fromStorage;
 }
 
+function clearStatMultiplierOverride(statKey, slot = getActiveSlot()) {
+    const storageKey = getStatMultiplierStorageKey(statKey, slot);
+    statOverrides.delete(buildOverrideKey(slot, statKey));
+    if (!storageKey || typeof localStorage === 'undefined') return;
+    if (isStorageKeyLocked(storageKey)) return;
+    try { localStorage.removeItem(storageKey); } catch {}
+}
+
+function isStatMultiplierLocked(statKey, slot = getActiveSlot()) {
+    return isStorageKeyLocked(getStatMultiplierStorageKey(statKey, slot));
+}
+
+function getLockedStatOverride(slot, statKey) {
+    if (!isStatMultiplierLocked(statKey, slot)) return null;
+    return getStatOverride(slot, statKey);
+}
+
+function getStatMultiplierDisplayValue(statKey, slot = getActiveSlot()) {
+    const locked = isStatMultiplierLocked(statKey, slot);
+    if (locked) {
+        return getStatOverride(slot, statKey) ?? BigNum.fromInt(1);
+    }
+    return BigNum.fromInt(1);
+}
+
 function getStatMultiplierStorageKey(statKey, slot = getActiveSlot()) {
     if (!statKey) return null;
     const resolvedSlot = slot ?? getActiveSlot();
@@ -681,7 +706,7 @@ export function getDebugStatMultiplierOverride(statKey, slot = getActiveSlot()) 
 }
 
 export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlot()) {
-    const override = getStatOverride(slot, statKey);
+    const override = getLockedStatOverride(slot, statKey);
     if (!override) return amount;
     let base;
     try {
@@ -740,7 +765,7 @@ function toggleStorageLock(key) {
     return true;
 }
 
-function createLockToggle(storageKey) {
+function createLockToggle(storageKey, { onToggle } = {}) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'debug-lock-button';
@@ -753,6 +778,10 @@ function createLockToggle(storageKey) {
 
     button.addEventListener('click', () => {
         toggleStorageLock(storageKey);
+        if (typeof onToggle === 'function') {
+            try { onToggle(isStorageKeyLocked(storageKey)); }
+            catch {}
+        }
         refresh();
     });
 
@@ -822,7 +851,7 @@ function flagDebugUsage() {
     catch {}
 }
 
-function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey } = {}) {
+function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey, onLockChange } = {}) {
     const row = document.createElement('div');
     row.className = 'debug-panel-row';
 
@@ -843,7 +872,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
     let editing = false;
     let pendingValue = null;
     let skipBlurCommit = false;
-    const lockToggle = storageKey ? createLockToggle(storageKey) : null;
+    const lockToggle = storageKey ? createLockToggle(storageKey, { onToggle: onLockChange }) : null;
 
     const setValue = (value) => {
         if (editing) {
@@ -1196,18 +1225,25 @@ function buildAreaStatMultipliers(container) {
 
     STAT_MULTIPLIERS.forEach((stat) => {
         const storageKey = getStatMultiplierStorageKey(stat.key, slot);
-        const currentOverride = getDebugStatMultiplierOverride(stat.key, slot) ?? BigNum.fromInt(1);
-        const row = createInputRow(`${stat.label} Multiplier`, currentOverride, (value, { setValue }) => {
+        const row = createInputRow(`${stat.label} Multiplier`, getStatMultiplierDisplayValue(stat.key, slot), (value, { setValue }) => {
             const latestSlot = getActiveSlot();
             if (latestSlot == null) return;
-            const previous = getDebugStatMultiplierOverride(stat.key, latestSlot) ?? BigNum.fromInt(1);
+            const previous = getStatMultiplierDisplayValue(stat.key, latestSlot);
             try { setDebugStatMultiplierOverride(stat.key, value, latestSlot); } catch {}
-            const refreshed = getDebugStatMultiplierOverride(stat.key, latestSlot) ?? BigNum.fromInt(1);
+            const refreshed = getStatMultiplierDisplayValue(stat.key, latestSlot);
             setValue(refreshed);
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
             }
-        }, { storageKey });
+        }, {
+            storageKey,
+            onLockChange: (locked) => {
+                if (!locked) {
+                    clearStatMultiplierOverride(stat.key, slot);
+                    row.setValue(getStatMultiplierDisplayValue(stat.key, slot));
+                }
+            },
+        });
 
         registerLiveBinding({
             type: 'stat-mult',
@@ -1215,7 +1251,7 @@ function buildAreaStatMultipliers(container) {
             slot,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
-                const latest = getDebugStatMultiplierOverride(stat.key, slot) ?? BigNum.fromInt(1);
+                const latest = getStatMultiplierDisplayValue(stat.key, slot);
                 row.setValue(latest);
             },
         });
