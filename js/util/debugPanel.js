@@ -936,7 +936,7 @@ function buildDebugPanel() {
 
     const shortcuts = document.createElement('div');
     shortcuts.className = 'debug-panel-shortcuts';
-    shortcuts.textContent = 'C - Close and collapse all panels\nShift+C - Close and preserve panels';
+    shortcuts.textContent = 'C: Close and collapse all panels\nShift+C: Close and preserve panels';
 
     const closeButton = document.createElement('button');
     closeButton.className = 'debug-panel-close';
@@ -952,25 +952,25 @@ function buildDebugPanel() {
     header.appendChild(closeButton);
     panel.appendChild(header);
 
-    panel.appendChild(createSection('Areas—currency/stat/upgrade management for each area', 'debug-areas', content => {
+    panel.appendChild(createSection('Areas: currency/stat/upgrade management for each area', 'debug-areas', content => {
         buildAreasContent(content);
     }));
 
-    panel.appendChild(createSection('Unlocks—modify specific unlock flags', 'debug-unlocks', content => {
+    panel.appendChild(createSection('Unlocks: modify specific unlock flags', 'debug-unlocks', content => {
         const placeholder = document.createElement('div');
         placeholder.className = 'debug-panel-empty';
         placeholder.textContent = 'Toggle unlock-type upgrades here.';
         content.appendChild(placeholder);
     }));
 
-    panel.appendChild(createSection('Action Log—keep track of everything you do', 'debug-action-log', content => {
+    panel.appendChild(createSection('Action Log: keep track of everything you do', 'debug-action-log', content => {
         const placeholder = document.createElement('div');
         placeholder.className = 'debug-panel-empty';
         placeholder.textContent = 'No actions logged yet.';
         content.appendChild(placeholder);
     }));
 	
-    panel.appendChild(createSection('Miscellaneous—helpful miscellaneous functions', 'debug-misc', content => {
+    panel.appendChild(createSection('Miscellaneous: helpful miscellaneous functions', 'debug-misc', content => {
         const placeholder = document.createElement('div');
         placeholder.className = 'debug-panel-empty';
         placeholder.textContent = 'Utility buttons will appear here.';
