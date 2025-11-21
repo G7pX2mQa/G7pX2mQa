@@ -28,7 +28,7 @@ let setDebugPanelAccess;
 const pendingPreloadedAudio = [];
 
 const IS_TOUCH_DEVICE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
-const DEBUG_PANEL_ACCESS = Boolean(window.debugPanelAccess);
+const DEBUG_PANEL_ACCESS = window.debugPanelAccess !== false;
 
 function disableMobileZoomGestures() {
   if (!IS_TOUCH_DEVICE) return;
