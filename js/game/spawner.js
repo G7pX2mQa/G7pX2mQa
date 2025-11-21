@@ -2,6 +2,7 @@
 
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { getMutationState, onMutationChange } from './mutationSystem.js';
+import { IS_MOBILE } from '../main.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0n;
@@ -184,7 +185,6 @@ export function createSpawner({
     }
 	
 	  // ---- Wave spawn SFX ----
-const IS_MOBILE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 const waveURL = new URL(waveSoundSrc, document.baseURI).href;
 let waveHtmlEl = null;       // single HTMLAudio element for mobile fallback
 let waveHtmlSource = null;   // MediaElementSourceNode connected to WA gain
