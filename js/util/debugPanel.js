@@ -1271,7 +1271,7 @@ function buildDebugPanel() {
         { text: 'Shift+C: Close and collapse panels', hideOnMobile: true },
         { text: 'Input fields can take a normal number (e.g., 1234) or a BN number' },
         { text: 'Input value "inf" sets a value to infinity or an upgrade to its level cap' },
-        { text: 'Toggle UL/L (Unlock/Lock) on a value to freeze its value immediately after input' },
+        { text: 'Toggle UL/L (Unlocked/Locked) on a value to freeze its value immediately after input' },
     ];
 
     infoLines.forEach(({ text, hideOnMobile }) => {
