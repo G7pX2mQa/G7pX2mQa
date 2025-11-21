@@ -393,7 +393,7 @@ function ensureDebugPanelStyles() {
             color: #aaa;
             margin-left: 6px;
             position: relative;
-            top: -2px;
+            top: -1px;
         }
 
         .debug-panel-toggle-button {
@@ -945,7 +945,7 @@ function buildDebugPanel() {
     if (!IS_MOBILE) {
         const shortcuts = document.createElement('div');
         shortcuts.className = 'debug-panel-shortcuts';
-        shortcuts.textContent = 'C: Close and preserve panels\nShift+C: Close and collapse panels';
+        shortcuts.textContent = 'C: Close and preserve panels\nShift+C: Close and collapse panels\nInput value "inf": sets a value to infinity or an upgrade to its level cap';
         titleContainer.appendChild(shortcuts);
     }
 
