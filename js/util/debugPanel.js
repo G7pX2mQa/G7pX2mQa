@@ -1,3 +1,5 @@
+// This is NOT part of my project, this is just here for reference.
+
 let testModeEnabled = true;
 let devMenuOpen = false;
 let devMenuUpdateInterval = null;
@@ -1193,4 +1195,5 @@ function resetGame() {
     logAction('Performed a hard reset. All stats and upgrades have been wiped.');
     clearAllCoins();
     applyUpgradeEffects();
+
 }
