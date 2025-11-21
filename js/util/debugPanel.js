@@ -934,10 +934,6 @@ function buildDebugPanel() {
     title.className = 'debug-panel-title';
     title.textContent = 'Debug Panel';
 
-    const shortcuts = document.createElement('div');
-    shortcuts.className = 'debug-panel-shortcuts';
-    shortcuts.textContent = '';
-
     const closeButton = document.createElement('button');
     closeButton.className = 'debug-panel-close';
     closeButton.type = 'button';
