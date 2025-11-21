@@ -24,6 +24,7 @@ let debugPanelOpen = false;
 let debugPanelAccess = true;
 let debugPanelCleanups = [];
 let debugPanelExpansionState = createEmptyExpansionState();
+let debugPanelScrollTop = 0;
 let sectionKeyCounter = 0;
 let subsectionKeyCounter = 0;
 const liveBindings = [];
