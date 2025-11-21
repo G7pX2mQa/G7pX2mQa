@@ -4,7 +4,7 @@ const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
 let debugPanelOpen = false;
-let debugPanelAccess = false;
+let debugPanelAccess = true;
 
 function ensureDebugPanelStyles() {
     let style = document.getElementById(DEBUG_PANEL_STYLE_ID);
