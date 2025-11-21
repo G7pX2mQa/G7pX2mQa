@@ -5,6 +5,7 @@ import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { unlockShop } from '../ui/hudButtons.js';
 import { addXp, isXpSystemUnlocked } from './xpSystem.js';
+import { IS_MOBILE } from '../main.js';
 import {
   addMutationPower,
   isMutationUnlocked,
@@ -274,7 +275,7 @@ export function initCoinPickup({
   coinSelector        = '.coin, [data-coin], .coin-sprite',
   soundSrc            = 'sounds/coin_pickup.mp3',
   storageKey          = 'ccc:coins',
-  disableAnimation    = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window),
+  disableAnimation    = IS_MOBILE,
 } = {}) {
   if (coinPickup?.destroy) {
     coinPickup.destroy();
@@ -558,7 +559,6 @@ const computeMutationMultiplier = (spawnLevelStr) => {
   }
 
   // ----- Helpers -----
-  const IS_MOBILE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
   const DESKTOP_VOLUME = 0.3;
   const MOBILE_VOLUME  = 0.12;
   const resolvedSrc = new URL(soundSrc, document.baseURI).href;
