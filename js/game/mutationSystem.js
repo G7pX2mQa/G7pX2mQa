@@ -502,12 +502,12 @@ function bindStorageWatchers(slot) {
   }));
 }
 
-export function initMutationSystem() {
+export function initMutationSystem({ forceReload = false } = {}) {
   ensureExternalMultiplierProviders();
   if (initialized) {
     const activeSlot = getActiveSlot();
     const slotChanged = activeSlot !== mutationState.slot;
-    if (slotChanged) {
+    if (slotChanged || forceReload) {
       readStateFromStorage(activeSlot);
     }
     bindStorageWatchers(activeSlot);
