@@ -20,17 +20,72 @@ const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
 let debugPanelOpen = false;
 let debugPanelAccess = true;
 let debugPanelCleanups = [];
+let debugPanelExpansionState = createEmptyExpansionState();
+let sectionKeyCounter = 0;
+let subsectionKeyCounter = 0;
 const liveBindings = [];
 
 function isOnMenu() {
     const menuRoot = document.querySelector('.menu-root');
-    return !!menuRoot && menuRoot.style.display !== 'none';
+    if (!menuRoot) return false;
+
+    const style = window.getComputedStyle?.(menuRoot);
+    if (!style) return menuRoot.style.display !== 'none';
+
+    return style.display !== 'none' && style.visibility !== 'hidden' && !menuRoot.hidden;
 }
 
 function addDebugPanelCleanup(fn) {
     if (typeof fn === 'function') {
         debugPanelCleanups.push(fn);
     }
+}
+
+function createEmptyExpansionState() {
+    return { sections: new Set(), subsections: new Set() };
+}
+
+function captureDebugPanelExpansionState() {
+    const panel = document.getElementById(DEBUG_PANEL_ID);
+    if (!panel) return createEmptyExpansionState();
+
+    const sections = new Set();
+    panel.querySelectorAll('.debug-panel-section-toggle').forEach((toggle) => {
+        const key = toggle.dataset.sectionKey ?? toggle.textContent;
+        if (toggle.classList.contains('expanded')) {
+            sections.add(key);
+        }
+    });
+
+    const subsections = new Set();
+    panel.querySelectorAll('.debug-panel-subsection-toggle').forEach((toggle) => {
+        const key = toggle.dataset.subsectionKey ?? toggle.textContent;
+        if (toggle.classList.contains('expanded')) {
+            subsections.add(key);
+        }
+    });
+
+    return { sections, subsections };
+}
+
+function applyDebugPanelExpansionState(panel) {
+    const { sections, subsections } = debugPanelExpansionState ?? createEmptyExpansionState();
+
+    panel.querySelectorAll('.debug-panel-section-toggle').forEach((toggle) => {
+        const key = toggle.dataset.sectionKey ?? toggle.textContent;
+        if (!sections.has(key)) return;
+        const content = toggle.nextElementSibling;
+        toggle.classList.add('expanded');
+        if (content) content.classList.add('active');
+    });
+
+    panel.querySelectorAll('.debug-panel-subsection-toggle').forEach((toggle) => {
+        const key = toggle.dataset.subsectionKey ?? toggle.textContent;
+        if (!subsections.has(key)) return;
+        const content = toggle.nextElementSibling;
+        toggle.classList.add('expanded');
+        if (content) content.classList.add('active');
+    });
 }
 
 function cleanupDebugPanelResources() {
@@ -384,11 +439,14 @@ function createSection(title, contentId, contentBuilder) {
     toggle.className = 'debug-panel-section-toggle';
     toggle.type = 'button';
     toggle.textContent = title;
+    const stateKey = contentId || `${title}-${sectionKeyCounter++}`;
+    toggle.dataset.sectionKey = stateKey;
     section.appendChild(toggle);
 
     const content = document.createElement('div');
     content.className = 'debug-panel-section-content';
     content.id = contentId;
+    content.dataset.sectionKey = stateKey;
     contentBuilder(content);
     section.appendChild(content);
 
@@ -409,10 +467,13 @@ function createSubsection(title, contentBuilder, { defaultExpanded = false } = {
     toggle.type = 'button';
     toggle.className = 'debug-panel-subsection-toggle';
     toggle.textContent = title;
+    const stateKey = `${title}-${subsectionKeyCounter++}`;
+    toggle.dataset.subsectionKey = stateKey;
     container.appendChild(toggle);
 
     const content = document.createElement('div');
     content.className = 'debug-panel-subsection-content';
+    content.dataset.subsectionKey = stateKey;
     contentBuilder(content);
     container.appendChild(content);
 
@@ -462,6 +523,10 @@ function collapseAllDebugCategories() {
 function formatBigNumForInput(value) {
     try {
         const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 0);
+        if (bn.isInfinite?.()) {
+            const precision = Number.parseInt(bn?.p, 10) || BigNum.DEFAULT_PRECISION;
+            return `BN:${precision}:1:${BigNum.MAX_E}`;
+        }
         const storage = bn.toStorage?.();
         const [, pStr = `${BigNum.DEFAULT_PRECISION}`, sigPart = '0', expPart = '0'] = (storage || '').split(':');
         const precision = Number.parseInt(pStr, 10) || BigNum.DEFAULT_PRECISION;
@@ -595,7 +660,7 @@ function applyXpState({ level, progress }) {
         } catch {}
     }
 
-    initXpSystem();
+    initXpSystem({ forceReload: true });
 }
 
 function applyMutationState({ level, progress }) {
@@ -626,7 +691,7 @@ function applyMutationState({ level, progress }) {
         } catch {}
     }
 
-    initMutationSystem();
+    initMutationSystem({ forceReload: true });
 }
 
 function buildAreaCurrencies(container, area) {
@@ -842,6 +907,8 @@ function buildDebugPanel() {
     if (!debugPanelAccess || isOnMenu()) return;
     cleanupDebugPanelResources();
     ensureDebugPanelStyles();
+    sectionKeyCounter = 0;
+    subsectionKeyCounter = 0;
 
     const existingPanel = document.getElementById(DEBUG_PANEL_ID);
     if (existingPanel) existingPanel.remove();
@@ -862,7 +929,7 @@ function buildDebugPanel() {
     closeButton.type = 'button';
     closeButton.setAttribute('aria-label', 'Close Debug Panel');
     closeButton.textContent = '×';
-    closeButton.addEventListener('click', closeDebugPanel);
+    closeButton.addEventListener('click', () => closeDebugPanel({ preserveExpansionState: true }));
 
     header.appendChild(title);
     header.appendChild(closeButton);
@@ -893,6 +960,8 @@ function buildDebugPanel() {
         content.appendChild(placeholder);
     }));
 
+    applyDebugPanelExpansionState(panel);
+
     document.body.appendChild(panel);
     setupLiveBindingListeners();
     debugPanelOpen = true;
@@ -908,7 +977,10 @@ function openDebugPanel() {
     buildDebugPanel();
 }
 
-function closeDebugPanel() {
+function closeDebugPanel({ preserveExpansionState = false } = {}) {
+    debugPanelExpansionState = preserveExpansionState
+        ? captureDebugPanelExpansionState()
+        : createEmptyExpansionState();
     const panel = document.getElementById(DEBUG_PANEL_ID);
     if (panel) panel.remove();
     cleanupDebugPanelResources();
@@ -964,9 +1036,10 @@ function applyDebugPanelAccess(enabled) {
 document.addEventListener('keydown', event => {
     if (!debugPanelAccess || isOnMenu()) return;
     if (event.key?.toLowerCase() !== 'c') return;
+    if (event.ctrlKey) return;
 
     if (event.shiftKey) {
-        closeDebugPanel();
+        closeDebugPanel({ preserveExpansionState: true });
         event.preventDefault();
         return;
     }
