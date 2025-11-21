@@ -32,6 +32,8 @@ let storageLockPatched = false;
 let originalSetItem = null;
 let originalRemoveItem = null;
 
+const STAT_MULTIPLIER_STORAGE_PREFIX = 'ccc:debug:stat-mult';
+
 function isOnMenu() {
     const menuRoot = document.querySelector('.menu-root');
     if (!menuRoot) return false;
@@ -572,7 +574,37 @@ function getCurrencyOverride(slot, key) {
 }
 
 function getStatOverride(slot, key) {
-    return statOverrides.get(buildOverrideKey(slot, key)) ?? null;
+    const override = statOverrides.get(buildOverrideKey(slot, key));
+    if (override) return override;
+    const fromStorage = loadStatMultiplierOverrideFromStorage(key, slot);
+    if (!fromStorage) return null;
+    statOverrides.set(buildOverrideKey(slot, key), fromStorage);
+    return fromStorage;
+}
+
+function getStatMultiplierStorageKey(statKey, slot = getActiveSlot()) {
+    if (!statKey) return null;
+    const resolvedSlot = slot ?? getActiveSlot();
+    if (resolvedSlot == null) return null;
+    return `${STAT_MULTIPLIER_STORAGE_PREFIX}:${statKey}:${resolvedSlot}`;
+}
+
+function loadStatMultiplierOverrideFromStorage(statKey, slot = getActiveSlot()) {
+    const storageKey = getStatMultiplierStorageKey(statKey, slot);
+    if (!storageKey || typeof localStorage === 'undefined') return null;
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return null;
+    try { return BigNum.fromAny(raw); }
+    catch { return null; }
+}
+
+function storeStatMultiplierOverride(statKey, slot, value) {
+    const storageKey = getStatMultiplierStorageKey(statKey, slot);
+    if (!storageKey || typeof localStorage === 'undefined') return;
+    try {
+        const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 1);
+        localStorage.setItem(storageKey, bn.toStorage?.() ?? String(bn));
+    } catch {}
 }
 
 function applyCurrencyOverrideForSlot(currencyKey, slot = getActiveSlot()) {
@@ -631,10 +663,15 @@ export function getDebugCurrencyMultiplierOverride(currencyKey, slot = getActive
 
 export function setDebugStatMultiplierOverride(statKey, value, slot = getActiveSlot()) {
     if (!statKey || slot == null) return null;
+    const storageKey = getStatMultiplierStorageKey(statKey, slot);
+    if (isStorageKeyLocked(storageKey)) {
+        return getStatOverride(slot, statKey) ?? BigNum.fromInt(1);
+    }
     let bn;
     try { bn = value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value ?? 1); }
     catch { bn = BigNum.fromInt(1); }
     statOverrides.set(buildOverrideKey(slot, statKey), bn);
+    storeStatMultiplierOverride(statKey, slot, bn);
     return bn;
 }
 
@@ -1158,6 +1195,7 @@ function buildAreaStatMultipliers(container) {
     }
 
     STAT_MULTIPLIERS.forEach((stat) => {
+        const storageKey = getStatMultiplierStorageKey(stat.key, slot);
         const currentOverride = getDebugStatMultiplierOverride(stat.key, slot) ?? BigNum.fromInt(1);
         const row = createInputRow(`${stat.label} Multiplier`, currentOverride, (value, { setValue }) => {
             const latestSlot = getActiveSlot();
@@ -1169,7 +1207,7 @@ function buildAreaStatMultipliers(container) {
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
             }
-        });
+        }, { storageKey });
 
         registerLiveBinding({
             type: 'stat-mult',
