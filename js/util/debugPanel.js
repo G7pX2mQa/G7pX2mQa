@@ -614,6 +614,10 @@ function buildDebugPanel() {
 
 function openDebugPanel() {
     if (!debugPanelAccess) return;
+    if (getActiveSlot() == null) {
+        closeDebugPanel();
+        return;
+    }
     if (debugPanelOpen) return;
     buildDebugPanel();
 }
