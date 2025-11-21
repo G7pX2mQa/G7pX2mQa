@@ -20,10 +20,84 @@ const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
 let debugPanelOpen = false;
 let debugPanelAccess = true;
+let debugPanelCleanups = [];
+const liveBindings = [];
 
-function isMenuVisible() {
+function isOnMenu() {
     const menuRoot = document.querySelector('.menu-root');
     return !!menuRoot && menuRoot.style.display !== 'none';
+}
+
+function addDebugPanelCleanup(fn) {
+    if (typeof fn === 'function') {
+        debugPanelCleanups.push(fn);
+    }
+}
+
+function cleanupDebugPanelResources() {
+    debugPanelCleanups.forEach((fn) => {
+        try { fn?.(); } catch {}
+    });
+    debugPanelCleanups = [];
+    liveBindings.length = 0;
+}
+
+function registerLiveBinding(binding) {
+    if (!binding || typeof binding.refresh !== 'function') return;
+    liveBindings.push(binding);
+}
+
+function refreshLiveBindings(predicate) {
+    liveBindings.forEach((binding) => {
+        if (typeof predicate === 'function' && !predicate(binding)) return;
+        try { binding.refresh(); } catch {}
+    });
+}
+
+function setupLiveBindingListeners() {
+    if (typeof window === 'undefined') return;
+
+    const currencyHandler = (event) => {
+        const { key, slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'currency'
+            && binding.key === key
+            && binding.slot === targetSlot);
+    };
+    window.addEventListener('currency:change', currencyHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('currency:change', currencyHandler));
+
+    const xpHandler = (event) => {
+        const { slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'xp'
+            && binding.slot === targetSlot);
+    };
+    window.addEventListener('xp:change', xpHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('xp:change', xpHandler));
+
+    const mutationHandler = () => {
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'mutation'
+            && binding.slot === targetSlot);
+    };
+    window.addEventListener('mutation:change', mutationHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('mutation:change', mutationHandler));
+
+    const upgradeHandler = () => {
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'upgrade'
+            && binding.slot === targetSlot);
+    };
+    document.addEventListener('ccc:upgrades:changed', upgradeHandler, { passive: true });
+    addDebugPanelCleanup(() => document.removeEventListener('ccc:upgrades:changed', upgradeHandler));
+
+    const slotHandler = () => {
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => binding.slot === targetSlot);
+    };
+    window.addEventListener('saveSlot:change', slotHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('saveSlot:change', slotHandler));
 }
 
 const XP_KEY_PREFIX = 'ccc:xp';
@@ -70,7 +144,7 @@ function ensureDebugPanelStyles() {
             top: 50%;
             right: 0;
             transform: translateY(-50%);
-            width: 440px;
+            width: 500px;
             max-height: 75vh;
             overflow-y: auto;
             background: rgb(0, 0, 0);
@@ -258,6 +332,8 @@ function ensureDebugPanelStyles() {
             font-size: 0.8em;
             color: #aaa;
             margin-left: 6px;
+            position: relative;
+            top: -2px;
         }
 
         .debug-panel-toggle-button {
@@ -292,7 +368,7 @@ function shouldShowDebugPanelToggleButton() {
     return debugPanelAccess
         && IS_MOBILE
         && getActiveSlot() != null
-        && !isMenuVisible();
+        && !isOnMenu();
 }
 
 function onMenuVisibilityChange(event) {
@@ -353,6 +429,19 @@ function createSubsection(title, contentBuilder, { defaultExpanded = false } = {
     }
 
     return container;
+}
+
+function bigNumEquals(a, b) {
+    if (a === b) return true;
+    if (a == null || b == null) return a == null && b == null;
+    if (typeof a?.cmp === 'function') {
+        try { return a.cmp(b) === 0; } catch {}
+    }
+    if (typeof b?.cmp === 'function') {
+        try { return b.cmp(a) === 0; } catch {}
+    }
+    try { return Object.is(String(a), String(b)); }
+    catch { return false; }
 }
 
 function collapseAllDebugCategories() {
@@ -428,7 +517,18 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel } = {}) {
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'debug-panel-input';
-    input.value = formatBigNumForInput(initialValue);
+    let editing = false;
+    let pendingValue = null;
+
+    const setValue = (value) => {
+        if (editing) {
+            pendingValue = value;
+            return;
+        }
+        pendingValue = null;
+        input.value = formatBigNumForInput(value);
+    };
+
     row.appendChild(input);
 
     const commitValue = () => {
@@ -438,13 +538,24 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel } = {}) {
             return;
         }
         setInputValidity(input, true);
-        onCommit(parsed, input);
+        onCommit(parsed, { input, setValue });
     };
 
+    input.addEventListener('focus', () => { editing = true; });
     input.addEventListener('change', commitValue);
-    input.addEventListener('blur', commitValue);
+    input.addEventListener('blur', () => {
+        editing = false;
+        commitValue();
+        if (pendingValue != null) {
+            const next = pendingValue;
+            pendingValue = null;
+            setValue(next);
+        }
+    });
 
-    return { row, input };
+    setValue(initialValue);
+
+    return { row, input, setValue, isEditing: () => editing };
 }
 
 function applyXpState({ level, progress }) {
@@ -520,13 +631,28 @@ function buildAreaCurrencies(container, area) {
     area.currencies.forEach((currency) => {
         const handle = bank?.[currency.key];
         const current = handle?.value ?? BigNum.fromInt(0);
-        const { row, input } = createInputRow(currency.label, current, (value) => {
+        const currencyRow = createInputRow(currency.label, current, (value, { setValue }) => {
             const latestSlot = getActiveSlot();
             if (latestSlot == null) return;
+            const previous = handle?.value ?? BigNum.fromInt(0);
             try { handle?.set?.(value); } catch {}
-            input.value = formatBigNumForInput(handle?.value ?? value);
+            const refreshed = handle?.value ?? value;
+            setValue(refreshed);
+            if (!bigNumEquals(previous, refreshed)) {
+                flagDebugUsage();
+            }
         });
-        container.appendChild(row);
+        registerLiveBinding({
+            type: 'currency',
+            key: currency.key,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = handle?.value ?? BigNum.fromInt(0);
+                currencyRow.setValue(latest);
+            },
+        });
+        container.appendChild(currencyRow.row);
     });
 }
 
@@ -543,31 +669,79 @@ function buildAreaStats(container) {
     const xp = getXpState();
     const mutation = getMutationState();
 
-    const xpLevelRow = createInputRow('XP Level', xp.xpLevel, (value, input) => {
+    const xpLevelRow = createInputRow('XP Level', xp.xpLevel, (value, { setValue }) => {
+        const prev = getXpState().xpLevel;
         applyXpState({ level: value });
         const latest = getXpState();
-        input.value = formatBigNumForInput(latest.xpLevel);
+        setValue(latest.xpLevel);
+        if (!bigNumEquals(prev, latest.xpLevel)) {
+            flagDebugUsage();
+        }
+    });
+    registerLiveBinding({
+        type: 'xp',
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            xpLevelRow.setValue(getXpState().xpLevel);
+        },
     });
     container.appendChild(xpLevelRow.row);
 
-    const xpProgressRow = createInputRow('XP Progress', xp.progress, (value, input) => {
+    const xpProgressRow = createInputRow('XP Progress', xp.progress, (value, { setValue }) => {
+        const prev = getXpState().progress;
         applyXpState({ progress: value });
         const latest = getXpState();
-        input.value = formatBigNumForInput(latest.progress);
+        setValue(latest.progress);
+        if (!bigNumEquals(prev, latest.progress)) {
+            flagDebugUsage();
+        }
+    });
+    registerLiveBinding({
+        type: 'xp',
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            xpProgressRow.setValue(getXpState().progress);
+        },
     });
     container.appendChild(xpProgressRow.row);
 
-    const mpLevelRow = createInputRow('MP Level', mutation.level, (value, input) => {
+    const mpLevelRow = createInputRow('MP Level', mutation.level, (value, { setValue }) => {
+        const prev = getMutationState().level;
         applyMutationState({ level: value });
         const latest = getMutationState();
-        input.value = formatBigNumForInput(latest.level);
+        setValue(latest.level);
+        if (!bigNumEquals(prev, latest.level)) {
+            flagDebugUsage();
+        }
+    });
+    registerLiveBinding({
+        type: 'mutation',
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            mpLevelRow.setValue(getMutationState().level);
+        },
     });
     container.appendChild(mpLevelRow.row);
 
-    const mpProgressRow = createInputRow('MP Progress', mutation.progress, (value, input) => {
+    const mpProgressRow = createInputRow('MP Progress', mutation.progress, (value, { setValue }) => {
+        const prev = getMutationState().progress;
         applyMutationState({ progress: value });
         const latest = getMutationState();
-        input.value = formatBigNumForInput(latest.progress);
+        setValue(latest.progress);
+        if (!bigNumEquals(prev, latest.progress)) {
+            flagDebugUsage();
+        }
+    });
+    registerLiveBinding({
+        type: 'mutation',
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            mpProgressRow.setValue(getMutationState().progress);
+        },
     });
     container.appendChild(mpProgressRow.row);
 }
@@ -595,14 +769,27 @@ function buildAreaUpgrades(container, area) {
         const idLabel = upg.id ?? upg.tie ?? upg.tieKey;
         const title = upg.title || `Upgrade ${idLabel ?? ''}`.trim();
         const current = getLevel(area.key, upg.id ?? upg.tie);
-        const { row, input } = createInputRow(title, current, (value) => {
+        const upgradeRow = createInputRow(title, current, (value, { setValue }) => {
             const latestSlot = getActiveSlot();
             if (latestSlot == null) return;
+            const previous = getLevel(area.key, upg.id ?? upg.tie);
             try { setLevel(area.key, upg.id ?? upg.tie, value, false); } catch {}
             const refreshed = getLevel(area.key, upg.id ?? upg.tie);
-            input.value = formatBigNumForInput(refreshed);
+            setValue(refreshed);
+            if (!bigNumEquals(previous, refreshed)) {
+                flagDebugUsage();
+            }
         }, { idLabel });
-        container.appendChild(row);
+        registerLiveBinding({
+            type: 'upgrade',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const refreshed = getLevel(area.key, upg.id ?? upg.tie);
+                upgradeRow.setValue(refreshed);
+            },
+        });
+        container.appendChild(upgradeRow.row);
     });
 }
 
@@ -641,7 +828,8 @@ function buildAreasContent(content) {
 }
 
 function buildDebugPanel() {
-    if (!debugPanelAccess || isMenuVisible()) return;
+    if (!debugPanelAccess || isOnMenu()) return;
+    cleanupDebugPanelResources();
     ensureDebugPanelStyles();
 
     const existingPanel = document.getElementById(DEBUG_PANEL_ID);
@@ -695,12 +883,12 @@ function buildDebugPanel() {
     }));
 
     document.body.appendChild(panel);
-    flagDebugUsage();
+    setupLiveBindingListeners();
     debugPanelOpen = true;
 }
 
 function openDebugPanel() {
-    if (!debugPanelAccess || isMenuVisible()) return;
+    if (!debugPanelAccess || isOnMenu()) return;
     if (getActiveSlot() == null) {
         closeDebugPanel();
         return;
@@ -712,11 +900,12 @@ function openDebugPanel() {
 function closeDebugPanel() {
     const panel = document.getElementById(DEBUG_PANEL_ID);
     if (panel) panel.remove();
+    cleanupDebugPanelResources();
     debugPanelOpen = false;
 }
 
 function toggleDebugPanel() {
-    if (!debugPanelAccess || isMenuVisible() || getActiveSlot() == null) {
+    if (!debugPanelAccess || isOnMenu() || getActiveSlot() == null) {
         closeDebugPanel();
         return;
     }
@@ -762,7 +951,7 @@ function applyDebugPanelAccess(enabled) {
 }
 
 document.addEventListener('keydown', event => {
-    if (!debugPanelAccess || isMenuVisible()) return;
+    if (!debugPanelAccess || isOnMenu()) return;
     if (event.key?.toLowerCase() !== 'c') return;
 
     if (event.shiftKey) {
@@ -777,6 +966,7 @@ document.addEventListener('keydown', event => {
         openDebugPanel();
     } else {
         collapseAllDebugCategories();
+        closeDebugPanel();
     }
     event.preventDefault();
 });
