@@ -640,12 +640,10 @@ function getGameStatMultiplier(statKey) {
             const { xpGainMultiplier } = computeUpgradeEffects(AREA_KEYS.STARTER_COVE) ?? {};
             if (xpGainMultiplier) return xpGainMultiplier;
         } else if (statKey === 'mutation') {
-            const mult = getMutationMultiplier();
             const valueMult = getMpValueMultiplierBn?.();
-            if (mult && valueMult) {
-                try { return mult.mulBigNumInteger?.(valueMult) ?? mult.mul?.(valueMult) ?? mult; }
-                catch {}
-            }
+            if (valueMult) return valueMult;
+
+            const mult = getMutationMultiplier();
             if (mult) return mult;
         }
     } catch {}
