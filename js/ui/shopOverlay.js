@@ -1164,7 +1164,7 @@ function ensureUpgradeOverlay() {
   document.body.appendChild(upgOverlayEl);
 
 upgOverlayEl.addEventListener('pointerdown', (e) => {
-  if (!IS_COARSE) return;
+  if (!IS_MOBILE) return;
   if (e.pointerType === 'mouse') return;
   if (e.target === upgOverlayEl) {
     e.preventDefault();
@@ -1173,7 +1173,7 @@ upgOverlayEl.addEventListener('pointerdown', (e) => {
 }, true);
 
 upgOverlayEl.addEventListener('click', (e) => {
-  if (!IS_COARSE) return;
+  if (!IS_MOBILE) return;
   if (e.target === upgOverlayEl) {
     e.preventDefault();
     e.stopImmediatePropagation();
