@@ -5,8 +5,7 @@
 
 import { BigNum } from './bigNum.js';
 import { bank, CURRENCIES, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot } from './storage.js';
-import { getMutationState, initMutationSystem } from '../game/mutationSystem.js';
-import { IS_MOBILE } from '../main.js';
+import { getMutationState, initMutationSystem, unlockMutationSystem } from '../game/mutationSystem.js';
 import {
     AREA_KEYS,
     getLevel,
@@ -313,7 +312,7 @@ function ensureDebugPanelStyles() {
         }
 
         .debug-panel-input {
-            flex: 0 0 230px;
+            flex: 0 0 280px;
             max-width: 100%;
             background: #111;
             color: #fff;
@@ -366,7 +365,6 @@ function removeDebugPanelToggleButton() {
 
 function shouldShowDebugPanelToggleButton() {
     return debugPanelAccess
-        && IS_MOBILE
         && getActiveSlot() != null
         && !isOnMenu();
 }
@@ -519,6 +517,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel } = {}) {
     input.className = 'debug-panel-input';
     let editing = false;
     let pendingValue = null;
+    let skipBlurCommit = false;
 
     const setValue = (value) => {
         if (editing) {
@@ -543,9 +542,20 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel } = {}) {
 
     input.addEventListener('focus', () => { editing = true; });
     input.addEventListener('change', commitValue);
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            skipBlurCommit = true;
+            commitValue();
+            input.blur();
+        }
+    });
     input.addEventListener('blur', () => {
         editing = false;
-        commitValue();
+        if (!skipBlurCommit) {
+            commitValue();
+        }
+        skipBlurCommit = false;
         if (pendingValue != null) {
             const next = pendingValue;
             pendingValue = null;
@@ -593,6 +603,7 @@ function applyMutationState({ level, progress }) {
     if (slot == null) return;
 
     initMutationSystem();
+    try { unlockMutationSystem(); } catch {}
     const unlockKey = MUTATION_KEYS.unlock(slot);
     try { localStorage.setItem(unlockKey, '1'); } catch {}
     primeStorageWatcherSnapshot(unlockKey, '1');
