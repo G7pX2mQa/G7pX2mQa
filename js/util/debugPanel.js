@@ -190,17 +190,17 @@ function buildDebugPanel() {
         content.appendChild(placeholder);
     }));
 
-    panel.appendChild(createSection('Misc', 'debug-misc', content => {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'debug-panel-empty';
-        placeholder.textContent = 'Utility buttons will appear here.';
-        content.appendChild(placeholder);
-    }));
-
     panel.appendChild(createSection('Action Log', 'debug-action-log', content => {
         const placeholder = document.createElement('div');
         placeholder.className = 'debug-panel-empty';
         placeholder.textContent = 'No actions logged yet.';
+        content.appendChild(placeholder);
+    }));
+	
+	panel.appendChild(createSection('Miscellaneous', 'debug-misc', content => {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'debug-panel-empty';
+        placeholder.textContent = 'Utility buttons will appear here.';
         content.appendChild(placeholder);
     }));
 
@@ -263,7 +263,6 @@ document.addEventListener('keydown', event => {
     if (!debugPanelAccess) return;
     if (event.key?.toLowerCase() !== 'c') return;
     const target = event.target;
-	console.log("Success");
     toggleDebugPanel();
 });
 
