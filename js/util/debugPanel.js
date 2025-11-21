@@ -589,12 +589,19 @@ function getStatOverride(slot, key) {
     return fromStorage;
 }
 
+function notifyStatMultiplierChange(statKey, slot) {
+    refreshLiveBindings((binding) => binding.type === 'stat-mult'
+        && binding.key === statKey
+        && binding.slot === slot);
+}
+
 function clearStatMultiplierOverride(statKey, slot = getActiveSlot()) {
     const storageKey = getStatMultiplierStorageKey(statKey, slot);
     statOverrides.delete(buildOverrideKey(slot, statKey));
     if (!storageKey || typeof localStorage === 'undefined') return;
     if (isStorageKeyLocked(storageKey)) return;
     try { localStorage.removeItem(storageKey); } catch {}
+    notifyStatMultiplierChange(statKey, slot);
 }
 
 function isStatMultiplierLocked(statKey, slot = getActiveSlot()) {
@@ -701,6 +708,7 @@ export function setDebugStatMultiplierOverride(statKey, value, slot = getActiveS
     catch { bn = BigNum.fromInt(1); }
     statOverrides.set(buildOverrideKey(slot, statKey), bn);
     storeStatMultiplierOverride(statKey, slot, bn);
+    notifyStatMultiplierChange(statKey, slot);
     return bn;
 }
 
