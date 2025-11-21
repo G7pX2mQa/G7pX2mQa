@@ -263,7 +263,7 @@ document.addEventListener('keydown', event => {
     if (!debugPanelAccess) return;
     if (event.key?.toLowerCase() !== 'c') return;
     const target = event.target;
-    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+	console.log("Success");
     toggleDebugPanel();
 });
 
