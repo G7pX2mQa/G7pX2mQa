@@ -23,10 +23,12 @@ let initResetSystemGame;
 let initMutationSystem;
 let getMutationCoinSprite;
 let onMutationChangeGame;
+let setDebugPanelAccess;
 
 const pendingPreloadedAudio = [];
 
 const IS_TOUCH_DEVICE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
+const DEBUG_PANEL_ACCESS = Boolean(window.debugPanelAccess);
 
 function disableMobileZoomGestures() {
   if (!IS_TOUCH_DEVICE) return;
@@ -391,6 +393,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./ui/popups.js'),
     import('./util/suspendSafeguard.js'),
     import('./util/ghostTapGuard.js'),
+    import('./util/debugPanel.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -460,6 +463,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     popupModule,
     safetyModule,
     guardModule,
+    debugPanelModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -476,6 +480,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ initPopups } = popupModule);
   ({ installSuspendSafeguards, restoreFromBackupIfNeeded: restoreSuspendBackup, markProgressDirty, flushBackupSnapshot } = safetyModule);
   ({ installGhostTapGuard } = guardModule);
+  ({ setDebugPanelAccess } = debugPanelModule);
 
   window.bank = bank;
 
@@ -490,6 +495,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   installGhostTapGuard?.();
   installSuspendSafeguards?.();
+  if (typeof setDebugPanelAccess === 'function') {
+    setDebugPanelAccess(DEBUG_PANEL_ACCESS);
+    window.setDebugPanelAccess = setDebugPanelAccess;
+  }
 
   try {
     await restoreSuspendBackup?.();
