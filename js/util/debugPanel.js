@@ -4,6 +4,7 @@ const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
 let debugPanelOpen = false;
+let debugPanelAccess = false;
 
 function ensureDebugPanelStyles() {
     let style = document.getElementById(DEBUG_PANEL_STYLE_ID);
@@ -117,6 +118,11 @@ function ensureDebugPanelStyles() {
     document.head.appendChild(style);
 }
 
+function removeDebugPanelToggleButton() {
+    const existingButton = document.getElementById(DEBUG_PANEL_TOGGLE_ID);
+    if (existingButton) existingButton.remove();
+}
+
 function createSection(title, contentId, contentBuilder) {
     const section = document.createElement('div');
     section.className = 'debug-panel-section';
@@ -142,6 +148,7 @@ function createSection(title, contentId, contentBuilder) {
 }
 
 function buildDebugPanel() {
+    if (!debugPanelAccess) return;
     ensureDebugPanelStyles();
 
     const existingPanel = document.getElementById(DEBUG_PANEL_ID);
@@ -202,6 +209,7 @@ function buildDebugPanel() {
 }
 
 function openDebugPanel() {
+    if (!debugPanelAccess) return;
     if (debugPanelOpen) return;
     buildDebugPanel();
 }
@@ -213,6 +221,7 @@ function closeDebugPanel() {
 }
 
 function toggleDebugPanel() {
+    if (!debugPanelAccess) return;
     if (debugPanelOpen) {
         closeDebugPanel();
     } else {
@@ -220,11 +229,16 @@ function toggleDebugPanel() {
     }
 }
 
+function teardownDebugPanel() {
+    closeDebugPanel();
+    removeDebugPanelToggleButton();
+}
+
 function createDebugPanelToggleButton() {
+    if (!debugPanelAccess) return;
     ensureDebugPanelStyles();
 
-    const existingButton = document.getElementById(DEBUG_PANEL_TOGGLE_ID);
-    if (existingButton) existingButton.remove();
+    removeDebugPanelToggleButton();
 
     const button = document.createElement('button');
     button.id = DEBUG_PANEL_TOGGLE_ID;
@@ -236,7 +250,17 @@ function createDebugPanelToggleButton() {
     document.body.appendChild(button);
 }
 
+function applyDebugPanelAccess(enabled) {
+    debugPanelAccess = !!enabled;
+    if (debugPanelAccess) {
+        createDebugPanelToggleButton();
+    } else {
+        teardownDebugPanel();
+    }
+}
+
 document.addEventListener('keydown', event => {
+    if (!debugPanelAccess) return;
     if (event.key?.toLowerCase() !== 'c') return;
     const target = event.target;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
@@ -244,5 +268,9 @@ document.addEventListener('keydown', event => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    createDebugPanelToggleButton();
+    if (debugPanelAccess) createDebugPanelToggleButton();
 });
+
+export function setDebugPanelAccess(enabled) {
+    applyDebugPanelAccess(enabled);
+}
