@@ -10,6 +10,7 @@ import {
     AREA_KEYS,
     computeUpgradeEffects,
     getLevel,
+    getMpValueMultiplierBn,
     getUpgradesForArea,
     setLevel,
 } from '../game/upgrades.js';
@@ -640,6 +641,11 @@ function getGameStatMultiplier(statKey) {
             if (xpGainMultiplier) return xpGainMultiplier;
         } else if (statKey === 'mutation') {
             const mult = getMutationMultiplier();
+            const valueMult = getMpValueMultiplierBn?.();
+            if (mult && valueMult) {
+                try { return mult.mulBigNumInteger?.(valueMult) ?? mult.mul?.(valueMult) ?? mult; }
+                catch {}
+            }
             if (mult) return mult;
         }
     } catch {}
