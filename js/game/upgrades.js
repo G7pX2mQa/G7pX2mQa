@@ -107,18 +107,18 @@ export function bigNumFromLog10(log10Value) {
 }
 
 export const UPGRADE_TIES = {
-  FASTER_COINS: 'coin_0',
-  UNLOCK_XP: 'none_0',
-  FASTER_COINS_II: 'book_0',
-  COIN_VALUE_I: 'book_1',
-  BOOK_VALUE_I: 'book_2',
-  XP_VALUE_I: 'coin_1',
-  UNLOCK_FORGE: 'none_1',
-  COIN_VALUE_II: 'gold_0',
-  XP_VALUE_II: 'gold_1',
-  MP_VALUE_I: 'gold_2',
-  MAGNET: 'gold_3',
-  ENDLESS_XP: 'hm_xp_0',
+  FASTER_COINS: 'coin_1',
+  UNLOCK_XP: 'none_1',
+  FASTER_COINS_II: 'book_1',
+  COIN_VALUE_I: 'book_2',
+  BOOK_VALUE_I: 'book_3',
+  XP_VALUE_I: 'coin_2',
+  UNLOCK_FORGE: 'none_2',
+  COIN_VALUE_II: 'gold_1',
+  XP_VALUE_II: 'gold_2',
+  MP_VALUE_I: 'gold_3',
+  MAGNET: 'gold_4',
+  ENDLESS_XP: 'coin_3',
 };
 
 const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.png';
