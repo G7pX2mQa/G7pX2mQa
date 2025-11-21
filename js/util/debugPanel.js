@@ -574,11 +574,18 @@ function getCurrencyOverride(slot, key) {
 }
 
 function getStatOverride(slot, key) {
-    const override = statOverrides.get(buildOverrideKey(slot, key));
-    if (override) return override;
+    const lockAwareRefresh = !isStatMultiplierLocked(key, slot);
+    const cacheKey = buildOverrideKey(slot, key);
+    const cached = statOverrides.get(cacheKey);
+    if (!lockAwareRefresh && cached) return cached;
+
     const fromStorage = loadStatMultiplierOverrideFromStorage(key, slot);
-    if (!fromStorage) return null;
-    statOverrides.set(buildOverrideKey(slot, key), fromStorage);
+    if (!fromStorage) {
+        if (lockAwareRefresh) statOverrides.delete(cacheKey);
+        return null;
+    }
+
+    statOverrides.set(cacheKey, fromStorage);
     return fromStorage;
 }
 
@@ -625,7 +632,11 @@ function storeStatMultiplierOverride(statKey, slot, value) {
     if (!storageKey || typeof localStorage === 'undefined') return;
     try {
         const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 1);
-        localStorage.setItem(storageKey, bn.toStorage?.() ?? String(bn));
+        const locked = isStorageKeyLocked(storageKey);
+        const setter = locked && originalSetItem ? originalSetItem : localStorage.setItem.bind(localStorage);
+        if (locked && !originalSetItem) unlockStorageKey(storageKey);
+        setter(storageKey, bn.toStorage?.() ?? String(bn));
+        if (locked && !originalSetItem) lockStorageKey(storageKey);
     } catch {}
 }
 
@@ -685,10 +696,6 @@ export function getDebugCurrencyMultiplierOverride(currencyKey, slot = getActive
 
 export function setDebugStatMultiplierOverride(statKey, value, slot = getActiveSlot()) {
     if (!statKey || slot == null) return null;
-    const storageKey = getStatMultiplierStorageKey(statKey, slot);
-    if (isStorageKeyLocked(storageKey)) {
-        return getStatOverride(slot, statKey) ?? BigNum.fromInt(1);
-    }
     let bn;
     try { bn = value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value ?? 1); }
     catch { bn = BigNum.fromInt(1); }
@@ -703,7 +710,7 @@ export function getDebugStatMultiplierOverride(statKey, slot = getActiveSlot()) 
 }
 
 export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlot()) {
-    const override = getLockedStatOverride(slot, statKey);
+    const override = getStatOverride(slot, statKey);
     if (!override) return amount;
     let base;
     try {
@@ -1232,15 +1239,7 @@ function buildAreaStatMultipliers(container) {
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
             }
-        }, {
-            storageKey,
-            onLockChange: (locked) => {
-                if (!locked) {
-                    clearStatMultiplierOverride(stat.key, slot);
-                    row.setValue(getStatMultiplierDisplayValue(stat.key, slot));
-                }
-            },
-        });
+        }, { storageKey });
 
         registerLiveBinding({
             type: 'stat-mult',
