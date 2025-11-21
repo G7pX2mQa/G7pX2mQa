@@ -1,5 +1,17 @@
 // js/main.js
 
+export const IS_MOBILE = (() => {
+  if (typeof window === 'undefined') return false;
+
+  if (typeof window.IS_MOBILE !== 'undefined') {
+    return !!window.IS_MOBILE;
+  }
+
+  const detected = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
+  window.IS_MOBILE = detected;
+  return detected;
+})();
+
 let initSlots;
 let createSpawner;
 let initCoinPickup;
@@ -27,11 +39,10 @@ let setDebugPanelAccess;
 
 const pendingPreloadedAudio = [];
 
-const IS_TOUCH_DEVICE = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 const DEBUG_PANEL_ACCESS = window.debugPanelAccess !== false;
 
 function disableMobileZoomGestures() {
-  if (!IS_TOUCH_DEVICE) return;
+  if (!IS_MOBILE) return;
 
   let lastTouchEnd = 0;
   const TOUCH_DELAY_MS = 350;
