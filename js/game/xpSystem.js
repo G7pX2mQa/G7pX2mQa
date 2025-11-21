@@ -2,6 +2,7 @@
 
 import { BigNum } from '../util/bigNum.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
+import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { formatNumber } from '../util/numFormat.js';
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
 
@@ -1043,6 +1044,8 @@ export function addXp(amount, { silent = false } = {}) {
       } catch {}
     }
   }
+
+  inc = applyStatMultiplierOverride('xp', inc);
 
   if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
     updateHud();
