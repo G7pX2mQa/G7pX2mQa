@@ -210,6 +210,7 @@ function ensureDebugPanelStyles() {
             z-index: 2147483646;
             scrollbar-width: thin;
             scrollbar-color: rgba(255, 255, 255, 0.22) rgba(0, 0, 0, 0.5);
+			border: 1px solid white;
         }
 
         .debug-panel::-webkit-scrollbar,
@@ -251,10 +252,19 @@ function ensureDebugPanelStyles() {
             font-weight: bold;
         }
 
-        .debug-panel-shortcuts {
+        .debug-panel-info {
             font-size: 0.95em;
             color: #ccc;
-            white-space: pre-line;
+        }
+
+        .debug-panel-info-line + .debug-panel-info-line {
+            margin-top: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .debug-panel-info-mobile-hidden {
+                display: none;
+            }
         }
 
         .debug-panel-close {
@@ -942,12 +952,25 @@ function buildDebugPanel() {
     closeButton.addEventListener('click', () => closeDebugPanel({ preserveExpansionState: true }));
 
     titleContainer.appendChild(title);
-    if (!IS_MOBILE) {
-        const shortcuts = document.createElement('div');
-        shortcuts.className = 'debug-panel-shortcuts';
-        shortcuts.textContent = 'C: Close and preserve panels\nShift+C: Close and collapse panels\nInput fields can take a normal number (e.g., 1234) or a BN number\nInput value "inf" sets a value to infinity or an upgrade to its level cap';
-        titleContainer.appendChild(shortcuts);
-    }
+    const info = document.createElement('div');
+    info.className = 'debug-panel-info';
+
+    const infoLines = [
+        { text: 'C: Close and preserve panels', hideOnMobile: true },
+        { text: 'Shift+C: Close and collapse panels', hideOnMobile: true },
+        { text: 'Input fields can take a normal number (e.g., 1234) or a BN number' },
+        { text: 'Input value "inf" sets a value to infinity or an upgrade to its level cap' },
+    ];
+
+    infoLines.forEach(({ text, hideOnMobile }) => {
+        const infoLine = document.createElement('div');
+        infoLine.className = 'debug-panel-info-line';
+        if (hideOnMobile) infoLine.classList.add('debug-panel-info-mobile-hidden');
+        infoLine.textContent = text;
+        info.appendChild(infoLine);
+    });
+
+    titleContainer.appendChild(info);
 
     header.appendChild(titleContainer);
     header.appendChild(closeButton);
