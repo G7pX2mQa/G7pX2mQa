@@ -336,6 +336,12 @@ function enterArea(areaID) {
       break;
     }
   }
+
+  try {
+    window.dispatchEvent(new CustomEvent('menu:visibilitychange', {
+      detail: { visible: areaID === AREAS.MENU },
+    }));
+  } catch {}
 }
 
 /* ---------------------------
