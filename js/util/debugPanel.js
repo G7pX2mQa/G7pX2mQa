@@ -367,7 +367,7 @@ function ensureDebugPanelStyles() {
         }
 
         .debug-panel-input {
-            flex: 0 0 280px;
+            flex: 0 0 245px;
             max-width: 100%;
             background: #111;
             color: #fff;
@@ -420,9 +420,11 @@ function removeDebugPanelToggleButton() {
 
 function shouldShowDebugPanelToggleButton() {
     return debugPanelAccess
+        && IS_MOBILE
         && getActiveSlot() != null
         && !isOnMenu();
 }
+
 
 function onMenuVisibilityChange(event) {
     if (event?.detail?.visible) {
@@ -1038,13 +1040,17 @@ document.addEventListener('keydown', event => {
     if (event.key?.toLowerCase() !== 'c') return;
     if (event.ctrlKey) return;
 
+    if (getActiveSlot() == null) return;
+
     if (event.shiftKey) {
-        closeDebugPanel({ preserveExpansionState: true });
+        if (debugPanelOpen) {
+            closeDebugPanel({ preserveExpansionState: true });
+        } else {
+            openDebugPanel();
+        }
         event.preventDefault();
         return;
     }
-
-    if (getActiveSlot() == null) return;
 
     if (!debugPanelOpen) {
         openDebugPanel();
@@ -1058,6 +1064,8 @@ document.addEventListener('keydown', event => {
 document.addEventListener('DOMContentLoaded', () => {
     createDebugPanelToggleButton();
 });
+
+window.addEventListener('menu:visibilitychange', onMenuVisibilityChange);
 
 window.addEventListener('saveSlot:change', () => {
     createDebugPanelToggleButton();
