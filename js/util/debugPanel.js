@@ -4,7 +4,7 @@
 // I will remember to disable debug panel access for prod, don't worry.
 
 import { BigNum } from './bigNum.js';
-import { bank, CURRENCIES, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot } from './storage.js';
+import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot } from './storage.js';
 import { getMutationState, initMutationSystem, unlockMutationSystem } from '../game/mutationSystem.js';
 import {
     AREA_KEYS,
@@ -24,6 +24,13 @@ let debugPanelExpansionState = createEmptyExpansionState();
 let sectionKeyCounter = 0;
 let subsectionKeyCounter = 0;
 const liveBindings = [];
+
+const currencyOverrides = new Map();
+const statOverrides = new Map();
+const lockedStorageKeys = new Set();
+let storageLockPatched = false;
+let originalSetItem = null;
+let originalRemoveItem = null;
 
 function isOnMenu() {
     const menuRoot = document.querySelector('.menu-root');
@@ -121,6 +128,16 @@ function setupLiveBindingListeners() {
     window.addEventListener('currency:change', currencyHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('currency:change', currencyHandler));
 
+    const currencyMultiplierHandler = (event) => {
+        const { key, slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'currency-mult'
+            && binding.key === key
+            && binding.slot === targetSlot);
+    };
+    window.addEventListener('currency:multiplier', currencyMultiplierHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('currency:multiplier', currencyMultiplierHandler));
+
     const xpHandler = (event) => {
         const { slot } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
@@ -167,6 +184,11 @@ const MUTATION_KEYS = {
     level:  (slot) => `${MUTATION_KEY_PREFIX}:level:${slot}`,
     progress: (slot) => `${MUTATION_KEY_PREFIX}:progress:${slot}`,
 };
+
+const STAT_MULTIPLIERS = [
+    { key: 'xp', label: 'XP Gain' },
+    { key: 'mutation', label: 'Mutation Power Gain' },
+];
 
 const AREAS = [
     {
@@ -393,6 +415,24 @@ function ensureDebugPanelStyles() {
             font-family: Consolas, 'Courier New', monospace;
         }
 
+        .debug-lock-button {
+            flex: 0 0 50px;
+            max-width: 60px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background: #111;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .debug-lock-button.locked {
+            background: #440000;
+            border-color: #aa0000;
+            color: #ff6666;
+        }
+
         .debug-panel-input.debug-invalid {
             border-color: #e66;
             box-shadow: 0 0 0 1px #e66;
@@ -521,6 +561,169 @@ function bigNumEquals(a, b) {
     catch { return false; }
 }
 
+function buildOverrideKey(slot, key) {
+    return `${slot ?? 'null'}::${key}`;
+}
+
+function getCurrencyOverride(slot, key) {
+    return currencyOverrides.get(buildOverrideKey(slot, key)) ?? null;
+}
+
+function getStatOverride(slot, key) {
+    return statOverrides.get(buildOverrideKey(slot, key)) ?? null;
+}
+
+function applyCurrencyOverrideForSlot(currencyKey, slot = getActiveSlot()) {
+    if (slot == null) return;
+    const override = getCurrencyOverride(slot, currencyKey);
+    if (!override) return;
+    if (slot !== getActiveSlot()) return;
+    try {
+        const current = bank?.[currencyKey]?.mult?.get?.();
+        if (!bigNumEquals(current, override)) {
+            bank?.[currencyKey]?.mult?.set?.(override);
+        }
+    } catch {}
+}
+
+let currencyListenerAttached = false;
+function ensureCurrencyOverrideListener() {
+    if (currencyListenerAttached || typeof window === 'undefined') return;
+    currencyListenerAttached = true;
+    try {
+        window.addEventListener('currency:multiplier', (event) => {
+            const { key, slot } = event?.detail ?? {};
+            const targetSlot = slot ?? getActiveSlot();
+            if (!targetSlot || !currencyOverrides.has(buildOverrideKey(targetSlot, key))) return;
+            applyCurrencyOverrideForSlot(key, targetSlot);
+        }, { passive: true });
+        window.addEventListener('saveSlot:change', () => {
+            applyAllCurrencyOverridesForActiveSlot();
+        }, { passive: true });
+    } catch {}
+}
+
+export function applyAllCurrencyOverridesForActiveSlot() {
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    Object.values(CURRENCIES).forEach((key) => {
+        applyCurrencyOverrideForSlot(key, slot);
+    });
+}
+
+export function setDebugCurrencyMultiplierOverride(currencyKey, value, slot = getActiveSlot()) {
+    if (!currencyKey || slot == null) return null;
+    ensureCurrencyOverrideListener();
+    let bn;
+    try { bn = value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value ?? 1); }
+    catch { bn = BigNum.fromInt(1); }
+    currencyOverrides.set(buildOverrideKey(slot, currencyKey), bn);
+    applyCurrencyOverrideForSlot(currencyKey, slot);
+    return bn;
+}
+
+export function getDebugCurrencyMultiplierOverride(currencyKey, slot = getActiveSlot()) {
+    if (!currencyKey || slot == null) return null;
+    return getCurrencyOverride(slot, currencyKey);
+}
+
+export function setDebugStatMultiplierOverride(statKey, value, slot = getActiveSlot()) {
+    if (!statKey || slot == null) return null;
+    let bn;
+    try { bn = value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value ?? 1); }
+    catch { bn = BigNum.fromInt(1); }
+    statOverrides.set(buildOverrideKey(slot, statKey), bn);
+    return bn;
+}
+
+export function getDebugStatMultiplierOverride(statKey, slot = getActiveSlot()) {
+    if (!statKey || slot == null) return null;
+    return getStatOverride(slot, statKey);
+}
+
+export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlot()) {
+    const override = getStatOverride(slot, statKey);
+    if (!override) return amount;
+    let base;
+    try {
+        base = amount instanceof BigNum ? amount.clone?.() ?? amount : BigNum.fromAny(amount ?? 0);
+    } catch {
+        return amount;
+    }
+    try {
+        if (base.isZero?.()) return base;
+        return base.mulBigNumInteger?.(override) ?? base;
+    } catch {
+        try { return base.mul?.(override) ?? base; }
+        catch { return base; }
+    }
+}
+
+function ensureStorageLockPatch() {
+    if (storageLockPatched || typeof localStorage === 'undefined') return;
+    storageLockPatched = true;
+    try {
+        originalSetItem = localStorage.setItem.bind(localStorage);
+        originalRemoveItem = localStorage.removeItem.bind(localStorage);
+        localStorage.setItem = (key, value) => {
+            if (lockedStorageKeys.has(key)) return;
+            return originalSetItem(key, value);
+        };
+        localStorage.removeItem = (key) => {
+            if (lockedStorageKeys.has(key)) return;
+            return originalRemoveItem(key);
+        };
+    } catch {}
+}
+
+function isStorageKeyLocked(key) {
+    return key != null && lockedStorageKeys.has(key);
+}
+
+function lockStorageKey(key) {
+    if (!key) return;
+    ensureStorageLockPatch();
+    lockedStorageKeys.add(key);
+}
+
+function unlockStorageKey(key) {
+    if (!key) return;
+    lockedStorageKeys.delete(key);
+}
+
+function toggleStorageLock(key) {
+    if (!key) return false;
+    if (isStorageKeyLocked(key)) {
+        unlockStorageKey(key);
+        return false;
+    }
+    lockStorageKey(key);
+    return true;
+}
+
+function createLockToggle(storageKey) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'debug-lock-button';
+
+    const refresh = () => {
+        const locked = isStorageKeyLocked(storageKey);
+        button.textContent = locked ? 'L' : 'UL';
+        button.classList.toggle('locked', locked);
+    };
+
+    button.addEventListener('click', () => {
+        toggleStorageLock(storageKey);
+        refresh();
+    });
+
+    refresh();
+    return { button, refresh };
+}
+
+applyAllCurrencyOverridesForActiveSlot();
+ensureCurrencyOverrideListener();
+
 function collapseAllDebugCategories() {
     const panel = document.getElementById(DEBUG_PANEL_ID);
     if (!panel) return;
@@ -580,7 +783,7 @@ function flagDebugUsage() {
     catch {}
 }
 
-function createInputRow(labelText, initialValue, onCommit, { idLabel } = {}) {
+function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey } = {}) {
     const row = document.createElement('div');
     row.className = 'debug-panel-row';
 
@@ -601,6 +804,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel } = {}) {
     let editing = false;
     let pendingValue = null;
     let skipBlurCommit = false;
+    const lockToggle = storageKey ? createLockToggle(storageKey) : null;
 
     const setValue = (value) => {
         if (editing) {
@@ -612,6 +816,9 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel } = {}) {
     };
 
     row.appendChild(input);
+    if (lockToggle) {
+        row.appendChild(lockToggle.button);
+    }
 
     const commitValue = () => {
         const parsed = parseBigNumInput(input.value);
@@ -647,6 +854,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel } = {}) {
     });
 
     setValue(initialValue);
+    if (lockToggle) lockToggle.refresh();
 
     return { row, input, setValue, isEditing: () => editing };
 }
@@ -725,6 +933,7 @@ function buildAreaCurrencies(container, area) {
     area.currencies.forEach((currency) => {
         const handle = bank?.[currency.key];
         const current = handle?.value ?? BigNum.fromInt(0);
+        const storageKey = `${KEYS.CURRENCY[currency.key]}:${slot}`;
         const currencyRow = createInputRow(currency.label, current, (value, { setValue }) => {
             const latestSlot = getActiveSlot();
             if (latestSlot == null) return;
@@ -735,7 +944,7 @@ function buildAreaCurrencies(container, area) {
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
             }
-        });
+        }, { storageKey });
         registerLiveBinding({
             type: 'currency',
             key: currency.key,
@@ -763,6 +972,7 @@ function buildAreaStats(container) {
     const xp = getXpState();
     const mutation = getMutationState();
 
+    const xpLevelKey = XP_KEYS.level(slot);
     const xpLevelRow = createInputRow('XP Level', xp.xpLevel, (value, { setValue }) => {
         const prev = getXpState().xpLevel;
         applyXpState({ level: value });
@@ -771,7 +981,7 @@ function buildAreaStats(container) {
         if (!bigNumEquals(prev, latest.xpLevel)) {
             flagDebugUsage();
         }
-    });
+    }, { storageKey: xpLevelKey });
     registerLiveBinding({
         type: 'xp',
         slot,
@@ -782,6 +992,7 @@ function buildAreaStats(container) {
     });
     container.appendChild(xpLevelRow.row);
 
+    const xpProgressKey = XP_KEYS.progress(slot);
     const xpProgressRow = createInputRow('XP Progress', xp.progress, (value, { setValue }) => {
         const prev = getXpState().progress;
         applyXpState({ progress: value });
@@ -790,7 +1001,7 @@ function buildAreaStats(container) {
         if (!bigNumEquals(prev, latest.progress)) {
             flagDebugUsage();
         }
-    });
+    }, { storageKey: xpProgressKey });
     registerLiveBinding({
         type: 'xp',
         slot,
@@ -801,6 +1012,7 @@ function buildAreaStats(container) {
     });
     container.appendChild(xpProgressRow.row);
 
+    const mpLevelKey = MUTATION_KEYS.level(slot);
     const mpLevelRow = createInputRow('MP Level', mutation.level, (value, { setValue }) => {
         const prev = getMutationState().level;
         applyMutationState({ level: value });
@@ -809,7 +1021,7 @@ function buildAreaStats(container) {
         if (!bigNumEquals(prev, latest.level)) {
             flagDebugUsage();
         }
-    });
+    }, { storageKey: mpLevelKey });
     registerLiveBinding({
         type: 'mutation',
         slot,
@@ -820,6 +1032,7 @@ function buildAreaStats(container) {
     });
     container.appendChild(mpLevelRow.row);
 
+    const mpProgressKey = MUTATION_KEYS.progress(slot);
     const mpProgressRow = createInputRow('MP Progress', mutation.progress, (value, { setValue }) => {
         const prev = getMutationState().progress;
         applyMutationState({ progress: value });
@@ -828,7 +1041,7 @@ function buildAreaStats(container) {
         if (!bigNumEquals(prev, latest.progress)) {
             flagDebugUsage();
         }
-    });
+    }, { storageKey: mpProgressKey });
     registerLiveBinding({
         type: 'mutation',
         slot,
@@ -887,6 +1100,90 @@ function buildAreaUpgrades(container, area) {
     });
 }
 
+function buildAreaCurrencyMultipliers(container, area) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit currency multipliers.';
+        container.appendChild(msg);
+        return;
+    }
+
+    area.currencies.forEach((currency) => {
+        const handle = bank?.[currency.key]?.mult;
+        const currentOverride = getDebugCurrencyMultiplierOverride(currency.key, slot);
+        const current = currentOverride ?? handle?.get?.() ?? BigNum.fromInt(1);
+        const storageKey = `${KEYS.MULTIPLIER[currency.key]}:${slot}`;
+        const row = createInputRow(`${currency.label} Multiplier`, current, (value, { setValue }) => {
+            const latestSlot = getActiveSlot();
+            if (latestSlot == null) return;
+            const previous = getDebugCurrencyMultiplierOverride(currency.key, latestSlot)
+                ?? handle?.get?.()
+                ?? BigNum.fromInt(1);
+            try { setDebugCurrencyMultiplierOverride(currency.key, value, latestSlot); } catch {}
+            applyAllCurrencyOverridesForActiveSlot();
+            const refreshedOverride = getDebugCurrencyMultiplierOverride(currency.key, latestSlot);
+            const refreshed = refreshedOverride ?? handle?.get?.() ?? BigNum.fromInt(1);
+            setValue(refreshed);
+            if (!bigNumEquals(previous, refreshed)) {
+                flagDebugUsage();
+            }
+        }, { idLabel: currency.key, storageKey });
+        registerLiveBinding({
+            type: 'currency-mult',
+            key: currency.key,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latestOverride = getDebugCurrencyMultiplierOverride(currency.key, slot);
+                const latest = latestOverride ?? handle?.get?.() ?? BigNum.fromInt(1);
+                row.setValue(latest);
+            },
+        });
+        container.appendChild(row.row);
+    });
+}
+
+function buildAreaStatMultipliers(container) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit stat multipliers.';
+        container.appendChild(msg);
+        return;
+    }
+
+    STAT_MULTIPLIERS.forEach((stat) => {
+        const currentOverride = getDebugStatMultiplierOverride(stat.key, slot) ?? BigNum.fromInt(1);
+        const row = createInputRow(`${stat.label} Multiplier`, currentOverride, (value, { setValue }) => {
+            const latestSlot = getActiveSlot();
+            if (latestSlot == null) return;
+            const previous = getDebugStatMultiplierOverride(stat.key, latestSlot) ?? BigNum.fromInt(1);
+            try { setDebugStatMultiplierOverride(stat.key, value, latestSlot); } catch {}
+            const refreshed = getDebugStatMultiplierOverride(stat.key, latestSlot) ?? BigNum.fromInt(1);
+            setValue(refreshed);
+            if (!bigNumEquals(previous, refreshed)) {
+                flagDebugUsage();
+            }
+        }, { idLabel: stat.key });
+
+        registerLiveBinding({
+            type: 'stat-mult',
+            key: stat.key,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = getDebugStatMultiplierOverride(stat.key, slot) ?? BigNum.fromInt(1);
+                row.setValue(latest);
+            },
+        });
+
+        container.appendChild(row.row);
+    });
+}
+
 function buildAreasContent(content) {
     content.innerHTML = '';
 
@@ -899,6 +1196,8 @@ function buildAreasContent(content) {
         return;
     }
 
+    applyAllCurrencyOverridesForActiveSlot();
+
     AREAS.forEach((area) => {
         const areaContainer = createSubsection(area.title, (areaContent) => {
             const currencies = createSubsection('Currencies', (sub) => {
@@ -907,12 +1206,24 @@ function buildAreasContent(content) {
             const stats = createSubsection('Stats', (sub) => {
                 buildAreaStats(sub);
             });
+            const multipliers = createSubsection('Multipliers', (sub) => {
+                const currencyMultipliers = createSubsection('Currencies', (subsection) => {
+                    buildAreaCurrencyMultipliers(subsection, area);
+                });
+                const statMultipliers = createSubsection('Stats', (subsection) => {
+                    buildAreaStatMultipliers(subsection);
+                });
+
+                sub.appendChild(currencyMultipliers);
+                sub.appendChild(statMultipliers);
+            });
             const upgrades = createSubsection('Upgrades', (sub) => {
                 buildAreaUpgrades(sub, area);
             });
 
             areaContent.appendChild(currencies);
             areaContent.appendChild(stats);
+            areaContent.appendChild(multipliers);
             areaContent.appendChild(upgrades);
         });
         areaContainer.classList.add('debug-panel-area');
@@ -960,6 +1271,7 @@ function buildDebugPanel() {
         { text: 'Shift+C: Close and collapse panels', hideOnMobile: true },
         { text: 'Input fields can take a normal number (e.g., 1234) or a BN number' },
         { text: 'Input value "inf" sets a value to infinity or an upgrade to its level cap' },
+        { text: 'Toggle UL/L (Unlock/Lock) on a value to freeze its value immediately after input' },
     ];
 
     infoLines.forEach(({ text, hideOnMobile }) => {
