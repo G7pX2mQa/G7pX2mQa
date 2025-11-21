@@ -1131,7 +1131,7 @@ function buildAreaCurrencyMultipliers(container, area) {
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
             }
-        }, { idLabel: currency.key, storageKey });
+        }, { storageKey });
         registerLiveBinding({
             type: 'currency-mult',
             key: currency.key,
@@ -1169,7 +1169,7 @@ function buildAreaStatMultipliers(container) {
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
             }
-        }, { idLabel: stat.key });
+        });
 
         registerLiveBinding({
             type: 'stat-mult',
