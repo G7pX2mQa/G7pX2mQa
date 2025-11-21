@@ -600,11 +600,8 @@ function getLockedStatOverride(slot, statKey) {
 }
 
 function getStatMultiplierDisplayValue(statKey, slot = getActiveSlot()) {
-    const locked = isStatMultiplierLocked(statKey, slot);
-    if (locked) {
-        return getStatOverride(slot, statKey) ?? BigNum.fromInt(1);
-    }
-    return BigNum.fromInt(1);
+    const override = getStatOverride(slot, statKey);
+    return override ?? BigNum.fromInt(1);
 }
 
 function getStatMultiplierStorageKey(statKey, slot = getActiveSlot()) {
