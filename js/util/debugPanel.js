@@ -4,7 +4,7 @@
 // I will remember to disable debug panel access for prod, don't worry.
 
 import { BigNum } from './bigNum.js';
-import { bank, CURRENCIES, getActiveSlot, primeStorageWatcherSnapshot } from './storage.js';
+import { bank, CURRENCIES, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot } from './storage.js';
 import { getMutationState, initMutationSystem } from '../game/mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
 import {
@@ -80,6 +80,35 @@ function ensureDebugPanelStyles() {
             border-radius: 6px 0 0 6px;
             box-shadow: -2px 0 10px rgba(0, 0, 0, 0.6);
             z-index: 2147483646;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.22) rgba(0, 0, 0, 0.5);
+        }
+
+        .debug-panel::-webkit-scrollbar,
+        .debug-panel-section-content::-webkit-scrollbar,
+        .debug-panel-subsection-content::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .debug-panel::-webkit-scrollbar-track,
+        .debug-panel-section-content::-webkit-scrollbar-track,
+        .debug-panel-subsection-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 6px;
+        }
+
+        .debug-panel::-webkit-scrollbar-thumb,
+        .debug-panel-section-content::-webkit-scrollbar-thumb,
+        .debug-panel-subsection-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.22);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .debug-panel::-webkit-scrollbar-thumb:hover,
+        .debug-panel-section-content::-webkit-scrollbar-thumb:hover,
+        .debug-panel-subsection-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .debug-panel-header {
@@ -125,7 +154,11 @@ function ensureDebugPanelStyles() {
 
         .debug-panel-section-toggle::before {
             content: '▶';
-            font-size: 0.8em;
+            font-size: 1em;
+            width: 1em;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .debug-panel-section-toggle.expanded::before {
@@ -171,7 +204,11 @@ function ensureDebugPanelStyles() {
 
         .debug-panel-subsection-toggle::before {
             content: '▶';
-            font-size: 0.8em;
+            font-size: 1em;
+            width: 1em;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .debug-panel-subsection-toggle.expanded::before {
@@ -215,6 +252,12 @@ function ensureDebugPanelStyles() {
         .debug-panel-input.debug-invalid {
             border-color: #e66;
             box-shadow: 0 0 0 1px #e66;
+        }
+
+        .debug-panel-id {
+            font-size: 0.8em;
+            color: #aaa;
+            margin-left: 6px;
         }
 
         .debug-panel-toggle-button {
@@ -312,11 +355,34 @@ function createSubsection(title, contentBuilder, { defaultExpanded = false } = {
     return container;
 }
 
+function collapseAllDebugCategories() {
+    const panel = document.getElementById(DEBUG_PANEL_ID);
+    if (!panel) return;
+
+    panel.querySelectorAll('.debug-panel-section-toggle').forEach((toggle) => {
+        toggle.classList.remove('expanded');
+        const content = toggle.nextElementSibling;
+        if (content) content.classList.remove('active');
+    });
+
+    panel.querySelectorAll('.debug-panel-subsection-toggle').forEach((toggle) => {
+        toggle.classList.remove('expanded');
+        const content = toggle.nextElementSibling;
+        if (content) content.classList.remove('active');
+    });
+}
+
 function formatBigNumForInput(value) {
     try {
         const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 0);
-        const sci = bn.toScientific?.(6) ?? bn.toString?.();
-        return sci || String(value ?? '');
+        const storage = bn.toStorage?.();
+        const [, pStr = `${BigNum.DEFAULT_PRECISION}`, sigPart = '0', expPart = '0'] = (storage || '').split(':');
+        const precision = Number.parseInt(pStr, 10) || BigNum.DEFAULT_PRECISION;
+        if (bn.isZero?.()) {
+            return `BN:${precision}:${'0'.repeat(precision)}:-17`;
+        }
+        const paddedSig = sigPart.padStart(precision, '0');
+        return `BN:${precision}:${paddedSig}:${expPart}`;
     } catch {
         return String(value ?? '');
     }
@@ -339,12 +405,24 @@ function setInputValidity(input, valid) {
     input.classList.toggle('debug-invalid', !valid);
 }
 
-function createInputRow(labelText, initialValue, onCommit) {
+function flagDebugUsage() {
+    try { markSaveSlotModified(getActiveSlot()); }
+    catch {}
+}
+
+function createInputRow(labelText, initialValue, onCommit, { idLabel } = {}) {
     const row = document.createElement('div');
     row.className = 'debug-panel-row';
 
     const label = document.createElement('label');
     label.textContent = labelText;
+    if (idLabel != null) {
+        label.append(' ');
+        const idSpan = document.createElement('span');
+        idSpan.className = 'debug-panel-id';
+        idSpan.textContent = `(ID: ${idLabel})`;
+        label.appendChild(idSpan);
+    }
     row.appendChild(label);
 
     const input = document.createElement('input');
@@ -514,16 +592,16 @@ function buildAreaUpgrades(container, area) {
     }
 
     upgrades.forEach((upg) => {
-        const idLabel = upg.tie ?? upg.tieKey ?? upg.id;
-        const title = upg.title || `Upgrade ${idLabel}`;
+        const idLabel = upg.id ?? upg.tie ?? upg.tieKey;
+        const title = upg.title || `Upgrade ${idLabel ?? ''}`.trim();
         const current = getLevel(area.key, upg.id ?? upg.tie);
-        const { row, input } = createInputRow(`${title} (ID: ${idLabel})`, current, (value) => {
+        const { row, input } = createInputRow(title, current, (value) => {
             const latestSlot = getActiveSlot();
             if (latestSlot == null) return;
             try { setLevel(area.key, upg.id ?? upg.tie, value, false); } catch {}
             const refreshed = getLevel(area.key, upg.id ?? upg.tie);
             input.value = formatBigNumForInput(refreshed);
-        });
+        }, { idLabel });
         container.appendChild(row);
     });
 }
@@ -541,25 +619,22 @@ function buildAreasContent(content) {
     }
 
     AREAS.forEach((area) => {
-        const areaContainer = document.createElement('div');
-        areaContainer.className = 'debug-panel-area';
+        const areaContainer = createSubsection(area.title, (areaContent) => {
+            const currencies = createSubsection('Currencies', (sub) => {
+                buildAreaCurrencies(sub, area);
+            });
+            const stats = createSubsection('Stats', (sub) => {
+                buildAreaStats(sub);
+            });
+            const upgrades = createSubsection('Upgrades', (sub) => {
+                buildAreaUpgrades(sub, area);
+            });
 
-        const areaTitle = document.createElement('div');
-        areaTitle.className = 'debug-panel-title';
-        areaTitle.textContent = area.title;
-        areaContainer.appendChild(areaTitle);
-
-        areaContainer.appendChild(createSubsection('Currencies', (sub) => {
-            buildAreaCurrencies(sub, area);
-        }, { defaultExpanded: true }));
-
-        areaContainer.appendChild(createSubsection('Stats', (sub) => {
-            buildAreaStats(sub);
-        }));
-
-        areaContainer.appendChild(createSubsection('Upgrades', (sub) => {
-            buildAreaUpgrades(sub, area);
-        }));
+            areaContent.appendChild(currencies);
+            areaContent.appendChild(stats);
+            areaContent.appendChild(upgrades);
+        });
+        areaContainer.classList.add('debug-panel-area');
 
         content.appendChild(areaContainer);
     });
@@ -618,6 +693,11 @@ function buildDebugPanel() {
         placeholder.textContent = 'Utility buttons will appear here.';
         content.appendChild(placeholder);
     }));
+
+    document.body.appendChild(panel);
+    flagDebugUsage();
+    debugPanelOpen = true;
+}
 
     document.body.appendChild(panel);
     debugPanelOpen = true;
@@ -686,10 +766,23 @@ function applyDebugPanelAccess(enabled) {
 }
 
 document.addEventListener('keydown', event => {
-    if (!debugPanelAccess || isMenuVisible() || getActiveSlot() == null) return;
+    if (!debugPanelAccess || isMenuVisible()) return;
     if (event.key?.toLowerCase() !== 'c') return;
-    const target = event.target;
-    toggleDebugPanel();
+
+    if (event.shiftKey) {
+        closeDebugPanel();
+        event.preventDefault();
+        return;
+    }
+
+    if (getActiveSlot() == null) return;
+
+    if (!debugPanelOpen) {
+        openDebugPanel();
+    } else {
+        collapseAllDebugCategories();
+    }
+    event.preventDefault();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
