@@ -6,6 +6,7 @@ import {
   watchStorageKey,
   primeStorageWatcherSnapshot,
 } from '../util/storage.js';
+import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { formatNumber } from '../util/numFormat.js';
 import { approxLog10BigNum, bigNumFromLog10 } from './upgrades.js';
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
@@ -566,16 +567,13 @@ export function addMutationPower(amount) {
   initMutationSystem();
   if (!mutationState.unlocked) return getMutationState();
 
-  // --- NEW: once mutation level is BN Infinity, do nothing expensive ---
   if (mutationState.level && mutationState.level.isInfinite?.()) {
-    // Make sure progress + requirement stay at Infinity too.
     if (!mutationState.progress?.isInfinite?.()) {
       try { mutationState.progress = BN.fromAny('Infinity'); } catch {}
     }
     if (!mutationState.requirement?.isInfinite?.()) {
       try { mutationState.requirement = BN.fromAny('Infinity'); } catch {}
     }
-    // No normalizeProgress, no localStorage writes, no HUD churn per coin.
     return getMutationState();
   }
 
@@ -585,6 +583,9 @@ export function addMutationPower(amount) {
   } catch {
     inc = bnZero();
   }
+
+  inc = applyStatMultiplierOverride('mutation', inc);
+
   if (inc.isZero?.()) return getMutationState();
 
   const incClone = inc.clone?.() ?? inc;
