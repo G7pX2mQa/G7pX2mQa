@@ -29,6 +29,7 @@ const liveBindings = [];
 
 const currencyOverrides = new Map();
 const statOverrides = new Map();
+const statOverrideBaselines = new Map();
 const lockedStorageKeys = new Set();
 let storageLockPatched = false;
 let originalSetItem = null;
@@ -600,6 +601,7 @@ function notifyStatMultiplierChange(statKey, slot) {
 function clearStatMultiplierOverride(statKey, slot = getActiveSlot()) {
     const storageKey = getStatMultiplierStorageKey(statKey, slot);
     statOverrides.delete(buildOverrideKey(slot, statKey));
+    statOverrideBaselines.delete(buildOverrideKey(slot, statKey));
     if (!storageKey || typeof localStorage === 'undefined') return;
     if (isStorageKeyLocked(storageKey)) return;
     try { localStorage.removeItem(storageKey); } catch {}
@@ -616,9 +618,19 @@ function getLockedStatOverride(slot, statKey) {
 }
 
 function getStatMultiplierDisplayValue(statKey, slot = getActiveSlot()) {
-    const lockedOverride = getLockedStatOverride(slot, statKey);
-    if (lockedOverride) return lockedOverride;
+    const gameValue = getGameStatMultiplier(statKey);
+    const effectiveOverride = getEffectiveStatMultiplierOverride(statKey, slot, gameValue);
+    return effectiveOverride ?? gameValue;
+}
 
+function getStatMultiplierStorageKey(statKey, slot = getActiveSlot()) {
+    if (!statKey) return null;
+    const resolvedSlot = slot ?? getActiveSlot();
+    if (resolvedSlot == null) return null;
+    return `${STAT_MULTIPLIER_STORAGE_PREFIX}:${statKey}:${resolvedSlot}`;
+}
+
+function getGameStatMultiplier(statKey) {
     try {
         if (statKey === 'xp') {
             const { xpGainMultiplier } = computeUpgradeEffects(AREA_KEYS.STARTER_COVE) ?? {};
@@ -630,13 +642,6 @@ function getStatMultiplierDisplayValue(statKey, slot = getActiveSlot()) {
     } catch {}
 
     return BigNum.fromInt(1);
-}
-
-function getStatMultiplierStorageKey(statKey, slot = getActiveSlot()) {
-    if (!statKey) return null;
-    const resolvedSlot = slot ?? getActiveSlot();
-    if (resolvedSlot == null) return null;
-    return `${STAT_MULTIPLIER_STORAGE_PREFIX}:${statKey}:${resolvedSlot}`;
 }
 
 function loadStatMultiplierOverrideFromStorage(statKey, slot = getActiveSlot()) {
@@ -721,6 +726,7 @@ export function setDebugStatMultiplierOverride(statKey, value, slot = getActiveS
     try { bn = value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value ?? 1); }
     catch { bn = BigNum.fromInt(1); }
     statOverrides.set(buildOverrideKey(slot, statKey), bn);
+    statOverrideBaselines.set(buildOverrideKey(slot, statKey), getGameStatMultiplier(statKey));
     storeStatMultiplierOverride(statKey, slot, bn);
     notifyStatMultiplierChange(statKey, slot);
     return bn;
@@ -732,7 +738,8 @@ export function getDebugStatMultiplierOverride(statKey, slot = getActiveSlot()) 
 }
 
 export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlot()) {
-    const override = getLockedStatOverride(slot, statKey);
+    const gameValue = getGameStatMultiplier(statKey);
+    const override = getEffectiveStatMultiplierOverride(statKey, slot, gameValue);
     if (!override) return amount;
     let base;
     try {
@@ -747,6 +754,26 @@ export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlo
         try { return base.mul?.(override) ?? base; }
         catch { return base; }
     }
+}
+
+function getEffectiveStatMultiplierOverride(statKey, slot, gameValue) {
+    const override = getStatOverride(slot, statKey);
+    if (!override) return null;
+
+    const cacheKey = buildOverrideKey(slot, statKey);
+    const baseline = statOverrideBaselines.get(cacheKey);
+    if (!baseline) {
+        statOverrideBaselines.set(cacheKey, gameValue);
+    }
+
+    const locked = isStatMultiplierLocked(statKey, slot);
+    if (!locked && baseline && !bigNumEquals(baseline, gameValue)) {
+        statOverrideBaselines.set(cacheKey, gameValue);
+        clearStatMultiplierOverride(statKey, slot);
+        return null;
+    }
+
+    return override;
 }
 
 function ensureStorageLockPatch() {
