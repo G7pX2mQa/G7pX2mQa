@@ -961,9 +961,9 @@ function updateHud() {
   syncXpMpHudLayout();
 }
 
-export function initXpSystem() {
+export function initXpSystem({ forceReload = false } = {}) {
   ensureHudRefs();
-  ensureStateLoaded();
+  ensureStateLoaded(forceReload);
   updateXpRequirement();
   updateHud();
   ensureXpStorageWatchers();
