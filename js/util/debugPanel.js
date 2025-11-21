@@ -242,7 +242,7 @@ function ensureDebugPanelStyles() {
         .debug-panel-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             margin-bottom: 10px;
         }
 
@@ -936,7 +936,7 @@ function buildDebugPanel() {
 
     const shortcuts = document.createElement('div');
     shortcuts.className = 'debug-panel-shortcuts';
-    shortcuts.textContent = 'C: Close and collapse all panels\nShift+C: Close and preserve panels';
+    shortcuts.textContent = 'C: Close and preserve panels\nShift+C: Close and collapse all panels';
 
     const closeButton = document.createElement('button');
     closeButton.className = 'debug-panel-close';
@@ -946,7 +946,12 @@ function buildDebugPanel() {
     closeButton.addEventListener('click', () => closeDebugPanel({ preserveExpansionState: true }));
 
     titleContainer.appendChild(title);
-    titleContainer.appendChild(shortcuts);
+    if (!IS_MOBILE) {
+        const shortcuts = document.createElement('div');
+        shortcuts.className = 'debug-panel-shortcuts';
+        shortcuts.textContent = 'C: Close and collapse all panels\nShift+C: Close and preserve panels';
+        titleContainer.appendChild(shortcuts);
+    }
 
     header.appendChild(titleContainer);
     header.appendChild(closeButton);
@@ -1059,7 +1064,8 @@ document.addEventListener('keydown', event => {
 
     if (event.shiftKey) {
         if (debugPanelOpen) {
-            closeDebugPanel({ preserveExpansionState: true });
+            collapseAllDebugCategories();
+            closeDebugPanel();
         } else {
             openDebugPanel();
         }
@@ -1070,9 +1076,9 @@ document.addEventListener('keydown', event => {
     if (!debugPanelOpen) {
         openDebugPanel();
     } else {
-        collapseAllDebugCategories();
-        closeDebugPanel();
+        closeDebugPanel({ preserveExpansionState: true });
     }
+	
     event.preventDefault();
 });
 
