@@ -393,7 +393,7 @@ function ensureDebugPanelStyles() {
             color: #aaa;
             margin-left: 6px;
             position: relative;
-            top: -1px;
+            top: -2px;
         }
 
         .debug-panel-toggle-button {
