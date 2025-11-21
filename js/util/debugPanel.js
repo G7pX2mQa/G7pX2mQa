@@ -699,10 +699,6 @@ function buildDebugPanel() {
     debugPanelOpen = true;
 }
 
-    document.body.appendChild(panel);
-    debugPanelOpen = true;
-}
-
 function openDebugPanel() {
     if (!debugPanelAccess || isMenuVisible()) return;
     if (getActiveSlot() == null) {
