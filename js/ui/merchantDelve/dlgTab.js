@@ -15,6 +15,7 @@ import {
   shouldSkipGhostTap,
   suppressNextGhostTap,
 } from '../../util/ghostTapGuard.js';
+import { IS_MOBILE } from '../../main.js';
 
 function nowMs() {
   if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
@@ -188,11 +189,6 @@ function buildUnlockedDialogueInfo(meta) {
     ariaLabel: meta.title || 'Merchant dialogue',
   };
 }
-
-const IS_MOBILE =
-  (typeof window.IS_MOBILE !== 'undefined')
-    ? window.IS_MOBILE
-    : (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
 
 let progressEventsBound = false;
 let merchantDlgWatcherInitialized = false;
@@ -1666,12 +1662,7 @@ export function openMerchant() {
 
 export function closeMerchant() {
   if (!merchantOpen) return;
-
-  const IS_MOBILE =
-    (typeof window !== 'undefined' && typeof window.IS_MOBILE !== 'undefined')
-      ? !!window.IS_MOBILE
-      : (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
-
+  
   if (IS_MOBILE) {
     try { suppressNextGhostTap(100); } catch {}
     try { blockInteraction(80); } catch {}
