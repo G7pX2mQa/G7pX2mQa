@@ -3,13 +3,54 @@
 // Editing local storage every time I want to change something.
 // I will remember to disable debug panel access for prod, don't worry.
 
-import { getActiveSlot } from './storage.js';
+import { BigNum } from './bigNum.js';
+import { bank, CURRENCIES, getActiveSlot, primeStorageWatcherSnapshot } from './storage.js';
+import { getMutationState, initMutationSystem } from '../game/mutationSystem.js';
+import {
+    AREA_KEYS,
+    getLevel,
+    getUpgradesForArea,
+    setLevel,
+} from '../game/upgrades.js';
+import { getXpState, initXpSystem, unlockXpSystem } from '../game/xpSystem.js';
 
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
 let debugPanelOpen = false;
 let debugPanelAccess = true;
+
+const XP_KEY_PREFIX = 'ccc:xp';
+const XP_KEYS = {
+    unlock: (slot) => `${XP_KEY_PREFIX}:unlocked:${slot}`,
+    level:  (slot) => `${XP_KEY_PREFIX}:level:${slot}`,
+    progress: (slot) => `${XP_KEY_PREFIX}:progress:${slot}`,
+};
+
+const MUTATION_KEY_PREFIX = 'ccc:mutation';
+const MUTATION_KEYS = {
+    unlock: (slot) => `${MUTATION_KEY_PREFIX}:unlocked:${slot}`,
+    level:  (slot) => `${MUTATION_KEY_PREFIX}:level:${slot}`,
+    progress: (slot) => `${MUTATION_KEY_PREFIX}:progress:${slot}`,
+};
+
+const AREAS = [
+    {
+        key: AREA_KEYS.STARTER_COVE,
+        title: 'The Cove',
+        currencies: [
+            { key: CURRENCIES.COINS, label: 'Coins' },
+            { key: CURRENCIES.BOOKS, label: 'Books' },
+            { key: CURRENCIES.GOLD,  label: 'Gold'  },
+        ],
+        stats: [
+            { key: 'xpLevel', label: 'XP Level' },
+            { key: 'xpProgress', label: 'XP Progress' },
+            { key: 'mpLevel', label: 'MP Level' },
+            { key: 'mpProgress', label: 'MP Progress' },
+        ],
+    },
+];
 
 const isMobileDevice = () => (
     window.matchMedia?.('(any-pointer: coarse)')?.matches
@@ -105,6 +146,76 @@ function ensureDebugPanelStyles() {
             font-style: italic;
         }
 
+        .debug-panel-subsection {
+            margin: 8px 0 12px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .debug-panel-subsection-toggle {
+            width: 100%;
+            text-align: left;
+            background: rgba(255, 255, 255, 0.06);
+            border: none;
+            color: #fff;
+            padding: 6px 8px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95em;
+        }
+
+        .debug-panel-subsection-toggle::before {
+            content: '▶';
+            font-size: 0.8em;
+        }
+
+        .debug-panel-subsection-toggle.expanded::before {
+            content: '▼';
+        }
+
+        .debug-panel-subsection-content {
+            display: none;
+            padding: 8px 10px;
+            border-top: 1px solid #333;
+        }
+
+        .debug-panel-subsection-content.active {
+            display: block;
+        }
+
+        .debug-panel-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 4px 0;
+        }
+
+        .debug-panel-row label {
+            flex: 1;
+            font-size: 0.95em;
+        }
+
+        .debug-panel-input {
+            flex: 0 0 230px;
+            max-width: 100%;
+            background: #111;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-family: Consolas, 'Courier New', monospace;
+        }
+
+        .debug-panel-input.debug-invalid {
+            border-color: #e66;
+            box-shadow: 0 0 0 1px #e66;
+        }
+
         .debug-panel-toggle-button {
             position: fixed;
             top: 10px;
@@ -158,7 +269,289 @@ function createSection(title, contentId, contentBuilder) {
         content.classList.toggle('active', expanded);
     });
 
+
     return section;
+}
+
+function createSubsection(title, contentBuilder, { defaultExpanded = false } = {}) {
+    const container = document.createElement('div');
+    container.className = 'debug-panel-subsection';
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'debug-panel-subsection-toggle';
+    toggle.textContent = title;
+    container.appendChild(toggle);
+
+    const content = document.createElement('div');
+    content.className = 'debug-panel-subsection-content';
+    contentBuilder(content);
+    container.appendChild(content);
+
+    toggle.addEventListener('click', () => {
+        const expanded = toggle.classList.toggle('expanded');
+        content.classList.toggle('active', expanded);
+    });
+
+    if (defaultExpanded) {
+        toggle.classList.add('expanded');
+        content.classList.add('active');
+    }
+
+    return container;
+}
+
+function formatBigNumForInput(value) {
+    try {
+        const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 0);
+        const sci = bn.toScientific?.(6) ?? bn.toString?.();
+        return sci || String(value ?? '');
+    } catch {
+        return String(value ?? '');
+    }
+}
+
+function parseBigNumInput(raw) {
+    const trimmed = String(raw ?? '').trim();
+    if (!trimmed) return BigNum.fromInt(0);
+    try {
+        if (/^inf(?:inity)?$/i.test(trimmed)) {
+            return BigNum.fromAny('Infinity');
+        }
+        return BigNum.fromAny(trimmed);
+    } catch {
+        return null;
+    }
+}
+
+function setInputValidity(input, valid) {
+    input.classList.toggle('debug-invalid', !valid);
+}
+
+function createInputRow(labelText, initialValue, onCommit) {
+    const row = document.createElement('div');
+    row.className = 'debug-panel-row';
+
+    const label = document.createElement('label');
+    label.textContent = labelText;
+    row.appendChild(label);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'debug-panel-input';
+    input.value = formatBigNumForInput(initialValue);
+    row.appendChild(input);
+
+    const commitValue = () => {
+        const parsed = parseBigNumInput(input.value);
+        if (!parsed) {
+            setInputValidity(input, false);
+            return;
+        }
+        setInputValidity(input, true);
+        onCommit(parsed, input);
+    };
+
+    input.addEventListener('change', commitValue);
+    input.addEventListener('blur', commitValue);
+
+    return { row, input };
+}
+
+function applyXpState({ level, progress }) {
+    const slot = getActiveSlot();
+    if (slot == null) return;
+
+    unlockXpSystem();
+    const unlockKey = XP_KEYS.unlock(slot);
+    try { localStorage.setItem(unlockKey, '1'); } catch {}
+    primeStorageWatcherSnapshot(unlockKey, '1');
+
+    if (level) {
+        try {
+            const raw = level.toStorage?.() ?? BigNum.fromAny(level).toStorage();
+            const key = XP_KEYS.level(slot);
+            localStorage.setItem(key, raw);
+            primeStorageWatcherSnapshot(key, raw);
+        } catch {}
+    }
+
+    if (progress) {
+        try {
+            const raw = progress.toStorage?.() ?? BigNum.fromAny(progress).toStorage();
+            const key = XP_KEYS.progress(slot);
+            localStorage.setItem(key, raw);
+            primeStorageWatcherSnapshot(key, raw);
+        } catch {}
+    }
+
+    initXpSystem();
+}
+
+function applyMutationState({ level, progress }) {
+    const slot = getActiveSlot();
+    if (slot == null) return;
+
+    initMutationSystem();
+    const unlockKey = MUTATION_KEYS.unlock(slot);
+    try { localStorage.setItem(unlockKey, '1'); } catch {}
+    primeStorageWatcherSnapshot(unlockKey, '1');
+
+    if (level) {
+        try {
+            const raw = level.toStorage?.() ?? BigNum.fromAny(level).toStorage();
+            const key = MUTATION_KEYS.level(slot);
+            localStorage.setItem(key, raw);
+            primeStorageWatcherSnapshot(key, raw);
+        } catch {}
+    }
+
+    if (progress) {
+        try {
+            const raw = progress.toStorage?.() ?? BigNum.fromAny(progress).toStorage();
+            const key = MUTATION_KEYS.progress(slot);
+            localStorage.setItem(key, raw);
+            primeStorageWatcherSnapshot(key, raw);
+        } catch {}
+    }
+
+    initMutationSystem();
+}
+
+function buildAreaCurrencies(container, area) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit currency values.';
+        container.appendChild(msg);
+        return;
+    }
+
+    area.currencies.forEach((currency) => {
+        const handle = bank?.[currency.key];
+        const current = handle?.value ?? BigNum.fromInt(0);
+        const { row, input } = createInputRow(currency.label, current, (value) => {
+            const latestSlot = getActiveSlot();
+            if (latestSlot == null) return;
+            try { handle?.set?.(value); } catch {}
+            input.value = formatBigNumForInput(handle?.value ?? value);
+        });
+        container.appendChild(row);
+    });
+}
+
+function buildAreaStats(container) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit stats.';
+        container.appendChild(msg);
+        return;
+    }
+
+    const xp = getXpState();
+    const mutation = getMutationState();
+
+    const xpLevelRow = createInputRow('XP Level', xp.xpLevel, (value, input) => {
+        applyXpState({ level: value });
+        const latest = getXpState();
+        input.value = formatBigNumForInput(latest.xpLevel);
+    });
+    container.appendChild(xpLevelRow.row);
+
+    const xpProgressRow = createInputRow('XP Progress', xp.progress, (value, input) => {
+        applyXpState({ progress: value });
+        const latest = getXpState();
+        input.value = formatBigNumForInput(latest.progress);
+    });
+    container.appendChild(xpProgressRow.row);
+
+    const mpLevelRow = createInputRow('MP Level', mutation.level, (value, input) => {
+        applyMutationState({ level: value });
+        const latest = getMutationState();
+        input.value = formatBigNumForInput(latest.level);
+    });
+    container.appendChild(mpLevelRow.row);
+
+    const mpProgressRow = createInputRow('MP Progress', mutation.progress, (value, input) => {
+        applyMutationState({ progress: value });
+        const latest = getMutationState();
+        input.value = formatBigNumForInput(latest.progress);
+    });
+    container.appendChild(mpProgressRow.row);
+}
+
+function buildAreaUpgrades(container, area) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit upgrades.';
+        container.appendChild(msg);
+        return;
+    }
+
+    const upgrades = getUpgradesForArea(area.key);
+    if (!upgrades || upgrades.length === 0) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'No upgrades found for this area yet.';
+        container.appendChild(msg);
+        return;
+    }
+
+    upgrades.forEach((upg) => {
+        const idLabel = upg.tie ?? upg.tieKey ?? upg.id;
+        const title = upg.title || `Upgrade ${idLabel}`;
+        const current = getLevel(area.key, upg.id ?? upg.tie);
+        const { row, input } = createInputRow(`${title} (ID: ${idLabel})`, current, (value) => {
+            const latestSlot = getActiveSlot();
+            if (latestSlot == null) return;
+            try { setLevel(area.key, upg.id ?? upg.tie, value, false); } catch {}
+            const refreshed = getLevel(area.key, upg.id ?? upg.tie);
+            input.value = formatBigNumForInput(refreshed);
+        });
+        container.appendChild(row);
+    });
+}
+
+function buildAreasContent(content) {
+    content.innerHTML = '';
+
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'debug-panel-empty';
+        placeholder.textContent = 'Areas are available once a save slot is selected.';
+        content.appendChild(placeholder);
+        return;
+    }
+
+    AREAS.forEach((area) => {
+        const areaContainer = document.createElement('div');
+        areaContainer.className = 'debug-panel-area';
+
+        const areaTitle = document.createElement('div');
+        areaTitle.className = 'debug-panel-title';
+        areaTitle.textContent = area.title;
+        areaContainer.appendChild(areaTitle);
+
+        areaContainer.appendChild(createSubsection('Currencies', (sub) => {
+            buildAreaCurrencies(sub, area);
+        }, { defaultExpanded: true }));
+
+        areaContainer.appendChild(createSubsection('Stats', (sub) => {
+            buildAreaStats(sub);
+        }));
+
+        areaContainer.appendChild(createSubsection('Upgrades', (sub) => {
+            buildAreaUpgrades(sub, area);
+        }));
+
+        content.appendChild(areaContainer);
+    });
 }
 
 function buildDebugPanel() {
@@ -191,10 +584,7 @@ function buildDebugPanel() {
     panel.appendChild(header);
 
     panel.appendChild(createSection('Areas', 'debug-areas', content => {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'debug-panel-empty';
-        placeholder.textContent = 'Areas will list currencies, stats, and upgrades per area.';
-        content.appendChild(placeholder);
+        buildAreasContent(content);
     }));
 
     panel.appendChild(createSection('Unlocks', 'debug-unlocks', content => {
@@ -211,7 +601,7 @@ function buildDebugPanel() {
         content.appendChild(placeholder);
     }));
 	
-	panel.appendChild(createSection('Miscellaneous', 'debug-misc', content => {
+    panel.appendChild(createSection('Miscellaneous', 'debug-misc', content => {
         const placeholder = document.createElement('div');
         placeholder.className = 'debug-panel-empty';
         placeholder.textContent = 'Utility buttons will appear here.';
@@ -289,6 +679,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.addEventListener('saveSlot:change', () => {
     createDebugPanelToggleButton();
+    if (debugPanelOpen) {
+        buildDebugPanel();
+    }
 });
 
 export function setDebugPanelAccess(enabled) {
