@@ -199,7 +199,7 @@ function ensureDebugPanelStyles() {
             right: 0;
             transform: translateY(-50%);
             width: 600px;
-            max-height: 75vh;
+            max-height: 100vh;
             overflow-y: auto;
             background: rgb(0, 0, 0);
             color: #fff;
@@ -945,7 +945,7 @@ function buildDebugPanel() {
     if (!IS_MOBILE) {
         const shortcuts = document.createElement('div');
         shortcuts.className = 'debug-panel-shortcuts';
-        shortcuts.textContent = 'C: Close and preserve panels\nShift+C: Close and collapse panels\nInput value "inf": sets a value to infinity or an upgrade to its level cap';
+        shortcuts.textContent = 'C: Close and preserve panels\nShift+C: Close and collapse panels\nInput fields can take a normal number (e.g., 1234) or a BN number\nInput value "inf" sets a value to infinity or an upgrade to its level cap';
         titleContainer.appendChild(shortcuts);
     }
 
