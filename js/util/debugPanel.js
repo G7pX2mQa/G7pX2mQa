@@ -168,6 +168,10 @@ function setupLiveBindingListeners() {
         const targetSlot = getActiveSlot();
         refreshLiveBindings((binding) => binding.type === 'upgrade'
             && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === 'currency-mult'
+            && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && binding.slot === targetSlot);
     };
     document.addEventListener('ccc:upgrades:changed', upgradeHandler, { passive: true });
     addDebugPanelCleanup(() => document.removeEventListener('ccc:upgrades:changed', upgradeHandler));
@@ -572,6 +576,17 @@ function bigNumEquals(a, b) {
     catch { return false; }
 }
 
+function bigNumToFiniteNumber(value) {
+    try {
+        const fromScientific = value?.toScientific?.(18);
+        const num = Number.parseFloat(fromScientific ?? value);
+        return Number.isFinite(num) ? num : Number.NaN;
+    } catch {
+        return Number.NaN;
+    }
+}
+
+
 function buildOverrideKey(slot, key) {
     return `${slot ?? 'null'}::${key}`;
 }
@@ -756,11 +771,26 @@ export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlo
     }
     try {
         if (base.isZero?.()) return base;
-        return base.mulBigNumInteger?.(override) ?? base;
     } catch {
-        try { return base.mul?.(override) ?? base; }
-        catch { return base; }
+        return base;
     }
+
+    const cacheKey = buildOverrideKey(slot, statKey);
+    const baseline = statOverrideBaselines.get(cacheKey);
+    const multiplierForRatio = (isStatMultiplierLocked(statKey, slot) && baseline) ? baseline : gameValue;
+
+    const overrideNum = bigNumToFiniteNumber(override);
+    const gameValueNum = bigNumToFiniteNumber(multiplierForRatio);
+    const ratio = Number.isFinite(overrideNum) && Number.isFinite(gameValueNum) && gameValueNum !== 0
+        ? overrideNum / gameValueNum
+        : Number.NaN;
+
+    if (Number.isFinite(ratio) && ratio !== 1) {
+        try { return base.mulDecimal?.(ratio) ?? base; }
+        catch {}
+    }
+
+    return base;
 }
 
 function getEffectiveStatMultiplierOverride(statKey, slot, gameValue) {
@@ -907,7 +937,10 @@ function setInputValidity(input, valid) {
 }
 
 function flagDebugUsage() {
-    try { markSaveSlotModified(getActiveSlot()); }
+    const slot = getActiveSlot();
+    try { markSaveSlotModified(slot); }
+    catch {}
+    try { window.dispatchEvent(new CustomEvent('debug:change', { detail: { slot } })); }
     catch {}
 }
 
@@ -1301,7 +1334,20 @@ function buildAreaStatMultipliers(container) {
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
             }
-        }, { storageKey });
+        }, {
+            storageKey,
+            onLockChange: (locked) => {
+                if (!locked) return;
+                const latestSlot = getActiveSlot();
+                if (latestSlot == null) return;
+                const existingOverride = getLockedStatOverride(latestSlot, stat.key);
+                if (existingOverride) return;
+                try {
+                    setDebugStatMultiplierOverride(stat.key, getGameStatMultiplier(stat.key), latestSlot);
+                } catch {}
+                row.setValue(getStatMultiplierDisplayValue(stat.key, latestSlot));
+            },
+        });
 
         registerLiveBinding({
             type: 'stat-mult',
@@ -1476,6 +1522,11 @@ function buildDebugPanel() {
     applyDebugPanelExpansionState(panel);
 
     document.body.appendChild(panel);
+
+    if (debugPanelScrollTop > 0) {
+        try { panel.scrollTop = debugPanelScrollTop; }
+        catch {}
+    }
     setupLiveBindingListeners();
     debugPanelOpen = true;
 }
@@ -1495,7 +1546,11 @@ function closeDebugPanel({ preserveExpansionState = false } = {}) {
         ? captureDebugPanelExpansionState()
         : createEmptyExpansionState();
     const panel = document.getElementById(DEBUG_PANEL_ID);
-    if (panel) panel.remove();
+    if (panel) {
+        try { debugPanelScrollTop = panel.scrollTop ?? 0; }
+        catch { debugPanelScrollTop = 0; }
+        panel.remove();
+    }
     cleanupDebugPanelResources();
     debugPanelOpen = false;
 }
