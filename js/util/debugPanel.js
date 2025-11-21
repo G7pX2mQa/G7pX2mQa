@@ -1,10 +1,17 @@
 // js/util/debugPanel.js
 
+import { getActiveSlot } from './storage.js';
+
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
 let debugPanelOpen = false;
 let debugPanelAccess = true;
+
+const isMobileDevice = () => (
+    window.matchMedia?.('(any-pointer: coarse)')?.matches
+        || 'ontouchstart' in window
+);
 
 function ensureDebugPanelStyles() {
     let style = document.getElementById(DEBUG_PANEL_STYLE_ID);
@@ -21,7 +28,7 @@ function ensureDebugPanelStyles() {
             width: 430px;
             max-height: 80vh;
             overflow-y: auto;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgb(0, 0, 0);
             color: #fff;
             font-family: Arial, sans-serif;
             padding: 12px;
@@ -121,6 +128,10 @@ function ensureDebugPanelStyles() {
 function removeDebugPanelToggleButton() {
     const existingButton = document.getElementById(DEBUG_PANEL_TOGGLE_ID);
     if (existingButton) existingButton.remove();
+}
+
+function shouldShowDebugPanelToggleButton() {
+    return debugPanelAccess && isMobileDevice() && getActiveSlot() != null;
 }
 
 function createSection(title, contentId, contentBuilder) {
@@ -235,7 +246,10 @@ function teardownDebugPanel() {
 }
 
 function createDebugPanelToggleButton() {
-    if (!debugPanelAccess) return;
+    if (!shouldShowDebugPanelToggleButton()) {
+        removeDebugPanelToggleButton();
+        return;
+    }
     ensureDebugPanelStyles();
 
     removeDebugPanelToggleButton();
@@ -252,11 +266,11 @@ function createDebugPanelToggleButton() {
 
 function applyDebugPanelAccess(enabled) {
     debugPanelAccess = !!enabled;
-    if (debugPanelAccess) {
-        createDebugPanelToggleButton();
-    } else {
+    if (!debugPanelAccess) {
         teardownDebugPanel();
+        return;
     }
+    createDebugPanelToggleButton();
 }
 
 document.addEventListener('keydown', event => {
@@ -267,7 +281,11 @@ document.addEventListener('keydown', event => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (debugPanelAccess) createDebugPanelToggleButton();
+    createDebugPanelToggleButton();
+});
+
+window.addEventListener('saveSlot:change', () => {
+    createDebugPanelToggleButton();
 });
 
 export function setDebugPanelAccess(enabled) {
