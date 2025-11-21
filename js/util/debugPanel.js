@@ -8,11 +8,13 @@ import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStora
 import { getMutationState, initMutationSystem, unlockMutationSystem } from '../game/mutationSystem.js';
 import {
     AREA_KEYS,
+    computeUpgradeEffects,
     getLevel,
     getUpgradesForArea,
     setLevel,
 } from '../game/upgrades.js';
 import { getXpState, initXpSystem, unlockXpSystem } from '../game/xpSystem.js';
+import { getMutationMultiplier } from '../game/mutationSystem.js';
 
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
@@ -614,8 +616,20 @@ function getLockedStatOverride(slot, statKey) {
 }
 
 function getStatMultiplierDisplayValue(statKey, slot = getActiveSlot()) {
-    const override = getStatOverride(slot, statKey);
-    return override ?? BigNum.fromInt(1);
+    const lockedOverride = getLockedStatOverride(slot, statKey);
+    if (lockedOverride) return lockedOverride;
+
+    try {
+        if (statKey === 'xp') {
+            const { xpGainMultiplier } = computeUpgradeEffects(AREA_KEYS.STARTER_COVE) ?? {};
+            if (xpGainMultiplier) return xpGainMultiplier;
+        } else if (statKey === 'mutation') {
+            const mult = getMutationMultiplier();
+            if (mult) return mult;
+        }
+    } catch {}
+
+    return BigNum.fromInt(1);
 }
 
 function getStatMultiplierStorageKey(statKey, slot = getActiveSlot()) {
@@ -718,7 +732,7 @@ export function getDebugStatMultiplierOverride(statKey, slot = getActiveSlot()) 
 }
 
 export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlot()) {
-    const override = getStatOverride(slot, statKey);
+    const override = getLockedStatOverride(slot, statKey);
     if (!override) return amount;
     let base;
     try {
@@ -948,7 +962,7 @@ function applyXpState({ level, progress }) {
     try { localStorage.setItem(unlockKey, '1'); } catch {}
     primeStorageWatcherSnapshot(unlockKey, '1');
 
-    if (level) {
+    if (level != null) {
         try {
             const raw = level.toStorage?.() ?? BigNum.fromAny(level).toStorage();
             const key = XP_KEYS.level(slot);
@@ -957,7 +971,7 @@ function applyXpState({ level, progress }) {
         } catch {}
     }
 
-    if (progress) {
+    if (progress != null) {
         try {
             const raw = progress.toStorage?.() ?? BigNum.fromAny(progress).toStorage();
             const key = XP_KEYS.progress(slot);
@@ -979,7 +993,7 @@ function applyMutationState({ level, progress }) {
     try { localStorage.setItem(unlockKey, '1'); } catch {}
     primeStorageWatcherSnapshot(unlockKey, '1');
 
-    if (level) {
+    if (level != null) {
         try {
             const raw = level.toStorage?.() ?? BigNum.fromAny(level).toStorage();
             const key = MUTATION_KEYS.level(slot);
@@ -988,7 +1002,7 @@ function applyMutationState({ level, progress }) {
         } catch {}
     }
 
-    if (progress) {
+    if (progress != null) {
         try {
             const raw = progress.toStorage?.() ?? BigNum.fromAny(progress).toStorage();
             const key = MUTATION_KEYS.progress(slot);
@@ -1074,11 +1088,14 @@ function buildAreaStats(container) {
 
     const xpProgressKey = XP_KEYS.progress(slot);
     const xpProgressRow = createInputRow('XP Progress', xp.progress, (value, { setValue }) => {
-        const prev = getXpState().progress;
+        const prev = getXpState();
+        const prevLevel = prev?.xpLevel?.clone?.() ?? prev?.xpLevel;
+        const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
         applyXpState({ progress: value });
         const latest = getXpState();
         setValue(latest.progress);
-        if (!bigNumEquals(prev, latest.progress)) {
+        xpLevelRow.setValue(latest.xpLevel);
+        if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.xpLevel)) {
             flagDebugUsage();
         }
     }, { storageKey: xpProgressKey });
@@ -1114,11 +1131,14 @@ function buildAreaStats(container) {
 
     const mpProgressKey = MUTATION_KEYS.progress(slot);
     const mpProgressRow = createInputRow('MP Progress', mutation.progress, (value, { setValue }) => {
-        const prev = getMutationState().progress;
+        const prev = getMutationState();
+        const prevLevel = prev?.level?.clone?.() ?? prev?.level;
+        const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
         applyMutationState({ progress: value });
         const latest = getMutationState();
         setValue(latest.progress);
-        if (!bigNumEquals(prev, latest.progress)) {
+        mpLevelRow.setValue(latest.level);
+        if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.level)) {
             flagDebugUsage();
         }
     }, { storageKey: mpProgressKey });
@@ -1259,6 +1279,30 @@ function buildAreaStatMultipliers(container) {
                 row.setValue(latest);
             },
         });
+
+        registerLiveBinding({
+            type: 'upgrade',
+            key: stat.key,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = getStatMultiplierDisplayValue(stat.key, slot);
+                row.setValue(latest);
+            },
+        });
+
+        if (stat.key === 'mutation') {
+            registerLiveBinding({
+                type: 'mutation',
+                key: stat.key,
+                slot,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    const latest = getStatMultiplierDisplayValue(stat.key, slot);
+                    row.setValue(latest);
+                },
+            });
+        }
 
         container.appendChild(row.row);
     });
