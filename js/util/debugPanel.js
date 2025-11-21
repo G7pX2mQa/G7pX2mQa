@@ -256,6 +256,13 @@ function shouldShowDebugPanelToggleButton() {
         && !isMenuVisible();
 }
 
+function onMenuVisibilityChange(event) {
+    if (event?.detail?.visible) {
+        closeDebugPanel();
+    }
+    createDebugPanelToggleButton();
+}
+
 function createSection(title, contentId, contentBuilder) {
     const section = document.createElement('div');
     section.className = 'debug-panel-section';
