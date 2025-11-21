@@ -251,6 +251,12 @@ function ensureDebugPanelStyles() {
             font-weight: bold;
         }
 
+        .debug-panel-shortcuts {
+            font-size: 0.95em;
+            color: #ccc;
+            white-space: pre-line;
+        }
+
         .debug-panel-close {
             background: transparent;
             border: none;
@@ -922,9 +928,15 @@ function buildDebugPanel() {
     const header = document.createElement('div');
     header.className = 'debug-panel-header';
 
+    const titleContainer = document.createElement('div');
+
     const title = document.createElement('div');
     title.className = 'debug-panel-title';
     title.textContent = 'Debug Panel';
+
+    const shortcuts = document.createElement('div');
+    shortcuts.className = 'debug-panel-shortcuts';
+    shortcuts.textContent = 'C - Close and collapse all panels\nShift+C - Close and preserve panels';
 
     const closeButton = document.createElement('button');
     closeButton.className = 'debug-panel-close';
@@ -933,7 +945,10 @@ function buildDebugPanel() {
     closeButton.textContent = '×';
     closeButton.addEventListener('click', () => closeDebugPanel({ preserveExpansionState: true }));
 
-    header.appendChild(title);
+    titleContainer.appendChild(title);
+    titleContainer.appendChild(shortcuts);
+
+    header.appendChild(titleContainer);
     header.appendChild(closeButton);
     panel.appendChild(header);
 
