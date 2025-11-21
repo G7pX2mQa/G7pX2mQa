@@ -144,7 +144,7 @@ function ensureDebugPanelStyles() {
             top: 50%;
             right: 0;
             transform: translateY(-50%);
-            width: 500px;
+            width: 600px;
             max-height: 75vh;
             overflow-y: auto;
             background: rgb(0, 0, 0);
@@ -857,7 +857,7 @@ function buildDebugPanel() {
     header.appendChild(closeButton);
     panel.appendChild(header);
 
-    panel.appendChild(createSection('Areas—curr/stat/upg management for each area', 'debug-areas', content => {
+    panel.appendChild(createSection('Areas—currency/stat/upgrade management for each area', 'debug-areas', content => {
         buildAreasContent(content);
     }));
 
