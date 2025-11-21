@@ -6,6 +6,7 @@
 import { BigNum } from './bigNum.js';
 import { bank, CURRENCIES, getActiveSlot, primeStorageWatcherSnapshot } from './storage.js';
 import { getMutationState, initMutationSystem } from '../game/mutationSystem.js';
+import { IS_MOBILE } from '../main.js';
 import {
     AREA_KEYS,
     getLevel,
@@ -57,11 +58,6 @@ const AREAS = [
     },
 ];
 
-const isMobileDevice = () => (
-    window.matchMedia?.('(any-pointer: coarse)')?.matches
-        || 'ontouchstart' in window
-);
-
 function ensureDebugPanelStyles() {
     let style = document.getElementById(DEBUG_PANEL_STYLE_ID);
     if (style) return;
@@ -75,7 +71,7 @@ function ensureDebugPanelStyles() {
             right: 0;
             transform: translateY(-50%);
             width: 440px;
-            max-height: 80vh;
+            max-height: 75vh;
             overflow-y: auto;
             background: rgb(0, 0, 0);
             color: #fff;
@@ -251,7 +247,7 @@ function removeDebugPanelToggleButton() {
 
 function shouldShowDebugPanelToggleButton() {
     return debugPanelAccess
-        && isMobileDevice()
+        && IS_MOBILE
         && getActiveSlot() != null
         && !isMenuVisible();
 }
