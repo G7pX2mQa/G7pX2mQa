@@ -20,6 +20,11 @@ const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
 let debugPanelOpen = false;
 let debugPanelAccess = true;
 
+function isMenuVisible() {
+    const menuRoot = document.querySelector('.menu-root');
+    return !!menuRoot && menuRoot.style.display !== 'none';
+}
+
 const XP_KEY_PREFIX = 'ccc:xp';
 const XP_KEYS = {
     unlock: (slot) => `${XP_KEY_PREFIX}:unlocked:${slot}`,
@@ -69,7 +74,7 @@ function ensureDebugPanelStyles() {
             top: 50%;
             right: 0;
             transform: translateY(-50%);
-            width: 430px;
+            width: 440px;
             max-height: 80vh;
             overflow-y: auto;
             background: rgb(0, 0, 0);
@@ -245,7 +250,10 @@ function removeDebugPanelToggleButton() {
 }
 
 function shouldShowDebugPanelToggleButton() {
-    return debugPanelAccess && isMobileDevice() && getActiveSlot() != null;
+    return debugPanelAccess
+        && isMobileDevice()
+        && getActiveSlot() != null
+        && !isMenuVisible();
 }
 
 function createSection(title, contentId, contentBuilder) {
@@ -555,7 +563,7 @@ function buildAreasContent(content) {
 }
 
 function buildDebugPanel() {
-    if (!debugPanelAccess) return;
+    if (!debugPanelAccess || isMenuVisible()) return;
     ensureDebugPanelStyles();
 
     const existingPanel = document.getElementById(DEBUG_PANEL_ID);
@@ -583,25 +591,25 @@ function buildDebugPanel() {
     header.appendChild(closeButton);
     panel.appendChild(header);
 
-    panel.appendChild(createSection('Areas', 'debug-areas', content => {
+    panel.appendChild(createSection('Areas—curr/stat/upg management for each area', 'debug-areas', content => {
         buildAreasContent(content);
     }));
 
-    panel.appendChild(createSection('Unlocks', 'debug-unlocks', content => {
+    panel.appendChild(createSection('Unlocks—modify specific unlock flags', 'debug-unlocks', content => {
         const placeholder = document.createElement('div');
         placeholder.className = 'debug-panel-empty';
         placeholder.textContent = 'Toggle unlock-type upgrades here.';
         content.appendChild(placeholder);
     }));
 
-    panel.appendChild(createSection('Action Log', 'debug-action-log', content => {
+    panel.appendChild(createSection('Action Log—keep track of everything you do', 'debug-action-log', content => {
         const placeholder = document.createElement('div');
         placeholder.className = 'debug-panel-empty';
         placeholder.textContent = 'No actions logged yet.';
         content.appendChild(placeholder);
     }));
 	
-    panel.appendChild(createSection('Miscellaneous', 'debug-misc', content => {
+    panel.appendChild(createSection('Miscellaneous—helpful miscellaneous functions', 'debug-misc', content => {
         const placeholder = document.createElement('div');
         placeholder.className = 'debug-panel-empty';
         placeholder.textContent = 'Utility buttons will appear here.';
@@ -613,7 +621,7 @@ function buildDebugPanel() {
 }
 
 function openDebugPanel() {
-    if (!debugPanelAccess) return;
+    if (!debugPanelAccess || isMenuVisible()) return;
     if (getActiveSlot() == null) {
         closeDebugPanel();
         return;
@@ -629,7 +637,10 @@ function closeDebugPanel() {
 }
 
 function toggleDebugPanel() {
-    if (!debugPanelAccess) return;
+    if (!debugPanelAccess || isMenuVisible() || getActiveSlot() == null) {
+        closeDebugPanel();
+        return;
+    }
     if (debugPanelOpen) {
         closeDebugPanel();
     } else {
@@ -645,6 +656,7 @@ function teardownDebugPanel() {
 function createDebugPanelToggleButton() {
     if (!shouldShowDebugPanelToggleButton()) {
         removeDebugPanelToggleButton();
+        closeDebugPanel();
         return;
     }
     ensureDebugPanelStyles();
@@ -671,7 +683,7 @@ function applyDebugPanelAccess(enabled) {
 }
 
 document.addEventListener('keydown', event => {
-    if (!debugPanelAccess) return;
+    if (!debugPanelAccess || isMenuVisible() || getActiveSlot() == null) return;
     if (event.key?.toLowerCase() !== 'c') return;
     const target = event.target;
     toggleDebugPanel();
