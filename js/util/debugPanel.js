@@ -186,8 +186,8 @@ const MUTATION_KEYS = {
 };
 
 const STAT_MULTIPLIERS = [
-    { key: 'xp', label: 'XP Gain' },
-    { key: 'mutation', label: 'Mutation Power Gain' },
+    { key: 'xp', label: 'XP' },
+    { key: 'mutation', label: 'MP' },
 ];
 
 function getAreas() {
