@@ -156,6 +156,9 @@ function setupLiveBindingListeners() {
         const targetSlot = getActiveSlot();
         refreshLiveBindings((binding) => binding.type === 'mutation'
             && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && binding.key === 'mutation'
+            && binding.slot === targetSlot);
     };
     window.addEventListener('mutation:change', mutationHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('mutation:change', mutationHandler));
