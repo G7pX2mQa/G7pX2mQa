@@ -1205,7 +1205,7 @@ upgOverlayEl.addEventListener('click', (e) => {
     upgSheetEl.style.transition = 'transform 160ms ease';
     upgSheetEl.style.transform = shouldClose ? 'translateY(100%)' : 'translateY(0)';
     if (shouldClose) {
-      if (IS_COARSE && (!e || e.pointerType !== 'mouse')) {
+      if (IS_MOBILE && (!e || e.pointerType !== 'mouse')) {
         try { blockInteraction(120); } catch {}
       }
       setTimeout(closeUpgradeMenu, 160);
