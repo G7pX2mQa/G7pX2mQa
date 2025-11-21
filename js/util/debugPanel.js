@@ -190,23 +190,25 @@ const STAT_MULTIPLIERS = [
     { key: 'mutation', label: 'Mutation Power Gain' },
 ];
 
-const AREAS = [
-    {
-        key: AREA_KEYS.STARTER_COVE,
-        title: 'The Cove',
-        currencies: [
-            { key: CURRENCIES.COINS, label: 'Coins' },
-            { key: CURRENCIES.BOOKS, label: 'Books' },
-            { key: CURRENCIES.GOLD,  label: 'Gold'  },
-        ],
-        stats: [
-            { key: 'xpLevel', label: 'XP Level' },
-            { key: 'xpProgress', label: 'XP Progress' },
-            { key: 'mpLevel', label: 'MP Level' },
-            { key: 'mpProgress', label: 'MP Progress' },
-        ],
-    },
-];
+function getAreas() {
+    return [
+        {
+            key: AREA_KEYS.STARTER_COVE,
+            title: 'The Cove',
+            currencies: [
+                { key: CURRENCIES.COINS, label: 'Coins' },
+                { key: CURRENCIES.BOOKS, label: 'Books' },
+                { key: CURRENCIES.GOLD,  label: 'Gold'  },
+            ],
+            stats: [
+                { key: 'xpLevel', label: 'XP Level' },
+                { key: 'xpProgress', label: 'XP Progress' },
+                { key: 'mpLevel', label: 'MP Level' },
+                { key: 'mpProgress', label: 'MP Progress' },
+            ],
+        },
+    ];
+}
 
 function ensureDebugPanelStyles() {
     let style = document.getElementById(DEBUG_PANEL_STYLE_ID);
@@ -1198,7 +1200,9 @@ function buildAreasContent(content) {
 
     applyAllCurrencyOverridesForActiveSlot();
 
-    AREAS.forEach((area) => {
+    const areas = getAreas();
+
+    areas.forEach((area) => {
         const areaContainer = createSubsection(area.title, (areaContent) => {
             const currencies = createSubsection('Currencies', (sub) => {
                 buildAreaCurrencies(sub, area);
