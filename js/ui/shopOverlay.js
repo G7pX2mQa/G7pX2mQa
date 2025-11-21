@@ -1,6 +1,6 @@
 // js/ui/shopOverlay.js
 
-import { bank } from '../util/storage.js';
+import { bank, getActiveSlot } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { IS_MOBILE } from '../main.js';
@@ -48,6 +48,14 @@ let shopCloseTimer = null;
 let __shopOpenStamp = 0;
 let __shopPostOpenPointer = false;
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('debug:change', (e) => {
+    const activeSlot = typeof getActiveSlot === 'function' ? getActiveSlot() : null;
+    const targetSlot = e?.detail?.slot ?? activeSlot;
+    if (activeSlot != null && targetSlot != null && activeSlot !== targetSlot) return;
+    updateShopOverlay(true);
+  });
+}
 
 const ICON_DIR = 'img/';
 const BASE_ICON_SRC_BY_COST = {
