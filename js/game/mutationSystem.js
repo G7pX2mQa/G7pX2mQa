@@ -1,11 +1,7 @@
 // js/game/mutationSystem.js
 
 import { BigNum } from '../util/bigNum.js';
-import {
-  getActiveSlot,
-  watchStorageKey,
-  primeStorageWatcherSnapshot,
-} from '../util/storage.js';
+import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { formatNumber } from '../util/numFormat.js';
 import { approxLog10BigNum, bigNumFromLog10 } from './upgrades.js';
