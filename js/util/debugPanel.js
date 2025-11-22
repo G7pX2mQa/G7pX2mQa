@@ -6,7 +6,7 @@
 import { BigNum } from './bigNum.js';
 import { formatNumber } from './numFormat.js';
 import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot } from './storage.js';
-import { computeCoinMultiplierForXpLevel, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
+import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
 import { computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
 import {
     AREA_KEYS,
@@ -1358,10 +1358,7 @@ function applyXpState({ level, progress }) {
     // Let any XP listeners know we've made a manual change so dependent UI (like
     // the Forge reset panel) can refresh immediately without waiting for normal
     // gameplay hooks to fire.
-    try {
-        const detail = { ...getXpState(), slot };
-        window.dispatchEvent(new CustomEvent('xp:change', { detail }));
-    } catch {}
+    broadcastXpChange({ changeType: 'debug-panel', slot });
 }
 
 function applyMutationState({ level, progress }) {
