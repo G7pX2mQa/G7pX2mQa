@@ -844,7 +844,6 @@ function ensureStateLoaded(force = false) {
   enforceXpInfinityInvariant();
 
   updateXpRequirement();
-  normalizeProgress(false);
   syncCoinMultiplierWithXpLevel(true);
   ensureXpStorageWatchers();
   return xpState;
