@@ -1912,7 +1912,7 @@ function buildUnlocksContent(content) {
         },
         {
             labelText: 'Unlock MP',
-            description: 'If true, unlocks Mutation Power (Forge complete flag)',
+            description: 'If true, unlocks the MP system',
             isUnlocked: () => {
                 try { return hasDoneForgeReset(); }
                 catch { return false; }
