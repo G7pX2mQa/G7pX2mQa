@@ -4,18 +4,20 @@
 // I will remember to disable debug panel access for prod, don't worry.
 
 import { BigNum } from './bigNum.js';
+import { formatNumber } from './numFormat.js';
 import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot } from './storage.js';
-import { getMutationState, initMutationSystem, unlockMutationSystem } from '../game/mutationSystem.js';
+import { computeCoinMultiplierForXpLevel, getXpRequirementForXpLevel, getXpState, initXpSystem, unlockXpSystem } from '../game/xpSystem.js';
+import { computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, unlockMutationSystem } from '../game/mutationSystem.js';
 import {
     AREA_KEYS,
+    computeDefaultUpgradeCost,
     computeUpgradeEffects,
     getLevel,
     getMpValueMultiplierBn,
     getUpgradesForArea,
     setLevel,
 } from '../game/upgrades.js';
-import { getXpState, initXpSystem, unlockXpSystem } from '../game/xpSystem.js';
-import { getMutationMultiplier } from '../game/mutationSystem.js';
+import { computeForgeGoldFromInputs } from '../ui/merchantDelve/resetTab.js';
 
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
@@ -415,6 +417,19 @@ function ensureDebugPanelStyles() {
             justify-content: space-between;
             gap: 12px;
             padding: 4px 0;
+        }
+
+        .debug-calculator-inputs {
+            display: flex;
+            flex: 0 0 245px;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .debug-calculator-output {
+            min-width: 120px;
+            text-align: right;
+            font-family: Consolas, 'Courier New', monospace;
         }
 
         .debug-panel-row label {
@@ -1055,6 +1070,115 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
     return { row, input, setValue, isEditing: () => editing };
 }
 
+function formatCalculatorResult(value) {
+    try {
+        if (value instanceof BigNum || typeof value?.toScientific === 'function') {
+            return formatNumber(value);
+        }
+        const num = Number(value);
+        if (Number.isFinite(num)) {
+            return formatNumber(num);
+        }
+        return String(value ?? '—');
+    } catch {
+        return '—';
+    }
+}
+
+function createCalculatorRow({ labelText, inputs = [], compute }) {
+    const row = document.createElement('div');
+    row.className = 'debug-panel-row debug-calculator-row';
+
+    const label = document.createElement('label');
+    label.textContent = labelText;
+    row.appendChild(label);
+
+    const controls = document.createElement('div');
+    controls.className = 'debug-calculator-inputs';
+    row.appendChild(controls);
+
+    const output = document.createElement('div');
+    output.className = 'debug-calculator-output';
+    output.textContent = '—';
+    row.appendChild(output);
+
+    const fieldEls = [];
+
+    const recompute = () => {
+        const values = {};
+        let hasError = false;
+
+        fieldEls.forEach(({ config, el }) => {
+            if (config.type === 'select') {
+                values[config.key] = el.value;
+                return;
+            }
+
+            const parsed = parseBigNumInput(el.value);
+            const valid = parsed instanceof BigNum;
+            setInputValidity(el, valid);
+            if (!valid) {
+                hasError = true;
+                return;
+            }
+            values[config.key] = parsed;
+        });
+
+        if (hasError || typeof compute !== 'function') {
+            output.textContent = '—';
+            return;
+        }
+
+        try {
+            const result = compute(values);
+            output.textContent = formatCalculatorResult(result);
+        } catch {
+            output.textContent = '—';
+        }
+    };
+
+    inputs.forEach((inputConfig) => {
+        const config = Object.assign({ type: 'text', defaultValue: '' }, inputConfig);
+        if (!config.key) return;
+
+        if (config.type === 'select') {
+            const select = document.createElement('select');
+            select.className = 'debug-panel-input';
+            (config.options || []).forEach(({ value, label: optLabel }) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = optLabel ?? value;
+                if (config.defaultValue != null && config.defaultValue === value) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            select.addEventListener('change', recompute);
+            controls.appendChild(select);
+            fieldEls.push({ config, el: select });
+        } else {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'debug-panel-input';
+            input.placeholder = config.label || '';
+            input.value = config.defaultValue ?? '';
+            input.addEventListener('change', recompute);
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    recompute();
+                }
+            });
+            controls.appendChild(input);
+            fieldEls.push({ config, el: input });
+        }
+    });
+
+    recompute();
+
+    return row;
+}
+
 function applyXpState({ level, progress }) {
     const slot = getActiveSlot();
     if (slot == null) return;
@@ -1423,6 +1547,102 @@ function buildAreaStatMultipliers(container) {
     });
 }
 
+function buildAreaCalculators(container) {
+    const calculators = [
+        {
+            title: 'Currencies',
+            rows: [
+                {
+                    label: 'Pending Gold',
+                    inputs: [
+                        { key: 'coins', label: 'Coins' },
+                        { key: 'xpLevel', label: 'XP Level' },
+                    ],
+                    compute: ({ coins, xpLevel }) => computeForgeGoldFromInputs(coins, xpLevel),
+                },
+            ],
+        },
+        {
+            title: 'Stats',
+            rows: [
+                {
+                    label: 'XP Requirement',
+                    inputs: [
+                        { key: 'xpLevel', label: 'XP Level' },
+                    ],
+                    compute: ({ xpLevel }) => getXpRequirementForXpLevel(xpLevel),
+                },
+                {
+                    label: 'XP Level Coin Multiplier',
+                    inputs: [
+                        { key: 'xpLevel', label: 'XP Level' },
+                    ],
+                    compute: ({ xpLevel }) => computeCoinMultiplierForXpLevel(xpLevel),
+                },
+                {
+                    label: 'MP Requirement',
+                    inputs: [
+                        { key: 'mpLevel', label: 'MP Level' },
+                    ],
+                    compute: ({ mpLevel }) => computeMutationRequirementForLevel(mpLevel),
+                },
+                {
+                    label: 'MP Level Coin/XP Multiplier',
+                    inputs: [
+                        { key: 'mpLevel', label: 'MP Level' },
+                    ],
+                    compute: ({ mpLevel }) => computeMutationMultiplierForLevel(mpLevel),
+                },
+            ],
+        },
+        {
+            title: 'Other',
+            rows: [
+                {
+                    label: 'Default Upgrade Level Cost',
+                    inputs: [
+                        { key: 'baseCost', label: 'Base Cost' },
+                        { key: 'level', label: 'Upgrade Level' },
+                        {
+                            key: 'mode',
+                            type: 'select',
+                            defaultValue: 'NM',
+                            options: [
+                                { value: 'NM', label: 'NM' },
+                                { value: 'HM', label: 'HM' },
+                            ],
+                        },
+                    ],
+                    compute: ({ baseCost, level, mode }) => computeDefaultUpgradeCost(baseCost, level, mode),
+                },
+            ],
+        },
+    ];
+
+    calculators.forEach((group) => {
+        const subsection = createSubsection(group.title, (sub) => {
+            if (!group.rows || group.rows.length === 0) {
+                const msg = document.createElement('div');
+                msg.className = 'debug-panel-empty';
+                msg.textContent = 'No calculators available yet.';
+                sub.appendChild(msg);
+                return;
+            }
+
+            group.rows.forEach((row) => {
+                const calculatorRow = createCalculatorRow({
+                    labelText: row.label,
+                    inputs: row.inputs,
+                    compute: row.compute,
+                });
+                sub.appendChild(calculatorRow);
+            });
+        }, { defaultExpanded: group.title === 'Currencies' });
+
+        container.appendChild(subsection);
+    });
+}
+
 function buildAreasContent(content) {
     content.innerHTML = '';
 
@@ -1458,6 +1678,9 @@ function buildAreasContent(content) {
                 sub.appendChild(currencyMultipliers);
                 sub.appendChild(statMultipliers);
             });
+            const calculators = createSubsection('Calculators', (sub) => {
+                buildAreaCalculators(sub);
+            });
             const upgrades = createSubsection('Upgrades', (sub) => {
                 buildAreaUpgrades(sub, area);
             });
@@ -1465,6 +1688,7 @@ function buildAreasContent(content) {
             areaContent.appendChild(currencies);
             areaContent.appendChild(stats);
             areaContent.appendChild(multipliers);
+            areaContent.appendChild(calculators);
             areaContent.appendChild(upgrades);
         });
         areaContainer.classList.add('debug-panel-area');
