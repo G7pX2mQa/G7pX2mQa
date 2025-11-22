@@ -17,14 +17,22 @@ function slotKey(base) {
   return slot == null ? base : `${base}:${slot}`;
 }
 
-// Read: consider both base and slot-scoped (either true → unlocked)
 function isUnlocked(base) {
   const baseVal = localStorage.getItem(base) === '1';
   const slotVal = localStorage.getItem(slotKey(base)) === '1';
   return baseVal || slotVal;
 }
 
-// Write: set both base and slot-scoped for consistency
+export function isShopUnlocked() {
+  ensureUnlockDefaults();
+  return isUnlocked(BASE_KEYS.SHOP);
+}
+
+export function isMapUnlocked() {
+  ensureUnlockDefaults();
+  return isUnlocked(BASE_KEYS.MAP);
+}
+
 function setUnlocked(base, v) {
   const val = v ? '1' : '0';
   localStorage.setItem(base, val);
@@ -32,7 +40,6 @@ function setUnlocked(base, v) {
 }
 
 function ensureUnlockDefaults() {
-  // Only set defaults if neither base nor slot key exists
   for (const key of Object.values(BASE_KEYS)) {
     const hasBase = localStorage.getItem(key) != null;
     const hasSlot = localStorage.getItem(slotKey(key)) != null;
