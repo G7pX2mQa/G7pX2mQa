@@ -53,6 +53,7 @@ function playForgeResetSound() {
 
 const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
 const FORGE_COMPLETED_KEY = (slot) => `ccc:reset:forge:completed:${slot}`;
+const FORGE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:forgeUnlocked:${slot}`;
 
 const MIN_FORGE_LEVEL = BN.fromInt(31);
 
@@ -189,6 +190,33 @@ function setForgeResetCompleted(value) {
   primeStorageWatcherSnapshot(FORGE_COMPLETED_KEY(slot));
 }
 
+function getForgeDebugOverride(slot = getActiveSlot()) {
+  if (slot == null) return null;
+  try {
+    const raw = localStorage.getItem(FORGE_DEBUG_OVERRIDE_KEY(slot));
+    if (raw === '1') return true;
+    if (raw === '0') return false;
+  } catch {}
+  return null;
+}
+
+export function getForgeDebugOverrideState(slot = getActiveSlot()) {
+  return getForgeDebugOverride(slot);
+}
+
+export function setForgeDebugOverride(value, slot = getActiveSlot()) {
+  if (slot == null) return;
+  if (value == null) {
+    try { localStorage.removeItem(FORGE_DEBUG_OVERRIDE_KEY(slot)); } catch {}
+    primeStorageWatcherSnapshot(FORGE_DEBUG_OVERRIDE_KEY(slot));
+    return;
+  }
+  const normalized = !!value;
+  try { localStorage.setItem(FORGE_DEBUG_OVERRIDE_KEY(slot), normalized ? '1' : '0'); }
+  catch {}
+  primeStorageWatcherSnapshot(FORGE_DEBUG_OVERRIDE_KEY(slot));
+}
+
 function setForgeUnlocked(value) {
   const slot = ensureResetSlot();
   if (slot == null) return;
@@ -289,6 +317,8 @@ function recomputePendingGold(force = false) {
 
 
 function canAccessForgeTab() {
+  const override = getForgeDebugOverride();
+  if (override != null) return !!override;
   return resetState.forgeUnlocked || getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.UNLOCK_FORGE) >= 1;
 }
 
@@ -304,6 +334,8 @@ function meetsLevelRequirement() {
 
 export function isForgeUnlocked() {
   ensurePersistentFlagsPrimed();
+  const override = getForgeDebugOverride();
+  if (override != null) return !!override;
   return !!resetState.forgeUnlocked || canAccessForgeTab();
 }
 
