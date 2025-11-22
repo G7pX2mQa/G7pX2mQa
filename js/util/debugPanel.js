@@ -1553,7 +1553,7 @@ function buildAreaCalculators(container) {
             title: 'Currencies',
             rows: [
                 {
-                    label: 'Pending Gold',
+                    label: 'Pending Gold (Forge)',
                     inputs: [
                         { key: 'coins', label: 'Coins' },
                         { key: 'xpLevel', label: 'XP Level' },
