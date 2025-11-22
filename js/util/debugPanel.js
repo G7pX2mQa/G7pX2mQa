@@ -31,6 +31,7 @@ const liveBindings = [];
 
 const currencyOverrides = new Map();
 const currencyOverrideBaselines = new Map();
+const currencyOverrideApplications = new Set();
 const statOverrides = new Map();
 const statOverrideBaselines = new Map();
 const lockedStorageKeys = new Set();
@@ -714,12 +715,19 @@ function applyCurrencyOverrideForSlot(currencyKey, slot = getActiveSlot()) {
     const override = getCurrencyOverride(slot, currencyKey);
     if (!override) return;
     if (slot !== getActiveSlot()) return;
+
+    const cacheKey = buildOverrideKey(slot, currencyKey);
+    if (currencyOverrideApplications.has(cacheKey)) return;
+
+    currencyOverrideApplications.add(cacheKey);
     try {
         const current = bank?.[currencyKey]?.mult?.get?.();
         if (!bigNumEquals(current, override)) {
             bank?.[currencyKey]?.mult?.set?.(override);
         }
-    } catch {}
+    } catch {} finally {
+        currencyOverrideApplications.delete(cacheKey);
+    }
 }
 
 let currencyListenerAttached = false;
