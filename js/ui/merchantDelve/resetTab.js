@@ -328,7 +328,13 @@ function resetUpgrades() {
 export function performForgeReset() {
   if (!canPerformForgeReset()) return false;
   const reward = resetState.pendingGold.clone?.() ?? resetState.pendingGold;
-  try { bank.gold.add(reward); } catch {}
+  try {
+    if (bank.gold?.addWithMultiplier) {
+      bank.gold.addWithMultiplier(reward);
+    } else {
+      bank.gold.add(reward);
+    }
+  } catch {}
   try { bank.coins.set(0); } catch {}
   try { bank.books.set(0); } catch {}
   try { resetXpProgress({ keepUnlock: true }); } catch {}
