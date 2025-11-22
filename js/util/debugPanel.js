@@ -1342,14 +1342,19 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
         toggleRow();
     });
 
+    let lastKnown = false;
+
     const refresh = () => {
         let unlocked = false;
         try { unlocked = typeof isUnlocked === 'function' ? !!isUnlocked() : false; }
         catch {}
         input.checked = unlocked;
+        lastKnown = unlocked;
+        return unlocked;
     };
 
     input.addEventListener('change', () => {
+        const previous = lastKnown;
         const unlocked = input.checked;
         try {
             if (unlocked) {
@@ -1359,7 +1364,10 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
             }
         } catch {}
         flagDebugUsage();
-        refresh();
+        const refreshed = refresh();
+        if (previous !== refreshed) {
+            logAction(`Toggled ${labelText} ${previous ? 'Enabled' : 'Disabled'} → ${refreshed ? 'Enabled' : 'Disabled'}`);
+        }
     });
 
     refresh();
@@ -1552,6 +1560,8 @@ function buildAreaCurrencies(container, area) {
         return;
     }
 
+    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+
     area.currencies.forEach((currency) => {
         const handle = bank?.[currency.key];
         const current = handle?.value ?? BigNum.fromInt(0);
@@ -1565,7 +1575,7 @@ function buildAreaCurrencies(container, area) {
             setValue(refreshed);
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
-                logAction(`Modified ${currency.label} (${area?.title ?? area?.key ?? 'Unknown Area'}) from ${formatNumber(previous)} to ${formatNumber(refreshed)}`);
+                logAction(`Modified ${currency.label} (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
             }
         }, { storageKey });
         registerLiveBinding({
@@ -1582,7 +1592,7 @@ function buildAreaCurrencies(container, area) {
     });
 }
 
-function buildAreaStats(container) {
+function buildAreaStats(container, area) {
     const slot = getActiveSlot();
     if (slot == null) {
         const msg = document.createElement('div');
@@ -1594,6 +1604,7 @@ function buildAreaStats(container) {
 
     const xp = getXpState();
     const mutation = getMutationState();
+    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
 
     const xpLevelKey = XP_KEYS.level(slot);
     const xpLevelRow = createInputRow('XP Level', xp.xpLevel, (value, { setValue }) => {
@@ -1603,7 +1614,7 @@ function buildAreaStats(container) {
         setValue(latest.xpLevel);
         if (!bigNumEquals(prev, latest.xpLevel)) {
             flagDebugUsage();
-            logAction(`Modified XP Level (${area?.title ?? area?.key ?? 'Unknown Area'}) from ${formatNumber(prev)} to ${formatNumber(latest.xpLevel)}`);
+            logAction(`Modified XP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.xpLevel)}`);
         }
     }, { storageKey: xpLevelKey });
     registerLiveBinding({
@@ -1627,7 +1638,7 @@ function buildAreaStats(container) {
         xpLevelRow.setValue(latest.xpLevel);
         if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.xpLevel)) {
             flagDebugUsage();
-            logAction(`Modified XP Progress (${area?.title ?? area?.key ?? 'Unknown Area'}) from ${formatNumber(prevProgress)} to ${formatNumber(latest.progress)}`);
+            logAction(`Modified XP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`);
         }
     }, { storageKey: xpProgressKey });
     registerLiveBinding({
@@ -1648,7 +1659,7 @@ function buildAreaStats(container) {
         setValue(latest.level);
         if (!bigNumEquals(prev, latest.level)) {
             flagDebugUsage();
-            logAction(`Modified MP Level (${area?.title ?? area?.key ?? 'Unknown Area'}) from ${formatNumber(prev)} to ${formatNumber(latest.level)}`);
+            logAction(`Modified MP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.level)}`);
         }
     }, { storageKey: mpLevelKey });
     registerLiveBinding({
@@ -1666,15 +1677,15 @@ function buildAreaStats(container) {
         const prev = getMutationState();
         const prevLevel = prev?.level?.clone?.() ?? prev?.level;
         const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
-        applyMutationState({ progress: value });
-        const latest = getMutationState();
-        setValue(latest.progress);
-        mpLevelRow.setValue(latest.level);
-        if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.level)) {
-            flagDebugUsage();
-            logAction(`Modified MP Progress (${area?.title ?? area?.key ?? 'Unknown Area'}) from ${formatNumber(prevProgress)} to ${formatNumber(latest.progress)}`);
-        }
-    }, { storageKey: mpProgressKey });
+        applyMutationState({ progress: value });␊
+        const latest = getMutationState();␊
+        setValue(latest.progress);␊
+        mpLevelRow.setValue(latest.level);␊
+        if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.level)) {␊
+            flagDebugUsage();␊
+            logAction(`Modified MP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`);
+        }␊
+    }, { storageKey: mpProgressKey });␊
     registerLiveBinding({
         type: 'mutation',
         slot,
@@ -1746,6 +1757,8 @@ function buildAreaCurrencyMultipliers(container, area) {
         return;
     }
 
+    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+
     area.currencies.forEach((currency) => {
         const handle = bank?.[currency.key]?.mult;
         const currentOverride = getDebugCurrencyMultiplierOverride(currency.key, slot);
@@ -1764,6 +1777,7 @@ function buildAreaCurrencyMultipliers(container, area) {
             setValue(refreshed);
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
+                logAction(`Modified ${currency.label} Multiplier (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
             }
         }, { storageKey });
         registerLiveBinding({
@@ -1802,6 +1816,7 @@ function buildAreaStatMultipliers(container) {
             setValue(refreshed);
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
+                logAction(`Modified ${stat.label} Multiplier ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
             }
         }, {
             storageKey,
