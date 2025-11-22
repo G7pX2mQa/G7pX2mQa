@@ -4040,6 +4040,7 @@ export function onUpgradesChanged(cb) {
 function notifyChanged() {
   try { listeners.forEach(cb => cb()); } catch {}
   try { document.dispatchEvent(new CustomEvent('ccc:upgrades:changed')); } catch {}
+  try { refreshCoinMultiplierFromXpLevel(); } catch {}
 }
 
 /* ----------------------- Area detection (DOM mapping) ---------------------- */
