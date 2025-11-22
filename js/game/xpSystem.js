@@ -1176,6 +1176,23 @@ export function getXpState() {
   };
 }
 
+export function broadcastXpChange(detailOverrides = {}) {
+  ensureStateLoaded();
+  const slot = lastSlot ?? getActiveSlot();
+  const detail = {
+    ...getXpState(),
+    slot,
+    ...detailOverrides,
+  };
+
+  notifyXpSubscribers(detail);
+  if (typeof window !== 'undefined') {
+    try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
+  }
+
+  return detail;
+}
+
 export function isXpSystemUnlocked() {
   ensureStateLoaded();
   return !!xpState.unlocked;
