@@ -420,6 +420,32 @@ function ensureDebugPanelStyles() {
             padding: 4px 0;
         }
 
+        .debug-unlock-row {
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+
+        .debug-unlock-row .flag-toggle {
+            flex: 0 0 auto;
+        }
+
+        .debug-unlock-text {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .debug-unlock-title {
+            font-weight: 600;
+        }
+
+        .debug-unlock-desc {
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
         .debug-calculator-inputs {
             display: flex;
             flex: 0 0 245px;
@@ -1078,45 +1104,53 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
 
 function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, onDisable }) {
     const row = document.createElement('div');
-    row.className = 'debug-panel-row';
+    row.className = 'debug-panel-row debug-unlock-row';
 
-    const label = document.createElement('label');
-    label.textContent = labelText;
-    const status = document.createElement('span');
-    status.className = 'debug-panel-id';
-    label.append(' ', status);
-    row.appendChild(label);
+    const toggle = document.createElement('label');
+    toggle.className = 'flag-toggle';
+    toggle.setAttribute('aria-label', labelText);
 
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'debug-panel-input';
-    row.appendChild(button);
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+
+    const slider = document.createElement('span');
+    slider.className = 'flag-slider';
+
+    toggle.appendChild(input);
+    toggle.appendChild(slider);
+
+    const textContainer = document.createElement('div');
+    textContainer.className = 'debug-unlock-text';
+
+    const title = document.createElement('span');
+    title.className = 'debug-unlock-title';
+    title.textContent = labelText;
+    textContainer.appendChild(title);
 
     if (description) {
-        const desc = document.createElement('div');
-        desc.className = 'debug-panel-id';
-        desc.textContent = description;
-        row.appendChild(desc);
+        const desc = document.createElement('span');
+        desc.className = 'debug-unlock-desc';
+        desc.textContent = `— ${description}`;
+        textContainer.appendChild(desc);
     }
+
+    row.appendChild(toggle);
+    row.appendChild(textContainer);
 
     const refresh = () => {
         let unlocked = false;
         try { unlocked = typeof isUnlocked === 'function' ? !!isUnlocked() : false; }
         catch {}
-        status.textContent = unlocked ? '(Unlocked)' : '(Locked)';
-        button.textContent = unlocked ? 'Disable' : 'Enable';
-        button.setAttribute('aria-pressed', unlocked ? 'true' : 'false');
+        input.checked = unlocked;
     };
 
-    button.addEventListener('click', () => {
-        let unlocked = false;
-        try { unlocked = typeof isUnlocked === 'function' ? !!isUnlocked() : false; }
-        catch {}
+    input.addEventListener('change', () => {
+        const unlocked = input.checked;
         try {
             if (unlocked) {
-                onDisable?.();
-            } else {
                 onEnable?.();
+            } else {
+                onDisable?.();
             }
         } catch {}
         flagDebugUsage();
