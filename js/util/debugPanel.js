@@ -733,15 +733,6 @@ function ensureCurrencyOverrideListener() {
             const cacheKey = buildOverrideKey(targetSlot, key);
             if (!targetSlot || !currencyOverrides.has(cacheKey)) return;
 
-            const baseline = currencyOverrideBaselines.get(cacheKey);
-            const gameValue = bank?.[key]?.mult?.get?.();
-            if (!isCurrencyMultiplierLocked(key, targetSlot)
-                && baseline
-                && !bigNumEquals(baseline, gameValue)) {
-                clearCurrencyMultiplierOverride(key, targetSlot);
-                return;
-            }
-
             applyCurrencyOverrideForSlot(key, targetSlot);
         }, { passive: true });
         window.addEventListener('saveSlot:change', () => {
