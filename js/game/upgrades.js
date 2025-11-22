@@ -2290,7 +2290,7 @@ const REGISTRY = [
     id: 12,
     tie: UPGRADE_TIES.ENDLESS_XP,
     title: "Endless XP",
-    desc: "The first Milestone-type upgrade\nMilestones: Reach a certain upgrade level for powerful buffs\nMultiplies XP value by 1.2x per level",
+    desc: "The first Milestone-type upgrade\nMilestones: Reach a certain upgrade level for powerful buffs\nMultiplies XP value by 1.1x per level",
     lvlCap: HM_EVOLUTION_INTERVAL,
     baseCost: 1_000_000,
     costType: "coins",
@@ -2319,7 +2319,7 @@ const REGISTRY = [
       const total = safeMultiplyBigNum(baseMult, selfMult);
       return `XP value bonus: ${formatMultForUi(total)}x`;
     },
-    effectMultiplier: E.powPerLevel(1.2),
+    effectMultiplier: E.powPerLevel(1.1),
   },
 ];
 
