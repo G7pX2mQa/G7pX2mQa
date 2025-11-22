@@ -962,12 +962,25 @@ export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlo
     const gameValue = getGameStatMultiplier(statKey);
     const override = getEffectiveStatMultiplierOverride(statKey, slot, gameValue);
     if (!override) return amount;
+
     let base;
     try {
         base = amount instanceof BigNum ? amount.clone?.() ?? amount : BigNum.fromAny(amount ?? 0);
     } catch {
         return amount;
     }
+
+    // If the caller is passing the raw in-game multiplier itself (e.g. XP Value,
+    // MP Value, etc.), avoid ratio math and just return the override directly.
+    // This prevents weird cases like 0.999... when we conceptually want 1.000...
+    try {
+        if (bigNumEquals(base, gameValue)) {
+            return override;
+        }
+    } catch {
+        // fall through and apply ratio logic below
+    }
+
     try {
         if (base.isZero?.()) return base;
     } catch {
@@ -976,13 +989,17 @@ export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlo
 
     const cacheKey = buildOverrideKey(slot, statKey);
     const baseline = statOverrideBaselines.get(cacheKey);
-    const multiplierForRatio = (isStatMultiplierLocked(statKey, slot) && baseline) ? baseline : gameValue;
+    const multiplierForRatio =
+        (isStatMultiplierLocked(statKey, slot) && baseline) ? baseline : gameValue;
 
     const overrideNum = bigNumToFiniteNumber(override);
     const gameValueNum = bigNumToFiniteNumber(multiplierForRatio);
-    const ratio = Number.isFinite(overrideNum) && Number.isFinite(gameValueNum) && gameValueNum !== 0
-        ? overrideNum / gameValueNum
-        : Number.NaN;
+    const ratio =
+        Number.isFinite(overrideNum) &&
+        Number.isFinite(gameValueNum) &&
+        gameValueNum !== 0
+            ? overrideNum / gameValueNum
+            : Number.NaN;
 
     if (Number.isFinite(ratio) && ratio !== 1) {
         try { return base.mulDecimal?.(ratio) ?? base; }
@@ -1215,6 +1232,9 @@ function updateActionLogDisplay() {
         let formattedMessage = entry.message?.replace?.(/\[GOLD\](.*?)\[\/GOLD\]/g, '<span class="action-log-gold">$1</span>') ?? '';
 		formattedMessage = formattedMessage.replace(/\b(?:Level|Lv)\s?(\d+)\b/g, '<span class="action-log-level">Lv$1</span>');
         formattedMessage = formattedMessage.replace(/(\d[\d,.]*(?:e[+-]?\d+)*(?:[KMBTQa-zA-Z]*))/g, (match) => /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match);
+		formattedMessage = formattedMessage.replace(/<span[^>]*class="[^"]*infinity-symbol[^"]*"[^>]*>∞<\/span>/g, '<span class="action-log-number">inf</span>');
+		formattedMessage = formattedMessage.replace(/∞/g,'<span class="action-log-number">inf</span>');
+
 
         return `
             <div class="action-log-entry">
@@ -1578,7 +1598,10 @@ function applyXpState({ level, progress }) {
     const slot = getActiveSlot();
     if (slot == null) return;
 
-    unlockXpSystem();
+    // If we're manually editing XP stats from the debug panel, the XP system
+    // should be treated as unlocked.
+    try { unlockXpSystem(); } catch {}
+
     const unlockKey = XP_KEYS.unlock(slot);
     try { localStorage.setItem(unlockKey, '1'); } catch {}
     primeStorageWatcherSnapshot(unlockKey, '1');
@@ -1601,20 +1624,33 @@ function applyXpState({ level, progress }) {
         } catch {}
     }
 
-    initXpSystem({ forceReload: true });
+    try {
+        initXpSystem({ forceReload: true });
+    } catch {}
 
     // Let any XP listeners know we've made a manual change so dependent UI (like
     // the Forge reset panel) can refresh immediately without waiting for normal
     // gameplay hooks to fire.
-    broadcastXpChange({ changeType: 'debug-panel', slot });
+    try {
+        broadcastXpChange({ changeType: 'debug-panel', slot });
+    } catch {}
+
+    // Also keep ALL debug live bindings in sync (including the Unlocks tab
+    // "Unlock XP" flag, which reads getXpState().unlocked).
+    try {
+        refreshLiveBindings();
+    } catch {}
 }
 
 function applyMutationState({ level, progress }) {
     const slot = getActiveSlot();
     if (slot == null) return;
 
-    initMutationSystem();
+    // Make sure the mutation / MP system is treated as unlocked if we're
+    // manually editing its stats from the debug panel.
+    try { initMutationSystem(); } catch {}
     try { unlockMutationSystem(); } catch {}
+
     const unlockKey = MUTATION_KEYS.unlock(slot);
     try { localStorage.setItem(unlockKey, '1'); } catch {}
     primeStorageWatcherSnapshot(unlockKey, '1');
@@ -1637,7 +1673,14 @@ function applyMutationState({ level, progress }) {
         } catch {}
     }
 
-    initMutationSystem({ forceReload: true });
+    try {
+        initMutationSystem({ forceReload: true });
+    } catch {}
+
+    // Keep all debug rows that depend on mutation / MP state in sync.
+    try {
+        refreshLiveBindings();
+    } catch {}
 }
 
 function buildAreaCurrencies(container, area) {
@@ -1888,22 +1931,84 @@ function buildAreaCurrencyMultipliers(container, area) {
 function setAllCurrenciesToInfinity() {
     const slot = getActiveSlot();
     if (slot == null) return 0;
+
+    const inf = BigNum.fromAny('Infinity');
     let updated = 0;
+
     Object.values(CURRENCIES).forEach((key) => {
         const handle = bank?.[key];
         if (!handle) return;
         try {
-            handle.set(BigNum.fromAny('Infinity'));
+            const current = handle.value ?? handle.get?.();
+            const isAlreadyInf =
+                current?.isInfinite?.() ||
+                bigNumEquals(current, inf);
+
+            if (isAlreadyInf) return;
+
+            handle.set(inf);
             updated += 1;
         } catch {}
     });
+
     return updated;
 }
 
 function setAllStatsToInfinity() {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+
     const inf = BigNum.fromAny('Infinity');
-    applyXpState({ level: inf, progress: inf });
-    applyMutationState({ level: inf, progress: inf });
+    let touched = 0;
+
+    // XP: only touch if level/progress aren’t already infinite
+    try {
+        const xp = getXpState();
+        const levelInf =
+            xp?.xpLevel?.isInfinite?.() ||
+            bigNumEquals(xp?.xpLevel, inf);
+        const progInf =
+            xp?.progress?.isInfinite?.() ||
+            bigNumEquals(xp?.progress, inf);
+
+        if (!levelInf || !progInf) {
+            applyXpState({ level: inf, progress: inf });
+            touched += 1; // count "XP" as one stat block
+        }
+    } catch {}
+
+    // MP / Mutation: same idea
+    try {
+        const mutation = getMutationState();
+        const levelInf =
+            mutation?.level?.isInfinite?.() ||
+            bigNumEquals(mutation?.level, inf);
+        const progInf =
+            mutation?.progress?.isInfinite?.() ||
+            bigNumEquals(mutation?.progress, inf);
+
+        if (!levelInf || !progInf) {
+            applyMutationState({ level: inf, progress: inf });
+            touched += 1; // count "MP" as one stat block
+        }
+    } catch {}
+
+    // Stat multipliers (XP, MP, etc.)
+    STAT_MULTIPLIERS.forEach(({ key }) => {
+        try {
+            const current = getStatMultiplierDisplayValue(key, slot);
+            const isAlreadyInf =
+                current?.isInfinite?.() ||
+                bigNumEquals(current, inf);
+
+            if (isAlreadyInf) return;
+
+            setDebugStatMultiplierOverride(key, inf, slot);
+            touched += 1;
+        } catch {}
+    });
+
+    return touched;
 }
 
 function unlockAllUnlockUpgrades() {
@@ -1939,26 +2044,38 @@ function lockAllUnlockUpgrades() {
 }
 
 function resetCurrencyAndMultiplier(currencyKey) {
-    try { bank?.[currencyKey]?.set?.(BigNum.fromInt(0)); }
-    catch {}
-    try { setDebugCurrencyMultiplierOverride(currencyKey, BigNum.fromInt(1)); }
-    catch {}
-    try { setCurrencyMultiplierBN(currencyKey, BigNum.fromInt(1)); }
-    catch {}
+    try {
+        // Reset the banked amount
+        bank?.[currencyKey]?.set?.(BigNum.fromInt(0));
+    } catch {}
+
+    try {
+        // Clear any debug override for this currency
+        clearCurrencyMultiplierOverride(currencyKey);
+    } catch {}
+
+    try {
+        // Put the actual in-game multiplier back to 1x
+        setCurrencyMultiplierBN(currencyKey, BigNum.fromInt(1));
+    } catch {}
 }
 
 function resetStatsAndMultipliers(target) {
     if (target === 'all') {
-        // All currencies + all multipliers
+        // All currencies + multipliers: clear overrides and put real multipliers back to 1x
         Object.values(CURRENCIES).forEach((key) => resetCurrencyAndMultiplier(key));
 
-        // XP + MP (mutation) state → 0
-        applyXpState({ level: BigNum.fromInt(0), progress: BigNum.fromInt(0) });
-        applyMutationState({ level: BigNum.fromInt(0), progress: BigNum.fromInt(0) });
+        const zero = BigNum.fromInt(0);
 
-        // Stat multipliers back to 1
+        // XP + MP (mutation) state → 0
+        applyXpState({ level: zero, progress: zero });
+        applyMutationState({ level: zero, progress: zero });
+
+        // For stats, behave like the stat multiplier debug field:
+        // create a temporary 1x override that will be auto-cleared on the next
+        // normal game multiplier update (XP Value, MP Value, etc.).
         STAT_MULTIPLIERS.forEach(({ key }) => {
-            setDebugStatMultiplierOverride(key, BigNum.fromInt(1));
+            try { setDebugStatMultiplierOverride(key, BigNum.fromInt(1)); } catch {}
         });
 
         return 'all currency/stat';
@@ -1972,7 +2089,9 @@ function resetStatsAndMultipliers(target) {
 
     if (target.startsWith('statmult:')) {
         const statKey = target.slice('statmult:'.length);
-        setDebugStatMultiplierOverride(statKey, BigNum.fromInt(1));
+        // "Reset this stat multiplier" = remove any debug override,
+        // let the game recalculate the multiplier normally.
+        try { clearStatMultiplierOverride(statKey); } catch {}
         return `${statKey} multiplier`;
     }
 
@@ -1986,7 +2105,8 @@ function resetStatsAndMultipliers(target) {
     // Treat any XP-related key as "XP": level + progress + multiplier.
     if (statKey === 'xp' || statKey === 'xpLevel' || statKey === 'xpProgress') {
         applyXpState({ level: zero, progress: zero });
-        setDebugStatMultiplierOverride('xp', BigNum.fromInt(1));
+        // Temporarily force XP multiplier to 1x (override cleared on next real update)
+        try { setDebugStatMultiplierOverride('xp', BigNum.fromInt(1)); } catch {}
         return 'XP';
     }
 
@@ -1998,12 +2118,13 @@ function resetStatsAndMultipliers(target) {
         statKey === 'mpProgress'
     ) {
         applyMutationState({ level: zero, progress: zero });
-        setDebugStatMultiplierOverride('mutation', BigNum.fromInt(1));
+        // Temporarily force MP multiplier to 1x, same semantics as XP
+        try { setDebugStatMultiplierOverride('mutation', BigNum.fromInt(1)); } catch {}
         return 'MP';
     }
 
-    // Fallback: generic stat multiplier reset
-    setDebugStatMultiplierOverride(statKey, BigNum.fromInt(1));
+    // Fallback: generic stat multiplier reset -> same semantics as the debug stat input
+    try { setDebugStatMultiplierOverride(statKey, BigNum.fromInt(1)); } catch {}
     return `stat ${statKey}`;
 }
 
@@ -2277,7 +2398,7 @@ function buildMiscContent(content) {
             },
         },
         {
-            label: 'All Currencies ∞',
+            label: 'All Currencies Inf',
             onClick: () => {
                 const touched = setAllCurrenciesToInfinity();
                 flagDebugUsage();
@@ -2285,11 +2406,11 @@ function buildMiscContent(content) {
             },
         },
         {
-            label: 'All Stats ∞',
+            label: 'All Stats Inf',
             onClick: () => {
-                setAllStatsToInfinity();
+				const touched = setAllStatsToInfinity();
                 flagDebugUsage();
-                logAction('Set all stats to Infinity.');
+                logAction(`Set all stats to Infinity (${touched} stats updated).`);
             },
         },
         {
