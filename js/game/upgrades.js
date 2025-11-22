@@ -935,20 +935,6 @@ export function computeDefaultUpgradeCost(baseCost, level, upgType = 'NM') {
   try { baseBn = BigNum.fromAny(baseCost ?? 0); }
   catch { baseBn = BigNum.fromInt(0); }
 
-  const preset = resolveDefaultScalingRatio({ upgType });
-  const ratio = Number.isFinite(preset?.ratio) ? preset.ratio : 1;
-  const scaling = {
-    baseBn,
-    baseLog10: approxLog10BigNum(baseBn),
-    ratio,
-    ratioMinus1: Math.max(0, ratio - 1),
-    ratioLog10: Math.log10(Math.max(ratio, 1)),
-    ratioLn: Math.log(Math.max(ratio, 1)),
-    ratioStr: decimalMultiplierString(Math.max(ratio, 1)),
-    defaultPreset: preset?.preset,
-  };
-
-  const upg = { scaling, upgType };
   let levelNumber = 0;
   try {
     if (level instanceof BigNum) {
@@ -963,12 +949,28 @@ export function computeDefaultUpgradeCost(baseCost, level, upgType = 'NM') {
     levelNumber = 0;
   }
 
+  const upg = { upgType, numUpgEvolutions: 0 };
   if (`${upgType ?? ''}`.toUpperCase() === 'HM') {
     const evolutions = Math.max(0, Math.floor(levelNumber / HM_EVOLUTION_INTERVAL));
-    if (Number.isFinite(evolutions) && evolutions > 0) {
+    if (Number.isFinite(evolutions)) {
       upg.numUpgEvolutions = evolutions;
     }
   }
+
+  const preset = resolveDefaultScalingRatio(upg);
+  const ratio = Number.isFinite(preset?.ratio) ? preset.ratio : 1;
+  const scaling = {
+    baseBn,
+    baseLog10: approxLog10BigNum(baseBn),
+    ratio,
+    ratioMinus1: Math.max(0, ratio - 1),
+    ratioLog10: Math.log10(Math.max(ratio, 1)),
+    ratioLn: Math.log(Math.max(ratio, 1)),
+    ratioStr: decimalMultiplierString(Math.max(ratio, 1)),
+    defaultPreset: preset?.preset,
+  };
+
+  upg.scaling = scaling;
 
   return costAtLevelUsingScaling(upg, levelNumber);
 }
