@@ -27,7 +27,7 @@ function nowMs() {
 const MERCHANT_ICON_SRC = 'img/misc/merchant.png';
 const MERCHANT_MET_KEY_BASE  = 'ccc:merchantMet';
 const MERCHANT_TAB_KEY_BASE  = 'ccc:merchantTab';
-const MERCHANT_DLG_STATE_KEY_BASE = 'ccc:merchant:dlgState';
+export const MERCHANT_DLG_STATE_KEY_BASE = 'ccc:merchant:dlgState';
 export const MERCHANT_MET_EVENT = 'ccc:merchant:met';
 const sk = (base) => `${base}:${getActiveSlot()}`;
 
@@ -386,7 +386,7 @@ function rewardLabel(reward) {
   return 'Reward available';
 }
 
-const DLG_CATALOG = {
+export const DLG_CATALOG = {
   1: {
     title: 'A Generous Gift',
     blurb: 'The Merchant is feeling extra nice today',
@@ -445,11 +445,11 @@ const DLG_CATALOG = {
   },
 };
 
-function loadDlgState() {
+export function loadDlgState() {
   try { return JSON.parse(localStorage.getItem(sk(MERCHANT_DLG_STATE_KEY_BASE)) || '{}'); } catch { return {}; }
 }
 
-function saveDlgState(s) {
+export function saveDlgState(s) {
   const key = sk(MERCHANT_DLG_STATE_KEY_BASE);
   try {
     const payload = JSON.stringify(s);
