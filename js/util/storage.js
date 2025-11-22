@@ -473,14 +473,14 @@ function getMultiplierScaled(key) {
   }
 }
 
-function setMultiplierScaled(key, theoreticalBN) {
-  const k = keyFor(KEYS.MULTIPLIER[key]);
+function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
+  const k = keyFor(KEYS.MULTIPLIER[key], slot);
   if (!k) return;
   const bn = BigNum.fromAny(theoreticalBN);
   localStorage.setItem(k, MULT_SCALE_TAG + bn.toStorage());
   try {
     window.dispatchEvent(new CustomEvent('currency:multiplier', {
-      detail: { key, mult: intFromScaled(bn) }
+      detail: { key, mult: intFromScaled(bn), slot }
     }));
   } catch {}
 }
@@ -494,7 +494,7 @@ export function getCurrencyMultiplierBN(key) {
 export function setCurrencyMultiplierBN(key, intBNValue) {
   const v = BigNum.fromAny(intBNValue);
   const theor = scaledFromIntBN(v);
-  setMultiplierScaled(key, theor);
+  setMultiplierScaled(key, theor, getActiveSlot());
   return v;
 }
 
