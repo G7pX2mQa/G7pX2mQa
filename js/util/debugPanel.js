@@ -1354,6 +1354,14 @@ function applyXpState({ level, progress }) {
     }
 
     initXpSystem({ forceReload: true });
+
+    // Let any XP listeners know we've made a manual change so dependent UI (like
+    // the Forge reset panel) can refresh immediately without waiting for normal
+    // gameplay hooks to fire.
+    try {
+        const detail = { ...getXpState(), slot };
+        window.dispatchEvent(new CustomEvent('xp:change', { detail }));
+    } catch {}
 }
 
 function applyMutationState({ level, progress }) {
