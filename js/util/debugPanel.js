@@ -638,6 +638,10 @@ function ensureDebugPanelStyles() {
         .flag-toggle input:checked + .flag-slider:before {
             transform: translateX(26px);
         }
+		
+		.debug-unlock-row:hover {
+			cursor: pointer;
+		}
     `;
 
     document.head.appendChild(style);
@@ -1716,7 +1720,7 @@ function buildAreaUpgrades(container, area) {
             setValue(refreshed);
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
-                logAction(`Modified ${title} (${areaLabel} - ID: ${idLabel ?? 'Unknown'}) from Level ${formatNumber(previous)} to Level ${formatNumber(refreshed)}`);
+                logAction(`Modified ${title} (${areaLabel} - ID: ${idLabel ?? 'Unknown'}) Lv${formatNumber(previous)} → Lv${formatNumber(refreshed)}`);
             }
         }, { idLabel });
         registerLiveBinding({
@@ -2106,7 +2110,7 @@ function buildUnlocksContent(content) {
         },
         {
             labelText: 'Unlock Map',
-            description: 'If true, makes the Map button visible.',
+            description: 'If true, makes the Map button visible',
             isUnlocked: () => {
                 try { return isMapUnlocked(); }
                 catch { return false; }
