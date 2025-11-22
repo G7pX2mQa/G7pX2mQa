@@ -1131,7 +1131,7 @@ function createCalculatorRow({ labelText, inputs = [], compute }) {
 
         try {
             const result = compute(values);
-            output.textContent = formatCalculatorResult(result);
+            output.innerHTML = formatCalculatorResult(result);
         } catch {
             output.textContent = '—';
         }
@@ -1162,7 +1162,7 @@ function createCalculatorRow({ labelText, inputs = [], compute }) {
             input.className = 'debug-panel-input';
             input.placeholder = config.label || '';
             input.value = config.defaultValue ?? '';
-            input.addEventListener('change', recompute);
+            input.addEventListener('input', recompute);
             input.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {
                     event.preventDefault();
@@ -1608,8 +1608,8 @@ function buildAreaCalculators(container) {
                             type: 'select',
                             defaultValue: 'NM',
                             options: [
-                                { value: 'NM', label: 'NM' },
-                                { value: 'HM', label: 'HM' },
+                                { value: 'NM', label: 'No Milestones' },
+                                { value: 'HM', label: 'Has Milestones' },
                             ],
                         },
                     ],
@@ -1637,7 +1637,7 @@ function buildAreaCalculators(container) {
                 });
                 sub.appendChild(calculatorRow);
             });
-        }, { defaultExpanded: group.title === 'Currencies' });
+        });
 
         container.appendChild(subsection);
     });
