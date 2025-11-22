@@ -369,7 +369,9 @@ function grantReward(reward) {
     return;
   }
   if (reward.type === 'books') {
-    try { bank.books.add(reward.amount); } catch (e) {
+    try {
+      bank.books.addWithMultiplier?.(reward.amount) ?? bank.books.add(reward.amount);
+    } catch (e) {
       console.warn('Failed to grant book reward:', reward, e);
     }
     return;
