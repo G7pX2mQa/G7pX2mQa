@@ -963,6 +963,13 @@ export function computeDefaultUpgradeCost(baseCost, level, upgType = 'NM') {
     levelNumber = 0;
   }
 
+  if (`${upgType ?? ''}`.toUpperCase() === 'HM') {
+    const evolutions = Math.max(0, Math.floor(levelNumber / HM_EVOLUTION_INTERVAL));
+    if (Number.isFinite(evolutions) && evolutions > 0) {
+      upg.numUpgEvolutions = evolutions;
+    }
+  }
+
   return costAtLevelUsingScaling(upg, levelNumber);
 }
 
