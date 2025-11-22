@@ -3940,43 +3940,16 @@ function registerXpUpgradeEffects() {
     });
   } catch {}
 
-    // ----- Book value: affects Books gained on XP level-up -----
   try {
     setExternalBookRewardProvider(({ baseReward, xpUnlocked }) => {
       if (!xpUnlocked) return baseReward;
 
-      // Clone base reward safely
-      let reward;
       try {
-        reward = baseReward instanceof BigNum
+        return baseReward instanceof BigNum
           ? baseReward.clone?.() ?? baseReward
           : BigNum.fromAny(baseReward ?? 0);
       } catch {
-        reward = BigNum.fromInt(0);
-      }
-
-      // Look up current Book Value level (0 or 1 right now)
-      let level = 0;
-      try {
-        level = normalizedUpgradeLevel(
-          getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.BOOK_VALUE_I)
-        );
-      } catch {
-        level = 0;
-      }
-
-      // Convert the level into the actual Books multiplier
-      let multiplier;
-      try {
-        multiplier = bookValueMultiplierBn(level);
-      } catch {
-        multiplier = BigNum.fromInt(1);
-      }
-
-      try {
-        return reward.mulBigNumInteger(multiplier);
-      } catch {
-        return reward;
+        return BigNum.fromInt(0);
       }
     });
   } catch {}
