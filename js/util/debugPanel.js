@@ -5,7 +5,7 @@
 
 import { BigNum } from './bigNum.js';
 import { formatNumber } from './numFormat.js';
-import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot } from './storage.js';
+import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot, setCurrencyMultiplierBN } from './storage.js';
 import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
 import { computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
 import {
@@ -15,10 +15,13 @@ import {
     getLevel,
     getMpValueMultiplierBn,
     getUpgradesForArea,
+    markUpgradePermanentlyUnlocked,
+    clearPermanentUpgradeUnlock,
     setLevel,
 } from '../game/upgrades.js';
 import { computeForgeGoldFromInputs, getForgeDebugOverrideState, hasDoneForgeReset, isForgeUnlocked, setForgeDebugOverride, setForgeResetCompleted, updateResetPanel } from '../ui/merchantDelve/resetTab.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
+import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE } from '../ui/merchantDelve/dlgTab.js';
 
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
@@ -486,6 +489,11 @@ function ensureDebugPanelStyles() {
             align-items: flex-start;
             justify-content: flex-start;
         }
+		
+		.debug-unlock-row,
+		.debug-unlock-row * {
+			user-select: none;
+		}
 
         .debug-unlock-row .flag-toggle {
             flex: 0 0 auto;
@@ -1219,6 +1227,92 @@ function updateActionLogDisplay() {
     }).join('');
 }
 
+function dialogueStateStorageKey(slot = getActiveSlot()) {
+    if (slot == null) return null;
+    return `${MERCHANT_DLG_STATE_KEY_BASE}:${slot}`;
+}
+
+function persistDialogueState(state, slot = getActiveSlot()) {
+    const key = dialogueStateStorageKey(slot);
+    if (!key) return;
+    try {
+        const payload = JSON.stringify(state || {});
+        localStorage.setItem(key, payload);
+        primeStorageWatcherSnapshot(key, payload);
+    } catch {}
+}
+
+function loadDialogueState(slot = getActiveSlot()) {
+    const key = dialogueStateStorageKey(slot);
+    if (!key) return {};
+    try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : {};
+    } catch {
+        return {};
+    }
+}
+
+function grantDialogueReward(reward) {
+    if (!reward) return;
+    if (reward.type === 'coins') {
+        try { bank.coins.add(reward.amount); }
+        catch (e) { console.warn('Failed to grant coin reward:', reward, e); }
+        return;
+    }
+    if (reward.type === 'books') {
+        try {
+            bank.books.addWithMultiplier?.(reward.amount) ?? bank.books.add(reward.amount);
+        } catch (e) {
+            console.warn('Failed to grant book reward:', reward, e);
+        }
+        return;
+    }
+    try { window.dispatchEvent(new CustomEvent('merchantReward', { detail: reward })); }
+    catch {}
+}
+
+function completeAllDialoguesForDebug() {
+    const slot = getActiveSlot();
+    if (slot == null) return { completed: 0 };
+
+    const state = loadDialogueState(slot);
+    let completed = 0;
+
+    Object.entries(DLG_CATALOG).forEach(([id, meta]) => {
+        const key = String(id);
+        const prev = state[key] || {};
+        const alreadyClaimed = !!prev.claimed;
+        const next = Object.assign({}, prev, { status: 'unlocked', claimed: true });
+        state[key] = next;
+        if (!alreadyClaimed) {
+            completed += 1;
+            grantDialogueReward(meta.reward);
+        }
+    });
+
+    persistDialogueState(state, slot);
+    return { completed };
+}
+
+function restoreAllDialoguesForDebug() {
+    const slot = getActiveSlot();
+    if (slot == null) return { restored: 0 };
+
+    const state = loadDialogueState(slot);
+    let restored = 0;
+
+    Object.entries(DLG_CATALOG).forEach(([id]) => {
+        const key = String(id);
+        const prev = state[key] || {};
+        if (prev.claimed) restored += 1;
+        state[key] = Object.assign({}, prev, { claimed: false });
+    });
+
+    persistDialogueState(state, slot);
+    return { restored };
+}
+
 function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey, onLockChange } = {}) {
     const row = document.createElement('div');
     row.className = 'debug-panel-row';
@@ -1793,6 +1887,109 @@ function buildAreaCurrencyMultipliers(container, area) {
     });
 }
 
+function setAllCurrenciesToInfinity() {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+    let updated = 0;
+    Object.values(CURRENCIES).forEach((key) => {
+        const handle = bank?.[key];
+        if (!handle) return;
+        try {
+            handle.set(BigNum.fromAny('Infinity'));
+            updated += 1;
+        } catch {}
+    });
+    return updated;
+}
+
+function setAllStatsToInfinity() {
+    const inf = BigNum.fromAny('Infinity');
+    applyXpState({ level: inf, progress: inf });
+    applyMutationState({ level: inf, progress: inf });
+}
+
+function unlockAllUnlockUpgrades() {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+    let unlocked = 0;
+    getAreas().forEach((area) => {
+        getUpgradesForArea(area.key).forEach((upg) => {
+            if (!upg?.unlockUpgrade) return;
+            try { markUpgradePermanentlyUnlocked(area.key, upg, slot); unlocked += 1; }
+            catch {}
+        });
+    });
+    try { unlockShop(); } catch {}
+    try { unlockMap(); } catch {}
+    return unlocked;
+}
+
+function lockAllUnlockUpgrades() {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+    let locked = 0;
+    getAreas().forEach((area) => {
+        getUpgradesForArea(area.key).forEach((upg) => {
+            if (!upg?.unlockUpgrade) return;
+            try { clearPermanentUpgradeUnlock(area.key, upg, slot); locked += 1; }
+            catch {}
+        });
+    });
+    try { lockShop(); } catch {}
+    try { lockMap(); } catch {}
+    return locked;
+}
+
+function resetCurrencyAndMultiplier(currencyKey) {
+    try { bank?.[currencyKey]?.set?.(BigNum.fromInt(0)); }
+    catch {}
+    try { setDebugCurrencyMultiplierOverride(currencyKey, BigNum.fromInt(1)); }
+    catch {}
+    try { setCurrencyMultiplierBN(currencyKey, BigNum.fromInt(1)); }
+    catch {}
+}
+
+function resetStatsAndMultipliers(target) {
+    if (target === 'all') {
+        Object.values(CURRENCIES).forEach((key) => resetCurrencyAndMultiplier(key));
+        applyXpState({ level: BigNum.fromInt(0), progress: BigNum.fromInt(0) });
+        applyMutationState({ level: BigNum.fromInt(0), progress: BigNum.fromInt(0) });
+        STAT_MULTIPLIERS.forEach(({ key }) => setDebugStatMultiplierOverride(key, BigNum.fromInt(1)));
+        return 'all currencies and stats';
+    }
+
+    if (target.startsWith('currency:')) {
+        const currencyKey = target.slice('currency:'.length);
+        resetCurrencyAndMultiplier(currencyKey);
+        return `currency ${currencyKey}`;
+    }
+
+    if (target.startsWith('statmult:')) {
+        const statKey = target.slice('statmult:'.length);
+        setDebugStatMultiplierOverride(statKey, BigNum.fromInt(1));
+        return `${statKey} multiplier`;
+    }
+
+    const statKey = target.slice('stat:'.length);
+    if (statKey === 'xpLevel' || statKey === 'xpProgress') {
+        applyXpState({
+            level: statKey === 'xpLevel' ? BigNum.fromInt(0) : undefined,
+            progress: statKey === 'xpProgress' ? BigNum.fromInt(0) : undefined,
+        });
+    } else if (statKey === 'mpLevel' || statKey === 'mpProgress') {
+        applyMutationState({
+            level: statKey === 'mpLevel' ? BigNum.fromInt(0) : undefined,
+            progress: statKey === 'mpProgress' ? BigNum.fromInt(0) : undefined,
+        });
+    } else {
+        setDebugStatMultiplierOverride(statKey, BigNum.fromInt(1));
+    }
+    if (statKey === 'xp' || statKey === 'mutation') {
+        setDebugStatMultiplierOverride(statKey, BigNum.fromInt(1));
+    }
+    return `stat ${statKey}`;
+}
+
 function buildAreaStatMultipliers(container, area) {
     const slot = getActiveSlot();
     if (slot == null) {
@@ -2033,6 +2230,177 @@ function buildAreasContent(content) {
     });
 }
 
+function buildMiscContent(content) {
+    content.innerHTML = '';
+
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'debug-panel-empty';
+        placeholder.textContent = 'Miscellaneous tools are available once a save slot is selected.';
+        content.appendChild(placeholder);
+        return;
+    }
+
+    const buttons = [
+        {
+            label: 'Complete Dialogues',
+            onClick: () => {
+                const { completed } = completeAllDialoguesForDebug();
+                flagDebugUsage();
+                logAction(`Completed all dialogues (${completed} newly claimed).`);
+            },
+        },
+        {
+            label: 'Restore Dialogues',
+            onClick: () => {
+                const { restored } = restoreAllDialoguesForDebug();
+                flagDebugUsage();
+                logAction(`Restored dialogues to unclaimed state (${restored} entries reset).`);
+            },
+        },
+        {
+            label: 'All Currencies ∞',
+            onClick: () => {
+                const touched = setAllCurrenciesToInfinity();
+                flagDebugUsage();
+                logAction(`Set all currencies to Infinity (${touched} currencies updated).`);
+            },
+        },
+        {
+            label: 'All Stats ∞',
+            onClick: () => {
+                setAllStatsToInfinity();
+                flagDebugUsage();
+                logAction('Set all stats to Infinity.');
+            },
+        },
+        {
+            label: 'Unlock All Unlocks',
+            onClick: () => {
+                const unlocked = unlockAllUnlockUpgrades();
+                flagDebugUsage();
+                logAction(`Unlocked all unlock-type upgrades (${unlocked} entries) and HUD buttons.`);
+            },
+        },
+        {
+            label: 'Lock All Unlocks',
+            onClick: () => {
+                const locked = lockAllUnlockUpgrades();
+                flagDebugUsage();
+                logAction(`Locked all unlock-type upgrades (${locked} entries) and HUD buttons.`);
+            },
+        },
+    ];
+
+    const buttonGrid = document.createElement('div');
+    buttonGrid.className = 'debug-panel-row';
+    buttons.forEach((cfg) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'debug-panel-toggle';
+        btn.textContent = cfg.label;
+        btn.addEventListener('click', cfg.onClick);
+        buttonGrid.appendChild(btn);
+    });
+    content.appendChild(buttonGrid);
+
+    const resetRow = document.createElement('div');
+    resetRow.className = 'debug-panel-row';
+    const resetLabel = document.createElement('label');
+    resetLabel.textContent = 'Reset Stats & Multis For';
+    resetRow.appendChild(resetLabel);
+
+    const resetSelect = document.createElement('select');
+    resetSelect.className = 'debug-panel-input';
+
+    getAreas().forEach((area) => {
+        const group = document.createElement('optgroup');
+        group.label = area.title || area.key;
+        area.currencies.forEach((currency) => {
+            const opt = document.createElement('option');
+            opt.value = `currency:${currency.key}`;
+            opt.textContent = `${area.title || area.key} → ${currency.label}`;
+            group.appendChild(opt);
+        });
+        area.stats.forEach((stat) => {
+            const opt = document.createElement('option');
+            opt.value = `stat:${stat.key}`;
+            opt.textContent = `${area.title || area.key} → ${stat.label}`;
+            group.appendChild(opt);
+        });
+        STAT_MULTIPLIERS.forEach((stat) => {
+            const opt = document.createElement('option');
+            opt.value = `statmult:${stat.key}`;
+            opt.textContent = `${area.title || area.key} → ${stat.label} Multiplier`;
+            group.appendChild(opt);
+        });
+        resetSelect.appendChild(group);
+    });
+
+    const allOption = document.createElement('option');
+    allOption.value = 'all';
+    allOption.textContent = 'All';
+    resetSelect.appendChild(allOption);
+
+    resetRow.appendChild(resetSelect);
+
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'debug-panel-toggle';
+    resetBtn.textContent = 'Reset';
+    resetBtn.addEventListener('click', () => {
+        const target = resetSelect.value || 'all';
+        const label = resetStatsAndMultipliers(target);
+        flagDebugUsage();
+        logAction(`Reset ${label} stats and multipliers to defaults.`);
+    });
+    resetRow.appendChild(resetBtn);
+    content.appendChild(resetRow);
+
+    const actionLogRow = document.createElement('div');
+    actionLogRow.className = 'debug-panel-row';
+    const wipeLogBtn = document.createElement('button');
+    wipeLogBtn.type = 'button';
+    wipeLogBtn.className = 'debug-panel-toggle';
+    wipeLogBtn.textContent = 'Wipe Action Log';
+    wipeLogBtn.addEventListener('click', () => {
+        persistActionLog([], slot);
+        updateActionLogDisplay();
+        flagDebugUsage();
+        logAction('Action log wiped and reset.');
+    });
+    actionLogRow.appendChild(wipeLogBtn);
+
+    const wipeSlotBtn = document.createElement('button');
+    wipeSlotBtn.type = 'button';
+    wipeSlotBtn.className = 'debug-panel-toggle';
+    wipeSlotBtn.textContent = 'Wipe Slot & Refresh';
+    wipeSlotBtn.addEventListener('click', () => {
+        const confirmWipe = window.confirm?.('Wipe current slot data and reload? This cannot be undone.');
+        if (!confirmWipe) return;
+
+        const suffix = `:${slot}`;
+        const keysToRemove = [];
+        try {
+            for (let i = 0; i < localStorage.length; i += 1) {
+                const key = localStorage.key(i);
+                if (key?.startsWith('ccc:') && key.endsWith(suffix)) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach((key) => localStorage.removeItem(key));
+        } catch {}
+
+        flagDebugUsage();
+        logAction(`Wiped ${keysToRemove.length} storage keys for slot ${slot} and refreshed.`);
+        try { window.location.reload(); } catch {}
+    });
+    actionLogRow.appendChild(wipeSlotBtn);
+
+    content.appendChild(actionLogRow);
+}
+
 function buildUnlocksContent(content) {
     content.innerHTML = '';
 
@@ -2234,10 +2602,7 @@ function buildDebugPanel() {
     }));
 	
     panel.appendChild(createSection('Miscellaneous: helpful miscellaneous functions', 'debug-misc', content => {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'debug-panel-empty';
-        placeholder.textContent = 'Utility buttons will appear here.';
-        content.appendChild(placeholder);
+        buildMiscContent(content);
     }));
 
     applyDebugPanelExpansionState(panel);
