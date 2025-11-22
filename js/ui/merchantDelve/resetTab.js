@@ -77,8 +77,17 @@ let mutationUnsub = null;
 let pendingGoldInputSignature = null;
 let coinChangeUnsub = null;
 let xpChangeUnsub = null;
+
 function resetPendingGoldSignature() {
   pendingGoldInputSignature = null;
+}
+
+function getPendingGoldWithMultiplier() {
+  try {
+    return bank.gold?.mult?.applyTo?.(resetState.pendingGold) ?? resetState.pendingGold;
+  } catch {
+    return resetState.pendingGold;
+  }
 }
 
 function cleanupWatchers() {
@@ -437,7 +446,7 @@ function updatePendingDisplay() {
   if (!resetState.actionBtn) return;
   const amountEl = resetState.actionBtn.querySelector('[data-reset-pending]');
   if (amountEl) {
-    amountEl.innerHTML = formatBn(resetState.pendingGold);
+    amountEl.innerHTML = formatBn(getPendingGoldWithMultiplier());
   }
 }
 
@@ -492,7 +501,7 @@ function updateActionState() {
   btn.innerHTML = `
     <span class="merchant-reset__action-plus">+</span>
     <span class="merchant-reset__action-icon"><img src="${GOLD_ICON_SRC}" alt=""></span>
-    <span class="merchant-reset__action-amount" data-reset-pending>${formatBn(resetState.pendingGold)}</span>
+    <span class="merchant-reset__action-amount" data-reset-pending>${formatBn(getPendingGoldWithMultiplier())}</span>
   `;
 }
 
@@ -515,6 +524,12 @@ function bindGlobalEvents() {
     if (e.detail?.key === 'coins') {
       recomputePendingGold();
     }
+  });
+  window.addEventListener('currency:multiplier', (e) => {
+    const detail = e?.detail;
+    if (!detail || detail.key !== CURRENCIES.GOLD) return;
+    if (detail.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
+    updateResetPanel();
   });
   window.addEventListener('xp:change', () => {
     recomputePendingGold();
