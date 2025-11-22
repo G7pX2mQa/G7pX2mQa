@@ -7,7 +7,7 @@ import { BigNum } from './bigNum.js';
 import { formatNumber } from './numFormat.js';
 import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot } from './storage.js';
 import { computeCoinMultiplierForXpLevel, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
-import { computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, unlockMutationSystem } from '../game/mutationSystem.js';
+import { computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
 import {
     AREA_KEYS,
     computeDefaultUpgradeCost,
@@ -17,7 +17,7 @@ import {
     getUpgradesForArea,
     setLevel,
 } from '../game/upgrades.js';
-import { computeForgeGoldFromInputs, getForgeDebugOverrideState, isForgeUnlocked, setForgeDebugOverride, updateResetPanel } from '../ui/merchantDelve/resetTab.js';
+import { computeForgeGoldFromInputs, getForgeDebugOverrideState, hasDoneForgeReset, isForgeUnlocked, setForgeDebugOverride, setForgeResetCompleted, updateResetPanel } from '../ui/merchantDelve/resetTab.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
@@ -1908,6 +1908,30 @@ function buildUnlocksContent(content) {
             },
             onDisable: () => {
                 try { setForgeDebugOverride(false); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+        },
+        {
+            labelText: 'Unlock MP',
+            description: 'If true, unlocks Mutation Power (Forge complete flag)',
+            isUnlocked: () => {
+                try { return hasDoneForgeReset(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setForgeResetCompleted(true); }
+                catch {}
+                try { setMutationUnlockedForDebug(true); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setForgeResetCompleted(false); }
+                catch {}
+                try { setMutationUnlockedForDebug(false); }
                 catch {}
                 try { updateResetPanel(); }
                 catch {}
