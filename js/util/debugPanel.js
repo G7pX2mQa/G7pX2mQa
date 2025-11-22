@@ -529,6 +529,51 @@ function ensureDebugPanelStyles() {
         .debug-panel-toggle-button:hover {
             background: rgba(0, 0, 0, 0.95);
         }
+
+        .flag-toggle {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .flag-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .flag-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #555;
+            transition: .2s;
+            border-radius: 12px;
+        }
+
+        .flag-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .2s;
+            border-radius: 50%;
+        }
+
+        .flag-toggle input:checked + .flag-slider {
+            background-color: #2196F3;
+        }
+
+        .flag-toggle input:checked + .flag-slider:before {
+            transform: translateX(26px);
+        }
     `;
 
     document.head.appendChild(style);
@@ -1136,6 +1181,16 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
 
     row.appendChild(toggle);
     row.appendChild(textContainer);
+
+    const toggleRow = () => {
+        input.checked = !input.checked;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
+    row.addEventListener('click', (event) => {
+        if (toggle.contains(event.target)) return;
+        toggleRow();
+    });
 
     const refresh = () => {
         let unlocked = false;
