@@ -1185,6 +1185,65 @@ export function getXpRequirementForXpLevel(xpLevel) {
   return xpRequirementForXpLevel(xpLevel);
 }
 
+export function computeCoinMultiplierForXpLevel(levelValue) {
+  let xpLevelBn;
+  try {
+    xpLevelBn = levelValue instanceof BigNum ? levelValue : BigNum.fromAny(levelValue ?? 0);
+  } catch {
+    xpLevelBn = BigNum.fromInt(0);
+  }
+
+  const levelInfo = xpLevelBigIntInfo(xpLevelBn);
+  const levelBigInt = levelInfo.bigInt;
+  const levelIsInfinite = !levelInfo.finite;
+
+  if (levelIsInfinite) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  let multiplierBn;
+  if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
+    let working = BigNum.fromInt(1);
+    const iterations = Number(levelBigInt);
+    for (let i = 0; i < iterations; i += 1) {
+      working = working.mulDecimal('1.1', 18);
+    }
+    let levelAdd;
+    try { levelAdd = BigNum.fromAny(levelBigInt.toString()); }
+    catch { levelAdd = BigNum.fromInt(iterations); }
+    if (typeof working.add === 'function') {
+      working = working.add(levelAdd);
+    } else if (typeof levelAdd.add === 'function') {
+      working = levelAdd.add(working);
+    }
+    multiplierBn = working.clone?.() ?? working;
+  } else {
+    multiplierBn = approximateCoinMultiplierFromBigNum(xpLevelBn);
+  }
+
+  let finalMultiplier = multiplierBn.clone?.() ?? multiplierBn;
+  const providers = coinMultiplierProviders.size > 0
+    ? Array.from(coinMultiplierProviders)
+    : (typeof externalCoinMultiplierProvider === 'function' ? [externalCoinMultiplierProvider] : []);
+  for (const provider of providers) {
+    if (typeof provider !== 'function') continue;
+    try {
+      const maybe = provider({
+        baseMultiplier: finalMultiplier.clone?.() ?? finalMultiplier,
+        xpLevel: xpLevelBn.clone?.() ?? xpLevelBn,
+        xpUnlocked: !!xpState.unlocked,
+      });
+      if (maybe instanceof BigNum) {
+        finalMultiplier = maybe.clone?.() ?? maybe;
+      } else if (maybe != null) {
+        finalMultiplier = BigNum.fromAny(maybe);
+      }
+    } catch {}
+  }
+
+  return finalMultiplier.clone?.() ?? finalMultiplier;
+}
+
 export function setExternalCoinMultiplierProvider(fn) {
   externalCoinMultiplierProvider = typeof fn === 'function' ? fn : null;
   coinMultiplierProviders.clear();
