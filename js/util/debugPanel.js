@@ -30,6 +30,7 @@ let subsectionKeyCounter = 0;
 const liveBindings = [];
 
 const currencyOverrides = new Map();
+const currencyOverrideBaselines = new Map();
 const statOverrides = new Map();
 const statOverrideBaselines = new Map();
 const lockedStorageKeys = new Set();
@@ -596,6 +597,25 @@ function getCurrencyOverride(slot, key) {
     return currencyOverrides.get(buildOverrideKey(slot, key)) ?? null;
 }
 
+function getCurrencyMultiplierStorageKey(currencyKey, slot = getActiveSlot()) {
+    const resolvedSlot = slot ?? getActiveSlot();
+    if (!currencyKey || resolvedSlot == null) return null;
+    return `${KEYS.MULTIPLIER[currencyKey]}:${resolvedSlot}`;
+}
+
+function isCurrencyMultiplierLocked(currencyKey, slot = getActiveSlot()) {
+    return isStorageKeyLocked(getCurrencyMultiplierStorageKey(currencyKey, slot));
+}
+
+function clearCurrencyMultiplierOverride(currencyKey, slot = getActiveSlot()) {
+    const cacheKey = buildOverrideKey(slot, currencyKey);
+    currencyOverrides.delete(cacheKey);
+    currencyOverrideBaselines.delete(cacheKey);
+    refreshLiveBindings((binding) => binding.type === 'currency-mult'
+        && binding.key === currencyKey
+        && binding.slot === slot);
+}
+
 function getStatOverride(slot, key) {
     const lockAwareRefresh = !isStatMultiplierLocked(key, slot);
     const cacheKey = buildOverrideKey(slot, key);
@@ -710,7 +730,18 @@ function ensureCurrencyOverrideListener() {
         window.addEventListener('currency:multiplier', (event) => {
             const { key, slot } = event?.detail ?? {};
             const targetSlot = slot ?? getActiveSlot();
-            if (!targetSlot || !currencyOverrides.has(buildOverrideKey(targetSlot, key))) return;
+            const cacheKey = buildOverrideKey(targetSlot, key);
+            if (!targetSlot || !currencyOverrides.has(cacheKey)) return;
+
+            const baseline = currencyOverrideBaselines.get(cacheKey);
+            const gameValue = bank?.[key]?.mult?.get?.();
+            if (!isCurrencyMultiplierLocked(key, targetSlot)
+                && baseline
+                && !bigNumEquals(baseline, gameValue)) {
+                clearCurrencyMultiplierOverride(key, targetSlot);
+                return;
+            }
+
             applyCurrencyOverrideForSlot(key, targetSlot);
         }, { passive: true });
         window.addEventListener('saveSlot:change', () => {
@@ -733,10 +764,14 @@ export function setDebugCurrencyMultiplierOverride(currencyKey, value, slot = ge
     let bn;
     try { bn = value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value ?? 1); }
     catch { bn = BigNum.fromInt(1); }
-    currencyOverrides.set(buildOverrideKey(slot, currencyKey), bn);
+    const cacheKey = buildOverrideKey(slot, currencyKey);
+    currencyOverrides.set(cacheKey, bn);
+    const gameValue = bank?.[currencyKey]?.mult?.get?.();
+    currencyOverrideBaselines.set(cacheKey, gameValue);
     applyCurrencyOverrideForSlot(currencyKey, slot);
     return bn;
 }
+
 
 export function getDebugCurrencyMultiplierOverride(currencyKey, slot = getActiveSlot()) {
     if (!currencyKey || slot == null) return null;
