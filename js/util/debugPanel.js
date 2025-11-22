@@ -1175,7 +1175,7 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
     if (description) {
         const desc = document.createElement('span');
         desc.className = 'debug-unlock-desc';
-        desc.textContent = `— ${description}`;
+        desc.textContent = `- ${description}`;
         textContainer.appendChild(desc);
     }
 
@@ -1862,7 +1862,7 @@ function buildUnlocksContent(content) {
     const rows = [
         {
             labelText: 'Unlock XP',
-            description: 'Enable or disable the XP system and its rewards.',
+            description: 'If true, unlocks the XP system',
             isUnlocked: () => {
                 try { return !!getXpState()?.unlocked; }
                 catch { return false; }
@@ -1882,7 +1882,7 @@ function buildUnlocksContent(content) {
         },
         {
             labelText: 'Unlock Forge',
-            description: 'Access the Reset tab and the Forge reset.',
+            description: 'If true, unlocks the Forge reset and Reset tab',
             isUnlocked: () => {
                 try {
                     const override = getForgeDebugOverrideState();
@@ -1907,7 +1907,7 @@ function buildUnlocksContent(content) {
         },
         {
             labelText: 'Unlock Shop',
-            description: 'Show the Shop button in the HUD.',
+            description: 'If true, makes the Shop button visible',
             isUnlocked: () => {
                 try { return isShopUnlocked(); }
                 catch { return false; }
@@ -1923,7 +1923,7 @@ function buildUnlocksContent(content) {
         },
         {
             labelText: 'Unlock Map',
-            description: 'Show the Map button in the HUD.',
+            description: 'If true, makes the Map button visible.',
             isUnlocked: () => {
                 try { return isMapUnlocked(); }
                 catch { return false; }
