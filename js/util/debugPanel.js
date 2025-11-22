@@ -1677,15 +1677,15 @@ function buildAreaStats(container, area) {
         const prev = getMutationState();
         const prevLevel = prev?.level?.clone?.() ?? prev?.level;
         const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
-        applyMutationState({ progress: value });␊
-        const latest = getMutationState();␊
-        setValue(latest.progress);␊
-        mpLevelRow.setValue(latest.level);␊
-        if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.level)) {␊
-            flagDebugUsage();␊
+        applyMutationState({ progress: value });
+        const latest = getMutationState();
+        setValue(latest.progress);
+        mpLevelRow.setValue(latest.level);
+        if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.level)) {
+            flagDebugUsage();
             logAction(`Modified MP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`);
-        }␊
-    }, { storageKey: mpProgressKey });␊
+        }
+    }, { storageKey: mpProgressKey });
     registerLiveBinding({
         type: 'mutation',
         slot,
