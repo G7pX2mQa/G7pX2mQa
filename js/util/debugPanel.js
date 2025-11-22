@@ -31,6 +31,7 @@ let debugPanelScrollTop = 0;
 let sectionKeyCounter = 0;
 let subsectionKeyCounter = 0;
 const liveBindings = [];
+let actionLogContainer = null;
 
 const currencyOverrides = new Map();
 const currencyOverrideBaselines = new Map();
@@ -43,6 +44,8 @@ let originalSetItem = null;
 let originalRemoveItem = null;
 
 const STAT_MULTIPLIER_STORAGE_PREFIX = 'ccc:debug:stat-mult';
+const ACTION_LOG_STORAGE_PREFIX = 'ccc:actionLog';
+const MAX_ACTION_LOG_ENTRIES = 100;
 
 function isOnMenu() {
     const menuRoot = document.querySelector('.menu-root');
@@ -365,6 +368,67 @@ function ensureDebugPanelStyles() {
         .debug-panel-empty {
             color: #aaa;
             font-style: italic;
+        }
+
+        .action-log-entry {
+            display: flex;
+            gap: 6px;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .action-log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .action-log-time {
+            color: #7bc0ff;
+            font-weight: bold;
+            min-width: 60px;
+        }
+
+        .action-log-message {
+            flex: 1;
+        }
+
+        .action-log-empty {
+            color: #aaa;
+            font-style: italic;
+            padding: 6px 0;
+        }
+
+        .action-log-number {
+            color: #ffd54f;
+            font-weight: bold;
+        }
+
+        .action-log-number::after {
+            content: attr(data-unit);
+            color: #ffa726;
+            font-weight: normal;
+            margin-left: 2px;
+        }
+
+        .action-log-level {
+            color: #ffd700;
+            font-weight: bold;
+            text-shadow: 0 0 2px rgba(0,0,0,0.5);
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 3px;
+            padding: 0 2px;
+        }
+
+        .action-log-level span {
+            color: #ffd700;
+        }
+
+        .action-log-gold {
+            color: #ffd700;
+            font-weight: bold;
+            text-shadow: 0 0 2px rgba(0,0,0,0.5);
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 3px;
+            padding: 0 2px;
         }
 
         .debug-panel-subsection {
@@ -1071,6 +1135,88 @@ function flagDebugUsage() {
     catch {}
 }
 
+function getActionLogKey(slot = getActiveSlot()) {
+    if (slot == null) return null;
+    return `${ACTION_LOG_STORAGE_PREFIX}:${slot}`;
+}
+
+function getCurrentActionLog(slot = getActiveSlot()) {
+    const key = getActionLogKey(slot);
+    if (!key) return [];
+
+    let raw = null;
+    try { raw = localStorage.getItem(key); }
+    catch {}
+    if (!raw) return [];
+
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function persistActionLog(entries, slot = getActiveSlot()) {
+    const key = getActionLogKey(slot);
+    if (!key || typeof localStorage === 'undefined') return;
+
+    const trimmed = (Array.isArray(entries) ? entries : []).slice(0, MAX_ACTION_LOG_ENTRIES);
+    try { localStorage.setItem(key, JSON.stringify(trimmed)); }
+    catch {}
+}
+
+function appendActionLogEntry(entry, slot = getActiveSlot()) {
+    const log = getCurrentActionLog(slot);
+    log.unshift(entry);
+    if (log.length > MAX_ACTION_LOG_ENTRIES) {
+        log.length = MAX_ACTION_LOG_ENTRIES;
+    }
+    persistActionLog(log, slot);
+    return log;
+}
+
+function logAction(message) {
+    const slot = getActiveSlot();
+    if (slot == null) return;
+
+    const now = new Date();
+    const entry = {
+        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        message,
+        timestamp: now.getTime(),
+    };
+    appendActionLogEntry(entry, slot);
+    updateActionLogDisplay();
+}
+
+function updateActionLogDisplay() {
+    if (!actionLogContainer) return;
+
+    const actionLog = getCurrentActionLog();
+    if (actionLog.length === 0) {
+        actionLogContainer.innerHTML = '';
+        const msg = document.createElement('div');
+        msg.className = 'action-log-empty';
+        msg.textContent = 'Actions you perform in the Debug Panel will be logged permanently in this action log.';
+        actionLogContainer.appendChild(msg);
+        return;
+    }
+
+    actionLogContainer.innerHTML = actionLog.map((entry) => {
+        let formattedMessage = entry.message?.replace?.(/\[GOLD\](.*?)\[\/GOLD\]/g, '<span class="action-log-gold">$1</span>') ?? '';
+        formattedMessage = formattedMessage.replace(/\b(Level \d+)\b/g, '<span class="action-log-level">$1</span>');
+        formattedMessage = formattedMessage.replace(/(\d[\d,.]*(?:e[+-]?\d+)*(?:[KMBTQa-zA-Z]*))/g, (match) => /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match);
+
+        return `
+            <div class="action-log-entry">
+                <span class="action-log-time">${entry.time}:</span>
+                <span class="action-log-message">${formattedMessage}</span>
+            </div>
+        `;
+    }).join('');
+}
+
 function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey, onLockChange } = {}) {
     const row = document.createElement('div');
     row.className = 'debug-panel-row';
@@ -1415,6 +1561,7 @@ function buildAreaCurrencies(container, area) {
             setValue(refreshed);
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
+                logAction(`Modified ${currency.label} (${area?.title ?? area?.key ?? 'Unknown Area'}) from ${formatNumber(previous)} to ${formatNumber(refreshed)}`);
             }
         }, { storageKey });
         registerLiveBinding({
@@ -1452,6 +1599,7 @@ function buildAreaStats(container) {
         setValue(latest.xpLevel);
         if (!bigNumEquals(prev, latest.xpLevel)) {
             flagDebugUsage();
+            logAction(`Modified XP Level (${area?.title ?? area?.key ?? 'Unknown Area'}) from ${formatNumber(prev)} to ${formatNumber(latest.xpLevel)}`);
         }
     }, { storageKey: xpLevelKey });
     registerLiveBinding({
@@ -1475,6 +1623,7 @@ function buildAreaStats(container) {
         xpLevelRow.setValue(latest.xpLevel);
         if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.xpLevel)) {
             flagDebugUsage();
+            logAction(`Modified XP Progress (${area?.title ?? area?.key ?? 'Unknown Area'}) from ${formatNumber(prevProgress)} to ${formatNumber(latest.progress)}`);
         }
     }, { storageKey: xpProgressKey });
     registerLiveBinding({
@@ -1495,6 +1644,7 @@ function buildAreaStats(container) {
         setValue(latest.level);
         if (!bigNumEquals(prev, latest.level)) {
             flagDebugUsage();
+            logAction(`Modified MP Level (${area?.title ?? area?.key ?? 'Unknown Area'}) from ${formatNumber(prev)} to ${formatNumber(latest.level)}`);
         }
     }, { storageKey: mpLevelKey });
     registerLiveBinding({
@@ -1518,6 +1668,7 @@ function buildAreaStats(container) {
         mpLevelRow.setValue(latest.level);
         if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.level)) {
             flagDebugUsage();
+            logAction(`Modified MP Progress (${area?.title ?? area?.key ?? 'Unknown Area'}) from ${formatNumber(prevProgress)} to ${formatNumber(latest.progress)}`);
         }
     }, { storageKey: mpProgressKey });
     registerLiveBinding({
@@ -1550,6 +1701,8 @@ function buildAreaUpgrades(container, area) {
         return;
     }
 
+    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+
     upgrades.forEach((upg) => {
         const idLabel = upg.id ?? upg.tie ?? upg.tieKey;
         const title = upg.title || `Upgrade ${idLabel ?? ''}`.trim();
@@ -1563,6 +1716,7 @@ function buildAreaUpgrades(container, area) {
             setValue(refreshed);
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
+                logAction(`Modified ${title} (${areaLabel} - ID: ${idLabel ?? 'Unknown'}) from Level ${formatNumber(previous)} to Level ${formatNumber(refreshed)}`);
             }
         }, { idLabel });
         registerLiveBinding({
@@ -1817,7 +1971,7 @@ function buildAreasContent(content) {
                 buildAreaCurrencies(sub, area);
             });
             const stats = createSubsection('Stats', (sub) => {
-                buildAreaStats(sub);
+                buildAreaStats(sub, area);
             });
             const multipliers = createSubsection('Multipliers', (sub) => {
                 const currencyMultipliers = createSubsection('Currencies', (subsection) => {
@@ -2038,10 +2192,15 @@ function buildDebugPanel() {
     }));
 
     panel.appendChild(createSection('Action Log: keep track of everything you do', 'debug-action-log', content => {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'debug-panel-empty';
-        placeholder.textContent = 'No actions logged yet.';
-        content.appendChild(placeholder);
+        const container = document.createElement('div');
+        container.id = 'action-log-entries';
+        container.className = 'debug-panel-action-log';
+        container.style.maxHeight = '240px';
+        container.style.overflowY = 'auto';
+        content.appendChild(container);
+        actionLogContainer = container;
+        updateActionLogDisplay();
+        addDebugPanelCleanup(() => { actionLogContainer = null; });
     }));
 	
     panel.appendChild(createSection('Miscellaneous: helpful miscellaneous functions', 'debug-misc', content => {
