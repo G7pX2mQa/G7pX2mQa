@@ -6,7 +6,7 @@
 import { BigNum } from './bigNum.js';
 import { formatNumber } from './numFormat.js';
 import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot } from './storage.js';
-import { computeCoinMultiplierForXpLevel, getXpRequirementForXpLevel, getXpState, initXpSystem, unlockXpSystem } from '../game/xpSystem.js';
+import { computeCoinMultiplierForXpLevel, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
 import { computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, unlockMutationSystem } from '../game/mutationSystem.js';
 import {
     AREA_KEYS,
@@ -17,7 +17,8 @@ import {
     getUpgradesForArea,
     setLevel,
 } from '../game/upgrades.js';
-import { computeForgeGoldFromInputs } from '../ui/merchantDelve/resetTab.js';
+import { computeForgeGoldFromInputs, getForgeDebugOverrideState, isForgeUnlocked, setForgeDebugOverride, updateResetPanel } from '../ui/merchantDelve/resetTab.js';
+import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
@@ -1075,6 +1076,58 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
     return { row, input, setValue, isEditing: () => editing };
 }
 
+function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, onDisable }) {
+    const row = document.createElement('div');
+    row.className = 'debug-panel-row';
+
+    const label = document.createElement('label');
+    label.textContent = labelText;
+    const status = document.createElement('span');
+    status.className = 'debug-panel-id';
+    label.append(' ', status);
+    row.appendChild(label);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'debug-panel-input';
+    row.appendChild(button);
+
+    if (description) {
+        const desc = document.createElement('div');
+        desc.className = 'debug-panel-id';
+        desc.textContent = description;
+        row.appendChild(desc);
+    }
+
+    const refresh = () => {
+        let unlocked = false;
+        try { unlocked = typeof isUnlocked === 'function' ? !!isUnlocked() : false; }
+        catch {}
+        status.textContent = unlocked ? '(Unlocked)' : '(Locked)';
+        button.textContent = unlocked ? 'Disable' : 'Enable';
+        button.setAttribute('aria-pressed', unlocked ? 'true' : 'false');
+    };
+
+    button.addEventListener('click', () => {
+        let unlocked = false;
+        try { unlocked = typeof isUnlocked === 'function' ? !!isUnlocked() : false; }
+        catch {}
+        try {
+            if (unlocked) {
+                onDisable?.();
+            } else {
+                onEnable?.();
+            }
+        } catch {}
+        flagDebugUsage();
+        refresh();
+    });
+
+    refresh();
+    registerLiveBinding({ refresh });
+    return row;
+}
+
 function formatCalculatorResult(value) {
     try {
         if (value instanceof BigNum || typeof value?.toScientific === 'function') {
@@ -1702,6 +1755,106 @@ function buildAreasContent(content) {
     });
 }
 
+function buildUnlocksContent(content) {
+    content.innerHTML = '';
+
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'debug-panel-empty';
+        placeholder.textContent = 'Unlocks are available once a save slot is selected.';
+        content.appendChild(placeholder);
+        return;
+    }
+
+    try { initXpSystem(); }
+    catch {}
+
+    const rows = [
+        {
+            labelText: 'Unlock XP',
+            description: 'Enable or disable the XP system and its rewards.',
+            isUnlocked: () => {
+                try { return !!getXpState()?.unlocked; }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { unlockXpSystem(); }
+                catch {}
+                try { initXpSystem({ forceReload: true }); }
+                catch {}
+            },
+            onDisable: () => {
+                try { resetXpProgress({ keepUnlock: false }); }
+                catch {}
+                try { initXpSystem({ forceReload: true }); }
+                catch {}
+            },
+        },
+        {
+            labelText: 'Unlock Forge',
+            description: 'Access the Reset tab and the Forge reset.',
+            isUnlocked: () => {
+                try {
+                    const override = getForgeDebugOverrideState();
+                    if (override != null) return override;
+                } catch {}
+                try { return !!isForgeUnlocked(); }
+                catch { return false; }
+                return false;
+            },
+            onEnable: () => {
+                try { setForgeDebugOverride(true); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setForgeDebugOverride(false); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+        },
+        {
+            labelText: 'Unlock Shop',
+            description: 'Show the Shop button in the HUD.',
+            isUnlocked: () => {
+                try { return isShopUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { unlockShop(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { lockShop(); }
+                catch {}
+            },
+        },
+        {
+            labelText: 'Unlock Map',
+            description: 'Show the Map button in the HUD.',
+            isUnlocked: () => {
+                try { return isMapUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { unlockMap(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { lockMap(); }
+                catch {}
+            },
+        },
+    ];
+
+    rows.forEach((rowDef) => {
+        content.appendChild(createUnlockToggleRow(rowDef));
+    });
+}
+
 function buildDebugPanel() {
     if (!debugPanelAccess || isOnMenu()) return;
     cleanupDebugPanelResources();
@@ -1763,10 +1916,7 @@ function buildDebugPanel() {
     }));
 
     panel.appendChild(createSection('Unlocks: modify specific unlock flags', 'debug-unlocks', content => {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'debug-panel-empty';
-        placeholder.textContent = 'Toggle unlock-type upgrades here.';
-        content.appendChild(placeholder);
+        buildUnlocksContent(content);
     }));
 
     panel.appendChild(createSection('Action Log: keep track of everything you do', 'debug-action-log', content => {
