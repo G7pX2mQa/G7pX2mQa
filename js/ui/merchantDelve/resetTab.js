@@ -181,7 +181,7 @@ function ensureResetSlot() {
   return slot;
 }
 
-function setForgeResetCompleted(value) {
+export function setForgeResetCompleted(value) {
   const slot = ensureResetSlot();
   if (slot == null) return;
   resetState.hasDoneForgeReset = !!value;
