@@ -329,10 +329,9 @@ export function performForgeReset() {
   if (!canPerformForgeReset()) return false;
   const reward = resetState.pendingGold.clone?.() ?? resetState.pendingGold;
   try {
-    if (bank.gold?.addWithMultiplier) {
-      bank.gold.addWithMultiplier(reward);
-    } else {
-      bank.gold.add(reward);
+    const withMultiplier = bank.gold?.mult?.applyTo?.(reward) ?? reward;
+    if (bank.gold?.add) {
+      bank.gold.add(withMultiplier);
     }
   } catch {}
   try { bank.coins.set(0); } catch {}
