@@ -432,6 +432,11 @@ function ensureDebugPanelStyles() {
             font-family: Consolas, 'Courier New', monospace;
         }
 
+        .debug-panel .infinity-symbol {
+            font-size: 1.5em;
+            line-height: 1.05;
+        }
+
         .debug-panel-row label {
             flex: 1;
             font-size: 0.95em;
@@ -1602,7 +1607,7 @@ function buildAreaCalculators(container) {
                     label: 'Default Upgrade Level Cost',
                     inputs: [
                         { key: 'baseCost', label: 'Base Cost' },
-                        { key: 'level', label: 'Upgrade Level' },
+                        { key: 'level', label: 'Current Upgrade Level' },
                         {
                             key: 'mode',
                             type: 'select',
@@ -1753,7 +1758,7 @@ function buildDebugPanel() {
     header.appendChild(closeButton);
     panel.appendChild(header);
 
-    panel.appendChild(createSection('Areas: currency/stat/upgrade management for each area', 'debug-areas', content => {
+    panel.appendChild(createSection('Areas: main currency/stat/upgrade management for each area', 'debug-areas', content => {
         buildAreasContent(content);
     }));
 
