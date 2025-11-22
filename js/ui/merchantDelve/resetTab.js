@@ -165,6 +165,10 @@ function computeForgeGold(coinsBn, levelBn) {
   return floored.isZero?.() ? bnZero() : floored;
 }
 
+export function computeForgeGoldFromInputs(coinsBn, levelBn) {
+  return computeForgeGold(coinsBn, levelBn);
+}
+
 function getXpLevelNumber() {
   return Math.max(0, levelToNumber(getXpLevelBn()));
 }
