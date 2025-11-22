@@ -1678,13 +1678,13 @@ function buildAreasContent(content) {
                 sub.appendChild(currencyMultipliers);
                 sub.appendChild(statMultipliers);
             });
-            const calculators = createSubsection('Calculators', (sub) => {
-                buildAreaCalculators(sub);
-            });
             const upgrades = createSubsection('Upgrades', (sub) => {
                 buildAreaUpgrades(sub, area);
             });
-
+            const calculators = createSubsection('Calculators', (sub) => {
+                buildAreaCalculators(sub);
+            });
+			
             areaContent.appendChild(currencies);
             areaContent.appendChild(stats);
             areaContent.appendChild(multipliers);
