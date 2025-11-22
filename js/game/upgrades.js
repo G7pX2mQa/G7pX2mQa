@@ -452,7 +452,7 @@ function isUpgradePermanentlyMysterious(areaKey, upg, slot = getActiveSlot()) {
   return false;
 }
 
-function markUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlot()) {
+export function markUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlot()) {
   const key = upgradeRevealKey(areaKey, upg);
   if (!key) return;
   const legacyKey = upgradeLegacyRevealKey(areaKey, upg);
@@ -463,6 +463,29 @@ function markUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlot()) {
     delete state.upgrades[legacyKey];
   }
   saveShopPermaUnlockState(state, slot);
+}
+
+export function clearPermanentUpgradeUnlock(areaKey, upg, slot = getActiveSlot()) {
+  const key = upgradeRevealKey(areaKey, upg);
+  if (!key) return;
+
+  const permaState = ensureShopPermaUnlockState(slot);
+  if (permaState.upgrades[key]) {
+    delete permaState.upgrades[key];
+    saveShopPermaUnlockState(permaState, slot);
+  }
+
+  const revealState = ensureShopRevealState(slot);
+  if (!revealState.upgrades[key] || revealState.upgrades[key].status !== 'locked') {
+    revealState.upgrades[key] = { status: 'locked' };
+    saveShopRevealState(revealState, slot);
+  }
+
+  const upgId = typeof upg?.id !== 'undefined' ? upg.id : upg;
+  if (upgId != null) {
+    invalidateUpgradeState(areaKey, upgId, slot);
+  }
+  notifyChanged();
 }
 
 function isUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlot()) {
