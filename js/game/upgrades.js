@@ -930,6 +930,42 @@ function decimalMultiplierString(value) {
   return out;
 }
 
+export function computeDefaultUpgradeCost(baseCost, level, upgType = 'NM') {
+  let baseBn;
+  try { baseBn = BigNum.fromAny(baseCost ?? 0); }
+  catch { baseBn = BigNum.fromInt(0); }
+
+  const preset = resolveDefaultScalingRatio({ upgType });
+  const ratio = Number.isFinite(preset?.ratio) ? preset.ratio : 1;
+  const scaling = {
+    baseBn,
+    baseLog10: approxLog10BigNum(baseBn),
+    ratio,
+    ratioMinus1: Math.max(0, ratio - 1),
+    ratioLog10: Math.log10(Math.max(ratio, 1)),
+    ratioLn: Math.log(Math.max(ratio, 1)),
+    ratioStr: decimalMultiplierString(Math.max(ratio, 1)),
+    defaultPreset: preset?.preset,
+  };
+
+  const upg = { scaling, upgType };
+  let levelNumber = 0;
+  try {
+    if (level instanceof BigNum) {
+      const plain = level.toPlainIntegerString?.();
+      if (plain && plain !== 'Infinity') {
+        levelNumber = Number.parseInt(plain, 10);
+      }
+    } else {
+      levelNumber = Number(level) || 0;
+    }
+  } catch {
+    levelNumber = 0;
+  }
+
+  return costAtLevelUsingScaling(upg, levelNumber);
+}
+
 const DEFAULT_SCALING_PRESETS = {
   STANDARD(upg) {
     const upgType = `${upg?.upgType ?? ''}`.toUpperCase();
