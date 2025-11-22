@@ -673,6 +673,14 @@ export function computeMutationMultiplierForLevel(levelValue) {
   return bigNumFromLog10(log10);
 }
 
+export function computeMutationRequirementForLevel(levelValue) {
+  let levelBn;
+  try { levelBn = levelValue instanceof BN ? levelValue : BN.fromAny(levelValue ?? 0); }
+  catch { levelBn = bnZero(); }
+  try { return computeRequirement(levelBn); }
+  catch { return bnZero(); }
+}
+
 export function getMutationMultiplier() {
   initMutationSystem();
   if (!mutationState.unlocked) return bnOne();
