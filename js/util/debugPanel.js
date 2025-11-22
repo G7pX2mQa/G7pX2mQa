@@ -1688,8 +1688,8 @@ function buildAreasContent(content) {
             areaContent.appendChild(currencies);
             areaContent.appendChild(stats);
             areaContent.appendChild(multipliers);
-            areaContent.appendChild(calculators);
             areaContent.appendChild(upgrades);
+            areaContent.appendChild(calculators);
         });
         areaContainer.classList.add('debug-panel-area');
 
