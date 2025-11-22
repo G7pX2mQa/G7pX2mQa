@@ -890,7 +890,9 @@ function handleXpLevelUpRewards() {
   }
 
   try {
-    if (bank?.books?.add) {
+    if (bank?.books?.addWithMultiplier) {
+      bank.books.addWithMultiplier(reward);
+    } else if (bank?.books?.add) {
       bank.books.add(reward);
     }
   } catch {}
