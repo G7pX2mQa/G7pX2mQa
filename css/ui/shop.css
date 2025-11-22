@@ -490,6 +490,12 @@
   border-top-right-radius: 14px;
 }
 
+.upg-overlay img {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
 .upg-sheet.is-unlock-upgrade {
   grid-template-rows: auto auto 1fr auto;
 }
