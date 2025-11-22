@@ -413,7 +413,6 @@ function ensureDebugPanelStyles() {
             color: #ffd700;
             font-weight: bold;
             text-shadow: 0 0 2px rgba(0,0,0,0.5);
-            background: rgba(255, 215, 0, 0.1);
             border-radius: 3px;
             padding: 0 2px;
         }
@@ -426,7 +425,6 @@ function ensureDebugPanelStyles() {
             color: #ffd700;
             font-weight: bold;
             text-shadow: 0 0 2px rgba(0,0,0,0.5);
-            background: rgba(255, 215, 0, 0.1);
             border-radius: 3px;
             padding: 0 2px;
         }
@@ -1209,7 +1207,7 @@ function updateActionLogDisplay() {
 
     actionLogContainer.innerHTML = actionLog.map((entry) => {
         let formattedMessage = entry.message?.replace?.(/\[GOLD\](.*?)\[\/GOLD\]/g, '<span class="action-log-gold">$1</span>') ?? '';
-        formattedMessage = formattedMessage.replace(/\b(Level \d+)\b/g, '<span class="action-log-level">$1</span>');
+		formattedMessage = formattedMessage.replace(/\b(?:Level|Lv)\s?(\d+)\b/g, '<span class="action-log-level">Lv$1</span>');
         formattedMessage = formattedMessage.replace(/(\d[\d,.]*(?:e[+-]?\d+)*(?:[KMBTQa-zA-Z]*))/g, (match) => /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match);
 
         return `
@@ -1366,7 +1364,7 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
         flagDebugUsage();
         const refreshed = refresh();
         if (previous !== refreshed) {
-            logAction(`Toggled ${labelText} ${previous ? 'Enabled' : 'Disabled'} → ${refreshed ? 'Enabled' : 'Disabled'}`);
+            logAction(`Toggled ${labelText} [GOLD]${previous ? 'True' : 'False'}[/GOLD] → [GOLD]${refreshed ? 'True' : 'False'}[/GOLD]`);
         }
     });
 
@@ -1795,7 +1793,7 @@ function buildAreaCurrencyMultipliers(container, area) {
     });
 }
 
-function buildAreaStatMultipliers(container) {
+function buildAreaStatMultipliers(container, area) {
     const slot = getActiveSlot();
     if (slot == null) {
         const msg = document.createElement('div');
@@ -1805,33 +1803,46 @@ function buildAreaStatMultipliers(container) {
         return;
     }
 
+    const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
+
     STAT_MULTIPLIERS.forEach((stat) => {
         const storageKey = getStatMultiplierStorageKey(stat.key, slot);
-        const row = createInputRow(`${stat.label} Multiplier`, getStatMultiplierDisplayValue(stat.key, slot), (value, { setValue }) => {
-            const latestSlot = getActiveSlot();
-            if (latestSlot == null) return;
-            const previous = getStatMultiplierDisplayValue(stat.key, latestSlot);
-            try { setDebugStatMultiplierOverride(stat.key, value, latestSlot); } catch {}
-            const refreshed = getStatMultiplierDisplayValue(stat.key, latestSlot);
-            setValue(refreshed);
-            if (!bigNumEquals(previous, refreshed)) {
-                flagDebugUsage();
-                logAction(`Modified ${stat.label} Multiplier ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
-            }
-        }, {
-            storageKey,
-            onLockChange: (locked) => {
-                if (!locked) return;
+        const row = createInputRow(
+            `${stat.label} Multiplier`,
+            getStatMultiplierDisplayValue(stat.key, slot),
+            (value, { setValue }) => {
                 const latestSlot = getActiveSlot();
                 if (latestSlot == null) return;
-                const existingOverride = getLockedStatOverride(latestSlot, stat.key);
-                if (existingOverride) return;
-                try {
-                    setDebugStatMultiplierOverride(stat.key, getGameStatMultiplier(stat.key), latestSlot);
-                } catch {}
-                row.setValue(getStatMultiplierDisplayValue(stat.key, latestSlot));
+                const previous = getStatMultiplierDisplayValue(stat.key, latestSlot);
+                try { setDebugStatMultiplierOverride(stat.key, value, latestSlot); } catch {}
+                const refreshed = getStatMultiplierDisplayValue(stat.key, latestSlot);
+                setValue(refreshed);
+                if (!bigNumEquals(previous, refreshed)) {
+                    flagDebugUsage();
+                    logAction(
+                        `Modified ${stat.label} Multiplier (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`
+                    );
+                }
             },
-        });
+            {
+                storageKey,
+                onLockChange: (locked) => {
+                    if (!locked) return;
+                    const latestSlot = getActiveSlot();
+                    if (latestSlot == null) return;
+                    const existingOverride = getLockedStatOverride(latestSlot, stat.key);
+                    if (existingOverride) return;
+                    try {
+                        setDebugStatMultiplierOverride(
+                            stat.key,
+                            getGameStatMultiplier(stat.key),
+                            latestSlot
+                        );
+                    } catch {}
+                    row.setValue(getStatMultiplierDisplayValue(stat.key, latestSlot));
+                },
+            }
+        );
 
         registerLiveBinding({
             type: 'stat-mult',
@@ -1997,7 +2008,7 @@ function buildAreasContent(content) {
                     buildAreaCurrencyMultipliers(subsection, area);
                 });
                 const statMultipliers = createSubsection('Stats', (subsection) => {
-                    buildAreaStatMultipliers(subsection);
+                    buildAreaStatMultipliers(subsection, area);
                 });
 
                 sub.appendChild(currencyMultipliers);
@@ -2540,7 +2551,6 @@ const devMenuCSS = `
     text-shadow: 0 0 2px rgba(0,0,0,0.5);
     padding: 0 2px;
     border-radius: 3px;
-    background: rgba(255, 215, 0, 0.1);
 }
 .action-log-number::after {
     content: "";
@@ -2580,7 +2590,6 @@ const devMenuCSS = `
     color: #FFD700;
     font-weight: bold;
     text-shadow: 0 0 2px rgba(0,0,0,0.5);
-    background: rgba(255, 215, 0, 0.1);
     border-radius: 3px;
     padding: 0 2px;
 }
@@ -2591,7 +2600,6 @@ const devMenuCSS = `
     color: #FFD700;
     font-weight: bold;
     text-shadow: 0 0 2px rgba(0,0,0,0.5);
-    background: rgba(255, 215, 0, 0.1);
     border-radius: 3px;
     padding: 0 2px;
 }
