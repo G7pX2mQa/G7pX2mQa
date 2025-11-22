@@ -559,6 +559,16 @@ export function unlockMutationSystem() {
   return true;
 }
 
+export function setMutationUnlockedForDebug(unlocked) {
+  initMutationSystem();
+  const nextUnlocked = !!unlocked;
+  applyState({
+    unlocked: nextUnlocked,
+    level: mutationState.level,
+    progress: nextUnlocked ? mutationState.progress : bnZero(),
+  });
+}
+
 export function addMutationPower(amount) {
   initMutationSystem();
   if (!mutationState.unlocked) return getMutationState();
