@@ -41,6 +41,11 @@ function setUnlocked(base, v) {
   if (key !== base && localStorage.getItem(base) != null) {
     localStorage.setItem(base, val);
   }
+  try {
+    window.dispatchEvent(new CustomEvent('unlock:change', {
+      detail: { key: base, slot: getActiveSlot() },
+    }));
+  } catch {}
 }
 
 function ensureUnlockDefaults() {
