@@ -852,21 +852,54 @@ function ensureStateLoaded(force = false) {
 function persistState() {
   const slot = getActiveSlot();
   if (slot == null) return;
-  try {
-    const raw = xpState.unlocked ? '1' : '0';
-    localStorage.setItem(KEY_UNLOCK(slot), raw);
-    primeStorageWatcherSnapshot(KEY_UNLOCK(slot), raw);
-  } catch {}
-  try {
-    const raw = xpState.xpLevel.toStorage();
-    localStorage.setItem(KEY_XP_LEVEL(slot), raw);
-    primeStorageWatcherSnapshot(KEY_XP_LEVEL(slot), raw);
-  } catch {}
-  try {
-    const raw = xpState.progress.toStorage();
-    localStorage.setItem(KEY_PROGRESS(slot), raw);
-    primeStorageWatcherSnapshot(KEY_PROGRESS(slot), raw);
-  } catch {}
+
+  const expected = {
+    unlocked: xpState.unlocked ? '1' : '0',
+    level: xpState.xpLevel.toStorage(),
+    progress: xpState.progress.toStorage(),
+  };
+
+  try { localStorage.setItem(KEY_UNLOCK(slot), expected.unlocked); }
+  catch {}
+  try { localStorage.setItem(KEY_XP_LEVEL(slot), expected.level); }
+  catch {}
+  try { localStorage.setItem(KEY_PROGRESS(slot), expected.progress); }
+  catch {}
+
+  const persisted = (() => {
+    let unlocked = xpState.unlocked;
+    let level = xpState.xpLevel;
+    let progress = xpState.progress;
+    try { unlocked = localStorage.getItem(KEY_UNLOCK(slot)) === '1'; }
+    catch {}
+    try {
+      const rawLevel = localStorage.getItem(KEY_XP_LEVEL(slot));
+      if (rawLevel) level = BigNum.fromAny(rawLevel);
+    } catch {}
+    try {
+      const rawProgress = localStorage.getItem(KEY_PROGRESS(slot));
+      if (rawProgress) progress = BigNum.fromAny(rawProgress);
+    } catch {}
+    return { unlocked, level, progress };
+  })();
+
+  primeStorageWatcherSnapshot(KEY_UNLOCK(slot), persisted.unlocked ? '1' : '0');
+  primeStorageWatcherSnapshot(KEY_XP_LEVEL(slot), persisted.level?.toStorage?.() ?? expected.level);
+  primeStorageWatcherSnapshot(KEY_PROGRESS(slot), persisted.progress?.toStorage?.() ?? expected.progress);
+
+  const mismatch =
+    persisted.unlocked !== xpState.unlocked ||
+    (persisted.level?.toStorage?.() ?? null) !== expected.level ||
+    (persisted.progress?.toStorage?.() ?? null) !== expected.progress;
+
+  if (mismatch) {
+    xpState.unlocked = persisted.unlocked;
+    xpState.xpLevel = persisted.level;
+    xpState.progress = persisted.progress;
+    updateXpRequirement();
+    syncCoinMultiplierWithXpLevel(true);
+    updateHud();
+  }
 }
 
 function handleXpLevelUpRewards() {
