@@ -18,9 +18,10 @@ function slotKey(base) {
 }
 
 function isUnlocked(base) {
-  const baseVal = localStorage.getItem(base) === '1';
-  const slotVal = localStorage.getItem(slotKey(base)) === '1';
-  return baseVal || slotVal;
+  const key = slotKey(base);
+  const slotRaw = localStorage.getItem(key);
+  if (slotRaw != null) return slotRaw === '1';
+  return localStorage.getItem(base) === '1';
 }
 
 export function isShopUnlocked() {
@@ -35,15 +36,18 @@ export function isMapUnlocked() {
 
 function setUnlocked(base, v) {
   const val = v ? '1' : '0';
-  localStorage.setItem(base, val);
-  localStorage.setItem(slotKey(base), val);
+  const key = slotKey(base);
+  localStorage.setItem(key, val);
+  if (key !== base && localStorage.getItem(base) != null) {
+    localStorage.setItem(base, val);
+  }
 }
 
 function ensureUnlockDefaults() {
   for (const key of Object.values(BASE_KEYS)) {
-    const hasBase = localStorage.getItem(key) != null;
-    const hasSlot = localStorage.getItem(slotKey(key)) != null;
-    if (!hasBase && !hasSlot) setUnlocked(key, false);
+    const sk = slotKey(key);
+    const hasSlot = localStorage.getItem(sk) != null;
+    if (!hasSlot) localStorage.setItem(sk, '0');
   }
 }
 
