@@ -527,25 +527,22 @@ function ensureDebugPanelStyles() {
 
         .debug-misc-button-list {
             display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .debug-misc-row {
+            flex-wrap: wrap;
+            gap: 10px;
             justify-content: center;
         }
 
         .debug-misc-button {
-            width: min(100%, 360px);
-            background: linear-gradient(90deg, #1f3b60, #224c72);
-            border: 1px solid #5e8bc0;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+            flex: 1 1 150px;
+            max-width: 190px;
+            padding: 6px 10px;
             text-align: center;
             font-weight: 600;
+            font-size: 0.95em;
         }
 
         .debug-misc-button:hover {
-            background: linear-gradient(90deg, #26507f, #2a5e90);
+            background: rgba(255, 255, 255, 0.14);
         }
 
         .debug-unlock-row {
@@ -2634,15 +2631,12 @@ function buildMiscContent(content) {
     const buttonGrid = document.createElement('div');
     buttonGrid.className = 'debug-misc-button-list';
     buttons.forEach((cfg) => {
-        const row = document.createElement('div');
-        row.className = 'debug-panel-row debug-misc-row';
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'debug-panel-toggle debug-misc-button';
         btn.textContent = cfg.label;
         btn.addEventListener('click', cfg.onClick);
-        row.appendChild(btn);
-        buttonGrid.appendChild(row);
+        buttonGrid.appendChild(btn);
     });
     content.appendChild(buttonGrid);
 
