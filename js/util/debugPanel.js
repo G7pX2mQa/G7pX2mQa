@@ -2695,7 +2695,7 @@ function buildMiscContent(content) {
     wipeSlotBtn.className = 'debug-panel-toggle';
     wipeSlotBtn.textContent = 'Wipe Slot & Refresh';
     wipeSlotBtn.addEventListener('click', () => {
-        const confirmWipe = window.confirm?.('Wipe current slot data and reload? This cannot be undone.');
+        const confirmWipe = window.confirm?.('Are you sure you want to wipe current slot data and refresh the page? This cannot be undone.');
         if (!confirmWipe) return;
 
         const suffix = `:${slot}`;
