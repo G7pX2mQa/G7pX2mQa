@@ -2959,7 +2959,6 @@ function buildMiscContent(content) {
                 logAction(`Restored dialogues to unclaimed state (${restored} ${entryLabel} reset).`);
             },
         },
-        },
         {
             label: 'All Currencies Inf',
             onClick: () => {
