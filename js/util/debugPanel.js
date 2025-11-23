@@ -5,7 +5,17 @@
 
 import { BigNum } from './bigNum.js';
 import { formatNumber } from './numFormat.js';
-import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot, setCurrencyMultiplierBN } from './storage.js';
+import {
+    bank,
+    CURRENCIES,
+    KEYS,
+    getActiveSlot,
+    markSaveSlotModified,
+    peekCurrency,
+    primeStorageWatcherSnapshot,
+    setCurrency,
+    setCurrencyMultiplierBN,
+} from './storage.js';
 import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
 import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
 import {
@@ -770,6 +780,55 @@ function bigNumToFiniteNumber(value) {
     }
 }
 
+function getCurrencyStorageKey(currencyKey, slot = getActiveSlot()) {
+    const resolvedSlot = slot ?? getActiveSlot();
+    if (resolvedSlot == null) return null;
+    return `${KEYS.CURRENCY[currencyKey]}:${resolvedSlot}`;
+}
+
+function getCurrencyValueForSlot(currencyKey, slot = getActiveSlot()) {
+    const resolvedSlot = slot ?? getActiveSlot();
+    if (resolvedSlot == null) return BigNum.fromInt(0);
+
+    const handle = bank?.[currencyKey];
+    if (handle) {
+        try { return handle.value ?? BigNum.fromInt(0); }
+        catch {}
+    }
+
+    try { return peekCurrency(resolvedSlot, currencyKey); }
+    catch { return BigNum.fromInt(0); }
+}
+
+function applyCurrencyState(currencyKey, value, slot = getActiveSlot()) {
+    const resolvedSlot = slot ?? getActiveSlot();
+    const previous = getCurrencyValueForSlot(currencyKey, resolvedSlot);
+    if (resolvedSlot == null || resolvedSlot !== getActiveSlot()) {
+        return { previous, next: previous };
+    }
+
+    const storageKey = getCurrencyStorageKey(currencyKey, resolvedSlot);
+    const wasLocked = storageKey && isStorageKeyLocked(storageKey);
+
+    if (wasLocked) unlockStorageKey(storageKey);
+
+    let next = previous;
+    try {
+        markSaveSlotModified(resolvedSlot);
+        const effective = setCurrency(currencyKey, value, { previous });
+        next = effective ?? previous;
+        if (storageKey) primeStorageWatcherSnapshot(storageKey);
+    } catch {}
+    finally {
+        if (wasLocked) lockStorageKey(storageKey);
+    }
+
+    refreshLiveBindings((binding) => binding.type === 'currency'
+        && binding.key === currencyKey
+        && binding.slot === resolvedSlot);
+
+    return { previous, next };
+}
 
 function buildOverrideKey(slot, key) {
     return `${slot ?? 'null'}::${key}`;
@@ -1781,28 +1840,30 @@ function buildAreaCurrencies(container, area) {
     const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
 
     area.currencies.forEach((currency) => {
-        const handle = bank?.[currency.key];
-        const current = handle?.value ?? BigNum.fromInt(0);
-        const storageKey = `${KEYS.CURRENCY[currency.key]}:${slot}`;
+        const storageKey = getCurrencyStorageKey(currency.key, slot);
+        const current = getCurrencyValueForSlot(currency.key, slot);
         const currencyRow = createInputRow(currency.label, current, (value, { setValue }) => {
             const latestSlot = getActiveSlot();
             if (latestSlot == null) return;
-            const previous = handle?.value ?? BigNum.fromInt(0);
-            try { handle?.set?.(value); } catch {}
-            const refreshed = handle?.value ?? value;
-            setValue(refreshed);
-            if (!bigNumEquals(previous, refreshed)) {
+            if (latestSlot !== slot) return;
+
+            const { previous, next } = applyCurrencyState(currency.key, value, latestSlot);
+            setValue(next);
+            if (!bigNumEquals(previous, next)) {
                 flagDebugUsage();
-                logAction(`Modified ${currency.label} (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
+                logAction(`Modified ${currency.label} (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(next)}`);
             }
-        }, { storageKey });
+        }, {
+            storageKey,
+            onLockChange: () => currencyRow.setValue(getCurrencyValueForSlot(currency.key, getActiveSlot())),
+        });
         registerLiveBinding({
             type: 'currency',
             key: currency.key,
             slot,
             refresh: () => {
                 if (slot !== getActiveSlot()) return;
-                const latest = handle?.value ?? BigNum.fromInt(0);
+                const latest = getCurrencyValueForSlot(currency.key, slot);
                 currencyRow.setValue(latest);
             },
         });
