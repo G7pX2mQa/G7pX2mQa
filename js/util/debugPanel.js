@@ -1025,16 +1025,22 @@ export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlo
 
 function getEffectiveStatMultiplierOverride(statKey, slot, gameValue) {
     const override = getStatOverride(slot, statKey);
-    if (!override) return null;
-
     const cacheKey = buildOverrideKey(slot, statKey);
-    const baseline = statOverrideBaselines.get(cacheKey);
-    if (!baseline) {
-        statOverrideBaselines.set(cacheKey, gameValue);
+    if (!override) {
+        statOverrideBaselines.delete(cacheKey);
+        return null;
     }
 
+    const baseline = statOverrideBaselines.get(cacheKey);
     const locked = isStatMultiplierLocked(statKey, slot);
-    if (!locked && baseline && !bigNumEquals(baseline, gameValue)) {
+
+    if (!baseline) {
+        statOverrideBaselines.set(cacheKey, gameValue);
+    } else if (!bigNumEquals(baseline, gameValue)) {
+        statOverrideBaselines.set(cacheKey, gameValue);
+        if (locked) {
+            return override;
+        }
         statOverrideBaselines.set(cacheKey, gameValue);
         clearStatMultiplierOverride(statKey, slot);
         return null;
@@ -2199,18 +2205,25 @@ function buildAreaStatMultipliers(container, area) {
             {
                 storageKey,
                 onLockChange: (locked) => {
-                    if (!locked) return;
                     const latestSlot = getActiveSlot();
                     if (latestSlot == null) return;
-                    const existingOverride = getLockedStatOverride(latestSlot, stat.key);
-                    if (existingOverride) return;
-                    try {
-                        setDebugStatMultiplierOverride(
+                    if (locked) {
+                        const existingOverride = getLockedStatOverride(latestSlot, stat.key);
+                        if (existingOverride) return;
+                        try {
+                            setDebugStatMultiplierOverride(
+                                stat.key,
+                                getGameStatMultiplier(stat.key),
+                                latestSlot
+                            );
+                        } catch {}
+                    } else {
+                        getEffectiveStatMultiplierOverride(
                             stat.key,
-                            getGameStatMultiplier(stat.key),
-                            latestSlot
+                            latestSlot,
+                            getGameStatMultiplier(stat.key)
                         );
-                    } catch {}
+                    }
                     row.setValue(getStatMultiplierDisplayValue(stat.key, latestSlot));
                 },
             }
