@@ -4026,6 +4026,7 @@ function registerXpUpgradeEffects() {
   if (typeof window !== 'undefined') {
     window.addEventListener('saveSlot:change', () => {
       try { syncBookCurrencyMultiplierFromUpgrade(); } catch {}
+      try { refreshCoinMultiplierFromXpLevel(); } catch {}
     });
   }
 }
