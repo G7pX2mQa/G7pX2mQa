@@ -917,10 +917,37 @@ function ensureCurrencyOverrideListener() {
     currencyListenerAttached = true;
     try {
         window.addEventListener('currency:multiplier', (event) => {
-            const { key, slot } = event?.detail ?? {};
+            const { key, slot, mult } = event?.detail ?? {};
             const targetSlot = slot ?? getActiveSlot();
             const cacheKey = buildOverrideKey(targetSlot, key);
             if (!targetSlot || !currencyOverrides.has(cacheKey)) return;
+            if (currencyOverrideApplications.has(cacheKey)) return;
+
+            const baseline = currencyOverrideBaselines.get(cacheKey);
+            const override = getCurrencyOverride(targetSlot, key);
+
+            if (baseline && override && mult) {
+                const baselineNum = bigNumToFiniteNumber(baseline);
+                const nextNum = bigNumToFiniteNumber(mult);
+
+                if (
+                    Number.isFinite(baselineNum)
+                    && Number.isFinite(nextNum)
+                    && baselineNum !== 0
+                ) {
+                    const ratio = nextNum / baselineNum;
+                    if (ratio && ratio !== 1) {
+                        try {
+                            const scaledOverride = override.mulDecimal?.(ratio) ?? override;
+                            currencyOverrides.set(cacheKey, scaledOverride);
+                        } catch {}
+                    }
+                }
+
+                currencyOverrideBaselines.set(cacheKey, mult);
+            } else if (mult) {
+                currencyOverrideBaselines.set(cacheKey, mult);
+            }
 
             applyCurrencyOverrideForSlot(key, targetSlot);
         }, { passive: true });
