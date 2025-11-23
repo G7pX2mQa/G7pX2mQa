@@ -1694,8 +1694,8 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
 
     refresh();
     registerLiveBinding({ type: 'unlock', slot, refresh });
-    return row;␊
-}␊
+    return row;
+}
 
 function formatCalculatorResult(value) {
     try {
