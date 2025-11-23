@@ -419,28 +419,52 @@ export function getCurrency(key) {
   try { return BigNum.fromAny(raw); } catch { return BigNum.fromInt(0); }
 }
 
-export function setCurrency(key, value, { delta = null } = {}) {
+export function setCurrency(key, value, { delta = null, previous = null } = {}) {
   const slot = getActiveSlot();
   const k = keyFor(KEYS.CURRENCY[key], slot);
-  if (!k) return;
+  const prev = previous ?? getCurrency(key);
+  if (!k) return prev;
+
+  let bn;
+  try { bn = BigNum.fromAny(value); }
+  catch { bn = BigNum.fromInt(0); }
+  if (bn.isNegative?.()) bn = BigNum.fromInt(0);
+
+  const expectedRaw = bn.toStorage();
+
+  try { localStorage.setItem(k, expectedRaw); }
+  catch {}
+
+  let persistedRaw = null;
+  try { persistedRaw = localStorage.getItem(k); }
+  catch {}
+
+  const effectiveRaw = persistedRaw ?? expectedRaw;
+  let effective = bn;
   try {
-    let bn = BigNum.fromAny(value);
-    if (bn.isNegative?.()) bn = BigNum.fromInt(0);
-    const raw = bn.toStorage();
-    localStorage.setItem(k, raw);
-    primeStorageWatcherSnapshot(k, raw);
-    const detail = { key, value: bn, slot };
-    if (delta) {
-      try {
-        const deltaBn = delta instanceof BigNum ? delta : BigNum.fromAny(delta);
-        detail.delta = deltaBn;
-      } catch {
-        detail.delta = undefined;
-      }
+    if (persistedRaw != null) {
+      effective = BigNum.fromAny(persistedRaw);
+      if (effective.isNegative?.()) effective = BigNum.fromInt(0);
     }
+  } catch {}
+
+  primeStorageWatcherSnapshot(k, effectiveRaw);
+
+  const changed = !bigNumEquals(prev, effective);
+  if (changed) {
+    let deltaBn = null;
+    try { deltaBn = effective.sub?.(prev); }
+    catch {}
+    if (!deltaBn && delta) {
+      try { deltaBn = delta instanceof BigNum ? delta : BigNum.fromAny(delta); }
+      catch { deltaBn = null; }
+    }
+    const detail = { key, value: effective, slot, delta: deltaBn ?? undefined };
     notifyCurrencySubscribers(detail);
     try { window.dispatchEvent(new CustomEvent('currency:change', { detail })); } catch {}
-  } catch (e) { console.warn('Currency save failed:', key, value, e); }
+  }
+
+  return effective;
 }
 
 function scaledFromIntBN(intBN) {
@@ -476,17 +500,34 @@ function getMultiplierScaled(key) {
 function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
   const k = keyFor(KEYS.MULTIPLIER[key], slot);
   if (!k) return;
+  const prev = getMultiplierScaled(key);
   const bn = BigNum.fromAny(theoreticalBN);
   const raw = MULT_SCALE_TAG + bn.toStorage();
-  localStorage.setItem(k, raw);
+  try { localStorage.setItem(k, raw); }
+  catch {}
+
+  let persistedRaw = null;
+  try { persistedRaw = localStorage.getItem(k); }
+  catch {}
+
+  const effectiveRaw = persistedRaw ?? raw;
+  let effective = bn;
+  try {
+    const payload = effectiveRaw?.startsWith?.(MULT_SCALE_TAG)
+      ? effectiveRaw.slice(MULT_SCALE_TAG.length)
+      : null;
+    if (payload != null) effective = BigNum.fromAny(payload);
+  } catch {}
   // Keep any live storage watchers (and save-integrity snapshots) aligned with the
   // freshly-written multiplier so follow-up writes don't look like manual tampering.
-  try { primeStorageWatcherSnapshot(k, raw); } catch {}
-  try {
-    window.dispatchEvent(new CustomEvent('currency:multiplier', {
-      detail: { key, mult: intFromScaled(bn), slot }
-    }));
-  } catch {}
+  try { primeStorageWatcherSnapshot(k, effectiveRaw); } catch {}
+  if (!bigNumEquals(prev, effective)) {
+    try {
+      window.dispatchEvent(new CustomEvent('currency:multiplier', {
+        detail: { key, mult: intFromScaled(effective), slot }
+      }));
+    } catch {}
+  }
 }
 
 // public integer BN multiplier (derived)
@@ -543,8 +584,8 @@ function makeCurrencyHandle(key) {
   fn.add = function add(x) {
     const amt  = BigNum.fromAny(x);
     const next = this.value.add(amt);
-    setCurrency(key, next, { delta: amt });
-    return next;
+    const effective = setCurrency(key, next, { delta: amt, previous: this.value });
+    return effective;
   };
 
 fn.sub = function sub(x) {
@@ -558,8 +599,6 @@ fn.sub = function sub(x) {
   return next;
 };
 
-
-
   fn.set = function set(x) {
     const val = BigNum.fromAny(x);
     let delta = null;
@@ -569,8 +608,8 @@ fn.sub = function sub(x) {
         delta = val.sub(current);
       }
     } catch {}
-    setCurrency(key, val, { delta });
-    return val;
+    const effective = setCurrency(key, val, { delta, previous: current });
+    return effective;
   };
 
   fn.fmt = function fmt(x) {
