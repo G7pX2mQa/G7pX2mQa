@@ -287,7 +287,7 @@ function ensureDebugPanelStyles() {
             overflow-y: auto;
             background: rgb(0, 0, 0);
             color: #fff;
-            font-family: Consolas, 'JetBrains Mono', 'Courier New', monospace;
+            font-family: Arial, sans-serif;
             padding: 12px;
             border-radius: 6px 0 0 6px;
             box-shadow: -2px 0 10px rgba(0, 0, 0, 0.6);
@@ -582,21 +582,6 @@ function ensureDebugPanelStyles() {
         .debug-panel-toggle:hover {
             background: rgba(255, 255, 255, 0.12);
             transform: translateY(-1px);
-        }
-
-        .debug-danger-button {
-            border-color: hsla(0, 80%, 40%, 0.45);
-            background: hsla(0, 80%, 40%, 0.15);
-            color: #fff;
-        }
-
-        .debug-danger-button:hover {
-            background: hsla(0, 80%, 40%, 0.22);
-        }
-
-        .debug-danger-button:active {
-            transform: translateY(1px);
-            background: hsla(0, 80%, 40%, 0.28);
         }
 
         .debug-misc-button-list {
@@ -2472,7 +2457,7 @@ function resetStatsAndMultipliers(target) {
             try { setDebugStatMultiplierOverride(key, BigNum.fromInt(1)); } catch {}
         });
 
-        return 'all currency/stat';
+        return '[GOLD]all[/GOLD] currency/stat';
     }
 
     if (target === 'allUnlocked') {
@@ -2844,7 +2829,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const { unlocks, toggles } = unlockAllUnlockUpgrades();
                 flagDebugUsage();
-                logAction(`Unlocked all unlock-type upgrades (${unlocks} entries) and unlock flags (${toggles} toggled).`);
+                logAction(`Unlocked all unlock-type upgrades (${unlocks} entries), HUD buttons, and unlock flags (${toggles} toggled).`);
             },
         },
         {
@@ -2852,7 +2837,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const { locks, toggles } = lockAllUnlockUpgrades();
                 flagDebugUsage();
-                logAction(`Locked all unlock-type upgrades (${locks} entries) and unlock flags (${toggles} toggled).`);
+                logAction(`Locked all unlock-type upgrades (${locks} entries), HUD buttons, and unlock flags (${toggles} toggled).`);
             },
         },
         {
@@ -2935,7 +2920,7 @@ function buildMiscContent(content) {
 
     const wipeSlotBtn = document.createElement('button');
     wipeSlotBtn.type = 'button';
-    wipeSlotBtn.className = 'debug-panel-toggle debug-danger-button';
+    wipeSlotBtn.className = 'debug-panel-toggle';
     wipeSlotBtn.textContent = 'Wipe Slot & Refresh';
     wipeSlotBtn.addEventListener('click', () => {
         const confirmWipe = window.confirm?.('Are you sure you want to wipe current slot data and refresh the page? This cannot be undone.');
