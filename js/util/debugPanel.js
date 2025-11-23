@@ -42,6 +42,9 @@ const currencyOverrideApplications = new Set();
 const statOverrides = new Map();
 const statOverrideBaselines = new Map();
 const lockedStorageKeys = new Set();
+if (typeof window !== 'undefined') {
+    window.__cccLockedStorageKeys = lockedStorageKeys;
+}
 let storageLockPatched = false;
 let originalSetItem = null;
 let originalRemoveItem = null;
