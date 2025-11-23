@@ -2271,6 +2271,8 @@ function getUnlockRowDefinitions(slot) {
                 catch {}
             },
             onDisable: () => {
+                try { resetXpProgress({ keepUnlock: false }); }
+                catch {}
                 try { setForgeDebugOverride(false); }
                 catch {}
                 try { updateResetPanel(); }
@@ -2913,8 +2915,11 @@ function buildMiscContent(content) {
     resetBtn.addEventListener('click', () => {
         const target = resetSelect.value || 'all';
         const label = resetStatsAndMultipliers(target);
+        const nounPhrase = (target === 'allUnlocked' && label === '1 unlocked stat')
+            ? 'value and multiplier'
+            : 'values and multipliers';
         flagDebugUsage();
-        logAction(`Reset ${label} values and multipliers to defaults.`);
+        logAction(`Reset ${label} ${nounPhrase} to defaults.`);
     });
     resetRow.appendChild(resetBtn);
     content.appendChild(resetRow);
