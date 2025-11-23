@@ -2222,41 +2222,57 @@ function setAllStatsToInfinity() {
     const inf = BigNum.fromAny('Infinity');
     let touched = 0;
 
-    // XP: only touch if level/progress aren’t already infinite
-    try {
-        const xp = getXpState();
-        const levelInf =
-            xp?.xpLevel?.isInfinite?.() ||
-            bigNumEquals(xp?.xpLevel, inf);
-        const progInf =
-            xp?.progress?.isInfinite?.() ||
-            bigNumEquals(xp?.progress, inf);
+    let xpState;
+    let mutationState;
 
-        if (!levelInf || !progInf) {
-            applyXpState({ level: inf, progress: inf });
-            touched += 1; // count "XP" as one stat block
+    try { xpState = getXpState(); } catch {}
+    try { mutationState = getMutationState(); } catch {}
+
+    // XP: only touch if unlocked and level/progress aren’t already infinite
+    try {
+        if (xpState?.unlocked) {
+            const levelInf =
+                xpState?.xpLevel?.isInfinite?.() ||
+                bigNumEquals(xpState?.xpLevel, inf);
+            const progInf =
+                xpState?.progress?.isInfinite?.() ||
+                bigNumEquals(xpState?.progress, inf);
+
+            if (!levelInf || !progInf) {
+                applyXpState({ level: inf, progress: inf });
+                touched += 1; // count "XP" as one stat block
+            }
         }
     } catch {}
 
-    // MP / Mutation: same idea
+    // MP / Mutation: only if unlocked
     try {
-        const mutation = getMutationState();
-        const levelInf =
-            mutation?.level?.isInfinite?.() ||
-            bigNumEquals(mutation?.level, inf);
-        const progInf =
-            mutation?.progress?.isInfinite?.() ||
-            bigNumEquals(mutation?.progress, inf);
+        if (mutationState?.unlocked) {
+            const levelInf =
+                mutationState?.level?.isInfinite?.() ||
+                bigNumEquals(mutationState?.level, inf);
+            const progInf =
+                mutationState?.progress?.isInfinite?.() ||
+                bigNumEquals(mutationState?.progress, inf);
 
-        if (!levelInf || !progInf) {
-            applyMutationState({ level: inf, progress: inf });
-            touched += 1; // count "MP" as one stat block
+            if (!levelInf || !progInf) {
+                applyMutationState({ level: inf, progress: inf });
+                touched += 1; // count "MP" as one stat block
+            }
         }
     } catch {}
+
+    const isStatUnlocked = (statKey) => {
+        if (statKey === 'xp') return !!xpState?.unlocked;
+        if (statKey === 'mutation') return !!mutationState?.unlocked;
+        return true;
+    };
 
     // Stat multipliers (XP, MP, etc.)
     STAT_MULTIPLIERS.forEach(({ key }) => {
         try {
+            if (!isStatUnlocked(key)) return;
+
             const current = getStatMultiplierDisplayValue(key, slot);
             const isAlreadyInf =
                 current?.isInfinite?.() ||
