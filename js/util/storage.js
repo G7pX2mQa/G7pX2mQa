@@ -312,6 +312,15 @@ function keyFor(base, slot = getActiveSlot()) {
   return `${base}:${slot}`;
 }
 
+function isDebugLocked(key) {
+  try {
+    const lockedKeys = globalThis?.__cccLockedStorageKeys;
+    return lockedKeys?.has?.(key) ?? false;
+  } catch {
+    return false;
+  }
+}
+
 export function getSlotSignatureKey(slot = getActiveSlot()) {
   return slotSignatureKey(slot);
 }
@@ -424,6 +433,7 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
   const k = keyFor(KEYS.CURRENCY[key], slot);
   const prev = previous ?? getCurrency(key);
   if (!k) return prev;
+  if (isDebugLocked(k)) return prev; // Respect debug-panel storage locks
 
   let bn;
   try { bn = BigNum.fromAny(value); }
@@ -500,6 +510,7 @@ function getMultiplierScaled(key) {
 function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
   const k = keyFor(KEYS.MULTIPLIER[key], slot);
   if (!k) return;
+  if (isDebugLocked(k)) return; // Respect debug-panel storage locks
   let prev = scaledFromIntBN(BigNum.fromInt(1));
   const existingRaw = localStorage.getItem(k);
   if (existingRaw?.startsWith?.(MULT_SCALE_TAG)) {
