@@ -20,6 +20,11 @@ const bnOne = () => BN.fromInt(1);
 const MP_LOG10_BASE = Math.log10(2);
 const CONST_RATIO = (10 - 1) / (Math.pow(1.12, 50) - 1);
 
+function toStorageSafe(value) {
+  try { return value?.toStorage?.(); }
+  catch { return null; }
+}
+
 const mutationState = {
   unlocked: false,
   level: bnZero(),
@@ -356,6 +361,39 @@ function persistState() {
   primeStorageWatcherSnapshot(KEY_UNLOCK(slot));
   primeStorageWatcherSnapshot(KEY_LEVEL(slot));
   primeStorageWatcherSnapshot(KEY_PROGRESS(slot));
+
+  // If storage writes are being blocked (e.g., via the Debug Panel lock toggle),
+  // fall back to the persisted values so in-memory state doesn't keep drifting
+  // away from the locked snapshot during gameplay.
+  const persisted = (() => {
+    let unlocked = mutationState.unlocked;
+    let level = mutationState.level;
+    let progress = mutationState.progress;
+    try { unlocked = localStorage.getItem(KEY_UNLOCK(slot)) === '1'; }
+    catch {}
+    try {
+      const rawLevel = localStorage.getItem(KEY_LEVEL(slot));
+      if (rawLevel) level = BN.fromAny(rawLevel);
+    } catch {}
+    try {
+      const rawProgress = localStorage.getItem(KEY_PROGRESS(slot));
+      if (rawProgress) progress = BN.fromAny(rawProgress);
+    } catch {}
+    return { unlocked, level, progress };
+  })();
+
+  const persistedLevelRaw = toStorageSafe(persisted.level);
+  const persistedProgressRaw = toStorageSafe(persisted.progress);
+  const expectedLevelRaw = toStorageSafe(mutationState.level);
+  const expectedProgressRaw = toStorageSafe(mutationState.progress);
+
+  const unlockMismatch = persisted.unlocked !== mutationState.unlocked;
+  const levelMismatch = persistedLevelRaw != null && expectedLevelRaw != null && persistedLevelRaw !== expectedLevelRaw;
+  const progressMismatch = persistedProgressRaw != null && expectedProgressRaw != null && persistedProgressRaw !== expectedProgressRaw;
+
+  if (unlockMismatch || levelMismatch || progressMismatch) {
+    applyState(persisted, { skipPersist: true });
+  }
 }
 
 function normalizeProgress() {
