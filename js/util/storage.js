@@ -431,9 +431,6 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
   if (bn.isNegative?.()) bn = BigNum.fromInt(0);
 
   const expectedRaw = bn.toStorage();
-  let previousRaw = null;
-  try { previousRaw = prev?.toStorage?.(); }
-  catch {}
 
   try { localStorage.setItem(k, expectedRaw); }
   catch {}
@@ -442,22 +439,14 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
   try { persistedRaw = localStorage.getItem(k); }
   catch {}
 
-  let effectiveRaw;
-  if (persistedRaw != null) {
-    effectiveRaw = persistedRaw;
-  } else if (previousRaw != null) {
-    effectiveRaw = previousRaw;
-  } else {
-    effectiveRaw = expectedRaw;
-  }
-
-  let effective;
+  const effectiveRaw = persistedRaw ?? expectedRaw;
+  let effective = bn;
   try {
-    effective = BigNum.fromAny(effectiveRaw);
-    if (effective.isNegative?.()) effective = BigNum.fromInt(0);
-  } catch {
-    effective = bn;
-  }
+    if (persistedRaw != null) {
+      effective = BigNum.fromAny(persistedRaw);
+      if (effective.isNegative?.()) effective = BigNum.fromInt(0);
+    }
+  } catch {}
 
   primeStorageWatcherSnapshot(k, effectiveRaw);
 
@@ -520,7 +509,6 @@ function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
   }
   const bn = BigNum.fromAny(theoreticalBN);
   const raw = MULT_SCALE_TAG + bn.toStorage();
-  const prevRaw = MULT_SCALE_TAG + prev.toStorage();
   try { localStorage.setItem(k, raw); }
   catch {}
 
@@ -528,7 +516,7 @@ function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
   try { persistedRaw = localStorage.getItem(k); }
   catch {}
 
-  const effectiveRaw = persistedRaw ?? prevRaw ?? raw;
+  const effectiveRaw = persistedRaw ?? raw;
   let effective = bn;
   try {
     const payload = effectiveRaw?.startsWith?.(MULT_SCALE_TAG)
