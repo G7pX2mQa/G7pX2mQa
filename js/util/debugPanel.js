@@ -2500,7 +2500,7 @@ function resetStatsAndMultipliers(target) {
         return { label: '[GOLD]all[/GOLD] currency/stat', count: totalCount };
     }
 
-    if (target === 'allUnlockedCurrencies') {
+    if (target === 'allCurrencies') {
         let currencyCount = 0;
         Object.values(CURRENCIES).forEach((key) => {
             resetCurrencyAndMultiplier(key);
@@ -2977,20 +2977,20 @@ function buildMiscContent(content) {
         resetSelect.appendChild(group);
     });
 
-    const allUnlockedOption = document.createElement('option');
-    allUnlockedOption.value = 'allUnlocked';
-    allUnlockedOption.textContent = 'All Unlocked';
-    resetSelect.appendChild(allUnlockedOption);
-
-    const allUnlockedCurrenciesOption = document.createElement('option');
-    allUnlockedCurrenciesOption.value = 'allUnlockedCurrencies';
-    allUnlockedCurrenciesOption.textContent = 'All Unlocked Currencies';
-    resetSelect.appendChild(allUnlockedCurrenciesOption);
+    const allCurrenciesOption = document.createElement('option');
+    allCurrenciesOption.value = 'allCurrencies';
+    allCurrenciesOption.textContent = 'All Currencies';
+    resetSelect.appendChild(allCurrenciesOption);
 
     const allUnlockedStatsOption = document.createElement('option');
     allUnlockedStatsOption.value = 'allUnlockedStats';
     allUnlockedStatsOption.textContent = 'All Unlocked Stats';
     resetSelect.appendChild(allUnlockedStatsOption);
+	
+	const allUnlockedOption = document.createElement('option');
+    allUnlockedOption.value = 'allUnlocked';
+    allUnlockedOption.textContent = 'All Unlocked';
+    resetSelect.appendChild(allUnlockedOption);
 
     const allOption = document.createElement('option');
     allOption.value = 'all';
