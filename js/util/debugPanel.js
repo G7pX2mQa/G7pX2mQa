@@ -2215,6 +2215,25 @@ function setAllCurrenciesToInfinity() {
     return updated;
 }
 
+function setAllCurrenciesToZero() {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+
+    const zero = BigNum.fromInt(0);
+    let updated = 0;
+
+    Object.values(CURRENCIES).forEach((key) => {
+        const handle = bank?.[key];
+        if (!handle) return;
+        try {
+            handle.set?.(zero);
+            updated += 1;
+        } catch {}
+    });
+
+    return updated;
+}
+
 function setAllStatsToInfinity() {
     const slot = getActiveSlot();
     if (slot == null) return 0;
@@ -2281,6 +2300,51 @@ function setAllStatsToInfinity() {
             if (isAlreadyInf) return;
 
             setDebugStatMultiplierOverride(key, inf, slot);
+            touched += 1;
+        } catch {}
+    });
+
+    return touched;
+}
+
+function setAllStatsToZero() {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+
+    const zero = BigNum.fromInt(0);
+    let touched = 0;
+
+    let xpState;
+    let mutationState;
+
+    try { xpState = getXpState(); } catch {}
+    try { mutationState = getMutationState(); } catch {}
+
+    try {
+        if (xpState?.unlocked) {
+            applyXpState({ level: zero, progress: zero });
+            touched += 1;
+        }
+    } catch {}
+
+    try {
+        if (mutationState?.unlocked) {
+            applyMutationState({ level: zero, progress: zero });
+            touched += 1;
+        }
+    } catch {}
+
+    const isStatUnlocked = (statKey) => {
+        if (statKey === 'xp') return !!xpState?.unlocked;
+        if (statKey === 'mutation') return !!mutationState?.unlocked;
+        return true;
+    };
+
+    STAT_MULTIPLIERS.forEach(({ key }) => {
+        try {
+            if (!isStatUnlocked(key)) return;
+
+            setDebugStatMultiplierOverride(key, zero, slot);
             touched += 1;
         } catch {}
     });
@@ -2895,6 +2959,7 @@ function buildMiscContent(content) {
                 logAction(`Restored dialogues to unclaimed state (${restored} ${entryLabel} reset).`);
             },
         },
+        },
         {
             label: 'All Currencies Inf',
             onClick: () => {
@@ -2904,11 +2969,27 @@ function buildMiscContent(content) {
             },
         },
         {
+            label: 'All Currencies 0',
+            onClick: () => {
+                const touched = setAllCurrenciesToZero();
+                flagDebugUsage();
+                logAction(`Set all currencies to 0 (${touched} ${touched === 1 ? 'currency' : 'currencies'} updated).`);
+            },
+        },
+        {
             label: 'All Stats Inf',
             onClick: () => {
                                 const touched = setAllStatsToInfinity();
                 flagDebugUsage();
                 logAction(`Set all stats to Infinity (${touched} ${touched === 1 ? 'stat' : 'stats'} updated).`);
+            },
+        },
+        {
+            label: 'All Stats 0',
+            onClick: () => {
+                const touched = setAllStatsToZero();
+                flagDebugUsage();
+                logAction(`Set all unlocked stats to 0 (${touched} ${touched === 1 ? 'stat' : 'stats'} updated).`);
             },
         },
         {
