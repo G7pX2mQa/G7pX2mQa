@@ -458,10 +458,11 @@ function applyState(newState, { skipPersist = false } = {}) {
   mutationState.unlocked = !!newState.unlocked;
   mutationState.level = cloneBigNum(newState.level);
   mutationState.progress = cloneBigNum(newState.progress);
-  ensureRequirement();
   if (!mutationState.unlocked) {
+    mutationState.level = bnZero();
     mutationState.progress = bnZero();
   }
+  ensureRequirement();
   if (!skipPersist) persistState();
   updateHud();
   emitChange('load');
@@ -510,6 +511,7 @@ function bindStorageWatchers(slot) {
       if (mutationState.unlocked !== nextUnlocked) {
         mutationState.unlocked = nextUnlocked;
         if (!nextUnlocked) {
+          mutationState.level = bnZero();
           mutationState.progress = bnZero();
         }
         ensureRequirement();
@@ -615,7 +617,7 @@ export function setMutationUnlockedForDebug(unlocked) {
   const nextUnlocked = !!unlocked;
   applyState({
     unlocked: nextUnlocked,
-    level: mutationState.level,
+    level: nextUnlocked ? mutationState.level : bnZero(),
     progress: nextUnlocked ? mutationState.progress : bnZero(),
   });
 }
