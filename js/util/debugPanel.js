@@ -493,6 +493,10 @@ function ensureDebugPanelStyles() {
             content: attr(data-unit);
             color: #ffa726;
             font-weight: normal;
+            margin-left: 0;
+        }
+
+        .action-log-number[data-unit]:not([data-unit=""])::after {
             margin-left: 2px;
         }
 
@@ -513,7 +517,7 @@ function ensureDebugPanelStyles() {
             font-weight: bold;
             text-shadow: 0 0 2px rgba(0,0,0,0.5);
             border-radius: 3px;
-            padding: 0 2px;
+            padding: 0;
         }
 
         .debug-panel-subsection {
