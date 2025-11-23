@@ -433,7 +433,18 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
   const k = keyFor(KEYS.CURRENCY[key], slot);
   const prev = previous ?? getCurrency(key);
   if (!k) return prev;
-  if (isCurrencyLocked(key, slot)) return prev; // Respect debug-panel storage locks
+  if (isCurrencyLocked(key, slot)) {
+    let deltaBn = null;
+    if (delta) {
+      try {
+        deltaBn = delta instanceof BigNum ? delta.clone?.() ?? delta : BigNum.fromAny(delta);
+      } catch { deltaBn = null; }
+    }
+    const detail = { key, value: prev, slot, delta: deltaBn ?? undefined };
+    notifyCurrencySubscribers(detail);
+    try { window.dispatchEvent(new CustomEvent('currency:change', { detail })); } catch {}
+    return prev;
+  } // Respect debug-panel storage locks
 
   let bn;
   try { bn = BigNum.fromAny(value); }
