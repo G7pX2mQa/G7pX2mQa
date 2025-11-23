@@ -2460,6 +2460,31 @@ function resetStatsAndMultipliers(target) {
         return 'all currency/stat';
     }
 
+    if (target === 'allUnlocked') {
+        const zero = BigNum.fromInt(0);
+        let resetCount = 0;
+
+        try {
+            if (getXpState()?.unlocked) {
+                applyXpState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('xp', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (getMutationState()?.unlocked) {
+                applyMutationState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('mutation', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        if (resetCount === 0) return '0 unlocked stats';
+        if (resetCount === 1) return '1 unlocked stat';
+        return `${resetCount} unlocked stats`;
+    }
+
     if (target.startsWith('currency:')) {
         const currencyKey = target.slice('currency:'.length);
         resetCurrencyAndMultiplier(currencyKey);
@@ -2864,6 +2889,15 @@ function buildMiscContent(content) {
         });
         resetSelect.appendChild(group);
     });
+
+    const allUnlockedOption = document.createElement('option');
+    allUnlockedOption.value = 'allUnlocked';
+    allUnlockedOption.textContent = 'All Unlocked';
+    resetSelect.appendChild(allUnlockedOption);
+
+    const allOption = document.createElement('option');
+    allOption.value = 'all';
+    allOption.textContent = 'All';
 
     const allOption = document.createElement('option');
     allOption.value = 'all';
