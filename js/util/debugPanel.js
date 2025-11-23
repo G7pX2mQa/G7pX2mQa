@@ -2484,6 +2484,41 @@ function resetStatsAndMultipliers(target) {
         return { label: '[GOLD]all[/GOLD] currency/stat', count: totalCount };
     }
 
+    if (target === 'allUnlockedCurrencies') {
+        let currencyCount = 0;
+        Object.values(CURRENCIES).forEach((key) => {
+            resetCurrencyAndMultiplier(key);
+            currencyCount += 1;
+        });
+
+        const label = currencyCount === 1 ? '1 currency' : `${currencyCount} currencies`;
+        return { label, count: currencyCount };
+    }
+
+    if (target === 'allUnlockedStats') {
+        const zero = BigNum.fromInt(0);
+        let resetCount = 0;
+
+        try {
+            if (getXpState()?.unlocked) {
+                applyXpState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('xp', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (getMutationState()?.unlocked) {
+                applyMutationState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('mutation', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        const label = resetCount === 1 ? '1 unlocked stat' : `${resetCount} unlocked stats`;
+        return { label, count: resetCount };
+    }
+
     if (target === 'allUnlocked') {
         let currencyCount = 0;
         Object.values(CURRENCIES).forEach((key) => {
@@ -2929,6 +2964,16 @@ function buildMiscContent(content) {
     allUnlockedOption.value = 'allUnlocked';
     allUnlockedOption.textContent = 'All Unlocked';
     resetSelect.appendChild(allUnlockedOption);
+
+    const allUnlockedCurrenciesOption = document.createElement('option');
+    allUnlockedCurrenciesOption.value = 'allUnlockedCurrencies';
+    allUnlockedCurrenciesOption.textContent = 'All Unlocked Currencies';
+    resetSelect.appendChild(allUnlockedCurrenciesOption);
+
+    const allUnlockedStatsOption = document.createElement('option');
+    allUnlockedStatsOption.value = 'allUnlockedStats';
+    allUnlockedStatsOption.textContent = 'All Unlocked Stats';
+    resetSelect.appendChild(allUnlockedStatsOption);
 
     const allOption = document.createElement('option');
     allOption.value = 'all';
