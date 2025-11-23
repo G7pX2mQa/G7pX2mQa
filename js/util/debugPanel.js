@@ -510,6 +510,44 @@ function ensureDebugPanelStyles() {
             padding: 4px 0;
         }
 
+        .debug-panel-toggle {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid #555;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.12s ease, transform 0.12s ease;
+        }
+
+        .debug-panel-toggle:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .debug-misc-button-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .debug-misc-row {
+            justify-content: center;
+        }
+
+        .debug-misc-button {
+            width: min(100%, 360px);
+            background: linear-gradient(90deg, #1f3b60, #224c72);
+            border: 1px solid #5e8bc0;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .debug-misc-button:hover {
+            background: linear-gradient(90deg, #26507f, #2a5e90);
+        }
+
         .debug-unlock-row {
             align-items: flex-start;
             justify-content: flex-start;
@@ -2582,17 +2620,29 @@ function buildMiscContent(content) {
                 logAction(`Locked all unlock-type upgrades (${locked} entries) and HUD buttons.`);
             },
         },
+        {
+            label: 'Wipe Action Log',
+            onClick: () => {
+                persistActionLog([], slot);
+                updateActionLogDisplay();
+                flagDebugUsage();
+                logAction('Action log wiped and reset.');
+            },
+        },
     ];
 
     const buttonGrid = document.createElement('div');
-    buttonGrid.className = 'debug-panel-row';
+    buttonGrid.className = 'debug-misc-button-list';
     buttons.forEach((cfg) => {
+        const row = document.createElement('div');
+        row.className = 'debug-panel-row debug-misc-row';
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'debug-panel-toggle';
+        btn.className = 'debug-panel-toggle debug-misc-button';
         btn.textContent = cfg.label;
         btn.addEventListener('click', cfg.onClick);
-        buttonGrid.appendChild(btn);
+        row.appendChild(btn);
+        buttonGrid.appendChild(row);
     });
     content.appendChild(buttonGrid);
 
@@ -2645,17 +2695,6 @@ function buildMiscContent(content) {
 
     const actionLogRow = document.createElement('div');
     actionLogRow.className = 'debug-panel-row';
-    const wipeLogBtn = document.createElement('button');
-    wipeLogBtn.type = 'button';
-    wipeLogBtn.className = 'debug-panel-toggle';
-    wipeLogBtn.textContent = 'Wipe Action Log';
-    wipeLogBtn.addEventListener('click', () => {
-        persistActionLog([], slot);
-        updateActionLogDisplay();
-        flagDebugUsage();
-        logAction('Action log wiped and reset.');
-    });
-    actionLogRow.appendChild(wipeLogBtn);
 
     const wipeSlotBtn = document.createElement('button');
     wipeSlotBtn.type = 'button';
