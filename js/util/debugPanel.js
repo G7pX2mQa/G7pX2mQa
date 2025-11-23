@@ -5,7 +5,7 @@
 
 import { BigNum } from './bigNum.js';
 import { formatNumber } from './numFormat.js';
-import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot, setCurrencyMultiplierBN } from './storage.js';
+import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot, setCurrencyMultiplierBN, watchStorageKey } from './storage.js';
 import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
 import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
 import {
