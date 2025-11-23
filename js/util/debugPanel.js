@@ -335,9 +335,58 @@ function ensureDebugPanelStyles() {
             margin-top: 2px;
         }
 
-        @media (max-width: 768px) {
+        @media (pointer: coarse) {
             .debug-panel-info-mobile-hidden {
                 display: none;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .debug-panel {
+                left: 0;
+                right: 0;
+                top: 0;
+                transform: none;
+                width: auto;
+                max-width: none;
+                max-height: calc(100vh - 12px);
+                padding: 8px;
+                margin: 6px;
+                border-radius: 8px;
+            }
+
+            .debug-panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+
+            .debug-panel-title {
+                font-size: 1.05em;
+            }
+
+            .debug-panel-info {
+                font-size: 0.85em;
+            }
+
+            .debug-panel-section-toggle,
+            .debug-panel-subsection-toggle {
+                align-items: flex-start;
+                gap: 6px;
+            }
+
+            .debug-panel-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .debug-panel-toggle,
+            .debug-misc-button {
+                width: 100%;
+            }
+
+            .debug-misc-button-list {
+                justify-content: flex-start;
             }
         }
 
