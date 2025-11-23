@@ -477,7 +477,11 @@ function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
   const k = keyFor(KEYS.MULTIPLIER[key], slot);
   if (!k) return;
   const bn = BigNum.fromAny(theoreticalBN);
-  localStorage.setItem(k, MULT_SCALE_TAG + bn.toStorage());
+  const raw = MULT_SCALE_TAG + bn.toStorage();
+  localStorage.setItem(k, raw);
+  // Keep any live storage watchers (and save-integrity snapshots) aligned with the
+  // freshly-written multiplier so follow-up writes don't look like manual tampering.
+  try { primeStorageWatcherSnapshot(k, raw); } catch {}
   try {
     window.dispatchEvent(new CustomEvent('currency:multiplier', {
       detail: { key, mult: intFromScaled(bn), slot }
