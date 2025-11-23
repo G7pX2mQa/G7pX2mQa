@@ -533,7 +533,8 @@ function ensureDebugPanelStyles() {
         }
 
         .debug-misc-button {
-            flex: 1 1 150px;
+            flex: 0 1 170px;
+            min-width: 150px;
             max-width: 190px;
             padding: 6px 10px;
             text-align: center;
