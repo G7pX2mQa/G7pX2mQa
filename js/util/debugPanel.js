@@ -275,6 +275,19 @@ function shouldRestoreOnLock(storageKey) {
     );
 }
 
+function updateLockRestoreSnapshot(key, rawValue) {
+    if (!key || !lockedStorageKeys.has(key)) return;
+    if (!shouldRestoreOnLock(key)) return;
+
+    let raw = rawValue;
+    if (raw === undefined) {
+        try { raw = localStorage.getItem(key); }
+        catch { raw = null; }
+    }
+
+    lockRestoreSnapshots.set(key, raw);
+}
+
 function ensureDebugPanelStyles() {
     let style = document.getElementById(DEBUG_PANEL_STYLE_ID);
     if (style) return;
@@ -908,11 +921,13 @@ function storeStatMultiplierOverride(statKey, slot, value) {
     if (!storageKey || typeof localStorage === 'undefined') return;
     try {
         const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 1);
+        const raw = bn.toStorage?.() ?? String(bn);
         const locked = isStorageKeyLocked(storageKey);
         const setter = locked && originalSetItem ? originalSetItem : localStorage.setItem.bind(localStorage);
         if (locked && !originalSetItem) unlockStorageKey(storageKey);
-        setter(storageKey, bn.toStorage?.() ?? String(bn));
+        setter(storageKey, raw);
         if (locked && !originalSetItem) lockStorageKey(storageKey);
+        updateLockRestoreSnapshot(storageKey, raw);
     } catch {}
 }
 
@@ -1703,6 +1718,7 @@ function applyXpState({ level, progress }) {
     const unlockKey = XP_KEYS.unlock(slot);
     try { localStorage.setItem(unlockKey, '1'); } catch {}
     primeStorageWatcherSnapshot(unlockKey, '1');
+    updateLockRestoreSnapshot(unlockKey, '1');
 
     if (level != null) {
         try {
@@ -1710,6 +1726,7 @@ function applyXpState({ level, progress }) {
             const key = XP_KEYS.level(slot);
             localStorage.setItem(key, raw);
             primeStorageWatcherSnapshot(key, raw);
+            updateLockRestoreSnapshot(key, raw);
         } catch {}
     }
 
@@ -1719,6 +1736,7 @@ function applyXpState({ level, progress }) {
             const key = XP_KEYS.progress(slot);
             localStorage.setItem(key, raw);
             primeStorageWatcherSnapshot(key, raw);
+            updateLockRestoreSnapshot(key, raw);
         } catch {}
     }
 
@@ -1775,6 +1793,7 @@ function applyMutationState({ level, progress }) {
     const unlockKey = MUTATION_KEYS.unlock(slot);
     try { localStorage.setItem(unlockKey, '1'); } catch {}
     primeStorageWatcherSnapshot(unlockKey, '1');
+    updateLockRestoreSnapshot(unlockKey, '1');
 
     if (level != null) {
         try {
@@ -1782,6 +1801,7 @@ function applyMutationState({ level, progress }) {
             const key = MUTATION_KEYS.level(slot);
             localStorage.setItem(key, raw);
             primeStorageWatcherSnapshot(key, raw);
+            updateLockRestoreSnapshot(key, raw);
         } catch {}
     }
 
@@ -1791,6 +1811,7 @@ function applyMutationState({ level, progress }) {
             const key = MUTATION_KEYS.progress(slot);
             localStorage.setItem(key, raw);
             primeStorageWatcherSnapshot(key, raw);
+            updateLockRestoreSnapshot(key, raw);
         } catch {}
     }
 
@@ -1831,6 +1852,7 @@ function buildAreaCurrencies(container, area) {
             try { handle?.set?.(value); } catch {}
             const refreshed = handle?.value ?? value;
             setValue(refreshed);
+            updateLockRestoreSnapshot(storageKey);
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
                 logAction(`Modified ${currency.label} (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
@@ -2033,6 +2055,7 @@ function buildAreaCurrencyMultipliers(container, area) {
             const refreshedOverride = getDebugCurrencyMultiplierOverride(currency.key, latestSlot);
             const refreshed = refreshedOverride ?? handle?.get?.() ?? BigNum.fromInt(1);
             setValue(refreshed);
+            updateLockRestoreSnapshot(storageKey);
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
                 logAction(`Modified ${currency.label} Multiplier (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
