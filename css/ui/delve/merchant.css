@@ -694,10 +694,11 @@
 
 .merchant-reset__main.is-forge-complete {
   justify-content: flex-start;
-  padding: 16px 18px 18px;
-  min-height: 220px;
-  gap: 14px;
+  padding: 14px 18px 16px;
+  min-height: 150px;
+  gap: 10px;
 }
+
 
 .merchant-reset__content {
   display: flex;
@@ -714,7 +715,9 @@
 }
 
 .merchant-reset__main.is-forge-complete .merchant-reset__layout {
-  gap: 14px;
+  height: auto;
+  grid-template-rows: auto auto auto;
+  gap: 8px;                  /* tighter gap between header / body / button */
 }
 
 .merchant-reset__actions {
@@ -753,7 +756,7 @@
 }
 
 .merchant-reset__main.is-forge-complete .merchant-reset__titles p {
-  transform: translateY(4vh);
+  margin-top: 16px;
 }
 
 .merchant-reset__body {
@@ -765,6 +768,12 @@
   justify-content: flex-start;
   width: 100%;
 }
+
+/* Forge only: tighter body spacing so the button sits closer */
+.merchant-reset__main.is-forge-complete .merchant-reset__body {
+  gap: 4px;
+}
+
 
 .merchant-reset__status {
   color: #f0f8ff;
@@ -778,6 +787,17 @@
   text-align: center;
   margin-inline: auto;        /* center the description without shifting siblings */
 }
+
+.merchant-reset__status:empty {
+  visibility: hidden;
+  min-height: 44px;
+}
+
+.merchant-reset__main.is-forge-complete .merchant-reset__status,
+.merchant-reset__main.is-forge-complete .merchant-reset__status:empty {
+  min-height: 0;
+}
+
 
 .merchant-reset__status:empty {
   visibility: hidden;
