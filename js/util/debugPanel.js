@@ -5,7 +5,7 @@
 
 import { BigNum } from './bigNum.js';
 import { formatNumber } from './numFormat.js';
-import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot, setCurrencyMultiplierBN, watchStorageKey } from './storage.js';
+import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot, setCurrencyMultiplierBN } from './storage.js';
 import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
 import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
 import {
@@ -42,9 +42,6 @@ const currencyOverrideApplications = new Set();
 const statOverrides = new Map();
 const statOverrideBaselines = new Map();
 const lockedStorageKeys = new Set();
-const restoringLockKeys = new Set();
-const lockRestoreSnapshots = new Map();
-const lockRestoreWatchers = new Map();
 let storageLockPatched = false;
 let originalSetItem = null;
 let originalRemoveItem = null;
@@ -248,44 +245,6 @@ function getAreas() {
             ],
         },
     ];
-}
-
-function shouldRestoreOnLock(storageKey) {
-    if (typeof storageKey !== 'string' || storageKey.length === 0) return false;
-
-    const currencyPrefixes = [];
-    try {
-        Object.values(CURRENCIES).forEach((key) => {
-            const base = KEYS?.CURRENCY?.[key];
-            const mult = KEYS?.MULTIPLIER?.[key];
-            if (base) currencyPrefixes.push(`${base}:`);
-            if (mult) currencyPrefixes.push(`${mult}:`);
-        });
-    } catch {}
-
-    const statPrefix = `${STAT_MULTIPLIER_STORAGE_PREFIX}:`;
-
-    return (
-        storageKey.startsWith(`${XP_KEY_PREFIX}:level:`) ||
-        storageKey.startsWith(`${XP_KEY_PREFIX}:progress:`) ||
-        storageKey.startsWith(`${MUTATION_KEY_PREFIX}:level:`) ||
-        storageKey.startsWith(`${MUTATION_KEY_PREFIX}:progress:`) ||
-        storageKey.startsWith(statPrefix) ||
-        currencyPrefixes.some((prefix) => storageKey.startsWith(prefix))
-    );
-}
-
-function updateLockRestoreSnapshot(key, rawValue) {
-    if (!key || !lockedStorageKeys.has(key)) return;
-    if (!shouldRestoreOnLock(key)) return;
-
-    let raw = rawValue;
-    if (raw === undefined) {
-        try { raw = localStorage.getItem(key); }
-        catch { raw = null; }
-    }
-
-    lockRestoreSnapshots.set(key, raw);
 }
 
 function ensureDebugPanelStyles() {
@@ -921,13 +880,11 @@ function storeStatMultiplierOverride(statKey, slot, value) {
     if (!storageKey || typeof localStorage === 'undefined') return;
     try {
         const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 1);
-        const raw = bn.toStorage?.() ?? String(bn);
         const locked = isStorageKeyLocked(storageKey);
         const setter = locked && originalSetItem ? originalSetItem : localStorage.setItem.bind(localStorage);
         if (locked && !originalSetItem) unlockStorageKey(storageKey);
-        setter(storageKey, raw);
+        setter(storageKey, bn.toStorage?.() ?? String(bn));
         if (locked && !originalSetItem) lockStorageKey(storageKey);
-        updateLockRestoreSnapshot(storageKey, raw);
     } catch {}
 }
 
@@ -1099,11 +1056,11 @@ function ensureStorageLockPatch() {
         originalSetItem = localStorage.setItem.bind(localStorage);
         originalRemoveItem = localStorage.removeItem.bind(localStorage);
         localStorage.setItem = (key, value) => {
-            if (lockedStorageKeys.has(key) && !restoringLockKeys.has(key)) return;
+            if (lockedStorageKeys.has(key)) return;
             return originalSetItem(key, value);
         };
         localStorage.removeItem = (key) => {
-            if (lockedStorageKeys.has(key) && !restoringLockKeys.has(key)) return;
+            if (lockedStorageKeys.has(key)) return;
             return originalRemoveItem(key);
         };
     } catch {}
@@ -1117,53 +1074,11 @@ function lockStorageKey(key) {
     if (!key) return;
     ensureStorageLockPatch();
     lockedStorageKeys.add(key);
-
-    if (!shouldRestoreOnLock(key)) {
-        restoringLockKeys.delete(key);
-        const cleanup = lockRestoreWatchers.get(key);
-        if (typeof cleanup === 'function') cleanup();
-        lockRestoreWatchers.delete(key);
-        lockRestoreSnapshots.delete(key);
-        return;
-    }
-
-    restoringLockKeys.add(key);
-    try {
-        lockRestoreSnapshots.set(key, localStorage.getItem(key));
-    } catch {
-        lockRestoreSnapshots.set(key, null);
-    }
-
-    if (!lockRestoreWatchers.has(key)) {
-        const unwatch = watchStorageKey(key, {
-            emitCurrentValue: true,
-            onChange: ({ raw }) => {
-                if (!lockedStorageKeys.has(key) || !restoringLockKeys.has(key)) return;
-                const lockedSnapshot = lockRestoreSnapshots.get(key);
-                if (lockedSnapshot === raw) return;
-
-                try {
-                    if (lockedSnapshot == null) {
-                        originalRemoveItem?.(key);
-                    } else {
-                        originalSetItem?.(key, lockedSnapshot);
-                    }
-                    primeStorageWatcherSnapshot(key, lockedSnapshot);
-                } catch {}
-            },
-        });
-        lockRestoreWatchers.set(key, unwatch);
-    }
 }
 
 function unlockStorageKey(key) {
     if (!key) return;
     lockedStorageKeys.delete(key);
-    restoringLockKeys.delete(key);
-    lockRestoreSnapshots.delete(key);
-    const cleanup = lockRestoreWatchers.get(key);
-    if (typeof cleanup === 'function') cleanup();
-    lockRestoreWatchers.delete(key);
 }
 
 function toggleStorageLock(key) {
@@ -1718,7 +1633,6 @@ function applyXpState({ level, progress }) {
     const unlockKey = XP_KEYS.unlock(slot);
     try { localStorage.setItem(unlockKey, '1'); } catch {}
     primeStorageWatcherSnapshot(unlockKey, '1');
-    updateLockRestoreSnapshot(unlockKey, '1');
 
     if (level != null) {
         try {
@@ -1726,7 +1640,6 @@ function applyXpState({ level, progress }) {
             const key = XP_KEYS.level(slot);
             localStorage.setItem(key, raw);
             primeStorageWatcherSnapshot(key, raw);
-            updateLockRestoreSnapshot(key, raw);
         } catch {}
     }
 
@@ -1736,7 +1649,6 @@ function applyXpState({ level, progress }) {
             const key = XP_KEYS.progress(slot);
             localStorage.setItem(key, raw);
             primeStorageWatcherSnapshot(key, raw);
-            updateLockRestoreSnapshot(key, raw);
         } catch {}
     }
 
@@ -1793,7 +1705,6 @@ function applyMutationState({ level, progress }) {
     const unlockKey = MUTATION_KEYS.unlock(slot);
     try { localStorage.setItem(unlockKey, '1'); } catch {}
     primeStorageWatcherSnapshot(unlockKey, '1');
-    updateLockRestoreSnapshot(unlockKey, '1');
 
     if (level != null) {
         try {
@@ -1801,7 +1712,6 @@ function applyMutationState({ level, progress }) {
             const key = MUTATION_KEYS.level(slot);
             localStorage.setItem(key, raw);
             primeStorageWatcherSnapshot(key, raw);
-            updateLockRestoreSnapshot(key, raw);
         } catch {}
     }
 
@@ -1811,7 +1721,6 @@ function applyMutationState({ level, progress }) {
             const key = MUTATION_KEYS.progress(slot);
             localStorage.setItem(key, raw);
             primeStorageWatcherSnapshot(key, raw);
-            updateLockRestoreSnapshot(key, raw);
         } catch {}
     }
 
@@ -1852,7 +1761,6 @@ function buildAreaCurrencies(container, area) {
             try { handle?.set?.(value); } catch {}
             const refreshed = handle?.value ?? value;
             setValue(refreshed);
-            updateLockRestoreSnapshot(storageKey);
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
                 logAction(`Modified ${currency.label} (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
@@ -2055,7 +1963,6 @@ function buildAreaCurrencyMultipliers(container, area) {
             const refreshedOverride = getDebugCurrencyMultiplierOverride(currency.key, latestSlot);
             const refreshed = refreshedOverride ?? handle?.get?.() ?? BigNum.fromInt(1);
             setValue(refreshed);
-            updateLockRestoreSnapshot(storageKey);
             if (!bigNumEquals(previous, refreshed)) {
                 flagDebugUsage();
                 logAction(`Modified ${currency.label} Multiplier (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
