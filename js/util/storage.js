@@ -428,12 +428,12 @@ export function getCurrency(key) {
   try { return BigNum.fromAny(raw); } catch { return BigNum.fromInt(0); }
 }
 
-export function setCurrency(key, value, { delta = null, previous = null } = {}) {
-  const slot = getActiveSlot();
-  const k = keyFor(KEYS.CURRENCY[key], slot);
-  const prev = previous ?? getCurrency(key);
-  if (!k) return prev;
-  if (isDebugLocked(k)) return prev; // Respect debug-panel storage locks
+export function setCurrency(key, value, { delta = null, previous = null } = {}) {␊
+  const slot = getActiveSlot();␊
+  const k = keyFor(KEYS.CURRENCY[key], slot);␊
+  const prev = previous ?? getCurrency(key);␊
+  if (!k) return prev;␊
+  if (isCurrencyLocked(key, slot)) return prev; // Respect debug-panel storage locks
 
   let bn;
   try { bn = BigNum.fromAny(value); }
@@ -507,10 +507,10 @@ function getMultiplierScaled(key) {
   }
 }
 
-function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
-  const k = keyFor(KEYS.MULTIPLIER[key], slot);
-  if (!k) return;
-  if (isDebugLocked(k)) return; // Respect debug-panel storage locks
+function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {␊
+  const k = keyFor(KEYS.MULTIPLIER[key], slot);␊
+  if (!k) return;␊
+  if (isCurrencyLocked(key, slot)) return; // Respect debug-panel storage locks
   let prev = scaledFromIntBN(BigNum.fromInt(1));
   const existingRaw = localStorage.getItem(k);
   if (existingRaw?.startsWith?.(MULT_SCALE_TAG)) {
@@ -547,9 +547,13 @@ function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
   }
 }
 
-// public integer BN multiplier (derived)
 export function getCurrencyMultiplierBN(key) {
   return intFromScaled(getMultiplierScaled(key));
+}
+
+export function isCurrencyLocked(key, slot = getActiveSlot()) {
+  const k = keyFor(KEYS.CURRENCY[key], slot);
+  return isDebugLocked(k);
 }
 
 // public set integer BN multiplier (stored as scaled theoretical)
