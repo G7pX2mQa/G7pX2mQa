@@ -60,6 +60,20 @@ function isOnMenu() {
     return style.display !== 'none' && style.visibility !== 'hidden' && !menuRoot.hidden;
 }
 
+function isGameVisible() {
+    const gameRoot = document.getElementById('game-root');
+    if (!gameRoot) return false;
+
+    const style = window.getComputedStyle?.(gameRoot);
+    if (!style) {
+        return gameRoot.style.display !== 'none'
+            && gameRoot.style.visibility !== 'hidden'
+            && !gameRoot.hidden;
+    }
+
+    return style.display !== 'none' && style.visibility !== 'hidden' && !gameRoot.hidden;
+}
+
 function addDebugPanelCleanup(fn) {
     if (typeof fn === 'function') {
         debugPanelCleanups.push(fn);
@@ -660,9 +674,9 @@ function shouldShowDebugPanelToggleButton() {
     return debugPanelAccess
         && IS_MOBILE
         && getActiveSlot() != null
-        && !isOnMenu();
+        && !isOnMenu()
+        && isGameVisible();
 }
-
 
 function onMenuVisibilityChange(event) {
     if (event?.detail?.visible) {
