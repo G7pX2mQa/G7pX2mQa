@@ -2497,7 +2497,7 @@ function resetStatsAndMultipliers(target) {
         });
 
         const totalCount = Object.values(CURRENCIES).length + STAT_MULTIPLIERS.length + 2; // XP + MP
-        return { label: '[GOLD]all[/GOLD] currency/stat', count: totalCount };
+        return { label: '[GOLD]all[/GOLD] currency/stats', count: totalCount };
     }
 
     if (target === 'allCurrencies') {
@@ -2989,7 +2989,7 @@ function buildMiscContent(content) {
 	
 	const allUnlockedOption = document.createElement('option');
     allUnlockedOption.value = 'allUnlocked';
-    allUnlockedOption.textContent = 'All Unlocked';
+    allUnlockedOption.textContent = 'All Unlocked Stats & Currs';
     resetSelect.appendChild(allUnlockedOption);
 
     const allOption = document.createElement('option');
