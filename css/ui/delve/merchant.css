@@ -71,7 +71,8 @@
 
   .merchant-reset img,
   .merchant-dialogue-list .coin-icon,
-  .merchant-dialogue-list .book-icon {
+  .merchant-dialogue-list .book-icon,
+  .merchant-reset__action {
     -webkit-user-select: none;
     user-select: none;
   }
@@ -828,6 +829,7 @@
   color: #ffffff;
   cursor: pointer;
   position: relative;
+  user-select: none;
 }
 
 /* pieces inside + icon amount */
