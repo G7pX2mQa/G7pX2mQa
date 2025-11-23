@@ -2480,7 +2480,8 @@ function resetStatsAndMultipliers(target) {
             try { setDebugStatMultiplierOverride(key, BigNum.fromInt(1)); } catch {}
         });
 
-        return '[GOLD]all[/GOLD] currency/stat';
+        const totalCount = Object.values(CURRENCIES).length + STAT_MULTIPLIERS.length + 2; // XP + MP
+        return { label: '[GOLD]all[/GOLD] currency/stat', count: totalCount };
     }
 
     if (target === 'allUnlocked') {
@@ -2516,13 +2517,13 @@ function resetStatsAndMultipliers(target) {
 
         parts.push(currencyCount === 1 ? '1 currency' : `${currencyCount} currencies`);
 
-        return parts.join(' and ');
+        return { label: parts.join(' and '), count: resetCount + currencyCount };
     }
 
     if (target.startsWith('currency:')) {
         const currencyKey = target.slice('currency:'.length);
         resetCurrencyAndMultiplier(currencyKey);
-        return `${currencyKey}`;
+        return { label: `${currencyKey}`, count: 1 };
     }
 
     if (target.startsWith('statmult:')) {
@@ -2530,11 +2531,11 @@ function resetStatsAndMultipliers(target) {
         // "Reset this stat multiplier" = remove any debug override,
         // let the game recalculate the multiplier normally.
         try { clearStatMultiplierOverride(statKey); } catch {}
-        return `${statKey} multiplier`;
+        return { label: `${statKey} multiplier`, count: 1 };
     }
 
     if (!target.startsWith('stat:')) {
-        return `unknown target ${target}`;
+        return { label: `unknown target ${target}`, count: 0 };
     }
 
     const statKey = target.slice('stat:'.length);
@@ -2545,7 +2546,7 @@ function resetStatsAndMultipliers(target) {
         applyXpState({ level: zero, progress: zero });
         // Temporarily force XP multiplier to 1x (override cleared on next real update)
         try { setDebugStatMultiplierOverride('xp', BigNum.fromInt(1)); } catch {}
-        return 'XP';
+        return { label: 'XP', count: 1 };
     }
 
     // Treat any MP / mutation key as "MP": level + progress + multiplier.
@@ -2863,7 +2864,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const { unlocks, toggles } = unlockAllUnlockUpgrades();
                 flagDebugUsage();
-                logAction(`Unlocked all unlock-type upgrades (${unlocks} entries), HUD buttons, and unlock flags (${toggles} toggled).`);
+                logAction(`Unlocked all unlock-type upgrades (${unlocks} entries) and unlock flags (${toggles} toggled).`);
             },
         },
         {
@@ -2871,7 +2872,7 @@ function buildMiscContent(content) {
             onClick: () => {
                 const { locks, toggles } = lockAllUnlockUpgrades();
                 flagDebugUsage();
-                logAction(`Locked all unlock-type upgrades (${locks} entries), HUD buttons, and unlock flags (${toggles} toggled).`);
+                logAction(`Locked all unlock-type upgrades (${locks} entries) and unlock flags (${toggles} toggled).`);
             },
         },
         {
@@ -2942,12 +2943,10 @@ function buildMiscContent(content) {
     resetBtn.textContent = 'Reset';
     resetBtn.addEventListener('click', () => {
         const target = resetSelect.value || 'all';
-        const label = resetStatsAndMultipliers(target);
-        const nounPhrase = (target === 'allUnlocked' && label === '1 unlocked stat')
-            ? 'value and multiplier'
-            : 'values and multipliers';
+        const { label, count } = resetStatsAndMultipliers(target) ?? { label: target, count: 0 };
+        const nounPhrase = count === 1 ? 'value and multiplier' : 'values and multipliers';
         flagDebugUsage();
-        logAction(`Reset ${label} ${nounPhrase} to defaults.`);
+        logAction(`Reset ${nounPhrase} for ${label} to defaults.`);
     });
     resetRow.appendChild(resetBtn);
     content.appendChild(resetRow);
