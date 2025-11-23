@@ -1395,7 +1395,15 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
             return;
         }
         setInputValidity(input, true);
-        onCommit(parsed, { input, setValue });
+
+        const wasLocked = storageKey && isStorageKeyLocked(storageKey);
+        if (wasLocked) unlockStorageKey(storageKey);
+        try {
+            onCommit(parsed, { input, setValue });
+        } finally {
+            if (wasLocked) lockStorageKey(storageKey);
+            if (lockToggle) lockToggle.refresh();
+        }
     };
 
     input.addEventListener('focus', () => { editing = true; });
