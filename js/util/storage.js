@@ -442,14 +442,22 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
   try { persistedRaw = localStorage.getItem(k); }
   catch {}
 
-  const effectiveRaw = persistedRaw ?? previousRaw ?? expectedRaw;
-  let effective = bn;
+  let effectiveRaw;
+  if (persistedRaw != null) {
+    effectiveRaw = persistedRaw;
+  } else if (previousRaw != null) {
+    effectiveRaw = previousRaw;
+  } else {
+    effectiveRaw = expectedRaw;
+  }
+
+  let effective;
   try {
-    if (persistedRaw != null) {
-      effective = BigNum.fromAny(persistedRaw);
-      if (effective.isNegative?.()) effective = BigNum.fromInt(0);
-    }
-  } catch {}
+    effective = BigNum.fromAny(effectiveRaw);
+    if (effective.isNegative?.()) effective = BigNum.fromInt(0);
+  } catch {
+    effective = bn;
+  }
 
   primeStorageWatcherSnapshot(k, effectiveRaw);
 
