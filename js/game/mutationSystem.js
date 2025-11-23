@@ -336,11 +336,24 @@ function updateHud() {
   syncXpMpHudLayout();
 }
 
-function emitChange(reason = 'update') {
+function emitChange(reason = 'update', extraDetail = {}) {
   const snapshot = getMutationState();
+  const detail = {
+    ...snapshot,
+    slot: mutationState.slot ?? getActiveSlot(),
+    changeType: reason,
+    ...extraDetail,
+  };
+
   listeners.forEach((cb) => {
     try { cb(snapshot, reason); } catch {}
   });
+
+  if (typeof window !== 'undefined') {
+    try { window.dispatchEvent(new CustomEvent('mutation:change', { detail })); } catch {}
+  }
+
+  return detail;
 }
 
 function persistState() {
@@ -663,27 +676,29 @@ export function addMutationPower(amount) {
 
   persistState();
   updateHud();
-  emitChange('progress');
 
   const levelsGained = mutationState.level.sub(prevLevel);
   if (!levelsGained.isZero?.()) {
     scheduleCoinMultiplierRefresh();
   }
 
-  if (typeof window !== 'undefined') {
-    const detail = {
-      delta: incClone.clone?.() ?? incClone,
-      levelsGained: levelsGained.clone?.() ?? levelsGained,
-      level: mutationState.level.clone?.() ?? mutationState.level,
-      progress: mutationState.progress.clone?.() ?? mutationState.progress,
-      requirement: mutationState.requirement.clone?.() ?? mutationState.requirement,
-      previousLevel: prevLevel.clone?.() ?? prevLevel,
-      previousProgress: prevProgress.clone?.() ?? prevProgress,
-    };
-    try { window.dispatchEvent(new CustomEvent('mutation:change', { detail })); } catch {}
-  }
+  const detail = emitChange('progress', {
+    delta: incClone.clone?.() ?? incClone,
+    levelsGained: levelsGained.clone?.() ?? levelsGained,
+    level: mutationState.level.clone?.() ?? mutationState.level,
+    progress: mutationState.progress.clone?.() ?? mutationState.progress,
+    requirement: mutationState.requirement.clone?.() ?? mutationState.requirement,
+    previousLevel: prevLevel.clone?.() ?? prevLevel,
+    previousProgress: prevProgress.clone?.() ?? prevProgress,
+  });
 
-  return getMutationState();
+  return detail;
+}
+
+export function broadcastMutationChange(detailOverrides = {}) {
+  initMutationSystem();
+  const reason = detailOverrides.changeType ?? 'manual';
+  return emitChange(reason, detailOverrides);
 }
 
 export function computeMutationMultiplierForLevel(levelValue) {
