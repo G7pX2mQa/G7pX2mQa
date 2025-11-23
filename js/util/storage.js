@@ -500,7 +500,13 @@ function getMultiplierScaled(key) {
 function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
   const k = keyFor(KEYS.MULTIPLIER[key], slot);
   if (!k) return;
-  const prev = getMultiplierScaled(key);
+  let prev = scaledFromIntBN(BigNum.fromInt(1));
+  const existingRaw = localStorage.getItem(k);
+  if (existingRaw?.startsWith?.(MULT_SCALE_TAG)) {
+    try {
+      prev = BigNum.fromAny(existingRaw.slice(MULT_SCALE_TAG.length));
+    } catch {}
+  }
   const bn = BigNum.fromAny(theoreticalBN);
   const raw = MULT_SCALE_TAG + bn.toStorage();
   try { localStorage.setItem(k, raw); }
