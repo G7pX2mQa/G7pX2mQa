@@ -588,6 +588,23 @@ function ensureDebugPanelStyles() {
             transform: translateY(-1px);
         }
 
+        .debug-panel-toggle.debug-danger-button {
+            border-color: hsla(0, 80%, 40%, 0.45);
+            background: hsla(0, 80%, 40%, 0.15);
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .debug-panel-toggle.debug-danger-button:hover {
+            background: hsla(0, 80%, 40%, 0.22);
+        }
+
+        .debug-panel-toggle.debug-danger-button:active {
+            background: hsla(0, 80%, 40%, 0.28);
+            transform: translateY(1px);
+        }
+
         .debug-misc-button-list {
             display: flex;
             flex-wrap: wrap;
@@ -2467,6 +2484,12 @@ function resetStatsAndMultipliers(target) {
     }
 
     if (target === 'allUnlocked') {
+        let currencyCount = 0;
+        Object.values(CURRENCIES).forEach((key) => {
+            resetCurrencyAndMultiplier(key);
+            currencyCount += 1;
+        });
+
         const zero = BigNum.fromInt(0);
         let resetCount = 0;
 
@@ -2486,9 +2509,14 @@ function resetStatsAndMultipliers(target) {
             }
         } catch {}
 
-        if (resetCount === 0) return '0 unlocked stats';
-        if (resetCount === 1) return '1 unlocked stat';
-        return `${resetCount} unlocked stats`;
+        const parts = [];
+
+        if (resetCount === 1) parts.push('1 unlocked stat');
+        else parts.push(`${resetCount} unlocked stats`);
+
+        parts.push(currencyCount === 1 ? '1 currency' : `${currencyCount} currencies`);
+
+        return parts.join(' and ');
     }
 
     if (target.startsWith('currency:')) {
@@ -2929,7 +2957,7 @@ function buildMiscContent(content) {
 
     const wipeSlotBtn = document.createElement('button');
     wipeSlotBtn.type = 'button';
-    wipeSlotBtn.className = 'debug-panel-toggle';
+    wipeSlotBtn.className = 'debug-panel-toggle debug-danger-button';
     wipeSlotBtn.textContent = 'Wipe Slot & Refresh';
     wipeSlotBtn.addEventListener('click', () => {
         const confirmWipe = window.confirm?.('Are you sure you want to wipe current slot data and refresh the page? This cannot be undone.');
