@@ -1660,6 +1660,29 @@ function applyMutationState({ level, progress }) {
     const slot = getActiveSlot();
     if (slot == null) return;
 
+    // If the MP system isn't unlocked yet, setting its level/progress should
+    // auto-enable the relevant unlock flags so the UI and systems stay in
+    // sync.
+    try {
+        const forgeUnlocked = typeof isForgeUnlocked === 'function' ? isForgeUnlocked() : false;
+        const forgeOverride = typeof getForgeDebugOverrideState === 'function'
+            ? getForgeDebugOverrideState()
+            : null;
+        if (!forgeUnlocked && forgeOverride !== true) {
+            setForgeDebugOverride?.(true);
+        }
+    } catch {}
+
+    try {
+        if (typeof hasDoneForgeReset === 'function' && !hasDoneForgeReset()) {
+            setForgeResetCompleted?.(true);
+        }
+    } catch {}
+
+    try { setMutationUnlockedForDebug(true); } catch {}
+
+    try { updateResetPanel?.(); } catch {}
+
     // Make sure the mutation / MP system is treated as unlocked if we're
     // manually editing its stats from the debug panel.
     try { initMutationSystem(); } catch {}
