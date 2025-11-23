@@ -264,6 +264,7 @@ function ensureWatcher() {
 }
 
 const POOP_SHOP_BG  = 'linear-gradient(180deg,#a9793d,#7b5534)';
+const POOP_SHOP_FLAG = '1';
 
 let poopShopTimer = null;
 
@@ -279,17 +280,18 @@ function enforcePoopShopStyle() {
   const isModded = hasModifiedSave();
 
   if (!isModded) {
-    const bg = btn.style.backgroundImage || btn.style.background;
-    if (bg === POOP_SHOP_BG) {
+    if (btn.dataset.poopShopApplied === POOP_SHOP_FLAG || btn.style.backgroundImage || btn.style.background) {
       btn.style.backgroundImage = '';
       btn.style.background = '';
+      delete btn.dataset.poopShopApplied;
     }
     return;
   }
 
   const current = btn.style.backgroundImage || btn.style.background;
-  if (current !== POOP_SHOP_BG) {
+  if (current !== POOP_SHOP_BG || btn.dataset.poopShopApplied !== POOP_SHOP_FLAG) {
     btn.style.backgroundImage = POOP_SHOP_BG;
+    btn.dataset.poopShopApplied = POOP_SHOP_FLAG;
   }
 }
 
