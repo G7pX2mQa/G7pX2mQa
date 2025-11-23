@@ -221,6 +221,16 @@ function setupLiveBindingListeners() {
     };
     window.addEventListener('saveSlot:change', slotHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('saveSlot:change', slotHandler));
+
+    const unlockHandler = (event) => {
+        const { slot, key } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'unlock'
+            && (binding.slot == null || binding.slot === targetSlot)
+            && (binding.key == null || binding.key === key));
+    };
+    window.addEventListener('unlock:change', unlockHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('unlock:change', unlockHandler));
 }
 
 const XP_KEY_PREFIX = 'ccc:xp';
@@ -1609,7 +1619,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
     return { row, input, setValue, isEditing: () => editing };
 }
 
-function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, onDisable }) {
+function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, onDisable, slot }) {
     const row = document.createElement('div');
     row.className = 'debug-panel-row debug-unlock-row';
 
@@ -1683,9 +1693,9 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
     });
 
     refresh();
-    registerLiveBinding({ refresh });
-    return row;
-}
+    registerLiveBinding({ type: 'unlock', slot, refresh });
+    return row;␊
+}␊
 
 function formatCalculatorResult(value) {
     try {
@@ -2799,15 +2809,16 @@ function buildUnlocksContent(content) {
                 catch {}
             },
             onDisable: () => {
-                try { resetXpProgress({ keepUnlock: false }); }
+                try { setForgeDebugOverride(false); }
                 catch {}
-                try { initXpSystem({ forceReload: true }); }
+                try { updateResetPanel(); }
                 catch {}
             },
+            slot,
         },
         {
-            labelText: 'Unlock Forge',
-            description: 'If true, unlocks the Forge reset and Reset tab',
+            labelText: 'Unlock MP',
+            description: 'If true, unlocks the MP system',
             isUnlocked: () => {
                 try {
                     const override = getForgeDebugOverrideState();
@@ -2853,6 +2864,7 @@ function buildUnlocksContent(content) {
                 try { updateResetPanel(); }
                 catch {}
             },
+            slot,
         },
         {
             labelText: 'Unlock Shop',
@@ -2869,6 +2881,7 @@ function buildUnlocksContent(content) {
                 try { lockShop(); }
                 catch {}
             },
+            slot,
         },
         {
             labelText: 'Unlock Map',
@@ -2885,6 +2898,7 @@ function buildUnlocksContent(content) {
                 try { lockMap(); }
                 catch {}
             },
+            slot,
         },
     ];
 
