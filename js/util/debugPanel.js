@@ -42,6 +42,9 @@ const currencyOverrideApplications = new Set();
 const statOverrides = new Map();
 const statOverrideBaselines = new Map();
 const lockedStorageKeys = new Set();
+const restoringLockKeys = new Set();
+const lockRestoreSnapshots = new Map();
+const lockRestoreWatchers = new Map();
 let storageLockPatched = false;
 let originalSetItem = null;
 let originalRemoveItem = null;
@@ -245,6 +248,16 @@ function getAreas() {
             ],
         },
     ];
+}
+
+function shouldRestoreOnLock(storageKey) {
+    if (typeof storageKey !== 'string' || storageKey.length === 0) return false;
+    return (
+        storageKey.startsWith(`${XP_KEY_PREFIX}:level:`) ||
+        storageKey.startsWith(`${XP_KEY_PREFIX}:progress:`) ||
+        storageKey.startsWith(`${MUTATION_KEY_PREFIX}:level:`) ||
+        storageKey.startsWith(`${MUTATION_KEY_PREFIX}:progress:`)
+    );
 }
 
 function ensureDebugPanelStyles() {
@@ -1056,11 +1069,11 @@ function ensureStorageLockPatch() {
         originalSetItem = localStorage.setItem.bind(localStorage);
         originalRemoveItem = localStorage.removeItem.bind(localStorage);
         localStorage.setItem = (key, value) => {
-            if (lockedStorageKeys.has(key)) return;
+            if (lockedStorageKeys.has(key) && !restoringLockKeys.has(key)) return;
             return originalSetItem(key, value);
         };
         localStorage.removeItem = (key) => {
-            if (lockedStorageKeys.has(key)) return;
+            if (lockedStorageKeys.has(key) && !restoringLockKeys.has(key)) return;
             return originalRemoveItem(key);
         };
     } catch {}
@@ -1074,11 +1087,53 @@ function lockStorageKey(key) {
     if (!key) return;
     ensureStorageLockPatch();
     lockedStorageKeys.add(key);
+
+    if (!shouldRestoreOnLock(key)) {
+        restoringLockKeys.delete(key);
+        const cleanup = lockRestoreWatchers.get(key);
+        if (typeof cleanup === 'function') cleanup();
+        lockRestoreWatchers.delete(key);
+        lockRestoreSnapshots.delete(key);
+        return;
+    }
+
+    restoringLockKeys.add(key);
+    try {
+        lockRestoreSnapshots.set(key, localStorage.getItem(key));
+    } catch {
+        lockRestoreSnapshots.set(key, null);
+    }
+
+    if (!lockRestoreWatchers.has(key)) {
+        const unwatch = watchStorageKey(key, {
+            emitCurrentValue: true,
+            onChange: ({ raw }) => {
+                if (!lockedStorageKeys.has(key) || !restoringLockKeys.has(key)) return;
+                const lockedSnapshot = lockRestoreSnapshots.get(key);
+                if (lockedSnapshot === raw) return;
+
+                try {
+                    if (lockedSnapshot == null) {
+                        originalRemoveItem?.(key);
+                    } else {
+                        originalSetItem?.(key, lockedSnapshot);
+                    }
+                    primeStorageWatcherSnapshot(key, lockedSnapshot);
+                } catch {}
+            },
+        });
+        lockRestoreWatchers.set(key, unwatch);
+    }
 }
 
 function unlockStorageKey(key) {
     if (!key) return;
     lockedStorageKeys.delete(key);
+    restoringLockKeys.delete(key);
+    lockRestoreSnapshots.delete(key);
+    const cleanup = lockRestoreWatchers.get(key);
+    if (typeof cleanup === 'function') cleanup();
+    lockRestoreWatchers.delete(key);
 }
 
 function toggleStorageLock(key) {
