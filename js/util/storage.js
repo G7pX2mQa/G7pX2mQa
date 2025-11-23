@@ -431,6 +431,9 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
   if (bn.isNegative?.()) bn = BigNum.fromInt(0);
 
   const expectedRaw = bn.toStorage();
+  let previousRaw = null;
+  try { previousRaw = prev?.toStorage?.(); }
+  catch {}
 
   try { localStorage.setItem(k, expectedRaw); }
   catch {}
@@ -439,7 +442,7 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
   try { persistedRaw = localStorage.getItem(k); }
   catch {}
 
-  const effectiveRaw = persistedRaw ?? expectedRaw;
+  const effectiveRaw = persistedRaw ?? previousRaw ?? expectedRaw;
   let effective = bn;
   try {
     if (persistedRaw != null) {
@@ -509,6 +512,7 @@ function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
   }
   const bn = BigNum.fromAny(theoreticalBN);
   const raw = MULT_SCALE_TAG + bn.toStorage();
+  const prevRaw = MULT_SCALE_TAG + prev.toStorage();
   try { localStorage.setItem(k, raw); }
   catch {}
 
@@ -516,7 +520,7 @@ function setMultiplierScaled(key, theoreticalBN, slot = getActiveSlot()) {
   try { persistedRaw = localStorage.getItem(k); }
   catch {}
 
-  const effectiveRaw = persistedRaw ?? raw;
+  const effectiveRaw = persistedRaw ?? prevRaw ?? raw;
   let effective = bn;
   try {
     const payload = effectiveRaw?.startsWith?.(MULT_SCALE_TAG)
