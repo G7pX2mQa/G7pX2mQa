@@ -634,8 +634,9 @@ fn.sub = function sub(x) {
   fn.set = function set(x) {
     const val = BigNum.fromAny(x);
     let delta = null;
+    let current;
     try {
-      const current = this.value;
+      current = this.value;
       if (current && typeof current.sub === 'function') {
         delta = val.sub(current);
       }
