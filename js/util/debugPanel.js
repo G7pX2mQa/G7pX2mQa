@@ -7,7 +7,7 @@ import { BigNum } from './bigNum.js';
 import { formatNumber } from './numFormat.js';
 import { bank, CURRENCIES, KEYS, getActiveSlot, markSaveSlotModified, primeStorageWatcherSnapshot, setCurrencyMultiplierBN } from './storage.js';
 import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
-import { computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
+import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
 import {
     AREA_KEYS,
     computeDefaultUpgradeCost,
@@ -1718,6 +1718,10 @@ function applyMutationState({ level, progress }) {
 
     try {
         initMutationSystem({ forceReload: true });
+    } catch {}
+
+    try {
+        broadcastMutationChange({ changeType: 'debug-panel', slot });
     } catch {}
 
     // Keep all debug rows that depend on mutation / MP state in sync.
