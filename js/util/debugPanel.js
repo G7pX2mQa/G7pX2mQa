@@ -1392,7 +1392,7 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
         const parsed = parseBigNumInput(input.value);
         if (!parsed) {
             setInputValidity(input, false);
-            return false;
+            return;
         }
         setInputValidity(input, true);
 
@@ -1400,14 +1400,10 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
         if (wasLocked) unlockStorageKey(storageKey);
         try {
             onCommit(parsed, { input, setValue });
-            pendingValue = null;
-            return true;
         } finally {
             if (wasLocked) lockStorageKey(storageKey);
             if (lockToggle) lockToggle.refresh();
         }
-
-        return false;
     };
 
     input.addEventListener('focus', () => { editing = true; });
@@ -1422,14 +1418,14 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
     });
     input.addEventListener('blur', () => {
         editing = false;
-        const committed = skipBlurCommit ? true : commitValue();
+        if (!skipBlurCommit) {
+            commitValue();
+        }
         skipBlurCommit = false;
-        if (pendingValue != null && !committed) {
+        if (pendingValue != null) {
             const next = pendingValue;
             pendingValue = null;
             setValue(next);
-        } else {
-            pendingValue = null;
         }
     });
 
