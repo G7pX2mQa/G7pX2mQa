@@ -1460,7 +1460,6 @@ function persistDialogueState(state, slot = getActiveSlot()) {
     try {
         const payload = JSON.stringify(state || {});
         localStorage.setItem(key, payload);
-        primeStorageWatcherSnapshot(key, payload);
     } catch {}
 }
 
