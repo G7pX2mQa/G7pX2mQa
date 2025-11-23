@@ -2891,7 +2891,8 @@ function buildMiscContent(content) {
             onClick: () => {
                 const { restored } = restoreAllDialoguesForDebug();
                 flagDebugUsage();
-                logAction(`Restored dialogues to unclaimed state (${restored} entries reset).`);
+                const entryLabel = restored === 1 ? 'entry' : 'entries';
+                logAction(`Restored dialogues to unclaimed state (${restored} ${entryLabel} reset).`);
             },
         },
         {
@@ -2899,15 +2900,15 @@ function buildMiscContent(content) {
             onClick: () => {
                 const touched = setAllCurrenciesToInfinity();
                 flagDebugUsage();
-                logAction(`Set all currencies to Infinity (${touched} currencies updated).`);
+                logAction(`Set all currencies to Infinity (${touched} ${touched === 1 ? 'currency' : 'currencies'} updated).`);
             },
         },
         {
             label: 'All Stats Inf',
             onClick: () => {
-				const touched = setAllStatsToInfinity();
+                                const touched = setAllStatsToInfinity();
                 flagDebugUsage();
-                logAction(`Set all stats to Infinity (${touched} stats updated).`);
+                logAction(`Set all stats to Infinity (${touched} ${touched === 1 ? 'stat' : 'stats'} updated).`);
             },
         },
         {
