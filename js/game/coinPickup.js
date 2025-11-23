@@ -1,6 +1,6 @@
 // js/game/coinPickup.js
 
-import { bank, getActiveSlot } from '../util/storage.js';
+import { bank, CURRENCIES, getActiveSlot, isCurrencyLocked } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { unlockShop } from '../ui/hudButtons.js';
@@ -696,6 +696,7 @@ function collect(el) {
   animateAndRemove(el);
 
   const base = resolveCoinBase(el);
+  const coinsLocked = isCurrencyLocked(CURRENCIES.COINS);
 
   let inc = applyCoinMultiplier(base);
   let xpInc = cloneBn(XP_PER_COIN);
@@ -708,16 +709,16 @@ function collect(el) {
   }
 
   const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
-  if (!incIsZero) {
+  if (!incIsZero && !coinsLocked) {
     try {
       coins = coins?.add ? coins.add(inc) : cloneBn(inc);
     } catch {
       coins = cloneBn(inc);
     }
-    updateHud();
+  }
+  updateHud();
+  if (!incIsZero) {
     queueCoinGain(inc);
-  } else {
-    updateHud();
   }
 
   const xpEnabled = typeof isXpSystemUnlocked === 'function' ? isXpSystemUnlocked() : true;
