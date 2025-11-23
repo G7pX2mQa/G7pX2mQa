@@ -2252,9 +2252,146 @@ function setAllStatsToInfinity() {
     return touched;
 }
 
-function unlockAllUnlockUpgrades() {
+function getUnlockRowDefinitions(slot) {
+    return [
+        {
+            labelText: 'Unlock XP',
+            description: 'If true, unlocks the XP system',
+            isUnlocked: () => {
+                try { return !!getXpState()?.unlocked; }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { unlockXpSystem(); }
+                catch {}
+                try { initXpSystem({ forceReload: true }); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setForgeDebugOverride(false); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock MP',
+            description: 'If true, unlocks the MP system',
+            isUnlocked: () => {
+                try {
+                    const override = getForgeDebugOverrideState();
+                    if (override != null) return override;
+                } catch {}
+                try { return !!isForgeUnlocked(); }
+                catch { return false; }
+                return false;
+            },
+            onEnable: () => {
+                try { setForgeDebugOverride(true); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setForgeDebugOverride(false); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+        },
+        {
+            labelText: 'Unlock MP',
+            description: 'If true, unlocks the MP system',
+            isUnlocked: () => {
+                try { return hasDoneForgeReset(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setForgeResetCompleted(true); }
+                catch {}
+                try { setMutationUnlockedForDebug(true); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setForgeResetCompleted(false); }
+                catch {}
+                try { setMutationUnlockedForDebug(false); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Shop',
+            description: 'If true, makes the Shop button visible',
+            isUnlocked: () => {
+                try { return isShopUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { unlockShop(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { lockShop(); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Map',
+            description: 'If true, makes the Map button visible',
+            isUnlocked: () => {
+                try { return isMapUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { unlockMap(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { lockMap(); }
+                catch {}
+            },
+            slot,
+        },
+    ];
+}
+
+function setAllUnlockToggles(targetState) {
     const slot = getActiveSlot();
     if (slot == null) return 0;
+
+    let toggled = 0;
+    getUnlockRowDefinitions(slot).forEach((rowDef) => {
+        let unlocked = false;
+        try { unlocked = typeof rowDef.isUnlocked === 'function' ? !!rowDef.isUnlocked() : false; }
+        catch {}
+
+        if (unlocked === targetState) return;
+
+        try {
+            if (targetState) {
+                rowDef.onEnable?.();
+            } else {
+                rowDef.onDisable?.();
+            }
+            toggled += 1;
+        } catch {}
+    });
+
+    try { refreshLiveBindings(); } catch {}
+
+    return toggled;
+}
+
+function unlockAllUnlockUpgrades() {
+    const slot = getActiveSlot();
+    if (slot == null) return { unlocks: 0, toggles: 0 };
     let unlocked = 0;
     getAreas().forEach((area) => {
         getUpgradesForArea(area.key).forEach((upg) => {
@@ -2265,12 +2402,13 @@ function unlockAllUnlockUpgrades() {
     });
     try { unlockShop(); } catch {}
     try { unlockMap(); } catch {}
-    return unlocked;
+    const toggled = setAllUnlockToggles(true);
+    return { unlocks: unlocked, toggles: toggled };
 }
 
 function lockAllUnlockUpgrades() {
     const slot = getActiveSlot();
-    if (slot == null) return 0;
+    if (slot == null) return { locks: 0, toggles: 0 };
     let locked = 0;
     getAreas().forEach((area) => {
         getUpgradesForArea(area.key).forEach((upg) => {
@@ -2281,7 +2419,8 @@ function lockAllUnlockUpgrades() {
     });
     try { lockShop(); } catch {}
     try { lockMap(); } catch {}
-    return locked;
+    const toggled = setAllUnlockToggles(false);
+    return { locks: locked, toggles: toggled };
 }
 
 function resetCurrencyAndMultiplier(currencyKey) {
@@ -2664,17 +2803,17 @@ function buildMiscContent(content) {
         {
             label: 'Unlock All Unlocks',
             onClick: () => {
-                const unlocked = unlockAllUnlockUpgrades();
+                const { unlocks, toggles } = unlockAllUnlockUpgrades();
                 flagDebugUsage();
-                logAction(`Unlocked all unlock-type upgrades (${unlocked} entries) and HUD buttons.`);
+                logAction(`Unlocked all unlock-type upgrades (${unlocks} entries), HUD buttons, and unlock flags (${toggles} toggled).`);
             },
         },
         {
             label: 'Lock All Unlocks',
             onClick: () => {
-                const locked = lockAllUnlockUpgrades();
+                const { locks, toggles } = lockAllUnlockUpgrades();
                 flagDebugUsage();
-                logAction(`Locked all unlock-type upgrades (${locked} entries) and HUD buttons.`);
+                logAction(`Locked all unlock-type upgrades (${locks} entries), HUD buttons, and unlock flags (${toggles} toggled).`);
             },
         },
         {
@@ -2794,113 +2933,7 @@ function buildUnlocksContent(content) {
     try { initXpSystem(); }
     catch {}
 
-    const rows = [
-        {
-            labelText: 'Unlock XP',
-            description: 'If true, unlocks the XP system',
-            isUnlocked: () => {
-                try { return !!getXpState()?.unlocked; }
-                catch { return false; }
-            },
-            onEnable: () => {
-                try { unlockXpSystem(); }
-                catch {}
-                try { initXpSystem({ forceReload: true }); }
-                catch {}
-            },
-            onDisable: () => {
-                try { setForgeDebugOverride(false); }
-                catch {}
-                try { updateResetPanel(); }
-                catch {}
-            },
-            slot,
-        },
-        {
-            labelText: 'Unlock MP',
-            description: 'If true, unlocks the MP system',
-            isUnlocked: () => {
-                try {
-                    const override = getForgeDebugOverrideState();
-                    if (override != null) return override;
-                } catch {}
-                try { return !!isForgeUnlocked(); }
-                catch { return false; }
-                return false;
-            },
-            onEnable: () => {
-                try { setForgeDebugOverride(true); }
-                catch {}
-                try { updateResetPanel(); }
-                catch {}
-            },
-            onDisable: () => {
-                try { setForgeDebugOverride(false); }
-                catch {}
-                try { updateResetPanel(); }
-                catch {}
-            },
-        },
-        {
-            labelText: 'Unlock MP',
-            description: 'If true, unlocks the MP system',
-            isUnlocked: () => {
-                try { return hasDoneForgeReset(); }
-                catch { return false; }
-            },
-            onEnable: () => {
-                try { setForgeResetCompleted(true); }
-                catch {}
-                try { setMutationUnlockedForDebug(true); }
-                catch {}
-                try { updateResetPanel(); }
-                catch {}
-            },
-            onDisable: () => {
-                try { setForgeResetCompleted(false); }
-                catch {}
-                try { setMutationUnlockedForDebug(false); }
-                catch {}
-                try { updateResetPanel(); }
-                catch {}
-            },
-            slot,
-        },
-        {
-            labelText: 'Unlock Shop',
-            description: 'If true, makes the Shop button visible',
-            isUnlocked: () => {
-                try { return isShopUnlocked(); }
-                catch { return false; }
-            },
-            onEnable: () => {
-                try { unlockShop(); }
-                catch {}
-            },
-            onDisable: () => {
-                try { lockShop(); }
-                catch {}
-            },
-            slot,
-        },
-        {
-            labelText: 'Unlock Map',
-            description: 'If true, makes the Map button visible',
-            isUnlocked: () => {
-                try { return isMapUnlocked(); }
-                catch { return false; }
-            },
-            onEnable: () => {
-                try { unlockMap(); }
-                catch {}
-            },
-            onDisable: () => {
-                try { lockMap(); }
-                catch {}
-            },
-            slot,
-        },
-    ];
+    const rows = getUnlockRowDefinitions(slot);
 
     rows.forEach((rowDef) => {
         content.appendChild(createUnlockToggleRow(rowDef));
