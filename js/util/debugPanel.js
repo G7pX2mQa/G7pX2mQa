@@ -252,11 +252,26 @@ function getAreas() {
 
 function shouldRestoreOnLock(storageKey) {
     if (typeof storageKey !== 'string' || storageKey.length === 0) return false;
+
+    const currencyPrefixes = [];
+    try {
+        Object.values(CURRENCIES).forEach((key) => {
+            const base = KEYS?.CURRENCY?.[key];
+            const mult = KEYS?.MULTIPLIER?.[key];
+            if (base) currencyPrefixes.push(`${base}:`);
+            if (mult) currencyPrefixes.push(`${mult}:`);
+        });
+    } catch {}
+
+    const statPrefix = `${STAT_MULTIPLIER_STORAGE_PREFIX}:`;
+
     return (
         storageKey.startsWith(`${XP_KEY_PREFIX}:level:`) ||
         storageKey.startsWith(`${XP_KEY_PREFIX}:progress:`) ||
         storageKey.startsWith(`${MUTATION_KEY_PREFIX}:level:`) ||
-        storageKey.startsWith(`${MUTATION_KEY_PREFIX}:progress:`)
+        storageKey.startsWith(`${MUTATION_KEY_PREFIX}:progress:`) ||
+        storageKey.startsWith(statPrefix) ||
+        currencyPrefixes.some((prefix) => storageKey.startsWith(prefix))
     );
 }
 
