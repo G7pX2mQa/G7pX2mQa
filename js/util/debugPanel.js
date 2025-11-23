@@ -2898,10 +2898,6 @@ function buildMiscContent(content) {
     const allOption = document.createElement('option');
     allOption.value = 'all';
     allOption.textContent = 'All';
-
-    const allOption = document.createElement('option');
-    allOption.value = 'all';
-    allOption.textContent = 'All';
     resetSelect.appendChild(allOption);
 
     resetRow.appendChild(resetSelect);
