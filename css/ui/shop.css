@@ -1057,7 +1057,7 @@
   }
 
   .upg-actions {
-    padding-top: 8px;
+    padding-top: 4px;
     padding-bottom: calc(10px + env(safe-area-inset-bottom));
     gap: 0.6rem;
   }
