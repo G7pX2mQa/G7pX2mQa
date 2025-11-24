@@ -38,10 +38,7 @@ const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
 let debugPanelOpen = false;
-const initialDebugPanelAccess = typeof window !== 'undefined'
-    ? !!window.debugPanelAccess
-    : false;
-let debugPanelAccess = initialDebugPanelAccess;
+let debugPanelAccess = false;
 let debugPanelCleanups = [];
 let debugPanelExpansionState = createEmptyExpansionState();
 let debugPanelScrollTop = 0;
