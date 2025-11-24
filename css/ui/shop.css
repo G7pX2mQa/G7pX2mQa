@@ -877,6 +877,16 @@
   border-radius: 999px;
 }
 
+@media (hover: none) and (pointer: coarse) {
+  .hm-milestones-list li.hm-milestone-achieved .hm-milestone-text {
+    text-decoration: line-through;
+  }
+
+  .hm-milestones-list li.hm-milestone-achieved .hm-milestone-text::after {
+    content: none;
+  }
+}
+
 .hm-milestones-close {
   display: inline-flex;
   align-items: center;
