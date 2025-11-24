@@ -30,11 +30,19 @@ async function buildCss({ minify, sourcemap }) {
   });
 }
 
+async function copyOutputsToRoot() {
+  const assets = ["bundle.js", "bundle.js.map", "styles.css"];
+  await Promise.all(
+    assets.map((asset) => fs.cp(resolveDist(asset), asset, { force: true }))
+  );
+}
+
 async function copyStatic() {
   await fs.mkdir(DIST_DIR, { recursive: true });
 
   const tasks = [
     fs.cp("index.html", resolveDist("index.html"), { force: true }),
+    fs.cp("css", resolveDist("css"), { recursive: true, force: true }),
     fs.cp("favicon", resolveDist("favicon"), { recursive: true, force: true }),
     fs.cp("img", resolveDist("img"), { recursive: true, force: true }),
     fs.cp("sounds", resolveDist("sounds"), { recursive: true, force: true }),
@@ -57,6 +65,7 @@ async function buildAll({ mode = "dev" } = {}) {
     buildCss({ minify, sourcemap }),
     copyStatic(),
   ]);
+  await copyOutputsToRoot();
 }
 
 async function watchAll() {
@@ -79,8 +88,20 @@ async function watchAll() {
     loader: { ".css": "css" },
   });
 
-  await Promise.all([jsContext.watch(), cssContext.watch()]);
+  const onRebuild = async (error) => {
+    if (error) {
+      console.error(error);
+      return;
+    }
+    await copyOutputsToRoot();
+  };
+
+  await Promise.all([
+    jsContext.watch({ onRebuild }),
+    cssContext.watch({ onRebuild }),
+  ]);
   await copyStatic();
+  await copyOutputsToRoot();
 
   const staticTargets = [
     { path: "index.html", recursive: false },
