@@ -43,6 +43,8 @@ const DEBUG_PANEL_ACCESS = typeof window === 'undefined'
   ? true
   : !!window.debugPanelAccess;
 
+const initialDebugPanelAccess = DEBUG_PANEL_ACCESS;
+
 let debugPanelAccessFlag = initialDebugPanelAccess;
 
 if (typeof window !== 'undefined') {
