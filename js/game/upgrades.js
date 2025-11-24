@@ -1687,11 +1687,6 @@ if (!isConstantCost && !(scaling.ratioMinus1 > 0)) {
     ? Math.max(0, Math.floor(room))
     : Number.MAX_VALUE;
 
-  const pricePlain = firstPrice.toPlainIntegerString?.();
-  const walletPlain = walletBn.toPlainIntegerString?.();
-  const priceInt = pricePlain && pricePlain !== 'Infinity' ? BigInt(pricePlain) : null;
-  const walletInt = walletPlain && walletPlain !== 'Infinity' ? BigInt(walletPlain) : null;
-
   if (isConstantCost) {
   const capBn = toUpgradeBigNum(upg.lvlCapBn ?? 'Infinity', 'Infinity');
   const lvlBn = toUpgradeBigNum(startLevel ?? 0, 0);
