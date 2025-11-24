@@ -3149,9 +3149,33 @@ function buildMiscContent(content) {
         if (!confirmWipe) return;
 
         const suffix = `:${slot}`;
-        const PASS_COUNT = 3;
-        const PASS_DELAY_MS = 50;
+        const PASS_COUNT = 5;
+        const PASS_DELAY_MS = 60;
         let totalKeysRemoved = 0;
+        let blockedWrites = 0;
+
+        const isSlotStorageKey = (key) => typeof key === 'string' && key.endsWith(suffix);
+
+        const stopSlotStorageWrites = () => {
+            if (typeof localStorage === 'undefined') return () => {};
+            const previousSetter = typeof localStorage.setItem === 'function'
+                ? localStorage.setItem.bind(localStorage)
+                : null;
+
+            if (!previousSetter) return () => {};
+
+            localStorage.setItem = (key, value) => {
+                if (isSlotStorageKey(key)) {
+                    blockedWrites += 1;
+                    return;
+                }
+                return previousSetter(key, value);
+            };
+
+            return () => {
+                try { localStorage.setItem = previousSetter; } catch {}
+            };
+        };
 
         const wipePass = () => {
             let removedThisPass = 0;
@@ -3159,7 +3183,7 @@ function buildMiscContent(content) {
                 const keysToRemove = [];
                 for (let i = 0; i < localStorage.length; i += 1) {
                     const key = localStorage.key(i);
-                    if (key?.startsWith('ccc:') && key.endsWith(suffix)) {
+                    if (isSlotStorageKey(key)) {
                         keysToRemove.push(key);
                     }
                 }
@@ -3171,6 +3195,8 @@ function buildMiscContent(content) {
             return removedThisPass;
         };
 
+        const restoreStorageSetter = stopSlotStorageWrites();
+
         const runWipePasses = (attempt = 1) => {
             wipePass();
             if (attempt < PASS_COUNT) {
@@ -3178,9 +3204,17 @@ function buildMiscContent(content) {
                 return;
             }
 
-            flagDebugUsage();
-            logAction(`Wiped ${totalKeysRemoved} storage keys for slot ${slot} across ${PASS_COUNT} passes and refreshed.`);
-            try { window.location.reload(); } catch {}
+            // Give any queued writes a last chance to be blocked, then sweep once more.
+            setTimeout(() => {
+                wipePass();
+                restoreStorageSetter?.();
+                flagDebugUsage();
+                logAction(
+                    `Wiped ${totalKeysRemoved} storage keys for slot ${slot} across ${PASS_COUNT + 1}`
+                    + ` passes (blocked ${blockedWrites} writes) and refreshed.`,
+                );
+                try { window.location.reload(); } catch {}
+            }, PASS_DELAY_MS);
         };
 
         runWipePasses();
