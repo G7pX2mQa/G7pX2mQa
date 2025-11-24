@@ -307,7 +307,6 @@
   .panel-actions { transform: none; }
 }
 
-/* Mobile adjustments: keep header compact and button auto-sized */
 @media (max-width: 900px) {
   :is(html.has-opened, body.has-opened) .panel-header { flex-direction: row; align-items: center; }
   :is(html.has-opened, body.has-opened) .panel-actions .btn { width: auto; }
