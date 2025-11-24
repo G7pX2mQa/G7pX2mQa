@@ -39,28 +39,7 @@ let setDebugPanelAccess;
 
 const pendingPreloadedAudio = [];
 
-const DEBUG_PANEL_ACCESS = typeof window === 'undefined'
-  ? true
-  : !!window.debugPanelAccess;
-
-const initialDebugPanelAccess = DEBUG_PANEL_ACCESS;
-
-let debugPanelAccessFlag = initialDebugPanelAccess;
-
-if (typeof window !== 'undefined') {
-  Object.defineProperty(window, 'debugPanelAccess', {
-    configurable: true,
-    get() {
-      return debugPanelAccessFlag;
-    },
-    set(value) {
-      debugPanelAccessFlag = value === true;
-      if (typeof setDebugPanelAccess === 'function') {
-        setDebugPanelAccess(debugPanelAccessFlag);
-      }
-    },
-  });
-}
+const DEBUG_PANEL_ACCESS = true;
 
 function disableMobileZoomGestures() {
   if (!IS_MOBILE) return;
@@ -534,7 +513,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   installGhostTapGuard?.();
   installSuspendSafeguards?.();
   if (typeof setDebugPanelAccess === 'function') {
-    setDebugPanelAccess(debugPanelAccessFlag);
+    setDebugPanelAccess(DEBUG_PANEL_ACCESS);
     window.setDebugPanelAccess = setDebugPanelAccess;
   }
 
