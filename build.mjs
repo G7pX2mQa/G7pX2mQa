@@ -388,9 +388,14 @@ async function watchAll() {
 }
 
 async function serveAll({ mode = "dev" } = {}) {
-  await buildAll({ mode });
-  const server = await serve({ servedir: DIST_DIR, port: 8000 });
-  process.on("SIGINT", () => {
+  const { minify, sourcemap } = modeOptions(mode);
+  await resetDistDir();
+  const buildContext = await context(buildOptions({ minify, sourcemap }));
+  await buildContext.rebuild();
+  await copyStaticAssets();
+  const server = await buildContext.serve({ servedir: DIST_DIR, port: 8000 });
+  process.on("SIGINT", async () => {
+    await buildContext.dispose();
     server.stop();
     process.exit(0);
   });
