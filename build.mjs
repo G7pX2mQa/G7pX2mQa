@@ -13,8 +13,23 @@ function resolveDist(...segments) {
   return path.join(DIST_DIR, ...segments);
 }
 
+const BUSY_DIR_CODES = new Set(["EBUSY", "EPERM", "ENOTEMPTY"]);
+
 async function resetDistDir() {
-  await fs.rm(DIST_DIR, { recursive: true, force: true });
+  const maxAttempts = 5;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await fs.rm(DIST_DIR, { recursive: true, force: true });
+      break;
+    } catch (err) {
+      if (!BUSY_DIR_CODES.has(err?.code) || attempt === maxAttempts) throw err;
+
+      const backoffMs = attempt * 100;
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+    }
+  }
+
   await fs.mkdir(DIST_DIR, { recursive: true });
 }
 
