@@ -1226,7 +1226,7 @@ upgOverlayEl.addEventListener('click', (e) => {
   grab.addEventListener('pointerdown', onDragStart, { passive: true });
 }
 
-function closeUpgradeMenu() {
+export function closeUpgradeMenu() {
   if (IS_MOBILE) {
     try { blockInteraction(160); } catch {}
   }
