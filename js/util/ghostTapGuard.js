@@ -1,10 +1,12 @@
 // js/util/ghostTapGuard.js
-// Fixes issue with buttons on mobile that prevents them from being spam clicked; it is important this is applied to every clickable button in the game
+// Fixes issue with buttons on mobile that prevents them from being spam clicked
+// It's important that this is applied to every clickable button in the game
 
 const DEFAULT_TIMEOUT_MS = 0;
 const ELEMENT_SKIP_PROP = Symbol('ccc:ghostTap:skipUntil');
 const GLOBAL_SKIP_PROP = '__cccGhostTapSkipUntil';
 const TARGET_SELECTOR = '[data-ghost-tap-target], button, [role="button"], [data-btn], .game-btn, .btn, .slot-card, a[href], input, select, textarea, summary';
+const DEFAULT_LONG_PRESS_MS = 80;
 
 let guardInstalled = false;
 let selector = TARGET_SELECTOR;
@@ -12,6 +14,9 @@ let hasPointerEvents = false;
 let hasTouchEvents = false;
 let lastMarkedTarget = null;
 let lastTouchMs = 0;
+let lastTouchStartMs = 0;
+let lastTouchDurationMs = 0;
+let longPressMs = DEFAULT_LONG_PRESS_MS;
 
 function nowMs() {
   if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
@@ -108,7 +113,8 @@ function suppressNextGhostTap(timeout = DEFAULT_TIMEOUT_MS) {
 function onPointerStart(event) {
   if (event.pointerType === 'mouse') return;
   if (typeof event.button === 'number' && event.button !== 0) return;
-  lastTouchMs = nowMs();
+  lastTouchMs = lastTouchStartMs = nowMs();
+  lastTouchDurationMs = 0;
   const target = findTapTarget(event.target);
   if (!target) return;
   if (consumeGhostTapGuard(target)) {
@@ -119,7 +125,8 @@ function onPointerStart(event) {
 }
 
 function onTouchStart(event) {
-  lastTouchMs = nowMs();
+  lastTouchMs = lastTouchStartMs = nowMs();
+  lastTouchDurationMs = 0;
   const target = findTapTarget(event.target);
   if (!target) return;
   if (consumeGhostTapGuard(target)) {
@@ -129,16 +136,48 @@ function onTouchStart(event) {
   }
 }
 
+function onPointerEnd(event) {
+  if (event.pointerType === 'mouse') return;
+  if (typeof event.button === 'number' && event.button !== 0) return;
+  const now = nowMs();
+  if (lastTouchStartMs > 0) {
+    lastTouchDurationMs = now - lastTouchStartMs;
+  }
+  lastTouchMs = now;
+}
+
+function onTouchEnd() {
+  const now = nowMs();
+  if (lastTouchStartMs > 0) {
+    lastTouchDurationMs = now - lastTouchStartMs;
+  }
+  lastTouchMs = now;
+}
+
 function onClickCapture(event) {
-  if (nowMs() - lastTouchMs > 450) return;
+  const now = nowMs();
+  const sinceTouchStart = lastTouchStartMs > 0 ? now - lastTouchStartMs : -1;
+  if (sinceTouchStart < 0) return;
 
   const target = findTapTarget(event.target);
   if (!target) return;
+
+  const effectiveDuration = lastTouchDurationMs || sinceTouchStart;
+
+  if (effectiveDuration >= longPressMs) {
+    clearGhostTapTarget(target);
+    lastTouchDurationMs = 0;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
   if (consumeGhostTapGuard(target)) {
     clearGhostTapTarget(target);
+    lastTouchDurationMs = 0;
     event.preventDefault();
     event.stopImmediatePropagation();
   }
+  lastTouchDurationMs = 0;
 }
 
 
@@ -154,12 +193,18 @@ export function installGhostTapGuard(options = {}) {
     selector = `${options.selector}, ${TARGET_SELECTOR}`;
   }
 
+  if (Number.isFinite(options.longPressMs) && options.longPressMs >= 0) {
+    longPressMs = options.longPressMs;
+  }
+
   doc.addEventListener('click', onClickCapture, true);
 
   if (hasPointerEvents) {
     doc.addEventListener('pointerdown', onPointerStart, { capture: true, passive: false });
+    doc.addEventListener('pointerup', onPointerEnd, { capture: true, passive: true });
   } else if (hasTouchEvents) {
     doc.addEventListener('touchstart', onTouchStart, { capture: true, passive: false });
+    doc.addEventListener('touchend', onTouchEnd, { capture: true, passive: true });
   }
 }
 
