@@ -401,6 +401,7 @@ function ensureDebugPanelStyles() {
             }
 
             .debug-panel-close-buttons {
+                display: flex;
                 flex-direction: column;
                 align-items: stretch;
                 width: 100%;
@@ -423,7 +424,7 @@ function ensureDebugPanelStyles() {
         }
 
         .debug-panel-close-buttons {
-            display: flex;
+            display: none;
             gap: 8px;
         }
 
