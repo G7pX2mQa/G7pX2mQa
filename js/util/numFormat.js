@@ -24,7 +24,16 @@ const SUFFIX_ENTRIES = [
 const SUFFIX_BY_EXP = new Map(SUFFIX_ENTRIES);
 
 const NF_INT = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0, useGrouping: true });
-function localeInt(s) { return NF_INT.format(Number(s)); }
+function localeInt(s) {
+  const num = Number(s);
+
+  // Safari throws a RangeError when formatting non-finite values via Intl.NumberFormat;
+  // treat them as plain strings instead so the UI doesn't silently break on mobile.
+  if (!Number.isFinite(num)) return String(s);
+
+  try { return NF_INT.format(num); }
+  catch { return String(s); }
+}
 
 // --- add 1 to a decimal digit-string (for rounding) ---
 function addOneDigitString(str){
