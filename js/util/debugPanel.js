@@ -61,7 +61,7 @@ let originalSetItem = null;
 let originalRemoveItem = null;
 
 const initialDebugPanelAccess = typeof window !== 'undefined'
-    ? window.debugPanelAccess === true
+    ? !!window.debugPanelAccess
     : false;
 
 const STAT_MULTIPLIER_STORAGE_PREFIX = 'ccc:debug:stat-mult';
@@ -806,7 +806,6 @@ function removeDebugPanelToggleButton() {
 
 function shouldShowDebugPanelToggleButton() {
     return debugPanelAccess
-        && IS_MOBILE
         && getActiveSlot() != null
         && !isOnMenu()
         && isGameVisible();
