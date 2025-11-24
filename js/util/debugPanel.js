@@ -1,7 +1,6 @@
 // js/util/debugPanel.js
 // Using a debug panel is much faster and more convenient than
 // Editing local storage every time I want to change something.
-// I will remember to disable debug panel access for prod, don't worry.
 
 import { BigNum } from './bigNum.js';
 import { formatNumber } from './numFormat.js';
