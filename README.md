@@ -38,5 +38,29 @@ A quick reference for working on this project: what to edit, how to build, and h
   ```
 ## Run ``npm run build`` before shipping or uploading anything so `dist/` matches what users will download.
 
+## Publishing to GitHub Pages
+Use `dist/` for uploads; the built files in the repo root are only for local preview. To update https://g7px2mqa.github.io/G7pX2mQa/:
+
+1. Build a fresh production bundle:
+   ```bash
+   npm run build
+   ```
+2. Create (or reuse) a `gh-pages` worktree that mirrors the published branch:
+   ```bash
+   git worktree add -B gh-pages ../gh-pages origin/gh-pages
+   ```
+3. Copy the new build output into that worktree and commit:
+   ```bash
+   rm -rf ../gh-pages/*
+   cp -r dist/* ../gh-pages/
+   cd ../gh-pages
+   git add .
+   git commit -m "Publish latest build"
+   git push origin gh-pages
+   cd -
+   ```
+
+GitHub Pages will automatically serve whatever is on the `gh-pages` branch root, so repeating the steps above after each set of edits keeps the public site in sync with `npm run build` output.
+
 ## Tips
 - Always run commands from the project root (contains `package.json`).
