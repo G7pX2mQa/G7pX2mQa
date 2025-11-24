@@ -417,15 +417,53 @@ async function serveAll({ mode = "dev" } = {}) {
 
   [...staticTargets, ...sourceTargets].forEach(addWatcher);
 
-  const server = await buildContext.serve({ servedir: DIST_DIR, port: 8000 });
-  process.on("SIGINT", async () => {
+  const internalServer = await buildContext.serve({ servedir: DIST_DIR, port: 8001, host: "127.0.0.1" });
+
+  const proxy = http.createServer((req, res) => {
+    const forward = http.request(
+      {
+        hostname: internalServer.host,
+        port: internalServer.port,
+        path: req.url,
+        method: req.method,
+        headers: req.headers,
+      },
+      (proxyRes) => {
+        res.writeHead(proxyRes.statusCode || 500, {
+          ...proxyRes.headers,
+          // Force dev requests to bypass caches so edits always load fresh assets.
+          "cache-control": "no-store, must-revalidate",
+        });
+        proxyRes.pipe(res, { end: true });
+      }
+    );
+
+    forward.on("error", (err) => {
+      console.error("Proxy error", err);
+      res.statusCode = 502;
+      res.end("Proxy error");
+    });
+
+    if (req.readableEnded) {
+      forward.end();
+    } else {
+      req.pipe(forward, { end: true });
+    }
+  });
+
+  proxy.listen(8000, "0.0.0.0", () => {
+    console.log(`Serving ${DIST_DIR} at http://localhost:8000 (no-cache proxy)`);
+  });
+
+  const shutdown = async () => {
     await Promise.all([buildContext.dispose()]);
-    server.stop();
+    internalServer.stop();
+    proxy.close();
     watchers.forEach((w) => w.close());
     process.exit(0);
-  });
-  // Keep process alive
-  console.log(`Serving ${DIST_DIR} at http://${server.host || "localhost"}:${server.port}`);
+  };
+
+  process.on("SIGINT", shutdown);
 }
 
 function parseMode(args) {
