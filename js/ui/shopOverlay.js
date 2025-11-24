@@ -1635,7 +1635,6 @@ export function openUpgradeOverlay(upgDef) {
         actions.append(closeBtn, evolveBtn);
         evolveBtn.focus();
         recenterUnlockOverlayIfNeeded(model);
-        requestAnimationFrame(() => recenterUnlockOverlayIfNeeded(model));
         return;
       }
 
