@@ -63,6 +63,10 @@ let originalRemoveItem = null;
 const STAT_MULTIPLIER_STORAGE_PREFIX = 'ccc:debug:stat-mult';
 const ACTION_LOG_STORAGE_PREFIX = 'ccc:actionLog';
 const MAX_ACTION_LOG_ENTRIES = 100;
+const SLOT_WIPE_SESSION_KEY = 'ccc:debug:pendingSlotWipe';
+const SLOT_WIPE_REFRESH_CYCLES = 2;
+const SLOT_WIPE_PASS_COUNT = 5;
+const SLOT_WIPE_PASS_DELAY_MS = 60;
 
 function isOnMenu() {
     const menuRoot = document.querySelector('.menu-root');
@@ -1512,6 +1516,162 @@ function updateActionLogDisplay() {
             </div>
         `;
     }).join('');
+}
+
+function getPendingSlotWipeState() {
+    if (typeof sessionStorage === 'undefined') return null;
+
+    try {
+        const raw = sessionStorage.getItem(SLOT_WIPE_SESSION_KEY);
+        if (!raw) return null;
+
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed.slot !== 'string') return null;
+
+        const remainingRefreshes = Number.isFinite(parsed.remainingRefreshes)
+            ? parsed.remainingRefreshes
+            : 0;
+        const totalKeysRemoved = Number.isFinite(parsed.totalKeysRemoved)
+            ? parsed.totalKeysRemoved
+            : 0;
+        const totalBlockedWrites = Number.isFinite(parsed.totalBlockedWrites)
+            ? parsed.totalBlockedWrites
+            : 0;
+        const cyclesCompleted = Number.isFinite(parsed.cyclesCompleted)
+            ? parsed.cyclesCompleted
+            : 0;
+
+        return {
+            slot: parsed.slot,
+            remainingRefreshes,
+            totalKeysRemoved,
+            totalBlockedWrites,
+            cyclesCompleted,
+        };
+    } catch {
+        return null;
+    }
+}
+
+function persistPendingSlotWipeState(state) {
+    if (!state || typeof sessionStorage === 'undefined') return;
+    try { sessionStorage.setItem(SLOT_WIPE_SESSION_KEY, JSON.stringify(state)); }
+    catch {}
+}
+
+function clearPendingSlotWipeState() {
+    if (typeof sessionStorage === 'undefined') return;
+    try { sessionStorage.removeItem(SLOT_WIPE_SESSION_KEY); }
+    catch {}
+}
+
+function queueSlotWipeAfterRefresh(state) {
+    if (!state || !state.slot || typeof sessionStorage === 'undefined') return false;
+    try {
+        persistPendingSlotWipeState(state);
+        window.location.reload();
+        return true;
+    } catch {
+        clearPendingSlotWipeState();
+        return false;
+    }
+}
+
+function runSlotWipeSequence(state) {
+    if (!state || !state.slot || typeof localStorage === 'undefined') {
+        clearPendingSlotWipeState();
+        return;
+    }
+
+    const suffix = `:${state.slot}`;
+    let totalKeysRemoved = 0;
+    let blockedWrites = 0;
+
+    const isSlotStorageKey = (key) => typeof key === 'string' && key.endsWith(suffix);
+
+    const stopSlotStorageWrites = () => {
+        if (typeof localStorage === 'undefined') return () => {};
+        const previousSetter = typeof localStorage.setItem === 'function'
+            ? localStorage.setItem.bind(localStorage)
+            : null;
+
+        if (!previousSetter) return () => {};
+
+        localStorage.setItem = (key, value) => {
+            if (isSlotStorageKey(key)) {
+                blockedWrites += 1;
+                return;
+            }
+            return previousSetter(key, value);
+        };
+
+        return () => {
+            try { localStorage.setItem = previousSetter; } catch {}
+        };
+    };
+
+    const wipePass = () => {
+        let removedThisPass = 0;
+        try {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i += 1) {
+                const key = localStorage.key(i);
+                if (isSlotStorageKey(key)) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach((key) => localStorage.removeItem(key));
+            removedThisPass = keysToRemove.length;
+        } catch {}
+
+        totalKeysRemoved += removedThisPass;
+    };
+
+    const restoreStorageSetter = stopSlotStorageWrites();
+
+    const finalizePasses = () => {
+        state.totalKeysRemoved += totalKeysRemoved;
+        state.totalBlockedWrites += blockedWrites;
+        state.cyclesCompleted += 1;
+
+        if (state.remainingRefreshes > 0) {
+            state.remainingRefreshes -= 1;
+            persistPendingSlotWipeState(state);
+            try { window.location.reload(); } catch {}
+            return;
+        }
+
+        clearPendingSlotWipeState();
+        flagDebugUsage();
+        logAction(
+            `Wiped ${state.totalKeysRemoved} storage keys for slot ${state.slot} across `
+            + `${state.cyclesCompleted * (SLOT_WIPE_PASS_COUNT + 1)} passes (blocked ${state.totalBlockedWrites}`
+            + ` writes) with ${state.cyclesCompleted - 1} additional refresh(es).`,
+        );
+    };
+
+    const runWipePasses = (attempt = 1) => {
+        wipePass();
+        if (attempt < SLOT_WIPE_PASS_COUNT) {
+            setTimeout(() => runWipePasses(attempt + 1), SLOT_WIPE_PASS_DELAY_MS);
+            return;
+        }
+
+        // Give any queued writes a last chance to be blocked, then sweep once more.
+        setTimeout(() => {
+            wipePass();
+            restoreStorageSetter?.();
+            finalizePasses();
+        }, SLOT_WIPE_PASS_DELAY_MS);
+    };
+
+    runWipePasses();
+}
+
+function resumeQueuedSlotWipe() {
+    const pending = getPendingSlotWipeState();
+    if (!pending) return;
+    runSlotWipeSequence(pending);
 }
 
 function dialogueStateStorageKey(slot = getActiveSlot()) {
@@ -3148,76 +3308,18 @@ function buildMiscContent(content) {
         const confirmWipe = window.confirm?.('Are you sure you want to wipe current slot data and refresh the page? This cannot be undone.');
         if (!confirmWipe) return;
 
-        const suffix = `:${slot}`;
-        const PASS_COUNT = 5;
-        const PASS_DELAY_MS = 60;
-        let totalKeysRemoved = 0;
-        let blockedWrites = 0;
-
-        const isSlotStorageKey = (key) => typeof key === 'string' && key.endsWith(suffix);
-
-        const stopSlotStorageWrites = () => {
-            if (typeof localStorage === 'undefined') return () => {};
-            const previousSetter = typeof localStorage.setItem === 'function'
-                ? localStorage.setItem.bind(localStorage)
-                : null;
-
-            if (!previousSetter) return () => {};
-
-            localStorage.setItem = (key, value) => {
-                if (isSlotStorageKey(key)) {
-                    blockedWrites += 1;
-                    return;
-                }
-                return previousSetter(key, value);
-            };
-
-            return () => {
-                try { localStorage.setItem = previousSetter; } catch {}
-            };
+        const pendingState = {
+            slot,
+            remainingRefreshes: SLOT_WIPE_REFRESH_CYCLES,
+            totalKeysRemoved: 0,
+            totalBlockedWrites: 0,
+            cyclesCompleted: 0,
         };
 
-        const wipePass = () => {
-            let removedThisPass = 0;
-            try {
-                const keysToRemove = [];
-                for (let i = 0; i < localStorage.length; i += 1) {
-                    const key = localStorage.key(i);
-                    if (isSlotStorageKey(key)) {
-                        keysToRemove.push(key);
-                    }
-                }
-                keysToRemove.forEach((key) => localStorage.removeItem(key));
-                removedThisPass = keysToRemove.length;
-            } catch {}
+        if (queueSlotWipeAfterRefresh({ ...pendingState })) return;
 
-            totalKeysRemoved += removedThisPass;
-            return removedThisPass;
-        };
-
-        const restoreStorageSetter = stopSlotStorageWrites();
-
-        const runWipePasses = (attempt = 1) => {
-            wipePass();
-            if (attempt < PASS_COUNT) {
-                setTimeout(() => runWipePasses(attempt + 1), PASS_DELAY_MS);
-                return;
-            }
-
-            // Give any queued writes a last chance to be blocked, then sweep once more.
-            setTimeout(() => {
-                wipePass();
-                restoreStorageSetter?.();
-                flagDebugUsage();
-                logAction(
-                    `Wiped ${totalKeysRemoved} storage keys for slot ${slot} across ${PASS_COUNT + 1}`
-                    + ` passes (blocked ${blockedWrites} writes) and refreshed.`,
-                );
-                try { window.location.reload(); } catch {}
-            }, PASS_DELAY_MS);
-        };
-
-        runWipePasses();
+        pendingState.remainingRefreshes = 0;
+        runSlotWipeSequence(pendingState);
     });
     actionLogRow.appendChild(wipeSlotBtn);
 
@@ -3442,6 +3544,8 @@ function applyDebugPanelAccess(enabled) {
     }
     createDebugPanelToggleButton();
 }
+
+resumeQueuedSlotWipe();
 
 applyDebugPanelAccess(false);
 
