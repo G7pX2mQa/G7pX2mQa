@@ -3331,7 +3331,7 @@ function applyDebugPanelAccess(enabled) {
     createDebugPanelToggleButton();
 }
 
-applyDebugPanelAccess(initialDebugPanelAccess);
+applyDebugPanelAccess(false);
 
 document.addEventListener('keydown', event => {
     if (!debugPanelAccess || isOnMenu()) return;
