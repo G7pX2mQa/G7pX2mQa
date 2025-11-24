@@ -31,6 +31,7 @@
   -webkit-user-drag: none;
   }
 }
+  /* Force a hard black cover immediately */
   .loading-screen {
     position: fixed;
     inset: 0;
@@ -43,13 +44,14 @@
   }
   .loading-screen__text { font-size: 1.1rem; opacity: .9; }
 
+  /* While booting, don't show menu or game at all */
   .booting .menu-root,
   .booting #game-root { display: none !important; }
 </style>
 <script>
   document.documentElement.classList.add('booting');
 </script>
-  <link rel="stylesheet" href="dist/style.css">
+  <link rel="stylesheet" href="dist/styles.css">
 </head>
 
 <body class="menu-bg">
@@ -148,4 +150,3 @@
   <script src="dist/bundle.js"></script>
   </body>
 </html>
-
