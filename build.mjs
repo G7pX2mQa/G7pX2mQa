@@ -7,6 +7,7 @@ const { build, context, serve } = esbuild;
 
 const DIST_DIR = "dist";
 const APP_ENTRY = "app.js";
+const STYLES_ENTRY = "css/imports.css";
 
 function resolveDist(...segments) {
   return path.join(DIST_DIR, ...segments);
@@ -243,10 +244,11 @@ function htmlOutputPlugin({ template, minify }) {
 
 function buildOptions({ minify, sourcemap }) {
   return {
-    entryPoints: [APP_ENTRY],
+    entryPoints: { bundle: APP_ENTRY, styles: STYLES_ENTRY },
     entryNames: "[name]",
     bundle: true,
     outdir: DIST_DIR,
+    write: true,
     minify,
     sourcemap,
     metafile: true,
