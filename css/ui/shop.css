@@ -1044,7 +1044,7 @@
   -webkit-text-fill-color: currentColor;
 }
 
-@media (max-height: 850px) {
+@media (max-height: 850px) and (hover: hover) and (pointer: fine) {
   .upg-sheet:not(.is-maxed) .upg-content,
   .upg-sheet.is-maxed .upg-content,
   .upg-sheet.is-locked-hidden .upg-content,
