@@ -38,7 +38,7 @@ const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
 let debugPanelOpen = false;
-let debugPanelAccess = false;
+let debugPanelAccess = true;
 let debugPanelCleanups = [];
 let debugPanelExpansionState = createEmptyExpansionState();
 let debugPanelScrollTop = 0;
@@ -59,6 +59,10 @@ if (typeof window !== 'undefined') {
 let storageLockPatched = false;
 let originalSetItem = null;
 let originalRemoveItem = null;
+
+const initialDebugPanelAccess = typeof window !== 'undefined'
+    ? window.debugPanelAccess === true
+    : false;
 
 const STAT_MULTIPLIER_STORAGE_PREFIX = 'ccc:debug:stat-mult';
 const ACTION_LOG_STORAGE_PREFIX = 'ccc:actionLog';
@@ -3330,6 +3334,10 @@ function applyDebugPanelAccess(enabled) {
         return;
     }
     createDebugPanelToggleButton();
+}
+
+if (initialDebugPanelAccess) {
+    applyDebugPanelAccess(initialDebugPanelAccess);
 }
 
 document.addEventListener('keydown', event => {
