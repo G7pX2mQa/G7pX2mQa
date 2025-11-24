@@ -20,14 +20,17 @@ async function resetDistDir() {
 function minifyHtmlChunk(chunk) {
   if (!chunk || !chunk.includes("<")) return chunk;
 
+  // Remove HTML comments (including legacy single-line ones) before whitespace collapsing.
+  const withoutComments = chunk.replace(/<!--([\s\S]*?)-->/g, "");
+
   let inSingleQuote = false;
   let inDoubleQuote = false;
   let escaped = false;
   let lastWasSpace = false;
   let out = "";
 
-  for (let i = 0; i < chunk.length; i += 1) {
-    const ch = chunk[i];
+  for (let i = 0; i < withoutComments.length; i += 1) {
+    const ch = withoutComments[i];
 
     if (escaped) {
       out += ch;
@@ -69,7 +72,7 @@ function minifyHtmlChunk(chunk) {
     out += ch;
   }
 
-  return out.replace(/>\s+</g, "><").trim();
+  return out.replace(/>\s+</g, "><").replace(/\s+/g, " ").trim();
 }
 
 function minifyTemplateBody(body) {
