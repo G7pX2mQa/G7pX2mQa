@@ -12,6 +12,8 @@ export const IS_MOBILE = (() => {
   return detected;
 })();
 
+export const DEBUG_PANEL_ACCESS = true;
+
 let initSlots;
 let createSpawner;
 let initCoinPickup;
@@ -38,8 +40,6 @@ let onMutationChangeGame;
 let setDebugPanelAccess;
 
 const pendingPreloadedAudio = [];
-
-export const DEBUG_PANEL_ACCESS = true;
 
 function disableMobileZoomGestures() {
   if (!IS_MOBILE) return;
