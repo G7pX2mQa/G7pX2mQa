@@ -1,7 +1,9 @@
-import { build, context, serve } from "esbuild";
+import esbuild from "esbuild";
 import fs from "node:fs/promises";
 import { watch } from "node:fs";
 import path from "node:path";
+
+const { build, context, serve } = esbuild;
 
 const DIST_DIR = "dist";
 
@@ -9,31 +11,46 @@ function resolveDist(...segments) {
   return path.join(DIST_DIR, ...segments);
 }
 
-async function buildJs({ minify, sourcemap }) {
-  await build({
-    entryPoints: ["js/main.js"],
+async function resetDistDir() {
+  await fs.rm(DIST_DIR, { recursive: true, force: true });
+  await fs.mkdir(DIST_DIR, { recursive: true });
+}
+
+const ENTRY_POINTS = {
+  bundle: "js/main.js",
+  styles: "css/imports.css",
+};
+
+function buildOptions({ minify, sourcemap }) {
+  return {
+    entryPoints: ENTRY_POINTS,
+    entryNames: "[name]",
     bundle: true,
     outdir: DIST_DIR,
     minify,
     sourcemap,
-  });
+    loader: { ".css": "css" },
+    external: ["img/*", "sounds/*", "favicon/*"],
+  };
 }
 
-async function buildCss({ minify, sourcemap }) {
-  await build({
-    entryPoints: ["css/imports.css"],
-    bundle: true,
-    outfile: resolveDist("styles.css"),
-    minify,
-    sourcemap,
-    loader: { ".css": "css" },
-  });
+async function buildAssets({ minify, sourcemap }) {
+  await build(buildOptions({ minify, sourcemap }));
 }
 
 async function copyOutputsToRoot() {
-  const assets = ["bundle.js", "bundle.js.map", "styles.css"];
+  const assets = ["bundle.js", "bundle.js.map", "styles.css", "styles.css.map"];
   await Promise.all(
-    assets.map((asset) => fs.cp(resolveDist(asset), asset, { force: true }))
+    assets.map(async (asset) => {
+      try {
+        await fs.access(resolveDist(asset));
+        await fs.cp(resolveDist(asset), asset, { force: true });
+      } catch (err) {
+        if (err.code !== "ENOENT") {
+          throw err;
+        }
+      }
+    })
   );
 }
 
@@ -42,7 +59,6 @@ async function copyStatic() {
 
   const tasks = [
     fs.cp("index.html", resolveDist("index.html"), { force: true }),
-    fs.cp("css", resolveDist("css"), { recursive: true, force: true }),
     fs.cp("favicon", resolveDist("favicon"), { recursive: true, force: true }),
     fs.cp("img", resolveDist("img"), { recursive: true, force: true }),
     fs.cp("sounds", resolveDist("sounds"), { recursive: true, force: true }),
@@ -60,33 +76,15 @@ function modeOptions(mode) {
 
 async function buildAll({ mode = "dev" } = {}) {
   const { minify, sourcemap } = modeOptions(mode);
-  await Promise.all([
-    buildJs({ minify, sourcemap }),
-    buildCss({ minify, sourcemap }),
-    copyStatic(),
-  ]);
+  await resetDistDir();
+  await Promise.all([buildAssets({ minify, sourcemap }), copyStatic()]);
   await copyOutputsToRoot();
 }
 
 async function watchAll() {
   const { minify, sourcemap } = modeOptions("dev");
-
-  const jsContext = await context({
-    entryPoints: ["js/main.js"],
-    bundle: true,
-    outdir: DIST_DIR,
-    minify,
-    sourcemap,
-  });
-
-  const cssContext = await context({
-    entryPoints: ["css/imports.css"],
-    bundle: true,
-    outfile: resolveDist("styles.css"),
-    minify,
-    sourcemap,
-    loader: { ".css": "css" },
-  });
+  await resetDistDir();
+  const buildContext = await context(buildOptions({ minify, sourcemap }));
 
   const onRebuild = async (error) => {
     if (error) {
@@ -96,10 +94,7 @@ async function watchAll() {
     await copyOutputsToRoot();
   };
 
-  await Promise.all([
-    jsContext.watch({ onRebuild }),
-    cssContext.watch({ onRebuild }),
-  ]);
+  await buildContext.watch({ onRebuild });
   await copyStatic();
   await copyOutputsToRoot();
 
@@ -117,7 +112,7 @@ async function watchAll() {
   );
 
   process.on("SIGINT", async () => {
-    await Promise.all([jsContext.dispose(), cssContext.dispose()]);
+    await Promise.all([buildContext.dispose()]);
     watchers.forEach((w) => w.close());
     process.exit(0);
   });
