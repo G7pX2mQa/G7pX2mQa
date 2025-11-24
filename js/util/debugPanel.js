@@ -3011,19 +3011,19 @@ function buildMiscContent(content) {
             },
         },
         {
-            label: 'All Currencies 0',
-            onClick: () => {
-                const touched = setAllCurrenciesToZero();
-                flagDebugUsage();
-                logAction(`Set all currencies to 0 (${touched} ${touched === 1 ? 'currency' : 'currencies'} updated).`);
-            },
-        },
-        {
             label: 'All Stats Inf',
             onClick: () => {
                                 const touched = setAllStatsToInfinity();
                 flagDebugUsage();
                 logAction(`Set all stats to Infinity (${touched} ${touched === 1 ? 'stat' : 'stats'} updated).`);
+            },
+        },
+		{
+            label: 'All Currencies 0',
+            onClick: () => {
+                const touched = setAllCurrenciesToZero();
+                flagDebugUsage();
+                logAction(`Set all currencies to 0 (${touched} ${touched === 1 ? 'currency' : 'currencies'} updated).`);
             },
         },
         {
