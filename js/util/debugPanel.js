@@ -1179,6 +1179,8 @@ export function getDebugStatMultiplierOverride(statKey, slot = getActiveSlot()) 
 }
 
 export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlot()) {
+    if (!debugPanelAccess) return amount;
+
     const gameValue = getGameStatMultiplier(statKey);
     const override = getEffectiveStatMultiplierOverride(statKey, slot, gameValue);
     if (!override) return amount;
