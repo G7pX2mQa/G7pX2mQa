@@ -9,6 +9,10 @@ const DIST_DIR = "dist";
 const APP_ENTRY = "app.js";
 const STYLES_ENTRY = "css/imports.css";
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function resolveDist(...segments) {
   return path.join(DIST_DIR, ...segments);
 }
@@ -17,18 +21,47 @@ const BUSY_DIR_CODES = new Set(["EBUSY", "EPERM", "ENOTEMPTY"]);
 
 async function resetDistDir() {
   const maxAttempts = 5;
+  let removed = false;
+  let lastError = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      await fs.rm(DIST_DIR, { recursive: true, force: true });
+      await fs.rm(DIST_DIR, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 150,
+      });
+      removed = true;
       break;
     } catch (err) {
-      if (!BUSY_DIR_CODES.has(err?.code) || attempt === maxAttempts) throw err;
-
-      const backoffMs = attempt * 100;
-      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      lastError = err;
+      if (!BUSY_DIR_CODES.has(err?.code)) throw err;
+      if (attempt < maxAttempts) {
+        await delay(attempt * 200);
+      }
     }
   }
+
+  if (!removed && BUSY_DIR_CODES.has(lastError?.code)) {
+    const tempDist = `${DIST_DIR}-${Date.now()}.tmp`;
+
+    try {
+      await fs.rename(DIST_DIR, tempDist);
+      await fs.rm(tempDist, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 200,
+      });
+      removed = true;
+    } catch (cleanupErr) {
+      cleanupErr.cause = lastError;
+      throw cleanupErr;
+    }
+  }
+
+  if (!removed && lastError) throw lastError;
 
   await fs.mkdir(DIST_DIR, { recursive: true });
 }
