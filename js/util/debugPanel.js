@@ -38,7 +38,7 @@ const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
 let debugPanelOpen = false;
-let debugPanelAccess = true;
+let debugPanelAccess = false;
 let debugPanelCleanups = [];
 let debugPanelExpansionState = createEmptyExpansionState();
 let debugPanelScrollTop = 0;
@@ -3296,10 +3296,28 @@ function createDebugPanelToggleButton() {
     button.className = 'debug-panel-toggle-button';
     button.type = 'button';
     button.textContent = 'Debug Panel';
-    button.addEventListener('click', (event) => {
+    let lastPointerType = null;
+
+    const handleToggle = (event) => {
         if (event.isTrusted && shouldSkipGhostTap(button)) return;
         markGhostTapTarget(button);
         toggleDebugPanel();
+    };
+
+    button.addEventListener('pointerdown', (event) => {
+        lastPointerType = event.pointerType || null;
+        if (event.pointerType === 'mouse') return;
+        event.preventDefault();
+        handleToggle(event);
+    });
+
+    button.addEventListener('click', (event) => {
+        if (lastPointerType && lastPointerType !== 'mouse') {
+            lastPointerType = null;
+            return;
+        }
+        lastPointerType = null;
+        handleToggle(event);
     });
 
     document.body.appendChild(button);
