@@ -38,7 +38,7 @@ const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
 let debugPanelOpen = false;
-let debugPanelAccess = false;
+let debugPanelAccess = true;
 let debugPanelCleanups = [];
 let debugPanelExpansionState = createEmptyExpansionState();
 let debugPanelScrollTop = 0;
@@ -1179,8 +1179,6 @@ export function getDebugStatMultiplierOverride(statKey, slot = getActiveSlot()) 
 }
 
 export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlot()) {
-    if (!debugPanelAccess) return amount;
-
     const gameValue = getGameStatMultiplier(statKey);
     const override = getEffectiveStatMultiplierOverride(statKey, slot, gameValue);
     if (!override) return amount;
