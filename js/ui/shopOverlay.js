@@ -1733,7 +1733,8 @@ export function openUpgradeOverlay(upgDef) {
       buyMaxBtn.className = 'shop-delve';
       buyMaxBtn.textContent = 'Buy Max';
       buyMaxBtn.disabled = !canAffordNext;
-      buyMaxBtn.addEventListener('click', () => {
+      const performBuyMax = () => {
+        if (buyMaxBtn.disabled) return;
         const fresh = upgradeUiModel(areaKey, upgDef.id);
         if (fresh.have.cmp(BigNum.fromInt(1)) < 0) return;
         const { bought } = buyMax(areaKey, upgDef.id);
@@ -1743,6 +1744,39 @@ export function openUpgradeOverlay(upgDef) {
           updateShopOverlay();
           rerender();
         }
+      };
+
+      if ('PointerEvent' in window) {
+        buyMaxBtn.addEventListener('pointerdown', (event) => {
+          if (event.pointerType === 'mouse') return;
+          if (typeof event.button === 'number' && event.button !== 0) return;
+
+          if (typeof markGhostTapTarget === 'function') {
+            markGhostTapTarget(buyMaxBtn, 160);
+          }
+
+          performBuyMax();
+          event.preventDefault();
+        }, { passive: false });
+      } else {
+        buyMaxBtn.addEventListener('touchstart', (event) => {
+          if (typeof markGhostTapTarget === 'function') {
+            markGhostTapTarget(buyMaxBtn, 160);
+          }
+
+          performBuyMax();
+          event.preventDefault();
+        }, { passive: false });
+      }
+
+      buyMaxBtn.addEventListener('click', (event) => {
+        if (IS_MOBILE) return;
+
+        if (typeof markGhostTapTarget === 'function') {
+          markGhostTapTarget(buyMaxBtn, 160);
+        }
+
+        performBuyMax();
       });
 
       actions.append(closeBtn, buyBtn, buyMaxBtn);
@@ -1754,7 +1788,8 @@ export function openUpgradeOverlay(upgDef) {
         buyNextBtn.className = 'shop-delve';
         buyNextBtn.textContent = 'Buy Next';
         buyNextBtn.disabled = model.have.cmp(BigNum.fromInt(1)) < 0;
-        buyNextBtn.addEventListener('click', () => {
+        const performBuyNext = () => {
+          if (buyNextBtn.disabled) return;
           const fresh = upgradeUiModel(areaKey, upgDef.id);
           if (fresh.hmReadyToEvolve) return;
           const target = fresh.hmNextMilestone;
@@ -1801,6 +1836,39 @@ export function openUpgradeOverlay(upgDef) {
             updateShopOverlay();
             rerender();
           }
+        };
+
+        if ('PointerEvent' in window) {
+          buyNextBtn.addEventListener('pointerdown', (event) => {
+            if (event.pointerType === 'mouse') return;
+            if (typeof event.button === 'number' && event.button !== 0) return;
+
+            if (typeof markGhostTapTarget === 'function') {
+              markGhostTapTarget(buyNextBtn, 160);
+            }
+
+            performBuyNext();
+            event.preventDefault();
+          }, { passive: false });
+        } else {
+          buyNextBtn.addEventListener('touchstart', (event) => {
+            if (typeof markGhostTapTarget === 'function') {
+              markGhostTapTarget(buyNextBtn, 160);
+            }
+
+            performBuyNext();
+            event.preventDefault();
+          }, { passive: false });
+        }
+
+        buyNextBtn.addEventListener('click', (event) => {
+          if (IS_MOBILE) return;
+
+          if (typeof markGhostTapTarget === 'function') {
+            markGhostTapTarget(buyNextBtn, 160);
+          }
+
+          performBuyNext();
         });
         actions.appendChild(buyNextBtn);
       }
