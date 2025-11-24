@@ -399,6 +399,32 @@ function ensureDebugPanelStyles() {
             .debug-misc-button-list {
                 justify-content: flex-start;
             }
+
+            .debug-panel-close-buttons {
+                flex-direction: column;
+                align-items: stretch;
+                width: 100%;
+            }
+
+            .debug-panel-close {
+                width: 100%;
+                font-size: 1em;
+                padding: 10px 14px;
+                border-radius: 6px;
+                background: #2f3645;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: #fff;
+                text-align: center;
+            }
+
+            .debug-panel-close + .debug-panel-close {
+                margin-top: 6px;
+            }
+        }
+
+        .debug-panel-close-buttons {
+            display: flex;
+            gap: 8px;
         }
 
         .debug-panel-close {
@@ -407,6 +433,14 @@ function ensureDebugPanelStyles() {
             color: #fff;
             font-size: 1.2em;
             cursor: pointer;
+        }
+
+        .debug-panel-close.debug-panel-close-collapse {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 1em;
         }
 
         .debug-panel-section {
@@ -3171,12 +3205,25 @@ function buildDebugPanel() {
     title.className = 'debug-panel-title';
     title.textContent = 'Debug Panel';
 
+    const closeButtonContainer = document.createElement('div');
+    closeButtonContainer.className = 'debug-panel-close-buttons';
+
     const closeButton = document.createElement('button');
     closeButton.className = 'debug-panel-close';
     closeButton.type = 'button';
     closeButton.setAttribute('aria-label', 'Close Debug Panel');
-    closeButton.textContent = '×';
+    closeButton.textContent = 'Close';
     closeButton.addEventListener('click', () => closeDebugPanel({ preserveExpansionState: true }));
+
+    const collapseCloseButton = document.createElement('button');
+    collapseCloseButton.className = 'debug-panel-close debug-panel-close-collapse';
+    collapseCloseButton.type = 'button';
+    collapseCloseButton.setAttribute('aria-label', 'Close Debug Panel and Collapse Sections');
+    collapseCloseButton.textContent = 'Close & Collapse';
+    collapseCloseButton.addEventListener('click', () => closeDebugPanel());
+
+    closeButtonContainer.appendChild(closeButton);
+    closeButtonContainer.appendChild(collapseCloseButton);
 
     titleContainer.appendChild(title);
     const info = document.createElement('div');
@@ -3201,7 +3248,7 @@ function buildDebugPanel() {
     titleContainer.appendChild(info);
 
     header.appendChild(titleContainer);
-    header.appendChild(closeButton);
+    header.appendChild(closeButtonContainer);
     panel.appendChild(header);
 
     panel.appendChild(createSection('Areas: main currency/stat/upgrade management for each area', 'debug-areas', content => {
