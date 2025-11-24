@@ -32,6 +32,7 @@ import {
 import { computeForgeGoldFromInputs, getForgeDebugOverrideState, hasDoneForgeReset, isForgeUnlocked, setForgeDebugOverride, setForgeResetCompleted, updateResetPanel } from '../ui/merchantDelve/resetTab.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE } from '../ui/merchantDelve/dlgTab.js';
+import { markGhostTapTarget, shouldSkipGhostTap } from './ghostTapGuard.js';
 
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
@@ -359,7 +360,7 @@ function ensureDebugPanelStyles() {
                 transform: none;
                 width: auto;
                 max-width: none;
-                max-height: calc(100vh - 12px);
+                max-height: calc(90vh - 12px);
                 padding: 8px;
                 margin: 6px;
                 border-radius: 8px;
@@ -3295,7 +3296,11 @@ function createDebugPanelToggleButton() {
     button.className = 'debug-panel-toggle-button';
     button.type = 'button';
     button.textContent = 'Debug Panel';
-    button.addEventListener('click', toggleDebugPanel);
+    button.addEventListener('click', (event) => {
+        if (event.isTrusted && shouldSkipGhostTap(button)) return;
+        markGhostTapTarget(button);
+        toggleDebugPanel();
+    });
 
     document.body.appendChild(button);
 }
