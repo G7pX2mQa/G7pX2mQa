@@ -411,8 +411,8 @@ function ensureDebugPanelStyles() {
                 font-size: 1em;
                 padding: 10px 14px;
                 border-radius: 6px;
-                background: #2f3645;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                background: hsla(0, 80%, 40%, 0.15);
+                border: 1px solid hsla(0, 80%, 40%, 0.45);
                 color: #fff;
                 text-align: center;
             }
@@ -428,18 +428,26 @@ function ensureDebugPanelStyles() {
         }
 
         .debug-panel-close {
-            background: transparent;
-            border: none;
+            background: hsla(0, 80%, 40%, 0.15);
+            border: 1px solid hsla(0, 80%, 40%, 0.45);
             color: #fff;
-            font-size: 1.2em;
+            font-size: 1.05em;
             cursor: pointer;
+            border-radius: 4px;
+            padding: 6px 10px;
+            transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+        }
+
+        .debug-panel-close:hover {
+            background: hsla(0, 80%, 40%, 0.22);
+        }
+
+        .debug-panel-close:active {
+            transform: translateY(1px);
+            background: hsla(0, 80%, 40%, 0.28);
         }
 
         .debug-panel-close.debug-panel-close-collapse {
-            background: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            padding: 4px 8px;
             font-size: 1em;
         }
 
@@ -3317,7 +3325,7 @@ function toggleDebugPanel() {
         return;
     }
     if (debugPanelOpen) {
-        closeDebugPanel();
+        closeDebugPanel({ preserveExpansionState: true });
     } else {
         openDebugPanel();
     }
