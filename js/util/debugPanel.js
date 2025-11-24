@@ -18,6 +18,7 @@ import {
 } from './storage.js';
 import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
 import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
+import { IS_MOBILE } from '../main.js';
 import {
     AREA_KEYS,
     computeDefaultUpgradeCost,
@@ -802,6 +803,7 @@ function removeDebugPanelToggleButton() {
 
 function shouldShowDebugPanelToggleButton() {
     return debugPanelAccess
+        && IS_MOBILE
         && getActiveSlot() != null
         && !isOnMenu()
         && isGameVisible();
