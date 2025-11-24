@@ -1043,3 +1043,16 @@
   text-shadow: 0 0.08em 0.18em rgba(0, 0, 0, 0.4);
   -webkit-text-fill-color: currentColor;
 }
+
+@media (hover: fine) and (pointer: fine) and (max-height: 850px) {
+  .upg-sheet:not(.is-maxed) .upg-content,
+  .upg-sheet.is-maxed .upg-content,
+  .upg-sheet.is-locked-hidden .upg-content,
+  .upg-sheet.is-unlock-short .upg-content,
+  .upg-sheet.is-unlock-upgrade .upg-content {
+    transform: none !important;
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+    justify-content: flex-start !important;
+  }
+}
