@@ -3149,20 +3149,41 @@ function buildMiscContent(content) {
         if (!confirmWipe) return;
 
         const suffix = `:${slot}`;
-        const keysToRemove = [];
-        try {
-            for (let i = 0; i < localStorage.length; i += 1) {
-                const key = localStorage.key(i);
-                if (key?.startsWith('ccc:') && key.endsWith(suffix)) {
-                    keysToRemove.push(key);
-                }
-            }
-            keysToRemove.forEach((key) => localStorage.removeItem(key));
-        } catch {}
+        const PASS_COUNT = 3;
+        const PASS_DELAY_MS = 50;
+        let totalKeysRemoved = 0;
 
-        flagDebugUsage();
-        logAction(`Wiped ${keysToRemove.length} storage keys for slot ${slot} and refreshed.`);
-        try { window.location.reload(); } catch {}
+        const wipePass = () => {
+            let removedThisPass = 0;
+            try {
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i += 1) {
+                    const key = localStorage.key(i);
+                    if (key?.startsWith('ccc:') && key.endsWith(suffix)) {
+                        keysToRemove.push(key);
+                    }
+                }
+                keysToRemove.forEach((key) => localStorage.removeItem(key));
+                removedThisPass = keysToRemove.length;
+            } catch {}
+
+            totalKeysRemoved += removedThisPass;
+            return removedThisPass;
+        };
+
+        const runWipePasses = (attempt = 1) => {
+            wipePass();
+            if (attempt < PASS_COUNT) {
+                setTimeout(() => runWipePasses(attempt + 1), PASS_DELAY_MS);
+                return;
+            }
+
+            flagDebugUsage();
+            logAction(`Wiped ${totalKeysRemoved} storage keys for slot ${slot} across ${PASS_COUNT} passes and refreshed.`);
+            try { window.location.reload(); } catch {}
+        };
+
+        runWipePasses();
     });
     actionLogRow.appendChild(wipeSlotBtn);
 
