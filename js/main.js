@@ -41,7 +41,24 @@ const pendingPreloadedAudio = [];
 
 const DEBUG_PANEL_ACCESS = typeof window === 'undefined'
   ? true
-  : window.debugPanelAccess === true;
+  : !!window.debugPanelAccess;
+
+let debugPanelAccessFlag = initialDebugPanelAccess;
+
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'debugPanelAccess', {
+    configurable: true,
+    get() {
+      return debugPanelAccessFlag;
+    },
+    set(value) {
+      debugPanelAccessFlag = value === true;
+      if (typeof setDebugPanelAccess === 'function') {
+        setDebugPanelAccess(debugPanelAccessFlag);
+      }
+    },
+  });
+}
 
 function disableMobileZoomGestures() {
   if (!IS_MOBILE) return;
@@ -515,7 +532,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   installGhostTapGuard?.();
   installSuspendSafeguards?.();
   if (typeof setDebugPanelAccess === 'function') {
-    setDebugPanelAccess(DEBUG_PANEL_ACCESS);
+    setDebugPanelAccess(debugPanelAccessFlag);
     window.setDebugPanelAccess = setDebugPanelAccess;
   }
 
