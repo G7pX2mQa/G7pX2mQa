@@ -39,7 +39,9 @@ let setDebugPanelAccess;
 
 const pendingPreloadedAudio = [];
 
-const DEBUG_PANEL_ACCESS = window.debugPanelAccess === true;
+const DEBUG_PANEL_ACCESS = typeof window === 'undefined'
+  ? true
+  : window.debugPanelAccess !== false;
 
 function disableMobileZoomGestures() {
   if (!IS_MOBILE) return;
