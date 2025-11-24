@@ -6,6 +6,7 @@
   "scripts": {
     "build": "esbuild js/main.js --bundle --minify --sourcemap --outfile=dist/bundle.js",
     "build:dev": "esbuild js/main.js --bundle --sourcemap --outfile=dist/bundle.js",
+	"build:css": "esbuild css/style.css --minify --outfile=dist/style.css",
     "watch": "npm run build:dev -- --watch",
     "serve": "esbuild js/main.js --bundle --sourcemap --outfile=dist/bundle.js --servedir=. --watch"
   }
