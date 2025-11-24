@@ -1044,15 +1044,27 @@
   -webkit-text-fill-color: currentColor;
 }
 
-@media (hover: fine) and (pointer: fine) and (max-height: 850px) {
+@media (max-height: 850px) {
   .upg-sheet:not(.is-maxed) .upg-content,
   .upg-sheet.is-maxed .upg-content,
   .upg-sheet.is-locked-hidden .upg-content,
   .upg-sheet.is-unlock-short .upg-content,
   .upg-sheet.is-unlock-upgrade .upg-content {
     transform: none !important;
-    padding-top: 1.5rem !important;
-    padding-bottom: 1.5rem !important;
+    padding-top: 1.2rem !important;
+    padding-bottom: 1.2rem !important;
     justify-content: flex-start !important;
+  }
+
+  .upg-actions {
+    padding-top: 8px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    gap: 0.6rem;
+  }
+
+  .upg-actions .shop-close,
+  .upg-actions .shop-delve {
+    height: clamp(52px, 12vh, 86px);
+    font-size: clamp(18px, 3vw, 26px);
   }
 }
