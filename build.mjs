@@ -306,28 +306,31 @@ async function watchAll() {
   const { minify, sourcemap } = modeOptions("dev");
   await resetDistDir();
   const buildContext = await context(buildOptions({ minify, sourcemap }));
-
-  const onRebuild = async (error) => {
-    if (error) {
-      console.error(error);
-      return;
-    }
-  };
-
-  await buildContext.watch({ onRebuild });
+  await buildContext.watch();
   await copyStaticAssets();
 
+  const watchers = [];
+
   const staticTargets = [
-    { path: "favicon", recursive: true },
-    { path: "img", recursive: true },
-    { path: "sounds", recursive: true },
+    { path: "favicon", recursive: true, task: copyStaticAssets },
+    { path: "img", recursive: true, task: copyStaticAssets },
+    { path: "sounds", recursive: true, task: copyStaticAssets },
   ];
 
-  const watchers = staticTargets.map(({ path: target, recursive }) =>
-    watch(target, { recursive }, async () => {
-      await copyStaticAssets();
-    })
-  );
+  const sourceTargets = [
+    { path: "index.html", recursive: false, task: () => buildContext.rebuild() },
+  ];
+
+  const addWatcher = ({ path: target, recursive, task }) => {
+    if (!target) return;
+    watchers.push(
+      watch(target, { recursive }, async () => {
+        await task();
+      })
+    );
+  };
+
+  [...staticTargets, ...sourceTargets].forEach(addWatcher);
 
   process.on("SIGINT", async () => {
     await Promise.all([buildContext.dispose()]);
