@@ -45,20 +45,45 @@ Use `dist/` for uploads; the built files in the repo root are only for local pre
    ```bash
    npm run build
    ```
-2. Create (or reuse) a `gh-pages` worktree that mirrors the published branch:
+2. Create (or reuse) a `gh-pages` worktree that mirrors the published branch. A worktree is just another folder that Git manages for a specific branch so you can have the `main` code and the `gh-pages` branch checked out at the same time. Run this from the project root so Git places the worktree next to this folder:
    ```bash
    git worktree add -B gh-pages ../gh-pages origin/gh-pages
    ```
-3. Copy the new build output into that worktree and commit:
-   ```bash
-   rm -rf ../gh-pages/*
-   cp -r dist/* ../gh-pages/
-   cd ../gh-pages
-   git add .
-   git commit -m "Publish latest build"
-   git push origin gh-pages
-   cd -
-   ```
+3. Copy the new build output into that worktree and commit. Use whichever command set matches your shell:
+   - **PowerShell (Windows Terminal default):**
+     ```powershell
+     Remove-Item -Recurse -Force ../gh-pages/*
+     Copy-Item -Recurse dist/* ../gh-pages/
+     Set-Location ../gh-pages
+     git add .
+     git commit -m "Publish latest build"
+     git push origin gh-pages
+     Set-Location -
+     ```
+   - **Bash (macOS/Linux/Git Bash):**
+     ```bash
+     rm -rf ../gh-pages/*
+     cp -r dist/* ../gh-pages/
+     cd ../gh-pages
+     git add .
+     git commit -m "Publish latest build"
+     git push origin gh-pages
+     cd -
+     ```
+
+GitHub Pages will automatically serve whatever is on the `gh-pages` branch root, so repeating the steps above after each set of edits keeps the public site in sync with `npm run build` output.
+
+### Troubleshooting `npm run build`
+- Run all commands from the project root (the folder with `package.json`), not from the `gh-pages` worktree.
+- Install dependencies first:
+  ```bash
+  npm install
+  ```
+- If Windows reports a missing package like `besbuild`, delete `node_modules` and reinstall so `esbuild` is picked up correctly:
+  ```powershell
+  rd /s /q node_modules
+  npm install
+  ```
 
 GitHub Pages will automatically serve whatever is on the `gh-pages` branch root, so repeating the steps above after each set of edits keeps the public site in sync with `npm run build` output.
 
