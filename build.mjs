@@ -6,6 +6,7 @@ import path from "node:path";
 const { build, context, serve } = esbuild;
 
 const DIST_DIR = "dist";
+const APP_ENTRY = "app.js";
 
 function resolveDist(...segments) {
   return path.join(DIST_DIR, ...segments);
@@ -15,11 +16,6 @@ async function resetDistDir() {
   await fs.rm(DIST_DIR, { recursive: true, force: true });
   await fs.mkdir(DIST_DIR, { recursive: true });
 }
-
-const ENTRY_POINTS = {
-  bundle: "js/main.js",
-  styles: "css/imports.css",
-};
 
 function minifyHtmlChunk(chunk) {
   if (!chunk || !chunk.includes("<")) return chunk;
@@ -177,45 +173,109 @@ function htmlTemplateMinifierPlugin({ enabled }) {
   };
 }
 
+function collectOutputsByType(metafile) {
+  const outputs = metafile?.outputs || {};
+  const scripts = new Set();
+  const styles = new Set();
+
+  for (const [outfile, meta] of Object.entries(outputs)) {
+    if (outfile.endsWith(".js")) {
+      scripts.add(path.basename(outfile));
+    }
+    if (outfile.endsWith(".css")) {
+      styles.add(path.basename(outfile));
+    }
+    if (meta?.cssBundle) {
+      styles.add(path.basename(meta.cssBundle));
+    }
+  }
+
+  return { scripts: Array.from(scripts), styles: Array.from(styles) };
+}
+
+function injectAssets(template, { scripts, styles, minify }) {
+  let output = template
+    .replace(/<link[^>]+href="\.\/styles\.css"[^>]*>\s*/g, "")
+    .replace(/<script[^>]+src="\.\/bundle\.js"[^>]*><\/script>\s*/g, "");
+
+  const styleTags = styles
+    .map((file) => `  <link rel="stylesheet" href="./${file}">`)
+    .join("\n");
+  const scriptTags = scripts
+    .map((file) => `  <script type="module" src="./${file}"></script>`)
+    .join("\n");
+
+  if (styleTags) {
+    output = output.replace("</head>", `${styleTags}\n</head>`);
+  }
+
+  if (scriptTags) {
+    output = output.replace("</body>", `${scriptTags}\n</body>`);
+  }
+
+  return minify ? minifyHtmlChunk(output) : output;
+}
+
+function htmlOutputPlugin({ template, minify }) {
+  const templatePath = path.resolve(template);
+
+  return {
+    name: "html-output",
+    setup(build) {
+      build.onEnd(async (result) => {
+        if (result.errors.length) return;
+
+        const { scripts, styles } = collectOutputsByType(result.metafile);
+        const templateContents = await fs.readFile(templatePath, "utf8");
+        const html = injectAssets(templateContents, { scripts, styles, minify });
+        const outdir = build.initialOptions.outdir || DIST_DIR;
+        const outPath = path.join(outdir, "index.html");
+
+        await fs.mkdir(path.dirname(outPath), { recursive: true });
+        await fs.writeFile(outPath, html, "utf8");
+      });
+    },
+  };
+}
+
 function buildOptions({ minify, sourcemap }) {
   return {
-    entryPoints: ENTRY_POINTS,
+    entryPoints: [APP_ENTRY],
     entryNames: "[name]",
     bundle: true,
     outdir: DIST_DIR,
     minify,
     sourcemap,
-    loader: { ".css": "css" },
+    metafile: true,
+    loader: {
+      ".css": "css",
+      ".html": "text",
+      ".png": "file",
+      ".jpg": "file",
+      ".jpeg": "file",
+      ".webp": "file",
+      ".svg": "file",
+      ".ico": "file",
+      ".mp3": "file",
+      ".wav": "file",
+    },
+    assetNames: "assets/[name]-[hash]",
     external: ["img/*", "sounds/*", "favicon/*"],
-    plugins: [htmlTemplateMinifierPlugin({ enabled: minify })],
+    logOverride: { "ignored-bare-import": "silent" },
+    plugins: [
+      htmlTemplateMinifierPlugin({ enabled: minify }),
+      htmlOutputPlugin({ template: "index.html", minify }),
+    ],
   };
 }
 
 async function buildAssets({ minify, sourcemap }) {
   await build(buildOptions({ minify, sourcemap }));
 }
-
-async function copyOutputsToRoot() {
-  const assets = ["bundle.js", "bundle.js.map", "styles.css", "styles.css.map"];
-  await Promise.all(
-    assets.map(async (asset) => {
-      try {
-        await fs.access(resolveDist(asset));
-        await fs.cp(resolveDist(asset), asset, { force: true });
-      } catch (err) {
-        if (err.code !== "ENOENT") {
-          throw err;
-        }
-      }
-    })
-  );
-}
-
-async function copyStatic() {
+async function copyStaticAssets() {
   await fs.mkdir(DIST_DIR, { recursive: true });
 
   const tasks = [
-    fs.cp("index.html", resolveDist("index.html"), { force: true }),
     fs.cp("favicon", resolveDist("favicon"), { recursive: true, force: true }),
     fs.cp("img", resolveDist("img"), { recursive: true, force: true }),
     fs.cp("sounds", resolveDist("sounds"), { recursive: true, force: true }),
@@ -234,8 +294,7 @@ function modeOptions(mode) {
 async function buildAll({ mode = "dev" } = {}) {
   const { minify, sourcemap } = modeOptions(mode);
   await resetDistDir();
-  await Promise.all([buildAssets({ minify, sourcemap }), copyStatic()]);
-  await copyOutputsToRoot();
+  await Promise.all([buildAssets({ minify, sourcemap }), copyStaticAssets()]);
 }
 
 async function watchAll() {
@@ -248,15 +307,12 @@ async function watchAll() {
       console.error(error);
       return;
     }
-    await copyOutputsToRoot();
   };
 
   await buildContext.watch({ onRebuild });
-  await copyStatic();
-  await copyOutputsToRoot();
+  await copyStaticAssets();
 
   const staticTargets = [
-    { path: "index.html", recursive: false },
     { path: "favicon", recursive: true },
     { path: "img", recursive: true },
     { path: "sounds", recursive: true },
@@ -264,7 +320,7 @@ async function watchAll() {
 
   const watchers = staticTargets.map(({ path: target, recursive }) =>
     watch(target, { recursive }, async () => {
-      await copyStatic();
+      await copyStaticAssets();
     })
   );
 
