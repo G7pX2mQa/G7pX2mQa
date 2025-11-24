@@ -391,12 +391,37 @@ async function serveAll({ mode = "dev" } = {}) {
   const { minify, sourcemap } = modeOptions(mode);
   await resetDistDir();
   const buildContext = await context(buildOptions({ minify, sourcemap }));
-  await buildContext.rebuild();
+  await buildContext.watch();
   await copyStaticAssets();
+
+  const watchers = [];
+
+  const staticTargets = [
+    { path: "favicon", recursive: true, task: copyStaticAssets },
+    { path: "img", recursive: true, task: copyStaticAssets },
+    { path: "sounds", recursive: true, task: copyStaticAssets },
+  ];
+
+  const sourceTargets = [
+    { path: "index.html", recursive: false, task: () => buildContext.rebuild() },
+  ];
+
+  const addWatcher = ({ path: target, recursive, task }) => {
+    if (!target) return;
+    watchers.push(
+      watch(target, { recursive }, async () => {
+        await task();
+      })
+    );
+  };
+
+  [...staticTargets, ...sourceTargets].forEach(addWatcher);
+
   const server = await buildContext.serve({ servedir: DIST_DIR, port: 8000 });
   process.on("SIGINT", async () => {
-    await buildContext.dispose();
+    await Promise.all([buildContext.dispose()]);
     server.stop();
+    watchers.forEach((w) => w.close());
     process.exit(0);
   });
   // Keep process alive
