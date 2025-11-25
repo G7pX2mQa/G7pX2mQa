@@ -21,3 +21,5 @@ npm install
 node build.mjs serve
 ```
 Then open your browser and visit localhost:8000 to play locally.
+
+If the localhost ever crashes, just run `node build.mjs serve` again to get it running again.
