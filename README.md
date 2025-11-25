@@ -20,4 +20,4 @@ With Node.js installed, download the repo as a ZIP, extract all files, and open 
 npm install
 node build.mjs serve
 ```
-Then go to [localhost](http://localhost:8000/) and you will be able to play locally.
+Then go to [localhost:8000](http://localhost:8000/) and you will be able to play locally.
