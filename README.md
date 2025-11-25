@@ -1,3 +1,5 @@
+*include the following section for the prod repo*
+
 # Debug Panel Access
 To enable the in-game debug panel, open your browser console and run:
 
@@ -9,6 +11,8 @@ This will allow you to view and modify game values for testing.
 ANY modification of stats, currencies, upgrade levels, or other save data through the debug panel will permanently mark the save slot as modified. If the slot is marked as modified, its shop button will permanently turn from a fresh green to a poopy brown, which I like to call the poop-shop of shame.
 
 Normal gameplay is unaffected unless you choose to modify values.
+
+*include the following section for the source code repo*
 
 # Local Setup
 
