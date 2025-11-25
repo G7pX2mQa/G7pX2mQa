@@ -41,7 +41,7 @@ function main() {
     .trim();
 
   ensureHooksPath(repoRoot);
-  console.log("Git hooks installed; pre-commit will sync bundles on js/ or css/ changes.");
+  console.log("Git hooks installed; pre-commit will rebuild bundles and stage outputs when js/ or css/ change.");
 }
 
 main();
