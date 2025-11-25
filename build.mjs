@@ -564,8 +564,7 @@ async function serveAll({ mode = "dev" } = {}) {
       (proxyRes) => {
         res.writeHead(proxyRes.statusCode || 500, {
           ...proxyRes.headers,
-          // Force dev requests to bypass caches so edits always load fresh assets.
-          "cache-control": "no-store, must-revalidate",
+          "cache-control": "public, max-age=31536000, immutable",
         });
         proxyRes.pipe(res, { end: true });
       }
