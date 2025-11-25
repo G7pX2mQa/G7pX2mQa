@@ -7,7 +7,8 @@
     "build": "node build.mjs build --prod",
     "build:dev": "node build.mjs build --dev",
     "watch": "node build.mjs watch",
-    "serve": "node build.mjs serve"
+    "serve": "node build.mjs serve",
+    "precommit": "npm run build"
   },
   "devDependencies": {
     "esbuild": "^0.27.0"
