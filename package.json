@@ -8,6 +8,7 @@
     "build:dev": "node build.mjs build --dev",
     "watch": "node build.mjs watch",
     "serve": "node build.mjs serve",
+    "prepare": "git config core.hooksPath .githooks",
     "precommit": "npm run sync-bundles",
     "sync-bundles": "sync-bundles.sh"
   },
