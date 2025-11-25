@@ -9,7 +9,7 @@
     "watch": "node build.mjs watch",
     "serve": "node build.mjs serve",
     "prepare": "node scripts/install-hooks.js",
-    "install-hooks": "node scripts/install-hooks.js",
+    "install-hooks": "node install-hooks.js",
     "precommit": "npm run sync-bundles",
     "sync-bundles": "./sync-bundles.sh"
   },
