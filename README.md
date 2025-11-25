@@ -12,7 +12,7 @@ Normal gameplay is unaffected unless you choose to modify values.
 
 # Local Setup
 
-Requires **Node.js**. If you don't have Node.js installed, install it at [Node.js](https://nodejs.org/).
+Requires **Node.js**. If you don't have Node.js installed, install it at [Node.js](https://nodejs.org/) (LTS suggested).
 
 With Node.js installed, open a terminal in the project root (where build.mjs lives) and run:
 
