@@ -1431,12 +1431,15 @@ export function openUpgradeOverlay(upgDef) {
     const desc = document.createElement('div');
     desc.className = 'upg-desc centered';
     if (lockHidden) desc.classList.add('lock-desc');
+
     const baseDesc = (model.displayDesc || model.upg.desc || '').trim();
+    const formattedDesc = baseDesc.replace(/\r?\n/g, '\\n');
+
     if (evolveReady) {
       desc.classList.add('hm-evolve-note');
       desc.textContent = 'Evolve this upgrade to multiply its effect by 1000x';
-    } else if (baseDesc) {
-      desc.textContent = baseDesc;
+    } else if (formattedDesc) {
+      desc.textContent = formattedDesc;
     } else {
       desc.hidden = true;
     }
