@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+changed_files="$(git diff --cached --name-only)"
+if ! printf '%s' "$changed_files" | grep -Eq '^(js|css)/'; then
+  # No human-readable asset changes staged; skip bundling
+  exit 0
+fi
+
+echo "Detected changes in js/ or css/. Running npm run sync-bundles..."
+npm run sync-bundles
+
+git add bundle.js bundle.js.map styles.css styles.css.map
