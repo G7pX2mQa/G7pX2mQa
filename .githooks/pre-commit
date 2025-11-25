@@ -5,12 +5,29 @@ repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
 changed_files="$(git diff --cached --name-only)"
-if ! printf '%s' "$changed_files" | grep -Eq '^(js|css)/'; then
-  # No human-readable asset changes staged; skip bundling
+js_changed=false
+css_changed=false
+
+if printf '%s\n' "$changed_files" | grep -Eq '^js/'; then
+  js_changed=true
+fi
+
+if printf '%s\n' "$changed_files" | grep -Eq '^css/'; then
+  css_changed=true
+fi
+
+if [ "$js_changed" = false ] && [ "$css_changed" = false ]; then
+  # No staged asset changes; skip rebuilding bundles
   exit 0
 fi
 
-echo "Detected changes in js/ or css/. Running npm run sync-bundles..."
-npm run sync-bundles
+echo "Detected staged changes in js/ or css/. Running npm run build to refresh bundles..."
+npm run build
 
-git add bundle.js bundle.js.map styles.css styles.css.map
+if [ "$js_changed" = true ]; then
+  git add bundle.js bundle.js.map
+fi
+
+if [ "$css_changed" = true ]; then
+  git add styles.css styles.css.map
+fi
