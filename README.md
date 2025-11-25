@@ -1,4 +1,4 @@
-*include the following section for the prod repo*
+***include the following section for the prod repo***
 
 # Debug Panel Access
 To enable the in-game debug panel, open your browser console and run:
@@ -12,7 +12,7 @@ ANY modification of stats, currencies, upgrade levels, or other save data throug
 
 Normal gameplay is unaffected unless you choose to modify values.
 
-*include the following section for the source code repo*
+***include the following section for the source code repo***
 
 # Local Setup
 
