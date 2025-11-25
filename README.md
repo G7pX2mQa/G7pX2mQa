@@ -1,4 +1,5 @@
-# CCC – Local Setup
+# CCC
+## Local Setup
 
 Requires **Node.js**.
 
