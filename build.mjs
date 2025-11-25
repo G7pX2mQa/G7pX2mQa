@@ -291,6 +291,137 @@ function htmlOutputPlugin({ template, minify }) {
   };
 }
 
+function escapeTemplateNewlines(content) {
+  const State = {
+    CODE: 0,
+    SINGLE: 1,
+    DOUBLE: 2,
+    TEMPLATE: 3,
+    TEMPLATE_EXPR_CODE: 4,
+    TEMPLATE_EXPR_SINGLE: 5,
+    TEMPLATE_EXPR_DOUBLE: 6,
+    TEMPLATE_EXPR_TEMPLATE: 7,
+  };
+
+  let state = State.CODE;
+  let braceDepth = 0;
+  let escaped = false;
+  let output = "";
+
+  for (let i = 0; i < content.length; i += 1) {
+    const ch = content[i];
+    const next = content[i + 1];
+
+    const emitEscapedNewline = () => {
+      output += "\\n";
+      if (ch === "\r" && next === "\n") {
+        i += 1;
+      }
+    };
+
+    switch (state) {
+      case State.CODE: {
+        if (ch === "'") { state = State.SINGLE; output += ch; break; }
+        if (ch === '"') { state = State.DOUBLE; output += ch; break; }
+        if (ch === "`") { state = State.TEMPLATE; output += ch; break; }
+        output += ch;
+        break;
+      }
+      case State.SINGLE: {
+        if (escaped) { escaped = false; output += ch; break; }
+        if (ch === "\\") { escaped = true; output += ch; break; }
+        output += ch;
+        if (ch === "'") state = State.CODE;
+        break;
+      }
+      case State.DOUBLE: {
+        if (escaped) { escaped = false; output += ch; break; }
+        if (ch === "\\") { escaped = true; output += ch; break; }
+        output += ch;
+        if (ch === '"') state = State.CODE;
+        break;
+      }
+      case State.TEMPLATE: {
+        if (escaped) { escaped = false; output += ch; break; }
+        if (ch === "\\") { escaped = true; output += ch; break; }
+        if (ch === "`") { state = State.CODE; output += ch; break; }
+        if (ch === "$" && next === "{") { state = State.TEMPLATE_EXPR_CODE; braceDepth = 1; output += "${"; i += 1; break; }
+        if (ch === "\n" || ch === "\r") { emitEscapedNewline(); break; }
+        output += ch;
+        break;
+      }
+      case State.TEMPLATE_EXPR_CODE: {
+        if (escaped) { escaped = false; output += ch; break; }
+        if (ch === "\\") { escaped = true; output += ch; break; }
+        if (ch === "'") { state = State.TEMPLATE_EXPR_SINGLE; output += ch; break; }
+        if (ch === '"') { state = State.TEMPLATE_EXPR_DOUBLE; output += ch; break; }
+        if (ch === "`") { state = State.TEMPLATE_EXPR_TEMPLATE; output += ch; break; }
+        if (ch === "{") { braceDepth += 1; output += ch; break; }
+        if (ch === "}") {
+          braceDepth -= 1;
+          output += ch;
+          if (braceDepth <= 0) state = State.TEMPLATE;
+          break;
+        }
+        output += ch;
+        break;
+      }
+      case State.TEMPLATE_EXPR_SINGLE: {
+        if (escaped) { escaped = false; output += ch; break; }
+        if (ch === "\\") { escaped = true; output += ch; break; }
+        output += ch;
+        if (ch === "'") state = State.TEMPLATE_EXPR_CODE;
+        break;
+      }
+      case State.TEMPLATE_EXPR_DOUBLE: {
+        if (escaped) { escaped = false; output += ch; break; }
+        if (ch === "\\") { escaped = true; output += ch; break; }
+        output += ch;
+        if (ch === '"') state = State.TEMPLATE_EXPR_CODE;
+        break;
+      }
+      case State.TEMPLATE_EXPR_TEMPLATE: {
+        if (escaped) { escaped = false; output += ch; break; }
+        if (ch === "\\") { escaped = true; output += ch; break; }
+        if (ch === "`") { state = State.TEMPLATE_EXPR_CODE; output += ch; break; }
+        if (ch === "$" && next === "{") { state = State.TEMPLATE_EXPR_CODE; braceDepth += 1; output += "${"; i += 1; break; }
+        if (ch === "\n" || ch === "\r") { emitEscapedNewline(); break; }
+        output += ch;
+        break;
+      }
+      default: {
+        output += ch;
+      }
+    }
+  }
+
+  return output;
+}
+
+function escapeNewlinesPlugin() {
+  return {
+    name: "escape-template-newlines",
+    setup(build) {
+      build.onEnd(async (result) => {
+        if (result.errors.length) return;
+        const outputs = Object.keys(result.metafile?.outputs || {}).filter((f) => f.endsWith(".js"));
+        if (!outputs.length) return;
+
+        await Promise.all(
+          outputs.map(async (outfile) => {
+            const resolved = path.isAbsolute(outfile) ? outfile : path.resolve(outfile);
+            const original = await fs.readFile(resolved, "utf8");
+            const escaped = escapeTemplateNewlines(original);
+            if (escaped !== original) {
+              await fs.writeFile(resolved, escaped, "utf8");
+            }
+          })
+        );
+      });
+    },
+  };
+}
+
 function buildOptions({ minify, sourcemap }) {
   return {
     entryPoints: { bundle: APP_ENTRY, styles: STYLES_ENTRY },
@@ -317,6 +448,7 @@ function buildOptions({ minify, sourcemap }) {
     external: ["img/*", "sounds/*", "favicon/*"],
     logOverride: { "ignored-bare-import": "silent" },
     plugins: [
+      escapeNewlinesPlugin(),
       htmlTemplateMinifierPlugin({ enabled: minify }),
       htmlOutputPlugin({ template: "index.html", minify }),
     ],
