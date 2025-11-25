@@ -27,8 +27,13 @@ A quick reference for working on this project: what to edit, how to build, and h
    - Open http://localhost:8000 after the server starts.
 4. Stop the watcher/server with `Ctrl+C` when done.
 
-5. Committing runs the production build automatically (via `npm run precommit`),
-  so `dist/` stays in sync with the source files.
+## Git hook for auto-rebuilds
+- First-time setup: point Git at the bundled hook scripts with
+  `git config core.hooksPath .githooks`.
+- The `pre-commit` hook watches staged files under `js/` or `css/`.
+  - If none changed, the hook exits immediately (no rebuild).
+  - If they did change, it runs `npm run sync-bundles` and stages the updated
+    bundles automatically before the commit proceeds.
 
 ## Tips
 - Always run commands from the project root (contains `package.json`).
