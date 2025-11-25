@@ -1,6 +1,7 @@
 import esbuild from "esbuild";
 import fs from "node:fs/promises";
 import { watch } from "node:fs";
+import http from "node:http";
 import path from "node:path";
 
 const { build, context, serve } = esbuild;
