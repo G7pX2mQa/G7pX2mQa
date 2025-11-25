@@ -27,19 +27,8 @@ A quick reference for working on this project: what to edit, how to build, and h
    - Open http://localhost:8000 after the server starts.
 4. Stop the watcher/server with `Ctrl+C` when done.
 
-## One-off Builds
-- Development build (with sourcemaps, no minification):
-  ```bash
-  npm run build:dev
-  ```
-- Production build (minified):
-  ```bash
-  npm run build
-  ```
-## Run ``npm run build`` before shipping or uploading anything so `dist/` matches what users will download.
-
-## Publishing to GitHub Pages
-...
+5. Committing runs the production build automatically (via `npm run precommit`),
+  so `dist/` stays in sync with the source files.
 
 ## Tips
 - Always run commands from the project root (contains `package.json`).
