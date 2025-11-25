@@ -307,7 +307,19 @@
   .panel-actions { transform: none; }
 }
 
+/* Mobile adjustments: keep header compact and button auto-sized */
 @media (max-width: 900px) {
   :is(html.has-opened, body.has-opened) .panel-header { flex-direction: row; align-items: center; }
   :is(html.has-opened, body.has-opened) .panel-actions .btn { width: auto; }
+}
+
+.menu-panel {
+  background: linear-gradient(
+    180deg,
+    rgba(14, 22, 34, 0.68),
+    rgba(10, 16, 26, 0.62)
+  ) !important;
+  border: 1px solid rgba(34, 43, 61, 0.40) !important;
+  backdrop-filter: saturate(1.05) blur(6px);
+  -webkit-backdrop-filter: saturate(1.05) blur(6px);
 }
