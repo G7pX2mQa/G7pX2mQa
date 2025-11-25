@@ -10,7 +10,7 @@
     "serve": "node build.mjs serve",
     "prepare": "git config core.hooksPath .githooks",
     "precommit": "npm run sync-bundles",
-    "sync-bundles": "sync-bundles.sh"
+    "sync-bundles": "./sync-bundles.sh"
   },
   "devDependencies": {
     "esbuild": "^0.27.0"
