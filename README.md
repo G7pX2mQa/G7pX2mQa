@@ -12,7 +12,7 @@ Normal gameplay is unaffected unless you choose to modify values.
 
 # Local Setup
 
-Requires **Node.js**. If you don't have Node.js installed, install it at [Node.js](https://nodejs.org/) (LTS suggested).
+Requires **Node.js**. If you don't have Node.js installed, install it at [https://nodejs.org/](https://nodejs.org/) (LTS suggested).
 
 With Node.js installed, download the repo as a ZIP, extract all files, and open a terminal in the project root (where build.mjs lives) and run:
 
@@ -20,4 +20,4 @@ With Node.js installed, download the repo as a ZIP, extract all files, and open 
 npm install
 node build.mjs serve
 ```
-Then go to [localhost:8000](http://localhost:8000/) and you will be able to play locally.
+Then open your browser and visit localhost:8000 to play locally.
