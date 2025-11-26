@@ -22,7 +22,6 @@
   opacity: .92;
 }
 
-/* ===== Title & Basic ===== */
 .game-title {
   font-size: var(--h1);
   letter-spacing: 0.5px;
@@ -322,4 +321,3 @@
   backdrop-filter: saturate(1.05) blur(6px);
   -webkit-backdrop-filter: saturate(1.05) blur(6px);
 }
-
