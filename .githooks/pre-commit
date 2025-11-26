@@ -21,13 +21,8 @@ if [ "$js_changed" = false ] && [ "$css_changed" = false ]; then
   exit 0
 fi
 
-echo "Detected staged changes in js/ or css/. Running npm run build to refresh bundles..."
-npm run build
+echo "Detected staged changes in js/ or css/. Running npm run sync-bundles to refresh tracked bundles..."
+npm run sync-bundles
 
-if [ "$js_changed" = true ]; then
-  git add bundle.js bundle.js.map
-fi
-
-if [ "$css_changed" = true ]; then
-  git add styles.css styles.css.map
-fi
+# Stage generated outputs so they are committed alongside the source changes
+git add bundle.js bundle.js.map styles.css styles.css.map
