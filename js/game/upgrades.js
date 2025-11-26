@@ -2123,7 +2123,7 @@ const REGISTRY = [
     title: "Faster Coins",
     desc: "Increases coin spawn rate by +10% per level",
     lvlCap: 10,
-    baseCost: 1e250,
+    baseCost: 1e25, // hmmmmmmmmmdifjuthiedrhutjidnjiruhdjtgiurjfktjuriftkrfjtir
     costType: "coins",
     upgType: "NM",
     icon: "sc_upgrade_icons/faster_coins.png",
@@ -3027,7 +3027,6 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
         useLockedBase: true,
       };
     } else {
-      // XP-adjacent tiles show as mysterious (“?”)
       baseState = {
         locked: true,
         iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
@@ -3041,7 +3040,6 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
       };
     }
   } else {
-    // Everyone else is a plain locked padlock (not mysterious / not clickable)
     baseState = {
       locked: true,
       iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
@@ -4112,6 +4110,7 @@ export function getHmNextMilestoneLevel(areaKey, upgId) {
 export function normalizeBigNum(value) {
   return bigNumFromLog10(approxLog10BigNum(value ?? 0));
 }
+
 
 
 
