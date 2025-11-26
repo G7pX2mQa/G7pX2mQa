@@ -6,6 +6,8 @@
     width: 600px;
     max-height: 100vh;
     overflow-y: auto;
+    scrollbar-gutter: stable;
+
     background: rgb(0, 0, 0);
     color: #fff;
     font-family: Arial, sans-serif;
@@ -17,6 +19,7 @@
     scrollbar-color: rgba(255, 255, 255, 0.22) rgba(0, 0, 0, 0.5);
     border: 1px solid white;
 }
+
 
 .debug-panel::-webkit-scrollbar,
 .debug-panel-section-content::-webkit-scrollbar,
@@ -249,7 +252,7 @@
 }
 
 .action-log-number {
-    color: #ffd54f;
+    color: #ffd700;
     font-weight: bold;
 }
 
@@ -350,6 +353,10 @@
 .debug-panel-toggle:hover {
     background: rgba(255, 255, 255, 0.12);
     transform: translateY(-1px);
+}
+
+.debug-panel-toggle.reset-check {
+    background: rgba(80, 200, 120, 0.85);
 }
 
 .debug-panel-toggle.debug-danger-button {
@@ -491,7 +498,7 @@
     top: 10px;
     left: 10px;
     z-index: 2147483647;
-    background: rgba(80, 200, 120, 0.85);
+    background: rgba(0, 0, 0, 0.85);
     color: #fff;
     border: 1px solid #666;
     border-radius: 4px;
@@ -556,4 +563,9 @@
 
 .debug-label-nowrap {
     white-space: nowrap;
+}
+
+.debug-panel-input.debug-reset-values-select {
+    box-sizing: border-box;
+    flex: 0 0 230px;
 }
