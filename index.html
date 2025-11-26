@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
     <title>CCC</title>
 
-    <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png" />
-    <link rel="shortcut icon" href="favicon/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png"/>
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png"/>
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png"/>
+    <link rel="shortcut icon" href="favicon/favicon.ico" type="image/x-icon"/>
 
     <script>
       (function () {
@@ -59,7 +59,7 @@
       document.documentElement.classList.add('booting');
     </script>
 
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css"/>
   </head>
 
   <body class="menu-bg">
@@ -104,25 +104,18 @@
     <main id="game-root" class="area area-cove" hidden>
       <div class="hud-top">
         <div class="coin-counter">
-          <img src="img/currencies/coin/coin_plus_base.png" alt="" class="coin-plus" />
+          <img src="img/currencies/coin/coin_plus_base.png" alt="" class="coin-plus"/>
           <div class="coin-bar">
             <span class="coin-amount">0</span>
           </div>
         </div>
 
         <div class="xp-counter" data-xp-hud hidden>
-          <img src="img/stats/xp/xp_plus_base.png" alt="" class="xp-plus" />
+          <img src="img/stats/xp/xp_plus_base.png" alt="" class="xp-plus"/>
 
-          <div
-            class="xp-bar"
-            role="progressbar"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            aria-valuenow="0"
-            aria-valuetext="0 / 10 XP"
-          >
+          <div class="xp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0 / 10 XP">
             <div class="xp-bar__fill" style="width: 0%"></div>
-
+			
             <div class="xp-bar__frame">
               <div class="xp-bar__level">
                 Level<span class="xp-level-value">0</span>
@@ -138,16 +131,9 @@
         </div>
 
         <div class="mp-counter" data-mp-hud hidden>
-          <img src="img/stats/mp/mp_plus_base.png" alt="" class="mp-plus" />
+          <img src="img/stats/mp/mp_plus_base.png" alt="" class="mp-plus"/>
 
-          <div
-            class="mp-bar"
-            role="progressbar"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            aria-valuenow="0"
-            aria-valuetext="0 / 10 MP"
-          >
+          <div class="mp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0 / 10 MP">
             <div class="mp-bar__fill" style="width: 0%"></div>
 
             <div class="mp-bar__frame">
@@ -184,4 +170,3 @@
     <script src="./bundle.js"></script>
   </body>
 </html>
-
