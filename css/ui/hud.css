@@ -54,7 +54,7 @@ transform: translateY(1px) scale(0.997);
 
 /* Desktop: crisp 1px stroke for text (where supported), plus light shadow */
 .game-btn {
--webkit-text-stroke: 1px #000; /* desktop outline */
+-webkit-text-stroke: 1px #fff; /* desktop outline */
 text-stroke: 1px #000;
 text-shadow: 0 1px 0 rgba(0,0,0,0.35); /* small helper shadow for browsers without stroke */
 }
@@ -704,3 +704,4 @@ background: linear-gradient(90deg,
 .coin-amount .infinity-symbol {
   top: -0.11em;
 }
+
