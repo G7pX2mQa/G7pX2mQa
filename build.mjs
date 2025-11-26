@@ -584,7 +584,7 @@ async function serveAll({ mode = "dev" } = {}) {
   });
 
   proxy.listen(8000, "0.0.0.0", () => {
-    console.log(`Serving ${DIST_DIR} at http://localhost:8000 (no-cache proxy)`);
+    console.log(`Serving ${DIST_DIR} at http://localhost:8000`);
   });
 
   const shutdown = async () => {
@@ -625,3 +625,4 @@ async function main() {
 }
 
 await main();
+
