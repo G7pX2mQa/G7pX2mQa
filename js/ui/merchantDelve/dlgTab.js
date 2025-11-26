@@ -1445,26 +1445,29 @@ function renderDialogueList() {
     const reward = document.createElement('div');
     reward.className = 'dlg-reward';
 
-    const iconSrc = REWARD_ICON_SRC[meta.reward?.type];
+    if (unlocked && meta.reward) {
+      const iconSrc = REWARD_ICON_SRC[meta.reward.type];
 
-    if (iconSrc) {
+      if (iconSrc) {
         reward.classList.add('has-reward');
-
         reward.innerHTML = `
-        <span class="reward-label">Reward:</span>
-        <span class="reward-chunk" style="--reward-icon: url('${iconSrc}')">
+          <span class="reward-label">Reward:</span>
+          <span class="reward-chunk" style="--reward-icon: url('${iconSrc}')">
             <span class="reward-icon" aria-hidden="true"></span>
             <span class="amt">${meta.reward.amount}</span>
-        </span>
-    `;
-	
+          </span>
+        `;
+
         reward.setAttribute(
-            'aria-label',
-			`Reward: ${meta.reward.amount} ${meta.reward.type}`);
-    } else if (meta.reward) {
+          'aria-label',
+          `Reward: ${meta.reward.amount} ${meta.reward.type}`
+        );
+      } else {
         reward.textContent = rewardLabel(meta.reward);
+      }
     } else {
-        reward.textContent = '';
+      reward.textContent = '';
+      reward.style.display = 'none';
     }
 
     const ariaLabel = unlocked
