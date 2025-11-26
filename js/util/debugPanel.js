@@ -2012,32 +2012,7 @@ function getUnlockRowDefinitions(slot) {
             },
             slot,
         },
-        {
-            labelText: 'Unlock MP',
-            description: 'If true, unlocks the MP system',
-            isUnlocked: () => {
-                try {
-                    const override = getForgeDebugOverrideState();
-                    if (override != null) return override;
-                } catch {}
-                try { return !!isForgeUnlocked(); }
-                catch { return false; }
-                return false;
-            },
-            onEnable: () => {
-                try { setForgeDebugOverride(true); }
-                catch {}
-                try { updateResetPanel(); }
-                catch {}
-            },
-            onDisable: () => {
-                try { setForgeDebugOverride(false); }
-                catch {}
-                try { updateResetPanel(); }
-                catch {}
-            },
-        },
-        {
+		{
             labelText: 'Unlock MP',
             description: 'If true, unlocks the MP system',
             isUnlocked: () => {
@@ -2061,6 +2036,31 @@ function getUnlockRowDefinitions(slot) {
                 catch {}
             },
             slot,
+        },
+        {
+            labelText: 'Unlock Forge',
+            description: 'If true, unlocks the Forge reset and Reset tab',
+            isUnlocked: () => {
+                try {
+                    const override = getForgeDebugOverrideState();
+                    if (override != null) return override;
+                } catch {}
+                try { return !!isForgeUnlocked(); }
+                catch { return false; }
+                return false;
+            },
+            onEnable: () => {
+                try { setForgeDebugOverride(true); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setForgeDebugOverride(false); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
         },
         {
             labelText: 'Unlock Shop',
