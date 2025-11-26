@@ -2123,7 +2123,7 @@ const REGISTRY = [
     title: "Faster Coins",
     desc: "Increases coin spawn rate by +10% per level",
     lvlCap: 10,
-    baseCost: 1e20, // this comment will be deleted soon.
+    baseCost: 1e2, // odkejhbruirokdixjufofreduejikfiurhdjikiojrofdkjnutijofrkdiu
     costType: "coins",
     upgType: "NM",
     icon: "sc_upgrade_icons/faster_coins.png",
@@ -4114,6 +4114,7 @@ export function getHmNextMilestoneLevel(areaKey, upgId) {
 export function normalizeBigNum(value) {
   return bigNumFromLog10(approxLog10BigNum(value ?? 0));
 }
+
 
 
 
