@@ -847,18 +847,24 @@ function createCompositeLockToggle(resolveKeys, { onToggle } = {}) {
     button.type = 'button';
     button.className = 'debug-lock-button';
 
-    const getKeys = () => Array.from(new Set((resolveKeys?.() ?? []).filter(Boolean)));
+    const getKeys = () =>
+        Array.from(new Set((resolveKeys?.() ?? []).filter(Boolean)));
 
     const isLocked = () => {
         const keys = getKeys();
         return keys.length > 0 && keys.every((key) => isStorageKeyLocked(key));
     };
 
+    const hasAnyLocked = () => {
+        const keys = getKeys();
+        return keys.length > 0 && keys.some((key) => isStorageKeyLocked(key));
+    };
+
     const refresh = () => {
         const keys = getKeys();
-        const locked = keys.length > 0 && keys.every((key) => isStorageKeyLocked(key));
-        button.textContent = locked ? 'L' : 'UL';
-        button.classList.toggle('locked', locked);
+        const anyLocked = hasAnyLocked();
+        button.textContent = anyLocked ? 'L' : 'UL';
+        button.classList.toggle('locked', anyLocked);
         button.disabled = keys.length === 0;
     };
 
