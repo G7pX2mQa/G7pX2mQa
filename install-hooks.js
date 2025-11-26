@@ -20,6 +20,12 @@ function ensureHooksPath(repoRoot) {
   const linkPath = path.join(hooksDir, "pre-commit");
 
   try {
+    fs.chmodSync(target, 0o755);
+  } catch (err) {
+    console.warn("Could not make pre-commit hook executable:", err?.message ?? err);
+  }
+  
+  try {
     const stats = fs.lstatSync(linkPath);
     const isSymlink = stats.isSymbolicLink();
     const pointsToTarget = isSymlink && fs.readlinkSync(linkPath) === target;
