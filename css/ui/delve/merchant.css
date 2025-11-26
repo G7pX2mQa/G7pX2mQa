@@ -515,24 +515,19 @@
 
 .dlg-reward .reward-label { opacity: .85; margin-right: 3px; }
 
-.dlg-reward .coin { display: inline-flex; align-items: center; gap: 2px; }
-.dlg-reward .coin-icon {
-  width: 0.85em;
-  height: 0.85em;
-  flex: 0 0 0.85em;
-  background: url('img/currencies/coin/coin.png') center / contain no-repeat;
-  position: relative;
-  top: 1px;
+.dlg-reward .reward-chunk {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
-.dlg-reward .book { display: inline-flex; align-items: center; gap: 2px; }
-.dlg-reward .book-icon {
+.dlg-reward .reward-icon {
   width: 0.85em;
   height: 0.85em;
   flex: 0 0 0.85em;
-  background: url('img/currencies/coin/coin.png') center / contain no-repeat;
   position: relative;
   top: 1px;
+  background: var(--reward-icon) center / contain no-repeat;
 }
 
 .dlg-card.is-complete .dlg-title,
