@@ -553,3 +553,7 @@
 .debug-unlock-row:hover {
     cursor: pointer;
 }
+
+.debug-label-nowrap {
+    white-space: nowrap;
+}
