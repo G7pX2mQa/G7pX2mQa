@@ -2738,7 +2738,7 @@ function buildMiscContent(content) {
     const resetRow = document.createElement('div');
     resetRow.className = 'debug-panel-row';
     const resetLabel = document.createElement('label');
-    resetLabel.textContent = 'Reset Values & Multis:';
+    resetLabel.textContent = 'Reset Values & Multis For:';
     resetRow.appendChild(resetLabel);
 
     const resetSelect = document.createElement('select');
@@ -2783,9 +2783,10 @@ function buildMiscContent(content) {
     allOption.textContent = 'All';
     resetSelect.appendChild(allOption);
 
-    const resolveResetLockKeys = () => getResetTargetLockKeys(resetSelect.value || 'all', getActiveSlot());
-    const resetLockToggle = createCompositeLockToggle(resolveResetLockKeys);
-    resetSelect.addEventListener('change', () => resetLockToggle.refresh());
+    const resolveResetLockKeys = () =>
+    getResetTargetLockKeys('all', getActiveSlot());
+
+	const resetLockToggle = createCompositeLockToggle(resolveResetLockKeys);
 
     resetRow.appendChild(resetSelect);
     resetRow.appendChild(resetLockToggle.button);
@@ -2820,24 +2821,52 @@ function buildMiscContent(content) {
     wipeSlotBtn.className = 'debug-panel-toggle debug-danger-button';
     wipeSlotBtn.textContent = 'Wipe Slot & Refresh';
     wipeSlotBtn.addEventListener('click', () => {
-        const confirmWipe = window.confirm?.('Are you sure you want to wipe current slot data and refresh the page? This cannot be undone.');
+        const confirmWipe = window.confirm?.(
+            'Are you sure you want to wipe current slot data and refresh the page? This cannot be undone.'
+        );
         if (!confirmWipe) return;
+
+        try {
+            const menuRoot = document.querySelector('.menu-root');
+            const gameRoot = document.getElementById('game-root');
+
+            if (menuRoot) {
+                menuRoot.hidden = false;
+                menuRoot.style.display = '';
+                menuRoot.style.visibility = '';
+            }
+            if (gameRoot) {
+                gameRoot.hidden = true;
+                gameRoot.style.display = 'none';
+            }
+
+            try {
+                window.dispatchEvent(
+                    new CustomEvent('menu:visibilityChange', { detail: { visible: true } }),
+                );
+            } catch {}
+        } catch {}
 
         const suffix = `:${slot}`;
         const keysToRemove = [];
         try {
-            for (let i = 0; i < localStorage.length; i += 1) {
-                const key = localStorage.key(i);
+            const storage = localStorage;
+            for (let i = 0; i < storage.length; i += 1) {
+                const key = storage.key(i);
                 if (key?.startsWith('ccc:') && key.endsWith(suffix)) {
                     keysToRemove.push(key);
                 }
             }
-            keysToRemove.forEach((key) => localStorage.removeItem(key));
+            keysToRemove.forEach((key) => storage.removeItem(key));
         } catch {}
 
-        flagDebugUsage();
-        logAction(`Wiped ${keysToRemove.length} storage keys for slot ${slot} and refreshed.`);
-        try { window.location.reload(); } catch {}
+        try {
+            setTimeout(() => {
+                try { window.location.reload(); } catch {}
+            }, 100);
+        } catch {
+            try { window.location.reload(); } catch {}
+        }
     });
     actionLogRow.appendChild(wipeSlotBtn);
 
