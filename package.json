@@ -8,7 +8,6 @@
     "build:dev": "node build.mjs build --dev",
     "watch": "node build.mjs watch",
     "serve": "node build.mjs serve",
-    "prepare": "node install-hooks.js",
     "install-hooks": "node install-hooks.js",
     "precommit": "npm run sync-bundles",
     "sync-bundles": "./sync-bundles.sh"
