@@ -2123,7 +2123,7 @@ const REGISTRY = [
     title: "Faster Coins",
     desc: "Increases coin spawn rate by +10% per level",
     lvlCap: 10,
-    baseCost: 1e250, // skwurfowsjirfokjug8ioekidjurfoekjuderiokrdujieokfrij
+    baseCost: 1e250,
     costType: "coins",
     upgType: "NM",
     icon: "sc_upgrade_icons/faster_coins.png",
@@ -2417,8 +2417,6 @@ for (const upg of REGISTRY) {
   upg.bulkMeta = computeBulkMeta(upg);
   ensureUpgradeScaling(upg);
 }
-
-/* ----------------------- Storage (per slot, per area) ---------------------- */
 
 const areaStatePayloadCache = new Map(); // key → last serialized payload
 const areaStateMemoryCache = new Map(); // key → last parsed array reference
@@ -4114,6 +4112,7 @@ export function getHmNextMilestoneLevel(areaKey, upgId) {
 export function normalizeBigNum(value) {
   return bigNumFromLog10(approxLog10BigNum(value ?? 0));
 }
+
 
 
 
