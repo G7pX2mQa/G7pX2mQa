@@ -37,6 +37,7 @@ import { markGhostTapTarget, shouldSkipGhostTap } from './ghostTapGuard.js';
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
+const DEBUG_PANEL_DROPDOWN_GHOST_TAP_MS = 320;
 let debugPanelOpen = false;
 let debugPanelAccess = false;
 let debugPanelCleanups = [];
@@ -295,6 +296,25 @@ function ensureDebugPanelStyles() {
     link.href = 'css/misc/debug.css';
     link.id = DEBUG_PANEL_STYLE_ID;
     document.head.appendChild(link);
+}
+
+function applyMobileGhostTapToDropdown(select) {
+    if (!select || !IS_MOBILE || typeof window === 'undefined') return;
+
+    const mark = () => markGhostTapTarget(select, DEBUG_PANEL_DROPDOWN_GHOST_TAP_MS);
+    const hasPointerEvents = 'PointerEvent' in window;
+
+    if (hasPointerEvents) {
+        select.addEventListener('pointerdown', (event) => {
+            if (event.pointerType === 'mouse') return;
+            if (typeof event.button === 'number' && event.button !== 0) return;
+            mark();
+        }, { passive: true });
+    } else {
+        select.addEventListener('touchstart', mark, { passive: true });
+    }
+
+    select.addEventListener('click', mark, { passive: true });
 }
 
 function removeDebugPanelToggleButton() {
@@ -1304,6 +1324,7 @@ function createCalculatorRow({ labelText, inputs = [], compute }) {
                 select.appendChild(option);
             });
             select.addEventListener('change', recompute);
+            applyMobileGhostTapToDropdown(select);
             controls.appendChild(select);
             fieldEls.push({ config, el: select });
         } else {
@@ -2541,6 +2562,7 @@ function buildMiscContent(content) {
 
     const resetSelect = document.createElement('select');
     resetSelect.className = 'debug-panel-input';
+    applyMobileGhostTapToDropdown(resetSelect);
 
     getAreas().forEach((area) => {
         const group = document.createElement('optgroup');
