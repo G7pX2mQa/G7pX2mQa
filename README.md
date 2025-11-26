@@ -5,6 +5,8 @@ To enable the in-game debug panel, open your browser console and run:
 
 `setDebugPanelAccess(true)`
 
+To open the debug panel, simply press C on your keyboard.
+
 This will allow you to view and modify game values for testing.
 
 ⚠️ Note:
