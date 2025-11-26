@@ -25,22 +25,21 @@
 .game-title {
   font-size: var(--h1);
   letter-spacing: 0.5px;
-  color: #ffeb3b; /* your bright yellow */
-  -webkit-text-stroke: 2px black; /* crisp desktop outline */
+  color: #ffeb3b;
+  -webkit-text-stroke: 2px black;
   text-stroke: 2px black;
   user-select: none;
 }
 
-/* Touch / coarse pointer devices (mobile + tablets like iPads) */
 @media (pointer: coarse) {
   .game-title {
-    -webkit-text-stroke: 0; /* remove harsh stroke */
+    -webkit-text-stroke: 0;
     text-stroke: 0;
     text-shadow:
       1px 1px 0 black,
       -1px 1px 0 black,
       1px -1px 0 black,
-      -1px -1px 0 black; /* clean simulated outline */
+      -1px -1px 0 black;
   }
 }
 
@@ -321,3 +320,4 @@
   backdrop-filter: saturate(1.05) blur(6px);
   -webkit-backdrop-filter: saturate(1.05) blur(6px);
 }
+
