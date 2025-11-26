@@ -37,7 +37,6 @@ import { markGhostTapTarget, shouldSkipGhostTap } from './ghostTapGuard.js';
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
-const DEBUG_PANEL_DROPDOWN_GHOST_TAP_MS = 320;
 let debugPanelOpen = false;
 let debugPanelAccess = false;
 let debugPanelCleanups = [];
@@ -301,7 +300,7 @@ function ensureDebugPanelStyles() {
 function applyMobileGhostTapToDropdown(select) {
     if (!select || !IS_MOBILE || typeof window === 'undefined') return;
 
-    const mark = () => markGhostTapTarget(select, DEBUG_PANEL_DROPDOWN_GHOST_TAP_MS);
+    const mark = () => markGhostTapTarget(select, 0);
     const hasPointerEvents = 'PointerEvent' in window;
 
     if (hasPointerEvents) {
@@ -2690,7 +2689,7 @@ function buildMiscContent(content) {
     const resetRow = document.createElement('div');
     resetRow.className = 'debug-panel-row';
     const resetLabel = document.createElement('label');
-    resetLabel.textContent = 'Reset Values & Multis For';
+    resetLabel.textContent = 'Reset Values & Multis:';
     resetRow.appendChild(resetLabel);
 
     const resetSelect = document.createElement('select');
@@ -2745,7 +2744,7 @@ function buildMiscContent(content) {
     const resetBtn = document.createElement('button');
     resetBtn.type = 'button';
     resetBtn.className = 'debug-panel-toggle';
-    resetBtn.textContent = 'Reset';
+    resetBtn.textContent = '✅';
     resetBtn.addEventListener('click', () => {
         const target = resetSelect.value || 'all';
         const lockKeys = resolveResetLockKeys();
