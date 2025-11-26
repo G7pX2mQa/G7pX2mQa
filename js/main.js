@@ -360,38 +360,6 @@ function enterArea(areaID) {
 document.addEventListener('DOMContentLoaded', async () => {
   const loader = showLoader('Loading assets...');
 
-  if (window.__MAINTENANCE__) {
-    const message = window.__MAINTENANCE_MESSAGE || 'Update in progress. Please wait a few minutes.';
-    if (loader?.__label) {
-      loader.__label.textContent = message;
-    }
-    if (loader?.__stuckTimeout) {
-      clearTimeout(loader.__stuckTimeout);
-      loader.__stuckTimeout = null;
-    }
-    if (loader?.__pct) {
-      loader.__pct.remove();
-      loader.__pct = null;
-    }
-    if (loader?.__bar) {
-      loader.__bar.remove();
-      loader.__bar = null;
-    }
-    if (loader?.__fill) {
-      loader.__fill = null;
-    }
-    if (loader?.__stuckMsg) {
-      loader.__stuckMsg.remove();
-      loader.__stuckMsg = null;
-    }
-    if (loader?.__wrap) {
-      loader.__wrap.style.display = 'grid';
-      loader.__wrap.style.gap = '18px';
-    }
-    document.documentElement.classList.remove('booting');
-    return;
-  }
-
   await nextFrame();
 
   const modulePromise = Promise.all([
