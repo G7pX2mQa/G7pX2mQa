@@ -355,11 +355,32 @@ function createSection(title, contentId, contentBuilder) {
     contentBuilder(content);
     section.appendChild(content);
 
-    toggle.addEventListener('click', () => {
+    let lastPointerType = null;
+
+    const handleToggle = (event) => {
+        if (event?.isTrusted && shouldSkipGhostTap(toggle)) return;
+        markGhostTapTarget(toggle);
         const expanded = toggle.classList.toggle('expanded');
         content.classList.toggle('active', expanded);
-    });
+    };
 
+    if (typeof window !== 'undefined' && 'PointerEvent' in window) {
+        toggle.addEventListener('pointerdown', (event) => {
+            lastPointerType = event.pointerType || null;
+            if (event.pointerType === 'mouse') return;
+            event.preventDefault();
+            handleToggle(event);
+        });
+    }
+
+    toggle.addEventListener('click', (event) => {
+        if (lastPointerType && lastPointerType !== 'mouse') {
+            lastPointerType = null;
+            return;
+        }
+        lastPointerType = null;
+        handleToggle(event);
+    });
 
     return section;
 }
@@ -382,9 +403,31 @@ function createSubsection(title, contentBuilder, { defaultExpanded = false } = {
     contentBuilder(content);
     container.appendChild(content);
 
-    toggle.addEventListener('click', () => {
+    let lastPointerType = null;
+
+    const handleToggle = (event) => {
+        if (event?.isTrusted && shouldSkipGhostTap(toggle)) return;
+        markGhostTapTarget(toggle);
         const expanded = toggle.classList.toggle('expanded');
         content.classList.toggle('active', expanded);
+    };
+
+    if (typeof window !== 'undefined' && 'PointerEvent' in window) {
+        toggle.addEventListener('pointerdown', (event) => {
+            lastPointerType = event.pointerType || null;
+            if (event.pointerType === 'mouse') return;
+            event.preventDefault();
+            handleToggle(event);
+        });
+    }
+
+    toggle.addEventListener('click', (event) => {
+        if (lastPointerType && lastPointerType !== 'mouse') {
+            lastPointerType = null;
+            return;
+        }
+        lastPointerType = null;
+        handleToggle(event);
     });
 
     if (defaultExpanded) {
@@ -2699,7 +2742,7 @@ function buildMiscContent(content) {
     resetRow.appendChild(resetLabel);
 
     const resetSelect = document.createElement('select');
-    resetSelect.className = 'debug-panel-input';
+    resetSelect.className = 'debug-panel-input debug-reset-values-select';
     applyMobileGhostTapToDropdown(resetSelect);
 
     getAreas().forEach((area) => {
@@ -2749,7 +2792,7 @@ function buildMiscContent(content) {
 
     const resetBtn = document.createElement('button');
     resetBtn.type = 'button';
-    resetBtn.className = 'debug-panel-toggle';
+    resetBtn.className = 'debug-panel-toggle reset-check';
     resetBtn.textContent = '✅';
     resetBtn.addEventListener('click', () => {
         const target = resetSelect.value || 'all';
