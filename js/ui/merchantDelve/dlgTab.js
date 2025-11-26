@@ -51,6 +51,11 @@ const merchantTabUnlockState = new Map([
   ['minigames', false],
 ]);
 
+const REWARD_ICON_SRC = {
+  coins: 'img/currencies/coin/coin.png',
+  books: 'img/currencies/book/book.png',
+};
+
 const MYSTERIOUS_ICON_SRC = 'img/misc/mysterious.png';
 const HIDDEN_DIALOGUE_TITLE = 'Hidden Dialogue';
 const LOCKED_DIALOGUE_TITLE = 'Locked Dialogue';
@@ -1439,32 +1444,27 @@ function renderDialogueList() {
 
     const reward = document.createElement('div');
     reward.className = 'dlg-reward';
-    if (unlocked && meta.reward) {
-      if (meta.reward.type === 'coins') {
+
+    const iconSrc = REWARD_ICON_SRC[meta.reward?.type];
+
+    if (iconSrc) {
         reward.classList.add('has-reward');
+
         reward.innerHTML = `
-          <span class="reward-label">Reward:</span>
-          <span class="coin">
-            <span class="coin-icon" aria-hidden="true"></span>
+        <span class="reward-label">Reward:</span>
+        <span class="reward-chunk" style="--reward-icon: url('${iconSrc}')">
+            <span class="reward-icon" aria-hidden="true"></span>
             <span class="amt">${meta.reward.amount}</span>
-          </span>
-        `;
-        reward.setAttribute('aria-label', `Reward: ${meta.reward.amount} coins`);
-      } else if (meta.reward.type === 'books') {
-        reward.classList.add('has-reward');
-        reward.innerHTML = `
-          <span class="reward-label">Reward:</span>
-          <span class="book">
-            <span class="book-icon" aria-hidden="true"></span>
-            <span class="amt">${meta.reward.amount}</span>
-          </span>
-        `;
-        reward.setAttribute('aria-label', `Reward: ${meta.reward.amount} Books`);
-      } else {
+        </span>
+    `;
+	
+        reward.setAttribute(
+            'aria-label',
+			`Reward: ${meta.reward.amount} ${meta.reward.type}`);
+    } else if (meta.reward) {
         reward.textContent = rewardLabel(meta.reward);
-      }
     } else {
-      reward.textContent = '';
+        reward.textContent = '';
     }
 
     const ariaLabel = unlocked
