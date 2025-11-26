@@ -843,6 +843,51 @@ function createLockToggle(storageKey, { onToggle } = {}) {
     return { button, refresh };
 }
 
+function createCompositeLockToggle(resolveKeys, { onToggle } = {}) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'debug-lock-button';
+
+    const getKeys = () => Array.from(new Set((resolveKeys?.() ?? []).filter(Boolean)));
+
+    const isLocked = () => {
+        const keys = getKeys();
+        return keys.length > 0 && keys.every((key) => isStorageKeyLocked(key));
+    };
+
+    const refresh = () => {
+        const keys = getKeys();
+        const locked = keys.length > 0 && keys.every((key) => isStorageKeyLocked(key));
+        button.textContent = locked ? 'L' : 'UL';
+        button.classList.toggle('locked', locked);
+        button.disabled = keys.length === 0;
+    };
+
+    button.addEventListener('click', () => {
+        const keys = getKeys();
+        if (keys.length === 0) return;
+
+        const locked = isLocked();
+        keys.forEach((key) => {
+            if (locked) {
+                unlockStorageKey(key);
+            } else {
+                lockStorageKey(key);
+            }
+        });
+
+        if (typeof onToggle === 'function') {
+            try { onToggle(isLocked()); }
+            catch {}
+        }
+
+        refresh();
+    });
+
+    refresh();
+    return { button, refresh, isLocked };
+}
+
 applyAllCurrencyOverridesForActiveSlot();
 ensureCurrencyOverrideListener();
 
@@ -861,6 +906,24 @@ function collapseAllDebugCategories() {
         const content = toggle.nextElementSibling;
         if (content) content.classList.remove('active');
     });
+}
+
+function withTemporaryUnlock(keys, fn) {
+    const uniqueKeys = Array.from(new Set((keys ?? []).filter(Boolean)));
+    const relock = [];
+
+    uniqueKeys.forEach((key) => {
+        if (isStorageKeyLocked(key)) {
+            relock.push(key);
+            unlockStorageKey(key);
+        }
+    });
+
+    try {
+        return fn?.();
+    } finally {
+        relock.forEach((key) => lockStorageKey(key));
+    }
 }
 
 function formatBigNumForInput(value) {
@@ -2049,6 +2112,76 @@ function lockAllUnlockUpgrades() {
     return { locks: locked, toggles: toggled };
 }
 
+function getResetTargetLockKeys(target, slot = getActiveSlot()) {
+    const resolvedSlot = slot ?? getActiveSlot();
+    if (resolvedSlot == null) return [];
+
+    const keys = new Set();
+    const add = (key) => { if (key) keys.add(key); };
+
+    const addCurrencyKeys = (currencyKey) => {
+        add(getCurrencyStorageKey(currencyKey, resolvedSlot));
+        add(getCurrencyMultiplierStorageKey(currencyKey, resolvedSlot));
+    };
+
+    const addStatMultiplier = (statKey) => add(getStatMultiplierStorageKey(statKey, resolvedSlot));
+
+    const addStatKeys = (statKey) => {
+        addStatMultiplier(statKey);
+        if (statKey === 'xp' || statKey === 'xpLevel' || statKey === 'xpProgress') {
+            add(XP_KEYS.level(resolvedSlot));
+            add(XP_KEYS.progress(resolvedSlot));
+        }
+        if (statKey === 'mutation' || statKey === 'mp' || statKey === 'mpLevel' || statKey === 'mpProgress') {
+            add(MUTATION_KEYS.level(resolvedSlot));
+            add(MUTATION_KEYS.progress(resolvedSlot));
+        }
+    };
+
+    if (target === 'all') {
+        Object.values(CURRENCIES).forEach(addCurrencyKeys);
+        addStatKeys('xp');
+        addStatKeys('mutation');
+        STAT_MULTIPLIERS.forEach(({ key }) => addStatMultiplier(key));
+        return Array.from(keys);
+    }
+
+    if (target === 'allCurrencies') {
+        Object.values(CURRENCIES).forEach(addCurrencyKeys);
+        return Array.from(keys);
+    }
+
+    if (target === 'allUnlockedStats') {
+        if (getXpState()?.unlocked) addStatKeys('xp');
+        if (getMutationState()?.unlocked) addStatKeys('mutation');
+        return Array.from(keys);
+    }
+
+    if (target === 'allUnlocked') {
+        Object.values(CURRENCIES).forEach(addCurrencyKeys);
+        if (getXpState()?.unlocked) addStatKeys('xp');
+        if (getMutationState()?.unlocked) addStatKeys('mutation');
+        return Array.from(keys);
+    }
+
+    if (target.startsWith('currency:')) {
+        addCurrencyKeys(target.slice('currency:'.length));
+        return Array.from(keys);
+    }
+
+    if (target.startsWith('statmult:')) {
+        addStatMultiplier(target.slice('statmult:'.length));
+        return Array.from(keys);
+    }
+
+    if (target.startsWith('stat:')) {
+        addStatKeys(target.slice('stat:'.length));
+        return Array.from(keys);
+    }
+
+    return Array.from(keys);
+}
+
 function resetCurrencyAndMultiplier(currencyKey) {
     try {
         // Reset the banked amount
@@ -2602,7 +2735,12 @@ function buildMiscContent(content) {
     allOption.textContent = 'All';
     resetSelect.appendChild(allOption);
 
+    const resolveResetLockKeys = () => getResetTargetLockKeys(resetSelect.value || 'all', getActiveSlot());
+    const resetLockToggle = createCompositeLockToggle(resolveResetLockKeys);
+    resetSelect.addEventListener('change', () => resetLockToggle.refresh());
+
     resetRow.appendChild(resetSelect);
+    resetRow.appendChild(resetLockToggle.button);
 
     const resetBtn = document.createElement('button');
     resetBtn.type = 'button';
@@ -2610,7 +2748,15 @@ function buildMiscContent(content) {
     resetBtn.textContent = 'Reset';
     resetBtn.addEventListener('click', () => {
         const target = resetSelect.value || 'all';
-        const { label, count } = resetStatsAndMultipliers(target) ?? { label: target, count: 0 };
+        const lockKeys = resolveResetLockKeys();
+        const shouldRelock = resetLockToggle.isLocked();
+        const result = withTemporaryUnlock(lockKeys, () => resetStatsAndMultipliers(target))
+            ?? { label: target, count: 0 };
+        if (shouldRelock) {
+            lockKeys.forEach((key) => lockStorageKey(key));
+        }
+        resetLockToggle.refresh();
+        const { label, count } = result;
         const nounPhrase = count === 1 ? 'value and multiplier' : 'values and multipliers';
         flagDebugUsage();
         logAction(`Reset ${nounPhrase} for ${label} to defaults.`);
