@@ -48,7 +48,7 @@ export const MERCHANT_DIALOGUES = {
 
       c1a: { type: 'choice', options: [
         { label: 'No you didn’t.', to: 'm1a' },
-        { label: 'Liar.',          to: 'm2a' },
+        { label: 'Incorrect.',          to: 'm2a' },
         { label: 'Okay I guess you’re right.', to: 'm2b' },
       ]},
 
@@ -222,7 +222,7 @@ export const MERCHANT_DIALOGUES = {
       ]},
 
       m4a: { type: 'line', say: 'Any more questions?', next: 'c4a' },
-      m4b: { type: 'line', say: 'Because it just does.', next: 'c3a' },
+      m4b: { type: 'line', say: 'It just does.', next: 'c3a' },
 
       c4a: { type: 'choice', options: [
         { label: 'I’d like to learn more about the forge.',     to: 'm1a' },
@@ -237,6 +237,180 @@ export const MERCHANT_DIALOGUES = {
         { label: 'Okay, I’ll put this gold to good use.',     to: 'end' },
         { label: '…',                                         to: 'end' },
       ]},
+    }
+  4: {
+  start: 'n0',
+  nodes: {
+    n0: { type: 'line', say: 'I’m sure you came to me to learn a few things about how my Magic works, is that correct?', next: 'c0' },
+
+    c0: { type: 'choice', options: [
+      { label: 'Yes, I’d like to know more about your magic.', to: 'm1a' },
+      { label: 'Actually, I’m more interested in how automation works.', to: 'm1b' },
+      { label: 'Nah just give me free stuff.', to: 'm1c' },
+    ]},
+
+    m1a: { type: 'line', say: 'What would you like to know?', next: 'c1a' },
+    m1b: { type: 'line', say: 'What would you like to know?', next: 'c1b' },
+    m1c: { type: 'line', say: '…', next: 'c1c' },
+
+    c1a: { type: 'choice', options: [
+      { label: 'Why do you have magic powers?', to: 'm2a' },
+      { label: 'Where did you get magic powers from?', to: 'm2b' },
+      { label: 'If you have magic powers, why can’t you just summon all the coins in the world?', to: 'm2c' },
+    ]},
+
+    c1b: { type: 'choice', options: [
+      { label: 'Why does it exist?',                    to: 'm2d' },
+      { label: 'What kinds of things can be automated?', to: 'm2e' },
+      { label: 'How is automation different from doing things manually?', to: 'm2f' },
+    ]},
+
+    c1c: { type: 'choice', options: [
+      { label: 'What?', to: 'm2g' },
+      { label: 'Come on, where’s the reward at?', to: 'm2g' },
+      { label: 'Was it something I said?', to: 'm2h' },
+    ]},
+
+    m2a: { type: 'line', say: 'I just do.', next: 'c2a' },
+    m2b: { type: 'line', say: 'Uhhhh, I just kind of have them.', next: 'c2b' },
+    m2c: { type: 'line', say: 'Because Coins are just built different like that.', next: 'c2c' },
+    m2d: { type: 'line', say: 'Because it’s necessary to speed up Coin collection.', next: 'c2d' },
+    m2e: { type: 'line', say: 'Everything.', next: 'c2e' },
+    m2f: { type: 'line', say: 'It’s just better. I don’t have to explain why.', next: 'c2f' },
+    m2g: { type: 'line', say: 'Don’t you want to chat with me for a bit? Don’t you have some questions you want to ask me?', next: 'c2g' },
+    m2h: { type: 'line', say: 'Yes.', next: 'c2h' },
+
+    c2a: { type: 'choice', options: [
+      { label: 'What?', to: 'm3a' },
+      { label: 'Can you actually answer my question?', to: 'm3b' },
+      { label: '…', to: 'm6a' },
+    ]},
+
+    c2b: { type: 'choice', options: [
+      { label: 'How long have you had them?', to: 'm3c' },
+      { label: 'What can your magic powers do?', to: 'm3d' },
+      { label: 'Okay.', to: 'm6a' },
+    ]},
+
+    c2c: { type: 'choice', options: [
+      { label: 'How so?', to: 'm3e' },
+      { label: 'Your powers must be super weak then.', to: 'm5a' },
+      { label: 'Understandable.', to: 'm6a' },
+    ]},
+
+    c2d: { type: 'choice', options: [
+      { label: 'What if I just don’t buy any automation?', to: 'm3f' },
+      { label: 'How?',                                     to: 'm3g' },
+      { label: 'Okay.',                                    to: 'm6a' },
+    ]},
+
+    c2e: { type: 'choice', options: [
+      { label: 'Could I even automate talking to you?', to: 'm3h' },
+      { label: 'So like, eventually everything would be progressing on its own?', to: 'm3i' },
+      { label: 'Okay.', to: 'm6a' },
+    ]},
+
+    c2f: { type: 'choice', options: [
+      { label: 'Why should I buy automation if you can’t even explain why it’s better than doing things manually?', to: 'm3j' },
+      { label: 'But I wanted an explanation.', to: 'm5a' },
+      { label: 'Okay.', to: 'm6a' },
+    ]},
+
+    c2g: { type: 'choice', options: [
+      { label: 'No.', to: 'm7b' },
+      { label: 'Not really.', to: 'm7b' },
+      { label: 'My bad.', to: 'm5a' },
+    ]},
+
+    c2h: { type: 'choice', options: [
+      { label: '…', to: 'm6a' },
+      { label: '…', to: 'm6a' },
+      { label: 'Sorry, I just was in a hurry to get free stuff so I could get back to collecting coins.', to: 'm7a' },
+    ]},
+
+    m3a: { type: 'line', say: 'What?', next: 'c2a' },
+    m3b: { type: 'line', say: 'I just did answer your question.', next: 'c3a' },
+    m3c: { type: 'line', say: 'At least 3.', next: 'c3b' },
+    m3d: { type: 'line', say: 'My Magic can do a few things.', next: 'c3c' },
+    m3e: { type: 'line', say: 'They’re just built different.', next: 'c5a' },
+    m3f: { type: 'line', say: 'Don’t.', next: 'c5a' },
+    m3g: { type: 'line', say: 'Common sense.', next: 'c5a' },
+    m3h: { type: 'line', say: 'Wow, that’s kind of hurtful. Also no.', next: 'c5a' },
+    m3i: { type: 'line', say: 'Yes.', next: 'c3d' },
+    m3j: { type: 'line', say: 'Because I said so, and I am always right.', next: 'c5a' },
+
+    c3a: { type: 'choice', options: [
+      { label: 'No you didn’t.', to: 'm4a' },
+      { label: 'Why are you like this?', to: 'm4b' },
+      { label: '…', to: 'm6a' },
+    ]},
+
+    c3b: { type: 'choice', options: [
+      { label: '3… what?', to: 'm4c' },
+      { label: 'Ah, I completely understand.', to: 'm6a' },
+      { label: 'Okay.', to: 'm6a' },
+    ]},
+
+    c3c: { type: 'choice', options: [
+      { label: 'Like…?', to: 'm4d' },
+      { label: 'Understandable.', to: 'm6a' },
+      { label: '…', to: 'm6a' },
+    ]},
+
+    c3d: { type: 'choice', options: [
+      { label: 'Wouldn’t that get boring?', to: 'm4e' },
+      { label: 'That sounds nice.', to: 'm6a' },
+      { label: 'Okay.', to: 'm6a' },
+    ]},
+
+    m4a: { type: 'line', say: 'Yes I did.', next: 'c3a' },
+    m4b: { type: 'line', say: 'Like what?', next: 'c4a' },
+    m4c: { type: 'line', say: '3.', next: 'c5a' },
+    m4d: { type: 'line', say: 'Okay you caught me, I’m actually a fraud, my Magic is fake, nothing is real, the Coins are made of plastic, the sky is a dome, my name’s not even Merchant it’s Jeff.', next: 'c4b' },
+    m4e: { type: 'line', say: 'No.', next: 'c5a' },
+
+    c4a: { type: 'choice', options: [
+      { label: 'Are you trying to be annoying on purpose?', to: 'm5a' },
+      { label: 'You’re not being helpful.', to: 'm5a' },
+      { label: 'Nothing, nevermind…', to: 'm6a' },
+    ]},
+
+    c4b: { type: 'choice', options: [
+      { label: '???', to: 'm6a' },
+      { label: '???', to: 'm6a' },
+      { label: '???', to: 'm6a' },
+    ]},
+
+    m5a: { type: 'line', say: '…', next: 'c5a' },
+
+    c5a: { type: 'choice', options: [
+      { label: '…', to: 'm6a' },
+      { label: '…', to: 'm6a' },
+      { label: '…', to: 'm6a' },
+    ]},
+
+    m6a: { type: 'line', say: 'Anything else you’d like to know?', next: 'c6a' },
+
+    c6a: { type: 'choice', options: [
+      { label: 'Tell me some more stuff about how your magic works.', to: 'm1a' },
+      { label: 'Tell me some more stuff about how automation works.', to: 'm1b' },
+      { label: 'Do you have any goodies for me?', to: 'm7a' },
+    ]},
+
+    m7a: { type: 'line', say: '10 Magic, take it or leave it.', next: 'c7a' },
+    m7b: { type: 'line', say: 'Okay, now you’re just being rude. Don’t expect to get anything for free if you’re rude.', next: 'c7b' },
+
+    c7a: { type: 'choice', options: [
+      { label: 'Hmm, a bit too low for my taste.', to: 'm7b' },
+      { label: 'I would’ve liked more, but I’ll take it.', to: 'end' },
+      { label: 'I’ll take it.', to: 'end' },
+    ]},
+
+    c7b: { type: 'choice', options: [
+      { label: '…', to: 'end_nr' },
+      { label: '…', to: 'end_nr' },
+      { label: '…', to: 'end_nr' },
+    ]},
     }
   },
 };
