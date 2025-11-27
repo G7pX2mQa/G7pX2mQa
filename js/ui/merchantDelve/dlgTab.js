@@ -54,6 +54,7 @@ const merchantTabUnlockState = new Map([
 const REWARD_ICON_SRC = {
   coins: 'img/currencies/coin/coin.png',
   books: 'img/currencies/book/book.png',
+  gold: 'img/currencies/gold/gold.png',
 };
 
 const MYSTERIOUS_ICON_SRC = 'img/misc/mysterious.png';
@@ -367,12 +368,16 @@ function completeDialogueOnce(id, meta) {
 
 function grantReward(reward) {
   if (!reward) return;
+
   if (reward.type === 'coins') {
-    try { bank.coins.add(reward.amount); } catch (e) {
+    try {
+      bank.coins.add(reward.amount);
+    } catch (e) {
       console.warn('Failed to grant coin reward:', reward, e);
     }
     return;
   }
+
   if (reward.type === 'books') {
     try {
       bank.books.addWithMultiplier?.(reward.amount) ?? bank.books.add(reward.amount);
@@ -381,13 +386,26 @@ function grantReward(reward) {
     }
     return;
   }
-  try { window.dispatchEvent(new CustomEvent('merchantReward', { detail: reward })); } catch {}
+
+  if (reward.type === 'gold') {
+    try {
+      bank.gold.add(reward.amount);
+    } catch (e) {
+      console.warn('Failed to grant gold reward:', reward, e);
+    }
+    return;
+  }
+
+  try {
+    window.dispatchEvent(new CustomEvent('merchantReward', { detail: reward }));
+  } catch {}
 }
 
 function rewardLabel(reward) {
   if (!reward) return '';
   if (reward.type === 'coins') return `Reward: ${reward.amount} coins`;
   if (reward.type === 'books') return `Reward: ${reward.amount} Books`;
+  if (reward.type === 'gold')  return `Reward: ${reward.amount} Gold`;
   return 'Reward available';
 }
 
@@ -421,13 +439,16 @@ export const DLG_CATALOG = {
     },
   },
   3: {
-    title: 'Edge of Mastery',
-    blurb: 'Placeholder musings earned through the Forge.',
+    title: 'A Golden Opportunity',
+    blurb: 'Ask the Merchant a few questions about the Forge',
     scriptId: 3,
+    reward: { type: 'gold', amount: 10 },
+    once: true,
     unlock: (progress) => {
       if (progress?.hasForgeReset) {
         return true;
       }
+
       if (!progress?.xpUnlocked || (progress?.xpLevel ?? 0) < 31) {
         return {
           status: 'locked',
@@ -437,6 +458,7 @@ export const DLG_CATALOG = {
           ariaLabel: 'Locked Dialogue.',
         };
       }
+
       return {
         status: 'mysterious',
         requirement: 'Do a Forge reset to reveal this dialogue',
@@ -446,7 +468,6 @@ export const DLG_CATALOG = {
         ariaLabel: 'Hidden merchant dialogue. Do a Forge reset to reveal this dialogue',
       };
     },
-    once: false,
   },
 };
 
@@ -1028,6 +1049,17 @@ const engine = new DialogueEngine({
     script.nodes.m2a.say = 'I\'ve already given you Books, goodbye.';
 	if (script.nodes.c2a) {
       script.nodes.c2a.options = [
+        { label: 'Goodbye.', to: 'end_nr' },
+        { label: 'Goodbye.', to: 'end_nr' },
+        { label: 'Goodbye.', to: 'end_nr' },
+      ];
+    }
+  }
+  
+  if (claimed && meta.scriptId === 3 && script.nodes.m5a) {
+    script.nodes.m5a.say = 'I\'ve already given you Gold, goodbye.';
+    if (script.nodes.c5a) {
+      script.nodes.c5a.options = [
         { label: 'Goodbye.', to: 'end_nr' },
         { label: 'Goodbye.', to: 'end_nr' },
         { label: 'Goodbye.', to: 'end_nr' },
@@ -1783,6 +1815,11 @@ function selectMerchantTab(key) {
   for (const k in merchantTabs.panels) {
     merchantTabs.panels[k].classList.toggle('is-active', k === key);
   }
+
+  if (key === 'dialogue') {
+    try { renderDialogueList(); } catch {}
+  }
+
   try { localStorage.setItem(sk(MERCHANT_TAB_KEY_BASE), key); } catch {}
 }
 
