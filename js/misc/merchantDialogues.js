@@ -238,6 +238,7 @@ export const MERCHANT_DIALOGUES = {
         { label: '…',                                         to: 'end' },
       ]},
     }
+  },
   4: {
   start: 'n0',
   nodes: {
