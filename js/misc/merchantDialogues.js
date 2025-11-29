@@ -30,7 +30,6 @@ export const MERCHANT_DIALOGUES = {
       ]},
     }
   },
-
   1: {
     start: 'n0',
     nodes: {
