@@ -5,7 +5,7 @@ export const MERCHANT_DIALOGUES = {
       n0: { type: 'line', say: 'So you want to delve deeper within my shop, do you?', next: 'c1' },
 
       r_who: { type: 'line', say: 'I am the Merchant.', next: 'c2' },
-      r_where: { type: 'line', say: 'The cove.',          next: 'c2' },
+      r_where: { type: 'line', say: 'The Cove.',          next: 'c2' },
       r_confused: { type: 'line', say: 'Okay.',                next: 'c2' },
 
       c1: { type: 'choice', options: [
