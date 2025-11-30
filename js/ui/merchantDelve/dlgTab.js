@@ -198,6 +198,36 @@ function buildUnlockedDialogueInfo(meta) {
 
 let progressEventsBound = false;
 let merchantDlgWatcherInitialized = false;
+let forgeUnlockListenerBound = false;
+
+function setMerchantTabUnlocked(key, unlocked) {
+  const def = MERCHANT_TABS_DEF.find(t => t.key === key);
+  if (!def) return;
+
+  const lockedLabel = def.lockedLabel || '???';
+  const normalized = !!unlocked;
+  merchantTabUnlockState.set(key, normalized);
+  def.unlocked = normalized;
+
+  const btn = merchantTabs.buttons[key];
+  if (btn) {
+    btn.disabled = !normalized;
+    btn.classList.toggle('is-locked', !normalized);
+    btn.textContent = normalized ? def.label : lockedLabel;
+    btn.title = normalized ? (def.label || 'Tab') : '???';
+  }
+
+  if (!normalized && merchantTabs.buttons[key]?.classList.contains('is-active')) {
+    selectMerchantTab('dialogue');
+  }
+}
+
+function syncForgeTabUnlockState() {
+  let unlocked = false;
+  try { unlocked = !!isForgeUnlocked?.(); }
+  catch {}
+  setMerchantTabUnlocked('reset', unlocked);
+}
 let merchantDlgWatcherSlot = null;
 let merchantDlgWatcherCleanup = null;
 
@@ -412,7 +442,7 @@ function rewardLabel(reward) {
 export const DLG_CATALOG = {
   1: {
     title: 'A Generous Gift',
-    blurb: 'The Merchant is feeling extra nice today',
+    blurb: 'The Merchant is feeling extra nice today.',
     scriptId: 1,
     reward: { type: 'coins', amount: 100 },
     unlock: (progress) => true,
@@ -420,7 +450,7 @@ export const DLG_CATALOG = {
   },
   2: {
     title: 'A New Experience',
-    blurb: 'Discuss the XP system with the Merchant',
+    blurb: 'Discuss the XP system with the Merchant.',
     scriptId: 2,
     reward: { type: 'books', amount: 5 },
     once: true,
@@ -432,7 +462,7 @@ export const DLG_CATALOG = {
           message: 'Unlock the XP system to reveal this dialogue',
           icon: MYSTERIOUS_ICON_SRC,
           headerTitle: HIDDEN_DIALOGUE_TITLE,
-          ariaLabel: 'Hidden merchant dialogue. Unlock the XP system to reveal this dialogue',
+          ariaLabel: 'Hidden merchant dialogue, unlock the XP system to reveal this dialogue',
         };
       }
       return true;
@@ -440,7 +470,7 @@ export const DLG_CATALOG = {
   },
   3: {
     title: 'A Golden Opportunity',
-    blurb: 'Ask the Merchant a few questions about the Forge',
+    blurb: 'Ask the Merchant a few questions about the Forge.',
     scriptId: 3,
     reward: { type: 'gold', amount: 10 },
     once: true,
@@ -455,7 +485,7 @@ export const DLG_CATALOG = {
           title: '???',
           blurb: DEFAULT_LOCKED_BLURB,
           tooltip: 'Locked Dialogue',
-          ariaLabel: 'Locked Dialogue.',
+          ariaLabel: 'Locked Dialogue',
         };
       }
 
@@ -465,7 +495,7 @@ export const DLG_CATALOG = {
         message: 'Do a Forge reset to reveal this dialogue',
         icon: MYSTERIOUS_ICON_SRC,
         headerTitle: HIDDEN_DIALOGUE_TITLE,
-        ariaLabel: 'Hidden merchant dialogue. Do a Forge reset to reveal this dialogue',
+        ariaLabel: 'Hidden merchant dialogue, do a Forge reset to reveal this dialogue',
       };
     },
   },
@@ -1270,12 +1300,7 @@ function ensureMerchantOverlay() {
   const panelMinigames = document.createElement('section');
   panelMinigames.className = 'merchant-panel';
   panelMinigames.id = 'merchant-panel-minigames';
-
-  const resetUnlocked = (() => {
-    try { return !!isForgeUnlocked?.(); }
-    catch { return false; }
-  })();
-  merchantTabUnlockState.set('reset', resetUnlocked);
+  syncForgeTabUnlockState();
 
   MERCHANT_TABS_DEF.forEach(def => {
     if (def.key === 'dialogue') merchantTabUnlockState.set('dialogue', true);
@@ -1316,14 +1341,23 @@ function ensureMerchantOverlay() {
   panelsWrap.append(panelDialogue, panelReset, panelMinigames);
   content.append(tabs, panelsWrap);
 
+  syncForgeTabUnlockState();
+
   try { initResetSystem(); } catch {}
   try { initResetPanel(panelReset); } catch {}
   try { updateResetPanel(); } catch {}
-  try {
-    if (isForgeUnlocked?.()) {
-      unlockMerchantTabs(['reset']);
-    }
-  } catch {}
+
+  if (!forgeUnlockListenerBound && typeof window !== 'undefined') {
+    const handleUnlockChange = (event) => {
+      const { key, slot } = event?.detail ?? {};
+      if (key && key !== 'forge') return;
+      if (slot != null && slot !== getActiveSlot()) return;
+      syncForgeTabUnlockState();
+    };
+    window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
+    window.addEventListener('saveSlot:change', handleUnlockChange, { passive: true });
+    forgeUnlockListenerBound = true;
+  }
 
     const actions = document.createElement('div');
     actions.className = 'merchant-actions';
@@ -1824,19 +1858,7 @@ function selectMerchantTab(key) {
 }
 
 export function unlockMerchantTabs(keys = []) {
-  keys.forEach(key => {
-    const def = MERCHANT_TABS_DEF.find(t => t.key === key);
-    if (!def) return;
-    merchantTabUnlockState.set(key, true);
-    def.unlocked = true;
-    const btn = merchantTabs.buttons[key];
-    if (btn) {
-      btn.disabled = false;
-      btn.classList.remove('is-locked');
-      btn.textContent = def.label;
-      btn.title = def.label || 'Tab';
-    }
-  });
+  keys.forEach(key => setMerchantTabUnlocked(key, true));
 }
 
 // Expose for other modules that may build UI later
