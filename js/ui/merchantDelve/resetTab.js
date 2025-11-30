@@ -60,6 +60,7 @@ const MIN_FORGE_LEVEL = BN.fromInt(31);
 const resetState = {
   slot: null,
   forgeUnlocked: false,
+  forgeDebugOverride: null,
   hasDoneForgeReset: false,
   pendingGold: bnZero(),
   panel: null,
@@ -81,6 +82,13 @@ let xpChangeUnsub = null;
 
 function resetPendingGoldSignature() {
   pendingGoldInputSignature = null;
+}
+
+function notifyForgeUnlockChange() {
+  const slot = resetState.slot ?? getActiveSlot();
+  try {
+    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'forge', slot } }));
+  } catch {}
 }
 
 function getPendingGoldWithMultiplier() {
@@ -206,29 +214,38 @@ export function getForgeDebugOverrideState(slot = getActiveSlot()) {
 
 export function setForgeDebugOverride(value, slot = getActiveSlot()) {
   if (slot == null) return;
-  if (value == null) {
+  const normalized = value == null ? null : !!value;
+  if (resetState.forgeDebugOverride === normalized) return;
+
+  resetState.forgeDebugOverride = normalized;
+
+  if (normalized == null) {
     try { localStorage.removeItem(FORGE_DEBUG_OVERRIDE_KEY(slot)); } catch {}
-    primeStorageWatcherSnapshot(FORGE_DEBUG_OVERRIDE_KEY(slot));
-    return;
+  } else {
+    try { localStorage.setItem(FORGE_DEBUG_OVERRIDE_KEY(slot), normalized ? '1' : '0'); }
+    catch {}
   }
-  const normalized = !!value;
-  try { localStorage.setItem(FORGE_DEBUG_OVERRIDE_KEY(slot), normalized ? '1' : '0'); }
-  catch {}
   primeStorageWatcherSnapshot(FORGE_DEBUG_OVERRIDE_KEY(slot));
+  notifyForgeUnlockChange();
+  updateResetPanel();
 }
 
 function setForgeUnlocked(value) {
   const slot = ensureResetSlot();
   if (slot == null) return;
-  resetState.forgeUnlocked = !!value;
+  const next = !!value;
+  if (resetState.forgeUnlocked === next) return;
+  resetState.forgeUnlocked = next;
   try { localStorage.setItem(FORGE_UNLOCK_KEY(slot), resetState.forgeUnlocked ? '1' : '0'); }
   catch {}
   primeStorageWatcherSnapshot(FORGE_UNLOCK_KEY(slot));
+  notifyForgeUnlockChange();
 }
 
 function readPersistentFlags(slot) {
   if (slot == null) {
     resetState.forgeUnlocked = false;
+    resetState.forgeDebugOverride = null;
     resetState.hasDoneForgeReset = false;
     resetState.flagsPrimed = false;
     return;
@@ -238,6 +255,7 @@ function readPersistentFlags(slot) {
   } catch {
     resetState.forgeUnlocked = false;
   }
+  resetState.forgeDebugOverride = getForgeDebugOverride(slot);
   try {
     resetState.hasDoneForgeReset = localStorage.getItem(FORGE_COMPLETED_KEY(slot)) === '1';
   } catch {
@@ -272,6 +290,7 @@ function bindStorageWatchers(slot) {
       const next = value === '1';
       if (resetState.forgeUnlocked !== next) {
         resetState.forgeUnlocked = next;
+        notifyForgeUnlockChange();
         updateResetPanel();
       }
     },
@@ -281,6 +300,18 @@ function bindStorageWatchers(slot) {
       const next = value === '1';
       if (resetState.hasDoneForgeReset !== next) {
         resetState.hasDoneForgeReset = next;
+        updateResetPanel();
+      }
+    },
+  }));
+  watchers.push(watchStorageKey(FORGE_DEBUG_OVERRIDE_KEY(slot), {
+    onChange(value) {
+      let next = null;
+      if (value === '1') next = true;
+      else if (value === '0') next = false;
+      if (resetState.forgeDebugOverride !== next) {
+        resetState.forgeDebugOverride = next;
+        notifyForgeUnlockChange();
         updateResetPanel();
       }
     },
