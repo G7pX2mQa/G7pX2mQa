@@ -578,6 +578,7 @@
 }
 
 @media (pointer: coarse) {
+  .dlg-reward .reward-icon,
   .dlg-reward .coin-icon,
   .dlg-reward .book-icon {
     top: 0;
