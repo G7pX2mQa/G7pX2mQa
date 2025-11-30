@@ -185,21 +185,34 @@ function setupLiveBindingListeners() {
     addDebugPanelCleanup(() => window.removeEventListener('currency:multiplier', currencyMultiplierHandler));
 
     const xpHandler = (event) => {
-        const { slot } = event?.detail ?? {};
+        const { slot, changeType, unlocked } = event?.detail ?? {};
         const targetSlot = slot ?? getActiveSlot();
         refreshLiveBindings((binding) => binding.type === 'xp'
             && binding.slot === targetSlot);
+        if (changeType === 'unlock' || typeof unlocked === 'boolean') {
+            refreshLiveBindings((binding) => binding.type === 'unlock'
+                && (binding.slot == null || binding.slot === targetSlot));
+        }
     };
     window.addEventListener('xp:change', xpHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('xp:change', xpHandler));
+    window.addEventListener('xp:unlock', xpHandler, { passive: true });
+    addDebugPanelCleanup(() => {
+        window.removeEventListener('xp:change', xpHandler);
+        window.removeEventListener('xp:unlock', xpHandler);
+    });
 
-    const mutationHandler = () => {
-        const targetSlot = getActiveSlot();
+    const mutationHandler = (event) => {
+        const { changeType, slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
         refreshLiveBindings((binding) => binding.type === 'mutation'
             && binding.slot === targetSlot);
         refreshLiveBindings((binding) => binding.type === 'stat-mult'
             && binding.key === 'mutation'
             && binding.slot === targetSlot);
+        if (changeType === 'unlock') {
+            refreshLiveBindings((binding) => binding.type === 'unlock'
+                && (binding.slot == null || binding.slot === targetSlot));
+        }
     };
     window.addEventListener('mutation:change', mutationHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('mutation:change', mutationHandler));
