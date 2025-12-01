@@ -3,7 +3,7 @@
 # Debug Panel Access
 To enable the in-game debug panel, open your browser console and run:
 
-`setDebugPanelAccess(true)`
+   `setDebugPanelAccess(true)`
 
 To open the debug panel, simply press C on your keyboard.
 
