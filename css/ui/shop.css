@@ -758,13 +758,22 @@
   margin-inline: auto;
   align-items: center;
   justify-content: center;
-  padding-block: var(--hm-evolve-pad, clamp(48px, 8vh, 116px));
   color: hsl(30, 94%, 68%) !important;
   -webkit-text-fill-color: hsl(30, 94%, 68%) !important;
   font-weight: 800;
   text-align: center;
   line-height: 1.2;
   text-shadow: 0 0 12px hsla(30, 90%, 55%, 0.75);
+}
+
+.upg-sheet.is-hm-upgrade.hm-evolve-ready .hm-evolve-note {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  padding-inline: clamp(12px, 6vw, 64px);
+  padding-block: var(--hm-evolve-pad, clamp(20px, 5vh, 72px));
 }
 
 @keyframes hm-evolve-glow {
@@ -926,6 +935,7 @@
   padding-top: clamp(10px, 3vh, 60px);
   padding-bottom: clamp(10px, 3vh, 32px);
   gap: clamp(12px, 3vh, 24px);
+  position: relative;
   min-height: var(--hm-evolve-available, auto);
 }
 
