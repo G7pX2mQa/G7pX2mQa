@@ -365,6 +365,11 @@ function ensureProgressEvents() {
   if (typeof window !== 'undefined') {
     window.addEventListener('xp:change', handler);
     window.addEventListener('xp:unlock', handler);
+    window.addEventListener('forge:completed', (event) => {
+      const detailSlot = event?.detail?.slot;
+      if (detailSlot != null && detailSlot !== getActiveSlot()) return;
+      handler();
+    });
   }
 
   document.addEventListener('ccc:upgrades:changed', handler);
