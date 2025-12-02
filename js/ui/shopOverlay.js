@@ -183,8 +183,8 @@ function stripTags(html) {
   return String(html ?? '').replace(/<[^>]*>/g, '');
 }
 
-const PURCHASE_SFX_SRC = 'sounds/purchase_upg.mp3';
-const EVOLVE_SFX_SRC = 'sounds/evolve_upg.mp3';
+const PURCHASE_SFX_SRC = 'sounds/purchase_upg.ogg';
+const EVOLVE_SFX_SRC = 'sounds/evolve_upg.ogg';
 const MOBILE_PURCHASE_VOLUME = 0.12;
 const DESKTOP_PURCHASE_VOLUME = 0.3;
 
@@ -1323,11 +1323,18 @@ export function openUpgradeOverlay(upgDef) {
   const makeLine = (html) => { const d = document.createElement('div'); d.className = 'upg-line'; d.innerHTML = html; return d; };
 
   let evolveNoteResizeHandler = null;
+  let evolveNoteViewportHandler = null;
 
   const teardownEvolveNoteLayout = () => {
     if (evolveNoteResizeHandler) {
       window.removeEventListener('resize', evolveNoteResizeHandler);
       evolveNoteResizeHandler = null;
+    }
+
+    if (evolveNoteViewportHandler && window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', evolveNoteViewportHandler);
+      window.visualViewport.removeEventListener('scroll', evolveNoteViewportHandler);
+      evolveNoteViewportHandler = null;
     }
 
     const content = upgSheetEl?.querySelector('.upg-content');
@@ -1344,20 +1351,32 @@ export function openUpgradeOverlay(upgDef) {
     if (!header || !actions || !content) return;
 
     const applyLayout = () => {
-      const sheetHeight = upgSheetEl.getBoundingClientRect?.().height || window.innerHeight || 0;
+      const sheetRect = upgSheetEl.getBoundingClientRect?.();
+      const viewportHeight = Math.max(
+        window.visualViewport?.height || 0,
+        window.innerHeight || 0,
+        document.documentElement?.clientHeight || 0,
+        sheetRect?.height || 0
+      );
       const headerHeight = header.getBoundingClientRect?.().height || header.offsetHeight || 0;
       const actionsHeight = actions.getBoundingClientRect?.().height || actions.offsetHeight || 0;
-      const available = Math.max(0, sheetHeight - headerHeight - actionsHeight);
+      const available = Math.max(0, viewportHeight - headerHeight - actionsHeight);
 
-      if (available > 0) {
-        content.style.setProperty('--hm-evolve-available', `${available}px`);
+      const contentStyle = getComputedStyle(content);
+      const contentPadding =
+        parseFloat(contentStyle.paddingTop || '0') +
+        parseFloat(contentStyle.paddingBottom || '0');
+      const contentAvailable = Math.max(0, available - contentPadding);
+
+      if (contentAvailable > 0) {
+        content.style.setProperty('--hm-evolve-available', `${contentAvailable}px`);
       } else {
         content.style.removeProperty('--hm-evolve-available');
       }
 
       const noteHeight = noteEl.getBoundingClientRect?.().height || noteEl.offsetHeight || 0;
-      if (available > 0 && noteHeight > 0) {
-        const pad = Math.max(32, (available - noteHeight) / 2);
+      if (contentAvailable > 0 && noteHeight > 0) {
+        const pad = Math.max(32, (contentAvailable - noteHeight) / 2);
         noteEl.style.setProperty('--hm-evolve-pad', `${pad}px`);
       } else {
         noteEl.style.removeProperty('--hm-evolve-pad');
@@ -1365,7 +1384,12 @@ export function openUpgradeOverlay(upgDef) {
     };
 
     evolveNoteResizeHandler = applyLayout;
+    evolveNoteViewportHandler = applyLayout;
     window.addEventListener('resize', applyLayout, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', applyLayout, { passive: true });
+      window.visualViewport.addEventListener('scroll', applyLayout, { passive: true });
+    }
     requestAnimationFrame(applyLayout);
   };
 
