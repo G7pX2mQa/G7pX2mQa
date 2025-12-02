@@ -2796,10 +2796,10 @@ function buildMiscContent(content) {
     allOption.textContent = 'All';
     resetSelect.appendChild(allOption);
 
-    const resolveResetLockKeys = () =>
-    getResetTargetLockKeys('all', getActiveSlot());
+    const resolveResetLockKeys = () => getResetTargetLockKeys(resetSelect.value || 'all', getActiveSlot());
 
-	const resetLockToggle = createCompositeLockToggle(resolveResetLockKeys);
+    const resetLockToggle = createCompositeLockToggle(resolveResetLockKeys);
+    resetSelect.addEventListener('change', resetLockToggle.refresh);
 
     resetRow.appendChild(resetSelect);
     resetRow.appendChild(resetLockToggle.button);
