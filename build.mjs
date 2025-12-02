@@ -440,7 +440,7 @@ function buildOptions({ minify, sourcemap }) {
       ".webp": "file",
       ".svg": "file",
       ".ico": "file",
-      ".mp3": "file",
+      ".ogg": "file",
       ".wav": "file",
     },
     assetNames: "assets/[name]-[hash]",
