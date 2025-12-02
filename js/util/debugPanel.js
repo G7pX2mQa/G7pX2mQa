@@ -1080,7 +1080,7 @@ function logAction(message) {
 
     const now = new Date();
     const entry = {
-        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }),
         message,
         timestamp: now.getTime(),
     };
@@ -1102,16 +1102,16 @@ function updateActionLogDisplay() {
     }
 
     actionLogContainer.innerHTML = actionLog.map((entry) => {
+        const formattedTime = String(entry.time ?? '').replace(/^0(\d)/, '$1');
         let formattedMessage = entry.message?.replace?.(/\[GOLD\](.*?)\[\/GOLD\]/g, '<span class="action-log-gold">$1</span>') ?? '';
-		formattedMessage = formattedMessage.replace(/\b(?:Level|Lv)\s?(\d+)\b/g, '<span class="action-log-level">Lv$1</span>');
+        formattedMessage = formattedMessage.replace(/\b(?:Level|Lv)\s?(\d+)\b/g, '<span class="action-log-level">Lv$1</span>');
         formattedMessage = formattedMessage.replace(/(\d[\d,.]*(?:e[+-]?\d+)*(?:[KMBTQa-zA-Z]*))/g, (match) => /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match);
-		formattedMessage = formattedMessage.replace(/<span[^>]*class="[^"]*infinity-symbol[^"]*"[^>]*>∞<\/span>/g, '<span class="action-log-number">inf</span>');
-		formattedMessage = formattedMessage.replace(/∞/g,'<span class="action-log-number">inf</span>');
-
+        formattedMessage = formattedMessage.replace(/<span[^>]*class="[^"]*infinity-symbol[^"]*"[^>]*>∞<\/span>/g, '<span class="action-log-number">inf</span>');
+        formattedMessage = formattedMessage.replace(/∞/g, '<span class="action-log-number">inf</span>');
 
         return `
             <div class="action-log-entry">
-                <span class="action-log-time">${entry.time}:</span>
+                <span class="action-log-time">${formattedTime}:</span>
                 <span class="action-log-message">${formattedMessage}</span>
             </div>
         `;
