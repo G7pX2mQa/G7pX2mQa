@@ -42,6 +42,7 @@ let debugPanelAccess = false;
 let debugPanelCleanups = [];
 let debugPanelExpansionState = createEmptyExpansionState();
 let debugPanelScrollTop = 0;
+let debugPanelMiscResetSelection = 'all';
 let sectionKeyCounter = 0;
 let subsectionKeyCounter = 0;
 const liveBindings = [];
@@ -2796,10 +2797,20 @@ function buildMiscContent(content) {
     allOption.textContent = 'All';
     resetSelect.appendChild(allOption);
 
+    if (!resetSelect.querySelector(`option[value="${debugPanelMiscResetSelection}"]`)) {
+        debugPanelMiscResetSelection = 'all';
+    }
+    resetSelect.value = debugPanelMiscResetSelection;
+
     const resolveResetLockKeys = () => getResetTargetLockKeys(resetSelect.value || 'all', getActiveSlot());
 
     const resetLockToggle = createCompositeLockToggle(resolveResetLockKeys);
-    resetSelect.addEventListener('change', resetLockToggle.refresh);
+    resetSelect.addEventListener('change', () => {
+        debugPanelMiscResetSelection = resetSelect.value || 'all';
+        resetLockToggle.refresh();
+    });
+
+    resetLockToggle.refresh();
 
     resetRow.appendChild(resetSelect);
     resetRow.appendChild(resetLockToggle.button);
