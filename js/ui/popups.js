@@ -10,23 +10,23 @@ const POPUP_ORDER = ['coins', 'xp', 'books', 'gold', 'mp'];
 
 const POPUP_META = {
   [CURRENCIES.COINS]: {
-    icon: 'img/currencies/coin/coin.png',
+    icon: 'img/currencies/coin/coin.webp',
     iconAlt: 'Coin',
   },
   xp: {
-    icon: 'img/stats/xp/xp.png',
+    icon: 'img/stats/xp/xp.webp',
     iconAlt: 'XP',
   },
   [CURRENCIES.BOOKS]: {
-    icon: 'img/currencies/book/book.png',
+    icon: 'img/currencies/book/book.webp',
     iconAlt: 'Book',
   },
   [CURRENCIES.GOLD]: {
-    icon: 'img/currencies/gold/gold.png',
+    icon: 'img/currencies/gold/gold.webp',
     iconAlt: 'Gold',
   },
   mp: {
-    icon: 'img/stats/mp/mp.png',
+    icon: 'img/stats/mp/mp.webp',
     iconAlt: 'Mutation Power',
   },
 };
