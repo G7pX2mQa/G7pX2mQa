@@ -124,7 +124,7 @@
   display: inline-block;
   width: var(--coin-size);
   height: var(--coin-size);
-  background: url("img/currencies/coin/coin.png") center/contain no-repeat;
+  background: url("img/currencies/coin/coin.webp") center/contain no-repeat;
   transform: translateY(0.46em);
   vertical-align: baseline;
   margin-left: 0em;
@@ -304,6 +304,7 @@
   .panel-actions { transform: none; }
 }
 
+/* Mobile adjustments: keep header compact and button auto-sized */
 @media (max-width: 900px) {
   :is(html.has-opened, body.has-opened) .panel-header { flex-direction: row; align-items: center; }
   :is(html.has-opened, body.has-opened) .panel-actions .btn { width: auto; }
@@ -319,3 +320,5 @@
   backdrop-filter: saturate(1.05) blur(6px);
   -webkit-backdrop-filter: saturate(1.05) blur(6px);
 }
+
+
