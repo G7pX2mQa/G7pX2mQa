@@ -758,7 +758,7 @@
   margin-inline: auto;
   align-items: center;
   justify-content: center;
-  padding-block: clamp(48px, 8vh, 116px);
+  padding-block: var(--hm-evolve-pad, clamp(48px, 8vh, 116px));
   color: hsl(30, 94%, 68%) !important;
   -webkit-text-fill-color: hsl(30, 94%, 68%) !important;
   font-weight: 800;
@@ -922,10 +922,11 @@
 }
 
 .upg-sheet.is-hm-upgrade.hm-evolve-ready .upg-content {
-  justify-content: flex-start;
-  padding-top: clamp(10px, 4vh, 60px);
+  justify-content: center;
+  padding-top: clamp(10px, 3vh, 60px);
   padding-bottom: clamp(10px, 3vh, 32px);
   gap: clamp(12px, 3vh, 24px);
+  min-height: var(--hm-evolve-available, auto);
 }
 
 .upg-sheet.is-hm-upgrade .upg-info {
