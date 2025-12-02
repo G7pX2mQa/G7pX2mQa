@@ -432,6 +432,7 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
   const slot = getActiveSlot();
   const k = keyFor(KEYS.CURRENCY[key], slot);
   const prev = previous ?? getCurrency(key);
+  const zero = BigNum.fromInt(0);
   if (!k) return prev;
   if (isCurrencyLocked(key, slot)) {
     let deltaBn = null;
@@ -468,18 +469,34 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
       if (effective.isNegative?.()) effective = BigNum.fromInt(0);
     }
   } catch {}
-
+  
   primeStorageWatcherSnapshot(k, effectiveRaw);
 
   const changed = !bigNumEquals(prev, effective);
+
+  const parseDelta = (source) => {
+    if (source == null) return null;
+    try {
+      const bnDelta = source instanceof BigNum ? source.clone?.() ?? source : BigNum.fromAny(source);
+      if (typeof bnDelta.cmp === 'function') {
+        return bnDelta.cmp(zero) > 0 ? bnDelta : null;
+      }
+      if (!bnDelta.isZero?.()) return bnDelta;
+    } catch {}
+    return null;
+  };
+
+  const providedDelta = parseDelta(delta);
+  let deltaBn = null;
   if (changed) {
-    let deltaBn = null;
     try { deltaBn = effective.sub?.(prev); }
     catch {}
-    if (!deltaBn && delta) {
-      try { deltaBn = delta instanceof BigNum ? delta : BigNum.fromAny(delta); }
-      catch { deltaBn = null; }
-    }
+  }
+  if (!deltaBn || deltaBn.isZero?.() || (typeof deltaBn.cmp === 'function' && deltaBn.cmp(zero) <= 0)) {
+    deltaBn = providedDelta;
+  }
+
+  if (changed || deltaBn) {
     const detail = { key, value: effective, slot, delta: deltaBn ?? undefined };
     notifyCurrencySubscribers(detail);
     try { window.dispatchEvent(new CustomEvent('currency:change', { detail })); } catch {}
