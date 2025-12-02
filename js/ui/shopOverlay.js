@@ -1351,7 +1351,7 @@ export function openUpgradeOverlay(upgDef) {
     if (!header || !actions || !content) return;
 
     const applyLayout = () => {
-      const sheetRect = upgSheetEl.getBoundingClientRect?.();␊
+      const sheetRect = upgSheetEl.getBoundingClientRect?.();
       const viewportHeight =
         window.visualViewport?.height ||
         window.innerHeight ||
