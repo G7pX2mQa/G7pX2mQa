@@ -1351,13 +1351,12 @@ export function openUpgradeOverlay(upgDef) {
     if (!header || !actions || !content) return;
 
     const applyLayout = () => {
-      const sheetRect = upgSheetEl.getBoundingClientRect?.();
-      const viewportHeight = Math.max(
-        window.visualViewport?.height || 0,
-        window.innerHeight || 0,
-        document.documentElement?.clientHeight || 0,
-        sheetRect?.height || 0
-      );
+      const sheetRect = upgSheetEl.getBoundingClientRect?.();␊
+      const viewportHeight =
+        window.visualViewport?.height ||
+        window.innerHeight ||
+        document.documentElement?.clientHeight ||
+        sheetRect?.height || 0;
       const headerHeight = header.getBoundingClientRect?.().height || header.offsetHeight || 0;
       const actionsHeight = actions.getBoundingClientRect?.().height || actions.offsetHeight || 0;
       const available = Math.max(0, viewportHeight - headerHeight - actionsHeight);
