@@ -37,7 +37,7 @@ const bnOne = () => BN.fromInt(1);
 
 const GOLD_ICON_SRC = 'img/currencies/gold/gold.webp';
 const RESET_ICON_SRC = 'img/misc/forge.webp';
-const FORGE_RESET_SOUND_SRC = 'sounds/forge_reset.mp3';
+const FORGE_RESET_SOUND_SRC = 'sounds/forge_reset.ogg';
 
 let forgeResetAudio = null;
 function playForgeResetSound() {
