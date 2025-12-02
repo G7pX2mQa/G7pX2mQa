@@ -121,8 +121,8 @@ export const UPGRADE_TIES = {
   ENDLESS_XP: 'coin_3',
 };
 
-const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.png';
-const MYSTERIOUS_UPGRADE_ICON_DATA_URL = 'img/misc/mysterious.png';
+const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.webp';
+const MYSTERIOUS_UPGRADE_ICON_DATA_URL = 'img/misc/mysterious.webp';
 const HIDDEN_UPGRADE_TITLE = 'Hidden Upgrade';
 const LOCKED_UPGRADE_TITLE = 'Locked Upgrade';
 const FORGE_PLACEHOLDER_TIES = new Set([
@@ -2126,7 +2126,7 @@ const REGISTRY = [
     baseCost: 10,
     costType: "coins",
     upgType: "NM",
-    icon: "sc_upgrade_icons/faster_coins.png",
+    icon: "sc_upgrade_icons/faster_coins.webp",
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     effectSummary(level) {
@@ -2143,8 +2143,8 @@ const REGISTRY = [
     desc: "Unlocks the XP system and a new Merchant dialogue\nXP system: Collect Coins for XP to level up and gain Books\nEach XP Level also boosts Coin value by a decent amount",
     lvlCap: 1,
     upgType: "NM",
-    icon: "stats/xp/xp.png",
-    baseIconOverride: "img/stats/xp/xp_base.png",
+    icon: "stats/xp/xp.webp",
+    baseIconOverride: "img/stats/xp/xp_base.webp",
     unlockUpgrade: true,
     costAtLevel() { return BigNum.fromInt(0); },
     nextCostAfter() { return BigNum.fromInt(0); },
@@ -2167,7 +2167,7 @@ const REGISTRY = [
     baseCost: 1,
     costType: "books",
     upgType: "NM",
-    icon: "sc_upgrade_icons/faster_coins2.png",
+    icon: "sc_upgrade_icons/faster_coins2.webp",
     requiresUnlockXp: true,
     costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
     nextCostAfter() { return this.costAtLevel(); },
@@ -2187,7 +2187,7 @@ const REGISTRY = [
     baseCost: 1,
     costType: "books",
     upgType: "NM",
-    icon: "sc_upgrade_icons/coin_val1.png",
+    icon: "sc_upgrade_icons/coin_val1.webp",
     requiresUnlockXp: true,
     costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
     nextCostAfter() { return this.costAtLevel(); },
@@ -2208,7 +2208,7 @@ const REGISTRY = [
     baseCost: 10,
     costType: "books",
     upgType: "NM",
-    icon: "sc_upgrade_icons/book_val1.png",
+    icon: "sc_upgrade_icons/book_val1.webp",
     requiresUnlockXp: true,
     costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
     nextCostAfter() { return this.costAtLevel(); },
@@ -2228,7 +2228,7 @@ const REGISTRY = [
     baseCost: 1000,
     costType: "coins",
     upgType: "NM",
-    icon: "sc_upgrade_icons/xp_val1.png",
+    icon: "sc_upgrade_icons/xp_val1.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
@@ -2246,8 +2246,8 @@ const REGISTRY = [
     desc: "Unlocks the Reset tab and the Forge reset in the Delve menu",
     lvlCap: 1,
     upgType: "NM",
-    icon: "misc/forge.png",
-    baseIconOverride: "img/stats/mp/mp_base.png",
+    icon: "misc/forge.webp",
+    baseIconOverride: "img/stats/mp/mp_base.webp",
     requiresUnlockXp: true,
     revealRequirement: 'Reach XP Level 31 to reveal this upgrade',
     unlockUpgrade: true,
@@ -2270,7 +2270,7 @@ const REGISTRY = [
     baseCost: 1,
     costType: "gold",
     upgType: "NM",
-    icon: "sc_upgrade_icons/coin_val2.png",
+    icon: "sc_upgrade_icons/coin_val2.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
@@ -2292,7 +2292,7 @@ const REGISTRY = [
     baseCost: 3,
     costType: "gold",
     upgType: "NM",
-    icon: "sc_upgrade_icons/xp_val2.png",
+    icon: "sc_upgrade_icons/xp_val2.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
@@ -2313,7 +2313,7 @@ const REGISTRY = [
     baseCost: 25,
     costType: "gold",
     upgType: "NM",
-    icon: "sc_upgrade_icons/mp_val1.png",
+    icon: "sc_upgrade_icons/mp_val1.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
@@ -2334,7 +2334,7 @@ const REGISTRY = [
     baseCost: 100,
     costType: "gold",
     upgType: "NM",
-    icon: "sc_upgrade_icons/magnet.png",
+    icon: "sc_upgrade_icons/magnet.webp",
     requiresUnlockXp: true,
     scaling: { ratio: 2 },
     costAtLevel(level) { return nmCostBN(this, level); },
@@ -2358,7 +2358,7 @@ const REGISTRY = [
     baseCost: 1_000_000,
     costType: "coins",
     upgType: "HM",
-    icon: "sc_upg_icons/xp_val_hm.png",
+    icon: "sc_upg_icons/xp_val_hm.webp",
     requiresUnlockXp: true,
     scalingPreset: 'HM',
     hmMilestones: [
