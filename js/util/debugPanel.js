@@ -1476,8 +1476,41 @@ function createCalculatorRow({ labelText, inputs = [], compute }) {
 }
 
 function applyXpState({ level, progress }) {
-    const slot = getActiveSlot();
-    if (slot == null) return;
+  const slot = getActiveSlot();
+  if (slot == null) return;
+
+  const current = (() => {
+    try { return getXpState(); }
+    catch { return null; }
+  })();
+
+  const zero = (() => {
+    try { return BigNum.fromInt(0); }
+    catch { return null; }
+  })();
+
+  const toBnOrNull = (value) => {
+    if (value == null) return null;
+    try { return value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value); }
+    catch { return null; }
+  };
+
+  let nextLevel = toBnOrNull(level) ?? current?.xpLevel ?? null;
+  let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
+
+  const levelIsFinite = !(nextLevel?.isInfinite?.());
+  const progressIsFinite = !(nextProgress?.isInfinite?.());
+
+  // If either field is being changed back to a finite value, but its partner
+  // was still stuck at Infinity, zero it out so the XP system can resume
+  // normal accumulation.
+  if ((level != null || progress != null) && zero) {
+    if (levelIsFinite && !progressIsFinite) {
+      nextProgress = zero.clone?.() ?? zero;
+    } else if (progressIsFinite && !levelIsFinite) {
+      nextLevel = zero.clone?.() ?? zero;
+    }
+  }
 
     // If we're manually editing XP stats from the debug panel, the XP system
     // should be treated as unlocked.
@@ -1487,23 +1520,23 @@ function applyXpState({ level, progress }) {
     try { localStorage.setItem(unlockKey, '1'); } catch {}
     primeStorageWatcherSnapshot(unlockKey, '1');
 
-    if (level != null) {
-        try {
-            const raw = level.toStorage?.() ?? BigNum.fromAny(level).toStorage();
-            const key = XP_KEYS.level(slot);
-            localStorage.setItem(key, raw);
-            primeStorageWatcherSnapshot(key, raw);
-        } catch {}
-    }
+  if (nextLevel != null) {
+    try {
+      const raw = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage();
+      const key = XP_KEYS.level(slot);
+      localStorage.setItem(key, raw);
+      primeStorageWatcherSnapshot(key, raw);
+    } catch {}
+  }
 
-    if (progress != null) {
-        try {
-            const raw = progress.toStorage?.() ?? BigNum.fromAny(progress).toStorage();
-            const key = XP_KEYS.progress(slot);
-            localStorage.setItem(key, raw);
-            primeStorageWatcherSnapshot(key, raw);
-        } catch {}
-    }
+  if (nextProgress != null) {
+    try {
+      const raw = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage();
+      const key = XP_KEYS.progress(slot);
+      localStorage.setItem(key, raw);
+      primeStorageWatcherSnapshot(key, raw);
+    } catch {}
+  }
 
     try {
         initXpSystem({ forceReload: true });
@@ -1524,8 +1557,38 @@ function applyXpState({ level, progress }) {
 }
 
 function applyMutationState({ level, progress }) {
-    const slot = getActiveSlot();
-    if (slot == null) return;
+  const slot = getActiveSlot();
+  if (slot == null) return;
+
+  const current = (() => {
+    try { return getMutationState(); }
+    catch { return null; }
+  })();
+
+  const zero = (() => {
+    try { return BigNum.fromInt(0); }
+    catch { return null; }
+  })();
+
+  const toBnOrNull = (value) => {
+    if (value == null) return null;
+    try { return value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value); }
+    catch { return null; }
+  };
+
+  let nextLevel = toBnOrNull(level) ?? current?.level ?? null;
+  let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
+
+  const levelIsFinite = !(nextLevel?.isInfinite?.());
+  const progressIsFinite = !(nextProgress?.isInfinite?.());
+
+  if ((level != null || progress != null) && zero) {
+    if (levelIsFinite && !progressIsFinite) {
+      nextProgress = zero.clone?.() ?? zero;
+    } else if (progressIsFinite && !levelIsFinite) {
+      nextLevel = zero.clone?.() ?? zero;
+    }
+  }
 
     // If the MP system isn't unlocked yet, setting its level/progress should
     // auto-enable the relevant unlock flags so the UI and systems stay in
