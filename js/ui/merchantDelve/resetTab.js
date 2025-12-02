@@ -195,7 +195,8 @@ export function setForgeResetCompleted(value) {
   resetState.hasDoneForgeReset = !!value;
   try { localStorage.setItem(FORGE_COMPLETED_KEY(slot), resetState.hasDoneForgeReset ? '1' : '0'); }
   catch {}
-  primeStorageWatcherSnapshot(FORGE_COMPLETED_KEY(slot));
+  try { window.dispatchEvent(new CustomEvent('forge:completed', { detail: { slot } })); }
+  catch {}
 }
 
 function getForgeDebugOverride(slot = getActiveSlot()) {
