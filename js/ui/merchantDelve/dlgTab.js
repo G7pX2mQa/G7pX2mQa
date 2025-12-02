@@ -576,7 +576,7 @@ let merchantEventsBound = false;
 let merchantTabs = { buttons: {}, panels: {}, tablist: null };
 
 // ========================= Typing SFX (WebAudio, zero-latency, mobile volume) =========================
-const TYPING_SFX_SOURCE = ['sounds/merchant_typing.mp3']; // ensure this asset exists
+const TYPING_SFX_SOURCE = ['sounds/merchant_typing.ogg']; // ensure this asset exists
 
 let __audioCtx = null;
 let __typingGain = null;
