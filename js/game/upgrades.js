@@ -53,6 +53,25 @@ function isInfinityLevelForScaled(upg, lvlBn) {
   }
 }
 
+const MAX_LEVEL_STORAGE_LENGTH = 1024;
+
+function sanitizeStoredLevelValue(raw, { allowEmpty = false } = {}) {
+  if (typeof raw !== 'string') return raw;
+  const trimmed = raw.trim();
+  if (!trimmed) return allowEmpty ? '' : '0';
+  if (trimmed.length > MAX_LEVEL_STORAGE_LENGTH) return 'Infinity';
+
+  if (trimmed.startsWith('BN:')) {
+    const expPart = trimmed.slice(trimmed.lastIndexOf(':') + 1);
+    const caret = expPart.indexOf('^');
+    const expDigits = caret >= 0 ? expPart.slice(0, caret) : expPart;
+    if (expPart.length > MAX_LEVEL_STORAGE_LENGTH / 2) return 'Infinity';
+    if (expDigits.length > MAX_LEVEL_STORAGE_LENGTH / 2) return 'Infinity';
+  }
+
+  return trimmed;
+}
+
 export function approxLog10BigNum(value) {
   if (!(value instanceof BigNum)) {
     try {
@@ -831,6 +850,7 @@ function normalizeUpgradeId(upgId) {
 
 function ensureLevelBigNum(value) {
   try {
+    value = sanitizeStoredLevelValue(value, { allowEmpty: true });
     if (typeof value === 'string') {
       const trimmed = value.trim();
       if (!trimmed) return BigNum.fromInt(0);
@@ -2855,6 +2875,20 @@ function ensureUpgradeState(areaKey, upgId) {
     recNeedsSave = true;
   }
 
+  const prevLvlStorage = rec.lvl;
+  const prevNextCost = rec.nextCost;
+  const prevNextCostLvl = rec.nextCostLvl;
+  rec.lvl = sanitizeStoredLevelValue(rec.lvl);
+  rec.nextCost = sanitizeStoredLevelValue(rec.nextCost, { allowEmpty: true });
+  rec.nextCostLvl = sanitizeStoredLevelValue(rec.nextCostLvl, { allowEmpty: true });
+  if (
+    rec.lvl !== prevLvlStorage
+    || rec.nextCost !== prevNextCost
+    || rec.nextCostLvl !== prevNextCostLvl
+  ) {
+    recNeedsSave = true;
+  }
+
   let hmEvolutions = 0;
   if (upg?.upgType === 'HM') {
     hmEvolutions = normalizeHmEvolutionCount(
@@ -2974,6 +3008,7 @@ try {
   } catch {
     rec.lvl = ensureLevelBigNum(state.lvl ?? 0).toStorage();
   }
+  rec.lvl = sanitizeStoredLevelValue(rec.lvl);
   const currentLvlStorage = rec.lvl;
 
   if (state.nextCostBn != null) {
@@ -2983,6 +3018,7 @@ try {
       try { rec.nextCost = BigNum.fromAny(state.nextCostBn ?? 0).toStorage(); }
       catch { rec.nextCost = BigNum.fromInt(0).toStorage(); }
     }
+    rec.nextCost = sanitizeStoredLevelValue(rec.nextCost, { allowEmpty: true });
     rec.nextCostLvl = currentLvlStorage;
   } else {
     delete rec.nextCostLvl;
