@@ -41,7 +41,7 @@ export function createSpawner({
     waterSelector = '.water-base',
     surgesHost = '.surges',
     coinsHost = '.coins-layer',
-    coinSrc = 'img/coin/coin.png',
+    coinSrc = 'img/coin/coin.webp',
     coinSize = 40,
     animationName = 'coin-from-wave',
     animationDurationMs = 1500,
