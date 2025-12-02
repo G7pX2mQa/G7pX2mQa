@@ -59,16 +59,16 @@ if (typeof window !== 'undefined') {
 
 const ICON_DIR = 'img/';
 const BASE_ICON_SRC_BY_COST = {
-  coins: 'img/currencies/coin/coin_base.png',
-  books: 'img/currencies/book/book_base.png',
-  gold: 'img/currencies/gold/gold_base.png',
+  coins: 'img/currencies/coin/coin_base.webp',
+  books: 'img/currencies/book/book_base.webp',
+  gold: 'img/currencies/gold/gold_base.webp',
 };
-const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.png';
-const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.png';
+const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.webp';
+const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
 const CURRENCY_ICON_SRC = {
-  coins: 'img/currencies/coin/coin.png',
-  books: 'img/currencies/book/book.png',
-  gold: 'img/currencies/gold/gold.png',
+  coins: 'img/currencies/coin/coin.webp',
+  books: 'img/currencies/book/book.webp',
+  gold: 'img/currencies/gold/gold.webp',
 };
 
 const FORGE_UNLOCK_UPGRADE_ID = 7;
