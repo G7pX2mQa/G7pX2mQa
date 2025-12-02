@@ -2024,6 +2024,7 @@ function setAllStatsToZero() {
     if (slot == null) return 0;
 
     const zero = BigNum.fromInt(0);
+    const one = BigNum.fromInt(1);
     let touched = 0;
 
     let xpState;
@@ -2056,7 +2057,7 @@ function setAllStatsToZero() {
         try {
             if (!isStatUnlocked(key)) return;
 
-            setDebugStatMultiplierOverride(key, zero, slot);
+            setDebugStatMultiplierOverride(key, one, slot);
             touched += 1;
         } catch {}
     });
