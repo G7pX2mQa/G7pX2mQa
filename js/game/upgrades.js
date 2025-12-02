@@ -831,8 +831,32 @@ function normalizeUpgradeId(upgId) {
 
 function ensureLevelBigNum(value) {
   try {
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return BigNum.fromInt(0);
+      if (/^inf(?:inity)?$/i.test(trimmed)) return BigNum.fromAny('Infinity');
+
+      // If the value is an enormous integer string, avoid constructing a huge BigInt.
+      if (!trimmed.startsWith('BN:') && /^[+-]?\d+$/.test(trimmed)) {
+        const unsigned = trimmed.replace(/^[+-]/, '').replace(/^0+(?=\d)/, '');
+        if (!unsigned) return BigNum.fromInt(0);
+        if (unsigned.length > BigNum.MAX_PLAIN_DIGITS) return BigNum.fromAny('Infinity');
+        if (unsigned.length > 32) {
+          return bigNumFromLog10(unsigned.length - 1);
+        }
+      }
+    }
+
     const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 0);
     if (bn.isInfinite?.()) return bn.clone?.() ?? bn;
+
+    const approxDigits = approxLog10BigNum(bn);
+    if (!Number.isFinite(approxDigits)) {
+      return approxDigits > 0 ? BigNum.fromAny('Infinity') : BigNum.fromInt(0);
+    }
+    if (approxDigits + 1 > BigNum.MAX_PLAIN_DIGITS) return BigNum.fromAny('Infinity');
+    if (approxDigits > 32) return bn.clone?.() ?? bn;
+
     const plain = bn.toPlainIntegerString?.();
     if (plain === 'Infinity') return BigNum.fromAny('Infinity');
     if (!plain) return BigNum.fromInt(0);
@@ -853,8 +877,15 @@ function levelBigNumToNumber(value) {
     return 0;
   }
 
-  if (bn.isInfinite?.()) {
-    return Number.POSITIVE_INFINITY;
+  if (bn.isInfinite?.()) return Number.POSITIVE_INFINITY;
+
+  const approx = approxLog10BigNum(bn);
+  if (!Number.isFinite(approx)) return approx > 0 ? Number.MAX_VALUE : 0;
+  if (approx > 308) return Number.MAX_VALUE;
+  if (approx < -324) return 0;
+  if (approx > 20) {
+    const value = Math.pow(10, approx);
+    return Number.isFinite(value) ? value : Number.MAX_VALUE;
   }
 
   try {
@@ -2479,6 +2510,7 @@ function normalizeAreaStateRecordOrder(areaKey, arr) {
 
 function parseUpgradeStateArray(raw) {
   if (typeof raw !== 'string' || !raw) return null;
+  if (raw.length > 1_000_000) return null;
   try {
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : null;
@@ -4110,5 +4142,3 @@ export function getHmNextMilestoneLevel(areaKey, upgId) {
 export function normalizeBigNum(value) {
   return bigNumFromLog10(approxLog10BigNum(value ?? 0));
 }
-
-
