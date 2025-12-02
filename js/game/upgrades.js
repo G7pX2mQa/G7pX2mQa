@@ -982,6 +982,13 @@ function plainLevelDelta(nextLevelBn, prevLevelBn) {
   }
 
   try {
+    const nextDigits = Math.floor(approxLog10BigNum(next)) + 1;
+    const prevDigits = Math.floor(approxLog10BigNum(prev)) + 1;
+    if (!Number.isFinite(nextDigits) || nextDigits > 120 || !Number.isFinite(prevDigits)) {
+      if (!Number.isFinite(prevDigits) || nextDigits <= prevDigits) return BigNum.fromInt(0);
+      return BigNum.fromAny('Infinity');
+    }
+
     const nextPlain = next.toPlainIntegerString?.();
     const prevPlain = prev.toPlainIntegerString?.();
     if (!nextPlain || !prevPlain) return BigNum.fromInt(0);
@@ -1093,6 +1100,14 @@ function hmLevelCapForEvolutions(evolutions) {
 
 function hmMilestoneHits(levelBn, milestoneLevel) {
   if (!levelBn || typeof milestoneLevel !== 'number') return 0;
+  const approxDigits = Math.floor(approxLog10BigNum(levelBn)) + 1;
+  if (!Number.isFinite(approxDigits)) return 0;
+  if (approxDigits > 120) {
+    const approx = levelBigNumToNumber(levelBn);
+    if (!Number.isFinite(approx) || approx < milestoneLevel) return 0;
+    const delta = approx - milestoneLevel;
+    return Math.max(0, Math.floor(delta / HM_EVOLUTION_INTERVAL) + 1);
+  }
   try {
     const plain = levelBn.toPlainIntegerString?.();
     if (!plain || plain === 'Infinity') return 0;
