@@ -1319,11 +1319,57 @@ export function openUpgradeOverlay(upgDef) {
   const isEndlessXp = (upgDef.tie === UPGRADE_TIES.ENDLESS_XP);
   const ui = () => upgradeUiModel(areaKey, upgDef.id);
 
-  // small helpers
   const spacer = (h) => { const s = document.createElement('div'); s.style.height = h; return s; };
   const makeLine = (html) => { const d = document.createElement('div'); d.className = 'upg-line'; d.innerHTML = html; return d; };
 
-    function recenterUnlockOverlayIfNeeded(model) {
+  let evolveNoteResizeHandler = null;
+
+  const teardownEvolveNoteLayout = () => {
+    if (evolveNoteResizeHandler) {
+      window.removeEventListener('resize', evolveNoteResizeHandler);
+      evolveNoteResizeHandler = null;
+    }
+
+    const content = upgSheetEl?.querySelector('.upg-content');
+    if (content) content.style.removeProperty('--hm-evolve-available');
+  };
+
+  const syncEvolveNoteLayout = (noteEl) => {
+    teardownEvolveNoteLayout();
+    if (!noteEl || !upgSheetEl) return;
+
+    const header = upgSheetEl.querySelector('.upg-header');
+    const actions = upgSheetEl.querySelector('.upg-actions');
+    const content = upgSheetEl.querySelector('.upg-content');
+    if (!header || !actions || !content) return;
+
+    const applyLayout = () => {
+      const sheetHeight = upgSheetEl.getBoundingClientRect?.().height || window.innerHeight || 0;
+      const headerHeight = header.getBoundingClientRect?.().height || header.offsetHeight || 0;
+      const actionsHeight = actions.getBoundingClientRect?.().height || actions.offsetHeight || 0;
+      const available = Math.max(0, sheetHeight - headerHeight - actionsHeight);
+
+      if (available > 0) {
+        content.style.setProperty('--hm-evolve-available', `${available}px`);
+      } else {
+        content.style.removeProperty('--hm-evolve-available');
+      }
+
+      const noteHeight = noteEl.getBoundingClientRect?.().height || noteEl.offsetHeight || 0;
+      if (available > 0 && noteHeight > 0) {
+        const pad = Math.max(32, (available - noteHeight) / 2);
+        noteEl.style.setProperty('--hm-evolve-pad', `${pad}px`);
+      } else {
+        noteEl.style.removeProperty('--hm-evolve-pad');
+      }
+    };
+
+    evolveNoteResizeHandler = applyLayout;
+    window.addEventListener('resize', applyLayout, { passive: true });
+    requestAnimationFrame(applyLayout);
+  };
+
+  function recenterUnlockOverlayIfNeeded(model) {
     const content = upgSheetEl.querySelector('.upg-content');
     if (!content) return;
 
@@ -1366,6 +1412,8 @@ export function openUpgradeOverlay(upgDef) {
   const rerender = () => {
     const model = ui();
     if (!model) return;
+
+    teardownEvolveNoteLayout();
 
     const lockState = model.lockState || getUpgradeLockState(areaKey, upgDef.id);
     const locked = !!lockState?.locked;
@@ -1633,6 +1681,7 @@ export function openUpgradeOverlay(upgDef) {
         });
         actions.append(closeBtn, evolveBtn);
         evolveBtn.focus();
+        syncEvolveNoteLayout(desc);
         recenterUnlockOverlayIfNeeded(model);
         return;
       }
@@ -1919,11 +1968,12 @@ export function openUpgradeOverlay(upgDef) {
 
   upgOverlayCleanup = () => {
     upgOpenLocal = false;
-      window.removeEventListener('currency:change', onCurrencyChange);
-      window.removeEventListener('xp:change', onCurrencyChange);
-      window.removeEventListener('xp:unlock', onCurrencyChange);
-	  document.removeEventListener('ccc:upgrades:changed', onUpgradesChanged);
-      window.removeEventListener('keydown', onKey, true);
+    teardownEvolveNoteLayout();
+    window.removeEventListener('currency:change', onCurrencyChange);
+    window.removeEventListener('xp:change', onCurrencyChange);
+    window.removeEventListener('xp:unlock', onCurrencyChange);
+    document.removeEventListener('ccc:upgrades:changed', onUpgradesChanged);
+    window.removeEventListener('keydown', onKey, true);
   };
 }
 
