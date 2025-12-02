@@ -627,13 +627,36 @@ export function addMutationPower(amount) {
   if (!mutationState.unlocked) return getMutationState();
 
   if (mutationState.level && mutationState.level.isInfinite?.()) {
+    const prevLevel = mutationState.level.clone?.() ?? mutationState.level;
+    const prevProgress = mutationState.progress.clone?.() ?? mutationState.progress;
+
     if (!mutationState.progress?.isInfinite?.()) {
       try { mutationState.progress = BN.fromAny('Infinity'); } catch {}
     }
     if (!mutationState.requirement?.isInfinite?.()) {
       try { mutationState.requirement = BN.fromAny('Infinity'); } catch {}
     }
-    return getMutationState();
+
+    let inc;
+    try {
+      inc = amount instanceof BN ? amount : BN.fromAny(amount ?? 0);
+    } catch {
+      inc = bnZero();
+    }
+
+    inc = applyStatMultiplierOverride('mutation', inc);
+
+    const detail = emitChange('progress', {
+      delta: inc.clone?.() ?? inc,
+      levelsGained: bnZero(),
+      level: mutationState.level.clone?.() ?? mutationState.level,
+      progress: mutationState.progress.clone?.() ?? mutationState.progress,
+      requirement: mutationState.requirement.clone?.() ?? mutationState.requirement,
+      previousLevel: prevLevel.clone?.() ?? prevLevel,
+      previousProgress: prevProgress.clone?.() ?? prevProgress,
+    });
+
+    return detail;
   }
 
   let inc;
