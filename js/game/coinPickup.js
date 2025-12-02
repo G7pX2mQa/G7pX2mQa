@@ -558,8 +558,7 @@ const computeMutationMultiplier = (spawnLevelStr) => {
     }
   }
 
-  // ----- Helpers -----
-  const DESKTOP_VOLUME = 0.3;
+  const DESKTOP_VOLUME = 0.35;
   const MOBILE_VOLUME  = 0.12;
   const resolvedSrc = new URL(soundSrc, document.baseURI).href;
 
