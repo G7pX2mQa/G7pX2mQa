@@ -24,7 +24,7 @@ function nowMs() {
   return Date.now();
 }
 
-const MERCHANT_ICON_SRC = 'img/misc/merchant.png';
+const MERCHANT_ICON_SRC = 'img/misc/merchant.webp';
 const MERCHANT_MET_KEY_BASE  = 'ccc:merchantMet';
 const MERCHANT_TAB_KEY_BASE  = 'ccc:merchantTab';
 export const MERCHANT_DLG_STATE_KEY_BASE = 'ccc:merchant:dlgState';
@@ -52,12 +52,12 @@ const merchantTabUnlockState = new Map([
 ]);
 
 const REWARD_ICON_SRC = {
-  coins: 'img/currencies/coin/coin.png',
-  books: 'img/currencies/book/book.png',
-  gold: 'img/currencies/gold/gold.png',
+  coins: 'img/currencies/coin/coin.webp',
+  books: 'img/currencies/book/book.webp',
+  gold: 'img/currencies/gold/gold.webp',
 };
 
-const MYSTERIOUS_ICON_SRC = 'img/misc/mysterious.png';
+const MYSTERIOUS_ICON_SRC = 'img/misc/mysterious.webp';
 const HIDDEN_DIALOGUE_TITLE = 'Hidden Dialogue';
 const LOCKED_DIALOGUE_TITLE = 'Locked Dialogue';
 const DEFAULT_MYSTERIOUS_BLURB = 'Hidden Dialogue';
