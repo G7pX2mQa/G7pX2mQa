@@ -40,6 +40,39 @@ let setDebugPanelAccess;
 
 const pendingPreloadedAudio = [];
 
+function applyPendingSlotWipe() {
+  let slotStr;
+  try {
+    slotStr = localStorage.getItem('ccc:pendingSlotWipe');
+  } catch {
+    slotStr = null;
+  }
+  if (!slotStr) return;
+
+  const slot = Number(slotStr);
+  const suffix = `:${slot}`;
+  const toRemove = [];
+
+  try {
+    const storage = localStorage;
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i);
+      if (key && key.startsWith('ccc:') && key.endsWith(suffix)) {
+        toRemove.push(key);
+      }
+    }
+
+    toRemove.forEach(k => {
+      try { localStorage.removeItem(k); } catch {}
+    });
+
+    // Remove the flag so it only executes once
+    try { localStorage.removeItem('ccc:pendingSlotWipe'); } catch {}
+  } catch {
+    try { localStorage.removeItem('ccc:pendingSlotWipe'); } catch {}
+  }
+}
+
 function disableMobileZoomGestures() {
   if (!IS_MOBILE) return;
 
@@ -297,7 +330,7 @@ function enterArea(areaID) {
 
       if (!spawner) {
         spawner = createSpawner({
-          coinSrc: 'img/currencies/coin/coin.png',
+          coinSrc: 'img/currencies/coin/coin.webp',
           coinSize: 40,
           initialRate: 1,
           surgeLifetimeMs: 1800,
@@ -382,38 +415,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const ASSET_MANIFEST = {
     images: [
-      'img/currencies/coin/coin.png',
-      'img/currencies/coin/coin_base.png',
-      'img/currencies/coin/coin_plus_base.png',
-      'img/currencies/book/book.png',
-      'img/currencies/book/book_base.png',
-      'img/currencies/book/book_plus_base.png',
-	  'img/currencies/gold/gold.png',
-      'img/currencies/gold/gold_base.png',
-      'img/currencies/gold/gold_plus_base.png',
-      'img/sc_upg_icons/faster_coins.png',
-      'img/sc_upg_icons/book_val1.png',
-      'img/sc_upg_icons/coin_val1.png',
-      'img/sc_upg_icons/xp_val1.png',
-	  'img/sc_upg_icons/faster_coins2.png',
-      'img/sc_upg_icons/coin_val2.png',
-      'img/sc_upg_icons/xp_val2.png',
-	  'img/sc_upg_icons/mp_val1.png',
-	  'img/sc_upg_icons/magnet.png',
-	  'img/sc_upg_icons/xp_val_hm.png',
-      'img/stats/xp/xp.png',
-      'img/stats/xp/xp_base.png',
-      'img/stats/xp/xp_plus_base.png',
-	  'img/stats/mp/mp.png',
-      'img/stats/mp/mp_base.png',
-      'img/stats/mp/mp_plus_base.png',
-	  'img/misc/forge.png',
-      'img/misc/locked.png',
-      'img/misc/locked_base.png',
-      'img/misc/maxed.png',
-	  'img/misc/merchant.png',
-      'img/misc/mysterious.png',
-      ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.png`),
+      'img/currencies/coin/coin.webp',
+      'img/currencies/coin/coin_base.webp',
+      'img/currencies/coin/coin_plus_base.webp',
+      'img/currencies/book/book.webp',
+      'img/currencies/book/book_base.webp',
+      'img/currencies/book/book_plus_base.webp',
+	  'img/currencies/gold/gold.webp',
+      'img/currencies/gold/gold_base.webp',
+      'img/currencies/gold/gold_plus_base.webp',
+      'img/sc_upg_icons/faster_coins.webp',
+      'img/sc_upg_icons/book_val1.webp',
+      'img/sc_upg_icons/coin_val1.webp',
+      'img/sc_upg_icons/xp_val1.webp',
+	  'img/sc_upg_icons/faster_coins2.webp',
+      'img/sc_upg_icons/coin_val2.webp',
+      'img/sc_upg_icons/xp_val2.webp',
+	  'img/sc_upg_icons/mp_val1.webp',
+	  'img/sc_upg_icons/magnet.webp',
+	  'img/sc_upg_icons/xp_val_hm.webp',
+      'img/stats/xp/xp.webp',
+      'img/stats/xp/xp_base.webp',
+      'img/stats/xp/xp_plus_base.webp',
+	  'img/stats/mp/mp.webp',
+      'img/stats/mp/mp_base.webp',
+      'img/stats/mp/mp_plus_base.webp',
+	  'img/misc/forge.webp',
+      'img/misc/locked.webp',
+      'img/misc/locked_base.webp',
+      'img/misc/maxed.webp',
+	  'img/misc/merchant.webp',
+      'img/misc/mysterious.webp',
+      ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.webp`),
     ],
     audio: [
       'sounds/coin_pickup.mp3',
@@ -498,11 +531,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   finishAndHideLoader(loader);
 
   await Promise.all([ // fixes some image preload issue on mobile
-    warmImage('img/currencies/coin/coin_plus_base.png'),
-    warmImage('img/stats/xp/xp_plus_base.png'),
-	warmImage('img/stats/mp/mp_plus_base.png'),
+    warmImage('img/currencies/coin/coin_plus_base.webp'),
+    warmImage('img/stats/xp/xp_plus_base.webp'),
+	warmImage('img/stats/mp/mp_plus_base.webp'),
   ]);
-
+  
+  applyPendingSlotWipe();
   ensureStorageDefaults();
   markProgressDirty?.('ensure-defaults');
   initPopups();
