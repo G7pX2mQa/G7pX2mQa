@@ -1993,29 +1993,6 @@ function setAllStatsToInfinity() {
         }
     } catch {}
 
-    const isStatUnlocked = (statKey) => {
-        if (statKey === 'xp') return !!xpState?.unlocked;
-        if (statKey === 'mutation') return !!mutationState?.unlocked;
-        return true;
-    };
-
-    // Stat multipliers (XP, MP, etc.)
-    STAT_MULTIPLIERS.forEach(({ key }) => {
-        try {
-            if (!isStatUnlocked(key)) return;
-
-            const current = getStatMultiplierDisplayValue(key, slot);
-            const isAlreadyInf =
-                current?.isInfinite?.() ||
-                bigNumEquals(current, inf);
-
-            if (isAlreadyInf) return;
-
-            setDebugStatMultiplierOverride(key, inf, slot);
-            touched += 1;
-        } catch {}
-    });
-
     return touched;
 }
 
@@ -2024,7 +2001,6 @@ function setAllStatsToZero() {
     if (slot == null) return 0;
 
     const zero = BigNum.fromInt(0);
-    const one = BigNum.fromInt(1);
     let touched = 0;
 
     let xpState;
@@ -2046,21 +2022,6 @@ function setAllStatsToZero() {
             touched += 1;
         }
     } catch {}
-
-    const isStatUnlocked = (statKey) => {
-        if (statKey === 'xp') return !!xpState?.unlocked;
-        if (statKey === 'mutation') return !!mutationState?.unlocked;
-        return true;
-    };
-
-    STAT_MULTIPLIERS.forEach(({ key }) => {
-        try {
-            if (!isStatUnlocked(key)) return;
-
-            setDebugStatMultiplierOverride(key, one, slot);
-            touched += 1;
-        } catch {}
-    });
 
     return touched;
 }
