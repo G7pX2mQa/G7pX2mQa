@@ -435,7 +435,6 @@ function buildOptions({ minify, sourcemap }) {
     loader: {
       ".css": "css",
       ".html": "text",
-      ".png": "file",
       ".jpg": "file",
       ".jpeg": "file",
       ".webp": "file",
