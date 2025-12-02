@@ -417,10 +417,9 @@ function currencyIconHTML(type) {
   return `<img alt="" src="${src}" class="coin-ico">`;
 }
 
-
-// 1×1 transparent PNG (fallback when an icon is missing)
+// 1×1 transparent WebP (fallback when an icon is missing)
 const TRANSPARENT_PX =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3x0S8AAAAASUVORK5CYII=';
+  'data:image/webp;base64,UklGRiIAAABXRUJQVlA4WAoAAAAQAAAAEAgCdASoCAAIALGAcAA==';
 
 // Upgrades registry (minimal for now)
 let upgrades = {};
