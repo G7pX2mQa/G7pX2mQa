@@ -1319,80 +1319,11 @@ export function openUpgradeOverlay(upgDef) {
   const isEndlessXp = (upgDef.tie === UPGRADE_TIES.ENDLESS_XP);
   const ui = () => upgradeUiModel(areaKey, upgDef.id);
 
+  // small helpers
   const spacer = (h) => { const s = document.createElement('div'); s.style.height = h; return s; };
   const makeLine = (html) => { const d = document.createElement('div'); d.className = 'upg-line'; d.innerHTML = html; return d; };
 
-  let evolveNoteResizeHandler = null;
-  let evolveNoteViewportHandler = null;
-
-  const teardownEvolveNoteLayout = () => {
-    if (evolveNoteResizeHandler) {
-      window.removeEventListener('resize', evolveNoteResizeHandler);
-      evolveNoteResizeHandler = null;
-    }
-
-    if (evolveNoteViewportHandler && window.visualViewport) {
-      window.visualViewport.removeEventListener('resize', evolveNoteViewportHandler);
-      window.visualViewport.removeEventListener('scroll', evolveNoteViewportHandler);
-      evolveNoteViewportHandler = null;
-    }
-
-    const content = upgSheetEl?.querySelector('.upg-content');
-    if (content) content.style.removeProperty('--hm-evolve-available');
-  };
-
-  const syncEvolveNoteLayout = (noteEl) => {
-    teardownEvolveNoteLayout();
-    if (!noteEl || !upgSheetEl) return;
-
-    const header = upgSheetEl.querySelector('.upg-header');
-    const actions = upgSheetEl.querySelector('.upg-actions');
-    const content = upgSheetEl.querySelector('.upg-content');
-    if (!header || !actions || !content) return;
-
-    const applyLayout = () => {
-      const sheetRect = upgSheetEl.getBoundingClientRect?.();
-      const viewportHeight =
-        window.visualViewport?.height ||
-        window.innerHeight ||
-        document.documentElement?.clientHeight ||
-        sheetRect?.height || 0;
-      const headerHeight = header.getBoundingClientRect?.().height || header.offsetHeight || 0;
-      const actionsHeight = actions.getBoundingClientRect?.().height || actions.offsetHeight || 0;
-      const available = Math.max(0, viewportHeight - headerHeight - actionsHeight);
-
-      const contentStyle = getComputedStyle(content);
-      const contentPadding =
-        parseFloat(contentStyle.paddingTop || '0') +
-        parseFloat(contentStyle.paddingBottom || '0');
-      const contentAvailable = Math.max(0, available - contentPadding);
-
-      if (contentAvailable > 0) {
-        content.style.setProperty('--hm-evolve-available', `${contentAvailable}px`);
-      } else {
-        content.style.removeProperty('--hm-evolve-available');
-      }
-
-      const noteHeight = noteEl.getBoundingClientRect?.().height || noteEl.offsetHeight || 0;
-      if (contentAvailable > 0 && noteHeight > 0) {
-        const pad = Math.max(32, (contentAvailable - noteHeight) / 2);
-        noteEl.style.setProperty('--hm-evolve-pad', `${pad}px`);
-      } else {
-        noteEl.style.removeProperty('--hm-evolve-pad');
-      }
-    };
-
-    evolveNoteResizeHandler = applyLayout;
-    evolveNoteViewportHandler = applyLayout;
-    window.addEventListener('resize', applyLayout, { passive: true });
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', applyLayout, { passive: true });
-      window.visualViewport.addEventListener('scroll', applyLayout, { passive: true });
-    }
-    requestAnimationFrame(applyLayout);
-  };
-
-  function recenterUnlockOverlayIfNeeded(model) {
+    function recenterUnlockOverlayIfNeeded(model) {
     const content = upgSheetEl.querySelector('.upg-content');
     if (!content) return;
 
@@ -1435,8 +1366,6 @@ export function openUpgradeOverlay(upgDef) {
   const rerender = () => {
     const model = ui();
     if (!model) return;
-
-    teardownEvolveNoteLayout();
 
     const lockState = model.lockState || getUpgradeLockState(areaKey, upgDef.id);
     const locked = !!lockState?.locked;
@@ -1704,7 +1633,6 @@ export function openUpgradeOverlay(upgDef) {
         });
         actions.append(closeBtn, evolveBtn);
         evolveBtn.focus();
-        syncEvolveNoteLayout(desc);
         recenterUnlockOverlayIfNeeded(model);
         return;
       }
@@ -1991,12 +1919,11 @@ export function openUpgradeOverlay(upgDef) {
 
   upgOverlayCleanup = () => {
     upgOpenLocal = false;
-    teardownEvolveNoteLayout();
-    window.removeEventListener('currency:change', onCurrencyChange);
-    window.removeEventListener('xp:change', onCurrencyChange);
-    window.removeEventListener('xp:unlock', onCurrencyChange);
-    document.removeEventListener('ccc:upgrades:changed', onUpgradesChanged);
-    window.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('currency:change', onCurrencyChange);
+      window.removeEventListener('xp:change', onCurrencyChange);
+      window.removeEventListener('xp:unlock', onCurrencyChange);
+	  document.removeEventListener('ccc:upgrades:changed', onUpgradesChanged);
+      window.removeEventListener('keydown', onKey, true);
   };
 }
 
