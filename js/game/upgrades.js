@@ -2122,7 +2122,7 @@ const REGISTRY = [
     tie: UPGRADE_TIES.FASTER_COINS,
     title: "Faster Coins",
     desc: "Increases coin spawn rate by +10% per level",
-    lvlCap: 100000000,
+    lvlCap: 10,
     baseCost: 10,
     costType: "coins",
     upgType: "NM",
@@ -4110,4 +4110,5 @@ export function getHmNextMilestoneLevel(areaKey, upgId) {
 export function normalizeBigNum(value) {
   return bigNumFromLog10(approxLog10BigNum(value ?? 0));
 }
+
 
