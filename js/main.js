@@ -449,12 +449,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.webp`),
     ],
     audio: [
-      'sounds/coin_pickup.mp3',
-      'sounds/wave_spawn.mp3',
-      'sounds/merchant_typing.mp3',
-      'sounds/purchase_upg.mp3',
-	  'sounds/forge_reset.mp3',
-	  'sounds/evolve_upg.mp3',
+      'sounds/coin_pickup.ogg',
+      'sounds/wave_spawn.ogg',
+      'sounds/merchant_typing.ogg',
+      'sounds/purchase_upg.ogg',
+	  'sounds/forge_reset.ogg',
+	  'sounds/evolve_upg.ogg',
     ],
     fonts: true,
   };
