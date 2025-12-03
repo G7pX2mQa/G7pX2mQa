@@ -532,7 +532,7 @@ function bigNumFromLog10(log10Value) {
 // intentionally piecewise so we can tune different growth slopes without
 // introducing discontinuities at the regime thresholds. All calculations live
 // in log space for numeric stability and to keep multiplicative bonuses easy
-// to reason about. See docs/xp_scaling.md for a higher-level overview.
+// to reason about.
 const xpScalingHelper = (() => {
   const anchoredRegimes = [];
   let previous = null;
