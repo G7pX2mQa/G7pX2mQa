@@ -577,6 +577,58 @@ function progressRatio(progressBn, requirement) {
   return ratio;
 }
 
+function estimateFastForwardCost(currentLevelBn, baseRequirementBn, fastLevels) {
+  if (fastLevels <= 0n) return bnZero();
+
+  const baseLog = approxLog10(baseRequirementBn);
+  if (!Number.isFinite(baseLog)) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  const levelsNumber = bigIntToFloatApprox(fastLevels);
+  if (!Number.isFinite(levelsNumber) || levelsNumber <= 0) return bnZero();
+
+  const levelInfo = xpLevelBigIntInfo(currentLevelBn);
+  const levelBigInt = levelInfo.bigInt;
+
+  let targetLog = baseLog + (levelsNumber * AVG_LOG_STEP);
+  if (levelBigInt != null) {
+    try {
+      const targetLevel = levelBigInt + BigInt(Math.trunc(levelsNumber));
+      const targetRequirement = xpRequirementForXpLevel(BigNum.fromAny(targetLevel.toString()));
+      const maybeLog = approxLog10(targetRequirement);
+      if (Number.isFinite(maybeLog)) {
+        targetLog = maybeLog;
+      }
+    } catch {}
+  }
+
+  let avgStep = (targetLog - baseLog) / levelsNumber;
+  if (!Number.isFinite(avgStep) || avgStep <= 0) {
+    avgStep = AVG_LOG_STEP;
+  }
+
+  const ratio = Math.pow(10, avgStep);
+  if (!Number.isFinite(ratio) || ratio <= 0) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  let logSum;
+  if (Math.abs(ratio - 1) < 1e-6) {
+    logSum = baseLog + Math.log10(levelsNumber);
+  } else {
+    const logRatio = Math.log(ratio);
+    const numerator = Math.expm1(logRatio * levelsNumber);
+    const denominator = Math.expm1(logRatio);
+    if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) {
+      return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+    }
+    logSum = baseLog + Math.log10(Math.abs(numerator / denominator));
+  }
+
+  return bigNumFromLog10(logSum);
+}
+
 function fastForwardLevelsAvailable(progressBn, requirementBn) {
   const logProg = approxLog10(progressBn);
   const logReq = approxLog10(requirementBn);
@@ -585,7 +637,53 @@ function fastForwardLevelsAvailable(progressBn, requirementBn) {
   if (diff < FAST_FORWARD_THRESHOLD) return 0n;
   const approxLevels = Math.floor(diff / AVG_LOG_STEP);
   if (!Number.isFinite(approxLevels) || approxLevels <= 0) return 0n;
-  return BigInt(Math.min(approxLevels, FAST_FORWARD_CAP));
+
+  let fastLevels = BigInt(Math.min(approxLevels, FAST_FORWARD_CAP));
+  let cost = estimateFastForwardCost(xpState.xpLevel, requirementBn, fastLevels);
+
+  let progressVsCost = 1;
+  if (typeof progressBn?.cmp === 'function') {
+    try { progressVsCost = progressBn.cmp(cost); }
+    catch { progressVsCost = 1; }
+  } else {
+    const logProgress = approxLog10(progressBn);
+    const logCost = approxLog10(cost);
+    progressVsCost = logProgress >= logCost ? 1 : -1;
+  }
+
+  if (bigNumIsInfinite(cost) || progressVsCost < 0) {
+    let low = 0n;
+    let high = fastLevels;
+    let bestCost = bnZero();
+
+    while (low <= high) {
+      const mid = (low + high) >> 1n;
+      const midCost = estimateFastForwardCost(xpState.xpLevel, requirementBn, mid);
+      let cmp = -1;
+      if (typeof progressBn?.cmp === 'function') {
+        try { cmp = progressBn.cmp(midCost); }
+        catch { cmp = -1; }
+      } else {
+        const logProgress = approxLog10(progressBn);
+        const logCost = approxLog10(midCost);
+        cmp = logProgress >= logCost ? 1 : -1;
+      }
+
+      if (cmp >= 0) {
+        low = mid + 1n;
+        bestCost = midCost;
+      } else {
+        high = mid - 1n;
+      }
+    }
+
+    fastLevels = high > 0n ? high : 0n;
+    cost = bestCost;
+  }
+
+  if (fastLevels <= 0n) return 0n;
+
+  return { levels: fastLevels, cost: cost.clone?.() ?? cost };
 }
 
 function applyBulkLevelRewards(levelsGained) {
@@ -734,12 +832,19 @@ function normalizeProgress(applyRewards = false) {
   }
 
   while (xpState.progress.cmp?.(requirementBn) >= 0) {
-    const fastLevels = fastForwardLevelsAvailable(xpState.progress, requirementBn);
+    const fastResult = fastForwardLevelsAvailable(xpState.progress, requirementBn);
+    const fastLevels = typeof fastResult === 'object' && fastResult.levels != null
+      ? fastResult.levels
+      : 0n;
+    const fastCost = typeof fastResult === 'object' && fastResult.cost != null
+      ? fastResult.cost
+      : bnZero();
     if (fastLevels > 0n) {
       const fastBn = BigNum.fromAny(fastLevels.toString());
+      try { xpState.progress = xpState.progress.sub(fastCost); }
+      catch { xpState.progress = bnZero(); }
       try { xpState.xpLevel = xpState.xpLevel.add(fastBn); }
       catch { xpState.xpLevel = fastBn; }
-      xpState.progress = bnZero();
       if (applyRewards) applyBulkLevelRewards(fastLevels);
       updateXpRequirement();
       if (bigNumIsInfinite(requirementBn)) break;
@@ -1208,10 +1313,17 @@ export function addXp(amount, { silent = false } = {}) {
   // Normal finite-path level up loop
   let xpLevelsGained = bnZero();
   while (xpState.progress.cmp?.(requirementBn) >= 0) {
-    const fastLevels = fastForwardLevelsAvailable(xpState.progress, requirementBn);
+    const fastResult = fastForwardLevelsAvailable(xpState.progress, requirementBn);
+    const fastLevels = typeof fastResult === 'object' && fastResult.levels != null
+      ? fastResult.levels
+      : 0n;
+    const fastCost = typeof fastResult === 'object' && fastResult.cost != null
+      ? fastResult.cost
+      : bnZero();
     if (fastLevels > 0n) {
       const fastBn = BigNum.fromAny(fastLevels.toString());
-      xpState.progress = bnZero();
+      try { xpState.progress = xpState.progress.sub(fastCost); }
+      catch { xpState.progress = bnZero(); }
       xpState.xpLevel = xpState.xpLevel.add(fastBn);
       xpLevelsGained = xpLevelsGained.add(fastBn);
       applyBulkLevelRewards(fastLevels);
