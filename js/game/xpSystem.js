@@ -43,6 +43,8 @@ const LOG_STEP_DECIMAL = '0.04139268515822507';
 const LOG_DECADE_BONUS_DECIMAL = '0.3979400086720376';
 const TEN_DIVISOR_DECIMAL = '0.1';
 const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
+const FAST_CACHE_GAP = 1000n;
+const CACHE_BACKFILL_WINDOW = 25n;
 
 function bigIntToFloatApprox(value) {
   if (value === 0n) return 0;
@@ -112,6 +114,27 @@ function computeBonusLogTerm(levelBn) {
   const bonusCount = computeBonusCountBn(levelBn);
   if (bigNumIsZero(bonusCount)) return null;
   return bonusCount.mulDecimal(LOG_DECADE_BONUS_DECIMAL, 18);
+}
+
+function requirementFromClosedForm(levelBigInt) {
+  if (levelBigInt <= 0n) {
+    const baseRequirement = xpRequirementCache.get('0');
+    return baseRequirement?.clone?.() ?? baseRequirement ?? BigNum.fromInt(10);
+  }
+
+  const levelApprox = bigIntToFloatApprox(levelBigInt);
+  const bonusApprox = bigIntToFloatApprox(bonusMultipliersCount(levelBigInt));
+
+  if (!Number.isFinite(levelApprox) || !Number.isFinite(bonusApprox)) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  const log10Requirement = 1 + (levelApprox * LOG_STEP) + (bonusApprox * LOG_DECADE_BONUS);
+  if (!Number.isFinite(log10Requirement)) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  return bigNumFromLog10(log10Requirement);
 }
 
 function approximateCoinMultiplierFromBigNum(levelBn) {
@@ -446,6 +469,23 @@ function ensureExactRequirementCacheUpTo(levelBigInt) {
     xpRequirementCache.set(currentLevel.toString(), currentRequirement);
   }
 
+  const gap = target - currentLevel;
+  if (gap > FAST_CACHE_GAP) {
+    const backfillStart = target > CACHE_BACKFILL_WINDOW ? target - CACHE_BACKFILL_WINDOW : currentLevel;
+    if (backfillStart > currentLevel) {
+      const derived = requirementFromClosedForm(backfillStart);
+      xpRequirementCache.set(backfillStart.toString(), derived);
+      currentLevel = backfillStart;
+      currentRequirement = derived;
+      highestCachedExactLevel = currentLevel;
+
+      const derivedIsInfinite = currentRequirement.isInfinite?.() || (typeof currentRequirement.isInfinite === 'function' && currentRequirement.isInfinite());
+      if (derivedIsInfinite) {
+        return;
+      }
+    }
+  }
+
   while (currentLevel < target) {
     const nextLevel = currentLevel + 1n;
     let nextRequirement = currentRequirement.mulScaledIntFloor(11n, 1);
@@ -619,15 +659,53 @@ function xpRequirementForXpLevel(xpLevelInput) {
   }
 
   const targetLevel = targetLevelInfo.bigInt ?? 0n;
+  const targetKey = targetLevelInfo.bigInt != null ? targetLevel.toString() : null;
 
   if (targetLevelInfo.bigInt != null && targetLevel <= 0n) {
     const baseRequirement = xpRequirementCache.get('0');
     return baseRequirement.clone?.() ?? baseRequirement;
   }
 
+  if (targetLevelInfo.bigInt != null && targetLevelInfo.bigInt - highestCachedExactLevel > FAST_CACHE_GAP && targetKey) {
+    const windowStart = targetLevelInfo.bigInt > CACHE_BACKFILL_WINDOW ? targetLevelInfo.bigInt - CACHE_BACKFILL_WINDOW : 0n;
+    let windowRequirement = xpRequirementCache.get(windowStart.toString());
+    if (!windowRequirement) {
+      windowRequirement = requirementFromClosedForm(windowStart);
+      xpRequirementCache.set(windowStart.toString(), windowRequirement);
+    }
+
+    let fillLevel = windowStart;
+    let fillRequirement = windowRequirement;
+    let hitInfinity = fillRequirement.isInfinite?.() || (typeof fillRequirement.isInfinite === 'function' && fillRequirement.isInfinite());
+
+    while (!hitInfinity && fillLevel < targetLevelInfo.bigInt) {
+      const nextLevel = fillLevel + 1n;
+      let nextRequirement = fillRequirement.mulScaledIntFloor(11n, 1);
+      if (nextLevel > 1n && ((nextLevel - 1n) % 10n === 0n)) {
+        nextRequirement = nextRequirement.mulScaledIntFloor(25n, 1);
+      }
+      xpRequirementCache.set(nextLevel.toString(), nextRequirement);
+      fillRequirement = nextRequirement;
+      fillLevel = nextLevel;
+      hitInfinity = nextRequirement.isInfinite?.() || (typeof nextRequirement.isInfinite === 'function' && nextRequirement.isInfinite());
+    }
+
+    if (fillLevel > highestCachedExactLevel) {
+      highestCachedExactLevel = fillLevel;
+    }
+
+    if (hitInfinity) {
+      return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+    }
+
+    const windowCached = xpRequirementCache.get(targetKey);
+    if (windowCached) {
+      return windowCached.clone?.() ?? windowCached;
+    }
+  }
+
   if (targetLevelInfo.bigInt != null) {
     ensureExactRequirementCacheUpTo(targetLevel);
-    const targetKey = targetLevel.toString();
     const cachedExact = xpRequirementCache.get(targetKey);
     if (cachedExact) {
       return cachedExact.clone?.() ?? cachedExact;
