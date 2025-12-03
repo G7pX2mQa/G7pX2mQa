@@ -38,13 +38,10 @@ const EXACT_REQUIREMENT_CACHE_LEVEL = 5000n;
 const LOG_STEP = Math.log10(11 / 10);
 const LOG_DECADE_BONUS = Math.log10(5 / 2);
 const EXACT_COIN_LEVEL_LIMIT = 200n;
-const LEVEL_STEP_DECIMAL = '1.1';
 const LOG_STEP_DECIMAL = '0.04139268515822507';
 const LOG_DECADE_BONUS_DECIMAL = '0.3979400086720376';
 const TEN_DIVISOR_DECIMAL = '0.1';
 const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
-const FAST_CACHE_GAP = 1000n;
-const CACHE_BACKFILL_WINDOW = 25n;
 
 function bigIntToFloatApprox(value) {
   if (value === 0n) return 0;
@@ -114,27 +111,6 @@ function computeBonusLogTerm(levelBn) {
   const bonusCount = computeBonusCountBn(levelBn);
   if (bigNumIsZero(bonusCount)) return null;
   return bonusCount.mulDecimal(LOG_DECADE_BONUS_DECIMAL, 18);
-}
-
-function requirementFromClosedForm(levelBigInt) {
-  if (levelBigInt <= 0n) {
-    const baseRequirement = xpRequirementCache.get('0');
-    return baseRequirement?.clone?.() ?? baseRequirement ?? BigNum.fromInt(10);
-  }
-
-  const levelApprox = bigIntToFloatApprox(levelBigInt);
-  const bonusApprox = bigIntToFloatApprox(bonusMultipliersCount(levelBigInt));
-
-  if (!Number.isFinite(levelApprox) || !Number.isFinite(bonusApprox)) {
-    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-  }
-
-  const log10Requirement = 1 + (levelApprox * LOG_STEP) + (bonusApprox * LOG_DECADE_BONUS);
-  if (!Number.isFinite(log10Requirement)) {
-    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-  }
-
-  return bigNumFromLog10(log10Requirement);
 }
 
 function approximateCoinMultiplierFromBigNum(levelBn) {
@@ -469,23 +445,6 @@ function ensureExactRequirementCacheUpTo(levelBigInt) {
     xpRequirementCache.set(currentLevel.toString(), currentRequirement);
   }
 
-  const gap = target - currentLevel;
-  if (gap > FAST_CACHE_GAP) {
-    const backfillStart = target > CACHE_BACKFILL_WINDOW ? target - CACHE_BACKFILL_WINDOW : currentLevel;
-    if (backfillStart > currentLevel) {
-      const derived = requirementFromClosedForm(backfillStart);
-      xpRequirementCache.set(backfillStart.toString(), derived);
-      currentLevel = backfillStart;
-      currentRequirement = derived;
-      highestCachedExactLevel = currentLevel;
-
-      const derivedIsInfinite = currentRequirement.isInfinite?.() || (typeof currentRequirement.isInfinite === 'function' && currentRequirement.isInfinite());
-      if (derivedIsInfinite) {
-        return;
-      }
-    }
-  }
-
   while (currentLevel < target) {
     const nextLevel = currentLevel + 1n;
     let nextRequirement = currentRequirement.mulScaledIntFloor(11n, 1);
@@ -659,53 +618,15 @@ function xpRequirementForXpLevel(xpLevelInput) {
   }
 
   const targetLevel = targetLevelInfo.bigInt ?? 0n;
-  const targetKey = targetLevelInfo.bigInt != null ? targetLevel.toString() : null;
 
   if (targetLevelInfo.bigInt != null && targetLevel <= 0n) {
     const baseRequirement = xpRequirementCache.get('0');
     return baseRequirement.clone?.() ?? baseRequirement;
   }
 
-  if (targetLevelInfo.bigInt != null && targetLevelInfo.bigInt - highestCachedExactLevel > FAST_CACHE_GAP && targetKey) {
-    const windowStart = targetLevelInfo.bigInt > CACHE_BACKFILL_WINDOW ? targetLevelInfo.bigInt - CACHE_BACKFILL_WINDOW : 0n;
-    let windowRequirement = xpRequirementCache.get(windowStart.toString());
-    if (!windowRequirement) {
-      windowRequirement = requirementFromClosedForm(windowStart);
-      xpRequirementCache.set(windowStart.toString(), windowRequirement);
-    }
-
-    let fillLevel = windowStart;
-    let fillRequirement = windowRequirement;
-    let hitInfinity = fillRequirement.isInfinite?.() || (typeof fillRequirement.isInfinite === 'function' && fillRequirement.isInfinite());
-
-    while (!hitInfinity && fillLevel < targetLevelInfo.bigInt) {
-      const nextLevel = fillLevel + 1n;
-      let nextRequirement = fillRequirement.mulScaledIntFloor(11n, 1);
-      if (nextLevel > 1n && ((nextLevel - 1n) % 10n === 0n)) {
-        nextRequirement = nextRequirement.mulScaledIntFloor(25n, 1);
-      }
-      xpRequirementCache.set(nextLevel.toString(), nextRequirement);
-      fillRequirement = nextRequirement;
-      fillLevel = nextLevel;
-      hitInfinity = nextRequirement.isInfinite?.() || (typeof nextRequirement.isInfinite === 'function' && nextRequirement.isInfinite());
-    }
-
-    if (fillLevel > highestCachedExactLevel) {
-      highestCachedExactLevel = fillLevel;
-    }
-
-    if (hitInfinity) {
-      return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-    }
-
-    const windowCached = xpRequirementCache.get(targetKey);
-    if (windowCached) {
-      return windowCached.clone?.() ?? windowCached;
-    }
-  }
-
   if (targetLevelInfo.bigInt != null) {
     ensureExactRequirementCacheUpTo(targetLevel);
+    const targetKey = targetLevel.toString();
     const cachedExact = xpRequirementCache.get(targetKey);
     if (cachedExact) {
       return cachedExact.clone?.() ?? cachedExact;
@@ -981,10 +902,10 @@ function persistState() {
   }
 }
 
-function handleXpLevelUpRewards(levelsGained = bnOne()) {
+function handleXpLevelUpRewards() {
   syncCoinMultiplierWithXpLevel(true);
 
-  let reward = levelsGained.clone?.() ?? levelsGained ?? bnOne();
+  let reward = bnOne();
   if (typeof externalBookRewardProvider === 'function') {
     try {
       const maybe = externalBookRewardProvider({
@@ -1024,65 +945,6 @@ function handleXpLevelUpRewards(levelsGained = bnOne()) {
     lastSyncedCoinUsedApproximation = true;
     lastSyncedCoinApproxKey = typeof xpState.xpLevel?.toStorage === 'function' ? xpState.xpLevel.toStorage() : null;
   }
-}
-
-function computeGeometricChunkMultiplier(levels) {
-  if (!Number.isFinite(levels) || levels <= 0) return { cost: 0, growth: 1 };
-  let cost = 0;
-  let growth = 1;
-  for (let i = 0; i < levels; i += 1) {
-    cost += growth;
-    growth *= parseFloat(LEVEL_STEP_DECIMAL);
-  }
-  return { cost, growth };
-}
-
-function bulkApplyLevelUps(progressBn, startingRequirement, currentLevelBigInt) {
-  let progress = progressBn.clone?.() ?? progressBn;
-  let requirement = startingRequirement.clone?.() ?? startingRequirement;
-  let gained = bnZero();
-  let levelBigInt = currentLevelBigInt;
-
-  const maxIterations = 10000;
-  let iterations = 0;
-
-  while (progress?.cmp?.(requirement) >= 0 && iterations < maxIterations) {
-    const toNextBonus = 10n - ((levelBigInt - 1n) % 10n);
-    const chunkLevels = Math.min(Number(toNextBonus), 10);
-    const { cost: chunkCostMultiplier, growth: chunkGrowthMultiplier } = computeGeometricChunkMultiplier(chunkLevels);
-    if (!Number.isFinite(chunkCostMultiplier) || !Number.isFinite(chunkGrowthMultiplier)) break;
-
-    const chunkCost = requirement.mulDecimal(chunkCostMultiplier.toString(), 18);
-    if (progress.cmp?.(chunkCost) >= 0) {
-      progress = progress.sub(chunkCost);
-      requirement = requirement.mulDecimal(chunkGrowthMultiplier.toString(), 18);
-      levelBigInt += BigInt(chunkLevels);
-      gained = gained.add(BigNum.fromInt(chunkLevels));
-      if (levelBigInt > 1n && ((levelBigInt - 1n) % 10n === 0n)) {
-        requirement = requirement.mulDecimal('2.5', 18);
-      }
-      iterations += 1;
-      continue;
-    }
-
-    const logProg = approxLog10(progress);
-    const logReq = approxLog10(requirement);
-    if (!Number.isFinite(logProg) || !Number.isFinite(logReq)) break;
-
-    const ratio = Math.pow(10, logProg - logReq);
-    const approxLevels = Math.max(1, Math.min(chunkLevels, Math.floor(Math.log((ratio * 0.1) + 1) / Math.log(1.1))));
-    const { cost: partialCostMultiplier, growth: partialGrowthMultiplier } = computeGeometricChunkMultiplier(approxLevels);
-    const partialCost = requirement.mulDecimal(partialCostMultiplier.toString(), 18);
-    if (progress.cmp?.(partialCost) < 0) break;
-
-    progress = progress.sub(partialCost);
-    requirement = requirement.mulDecimal(partialGrowthMultiplier.toString(), 18);
-    levelBigInt += BigInt(approxLevels);
-    gained = gained.add(BigNum.fromInt(approxLevels));
-    iterations += 1;
-  }
-
-  return { progress, requirement, gained };
 }
 
 function updateHud() {
@@ -1274,25 +1136,15 @@ export function addXp(amount, { silent = false } = {}) {
     return detail;
   }
 
+  // Normal finite-path level up loop
   let xpLevelsGained = bnZero();
-  const levelInfo = xpLevelBigIntInfo(xpState.xpLevel);
-  if (levelInfo.finite && levelInfo.bigInt != null && xpState.progress.cmp?.(requirementBn) >= 0) {
-    const bulkResult = bulkApplyLevelUps(xpState.progress, requirementBn, levelInfo.bigInt);
-    if (bulkResult?.gained && !bulkResult.gained.isZero?.()) {
-      xpLevelsGained = xpLevelsGained.add(bulkResult.gained);
-      xpState.progress = bulkResult.progress;
-      xpState.xpLevel = xpState.xpLevel.add(bulkResult.gained);
-      requirementBn = bulkResult.requirement;
-    }
-  }
-
-  // Normal finite-path level up loop (safety net)
   let guard = 0;
   const limit = 100000;
   while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
     xpState.progress = xpState.progress.sub(requirementBn);
     xpState.xpLevel = xpState.xpLevel.add(bnOne());
     xpLevelsGained = xpLevelsGained.add(bnOne());
+    handleXpLevelUpRewards();
     updateXpRequirement();
     const reqIsInf = requirementBn.isInfinite?.()
       || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
@@ -1304,10 +1156,6 @@ export function addXp(amount, { silent = false } = {}) {
   if (guard >= limit) {
     // Only clamp finite progress if we truly hit the guard.
     xpState.progress = bnZero();
-  }
-
-  if (!xpLevelsGained.isZero?.()) {
-    handleXpLevelUpRewards(xpLevelsGained);
   }
 
   persistState();
