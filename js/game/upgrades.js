@@ -1128,17 +1128,42 @@ function hmMilestoneHits(levelBn, milestoneLevel) {
 
 function hmMilestoneMultiplier(multiplier, hits) {
   if (!(hits > 0)) return BigNum.fromInt(1);
-  let out;
-  try { out = BigNum.fromAny(multiplier ?? 1); }
-  catch { out = BigNum.fromInt(1); }
-  let result = out.clone?.() ?? out;
-  for (let i = 1; i < hits; i += 1) {
-    try { result = result.mulBigNumInteger(out); }
-    catch {
-      try { result = result.mulDecimal(String(out), 18); }
-      catch { return BigNum.fromAny('Infinity'); }
+
+  let base;
+  try { base = BigNum.fromAny(multiplier ?? 1); }
+  catch { base = BigNum.fromInt(1); }
+
+  const hitCount = Math.max(0, Math.floor(hits));
+  if (!Number.isFinite(hitCount)) return BigNum.fromAny('Infinity');
+  if (hitCount <= 1) return base.clone?.() ?? base;
+
+  const multiply = (a, b) => {
+    try { return a.mulBigNumInteger(b); } catch {}
+    try { return a.mulDecimal(b.toScientific?.(12) ?? String(multiplier ?? '1'), 18); } catch {}
+    try { return b.mulDecimal(a.toScientific?.(12) ?? String(multiplier ?? '1'), 18); } catch {}
+    return BigNum.fromAny('Infinity');
+  };
+
+  // For small hit counts preserve precision with a short loop.
+  if (hitCount <= 8) {
+    let result = base.clone?.() ?? base;
+    for (let i = 1; i < hitCount; i += 1) {
+      result = multiply(result, base);
     }
+    return result;
   }
+
+  // Use exponentiation by squaring to avoid O(hits) loops for huge levels.
+  let result = BigNum.fromInt(1);
+  let factor = base.clone?.() ?? base;
+  let exp = hitCount;
+
+  while (exp > 0) {
+    if (exp % 2 === 1) result = multiply(result, factor);
+    exp = Math.floor(exp / 2);
+    if (exp > 0) factor = multiply(factor, factor);
+  }
+
   return result;
 }
 
