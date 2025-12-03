@@ -1,3 +1,4 @@
+
 // js/game/xpSystem.js
 
 import { BigNum } from '../util/bigNum.js';
@@ -11,8 +12,6 @@ const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
 const KEY_XP_LEVEL = (slot) => `${KEY_PREFIX}:level:${slot}`;
 const KEY_PROGRESS = (slot) => `${KEY_PREFIX}:progress:${slot}`;
 
-const LOG_MAX = Math.log10(1e311);
-
 export function getXpLevelStorageKey(slot = getActiveSlot()) {
   const resolvedSlot = slot ?? getActiveSlot();
   return resolvedSlot == null ? null : KEY_XP_LEVEL(resolvedSlot);
@@ -25,228 +24,6 @@ const xpRequirementCache = new Map();
 xpRequirementCache.set('0', requirementBn);
 let highestCachedExactLevel = 0n;
 const infinityRequirementBn = BigNum.fromAny('Infinity');
-
-function to_log(x) {
-  if (x == null) return Number.NEGATIVE_INFINITY;
-  if (typeof x === 'number') {
-    if (!(x > 0)) return Number.NEGATIVE_INFINITY;
-    if (!Number.isFinite(x)) return Number.POSITIVE_INFINITY;
-    return Math.log10(x);
-  }
-  return approxLog10(x);
-}
-
-function clampLogValue(logValue) {
-  if (logValue === Number.NEGATIVE_INFINITY) return logValue;
-  if (!Number.isFinite(logValue)) return LOG_MAX;
-  return Math.min(logValue, LOG_MAX);
-}
-
-function from_log(logx) {
-  if (!Number.isFinite(logx)) {
-    if (logx === Number.POSITIVE_INFINITY) {
-      return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-    }
-    return BigNum.fromInt(0);
-  }
-  return bigNumFromLog10(logx);
-}
-
-function normalizeLogMultiplier(logValue) {
-  if (logValue === Number.POSITIVE_INFINITY) return Number.POSITIVE_INFINITY;
-  if (logValue === Number.NEGATIVE_INFINITY) return Number.NEGATIVE_INFINITY;
-  if (!Number.isFinite(logValue)) return Number.POSITIVE_INFINITY;
-  return logValue;
-}
-
-function to_log_multiplier(value) {
-  if (value && typeof value.log_mult === 'number') {
-    return normalizeLogMultiplier(value.log_mult);
-  }
-  const rawLog = to_log(value);
-  if (rawLog === Number.NEGATIVE_INFINITY) return Number.NEGATIVE_INFINITY;
-  if (!Number.isFinite(rawLog)) return rawLog;
-  return rawLog;
-}
-
-function accumulateMultiplierLog(baseLog, deltaLog) {
-  if (baseLog === Number.POSITIVE_INFINITY || deltaLog === Number.POSITIVE_INFINITY) {
-    return Number.POSITIVE_INFINITY;
-  }
-  if (deltaLog === Number.NEGATIVE_INFINITY) return Number.NEGATIVE_INFINITY;
-  if (baseLog === Number.NEGATIVE_INFINITY) return deltaLog;
-  if (!Number.isFinite(baseLog) || !Number.isFinite(deltaLog)) return Number.POSITIVE_INFINITY;
-  return baseLog + deltaLog;
-}
-
-function applyMultiplierToValueLog(valueLog, multiplierLog) {
-  if (valueLog === Number.NEGATIVE_INFINITY || multiplierLog === Number.NEGATIVE_INFINITY) {
-    return Number.NEGATIVE_INFINITY;
-  }
-  if (valueLog === Number.POSITIVE_INFINITY || multiplierLog === Number.POSITIVE_INFINITY) {
-    return Number.POSITIVE_INFINITY;
-  }
-  if (!Number.isFinite(valueLog) || !Number.isFinite(multiplierLog)) {
-    return Number.POSITIVE_INFINITY;
-  }
-  return valueLog + multiplierLog;
-}
-
-function extractMultiplierDeltaLog(result, currentTotalLog) {
-  if (result && typeof result.log_mult === 'number') {
-    return normalizeLogMultiplier(result.log_mult);
-  }
-  const candidateLog = to_log_multiplier(result);
-  if (candidateLog === Number.NEGATIVE_INFINITY || candidateLog === Number.POSITIVE_INFINITY) {
-    return candidateLog;
-  }
-  if (!Number.isFinite(candidateLog) || !Number.isFinite(currentTotalLog)) {
-    return candidateLog;
-  }
-  return candidateLog - currentTotalLog;
-}
-
-function log_sum_exp(loga, logb) {
-  if (loga === Number.POSITIVE_INFINITY || logb === Number.POSITIVE_INFINITY) {
-    return Number.POSITIVE_INFINITY;
-  }
-  if (loga === Number.NEGATIVE_INFINITY) return logb;
-  if (logb === Number.NEGATIVE_INFINITY) return loga;
-  const maxLog = Math.max(loga, logb);
-  const minLog = Math.min(loga, logb);
-  const delta = minLog - maxLog;
-  return maxLog + Math.log10(1 + Math.pow(10, delta));
-}
-
-function log_sum_list(values) {
-  if (!values || values.length === 0) return Number.NEGATIVE_INFINITY;
-  let total = Number.NEGATIVE_INFINITY;
-  for (const entry of values) {
-    total = log_sum_exp(total, entry);
-  }
-  return total;
-}
-
-function log_mul(loga, logb) {
-  if (loga === Number.NEGATIVE_INFINITY || logb === Number.NEGATIVE_INFINITY) {
-    return Number.NEGATIVE_INFINITY;
-  }
-  if (loga === Number.POSITIVE_INFINITY || logb === Number.POSITIVE_INFINITY) {
-    return Number.POSITIVE_INFINITY;
-  }
-  return loga + logb;
-}
-
-function normalizeLevelToBigInt(levelInput) {
-  if (typeof levelInput === 'bigint') {
-    return levelInput < 0n ? 0n : levelInput;
-  }
-  if (levelInput instanceof BigNum) {
-    const info = xpLevelBigIntInfo(levelInput);
-    if (info.bigInt != null) {
-      return info.bigInt < 0n ? 0n : info.bigInt;
-    }
-    return 0n;
-  }
-  if (typeof levelInput === 'number') {
-    if (!Number.isFinite(levelInput) || levelInput <= 0) return 0n;
-    try { return BigInt(Math.floor(levelInput)); }
-    catch { return 0n; }
-  }
-  try {
-    return BigInt(levelInput);
-  } catch {
-    return 0n;
-  }
-}
-
-function logScaleBigIntToScientific(scaledLog) {
-  if (scaledLog <= 0n) return '0e0';
-  const digits = scaledLog.toString();
-  const precision = Math.min(digits.length, 18);
-  const head = digits.slice(0, precision);
-  const mantissa = head.length > 1 ? `${head[0]}.${head.slice(1)}` : head;
-  const exponent = (digits.length - 1) - 18;
-  return `${mantissa}e${exponent}`;
-}
-
-function logRequirementScaledFromInput(logInput) {
-  if (logInput && typeof logInput._scaledLog === 'bigint') {
-    return logInput._scaledLog;
-  }
-
-  let sci;
-  if (logInput instanceof BigNum) {
-    sci = logInput.toScientific(18);
-  } else if (typeof logInput === 'number') {
-    if (!Number.isFinite(logInput)) return null;
-    sci = logInput.toExponential(18);
-  } else if (typeof logInput === 'string') {
-    sci = logInput.trim();
-  }
-
-  if (!sci) return null;
-
-  const match = sci.match(/^([0-9]+(?:\.[0-9]+)?)e([+-]?\d+)$/i);
-  if (!match) return null;
-
-  const [, mantissaStr, expStr] = match;
-  const digits = mantissaStr.replace('.', '');
-  const fracDigits = (mantissaStr.split('.')[1] ?? '').length;
-  let scaledExp;
-  try {
-    scaledExp = BigInt(parseInt(expStr, 10) - fracDigits + 18);
-  } catch {
-    return null;
-  }
-
-  let scaledMantissa;
-  try { scaledMantissa = BigInt(digits); }
-  catch { return null; }
-
-  if (scaledExp >= 0) {
-    return scaledMantissa * (10n ** scaledExp);
-  }
-
-  const divisor = 10n ** (-scaledExp);
-  if (divisor === 0n) return null;
-  return scaledMantissa / divisor;
-}
-
-export function log_requirement(levelInput) {
-  const levelBigInt = normalizeLevelToBigInt(levelInput);
-  const scaled = LOG_REQUIREMENT_BASE_SCALED + (levelBigInt * LOG_REQUIREMENT_STEP_SCALED);
-  const logBn = BigNum.fromScientific(logScaleBigIntToScientific(scaled));
-  logBn._scaledLog = scaled;
-  return logBn;
-}
-
-export function level_from_log_xp(log_xp) {
-  const scaledLog = logRequirementScaledFromInput(log_xp);
-  if (scaledLog == null) {
-    const isInfiniteInput = log_xp === Number.POSITIVE_INFINITY
-      || (log_xp instanceof BigNum
-        && (log_xp.isInfinite?.() || (typeof log_xp.isInfinite === 'function' && log_xp.isInfinite())));
-    if (isInfiniteInput && MAX_MEANINGFUL_XP_LEVEL > 0n) {
-      return BigNum.fromAny(MAX_MEANINGFUL_XP_LEVEL.toString());
-    }
-    return BigNum.fromInt(0);
-  }
-
-  if (LOG_MAX_SCALED != null && scaledLog > LOG_MAX_SCALED) {
-    return BigNum.fromAny(clampLevelBigInt(MAX_LEVEL_CAP_BIGINT).toString());
-  }
-
-  const adjusted = scaledLog - LOG_REQUIREMENT_BASE_SCALED;
-  if (adjusted <= 0) return BigNum.fromInt(0);
-
-  let levelBigInt = adjusted / LOG_REQUIREMENT_STEP_SCALED;
-  if (MAX_MEANINGFUL_XP_LEVEL > 0n && levelBigInt > MAX_MEANINGFUL_XP_LEVEL) {
-    levelBigInt = MAX_MEANINGFUL_XP_LEVEL;
-  }
-
-  return BigNum.fromAny(levelBigInt);
-}
 
 let lastSyncedCoinLevel = null;
 let lastSyncedCoinLevelWasInfinite = false;
@@ -265,37 +42,7 @@ const EXACT_COIN_LEVEL_LIMIT = 200n;
 const LOG_STEP_DECIMAL = '0.04139268515822507';
 const LOG_DECADE_BONUS_DECIMAL = '0.3979400086720376';
 const TEN_DIVISOR_DECIMAL = '0.1';
-const LOG_REQUIREMENT_SCALE = 1_000_000_000_000_000_000n; // 1e18 fixed-point scale for log values
-const LOG_REQUIREMENT_BASE_SCALED = LOG_REQUIREMENT_SCALE; // log10(10) == 1
-const LOG_REQUIREMENT_STEP_SCALED = BigInt('41392685158225070'); // log10(1.1) * 1e18
 const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
-const LOG_MAX_SCALED = logRequirementScaledFromInput(LOG_MAX);
-const MAX_REQUIREMENT_BN = from_log(LOG_MAX);
-const LOG_MAX_LEVEL_CAP = (() => {
-  if (LOG_MAX_SCALED == null) return 0n;
-  const adjusted = LOG_MAX_SCALED - LOG_REQUIREMENT_BASE_SCALED;
-  if (adjusted <= 0) return 0n;
-  const level = adjusted / LOG_REQUIREMENT_STEP_SCALED;
-  if (MAX_MEANINGFUL_XP_LEVEL > 0n && level > MAX_MEANINGFUL_XP_LEVEL) {
-    return MAX_MEANINGFUL_XP_LEVEL;
-  }
-  return level;
-})();
-const MAX_LEVEL_CAP_BIGINT = LOG_MAX_LEVEL_CAP > 0n ? LOG_MAX_LEVEL_CAP
-  : (MAX_MEANINGFUL_XP_LEVEL > 0n ? MAX_MEANINGFUL_XP_LEVEL : 0n);
-const AVERAGE_LOG_LEVEL_STEP = LOG_STEP + (LOG_DECADE_BONUS / 10);
-const AVERAGE_LEVEL_RATIO = Math.pow(10, AVERAGE_LOG_LEVEL_STEP);
-const AVERAGE_RATIO_MINUS_ONE_LOG10 = Math.log10(Math.max(AVERAGE_LEVEL_RATIO - 1, Number.MIN_VALUE));
-
-function computeMaxMeaningfulLevel() {
-  const maxScaledLog = logRequirementScaledFromInput(BigNum.MAX_E);
-  if (maxScaledLog == null) return 0n;
-  const adjusted = maxScaledLog - LOG_REQUIREMENT_BASE_SCALED;
-  if (adjusted <= 0) return 0n;
-  return adjusted / LOG_REQUIREMENT_STEP_SCALED;
-}
-
-const MAX_MEANINGFUL_XP_LEVEL = computeMaxMeaningfulLevel();
 
 function bigIntToFloatApprox(value) {
   if (value === 0n) return 0;
@@ -367,56 +114,42 @@ function computeBonusLogTerm(levelBn) {
   return bonusCount.mulDecimal(LOG_DECADE_BONUS_DECIMAL, 18);
 }
 
-function coinMultiplierLogForExactLevel(levelBigInt) {
-  if (levelBigInt == null || levelBigInt < 0n) return Number.NEGATIVE_INFINITY;
-  const iterations = Number(levelBigInt);
-  if (!Number.isFinite(iterations) || iterations < 0) return Number.NEGATIVE_INFINITY;
-  const growthLog = iterations * LOG_STEP;
-  const additiveLog = iterations > 0 ? Math.log10(iterations) : Number.NEGATIVE_INFINITY;
-  return log_sum_exp(growthLog, additiveLog);
-}
-
-function coinMultiplierLogForLevel(levelBn) {
+function approximateCoinMultiplierFromBigNum(levelBn) {
   if (!levelBn || typeof levelBn !== 'object') {
-    return Number.POSITIVE_INFINITY;
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
-
-  const levelInfo = xpLevelBigIntInfo(levelBn);
-  const levelBigInt = levelInfo.bigInt;
-  const levelIsInfinite = !levelInfo.finite;
-  if (levelIsInfinite) {
-    return Number.POSITIVE_INFINITY;
-  }
-
-  if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
-    return coinMultiplierLogForExactLevel(levelBigInt);
-  }
-
-  const levelLogBn = computeLevelLogTerm(levelBn);
-  let totalLog = logBigNumToNumber(levelLogBn);
+  const levelLog = computeLevelLogTerm(levelBn);
+  let totalLog = levelLog;
   const bonusLog = computeBonusLogTerm(levelBn);
   if (bonusLog) {
-    totalLog += logBigNumToNumber(bonusLog);
+    totalLog = totalLog.add?.(bonusLog) ?? totalLog;
   }
-
-  if (!Number.isFinite(totalLog)) {
-    return Number.POSITIVE_INFINITY;
+  const logNumber = logBigNumToNumber(totalLog);
+  if (!Number.isFinite(logNumber)) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
-
-  const levelAddLog = to_log(levelBn);
-  return log_sum_exp(totalLog, levelAddLog);
+  const approx = bigNumFromLog10(logNumber);
+  const approxIsInf = approx.isInfinite?.() || (typeof approx.isInfinite === 'function' && approx.isInfinite());
+  if (approxIsInf) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+  const levelTerm = levelBn.clone?.() ?? (() => {
+    try { return BigNum.fromAny(levelBn ?? 0); }
+    catch { return BigNum.fromInt(0); }
+  })();
+  let combined = approx.clone?.() ?? approx;
+  if (typeof combined.add === 'function') {
+    combined = combined.add(levelTerm);
+  } else if (typeof levelTerm.add === 'function') {
+    combined = levelTerm.add(combined);
+  }
+  return combined;
 }
 
 const xpState = {
   unlocked: false,
   xpLevel: BigNum.fromInt(0),
   progress: BigNum.fromInt(0),
-};
-
-const xpLogs = {
-  progress: Number.NEGATIVE_INFINITY,
-  requirement: Math.log10(10),
-  coinMultiplier: Number.NEGATIVE_INFINITY,
 };
 
 function enforceXpInfinityInvariant() {
@@ -475,49 +208,12 @@ const hudRefs = {
   progress: null,
 };
 
-function updateProgressLog() {
-  xpLogs.progress = clampLogValue(to_log(xpState.progress));
-}
-
-function updateRequirementLog() {
-  xpLogs.requirement = clampLogValue(to_log(requirementBn));
-}
-
-function updateCoinMultiplierLog(logMultiplier) {
-  xpLogs.coinMultiplier = normalizeLogMultiplier(logMultiplier);
-}
-
-function meetsRequirementByLog() {
-  if (xpLogs.requirement === Number.POSITIVE_INFINITY) return false;
-  if (xpLogs.progress === Number.POSITIVE_INFINITY) return true;
-  return xpLogs.progress >= xpLogs.requirement;
-}
-
 function bnZero() {
   return BigNum.fromInt(0);
 }
 
 function bnOne() {
   return BigNum.fromInt(1);
-}
-
-function clampLevelBigInt(levelBigInt) {
-  if (levelBigInt == null) return 0n;
-  return levelBigInt > MAX_LEVEL_CAP_BIGINT ? MAX_LEVEL_CAP_BIGINT : levelBigInt;
-}
-
-function clampXpLevel(valueBn) {
-  const normalized = normalizeLevelToBigInt(valueBn);
-  const capped = clampLevelBigInt(normalized);
-  if (normalized !== capped) {
-    return { level: BigNum.fromAny(capped.toString()), clamped: true };
-  }
-  return { level: valueBn instanceof BigNum ? valueBn : BigNum.fromAny(normalized.toString()), clamped: false };
-}
-
-function isMaxLevel(valueBn = xpState.xpLevel) {
-  if (MAX_LEVEL_CAP_BIGINT <= 0n) return false;
-  return normalizeLevelToBigInt(valueBn) >= MAX_LEVEL_CAP_BIGINT;
 }
 
 const xpStorageWatcherCleanups = [];
@@ -839,13 +535,11 @@ function approximateRequirementFromLevel(levelBn) {
 
   const logNumber = logBigNumToNumber(totalLog);
   if (!Number.isFinite(logNumber)) {
-    return MAX_REQUIREMENT_BN.clone?.() ?? MAX_REQUIREMENT_BN;
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
 
-  const safeLog = clampLogValue(logNumber);
-  return bigNumFromLog10(safeLog);
+  return bigNumFromLog10(logNumber);
 }
-
 
 function progressRatio(progressBn, requirement) {
   if (!requirement || typeof requirement !== 'object') return 0;
@@ -903,7 +597,7 @@ function xpRequirementForXpLevel(xpLevelInput) {
 
   const lvlIsInf = xpLvlBn.isInfinite?.() || (typeof xpLvlBn.isInfinite === 'function' && xpLvlBn.isInfinite());
   if (lvlIsInf) {
-    xpLvlBn = BigNum.fromAny(clampLevelBigInt(MAX_LEVEL_CAP_BIGINT).toString());
+    return BigNum.fromAny('Infinity');
   }
 
   let levelPlain = '0';
@@ -924,8 +618,7 @@ function xpRequirementForXpLevel(xpLevelInput) {
     targetLevelInfo = { bigInt: null, finite: true };
   }
 
-  let targetLevel = targetLevelInfo.bigInt ?? 0n;
-  targetLevel = clampLevelBigInt(targetLevel);
+  const targetLevel = targetLevelInfo.bigInt ?? 0n;
 
   if (targetLevelInfo.bigInt != null && targetLevel <= 0n) {
     const baseRequirement = xpRequirementCache.get('0');
@@ -939,10 +632,6 @@ function xpRequirementForXpLevel(xpLevelInput) {
     if (cachedExact) {
       return cachedExact.clone?.() ?? cachedExact;
     }
-  }
-
-  if (targetLevel >= MAX_LEVEL_CAP_BIGINT) {
-    return MAX_REQUIREMENT_BN.clone?.() ?? MAX_REQUIREMENT_BN;
   }
 
   const approximate = approximateRequirementFromLevel(xpLvlBn);
@@ -959,17 +648,12 @@ function xpRequirementForXpLevel(xpLevelInput) {
 
 function updateXpRequirement() {
   requirementBn = xpRequirementForXpLevel(xpState.xpLevel);
-  if (isMaxLevel(xpState.xpLevel)) {
-    requirementBn = MAX_REQUIREMENT_BN.clone?.() ?? MAX_REQUIREMENT_BN;
-  }
-  updateRequirementLog();
 }
 
 function resetLockedXpState() {
   xpState.xpLevel = bnZero();
   xpState.progress = bnZero();
   updateXpRequirement();
-  updateProgressLog();
   syncCoinMultiplierWithXpLevel(true);
 }
 
@@ -980,7 +664,6 @@ function normalizeProgress(applyRewards = false) {
   }
 
   updateXpRequirement();
-  updateProgressLog();
 
   // If the requirement is infinite, there is nothing meaningful to normalize.
   if (bigNumIsInfinite(requirementBn)) {
@@ -989,17 +672,15 @@ function normalizeProgress(applyRewards = false) {
 
   let guard = 0;
   const limit = 10000;
-  while (meetsRequirementByLog() && guard < limit) {
+  while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
     try { xpState.progress = xpState.progress.sub(requirementBn); }
     catch { xpState.progress = bnZero(); }
-    updateProgressLog();
 
     try { xpState.xpLevel = xpState.xpLevel.add(bnOne()); }
     catch { xpState.xpLevel = bnZero(); }
 
     if (applyRewards) handleXpLevelUpRewards();
     updateXpRequirement();
-    updateProgressLog();
 
     if (bigNumIsInfinite(requirementBn)) {
       break;
@@ -1009,7 +690,6 @@ function normalizeProgress(applyRewards = false) {
 
   if (guard >= limit) {
     xpState.progress = bnZero();
-    updateProgressLog();
   }
 }
 
@@ -1017,10 +697,48 @@ function xpLevelBigIntInfo(xpLevelValue) {
   if (!xpLevelValue || typeof xpLevelValue !== 'object') {
     return { bigInt: 0n, finite: false };
   }
+  const levelIsInfinite = xpLevelValue.isInfinite?.() || (typeof xpLevelValue.isInfinite === 'function' && xpLevelValue.isInfinite());
+  if (levelIsInfinite) {
+    return { bigInt: null, finite: false };
+  }
+  let plain = '0';
+  try {
+    plain = xpLevelValue.toPlainIntegerString?.() ?? xpLevelValue.toString?.() ?? '0';
+  } catch {
+    plain = '0';
+  }
+  if (!plain || plain === 'Infinity') {
+    return { bigInt: null, finite: true };
+  }
+  try {
+    return { bigInt: BigInt(plain), finite: true };
+  } catch {
+    return { bigInt: null, finite: true };
+  }
+}
 
-  const levelIsInfinite =
-    (typeof xpLevelValue.isInfinite === 'function' && xpLevelValue.isInfinite()) ||
-    xpLevelValue.isInfinite?.() === true;
+function syncCoinMultiplierWithXpLevel(force = false) {
+  const multApi = bank?.coins?.mult;
+  if (!multApi || typeof multApi.set !== 'function' || typeof multApi.multiplyByDecimal !== 'function') {
+    return;
+  }
+
+  const levelInfo = xpLevelBigIntInfo(xpState.xpLevel);
+  const levelBigInt = levelInfo.bigInt;
+  const levelIsInfinite = !levelInfo.finite;
+  const levelStorageKey = typeof xpState.xpLevel?.toStorage === 'function' ? xpState.xpLevel.toStorage() : null;
+
+  if (!force) {
+    if (levelIsInfinite && lastSyncedCoinLevelWasInfinite) {
+      return;
+    }
+    if (!levelIsInfinite && levelBigInt != null && !lastSyncedCoinLevelWasInfinite && !lastSyncedCoinUsedApproximation && lastSyncedCoinLevel != null && levelBigInt === lastSyncedCoinLevel) {
+      return;
+    }
+    if (!levelIsInfinite && levelBigInt == null && lastSyncedCoinUsedApproximation && levelStorageKey && lastSyncedCoinApproxKey && levelStorageKey === lastSyncedCoinApproxKey) {
+      return;
+    }
+  }
 
   if (levelIsInfinite) {
     try { multApi.set(infinityRequirementBn); } catch {}
@@ -1028,96 +746,34 @@ function xpLevelBigIntInfo(xpLevelValue) {
     lastSyncedCoinLevelWasInfinite = true;
     lastSyncedCoinUsedApproximation = false;
     lastSyncedCoinApproxKey = null;
-    updateCoinMultiplierLog(Number.POSITIVE_INFINITY);
-
-    const capped = clampLevelBigInt(MAX_LEVEL_CAP_BIGINT);
-    return { bigInt: capped, finite: false };
-  }
-
-  const levelBigInt = normalizeLevelToBigInt(xpLevelValue);
-  
-  let multiplierLog = coinMultiplierLogForLevel(xpState.xpLevel);
-  let logSpaceMultiplier = from_log(multiplierLog);
-
-  const providersLog = coinMultiplierProviders.size > 0
-    ? Array.from(coinMultiplierProviders)
-    : (typeof externalCoinMultiplierProvider === 'function'
-        ? [externalCoinMultiplierProvider]
-        : []);
-
-  for (const provider of providersLog) {
-    if (typeof provider !== 'function') continue;
-    try {
-      const baseMultiplier = logSpaceMultiplier.clone?.() ?? logSpaceMultiplier;
-      const maybe = provider({
-        baseMultiplier,
-        xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
-        xpUnlocked: xpState.unlocked,
-        logMultiplier: multiplierLog,
-      });
-
-      const deltaLog = extractMultiplierDeltaLog(maybe, multiplierLog);
-      if (deltaLog != null) {
-        multiplierLog = accumulateMultiplierLog(multiplierLog, deltaLog);
-        logSpaceMultiplier = from_log(multiplierLog);
-      }
-    } catch {
-    }
-  }
-
-  const multLogIsInf =
-    multiplierLog === Number.POSITIVE_INFINITY ||
-    (typeof logSpaceMultiplier?.isInfinite === 'function' && logSpaceMultiplier.isInfinite()) ||
-    logSpaceMultiplier?.isInfinite?.() === true;
-
-  updateCoinMultiplierLog(multiplierLog);
-  try { multApi.set(logSpaceMultiplier.clone?.() ?? logSpaceMultiplier); } catch {}
-
-  if (multLogIsInf) {
-    lastSyncedCoinLevel = null;
-    lastSyncedCoinLevelWasInfinite = true;
-    lastSyncedCoinUsedApproximation = false;
-    lastSyncedCoinApproxKey = null;
-    return { bigInt: levelBigInt ?? null, finite: false };
+    return;
   }
 
   let multiplierBn;
-
-  if (typeof levelBigInt === 'bigint' && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
+  if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
     let working = BigNum.fromInt(1);
     const iterations = Number(levelBigInt);
-
     for (let i = 0; i < iterations; i += 1) {
       working = working.mulDecimal('1.1', 18);
     }
-
     let levelAdd;
-    try {
-      levelAdd = BigNum.fromAny(levelBigInt.toString());
-    } catch {
-      levelAdd = BigNum.fromInt(iterations);
-    }
-
+    try { levelAdd = BigNum.fromAny(levelBigInt.toString()); }
+    catch { levelAdd = BigNum.fromInt(iterations); }
     if (typeof working.add === 'function') {
       working = working.add(levelAdd);
     } else if (typeof levelAdd.add === 'function') {
       working = levelAdd.add(working);
     }
-
     multiplierBn = working.clone?.() ?? working;
   } else {
     multiplierBn = approximateCoinMultiplierFromBigNum(xpState.xpLevel);
   }
 
   let finalMultiplier = multiplierBn.clone?.() ?? multiplierBn;
-
-  const providersBn = coinMultiplierProviders.size > 0
+  const providers = coinMultiplierProviders.size > 0
     ? Array.from(coinMultiplierProviders)
-    : (typeof externalCoinMultiplierProvider === 'function'
-        ? [externalCoinMultiplierProvider]
-        : []);
-
-  for (const provider of providersBn) {
+    : (typeof externalCoinMultiplierProvider === 'function' ? [externalCoinMultiplierProvider] : []);
+  for (const provider of providers) {
     if (typeof provider !== 'function') continue;
     try {
       const maybe = provider({
@@ -1125,29 +781,22 @@ function xpLevelBigIntInfo(xpLevelValue) {
         xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
         xpUnlocked: xpState.unlocked,
       });
-
       if (maybe instanceof BigNum) {
         finalMultiplier = maybe.clone?.() ?? maybe;
       } else if (maybe != null) {
         finalMultiplier = BigNum.fromAny(maybe);
       }
-    } catch {
-    }
+    } catch {}
   }
 
-  const multBnIsInf =
-    (typeof finalMultiplier?.isInfinite === 'function' && finalMultiplier.isInfinite()) ||
-    finalMultiplier?.isInfinite?.() === true;
-	
-  updateCoinMultiplierLog(finalMultiplier);
+  const multIsInf = finalMultiplier.isInfinite?.() || (typeof finalMultiplier.isInfinite === 'function' && finalMultiplier.isInfinite());
   try { multApi.set(finalMultiplier.clone?.() ?? finalMultiplier); } catch {}
-
-  if (multBnIsInf) {
+  if (multIsInf) {
     lastSyncedCoinLevel = null;
     lastSyncedCoinLevelWasInfinite = true;
     lastSyncedCoinUsedApproximation = false;
     lastSyncedCoinApproxKey = null;
-  } else if (typeof levelBigInt === 'bigint' && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
+  } else if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
     lastSyncedCoinLevel = levelBigInt;
     lastSyncedCoinLevelWasInfinite = false;
     lastSyncedCoinUsedApproximation = false;
@@ -1158,8 +807,6 @@ function xpLevelBigIntInfo(xpLevelValue) {
     lastSyncedCoinUsedApproximation = true;
     lastSyncedCoinApproxKey = levelStorageKey;
   }
-
-  return { bigInt: levelBigInt, finite: true };
 }
 
 function ensureStateLoaded(force = false) {
@@ -1196,13 +843,8 @@ function ensureStateLoaded(force = false) {
   }
 
   enforceXpInfinityInvariant();
-  const { level: cappedLevel, clamped } = clampXpLevel(xpState.xpLevel);
-  if (clamped) {
-    xpState.xpLevel = cappedLevel;
-  }
 
   updateXpRequirement();
-  updateProgressLog();
   syncCoinMultiplierWithXpLevel(true);
   ensureXpStorageWatchers();
   return xpState;
@@ -1287,10 +929,6 @@ function handleXpLevelUpRewards() {
       bank.books.add(reward);
     }
   } catch {}
-  updateSyncedCoinLevelCache();
-}
-
-function updateSyncedCoinLevelCache() {
   const syncedLevelInfo = xpLevelBigIntInfo(xpState.xpLevel);
   if (!syncedLevelInfo.finite) {
     lastSyncedCoinLevel = null;
@@ -1308,41 +946,6 @@ function updateSyncedCoinLevelCache() {
     lastSyncedCoinUsedApproximation = true;
     lastSyncedCoinApproxKey = typeof xpState.xpLevel?.toStorage === 'function' ? xpState.xpLevel.toStorage() : null;
   }
-}
-
-function handleBulkLevelUpRewards(levelsBigInt) {
-  if (levelsBigInt == null || typeof levelsBigInt !== 'bigint' || levelsBigInt <= 0n) return;
-
-  const levelsBn = BigNum.fromAny(levelsBigInt.toString());
-  syncCoinMultiplierWithXpLevel(true);
-
-  let reward = bnOne();
-  let rewardLog = to_log(reward);
-  if (typeof externalBookRewardProvider === 'function') {
-    try {
-      const maybe = externalBookRewardProvider({
-        baseReward: reward.clone?.() ?? reward,
-        xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
-        xpUnlocked: xpState.unlocked,
-      });
-      if (maybe instanceof BigNum) {
-        reward = maybe.clone?.() ?? maybe;
-      } else if (maybe != null) {
-        reward = BigNum.fromAny(maybe);
-      }
-      rewardLog = to_log(reward);
-    } catch {}
-  }
-
-  const totalRewardLog = log_mul(rewardLog, to_log(levelsBn));
-  let totalReward = from_log(totalRewardLog);
-
-  try {
-    if (bank?.books?.addWithMultiplier) {
-      bank.books.add(totalReward);
-    }
-  } catch {}
-  updateSyncedCoinLevelCache();
 }
 
 function updateHud() {
@@ -1378,7 +981,7 @@ function updateHud() {
     fill.style.width = pct;
   }
   if (xpLevelValue) {
-    xpLevelValue.innerHTML = isMaxLevel() ? 'Max Level' : formatNumber(xpState.xpLevel);
+    xpLevelValue.innerHTML = formatNumber(xpState.xpLevel);
   }
   if (progress) {
     const currentHtml = formatNumber(xpState.progress);
@@ -1392,88 +995,6 @@ function updateHud() {
     bar.setAttribute('aria-valuetext', `${currPlain} / ${reqPlain} XP`);
   }
   syncXpMpHudLayout();
-}
-
-function approximateLevelCostLog(levelsBigInt, requirementLog10) {
-  if (levelsBigInt == null || levelsBigInt <= 0n) return Number.POSITIVE_INFINITY;
-
-  const levelCount = Number(levelsBigInt);
-  if (!Number.isFinite(levelCount) || levelCount <= 0) return Number.POSITIVE_INFINITY;
-
-  const baseLog = Number.isFinite(requirementLog10) ? requirementLog10 : approxLog10(requirementBn);
-  if (!Number.isFinite(baseLog)) return Number.POSITIVE_INFINITY;
-
-  if (levelCount <= 32) {
-    let currentRequirementLog = baseLog;
-    const requirementLogs = [];
-    for (let i = 0; i < levelCount; i += 1) {
-      requirementLogs.push(currentRequirementLog);
-      currentRequirementLog += LOG_STEP;
-      const nextLevelIndex = i + 1;
-      if (nextLevelIndex % 10 === 0) {
-        currentRequirementLog += LOG_DECADE_BONUS;
-      }
-    }
-    return log_sum_list(requirementLogs);
-  }
-
-  return baseLog + (levelCount * AVERAGE_LOG_LEVEL_STEP) - AVERAGE_RATIO_MINUS_ONE_LOG10;
-}
-
-function fastLevelGainFromProgress() {
-  const levelInfo = xpLevelBigIntInfo(xpState.xpLevel);
-  if (!levelInfo.finite) return 0n;
-
-  updateProgressLog();
-  const logProgress = xpLogs.progress;
-  const logRequirement = xpLogs.requirement;
-  if (!Number.isFinite(logProgress) || !Number.isFinite(logRequirement)) return 0n;
-
-  const diff = logProgress - logRequirement;
-  if (diff < 6) return 0n;
-
-  const estimate = Math.floor(diff / AVERAGE_LOG_LEVEL_STEP);
-  if (!Number.isFinite(estimate) || estimate <= 0) return 0n;
-
-  let lo = 1n;
-  let hi = BigInt(Math.min(estimate, 1_000_000_000));
-  let best = 0n;
-  let safety = 0;
-  while (lo <= hi && safety < 80) {
-    const mid = (lo + hi) >> 1n;
-    const costLog = approximateLevelCostLog(mid, logRequirement);
-    if (!Number.isFinite(costLog)) {
-      hi = mid - 1n;
-      safety += 1;
-      continue;
-    }
-    const cost = bigNumFromLog10(costLog);
-    const cmp = xpState.progress.cmp?.(cost) ?? -1;
-    if (cmp >= 0) {
-      best = mid;
-      lo = mid + 1n;
-    } else {
-      hi = mid - 1n;
-    }
-    safety += 1;
-  }
-
-  if (best <= 0n) return 0n;
-
-  const finalCost = bigNumFromLog10(approximateLevelCostLog(best, logRequirement));
-  if (!finalCost || typeof finalCost.cmp !== 'function') return 0n;
-  if (xpState.progress.cmp(finalCost) < 0) return 0n;
-
-  xpState.progress = xpState.progress.sub(finalCost);
-  updateProgressLog();
-  try {
-    xpState.xpLevel = xpState.xpLevel.add(BigNum.fromAny(best.toString()));
-  } catch {
-    xpState.xpLevel = BigNum.fromAny(best.toString());
-  }
-  handleBulkLevelUpRewards(best);
-  updateXpRequirement();
-  return best;
 }
 
 export function initXpSystem({ forceReload = false } = {}) {
@@ -1537,9 +1058,6 @@ export function addXp(amount, { silent = false } = {}) {
     inc = bnZero();
   }
 
-  const baseGainLog = to_log(inc);
-  let gainMultiplierLog = 0;
-
   // External XP gain multipliers
   if (!inc.isZero?.()) {
     const providers = xpGainMultiplierProviders.size > 0
@@ -1548,26 +1066,20 @@ export function addXp(amount, { silent = false } = {}) {
     for (const provider of providers) {
       if (typeof provider !== 'function') continue;
       try {
-        const currentGainLog = applyMultiplierToValueLog(baseGainLog, gainMultiplierLog);
-        const currentGain = from_log(currentGainLog);
         const maybe = provider({
           baseGain: inc.clone?.() ?? inc,
-          currentGain,
           xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
           xpUnlocked: xpState.unlocked,
-          logMultiplier: gainMultiplierLog,
-          logGain: baseGainLog,
         });
-        const deltaLog = extractMultiplierDeltaLog(maybe, currentGainLog);
-        if (deltaLog != null) {
-          gainMultiplierLog = accumulateMultiplierLog(gainMultiplierLog, deltaLog);
+        if (maybe instanceof BigNum) {
+          inc = maybe.clone?.() ?? maybe;
+        } else if (maybe != null) {
+          inc = BigNum.fromAny(maybe);
         }
       } catch {}
     }
   }
 
-  const finalGainLog = applyMultiplierToValueLog(baseGainLog, gainMultiplierLog);
-  inc = from_log(finalGainLog);
   inc = applyStatMultiplierOverride('xp', inc);
 
   if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
@@ -1584,7 +1096,6 @@ export function addXp(amount, { silent = false } = {}) {
   // Apply gain
   xpState.progress = xpState.progress.add(inc);
   updateXpRequirement();
-  updateProgressLog();
 
   // If the gain, the current progress, or the current level is infinite,
   // snap the entire XP system (level, progress, requirement, and coin multiplier) to ∞.
@@ -1596,12 +1107,18 @@ export function addXp(amount, { silent = false } = {}) {
     || (typeof inc?.isInfinite === 'function' && inc.isInfinite());
 
   if (progressIsInf || levelIsInf || gainIsInf) {
-    const { level: cappedLevel } = clampXpLevel(xpState.xpLevel);
-    xpState.xpLevel = cappedLevel;
-    xpState.progress = MAX_REQUIREMENT_BN.clone?.() ?? MAX_REQUIREMENT_BN;
-    requirementBn = MAX_REQUIREMENT_BN.clone?.() ?? MAX_REQUIREMENT_BN;
-    updateProgressLog();
-    updateRequirementLog();
+    const inf = infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+
+    xpState.xpLevel = inf.clone?.() ?? inf;
+    xpState.progress = inf.clone?.() ?? inf;
+    requirementBn = inf.clone?.() ?? inf;
+
+    // NEW: also enforce the Books = ∞ rule
+    enforceXpInfinityInvariant();
+
+    persistState();
+    updateHud();
+    // Make sure the coin multiplier from XP is also locked to ∞.
     syncCoinMultiplierWithXpLevel(true);
 
     const detail = {
@@ -1617,47 +1134,19 @@ export function addXp(amount, { silent = false } = {}) {
     if (!silent && typeof window !== 'undefined') {
       try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
     }
-    persistState();
-    updateHud();
     return detail;
   }
 
-  // Normal finite-path level up loop (with bulk fast-forwarding)
+  // Normal finite-path level up loop
   let xpLevelsGained = bnZero();
   let guard = 0;
   const limit = 100000;
-  while (meetsRequirementByLog()) {
-    const bulkLevels = fastLevelGainFromProgress();
-    if (bulkLevels > 0n) {
-      xpLevelsGained = xpLevelsGained.add(BigNum.fromAny(bulkLevels.toString()));
-      const reqIsInf = requirementBn.isInfinite?.()
-        || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
-      if (reqIsInf) {
-        break;
-      }
-      continue;
-    }
-
-    if (guard >= limit) {
-      // Only clamp finite progress if we truly hit the guard.
-      xpState.progress = bnZero();
-      updateProgressLog();
-      break;
-    }
-
+  while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
     xpState.progress = xpState.progress.sub(requirementBn);
-    updateProgressLog();
-    const { level: clampedLevel, clamped } = clampXpLevel(xpState.xpLevel.add(bnOne()));
-    xpState.xpLevel = clampedLevel;
+    xpState.xpLevel = xpState.xpLevel.add(bnOne());
     xpLevelsGained = xpLevelsGained.add(bnOne());
-    if (clamped) {
-      xpState.progress = MAX_REQUIREMENT_BN.clone?.() ?? MAX_REQUIREMENT_BN;
-      updateProgressLog();
-      break;
-    }
     handleXpLevelUpRewards();
     updateXpRequirement();
-    updateProgressLog();
     const reqIsInf = requirementBn.isInfinite?.()
       || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
     if (reqIsInf) {
@@ -1665,11 +1154,34 @@ export function addXp(amount, { silent = false } = {}) {
     }
     guard += 1;
   }
+  if (guard >= limit) {
+    // Only clamp finite progress if we truly hit the guard.
+    xpState.progress = bnZero();
+  }
 
   persistState();
   updateHud();
 
-  updateSyncedCoinLevelCache();
+  // Maintain sync flags
+  const syncedLevelAfterAdd = xpLevelBigIntInfo(xpState.xpLevel);
+  if (!syncedLevelAfterAdd.finite) {
+    lastSyncedCoinLevel = null;
+    lastSyncedCoinLevelWasInfinite = true;
+    lastSyncedCoinUsedApproximation = false;
+    lastSyncedCoinApproxKey = null;
+  } else if (syncedLevelAfterAdd.bigInt != null) {
+    lastSyncedCoinLevel = syncedLevelAfterAdd.bigInt;
+    lastSyncedCoinLevelWasInfinite = false;
+    lastSyncedCoinUsedApproximation = false;
+    lastSyncedCoinApproxKey = null;
+  } else {
+    lastSyncedCoinLevel = null;
+    lastSyncedCoinLevelWasInfinite = false;
+    lastSyncedCoinUsedApproximation = true;
+    lastSyncedCoinApproxKey = typeof xpState.xpLevel?.toStorage === 'function'
+      ? xpState.xpLevel.toStorage()
+      : null;
+  }
 
   const detail = {
     unlocked: true,
@@ -1731,35 +1243,55 @@ export function computeCoinMultiplierForXpLevel(levelValue) {
     xpLevelBn = BigNum.fromInt(0);
   }
 
-  let multiplierLog = coinMultiplierLogForLevel(xpLevelBn);
-  if (multiplierLog === Number.POSITIVE_INFINITY) {
+  const levelInfo = xpLevelBigIntInfo(xpLevelBn);
+  const levelBigInt = levelInfo.bigInt;
+  const levelIsInfinite = !levelInfo.finite;
+
+  if (levelIsInfinite) {
     return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
-  let finalMultiplier = from_log(multiplierLog);
+
+  let multiplierBn;
+  if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
+    let working = BigNum.fromInt(1);
+    const iterations = Number(levelBigInt);
+    for (let i = 0; i < iterations; i += 1) {
+      working = working.mulDecimal('1.1', 18);
+    }
+    let levelAdd;
+    try { levelAdd = BigNum.fromAny(levelBigInt.toString()); }
+    catch { levelAdd = BigNum.fromInt(iterations); }
+    if (typeof working.add === 'function') {
+      working = working.add(levelAdd);
+    } else if (typeof levelAdd.add === 'function') {
+      working = levelAdd.add(working);
+    }
+    multiplierBn = working.clone?.() ?? working;
+  } else {
+    multiplierBn = approximateCoinMultiplierFromBigNum(xpLevelBn);
+  }
+
+  let finalMultiplier = multiplierBn.clone?.() ?? multiplierBn;
   const providers = coinMultiplierProviders.size > 0
     ? Array.from(coinMultiplierProviders)
     : (typeof externalCoinMultiplierProvider === 'function' ? [externalCoinMultiplierProvider] : []);
   for (const provider of providers) {
     if (typeof provider !== 'function') continue;
     try {
-      const baseMultiplier = finalMultiplier.clone?.() ?? finalMultiplier;
       const maybe = provider({
-        baseMultiplier,
+        baseMultiplier: finalMultiplier.clone?.() ?? finalMultiplier,
         xpLevel: xpLevelBn.clone?.() ?? xpLevelBn,
         xpUnlocked: !!xpState.unlocked,
-        logMultiplier: multiplierLog,
       });
-      const deltaLog = extractMultiplierDeltaLog(maybe, multiplierLog);
-      if (deltaLog != null) {
-        multiplierLog = accumulateMultiplierLog(multiplierLog, deltaLog);
-        finalMultiplier = from_log(multiplierLog);
+      if (maybe instanceof BigNum) {
+        finalMultiplier = maybe.clone?.() ?? maybe;
+      } else if (maybe != null) {
+        finalMultiplier = BigNum.fromAny(maybe);
       }
     } catch {}
   }
 
-  const result = finalMultiplier.clone?.() ?? finalMultiplier;
-  updateCoinMultiplierLog(multiplierLog);
-  return result;
+  return finalMultiplier.clone?.() ?? finalMultiplier;
 }
 
 export function setExternalCoinMultiplierProvider(fn) {
@@ -1810,128 +1342,6 @@ export function setExternalBookRewardProvider(fn) {
   externalBookRewardProvider = typeof fn === 'function' ? fn : null;
 }
 
-function runXpSystemLogSumTests() {
-  const results = [];
-  const assertNear = (name, actual, expected, tolerance = 1e-9) => {
-    const pass = Number.isFinite(actual) && Math.abs(actual - expected) <= tolerance;
-    results.push({ name, pass, actual, expected });
-  };
-
-  const hugeGapSum = log_sum_exp(Math.log10(1e150), Math.log10(1e200));
-  const hugeGapExpected = Math.log10(1e200) + Math.log10(1 + 1e-50);
-  assertNear('log_sum_exp handles extremely different magnitudes', hugeGapSum, hugeGapExpected);
-
-  const balancedSum = log_sum_list([Math.log10(1e200), Math.log10(1e200)]);
-  const balancedExpected = Math.log10(2) + Math.log10(1e200);
-  assertNear('log_sum_list combines equal large values', balancedSum, balancedExpected);
-
-  const listWithNegInf = log_sum_list([Number.NEGATIVE_INFINITY, Math.log10(1e200), Number.NEGATIVE_INFINITY]);
-  assertNear('log_sum_list ignores negative infinity entries', listWithNegInf, Math.log10(1e200));
-
-  const combinedLog = log_sum_exp(to_log(BigNum.fromAny('1e200')), to_log(BigNum.fromAny('1e150')));
-  const combinedBn = from_log(combinedLog);
-  const combinedBnLog = to_log(combinedBn);
-  assertNear('from_log preserves log_sum_exp scale for large BigNums', combinedBnLog, combinedLog);
-
-  const smallCostLog = approximateLevelCostLog(2n, Math.log10(1e200));
-  const expectedSmallCost = log_sum_list([Math.log10(1e200), Math.log10(1e200) + LOG_STEP]);
-  assertNear('approximateLevelCostLog uses log summation for small batches', smallCostLog, expectedSmallCost);
-
-  const stackedMultiplier = accumulateMultiplierLog(Math.log10(1e50), Math.log10(1e100));
-  const appliedMultiplierLog = applyMultiplierToValueLog(Math.log10(1e5), stackedMultiplier);
-  results.push({
-    name: 'stacked multiplier logs avoid overflow when applied to XP',
-    pass: Number.isFinite(appliedMultiplierLog) && Math.abs(appliedMultiplierLog - Math.log10(1e155)) < 1e-6,
-    actual: appliedMultiplierLog,
-    expected: Math.log10(1e155),
-  });
-
-  const highLevel = BigNum.fromAny('1e310');
-  const logHighLevel = log_requirement(highLevel);
-  const logHighScientific = logHighLevel.toScientific(6);
-  results.push({
-    name: 'log_requirement stays finite at extremely high levels',
-    pass: !bigNumIsInfinite(logHighLevel) && logHighScientific !== 'Infinity',
-    actual: logHighScientific,
-  });
-
-  const recoveredLevel = level_from_log_xp(logHighLevel);
-  const recoveredPlain = recoveredLevel.toPlainIntegerString?.() ?? '';
-  const targetPlain = highLevel.toPlainIntegerString?.() ?? '';
-  results.push({
-    name: 'level_from_log_xp correctly inverts geometric growth logs',
-    pass: recoveredPlain === targetPlain,
-    actual: recoveredPlain,
-    expected: targetPlain,
-  });
-
-  const largeLogXp = Math.log10(1e250);
-  const largeLogScaled = logRequirementScaledFromInput(largeLogXp);
-  const expectedLargeLevel = (() => {
-    if (largeLogScaled == null) return 0n;
-    const adjusted = largeLogScaled - LOG_REQUIREMENT_BASE_SCALED;
-    if (adjusted <= 0) return 0n;
-    let level = adjusted / LOG_REQUIREMENT_STEP_SCALED;
-    if (MAX_MEANINGFUL_XP_LEVEL > 0n && level > MAX_MEANINGFUL_XP_LEVEL) {
-      level = MAX_MEANINGFUL_XP_LEVEL;
-    }
-    return level;
-  })();
-  const largeLevelInfo = xpLevelBigIntInfo(level_from_log_xp(largeLogXp));
-  results.push({
-    name: 'level_from_log_xp handles extremely large XP gains',
-    pass: largeLevelInfo.bigInt === expectedLargeLevel,
-    actual: largeLevelInfo.bigInt?.toString?.(),
-    expected: expectedLargeLevel?.toString?.(),
-  });
-
-  const cappedLevelInfo = xpLevelBigIntInfo(level_from_log_xp(BigNum.fromAny('1e400')));
-  const expectedCap = MAX_MEANINGFUL_XP_LEVEL.toString();
-  results.push({
-    name: 'level_from_log_xp caps at the maximum meaningful level',
-    pass: cappedLevelInfo.bigInt?.toString?.() === expectedCap,
-    actual: cappedLevelInfo.bigInt?.toString?.(),
-    expected: expectedCap,
-  });
-
-  const oversizedLogXp = LOG_MAX + 100;
-  const oversizedLevel = level_from_log_xp(oversizedLogXp);
-  const oversizedLevelBigInt = normalizeLevelToBigInt(oversizedLevel);
-  results.push({
-    name: 'level_from_log_xp clamps levels when XP logs exceed LOG_MAX',
-    pass: oversizedLevelBigInt === MAX_LEVEL_CAP_BIGINT,
-    actual: oversizedLevelBigInt?.toString?.(),
-    expected: MAX_LEVEL_CAP_BIGINT.toString(),
-  });
-
-  const clampedRequirementLog = clampLogValue(to_log(BigNum.fromAny('1e400')));
-  results.push({
-    name: 'log tracking clamps requirement logs above LOG_MAX',
-    pass: clampedRequirementLog === LOG_MAX,
-    actual: clampedRequirementLog,
-    expected: LOG_MAX,
-  });
-
-  return results;
-}
-
-export function runXpSystemUnitTests({ verbose = false } = {}) {
-  const results = runXpSystemLogSumTests();
-  if (verbose && typeof console !== 'undefined') {
-    const failed = results.filter((r) => !r.pass);
-    if (failed.length === 0) {
-      console.log('[xpSystem] All log-sum tests passed.');
-    } else {
-      console.warn('[xpSystem] Log-sum tests failed:', failed);
-    }
-  }
-  return results;
-}
-
-if (typeof process !== 'undefined' && process?.env?.XP_SYSTEM_RUN_TESTS === '1') {
-  runXpSystemUnitTests({ verbose: true });
-}
-
 if (typeof window !== 'undefined') {
   window.xpSystem = window.xpSystem || {};
   Object.assign(window.xpSystem, {
@@ -1947,9 +1357,6 @@ if (typeof window !== 'undefined') {
     setExternalXpGainMultiplierProvider,
     addExternalXpGainMultiplierProvider,
     setExternalBookRewardProvider,
-    log_requirement,
-    level_from_log_xp,
-    runXpSystemUnitTests,
     resetXpProgress,
   });
 }
