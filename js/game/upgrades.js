@@ -247,35 +247,47 @@ catch {
       try { return BN.fromInt(1).add(L.mulDecimal(xStr)); } catch { return 1; }
     };
   },
-  
+
   powPerLevel(base) {
-  const baseNum = Number(base);
-  const b = Number.isFinite(baseNum) ? baseNum : Number(toBn(base).toScientific(6));
-  const log10b = Math.log10(b);
+    const baseNum = Number(base);
+    const b = Number.isFinite(baseNum) ? baseNum : Number(toBn(base).toScientific(6));
+    const log10b = Math.log10(b);
+    const LOG10_INFINITY_TRIGGER = 1e305;
 
-  return (level) => {
-    const L = toBn(level);
+    return (level) => {
+      const L = toBn(level);
 
-    try {
-      const plain = L.toPlainIntegerString?.();
-      if (plain && plain !== 'Infinity' && plain.length <= 7) {
-        const lvl = Math.max(0, Number(plain));
-        const log10 = log10b * lvl;
+      if (log10b > 0) {
+        const approxLevelLog = approxLog10BigNum(L);
 
-        if (log10 < 308) {
-          const val = Math.pow(b, lvl);
-          if (Number.isFinite(val)) return val;
+        if (!Number.isFinite(approxLevelLog)) {
+          if (approxLevelLog > 0) return BigNum.fromAny('Infinity');
+        } else {
+          const triggerLevelLog = Math.log10(LOG10_INFINITY_TRIGGER / log10b);
+          if (approxLevelLog >= triggerLevelLog) return BigNum.fromAny('Infinity');
         }
-        return bigNumFromLog10(log10);
       }
-    } catch {}
-	
+
       try {
-      const approxLvl = levelBigNumToNumber(L);
-      const log10 = log10b * approxLvl;
-      return bigNumFromLog10(log10);
+        const plain = L.toPlainIntegerString?.();
+        if (plain && plain !== 'Infinity' && plain.length <= 7) {
+          const lvl = Math.max(0, Number(plain));
+          const log10 = log10b * lvl;
+
+          if (log10 < 308) {
+            const val = Math.pow(b, lvl);
+            if (Number.isFinite(val)) return val;
+          }
+          return bigNumFromLog10(log10);
+        }
+      } catch {}
+
+      try {
+        const approxLvl = levelBigNumToNumber(L);
+        const log10 = log10b * approxLvl;
+        return bigNumFromLog10(log10);
       } catch {
-      return BigNum.fromInt(1);
+        return BigNum.fromInt(1);
       }
     };
   }
