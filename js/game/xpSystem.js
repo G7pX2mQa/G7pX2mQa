@@ -1017,7 +1017,11 @@ function xpLevelBigIntInfo(xpLevelValue) {
   if (!xpLevelValue || typeof xpLevelValue !== 'object') {
     return { bigInt: 0n, finite: false };
   }
-  const levelIsInfinite = xpLevelValue.isInfinite?.() || (typeof xpLevelValue.isInfinite === 'function' && xpLevelValue.isInfinite());
+
+  const levelIsInfinite =
+    (typeof xpLevelValue.isInfinite === 'function' && xpLevelValue.isInfinite()) ||
+    xpLevelValue.isInfinite?.() === true;
+
   if (levelIsInfinite) {
     try { multApi.set(infinityRequirementBn); } catch {}
     lastSyncedCoinLevel = null;
@@ -1025,71 +1029,95 @@ function xpLevelBigIntInfo(xpLevelValue) {
     lastSyncedCoinUsedApproximation = false;
     lastSyncedCoinApproxKey = null;
     updateCoinMultiplierLog(Number.POSITIVE_INFINITY);
+
     const capped = clampLevelBigInt(MAX_LEVEL_CAP_BIGINT);
     return { bigInt: capped, finite: false };
   }
 
   const levelBigInt = normalizeLevelToBigInt(xpLevelValue);
+  
   let multiplierLog = coinMultiplierLogForLevel(xpState.xpLevel);
-  let finalMultiplier = from_log(multiplierLog);
-  const providers = coinMultiplierProviders.size > 0
+  let logSpaceMultiplier = from_log(multiplierLog);
+
+  const providersLog = coinMultiplierProviders.size > 0
     ? Array.from(coinMultiplierProviders)
-    : (typeof externalCoinMultiplierProvider === 'function' ? [externalCoinMultiplierProvider] : []);
-  for (const provider of providers) {
+    : (typeof externalCoinMultiplierProvider === 'function'
+        ? [externalCoinMultiplierProvider]
+        : []);
+
+  for (const provider of providersLog) {
     if (typeof provider !== 'function') continue;
     try {
-      const baseMultiplier = finalMultiplier.clone?.() ?? finalMultiplier;
+      const baseMultiplier = logSpaceMultiplier.clone?.() ?? logSpaceMultiplier;
       const maybe = provider({
         baseMultiplier,
         xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
         xpUnlocked: xpState.unlocked,
         logMultiplier: multiplierLog,
       });
+
       const deltaLog = extractMultiplierDeltaLog(maybe, multiplierLog);
       if (deltaLog != null) {
         multiplierLog = accumulateMultiplierLog(multiplierLog, deltaLog);
-        finalMultiplier = from_log(multiplierLog);
+        logSpaceMultiplier = from_log(multiplierLog);
       }
-    } catch {}
+    } catch {
+    }
   }
 
-  const multIsInf = multiplierLog === Number.POSITIVE_INFINITY
-    || finalMultiplier.isInfinite?.() || (typeof finalMultiplier.isInfinite === 'function' && finalMultiplier.isInfinite());
+  const multLogIsInf =
+    multiplierLog === Number.POSITIVE_INFINITY ||
+    (typeof logSpaceMultiplier?.isInfinite === 'function' && logSpaceMultiplier.isInfinite()) ||
+    logSpaceMultiplier?.isInfinite?.() === true;
+
   updateCoinMultiplierLog(multiplierLog);
-  try { multApi.set(finalMultiplier.clone?.() ?? finalMultiplier); } catch {}
-  if (multIsInf) {
+  try { multApi.set(logSpaceMultiplier.clone?.() ?? logSpaceMultiplier); } catch {}
+
+  if (multLogIsInf) {
     lastSyncedCoinLevel = null;
     lastSyncedCoinLevelWasInfinite = true;
     lastSyncedCoinUsedApproximation = false;
     lastSyncedCoinApproxKey = null;
-    return;
+    return { bigInt: levelBigInt ?? null, finite: false };
   }
 
   let multiplierBn;
-  if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
+
+  if (typeof levelBigInt === 'bigint' && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
     let working = BigNum.fromInt(1);
     const iterations = Number(levelBigInt);
+
     for (let i = 0; i < iterations; i += 1) {
       working = working.mulDecimal('1.1', 18);
     }
+
     let levelAdd;
-    try { levelAdd = BigNum.fromAny(levelBigInt.toString()); }
-    catch { levelAdd = BigNum.fromInt(iterations); }
+    try {
+      levelAdd = BigNum.fromAny(levelBigInt.toString());
+    } catch {
+      levelAdd = BigNum.fromInt(iterations);
+    }
+
     if (typeof working.add === 'function') {
       working = working.add(levelAdd);
     } else if (typeof levelAdd.add === 'function') {
       working = levelAdd.add(working);
     }
+
     multiplierBn = working.clone?.() ?? working;
   } else {
     multiplierBn = approximateCoinMultiplierFromBigNum(xpState.xpLevel);
   }
 
   let finalMultiplier = multiplierBn.clone?.() ?? multiplierBn;
-  const providers = coinMultiplierProviders.size > 0
+
+  const providersBn = coinMultiplierProviders.size > 0
     ? Array.from(coinMultiplierProviders)
-    : (typeof externalCoinMultiplierProvider === 'function' ? [externalCoinMultiplierProvider] : []);
-  for (const provider of providers) {
+    : (typeof externalCoinMultiplierProvider === 'function'
+        ? [externalCoinMultiplierProvider]
+        : []);
+
+  for (const provider of providersBn) {
     if (typeof provider !== 'function') continue;
     try {
       const maybe = provider({
@@ -1097,23 +1125,29 @@ function xpLevelBigIntInfo(xpLevelValue) {
         xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
         xpUnlocked: xpState.unlocked,
       });
+
       if (maybe instanceof BigNum) {
         finalMultiplier = maybe.clone?.() ?? maybe;
       } else if (maybe != null) {
         finalMultiplier = BigNum.fromAny(maybe);
       }
-    } catch {}
+    } catch {
+    }
   }
 
-  const multIsInf = finalMultiplier.isInfinite?.() || (typeof finalMultiplier.isInfinite === 'function' && finalMultiplier.isInfinite());
+  const multBnIsInf =
+    (typeof finalMultiplier?.isInfinite === 'function' && finalMultiplier.isInfinite()) ||
+    finalMultiplier?.isInfinite?.() === true;
+	
   updateCoinMultiplierLog(finalMultiplier);
   try { multApi.set(finalMultiplier.clone?.() ?? finalMultiplier); } catch {}
-  if (multIsInf) {
+
+  if (multBnIsInf) {
     lastSyncedCoinLevel = null;
     lastSyncedCoinLevelWasInfinite = true;
     lastSyncedCoinUsedApproximation = false;
     lastSyncedCoinApproxKey = null;
-  } else if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
+  } else if (typeof levelBigInt === 'bigint' && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
     lastSyncedCoinLevel = levelBigInt;
     lastSyncedCoinLevelWasInfinite = false;
     lastSyncedCoinUsedApproximation = false;
