@@ -39,8 +39,13 @@ const EXACT_REQUIREMENT_CACHE_LEVEL = 5000n;
 const LOG_STEP = Math.log10(11 / 10);
 const LOG_DECADE_BONUS = Math.log10(5 / 2);
 const EXACT_COIN_LEVEL_LIMIT = 200n;
-const LOG_STEP_DECIMAL = '0.04139268515822507';
-const LOG_DECADE_BONUS_DECIMAL = '0.3979400086720376';
+// Tier thresholds for log-space scaling; ramps preserve continuity at the boundaries.
+const NORMAL_TO_HIGH_LEVEL = 5000;
+const HIGH_TO_EXTREME_LEVEL = 50000;
+const HIGH_RAMP_WIDTH = 2500;
+const EXTREME_RAMP_WIDTH = 15000;
+const HIGH_STEP_MULT = 1.35;
+const EXTREME_STEP_MULT = 1.65;
 const TEN_DIVISOR_DECIMAL = '0.1';
 const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
 
@@ -103,17 +108,6 @@ function computeBonusCountBn(levelBn) {
   return floored;
 }
 
-function computeLevelLogTerm(levelBn) {
-  if (!levelBn || typeof levelBn !== 'object') return BigNum.fromInt(0);
-  return levelBn.mulDecimal(LOG_STEP_DECIMAL, 18);
-}
-
-function computeBonusLogTerm(levelBn) {
-  const bonusCount = computeBonusCountBn(levelBn);
-  if (bigNumIsZero(bonusCount)) return null;
-  return bonusCount.mulDecimal(LOG_DECADE_BONUS_DECIMAL, 18);
-}
-
 function approximateCoinMultiplierFromBigNum(levelBn) {
   if (!levelBn || typeof levelBn !== 'object') {
     return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
@@ -121,14 +115,13 @@ function approximateCoinMultiplierFromBigNum(levelBn) {
   const levelLog = computeLevelLogTerm(levelBn);
   let totalLog = levelLog;
   const bonusLog = computeBonusLogTerm(levelBn);
-  if (bonusLog) {
-    totalLog = totalLog.add?.(bonusLog) ?? totalLog;
+  if (Number.isFinite(bonusLog) && bonusLog !== 0) {
+    totalLog += bonusLog;
   }
-  const logNumber = logBigNumToNumber(totalLog);
-  if (!Number.isFinite(logNumber)) {
+  if (!Number.isFinite(totalLog)) {
     return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
-  const approx = bigNumFromLog10(logNumber);
+  const approx = bigNumFromLog10(totalLog);
   const approxIsInf = approx.isInfinite?.() || (typeof approx.isInfinite === 'function' && approx.isInfinite());
   if (approxIsInf) {
     return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
@@ -430,6 +423,72 @@ function approxLog10(bn) {
   return totalExponent + mantissaLog;
 }
 
+function rampContribution(overshoot, width, deltaStep) {
+  if (!(overshoot > 0)) return 0;
+  if (!Number.isFinite(overshoot) || !Number.isFinite(width) || !Number.isFinite(deltaStep)) {
+    return Number.POSITIVE_INFINITY;
+  }
+  if (width <= 0) {
+    return overshoot * deltaStep;
+  }
+  if (overshoot >= width) {
+    // Once we are past the ramp, the slope has fully increased by deltaStep and stays there.
+    return (width * deltaStep * 0.5) + ((overshoot - width) * deltaStep);
+  }
+  // During the ramp window the slope increases linearly, so integrate the triangle area.
+  return (overshoot * overshoot * deltaStep) / (2 * width);
+}
+
+function levelValueToNumber(levelBn) {
+  const levelNum = bigNumToFiniteNumber(levelBn);
+  if (Number.isFinite(levelNum)) return levelNum;
+  return Number.POSITIVE_INFINITY;
+}
+
+function tieredLevelLog10(levelBn) {
+  const levelValue = levelValueToNumber(levelBn);
+  if (!(levelValue > 0)) return 0;
+  const normalStep = LOG_STEP;
+  const highDeltaStep = LOG_STEP * (HIGH_STEP_MULT - 1);
+  const extremeDeltaStep = LOG_STEP * (EXTREME_STEP_MULT - HIGH_STEP_MULT);
+
+  // Normal regime: pure 1.1x per level up through the high threshold.
+  let total = levelValue * normalStep;
+
+  // High regime: ramp slope up across HIGH_RAMP_WIDTH after NORMAL_TO_HIGH_LEVEL.
+  const highOvershoot = Math.max(Math.min(levelValue, HIGH_TO_EXTREME_LEVEL) - NORMAL_TO_HIGH_LEVEL, 0);
+  total += rampContribution(highOvershoot, HIGH_RAMP_WIDTH, highDeltaStep);
+
+  // Extreme regime: additional ramp starting at HIGH_TO_EXTREME_LEVEL to avoid discontinuity.
+  const extremeOvershoot = Math.max(levelValue - HIGH_TO_EXTREME_LEVEL, 0);
+  total += rampContribution(extremeOvershoot, EXTREME_RAMP_WIDTH, extremeDeltaStep);
+
+  return total;
+}
+
+function tieredLevelLogDelta(baseLevelBn, targetLevelBn) {
+  const base = tieredLevelLog10(baseLevelBn);
+  const target = tieredLevelLog10(targetLevelBn);
+  if (!Number.isFinite(base) || !Number.isFinite(target)) return Number.POSITIVE_INFINITY;
+  return target - base;
+}
+
+function computeLevelLogTerm(levelBn) {
+  const logVal = tieredLevelLog10(levelBn);
+  if (!Number.isFinite(logVal)) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return logVal;
+}
+
+function computeBonusLogTerm(levelBn) {
+  const bonusCount = computeBonusCountBn(levelBn);
+  if (bigNumIsZero(bonusCount)) return 0;
+  const bonusNumber = bigNumToFiniteNumber(bonusCount);
+  if (!Number.isFinite(bonusNumber)) return Number.POSITIVE_INFINITY;
+  return bonusNumber * LOG_DECADE_BONUS;
+}
+
 function bonusMultipliersCount(levelBigInt) {
   if (levelBigInt <= 1n) return 0n;
   return (levelBigInt - 1n) / 10n;
@@ -512,33 +571,25 @@ function approximateRequirementFromLevel(levelBn) {
 
   const baseLevelBn = BigNum.fromAny(baseLevel.toString());
   const baseLog = approxLog10(baseRequirement);
-  let totalLog = BigNum.fromInt(0);
-  if (Number.isFinite(baseLog) && baseLog > 0) {
-    try {
-      totalLog = BigNum.fromScientific(baseLog.toString());
-    } catch {
-      totalLog = BigNum.fromInt(0);
-    }
-  }
-
-  const deltaLevel = levelBn.sub?.(baseLevelBn) ?? BigNum.fromInt(0);
-  if (!bigNumIsZero(deltaLevel)) {
-    totalLog = totalLog.add?.(deltaLevel.mulDecimal(LOG_STEP_DECIMAL, 18)) ?? totalLog;
+  const levelDeltaLog = tieredLevelLogDelta(baseLevelBn, levelBn);
+  if (!Number.isFinite(baseLog) || !Number.isFinite(levelDeltaLog)) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
 
   const targetBonus = computeBonusCountBn(levelBn);
   const baseBonus = computeBonusCountBn(baseLevelBn);
   const deltaBonus = targetBonus.sub?.(baseBonus) ?? BigNum.fromInt(0);
-  if (!bigNumIsZero(deltaBonus)) {
-    totalLog = totalLog.add?.(deltaBonus.mulDecimal(LOG_DECADE_BONUS_DECIMAL, 18)) ?? totalLog;
-  }
-
-  const logNumber = logBigNumToNumber(totalLog);
-  if (!Number.isFinite(logNumber)) {
+  const bonusNumber = bigNumToFiniteNumber(deltaBonus);
+  if (!Number.isFinite(bonusNumber)) {
     return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
 
-  return bigNumFromLog10(logNumber);
+  const totalLog = baseLog + levelDeltaLog + (bonusNumber * LOG_DECADE_BONUS);
+  if (!Number.isFinite(totalLog)) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  return bigNumFromLog10(totalLog);
 }
 
 function progressRatio(progressBn, requirement) {
