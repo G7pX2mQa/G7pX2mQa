@@ -38,6 +38,7 @@ const EXACT_REQUIREMENT_CACHE_LEVEL = 5000n;
 const LOG_STEP = Math.log10(11 / 10);
 const LOG_DECADE_BONUS = Math.log10(5 / 2);
 const EXACT_COIN_LEVEL_LIMIT = 200n;
+const LEVEL_STEP_DECIMAL = '1.1';
 const LOG_STEP_DECIMAL = '0.04139268515822507';
 const LOG_DECADE_BONUS_DECIMAL = '0.3979400086720376';
 const TEN_DIVISOR_DECIMAL = '0.1';
@@ -902,10 +903,10 @@ function persistState() {
   }
 }
 
-function handleXpLevelUpRewards() {
+function handleXpLevelUpRewards(levelsGained = bnOne()) {
   syncCoinMultiplierWithXpLevel(true);
 
-  let reward = bnOne();
+  let reward = levelsGained.clone?.() ?? levelsGained ?? bnOne();
   if (typeof externalBookRewardProvider === 'function') {
     try {
       const maybe = externalBookRewardProvider({
@@ -945,6 +946,65 @@ function handleXpLevelUpRewards() {
     lastSyncedCoinUsedApproximation = true;
     lastSyncedCoinApproxKey = typeof xpState.xpLevel?.toStorage === 'function' ? xpState.xpLevel.toStorage() : null;
   }
+}
+
+function computeGeometricChunkMultiplier(levels) {
+  if (!Number.isFinite(levels) || levels <= 0) return { cost: 0, growth: 1 };
+  let cost = 0;
+  let growth = 1;
+  for (let i = 0; i < levels; i += 1) {
+    cost += growth;
+    growth *= parseFloat(LEVEL_STEP_DECIMAL);
+  }
+  return { cost, growth };
+}
+
+function bulkApplyLevelUps(progressBn, startingRequirement, currentLevelBigInt) {
+  let progress = progressBn.clone?.() ?? progressBn;
+  let requirement = startingRequirement.clone?.() ?? startingRequirement;
+  let gained = bnZero();
+  let levelBigInt = currentLevelBigInt;
+
+  const maxIterations = 10000;
+  let iterations = 0;
+
+  while (progress?.cmp?.(requirement) >= 0 && iterations < maxIterations) {
+    const toNextBonus = 10n - ((levelBigInt - 1n) % 10n);
+    const chunkLevels = Math.min(Number(toNextBonus), 10);
+    const { cost: chunkCostMultiplier, growth: chunkGrowthMultiplier } = computeGeometricChunkMultiplier(chunkLevels);
+    if (!Number.isFinite(chunkCostMultiplier) || !Number.isFinite(chunkGrowthMultiplier)) break;
+
+    const chunkCost = requirement.mulDecimal(chunkCostMultiplier.toString(), 18);
+    if (progress.cmp?.(chunkCost) >= 0) {
+      progress = progress.sub(chunkCost);
+      requirement = requirement.mulDecimal(chunkGrowthMultiplier.toString(), 18);
+      levelBigInt += BigInt(chunkLevels);
+      gained = gained.add(BigNum.fromInt(chunkLevels));
+      if (levelBigInt > 1n && ((levelBigInt - 1n) % 10n === 0n)) {
+        requirement = requirement.mulDecimal('2.5', 18);
+      }
+      iterations += 1;
+      continue;
+    }
+
+    const logProg = approxLog10(progress);
+    const logReq = approxLog10(requirement);
+    if (!Number.isFinite(logProg) || !Number.isFinite(logReq)) break;
+
+    const ratio = Math.pow(10, logProg - logReq);
+    const approxLevels = Math.max(1, Math.min(chunkLevels, Math.floor(Math.log((ratio * 0.1) + 1) / Math.log(1.1))));
+    const { cost: partialCostMultiplier, growth: partialGrowthMultiplier } = computeGeometricChunkMultiplier(approxLevels);
+    const partialCost = requirement.mulDecimal(partialCostMultiplier.toString(), 18);
+    if (progress.cmp?.(partialCost) < 0) break;
+
+    progress = progress.sub(partialCost);
+    requirement = requirement.mulDecimal(partialGrowthMultiplier.toString(), 18);
+    levelBigInt += BigInt(approxLevels);
+    gained = gained.add(BigNum.fromInt(approxLevels));
+    iterations += 1;
+  }
+
+  return { progress, requirement, gained };
 }
 
 function updateHud() {
@@ -1136,15 +1196,25 @@ export function addXp(amount, { silent = false } = {}) {
     return detail;
   }
 
-  // Normal finite-path level up loop
   let xpLevelsGained = bnZero();
+  const levelInfo = xpLevelBigIntInfo(xpState.xpLevel);
+  if (levelInfo.finite && levelInfo.bigInt != null && xpState.progress.cmp?.(requirementBn) >= 0) {
+    const bulkResult = bulkApplyLevelUps(xpState.progress, requirementBn, levelInfo.bigInt);
+    if (bulkResult?.gained && !bulkResult.gained.isZero?.()) {
+      xpLevelsGained = xpLevelsGained.add(bulkResult.gained);
+      xpState.progress = bulkResult.progress;
+      xpState.xpLevel = xpState.xpLevel.add(bulkResult.gained);
+      requirementBn = bulkResult.requirement;
+    }
+  }
+
+  // Normal finite-path level up loop (safety net)
   let guard = 0;
   const limit = 100000;
   while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
     xpState.progress = xpState.progress.sub(requirementBn);
     xpState.xpLevel = xpState.xpLevel.add(bnOne());
     xpLevelsGained = xpLevelsGained.add(bnOne());
-    handleXpLevelUpRewards();
     updateXpRequirement();
     const reqIsInf = requirementBn.isInfinite?.()
       || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
@@ -1156,6 +1226,10 @@ export function addXp(amount, { silent = false } = {}) {
   if (guard >= limit) {
     // Only clamp finite progress if we truly hit the guard.
     xpState.progress = bnZero();
+  }
+
+  if (!xpLevelsGained.isZero?.()) {
+    handleXpLevelUpRewards(xpLevelsGained);
   }
 
   persistState();
