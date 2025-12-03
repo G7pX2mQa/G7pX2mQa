@@ -49,6 +49,148 @@ const EXTREME_STEP_MULT = 1.65;
 const TEN_DIVISOR_DECIMAL = '0.1';
 const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
 
+function sciNormalize(rawMantissa, rawExponent) {
+  let mantissa = Number(rawMantissa);
+  let exponent = Number(rawExponent ?? 0);
+
+  if (!Number.isFinite(mantissa) || !Number.isFinite(exponent)) {
+    return { mantissa: Number.POSITIVE_INFINITY, exponent: 0 };
+  }
+  if (mantissa === 0) {
+    return { mantissa: 0, exponent: 0 };
+  }
+
+  const sign = mantissa < 0 ? -1 : 1;
+  mantissa = Math.abs(mantissa);
+  let guard = 0;
+  while (mantissa >= 10 && guard < 1024) {
+    mantissa /= 10;
+    exponent += 1;
+    guard += 1;
+  }
+  while (mantissa < 1 && mantissa > 0 && guard < 2048) {
+    mantissa *= 10;
+    exponent -= 1;
+    guard += 1;
+  }
+
+  if (!Number.isFinite(mantissa) || !Number.isFinite(exponent)) {
+    return { mantissa: Number.POSITIVE_INFINITY, exponent: 0 };
+  }
+
+  return { mantissa: mantissa * sign, exponent };
+}
+
+function sciFromAny(value) {
+  if (value == null) return { mantissa: 0, exponent: 0 };
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return { mantissa: Number.POSITIVE_INFINITY, exponent: 0 };
+    if (value === 0) return { mantissa: 0, exponent: 0 };
+    const exp = Math.floor(Math.log10(Math.abs(value)));
+    const mant = value / Math.pow(10, exp);
+    return sciNormalize(mant, exp);
+  }
+  if (typeof value === 'object' && 'mantissa' in value && 'exponent' in value) {
+    return sciNormalize(value.mantissa, value.exponent);
+  }
+
+  if (bigNumIsInfinite(value)) {
+    return { mantissa: Number.POSITIVE_INFINITY, exponent: 0 };
+  }
+
+  try {
+    const sciStr = typeof value.toScientific === 'function' ? value.toScientific(30) : String(value);
+    if (sciStr === 'Infinity') {
+      return { mantissa: Number.POSITIVE_INFINITY, exponent: 0 };
+    }
+    const match = sciStr.match(/^([+-]?[0-9]+(?:\.[0-9]+)?)e([+-]?\d+)$/i);
+    if (match) {
+      return sciNormalize(parseFloat(match[1]), parseInt(match[2], 10));
+    }
+    const num = Number(sciStr);
+    if (!Number.isFinite(num)) {
+      return { mantissa: Number.POSITIVE_INFINITY, exponent: 0 };
+    }
+    const exp = Math.floor(Math.log10(Math.abs(num)));
+    const mant = num / Math.pow(10, exp);
+    return sciNormalize(mant, exp);
+  } catch {
+    return { mantissa: Number.POSITIVE_INFINITY, exponent: 0 };
+  }
+}
+
+function sciCompare(aSci, bSci) {
+  const aMant = aSci?.mantissa ?? 0;
+  const bMant = bSci?.mantissa ?? 0;
+  const aExp = aSci?.exponent ?? 0;
+  const bExp = bSci?.exponent ?? 0;
+
+  if (!Number.isFinite(aMant)) {
+    return Number.isFinite(bMant) ? 1 : 0;
+  }
+  if (!Number.isFinite(bMant)) {
+    return -1;
+  }
+  if (aMant === 0 && bMant === 0) return 0;
+  if (aMant === 0) return bMant > 0 ? -1 : 1;
+  if (bMant === 0) return aMant > 0 ? 1 : -1;
+
+  if (aMant > 0 && bMant < 0) return 1;
+  if (aMant < 0 && bMant > 0) return -1;
+
+  if (aExp !== bExp) {
+    return aExp > bExp ? (aMant > 0 ? 1 : -1) : (aMant > 0 ? -1 : 1);
+  }
+  if (aMant === bMant) return 0;
+  return aMant > bMant ? 1 : -1;
+}
+
+function sciAdd(aSci, bSci) {
+  const a = sciNormalize(aSci?.mantissa ?? 0, aSci?.exponent ?? 0);
+  const b = sciNormalize(bSci?.mantissa ?? 0, bSci?.exponent ?? 0);
+  if (!Number.isFinite(a.mantissa)) return a;
+  if (!Number.isFinite(b.mantissa)) return b;
+  if (a.mantissa === 0) return b;
+  if (b.mantissa === 0) return a;
+
+  const diff = a.exponent - b.exponent;
+  if (diff > 30) return a;
+  if (diff < -30) return b;
+
+  if (diff >= 0) {
+    return sciNormalize(a.mantissa + b.mantissa * Math.pow(10, -diff), a.exponent);
+  }
+  return sciNormalize(a.mantissa * Math.pow(10, diff) + b.mantissa, b.exponent);
+}
+
+function sciMultiply(aSci, bSci) {
+  const a = sciNormalize(aSci?.mantissa ?? 0, aSci?.exponent ?? 0);
+  const b = sciNormalize(bSci?.mantissa ?? 0, bSci?.exponent ?? 0);
+  if (!Number.isFinite(a.mantissa) || !Number.isFinite(b.mantissa)) {
+    return { mantissa: Number.POSITIVE_INFINITY, exponent: 0 };
+  }
+  return sciNormalize(a.mantissa * b.mantissa, a.exponent + b.exponent);
+}
+
+function sciToBigNum(sci) {
+  if (!sci || !Number.isFinite(sci.mantissa) || !Number.isFinite(sci.exponent)) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+  if (sci.mantissa === 0) return bnZero();
+  if (sci.exponent >= BigNum.MAX_E) {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+  const mantissaStr = Number.isFinite(sci.mantissa) ? sci.mantissa.toPrecision(18) : '1';
+  const exponentStr = Number.isFinite(sci.exponent)
+    ? sci.exponent.toLocaleString('en', { useGrouping: false })
+    : '0';
+  try {
+    return BigNum.fromScientific(`${mantissaStr}e${exponentStr}`);
+  } catch {
+    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+}
+
 function bigIntToFloatApprox(value) {
   if (value === 0n) return 0;
   const str = value.toString();
@@ -207,6 +349,54 @@ function bnZero() {
 
 function bnOne() {
   return BigNum.fromInt(1);
+}
+
+function addBigNumsWithSciFallback(a, b) {
+  try {
+    if (typeof a?.add === 'function') {
+      return a.add(b);
+    }
+  } catch {}
+  try {
+    if (typeof b?.add === 'function') {
+      return b.add(a);
+    }
+  } catch {}
+
+  const sumSci = sciAdd(sciFromAny(a), sciFromAny(b));
+  return sciToBigNum(sumSci);
+}
+
+function subBigNumsWithSciFallback(a, b) {
+  try {
+    if (typeof a?.sub === 'function') {
+      return a.sub(b);
+    }
+  } catch {}
+
+  const aSci = sciFromAny(a);
+  const bSci = sciFromAny(b);
+  const diffSci = sciAdd(aSci, { mantissa: -bSci.mantissa, exponent: bSci.exponent });
+  if (diffSci.mantissa < 0 || !Number.isFinite(diffSci.mantissa)) {
+    return bnZero();
+  }
+  return sciToBigNum(diffSci);
+}
+
+function compareBigNumsWithSciFallback(a, b) {
+  try {
+    if (typeof a?.cmp === 'function') {
+      return a.cmp(b);
+    }
+  } catch {}
+  try {
+    if (typeof b?.cmp === 'function') {
+      const inverted = b.cmp(a);
+      return typeof inverted === 'number' ? -inverted : inverted;
+    }
+  } catch {}
+
+  return sciCompare(sciFromAny(a), sciFromAny(b));
 }
 
 const xpStorageWatcherCleanups = [];
@@ -1144,8 +1334,8 @@ export function addXp(amount, { silent = false } = {}) {
     };
   }
 
-  // Apply gain
-  xpState.progress = xpState.progress.add(inc);
+  // Apply gain (fallback to scientific form for extreme magnitudes)
+  xpState.progress = addBigNumsWithSciFallback(xpState.progress, inc);
   updateXpRequirement();
 
   // If the gain, the current progress, or the current level is infinite,
@@ -1192,10 +1382,11 @@ export function addXp(amount, { silent = false } = {}) {
   let xpLevelsGained = bnZero();
   let guard = 0;
   const limit = 100000;
-  while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
-    xpState.progress = xpState.progress.sub(requirementBn);
-    xpState.xpLevel = xpState.xpLevel.add(bnOne());
-    xpLevelsGained = xpLevelsGained.add(bnOne());
+  let cmp = compareBigNumsWithSciFallback(xpState.progress, requirementBn);
+  while (cmp >= 0 && guard < limit) {
+    xpState.progress = subBigNumsWithSciFallback(xpState.progress, requirementBn);
+    xpState.xpLevel = addBigNumsWithSciFallback(xpState.xpLevel, bnOne());
+    xpLevelsGained = addBigNumsWithSciFallback(xpLevelsGained, bnOne());
     handleXpLevelUpRewards();
     updateXpRequirement();
     const reqIsInf = requirementBn.isInfinite?.()
@@ -1204,6 +1395,7 @@ export function addXp(amount, { silent = false } = {}) {
       break;
     }
     guard += 1;
+    cmp = compareBigNumsWithSciFallback(xpState.progress, requirementBn);
   }
   if (guard >= limit) {
     // Only clamp finite progress if we truly hit the guard.
