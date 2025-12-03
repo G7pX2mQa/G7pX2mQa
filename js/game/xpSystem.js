@@ -44,6 +44,60 @@ function from_log(logx) {
   return bigNumFromLog10(logx);
 }
 
+function normalizeLogMultiplier(logValue) {
+  if (logValue === Number.POSITIVE_INFINITY) return Number.POSITIVE_INFINITY;
+  if (logValue === Number.NEGATIVE_INFINITY) return Number.NEGATIVE_INFINITY;
+  if (!Number.isFinite(logValue)) return Number.POSITIVE_INFINITY;
+  return logValue;
+}
+
+function to_log_multiplier(value) {
+  if (value && typeof value.log_mult === 'number') {
+    return normalizeLogMultiplier(value.log_mult);
+  }
+  const rawLog = to_log(value);
+  if (rawLog === Number.NEGATIVE_INFINITY) return Number.NEGATIVE_INFINITY;
+  if (!Number.isFinite(rawLog)) return rawLog;
+  return rawLog;
+}
+
+function accumulateMultiplierLog(baseLog, deltaLog) {
+  if (baseLog === Number.POSITIVE_INFINITY || deltaLog === Number.POSITIVE_INFINITY) {
+    return Number.POSITIVE_INFINITY;
+  }
+  if (deltaLog === Number.NEGATIVE_INFINITY) return Number.NEGATIVE_INFINITY;
+  if (baseLog === Number.NEGATIVE_INFINITY) return deltaLog;
+  if (!Number.isFinite(baseLog) || !Number.isFinite(deltaLog)) return Number.POSITIVE_INFINITY;
+  return baseLog + deltaLog;
+}
+
+function applyMultiplierToValueLog(valueLog, multiplierLog) {
+  if (valueLog === Number.NEGATIVE_INFINITY || multiplierLog === Number.NEGATIVE_INFINITY) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  if (valueLog === Number.POSITIVE_INFINITY || multiplierLog === Number.POSITIVE_INFINITY) {
+    return Number.POSITIVE_INFINITY;
+  }
+  if (!Number.isFinite(valueLog) || !Number.isFinite(multiplierLog)) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return valueLog + multiplierLog;
+}
+
+function extractMultiplierDeltaLog(result, currentTotalLog) {
+  if (result && typeof result.log_mult === 'number') {
+    return normalizeLogMultiplier(result.log_mult);
+  }
+  const candidateLog = to_log_multiplier(result);
+  if (candidateLog === Number.NEGATIVE_INFINITY || candidateLog === Number.POSITIVE_INFINITY) {
+    return candidateLog;
+  }
+  if (!Number.isFinite(candidateLog) || !Number.isFinite(currentTotalLog)) {
+    return candidateLog;
+  }
+  return candidateLog - currentTotalLog;
+}
+
 function log_sum_exp(loga, logb) {
   if (loga === Number.POSITIVE_INFINITY || logb === Number.POSITIVE_INFINITY) {
     return Number.POSITIVE_INFINITY;
@@ -287,36 +341,44 @@ function computeBonusLogTerm(levelBn) {
   return bonusCount.mulDecimal(LOG_DECADE_BONUS_DECIMAL, 18);
 }
 
-function approximateCoinMultiplierFromBigNum(levelBn) {
+function coinMultiplierLogForExactLevel(levelBigInt) {
+  if (levelBigInt == null || levelBigInt < 0n) return Number.NEGATIVE_INFINITY;
+  const iterations = Number(levelBigInt);
+  if (!Number.isFinite(iterations) || iterations < 0) return Number.NEGATIVE_INFINITY;
+  const growthLog = iterations * LOG_STEP;
+  const additiveLog = iterations > 0 ? Math.log10(iterations) : Number.NEGATIVE_INFINITY;
+  return log_sum_exp(growthLog, additiveLog);
+}
+
+function coinMultiplierLogForLevel(levelBn) {
   if (!levelBn || typeof levelBn !== 'object') {
-    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+    return Number.POSITIVE_INFINITY;
   }
-  const levelLog = computeLevelLogTerm(levelBn);
-  let totalLog = levelLog;
+
+  const levelInfo = xpLevelBigIntInfo(levelBn);
+  const levelBigInt = levelInfo.bigInt;
+  const levelIsInfinite = !levelInfo.finite;
+  if (levelIsInfinite) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
+    return coinMultiplierLogForExactLevel(levelBigInt);
+  }
+
+  const levelLogBn = computeLevelLogTerm(levelBn);
+  let totalLog = logBigNumToNumber(levelLogBn);
   const bonusLog = computeBonusLogTerm(levelBn);
   if (bonusLog) {
-    totalLog = totalLog.add?.(bonusLog) ?? totalLog;
+    totalLog += logBigNumToNumber(bonusLog);
   }
-  const logNumber = logBigNumToNumber(totalLog);
-  if (!Number.isFinite(logNumber)) {
-    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+
+  if (!Number.isFinite(totalLog)) {
+    return Number.POSITIVE_INFINITY;
   }
-  const approx = bigNumFromLog10(logNumber);
-  const approxIsInf = approx.isInfinite?.() || (typeof approx.isInfinite === 'function' && approx.isInfinite());
-  if (approxIsInf) {
-    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-  }
-  const levelTerm = levelBn.clone?.() ?? (() => {
-    try { return BigNum.fromAny(levelBn ?? 0); }
-    catch { return BigNum.fromInt(0); }
-  })();
-  let combined = approx.clone?.() ?? approx;
-  if (typeof combined.add === 'function') {
-    combined = combined.add(levelTerm);
-  } else if (typeof levelTerm.add === 'function') {
-    combined = levelTerm.add(combined);
-  }
-  return combined;
+
+  const levelAddLog = to_log(levelBn);
+  return log_sum_exp(totalLog, levelAddLog);
 }
 
 const xpState = {
@@ -395,8 +457,8 @@ function updateRequirementLog() {
   xpLogs.requirement = to_log(requirementBn);
 }
 
-function updateCoinMultiplierLog(multiplierBn) {
-  xpLogs.coinMultiplier = to_log(multiplierBn);
+function updateCoinMultiplierLog(logMultiplier) {
+  xpLogs.coinMultiplier = normalizeLogMultiplier(logMultiplier);
 }
 
 function meetsRequirementByLog() {
@@ -902,49 +964,43 @@ function xpLevelBigIntInfo(xpLevelValue) {
   }
   const levelIsInfinite = xpLevelValue.isInfinite?.() || (typeof xpLevelValue.isInfinite === 'function' && xpLevelValue.isInfinite());
   if (levelIsInfinite) {
-    return { bigInt: null, finite: false };
-  }
-  let plain = '0';
-  try {
-    plain = xpLevelValue.toPlainIntegerString?.() ?? xpLevelValue.toString?.() ?? '0';
-  } catch {
-    plain = '0';
-  }
-  if (!plain || plain === 'Infinity') {
-    return { bigInt: null, finite: true };
-  }
-  try {
-    return { bigInt: BigInt(plain), finite: true };
-  } catch {
-    return { bigInt: null, finite: true };
-  }
-}
-
-function syncCoinMultiplierWithXpLevel(force = false) {
-  const multApi = bank?.coins?.mult;
-  if (!multApi || typeof multApi.set !== 'function' || typeof multApi.multiplyByDecimal !== 'function') {
+    try { multApi.set(infinityRequirementBn); } catch {}
+    lastSyncedCoinLevel = null;
+    lastSyncedCoinLevelWasInfinite = true;
+    lastSyncedCoinUsedApproximation = false;
+    lastSyncedCoinApproxKey = null;
+    updateCoinMultiplierLog(Number.POSITIVE_INFINITY);
     return;
   }
 
-  const levelInfo = xpLevelBigIntInfo(xpState.xpLevel);
-  const levelBigInt = levelInfo.bigInt;
-  const levelIsInfinite = !levelInfo.finite;
-  const levelStorageKey = typeof xpState.xpLevel?.toStorage === 'function' ? xpState.xpLevel.toStorage() : null;
-
-  if (!force) {
-    if (levelIsInfinite && lastSyncedCoinLevelWasInfinite) {
-      return;
-    }
-    if (!levelIsInfinite && levelBigInt != null && !lastSyncedCoinLevelWasInfinite && !lastSyncedCoinUsedApproximation && lastSyncedCoinLevel != null && levelBigInt === lastSyncedCoinLevel) {
-      return;
-    }
-    if (!levelIsInfinite && levelBigInt == null && lastSyncedCoinUsedApproximation && levelStorageKey && lastSyncedCoinApproxKey && levelStorageKey === lastSyncedCoinApproxKey) {
-      return;
-    }
+  let multiplierLog = coinMultiplierLogForLevel(xpState.xpLevel);
+  let finalMultiplier = from_log(multiplierLog);
+  const providers = coinMultiplierProviders.size > 0
+    ? Array.from(coinMultiplierProviders)
+    : (typeof externalCoinMultiplierProvider === 'function' ? [externalCoinMultiplierProvider] : []);
+  for (const provider of providers) {
+    if (typeof provider !== 'function') continue;
+    try {
+      const baseMultiplier = finalMultiplier.clone?.() ?? finalMultiplier;
+      const maybe = provider({
+        baseMultiplier,
+        xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
+        xpUnlocked: xpState.unlocked,
+        logMultiplier: multiplierLog,
+      });
+      const deltaLog = extractMultiplierDeltaLog(maybe, multiplierLog);
+      if (deltaLog != null) {
+        multiplierLog = accumulateMultiplierLog(multiplierLog, deltaLog);
+        finalMultiplier = from_log(multiplierLog);
+      }
+    } catch {}
   }
 
-  if (levelIsInfinite) {
-    try { multApi.set(infinityRequirementBn); } catch {}
+  const multIsInf = multiplierLog === Number.POSITIVE_INFINITY
+    || finalMultiplier.isInfinite?.() || (typeof finalMultiplier.isInfinite === 'function' && finalMultiplier.isInfinite());
+  updateCoinMultiplierLog(multiplierLog);
+  try { multApi.set(finalMultiplier.clone?.() ?? finalMultiplier); } catch {}
+  if (multIsInf) {
     lastSyncedCoinLevel = null;
     lastSyncedCoinLevelWasInfinite = true;
     lastSyncedCoinUsedApproximation = false;
@@ -1384,6 +1440,9 @@ export function addXp(amount, { silent = false } = {}) {
     inc = bnZero();
   }
 
+  const baseGainLog = to_log(inc);
+  let gainMultiplierLog = 0;
+
   // External XP gain multipliers
   if (!inc.isZero?.()) {
     const providers = xpGainMultiplierProviders.size > 0
@@ -1392,20 +1451,26 @@ export function addXp(amount, { silent = false } = {}) {
     for (const provider of providers) {
       if (typeof provider !== 'function') continue;
       try {
+        const currentGainLog = applyMultiplierToValueLog(baseGainLog, gainMultiplierLog);
+        const currentGain = from_log(currentGainLog);
         const maybe = provider({
           baseGain: inc.clone?.() ?? inc,
+          currentGain,
           xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
           xpUnlocked: xpState.unlocked,
+          logMultiplier: gainMultiplierLog,
+          logGain: baseGainLog,
         });
-        if (maybe instanceof BigNum) {
-          inc = maybe.clone?.() ?? maybe;
-        } else if (maybe != null) {
-          inc = BigNum.fromAny(maybe);
+        const deltaLog = extractMultiplierDeltaLog(maybe, currentGainLog);
+        if (deltaLog != null) {
+          gainMultiplierLog = accumulateMultiplierLog(gainMultiplierLog, deltaLog);
         }
       } catch {}
     }
   }
 
+  const finalGainLog = applyMultiplierToValueLog(baseGainLog, gainMultiplierLog);
+  inc = from_log(finalGainLog);
   inc = applyStatMultiplierOverride('xp', inc);
 
   if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
@@ -1570,56 +1635,34 @@ export function computeCoinMultiplierForXpLevel(levelValue) {
     xpLevelBn = BigNum.fromInt(0);
   }
 
-  const levelInfo = xpLevelBigIntInfo(xpLevelBn);
-  const levelBigInt = levelInfo.bigInt;
-  const levelIsInfinite = !levelInfo.finite;
-
-  if (levelIsInfinite) {
+  let multiplierLog = coinMultiplierLogForLevel(xpLevelBn);
+  if (multiplierLog === Number.POSITIVE_INFINITY) {
     return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
-
-  let multiplierBn;
-  if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
-    let working = BigNum.fromInt(1);
-    const iterations = Number(levelBigInt);
-    for (let i = 0; i < iterations; i += 1) {
-      working = working.mulDecimal('1.1', 18);
-    }
-    let levelAdd;
-    try { levelAdd = BigNum.fromAny(levelBigInt.toString()); }
-    catch { levelAdd = BigNum.fromInt(iterations); }
-    if (typeof working.add === 'function') {
-      working = working.add(levelAdd);
-    } else if (typeof levelAdd.add === 'function') {
-      working = levelAdd.add(working);
-    }
-    multiplierBn = working.clone?.() ?? working;
-  } else {
-    multiplierBn = approximateCoinMultiplierFromBigNum(xpLevelBn);
-  }
-
-  let finalMultiplier = multiplierBn.clone?.() ?? multiplierBn;
+  let finalMultiplier = from_log(multiplierLog);
   const providers = coinMultiplierProviders.size > 0
     ? Array.from(coinMultiplierProviders)
     : (typeof externalCoinMultiplierProvider === 'function' ? [externalCoinMultiplierProvider] : []);
   for (const provider of providers) {
     if (typeof provider !== 'function') continue;
     try {
+      const baseMultiplier = finalMultiplier.clone?.() ?? finalMultiplier;
       const maybe = provider({
-        baseMultiplier: finalMultiplier.clone?.() ?? finalMultiplier,
+        baseMultiplier,
         xpLevel: xpLevelBn.clone?.() ?? xpLevelBn,
         xpUnlocked: !!xpState.unlocked,
+        logMultiplier: multiplierLog,
       });
-      if (maybe instanceof BigNum) {
-        finalMultiplier = maybe.clone?.() ?? maybe;
-      } else if (maybe != null) {
-        finalMultiplier = BigNum.fromAny(maybe);
+      const deltaLog = extractMultiplierDeltaLog(maybe, multiplierLog);
+      if (deltaLog != null) {
+        multiplierLog = accumulateMultiplierLog(multiplierLog, deltaLog);
+        finalMultiplier = from_log(multiplierLog);
       }
     } catch {}
   }
 
   const result = finalMultiplier.clone?.() ?? finalMultiplier;
-  updateCoinMultiplierLog(result);
+  updateCoinMultiplierLog(multiplierLog);
   return result;
 }
 
@@ -1697,6 +1740,15 @@ function runXpSystemLogSumTests() {
   const smallCostLog = approximateLevelCostLog(2n, Math.log10(1e200));
   const expectedSmallCost = log_sum_list([Math.log10(1e200), Math.log10(1e200) + LOG_STEP]);
   assertNear('approximateLevelCostLog uses log summation for small batches', smallCostLog, expectedSmallCost);
+
+  const stackedMultiplier = accumulateMultiplierLog(Math.log10(1e50), Math.log10(1e100));
+  const appliedMultiplierLog = applyMultiplierToValueLog(Math.log10(1e5), stackedMultiplier);
+  results.push({
+    name: 'stacked multiplier logs avoid overflow when applied to XP',
+    pass: Number.isFinite(appliedMultiplierLog) && Math.abs(appliedMultiplierLog - Math.log10(1e155)) < 1e-6,
+    actual: appliedMultiplierLog,
+    expected: Math.log10(1e155),
+  });
 
   const highLevel = BigNum.fromAny('1e310');
   const logHighLevel = log_requirement(highLevel);
