@@ -42,6 +42,32 @@ const LOG_STEP_DECIMAL = '0.04139268515822507';
 const LOG_DECADE_BONUS_DECIMAL = '0.3979400086720376';
 const TEN_DIVISOR_DECIMAL = '0.1';
 const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
+// Piecewise XP scaling regimes. Each entry defines a log-space slope and bonus
+// cadence starting at the given level. Thresholds are documented in
+// docs/xp_scaling.md.
+const XP_SCALING_REGIMES = [
+  {
+    name: 'normal',
+    startLevel: 0n,
+    logStep: LOG_STEP,
+    bonusLog: LOG_DECADE_BONUS,
+    bonusInterval: 10n,
+  },
+  {
+    name: 'high',
+    startLevel: 1_000_000n,
+    logStep: LOG_STEP * 1.25,
+    bonusLog: LOG_DECADE_BONUS * 1.1,
+    bonusInterval: 10n,
+  },
+  {
+    name: 'extreme',
+    startLevel: 1_000_000_000n,
+    logStep: LOG_STEP * 1.4,
+    bonusLog: LOG_DECADE_BONUS * 1.15,
+    bonusInterval: 10n,
+  },
+];
 
 function bigIntToFloatApprox(value) {
   if (value === 0n) return 0;
@@ -502,42 +528,163 @@ function bigNumFromLog10(log10Value) {
   }
 }
 
-function approximateRequirementFromLevel(levelBn) {
-  const baseLevel = highestCachedExactLevel > 0n ? highestCachedExactLevel : 0n;
-  const baseRequirement = xpRequirementCache.get(baseLevel.toString());
-  if (!baseRequirement || bigNumIsInfinite(baseRequirement)) {
-    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-  }
+// XP scaling helper that centralizes the XP⇄level conversions. The model is
+// intentionally piecewise so we can tune different growth slopes without
+// introducing discontinuities at the regime thresholds. All calculations live
+// in log space for numeric stability and to keep multiplicative bonuses easy
+// to reason about. See docs/xp_scaling.md for a higher-level overview.
+const xpScalingHelper = (() => {
+  const anchoredRegimes = [];
+  let previous = null;
 
-  const baseLevelBn = BigNum.fromAny(baseLevel.toString());
-  const baseLog = approxLog10(baseRequirement);
-  let totalLog = BigNum.fromInt(0);
-  if (Number.isFinite(baseLog) && baseLog > 0) {
+  function coerceLevelToBigInt(levelValue) {
+    if (typeof levelValue === 'bigint') {
+      return levelValue < 0n ? 0n : levelValue;
+    }
+    if (typeof levelValue === 'number' && Number.isFinite(levelValue)) {
+      return BigInt(Math.max(0, Math.floor(levelValue)));
+    }
+    if (typeof levelValue === 'string') {
+      try { return BigInt(levelValue); } catch { return 0n; }
+    }
+    if (levelValue instanceof BigNum) {
+      const info = xpLevelBigIntInfo(levelValue);
+      if (!info.finite) return null;
+      if (info.bigInt != null) return info.bigInt < 0n ? 0n : info.bigInt;
+    }
     try {
-      totalLog = BigNum.fromScientific(baseLog.toString());
+      const maybe = BigNum.fromAny(levelValue ?? 0);
+      const info = xpLevelBigIntInfo(maybe);
+      if (!info.finite) return null;
+      return info.bigInt ?? 0n;
     } catch {
-      totalLog = BigNum.fromInt(0);
+      return 0n;
     }
   }
 
-  const deltaLevel = levelBn.sub?.(baseLevelBn) ?? BigNum.fromInt(0);
-  if (!bigNumIsZero(deltaLevel)) {
-    totalLog = totalLog.add?.(deltaLevel.mulDecimal(LOG_STEP_DECIMAL, 18)) ?? totalLog;
+  XP_SCALING_REGIMES.forEach((regime) => {
+    const startLevel = BigInt(regime.startLevel ?? 0);
+    const logStep = Number(regime.logStep ?? LOG_STEP);
+    const bonusLog = Number(regime.bonusLog ?? LOG_DECADE_BONUS);
+    const bonusInterval = BigInt(regime.bonusInterval ?? 10n) || 1n;
+
+    let anchorLog;
+    let anchorBonus;
+    if (!previous) {
+      anchorLog = Math.log10(10);
+      anchorBonus = 0n;
+    } else {
+      const deltaLevel = startLevel - previous.startLevel;
+      const bonusDelta = deltaLevel > 0n ? deltaLevel / previous.bonusInterval : 0n;
+      anchorLog = previous.anchorLog
+        + Number(deltaLevel) * previous.logStep
+        + Number(bonusDelta) * previous.bonusLog;
+      anchorBonus = previous.anchorBonus + bonusDelta;
+    }
+
+    const anchored = {
+      ...regime,
+      startLevel,
+      logStep,
+      bonusLog,
+      bonusInterval,
+      anchorLog,
+      anchorBonus,
+    };
+    anchoredRegimes.push(anchored);
+    previous = anchored;
+  });
+
+  function selectRegimeForLevel(levelBigInt) {
+    let chosen = anchoredRegimes[0];
+    for (const candidate of anchoredRegimes) {
+      if (levelBigInt >= candidate.startLevel) {
+        chosen = candidate;
+        continue;
+      }
+      break;
+    }
+    return chosen;
   }
 
-  const targetBonus = computeBonusCountBn(levelBn);
-  const baseBonus = computeBonusCountBn(baseLevelBn);
-  const deltaBonus = targetBonus.sub?.(baseBonus) ?? BigNum.fromInt(0);
-  if (!bigNumIsZero(deltaBonus)) {
-    totalLog = totalLog.add?.(deltaBonus.mulDecimal(LOG_DECADE_BONUS_DECIMAL, 18)) ?? totalLog;
+  function selectRegimeForLog(targetLog) {
+    let chosen = anchoredRegimes[anchoredRegimes.length - 1];
+    for (let i = 0; i < anchoredRegimes.length - 1; i += 1) {
+      const next = anchoredRegimes[i + 1];
+      if (targetLog < next.anchorLog) {
+        chosen = anchoredRegimes[i];
+        break;
+      }
+    }
+    return chosen;
   }
 
-  const logNumber = logBigNumToNumber(totalLog);
-  if (!Number.isFinite(logNumber)) {
-    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  function logRequirementForLevel(levelBigInt) {
+    const regime = selectRegimeForLevel(levelBigInt);
+    const deltaLevel = levelBigInt - regime.startLevel;
+    const bonusDelta = deltaLevel > 0n ? deltaLevel / regime.bonusInterval : 0n;
+    const bonusCount = regime.anchorBonus + bonusDelta;
+    return regime.anchorLog
+      + Number(deltaLevel) * regime.logStep
+      + Number(bonusCount - regime.anchorBonus) * regime.bonusLog;
   }
 
-  return bigNumFromLog10(logNumber);
+  function levelToRequirement(levelValue) {
+    const levelBigInt = coerceLevelToBigInt(levelValue);
+    if (levelBigInt == null) {
+      return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+    }
+    const logRequirement = logRequirementForLevel(levelBigInt);
+    return bigNumFromLog10(logRequirement);
+  }
+
+  function requirementToLevel(requirementBn) {
+    if (bigNumIsInfinite(requirementBn)) {
+      return BigNum.fromAny('Infinity');
+    }
+    const targetLog = approxLog10(requirementBn);
+    if (!Number.isFinite(targetLog) || targetLog < 0) {
+      return BigNum.fromInt(0);
+    }
+
+    const regime = selectRegimeForLog(targetLog);
+    let deltaLevel = Math.max(0, Math.floor((targetLog - regime.anchorLog) / regime.logStep));
+    let level = regime.startLevel + BigInt(deltaLevel);
+
+    let currentLog = logRequirementForLevel(level);
+    let guard = 0;
+    const limit = 10000;
+    if (currentLog > targetLog) {
+      while (guard < limit && level > regime.startLevel && currentLog > targetLog) {
+        level -= 1n;
+        currentLog = logRequirementForLevel(level);
+        guard += 1;
+      }
+    } else {
+      while (guard < limit) {
+        const nextLevel = level + 1n;
+        const nextLog = logRequirementForLevel(nextLevel);
+        if (nextLog > targetLog) break;
+        level = nextLevel;
+        currentLog = nextLog;
+        guard += 1;
+      }
+    }
+
+    if (level < 0n) level = 0n;
+    return BigNum.fromAny(level.toString());
+  }
+
+  return {
+    regimes: anchoredRegimes,
+    levelToRequirement,
+    requirementToLevel,
+    logRequirementForLevel,
+  };
+})();
+
+function approximateRequirementFromLevel(levelBn) {
+  return xpScalingHelper.levelToRequirement(levelBn);
 }
 
 function progressRatio(progressBn, requirement) {
@@ -1232,6 +1379,16 @@ export function isXpSystemUnlocked() {
 
 export function getXpRequirementForXpLevel(xpLevel) {
   return xpRequirementForXpLevel(xpLevel);
+}
+
+export function estimateXpLevelForRequirement(requirement) {
+  let reqBn;
+  try {
+    reqBn = requirement instanceof BigNum ? requirement : BigNum.fromAny(requirement ?? 0);
+  } catch {
+    reqBn = BigNum.fromInt(0);
+  }
+  return xpScalingHelper.requirementToLevel(reqBn);
 }
 
 export function computeCoinMultiplierForXpLevel(levelValue) {
