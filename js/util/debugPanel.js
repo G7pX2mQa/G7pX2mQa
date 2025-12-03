@@ -37,12 +37,13 @@ import { markGhostTapTarget, shouldSkipGhostTap } from './ghostTapGuard.js';
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
+const DEFAULT_MISC_RESET_SELECTION = `currency:${CURRENCIES.COINS}`;
 let debugPanelOpen = false;
 let debugPanelAccess = false;
 let debugPanelCleanups = [];
 let debugPanelExpansionState = createEmptyExpansionState();
 let debugPanelScrollTop = 0;
-let debugPanelMiscResetSelection = 'all';
+let debugPanelMiscResetSelection = DEFAULT_MISC_RESET_SELECTION;
 let sectionKeyCounter = 0;
 let subsectionKeyCounter = 0;
 const liveBindings = [];
@@ -2823,15 +2824,15 @@ function buildMiscContent(content) {
     resetSelect.appendChild(allOption);
 
     if (!resetSelect.querySelector(`option[value="${debugPanelMiscResetSelection}"]`)) {
-        debugPanelMiscResetSelection = 'all';
+        debugPanelMiscResetSelection = DEFAULT_MISC_RESET_SELECTION;
     }
     resetSelect.value = debugPanelMiscResetSelection;
 
-    const resolveResetLockKeys = () => getResetTargetLockKeys(resetSelect.value || 'all', getActiveSlot());
+    const resolveResetLockKeys = () => getResetTargetLockKeys(resetSelect.value || DEFAULT_MISC_RESET_SELECTION, getActiveSlot());
 
     const resetLockToggle = createCompositeLockToggle(resolveResetLockKeys);
     resetSelect.addEventListener('change', () => {
-        debugPanelMiscResetSelection = resetSelect.value || 'all';
+        debugPanelMiscResetSelection = resetSelect.value || DEFAULT_MISC_RESET_SELECTION;
         resetLockToggle.refresh();
     });
 
@@ -2845,7 +2846,7 @@ function buildMiscContent(content) {
     resetBtn.className = 'debug-panel-toggle reset-check';
     resetBtn.textContent = '✅';
     resetBtn.addEventListener('click', () => {
-        const target = resetSelect.value || 'all';
+        const target = resetSelect.value || DEFAULT_MISC_RESET_SELECTION;
         const lockKeys = resolveResetLockKeys();
         const shouldRelock = resetLockToggle.isLocked();
         const result = withTemporaryUnlock(lockKeys, () => resetStatsAndMultipliers(target))
