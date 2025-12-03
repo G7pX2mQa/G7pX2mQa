@@ -75,6 +75,99 @@ function log_mul(loga, logb) {
   return loga + logb;
 }
 
+function normalizeLevelToBigInt(levelInput) {
+  if (typeof levelInput === 'bigint') {
+    return levelInput < 0n ? 0n : levelInput;
+  }
+  if (levelInput instanceof BigNum) {
+    const info = xpLevelBigIntInfo(levelInput);
+    if (info.bigInt != null) {
+      return info.bigInt < 0n ? 0n : info.bigInt;
+    }
+    return 0n;
+  }
+  if (typeof levelInput === 'number') {
+    if (!Number.isFinite(levelInput) || levelInput <= 0) return 0n;
+    try { return BigInt(Math.floor(levelInput)); }
+    catch { return 0n; }
+  }
+  try {
+    return BigInt(levelInput);
+  } catch {
+    return 0n;
+  }
+}
+
+function logScaleBigIntToScientific(scaledLog) {
+  if (scaledLog <= 0n) return '0e0';
+  const digits = scaledLog.toString();
+  const precision = Math.min(digits.length, 18);
+  const head = digits.slice(0, precision);
+  const mantissa = head.length > 1 ? `${head[0]}.${head.slice(1)}` : head;
+  const exponent = (digits.length - 1) - 18;
+  return `${mantissa}e${exponent}`;
+}
+
+function logRequirementScaledFromInput(logInput) {
+  if (logInput && typeof logInput._scaledLog === 'bigint') {
+    return logInput._scaledLog;
+  }
+
+  let sci;
+  if (logInput instanceof BigNum) {
+    sci = logInput.toScientific(18);
+  } else if (typeof logInput === 'number') {
+    if (!Number.isFinite(logInput)) return null;
+    sci = logInput.toExponential(18);
+  } else if (typeof logInput === 'string') {
+    sci = logInput.trim();
+  }
+
+  if (!sci) return null;
+
+  const match = sci.match(/^([0-9]+(?:\.[0-9]+)?)e([+-]?\d+)$/i);
+  if (!match) return null;
+
+  const [, mantissaStr, expStr] = match;
+  const digits = mantissaStr.replace('.', '');
+  const fracDigits = (mantissaStr.split('.')[1] ?? '').length;
+  let scaledExp;
+  try {
+    scaledExp = BigInt(parseInt(expStr, 10) - fracDigits + 18);
+  } catch {
+    return null;
+  }
+
+  let scaledMantissa;
+  try { scaledMantissa = BigInt(digits); }
+  catch { return null; }
+
+  if (scaledExp >= 0) {
+    return scaledMantissa * (10n ** scaledExp);
+  }
+
+  const divisor = 10n ** (-scaledExp);
+  if (divisor === 0n) return null;
+  return scaledMantissa / divisor;
+}
+
+export function log_requirement(levelInput) {
+  const levelBigInt = normalizeLevelToBigInt(levelInput);
+  const scaled = LOG_REQUIREMENT_BASE_SCALED + (levelBigInt * LOG_REQUIREMENT_STEP_SCALED);
+  const logBn = BigNum.fromScientific(logScaleBigIntToScientific(scaled));
+  logBn._scaledLog = scaled;
+  return logBn;
+}
+
+export function level_from_log_xp(log_xp) {
+  const scaledLog = logRequirementScaledFromInput(log_xp);
+  if (scaledLog == null) return BigNum.fromInt(0);
+  const adjusted = scaledLog - LOG_REQUIREMENT_BASE_SCALED;
+  if (adjusted <= 0) return BigNum.fromInt(0);
+  const levelBigInt = adjusted / LOG_REQUIREMENT_STEP_SCALED;
+  return BigNum.fromAny(levelBigInt);
+}
+
 let lastSyncedCoinLevel = null;
 let lastSyncedCoinLevelWasInfinite = false;
 let lastSyncedCoinUsedApproximation = false;
@@ -92,6 +185,9 @@ const EXACT_COIN_LEVEL_LIMIT = 200n;
 const LOG_STEP_DECIMAL = '0.04139268515822507';
 const LOG_DECADE_BONUS_DECIMAL = '0.3979400086720376';
 const TEN_DIVISOR_DECIMAL = '0.1';
+const LOG_REQUIREMENT_SCALE = 1_000_000_000_000_000_000n; // 1e18 fixed-point scale for log values
+const LOG_REQUIREMENT_BASE_SCALED = LOG_REQUIREMENT_SCALE; // log10(10) == 1
+const LOG_REQUIREMENT_STEP_SCALED = BigInt('41392685158225070'); // log10(1.1) * 1e18
 const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
 const AVERAGE_LOG_LEVEL_STEP = LOG_STEP + (LOG_DECADE_BONUS / 10);
 const AVERAGE_LEVEL_RATIO = Math.pow(10, AVERAGE_LOG_LEVEL_STEP);
@@ -1578,6 +1674,25 @@ function runXpSystemLogSumTests() {
   const expectedSmallCost = log_sum_list([Math.log10(1e200), Math.log10(1e200) + LOG_STEP]);
   assertNear('approximateLevelCostLog uses log summation for small batches', smallCostLog, expectedSmallCost);
 
+  const highLevel = BigNum.fromAny('1e310');
+  const logHighLevel = log_requirement(highLevel);
+  const logHighScientific = logHighLevel.toScientific(6);
+  results.push({
+    name: 'log_requirement stays finite at extremely high levels',
+    pass: !bigNumIsInfinite(logHighLevel) && logHighScientific !== 'Infinity',
+    actual: logHighScientific,
+  });
+
+  const recoveredLevel = level_from_log_xp(logHighLevel);
+  const recoveredPlain = recoveredLevel.toPlainIntegerString?.() ?? '';
+  const targetPlain = highLevel.toPlainIntegerString?.() ?? '';
+  results.push({
+    name: 'level_from_log_xp correctly inverts geometric growth logs',
+    pass: recoveredPlain === targetPlain,
+    actual: recoveredPlain,
+    expected: targetPlain,
+  });
+
   return results;
 }
 
@@ -1613,6 +1728,8 @@ if (typeof window !== 'undefined') {
     setExternalXpGainMultiplierProvider,
     addExternalXpGainMultiplierProvider,
     setExternalBookRewardProvider,
+    log_requirement,
+    level_from_log_xp,
     runXpSystemUnitTests,
     resetXpProgress,
   });
