@@ -12,6 +12,20 @@ const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
 const KEY_XP_LEVEL = (slot) => `${KEY_PREFIX}:level:${slot}`;
 const KEY_PROGRESS = (slot) => `${KEY_PREFIX}:progress:${slot}`;
 
+// Precision tuning lives entirely in this module so the rest of the game keeps
+// a stable contract. "fast" preserves the previous log-approximation behavior
+// (progress bars and multipliers can drift by up to ~0.5% for very large values
+// but remain smooth), while "precise" leans on heavier BigNum math to remove
+// that drift at the cost of extra CPU during HUD updates and XP gain.
+const XP_PRECISION_CONFIG = {
+  mode: 'fast',
+  // Clamp huge UI values so formatters never see unbounded mantissas; clamping
+  // happens only for rendering, leaving internal math intact. At 1e308 we avoid
+  // Infinity while staying within JS number-safe formatting territory.
+  maxDisplayLog10: 308,
+};
+const USE_FAST_XP_MATH = XP_PRECISION_CONFIG.mode !== 'precise';
+
 export function getXpLevelStorageKey(slot = getActiveSlot()) {
   const resolvedSlot = slot ?? getActiveSlot();
   return resolvedSlot == null ? null : KEY_XP_LEVEL(resolvedSlot);
@@ -39,10 +53,12 @@ const coinMultiplierProviders = new Set();
 const xpGainMultiplierProviders = new Set();
 let externalBookRewardProvider = null;
 
-const EXACT_REQUIREMENT_CACHE_LEVEL = 5000n;
+// Precise mode extends the exact cache to reduce approximation drift around
+// high-level thresholds; fast mode keeps the lighter cache for performance.
+const EXACT_REQUIREMENT_CACHE_LEVEL = USE_FAST_XP_MATH ? 5000n : 7500n;
 const LOG_STEP = Math.log10(11 / 10);
 const LOG_DECADE_BONUS = Math.log10(5 / 2);
-const EXACT_COIN_LEVEL_LIMIT = 200n;
+const EXACT_COIN_LEVEL_LIMIT = USE_FAST_XP_MATH ? 200n : 400n;
 // Tier thresholds for log-space scaling; ramps preserve continuity at the boundaries.
 const NORMAL_TO_HIGH_LEVEL = 5000;
 const HIGH_TO_EXTREME_LEVEL = 50000;
@@ -52,6 +68,7 @@ const HIGH_STEP_MULT = 1.35;
 const EXTREME_STEP_MULT = 1.65;
 const TEN_DIVISOR_DECIMAL = '0.1';
 const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
+const DISPLAY_MAX_CLAMP_BN = bigNumFromLog10(XP_PRECISION_CONFIG.maxDisplayLog10);
 
 function sciNormalize(rawMantissa, rawExponent) {
   let mantissa = Number(rawMantissa);
@@ -550,6 +567,28 @@ function stripHtml(value) {
   return value.replace(/<[^>]*>/g, '');
 }
 
+function clampProgressRatio(ratio) {
+  if (!Number.isFinite(ratio)) return ratio >= 0 ? 1 : 0;
+  if (ratio <= 0) return 0;
+  if (ratio >= 1) return 1;
+  return ratio;
+}
+
+function clampBigNumForDisplay(value) {
+  if (bigNumIsInfinite(value)) return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  const approx = approxLog10(value);
+  if (!Number.isFinite(approx)) return bnZero();
+  if (approx > XP_PRECISION_CONFIG.maxDisplayLog10) {
+    // This only affects rendering; the underlying XP continues to grow.
+    return DISPLAY_MAX_CLAMP_BN.clone?.() ?? DISPLAY_MAX_CLAMP_BN;
+  }
+  return value;
+}
+
+function formatXpNumber(value) {
+  return formatNumber(clampBigNumForDisplay(value));
+}
+
 function approxLog10(bn) {
   if (!bn || typeof bn !== 'object') return Number.NEGATIVE_INFINITY;
   if (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())) {
@@ -824,21 +863,34 @@ function progressRatio(progressBn, requirement) {
   const progIsZero = bigNumIsZero(progressBn);
   if (progIsZero) return 0;
 
+  if (!USE_FAST_XP_MATH) {
+    try {
+      if (typeof progressBn.cmp === 'function' && progressBn.cmp(requirement) >= 0) {
+        return 1;
+      }
+      if (typeof progressBn.div === 'function') {
+        const direct = progressBn.div(requirement);
+        return clampProgressRatio(bigNumToFiniteNumber(direct));
+      }
+    } catch {}
+  }
+
+  // Fast mode keeps the historical log-ratio; the fill width can drift by up to
+  // ~0.5% when progress and requirements are extremely large but remains stable
+  // frame-to-frame so the HUD does not flicker.
   const logProg = approxLog10(progressBn);
   const levelInfo = requirement === requirementBn ? xpLevelBigIntInfo(xpState.xpLevel) : { bigInt: null };
   const levelKey = levelInfo.bigInt != null ? levelInfo.bigInt.toString() : null;
   const logReq = getRequirementLog(levelKey, requirement);
   if (!Number.isFinite(logProg) || !Number.isFinite(logReq)) {
-    return logProg >= logReq ? 1 : 0;
+    return clampProgressRatio(logProg - logReq >= 0 ? 1 : 0);
   }
   const diff = logProg - logReq;
   const ratio = Math.pow(10, diff);
   if (!Number.isFinite(ratio)) {
-    return diff >= 0 ? 1 : 0;
+    return clampProgressRatio(diff >= 0 ? 1 : 0);
   }
-  if (ratio <= 0) return 0;
-  if (ratio >= 1) return 1;
-  return ratio;
+  return clampProgressRatio(ratio);
 }
 
 function ensureHudRefs() {
@@ -1234,12 +1286,12 @@ function updateHud() {
     }
     if (xpLevelValue) xpLevelValue.textContent = '0';
     if (progress) {
-      const reqHtml = formatNumber(requirementBn);
+      const reqHtml = formatXpNumber(requirementBn);
       progress.innerHTML = `<span class="xp-progress-current">0</span><span class="xp-progress-separator">/</span><span class="xp-progress-required">${reqHtml}</span><span class="xp-progress-suffix">XP</span>`;
     }
     if (bar) {
       bar.setAttribute('aria-valuenow', '0');
-      const reqPlain = stripHtml(formatNumber(requirementBn));
+      const reqPlain = stripHtml(formatXpNumber(requirementBn));
       bar.setAttribute('aria-valuetext', `0 / ${reqPlain || '10'} XP`);
     }
     syncXpMpHudLayout();
@@ -1248,24 +1300,24 @@ function updateHud() {
 
   container.removeAttribute('hidden');
   const requirement = requirementBn;
-  const ratio = progressRatio(xpState.progress, requirement);
+  const ratio = clampProgressRatio(progressRatio(xpState.progress, requirement));
   const pct = `${(ratio * 100).toFixed(2)}%`;
   if (fill) {
     fill.style.setProperty('--xp-fill', pct);
     fill.style.width = pct;
   }
   if (xpLevelValue) {
-    xpLevelValue.innerHTML = formatNumber(xpState.xpLevel);
+    xpLevelValue.innerHTML = formatXpNumber(xpState.xpLevel);
   }
   if (progress) {
-    const currentHtml = formatNumber(xpState.progress);
-    const reqHtml = formatNumber(requirement);
+    const currentHtml = formatXpNumber(xpState.progress);
+    const reqHtml = formatXpNumber(requirement);
     progress.innerHTML = `<span class="xp-progress-current">${currentHtml}</span><span class="xp-progress-separator">/</span><span class="xp-progress-required">${reqHtml}</span><span class="xp-progress-suffix">XP</span>`;
   }
   if (bar) {
     bar.setAttribute('aria-valuenow', (ratio * 100).toFixed(2));
-    const currPlain = stripHtml(formatNumber(xpState.progress));
-    const reqPlain = stripHtml(formatNumber(requirement));
+    const currPlain = stripHtml(formatXpNumber(xpState.progress));
+    const reqPlain = stripHtml(formatXpNumber(requirement));
     bar.setAttribute('aria-valuetext', `${currPlain} / ${reqPlain} XP`);
   }
   syncXpMpHudLayout();
@@ -1338,6 +1390,7 @@ function flattenXpGain(amount) {
 
 function computeBatchSize(progressBn, requirement, levelKey, remainingBudget) {
   if (!(remainingBudget > 1)) return 1;
+  if (!USE_FAST_XP_MATH) return 1; // Precise mode keeps batch loops exact; no log guesses.
   const logProg = approxLog10(progressBn);
   const logReq = getRequirementLog(levelKey, requirement);
   if (!Number.isFinite(logProg) || !Number.isFinite(logReq)) return 1;
