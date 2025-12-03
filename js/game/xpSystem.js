@@ -43,6 +43,9 @@ const LOG_STEP_DECIMAL = '0.04139268515822507';
 const LOG_DECADE_BONUS_DECIMAL = '0.3979400086720376';
 const TEN_DIVISOR_DECIMAL = '0.1';
 const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
+const LOG_DECADE_SCALE = (10 * LOG_STEP) + LOG_DECADE_BONUS;
+const LOG_DECADE_COST = Math.log10(((11 / 10) ** 10 - 1) / (1 / 10));
+const LOG_DECADE_SCALE_MINUS_ONE = Math.log10(Math.pow(10, LOG_DECADE_SCALE) - 1);
 
 function bigIntToFloatApprox(value) {
   if (value === 0n) return 0;
@@ -574,6 +577,67 @@ function progressRatio(progressBn, requirement) {
   return ratio;
 }
 
+function decadeBlockCostLog(blocks, logRequirement) {
+  if (!Number.isFinite(blocks) || blocks <= 0) return Number.NEGATIVE_INFINITY;
+  const growthLog = blocks * LOG_DECADE_SCALE;
+  const geomLog = growthLog > 300
+    ? growthLog
+    : Math.log10(Math.pow(10, growthLog) - 1);
+  return logRequirement + LOG_DECADE_COST + geomLog - LOG_DECADE_SCALE_MINUS_ONE;
+}
+
+function fastForwardByDecades(applyRewards = false) {
+  const logReq = approxLog10(requirementBn);
+  const logProg = approxLog10(xpState.progress);
+  if (!Number.isFinite(logReq) || !Number.isFinite(logProg)) return bnZero();
+
+  const levelInfo = xpLevelBigIntInfo(xpState.xpLevel);
+  const levelBigInt = levelInfo.bigInt;
+  const levelAligned = levelBigInt != null && (levelBigInt % 10n === 0n);
+  if (!levelAligned) return bnZero();
+
+  const baseBlockLog = decadeBlockCostLog(1, logReq);
+  if (!Number.isFinite(baseBlockLog) || baseBlockLog > logProg) return bnZero();
+
+  const maxGuess = Math.max(1, Math.floor((logProg - baseBlockLog) / LOG_DECADE_SCALE) + 1);
+
+  let low = 1;
+  let high = maxGuess;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    const totalLog = decadeBlockCostLog(mid, logReq);
+    if (Number.isFinite(totalLog) && totalLog <= logProg) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  const blocks = low;
+  if (blocks <= 0) return bnZero();
+
+  const costLog = decadeBlockCostLog(blocks, logReq);
+  const totalCostBn = bigNumFromLog10(costLog);
+  if (xpState.progress.cmp?.(totalCostBn) < 0) return bnZero();
+
+  try { xpState.progress = xpState.progress.sub(totalCostBn); }
+  catch { xpState.progress = bnZero(); }
+
+  const levelsToAdd = BigInt(blocks) * 10n;
+  try { xpState.xpLevel = xpState.xpLevel.add(BigNum.fromAny(levelsToAdd.toString())); }
+  catch { xpState.xpLevel = xpState.xpLevel.add(BigNum.fromInt(Number(levelsToAdd))); }
+
+  if (applyRewards) {
+    const rewardIterations = levelsToAdd > 100000n ? 100000 : Number(levelsToAdd);
+    for (let i = 0; i < rewardIterations; i += 1) {
+      handleXpLevelUpRewards();
+    }
+  }
+
+  updateXpRequirement();
+  return BigNum.fromAny(levelsToAdd.toString());
+}
+
 function ensureHudRefs() {
   if (hudRefs.container && hudRefs.container.isConnected) return true;
   hudRefs.container = document.querySelector('.xp-counter[data-xp-hud]');
@@ -669,6 +733,11 @@ function normalizeProgress(applyRewards = false) {
   if (bigNumIsInfinite(requirementBn)) {
     return;
   }
+
+  // Fast-forward using decade-sized blocks when progress wildly exceeds the
+  // current requirement. The decade math matches the requirement progression:
+  // 10 steps of ×1.1 followed by a ×2.5 spike on the next level.
+  fastForwardByDecades(applyRewards);
 
   let guard = 0;
   const limit = 10000;
@@ -1141,6 +1210,10 @@ export function addXp(amount, { silent = false } = {}) {
   let xpLevelsGained = bnZero();
   let guard = 0;
   const limit = 100000;
+  const fastLevels = fastForwardByDecades(true);
+  if (fastLevels && typeof fastLevels.add === 'function') {
+    xpLevelsGained = xpLevelsGained.add(fastLevels);
+  }
   while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
     xpState.progress = xpState.progress.sub(requirementBn);
     xpState.xpLevel = xpState.xpLevel.add(bnOne());
