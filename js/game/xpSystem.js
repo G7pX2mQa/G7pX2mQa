@@ -161,10 +161,24 @@ export function log_requirement(levelInput) {
 
 export function level_from_log_xp(log_xp) {
   const scaledLog = logRequirementScaledFromInput(log_xp);
-  if (scaledLog == null) return BigNum.fromInt(0);
+  if (scaledLog == null) {
+    const isInfiniteInput = log_xp === Number.POSITIVE_INFINITY
+      || (log_xp instanceof BigNum
+        && (log_xp.isInfinite?.() || (typeof log_xp.isInfinite === 'function' && log_xp.isInfinite())));
+    if (isInfiniteInput && MAX_MEANINGFUL_XP_LEVEL > 0n) {
+      return BigNum.fromAny(MAX_MEANINGFUL_XP_LEVEL.toString());
+    }
+    return BigNum.fromInt(0);
+  }
+
   const adjusted = scaledLog - LOG_REQUIREMENT_BASE_SCALED;
   if (adjusted <= 0) return BigNum.fromInt(0);
-  const levelBigInt = adjusted / LOG_REQUIREMENT_STEP_SCALED;
+
+  let levelBigInt = adjusted / LOG_REQUIREMENT_STEP_SCALED;
+  if (MAX_MEANINGFUL_XP_LEVEL > 0n && levelBigInt > MAX_MEANINGFUL_XP_LEVEL) {
+    levelBigInt = MAX_MEANINGFUL_XP_LEVEL;
+  }
+
   return BigNum.fromAny(levelBigInt);
 }
 
@@ -192,6 +206,16 @@ const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
 const AVERAGE_LOG_LEVEL_STEP = LOG_STEP + (LOG_DECADE_BONUS / 10);
 const AVERAGE_LEVEL_RATIO = Math.pow(10, AVERAGE_LOG_LEVEL_STEP);
 const AVERAGE_RATIO_MINUS_ONE_LOG10 = Math.log10(Math.max(AVERAGE_LEVEL_RATIO - 1, Number.MIN_VALUE));
+
+function computeMaxMeaningfulLevel() {
+  const maxScaledLog = logRequirementScaledFromInput(BigNum.MAX_E);
+  if (maxScaledLog == null) return 0n;
+  const adjusted = maxScaledLog - LOG_REQUIREMENT_BASE_SCALED;
+  if (adjusted <= 0) return 0n;
+  return adjusted / LOG_REQUIREMENT_STEP_SCALED;
+}
+
+const MAX_MEANINGFUL_XP_LEVEL = computeMaxMeaningfulLevel();
 
 function bigIntToFloatApprox(value) {
   if (value === 0n) return 0;
@@ -1691,6 +1715,35 @@ function runXpSystemLogSumTests() {
     pass: recoveredPlain === targetPlain,
     actual: recoveredPlain,
     expected: targetPlain,
+  });
+
+  const largeLogXp = Math.log10(1e250);
+  const largeLogScaled = logRequirementScaledFromInput(largeLogXp);
+  const expectedLargeLevel = (() => {
+    if (largeLogScaled == null) return 0n;
+    const adjusted = largeLogScaled - LOG_REQUIREMENT_BASE_SCALED;
+    if (adjusted <= 0) return 0n;
+    let level = adjusted / LOG_REQUIREMENT_STEP_SCALED;
+    if (MAX_MEANINGFUL_XP_LEVEL > 0n && level > MAX_MEANINGFUL_XP_LEVEL) {
+      level = MAX_MEANINGFUL_XP_LEVEL;
+    }
+    return level;
+  })();
+  const largeLevelInfo = xpLevelBigIntInfo(level_from_log_xp(largeLogXp));
+  results.push({
+    name: 'level_from_log_xp handles extremely large XP gains',
+    pass: largeLevelInfo.bigInt === expectedLargeLevel,
+    actual: largeLevelInfo.bigInt?.toString?.(),
+    expected: expectedLargeLevel?.toString?.(),
+  });
+
+  const cappedLevelInfo = xpLevelBigIntInfo(level_from_log_xp(BigNum.fromAny('1e400')));
+  const expectedCap = MAX_MEANINGFUL_XP_LEVEL.toString();
+  results.push({
+    name: 'level_from_log_xp caps at the maximum meaningful level',
+    pass: cappedLevelInfo.bigInt?.toString?.() === expectedCap,
+    actual: cappedLevelInfo.bigInt?.toString?.(),
+    expected: expectedCap,
   });
 
   return results;
