@@ -1096,6 +1096,16 @@ export function addXp(amount, { silent = false } = {}) {
   xpState.progress = xpState.progress.add(inc);
   updateXpRequirement();
 
+  // If the gain wildly outclasses the current requirement (e.g. clicking a
+  // coin with a hilariously large multiplier), fall back to the infinity path
+  // immediately. This avoids iterating through an extreme number of level-up
+  // steps (which can lag or lock the game) while keeping the existing
+  // "snap-to-∞" invariant intact for truly absurd XP injections.
+  const logProgress = approxLog10(xpState.progress);
+  const logRequirement = approxLog10(requirementBn);
+  const logGap = logProgress - logRequirement;
+  const gainIsExtreme = Number.isFinite(logGap) && logGap > 1200;
+
   // If the gain, the current progress, or the current level is infinite,
   // snap the entire XP system (level, progress, requirement, and coin multiplier) to ∞.
   const progressIsInf = xpState.progress?.isInfinite?.()
@@ -1105,7 +1115,7 @@ export function addXp(amount, { silent = false } = {}) {
   const gainIsInf = inc?.isInfinite?.()
     || (typeof inc?.isInfinite === 'function' && inc.isInfinite());
 
-  if (progressIsInf || levelIsInf || gainIsInf) {
+  if (progressIsInf || levelIsInf || gainIsInf || gainIsExtreme) {
     const inf = infinityRequirementBn.clone?.() ?? infinityRequirementBn;
 
     xpState.xpLevel = inf.clone?.() ?? inf;
