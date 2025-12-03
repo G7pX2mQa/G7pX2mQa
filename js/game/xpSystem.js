@@ -44,7 +44,7 @@ function from_log(logx) {
   return bigNumFromLog10(logx);
 }
 
-function log_add(loga, logb) {
+function log_sum_exp(loga, logb) {
   if (loga === Number.POSITIVE_INFINITY || logb === Number.POSITIVE_INFINITY) {
     return Number.POSITIVE_INFINITY;
   }
@@ -54,6 +54,15 @@ function log_add(loga, logb) {
   const minLog = Math.min(loga, logb);
   const delta = minLog - maxLog;
   return maxLog + Math.log10(1 + Math.pow(10, delta));
+}
+
+function log_sum_list(values) {
+  if (!values || values.length === 0) return Number.NEGATIVE_INFINITY;
+  let total = Number.NEGATIVE_INFINITY;
+  for (const entry of values) {
+    total = log_sum_exp(total, entry);
+  }
+  return total;
 }
 
 function log_mul(loga, logb) {
@@ -1121,6 +1130,20 @@ function approximateLevelCostLog(levelsBigInt, requirementLog10) {
   const baseLog = Number.isFinite(requirementLog10) ? requirementLog10 : approxLog10(requirementBn);
   if (!Number.isFinite(baseLog)) return Number.POSITIVE_INFINITY;
 
+  if (levelCount <= 32) {
+    let currentRequirementLog = baseLog;
+    const requirementLogs = [];
+    for (let i = 0; i < levelCount; i += 1) {
+      requirementLogs.push(currentRequirementLog);
+      currentRequirementLog += LOG_STEP;
+      const nextLevelIndex = i + 1;
+      if (nextLevelIndex % 10 === 0) {
+        currentRequirementLog += LOG_DECADE_BONUS;
+      }
+    }
+    return log_sum_list(requirementLogs);
+  }
+
   return baseLog + (levelCount * AVERAGE_LOG_LEVEL_STEP) - AVERAGE_RATIO_MINUS_ONE_LOG10;
 }
 
@@ -1528,6 +1551,53 @@ export function setExternalBookRewardProvider(fn) {
   externalBookRewardProvider = typeof fn === 'function' ? fn : null;
 }
 
+function runXpSystemLogSumTests() {
+  const results = [];
+  const assertNear = (name, actual, expected, tolerance = 1e-9) => {
+    const pass = Number.isFinite(actual) && Math.abs(actual - expected) <= tolerance;
+    results.push({ name, pass, actual, expected });
+  };
+
+  const hugeGapSum = log_sum_exp(Math.log10(1e150), Math.log10(1e200));
+  const hugeGapExpected = Math.log10(1e200) + Math.log10(1 + 1e-50);
+  assertNear('log_sum_exp handles extremely different magnitudes', hugeGapSum, hugeGapExpected);
+
+  const balancedSum = log_sum_list([Math.log10(1e200), Math.log10(1e200)]);
+  const balancedExpected = Math.log10(2) + Math.log10(1e200);
+  assertNear('log_sum_list combines equal large values', balancedSum, balancedExpected);
+
+  const listWithNegInf = log_sum_list([Number.NEGATIVE_INFINITY, Math.log10(1e200), Number.NEGATIVE_INFINITY]);
+  assertNear('log_sum_list ignores negative infinity entries', listWithNegInf, Math.log10(1e200));
+
+  const combinedLog = log_sum_exp(to_log(BigNum.fromAny('1e200')), to_log(BigNum.fromAny('1e150')));
+  const combinedBn = from_log(combinedLog);
+  const combinedBnLog = to_log(combinedBn);
+  assertNear('from_log preserves log_sum_exp scale for large BigNums', combinedBnLog, combinedLog);
+
+  const smallCostLog = approximateLevelCostLog(2n, Math.log10(1e200));
+  const expectedSmallCost = log_sum_list([Math.log10(1e200), Math.log10(1e200) + LOG_STEP]);
+  assertNear('approximateLevelCostLog uses log summation for small batches', smallCostLog, expectedSmallCost);
+
+  return results;
+}
+
+export function runXpSystemUnitTests({ verbose = false } = {}) {
+  const results = runXpSystemLogSumTests();
+  if (verbose && typeof console !== 'undefined') {
+    const failed = results.filter((r) => !r.pass);
+    if (failed.length === 0) {
+      console.log('[xpSystem] All log-sum tests passed.');
+    } else {
+      console.warn('[xpSystem] Log-sum tests failed:', failed);
+    }
+  }
+  return results;
+}
+
+if (typeof process !== 'undefined' && process?.env?.XP_SYSTEM_RUN_TESTS === '1') {
+  runXpSystemUnitTests({ verbose: true });
+}
+
 if (typeof window !== 'undefined') {
   window.xpSystem = window.xpSystem || {};
   Object.assign(window.xpSystem, {
@@ -1543,6 +1613,7 @@ if (typeof window !== 'undefined') {
     setExternalXpGainMultiplierProvider,
     addExternalXpGainMultiplierProvider,
     setExternalBookRewardProvider,
+    runXpSystemUnitTests,
     resetXpProgress,
   });
 }
