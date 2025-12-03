@@ -1533,13 +1533,12 @@ export function openUpgradeOverlay(upgDef) {
         const formatMilestoneLevel = (levelBn) => {
           if (model.lvlBn?.isInfinite?.()) return 'Infinity';
           try {
-            const plain = levelBn?.toPlainIntegerString?.();
-            if (plain && plain !== 'Infinity') {
-              if (plain.length <= 15) {
-                const asNum = Number(plain);
-                if (Number.isFinite(asNum)) return asNum.toLocaleString();
-              }
-              return plain.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            const levelBnSafe = levelBn instanceof BigNum
+              ? levelBn
+              : BigNum.fromAny(levelBn ?? 0);
+            const formatted = formatNumber(levelBnSafe);
+            if (typeof formatted === 'string') {
+              return formatted.replace(/<[^>]*>/g, '') || formatted;
             }
           } catch {}
           return formatNumber(levelBn);
