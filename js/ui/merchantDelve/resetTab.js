@@ -532,9 +532,9 @@ function updateStatusDisplay() {
 
   el.innerHTML = `
   <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-    Forging for the first time will unlock
+    Forging for the first time will unlock new Shop upgrades, a new Merchant dialogue, and
     <span style="color:#ffb347; text-shadow: 0 3px 6px rgba(0,0,0,0.55);
-    ">Mutations</span> and a new Merchant dialogue<br>
+    ">Mutations</span><br>
     Mutated Coins will yield more Coin and XP value than normal
   </span>
 `;
