@@ -42,6 +42,9 @@ const LOG_STEP_DECIMAL = '0.04139268515822507';
 const LOG_DECADE_BONUS_DECIMAL = '0.3979400086720376';
 const TEN_DIVISOR_DECIMAL = '0.1';
 const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
+const AVERAGE_LOG_LEVEL_STEP = LOG_STEP + (LOG_DECADE_BONUS / 10);
+const AVERAGE_LEVEL_RATIO = Math.pow(10, AVERAGE_LOG_LEVEL_STEP);
+const AVERAGE_RATIO_MINUS_ONE_LOG10 = Math.log10(Math.max(AVERAGE_LEVEL_RATIO - 1, Number.MIN_VALUE));
 
 function bigIntToFloatApprox(value) {
   if (value === 0n) return 0;
@@ -928,6 +931,10 @@ function handleXpLevelUpRewards() {
       bank.books.add(reward);
     }
   } catch {}
+  updateSyncedCoinLevelCache();
+}
+
+function updateSyncedCoinLevelCache() {
   const syncedLevelInfo = xpLevelBigIntInfo(xpState.xpLevel);
   if (!syncedLevelInfo.finite) {
     lastSyncedCoinLevel = null;
@@ -945,6 +952,47 @@ function handleXpLevelUpRewards() {
     lastSyncedCoinUsedApproximation = true;
     lastSyncedCoinApproxKey = typeof xpState.xpLevel?.toStorage === 'function' ? xpState.xpLevel.toStorage() : null;
   }
+}
+
+function handleBulkLevelUpRewards(levelsBigInt) {
+  if (levelsBigInt == null || typeof levelsBigInt !== 'bigint' || levelsBigInt <= 0n) return;
+
+  const levelsBn = BigNum.fromAny(levelsBigInt.toString());
+  syncCoinMultiplierWithXpLevel(true);
+
+  let reward = bnOne();
+  if (typeof externalBookRewardProvider === 'function') {
+    try {
+      const maybe = externalBookRewardProvider({
+        baseReward: reward.clone?.() ?? reward,
+        xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
+        xpUnlocked: xpState.unlocked,
+      });
+      if (maybe instanceof BigNum) {
+        reward = maybe.clone?.() ?? maybe;
+      } else if (maybe != null) {
+        reward = BigNum.fromAny(maybe);
+      }
+    } catch {}
+  }
+
+  let totalReward = reward;
+  try {
+    if (typeof reward.mulBigNumInteger === 'function') {
+      totalReward = reward.mulBigNumInteger(levelsBn);
+    } else if (typeof reward.mulDecimal === 'function') {
+      totalReward = reward.mulDecimal(levelsBigInt.toString());
+    }
+  } catch {}
+
+  try {
+    if (bank?.books?.addWithMultiplier) {
+      bank.books.addWithMultiplier(totalReward);
+    } else if (bank?.books?.add) {
+      bank.books.add(totalReward);
+    }
+  } catch {}
+  updateSyncedCoinLevelCache();
 }
 
 function updateHud() {
@@ -994,6 +1042,72 @@ function updateHud() {
     bar.setAttribute('aria-valuetext', `${currPlain} / ${reqPlain} XP`);
   }
   syncXpMpHudLayout();
+}
+
+function approximateLevelCostLog(levelsBigInt, requirementLog10) {
+  if (levelsBigInt == null || levelsBigInt <= 0n) return Number.POSITIVE_INFINITY;
+
+  const levelCount = Number(levelsBigInt);
+  if (!Number.isFinite(levelCount) || levelCount <= 0) return Number.POSITIVE_INFINITY;
+
+  const baseLog = Number.isFinite(requirementLog10) ? requirementLog10 : approxLog10(requirementBn);
+  if (!Number.isFinite(baseLog)) return Number.POSITIVE_INFINITY;
+
+  return baseLog + (levelCount * AVERAGE_LOG_LEVEL_STEP) - AVERAGE_RATIO_MINUS_ONE_LOG10;
+}
+
+function fastLevelGainFromProgress() {
+  const levelInfo = xpLevelBigIntInfo(xpState.xpLevel);
+  if (!levelInfo.finite) return 0n;
+
+  const logProgress = approxLog10(xpState.progress);
+  const logRequirement = approxLog10(requirementBn);
+  if (!Number.isFinite(logProgress) || !Number.isFinite(logRequirement)) return 0n;
+
+  const diff = logProgress - logRequirement;
+  if (diff < 6) return 0n;
+
+  const estimate = Math.floor(diff / AVERAGE_LOG_LEVEL_STEP);
+  if (!Number.isFinite(estimate) || estimate <= 0) return 0n;
+
+  let lo = 1n;
+  let hi = BigInt(Math.min(estimate, 1_000_000_000));
+  let best = 0n;
+  let safety = 0;
+  while (lo <= hi && safety < 80) {
+    const mid = (lo + hi) >> 1n;
+    const costLog = approximateLevelCostLog(mid, logRequirement);
+    if (!Number.isFinite(costLog)) {
+      hi = mid - 1n;
+      safety += 1;
+      continue;
+    }
+    const cost = bigNumFromLog10(costLog);
+    const cmp = xpState.progress.cmp?.(cost) ?? -1;
+    if (cmp >= 0) {
+      best = mid;
+      lo = mid + 1n;
+    } else {
+      hi = mid - 1n;
+    }
+    safety += 1;
+  }
+
+  if (best <= 0n) return 0n;
+
+  const finalCost = bigNumFromLog10(approximateLevelCostLog(best, logRequirement));
+  if (!finalCost || typeof finalCost.cmp !== 'function') return 0n;
+  if (xpState.progress.cmp(finalCost) < 0) return 0n;
+
+  xpState.progress = xpState.progress.sub(finalCost);
+  try {
+    xpState.xpLevel = xpState.xpLevel.add(BigNum.fromAny(best.toString()));
+  } catch {
+    xpState.xpLevel = BigNum.fromAny(best.toString());
+  }
+  handleBulkLevelUpRewards(best);
+  updateXpRequirement();
+  return best;
 }
 
 export function initXpSystem({ forceReload = false } = {}) {
@@ -1136,11 +1250,28 @@ export function addXp(amount, { silent = false } = {}) {
     return detail;
   }
 
-  // Normal finite-path level up loop
+  // Normal finite-path level up loop (with bulk fast-forwarding)
   let xpLevelsGained = bnZero();
   let guard = 0;
   const limit = 100000;
-  while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
+  while (xpState.progress.cmp?.(requirementBn) >= 0) {
+    const bulkLevels = fastLevelGainFromProgress();
+    if (bulkLevels > 0n) {
+      xpLevelsGained = xpLevelsGained.add(BigNum.fromAny(bulkLevels.toString()));
+      const reqIsInf = requirementBn.isInfinite?.()
+        || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
+      if (reqIsInf) {
+        break;
+      }
+      continue;
+    }
+
+    if (guard >= limit) {
+      // Only clamp finite progress if we truly hit the guard.
+      xpState.progress = bnZero();
+      break;
+    }
+
     xpState.progress = xpState.progress.sub(requirementBn);
     xpState.xpLevel = xpState.xpLevel.add(bnOne());
     xpLevelsGained = xpLevelsGained.add(bnOne());
@@ -1153,34 +1284,11 @@ export function addXp(amount, { silent = false } = {}) {
     }
     guard += 1;
   }
-  if (guard >= limit) {
-    // Only clamp finite progress if we truly hit the guard.
-    xpState.progress = bnZero();
-  }
 
   persistState();
   updateHud();
 
-  // Maintain sync flags
-  const syncedLevelAfterAdd = xpLevelBigIntInfo(xpState.xpLevel);
-  if (!syncedLevelAfterAdd.finite) {
-    lastSyncedCoinLevel = null;
-    lastSyncedCoinLevelWasInfinite = true;
-    lastSyncedCoinUsedApproximation = false;
-    lastSyncedCoinApproxKey = null;
-  } else if (syncedLevelAfterAdd.bigInt != null) {
-    lastSyncedCoinLevel = syncedLevelAfterAdd.bigInt;
-    lastSyncedCoinLevelWasInfinite = false;
-    lastSyncedCoinUsedApproximation = false;
-    lastSyncedCoinApproxKey = null;
-  } else {
-    lastSyncedCoinLevel = null;
-    lastSyncedCoinLevelWasInfinite = false;
-    lastSyncedCoinUsedApproximation = true;
-    lastSyncedCoinApproxKey = typeof xpState.xpLevel?.toStorage === 'function'
-      ? xpState.xpLevel.toStorage()
-      : null;
-  }
+  updateSyncedCoinLevelCache();
 
   const detail = {
     unlocked: true,
