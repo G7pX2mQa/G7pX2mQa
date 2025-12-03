@@ -100,10 +100,22 @@ export function approxLog10BigNum(value) {
   }
   const baseExp = Number(expPart || '0');
   const offset = Number(offsetStr || '0');
-  const sigNum = Number(sigStr || '0');
-  if (!Number.isFinite(sigNum) || sigNum <= 0) return Number.NEGATIVE_INFINITY;
+  const digits = sigStr.replace(/^0+/, '') || '0';
+  if (digits === '0') return Number.NEGATIVE_INFINITY;
+
+  let sigLog;
+  if (digits.length <= 15) {
+    const sigNum = Number(digits);
+    if (!Number.isFinite(sigNum) || sigNum <= 0) return Number.NEGATIVE_INFINITY;
+    sigLog = Math.log10(sigNum);
+  } else {
+    const head = Number(digits.slice(0, 15));
+    if (!Number.isFinite(head) || head <= 0) return Number.NEGATIVE_INFINITY;
+    sigLog = Math.log10(head) + (digits.length - 15);
+  }
+
   const expSum = (Number.isFinite(baseExp) ? baseExp : 0) + (Number.isFinite(offset) ? offset : 0);
-  return Math.log10(sigNum) + expSum;
+  return sigLog + expSum;
 }
 
 export function bigNumFromLog10(log10Value) {
@@ -874,7 +886,7 @@ function ensureLevelBigNum(value) {
     if (!Number.isFinite(approxDigits)) {
       return approxDigits > 0 ? BigNum.fromAny('Infinity') : BigNum.fromInt(0);
     }
-    if (approxDigits + 1 > BigNum.MAX_PLAIN_DIGITS) return BigNum.fromAny('Infinity');
+    if (approxDigits + 1 > BigNum.MAX_PLAIN_DIGITS) return bn.clone?.() ?? bn;
     if (approxDigits > 32) return bn.clone?.() ?? bn;
 
     const plain = bn.toPlainIntegerString?.();
