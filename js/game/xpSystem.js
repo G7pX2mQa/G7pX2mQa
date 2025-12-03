@@ -43,9 +43,6 @@ const LOG_STEP_DECIMAL = '0.04139268515822507';
 const LOG_DECADE_BONUS_DECIMAL = '0.3979400086720376';
 const TEN_DIVISOR_DECIMAL = '0.1';
 const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
-const LOG_DECADE_SCALE = (10 * LOG_STEP) + LOG_DECADE_BONUS;
-const LOG_DECADE_COST = Math.log10(((11 / 10) ** 10 - 1) / (1 / 10));
-const LOG_DECADE_SCALE_MINUS_ONE = Math.log10(Math.pow(10, LOG_DECADE_SCALE) - 1);
 
 function bigIntToFloatApprox(value) {
   if (value === 0n) return 0;
@@ -577,218 +574,6 @@ function progressRatio(progressBn, requirement) {
   return ratio;
 }
 
-function decadeBlockCostLog(blocks, logRequirement) {
-  if (!Number.isFinite(blocks) || blocks <= 0) return Number.NEGATIVE_INFINITY;
-  const growthLog = blocks * LOG_DECADE_SCALE;
-  const geomLog = growthLog > 300
-    ? growthLog
-    : Math.log10(Math.pow(10, growthLog) - 1);
-  return logRequirement + LOG_DECADE_COST + geomLog - LOG_DECADE_SCALE_MINUS_ONE;
-}
-
-function fastForwardByDecades(applyRewards = false) {
-  const logReq = approxLog10(requirementBn);
-  const logProg = approxLog10(xpState.progress);
-  if (!Number.isFinite(logReq) || !Number.isFinite(logProg)) return bnZero();
-
-  const levelInfo = xpLevelBigIntInfo(xpState.xpLevel);
-  const levelBigInt = levelInfo.bigInt;
-  const levelAligned = levelBigInt != null && (levelBigInt % 10n === 0n);
-  if (!levelAligned) return bnZero();
-
-  const baseBlockLog = decadeBlockCostLog(1, logReq);
-  if (!Number.isFinite(baseBlockLog) || baseBlockLog > logProg) return bnZero();
-
-  const maxGuess = Math.max(1, Math.floor((logProg - baseBlockLog) / LOG_DECADE_SCALE) + 1);
-
-  let low = 1;
-  let high = maxGuess;
-  while (low < high) {
-    const mid = Math.ceil((low + high) / 2);
-    const totalLog = decadeBlockCostLog(mid, logReq);
-    if (Number.isFinite(totalLog) && totalLog <= logProg) {
-      low = mid;
-    } else {
-      high = mid - 1;
-    }
-  }
-
-  const blocks = low;
-  if (blocks <= 0) return bnZero();
-
-  const costLog = decadeBlockCostLog(blocks, logReq);
-  const totalCostBn = bigNumFromLog10(costLog);
-  if (xpState.progress.cmp?.(totalCostBn) < 0) return bnZero();
-
-  try { xpState.progress = xpState.progress.sub(totalCostBn); }
-  catch { xpState.progress = bnZero(); }
-
-  const levelsToAdd = BigInt(blocks) * 10n;
-  try { xpState.xpLevel = xpState.xpLevel.add(BigNum.fromAny(levelsToAdd.toString())); }
-  catch { xpState.xpLevel = xpState.xpLevel.add(BigNum.fromInt(Number(levelsToAdd))); }
-
-  if (applyRewards) {
-    const rewardIterations = levelsToAdd > 100000n ? 100000 : Number(levelsToAdd);
-    for (let i = 0; i < rewardIterations; i += 1) {
-      handleXpLevelUpRewards();
-    }
-  }
-
-  updateXpRequirement();
-  return BigNum.fromAny(levelsToAdd.toString());
-}
-
-function decadeBlockCostFromRequirement(requirement, blocks) {
-  const blocksApprox = bigIntToFloatApprox(blocks);
-  if (!(blocksApprox > 0) || !Number.isFinite(blocksApprox)) {
-    return { costBn: bnZero(), nextRequirement: requirement.clone?.() ?? requirement };
-  }
-
-  const logReq = approxLog10(requirement);
-  if (!Number.isFinite(logReq)) {
-    return { costBn: infinityRequirementBn.clone?.() ?? infinityRequirementBn, nextRequirement: infinityRequirementBn.clone?.() ?? infinityRequirementBn };
-  }
-
-  const powLog = blocksApprox * LOG_DECADE_SCALE;
-  const logNumerator = powLog > 6 ? powLog : Math.log10(Math.pow(10, powLog) - 1);
-  const logSeries = logNumerator - LOG_DECADE_SCALE_MINUS_ONE;
-  const costLog = logReq + LOG_DECADE_COST + logSeries;
-
-  const costBn = bigNumFromLog10(costLog);
-  const nextReqLog = logReq + powLog;
-  const nextRequirement = bigNumFromLog10(nextReqLog);
-
-  return { costBn, nextRequirement };
-}
-
-function computePartialCost(requirement, levels) {
-  if (levels <= 0n) {
-    return { costBn: bnZero(), nextRequirement: requirement.clone?.() ?? requirement };
-  }
-  const count = Number(levels);
-  const growth = Math.pow(1.1, count);
-  const series = (growth - 1) / 0.1;
-  const nextRequirement = requirement.mulDecimal(growth.toString(), 18);
-  const costBn = requirement.mulDecimal(series.toString(), 18);
-  return { costBn, nextRequirement };
-}
-
-function bulkAdvanceLevels(progressBn, levelBigInt, currentRequirement) {
-  if (bigNumIsInfinite(currentRequirement) || bigNumIsInfinite(progressBn)) {
-    return { levels: bnZero(), cost: bnZero(), nextRequirement: currentRequirement.clone?.() ?? currentRequirement };
-  }
-
-  let remainingProgress = progressBn.clone?.() ?? progressBn;
-  let workingRequirement = currentRequirement.clone?.() ?? currentRequirement;
-  let workingLevel = levelBigInt;
-  let totalLevels = bnZero();
-
-  const remainder = ((workingLevel - 1n) % 10n + 10n) % 10n;
-  const toBlockStart = remainder === 0n ? 0n : (10n - remainder);
-  if (toBlockStart > 0n) {
-    const { costBn, nextRequirement } = computePartialCost(workingRequirement, toBlockStart);
-    if (remainingProgress.cmp?.(costBn) < 0) {
-      return { levels: bnZero(), cost: bnZero(), nextRequirement: workingRequirement.clone?.() ?? workingRequirement };
-    }
-    remainingProgress = remainingProgress.sub(costBn);
-    workingRequirement = nextRequirement;
-    workingLevel += toBlockStart;
-    totalLevels = totalLevels.add(BigNum.fromAny(toBlockStart.toString()));
-    if (workingLevel > 1n && ((workingLevel - 1n) % 10n === 0n)) {
-      workingRequirement = workingRequirement.mulDecimal('2.5', 18);
-    }
-  }
-
-  let low = 0n;
-  let high = 0n;
-
-  const logProgress = approxLog10(remainingProgress);
-  const logReq = approxLog10(workingRequirement);
-  if (Number.isFinite(logProgress) && Number.isFinite(logReq) && logProgress > logReq) {
-    const approxLevels = Math.floor((logProgress - logReq) / LOG_STEP) + 1;
-    high = BigInt(Math.max(1, approxLevels * 2));
-  } else {
-    high = 10n;
-  }
-
-  const maxHigh = 1000000000n;
-  while (true) {
-    const { costBn } = decadeBlockCostFromRequirement(workingRequirement, high / 10n);
-    if (high < 10n || costBn.cmp?.(remainingProgress) > 0) break;
-    low = high;
-    high = high * 2n;
-    if (high > maxHigh) { high = maxHigh; break; }
-  }
-
-  if (low === 0n) low = 0n;
-  while (low < high) {
-    const mid = (low + high + 1n) / 2n;
-    const wholeBlocks = mid / 10n;
-    const remainderLevels = mid % 10n;
-
-    let costBn = bnZero();
-    let reqAfter = workingRequirement.clone?.() ?? workingRequirement;
-
-    if (wholeBlocks > 0n) {
-      const blockResult = decadeBlockCostFromRequirement(reqAfter, wholeBlocks);
-      costBn = costBn.add(blockResult.costBn);
-      reqAfter = blockResult.nextRequirement;
-    }
-
-    if (remainderLevels > 0n && costBn.cmp?.(remainingProgress) <= 0) {
-      const partial = computePartialCost(reqAfter, remainderLevels);
-      costBn = costBn.add(partial.costBn);
-      reqAfter = partial.nextRequirement;
-    }
-
-    if (reqAfter?.isFinite?.() && !reqAfter.isFinite()) {
-      high = mid - 1n;
-      continue;
-    }
-
-    if (costBn.cmp?.(remainingProgress) <= 0) {
-      low = mid;
-    } else {
-      high = mid - 1n;
-    }
-  }
-
-  if (low === 0n) {
-    return { levels: totalLevels, cost: progressBn.sub(remainingProgress), nextRequirement: workingRequirement };
-  }
-
-  const wholeBlocks = low / 10n;
-  const remainderLevels = low % 10n;
-
-  let appliedCost = bnZero();
-  if (wholeBlocks > 0n) {
-    const blockResult = decadeBlockCostFromRequirement(workingRequirement, wholeBlocks);
-    appliedCost = appliedCost.add(blockResult.costBn);
-    workingRequirement = blockResult.nextRequirement;
-    workingLevel += wholeBlocks * 10n;
-    totalLevels = totalLevels.add(BigNum.fromAny((wholeBlocks * 10n).toString()));
-  }
-
-  if (remainderLevels > 0n) {
-    const partial = computePartialCost(workingRequirement, remainderLevels);
-    appliedCost = appliedCost.add(partial.costBn);
-    workingRequirement = partial.nextRequirement;
-    workingLevel += remainderLevels;
-    totalLevels = totalLevels.add(BigNum.fromAny(remainderLevels.toString()));
-  }
-
-  if (appliedCost.cmp?.(remainingProgress) > 0) {
-    appliedCost = remainingProgress.clone?.() ?? remainingProgress;
-  }
-  remainingProgress = remainingProgress.sub(appliedCost);
-
-  return {
-    levels: totalLevels,
-    cost: progressBn.sub(remainingProgress),
-    nextRequirement: workingRequirement,
-  };
-}
-
 function ensureHudRefs() {
   if (hudRefs.container && hudRefs.container.isConnected) return true;
   hudRefs.container = document.querySelector('.xp-counter[data-xp-hud]');
@@ -884,11 +669,6 @@ function normalizeProgress(applyRewards = false) {
   if (bigNumIsInfinite(requirementBn)) {
     return;
   }
-
-  // Fast-forward using decade-sized blocks when progress wildly exceeds the
-  // current requirement. The decade math matches the requirement progression:
-  // 10 steps of ×1.1 followed by a ×2.5 spike on the next level.
-  fastForwardByDecades(applyRewards);
 
   let guard = 0;
   const limit = 10000;
@@ -1359,40 +1139,13 @@ export function addXp(amount, { silent = false } = {}) {
 
   // Normal finite-path level up loop
   let xpLevelsGained = bnZero();
-  const fastLevels = fastForwardByDecades(true);
-  if (fastLevels && typeof fastLevels.add === 'function') {
-    xpLevelsGained = xpLevelsGained.add(fastLevels);
-  }
-  let rewardIterations = 0;
-
-  const levelInfo = xpLevelBigIntInfo(xpState.xpLevel);
-  if (xpState.progress.cmp?.(requirementBn) >= 0 && levelInfo.bigInt != null && levelInfo.finite) {
-    const bulkResult = bulkAdvanceLevels(xpState.progress, levelInfo.bigInt, requirementBn);
-    if (bulkResult.levels && bulkResult.cost && bulkResult.cost.cmp?.(bnZero()) > 0) {
-      try { xpState.progress = xpState.progress.sub(bulkResult.cost); }
-      catch { xpState.progress = bnZero(); }
-      try { xpState.xpLevel = xpState.xpLevel.add(bulkResult.levels); }
-      catch { xpState.xpLevel = xpState.xpLevel.add(bnZero()); }
-      xpLevelsGained = xpLevelsGained.add(bulkResult.levels);
-      const bulkLevelInfo = xpLevelBigIntInfo(bulkResult.levels);
-      const bulkBigInt = bulkLevelInfo.bigInt ?? 0n;
-      const bulkReward = bulkBigInt > 100000n ? 100000 : Number(bulkBigInt);
-      rewardIterations += bulkReward;
-      if (bulkResult.nextRequirement) {
-        requirementBn = bulkResult.nextRequirement.clone?.() ?? bulkResult.nextRequirement;
-      }
-    }
-  }
-
-  updateXpRequirement();
-
   let guard = 0;
-  const limit = 1000;
+  const limit = 100000;
   while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
     xpState.progress = xpState.progress.sub(requirementBn);
     xpState.xpLevel = xpState.xpLevel.add(bnOne());
     xpLevelsGained = xpLevelsGained.add(bnOne());
-    rewardIterations += 1;
+    handleXpLevelUpRewards();
     updateXpRequirement();
     const reqIsInf = requirementBn.isInfinite?.()
       || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
@@ -1401,10 +1154,9 @@ export function addXp(amount, { silent = false } = {}) {
     }
     guard += 1;
   }
-
-  const rewardCap = rewardIterations > 100000 ? 100000 : rewardIterations;
-  for (let i = 0; i < rewardCap; i += 1) {
-    handleXpLevelUpRewards();
+  if (guard >= limit) {
+    // Only clamp finite progress if we truly hit the guard.
+    xpState.progress = bnZero();
   }
 
   persistState();
