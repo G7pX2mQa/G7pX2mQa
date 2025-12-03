@@ -22,6 +22,10 @@ let stateLoaded = false;
 let requirementBn = BigNum.fromInt(10);
 const xpRequirementCache = new Map();
 xpRequirementCache.set('0', requirementBn);
+const xpRequirementLogCache = new Map();
+xpRequirementLogCache.set('0', approxLog10(requirementBn));
+let cachedRequirementLogKey = '0';
+let cachedRequirementLogValue = xpRequirementLogCache.get('0');
 let highestCachedExactLevel = 0n;
 const infinityRequirementBn = BigNum.fromAny('Infinity');
 
@@ -684,6 +688,24 @@ function bonusMultipliersCount(levelBigInt) {
   return (levelBigInt - 1n) / 10n;
 }
 
+function cacheRequirementLog(levelKey, requirement) {
+  if (!levelKey) return;
+  if (xpRequirementLogCache.has(levelKey)) return;
+  xpRequirementLogCache.set(levelKey, approxLog10(requirement));
+}
+
+function getRequirementLog(levelKey, requirement) {
+  if (levelKey && xpRequirementLogCache.has(levelKey)) {
+    return xpRequirementLogCache.get(levelKey);
+  }
+  if (levelKey === cachedRequirementLogKey && cachedRequirementLogValue != null) {
+    return cachedRequirementLogValue;
+  }
+  const computed = approxLog10(requirement);
+  if (levelKey) xpRequirementLogCache.set(levelKey, computed);
+  return computed;
+}
+
 function ensureExactRequirementCacheUpTo(levelBigInt) {
   const target = levelBigInt < EXACT_REQUIREMENT_CACHE_LEVEL ? levelBigInt : EXACT_REQUIREMENT_CACHE_LEVEL;
   if (target <= highestCachedExactLevel) return;
@@ -693,6 +715,7 @@ function ensureExactRequirementCacheUpTo(levelBigInt) {
   if (!currentRequirement) {
     currentRequirement = BigNum.fromInt(10);
     xpRequirementCache.set(currentLevel.toString(), currentRequirement);
+    cacheRequirementLog(currentLevel.toString(), currentRequirement);
   }
 
   while (currentLevel < target) {
@@ -702,6 +725,7 @@ function ensureExactRequirementCacheUpTo(levelBigInt) {
       nextRequirement = nextRequirement.mulScaledIntFloor(25n, 1);
     }
     xpRequirementCache.set(nextLevel.toString(), nextRequirement);
+    cacheRequirementLog(nextLevel.toString(), nextRequirement);
     currentRequirement = nextRequirement;
     currentLevel = nextLevel;
     const isInfinite = currentRequirement.isInfinite?.() || (typeof currentRequirement.isInfinite === 'function' && currentRequirement.isInfinite());
@@ -801,7 +825,9 @@ function progressRatio(progressBn, requirement) {
   if (progIsZero) return 0;
 
   const logProg = approxLog10(progressBn);
-  const logReq  = approxLog10(requirement);
+  const levelInfo = requirement === requirementBn ? xpLevelBigIntInfo(xpState.xpLevel) : { bigInt: null };
+  const levelKey = levelInfo.bigInt != null ? levelInfo.bigInt.toString() : null;
+  const logReq = getRequirementLog(levelKey, requirement);
   if (!Number.isFinite(logProg) || !Number.isFinite(logReq)) {
     return logProg >= logReq ? 1 : 0;
   }
@@ -863,6 +889,7 @@ function xpRequirementForXpLevel(xpLevelInput) {
 
   if (targetLevelInfo.bigInt != null && targetLevel <= 0n) {
     const baseRequirement = xpRequirementCache.get('0');
+    cacheRequirementLog('0', baseRequirement);
     return baseRequirement.clone?.() ?? baseRequirement;
   }
 
@@ -871,6 +898,7 @@ function xpRequirementForXpLevel(xpLevelInput) {
     const targetKey = targetLevel.toString();
     const cachedExact = xpRequirementCache.get(targetKey);
     if (cachedExact) {
+      cacheRequirementLog(targetKey, cachedExact);
       return cachedExact.clone?.() ?? cachedExact;
     }
   }
@@ -883,12 +911,17 @@ function xpRequirementForXpLevel(xpLevelInput) {
 
   if (targetLevelInfo.bigInt != null) {
     xpRequirementCache.set(targetLevelInfo.bigInt.toString(), approximate);
+    cacheRequirementLog(targetLevelInfo.bigInt.toString(), approximate);
   }
   return approximate.clone?.() ?? approximate;
 }
 
 function updateXpRequirement() {
   requirementBn = xpRequirementForXpLevel(xpState.xpLevel);
+  const levelInfo = xpLevelBigIntInfo(xpState.xpLevel);
+  const levelKey = levelInfo.bigInt != null ? levelInfo.bigInt.toString() : null;
+  cachedRequirementLogKey = levelKey;
+  cachedRequirementLogValue = getRequirementLog(levelKey, requirementBn);
 }
 
 function resetLockedXpState() {
@@ -1275,6 +1308,46 @@ export function resetXpProgress({ keepUnlock = true } = {}) {
   return getXpState();
 }
 
+function normalizeSingleXpGain(entry) {
+  let inc;
+  try {
+    if (entry instanceof BigNum) {
+      inc = entry.clone?.() ?? BigNum.fromAny(entry ?? 0);
+    } else {
+      inc = BigNum.fromAny(entry ?? 0);
+    }
+  } catch {
+    inc = bnZero();
+  }
+  return inc;
+}
+
+function flattenXpGain(amount) {
+  if (!Array.isArray(amount)) {
+    return normalizeSingleXpGain(amount);
+  }
+  let total = bnZero();
+  for (let i = 0; i < amount.length; i += 1) {
+    const inc = normalizeSingleXpGain(amount[i]);
+    if (!inc.isZero?.()) {
+      total = addBigNumsWithSciFallback(total, inc);
+    }
+  }
+  return total;
+}
+
+function computeBatchSize(progressBn, requirement, levelKey, remainingBudget) {
+  if (!(remainingBudget > 1)) return 1;
+  const logProg = approxLog10(progressBn);
+  const logReq = getRequirementLog(levelKey, requirement);
+  if (!Number.isFinite(logProg) || !Number.isFinite(logReq)) return 1;
+  const diff = logProg - logReq;
+  if (diff < LOG_STEP) return 1;
+  const estimated = Math.floor(diff / LOG_STEP) + 1;
+  if (!Number.isFinite(estimated) || estimated <= 1) return 1;
+  return Math.min(estimated, remainingBudget);
+}
+
 export function addXp(amount, { silent = false } = {}) {
   ensureStateLoaded();
   const slot = lastSlot ?? getActiveSlot();
@@ -1288,16 +1361,7 @@ export function addXp(amount, { silent = false } = {}) {
     };
   }
 
-  let inc;
-  try {
-    if (amount instanceof BigNum) {
-      inc = amount.clone?.() ?? BigNum.fromAny(amount ?? 0);
-    } else {
-      inc = BigNum.fromAny(amount ?? 0);
-    }
-  } catch {
-    inc = bnZero();
-  }
+  let inc = flattenXpGain(amount);
 
   // External XP gain multipliers
   if (!inc.isZero?.()) {
@@ -1383,19 +1447,27 @@ export function addXp(amount, { silent = false } = {}) {
   let guard = 0;
   const limit = 100000;
   let cmp = compareBigNumsWithSciFallback(xpState.progress, requirementBn);
+  let levelKey = cachedRequirementLogKey;
   while (cmp >= 0 && guard < limit) {
-    xpState.progress = subBigNumsWithSciFallback(xpState.progress, requirementBn);
-    xpState.xpLevel = addBigNumsWithSciFallback(xpState.xpLevel, bnOne());
-    xpLevelsGained = addBigNumsWithSciFallback(xpLevelsGained, bnOne());
-    handleXpLevelUpRewards();
-    updateXpRequirement();
-    const reqIsInf = requirementBn.isInfinite?.()
-      || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
-    if (reqIsInf) {
-      break;
+    const batchSize = computeBatchSize(xpState.progress, requirementBn, levelKey, limit - guard);
+    let batchCount = 0;
+    while (cmp >= 0 && guard < limit && batchCount < batchSize) {
+      xpState.progress = subBigNumsWithSciFallback(xpState.progress, requirementBn);
+      xpState.xpLevel = addBigNumsWithSciFallback(xpState.xpLevel, bnOne());
+      xpLevelsGained = addBigNumsWithSciFallback(xpLevelsGained, bnOne());
+      handleXpLevelUpRewards();
+      updateXpRequirement();
+      levelKey = cachedRequirementLogKey;
+      const reqIsInf = requirementBn.isInfinite?.()
+        || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
+      guard += 1;
+      if (reqIsInf) {
+        cmp = -1;
+        break;
+      }
+      cmp = compareBigNumsWithSciFallback(xpState.progress, requirementBn);
+      batchCount += 1;
     }
-    guard += 1;
-    cmp = compareBigNumsWithSciFallback(xpState.progress, requirementBn);
   }
   if (guard >= limit) {
     // Only clamp finite progress if we truly hit the guard.
