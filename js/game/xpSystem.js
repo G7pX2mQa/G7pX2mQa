@@ -24,6 +24,48 @@ xpRequirementCache.set('0', requirementBn);
 let highestCachedExactLevel = 0n;
 const infinityRequirementBn = BigNum.fromAny('Infinity');
 
+function to_log(x) {
+  if (x == null) return Number.NEGATIVE_INFINITY;
+  if (typeof x === 'number') {
+    if (!(x > 0)) return Number.NEGATIVE_INFINITY;
+    if (!Number.isFinite(x)) return Number.POSITIVE_INFINITY;
+    return Math.log10(x);
+  }
+  return approxLog10(x);
+}
+
+function from_log(logx) {
+  if (!Number.isFinite(logx)) {
+    if (logx === Number.POSITIVE_INFINITY) {
+      return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+    }
+    return BigNum.fromInt(0);
+  }
+  return bigNumFromLog10(logx);
+}
+
+function log_add(loga, logb) {
+  if (loga === Number.POSITIVE_INFINITY || logb === Number.POSITIVE_INFINITY) {
+    return Number.POSITIVE_INFINITY;
+  }
+  if (loga === Number.NEGATIVE_INFINITY) return logb;
+  if (logb === Number.NEGATIVE_INFINITY) return loga;
+  const maxLog = Math.max(loga, logb);
+  const minLog = Math.min(loga, logb);
+  const delta = minLog - maxLog;
+  return maxLog + Math.log10(1 + Math.pow(10, delta));
+}
+
+function log_mul(loga, logb) {
+  if (loga === Number.NEGATIVE_INFINITY || logb === Number.NEGATIVE_INFINITY) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  if (loga === Number.POSITIVE_INFINITY || logb === Number.POSITIVE_INFINITY) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return loga + logb;
+}
+
 let lastSyncedCoinLevel = null;
 let lastSyncedCoinLevelWasInfinite = false;
 let lastSyncedCoinUsedApproximation = false;
@@ -154,6 +196,12 @@ const xpState = {
   progress: BigNum.fromInt(0),
 };
 
+const xpLogs = {
+  progress: Number.NEGATIVE_INFINITY,
+  requirement: Math.log10(10),
+  coinMultiplier: Number.NEGATIVE_INFINITY,
+};
+
 function enforceXpInfinityInvariant() {
   const levelIsInf = bigNumIsInfinite(xpState.xpLevel);
   const progIsInf = bigNumIsInfinite(xpState.progress);
@@ -209,6 +257,24 @@ const hudRefs = {
   xpLevelValue: null,
   progress: null,
 };
+
+function updateProgressLog() {
+  xpLogs.progress = to_log(xpState.progress);
+}
+
+function updateRequirementLog() {
+  xpLogs.requirement = to_log(requirementBn);
+}
+
+function updateCoinMultiplierLog(multiplierBn) {
+  xpLogs.coinMultiplier = to_log(multiplierBn);
+}
+
+function meetsRequirementByLog() {
+  if (xpLogs.requirement === Number.POSITIVE_INFINITY) return false;
+  if (xpLogs.progress === Number.POSITIVE_INFINITY) return true;
+  return xpLogs.progress >= xpLogs.requirement;
+}
 
 function bnZero() {
   return BigNum.fromInt(0);
@@ -650,12 +716,14 @@ function xpRequirementForXpLevel(xpLevelInput) {
 
 function updateXpRequirement() {
   requirementBn = xpRequirementForXpLevel(xpState.xpLevel);
+  updateRequirementLog();
 }
 
 function resetLockedXpState() {
   xpState.xpLevel = bnZero();
   xpState.progress = bnZero();
   updateXpRequirement();
+  updateProgressLog();
   syncCoinMultiplierWithXpLevel(true);
 }
 
@@ -666,6 +734,7 @@ function normalizeProgress(applyRewards = false) {
   }
 
   updateXpRequirement();
+  updateProgressLog();
 
   // If the requirement is infinite, there is nothing meaningful to normalize.
   if (bigNumIsInfinite(requirementBn)) {
@@ -674,15 +743,17 @@ function normalizeProgress(applyRewards = false) {
 
   let guard = 0;
   const limit = 10000;
-  while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
+  while (meetsRequirementByLog() && guard < limit) {
     try { xpState.progress = xpState.progress.sub(requirementBn); }
     catch { xpState.progress = bnZero(); }
+    updateProgressLog();
 
     try { xpState.xpLevel = xpState.xpLevel.add(bnOne()); }
     catch { xpState.xpLevel = bnZero(); }
 
     if (applyRewards) handleXpLevelUpRewards();
     updateXpRequirement();
+    updateProgressLog();
 
     if (bigNumIsInfinite(requirementBn)) {
       break;
@@ -692,6 +763,7 @@ function normalizeProgress(applyRewards = false) {
 
   if (guard >= limit) {
     xpState.progress = bnZero();
+    updateProgressLog();
   }
 }
 
@@ -792,6 +864,7 @@ function syncCoinMultiplierWithXpLevel(force = false) {
   }
 
   const multIsInf = finalMultiplier.isInfinite?.() || (typeof finalMultiplier.isInfinite === 'function' && finalMultiplier.isInfinite());
+  updateCoinMultiplierLog(finalMultiplier);
   try { multApi.set(finalMultiplier.clone?.() ?? finalMultiplier); } catch {}
   if (multIsInf) {
     lastSyncedCoinLevel = null;
@@ -847,6 +920,7 @@ function ensureStateLoaded(force = false) {
   enforceXpInfinityInvariant();
 
   updateXpRequirement();
+  updateProgressLog();
   syncCoinMultiplierWithXpLevel(true);
   ensureXpStorageWatchers();
   return xpState;
@@ -961,6 +1035,7 @@ function handleBulkLevelUpRewards(levelsBigInt) {
   syncCoinMultiplierWithXpLevel(true);
 
   let reward = bnOne();
+  let rewardLog = to_log(reward);
   if (typeof externalBookRewardProvider === 'function') {
     try {
       const maybe = externalBookRewardProvider({
@@ -973,22 +1048,15 @@ function handleBulkLevelUpRewards(levelsBigInt) {
       } else if (maybe != null) {
         reward = BigNum.fromAny(maybe);
       }
+      rewardLog = to_log(reward);
     } catch {}
   }
 
-  let totalReward = reward;
-  try {
-    if (typeof reward.mulBigNumInteger === 'function') {
-      totalReward = reward.mulBigNumInteger(levelsBn);
-    } else if (typeof reward.mulDecimal === 'function') {
-      totalReward = reward.mulDecimal(levelsBigInt.toString());
-    }
-  } catch {}
+  const totalRewardLog = log_mul(rewardLog, to_log(levelsBn));
+  let totalReward = from_log(totalRewardLog);
 
   try {
     if (bank?.books?.addWithMultiplier) {
-      bank.books.addWithMultiplier(totalReward);
-    } else if (bank?.books?.add) {
       bank.books.add(totalReward);
     }
   } catch {}
@@ -1060,8 +1128,9 @@ function fastLevelGainFromProgress() {
   const levelInfo = xpLevelBigIntInfo(xpState.xpLevel);
   if (!levelInfo.finite) return 0n;
 
-  const logProgress = approxLog10(xpState.progress);
-  const logRequirement = approxLog10(requirementBn);
+  updateProgressLog();
+  const logProgress = xpLogs.progress;
+  const logRequirement = xpLogs.requirement;
   if (!Number.isFinite(logProgress) || !Number.isFinite(logRequirement)) return 0n;
 
   const diff = logProgress - logRequirement;
@@ -1100,6 +1169,7 @@ function fastLevelGainFromProgress() {
   if (xpState.progress.cmp(finalCost) < 0) return 0n;
 
   xpState.progress = xpState.progress.sub(finalCost);
+  updateProgressLog();
   try {
     xpState.xpLevel = xpState.xpLevel.add(BigNum.fromAny(best.toString()));
   } catch {
@@ -1209,6 +1279,7 @@ export function addXp(amount, { silent = false } = {}) {
   // Apply gain
   xpState.progress = xpState.progress.add(inc);
   updateXpRequirement();
+  updateProgressLog();
 
   // If the gain, the current progress, or the current level is infinite,
   // snap the entire XP system (level, progress, requirement, and coin multiplier) to ∞.
@@ -1220,11 +1291,14 @@ export function addXp(amount, { silent = false } = {}) {
     || (typeof inc?.isInfinite === 'function' && inc.isInfinite());
 
   if (progressIsInf || levelIsInf || gainIsInf) {
-    const inf = infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-
+  const inf = infinityRequirementBn.clone?.() ?? infinityRequirementBn;
     xpState.xpLevel = inf.clone?.() ?? inf;
     xpState.progress = inf.clone?.() ?? inf;
     requirementBn = inf.clone?.() ?? inf;
+    updateProgressLog();
+    updateRequirementLog();
+  updateProgressLog();
+  updateRequirementLog();
 
     // NEW: also enforce the Books = ∞ rule
     enforceXpInfinityInvariant();
@@ -1254,7 +1328,7 @@ export function addXp(amount, { silent = false } = {}) {
   let xpLevelsGained = bnZero();
   let guard = 0;
   const limit = 100000;
-  while (xpState.progress.cmp?.(requirementBn) >= 0) {
+  while (meetsRequirementByLog()) {
     const bulkLevels = fastLevelGainFromProgress();
     if (bulkLevels > 0n) {
       xpLevelsGained = xpLevelsGained.add(BigNum.fromAny(bulkLevels.toString()));
@@ -1269,14 +1343,17 @@ export function addXp(amount, { silent = false } = {}) {
     if (guard >= limit) {
       // Only clamp finite progress if we truly hit the guard.
       xpState.progress = bnZero();
+      updateProgressLog();
       break;
     }
 
     xpState.progress = xpState.progress.sub(requirementBn);
+    updateProgressLog();
     xpState.xpLevel = xpState.xpLevel.add(bnOne());
     xpLevelsGained = xpLevelsGained.add(bnOne());
     handleXpLevelUpRewards();
     updateXpRequirement();
+    updateProgressLog();
     const reqIsInf = requirementBn.isInfinite?.()
       || (typeof requirementBn.isInfinite === 'function' && requirementBn.isInfinite());
     if (reqIsInf) {
@@ -1398,7 +1475,9 @@ export function computeCoinMultiplierForXpLevel(levelValue) {
     } catch {}
   }
 
-  return finalMultiplier.clone?.() ?? finalMultiplier;
+  const result = finalMultiplier.clone?.() ?? finalMultiplier;
+  updateCoinMultiplierLog(result);
+  return result;
 }
 
 export function setExternalCoinMultiplierProvider(fn) {
