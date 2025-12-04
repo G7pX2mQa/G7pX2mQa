@@ -191,6 +191,9 @@ function setupLiveBindingListeners() {
         const targetSlot = slot ?? getActiveSlot();
         refreshLiveBindings((binding) => binding.type === 'xp'
             && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && binding.key === 'xp'
+            && binding.slot === targetSlot);
         if (changeType === 'unlock' || typeof unlocked === 'boolean') {
             refreshLiveBindings((binding) => binding.type === 'unlock'
                 && (binding.slot == null || binding.slot === targetSlot));
