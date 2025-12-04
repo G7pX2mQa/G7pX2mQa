@@ -486,8 +486,6 @@
   transform: translateY(100%);
   transition: transform 180ms ease;
   box-shadow: 0 -14px 40px rgba(0,0,0,.45);
-  border-top-left-radius: 14px;
-  border-top-right-radius: 14px;
 }
 
 .upg-overlay img {
@@ -500,10 +498,25 @@
   grid-template-rows: auto auto 1fr auto;
 }
 
-.upg-grabber { display: grid; place-items: center; padding: 8px 0 4px; }
+.upg-grabber {
+  padding-top: calc(8px + var(--safe-top));
+  padding-bottom: 12px;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  background: var(--shop-bg);
+  position: relative;
+  z-index: 6;
+}
+
 .upg-grabber .grab-handle {
-  width: 52px; height: 5px; border-radius: 4px;
-  background: rgba(255,255,255,.35);
+  width: 56px;
+  height: 6px;
+  border-radius: 999px;
+  background: hsl(0 0% 100% / .35);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / .25);
 }
 
 .upg-header {
@@ -958,96 +971,6 @@
 
 .upg-sheet.is-hm-upgrade.is-endless-xp .upg-line {
   font-size: clamp(26px, 3.7vw, 40px);
-}
-.hm-view-milestones:hover { background:hsl(26 100% 50% / .22); }
-.hm-view-milestones:active { transform:translateY(1px); background:hsl(26 100% 50% / .28); }
-
-@media (max-width: 640px) {
-  .upg-sheet.is-hm-upgrade .upg-desc.centered {
-    font-size: clamp(26px, 4vw, 42px);
-  }
-
-  .upg-sheet.is-hm-upgrade.is-endless-xp .upg-desc.centered {
-    font-size: clamp(22px, 3.4vw, 34px);
-  }
-
-  .upg-sheet.is-hm-upgrade .upg-line {
-    font-size: clamp(26px, 4vmin, 42px);
-  }
-
-  .upg-sheet.is-hm-upgrade.is-endless-xp .upg-line {
-    font-size: clamp(22px, 3.4vw, 34px);
-  }
-}
-.hm-view-milestones:hover { background:hsl(26 100% 50% / .22); }
-.hm-view-milestones:active { transform:translateY(1px); background:hsl(26 100% 50% / .28); }
-
-@media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
-
-  .upg-sheet:not(.is-maxed) .upg-content,
-  .upg-sheet.is-maxed .upg-content{
-    transform: none;
-    padding-top: 0.5vh;
-    padding-bottom: 0.5vh;
-  }
-
-  .upg-header { padding: 6px 12px 0; }
-  .upg-desc.centered {
-    margin: 0.25rem 0 0.35rem;
-    line-height: 1.1;
-  }
-
-  .upg-info{
-    gap: 0.25rem;
-    margin: 0.3rem 0 0.2rem;
-  }
-
-  .upg-line{
-    line-height: 1.1;
-    margin: 0.15rem 0;
-  }
-
-  .bonus-line{ margin-block: 0.15rem; }
-
-  .upg-actions{
-    gap: 0.4rem;
-    padding-top: 4px;
-    padding-bottom: calc(6px + env(safe-area-inset-bottom));
-  }
-
-  .upg-actions .shop-close,
-  .upg-actions .shop-delve{
-    height: clamp(40px, 12vh, 54px);
-    font-size: clamp(13px, 2vmin, 17px);
-  }
-}
-
-@media (hover: none) and (pointer: coarse) and (orientation: portrait) and (min-width: 700px) {
-  .upg-level {
-    font-size: clamp(20px, 3vmin, 35px);
-  }
-}
-
-@media (hover: none) and (pointer: coarse) and (orientation: landscape) and (min-width: 700px) {
-  .upg-sheet:not(.is-maxed) .upg-content {
-    transform: translateY(-8vh);
-    padding-top: 2vh;
-  }
-
-  .upg-sheet.is-maxed .upg-content {
-    transform: translateY(-14vh);
-    padding-top: 1vh;
-  }
-
-  .upg-sheet.is-locked-hidden .upg-content {
-    transform: translateY(-16vh);
-    padding-top: 0.5vh;
-  }
-  
-  .upg-sheet.is-unlock-upgrade .upg-content {
-    transform: none;
-    padding-top: 2vh;
-  }
 }
 
 .bonus-line .infinity-symbol {
