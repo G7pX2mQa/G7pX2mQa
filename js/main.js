@@ -206,7 +206,11 @@ function showLoader(text = 'Loading assets...', onSkip) {
       e.stopPropagation();
       if (root.__skipped) return;
       root.__skipped = true;
-      if (root.__pct) root.__pct.textContent = 'Loading Skipped';
+      if (root.__pct) root.__pct.textContent = 'Loading skipped';
+      if (root.__label) root.__label.textContent = 'Loading skipped';
+      skipBtn.textContent = 'Loading skipped';
+      skipBtn.style.textDecoration = 'none';
+      skipBtn.style.cursor = 'default';
       onSkip();
     });
     wrap.appendChild(skipBtn);
@@ -238,7 +242,11 @@ function finishAndHideLoader(loaderEl) {
   loaderEl.__done = true;
 
   const MIN_FINISHED_DWELL_MS = 500;
-  if (loaderEl.__label) loaderEl.__label.textContent = 'Finished loading assets';
+  if (loaderEl.__label) {
+    loaderEl.__label.textContent = loaderEl.__skipped
+      ? 'Loading Skipped'
+      : 'Finished loading assets';
+  }
   loaderEl.offsetHeight;
 
   setTimeout(() => {
