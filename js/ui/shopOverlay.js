@@ -1424,7 +1424,7 @@ export function openUpgradeOverlay(upgDef) {
     const content = upgSheetEl.querySelector('.upg-content');
     content.innerHTML = '';
     content.scrollTop = 0;
-    upgSheetEl.classList.toggle('is-hm-upgrade', isHM);
+    upgSheetEl.classList.toggle('is-hm-upgrade', isHM && !isHiddenUpgrade);
     upgSheetEl.classList.toggle('is-endless-xp', isEndlessXp);
 
     const desc = document.createElement('div');
@@ -1515,7 +1515,7 @@ export function openUpgradeOverlay(upgDef) {
 
     content.appendChild(info);
 
-    if (isHM) {
+    if (isHM && !isHiddenUpgrade) {
       const milestonesRow = document.createElement('div');
       milestonesRow.className = 'hm-view-milestones-row';
       const viewMilestonesBtn = document.createElement('button');
