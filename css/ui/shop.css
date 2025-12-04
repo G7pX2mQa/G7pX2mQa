@@ -628,14 +628,14 @@
 }
 .upg-actions .shop-delve.hm-evolve-btn,
 .upg-actions .shop-delve.hm-view-milestones {
-  border-color: hsl(30 90% 55% / 0.65);
-  background: hsl(30 90% 50% / 0.15);
-  color: #ffe6c7;
+  border-color: hsl(26 100% 50% / 0.65);
+  background: hsl(26 100% 50% / 0.15);
+  color: #white;
 }
 .upg-actions .shop-delve.hm-evolve-btn:hover,
-.upg-actions .shop-delve.hm-view-milestones:hover { background:hsl(30 90% 50% / .22); }
+.upg-actions .shop-delve.hm-view-milestones:hover { background:hsl(26 100% 50% / .22); }
 .upg-actions .shop-delve.hm-evolve-btn:active,
-.upg-actions .shop-delve.hm-view-milestones:active { transform:translateY(1px); background:hsl(30 90% 50% / .28); }
+.upg-actions .shop-delve.hm-view-milestones:active { transform:translateY(1px); background:hsl(26 100% 50% / .28); }
 .upg-actions .shop-delve:hover{ background:hsl(150 60% 35% / .22); }
 .upg-actions .shop-delve:active{ transform:translateY(1px); background:hsl(150 60% 35% / .28); }
 .upg-actions .shop-close:hover { background: hsla(0, 80%, 40%, 0.22); }
@@ -664,19 +664,19 @@
 
 .shop-tile .shop-upgrade.hm-evolve-ready .level-badge,
 .shop-upgrade.hm-evolve-ready .level-badge {
-  color: hsl(30, 90%, 70%);
-  text-shadow: 0 0 10px hsla(30, 90%, 55%, 0.65);
+  color: hsl(26, 100%, 65%);
+  text-shadow: 0 0 10px hsla(26, 100%, 50%, 0.65);
 }
 
 .shop-upgrade.hm-evolve-ready .shop-tile {
   border-radius: 50%;
-  box-shadow: 0 0 16px hsla(30, 90%, 55%, 0.65);
+  box-shadow: 0 0 16px hsla(26, 100%, 50%, 0.65);
   animation: hm-evolve-glow 1.6s ease-in-out infinite;
 }
 
 .upg-sheet.hm-evolve-ready .upg-level {
-  color: hsl(30, 90%, 75%);
-  text-shadow: 0 0 12px hsla(30, 90%, 55%, 0.75);
+  color: hsl(26, 100%, 70%);
+  text-shadow: 0 0 12px hsla(26, 100%, 50%, 0.75);
 }
 
 .upg-desc.centered,
@@ -759,25 +759,25 @@
   align-items: center;
   justify-content: center;
   padding-block: clamp(48px, 8vh, 116px);
-  color: hsl(30, 94%, 68%) !important;
-  -webkit-text-fill-color: hsl(30, 94%, 68%) !important;
+  color: hsl(26, 100%, 65%) !important;
+  -webkit-text-fill-color: hsl(26, 100%, 65%) !important;
   font-weight: 800;
   text-align: center;
   line-height: 1.2;
-  text-shadow: 0 0 12px hsla(30, 90%, 55%, 0.75);
+  text-shadow: 0 0 12px hsla(26, 100%, 50%, 0.75);
 }
 
 @keyframes hm-evolve-glow {
   0%,
   100% {
     box-shadow:
-      0 0 18px 2px hsla(30, 90%, 55%, 0.65),
-      0 0 36px 6px hsla(30, 90%, 55%, 0.35);
+      0 0 18px 2px hsla(26, 100%, 50%, 0.65),
+      0 0 36px 6px hsla(26, 100%, 50%, 0.35);
   }
   50% {
     box-shadow:
-      0 0 26px 6px hsla(30, 90%, 60%, 0.9),
-      0 0 48px 12px hsla(30, 90%, 60%, 0.55);
+      0 0 26px 6px hsla(26, 100%, 55%, 0.9),
+      0 0 48px 12px hsla(26, 100%, 55%, 0.55);
   }
 }
 
@@ -788,13 +788,13 @@
 }
 
 .hm-view-milestones {
-  border:1px solid hsl(30 90% 55% / 0.65);
-  background: hsl(30 90% 50% / 0.15);
+  border: 1px solid hsl(30 90% 55% / .65);
+  background: #f2800d26;
   color: #ffe6c7;
   padding: 10px 14px;
 }
-.hm-view-milestones:hover { background:hsl(30 90% 50% / .22); }
-.hm-view-milestones:active { transform:translateY(1px); background:hsl(30 90% 50% / .28); }
+.hm-view-milestones:hover { background:hsl(26 100% 50% / .22); }
+.hm-view-milestones:active { transform:translateY(1px); background:hsl(26 100% 50% / .28); }
 
 .hm-milestones-overlay {
   position: fixed;
@@ -814,7 +814,7 @@
   max-height: min(calc(80vh + var(--safe-bottom)), 720px);
   overflow: auto;
   background: linear-gradient(150deg, rgba(15, 22, 38, 0.96), rgba(18, 26, 42, 0.94));
-  border: 1px solid hsl(30 90% 55% / 0.5);
+  border: 1px solid hsl(26 100% 50% / 0.5);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
   border-radius: 14px;
   padding: clamp(14px, 2.4vw, 20px);
@@ -827,7 +827,7 @@
   margin: 0 0 12px;
   font-size: clamp(20px, 3vw, 26px);
   letter-spacing: 0.4px;
-  color: #ffdcb3;
+  color: #ffe6c7;
   text-align: center;
 }
 
@@ -895,8 +895,8 @@
   width: 100%;
   font-size: 16px;
   font-weight: 700;
-  color: #1b120c;
-  background: linear-gradient(135deg, #ffdfba, #ffbf6f);
+  color: #ffe6c7;
+  background: hsl(26, 100%, 35%) !important;
   border: 0;
   border-radius: 10px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
@@ -956,8 +956,8 @@
 .upg-sheet.is-hm-upgrade.is-endless-xp .upg-line {
   font-size: clamp(26px, 3.7vw, 40px);
 }
-.hm-view-milestones:hover { background:hsl(30 90% 50% / .22); }
-.hm-view-milestones:active { transform:translateY(1px); background:hsl(30 90% 50% / .28); }
+.hm-view-milestones:hover { background:hsl(26 100% 50% / .22); }
+.hm-view-milestones:active { transform:translateY(1px); background:hsl(26 100% 50% / .28); }
 
 @media (max-width: 640px) {
   .upg-sheet.is-hm-upgrade .upg-desc.centered {
@@ -976,8 +976,8 @@
     font-size: clamp(22px, 3.4vw, 34px);
   }
 }
-.hm-view-milestones:hover { background:hsl(30 90% 50% / .22); }
-.hm-view-milestones:active { transform:translateY(1px); background:hsl(30 90% 50% / .28); }
+.hm-view-milestones:hover { background:hsl(26 100% 50% / .22); }
+.hm-view-milestones:active { transform:translateY(1px); background:hsl(26 100% 50% / .28); }
 
 @media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
 
