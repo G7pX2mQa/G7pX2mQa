@@ -1085,6 +1085,15 @@ const DEFAULT_SCALING_PRESETS = {
     const upgType = `${upg?.upgType ?? ''}`.toUpperCase();
     if (upgType === 'HM') {
       const evol = activeEvolutionsForUpgrade(upg);
+      const evolThreshold = 1000; // Corresponds to level 1M
+      if (evol > evolThreshold) {
+        const evol_after_1m = evol - evolThreshold;
+        const base_scaling = 0.1 * evolThreshold;
+        const r = 1.001;
+        // Sum of a geometric series: 0.1 * r * (r^n - 1) / (r - 1)
+        const extra_scaling = 0.1 * (r / (r - 1)) * (Math.pow(r, evol_after_1m) - 1);
+        return 1.50 + base_scaling + extra_scaling;
+      }
       return 1.50 + (0.10 * evol);
     }
     return 1.20;
