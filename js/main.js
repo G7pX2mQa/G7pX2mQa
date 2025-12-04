@@ -37,6 +37,7 @@ let initMutationSystem;
 let getMutationCoinSprite;
 let onMutationChangeGame;
 let setDebugPanelAccess;
+let applyStatMultiplierOverride;
 
 const pendingPreloadedAudio = [];
 
@@ -349,7 +350,20 @@ function enterArea(areaID) {
                         const areaKey = getUpgAreaKey();
                         const eff = computeUpgradeEffects(areaKey);
                         if (spawner && eff?.coinsPerSecondMult) {
-                          spawner.setRate(1 * eff.coinsPerSecondMult);
+                          let rate = 1 * eff.coinsPerSecondMult;
+                          if (typeof applyStatMultiplierOverride === "function") {
+                             const override = applyStatMultiplierOverride("spawnRate", rate);
+                             try {
+                                 if (override && typeof override.toScientific === "function") {
+                                     rate = Number(override.toScientific(6));
+                                 } else {
+                                     rate = Number(override);
+                                 }
+                             } catch {}
+                          }
+                          if (Number.isFinite(rate)) {
+                              spawner.setRate(rate);
+                          }
                         }
                   } catch {}
                 };
