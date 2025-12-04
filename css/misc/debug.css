@@ -568,4 +568,27 @@
 .debug-panel-input.debug-reset-values-select {
     box-sizing: border-box;
     flex: 0 0 230px;
+
+    /* Custom scrollbar (matches other debug panel scroll areas) */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.22) rgba(0, 0, 0, 0.35);
+}
+
+.debug-panel-input.debug-reset-values-select::-webkit-scrollbar {
+    width: 10px;
+}
+
+.debug-panel-input.debug-reset-values-select::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 6px;
+}
+
+.debug-panel-input.debug-reset-values-select::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.debug-panel-input.debug-reset-values-select::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
