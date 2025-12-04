@@ -491,7 +491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       'img/misc/maxed.webp',
 	  'img/misc/merchant.webp',
       'img/misc/mysterious.webp',
-	  'img/misc/hotdog.png'
+	  'img/misc/hotdog.png',
       ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.webp`),
     ],
     audio: [
