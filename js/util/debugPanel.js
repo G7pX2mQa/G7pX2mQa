@@ -269,6 +269,7 @@ const MUTATION_KEYS = {
 const STAT_MULTIPLIERS = [
     { key: 'xp', label: 'XP' },
     { key: 'mutation', label: 'MP' },
+    { key: 'spawnRate', label: 'Spawn Rate' },
 ];
 
 function getAreas() {
@@ -284,6 +285,7 @@ function getAreas() {
             stats: [
                 { key: 'xp', label: 'XP' },
                 { key: 'mutation', label: 'MP' },
+                { key: 'spawnRate', label: 'Spawn Rate' },
             ],
         },
     ];
@@ -621,6 +623,11 @@ function getGameStatMultiplier(statKey) {
 
             const mult = getMutationMultiplier();
             if (mult) return mult;
+        } else if (statKey === 'spawnRate') {
+            const eff = computeUpgradeEffects(AREA_KEYS.STARTER_COVE);
+            if (eff?.coinsPerSecondMult) {
+                return BigNum.fromAny(eff.coinsPerSecondMult);
+            }
         }
     } catch {}
 
@@ -1710,6 +1717,69 @@ function buildAreaStats(container, area) {
         container.appendChild(msg);
         return;
     }
+	
+	    const spawnRateKey = 'spawnRate';
+    const spawnRateStorageKey = getStatMultiplierStorageKey(spawnRateKey, slot);
+    const spawnRateRow = createInputRow('Coin Spawn Rate', getStatMultiplierDisplayValue(spawnRateKey, slot), (value, { setValue }) => {
+        const latestSlot = getActiveSlot();
+        if (latestSlot == null) return;
+        const previous = getStatMultiplierDisplayValue(spawnRateKey, latestSlot);
+        try { setDebugStatMultiplierOverride(spawnRateKey, value, latestSlot); } catch {}
+        const refreshed = getStatMultiplierDisplayValue(spawnRateKey, latestSlot);
+        setValue(refreshed);
+        if (!bigNumEquals(previous, refreshed)) {
+            flagDebugUsage();
+            logAction(`Modified Spawn Rate (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
+        }
+    }, {
+        storageKey: spawnRateStorageKey,
+        onLockChange: (locked) => {
+            const latestSlot = getActiveSlot();
+            if (latestSlot == null) return;
+            if (locked) {
+                const existingOverride = getLockedStatOverride(latestSlot, spawnRateKey);
+                if (existingOverride) return;
+                try {
+                    setDebugStatMultiplierOverride(
+                        spawnRateKey,
+                        getGameStatMultiplier(spawnRateKey),
+                        latestSlot
+                    );
+                } catch {}
+            } else {
+                getEffectiveStatMultiplierOverride(
+                    spawnRateKey,
+                    latestSlot,
+                    getGameStatMultiplier(spawnRateKey)
+                );
+            }
+            spawnRateRow.setValue(getStatMultiplierDisplayValue(spawnRateKey, latestSlot));
+        },
+    });
+
+    registerLiveBinding({
+        type: 'stat-mult',
+        key: spawnRateKey,
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            const latest = getStatMultiplierDisplayValue(spawnRateKey, slot);
+            spawnRateRow.setValue(latest);
+        },
+    });
+
+    registerLiveBinding({
+        type: 'upgrade',
+        key: spawnRateKey,
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            const latest = getStatMultiplierDisplayValue(spawnRateKey, slot);
+            spawnRateRow.setValue(latest);
+        },
+    });
+
+    container.appendChild(spawnRateRow.row);
 
     const xp = getXpState();
     const mutation = getMutationState();
@@ -2442,6 +2512,7 @@ function buildAreaStatMultipliers(container, area) {
     const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
 
     STAT_MULTIPLIERS.forEach((stat) => {
+        if (stat.key === 'spawnRate') return;
         const storageKey = getStatMultiplierStorageKey(stat.key, slot);
         const row = createInputRow(
             `${stat.label} Multiplier`,
