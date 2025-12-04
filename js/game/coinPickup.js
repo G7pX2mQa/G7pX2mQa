@@ -175,11 +175,18 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
 
   const sweepCoins = () => {
     if (!pointerInside || radiusPx <= 0) return;
-    const coins = coinsLayer.querySelectorAll(coinSelector);
+    // Iterate children directly to avoid expensive querySelectorAll
+    const coins = coinsLayer.children;
     const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
-    for (let i = 0; i < coins.length; i += 1) {
+    
+    // Reverse loop is slightly safer if we modify the list (collect removes coin),
+    // although collect usually animates then removes.
+    for (let i = coins.length - 1; i >= 0; i--) {
       const coin = coins[i];
-      if (!(coin instanceof HTMLElement) || coin.dataset.collected === '1') continue;
+      if (coin.dataset.collected === '1') continue;
+      // Basic check to ensure we only target coin elements
+      if (!coin.matches(coinSelector)) continue;
+
       const rect = coin.getBoundingClientRect();
       const coinX = rect.left + rect.width / 2;
       const coinY = rect.top + rect.height / 2;
@@ -568,12 +575,8 @@ const computeMutationMultiplier = (spawnLevelStr) => {
   // Make current & future coins receptive to events even if CSS had pointer-events:none
   function ensureInteractive(el){ try { el.style.pointerEvents = 'auto'; } catch {} }
   cl.querySelectorAll(coinSelector).forEach(ensureInteractive);
-  const mo = new MutationObserver((recs) => {
-    for (const r of recs){
-      r.addedNodes.forEach(n => { if (n instanceof HTMLElement && n.matches(coinSelector)) { ensureInteractive(n); bindCoinDirect(n); } });
-    }
-  });
-  mo.observe(cl, { childList: true, subtree: true });
+  
+  // MO REMOVED - we now use spawner to set pointerEvents=auto and delegation for listeners
 
   // ----- Audio (Mobile: WebAudio + fallback) -----
   let ac = null, masterGain = null, buffer = null;
@@ -752,12 +755,20 @@ function collect(el) {
     collectFn: collect,
   });
 
-  // direct coin events as a safety net (helps if elementsFromPoint misses due to CSS)
-  function bindCoinDirect(coin){
-    coin.addEventListener('pointerdown', (e) => { collect(coin); }, { passive: true });
-    coin.addEventListener('mouseenter', () => { if (!IS_MOBILE) collect(coin); }, { passive: true });
+  // Replaced individual listener binding with delegation to prevent leaks on pooled coins
+  const onDelegatedInteract = (e) => {
+    if (e.target === cl) return;
+    const target = e.target.closest(coinSelector);
+    if (target && isCoin(target)) {
+      collect(target);
+    }
+  };
+
+  cl.addEventListener('pointerdown', onDelegatedInteract, { passive: true });
+  if (!IS_MOBILE) {
+    // mouseover bubbles, mouseenter does not.
+    cl.addEventListener('mouseover', onDelegatedInteract, { passive: true });
   }
-  cl.querySelectorAll(coinSelector).forEach(bindCoinDirect);
 
   // Brush sweep — checks several offsets so you can “graze” coins while swiping
   const BRUSH_R = 18; // px
@@ -817,7 +828,12 @@ function collect(el) {
       try { magnetController.destroy(); } catch {}
       magnetController = null;
     }
-    try { mo.disconnect(); } catch {}
+    try {
+      cl.removeEventListener('pointerdown', onDelegatedInteract);
+      if (!IS_MOBILE) {
+        cl.removeEventListener('mouseover', onDelegatedInteract);
+      }
+    } catch {}
     try { ['pointerdown','pointermove','pointerup','mousemove'].forEach(evt => pf.replaceWith(pf.cloneNode(true))); } catch {}
   };
 
