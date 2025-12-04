@@ -113,6 +113,48 @@ function computeBonusLogTerm(levelBn) {
   return bonusCount.mulDecimal(LOG_DECADE_BONUS_DECIMAL, 18);
 }
 
+function bigNumPowerOf10(logBn) {
+  if (bigNumIsInfinite(logBn) || (typeof logBn.cmp === 'function' && logBn.cmp(maxLog10Bn) >= 0)) {
+      return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  const integerPart = logBn.floorToInteger();
+  const fractionalPart = logBn.sub(integerPart);
+  const fractionalNumber = bigNumToFiniteNumber(fractionalPart);
+
+  if (!Number.isFinite(fractionalNumber)) {
+      return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  let mantissa = Math.pow(10, fractionalNumber);
+
+  const precision = 18;
+  const scaleFactor = 10n ** BigInt(precision);
+
+  let exponentAdjustment = 0n;
+  if (mantissa >= 10) {
+      mantissa /= 10;
+      exponentAdjustment = 1n;
+  }
+
+  const sig = BigInt(Math.round(mantissa * Number(scaleFactor)));
+
+  const integerPartString = integerPart.toPlainIntegerString();
+  if (integerPartString === 'Infinity') {
+      return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+  const integerPartBigInt = BigInt(integerPartString);
+
+  const totalExponent = integerPartBigInt + exponentAdjustment - BigInt(precision);
+
+  const E_LIMIT = 250;
+  const eBigInt = totalExponent % BigInt(E_LIMIT);
+  const e = Number(eBigInt);
+  const offset = totalExponent - eBigInt;
+
+  return new BigNum(sig, { base: e, offset: offset });
+}
+
 function approximateCoinMultiplierFromBigNum(levelBn) {
   if (!levelBn || typeof levelBn !== 'object') {
     return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
@@ -123,11 +165,7 @@ function approximateCoinMultiplierFromBigNum(levelBn) {
   if (bonusLog) {
     totalLog = totalLog.add?.(bonusLog) ?? totalLog;
   }
-  const logNumber = logBigNumToNumber(totalLog);
-  if (!Number.isFinite(logNumber)) {
-    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-  }
-  const approx = bigNumFromLog10(logNumber);
+  const approx = bigNumPowerOf10(totalLog);
   const approxIsInf = approx.isInfinite?.() || (typeof approx.isInfinite === 'function' && approx.isInfinite());
   if (approxIsInf) {
     return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
