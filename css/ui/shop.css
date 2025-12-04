@@ -506,7 +506,7 @@
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
-  background: var(--shop-bg);
+  background: transparent;
   position: relative;
   z-index: 6;
 }
