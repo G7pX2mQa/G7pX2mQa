@@ -817,7 +817,7 @@
   max-height: min(calc(80vh + var(--safe-bottom)), 720px);
   overflow: auto;
   background: linear-gradient(150deg, rgba(15, 22, 38, 0.96), rgba(18, 26, 42, 0.94));
-  border: 1px solid hsl(26 100% 50% / 0.5);
+  border: 1px solid #ffe6c7;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
   border-radius: 14px;
   padding: clamp(14px, 2.4vw, 20px);
