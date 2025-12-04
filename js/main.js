@@ -112,7 +112,7 @@ let spawner = null;
 ----------------------------*/
 const nextFrame = () => new Promise(r => requestAnimationFrame(r));
 const twoFrames = async () => { await nextFrame(); await nextFrame(); };
-function showLoader(text = 'Loading assets...') {
+function showLoader(text = 'Loading assets...', onSkip) {
   let root = document.getElementById('boot-loader');
   if (!root) {
     root = document.createElement('div');
@@ -188,6 +188,30 @@ function showLoader(text = 'Loading assets...') {
     if (!root.__done) stuckMsg.style.opacity = '1';
   }, 25000);
 
+  if (typeof onSkip === 'function') {
+    const skipBtn = document.createElement('div');
+    skipBtn.textContent = IS_MOBILE
+      ? 'Tap here to skip loading now and load assets during gameplay'
+      : 'Click here to skip loading now and load assets during gameplay';
+    Object.assign(skipBtn.style, {
+      marginTop: '24px',
+      fontSize: '14px',
+      color: '#888',
+      textDecoration: 'underline',
+      cursor: 'pointer',
+      opacity: '0.9',
+    });
+    skipBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (root.__skipped) return;
+      root.__skipped = true;
+      if (root.__pct) root.__pct.textContent = 'Loading Skipped';
+      onSkip();
+    });
+    wrap.appendChild(skipBtn);
+  }
+
   root.__mountedAt = performance.now();
   root.__done = false;
   root.__wrap = wrap;
@@ -202,6 +226,7 @@ function showLoader(text = 'Loading assets...') {
 
 function setLoaderProgress(loaderEl, fraction) {
   if (!loaderEl || !loaderEl.__fill || !loaderEl.__pct) return;
+  if (loaderEl.__skipped) return;
   const f = Math.max(0, Math.min(1, fraction || 0));
   const pct = Math.round(f * 100);
   loaderEl.__fill.style.width = pct + '%';
@@ -408,7 +433,10 @@ function enterArea(areaID) {
    BOOT FLOW
 ----------------------------*/
 document.addEventListener('DOMContentLoaded', async () => {
-  const loader = showLoader('Loading assets...');
+  let resolveSkip;
+  const skipPromise = new Promise(resolve => { resolveSkip = resolve; });
+
+  const loader = showLoader('Loading assets...', resolveSkip);
 
   await nextFrame();
 
@@ -463,6 +491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       'img/misc/maxed.webp',
 	  'img/misc/merchant.webp',
       'img/misc/mysterious.webp',
+	  'img/misc/hotdog.png'
       ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.webp`),
     ],
     audio: [
@@ -538,7 +567,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await restoreSuspendBackup?.();
   } catch {}
 
-  await assetsPromise;
+  await Promise.race([assetsPromise, skipPromise]);
 
   await twoFrames();
   document.documentElement.classList.remove('booting');
