@@ -1773,6 +1773,33 @@ function onKeydownForMerchant(e) {
   if (e.key === 'Escape') {
     e.preventDefault();
     closeMerchant();
+    return;
+  }
+
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+
+  if (/^[0-9]$/.test(e.key)) {
+    const num = parseInt(e.key, 10);
+    const requestedIndex = (num === 0 ? 9 : num - 1);
+
+    let maxUnlockedIndex = -1;
+    for (let i = 0; i < MERCHANT_TABS_DEF.length; i++) {
+      if (merchantTabUnlockState.get(MERCHANT_TABS_DEF[i].key)) {
+        maxUnlockedIndex = i;
+      }
+    }
+
+    if (maxUnlockedIndex === -1) maxUnlockedIndex = 0;
+
+    let targetIndex = requestedIndex;
+    if (targetIndex > maxUnlockedIndex) {
+      targetIndex = maxUnlockedIndex;
+    }
+
+    if (targetIndex >= 0 && targetIndex < MERCHANT_TABS_DEF.length) {
+      e.preventDefault();
+      selectMerchantTab(MERCHANT_TABS_DEF[targetIndex].key);
+    }
   }
 }
 
