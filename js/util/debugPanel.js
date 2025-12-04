@@ -825,10 +825,12 @@ function getEffectiveStatMultiplierOverride(statKey, slot, gameValue) {
     if (!baseline) {
         statOverrideBaselines.set(cacheKey, gameValue);
     } else if (!bigNumEquals(baseline, gameValue)) {
-        statOverrideBaselines.set(cacheKey, gameValue);
         if (locked) {
+            statOverrideBaselines.set(cacheKey, gameValue);
             return override;
         }
+        clearStatMultiplierOverride(statKey, slot);
+        return null;
     }
 
     return override;
