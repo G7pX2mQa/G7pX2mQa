@@ -1367,6 +1367,30 @@ export function getXpRequirementForXpLevel(xpLevel) {
   return xpRequirementForXpLevel(xpLevel);
 }
 
+export function getXpGainMultiplier() {
+  ensureStateLoaded();
+  let mult = bnOne();
+  const providers = xpGainMultiplierProviders.size > 0
+    ? Array.from(xpGainMultiplierProviders)
+    : (typeof externalXpGainMultiplierProvider === 'function' ? [externalXpGainMultiplierProvider] : []);
+  for (const provider of providers) {
+    if (typeof provider !== 'function') continue;
+    try {
+      const maybe = provider({
+        baseGain: mult.clone?.() ?? mult,
+        xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
+        xpUnlocked: xpState.unlocked,
+      });
+      if (maybe instanceof BigNum) {
+        mult = maybe.clone?.() ?? maybe;
+      } else if (maybe != null) {
+        mult = BigNum.fromAny(maybe);
+      }
+    } catch {}
+  }
+  return mult;
+}
+
 export function computeCoinMultiplierForXpLevel(levelValue) {
   let xpLevelBn;
   try {
@@ -1481,8 +1505,10 @@ if (typeof window !== 'undefined') {
     unlockXpSystem,
     addXp,
     getXpState,
+    broadcastXpChange,
     isXpSystemUnlocked,
     getXpRequirementForXpLevel,
+    getXpGainMultiplier,
     setExternalCoinMultiplierProvider,
     addExternalCoinMultiplierProvider,
     refreshCoinMultiplierFromXpLevel,
