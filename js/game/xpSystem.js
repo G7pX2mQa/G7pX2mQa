@@ -1177,14 +1177,20 @@ export function addXp(amount, { silent = false } = {}) {
   if (xpState.progress.cmp(requirementBn) < 0) {
     persistState();
     updateHud();
-    return {
+    const detail = {
       unlocked: true,
       xpLevelsGained: bnZero(),
       xpAdded: inc,
       xpLevel: xpState.xpLevel,
       progress: xpState.progress,
-      requirement: requirementBn
+      requirement: requirementBn,
+      slot,
     };
+    notifyXpSubscribers(detail);
+    if (!silent && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
+    }
+    return detail;
   }
 
   /* Optimization: 
