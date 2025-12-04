@@ -369,6 +369,9 @@ function enterArea(areaID) {
                 };
                 applyUpgradesToSpawner();
                 onUpgradesChanged(applyUpgradesToSpawner);
+                if (typeof window !== 'undefined') {
+                   window.addEventListener('debug:change', applyUpgradesToSpawner);
+                }
 
       }
       if (typeof initXpSystem === 'function') {
@@ -511,7 +514,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ initPopups } = popupModule);
   ({ installSuspendSafeguards, restoreFromBackupIfNeeded: restoreSuspendBackup, markProgressDirty, flushBackupSnapshot } = safetyModule);
   ({ installGhostTapGuard } = guardModule);
-  ({ setDebugPanelAccess } = debugPanelModule);
+  ({ setDebugPanelAccess, applyStatMultiplierOverride } = debugPanelModule);
 
   window.bank = bank;
 
