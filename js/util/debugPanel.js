@@ -15,7 +15,7 @@ import {
     setCurrency,
     setCurrencyMultiplierBN,
 } from './storage.js';
-import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
+import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpGainMultiplier, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
 import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
 import {
@@ -610,8 +610,8 @@ function getStatMultiplierStorageKey(statKey, slot = getActiveSlot()) {
 function getGameStatMultiplier(statKey) {
     try {
         if (statKey === 'xp') {
-            const { xpGainMultiplier } = computeUpgradeEffects(AREA_KEYS.STARTER_COVE) ?? {};
-            if (xpGainMultiplier) return xpGainMultiplier;
+            const mult = getXpGainMultiplier();
+            if (mult) return mult;
         } else if (statKey === 'mutation') {
             const valueMult = getMpValueMultiplierBn?.();
             if (valueMult) return valueMult;
@@ -826,9 +826,6 @@ function getEffectiveStatMultiplierOverride(statKey, slot, gameValue) {
         if (locked) {
             return override;
         }
-        statOverrideBaselines.set(cacheKey, gameValue);
-        clearStatMultiplierOverride(statKey, slot);
-        return null;
     }
 
     return override;
