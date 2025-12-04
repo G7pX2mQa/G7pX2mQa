@@ -147,7 +147,7 @@ export function createSpawner({
         el.style.height = `${coinSize}px`;
         el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
         el.style.borderRadius = '50%';
-        el.style.pointerEvents = 'none';
+        el.style.pointerEvents = 'auto';
         el.style.willChange = 'transform, opacity';
         el.style.contain = 'layout paint style size';
         if (enableDropShadow)
