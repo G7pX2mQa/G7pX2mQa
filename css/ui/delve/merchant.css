@@ -641,7 +641,7 @@
 .merchant-reset__list {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 12px;
   padding-bottom: 24px;
 }
 
