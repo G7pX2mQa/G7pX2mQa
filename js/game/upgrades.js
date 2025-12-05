@@ -17,6 +17,8 @@ import {
   onForgeUpgradeUnlocked,
   isForgeUnlocked,
   hasDoneForgeReset,
+  onInfuseUpgradeUnlocked,
+  isInfuseUnlocked,
 } from '../ui/merchantDelve/resetTab.js';
 
 export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
@@ -150,6 +152,7 @@ export const UPGRADE_TIES = {
   MP_VALUE_I: 'gold_3',
   MAGNET: 'gold_4',
   ENDLESS_XP: 'coin_3',
+  UNLOCK_INFUSE: 'none_3',
 };
 
 const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.webp';
@@ -166,6 +169,7 @@ const FORGE_PLACEHOLDER_TIES = new Set([
 const SPECIAL_LOCK_STATE_TIES = new Set([
   UPGRADE_TIES.UNLOCK_XP,
   UPGRADE_TIES.UNLOCK_FORGE,
+  UPGRADE_TIES.UNLOCK_INFUSE,
   ...FORGE_PLACEHOLDER_TIES,
 ]);
 const XP_MYSTERY_UPGRADE_TIES = new Set([
@@ -627,6 +631,39 @@ function determineLockState(ctx) {
       };
     }
     // XP ≥ 31 -> visible/unlocked
+    return { locked: false };
+  }
+
+  // ==== Unlock Infuse ====
+  if (tieKey === UPGRADE_TIES.UNLOCK_INFUSE) {
+    if (!hasDoneForgeReset()) {
+      return {
+        locked: true,
+        iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+        useLockedBase: true,
+        hidden: true,
+        hideCost: true,
+        hideEffect: true,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: 'Do a Forge reset to reveal this upgrade',
+        reason: 'Do a Forge reset to reveal this upgrade',
+      };
+    }
+
+    let xp101 = false;
+    try { const xpBn = currentXpLevelBigNum(); xp101 = levelBigNumToNumber(xpBn) >= 101; } catch {}
+    if (!xp101) {
+      const revealText = (upgRef?.revealRequirement) || 'Reach XP Level 101 to reveal this upgrade';
+      return {
+        locked: true,
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+        hidden: true,
+        hideCost: true, hideEffect: true, useLockedBase: true,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: revealText,
+        reason: revealText,
+      };
+    }
     return { locked: false };
   }
 
@@ -2507,6 +2544,28 @@ const REGISTRY = [
       return `XP value bonus: ${formatMultForUi(total)}x`;
     },
     effectMultiplier: E.powPerLevel(1.1),
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 13,
+    tie: UPGRADE_TIES.UNLOCK_INFUSE,
+    title: "Unlock Infuse",
+    desc: "Unlocks the Infuse reset in the Delve menu",
+    lvlCap: 1,
+    upgType: "NM",
+    icon: "misc/infuse.webp",
+    baseIconOverride: "img/misc/infuse_base.webp",
+    requiresUnlockXp: true,
+    revealRequirement: 'Reach XP Level 101 to reveal this upgrade',
+    unlockUpgrade: true,
+    costAtLevel() { return BigNum.fromInt(0); },
+    nextCostAfter() { return BigNum.fromInt(0); },
+    computeLockState: determineLockState,
+    onLevelChange({ newLevel }) {
+      if ((newLevel ?? 0) >= 1) {
+        try { onInfuseUpgradeUnlocked(); } catch {}
+      }
+    },
   },
 ];
 
