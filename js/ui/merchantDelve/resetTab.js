@@ -29,6 +29,8 @@ import {
   isMutationUnlocked,
   getMutationCoinSprite,
   onMutationChange,
+  getMutationState,
+  getTotalCumulativeMp,
 } from '../../game/mutationSystem.js';
 
 const BN = BigNum;
@@ -36,7 +38,9 @@ const bnZero = () => BN.fromInt(0);
 const bnOne = () => BN.fromInt(1);
 
 const GOLD_ICON_SRC = 'img/currencies/gold/gold.webp';
+const MAGIC_ICON_SRC = 'img/currencies/magic/magic.webp';
 const RESET_ICON_SRC = 'img/misc/forge.webp';
+const INFUSE_ICON_SRC = 'img/misc/infuse.webp';
 const FORGE_RESET_SOUND_SRC = 'sounds/forge_reset.ogg';
 
 let forgeResetAudio = null;
@@ -56,9 +60,11 @@ const FORGE_COMPLETED_KEY = (slot) => `ccc:reset:forge:completed:${slot}`;
 const FORGE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:forgeUnlocked:${slot}`;
 
 const INFUSE_UNLOCK_KEY = (slot) => `ccc:reset:infuse:${slot}`;
+const INFUSE_COMPLETED_KEY = (slot) => `ccc:reset:infuse:completed:${slot}`;
 const INFUSE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:infuseUnlocked:${slot}`;
 
 const MIN_FORGE_LEVEL = BN.fromInt(31);
+const MIN_INFUSE_MUTATION_LEVEL = BN.fromInt(7);
 
 const resetState = {
   slot: null,
@@ -67,13 +73,16 @@ const resetState = {
   hasDoneForgeReset: false,
   infuseUnlocked: false,
   infuseDebugOverride: null,
+  hasDoneInfuseReset: false,
   pendingGold: bnZero(),
+  pendingMagic: bnZero(),
   panel: null,
   pendingEl: null,
   requirementEl: null,
   actionBtn: null,
   statusEl: null,
   layerButtons: {},
+  activeLayer: 'forge',
   flagsPrimed: false,
 };
 
@@ -124,6 +133,7 @@ function ensureValueListeners() {
       if (detail?.key && detail.key !== CURRENCIES.COINS) return;
       if (detail?.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
       recomputePendingGold();
+      recomputePendingMagic();
     });
   }
   if (!xpChangeUnsub && typeof onXpChange === 'function') {
@@ -186,8 +196,68 @@ function computeForgeGold(coinsBn, levelBn) {
   return floored.isZero?.() ? bnZero() : floored;
 }
 
+// magic = math.floor(2 * 2**(math.log10(coins/1e11)) * 1.10**(math.floor(math.log10(coins/1e11))) * (1 + mp_progress/10000)**1.2)
+function computeInfuseMagic(coinsBn, cumulativeMpBn) {
+  if (!coinsBn || coinsBn.isZero?.()) return bnZero();
+
+  const threshold = BN.fromAny('1e11');
+  if (coinsBn.cmp(threshold) < 0) return bnZero();
+
+  const logCoins = approxLog10BigNum(coinsBn);
+  if (!Number.isFinite(logCoins)) return BN.fromAny('Infinity');
+
+  const logRatio = logCoins - 11; // log10(coins / 1e11)
+  if (logRatio < 0) return bnZero();
+
+  // Term A: 2 * 2**logRatio
+  // log10(TermA) = log10(2) + logRatio * log10(2)
+  const log2 = Math.log10(2);
+  const logTermA = log2 + (logRatio * log2);
+
+  // Term B: 1.10**(floor(logRatio))
+  // log10(TermB) = floor(logRatio) * log10(1.10)
+  const log1_1 = Math.log10(1.10);
+  const floorLogRatio = Math.floor(logRatio);
+  const logTermB = floorLogRatio * log1_1;
+
+  // Term C: (1 + mp_progress/10000)**1.2
+  // log10(TermC) = 1.2 * log10(1 + mp_progress/10000)
+  let logTermC = 0;
+  if (cumulativeMpBn && !cumulativeMpBn.isZero?.()) {
+    const logMp = approxLog10BigNum(cumulativeMpBn);
+    
+    // Check if MP is large enough that 1+MP/10000 approx MP/10000
+    if (Number.isFinite(logMp) && logMp > 6) {
+       // log10(MP/10000) = logMp - 4
+       logTermC = 1.2 * (logMp - 4);
+    } else {
+       // Precise calculation for small MP
+       try {
+         const mpVal = Number(cumulativeMpBn.toPlainIntegerString());
+         if (Number.isFinite(mpVal)) {
+            logTermC = 1.2 * Math.log10(1 + mpVal / 10000);
+         } else {
+            // Fallback
+            logTermC = 1.2 * (logMp - 4);
+         }
+       } catch {
+         logTermC = 1.2 * (logMp - 4);
+       }
+    }
+  }
+
+  const totalLog = logTermA + logTermB + logTermC;
+  if (!Number.isFinite(totalLog)) return BN.fromAny('Infinity');
+  
+  return bigNumFromLog10(totalLog).floorToInteger();
+}
+
 export function computeForgeGoldFromInputs(coinsBn, levelBn) {
   return computeForgeGold(coinsBn, levelBn);
+}
+
+export function computeInfuseMagicFromInputs(coinsBn, cumulativeMpBn) {
+  return computeInfuseMagic(coinsBn, cumulativeMpBn);
 }
 
 function getXpLevelNumber() {
@@ -208,6 +278,14 @@ export function setForgeResetCompleted(value) {
   try { localStorage.setItem(FORGE_COMPLETED_KEY(slot), resetState.hasDoneForgeReset ? '1' : '0'); }
   catch {}
   try { window.dispatchEvent(new CustomEvent('forge:completed', { detail: { slot } })); }
+  catch {}
+}
+
+export function setInfuseResetCompleted(value) {
+  const slot = ensureResetSlot();
+  if (slot == null) return;
+  resetState.hasDoneInfuseReset = !!value;
+  try { localStorage.setItem(INFUSE_COMPLETED_KEY(slot), resetState.hasDoneInfuseReset ? '1' : '0'); }
   catch {}
 }
 
@@ -306,6 +384,7 @@ function readPersistentFlags(slot) {
     resetState.hasDoneForgeReset = false;
     resetState.infuseUnlocked = false;
     resetState.infuseDebugOverride = null;
+    resetState.hasDoneInfuseReset = false;
     resetState.flagsPrimed = false;
     return;
   }
@@ -324,6 +403,11 @@ function readPersistentFlags(slot) {
     resetState.infuseUnlocked = localStorage.getItem(INFUSE_UNLOCK_KEY(slot)) === '1';
   } catch {
     resetState.infuseUnlocked = false;
+  }
+  try {
+    resetState.hasDoneInfuseReset = localStorage.getItem(INFUSE_COMPLETED_KEY(slot)) === '1';
+  } catch {
+    resetState.hasDoneInfuseReset = false;
   }
   resetState.infuseDebugOverride = getInfuseDebugOverride(slot);
   resetState.flagsPrimed = true;
@@ -391,6 +475,15 @@ function bindStorageWatchers(slot) {
       }
     },
   }));
+  watchers.push(watchStorageKey(INFUSE_COMPLETED_KEY(slot), {
+    onChange(value) {
+      const next = value === '1';
+      if (resetState.hasDoneInfuseReset !== next) {
+        resetState.hasDoneInfuseReset = next;
+        updateResetPanel();
+      }
+    },
+  }));
   watchers.push(watchStorageKey(INFUSE_DEBUG_OVERRIDE_KEY(slot), {
     onChange(value) {
       let next = null;
@@ -433,6 +526,18 @@ function recomputePendingGold(force = false) {
   updateResetPanel();
 }
 
+function recomputePendingMagic() {
+  const coins = bank.coins?.value ?? bnZero();
+  const cumulativeMp = getTotalCumulativeMp();
+  
+  if (!meetsInfuseRequirement()) {
+    resetState.pendingMagic = bnZero();
+  } else {
+    resetState.pendingMagic = computeInfuseMagic(coins, cumulativeMp);
+  }
+  updateResetPanel();
+}
+
 
 function canAccessForgeTab() {
   const override = getForgeDebugOverride();
@@ -445,6 +550,16 @@ function meetsLevelRequirement() {
     const levelBn = getXpLevelBn();
     if (levelBn && typeof levelBn.cmp === 'function') {
       return levelBn.cmp(MIN_FORGE_LEVEL) >= 0;
+    }
+  } catch {}
+  return false;
+}
+
+function meetsInfuseRequirement() {
+  try {
+    const mState = getMutationState();
+    if (mState && mState.level && typeof mState.level.cmp === 'function') {
+      return mState.level.cmp(MIN_INFUSE_MUTATION_LEVEL) >= 0;
     }
   } catch {}
   return false;
@@ -469,6 +584,11 @@ export function hasDoneForgeReset() {
   return !!resetState.hasDoneForgeReset;
 }
 
+export function hasDoneInfuseReset() {
+  ensurePersistentFlagsPrimed();
+  return !!resetState.hasDoneInfuseReset;
+}
+
 
 export function computePendingForgeGold() {
   recomputePendingGold();
@@ -484,15 +604,31 @@ export function canPerformForgeReset() {
   return true;
 }
 
-function resetUpgrades() {
+export function canPerformInfuseReset() {
+  if (!isInfuseUnlocked()) return false;
+  if (!meetsInfuseRequirement()) return false;
+  if (resetState.pendingMagic.isZero?.()) return false;
+  const coins = bank.coins?.value;
+  if (!coins || coins.isZero?.()) return false;
+  return true;
+}
+
+function resetUpgrades({ resetGold = false } = {}) {
   const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
   for (const upg of upgrades) {
     if (!upg) continue;
     const tieKey = upg.tieKey || upg.tie;
     if (tieKey === UPGRADE_TIES.UNLOCK_XP || tieKey === UPGRADE_TIES.UNLOCK_FORGE || tieKey === UPGRADE_TIES.UNLOCK_INFUSE) continue;
-    if (upg.costType === 'gold') continue;
+    if (upg.costType === 'gold' && !resetGold) continue;
     setLevel(AREA_KEYS.STARTER_COVE, upg.id, 0, true, { resetHmEvolutions: true });
   }
+}
+
+function applyForgeResetEffects({ resetGold = false } = {}) {
+  try { bank.coins.set(0); } catch {}
+  try { bank.books.set(0); } catch {}
+  try { resetXpProgress({ keepUnlock: true }); } catch {}
+  resetUpgrades({ resetGold });
 }
 
 export function performForgeReset() {
@@ -504,10 +640,9 @@ export function performForgeReset() {
       bank.gold.add(withMultiplier);
     }
   } catch {}
-  try { bank.coins.set(0); } catch {}
-  try { bank.books.set(0); } catch {}
-  try { resetXpProgress({ keepUnlock: true }); } catch {}
-  resetUpgrades();
+  
+  applyForgeResetEffects({ resetGold: false });
+
   recomputePendingGold();
   setForgeUnlocked(true);
   if (!resetState.hasDoneForgeReset) {
@@ -519,12 +654,57 @@ export function performForgeReset() {
   return true;
 }
 
+export function performInfuseReset() {
+  if (!canPerformInfuseReset()) return false;
+  const reward = resetState.pendingMagic.clone?.() ?? resetState.pendingMagic;
+  try {
+    if (bank.magic?.add) {
+       bank.magic.add(reward);
+    }
+  } catch {}
+
+  applyForgeResetEffects({ resetGold: true });
+
+  try { bank.gold.set(0); } catch {}
+  
+  // Reset MP
+  try {
+     // Force mutation level and progress to 0, but keep unlocked
+     // We can use setMutationUnlockedForDebug(true) to reset it if it reinits?
+     // Or we need a way to reset MP progress/level specifically.
+     // In mutationSystem.js, readStateFromStorage calls applyState.
+     // We should probably just manually set storage and force reload or expose a reset function.
+     // Currently no explicit reset function in mutationSystem.js for level/progress.
+     // But `unlockMutationSystem()` calls `initMutationSystem()`.
+     // We can just wipe storage keys and re-init.
+     const slot = getActiveSlot();
+     const KEY_LEVEL = (s) => `ccc:mutation:level:${s}`;
+     const KEY_PROGRESS = (s) => `ccc:mutation:progress:${s}`;
+     localStorage.setItem(KEY_LEVEL(slot), '0');
+     localStorage.setItem(KEY_PROGRESS(slot), '0');
+     // Force reload mutation system to pick up the 0s
+     initMutationSystem({ forceReload: true });
+  } catch {}
+
+  recomputePendingGold();
+  recomputePendingMagic();
+  
+  setInfuseUnlocked(true);
+  if (!resetState.hasDoneInfuseReset) {
+    setInfuseResetCompleted(true);
+  }
+
+  updateResetPanel();
+  return true;
+}
+
 function formatBn(value) {
   try { return formatNumber(value); }
   catch { return value?.toString?.() ?? '0'; }
 }
 
 function setLayerActive(layer) {
+  resetState.activeLayer = layer;
   for (const key in resetState.layerButtons) {
     resetState.layerButtons[key].classList.toggle('is-active', key === layer);
   }
@@ -538,18 +718,22 @@ function buildPanel(panelEl) {
           <img src="${RESET_ICON_SRC}" alt="">
           <span>Forge</span>
         </button>
+        <button type="button" class="merchant-reset__layer" data-reset-layer="infuse" style="display:none">
+          <img src="${INFUSE_ICON_SRC}" alt="">
+          <span>Infuse</span>
+        </button>
       </aside>
       <div class="merchant-reset__main">
         <div class="merchant-reset__layout">
           <header class="merchant-reset__header">
             <div class="merchant-reset__titles">
-              <h3>Forge</h3>
+              <h3 data-reset-title>Forge</h3>
             </div>
           </header>
 
           <div class="merchant-reset__content">
             <div class="merchant-reset__titles">
-              <p>
+              <p data-reset-desc>
                 Resets Coins, Books, XP, Coin upgrades, and Book upgrades for Gold<br>
                 Increase pending Gold amount by increasing Coins and XP Level<br>
                 The button below shows how much Gold you will get upon reset
@@ -562,7 +746,7 @@ function buildPanel(panelEl) {
             <button type="button" class="merchant-reset__action" data-reset-action>
               <span class="merchant-reset__action-plus">+</span>
               <span class="merchant-reset__action-icon">
-                <img src="${GOLD_ICON_SRC}" alt="">
+                <img src="${GOLD_ICON_SRC}" alt="" data-reset-icon-img>
               </span>
               <span class="merchant-reset__action-amount" data-reset-pending>0</span>
             </button>
@@ -576,9 +760,15 @@ function buildPanel(panelEl) {
   resetState.statusEl = panelEl.querySelector('[data-reset-status]');
   resetState.actionBtn = panelEl.querySelector('[data-reset-action]');
   resetState.mainEl = panelEl.querySelector('.merchant-reset__main');
+  resetState.titleEl = panelEl.querySelector('[data-reset-title]');
+  resetState.descEl = panelEl.querySelector('[data-reset-desc]');
+  resetState.iconImgEl = panelEl.querySelector('[data-reset-icon-img]');
+  
   resetState.layerButtons = {
     forge: panelEl.querySelector('[data-reset-layer="forge"]'),
+    infuse: panelEl.querySelector('[data-reset-layer="infuse"]'),
   };
+  
   Object.entries(resetState.layerButtons).forEach(([key, btn]) => {
     if (!btn) return;
     btn.addEventListener('click', () => {
@@ -586,14 +776,22 @@ function buildPanel(panelEl) {
       updateResetPanel();
     });
   });
+  
   if (resetState.actionBtn) {
-  resetState.actionBtn.addEventListener('click', () => {
-    if (performForgeReset()) {
-      playForgeResetSound();
-      updateResetPanel();
-    }
-  });
-}
+    resetState.actionBtn.addEventListener('click', () => {
+      if (resetState.activeLayer === 'infuse') {
+         if (performInfuseReset()) {
+           playForgeResetSound(); // Reuse sound?
+           updateResetPanel();
+         }
+      } else {
+         if (performForgeReset()) {
+           playForgeResetSound();
+           updateResetPanel();
+         }
+      }
+    });
+  }
   updateResetPanel();
 }
 
@@ -607,7 +805,11 @@ function updatePendingDisplay() {
   if (!resetState.actionBtn) return;
   const amountEl = resetState.actionBtn.querySelector('[data-reset-pending]');
   if (amountEl) {
-    amountEl.innerHTML = formatBn(getPendingGoldWithMultiplier());
+    if (resetState.activeLayer === 'infuse') {
+       amountEl.innerHTML = formatBn(resetState.pendingMagic);
+    } else {
+       amountEl.innerHTML = formatBn(getPendingGoldWithMultiplier());
+    }
   }
 }
 
@@ -616,7 +818,21 @@ function updateStatusDisplay() {
   const el = resetState.statusEl;
   el.innerHTML = '';
 
-  // Make sure we know if the player has already forged
+  if (resetState.activeLayer === 'infuse') {
+     // Infuse Status
+     ensurePersistentFlagsPrimed();
+     if (resetState.hasDoneInfuseReset) return;
+     el.innerHTML = `
+      <span style="color:#b266ff; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+        Infusing for the first time will unlock new Shop upgrades, a new Merchant dialogue, and a new tab in the Delve menu: <span style="color:#c68cff">Workshop</span><br>
+        This new tab will allow you to passively generate Gears<br>
+        Spend Gears on new upgrades in the Shop to automate various things
+      </span>
+     `;
+     return;
+  }
+
+  // Forge Status
   ensurePersistentFlagsPrimed();
   resetState.mainEl?.classList.toggle('is-forge-complete', !!resetState.hasDoneForgeReset);
   if (resetState.hasDoneForgeReset) {
@@ -635,8 +851,71 @@ function updateStatusDisplay() {
 
 function updateActionState() {
   if (!resetState.actionBtn) return;
+  
+  // Show/Hide sidebar buttons based on unlock state
+  if (resetState.layerButtons.infuse) {
+    if (isInfuseUnlocked()) {
+      resetState.layerButtons.infuse.style.display = 'flex';
+    } else {
+      resetState.layerButtons.infuse.style.display = 'none';
+      if (resetState.activeLayer === 'infuse') {
+         setLayerActive('forge');
+      }
+    }
+  }
 
   const btn = resetState.actionBtn;
+  const isInfuse = resetState.activeLayer === 'infuse';
+  
+  if (isInfuse) {
+      if (resetState.mainEl) {
+          resetState.mainEl.classList.remove('is-forge-complete');
+          resetState.mainEl.classList.add('is-infuse');
+      }
+      if (resetState.titleEl) resetState.titleEl.innerText = 'Infuse';
+      if (resetState.descEl) {
+         resetState.descEl.innerHTML = `
+            Resets everything Forge does as well as Gold, MP, and Gold upgrades for Magic<br>
+            Increase pending Magic amount by increasing Coins and MP
+         `;
+      }
+      if (resetState.iconImgEl) resetState.iconImgEl.src = MAGIC_ICON_SRC;
+
+      if (!meetsInfuseRequirement()) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="merchant-reset__req-msg">Reach Mutation Level 7 to perform an Infuse reset</span>';
+        return;
+      }
+      
+      if (resetState.pendingMagic.isZero?.()) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="merchant-reset__req-msg">Collect more coins to earn Magic from an Infuse reset</span>';
+        return;
+      }
+      
+      btn.disabled = false;
+      btn.innerHTML = `
+        <span class="merchant-reset__action-plus">+</span>
+        <span class="merchant-reset__action-icon"><img src="${MAGIC_ICON_SRC}" alt=""></span>
+        <span class="merchant-reset__action-amount" data-reset-pending>${formatBn(resetState.pendingMagic)}</span>
+      `;
+
+      return;
+  }
+
+  // Forge Logic
+  if (resetState.mainEl) {
+      resetState.mainEl.classList.remove('is-infuse');
+  }
+  if (resetState.titleEl) resetState.titleEl.innerText = 'Forge';
+  if (resetState.descEl) {
+      resetState.descEl.innerHTML = `
+        Resets Coins, Books, XP, Coin upgrades, and Book upgrades for Gold<br>
+        Increase pending Gold amount by increasing Coins and XP Level<br>
+        The button below shows how much Gold you will get upon reset
+      `;
+  }
+  if (resetState.iconImgEl) resetState.iconImgEl.src = GOLD_ICON_SRC;
 
   // Requirement failures redirect message to the button itself:
   if (!isForgeUnlocked()) {
@@ -690,6 +969,7 @@ function bindGlobalEvents() {
   window.addEventListener('currency:change', (e) => {
     if (e.detail?.key === 'coins') {
       recomputePendingGold();
+      recomputePendingMagic();
     }
   });
   window.addEventListener('currency:multiplier', (e) => {
@@ -702,10 +982,15 @@ function bindGlobalEvents() {
     recomputePendingGold();
     updateResetPanel();
   });
+  window.addEventListener('mutation:change', () => {
+    recomputePendingMagic();
+    updateResetPanel();
+  });
   window.addEventListener('debug:change', (e) => {
     if (e?.detail?.slot != null && resetState.slot != null && e.detail.slot !== resetState.slot) return;
     resetPendingGoldSignature();
     recomputePendingGold(true);
+    recomputePendingMagic();
     updateResetPanel();
   });
 }
@@ -716,6 +1001,7 @@ export function initResetSystem() {
     resetPendingGoldSignature();
     ensureValueListeners();
     recomputePendingGold(true);
+    recomputePendingMagic();
     return;
   }
   initialized = true;
@@ -734,6 +1020,7 @@ export function initResetSystem() {
   ensureValueListeners();
   bindGlobalEvents();
   recomputePendingGold(true);
+  recomputePendingMagic();
   if (mutationUnsub) {
     try { mutationUnsub(); } catch {}
     mutationUnsub = null;
@@ -759,6 +1046,7 @@ export function initResetSystem() {
       bindStorageWatchers(nextSlot);
       ensureValueListeners();
       recomputePendingGold(true);
+      recomputePendingMagic();
       updateResetPanel();
     });
   }
@@ -769,6 +1057,7 @@ if (typeof window !== 'undefined') {
   Object.assign(window.resetSystem, {
     initResetSystem,
     performForgeReset,
+    performInfuseReset,
     computePendingForgeGold,
   });
 }
