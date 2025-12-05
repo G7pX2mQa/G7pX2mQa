@@ -292,6 +292,7 @@ export const CURRENCIES = {
   COINS: 'coins',
   BOOKS: 'books',
   GOLD: 'gold',
+  MAGIC: 'magic',
 };
 
 export function getActiveSlot() {
