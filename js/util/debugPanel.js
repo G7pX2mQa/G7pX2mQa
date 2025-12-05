@@ -2124,6 +2124,27 @@ function getUnlockRowDefinitions(slot) {
             },
             slot,
         },
+        {
+            labelText: 'Unlock Infuse Reset',
+            description: 'If true, marks the first Infuse reset as completed',
+            isUnlocked: () => {
+                try { return hasDoneInfuseReset(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setInfuseResetCompleted(true); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setInfuseResetCompleted(false); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+            slot,
+        },
 		{
             labelText: 'Unlock MP',
             description: 'If true, unlocks the MP system',
