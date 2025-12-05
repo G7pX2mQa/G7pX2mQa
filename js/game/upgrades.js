@@ -2250,7 +2250,7 @@ const REGISTRY = [
     baseCost: 10,
     costType: "coins",
     upgType: "NM",
-    icon: "sc_upgrade_icons/faster_coins.webp",
+    icon: "sc_upgrade_icons/faster_coins1.webp",
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     effectSummary(level) {
