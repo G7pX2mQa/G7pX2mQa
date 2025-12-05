@@ -641,10 +641,10 @@ function determineLockState(ctx) {
         locked: true,
         iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
         useLockedBase: true,
-        hidden: true,
+        hidden: false,
         hideCost: true,
         hideEffect: true,
-        titleOverride: HIDDEN_UPGRADE_TITLE,
+        titleOverride: LOCKED_UPGRADE_TITLE,
         descOverride: 'Do a Forge reset to reveal this upgrade',
         reason: 'Do a Forge reset to reveal this upgrade',
       };
