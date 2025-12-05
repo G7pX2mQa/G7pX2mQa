@@ -2284,7 +2284,7 @@ function setAllUnlockToggles(targetState) {
     return toggled;
 }
 
-function unlockAllUnlockUpgrades() {
+function unlockAllUnlocks() {
     const slot = getActiveSlot();
     if (slot == null) return { unlocks: 0, toggles: 0 };
     let unlocked = 0;
@@ -2866,7 +2866,7 @@ function buildMiscContent(content) {
         {
             label: 'Unlock All Unlocks',
             onClick: () => {
-                const { unlocks, toggles } = unlockAllUnlockUpgrades();
+                const { unlocks, toggles } = unlockAllUnlocks();
                 flagDebugUsage();
                 logAction(`Unlocked all unlock-type upgrades (${unlocks} entries) and unlock flags (${toggles} toggled).`);
             },
