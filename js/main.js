@@ -477,7 +477,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	  'img/currencies/gold/gold.webp',
       'img/currencies/gold/gold_base.webp',
       'img/currencies/gold/gold_plus_base.webp',
-      'img/sc_upg_icons/faster_coins.webp',
+      'img/sc_upg_icons/faster_coins1.webp',
       'img/sc_upg_icons/book_val1.webp',
       'img/sc_upg_icons/coin_val1.webp',
       'img/sc_upg_icons/xp_val1.webp',
