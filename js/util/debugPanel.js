@@ -29,7 +29,7 @@ import {
     clearPermanentUpgradeUnlock,
     setLevel,
 } from '../game/upgrades.js';
-import { computeForgeGoldFromInputs, getForgeDebugOverrideState, hasDoneForgeReset, isForgeUnlocked, setForgeDebugOverride, setForgeResetCompleted, updateResetPanel } from '../ui/merchantDelve/resetTab.js';
+import { computeForgeGoldFromInputs, getForgeDebugOverrideState, hasDoneForgeReset, isForgeUnlocked, setForgeDebugOverride, setForgeResetCompleted, updateResetPanel, isInfuseUnlocked, setInfuseDebugOverride, getInfuseDebugOverrideState } from '../ui/merchantDelve/resetTab.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE } from '../ui/merchantDelve/dlgTab.js';
 import { markGhostTapTarget, shouldSkipGhostTap } from './ghostTapGuard.js';
@@ -2173,6 +2173,31 @@ function getUnlockRowDefinitions(slot) {
                 try { updateResetPanel(); }
                 catch {}
             },
+        },
+        {
+            labelText: 'Unlock Infuse',
+            description: 'If true, unlocks the Infuse reset',
+            isUnlocked: () => {
+                try {
+                    const override = getInfuseDebugOverrideState();
+                    if (override != null) return override;
+                } catch {}
+                try { return !!isInfuseUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setInfuseDebugOverride(true); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setInfuseDebugOverride(false); }
+                catch {}
+                try { updateResetPanel(); }
+                catch {}
+            },
+            slot,
         },
         {
             labelText: 'Unlock Shop',
