@@ -620,21 +620,29 @@
 .merchant-panel { display: none; }
 .merchant-panel.is-active { display: block; }
 
+/* Reset Tab Layout */
 .merchant-reset {
   display: grid;
-  grid-template-columns:
-    minmax(140px, 160px)
-    minmax(0, 1fr)
-    minmax(140px, 160px);
+  grid-template-columns: minmax(140px, 160px) minmax(0, 1fr);
   gap: 16px;
-  align-items: stretch;
+  align-items: start;
 }
 
-
+/* Sticky Sidebar */
 .merchant-reset__sidebar {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.merchant-reset__list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-bottom: 24px;
 }
 
 .merchant-reset__layer {
@@ -657,16 +665,19 @@
   object-fit: contain;
 }
 
-.merchant-reset__layer.is-active {
+/* Permanently colored sidebar buttons */
+.merchant-reset__layer[data-reset-layer="forge"] {
   background: linear-gradient(180deg, rgba(255,169,0,0.4), rgba(255,115,0,0.25));
   box-shadow: inset 0 0 0 2px rgba(255,179,0,0.35);
 }
 
-.merchant-reset__main {
-  background:
-    linear-gradient(180deg,
-      hsl(36 88% 55% / 0.96),
-      hsl(26 70% 34% / 0.98));
+.merchant-reset__layer[data-reset-layer="infuse"] {
+  background: linear-gradient(180deg, rgba(160, 32, 240, 0.4), rgba(100, 20, 180, 0.25));
+  box-shadow: inset 0 0 0 2px rgba(180, 40, 255, 0.35);
+}
+
+/* Reset Card (Common) */
+.merchant-reset__card {
   border-radius: 18px;
   padding: 20px 22px 22px;
   display: flex;
@@ -678,7 +689,28 @@
   box-shadow:
     0 18px 40px hsl(215 75% 2% / 0.85),
     inset 0 1px 0 rgba(255,255,255,0.10);
+  scroll-margin-top: 10px; /* Offset for scrollIntoView */
+}
+
+/* Forge Theme */
+.merchant-reset__card:not(.is-infuse) {
+  background:
+    linear-gradient(180deg,
+      hsl(36 88% 55% / 0.96),
+      hsl(26 70% 34% / 0.98));
   border: 1px solid hsl(35 84% 55% / 0.85);
+}
+
+/* Infuse Theme */
+.merchant-reset__card.is-infuse {
+  background:
+    linear-gradient(180deg,
+      hsl(270 80% 55% / 0.96),
+      hsl(260 70% 34% / 0.98));
+  border: 1px solid hsl(270 80% 55% / 0.85);
+  box-shadow:
+    0 18px 40px hsl(260 75% 5% / 0.85),
+    inset 0 1px 0 rgba(255,255,255,0.10);
 }
 
 .merchant-reset__layout {
@@ -689,13 +721,27 @@
   height: 100%;
 }
 
-.merchant-reset__main.is-forge-complete {
+/* Compact State (Completed Resets) */
+.merchant-reset__card.is-forge-complete,
+.merchant-reset__card.is-complete {
   justify-content: flex-start;
   padding: 14px 18px 16px;
   min-height: 150px;
   gap: 10px;
 }
 
+.merchant-reset__card.is-forge-complete .merchant-reset__content,
+.merchant-reset__card.is-complete .merchant-reset__content {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.merchant-reset__card.is-forge-complete .merchant-reset__layout,
+.merchant-reset__card.is-complete .merchant-reset__layout {
+  height: auto;
+  grid-template-rows: auto auto auto;
+  gap: 8px;
+}
 
 .merchant-reset__content {
   display: flex;
@@ -704,17 +750,6 @@
   align-items: center;
   gap: 16px;
   text-align: center;
-}
-
-.merchant-reset__main.is-forge-complete .merchant-reset__content {
-  justify-content: flex-start;
-  gap: 10px;
-}
-
-.merchant-reset__main.is-forge-complete .merchant-reset__layout {
-  height: auto;
-  grid-template-rows: auto auto auto;
-  gap: 8px;                  /* tighter gap between header / body / button */
 }
 
 .merchant-reset__actions {
@@ -752,25 +787,10 @@
   align-self: center;
 }
 
-.merchant-reset__main.is-forge-complete .merchant-reset__titles p {
+.merchant-reset__card.is-forge-complete .merchant-reset__titles p,
+.merchant-reset__card.is-complete .merchant-reset__titles p {
   margin-top: 16px;
 }
-
-.merchant-reset__body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  align-items: center;
-  text-align: center;
-  justify-content: flex-start;
-  width: 100%;
-}
-
-/* Forge only: tighter body spacing so the button sits closer */
-.merchant-reset__main.is-forge-complete .merchant-reset__body {
-  gap: 4px;
-}
-
 
 .merchant-reset__status {
   color: #f0f8ff;
@@ -782,7 +802,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  margin-inline: auto;        /* center the description without shifting siblings */
+  margin-inline: auto;
 }
 
 .merchant-reset__status:empty {
@@ -790,15 +810,11 @@
   min-height: 44px;
 }
 
-.merchant-reset__main.is-forge-complete .merchant-reset__status,
-.merchant-reset__main.is-forge-complete .merchant-reset__status:empty {
+.merchant-reset__card.is-forge-complete .merchant-reset__status,
+.merchant-reset__card.is-forge-complete .merchant-reset__status:empty,
+.merchant-reset__card.is-complete .merchant-reset__status,
+.merchant-reset__card.is-complete .merchant-reset__status:empty {
   min-height: 0;
-}
-
-
-.merchant-reset__status:empty {
-  visibility: hidden;
-  min-height: 44px;
 }
 
 .merchant-reset__status strong {
@@ -818,14 +834,46 @@
   letter-spacing: 0.04em;
   border-radius: 999px;
   border: 0;
-  background: linear-gradient(180deg, hsl(36 95% 60%), hsl(28 85% 47%));
-  box-shadow:
-    0 6px 0 hsl(24 90% 20%),
-    0 0 0 3px hsl(24 96% 10% / 0.9);
   color: #ffffff;
   cursor: pointer;
   position: relative;
   user-select: none;
+}
+
+/* Forge Button */
+.merchant-reset__card:not(.is-infuse) .merchant-reset__action {
+  background: linear-gradient(180deg, hsl(36 95% 60%), hsl(28 85% 47%));
+  box-shadow:
+    0 6px 0 hsl(24 90% 20%),
+    0 0 0 3px hsl(24 96% 10% / 0.9);
+}
+
+.merchant-reset__card:not(.is-infuse) .merchant-reset__action:not(:disabled):hover,
+.merchant-reset__card:not(.is-infuse) .merchant-reset__action:not(:disabled):focus-visible {
+  background: linear-gradient(
+    180deg,
+    hsl(36 95% 63%),
+    hsl(28 85% 48%)
+  );
+  animation: forgeFirePulse 1.1s infinite ease-in-out;
+}
+
+/* Infuse Button */
+.merchant-reset__card.is-infuse .merchant-reset__action {
+  background: linear-gradient(180deg, hsl(270 95% 60%), hsl(260 85% 47%));
+  box-shadow:
+    0 6px 0 hsl(260 90% 20%),
+    0 0 0 3px hsl(260 96% 10% / 0.9);
+}
+
+.merchant-reset__card.is-infuse .merchant-reset__action:not(:disabled):hover,
+.merchant-reset__card.is-infuse .merchant-reset__action:not(:disabled):focus-visible {
+  background: linear-gradient(
+    180deg,
+    hsl(270 95% 63%),
+    hsl(260 85% 48%)
+  );
+  animation: infuseMagicPulse 1.1s infinite ease-in-out;
 }
 
 /* pieces inside + icon amount */
@@ -844,7 +892,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  top: 1.5px; /* nudge icon down slightly */
+  top: 1.5px;
 }
 
 .merchant-reset__action-icon img {
@@ -868,7 +916,7 @@
     0 1px 2px rgba(0,0,0,0.45);
 }
 
-/* text stroke / outline, mobile-safe like currency popups */
+/* text stroke / outline */
 .merchant-reset__action-plus,
 .merchant-reset__action-amount {
   text-shadow:
@@ -904,67 +952,6 @@
   }
 }
 
-.merchant-reset__action:not(:disabled):hover,
-.merchant-reset__action:not(:disabled):focus-visible {
-  background: linear-gradient(
-    180deg,
-    hsl(36 95% 63%),
-    hsl(28 85% 48%)
-  );
-
-  animation: forgeFirePulse 1.1s infinite ease-in-out;
-}
-
-.merchant-reset__action.disabled,
-.merchant-reset__action:disabled {
-    cursor: not-allowed !important;
-}
-
-@media (max-width: 900px) {
-  .merchant-reset {
-    grid-template-columns: 1fr;
-  }
-
-  .merchant-reset__sidebar {
-    flex-direction: row;
-    overflow-x: auto;
-  }
-
-  .merchant-reset__layer {
-    min-width: 140px;
-    justify-content: center;
-  }
-}
-
-/* Infuse Reset Theme */
-.merchant-reset__main.is-infuse {
-  background:
-    linear-gradient(180deg,
-      hsl(270 80% 55% / 0.96),
-      hsl(260 70% 34% / 0.98));
-  border: 1px solid hsl(270 80% 55% / 0.85);
-  box-shadow:
-    0 18px 40px hsl(260 75% 5% / 0.85),
-    inset 0 1px 0 rgba(255,255,255,0.10);
-}
-
-.merchant-reset__main.is-infuse .merchant-reset__action {
-  background: linear-gradient(180deg, hsl(270 95% 60%), hsl(260 85% 47%));
-  box-shadow:
-    0 6px 0 hsl(260 90% 20%),
-    0 0 0 3px hsl(260 96% 10% / 0.9);
-}
-
-.merchant-reset__main.is-infuse .merchant-reset__action:not(:disabled):hover,
-.merchant-reset__main.is-infuse .merchant-reset__action:not(:disabled):focus-visible {
-  background: linear-gradient(
-    180deg,
-    hsl(270 95% 63%),
-    hsl(260 85% 48%)
-  );
-  animation: infuseMagicPulse 1.1s infinite ease-in-out;
-}
-
 @keyframes infuseMagicPulse {
   0% {
     box-shadow:
@@ -983,5 +970,37 @@
       0 0 10px 2px hsl(270 100% 60% / 0.3),
       0 6px 0 hsl(260 90% 20%),
       0 0 0 3px hsl(260 96% 10% / 0.9);
+  }
+}
+
+.merchant-reset__action.disabled,
+.merchant-reset__action:disabled {
+    cursor: not-allowed !important;
+}
+
+/* Mobile Styling */
+@media (max-width: 900px) {
+  .merchant-reset {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Make sidebar horizontal scroll on mobile */
+  .merchant-reset__sidebar {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 8px; /* space for scrollbar if any */
+    position: sticky;
+    top: -12px; /* slight offset */
+    background: var(--merchant-bg); /* Opaque bg to cover content behind sticky header */
+    padding-top: 12px;
+    margin-top: -12px; /* Pull back to edge */
+    z-index: 10;
+  }
+
+  .merchant-reset__layer {
+    min-width: 140px;
+    justify-content: center;
+    flex-shrink: 0;
   }
 }
