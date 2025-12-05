@@ -419,7 +419,7 @@ function currencyIconHTML(type) {
 
 // 1×1 transparent WebP (fallback when an icon is missing)
 const TRANSPARENT_PX =
-  'data:image/webp;base64,UklGRiIAAABXRUJQVlA4WAoAAAAQAAAAEAgCdASoCAAIALGAcAA==';
+  "data:image/webp;base64,UklGRhIAAABXRUJQVlA4IBgAAAAwAQCdASoIAAIAAAAcJaQAA3AA";
 
 // Upgrades registry (minimal for now)
 let upgrades = {};
