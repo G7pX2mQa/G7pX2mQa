@@ -467,40 +467,71 @@ document.addEventListener('DOMContentLoaded', async () => {
   ]);
 
   const ASSET_MANIFEST = {
-    images: [
-      'img/currencies/coin/coin.webp',
-      'img/currencies/coin/coin_base.webp',
-      'img/currencies/coin/coin_plus_base.webp',
-      'img/currencies/book/book.webp',
-      'img/currencies/book/book_base.webp',
-      'img/currencies/book/book_plus_base.webp',
-	  'img/currencies/gold/gold.webp',
-      'img/currencies/gold/gold_base.webp',
-      'img/currencies/gold/gold_plus_base.webp',
-      'img/sc_upg_icons/faster_coins1.webp',
-      'img/sc_upg_icons/book_val1.webp',
-      'img/sc_upg_icons/coin_val1.webp',
-      'img/sc_upg_icons/xp_val1.webp',
-	  'img/sc_upg_icons/faster_coins2.webp',
-      'img/sc_upg_icons/coin_val2.webp',
-      'img/sc_upg_icons/xp_val2.webp',
-	  'img/sc_upg_icons/mp_val1.webp',
-	  'img/sc_upg_icons/magnet.webp',
-	  'img/sc_upg_icons/xp_val_hm.webp',
-      'img/stats/xp/xp.webp',
-      'img/stats/xp/xp_base.webp',
-      'img/stats/xp/xp_plus_base.webp',
-	  'img/stats/mp/mp.webp',
-      'img/stats/mp/mp_base.webp',
-      'img/stats/mp/mp_plus_base.webp',
-	  'img/misc/forge.webp',
-      'img/misc/locked.webp',
-      'img/misc/locked_base.webp',
-      'img/misc/maxed.webp',
-	  'img/misc/merchant.webp',
-      'img/misc/mysterious.webp',
-      ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.webp`),
-    ],
+images: [
+  // ==== img/currencies/book ====
+  'img/currencies/book/book.webp',
+  'img/currencies/book/book_base.webp',
+  'img/currencies/book/book_plus_base.webp',
+
+  // ==== img/currencies/coin ====
+  'img/currencies/coin/coin.webp',
+  'img/currencies/coin/coin_base.webp',
+  'img/currencies/coin/coin_plus_base.webp',
+
+  // ==== img/currencies/gear ====
+  'img/currencies/gear/gear.webp',
+  'img/currencies/gear/gear_base.webp',
+  'img/currencies/gear/gear_plus_base.webp',
+
+  // ==== img/currencies/gold ====
+  'img/currencies/gold/gold.webp',
+  'img/currencies/gold/gold_base.webp',
+  'img/currencies/gold/gold_plus_base.webp',
+
+  // ==== img/currencies/magic ====
+  'img/currencies/magic/magic.webp',
+  'img/currencies/magic/magic_base.webp',
+  'img/currencies/magic/magic_plus_base.webp',
+
+  // ==== img/misc ====
+  'img/misc/forge.webp',
+  'img/misc/infuse.webp',
+  'img/misc/infuse_base.webp',
+  'img/misc/locked.webp',
+  'img/misc/locked_base.webp',
+  'img/misc/maxed.webp',
+  'img/misc/merchant.webp',
+  'img/misc/mysterious.webp',
+
+  // ==== img/mutations ====
+  ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.webp`),
+
+  // ==== img/sc_upg_icons ====
+  'img/sc_upg_icons/book_val1.webp',
+  'img/sc_upg_icons/coin_val1.webp',
+  'img/sc_upg_icons/coin_val2.webp',
+  'img/sc_upg_icons/faster_coins1.webp',
+  'img/sc_upg_icons/faster_coins2.webp',
+  'img/sc_upg_icons/faster_coins3.webp',
+  'img/sc_upg_icons/gold_val1.webp',
+  'img/sc_upg_icons/magnet.webp',
+  'img/sc_upg_icons/mp_val1.webp',
+  'img/sc_upg_icons/mp_val2.webp',
+  'img/sc_upg_icons/xp_val1.webp',
+  'img/sc_upg_icons/xp_val2.webp',
+  'img/sc_upg_icons/xp_val3.webp',
+  'img/sc_upg_icons/xp_val_hm.webp',
+
+  // ==== img/stats/mp ====
+  'img/stats/mp/mp.webp',
+  'img/stats/mp/mp_base.webp',
+  'img/stats/mp/mp_plus_base.webp',
+
+  // ==== img/stats/xp ====
+  'img/stats/xp/xp.webp',
+  'img/stats/xp/xp_base.webp',
+  'img/stats/xp/xp_plus_base.webp',
+],
     audio: [
       'sounds/coin_pickup.ogg',
       'sounds/wave_spawn.ogg',
