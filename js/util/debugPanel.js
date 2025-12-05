@@ -29,7 +29,7 @@ import {
     clearPermanentUpgradeUnlock,
     setLevel,
 } from '../game/upgrades.js';
-import { computeForgeGoldFromInputs, getForgeDebugOverrideState, hasDoneForgeReset, isForgeUnlocked, setForgeDebugOverride, setForgeResetCompleted, updateResetPanel, isInfuseUnlocked, setInfuseDebugOverride, getInfuseDebugOverrideState } from '../ui/merchantDelve/resetTab.js';
+import { computeForgeGoldFromInputs, computeInfuseMagicFromInputs, getForgeDebugOverrideState, hasDoneForgeReset, isForgeUnlocked, setForgeDebugOverride, setForgeResetCompleted, updateResetPanel, isInfuseUnlocked, setInfuseDebugOverride, getInfuseDebugOverrideState } from '../ui/merchantDelve/resetTab.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE } from '../ui/merchantDelve/dlgTab.js';
 import { markGhostTapTarget, shouldSkipGhostTap } from './ghostTapGuard.js';
@@ -281,6 +281,7 @@ function getAreas() {
                 { key: CURRENCIES.COINS, label: 'Coins' },
                 { key: CURRENCIES.BOOKS, label: 'Books' },
                 { key: CURRENCIES.GOLD,  label: 'Gold'  },
+                { key: CURRENCIES.MAGIC, label: 'Magic' },
             ],
             stats: [
                 { key: 'xp', label: 'XP' },
@@ -1682,9 +1683,8 @@ function buildAreaCurrencies(container, area) {
         const currencyRow = createInputRow(currency.label, current, (value, { setValue }) => {
             const latestSlot = getActiveSlot();
             if (latestSlot == null) return;
-            if (latestSlot !== slot) return;
-
-            const { previous, next } = applyCurrencyState(currency.key, value, latestSlot);
+            const previous = getCurrencyValueForSlot(currency.key, latestSlot);
+            const { next } = applyCurrencyState(currency.key, value, latestSlot);
             setValue(next);
             if (!bigNumEquals(previous, next)) {
                 flagDebugUsage();
@@ -2634,6 +2634,14 @@ function buildAreaCalculators(container) {
                         { key: 'xpLevel', label: 'XP Level' },
                     ],
                     compute: ({ coins, xpLevel }) => computeForgeGoldFromInputs(coins, xpLevel),
+                },
+                {
+                    label: 'Pending Magic (Infuse)',
+                    inputs: [
+                        { key: 'coins', label: 'Coins' },
+                        { key: 'mp', label: 'Cumulative MP' },
+                    ],
+                    compute: ({ coins, mp }) => computeInfuseMagicFromInputs(coins, mp),
                 },
             ],
         },
