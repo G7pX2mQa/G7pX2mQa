@@ -805,5 +805,39 @@ if (typeof window !== 'undefined') {
     getMutationState,
     getMutationMultiplier,
     isMutationUnlocked,
+    getTotalCumulativeMp,
   });
+}
+
+export function getTotalCumulativeMp() {
+  initMutationSystem();
+  if (!mutationState.unlocked) return bnZero();
+  
+  if (mutationState.level.isInfinite?.() || mutationState.progress.isInfinite?.()) {
+    return BigNum.fromAny('Infinity');
+  }
+
+  const currentLvlNum = levelToNumber(mutationState.level);
+  
+  // If Mutation Level is > 100, do NOT sum previous tiers. Just use current progress.
+  // This is a safety cap to prevent freezing or imbalance for hacked/super-high levels.
+  if (Number.isFinite(currentLvlNum) && currentLvlNum > 100) {
+    return mutationState.progress.clone?.() ?? mutationState.progress;
+  }
+
+  let total = mutationState.progress.clone?.() ?? mutationState.progress;
+  
+  if (Number.isFinite(currentLvlNum)) {
+    // Normal summing up to the cap
+    const limit = currentLvlNum; 
+    for (let i = 0; i < limit; i++) {
+      const req = computeRequirement(BigNum.fromInt(i));
+      if (req.isInfinite?.()) {
+        return BigNum.fromAny('Infinity');
+      }
+      total = total.add(req);
+    }
+  }
+
+  return total;
 }
