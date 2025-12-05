@@ -55,6 +55,9 @@ const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
 const FORGE_COMPLETED_KEY = (slot) => `ccc:reset:forge:completed:${slot}`;
 const FORGE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:forgeUnlocked:${slot}`;
 
+const INFUSE_UNLOCK_KEY = (slot) => `ccc:reset:infuse:${slot}`;
+const INFUSE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:infuseUnlocked:${slot}`;
+
 const MIN_FORGE_LEVEL = BN.fromInt(31);
 
 const resetState = {
@@ -62,6 +65,8 @@ const resetState = {
   forgeUnlocked: false,
   forgeDebugOverride: null,
   hasDoneForgeReset: false,
+  infuseUnlocked: false,
+  infuseDebugOverride: null,
   pendingGold: bnZero(),
   panel: null,
   pendingEl: null,
@@ -88,6 +93,13 @@ function notifyForgeUnlockChange() {
   const slot = resetState.slot ?? getActiveSlot();
   try {
     window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'forge', slot } }));
+  } catch {}
+}
+
+function notifyInfuseUnlockChange() {
+  const slot = resetState.slot ?? getActiveSlot();
+  try {
+    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'infuse', slot } }));
   } catch {}
 }
 
@@ -231,6 +243,50 @@ export function setForgeDebugOverride(value, slot = getActiveSlot()) {
   updateResetPanel();
 }
 
+function getInfuseDebugOverride(slot = getActiveSlot()) {
+  if (slot == null) return null;
+  try {
+    const raw = localStorage.getItem(INFUSE_DEBUG_OVERRIDE_KEY(slot));
+    if (raw === '1') return true;
+    if (raw === '0') return false;
+  } catch {}
+  return null;
+}
+
+export function getInfuseDebugOverrideState(slot = getActiveSlot()) {
+  return getInfuseDebugOverride(slot);
+}
+
+export function setInfuseDebugOverride(value, slot = getActiveSlot()) {
+  if (slot == null) return;
+  const normalized = value == null ? null : !!value;
+  if (resetState.infuseDebugOverride === normalized) return;
+
+  resetState.infuseDebugOverride = normalized;
+
+  if (normalized == null) {
+    try { localStorage.removeItem(INFUSE_DEBUG_OVERRIDE_KEY(slot)); } catch {}
+  } else {
+    try { localStorage.setItem(INFUSE_DEBUG_OVERRIDE_KEY(slot), normalized ? '1' : '0'); }
+    catch {}
+  }
+  primeStorageWatcherSnapshot(INFUSE_DEBUG_OVERRIDE_KEY(slot));
+  notifyInfuseUnlockChange();
+  updateResetPanel();
+}
+
+function setInfuseUnlocked(value) {
+  const slot = ensureResetSlot();
+  if (slot == null) return;
+  const next = !!value;
+  if (resetState.infuseUnlocked === next) return;
+  resetState.infuseUnlocked = next;
+  try { localStorage.setItem(INFUSE_UNLOCK_KEY(slot), resetState.infuseUnlocked ? '1' : '0'); }
+  catch {}
+  primeStorageWatcherSnapshot(INFUSE_UNLOCK_KEY(slot));
+  notifyInfuseUnlockChange();
+}
+
 function setForgeUnlocked(value) {
   const slot = ensureResetSlot();
   if (slot == null) return;
@@ -248,6 +304,8 @@ function readPersistentFlags(slot) {
     resetState.forgeUnlocked = false;
     resetState.forgeDebugOverride = null;
     resetState.hasDoneForgeReset = false;
+    resetState.infuseUnlocked = false;
+    resetState.infuseDebugOverride = null;
     resetState.flagsPrimed = false;
     return;
   }
@@ -262,6 +320,12 @@ function readPersistentFlags(slot) {
   } catch {
     resetState.hasDoneForgeReset = false;
   }
+  try {
+    resetState.infuseUnlocked = localStorage.getItem(INFUSE_UNLOCK_KEY(slot)) === '1';
+  } catch {
+    resetState.infuseUnlocked = false;
+  }
+  resetState.infuseDebugOverride = getInfuseDebugOverride(slot);
   resetState.flagsPrimed = true;
 }
 
@@ -313,6 +377,28 @@ function bindStorageWatchers(slot) {
       if (resetState.forgeDebugOverride !== next) {
         resetState.forgeDebugOverride = next;
         notifyForgeUnlockChange();
+        updateResetPanel();
+      }
+    },
+  }));
+  watchers.push(watchStorageKey(INFUSE_UNLOCK_KEY(slot), {
+    onChange(value) {
+      const next = value === '1';
+      if (resetState.infuseUnlocked !== next) {
+        resetState.infuseUnlocked = next;
+        notifyInfuseUnlockChange();
+        updateResetPanel();
+      }
+    },
+  }));
+  watchers.push(watchStorageKey(INFUSE_DEBUG_OVERRIDE_KEY(slot), {
+    onChange(value) {
+      let next = null;
+      if (value === '1') next = true;
+      else if (value === '0') next = false;
+      if (resetState.infuseDebugOverride !== next) {
+        resetState.infuseDebugOverride = next;
+        notifyInfuseUnlockChange();
         updateResetPanel();
       }
     },
@@ -371,6 +457,13 @@ export function isForgeUnlocked() {
   return !!resetState.forgeUnlocked || canAccessForgeTab();
 }
 
+export function isInfuseUnlocked() {
+  ensurePersistentFlagsPrimed();
+  const override = getInfuseDebugOverride();
+  if (override != null) return !!override;
+  return !!resetState.infuseUnlocked;
+}
+
 export function hasDoneForgeReset() {
   ensurePersistentFlagsPrimed();
   return !!resetState.hasDoneForgeReset;
@@ -396,7 +489,7 @@ function resetUpgrades() {
   for (const upg of upgrades) {
     if (!upg) continue;
     const tieKey = upg.tieKey || upg.tie;
-    if (tieKey === UPGRADE_TIES.UNLOCK_XP || tieKey === UPGRADE_TIES.UNLOCK_FORGE) continue;
+    if (tieKey === UPGRADE_TIES.UNLOCK_XP || tieKey === UPGRADE_TIES.UNLOCK_FORGE || tieKey === UPGRADE_TIES.UNLOCK_INFUSE) continue;
     if (upg.costType === 'gold') continue;
     setLevel(AREA_KEYS.STARTER_COVE, upg.id, 0, true, { resetHmEvolutions: true });
   }
@@ -583,6 +676,12 @@ export function updateResetPanel() {
 export function onForgeUpgradeUnlocked() {
   initResetSystem();
   setForgeUnlocked(true);
+  updateResetPanel();
+}
+
+export function onInfuseUpgradeUnlocked() {
+  initResetSystem();
+  setInfuseUnlocked(true);
   updateResetPanel();
 }
 
