@@ -28,6 +28,7 @@ import {
     markUpgradePermanentlyUnlocked,
     clearPermanentUpgradeUnlock,
     setLevel,
+    getUpgradeLockState,
 } from '../game/upgrades.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE } from '../ui/merchantDelve/dlgTab.js';
@@ -2803,6 +2804,67 @@ function buildAreasContent(content) {
     });
 }
 
+function setAllUpgradesMaxed(onlyUnlocked = false) {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+
+    let count = 0;
+    const areas = Object.values(AREA_KEYS);
+    const targets = [];
+
+    areas.forEach(areaKey => {
+        const upgrades = getUpgradesForArea(areaKey);
+        upgrades.forEach(upg => {
+            if (onlyUnlocked) {
+                const lockState = getUpgradeLockState(areaKey, upg.id);
+                if (lockState.locked) return;
+            }
+            targets.push({ areaKey, upg });
+        });
+    });
+
+    targets.forEach(({ areaKey, upg }) => {
+        try {
+            const targetLevel = upg.lvlCap;
+            setLevel(areaKey, upg.id, targetLevel);
+            count++;
+        } catch (e) {
+            console.warn('Failed to max upgrade', upg, e);
+        }
+    });
+    return count;
+}
+
+function setAllUpgradesZero(onlyUnlocked = false) {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+
+    let count = 0;
+    const areas = Object.values(AREA_KEYS);
+    const targets = [];
+
+    areas.forEach(areaKey => {
+        const upgrades = getUpgradesForArea(areaKey);
+        upgrades.forEach(upg => {
+            if (onlyUnlocked) {
+                const lockState = getUpgradeLockState(areaKey, upg.id);
+                if (lockState.locked) return;
+            }
+            targets.push({ areaKey, upg });
+        });
+    });
+
+    targets.forEach(({ areaKey, upg }) => {
+        try {
+            setLevel(areaKey, upg.id, 0);
+            count++;
+        } catch (e) {
+            console.warn('Failed to zero upgrade', upg, e);
+        }
+    });
+    return count;
+}
+
 function buildMiscContent(content) {
     content.innerHTML = '';
 
@@ -2863,6 +2925,38 @@ function buildMiscContent(content) {
                 const touched = setAllStatsToZero();
                 flagDebugUsage();
                 logAction(`Set all unlocked stats to 0 (${touched} ${touched === 1 ? 'stat' : 'stats'} updated).`);
+            },
+        },
+        {
+            label: 'All [UL] Upgs Maxed',
+            onClick: () => {
+                const count = setAllUpgradesMaxed(true);
+                flagDebugUsage();
+                logAction(`Maxed ${count} unlocked upgrades.`);
+            },
+        },
+        {
+            label: 'All [UL] Upgs 0',
+            onClick: () => {
+                const count = setAllUpgradesZero(true);
+                flagDebugUsage();
+                logAction(`Reset ${count} unlocked upgrades to 0.`);
+            },
+        },
+        {
+            label: 'All Upgs Maxed',
+            onClick: () => {
+                const count = setAllUpgradesMaxed(false);
+                flagDebugUsage();
+                logAction(`Maxed all ${count} upgrades.`);
+            },
+        },
+        {
+            label: 'All Upgs 0',
+            onClick: () => {
+                const count = setAllUpgradesZero(false);
+                flagDebugUsage();
+                logAction(`Reset all ${count} upgrades to 0.`);
             },
         },
         {
