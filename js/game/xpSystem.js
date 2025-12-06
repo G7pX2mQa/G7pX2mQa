@@ -161,10 +161,6 @@ function approximateCoinMultiplierFromBigNum(levelBn) {
   }
   const levelLog = computeLevelLogTerm(levelBn);
   let totalLog = levelLog;
-  const bonusLog = computeBonusLogTerm(levelBn);
-  if (bonusLog) {
-    totalLog = totalLog.add?.(bonusLog) ?? totalLog;
-  }
   const approx = bigNumPowerOf10(totalLog);
   const approxIsInf = approx.isInfinite?.() || (typeof approx.isInfinite === 'function' && approx.isInfinite());
   if (approxIsInf) {
