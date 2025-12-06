@@ -623,7 +623,7 @@
 /* Reset Tab Layout */
 .merchant-reset {
   display: grid;
-  grid-template-columns: minmax(140px, 160px) minmax(0, 1fr);
+  grid-template-columns: minmax(140px, 160px) minmax(0, 1fr) minmax(140px, 160px);
   gap: 16px;
   align-items: start;
 }
@@ -643,6 +643,10 @@
   flex-direction: column;
   gap: 12px;
   padding-bottom: 24px;
+}
+
+.merchant-reset__spacer {
+  display: block;
 }
 
 .merchant-reset__layer {
@@ -983,6 +987,10 @@
   .merchant-reset {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+
+  .merchant-reset__spacer {
+    display: none;
   }
 
   /* Make sidebar horizontal scroll on mobile */
