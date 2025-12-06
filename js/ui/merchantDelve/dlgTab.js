@@ -11,7 +11,6 @@ import { getXpState, isXpSystemUnlocked } from '../../game/xpSystem.js';
 import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset } from './resetTab.js';
 import { blockInteraction } from '../shopOverlay.js';
 import {
-  markGhostTapTarget,
   shouldSkipGhostTap,
   suppressNextGhostTap,
 } from '../../util/ghostTapGuard.js';
@@ -75,17 +74,17 @@ function bindRapidActivation(target, handler, { once = false } = {}) {
   let pointerTriggered = false;
   let activePointerId = null;
 
-const run = (event) => {
-  if (once && used) return;
-  if (event?.type === 'click' && shouldSkipGhostTap(target)) {
-    event.preventDefault?.();
-    return;
-  }
-  markGhostTapTarget(target);
-  used = once ? true : used;
-  Promise.resolve(handler(event)).catch(() => {});
-  if (once) cleanup();
-};
+  const run = (event) => {
+    if (once && used) return;
+    if (event?.type === 'click' && shouldSkipGhostTap(target)) {
+      event.preventDefault?.();
+      return;
+    }
+    // markGhostTapTarget removed - global handler manages clicks
+    used = once ? true : used;
+    Promise.resolve(handler(event)).catch(() => {});
+    if (once) cleanup();
+  };
 
   const resetPointerTrigger = () => {
     pointerTriggered = false;
@@ -114,7 +113,8 @@ const onPointerDown = (event) => {
       return;
     }
     resetPointerTrigger();
-    run(event);
+    // run(event) removed here to prevent double-firing if global handler also triggers click
+    // or if standard click follows. Let 'click' event handle execution.
   };
 
   const onPointerCancel = () => {
@@ -130,7 +130,7 @@ const onTouchStart = (event) => {
   const onTouchEnd = (event) => {
     if (!pointerTriggered) return;
     resetPointerTrigger();
-    run(event);
+    // run(event) removed here as well
   };
 
   const onTouchCancel = () => {
@@ -152,17 +152,19 @@ const onTouchStart = (event) => {
   };
 
   target.addEventListener('click', onClick);
-  if (HAS_POINTER_EVENTS) {
-    target.addEventListener('pointerdown', onPointerDown, { passive: false });
-    window.addEventListener('pointerup', onPointerUp, { passive: false });
-    window.addEventListener('pointercancel', onPointerCancel, { passive: false });
-  } else if (HAS_TOUCH_EVENTS) {
-    target.addEventListener('touchstart', onTouchStart, { passive: false });
-    window.addEventListener('touchend', onTouchEnd, { passive: false });
-    window.addEventListener('touchcancel', onTouchCancel, { passive: false });
-  }
-
-  return cleanup;
+  // We keep pointer listeners mainly for visual feedback or state tracking if needed,
+  // but rely on 'click' for the action, which the global ghost tap system will dispatch rapidly.
+  // Actually, for instant feedback, we might still want pointerdown logic if we weren't using the global system.
+  // With global system: pointerdown -> immediate click. So 'click' handler is sufficient for logic.
+  // The original rapid activation code was manually handling touch/pointer to avoid 300ms delay.
+  // Now global system does that. So we can simplify this heavily.
+  // BUT: bindRapidActivation handles 'once' logic and event suppression.
+  // Let's keep it simple: just listen for click.
+  
+  // Removing manual pointer handling for activation, relying on global ghost tap
+  // to fire 'click' event immediately on pointerdown.
+  
+  return () => { target.removeEventListener('click', onClick); };
 }
 
 function dialogueStatusRank(status) {
@@ -854,7 +856,7 @@ class DialogueEngine {
       btn.type = 'button';
       btn.className = 'choice';
       btn.textContent = opt.label;
-      bindRapidActivation(btn, async (event) => {
+      const unbind = bindRapidActivation(btn, async (event) => {
         event?.stopPropagation?.();
         this._reservedH = this.choicesEl.offsetHeight | 0;
         this.choicesEl.style.minHeight = this._reservedH + 'px';
