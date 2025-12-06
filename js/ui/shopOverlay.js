@@ -31,7 +31,6 @@ import {
   HM_EVOLUTION_INTERVAL,
 } from '../game/upgrades.js';
 import {
-  markGhostTapTarget,
   shouldSkipGhostTap,
   suppressNextGhostTap,
 } from '../util/ghostTapGuard.js';
@@ -893,20 +892,7 @@ function renderShopGrid() {
         event.stopImmediatePropagation();
         return;
       }
-      markGhostTapTarget(btn);
       openUpgradeOverlay(upg.meta);
-    });
-
-    btn.addEventListener('pointerdown', (event) => {
-      if (btn.disabled || isPlainLocked) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation?.();
-        return;
-      }
-      if (event.pointerType !== 'mouse') {
-        markGhostTapTarget(btn);
-      }
     });
 
     btn.addEventListener('contextmenu', (e) => {
@@ -1011,7 +997,6 @@ function ensureShopOverlay() {
 
   const openDelveOverlay = () => {
     if (shouldSkipGhostTap(delveBtn)) return;
-    markGhostTapTarget(delveBtn);
     primeTypingSfx();
     openMerchant();
   };
@@ -1065,48 +1050,6 @@ function onCloseClick(e) {
 }
 
 closeBtn.addEventListener('click', onCloseClick, { passive: true });
-
-const hasPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
-if (hasPointerEvents) {
-  closeBtn.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'mouse') return;
-    if (typeof e.button === 'number' && e.button !== 0) return;
-    // Keep marking for safety, but no global suppression
-    markGhostTapTarget(closeBtn);
-    blockInteraction(80);
-    closeShop();
-    e.preventDefault();
-  }, { passive: false });
-} else {
-  closeBtn.addEventListener('touchstart', (e) => {
-    markGhostTapTarget(closeBtn);
-    blockInteraction(80);
-    closeShop();
-    e.preventDefault();
-  }, { passive: false });
-}
-	
-    const onDelvePointerDown = (e) => {
-      if (e.pointerType === 'mouse') return;
-      if (typeof e.button === 'number' && e.button !== 0) return;
-      markGhostTapTarget(delveBtn);
-      primeTypingSfx();
-      openMerchant();
-      e.preventDefault();
-    };
-
-    const onDelveTouchStart = (e) => {
-      markGhostTapTarget(delveBtn);
-      primeTypingSfx();
-      openMerchant();
-      e.preventDefault();
-    };
-
-    if (hasPointerEvents) {
-      delveBtn.addEventListener('pointerdown', onDelvePointerDown, { passive: false });
-    } else {
-      delveBtn.addEventListener('touchstart', onDelveTouchStart, { passive: false });
-    }
 
     document.addEventListener('keydown', onKeydownForShop);
     grabber.addEventListener('pointerdown', onDragStart);
@@ -1591,25 +1534,9 @@ export function openUpgradeOverlay(upgDef) {
     closeBtn.addEventListener('click', () => { upgOpenLocal = false; closeUpgradeMenu(); });
 
     if ('PointerEvent' in window) {
-      closeBtn.addEventListener('pointerdown', (e) => {
-        if (e.pointerType === 'mouse') return;
-        if (typeof e.button === 'number' && e.button !== 0) return;
-        markGhostTapTarget(closeBtn);
-        suppressNextGhostTap(320);
-        blockInteraction(160);
-        upgOpenLocal = false;
-        closeUpgradeMenu();
-        e.preventDefault();
-      }, { passive: false });
+      // Manual listener removed, global handler handles clicks
     } else {
-      closeBtn.addEventListener('touchstart', (e) => {
-        markGhostTapTarget(closeBtn);
-        suppressNextGhostTap(320);
-        blockInteraction(160);
-        upgOpenLocal = false;
-        closeUpgradeMenu();
-        e.preventDefault();
-      }, { passive: false });
+      // Manual listener removed
     }
 	
     if (locked) {
@@ -1687,19 +1614,13 @@ export function openUpgradeOverlay(upgDef) {
         rerender();
       };
 
-      // Mobile: drive purchase off pointer/touch so Safari's click
-      // cancellation doesn't limit how fast you can spam the button.
       if ('PointerEvent' in window) {
         buyBtn.addEventListener('pointerdown', (event) => {
           // Ignore mouse here; desktop uses the click handler below
           if (event.pointerType === 'mouse') return;
           if (typeof event.button === 'number' && event.button !== 0) return;
 
-          if (typeof markGhostTapTarget === 'function') {
-            // Small window: eats ghost taps that land elsewhere,
-            // but repeated taps on this button are still allowed
-            markGhostTapTarget(buyBtn, 160);
-          }
+          // Manual listener removed
 
           performBuy();
           event.preventDefault();
@@ -1707,9 +1628,7 @@ export function openUpgradeOverlay(upgDef) {
       } else {
         // Older touch-only browsers
         buyBtn.addEventListener('touchstart', (event) => {
-          if (typeof markGhostTapTarget === 'function') {
-            markGhostTapTarget(buyBtn, 160);
-          }
+          // Manual listener removed
 
           performBuy();
           event.preventDefault();
@@ -1721,9 +1640,7 @@ export function openUpgradeOverlay(upgDef) {
         // On mobile we already handled the tap in pointer/touch handler
         if (IS_MOBILE) return;
 
-        if (typeof markGhostTapTarget === 'function') {
-          markGhostTapTarget(buyBtn, 160);
-        }
+        // Manual listener removed
 
         performBuy();
       });
@@ -1752,18 +1669,14 @@ export function openUpgradeOverlay(upgDef) {
           if (event.pointerType === 'mouse') return;
           if (typeof event.button === 'number' && event.button !== 0) return;
 
-          if (typeof markGhostTapTarget === 'function') {
-            markGhostTapTarget(buyMaxBtn, 160);
-          }
+          // Manual listener removed
 
           performBuyMax();
           event.preventDefault();
         }, { passive: false });
       } else {
         buyMaxBtn.addEventListener('touchstart', (event) => {
-          if (typeof markGhostTapTarget === 'function') {
-            markGhostTapTarget(buyMaxBtn, 160);
-          }
+          // Manual listener removed
 
           performBuyMax();
           event.preventDefault();
@@ -1773,9 +1686,7 @@ export function openUpgradeOverlay(upgDef) {
       buyMaxBtn.addEventListener('click', (event) => {
         if (IS_MOBILE) return;
 
-        if (typeof markGhostTapTarget === 'function') {
-          markGhostTapTarget(buyMaxBtn, 160);
-        }
+        // Manual listener removed
 
         performBuyMax();
       });
@@ -1844,18 +1755,14 @@ export function openUpgradeOverlay(upgDef) {
             if (event.pointerType === 'mouse') return;
             if (typeof event.button === 'number' && event.button !== 0) return;
 
-            if (typeof markGhostTapTarget === 'function') {
-              markGhostTapTarget(buyNextBtn, 160);
-            }
+            // Manual listener removed
 
             performBuyNext();
             event.preventDefault();
           }, { passive: false });
         } else {
           buyNextBtn.addEventListener('touchstart', (event) => {
-            if (typeof markGhostTapTarget === 'function') {
-              markGhostTapTarget(buyNextBtn, 160);
-            }
+            // Manual listener removed
 
             performBuyNext();
             event.preventDefault();
@@ -1865,9 +1772,7 @@ export function openUpgradeOverlay(upgDef) {
         buyNextBtn.addEventListener('click', (event) => {
           if (IS_MOBILE) return;
 
-          if (typeof markGhostTapTarget === 'function') {
-            markGhostTapTarget(buyNextBtn, 160);
-          }
+          // Manual listener removed
 
           performBuyNext();
         });
@@ -2072,7 +1977,7 @@ function onDragCancel() {
 function cleanupDrag() {
   window.removeEventListener('pointermove', onDragMove);
   window.removeEventListener('pointerup', onDragEnd);
-  window.removeEventListener('pointercancel', onDragCancel);
+  window.removeEventListener('pointercancel', onDragEnd);
   drag = null;
 }
 
