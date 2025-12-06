@@ -1,6 +1,5 @@
 import { BigNum } from './bigNum.js';
 import { isDeleteMode } from './slotsManager.js';
-import { markGhostTapTarget, shouldSkipGhostTap } from './ghostTapGuard.js';
 import {
   setHasOpenedSaveSlot,
   ensureCurrencyDefaults,
@@ -44,12 +43,8 @@ export function initSlots(onSelect) {
 
   cards.forEach((btn, idx) => {
     const slotNum = idx + 1;
-    let lastPointerType = null;
 
     const activate = (ev) => {
-      if (ev.isTrusted && shouldSkipGhostTap(btn)) return;
-      markGhostTapTarget(btn);
-
       // Switch to this slot and seed its defaults the first time it’s opened
       setActiveSlot(slotNum);
       ensureCurrencyDefaults();
@@ -62,25 +57,8 @@ export function initSlots(onSelect) {
       renderSlotCards();
     };
 
-    btn.addEventListener('pointerdown', (ev) => {
-      if (isDeleteMode()) return;
-
-      lastPointerType = ev.pointerType || null;
-      if (ev.pointerType === 'mouse') return;
-
-      ev.preventDefault();
-      activate(ev);
-    });
-
     btn.addEventListener('click', (ev) => {
       if (isDeleteMode()) return;
-
-      if (lastPointerType && lastPointerType !== 'mouse') {
-        lastPointerType = null;
-        return;
-      }
-      lastPointerType = null;
-
       ev.preventDefault();
       activate(ev);
     });
