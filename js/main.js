@@ -539,6 +539,7 @@ images: [
       'sounds/merchant_typing.ogg',
       'sounds/purchase_upg.ogg',
 	  'sounds/forge_reset.ogg',
+	  'sounds/infuse_reset.ogg',
 	  'sounds/evolve_upg.ogg',
     ],
     fonts: true,
