@@ -3682,10 +3682,9 @@ export function peekNextPrice(areaKey, upgId) {
   }
 
   const lvlBn  = state.lvlBn ?? ensureLevelBigNum(state.lvl ?? 0);
-  const nextBn = lvlBn.add(BigNum.fromInt(1));
-  const nextNum = levelBigNumToNumber(nextBn);
+  const currentNum = levelBigNumToNumber(lvlBn);
   try {
-    return BigNum.fromAny(upg.costAtLevel(nextNum));
+    return BigNum.fromAny(upg.costAtLevel(currentNum));
   } catch {
     return BigNum.fromInt(0);
   }
