@@ -32,6 +32,7 @@ import {
   getMutationState,
   getTotalCumulativeMp,
 } from '../../game/mutationSystem.js';
+import { markGhostTapTarget, shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 
 const BN = BigNum;
 const bnZero = () => BN.fromInt(0);
@@ -77,7 +78,6 @@ const resetState = {
   pendingGold: bnZero(),
   pendingMagic: bnZero(),
   panel: null,
-  // New structure for stacked cards
   elements: {
     forge: {
       card: null,
@@ -204,7 +204,6 @@ function computeForgeGold(coinsBn, levelBn) {
   return floored.isZero?.() ? bnZero() : floored;
 }
 
-// magic = math.floor(2 * 2**(math.log10(coins/1e11)) * 1.10**(math.floor(math.log10(coins/1e11))) * (1 + mp_progress/10000)**1.2)
 function computeInfuseMagic(coinsBn, cumulativeMpBn) {
   if (!coinsBn || coinsBn.isZero?.()) return bnZero();
 
@@ -214,38 +213,28 @@ function computeInfuseMagic(coinsBn, cumulativeMpBn) {
   const logCoins = approxLog10BigNum(coinsBn);
   if (!Number.isFinite(logCoins)) return BN.fromAny('Infinity');
 
-  const logRatio = logCoins - 11; // log10(coins / 1e11)
+  const logRatio = logCoins - 11;
   if (logRatio < 0) return bnZero();
 
-  // Term A: 2 * 2**logRatio
-  // log10(TermA) = log10(2) + logRatio * log10(2)
   const log2 = Math.log10(2);
   const logTermA = log2 + (logRatio * log2);
 
-  // Term B: 1.10**(floor(logRatio))
-  // log10(TermB) = floor(logRatio) * log10(1.10)
   const log1_1 = Math.log10(1.10);
   const floorLogRatio = Math.floor(logRatio);
   const logTermB = floorLogRatio * log1_1;
 
-  // Term C: (1 + mp_progress/10000)**1.2
-  // log10(TermC) = 1.2 * log10(1 + mp_progress/10000)
   let logTermC = 0;
   if (cumulativeMpBn && !cumulativeMpBn.isZero?.()) {
     const logMp = approxLog10BigNum(cumulativeMpBn);
     
-    // Check if MP is large enough that 1+MP/10000 approx MP/10000
     if (Number.isFinite(logMp) && logMp > 6) {
-       // log10(MP/10000) = logMp - 4
        logTermC = 1.2 * (logMp - 4);
     } else {
-       // Precise calculation for small MP
        try {
          const mpVal = Number(cumulativeMpBn.toPlainIntegerString());
          if (Number.isFinite(mpVal)) {
             logTermC = 1.2 * Math.log10(1 + mpVal / 10000);
          } else {
-            // Fallback
             logTermC = 1.2 * (logMp - 4);
          }
        } catch {
@@ -341,6 +330,10 @@ function getInfuseDebugOverride(slot = getActiveSlot()) {
 
 export function getInfuseDebugOverrideState(slot = getActiveSlot()) {
   return getInfuseDebugOverride(slot);
+}
+
+export function setInfuseUnlockedForDebug(value) {
+  setInfuseUnlocked(value);
 }
 
 export function setInfuseDebugOverride(value, slot = getActiveSlot()) {
@@ -534,7 +527,7 @@ function recomputePendingGold(force = false) {
   updateResetPanel();
 }
 
-function recomputePendingMagic() {
+export function recomputePendingMagic() {
   const coins = bank.coins?.value ?? bnZero();
   const cumulativeMp = getTotalCumulativeMp();
   
@@ -675,22 +668,12 @@ export function performInfuseReset() {
 
   try { bank.gold.set(0); } catch {}
   
-  // Reset MP
   try {
-     // Force mutation level and progress to 0, but keep unlocked
-     // We can use setMutationUnlockedForDebug(true) to reset it if it reinits?
-     // Or we need a way to reset MP progress/level specifically.
-     // In mutationSystem.js, readStateFromStorage calls applyState.
-     // We should probably just manually set storage and force reload or expose a reset function.
-     // Currently no explicit reset function in mutationSystem.js for level/progress.
-     // But `unlockMutationSystem()` calls `initMutationSystem()`.
-     // We can just wipe storage keys and re-init.
      const slot = getActiveSlot();
      const KEY_LEVEL = (s) => `ccc:mutation:level:${s}`;
      const KEY_PROGRESS = (s) => `ccc:mutation:progress:${s}`;
      localStorage.setItem(KEY_LEVEL(slot), '0');
      localStorage.setItem(KEY_PROGRESS(slot), '0');
-     // Force reload mutation system to pick up the 0s
      initMutationSystem({ forceReload: true });
   } catch {}
 
@@ -789,6 +772,8 @@ function buildPanel(panelEl) {
           </div>
         </div>
       </div>
+
+      <div class="merchant-reset__spacer"></div>
     </div>
   `;
   resetState.panel = panelEl;
@@ -814,11 +799,31 @@ function buildPanel(panelEl) {
   // Sidebar Click Handlers (Scroll)
   Object.entries(resetState.layerButtons).forEach(([key, btn]) => {
     if (!btn) return;
-    btn.addEventListener('click', () => {
+
+    let lastPointerType = null;
+    const handleClick = (e) => {
+      if (e && e.isTrusted && shouldSkipGhostTap(btn)) return;
+      markGhostTapTarget(btn);
+      
       const card = resetState.elements[key]?.card;
       if (card) {
         card.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
+    };
+
+    btn.addEventListener('pointerdown', (e) => {
+        lastPointerType = e.pointerType || null;
+        if (e.pointerType === 'mouse') return;
+        handleClick(e);
+    });
+
+    btn.addEventListener('click', (e) => {
+        if (lastPointerType && lastPointerType !== 'mouse') {
+            lastPointerType = null;
+            return;
+        }
+        lastPointerType = null;
+        handleClick(e);
     });
   });
   
@@ -854,16 +859,12 @@ function updateForgeCard() {
   const el = resetState.elements.forge;
   if (!el.card || !el.btn) return;
 
-  // Forge Unlock check (should always be visible if we are in this tab, but double check)
   if (!isForgeUnlocked()) {
-     // If locked, we can disable the button or show a message.
-     // In the old code, the button showed the message.
      el.btn.disabled = true;
      el.btn.innerHTML = '<span class="merchant-reset__req-msg">Unlock the Forge upgrade to access resets</span>';
      return;
   }
 
-  // Update Status
   ensurePersistentFlagsPrimed();
   el.card.classList.toggle('is-forge-complete', !!resetState.hasDoneForgeReset);
   
@@ -874,15 +875,14 @@ function updateForgeCard() {
         el.status.innerHTML = `
           <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
             Forging for the first time will unlock new Shop upgrades, a new Merchant dialogue, and
-            <span style="color:#ffb347; text-shadow: 0 3px 6px rgba(0,0,0,0.55);
-            ">Mutations</span><br>
+            <strong style="color:#ffb347; text-shadow: 0 3px 6px rgba(0,0,0,0.55);
+            ">Mutations</strong><br>
             Mutated Coins will yield more Coin and XP value than normal
           </span>
         `;
       }
   }
 
-  // Check Requirements
   if (!meetsLevelRequirement()) {
     el.btn.disabled = true;
     el.btn.innerHTML = '<span class="merchant-reset__req-msg">Reach XP Level 31 to perform a Forge reset</span>';
@@ -895,7 +895,6 @@ function updateForgeCard() {
     return;
   }
 
-  // Ready
   el.btn.disabled = false;
   el.btn.innerHTML = `
     <span class="merchant-reset__action-plus">+</span>
@@ -908,7 +907,6 @@ function updateInfuseCard() {
   const el = resetState.elements.infuse;
   if (!el.card || !el.btn) return;
 
-  // Infuse Unlock Check
   if (!isInfuseUnlocked()) {
     el.card.style.display = 'none';
     if (resetState.layerButtons.infuse) {
@@ -917,15 +915,13 @@ function updateInfuseCard() {
     return;
   }
 
-  el.card.style.display = 'flex'; // or whatever the css class defines, usually block/flex
+  el.card.style.display = 'flex';
   if (resetState.layerButtons.infuse) {
       resetState.layerButtons.infuse.style.display = 'flex';
   }
 
-  // Update Status
   ensurePersistentFlagsPrimed();
   
-  // Apply "shrunken" style if complete
   el.card.classList.toggle('is-complete', !!resetState.hasDoneInfuseReset);
 
   if (el.status) {
@@ -933,8 +929,8 @@ function updateInfuseCard() {
         el.status.innerHTML = '';
       } else {
          el.status.innerHTML = `
-          <span style="color:#b266ff; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-            Infusing for the first time will unlock new Shop upgrades, a new Merchant dialogue, and a new tab in the Delve menu: <span style="color:#c68cff">Workshop</span><br>
+          <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+            Infusing for the first time will unlock new Shop upgrades, a new Merchant dialogue, and a new tab in the Delve menu: <strong style="color:#c68cff">Workshop</strong><br>
             This new tab will allow you to passively generate Gears<br>
             Spend Gears on new upgrades in the Shop to automate various things
           </span>
@@ -942,7 +938,6 @@ function updateInfuseCard() {
       }
   }
 
-  // Check Requirements
   if (!meetsInfuseRequirement()) {
     el.btn.disabled = true;
     el.btn.innerHTML = '<span class="merchant-reset__req-msg">Reach Mutation Level 7 to perform an Infuse reset</span>';
@@ -955,7 +950,6 @@ function updateInfuseCard() {
     return;
   }
   
-  // Ready
   el.btn.disabled = false;
   el.btn.innerHTML = `
     <span class="merchant-reset__action-plus">+</span>
@@ -1077,5 +1071,20 @@ if (typeof window !== 'undefined') {
     performForgeReset,
     performInfuseReset,
     computePendingForgeGold,
+    computeForgeGoldFromInputs,
+    computeInfuseMagicFromInputs,
+    getForgeDebugOverrideState,
+    hasDoneForgeReset,
+    isForgeUnlocked,
+    setForgeDebugOverride,
+    setForgeResetCompleted,
+    updateResetPanel,
+    isInfuseUnlocked,
+    setInfuseDebugOverride,
+    getInfuseDebugOverrideState,
+    recomputePendingMagic,
+    setInfuseUnlockedForDebug,
+    setInfuseResetCompleted,
+    hasDoneInfuseReset,
   });
 }
