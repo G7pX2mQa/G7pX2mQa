@@ -845,7 +845,7 @@ function buildPanel(panelEl) {
   if (resetState.elements.infuse.btn) {
     resetState.elements.infuse.btn.addEventListener('click', () => {
        if (performInfuseReset()) {
-         playForgeResetSound();
+         playInfuseResetSound();
          updateResetPanel();
        }
     });
