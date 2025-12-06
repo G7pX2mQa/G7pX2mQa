@@ -967,7 +967,7 @@
 }
 
 .upg-sheet.is-hm-upgrade .upg-line {
-  font-size: clamp(32px, 4.6vmin, 50px);
+  font-size: clamp(32px, 4.6vw, 50px);
 }
 
 .upg-sheet.is-hm-upgrade.is-endless-xp .upg-line {
