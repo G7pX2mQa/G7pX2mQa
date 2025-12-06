@@ -133,8 +133,13 @@ function notifyInfuseUnlockChange() {
   } catch {}
 }
 
-function getPendingGoldWithMultiplier() {
+function getPendingGoldWithMultiplier(multiplierOverride = null) {
   try {
+    if (multiplierOverride) {
+      const mult = multiplierOverride instanceof BN ? multiplierOverride : BN.fromAny(multiplierOverride ?? 1);
+      if (mult.isInfinite?.()) return BN.fromAny('Infinity');
+      return resetState.pendingGold.mulBigNumInteger(mult);
+    }
     return bank.gold?.mult?.applyTo?.(resetState.pendingGold) ?? resetState.pendingGold;
   } catch {
     return resetState.pendingGold;
@@ -217,7 +222,7 @@ function computeForgeGold(coinsBn, levelBn) {
   return floored.isZero?.() ? bnZero() : floored;
 }
 
-function computeInfuseMagic(coinsBn, cumulativeMpBn) {
+function computeInfuseMagicBase(coinsBn, cumulativeMpBn) {
   if (!coinsBn || coinsBn.isZero?.()) return bnZero();
 
   const threshold = BN.fromAny('1e11');
@@ -259,7 +264,16 @@ function computeInfuseMagic(coinsBn, cumulativeMpBn) {
   const totalLog = logTermA + logTermB + logTermC;
   if (!Number.isFinite(totalLog)) return BN.fromAny('Infinity');
   
-  const base = bigNumFromLog10(totalLog).floorToInteger();
+  return bigNumFromLog10(totalLog).floorToInteger();
+}
+
+function computeInfuseMagic(coinsBn, cumulativeMpBn, multiplierOverride = null) {
+  const base = computeInfuseMagicBase(coinsBn, cumulativeMpBn);
+  if (multiplierOverride) {
+    const mult = multiplierOverride instanceof BN ? multiplierOverride : BN.fromAny(multiplierOverride ?? 1);
+    if (mult.isInfinite?.()) return BN.fromAny('Infinity');
+    return base.mulBigNumInteger(mult);
+  }
   return bank.magic?.mult?.applyTo?.(base) ?? base;
 }
 
@@ -541,14 +555,14 @@ function recomputePendingGold(force = false) {
   updateResetPanel();
 }
 
-export function recomputePendingMagic() {
+export function recomputePendingMagic(multiplierOverride = null) {
   const coins = bank.coins?.value ?? bnZero();
   const cumulativeMp = getTotalCumulativeMp();
   
   if (!meetsInfuseRequirement()) {
     resetState.pendingMagic = bnZero();
   } else {
-    resetState.pendingMagic = computeInfuseMagic(coins, cumulativeMp);
+    resetState.pendingMagic = computeInfuseMagic(coins, cumulativeMp, multiplierOverride);
   }
   updateResetPanel();
 }
@@ -869,7 +883,7 @@ export function initResetPanel(panelEl) {
   buildPanel(panelEl);
 }
 
-function updateForgeCard() {
+function updateForgeCard({ goldMult = null } = {}) {
   const el = resetState.elements.forge;
   if (!el.card || !el.btn) return;
 
@@ -913,7 +927,7 @@ function updateForgeCard() {
   el.btn.innerHTML = `
     <span class="merchant-reset__action-plus">+</span>
     <span class="merchant-reset__action-icon"><img src="${GOLD_ICON_SRC}" alt=""></span>
-    <span class="merchant-reset__action-amount" data-reset-pending="forge">${formatBn(getPendingGoldWithMultiplier())}</span>
+    <span class="merchant-reset__action-amount" data-reset-pending="forge">${formatBn(getPendingGoldWithMultiplier(goldMult))}</span>
   `;
 }
 
@@ -972,9 +986,9 @@ function updateInfuseCard() {
   `;
 }
 
-export function updateResetPanel() {
+export function updateResetPanel({ goldMult = null } = {}) {
   if (!resetState.panel) return;
-  updateForgeCard();
+  updateForgeCard({ goldMult });
   updateInfuseCard();
 }
 
@@ -1004,13 +1018,17 @@ function bindGlobalEvents() {
     if (detail.key === CURRENCIES.GOLD) {
       if (detail.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
       recomputePendingGold(true);
-      updateResetPanel();
+      // Pass the new multiplier explicitly so visual updates are instant
+      const goldMult = detail.mult instanceof BigNum ? detail.mult : BN.fromAny(detail.mult ?? 1);
+      updateResetPanel({ goldMult });
       return;
     }
     if (detail.key === CURRENCIES.MAGIC) {
       if (detail.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
-      recomputePendingMagic();
-      updateResetPanel();
+      const magicMult = detail.mult instanceof BigNum ? detail.mult : BN.fromAny(detail.mult ?? 1);
+      recomputePendingMagic(magicMult);
+      // Note: recomputePendingMagic calls updateResetPanel() with no args, so we don't need to call it again here.
+      // But recomputePendingMagic stores the final value in resetState.pendingMagic, which is what updateResetPanel reads.
       return;
     }
   });
