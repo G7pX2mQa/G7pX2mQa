@@ -521,7 +521,8 @@ images: [
   'img/sc_upg_icons/xp_val2.webp',
   'img/sc_upg_icons/xp_val3.webp',
   'img/sc_upg_icons/xp_val_hm.webp',
-
+  'img/sc_upg_icons/mp_val_hm.webp',
+  
   // ==== img/stats/mp ====
   'img/stats/mp/mp.webp',
   'img/stats/mp/mp_base.webp',
