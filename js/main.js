@@ -18,6 +18,7 @@ let createSpawner;
 let initCoinPickup;
 let initHudButtons;
 let installGhostTapGuard;
+let initGlobalGhostTap;
 let bank;
 let getHasOpenedSaveSlot;
 let setHasOpenedSaveSlot;
@@ -582,7 +583,7 @@ images: [
   ({ initMutationSystem, getMutationCoinSprite, onMutationChange: onMutationChangeGame } = mutationModule);
   ({ initPopups } = popupModule);
   ({ installSuspendSafeguards, restoreFromBackupIfNeeded: restoreSuspendBackup, markProgressDirty, flushBackupSnapshot } = safetyModule);
-  ({ installGhostTapGuard } = guardModule);
+  ({ installGhostTapGuard, initGlobalGhostTap } = guardModule);
   ({ setDebugPanelAccess, applyStatMultiplierOverride } = debugPanelModule);
 
   window.bank = bank;
@@ -597,6 +598,7 @@ images: [
   }
 
   installGhostTapGuard?.();
+  initGlobalGhostTap?.();
   installSuspendSafeguards?.();
   if (typeof setDebugPanelAccess === 'function') {
     setDebugPanelAccess(DEBUG_PANEL_ACCESS);
