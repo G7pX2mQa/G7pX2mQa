@@ -160,32 +160,63 @@ function computeRequirement(levelBn) {
 
   let totalLog10;
 
-  if (baseLevel <= 49) {
-    // 0–49: original scaling
+  if (baseLevel <= 9) {
+    // 0–9: original scaling
     totalLog10 = baseRequirementLog10(baseLevel);
-  } else {
-    // 50–99: double-exponential insanity zone.
+  } else if (baseLevel <= 49) {
+    // 10-49: "Harsher" Exponential Transition
     //
-    // Define x so:
-    //   level 50 → x = 1
-    //   level 99 → x = 50
-    const x = baseLevel - 49; // 1..50
+    // We want to smoothly (but rapidly) transition from:
+    //   Level 9: log10(req) ≈ 3.83 (calculated via baseRequirementLog10(9))
+    // To:
+    //   Level 49: log10(req) = 363,000 (Target set by user)
+    //
+    // Model: log10(req) = B * R^(baseLevel - 9)
+    //
+    // B = 3.83
+    // R^(49 - 9) = 363000 / 3.83
+    // R^40 ≈ 94778.06
+    // R = 94778.06 ^ (1/40) ≈ 1.33235...
 
-    // We work in "second exponent" space:
-    //   secondExp = log10( log10(requirement) )
+    const startVal = baseRequirementLog10(9); // ~3.83
+    const endVal = 363000;
+    const steps = 49 - 9; // 40
+
+    // Safety check for startVal
+    const safeStart = Math.max(1, startVal);
+
+    const ratio = Math.pow(endVal / safeStart, 1 / steps);
+    const exponent = baseLevel - 9;
+
+    totalLog10 = safeStart * Math.pow(ratio, exponent);
+  } else {
+    // 50–99: The New Insanity Zone
     //
     // Targets:
-    //   level 50 (x=1)  → secondExp ≈ 3    → log10 ≈ 1e3   → ~1e1000 MP
-    //   level 99 (x=50) → secondExp ≈ 303  → log10 ≈ 1e303 → ~1e1e303 MP
+    //   Level 50: 1,000,000 zeros (log10 = 1e6)
+    //     => secondExp = log10(1e6) = 6
+    //   Level 99: Original target (log10 = 1e303)
+    //     => secondExp = log10(1e303) = 303
     //
-    // Use quadratic: secondExp(x) = A * x^2 + B
-    // Solve:
-    //   A + B        = 3
-    //   2500*A + B   = 303
-    // ⇒ A = 300 / 2499, B = 3 - A
-    const A = 300 / (50 * 50 - 1); // 300 / 2499
-    const B = 3 - A;
+    // Interpolation: Quadratic on secondExp
+    //   x = baseLevel - 49 (ranges from 1 to 50)
+    //   L50 (x=1)  => y=6
+    //   L99 (x=50) => y=303
+    
+    const x = baseLevel - 49; // 1..50
+    
+    // y = A*x^2 + B
+    // 6 = A*1 + B
+    // 303 = A*2500 + B
+    //
+    // 303 - 6 = 2499*A
+    // 297 = 2499*A
+    // A = 297 / 2499
+    // B = 6 - A
 
+    const A = 297 / 2499;
+    const B = 6 - A;
+    
     const secondExp = A * x * x + B;
     if (!Number.isFinite(secondExp)) {
       return BN.fromAny('Infinity');
