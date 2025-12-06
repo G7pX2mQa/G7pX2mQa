@@ -810,8 +810,9 @@ function renderShopGrid() {
           ? levelNumber >= capNumber
           : false));
     const isBookValueUpgrade = upg.meta?.tie === UPGRADE_TIES.BOOK_VALUE_I;
+    const isFasterCoins3 = upg.meta?.tie === UPGRADE_TIES.FASTER_COINS_III;
     const isSingleLevelCap = hasFiniteCap && capNumber === 1;
-    const isUnlockUpgrade = !!upg.meta?.unlockUpgrade || (isSingleLevelCap && !isBookValueUpgrade);
+    const isUnlockUpgrade = !!upg.meta?.unlockUpgrade || (isSingleLevelCap && !isBookValueUpgrade && !isFasterCoins3);
     const showUnlockableBadge = !locked && isUnlockUpgrade && !capReached;
     const showUnlockedBadge = !locked && isUnlockUpgrade && !showUnlockableBadge && capReached;
     let badgeHtml;
