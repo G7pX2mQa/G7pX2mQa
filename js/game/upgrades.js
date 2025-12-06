@@ -27,6 +27,10 @@ export const HM_EVOLUTION_INTERVAL = 1000;
 const HM_EVOLUTION_EFFECT_MULT_BN = BigNum.fromInt(1000);
 const DEFAULT_AREA_KEY = '';
 
+export const AREA_KEYS = {
+  STARTER_COVE: 'starter_cove',
+};
+
 function hasScaling(upg) {
   try {
     const scaling = ensureUpgradeScaling(upg);
@@ -2256,9 +2260,6 @@ function nmCostBN(upg, level) {
   return costAtLevelUsingScaling(upg, level);
 }
 
-export const AREA_KEYS = {
-  STARTER_COVE: 'starter_cove',
-};
 
 function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
   const multHandle = bank?.books?.mult;
