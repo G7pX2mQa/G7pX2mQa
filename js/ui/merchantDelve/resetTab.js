@@ -32,7 +32,7 @@ import {
   getMutationState,
   getTotalCumulativeMp,
 } from '../../game/mutationSystem.js';
-import { markGhostTapTarget, shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
+import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 
 const BN = BigNum;
 const bnZero = () => BN.fromInt(0);
@@ -817,7 +817,7 @@ function buildPanel(panelEl) {
     let lastPointerType = null;
     const handleClick = (e) => {
       if (e && e.isTrusted && shouldSkipGhostTap(btn)) return;
-      markGhostTapTarget(btn);
+      // markGhostTapTarget removed - global handler manages clicks
       
       const card = resetState.elements[key]?.card;
       if (card) {
@@ -829,12 +829,6 @@ function buildPanel(panelEl) {
         }
       }
     };
-
-    btn.addEventListener('pointerdown', (e) => {
-        lastPointerType = e.pointerType || null;
-        if (e.pointerType === 'mouse') return;
-        handleClick(e);
-    });
 
     btn.addEventListener('click', (e) => {
         if (lastPointerType && lastPointerType !== 'mouse') {
