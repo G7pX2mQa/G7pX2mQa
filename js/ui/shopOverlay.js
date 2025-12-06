@@ -414,7 +414,7 @@ function playEvolveSfx() {
 
 function currencyIconHTML(type) {
   const src = CURRENCY_ICON_SRC[type] || CURRENCY_ICON_SRC.coins;
-  return `<img alt="" src="${src}" class="coin-ico">`;
+  return `<img alt="" src="${src}" class="currency-ico">`;
 }
 
 // 1×1 transparent WebP (fallback when an icon is missing)
