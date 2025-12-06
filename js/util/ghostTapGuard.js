@@ -47,7 +47,7 @@ function clearGhostTapTarget(el) {
   el[ELEMENT_SKIP_PROP] = 0;
 }
 
-function markGhostTapTarget(el, timeout = DEFAULT_TIMEOUT_MS) {
+function markGhostTapTarget(el, timeout = DEFAULT_TIMEOUT_MS, globalTimeout = null) {
   if (!el) return;
   const now = nowMs();
   const delay = Number.isFinite(timeout) ? Math.max(0, Number(timeout)) : DEFAULT_TIMEOUT_MS;
@@ -57,7 +57,12 @@ function markGhostTapTarget(el, timeout = DEFAULT_TIMEOUT_MS) {
     el[ELEMENT_SKIP_PROP] = 0;
   }
   lastMarkedTarget = el;
-  if (delay > 0) suppressNextGhostTap(delay);
+
+  const gDelay = globalTimeout !== null
+    ? (Number.isFinite(globalTimeout) ? Math.max(0, Number(globalTimeout)) : DEFAULT_TIMEOUT_MS)
+    : delay;
+
+  if (gDelay > 0) suppressNextGhostTap(gDelay);
 }
 
 function consumeGhostTapGuard(target) {
@@ -67,13 +72,13 @@ function consumeGhostTapGuard(target) {
 
   const now = nowMs();
   if (now <= until) {
-    window[GLOBAL_SKIP_PROP] = null;
-    if (target && lastMarkedTarget && target === lastMarkedTarget) {
-      return false;
-    }
+    // We intentionally removed the "return false if target matches" logic
+    // because we now rely on !event.isTrusted to let the synthetic click pass.
+    // So if the guard is active, we BLOCK (return true).
     return true;
   }
 
+  // If expired, clear it
   window[GLOBAL_SKIP_PROP] = null;
   return false;
 }
@@ -84,10 +89,8 @@ function shouldSkipGhostTap(el) {
   if (!Number.isFinite(until) || until <= 0) return false;
   const now = nowMs();
   if (now <= until) {
-    if (lastMarkedTarget && el === lastMarkedTarget) {
-      clearGhostTapTarget(el);
-      return false;
-    }
+    // Always block if the element is marked and time hasn't passed.
+    // We removed the "allow first match" logic here too.
     clearGhostTapTarget(el);
     return true;
   }
@@ -115,25 +118,14 @@ function onPointerStart(event) {
   if (typeof event.button === 'number' && event.button !== 0) return;
   lastTouchMs = lastTouchStartMs = nowMs();
   lastTouchDurationMs = 0;
-  const target = findTapTarget(event.target);
-  if (!target) return;
-  if (consumeGhostTapGuard(target)) {
-    clearGhostTapTarget(target);
-    event.preventDefault();
-    event.stopImmediatePropagation();
-  }
+  // Note: We removed consumeGhostTapGuard here to allow rapid "spam" taps.
+  // We only block the resulting *clicks* in onClickCapture.
 }
 
 function onTouchStart(event) {
   lastTouchMs = lastTouchStartMs = nowMs();
   lastTouchDurationMs = 0;
-  const target = findTapTarget(event.target);
-  if (!target) return;
-  if (consumeGhostTapGuard(target)) {
-    clearGhostTapTarget(target);
-    event.preventDefault();
-    event.stopImmediatePropagation();
-  }
+  // Note: We removed consumeGhostTapGuard here to allow rapid "spam" taps.
 }
 
 function onPointerEnd(event) {
@@ -155,11 +147,33 @@ function onTouchEnd() {
 }
 
 function onClickCapture(event) {
+  // Always allow synthetic/programmatic clicks (e.g. from handleInstantClick)
+  if (!event.isTrusted) return;
+
   const now = nowMs();
   const sinceTouchStart = lastTouchStartMs > 0 ? now - lastTouchStartMs : -1;
-  if (sinceTouchStart < 0) return;
-
+  
+  // If we have a running guard (Element or Global), check it.
   const target = findTapTarget(event.target);
+
+  // Check element-specific guard first (fixes hold-release double tap)
+  if (shouldSkipGhostTap(target)) {
+    lastTouchDurationMs = 0;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
+
+  // Check global guard (fixes ghost taps on other elements)
+  if (consumeGhostTapGuard(target)) {
+    if (target) clearGhostTapTarget(target);
+    lastTouchDurationMs = 0;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
+
+  if (sinceTouchStart < 0) return;
   if (!target) return;
 
   const effectiveDuration = lastTouchDurationMs || sinceTouchStart;
@@ -171,12 +185,7 @@ function onClickCapture(event) {
     event.stopImmediatePropagation();
     return;
   }
-  if (consumeGhostTapGuard(target)) {
-    clearGhostTapTarget(target);
-    lastTouchDurationMs = 0;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-  }
+  
   lastTouchDurationMs = 0;
 }
 
@@ -225,16 +234,21 @@ function handleInstantClick(event) {
   // (Shop lists, Merchant dialogue lists)
   // NOTE: .debug-panel and .debug-panel-action-log are intentionally NOT excluded
   // to allow ghost tapping on debug buttons as per user request.
-  if (buttonLike.closest('.shop-scroller, .merchant-content')) {
-    return;
-  }
+  
+  // Exclude Shop list
+  if (buttonLike.closest('.shop-scroller')) return;
+  
+  // Exclude Dialogue list
+  if (buttonLike.closest('.merchant-dialogue-list')) return;
 
   // If a specific element asked to avoid this logic, bail
   if (buttonLike.dataset.noGhost === 'true') return;
 
   // Manually "click" it immediately to bypass the 300ms delay or touch-drag threshold
-  // Mark it so we don't double-fire if the browser also sends a click later
-  markGhostTapTarget(buttonLike, 300);
+  // Mark it so we don't double-fire if the browser also sends a click later.
+  // We use a long timeout (2000ms) for the element to prevent "hold" double-taps,
+  // but a short global timeout (300ms) to avoid blocking other elements if the user taps rapidly.
+  markGhostTapTarget(buttonLike, 2000, 300);
 
   // We don't preventDefault() here because that might kill scrolling or other behaviors,
   // but since we excluded scrollable areas, we assume these are static HUD buttons.
