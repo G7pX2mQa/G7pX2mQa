@@ -2317,7 +2317,7 @@ const REGISTRY = [
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     effectSummary(level) {
       const mult = this.effectMultiplier(level);
-      return `Coin spawn rate bonus: ${formatMultForUi(mult)}x`;
+      return `Coin Spawn Rate bonus: ${formatMultForUi(mult)}x`;
     },
     effectMultiplier: E.addPctPerLevel(0.10),
   },
@@ -2359,7 +2359,7 @@ const REGISTRY = [
     nextCostAfter() { return this.costAtLevel(); },
     effectSummary(level) {
       const mult = this.effectMultiplier(level);
-      return `Coin spawn rate bonus: ${formatMultForUi(mult)}x`;
+      return `Coin Spawn Rate bonus: ${formatMultForUi(mult)}x`;
     },
     effectMultiplier: E.addPctPerLevel(0.10),
   },
@@ -2672,7 +2672,7 @@ const REGISTRY = [
     computeLockState: determineLockState,
     effectSummary(level) {
       const mult = this.effectMultiplier(level);
-      return `Coin spawn rate bonus: ${formatMultForUi(mult)}x`;
+      return `Coin Spawn Rate bonus: ${formatMultForUi(mult)}x`;
     },
     effectMultiplier: E.addPctPerLevel(1),
   },
