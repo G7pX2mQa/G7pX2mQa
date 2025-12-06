@@ -627,22 +627,23 @@ export function canPerformInfuseReset() {
   return true;
 }
 
-function resetUpgrades({ resetGold = false } = {}) {
+function resetUpgrades({ resetGold = false, resetMagic = false } = {}) {
   const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
   for (const upg of upgrades) {
     if (!upg) continue;
     const tieKey = upg.tieKey || upg.tie;
     if (tieKey === UPGRADE_TIES.UNLOCK_XP || tieKey === UPGRADE_TIES.UNLOCK_FORGE || tieKey === UPGRADE_TIES.UNLOCK_INFUSE) continue;
     if (upg.costType === 'gold' && !resetGold) continue;
+    if (upg.costType === 'magic' && !resetMagic) continue;
     setLevel(AREA_KEYS.STARTER_COVE, upg.id, 0, true, { resetHmEvolutions: true });
   }
 }
 
-function applyForgeResetEffects({ resetGold = false } = {}) {
+function applyForgeResetEffects({ resetGold = false, resetMagic = false } = {}) {
   try { bank.coins.set(0); } catch {}
   try { bank.books.set(0); } catch {}
   try { resetXpProgress({ keepUnlock: true }); } catch {}
-  resetUpgrades({ resetGold });
+  resetUpgrades({ resetGold, resetMagic });
 }
 
 export function performForgeReset() {
