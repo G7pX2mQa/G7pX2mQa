@@ -32,7 +32,6 @@ import {
 } from '../game/upgrades.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE } from '../ui/merchantDelve/dlgTab.js';
-import { markGhostTapTarget, shouldSkipGhostTap } from './ghostTapGuard.js';
 
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
@@ -318,25 +317,6 @@ function ensureDebugPanelStyles() {
     document.head.appendChild(link);
 }
 
-function applyMobileGhostTapToDropdown(select) {
-    if (!select || !IS_MOBILE || typeof window === 'undefined') return;
-
-    const mark = () => markGhostTapTarget(select, 0);
-    const hasPointerEvents = 'PointerEvent' in window;
-
-    if (hasPointerEvents) {
-        select.addEventListener('pointerdown', (event) => {
-            if (event.pointerType === 'mouse') return;
-            if (typeof event.button === 'number' && event.button !== 0) return;
-            mark();
-        }, { passive: true });
-    } else {
-        select.addEventListener('touchstart', mark, { passive: true });
-    }
-
-    select.addEventListener('click', mark, { passive: true });
-}
-
 function removeDebugPanelToggleButton() {
     const existingButton = document.getElementById(DEBUG_PANEL_TOGGLE_ID);
     if (existingButton) existingButton.remove();
@@ -379,20 +359,9 @@ function createSection(title, contentId, contentBuilder) {
     let lastPointerType = null;
 
     const handleToggle = (event) => {
-        if (event?.isTrusted && shouldSkipGhostTap(toggle)) return;
-        markGhostTapTarget(toggle);
         const expanded = toggle.classList.toggle('expanded');
         content.classList.toggle('active', expanded);
     };
-
-    if (typeof window !== 'undefined' && 'PointerEvent' in window) {
-        toggle.addEventListener('pointerdown', (event) => {
-            lastPointerType = event.pointerType || null;
-            if (event.pointerType === 'mouse') return;
-            event.preventDefault();
-            handleToggle(event);
-        });
-    }
 
     toggle.addEventListener('click', (event) => {
         if (lastPointerType && lastPointerType !== 'mouse') {
@@ -427,20 +396,9 @@ function createSubsection(title, contentBuilder, { defaultExpanded = false } = {
     let lastPointerType = null;
 
     const handleToggle = (event) => {
-        if (event?.isTrusted && shouldSkipGhostTap(toggle)) return;
-        markGhostTapTarget(toggle);
         const expanded = toggle.classList.toggle('expanded');
         content.classList.toggle('active', expanded);
     };
-
-    if (typeof window !== 'undefined' && 'PointerEvent' in window) {
-        toggle.addEventListener('pointerdown', (event) => {
-            lastPointerType = event.pointerType || null;
-            if (event.pointerType === 'mouse') return;
-            event.preventDefault();
-            handleToggle(event);
-        });
-    }
 
     toggle.addEventListener('click', (event) => {
         if (lastPointerType && lastPointerType !== 'mouse') {
@@ -1460,7 +1418,6 @@ function createCalculatorRow({ labelText, inputs = [], compute }) {
                 select.appendChild(option);
             });
             select.addEventListener('change', recompute);
-            applyMobileGhostTapToDropdown(select);
             controls.appendChild(select);
             fieldEls.push({ config, el: select });
         } else {
@@ -3006,7 +2963,6 @@ function buildMiscContent(content) {
 
     const resetSelect = document.createElement('select');
     resetSelect.className = 'debug-panel-input debug-reset-values-select';
-    applyMobileGhostTapToDropdown(resetSelect);
 
     getAreas().forEach((area) => {
         const group = document.createElement('optgroup');
@@ -3320,17 +3276,8 @@ function createDebugPanelToggleButton() {
     let lastPointerType = null;
 
     const handleToggle = (event) => {
-        if (event.isTrusted && shouldSkipGhostTap(button)) return;
-        markGhostTapTarget(button);
         toggleDebugPanel();
     };
-
-    button.addEventListener('pointerdown', (event) => {
-        lastPointerType = event.pointerType || null;
-        if (event.pointerType === 'mouse') return;
-        event.preventDefault();
-        handleToggle(event);
-    });
 
     button.addEventListener('click', (event) => {
         if (lastPointerType && lastPointerType !== 'mouse') {
