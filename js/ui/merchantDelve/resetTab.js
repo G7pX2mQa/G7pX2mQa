@@ -259,7 +259,8 @@ function computeInfuseMagic(coinsBn, cumulativeMpBn) {
   const totalLog = logTermA + logTermB + logTermC;
   if (!Number.isFinite(totalLog)) return BN.fromAny('Infinity');
   
-  return bigNumFromLog10(totalLog).floorToInteger();
+  const base = bigNumFromLog10(totalLog).floorToInteger();
+  return bank.magic?.mult?.applyTo?.(base) ?? base;
 }
 
 export function computeForgeGoldFromInputs(coinsBn, levelBn) {
@@ -999,9 +1000,19 @@ function bindGlobalEvents() {
   });
   window.addEventListener('currency:multiplier', (e) => {
     const detail = e?.detail;
-    if (!detail || detail.key !== CURRENCIES.GOLD) return;
-    if (detail.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
-    updateResetPanel();
+    if (!detail) return;
+    if (detail.key === CURRENCIES.GOLD) {
+      if (detail.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
+      recomputePendingGold(true);
+      updateResetPanel();
+      return;
+    }
+    if (detail.key === CURRENCIES.MAGIC) {
+      if (detail.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
+      recomputePendingMagic();
+      updateResetPanel();
+      return;
+    }
   });
   window.addEventListener('xp:change', () => {
     recomputePendingGold();
