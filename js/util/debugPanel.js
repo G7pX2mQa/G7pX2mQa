@@ -2128,7 +2128,7 @@ function getUnlockRowDefinitions(slot) {
         },
         {
             labelText: 'Unlock Workshop',
-            description: 'If true, marks the first Infuse reset as completed',
+            description: 'If true, unlocks the Workshop tab',
             isUnlocked: () => {
                 try { return window.resetSystem?.hasDoneInfuseReset?.() ?? false; }
                 catch { return false; }
