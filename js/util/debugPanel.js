@@ -29,7 +29,6 @@ import {
     clearPermanentUpgradeUnlock,
     setLevel,
 } from '../game/upgrades.js';
-import { computeForgeGoldFromInputs, computeInfuseMagicFromInputs, getForgeDebugOverrideState, hasDoneForgeReset, isForgeUnlocked, setForgeDebugOverride, setForgeResetCompleted, updateResetPanel, isInfuseUnlocked, setInfuseDebugOverride, getInfuseDebugOverrideState } from '../ui/merchantDelve/resetTab.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE } from '../ui/merchantDelve/dlgTab.js';
 import { markGhostTapTarget, shouldSkipGhostTap } from './ghostTapGuard.js';
@@ -1114,11 +1113,11 @@ function updateActionLogDisplay() {
 
     actionLogContainer.innerHTML = actionLog.map((entry) => {
         const formattedTime = String(entry.time ?? '').replace(/^0(\d)/, '$1');
-        let formattedMessage = entry.message?.replace?.(/\[GOLD\](.*?)\[\/GOLD\]/g, '<span class="action-log-gold">$1</span>') ?? '';
+        let formattedMessage = entry.message?.replace?.(/\\[GOLD\\](.*?)\\[\\/GOLD\\]/g, '<span class="action-log-gold">$1</span>') ?? '';
         formattedMessage = formattedMessage.replace(/\b(?:Level|Lv)\s?(\d+)\b/g, '<span class="action-log-level">Lv$1</span>');
-        formattedMessage = formattedMessage.replace(/(\d[\d,.]*(?:e[+-]?\d+)*(?:[KMBTQa-zA-Z]*))/g, (match) => /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match);
-        formattedMessage = formattedMessage.replace(/<span[^>]*class="[^"]*infinity-symbol[^"]*"[^>]*>∞<\/span>/g, '<span class="action-log-number">inf</span>');
-        formattedMessage = formattedMessage.replace(/∞/g, '<span class="action-log-number">inf</span>');
+        formattedMessage = formattedMessage.replace(/(\d[\\d,.]*(?:e[+-]?\d+)*(?:[KMBTQa-zA-Z]*))/g, (match) => /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match);
+        formattedMessage = formattedMessage.replace(/<span[^>]*class="[^"]*infinity-symbol[^"]*"[^>]*>\u221E<\/span>/g, '<span class="action-log-number">inf</span>');
+        formattedMessage = formattedMessage.replace(/\u221E/g, '<span class="action-log-number">inf</span>');
 
         return `
             <div class="action-log-entry">
@@ -1605,24 +1604,24 @@ function applyMutationState({ level, progress }) {
     // auto-enable the relevant unlock flags so the UI and systems stay in
     // sync.
     try {
-        const forgeUnlocked = typeof isForgeUnlocked === 'function' ? isForgeUnlocked() : false;
-        const forgeOverride = typeof getForgeDebugOverrideState === 'function'
-            ? getForgeDebugOverrideState()
+        const forgeUnlocked = typeof window.resetSystem?.isForgeUnlocked === 'function' ? window.resetSystem.isForgeUnlocked() : false;
+        const forgeOverride = typeof window.resetSystem?.getForgeDebugOverrideState === 'function'
+            ? window.resetSystem.getForgeDebugOverrideState()
             : null;
         if (!forgeUnlocked && forgeOverride !== true) {
-            setForgeDebugOverride?.(true);
+            window.resetSystem?.setForgeDebugOverride?.(true);
         }
     } catch {}
 
     try {
-        if (typeof hasDoneForgeReset === 'function' && !hasDoneForgeReset()) {
-            setForgeResetCompleted?.(true);
+        if (typeof window.resetSystem?.hasDoneForgeReset === 'function' && !window.resetSystem.hasDoneForgeReset()) {
+            window.resetSystem?.setForgeResetCompleted?.(true);
         }
     } catch {}
 
     try { setMutationUnlockedForDebug(true); } catch {}
 
-    try { updateResetPanel?.(); } catch {}
+    try { window.resetSystem?.updateResetPanel?.(); } catch {}
 
     // Make sure the mutation / MP system is treated as unlocked if we're
     // manually editing its stats from the debug panel.
@@ -1658,6 +1657,9 @@ function applyMutationState({ level, progress }) {
     try {
         broadcastMutationChange({ changeType: 'debug-panel', slot });
     } catch {}
+
+    try { window.resetSystem?.recomputePendingMagic?.(); } catch {}
+    try { window.resetSystem?.updateResetPanel?.(); } catch {}
 
     // Keep all debug rows that depend on mutation / MP state in sync.
     try {
@@ -2117,30 +2119,30 @@ function getUnlockRowDefinitions(slot) {
             onDisable: () => {
                 try { resetXpProgress({ keepUnlock: false }); }
                 catch {}
-                try { setForgeDebugOverride(false); }
+                try { window.resetSystem?.setForgeDebugOverride?.(false); }
                 catch {}
-                try { updateResetPanel(); }
+                try { window.resetSystem?.updateResetPanel?.(); }
                 catch {}
             },
             slot,
         },
         {
-            labelText: 'Unlock Infuse Reset',
+            labelText: 'Unlock Workshop',
             description: 'If true, marks the first Infuse reset as completed',
             isUnlocked: () => {
-                try { return hasDoneInfuseReset(); }
+                try { return window.resetSystem?.hasDoneInfuseReset?.() ?? false; }
                 catch { return false; }
             },
             onEnable: () => {
-                try { setInfuseResetCompleted(true); }
+                try { window.resetSystem?.setInfuseResetCompleted?.(true); }
                 catch {}
-                try { updateResetPanel(); }
+                try { window.resetSystem?.updateResetPanel?.(); }
                 catch {}
             },
             onDisable: () => {
-                try { setInfuseResetCompleted(false); }
+                try { window.resetSystem?.setInfuseResetCompleted?.(false); }
                 catch {}
-                try { updateResetPanel(); }
+                try { window.resetSystem?.updateResetPanel?.(); }
                 catch {}
             },
             slot,
@@ -2149,23 +2151,23 @@ function getUnlockRowDefinitions(slot) {
             labelText: 'Unlock MP',
             description: 'If true, unlocks the MP system',
             isUnlocked: () => {
-                try { return hasDoneForgeReset(); }
+                try { return window.resetSystem?.hasDoneForgeReset?.() ?? false; }
                 catch { return false; }
             },
             onEnable: () => {
-                try { setForgeResetCompleted(true); }
+                try { window.resetSystem?.setForgeResetCompleted?.(true); }
                 catch {}
                 try { setMutationUnlockedForDebug(true); }
                 catch {}
-                try { updateResetPanel(); }
+                try { window.resetSystem?.updateResetPanel?.(); }
                 catch {}
             },
             onDisable: () => {
-                try { setForgeResetCompleted(false); }
+                try { window.resetSystem?.setForgeResetCompleted?.(false); }
                 catch {}
                 try { setMutationUnlockedForDebug(false); }
                 catch {}
-                try { updateResetPanel(); }
+                try { window.resetSystem?.updateResetPanel?.(); }
                 catch {}
             },
             slot,
@@ -2175,23 +2177,23 @@ function getUnlockRowDefinitions(slot) {
             description: 'If true, unlocks the Forge reset and Reset tab',
             isUnlocked: () => {
                 try {
-                    const override = getForgeDebugOverrideState();
+                    const override = window.resetSystem?.getForgeDebugOverrideState?.();
                     if (override != null) return override;
                 } catch {}
-                try { return !!isForgeUnlocked(); }
+                try { return !!window.resetSystem?.isForgeUnlocked?.(); }
                 catch { return false; }
                 return false;
             },
             onEnable: () => {
-                try { setForgeDebugOverride(true); }
+                try { window.resetSystem?.setForgeDebugOverride?.(true); }
                 catch {}
-                try { updateResetPanel(); }
+                try { window.resetSystem?.updateResetPanel?.(); }
                 catch {}
             },
             onDisable: () => {
-                try { setForgeDebugOverride(false); }
+                try { window.resetSystem?.setForgeDebugOverride?.(false); }
                 catch {}
-                try { updateResetPanel(); }
+                try { window.resetSystem?.updateResetPanel?.(); }
                 catch {}
             },
         },
@@ -2200,22 +2202,22 @@ function getUnlockRowDefinitions(slot) {
             description: 'If true, unlocks the Infuse reset',
             isUnlocked: () => {
                 try {
-                    const override = getInfuseDebugOverrideState();
+                    const override = window.resetSystem?.getInfuseDebugOverrideState?.();
                     if (override != null) return override;
                 } catch {}
-                try { return !!isInfuseUnlocked(); }
+                try { return !!window.resetSystem?.isInfuseUnlocked?.(); }
                 catch { return false; }
             },
             onEnable: () => {
-                try { setInfuseDebugOverride(true); }
+                try { window.resetSystem?.setInfuseUnlockedForDebug?.(true); }
                 catch {}
-                try { updateResetPanel(); }
+                try { window.resetSystem?.updateResetPanel?.(); }
                 catch {}
             },
             onDisable: () => {
-                try { setInfuseDebugOverride(false); }
+                try { window.resetSystem?.setInfuseUnlockedForDebug?.(false); }
                 catch {}
-                try { updateResetPanel(); }
+                try { window.resetSystem?.updateResetPanel?.(); }
                 catch {}
             },
             slot,
@@ -2654,7 +2656,7 @@ function buildAreaCalculators(container) {
                         { key: 'coins', label: 'Coins' },
                         { key: 'xpLevel', label: 'XP Level' },
                     ],
-                    compute: ({ coins, xpLevel }) => computeForgeGoldFromInputs(coins, xpLevel),
+                    compute: ({ coins, xpLevel }) => window.resetSystem?.computeForgeGoldFromInputs?.(coins, xpLevel),
                 },
                 {
                     label: 'Pending Magic (Infuse)',
@@ -2662,7 +2664,7 @@ function buildAreaCalculators(container) {
                         { key: 'coins', label: 'Coins' },
                         { key: 'mp', label: 'Cumulative MP' },
                     ],
-                    compute: ({ coins, mp }) => computeInfuseMagicFromInputs(coins, mp),
+                    compute: ({ coins, mp }) => window.resetSystem?.computeInfuseMagicFromInputs?.(coins, mp),
                 },
             ],
         },
