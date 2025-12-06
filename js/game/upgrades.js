@@ -153,7 +153,22 @@ export const UPGRADE_TIES = {
   MAGNET: 'gold_4',
   ENDLESS_XP: 'coin_3',
   UNLOCK_INFUSE: 'none_3',
+  COIN_VALUE_III: 'magic_1',
+  XP_VALUE_III: 'magic_2',
+  MP_VALUE_II: 'magic_3',
+  FASTER_COINS_III: 'magic_4',
+  ENDLESS_MP: 'coin_4',
 };
+
+const HM_MILESTONES_STARTER_COVE = [
+  { level: 10, multiplier: 1.5, target: 'self' },
+  { level: 25, multiplier: 2, target: 'self' },
+  { level: 50, multiplier: 5, target: 'mp' },
+  { level: 100, multiplier: 10, target: 'xp' },
+  { level: 200, multiplier: 15, target: 'coin' },
+  { level: 400, multiplier: 25, target: 'self' },
+  { level: 800, multiplier: 100, target: 'self' },
+];
 
 const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.webp';
 const MYSTERIOUS_UPGRADE_ICON_DATA_URL = 'img/misc/mysterious.webp';
@@ -166,11 +181,19 @@ const FORGE_PLACEHOLDER_TIES = new Set([
   UPGRADE_TIES.MAGNET,
   UPGRADE_TIES.ENDLESS_XP,
 ]);
+const INFUSE_PLACEHOLDER_TIES = new Set([
+  UPGRADE_TIES.COIN_VALUE_III,
+  UPGRADE_TIES.XP_VALUE_III,
+  UPGRADE_TIES.MP_VALUE_II,
+  UPGRADE_TIES.FASTER_COINS_III,
+  UPGRADE_TIES.ENDLESS_MP,
+]);
 const SPECIAL_LOCK_STATE_TIES = new Set([
   UPGRADE_TIES.UNLOCK_XP,
   UPGRADE_TIES.UNLOCK_FORGE,
   UPGRADE_TIES.UNLOCK_INFUSE,
   ...FORGE_PLACEHOLDER_TIES,
+  ...INFUSE_PLACEHOLDER_TIES,
 ]);
 const XP_MYSTERY_UPGRADE_TIES = new Set([
   UPGRADE_TIES.FASTER_COINS_II,
@@ -624,7 +647,9 @@ function determineLockState(ctx) {
         locked: true,
         iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
         hidden: true,
-        hideCost: true, hideEffect: true, useLockedBase: true,
+        hideCost: true,
+        hideEffect: true,
+        useLockedBase: true,
         titleOverride: HIDDEN_UPGRADE_TITLE,
         descOverride: revealText,
         reason: revealText,
@@ -2282,7 +2307,7 @@ const REGISTRY = [
     id: 1,
     tie: UPGRADE_TIES.FASTER_COINS,
     title: "Faster Coins",
-    desc: "Increases coin spawn rate by +10% per level",
+    desc: "Increases Coin spawn rate by +10% per level",
     lvlCap: 10,
     baseCost: 10,
     costType: "coins",
@@ -2566,6 +2591,118 @@ const REGISTRY = [
         try { onInfuseUpgradeUnlocked(); } catch {}
       }
     },
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 14,
+    tie: UPGRADE_TIES.COIN_VALUE_III,
+    title: "Coin Value III",
+    desc: "Increases Coin value by +100% per level",
+    lvlCap: 100,
+    baseCost: 1,
+    costType: "magic",
+    upgType: "NM",
+    icon: "sc_upg_icons/coin_val3.webp",
+    requiresUnlockXp: true,
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    computeLockState: determineLockState,
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Coin value bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.addPctPerLevel(1),
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 15,
+    tie: UPGRADE_TIES.XP_VALUE_III,
+    title: "XP Value III",
+    desc: "Increases XP value by +100% per level",
+    lvlCap: 100,
+    baseCost: 3,
+    costType: "magic",
+    upgType: "NM",
+    icon: "sc_upg_icons/xp_val3.webp",
+    requiresUnlockXp: true,
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    computeLockState: determineLockState,
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `XP value bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.addPctPerLevel(1),
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 16,
+    tie: UPGRADE_TIES.MP_VALUE_II,
+    title: "MP Value II",
+    desc: "Increases MP value by +100% per level",
+    lvlCap: 100,
+    baseCost: 25,
+    costType: "magic",
+    upgType: "NM",
+    icon: "sc_upg_icons/mp_val2.webp",
+    requiresUnlockXp: true,
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    computeLockState: determineLockState,
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `MP value bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.addPctPerLevel(1),
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 17,
+    tie: UPGRADE_TIES.FASTER_COINS_III,
+    title: "Faster Coins III",
+    desc: "Doubles Coin spawn rate (+100%)",
+    lvlCap: 1,
+    baseCost: 100,
+    costType: "magic",
+    upgType: "NM",
+    icon: "sc_upg_icons/faster_coins3.webp",
+    requiresUnlockXp: true,
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    computeLockState: determineLockState,
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Coin spawn rate bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.addPctPerLevel(1),
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 18,
+    tie: UPGRADE_TIES.ENDLESS_MP,
+    title: "Endless MP",
+    desc: "Milestones: Reach a certain upgrade level for powerful buffs\nMultiplies MP value by 1.1x per level",
+    lvlCap: HM_EVOLUTION_INTERVAL,
+    baseCost: 100_000_000_000_000,
+    costType: "coins",
+    upgType: "HM",
+    icon: "sc_upg_icons/mp_val_hm.webp",
+    requiresUnlockXp: true,
+    scalingPreset: 'HM',
+    hmMilestones: HM_MILESTONES_STARTER_COVE,
+    costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
+    nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
+    computeLockState: determineLockState,
+    effectSummary(level) {
+      const lvlBn = ensureLevelBigNum(level);
+      let baseMult;
+      try { baseMult = this.effectMultiplier(lvlBn); }
+      catch { baseMult = 1; }
+      const { selfMult } = computeHmMultipliers(this, lvlBn, this.area);
+      const total = safeMultiplyBigNum(baseMult, selfMult);
+      return `MP value bonus: ${formatMultForUi(total)}x`;
+    },
+    effectMultiplier: E.powPerLevel(1.1),
   },
 ];
 
@@ -3179,15 +3316,41 @@ export function getHmEvolutions(areaKey, upgId) {
 }
 
 export function getMpValueMultiplierBn() {
+  // MP Value I
   let mult = hundredPercentPerLevelMultiplier(
     getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MP_VALUE_I)
   );
+
+  // MP Value II
+  try {
+    const lvl2 = normalizedUpgradeLevel(
+      getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MP_VALUE_II)
+    );
+    if (lvl2 > 0) {
+      const bonus = hundredPercentPerLevelMultiplier(lvl2);
+      mult = safeMultiplyBigNum(mult, bonus);
+    }
+  } catch {}
+
+  // Endless XP (HM) milestones targeting MP
   try {
     const hmUpg = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
     const hmLvl = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
     const { mpMult } = computeHmMultipliers(hmUpg, hmLvl, AREA_KEYS.STARTER_COVE);
     mult = safeMultiplyBigNum(mult, mpMult);
   } catch {}
+
+  // Endless MP (HM): base effect + self milestones + other milestones
+  try {
+    const hmUpg = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_MP);
+    const hmLvl = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_MP);
+    let base = 1;
+    try { base = hmUpg?.effectMultiplier?.(hmLvl) ?? 1; } catch {}
+    const { selfMult, mpMult } = computeHmMultipliers(hmUpg, hmLvl, AREA_KEYS.STARTER_COVE);
+    mult = safeMultiplyBigNum(mult, safeMultiplyBigNum(base, selfMult));
+    mult = safeMultiplyBigNum(mult, mpMult);
+  } catch {}
+
   return mult;
 }
 
@@ -4049,6 +4212,8 @@ export function computeUpgradeEffects(areaKey) {
       cpsMult *= u.effectMultiplier(lvlNum);
     } else if (tieKey === UPGRADE_TIES.FASTER_COINS_II) {
       cpsMult *= u.effectMultiplier(lvlNum);
+    } else if (tieKey === UPGRADE_TIES.FASTER_COINS_III) {
+      cpsMult *= u.effectMultiplier(lvlNum);
     } else if (tieKey === UPGRADE_TIES.COIN_VALUE_I) {
       const lvl = Math.max(0, Number.isFinite(lvlNum) ? lvlNum : 0);
       if (lvl > 0) {
@@ -4134,6 +4299,17 @@ function registerXpUpgradeEffects() {
         }
       } catch {}
 
+      // Coin Value III: +100% per level
+      try {
+        const lvl3 = normalizedUpgradeLevel(
+          getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_VALUE_III)
+        );
+        if (lvl3 > 0) {
+          const bonus = hundredPercentPerLevelMultiplier(lvl3);
+          result = safeMultiplyBigNum(result, bonus);
+        }
+      } catch {}
+
       // Endless XP (HM): milestone bonuses to coin value
       try {
         const hmUpg = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
@@ -4181,6 +4357,17 @@ function registerXpUpgradeEffects() {
           try {
             gain = gain.mulBigNumInteger(bonus);
           } catch {}
+        }
+      } catch {}
+
+      // XP Value III: +100% per level
+      try {
+        const lvl3 = normalizedUpgradeLevel(
+          getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.XP_VALUE_III)
+        );
+        if (lvl3 > 0) {
+          const bonus = hundredPercentPerLevelMultiplier(lvl3);
+          gain = safeMultiplyBigNum(gain, bonus);
         }
       } catch {}
 
