@@ -155,6 +155,12 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   let radiusPx = 0;
   let rafId = 0;
   let destroyed = false;
+  let playfieldRect = null;
+
+  const updatePlayfieldRect = () => {
+    if (destroyed) return;
+    playfieldRect = playfield.getBoundingClientRect();
+  };
 
   const hideIndicator = () => {
     indicator.classList.remove('is-visible');
@@ -178,9 +184,9 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     // Iterate children directly to avoid expensive querySelectorAll
     const coins = coinsLayer.children;
     const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
+    const toCollect = [];
     
-    // Reverse loop is slightly safer if we modify the list (collect removes coin),
-    // although collect usually animates then removes.
+    // READ Phase: Batch all position checks
     for (let i = coins.length - 1; i >= 0; i--) {
       const coin = coins[i];
       if (coin.dataset.collected === '1') continue;
@@ -193,8 +199,13 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
       const dx = coinX - pointerClientX;
       const dy = coinY - pointerClientY;
       if (Math.hypot(dx, dy) <= radiusWithBuffer) {
-        collectFn(coin);
+        toCollect.push(coin);
       }
+    }
+
+    // WRITE Phase: Batch all DOM mutations (collectFn modifies DOM)
+    for (let i = 0; i < toCollect.length; i++) {
+      collectFn(toCollect[i]);
     }
   };
 
@@ -215,7 +226,10 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     if (typeof e.clientX !== 'number' || typeof e.clientY !== 'number') return;
     pointerClientX = e.clientX;
     pointerClientY = e.clientY;
-    const rect = playfield.getBoundingClientRect();
+    
+    if (!playfieldRect) updatePlayfieldRect();
+    const rect = playfieldRect;
+
     localX = pointerClientX - rect.left;
     localY = pointerClientY - rect.top;
     pointerInside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
@@ -239,6 +253,7 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   const handleResize = () => {
     unitPx = computeMagnetUnitPx();
     radiusPx = magnetLevel * unitPx;
+    updatePlayfieldRect();
     updateIndicator();
     ensureSweepLoop();
   };
