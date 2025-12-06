@@ -3,7 +3,6 @@
 import { openShop } from './shopOverlay.js';
 import { getActiveSlot, hasModifiedSave } from '../util/storage.js';
 import {
-  markGhostTapTarget,
   shouldSkipGhostTap,
 } from '../util/ghostTapGuard.js';
 
@@ -205,40 +204,11 @@ export function initHudButtons() {
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
         if (shouldSkipGhostTap(btn)) return;
-        markGhostTapTarget(btn);
+        // markGhostTapTarget removed - global handler manages clicks
         activate(btn);
-      };
-
-      const hasPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
-	  
-      const onPointerDown = (e) => {
-        if (e.pointerType === 'mouse') return;
-        if (typeof e.button === 'number' && e.button !== 0) return;
-        const btn = e.target.closest('.game-btn');
-        if (!btn) return;
-        const key = btn.getAttribute('data-btn');
-        if (key !== 'shop') return;
-        markGhostTapTarget(btn);
-        activate(btn);
-        e.preventDefault();
-      };
-
-      const onTouchStart = (e) => {
-        const btn = e.target.closest('.game-btn');
-        if (!btn) return;
-        const key = btn.getAttribute('data-btn');
-        if (key !== 'shop') return;
-        markGhostTapTarget(btn);
-        activate(btn);
-        e.preventDefault();
       };
 
       hud.addEventListener('click', onClick, { passive: true });
-      if (hasPointerEvents) {
-        hud.addEventListener('pointerdown', onPointerDown, { passive: false });
-      } else {
-        hud.addEventListener('touchstart', onTouchStart, { passive: false });
-      }
     }
   }
 }
