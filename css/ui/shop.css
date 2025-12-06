@@ -600,8 +600,9 @@
   font-weight: 600;
 }
 
-.upg-line .coin-ico{
-  width: 0.9em; height: 0.9em; 
+.upg-line .currency-ico {
+  width: 0.9em;
+  height: 0.9em;
   vertical-align: -0.14em;
   margin-right: -0.1em;
 }
