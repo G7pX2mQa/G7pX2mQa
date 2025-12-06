@@ -19,6 +19,7 @@ import {
   hasDoneForgeReset,
   onInfuseUpgradeUnlocked,
   isInfuseUnlocked,
+  hasDoneInfuseReset,
 } from '../ui/merchantDelve/resetTab.js';
 
 export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
@@ -698,6 +699,44 @@ function determineLockState(ctx) {
       };
     }
     return { locked: false };
+  }
+
+  // ==== Infuse Placeholders ====
+  if (INFUSE_PLACEHOLDER_TIES.has(tieKey)) {
+    if (hasDoneInfuseReset() || isUpgradePermanentlyUnlocked(area, upgRef)) {
+      try { markUpgradePermanentlyUnlocked(area, upgRef); } catch {}
+      return { locked: false, hidden: false, useLockedBase: false };
+    }
+
+    let xp101 = false;
+    try { const xpBn = currentXpLevelBigNum(); xp101 = levelBigNumToNumber(xpBn) >= 101; } catch {}
+
+    // Before 101 -> hard LOCKED
+    if (!xp101) {
+      return {
+        locked: true,
+        iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+        useLockedBase: true,
+        titleOverride: LOCKED_UPGRADE_TITLE,
+        descOverride: 'Locked',
+        reason: 'Locked',
+        hidden: false,
+        hideCost: false,
+        hideEffect: false,
+      };
+    }
+
+    // 101+ -> Mysterious
+    const revealText = 'Do an Infuse reset to reveal this upgrade';
+    try { markUpgradePermanentlyMysterious(area, upgRef); } catch {}
+    return {
+      locked: true,
+      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+      hidden: true, hideCost: true, hideEffect: true, useLockedBase: true,
+      titleOverride: HIDDEN_UPGRADE_TITLE,
+      descOverride: revealText,
+      reason: revealText,
+    };
   }
 
   if (hasDoneForgeReset() || isUpgradePermanentlyUnlocked(area, upgRef)) {
