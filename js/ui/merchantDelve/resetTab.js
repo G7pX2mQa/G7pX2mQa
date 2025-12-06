@@ -807,7 +807,12 @@ function buildPanel(panelEl) {
       
       const card = resetState.elements[key]?.card;
       if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const scrollContainer = card.closest('.merchant-content');
+        if (key === 'forge' && scrollContainer) {
+          scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       }
     };
 
