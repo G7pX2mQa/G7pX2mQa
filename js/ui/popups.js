@@ -6,7 +6,7 @@ import { CURRENCIES } from '../util/storage.js';
 
 const DEFAULT_DURATION = 3200;
 
-const POPUP_ORDER = ['coins', 'xp', 'books', 'gold', 'mp'];
+const POPUP_ORDER = ['coins', 'xp', 'books', 'gold', 'mp', 'magic'];
 
 const POPUP_META = {
   [CURRENCIES.COINS]: {
@@ -28,6 +28,10 @@ const POPUP_META = {
   mp: {
     icon: 'img/stats/mp/mp.webp',
     iconAlt: 'Mutation Power',
+  },
+  [CURRENCIES.MAGIC]: {
+    icon: 'img/currencies/magic/magic.webp',
+    iconAlt: 'Magic',
   },
 };
 
