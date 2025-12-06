@@ -170,6 +170,10 @@ const HM_MILESTONES_STARTER_COVE = [
   { level: 800, multiplier: 100, target: 'self' },
 ];
 
+const HM_MILESTONES_BY_AREA = {
+  [AREA_KEYS.STARTER_COVE]: HM_MILESTONES_STARTER_COVE,
+};
+
 const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.webp';
 const MYSTERIOUS_UPGRADE_ICON_DATA_URL = 'img/misc/mysterious.webp';
 const HIDDEN_UPGRADE_TITLE = 'Hidden Upgrade';
@@ -1263,19 +1267,9 @@ function hmMilestoneMultiplier(multiplier, hits) {
 }
 
 function resolveHmMilestones(upg, areaKey = DEFAULT_AREA_KEY) {
-  const milestones = upg?.hmMilestones;
-  if (Array.isArray(milestones)) return milestones;
-  if (!milestones || typeof milestones !== 'object') return [];
-
+  if (Array.isArray(upg?.hmMilestones)) return upg.hmMilestones;
   const normalizedArea = normalizeAreaKey(areaKey || upg?.area || DEFAULT_AREA_KEY);
-
-  if (normalizedArea) {
-    if (Array.isArray(milestones[normalizedArea])) return milestones[normalizedArea];
-    if (Array.isArray(milestones[areaKey])) return milestones[areaKey];
-  }
-
-  if (Array.isArray(milestones.default)) return milestones.default;
-  return [];
+  return HM_MILESTONES_BY_AREA[normalizedArea] || HM_MILESTONES_STARTER_COVE;
 }
 
 function safeMultiplyBigNum(base, factor) {
@@ -2547,15 +2541,6 @@ const REGISTRY = [
     icon: "sc_upg_icons/xp_val_hm.webp",
     requiresUnlockXp: true,
     scalingPreset: 'HM',
-    hmMilestones: [
-      { level: 10, multiplier: 1.5, target: 'self' },
-      { level: 25, multiplier: 2, target: 'self' },
-      { level: 50, multiplier: 5, target: 'mp' },
-      { level: 100, multiplier: 10, target: 'xp' },
-      { level: 200, multiplier: 15, target: 'coin' },
-      { level: 400, multiplier: 25, target: 'self' },
-      { level: 800, multiplier: 100, target: 'self' },
-    ],
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
     nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
     computeLockState: determineLockState,
@@ -2689,7 +2674,6 @@ const REGISTRY = [
     icon: "sc_upg_icons/mp_val_hm.webp",
     requiresUnlockXp: true,
     scalingPreset: 'HM',
-    hmMilestones: HM_MILESTONES_STARTER_COVE,
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
     nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
     computeLockState: determineLockState,
@@ -2726,7 +2710,8 @@ for (const upg of REGISTRY) {
 
   const isSingleLevelCap = Number.isFinite(upg.lvlCap) && Math.max(0, Math.floor(upg.lvlCap)) === 1;
   const isBookValueUpgrade = tieKey === BOOK_VALUE_TIE_KEY;
-  if (isSingleLevelCap && !isBookValueUpgrade) {
+  const isFasterCoins3 = tieKey === normalizeUpgradeTie(UPGRADE_TIES.FASTER_COINS_III);
+  if (isSingleLevelCap && !isBookValueUpgrade && !isFasterCoins3) {
     upg.unlockUpgrade = true;
     upg.baseCost = BigNum.fromInt(0);
     upg.baseCostBn = upg.baseCost;
