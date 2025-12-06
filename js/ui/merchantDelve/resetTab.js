@@ -57,6 +57,18 @@ function playForgeResetSound() {
   } catch {}
 }
 
+let infuseResetAudio = null;
+function playInfuseResetSound() {
+  try {
+    if (!infuseResetAudio) {
+      infuseResetAudio = new Audio(INFUSE_RESET_SOUND_SRC);
+    } else {
+      infuseResetAudio.currentTime = 0;
+    }
+    infuseResetAudio.play().catch(() => {});
+  } catch {}
+}
+
 const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
 const FORGE_COMPLETED_KEY = (slot) => `ccc:reset:forge:completed:${slot}`;
 const FORGE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:forgeUnlocked:${slot}`;
