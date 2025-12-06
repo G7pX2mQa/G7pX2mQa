@@ -43,6 +43,7 @@ const MAGIC_ICON_SRC = 'img/currencies/magic/magic.webp';
 const RESET_ICON_SRC = 'img/misc/forge.webp';
 const INFUSE_ICON_SRC = 'img/misc/infuse.webp';
 const FORGE_RESET_SOUND_SRC = 'sounds/forge_reset.ogg';
+const INFUSE_RESET_SOUND_SRC = 'sounds/infuse_reset.ogg';
 
 let forgeResetAudio = null;
 function playForgeResetSound() {
