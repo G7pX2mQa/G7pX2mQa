@@ -2748,6 +2748,7 @@ const REGISTRY = [
     effectMultiplier: E.powPerLevel(1.1),
   },
 ];
+
   if (tieKey && !upgradeTieLookup.has(tieKey)) {
     upgradeTieLookup.set(tieKey, upg);
   }
@@ -2774,9 +2775,8 @@ const REGISTRY = [
     upg.nextCostAfter = () => BigNum.fromInt(0);
   }
 
-  upg.bulkMeta = computeBulkMeta(upg);
-  ensureUpgradeScaling(upg);
-}
+upg.bulkMeta = computeBulkMeta(upg);
+ensureUpgradeScaling(upg);
 
 const areaStatePayloadCache = new Map(); // key → last serialized payload
 const areaStateMemoryCache = new Map(); // key → last parsed array reference
@@ -4208,6 +4208,7 @@ const BASE_CPS = 1;
 
 function registerXpUpgradeEffects() {
 let _cachedUpgradeMultipliers = null;
+}
 
 export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
   if (_cachedUpgradeMultipliers) return _cachedUpgradeMultipliers;
