@@ -3351,13 +3351,10 @@ export function getMpValueMultiplierBn() {
 
   // MP Value II
   try {
-    const lvl2 = normalizedUpgradeLevel(
-      getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MP_VALUE_II)
-    );
-    if (lvl2 > 0) {
-      const bonus = getLinearBonusMultiplier(lvl2, 10);
-      mult = safeMultiplyBigNum(mult, bonus);
-    }
+    const lvl2 = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MP_VALUE_II);
+    const upg2 = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MP_VALUE_II);
+    const bonus = upg2?.effectMultiplier?.(lvl2) ?? 1;
+    mult = safeMultiplyBigNum(mult, bonus);
   } catch {}
 
   // Endless XP (HM) milestones targeting MP
@@ -4326,15 +4323,12 @@ function registerXpUpgradeEffects() {
         }
       } catch {}
 
-      // Coin Value III: +1000% per level
+      // Coin Value III: +300,000% per level
       try {
-        const lvl3 = normalizedUpgradeLevel(
-          getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_VALUE_III)
-        );
-        if (lvl3 > 0) {
-          const bonus = getLinearBonusMultiplier(lvl3, 10);
-          result = safeMultiplyBigNum(result, bonus);
-        }
+        const lvl3 = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_VALUE_III);
+        const upg3 = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_VALUE_III);
+        const bonus = upg3?.effectMultiplier?.(lvl3) ?? 1;
+        result = safeMultiplyBigNum(result, bonus);
       } catch {}
 
       // Endless XP (HM): milestone bonuses to coin value
@@ -4387,15 +4381,12 @@ function registerXpUpgradeEffects() {
         }
       } catch {}
 
-      // XP Value III: +1000% per level
+      // XP Value III: +300% per level
       try {
-        const lvl3 = normalizedUpgradeLevel(
-          getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.XP_VALUE_III)
-        );
-        if (lvl3 > 0) {
-          const bonus = getLinearBonusMultiplier(lvl3, 10);
-          gain = safeMultiplyBigNum(gain, bonus);
-        }
+        const lvl3 = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.XP_VALUE_III);
+        const upg3 = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.XP_VALUE_III);
+        const bonus = upg3?.effectMultiplier?.(lvl3) ?? 1;
+        gain = safeMultiplyBigNum(gain, bonus);
       } catch {}
 
       // Endless XP (HM): core effect + milestones
