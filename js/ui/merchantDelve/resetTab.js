@@ -231,37 +231,28 @@ function computeInfuseMagicBase(coinsBn, cumulativeMpBn) {
   const logCoins = approxLog10BigNum(coinsBn);
   if (!Number.isFinite(logCoins)) return BN.fromAny('Infinity');
 
-  const logRatio = logCoins - 11;
-  if (logRatio < 0) return bnZero();
+  const logCRatio = logCoins - 11;
+  if (logCRatio < 0) return bnZero();
 
-  const log2 = Math.log10(2);
-  const logTermA = log2 + (logRatio * log2);
+  const LOG_BASE = 0.811078; // Math.log10(6.4726)
+  const LOG_1_5 = 0.176091;  // Math.log10(1.5)
+  const LOG_1_03 = 0.012837; // Math.log10(1.03)
+  const LOG_2 = 0.301030;    // Math.log10(2)
 
-  const log1_1 = Math.log10(1.10);
-  const floorLogRatio = Math.floor(logRatio);
-  const logTermB = floorLogRatio * log1_1;
-
-  let logTermC = 0;
+  let logMpRatio = 0;
   if (cumulativeMpBn && !cumulativeMpBn.isZero?.()) {
     const logMp = approxLog10BigNum(cumulativeMpBn);
-    
-    if (Number.isFinite(logMp) && logMp > 6) {
-       logTermC = 1.2 * (logMp - 4);
-    } else {
-       try {
-         const mpVal = Number(cumulativeMpBn.toPlainIntegerString());
-         if (Number.isFinite(mpVal)) {
-            logTermC = 1.2 * Math.log10(1 + mpVal / 10000);
-         } else {
-            logTermC = 1.2 * (logMp - 4);
-         }
-       } catch {
-         logTermC = 1.2 * (logMp - 4);
-       }
+    if (Number.isFinite(logMp)) {
+       logMpRatio = Math.max(0, logMp - 4);
     }
   }
 
-  const totalLog = logTermA + logTermB + logTermC;
+  const term1 = logCRatio * LOG_1_5;
+  const term2 = Math.floor(logCRatio) * LOG_1_03;
+  const term3 = logMpRatio * LOG_2;
+
+  const totalLog = LOG_BASE + term1 + term2 + term3;
+  
   if (!Number.isFinite(totalLog)) return BN.fromAny('Infinity');
   
   return bigNumFromLog10(totalLog).floorToInteger();
