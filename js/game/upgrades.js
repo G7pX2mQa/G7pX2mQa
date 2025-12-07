@@ -2338,7 +2338,6 @@ function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
  * Optional field:
  *  - scaling: Manually change the multiplicative scaling ratio of an upgrade; not necessary for upgrades that have no scaling
  */
-  upg.tieKey = tieKey;
 const REGISTRY = [
   {
     area: AREA_KEYS.STARTER_COVE,
@@ -4206,9 +4205,7 @@ export function evaluateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_
 
 const BASE_CPS = 1;
 
-function registerXpUpgradeEffects() {
 let _cachedUpgradeMultipliers = null;
-}
 
 export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
   if (_cachedUpgradeMultipliers) return _cachedUpgradeMultipliers;
@@ -4278,12 +4275,11 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       }
     }
   }
-function registerXpUpgradeEffects() {
 
   _cachedUpgradeMultipliers = acc;
   return acc;
-}
 
+}
 export function computeUpgradeEffects(areaKey) {
   const mults = calculateUpgradeMultipliers(areaKey);
   
@@ -4295,6 +4291,7 @@ export function computeUpgradeEffects(areaKey) {
     bookRewardMultiplier: mults.bookValue,
   };
 }
+export function registerXpUpgradeEffects() {
   try { initResetSystem(); } catch {}
 
   try {
@@ -4429,3 +4426,4 @@ export function getHmNextMilestoneLevel(areaKey, upgId) {
 export function normalizeBigNum(value) {
   return bigNumFromLog10(approxLog10BigNum(value ?? 0));
 }
+registerXpUpgradeEffects();
