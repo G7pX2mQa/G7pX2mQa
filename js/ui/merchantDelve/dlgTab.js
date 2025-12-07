@@ -8,7 +8,8 @@ import {
 import { BigNum } from '../../util/bigNum.js';
 import { MERCHANT_DIALOGUES } from '../../misc/merchantDialogues.js';
 import { getXpState, isXpSystemUnlocked } from '../../game/xpSystem.js';
-import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset } from './resetTab.js';
+import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset, hasDoneInfuseReset } from './resetTab.js';
+import { initWorkshopTab, updateWorkshopTab } from './workshopTab.js';
 import { blockInteraction } from '../shopOverlay.js';
 import {
   shouldSkipGhostTap,
@@ -41,12 +42,14 @@ export function hasMetMerchant() {
 const MERCHANT_TABS_DEF = [
   { key: 'dialogue',  label: 'Dialogue', unlocked: true },
   { key: 'reset',     label: 'Reset',    unlocked: false, lockedLabel: '???' },
+  { key: 'workshop',  label: 'Workshop', unlocked: false, lockedLabel: '???' },
   { key: 'minigames', label: '???',      unlocked: false },
 ];
 
 const merchantTabUnlockState = new Map([
   ['dialogue', true],
   ['reset', false],
+  ['workshop', false],
   ['minigames', false],
 ]);
 
@@ -230,6 +233,14 @@ function syncForgeTabUnlockState() {
   catch {}
   setMerchantTabUnlocked('reset', unlocked);
 }
+
+function syncWorkshopTabUnlockState() {
+  let unlocked = false;
+  try { unlocked = !!hasDoneInfuseReset?.(); }
+  catch {}
+  setMerchantTabUnlocked('workshop', unlocked);
+}
+
 let merchantDlgWatcherSlot = null;
 let merchantDlgWatcherCleanup = null;
 
@@ -1304,10 +1315,15 @@ function ensureMerchantOverlay() {
   panelReset.className = 'merchant-panel';
   panelReset.id = 'merchant-panel-reset';
 
+  const panelWorkshop = document.createElement('section');
+  panelWorkshop.className = 'merchant-panel';
+  panelWorkshop.id = 'merchant-panel-workshop';
+
   const panelMinigames = document.createElement('section');
   panelMinigames.className = 'merchant-panel';
   panelMinigames.id = 'merchant-panel-minigames';
   syncForgeTabUnlockState();
+  syncWorkshopTabUnlockState();
 
   MERCHANT_TABS_DEF.forEach(def => {
     if (def.key === 'dialogue') merchantTabUnlockState.set('dialogue', true);
@@ -1342,24 +1358,29 @@ function ensureMerchantOverlay() {
 
   merchantTabs.panels['dialogue']  = panelDialogue;
   merchantTabs.panels['reset']     = panelReset;
+  merchantTabs.panels['workshop']  = panelWorkshop;
   merchantTabs.panels['minigames'] = panelMinigames;
   merchantTabs.tablist = tabs;
 
-  panelsWrap.append(panelDialogue, panelReset, panelMinigames);
+  panelsWrap.append(panelDialogue, panelReset, panelWorkshop, panelMinigames);
   content.append(tabs, panelsWrap);
 
   syncForgeTabUnlockState();
+  syncWorkshopTabUnlockState();
 
   try { initResetSystem(); } catch {}
   try { initResetPanel(panelReset); } catch {}
   try { updateResetPanel(); } catch {}
+  
+  try { initWorkshopTab(panelWorkshop); } catch {}
 
   if (!forgeUnlockListenerBound && typeof window !== 'undefined') {
     const handleUnlockChange = (event) => {
       const { key, slot } = event?.detail ?? {};
-      if (key && key !== 'forge') return;
       if (slot != null && slot !== getActiveSlot()) return;
-      syncForgeTabUnlockState();
+      
+      if (key === 'forge' || !key) syncForgeTabUnlockState();
+      if (key === 'infuse' || !key) syncWorkshopTabUnlockState();
     };
     window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
     window.addEventListener('saveSlot:change', handleUnlockChange, { passive: true });
