@@ -995,8 +995,8 @@ function ensureShopOverlay() {
   delveBtn.className = 'shop-delve';
   delveBtn.textContent = 'Delve';
 
-  const openDelveOverlay = () => {
-    if (shouldSkipGhostTap(delveBtn)) return;
+  const openDelveOverlay = (e) => {
+    if (e && e.isTrusted && shouldSkipGhostTap(delveBtn)) return;
     primeTypingSfx();
     openMerchant();
   };
