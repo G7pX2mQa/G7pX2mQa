@@ -39,7 +39,11 @@ function saveGenerationLevel(level) {
 function getGenerationUpgradeCost(level) {
   // 1T * 10^level
   if (level === 0) return GENERATION_UPGRADE_BASE_COST;
-  const multiplier = BigNum.fromInt(GENERATION_UPGRADE_SCALE).pow(level);
+  // Since scale is 10, we can construct 10^level directly as 1e{level}
+  // Base cost is 1e12. So total is 1e(12 + level).
+  // We can just construct a new BigNum with exponent 12 + level.
+  // Or use multiplier method to be safe if base cost changes.
+  const multiplier = new BigNum(1n, level);
   return GENERATION_UPGRADE_BASE_COST.mulBigNumInteger(multiplier);
 }
 
@@ -69,7 +73,7 @@ function onTick() {
 function buildWorkshopUI(container) {
   container.innerHTML = `
     <div class="merchant-workshop">
-      <div class="workshop-header">
+      <div class="workshop-info-panel">
         <div class="workshop-gears-display">
           <img src="${GEAR_ICON_SRC}" class="workshop-gears-icon" alt="Gears">
           <span data-workshop="gears-amount">0</span>
@@ -83,7 +87,7 @@ function buildWorkshopUI(container) {
         </div>
       </div>
 
-      <div class="workshop-controls">
+      <div class="workshop-doubler-panel">
         <button class="workshop-upgrade-btn" data-workshop="upgrade-gen">
           <span class="workshop-upgrade-title">Double Gear Generation</span>
           <span class="workshop-upgrade-effect">Current: <span data-workshop="current-rate">1</span>/sec</span>
@@ -125,9 +129,12 @@ export function updateWorkshopTab() {
   const rate = getGearsPerSecond(currentGenerationLevel);
   const cost = getGenerationUpgradeCost(currentGenerationLevel);
 
+  // Wrap rate in BigNum so formatNumber uses suffix formatting instead of raw string
+  const rateBn = BigNum.fromAny(rate);
+
   if (gearsAmountEl) gearsAmountEl.textContent = bank.gears.fmt(bank.gears.value);
-  if (gearsRateEl) gearsRateEl.textContent = formatNumber(rate);
-  if (currentRateEl) currentRateEl.textContent = formatNumber(rate);
+  if (gearsRateEl) gearsRateEl.textContent = formatNumber(rateBn);
+  if (currentRateEl) currentRateEl.textContent = formatNumber(rateBn);
   if (upgradeCostEl) upgradeCostEl.textContent = formatNumber(cost);
 
   if (upgradeBtn) {
@@ -155,14 +162,7 @@ export function initWorkshopTab(panelEl) {
   if (panelEl.__workshopInit) return;
   panelEl.__workshopInit = true;
 
-  // Load styles
-  if (!document.getElementById('workshop-css')) {
-    const link = document.createElement('link');
-    link.id = 'workshop-css';
-    link.rel = 'stylesheet';
-    link.href = 'css/ui/delve/workshop.css';
-    document.head.appendChild(link);
-  }
+  // Removed manual CSS loading to fix 404 error
 
   currentGenerationLevel = loadGenerationLevel();
   buildWorkshopUI(panelEl);
