@@ -4321,17 +4321,7 @@ export function registerXpUpgradeEffects() {
     });
   } catch {}
 
-  try {
-    setExternalBookRewardProvider(({ baseReward, xpUnlocked }) => {
-      if (!xpUnlocked) return baseReward;
-      let reward = baseReward instanceof BigNum
-        ? baseReward.clone?.() ?? baseReward
-        : BigNum.fromAny(baseReward ?? 0);
 
-      const { bookValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
-      return safeMultiplyBigNum(reward, bookValue);
-    });
-  } catch {}
 
   syncBookCurrencyMultiplierFromUpgrade();
   if (typeof window !== 'undefined') {
