@@ -281,6 +281,7 @@ function getAreas() {
                 { key: CURRENCIES.BOOKS, label: 'Books' },
                 { key: CURRENCIES.GOLD,  label: 'Gold'  },
                 { key: CURRENCIES.MAGIC, label: 'Magic' },
+                { key: CURRENCIES.GEARS, label: 'Gears' },
             ],
             stats: [
                 { key: 'xp', label: 'XP' },
