@@ -1,96 +1,14 @@
 
 import { IS_MOBILE } from '../main.js';
 import { shouldSkipGhostTap, suppressNextGhostTap } from '../util/ghostTapGuard.js';
-import { blockInteraction } from './shopOverlay.js';
+import { blockInteraction, ensureCustomScrollbar, setupDragToClose } from './shopOverlay.js';
 
 let automationOverlayEl = null;
 let automationSheetEl = null;
 let automationOpen = false;
-let drag = null;
 let eventsBound = false;
 let automationCloseTimer = null;
 let __automationPostOpenPointer = false;
-
-function ensureCustomScrollbar() {
-  const scroller = automationOverlayEl?.querySelector('.automation-shop-scroller');
-  if (!scroller || scroller.__customScroll) return;
-
-  const bar = document.createElement('div');
-  bar.className = 'shop-scrollbar'; // Reuse shop scrollbar styles
-  const thumb = document.createElement('div');
-  thumb.className = 'shop-scrollbar__thumb';
-  bar.appendChild(thumb);
-  automationSheetEl.appendChild(bar);
-
-  scroller.__customScroll = { bar, thumb };
-
-  const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-  const FADE_SCROLL_MS = 150;
-  const supportsScrollEnd = 'onscrollend' in window;
-
-  const updateBounds = () => {
-    const grab = automationOverlayEl.querySelector('.shop-grabber');
-    const header = automationOverlayEl.querySelector('.shop-header');
-    const actions = automationOverlayEl.querySelector('.shop-actions');
-
-    const top = ((grab?.offsetHeight || 0) + (header?.offsetHeight || 0)) | 0;
-    const bottom = (actions?.offsetHeight || 0) | 0;
-
-    bar.style.top = top + 'px';
-    bar.style.bottom = bottom + 'px';
-  };
-
-  const updateThumb = () => {
-    const { scrollHeight, clientHeight, scrollTop } = scroller;
-    const barH = bar.clientHeight;
-    const visibleRatio = clientHeight / Math.max(1, scrollHeight);
-    const thumbH = Math.max(28, Math.round(barH * visibleRatio));
-
-    const maxScroll = Math.max(1, scrollHeight - clientHeight);
-    const range = Math.max(0, barH - thumbH);
-    const y = Math.round((scrollTop / maxScroll) * range);
-
-    thumb.style.height = thumbH + 'px';
-    thumb.style.transform = `translateY(${y}px)`;
-    bar.style.display = (scrollHeight <= clientHeight + 1) ? 'none' : '';
-  };
-
-  const updateAll = () => {
-    updateBounds();
-    updateThumb();
-  };
-
-  const showBar = () => {
-    if (!isTouch) return;
-    automationSheetEl.classList.add('is-scrolling');
-    clearTimeout(scroller.__fadeTimer);
-  };
-  const scheduleHide = (delay) => {
-    if (!isTouch) return;
-    clearTimeout(scroller.__fadeTimer);
-    scroller.__fadeTimer = setTimeout(() => {
-      automationSheetEl.classList.remove('is-scrolling');
-    }, delay);
-  };
-
-  const onScroll = () => {
-    updateThumb();
-    if (isTouch) showBar();
-    if (!supportsScrollEnd) scheduleHide(FADE_SCROLL_MS);
-  };
-
-  const onScrollEnd = () => scheduleHide(FADE_SCROLL_MS);
-
-  scroller.addEventListener('scroll', onScroll, { passive: true });
-  if (supportsScrollEnd) {
-    scroller.addEventListener('scrollend', onScrollEnd, { passive: true });
-  }
-
-  const ro = new ResizeObserver(updateAll);
-  ro.observe(scroller);
-  window.addEventListener('resize', updateAll);
-  requestAnimationFrame(updateAll);
-}
 
 function ensureAutomationOverlay() {
   if (automationOverlayEl) return;
@@ -160,7 +78,7 @@ function ensureAutomationOverlay() {
     }
   }, { capture: true });
 
-  ensureCustomScrollbar();
+  ensureCustomScrollbar(automationOverlayEl, automationSheetEl, '.automation-shop-scroller');
 
   if (!eventsBound) {
     eventsBound = true;
@@ -174,9 +92,14 @@ function ensureAutomationOverlay() {
 
     closeBtn.addEventListener('click', onCloseClick, { passive: true });
     
-    // Drag to dismiss logic (similar to regular shop)
-    grabber.addEventListener('pointerdown', onDragStart);
-    grabber.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+    // Drag to dismiss logic
+    setupDragToClose(grabber, automationSheetEl, () => automationOpen, () => {
+        automationOpen = false;
+        automationCloseTimer = setTimeout(() => {
+          automationCloseTimer = null;
+          closeAutomationShop(true);
+        }, 150);
+    });
   }
 }
 
@@ -208,7 +131,7 @@ export function openAutomationShop() {
     }
 
     blockInteraction(10);
-    ensureCustomScrollbar();
+    ensureCustomScrollbar(automationOverlayEl, automationSheetEl, '.automation-shop-scroller');
   });
 }
 
@@ -237,73 +160,4 @@ export function closeAutomationShop(force = false) {
   automationOverlayEl.classList.remove('is-open');
   automationOverlayEl.style.pointerEvents = 'none';
   __automationPostOpenPointer = false;
-}
-
-// Drag logic
-function onDragStart(e) {
-  if (!automationOpen) return;
-
-  const clientY = typeof e.clientY === 'number'
-    ? e.clientY
-    : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-
-  drag = { startY: clientY, lastY: clientY, startT: performance.now(), moved: 0, canceled: false };
-  automationSheetEl.style.transition = 'none';
-
-  window.addEventListener('pointermove', onDragMove);
-  window.addEventListener('pointerup', onDragEnd);
-  window.addEventListener('pointercancel', onDragCancel);
-}
-
-function onDragMove(e) {
-  if (!drag || drag.canceled) return;
-  const y = e.clientY;
-  if (typeof y !== 'number') return;
-
-  const dy = Math.max(0, y - drag.startY);
-  drag.lastY = y;
-  drag.moved = dy;
-  automationSheetEl.style.transform = `translateY(${dy}px)`;
-}
-
-function onDragEnd() {
-  if (!drag || drag.canceled) return cleanupDrag();
-
-  const dt = Math.max(1, performance.now() - drag.startT);
-  const dy = drag.moved;
-  const velocity = dy / dt;
-  const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
-
-  if (shouldClose) {
-    suppressNextGhostTap(100);
-    blockInteraction(80);
-    automationSheetEl.style.transition = 'transform 140ms ease-out';
-    automationSheetEl.style.transform = 'translateY(100%)';
-    automationOpen = false;
-
-    automationCloseTimer = setTimeout(() => {
-      automationCloseTimer = null;
-      closeAutomationShop(true);
-    }, 150);
-  } else {
-    automationSheetEl.style.transition = 'transform 180ms ease';
-    automationSheetEl.style.transform = 'translateY(0)';
-  }
-
-  cleanupDrag();
-}
-
-function onDragCancel() {
-  if (!drag) return;
-  drag.canceled = true;
-  automationSheetEl.style.transition = 'transform 180ms ease';
-  automationSheetEl.style.transform = 'translateY(0)';
-  cleanupDrag();
-}
-
-function cleanupDrag() {
-  window.removeEventListener('pointermove', onDragMove);
-  window.removeEventListener('pointerup', onDragEnd);
-  window.removeEventListener('pointercancel', onDragEnd);
-  drag = null;
 }
