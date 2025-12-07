@@ -303,6 +303,8 @@ export function setInfuseResetCompleted(value) {
   resetState.hasDoneInfuseReset = !!value;
   try { localStorage.setItem(INFUSE_COMPLETED_KEY(slot), resetState.hasDoneInfuseReset ? '1' : '0'); }
   catch {}
+  try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'infuse', slot } })); }
+  catch {}
 }
 
 function getForgeDebugOverride(slot = getActiveSlot()) {
