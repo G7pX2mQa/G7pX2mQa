@@ -2679,7 +2679,7 @@ export const REGISTRY = [
     id: 16,
     tie: UPGRADE_TIES.MP_VALUE_II,
     title: "MP Value II",
-    desc: "Increases MP value by +300% per level",
+    desc: "Increases MP value by +100% per level",
     lvlCap: 100,
     baseCost: 25,
     costType: "magic",
@@ -2694,7 +2694,7 @@ export const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `MP value bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addPctPerLevel(3),
+    effectMultiplier: E.addPctPerLevel(1),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
