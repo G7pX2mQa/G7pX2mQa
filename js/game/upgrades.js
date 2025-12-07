@@ -2253,7 +2253,7 @@ export function formatMultForUi(value) {
         .replace(/\.0+$/, '')
         .replace(/(\.\d*?)0+$/, '$1');
     }
-    return formatNumber(n);
+    return formatNumber(BigNum.fromAny(n));
   } catch {
     return '1';
   }
@@ -2625,7 +2625,7 @@ const REGISTRY = [
     id: 14,
     tie: UPGRADE_TIES.COIN_VALUE_III,
     title: "Coin Value III",
-    desc: "Increases Coin value by +1000% per level",
+    desc: `Increases Coin value by +${formatNumber(300000)}% per level`,
     lvlCap: 100,
     baseCost: 1,
     costType: "magic",
@@ -2639,14 +2639,14 @@ const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `Coin value bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addPctPerLevel(10),
+    effectMultiplier: E.addPctPerLevel(3000),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 15,
     tie: UPGRADE_TIES.XP_VALUE_III,
     title: "XP Value III",
-    desc: "Increases XP value by +1000% per level",
+    desc: "Increases XP value by +300% per level",
     lvlCap: 100,
     baseCost: 3,
     costType: "magic",
@@ -2660,14 +2660,14 @@ const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `XP value bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addPctPerLevel(10),
+    effectMultiplier: E.addPctPerLevel(3),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 16,
     tie: UPGRADE_TIES.MP_VALUE_II,
     title: "MP Value II",
-    desc: "Increases MP value by +1000% per level",
+    desc: "Increases MP value by +300% per level",
     lvlCap: 100,
     baseCost: 25,
     costType: "magic",
@@ -2681,7 +2681,7 @@ const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `MP value bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addPctPerLevel(10),
+    effectMultiplier: E.addPctPerLevel(3),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
