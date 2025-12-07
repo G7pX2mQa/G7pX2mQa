@@ -2625,7 +2625,7 @@ const REGISTRY = [
     id: 14,
     tie: UPGRADE_TIES.COIN_VALUE_III,
     title: "Coin Value III",
-    desc: `Increases Coin value by +${formatNumber(300000)}% per level`,
+    desc: `Increases Coin value by +${formatNumber(BigNum.fromInt(300000))}% per level`,
     lvlCap: 100,
     baseCost: 1,
     costType: "magic",
