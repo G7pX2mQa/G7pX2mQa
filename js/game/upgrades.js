@@ -927,34 +927,20 @@ function normalizedUpgradeLevel(levelValue) {
   return 0;
 }
 
-function hundredPercentPerLevelMultiplier(levelValue) {
+function getLinearBonusMultiplier(levelValue, amountPerLevel) {
   const lvl = normalizedUpgradeLevel(levelValue);
   if (lvl <= 0) {
     return BigNum.fromInt(1);
   }
-  try {
-    const asBigInt = BigInt(lvl) + 1n;
-    return BigNum.fromAny(asBigInt.toString());
-  } catch {
-    try {
-      return BigNum.fromAny(String(lvl + 1));
-    } catch {
-      return BigNum.fromInt(1);
-    }
-  }
-}
+  const perLevel = Math.max(0, Math.floor(Number(amountPerLevel) || 0));
+  if (perLevel === 0) return BigNum.fromInt(1);
 
-function threeHundredPercentPerLevelMultiplier(levelValue) {
-  const lvl = normalizedUpgradeLevel(levelValue);
-  if (lvl <= 0) {
-    return BigNum.fromInt(1);
-  }
   try {
-    const asBigInt = (BigInt(lvl) * 3n) + 1n;
+    const asBigInt = (BigInt(lvl) * BigInt(perLevel)) + 1n;
     return BigNum.fromAny(asBigInt.toString());
   } catch {
     try {
-      return BigNum.fromAny(String(1 + 3 * lvl));
+      return BigNum.fromAny(String(1 + perLevel * lvl));
     } catch {
       return BigNum.fromInt(1);
     }
@@ -2639,7 +2625,7 @@ const REGISTRY = [
     id: 14,
     tie: UPGRADE_TIES.COIN_VALUE_III,
     title: "Coin Value III",
-    desc: "Increases Coin value by +300% per level",
+    desc: "Increases Coin value by +1000% per level",
     lvlCap: 100,
     baseCost: 1,
     costType: "magic",
@@ -2653,14 +2639,14 @@ const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `Coin value bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addPctPerLevel(3),
+    effectMultiplier: E.addPctPerLevel(10),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 15,
     tie: UPGRADE_TIES.XP_VALUE_III,
     title: "XP Value III",
-    desc: "Increases XP value by +300% per level",
+    desc: "Increases XP value by +1000% per level",
     lvlCap: 100,
     baseCost: 3,
     costType: "magic",
@@ -2674,14 +2660,14 @@ const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `XP value bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addPctPerLevel(3),
+    effectMultiplier: E.addPctPerLevel(10),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 16,
     tie: UPGRADE_TIES.MP_VALUE_II,
     title: "MP Value II",
-    desc: "Increases MP value by +300% per level",
+    desc: "Increases MP value by +1000% per level",
     lvlCap: 100,
     baseCost: 25,
     costType: "magic",
@@ -2695,7 +2681,7 @@ const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `MP value bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addPctPerLevel(3),
+    effectMultiplier: E.addPctPerLevel(10),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
@@ -3359,7 +3345,7 @@ export function getHmEvolutions(areaKey, upgId) {
 
 export function getMpValueMultiplierBn() {
   // MP Value I
-  let mult = hundredPercentPerLevelMultiplier(
+  let mult = getLinearBonusMultiplier(
     getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MP_VALUE_I)
   );
 
@@ -3369,7 +3355,7 @@ export function getMpValueMultiplierBn() {
       getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MP_VALUE_II)
     );
     if (lvl2 > 0) {
-      const bonus = threeHundredPercentPerLevelMultiplier(lvl2);
+      const bonus = getLinearBonusMultiplier(lvl2, 10);
       mult = safeMultiplyBigNum(mult, bonus);
     }
   } catch {}
@@ -4267,7 +4253,7 @@ export function computeUpgradeEffects(areaKey) {
       const lvl = normalizedUpgradeLevel(lvlNum);
       if (lvl > 0) {
         try {
-          const bonus = hundredPercentPerLevelMultiplier(lvl);
+          const bonus = getLinearBonusMultiplier(lvl, 1);
           coinValueMultBn = coinValueMultBn.mulBigNumInteger(bonus);
         } catch {}
       }
@@ -4280,7 +4266,7 @@ export function computeUpgradeEffects(areaKey) {
       const lvl = normalizedUpgradeLevel(lvlNum);
       if (lvl > 0) {
         try {
-          const bonus = hundredPercentPerLevelMultiplier(lvl);
+          const bonus = getLinearBonusMultiplier(lvl, 1);
           xpGainMultBn = xpGainMultBn.mulBigNumInteger(bonus);
         } catch {}
       }
@@ -4333,20 +4319,20 @@ function registerXpUpgradeEffects() {
           getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_VALUE_II)
         );
         if (lvl2 > 0) {
-          const bonus = hundredPercentPerLevelMultiplier(lvl2);
+          const bonus = getLinearBonusMultiplier(lvl2, 1);
           try {
             result = result.mulBigNumInteger(bonus);
           } catch {}
         }
       } catch {}
 
-      // Coin Value III: +300% per level
+      // Coin Value III: +1000% per level
       try {
         const lvl3 = normalizedUpgradeLevel(
           getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_VALUE_III)
         );
         if (lvl3 > 0) {
-          const bonus = threeHundredPercentPerLevelMultiplier(lvl3);
+          const bonus = getLinearBonusMultiplier(lvl3, 10);
           result = safeMultiplyBigNum(result, bonus);
         }
       } catch {}
@@ -4394,20 +4380,20 @@ function registerXpUpgradeEffects() {
           getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.XP_VALUE_II)
         );
         if (lvl2 > 0) {
-          const bonus = hundredPercentPerLevelMultiplier(lvl2);
+          const bonus = getLinearBonusMultiplier(lvl2, 1);
           try {
             gain = gain.mulBigNumInteger(bonus);
           } catch {}
         }
       } catch {}
 
-      // XP Value III: +300% per level
+      // XP Value III: +1000% per level
       try {
         const lvl3 = normalizedUpgradeLevel(
           getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.XP_VALUE_III)
         );
         if (lvl3 > 0) {
-          const bonus = threeHundredPercentPerLevelMultiplier(lvl3);
+          const bonus = getLinearBonusMultiplier(lvl3, 10);
           gain = safeMultiplyBigNum(gain, bonus);
         }
       } catch {}
