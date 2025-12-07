@@ -239,7 +239,7 @@ function handleInstantClick(event) {
   if (buttonLike.closest('.shop-scroller')) return;
   
   // Exclude Dialogue list
-  if (buttonLike.closest('.merchant-dialogue-list')) return;
+  if (buttonLike.closest('.merchant-dialogue-list') && !buttonLike.closest('.merchant-firstchat')) return;
 
   // If a specific element asked to avoid this logic, bail
   if (buttonLike.dataset.noGhost === 'true') return;
