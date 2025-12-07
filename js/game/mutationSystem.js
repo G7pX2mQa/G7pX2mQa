@@ -179,7 +179,7 @@ function computeRequirement(levelBn) {
     // R = 94778.06 ^ (1/40) ≈ 1.33235...
 
     const startVal = baseRequirementLog10(9); // ~3.83
-    const endVal = 363000;
+    const endVal = 500000.0000001;
     const steps = 49 - 9; // 40
 
     // Safety check for startVal
@@ -222,8 +222,9 @@ function computeRequirement(levelBn) {
       return BN.fromAny('Infinity');
     }
 
-    // log10(requirement) = 10 ^ secondExp
-    totalLog10 = Math.pow(10, secondExp);
+    // log10(requirement) = 10 ^ secondExp, nudged up slightly to avoid hitting exact thresholds
+    const baseLog10 = Math.pow(10, secondExp);
+    totalLog10 = baseLog10 * 1.00001;
   }
 
   if (!Number.isFinite(totalLog10) || totalLog10 <= 0) {
