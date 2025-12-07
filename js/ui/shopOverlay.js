@@ -39,7 +39,7 @@ import {
 let shopOverlayEl = null;
 let shopSheetEl = null;
 let shopOpen = false;
-let drag = null;
+// drag variable removed, now local to setupDragToClose
 let eventsBound = false;
 let delveBtnEl = null;
 let updateDelveGlow = null;
@@ -426,8 +426,8 @@ const TRANSPARENT_PX =
 let upgrades = {};
 
 // ---------- Custom Scrollbar ----------
-function ensureCustomScrollbar() {
-  const scroller = shopOverlayEl?.querySelector('.shop-scroller');
+export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.shop-scroller') {
+  const scroller = overlayEl?.querySelector(scrollerSelector);
   if (!scroller || scroller.__customScroll) return;
 
   const bar = document.createElement('div');
@@ -435,7 +435,7 @@ function ensureCustomScrollbar() {
   const thumb = document.createElement('div');
   thumb.className = 'shop-scrollbar__thumb';
   bar.appendChild(thumb);
-  shopSheetEl.appendChild(bar);
+  sheetEl.appendChild(bar);
 
   scroller.__customScroll = { bar, thumb };
 
@@ -446,14 +446,14 @@ function ensureCustomScrollbar() {
 
   const syncScrollShadow = () => {
     const hasShadow = (scroller.scrollTop || 0) > 0;
-    shopSheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
+    sheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
   };
 
 
   const updateBounds = () => {
-    const grab = shopOverlayEl.querySelector('.shop-grabber');
-    const header = shopOverlayEl.querySelector('.shop-header');
-    const actions = shopOverlayEl.querySelector('.shop-actions');
+    const grab = overlayEl.querySelector('.shop-grabber');
+    const header = overlayEl.querySelector('.shop-header');
+    const actions = overlayEl.querySelector('.shop-actions');
 
     const top = ((grab?.offsetHeight || 0) + (header?.offsetHeight || 0)) | 0;
     const bottom = (actions?.offsetHeight || 0) | 0;
@@ -485,14 +485,14 @@ function ensureCustomScrollbar() {
 
   const showBar = () => {
     if (!isTouch) return;
-    shopSheetEl.classList.add('is-scrolling');
+    sheetEl.classList.add('is-scrolling');
     clearTimeout(scroller.__fadeTimer);
   };
   const scheduleHide = (delay) => {
     if (!isTouch) return;
     clearTimeout(scroller.__fadeTimer);
     scroller.__fadeTimer = setTimeout(() => {
-      shopSheetEl.classList.remove('is-scrolling');
+      sheetEl.classList.remove('is-scrolling');
     }, delay);
   };
 
@@ -980,7 +980,7 @@ function ensureShopOverlay() {
   scroller.appendChild(grid);
 
   content.append(header, scroller);
-  ensureCustomScrollbar();
+  ensureCustomScrollbar(shopOverlayEl, shopSheetEl);
 
   const actions = document.createElement('div');
   actions.className = 'shop-actions';
@@ -1052,8 +1052,14 @@ function onCloseClick(e) {
 closeBtn.addEventListener('click', onCloseClick, { passive: true });
 
     document.addEventListener('keydown', onKeydownForShop);
-    grabber.addEventListener('pointerdown', onDragStart);
-    grabber.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+    
+    setupDragToClose(grabber, shopSheetEl, () => shopOpen, () => {
+        shopOpen = false;
+        shopCloseTimer = setTimeout(() => {
+          shopCloseTimer = null;
+          closeShop(true);
+        }, 150);
+    });
 
     let _shopBadgeTimer = null;
       const scheduleShopRerender = () => {
@@ -1877,7 +1883,7 @@ if (IS_MOBILE) {
 }
 
   blockInteraction(10);
-  ensureCustomScrollbar();
+  ensureCustomScrollbar(shopOverlayEl, shopSheetEl);
   const focusable =
     shopOverlayEl.querySelector('#shop-grid .shop-upgrade') ||
     shopOverlayEl.querySelector('#shop-grid');
@@ -1913,72 +1919,74 @@ export function closeShop(force = false) {
 }
 
 // ---------- Drag ----------
-function onDragStart(e) {
-  if (!shopOpen) return;
+export function setupDragToClose(grabberEl, sheetEl, isOpenFn, performCloseFn) {
+  let drag = null;
 
-  const clientY = typeof e.clientY === 'number'
-    ? e.clientY
-    : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  function onDragStart(e) {
+    if (!isOpenFn()) return;
 
-  drag = { startY: clientY, lastY: clientY, startT: performance.now(), moved: 0, canceled: false };
-  shopSheetEl.style.transition = 'none';
+    const clientY = typeof e.clientY === 'number'
+      ? e.clientY
+      : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
 
-  window.addEventListener('pointermove', onDragMove);
-  window.addEventListener('pointerup', onDragEnd);
-  window.addEventListener('pointercancel', onDragCancel);
-}
+    drag = { startY: clientY, lastY: clientY, startT: performance.now(), moved: 0, canceled: false };
+    sheetEl.style.transition = 'none';
 
-function onDragMove(e) {
-  if (!drag || drag.canceled) return;
-  const y = e.clientY;
-  if (typeof y !== 'number') return;
-
-  const dy = Math.max(0, y - drag.startY);
-  drag.lastY = y;
-  drag.moved = dy;
-  shopSheetEl.style.transform = `translateY(${dy}px)`;
-}
-
-function onDragEnd() {
-  if (!drag || drag.canceled) return cleanupDrag();
-
-  const dt = Math.max(1, performance.now() - drag.startT);
-  const dy = drag.moved;
-  const velocity = dy / dt;
-  const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
-
-  if (shouldClose) {
-    suppressNextGhostTap(100);
-    blockInteraction(80);
-    shopSheetEl.style.transition = 'transform 140ms ease-out';
-    shopSheetEl.style.transform = 'translateY(100%)';
-    shopOpen = false;
-
-    shopCloseTimer = setTimeout(() => {
-      shopCloseTimer = null;
-      closeShop(true);
-    }, 150);
-  } else {
-    shopSheetEl.style.transition = 'transform 180ms ease';
-    shopSheetEl.style.transform = 'translateY(0)';
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
   }
 
-  cleanupDrag();
-}
+  function onDragMove(e) {
+    if (!drag || drag.canceled) return;
+    const y = e.clientY;
+    if (typeof y !== 'number') return;
 
-function onDragCancel() {
-  if (!drag) return;
-  drag.canceled = true;
-  shopSheetEl.style.transition = 'transform 180ms ease';
-  shopSheetEl.style.transform = 'translateY(0)';
-  cleanupDrag();
-}
+    const dy = Math.max(0, y - drag.startY);
+    drag.lastY = y;
+    drag.moved = dy;
+    sheetEl.style.transform = `translateY(${dy}px)`;
+  }
 
-function cleanupDrag() {
-  window.removeEventListener('pointermove', onDragMove);
-  window.removeEventListener('pointerup', onDragEnd);
-  window.removeEventListener('pointercancel', onDragEnd);
-  drag = null;
+  function onDragEnd() {
+    if (!drag || drag.canceled) return cleanupDrag();
+
+    const dt = Math.max(1, performance.now() - drag.startT);
+    const dy = drag.moved;
+    const velocity = dy / dt;
+    const shouldClose = (velocity > 0.55 && dy > 40) || dy > 140;
+
+    if (shouldClose) {
+      suppressNextGhostTap(100);
+      blockInteraction(80);
+      sheetEl.style.transition = 'transform 140ms ease-out';
+      sheetEl.style.transform = 'translateY(100%)';
+      performCloseFn();
+    } else {
+      sheetEl.style.transition = 'transform 180ms ease';
+      sheetEl.style.transform = 'translateY(0)';
+    }
+
+    cleanupDrag();
+  }
+
+  function onDragCancel() {
+    if (!drag) return;
+    drag.canceled = true;
+    sheetEl.style.transition = 'transform 180ms ease';
+    sheetEl.style.transform = 'translateY(0)';
+    cleanupDrag();
+  }
+
+  function cleanupDrag() {
+    window.removeEventListener('pointermove', onDragMove);
+    window.removeEventListener('pointerup', onDragEnd);
+    window.removeEventListener('pointercancel', onDragEnd);
+    drag = null;
+  }
+
+  grabberEl.addEventListener('pointerdown', onDragStart);
+  grabberEl.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
 }
 
 export function updateShopOverlay(force = false) {
