@@ -203,7 +203,7 @@ export function initHudButtons() {
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
         if (key !== 'shop') return;
-        if (shouldSkipGhostTap(btn)) return;
+        if (e.isTrusted && shouldSkipGhostTap(btn)) return;
         // markGhostTapTarget removed - global handler manages clicks
         activate(btn);
       };
