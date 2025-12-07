@@ -1064,8 +1064,17 @@ export function initResetSystem() {
     recomputePendingMagic();
     return;
   }
+  
+  // Guard against circular dependency initialization issues
+  try {
+    initMutationSystem();
+  } catch (e) {
+    // If initMutationSystem fails (likely due to accessing hudRefs before mutationSystem fully loads in a circular dep cycle),
+    // we abort initialization. This allows a subsequent call (e.g. from main.js) to succeed later.
+    return;
+  }
+
   initialized = true;
-  initMutationSystem();
   const slot = getActiveSlot();
   resetState.slot = slot;
   resetPendingGoldSignature();
