@@ -76,7 +76,7 @@ function bindRapidActivation(target, handler, { once = false } = {}) {
 
   const run = (event) => {
     if (once && used) return;
-    if (event?.type === 'click' && shouldSkipGhostTap(target)) {
+    if (event?.type === 'click' && event.isTrusted && shouldSkipGhostTap(target)) {
       event.preventDefault?.();
       return;
     }
