@@ -39,6 +39,7 @@ let getMutationCoinSprite;
 let onMutationChangeGame;
 let setDebugPanelAccess;
 let applyStatMultiplierOverride;
+let startGameLoop;
 
 const pendingPreloadedAudio = [];
 
@@ -465,6 +466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./util/suspendSafeguard.js'),
     import('./util/ghostTapGuard.js'),
     import('./util/debugPanel.js'),
+    import('./game/gameLoop.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -568,6 +570,7 @@ images: [
     safetyModule,
     guardModule,
     debugPanelModule,
+    gameLoopModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -585,6 +588,7 @@ images: [
   ({ installSuspendSafeguards, restoreFromBackupIfNeeded: restoreSuspendBackup, markProgressDirty, flushBackupSnapshot } = safetyModule);
   ({ installGhostTapGuard, initGlobalGhostTap } = guardModule);
   ({ setDebugPanelAccess, applyStatMultiplierOverride } = debugPanelModule);
+  ({ startGameLoop } = gameLoopModule);
 
   window.bank = bank;
 
@@ -623,6 +627,8 @@ images: [
     warmImage('img/stats/xp/xp_plus_base.webp'),
 	warmImage('img/stats/mp/mp_plus_base.webp'),
   ]);
+  
+  startGameLoop();
   
   applyPendingSlotWipe();
   ensureStorageDefaults();
