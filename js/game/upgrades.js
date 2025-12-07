@@ -2338,6 +2338,7 @@ function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
  * Optional field:
  *  - scaling: Manually change the multiplicative scaling ratio of an upgrade; not necessary for upgrades that have no scaling
  */
+  upg.tieKey = tieKey;
 const REGISTRY = [
   {
     area: AREA_KEYS.STARTER_COVE,
@@ -2349,6 +2350,7 @@ const REGISTRY = [
     baseCost: 10,
     costType: "coins",
     upgType: "NM",
+    effectType: "coin_spawn",
     icon: "sc_upgrade_icons/faster_coins1.webp",
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
@@ -2390,6 +2392,7 @@ const REGISTRY = [
     baseCost: 1,
     costType: "books",
     upgType: "NM",
+    effectType: "coin_spawn",
     icon: "sc_upgrade_icons/faster_coins2.webp",
     requiresUnlockXp: true,
     costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
@@ -2410,6 +2413,7 @@ const REGISTRY = [
     baseCost: 1,
     costType: "books",
     upgType: "NM",
+    effectType: "coin_value",
     icon: "sc_upgrade_icons/coin_val1.webp",
     requiresUnlockXp: true,
     costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
@@ -2431,14 +2435,15 @@ const REGISTRY = [
     baseCost: 10,
     costType: "books",
     upgType: "NM",
+    effectType: "book_value",
     icon: "sc_upgrade_icons/book_val1.webp",
     requiresUnlockXp: true,
     costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
     nextCostAfter() { return this.costAtLevel(); },
     effectSummary(level) {
-      const mult = bookValueMultiplierBn(level);
-      return `Book value bonus: ${formatMultForUi(mult)}x`;
+      return `Book value bonus: 2x`;
     },
+    effectMultiplier: (lvl) => normalizedUpgradeLevel(lvl) > 0 ? 2 : 1,
     onLevelChange({ newLevel }) { syncBookCurrencyMultiplierFromUpgrade(newLevel); },
   },
   {
@@ -2451,6 +2456,7 @@ const REGISTRY = [
     baseCost: 1000,
     costType: "coins",
     upgType: "NM",
+    effectType: "xp_value",
     icon: "sc_upgrade_icons/xp_val1.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
@@ -2493,6 +2499,7 @@ const REGISTRY = [
     baseCost: 1,
     costType: "gold",
     upgType: "NM",
+    effectType: "coin_value",
     icon: "sc_upgrade_icons/coin_val2.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
@@ -2515,6 +2522,7 @@ const REGISTRY = [
     baseCost: 3,
     costType: "gold",
     upgType: "NM",
+    effectType: "xp_value",
     icon: "sc_upgrade_icons/xp_val2.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
@@ -2536,6 +2544,7 @@ const REGISTRY = [
     baseCost: 25,
     costType: "gold",
     upgType: "NM",
+    effectType: "mp_value",
     icon: "sc_upgrade_icons/mp_val1.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
@@ -2557,6 +2566,7 @@ const REGISTRY = [
     baseCost: 100,
     costType: "gold",
     upgType: "NM",
+    effectType: "magnet_radius",
     icon: "sc_upgrade_icons/magnet.webp",
     requiresUnlockXp: true,
     scaling: { ratio: 2 },
@@ -2569,7 +2579,7 @@ const REGISTRY = [
       const suffix = (unitsText === '1') ? 'Unit' : 'Units';
       return `Magnet radius: ${unitsText} ${suffix}`;
     },
-    effectMultiplier: E.addPctPerLevel(1),
+    effectMultiplier: (lvl) => normalizedUpgradeLevel(lvl),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
@@ -2581,6 +2591,7 @@ const REGISTRY = [
     baseCost: 1e6,
     costType: "coins",
     upgType: "HM",
+    effectType: "xp_value",
     icon: "sc_upg_icons/xp_val_hm.webp",
     requiresUnlockXp: true,
     scalingPreset: 'HM',
@@ -2630,6 +2641,7 @@ const REGISTRY = [
     baseCost: 1,
     costType: "magic",
     upgType: "NM",
+    effectType: "coin_value",
     icon: "sc_upg_icons/coin_val3.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
@@ -2651,6 +2663,7 @@ const REGISTRY = [
     baseCost: 3,
     costType: "magic",
     upgType: "NM",
+    effectType: "xp_value",
     icon: "sc_upg_icons/xp_val3.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
@@ -2672,6 +2685,7 @@ const REGISTRY = [
     baseCost: 25,
     costType: "magic",
     upgType: "NM",
+    effectType: "mp_value",
     icon: "sc_upg_icons/mp_val2.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
@@ -2693,6 +2707,7 @@ const REGISTRY = [
     baseCost: 100,
     costType: "magic",
     upgType: "NM",
+    effectType: "coin_spawn",
     icon: "sc_upg_icons/faster_coins3.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
@@ -2714,6 +2729,7 @@ const REGISTRY = [
     baseCost: 1e12,
     costType: "coins",
     upgType: "HM",
+    effectType: "mp_value",
     icon: "sc_upg_icons/mp_val_hm.webp",
     requiresUnlockXp: true,
     scalingPreset: 'HM',
@@ -2732,10 +2748,6 @@ const REGISTRY = [
     effectMultiplier: E.powPerLevel(1.1),
   },
 ];
-
-for (const upg of REGISTRY) {
-  const tieKey = normalizeUpgradeTie(upg.tie ?? upg.tieKey);
-  upg.tieKey = tieKey;
   if (tieKey && !upgradeTieLookup.has(tieKey)) {
     upgradeTieLookup.set(tieKey, upg);
   }
@@ -3343,48 +3355,22 @@ export function getHmEvolutions(areaKey, upgId) {
   return ensureUpgradeState(areaKey, upgId).hmEvolutions ?? 0;
 }
 
+
 export function getMpValueMultiplierBn() {
-  // MP Value I
-  let mult = getLinearBonusMultiplier(
-    getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MP_VALUE_I)
-  );
-
-  // MP Value II
   try {
-    const lvl2 = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MP_VALUE_II);
-    const upg2 = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MP_VALUE_II);
-    const bonus = upg2?.effectMultiplier?.(lvl2) ?? 1;
-    mult = safeMultiplyBigNum(mult, bonus);
-  } catch {}
-
-  // Endless XP (HM) milestones targeting MP
-  try {
-    const hmUpg = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
-    const hmLvl = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
-    const { mpMult } = computeHmMultipliers(hmUpg, hmLvl, AREA_KEYS.STARTER_COVE);
-    mult = safeMultiplyBigNum(mult, mpMult);
-  } catch {}
-
-  // Endless MP (HM): base effect + self milestones + other milestones
-  try {
-    const hmUpg = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_MP);
-    const hmLvl = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_MP);
-    let base = 1;
-    try { base = hmUpg?.effectMultiplier?.(hmLvl) ?? 1; } catch {}
-    const { selfMult, mpMult } = computeHmMultipliers(hmUpg, hmLvl, AREA_KEYS.STARTER_COVE);
-    mult = safeMultiplyBigNum(mult, safeMultiplyBigNum(base, selfMult));
-    mult = safeMultiplyBigNum(mult, mpMult);
-  } catch {}
-
-  return mult;
+    const { mpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+    return mpValue;
+  } catch {
+    return BigNum.fromInt(1);
+  }
 }
-
 export function getMagnetLevel() {
-  const lvl = getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.MAGNET);
-  if (!Number.isFinite(lvl)) {
+  try {
+    const { magnetRadius } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+    return magnetRadius || 0;
+  } catch {
     return 0;
   }
-  return Math.max(0, Math.floor(lvl));
 }
 
 function computeUpgradeLockStateFor(areaKey, upg) {
@@ -4220,201 +4206,129 @@ export function evaluateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_
 
 const BASE_CPS = 1;
 
-export function computeUpgradeEffects(areaKey) {
-  const ups = getUpgradesForArea(areaKey);
-  let cpsMult = 1.0;
-  let coinValueMultBn = BigNum.fromInt(1);
-  let xpGainMultBn = BigNum.fromInt(1);
-  let bookRewardMultBn = BigNum.fromInt(1);
+function registerXpUpgradeEffects() {
+let _cachedUpgradeMultipliers = null;
 
-  for (const u of ups) {
-    const lvlBn = getLevel(areaKey, u.id);
+export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
+  if (_cachedUpgradeMultipliers) return _cachedUpgradeMultipliers;
+
+  const upgrades = getUpgradesForArea(areaKey);
+  const acc = {
+    coinValue: BigNum.fromInt(1),
+    xpValue: BigNum.fromInt(1),
+    mpValue: BigNum.fromInt(1),
+    bookValue: BigNum.fromInt(1),
+    coinSpawn: 1.0,
+    magnetRadius: 0,
+  };
+
+  for (const upg of upgrades) {
+    if (!upg.effectType) continue;
+
+    const lvlBn = getLevel(areaKey, upg.id);
     const lvlNum = levelBigNumToNumber(lvlBn);
-    const tieKey = u.tieKey || normalizeUpgradeTie(u.tie);
-    if (tieKey === UPGRADE_TIES.FASTER_COINS) {
-      // Faster Coins
-      cpsMult *= u.effectMultiplier(lvlNum);
-    } else if (tieKey === UPGRADE_TIES.FASTER_COINS_II) {
-      cpsMult *= u.effectMultiplier(lvlNum);
-    } else if (tieKey === UPGRADE_TIES.FASTER_COINS_III) {
-      cpsMult *= u.effectMultiplier(lvlNum);
-    } else if (tieKey === UPGRADE_TIES.COIN_VALUE_I) {
-      const lvl = Math.max(0, Number.isFinite(lvlNum) ? lvlNum : 0);
-      if (lvl > 0) {
-        const factor = 1 + (0.5 * lvl);
-        let str = factor.toFixed(6);
-        str = str.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
-        coinValueMultBn = coinValueMultBn.mulDecimal(str, 18);
+
+    let baseEffect = null;
+    if (typeof upg.effectMultiplier === 'function') {
+      baseEffect = upg.effectMultiplier(lvlNum);
+      // normalize to BigNum if it's not a number/BigNum
+      if (!(baseEffect instanceof BigNum) && typeof baseEffect !== 'number') {
+        baseEffect = BigNum.fromAny(baseEffect ?? 1);
       }
-    } else if (tieKey === UPGRADE_TIES.COIN_VALUE_II) {
-      const lvl = normalizedUpgradeLevel(lvlNum);
-      if (lvl > 0) {
-        try {
-          const bonus = getLinearBonusMultiplier(lvl, 1);
-          coinValueMultBn = coinValueMultBn.mulBigNumInteger(bonus);
-        } catch {}
+    } else {
+      baseEffect = BigNum.fromInt(1);
+    }
+
+    if (upg.upgType === 'HM') {
+      const { selfMult, xpMult, coinMult, mpMult } = computeHmMultipliers(upg, lvlBn, areaKey);
+      acc.xpValue = safeMultiplyBigNum(acc.xpValue, xpMult);
+      acc.coinValue = safeMultiplyBigNum(acc.coinValue, coinMult);
+      acc.mpValue = safeMultiplyBigNum(acc.mpValue, mpMult);
+      
+      // Apply selfMult to baseEffect
+      baseEffect = safeMultiplyBigNum(baseEffect, selfMult);
+    }
+
+    if (upg.effectType === 'coin_spawn') {
+      let val = 1;
+      if (baseEffect instanceof BigNum) {
+        try { val = Number(baseEffect.toScientific()); } catch { val = 1; }
+      } else {
+        val = Number(baseEffect);
       }
-    } else if (tieKey === UPGRADE_TIES.BOOK_VALUE_I) {
-      bookRewardMultBn = bookValueMultiplierBn(lvlNum);
-    } else if (tieKey === UPGRADE_TIES.XP_VALUE_I) {
-      const lvl = Math.max(0, Number.isFinite(lvlNum) ? lvlNum : 0);
-      xpGainMultBn = BigNum.fromAny(1 + lvl * 2);
-    } else if (tieKey === UPGRADE_TIES.XP_VALUE_II) {
-      const lvl = normalizedUpgradeLevel(lvlNum);
-      if (lvl > 0) {
-        try {
-          const bonus = getLinearBonusMultiplier(lvl, 1);
-          xpGainMultBn = xpGainMultBn.mulBigNumInteger(bonus);
-        } catch {}
+      acc.coinSpawn *= val;
+    } else if (upg.effectType === 'coin_value') {
+      acc.coinValue = safeMultiplyBigNum(acc.coinValue, baseEffect);
+    } else if (upg.effectType === 'xp_value') {
+      acc.xpValue = safeMultiplyBigNum(acc.xpValue, baseEffect);
+    } else if (upg.effectType === 'mp_value') {
+      acc.mpValue = safeMultiplyBigNum(acc.mpValue, baseEffect);
+    } else if (upg.effectType === 'book_value') {
+      acc.bookValue = safeMultiplyBigNum(acc.bookValue, baseEffect);
+    } else if (upg.effectType === 'magnet_radius') {
+      let val = 0;
+      if (baseEffect instanceof BigNum) {
+        try { val = Number(baseEffect.toScientific()); } catch { val = 0; }
+      } else {
+        val = Number(baseEffect);
+      }
+      if (Number.isFinite(val)) {
+        acc.magnetRadius += val;
       }
     }
-    // future upgrades here...
   }
+function registerXpUpgradeEffects() {
 
-  return {
-    coinsPerSecondMult: cpsMult,
-    coinsPerSecondAbsolute: BASE_CPS * cpsMult,
-    coinValueMultiplier: coinValueMultBn,
-    xpGainMultiplier: xpGainMultBn,
-    bookRewardMultiplier: bookRewardMultBn,
-  };
+  _cachedUpgradeMultipliers = acc;
+  return acc;
 }
 
-function registerXpUpgradeEffects() {
+export function computeUpgradeEffects(areaKey) {
+  const mults = calculateUpgradeMultipliers(areaKey);
+  
+  return {
+    coinsPerSecondMult: mults.coinSpawn,
+    coinsPerSecondAbsolute: BASE_CPS * mults.coinSpawn,
+    coinValueMultiplier: mults.coinValue,
+    xpGainMultiplier: mults.xpValue,
+    bookRewardMultiplier: mults.bookValue,
+  };
+}
   try { initResetSystem(); } catch {}
 
-  // ----- Coin value (Coin Value I + Coin Value II) -----
   try {
     addExternalCoinMultiplierProvider(({ baseMultiplier, xpUnlocked }) => {
       if (!xpUnlocked) return baseMultiplier;
-
-      let result;
-      try {
-        result = baseMultiplier instanceof BigNum
-          ? baseMultiplier.clone?.() ?? baseMultiplier
-          : BigNum.fromAny(baseMultiplier ?? 0);
-      } catch {
-        result = BigNum.fromInt(0);
-      }
-
-      // Coin Value I: +50% per level
-      try {
-        const lvl1 = getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_VALUE_I);
-        const safeLvl1 = Math.max(0, Number.isFinite(lvl1) ? lvl1 : 0);
-        if (safeLvl1 > 0) {
-          let str = (1 + 0.5 * safeLvl1).toFixed(6);
-          str = str.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
-          try {
-            result = result.mulDecimal(str, 18);
-          } catch {}
-        }
-      } catch {}
-
-      // Coin Value II (gold_0): +100% per level (independent of I)
-      try {
-        const lvl2 = normalizedUpgradeLevel(
-          getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_VALUE_II)
-        );
-        if (lvl2 > 0) {
-          const bonus = getLinearBonusMultiplier(lvl2, 1);
-          try {
-            result = result.mulBigNumInteger(bonus);
-          } catch {}
-        }
-      } catch {}
-
-      // Coin Value III: +300,000% per level
-      try {
-        const lvl3 = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_VALUE_III);
-        const upg3 = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.COIN_VALUE_III);
-        const bonus = upg3?.effectMultiplier?.(lvl3) ?? 1;
-        result = safeMultiplyBigNum(result, bonus);
-      } catch {}
-
-      // Endless XP (HM): milestone bonuses to coin value
-      try {
-        const hmUpg = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
-        const hmLvl = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
-        const { coinMult } = computeHmMultipliers(hmUpg, hmLvl, AREA_KEYS.STARTER_COVE);
-        result = safeMultiplyBigNum(result, coinMult);
-      } catch {}
-
-      return result;
+      let result = baseMultiplier instanceof BigNum
+        ? baseMultiplier.clone?.() ?? baseMultiplier
+        : BigNum.fromAny(baseMultiplier ?? 0);
+      
+      const { coinValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+      return safeMultiplyBigNum(result, coinValue);
     });
   } catch {}
 
-  // ----- XP value (XP Value I + XP Value II) -----
   try {
     addExternalXpGainMultiplierProvider(({ baseGain, xpUnlocked }) => {
       if (!xpUnlocked) return baseGain;
-
-      let gain;
-      try {
-        gain = baseGain instanceof BigNum
-          ? baseGain.clone?.() ?? baseGain
-          : BigNum.fromAny(baseGain ?? 0);
-      } catch {
-        gain = BigNum.fromInt(0);
-      }
-
-      // XP Value I: +200% per level (1 + 2*lvl)
-      try {
-        const lvl1 = getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.XP_VALUE_I);
-        const safeLvl1 = Math.max(0, Number.isFinite(lvl1) ? lvl1 : 0);
-        if (safeLvl1 > 0) {
-          try {
-            gain = gain.mulBigNumInteger(BigNum.fromAny(1 + safeLvl1 * 2));
-          } catch {}
-        }
-      } catch {}
-
-      // XP Value II (gold_1): +100% per level (independent of I)
-      try {
-        const lvl2 = normalizedUpgradeLevel(
-          getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.XP_VALUE_II)
-        );
-        if (lvl2 > 0) {
-          const bonus = getLinearBonusMultiplier(lvl2, 1);
-          try {
-            gain = gain.mulBigNumInteger(bonus);
-          } catch {}
-        }
-      } catch {}
-
-      // XP Value III: +300% per level
-      try {
-        const lvl3 = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.XP_VALUE_III);
-        const upg3 = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.XP_VALUE_III);
-        const bonus = upg3?.effectMultiplier?.(lvl3) ?? 1;
-        gain = safeMultiplyBigNum(gain, bonus);
-      } catch {}
-
-      // Endless XP (HM): core effect + milestones
-      try {
-        const hmUpg = getUpgrade(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
-        const hmLvl = getLevel(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_XP);
-        let base = 1;
-        try { base = hmUpg?.effectMultiplier?.(hmLvl) ?? 1; } catch {}
-        const { selfMult, xpMult } = computeHmMultipliers(hmUpg, hmLvl, AREA_KEYS.STARTER_COVE);
-        gain = safeMultiplyBigNum(gain, safeMultiplyBigNum(base, selfMult));
-        gain = safeMultiplyBigNum(gain, xpMult);
-      } catch {}
-
-      return gain;
+      let gain = baseGain instanceof BigNum
+        ? baseGain.clone?.() ?? baseGain
+        : BigNum.fromAny(baseGain ?? 0);
+      
+      const { xpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+      return safeMultiplyBigNum(gain, xpValue);
     });
   } catch {}
 
   try {
     setExternalBookRewardProvider(({ baseReward, xpUnlocked }) => {
       if (!xpUnlocked) return baseReward;
+      let reward = baseReward instanceof BigNum
+        ? baseReward.clone?.() ?? baseReward
+        : BigNum.fromAny(baseReward ?? 0);
 
-      try {
-        return baseReward instanceof BigNum
-          ? baseReward.clone?.() ?? baseReward
-          : BigNum.fromAny(baseReward ?? 0);
-      } catch {
-        return BigNum.fromInt(0);
-      }
+      const { bookValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+      return safeMultiplyBigNum(reward, bookValue);
     });
   } catch {}
 
@@ -4427,14 +4341,13 @@ function registerXpUpgradeEffects() {
   }
 }
 
-registerXpUpgradeEffects();
-
 let listeners = [];
 export function onUpgradesChanged(cb) {
   if (typeof cb === 'function') listeners.push(cb);
   return () => { listeners = listeners.filter(x => x !== cb); };
 }
 function notifyChanged() {
+  _cachedUpgradeMultipliers = null;
   try { listeners.forEach(cb => cb()); } catch {}
   try { document.dispatchEvent(new CustomEvent('ccc:upgrades:changed')); } catch {}
   try { refreshCoinMultiplierFromXpLevel(); } catch {}
