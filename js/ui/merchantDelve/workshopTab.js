@@ -4,6 +4,7 @@ import { formatNumber } from '../../util/numFormat.js';
 import { bank, CURRENCIES, getActiveSlot, watchStorageKey } from '../../util/storage.js';
 import { registerTick, RateAccumulator } from '../../game/gameLoop.js';
 import { openAutomationShop } from '../shopOverlayAutomation.js';
+import { hasDoneInfuseReset } from './resetTab.js';
 
 const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
 const COIN_ICON_SRC = 'img/currencies/coin/coin.webp';
@@ -39,10 +40,6 @@ function saveGenerationLevel(level) {
 function getGenerationUpgradeCost(level) {
   // 1T * 10^level
   if (level === 0) return GENERATION_UPGRADE_BASE_COST;
-  // Since scale is 10, we can construct 10^level directly as 1e{level}
-  // Base cost is 1e12. So total is 1e(12 + level).
-  // We can just construct a new BigNum with exponent 12 + level.
-  // Or use multiplier method to be safe if base cost changes.
   const multiplier = new BigNum(1n, level);
   return GENERATION_UPGRADE_BASE_COST.mulBigNumInteger(multiplier);
 }
@@ -63,11 +60,20 @@ function buyGenerationUpgrade() {
 }
 
 function onTick() {
+  if (!hasDoneInfuseReset()) return;
+
   if (!rateAccumulator) {
     rateAccumulator = new RateAccumulator(CURRENCIES.GEARS, bank);
   }
   const rate = getGearsPerSecond(currentGenerationLevel);
   rateAccumulator.addRate(rate);
+}
+
+function resetWorkshopState() {
+    if (bank.gears) bank.gears.set(0);
+    saveGenerationLevel(0);
+    if (rateAccumulator) rateAccumulator.buffer = 0;
+    updateWorkshopTab();
 }
 
 function buildWorkshopUI(container) {
@@ -79,7 +85,7 @@ function buildWorkshopUI(container) {
           <span data-workshop="gears-amount">0</span>
         </div>
         <div class="workshop-rate-display">
-          (+<img src="${GEAR_ICON_SRC}" class="workshop-rate-icon" alt=""> <span data-workshop="gears-rate">0</span>/sec)
+          (+<img src="${GEAR_ICON_SRC}" class="workshop-rate-icon" alt=""><span data-workshop="gears-rate">0</span>/sec)
         </div>
         <div class="workshop-description">
           The Workshop allows you to passively generate Gears.<br>
@@ -90,7 +96,6 @@ function buildWorkshopUI(container) {
       <div class="workshop-doubler-panel">
         <button class="workshop-upgrade-btn" data-workshop="upgrade-gen">
           <span class="workshop-upgrade-title">Double Gear Generation</span>
-          <span class="workshop-upgrade-effect">Current: <span data-workshop="current-rate">1</span>/sec</span>
           <span class="workshop-upgrade-cost">
             Cost: <img src="${COIN_ICON_SRC}" class="workshop-upgrade-cost-icon" alt="Coins"> <span data-workshop="upgrade-cost">1T</span>
           </span>
@@ -118,11 +123,11 @@ function buildWorkshopUI(container) {
 }
 
 export function updateWorkshopTab() {
-  if (!workshopEl || !workshopEl.isConnected) return;
+  // We remove the isConnected check because this might run before the tab is attached
+  if (!workshopEl) return;
 
   const gearsAmountEl = workshopEl.querySelector('[data-workshop="gears-amount"]');
   const gearsRateEl = workshopEl.querySelector('[data-workshop="gears-rate"]');
-  const currentRateEl = workshopEl.querySelector('[data-workshop="current-rate"]');
   const upgradeCostEl = workshopEl.querySelector('[data-workshop="upgrade-cost"]');
   const upgradeBtn = workshopEl.querySelector('[data-workshop="upgrade-gen"]');
 
@@ -132,10 +137,9 @@ export function updateWorkshopTab() {
   // Wrap rate in BigNum so formatNumber uses suffix formatting instead of raw string
   const rateBn = BigNum.fromAny(rate);
 
-  if (gearsAmountEl) gearsAmountEl.textContent = bank.gears.fmt(bank.gears.value);
-  if (gearsRateEl) gearsRateEl.textContent = formatNumber(rateBn);
-  if (currentRateEl) currentRateEl.textContent = formatNumber(rateBn);
-  if (upgradeCostEl) upgradeCostEl.textContent = formatNumber(cost);
+  if (gearsAmountEl) gearsAmountEl.innerHTML = bank.gears.fmt(bank.gears.value);
+  if (gearsRateEl) gearsRateEl.innerHTML = formatNumber(rateBn);
+  if (upgradeCostEl) upgradeCostEl.innerHTML = formatNumber(cost);
 
   if (upgradeBtn) {
     const canAfford = bank.coins.value.cmp(cost) >= 0;
@@ -150,7 +154,7 @@ function startRenderLoop() {
         // Only update the amount constantly, full refresh on state change
         const gearsAmountEl = workshopEl.querySelector('[data-workshop="gears-amount"]');
         if (gearsAmountEl) {
-             gearsAmountEl.textContent = bank.gears.fmt(bank.gears.value);
+             gearsAmountEl.innerHTML = bank.gears.fmt(bank.gears.value);
         }
     }
     renderFrameId = requestAnimationFrame(loop);
@@ -161,8 +165,6 @@ function startRenderLoop() {
 export function initWorkshopTab(panelEl) {
   if (panelEl.__workshopInit) return;
   panelEl.__workshopInit = true;
-
-  // Removed manual CSS loading to fix 404 error
 
   currentGenerationLevel = loadGenerationLevel();
   buildWorkshopUI(panelEl);
@@ -175,6 +177,12 @@ export function initWorkshopTab(panelEl) {
           window.addEventListener('saveSlot:change', () => {
               currentGenerationLevel = loadGenerationLevel();
               if (rateAccumulator) rateAccumulator.buffer = 0; // reset partial buffer
+              
+              // Reset if locked on load
+              if (!hasDoneInfuseReset()) {
+                  resetWorkshopState();
+              }
+              
               updateWorkshopTab();
           });
           
@@ -184,11 +192,27 @@ export function initWorkshopTab(panelEl) {
                   updateWorkshopTab();
               }
           });
+
+          // Watch for lock status change
+          window.addEventListener('unlock:change', (e) => {
+             const detail = e.detail || {};
+             // 'infuse' unlock key corresponds to workshop unlock
+             if (detail.key === 'infuse') {
+                 if (!hasDoneInfuseReset()) {
+                     resetWorkshopState();
+                 }
+             }
+          });
       }
       
       startRenderLoop();
       initialized = true;
   }
   
+  // Initial check
+  if (!hasDoneInfuseReset()) {
+      resetWorkshopState();
+  }
+
   updateWorkshopTab();
 }
