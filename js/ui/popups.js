@@ -33,6 +33,10 @@ const POPUP_META = {
     icon: 'img/currencies/magic/magic.webp',
     iconAlt: 'Magic',
   },
+  [CURRENCIES.GEARS]: {
+    icon: 'img/currencies/gear/gear.webp',
+    iconAlt: 'Gears',
+  },
 };
 
 let container = null;
