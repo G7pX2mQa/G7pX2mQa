@@ -487,6 +487,10 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   font-size: clamp(12px, 2.0vw, 15px);
 }
 
+.mp-bar__divider{
+  display: none;
+}
+
 .mp-bar__progress{
   display: inline-flex;
   align-items: baseline;
@@ -704,5 +708,3 @@ background: linear-gradient(90deg,
 .coin-amount .infinity-symbol {
   top: -0.11em;
 }
-
-
