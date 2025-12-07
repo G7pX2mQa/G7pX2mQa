@@ -2338,7 +2338,7 @@ function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
  * Optional field:
  *  - scaling: Manually change the multiplicative scaling ratio of an upgrade; not necessary for upgrades that have no scaling
  */
-const REGISTRY = [
+export const REGISTRY = [
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 1,
@@ -2748,6 +2748,8 @@ const REGISTRY = [
   },
 ];
 
+for (const upg of REGISTRY) {
+  const tieKey = normalizeUpgradeTie(upg.tie ?? upg.tieKey);
   if (tieKey && !upgradeTieLookup.has(tieKey)) {
     upgradeTieLookup.set(tieKey, upg);
   }
@@ -2774,8 +2776,9 @@ const REGISTRY = [
     upg.nextCostAfter = () => BigNum.fromInt(0);
   }
 
-upg.bulkMeta = computeBulkMeta(upg);
-ensureUpgradeScaling(upg);
+  upg.bulkMeta = computeBulkMeta(upg);
+  ensureUpgradeScaling(upg);
+}
 
 const areaStatePayloadCache = new Map(); // key → last serialized payload
 const areaStateMemoryCache = new Map(); // key → last parsed array reference
