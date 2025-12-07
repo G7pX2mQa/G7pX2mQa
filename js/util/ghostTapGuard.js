@@ -237,6 +237,9 @@ function handleInstantClick(event) {
   
   // Exclude Shop list
   if (buttonLike.closest('.shop-scroller')) return;
+
+  // Exclude Automation Shop list
+  if (buttonLike.closest('.automation-shop-scroller')) return;
   
   // Exclude Dialogue list
   if (buttonLike.closest('.merchant-dialogue-list') && !buttonLike.closest('.merchant-firstchat')) return;
