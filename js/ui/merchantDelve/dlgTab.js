@@ -43,14 +43,12 @@ const MERCHANT_TABS_DEF = [
   { key: 'dialogue',  label: 'Dialogue', unlocked: true },
   { key: 'reset',     label: 'Reset',    unlocked: false, lockedLabel: '???' },
   { key: 'workshop',  label: 'Workshop', unlocked: false, lockedLabel: '???' },
-  { key: 'minigames', label: '???',      unlocked: false },
 ];
 
 const merchantTabUnlockState = new Map([
   ['dialogue', true],
   ['reset', false],
   ['workshop', false],
-  ['minigames', false],
 ]);
 
 const REWARD_ICON_SRC = {
@@ -1319,9 +1317,6 @@ function ensureMerchantOverlay() {
   panelWorkshop.className = 'merchant-panel';
   panelWorkshop.id = 'merchant-panel-workshop';
 
-  const panelMinigames = document.createElement('section');
-  panelMinigames.className = 'merchant-panel';
-  panelMinigames.id = 'merchant-panel-minigames';
   syncForgeTabUnlockState();
   syncWorkshopTabUnlockState();
 
@@ -1359,10 +1354,9 @@ function ensureMerchantOverlay() {
   merchantTabs.panels['dialogue']  = panelDialogue;
   merchantTabs.panels['reset']     = panelReset;
   merchantTabs.panels['workshop']  = panelWorkshop;
-  merchantTabs.panels['minigames'] = panelMinigames;
   merchantTabs.tablist = tabs;
 
-  panelsWrap.append(panelDialogue, panelReset, panelWorkshop, panelMinigames);
+  panelsWrap.append(panelDialogue, panelReset, panelWorkshop);
   content.append(tabs, panelsWrap);
 
   syncForgeTabUnlockState();
