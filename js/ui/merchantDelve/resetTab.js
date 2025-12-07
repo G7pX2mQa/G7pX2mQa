@@ -1020,15 +1020,21 @@ function bindGlobalEvents() {
       recomputePendingGold(true);
       // Pass the new multiplier explicitly so visual updates are instant
       const goldMult = detail.mult instanceof BigNum ? detail.mult : BN.fromAny(detail.mult ?? 1);
-      updateResetPanel({ goldMult });
+      
+      // Force update with explicit override to ensure reactivity
+      if (resetState.panel) {
+        updateForgeCard({ goldMult });
+      }
       return;
     }
     if (detail.key === CURRENCIES.MAGIC) {
       if (detail.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
       const magicMult = detail.mult instanceof BigNum ? detail.mult : BN.fromAny(detail.mult ?? 1);
       recomputePendingMagic(magicMult);
-      // Note: recomputePendingMagic calls updateResetPanel() with no args, so we don't need to call it again here.
-      // But recomputePendingMagic stores the final value in resetState.pendingMagic, which is what updateResetPanel reads.
+      // Ensure visual update happens immediately with the new multiplier
+      if (resetState.panel) {
+        updateInfuseCard();
+      }
       return;
     }
   });
