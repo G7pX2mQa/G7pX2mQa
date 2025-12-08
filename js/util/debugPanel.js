@@ -23,7 +23,6 @@ import {
     computeDefaultUpgradeCost,
     computeUpgradeEffects,
     getLevel,
-    bigNumFromLog10,
     getMpValueMultiplierBn,
     getUpgradesForArea,
     markUpgradePermanentlyUnlocked,
@@ -32,8 +31,8 @@ import {
     getUpgradeLockState,
 } from '../game/upgrades.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
-import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE } from '../ui/merchantDelve/dlgTab.js';
-import { getGenerationLevelKey } from '../ui/merchantDelve/workshopTab.js';
+import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE } from '../ui/merchantTabs/dlgTab.js';
+import { getGenerationLevelKey } from '../ui/merchantTabs/workshopTab.js';
 
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
@@ -1075,18 +1074,13 @@ function updateActionLogDisplay() {
 
     actionLogContainer.innerHTML = actionLog.map((entry) => {
         const formattedTime = String(entry.time ?? '').replace(/^0(\d)/, '$1');
-        let formattedMessage = entry.message?.replace?.(/\\[GOLD\\](.*?)\\[\\/GOLD\\]/g, '<span class="action-log-gold">$1</span>') ?? '';
+        let formattedMessage = entry.message?.replace?.(/\[GOLD\](.*?)\[\/GOLD\]/g, '<span class="action-log-gold">$1</span>') ?? '';
         formattedMessage = formattedMessage.replace(/\b(?:Level|Lv)\s?(\d+)\b/g, '<span class="action-log-level">Lv$1</span>');
-        formattedMessage = formattedMessage.replace(/(\d[\\d,.]*(?:e[+-]?\d+)*(?:[KMBTQa-zA-Z]*))/g, (match) => /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match);
+        formattedMessage = formattedMessage.replace(/(\d[\d,.]*(?:e[+-]?\d+)*(?:[KMBTQa-zA-Z]*))/g, (match) => /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match);
         formattedMessage = formattedMessage.replace(/<span[^>]*class="[^"]*infinity-symbol[^"]*"[^>]*>\u221E<\/span>/g, '<span class="action-log-number">inf</span>');
         formattedMessage = formattedMessage.replace(/\u221E/g, '<span class="action-log-number">inf</span>');
 
-        return `
-            <div class="action-log-entry">
-                <span class="action-log-time">${formattedTime}:</span>
-                <span class="action-log-message">${formattedMessage}</span>
-            </div>
-        `;
+        return `<div class="action-log-entry"><span class="action-log-time">${formattedTime}:</span><span class="action-log-message">${formattedMessage}</span></div>`;
     }).join('');
 }
 
@@ -1866,8 +1860,8 @@ function buildAreaStats(container, area) {
                  }
             }
 
-            if (Number.isNaN(valNum) || valNum < 0) return;
-            const cleanVal = Number.isFinite(valNum) ? Math.floor(valNum) : valNum;
+            if (!Number.isFinite(valNum) || valNum < 0) return;
+            const cleanVal = Math.floor(valNum);
             
             try {
                 localStorage.setItem(genLevelKey, String(cleanVal));
@@ -2679,19 +2673,6 @@ function buildAreaCalculators(container) {
                         { key: 'mp', label: 'Cumulative MP' },
                     ],
                     compute: ({ coins, mp }) => window.resetSystem?.computeInfuseMagicFromInputs?.(coins, mp),
-                },
-                {
-                    label: 'Gears Production',
-                    inputs: [
-                        { key: 'level', label: 'Workshop Level' },
-                    ],
-                    compute: ({ level }) => {
-                        const lvlNum = bigNumToFiniteNumber(level);
-                        if (!Number.isFinite(lvlNum)) return BigNum.fromAny('Infinity');
-                        // 2^level -> log10(val) = level * log10(2)
-                        const logValue = lvlNum * 0.3010299956639812;
-                        return bigNumFromLog10(logValue);
-                    },
                 },
             ],
         },
