@@ -466,7 +466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./ui/popups.js'),
     import('./util/suspendSafeguard.js'),
     import('./util/ghostTapGuard.js'),
-    import('./ui/globalOverlayEsc.js'),
+    import('./util/globalOverlayEsc.js'),
     import('./util/debugPanel.js'),
     import('./game/gameLoop.js'),
   ]);
