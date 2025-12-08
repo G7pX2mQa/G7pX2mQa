@@ -1764,6 +1764,16 @@ function buildAreaStats(container, area) {
             } catch {}
             
             setValue(cleanVal);
+        }, {
+            storageKey: genLevelKey,
+            onLockChange: () => {
+                let newVal = 0;
+                try {
+                    const r = localStorage.getItem(genLevelKey);
+                    newVal = parseInt(r || '0', 10);
+                } catch {}
+                genLevelRow.setValue(newVal);
+            }
         });
         
         container.appendChild(genLevelRow.row);
