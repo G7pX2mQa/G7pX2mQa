@@ -1,4 +1,4 @@
-// js/ui/merchantDelve/dlgTab.js
+// js/ui/merchantTabs/dlgTab.js
 import {
   bank,
   getActiveSlot,
