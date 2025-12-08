@@ -41,6 +41,7 @@ let onMutationChangeGame;
 let setDebugPanelAccess;
 let applyStatMultiplierOverride;
 let startGameLoop;
+let notifyGameSessionStarted;
 
 const pendingPreloadedAudio = [];
 
