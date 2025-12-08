@@ -44,8 +44,8 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  font-size: 32px;
-  font-weight: 900;
+  font-size: 28px;
+  font-weight: 700;
   margin-bottom: 8px;
 }
 
@@ -54,7 +54,7 @@
   text-stroke: 1px #000;
   color: #fff;
   text-shadow: 0 1px 0 rgba(0,0,0,.35);
-  font-size: clamp(32px, 5cqw, 48px);
+  font-size: clamp(28px, 5cqw, 48px);
 }
 
 .workshop-gears-icon {
