@@ -51,12 +51,14 @@
   height: var(--gear-icon-s);
   display: flex;
   align-items: center;
+  justify-content: center; /* Center the bar horizontally */
 }
 
 .workshop-gear-plus {
   position: absolute;
   top: 50%;
-  left: 0;
+  /* Attach to the left side, centered on the edge like Coin HUD */
+  left: calc(var(--gear-icon-s) * -0.5);
   transform: translateY(-50%);
   width: var(--gear-icon-s);
   height: var(--gear-icon-s);
@@ -67,9 +69,7 @@
 
 .workshop-gear-bar {
   height: var(--gear-bar-h);
-  /* Push bar to the right so it starts ~halfway through the icon */
-  margin-left: calc(var(--gear-icon-s) * 0.45);
-  width: calc(100% - (var(--gear-icon-s) * 0.45));
+  width: 100%;
   
   /* Simple gray downward gradient */
   background: linear-gradient(180deg, #999 0%, #666 100%);
@@ -79,9 +79,7 @@
   align-items: center;
   justify-content: center;
   
-  /* Add padding to account for the icon overlap on the left side of the text area */
-  padding-left: calc(var(--gear-icon-s) * 0.3);
-  padding-right: 16px;
+  padding: 0 16px;
   box-sizing: border-box;
   
   box-shadow: 
@@ -90,6 +88,8 @@
 }
 
 .workshop-gear-amount {
+  position: relative;
+  top: -1px; /* Move text up 1px */
   font-weight: 900;
   font-size: clamp(20px, 4cqw, 32px); /* Responsive font size */
   color: #fff;
