@@ -117,6 +117,10 @@
   border-color: #444;
 }
 
+.workshop-upgrade-btn:disabled .workshop-upgrade-title {
+  opacity: 0.7;
+}
+
 .workshop-upgrade-title {
   font-weight: bold;
   font-size: 18px;
