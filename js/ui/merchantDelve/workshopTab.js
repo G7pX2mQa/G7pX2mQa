@@ -90,7 +90,7 @@ function buildWorkshopUI(container) {
         <div class="workshop-description">
 		  The Workshop allows you to passively generate Gears<br>
           Each increase of your Workshop Level will double the rate of Gear production<br>
-		  At the bottom of this tab is a button which will open a new Automation Shop<br>
+		  Click on the big red button below to open the Automation Shop<br>
           Spend Gears in the Automation Shop to unlock powerful automation upgrades
         </div>
       </div>
