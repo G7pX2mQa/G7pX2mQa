@@ -105,6 +105,7 @@
 @media (pointer: coarse) {
   .workshop-gear-amount {
     /* Mobile text style matching hud.css */
+	top: 1px;
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
     -webkit-text-fill-color: #fff;
@@ -189,7 +190,7 @@
 
 .workshop-upgrade-cost {
   font-size: 15px;
-  color: #ffd700;
+  color: #D9D621;
   display: flex;
   align-items: center;
   gap: 3px;
