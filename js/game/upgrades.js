@@ -20,7 +20,7 @@ import {
   onInfuseUpgradeUnlocked,
   isInfuseUnlocked,
   hasDoneInfuseReset,
-} from '../ui/merchantDelve/resetTab.js';
+} from '../ui/merchantTabs/resetTab.js';
 
 export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
 
