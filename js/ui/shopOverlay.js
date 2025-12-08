@@ -1757,11 +1757,7 @@ export function openUpgradeOverlay(upgDef) {
   // ESC to close
   const onKey = (e) => {
     if (!upgOpenLocal) return;
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      upgOpenLocal = false;
-      closeUpgradeMenu();
-    }
+    // local ESC handling removed, relying on global
   };
   window.addEventListener('keydown', onKey, true);
 
@@ -1778,10 +1774,7 @@ export function openUpgradeOverlay(upgDef) {
 // ---------- Controls ----------
 function onKeydownForShop(e) {
   if (!shopOpen) return;
-  if (e.key === 'Escape') {
-    e.preventDefault();
-    closeShop();
-  }
+  // local ESC handling removed, relying on global
 }
 
 export function openShop() {
