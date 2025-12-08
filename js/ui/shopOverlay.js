@@ -1531,79 +1531,108 @@ export function openUpgradeOverlay(upgDef) {
 
     // ---------- actions ----------
     const actions = upgSheetEl.querySelector('.upg-actions');
-    actions.innerHTML = '';
-	
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'shop-close';
-    closeBtn.textContent = 'Close';
-    closeBtn.addEventListener('click', () => { upgOpenLocal = false; closeUpgradeMenu(); });
+    const existingCloseBtn = actions.querySelector('.shop-close');
+    let closeBtn;
 
-    if ('PointerEvent' in window) {
-      // Manual listener removed, global handler handles clicks
+    if (existingCloseBtn) {
+        closeBtn = existingCloseBtn;
     } else {
-      // Manual listener removed
+        actions.innerHTML = '';
+        closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'shop-close';
+        closeBtn.textContent = 'Close';
+        closeBtn.addEventListener('click', () => { upgOpenLocal = false; closeUpgradeMenu(); });
+        actions.appendChild(closeBtn);
     }
 	
-    if (locked) {
-      actions.append(closeBtn);
-      closeBtn.focus();
-    } else if (capReached) {
-      actions.append(closeBtn);
-      closeBtn.focus();
+    if (locked || capReached) {
+       const others = actions.querySelectorAll('button:not(.shop-close)');
+       others.forEach(btn => btn.remove());
+       if (document.activeElement && document.activeElement !== closeBtn && !actions.contains(document.activeElement)) {
+          closeBtn.focus();
+       }
     } else {
       const canAffordNext = model.have.cmp(nextPriceBn) >= 0;
 
+      const ensureButton = (className, text, onClick, index, disabled = false) => {
+          let btn = actions.querySelector(`.${className.split(' ').join('.')}`);
+          if (!btn) {
+              btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = className;
+              btn.textContent = text;
+              if (onClick) {
+                  // Bind events
+                  if ('PointerEvent' in window) {
+                      btn.addEventListener('pointerdown', (event) => {
+                          if (event.pointerType === 'mouse') return;
+                          if (typeof event.button === 'number' && event.button !== 0) return;
+                          onClick();
+                          event.preventDefault();
+                      }, { passive: false });
+                  } else {
+                      btn.addEventListener('touchstart', (event) => {
+                          onClick();
+                          event.preventDefault();
+                      }, { passive: false });
+                  }
+                  btn.addEventListener('click', (event) => {
+                      if (IS_MOBILE) return;
+                      onClick();
+                  });
+              }
+              // Insert at correct position (index 0 = close btn)
+              const siblings = actions.children;
+              if (index >= siblings.length) actions.appendChild(btn);
+              else actions.insertBefore(btn, siblings[index]);
+          }
+          if (btn.textContent !== text) btn.textContent = text;
+          if (btn.disabled !== disabled) btn.disabled = disabled;
+          return btn;
+      };
+
       if (evolveReady) {
-        const evolveBtn = document.createElement('button');
-        evolveBtn.type = 'button';
-        evolveBtn.className = 'shop-delve hm-evolve-btn';
-        evolveBtn.textContent = 'Evolve';
-        evolveBtn.addEventListener('click', () => {
+        // Remove buttons that aren't the evolve button or close button
+        actions.querySelectorAll('button:not(.shop-close):not(.hm-evolve-btn)').forEach(b => b.remove());
+        
+        ensureButton('shop-delve hm-evolve-btn', 'Evolve', () => {
           const { evolved } = evolveUpgrade(areaKey, upgDef.id);
           if (!evolved) return;
           playEvolveSfx();
           updateShopOverlay();
           rerender();
-        });
-        actions.append(closeBtn, evolveBtn);
-        evolveBtn.focus();
+        }, 1, false);
+
         recenterUnlockOverlayIfNeeded(model);
         return;
       }
 
       if (model.unlockUpgrade) {
-        const unlockBtn = document.createElement('button');
-        unlockBtn.type = 'button';
-        unlockBtn.className = 'shop-delve';
-        unlockBtn.textContent = 'Unlock';
-        unlockBtn.disabled = !canAffordNext;
-        unlockBtn.addEventListener('click', () => {
-          const { bought } = buyOne(areaKey, upgDef.id);
-          const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
-          if (!boughtBn.isZero?.()) {
-            playPurchaseSfx();
-            if (isForgeUnlockUpgrade(upgDef)) {
-              try { unlockMerchantTabs(['reset']); } catch {}
+         // Remove buttons that aren't the unlock button or close button.
+         // We identify the unlock button by class 'btn-unlock' to be safe (which we add now).
+         actions.querySelectorAll('button:not(.shop-close):not(.btn-unlock)').forEach(b => b.remove());
+         
+         const unlockBtn = ensureButton('shop-delve btn-unlock', 'Unlock', () => {
+            const { bought } = buyOne(areaKey, upgDef.id);
+            const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+            if (!boughtBn.isZero?.()) {
+                playPurchaseSfx();
+                if (isForgeUnlockUpgrade(upgDef)) {
+                try { unlockMerchantTabs(['reset']); } catch {}
+                }
+                updateShopOverlay();
+                rerender();
             }
-            updateShopOverlay();
-            rerender();
-          }
-        });
+         }, 1, !canAffordNext);
 		
-        actions.append(closeBtn, unlockBtn);
-        (canAffordNext ? unlockBtn : closeBtn).focus();
-        recenterUnlockOverlayIfNeeded(model);
-        return;
+         recenterUnlockOverlayIfNeeded(model);
+         return;
       }
+      
+      // Standard Buy mode: clear Evolve/Unlock buttons if present
+      actions.querySelectorAll('.hm-evolve-btn, .btn-unlock').forEach(b => b.remove());
 
-      const buyBtn = document.createElement('button');
-      buyBtn.type = 'button';
-      buyBtn.className = 'shop-delve';
-      buyBtn.textContent = 'Buy';
-      buyBtn.disabled = !canAffordNext;
-
-      // Core buy logic shared by pointer/touch and click fallback
       const performBuy = () => {
         const fresh = upgradeUiModel(areaKey, upgDef.id);
         const priceNow = fresh.nextPrice instanceof BigNum
@@ -1619,46 +1648,10 @@ export function openUpgradeOverlay(upgDef) {
         updateShopOverlay();
         rerender();
       };
+      
+      const buyBtn = ensureButton('shop-delve btn-buy-one', 'Buy', performBuy, 1, !canAffordNext);
 
-      if ('PointerEvent' in window) {
-        buyBtn.addEventListener('pointerdown', (event) => {
-          // Ignore mouse here; desktop uses the click handler below
-          if (event.pointerType === 'mouse') return;
-          if (typeof event.button === 'number' && event.button !== 0) return;
-
-          // Manual listener removed
-
-          performBuy();
-          event.preventDefault();
-        }, { passive: false });
-      } else {
-        // Older touch-only browsers
-        buyBtn.addEventListener('touchstart', (event) => {
-          // Manual listener removed
-
-          performBuy();
-          event.preventDefault();
-        }, { passive: false });
-      }
-
-      // Desktop / non-touch fallback – simple click is fine here.
-      buyBtn.addEventListener('click', (event) => {
-        // On mobile we already handled the tap in pointer/touch handler
-        if (IS_MOBILE) return;
-
-        // Manual listener removed
-
-        performBuy();
-      });
-
-
-      const buyMaxBtn = document.createElement('button');
-      buyMaxBtn.type = 'button';
-      buyMaxBtn.className = 'shop-delve';
-      buyMaxBtn.textContent = 'Buy Max';
-      buyMaxBtn.disabled = !canAffordNext;
       const performBuyMax = () => {
-        if (buyMaxBtn.disabled) return;
         const fresh = upgradeUiModel(areaKey, upgDef.id);
         if (fresh.have.cmp(BigNum.fromInt(1)) < 0) return;
         const { bought } = buyMax(areaKey, upgDef.id);
@@ -1669,45 +1662,11 @@ export function openUpgradeOverlay(upgDef) {
           rerender();
         }
       };
+      
+      const buyMaxBtn = ensureButton('shop-delve btn-buy-max', 'Buy Max', performBuyMax, 2, !canAffordNext);
 
-      if ('PointerEvent' in window) {
-        buyMaxBtn.addEventListener('pointerdown', (event) => {
-          if (event.pointerType === 'mouse') return;
-          if (typeof event.button === 'number' && event.button !== 0) return;
-
-          // Manual listener removed
-
-          performBuyMax();
-          event.preventDefault();
-        }, { passive: false });
-      } else {
-        buyMaxBtn.addEventListener('touchstart', (event) => {
-          // Manual listener removed
-
-          performBuyMax();
-          event.preventDefault();
-        }, { passive: false });
-      }
-
-      buyMaxBtn.addEventListener('click', (event) => {
-        if (IS_MOBILE) return;
-
-        // Manual listener removed
-
-        performBuyMax();
-      });
-
-      actions.append(closeBtn, buyBtn, buyMaxBtn);
-
-      // Only HM gets Buy Next
       if (isHM) {
-        const buyNextBtn = document.createElement('button');
-        buyNextBtn.type = 'button';
-        buyNextBtn.className = 'shop-delve';
-        buyNextBtn.textContent = 'Buy Next';
-        buyNextBtn.disabled = model.have.cmp(BigNum.fromInt(1)) < 0;
         const performBuyNext = () => {
-          if (buyNextBtn.disabled) return;
           const fresh = upgradeUiModel(areaKey, upgDef.id);
           if (fresh.hmReadyToEvolve) return;
           const target = fresh.hmNextMilestone;
@@ -1755,37 +1714,13 @@ export function openUpgradeOverlay(upgDef) {
             rerender();
           }
         };
-
-        if ('PointerEvent' in window) {
-          buyNextBtn.addEventListener('pointerdown', (event) => {
-            if (event.pointerType === 'mouse') return;
-            if (typeof event.button === 'number' && event.button !== 0) return;
-
-            // Manual listener removed
-
-            performBuyNext();
-            event.preventDefault();
-          }, { passive: false });
-        } else {
-          buyNextBtn.addEventListener('touchstart', (event) => {
-            // Manual listener removed
-
-            performBuyNext();
-            event.preventDefault();
-          }, { passive: false });
-        }
-
-        buyNextBtn.addEventListener('click', (event) => {
-          if (IS_MOBILE) return;
-
-          // Manual listener removed
-
-          performBuyNext();
-        });
-        actions.appendChild(buyNextBtn);
+        
+        ensureButton('shop-delve btn-buy-next', 'Buy Next', performBuyNext, 3, model.have.cmp(BigNum.fromInt(1)) < 0);
+      } else {
+          // If NOT hard mode, ensure no "Buy Next" button remains from a previous state (unlikely but safe)
+          const stale = actions.querySelector('.btn-buy-next');
+          if (stale) stale.remove();
       }
-
-      (canAffordNext ? buyBtn : closeBtn).focus();
     }
 	
 	recenterUnlockOverlayIfNeeded(model);
