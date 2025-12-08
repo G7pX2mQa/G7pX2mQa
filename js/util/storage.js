@@ -281,6 +281,11 @@ function initCurrencyStorageWatchers() {
 
 // -------------------- HEARTBEAT / OFFLINE TRACKING --------------------
 let lastSaveTimeTimer = null;
+let hasEnteredGameSession = false;
+
+export function notifyGameSessionStarted() {
+  hasEnteredGameSession = true;
+}
 
 export function getLastSaveTimeKey(slot = getActiveSlot()) {
   if (slot == null) return null;
@@ -288,6 +293,7 @@ export function getLastSaveTimeKey(slot = getActiveSlot()) {
 }
 
 export function updateLastSaveTime() {
+  if (!hasEnteredGameSession) return;
   const slot = getActiveSlot();
   if (slot == null) return;
   const now = Date.now();
