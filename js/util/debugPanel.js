@@ -1749,11 +1749,28 @@ function buildAreaStats(container, area) {
         let currentGenLevel = 0;
         try {
             const raw = localStorage.getItem(genLevelKey);
-            currentGenLevel = parseInt(raw || '0', 10);
+            currentGenLevel = parseFloat(raw || '0');
         } catch {}
 
         const genLevelRow = createInputRow('Workshop Level', currentGenLevel, (value, { setValue }) => {
-            const valNum = Number(value);
+            // Helper to get a finite number from input, which might be BigNum or string/number
+            let valNum = Number(value);
+            console.log('[DebugPanel] Workshop Level Commit. Value type:', typeof value, 'IsBigNum:', value instanceof BigNum, 'Value:', value);
+
+            if (value instanceof BigNum) {
+                 if (value.isInfinite()) {
+                     valNum = Infinity; 
+                 } else {
+                     try {
+                        // Use a large enough precision for toScientific to preserve the exponent
+                        // toScientific(20) returns e.g. "1.000...e21"
+                        valNum = Number(value.toScientific(20));
+                     } catch {
+                        valNum = NaN;
+                     }
+                 }
+            }
+
             if (!Number.isFinite(valNum) || valNum < 0) return;
             const cleanVal = Math.floor(valNum);
             
@@ -1770,7 +1787,7 @@ function buildAreaStats(container, area) {
                 let newVal = 0;
                 try {
                     const r = localStorage.getItem(genLevelKey);
-                    newVal = parseInt(r || '0', 10);
+                    newVal = parseFloat(r || '0');
                 } catch {}
                 genLevelRow.setValue(newVal);
             }
