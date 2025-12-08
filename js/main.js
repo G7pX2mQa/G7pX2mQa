@@ -582,7 +582,7 @@ images: [
   ({ createSpawner } = spawnerModule);
   ({ initCoinPickup } = coinPickupModule);
   ({ initHudButtons } = hudButtonsModule);
-  ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults } = storageModule);
+  ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted } = storageModule);
   void saveIntegrityModule;
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
   ({ registerPreloadedAudio } = audioCacheModule);
@@ -658,6 +658,7 @@ images: [
     if (titleEl) titleEl.style.opacity = '0';
     enterArea(AREAS.STARTER_COVE);
     processOfflineProgress();
+    notifyGameSessionStarted?.();
     markProgressDirty?.('slot-entered');
   });
 
