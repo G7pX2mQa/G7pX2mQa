@@ -23,6 +23,7 @@ import {
     computeDefaultUpgradeCost,
     computeUpgradeEffects,
     getLevel,
+    bigNumFromLog10,
     getMpValueMultiplierBn,
     getUpgradesForArea,
     markUpgradePermanentlyUnlocked,
@@ -2678,6 +2679,19 @@ function buildAreaCalculators(container) {
                         { key: 'mp', label: 'Cumulative MP' },
                     ],
                     compute: ({ coins, mp }) => window.resetSystem?.computeInfuseMagicFromInputs?.(coins, mp),
+                },
+                {
+                    label: 'Gears Production',
+                    inputs: [
+                        { key: 'level', label: 'Workshop Level' },
+                    ],
+                    compute: ({ level }) => {
+                        const lvlNum = bigNumToFiniteNumber(level);
+                        if (!Number.isFinite(lvlNum)) return BigNum.fromAny('Infinity');
+                        // 2^level -> log10(val) = level * log10(2)
+                        const logValue = lvlNum * 0.3010299956639812;
+                        return bigNumFromLog10(logValue);
+                    },
                 },
             ],
         },
