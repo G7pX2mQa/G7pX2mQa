@@ -2,22 +2,26 @@
 import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { bank, CURRENCIES, getActiveSlot, watchStorageKey } from '../../util/storage.js';
-import { registerTick, RateAccumulator } from '../../game/gameLoop.js';
+import { registerTick } from '../../game/gameLoop.js';
 import { openAutomationShop } from '../shopOverlayAutomation.js';
 import { hasDoneInfuseReset } from './resetTab.js';
+import { bigNumFromLog10 } from '../../game/upgrades.js';
+import { IS_MOBILE } from '../../main.js';
 
 const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
 const COIN_ICON_SRC = 'img/currencies/coin/coin.webp';
 
 let workshopEl = null;
 let initialized = false;
-let rateAccumulator = null;
+// We implement a custom accumulator for BigNum rates
+let accumulatorBuffer = 0; // stores "fractional" parts < 1 for smooth low-rate accumulation
 let currentGenerationLevel = 0;
 let renderFrameId = null;
 
 // Upgrade Constants
 const GENERATION_UPGRADE_BASE_COST = BigNum.fromAny('1e12'); // 1T
 const GENERATION_UPGRADE_SCALE = 10;
+const LOG10_2 = 0.3010299956639812; // Math.log10(2)
 
 export function getGenerationLevelKey(slot) {
   return `ccc:workshop:genLevel:${slot}`;
@@ -27,6 +31,7 @@ function loadGenerationLevel() {
   const slot = getActiveSlot();
   if (!slot) return 0;
   const raw = localStorage.getItem(getGenerationLevelKey(slot));
+  // Support standard integers. 2^53 is enough levels to overflow the universe, so Number is fine for level count.
   return parseInt(raw || '0', 10);
 }
 
@@ -40,14 +45,28 @@ function saveGenerationLevel(level) {
 function getGenerationUpgradeCost(level) {
   // 1T * 10^level
   if (level === 0) return GENERATION_UPGRADE_BASE_COST;
+  // 1T is 1e12. 10^level adds 'level' to exponent.
+  // We can construct this directly or use mul.
+  // 10^level as BigNum:
+  // We can just append '0's or use power of 10 logic.
+  // Since base is 1e12, result is 1e(12+level).
+  // Let's rely on BigNum multiplication for safety and standard API usage, 
+  // or construct via scientific notation if easy.
+  // 1e12 * 10^L = 10^(12+L).
+  // Since L can be large, constructing string "1e(12+L)" might be safest/fastest.
+  // But let's stick to BigNum math if possible or use the existing pattern.
+  // The existing pattern was: multiplier = new BigNum(1n, level). 
+  // new BigNum(sig, exp) -> 1 * 10^level. This is correct and efficient.
   const multiplier = new BigNum(1n, level);
   return GENERATION_UPGRADE_BASE_COST.mulBigNumInteger(multiplier);
 }
 
 function getGearsPerSecond(level) {
-  // Start at 1, double per level
-  // 1 * 2^level
-  return Math.pow(2, level);
+  // Start at 1, double per level: 2^level
+  // Use log math to construct BigNum: 10^(level * log10(2))
+  if (level === 0) return BigNum.fromInt(1);
+  const logValue = level * LOG10_2;
+  return bigNumFromLog10(logValue);
 }
 
 function buyGenerationUpgrade() {
@@ -62,21 +81,78 @@ function buyGenerationUpgrade() {
 function onTick() {
   if (!hasDoneInfuseReset()) return;
 
-  if (!rateAccumulator) {
-    rateAccumulator = new RateAccumulator(CURRENCIES.GEARS, bank);
+  const rateBn = getGearsPerSecond(currentGenerationLevel);
+  
+  // Per tick (20tps) -> rate / 20 -> rate * 0.05
+  // If rate is huge, fraction doesn't matter much.
+  // If rate is small, we need to accumulate.
+  
+  const perTick = rateBn.mulDecimal('0.05');
+  
+  // If the per-tick amount is < 1, we accumulate in a float buffer (approximate).
+  // If it's >= 1, we add the integer part directly and accumulate remainder.
+  
+  // Fast check: is perTick >= 1?
+  // We can check if it has a positive exponent or is >= 1.
+  
+  // Simplification: Split perTick into integer and fractional parts? 
+  // BigNum doesn't easily give "fractional part" as a number if it's huge.
+  // But if it's huge (>= 1e18), fractional part is irrelevant.
+  
+  // If perTick is small (e.g. < 1e15), we might care about fractional accumulation.
+  // If perTick < 1, we definitely care.
+  
+  // Let's try to convert perTick to a safe number. If it's Infinity (too big), we treat it as huge.
+  // If it's a small BigNum, we can handle it.
+  
+  // Optimization:
+  // 1. Get integer part.
+  const whole = perTick.floorToInteger();
+  const hasWhole = !whole.isZero();
+  
+  if (hasWhole) {
+      if (bank.gears) bank.gears.add(whole);
   }
-  const rate = getGearsPerSecond(currentGenerationLevel);
-  rateAccumulator.addRate(rate);
+  
+  // 2. Handle fractional part if rate is low enough that it matters.
+  // If rate is > 1e6, fraction is negligible.
+  // We only really need precise buffering for rates < 100/sec.
+  
+  // If currentGenerationLevel is low (< ~20), 2^20 is ~1e6.
+  if (currentGenerationLevel < 20) {
+      // Calculate fraction accurately?
+      // perTick (BigNum) - whole (BigNum)
+      // This might be expensive every tick.
+      // Alternative: Just convert rateBn to Number for accumulation logic when level is low.
+      const rateNum = Math.pow(2, currentGenerationLevel);
+      const perTickNum = rateNum / 20;
+      const wholeNum = Math.floor(perTickNum);
+      const frac = perTickNum - wholeNum;
+      
+      accumulatorBuffer += frac;
+      if (accumulatorBuffer >= 1) {
+          const accWhole = Math.floor(accumulatorBuffer);
+          accumulatorBuffer -= accWhole;
+          if (bank.gears) bank.gears.add(accWhole);
+      }
+  } else {
+      // For high levels, fractional parts < 1 gear are irrelevant compared to the massive gains.
+      accumulatorBuffer = 0;
+  }
 }
 
 function resetWorkshopState() {
     if (bank.gears) bank.gears.set(0);
     saveGenerationLevel(0);
-    if (rateAccumulator) rateAccumulator.buffer = 0;
+    accumulatorBuffer = 0;
     updateWorkshopTab();
 }
 
 function buildWorkshopUI(container) {
+  const descText = IS_MOBILE 
+    ? 'Tap on the big red button below (scroll if needed) to open the Automation Shop'
+    : 'Click on the big red button below to open the Automation Shop';
+
   container.innerHTML = `
     <div class="merchant-workshop">
       <div class="workshop-info-panel">
@@ -85,12 +161,12 @@ function buildWorkshopUI(container) {
           <span data-workshop="gears-amount" class="coin-amount">0</span>
         </div>
         <div class="workshop-rate-display">
-          (+<img src="${GEAR_ICON_SRC}" class="workshop-rate-icon" alt=""><span data-workshop="gears-rate">0</span>/sec)
+          (+<img src="${GEAR_ICON_SRC}" class="workshop-rate-icon" alt=""><span><span data-workshop="gears-rate">0</span>/sec)</span>
         </div>
         <div class="workshop-description">
 		  The Workshop allows you to passively generate Gears<br>
           Each increase of your Workshop Level will double the rate of Gear production<br>
-		  Click on the big red button below to open the Automation Shop<br>
+		  ${descText}<br>
           Spend Gears in the Automation Shop to unlock powerful automation upgrades
         </div>
       </div>
@@ -158,11 +234,8 @@ export function updateWorkshopTab() {
   const upgradeCostEl = workshopEl.querySelector('[data-workshop="upgrade-cost"]');
   const upgradeBtn = workshopEl.querySelector('[data-workshop="upgrade-gen"]');
 
-  const rate = getGearsPerSecond(currentGenerationLevel);
+  const rateBn = getGearsPerSecond(currentGenerationLevel);
   const cost = getGenerationUpgradeCost(currentGenerationLevel);
-
-  // Wrap rate in BigNum so formatNumber uses suffix formatting instead of raw string
-  const rateBn = BigNum.fromAny(rate);
 
   if (gearsAmountEl) gearsAmountEl.innerHTML = bank.gears.fmt(bank.gears.value);
   if (gearsRateEl) gearsRateEl.innerHTML = formatNumber(rateBn);
@@ -203,7 +276,7 @@ export function initWorkshopTab(panelEl) {
       if (typeof window !== 'undefined') {
           window.addEventListener('saveSlot:change', () => {
               currentGenerationLevel = loadGenerationLevel();
-              if (rateAccumulator) rateAccumulator.buffer = 0; // reset partial buffer
+              accumulatorBuffer = 0; // reset partial buffer
               
               // Reset if locked on load
               if (!hasDoneInfuseReset()) {
