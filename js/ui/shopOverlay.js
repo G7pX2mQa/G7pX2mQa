@@ -405,7 +405,7 @@ const evolveSfx = createSfxPlayer({
   desktopVolume: DESKTOP_PURCHASE_VOLUME * 2,
 });
 
-function playPurchaseSfx() {
+export function playPurchaseSfx() {
   purchaseSfx.play();
 }
 
