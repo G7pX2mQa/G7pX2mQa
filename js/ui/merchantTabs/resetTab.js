@@ -1,4 +1,4 @@
-// js/ui/merchantDelve/resetTab.js
+// js/ui/merchantTabs/resetTab.js
 import { BigNum } from '../../util/bigNum.js';
 import {
   bank,
