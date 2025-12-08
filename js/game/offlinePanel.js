@@ -1,108 +1,13 @@
+
 import { getLastSaveTime } from '../util/storage.js';
 import { getGearsProductionRate } from '../ui/merchantTabs/workshopTab.js';
+import { hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
 import { pauseGameLoop, resumeGameLoop } from './gameLoop.js';
 import { bank } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 
 let initialized = false;
-let styleInjected = false;
-
-function injectStyles() {
-    if (styleInjected) return;
-    const style = document.createElement('style');
-    style.textContent = `
-    .offline-panel {
-        position: fixed;
-        inset: 0;
-        z-index: 2000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0,0,0,0.6);
-        pointer-events: auto;
-    }
-    .offline-card {
-        background: #003366; /* Blue background */
-        border: 2px solid #0055aa;
-        border-radius: 8px;
-        padding: 2px;
-        width: 90%;
-        max-width: 480px;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.8);
-    }
-    .offline-header {
-        text-align: center;
-        padding: 12px;
-        font-family: monospace;
-        font-weight: bold;
-        font-size: 1.2rem;
-        color: #00ffff; /* Light blue / cyan */
-        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    }
-    .offline-content {
-        background: #000;
-        color: #fff;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        min-height: 100px;
-    }
-    .offline-time-row {
-        text-align: center;
-        color: #fff;
-        font-size: 1.1rem;
-        margin-bottom: 8px;
-    }
-    .offline-reward-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 1.1rem;
-        justify-content: center;
-    }
-    .offline-reward-icon {
-        width: 24px;
-        height: 24px;
-    }
-    .reward-gears { color: #a3a3a3; }
-    .reward-coins { color: #ffd700; }
-    .reward-xp { color: #6688ff; }
-    .reward-mp { color: #ffaa00; }
-    .reward-gold { color: #ffd700; }
-    .reward-magic { color: #c68cff; }
-
-    .offline-actions {
-        padding: 12px;
-        display: flex;
-        justify-content: center;
-    }
-    .offline-close-btn {
-        background: #cc3333;
-        color: #fff;
-        border: 2px solid #aa2222;
-        border-radius: 4px;
-        font-family: monospace;
-        font-size: 1.2rem;
-        padding: 12px 32px;
-        cursor: pointer;
-    }
-    .offline-close-btn:active {
-        transform: translateY(2px);
-    }
-    @media (max-width: 600px) {
-        .offline-header { font-size: 1rem; }
-        .offline-time-row { font-size: 0.95rem; }
-        .offline-reward-row { font-size: 0.95rem; }
-        .offline-close-btn { font-size: 1rem; padding: 10px 24px; }
-    }
-    `;
-    document.head.appendChild(style);
-    styleInjected = true;
-}
 
 function formatTimeCompact(ms) {
     const s = Math.floor(ms / 1000);
@@ -122,7 +27,7 @@ function formatTimeCompact(ms) {
 }
 
 function createOfflinePanel(rewards, offlineMs) {
-    injectStyles();
+    // Styles are now in css/game/offlinePanel.css, imported via main bundle
     
     const panel = document.createElement('div');
     panel.className = 'offline-panel';
@@ -179,15 +84,16 @@ export function processOfflineProgress() {
     const lastSave = getLastSaveTime();
     const now = Date.now();
     
-    // Threshold: 60 seconds? Or maybe even 10s is enough to demo.
-    // Let's use 60s as a reasonable "offline" check.
-    // Actually, user said "few minutes" but didn't specify min threshold.
-    // To be safe and testable, let's say 10 seconds.
+    // Threshold: User requested "few seconds".
+    // Let's use 1000ms (1s) to be responsive.
     if (lastSave <= 0) return;
     
     const diff = now - lastSave;
-    if (diff < 10000) return; // Ignore gaps < 10s
+    if (diff < 1000) return; // Ignore gaps < 1s
     
+    // Only process if player has unlocked the relevant system
+    if (!hasDoneInfuseReset()) return;
+
     const seconds = diff / 1000;
     
     // Calculate Rewards
