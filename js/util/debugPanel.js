@@ -1866,8 +1866,8 @@ function buildAreaStats(container, area) {
                  }
             }
 
-            if (!Number.isFinite(valNum) || valNum < 0) return;
-            const cleanVal = Math.floor(valNum);
+            if (Number.isNaN(valNum) || valNum < 0) return;
+            const cleanVal = Number.isFinite(valNum) ? Math.floor(valNum) : valNum;
             
             try {
                 localStorage.setItem(genLevelKey, String(cleanVal));
