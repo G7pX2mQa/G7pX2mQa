@@ -1787,11 +1787,6 @@ export function closeMerchant() {
 
 function onKeydownForMerchant(e) {
   if (!merchantOpen) return;
-  if (e.key === 'Escape') {
-    e.preventDefault();
-    closeMerchant();
-    return;
-  }
 
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
 
