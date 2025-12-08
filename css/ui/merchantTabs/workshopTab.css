@@ -38,29 +38,83 @@
   border-radius: 12px;
 }
 
-/* Info Panel */
-.workshop-gears-display {
+/* Gear HUD Bar */
+.workshop-gear-hud {
+  position: relative;
+  width: min(90%, 400px);
+  margin-bottom: 12px;
+  
+  /* Sizing variables - scaled slightly smaller than main HUD */
+  --gear-bar-h: clamp(36px, 5svh, 54px);
+  --gear-icon-s: calc(var(--gear-bar-h) * 1.4);
+  
+  height: var(--gear-icon-s);
+  display: flex;
+  align-items: center;
+}
+
+.workshop-gear-plus {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  width: var(--gear-icon-s);
+  height: var(--gear-icon-s);
+  object-fit: contain;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.workshop-gear-bar {
+  height: var(--gear-bar-h);
+  /* Push bar to the right so it starts ~halfway through the icon */
+  margin-left: calc(var(--gear-icon-s) * 0.45);
+  width: calc(100% - (var(--gear-icon-s) * 0.45));
+  
+  /* Simple gray downward gradient */
+  background: linear-gradient(180deg, #999 0%, #666 100%);
+  border: 3px solid #000;
+  
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  font-size: 28px;
-  font-weight: 700;
-  margin-bottom: 8px;
+  
+  /* Add padding to account for the icon overlap on the left side of the text area */
+  padding-left: calc(var(--gear-icon-s) * 0.3);
+  padding-right: 16px;
+  box-sizing: border-box;
+  
+  box-shadow: 
+    inset 0 2px 4px rgba(255,255,255,0.25), 
+    inset 0 -2px 4px rgba(0,0,0,0.25);
 }
 
-.workshop-gears-display .coin-amount {
+.workshop-gear-amount {
+  font-weight: 900;
+  font-size: clamp(20px, 4cqw, 32px); /* Responsive font size */
+  color: #fff;
+  line-height: 1;
+  z-index: 1;
+  
+  /* Desktop text stroke */
   -webkit-text-stroke: 1px #000;
   text-stroke: 1px #000;
-  color: #fff;
-  text-shadow: 0 1px 0 rgba(0,0,0,.35);
-  font-size: clamp(28px, 5cqw, 48px);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
 }
 
-.workshop-gears-icon {
-  width: 42px;
-  height: 42px;
-  object-fit: contain;
+@media (pointer: coarse) {
+  .workshop-gear-amount {
+    /* Mobile text style matching hud.css */
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    -webkit-text-fill-color: #fff;
+    text-shadow:
+      0 0.5px 0 #000, 0 -0.5px 0 #000,
+      0.5px 0 0 #000, -0.5px 0 0 #000,
+      0.5px 0.5px 0 #000, 0.5px -0.5px 0 #000,
+      -0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000,
+      0 1px 0 rgba(0,0,0,0.28);
+  }
 }
 
 .workshop-rate-display {
