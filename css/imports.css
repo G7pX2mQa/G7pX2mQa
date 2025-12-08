@@ -8,7 +8,9 @@
 @import "./game/waves.css";
 @import "./game/coin.css";
 @import "./ui/shop.css";
-@import "./ui/delve/merchant.css";
-@import "./ui/delve/workshop.css";
+@import "./ui/merchantTabs/merchant.css";
+@import "./ui/merchantTabs/dialogueTab.css";
+@import "./ui/merchantTabs/resetTab.css";
+@import "./ui/merchantTabs/workshop.css";
 @import "./ui/popups.css";
 @import "./misc/debug.css";
