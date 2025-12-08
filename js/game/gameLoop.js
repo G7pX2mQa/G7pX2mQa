@@ -4,8 +4,10 @@ const TICK_MS = 1000 / TICK_RATE;
 
 const tickListeners = new Set();
 let timerId = null;
+let paused = false;
 
 function loop() {
+  if (paused) return;
   const now = performance.now();
   // Simple fixed-step loop for now
   
@@ -16,6 +18,14 @@ function loop() {
       console.error('Error in game tick listener:', e);
     }
   });
+}
+
+export function pauseGameLoop() {
+  paused = true;
+}
+
+export function resumeGameLoop() {
+  paused = false;
 }
 
 export function startGameLoop() {
