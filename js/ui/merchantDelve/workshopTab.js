@@ -34,6 +34,9 @@ function loadGenerationLevel() {
   const raw = localStorage.getItem(getGenerationLevelKey(slot));
   // Support standard integers. 2^53 is enough levels to overflow the universe, so Number is fine for level count.
   const val = parseFloat(raw || '0');
+  if (!Number.isFinite(val)) {
+    if (val === Infinity || val === -Infinity) return val;
+  }
   return Number.isFinite(val) ? val : 0;
 }
 
@@ -60,6 +63,7 @@ function saveGenerationLevel(level) {
 function getGenerationUpgradeCost(level) {
   // 1T * 10^level
   if (level === 0) return GENERATION_UPGRADE_BASE_COST;
+  if (!Number.isFinite(level)) return BigNum.fromAny('Infinity');
   // 1T is 1e12. 10^level adds 'level' to exponent.
   // We can construct this directly or use mul.
   // 10^level as BigNum:
@@ -80,6 +84,7 @@ function getGearsPerSecond(level) {
   // Start at 1, double per level: 2^level
   // Use log math to construct BigNum: 10^(level * log10(2))
   if (level === 0) return BigNum.fromInt(1);
+  if (!Number.isFinite(level)) return BigNum.fromAny('Infinity');
   const logValue = level * LOG10_2;
   return bigNumFromLog10(logValue);
 }
