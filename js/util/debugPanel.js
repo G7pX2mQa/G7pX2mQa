@@ -1743,59 +1743,6 @@ function buildAreaStats(container, area) {
 
     container.appendChild(spawnRateRow.row);
 
-    // Workshop Level
-    const genLevelKey = getGenerationLevelKey(slot);
-    if (genLevelKey) {
-        let currentGenLevel = 0;
-        try {
-            const raw = localStorage.getItem(genLevelKey);
-            currentGenLevel = parseFloat(raw || '0');
-        } catch {}
-
-        const genLevelRow = createInputRow('Workshop Level', currentGenLevel, (value, { setValue }) => {
-            // Helper to get a finite number from input, which might be BigNum or string/number
-            let valNum = Number(value);
-            console.log('[DebugPanel] Workshop Level Commit. Value type:', typeof value, 'IsBigNum:', value instanceof BigNum, 'Value:', value);
-
-            if (value instanceof BigNum) {
-                 if (value.isInfinite()) {
-                     valNum = Infinity; 
-                 } else {
-                     try {
-                        // Use a large enough precision for toScientific to preserve the exponent
-                        // toScientific(20) returns e.g. "1.000...e21"
-                        valNum = Number(value.toScientific(20));
-                     } catch {
-                        valNum = NaN;
-                     }
-                 }
-            }
-
-            if (!Number.isFinite(valNum) || valNum < 0) return;
-            const cleanVal = Math.floor(valNum);
-            
-            try {
-                localStorage.setItem(genLevelKey, String(cleanVal));
-                flagDebugUsage();
-                logAction(`Modified Workshop Level (The Cove) ${currentGenLevel} → ${cleanVal}`);
-            } catch {}
-            
-            setValue(cleanVal);
-        }, {
-            storageKey: genLevelKey,
-            onLockChange: () => {
-                let newVal = 0;
-                try {
-                    const r = localStorage.getItem(genLevelKey);
-                    newVal = parseFloat(r || '0');
-                } catch {}
-                genLevelRow.setValue(newVal);
-            }
-        });
-        
-        container.appendChild(genLevelRow.row);
-    }
-
     const xp = getXpState();
     const mutation = getMutationState();
     const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
@@ -1889,6 +1836,59 @@ function buildAreaStats(container, area) {
         },
     });
     container.appendChild(mpProgressRow.row);
+	
+	    // Workshop Level
+    const genLevelKey = getGenerationLevelKey(slot);
+    if (genLevelKey) {
+        let currentGenLevel = 0;
+        try {
+            const raw = localStorage.getItem(genLevelKey);
+            currentGenLevel = parseFloat(raw || '0');
+        } catch {}
+
+        const genLevelRow = createInputRow('Workshop Level', currentGenLevel, (value, { setValue }) => {
+            // Helper to get a finite number from input, which might be BigNum or string/number
+            let valNum = Number(value);
+            console.log('[DebugPanel] Workshop Level Commit. Value type:', typeof value, 'IsBigNum:', value instanceof BigNum, 'Value:', value);
+
+            if (value instanceof BigNum) {
+                 if (value.isInfinite()) {
+                     valNum = Infinity; 
+                 } else {
+                     try {
+                        // Use a large enough precision for toScientific to preserve the exponent
+                        // toScientific(20) returns e.g. "1.000...e21"
+                        valNum = Number(value.toScientific(20));
+                     } catch {
+                        valNum = NaN;
+                     }
+                 }
+            }
+
+            if (!Number.isFinite(valNum) || valNum < 0) return;
+            const cleanVal = Math.floor(valNum);
+            
+            try {
+                localStorage.setItem(genLevelKey, String(cleanVal));
+                flagDebugUsage();
+                logAction(`Modified Workshop Level (The Cove) ${currentGenLevel} → ${cleanVal}`);
+            } catch {}
+            
+            setValue(cleanVal);
+        }, {
+            storageKey: genLevelKey,
+            onLockChange: () => {
+                let newVal = 0;
+                try {
+                    const r = localStorage.getItem(genLevelKey);
+                    newVal = parseFloat(r || '0');
+                } catch {}
+                genLevelRow.setValue(newVal);
+            }
+        });
+        
+        container.appendChild(genLevelRow.row);
+    }
 }
 
 function buildAreaUpgrades(container, area) {
