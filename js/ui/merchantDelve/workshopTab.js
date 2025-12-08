@@ -19,7 +19,7 @@ let renderFrameId = null;
 const GENERATION_UPGRADE_BASE_COST = BigNum.fromAny('1e12'); // 1T
 const GENERATION_UPGRADE_SCALE = 10;
 
-function getGenerationLevelKey(slot) {
+export function getGenerationLevelKey(slot) {
   return `ccc:workshop:genLevel:${slot}`;
 }
 
@@ -82,20 +82,20 @@ function buildWorkshopUI(container) {
       <div class="workshop-info-panel">
         <div class="workshop-gears-display">
           <img src="${GEAR_ICON_SRC}" class="workshop-gears-icon" alt="Gears">
-          <span data-workshop="gears-amount">0</span>
+          <span data-workshop="gears-amount" class="coin-amount">0</span>
         </div>
         <div class="workshop-rate-display">
           (+<img src="${GEAR_ICON_SRC}" class="workshop-rate-icon" alt=""><span data-workshop="gears-rate">0</span>/sec)
         </div>
         <div class="workshop-description">
-          The Workshop allows you to passively generate Gears.<br>
+          Each increase of your Workshop Level will double the rate of Gear production.<br>
           Spend Gears in the Automation Shop to unlock powerful automation upgrades.
         </div>
       </div>
 
       <div class="workshop-doubler-panel">
         <button class="workshop-upgrade-btn" data-workshop="upgrade-gen">
-          <span class="workshop-upgrade-title">Double Gear Generation</span>
+          <span class="workshop-upgrade-title">Increase Workshop Level</span>
           <span class="workshop-upgrade-cost">
             Cost: <img src="${COIN_ICON_SRC}" class="workshop-upgrade-cost-icon" alt="Coins"> <span data-workshop="upgrade-cost">1T</span>
           </span>
@@ -118,6 +118,31 @@ function buildWorkshopUI(container) {
   automationBtn.addEventListener('click', () => {
     openAutomationShop();
   });
+
+  // Init button size sync
+  const syncBtnSize = () => {
+      const statsBtn = document.querySelector('.hud-bottom [data-btn="stats"]');
+      if (statsBtn && automationBtn) {
+          const rect = statsBtn.getBoundingClientRect();
+          automationBtn.style.width = `${rect.width}px`;
+          automationBtn.style.height = `${rect.height}px`;
+          automationBtn.style.minWidth = '0'; // Override potential min-width issues
+          automationBtn.style.maxWidth = 'none';
+      }
+  };
+  
+  if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(syncBtnSize);
+      const hud = document.querySelector('.hud-bottom');
+      if (hud) ro.observe(hud);
+      // Also observe window resize as fallback/supplement
+      window.addEventListener('resize', syncBtnSize);
+      // Initial sync
+      requestAnimationFrame(syncBtnSize);
+  } else {
+      window.addEventListener('resize', syncBtnSize);
+      requestAnimationFrame(syncBtnSize);
+  }
 
   workshopEl = container;
 }
@@ -189,6 +214,16 @@ export function initWorkshopTab(panelEl) {
           // Watch for coin changes to update button state
           window.addEventListener('currency:change', (e) => {
               if (e.detail.key === CURRENCIES.COINS) {
+                  updateWorkshopTab();
+              }
+          });
+
+          // Watch for debug changes
+          window.addEventListener('debug:change', () => {
+              // Reload level in case it changed via debug panel
+              const oldLevel = currentGenerationLevel;
+              currentGenerationLevel = loadGenerationLevel();
+              if (oldLevel !== currentGenerationLevel) {
                   updateWorkshopTab();
               }
           });
