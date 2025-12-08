@@ -166,7 +166,7 @@ function buildWorkshopUI(container) {
           (+<img src="${GEAR_ICON_SRC}" class="workshop-rate-icon" alt=""><span><span data-workshop="gears-rate">0</span>/sec)</span>
         </div>
         <div class="workshop-description">
-		  The Workshop allows you to passively generate Gears<br>
+		  Spend Coins to increase your Workshop Level<br>
           Each increase of your Workshop Level will double the rate of Gear production<br>
 		  ${descText}<br>
           Spend Gears in the Automation Shop to unlock powerful automation upgrades
