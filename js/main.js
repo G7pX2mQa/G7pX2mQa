@@ -469,6 +469,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./util/globalOverlayEsc.js'),
     import('./util/debugPanel.js'),
     import('./game/gameLoop.js'),
+    import('./game/offlinePanel.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -574,6 +575,7 @@ images: [
     escModule,
     debugPanelModule,
     gameLoopModule,
+    offlinePanelModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -593,6 +595,7 @@ images: [
   ({ initGlobalOverlayEsc } = escModule);
   ({ setDebugPanelAccess, applyStatMultiplierOverride } = debugPanelModule);
   ({ startGameLoop } = gameLoopModule);
+  const { initOfflineTracker, processOfflineProgress } = offlinePanelModule;
 
   window.bank = bank;
 
@@ -634,6 +637,7 @@ images: [
   ]);
   
   startGameLoop();
+  initOfflineTracker();
   
   applyPendingSlotWipe();
   ensureStorageDefaults();
@@ -653,6 +657,7 @@ images: [
     document.body.classList.add('has-opened');
     if (titleEl) titleEl.style.opacity = '0';
     enterArea(AREAS.STARTER_COVE);
+    processOfflineProgress();
     markProgressDirty?.('slot-entered');
   });
 
