@@ -32,6 +32,7 @@ import {
 } from '../game/upgrades.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE } from '../ui/merchantDelve/dlgTab.js';
+import { getGenerationLevelKey } from '../ui/merchantDelve/workshopTab.js';
 
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
@@ -1741,6 +1742,32 @@ function buildAreaStats(container, area) {
     });
 
     container.appendChild(spawnRateRow.row);
+
+    // Workshop Level
+    const genLevelKey = getGenerationLevelKey(slot);
+    if (genLevelKey) {
+        let currentGenLevel = 0;
+        try {
+            const raw = localStorage.getItem(genLevelKey);
+            currentGenLevel = parseInt(raw || '0', 10);
+        } catch {}
+
+        const genLevelRow = createInputRow('Workshop Level', currentGenLevel, (value, { setValue }) => {
+            const valNum = Number(value);
+            if (!Number.isFinite(valNum) || valNum < 0) return;
+            const cleanVal = Math.floor(valNum);
+            
+            try {
+                localStorage.setItem(genLevelKey, String(cleanVal));
+                flagDebugUsage();
+                logAction(`Modified Workshop Level (The Cove) ${currentGenLevel} → ${cleanVal}`);
+            } catch {}
+            
+            setValue(cleanVal);
+        });
+        
+        container.appendChild(genLevelRow.row);
+    }
 
     const xp = getXpState();
     const mutation = getMutationState();
