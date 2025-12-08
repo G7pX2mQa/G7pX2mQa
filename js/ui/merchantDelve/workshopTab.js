@@ -88,8 +88,10 @@ function buildWorkshopUI(container) {
           (+<img src="${GEAR_ICON_SRC}" class="workshop-rate-icon" alt=""><span data-workshop="gears-rate">0</span>/sec)
         </div>
         <div class="workshop-description">
-          Each increase of your Workshop Level will double the rate of Gear production.<br>
-          Spend Gears in the Automation Shop to unlock powerful automation upgrades.
+		  The Workshop allows you to passively generate Gears<br>
+          Each increase of your Workshop Level will double the rate of Gear production<br>
+		  At the bottom of this tab is a button which will open a new Automation Shop<br>
+          Spend Gears in the Automation Shop to unlock powerful automation upgrades
         </div>
       </div>
 
@@ -104,7 +106,7 @@ function buildWorkshopUI(container) {
 
       <div style="flex: 1;"></div>
 
-      <button class="btn-automation-shop">Automation Upgrades</button>
+      <button class="btn-automation-shop">Automation</button>
     </div>
   `;
 
