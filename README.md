@@ -14,8 +14,6 @@ ANY modification of stats, currencies, upgrade levels, or other save data throug
 
 Normal gameplay is unaffected unless you choose to modify values.
 
-⚠️ Additional warning: Keep in mind that since you can edit basically anything in this debug panel, misuse (e.g., setting certain values way above they could reach normally) may result in game freezes or other side effects.
-
 ***include the following section for the source code repo***
 
 # Local Setup
