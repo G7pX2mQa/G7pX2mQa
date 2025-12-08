@@ -19,6 +19,7 @@ let initCoinPickup;
 let initHudButtons;
 let installGhostTapGuard;
 let initGlobalGhostTap;
+let initGlobalOverlayEsc;
 let bank;
 let getHasOpenedSaveSlot;
 let setHasOpenedSaveSlot;
@@ -465,6 +466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./ui/popups.js'),
     import('./util/suspendSafeguard.js'),
     import('./util/ghostTapGuard.js'),
+    import('./ui/globalOverlayEsc.js'),
     import('./util/debugPanel.js'),
     import('./game/gameLoop.js'),
   ]);
@@ -569,6 +571,7 @@ images: [
     popupModule,
     safetyModule,
     guardModule,
+    escModule,
     debugPanelModule,
     gameLoopModule,
   ] = await modulePromise;
@@ -587,6 +590,7 @@ images: [
   ({ initPopups } = popupModule);
   ({ installSuspendSafeguards, restoreFromBackupIfNeeded: restoreSuspendBackup, markProgressDirty, flushBackupSnapshot } = safetyModule);
   ({ installGhostTapGuard, initGlobalGhostTap } = guardModule);
+  ({ initGlobalOverlayEsc } = escModule);
   ({ setDebugPanelAccess, applyStatMultiplierOverride } = debugPanelModule);
   ({ startGameLoop } = gameLoopModule);
 
@@ -603,6 +607,7 @@ images: [
 
   installGhostTapGuard?.();
   initGlobalGhostTap?.();
+  initGlobalOverlayEsc?.();
   installSuspendSafeguards?.();
   if (typeof setDebugPanelAccess === 'function') {
     setDebugPanelAccess(DEBUG_PANEL_ACCESS);
