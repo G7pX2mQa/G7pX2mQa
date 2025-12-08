@@ -1860,16 +1860,16 @@ function buildAreaStats(container, area) {
                  }
             }
 
-            if (!Number.isFinite(valNum) || valNum < 0) return;
-            const cleanVal = Math.floor(valNum);
+            if (Number.isNaN(valNum) || valNum < 0) return;
+            const cleanVal = (valNum === Infinity) ? 'Infinity' : String(Math.floor(valNum));
             
             try {
-                localStorage.setItem(genLevelKey, String(cleanVal));
+                localStorage.setItem(genLevelKey, cleanVal);
                 flagDebugUsage();
                 logAction(`Modified Workshop Level (The Cove) ${currentGenLevel} → ${cleanVal}`);
             } catch {}
             
-            setValue(cleanVal);
+            setValue(valNum);
         }, {
             storageKey: genLevelKey,
             onLockChange: () => {
@@ -2072,6 +2072,19 @@ function setAllStatsToInfinity() {
             if (!levelInf || !progInf) {
                 applyMutationState({ level: inf, progress: inf });
                 touched += 1; // count "MP" as one stat block
+            }
+        }
+    } catch {}
+
+    // Workshop Level
+    try {
+        const genLevelKey = getGenerationLevelKey(slot);
+        if (genLevelKey) {
+            const raw = localStorage.getItem(genLevelKey);
+            const current = parseFloat(raw || '0');
+            if (current !== Infinity) {
+                localStorage.setItem(genLevelKey, 'Infinity');
+                touched += 1;
             }
         }
     } catch {}
