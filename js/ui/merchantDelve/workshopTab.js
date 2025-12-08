@@ -33,14 +33,28 @@ function loadGenerationLevel() {
   if (!slot) return 0;
   const raw = localStorage.getItem(getGenerationLevelKey(slot));
   // Support standard integers. 2^53 is enough levels to overflow the universe, so Number is fine for level count.
-  return parseInt(raw || '0', 10);
+  const val = parseFloat(raw || '0');
+  return Number.isFinite(val) ? val : 0;
 }
 
 function saveGenerationLevel(level) {
   const slot = getActiveSlot();
-  if (!slot) return;
-  localStorage.setItem(getGenerationLevelKey(slot), String(level));
-  currentGenerationLevel = level;
+  if (!slot) return false;
+  const key = getGenerationLevelKey(slot);
+  const valStr = String(level);
+  try {
+    localStorage.setItem(key, valStr);
+  } catch {}
+  
+  // Verify write succeeded (checks against debug locks)
+  let readBack = null;
+  try {
+    readBack = localStorage.getItem(key);
+  } catch {}
+  
+  // If the read-back value matches what we wrote, the write succeeded.
+  // We check loosely (String comparison) to handle potential type differences, though valStr is string.
+  return readBack === valStr;
 }
 
 function getGenerationUpgradeCost(level) {
@@ -74,10 +88,14 @@ function buyGenerationUpgrade() {
   const cost = getGenerationUpgradeCost(currentGenerationLevel);
   if (bank.coins.value.cmp(cost) < 0) return;
 
-  bank.coins.sub(cost);
-  saveGenerationLevel(currentGenerationLevel + 1);
-  updateWorkshopTab();
-  playPurchaseSfx();
+  const nextLevel = currentGenerationLevel + 1;
+  if (saveGenerationLevel(nextLevel)) {
+    // Only update local state and subtract coins if the save succeeded (wasn't locked)
+    currentGenerationLevel = nextLevel;
+    bank.coins.sub(cost);
+    updateWorkshopTab();
+    playPurchaseSfx();
+  }
 }
 
 function onTick() {
@@ -145,15 +163,23 @@ function onTick() {
 
 function resetWorkshopState() {
     if (bank.gears) bank.gears.set(0);
-    saveGenerationLevel(0);
+    // Force write 0 directly to storage (bypassing normal safe save check for reset logic usually)
+    // But since this is a reset, we should respect locks? 
+    // The requirement says "Workshop Level should be restricted from moving at all... if locked".
+    // So if it's locked at level 50, a reset shouldn't clear it? 
+    // Usually resets override locks. But 'saveGenerationLevel' uses the lock check now.
+    // Let's try to save 0. If locked, it stays. 
+    if (saveGenerationLevel(0)) {
+        currentGenerationLevel = 0;
+    }
     accumulatorBuffer = 0;
     updateWorkshopTab();
 }
 
 function buildWorkshopUI(container) {
   const descText = IS_MOBILE 
-    ? 'Tap the big red button below (scroll if needed) to open the Automation Shop'
-    : 'Click the big red button below to open the Automation Shop';
+    ? 'Tap on the big red button below (scroll if needed) to open the Automation Shop'
+    : 'Click on the big red button below to open the Automation Shop';
 
   container.innerHTML = `
     <div class="merchant-workshop">
@@ -327,4 +353,5 @@ export function initWorkshopTab(panelEl) {
   }
 
   updateWorkshopTab();
+
 }
