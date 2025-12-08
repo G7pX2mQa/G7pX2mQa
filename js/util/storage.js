@@ -279,6 +279,54 @@ function initCurrencyStorageWatchers() {
   });
 }
 
+// -------------------- HEARTBEAT / OFFLINE TRACKING --------------------
+let lastSaveTimeTimer = null;
+
+export function getLastSaveTimeKey(slot = getActiveSlot()) {
+  if (slot == null) return null;
+  return `${PREFIX}lastSaveTime:${slot}`;
+}
+
+export function updateLastSaveTime() {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+  const now = Date.now();
+  try {
+    localStorage.setItem(getLastSaveTimeKey(slot), String(now));
+  } catch {}
+}
+
+export function getLastSaveTime() {
+  const slot = getActiveSlot();
+  if (slot == null) return 0;
+  try {
+    const raw = localStorage.getItem(getLastSaveTimeKey(slot));
+    const val = parseInt(raw, 10);
+    return Number.isFinite(val) ? val : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function initHeartbeat() {
+  if (typeof window === 'undefined') return;
+  
+  // Regular interval
+  if (!lastSaveTimeTimer) {
+    lastSaveTimeTimer = setInterval(updateLastSaveTime, 2000);
+  }
+
+  // Events that signify leaving/hiding
+  window.addEventListener('beforeunload', updateLastSaveTime);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      updateLastSaveTime();
+    }
+  });
+}
+
+initHeartbeat();
+
 // -------------------- KEYS --------------------
 export const KEYS = {
   HAS_OPENED_SAVE_SLOT: `${PREFIX}hasOpenedSaveSlot`,
