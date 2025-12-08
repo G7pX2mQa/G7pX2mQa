@@ -1,4 +1,3 @@
-
 /* Workshop Tab Styles */
 .merchant-workshop {
   display: flex;
@@ -47,8 +46,14 @@
   gap: 10px;
   font-size: 32px;
   font-weight: 900;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
   margin-bottom: 8px;
+}
+
+.workshop-gears-display .coin-amount {
+  -webkit-text-stroke: 1px #000;
+  text-stroke: 1px #000;
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0,0,0,.35);
 }
 
 .workshop-gears-icon {
@@ -83,7 +88,7 @@
 
 /* Doubler Panel */
 .workshop-upgrade-btn {
-  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 100%); /* Brighter active state */
+  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 100%); /* Brighter active state */
   border: 2px solid #6a6a6a;
   border-radius: 12px;
   padding: 16px 24px;
@@ -104,9 +109,11 @@
 }
 
 .workshop-upgrade-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.8;
   cursor: not-allowed;
   filter: grayscale(1);
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%); /* Darker inactive state */
+  border-color: #444;
 }
 
 .workshop-upgrade-title {
@@ -187,6 +194,15 @@
     /* On mobile, HUD buttons are often 50% width (2 cols) */
     width: calc(50vw - 16px);
     max-width: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .btn-automation-shop,
+  .workshop-gears-display .coin-amount {
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
   }
 }
 
