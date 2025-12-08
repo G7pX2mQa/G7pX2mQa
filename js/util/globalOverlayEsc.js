@@ -17,27 +17,34 @@ const PRIORITY_SELECTORS = [
 function handleEsc(e) {
   if (e.key !== 'Escape') return;
 
+  let yields = false;
+  let closedAny = false;
+
   for (const { sel, btn, yield: shouldYield } of PRIORITY_SELECTORS) {
     const candidates = document.querySelectorAll(sel);
     if (candidates.length > 0) {
-      // Found an open overlay of this type.
-      // If we should yield (e.g. for modal dialogs that handle their own Esc), stop here.
       if (shouldYield) {
-        return; // Let the specific handler (if any) deal with it, but don't close deeper overlays.
+        yields = true;
+        // Continue to find others to close
+        continue;
       }
 
-      // Otherwise, close it.
-      // If multiple (e.g. multiple dialogs?), take the last one in DOM order (top-most).
       const topMost = candidates[candidates.length - 1];
-      const closeButton = topMost.querySelector(btn || '.shop-close'); // fallback
+      const closeButton = topMost.querySelector(btn || '.shop-close');
 
       if (closeButton) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
         closeButton.click();
-        return;
+        closedAny = true;
       }
+    }
+  }
+
+  if (closedAny || yields) {
+    e.preventDefault();
+    // Only stop propagation if we didn't yield to another handler
+    if (!yields) {
+       e.stopPropagation();
+       e.stopImmediatePropagation();
     }
   }
 }
