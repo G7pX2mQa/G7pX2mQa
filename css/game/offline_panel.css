@@ -1,0 +1,87 @@
+.offline-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.6);
+    pointer-events: auto;
+}
+.offline-card {
+    background: #003366; /* Blue background */
+    border: 2px solid #0055aa;
+    border-radius: 8px;
+    padding: 2px;
+    width: 90%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+}
+.offline-header {
+    text-align: center;
+    padding: 12px;
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #00ffff; /* Light blue / cyan */
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+.offline-content {
+    background: #000;
+    color: #fff;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 100px;
+}
+.offline-time-row {
+    text-align: center;
+    color: #fff;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+.offline-reward-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.1rem;
+    justify-content: center;
+}
+.offline-reward-icon {
+    width: 24px;
+    height: 24px;
+}
+.reward-gears { color: #a3a3a3; }
+.reward-coins { color: #ffd700; }
+.reward-xp { color: #6688ff; }
+.reward-mp { color: #ffaa00; }
+.reward-gold { color: #ffd700; }
+.reward-magic { color: #c68cff; }
+
+.offline-actions {
+    padding: 12px;
+    display: flex;
+    justify-content: center;
+}
+.offline-close-btn {
+    background: #cc3333;
+    color: #fff;
+    border: 2px solid #aa2222;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 1.2rem;
+    padding: 12px 32px;
+    cursor: pointer;
+}
+.offline-close-btn:active {
+    transform: translateY(2px);
+}
+@media (max-width: 600px) {
+    .offline-header { font-size: 1rem; }
+    .offline-time-row { font-size: 0.95rem; }
+    .offline-reward-row { font-size: 0.95rem; }
+    .offline-close-btn { font-size: 1rem; padding: 10px 24px; }
+}
