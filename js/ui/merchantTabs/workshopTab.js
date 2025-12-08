@@ -85,10 +85,19 @@ function getGenerationUpgradeCost(level) {
 function getGearsPerSecond(level) {
   // Start at 1, double per level: 2^level
   // Use log math to construct BigNum: 10^(level * log10(2))
-  if (level === 0) return BigNum.fromInt(1);
-  if (!Number.isFinite(level)) return BigNum.fromAny('Infinity');
-  const logValue = level * LOG10_2;
-  return bigNumFromLog10(logValue);
+  let baseRate;
+  if (level === 0) {
+    baseRate = BigNum.fromInt(1);
+  } else if (!Number.isFinite(level)) {
+    baseRate = BigNum.fromAny('Infinity');
+  } else {
+    const logValue = level * LOG10_2;
+    baseRate = bigNumFromLog10(logValue);
+  }
+
+  // Apply Gears Multiplier
+  const mult = bank?.gears?.mult?.get?.() ?? BigNum.fromInt(1);
+  return baseRate.mulBigNumInteger(mult);
 }
 
 function buyGenerationUpgrade() {
@@ -328,6 +337,13 @@ export function initWorkshopTab(panelEl) {
           // Watch for coin changes to update button state
           window.addEventListener('currency:change', (e) => {
               if (e.detail.key === CURRENCIES.COINS) {
+                  updateWorkshopTab();
+              }
+          });
+
+          // Watch for multiplier changes (debug panel)
+          window.addEventListener('currency:multiplier', (e) => {
+              if (e.detail.key === CURRENCIES.GEARS) {
                   updateWorkshopTab();
               }
           });
