@@ -11,6 +11,7 @@ import { bigNumFromLog10 } from '../../game/upgrades.js';
 import { IS_MOBILE } from '../../main.js';
 
 const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
+const GEAR_HUD_ICON_SRC = 'img/currencies/gear/gear_plus_base.webp';
 const COIN_ICON_SRC = 'img/currencies/coin/coin.webp';
 
 let workshopEl = null;
@@ -194,9 +195,11 @@ function buildWorkshopUI(container) {
   container.innerHTML = `
     <div class="merchant-workshop">
       <div class="workshop-info-panel">
-        <div class="workshop-gears-display">
-          <img src="${GEAR_ICON_SRC}" class="workshop-gears-icon" alt="Gears">
-          <span data-workshop="gears-amount" class="coin-amount">0</span>
+        <div class="workshop-gear-hud">
+          <img src="${GEAR_HUD_ICON_SRC}" class="workshop-gear-plus" alt="Gears">
+          <div class="workshop-gear-bar">
+            <span data-workshop="gears-amount" class="workshop-gear-amount">0</span>
+          </div>
         </div>
         <div class="workshop-rate-display">
            (+<img src="${GEAR_ICON_SRC}" class="workshop-rate-icon" alt=""><span><span data-workshop="gears-rate">0</span>/sec)</span>
