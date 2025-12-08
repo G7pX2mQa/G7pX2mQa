@@ -366,3 +366,10 @@ export function initWorkshopTab(panelEl) {
   updateWorkshopTab();
 
 }
+
+export function getGearsProductionRate() {
+  // Ensure we read the latest level from storage, as the UI module 
+  // might not be initialized yet during boot-time offline checks.
+  const level = loadGenerationLevel();
+  return getGearsPerSecond(level);
+}
