@@ -4,6 +4,7 @@ import { formatNumber } from '../../util/numFormat.js';
 import { bank, CURRENCIES, getActiveSlot, watchStorageKey } from '../../util/storage.js';
 import { registerTick } from '../../game/gameLoop.js';
 import { openAutomationShop } from '../shopOverlayAutomation.js';
+import { playPurchaseSfx } from '../shopOverlay.js';
 import { hasDoneInfuseReset } from './resetTab.js';
 import { bigNumFromLog10 } from '../../game/upgrades.js';
 import { IS_MOBILE } from '../../main.js';
@@ -76,6 +77,7 @@ function buyGenerationUpgrade() {
   bank.coins.sub(cost);
   saveGenerationLevel(currentGenerationLevel + 1);
   updateWorkshopTab();
+  playPurchaseSfx();
 }
 
 function onTick() {
@@ -150,8 +152,8 @@ function resetWorkshopState() {
 
 function buildWorkshopUI(container) {
   const descText = IS_MOBILE 
-    ? 'Tap the big red button below (scroll if needed) to open the Automation Shop'
-    : 'Click the big red button below to open the Automation Shop';
+    ? 'Tap on the big red button below (scroll if needed) to open the Automation Shop'
+    : 'Click on the big red button below to open the Automation Shop';
 
   container.innerHTML = `
     <div class="merchant-workshop">
