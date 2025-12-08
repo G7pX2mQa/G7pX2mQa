@@ -1,3 +1,4 @@
+// js/ui/merchantTabs/workshopTab.js
 
 import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
@@ -198,27 +199,25 @@ function buildWorkshopUI(container) {
           <span data-workshop="gears-amount" class="coin-amount">0</span>
         </div>
         <div class="workshop-rate-display">
-          (+<img src="${GEAR_ICON_SRC}" class="workshop-rate-icon" alt=""><span><span data-workshop="gears-rate">0</span>/sec)</span>
+           (+<img src="${GEAR_ICON_SRC}" class="workshop-rate-icon" alt=""><span><span data-workshop="gears-rate">0</span>/sec)</span>
         </div>
         <div class="workshop-description">
-		  Spend Coins to increase your Workshop Level<br>
+          Spend Coins to increase your Workshop Level<br>
           Each increase of your Workshop Level will double the rate of Gear production<br>
-		  ${descText}<br>
+          ${descText}<br>
           Spend Gears in the Automation Shop to unlock powerful automation upgrades
         </div>
       </div>
-
       <div class="workshop-doubler-panel">
         <button class="workshop-upgrade-btn" data-workshop="upgrade-gen">
           <span class="workshop-upgrade-title">Increase Workshop Level</span>
           <span class="workshop-upgrade-cost">
-            Cost: <img src="${COIN_ICON_SRC}" class="workshop-upgrade-cost-icon" alt="Coins"> <span data-workshop="upgrade-cost">1T</span>
+             Cost: <img src="${COIN_ICON_SRC}" class="workshop-upgrade-cost-icon" alt="Coins">
+             <span data-workshop="upgrade-cost">1T</span>
           </span>
         </button>
       </div>
-
       <div style="flex: 1;"></div>
-
       <button class="btn-automation-shop">Automation</button>
     </div>
   `;
