@@ -128,8 +128,8 @@
 }
 
 .workshop-rate-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   object-fit: contain;
 }
 
@@ -192,12 +192,14 @@
   color: #ffd700;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
 }
 
 .workshop-upgrade-cost-icon {
   width: 16px;
   height: 16px;
+  position: relative;
+  top: -1px;
 }
 
 /* Automation Shop Button - Styled like HUD .btn-stats */
