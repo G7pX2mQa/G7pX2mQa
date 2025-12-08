@@ -177,9 +177,13 @@ function resetWorkshopState() {
 }
 
 function buildWorkshopUI(container) {
-  const descText = IS_MOBILE 
-    ? 'Tap on the big red button below (scroll if needed) to open the Automation Shop'
-    : 'Click on the big red button below to open the Automation Shop';
+  let descText = 'Click the big red button below to open the Automation Shop';
+  if (IS_MOBILE) {
+    const isLargeScreen = Math.max(window.innerWidth, window.innerHeight) >= 900;
+    descText = isLargeScreen 
+      ? 'Tap the big red button below to open the Automation Shop'
+      : 'Tap the big red button below (scroll if needed) to open the Automation Shop';
+  }
 
   container.innerHTML = `
     <div class="merchant-workshop">
