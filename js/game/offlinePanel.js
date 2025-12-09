@@ -1,4 +1,3 @@
-
 import { getLastSaveTime, getActiveSlot } from '../util/storage.js';
 import { getGearsProductionRate } from '../ui/merchantTabs/workshopTab.js';
 import { hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
@@ -51,6 +50,16 @@ const REWARD_CLASSES = {
     gears: 'text-gears'
 };
 
+const REWARD_NAMES = {
+    coins: 'Coins',
+    xp:    'XP',
+    books: 'Books',
+    gold:  'Gold',
+    mp:    'MP',
+    magic: 'Magic',
+    gears: 'Gears'
+};
+
 function createOfflinePanel(rewards, offlineMs) {
     const overlay = document.createElement('div');
     overlay.className = 'offline-overlay';
@@ -100,7 +109,7 @@ function createOfflinePanel(rewards, offlineMs) {
         if (REWARD_CLASSES[key]) {
             text.classList.add(REWARD_CLASSES[key]);
         }
-        text.innerHTML = formatNumber(val);
+        text.innerHTML = `${formatNumber(val)} ${REWARD_NAMES[key]}`;
         
         row.appendChild(plus);
         row.appendChild(icon);
@@ -212,3 +221,4 @@ export function initOfflineTracker(checkActiveState) {
         }
     });
 }
+window.createOfflinePanel = createOfflinePanel;
