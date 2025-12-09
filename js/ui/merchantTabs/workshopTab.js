@@ -32,6 +32,19 @@ export function getGenerationLevelKey(slot) {
   return `ccc:workshop:genLevel:${slot}`;
 }
 
+// ---- Gear Animation State ----
+// We'll store objects: { x, y, dx, dy, rotation, rotationSpeed, size, element, containerId }
+// x, y are pixels relative to container.
+// We keep a separate list per column to handle bounds checking separately if needed,
+// but since bounds are container-specific, we can just store the container ref in the gear object or group them.
+// Let's group by container.
+const animatedGears = new Map(); // containerElement -> [{...gears}]
+
+// Config
+const GEAR_SPEED = 30; // pixels per second
+const GEAR_ROTATION_SPEED_BASE = 45; // degrees per second
+const GEAR_ROTATION_VARIANCE = 45; 
+
 function loadGenerationLevel() {
   const slot = getActiveSlot();
   if (!slot) return 0;
@@ -200,8 +213,15 @@ function generateGearDecorations(container) {
   // Clear any existing
   container.innerHTML = '';
   
-  // We use a deterministic pseudo-random approach or just plain Math.random?
-  // "randomly spread apart" implies random.
+  // We assume container has some dimensions, or will have.
+  // To avoid reflows, we might wait for first frame update to set initial bounds,
+  // but for initialization we can use approximate or just 0,0 and let them bounce into place.
+  // Better: Use getBoundingClientRect once.
+  const rect = container.getBoundingClientRect();
+  const width = rect.width || 100;
+  const height = rect.height || 600;
+  
+  const gears = [];
   
   for (let i = 0; i < GEAR_DECORATION_COUNT; i++) {
     const img = document.createElement('img');
@@ -210,27 +230,49 @@ function generateGearDecorations(container) {
     img.alt = '';
     img.setAttribute('aria-hidden', 'true');
     
-    // Randomize properties
-    // width: 32px to 80px
+    // Random size
     const size = 32 + Math.random() * 48; 
     
-    // top: 0% to ~95%
-    const top = Math.random() * 95;
+    // Initial Position (pixels)
+    // Ensure it starts within bounds
+    let x = Math.random() * (width - size);
+    let y = Math.random() * (height - size);
+    if (x < 0) x = 0;
+    if (y < 0) y = 0;
     
-    // left: 5% to 80% (keep inside column somewhat)
-    const left = Math.random() * 75;
+    // Velocity: Random direction, fixed speed
+    const angle = Math.random() * Math.PI * 2;
+    const dx = Math.cos(angle) * GEAR_SPEED;
+    const dy = Math.sin(angle) * GEAR_SPEED;
     
-    // rotation: 0 to 360
-    const rot = Math.random() * 360;
+    // Rotation
+    const rotation = Math.random() * 360;
+    const rotationSpeed = (Math.random() < 0.5 ? -1 : 1) * (GEAR_ROTATION_SPEED_BASE + Math.random() * GEAR_ROTATION_VARIANCE);
     
+    // Set initial styles
     img.style.width = `${size}px`;
-    img.style.top = `${top}%`;
-    img.style.left = `${left}%`;
-    img.style.transform = `rotate(${rot}deg)`;
     img.style.opacity = '0.8';
+    // We'll update transform in the loop, but set initial here
+    img.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rotation}deg)`;
+    img.style.willChange = 'transform'; // Hint browser
     
     container.appendChild(img);
+    
+    gears.push({
+      element: img,
+      x, y,
+      dx, dy,
+      rotation,
+      rotationSpeed,
+      size
+    });
   }
+  
+  animatedGears.set(container, {
+    gears,
+    width,
+    height
+  });
 }
 
 function buildWorkshopUI(container) {
@@ -285,6 +327,9 @@ function buildWorkshopUI(container) {
   const leftCol = container.querySelector('.workshop-side-left');
   const rightCol = container.querySelector('.workshop-side-right');
   if (leftCol && rightCol) {
+    // We delay generation slightly to let layout settle (flex items need to stretch)
+    // Or we rely on the resize observer to fix bounds quickly.
+    // Just generate now.
     generateGearDecorations(leftCol);
     generateGearDecorations(rightCol);
   }
@@ -300,8 +345,9 @@ function buildWorkshopUI(container) {
     openAutomationShop();
   });
 
-  // Init button size sync
-  const syncBtnSize = () => {
+  // Init button size sync and Gear Bounds Sync
+  const syncLayout = () => {
+      // 1. Sync Button
       const statsBtn = document.querySelector('.hud-bottom [data-btn="stats"]');
       if (statsBtn && automationBtn) {
           const rect = statsBtn.getBoundingClientRect();
@@ -310,19 +356,42 @@ function buildWorkshopUI(container) {
           automationBtn.style.minWidth = '0'; // Override potential min-width issues
           automationBtn.style.maxWidth = 'none';
       }
+      
+      // 2. Sync Gear Container Bounds
+      if (workshopEl && workshopEl.isConnected) {
+        const left = workshopEl.querySelector('.workshop-side-left');
+        const right = workshopEl.querySelector('.workshop-side-right');
+        
+        const updateBounds = (col) => {
+           if (!col) return;
+           const entry = animatedGears.get(col);
+           if (entry) {
+             const rect = col.getBoundingClientRect();
+             entry.width = rect.width;
+             entry.height = rect.height;
+             // We don't need to re-generate gears, just update bounds for next frame collision check
+           }
+        };
+        updateBounds(left);
+        updateBounds(right);
+      }
   };
   
   if (typeof ResizeObserver !== 'undefined') {
-      const ro = new ResizeObserver(syncBtnSize);
+      const ro = new ResizeObserver(syncLayout);
       const hud = document.querySelector('.hud-bottom');
       if (hud) ro.observe(hud);
-      // Also observe window resize as fallback/supplement
-      window.addEventListener('resize', syncBtnSize);
-      // Initial sync
-      requestAnimationFrame(syncBtnSize);
+      
+      // Also observe the side columns themselves to catch container resize
+      if (leftCol) ro.observe(leftCol);
+      if (rightCol) ro.observe(rightCol);
+      
+      // And window
+      window.addEventListener('resize', syncLayout);
+      requestAnimationFrame(syncLayout);
   } else {
-      window.addEventListener('resize', syncBtnSize);
-      requestAnimationFrame(syncBtnSize);
+      window.addEventListener('resize', syncLayout);
+      requestAnimationFrame(syncLayout);
   }
 
   workshopEl = container;
@@ -350,14 +419,74 @@ export function updateWorkshopTab() {
   }
 }
 
+let lastRenderTime = 0;
+
 function startRenderLoop() {
   if (renderFrameId) return;
-  const loop = () => {
+  
+  const loop = (timestamp) => {
     if (workshopEl && workshopEl.isConnected) {
-        // Only update the amount constantly, full refresh on state change
+        // --- 1. Update UI Text ---
         const gearsAmountEl = workshopEl.querySelector('[data-workshop="gears-amount"]');
         if (gearsAmountEl) {
              gearsAmountEl.innerHTML = bank.gears.fmt(bank.gears.value);
+        }
+        
+        // --- 2. Update Gear Animation ---
+        // Calculate dt (seconds)
+        if (!lastRenderTime) lastRenderTime = timestamp;
+        let dt = (timestamp - lastRenderTime) / 1000;
+        lastRenderTime = timestamp;
+        
+        // Cap dt to prevent huge jumps if tab was backgrounded
+        if (dt > 0.1) dt = 0.1; 
+        
+        // Iterate over all active containers
+        for (const [container, data] of animatedGears) {
+            if (!container.isConnected) {
+                // Cleanup if detached? Or just skip.
+                // If the workshop is closed/destroyed, we should probably clear this Map.
+                // But workshopTab re-uses the same element or rebuilds? 
+                // buildWorkshopUI clears innerHTML so old elements are gone.
+                // But the container reference is new.
+                // We should clean up old keys in map if not connected.
+                continue;
+            }
+            
+            const { gears, width, height } = data;
+            
+            // Safety check
+            if (!width || !height) continue;
+            
+            for (const g of gears) {
+                // Move
+                g.x += g.dx * dt;
+                g.y += g.dy * dt;
+                
+                // Bounce X
+                if (g.x < 0) {
+                    g.x = 0;
+                    g.dx = -g.dx;
+                } else if (g.x + g.size > width) {
+                    g.x = width - g.size;
+                    g.dx = -g.dx;
+                }
+                
+                // Bounce Y
+                if (g.y < 0) {
+                    g.y = 0;
+                    g.dy = -g.dy;
+                } else if (g.y + g.size > height) {
+                    g.y = height - g.size;
+                    g.dy = -g.dy;
+                }
+                
+                // Rotate
+                g.rotation += g.rotationSpeed * dt;
+                
+                // Render
+                g.element.style.transform = `translate3d(${g.x}px, ${g.y}px, 0) rotate(${g.rotation}deg)`;
+            }
         }
     }
     renderFrameId = requestAnimationFrame(loop);
@@ -432,6 +561,10 @@ export function initWorkshopTab(panelEl) {
 
   // Re-read level for UI just in case
   currentGenerationLevel = loadGenerationLevel();
+  
+  // Clear any stale animation data from previous inits
+  animatedGears.clear();
+  
   buildWorkshopUI(panelEl);
   
   startRenderLoop();
