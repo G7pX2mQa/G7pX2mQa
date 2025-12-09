@@ -2765,17 +2765,6 @@ for (const upg of REGISTRY) {
     upg.lvlCapFmtText = formatBigNumAsPlain(upg.lvlCapBn);
   }
 
-  const isSingleLevelCap = Number.isFinite(upg.lvlCap) && Math.max(0, Math.floor(upg.lvlCap)) === 1;
-  const isBookValueUpgrade = tieKey === BOOK_VALUE_TIE_KEY;
-  const isFasterCoins3 = tieKey === normalizeUpgradeTie(UPGRADE_TIES.FASTER_COINS_III);
-  if (isSingleLevelCap && !isBookValueUpgrade && !isFasterCoins3) {
-    upg.unlockUpgrade = true;
-    upg.baseCost = BigNum.fromInt(0);
-    upg.baseCostBn = upg.baseCost;
-    upg.costAtLevel = () => BigNum.fromInt(0);
-    upg.nextCostAfter = () => BigNum.fromInt(0);
-  }
-
   upg.bulkMeta = computeBulkMeta(upg);
   ensureUpgradeScaling(upg);
 }
