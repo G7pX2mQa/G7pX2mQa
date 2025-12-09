@@ -2,7 +2,7 @@
 .merchant-workshop {
   display: flex;
   flex-direction: row; /* Changed to row to support side columns */
-  height: 100%;
+  min-height: 100%;
   color: #fff;
   font-family: var(--font-ui);
   /* padding: 16px;  Removed padding here, moved to center-col */
