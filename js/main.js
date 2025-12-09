@@ -471,6 +471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./util/debugPanel.js'),
     import('./game/gameLoop.js'),
     import('./game/offlinePanel.js'),
+    import('./ui/merchantTabs/workshopTab.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -577,6 +578,7 @@ images: [
     debugPanelModule,
     gameLoopModule,
     offlinePanelModule,
+    workshopTabModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -597,6 +599,7 @@ images: [
   ({ setDebugPanelAccess, applyStatMultiplierOverride } = debugPanelModule);
   ({ startGameLoop } = gameLoopModule);
   const { initOfflineTracker, processOfflineProgress } = offlinePanelModule;
+  const { initWorkshopSystem } = workshopTabModule;
 
   window.bank = bank;
 
@@ -639,6 +642,8 @@ images: [
   
   startGameLoop();
   initOfflineTracker(() => currentArea === AREAS.STARTER_COVE);
+
+  try { initWorkshopSystem(); } catch(e) { console.error('Workshop init failed', e); }
   
   applyPendingSlotWipe();
   ensureStorageDefaults();
