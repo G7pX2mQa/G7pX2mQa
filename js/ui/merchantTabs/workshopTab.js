@@ -315,7 +315,6 @@ function buildWorkshopUI(container) {
             </span>
           </button>
         </div>
-        <div style="flex: 1;"></div>
         <button class="btn-automation-shop">Automation</button>
       </div>
       
