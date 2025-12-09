@@ -14,13 +14,14 @@ const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
 const GEAR_HUD_ICON_SRC = 'img/currencies/gear/gear_plus_base.webp';
 const COIN_ICON_SRC = 'img/currencies/coin/coin.webp';
 
-const GEAR_DECORATION_COUNT = 300;
+const MAX_GEAR_DECORATIONS = 300;
 
 let workshopEl = null;
 let initialized = false;
 // We implement a custom accumulator for BigNum rates
 let accumulatorBuffer = 0; // stores "fractional" parts < 1 for smooth low-rate accumulation
 let currentGenerationLevel = 0;
+let lastSyncedLevel = -1;
 let renderFrameId = null;
 
 // Upgrade Constants
@@ -207,56 +208,69 @@ function resetWorkshopState() {
     updateWorkshopTab();
 }
 
-function generateGearDecorations(container) {
+function syncGearDecorations(container) {
   if (!container) return;
-  
-  // Clear any existing
-  container.innerHTML = '';
-  
-  // We assume container has some dimensions, or will have.
-  // To avoid reflows, we might wait for first frame update to set initial bounds,
-  // but for initialization we can use approximate or just 0,0 and let them bounce into place.
-  // Better: Use getBoundingClientRect once.
+
+  // Ensure we have an entry
+  let entry = animatedGears.get(container);
+  if (!entry) {
+    const rect = container.getBoundingClientRect();
+    entry = {
+      gears: [],
+      width: rect.width,
+      height: rect.height,
+      needsDistribution: !rect.width || !rect.height
+    };
+    animatedGears.set(container, entry);
+  }
+
+  // Update bounds if valid
   const rect = container.getBoundingClientRect();
-  const width = rect.width;
-  const height = rect.height;
-  
-  const gears = [];
-  
-  for (let i = 0; i < GEAR_DECORATION_COUNT; i++) {
+  if (rect.width > 0 && rect.height > 0) {
+    entry.width = rect.width;
+    entry.height = rect.height;
+  }
+
+  const targetCount = Math.min(Math.floor(currentGenerationLevel), MAX_GEAR_DECORATIONS);
+  const gears = entry.gears;
+
+  // Add gears
+  while (gears.length < targetCount) {
     const img = document.createElement('img');
     img.src = GEAR_ICON_SRC;
     img.classList.add('workshop-bg-gear');
     img.alt = '';
     img.setAttribute('aria-hidden', 'true');
-    
+
     // Random size
-    const size = 32 + Math.random() * 48; 
-    
-    // Initial Position (pixels)
-    // Ensure it starts within bounds
-    let x = Math.random() * (width - size);
-    let y = Math.random() * (height - size);
-    if (x < 0) x = 0;
-    if (y < 0) y = 0;
-    
-    // Velocity: Random direction, fixed speed
+    const size = 32 + Math.random() * 48;
+
+    // Position
+    let x = 0;
+    let y = 0;
+
+    if (entry.width > 0 && entry.height > 0) {
+      x = Math.random() * (entry.width - size);
+      y = Math.random() * (entry.height - size);
+      if (x < 0) x = 0;
+      if (y < 0) y = 0;
+    } else {
+      entry.needsDistribution = true;
+    }
+
+    // Velocity & Rotation
     const angle = Math.random() * Math.PI * 2;
     const dx = Math.cos(angle) * GEAR_SPEED;
     const dy = Math.sin(angle) * GEAR_SPEED;
-    
-    // Rotation
     const rotation = Math.random() * 360;
     const rotationSpeed = (Math.random() < 0.5 ? -1 : 1) * (GEAR_ROTATION_SPEED_BASE + Math.random() * GEAR_ROTATION_VARIANCE);
-    
-    // Set initial styles
+
     img.style.width = `${size}px`;
-    // We'll update transform in the loop, but set initial here
     img.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rotation}deg)`;
-    img.style.willChange = 'transform'; // Hint browser
-    
+    img.style.willChange = 'transform';
+
     container.appendChild(img);
-    
+
     gears.push({
       element: img,
       x, y,
@@ -266,13 +280,14 @@ function generateGearDecorations(container) {
       size
     });
   }
-  
-  animatedGears.set(container, {
-    gears,
-    width,
-    height,
-    needsDistribution: !width || !height
-  });
+
+  // Remove gears
+  while (gears.length > targetCount) {
+    const g = gears.pop();
+    if (g.element.parentNode) {
+      g.element.parentNode.removeChild(g.element);
+    }
+  }
 }
 
 function buildWorkshopUI(container) {
@@ -303,7 +318,8 @@ function buildWorkshopUI(container) {
             Spend Coins to increase your Workshop Level<br>
             Each increase of your Workshop Level will double the rate of Gear production<br>
             ${descText}<br>
-            Spend Gears in the Automation Shop to unlock powerful automation upgrades
+            Spend Gears in the Automation Shop to unlock powerful automation upgrades<br>
+			Automation upgrades will never be reset by any reset layer
           </div>
         </div>
         <div class="workshop-doubler-panel">
@@ -322,16 +338,9 @@ function buildWorkshopUI(container) {
     </div>
   `;
 
-  // Generate decorations
+  // Decorations will be synced in updateWorkshopTab
   const leftCol = container.querySelector('.workshop-side-left');
   const rightCol = container.querySelector('.workshop-side-right');
-  if (leftCol && rightCol) {
-    // We delay generation slightly to let layout settle (flex items need to stretch)
-    // Or we rely on the resize observer to fix bounds quickly.
-    // Just generate now.
-    generateGearDecorations(leftCol);
-    generateGearDecorations(rightCol);
-  }
 
   // Bind Events
   const upgradeBtn = container.querySelector('[data-workshop="upgrade-gen"]');
@@ -428,6 +437,16 @@ export function updateWorkshopTab() {
     const canAfford = bank.coins.value.cmp(cost) >= 0;
     upgradeBtn.disabled = !canAfford;
   }
+
+  // Update decorations only if level changed (integer part)
+  const currentIntLevel = Math.floor(currentGenerationLevel);
+  if (currentIntLevel !== lastSyncedLevel) {
+    lastSyncedLevel = currentIntLevel;
+    const leftCol = workshopEl.querySelector('.workshop-side-left');
+    const rightCol = workshopEl.querySelector('.workshop-side-right');
+    if (leftCol) syncGearDecorations(leftCol);
+    if (rightCol) syncGearDecorations(rightCol);
+  }
 }
 
 let lastRenderTime = 0;
@@ -437,6 +456,12 @@ function startRenderLoop() {
   
   const loop = (timestamp) => {
     if (workshopEl && workshopEl.isConnected) {
+        // Skip updates if hidden
+        if (workshopEl.offsetParent === null) {
+          renderFrameId = requestAnimationFrame(loop);
+          return;
+        }
+
         // --- 1. Update UI Text ---
         const gearsAmountEl = workshopEl.querySelector('[data-workshop="gears-amount"]');
         if (gearsAmountEl) {
@@ -575,6 +600,7 @@ export function initWorkshopTab(panelEl) {
   
   // Clear any stale animation data from previous inits
   animatedGears.clear();
+  lastSyncedLevel = -1;
   
   buildWorkshopUI(panelEl);
   
