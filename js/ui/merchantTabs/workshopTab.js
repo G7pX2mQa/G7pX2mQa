@@ -14,7 +14,7 @@ const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
 const GEAR_HUD_ICON_SRC = 'img/currencies/gear/gear_plus_base.webp';
 const COIN_ICON_SRC = 'img/currencies/coin/coin.webp';
 
-const GEAR_DECORATION_COUNT = 67; // Configurable number of gears per side column
+const GEAR_DECORATION_COUNT = 300;
 
 let workshopEl = null;
 let initialized = false;
@@ -218,8 +218,8 @@ function generateGearDecorations(container) {
   // but for initialization we can use approximate or just 0,0 and let them bounce into place.
   // Better: Use getBoundingClientRect once.
   const rect = container.getBoundingClientRect();
-  const width = rect.width || 100;
-  const height = rect.height || 600;
+  const width = rect.width;
+  const height = rect.height;
   
   const gears = [];
   
@@ -270,7 +270,8 @@ function generateGearDecorations(container) {
   animatedGears.set(container, {
     gears,
     width,
-    height
+    height,
+    needsDistribution: !width || !height
   });
 }
 
@@ -367,7 +368,19 @@ function buildWorkshopUI(container) {
              const rect = col.getBoundingClientRect();
              entry.width = rect.width;
              entry.height = rect.height;
-             // We don't need to re-generate gears, just update bounds for next frame collision check
+             
+             // Check if we need to distribute gears (e.g. initial spawn was width 0)
+             if (entry.needsDistribution && entry.width > 0 && entry.height > 0) {
+                 entry.needsDistribution = false;
+                 // Redistribute all gears
+                 for (const g of entry.gears) {
+                     g.x = Math.random() * (entry.width - g.size);
+                     if (g.x < 0) g.x = 0;
+                     g.y = Math.random() * (entry.height - g.size);
+                     if (g.y < 0) g.y = 0;
+                     g.element.style.transform = `translate3d(${g.x}px, ${g.y}px, 0) rotate(${g.rotation}deg)`;
+                 }
+             }
            }
         };
         updateBounds(left);
