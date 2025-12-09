@@ -50,10 +50,10 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 600px;
+  max-width: 632px;
   padding: 16px;
   box-sizing: border-box;
-  flex: 0 0 auto; /* Do not grow or shrink beyond 600px/100% logic */
+  flex: 0 0 auto; /* Do not grow or shrink beyond 632px/100% logic */
   z-index: 1; /* Ensure it stays above side cols */
   margin: 0 auto; /* Ensure centering */
 }
@@ -64,7 +64,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: max(0px, calc(50% - 300px)); /* Fill space outside the 600px center */
+  width: max(0px, calc(50% - 316px)); /* Fill space outside the 632px center */
   overflow: hidden;
   display: none; /* Hidden by default on small screens */
   pointer-events: none; /* purely decorative */
@@ -333,7 +333,7 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 600px) {
+@media (max-width: 632px) {
   /* .workshop-info-panel, .workshop-doubler-panel width is now controlled by .workshop-center-col */
   /* But .workshop-center-col is 100% width already */
   
