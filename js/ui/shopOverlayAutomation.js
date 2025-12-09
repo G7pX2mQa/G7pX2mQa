@@ -42,7 +42,7 @@ function renderAutomationGrid() {
 
     const badge = document.createElement('span');
     badge.className = 'level-badge';
-    badge.textContent = model.isMaxed ? 'MAXED' : `Lvl ${model.level}`;
+    badge.textContent = model.isMaxed ? 'MAXED' : `${model.level}`;
     if (model.canAfford) badge.classList.add('can-buy');
     if (model.isMaxed) badge.classList.add('is-maxed');
 
