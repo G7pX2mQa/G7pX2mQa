@@ -1,10 +1,7 @@
 // js/util/globalOverlayEsc.js
 
-/**
- * Defines which selectors to check for open overlays, in priority order (top to bottom).
- * The first one found will be closed.
- */
 const PRIORITY_SELECTORS = [
+  { sel: '.offline-overlay', btn: '.offline-close-btn' },
   { sel: '.hm-milestones-overlay', btn: '.hm-milestones-close' },
   { sel: '.merchant-firstchat.is-visible', btn: null, yield: true }, // Don't close parent if chat is open; chat handles itself
   { sel: '.upg-overlay.is-open', btn: '.shop-close' }, // Upgrade details modal
