@@ -14,6 +14,8 @@ const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
 const GEAR_HUD_ICON_SRC = 'img/currencies/gear/gear_plus_base.webp';
 const COIN_ICON_SRC = 'img/currencies/coin/coin.webp';
 
+const GEAR_DECORATION_COUNT = 67; // Configurable number of gears per side column
+
 let workshopEl = null;
 let initialized = false;
 // We implement a custom accumulator for BigNum rates
@@ -192,6 +194,45 @@ function resetWorkshopState() {
     updateWorkshopTab();
 }
 
+function generateGearDecorations(container) {
+  if (!container) return;
+  
+  // Clear any existing
+  container.innerHTML = '';
+  
+  // We use a deterministic pseudo-random approach or just plain Math.random?
+  // "randomly spread apart" implies random.
+  
+  for (let i = 0; i < GEAR_DECORATION_COUNT; i++) {
+    const img = document.createElement('img');
+    img.src = GEAR_ICON_SRC;
+    img.classList.add('workshop-bg-gear');
+    img.alt = '';
+    img.setAttribute('aria-hidden', 'true');
+    
+    // Randomize properties
+    // width: 32px to 80px
+    const size = 32 + Math.random() * 48; 
+    
+    // top: 0% to ~95%
+    const top = Math.random() * 95;
+    
+    // left: 5% to 80% (keep inside column somewhat)
+    const left = Math.random() * 75;
+    
+    // rotation: 0 to 360
+    const rot = Math.random() * 360;
+    
+    img.style.width = `${size}px`;
+    img.style.top = `${top}%`;
+    img.style.left = `${left}%`;
+    img.style.transform = `rotate(${rot}deg)`;
+    img.style.opacity = '0.8';
+    
+    container.appendChild(img);
+  }
+}
+
 function buildWorkshopUI(container) {
   let descText = 'Click the big red button below to open the Automation Shop';
   if (IS_MOBILE) {
@@ -203,36 +244,50 @@ function buildWorkshopUI(container) {
 
   container.innerHTML = `
     <div class="merchant-workshop">
-      <div class="workshop-info-panel">
-        <div class="workshop-gear-hud">
-          <img src="${GEAR_HUD_ICON_SRC}" class="workshop-gear-plus" alt="Gears">
-          <div class="workshop-gear-bar">
-            <span data-workshop="gears-amount" class="workshop-gear-amount">0</span>
+      <div class="workshop-side-col workshop-side-left"></div>
+      
+      <div class="workshop-center-col">
+        <div class="workshop-info-panel">
+          <div class="workshop-gear-hud">
+            <img src="${GEAR_HUD_ICON_SRC}" class="workshop-gear-plus" alt="Gears">
+            <div class="workshop-gear-bar">
+              <span data-workshop="gears-amount" class="workshop-gear-amount">0</span>
+            </div>
+          </div>
+          <div class="workshop-rate-display">
+             (+<img src="${GEAR_ICON_SRC}" class="workshop-rate-icon" alt=""><span><span data-workshop="gears-rate">0</span>/sec)</span>
+          </div>
+          <div class="workshop-description">
+            Spend Coins to increase your Workshop Level<br>
+            Each increase of your Workshop Level will double the rate of Gear production<br>
+            ${descText}<br>
+            Spend Gears in the Automation Shop to unlock powerful automation upgrades
           </div>
         </div>
-        <div class="workshop-rate-display">
-           (+<img src="${GEAR_ICON_SRC}" class="workshop-rate-icon" alt=""><span><span data-workshop="gears-rate">0</span>/sec)</span>
+        <div class="workshop-doubler-panel">
+          <button class="workshop-upgrade-btn" data-workshop="upgrade-gen">
+            <span class="workshop-upgrade-title">Increase Workshop Level</span>
+            <span class="workshop-upgrade-cost">
+               Cost: <img src="${COIN_ICON_SRC}" class="workshop-upgrade-cost-icon" alt="Coins">
+               <span data-workshop="upgrade-cost">1T</span>
+            </span>
+          </button>
         </div>
-        <div class="workshop-description">
-          Spend Coins to increase your Workshop Level<br>
-          Each increase of your Workshop Level will double the rate of Gear production<br>
-          ${descText}<br>
-          Spend Gears in the Automation Shop to unlock powerful automation upgrades
-        </div>
+        <div style="flex: 1;"></div>
+        <button class="btn-automation-shop">Automation</button>
       </div>
-      <div class="workshop-doubler-panel">
-        <button class="workshop-upgrade-btn" data-workshop="upgrade-gen">
-          <span class="workshop-upgrade-title">Increase Workshop Level</span>
-          <span class="workshop-upgrade-cost">
-             Cost: <img src="${COIN_ICON_SRC}" class="workshop-upgrade-cost-icon" alt="Coins">
-             <span data-workshop="upgrade-cost">1T</span>
-          </span>
-        </button>
-      </div>
-      <div style="flex: 1;"></div>
-      <button class="btn-automation-shop">Automation</button>
+      
+      <div class="workshop-side-col workshop-side-right"></div>
     </div>
   `;
+
+  // Generate decorations
+  const leftCol = container.querySelector('.workshop-side-left');
+  const rightCol = container.querySelector('.workshop-side-right');
+  if (leftCol && rightCol) {
+    generateGearDecorations(leftCol);
+    generateGearDecorations(rightCol);
+  }
 
   // Bind Events
   const upgradeBtn = container.querySelector('[data-workshop="upgrade-gen"]');
