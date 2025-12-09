@@ -7,6 +7,10 @@ import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { ensureCustomScrollbar } from '../ui/shopOverlay.js';
 import { IS_MOBILE } from '../main.js';
+import { getAutomationCoinRate } from './automationUpgrades.js';
+import { getPassiveCoinReward } from './coinPickup.js';
+import { addXp } from './xpSystem.js';
+import { addMutationPower } from './mutationSystem.js';
 
 let initialized = false;
 
@@ -178,6 +182,33 @@ export function processOfflineProgress() {
         
         // Award immediately
         if (bank.gears) bank.gears.add(rewards.gears);
+    }
+
+    const autoRate = getAutomationCoinRate ? getAutomationCoinRate() : 0;
+    if (autoRate > 0) {
+        const totalPassives = Math.floor(autoRate * seconds);
+        if (totalPassives > 0) {
+            const singleReward = getPassiveCoinReward();
+            const coinsEarned = singleReward.coins.mulBigNumInteger(BigNum.fromInt(totalPassives));
+            const xpEarned = singleReward.xp.mulBigNumInteger(BigNum.fromInt(totalPassives));
+            const mpEarned = singleReward.mp.mulBigNumInteger(BigNum.fromInt(totalPassives));
+            
+            if (!coinsEarned.isZero()) {
+                rewards.coins = coinsEarned;
+                hasRewards = true;
+                if (bank.coins) bank.coins.add(coinsEarned);
+            }
+            if (!xpEarned.isZero()) {
+                rewards.xp = xpEarned;
+                hasRewards = true;
+                try { addXp(xpEarned); } catch {}
+            }
+            if (!mpEarned.isZero()) {
+                rewards.mp = mpEarned;
+                hasRewards = true;
+                try { addMutationPower(mpEarned); } catch {}
+            }
+        }
     }
     
     if (hasRewards) {
