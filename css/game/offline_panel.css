@@ -73,7 +73,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 8px;
     font-size: 24px;
     padding: 12px;
     border-radius: 8px;
@@ -83,6 +83,8 @@
 .offline-plus {
     color: #94a3b8;
     margin-right: -4px;
+	top: -1px;
+	position: relative;
 }
 
 .offline-icon {
@@ -92,13 +94,13 @@
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
     position: relative;
     top: 1px;
+	margin-left: 1px;
 }
 
 .offline-text {
     text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 
-/* Currency Text Colors */
 .text-coins { color: #ffd700; }
 .text-xp    { color: #7bc0ff; }
 .text-books { color: #d4a373; }
@@ -117,8 +119,8 @@
     min-width: 200px;
     height: 50px;
     border-radius: 0;
-    border: 1px solid hsla(0, 80%, 40%, 0.45);
-    background: hsla(0, 80%, 40%, 0.15);
+    border: 2px solid hsla(0, 80%, 40%, 1);
+    background: hsla(0, 80%, 40%, 0.6);
     color: #fff;
     font-size: 20px;
     font-weight: 600;
@@ -129,7 +131,7 @@
 }
 
 .offline-close-btn:hover {
-    background: hsla(0, 80%, 40%, 0.22);
+    background: hsla(0, 80%, 40%, 0.75);
 }
 
 .offline-close-btn:active {
