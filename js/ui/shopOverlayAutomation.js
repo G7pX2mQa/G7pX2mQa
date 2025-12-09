@@ -1,7 +1,9 @@
 
 import { IS_MOBILE } from '../main.js';
 import { shouldSkipGhostTap, suppressNextGhostTap } from '../util/ghostTapGuard.js';
-import { blockInteraction, ensureCustomScrollbar, setupDragToClose } from './shopOverlay.js';
+import { blockInteraction, ensureCustomScrollbar, setupDragToClose, playPurchaseSfx } from './shopOverlay.js';
+import { getAllAutomationUiModels, buyAutomationUpgrade, onAutomationChanged } from '../game/automationUpgrades.js';
+import { CURRENCIES } from '../util/storage.js';
 
 let automationOverlayEl = null;
 let automationSheetEl = null;
@@ -10,11 +12,99 @@ let eventsBound = false;
 let automationCloseTimer = null;
 let __automationPostOpenPointer = false;
 
+function renderAutomationGrid() {
+  const grid = automationOverlayEl?.querySelector('#automation-shop-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const models = getAllAutomationUiModels();
+
+  for (const model of models) {
+    const btn = document.createElement('button');
+    btn.className = 'shop-upgrade';
+    btn.type = 'button';
+    btn.dataset.upgId = String(model.id);
+
+    const tile = document.createElement('div');
+    tile.className = 'shop-tile';
+
+    const baseImg = document.createElement('img');
+    baseImg.className = 'base';
+    // Use 'gear' base if available, or fallback. existing bases: coin, book, gold, magic.
+    // 'gear' base exists? 'img/currencies/gear/gear_base.webp' exists in manifest.
+    baseImg.src = 'img/currencies/gear/gear_base.webp';
+    baseImg.alt = '';
+
+    const iconImg = document.createElement('img');
+    iconImg.className = 'icon';
+    iconImg.src = model.icon;
+    iconImg.alt = '';
+
+    const badge = document.createElement('span');
+    badge.className = 'level-badge';
+    badge.textContent = model.isMaxed ? 'MAXED' : `Lvl ${model.level}`;
+    if (model.canAfford) badge.classList.add('can-buy');
+    if (model.isMaxed) badge.classList.add('is-maxed');
+
+    tile.appendChild(baseImg);
+    tile.appendChild(iconImg);
+    tile.appendChild(badge);
+    btn.appendChild(tile);
+
+    // Title / Cost / Desc tooltip behavior is usually handled by `openUpgradeOverlay` in shopOverlay.js
+    // But here we might want a simple "Click to buy" or reuse the fullscreen overlay?
+    // The requirement is "match the existing style".
+    // Existing shop clicks open a full screen overlay.
+    // I should probably implement `openAutomationUpgradeOverlay` or reuse `openUpgradeOverlay`.
+    // But `openUpgradeOverlay` in `shopOverlay.js` is tied to `upgrades.js` models/logic.
+    // It's easier to implement a direct buy here or a simple confirmation?
+    // Given the complexity of the full overlay, for now I'll make clicking BUY directly?
+    // Or I should replicate the overlay?
+    // "Populate... matching the visual style of the existing Shop upgrades".
+    // The requested style is the GRID card.
+    // I'll make the card buy on click for simplicity unless requested otherwise.
+    // Wait, `shopOverlay.js` says `btn.title = ... Left-click: Details ...`.
+    // If I make it buy on click, it's faster.
+    // I'll stick to buy on click for efficiency for now, or just add a tooltip.
+    
+    // Add simple tooltip
+    let tooltip = `${model.title}\n${model.desc}\n\n`;
+    if (model.isMaxed) {
+        tooltip += 'Max Level Reached';
+    } else {
+        tooltip += `Cost: ${model.costFmt} Gears\n`;
+        tooltip += `${model.effect}`;
+    }
+    btn.title = tooltip;
+
+    btn.addEventListener('click', (e) => {
+        if (shouldSkipGhostTap(btn)) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+        if (model.isMaxed) return;
+        
+        if (buyAutomationUpgrade(model.id)) {
+            playPurchaseSfx();
+            updateAutomationShop(); // Rerender
+        }
+    });
+
+    grid.appendChild(btn);
+  }
+}
+
+function updateAutomationShop() {
+    if (!automationOpen) return;
+    renderAutomationGrid();
+}
+
 function ensureAutomationOverlay() {
   if (automationOverlayEl) return;
 
   automationOverlayEl = document.createElement('div');
-  automationOverlayEl.className = 'shop-overlay automation-shop-overlay'; // Reuse shop styles + specific class
+  automationOverlayEl.className = 'shop-overlay automation-shop-overlay'; 
   automationOverlayEl.id = 'automation-shop-overlay';
 
   automationSheetEl = document.createElement('div');
@@ -42,10 +132,9 @@ function ensureAutomationOverlay() {
   grid.id = 'automation-shop-grid';
   grid.setAttribute('role', 'grid');
   grid.setAttribute('aria-label', 'Automation Upgrades');
-  // Empty for now as requested
 
   const scroller = document.createElement('div');
-  scroller.className = 'shop-scroller automation-shop-scroller'; // Distinct class for ghost tap exclusion
+  scroller.className = 'shop-scroller automation-shop-scroller'; 
   scroller.appendChild(grid);
 
   content.append(header, scroller);
@@ -92,7 +181,6 @@ function ensureAutomationOverlay() {
 
     closeBtn.addEventListener('click', onCloseClick, { passive: true });
     
-    // Drag to dismiss logic
     setupDragToClose(grabber, automationSheetEl, () => automationOpen, () => {
         automationOpen = false;
         automationCloseTimer = setTimeout(() => {
@@ -100,6 +188,16 @@ function ensureAutomationOverlay() {
           closeAutomationShop(true);
         }, 150);
     });
+    
+    // Listeners
+    onAutomationChanged(updateAutomationShop);
+    if (typeof window !== 'undefined') {
+        window.addEventListener('currency:change', (e) => {
+            if (e.detail.key === CURRENCIES.GEARS) {
+                updateAutomationShop();
+            }
+        });
+    }
   }
 }
 
@@ -117,6 +215,8 @@ export function openAutomationShop() {
   automationSheetEl.style.transition = 'none';
   automationSheetEl.style.transform = '';
   automationOverlayEl.style.pointerEvents = 'auto';
+  
+  updateAutomationShop();
 
   void automationSheetEl.offsetHeight;
   requestAnimationFrame(() => {
