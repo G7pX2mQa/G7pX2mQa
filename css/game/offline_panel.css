@@ -14,28 +14,27 @@
 
 .offline-panel {
     position: relative;
-    background: rgba(15, 15, 15, 0.95);
+    background: #0f172a; /* Darkish blue */
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     display: flex;
     flex-direction: column;
-    /* Increase width to "take up the entire width" (with some padding) */
+    /* Fixed percentage sizes as requested */
     width: 90vw;
-    /* max-width removed or set very high */
-    max-width: 1200px; 
-    height: auto;
-    max-height: 85vh;
+    height: 80vh;
+    max-width: none; 
+    max-height: none;
     padding: 24px;
     color: #fff;
-    font-family: inherit; /* Game font assumed globally */
+    font-family: inherit;
     font-weight: 700;
 }
 
 .offline-header {
-    font-size: 32px; /* Slightly larger */
+    font-size: 32px;
     text-align: center;
-    color: #a855f7;
+    color: #60a5fa; /* Light blue */
     margin-bottom: 8px;
     text-transform: uppercase;
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
@@ -44,7 +43,7 @@
 .offline-subheader {
     font-size: 18px;
     text-align: center;
-    color: #ddd;
+    color: #94a3b8; /* Slate-400 */
     margin-bottom: 24px;
     padding-bottom: 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -57,7 +56,6 @@
     min-height: 120px;
     margin-bottom: 24px;
     padding-right: 8px;
-    /* Center content horizontally */
     display: flex;
     flex-direction: column;
     align-items: center; 
@@ -68,7 +66,7 @@
     flex-direction: column;
     gap: 12px;
     width: 100%;
-    max-width: 600px; /* Keep the list itself readable */
+    max-width: 800px; /* Keep the content centered and readable width */
 }
 
 .offline-row {
@@ -76,8 +74,8 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    font-size: 24px; /* Larger font */
-    padding: 12px;
+    font-size: 28px; /* Larger font */
+    padding: 16px;
     background: rgba(255, 255, 255, 0.03);
     border-radius: 8px;
 }
@@ -104,9 +102,8 @@
 
 /* Close button styling to match Shop Close (.shop-close) */
 .offline-close-btn {
-    /* Mimicking .shop-close from css/ui/shop.css */
-    min-width: 180px; /* Larger width */
-    height: 52px; /* Slightly taller than 44px */
+    min-width: 180px;
+    height: 52px;
     border-radius: 0;
     border: 1px solid hsla(0, 80%, 40%, 0.45);
     background: hsla(0, 80%, 40%, 0.15);
@@ -128,7 +125,6 @@
     background: hsla(0, 80%, 40%, 0.28);
 }
 
-/* Scrollbar styles (if not handled by shopOverlay ensureCustomScrollbar) */
 .offline-content-wrapper::-webkit-scrollbar {
     width: 8px;
 }
