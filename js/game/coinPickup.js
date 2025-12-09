@@ -200,6 +200,7 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
     const toCollect = [];
     
+    // READ Phase 1: Collision detection (getBoundingClientRect forces layout)
     for (let i = coins.length - 1; i >= 0; i--) {
       const coin = coins[i];
       if (coin.dataset.collected === '1') continue;
@@ -215,8 +216,22 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
       }
     }
 
+    if (!toCollect.length) return;
+
+    // READ Phase 2: Batch read transforms for animation
+    const transforms = [];
+    if (!IS_MOBILE) { // Only needed if animation is enabled
+        for (let i = 0; i < toCollect.length; i++) {
+            const el = toCollect[i];
+            const cs = window.getComputedStyle(el);
+            transforms.push(cs.transform);
+        }
+    }
+
+    // WRITE Phase: Collect
     for (let i = 0; i < toCollect.length; i++) {
-      collectFn(toCollect[i]);
+        // Pass pre-read transform to avoid interleaved read/write layout thrashing
+        collectFn(toCollect[i], { transform: transforms[i] });
     }
   };
 
@@ -740,10 +755,17 @@ export function initCoinPickup({
     try { a.currentTime = 0; a.play(); } catch {}
   }
 
-  function animateAndRemove(el){
+  function animateAndRemove(el, opts = {}){
     if (disableAnimation) { el.remove(); return; }
-    const cs = getComputedStyle(el);
-    const start = cs.transform && cs.transform !== 'none' ? cs.transform : 'translate3d(0,0,0)';
+    
+    let start = 'translate3d(0,0,0)';
+    if (opts.transform) {
+        if (opts.transform !== 'none') start = opts.transform;
+    } else {
+        const cs = getComputedStyle(el);
+        if (cs.transform && cs.transform !== 'none') start = cs.transform;
+    }
+
     el.style.setProperty('--ccc-start', start);
     el.classList.add('coin--collected');
     const done = () => { el.removeEventListener('animationend', done); el.remove(); };
@@ -751,12 +773,12 @@ export function initCoinPickup({
     setTimeout(done, 600);
   }
 
-  function collect(el) {
+  function collect(el, opts = {}) {
     if (!isCoin(el)) return false;
     el.dataset.collected = '1';
 
     playSound();
-    animateAndRemove(el);
+    animateAndRemove(el, opts);
 
     const base = resolveCoinBase(el);
     // Explicitly use element's mutation level
