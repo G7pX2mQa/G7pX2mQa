@@ -1,5 +1,5 @@
 
-import { getLastSaveTime } from '../util/storage.js';
+import { getLastSaveTime, getActiveSlot } from '../util/storage.js';
 import { getGearsProductionRate } from '../ui/merchantTabs/workshopTab.js';
 import { hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
 import { pauseGameLoop, resumeGameLoop } from './gameLoop.js';
@@ -28,6 +28,19 @@ function formatTimeCompact(ms) {
     return `${y}y ${rd}d`;
 }
 
+// Visual Priority Map
+const PRIORITY_ORDER = ['coins', 'xp', 'books', 'gold', 'mp', 'magic', 'gears'];
+
+const REWARD_META = {
+    coins: { icon: 'img/currencies/coin/coin.webp' },
+    xp:    { icon: 'img/stats/xp/xp.webp' },
+    books: { icon: 'img/currencies/book/book.webp' },
+    gold:  { icon: 'img/currencies/gold/gold.webp' },
+    mp:    { icon: 'img/stats/mp/mp.webp' },
+    magic: { icon: 'img/currencies/magic/magic.webp' },
+    gears: { icon: 'img/currencies/gear/gear.webp' }
+};
+
 function createOfflinePanel(rewards, offlineMs) {
     const overlay = document.createElement('div');
     overlay.className = 'offline-overlay';
@@ -49,28 +62,38 @@ function createOfflinePanel(rewards, offlineMs) {
     const list = document.createElement('div');
     list.className = 'offline-list';
     
-    if (rewards.gears && !rewards.gears.isZero()) {
+    // Iterate rewards in priority order
+    PRIORITY_ORDER.forEach(key => {
+        const val = rewards[key];
+        if (!val || val.isZero()) return;
+
+        const meta = REWARD_META[key];
+        if (!meta) return;
+
         const row = document.createElement('div');
         row.className = 'offline-row';
         
-        // Format: + <icon> <amount>
+        // + Symbol
         const plus = document.createElement('span');
-        plus.textContent = '+ ';
+        plus.className = 'offline-plus';
+        plus.textContent = '+';
         
+        // Icon
         const icon = document.createElement('img');
         icon.className = 'offline-icon';
-        icon.src = 'img/currencies/gear/gear.webp';
-        icon.alt = '';
+        icon.src = meta.icon;
+        icon.alt = key;
         
+        // Amount
         const text = document.createElement('span');
         text.className = 'offline-text';
-        text.innerHTML = formatNumber(rewards.gears);
+        text.innerHTML = formatNumber(val);
         
         row.appendChild(plus);
         row.appendChild(icon);
         row.appendChild(text);
         list.appendChild(row);
-    }
+    });
     
     contentWrapper.appendChild(list);
     
@@ -79,20 +102,18 @@ function createOfflinePanel(rewards, offlineMs) {
     
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
-    closeBtn.className = 'offline-close-btn'; // Updated class in CSS
+    closeBtn.className = 'offline-close-btn'; 
     closeBtn.textContent = 'Close';
     
     const closePanel = () => {
         overlay.remove();
-        resumeGameLoop();
+        // No need to resumeGameLoop() here as we didn't pause it
     };
 
     closeBtn.addEventListener('click', closePanel);
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay) closePanel();
     });
-
-    // Global 'Escape' handler (in globalOverlayEsc.js) will handle keydown
     
     actions.appendChild(closeBtn);
     
@@ -104,7 +125,6 @@ function createOfflinePanel(rewards, offlineMs) {
     overlay.appendChild(panel);
     document.body.appendChild(overlay);
     
-    // Initialize custom scrollbar if needed
     requestAnimationFrame(() => {
         ensureCustomScrollbar(panel, panel, '.offline-content-wrapper');
     });
@@ -113,32 +133,29 @@ function createOfflinePanel(rewards, offlineMs) {
 }
 
 export function processOfflineProgress() {
+    // 1. Ensure we are actually in a save slot (prevent Main Menu triggers)
+    const slot = getActiveSlot();
+    if (slot == null) {
+        // If we are on the menu, we do nothing. 
+        // We do NOT resume loop here because the loop might not even be started yet 
+        // or handled by main menu logic.
+        return; 
+    }
+
     const lastSave = getLastSaveTime();
     const now = Date.now();
     
-    const resumeIfApplicable = () => {
-        resumeGameLoop();
-    };
-    
-    if (lastSave <= 0) {
-        resumeIfApplicable();
-        return;
-    }
+    if (lastSave <= 0) return;
     
     const diff = now - lastSave;
-    if (diff < 1000) {
-        resumeIfApplicable();
-        return; // Ignore gaps < 1s
-    }
+    if (diff < 1000) return; // Ignore gaps < 1s
     
-    if (!hasDoneInfuseReset()) {
-        resumeIfApplicable();
-        return;
-    }
+    if (!hasDoneInfuseReset()) return;
 
     const seconds = diff / 1000;
     
     // Calculate Rewards
+    // (Only Gears implemented currently)
     const gearRate = getGearsProductionRate ? getGearsProductionRate() : BigNum.fromInt(0);
     const gearsEarned = gearRate.mulDecimal(String(seconds)).floorToInteger();
     
@@ -154,16 +171,12 @@ export function processOfflineProgress() {
     }
     
     if (hasRewards) {
-        // Singleton: Remove existing panel if any
+        // Remove existing panel if any
         const existing = document.querySelector('.offline-overlay');
-        if (existing) {
-            existing.remove();
-        }
+        if (existing) existing.remove();
 
-        pauseGameLoop();
+        // Do NOT pause game loop here (per requirement)
         createOfflinePanel(rewards, diff);
-    } else {
-        resumeIfApplicable();
     }
 }
 
@@ -172,9 +185,14 @@ export function initOfflineTracker() {
     initialized = true;
     
     document.addEventListener('visibilitychange', () => {
+        const slot = getActiveSlot();
+        if (slot == null) return; // Ignore visibility changes on main menu
+
         if (document.hidden) {
             pauseGameLoop();
         } else {
+            // Resume first, then process logic
+            resumeGameLoop();
             processOfflineProgress();
         }
     });
