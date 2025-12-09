@@ -14,8 +14,8 @@
 
 .offline-panel {
     position: relative;
-    background: #1e293b; /* Slate 800 */
-    border: 2px solid #334155;
+    background: #00283b;
+    border: 2px solid #002329;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     display: flex;
     flex-direction: column;
@@ -32,7 +32,7 @@
 .offline-header {
     font-size: 32px;
     text-align: center;
-    color: #22d3ee; /* Cyan */
+    color: #00d9ff;
     margin-bottom: 4px;
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
@@ -48,7 +48,7 @@
 .offline-content-wrapper {
     flex: 1;
     background: #020617; /* Very dark blue/black */
-    border: 2px solid #0f172a;
+    border: 2px solid #002329;
     margin-bottom: 24px;
     overflow-y: auto;
     position: relative;
@@ -80,11 +80,6 @@
     background: transparent; /* Clean look inside the dark box */
 }
 
-/* Optional hover effect for rows if they were interactive, but they aren't */
-.offline-row:hover {
-    background: rgba(255,255,255,0.03);
-}
-
 .offline-plus {
     color: #94a3b8;
     margin-right: -4px;
@@ -95,6 +90,8 @@
     height: 1.0em;
     object-fit: contain;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    position: relative;
+    top: 1px;
 }
 
 .offline-text {
@@ -117,8 +114,8 @@
 }
 
 .offline-close-btn {
-    min-width: 180px;
-    height: 44px;
+    min-width: 200px;
+    height: 50px;
     border-radius: 0;
     border: 1px solid hsla(0, 80%, 40%, 0.45);
     background: hsla(0, 80%, 40%, 0.15);
@@ -129,12 +126,10 @@
     cursor: pointer;
     touch-action: manipulation;
     transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 
 .offline-close-btn:hover {
     background: hsla(0, 80%, 40%, 0.22);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
 }
 
 .offline-close-btn:active {
