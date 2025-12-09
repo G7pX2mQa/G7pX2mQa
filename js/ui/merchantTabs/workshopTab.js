@@ -251,7 +251,6 @@ function generateGearDecorations(container) {
     
     // Set initial styles
     img.style.width = `${size}px`;
-    img.style.opacity = '0.8';
     // We'll update transform in the loop, but set initial here
     img.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rotation}deg)`;
     img.style.willChange = 'transform'; // Hint browser
