@@ -814,7 +814,9 @@ function renderShopGrid() {
     const showUnlockedBadge = !locked && isUnlockUpgrade && !showUnlockableBadge && capReached;
     let badgeHtml;
     let badgePlain;
-        let needsTwoLines = false;
+    let needsTwoLines = false;
+    let isTextBadge = false;
+
     if (locked) {
       badgeHtml = '';
       badgePlain = '';
@@ -827,6 +829,7 @@ function renderShopGrid() {
   if (showUnlockableBadge || showUnlockedBadge) {
     badgeHtml = showUnlockableBadge ? 'Unlockable' : 'Unlocked';
     badgePlain = badgeHtml;
+    isTextBadge = true;
     btn.setAttribute('aria-label', `${upg.title}, ${badgePlain}`);
   } else if (!locked && isSingleLevelCap && !isUnlockUpgrade) {
     if (capReached) {
@@ -839,6 +842,7 @@ function renderShopGrid() {
       badgeHtml = 'Not Owned';
       badgePlain = 'Not Owned';
     }
+    isTextBadge = true;
     btn.setAttribute('aria-label', `${upg.title}, ${badgePlain}`);
   } else {
     const numericLevel = Number.isFinite(upg.levelNumeric) ? upg.levelNumeric : NaN;
@@ -935,6 +939,7 @@ function renderShopGrid() {
     if (!locked) {
       const badge = document.createElement('span');
       badge.className = 'level-badge';
+      if (isTextBadge) badge.classList.add('text-badge');
       if (needsTwoLines) badge.classList.add('two-line');
 
       if (badgeHtml === badgePlain) {
