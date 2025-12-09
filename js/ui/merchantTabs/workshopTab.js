@@ -41,9 +41,9 @@ export function getGenerationLevelKey(slot) {
 const animatedGears = new Map(); // containerElement -> [{...gears}]
 
 // Config
-const GEAR_SPEED = 30; // pixels per second
-const GEAR_ROTATION_SPEED_BASE = 45; // degrees per second
-const GEAR_ROTATION_VARIANCE = 45; 
+const GEAR_SPEED = 67; // pixels per second
+const GEAR_ROTATION_SPEED_BASE = 67; // degrees per second
+const GEAR_ROTATION_VARIANCE = 67; 
 
 function loadGenerationLevel() {
   const slot = getActiveSlot();
