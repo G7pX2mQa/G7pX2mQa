@@ -17,18 +17,25 @@ import { getMpValueMultiplierBn, getMagnetLevel } from './upgrades.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelIsInfiniteSnapshot = false;
+let mutationCurrentLevelStr = '0';
 let mutationUnsub = null;
 
 function updateMutationSnapshot(state) {
   if (!state || typeof state !== 'object') {
     mutationUnlockedSnapshot = false;
     mutationLevelIsInfiniteSnapshot = false;
+    mutationCurrentLevelStr = '0';
     mutationMultiplierCache.clear();
     return;
   }
 
   mutationUnlockedSnapshot = !!state.unlocked;
   mutationLevelIsInfiniteSnapshot = !!state.level?.isInfinite?.();
+  try {
+    mutationCurrentLevelStr = state.level?.toPlainIntegerString?.() ?? '0';
+  } catch {
+    mutationCurrentLevelStr = '0';
+  }
 
   if (!mutationUnlockedSnapshot) {
     mutationMultiplierCache.clear();
@@ -71,6 +78,14 @@ const mutationMultiplierCache = new Map();
 let COIN_MULTIPLIER = '1';
 let mpValueMultiplierBn = BigNum.fromInt(1);
 let mpMultiplierListenersBound = false;
+
+// Module-level state for queuing and HUD updates
+let pendingCoinGain = null;
+let pendingXpGain = null;
+let pendingMutGain = null;
+let flushScheduled = false;
+let coinsVal = null; // Cached BigNum value for HUD
+let updateHudFn = () => {}; // No-op until initialized
 
 export function setCoinMultiplier(x) {
   COIN_MULTIPLIER = x;
@@ -181,16 +196,13 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
 
   const sweepCoins = () => {
     if (!pointerInside || radiusPx <= 0) return;
-    // Iterate children directly to avoid expensive querySelectorAll
     const coins = coinsLayer.children;
     const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
     const toCollect = [];
     
-    // READ Phase: Batch all position checks
     for (let i = coins.length - 1; i >= 0; i--) {
       const coin = coins[i];
       if (coin.dataset.collected === '1') continue;
-      // Basic check to ensure we only target coin elements
       if (!coin.matches(coinSelector)) continue;
 
       const rect = coin.getBoundingClientRect();
@@ -203,7 +215,6 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
       }
     }
 
-    // WRITE Phase: Batch all DOM mutations (collectFn modifies DOM)
     for (let i = 0; i < toCollect.length; i++) {
       collectFn(toCollect[i]);
     }
@@ -290,124 +301,146 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   return { destroy };
 }
 
-export function initCoinPickup({
-  playfieldSelector   = '.area-cove .playfield',
-  coinsLayerSelector  = '.area-cove .coins-layer',
-  hudAmountSelector   = '.hud-top .coin-amount',
-  coinSelector        = '.coin, [data-coin], .coin-sprite',
-  soundSrc            = 'sounds/coin_pickup.ogg',
-  storageKey          = 'ccc:coins',
-  disableAnimation    = IS_MOBILE,
-} = {}) {
-  if (coinPickup?.destroy) {
-    coinPickup.destroy();
+// Queue helpers moved to module scope
+const cloneBn = (value) => {
+  if (!value) return BigNum.fromInt(0);
+  if (typeof value.clone === 'function') {
+    try { return value.clone(); } catch {}
   }
-  
-  const pf  = document.querySelector(playfieldSelector);
-  const cl  = document.querySelector(coinsLayerSelector);
-  const amt = document.querySelector(hudAmountSelector);
-  if (!pf || !cl || !amt) {
-    console.warn('[coinPickup] missing required nodes', { pf: !!pf, cl: !!cl, amt: !!amt });
-    return { destroy(){} };
-  }
+  try { return BigNum.fromAny(value); } catch { return BigNum.fromInt(0); }
+};
 
-  initMutationSnapshot();
-  ensureMpValueMultiplierSync();
-
-  pf.style.touchAction = 'none';
-
-  let magnetController = null;
-  let coins = bank.coins.value;
-  let coinMultiplierBn = null;
-  let coinMultiplierIsInfinite = false;
-
-  const refreshCoinMultiplierCache = () => {
+const mergeGain = (current, gain) => {
+  if (!gain) return current;
+  if (!current) return cloneBn(gain);
+  try { return current.add(gain); }
+  catch {
     try {
-      const multHandle = bank?.coins?.mult;
-      if (!multHandle || typeof multHandle.get !== 'function') {
-        coinMultiplierBn = null;
-        coinMultiplierIsInfinite = false;
-        return;
-      }
-      const next = multHandle.get();
-      if (!next) {
-        coinMultiplierBn = BigNum.fromInt(1);
-        coinMultiplierIsInfinite = false;
-        return;
-      }
-      coinMultiplierBn = next.clone?.() ?? BigNum.fromAny(next);
-      coinMultiplierIsInfinite = !!coinMultiplierBn?.isInfinite?.();
+      const base = cloneBn(current);
+      return base.add(gain);
     } catch {
+      return cloneBn(gain);
+    }
+  }
+};
+
+const flushPendingGains = () => {
+  const coinGain = pendingCoinGain;
+  pendingCoinGain = null;
+  if (coinGain && !coinGain.isZero?.()) {
+    try { bank.coins.add(coinGain); } catch {}
+  }
+
+  const xpGain = pendingXpGain;
+  pendingXpGain = null;
+  if (xpGain && !xpGain.isZero?.()) {
+    try { addXp(xpGain); } catch {}
+  }
+
+  const mutGain = pendingMutGain;
+  pendingMutGain = null;
+  if (mutGain && !mutGain.isZero?.()) {
+    try { addMutationPower(mutGain); } catch {}
+  }
+};
+
+const scheduleFlush = () => {
+  if (flushScheduled) return;
+  flushScheduled = true;
+  requestAnimationFrame(() => {
+    flushScheduled = false;
+    flushPendingGains();
+  });
+};
+
+const queueCoinGain = (gain) => {
+  pendingCoinGain = mergeGain(pendingCoinGain, gain);
+  scheduleFlush();
+};
+
+const queueXpGain = (gain) => {
+  pendingXpGain = mergeGain(pendingXpGain, gain);
+  scheduleFlush();
+};
+
+const queueMutationGain = (gain) => {
+  pendingMutGain = mergeGain(pendingMutGain, gain);
+  scheduleFlush();
+};
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', flushPendingGains, { passive: true });
+}
+
+let coinMultiplierBn = null;
+let coinMultiplierIsInfinite = false;
+
+const refreshCoinMultiplierCache = () => {
+  try {
+    const multHandle = bank?.coins?.mult;
+    if (!multHandle || typeof multHandle.get !== 'function') {
       coinMultiplierBn = null;
       coinMultiplierIsInfinite = false;
+      return;
     }
-  };
+    const next = multHandle.get();
+    if (!next) {
+      coinMultiplierBn = BigNum.fromInt(1);
+      coinMultiplierIsInfinite = false;
+      return;
+    }
+    coinMultiplierBn = next.clone?.() ?? BigNum.fromAny(next);
+    coinMultiplierIsInfinite = !!coinMultiplierBn?.isInfinite?.();
+  } catch {
+    coinMultiplierBn = null;
+    coinMultiplierIsInfinite = false;
+  }
+};
 
-  const applyCoinMultiplier = (value) => {
-    let base;
+const applyCoinMultiplier = (value) => {
+  let base;
+  try {
+    base = value instanceof BigNum
+      ? (value.clone?.() ?? value)
+      : BigNum.fromAny(value ?? 0);
+  } catch {
     try {
-      base = value instanceof BigNum
-        ? (value.clone?.() ?? value)
-        : BigNum.fromAny(value ?? 0);
+      return bank?.coins?.mult?.applyTo ? bank.coins.mult.applyTo(value) : BigNum.fromInt(0);
     } catch {
-      try {
-        return bank?.coins?.mult?.applyTo ? bank.coins.mult.applyTo(value) : BigNum.fromInt(0);
-      } catch {
-        return BigNum.fromInt(0);
-      }
+      return BigNum.fromInt(0);
     }
+  }
 
-    if (!coinMultiplierBn) refreshCoinMultiplierCache();
-    const mult = coinMultiplierBn;
-    if (!mult) {
-      try { return bank?.coins?.mult?.applyTo ? bank.coins.mult.applyTo(base) : base.clone?.() ?? base; }
-      catch { return base.clone?.() ?? base; }
-    }
-    const multIsInf = coinMultiplierIsInfinite || mult.isInfinite?.();
-    if (multIsInf) {
-      try { return BigNum.fromAny('Infinity'); }
-      catch { return base.clone?.() ?? base; }
-    }
-    if (base.isZero?.()) {
-      return base.clone?.() ?? base;
-    }
-    try {
-      return base.mulBigNumInteger(mult);
-    } catch {
-      try { return bank?.coins?.mult?.applyTo ? bank.coins.mult.applyTo(base) : base.clone?.() ?? base; }
-      catch { return base.clone?.() ?? base; }
-    }
-  };
-  const updateHud = () => {
-    const formatted = formatNumber(coins);
-    if (formatted.includes('<span')) {
-      amt.innerHTML = formatted;
-    } else {
-      amt.textContent = formatted;
-    }
-  };
-  refreshCoinMultiplierCache();
-  updateHud();
-
-  const cloneBn = (value) => {
-    if (!value) return BigNum.fromInt(0);
-    if (typeof value.clone === 'function') {
-      try { return value.clone(); } catch {}
-    }
-    try { return BigNum.fromAny(value); } catch { return BigNum.fromInt(0); }
-  };
+  if (!coinMultiplierBn) refreshCoinMultiplierCache();
+  const mult = coinMultiplierBn;
+  if (!mult) {
+    try { return bank?.coins?.mult?.applyTo ? bank.coins.mult.applyTo(base) : base.clone?.() ?? base; }
+    catch { return base.clone?.() ?? base; }
+  }
+  const multIsInf = coinMultiplierIsInfinite || mult.isInfinite?.();
+  if (multIsInf) {
+    try { return BigNum.fromAny('Infinity'); }
+    catch { return base.clone?.() ?? base; }
+  }
+  if (base.isZero?.()) {
+    return base.clone?.() ?? base;
+  }
+  try {
+    return base.mulBigNumInteger(mult);
+  } catch {
+    try { return bank?.coins?.mult?.applyTo ? bank.coins.mult.applyTo(base) : base.clone?.() ?? base; }
+    catch { return base.clone?.() ?? base; }
+  }
+};
 
 const computeMutationMultiplier = (spawnLevelStr) => {
   if (!mutationUnlockedSnapshot) return null;
 
-  // Global override: once mutation level itself is ∞,
-  // every coin gets an ∞ multiplier regardless of its spawn level.
   if (mutationLevelIsInfiniteSnapshot) {
     if (BN_INF) {
       try { return BN_INF.clone?.() ?? BN_INF; }
       catch { return BN_INF; }
     }
-    // Fallback if Infinity construction failed for some reason
     return null;
   }
 
@@ -444,87 +477,119 @@ const computeMutationMultiplier = (spawnLevelStr) => {
   catch { return stored; }
 };
 
-  let pendingCoinGain = null;
-  let pendingXpGain = null;
-  let pendingMutGain = null;
-  let flushScheduled = false;
+// --- New Logic for Passive/Active Automation ---
 
-  const mergeGain = (current, gain) => {
-    if (!gain) return current;
-    if (!current) return cloneBn(gain);
-    try { return current.add(gain); }
-    catch {
-      try {
-        const base = cloneBn(current);
-        return base.add(gain);
-      } catch {
-        return cloneBn(gain);
-      }
+function calculateCoinValue(spawnLevelStr) {
+  const base = BASE_COIN_VALUE.clone?.() ?? BigNum.fromInt(1);
+  let inc = applyCoinMultiplier(base);
+  let xpInc = cloneBn(XP_PER_COIN);
+
+  // If spawnLevelStr is null/undefined, use current mutation level (passive generation)
+  const levelStr = spawnLevelStr ?? mutationCurrentLevelStr;
+  const mutationMultiplier = computeMutationMultiplier(levelStr);
+  
+  if (mutationMultiplier) {
+    try { inc = inc.mulBigNumInteger(mutationMultiplier); } catch {}
+    try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
+  }
+  
+  const mpGain = (typeof isMutationUnlocked === 'function' && isMutationUnlocked())
+    ? cloneBn(mpValueMultiplierBn)
+    : BigNum.fromInt(0);
+
+  return { coinGain: inc, xpGain: xpInc, mpGain };
+}
+
+export function getPassiveCoinReward() {
+  const { coinGain, xpGain, mpGain } = calculateCoinValue(null);
+  return { 
+    coins: coinGain, 
+    xp: xpGain, 
+    mp: mpGain 
+  };
+}
+
+export function triggerPassiveCollect(count = 1) {
+  if (count <= 0) return;
+  const { coinGain, xpGain, mpGain } = calculateCoinValue(null);
+  
+  const totalCoin = coinGain.mulBigNumInteger(BigNum.fromInt(count));
+  const totalXp = xpGain.mulBigNumInteger(BigNum.fromInt(count));
+  const totalMp = mpGain.mulBigNumInteger(BigNum.fromInt(count));
+
+  const coinsLocked = isCurrencyLocked(CURRENCIES.COINS);
+  const incIsZero = typeof totalCoin?.isZero === 'function' ? totalCoin.isZero() : false;
+
+  if (!incIsZero && !coinsLocked) {
+    try {
+      coinsVal = coinsVal?.add ? coinsVal.add(totalCoin) : cloneBn(totalCoin);
+    } catch {
+      coinsVal = cloneBn(totalCoin);
     }
-  };
+  }
+  updateHudFn();
 
-  const flushPendingGains = () => {
-    const coinGain = pendingCoinGain;
-    pendingCoinGain = null;
-    if (coinGain && !coinGain.isZero?.()) {
-      try { bank.coins.add(coinGain); } catch {}
-    }
-
-    const xpGain = pendingXpGain;
-    pendingXpGain = null;
-    if (xpGain && !xpGain.isZero?.()) {
-      try { addXp(xpGain); } catch {}
-    }
-
-    const mutGain = pendingMutGain;
-    pendingMutGain = null;
-    if (mutGain && !mutGain.isZero?.()) {
-      try { addMutationPower(mutGain); } catch {}
-    }
-  };
-
-  const scheduleFlush = () => {
-    if (flushScheduled) return;
-    flushScheduled = true;
-    requestAnimationFrame(() => {
-      flushScheduled = false;
-      flushPendingGains();
-    });
-  };
-
-  const queueCoinGain = (gain) => {
-    pendingCoinGain = mergeGain(pendingCoinGain, gain);
-    scheduleFlush();
-  };
-
-  const queueXpGain = (gain) => {
-    pendingXpGain = mergeGain(pendingXpGain, gain);
-    scheduleFlush();
-  };
-
-  const queueMutationGain = (gain) => {
-    pendingMutGain = mergeGain(pendingMutGain, gain);
-    scheduleFlush();
-  };
-
-  if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', flushPendingGains, { passive: true });
+  if (!incIsZero) {
+    queueCoinGain(totalCoin);
   }
 
-  try {
-    if (bank.coins?.mult?.get && bank.coins?.mult?.set) {
-      const curr = bank.coins.mult.get(); // BN
-      if (curr.toPlainIntegerString() === '1' && COIN_MULTIPLIER && COIN_MULTIPLIER !== '1') {
-        bank.coins.mult.set(COIN_MULTIPLIER);
-      }
+  const xpEnabled = typeof isXpSystemUnlocked === 'function' ? isXpSystemUnlocked() : true;
+  const xpIsZero = typeof totalXp?.isZero === 'function' ? totalXp.isZero() : false;
+  if (xpEnabled && !xpIsZero) {
+    queueXpGain(totalXp);
+  }
+
+  if (!totalMp.isZero?.()) {
+    queueMutationGain(totalMp);
+  }
+}
+
+export function initCoinPickup({
+  playfieldSelector   = '.area-cove .playfield',
+  coinsLayerSelector  = '.area-cove .coins-layer',
+  hudAmountSelector   = '.hud-top .coin-amount',
+  coinSelector        = '.coin, [data-coin], .coin-sprite',
+  soundSrc            = 'sounds/coin_pickup.ogg',
+  storageKey          = 'ccc:coins',
+  disableAnimation    = IS_MOBILE,
+} = {}) {
+  if (coinPickup?.destroy) {
+    coinPickup.destroy();
+  }
+  
+  const pf  = document.querySelector(playfieldSelector);
+  const cl  = document.querySelector(coinsLayerSelector);
+  const amt = document.querySelector(hudAmountSelector);
+  if (!pf || !cl || !amt) {
+    console.warn('[coinPickup] missing required nodes', { pf: !!pf, cl: !!cl, amt: !!amt });
+    return { destroy(){} };
+  }
+
+  initMutationSnapshot();
+  ensureMpValueMultiplierSync();
+
+  pf.style.touchAction = 'none';
+
+  let magnetController = null;
+  coinsVal = bank.coins.value;
+  
+  updateHudFn = () => {
+    const formatted = formatNumber(coinsVal);
+    if (formatted.includes('<span')) {
+      amt.innerHTML = formatted;
+    } else {
+      amt.textContent = formatted;
     }
-  } catch {}
+  };
+  
+  refreshCoinMultiplierCache();
+  updateHudFn();
 
   const onCurrencyChange = (e) => {
     if (!e?.detail) return;
     if (e.detail.key === 'coins') {
-      coins = e.detail.value;
-      updateHud();
+      coinsVal = e.detail.value;
+      updateHudFn();
     }
   };
   window.addEventListener('currency:change', onCurrencyChange);
@@ -556,9 +621,7 @@ const computeMutationMultiplier = (spawnLevelStr) => {
   }
   const SHOP_UNLOCK_KEY   = `ccc:unlock:shop:${slot}`;
   const SHOP_PROGRESS_KEY = `ccc:unlock:shop:progress:${slot}`;
-  // const MAP_UNLOCK_KEY = `ccc:unlock:map:${slot}`; // (future)
 
-  // (optional) migrate any legacy unsuffixed keys once
   const legacyP = localStorage.getItem('ccc:unlock:shop:progress');
   const legacyU = localStorage.getItem('ccc:unlock:shop');
   if (legacyP != null && localStorage.getItem(SHOP_PROGRESS_KEY) == null) {
@@ -570,7 +633,6 @@ const computeMutationMultiplier = (spawnLevelStr) => {
   localStorage.removeItem('ccc:unlock:shop:progress');
   localStorage.removeItem('ccc:unlock:shop');
 
-  // normalize existing progress for this slot
   {
     const p = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10);
     localStorage.setItem(SHOP_PROGRESS_KEY, String(p));
@@ -580,23 +642,15 @@ const computeMutationMultiplier = (spawnLevelStr) => {
     }
   }
 
-  const DESKTOP_VOLUME = 0.35;
-  const MOBILE_VOLUME  = 0.12;
   const resolvedSrc = new URL(soundSrc, document.baseURI).href;
-
-  // coins test
   const isCoin = (el) => el instanceof HTMLElement && el.dataset.collected !== '1' && el.matches(coinSelector);
 
-  // Make current & future coins receptive to events even if CSS had pointer-events:none
   function ensureInteractive(el){ try { el.style.pointerEvents = 'auto'; } catch {} }
   cl.querySelectorAll(coinSelector).forEach(ensureInteractive);
   
-  // MO REMOVED - we now use spawner to set pointerEvents=auto and delegation for listeners
-
   // ----- Audio (Mobile: WebAudio + fallback) -----
   let ac = null, masterGain = null, buffer = null;
-  let webAudioReady = false, webAudioLoading = false, webAudioAttempted = false;
-  let queuedPlays = 0;
+  let webAudioReady = false, webAudioLoading = false;
 
   let mobileFallback = null;
   function playCoinMobileFallback(){
@@ -604,9 +658,8 @@ const computeMutationMultiplier = (spawnLevelStr) => {
       mobileFallback = new Audio(resolvedSrc);
       mobileFallback.preload = 'auto';
     }
-    // Re-apply the intended volume on every play (guards against drift)
     mobileFallback.muted = false;
-    mobileFallback.volume = MOBILE_VOLUME;
+    mobileFallback.volume = 0.12; // Const
     try {
       mobileFallback.currentTime = 0;
       mobileFallback.play();
@@ -617,10 +670,10 @@ const computeMutationMultiplier = (spawnLevelStr) => {
     if (webAudioReady || webAudioLoading) return;
     if (!('AudioContext' in window || 'webkitAudioContext' in window)) return;
 
-    webAudioLoading = true; webAudioAttempted = true;
+    webAudioLoading = true;
     ac = new (window.AudioContext || window.webkitAudioContext)();
     masterGain = ac.createGain();
-    masterGain.gain.value = MOBILE_VOLUME;
+    masterGain.gain.value = 0.12; // Const
     masterGain.connect(ac.destination);
 
     try {
@@ -641,11 +694,10 @@ const computeMutationMultiplier = (spawnLevelStr) => {
 
     if (IS_MOBILE && (!webAudioReady || !ac || !buffer || !masterGain || (ac && ac.state !== 'running'))) {
       if (!webAudioLoading) initWebAudioOnce();
-      playCoinMobileFallback();   // respects MOBILE_VOLUME
+      playCoinMobileFallback();
       return true;
     }
 
-    // Desktop: if this ever happens (unlikely), let WA path return to caller
     if (!webAudioReady || !ac || !buffer || !masterGain) {
       if (!webAudioLoading) initWebAudioOnce();
       return true;
@@ -655,12 +707,9 @@ const computeMutationMultiplier = (spawnLevelStr) => {
       const src = ac.createBufferSource();
       src.buffer = buffer;
       try { src.detune = 0; } catch {}
-
-      // Re-assert the correct volume on every play
-      masterGain.gain.setValueAtTime(MOBILE_VOLUME, ac.currentTime);
-
+      masterGain.gain.setValueAtTime(0.12, ac.currentTime);
       src.connect(masterGain);
-      const t = ac.currentTime + Math.random()*0.006; // avoid phasing when many play
+      const t = ac.currentTime + Math.random()*0.006;
       src.start(t);
       return true;
     } catch (e){
@@ -675,14 +724,12 @@ const computeMutationMultiplier = (spawnLevelStr) => {
     return playCoinHtmlAudio();
   }
 
-  // Warm WebAudio eager on any gesture (window + playfield), capture=true so overlays don’t block
   const warm = () => { if (IS_MOBILE) initWebAudioOnce(); };
   ['pointerdown', 'touchstart', 'click'].forEach(evt => {
     window.addEventListener(evt, warm, { once: true, passive: true, capture: true });
     pf.addEventListener(evt, warm, { once: true, passive: true, capture: true });
   });
 
-  // ----- Desktop audio pool -----
   let pool = null, pIdx = 0, lastAt = 0;
   if (!IS_MOBILE){
     pool = Array.from({ length: 8 }, () => { const a = new Audio(resolvedSrc); a.preload = 'auto'; a.volume = 0.3; return a; });
@@ -693,7 +740,6 @@ const computeMutationMultiplier = (spawnLevelStr) => {
     try { a.currentTime = 0; a.play(); } catch {}
   }
 
-  // ----- Collecting -----
   function animateAndRemove(el){
     if (disableAnimation) { el.remove(); return; }
     const cs = getComputedStyle(el);
@@ -705,63 +751,69 @@ const computeMutationMultiplier = (spawnLevelStr) => {
     setTimeout(done, 600);
   }
 
-function collect(el) {
-  if (!isCoin(el)) return false;
-  el.dataset.collected = '1';
+  function collect(el) {
+    if (!isCoin(el)) return false;
+    el.dataset.collected = '1';
 
-  playSound();
-  animateAndRemove(el);
+    playSound();
+    animateAndRemove(el);
 
-  const base = resolveCoinBase(el);
-  const coinsLocked = isCurrencyLocked(CURRENCIES.COINS);
+    const base = resolveCoinBase(el);
+    // Explicitly use element's mutation level
+    const spawnLevelStr = el.dataset.mutationLevel || null;
+    
+    // We inline logic partially or reuse calculateCoinValue with custom base?
+    // calculateCoinValue uses BASE_COIN_VALUE global.
+    // Here we have 'base' from element.
+    // Let's implement inline to preserve element-specific base behavior
+    
+    const coinsLocked = isCurrencyLocked(CURRENCIES.COINS);
+    let inc = applyCoinMultiplier(base);
+    let xpInc = cloneBn(XP_PER_COIN);
 
-  let inc = applyCoinMultiplier(base);
-  let xpInc = cloneBn(XP_PER_COIN);
-
-  const spawnLevelStr = el.dataset.mutationLevel || null;
-  const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
-  if (mutationMultiplier) {
-    try { inc = inc.mulBigNumInteger(mutationMultiplier); } catch {}
-    try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
-  }
-
-  const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
-  if (!incIsZero && !coinsLocked) {
-    try {
-      coins = coins?.add ? coins.add(inc) : cloneBn(inc);
-    } catch {
-      coins = cloneBn(inc);
+    const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
+    if (mutationMultiplier) {
+      try { inc = inc.mulBigNumInteger(mutationMultiplier); } catch {}
+      try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
     }
-  }
-  updateHud();
-  if (!incIsZero) {
-    queueCoinGain(inc);
-  }
 
-  const xpEnabled = typeof isXpSystemUnlocked === 'function' ? isXpSystemUnlocked() : true;
-  const xpIsZero = typeof xpInc?.isZero === 'function' ? xpInc.isZero() : false;
-  if (xpEnabled && !xpIsZero) {
-    queueXpGain(xpInc);
-  }
-
-  if (typeof isMutationUnlocked === 'function' && isMutationUnlocked()) {
-    const mpGain = cloneBn(mpValueMultiplierBn);
-    if (!mpGain.isZero?.()) {
-      queueMutationGain(mpGain);
+    const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
+    if (!incIsZero && !coinsLocked) {
+      try {
+        coinsVal = coinsVal?.add ? coinsVal.add(inc) : cloneBn(inc);
+      } catch {
+        coinsVal = cloneBn(inc);
+      }
     }
-  }
-
-  if (localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
-    const next = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10) + 1;
-    localStorage.setItem(SHOP_PROGRESS_KEY, String(next));
-    if (next >= 10) {
-      try { unlockShop(); } catch {}
-      localStorage.setItem(SHOP_UNLOCK_KEY, '1');
+    updateHudFn();
+    if (!incIsZero) {
+      queueCoinGain(inc);
     }
-  }
 
-  return true;
-}
+    const xpEnabled = typeof isXpSystemUnlocked === 'function' ? isXpSystemUnlocked() : true;
+    const xpIsZero = typeof xpInc?.isZero === 'function' ? xpInc.isZero() : false;
+    if (xpEnabled && !xpIsZero) {
+      queueXpGain(xpInc);
+    }
+
+    if (typeof isMutationUnlocked === 'function' && isMutationUnlocked()) {
+      const mpGain = cloneBn(mpValueMultiplierBn);
+      if (!mpGain.isZero?.()) {
+        queueMutationGain(mpGain);
+      }
+    }
+
+    if (localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
+      const next = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10) + 1;
+      localStorage.setItem(SHOP_PROGRESS_KEY, String(next));
+      if (next >= 10) {
+        try { unlockShop(); } catch {}
+        localStorage.setItem(SHOP_UNLOCK_KEY, '1');
+      }
+    }
+
+    return true;
+  }
 
   magnetController = createMagnetController({
     playfield: pf,
@@ -770,7 +822,6 @@ function collect(el) {
     collectFn: collect,
   });
 
-  // Replaced individual listener binding with delegation to prevent leaks on pooled coins
   const onDelegatedInteract = (e) => {
     if (e.target === cl) return;
     const target = e.target.closest(coinSelector);
@@ -781,15 +832,12 @@ function collect(el) {
 
   cl.addEventListener('pointerdown', onDelegatedInteract, { passive: true });
   if (!IS_MOBILE) {
-    // mouseover bubbles, mouseenter does not.
     cl.addEventListener('mouseover', onDelegatedInteract, { passive: true });
   }
 
-  // Brush sweep — checks several offsets so you can “graze” coins while swiping
-  const BRUSH_R = 18; // px
+  const BRUSH_R = 18; 
   const OFF = [[0,0],[BRUSH_R,0],[-BRUSH_R,0],[0,BRUSH_R],[0,-BRUSH_R]];
   function brushAt(x,y){
-    // Primary: use hit-test stack
     for (let k=0;k<OFF.length;k++){
       const px = x + OFF[k][0], py = y + OFF[k][1];
       const stack = document.elementsFromPoint(px, py);
@@ -800,7 +848,6 @@ function collect(el) {
     }
   }
 
-  // Schedule brush per frame for performance
   let pending = null, brushScheduled = false;
   function scheduleBrush(x,y){
     pending = {x,y};
@@ -813,15 +860,11 @@ function collect(el) {
     }
   }
 
-  // Touch / pen
   pf.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') scheduleBrush(e.clientX, e.clientY); }, { passive: true });
   pf.addEventListener('pointermove', (e) => { if (e.pointerType !== 'mouse') scheduleBrush(e.clientX, e.clientY); }, { passive: true });
   pf.addEventListener('pointerup',   (e) => { if (e.pointerType !== 'mouse') scheduleBrush(e.clientX, e.clientY); }, { passive: true });
-
-  // Desktop mouse hover sweep (lightly throttled by rAF above)
   pf.addEventListener('mousemove', (e) => { scheduleBrush(e.clientX, e.clientY); }, { passive: true });
 
-  // Public API + cleanup
   function setMobileVolume(v){
     const vol = Math.max(0, Math.min(1, Number(v) || 0));
     if (masterGain && ac) masterGain.gain.setValueAtTime(vol, ac.currentTime);
@@ -830,6 +873,7 @@ function collect(el) {
 
   const destroy = () => {
     flushPendingGains();
+    updateHudFn = () => {};
     if (typeof window !== 'undefined') {
       window.removeEventListener('beforeunload', flushPendingGains);
       window.removeEventListener('currency:multiplier', onCoinMultiplierChange);
@@ -855,11 +899,10 @@ function collect(el) {
   coinPickup = { destroy };
 
   return {
-    get count(){ return coins; },
+    get count(){ return coinsVal; },
     set count(v){
-      coins = BigNum.fromAny ? BigNum.fromAny(v) : BigNum.fromInt(Number(v) || 0);
-      updateHud();
-      // Note: saving is handled via bank.set inside bank.coins.add in storage
+      coinsVal = BigNum.fromAny ? BigNum.fromAny(v) : BigNum.fromInt(Number(v) || 0);
+      updateHudFn();
     },
     setMobileVolume,
     destroy,
