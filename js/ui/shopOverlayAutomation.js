@@ -42,7 +42,34 @@ function renderAutomationGrid() {
 
     const badge = document.createElement('span');
     badge.className = 'level-badge';
-    badge.textContent = model.isMaxed ? 'MAXED' : `${model.level}`;
+
+    const isSingleLevel = model.lvlCap === 1;
+    let badgeText = '';
+    let isTextBadge = false;
+
+    if (model.isMaxed) {
+      if (isSingleLevel) {
+        badgeText = 'Owned';
+        isTextBadge = true;
+      } else {
+        badgeText = 'MAXED';
+        isTextBadge = true;
+      }
+    } else {
+      if (isSingleLevel) {
+        if (model.canAfford) {
+          badgeText = 'Purchasable';
+        } else {
+          badgeText = 'Not Owned';
+        }
+        isTextBadge = true;
+      } else {
+        badgeText = `${model.level}`;
+      }
+    }
+    badge.textContent = badgeText;
+    if (isTextBadge) badge.classList.add('text-badge');
+
     if (model.canAfford) badge.classList.add('can-buy');
     if (model.isMaxed) badge.classList.add('is-maxed');
 
