@@ -6,6 +6,8 @@ import { pauseGameLoop, resumeGameLoop } from './gameLoop.js';
 import { bank } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
+import { ensureCustomScrollbar } from '../ui/shopOverlay.js';
+import { IS_MOBILE } from '../main.js';
 
 let initialized = false;
 
@@ -27,71 +29,100 @@ function formatTimeCompact(ms) {
 }
 
 function createOfflinePanel(rewards, offlineMs) {
-    // Styles are now in css/game/offlinePanel.css, imported via main bundle
+    const overlay = document.createElement('div');
+    overlay.className = 'offline-overlay';
     
     const panel = document.createElement('div');
     panel.className = 'offline-panel';
-    
-    const card = document.createElement('div');
-    card.className = 'offline-card';
     
     const header = document.createElement('div');
     header.className = 'offline-header';
     header.textContent = 'Offline Progress';
     
-    const content = document.createElement('div');
-    content.className = 'offline-content';
-    
-    const timeRow = document.createElement('div');
-    timeRow.className = 'offline-time-row';
-    timeRow.textContent = `You were away for ${formatTimeCompact(offlineMs)}`;
-    content.appendChild(timeRow);
+    const subHeader = document.createElement('div');
+    subHeader.className = 'offline-subheader';
+    subHeader.textContent = `You were gone for ${formatTimeCompact(offlineMs)}`;
 
+    const contentWrapper = document.createElement('div');
+    contentWrapper.className = 'offline-content-wrapper';
+    
+    const list = document.createElement('div');
+    list.className = 'offline-list';
+    
     if (rewards.gears && !rewards.gears.isZero()) {
         const row = document.createElement('div');
-        row.className = 'offline-reward-row reward-gears';
-        row.innerHTML = `+<img src="img/currencies/gear/gear.webp" class="offline-reward-icon"> ${formatNumber(rewards.gears)}`;
-        content.appendChild(row);
+        row.className = 'offline-row';
+        
+        const icon = document.createElement('img');
+        icon.className = 'offline-icon';
+        icon.src = 'img/currencies/gear/gear.webp';
+        icon.alt = '';
+        
+        const text = document.createElement('span');
+        text.className = 'offline-text';
+        text.innerHTML = `${formatNumber(rewards.gears)} <span style="color:#aaa">Gears</span>`;
+        
+        row.appendChild(icon);
+        row.appendChild(text);
+        list.appendChild(row);
     }
-    // Future rewards (Coins, XP, etc) can be added here
+    
+    contentWrapper.appendChild(list);
     
     const actions = document.createElement('div');
     actions.className = 'offline-actions';
     
-    const btn = document.createElement('button');
-    btn.className = 'offline-close-btn';
-    btn.textContent = 'Close';
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'offline-close-btn'; // Updated class in CSS
+    closeBtn.textContent = 'Close';
     
-    // Claim logic
-    btn.addEventListener('click', () => {
-        if (rewards.gears) {
-            if (bank.gears) bank.gears.add(rewards.gears);
-        }
-        panel.remove();
+    const closePanel = () => {
+        overlay.remove();
         resumeGameLoop();
-    });
+        document.removeEventListener('keydown', onKeydown);
+    };
 
-    actions.appendChild(btn);
-    card.appendChild(header);
-    card.appendChild(content);
-    card.appendChild(actions);
-    panel.appendChild(card);
+    const onKeydown = (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closePanel();
+        }
+    };
+
+    closeBtn.addEventListener('click', closePanel);
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closePanel();
+    });
+    document.addEventListener('keydown', onKeydown);
+
+    actions.appendChild(closeBtn);
     
-    return panel;
+    panel.appendChild(header);
+    panel.appendChild(subHeader);
+    panel.appendChild(contentWrapper);
+    panel.appendChild(actions);
+    
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+    
+    // Initialize custom scrollbar if needed
+    requestAnimationFrame(() => {
+        ensureCustomScrollbar(panel, panel, '.offline-content-wrapper');
+    });
+    
+    return overlay;
 }
 
 export function processOfflineProgress() {
     const lastSave = getLastSaveTime();
     const now = Date.now();
     
-    // Threshold: User requested "few seconds".
-    // Let's use 1000ms (1s) to be responsive.
     if (lastSave <= 0) return;
     
     const diff = now - lastSave;
     if (diff < 1000) return; // Ignore gaps < 1s
     
-    // Only process if player has unlocked the relevant system
     if (!hasDoneInfuseReset()) return;
 
     const seconds = diff / 1000;
@@ -106,12 +137,14 @@ export function processOfflineProgress() {
     if (!gearsEarned.isZero()) {
         rewards.gears = gearsEarned;
         hasRewards = true;
+        
+        // Award immediately
+        if (bank.gears) bank.gears.add(rewards.gears);
     }
     
     if (hasRewards) {
         pauseGameLoop();
-        const panel = createOfflinePanel(rewards, diff);
-        document.body.appendChild(panel);
+        createOfflinePanel(rewards, diff);
     }
 }
 
@@ -119,13 +152,6 @@ export function initOfflineTracker() {
     if (initialized) return;
     initialized = true;
     
-    // Initial check on boot
-    // We delay slightly to ensure other systems (upgrades, etc) are fully loaded
-    setTimeout(() => {
-        processOfflineProgress();
-    }, 500);
-    
-    // Check again when tab becomes visible
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
             processOfflineProgress();
