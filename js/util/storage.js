@@ -294,6 +294,12 @@ export function getLastSaveTimeKey(slot = getActiveSlot()) {
 
 export function updateLastSaveTime() {
   if (!hasEnteredGameSession) return;
+  // If the document is hidden, we STOP updating the heartbeat.
+  // This causes the lastSaveTime to "drift" into the past,
+  // so when the user returns, (Date.now() - lastSaveTime) reflects
+  // the entire time they were away/tabbed-out.
+  if (document.hidden) return;
+  
   const slot = getActiveSlot();
   if (slot == null) return;
   const now = Date.now();
@@ -317,18 +323,23 @@ export function getLastSaveTime() {
 function initHeartbeat() {
   if (typeof window === 'undefined') return;
   
-  // Regular interval
+  // Update every 1 second (was 2s), but only if visible
   if (!lastSaveTimeTimer) {
-    lastSaveTimeTimer = setInterval(updateLastSaveTime, 2000);
+    lastSaveTimeTimer = setInterval(updateLastSaveTime, 1000);
   }
 
-  // Events that signify leaving/hiding
-  window.addEventListener('beforeunload', updateLastSaveTime);
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      updateLastSaveTime();
-    }
+  // Ensure we save immediately before unloading
+  window.addEventListener('beforeunload', () => {
+      // Force update regardless of visibility state on unload
+      if (!hasEnteredGameSession) return;
+      const slot = getActiveSlot();
+      if (slot != null) {
+          try { localStorage.setItem(getLastSaveTimeKey(slot), String(Date.now())); } catch {}
+      }
   });
+  
+  // When coming back to visibility, we do NOT update immediately here.
+  // We let the game loop or offline tracker handle the time diff first.
 }
 
 initHeartbeat();
