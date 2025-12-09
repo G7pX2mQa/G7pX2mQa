@@ -310,77 +310,83 @@ function startRenderLoop() {
   renderFrameId = requestAnimationFrame(loop);
 }
 
+export function initWorkshopSystem() {
+  if (initialized) return;
+  initialized = true;
+
+  currentGenerationLevel = loadGenerationLevel();
+  registerTick(onTick);
+  
+  // Watch for slot changes
+  if (typeof window !== 'undefined') {
+      window.addEventListener('saveSlot:change', () => {
+          currentGenerationLevel = loadGenerationLevel();
+          accumulatorBuffer = 0; // reset partial buffer
+          
+          // Reset if locked on load
+          if (!hasDoneInfuseReset()) {
+              resetWorkshopState();
+          }
+          
+          updateWorkshopTab();
+      });
+      
+      // Watch for coin changes to update button state
+      window.addEventListener('currency:change', (e) => {
+          if (e.detail.key === CURRENCIES.COINS) {
+              updateWorkshopTab();
+          }
+      });
+
+      // Watch for multiplier changes (debug panel)
+      window.addEventListener('currency:multiplier', (e) => {
+          if (e.detail.key === CURRENCIES.GEARS) {
+              updateWorkshopTab();
+          }
+      });
+
+      // Watch for debug changes
+      window.addEventListener('debug:change', () => {
+          // Reload level in case it changed via debug panel
+          const oldLevel = currentGenerationLevel;
+          currentGenerationLevel = loadGenerationLevel();
+          if (oldLevel !== currentGenerationLevel) {
+              updateWorkshopTab();
+          }
+      });
+
+      // Watch for lock status change
+      window.addEventListener('unlock:change', (e) => {
+         const detail = e.detail || {};
+         // 'infuse' unlock key corresponds to workshop unlock
+         if (detail.key === 'infuse') {
+             if (!hasDoneInfuseReset()) {
+                 resetWorkshopState();
+             }
+         }
+      });
+  }
+}
+
 export function initWorkshopTab(panelEl) {
+  // Ensure the underlying system is initialized (e.g. tick loop)
+  initWorkshopSystem();
+
   if (panelEl.__workshopInit) return;
   panelEl.__workshopInit = true;
 
+  // Re-read level for UI just in case
   currentGenerationLevel = loadGenerationLevel();
   buildWorkshopUI(panelEl);
   
-  if (!initialized) {
-      registerTick(onTick);
-      
-      // Watch for slot changes
-      if (typeof window !== 'undefined') {
-          window.addEventListener('saveSlot:change', () => {
-              currentGenerationLevel = loadGenerationLevel();
-              accumulatorBuffer = 0; // reset partial buffer
-              
-              // Reset if locked on load
-              if (!hasDoneInfuseReset()) {
-                  resetWorkshopState();
-              }
-              
-              updateWorkshopTab();
-          });
-          
-          // Watch for coin changes to update button state
-          window.addEventListener('currency:change', (e) => {
-              if (e.detail.key === CURRENCIES.COINS) {
-                  updateWorkshopTab();
-              }
-          });
+  startRenderLoop();
 
-          // Watch for multiplier changes (debug panel)
-          window.addEventListener('currency:multiplier', (e) => {
-              if (e.detail.key === CURRENCIES.GEARS) {
-                  updateWorkshopTab();
-              }
-          });
-
-          // Watch for debug changes
-          window.addEventListener('debug:change', () => {
-              // Reload level in case it changed via debug panel
-              const oldLevel = currentGenerationLevel;
-              currentGenerationLevel = loadGenerationLevel();
-              if (oldLevel !== currentGenerationLevel) {
-                  updateWorkshopTab();
-              }
-          });
-
-          // Watch for lock status change
-          window.addEventListener('unlock:change', (e) => {
-             const detail = e.detail || {};
-             // 'infuse' unlock key corresponds to workshop unlock
-             if (detail.key === 'infuse') {
-                 if (!hasDoneInfuseReset()) {
-                     resetWorkshopState();
-                 }
-             }
-          });
-      }
-      
-      startRenderLoop();
-      initialized = true;
-  }
-  
   // Initial check
   if (!hasDoneInfuseReset()) {
       resetWorkshopState();
   }
 
   updateWorkshopTab();
-
 }
 
 export function getGearsProductionRate() {
