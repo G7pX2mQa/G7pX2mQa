@@ -808,10 +808,8 @@ function renderShopGrid() {
         : (hasFiniteCap && Number.isFinite(levelNumber)
           ? levelNumber >= capNumber
           : false));
-    const isBookValueUpgrade = upg.meta?.tie === UPGRADE_TIES.BOOK_VALUE_I;
-    const isFasterCoins3 = upg.meta?.tie === UPGRADE_TIES.FASTER_COINS_III;
     const isSingleLevelCap = hasFiniteCap && capNumber === 1;
-    const isUnlockUpgrade = !!upg.meta?.unlockUpgrade || (isSingleLevelCap && !isBookValueUpgrade && !isFasterCoins3);
+    const isUnlockUpgrade = !!upg.meta?.unlockUpgrade;
     const showUnlockableBadge = !locked && isUnlockUpgrade && !capReached;
     const showUnlockedBadge = !locked && isUnlockUpgrade && !showUnlockableBadge && capReached;
     let badgeHtml;
@@ -829,6 +827,18 @@ function renderShopGrid() {
   if (showUnlockableBadge || showUnlockedBadge) {
     badgeHtml = showUnlockableBadge ? 'Unlockable' : 'Unlocked';
     badgePlain = badgeHtml;
+    btn.setAttribute('aria-label', `${upg.title}, ${badgePlain}`);
+  } else if (!locked && isSingleLevelCap && !isUnlockUpgrade) {
+    if (capReached) {
+      badgeHtml = 'Owned';
+      badgePlain = 'Owned';
+    } else if (hasPlus) {
+      badgeHtml = 'Purchasable';
+      badgePlain = 'Purchasable';
+    } else {
+      badgeHtml = 'Not Owned';
+      badgePlain = 'Not Owned';
+    }
     btn.setAttribute('aria-label', `${upg.title}, ${badgePlain}`);
   } else {
     const numericLevel = Number.isFinite(upg.levelNumeric) ? upg.levelNumeric : NaN;
