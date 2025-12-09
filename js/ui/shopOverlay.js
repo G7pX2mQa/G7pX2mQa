@@ -34,18 +34,89 @@ import {
   shouldSkipGhostTap,
   suppressNextGhostTap,
 } from '../util/ghostTapGuard.js';
+import {
+    getAutomationUpgradesAdapterData,
+    buyAutomationUpgrade,
+    buyMaxAutomationUpgrade,
+    getAutomationUiModel
+} from '../game/automationUpgrades.js';
 
 
 let shopOverlayEl = null;
 let shopSheetEl = null;
 let shopOpen = false;
-// drag variable removed, now local to setupDragToClose
 let eventsBound = false;
 let delveBtnEl = null;
 let updateDelveGlow = null;
 let shopCloseTimer = null;
 let __shopOpenStamp = 0;
 let __shopPostOpenPointer = false;
+
+// Mode state: 'standard' or 'automation'
+let currentShopMode = 'standard';
+
+const SHOP_ADAPTERS = {
+    standard: {
+        title: 'Shop',
+        delveButtonVisible: true,
+        getUiData: () => {
+            const areaKey = getCurrentAreaKey();
+            const defs = getUpgradesForArea(areaKey);
+            const upgrades = {};
+            for (const def of defs) {
+                const lvlBn = getLevel(areaKey, def.id);
+                const lvlNum = getLevelNumber(areaKey, def.id);
+                const lockState = getUpgradeLockState(areaKey, def.id);
+                const icon = lockState.iconOverride ?? getIconUrl(def);
+                const title = lockState.titleOverride ?? def.title;
+                const desc = lockState.descOverride ?? def.desc;
+                const locked = !!lockState.locked;
+                const hmReady = (def.upgType === 'HM')
+                    ? !!upgradeUiModel(areaKey, def.id)?.hmReadyToEvolve
+                    : false;
+                upgrades[def.id] = {
+                    id: def.id,
+                    icon,
+                    title,
+                    desc,
+                    level: lvlBn,
+                    levelNumeric: lvlNum,
+                    area: def.area,
+                    meta: def,
+                    locked,
+                    lockState,
+                    useLockedBase: !!lockState.useLockedBase || locked,
+                    baseIconOverride: def.baseIconOverride || lockState.baseIconOverride || null,
+                    hmReady,
+                };
+            }
+            return upgrades;
+        },
+        getUiModel: (id) => upgradeUiModel(getCurrentAreaKey(), id),
+        buyOne: (id) => buyOne(getCurrentAreaKey(), id),
+        buyMax: (id) => buyMax(getCurrentAreaKey(), id),
+        buyNext: (id, amount) => buyTowards(getCurrentAreaKey(), id, amount),
+        getLockState: (id) => getUpgradeLockState(getCurrentAreaKey(), id),
+        evolve: (id) => evolveUpgrade(getCurrentAreaKey(), id),
+        events: ['ccc:upgrades:changed', 'currency:change', 'xp:change', 'xp:unlock', MERCHANT_MET_EVENT]
+    },
+    automation: {
+        title: 'Automation Shop',
+        delveButtonVisible: false,
+        getUiData: () => getAutomationUpgradesAdapterData(),
+        getUiModel: (id) => getAutomationUiModel(id),
+        buyOne: (id) => buyAutomationUpgrade(id),
+        buyMax: (id) => buyMaxAutomationUpgrade(id),
+        buyNext: () => ({ bought: BigNum.fromInt(0) }), // Not supported yet
+        getLockState: () => ({ locked: false }),
+        evolve: () => ({ evolved: false }),
+        events: ['ccc:automation:changed', 'currency:change']
+    }
+};
+
+function getAdapter() {
+    return SHOP_ADAPTERS[currentShopMode] || SHOP_ADAPTERS.standard;
+}
 
 if (typeof window !== 'undefined') {
   window.addEventListener('debug:change', (e) => {
@@ -62,6 +133,7 @@ const BASE_ICON_SRC_BY_COST = {
   books: 'img/currencies/book/book_base.webp',
   gold: 'img/currencies/gold/gold_base.webp',
   magic: 'img/currencies/magic/magic_base.webp',
+  gears: 'img/currencies/gear/gear_base.webp',
 };
 const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.webp';
 const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
@@ -70,6 +142,7 @@ const CURRENCY_ICON_SRC = {
   books: 'img/currencies/book/book.webp',
   gold: 'img/currencies/gold/gold.webp',
   magic: 'img/currencies/magic/magic.webp',
+  gears: 'img/currencies/gear/gear.webp',
 };
 
 const FORGE_UNLOCK_UPGRADE_ID = 7;
@@ -88,7 +161,7 @@ function resolveUpgradeId(upgLike) {
 }
 
 function isForgeUnlockUpgrade(upgLike) {
-  return resolveUpgradeId(upgLike) === FORGE_UNLOCK_UPGRADE_ID;
+  return currentShopMode === 'standard' && resolveUpgradeId(upgLike) === FORGE_UNLOCK_UPGRADE_ID;
 }
 
 export function blockInteraction(ms = 140) {
@@ -575,36 +648,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
 
 // ---------- Upgrades ----------
 function buildUpgradesData() {
-  const areaKey = getCurrentAreaKey();
-  const defs = getUpgradesForArea(areaKey);
-  upgrades = {}; // reset
-  for (const def of defs) {
-    const lvlBn = getLevel(areaKey, def.id);
-    const lvlNum = getLevelNumber(areaKey, def.id);
-    const lockState = getUpgradeLockState(areaKey, def.id);
-    const icon = lockState.iconOverride ?? getIconUrl(def);
-    const title = lockState.titleOverride ?? def.title;
-    const desc = lockState.descOverride ?? def.desc;
-    const locked = !!lockState.locked;
-    const hmReady = (def.upgType === 'HM')
-      ? !!upgradeUiModel(areaKey, def.id)?.hmReadyToEvolve
-      : false;
-    upgrades[def.id] = {
-      id: def.id,
-      icon,
-      title,
-      desc,
-      level: lvlBn,
-      levelNumeric: lvlNum,
-      area: def.area,
-      meta: def,
-      locked,
-      lockState,
-      useLockedBase: !!lockState.useLockedBase || locked,
-      baseIconOverride: def.baseIconOverride || lockState.baseIconOverride || null,
-      hmReady,
-    };
-  }
+  upgrades = getAdapter().getUiData();
 }
 
 function levelsRemainingToCap(upg, currentLevelBn, currentLevelNumber) {
@@ -696,38 +740,44 @@ function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
 
   try {
     const nextLvlNum = levelBigNumToNumber(lvlBn.add(BigNum.fromInt(1)));
-    const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
-    const c1 = BigNum.fromAny(upg.costAtLevel(nextLvlNum));
+    // Note: for standard upgrades, costAtLevel is available. For automation, it might not be if we don't expose it.
+    // Standard shop logic relies on `upg.costAtLevel` existing on the meta object.
+    // If not, we fallback to evaluateBulkPurchase which needs to be robust.
+    
+    if (typeof upg.costAtLevel === 'function') {
+        const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
+        const c1 = BigNum.fromAny(upg.costAtLevel(nextLvlNum));
 
-    const farProbeLevel = Math.min(
-      Number.isFinite(cap) ? cap : lvl + 32,
-      lvl + 32
-    );
-    const cFar = BigNum.fromAny(upg.costAtLevel(farProbeLevel));
+        const farProbeLevel = Math.min(
+          Number.isFinite(cap) ? cap : lvl + 32,
+          lvl + 32
+        );
+        const cFar = BigNum.fromAny(upg.costAtLevel(farProbeLevel));
 
-    const isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
+        const isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
 
-    if (isTrulyFlat) {
-      const remainingBn = levelsRemainingToCap(upg, lvlBn, lvl);
-      const room = Number.isFinite(upg.lvlCap)
-        ? Math.min(
-            Math.max(0, Math.floor(levelBigNumToNumber(remainingBn))),
-            Number.MAX_SAFE_INTEGER - 2
-          )
-        : Number.MAX_SAFE_INTEGER;
+        if (isTrulyFlat) {
+          const remainingBn = levelsRemainingToCap(upg, lvlBn, lvl);
+          const room = Number.isFinite(upg.lvlCap)
+            ? Math.min(
+                Math.max(0, Math.floor(levelBigNumToNumber(remainingBn))),
+                Number.MAX_SAFE_INTEGER - 2
+              )
+            : Number.MAX_SAFE_INTEGER;
 
-      let lo = 0;
-      let hi = Math.max(0, room);
-      while (lo < hi) {
-        const mid = Math.floor((lo + hi + 1) / 2);
-        const midBn = BigNum.fromInt(mid);
-        const total = typeof c0.mulBigNumInteger === 'function'
-          ? c0.mulBigNumInteger(midBn)
-          : BigNum.fromAny(c0 ?? 0).mulBigNumInteger(midBn);
-        if (total.cmp(walletBn) <= 0) lo = mid;
-        else hi = mid - 1;
-      }
-      return BigNum.fromInt(lo);
+          let lo = 0;
+          let hi = Math.max(0, room);
+          while (lo < hi) {
+            const mid = Math.floor((lo + hi + 1) / 2);
+            const midBn = BigNum.fromInt(mid);
+            const total = typeof c0.mulBigNumInteger === 'function'
+              ? c0.mulBigNumInteger(midBn)
+              : BigNum.fromAny(c0 ?? 0).mulBigNumInteger(midBn);
+            if (total.cmp(walletBn) <= 0) lo = mid;
+            else hi = mid - 1;
+          }
+          return BigNum.fromInt(lo);
+        }
     }
 
     const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : undefined;
@@ -745,6 +795,8 @@ function renderShopGrid() {
   const grid = shopOverlayEl?.querySelector('#shop-grid');
   if (!grid) return;
   grid.innerHTML = '';
+
+  const adapter = getAdapter();
 
   for (const key in upgrades) {
     const upg = upgrades[key];
@@ -914,8 +966,7 @@ function renderShopGrid() {
       if (locked) return;
       e.preventDefault();
       e.stopPropagation();
-      const areaKey = getCurrentAreaKey();
-      const { bought } = buyMax(areaKey, upg.id);
+      const { bought } = adapter.buyMax(upg.id);
       const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
       if (!boughtBn.isZero?.()) {
         playPurchaseSfx();
@@ -979,6 +1030,7 @@ function ensureShopOverlay() {
 
   const header = document.createElement('header');
   header.className = 'shop-header';
+  // Title is set in updateShopOverlay
   header.innerHTML = `
     <div class="shop-title">Shop</div>
     <div class="shop-line" aria-hidden="true"></div>
@@ -1057,14 +1109,14 @@ shopOverlayEl.addEventListener('click', (e) => {
   if (!eventsBound) {
     eventsBound = true;
 
-function onCloseClick(e) {
-  if (IS_MOBILE) {
-    blockInteraction(80);
-  }
-  closeShop();
-}
+    function onCloseClick(e) {
+      if (IS_MOBILE) {
+        blockInteraction(80);
+      }
+      closeShop();
+    }
 
-closeBtn.addEventListener('click', onCloseClick, { passive: true });
+    closeBtn.addEventListener('click', onCloseClick, { passive: true });
 
     document.addEventListener('keydown', onKeydownForShop);
     
@@ -1076,30 +1128,7 @@ closeBtn.addEventListener('click', onCloseClick, { passive: true });
         }, 150);
     });
 
-    let _shopBadgeTimer = null;
-      const scheduleShopRerender = () => {
-        if (!shopOpen) return;
-        clearTimeout(_shopBadgeTimer);
-        _shopBadgeTimer = setTimeout(() => {
-          updateShopOverlay();
-        }, 60);
-      };
-
-      window.addEventListener('currency:change', scheduleShopRerender);
-      window.addEventListener('xp:change', scheduleShopRerender);
-      window.addEventListener('xp:unlock', scheduleShopRerender);
-
-    const onUpgradesChanged = () => {
-      if (!shopOpen) return;
-      updateShopOverlay();
-    };
-
-    document.addEventListener('ccc:upgrades:changed', onUpgradesChanged);
-
-    window.addEventListener(MERCHANT_MET_EVENT, () => {
-      if (typeof updateDelveGlow === 'function') updateDelveGlow();
-      if (shopOpen) updateShopOverlay();
-    });
+    // Event binding is now dynamic based on openShop()
   }
 }
 
@@ -1267,8 +1296,10 @@ export function openUpgradeOverlay(upgDef) {
   upgOpen = true;
   let upgOpenLocal = true;
 
-  const areaKey = getCurrentAreaKey();
-  const initialLockState = getUpgradeLockState(areaKey, upgDef.id) || {};
+  const adapter = getAdapter();
+
+  const areaKey = getCurrentAreaKey(); // Only used for standard shop, but harmless
+  const initialLockState = adapter.getLockState(upgDef.id) || {};
   const initialLocked = !!initialLockState.locked;
   const initialMysterious = initialLocked && (
     initialLockState.hidden ||
@@ -1284,7 +1315,7 @@ export function openUpgradeOverlay(upgDef) {
 
   const isHM = (upgDef.upgType === 'HM');
   const isEndlessXp = (upgDef.tie === UPGRADE_TIES.ENDLESS_XP);
-  const ui = () => upgradeUiModel(areaKey, upgDef.id);
+  const ui = () => adapter.getUiModel(upgDef.id);
 
   // small helpers
   const spacer = (h) => { const s = document.createElement('div'); s.style.height = h; return s; };
@@ -1295,7 +1326,7 @@ export function openUpgradeOverlay(upgDef) {
     if (!content) return;
 
     // Check current lock state so we can skip hidden/mysterious sheets
-    const lockState = model?.lockState || getUpgradeLockState(areaKey, upgDef.id) || {};
+    const lockState = model?.lockState || adapter.getLockState(upgDef.id) || {};
     const isHiddenUpgrade = !!(
       lockState.hidden ||
       lockState.hideEffect ||
@@ -1334,7 +1365,7 @@ export function openUpgradeOverlay(upgDef) {
     const model = ui();
     if (!model) return;
 
-    const lockState = model.lockState || getUpgradeLockState(areaKey, upgDef.id);
+    const lockState = model.lockState || adapter.getLockState(upgDef.id);
     const locked = !!lockState?.locked;
     const isHiddenUpgrade = locked && (
       lockState?.hidden || lockState?.hideEffect || lockState?.hideCost
@@ -1612,7 +1643,7 @@ export function openUpgradeOverlay(upgDef) {
         actions.querySelectorAll('button:not(.shop-close):not(.hm-evolve-btn)').forEach(b => b.remove());
         
         ensureButton('shop-delve hm-evolve-btn', 'Evolve', () => {
-          const { evolved } = evolveUpgrade(areaKey, upgDef.id);
+          const { evolved } = adapter.evolve(upgDef.id);
           if (!evolved) return;
           playEvolveSfx();
           updateShopOverlay();
@@ -1629,7 +1660,7 @@ export function openUpgradeOverlay(upgDef) {
          actions.querySelectorAll('button:not(.shop-close):not(.btn-unlock)').forEach(b => b.remove());
          
          const unlockBtn = ensureButton('shop-delve btn-unlock', 'Unlock', () => {
-            const { bought } = buyOne(areaKey, upgDef.id);
+            const { bought } = adapter.buyOne(upgDef.id);
             const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
             if (!boughtBn.isZero?.()) {
                 playPurchaseSfx();
@@ -1649,13 +1680,14 @@ export function openUpgradeOverlay(upgDef) {
       actions.querySelectorAll('.hm-evolve-btn, .btn-unlock').forEach(b => b.remove());
 
       const performBuy = () => {
-        const fresh = upgradeUiModel(areaKey, upgDef.id);
+        // const fresh = upgradeUiModel(areaKey, upgDef.id);
+        const fresh = adapter.getUiModel(upgDef.id);
         const priceNow = fresh.nextPrice instanceof BigNum
           ? fresh.nextPrice
           : BigNum.fromAny(fresh.nextPrice || 0);
         if (fresh.have.cmp(priceNow) < 0) return;
 
-        const { bought } = buyOne(areaKey, upgDef.id);
+        const { bought } = adapter.buyOne(upgDef.id);
         const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
         if (boughtBn.isZero?.()) return;
 
@@ -1667,9 +1699,10 @@ export function openUpgradeOverlay(upgDef) {
       const buyBtn = ensureButton('shop-delve btn-buy-one', 'Buy', performBuy, 1, !canAffordNext);
 
       const performBuyMax = () => {
-        const fresh = upgradeUiModel(areaKey, upgDef.id);
+        // const fresh = upgradeUiModel(areaKey, upgDef.id);
+        const fresh = adapter.getUiModel(upgDef.id);
         if (fresh.have.cmp(BigNum.fromInt(1)) < 0) return;
-        const { bought } = buyMax(areaKey, upgDef.id);
+        const { bought } = adapter.buyMax(upgDef.id);
         const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
         if (!boughtBn.isZero?.()) {
           playPurchaseSfx();
@@ -1682,11 +1715,12 @@ export function openUpgradeOverlay(upgDef) {
 
       if (isHM) {
         const performBuyNext = () => {
-          const fresh = upgradeUiModel(areaKey, upgDef.id);
+          // const fresh = upgradeUiModel(areaKey, upgDef.id);
+          const fresh = adapter.getUiModel(upgDef.id);
           if (fresh.hmReadyToEvolve) return;
           const target = fresh.hmNextMilestone;
           if (!target || !fresh.lvlBn || target.cmp(fresh.lvlBn) <= 0) {
-            const { bought } = buyMax(areaKey, upgDef.id);
+            const { bought } = adapter.buyMax(upgDef.id);
             const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
             if (!boughtBn.isZero?.()) {
               playPurchaseSfx();
@@ -1718,8 +1752,8 @@ export function openUpgradeOverlay(upgDef) {
           } catch {}
 
           const purchase = reachable
-            ? buyTowards(areaKey, upgDef.id, deltaNum)
-            : buyMax(areaKey, upgDef.id);
+            ? adapter.buyNext(upgDef.id, deltaNum)
+            : adapter.buyMax(upgDef.id);
           const boughtBn = purchase.bought instanceof BigNum
             ? purchase.bought
             : BigNum.fromAny(purchase.bought ?? 0);
@@ -1741,20 +1775,19 @@ export function openUpgradeOverlay(upgDef) {
 	recenterUnlockOverlayIfNeeded(model);
   };
 
-  const onCurrencyChange = () => {
+  const onUpdate = () => {
     if (!upgOpenLocal) return;
     rerender();
   };
 
-  const onUpgradesChanged = () => {
-    if (!upgOpenLocal) return;
-    rerender();
-  };
+  const onEvent = () => onUpdate();
 
-    window.addEventListener('currency:change', onCurrencyChange);
-    window.addEventListener('xp:change', onCurrencyChange);
-    window.addEventListener('xp:unlock', onCurrencyChange);
-    document.addEventListener('ccc:upgrades:changed', onUpgradesChanged);
+  // Register all events from adapter
+  adapter.events.forEach(evt => window.addEventListener(evt, onEvent));
+  // Standard upgrades also use document event
+  if (currentShopMode === 'standard') {
+      document.addEventListener('ccc:upgrades:changed', onEvent);
+  }
 
   // open + animate
   rerender();
@@ -1778,11 +1811,11 @@ export function openUpgradeOverlay(upgDef) {
 
   upgOverlayCleanup = () => {
     upgOpenLocal = false;
-      window.removeEventListener('currency:change', onCurrencyChange);
-      window.removeEventListener('xp:change', onCurrencyChange);
-      window.removeEventListener('xp:unlock', onCurrencyChange);
-	  document.removeEventListener('ccc:upgrades:changed', onUpgradesChanged);
-      window.removeEventListener('keydown', onKey, true);
+    adapter.events.forEach(evt => window.removeEventListener(evt, onEvent));
+    if (currentShopMode === 'standard') {
+        document.removeEventListener('ccc:upgrades:changed', onEvent);
+    }
+    window.removeEventListener('keydown', onKey, true);
   };
 }
 
@@ -1792,12 +1825,49 @@ function onKeydownForShop(e) {
   // local ESC handling removed, relying on global
 }
 
-export function openShop() {
+// Global update handler ref
+let activeShopUpdateHandler = null;
+
+export function openShop(mode = 'standard') {
   ensureShopOverlay();
+
+  currentShopMode = mode;
+  const adapter = getAdapter();
 
   if (shopCloseTimer) {
     clearTimeout(shopCloseTimer);
     shopCloseTimer = null;
+  }
+
+  // Bind Events if not already done for this specific mode session
+  if (activeShopUpdateHandler) {
+      // Clean up previous listeners if switching modes (though usually we close first)
+      const prevAdapter = SHOP_ADAPTERS.standard; // Fallback cleanup
+      prevAdapter.events.forEach(e => window.removeEventListener(e, activeShopUpdateHandler));
+      SHOP_ADAPTERS.automation.events.forEach(e => window.removeEventListener(e, activeShopUpdateHandler));
+      document.removeEventListener('ccc:upgrades:changed', activeShopUpdateHandler);
+  }
+
+  activeShopUpdateHandler = () => {
+      if (!shopOpen) return;
+      // Debounce?
+      updateShopOverlay();
+  };
+  
+  adapter.events.forEach(evt => window.addEventListener(evt, activeShopUpdateHandler));
+  if (mode === 'standard') {
+      document.addEventListener('ccc:upgrades:changed', activeShopUpdateHandler);
+  }
+  
+  // Update UI Elements based on Mode
+  if (shopOverlayEl) {
+      const titleEl = shopOverlayEl.querySelector('.shop-title');
+      if (titleEl) titleEl.textContent = adapter.title;
+      
+      const delveBtn = shopOverlayEl.querySelector('.shop-delve');
+      if (delveBtn) {
+          delveBtn.style.display = adapter.delveButtonVisible ? '' : 'none';
+      }
   }
 
   if (typeof updateDelveGlow === 'function') updateDelveGlow();
@@ -1859,6 +1929,16 @@ export function closeShop(force = false) {
   shopOverlayEl.classList.remove('is-open');
   shopOverlayEl.style.pointerEvents = 'none';
   __shopPostOpenPointer = false;
+
+  // Cleanup listeners
+  if (activeShopUpdateHandler) {
+      const adapter = getAdapter(); // current
+      adapter.events.forEach(evt => window.removeEventListener(evt, activeShopUpdateHandler));
+      if (currentShopMode === 'standard') {
+          document.removeEventListener('ccc:upgrades:changed', activeShopUpdateHandler);
+      }
+      activeShopUpdateHandler = null;
+  }
 }
 
 // ---------- Drag ----------
