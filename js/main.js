@@ -638,7 +638,7 @@ images: [
   ]);
   
   startGameLoop();
-  initOfflineTracker();
+  initOfflineTracker(() => currentArea === AREAS.STARTER_COVE);
   
   applyPendingSlotWipe();
   ensureStorageDefaults();
