@@ -472,6 +472,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/gameLoop.js'),
     import('./game/offlinePanel.js'),
     import('./ui/merchantTabs/workshopTab.js'),
+    import('./game/automationUpgrades.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -530,6 +531,7 @@ images: [
   'img/sc_upg_icons/xp_val3.webp',
   'img/sc_upg_icons/xp_val_hm.webp',
   'img/sc_upg_icons/mp_val_hm.webp',
+  'img/sc_upg_icons/effective_auto_collect.webp',
   
   // ==== img/stats/mp ====
   'img/stats/mp/mp.webp',
@@ -579,6 +581,7 @@ images: [
     gameLoopModule,
     offlinePanelModule,
     workshopTabModule,
+    automationUpgradesModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -600,6 +603,7 @@ images: [
   ({ startGameLoop } = gameLoopModule);
   const { initOfflineTracker, processOfflineProgress } = offlinePanelModule;
   const { initWorkshopSystem } = workshopTabModule;
+  const { initAutomationUpgrades } = automationUpgradesModule;
 
   window.bank = bank;
 
@@ -651,6 +655,7 @@ images: [
   initOfflineTracker(() => currentArea === AREAS.STARTER_COVE);
 
   try { initWorkshopSystem(); } catch(e) { console.error('Workshop init failed', e); }
+  try { initAutomationUpgrades(); } catch(e) { console.error('Automation init failed', e); }
   
   applyPendingSlotWipe();
   ensureStorageDefaults();
