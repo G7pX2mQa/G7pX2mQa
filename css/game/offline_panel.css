@@ -16,7 +16,6 @@
     position: relative;
     background: #1e293b; /* Slate 800 */
     border: 2px solid #334155;
-    border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     display: flex;
     flex-direction: column;
