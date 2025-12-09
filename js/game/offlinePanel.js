@@ -180,13 +180,15 @@ export function processOfflineProgress() {
     }
 }
 
-export function initOfflineTracker() {
+export function initOfflineTracker(checkActiveState) {
     if (initialized) return;
     initialized = true;
     
     document.addEventListener('visibilitychange', () => {
         const slot = getActiveSlot();
         if (slot == null) return; // Ignore visibility changes on main menu
+
+        if (checkActiveState && !checkActiveState()) return;
 
         if (document.hidden) {
             pauseGameLoop();
