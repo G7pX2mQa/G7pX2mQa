@@ -53,6 +53,10 @@ function createOfflinePanel(rewards, offlineMs) {
         const row = document.createElement('div');
         row.className = 'offline-row';
         
+        // Format: + <icon> <amount>
+        const plus = document.createElement('span');
+        plus.textContent = '+ ';
+        
         const icon = document.createElement('img');
         icon.className = 'offline-icon';
         icon.src = 'img/currencies/gear/gear.webp';
@@ -60,8 +64,9 @@ function createOfflinePanel(rewards, offlineMs) {
         
         const text = document.createElement('span');
         text.className = 'offline-text';
-        text.innerHTML = `${formatNumber(rewards.gears)} <span style="color:#aaa">Gears</span>`;
+        text.innerHTML = formatNumber(rewards.gears);
         
+        row.appendChild(plus);
         row.appendChild(icon);
         row.appendChild(text);
         list.appendChild(row);
@@ -80,22 +85,15 @@ function createOfflinePanel(rewards, offlineMs) {
     const closePanel = () => {
         overlay.remove();
         resumeGameLoop();
-        document.removeEventListener('keydown', onKeydown);
-    };
-
-    const onKeydown = (e) => {
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            closePanel();
-        }
     };
 
     closeBtn.addEventListener('click', closePanel);
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay) closePanel();
     });
-    document.addEventListener('keydown', onKeydown);
 
+    // Global 'Escape' handler (in globalOverlayEsc.js) will handle keydown
+    
     actions.appendChild(closeBtn);
     
     panel.appendChild(header);
@@ -118,12 +116,25 @@ export function processOfflineProgress() {
     const lastSave = getLastSaveTime();
     const now = Date.now();
     
-    if (lastSave <= 0) return;
+    const resumeIfApplicable = () => {
+        resumeGameLoop();
+    };
+    
+    if (lastSave <= 0) {
+        resumeIfApplicable();
+        return;
+    }
     
     const diff = now - lastSave;
-    if (diff < 1000) return; // Ignore gaps < 1s
+    if (diff < 1000) {
+        resumeIfApplicable();
+        return; // Ignore gaps < 1s
+    }
     
-    if (!hasDoneInfuseReset()) return;
+    if (!hasDoneInfuseReset()) {
+        resumeIfApplicable();
+        return;
+    }
 
     const seconds = diff / 1000;
     
@@ -143,8 +154,16 @@ export function processOfflineProgress() {
     }
     
     if (hasRewards) {
+        // Singleton: Remove existing panel if any
+        const existing = document.querySelector('.offline-overlay');
+        if (existing) {
+            existing.remove();
+        }
+
         pauseGameLoop();
         createOfflinePanel(rewards, diff);
+    } else {
+        resumeIfApplicable();
     }
 }
 
@@ -153,7 +172,9 @@ export function initOfflineTracker() {
     initialized = true;
     
     document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
+        if (document.hidden) {
+            pauseGameLoop();
+        } else {
             processOfflineProgress();
         }
     });
