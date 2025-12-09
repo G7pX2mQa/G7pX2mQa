@@ -16,10 +16,6 @@
     user-select: text;
     -webkit-user-select: text;
   }
-  .merchant-workshop img {
-    user-select: none;
-    -webkit-user-select: none;
-  }
 }
 
 .workshop-info-panel,
