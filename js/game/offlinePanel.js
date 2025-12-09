@@ -40,16 +40,6 @@ const REWARD_META = {
     gears: { icon: 'img/currencies/gear/gear.webp' }
 };
 
-const REWARD_CLASSES = {
-    coins: 'text-coins',
-    xp:    'text-xp',
-    books: 'text-books',
-    gold:  'text-gold',
-    mp:    'text-mp',
-    magic: 'text-magic',
-    gears: 'text-gears'
-};
-
 const REWARD_NAMES = {
     coins: 'Coins',
     xp:    'XP',
@@ -106,9 +96,7 @@ function createOfflinePanel(rewards, offlineMs) {
         // Amount
         const text = document.createElement('span');
         text.className = 'offline-text';
-        if (REWARD_CLASSES[key]) {
-            text.classList.add(REWARD_CLASSES[key]);
-        }
+        text.classList.add(`text-${key}`);
         text.innerHTML = `${formatNumber(val)} ${REWARD_NAMES[key]}`;
         
         row.appendChild(plus);
