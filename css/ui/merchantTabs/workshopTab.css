@@ -1,13 +1,14 @@
 /* Workshop Tab Styles */
 .merchant-workshop {
   display: flex;
-  flex-direction: column;
+  flex-direction: row; /* Changed to row to support side columns */
   height: 100%;
   color: #fff;
   font-family: var(--font-ui);
-  padding: 16px;
+  /* padding: 16px;  Removed padding here, moved to center-col */
   box-sizing: border-box;
-  align-items: center;
+  justify-content: center;
+  align-items: stretch; /* Stretch children to full height */
   container-type: inline-size;
 }
 
@@ -18,10 +19,47 @@
   }
 }
 
+/* Center Column - contains the actual UI */
+.workshop-center-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 600px;
+  padding: 16px; /* Added padding here */
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  z-index: 1; /* Ensure it stays above side cols if overlap ever happens (though it shouldn't) */
+}
+
+/* Side Columns - for gear decorations */
+.workshop-side-col {
+  flex: 1;
+  min-width: 100px;
+  position: relative;
+  overflow: hidden;
+  display: none; /* Hidden by default on small screens */
+}
+
+@media (min-width: 800px) {
+  .workshop-side-col {
+    display: block;
+  }
+}
+
+/* Background Gears */
+.workshop-bg-gear {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  /* Opacity 0.8 is set via JS style, but we can enforce defaults here if needed */
+}
+
 .workshop-info-panel,
 .workshop-doubler-panel {
   width: 100%;
-  max-width: 600px; /* Majority of width but centered */
+  /* max-width: 600px;  Removed max-width here as the parent (.workshop-center-col) handles it */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -261,10 +299,8 @@
 
 /* Responsive adjustments */
 @media (max-width: 600px) {
-  .workshop-info-panel,
-  .workshop-doubler-panel {
-    width: 100%;
-  }
+  /* .workshop-info-panel, .workshop-doubler-panel width is now controlled by .workshop-center-col */
+  /* But .workshop-center-col is 100% width already */
   
   .btn-automation-shop {
     /* On mobile, HUD buttons are often 50% width (2 cols) */
