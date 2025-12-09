@@ -1,87 +1,141 @@
-.offline-panel {
+
+.offline-overlay {
     position: fixed;
     inset: 0;
-    z-index: 2000;
+    z-index: 99999;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0,0,0,0.6);
-    pointer-events: auto;
+    overflow: hidden;
 }
-.offline-card {
-    background: #003366; /* Blue background */
-    border: 2px solid #0055aa;
-    border-radius: 8px;
-    padding: 2px;
-    width: 90%;
-    max-width: 480px;
+
+.offline-panel {
+    position: relative;
+    background: rgba(15, 15, 15, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     display: flex;
     flex-direction: column;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+    /* Increase width to "take up the entire width" (with some padding) */
+    width: 90vw;
+    /* max-width removed or set very high */
+    max-width: 1200px; 
+    height: auto;
+    max-height: 85vh;
+    padding: 24px;
+    color: #fff;
+    font-family: inherit; /* Game font assumed globally */
+    font-weight: 700;
 }
+
 .offline-header {
+    font-size: 32px; /* Slightly larger */
     text-align: center;
-    padding: 12px;
-    font-family: monospace;
-    font-weight: bold;
-    font-size: 1.2rem;
-    color: #00ffff; /* Light blue / cyan */
+    color: #a855f7;
+    margin-bottom: 8px;
+    text-transform: uppercase;
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
-.offline-content {
-    background: #000;
-    color: #fff;
-    padding: 16px;
+
+.offline-subheader {
+    font-size: 18px;
+    text-align: center;
+    color: #ddd;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.offline-content-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    min-height: 120px;
+    margin-bottom: 24px;
+    padding-right: 8px;
+    /* Center content horizontally */
+    display: flex;
+    flex-direction: column;
+    align-items: center; 
+}
+
+.offline-list {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    min-height: 100px;
+    width: 100%;
+    max-width: 600px; /* Keep the list itself readable */
 }
-.offline-time-row {
-    text-align: center;
-    color: #fff;
-    font-size: 1.1rem;
-    margin-bottom: 8px;
-}
-.offline-reward-row {
+
+.offline-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 1.1rem;
     justify-content: center;
+    gap: 8px;
+    font-size: 24px; /* Larger font */
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
 }
-.offline-reward-icon {
-    width: 24px;
-    height: 24px;
+
+.offline-icon {
+    width: 1.2em;
+    height: 1.2em;
+    object-fit: contain;
+    vertical-align: middle;
 }
-.reward-gears { color: #a3a3a3; }
-.reward-coins { color: #ffd700; }
-.reward-xp { color: #6688ff; }
-.reward-mp { color: #ffaa00; }
-.reward-gold { color: #ffd700; }
-.reward-magic { color: #c68cff; }
+
+.offline-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
 
 .offline-actions {
-    padding: 12px;
     display: flex;
     justify-content: center;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* Close button styling to match Shop Close (.shop-close) */
 .offline-close-btn {
-    background: #cc3333;
+    /* Mimicking .shop-close from css/ui/shop.css */
+    min-width: 180px; /* Larger width */
+    height: 52px; /* Slightly taller than 44px */
+    border-radius: 0;
+    border: 1px solid hsla(0, 80%, 40%, 0.45);
+    background: hsla(0, 80%, 40%, 0.15);
     color: #fff;
-    border: 2px solid #aa2222;
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 1.2rem;
-    padding: 12px 32px;
+    font-weight: 600;
+    letter-spacing: .2px;
     cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+    font-size: 20px;
 }
+
+.offline-close-btn:hover {
+    background: hsla(0, 80%, 40%, 0.22);
+}
+
 .offline-close-btn:active {
-    transform: translateY(2px);
+    transform: translateY(1px);
+    background: hsla(0, 80%, 40%, 0.28);
 }
-@media (max-width: 600px) {
-    .offline-header { font-size: 1rem; }
-    .offline-time-row { font-size: 0.95rem; }
-    .offline-reward-row { font-size: 0.95rem; }
-    .offline-close-btn { font-size: 1rem; padding: 10px 24px; }
+
+/* Scrollbar styles (if not handled by shopOverlay ensureCustomScrollbar) */
+.offline-content-wrapper::-webkit-scrollbar {
+    width: 8px;
+}
+.offline-content-wrapper::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.3);
+}
+.offline-content-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
 }
