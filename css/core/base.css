@@ -1,5 +1,9 @@
 * { box-sizing: border-box; }
 
+img {
+  user-select: none;
+}
+
 /* === General Page Styling === */
 body {
   margin: 0;
