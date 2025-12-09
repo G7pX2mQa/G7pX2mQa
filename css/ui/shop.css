@@ -267,6 +267,10 @@
   z-index: 3;
 }
 
+.shop-tile .level-badge.text-badge {
+  white-space: nowrap;
+}
+
 .shop-tile .level-badge.two-line{
   height: auto;
   min-height: 22px;
