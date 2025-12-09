@@ -33,10 +33,9 @@
 .offline-header {
     font-size: 32px;
     text-align: center;
-    color: #fff;
+    color: #22d3ee; /* Cyan */
     margin-bottom: 4px;
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    /* Not uppercase per request */
 }
 
 .offline-subheader {
@@ -94,16 +93,24 @@
 }
 
 .offline-icon {
-    width: 1.4em;
-    height: 1.4em;
+    width: 1.0em;
+    height: 1.0em;
     object-fit: contain;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
 
 .offline-text {
-    color: #f1f5f9;
     text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
+
+/* Currency Text Colors */
+.text-coins { color: #ffd700; }
+.text-xp    { color: #7bc0ff; }
+.text-books { color: #d4a373; }
+.text-gold  { color: #ffd700; }
+.text-mp    { color: #ffa726; }
+.text-magic { color: #d8b4fe; }
+.text-gears { color: #e2e8f0; }
 
 .offline-actions {
     display: flex;
@@ -112,27 +119,29 @@
 }
 
 .offline-close-btn {
-    min-width: 200px;
-    height: 52px;
-    border-radius: 8px;
-    border: 1px solid #dc2626; /* Red-600 */
-    background: rgba(220, 38, 38, 0.2);
+    min-width: 180px;
+    height: 44px;
+    border-radius: 0;
+    border: 1px solid hsla(0, 80%, 40%, 0.45);
+    background: hsla(0, 80%, 40%, 0.15);
     color: #fff;
     font-size: 20px;
-    font-weight: 700;
+    font-weight: 600;
+    letter-spacing: .2px;
     cursor: pointer;
-    transition: all 0.2s;
+    touch-action: manipulation;
+    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 
 .offline-close-btn:hover {
-    background: rgba(220, 38, 38, 0.4);
-    transform: translateY(-2px);
+    background: hsla(0, 80%, 40%, 0.22);
     box-shadow: 0 6px 12px rgba(0,0,0,0.4);
 }
 
 .offline-close-btn:active {
     transform: translateY(1px);
+    background: hsla(0, 80%, 40%, 0.28);
 }
 
 /* Scrollbar styling for the dark box */
