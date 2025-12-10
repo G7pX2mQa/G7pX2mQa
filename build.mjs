@@ -424,7 +424,11 @@ function escapeNewlinesPlugin() {
 
 function buildOptions({ minify, sourcemap }) {
   return {
-    entryPoints: { bundle: APP_ENTRY, styles: STYLES_ENTRY },
+    entryPoints: { 
+      bundle: APP_ENTRY, 
+      styles: STYLES_ENTRY,
+      firebase: "js/firebase/firebaseManager.js" 
+    },
     entryNames: "[name]",
     bundle: true,
     outdir: DIST_DIR,
