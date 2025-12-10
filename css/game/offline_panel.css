@@ -148,17 +148,13 @@
 }
 
 /* Scrollbar styling for the dark box */
+.offline-content-wrapper {
+    scrollbar-width: none;
+}
 .offline-content-wrapper::-webkit-scrollbar {
-    width: 10px;
-}
-.offline-content-wrapper::-webkit-scrollbar-track {
-    background: #0f172a;
-    border-radius: 0 8px 8px 0;
-}
-.offline-content-wrapper::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 5px;
-    border: 2px solid #0f172a;
+    width: 0;
+    height: 0;
+    display: none;
 }
 
 @media (pointer: coarse) {
