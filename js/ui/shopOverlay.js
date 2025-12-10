@@ -520,12 +520,13 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
 
 
   const updateBounds = () => {
-    const grab = overlayEl.querySelector('.shop-grabber');
-    const header = overlayEl.querySelector('.shop-header');
-    const actions = overlayEl.querySelector('.shop-actions');
-
-    const top = ((grab?.offsetHeight || 0) + (header?.offsetHeight || 0)) | 0;
-    const bottom = (actions?.offsetHeight || 0) | 0;
+    if (!scroller.isConnected || !sheetEl.isConnected) return;
+    const scrollerRect = scroller.getBoundingClientRect();
+    const sheetRect = sheetEl.getBoundingClientRect();
+    
+    // Calculate relative offsets
+    const top = Math.max(0, scrollerRect.top - sheetRect.top);
+    const bottom = Math.max(0, sheetRect.bottom - scrollerRect.bottom);
 
     bar.style.top = top + 'px';
     bar.style.bottom = bottom + 'px';
