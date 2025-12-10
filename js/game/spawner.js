@@ -3,6 +3,8 @@
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { getMutationState, onMutationChange } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
+import { getLevelNumber } from './upgrades.js';
+import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0n;
@@ -504,7 +506,18 @@ function commitBatch(batch) {
   // ---- Backlog accumulation (mobile cap = 100) ----
   carry += rate * dt;
   const due = carry | 0;
- const cap = isTouch ? MOBILE_BACKLOG_CAP : backlogCap;
+
+  // If "Effective Auto-Collect" is active, disable the "offline burst" behavior
+  // by capping the backlog to a small buffer (enough for active play jitter, but not 600 coins).
+  // We use perFrameBudget + small margin as the active limit.
+  let cap = isTouch ? MOBILE_BACKLOG_CAP : backlogCap;
+  const autoCollectLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) || 0;
+  if (autoCollectLevel > 0) {
+    const activeCap = Math.min(perFrameBudget + 2, 30);
+    if (cap > activeCap) {
+      cap = activeCap;
+    }
+  }
 
   // keep any existing queued clamped to the active cap
   if (queued > cap) queued = cap;
