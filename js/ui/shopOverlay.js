@@ -794,19 +794,94 @@ function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
 function renderShopGrid() {
   const grid = shopOverlayEl?.querySelector('#shop-grid');
   if (!grid) return;
-  grid.innerHTML = '';
 
   const adapter = getAdapter();
+  const seenIds = new Set();
+
+  // If the mode changed, clear grid first to avoid ID collisions
+  if (grid.__lastMode !== currentShopMode) {
+      grid.innerHTML = '';
+      grid.__lastMode = currentShopMode;
+  }
 
   for (const key in upgrades) {
     const upg = upgrades[key];
+    seenIds.add(String(upg.id));
 
-    const btn = document.createElement('button');
-    btn.className = 'shop-upgrade';
-    btn.setAttribute('data-upgid', upg.id);
-    btn.type = 'button';
-    btn.setAttribute('role', 'gridcell');
-    btn.dataset.upgId = String(upg.id);
+    let btn = grid.querySelector(`.shop-upgrade[data-upg-id="${upg.id}"]`);
+    
+    // Create new button if missing
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.className = 'shop-upgrade';
+        btn.setAttribute('data-upgid', upg.id);
+        btn.type = 'button';
+        btn.setAttribute('role', 'gridcell');
+        btn.dataset.upgId = String(upg.id);
+        
+        const tile = document.createElement('div');
+        tile.className = 'shop-tile';
+
+        const baseImg = document.createElement('img');
+        baseImg.className = 'base';
+        baseImg.alt = '';
+        
+        const iconImg = document.createElement('img');
+        iconImg.className = 'icon';
+        iconImg.alt = '';
+        iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
+        
+        // Append basic structure (badge is dynamic)
+        tile.appendChild(baseImg);
+        tile.appendChild(iconImg);
+        btn.appendChild(tile);
+        grid.appendChild(btn);
+        
+        // --- Add Listeners (once) ---
+        
+        btn.addEventListener('click', (event) => {
+            const el = event.currentTarget;
+            if (el.disabled || el.dataset.lockedPlain === '1') {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                return;
+            }
+            if (shouldSkipGhostTap(el)) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                return;
+            }
+            // Use dynamic meta
+            if (el.upgMeta) openUpgradeOverlay(el.upgMeta);
+        });
+
+        btn.addEventListener('contextmenu', (e) => {
+            if (IS_MOBILE) return;
+            const el = e.currentTarget;
+            if (el.dataset.locked === '1') return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Use dynamic adapter and ID
+            const curAdapter = getAdapter();
+            if (!el.upgMeta) return;
+            
+            const { bought } = curAdapter.buyMax(el.upgMeta.id);
+            const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+            
+            if (!boughtBn.isZero?.()) {
+                playPurchaseSfx();
+                if (isForgeUnlockUpgrade(el.upgMeta)) {
+                    try { unlockMerchantTabs(['reset']); } catch {}
+                }
+                updateShopOverlay();
+            }
+        });
+    }
+    
+    // Update Meta
+    btn.upgMeta = upg.meta;
 
     const locked = !!upg.locked;
     const lockIcon = upg.lockState?.iconOverride;
@@ -878,133 +953,126 @@ function renderShopGrid() {
         : `${upg.title} (Locked)`;
       btn.setAttribute('aria-label', ariaLabel);
     } else {
-  if (showUnlockableBadge || showUnlockedBadge) {
-    badgeHtml = showUnlockableBadge ? 'Unlockable' : 'Unlocked';
-    badgePlain = badgeHtml;
-    isTextBadge = true;
-    btn.setAttribute('aria-label', `${upg.title}, ${badgePlain}`);
-  } else if (!locked && isSingleLevelCap && !isUnlockUpgrade) {
-    if (capReached) {
-      badgeHtml = 'Owned';
-      badgePlain = 'Owned';
-    } else if (hasPlus) {
-      badgeHtml = 'Purchasable';
-      badgePlain = 'Purchasable';
-    } else {
-      badgeHtml = 'Not Owned';
-      badgePlain = 'Not Owned';
-    }
-    isTextBadge = true;
-    btn.setAttribute('aria-label', `${upg.title}, ${badgePlain}`);
-  } else {
-    const numericLevel = Number.isFinite(upg.levelNumeric) ? upg.levelNumeric : NaN;
-    const plainDigits  = String(levelPlain || '').replace(/,/g, '');
-    const isInf        = /∞|Infinity/i.test(plainDigits);
-    const over999      = Number.isFinite(numericLevel)
-      ? numericLevel >= 1000
-      : (isInf || /^\d{4,}$/.test(plainDigits));
-
-    needsTwoLines = hasPlus && over999;
-
-    if (needsTwoLines) {
-      const lvlSpan  = `<span class="badge-lvl">${levelHtml}</span>`;
-      const plusSpan = `<span class="badge-plus">(+${plusHtml})</span>`;
-      badgeHtml  = `${lvlSpan}${plusSpan}`;
-      badgePlain = `${levelPlain} (+${plusPlain})`;
-    } else {
-      badgeHtml  = hasPlus ? `${levelHtml} (+${plusHtml})` : levelHtml;
-      badgePlain = hasPlus ? `${levelPlain} (+${plusPlain})` : levelPlain;
-    }
-    btn.setAttribute('aria-label', `${upg.title}, level ${badgePlain}`);
-  }
-}
-
-        if (locked) {
-          btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
-        } else if (upg.meta?.unlockUpgrade) {
-          btn.title = 'Left-click: Details • Right-click: Unlock';
+      if (showUnlockableBadge || showUnlockedBadge) {
+        badgeHtml = showUnlockableBadge ? 'Unlockable' : 'Unlocked';
+        badgePlain = badgeHtml;
+        isTextBadge = true;
+        btn.setAttribute('aria-label', `${upg.title}, ${badgePlain}`);
+      } else if (!locked && isSingleLevelCap && !isUnlockUpgrade) {
+        if (capReached) {
+          badgeHtml = 'Owned';
+          badgePlain = 'Owned';
+        } else if (hasPlus) {
+          badgeHtml = 'Purchasable';
+          badgePlain = 'Purchasable';
         } else {
-          btn.title = 'Left-click: Details • Right-click: Buy Max';
+          badgeHtml = 'Not Owned';
+          badgePlain = 'Not Owned';
         }
+        isTextBadge = true;
+        btn.setAttribute('aria-label', `${upg.title}, ${badgePlain}`);
+      } else {
+        const numericLevel = Number.isFinite(upg.levelNumeric) ? upg.levelNumeric : NaN;
+        const plainDigits  = String(levelPlain || '').replace(/,/g, '');
+        const isInf        = /∞|Infinity/i.test(plainDigits);
+        const over999      = Number.isFinite(numericLevel)
+          ? numericLevel >= 1000
+          : (isInf || /^\d{4,}$/.test(plainDigits));
+    
+        needsTwoLines = hasPlus && over999;
+    
+        if (needsTwoLines) {
+          const lvlSpan  = `<span class="badge-lvl">${levelHtml}</span>`;
+          const plusSpan = `<span class="badge-plus">(+${plusHtml})</span>`;
+          badgeHtml  = `${lvlSpan}${plusSpan}`;
+          badgePlain = `${levelPlain} (+${plusPlain})`;
+        } else {
+          badgeHtml  = hasPlus ? `${levelHtml} (+${plusHtml})` : levelHtml;
+          badgePlain = hasPlus ? `${levelPlain} (+${plusPlain})` : levelPlain;
+        }
+        btn.setAttribute('aria-label', `${upg.title}, level ${badgePlain}`);
+      }
+    }
 
-    const tile = document.createElement('div');
-    tile.className = 'shop-tile';
+    if (locked) {
+      btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
+    } else if (upg.meta?.unlockUpgrade) {
+      btn.title = 'Left-click: Details • Right-click: Unlock';
+    } else {
+      btn.title = 'Left-click: Details • Right-click: Buy Max';
+    }
 
-    const baseImg = document.createElement('img');
-    baseImg.className = 'base';
+    // --- Update DOM Structure ---
+    const tile = btn.firstElementChild; // .shop-tile
+    
+    // Images
+    const baseImg = tile.querySelector('.base');
+    const iconImg = tile.querySelector('.icon');
+    
     const costType = upg.meta?.costType || 'coins';
     const useLockedBase = upg.useLockedBase || locked;
     const fallbackBaseSrc = BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins;
     const resolvedBaseSrc = upg.baseIconOverride || fallbackBaseSrc;
-    baseImg.src = useLockedBase
-      ? LOCKED_BASE_ICON_SRC
-      : resolvedBaseSrc;
-    baseImg.alt = '';
+    const baseSrc = useLockedBase ? LOCKED_BASE_ICON_SRC : resolvedBaseSrc;
+    
+    if (baseImg.src !== baseSrc) baseImg.src = baseSrc;
+    
+    const iconSrc = upg.icon || TRANSPARENT_PX;
+    // Only update if changed to avoid flicker
+    if (iconImg._lastSrc !== iconSrc) {
+        iconImg.src = iconSrc;
+        iconImg._lastSrc = iconSrc;
+    }
 
-    const iconImg = document.createElement('img');
-    iconImg.className = 'icon';
-    iconImg.src = upg.icon || TRANSPARENT_PX;
-    iconImg.alt = '';
-    iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
-
-    btn.addEventListener('click', (event) => {
-      if (btn.disabled || isPlainLocked) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        return;
-      }
-      if (shouldSkipGhostTap(btn)) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        return;
-      }
-      openUpgradeOverlay(upg.meta);
-    });
-
-    btn.addEventListener('contextmenu', (e) => {
-      if (IS_MOBILE) return;
-      if (locked) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const { bought } = adapter.buyMax(upg.id);
-      const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
-      if (!boughtBn.isZero?.()) {
-        playPurchaseSfx();
-        if (isForgeUnlockUpgrade(upg.meta)) {
-          try { unlockMerchantTabs(['reset']); } catch {}
-        }
-        updateShopOverlay();
-      }
-    });
-
-    tile.appendChild(baseImg);
+    // Maxed Overlay
+    let maxedOverlay = tile.querySelector('.maxed-overlay');
     if (!locked && capReached) {
-      const maxedOverlay = document.createElement('img');
-      maxedOverlay.className = 'maxed-overlay';
-      maxedOverlay.src = MAXED_BASE_OVERLAY_SRC;
-      maxedOverlay.alt = '';
-      tile.appendChild(maxedOverlay);
+        if (!maxedOverlay) {
+            maxedOverlay = document.createElement('img');
+            maxedOverlay.className = 'maxed-overlay';
+            maxedOverlay.src = MAXED_BASE_OVERLAY_SRC;
+            maxedOverlay.alt = '';
+            // Insert after base
+            tile.insertBefore(maxedOverlay, iconImg);
+        }
+    } else {
+        if (maxedOverlay) maxedOverlay.remove();
     }
-    tile.appendChild(iconImg);
-
+    
+    // Badge
+    let badge = tile.querySelector('.level-badge');
     if (!locked) {
-      const badge = document.createElement('span');
-      badge.className = 'level-badge';
-      if (isTextBadge) badge.classList.add('text-badge');
-      if (needsTwoLines) badge.classList.add('two-line');
-
-      if (badgeHtml === badgePlain) {
-        badge.textContent = badgeHtml;
-      } else {
-        badge.innerHTML = badgeHtml;
-      }
-      if (hasPlus || showUnlockableBadge) badge.classList.add('can-buy');
-      if (capReached) badge.classList.add('is-maxed');
-      tile.appendChild(badge);
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'level-badge';
+            tile.appendChild(badge);
+        }
+        
+        // Classes
+        badge.className = 'level-badge'; // reset
+        if (isTextBadge) badge.classList.add('text-badge');
+        if (needsTwoLines) badge.classList.add('two-line');
+        if (hasPlus || showUnlockableBadge) badge.classList.add('can-buy');
+        if (capReached) badge.classList.add('is-maxed');
+        
+        // Content
+        if (badgeHtml === badgePlain) {
+            if (badge.textContent !== badgeHtml) badge.textContent = badgeHtml;
+        } else {
+            // Check if HTML actually changed
+            if (badge.innerHTML !== badgeHtml) badge.innerHTML = badgeHtml;
+        }
+    } else {
+        if (badge) badge.remove();
     }
-    btn.appendChild(tile);
-    grid.appendChild(btn);
   }
+  
+  // Cleanup stale buttons
+  Array.from(grid.children).forEach(child => {
+      if (child.dataset.upgId && !seenIds.has(child.dataset.upgId)) {
+          child.remove();
+      }
+  });
 }
 
 // ---------- Overlay ----------
