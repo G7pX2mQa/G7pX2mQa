@@ -168,36 +168,5 @@
       </nav>
     </main>
     <script src="./bundle.js"></script>
-
-    <div id="firebase-ui">
-        <div id="auth-forms">
-            <h4>Login / Sign Up</h4>
-            <input type="email" id="email-input" placeholder="Email">
-            <input type="password" id="pass-input" placeholder="Password">
-            <div class="auth-btn-group">
-                <button class="btn-login" onclick="loginWithEmail()">Login</button>
-                <button class="btn-signup" onclick="registerWithEmail()">Sign Up</button>
-            </div>
-            <button class="btn-google" onclick="loginWithGoogle()">G Sign in with Google</button>
-        </div>
-
-        <div id="user-panel" style="display: none;">
-            <p id="user-info"></p>
-            
-            <button class="btn-save" onclick="saveUserScore()">
-                🏆 Save High Score
-            </button>
-            
-            <div class="leaderboard-section">
-                <h5>🏆 Leaderboard (Top 10)</h5>
-                <ul id="leaderboard-list">
-                    <li>Loading...</li>
-                </ul>
-            </div>
-
-            <hr style="border-color: #555; margin: 15px 0;">
-            <button class="btn-logout" onclick="logout()">Logout</button>
-        </div>
-    </div>
   </body>
 </html>
