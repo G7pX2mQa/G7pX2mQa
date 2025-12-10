@@ -388,6 +388,10 @@ function isDebugLocked(key) {
   }
 }
 
+export function isStorageKeyLocked(key) {
+  return isDebugLocked(key);
+}
+
 export function getSlotSignatureKey(slot = getActiveSlot()) {
   return slotSignatureKey(slot);
 }
