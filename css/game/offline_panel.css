@@ -80,6 +80,11 @@
     background: transparent; /* Clean look inside the dark box */
 }
 
+.offline-row .infinity-symbol {
+  position: relative;
+  top: -0.5px;
+}
+
 .offline-plus {
     color: #94a3b8;
     margin-right: -4px;
