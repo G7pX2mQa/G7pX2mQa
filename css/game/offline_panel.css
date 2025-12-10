@@ -136,7 +136,6 @@
 
 .offline-close-btn:active {
     transform: translateY(1px);
-    background: hsla(0, 80%, 40%, 0.28);
 }
 
 /* Scrollbar styling for the dark box */
