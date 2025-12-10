@@ -4,8 +4,7 @@ import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { bank, CURRENCIES, getActiveSlot, watchStorageKey } from '../../util/storage.js';
 import { registerTick } from '../../game/gameLoop.js';
-import { openAutomationShop } from '../shopOverlayAutomation.js';
-import { playPurchaseSfx } from '../shopOverlay.js';
+import { openShop, playPurchaseSfx } from '../shopOverlay.js';
 import { hasDoneInfuseReset } from './resetTab.js';
 import { bigNumFromLog10 } from '../../game/upgrades.js';
 import { IS_MOBILE } from '../../main.js';
@@ -14,7 +13,7 @@ const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
 const GEAR_HUD_ICON_SRC = 'img/currencies/gear/gear_plus_base.webp';
 const COIN_ICON_SRC = 'img/currencies/coin/coin.webp';
 
-const MAX_GEAR_DECORATIONS = 300;
+const MAX_GEAR_DECORATIONS = 100;
 
 let workshopEl = null;
 let initialized = false;
@@ -350,7 +349,7 @@ function buildWorkshopUI(container) {
 
   const automationBtn = container.querySelector('.btn-automation-shop');
   automationBtn.addEventListener('click', () => {
-    openAutomationShop();
+    openShop('automation');
   });
 
   // Init button size sync and Gear Bounds Sync
