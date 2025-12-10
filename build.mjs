@@ -249,8 +249,7 @@ function collectOutputsByType(metafile) {
 function injectAssets(template, { scripts, styles, minify }) {
   let output = template
     .replace(/<link[^>]+href="\.\/styles\.css"[^>]*>\s*/g, "")
-    .replace(/<script[^>]+src="\.\/bundle\.js"[^>]*><\/script>\s*/g, "")
-    .replace(/<script[^>]+src="\.\/firebase\.js"[^>]*><\/script>\s*/g, "");
+    .replace(/<script[^>]+src="\.\/bundle\.js"[^>]*><\/script>\s*/g, "");
 
   const styleTags = styles
     .map((file) => `  <link rel="stylesheet" href="./${file}">`)
@@ -425,11 +424,7 @@ function escapeNewlinesPlugin() {
 
 function buildOptions({ minify, sourcemap }) {
   return {
-    entryPoints: { 
-      bundle: APP_ENTRY, 
-      styles: STYLES_ENTRY,
-      firebase: "js/firebase/firebaseManager.js" 
-    },
+    entryPoints: { bundle: APP_ENTRY, styles: STYLES_ENTRY },
     entryNames: "[name]",
     bundle: true,
     outdir: DIST_DIR,
