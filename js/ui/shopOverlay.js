@@ -34,12 +34,7 @@ import {
   shouldSkipGhostTap,
   suppressNextGhostTap,
 } from '../util/ghostTapGuard.js';
-import {
-    getAutomationUpgradesAdapterData,
-    buyAutomationUpgrade,
-    buyMaxAutomationUpgrade,
-    getAutomationUiModel
-} from '../game/automationUpgrades.js';
+import { AUTOMATION_AREA_KEY } from '../game/automationUpgrades.js';
 
 
 let shopOverlayEl = null;
@@ -55,43 +50,44 @@ let __shopPostOpenPointer = false;
 // Mode state: 'standard' or 'automation'
 let currentShopMode = 'standard';
 
+function getShopUiData(areaKey) {
+    const defs = getUpgradesForArea(areaKey);
+    const upgrades = {};
+    for (const def of defs) {
+        const lvlBn = getLevel(areaKey, def.id);
+        const lvlNum = getLevelNumber(areaKey, def.id);
+        const lockState = getUpgradeLockState(areaKey, def.id);
+        const icon = lockState.iconOverride ?? getIconUrl(def);
+        const title = lockState.titleOverride ?? def.title;
+        const desc = lockState.descOverride ?? def.desc;
+        const locked = !!lockState.locked;
+        const hmReady = (def.upgType === 'HM')
+            ? !!upgradeUiModel(areaKey, def.id)?.hmReadyToEvolve
+            : false;
+        upgrades[def.id] = {
+            id: def.id,
+            icon,
+            title,
+            desc,
+            level: lvlBn,
+            levelNumeric: lvlNum,
+            area: def.area,
+            meta: def,
+            locked,
+            lockState,
+            useLockedBase: !!lockState.useLockedBase || locked,
+            baseIconOverride: def.baseIconOverride || lockState.baseIconOverride || null,
+            hmReady,
+        };
+    }
+    return upgrades;
+}
+
 const SHOP_ADAPTERS = {
     standard: {
         title: 'Shop',
         delveButtonVisible: true,
-        getUiData: () => {
-            const areaKey = getCurrentAreaKey();
-            const defs = getUpgradesForArea(areaKey);
-            const upgrades = {};
-            for (const def of defs) {
-                const lvlBn = getLevel(areaKey, def.id);
-                const lvlNum = getLevelNumber(areaKey, def.id);
-                const lockState = getUpgradeLockState(areaKey, def.id);
-                const icon = lockState.iconOverride ?? getIconUrl(def);
-                const title = lockState.titleOverride ?? def.title;
-                const desc = lockState.descOverride ?? def.desc;
-                const locked = !!lockState.locked;
-                const hmReady = (def.upgType === 'HM')
-                    ? !!upgradeUiModel(areaKey, def.id)?.hmReadyToEvolve
-                    : false;
-                upgrades[def.id] = {
-                    id: def.id,
-                    icon,
-                    title,
-                    desc,
-                    level: lvlBn,
-                    levelNumeric: lvlNum,
-                    area: def.area,
-                    meta: def,
-                    locked,
-                    lockState,
-                    useLockedBase: !!lockState.useLockedBase || locked,
-                    baseIconOverride: def.baseIconOverride || lockState.baseIconOverride || null,
-                    hmReady,
-                };
-            }
-            return upgrades;
-        },
+        getUiData: () => getShopUiData(getCurrentAreaKey()),
         getUiModel: (id) => upgradeUiModel(getCurrentAreaKey(), id),
         buyOne: (id) => buyOne(getCurrentAreaKey(), id),
         buyMax: (id) => buyMax(getCurrentAreaKey(), id),
@@ -103,14 +99,14 @@ const SHOP_ADAPTERS = {
     automation: {
         title: 'Automation Shop',
         delveButtonVisible: false,
-        getUiData: () => getAutomationUpgradesAdapterData(),
-        getUiModel: (id) => getAutomationUiModel(id),
-        buyOne: (id) => buyAutomationUpgrade(id),
-        buyMax: (id) => buyMaxAutomationUpgrade(id),
-        buyNext: () => ({ bought: BigNum.fromInt(0) }), // Not supported yet
-        getLockState: () => ({ locked: false }),
+        getUiData: () => getShopUiData(AUTOMATION_AREA_KEY),
+        getUiModel: (id) => upgradeUiModel(AUTOMATION_AREA_KEY, id),
+        buyOne: (id) => buyOne(AUTOMATION_AREA_KEY, id),
+        buyMax: (id) => buyMax(AUTOMATION_AREA_KEY, id),
+        buyNext: (id, amount) => buyTowards(AUTOMATION_AREA_KEY, id, amount),
+        getLockState: (id) => getUpgradeLockState(AUTOMATION_AREA_KEY, id),
         evolve: () => ({ evolved: false }),
-        events: ['ccc:automation:changed', 'currency:change']
+        events: ['ccc:upgrades:changed', 'currency:change']
     }
 };
 
@@ -1943,6 +1939,7 @@ let activeShopUpdateHandler = null;
 export function openShop(mode = 'standard') {
   ensureShopOverlay();
 
+  const modeChanged = currentShopMode !== mode;
   currentShopMode = mode;
   const adapter = getAdapter();
 
@@ -1991,7 +1988,7 @@ export function openShop(mode = 'standard') {
   if (typeof updateDelveGlow === 'function') updateDelveGlow();
   updateShopOverlay(true);
 
-  if (shopOpen) return;
+  if (shopOpen && !modeChanged) return;
 
   shopOpen = true;
   shopSheetEl.style.transition = 'none';
@@ -2002,7 +1999,7 @@ export function openShop(mode = 'standard') {
   void shopSheetEl.offsetHeight;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      shopSheetEl.style.transition = '';
+      shopSheetEl.style.transfom = '';
       shopOverlayEl.classList.add('is-open');
 
       __shopOpenStamp = performance.now(); // harmless to keep
