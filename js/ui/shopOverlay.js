@@ -1834,6 +1834,12 @@ export function openShop(mode = 'standard') {
   currentShopMode = mode;
   const adapter = getAdapter();
 
+  if (mode === 'automation') {
+    shopOverlayEl.classList.add('automation-shop-overlay');
+  } else {
+    shopOverlayEl.classList.remove('automation-shop-overlay');
+  }
+
   if (shopCloseTimer) {
     clearTimeout(shopCloseTimer);
     shopCloseTimer = null;
