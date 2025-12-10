@@ -7,7 +7,8 @@ import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { ensureCustomScrollbar } from '../ui/shopOverlay.js';
 import { IS_MOBILE } from '../main.js';
-import { getAutomationCoinRate } from './automationUpgrades.js';
+import { getLevelNumber } from './upgrades.js';
+import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
 import { getPassiveCoinReward } from './coinPickup.js';
 import { addXp } from './xpSystem.js';
 import { addMutationPower } from './mutationSystem.js';
@@ -184,9 +185,9 @@ export function processOfflineProgress() {
         if (bank.gears) bank.gears.add(rewards.gears);
     }
 
-    const autoRate = getAutomationCoinRate ? getAutomationCoinRate() : 0;
-    if (autoRate > 0) {
-        const totalPassives = Math.floor(autoRate * seconds);
+    const autoLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) || 0;
+    if (autoLevel > 0) {
+        const totalPassives = Math.floor(autoLevel * seconds);
         if (totalPassives > 0) {
             const singleReward = getPassiveCoinReward();
             const coinsEarned = singleReward.coins.mulBigNumInteger(BigNum.fromInt(totalPassives));
