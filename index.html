@@ -168,5 +168,126 @@
       </nav>
     </main>
     <script src="./bundle.js"></script>
+	<script type="module">
+  // 1. Import BOTH Authentication and Firestore
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+
+  // 2. YOUR CONFIG (I copied this from your screenshot)
+  const firebaseConfig = {
+    apiKey: "AIzaSyA9x_8eumoHuC9G5YQITElvlRmjEjpBDo0", 
+    authDomain: "ccc-firebase-cf0ef.firebaseapp.com",
+    projectId: "ccc-firebase-cf0ef",
+    storageBucket: "ccc-firebase-cf0ef.firebasestorage.app",
+    messagingSenderId: "398214123922",
+    appId: "1:398214123922:web:0583d13fbf6ed44a6d314b",
+    measurementId: "G-3X6HK77SB7"
+  };
+
+  // 3. Initialize Everything
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  let currentUser = null; // We will store the logged-in user here
+
+  // --- LOGIN FUNCTION ---
+  window.loginWithGoogle = async () => {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      currentUser = result.user;
+      console.log("User signed in:", currentUser.displayName);
+      alert(`Welcome, ${currentUser.displayName}!`);
+      loadGameState(); // Automatically load their save when they login
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  };
+
+  // --- SAVE GAME STATE ---
+  // Call this whenever you want to save progress
+  window.saveGameState = async (coins, upgrades) => {
+    if (!currentUser) {
+      alert("You must be logged in to save!");
+      return;
+    }
+
+    try {
+      // We create a document named after their unique User ID (uid)
+      // This ensures Player A cannot overwrite Player B's save
+      await setDoc(doc(db, "players", currentUser.uid), {
+        coins: coins,
+        upgrades: upgrades,
+        lastSaved: Date.now()
+      });
+      console.log("Game Saved!");
+    } catch (e) {
+      console.error("Error saving: ", e);
+    }
+  };
+
+  // --- LOAD GAME STATE ---
+  window.loadGameState = async () => {
+    if (!currentUser) return;
+
+    const docRef = doc(db, "players", currentUser.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      console.log("Save found:", data);
+      
+      // HERE: Update your actual game variables
+      // e.g., game.coins = data.coins;
+      alert(`Loaded save! Coins: ${data.coins}`);
+    } else {
+      console.log("No save file found for this user.");
+    }
+  };
+  
+  // OPTIONAL: Check if they are already logged in (if they refresh page)
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user;
+      document.getElementById("login-btn").style.display = "none"; // Hide login button
+      document.getElementById("user-info").innerText = `Signed in as: ${user.displayName}`;
+      loadGameState();
+    }
+  });
+
+</script>
+
+<div id="firebase-ui" style="
+    position: fixed; 
+    top: 10px; 
+    left: 10px; 
+    z-index: 10000; 
+    background-color: rgba(0, 0, 0, 0.7); 
+    padding: 15px; 
+    border-radius: 8px; 
+    color: white; 
+    font-family: sans-serif;
+">
+    
+    <button id="login-btn" onclick="loginWithGoogle()" style="
+        padding: 8px 12px; 
+        cursor: pointer; 
+        font-weight: bold;
+    ">
+        Login with Google
+    </button>
+
+    <p id="user-info" style="margin: 10px 0; font-size: 14px; color: #eee;"></p>
+
+    <button onclick="saveGameState(100, ['upgrade1', 'upgrade2'])" style="
+        padding: 5px 10px; 
+        cursor: pointer;
+    ">
+        Test Save
+    </button>
+
+</div>
   </body>
 </html>
