@@ -33,7 +33,7 @@ export const REGISTRY = [
     area: AUTOMATION_AREA_KEY,
     id: AUTOBUY_COIN_UPGRADES_ID,
     title: 'Autobuy Coin Upgrades',
-    desc: 'Automatically buys Coin upgrades, but with a twist:\nBuys without spending currency, provided you can afford the upgrade cost\nWhich basically means the autobuyer will never take away your currency\nThis is how all future autobuyer upgrades will work',
+    desc: 'Automatically buys Coin upgrades, but with a twist:\nBuys without spending currency, provided you can afford the upgrade cost\nWhich basically means the autobuyer will never take away your currency\nThis is how all future autobuyers will work',
     icon: 'img/sc_upg_icons/coin_autobuy.webp',
     lvlCap: 1,
     baseCost: 1000,
