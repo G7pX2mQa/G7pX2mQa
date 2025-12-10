@@ -1,0 +1,125 @@
+#firebase-ui {
+    position: fixed; 
+    top: 10px; 
+    left: 10px; 
+    z-index: 10000; 
+    background-color: rgba(0, 0, 0, 0.85); 
+    padding: 15px; 
+    border-radius: 8px; 
+    color: white; 
+    font-family: sans-serif;
+    width: 280px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+#firebase-ui h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #555;
+    padding-bottom: 8px;
+    text-align: center;
+}
+
+#firebase-ui input {
+    width: 100%; 
+    margin-bottom: 8px; 
+    box-sizing: border-box;
+    padding: 8px;
+    background: #222;
+    border: 1px solid #444;
+    color: white;
+    border-radius: 4px;
+}
+
+#firebase-ui button {
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    border: none;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+#firebase-ui button:hover {
+    filter: brightness(1.2);
+}
+
+.auth-btn-group {
+    display: flex; 
+    gap: 5px; 
+    margin-bottom: 10px;
+}
+
+.btn-login {
+    flex: 1;
+    background: #4CAF50;
+    color: white;
+}
+
+.btn-signup {
+    flex: 1;
+    background: #2196F3;
+    color: white;
+}
+
+.btn-google {
+    width: 100%; 
+    background: #db4437; 
+    color: white;
+    margin-top: 5px;
+}
+
+.btn-save {
+    width: 100%; 
+    margin-bottom: 10px; 
+    background: #FF9800; 
+    color: white;
+}
+
+.btn-logout {
+    width: 100%; 
+    background: #555; 
+    color: white;
+}
+
+#user-info {
+    margin: 0 0 15px 0; 
+    font-size: 13px; 
+    color: #81c784;
+    text-align: center;
+    word-break: break-all;
+}
+
+/* Leaderboard Styles */
+.leaderboard-section {
+    margin-top: 20px;
+    border-top: 1px solid #555;
+    padding-top: 10px;
+}
+
+.leaderboard-section h5 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #ddd;
+    text-align: center;
+}
+
+#leaderboard-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 12px;
+}
+
+#leaderboard-list li {
+    padding: 4px 0;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+}
+
+#leaderboard-list li:last-child {
+    border-bottom: none;
+}
