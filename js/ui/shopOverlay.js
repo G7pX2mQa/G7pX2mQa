@@ -1384,7 +1384,22 @@ export function openUpgradeOverlay(upgDef) {
   
   // -- Helper for Non-Destructive Update --
   function ensureChild(parent, className, tagName = 'div') {
-      let el = parent.querySelector(`:scope > .${className.split(' ').join('.')}`);
+      const targetClasses = className.split(' ').filter(c => c.length > 0);
+      let el = null;
+      const extras = [];
+
+      for (let i = 0; i < parent.children.length; i++) {
+          const child = parent.children[i];
+          if (tagName && child.tagName.toLowerCase() !== tagName.toLowerCase()) continue;
+          if (targetClasses.every(cls => child.classList.contains(cls))) {
+              if (!el) el = child;
+              else extras.push(child);
+          }
+      }
+
+      // Remove duplicates if any exist (self-healing)
+      extras.forEach(e => e.remove());
+
       if (!el) {
           el = document.createElement(tagName);
           el.className = className;
