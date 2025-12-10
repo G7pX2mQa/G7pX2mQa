@@ -1,12 +1,25 @@
 import { registerTick } from './gameLoop.js';
-import { getLevelNumber } from './upgrades.js';
+import { getLevelNumber, performFreeAutobuy, getUpgradesForArea, AREA_KEYS } from './upgrades.js';
 import { triggerPassiveCollect } from './coinPickup.js';
-import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
+import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID, AUTOBUY_COIN_UPGRADES_ID } from './automationUpgrades.js';
 
 let accumulator = 0;
 
 function onTick(dt) {
   updateAutomation(dt);
+  updateAutobuyers(dt);
+}
+
+function updateAutobuyers(dt) {
+  const autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_COIN_UPGRADES_ID);
+  if (autobuyLevel <= 0) return;
+
+  const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
+  for (const upg of upgrades) {
+    if (upg.costType === 'coins') {
+      performFreeAutobuy(AREA_KEYS.STARTER_COVE, upg.id);
+    }
+  }
 }
 
 export function updateAutomation(dt) {
