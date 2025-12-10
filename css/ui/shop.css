@@ -932,8 +932,7 @@
   grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
-.upg-sheet.is-hm-upgrade .upg-content,
-.upg-sheet.is-automation-upgrade .upg-content {
+.upg-sheet.is-hm-upgrade .upg-content {
   align-items: stretch;
   justify-content: flex-start;
   padding: 12px 18px 16px;
