@@ -110,9 +110,11 @@
 
 .text-coins { color: #ffd700; }
 .text-xp    { color: #7bc0ff; }
+.text-xp_levels { color: #7bc0ff; }
 .text-books { color: #d4a373; }
 .text-gold  { color: #ffd700; }
 .text-mp    { color: #ffa726; }
+.text-mp_levels { color: #ffa726; }
 .text-magic { color: #d8b4fe; }
 .text-gears { color: #94a3b8; }
 
