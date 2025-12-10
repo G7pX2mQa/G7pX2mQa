@@ -1999,27 +1999,29 @@ export function openShop(mode = 'standard') {
   shopOverlayEl.style.pointerEvents = 'auto';
 
   void shopSheetEl.offsetHeight;
-requestAnimationFrame(() => {
-shopSheetEl.style.transition = '';
-shopOverlayEl.classList.add('is-open');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      shopSheetEl.style.transition = '';
+      shopOverlayEl.classList.add('is-open');
 
-__shopOpenStamp = performance.now(); // harmless to keep
-__shopPostOpenPointer = false;
+      __shopOpenStamp = performance.now(); // harmless to keep
+      __shopPostOpenPointer = false;
 
-// Optional now; can keep or delete
-if (IS_MOBILE) {
-  try {
-    setTimeout(() => suppressNextGhostTap(240), 120);
-  } catch {}
-}
+      // Optional now; can keep or delete
+      if (IS_MOBILE) {
+        try {
+          setTimeout(() => suppressNextGhostTap(240), 120);
+        } catch {}
+      }
 
-  blockInteraction(10);
-  ensureCustomScrollbar(shopOverlayEl, shopSheetEl);
-  const focusable =
-    shopOverlayEl.querySelector('#shop-grid .shop-upgrade') ||
-    shopOverlayEl.querySelector('#shop-grid');
-  if (focusable) focusable.focus();
-});
+      blockInteraction(10);
+      ensureCustomScrollbar(shopOverlayEl, shopSheetEl);
+      const focusable =
+        shopOverlayEl.querySelector('#shop-grid .shop-upgrade') ||
+        shopOverlayEl.querySelector('#shop-grid');
+      if (focusable) focusable.focus();
+    });
+  });
 }
 
 export function closeShop(force = false) {
