@@ -18,6 +18,8 @@ const REGISTRY = [
     lvlCap: 20,
     baseCost: 100, // Gears
     costType: 'gears',
+    costAtLevel(level) { return getCost(this, level); },
+    scaling: { ratio: 2 },
   }
 ];
 
