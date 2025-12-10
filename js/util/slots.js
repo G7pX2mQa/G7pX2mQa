@@ -1,4 +1,5 @@
 import { BigNum } from './bigNum.js';
+import { formatNumber } from './numFormat.js';
 import { isDeleteMode } from './slotsManager.js';
 import {
   setHasOpenedSaveSlot,
@@ -14,12 +15,12 @@ function hasSlotData(slot) {
 }
 
 function coinsTextFor(slot) {
-  if (!hasSlotData(slot)) return 'No save data';
+  if (!hasSlotData(slot)) return 'No Save Data';
   try {
     const bn = peekCurrency(slot, 'coins'); // BigNum
-    return `Coins: ${bn.toString()}`;
+    return formatNumber(bn);
   } catch {
-    return 'Coins: 0';
+    return '0';
   }
 }
 
@@ -29,7 +30,10 @@ function renderSlotCards() {
     const slot = idx + 1;
     const titleEl = btn.querySelector('.slot-title');
 
-    if (titleEl) titleEl.textContent = coinsTextFor(slot);
+    if (titleEl) {
+      const text = coinsTextFor(slot);
+      titleEl.innerHTML = `<img src="img/currencies/coin/coin.webp" class="coin-slot-icon-img" alt=""> ${text}`;
+    }
 
     btn.dataset.slot = String(slot);
   });
