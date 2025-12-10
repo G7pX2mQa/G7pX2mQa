@@ -50,13 +50,29 @@
     background: #020617; /* Very dark blue/black */
     border: 2px solid #002329;
     margin-bottom: 24px;
-    overflow-y: auto;
     position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+}
+
+.offline-scroll-container {
+    flex: 1;
+    overflow-y: auto;
     padding: 16px;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    /* Hide scrollbar */
+    scrollbar-width: none;
+}
+.offline-scroll-container::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
 }
 
 .offline-list {
@@ -145,16 +161,6 @@
 
 .offline-close-btn:active {
     transform: translateY(1px);
-}
-
-/* Scrollbar styling for the dark box */
-.offline-content-wrapper {
-    scrollbar-width: none;
-}
-.offline-content-wrapper::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: none;
 }
 
 @media (pointer: coarse) {
