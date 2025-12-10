@@ -1995,7 +1995,8 @@ export function openShop(mode = 'standard') {
 
   shopOpen = true;
   shopSheetEl.style.transition = 'none';
-  shopSheetEl.style.transform = '';
+  // Explicitly set the start transform to ensure the browser registers the "before" state
+  shopSheetEl.style.transform = 'translateY(100%)';
   shopOverlayEl.style.pointerEvents = 'auto';
 
   void shopSheetEl.offsetHeight;
