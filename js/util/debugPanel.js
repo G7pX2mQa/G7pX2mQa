@@ -1911,6 +1911,7 @@ function buildAreaUpgrades(container, area) {
         const idLabel = upg.id ?? upg.tie ?? upg.tieKey;
         const title = upg.title || `Upgrade ${idLabel ?? ''}`.trim();
         const current = getLevel(area.key, upg.id ?? upg.tie);
+        const storageKey = `ccc:upgrades:${area.key}:${slot}`;
         const upgradeRow = createInputRow(title, current, (value, { setValue }) => {
             const latestSlot = getActiveSlot();
             if (latestSlot == null) return;
@@ -1922,7 +1923,7 @@ function buildAreaUpgrades(container, area) {
                 flagDebugUsage();
                 logAction(`Modified ${title} (${areaLabel} - ID: ${idLabel ?? 'Unknown'}) Lv${formatNumber(previous)} → Lv${formatNumber(refreshed)}`);
             }
-        }, { idLabel });
+        }, { idLabel, storageKey });
         registerLiveBinding({
             type: 'upgrade',
             slot,
