@@ -21,6 +21,7 @@ import {
   isInfuseUnlocked,
   hasDoneInfuseReset,
 } from '../ui/merchantTabs/resetTab.js';
+import { REGISTRY as AUTOMATION_REGISTRY, AUTOMATION_AREA_KEY } from './automationUpgrades.js';
 
 export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
 
@@ -30,6 +31,7 @@ const DEFAULT_AREA_KEY = '';
 
 export const AREA_KEYS = {
   STARTER_COVE: 'starter_cove',
+  AUTOMATION: AUTOMATION_AREA_KEY,
 };
 
 function hasScaling(upg) {
@@ -2746,8 +2748,9 @@ export const REGISTRY = [
     },
     effectMultiplier: E.powPerLevel(1.1),
   },
-];
+  ...AUTOMATION_REGISTRY,
 
+];
 for (const upg of REGISTRY) {
   const tieKey = normalizeUpgradeTie(upg.tie ?? upg.tieKey);
   if (tieKey && !upgradeTieLookup.has(tieKey)) {
