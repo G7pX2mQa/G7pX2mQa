@@ -76,6 +76,9 @@ function createOfflinePanel(rewards, offlineMs) {
 
     const contentWrapper = document.createElement('div');
     contentWrapper.className = 'offline-content-wrapper';
+	
+	const scrollContainer = document.createElement('div');
+    scrollContainer.className = 'offline-scroll-container';
     
     const list = document.createElement('div');
     list.className = 'offline-list';
@@ -126,7 +129,8 @@ function createOfflinePanel(rewards, offlineMs) {
         list.appendChild(row);
     });
     
-    contentWrapper.appendChild(list);
+    scrollContainer.appendChild(list);
+    contentWrapper.appendChild(scrollContainer);
     
     const actions = document.createElement('div');
     actions.className = 'offline-actions';
@@ -157,7 +161,7 @@ function createOfflinePanel(rewards, offlineMs) {
     document.body.appendChild(overlay);
     
     requestAnimationFrame(() => {
-        ensureCustomScrollbar(panel, panel, '.offline-content-wrapper');
+        ensureCustomScrollbar(panel, contentWrapper, '.offline-scroll-container');
     });
     
     return overlay;
