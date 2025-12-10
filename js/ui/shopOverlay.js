@@ -1158,7 +1158,7 @@ shopOverlayEl.addEventListener('pointerdown', (e) => {
   __shopPostOpenPointer = true;
 }, { capture: true, passive: true });
 
-shopOverlayEl.addEventListener('touchstart', () => {
+shopOverlayEl.addEventListener('touchstart', (e) => {
   __shopPostOpenPointer = true;
 }, { capture: true, passive: true });
 
@@ -1384,8 +1384,18 @@ export function openUpgradeOverlay(upgDef) {
   const isHM = (upgDef.upgType === 'HM');
   const isEndlessXp = (upgDef.tie === UPGRADE_TIES.ENDLESS_XP);
   const ui = () => adapter.getUiModel(upgDef.id);
-
-  // small helpers
+  
+  // -- Helper for Non-Destructive Update --
+  function ensureChild(parent, className, tagName = 'div') {
+      let el = parent.querySelector(`:scope > .${className.split(' ').join('.')}`);
+      if (!el) {
+          el = document.createElement(tagName);
+          el.className = className;
+          parent.appendChild(el);
+      }
+      return el;
+  }
+  
   const spacer = (h) => { const s = document.createElement('div'); s.style.height = h; return s; };
   const makeLine = (html) => { const d = document.createElement('div'); d.className = 'upg-line'; d.innerHTML = html; return d; };
 
@@ -1428,6 +1438,9 @@ export function openUpgradeOverlay(upgDef) {
 
     content.style.marginTop = `${topOffset}px`;
   }
+  
+  // Track if we need to reset scroll (on first open)
+  let initialRender = true;
 
   const rerender = () => {
     const model = ui();
@@ -1444,12 +1457,12 @@ export function openUpgradeOverlay(upgDef) {
 
     upgSheetEl.classList.toggle('is-locked-hidden', lockHidden);
 
+    // --- Header ---
     const header = upgSheetEl.querySelector('.upg-header');
-    header.innerHTML = '';
-
-    const title = document.createElement('div');
-    title.className = 'upg-title';
-    title.textContent = model.displayTitle || model.upg.title;
+    
+    const title = ensureChild(header, 'upg-title');
+    const displayTitle = model.displayTitle || model.upg.title;
+    if (title.textContent !== displayTitle) title.textContent = displayTitle;
 
     const evolveReady = !!model.hmReadyToEvolve;
     const capReached = evolveReady
@@ -1459,8 +1472,8 @@ export function openUpgradeOverlay(upgDef) {
         : (Number.isFinite(model.upg.lvlCap)
           ? model.lvl >= model.upg.lvlCap
           : false));
-    const level = document.createElement('div');
-    level.className = 'upg-level';
+    
+    const level = ensureChild(header, 'upg-level');
     const capHtml = model.lvlCapFmtHtml ?? model.upg.lvlCapFmtHtml ?? formatNumber(model.lvlCapBn);
     const capPlain = model.lvlCapFmtText ?? model.upg.lvlCapFmtText ?? stripTags(capHtml);
     const levelHtml = evolveReady
@@ -1473,8 +1486,10 @@ export function openUpgradeOverlay(upgDef) {
       : (capReached
         ? `Level ${model.lvlFmtText} / ${capPlain} (MAXED)`
         : `Level ${model.lvlFmtText} / ${capPlain}`);
-    level.innerHTML = levelHtml;
-    level.setAttribute('aria-label', levelPlain);
+        
+    if (level.innerHTML !== levelHtml) level.innerHTML = levelHtml;
+    if (level.getAttribute('aria-label') !== levelPlain) level.setAttribute('aria-label', levelPlain);
+    
     if (isHiddenUpgrade) {
       level.hidden = true;
     } else {
@@ -1485,30 +1500,44 @@ export function openUpgradeOverlay(upgDef) {
     upgSheetEl.classList.toggle('is-maxed', capReached);
     upgSheetEl.classList.toggle('hm-evolve-ready', evolveReady);
     upgSheetEl.classList.toggle('is-unlock-upgrade', isUnlockVisible);
-    header.append(title, level);
-
+    
+    // --- Content ---
     const content = upgSheetEl.querySelector('.upg-content');
-    content.innerHTML = '';
-    content.scrollTop = 0;
+    if (initialRender) {
+        content.scrollTop = 0;
+        initialRender = false;
+    }
+    
     upgSheetEl.classList.toggle('is-hm-upgrade', isHM && !isHiddenUpgrade);
     upgSheetEl.classList.toggle('is-endless-xp', isEndlessXp);
 
-    const desc = document.createElement('div');
-    desc.className = 'upg-desc centered';
-    if (lockHidden) desc.classList.add('lock-desc');
+    // Description
+    const desc = ensureChild(content, 'upg-desc centered');
+    desc.classList.toggle('lock-desc', lockHidden);
+    
     const baseDesc = (model.displayDesc || model.upg.desc || '').trim();
     if (evolveReady) {
       desc.classList.add('hm-evolve-note');
-      desc.textContent = 'Evolve this upgrade to multiply its effect by 1000x';
+      if (desc.textContent !== 'Evolve this upgrade to multiply its effect by 1000x')
+        desc.textContent = 'Evolve this upgrade to multiply its effect by 1000x';
     } else if (baseDesc) {
-      desc.textContent = baseDesc;
+      desc.classList.remove('hm-evolve-note');
+      if (desc.textContent !== baseDesc) desc.textContent = baseDesc;
+      desc.hidden = false;
     } else {
       desc.hidden = true;
     }
-    content.appendChild(desc);
-
-    const info = document.createElement('div');
-    info.className = 'upg-info';
+    
+    // Info Container
+    const info = ensureChild(content, 'upg-info');
+    
+    // For info contents, we will clear and rebuild ONLY if the structure fundamentally changes (rare)
+    // or simplified: Just clear and rebuild info/costs. The description is the big text block that matters.
+    // Actually, buttons are in 'actions', so rebuilding 'info' is safe for clickability,
+    // but we should avoid it for performance if possible.
+    // Given the request, I will just rebuild `info` content to be safe and simple, 
+    // as it doesn't contain the buttons.
+    info.innerHTML = ''; // Safe to clear non-interactive info
 
     info.appendChild(spacer('12px'));
     if (locked && lockState?.reason && !isHiddenUpgrade) {
@@ -1578,69 +1607,78 @@ export function openUpgradeOverlay(upgDef) {
 
       info.appendChild(costs);
     }
-
-    content.appendChild(info);
-
+    
+    // Milestones Row (HM only)
     if (isHM && !isHiddenUpgrade) {
-      const milestonesRow = document.createElement('div');
-      milestonesRow.className = 'hm-view-milestones-row';
-      const viewMilestonesBtn = document.createElement('button');
-      viewMilestonesBtn.type = 'button';
-      viewMilestonesBtn.className = 'shop-delve hm-view-milestones';
-      viewMilestonesBtn.textContent = 'View Milestones';
-      viewMilestonesBtn.addEventListener('click', () => {
-        const milestones = Array.isArray(model.hmMilestones) ? model.hmMilestones : [];
-        if (!milestones.length) return;
-        const evolutions = Math.max(0, Math.floor(Number(model.hmEvolutions ?? 0)));
-        const evolutionOffset = (() => {
-          try { return BigInt(HM_EVOLUTION_INTERVAL) * BigInt(evolutions); }
-          catch { return 0n; }
-        })();
-        const formatMilestoneLevel = (levelBn) => {
-          if (model.lvlBn?.isInfinite?.()) return 'Infinity';
-          try {
-            const levelBnSafe = levelBn instanceof BigNum
-              ? levelBn
-              : BigNum.fromAny(levelBn ?? 0);
-            const formatted = formatNumber(levelBnSafe);
-            if (typeof formatted === 'string') {
-              return formatted.replace(/<[^>]*>/g, '') || formatted;
-            }
-          } catch {}
-          return formatNumber(levelBn);
-        };
-        const lines = milestones
-          .sort((a, b) => (Number(a?.level ?? 0) - Number(b?.level ?? 0)))
-          .map((m) => {
-            const lvl = Math.max(0, Math.floor(Number(m?.level ?? 0)));
-            const milestoneLevelBn = (() => {
-              if (model.lvlBn?.isInfinite?.()) return BigNum.fromAny('Infinity');
-              try { return BigNum.fromAny((BigInt(lvl) + evolutionOffset).toString()); }
-              catch { return BigNum.fromAny(lvl + (HM_EVOLUTION_INTERVAL * evolutions)); }
-            })();
-            const milestonePlain = milestoneLevelBn?.toPlainIntegerString?.();
-            const levelText = formatMilestoneLevel(milestoneLevelBn);
-            const mult = formatMultForUi(m?.multiplier ?? m?.mult ?? m?.value ?? 1);
-            const target = `${m?.target ?? m?.type ?? 'self'}`.toLowerCase();
-            const achieved = (() => {
-              if (model.lvlBn?.isInfinite?.()) return true;
-              try { return model.lvlBn?.cmp?.(milestoneLevelBn) >= 0; }
-              catch {}
-              if (Number.isFinite(model.lvl) && milestonePlain && milestonePlain !== 'Infinity') {
-                const approxTarget = Number(milestonePlain);
-                if (Number.isFinite(approxTarget)) return model.lvl >= approxTarget;
-              }
-              return false;
-            })();
-            if (target === 'xp') return { text: `Level ${levelText}: Multiplies XP value by ${mult}x`, achieved };
-            if (target === 'coin' || target === 'coins') return { text: `Level ${levelText}: Multiplies Coin value by ${mult}x`, achieved };
-            if (target === 'mp') return { text: `Level ${levelText}: Multiplies MP value by ${mult}x`, achieved };
-            return { text: `Level ${levelText}: Multiplies this upgrade’s effect by ${mult}x`, achieved };
-          });
-        openHmMilestoneDialog(lines);
-      });
-      milestonesRow.appendChild(viewMilestonesBtn);
-      content.appendChild(milestonesRow);
+        // This button is clicky, so we should try to preserve it!
+        // But it's inside content...
+        // Ideally we ensure it exists.
+        let milestonesRow = content.querySelector('.hm-view-milestones-row');
+        if (!milestonesRow) {
+            milestonesRow = document.createElement('div');
+            milestonesRow.className = 'hm-view-milestones-row';
+            const viewMilestonesBtn = document.createElement('button');
+            viewMilestonesBtn.type = 'button';
+            viewMilestonesBtn.className = 'shop-delve hm-view-milestones';
+            viewMilestonesBtn.textContent = 'View Milestones';
+            viewMilestonesBtn.addEventListener('click', () => {
+                const milestones = Array.isArray(model.hmMilestones) ? model.hmMilestones : [];
+                if (!milestones.length) return;
+                // ... (milestone logic same as before) ...
+                const evolutions = Math.max(0, Math.floor(Number(model.hmEvolutions ?? 0)));
+                const evolutionOffset = (() => {
+                  try { return BigInt(HM_EVOLUTION_INTERVAL) * BigInt(evolutions); }
+                  catch { return 0n; }
+                })();
+                const formatMilestoneLevel = (levelBn) => {
+                  if (model.lvlBn?.isInfinite?.()) return 'Infinity';
+                  try {
+                    const levelBnSafe = levelBn instanceof BigNum
+                      ? levelBn
+                      : BigNum.fromAny(levelBn ?? 0);
+                    const formatted = formatNumber(levelBnSafe);
+                    if (typeof formatted === 'string') {
+                      return formatted.replace(/<[^>]*>/g, '') || formatted;
+                    }
+                  } catch {}
+                  return formatNumber(levelBn);
+                };
+                const lines = milestones
+                  .sort((a, b) => (Number(a?.level ?? 0) - Number(b?.level ?? 0)))
+                  .map((m) => {
+                    const lvl = Math.max(0, Math.floor(Number(m?.level ?? 0)));
+                    const milestoneLevelBn = (() => {
+                      if (model.lvlBn?.isInfinite?.()) return BigNum.fromAny('Infinity');
+                      try { return BigNum.fromAny((BigInt(lvl) + evolutionOffset).toString()); }
+                      catch { return BigNum.fromAny(lvl + (HM_EVOLUTION_INTERVAL * evolutions)); }
+                    })();
+                    const milestonePlain = milestoneLevelBn?.toPlainIntegerString?.();
+                    const levelText = formatMilestoneLevel(milestoneLevelBn);
+                    const mult = formatMultForUi(m?.multiplier ?? m?.mult ?? m?.value ?? 1);
+                    const target = `${m?.target ?? m?.type ?? 'self'}`.toLowerCase();
+                    const achieved = (() => {
+                      if (model.lvlBn?.isInfinite?.()) return true;
+                      try { return model.lvlBn?.cmp?.(milestoneLevelBn) >= 0; }
+                      catch {}
+                      if (Number.isFinite(model.lvl) && milestonePlain && milestonePlain !== 'Infinity') {
+                        const approxTarget = Number(milestonePlain);
+                        if (Number.isFinite(approxTarget)) return model.lvl >= approxTarget;
+                      }
+                      return false;
+                    })();
+                    if (target === 'xp') return { text: `Level ${levelText}: Multiplies XP value by ${mult}x`, achieved };
+                    if (target === 'coin' || target === 'coins') return { text: `Level ${levelText}: Multiplies Coin value by ${mult}x`, achieved };
+                    if (target === 'mp') return { text: `Level ${levelText}: Multiplies MP value by ${mult}x`, achieved };
+                    return { text: `Level ${levelText}: Multiplies this upgrade’s effect by ${mult}x`, achieved };
+                  });
+                openHmMilestoneDialog(lines);
+            });
+            milestonesRow.appendChild(viewMilestonesBtn);
+            content.appendChild(milestonesRow);
+        }
+    } else {
+        const mr = content.querySelector('.hm-view-milestones-row');
+        if (mr) mr.remove();
     }
 
     // ---------- actions ----------
@@ -1651,7 +1689,7 @@ export function openUpgradeOverlay(upgDef) {
     if (existingCloseBtn) {
         closeBtn = existingCloseBtn;
     } else {
-        actions.innerHTML = '';
+        // DO NOT clear innerHTML if close btn is missing, just append it.
         closeBtn = document.createElement('button');
         closeBtn.type = 'button';
         closeBtn.className = 'shop-close';
@@ -1860,6 +1898,12 @@ export function openUpgradeOverlay(upgDef) {
   // open + animate
   rerender();
   upgOverlayEl.classList.add('is-open');
+  if (currentShopMode === 'automation') {
+      upgOverlayEl.classList.add('is-automation-upgrade');
+  } else {
+      upgOverlayEl.classList.remove('is-automation-upgrade');
+  }
+  
   upgOverlayEl.style.pointerEvents = 'auto';
   blockInteraction(140);
   upgSheetEl.style.transition = 'none';
