@@ -1,5 +1,5 @@
 // js/game/upgrades.js
-import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
+import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot, isStorageKeyLocked } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import {
@@ -4411,4 +4411,47 @@ export function getHmNextMilestoneLevel(areaKey, upgId) {
 export function normalizeBigNum(value) {
   return bigNumFromLog10(approxLog10BigNum(value ?? 0));
 }
+
+export function performFreeAutobuy(areaKey, upgId) {
+  const state = ensureUpgradeState(areaKey, upgId);
+  const upg = state.upg;
+  if (!upg) return { bought: 0 };
+
+  const storageKey = keyForArea(areaKey, state.slot);
+  if (isStorageKeyLocked(storageKey)) return { bought: 0 };
+
+  if (isUpgradeLocked(areaKey, upg)) return { bought: 0 };
+
+  const lvlNum = state.lvl;
+  const lvlBn = state.lvlBn ?? ensureLevelBigNum(lvlNum);
+  const cap = Number.isFinite(upg.lvlCap)
+    ? Math.max(0, Math.floor(upg.lvlCap))
+    : Infinity;
+  if (Number.isFinite(cap) && lvlNum >= cap) return { bought: 0 };
+
+  if (upg.upgType === 'HM' && isHmReadyToEvolve(upg, lvlBn, state.hmEvolutions)) {
+    return { bought: 0 };
+  }
+
+  const walletHandle = bank[upg.costType];
+  const walletValue = walletHandle?.value;
+  const wallet = walletValue instanceof BigNum
+    ? walletValue.clone?.() ?? BigNum.fromAny(walletValue)
+    : BigNum.fromAny(walletValue ?? 0);
+
+  if (wallet.isZero?.()) return { bought: 0 };
+
+  const outcome = calculateBulkPurchase(upg, lvlBn, wallet, MAX_LEVEL_DELTA);
+  const countBn = outcome.count instanceof BigNum
+    ? outcome.count
+    : BigNum.fromAny(outcome.count ?? 0);
+  if (countBn.isZero?.()) return { bought: 0 };
+
+  // Set the new level without deducting currency
+  const nextLevelBn = lvlBn.add(countBn);
+  setLevel(areaKey, upgId, nextLevelBn, true);
+
+  return { bought: countBn };
+}
+
 registerXpUpgradeEffects();
