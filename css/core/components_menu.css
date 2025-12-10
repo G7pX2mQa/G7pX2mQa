@@ -64,7 +64,7 @@
 .slot-card {
   text-align: left;
   /* Lighter dark-blue gradient */
-  background: linear-gradient(180deg, #1e3a66, #152847);
+  background: #0f1626;
   border: 1px solid rgba(66, 100, 150, 0.4);
   border-radius: 16px;
   padding: clamp(var(--space-5), 2vw, var(--space-6));
@@ -72,6 +72,10 @@
   transition: transform .15s ease, background .15s ease, border-color .15s ease;
   outline-offset: 2px;
   min-height: clamp(96px, 16vh, 140px);
+}
+
+.slot-card:hover {
+  background: #121a2e;
 }
 
 /* Remove aspect ratio on narrow/short screens */
@@ -86,13 +90,6 @@
     padding: var(--space-4);
   }
 }
-
-.slot-card:hover {
-  background: linear-gradient(180deg, #25467a, #1a3055);
-  transform: translateY(-2px);
-  border-color: #4a6fa5;
-}
-.slot-card:active { transform: translateY(0); }
 
 .slot-header {
   font-size: 1.5rem;
