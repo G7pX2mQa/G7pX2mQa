@@ -2135,6 +2135,7 @@ export function updateShopOverlay(force = false) {
   if (!force && !shopOpen) return;
   buildUpgradesData();
   renderShopGrid();
+  if (typeof updateDelveGlow === 'function') updateDelveGlow();
 }
 
 export function setUpgradeCount() { updateShopOverlay(true); }
