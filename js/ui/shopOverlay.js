@@ -1992,20 +1992,21 @@ export function openShop(mode = 'standard') {
 
   shopOpen = true;
   shopSheetEl.style.transition = 'none';
-  // Explicitly set the start transform to ensure the browser registers the "before" state
   shopSheetEl.style.transform = 'translateY(100%)';
   shopOverlayEl.style.pointerEvents = 'auto';
 
   void shopSheetEl.offsetHeight;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      shopSheetEl.style.transform = '';
+     shopSheetEl.style.transition = ''; 
+      
+      shopSheetEl.style.transform = ''; 
+      
       shopOverlayEl.classList.add('is-open');
 
-      __shopOpenStamp = performance.now(); // harmless to keep
+      __shopOpenStamp = performance.now();
       __shopPostOpenPointer = false;
 
-      // Optional now; can keep or delete
       if (IS_MOBILE) {
         try {
           setTimeout(() => suppressNextGhostTap(240), 120);
