@@ -33,14 +33,16 @@ function formatTimeCompact(ms) {
 }
 
 // Visual Priority Map
-const PRIORITY_ORDER = ['coins', 'xp', 'books', 'gold', 'mp', 'magic', 'gears'];
+const PRIORITY_ORDER = ['coins', 'xp', 'xp_levels', 'books', 'gold', 'mp', 'mp_levels', 'magic', 'gears'];
 
 const REWARD_META = {
     coins: { icon: 'img/currencies/coin/coin.webp' },
     xp:    { icon: 'img/stats/xp/xp.webp' },
+    xp_levels: { icon: 'img/stats/xp/xp.webp' },
     books: { icon: 'img/currencies/book/book.webp' },
     gold:  { icon: 'img/currencies/gold/gold.webp' },
     mp:    { icon: 'img/stats/mp/mp.webp' },
+    mp_levels: { icon: 'img/stats/mp/mp.webp' },
     magic: { icon: 'img/currencies/magic/magic.webp' },
     gears: { icon: 'img/currencies/gear/gear.webp' }
 };
@@ -48,9 +50,11 @@ const REWARD_META = {
 const REWARD_NAMES = {
     coins: 'Coins',
     xp:    'XP',
+    xp_levels: 'XP Levels',
     books: 'Books',
     gold:  'Gold',
     mp:    'MP',
+    mp_levels: 'MP Levels',
     magic: 'Magic',
     gears: 'Gears'
 };
@@ -102,7 +106,19 @@ function createOfflinePanel(rewards, offlineMs) {
         const text = document.createElement('span');
         text.className = 'offline-text';
         text.classList.add(`text-${key}`);
-        text.innerHTML = `${formatNumber(val)} ${REWARD_NAMES[key]}`;
+        
+        let displayName = REWARD_NAMES[key];
+        // Handle singular logic for levels
+        if ((key === 'xp_levels' || key === 'mp_levels')) {
+            // Check if value equals 1
+            const isOne = (val instanceof BigNum) ? (val.cmp(BigNum.fromInt(1)) === 0) : (Number(val) === 1);
+            if (isOne) {
+                // Strip trailing 's' -> 'Level'
+                displayName = displayName.replace(/s$/, '');
+            }
+        }
+
+        text.innerHTML = `${formatNumber(val)} ${displayName}`;
         
         row.appendChild(plus);
         row.appendChild(icon);
@@ -202,12 +218,22 @@ export function processOfflineProgress() {
             if (!xpEarned.isZero()) {
                 rewards.xp = xpEarned;
                 hasRewards = true;
-                try { addXp(xpEarned); } catch {}
+                try {
+                    const xpResult = addXp(xpEarned);
+                    if (xpResult && xpResult.xpLevelsGained && !xpResult.xpLevelsGained.isZero()) {
+                        rewards.xp_levels = xpResult.xpLevelsGained;
+                    }
+                } catch {}
             }
             if (!mpEarned.isZero()) {
                 rewards.mp = mpEarned;
                 hasRewards = true;
-                try { addMutationPower(mpEarned); } catch {}
+                try {
+                    const mpResult = addMutationPower(mpEarned);
+                    if (mpResult && mpResult.levelsGained && !mpResult.levelsGained.isZero()) {
+                        rewards.mp_levels = mpResult.levelsGained;
+                    }
+                } catch {}
             }
         }
     }
