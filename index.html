@@ -168,181 +168,36 @@
       </nav>
     </main>
     <script src="./bundle.js"></script>
-<script type="module">
-  // 1. Updated Imports: Added 'createUserWithEmailAndPassword' and 'signInWithEmailAndPassword'
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-  import { 
-    getAuth, 
-    GoogleAuthProvider, 
-    signInWithPopup, 
-    onAuthStateChanged, 
-    signOut,
-    createUserWithEmailAndPassword, // <-- NEW
-    signInWithEmailAndPassword      // <-- NEW
-  } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
-  // 2. YOUR CONFIG
-  const firebaseConfig = {
-    apiKey: "AIzaSyA9x_8eumoHuC9G5YQITElvlRmjEjpBDo0", 
-    authDomain: "ccc-firebase-cf0ef.firebaseapp.com",
-    projectId: "ccc-firebase-cf0ef",
-    storageBucket: "ccc-firebase-cf0ef.firebasestorage.app",
-    messagingSenderId: "398214123922",
-    appId: "1:398214123922:web:0583d13fbf6ed44a6d314b",
-    measurementId: "G-3X6HK77SB7"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-  const provider = new GoogleAuthProvider();
-
-  let currentUser = null;
-
-  // --- GOOGLE LOGIN ---
-  window.loginWithGoogle = async () => {
-    try {
-      await signInWithPopup(auth, provider);
-      // onAuthStateChanged will handle the rest
-    } catch (error) {
-      console.error("Google Login failed:", error);
-      alert("Google Login Error: " + error.message);
-    }
-  };
-
-  // --- EMAIL SIGN UP (New Account) ---
-  window.registerWithEmail = async () => {
-    const email = document.getElementById("email-input").value;
-    const pass = document.getElementById("pass-input").value;
-
-    try {
-      await createUserWithEmailAndPassword(auth, email, pass);
-      alert("Account created!");
-      // onAuthStateChanged will handle the rest
-    } catch (error) {
-      console.error("Registration failed:", error);
-      alert("Error: " + error.message);
-    }
-  };
-
-  // --- EMAIL LOGIN (Existing Account) ---
-  window.loginWithEmail = async () => {
-    const email = document.getElementById("email-input").value;
-    const pass = document.getElementById("pass-input").value;
-
-    try {
-      await signInWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChanged will handle the rest
-    } catch (error) {
-      console.error("Login failed:", error);
-      alert("Error: " + error.message);
-    }
-  };
-
-  // --- LOGOUT ---
-  window.logout = async () => {
-    await signOut(auth);
-    alert("Logged out!");
-    location.reload(); // Reload page to reset game state
-  };
-
-  // --- SAVE GAME STATE ---
-  window.saveGameState = async (coins, upgrades) => {
-    if (!currentUser) {
-      alert("You must be logged in to save!");
-      return;
-    }
-    try {
-      await setDoc(doc(db, "players", currentUser.uid), {
-        coins: coins,
-        upgrades: upgrades,
-        email: currentUser.email, // Useful for you to see who is who
-        lastSaved: Date.now()
-      });
-      console.log("Game Saved!");
-      alert("Game Saved successfully!");
-    } catch (e) {
-      console.error("Error saving: ", e);
-    }
-  };
-
-  // --- LOAD GAME STATE ---
-  window.loadGameState = async () => {
-    if (!currentUser) return;
-    const docRef = doc(db, "players", currentUser.uid);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      console.log("Save loaded:", data);
-      alert(`Loaded save! Coins: ${data.coins}`);
-      // TODO: Update your actual game variables here
-    } else {
-      console.log("No save file found. Starting fresh.");
-    }
-  };
-  
-  // --- AUTH LISTENER (Runs automatically when login status changes) ---
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      currentUser = user;
-      document.getElementById("auth-forms").style.display = "none"; // Hide inputs
-      document.getElementById("user-panel").style.display = "block"; // Show user info
-      document.getElementById("user-info").innerText = `Signed in as: ${user.email}`;
-      loadGameState();
-    } else {
-      currentUser = null;
-      document.getElementById("auth-forms").style.display = "block";
-      document.getElementById("user-panel").style.display = "none";
-    }
-  });
-</script>
-
-
-<div id="firebase-ui" style="
-    position: fixed; 
-    top: 10px; 
-    left: 10px; 
-    z-index: 10000; 
-    background-color: rgba(0, 0, 0, 0.85); 
-    padding: 15px; 
-    border-radius: 8px; 
-    color: white; 
-    font-family: sans-serif;
-    width: 250px;
-">
-    
-    <div id="auth-forms">
-        <h4 style="margin-top:0;">Login / Sign Up</h4>
-        
-        <input type="email" id="email-input" placeholder="Email" style="width: 100%; margin-bottom: 5px; box-sizing: border-box;">
-        <input type="password" id="pass-input" placeholder="Password" style="width: 100%; margin-bottom: 10px; box-sizing: border-box;">
-        
-        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-            <button onclick="loginWithEmail()" style="flex: 1; cursor: pointer;">Login</button>
-            <button onclick="registerWithEmail()" style="flex: 1; cursor: pointer;">Sign Up</button>
+    <div id="firebase-ui">
+        <div id="auth-forms">
+            <h4>Login / Sign Up</h4>
+            <input type="email" id="email-input" placeholder="Email">
+            <input type="password" id="pass-input" placeholder="Password">
+            <div class="auth-btn-group">
+                <button class="btn-login" onclick="loginWithEmail()">Login</button>
+                <button class="btn-signup" onclick="registerWithEmail()">Sign Up</button>
+            </div>
+            <button class="btn-google" onclick="loginWithGoogle()">G Sign in with Google</button>
         </div>
 
-        <hr style="border-color: #555;">
-        
-        <button onclick="loginWithGoogle()" style="width: 100%; cursor: pointer; font-weight: bold; background: #db4437; color: white; border: none; padding: 8px;">
-            G Sign in with Google
-        </button>
-    </div>
+        <div id="user-panel" style="display: none;">
+            <p id="user-info"></p>
+            
+            <button class="btn-save" onclick="saveUserScore()">
+                🏆 Save High Score
+            </button>
+            
+            <div class="leaderboard-section">
+                <h5>🏆 Leaderboard (Top 10)</h5>
+                <ul id="leaderboard-list">
+                    <li>Loading...</li>
+                </ul>
+            </div>
 
-    <div id="user-panel" style="display: none;">
-        <p id="user-info" style="margin: 0 0 10px 0; font-size: 13px; color: #81c784;"></p>
-        
-        <button onclick="saveGameState(100, ['test'])" style="width: 100%; margin-bottom: 5px; cursor: pointer;">
-            💾 Manual Save
-        </button>
-        
-        <button onclick="logout()" style="width: 100%; cursor: pointer; background: #555; color: white; border: none;">
-            Logout
-        </button>
+            <hr style="border-color: #555; margin: 15px 0;">
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
     </div>
-
-</div>
   </body>
 </html>
