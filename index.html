@@ -168,13 +168,21 @@
       </nav>
     </main>
     <script src="./bundle.js"></script>
-	<script type="module">
-  // 1. Import BOTH Authentication and Firestore
+<script type="module">
+  // 1. Updated Imports: Added 'createUserWithEmailAndPassword' and 'signInWithEmailAndPassword'
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
   import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+  import { 
+    getAuth, 
+    GoogleAuthProvider, 
+    signInWithPopup, 
+    onAuthStateChanged, 
+    signOut,
+    createUserWithEmailAndPassword, // <-- NEW
+    signInWithEmailAndPassword      // <-- NEW
+  } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
-  // 2. YOUR CONFIG (I copied this from your screenshot)
+  // 2. YOUR CONFIG
   const firebaseConfig = {
     apiKey: "AIzaSyA9x_8eumoHuC9G5YQITElvlRmjEjpBDo0", 
     authDomain: "ccc-firebase-cf0ef.firebaseapp.com",
@@ -185,44 +193,75 @@
     measurementId: "G-3X6HK77SB7"
   };
 
-  // 3. Initialize Everything
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
-  let currentUser = null; // We will store the logged-in user here
+  let currentUser = null;
 
-  // --- LOGIN FUNCTION ---
+  // --- GOOGLE LOGIN ---
   window.loginWithGoogle = async () => {
     try {
-      const result = await signInWithPopup(auth, provider);
-      currentUser = result.user;
-      console.log("User signed in:", currentUser.displayName);
-      alert(`Welcome, ${currentUser.displayName}!`);
-      loadGameState(); // Automatically load their save when they login
+      await signInWithPopup(auth, provider);
+      // onAuthStateChanged will handle the rest
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Google Login failed:", error);
+      alert("Google Login Error: " + error.message);
     }
   };
 
+  // --- EMAIL SIGN UP (New Account) ---
+  window.registerWithEmail = async () => {
+    const email = document.getElementById("email-input").value;
+    const pass = document.getElementById("pass-input").value;
+
+    try {
+      await createUserWithEmailAndPassword(auth, email, pass);
+      alert("Account created!");
+      // onAuthStateChanged will handle the rest
+    } catch (error) {
+      console.error("Registration failed:", error);
+      alert("Error: " + error.message);
+    }
+  };
+
+  // --- EMAIL LOGIN (Existing Account) ---
+  window.loginWithEmail = async () => {
+    const email = document.getElementById("email-input").value;
+    const pass = document.getElementById("pass-input").value;
+
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      // onAuthStateChanged will handle the rest
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("Error: " + error.message);
+    }
+  };
+
+  // --- LOGOUT ---
+  window.logout = async () => {
+    await signOut(auth);
+    alert("Logged out!");
+    location.reload(); // Reload page to reset game state
+  };
+
   // --- SAVE GAME STATE ---
-  // Call this whenever you want to save progress
   window.saveGameState = async (coins, upgrades) => {
     if (!currentUser) {
       alert("You must be logged in to save!");
       return;
     }
-
     try {
-      // We create a document named after their unique User ID (uid)
-      // This ensures Player A cannot overwrite Player B's save
       await setDoc(doc(db, "players", currentUser.uid), {
         coins: coins,
         upgrades: upgrades,
+        email: currentUser.email, // Useful for you to see who is who
         lastSaved: Date.now()
       });
       console.log("Game Saved!");
+      alert("Game Saved successfully!");
     } catch (e) {
       console.error("Error saving: ", e);
     }
@@ -231,62 +270,78 @@
   // --- LOAD GAME STATE ---
   window.loadGameState = async () => {
     if (!currentUser) return;
-
     const docRef = doc(db, "players", currentUser.uid);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      console.log("Save found:", data);
-      
-      // HERE: Update your actual game variables
-      // e.g., game.coins = data.coins;
+      console.log("Save loaded:", data);
       alert(`Loaded save! Coins: ${data.coins}`);
+      // TODO: Update your actual game variables here
     } else {
-      console.log("No save file found for this user.");
+      console.log("No save file found. Starting fresh.");
     }
   };
   
-  // OPTIONAL: Check if they are already logged in (if they refresh page)
+  // --- AUTH LISTENER (Runs automatically when login status changes) ---
   onAuthStateChanged(auth, (user) => {
     if (user) {
       currentUser = user;
-      document.getElementById("login-btn").style.display = "none"; // Hide login button
-      document.getElementById("user-info").innerText = `Signed in as: ${user.displayName}`;
+      document.getElementById("auth-forms").style.display = "none"; // Hide inputs
+      document.getElementById("user-panel").style.display = "block"; // Show user info
+      document.getElementById("user-info").innerText = `Signed in as: ${user.email}`;
       loadGameState();
+    } else {
+      currentUser = null;
+      document.getElementById("auth-forms").style.display = "block";
+      document.getElementById("user-panel").style.display = "none";
     }
   });
-
 </script>
+
 
 <div id="firebase-ui" style="
     position: fixed; 
     top: 10px; 
     left: 10px; 
     z-index: 10000; 
-    background-color: rgba(0, 0, 0, 0.7); 
+    background-color: rgba(0, 0, 0, 0.85); 
     padding: 15px; 
     border-radius: 8px; 
     color: white; 
     font-family: sans-serif;
+    width: 250px;
 ">
     
-    <button id="login-btn" onclick="loginWithGoogle()" style="
-        padding: 8px 12px; 
-        cursor: pointer; 
-        font-weight: bold;
-    ">
-        Login with Google
-    </button>
+    <div id="auth-forms">
+        <h4 style="margin-top:0;">Login / Sign Up</h4>
+        
+        <input type="email" id="email-input" placeholder="Email" style="width: 100%; margin-bottom: 5px; box-sizing: border-box;">
+        <input type="password" id="pass-input" placeholder="Password" style="width: 100%; margin-bottom: 10px; box-sizing: border-box;">
+        
+        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+            <button onclick="loginWithEmail()" style="flex: 1; cursor: pointer;">Login</button>
+            <button onclick="registerWithEmail()" style="flex: 1; cursor: pointer;">Sign Up</button>
+        </div>
 
-    <p id="user-info" style="margin: 10px 0; font-size: 14px; color: #eee;"></p>
+        <hr style="border-color: #555;">
+        
+        <button onclick="loginWithGoogle()" style="width: 100%; cursor: pointer; font-weight: bold; background: #db4437; color: white; border: none; padding: 8px;">
+            G Sign in with Google
+        </button>
+    </div>
 
-    <button onclick="saveGameState(100, ['upgrade1', 'upgrade2'])" style="
-        padding: 5px 10px; 
-        cursor: pointer;
-    ">
-        Test Save
-    </button>
+    <div id="user-panel" style="display: none;">
+        <p id="user-info" style="margin: 0 0 10px 0; font-size: 13px; color: #81c784;"></p>
+        
+        <button onclick="saveGameState(100, ['test'])" style="width: 100%; margin-bottom: 5px; cursor: pointer;">
+            💾 Manual Save
+        </button>
+        
+        <button onclick="logout()" style="width: 100%; cursor: pointer; background: #555; color: white; border: none;">
+            Logout
+        </button>
+    </div>
 
 </div>
   </body>
