@@ -1999,7 +1999,7 @@ export function openShop(mode = 'standard') {
   void shopSheetEl.offsetHeight;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      shopSheetEl.style.transfom = '';
+      shopSheetEl.style.transform = '';
       shopOverlayEl.classList.add('is-open');
 
       __shopOpenStamp = performance.now(); // harmless to keep
