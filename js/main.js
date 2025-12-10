@@ -472,7 +472,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/gameLoop.js'),
     import('./game/offlinePanel.js'),
     import('./ui/merchantTabs/workshopTab.js'),
-    import('./game/automationUpgrades.js'),
+    import('./game/automationEffects.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -581,7 +581,7 @@ images: [
     gameLoopModule,
     offlinePanelModule,
     workshopTabModule,
-    automationUpgradesModule,
+    automationEffectsModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -603,7 +603,7 @@ images: [
   ({ startGameLoop } = gameLoopModule);
   const { initOfflineTracker, processOfflineProgress } = offlinePanelModule;
   const { initWorkshopSystem } = workshopTabModule;
-  const { initAutomationUpgrades } = automationUpgradesModule;
+  const { initAutomationEffects } = automationEffectsModule;
 
   window.bank = bank;
 
@@ -655,7 +655,7 @@ images: [
   initOfflineTracker(() => currentArea === AREAS.STARTER_COVE);
 
   try { initWorkshopSystem(); } catch(e) { console.error('Workshop init failed', e); }
-  try { initAutomationUpgrades(); } catch(e) { console.error('Automation init failed', e); }
+  try { initAutomationEffects(); } catch(e) { console.error('Automation init failed', e); }
   
   applyPendingSlotWipe();
   ensureStorageDefaults();
