@@ -2843,6 +2843,14 @@ function buildAreasContent(content) {
             const upgrades = createSubsection('Upgrades', (sub) => {
                 buildAreaUpgrades(sub, area);
             });
+            
+            let automationUpgrades = null;
+            if (area.key === AREA_KEYS.STARTER_COVE) {
+                automationUpgrades = createSubsection('Automation Upgrades', (sub) => {
+                    buildAreaUpgrades(sub, { key: AREA_KEYS.AUTOMATION, title: 'Automation' });
+                });
+            }
+
             const calculators = createSubsection('Calculators', (sub) => {
                 buildAreaCalculators(sub);
             });
@@ -2851,6 +2859,9 @@ function buildAreasContent(content) {
             areaContent.appendChild(stats);
             areaContent.appendChild(multipliers);
             areaContent.appendChild(upgrades);
+            if (automationUpgrades) {
+                areaContent.appendChild(automationUpgrades);
+            }
             areaContent.appendChild(calculators);
         });
         areaContainer.classList.add('debug-panel-area');
