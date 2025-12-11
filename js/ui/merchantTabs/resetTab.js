@@ -876,13 +876,53 @@ export function initResetPanel(panelEl) {
   buildPanel(panelEl);
 }
 
+function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn) {
+  if (!btn) return;
+  const { disabled, msg } = state;
+  
+  if (btn.disabled !== disabled) btn.disabled = disabled;
+  
+  // State: "msg" or "action"
+  const targetMode = msg ? 'msg' : 'action';
+  const currentMode = btn.dataset.mode;
+  
+  if (targetMode === 'msg') {
+      if (currentMode !== 'msg' || btn.textContent !== msg) {
+          btn.innerHTML = `<span class="merchant-reset__req-msg">${msg}</span>`;
+          btn.dataset.mode = 'msg';
+      }
+      return;
+  }
+  
+  // Action mode
+  const amountStr = formatBn(pendingAmountBn);
+  
+  if (currentMode !== 'action') {
+      // Build structure
+      btn.innerHTML = `
+        <span class="merchant-reset__action-plus">+</span>
+        <span class="merchant-reset__action-icon"><img src="${iconSrc}" alt=""></span>
+        <span class="merchant-reset__action-amount">${amountStr}</span>
+      `;
+      btn.dataset.mode = 'action';
+  } else {
+      // Update amount only
+      const amountEl = btn.querySelector('.merchant-reset__action-amount');
+      if (amountEl && amountEl.textContent !== amountStr) {
+          amountEl.textContent = amountStr;
+      }
+      // Ensure icon (in case it was somehow lost or incorrect, though unlikely here)
+      const iconImg = btn.querySelector('.merchant-reset__action-icon img');
+      if (iconImg && !iconImg.src.includes(iconSrc)) iconImg.src = iconSrc;
+  }
+}
+
 function updateForgeCard({ goldMult = null } = {}) {
   const el = resetState.elements.forge;
   if (!el.card || !el.btn) return;
 
   if (!isForgeUnlocked()) {
-     el.btn.disabled = true;
-     el.btn.innerHTML = '<span class="merchant-reset__req-msg">Unlock the Forge upgrade to access resets</span>';
+     updateResetButtonContent(el.btn, { disabled: true, msg: 'Unlock the Forge upgrade to access resets' });
      return;
   }
 
@@ -891,37 +931,32 @@ function updateForgeCard({ goldMult = null } = {}) {
   
   if (el.status) {
       if (resetState.hasDoneForgeReset) {
-        el.status.innerHTML = '';
+        if (el.status.innerHTML !== '') el.status.innerHTML = '';
       } else {
-        el.status.innerHTML = `
+        const expected = `
           <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
             Forging for the first time will unlock new Shop upgrades, a new Merchant dialogue, and
             <strong style="color:#ffb347; text-shadow: 0 3px 6px rgba(0,0,0,0.55);
             ">Mutations</strong><br>
             Mutated Coins will yield more Coin and XP value than normal
           </span>
-        `;
+        `.trim();
+        // Simple length check or substring to avoid constant re-render
+        if (!el.status.innerHTML.includes('Mutations')) el.status.innerHTML = expected;
       }
   }
 
   if (!meetsLevelRequirement()) {
-    el.btn.disabled = true;
-    el.btn.innerHTML = '<span class="merchant-reset__req-msg">Reach XP Level 31 to perform a Forge reset</span>';
+    updateResetButtonContent(el.btn, { disabled: true, msg: 'Reach XP Level 31 to perform a Forge reset' });
     return;
   }
 
   if (resetState.pendingGold.isZero?.()) {
-    el.btn.disabled = true;
-    el.btn.innerHTML = '<span class="merchant-reset__req-msg">Collect more coins to earn Gold from a Forge reset</span>';
+    updateResetButtonContent(el.btn, { disabled: true, msg: 'Collect more coins to earn Gold from a Forge reset' });
     return;
   }
 
-  el.btn.disabled = false;
-  el.btn.innerHTML = `
-    <span class="merchant-reset__action-plus">+</span>
-    <span class="merchant-reset__action-icon"><img src="${GOLD_ICON_SRC}" alt=""></span>
-    <span class="merchant-reset__action-amount" data-reset-pending="forge">${formatBn(getPendingGoldWithMultiplier(goldMult))}</span>
-  `;
+  updateResetButtonContent(el.btn, { disabled: false }, GOLD_ICON_SRC, getPendingGoldWithMultiplier(goldMult));
 }
 
 function updateInfuseCard() {
@@ -929,15 +964,15 @@ function updateInfuseCard() {
   if (!el.card || !el.btn) return;
 
   if (!isInfuseUnlocked()) {
-    el.card.style.display = 'none';
-    if (resetState.layerButtons.infuse) {
+    if (el.card.style.display !== 'none') el.card.style.display = 'none';
+    if (resetState.layerButtons.infuse && resetState.layerButtons.infuse.style.display !== 'none') {
         resetState.layerButtons.infuse.style.display = 'none';
     }
     return;
   }
 
-  el.card.style.display = 'flex';
-  if (resetState.layerButtons.infuse) {
+  if (el.card.style.display !== 'flex') el.card.style.display = 'flex';
+  if (resetState.layerButtons.infuse && resetState.layerButtons.infuse.style.display !== 'flex') {
       resetState.layerButtons.infuse.style.display = 'flex';
   }
 
@@ -947,36 +982,30 @@ function updateInfuseCard() {
 
   if (el.status) {
       if (resetState.hasDoneInfuseReset) {
-        el.status.innerHTML = '';
+        if (el.status.innerHTML !== '') el.status.innerHTML = '';
       } else {
-         el.status.innerHTML = `
+         const expected = `
           <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
             Infusing for the first time will unlock new Shop upgrades, a new Merchant dialogue, and a new tab in the Delve menu: <strong style="color:#c68cff">Workshop</strong><br>
             This new tab will allow you to passively generate Gears<br>
             Spend Gears on new upgrades in the Shop to automate various things
           </span>
-         `;
+         `.trim();
+         if (!el.status.innerHTML.includes('Workshop')) el.status.innerHTML = expected;
       }
   }
 
   if (!meetsInfuseRequirement()) {
-    el.btn.disabled = true;
-    el.btn.innerHTML = '<span class="merchant-reset__req-msg">Reach Mutation Level 7 to perform an Infuse reset</span>';
+    updateResetButtonContent(el.btn, { disabled: true, msg: 'Reach Mutation Level 7 to perform an Infuse reset' });
     return;
   }
   
   if (resetState.pendingMagic.isZero?.()) {
-    el.btn.disabled = true;
-    el.btn.innerHTML = '<span class="merchant-reset__req-msg">Collect more coins to earn Magic from an Infuse reset</span>';
+    updateResetButtonContent(el.btn, { disabled: true, msg: 'Collect more coins to earn Magic from an Infuse reset' });
     return;
   }
   
-  el.btn.disabled = false;
-  el.btn.innerHTML = `
-    <span class="merchant-reset__action-plus">+</span>
-    <span class="merchant-reset__action-icon"><img src="${MAGIC_ICON_SRC}" alt=""></span>
-    <span class="merchant-reset__action-amount" data-reset-pending="infuse">${formatBn(resetState.pendingMagic)}</span>
-  `;
+  updateResetButtonContent(el.btn, { disabled: false }, MAGIC_ICON_SRC, resetState.pendingMagic);
 }
 
 export function updateResetPanel({ goldMult = null } = {}) {
