@@ -558,7 +558,7 @@ class ShopInstance {
                     e.stopPropagation();
                     
                     if (!el.upgMeta) return;
-
+					
                     const model = this.adapter.getUiModel(el.upgMeta.id);
                     if (model?.hmReadyToEvolve) {
                         const { evolved } = this.adapter.evolve(el.upgMeta.id);
@@ -568,7 +568,7 @@ class ShopInstance {
                         }
                         return;
                     }
-
+					
                     const { bought } = this.adapter.buyMax(el.upgMeta.id);
                     const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
                     
@@ -1142,25 +1142,40 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       upgSheetEl.classList.toggle('is-hm-upgrade', isHM && !isHiddenUpgrade);
       upgSheetEl.classList.toggle('is-endless-xp', isEndlessXp);
 
-      // --- Automation Toggle Logic ---
+            // --- Automation Toggle Logic ---
       let autoToggleWrapper = header.querySelector('.auto-toggle-wrapper');
-      if (autoToggleWrapper) autoToggleWrapper.remove(); // Clean re-render
 
       const isAutomationMaster = upgDef.id === AUTOBUY_COIN_UPGRADES_ID && upgDef.area === AUTOMATION_AREA_KEY;
       const isCoinUpgrade = upgDef.costType === 'coins' && mode === 'standard';
       const autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_COIN_UPGRADES_ID);
       const hasAutobuyer = autobuyLevel > 0;
+      const showAutoToggle = hasAutobuyer && (isAutomationMaster || isCoinUpgrade);
 
-      if (hasAutobuyer && (isAutomationMaster || isCoinUpgrade)) {
-         autoToggleWrapper = document.createElement('div');
-         autoToggleWrapper.className = 'auto-toggle-wrapper hm-view-milestones-row'; // Use existing class for layout if appropriate, or just style inline
-         autoToggleWrapper.style.marginTop = '12px';
+      if (!showAutoToggle) {
+          if (autoToggleWrapper) autoToggleWrapper.remove();
+      } else {
+         if (!autoToggleWrapper) {
+             autoToggleWrapper = document.createElement('div');
+             autoToggleWrapper.className = 'auto-toggle-wrapper hm-view-milestones-row';
+             autoToggleWrapper.style.marginTop = '12px';
+             header.appendChild(autoToggleWrapper);
+         }
          
-         const toggleBtn = document.createElement('button');
-         toggleBtn.type = 'button';
-         toggleBtn.className = 'shop-delve'; // Default class
-         // Styling override to match "View Milestones" button style if needed, but shop-delve is the base.
-         // Wait, user said: "toggleable ... button ... about as far from the title as the view milestones button is from the purchase buttons"
+         let toggleBtn = autoToggleWrapper.querySelector('button');
+         if (!toggleBtn) {
+             toggleBtn = document.createElement('button');
+             toggleBtn.type = 'button';
+             toggleBtn.style.padding = '10px 14px';
+             toggleBtn.style.fontSize = '16px';
+             toggleBtn.style.width = 'auto';
+             toggleBtn.style.minWidth = '180px';
+             
+             toggleBtn.addEventListener('click', (e) => {
+                 if (typeof toggleBtn._onClick === 'function') toggleBtn._onClick(e);
+             });
+             
+             autoToggleWrapper.appendChild(toggleBtn);
+         }
          
          const activeSlot = getActiveSlot();
          const slotSuffix = activeSlot != null ? `:${activeSlot}` : '';
@@ -1177,20 +1192,14 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
          if (isEnabled) {
              toggleBtn.className = 'shop-delve';
              toggleBtn.textContent = 'Automation: ON';
-             toggleBtn.style.backgroundColor = ''; // Use default green-ish from shop-delve
+             toggleBtn.style.backgroundColor = '';
          } else {
              toggleBtn.className = 'shop-close';
              toggleBtn.textContent = 'Automation: OFF';
-             toggleBtn.style.backgroundColor = ''; // Use default red-ish from shop-close
+             toggleBtn.style.backgroundColor = '';
          }
          
-         // Style tweaks to match "View Milestones"
-         toggleBtn.style.padding = '10px 14px';
-         toggleBtn.style.fontSize = '16px'; // A bit smaller than main actions
-         toggleBtn.style.width = 'auto';
-         toggleBtn.style.minWidth = '180px';
-         
-         toggleBtn.onclick = (e) => {
+         toggleBtn._onClick = (e) => {
              e.preventDefault(); e.stopPropagation();
              if (IS_MOBILE) blockInteraction(50);
              
@@ -1199,8 +1208,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              
              if (isAutomationMaster) {
                  localStorage.setItem(`ccc:autobuy:master:coins${slotSuffix}`, val);
-                 // Bulk update
-                 const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE); // Currently assuming STARTER_COVE
+                 const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE); 
                  upgrades.forEach(u => {
                     if (u.costType === 'coins') {
                         localStorage.setItem(`ccc:autobuy:${u.area}:${u.id}${slotSuffix}`, val);
@@ -1211,9 +1219,6 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              }
              rerender();
          };
-         
-         autoToggleWrapper.appendChild(toggleBtn);
-         header.appendChild(autoToggleWrapper);
       }
       // -------------------------------
       
