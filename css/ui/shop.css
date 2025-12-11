@@ -1129,3 +1129,10 @@
 	top: 2vh;
   }
 }
+
+@media (max-width: 1500px) and (hover: hover) and (pointer: fine) {
+  .upg-sheet.is-magnet-upgrade .upg-desc.centered,
+  .upg-sheet.is-magnet-upgrade .upg-line {
+    font-size: clamp(26px, 3.6vw, 40px);
+  }
+}
