@@ -506,6 +506,7 @@ images: [
   'img/misc/forge.webp',
   'img/misc/infuse.webp',
   'img/misc/infuse_base.webp',
+  'img/misc/green_border.webp',
   'img/misc/locked.webp',
   'img/misc/locked_base.webp',
   'img/misc/maxed.webp',
