@@ -97,6 +97,7 @@ function createOfflinePanel(rewards, offlineMs) {
         // + Symbol
         const plus = document.createElement('span');
         plus.className = 'offline-plus';
+        plus.classList.add(`text-${key}`);
         plus.textContent = '+';
         
         // Icon
