@@ -78,7 +78,7 @@
 .offline-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 2px;
     width: 100%;
     max-width: 600px;
     padding-top: 8px;
@@ -91,7 +91,6 @@
     justify-content: center;
     gap: 8px;
     font-size: 24px;
-    padding: 12px;
     border-radius: 8px;
     background: transparent; /* Clean look inside the dark box */
 }
@@ -124,15 +123,15 @@
     top: -0.5px;
 }
 
-.text-coins { color: #ffd700; }
-.text-xp    { color: #7bc0ff; }
-.text-xp_levels { color: #7bc0ff; }
-.text-books { color: #d4a373; }
-.text-gold  { color: #ffd700; }
-.text-mp    { color: #ffa726; }
-.text-mp_levels { color: #ffa726; }
-.text-magic { color: #d8b4fe; }
-.text-gears { color: #94a3b8; }
+.text-coins { color: #FFEB3B; }
+.text-xp    { color: #42D8EC; }
+.text-xp_levels { color: #42D8EC; }
+.text-books { color: #AC6C1B; }
+.text-gold  { color: #E8BF08; }
+.text-mp    { color: #FFC000; }
+.text-mp_levels { color: #FFC000; }
+.text-magic { color: #5F21DB; }
+.text-gears { color: #B0B1B8; }
 
 .offline-actions {
     display: flex;
