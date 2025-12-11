@@ -42,9 +42,8 @@ export const REGISTRY = [
     costAtLevel() {
       return BigNum.fromInt(1000);
     },
-    effectSummary(level) {
-      const lvl = Math.max(0, Math.floor(Number(level) || 0));
-      return lvl > 0 ? 'Status: Active' : 'Status: Inactive';
+    effectSummary() {
+      return null;
     }
   }
 ];
