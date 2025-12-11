@@ -1422,7 +1422,11 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       
       if (locked || capReached) {
           actions.querySelectorAll('button:not(.shop-close)').forEach(btn => btn.remove());
-          if (document.activeElement && document.activeElement !== closeBtn && !actions.contains(document.activeElement)) closeBtn.focus();
+          const active = document.activeElement;
+          // Only steal focus if the active element is relevant (inside the sheet or fallback to body),
+          // preventing us from stealing focus from the Debug Panel or other overlays.
+          const isRelevant = active && (upgSheetEl.contains(active) || active === document.body);
+          if (isRelevant && active !== closeBtn && !actions.contains(active)) closeBtn.focus();
       } else {
           const canAffordNext = model.have.cmp(nextPriceBn) >= 0;
           const ensureButton = (className, text, onClick, index, disabled=false) => {
