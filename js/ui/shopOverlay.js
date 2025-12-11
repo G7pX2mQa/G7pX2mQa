@@ -42,6 +42,7 @@ import {
   AUTOBUY_MAGIC_UPGRADES_ID,
   AUTOBUY_WORKSHOP_LEVELS_ID
 } from '../game/automationUpgrades.js';
+import { getAutobuyerToggle, setAutobuyerToggle } from '../game/automationEffects.js';
 
 // --- Shared State ---
 const ICON_DIR = 'img/';
@@ -82,10 +83,7 @@ function isUpgradeAutomated(upgDef) {
     if (autoLevel <= 0) return false;
     
     // Check toggle
-    const slot = getActiveSlot();
-    const slotSuffix = slot != null ? `:${slot}` : '';
-    const key = `ccc:autobuy:${upgDef.area}:${upgDef.id}${slotSuffix}`;
-    const val = localStorage.getItem(key);
+    const val = getAutobuyerToggle(upgDef.area, upgDef.id);
     
     // Default is ON (if not '0')
     return val !== '0';
@@ -1263,7 +1261,10 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              for (const u of upgrades) {
                  if (u.costType === masterCostType) {
                      const childKey = `ccc:autobuy:${u.area}:${u.id}${slotSuffix}`;
-                     if (localStorage.getItem(childKey) !== '0') {
+                     // Use cached getter if available or fallback (here master check logic is slightly complex)
+                     // But wait, the master logic sums up children. 
+                     // We should use getAutobuyerToggle(u.area, u.id) here to be consistent!
+                     if (getAutobuyerToggle(u.area, u.id) !== '0') {
                          anyEnabled = true;
                          break;
                      }
@@ -1272,8 +1273,8 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              isEnabled = anyEnabled;
          } else {
              // Standard or Workshop Master
-             const key = `ccc:autobuy:${upgDef.area}:${upgDef.id}${slotSuffix}`;
-             isEnabled = localStorage.getItem(key) !== '0';
+             const val = getAutobuyerToggle(upgDef.area, upgDef.id);
+             isEnabled = val !== '0';
          }
 
          if (isEnabled) {
@@ -1298,11 +1299,11 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                  const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE); 
                  upgrades.forEach(u => {
                     if (u.costType === masterCostType) {
-                        localStorage.setItem(`ccc:autobuy:${u.area}:${u.id}${slotSuffix}`, val);
+                        setAutobuyerToggle(u.area, u.id, val);
                     }
                  });
              } else {
-                 localStorage.setItem(`ccc:autobuy:${upgDef.area}:${upgDef.id}${slotSuffix}`, val);
+                 setAutobuyerToggle(upgDef.area, upgDef.id, val);
              }
              rerender();
          };
