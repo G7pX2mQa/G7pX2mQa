@@ -1046,10 +1046,12 @@
 }
 
 /* Automation Upgrades */
-@media (min-width: 800px) {
-  .upg-overlay.is-automation-upgrade .upg-sheet .upg-content {
-    transform: translateY(-10vh);
-  }
+.upg-overlay.is-automation-upgrade .upg-sheet .upg-content {
+  transform: translateY(-13vh);
+}
+
+.upg-overlay.is-automation-upgrade .upg-sheet.is-no-effect .upg-content {
+  transform: translateY(-15vh);
 }
 
 .upg-overlay.is-automation-upgrade .upg-desc.centered,
@@ -1058,9 +1060,6 @@
 }
 
 @media (hover: none) and (pointer: coarse) {
-  .upg-overlay.is-automation-upgrade .upg-sheet .upg-content {
-    transform: none;
-  }
   .upg-overlay.is-automation-upgrade .upg-desc.centered,
   .upg-overlay.is-automation-upgrade .upg-line {
     font-size: clamp(16px, 4vw, 24px);
