@@ -1121,3 +1121,11 @@
   transform: translateY(1px);
   background: hsla(0, 80%, 40%, 0.28);
 }
+
+@media (min-width: 1400px) and (max-width: 1536px) and (hover: hover) and (pointer: fine) {
+  .upg-sheet.is-magnet-upgrade .upg-desc.centered,
+  .upg-sheet.is-magnet-upgrade .upg-line {
+	position: relative;
+	top: 2vh;
+  }
+}
