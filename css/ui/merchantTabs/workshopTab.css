@@ -362,3 +362,7 @@
 .automation-shop-overlay {
   z-index: 4005 !important;
 }
+
+.workshop-upgrade-btn.is-automated {
+  border: 5px solid #1DF71D !important;
+}
