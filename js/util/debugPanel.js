@@ -270,9 +270,9 @@ const MUTATION_KEYS = {
 };
 
 const STAT_MULTIPLIERS = [
+    { key: 'spawnRate', label: 'Spawn Rate' },
     { key: 'xp', label: 'XP' },
     { key: 'mutation', label: 'MP' },
-    { key: 'spawnRate', label: 'Spawn Rate' },
 ];
 
 function getAreas() {
@@ -288,9 +288,9 @@ function getAreas() {
                 { key: CURRENCIES.GEARS, label: 'Gears' },
             ],
             stats: [
+                { key: 'spawnRate', label: 'Spawn Rate' },
                 { key: 'xp', label: 'XP' },
                 { key: 'mutation', label: 'MP' },
-                { key: 'spawnRate', label: 'Spawn Rate' },
             ],
         },
     ];
