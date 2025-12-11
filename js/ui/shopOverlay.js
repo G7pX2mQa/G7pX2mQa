@@ -34,7 +34,14 @@ import {
   shouldSkipGhostTap,
   suppressNextGhostTap,
 } from '../util/ghostTapGuard.js';
-import { AUTOMATION_AREA_KEY, AUTOBUY_COIN_UPGRADES_ID } from '../game/automationUpgrades.js';
+import { 
+  AUTOMATION_AREA_KEY, 
+  AUTOBUY_COIN_UPGRADES_ID,
+  AUTOBUY_BOOK_UPGRADES_ID,
+  AUTOBUY_GOLD_UPGRADES_ID,
+  AUTOBUY_MAGIC_UPGRADES_ID,
+  AUTOBUY_WORKSHOP_LEVELS_ID
+} from '../game/automationUpgrades.js';
 
 // --- Shared State ---
 const ICON_DIR = 'img/';
@@ -56,6 +63,24 @@ const CURRENCY_ICON_SRC = {
 };
 
 const FORGE_UNLOCK_UPGRADE_ID = 7;
+
+// --- Automation Mappings ---
+// Maps standard cost types to the ID of the automation upgrade that unlocks autobuy for them.
+const COST_TYPE_TO_AUTOBUY_ID = {
+  coins: AUTOBUY_COIN_UPGRADES_ID,
+  books: AUTOBUY_BOOK_UPGRADES_ID,
+  gold: AUTOBUY_GOLD_UPGRADES_ID,
+  magic: AUTOBUY_MAGIC_UPGRADES_ID
+};
+
+// Maps an Automation Upgrade ID to the cost type it controls (Master Switch logic).
+const MASTER_AUTOBUY_IDS = {
+  [AUTOBUY_COIN_UPGRADES_ID]: 'coins',
+  [AUTOBUY_BOOK_UPGRADES_ID]: 'books',
+  [AUTOBUY_GOLD_UPGRADES_ID]: 'gold',
+  [AUTOBUY_MAGIC_UPGRADES_ID]: 'magic'
+};
+
 
 function resolveUpgradeId(upgLike) {
   if (!upgLike) return null;
@@ -1147,11 +1172,26 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
             // --- Automation Toggle Logic ---
       let autoToggleWrapper = header.querySelector('.auto-toggle-wrapper');
 
-      const isAutomationMaster = upgDef.id === AUTOBUY_COIN_UPGRADES_ID && upgDef.area === AUTOMATION_AREA_KEY;
-      const isCoinUpgrade = upgDef.costType === 'coins' && mode === 'standard';
-      const autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_COIN_UPGRADES_ID);
+      // Check for Master Upgrade logic in Automation Shop
+      const masterCostType = (mode === 'automation') ? MASTER_AUTOBUY_IDS[upgDef.id] : null;
+      // Also check for Workshop Level Master Switch (ID 6 in automation shop)
+      const isWorkshopMaster = (mode === 'automation' && upgDef.id === AUTOBUY_WORKSHOP_LEVELS_ID);
+
+      const isAutomationMaster = !!masterCostType;
+      
+      // Check for Standard Upgrade logic in Standard Shop
+      const standardAutobuyId = (mode === 'standard') ? COST_TYPE_TO_AUTOBUY_ID[upgDef.costType] : null;
+
+      let autobuyLevel = 0;
+      if (standardAutobuyId) {
+          autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, standardAutobuyId);
+      } else if (isAutomationMaster || isWorkshopMaster) {
+          // If viewing the master upgrade itself, we check its own level
+          autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, upgDef.id);
+      }
+
       const hasAutobuyer = autobuyLevel > 0;
-      const showAutoToggle = hasAutobuyer && (isAutomationMaster || isCoinUpgrade);
+      const showAutoToggle = hasAutobuyer && (isAutomationMaster || standardAutobuyId || isWorkshopMaster);
 
       if (!showAutoToggle) {
           if (autoToggleWrapper) autoToggleWrapper.remove();
@@ -1184,12 +1224,12 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
 
          let isEnabled = true;
          if (isAutomationMaster) {
-             const key = `ccc:autobuy:master:coins${slotSuffix}`;
+             const key = `ccc:autobuy:master:${masterCostType}${slotSuffix}`;
              // Check if ANY child upgrade is enabled
              const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
              let anyEnabled = false;
              for (const u of upgrades) {
-                 if (u.costType === 'coins') {
+                 if (u.costType === masterCostType) {
                      const childKey = `ccc:autobuy:${u.area}:${u.id}${slotSuffix}`;
                      if (localStorage.getItem(childKey) !== '0') {
                          anyEnabled = true;
@@ -1199,6 +1239,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              }
              isEnabled = anyEnabled;
          } else {
+             // Standard or Workshop Master
              const key = `ccc:autobuy:${upgDef.area}:${upgDef.id}${slotSuffix}`;
              isEnabled = localStorage.getItem(key) !== '0';
          }
@@ -1221,10 +1262,10 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              const val = newState ? '1' : '0';
              
              if (isAutomationMaster) {
-                 localStorage.setItem(`ccc:autobuy:master:coins${slotSuffix}`, val);
+                 localStorage.setItem(`ccc:autobuy:master:${masterCostType}${slotSuffix}`, val);
                  const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE); 
                  upgrades.forEach(u => {
-                    if (u.costType === 'coins') {
+                    if (u.costType === masterCostType) {
                         localStorage.setItem(`ccc:autobuy:${u.area}:${u.id}${slotSuffix}`, val);
                     }
                  });
