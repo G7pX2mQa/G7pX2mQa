@@ -603,11 +603,10 @@ export function initWorkshopSystem() {
       // Watch for debug changes
       window.addEventListener('debug:change', () => {
           // Reload level in case it changed via debug panel
-          const oldLevel = currentGenerationLevel;
           currentGenerationLevel = loadGenerationLevel();
-          if (oldLevel !== currentGenerationLevel) {
-              updateWorkshopTab();
-          }
+          // Always update tab because debug actions (like toggle auto) might change UI state 
+          // (e.g. green border) even if the level value itself didn't change.
+          updateWorkshopTab();
       });
 
       // Watch for lock status change
