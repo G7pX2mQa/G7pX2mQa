@@ -35,7 +35,7 @@ import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
 import { getGenerationLevelKey } from '../ui/merchantTabs/workshopTab.js';
 import { setAutobuyerToggle } from '../game/automationEffects.js';
-import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY } from '../game/automationUpgrades.js';
+import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
@@ -3016,22 +3016,29 @@ function setAllAutomationToggles(targetState) {
 
     // 2. Set Master Switches (UI state)
     // Keys: ccc:autobuy:master:{type}:{slot}
-    const masterTypes = ['coins', 'books', 'gold', 'magic'];
+    const masterTypes = Object.values(MASTER_AUTOBUY_IDS);
+    const automatedCostTypes = new Set(masterTypes);
+    
     masterTypes.forEach(type => {
          const key = `ccc:autobuy:master:${type}:${slot}`;
          localStorage.setItem(key, val);
     });
 
     // 3. Set Individual Toggles (Logic state)
-
-    const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
-    upgrades.forEach((upg) => {
-        if (['coins', 'books', 'gold', 'magic'].includes(upg.costType)) {
-            setAutobuyerToggle(AREA_KEYS.STARTER_COVE, upg.id, val);
-            count++;
-        }
+    // Iterate over ALL areas to support future upgrades
+    Object.values(AREA_KEYS).forEach(areaKey => {
+        if (areaKey === AUTOMATION_AREA_KEY) return; // Handled separately below (or via specific logic)
+        
+        const upgrades = getUpgradesForArea(areaKey);
+        upgrades.forEach((upg) => {
+            if (automatedCostTypes.has(upg.costType)) {
+                setAutobuyerToggle(areaKey, upg.id, val);
+                count++;
+            }
+        });
     });
 
+    // 4. Workshop Special Case
     setAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID, val);
     count++;
 
