@@ -3,6 +3,10 @@ import { BigNum } from '../util/bigNum.js';
 export const AUTOMATION_AREA_KEY = 'automation';
 export const EFFECTIVE_AUTO_COLLECT_ID = 1;
 export const AUTOBUY_COIN_UPGRADES_ID = 2;
+export const AUTOBUY_BOOK_UPGRADES_ID = 3;
+export const AUTOBUY_GOLD_UPGRADES_ID = 4;
+export const AUTOBUY_MAGIC_UPGRADES_ID = 5;
+export const AUTOBUY_WORKSHOP_LEVELS_ID = 6;
 
 export const REGISTRY = [
   {
@@ -41,6 +45,74 @@ export const REGISTRY = [
     upgType: 'NM',
     costAtLevel() {
       return BigNum.fromInt(1000);
+    },
+    effectSummary() {
+      return null;
+    }
+  },
+  {
+    area: AUTOMATION_AREA_KEY,
+    id: AUTOBUY_BOOK_UPGRADES_ID,
+    title: 'Autobuy Book Upgrades',
+    desc: 'Automatically buys Book upgrades',
+    icon: 'img/sc_upg_icons/book_autobuy.webp',
+    lvlCap: 1,
+    baseCost: 10000,
+    costType: 'gears',
+    upgType: 'NM',
+    costAtLevel() {
+      return BigNum.fromInt(10000);
+    },
+    effectSummary() {
+      return null;
+    }
+  },
+  {
+    area: AUTOMATION_AREA_KEY,
+    id: AUTOBUY_GOLD_UPGRADES_ID,
+    title: 'Autobuy Gold Upgrades',
+    desc: 'Automatically buys Gold upgrades',
+    icon: 'img/sc_upg_icons/gold_autobuy.webp',
+    lvlCap: 1,
+    baseCost: 1e6,
+    costType: 'gears',
+    upgType: 'NM',
+    costAtLevel() {
+      return BigNum.fromAny('1e6');
+    },
+    effectSummary() {
+      return null;
+    }
+  },
+  {
+    area: AUTOMATION_AREA_KEY,
+    id: AUTOBUY_MAGIC_UPGRADES_ID,
+    title: 'Autobuy Magic Upgrades',
+    desc: 'Automatically buys Magic upgrades',
+    icon: 'img/sc_upg_icons/magic_autobuy.webp',
+    lvlCap: 1,
+    baseCost: 1e9,
+    costType: 'gears',
+    upgType: 'NM',
+    costAtLevel() {
+      return BigNum.fromAny('1e9');
+    },
+    effectSummary() {
+      return null;
+    }
+  },
+  {
+    area: AUTOMATION_AREA_KEY,
+    id: AUTOBUY_WORKSHOP_LEVELS_ID,
+    title: 'Autobuy Workshop Levels',
+    desc: 'Automatically buys Workshop Levels',
+    icon: 'img/sc_upg_icons/workshop_level_autobuy.webp',
+    lvlCap: 1,
+    baseCost: 1e10,
+    costType: 'gears',
+    upgType: 'NM',
+    costAtLevel() {
+      return BigNum.fromAny('1e10');
     },
     effectSummary() {
       return null;
