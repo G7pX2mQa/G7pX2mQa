@@ -1066,3 +1066,47 @@
     font-size: clamp(16px, 4vw, 24px);
   }
 }
+
+/* === Automation Toggle Button === */
+.auto-toggle-wrapper .shop-delve,
+.auto-toggle-wrapper .shop-close {
+  min-width: 180px;
+  width: auto;
+  padding: 10px 14px;
+  font-size: 16px;
+  border-radius: 0;
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: .2px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  appearance: none;
+  font-family: inherit;
+}
+
+/* Green (ON) state - Matches Shop Delve button */
+.auto-toggle-wrapper .shop-delve {
+  border: 1px solid hsla(150, 60%, 35%, 0.45);
+  background: hsla(150, 60%, 35%, 0.15);
+}
+.auto-toggle-wrapper .shop-delve:hover {
+  background: hsla(150, 60%, 35%, 0.22);
+}
+.auto-toggle-wrapper .shop-delve:active {
+  transform: translateY(1px);
+  background: hsla(150, 60%, 35%, 0.28);
+}
+
+/* Red (OFF) state - Matches Shop Close button */
+.auto-toggle-wrapper .shop-close {
+  border: 1px solid hsla(0, 80%, 40%, 0.45);
+  background: hsla(0, 80%, 40%, 0.15);
+}
+.auto-toggle-wrapper .shop-close:hover {
+  background: hsla(0, 80%, 40%, 0.22);
+}
+.auto-toggle-wrapper .shop-close:active {
+  transform: translateY(1px);
+  background: hsla(0, 80%, 40%, 0.28);
+}
