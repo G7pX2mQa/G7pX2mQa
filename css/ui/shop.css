@@ -986,13 +986,25 @@
 }
 
 @media (max-height: 850px) and (hover: hover) and (pointer: fine) {
-  .upg-sheet:not(.is-maxed) .upg-content,
-  .upg-sheet.is-maxed .upg-content,
+  .upg-sheet:not(.is-maxed):not(.is-unlock-upgrade) .upg-content,
   .upg-sheet.is-locked-hidden .upg-content,
-  .upg-sheet.is-unlock-short .upg-content,
-  .upg-sheet.is-unlock-upgrade .upg-content {
+  .upg-sheet.is-unlock-short .upg-content {
     transform: none !important;
     padding-top: 1.2rem !important;
+    padding-bottom: 1.2rem !important;
+    justify-content: flex-start !important;
+  }
+  
+  .upg-sheet.is-maxed:not(.is-unlock-upgrade) .upg-content {
+    transform: translateY(-15vh) !important;
+    padding-top: 1.2rem !important;
+    padding-bottom: 1.2rem !important;
+    justify-content: flex-start !important;
+  }
+
+  .upg-sheet.is-maxed.is-unlock-upgrade .upg-content {
+    transform: none !important;
+    padding-top: calc(1.2rem + 15vh) !important;
     padding-bottom: 1.2rem !important;
     justify-content: flex-start !important;
   }
