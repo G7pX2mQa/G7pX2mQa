@@ -1141,6 +1141,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       upgSheetEl.classList.toggle('is-unlock-upgrade', isUnlockVisible);
       upgSheetEl.classList.toggle('is-hm-upgrade', isHM && !isHiddenUpgrade);
       upgSheetEl.classList.toggle('is-endless-xp', isEndlessXp);
+      upgSheetEl.classList.toggle('is-magnet-upgrade', upgDef.tie === UPGRADE_TIES.MAGNET);
 	  upgSheetEl.classList.toggle('is-no-effect', !model.effect);
 
             // --- Automation Toggle Logic ---
