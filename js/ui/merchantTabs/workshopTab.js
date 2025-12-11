@@ -619,3 +619,17 @@ export function getGearsProductionRate() {
   const level = loadGenerationLevel();
   return getGearsPerSecond(level);
 }
+
+export function performFreeGenerationUpgrade() {
+  const cost = getGenerationUpgradeCost(currentGenerationLevel);
+  if (bank.coins.value.cmp(cost) < 0) return false;
+
+  const nextLevel = currentGenerationLevel + 1;
+  // If save succeeds, we apply it. Note we DO NOT subtract coins.
+  if (saveGenerationLevel(nextLevel)) {
+    currentGenerationLevel = nextLevel;
+    updateWorkshopTab();
+    return true;
+  }
+  return false;
+}
