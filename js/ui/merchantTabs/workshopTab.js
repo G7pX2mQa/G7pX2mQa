@@ -415,6 +415,23 @@ function buildWorkshopUI(container) {
       requestAnimationFrame(syncLayout);
   }
 
+  // --- Visibility Observer to Pause/Resume Animation Loop ---
+  if (typeof IntersectionObserver !== 'undefined') {
+      const visibilityObserver = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+              if (entry.isIntersecting) {
+                  startRenderLoop();
+              } else {
+                  stopRenderLoop();
+              }
+          }
+      }, {
+          root: null, // viewport
+          threshold: 0
+      });
+      visibilityObserver.observe(container);
+  }
+
   workshopEl = container;
 }
 
@@ -464,17 +481,22 @@ export function updateWorkshopTab() {
 
 let lastRenderTime = 0;
 
+function stopRenderLoop() {
+  if (renderFrameId) {
+    cancelAnimationFrame(renderFrameId);
+    renderFrameId = null;
+    lastRenderTime = 0;
+  }
+}
+
 function startRenderLoop() {
   if (renderFrameId) return;
   
+  // Reset time tracking on start
+  lastRenderTime = 0;
+
   const loop = (timestamp) => {
     if (workshopEl && workshopEl.isConnected) {
-        // Skip updates if hidden
-        if (workshopEl.offsetParent === null) {
-          renderFrameId = requestAnimationFrame(loop);
-          return;
-        }
-
         // --- 1. Update UI Text ---
         const gearsAmountEl = workshopEl.querySelector('[data-workshop="gears-amount"]');
         if (gearsAmountEl) {
@@ -617,7 +639,13 @@ export function initWorkshopTab(panelEl) {
   
   buildWorkshopUI(panelEl);
   
-  startRenderLoop();
+  // We do not call startRenderLoop() here anymore; 
+  // the IntersectionObserver in buildWorkshopUI will trigger it when visible.
+  // However, if the tab is already visible (e.g. init), the observer fires immediately.
+  // Just in case IntersectionObserver is missing (legacy?), we could fallback.
+  if (typeof IntersectionObserver === 'undefined') {
+      startRenderLoop();
+  }
 
   // Initial check
   if (!hasDoneInfuseReset()) {
