@@ -635,15 +635,31 @@ export function getGearsProductionRate() {
 }
 
 export function performFreeGenerationUpgrade() {
-  const cost = getGenerationUpgradeCost(currentGenerationLevel);
-  if (bank.coins.value.cmp(cost) < 0) return false;
+  if (bank.coins.value.isZero()) return false;
 
-  const nextLevel = currentGenerationLevel + 1;
-  // If save succeeds, we apply it. Note we DO NOT subtract coins.
-  if (saveGenerationLevel(nextLevel)) {
-    currentGenerationLevel = nextLevel;
-    updateWorkshopTab();
-    return true;
+  let decExp = bank.coins.value.decExp;
+  if (!Number.isFinite(decExp)) {
+    if (bank.coins.value.inf) decExp = Infinity;
+    else return false;
+  }
+
+  let targetLevel;
+  if (decExp === Infinity) {
+    targetLevel = Infinity;
+  } else {
+    // Cost(L) = 1e12 * 10^L
+    // Coins >= Cost(L) => log10(Coins) >= 12 + L
+    // Max affordable L = floor(log10(Coins)) - 12
+    // Upgrade TO level L + 1 => Target = (decExp - 12) + 1
+    targetLevel = decExp - 11;
+  }
+
+  if (targetLevel > currentGenerationLevel) {
+    if (saveGenerationLevel(targetLevel)) {
+      currentGenerationLevel = targetLevel;
+      updateWorkshopTab();
+      return true;
+    }
   }
   return false;
 }
