@@ -56,7 +56,8 @@ function updateAutobuyers(dt) {
 
   // Process workshop levels
   if (workshopAutobuy) {
-    const key = `ccc:autobuy:workshop:genLevel${slotSuffix}`;
+    // Check standard automation toggle key (ccc:autobuy:automation:6)
+    const key = `ccc:autobuy:${AUTOMATION_AREA_KEY}:${AUTOBUY_WORKSHOP_LEVELS_ID}${slotSuffix}`;
     const setting = localStorage.getItem(key);
     if (setting !== '0') {
       performFreeGenerationUpgrade();
