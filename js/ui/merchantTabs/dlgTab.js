@@ -69,12 +69,7 @@ function updateMerchantNameInUI() {
   const name = getMerchantName();
   
   if (merchantOverlayEl) {
-    const title = merchantOverlayEl.querySelector('.merchant-header .merchant-title');
-    if (title) title.textContent = name;
-  }
-  
-  if (merchantOverlayEl) {
-    const modalNames = merchantOverlayEl.querySelectorAll('.merchant-firstchat__header .name');
+    const modalNames = merchantOverlayEl.querySelectorAll('.merchant-firstchat:not(.merchant-firstchat--initial) .merchant-firstchat__header .name');
     modalNames.forEach((modalName) => {
       if (modalName && (modalName.textContent === 'Merchant' || modalName.textContent === 'Jeff')) {
         modalName.textContent = name;
@@ -510,7 +505,7 @@ function rewardLabel(reward) {
 export const DLG_CATALOG = {
   1: {
     title: 'A Generous Gift',
-    blurb: 'The Merchant is feeling extra nice today.',
+    blurb: 'The Merchant is feeling extra nice today',
     scriptId: 1,
     reward: { type: 'coins', amount: 100 },
     unlock: (progress) => true,
@@ -518,7 +513,7 @@ export const DLG_CATALOG = {
   },
   2: {
     title: 'A New Experience',
-    blurb: 'Discuss the XP system with the Merchant.',
+    blurb: 'Discuss the XP system with the Merchant',
     scriptId: 2,
     reward: { type: 'books', amount: 5 },
     once: true,
@@ -538,7 +533,7 @@ export const DLG_CATALOG = {
   },
   3: {
     title: 'A Golden Opportunity',
-    blurb: 'Ask the Merchant a few questions about the Forge.',
+    blurb: 'Ask the Merchant a few questions about the Forge',
     scriptId: 3,
     reward: { type: 'gold', amount: 10 },
     once: true,
@@ -569,7 +564,7 @@ export const DLG_CATALOG = {
   },
   4: {
     title: 'A Magic Touch',
-    blurb: 'Learn about the Merchant’s magical powers.',
+    blurb: 'Learn about the Merchant’s magical powers',
     scriptId: 4,
     reward: { type: 'magic', amount: 10 },
     once: true,
@@ -1388,7 +1383,7 @@ function ensureMerchantOverlay() {
   const header = document.createElement('header');
   header.className = 'merchant-header';
   header.innerHTML = `
-    <div class="merchant-title">${getMerchantName()}</div>
+    <div class="merchant-title">Merchant</div>
     <div class="merchant-line" aria-hidden="true"></div>
   `;
 
@@ -1493,7 +1488,7 @@ function ensureMerchantOverlay() {
   firstChat.innerHTML = `
     <div class="merchant-firstchat__card" role="dialog" aria-label="First chat">
       <div class="merchant-firstchat__header">
-        <div class="name">${getMerchantName()}</div>
+        <div class="name">Merchant</div>
         <div class="rule" aria-hidden="true"></div>
       </div>
       <div class="merchant-firstchat__row">
