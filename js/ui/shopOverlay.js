@@ -1250,14 +1250,16 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
               let btn = actions.querySelector(`.${className.split(' ').join('.')}`);
               if (!btn) {
                   btn = document.createElement('button'); btn.type='button'; btn.className=className; btn.textContent=text;
-                  if (onClick) {
-                      if ('PointerEvent' in window) btn.addEventListener('pointerdown', (e) => { if(e.pointerType==='mouse'||(typeof e.button==='number'&&e.button!==0))return; onClick(); e.preventDefault(); }, {passive:false});
-                      else btn.addEventListener('touchstart', (e)=>{ onClick(); e.preventDefault(); }, {passive:false});
-                      btn.addEventListener('click', ()=>{ if(IS_MOBILE)return; onClick(); });
-                  }
+                  
+                  const invoke = () => { if (typeof btn._onClick === 'function') btn._onClick(); };
+                  if ('PointerEvent' in window) btn.addEventListener('pointerdown', (e) => { if(e.pointerType==='mouse'||(typeof e.button==='number'&&e.button!==0))return; invoke(); e.preventDefault(); }, {passive:false});
+                  else btn.addEventListener('touchstart', (e)=>{ invoke(); e.preventDefault(); }, {passive:false});
+                  btn.addEventListener('click', ()=>{ if(IS_MOBILE)return; invoke(); });
+                  
                   const siblings = actions.children;
                   if (index >= siblings.length) actions.appendChild(btn); else actions.insertBefore(btn, siblings[index]);
               }
+              btn._onClick = onClick;
               if(btn.textContent!==text) btn.textContent=text;
               if(btn.disabled!==disabled) btn.disabled=disabled;
               return btn;
