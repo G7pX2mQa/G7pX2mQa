@@ -1141,6 +1141,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       upgSheetEl.classList.toggle('is-unlock-upgrade', isUnlockVisible);
       upgSheetEl.classList.toggle('is-hm-upgrade', isHM && !isHiddenUpgrade);
       upgSheetEl.classList.toggle('is-endless-xp', isEndlessXp);
+	  upgSheetEl.classList.toggle('is-no-effect', !model.effect);
 
             // --- Automation Toggle Logic ---
       let autoToggleWrapper = header.querySelector('.auto-toggle-wrapper');
@@ -1183,7 +1184,19 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
          let isEnabled = true;
          if (isAutomationMaster) {
              const key = `ccc:autobuy:master:coins${slotSuffix}`;
-             isEnabled = localStorage.getItem(key) !== '0';
+             // Check if ANY child upgrade is enabled
+             const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
+             let anyEnabled = false;
+             for (const u of upgrades) {
+                 if (u.costType === 'coins') {
+                     const childKey = `ccc:autobuy:${u.area}:${u.id}${slotSuffix}`;
+                     if (localStorage.getItem(childKey) !== '0') {
+                         anyEnabled = true;
+                         break;
+                     }
+                 }
+             }
+             isEnabled = anyEnabled;
          } else {
              const key = `ccc:autobuy:${upgDef.area}:${upgDef.id}${slotSuffix}`;
              isEnabled = localStorage.getItem(key) !== '0';
