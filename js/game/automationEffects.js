@@ -15,6 +15,62 @@ import { getActiveSlot } from '../util/storage.js';
 
 let accumulator = 0;
 
+// Autobuyer Toggle Cache
+// Structure: Map<string, string> where key is the localStorage key and value is the setting ('0' or '1')
+const autobuyerCache = new Map();
+let cacheSlot = null;
+
+function ensureCacheSlot(slot) {
+  if (cacheSlot !== slot) {
+    autobuyerCache.clear();
+    cacheSlot = slot;
+  }
+}
+
+/**
+ * Gets the autobuyer toggle state for a specific upgrade.
+ * Caches the result to minimize localStorage reads.
+ * Default is '1' (Active) if not set.
+ */
+export function getAutobuyerToggle(area, id) {
+  const slot = getActiveSlot();
+  ensureCacheSlot(slot);
+
+  const slotSuffix = slot != null ? `:${slot}` : '';
+  const key = `ccc:autobuy:${area}:${id}${slotSuffix}`;
+
+  if (autobuyerCache.has(key)) {
+    return autobuyerCache.get(key);
+  }
+
+  let val = '1'; // Default active
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored !== null) val = stored;
+  } catch {}
+
+  autobuyerCache.set(key, val);
+  return val;
+}
+
+/**
+ * Sets the autobuyer toggle state for a specific upgrade.
+ * Updates both the cache and localStorage.
+ */
+export function setAutobuyerToggle(area, id, value) {
+  const slot = getActiveSlot();
+  ensureCacheSlot(slot);
+
+  const slotSuffix = slot != null ? `:${slot}` : '';
+  const key = `ccc:autobuy:${area}:${id}${slotSuffix}`;
+
+  const valStr = String(value);
+  autobuyerCache.set(key, valStr);
+  try {
+    localStorage.setItem(key, valStr);
+  } catch {}
+}
+
 function onTick(dt) {
   updateAutomation(dt);
   updateAutobuyers(dt);
@@ -30,7 +86,9 @@ function updateAutobuyers(dt) {
   if (!coinAutobuy && !bookAutobuy && !goldAutobuy && !magicAutobuy && !workshopAutobuy) return;
 
   const slot = getActiveSlot();
-  const slotSuffix = slot != null ? `:${slot}` : '';
+  // Ensure cache slot is synced at start of tick processing to handle external slot changes
+  // although ensureCacheSlot is called inside getAutobuyerToggle, calling it here once is safe
+  ensureCacheSlot(slot);
 
   // Process standard upgrades if any standard autobuyer is active
   if (coinAutobuy || bookAutobuy || goldAutobuy || magicAutobuy) {
@@ -44,9 +102,8 @@ function updateAutobuyers(dt) {
       else if (upg.costType === 'magic' && magicAutobuy) shouldAutobuy = true;
 
       if (shouldAutobuy) {
-        // Check local storage disable setting
-        const key = `ccc:autobuy:${AREA_KEYS.STARTER_COVE}:${upg.id}${slotSuffix}`;
-        const setting = localStorage.getItem(key);
+        // Use cached getter
+        const setting = getAutobuyerToggle(AREA_KEYS.STARTER_COVE, upg.id);
         if (setting === '0') continue; // Skip if explicitly disabled
         
         performFreeAutobuy(AREA_KEYS.STARTER_COVE, upg.id);
@@ -57,8 +114,7 @@ function updateAutobuyers(dt) {
   // Process workshop levels
   if (workshopAutobuy) {
     // Check standard automation toggle key (ccc:autobuy:automation:6)
-    const key = `ccc:autobuy:${AUTOMATION_AREA_KEY}:${AUTOBUY_WORKSHOP_LEVELS_ID}${slotSuffix}`;
-    const setting = localStorage.getItem(key);
+    const setting = getAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID);
     if (setting !== '0') {
       performFreeGenerationUpgrade();
     }
@@ -88,4 +144,15 @@ export function updateAutomation(dt) {
 
 export function initAutomationEffects() {
   registerTick(onTick);
+  
+  // Listen for save slot changes to clear cache
+  if (typeof window !== 'undefined') {
+    window.addEventListener('saveSlot:change', (e) => {
+        const newSlot = e.detail?.slot;
+        if (newSlot && newSlot !== cacheSlot) {
+            autobuyerCache.clear();
+            cacheSlot = newSlot;
+        }
+    });
+  }
 }
