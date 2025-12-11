@@ -10,10 +10,11 @@ function loop() {
   if (paused) return;
   const now = performance.now();
   // Simple fixed-step loop for now
+  const dt = 1 / TICK_RATE;
   
   tickListeners.forEach(listener => {
     try {
-      listener();
+      listener(dt);
     } catch (e) {
       console.error('Error in game tick listener:', e);
     }
