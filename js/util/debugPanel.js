@@ -29,6 +29,7 @@ import {
     clearPermanentUpgradeUnlock,
     setLevel,
     getUpgradeLockState,
+    batchUpgradeOperations,
 } from '../game/upgrades.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
@@ -2907,14 +2908,16 @@ function setAllUpgradesMaxed(onlyUnlocked = false) {
         });
     });
 
-    targets.forEach(({ areaKey, upg }) => {
-        try {
-            const targetLevel = upg.lvlCap;
-            setLevel(areaKey, upg.id, targetLevel);
-            count++;
-        } catch (e) {
-            console.warn('Failed to max upgrade', upg, e);
-        }
+    batchUpgradeOperations(() => {
+        targets.forEach(({ areaKey, upg }) => {
+            try {
+                const targetLevel = upg.lvlCap;
+                setLevel(areaKey, upg.id, targetLevel);
+                count++;
+            } catch (e) {
+                console.warn('Failed to max upgrade', upg, e);
+            }
+        });
     });
     return count;
 }
@@ -2938,13 +2941,15 @@ function setAllUpgradesZero(onlyUnlocked = false) {
         });
     });
 
-    targets.forEach(({ areaKey, upg }) => {
-        try {
-            setLevel(areaKey, upg.id, 0);
-            count++;
-        } catch (e) {
-            console.warn('Failed to zero upgrade', upg, e);
-        }
+    batchUpgradeOperations(() => {
+        targets.forEach(({ areaKey, upg }) => {
+            try {
+                setLevel(areaKey, upg.id, 0);
+                count++;
+            } catch (e) {
+                console.warn('Failed to zero upgrade', upg, e);
+            }
+        });
     });
     return count;
 }
