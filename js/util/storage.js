@@ -585,7 +585,6 @@ function intFromScaled(theorBN) {
   const bn = BigNum.fromAny(theorBN);
   if (bn.isInfinite()) return bn.clone();
   const scaled = bn.mulScaledIntFloor(1n, MULT_SCALE);
-  if (scaled.isZero()) return BigNum.fromInt(1);
   return scaled;
 }
 
