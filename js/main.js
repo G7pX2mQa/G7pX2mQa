@@ -532,6 +532,12 @@ images: [
   'img/sc_upg_icons/xp_val_hm.webp',
   'img/sc_upg_icons/mp_val_hm.webp',
   'img/sc_upg_icons/effective_auto_collect.webp',
+  'img/sc_upg_icons/coin_autobuy.webp',
+  'img/sc_upg_icons/book_autobuy.webp',
+  'img/sc_upg_icons/gold_autobuy.webp',
+  'img/sc_upg_icons/magic_autobuy.webp',
+  'img/sc_upg_icons/workshop_level_autobuy.webp',
+  
   
   // ==== img/stats/mp ====
   'img/stats/mp/mp.webp',
