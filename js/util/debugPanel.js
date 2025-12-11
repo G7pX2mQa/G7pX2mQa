@@ -31,7 +31,7 @@ import {
     getUpgradeLockState,
 } from '../game/upgrades.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
-import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE } from '../ui/merchantTabs/dlgTab.js';
+import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
 import { getGenerationLevelKey } from '../ui/merchantTabs/workshopTab.js';
 
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
@@ -2308,6 +2308,24 @@ function getUnlockRowDefinitions(slot) {
             },
             onDisable: () => {
                 try { lockMap(); }
+                catch {}
+            },
+            slot,
+        },
+
+        {
+            labelText: 'Unlock Jeff',
+            description: 'If true, changes the Merchant\'s name to Jeff',
+            isUnlocked: () => {
+                try { return isJeffUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setJeffUnlocked(true); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setJeffUnlocked(false); }
                 catch {}
             },
             slot,
