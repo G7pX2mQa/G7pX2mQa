@@ -653,21 +653,43 @@ function ensureCurrencyOverrideListener() {
             const override = getCurrencyOverride(targetSlot, key);
 
             if (baseline && override && mult) {
-                const baselineNum = bigNumToFiniteNumber(baseline);
-                const nextNum = bigNumToFiniteNumber(mult);
-
-                if (
-                    Number.isFinite(baselineNum)
-                    && Number.isFinite(nextNum)
-                    && baselineNum !== 0
-                ) {
-                    const ratio = nextNum / baselineNum;
-                    if (ratio && ratio !== 1) {
-                        try {
-                            const scaledOverride = override.mulDecimal?.(ratio) ?? override;
-                            currencyOverrides.set(cacheKey, scaledOverride);
-                        } catch {}
+                try {
+                    // Fix: Use BigNum div instead of native division for ratio calculation
+                    // This handles numbers > 1.8e308 correctly.
+                    const baselineBn = BigNum.fromAny(baseline);
+                    const nextBn = BigNum.fromAny(mult);
+                    
+                    if (!baselineBn.isZero()) {
+                        const ratio = nextBn.div(baselineBn);
+                        // If ratio != 1 (ignoring exact equality check for simplicity, or we can check via cmp)
+                        // A ratio of exactly 1 means no change, so we can skip scaling.
+                        const ratioNum = ratio.sig === 1n && ratio.e === 0 && ratio._eOffset === 0n 
+                                         ? 1 
+                                         : null; // dummy check, actually just multiply.
+                        
+                        // Just apply the ratio. If it's 1, mulDecimal(1) or mulBigNum(1) is safe.
+                        // Wait, mulDecimal takes number/string. mulBigNum takes BigNum.
+                        // Let's use mulBigNumInteger if ratio is integer? No, ratio is likely decimal.
+                        // BigNum doesn't have mulBigNumDecimal yet?
+                        // Wait, `div` returns a BigNum.
+                        // `override` is a BigNum.
+                        // We need `override * ratio`.
+                        // BigNum has `mulBigNumInteger`. It does NOT have `mulBigNum`.
+                        // But `mulBigNumInteger` logic:
+                        // return new BigNum(this.sig * b.sig, { base: baseSum, offset: offsetSum }, this.p);
+                        // This logic is generic! It multiplies two BigNums.
+                        // The method name says "Integer" but the implementation supports exponents.
+                        // Let's verify BigNum.js implementation of mulBigNumInteger:
+                        // const baseSum = this.e + b.e;
+                        // const offsetSum = this._eOffset + b._eOffset;
+                        // return new BigNum(this.sig * b.sig, { base: baseSum, offset: offsetSum }, this.p);
+                        // Yes, this is correct for ANY BigNum multiplication.
+                        
+                        const scaledOverride = override.mulBigNumInteger(ratio);
+                        currencyOverrides.set(cacheKey, scaledOverride);
                     }
+                } catch (e) {
+                     // fallback or ignore
                 }
 
                 currencyOverrideBaselines.set(cacheKey, mult);
@@ -699,8 +721,15 @@ export function setDebugCurrencyMultiplierOverride(currencyKey, value, slot = ge
     catch { bn = BigNum.fromInt(1); }
     const cacheKey = buildOverrideKey(slot, currencyKey);
     currencyOverrides.set(cacheKey, bn);
-    const gameValue = bank?.[currencyKey]?.mult?.get?.();
-    currencyOverrideBaselines.set(cacheKey, gameValue);
+    
+    // Fix: Only set the baseline if it's not already set.
+    // If we overwrite the baseline with the current bank value (which might be the OLD override),
+    // we create a feedback loop that crushes the value when the game ticks.
+    if (!currencyOverrideBaselines.has(cacheKey)) {
+        const gameValue = bank?.[currencyKey]?.mult?.get?.();
+        currencyOverrideBaselines.set(cacheKey, gameValue);
+    }
+    
     applyCurrencyOverrideForSlot(currencyKey, slot);
     return bn;
 }
@@ -742,7 +771,6 @@ export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlo
 
     // If the caller is passing the raw in-game multiplier itself (e.g. XP Value,
     // MP Value, etc.), avoid ratio math and just return the override directly.
-    // This prevents weird cases like 0.999... when we conceptually want 1.000...
     try {
         if (bigNumEquals(base, gameValue)) {
             return override;
@@ -762,17 +790,23 @@ export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlo
     const multiplierForRatio =
         (isStatMultiplierLocked(statKey, slot) && baseline) ? baseline : gameValue;
 
-    const overrideNum = bigNumToFiniteNumber(override);
-    const gameValueNum = bigNumToFiniteNumber(multiplierForRatio);
-    const ratio =
-        Number.isFinite(overrideNum) &&
-        Number.isFinite(gameValueNum) &&
-        gameValueNum !== 0
-            ? overrideNum / gameValueNum
-            : Number.NaN;
+    // Fix: Use BigNum div instead of converting to finite numbers
+    let ratio = null;
+    try {
+         const numBn = BigNum.fromAny(override);
+         const denomBn = BigNum.fromAny(multiplierForRatio);
+         if (!denomBn.isZero()) {
+             ratio = numBn.div(denomBn);
+         }
+    } catch (e) {
+        ratio = null;
+    }
 
-    if (Number.isFinite(ratio) && ratio !== 1) {
-        try { return base.mulDecimal?.(ratio) ?? base; }
+    if (ratio) {
+        try { 
+            // mulBigNumInteger supports generic BigNum multiplication
+            return base.mulBigNumInteger(ratio); 
+        }
         catch {}
     }
 
