@@ -8,6 +8,8 @@ import { openShop, playPurchaseSfx } from '../shopOverlay.js';
 import { hasDoneInfuseReset } from './resetTab.js';
 import { bigNumFromLog10 } from '../../game/upgrades.js';
 import { IS_MOBILE } from '../../main.js';
+import { AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID } from '../../game/automationUpgrades.js';
+import { getLevelNumber } from '../../game/upgrades.js';
 
 const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
 const GEAR_HUD_ICON_SRC = 'img/currencies/gear/gear_plus_base.webp';
@@ -435,6 +437,18 @@ export function updateWorkshopTab() {
   if (upgradeBtn) {
     const canAfford = bank.coins.value.cmp(cost) >= 0;
     upgradeBtn.disabled = !canAfford;
+
+    const autoLevel = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID);
+    let isAutomated = false;
+    if (autoLevel > 0) {
+        const slot = getActiveSlot();
+        const slotSuffix = slot != null ? `:${slot}` : '';
+        const key = `ccc:autobuy:${AUTOMATION_AREA_KEY}:${AUTOBUY_WORKSHOP_LEVELS_ID}${slotSuffix}`;
+        isAutomated = localStorage.getItem(key) !== '0';
+    }
+    
+    if (isAutomated) upgradeBtn.classList.add('is-automated');
+    else upgradeBtn.classList.remove('is-automated');
   }
 
   // Update decorations only if level changed (integer part)
