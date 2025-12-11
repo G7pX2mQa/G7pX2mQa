@@ -39,6 +39,49 @@ export function hasMetMerchant() {
   }
 }
 
+
+const JEFF_UNLOCK_KEY_BASE = 'ccc:unlock:jeff';
+
+export function isJeffUnlocked() {
+  try {
+    return localStorage.getItem(sk(JEFF_UNLOCK_KEY_BASE)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setJeffUnlocked(value) {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+  const key = `${JEFF_UNLOCK_KEY_BASE}:${slot}`;
+  const normalized = !!value;
+  try {
+    localStorage.setItem(key, normalized ? '1' : '0');
+    updateMerchantNameInUI();
+  } catch {}
+}
+
+function getMerchantName() {
+  return isJeffUnlocked() ? 'Jeff' : 'Merchant';
+}
+
+function updateMerchantNameInUI() {
+  const name = getMerchantName();
+  
+  if (merchantOverlayEl) {
+    const title = merchantOverlayEl.querySelector('.merchant-header .merchant-title');
+    if (title) title.textContent = name;
+  }
+  
+  if (merchantOverlayEl) {
+    const modalName = merchantOverlayEl.querySelector('.merchant-firstchat__header .name');
+    if (modalName && (modalName.textContent === 'Merchant' || modalName.textContent === 'Jeff')) {
+       modalName.textContent = name;
+    }
+  }
+}
+
+
 const MERCHANT_TABS_DEF = [
   { key: 'dialogue',  label: 'Dialogue', unlocked: true },
   { key: 'reset',     label: 'Reset',    unlocked: false, lockedLabel: '???' },
@@ -55,6 +98,7 @@ const REWARD_ICON_SRC = {
   coins: 'img/currencies/coin/coin.webp',
   books: 'img/currencies/book/book.webp',
   gold: 'img/currencies/gold/gold.webp',
+  magic: 'img/currencies/magic/magic.webp',
 };
 
 const MYSTERIOUS_ICON_SRC = 'img/misc/mysterious.webp';
@@ -288,6 +332,12 @@ function getPlayerProgress() {
   } catch {
     progress.hasForgeReset = false;
   }
+
+  try {
+    progress.hasInfuseReset = typeof hasDoneInfuseReset === 'function' && hasDoneInfuseReset();
+  } catch {
+    progress.hasInfuseReset = false;
+  }
   
   return progress;
 }
@@ -431,6 +481,15 @@ function grantReward(reward) {
     return;
   }
 
+  if (reward.type === 'magic') {
+    try {
+      bank.magic.add(reward.amount);
+    } catch (e) {
+      console.warn('Failed to grant magic reward:', reward, e);
+    }
+    return;
+  }
+
   try {
     window.dispatchEvent(new CustomEvent('merchantReward', { detail: reward }));
   } catch {}
@@ -501,6 +560,33 @@ export const DLG_CATALOG = {
         icon: MYSTERIOUS_ICON_SRC,
         headerTitle: HIDDEN_DIALOGUE_TITLE,
         ariaLabel: 'Hidden merchant dialogue, do a Forge reset to reveal this dialogue',
+      };
+    },
+  },
+  4: {
+    title: 'A Magic Touch',
+    blurb: 'Learn about the Merchant’s magical powers.',
+    scriptId: 4,
+    reward: { type: 'magic', amount: 10 },
+    once: true,
+    unlock: (progress) => {
+      if (progress?.hasInfuseReset) return true;
+      if (!progress?.xpUnlocked || (progress?.xpLevel ?? 0) < 101) {
+        return {
+          status: 'locked',
+          title: '???',
+          blurb: 'Locked',
+          tooltip: 'Locked Dialogue',
+          ariaLabel: 'Locked Dialogue',
+        };
+      }
+      return {
+        status: 'mysterious',
+        requirement: 'Do an Infuse reset to reveal this dialogue',
+        message: 'Do an Infuse reset to reveal this dialogue',
+        icon: MYSTERIOUS_ICON_SRC,
+        headerTitle: HIDDEN_DIALOGUE_TITLE,
+        ariaLabel: 'Hidden merchant dialogue, do an Infuse reset to reveal this dialogue',
       };
     },
   },
@@ -778,11 +864,12 @@ function typeText(el, full, msPerChar = 22, skipTargets = []) {
 
 // ========================= DialogueEngine =========================
 class DialogueEngine {
-  constructor({ textEl, choicesEl, skipTargets, onEnd }) {
+  constructor({ textEl, choicesEl, skipTargets, onEnd, onChoice }) {
     this.textEl = textEl;
     this.choicesEl = choicesEl;
     this.skipTargets = skipTargets;
     this.onEnd = onEnd || (() => {});
+    this.onChoice = onChoice;
     this.nodes = {};
     this.current = null;
 
@@ -856,6 +943,7 @@ class DialogueEngine {
       btn.textContent = opt.label;
       const unbind = bindRapidActivation(btn, async (event) => {
         event?.stopPropagation?.();
+        this.onChoice?.(this.current, opt);
         this._reservedH = this.choicesEl.offsetHeight | 0;
         this.choicesEl.style.minHeight = this._reservedH + 'px';
         this._hideChoices();
@@ -988,7 +1076,7 @@ function openDialogueModal(id, meta) {
   overlay.innerHTML = `
     <div class="merchant-firstchat__card" role="dialog" aria-label="${meta.title}">
       <div class="merchant-firstchat__header">
-        <div class="name">Merchant</div>
+        <div class="name">${getMerchantName()}</div>
         <div class="rule" aria-hidden="true"></div>
       </div>
       <div class="merchant-firstchat__row">
@@ -1050,6 +1138,11 @@ const engine = new DialogueEngine({
   textEl,
   choicesEl,
   skipTargets: [textEl, rowEl, cardEl],
+    onChoice: (nodeId, opt) => {
+      if (meta.scriptId === 4 && nodeId === 'c4b') {
+        setJeffUnlocked(true);
+      }
+    },
   onEnd: (info) => {
     if (ended) return;
     ended = true;
@@ -1095,6 +1188,17 @@ const engine = new DialogueEngine({
     script.nodes.m5a.say = 'I\'ve already given you Gold, goodbye.';
     if (script.nodes.c5a) {
       script.nodes.c5a.options = [
+        { label: 'Goodbye.', to: 'end_nr' },
+        { label: 'Goodbye.', to: 'end_nr' },
+        { label: 'Goodbye.', to: 'end_nr' },
+      ];
+    }
+  }
+
+  if (claimed && meta.scriptId === 4 && script.nodes.m7a) {
+    script.nodes.m7a.say = 'I\'ve already given you Magic, goodbye.';
+    if (script.nodes.c7a) {
+      script.nodes.c7a.options = [
         { label: 'Goodbye.', to: 'end_nr' },
         { label: 'Goodbye.', to: 'end_nr' },
         { label: 'Goodbye.', to: 'end_nr' },
@@ -1280,7 +1384,7 @@ function ensureMerchantOverlay() {
   const header = document.createElement('header');
   header.className = 'merchant-header';
   header.innerHTML = `
-    <div class="merchant-title">Merchant</div>
+    <div class="merchant-title">${getMerchantName()}</div>
     <div class="merchant-line" aria-hidden="true"></div>
   `;
 
@@ -1385,7 +1489,7 @@ function ensureMerchantOverlay() {
   firstChat.innerHTML = `
     <div class="merchant-firstchat__card" role="dialog" aria-label="First chat">
       <div class="merchant-firstchat__header">
-        <div class="name">Merchant</div>
+        <div class="name">${getMerchantName()}</div>
         <div class="rule" aria-hidden="true"></div>
       </div>
       <div class="merchant-firstchat__row">
@@ -1688,6 +1792,11 @@ function runFirstMeet() {
     textEl,
     choicesEl,
     skipTargets: [textEl, rowEl, cardEl],
+    onChoice: (nodeId, opt) => {
+      if (meta.scriptId === 4 && nodeId === 'c4b') {
+        setJeffUnlocked(true);
+      }
+    },
     onEnd: () => {
       try { localStorage.setItem(sk(MERCHANT_MET_KEY_BASE), '1'); } catch {}
       try { window.dispatchEvent(new Event(MERCHANT_MET_EVENT)); } catch {}
