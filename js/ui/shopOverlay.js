@@ -558,6 +558,17 @@ class ShopInstance {
                     e.stopPropagation();
                     
                     if (!el.upgMeta) return;
+
+                    const model = this.adapter.getUiModel(el.upgMeta.id);
+                    if (model?.hmReadyToEvolve) {
+                        const { evolved } = this.adapter.evolve(el.upgMeta.id);
+                        if (evolved) {
+                            playEvolveSfx();
+                            this.update();
+                        }
+                        return;
+                    }
+
                     const { bought } = this.adapter.buyMax(el.upgMeta.id);
                     const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
                     
