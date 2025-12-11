@@ -34,6 +34,31 @@ export const AREA_KEYS = {
   AUTOMATION: AUTOMATION_AREA_KEY,
 };
 
+let isBatching = false;
+const pendingAreaSaves = new Map(); // key -> {areaKey, stateArr, slot}
+let pendingNotify = false;
+
+export function batchUpgradeOperations(fn) {
+  if (isBatching) {
+    return fn();
+  }
+  isBatching = true;
+  try {
+    return fn();
+  } finally {
+    isBatching = false;
+    pendingAreaSaves.forEach(({ areaKey, stateArr, slot }) => {
+      try { saveAreaState(areaKey, stateArr, slot); }
+      catch (e) { console.warn('Deferred save failed', e); }
+    });
+    pendingAreaSaves.clear();
+    if (pendingNotify) {
+      pendingNotify = false;
+      notifyChanged();
+    }
+  }
+}
+
 function hasScaling(upg) {
   try {
     const scaling = ensureUpgradeScaling(upg);
@@ -2992,6 +3017,10 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
   const storageKey = keyForArea(areaKey, slot);
   if (!storageKey) return [];
 
+  if (isBatching && pendingAreaSaves.has(storageKey)) {
+    return pendingAreaSaves.get(storageKey).stateArr;
+  }
+
   const backupKey = `${storageKey}:backup`;
   const primary = readStateFromAvailableStorage(storageKey, {
     includeLocal: true,
@@ -3086,6 +3115,12 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
 function saveAreaState(areaKey, stateArr, slot = getActiveSlot()) {
   const storageKey = keyForArea(areaKey, slot);
   if (!storageKey) return;
+
+  if (isBatching) {
+    const arr = Array.isArray(stateArr) ? stateArr : [];
+    pendingAreaSaves.set(storageKey, { areaKey, stateArr: arr, slot });
+    return;
+  }
 
   const arr = Array.isArray(stateArr) ? stateArr : [];
   normalizeAreaStateRecordOrder(areaKey, arr);
@@ -4331,6 +4366,11 @@ export function onUpgradesChanged(cb) {
   return () => { listeners = listeners.filter(x => x !== cb); };
 }
 function notifyChanged() {
+  if (isBatching) {
+    pendingNotify = true;
+    _cachedUpgradeMultipliers = null;
+    return;
+  }
   _cachedUpgradeMultipliers = null;
   try { listeners.forEach(cb => cb()); } catch {}
   try { document.dispatchEvent(new CustomEvent('ccc:upgrades:changed')); } catch {}
