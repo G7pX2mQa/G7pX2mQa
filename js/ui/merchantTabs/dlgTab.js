@@ -74,10 +74,12 @@ function updateMerchantNameInUI() {
   }
   
   if (merchantOverlayEl) {
-    const modalName = merchantOverlayEl.querySelector('.merchant-firstchat__header .name');
-    if (modalName && (modalName.textContent === 'Merchant' || modalName.textContent === 'Jeff')) {
-       modalName.textContent = name;
-    }
+    const modalNames = merchantOverlayEl.querySelectorAll('.merchant-firstchat__header .name');
+    modalNames.forEach((modalName) => {
+      if (modalName && (modalName.textContent === 'Merchant' || modalName.textContent === 'Jeff')) {
+        modalName.textContent = name;
+      }
+    });
   }
 }
 
