@@ -8,6 +8,14 @@ export const AUTOBUY_GOLD_UPGRADES_ID = 4;
 export const AUTOBUY_MAGIC_UPGRADES_ID = 5;
 export const AUTOBUY_WORKSHOP_LEVELS_ID = 6;
 
+// Maps an Automation Upgrade ID to the cost type it controls (Master Switch logic).
+export const MASTER_AUTOBUY_IDS = {
+  [AUTOBUY_COIN_UPGRADES_ID]: 'coins',
+  [AUTOBUY_BOOK_UPGRADES_ID]: 'books',
+  [AUTOBUY_GOLD_UPGRADES_ID]: 'gold',
+  [AUTOBUY_MAGIC_UPGRADES_ID]: 'magic'
+};
+
 export const REGISTRY = [
   {
     area: AUTOMATION_AREA_KEY,
