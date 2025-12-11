@@ -2983,6 +2983,7 @@ if (typeof window !== 'undefined') {
   bindUpgradeStorageWatchersForSlot(getActiveSlot());
   window.addEventListener('saveSlot:change', () => {
     bindUpgradeStorageWatchersForSlot(getActiveSlot());
+    notifyChanged();
   });
 }
 
