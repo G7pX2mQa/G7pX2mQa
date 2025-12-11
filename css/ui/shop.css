@@ -1122,11 +1122,13 @@
   background: hsla(0, 80%, 40%, 0.28);
 }
 
-@media (min-width: 1400px) and (max-width: 1536px) and (hover: hover) and (pointer: fine) {
-  .upg-sheet.is-magnet-upgrade .upg-desc.centered,
-  .upg-sheet.is-magnet-upgrade .upg-line {
-	position: relative;
-	top: 2vh;
+@media (min-width: 1400px) and (hover: hover) and (pointer: fine) {
+  .upg-sheet.is-magnet-upgrade:not(.is-maxed) .upg-content {
+    transform: translateY(-7.5vh);
+  }
+
+  .upg-sheet.is-magnet-upgrade.is-maxed .upg-content {
+    transform: translateY(-14vh);
   }
 }
 
