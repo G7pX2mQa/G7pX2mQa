@@ -34,6 +34,8 @@ import {
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
 import { getGenerationLevelKey } from '../ui/merchantTabs/workshopTab.js';
+import { setAutobuyerToggle } from '../game/automationEffects.js';
+import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY } from '../game/automationUpgrades.js';
 
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
@@ -2954,6 +2956,30 @@ function setAllUpgradesZero(onlyUnlocked = false) {
     return count;
 }
 
+function setAllAutomationToggles(targetState) {
+    const slot = getActiveSlot();
+    if (slot == null) return 0;
+
+    const val = targetState ? '1' : '0';
+    let count = 0;
+
+    const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
+    upgrades.forEach((upg) => {
+        if (['coins', 'books', 'gold', 'magic'].includes(upg.costType)) {
+            setAutobuyerToggle(AREA_KEYS.STARTER_COVE, upg.id, val);
+            count++;
+        }
+    });
+
+    setAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID, val);
+    count++;
+
+    // Force UI refresh if shop is open
+    try { window.dispatchEvent(new CustomEvent('debug:change', { detail: { slot } })); } catch {}
+
+    return count;
+}
+
 function buildMiscContent(content) {
     content.innerHTML = '';
 
@@ -3046,6 +3072,22 @@ function buildMiscContent(content) {
                 const count = setAllUpgradesZero(false);
                 flagDebugUsage();
                 logAction(`Reset all ${count} upgrades to 0.`);
+            },
+        },
+        {
+            label: 'Enable All Auto',
+            onClick: () => {
+                const count = setAllAutomationToggles(true);
+                flagDebugUsage();
+                logAction(`Enabled automation for ${count} upgrades.`);
+            },
+        },
+        {
+            label: 'Disable All Auto',
+            onClick: () => {
+                const count = setAllAutomationToggles(false);
+                flagDebugUsage();
+                logAction(`Disabled automation for ${count} upgrades.`);
             },
         },
         {
