@@ -40,7 +40,8 @@ import {
   AUTOBUY_BOOK_UPGRADES_ID,
   AUTOBUY_GOLD_UPGRADES_ID,
   AUTOBUY_MAGIC_UPGRADES_ID,
-  AUTOBUY_WORKSHOP_LEVELS_ID
+  AUTOBUY_WORKSHOP_LEVELS_ID,
+  MASTER_AUTOBUY_IDS
 } from '../game/automationUpgrades.js';
 import { getAutobuyerToggle, setAutobuyerToggle } from '../game/automationEffects.js';
 
@@ -98,13 +99,6 @@ const COST_TYPE_TO_AUTOBUY_ID = {
   magic: AUTOBUY_MAGIC_UPGRADES_ID
 };
 
-// Maps an Automation Upgrade ID to the cost type it controls (Master Switch logic).
-const MASTER_AUTOBUY_IDS = {
-  [AUTOBUY_COIN_UPGRADES_ID]: 'coins',
-  [AUTOBUY_BOOK_UPGRADES_ID]: 'books',
-  [AUTOBUY_GOLD_UPGRADES_ID]: 'gold',
-  [AUTOBUY_MAGIC_UPGRADES_ID]: 'magic'
-};
 
 
 function resolveUpgradeId(upgLike) {
@@ -1422,11 +1416,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       
       if (locked || capReached) {
           actions.querySelectorAll('button:not(.shop-close)').forEach(btn => btn.remove());
-          const active = document.activeElement;
-          // Only steal focus if the active element is relevant (inside the sheet or fallback to body),
-          // preventing us from stealing focus from the Debug Panel or other overlays.
-          const isRelevant = active && (upgSheetEl.contains(active) || active === document.body);
-          if (isRelevant && active !== closeBtn && !actions.contains(active)) closeBtn.focus();
+          if (document.activeElement && document.activeElement !== closeBtn && !actions.contains(document.activeElement)) closeBtn.focus();
       } else {
           const canAffordNext = model.have.cmp(nextPriceBn) >= 0;
           const ensureButton = (className, text, onClick, index, disabled=false) => {
