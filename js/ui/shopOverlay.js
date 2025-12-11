@@ -34,7 +34,7 @@ import {
   shouldSkipGhostTap,
   suppressNextGhostTap,
 } from '../util/ghostTapGuard.js';
-import { AUTOMATION_AREA_KEY } from '../game/automationUpgrades.js';
+import { AUTOMATION_AREA_KEY, AUTOBUY_COIN_UPGRADES_ID } from '../game/automationUpgrades.js';
 
 // --- Shared State ---
 const ICON_DIR = 'img/';
@@ -1130,6 +1130,81 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       upgSheetEl.classList.toggle('is-unlock-upgrade', isUnlockVisible);
       upgSheetEl.classList.toggle('is-hm-upgrade', isHM && !isHiddenUpgrade);
       upgSheetEl.classList.toggle('is-endless-xp', isEndlessXp);
+
+      // --- Automation Toggle Logic ---
+      let autoToggleWrapper = header.querySelector('.auto-toggle-wrapper');
+      if (autoToggleWrapper) autoToggleWrapper.remove(); // Clean re-render
+
+      const isAutomationMaster = upgDef.id === AUTOBUY_COIN_UPGRADES_ID && upgDef.area === AUTOMATION_AREA_KEY;
+      const isCoinUpgrade = upgDef.costType === 'coins' && mode === 'standard';
+      const autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_COIN_UPGRADES_ID);
+      const hasAutobuyer = autobuyLevel > 0;
+
+      if (hasAutobuyer && (isAutomationMaster || isCoinUpgrade)) {
+         autoToggleWrapper = document.createElement('div');
+         autoToggleWrapper.className = 'auto-toggle-wrapper hm-view-milestones-row'; // Use existing class for layout if appropriate, or just style inline
+         autoToggleWrapper.style.marginTop = '12px';
+         
+         const toggleBtn = document.createElement('button');
+         toggleBtn.type = 'button';
+         toggleBtn.className = 'shop-delve'; // Default class
+         // Styling override to match "View Milestones" button style if needed, but shop-delve is the base.
+         // Wait, user said: "toggleable ... button ... about as far from the title as the view milestones button is from the purchase buttons"
+         
+         const activeSlot = getActiveSlot();
+         const slotSuffix = activeSlot != null ? `:${activeSlot}` : '';
+
+         let isEnabled = true;
+         if (isAutomationMaster) {
+             const key = `ccc:autobuy:master:coins${slotSuffix}`;
+             isEnabled = localStorage.getItem(key) !== '0';
+         } else {
+             const key = `ccc:autobuy:${upgDef.area}:${upgDef.id}${slotSuffix}`;
+             isEnabled = localStorage.getItem(key) !== '0';
+         }
+
+         if (isEnabled) {
+             toggleBtn.className = 'shop-delve';
+             toggleBtn.textContent = 'Automation: ON';
+             toggleBtn.style.backgroundColor = ''; // Use default green-ish from shop-delve
+         } else {
+             toggleBtn.className = 'shop-close';
+             toggleBtn.textContent = 'Automation: OFF';
+             toggleBtn.style.backgroundColor = ''; // Use default red-ish from shop-close
+         }
+         
+         // Style tweaks to match "View Milestones"
+         toggleBtn.style.padding = '10px 14px';
+         toggleBtn.style.fontSize = '16px'; // A bit smaller than main actions
+         toggleBtn.style.width = 'auto';
+         toggleBtn.style.minWidth = '180px';
+         
+         toggleBtn.onclick = (e) => {
+             e.preventDefault(); e.stopPropagation();
+             if (IS_MOBILE) blockInteraction(50);
+             
+             const newState = !isEnabled;
+             const val = newState ? '1' : '0';
+             
+             if (isAutomationMaster) {
+                 localStorage.setItem(`ccc:autobuy:master:coins${slotSuffix}`, val);
+                 // Bulk update
+                 const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE); // Currently assuming STARTER_COVE
+                 upgrades.forEach(u => {
+                    if (u.costType === 'coins') {
+                        localStorage.setItem(`ccc:autobuy:${u.area}:${u.id}${slotSuffix}`, val);
+                    }
+                 });
+             } else {
+                 localStorage.setItem(`ccc:autobuy:${upgDef.area}:${upgDef.id}${slotSuffix}`, val);
+             }
+             rerender();
+         };
+         
+         autoToggleWrapper.appendChild(toggleBtn);
+         header.appendChild(autoToggleWrapper);
+      }
+      // -------------------------------
       
       const content = upgSheetEl.querySelector('.upg-content');
       if (initialRender) { content.scrollTop = 0; initialRender = false; }
