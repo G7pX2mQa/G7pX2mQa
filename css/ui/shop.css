@@ -962,7 +962,7 @@
 }
 
 .upg-sheet.is-hm-upgrade.is-endless-xp .upg-desc.centered {
-  font-size: clamp(26px, 3.7vw, 40px);
+  font-size: clamp(26px, 3.7vw, 38px);
 }
 
 .upg-sheet.is-hm-upgrade .hm-view-milestones-row {
@@ -975,7 +975,7 @@
 }
 
 .upg-sheet.is-hm-upgrade.is-endless-xp .upg-line {
-  font-size: clamp(26px, 3.7vw, 40px);
+  font-size: clamp(26px, 3.7vw, 38px);
 }
 
 .bonus-line .infinity-symbol {
