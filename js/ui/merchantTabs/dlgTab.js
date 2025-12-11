@@ -153,17 +153,6 @@ const onTouchStart = (event) => {
   };
 
   target.addEventListener('click', onClick);
-  // We keep pointer listeners mainly for visual feedback or state tracking if needed,
-  // but rely on 'click' for the action, which the global ghost tap system will dispatch rapidly.
-  // Actually, for instant feedback, we might still want pointerdown logic if we weren't using the global system.
-  // With global system: pointerdown -> immediate click. So 'click' handler is sufficient for logic.
-  // The original rapid activation code was manually handling touch/pointer to avoid 300ms delay.
-  // Now global system does that. So we can simplify this heavily.
-  // BUT: bindRapidActivation handles 'once' logic and event suppression.
-  // Let's keep it simple: just listen for click.
-  
-  // Removing manual pointer handling for activation, relying on global ghost tap
-  // to fire 'click' event immediately on pointerdown.
   
   return () => { target.removeEventListener('click', onClick); };
 }
@@ -1443,6 +1432,23 @@ function initDialogueTab() {
   renderDialogueList();
 }
 
+function handleDialogueCardClick(event) {
+  const card = event.currentTarget;
+  if (!card) return;
+  const ctx = card._dlgCtx;
+  if (!ctx) return;
+
+  if (card.classList.contains('is-locked') && !ctx.isMysterious) {
+    event?.preventDefault?.();
+    return;
+  }
+  if (ctx.unlocked) {
+    openDialogueModal(ctx.id, ctx.meta);
+  } else if (ctx.isMysterious) {
+    openDialogueLockInfo(ctx.lockInfo);
+  }
+}
+
 function renderDialogueList() {
   const panel = document.getElementById('merchant-panel-dialogue');
   if (!panel) return;
@@ -1454,9 +1460,10 @@ function renderDialogueList() {
   const state = loadDlgState();
   let stateDirty = false;
 
-  list.innerHTML = '';
+  const seenIds = new Set();
 
   Object.entries(DLG_CATALOG).forEach(([id, meta]) => {
+    seenIds.add(String(id));
     const entryState = state[id] || {};
     const storedStatus = entryState.status || 'locked';
     const storedRank = dialogueStatusRank(storedStatus);
@@ -1503,102 +1510,131 @@ function renderDialogueList() {
     const claimed = !!entryState.claimed;
     const showComplete = unlocked && !!(meta.once && claimed);
 
-    const card = document.createElement('button');
-    card.type = 'button';
-    card.className = 'dlg-card';
+    let card = list.querySelector(`.dlg-card[data-dlg-id="${id}"]`);
+    if (!card) {
+      card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'dlg-card';
+      card.dataset.dlgId = String(id);
+      
+      const titleEl = document.createElement('div');
+      titleEl.className = 'dlg-title';
+      
+      const blurbEl = document.createElement('div');
+      blurbEl.className = 'dlg-blurb';
+      
+      const rewardEl = document.createElement('div');
+      rewardEl.className = 'dlg-reward';
+      
+      card.append(titleEl, blurbEl, rewardEl);
+      list.appendChild(card);
+      
+      // Bind once; handler uses element context
+      bindRapidActivation(card, handleDialogueCardClick);
+    }
+
+    // Update Context
+    card._dlgCtx = { id, meta, lockInfo, unlocked, isMysterious };
+
+    // Update Classes
     card.dataset.dlgStatus = status;
-    card.disabled = !!locked;
+    if (card.disabled !== !!locked) card.disabled = !!locked;
+    card.classList.toggle('is-locked', locked);
+    card.classList.toggle('is-mysterious', isMysterious);
+    card.classList.toggle('is-complete', !!showComplete);
+    card.classList.toggle('has-again', !!showComplete);
 
     if (locked) {
-      card.classList.add('is-locked');
-      card.setAttribute('aria-disabled', 'true');
-      card.setAttribute('tabindex', '-1');
+      if (card.getAttribute('aria-disabled') !== 'true') card.setAttribute('aria-disabled', 'true');
+      if (card.getAttribute('tabindex') !== '-1') card.setAttribute('tabindex', '-1');
     } else {
-      card.removeAttribute('aria-disabled');
-      card.removeAttribute('tabindex');
+      if (card.hasAttribute('aria-disabled')) card.removeAttribute('aria-disabled');
+      if (card.hasAttribute('tabindex')) card.removeAttribute('tabindex');
     }
 
-    if (isMysterious) {
-      card.classList.add('is-mysterious');
-    }
+    // Update Content
+    const titleEl = card.querySelector('.dlg-title');
+    const titleText = unlocked ? meta.title : (lockInfo.title ?? '???');
+    if (titleEl.textContent !== titleText) titleEl.textContent = titleText;
 
-    const title = document.createElement('div');
-    title.className = 'dlg-title';
-    title.textContent = unlocked ? meta.title : (lockInfo.title ?? '???');
+    const blurbEl = card.querySelector('.dlg-blurb');
+    const blurbText = unlocked ? meta.blurb : (lockInfo.blurb ?? '');
+    if (blurbEl.textContent !== blurbText) blurbEl.textContent = blurbText;
 
-    const blurb = document.createElement('div');
-    blurb.className = 'dlg-blurb';
-    blurb.textContent = unlocked ? meta.blurb : (lockInfo.blurb ?? '');
-
-    const reward = document.createElement('div');
-    reward.className = 'dlg-reward';
-
+    const rewardEl = card.querySelector('.dlg-reward');
     if (unlocked && meta.reward) {
       const iconSrc = REWARD_ICON_SRC[meta.reward.type];
-
       if (iconSrc) {
-        reward.classList.add('has-reward');
-        reward.innerHTML = `
-          <span class="reward-label">Reward:</span>
-          <span class="reward-chunk" style="--reward-icon: url('${iconSrc}')">
-            <span class="reward-icon" aria-hidden="true"></span>
-            <span class="amt">${meta.reward.amount}</span>
-          </span>
-        `;
-
-        reward.setAttribute(
-          'aria-label',
-          `Reward: ${meta.reward.amount} ${meta.reward.type}`
-        );
+        // Reuse inner structure if it matches, to avoid flicker
+        if (!rewardEl.classList.contains('has-reward')) {
+           rewardEl.classList.add('has-reward');
+           rewardEl.innerHTML = `
+            <span class="reward-label">Reward:</span>
+            <span class="reward-chunk">
+                <span class="reward-icon" aria-hidden="true"></span>
+                <span class="amt"></span>
+            </span>
+           `;
+        }
+        
+        // Update reward visual data
+        if (rewardEl.style.getPropertyValue('--reward-icon') !== `url('${iconSrc}')`) {
+            rewardEl.style.setProperty('--reward-icon', `url('${iconSrc}')`);
+        }
+        const amtEl = rewardEl.querySelector('.amt');
+        const amtText = String(meta.reward.amount);
+        if (amtEl && amtEl.textContent !== amtText) amtEl.textContent = amtText;
+        
+        const rewardLabelText = `Reward: ${meta.reward.amount} ${meta.reward.type}`;
+        if (rewardEl.getAttribute('aria-label') !== rewardLabelText) {
+            rewardEl.setAttribute('aria-label', rewardLabelText);
+        }
       } else {
-        reward.textContent = rewardLabel(meta.reward);
+        rewardEl.classList.remove('has-reward');
+        const text = rewardLabel(meta.reward);
+        if (rewardEl.textContent !== text) rewardEl.textContent = text;
+        if (rewardEl.style.display !== '') rewardEl.style.display = '';
+        rewardEl.removeAttribute('aria-label');
       }
+      if (rewardEl.style.display === 'none') rewardEl.style.display = '';
     } else {
-      reward.textContent = '';
-      reward.style.display = 'none';
+      if (rewardEl.textContent !== '') rewardEl.textContent = '';
+      if (rewardEl.style.display !== 'none') rewardEl.style.display = 'none';
     }
 
     const ariaLabel = unlocked
       ? `${meta.title}${showComplete ? ' (completed)' : ''}`
       : (lockInfo.ariaLabel || (isMysterious ? 'Hidden merchant dialogue' : 'Locked merchant dialogue'));
-    card.setAttribute('aria-label', ariaLabel);
+    if (card.getAttribute('aria-label') !== ariaLabel) card.setAttribute('aria-label', ariaLabel);
 
     if (lockInfo.tooltip) {
-      card.title = lockInfo.tooltip;
+      if (card.title !== lockInfo.tooltip) card.title = lockInfo.tooltip;
     } else if (unlocked) {
-      card.title = 'Left-click: Start Dialogue';
+      const hint = 'Left-click: Start Dialogue';
+      if (card.title !== hint) card.title = hint;
     } else {
-      card.removeAttribute('title');
+      if (card.hasAttribute('title')) card.removeAttribute('title');
     }
 
-    card.append(title, blurb, reward);
-
+    // "Ask Again" footer
+    let againEl = card.querySelector('.dlg-again');
     if (showComplete) {
-      card.classList.add('is-complete');
-      const again = document.createElement('div');
-      again.className = 'dlg-again';
-      again.textContent = 'Ask Again?';
-      card.classList.add('has-again');
-      card.append(again);
-    }
-
-    list.appendChild(card);
-
-    const handleCardClick = (event) => {
-      if (card.classList.contains('is-locked') && !isMysterious) {
-        event?.preventDefault?.();
-        return;
+      if (!againEl) {
+        againEl = document.createElement('div');
+        againEl.className = 'dlg-again';
+        againEl.textContent = 'Ask Again?';
+        card.appendChild(againEl);
       }
-      if (unlocked) {
-        openDialogueModal(id, meta);
-      } else if (isMysterious) {
-        openDialogueLockInfo(lockInfo);
-      }
-    };
-
-    if (unlocked || isMysterious) {
-      bindRapidActivation(card, handleCardClick);
+    } else if (againEl) {
+      againEl.remove();
     }
+  });
+  
+  // Cleanup stale
+  Array.from(list.children).forEach(child => {
+      if (child.dataset.dlgId && !seenIds.has(child.dataset.dlgId)) {
+          child.remove();
+      }
   });
 
   if (stateDirty) {
