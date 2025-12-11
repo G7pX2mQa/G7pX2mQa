@@ -309,6 +309,77 @@ export class BigNum {
     return this;
   }
 
+  // Divide by another BigNum (returns new BigNum).
+  div(other) {
+    const b = BigNum.fromAny(other, this.p);
+    
+    // Handle infinite cases
+    if (this.inf) {
+        if (b.inf) return new BigNum(1n, 0, this.p); // inf / inf -> 1 (or undefined, but 1 is safer for ratios)
+        return this.clone(); // inf / finite -> inf
+    }
+    if (b.inf) {
+        return BigNum.zero(this.p); // finite / inf -> 0
+    }
+    
+    // Handle zero cases
+    if (b.isZero()) {
+        // finite / 0 -> infinity (mathematically undefined but useful here)
+        return new BigNum(1n, BigNum.MAX_E, this.p);
+    }
+    if (this.isZero()) {
+        return BigNum.zero(this.p); // 0 / finite -> 0
+    }
+
+    // A / B = (sigA * 10^expA) / (sigB * 10^expB)
+    //       = (sigA / sigB) * 10^(expA - expB)
+    // To maintain precision, we scale sigA by 10^precision before integer division.
+    // result = (sigA * 10^p / sigB) * 10^(expA - expB - p)
+    
+    const scale = this.#pow10(this.p);
+    const numerator = this.sig * scale;
+    const sigQuotient = numerator / b.sig; // Integer division
+    
+    // Exponent calculation:
+    // We used 'this.e' and 'b.e' for base exponents, plus offsets.
+    // However, BigNum normalization ensures sig is roughly 10^(p-1) to 10^p.
+    // So the exponent math is mostly correct if we trust .e and ._eOffset.
+    
+    // The raw exponent difference:
+    const expDiffBase = BigInt(this.e) - BigInt(b.e);
+    const expDiffOffset = this._eOffset - b._eOffset;
+    
+    // Adjust for the scaling we did (subtracting p from the exponent because we added it to sig)
+    const pBigInt = BigInt(this.p);
+    const totalExpBase = expDiffBase - pBigInt;
+    
+    // Construct new BigNum
+    // We pass the total exponent info. The constructor/normalization will handle if sigQuotient is small/large.
+    
+    // We need to fit totalExpBase + expDiffOffset into {base, offset}.
+    // base is a Number, offset is a BigInt.
+    
+    // Try to put as much as possible into 'base' (Number) to keep offset small if possible,
+    // though normalization handles it.
+    
+    // Safe conversion of expDiffBase to Number?
+    // expDiffBase can be large if inputs are large.
+    
+    // Let's just put everything into offset first, then let constructor handle it?
+    // Constructor expects 'base' to be Number.
+    
+    let resultBase = Number(totalExpBase);
+    let resultOffset = expDiffOffset;
+    
+    if (!Number.isSafeInteger(resultBase)) {
+         // If base is too large/small for Number, move it to offset.
+         resultOffset += totalExpBase;
+         resultBase = 0;
+    }
+    
+    return new BigNum(sigQuotient, { base: resultBase, offset: resultOffset }, this.p);
+  }
+
   cmp(b) {
     b = BigNum.fromAny(b, this.p);
     if (this.inf || b.inf) return this.inf === b.inf ? 0 : this.inf ? 1 : -1;
