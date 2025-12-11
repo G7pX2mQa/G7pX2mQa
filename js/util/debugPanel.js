@@ -2997,6 +2997,32 @@ function setAllAutomationToggles(targetState) {
 
     const val = targetState ? '1' : '0';
     let count = 0;
+	
+	// 1. Max (or Zero) Automation Upgrades
+    const automationUpgrades = getUpgradesForArea(AUTOMATION_AREA_KEY);
+    batchUpgradeOperations(() => {
+        automationUpgrades.forEach(upg => {
+            try {
+                // If targetState is true, set to max level (lvlCap).
+                // If false, set to 0.
+                const lvl = targetState ? upg.lvlCap : 0;
+                setLevel(AUTOMATION_AREA_KEY, upg.id, lvl);
+                count++;
+            } catch (e) {
+                console.warn('Failed to set automation level', upg, e);
+            }
+        });
+    });
+
+    // 2. Set Master Switches (UI state)
+    // Keys: ccc:autobuy:master:{type}:{slot}
+    const masterTypes = ['coins', 'books', 'gold', 'magic'];
+    masterTypes.forEach(type => {
+         const key = `ccc:autobuy:master:${type}:${slot}`;
+         localStorage.setItem(key, val);
+    });
+
+    // 3. Set Individual Toggles (Logic state)
 
     const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
     upgrades.forEach((upg) => {
