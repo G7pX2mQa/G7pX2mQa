@@ -127,7 +127,7 @@ function bindRapidActivation(target, handler, { once = false } = {}) {
     }
     // markGhostTapTarget removed - global handler manages clicks
     used = once ? true : used;
-    Promise.resolve(handler(event)).catch(() => {});
+    Promise.resolve(handler(event)).catch((e) => console.error(e));
     if (once) cleanup();
   };
 
@@ -137,9 +137,11 @@ function bindRapidActivation(target, handler, { once = false } = {}) {
   };
 
   const onClick = (event) => {
+    // Simplified logic: Allow synthetic events (from ghostTapGuard) to pass through.
+    // The previous check blocked them because pointerTriggered was true during the synthetic click
+    // (which happens inside the pointerdown event dispatch on touch devices).
     if (pointerTriggered) {
       resetPointerTrigger();
-      return;
     }
     run(event);
   };
@@ -1792,11 +1794,6 @@ function runFirstMeet() {
     textEl,
     choicesEl,
     skipTargets: [textEl, rowEl, cardEl],
-    onChoice: (nodeId, opt) => {
-      if (meta.scriptId === 4 && nodeId === 'c4b') {
-        setJeffUnlocked(true);
-      }
-    },
     onEnd: () => {
       try { localStorage.setItem(sk(MERCHANT_MET_KEY_BASE), '1'); } catch {}
       try { window.dispatchEvent(new Event(MERCHANT_MET_EVENT)); } catch {}
