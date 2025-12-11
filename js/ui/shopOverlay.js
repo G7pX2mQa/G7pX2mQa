@@ -39,8 +39,7 @@ import {
   AUTOBUY_COIN_UPGRADES_ID,
   AUTOBUY_BOOK_UPGRADES_ID,
   AUTOBUY_GOLD_UPGRADES_ID,
-  AUTOBUY_MAGIC_UPGRADES_ID,
-  AUTOBUY_WORKSHOP_LEVELS_ID
+  AUTOBUY_MAGIC_UPGRADES_ID
 } from '../game/automationUpgrades.js';
 
 // --- Shared State ---
@@ -54,6 +53,7 @@ const BASE_ICON_SRC_BY_COST = {
 };
 const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.webp';
 const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
+const AUTOMATED_OVERLAY_SRC = 'img/misc/green_border.webp';
 const CURRENCY_ICON_SRC = {
   coins: 'img/currencies/coin/coin.webp',
   books: 'img/currencies/book/book.webp',
@@ -63,6 +63,32 @@ const CURRENCY_ICON_SRC = {
 };
 
 const FORGE_UNLOCK_UPGRADE_ID = 7;
+
+const COST_TYPE_TO_AUTO_ID = {
+  coins: AUTOBUY_COIN_UPGRADES_ID,
+  books: AUTOBUY_BOOK_UPGRADES_ID,
+  gold: AUTOBUY_GOLD_UPGRADES_ID,
+  magic: AUTOBUY_MAGIC_UPGRADES_ID
+};
+
+function isUpgradeAutomated(upgDef) {
+    if (!upgDef || !upgDef.costType) return false;
+    const autoId = COST_TYPE_TO_AUTO_ID[upgDef.costType];
+    if (!autoId) return false;
+    
+    // Check if player has the automation upgrade
+    const autoLevel = getLevelNumber(AUTOMATION_AREA_KEY, autoId);
+    if (autoLevel <= 0) return false;
+    
+    // Check toggle
+    const slot = getActiveSlot();
+    const slotSuffix = slot != null ? `:${slot}` : '';
+    const key = `ccc:autobuy:${upgDef.area}:${upgDef.id}${slotSuffix}`;
+    const val = localStorage.getItem(key);
+    
+    // Default is ON (if not '0')
+    return val !== '0';
+}
 
 // --- Automation Mappings ---
 // Maps standard cost types to the ID of the automation upgrade that unlocks autobuy for them.
@@ -705,14 +731,19 @@ class ShopInstance {
             if (iconImgEl._lastSrc !== iconSrc) { iconImgEl.src = iconSrc; iconImgEl._lastSrc = iconSrc; }
             
             let maxedOverlay = tileEl.querySelector('.maxed-overlay');
-            if (!locked && capReached) {
+            const isAutomated = !locked && isUpgradeAutomated(upg.meta);
+            const showMaxed = !locked && capReached;
+            const showAutomated = !locked && !capReached && !evolveReady && isAutomated;
+
+            if (showMaxed || showAutomated) {
                 if (!maxedOverlay) {
                     maxedOverlay = document.createElement('img');
                     maxedOverlay.className = 'maxed-overlay';
-                    maxedOverlay.src = MAXED_BASE_OVERLAY_SRC;
                     maxedOverlay.alt = '';
                     tileEl.insertBefore(maxedOverlay, iconImgEl);
                 }
+				const targetSrc = showMaxed ? MAXED_BASE_OVERLAY_SRC : AUTOMATED_OVERLAY_SRC;
+                if (maxedOverlay.src !== targetSrc) maxedOverlay.src = targetSrc;
             } else if (maxedOverlay) maxedOverlay.remove();
             
             let badge = tileEl.querySelector('.level-badge');
