@@ -122,19 +122,3 @@
   0%   { opacity: 1; }
   100% { opacity: 0; }
 }
-
-/* ===== Coin Animation ===== */
-
-@keyframes coin-from-wave {
-  0% {
-    transform: translate3d(var(--x0), var(--y0), 0) rotate(-10deg) scale(.96);
-    opacity: .9;
-  }
-  66% {
-    transform: translate3d(var(--x1), var(--y1), 0) rotate(-2deg) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translate3d(var(--x1), var(--y1), 0) rotate(0deg) scale(1);
-  }
-}
