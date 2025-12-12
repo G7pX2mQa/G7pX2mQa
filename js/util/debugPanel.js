@@ -2779,41 +2779,6 @@ function buildAreaCalculators(container) {
             ],
         },
         {
-            title: 'Workshop',
-            rows: [
-                {
-                    label: 'Workshop Level Cost',
-                    inputs: [
-                        { key: 'level', label: 'Workshop Level' },
-                    ],
-                    compute: ({ level }) => {
-                        if (level == null) return '—';
-                        let bn;
-                        try { bn = (level instanceof BigNum) ? level : BigNum.fromAny(level); }
-                        catch { return '—'; }
-
-                        if (bn.isInfinite && bn.isInfinite()) return BigNum.fromAny('Infinity');
-
-                        // Cap computation to avoid massive BigInt construction if user enters 1e1000000
-                        if (bn.decExp > 20000) return BigNum.fromAny('Infinity');
-
-                        let levelVal;
-                        try {
-                            const s = bn.toPlainIntegerString();
-                            if (s === 'Infinity') return BigNum.fromAny('Infinity');
-                            levelVal = BigInt(s);
-                        } catch {
-                            return BigNum.fromAny('Infinity');
-                        }
-
-                        // Formula: 1e12 * 10^level => exponent is 12 + level
-                        const costExp = 12n + levelVal;
-                        return new BigNum(1n, { base: 0, offset: costExp });
-                    }
-                },
-            ],
-        },
-        {
             title: 'Other',
             rows: [
                 {
