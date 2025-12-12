@@ -135,7 +135,7 @@ function resolveCoinBase(el) {
 }
 
 const MAGNET_UNIT_RATIO = 0.03;
-const MAGNET_COLLECTION_BUFFER = 8;
+const MAGNET_COLLECTION_BUFFER = 8; // Small buffer for collection feel
 
 function computeMagnetUnitPx() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return 0;
@@ -147,7 +147,7 @@ function computeMagnetUnitPx() {
   return minDim * MAGNET_UNIT_RATIO;
 }
 
-function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn }) {
+function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn, spawner }) {
   if (!playfield || !coinsLayer || typeof collectFn !== 'function') {
     return { destroy() {} };
   }
@@ -196,42 +196,68 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
 
   const sweepCoins = () => {
     if (!pointerInside || radiusPx <= 0) return;
-    const coins = coinsLayer.children;
-    const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
-    const toCollect = [];
     
-    // READ Phase 1: Collision detection (getBoundingClientRect forces layout)
-    for (let i = coins.length - 1; i >= 0; i--) {
-      const coin = coins[i];
-      if (coin.dataset.collected === '1') continue;
-      if (!coin.matches(coinSelector)) continue;
-
-      const rect = coin.getBoundingClientRect();
-      const coinX = rect.left + rect.width / 2;
-      const coinY = rect.top + rect.height / 2;
-      const dx = coinX - pointerClientX;
-      const dy = coinY - pointerClientY;
-      if (Math.hypot(dx, dy) <= radiusWithBuffer) {
-        toCollect.push(coin);
-      }
-    }
-
-    if (!toCollect.length) return;
-
-    // READ Phase 2: Batch read transforms for animation
-    const transforms = [];
-    if (!IS_MOBILE) { // Only needed if animation is enabled
+    // Optimized: Use Spawner's spatial lookup if available
+    if (spawner && typeof spawner.findCoinsInRadius === 'function') {
+        // spawner operates in local playfield coordinates (x, y relative to top-left of playfield)
+        // localX, localY are already relative to playfieldRect
+        
+        const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
+        
+        // Find candidates directly from memory (Fast!)
+        const candidates = spawner.findCoinsInRadius(localX, localY, radiusWithBuffer);
+        
+        if (candidates && candidates.length > 0) {
+            // READ Phase: Batch read transforms for animation
+            const transforms = [];
+            // Re-enabled animation for everyone
+             for (let i = 0; i < candidates.length; i++) {
+                 // Optimization: since we are managing transforms in JS now, we could ask Spawner for the transform string?
+                 // Or just read it from style.transform which is fast-ish if we haven't dirtied layout?
+                 // Actually, standard getComputedStyle is fine here because we aren't calling getBoundingClientRect anymore.
+                 // Even better: read inline style since Spawner sets it!
+                 const el = candidates[i];
+                 transforms.push(el.style.transform || 'translate3d(0,0,0)');
+             }
+            
+            // WRITE Phase: Collect
+            for (let i = 0; i < candidates.length; i++) {
+                collectFn(candidates[i], { transform: transforms[i] });
+            }
+        }
+    } else {
+        // Fallback (Slow) - should not be hit if spawner is passed
+        const coins = coinsLayer.children;
+        const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
+        const toCollect = [];
+        
+        for (let i = coins.length - 1; i >= 0; i--) {
+          const coin = coins[i];
+          if (coin.dataset.collected === '1') continue;
+          if (!coin.matches(coinSelector)) continue;
+    
+          const rect = coin.getBoundingClientRect();
+          const coinX = rect.left + rect.width / 2;
+          const coinY = rect.top + rect.height / 2;
+          const dx = coinX - pointerClientX;
+          const dy = coinY - pointerClientY;
+          if (Math.hypot(dx, dy) <= radiusWithBuffer) {
+            toCollect.push(coin);
+          }
+        }
+    
+        if (!toCollect.length) return;
+    
+        const transforms = [];
         for (let i = 0; i < toCollect.length; i++) {
             const el = toCollect[i];
             const cs = window.getComputedStyle(el);
             transforms.push(cs.transform);
         }
-    }
-
-    // WRITE Phase: Collect
-    for (let i = 0; i < toCollect.length; i++) {
-        // Pass pre-read transform to avoid interleaved read/write layout thrashing
-        collectFn(toCollect[i], { transform: transforms[i] });
+    
+        for (let i = 0; i < toCollect.length; i++) {
+            collectFn(toCollect[i], { transform: transforms[i] });
+        }
     }
   };
 
@@ -560,13 +586,14 @@ export function triggerPassiveCollect(count = 1) {
 }
 
 export function initCoinPickup({
+  spawner,
   playfieldSelector   = '.area-cove .playfield',
   coinsLayerSelector  = '.area-cove .coins-layer',
   hudAmountSelector   = '.hud-top .coin-amount',
   coinSelector        = '.coin, [data-coin], .coin-sprite',
   soundSrc            = 'sounds/coin_pickup.ogg',
   storageKey          = 'ccc:coins',
-  disableAnimation    = IS_MOBILE,
+  disableAnimation    = false, // Force false to re-enable on mobile
 } = {}) {
   if (coinPickup?.destroy) {
     coinPickup.destroy();
@@ -756,14 +783,25 @@ export function initCoinPickup({
   }
 
   function animateAndRemove(el, opts = {}){
-    if (disableAnimation) { el.remove(); return; }
+    if (disableAnimation) { 
+        if (spawner && typeof spawner.detachCoin === 'function') {
+           spawner.detachCoin(el);
+        }
+        el.remove(); 
+        return; 
+    }
+    
+    // Notify spawner that this coin is "taken" so physics stops
+    if (spawner && typeof spawner.detachCoin === 'function') {
+        spawner.detachCoin(el);
+    }
     
     let start = 'translate3d(0,0,0)';
     if (opts.transform) {
         if (opts.transform !== 'none') start = opts.transform;
     } else {
-        const cs = getComputedStyle(el);
-        if (cs.transform && cs.transform !== 'none') start = cs.transform;
+        // Fallback if no transform passed (shouldn't happen with new logic)
+        start = el.style.transform || 'translate3d(0,0,0)';
     }
 
     el.style.setProperty('--ccc-start', start);
@@ -842,6 +880,7 @@ export function initCoinPickup({
     coinsLayer: cl,
     coinSelector,
     collectFn: collect,
+    spawner, // Pass spawner for optimized lookup
   });
 
   const onDelegatedInteract = (e) => {
