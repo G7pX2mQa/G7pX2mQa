@@ -19,6 +19,7 @@ import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpGainMultiplier
 import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
 import {
+    getUpgradeStorageKey,
     AREA_KEYS,
     computeDefaultUpgradeCost,
     computeUpgradeEffects,
@@ -1960,7 +1961,7 @@ function buildAreaUpgrades(container, area) {
         const idLabel = upg.id ?? upg.tie ?? upg.tieKey;
         const title = upg.title || `Upgrade ${idLabel ?? ''}`.trim();
         const current = getLevel(area.key, upg.id ?? upg.tie);
-        const storageKey = `ccc:upgrades:${area.key}:${slot}`;
+        const storageKey = getUpgradeStorageKey(area.key, upg.id ?? upg.tie, slot);
         const upgradeRow = createInputRow(title, current, (value, { setValue }) => {
             const latestSlot = getActiveSlot();
             if (latestSlot == null) return;
