@@ -33,12 +33,13 @@ const L3 = 1e12;
 
 const BASE_MULT_LOG = 1; // log10(10)
 const K_LIN = 0.001;
-const EXP_DIV = 1000;
-const LOG_EXP_BASE = Math.log10(1.00001);
 
-// S4 Constants
-const S4_A = 1.00001;
-const S4_B = 0.00001;
+// S3 Constants
+const EXP_DIV_S3 = 1000;
+const LOG_EXP_BASE_S3 = Math.log10(1.00001);
+
+// S4 Constants (Explosion)
+const EXPLOSION_RATE = 2.3e-10;
 
 // Precomputed Constants
 const LN10 = Math.log(10);
@@ -52,31 +53,10 @@ function integralLogLin(x, k) {
     return val * INV_LN10;
 }
 
-function integralWLogLin(w, a, b) {
-    if (w <= 0) return 0;
-    const term = a + b * w;
-    const lnTerm = Math.log(term);
-    const w2 = w * w;
-    const a2_2b2 = (a * a) / (2 * b * b);
-    const a_2b = a / (2 * b);
-    const part1 = (w2 / 2 - a2_2b2) * lnTerm;
-    const part2 = -w2 / 4 + a_2b * w;
-    return (part1 + part2) * INV_LN10;
-}
-
-// Precompute S4 Offset (F(0))
-const S4_OFFSET = (() => {
-    const a = S4_A, b = S4_B;
-    const a2_2b2 = (a*a)/(2*b*b);
-    const ln_a = Math.log(a);
-    return (-a2_2b2 * ln_a) * INV_LN10;
-})();
-
 // Lazy Caches
 let CACHE_S1_END_LOG = null;
 let CACHE_S2_END_LOG = null;
 let CACHE_S3_END_LOG = null;
-let CACHE_RATIO_LOG_AT_L3 = null;
 
 export function getGenerationLevelKey(slot) {
   return `ccc:workshop:genLevel:${slot}`;
@@ -146,7 +126,7 @@ function calculateWorkshopCostLog(level) {
     
     // Delta S2 integral + S3 quadratic term
     const s2_continuation = v + (integralLogLin(u_at_L, K_LIN) - integralLogLin(u_at_L2, K_LIN));
-    const C3 = LOG_EXP_BASE / EXP_DIV;
+    const C3 = LOG_EXP_BASE_S3 / EXP_DIV_S3;
     const s3_extra = 0.5 * C3 * v * v;
     
     if (level <= L3) {
@@ -161,18 +141,18 @@ function calculateWorkshopCostLog(level) {
         CACHE_S3_END_LOG = CACHE_S2_END_LOG + s2_cont_3 + s3_extra_3;
     }
     
-    if (CACHE_RATIO_LOG_AT_L3 === null) {
-        const term1 = 1 + K_LIN * (L3 - L1);
-        const term2_exp = (L3 - L2) / EXP_DIV;
-        CACHE_RATIO_LOG_AT_L3 = 1 + Math.log10(term1) + term2_exp * LOG_EXP_BASE;
-    }
-
-    // S4
-    const w_raw = (level - L3) / EXP_DIV;
-    const term_const = w_raw * EXP_DIV * CACHE_RATIO_LOG_AT_L3;
-    const term_dynamic = (integralWLogLin(w_raw, S4_A, S4_B) - S4_OFFSET) * EXP_DIV;
-
-    return CACHE_S3_END_LOG + term_const + term_dynamic;
+    // S4: Exponential Explosion
+    // logCost grows exponentially with level delta
+    const scalingExp = EXPLOSION_RATE * (level - L3);
+    // If scalingExp > 709, Math.exp overflows to Infinity.
+    if (scalingExp > 709) return Infinity; 
+    
+    const result = CACHE_S3_END_LOG * Math.exp(scalingExp);
+    
+    // Hard Cap at BigNum limit (approx 1.8e308)
+    if (!Number.isFinite(result) || result > 1.79e308) return Infinity;
+    
+    return result;
 }
 
 function getGenerationUpgradeCost(level) {
