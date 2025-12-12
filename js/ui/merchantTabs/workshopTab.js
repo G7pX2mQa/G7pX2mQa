@@ -18,7 +18,7 @@ const MAX_GEAR_DECORATIONS = 100;
 let workshopEl = null;
 let initialized = false;
 let accumulatorBuffer = 0; 
-let currentGenerationLevel = 0;
+let currentGenerationLevel = BigNum.zero();
 let lastSyncedLevel = -1;
 let renderFrameId = null;
 
@@ -71,23 +71,37 @@ const GEAR_ROTATION_VARIANCE = 67;
 
 function loadGenerationLevel() {
   const slot = getActiveSlot();
-  if (!slot) return 0;
+  if (!slot) return BigNum.zero();
   const raw = localStorage.getItem(getGenerationLevelKey(slot));
-  const val = parseFloat(raw || '0');
-  if (!Number.isFinite(val)) {
-    if (val === Infinity || val === -Infinity) return val;
+  if (!raw) return BigNum.zero();
+  
+  try {
+      // Handle both legacy "123" and new "BN:..." formats
+      if (raw.startsWith('BN:') || /infinity/i.test(raw)) {
+          return BigNum.fromStorage(raw);
+      }
+      return BigNum.fromAny(raw);
+  } catch {
+      return BigNum.zero();
   }
-  return Number.isFinite(val) ? val : 0;
 }
 
 function saveGenerationLevel(level) {
   const slot = getActiveSlot();
   if (!slot) return false;
   const key = getGenerationLevelKey(slot);
-  const valStr = String(level);
+  
+  let valStr;
+  if (level instanceof BigNum) {
+      valStr = level.toStorage();
+  } else {
+      valStr = String(level);
+  }
+  
   try {
     localStorage.setItem(key, valStr);
   } catch {}
+  
   let readBack = null;
   try {
     readBack = localStorage.getItem(key);
@@ -96,12 +110,28 @@ function saveGenerationLevel(level) {
 }
 
 function calculateWorkshopCostLog(level) {
-    if (level <= 0) return GENERATION_UPGRADE_BASE_COST_LOG;
-    if (level === Infinity) return Infinity;
+    // Level is BigNum here, but for calculation we need primitive
+    if (level.isInfinite()) return Infinity;
+    
+    // Check if level is too large for JS numbers
+    // 9e15 is safe integer limit approx.
+    // If level > 9e15, cost is definitely infinity given the super-exponential scaling
+    if (level.cmp(9e15) > 0) return Infinity;
+    
+    // Convert to number for internal calc
+    let lvlNum = 0;
+    try {
+        const str = level.toPlainIntegerString();
+        lvlNum = parseFloat(str);
+    } catch {
+        return Infinity;
+    }
+    
+    if (lvlNum <= 0) return GENERATION_UPGRADE_BASE_COST_LOG;
 
     // S1
-    if (level <= L1) {
-        return GENERATION_UPGRADE_BASE_COST_LOG + level * BASE_MULT_LOG;
+    if (lvlNum <= L1) {
+        return GENERATION_UPGRADE_BASE_COST_LOG + lvlNum * BASE_MULT_LOG;
     }
     
     if (CACHE_S1_END_LOG === null) {
@@ -109,8 +139,8 @@ function calculateWorkshopCostLog(level) {
     }
 
     // S2
-    const u = level - L1;
-    if (level <= L2) {
+    const u = lvlNum - L1;
+    if (lvlNum <= L2) {
         return CACHE_S1_END_LOG + u + integralLogLin(u, K_LIN);
     }
 
@@ -120,8 +150,8 @@ function calculateWorkshopCostLog(level) {
     }
 
     // S3
-    const v = level - L2;
-    const u_at_L = level - L1;
+    const v = lvlNum - L2;
+    const u_at_L = lvlNum - L1;
     const u_at_L2 = L2 - L1;
     
     // Delta S2 integral + S3 quadratic term
@@ -129,7 +159,7 @@ function calculateWorkshopCostLog(level) {
     const C3 = LOG_EXP_BASE_S3 / EXP_DIV_S3;
     const s3_extra = 0.5 * C3 * v * v;
     
-    if (level <= L3) {
+    if (lvlNum <= L3) {
         return CACHE_S2_END_LOG + s2_continuation + s3_extra;
     }
 
@@ -143,7 +173,7 @@ function calculateWorkshopCostLog(level) {
     
     // S4: Exponential Explosion
     // logCost grows exponentially with level delta
-    const scalingExp = EXPLOSION_RATE * (level - L3);
+    const scalingExp = EXPLOSION_RATE * (lvlNum - L3);
     // If scalingExp > 709, Math.exp overflows to Infinity.
     if (scalingExp > 709) return Infinity; 
     
@@ -155,22 +185,99 @@ function calculateWorkshopCostLog(level) {
     return result;
 }
 
-function getGenerationUpgradeCost(level) {
-  if (!Number.isFinite(level)) return BigNum.fromAny('Infinity');
-  const logCost = calculateWorkshopCostLog(level);
+export function getGenerationUpgradeCost(level) {
+  let bnLevel = level;
+  if (!(level instanceof BigNum)) {
+      bnLevel = BigNum.fromAny(level);
+  }
+  
+  if (bnLevel.isInfinite()) return BigNum.fromAny('Infinity');
+  
+  const logCost = calculateWorkshopCostLog(bnLevel);
   return bigNumFromLog10(logCost);
 }
 
 function getGearsPerSecond(level) {
   let baseRate;
-  if (level === 0) {
+  let bnLevel = level;
+  if (!(level instanceof BigNum)) {
+      bnLevel = BigNum.fromAny(level);
+  }
+
+  if (bnLevel.isZero()) {
     baseRate = BigNum.fromInt(1);
-  } else if (!Number.isFinite(level)) {
+  } else if (bnLevel.isInfinite()) {
     baseRate = BigNum.fromAny('Infinity');
   } else {
-    const logValue = level * LOG10_2;
-    baseRate = bigNumFromLog10(logValue);
+    // If level is huge, we can use mulDecimal(LOG10_2)
+    // level * 0.301... => log10(rate)
+    const logValue = bnLevel.mulDecimal(LOG10_2);
+    // bigNumFromLog10 expects a number if possible, or handles large numbers?
+    // bigNumFromLog10 impl in upgrades.js:
+    // export function bigNumFromLog10(logVal) {
+    //   if (logVal === Infinity) return BigNum.fromAny('Infinity');
+    //   if (logVal instanceof BigNum) { ... }
+    // We can pass BigNum to bigNumFromLog10 if the helper supports it.
+    // Assuming bigNumFromLog10 only takes numbers or BigNum:
+    
+    // Actually, bigNumFromLog10(logVal) implementation usually assumes number.
+    // If logValue is BigNum (because level was BigNum), we need to handle it.
+    // If level is < 1e15, we can use numbers.
+    // If level is massive, rate is massive.
+    
+    if (bnLevel.cmp(9e15) <= 0) {
+        // Safe to use standard number math
+        const lvlNum = Number(bnLevel.toString());
+        const logVal = lvlNum * LOG10_2;
+        baseRate = bigNumFromLog10(logVal);
+    } else {
+        // Level is huge. 
+        // rate = 2^level = 10^(level * log10(2))
+        // exponent is level * 0.30103...
+        // e = level * 0.30103...
+        // Construct BigNum directly: 10^e
+        // BigNum constructor takes { base: e }
+        
+        // mulDecimal returns BigNum
+        const logExpBn = bnLevel.mulDecimal(LOG10_2);
+        
+        // If logExpBn is massive, it becomes the exponent 'e' of the new BigNum
+        // We need to extract the value from BigNum logExpBn to use as exponent.
+        
+        // BigNum structure: sig * 10^e
+        // We want 10^(logExpBn)
+        // This is effectively BigNum with e = logExpBn
+        
+        // We can use BigNum internal structure or fromStorage logic
+        // But BigNum 'e' is limited to ~1.8e308. 
+        // If 'level' is ~1e308, then 'e' is ~3e307. This fits in 'e'.
+        // If 'level' is larger than 1.8e308 (BigNum max), then the result is infinite.
+        
+        if (logExpBn.cmp(Number.MAX_VALUE) >= 0) {
+            baseRate = BigNum.fromAny('Infinity');
+        } else {
+            // logExpBn is finite number (though represented as BigNum)
+            // Extract it.
+            // Since it's < Number.MAX_VALUE, we can convert to number safely?
+            // Wait, MAX_VALUE is 1.79e308.
+            // Number(bn) works if it fits.
+            // We can try conversion.
+            
+            try {
+                // Approximate for very large numbers
+                 const logExpVal = Number(logExpBn.toScientific(10));
+                 if (logExpVal === Infinity) {
+                     baseRate = BigNum.fromAny('Infinity');
+                 } else {
+                     baseRate = bigNumFromLog10(logExpVal);
+                 }
+            } catch {
+                baseRate = BigNum.fromAny('Infinity');
+            }
+        }
+    }
   }
+  
   const mult = bank?.gears?.mult?.get?.() ?? BigNum.fromInt(1);
   return baseRate.mulBigNumInteger(mult);
 }
@@ -178,7 +285,8 @@ function getGearsPerSecond(level) {
 function buyGenerationUpgrade() {
   const cost = getGenerationUpgradeCost(currentGenerationLevel);
   if (bank.coins.value.cmp(cost) < 0) return;
-  const nextLevel = currentGenerationLevel + 1;
+  // currentGenerationLevel is BigNum
+  const nextLevel = currentGenerationLevel.add(1);
   if (saveGenerationLevel(nextLevel)) {
     currentGenerationLevel = nextLevel;
     bank.coins.sub(cost);
@@ -196,8 +304,12 @@ function onTick() {
   if (hasWhole) {
       if (bank.gears) bank.gears.add(whole);
   }
-  if (currentGenerationLevel < 20) {
-      const rateNum = Math.pow(2, currentGenerationLevel);
+  
+  // Accumulator logic only for small levels < 20
+  if (currentGenerationLevel.cmp(20) < 0) {
+      // Safe to convert to number
+      const lvlNum = Number(currentGenerationLevel.toPlainIntegerString());
+      const rateNum = Math.pow(2, lvlNum);
       const perTickNum = rateNum / 20;
       const wholeNum = Math.floor(perTickNum);
       const frac = perTickNum - wholeNum;
@@ -214,8 +326,8 @@ function onTick() {
 
 function resetWorkshopState() {
     if (bank.gears) bank.gears.set(0);
-    if (saveGenerationLevel(0)) {
-        currentGenerationLevel = 0;
+    if (saveGenerationLevel(BigNum.zero())) {
+        currentGenerationLevel = BigNum.zero();
     }
     accumulatorBuffer = 0;
     updateWorkshopTab();
@@ -234,7 +346,16 @@ function syncGearDecorations(container) {
     entry.width = rect.width;
     entry.height = rect.height;
   }
-  const targetCount = Math.min(Math.floor(currentGenerationLevel), MAX_GEAR_DECORATIONS);
+  
+  // Cap at 100 gears, but handle BigNum level safely
+  let lvlNum = 0;
+  if (currentGenerationLevel.cmp(MAX_GEAR_DECORATIONS) > 0) {
+      lvlNum = MAX_GEAR_DECORATIONS;
+  } else {
+      lvlNum = Number(currentGenerationLevel.toPlainIntegerString());
+  }
+
+  const targetCount = Math.min(Math.floor(lvlNum), MAX_GEAR_DECORATIONS);
   const gears = entry.gears;
   while (gears.length < targetCount) {
     const img = document.createElement('img');
@@ -403,9 +524,19 @@ export function updateWorkshopTab() {
     if (isAutomated) upgradeBtn.classList.add('is-automated');
     else upgradeBtn.classList.remove('is-automated');
   }
-  const currentIntLevel = Math.floor(currentGenerationLevel);
-  if (currentIntLevel !== lastSyncedLevel) {
-    lastSyncedLevel = currentIntLevel;
+  
+  // Use toScientific for large level comparisons? or just check if it changed significantly
+  // For animations, we just need to know if it grew.
+  // Using toPlainIntegerString is risky if it's huge, but fine for checking floor change if we cache properly.
+  // Actually, we can just use the BigNum instance itself as a key if it's immutable, but it's not.
+  // We can format it to a string.
+  
+  let currentIntStr = '';
+  if (currentGenerationLevel.isInfinite()) currentIntStr = 'Infinity';
+  else currentIntStr = currentGenerationLevel.floorToInteger().toStorage(); // BN:18:sig:exp
+
+  if (currentIntStr !== lastSyncedLevel) {
+    lastSyncedLevel = currentIntStr;
     const leftCol = workshopEl.querySelector('.workshop-side-left');
     const rightCol = workshopEl.querySelector('.workshop-side-right');
     if (leftCol) syncGearDecorations(leftCol);
@@ -503,6 +634,18 @@ export function getGearsProductionRate() {
 }
 
 export function performFreeGenerationUpgrade() {
+  // If user has infinite coins and cost is infinite, or coins are simply infinite, snap to infinity immediately if cost is also seemingly infinite
+  const coinsInf = bank.coins.value.isInfinite();
+  const currentCost = getGenerationUpgradeCost(currentGenerationLevel);
+  const costInf = currentCost.isInfinite();
+
+  if (coinsInf && costInf && !currentGenerationLevel.isInfinite()) {
+      currentGenerationLevel = BigNum.fromAny('Infinity');
+      saveGenerationLevel(currentGenerationLevel);
+      updateWorkshopTab();
+      return true;
+  }
+    
   if (bank.coins.value.isZero()) return false;
   let coinsLog = bank.coins.value.log10;
   if (!Number.isFinite(coinsLog)) {
@@ -510,17 +653,30 @@ export function performFreeGenerationUpgrade() {
      else return false;
   }
   
+  // calculateWorkshopCostLog now expects BigNum
   if (calculateWorkshopCostLog(currentGenerationLevel) > coinsLog) return false;
-  if (calculateWorkshopCostLog(currentGenerationLevel + 1) > coinsLog) return false;
+  
+  // Optimistically check +1
+  const nextLevel = currentGenerationLevel.add(1);
+  if (calculateWorkshopCostLog(nextLevel) > coinsLog) return false;
 
-  let low = currentGenerationLevel;
+  // We need to find the max affordable level.
+  // Since level is BigNum, we have to handle potentially huge ranges.
+  // But calculateWorkshopCostLog crashes if level > 1e15 or so.
+  // If coinsLog is Finite, then level MUST be < 1e15 roughly.
+  // So we can convert currentGenerationLevel to number for the search if it's small.
+  
+  if (currentGenerationLevel.cmp(9e15) > 0) return false; // Too big for normal logic, handled by Infinity check above
+  
+  let low = Number(currentGenerationLevel.toPlainIntegerString());
   let high = 9e15; 
   if (coinsLog === Infinity) high = 9e15; 
 
   let best = low;
   while (low <= high) {
       const mid = Math.floor((low + high) / 2);
-      if (calculateWorkshopCostLog(mid) <= coinsLog) {
+      // mid is number, need to pass BigNum to calculator
+      if (calculateWorkshopCostLog(BigNum.fromInt(mid)) <= coinsLog) {
           best = mid;
           low = mid + 1;
       } else {
@@ -528,9 +684,10 @@ export function performFreeGenerationUpgrade() {
       }
   }
   
-  let targetLevel = best + 1;
+  let targetLevelVal = best + 1;
+  let targetLevel = BigNum.fromInt(targetLevelVal);
 
-  if (targetLevel > currentGenerationLevel) {
+  if (targetLevel.cmp(currentGenerationLevel) > 0) {
     if (saveGenerationLevel(targetLevel)) {
       currentGenerationLevel = targetLevel;
       updateWorkshopTab();
