@@ -1875,7 +1875,16 @@ function buildAreaStats(container, area) {
         let currentGenLevel = 0;
         try {
             const raw = localStorage.getItem(genLevelKey);
-            currentGenLevel = parseFloat(raw || '0');
+            const bn = BigNum.fromAny(raw || '0');
+            if (bn.isInfinite()) {
+                currentGenLevel = Infinity;
+            } else {
+                try {
+                    currentGenLevel = Number(bn.toScientific(20));
+                } catch {
+                    currentGenLevel = 0;
+                }
+            }
         } catch {}
 
         const genLevelRow = createInputRow('Workshop Level', currentGenLevel, (value, { setValue }) => {
@@ -1903,7 +1912,8 @@ function buildAreaStats(container, area) {
             try {
                 localStorage.setItem(genLevelKey, cleanVal);
                 flagDebugUsage();
-                logAction(`Modified Workshop Level (The Cove) ${currentGenLevel} → ${cleanVal}`);
+                logAction(`Modified Workshop Level (The Cove) ${formatNumber(currentGenLevel)} → ${cleanVal}`);
+                currentGenLevel = valNum;
             } catch {}
             
             setValue(valNum);
@@ -1913,7 +1923,9 @@ function buildAreaStats(container, area) {
                 let newVal = 0;
                 try {
                     const r = localStorage.getItem(genLevelKey);
-                    newVal = parseFloat(r || '0');
+                    const bn = BigNum.fromAny(r || '0');
+                    if (bn.isInfinite()) newVal = Infinity;
+                    else newVal = Number(bn.toScientific(20));
                 } catch {}
                 genLevelRow.setValue(newVal);
             }
