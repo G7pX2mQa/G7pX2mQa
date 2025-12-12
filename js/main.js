@@ -110,6 +110,7 @@ export const AREAS = {
 
 let currentArea = AREAS.MENU;
 let spawner = null;
+let cleanupUpgradesListener = null;
 
 /* ---------------------------
    LOADER UI (immediate black + progress)
@@ -405,7 +406,10 @@ function enterArea(areaID) {
                   } catch {}
                 };
                 applyUpgradesToSpawner();
-                onUpgradesChanged(applyUpgradesToSpawner);
+                if (typeof cleanupUpgradesListener === 'function') {
+                    try { cleanupUpgradesListener(); } catch {}
+                }
+                cleanupUpgradesListener = onUpgradesChanged(applyUpgradesToSpawner);
                 if (typeof window !== 'undefined') {
                    window.addEventListener('debug:change', applyUpgradesToSpawner);
                 }
