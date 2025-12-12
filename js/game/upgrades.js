@@ -1174,6 +1174,19 @@ function decimalMultiplierString(value) {
   return out;
 }
 
+function normalizeHmEvolutionCount(value) {
+  const n = Number(value);
+  if (Number.isFinite(n) && n > 0) return Math.max(0, Math.floor(n));
+  return 0;
+}
+
+function activeEvolutionsForUpgrade(upg) {
+  if (!upg) return 0;
+  const active = Number(upg.activeEvolutions);
+  if (Number.isFinite(active) && active >= 0) return active;
+  return normalizeHmEvolutionCount(upg.numUpgEvolutions);
+}
+
 export function computeDefaultUpgradeCost(baseCost, level, upgType = 'NM') {
   let baseBn;
   try { baseBn = BigNum.fromAny(baseCost ?? 0); }
@@ -1238,25 +1251,26 @@ const DEFAULT_SCALING_PRESETS = {
     return 1.20;
   },
   HM(upg) {
-    return DEFAULT_SCALING_PRESETS.STANDARD(upg);
+    const evol = activeEvolutionsForUpgrade(upg);
+    // Relaxed linear scaling for Phase 1 & 2 (up to 1,000,000 evolutions / Level 1B)
+    let ratio = 1.50 + (0.10 * evol);
+
+    // Phase 3: Super-Exponential Softcap starting at Level 1 Billion
+    const softcapStart = 1_000_000;
+    if (evol > softcapStart) {
+      const delta = evol - softcapStart;
+      // Calibrated to hit Infinity around Level 5 Trillion (5e9 evolutions)
+      // delta ~= 5e9, scale ~= 16.2e6 => exponent ~= 308 => 10^308
+      const scale = 16_200_000;
+      const extra = Math.pow(10, delta / scale);
+      ratio += extra;
+    }
+    return ratio;
   },
   NM() {
     return 1.20;
   },
 };
-
-function normalizeHmEvolutionCount(value) {
-  const n = Number(value);
-  if (Number.isFinite(n) && n > 0) return Math.max(0, Math.floor(n));
-  return 0;
-}
-
-function activeEvolutionsForUpgrade(upg) {
-  if (!upg) return 0;
-  const active = Number(upg.activeEvolutions);
-  if (Number.isFinite(active) && active >= 0) return active;
-  return normalizeHmEvolutionCount(upg.numUpgEvolutions);
-}
 
 function hmLevelCapForEvolutions(evolutions) {
   const cycles = normalizeHmEvolutionCount(evolutions);
