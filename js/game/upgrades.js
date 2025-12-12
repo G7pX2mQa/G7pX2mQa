@@ -715,8 +715,8 @@ function determineLockState(ctx) {
         hideCost: true,
         hideEffect: true,
         titleOverride: LOCKED_UPGRADE_TITLE,
-        descOverride: 'Do a Forge reset to reveal this upgrade',
-        reason: 'Do a Forge reset to reveal this upgrade',
+        descOverride: 'Perform a Forge reset to reveal this upgrade',
+        reason: 'Perform a Forge reset to reveal this upgrade',
       };
     }
 
@@ -786,7 +786,7 @@ function determineLockState(ctx) {
   }
 
   if (isUpgradePermanentlyMysterious(area, upgRef)) {
-    const revealText = 'Do a Forge reset to reveal this upgrade';
+    const revealText = 'Perform a Forge reset to reveal this upgrade';
     return {
       locked: true,
       iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
@@ -803,7 +803,7 @@ function determineLockState(ctx) {
 
 // Before 31 -> hard LOCKED (not mysterious, not clickable)
 if (!xp31) {
-  const revealText = 'Do a Forge reset to reveal this upgrade';
+  const revealText = 'Perform a Forge reset to reveal this upgrade';
   return {
     locked: true,
     iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
