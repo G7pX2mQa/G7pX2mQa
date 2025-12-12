@@ -381,7 +381,7 @@ function enterArea(areaID) {
         };
         applyMutationSprite();
         onMutationChangeGame?.(applyMutationSprite);
-        initCoinPickup({ spawmer });
+        initCoinPickup({ spawner });
                 const applyUpgradesToSpawner = () => {
                 try {
                         const areaKey = getUpgAreaKey();
@@ -538,6 +538,7 @@ images: [
   'img/sc_upg_icons/gold_autobuy.webp',
   'img/sc_upg_icons/magic_autobuy.webp',
   'img/sc_upg_icons/workshop_level_autobuy.webp',
+  
   
   // ==== img/stats/mp ====
   'img/stats/mp/mp.webp',
