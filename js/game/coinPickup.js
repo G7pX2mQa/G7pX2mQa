@@ -896,16 +896,42 @@ export function initCoinPickup({
     cl.addEventListener('mouseover', onDelegatedInteract, { passive: true });
   }
 
-  const BRUSH_R = 18; 
-  const OFF = [[0,0],[BRUSH_R,0],[-BRUSH_R,0],[0,BRUSH_R],[0,-BRUSH_R]];
+  const BRUSH_R = 25; // Slightly larger for single check
+  let cachedPfRect = null;
+  const updateCachedRect = () => { cachedPfRect = pf.getBoundingClientRect(); };
+  window.addEventListener('resize', updateCachedRect);
+  updateCachedRect();
+
   function brushAt(x,y){
-    for (let k=0;k<OFF.length;k++){
-      const px = x + OFF[k][0], py = y + OFF[k][1];
-      const stack = document.elementsFromPoint(px, py);
-      for (let i=0;i<stack.length;i++){
-        const el = stack[i];
-        if (isCoin(el)) { collect(el); }
-      }
+    if (spawner && typeof spawner.findCoinsInRadius === 'function') {
+        if (!cachedPfRect) updateCachedRect();
+        const localX = x - cachedPfRect.left;
+        const localY = y - cachedPfRect.top;
+        
+        // Use spawner's optimized lookup
+        const candidates = spawner.findCoinsInRadius(localX, localY, BRUSH_R);
+        if (candidates && candidates.length > 0) {
+             const transforms = [];
+             for (let i = 0; i < candidates.length; i++) {
+                 const el = candidates[i];
+                 transforms.push(el.style.transform || 'translate3d(0,0,0)');
+             }
+            
+            for (let i = 0; i < candidates.length; i++) {
+                collect(candidates[i], { transform: transforms[i] });
+            }
+        }
+    } else {
+        // Fallback: Legacy slow method (forced sync layout)
+        const OFF = [[0,0],[18,0],[-18,0],[0,18],[0,-18]];
+        for (let k=0;k<OFF.length;k++){
+          const px = x + OFF[k][0], py = y + OFF[k][1];
+          const stack = document.elementsFromPoint(px, py);
+          for (let i=0;i<stack.length;i++){
+            const el = stack[i];
+            if (isCoin(el)) { collect(el); }
+          }
+        }
     }
   }
 
@@ -936,6 +962,7 @@ export function initCoinPickup({
     flushPendingGains();
     updateHudFn = () => {};
     if (typeof window !== 'undefined') {
+      window.removeEventListener('resize', updateCachedRect);
       window.removeEventListener('beforeunload', flushPendingGains);
       window.removeEventListener('currency:multiplier', onCoinMultiplierChange);
       window.removeEventListener('currency:change', onCurrencyChange);
