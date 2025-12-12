@@ -178,7 +178,6 @@ function calculateWorkshopCostLog(level) {
 function getGenerationUpgradeCost(level) {
   if (!Number.isFinite(level)) return BigNum.fromAny('Infinity');
   const logCost = calculateWorkshopCostLog(level);
-  if (logCost >= 9e15) return BigNum.fromAny('Infinity');
   return bigNumFromLog10(logCost);
 }
 
