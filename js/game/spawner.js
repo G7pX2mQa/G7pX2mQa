@@ -38,6 +38,12 @@ try {
   onMutationChange((snapshot) => { updateMutationSnapshot(snapshot); });
 } catch {}
 
+// Easing function for coin movement (approximates CSS ease-out)
+// CSS ease-out is roughly cubic-bezier(0, 0, 0.58, 1)
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
 export function createSpawner({
     playfieldSelector = '.area-cove .playfield',
     waterSelector = '.water-base',
@@ -45,7 +51,6 @@ export function createSpawner({
     coinsHost = '.coins-layer',
     coinSrc = 'img/coin/coin.webp',
     coinSize = 40,
-    animationName = 'coin-from-wave',
     animationDurationMs = 1500,
     surgeLifetimeMs = 1400,
     surgeWidthVw = 22,
@@ -141,6 +146,9 @@ export function createSpawner({
     const coinPool = [];
     const surgePool = [];
 
+    // --- JS Physics State ---
+    const activeCoins = []; // List of coin objects: { el, x, y, startX, startY, endX, endY, startTime, duration, jitter }
+
     function makeCoin() {
         const el = document.createElement('div');
         el.className = 'coin';
@@ -150,26 +158,60 @@ export function createSpawner({
         el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
         el.style.borderRadius = '50%';
         el.style.pointerEvents = 'auto';
-        el.style.willChange = 'transform, opacity';
+        el.style.willChange = 'transform, opacity'; // Crucial for performance
         el.style.contain = 'layout paint style size';
         if (enableDropShadow)
             el.style.filter = 'drop-shadow(0 2px 2px rgba(0,0,0,.35))';
         return el;
     }
     const getCoin = () => (coinPool.length ? coinPool.pop() : makeCoin());
-     function releaseCoin(el) {
-   el.style.animation = 'none';
-   el.style.transform = '';
-   el.style.opacity = '1';
-    delete el.dataset.dieAt;
-    delete el.dataset.jitter;
-    delete el.dataset.collected;
+    
+    function releaseCoin(el) {
+       el.style.transform = '';
+       el.style.opacity = '1';
+       // Reset dataset
+       delete el.dataset.dieAt;
+       delete el.dataset.mutationLevel;
+       delete el.dataset.collected;
+       
+       if (el.parentNode) el.remove();
+       if (coinPool.length < COIN_POOL_MAX) coinPool.push(el);
+    }
+    
+    // Explicit removal for JS physics
+    function removeCoin(coinObj) {
+        if (coinObj.isRemoved) return;
+        coinObj.isRemoved = true;
+        
+        // Remove from activeCoins list using swap-and-pop for O(1)
+        const idx = activeCoins.indexOf(coinObj);
+        if (idx !== -1) {
+            const last = activeCoins[activeCoins.length - 1];
+            activeCoins[idx] = last;
+            activeCoins.pop();
+        }
+        
+        // Release DOM element
+        if (coinObj.el) {
+            releaseCoin(coinObj.el);
+            coinObj.el = null;
+        }
+    }
+    
+    // Public API for CoinPickup to remove a coin (visually handled by CoinPickup usually, but we need to stop physics)
+    function detachCoin(coinEl) {
+        const coinObj = coinEl._coinObj;
+        if (coinObj) {
+            const idx = activeCoins.indexOf(coinObj);
+            if (idx !== -1) {
+                const last = activeCoins[activeCoins.length - 1];
+                activeCoins[idx] = last;
+                activeCoins.pop();
+            }
+            coinEl._coinObj = null; // Break link
+        }
+    }
 
-   if (el.parentNode)
-     el.remove();
-   if (coinPool.length < COIN_POOL_MAX)
-     coinPool.push(el);
- }
 
     function makeSurge() {
         const el = document.createElement('div');
@@ -339,14 +381,14 @@ function playWaveOncePerBurst() {
         const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
 
         const midX = startX + (endX - startX) * 0.66;
+        
         const jitterMs = Math.random() * 100;
 
         return {
             x0: startX,
             y0: startY,
-            xMid: midX,
-            y1: endY,
             x1: endX,
+            y1: endY,
             jitterMs,
         };
     }
@@ -357,10 +399,11 @@ function playWaveOncePerBurst() {
         if (!M.pfRect || !M.wRect)
             computeMetrics();
 
-        if (maxActiveCoins !== Infinity && refs.c.childElementCount >= maxActiveCoins) {
-            const oldest = refs.c.firstElementChild;
-            if (oldest)
-                releaseCoin(oldest);
+        // Check activeCoins count instead of DOM children for limit
+        if (maxActiveCoins !== Infinity && activeCoins.length >= maxActiveCoins) {
+            // Remove oldest
+            const oldest = activeCoins[0];
+            if (oldest) removeCoin(oldest);
         }
 
         const pfW = M.pfW;
@@ -380,19 +423,20 @@ function playWaveOncePerBurst() {
         const coinPlan = planCoinFromWave(wave);
         if (!coinPlan) return null;
 
-    return {
-        wave,
-        coin: coinPlan
-    };
-}
+        return {
+            wave,
+            coin: coinPlan
+        };
+    }
 
 function commitBatch(batch) {
   if (!batch.length || !validRefs()) return;
 
   const wavesFrag = document.createDocumentFragment();
   const coinsFrag = document.createDocumentFragment();
-  const newCoins = [];
+  
   const newSurges = [];
+  const now = performance.now();
 
   for (const { wave, coin } of batch) {
     if (wave) {
@@ -406,28 +450,40 @@ function commitBatch(batch) {
 
     const el = getCoin();
     el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
-    el.style.setProperty('--x0', `${coin.x0}px`);
-    el.style.setProperty('--y0', `${coin.y0}px`);
-    el.style.setProperty('--xmid', `${coin.xMid}px`);
-    el.style.setProperty('--y1', `${coin.y1}px`);
-    el.style.setProperty('--x1', `${coin.x1}px`);
-    el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0)`;
-    el.dataset.jitter = String(coin.jitterMs);
-    const animMs = Number(coin.durationMs);
-    if (Number.isFinite(animMs) && animMs > 0) {
-      el.dataset.animMs = String(Math.max(300, animMs));
-    } else if (el.dataset.animMs) {
-      delete el.dataset.animMs;
-    }
-    el.dataset.dieAt = String(performance.now() + coinTtlMs);
+    
+    // JS Physics: Initialize state
+    // We don't set --x0 etc anymore.
+    
+    // We need to set initial transform to hidden or start pos?
+    // Start pos is safe.
+    el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
+    el.style.opacity = '0.9';
+
     if (mutationUnlockedSnapshot) {
       el.dataset.mutationLevel = mutationLevelSnapshot.toString();
     } else {
       el.dataset.mutationLevel = '0';
     }
-
+    
+    // Create Coin Object
+    const coinObj = {
+        el,
+        x: coin.x0,
+        y: coin.y0,
+        startX: coin.x0,
+        startY: coin.y0,
+        endX: coin.x1,
+        endY: coin.y1,
+        startTime: now + coin.jitterMs, // Apply jitter as start delay
+        duration: animationDurationMs,
+        dieAt: now + coinTtlMs,
+        isRemoved: false
+    };
+    
+    el._coinObj = coinObj; // Link DOM to Object
+    activeCoins.push(coinObj);
+    
     coinsFrag.appendChild(el);
-    newCoins.push(el);
   }
 
   refs.s.appendChild(wavesFrag);
@@ -445,14 +501,7 @@ function commitBatch(batch) {
       };
       surge.addEventListener('animationend', onEnd, { once: true });
     }
-      for (const el of newCoins) {
-        const jitter = Number(el.dataset.jitter) || 0;
-        const animMs = Number(el.dataset.animMs);
-        const duration = Number.isFinite(animMs) && animMs > 0 ? Math.max(300, animMs) : animationDurationMs;
-        el.style.animation = 'none';
-        void el.offsetWidth;
-        el.style.animation = `${animationName} ${duration}ms ease-out ${jitter}ms 1 both`;
-      }
+    // No CSS animation trigger for coins needed!
   });
 }
 
@@ -478,29 +527,65 @@ function commitBatch(batch) {
     let last = performance.now();
     let carry = 0; // fractional coins
     let queued = 0; // whole coins awaiting spawn
-	let ttlCursor = null;
-	const ttlChecksPerFrame = 200;
-
+	
    function loop(now) {
   if (!M.pfRect || !M.wRect) computeMetrics();
 
   const dt = (now - last) / 1000;  // keep backlog intact on resume
   last = now;
-
-  // ---- TTL cleanup (pool-friendly) ----
+  
+  // ---- JS Physics Update ----
+  // Iterate active coins, update position, handle TTL
+  // We do this BEFORE spawning new ones to keep count accurate
   {
-    let checked = 0;
-    let node = ttlCursor || (refs.c && refs.c.firstElementChild);
-    while (node && checked < ttlChecksPerFrame) {
-      const next = node.nextElementSibling;
-      const dieAt = Number((node.dataset && node.dataset.dieAt) || 0);
-      if (dieAt && now >= dieAt) {
-        releaseCoin(node);
+      // Using a reverse loop or separate removal list is safest if removing in-place.
+      // Or standard efficient "swap-remove" pattern if order doesn't matter (it doesn't).
+      for (let i = activeCoins.length - 1; i >= 0; i--) {
+          const c = activeCoins[i];
+          
+          // TTL Check
+          if (now >= c.dieAt) {
+              removeCoin(c);
+              continue;
+          }
+          
+          // Animation Progress
+          const elapsed = now - c.startTime;
+          if (elapsed < 0) continue; // Jitter delay
+          
+          let t = elapsed / c.duration;
+          if (t > 1) t = 1; // Cap at end
+          
+          // Apply easing
+          const ease = easeOutCubic(t);
+          
+          // Interpolate
+          const curX = c.startX + (c.endX - c.startX) * ease;
+          const curY = c.startY + (c.endY - c.startY) * ease;
+          
+          c.x = curX;
+          c.y = curY;
+          
+          // Visual Update (Batch DOM writes usually happens by browser paint, but we write styles here)
+          // Rotate: -10deg to 0deg
+          // Scale: 0.96 to 1
+          // Opacity: 0.9 to 1 (at 66% way)
+          
+          const rot = -10 + (10 * ease);
+          const scale = 0.96 + (0.04 * ease);
+          // Opacity logic from original CSS: 0% -> .9, 66% -> 1. 
+          // 66% of duration. 
+          let opacity = 1;
+          if (t < 0.66) {
+              // Interpolate .9 to 1 over 0 to 0.66
+              opacity = 0.9 + (0.1 * (t / 0.66));
+          }
+          
+          if (c.el) {
+              c.el.style.transform = `translate3d(${curX}px, ${curY}px, 0) rotate(${rot}deg) scale(${scale})`;
+              c.el.style.opacity = opacity;
+          }
       }
-      node = next;
-      checked++;
-    }
-    ttlCursor = node || null;
   }
 
   // ---- Backlog accumulation (mobile cap = 100) ----
@@ -604,6 +689,27 @@ if (due > 0) {
       if (!src) return;
       currentCoinSrc = src;
     }
+    
+    // API for CoinPickup: Find coins in radius without DOM reads
+    // Returns list of DOM elements that are candidates
+    function findCoinsInRadius(centerX, centerY, radius) {
+        const radiusSq = radius * radius;
+        const candidates = [];
+        // Spatial partitioning would be better for thousands, but for <1500 this simple loop is usually fine
+        // especially compared to DOM reads.
+        // We can optimize if needed (grid).
+        const count = activeCoins.length;
+        for (let i = 0; i < count; i++) {
+            const c = activeCoins[i];
+            const dx = c.x - centerX + (coinSize/2); // Center of coin vs pointer. c.x is Top-Left.
+            const dy = c.y - centerY + (coinSize/2);
+            
+            if ((dx*dx + dy*dy) <= radiusSq) {
+                if (c.el) candidates.push(c.el);
+            }
+        }
+        return candidates;
+    }
 
     // Resume clean when tab is visible again
    document.addEventListener('visibilitychange', () => {
@@ -618,5 +724,7 @@ if (due > 0) {
         stop,
         setRate,
         setCoinSprite,
+        findCoinsInRadius,
+        detachCoin,
     };
 }
