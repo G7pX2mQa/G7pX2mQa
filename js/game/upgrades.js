@@ -1192,19 +1192,7 @@ export function computeDefaultUpgradeCost(baseCost, level, upgType = 'NM') {
   try { baseBn = BigNum.fromAny(baseCost ?? 0); }
   catch { baseBn = BigNum.fromInt(0); }
 
-  let levelNumber = 0;
-  try {
-    if (level instanceof BigNum) {
-      const plain = level.toPlainIntegerString?.();
-      if (plain && plain !== 'Infinity') {
-        levelNumber = Number.parseInt(plain, 10);
-      }
-    } else {
-      levelNumber = Number(level) || 0;
-    }
-  } catch {
-    levelNumber = 0;
-  }
+  const levelNumber = levelBigNumToNumber(level);
 
   const upg = { upgType, numUpgEvolutions: 0 };
   if (`${upgType ?? ''}`.toUpperCase() === 'HM') {
