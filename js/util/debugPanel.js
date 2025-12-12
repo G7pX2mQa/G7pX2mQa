@@ -33,7 +33,7 @@ import {
 } from '../game/upgrades.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
-import { getGenerationLevelKey } from '../ui/merchantTabs/workshopTab.js';
+import { getGenerationLevelKey, getGenerationUpgradeCost } from '../ui/merchantTabs/workshopTab.js';
 import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 
@@ -2775,6 +2775,13 @@ function buildAreaCalculators(container) {
                         { key: 'mpLevel', label: 'MP Level' },
                     ],
                     compute: ({ mpLevel }) => computeMutationMultiplierForLevel(mpLevel),
+                },
+                {
+                    label: 'Workshop Level Cost',
+                    inputs: [
+                        { key: 'level', label: 'Level' },
+                    ],
+                    compute: ({ level }) => getGenerationUpgradeCost(level),
                 },
             ],
         },
