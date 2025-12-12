@@ -35,7 +35,8 @@ export const AREA_KEYS = {
 };
 
 let isBatching = false;
-const pendingAreaSaves = new Map(); // key -> {areaKey, stateArr, slot}
+const pendingAreaSaves = new Map(); // key -> {areaKey, stateArr, slot} [Legacy/Fallback]
+const pendingUpgradeSaves = new Map(); // key -> {areaKey, upgId, state, slot}
 let pendingNotify = false;
 
 export function batchUpgradeOperations(fn) {
@@ -47,11 +48,19 @@ export function batchUpgradeOperations(fn) {
     return fn();
   } finally {
     isBatching = false;
+    pendingUpgradeSaves.forEach(({ areaKey, upgId, state, slot }) => {
+        try { saveUpgradeState(areaKey, upgId, state, slot); }
+        catch (e) { console.warn('Deferred upgrade save failed', e); }
+    });
+    pendingUpgradeSaves.clear();
+    
+    // Legacy/Fallback flush
     pendingAreaSaves.forEach(({ areaKey, stateArr, slot }) => {
       try { saveAreaState(areaKey, stateArr, slot); }
-      catch (e) { console.warn('Deferred save failed', e); }
+      catch (e) { console.warn('Deferred area save failed', e); }
     });
     pendingAreaSaves.clear();
+
     if (pendingNotify) {
       pendingNotify = false;
       notifyChanged();
@@ -2952,6 +2961,14 @@ function keyForArea(areaKey, slot = getActiveSlot()) {
   return `ccc:upgrades:${areaKey}:${slot}`;
 }
 
+export function getUpgradeStorageKey(areaKey, upgId, slot = getActiveSlot()) {
+    if (slot == null) return null;
+    const normalizedArea = normalizeAreaKey(areaKey);
+    const resolvedId = resolveUpgradeIdentifier(areaKey, upgId);
+    if (!normalizedArea || resolvedId == null) return null;
+    return `ccc:upgrades:${normalizedArea}:${resolvedId}:${slot}`;
+}
+
 const upgradeStorageWatcherCleanup = new Map();
 let upgradeStorageWatcherBoundSlot = null;
 
@@ -2963,47 +2980,19 @@ function cleanupUpgradeStorageWatchers() {
 }
 
 function handleUpgradeStorageChange(areaKey, slot, storageKey, rawPayload, meta = {}) {
-  if (!storageKey) return;
-  const { rawChanged, valueChanged } = meta;
-  if (!rawChanged && !valueChanged) return;
-
-  try {
-    if (typeof rawPayload === 'string') {
-      const arr = parseUpgradeStateArray(rawPayload);
-      if (arr) {
-        cacheAreaState(storageKey, arr, rawPayload);
-      } else {
-        clearCachedAreaState(storageKey);
-      }
-    } else {
-      clearCachedAreaState(storageKey);
-    }
-  } catch {
-    clearCachedAreaState(storageKey);
-  }
-
-  clearCachedUpgradeStates(areaKey, slot);
-  notifyChanged();
+    // In the new system, listeners on individual keys would be too expensive/complex to maintain
+    // for every single upgrade. We rely on the game loop and events.
+    // However, if we need to detect external changes (e.g. other tabs), we might just
+    // broadcast a generic change event.
+    clearCachedUpgradeStates(areaKey, slot);
+    notifyChanged();
 }
 
 function bindUpgradeStorageWatchersForSlot(slot) {
-  if (slot === upgradeStorageWatcherBoundSlot) return;
+  // Deprecated: We don't watch hundreds of individual keys.
+  // Reliance is on in-memory state and explicit events.
+  // If multi-tab sync is required, we can revisit a more sophisticated strategy.
   cleanupUpgradeStorageWatchers();
-  upgradeStorageWatcherBoundSlot = slot ?? null;
-  if (slot == null) return;
-
-  for (const areaKey of Object.values(AREA_KEYS)) {
-    const storageKey = keyForArea(areaKey, slot);
-    if (!storageKey) continue;
-    const stop = watchStorageKey(storageKey, {
-      parse: (raw) => (typeof raw === 'string' ? raw : null),
-      onChange: (rawPayload, meta) => {
-        if (!meta?.rawChanged && !meta?.valueChanged) return;
-        handleUpgradeStorageChange(areaKey, slot, storageKey, rawPayload, meta);
-      },
-    });
-    upgradeStorageWatcherCleanup.set(storageKey, stop);
-  }
 }
 
 if (typeof window !== 'undefined') {
@@ -3014,148 +3003,110 @@ if (typeof window !== 'undefined') {
   });
 }
 
+function migrateLegacyStorage(areaKey, slot) {
+    if (typeof localStorage === 'undefined') return;
+    const legacyKey = keyForArea(areaKey, slot);
+    const raw = localStorage.getItem(legacyKey);
+    if (!raw) return;
+
+    try {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+            let migratedCount = 0;
+            arr.forEach(rec => {
+                if (rec && rec.id != null) {
+                    const key = getUpgradeStorageKey(areaKey, rec.id, slot);
+                    if (key) {
+                        // Only write if individual key doesn't exist to prevent overwriting
+                        // if migration ran partially before.
+                        if (localStorage.getItem(key) === null) {
+                            localStorage.setItem(key, JSON.stringify(rec));
+                            migratedCount++;
+                        }
+                    }
+                }
+            });
+            console.log(`[UpgradeMigration] Migrated ${migratedCount} upgrades for area ${areaKey} slot ${slot}`);
+        }
+    } catch (e) {
+        console.warn('Failed to migrate legacy upgrade storage', e);
+    }
+
+    // Rename legacy key to .bak or delete
+    try {
+        localStorage.removeItem(legacyKey);
+        localStorage.removeItem(`${legacyKey}:backup`);
+    } catch {}
+}
+
+function loadUpgradeFromStorage(areaKey, upgId, slot) {
+    migrateLegacyStorage(areaKey, slot);
+    const key = getUpgradeStorageKey(areaKey, upgId, slot);
+    if (!key) return null;
+    try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+}
+
 function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
   const { forceReload = false } = options || {};
-  const storageKey = keyForArea(areaKey, slot);
-  if (!storageKey) return [];
-
-  if (isBatching && pendingAreaSaves.has(storageKey)) {
-    return pendingAreaSaves.get(storageKey).stateArr;
-  }
-
-  const backupKey = `${storageKey}:backup`;
-  const primary = readStateFromAvailableStorage(storageKey, {
-    includeLocal: true,
-  });
-  const backup = readStateFromAvailableStorage(backupKey, {
-    includeLocal: true,
-  });
-
-  if (primary.storageChecked && !primary.storageFound && backup.data) {
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem(backupKey);
-      }
-    } catch {}
-
-    clearCachedAreaState(storageKey);
-    clearCachedUpgradeStates(areaKey, slot);
-    return [];
-  }
+  // For compatibility, we return an array of all upgrade states for the area.
+  // This function now eagerly reads all individual keys.
   
-  if (primary.data) {
-    const normalized = normalizeAreaStateRecordOrder(areaKey, primary.data);
-    if (normalized) {
-      saveAreaState(areaKey, primary.data, slot);
-    } else {
-      cacheAreaState(storageKey, primary.data, primary.raw);
-    }
-    if (backup.storageFound) {
-      try {
-        if (typeof localStorage !== 'undefined') {
-          localStorage.removeItem(backupKey);
-        }
-      } catch {}
-    }
-    return primary.data;
+  migrateLegacyStorage(areaKey, slot);
+
+  const upgrades = getUpgradesForArea(areaKey);
+  const arr = [];
+
+  upgrades.forEach(upg => {
+      const rec = loadUpgradeFromStorage(areaKey, upg.id, slot);
+      if (rec) {
+          // Ensure ID is correct
+          rec.id = normalizeUpgradeId(upg.id);
+          arr.push(rec);
+      }
+  });
+
+  // Cache is less relevant for the "whole area array" concept now,
+  // but we can still populate it to satisfy ensureUpgradeState's expected finding logic
+  // if we want to keep ensuring 'arr' exists.
+  const storageKey = keyForArea(areaKey, slot); // virtual key for cache
+  if (storageKey) {
+      cacheAreaState(storageKey, arr, JSON.stringify(arr));
   }
 
-  if (backup.data) {
-    const normalized = normalizeAreaStateRecordOrder(areaKey, backup.data);
-    if (normalized) {
-      saveAreaState(areaKey, backup.data, slot);
-    } else {
-      cacheAreaState(storageKey, backup.data, backup.raw);
+  return arr;
+}
+
+function saveUpgradeState(areaKey, upgId, state, slot = getActiveSlot()) {
+    const key = getUpgradeStorageKey(areaKey, upgId, slot);
+    if (!key) return;
+    
+    if (isBatching) {
+        pendingUpgradeSaves.set(key, { areaKey, upgId, state, slot });
+        return;
     }
+
     try {
-      if (typeof localStorage !== 'undefined') {
-        const backupPayload = backup.raw ?? JSON.stringify(backup.data);
-        localStorage.setItem(storageKey, backupPayload);
-        localStorage.removeItem(backupKey);
-      }
-    } catch {}
-    return backup.data;
-  }
-
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(backupKey);
+        const payload = JSON.stringify(state);
+        localStorage.setItem(key, payload);
+        try { primeStorageWatcherSnapshot(key, payload); } catch {}
+    } catch (e) {
+        console.warn('Failed to save upgrade state', areaKey, upgId, e);
     }
-  } catch {}
-
-  const storagesChecked = primary.storageChecked || backup.storageChecked;
-  const storageHadValue = primary.storageFound || backup.storageFound;
-
-  if (!forceReload && !storagesChecked) {
-    const cached = areaStateMemoryCache.get(storageKey);
-    if (Array.isArray(cached)) {
-      normalizeAreaStateRecordOrder(areaKey, cached);
-      return cached;
-    }
-
-    const cachedPayload = areaStatePayloadCache.get(storageKey);
-    const parsed = parseUpgradeStateArray(cachedPayload);
-    if (parsed) {
-      const normalized = normalizeAreaStateRecordOrder(areaKey, parsed);
-      if (normalized) {
-        saveAreaState(areaKey, parsed, slot);
-      } else {
-        cacheAreaState(storageKey, parsed, cachedPayload);
-      }
-      return parsed;
-    }
-  }
-
-  if (!storageHadValue) {
-    clearCachedAreaState(storageKey);
-    clearCachedUpgradeStates(areaKey, slot);
-  }
-
-  return [];
 }
 
 function saveAreaState(areaKey, stateArr, slot = getActiveSlot()) {
-  const storageKey = keyForArea(areaKey, slot);
-  if (!storageKey) return;
-
-  if (isBatching) {
-    const arr = Array.isArray(stateArr) ? stateArr : [];
-    pendingAreaSaves.set(storageKey, { areaKey, stateArr: arr, slot });
-    return;
-  }
-
-  const arr = Array.isArray(stateArr) ? stateArr : [];
-  normalizeAreaStateRecordOrder(areaKey, arr);
-  let payload = null;
-  try {
-    payload = JSON.stringify(arr);
-  } catch {
-    try { payload = JSON.stringify([]); }
-    catch { payload = '[]'; }
-  }
-
-  cacheAreaState(storageKey, arr, payload);
-
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(storageKey, payload);
-      try { primeStorageWatcherSnapshot(storageKey, payload); } catch {}
-    }
-  } catch {}
-
-  try {
-    const verify = localStorage.getItem(storageKey);
-    if (verify !== payload) {
-      localStorage.setItem(storageKey, payload);
-      try { primeStorageWatcherSnapshot(storageKey, payload); } catch {}
-    }
-  } catch {}
-
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(`${storageKey}:backup`);
-    }
-  } catch {}
+  // Deprecated: Loops and saves individual upgrades
+  if (!Array.isArray(stateArr)) return;
+  stateArr.forEach(rec => {
+      if (rec && rec.id != null) {
+          saveUpgradeState(areaKey, rec.id, rec, slot);
+      }
+  });
 }
 
 function resolveUpgradeIdentifier(areaKey, upgId) {
@@ -3196,10 +3147,18 @@ function ensureUpgradeState(areaKey, upgId) {
   if (state) return state;
 
   const upg = getUpgrade(areaKey, normalizedId);
-  const arr = loadAreaState(areaKey, slot);
-  let rec = arr.find(u => u && normalizeUpgradeId(u.id) === normalizedId);
+  // We can try to load just this specific upgrade first
+  let rec = loadUpgradeFromStorage(areaKey, normalizedId, slot);
+  
+  // If we found it, great. If not, it might be because loadAreaState hasn't run yet to migrate?
+  // But migrateLegacyStorage handles key conversion.
+  // For safety, we can fall back to array load, but loadAreaState now just calls loadUpgradeFromStorage iteratively anyway.
+  
   let recNeedsSave = false;
   if (!rec) {
+    // Migration check implicit in loadAreaState or we can run it here for this area if totally missing?
+    // Let's assume loadAreaState runs on init. If we access an upgrade, it should exist if persisted.
+    // If not, it's new.
     rec = { id: normalizedId, lvl: BigNum.fromInt(0).toStorage() };
     if (upg) {
       try {
@@ -3209,8 +3168,7 @@ function ensureUpgradeState(areaKey, upgId) {
       }
     }
     rec.nextCostLvl = rec.lvl;
-    arr.push(rec);
-    saveAreaState(areaKey, arr, slot);
+    saveUpgradeState(areaKey, normalizedId, rec, slot);
   } else if (rec.id !== normalizedId) {
     rec.id = normalizedId;
     recNeedsSave = true;
@@ -3249,7 +3207,7 @@ try {
     rec.lvl = clampedStorage;
     rec.nextCost = BigNum.fromInt(0).toStorage();
     rec.nextCostLvl = clampedStorage;
-    saveAreaState(areaKey, arr, slot);
+    saveUpgradeState(areaKey, normalizedId, rec, slot);
   }
 } catch {}
 
@@ -3297,7 +3255,7 @@ try {
   }
 
   if (recNeedsSave) {
-    try { saveAreaState(areaKey, arr, slot); }
+    try { saveUpgradeState(areaKey, normalizedId, rec, slot); }
     catch {}
   }
 
@@ -3311,7 +3269,9 @@ try {
     }
   }
 
-  state = { areaKey, upgId: normalizedId, upg, rec, arr, lvl, lvlBn, nextCostBn, slot, hmEvolutions };
+  // We no longer strictly maintain 'arr' in state, but we can pass an empty [] or null
+  // since most consumers should look at 'rec'.
+  state = { areaKey, upgId: normalizedId, upg, rec, arr: [], lvl, lvlBn, nextCostBn, slot, hmEvolutions };
   upgradeStateCache.set(key, state);
   return state;
 }
@@ -3323,15 +3283,12 @@ function commitUpgradeState(state) {
   if (!areaKey || slot == null) return;
 
   const normalizedId = normalizeUpgradeId(state.upgId ?? state.rec?.id);
-  let arr = loadAreaState(areaKey, slot, { forceReload: true });
-  if (!Array.isArray(arr)) arr = [];
-
-  let rec = arr.find(u => u && normalizeUpgradeId(u.id) === normalizedId);
+  // We do NOT reload the whole area here. We work on the cached rec.
+  
+  let rec = state.rec;
   if (!rec) {
-    rec = { id: normalizedId };
-    arr.push(rec);
-  } else if (rec.id !== normalizedId) {
-    rec.id = normalizedId;
+      rec = { id: normalizedId };
+      state.rec = rec;
   }
 
 try {
@@ -3369,9 +3326,7 @@ try {
     rec.hmEvolutions = normalizeHmEvolutionCount(state.hmEvolutions);
   }
 
-  saveAreaState(areaKey, arr, slot);
-  state.rec = rec;
-  state.arr = arr;
+  saveUpgradeState(areaKey, normalizedId, rec, slot);
   state.slot = slot;
 }
 
