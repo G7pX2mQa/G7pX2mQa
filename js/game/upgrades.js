@@ -1212,7 +1212,7 @@ export function computeDefaultUpgradeCost(baseCost, level, upgType = 'NM') {
   }
 
   const preset = resolveDefaultScalingRatio(upg);
-  const ratio = Number.isFinite(preset?.ratio) ? preset.ratio : 1;
+  const ratio = (preset?.ratio > 0) ? preset.ratio : 1;
   const scaling = {
     baseBn,
     baseLog10: approxLog10BigNum(baseBn),
@@ -1466,7 +1466,7 @@ function resolveDefaultScalingRatio(upg) {
     const presetFn = DEFAULT_SCALING_PRESETS[presetName];
     if (typeof presetFn !== 'function') return null;
     const ratio = presetFn(upg);
-    if (!Number.isFinite(ratio) || ratio <= 0) return null;
+    if ((!Number.isFinite(ratio) && ratio !== Infinity) || ratio <= 0) return null;
     return { ratio, preset: presetName };
   };
 
@@ -1485,7 +1485,7 @@ function ensureUpgradeScaling(upg) {
 
     const providedScaling = upg.scaling ?? {};
     let ratio = Number(providedScaling.ratio);
-    if (!(ratio > 0) || !Number.isFinite(ratio)) ratio = null;
+    if (!(ratio > 0) || (!Number.isFinite(ratio) && ratio !== Infinity)) ratio = null;
 
     let ratioStr = typeof providedScaling.ratioStr === 'string'
       ? providedScaling.ratioStr.trim()
