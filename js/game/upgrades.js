@@ -3092,6 +3092,16 @@ function loadUpgradeFromStorage(areaKey, upgId, slot) {
     migrateLegacyStorage(areaKey, slot);
     const key = getUpgradeStorageKey(areaKey, upgId, slot);
     if (!key) return null;
+
+    if (isBatching && pendingUpgradeSaves.has(key)) {
+        try {
+            const pending = pendingUpgradeSaves.get(key);
+            if (pending?.state) {
+                return JSON.parse(JSON.stringify(pending.state));
+            }
+        } catch {}
+    }
+
     try {
         const raw = localStorage.getItem(key);
         return raw ? JSON.parse(raw) : null;
