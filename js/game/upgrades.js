@@ -1212,14 +1212,24 @@ export function computeDefaultUpgradeCost(baseCost, level, upgType = 'NM') {
   }
 
   const preset = resolveDefaultScalingRatio(upg);
-  const ratio = (preset?.ratio > 0) ? preset.ratio : 1;
+  let ratio = (preset?.ratio > 0) ? preset.ratio : 1;
+  // If ratio is infinite, treat it as > 1 logic but ensure we have ratioLog10
+  if (ratio === Infinity && preset?.ratioLog10 == null) {
+      // Fallback if no explicit log provided for infinity?
+      // Just keep ratio as Infinity, Math.log10(Infinity) is Infinity.
+  }
+  
+  let ratioLog10 = (preset && preset.ratioLog10 != null)
+      ? preset.ratioLog10
+      : Math.log10(Math.max(ratio, 1));
+      
   const scaling = {
     baseBn,
     baseLog10: approxLog10BigNum(baseBn),
     ratio,
     ratioMinus1: Math.max(0, ratio - 1),
-    ratioLog10: Math.log10(Math.max(ratio, 1)),
-    ratioLn: Math.log(Math.max(ratio, 1)),
+    ratioLog10,
+    ratioLn: ratioLog10 * Math.LN10,
     ratioStr: decimalMultiplierString(Math.max(ratio, 1)),
     defaultPreset: preset?.preset,
   };
@@ -1252,15 +1262,19 @@ const DEFAULT_SCALING_PRESETS = {
     // Relaxed linear scaling for Phase 1 & 2 (up to 1,000,000 evolutions / Level 1B)
     let ratio = 1.50 + (0.10 * evol);
 
-    // Phase 3: Super-Exponential Softcap starting at Level 1 Billion
+    // Phase 3: Double-Exponential Softcap starting at Level 1 Billion
     const softcapStart = 1_000_000;
     if (evol > softcapStart) {
       const delta = evol - softcapStart;
-      // Calibrated to hit Infinity around Level 5 Trillion (5e9 evolutions)
-      // delta ~= 5e9, scale ~= 16.2e6 => exponent ~= 308 => 10^308
-      const scale = 16_200_000;
-      const extra = Math.pow(10, delta / scale);
-      ratio += extra;
+      // Calibrated to hit BN Infinity around Level 4 Trillion (4e9 evolutions)
+      const rate = 1.8e-7;
+      const baseLog = 5;
+      const ratioLog10 = baseLog * Math.exp(rate * delta);
+      let ratio = Infinity;
+      if (ratioLog10 < 308) {
+        ratio = Math.pow(10, ratioLog10);
+      }
+      return { ratio, ratioLog10 };
     }
     return ratio;
   },
@@ -1465,7 +1479,19 @@ function resolveDefaultScalingRatio(upg) {
     if (!presetName) return null;
     const presetFn = DEFAULT_SCALING_PRESETS[presetName];
     if (typeof presetFn !== 'function') return null;
-    const ratio = presetFn(upg);
+    const res = presetFn(upg);
+    if (typeof res === 'object' && res !== null) {
+      // Allow objects with ratioLog10 even if ratio is infinite
+      if (res.ratioLog10 != null || res.ratio > 0) {
+        return {
+          ratio: res.ratio ?? 1,
+          ratioLog10: res.ratioLog10,
+          preset: presetName
+        };
+      }
+      return null;
+    }
+    const ratio = res;
     if ((!Number.isFinite(ratio) && ratio !== Infinity) || ratio <= 0) return null;
     return { ratio, preset: presetName };
   };
@@ -1523,6 +1549,7 @@ function ensureUpgradeScaling(upg) {
       const resolved = resolveDefaultScalingRatio(upg);
       if (resolved) {
         ratio = resolved.ratio;
+        if (resolved.ratioLog10 != null) ratioLog10 = resolved.ratioLog10;
         defaultPreset = resolved.preset;
       }
     }
@@ -1536,8 +1563,24 @@ function ensureUpgradeScaling(upg) {
     } else {
       ratio = Number(ratio);
       ratioStr = decimalMultiplierString(ratio);
-      ratioLog10 = Math.log10(ratio);
-      ratioLn = Math.log(ratio);
+      
+      // Use existing ratioLog10 if available and we are handling the Infinity case,
+      // or if normal calculation would be redundant/less precise.
+      if (ratioLog10 == null || (ratio === Infinity && Number.isFinite(ratioLog10))) {
+          // keep current ratioLog10 if it's finite and ratio is infinite
+          if (ratioLog10 == null) ratioLog10 = Math.log10(ratio);
+      } else {
+          // Standard case: sync log10 to ratio if ratio is finite
+          if (Number.isFinite(ratio)) {
+             ratioLog10 = Math.log10(ratio);
+          }
+      }
+      
+      if (Number.isFinite(ratioLog10)) {
+          ratioLn = ratioLog10 * Math.LN10;
+      } else {
+          ratioLn = Math.log(ratio);
+      }
       var ratioMinus1 = Math.max(1e-12, ratio - 1);
     }
 
@@ -1623,7 +1666,13 @@ function logSeriesTotal(upg, startLevel, count) {
   if (!(count > 0)) return Number.NEGATIVE_INFINITY;
   const scaling = ensureUpgradeScaling(upg);
   if (!scaling) return Number.NEGATIVE_INFINITY;
-  if (!(scaling.ratioMinus1 > 0) || !Number.isFinite(scaling.ratioLn)) {
+  if (!Number.isFinite(scaling.ratioLn)) {
+    if (count > 1) return Number.POSITIVE_INFINITY;
+    // For count=1, it is just startLn
+    const startLn = (scaling.baseLog10 * LN10) + (startLevel * scaling.ratioLn);
+    return startLn / LN10;
+  }
+  if (!(scaling.ratioMinus1 > 0)) {
     return Number.POSITIVE_INFINITY;
   }
 
