@@ -162,7 +162,7 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards(getCurrentAreaKey(), id, amount),
         getLockState: (id) => getUpgradeLockState(getCurrentAreaKey(), id),
         evolve: (id) => evolveUpgrade(getCurrentAreaKey(), id),
-        events: ['ccc:upgrades:changed', 'currency:change', 'xp:change', 'xp:unlock', MERCHANT_MET_EVENT]
+        events: ['ccc:upgrades:changed', 'currency:change', 'xp:change', 'xp:unlock', MERCHANT_MET_EVENT, 'forge:completed', 'unlock:change']
     },
     automation: {
         title: 'Automation Shop',
