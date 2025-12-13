@@ -1688,6 +1688,13 @@ function renderDialogueList() {
         const amtEl = rewardEl.querySelector('.amt');
         const amtText = String(meta.reward.amount);
         if (amtEl && amtEl.textContent !== amtText) amtEl.textContent = amtText;
+
+        const nameEl = rewardEl.querySelector('.currency-name');
+        if (nameEl) {
+          const typeStr = String(meta.reward.type || '');
+          const capText = typeStr.charAt(0).toUpperCase() + typeStr.slice(1);
+          if (nameEl.textContent !== capText) nameEl.textContent = capText;
+        }
         
         const rewardLabelText = `Reward: ${meta.reward.amount} ${meta.reward.type}`;
         if (rewardEl.getAttribute('aria-label') !== rewardLabelText) {
