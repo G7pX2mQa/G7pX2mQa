@@ -566,6 +566,10 @@
 }
 
 @media (pointer: coarse) {
+  .dlg-reward {
+    left: -1px;
+  }
+  
   .dlg-reward .reward-icon,
   .dlg-reward .coin-icon,
   .dlg-reward .book-icon {
