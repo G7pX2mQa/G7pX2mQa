@@ -1114,8 +1114,7 @@ document.addEventListener('keydown', onEscToCancel, { capture: true });
     merchantOverlayEl.classList.remove('firstchat-active');
     stopTypingSfx();
     __isTypingActive = false;
-    // small delay to let fade finish
-    setTimeout(() => overlay.remove(), 160);
+    overlay.remove();
   };
 
   const cancelWithoutReward = () => {
@@ -1147,14 +1146,14 @@ const engine = new DialogueEngine({
     ended = true;
 
     if (info && info.noReward) {
-      closeModal();
       renderDialogueList();
+      closeModal();
       return;
     }
 
     completeDialogueOnce(id, meta);
-    closeModal();
     renderDialogueList();
+    closeModal();
   }
 });
 
