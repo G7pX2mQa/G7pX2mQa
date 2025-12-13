@@ -3583,6 +3583,7 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
     const rec = revealState.upgrades[revealKey] || {};
     const tieKey = normalizeUpgradeTie(upg?.tie ?? upg?.tieKey);
     const isForgePlaceholder = tieKey && FORGE_PLACEHOLDER_TIES.has(tieKey);
+    const isInfusePlaceholder = tieKey && INFUSE_PLACEHOLDER_TIES.has(tieKey);
 
     let storedStatus = rec.status || 'locked';
 
@@ -3594,8 +3595,16 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
     ) {
       let xpReached31 = false;
       try { xpReached31 = levelBigNumToNumber(currentXpLevelBigNum()) >= 31; } catch {}
+      let xpReached101 = false;
+      try { xpReached101 = levelBigNumToNumber(currentXpLevelBigNum()) >= 101; } catch {}
 
-      storedStatus = (isForgePlaceholder && !xpReached31) ? 'locked' : 'mysterious';
+      if (isForgePlaceholder && !xpReached31) {
+        storedStatus = 'locked';
+      } else if (isInfusePlaceholder && !xpReached101) {
+        storedStatus = 'locked';
+      } else {
+        storedStatus = 'mysterious';
+      }
     }
 
     let storedRank = shopStatusRank(storedStatus);
@@ -3651,8 +3660,12 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
 
     let xpReached31Now = false;
     try { xpReached31Now = levelBigNumToNumber(currentXpLevelBigNum()) >= 31; } catch {}
+    let xpReached101Now = false;
+    try { xpReached101Now = levelBigNumToNumber(currentXpLevelBigNum()) >= 101; } catch {}
 
     if (isForgePlaceholderForSave && !xpReached31Now && normalizedStatus === 'mysterious') {
+      normalizedStatus = 'locked';
+    } else if (isInfusePlaceholder && !xpReached101Now && normalizedStatus === 'mysterious') {
       normalizedStatus = 'locked';
     }
 
