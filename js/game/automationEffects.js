@@ -14,6 +14,7 @@ import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js'
 import { getActiveSlot } from '../util/storage.js';
 
 let accumulator = 0;
+let autobuyAccumulator = 0;
 
 // Autobuyer Toggle Cache
 // Structure: Map<string, string> where key is the localStorage key and value is the setting ('0' or '1')
@@ -77,6 +78,10 @@ function onTick(dt) {
 }
 
 function updateAutobuyers(dt) {
+  autobuyAccumulator += dt;
+  if (autobuyAccumulator < 0.2) return; // 5Hz throttling
+  autobuyAccumulator = 0;
+
   const coinAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_COIN_UPGRADES_ID) > 0;
   const bookAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_BOOK_UPGRADES_ID) > 0;
   const goldAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_GOLD_UPGRADES_ID) > 0;
