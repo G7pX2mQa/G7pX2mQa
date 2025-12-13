@@ -5,7 +5,7 @@ import { pauseGameLoop, resumeGameLoop } from './gameLoop.js';
 import { bank } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
-import { ensureCustomScrollbar } from '../ui/shopOverlay.js';
+import { ensureCustomScrollbar, getCurrencyLabel } from '../ui/shopOverlay.js';
 import { IS_MOBILE } from '../main.js';
 import { getLevelNumber } from './upgrades.js';
 import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
@@ -48,15 +48,10 @@ const REWARD_META = {
 };
 
 const REWARD_NAMES = {
-    coins: 'Coins',
     xp:    'XP',
     xp_levels: 'XP Levels',
-    books: 'Books',
-    gold:  'Gold',
     mp:    'MP',
     mp_levels: 'MP Levels',
-    magic: 'Magic',
-    gears: 'Gears'
 };
 
 function createOfflinePanel(rewards, offlineMs) {
@@ -111,14 +106,19 @@ function createOfflinePanel(rewards, offlineMs) {
         text.className = 'offline-text';
         text.classList.add(`text-${key}`);
         
-        let displayName = REWARD_NAMES[key];
-        // Handle singular logic for levels
-        if ((key === 'xp_levels' || key === 'mp_levels')) {
-            // Check if value equals 1
-            const isOne = (val instanceof BigNum) ? (val.cmp(BigNum.fromInt(1)) === 0) : (Number(val) === 1);
-            if (isOne) {
-                // Strip trailing 's' -> 'Level'
-                displayName = displayName.replace(/s$/, '');
+        let displayName;
+        if (['coins', 'books', 'gold', 'magic', 'gears'].includes(key)) {
+            displayName = getCurrencyLabel(key, val);
+        } else {
+            displayName = REWARD_NAMES[key];
+            // Handle singular logic for levels
+            if ((key === 'xp_levels' || key === 'mp_levels')) {
+                // Check if value equals 1
+                const isOne = (val instanceof BigNum) ? (val.cmp(BigNum.fromInt(1)) === 0) : (Number(val) === 1);
+                if (isOne) {
+                    // Strip trailing 's' -> 'Level'
+                    displayName = displayName.replace(/s$/, '');
+                }
             }
         }
 
