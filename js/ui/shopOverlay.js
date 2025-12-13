@@ -216,6 +216,29 @@ function stripTags(html) {
   return String(html ?? '').replace(/<[^>]*>/g, '');
 }
 
+function getCurrencyLabel(type, amountBn) {
+  if (type === 'gold') return 'Gold';
+  if (type === 'magic') return 'Magic';
+  
+  let isOne = false;
+  if (amountBn && typeof amountBn.cmp === 'function') {
+      isOne = !amountBn.isInfinite() && amountBn.cmp(1) === 0;
+  } else {
+      try {
+          const bn = BigNum.fromAny(amountBn);
+          isOne = !bn.isInfinite() && bn.cmp(1) === 0;
+      } catch {
+          isOne = (amountBn == 1 || amountBn === '1');
+      }
+  }
+
+  if (type === 'coins') return isOne ? 'Coin' : 'Coins';
+  if (type === 'books') return isOne ? 'Book' : 'Books';
+  if (type === 'gears') return isOne ? 'Gear' : 'Gears';
+  
+  return type ? (type.charAt(0).toUpperCase() + type.slice(1)) : '';
+}
+
 // --- Audio ---
 const PURCHASE_SFX_SRC = 'sounds/purchase_upg.ogg';
 const EVOLVE_SFX_SRC = 'sounds/evolve_upg.ogg';
@@ -224,8 +247,6 @@ const DESKTOP_PURCHASE_VOLUME = 0.3;
 
 function createSfxPlayer({ src, mobileVolume, desktopVolume }) {
   let base = null;
-  // ... (Simplified re-implementation or kept minimal for brevity, 
-  // but let's reuse the existing comprehensive logic for robustness)
   
   let ac = null;
   let gain = null;
@@ -459,8 +480,6 @@ function levelsRemainingToCap(upg, currentLevelBn, currentLevelNumber) {
 }
 
 function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
-  // ... (Identical logic to original file, omitted for brevity but assumed present. 
-  // Since I am overwriting the file, I must include it.)
   let lvlBn;
   try { lvlBn = currentLevelBn instanceof BigNum ? currentLevelBn : BigNum.fromAny(currentLevelBn ?? currentLevelNumeric ?? 0); }
   catch { const fallback = Math.max(0, Math.floor(Number(currentLevelNumeric) || 0)); lvlBn = BigNum.fromInt(fallback); }
@@ -485,7 +504,7 @@ function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
   try {
     if (typeof upg.costAtLevel === 'function') {
         const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
-        const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1)); // Fix: levelBigNumToNumber not in scope? just use lvl+1
+        const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1)); 
         const farProbeLevel = Math.min(Number.isFinite(cap) ? cap : lvl + 32, lvl + 32);
         const cFar = BigNum.fromAny(upg.costAtLevel(farProbeLevel));
         const isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
@@ -1341,13 +1360,16 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       
       if (!model.unlockUpgrade && !stopBuying && (!locked || !lockState?.hideCost)) {
           const costs = document.createElement('div'); costs.className = 'upg-costs';
+          
+          const costLabel = getCurrencyLabel(model.upg.costType, nextPriceBn);
           const lineCost = document.createElement('div'); lineCost.className = 'upg-line';
-          lineCost.innerHTML = `Cost: ${iconHTML} ${bank[model.upg.costType].fmt(nextPriceBn)}`;
+          lineCost.innerHTML = `Cost: ${iconHTML} ${bank[model.upg.costType].fmt(nextPriceBn)} ${costLabel}`;
           costs.appendChild(lineCost);
           
           if (isHM) {
              const lineMilestone = document.createElement('div'); lineMilestone.className = 'upg-line';
              let milestoneCost = '—';
+             let milestoneLabel = '';
              try {
                 if (model.hmNextMilestone && model.hmNextMilestone.cmp(model.lvlBn) > 0) {
                     const deltaBn = model.hmNextMilestone.sub(model.lvlBn);
@@ -1355,14 +1377,16 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                     const deltaNum = Math.max(0, Math.floor(Number(deltaPlain && deltaPlain !== 'Infinity' ? deltaPlain : Number(deltaBn.toString() || 0))));
                     const { spent } = evaluateBulkPurchase(model.upg, model.lvlBn, BigNum.fromAny('Infinity'), deltaNum);
                     milestoneCost = bank[model.upg.costType].fmt(spent);
+                    milestoneLabel = getCurrencyLabel(model.upg.costType, spent);
                 }
              } catch {}
-             lineMilestone.innerHTML = `Cost to next milestone: ${iconHTML} ${milestoneCost}`;
+             lineMilestone.innerHTML = `Cost to next milestone: ${iconHTML} ${milestoneCost} ${milestoneLabel}`;
              costs.appendChild(lineMilestone);
           }
           
+          const haveLabel = getCurrencyLabel(model.upg.costType, model.have);
           const lineHave = document.createElement('div'); lineHave.className = 'upg-line';
-          lineHave.innerHTML = `You have: ${iconHTML} ${bank[model.upg.costType].fmt(model.have)}`;
+          lineHave.innerHTML = `You have: ${iconHTML} ${bank[model.upg.costType].fmt(model.have)} ${haveLabel}`;
           costs.appendChild(lineHave);
           info.appendChild(costs);
       }
