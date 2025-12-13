@@ -391,4 +391,8 @@
     justify-content: center;
     flex-shrink: 0;
   }
+  
+  .merchant-reset__action-plus {
+    top: 0px;
+  }
 }
