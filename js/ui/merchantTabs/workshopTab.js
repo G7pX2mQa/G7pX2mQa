@@ -509,7 +509,14 @@ export function updateWorkshopTab() {
   const cost = getGenerationUpgradeCost(currentGenerationLevel);
   if (gearsAmountEl) gearsAmountEl.innerHTML = bank.gears.fmt(bank.gears.value);
   if (gearsRateEl) gearsRateEl.innerHTML = formatNumber(rateBn);
-  if (upgradeCostEl) upgradeCostEl.innerHTML = formatNumber(cost);
+  if (upgradeCostEl) {
+      let label = 'Coins';
+      try {
+          const isOne = !cost.isInfinite() && cost.cmp(1) === 0;
+          label = isOne ? 'Coin' : 'Coins';
+      } catch {}
+      upgradeCostEl.innerHTML = `${formatNumber(cost)} ${label}`;
+  }
   if (upgradeBtn) {
     const canAfford = bank.coins.value.cmp(cost) >= 0;
     upgradeBtn.disabled = !canAfford;
