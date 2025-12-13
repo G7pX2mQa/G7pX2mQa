@@ -120,9 +120,9 @@ export const MERCHANT_DIALOGUES = {
       m2f: { type: 'line', say: 'Are you sure you don’t want free Books?', next: 'c3a' },
 
       c2a: { type: 'choice', options: [
-        { label: 'Yeah, sure.',                       to: 'end' },
+	    { label: 'No.',                               to: 'm2f' },
 		{ label: 'Why are you giving me all this free stuff?', to: 'm2e' },
-        { label: 'No.',                               to: 'm2f' },
+		{ label: 'Yeah, sure.',                       to: 'end' },
       ]},
       c2b: { type: 'choice', options: [
         { label: 'What?', to: 'm2d' },
