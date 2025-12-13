@@ -272,7 +272,7 @@ export const MERCHANT_DIALOGUES = {
     ]},
 
     m2a: { type: 'line', say: 'I just do.', next: 'c2a' },
-    m2b: { type: 'line', say: 'Uhhhh, I just kind of have them.', next: 'c2b' },
+    m2b: { type: 'line', say: 'I\'ve always had them.', next: 'c2b' },
     m2c: { type: 'line', say: 'Because Coins are just built different like that.', next: 'c2c' },
     m2d: { type: 'line', say: 'Because it’s necessary to speed up Coin collection.', next: 'c2d' },
     m2e: { type: 'line', say: 'Everything.', next: 'c2e' },
