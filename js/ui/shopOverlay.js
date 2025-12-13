@@ -216,7 +216,7 @@ function stripTags(html) {
   return String(html ?? '').replace(/<[^>]*>/g, '');
 }
 
-function getCurrencyLabel(type, amountBn) {
+export function getCurrencyLabel(type, amountBn) {
   if (type === 'gold') return 'Gold';
   if (type === 'magic') return 'Magic';
   
