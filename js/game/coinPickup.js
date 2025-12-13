@@ -783,7 +783,7 @@ export function initCoinPickup({
   }
 
   function animateAndRemove(el, opts = {}){
-    if (disableAnimation) { 
+    if (disableAnimation || IS_MOBILE) {
         if (spawner && typeof spawner.detachCoin === 'function') {
            spawner.detachCoin(el);
         }
