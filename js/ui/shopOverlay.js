@@ -1498,14 +1498,22 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           };
           ensureButton('shop-delve btn-buy-one', 'Buy', performBuy, 1, !canAffordNext);
           
-          const performBuyMax = () => {
-              const fresh = adapter.getUiModel(upgDef.id);
-              if (fresh.have.cmp(BigNum.fromInt(1)) < 0) return;
-              const { bought } = adapter.buyMax(upgDef.id);
-              const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
-              if (!boughtBn.isZero?.()) { playPurchaseSfx(); updateShopOverlay(); rerender(); }
-          };
-          ensureButton('shop-delve btn-buy-max', 'Buy Max', performBuyMax, 2, !canAffordNext);
+          const capNumber = Number.isFinite(model.upg.lvlCap) ? model.upg.lvlCap : Infinity;
+          const isSingleLevelCap = capNumber === 1;
+
+          if (!isSingleLevelCap) {
+              const performBuyMax = () => {
+                  const fresh = adapter.getUiModel(upgDef.id);
+                  if (fresh.have.cmp(BigNum.fromInt(1)) < 0) return;
+                  const { bought } = adapter.buyMax(upgDef.id);
+                  const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                  if (!boughtBn.isZero?.()) { playPurchaseSfx(); updateShopOverlay(); rerender(); }
+              };
+              ensureButton('shop-delve btn-buy-max', 'Buy Max', performBuyMax, 2, !canAffordNext);
+          } else {
+              const stale = actions.querySelector('.btn-buy-max');
+              if (stale) stale.remove();
+          }
           
           if (isHM) {
               const performBuyNext = () => {
