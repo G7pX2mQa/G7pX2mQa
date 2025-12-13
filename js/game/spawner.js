@@ -158,7 +158,7 @@ export function createSpawner({
         el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
         el.style.borderRadius = '50%';
         el.style.pointerEvents = 'auto';
-        el.style.willChange = 'transform, opacity'; // Crucial for performance
+        el.style.willChange = 'auto'; // Initially auto to save memory in pool
         el.style.contain = 'layout paint style size';
         if (enableDropShadow)
             el.style.filter = 'drop-shadow(0 2px 2px rgba(0,0,0,.35))';
@@ -167,15 +167,22 @@ export function createSpawner({
     const getCoin = () => (coinPool.length ? coinPool.pop() : makeCoin());
     
     function releaseCoin(el) {
+       el.className = 'coin'; // Reset class (removes coin--collected etc)
        el.style.transform = '';
        el.style.opacity = '1';
+       el.style.display = 'none'; // Hide instead of remove
+       el.style.willChange = 'auto'; // Save memory
+       
        // Reset dataset
        delete el.dataset.dieAt;
        delete el.dataset.mutationLevel;
        delete el.dataset.collected;
        
-       if (el.parentNode) el.remove();
-       if (coinPool.length < COIN_POOL_MAX) coinPool.push(el);
+       if (coinPool.length < COIN_POOL_MAX) {
+           coinPool.push(el);
+       } else {
+           el.remove();
+       }
     }
     
     // Explicit removal for JS physics
@@ -183,12 +190,28 @@ export function createSpawner({
         if (coinObj.isRemoved) return;
         coinObj.isRemoved = true;
         
-        // Remove from activeCoins list using swap-and-pop for O(1)
-        const idx = activeCoins.indexOf(coinObj);
-        if (idx !== -1) {
-            const last = activeCoins[activeCoins.length - 1];
-            activeCoins[idx] = last;
-            activeCoins.pop();
+        // Remove from activeCoins list using O(1) swap-and-pop with tracked index
+        const idx = coinObj.index;
+        // Verify consistency (optional but safe)
+        if (typeof idx === 'number' && idx >= 0 && idx < activeCoins.length && activeCoins[idx] === coinObj) {
+             const last = activeCoins[activeCoins.length - 1];
+             if (last !== coinObj) {
+                 activeCoins[idx] = last;
+                 last.index = idx; // Update last's index
+             }
+             activeCoins.pop();
+             coinObj.index = -1;
+        } else {
+            // Fallback scan (should not happen if logic is correct)
+            const fallbackIdx = activeCoins.indexOf(coinObj);
+            if (fallbackIdx !== -1) {
+                const last = activeCoins[activeCoins.length - 1];
+                if (last !== coinObj) {
+                    activeCoins[fallbackIdx] = last;
+                    last.index = fallbackIdx;
+                }
+                activeCoins.pop();
+            }
         }
         
         // Release DOM element
@@ -202,30 +225,52 @@ export function createSpawner({
     function detachCoin(coinEl) {
         const coinObj = coinEl._coinObj;
         if (coinObj) {
-            const idx = activeCoins.indexOf(coinObj);
-            if (idx !== -1) {
-                const last = activeCoins[activeCoins.length - 1];
-                activeCoins[idx] = last;
-                activeCoins.pop();
+            // Same O(1) removal logic
+            const idx = coinObj.index;
+            if (typeof idx === 'number' && idx >= 0 && idx < activeCoins.length && activeCoins[idx] === coinObj) {
+                 const last = activeCoins[activeCoins.length - 1];
+                 if (last !== coinObj) {
+                     activeCoins[idx] = last;
+                     last.index = idx;
+                 }
+                 activeCoins.pop();
+            } else {
+                const fallbackIdx = activeCoins.indexOf(coinObj);
+                if (fallbackIdx !== -1) {
+                    const last = activeCoins[activeCoins.length - 1];
+                    if (last !== coinObj) {
+                        activeCoins[fallbackIdx] = last;
+                        last.index = fallbackIdx;
+                    }
+                    activeCoins.pop();
+                }
             }
             coinEl._coinObj = null; // Break link
         }
     }
 
+    // Public API for recycling collected coins
+    function recycleCoin(el) {
+        if (!el) return;
+        releaseCoin(el);
+    }
 
     function makeSurge() {
         const el = document.createElement('div');
         el.className = 'wave-surge';
-        el.style.willChange = 'transform, opacity';
+        el.style.willChange = 'auto';
         return el;
     }
     const getSurge = () => (surgePool.length ? surgePool.pop() : makeSurge());
     function releaseSurge(el) {
         el.classList.remove('run');
-        if (el.parentNode)
-            el.remove();
+        el.style.display = 'none'; // Hide instead of remove
+        el.style.willChange = 'auto';
+        
         if (surgePool.length < SURGE_POOL_MAX)
             surgePool.push(el);
+        else 
+            el.remove();
     }
 	
 	  // ---- Wave spawn SFX ----
@@ -444,7 +489,14 @@ function commitBatch(batch) {
       surge.style.left = `${wave.x}px`;
       surge.style.top = `${wave.y}px`;
       surge.style.width = `${wave.w}px`;
-      wavesFrag.appendChild(surge);
+      surge.style.display = ''; // Unhide
+      
+      // Optimization: avoid appendChild if already in DOM
+      if (surge.parentNode === refs.s) {
+          // Already attached
+      } else {
+          wavesFrag.appendChild(surge);
+      }
       newSurges.push(surge);
     }
 
@@ -458,6 +510,10 @@ function commitBatch(batch) {
     // Start pos is safe.
     el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
     el.style.opacity = '0.9';
+    
+    // Unhide and enable will-change
+    el.style.display = ''; 
+    el.style.willChange = 'transform, opacity';
 
     if (mutationUnlockedSnapshot) {
       el.dataset.mutationLevel = mutationLevelSnapshot.toString();
@@ -477,17 +533,23 @@ function commitBatch(batch) {
         startTime: now + coin.jitterMs, // Apply jitter as start delay
         duration: animationDurationMs,
         dieAt: now + coinTtlMs,
-        isRemoved: false
+        isRemoved: false,
+        index: activeCoins.length // Store index for O(1) removal
     };
     
     el._coinObj = coinObj; // Link DOM to Object
     activeCoins.push(coinObj);
     
-    coinsFrag.appendChild(el);
+    if (el.parentNode === refs.c) {
+        // Already attached
+    } else {
+        coinsFrag.appendChild(el);
+    }
   }
 
-  refs.s.appendChild(wavesFrag);
-  refs.c.appendChild(coinsFrag);
+  // Only append fragments if they have children (new nodes)
+  if (wavesFrag.childElementCount > 0) refs.s.appendChild(wavesFrag);
+  if (coinsFrag.childElementCount > 0) refs.c.appendChild(coinsFrag);
 
   requestAnimationFrame(() => {
     if (newSurges.length) playWaveOncePerBurst();
@@ -726,5 +788,6 @@ if (due > 0) {
         setCoinSprite,
         findCoinsInRadius,
         detachCoin,
+        recycleCoin,
     };
 }
