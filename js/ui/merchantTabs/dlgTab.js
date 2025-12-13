@@ -1676,6 +1676,7 @@ function renderDialogueList() {
             <span class="reward-chunk">
                 <span class="reward-icon" aria-hidden="true"></span>
                 <span class="amt"></span>
+                <span class="currency-name"></span>
             </span>
            `;
         }
