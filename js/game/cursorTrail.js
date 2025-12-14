@@ -5,52 +5,126 @@ export function createCursorTrail(playfield) {
     return { destroy() {} };
   }
 
-  const POOL_SIZE = 1000;
+  // --- Configuration ---
+  const CAPACITY = 1000;
   const PARTICLE_LIFETIME = 500; // ms
   const INTERPOLATION_STEP = 10; // px
   
-  const pool = [];
-  const activeParticles = [];
-  
-  // Create pool
-  for (let i = 0; i < POOL_SIZE; i++) {
-    const el = document.createElement('div');
-    el.className = 'trail-particle';
-    el.style.opacity = '0';
-    el.style.transform = 'translate3d(-9999px, -9999px, 0)';
-    playfield.appendChild(el);
-    pool.push(el);
-  }
+  // Visuals
+  const PARTICLE_SIZE = 16; // px diameter
+  const PARTICLE_RADIUS = PARTICLE_SIZE / 2;
+  const GLOW_RADIUS = 8;
+  // Texture needs to be large enough to hold the circle + blur
+  // Circle radius 8, Blur 8 => 16px radius total visual => 32px diameter
+  // Give it a bit more padding for safety
+  const TEXTURE_SIZE = 64; 
+  const CENTER = TEXTURE_SIZE / 2;
 
+  // --- State ---
+  // Layout per particle: [x, y, age, maxAge]
+  const STRIDE = 4;
+  const data = new Float32Array(CAPACITY * STRIDE);
+  
+  // Initialize ages to Infinity so they are considered "dead"
+  for (let i = 0; i < CAPACITY; i++) {
+    data[i * STRIDE + 2] = Infinity;
+  }
+  
+  // Track free slots using a stack
+  const freeSlots = new Int16Array(CAPACITY);
+  let freeCount = CAPACITY;
+  for (let i = 0; i < CAPACITY; i++) freeSlots[i] = i;
+
+  // --- DOM Setup ---
+  const canvas = document.createElement('canvas');
+  canvas.className = 'cursor-trail-canvas';
+  Object.assign(canvas.style, {
+    position: 'absolute',
+    top: '0',
+    left: '0',
+    width: '100%',
+    height: '100%',
+    pointerEvents: 'none',
+    zIndex: '5',
+    touchAction: 'none' // Should inherit, but good to be explicit if it captured events
+  });
+  
+  playfield.appendChild(canvas);
+
+  // Alpha is needed for transparency
+  const ctx = canvas.getContext('2d', { alpha: true });
+
+  // --- Texture Generation ---
+  // We pre-render the glowing particle to an offscreen canvas
+  const texture = document.createElement('canvas');
+  texture.width = TEXTURE_SIZE;
+  texture.height = TEXTURE_SIZE;
+  const tCtx = texture.getContext('2d');
+  
+  tCtx.shadowColor = '#FFEB3B';
+  tCtx.shadowBlur = GLOW_RADIUS;
+  tCtx.fillStyle = '#FFEB3B';
+  
+  tCtx.beginPath();
+  tCtx.arc(CENTER, CENTER, PARTICLE_RADIUS, 0, Math.PI * 2);
+  tCtx.fill();
+
+  // --- Interaction State ---
   let pointerInside = false;
   let localX = 0;
   let localY = 0;
-  
-  // Track last spawn position for interpolation
   let lastSpawnX = null;
   let lastSpawnY = null;
-
-  let rect = null;
+  
+  let rect = { left: 0, top: 0, width: 0, height: 0 };
+  let dpr = 1;
+  let destroyed = false;
   let rafId = 0;
   let lastTime = 0;
-  let destroyed = false;
 
-  const updateRect = () => {
+  // --- Methods ---
+
+  const updateBounds = () => {
     if (destroyed) return;
     rect = playfield.getBoundingClientRect();
   };
-  
-  // Initial rect
-  updateRect();
+
+  const resize = () => {
+    if (destroyed) return;
+    updateBounds();
+    dpr = window.devicePixelRatio || 1;
+    
+    // Resize canvas to match display size * dpr for sharp rendering
+    // This clears the canvas context
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    
+    // Scale context so we can draw using CSS pixels
+    ctx.scale(dpr, dpr);
+  };
+
+  const spawn = (x, y) => {
+    if (freeCount <= 0) return;
+    
+    const idx = freeSlots[--freeCount];
+    const offset = idx * STRIDE;
+    
+    data[offset] = x;
+    data[offset + 1] = y;
+    data[offset + 2] = 0; // age
+    data[offset + 3] = PARTICLE_LIFETIME;
+  };
 
   const onPointerMove = (e) => {
     if (destroyed) return;
-    if (!rect) updateRect();
     
-    // e.clientX is viewport relative. rect.left is viewport relative.
+    // Check if rect needs update (e.g. if we haven't resized yet)
+    if (!rect.width) updateBounds();
+
     localX = e.clientX - rect.left;
     localY = e.clientY - rect.top;
     
+    // Simple bounds check
     pointerInside = (localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height);
   };
   
@@ -60,41 +134,20 @@ export function createCursorTrail(playfield) {
     lastSpawnY = null;
   };
 
-  const spawnParticle = (x, y) => {
-    if (pool.length === 0) {
-      // Optional: Recycle oldest active particle?
-      // For now, just skip to avoid churning too much
-      return;
-    }
-    
-    const el = pool.pop();
-    const particle = {
-      el,
-      // Center the 20px particle (offset by 10px)
-      x: x - 10,
-      y: y - 10,
-      age: 0,
-      maxAge: PARTICLE_LIFETIME
-    };
-    
-    // Reset element state
-    el.style.opacity = '1';
-    el.style.transform = `translate3d(${particle.x}px, ${particle.y}px, 0) scale(1)`;
-    
-    activeParticles.push(particle);
-  };
-
   const loop = (now) => {
     if (destroyed) return;
     
     if (!lastTime) lastTime = now;
-    const dt = now - lastTime;
+    let dt = now - lastTime;
     lastTime = now;
     
-    // Spawn new particle if pointer is active
+    // Cap dt to prevent huge jumps if tab was inactive
+    if (dt > 100) dt = 100;
+
+    // --- Spawning Logic ---
     if (pointerInside) {
       if (lastSpawnX === null || lastSpawnY === null) {
-        spawnParticle(localX, localY);
+        spawn(localX, localY);
       } else {
         const dx = localX - lastSpawnX;
         const dy = localY - lastSpawnY;
@@ -103,65 +156,82 @@ export function createCursorTrail(playfield) {
         if (dist >= INTERPOLATION_STEP) {
           const steps = Math.floor(dist / INTERPOLATION_STEP);
           for (let i = 1; i <= steps; i++) {
-             // Linear interpolation
-             const tx = lastSpawnX + (dx / dist) * (i * INTERPOLATION_STEP);
-             const ty = lastSpawnY + (dy / dist) * (i * INTERPOLATION_STEP);
-             spawnParticle(tx, ty);
+             const progress = i * INTERPOLATION_STEP;
+             const fraction = progress / dist;
+             const tx = lastSpawnX + dx * fraction;
+             const ty = lastSpawnY + dy * fraction;
+             spawn(tx, ty);
           }
         }
-        
-        // Always spawn at current to keep the cursor tip fresh
-        spawnParticle(localX, localY);
+        // Always spawn at current cursor position
+        spawn(localX, localY);
       }
-      
       lastSpawnX = localX;
       lastSpawnY = localY;
     } else {
       lastSpawnX = null;
       lastSpawnY = null;
     }
+
+    // --- Render & Update ---
+    ctx.clearRect(0, 0, rect.width, rect.height);
     
-    // Update active particles
-    // Iterate backwards to allow removal
-    for (let i = activeParticles.length - 1; i >= 0; i--) {
-      const p = activeParticles[i];
-      p.age += dt;
+    // Iterate over all slots. 
+    // Optimization: We could maintain a packed list of active indices, 
+    // but iterating 1000 items is extremely cheap in JS, especially with TypedArrays.
+    // The main cost is drawImage, which only happens for active particles.
+    
+    const activeParticles = CAPACITY - freeCount;
+    if (activeParticles > 0) {
+      // Use 'lighter' blend mode if you want addictive blending (glow adds up)
+      // The original CSS used normal blending (DOM elements stacked).
+      // Let's stick to default source-over to match original look, 
+      // or 'screen' might look nice for glows. 
+      // User said "striking visual effects", usually implies glow.
+      // Let's try 'source-over' first to match CSS.
       
-      if (p.age >= p.maxAge) {
-        // Recycle
-        p.el.style.opacity = '0';
-        p.el.style.transform = 'translate3d(-9999px, -9999px, 0)';
-        pool.push(p.el);
+      for (let i = 0; i < CAPACITY; i++) {
+        const offset = i * STRIDE;
+        let age = data[offset + 2];
         
-        // Fast remove (swap with last)
-        const last = activeParticles[activeParticles.length - 1];
-        activeParticles[i] = last;
-        activeParticles.pop();
-      } else {
-        // Animate
-        const progress = p.age / p.maxAge;
-        // Ease out opacity
-        const opacity = 1 - progress; 
-        // Slight shrink
-        const scale = 1 - (0.4 * progress); 
+        // Skip dead particles
+        if (age >= data[offset + 3]) continue;
         
-        p.el.style.opacity = opacity.toFixed(2);
-        p.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) scale(${scale.toFixed(2)})`;
+        age += dt;
+        data[offset + 2] = age;
+        
+        if (age >= data[offset + 3]) {
+          // Recycle
+          freeSlots[freeCount++] = i;
+          continue;
+        }
+        
+        // Calculate visuals
+        const maxAge = data[offset + 3];
+        const progress = age / maxAge;
+        const opacity = 1 - progress;
+        const scale = 1 - (0.4 * progress); // 1.0 -> 0.6
+        
+        // Draw
+        ctx.globalAlpha = opacity;
+        
+        const size = TEXTURE_SIZE * scale;
+        const halfSize = size / 2;
+        const x = data[offset];
+        const y = data[offset + 1];
+        
+        // Draw centered at (x, y)
+        ctx.drawImage(texture, x - halfSize, y - halfSize, size, size);
       }
     }
     
     rafId = requestAnimationFrame(loop);
   };
 
-  // Start loop
-  rafId = requestAnimationFrame(loop);
-
-  // Event Listeners
-  window.addEventListener('resize', updateRect);
-  window.addEventListener('scroll', updateRect, { passive: true }); // Rect changes on scroll if not fixed
+  // --- Listeners ---
+  window.addEventListener('resize', resize);
+  window.addEventListener('scroll', updateBounds, { passive: true });
   
-  // We use pointermove on playfield. 
-  // Note: If the user drags out of playfield, pointerInside should become false via leave/move checks.
   const opts = { passive: true };
   playfield.addEventListener('pointermove', onPointerMove, opts);
   playfield.addEventListener('pointerdown', onPointerMove, opts);
@@ -169,12 +239,16 @@ export function createCursorTrail(playfield) {
   playfield.addEventListener('pointerleave', onPointerLeave, opts);
   playfield.addEventListener('pointercancel', onPointerLeave, opts);
 
+  // Initial setup
+  resize();
+  rafId = requestAnimationFrame(loop);
+
   const destroy = () => {
     destroyed = true;
     if (rafId) cancelAnimationFrame(rafId);
     
-    try { window.removeEventListener('resize', updateRect); } catch {}
-    try { window.removeEventListener('scroll', updateRect); } catch {}
+    try { window.removeEventListener('resize', resize); } catch {}
+    try { window.removeEventListener('scroll', updateBounds); } catch {}
     
     try {
       playfield.removeEventListener('pointermove', onPointerMove);
@@ -184,11 +258,7 @@ export function createCursorTrail(playfield) {
       playfield.removeEventListener('pointercancel', onPointerLeave);
     } catch {}
     
-    // Remove elements
-    pool.forEach(el => el.remove());
-    activeParticles.forEach(p => p.el.remove());
-    pool.length = 0;
-    activeParticles.length = 0;
+    canvas.remove();
   };
 
   return { destroy };
