@@ -166,6 +166,10 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   let pointerClientY = 0;
   let localX = 0;
   let localY = 0;
+  // Track last local position for interpolation
+  let lastLocalX = null;
+  let lastLocalY = null;
+
   let unitPx = computeMagnetUnitPx();
   let magnetLevel = 0;
   let radiusPx = 0;
@@ -181,6 +185,8 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   const hideIndicator = () => {
     indicator.classList.remove('is-visible');
     indicator.style.transform = 'translate3d(-9999px, -9999px, 0)';
+    lastLocalX = null;
+    lastLocalY = null;
   };
 
   const updateIndicator = () => {
@@ -205,8 +211,17 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
         
         const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
         
-        // Find candidates directly from memory (Fast!)
-        const candidates = spawner.findCoinsInRadius(localX, localY, radiusWithBuffer);
+        let candidates = [];
+        // Use swept path check if available && we have a previous position
+        if (typeof spawner.findCoinsInPath === 'function' && lastLocalX !== null && lastLocalY !== null) {
+             candidates = spawner.findCoinsInPath(lastLocalX, lastLocalY, localX, localY, radiusWithBuffer);
+        } else {
+             candidates = spawner.findCoinsInRadius(localX, localY, radiusWithBuffer);
+        }
+
+        // Update last position
+        lastLocalX = localX;
+        lastLocalY = localY;
         
         if (candidates && candidates.length > 0) {
             // READ Phase: Batch read transforms for animation
@@ -293,6 +308,8 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   const handlePointerLeave = () => {
     pointerInside = false;
     hideIndicator();
+    lastLocalX = null;
+    lastLocalY = null;
   };
 
   const refreshMagnetLevel = () => {
@@ -903,7 +920,17 @@ export function initCoinPickup({
   let cachedPfRect = null;
   const updateCachedRect = () => { cachedPfRect = pf.getBoundingClientRect(); };
   window.addEventListener('resize', updateCachedRect);
+  window.addEventListener('scroll', updateCachedRect, { passive: true });
   updateCachedRect();
+
+  let lastBrushLocalX = null;
+  let lastBrushLocalY = null;
+
+  // Reset brush history on leave
+  pf.addEventListener('pointerleave', () => {
+      lastBrushLocalX = null;
+      lastBrushLocalY = null;
+  }, { passive: true });
 
   function brushAt(x,y){
     if (spawner && typeof spawner.findCoinsInRadius === 'function') {
@@ -911,8 +938,16 @@ export function initCoinPickup({
         const localX = x - cachedPfRect.left;
         const localY = y - cachedPfRect.top;
         
-        // Use spawner's optimized lookup
-        const candidates = spawner.findCoinsInRadius(localX, localY, BRUSH_R);
+        let candidates = [];
+        if (typeof spawner.findCoinsInPath === 'function' && lastBrushLocalX !== null && lastBrushLocalY !== null) {
+            candidates = spawner.findCoinsInPath(lastBrushLocalX, lastBrushLocalY, localX, localY, BRUSH_R);
+        } else {
+            candidates = spawner.findCoinsInRadius(localX, localY, BRUSH_R);
+        }
+        
+        lastBrushLocalX = localX;
+        lastBrushLocalY = localY;
+
         if (candidates && candidates.length > 0) {
              const transforms = [];
              for (let i = 0; i < candidates.length; i++) {
