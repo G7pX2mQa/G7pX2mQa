@@ -103,9 +103,16 @@ export function createCursorTrail(playfield) {
     if (destroyed) return;
     updateBounds();
     // Cap DPR to prevent massive memory usage/fill-rate issues on high density displays or large zoom
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const baseDpr = Math.min(window.devicePixelRatio || 1, 2);
     
-    // Resize canvas to match display size * dpr for sharp rendering
+    // Cap absolute width to prevent massive fill-rate on large screens/zooms
+    const MAX_CANVAS_WIDTH = 512;
+    const widthScale = (rect.width > 0) ? Math.min(baseDpr, MAX_CANVAS_WIDTH / rect.width) : baseDpr;
+    
+    // Use the smaller of the two scales (DPR or max-width constrained)
+    dpr = widthScale;
+
+    // Resize canvas to match display size * dpr for sharp rendering (or capped resolution)
     // This clears the canvas context
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
