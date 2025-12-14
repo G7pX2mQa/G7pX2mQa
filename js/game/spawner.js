@@ -716,6 +716,46 @@ if (due > 0) {
         return candidates;
     }
 
+    // API for CoinPickup: Find coins along a path (swept circle/capsule)
+    function findCoinsInPath(x1, y1, x2, y2, radius) {
+        const radiusSq = radius * radius;
+        const candidates = [];
+        const count = activeCoins.length;
+
+        const vx = x2 - x1;
+        const vy = y2 - y1;
+        const lenSq = vx * vx + vy * vy;
+
+        for (let i = 0; i < count; i++) {
+            const c = activeCoins[i];
+            const cx = c.x + (coinSize / 2);
+            const cy = c.y + (coinSize / 2);
+
+            // Vector from Start to Coin Center
+            const wx = cx - x1;
+            const wy = cy - y1;
+
+            // Project coin center onto line segment
+            let t = 0;
+            if (lenSq > 0) {
+                t = (wx * vx + wy * vy) / lenSq;
+                t = Math.max(0, Math.min(1, t));
+            }
+
+            // Closest point on segment
+            const closeX = x1 + t * vx;
+            const closeY = y1 + t * vy;
+
+            const dx = cx - closeX;
+            const dy = cy - closeY;
+
+            if ((dx * dx + dy * dy) <= radiusSq) {
+                if (c.el) candidates.push(c.el);
+            }
+        }
+        return candidates;
+    }
+
     // Resume clean when tab is visible again
    document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
@@ -730,6 +770,7 @@ if (due > 0) {
         setRate,
         setCoinSprite,
         findCoinsInRadius,
+        findCoinsInPath,
         detachCoin,
         recycleCoin: releaseCoin,
     };
