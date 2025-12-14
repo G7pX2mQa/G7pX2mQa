@@ -254,6 +254,15 @@ function setupLiveBindingListeners() {
     };
     window.addEventListener('unlock:change', unlockHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('unlock:change', unlockHandler));
+
+    const workshopHandler = (event) => {
+        const { slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'workshop-level'
+            && binding.slot === targetSlot);
+    };
+    window.addEventListener('workshop:change', workshopHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('workshop:change', workshopHandler));
 }
 
 const XP_KEY_PREFIX = 'ccc:xp';
@@ -1933,6 +1942,22 @@ function buildAreaStats(container, area) {
         });
         
         container.appendChild(genLevelRow.row);
+
+        registerLiveBinding({
+            type: 'workshop-level',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                let newVal = 0;
+                try {
+                    const r = localStorage.getItem(genLevelKey);
+                    const bn = BigNum.fromAny(r || '0');
+                    if (bn.isInfinite()) newVal = Infinity;
+                    else newVal = Number(bn.toScientific(20));
+                } catch {}
+                genLevelRow.setValue(newVal);
+            }
+        });
     }
 }
 
