@@ -5,10 +5,17 @@ export function createCursorTrail(playfield) {
     return { destroy() {} };
   }
 
+  // Idempotency check: Don't stack multiple canvases if called repeatedly
+  if (playfield.querySelector('.cursor-trail-canvas')) {
+      const old = playfield.querySelectorAll('.cursor-trail-canvas');
+      old.forEach(el => el.remove());
+  }
+
   // --- Configuration ---
   const CAPACITY = 2500;
   const PARTICLE_LIFETIME = 500; // ms
   const INTERPOLATION_STEP = 10; // px
+  const MAX_SPAWN_PER_FRAME = 80; // Prevent death spiral
   
   // Visuals
   const PARTICLE_SIZE = 16; // px diameter
@@ -16,8 +23,8 @@ export function createCursorTrail(playfield) {
   const GLOW_RADIUS = 8;
   // Texture needs to be large enough to hold the circle + blur
   // Circle radius 8, Blur 8 => 16px radius total visual => 32px diameter
-  // Give it a bit more padding for safety
-  const TEXTURE_SIZE = 64; 
+  // We reduce this to 32px to save fill-rate (4x reduction vs 64px)
+  const TEXTURE_SIZE = 32; 
   const CENTER = TEXTURE_SIZE / 2;
 
   // --- State ---
@@ -66,6 +73,7 @@ export function createCursorTrail(playfield) {
   tCtx.fillStyle = '#FFEB3B';
   
   tCtx.beginPath();
+  // Draw centered at (CENTER, CENTER)
   tCtx.arc(CENTER, CENTER, PARTICLE_RADIUS, 0, Math.PI * 2);
   tCtx.fill();
 
@@ -147,8 +155,15 @@ export function createCursorTrail(playfield) {
 
     // --- Spawning Logic ---
     if (pointerInside) {
+      let spawnedCount = 0;
+      const trySpawn = (x, y) => {
+          if (spawnedCount >= MAX_SPAWN_PER_FRAME) return;
+          spawn(x, y);
+          spawnedCount++;
+      };
+
       if (lastSpawnX === null || lastSpawnY === null) {
-        spawn(localX, localY);
+        trySpawn(localX, localY);
       } else {
         const dx = localX - lastSpawnX;
         const dy = localY - lastSpawnY;
@@ -157,15 +172,18 @@ export function createCursorTrail(playfield) {
         if (dist >= INTERPOLATION_STEP) {
           const steps = Math.floor(dist / INTERPOLATION_STEP);
           for (let i = 1; i <= steps; i++) {
+             // Hard cap loop to avoid freezing on massive jumps
+             if (spawnedCount >= MAX_SPAWN_PER_FRAME) break;
+
              const progress = i * INTERPOLATION_STEP;
              const fraction = progress / dist;
              const tx = lastSpawnX + dx * fraction;
              const ty = lastSpawnY + dy * fraction;
-             spawn(tx, ty);
+             trySpawn(tx, ty);
           }
         }
         // Always spawn at current cursor position
-        spawn(localX, localY);
+        trySpawn(localX, localY);
       }
       lastSpawnX = localX;
       lastSpawnY = localY;
@@ -230,7 +248,14 @@ export function createCursorTrail(playfield) {
         const y = data[offset + 1];
         
         // Draw centered at (x, y)
-        ctx.drawImage(texture, x - halfSize, y - halfSize, size, size);
+        // Round coordinates to avoid sub-pixel rendering cost on high-DPI
+        ctx.drawImage(
+            texture, 
+            Math.round(x - halfSize), 
+            Math.round(y - halfSize), 
+            Math.round(size), 
+            Math.round(size)
+        );
       }
     }
     
