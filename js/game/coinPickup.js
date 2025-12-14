@@ -158,7 +158,7 @@ function computeMagnetUnitPx() {
   return minDim * MAGNET_UNIT_RATIO;
 }
 
-function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn, spawner }) {
+function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn, collectBatchFn, spawner }) {
   if (!playfield || !coinsLayer || typeof collectFn !== 'function') {
     return { destroy() {} };
   }
@@ -234,21 +234,22 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
         lastLocalY = localY;
         
         if (candidates && candidates.length > 0) {
-            // READ Phase: Batch read transforms for animation
-            const transforms = [];
-            // Re-enabled animation for everyone
-             for (let i = 0; i < candidates.length; i++) {
-                 // Optimization: since we are managing transforms in JS now, we could ask Spawner for the transform string?
-                 // Or just read it from style.transform which is fast-ish if we haven't dirtied layout?
-                 // Actually, standard getComputedStyle is fine here because we aren't calling getBoundingClientRect anymore.
-                 // Even better: read inline style since Spawner sets it!
-                 const el = candidates[i];
-                 transforms.push(el.style.transform || 'translate3d(0,0,0)');
-             }
-            
-            // WRITE Phase: Collect
-            for (let i = 0; i < candidates.length; i++) {
-                collectFn(candidates[i], { transform: transforms[i] });
+            if (typeof collectBatchFn === 'function') {
+                 const items = [];
+                 for (let i = 0; i < candidates.length; i++) {
+                     const el = candidates[i];
+                     items.push({ el, opts: { transform: el.style.transform || 'translate3d(0,0,0)' } });
+                 }
+                 collectBatchFn(items);
+            } else {
+                const transforms = [];
+                for (let i = 0; i < candidates.length; i++) {
+                    const el = candidates[i];
+                    transforms.push(el.style.transform || 'translate3d(0,0,0)');
+                }
+                for (let i = 0; i < candidates.length; i++) {
+                    collectFn(candidates[i], { transform: transforms[i] });
+                }
             }
         }
     } else {
@@ -274,15 +275,24 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     
         if (!toCollect.length) return;
     
-        const transforms = [];
-        for (let i = 0; i < toCollect.length; i++) {
-            const el = toCollect[i];
-            const cs = window.getComputedStyle(el);
-            transforms.push(cs.transform);
-        }
-    
-        for (let i = 0; i < toCollect.length; i++) {
-            collectFn(toCollect[i], { transform: transforms[i] });
+        if (typeof collectBatchFn === 'function') {
+            const items = [];
+            for (let i = 0; i < toCollect.length; i++) {
+                const el = toCollect[i];
+                const cs = window.getComputedStyle(el);
+                items.push({ el, opts: { transform: cs.transform } });
+            }
+            collectBatchFn(items);
+        } else {
+            const transforms = [];
+            for (let i = 0; i < toCollect.length; i++) {
+                const el = toCollect[i];
+                const cs = window.getComputedStyle(el);
+                transforms.push(cs.transform);
+            }
+            for (let i = 0; i < toCollect.length; i++) {
+                collectFn(toCollect[i], { transform: transforms[i] });
+            }
         }
     }
   };
@@ -853,67 +863,84 @@ export function initCoinPickup({
     setTimeout(done, 600);
   }
 
-  function collect(el, opts = {}) {
-    if (!isCoin(el)) return false;
-    el.dataset.collected = '1';
-
+  function collectBatch(items) {
+    if (!items || !items.length) return;
+    
+    // Play sound once per batch
     playSound();
-    animateAndRemove(el, opts);
 
-    const base = resolveCoinBase(el);
-    // Explicitly use element's mutation level
-    const spawnLevelStr = el.dataset.mutationLevel || null;
-    
-    // We inline logic partially or reuse calculateCoinValue with custom base?
-    // calculateCoinValue uses BASE_COIN_VALUE global.
-    // Here we have 'base' from element.
-    // Let's implement inline to preserve element-specific base behavior
-    
+    let totalCoin = null;
+    let totalXp = null;
+    let totalMp = null;
+    let collectedCount = 0;
+
     const coinsLocked = isCurrencyLocked(CURRENCIES.COINS);
-    let inc = applyCoinMultiplier(base);
-    let xpInc = cloneBn(XP_PER_COIN);
-
-    const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
-    if (mutationMultiplier) {
-      try { inc = inc.mulBigNumInteger(mutationMultiplier); } catch {}
-      try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
-    }
-
-    const incIsZero = typeof inc?.isZero === 'function' ? inc.isZero() : false;
-    if (!incIsZero && !coinsLocked) {
-      try {
-        coinsVal = coinsVal?.add ? coinsVal.add(inc) : cloneBn(inc);
-      } catch {
-        coinsVal = cloneBn(inc);
-      }
-    }
-    scheduleHudUpdate();
-    if (!incIsZero) {
-      queueCoinGain(inc);
-    }
-
     const xpEnabled = typeof isXpSystemUnlocked === 'function' ? isXpSystemUnlocked() : true;
-    const xpIsZero = typeof xpInc?.isZero === 'function' ? xpInc.isZero() : false;
-    if (xpEnabled && !xpIsZero) {
-      queueXpGain(xpInc);
+    const mutEnabled = typeof isMutationUnlocked === 'function' && isMutationUnlocked();
+
+    for (const { el, opts } of items) {
+      if (!isCoin(el)) continue;
+      el.dataset.collected = '1';
+      collectedCount++;
+
+      animateAndRemove(el, opts || {});
+
+      const base = resolveCoinBase(el);
+      const spawnLevelStr = el.dataset.mutationLevel || null;
+      
+      let inc = applyCoinMultiplier(base);
+      let xpInc = cloneBn(XP_PER_COIN);
+
+      const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
+      if (mutationMultiplier) {
+        try { inc = inc.mulBigNumInteger(mutationMultiplier); } catch {}
+        try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
+      }
+      
+      if (!coinsLocked) {
+         totalCoin = mergeGain(totalCoin, inc);
+      }
+      if (xpEnabled) {
+         totalXp = mergeGain(totalXp, xpInc);
+      }
+      if (mutEnabled) {
+         totalMp = mergeGain(totalMp, mpValueMultiplierBn);
+      }
     }
 
-    if (typeof isMutationUnlocked === 'function' && isMutationUnlocked()) {
-      const mpGain = cloneBn(mpValueMultiplierBn);
-      if (!mpGain.isZero?.()) {
-        queueMutationGain(mpGain);
+    if (collectedCount === 0) return;
+
+    if (totalCoin && !totalCoin.isZero?.()) {
+      try {
+        coinsVal = coinsVal?.add ? coinsVal.add(totalCoin) : cloneBn(totalCoin);
+      } catch {
+        coinsVal = cloneBn(totalCoin);
       }
+      queueCoinGain(totalCoin);
+      scheduleHudUpdate();
+    }
+    
+    if (totalXp && !totalXp.isZero?.()) {
+      queueXpGain(totalXp);
+    }
+    
+    if (totalMp && !totalMp.isZero?.()) {
+      queueMutationGain(totalMp);
     }
 
     if (localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
-      const next = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10) + 1;
+      const current = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10);
+      const next = current + collectedCount;
       localStorage.setItem(SHOP_PROGRESS_KEY, String(next));
       if (next >= 10) {
         try { unlockShop(); } catch {}
         localStorage.setItem(SHOP_UNLOCK_KEY, '1');
       }
     }
+  }
 
+  function collect(el, opts = {}) {
+    collectBatch([{ el, opts }]);
     return true;
   }
 
@@ -922,6 +949,7 @@ export function initCoinPickup({
     coinsLayer: cl,
     coinSelector,
     collectFn: collect,
+    collectBatchFn: collectBatch,
     spawner, // Pass spawner for optimized lookup
   });
 
@@ -974,26 +1002,29 @@ export function initCoinPickup({
         lastBrushLocalY = localY;
 
         if (candidates && candidates.length > 0) {
-             const transforms = [];
-             for (let i = 0; i < candidates.length; i++) {
-                 const el = candidates[i];
-                 transforms.push(el.style.transform || 'translate3d(0,0,0)');
-             }
-            
+            const items = [];
             for (let i = 0; i < candidates.length; i++) {
-                collect(candidates[i], { transform: transforms[i] });
+                const el = candidates[i];
+                items.push({ el, opts: { transform: el.style.transform || 'translate3d(0,0,0)' } });
             }
+            collectBatch(items);
         }
     } else {
         // Fallback: Legacy slow method (forced sync layout)
         const OFF = [[0,0],[18,0],[-18,0],[0,18],[0,-18]];
+        const found = new Set();
         for (let k=0;k<OFF.length;k++){
           const px = x + OFF[k][0], py = y + OFF[k][1];
           const stack = document.elementsFromPoint(px, py);
           for (let i=0;i<stack.length;i++){
             const el = stack[i];
-            if (isCoin(el)) { collect(el); }
+            if (isCoin(el) && !found.has(el)) { found.add(el); }
           }
+        }
+        if (found.size > 0) {
+            const items = [];
+            found.forEach(el => items.push({ el }));
+            collectBatch(items);
         }
     }
   }
