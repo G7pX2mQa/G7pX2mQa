@@ -7,6 +7,7 @@
 @import "./ui/hud.css";
 @import "./game/waves.css";
 @import "./game/coin.css";
+@import "./game/cursor_trail.css";
 @import "./game/offline_panel.css";
 @import "./ui/shop.css";
 @import "./ui/merchantTabs/dialogueTab.css";
