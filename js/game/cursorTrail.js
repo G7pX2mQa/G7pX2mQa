@@ -5,7 +5,7 @@ export function createCursorTrail(playfield) {
     return { destroy() {} };
   }
 
-  const POOL_SIZE = 500;
+  const POOL_SIZE = 1000;
   const PARTICLE_LIFETIME = 500; // ms
   const INTERPOLATION_STEP = 10; // px
   
