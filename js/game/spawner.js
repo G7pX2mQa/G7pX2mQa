@@ -57,7 +57,7 @@ export function createSpawner({
     coinsPerSecond = 1,
     perFrameBudget = 24,
     backlogCap = 600,
-    maxActiveCoins = 1500,
+    maxActiveCoins = 1250,
     initialBurst = 1,
 	coinTtlMs = 60000,
 	waveSoundSrc = 'sounds/wave_spawn.ogg',
