@@ -802,17 +802,23 @@ export function initCoinPickup({
   }
 
   function animateAndRemove(el, opts = {}){
-    if (disableAnimation || IS_MOBILE) {
-        if (spawner && typeof spawner.detachCoin === 'function') {
-           spawner.detachCoin(el);
-        }
-        el.remove(); 
-        return; 
-    }
-    
     // Notify spawner that this coin is "taken" so physics stops
     if (spawner && typeof spawner.detachCoin === 'function') {
         spawner.detachCoin(el);
+    }
+
+    const recycle = () => {
+        if (!el) return;
+        if (spawner && typeof spawner.recycleCoin === 'function') {
+            spawner.recycleCoin(el);
+        } else {
+            el.remove();
+        }
+    };
+
+    if (disableAnimation || IS_MOBILE) {
+        recycle();
+        return; 
     }
     
     let start = 'translate3d(0,0,0)';
@@ -825,7 +831,14 @@ export function initCoinPickup({
 
     el.style.setProperty('--ccc-start', start);
     el.classList.add('coin--collected');
-    const done = () => { el.removeEventListener('animationend', done); el.remove(); };
+    
+    let complete = false;
+    const done = () => { 
+        if (complete) return;
+        complete = true;
+        el.removeEventListener('animationend', done); 
+        recycle();
+    };
     el.addEventListener('animationend', done);
     setTimeout(done, 600);
   }
