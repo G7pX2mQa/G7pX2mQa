@@ -16,13 +16,13 @@ export const MASTER_AUTOBUY_IDS = {
   [AUTOBUY_MAGIC_UPGRADES_ID]: 'magic'
 };
 
-export const REGISTRY = [
+const UPGRADE_DEFINITIONS = [
   {
     area: AUTOMATION_AREA_KEY,
     id: EFFECTIVE_AUTO_COLLECT_ID,
     title: 'Effective Auto-Collect',
     desc: 'Generates the equivalent of picking up a Coin on an interval\nEach level of this upgrade will reduce the generation interval\nAs a bonus, anything passively generated accumulates offline',
-    icon: 'img/sc_upg_icons/effective_auto_collect.webp',
+    icon: 'sc_upg_icons/effective_auto_collect.webp',
     lvlCap: 20,
     baseCost: 100,
     costType: 'gears',
@@ -46,7 +46,7 @@ export const REGISTRY = [
     id: AUTOBUY_COIN_UPGRADES_ID,
     title: 'Autobuy Coin Upgrades',
     desc: 'Automatically buys Coin upgrades, but with a twist:\nAutobuys upgrades for free, as long as you can afford the cost\nThis is how all future autobuyers will work',
-    icon: 'img/sc_upg_icons/coin_autobuy.webp',
+    icon: 'sc_upg_icons/coin_autobuy.webp',
     lvlCap: 1,
     baseCost: 1000,
     costType: 'gears',
@@ -63,7 +63,7 @@ export const REGISTRY = [
     id: AUTOBUY_BOOK_UPGRADES_ID,
     title: 'Autobuy Book Upgrades',
     desc: 'Automatically buys Book upgrades',
-    icon: 'img/sc_upg_icons/book_autobuy.webp',
+    icon: 'sc_upg_icons/book_autobuy.webp',
     lvlCap: 1,
     baseCost: 10000,
     costType: 'gears',
@@ -80,7 +80,7 @@ export const REGISTRY = [
     id: AUTOBUY_GOLD_UPGRADES_ID,
     title: 'Autobuy Gold Upgrades',
     desc: 'Automatically buys Gold upgrades',
-    icon: 'img/sc_upg_icons/gold_autobuy.webp',
+    icon: 'sc_upg_icons/gold_autobuy.webp',
     lvlCap: 1,
     baseCost: 1e6,
     costType: 'gears',
@@ -97,7 +97,7 @@ export const REGISTRY = [
     id: AUTOBUY_MAGIC_UPGRADES_ID,
     title: 'Autobuy Magic Upgrades',
     desc: 'Automatically buys Magic upgrades',
-    icon: 'img/sc_upg_icons/magic_autobuy.webp',
+    icon: 'sc_upg_icons/magic_autobuy.webp',
     lvlCap: 1,
     baseCost: 1e9,
     costType: 'gears',
@@ -114,7 +114,7 @@ export const REGISTRY = [
     id: AUTOBUY_WORKSHOP_LEVELS_ID,
     title: 'Autobuy Workshop Levels',
     desc: 'Automatically buys Workshop Levels',
-    icon: 'img/sc_upg_icons/workshop_level_autobuy.webp',
+    icon: 'sc_upg_icons/workshop_level_autobuy.webp',
     lvlCap: 1,
     baseCost: 1e10,
     costType: 'gears',
@@ -127,3 +127,8 @@ export const REGISTRY = [
     }
   }
 ];
+
+export const REGISTRY = UPGRADE_DEFINITIONS.map(u => ({
+  ...u,
+  icon: `img/${(u.icon || '').replace(/^img\//, '')}`
+}));
