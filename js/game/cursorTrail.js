@@ -12,7 +12,7 @@ export function createCursorTrail(playfield) {
   }
 
   // --- Configuration ---
-  const CAPACITY = 5000;
+  const CAPACITY = 10000;  // This capacity is high but realistically nobody is ever reaching anywhere near this, highest amount people might get normally is like 1000 or so
   const PARTICLE_LIFETIME = 500; // ms
   const INTERPOLATION_STEP = 10; // px
   const MAX_SPAWN_PER_FRAME = 80; // Prevent death spiral
