@@ -68,7 +68,8 @@ export function createSpawner({
 } = {}) {
 
     let currentCoinSrc = coinSrc;
-	const MOBILE_BACKLOG_CAP = 300;
+    const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+	const MOBILE_BACKLOG_CAP = 50;
 	let burstUntil = 0;
 
 	const BURST_WINDOW_MS        = 120;
@@ -599,7 +600,7 @@ function commitBatch(batch) {
   // If "Effective Auto-Collect" is active, disable the "offline burst" behavior
   // by capping the backlog to a small buffer (enough for active play jitter, but not 600 coins).
   // We use perFrameBudget + small margin as the active limit.
-  let cap = IS_MOBILE ? MOBILE_BACKLOG_CAP : backlogCap;
+  let cap = isTouch ? MOBILE_BACKLOG_CAP : backlogCap;
   const autoCollectLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) || 0;
   if (autoCollectLevel > 0) {
     const activeCap = Math.min(perFrameBudget + 2, 30);
@@ -622,7 +623,7 @@ if (due > 0) {
   let timeBudgetMs = NORMAL_TIME_BUDGET_MS;
 
   // Mobile burst window: make it feel "all at once" but cap work per frame
-  if (IS_MOBILE && now < burstUntil && queued > 0) {
+  if (isTouch && now < burstUntil && queued > 0) {
     // If backlog is modest, allow a one-shot flush (within a higher time budget)
     if (queued <= ONE_SHOT_THRESHOLD) {
       spawnTarget  = queued;
@@ -786,7 +787,7 @@ if (due > 0) {
     // Resume clean when tab is visible again
    document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
-      if (IS_MOBILE) burstUntil = performance.now() + BURST_WINDOW_MS;
+      if (isTouch) burstUntil = performance.now() + BURST_WINDOW_MS;
       if (!rafId) start();
     }
   });
