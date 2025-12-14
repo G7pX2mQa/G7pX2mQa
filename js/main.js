@@ -8,7 +8,9 @@ export const IS_MOBILE = (() => {
     return !!window.IS_MOBILE;
   }
 
-  const detected = (window.matchMedia?.('(any-pointer: coarse)')?.matches) || ('ontouchstart' in window);
+  const detected = window.matchMedia
+    ? window.matchMedia('(pointer: coarse)').matches
+    : 'ontouchstart' in window;
   window.IS_MOBILE = detected;
   return detected;
 })();
