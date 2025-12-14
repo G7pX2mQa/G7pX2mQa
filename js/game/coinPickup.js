@@ -915,7 +915,9 @@ export function initCoinPickup({
     spawner, // Pass spawner for optimized lookup
   });
 
-  cursorTrail = createCursorTrail(pf);
+  if (!IS_MOBILE) {
+    cursorTrail = createCursorTrail(pf);
+  }
   const onDelegatedInteract = (e) => {
     if (e.target === cl) return;
     const target = e.target.closest(coinSelector);
