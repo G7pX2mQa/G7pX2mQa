@@ -700,14 +700,24 @@ if (due > 0) {
     function findCoinsInRadius(centerX, centerY, radius) {
         const radiusSq = radius * radius;
         const candidates = [];
-        // Spatial partitioning would be better for thousands, but for <1500 this simple loop is usually fine
-        // especially compared to DOM reads.
-        // We can optimize if needed (grid).
         const count = activeCoins.length;
+        
+        // AABB Optimization
+        const minX = centerX - radius;
+        const maxX = centerX + radius;
+        const minY = centerY - radius;
+        const maxY = centerY + radius;
+        
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
-            const dx = c.x - centerX + (coinSize/2); // Center of coin vs pointer. c.x is Top-Left.
-            const dy = c.y - centerY + (coinSize/2);
+            const cx = c.x + (coinSize / 2);
+            if (cx < minX || cx > maxX) continue;
+            
+            const cy = c.y + (coinSize / 2);
+            if (cy < minY || cy > maxY) continue;
+
+            const dx = cx - centerX;
+            const dy = cy - centerY;
             
             if ((dx*dx + dy*dy) <= radiusSq) {
                 if (c.el) candidates.push(c.el);
@@ -722,35 +732,53 @@ if (due > 0) {
         const candidates = [];
         const count = activeCoins.length;
 
+        // AABB Pre-calc (Broad Phase)
+        const minX = Math.min(x1, x2) - radius;
+        const maxX = Math.max(x1, x2) + radius;
+        const minY = Math.min(y1, y2) - radius;
+        const maxY = Math.max(y1, y2) + radius;
+
         const vx = x2 - x1;
         const vy = y2 - y1;
         const lenSq = vx * vx + vy * vy;
+        const crossLimit = radiusSq * lenSq;
 
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
             const cx = c.x + (coinSize / 2);
+            
+            // AABB Check X
+            if (cx < minX || cx > maxX) continue;
+            
             const cy = c.y + (coinSize / 2);
+            
+            // AABB Check Y
+            if (cy < minY || cy > maxY) continue;
 
-            // Vector from Start to Coin Center
+            // Narrow Phase: Optimized Math
             const wx = cx - x1;
             const wy = cy - y1;
+            
+            const dot = wx * vx + wy * vy;
 
-            // Project coin center onto line segment
-            let t = 0;
-            if (lenSq > 0) {
-                t = (wx * vx + wy * vy) / lenSq;
-                t = Math.max(0, Math.min(1, t));
-            }
-
-            // Closest point on segment
-            const closeX = x1 + t * vx;
-            const closeY = y1 + t * vy;
-
-            const dx = cx - closeX;
-            const dy = cy - closeY;
-
-            if ((dx * dx + dy * dy) <= radiusSq) {
-                if (c.el) candidates.push(c.el);
+            if (dot <= 0) {
+                // Closest to start
+                if ((wx * wx + wy * wy) <= radiusSq) {
+                    if (c.el) candidates.push(c.el);
+                }
+            } else if (dot >= lenSq) {
+                // Closest to end
+                const dx = cx - x2;
+                const dy = cy - y2;
+                if ((dx * dx + dy * dy) <= radiusSq) {
+                     if (c.el) candidates.push(c.el);
+                }
+            } else {
+                // Closest on segment
+                const cross = wx * vy - wy * vx;
+                if (cross * cross <= crossLimit) {
+                     if (c.el) candidates.push(c.el);
+                }
             }
         }
         return candidates;
