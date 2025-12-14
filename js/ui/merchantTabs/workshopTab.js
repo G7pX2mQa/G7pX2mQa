@@ -5,7 +5,7 @@ import { bank, CURRENCIES, getActiveSlot } from '../../util/storage.js';
 import { registerTick } from '../../game/gameLoop.js';
 import { openShop, playPurchaseSfx } from '../shopOverlay.js';
 import { hasDoneInfuseReset } from './resetTab.js';
-import { bigNumFromLog10, getLevelNumber } from '../../game/upgrades.js';
+import { bigNumFromLog10, getLevelNumber, approxLog10BigNum } from '../../game/upgrades.js';
 import { IS_MOBILE } from '../../main.js';
 import { AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID } from '../../game/automationUpgrades.js';
 
@@ -654,7 +654,7 @@ export function performFreeGenerationUpgrade() {
   }
     
   if (bank.coins.value.isZero()) return false;
-  let coinsLog = bank.coins.value.log10;
+  let coinsLog = approxLog10BigNum(bank.coins.value);
   if (!Number.isFinite(coinsLog)) {
      if (bank.coins.value.inf) coinsLog = Infinity;
      else return false;
@@ -663,10 +663,6 @@ export function performFreeGenerationUpgrade() {
   // calculateWorkshopCostLog now expects BigNum
   if (calculateWorkshopCostLog(currentGenerationLevel) > coinsLog) return false;
   
-  // Optimistically check +1
-  const nextLevel = currentGenerationLevel.add(1);
-  if (calculateWorkshopCostLog(nextLevel) > coinsLog) return false;
-
   // We need to find the max affordable level.
   // Since level is BigNum, we have to handle potentially huge ranges.
   // But calculateWorkshopCostLog crashes if level > 1e15 or so.
