@@ -681,6 +681,12 @@ if (due > 0) {
         rate = Math.max(0, Number(n) || 0);
     }
 
+    function clearBacklog() {
+        queued = 0;
+        carry = 0;
+        last = performance.now();
+    }
+
     function setCoinSprite(src) {
       if (!src) return;
       currentCoinSrc = src;
@@ -787,6 +793,7 @@ if (due > 0) {
         start,
         stop,
         setRate,
+        clearBacklog,
         setCoinSprite,
         findCoinsInRadius,
         findCoinsInPath,
