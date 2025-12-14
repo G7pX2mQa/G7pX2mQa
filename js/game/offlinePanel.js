@@ -251,9 +251,10 @@ export function processOfflineProgress() {
         // Do NOT pause game loop here (per requirement)
         createOfflinePanel(rewards, diff);
     }
+    return hasRewards;
 }
 
-export function initOfflineTracker(checkActiveState) {
+export function initOfflineTracker(checkActiveState, onReward) {
     if (initialized) return;
     initialized = true;
     
@@ -268,7 +269,10 @@ export function initOfflineTracker(checkActiveState) {
         } else {
             // Resume first, then process logic
             resumeGameLoop();
-            processOfflineProgress();
+            const rewarded = processOfflineProgress();
+            if (rewarded && typeof onReward === 'function') {
+                onReward();
+            }
         }
     });
 }
