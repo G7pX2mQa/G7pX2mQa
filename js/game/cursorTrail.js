@@ -12,7 +12,7 @@ export function createCursorTrail(playfield) {
   }
 
   // --- Configuration ---
-  const CAPACITY = 2500;
+  const CAPACITY = 5000;
   const PARTICLE_LIFETIME = 500; // ms
   const INTERPOLATION_STEP = 10; // px
   const MAX_SPAWN_PER_FRAME = 80; // Prevent death spiral
