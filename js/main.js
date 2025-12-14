@@ -507,6 +507,11 @@ images: [
   'img/currencies/magic/magic.webp',
   'img/currencies/magic/magic_base.webp',
   'img/currencies/magic/magic_plus_base.webp',
+  
+  // ==== img/currencies/wave ====
+  'img/currencies/wave/wave.webp',
+  'img/currencies/wave/wave_base.webp',
+  'img/currencies/wave/wave_plus_base.webp',
 
   // ==== img/misc ====
   'img/misc/forge.webp',
@@ -514,7 +519,7 @@ images: [
   'img/misc/infuse.webp',
   'img/misc/infuse_plus_base.webp',
   'img/misc/infuse_base.webp',
-  'img/misc/surge.webp', // REMEMBER TO ADD THE OTHER RELATED STUFF LIKE WAVES HERE LATER
+  'img/misc/surge.webp',
   'img/misc/surge_plus_base.webp',
   'img/misc/green_border.webp',
   'img/misc/locked.webp',
