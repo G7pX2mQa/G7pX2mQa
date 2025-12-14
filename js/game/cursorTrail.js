@@ -90,6 +90,7 @@ export function createCursorTrail(playfield) {
   let rafId = 0;
   let lastTime = 0;
   let wasDirty = false;
+  let lastClearRect = null;
 
   // --- Methods ---
 
@@ -101,7 +102,8 @@ export function createCursorTrail(playfield) {
   const resize = () => {
     if (destroyed) return;
     updateBounds();
-    dpr = window.devicePixelRatio || 1;
+    // Cap DPR to prevent massive memory usage/fill-rate issues on high density displays or large zoom
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
     
     // Resize canvas to match display size * dpr for sharp rendering
     // This clears the canvas context
@@ -110,6 +112,7 @@ export function createCursorTrail(playfield) {
     
     // Scale context so we can draw using CSS pixels
     ctx.scale(dpr, dpr);
+    lastClearRect = null; // Reset dirty rect on resize
   };
 
   const spawn = (x, y) => {
@@ -200,7 +203,12 @@ export function createCursorTrail(playfield) {
       return;
     }
 
-    ctx.clearRect(0, 0, rect.width, rect.height);
+    if (lastClearRect) {
+      // Clear only the dirty area from the previous frame
+      ctx.clearRect(lastClearRect.x, lastClearRect.y, lastClearRect.w, lastClearRect.h);
+    } else {
+      ctx.clearRect(0, 0, rect.width, rect.height);
+    }
     wasDirty = false;
     
     // Iterate over all slots. 
@@ -208,6 +216,8 @@ export function createCursorTrail(playfield) {
     // but iterating 1000 items is extremely cheap in JS, especially with TypedArrays.
     // The main cost is drawImage, which only happens for active particles.
     
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
     if (activeParticles > 0) {
       // Use 'lighter' blend mode if you want addictive blending (glow adds up)
       // The original CSS used normal blending (DOM elements stacked).
@@ -247,16 +257,32 @@ export function createCursorTrail(playfield) {
         const x = data[offset];
         const y = data[offset + 1];
         
-        // Draw centered at (x, y)
         // Round coordinates to avoid sub-pixel rendering cost on high-DPI
-        ctx.drawImage(
-            texture, 
-            Math.round(x - halfSize), 
-            Math.round(y - halfSize), 
-            Math.round(size), 
-            Math.round(size)
-        );
+        const drawX = Math.round(x - halfSize);
+        const drawY = Math.round(y - halfSize);
+        const drawSize = Math.round(size);
+        
+        ctx.drawImage(texture, drawX, drawY, drawSize, drawSize);
+
+        // Update bounds for dirty rect clearing
+        if (drawX < minX) minX = drawX;
+        if (drawY < minY) minY = drawY;
+        const right = drawX + drawSize;
+        const bottom = drawY + drawSize;
+        if (right > maxX) maxX = right;
+        if (bottom > maxY) maxY = bottom;
       }
+    }
+
+    if (minX !== Infinity) {
+        const PADDING = 2; // Slight padding to ensure full clear
+        minX -= PADDING;
+        minY -= PADDING;
+        maxX += PADDING;
+        maxY += PADDING;
+        lastClearRect = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+    } else {
+        lastClearRect = null;
     }
     
     rafId = requestAnimationFrame(loop);
