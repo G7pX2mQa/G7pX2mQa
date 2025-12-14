@@ -508,8 +508,12 @@ images: [
 
   // ==== img/misc ====
   'img/misc/forge.webp',
+  'img/misc/forge_plus_base.webp',
   'img/misc/infuse.webp',
+  'img/misc/infuse_plus_base.webp',
   'img/misc/infuse_base.webp',
+  'img/misc/surge.webp', // REMEMBER TO ADD THE OTHER RELATED STUFF LIKE WAVES HERE LATER
+  'img/misc/surge_plus_base',
   'img/misc/green_border.webp',
   'img/misc/locked.webp',
   'img/misc/locked_base.webp',
