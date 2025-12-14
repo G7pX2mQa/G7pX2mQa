@@ -661,7 +661,9 @@ images: [
   
   // Ensure we start with no active slot so game loops don't run for a lingering slot ID
   try {
-    if (storageModule && storageModule.KEYS && storageModule.KEYS.SAVE_SLOT) {
+    if (typeof storageModule.clearActiveSlot === 'function') {
+      storageModule.clearActiveSlot();
+    } else if (storageModule && storageModule.KEYS && storageModule.KEYS.SAVE_SLOT) {
       localStorage.removeItem(storageModule.KEYS.SAVE_SLOT);
     }
   } catch {}
