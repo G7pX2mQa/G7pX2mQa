@@ -1,11 +1,11 @@
 .trail-particle {
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   background-color: #FFEB3B; /* Yellow */
   border-radius: 50%;
   pointer-events: none;
   z-index: 5;
   will-change: transform, opacity;
-  box-shadow: 0 0 12px #FFEB3B; 
+  box-shadow: 0 0 8px #FFEB3B; 
 }
