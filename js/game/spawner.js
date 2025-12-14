@@ -149,29 +149,6 @@ export function createSpawner({
     // --- JS Physics State ---
     const activeCoins = []; // List of coin objects: { el, x, y, startX, startY, endX, endY, startTime, duration, jitter }
 
-    // --- Spatial Grid ---
-    const CELL_SIZE = 128;
-    const grid = new Map();
-
-    function updateGrid() {
-        grid.clear();
-        const len = activeCoins.length;
-        const offset = coinSize / 2;
-        for (let i = 0; i < len; i++) {
-            const c = activeCoins[i];
-            const col = Math.floor((c.x + offset) / CELL_SIZE);
-            const row = Math.floor((c.y + offset) / CELL_SIZE);
-            const key = (col << 16) | (row & 0xFFFF);
-            
-            let cell = grid.get(key);
-            if (!cell) {
-                cell = [];
-                grid.set(key, cell);
-            }
-            cell.push(c);
-        }
-    }
-
     function makeCoin() {
         const el = document.createElement('div');
         el.className = 'coin';
@@ -670,7 +647,6 @@ if (due > 0) {
     }
   }
 
-  updateGrid(); // Update spatial grid
   rafId = requestAnimationFrame(loop);
 }
 
@@ -710,7 +686,7 @@ if (due > 0) {
         carry = 0;
         last = performance.now();
     }
-	
+
     function setCoinSprite(src) {
       if (!src) return;
       currentCoinSrc = src;
@@ -721,37 +697,27 @@ if (due > 0) {
     function findCoinsInRadius(centerX, centerY, radius) {
         const radiusSq = radius * radius;
         const candidates = [];
+        const count = activeCoins.length;
         
+        // AABB Optimization
         const minX = centerX - radius;
         const maxX = centerX + radius;
         const minY = centerY - radius;
         const maxY = centerY + radius;
         
-        const minCol = Math.floor(minX / CELL_SIZE);
-        const maxCol = Math.floor(maxX / CELL_SIZE);
-        const minRow = Math.floor(minY / CELL_SIZE);
-        const maxRow = Math.floor(maxY / CELL_SIZE);
+        for (let i = 0; i < count; i++) {
+            const c = activeCoins[i];
+            const cx = c.x + (coinSize / 2);
+            if (cx < minX || cx > maxX) continue;
+            
+            const cy = c.y + (coinSize / 2);
+            if (cy < minY || cy > maxY) continue;
 
-        for (let c = minCol; c <= maxCol; c++) {
-            for (let r = minRow; r <= maxRow; r++) {
-                const key = (c << 16) | (r & 0xFFFF);
-                const cell = grid.get(key);
-                if (!cell) continue;
-
-                for (let i = 0; i < cell.length; i++) {
-                    const coin = cell[i];
-                    const cx = coin.x + (coinSize / 2);
-                    if (cx < minX || cx > maxX) continue;
-                    
-                    const cy = coin.y + (coinSize / 2);
-                    if (cy < minY || cy > maxY) continue;
-
-                    const dx = cx - centerX;
-                    const dy = cy - centerY;
-                    if ((dx*dx + dy*dy) <= radiusSq) {
-                        if (coin.el) candidates.push(coin.el);
-                    }
-                }
+            const dx = cx - centerX;
+            const dy = cy - centerY;
+            
+            if ((dx*dx + dy*dy) <= radiusSq) {
+                if (c.el) candidates.push(c.el);
             }
         }
         return candidates;
@@ -761,6 +727,7 @@ if (due > 0) {
     function findCoinsInPath(x1, y1, x2, y2, radius) {
         const radiusSq = radius * radius;
         const candidates = [];
+        const count = activeCoins.length;
 
         // AABB Pre-calc (Broad Phase)
         const minX = Math.min(x1, x2) - radius;
@@ -772,48 +739,43 @@ if (due > 0) {
         const vy = y2 - y1;
         const lenSq = vx * vx + vy * vy;
         const crossLimit = radiusSq * lenSq;
-        
-        const minCol = Math.floor(minX / CELL_SIZE);
-        const maxCol = Math.floor(maxX / CELL_SIZE);
-        const minRow = Math.floor(minY / CELL_SIZE);
-        const maxRow = Math.floor(maxY / CELL_SIZE);
 
-        for (let c = minCol; c <= maxCol; c++) {
-            for (let r = minRow; r <= maxRow; r++) {
-                const key = (c << 16) | (r & 0xFFFF);
-                const cell = grid.get(key);
-                if (!cell) continue;
+        for (let i = 0; i < count; i++) {
+            const c = activeCoins[i];
+            const cx = c.x + (coinSize / 2);
+            
+            // AABB Check X
+            if (cx < minX || cx > maxX) continue;
+            
+            const cy = c.y + (coinSize / 2);
+            
+            // AABB Check Y
+            if (cy < minY || cy > maxY) continue;
 
-                 for (let i = 0; i < cell.length; i++) {
-                    const coin = cell[i];
-                    const cx = coin.x + (coinSize / 2);
-                    if (cx < minX || cx > maxX) continue;
-                    
-                    const cy = coin.y + (coinSize / 2);
-                    if (cy < minY || cy > maxY) continue;
+            // Narrow Phase: Optimized Math
+            const wx = cx - x1;
+            const wy = cy - y1;
+            
+            const dot = wx * vx + wy * vy;
 
-                    // Narrow Phase
-                    const wx = cx - x1;
-                    const wy = cy - y1;
-                    const dot = wx * vx + wy * vy;
-
-                    if (dot <= 0) {
-                        if ((wx * wx + wy * wy) <= radiusSq) {
-                            if (coin.el) candidates.push(coin.el);
-                        }
-                    } else if (dot >= lenSq) {
-                        const dx = cx - x2;
-                        const dy = cy - y2;
-                        if ((dx * dx + dy * dy) <= radiusSq) {
-                             if (coin.el) candidates.push(coin.el);
-                        }
-                    } else {
-                        const cross = wx * vy - wy * vx;
-                        if (cross * cross <= crossLimit) {
-                             if (coin.el) candidates.push(coin.el);
-                        }
-                    }
-                 }
+            if (dot <= 0) {
+                // Closest to start
+                if ((wx * wx + wy * wy) <= radiusSq) {
+                    if (c.el) candidates.push(c.el);
+                }
+            } else if (dot >= lenSq) {
+                // Closest to end
+                const dx = cx - x2;
+                const dy = cy - y2;
+                if ((dx * dx + dy * dy) <= radiusSq) {
+                     if (c.el) candidates.push(c.el);
+                }
+            } else {
+                // Closest to segment
+                const cross = wx * vy - wy * vx;
+                if (cross * cross <= crossLimit) {
+                     if (c.el) candidates.push(c.el);
+                }
             }
         }
         return candidates;
