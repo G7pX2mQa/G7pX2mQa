@@ -88,6 +88,16 @@ let flushScheduled = false;
 let coinsVal = null; // Cached BigNum value for HUD
 let updateHudFn = () => {}; // No-op until initialized
 
+let hudUpdateScheduled = false;
+const scheduleHudUpdate = () => {
+  if (hudUpdateScheduled) return;
+  hudUpdateScheduled = true;
+  requestAnimationFrame(() => {
+    hudUpdateScheduled = false;
+    updateHudFn();
+  });
+};
+
 export function setCoinMultiplier(x) {
   COIN_MULTIPLIER = x;
   try {
@@ -586,7 +596,7 @@ export function triggerPassiveCollect(count = 1) {
       coinsVal = cloneBn(totalCoin);
     }
   }
-  updateHudFn();
+  scheduleHudUpdate();
 
   if (!incIsZero) {
     queueCoinGain(totalCoin);
@@ -644,13 +654,13 @@ export function initCoinPickup({
   };
   
   refreshCoinMultiplierCache();
-  updateHudFn();
+  scheduleHudUpdate();
 
   const onCurrencyChange = (e) => {
     if (!e?.detail) return;
     if (e.detail.key === 'coins') {
       coinsVal = e.detail.value;
-      updateHudFn();
+      scheduleHudUpdate();
     }
   };
   window.addEventListener('currency:change', onCurrencyChange);
@@ -877,7 +887,7 @@ export function initCoinPickup({
         coinsVal = cloneBn(inc);
       }
     }
-    updateHudFn();
+    scheduleHudUpdate();
     if (!incIsZero) {
       queueCoinGain(inc);
     }
@@ -1047,7 +1057,7 @@ export function initCoinPickup({
     get count(){ return coinsVal; },
     set count(v){
       coinsVal = BigNum.fromAny ? BigNum.fromAny(v) : BigNum.fromInt(Number(v) || 0);
-      updateHudFn();
+      scheduleHudUpdate();
     },
     setMobileVolume,
     destroy,
