@@ -873,6 +873,8 @@ export function initCoinPickup({
     let totalXp = null;
     let totalMp = null;
     let collectedCount = 0;
+    let animatedThisBatch = 0;
+    const MAX_ANIM_PER_BATCH = 10;
 
     const coinsLocked = isCurrencyLocked(CURRENCIES.COINS);
     const xpEnabled = typeof isXpSystemUnlocked === 'function' ? isXpSystemUnlocked() : true;
@@ -883,7 +885,20 @@ export function initCoinPickup({
       el.dataset.collected = '1';
       collectedCount++;
 
-      animateAndRemove(el, opts || {});
+      if (animatedThisBatch < MAX_ANIM_PER_BATCH) {
+        animateAndRemove(el, opts || {});
+        animatedThisBatch++;
+      } else {
+        // Fast recycle
+        if (spawner && typeof spawner.detachCoin === 'function') {
+          spawner.detachCoin(el);
+        }
+        if (spawner && typeof spawner.recycleCoin === 'function') {
+          spawner.recycleCoin(el);
+        } else {
+          el.remove();
+        }
+      }
 
       const base = resolveCoinBase(el);
       const spawnLevelStr = el.dataset.mutationLevel || null;
