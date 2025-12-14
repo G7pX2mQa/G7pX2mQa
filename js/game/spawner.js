@@ -169,6 +169,11 @@ export function createSpawner({
     function releaseCoin(el) {
        el.style.transform = '';
        el.style.opacity = '1';
+       
+       // Clean up pickup animation classes
+       el.classList.remove('coin--collected');
+       el.style.removeProperty('--ccc-start');
+
        // Reset dataset
        delete el.dataset.dieAt;
        delete el.dataset.mutationLevel;
@@ -726,5 +731,6 @@ if (due > 0) {
         setCoinSprite,
         findCoinsInRadius,
         detachCoin,
+        recycleCoin: releaseCoin,
     };
 }
