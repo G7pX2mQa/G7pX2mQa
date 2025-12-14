@@ -6,7 +6,7 @@ export function createCursorTrail(playfield) {
   }
 
   // --- Configuration ---
-  const CAPACITY = 1000;
+  const CAPACITY = 2500;
   const PARTICLE_LIFETIME = 500; // ms
   const INTERPOLATION_STEP = 10; // px
   
@@ -81,6 +81,7 @@ export function createCursorTrail(playfield) {
   let destroyed = false;
   let rafId = 0;
   let lastTime = 0;
+  let wasDirty = false;
 
   // --- Methods ---
 
@@ -174,14 +175,21 @@ export function createCursorTrail(playfield) {
     }
 
     // --- Render & Update ---
+    const activeParticles = CAPACITY - freeCount;
+    
+    if (activeParticles === 0 && !wasDirty) {
+      rafId = requestAnimationFrame(loop);
+      return;
+    }
+
     ctx.clearRect(0, 0, rect.width, rect.height);
+    wasDirty = false;
     
     // Iterate over all slots. 
     // Optimization: We could maintain a packed list of active indices, 
     // but iterating 1000 items is extremely cheap in JS, especially with TypedArrays.
     // The main cost is drawImage, which only happens for active particles.
     
-    const activeParticles = CAPACITY - freeCount;
     if (activeParticles > 0) {
       // Use 'lighter' blend mode if you want addictive blending (glow adds up)
       // The original CSS used normal blending (DOM elements stacked).
@@ -213,6 +221,7 @@ export function createCursorTrail(playfield) {
         const scale = 1 - (0.4 * progress); // 1.0 -> 0.6
         
         // Draw
+        wasDirty = true;
         ctx.globalAlpha = opacity;
         
         const size = TEXTURE_SIZE * scale;
