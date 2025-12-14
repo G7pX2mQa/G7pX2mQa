@@ -32,8 +32,6 @@
 
   -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
           mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
-
-  animation: water-drift 10s linear infinite;
 }
 
 /* Surges (big waves) — wash over water & coins */
@@ -42,12 +40,6 @@
   inset: 0;
   z-index: 4;
   pointer-events: none;
-}
-
-/* Small continuous horizontal movement for water */
-@keyframes water-drift {
-  0%   { background-position: 0 0; }
-  100% { background-position: 480px 0; }
 }
 
 /* ===== Surge Animation ===== */
