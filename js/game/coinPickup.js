@@ -952,10 +952,9 @@ export function initCoinPickup({
     collectBatchFn: collectBatch,
     spawner, // Pass spawner for optimized lookup
   });
-
-  if (!IS_MOBILE) {
+  
     cursorTrail = createCursorTrail(pf);
-  }
+
   const onDelegatedInteract = (e) => {
     if (e.target === cl) return;
     const target = e.target.closest(coinSelector);
