@@ -100,6 +100,9 @@ function saveGenerationLevel(level) {
   
   try {
     localStorage.setItem(key, valStr);
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('workshop:change', { detail: { slot, level } }));
+    }
   } catch {}
   
   let readBack = null;
