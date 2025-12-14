@@ -787,11 +787,7 @@ export function initCoinPickup({
         if (spawner && typeof spawner.detachCoin === 'function') {
            spawner.detachCoin(el);
         }
-        if (spawner && typeof spawner.recycleCoin === 'function') {
-           spawner.recycleCoin(el);
-        } else {
-           el.remove();
-        }
+        el.remove(); 
         return; 
     }
     
@@ -810,14 +806,7 @@ export function initCoinPickup({
 
     el.style.setProperty('--ccc-start', start);
     el.classList.add('coin--collected');
-    const done = () => {
-      el.removeEventListener('animationend', done);
-      if (spawner && typeof spawner.recycleCoin === 'function') {
-        spawner.recycleCoin(el);
-      } else {
-        el.remove();
-      }
-    };
+    const done = () => { el.removeEventListener('animationend', done); el.remove(); };
     el.addEventListener('animationend', done);
     setTimeout(done, 600);
   }
