@@ -5,8 +5,9 @@ export function createCursorTrail(playfield) {
     return { destroy() {} };
   }
 
-  const POOL_SIZE = 60;
+  const POOL_SIZE = 500;
   const PARTICLE_LIFETIME = 500; // ms
+  const INTERPOLATION_STEP = 10; // px
   
   const pool = [];
   const activeParticles = [];
@@ -24,6 +25,11 @@ export function createCursorTrail(playfield) {
   let pointerInside = false;
   let localX = 0;
   let localY = 0;
+  
+  // Track last spawn position for interpolation
+  let lastSpawnX = null;
+  let lastSpawnY = null;
+
   let rect = null;
   let rafId = 0;
   let lastTime = 0;
@@ -50,9 +56,11 @@ export function createCursorTrail(playfield) {
   
   const onPointerLeave = () => {
     pointerInside = false;
+    lastSpawnX = null;
+    lastSpawnY = null;
   };
 
-  const spawnParticle = () => {
+  const spawnParticle = (x, y) => {
     if (pool.length === 0) {
       // Optional: Recycle oldest active particle?
       // For now, just skip to avoid churning too much
@@ -62,9 +70,9 @@ export function createCursorTrail(playfield) {
     const el = pool.pop();
     const particle = {
       el,
-      // Center the 6px particle (offset by 3px)
-      x: localX - 3,
-      y: localY - 3,
+      // Center the 20px particle (offset by 10px)
+      x: x - 10,
+      y: y - 10,
       age: 0,
       maxAge: PARTICLE_LIFETIME
     };
@@ -84,9 +92,33 @@ export function createCursorTrail(playfield) {
     lastTime = now;
     
     // Spawn new particle if pointer is active
-    // We limit spawning to 1 per frame, which is exactly what "every frame" means.
     if (pointerInside) {
-      spawnParticle();
+      if (lastSpawnX === null || lastSpawnY === null) {
+        spawnParticle(localX, localY);
+      } else {
+        const dx = localX - lastSpawnX;
+        const dy = localY - lastSpawnY;
+        const dist = Math.hypot(dx, dy);
+        
+        if (dist >= INTERPOLATION_STEP) {
+          const steps = Math.floor(dist / INTERPOLATION_STEP);
+          for (let i = 1; i <= steps; i++) {
+             // Linear interpolation
+             const tx = lastSpawnX + (dx / dist) * (i * INTERPOLATION_STEP);
+             const ty = lastSpawnY + (dy / dist) * (i * INTERPOLATION_STEP);
+             spawnParticle(tx, ty);
+          }
+        }
+        
+        // Always spawn at current to keep the cursor tip fresh
+        spawnParticle(localX, localY);
+      }
+      
+      lastSpawnX = localX;
+      lastSpawnY = localY;
+    } else {
+      lastSpawnX = null;
+      lastSpawnY = null;
     }
     
     // Update active particles
