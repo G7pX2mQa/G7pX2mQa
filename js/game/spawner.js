@@ -158,7 +158,7 @@ export function createSpawner({
         el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
         el.style.borderRadius = '50%';
         el.style.pointerEvents = 'auto';
-        el.style.willChange = 'transform, opacity'; // Crucial for performance
+        el.style.willChange = 'transform'; // Crucial for performance
         el.style.contain = 'layout paint style size';
         if (enableDropShadow)
             el.style.filter = 'drop-shadow(0 2px 2px rgba(0,0,0,.35))';
@@ -462,7 +462,7 @@ function commitBatch(batch) {
     // We need to set initial transform to hidden or start pos?
     // Start pos is safe.
     el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
-    el.style.opacity = '0.9';
+    el.style.opacity = '1';
 
     if (mutationUnlockedSnapshot) {
       el.dataset.mutationLevel = mutationLevelSnapshot.toString();
@@ -574,21 +574,12 @@ function commitBatch(batch) {
           // Visual Update (Batch DOM writes usually happens by browser paint, but we write styles here)
           // Rotate: -10deg to 0deg
           // Scale: 0.96 to 1
-          // Opacity: 0.9 to 1 (at 66% way)
           
           const rot = -10 + (10 * ease);
           const scale = 0.96 + (0.04 * ease);
-          // Opacity logic from original CSS: 0% -> .9, 66% -> 1. 
-          // 66% of duration. 
-          let opacity = 1;
-          if (t < 0.66) {
-              // Interpolate .9 to 1 over 0 to 0.66
-              opacity = 0.9 + (0.1 * (t / 0.66));
-          }
           
           if (c.el) {
               c.el.style.transform = `translate3d(${curX}px, ${curY}px, 0) rotate(${rot}deg) scale(${scale})`;
-              c.el.style.opacity = opacity;
           }
       }
   }
@@ -774,7 +765,7 @@ if (due > 0) {
                      if (c.el) candidates.push(c.el);
                 }
             } else {
-                // Closest on segment
+                // Closest to segment
                 const cross = wx * vy - wy * vx;
                 if (cross * cross <= crossLimit) {
                      if (c.el) candidates.push(c.el);
