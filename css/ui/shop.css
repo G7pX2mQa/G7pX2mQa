@@ -1057,6 +1057,19 @@
   }
 }
 
+@media (orientation: portrait) and (max-width: 700px), (orientation: landscape) and (max-height: 700px) {
+  .upg-sheet.is-hm-upgrade .upg-desc.centered,
+  .upg-sheet.is-hm-upgrade.is-endless-xp .upg-desc.centered {
+    font-size: clamp(16px, 3vmin, 22px);
+    line-height: 1.2;
+  }
+
+  .upg-sheet.is-hm-upgrade .upg-line,
+  .upg-sheet.is-hm-upgrade.is-endless-xp .upg-line {
+    font-size: clamp(18px, 3.5vmin, 24px);
+  }
+}
+
 /* Automation Upgrades */
 .upg-overlay.is-automation-upgrade .upg-sheet .upg-content {
   transform: translateY(-13vh);
