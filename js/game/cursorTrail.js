@@ -12,16 +12,18 @@ export function createCursorTrail(playfield) {
   }
 
   // --- Configuration ---
-  const CAPACITY = 10000;
+  const CAPACITY = 10000;  // This capacity is high but realistically nobody is ever reaching anywhere near this, highest amount people might get normally is like 1000 or so
   const PARTICLE_LIFETIME = 500; // ms
   const INTERPOLATION_STEP = 10; // px
-  // Instead of a hard cap that stops spawning, we use this to calculate dynamic spacing
-  const MAX_SPAWN_PER_FRAME = 80; 
+  const MAX_SPAWN_PER_FRAME = 80; // Prevent death spiral
   
   // Visuals
   const PARTICLE_SIZE = 16; // px diameter
   const PARTICLE_RADIUS = PARTICLE_SIZE / 2;
   const GLOW_RADIUS = 8;
+  // Texture needs to be large enough to hold the circle + blur
+  // Circle radius 8, Blur 8 => 16px radius total visual => 32px diameter
+  // We reduce this to 32px to save fill-rate (4x reduction vs 64px)
   const TEXTURE_SIZE = 32; 
   const CENTER = TEXTURE_SIZE / 2;
 
@@ -51,7 +53,7 @@ export function createCursorTrail(playfield) {
     height: '100%',
     pointerEvents: 'none',
     zIndex: '5',
-    touchAction: 'none'
+    touchAction: 'none' // Should inherit, but good to be explicit if it captured events
   });
   
   playfield.appendChild(canvas);
@@ -60,6 +62,7 @@ export function createCursorTrail(playfield) {
   const ctx = canvas.getContext('2d', { alpha: true });
 
   // --- Texture Generation ---
+  // We pre-render the glowing particle to an offscreen canvas
   const texture = document.createElement('canvas');
   texture.width = TEXTURE_SIZE;
   texture.height = TEXTURE_SIZE;
@@ -70,6 +73,7 @@ export function createCursorTrail(playfield) {
   tCtx.fillStyle = '#FFEB3B';
   
   tCtx.beginPath();
+  // Draw centered at (CENTER, CENTER)
   tCtx.arc(CENTER, CENTER, PARTICLE_RADIUS, 0, Math.PI * 2);
   tCtx.fill();
 
@@ -87,7 +91,6 @@ export function createCursorTrail(playfield) {
   let lastTime = 0;
   let wasDirty = false;
   let lastClearRect = null;
-  let frameCount = 0; // For periodic checks
 
   // --- Methods ---
 
@@ -99,19 +102,24 @@ export function createCursorTrail(playfield) {
   const resize = () => {
     if (destroyed) return;
     updateBounds();
+    // Cap DPR to prevent massive memory usage/fill-rate issues on high density displays or large zoom
     const baseDpr = Math.min(window.devicePixelRatio || 1, 2);
     
     // Cap absolute width to prevent massive fill-rate on large screens/zooms
     const MAX_CANVAS_WIDTH = 512;
     const widthScale = (rect.width > 0) ? Math.min(baseDpr, MAX_CANVAS_WIDTH / rect.width) : baseDpr;
     
+    // Use the smaller of the two scales (DPR or max-width constrained)
     dpr = widthScale;
 
+    // Resize canvas to match display size * dpr for sharp rendering (or capped resolution)
+    // This clears the canvas context
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     
+    // Scale context so we can draw using CSS pixels
     ctx.scale(dpr, dpr);
-    lastClearRect = null;
+    lastClearRect = null; // Reset dirty rect on resize
   };
 
   const spawn = (x, y) => {
@@ -135,6 +143,7 @@ export function createCursorTrail(playfield) {
     localX = e.clientX - rect.left;
     localY = e.clientY - rect.top;
     
+    // Simple bounds check
     pointerInside = (localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height);
   };
   
@@ -147,51 +156,44 @@ export function createCursorTrail(playfield) {
   const loop = (now) => {
     if (destroyed) return;
     
-    // Periodic bounds update to fix drift (every ~0.5s)
-    frameCount++;
-    if (frameCount % 30 === 0) {
-        updateBounds();
-    }
-    
     if (!lastTime) lastTime = now;
     let dt = now - lastTime;
     lastTime = now;
     
+    // Cap dt to prevent huge jumps if tab was inactive
     if (dt > 100) dt = 100;
 
     // --- Spawning Logic ---
     if (pointerInside) {
+      let spawnedCount = 0;
+      const trySpawn = (x, y) => {
+          if (spawnedCount >= MAX_SPAWN_PER_FRAME) return;
+          spawn(x, y);
+          spawnedCount++;
+      };
+
       if (lastSpawnX === null || lastSpawnY === null) {
-        spawn(localX, localY);
+        trySpawn(localX, localY);
       } else {
         const dx = localX - lastSpawnX;
         const dy = localY - lastSpawnY;
         const dist = Math.hypot(dx, dy);
         
-        let step = INTERPOLATION_STEP;
-        let steps = Math.floor(dist / step);
-        
-        // Dynamic interpolation:
-        // If the number of steps would exceed our per-frame spawn limit,
-        // we increase the step size so we can still cover the full distance
-        // in this frame. This prevents the trail from "lagging behind" (rubber banding)
-        // during extremely fast movement.
-        if (steps > MAX_SPAWN_PER_FRAME) {
-            step = dist / MAX_SPAWN_PER_FRAME;
-            steps = MAX_SPAWN_PER_FRAME;
-        }
-
-        if (dist >= step) {
+        if (dist >= INTERPOLATION_STEP) {
+          const steps = Math.floor(dist / INTERPOLATION_STEP);
           for (let i = 1; i <= steps; i++) {
-             const progress = i * step;
+             // Hard cap loop to avoid freezing on massive jumps
+             if (spawnedCount >= MAX_SPAWN_PER_FRAME) break;
+
+             const progress = i * INTERPOLATION_STEP;
              const fraction = progress / dist;
              const tx = lastSpawnX + dx * fraction;
              const ty = lastSpawnY + dy * fraction;
-             spawn(tx, ty);
+             trySpawn(tx, ty);
           }
         }
-        // Always spawn at current cursor position to ensure connection
-        spawn(localX, localY);
+        // Always spawn at current cursor position
+        trySpawn(localX, localY);
       }
       lastSpawnX = localX;
       lastSpawnY = localY;
@@ -209,34 +211,51 @@ export function createCursorTrail(playfield) {
     }
 
     if (lastClearRect) {
+      // Clear only the dirty area from the previous frame
       ctx.clearRect(lastClearRect.x, lastClearRect.y, lastClearRect.w, lastClearRect.h);
     } else {
       ctx.clearRect(0, 0, rect.width, rect.height);
     }
     wasDirty = false;
     
+    // Iterate over all slots. 
+    // Optimization: We could maintain a packed list of active indices, 
+    // but iterating 1000 items is extremely cheap in JS, especially with TypedArrays.
+    // The main cost is drawImage, which only happens for active particles.
+    
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
     if (activeParticles > 0) {
+      // Use 'lighter' blend mode if you want addictive blending (glow adds up)
+      // The original CSS used normal blending (DOM elements stacked).
+      // Let's stick to default source-over to match original look, 
+      // or 'screen' might look nice for glows. 
+      // User said "striking visual effects", usually implies glow.
+      // Let's try 'source-over' first to match CSS.
+      
       for (let i = 0; i < CAPACITY; i++) {
         const offset = i * STRIDE;
         let age = data[offset + 2];
         
+        // Skip dead particles
         if (age >= data[offset + 3]) continue;
         
         age += dt;
         data[offset + 2] = age;
         
         if (age >= data[offset + 3]) {
+          // Recycle
           freeSlots[freeCount++] = i;
           continue;
         }
         
+        // Calculate visuals
         const maxAge = data[offset + 3];
         const progress = age / maxAge;
         const opacity = 1 - progress;
-        const scale = 1 - (0.4 * progress); 
+        const scale = 1 - (0.4 * progress); // 1.0 -> 0.6
         
+        // Draw
         wasDirty = true;
         ctx.globalAlpha = opacity;
         
@@ -245,12 +264,14 @@ export function createCursorTrail(playfield) {
         const x = data[offset];
         const y = data[offset + 1];
         
+        // Round coordinates to avoid sub-pixel rendering cost on high-DPI
         const drawX = Math.round(x - halfSize);
         const drawY = Math.round(y - halfSize);
         const drawSize = Math.round(size);
         
         ctx.drawImage(texture, drawX, drawY, drawSize, drawSize);
 
+        // Update bounds for dirty rect clearing
         if (drawX < minX) minX = drawX;
         if (drawY < minY) minY = drawY;
         const right = drawX + drawSize;
@@ -261,7 +282,7 @@ export function createCursorTrail(playfield) {
     }
 
     if (minX !== Infinity) {
-        const PADDING = 2;
+        const PADDING = 2; // Slight padding to ensure full clear
         minX -= PADDING;
         minY -= PADDING;
         maxX += PADDING;
