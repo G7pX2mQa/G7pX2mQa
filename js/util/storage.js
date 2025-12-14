@@ -361,17 +361,45 @@ export const CURRENCIES = {
   GEARS: 'gears',
 };
 
+let _activeSlotCache = undefined;
+
 export function getActiveSlot() {
+  if (_activeSlotCache !== undefined) return _activeSlotCache;
   const raw = localStorage.getItem(KEYS.SAVE_SLOT);
   const n = parseInt(raw, 10);
-  return Number.isFinite(n) && n > 0 ? n : null;
+  const val = Number.isFinite(n) && n > 0 ? n : null;
+  _activeSlotCache = val;
+  return val;
 }
+
 export function setActiveSlot(n) {
   const v = Math.max(1, parseInt(n, 10) || 1);
+  _activeSlotCache = v;
   localStorage.setItem(KEYS.SAVE_SLOT, String(v));
   try {
     window.dispatchEvent(new CustomEvent('saveSlot:change', { detail: { slot: v } }));
   } catch {}
+}
+
+export function clearActiveSlot() {
+  _activeSlotCache = null;
+  localStorage.removeItem(KEYS.SAVE_SLOT);
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === KEYS.SAVE_SLOT) {
+      if (e.newValue === null) {
+        _activeSlotCache = null;
+      } else {
+        const n = parseInt(e.newValue, 10);
+        _activeSlotCache = Number.isFinite(n) && n > 0 ? n : null;
+      }
+      try {
+         window.dispatchEvent(new CustomEvent('saveSlot:change', { detail: { slot: _activeSlotCache } }));
+      } catch {}
+    }
+  });
 }
 
 function keyFor(base, slot = getActiveSlot()) {
