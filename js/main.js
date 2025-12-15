@@ -572,6 +572,7 @@ images: [
       'sounds/purchase_upg.ogg',
 	  'sounds/forge_reset.ogg',
 	  'sounds/infuse_reset.ogg',
+	  'sounds/surge_reset.ogg',
 	  'sounds/evolve_upg.ogg',
     ],
     fonts: true,
