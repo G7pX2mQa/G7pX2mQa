@@ -20,6 +20,7 @@ import {
   onInfuseUpgradeUnlocked,
   isInfuseUnlocked,
   hasDoneInfuseReset,
+  onSurgeUpgradeUnlocked,
 } from '../ui/merchantTabs/resetTab.js';
 import { REGISTRY as AUTOMATION_REGISTRY, AUTOMATION_AREA_KEY } from './automationUpgrades.js';
 
@@ -199,6 +200,7 @@ export const UPGRADE_TIES = {
   MP_VALUE_II: 'magic_3',
   FASTER_COINS_III: 'magic_4',
   ENDLESS_MP: 'coin_4',
+  UNLOCK_SURGE: 'none_4',
 };
 
 const HM_MILESTONES_STARTER_COVE = [
@@ -237,6 +239,7 @@ const SPECIAL_LOCK_STATE_TIES = new Set([
   UPGRADE_TIES.UNLOCK_XP,
   UPGRADE_TIES.UNLOCK_FORGE,
   UPGRADE_TIES.UNLOCK_INFUSE,
+  UPGRADE_TIES.UNLOCK_SURGE,
   ...FORGE_PLACEHOLDER_TIES,
   ...INFUSE_PLACEHOLDER_TIES,
 ]);
@@ -724,6 +727,39 @@ function determineLockState(ctx) {
     try { const xpBn = currentXpLevelBigNum(); xp101 = levelBigNumToNumber(xpBn) >= 101; } catch {}
     if (!xp101) {
       const revealText = (upgRef?.revealRequirement) || 'Reach XP Level 101 to reveal this upgrade';
+      return {
+        locked: true,
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+        hidden: true,
+        hideCost: true, hideEffect: true, useLockedBase: true,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: revealText,
+        reason: revealText,
+      };
+    }
+    return { locked: false };
+  }
+
+  // ==== Unlock Surge ====
+  if (tieKey === UPGRADE_TIES.UNLOCK_SURGE) {
+    if (!hasDoneInfuseReset()) {
+      return {
+        locked: true,
+        iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+        useLockedBase: true,
+        hidden: false,
+        hideCost: true,
+        hideEffect: true,
+        titleOverride: LOCKED_UPGRADE_TITLE,
+        descOverride: 'Do an Infuse reset to reveal this upgrade',
+        reason: 'Do an Infuse reset to reveal this upgrade',
+      };
+    }
+
+    let xp201 = false;
+    try { const xpBn = currentXpLevelBigNum(); xp201 = levelBigNumToNumber(xpBn) >= 201; } catch {}
+    if (!xp201) {
+      const revealText = (upgRef?.revealRequirement) || 'Reach XP Level 201 to reveal this upgrade';
       return {
         locked: true,
         iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
@@ -2832,6 +2868,28 @@ export const REGISTRY = [
       return `MP value bonus: ${formatMultForUi(total)}x`;
     },
     effectMultiplier: E.powPerLevel(1.1),
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 19,
+    tie: UPGRADE_TIES.UNLOCK_SURGE,
+    title: "Unlock Surge",
+    desc: "Unlocks the Surge reset in the Delve menu",
+    lvlCap: 1,
+    upgType: "NM",
+    icon: "",
+    baseIconOverride: "img/misc/surge_plus_base.webp",
+    requiresUnlockXp: true,
+    revealRequirement: 'Reach XP Level 201 to reveal this upgrade',
+    unlockUpgrade: true,
+    costAtLevel() { return BigNum.fromInt(0); },
+    nextCostAfter() { return BigNum.fromInt(0); },
+    computeLockState: determineLockState,
+    onLevelChange({ newLevel }) {
+      if ((newLevel ?? 0) >= 1) {
+        try { onSurgeUpgradeUnlocked(); } catch {}
+      }
+    },
   },
   ...AUTOMATION_REGISTRY,
 
