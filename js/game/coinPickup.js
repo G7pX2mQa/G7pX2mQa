@@ -223,7 +223,7 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
         
         let candidates = [];
         // Use swept path check if available && we have a previous position
-        if (!IS_MOBILE && typeof spawner.findCoinsInPath === 'function' && lastLocalX !== null && lastLocalY !== null) {
+        if (typeof spawner.findCoinsInPath === 'function' && lastLocalX !== null && lastLocalY !== null) {
              candidates = spawner.findCoinsInPath(lastLocalX, lastLocalY, localX, localY, radiusWithBuffer);
         } else {
              candidates = spawner.findCoinsInRadius(localX, localY, radiusWithBuffer);
@@ -991,7 +991,7 @@ export function initCoinPickup({
         const localY = y - cachedPfRect.top;
         
         let candidates = [];
-        if (!IS_MOBILE && typeof spawner.findCoinsInPath === 'function' && lastBrushLocalX !== null && lastBrushLocalY !== null) {
+        if (typeof spawner.findCoinsInPath === 'function' && lastBrushLocalX !== null && lastBrushLocalY !== null) {
             candidates = spawner.findCoinsInPath(lastBrushLocalX, lastBrushLocalY, localX, localY, BRUSH_R);
         } else {
             candidates = spawner.findCoinsInRadius(localX, localY, BRUSH_R);
