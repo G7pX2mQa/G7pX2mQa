@@ -33,6 +33,7 @@ import {
   getTotalCumulativeMp,
 } from '../../game/mutationSystem.js';
 import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
+import { clearPendingGains } from '../../game/coinPickup.js';
 
 const BN = BigNum;
 const bnZero = () => BN.fromInt(0);
@@ -840,6 +841,7 @@ function applyForgeResetEffects({ resetGold = false, resetMagic = false } = {}) 
   try { bank.coins.set(0); } catch {}
   try { bank.books.set(0); } catch {}
   try { resetXpProgress({ keepUnlock: true }); } catch {}
+  try { clearPendingGains(); } catch {}
   resetUpgrades({ resetGold, resetMagic });
 }
 
@@ -891,6 +893,8 @@ export function performInfuseReset() {
   recomputePendingGold();
   recomputePendingMagic();
   
+  try { window.spawner?.clearPlayfield?.(); } catch {}
+
   setInfuseUnlocked(true);
   if (!resetState.hasDoneInfuseReset) {
     setInfuseResetCompleted(true);
