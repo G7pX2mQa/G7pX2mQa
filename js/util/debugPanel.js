@@ -2223,6 +2223,27 @@ function getUnlockRowDefinitions(slot) {
             },
             slot,
         },
+		{
+            labelText: 'Unlock Warps',
+            description: 'If true, unlocks the Warps tab',
+            isUnlocked: () => {
+                try { return window.resetSystem?.hasDoneSurgeReset?.() ?? false; }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setSurgeResetCompleted?.(true); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setSurgeResetCompleted?.(false); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            slot,
+        },
         {
             labelText: 'Unlock Workshop',
             description: 'If true, unlocks the Workshop tab',
