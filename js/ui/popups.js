@@ -2,7 +2,7 @@
 
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
-import { CURRENCIES, isCurrencyLocked, isStorageKeyLocked, getActiveSlot } from '../util/storage.js';
+import { CURRENCIES, isCurrencyLocked, isStorageKeyLocked, getActiveSlot, getCurrency } from '../util/storage.js';
 
 const DEFAULT_DURATION = 6767;
 
@@ -187,6 +187,14 @@ function showPopup(type, amount, overrides = {}) {
 
   requestAnimationFrame(() => entry.element.classList.add('is-visible'));
   scheduleRemoval(entry, meta.duration); // scheduled ONCE at creation
+}
+
+function getAllCurrencies() {
+  const all = {};
+  for (const key of Object.values(CURRENCIES)) {
+    all[key] = getCurrency(key);
+  }
+  return all;
 }
 
 function syncLastKnown() {
