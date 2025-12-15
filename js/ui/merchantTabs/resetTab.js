@@ -225,13 +225,13 @@ function computeForgeGold(coinsBn, levelBn) {
 function computeInfuseMagicBase(coinsBn, cumulativeMpBn) {
   if (!coinsBn || coinsBn.isZero?.()) return bnZero();
 
-  const threshold = BN.fromAny('1e11');
+  const threshold = BN.fromAny('1e12');
   if (coinsBn.cmp(threshold) < 0) return bnZero();
 
   const logCoins = approxLog10BigNum(coinsBn);
   if (!Number.isFinite(logCoins)) return BN.fromAny('Infinity');
 
-  const logCRatio = logCoins - 11;
+  const logCRatio = logCoins - 12;
   if (logCRatio < 0) return bnZero();
 
   const LOG_BASE = 0.811078; // Math.log10(6.4726)
