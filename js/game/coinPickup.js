@@ -299,12 +299,8 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
 
   const runSweep = () => {
     rafId = 0;
-    if (destroyed) return;
-
+    if (!pointerInside || radiusPx <= 0 || destroyed) return;
     updateIndicator();
-
-    if (!pointerInside || radiusPx <= 0) return;
-
     sweepCoins();
     ensureSweepLoop();
   };
