@@ -42,8 +42,11 @@ const GOLD_ICON_SRC = 'img/currencies/gold/gold.webp';
 const MAGIC_ICON_SRC = 'img/currencies/magic/magic.webp';
 const RESET_ICON_SRC = 'img/misc/forge.webp';
 const INFUSE_ICON_SRC = 'img/misc/infuse.webp';
+const SURGE_ICON_SRC = 'img/misc/surge_plus_base.webp';
+const WAVES_ICON_SRC = 'img/currencies/wave/wave.webp';
 const FORGE_RESET_SOUND_SRC = 'sounds/forge_reset.ogg';
 const INFUSE_RESET_SOUND_SRC = 'sounds/infuse_reset.ogg';
+const SURGE_RESET_SOUND_SRC = 'sounds/infuse_reset.ogg'; // Placeholder sound
 
 let forgeResetAudio = null;
 function playForgeResetSound() {
@@ -69,6 +72,18 @@ function playInfuseResetSound() {
   } catch {}
 }
 
+let surgeResetAudio = null;
+function playSurgeResetSound() {
+  try {
+    if (!surgeResetAudio) {
+      surgeResetAudio = new Audio(SURGE_RESET_SOUND_SRC);
+    } else {
+      surgeResetAudio.currentTime = 0;
+    }
+    surgeResetAudio.play().catch(() => {});
+  } catch {}
+}
+
 const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
 const FORGE_COMPLETED_KEY = (slot) => `ccc:reset:forge:completed:${slot}`;
 const FORGE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:forgeUnlocked:${slot}`;
@@ -79,6 +94,8 @@ const INFUSE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:infuseUnlocked:${slot}`;
 
 const SURGE_UNLOCK_KEY = (slot) => `ccc:reset:surge:${slot}`;
 const SURGE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:surgeUnlocked:${slot}`;
+const SURGE_COMPLETED_KEY = (slot) => `ccc:reset:surge:completed:${slot}`;
+const SURGE_BAR_LEVEL_KEY = (slot) => `ccc:reset:surge:barLevel:${slot}`;
 
 const MIN_FORGE_LEVEL = BN.fromInt(31);
 const MIN_INFUSE_MUTATION_LEVEL = BN.fromInt(7);
@@ -93,8 +110,10 @@ const resetState = {
   hasDoneInfuseReset: false,
   surgeUnlocked: false,
   surgeDebugOverride: null,
+  hasDoneSurgeReset: false,
   pendingGold: bnZero(),
   pendingMagic: bnZero(),
+  pendingWaves: bnZero(),
   panel: null,
   elements: {
     forge: {
@@ -106,6 +125,14 @@ const resetState = {
       card: null,
       status: null,
       btn: null,
+    },
+    surge: {
+      card: null,
+      status: null,
+      btn: null,
+      bar: null,
+      barFill: null,
+      barText: null,
     },
   },
   layerButtons: {},
@@ -168,16 +195,24 @@ function cleanupWatchers() {
 function ensureValueListeners() {
   if (!coinChangeUnsub && typeof onCurrencyChange === 'function') {
     coinChangeUnsub = onCurrencyChange((detail = {}) => {
-      if (detail?.key && detail.key !== CURRENCIES.COINS) return;
+      if (detail?.key && detail.key !== CURRENCIES.COINS && detail.key !== CURRENCIES.WAVES) return;
       if (detail?.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
-      recomputePendingGold();
-      recomputePendingMagic();
+      
+      if (detail?.key === CURRENCIES.WAVES) {
+          updateWaveBar();
+          updateResetPanel();
+      } else {
+          recomputePendingGold();
+          recomputePendingMagic();
+          recomputePendingWaves();
+      }
     });
   }
   if (!xpChangeUnsub && typeof onXpChange === 'function') {
     xpChangeUnsub = onXpChange((detail = {}) => {
       if (detail?.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
       recomputePendingGold();
+      recomputePendingWaves();
       updateResetPanel();
     });
   }
@@ -288,6 +323,35 @@ export function computeInfuseMagicFromInputs(coinsBn, cumulativeMpBn) {
   return computeInfuseMagic(coinsBn, cumulativeMpBn);
 }
 
+function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
+  const xpLevel = levelToNumber(xpLevelBn);
+  if (xpLevel < 201) return bnZero();
+
+  // Formula: 10 * 10^((XP - 201)/20) * Multipliers
+  const xpTerm = (xpLevel - 201) / 20;
+  
+  // Log-based multipliers
+  const logCoins = approxLog10BigNum(coinsBn);
+  const logGold = approxLog10BigNum(goldBn);
+  const logMagic = approxLog10BigNum(magicBn);
+  const logMp = approxLog10BigNum(mpBn);
+
+  const coinsMult = Number.isFinite(logCoins) ? Math.max(1, logCoins / 24) : 1;
+  const goldMult = Number.isFinite(logGold) ? Math.max(1, logGold / 13) : 1;
+  const magicMult = Number.isFinite(logMagic) ? Math.max(1, logMagic / 5.4) : 1;
+  const mpMult = Number.isFinite(logMp) ? Math.max(1, logMp / 12) : 1;
+
+  const totalMult = coinsMult * goldMult * magicMult * mpMult;
+  
+  // Combine: 10 * totalMult * 10^(xpTerm)
+  // log10(Waves) = 1 + log10(totalMult) + xpTerm
+  
+  const logTotal = 1 + Math.log10(totalMult) + xpTerm;
+  if (!Number.isFinite(logTotal)) return BN.fromAny('Infinity');
+  
+  return bigNumFromLog10(logTotal).floorToInteger();
+}
+
 function getXpLevelNumber() {
   return Math.max(0, levelToNumber(getXpLevelBn()));
 }
@@ -316,6 +380,17 @@ export function setInfuseResetCompleted(value) {
   try { localStorage.setItem(INFUSE_COMPLETED_KEY(slot), resetState.hasDoneInfuseReset ? '1' : '0'); }
   catch {}
   try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'infuse', slot } })); }
+  catch {}
+}
+
+export function setSurgeResetCompleted(value) {
+  const slot = ensureResetSlot();
+  if (slot == null) return;
+  resetState.hasDoneSurgeReset = !!value;
+  try { localStorage.setItem(SURGE_COMPLETED_KEY(slot), resetState.hasDoneSurgeReset ? '1' : '0'); }
+  catch {}
+  // Notify for "Unlock Warps" toggle in debug panel
+  try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'surge_completed', slot } })); }
   catch {}
 }
 
@@ -451,6 +526,7 @@ function readPersistentFlags(slot) {
     resetState.hasDoneInfuseReset = false;
     resetState.surgeUnlocked = false;
     resetState.surgeDebugOverride = null;
+    resetState.hasDoneSurgeReset = false;
     resetState.flagsPrimed = false;
     return;
   }
@@ -483,6 +559,11 @@ function readPersistentFlags(slot) {
     resetState.surgeUnlocked = false;
   }
   resetState.surgeDebugOverride = getSurgeDebugOverride(slot);
+  try {
+    resetState.hasDoneSurgeReset = localStorage.getItem(SURGE_COMPLETED_KEY(slot)) === '1';
+  } catch {
+    resetState.hasDoneSurgeReset = false;
+  }
 
   resetState.flagsPrimed = true;
 }
@@ -592,6 +673,15 @@ function bindStorageWatchers(slot) {
       }
     },
   }));
+  watchers.push(watchStorageKey(SURGE_COMPLETED_KEY(slot), {
+    onChange(value) {
+      const next = value === '1';
+      if (resetState.hasDoneSurgeReset !== next) {
+        resetState.hasDoneSurgeReset = next;
+        updateResetPanel();
+      }
+    },
+  }));
 }
 
 function getPendingInputSignature(coins, level) {
@@ -631,9 +721,23 @@ export function recomputePendingMagic(multiplierOverride = null) {
   } else {
     resetState.pendingMagic = computeInfuseMagic(coins, cumulativeMp, multiplierOverride);
   }
+  recomputePendingWaves();
   updateResetPanel();
 }
 
+function recomputePendingWaves() {
+  if (!isSurgeUnlocked()) {
+    resetState.pendingWaves = bnZero();
+    return;
+  }
+  const xpLevel = getXpLevelBn();
+  const coins = bank.coins?.value ?? bnZero();
+  const gold = bank.gold?.value ?? bnZero();
+  const magic = bank.magic?.value ?? bnZero();
+  const mp = getTotalCumulativeMp();
+
+  resetState.pendingWaves = computeSurgeWaves(xpLevel, coins, gold, magic, mp);
+}
 
 function canAccessForgeTab() {
   const override = getForgeDebugOverride();
@@ -692,6 +796,10 @@ export function hasDoneInfuseReset() {
   return !!resetState.hasDoneInfuseReset;
 }
 
+export function hasDoneSurgeReset() {
+  ensurePersistentFlagsPrimed();
+  return !!resetState.hasDoneSurgeReset;
+}
 
 export function computePendingForgeGold() {
   recomputePendingGold();
@@ -792,6 +900,90 @@ export function performInfuseReset() {
   return true;
 }
 
+export function performSurgeReset() {
+  if (!isSurgeUnlocked()) return false;
+  if (getXpLevelNumber() < 201) return false;
+  
+  const reward = resetState.pendingWaves.clone?.() ?? resetState.pendingWaves;
+  if (reward.isZero?.()) return false;
+
+  try {
+    if (bank.waves?.add) {
+      bank.waves.add(reward);
+    }
+  } catch {}
+
+  applyForgeResetEffects({ resetGold: true, resetMagic: true });
+  try { bank.gold.set(0); } catch {}
+  try { bank.magic.set(0); } catch {}
+  
+  try {
+     const slot = getActiveSlot();
+     const KEY_LEVEL = (s) => `ccc:mutation:level:${s}`;
+     const KEY_PROGRESS = (s) => `ccc:mutation:progress:${s}`;
+     localStorage.setItem(KEY_LEVEL(slot), '0');
+     localStorage.setItem(KEY_PROGRESS(slot), '0');
+     initMutationSystem({ forceReload: true });
+  } catch {}
+
+  updateWaveBar();
+
+  setSurgeUnlocked(true);
+  if (!resetState.hasDoneSurgeReset) {
+    setSurgeResetCompleted(true);
+  }
+
+  recomputePendingGold();
+  recomputePendingMagic();
+  recomputePendingWaves();
+  
+  playSurgeResetSound();
+  
+  updateResetPanel();
+  return true;
+}
+
+function updateWaveBar() {
+  const slot = ensureResetSlot();
+  if (slot == null) return;
+  if (!isSurgeUnlocked()) return;
+
+  const currentWaves = bank.waves?.value ?? bnZero();
+  
+  let barLevel = 0;
+  try {
+    const raw = localStorage.getItem(SURGE_BAR_LEVEL_KEY(slot));
+    barLevel = parseInt(raw || '0', 10);
+    if (!Number.isFinite(barLevel)) barLevel = 0;
+  } catch {}
+
+  // Requirement: 10 * 10^Level
+  let req = BigNum.fromInt(10);
+  if (barLevel > 0) {
+    req = req.mulBigNumInteger(bigNumFromLog10(barLevel));
+  }
+  
+  let changed = false;
+  let safety = 0;
+  
+  while (safety < 100) {
+      if (currentWaves.cmp(req) < 0) break;
+      
+      currentWaves.sub(req);
+      bank.waves.set(currentWaves);
+      
+      barLevel++;
+      changed = true;
+      
+      req = req.mulBigNumInteger(BigNum.fromInt(10));
+      safety++;
+  }
+  
+  if (changed) {
+      localStorage.setItem(SURGE_BAR_LEVEL_KEY(slot), String(barLevel));
+  }
+}
+
 function formatBn(value) {
   try { return formatNumber(value); }
   catch { return value?.toString?.() ?? '0'; }
@@ -808,6 +1000,10 @@ function buildPanel(panelEl) {
         <button type="button" class="merchant-reset__layer" data-reset-layer="infuse" style="display:none">
           <img src="${INFUSE_ICON_SRC}" alt="">
           <span>Infuse</span>
+        </button>
+        <button type="button" class="merchant-reset__layer" data-reset-layer="surge" style="display:none">
+          <img src="${SURGE_ICON_SRC}" alt="">
+          <span>Surge</span>
         </button>
       </aside>
       
@@ -874,6 +1070,44 @@ function buildPanel(panelEl) {
             </div>
           </div>
         </div>
+
+        <!-- SURGE CARD -->
+        <div class="merchant-reset__card merchant-reset__main is-surge" id="reset-card-surge" style="display:none">
+          <div class="merchant-reset__layout">
+            <header class="merchant-reset__header">
+              <div class="merchant-reset__titles">
+                <h3>Surge</h3>
+              </div>
+            </header>
+
+            <div class="merchant-reset__content">
+              <div class="merchant-reset__titles">
+                <p data-reset-desc="surge">
+                  Resets everything Infuse does as well as Magic and Magic upgrades for Waves<br>
+                  Waves fill the bar below to unlock powerful milestones
+                </p>
+              </div>
+              <!-- Wave Bar -->
+              <div class="merchant-reset__bar-container" style="margin-top: 8px;">
+                 <div class="merchant-reset__bar-wrapper" style="background: rgba(0,0,0,0.3); height: 24px; border-radius: 4px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+                    <div class="merchant-reset__bar-fill" data-reset-bar-fill="surge" style="width: 0%; height: 100%; background: linear-gradient(90deg, #00c6ff, #0072ff); transition: width 0.2s;"></div>
+                    <span class="merchant-reset__bar-text" data-reset-bar-text="surge" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">0 / 10</span>
+                 </div>
+              </div>
+              <div class="merchant-reset__status" data-reset-status="surge"></div>
+            </div>
+
+            <div class="merchant-reset__actions">
+              <button type="button" class="merchant-reset__action" data-reset-action="surge">
+                <span class="merchant-reset__action-plus">+</span>
+                <span class="merchant-reset__action-icon">
+                  <img src="${WAVES_ICON_SRC}" alt="">
+                </span>
+                <span class="merchant-reset__action-amount" data-reset-pending="surge">0</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="merchant-reset__spacer"></div>
@@ -893,10 +1127,18 @@ function buildPanel(panelEl) {
   resetState.elements.infuse.btn = panelEl.querySelector('[data-reset-action="infuse"]');
   resetState.elements.infuse.pending = panelEl.querySelector('[data-reset-pending="infuse"]');
 
+  // Bind Surge Elements
+  resetState.elements.surge.card = panelEl.querySelector('#reset-card-surge');
+  resetState.elements.surge.status = panelEl.querySelector('[data-reset-status="surge"]');
+  resetState.elements.surge.btn = panelEl.querySelector('[data-reset-action="surge"]');
+  resetState.elements.surge.barFill = panelEl.querySelector('[data-reset-bar-fill="surge"]');
+  resetState.elements.surge.barText = panelEl.querySelector('[data-reset-bar-text="surge"]');
+
   // Sidebar Buttons
   resetState.layerButtons = {
     forge: panelEl.querySelector('[data-reset-layer="forge"]'),
     infuse: panelEl.querySelector('[data-reset-layer="infuse"]'),
+    surge: panelEl.querySelector('[data-reset-layer="surge"]'),
   };
   
   // Sidebar Click Handlers (Scroll)
@@ -943,6 +1185,15 @@ function buildPanel(panelEl) {
     resetState.elements.infuse.btn.addEventListener('click', () => {
        if (performInfuseReset()) {
          playInfuseResetSound();
+         updateResetPanel();
+       }
+    });
+  }
+
+  if (resetState.elements.surge.btn) {
+    resetState.elements.surge.btn.addEventListener('click', () => {
+       if (performSurgeReset()) {
+         // performSurgeReset handles playing sound
          updateResetPanel();
        }
     });
@@ -1089,10 +1340,87 @@ function updateInfuseCard() {
   updateResetButtonContent(el.btn, { disabled: false }, MAGIC_ICON_SRC, resetState.pendingMagic);
 }
 
+function updateSurgeCard() {
+  const el = resetState.elements.surge;
+  if (!el.card || !el.btn) return;
+
+  if (!isSurgeUnlocked()) {
+    if (el.card.style.display !== 'none') el.card.style.display = 'none';
+    if (resetState.layerButtons.surge && resetState.layerButtons.surge.style.display !== 'none') {
+        resetState.layerButtons.surge.style.display = 'none';
+    }
+    return;
+  }
+
+  if (el.card.style.display !== 'flex') el.card.style.display = 'flex';
+  if (resetState.layerButtons.surge && resetState.layerButtons.surge.style.display !== 'flex') {
+      resetState.layerButtons.surge.style.display = 'flex';
+  }
+
+  ensurePersistentFlagsPrimed();
+  
+  // Bar Logic Visualization
+  const slot = ensureResetSlot();
+  const currentWaves = bank.waves?.value ?? bnZero();
+  let barLevel = 0;
+  try {
+    const raw = localStorage.getItem(SURGE_BAR_LEVEL_KEY(slot));
+    barLevel = parseInt(raw || '0', 10);
+    if (!Number.isFinite(barLevel)) barLevel = 0;
+  } catch {}
+  
+  let req = BigNum.fromInt(10);
+  if (barLevel > 0) {
+    req = req.mulBigNumInteger(bigNumFromLog10(barLevel));
+  }
+  
+  let pct = 0;
+  if (currentWaves && req && !req.isZero?.()) {
+      try {
+          const ratio = currentWaves.div(req);
+          // Convert to number for percentage
+          const rNum = Number(ratio.toScientific?.() ?? '0');
+          pct = Math.min(100, Math.max(0, rNum * 100));
+      } catch { pct = 0; }
+  }
+  
+  if (el.barFill) el.barFill.style.width = `${pct}%`;
+  if (el.barText) el.barText.textContent = `${formatBn(currentWaves)} / ${formatBn(req)}`;
+
+  el.card.classList.toggle('is-complete', !!resetState.hasDoneSurgeReset);
+
+  if (el.status) {
+      if (resetState.hasDoneSurgeReset) {
+        if (el.status.innerHTML !== '') el.status.innerHTML = '';
+      } else {
+         const expected = `
+          <span style="color:#00e5ff; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+            Surging for the first time will unlock a new set of upgrades and features in the future.
+            <br>You will also get <strong>10 Waves</strong> to start with!
+          </span>
+         `.trim();
+         if (!el.status.innerHTML.includes('Surging')) el.status.innerHTML = expected;
+      }
+  }
+
+  if (getXpLevelNumber() < 201) {
+    updateResetButtonContent(el.btn, { disabled: true, msg: 'Reach XP Level 201 to perform a Surge reset' });
+    return;
+  }
+  
+  if (resetState.pendingWaves.isZero?.()) {
+    updateResetButtonContent(el.btn, { disabled: true, msg: 'Collect more coins/resources to earn Waves from a Surge reset' });
+    return;
+  }
+  
+  updateResetButtonContent(el.btn, { disabled: false }, WAVES_ICON_SRC, resetState.pendingWaves);
+}
+
 export function updateResetPanel({ goldMult = null } = {}) {
   if (!resetState.panel) return;
   updateForgeCard({ goldMult });
   updateInfuseCard();
+  updateSurgeCard();
 }
 
 export function onForgeUpgradeUnlocked() {
@@ -1119,6 +1447,11 @@ function bindGlobalEvents() {
     if (e.detail?.key === 'coins') {
       recomputePendingGold();
       recomputePendingMagic();
+      recomputePendingWaves();
+    }
+    if (e.detail?.key === 'waves') {
+        updateWaveBar();
+        updateResetPanel();
     }
   });
   window.addEventListener('currency:multiplier', (e) => {
@@ -1149,10 +1482,12 @@ function bindGlobalEvents() {
   });
   window.addEventListener('xp:change', () => {
     recomputePendingGold();
+    recomputePendingWaves();
     updateResetPanel();
   });
   window.addEventListener('mutation:change', () => {
     recomputePendingMagic();
+    recomputePendingWaves();
     updateResetPanel();
   });
   window.addEventListener('debug:change', (e) => {
@@ -1160,6 +1495,7 @@ function bindGlobalEvents() {
     resetPendingGoldSignature();
     recomputePendingGold(true);
     recomputePendingMagic();
+    recomputePendingWaves();
     updateResetPanel();
   });
 }
@@ -1171,6 +1507,7 @@ export function initResetSystem() {
     ensureValueListeners();
     recomputePendingGold(true);
     recomputePendingMagic();
+    recomputePendingWaves();
     return;
   }
   
@@ -1199,6 +1536,7 @@ export function initResetSystem() {
   bindGlobalEvents();
   recomputePendingGold(true);
   recomputePendingMagic();
+  recomputePendingWaves();
   if (mutationUnsub) {
     try { mutationUnsub(); } catch {}
     mutationUnsub = null;
@@ -1225,6 +1563,7 @@ export function initResetSystem() {
       ensureValueListeners();
       recomputePendingGold(true);
       recomputePendingMagic();
+      recomputePendingWaves();
       updateResetPanel();
     });
   }
@@ -1236,6 +1575,7 @@ if (typeof window !== 'undefined') {
     initResetSystem,
     performForgeReset,
     performInfuseReset,
+    performSurgeReset,
     computePendingForgeGold,
     computeForgeGoldFromInputs,
     computeInfuseMagicFromInputs,
@@ -1255,5 +1595,7 @@ if (typeof window !== 'undefined') {
     isSurgeUnlocked,
     setSurgeUnlockedForDebug,
     getSurgeDebugOverrideState,
+    setSurgeResetCompleted,
+    hasDoneSurgeReset,
   });
 }
