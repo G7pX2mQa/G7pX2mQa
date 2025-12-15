@@ -41,7 +41,8 @@ try {
 // Easing function for coin movement (approximates CSS ease-out)
 // CSS ease-out is roughly cubic-bezier(0, 0, 0.58, 1)
 function easeOutCubic(t) {
-  return 1 - Math.pow(1 - t, 3);
+  const f = 1 - t;
+  return 1 - f * f * f;
 }
 
 // Matches easeOutCubic in CSS
@@ -188,12 +189,15 @@ export function createSpawner({
     }
     
     // Explicit removal for JS physics
-    function removeCoin(coinObj) {
+    function removeCoin(coinObj, knownIndex = -1) {
         if (coinObj.isRemoved) return;
         coinObj.isRemoved = true;
         
         // Remove from activeCoins list using swap-and-pop for O(1)
-        const idx = activeCoins.indexOf(coinObj);
+        let idx = knownIndex;
+        if (idx === -1 || activeCoins[idx] !== coinObj) {
+            idx = activeCoins.indexOf(coinObj);
+        }
         if (idx !== -1) {
             const last = activeCoins[activeCoins.length - 1];
             activeCoins[idx] = last;
@@ -412,7 +416,7 @@ function playWaveOncePerBurst() {
         if (maxActiveCoins !== Infinity && activeCoins.length >= maxActiveCoins) {
             // Remove oldest
             const oldest = activeCoins[0];
-            if (oldest) removeCoin(oldest);
+            if (oldest) removeCoin(oldest, 0);
         }
 
         const pfW = M.pfW;
@@ -567,7 +571,7 @@ function commitBatch(batch) {
           
           // TTL Check
           if (now >= c.dieAt) {
-              removeCoin(c);
+              removeCoin(c, i);
               continue;
           }
           
