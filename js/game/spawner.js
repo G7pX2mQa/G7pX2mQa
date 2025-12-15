@@ -715,6 +715,13 @@ if (due > 0) {
         last = performance.now();
     }
 
+    function clearPlayfield() {
+        for (let i = activeCoins.length - 1; i >= 0; i--) {
+            removeCoin(activeCoins[i], i);
+        }
+        clearBacklog();
+    }
+
     function setCoinSprite(src) {
       if (!src) return;
       currentCoinSrc = src;
@@ -828,6 +835,7 @@ if (due > 0) {
         stop,
         setRate,
         clearBacklog,
+        clearPlayfield,
         setCoinSprite,
         getCoinTransform,
         findCoinsInRadius,
