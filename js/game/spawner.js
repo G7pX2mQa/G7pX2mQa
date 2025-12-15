@@ -44,6 +44,9 @@ function easeOutCubic(t) {
   return 1 - Math.pow(1 - t, 3);
 }
 
+// Matches easeOutCubic in CSS
+const CUBIC_BEZIER = 'cubic-bezier(0.215, 0.61, 0.355, 1)';
+
 export function createSpawner({
     playfieldSelector = '.area-cove .playfield',
     waterSelector = '.water-base',
@@ -167,6 +170,7 @@ export function createSpawner({
     const getCoin = () => (coinPool.length ? coinPool.pop() : makeCoin());
     
     function releaseCoin(el) {
+       el.style.transition = '';
        el.style.transform = '';
        el.style.opacity = '1';
        
@@ -441,6 +445,7 @@ function commitBatch(batch) {
   const coinsFrag = document.createDocumentFragment();
   
   const newSurges = [];
+  const newCoins = [];
   const now = performance.now();
 
   for (const { wave, coin } of batch) {
@@ -457,10 +462,7 @@ function commitBatch(batch) {
     el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
     
     // JS Physics: Initialize state
-    // We don't set --x0 etc anymore.
-    
-    // We need to set initial transform to hidden or start pos?
-    // Start pos is safe.
+    // We set start pos immediately.
     el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
     el.style.opacity = '1';
 
@@ -475,6 +477,8 @@ function commitBatch(batch) {
         el,
         x: coin.x0,
         y: coin.y0,
+        rot: -10,
+        scale: 0.96,
         startX: coin.x0,
         startY: coin.y0,
         endX: coin.x1,
@@ -482,17 +486,31 @@ function commitBatch(batch) {
         startTime: now + coin.jitterMs, // Apply jitter as start delay
         duration: animationDurationMs,
         dieAt: now + coinTtlMs,
+        jitterMs: coin.jitterMs,
         isRemoved: false
     };
     
     el._coinObj = coinObj; // Link DOM to Object
     activeCoins.push(coinObj);
+    newCoins.push(coinObj);
     
     coinsFrag.appendChild(el);
   }
 
   refs.s.appendChild(wavesFrag);
   refs.c.appendChild(coinsFrag);
+
+  // Trigger transitions for coins
+  if (newCoins.length > 0) {
+      // Force reflow to ensure start position is applied
+      void refs.c.offsetWidth;
+      
+      for (const c of newCoins) {
+          if (!c.el) continue;
+          c.el.style.transition = `transform ${animationDurationMs}ms ${CUBIC_BEZIER} ${c.jitterMs}ms`;
+          c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
+      }
+  }
 
   requestAnimationFrame(() => {
     if (newSurges.length) playWaveOncePerBurst();
@@ -506,7 +524,6 @@ function commitBatch(batch) {
       };
       surge.addEventListener('animationend', onEnd, { once: true });
     }
-    // No CSS animation trigger for coins needed!
   });
 }
 
@@ -571,16 +588,12 @@ function commitBatch(batch) {
           c.x = curX;
           c.y = curY;
           
-          // Visual Update (Batch DOM writes usually happens by browser paint, but we write styles here)
-          // Rotate: -10deg to 0deg
-          // Scale: 0.96 to 1
-          
+          // Visual Update: No DOM writes. Just update state for lookup.
           const rot = -10 + (10 * ease);
           const scale = 0.96 + (0.04 * ease);
           
-          if (c.el) {
-              c.el.style.transform = `translate3d(${curX}px, ${curY}px, 0) rotate(${rot}deg) scale(${scale})`;
-          }
+          c.rot = rot;
+          c.scale = scale;
       }
   }
 
@@ -691,6 +704,12 @@ if (due > 0) {
       if (!src) return;
       currentCoinSrc = src;
     }
+
+    function getCoinTransform(el) {
+        const c = el._coinObj;
+        if (!c) return el.style.transform || 'translate3d(0,0,0)';
+        return `translate3d(${c.x}px, ${c.y}px, 0) rotate(${c.rot}deg) scale(${c.scale})`;
+    }
     
     // API for CoinPickup: Find coins in radius without DOM reads
     // Returns list of DOM elements that are candidates
@@ -795,6 +814,7 @@ if (due > 0) {
         setRate,
         clearBacklog,
         setCoinSprite,
+        getCoinTransform,
         findCoinsInRadius,
         findCoinsInPath,
         detachCoin,
