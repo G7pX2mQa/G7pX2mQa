@@ -101,6 +101,8 @@ const SURGE_BAR_LEVEL_KEY = (slot) => `ccc:reset:surge:barLevel:${slot}`;
 const MIN_FORGE_LEVEL = BN.fromInt(31);
 const MIN_INFUSE_MUTATION_LEVEL = BN.fromInt(7);
 
+let isUpdatingWaveBar = false;
+
 const resetState = {
   slot: null,
   forgeUnlocked: false,
@@ -979,8 +981,9 @@ function updateWaveBar() {
   const slot = ensureResetSlot();
   if (slot == null) return;
   if (!isSurgeUnlocked()) return;
+  if (isUpdatingWaveBar) return;
 
-  const currentWaves = bank.waves?.value ?? bnZero();
+  let currentWaves = bank.waves?.value ?? bnZero();
   
   let barLevel = 0;
   try {
@@ -1001,8 +1004,7 @@ function updateWaveBar() {
   while (safety < 100) {
       if (currentWaves.cmp(req) < 0) break;
       
-      currentWaves.sub(req);
-      bank.waves.set(currentWaves);
+      currentWaves = currentWaves.sub(req);
       
       barLevel++;
       changed = true;
@@ -1013,6 +1015,13 @@ function updateWaveBar() {
   
   if (changed) {
       localStorage.setItem(SURGE_BAR_LEVEL_KEY(slot), String(barLevel));
+      
+      isUpdatingWaveBar = true;
+      try {
+        bank.waves.set(currentWaves);
+      } finally {
+        isUpdatingWaveBar = false;
+      }
   }
 }
 
@@ -1272,8 +1281,8 @@ function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn) {
   } else {
       // Update amount only
       const amountEl = btn.querySelector('.merchant-reset__action-amount');
-      if (amountEl && amountEl.textContent !== amountStr) {
-          amountEl.textContent = amountStr;
+      if (amountEl && amountEl.innerHTML !== amountStr) {
+          amountEl.innerHTML = amountStr;
       }
       // Ensure icon (in case it was somehow lost or incorrect, though unlikely here)
       const iconImg = btn.querySelector('.merchant-reset__action-icon img');
