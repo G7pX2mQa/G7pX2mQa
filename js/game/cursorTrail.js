@@ -35,7 +35,10 @@ export function createCursorTrail(playfield) {
   
   const freeSlots = new Int16Array(CAPACITY);
   let freeCount = CAPACITY;
-  for (let i = 0; i < CAPACITY; i++) freeSlots[i] = i;
+  // Reverse fill so we pop low indices first
+  for (let i = 0; i < CAPACITY; i++) freeSlots[i] = CAPACITY - 1 - i;
+
+  let maxActiveIndex = -1;
 
   // --- DOM Setup ---
   const canvas = document.createElement('canvas');
@@ -123,6 +126,7 @@ export function createCursorTrail(playfield) {
   const spawn = (x, y) => {
     if (freeCount <= 0) return;
     const idx = freeSlots[--freeCount];
+    if (idx > maxActiveIndex) maxActiveIndex = idx;
     const offset = idx * STRIDE;
     data[offset] = x;
     data[offset + 1] = y;
@@ -265,8 +269,9 @@ export function createCursorTrail(playfield) {
     
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
+    let newMaxIndex = -1;
     if (activeParticles > 0) {
-      for (let i = 0; i < CAPACITY; i++) {
+      for (let i = 0; i <= maxActiveIndex; i++) {
         const offset = i * STRIDE;
         let age = data[offset + 2];
         
@@ -279,6 +284,8 @@ export function createCursorTrail(playfield) {
           freeSlots[freeCount++] = i;
           continue;
         }
+
+        newMaxIndex = i;
         
         const maxAge = data[offset + 3];
         const progress = age / maxAge;
@@ -307,6 +314,7 @@ export function createCursorTrail(playfield) {
         if (bottom > maxY) maxY = bottom;
       }
     }
+    maxActiveIndex = newMaxIndex;
 
     if (minX !== Infinity) {
         const PADDING = 2;
