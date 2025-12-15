@@ -2,7 +2,7 @@
 
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
-import { CURRENCIES } from '../util/storage.js';
+import { CURRENCIES, isCurrencyLocked, isStorageKeyLocked, getActiveSlot } from '../util/storage.js';
 
 const DEFAULT_DURATION = 6767;
 
@@ -130,6 +130,18 @@ function createPopupEntry(type, meta, amount) {
 }
 
 function showPopup(type, amount, overrides = {}) {
+  // Check locks
+  const slot = getActiveSlot();
+  if (slot != null) {
+      if (['xp'].includes(type)) {
+          if (isStorageKeyLocked(`ccc:xp:progress:${slot}`)) return;
+      } else if (['mp'].includes(type)) {
+          if (isStorageKeyLocked(`ccc:mutation:progress:${slot}`)) return;
+      } else if (Object.values(CURRENCIES).includes(type)) {
+          if (isCurrencyLocked(type, slot)) return;
+      }
+  }
+
   const baseMeta = POPUP_META[type];
   const meta = Object.assign({ duration: DEFAULT_DURATION, accumulate: true }, baseMeta || {}, overrides);
   if (!meta.icon) return;
@@ -179,39 +191,6 @@ function showPopup(type, amount, overrides = {}) {
 
 function syncLastKnown() {
   try {
-    // Note: getAllCurrencies() is not defined/imported here in the original file
-    // but the code snippet I read had it. Wait.
-    // Looking at read_file output:
-    // "const all = getAllCurrencies();"
-    // I don't see getAllCurrencies imported.
-    // It might have been a hallucination or I missed it.
-    // Let me check imports again.
-    // import { CURRENCIES } from '../util/storage.js';
-    // No getAllCurrencies import.
-    // This function syncLastKnown calls it.
-    // Ah, in the read_file result, line 180 calls getAllCurrencies().
-    // But it is not imported. This code might be broken or relying on global.
-    // Or I missed something.
-    // Wait, I will copy the original logic exactly, but I suspect it might fail if that function is missing.
-    // However, I am replacing the file content. I must ensure I don't break existing logic.
-    // If the original file was working, `getAllCurrencies` must be available.
-    // Let me check if `getAllCurrencies` is in `js/util/storage.js`?
-    // I read `js/util/storage.js` and it does NOT export `getAllCurrencies`.
-    // It exports `CURRENCIES` object.
-    // So `getAllCurrencies()` call in original `popups.js` looks like a bug or legacy code.
-    // However, I should try to preserve the code as much as possible.
-    // Actually, `js/ui/popups.js` provided in `read_file` had:
-    /*
-    function syncLastKnown() {
-      try {
-        const all = getAllCurrencies();
-    */
-    // If I use overwrite, I will preserve it. If it was broken before, it stays broken (but I'm not here to fix that unless it blocks me).
-    // Wait, if I am overwriting, I am responsible for the content.
-    // If `getAllCurrencies` is not defined, `syncLastKnown` will throw and be caught by the `try...catch` block around it.
-    // `catch { lastKnownAmounts.clear(); }`
-    // So it fails silently.
-    // I will keep it as is.
     const all = getAllCurrencies();
     Object.entries(all).forEach(([key, value]) => {
       const bn = bnFromAny(value) || BigNum.fromInt(0);
