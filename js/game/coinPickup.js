@@ -234,18 +234,26 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
         lastLocalY = localY;
         
         if (candidates && candidates.length > 0) {
+            // Helper to resolve transform from spawner or DOM
+            const getTransform = (el) => {
+                if (spawner && typeof spawner.getCoinTransform === 'function') {
+                    return spawner.getCoinTransform(el);
+                }
+                return el.style.transform || 'translate3d(0,0,0)';
+            };
+
             if (typeof collectBatchFn === 'function') {
                  const items = [];
                  for (let i = 0; i < candidates.length; i++) {
                      const el = candidates[i];
-                     items.push({ el, opts: { transform: el.style.transform || 'translate3d(0,0,0)' } });
+                     items.push({ el, opts: { transform: getTransform(el) } });
                  }
                  collectBatchFn(items);
             } else {
                 const transforms = [];
                 for (let i = 0; i < candidates.length; i++) {
                     const el = candidates[i];
-                    transforms.push(el.style.transform || 'translate3d(0,0,0)');
+                    transforms.push(getTransform(el));
                 }
                 for (let i = 0; i < candidates.length; i++) {
                     collectFn(candidates[i], { transform: transforms[i] });
@@ -959,7 +967,11 @@ export function initCoinPickup({
     if (e.target === cl) return;
     const target = e.target.closest(coinSelector);
     if (target && isCoin(target)) {
-      collect(target);
+      let opts = {};
+      if (spawner && typeof spawner.getCoinTransform === 'function') {
+          opts.transform = spawner.getCoinTransform(target);
+      }
+      collect(target, opts);
     }
   };
 
@@ -1004,7 +1016,10 @@ export function initCoinPickup({
             const items = [];
             for (let i = 0; i < candidates.length; i++) {
                 const el = candidates[i];
-                items.push({ el, opts: { transform: el.style.transform || 'translate3d(0,0,0)' } });
+                const transform = (spawner && typeof spawner.getCoinTransform === 'function') 
+                    ? spawner.getCoinTransform(el) 
+                    : (el.style.transform || 'translate3d(0,0,0)');
+                items.push({ el, opts: { transform } });
             }
             collectBatch(items);
         }
