@@ -9,8 +9,6 @@ import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgr
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0n;
 
-const MAX_ACTIVE_COINS_MOBILE = 300;
-
 function updateMutationSnapshot(state) {
   if (!state || typeof state !== 'object') {
     mutationUnlockedSnapshot = false;
@@ -63,7 +61,7 @@ export function createSpawner({
     coinsPerSecond = 1,
     perFrameBudget = 24,
     backlogCap = 600,
-    maxActiveCoins = IS_MOBILE ? MAX_ACTIVE_COINS_MOBILE : 1250,
+    maxActiveCoins = 1250,
     initialBurst = 1,
 	coinTtlMs = 60000,
 	waveSoundSrc = 'sounds/wave_spawn.ogg',
