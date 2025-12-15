@@ -244,6 +244,8 @@ export function createCursorTrail(playfield) {
         }
         
         pointsQueue.length = 0; // Consumed
+    } else if (pointerInside && lastSpawnX !== null && lastSpawnY !== null) {
+        spawn(lastSpawnX, lastSpawnY);
     }
 
     // --- Render & Update ---
