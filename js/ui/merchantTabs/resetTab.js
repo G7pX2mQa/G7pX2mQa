@@ -77,6 +77,9 @@ const INFUSE_UNLOCK_KEY = (slot) => `ccc:reset:infuse:${slot}`;
 const INFUSE_COMPLETED_KEY = (slot) => `ccc:reset:infuse:completed:${slot}`;
 const INFUSE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:infuseUnlocked:${slot}`;
 
+const SURGE_UNLOCK_KEY = (slot) => `ccc:reset:surge:${slot}`;
+const SURGE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:surgeUnlocked:${slot}`;
+
 const MIN_FORGE_LEVEL = BN.fromInt(31);
 const MIN_INFUSE_MUTATION_LEVEL = BN.fromInt(7);
 
@@ -88,6 +91,8 @@ const resetState = {
   infuseUnlocked: false,
   infuseDebugOverride: null,
   hasDoneInfuseReset: false,
+  surgeUnlocked: false,
+  surgeDebugOverride: null,
   pendingGold: bnZero(),
   pendingMagic: bnZero(),
   panel: null,
@@ -130,6 +135,13 @@ function notifyInfuseUnlockChange() {
   const slot = resetState.slot ?? getActiveSlot();
   try {
     window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'infuse', slot } }));
+  } catch {}
+}
+
+function notifySurgeUnlockChange() {
+  const slot = resetState.slot ?? getActiveSlot();
+  try {
+    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'surge', slot } }));
   } catch {}
 }
 
@@ -399,6 +411,36 @@ function setForgeUnlocked(value) {
   notifyForgeUnlockChange();
 }
 
+function getSurgeDebugOverride(slot = getActiveSlot()) {
+  if (slot == null) return null;
+  try {
+    const raw = localStorage.getItem(SURGE_DEBUG_OVERRIDE_KEY(slot));
+    if (raw === '1') return true;
+    if (raw === '0') return false;
+  } catch {}
+  return null;
+}
+
+export function getSurgeDebugOverrideState(slot = getActiveSlot()) {
+  return getSurgeDebugOverride(slot);
+}
+
+export function setSurgeUnlockedForDebug(value) {
+  setSurgeUnlocked(value);
+}
+
+function setSurgeUnlocked(value) {
+  const slot = ensureResetSlot();
+  if (slot == null) return;
+  const next = !!value;
+  if (resetState.surgeUnlocked === next) return;
+  resetState.surgeUnlocked = next;
+  try { localStorage.setItem(SURGE_UNLOCK_KEY(slot), resetState.surgeUnlocked ? '1' : '0'); }
+  catch {}
+  primeStorageWatcherSnapshot(SURGE_UNLOCK_KEY(slot));
+  notifySurgeUnlockChange();
+}
+
 function readPersistentFlags(slot) {
   if (slot == null) {
     resetState.forgeUnlocked = false;
@@ -407,6 +449,8 @@ function readPersistentFlags(slot) {
     resetState.infuseUnlocked = false;
     resetState.infuseDebugOverride = null;
     resetState.hasDoneInfuseReset = false;
+    resetState.surgeUnlocked = false;
+    resetState.surgeDebugOverride = null;
     resetState.flagsPrimed = false;
     return;
   }
@@ -432,6 +476,14 @@ function readPersistentFlags(slot) {
     resetState.hasDoneInfuseReset = false;
   }
   resetState.infuseDebugOverride = getInfuseDebugOverride(slot);
+  
+  try {
+    resetState.surgeUnlocked = localStorage.getItem(SURGE_UNLOCK_KEY(slot)) === '1';
+  } catch {
+    resetState.surgeUnlocked = false;
+  }
+  resetState.surgeDebugOverride = getSurgeDebugOverride(slot);
+
   resetState.flagsPrimed = true;
 }
 
@@ -514,6 +566,28 @@ function bindStorageWatchers(slot) {
       if (resetState.infuseDebugOverride !== next) {
         resetState.infuseDebugOverride = next;
         notifyInfuseUnlockChange();
+        updateResetPanel();
+      }
+    },
+  }));
+  watchers.push(watchStorageKey(SURGE_UNLOCK_KEY(slot), {
+    onChange(value) {
+      const next = value === '1';
+      if (resetState.surgeUnlocked !== next) {
+        resetState.surgeUnlocked = next;
+        notifySurgeUnlockChange();
+        updateResetPanel();
+      }
+    },
+  }));
+  watchers.push(watchStorageKey(SURGE_DEBUG_OVERRIDE_KEY(slot), {
+    onChange(value) {
+      let next = null;
+      if (value === '1') next = true;
+      else if (value === '0') next = false;
+      if (resetState.surgeDebugOverride !== next) {
+        resetState.surgeDebugOverride = next;
+        notifySurgeUnlockChange();
         updateResetPanel();
       }
     },
@@ -601,6 +675,13 @@ export function isInfuseUnlocked() {
   return !!resetState.infuseUnlocked;
 }
 
+export function isSurgeUnlocked() {
+  ensurePersistentFlagsPrimed();
+  const override = getSurgeDebugOverride();
+  if (override != null) return !!override;
+  return !!resetState.surgeUnlocked;
+}
+
 export function hasDoneForgeReset() {
   ensurePersistentFlagsPrimed();
   return !!resetState.hasDoneForgeReset;
@@ -640,7 +721,7 @@ function resetUpgrades({ resetGold = false, resetMagic = false } = {}) {
   for (const upg of upgrades) {
     if (!upg) continue;
     const tieKey = upg.tieKey || upg.tie;
-    if (tieKey === UPGRADE_TIES.UNLOCK_XP || tieKey === UPGRADE_TIES.UNLOCK_FORGE || tieKey === UPGRADE_TIES.UNLOCK_INFUSE) continue;
+    if (tieKey === UPGRADE_TIES.UNLOCK_XP || tieKey === UPGRADE_TIES.UNLOCK_FORGE || tieKey === UPGRADE_TIES.UNLOCK_INFUSE || tieKey === UPGRADE_TIES.UNLOCK_SURGE) continue;
     if (upg.costType === 'gold' && !resetGold) continue;
     if (upg.costType === 'magic' && !resetMagic) continue;
     setLevel(AREA_KEYS.STARTER_COVE, upg.id, 0, true, { resetHmEvolutions: true });
@@ -1026,6 +1107,12 @@ export function onInfuseUpgradeUnlocked() {
   updateResetPanel();
 }
 
+export function onSurgeUpgradeUnlocked() {
+  initResetSystem();
+  setSurgeUnlocked(true);
+  updateResetPanel();
+}
+
 function bindGlobalEvents() {
   if (typeof window === 'undefined') return;
   window.addEventListener('currency:change', (e) => {
@@ -1165,5 +1252,8 @@ if (typeof window !== 'undefined') {
     setInfuseUnlockedForDebug,
     setInfuseResetCompleted,
     hasDoneInfuseReset,
+    isSurgeUnlocked,
+    setSurgeUnlockedForDebug,
+    getSurgeDebugOverrideState,
   });
 }
