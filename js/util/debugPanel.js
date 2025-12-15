@@ -2224,6 +2224,31 @@ function getUnlockRowDefinitions(slot) {
             slot,
         },
         {
+            labelText: 'Unlock Surge',
+            description: 'If true, unlocks the Surge reset',
+            isUnlocked: () => {
+                try {
+                    const override = window.resetSystem?.getSurgeDebugOverrideState?.();
+                    if (override != null) return override;
+                } catch {}
+                try { return !!window.resetSystem?.isSurgeUnlocked?.(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setSurgeUnlockedForDebug?.(true); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setSurgeUnlockedForDebug?.(false); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            slot,
+        },
+        {
             labelText: 'Unlock Workshop',
             description: 'If true, unlocks the Workshop tab',
             isUnlocked: () => {
