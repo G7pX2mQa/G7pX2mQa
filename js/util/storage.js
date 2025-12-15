@@ -359,6 +359,7 @@ export const CURRENCIES = {
   GOLD: 'gold',
   MAGIC: 'magic',
   GEARS: 'gears',
+  WAVES: 'waves',
 };
 
 let _activeSlotCache = undefined;
