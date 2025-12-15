@@ -739,8 +739,14 @@ class ShopInstance {
             const baseSrc = useLockedBase ? LOCKED_BASE_ICON_SRC : (upg.baseIconOverride || BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins);
             if (baseImgEl.src !== baseSrc) baseImgEl.src = baseSrc;
             
-            const iconSrc = upg.icon || TRANSPARENT_PX;
-            if (iconImgEl._lastSrc !== iconSrc) { iconImgEl.src = iconSrc; iconImgEl._lastSrc = iconSrc; }
+            const rawIcon = upg.icon;
+            if (!rawIcon) {
+                if (!iconImgEl.hidden) iconImgEl.hidden = true;
+            } else {
+                if (iconImgEl.hidden) iconImgEl.hidden = false;
+                const iconSrc = rawIcon;
+                if (iconImgEl._lastSrc !== iconSrc) { iconImgEl.src = iconSrc; iconImgEl._lastSrc = iconSrc; }
+            }
             
             let maxedOverlay = tileEl.querySelector('.maxed-overlay');
             const isAutomated = !locked && isUpgradeAutomated(upg.meta);
