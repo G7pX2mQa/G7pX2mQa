@@ -5,7 +5,7 @@ import { pauseGameLoop, resumeGameLoop } from './gameLoop.js';
 import { bank } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
-import { ensureCustomScrollbar, getCurrencyLabel } from '../ui/shopOverlay.js';
+import { ensureCustomScrollbar } from '../ui/shopOverlay.js';
 import { IS_MOBILE } from '../main.js';
 import { getLevelNumber } from './upgrades.js';
 import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
@@ -33,26 +33,18 @@ function formatTimeCompact(ms) {
 }
 
 // Visual Priority Map
-const PRIORITY_ORDER = ['coins', 'xp', 'xp_levels', 'books', 'gold', 'mp', 'mp_levels', 'magic', 'gears'];
-
-const REWARD_META = {
-    coins: { icon: 'img/currencies/coin/coin.webp' },
-    xp:    { icon: 'img/stats/xp/xp.webp' },
-    xp_levels: { icon: 'img/stats/xp/xp.webp' },
-    books: { icon: 'img/currencies/book/book.webp' },
-    gold:  { icon: 'img/currencies/gold/gold.webp' },
-    mp:    { icon: 'img/stats/mp/mp.webp' },
-    mp_levels: { icon: 'img/stats/mp/mp.webp' },
-    magic: { icon: 'img/currencies/magic/magic.webp' },
-    gears: { icon: 'img/currencies/gear/gear.webp' }
-};
-
-const REWARD_NAMES = {
-    xp:    'XP',
-    xp_levels: 'XP Levels',
-    mp:    'MP',
-    mp_levels: 'MP Levels',
-};
+const PRIORITY_ORDER = [
+    { key: 'coins',     icon: 'img/currencies/coin/coin.webp',   singular: 'Coin',     plural: 'Coins' },
+    { key: 'xp',        icon: 'img/stats/xp/xp.webp',            singular: 'XP',       plural: 'XP' },
+    { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels' },
+    { key: 'books',     icon: 'img/currencies/book/book.webp',   singular: 'Book',     plural: 'Books' },
+    { key: 'gold',      icon: 'img/currencies/gold/gold.webp',   singular: 'Gold',     plural: 'Gold' },
+    { key: 'mp',        icon: 'img/stats/mp/mp.webp',            singular: 'MP',       plural: 'MP' },
+    { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'MP Level', plural: 'MP Levels' },
+    { key: 'magic',     icon: 'img/currencies/magic/magic.webp', singular: 'Magic',    plural: 'Magic' },
+    { key: 'gears',     icon: 'img/currencies/gear/gear.webp',   singular: 'Gear',     plural: 'Gears' },
+    { key: 'waves',     icon: 'img/currencies/gear/gear.webp',   singular: 'Wave',     plural: 'Waves' },
+];
 
 function createOfflinePanel(rewards, offlineMs) {
     const overlay = document.createElement('div');
@@ -79,12 +71,10 @@ function createOfflinePanel(rewards, offlineMs) {
     list.className = 'offline-list';
     
     // Iterate rewards in priority order
-    PRIORITY_ORDER.forEach(key => {
+    PRIORITY_ORDER.forEach(config => {
+        const key = config.key;
         const val = rewards[key];
         if (!val || val.isZero()) return;
-
-        const meta = REWARD_META[key];
-        if (!meta) return;
 
         const row = document.createElement('div');
         row.className = 'offline-row';
@@ -98,7 +88,7 @@ function createOfflinePanel(rewards, offlineMs) {
         // Icon
         const icon = document.createElement('img');
         icon.className = 'offline-icon';
-        icon.src = meta.icon;
+        icon.src = config.icon;
         icon.alt = key;
         
         // Amount
@@ -106,21 +96,15 @@ function createOfflinePanel(rewards, offlineMs) {
         text.className = 'offline-text';
         text.classList.add(`text-${key}`);
         
-        let displayName;
-        if (['coins', 'books', 'gold', 'magic', 'gears'].includes(key)) {
-            displayName = getCurrencyLabel(key, val);
+        // Grammar logic
+        let isOne = false;
+        if (val instanceof BigNum) {
+            isOne = !val.isInfinite() && val.cmp(BigNum.fromInt(1)) === 0;
         } else {
-            displayName = REWARD_NAMES[key];
-            // Handle singular logic for levels
-            if ((key === 'xp_levels' || key === 'mp_levels')) {
-                // Check if value equals 1
-                const isOne = (val instanceof BigNum) ? (val.cmp(BigNum.fromInt(1)) === 0) : (Number(val) === 1);
-                if (isOne) {
-                    // Strip trailing 's' -> 'Level'
-                    displayName = displayName.replace(/s$/, '');
-                }
-            }
+            isOne = (Number(val) === 1);
         }
+        
+        const displayName = isOne ? config.singular : config.plural;
 
         text.innerHTML = `${formatNumber(val)} ${displayName}`;
         
