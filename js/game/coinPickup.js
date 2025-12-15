@@ -172,6 +172,7 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   playfield.appendChild(indicator);
 
   let pointerInside = false;
+  let hasPointer = false;
   let pointerClientX = 0;
   let pointerClientY = 0;
   let localX = 0;
@@ -308,7 +309,6 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   const runSweep = () => {
     rafId = 0;
     if (!pointerInside || radiusPx <= 0 || destroyed) return;
-    updateIndicator();
     sweepCoins();
     ensureSweepLoop();
   };
@@ -321,6 +321,7 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   const updatePointerFromEvent = (e) => {
     if (!e || destroyed) return;
     if (typeof e.clientX !== 'number' || typeof e.clientY !== 'number') return;
+    hasPointer = true;
     pointerClientX = e.clientX;
     pointerClientY = e.clientY;
     
@@ -330,6 +331,8 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     localX = pointerClientX - rect.left;
     localY = pointerClientY - rect.top;
     pointerInside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
+    
+    updateIndicator();
     ensureSweepLoop();
   };
 
@@ -348,10 +351,29 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     ensureSweepLoop();
   };
 
+  const handleScroll = () => {
+    if (destroyed || !hasPointer) return;
+    updatePlayfieldRect();
+    if (playfieldRect) {
+        const rect = playfieldRect;
+        localX = pointerClientX - rect.left;
+        localY = pointerClientY - rect.top;
+        pointerInside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
+    }
+    updateIndicator();
+    ensureSweepLoop();
+  };
+
   const handleResize = () => {
     unitPx = computeMagnetUnitPx();
     radiusPx = magnetLevel * unitPx;
     updatePlayfieldRect();
+    if (hasPointer && playfieldRect) {
+        const rect = playfieldRect;
+        localX = pointerClientX - rect.left;
+        localY = pointerClientY - rect.top;
+        pointerInside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
+    }
     updateIndicator();
     ensureSweepLoop();
   };
@@ -362,6 +384,7 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
       cancelAnimationFrame(rafId);
       rafId = 0;
     }
+    try { window.removeEventListener('scroll', handleScroll); } catch {}
     try { window.removeEventListener('resize', handleResize); } catch {}
     try { window.removeEventListener('saveSlot:change', refreshMagnetLevel); } catch {}
     try { document.removeEventListener('ccc:upgrades:changed', refreshMagnetLevel); } catch {}
@@ -380,6 +403,7 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   playfield.addEventListener('pointerleave', handlePointerLeave, pointerOpts);
   playfield.addEventListener('pointercancel', handlePointerLeave, pointerOpts);
   window.addEventListener('resize', handleResize);
+  window.addEventListener('scroll', handleScroll, { passive: true });
   window.addEventListener('saveSlot:change', refreshMagnetLevel);
   document.addEventListener('ccc:upgrades:changed', refreshMagnetLevel);
 
