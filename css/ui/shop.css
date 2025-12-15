@@ -768,7 +768,7 @@
   :root{
     --upg-title-size: clamp(28px, 6vmin, 44px);
     --upg-desc-size:  clamp(16px, 2.8vmin, 22px);
-    --upg-line-size:  clamp(18px, 3.2vmin, 24px);
+    --upg-line-size:  clamp(16px, 2.8vmin, 22px);
   }
 }
 
