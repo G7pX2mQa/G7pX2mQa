@@ -48,11 +48,11 @@ const UPGRADE_DEFINITIONS = [
     desc: 'Automatically buys Coin upgrades, but with a twist:\nAutobuys upgrades for free, as long as you can afford the cost\nThis is how all future autobuyers will work',
     icon: 'sc_upg_icons/coin_autobuy.webp',
     lvlCap: 1,
-    baseCost: 1000,
+    baseCost: 1e6,
     costType: 'gears',
     upgType: 'NM',
     costAtLevel() {
-      return BigNum.fromInt(1000);
+      return BigNum.fromInt(1e6);
     },
     effectSummary() {
       return null;
@@ -65,11 +65,11 @@ const UPGRADE_DEFINITIONS = [
     desc: 'Automatically buys Book upgrades',
     icon: 'sc_upg_icons/book_autobuy.webp',
     lvlCap: 1,
-    baseCost: 10000,
+    baseCost: 1e9,
     costType: 'gears',
     upgType: 'NM',
     costAtLevel() {
-      return BigNum.fromInt(10000);
+      return BigNum.fromInt(1e9);
     },
     effectSummary() {
       return null;
@@ -82,11 +82,11 @@ const UPGRADE_DEFINITIONS = [
     desc: 'Automatically buys Gold upgrades',
     icon: 'sc_upg_icons/gold_autobuy.webp',
     lvlCap: 1,
-    baseCost: 1e6,
+    baseCost: 1e12,
     costType: 'gears',
     upgType: 'NM',
     costAtLevel() {
-      return BigNum.fromAny('1e6');
+      return BigNum.fromAny('1e12');
     },
     effectSummary() {
       return null;
@@ -99,11 +99,11 @@ const UPGRADE_DEFINITIONS = [
     desc: 'Automatically buys Magic upgrades',
     icon: 'sc_upg_icons/magic_autobuy.webp',
     lvlCap: 1,
-    baseCost: 1e9,
+    baseCost: 1e15,
     costType: 'gears',
     upgType: 'NM',
     costAtLevel() {
-      return BigNum.fromAny('1e9');
+      return BigNum.fromAny('1e15');
     },
     effectSummary() {
       return null;
@@ -116,11 +116,11 @@ const UPGRADE_DEFINITIONS = [
     desc: 'Automatically buys Workshop Levels',
     icon: 'sc_upg_icons/workshop_level_autobuy.webp',
     lvlCap: 1,
-    baseCost: 1e10,
+    baseCost: 1e18,
     costType: 'gears',
     upgType: 'NM',
     costAtLevel() {
-      return BigNum.fromAny('1e10');
+      return BigNum.fromAny('1e18');
     },
     effectSummary() {
       return null;
