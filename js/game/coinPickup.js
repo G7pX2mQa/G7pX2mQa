@@ -308,6 +308,7 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
 
   const runSweep = () => {
     rafId = 0;
+    updateIndicator();
     if (!pointerInside || radiusPx <= 0 || destroyed) return;
     sweepCoins();
     ensureSweepLoop();
@@ -332,7 +333,6 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     localY = pointerClientY - rect.top;
     pointerInside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
     
-    updateIndicator();
     ensureSweepLoop();
   };
 
@@ -360,7 +360,6 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
         localY = pointerClientY - rect.top;
         pointerInside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
     }
-    updateIndicator();
     ensureSweepLoop();
   };
 
@@ -374,7 +373,6 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
         localY = pointerClientY - rect.top;
         pointerInside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
     }
-    updateIndicator();
     ensureSweepLoop();
   };
 
@@ -481,6 +479,12 @@ const queueMutationGain = (gain) => {
 
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', flushPendingGains, { passive: true });
+}
+
+export function clearPendingGains() {
+  pendingCoinGain = null;
+  pendingXpGain = null;
+  pendingMutGain = null;
 }
 
 let coinMultiplierBn = null;
