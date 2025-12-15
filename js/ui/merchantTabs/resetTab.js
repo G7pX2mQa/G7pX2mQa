@@ -46,7 +46,7 @@ const SURGE_ICON_SRC = 'img/misc/surge_plus_base.webp';
 const WAVES_ICON_SRC = 'img/currencies/wave/wave.webp';
 const FORGE_RESET_SOUND_SRC = 'sounds/forge_reset.ogg';
 const INFUSE_RESET_SOUND_SRC = 'sounds/infuse_reset.ogg';
-const SURGE_RESET_SOUND_SRC = 'sounds/infuse_reset.ogg'; // Placeholder sound
+const SURGE_RESET_SOUND_SRC = 'sounds/surge_reset.ogg';
 
 let forgeResetAudio = null;
 function playForgeResetSound() {
@@ -938,9 +938,37 @@ export function performSurgeReset() {
   recomputePendingWaves();
   
   playSurgeResetSound();
+  triggerSurgeWaveAnimation();
+  try { window.spawner?.clearPlayfield?.(); } catch {}
   
   updateResetPanel();
   return true;
+}
+
+function triggerSurgeWaveAnimation() {
+  if (typeof document === 'undefined') return;
+  const existing = document.querySelector('.surge-wipe-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'surge-wipe-overlay';
+  
+  const wave = document.createElement('div');
+  wave.className = 'surge-wipe-wave';
+  
+  overlay.appendChild(wave);
+  document.body.appendChild(overlay);
+
+  void wave.offsetWidth;
+  wave.classList.add('animate');
+
+  wave.addEventListener('animationend', () => {
+     overlay.remove();
+  }, { once: true });
+  
+  setTimeout(() => {
+     if (document.body.contains(overlay)) overlay.remove();
+  }, 2000);
 }
 
 function updateWaveBar() {
