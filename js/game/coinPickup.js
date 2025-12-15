@@ -300,6 +300,7 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   const runSweep = () => {
     rafId = 0;
     if (!pointerInside || radiusPx <= 0 || destroyed) return;
+    updateIndicator();
     sweepCoins();
     ensureSweepLoop();
   };
@@ -321,7 +322,6 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     localX = pointerClientX - rect.left;
     localY = pointerClientY - rect.top;
     pointerInside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
-    updateIndicator();
     ensureSweepLoop();
   };
 
