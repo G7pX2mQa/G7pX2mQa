@@ -169,6 +169,10 @@ export function createCursorTrail(playfield) {
 
   const onPointerMove = (e) => {
     if (destroyed) return;
+    if (!rafId) {
+      lastTime = performance.now();
+      rafId = requestAnimationFrame(loop);
+    }
     if (!rect.width) updateBounds();
 
     // Calculate offset once per event
@@ -256,7 +260,7 @@ export function createCursorTrail(playfield) {
     const activeParticles = CAPACITY - freeCount;
     
     if (activeParticles === 0 && !wasDirty) {
-      rafId = requestAnimationFrame(loop);
+      rafId = 0;
       return;
     }
 
