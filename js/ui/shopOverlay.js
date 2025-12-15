@@ -1370,17 +1370,37 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              const lineMilestone = document.createElement('div'); lineMilestone.className = 'upg-line';
              let milestoneCost = '—';
              let milestoneLabel = '';
+             const isAutomated = isUpgradeAutomated(model.upg);
              try {
                 if (model.hmNextMilestone && model.hmNextMilestone.cmp(model.lvlBn) > 0) {
-                    const deltaBn = model.hmNextMilestone.sub(model.lvlBn);
-                    const deltaPlain = deltaBn.toPlainIntegerString?.();
-                    const deltaNum = Math.max(0, Math.floor(Number(deltaPlain && deltaPlain !== 'Infinity' ? deltaPlain : Number(deltaBn.toString() || 0))));
-                    const { spent } = evaluateBulkPurchase(model.upg, model.lvlBn, BigNum.fromAny('Infinity'), deltaNum);
-                    milestoneCost = bank[model.upg.costType].fmt(spent);
-                    milestoneLabel = getCurrencyLabel(model.upg.costType, spent);
+                    if (isAutomated) {
+                        const targetLevelBn = model.hmNextMilestone.sub(BigNum.fromInt(1));
+                        let targetLevelNum = 0;
+                        try {
+                            const s = targetLevelBn.toPlainIntegerString?.();
+                            if (s && s !== 'Infinity') targetLevelNum = Number(s);
+                            else targetLevelNum = Number(targetLevelBn.toString());
+                        } catch { targetLevelNum = 0; }
+                        
+                        let costAt = BigNum.fromInt(0);
+                        try {
+                            costAt = BigNum.fromAny(model.upg.costAtLevel(targetLevelNum));
+                        } catch {}
+                        
+                        milestoneCost = bank[model.upg.costType].fmt(costAt);
+                        milestoneLabel = getCurrencyLabel(model.upg.costType, costAt);
+                    } else {
+                        const deltaBn = model.hmNextMilestone.sub(model.lvlBn);
+                        const deltaPlain = deltaBn.toPlainIntegerString?.();
+                        const deltaNum = Math.max(0, Math.floor(Number(deltaPlain && deltaPlain !== 'Infinity' ? deltaPlain : Number(deltaBn.toString() || 0))));
+                        const { spent } = evaluateBulkPurchase(model.upg, model.lvlBn, BigNum.fromAny('Infinity'), deltaNum);
+                        milestoneCost = bank[model.upg.costType].fmt(spent);
+                        milestoneLabel = getCurrencyLabel(model.upg.costType, spent);
+                    }
                 }
              } catch {}
-             lineMilestone.innerHTML = `Cost to next milestone: ${iconHTML} ${milestoneCost} ${milestoneLabel}`;
+             const prefix = isAutomated ? 'Cost at next milestone:' : 'Cost to next milestone:';
+             lineMilestone.innerHTML = `${prefix} ${iconHTML} ${milestoneCost} ${milestoneLabel}`;
              costs.appendChild(lineMilestone);
           }
           
