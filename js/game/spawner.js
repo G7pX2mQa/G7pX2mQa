@@ -184,6 +184,8 @@ export function createSpawner({
        delete el.dataset.mutationLevel;
        delete el.dataset.collected;
        
+       el.style.willChange = 'transform';
+       
        if (el.parentNode) el.remove();
        if (coinPool.length < COIN_POOL_MAX) coinPool.push(el);
     }
@@ -199,9 +201,7 @@ export function createSpawner({
             idx = activeCoins.indexOf(coinObj);
         }
         if (idx !== -1) {
-            const last = activeCoins[activeCoins.length - 1];
-            activeCoins[idx] = last;
-            activeCoins.pop();
+            activeCoins.splice(idx, 1);
         }
         
         // Release DOM element
@@ -217,9 +217,7 @@ export function createSpawner({
         if (coinObj) {
             const idx = activeCoins.indexOf(coinObj);
             if (idx !== -1) {
-                const last = activeCoins[activeCoins.length - 1];
-                activeCoins[idx] = last;
-                activeCoins.pop();
+                activeCoins.splice(idx, 1);
             }
             coinEl._coinObj = null; // Break link
         }
@@ -491,7 +489,8 @@ function commitBatch(batch) {
         duration: animationDurationMs,
         dieAt: now + coinTtlMs,
         jitterMs: coin.jitterMs,
-        isRemoved: false
+        isRemoved: false,
+        settled: false
     };
     
     el._coinObj = coinObj; // Link DOM to Object
@@ -575,12 +574,22 @@ function commitBatch(batch) {
               continue;
           }
           
+          if (c.settled) continue;
+          
           // Animation Progress
           const elapsed = now - c.startTime;
           if (elapsed < 0) continue; // Jitter delay
           
           let t = elapsed / c.duration;
-          if (t > 1) t = 1; // Cap at end
+          if (t >= 1) {
+              c.settled = true;
+              c.x = c.endX;
+              c.y = c.endY;
+              c.rot = 0;
+              c.scale = 1;
+              if (c.el) c.el.style.willChange = 'auto';
+              continue;
+          }
           
           // Apply easing
           const ease = easeOutCubic(t);
