@@ -395,4 +395,9 @@
   .merchant-reset__action-plus {
     top: 0px;
   }
+
+  /* Ensure sticky buttons don't cover the top of the cards when scrolling */
+  .merchant-reset__card {
+    scroll-margin-top: 80px;
+  }
 }
