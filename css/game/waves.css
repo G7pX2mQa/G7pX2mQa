@@ -114,3 +114,39 @@
   0%   { opacity: 1; }
   100% { opacity: 0; }
 }
+
+/* Full-screen Surge Wipe */
+.surge-wipe-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2147483645; /* Just below debug panel (2147483646) */
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.surge-wipe-wave {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -120%; /* Start fully off-screen left */
+  width: 100%; /* Full screen width to ensure full coverage */
+  background: #3db2cc;
+  transform: skewX(-10deg); /* Slight tilt for style */
+  will-change: transform;
+}
+
+.surge-wipe-wave.animate {
+  animation: surge-wipe-anim 1s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+}
+
+@keyframes surge-wipe-anim {
+  0% {
+    transform: translateX(0) skewX(-10deg);
+  }
+  100% {
+    transform: translateX(250%) skewX(-10deg);
+  }
+}
