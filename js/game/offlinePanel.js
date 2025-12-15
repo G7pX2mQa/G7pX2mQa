@@ -1,4 +1,4 @@
-import { getLastSaveTime, getActiveSlot } from '../util/storage.js';
+import { getLastSaveTime, getActiveSlot, isCurrencyLocked, isStorageKeyLocked } from '../util/storage.js';
 import { getGearsProductionRate } from '../ui/merchantTabs/workshopTab.js';
 import { hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
 import { pauseGameLoop, resumeGameLoop } from './gameLoop.js';
@@ -199,11 +199,13 @@ export function processOfflineProgress() {
     let hasRewards = false;
     
     if (!gearsEarned.isZero()) {
-        rewards.gears = gearsEarned;
-        hasRewards = true;
-        
-        // Award immediately
-        if (bank.gears) bank.gears.add(rewards.gears);
+        if (!isCurrencyLocked('gears', slot)) {
+            rewards.gears = gearsEarned;
+            hasRewards = true;
+            
+            // Award immediately
+            if (bank.gears) bank.gears.add(rewards.gears);
+        }
     }
 
     const autoLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) || 0;
@@ -216,29 +218,35 @@ export function processOfflineProgress() {
             const mpEarned = singleReward.mp.mulBigNumInteger(BigNum.fromInt(totalPassives));
             
             if (!coinsEarned.isZero()) {
-                rewards.coins = coinsEarned;
-                hasRewards = true;
-                if (bank.coins) bank.coins.add(coinsEarned);
+                if (!isCurrencyLocked('coins', slot)) {
+                    rewards.coins = coinsEarned;
+                    hasRewards = true;
+                    if (bank.coins) bank.coins.add(coinsEarned);
+                }
             }
             if (!xpEarned.isZero()) {
-                rewards.xp = xpEarned;
-                hasRewards = true;
-                try {
-                    const xpResult = addXp(xpEarned);
-                    if (xpResult && xpResult.xpLevelsGained && !xpResult.xpLevelsGained.isZero()) {
-                        rewards.xp_levels = xpResult.xpLevelsGained;
-                    }
-                } catch {}
+                if (!isStorageKeyLocked(`ccc:xp:progress:${slot}`)) {
+                    rewards.xp = xpEarned;
+                    hasRewards = true;
+                    try {
+                        const xpResult = addXp(xpEarned);
+                        if (xpResult && xpResult.xpLevelsGained && !xpResult.xpLevelsGained.isZero()) {
+                            rewards.xp_levels = xpResult.xpLevelsGained;
+                        }
+                    } catch {}
+                }
             }
             if (!mpEarned.isZero()) {
-                rewards.mp = mpEarned;
-                hasRewards = true;
-                try {
-                    const mpResult = addMutationPower(mpEarned);
-                    if (mpResult && mpResult.levelsGained && !mpResult.levelsGained.isZero()) {
-                        rewards.mp_levels = mpResult.levelsGained;
-                    }
-                } catch {}
+                if (!isStorageKeyLocked(`ccc:mutation:progress:${slot}`)) {
+                    rewards.mp = mpEarned;
+                    hasRewards = true;
+                    try {
+                        const mpResult = addMutationPower(mpEarned);
+                        if (mpResult && mpResult.levelsGained && !mpResult.levelsGained.isZero()) {
+                            rewards.mp_levels = mpResult.levelsGained;
+                        }
+                    } catch {}
+                }
             }
         }
     }
