@@ -3405,6 +3405,12 @@ function buildUnlocksContent(content) {
 
     const rows = getUnlockRowDefinitions(slot);
 
+    rows.sort((a, b) => {
+        const textA = a.labelText ?? '';
+        const textB = b.labelText ?? '';
+        return textA.localeCompare(textB, undefined, { sensitivity: 'base' });
+    });
+
     rows.forEach((rowDef) => {
         content.appendChild(createUnlockToggleRow(rowDef));
     });
