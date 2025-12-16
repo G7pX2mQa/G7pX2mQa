@@ -740,7 +740,10 @@ function xpLevelBigIntInfo(xpLevelValue) {
   } catch {
     plain = '0';
   }
-  if (!plain || plain === 'Infinity') {
+  if (plain === 'Infinity') {
+    return { bigInt: null, finite: false };
+  }
+  if (!plain) {
     return { bigInt: null, finite: true };
   }
   try {
