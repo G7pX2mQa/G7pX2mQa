@@ -95,7 +95,8 @@
 
 
 /* Movement starts immediately; fade begins 0.5s in */
-.wave-surge.run {
+.wave-surge.run,
+.wave-surge.run-b {
   animation-name: surge-move, surge-fadeout;
   animation-duration: var(--surge-duration), var(--surge-fade-duration);
   animation-delay: 0ms, var(--surge-fade-delay);
