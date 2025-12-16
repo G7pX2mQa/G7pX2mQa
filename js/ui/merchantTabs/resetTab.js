@@ -1016,8 +1016,12 @@ function updateWaveBar() {
   let changed = false;
 
   // Optimization for massive waves: jump to the approximate level
-  const logCurrent = approxLog10BigNum(currentWaves);
+  let logCurrent = approxLog10BigNum(currentWaves);
   const logReq = approxLog10BigNum(req);
+
+  if (!Number.isFinite(logCurrent) && currentWaves.isInfinite?.()) {
+    logCurrent = Number.MAX_SAFE_INTEGER;
+  }
 
   if (Number.isFinite(logCurrent) && Number.isFinite(logReq) && logCurrent > logReq + 2) {
     const targetLevel = Math.max(barLevel, Math.floor(logCurrent - 1));
@@ -1058,10 +1062,19 @@ function updateWaveBar() {
       } finally {
         isUpdatingWaveBar = false;
       }
+
+      updateResetPanel();
+
+      if (safety >= 100) {
+        setTimeout(updateWaveBar, 0);
+      }
   }
 }
 
 function formatBn(value) {
+  if (value && (value === 'Infinity' || (typeof value.isInfinite === 'function' && value.isInfinite()))) {
+    return '<span class="infinity-symbol">∞</span>';
+  }
   try { return formatNumber(value); }
   catch { return value?.toString?.() ?? '0'; }
 }
@@ -1457,7 +1470,7 @@ function updateSurgeCard() {
   }
   
   if (el.barFill) el.barFill.style.width = `${pct}%`;
-  if (el.barText) el.barText.textContent = `${formatBn(currentWaves)} / ${formatBn(req)}`;
+  if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums">${formatBn(currentWaves)} / ${formatBn(req)}</span>`;
 
   el.card.classList.toggle('is-complete', !!resetState.hasDoneSurgeReset);
 
