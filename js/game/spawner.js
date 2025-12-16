@@ -82,7 +82,7 @@ export function createSpawner({
 	const BURST_TIME_BUDGET_MS   = 10.0;
 	const BURST_HARD_CAP         = 60;
 	const ONE_SHOT_THRESHOLD     = 180;
-	const NORMAL_TIME_BUDGET_MS  = 2.0;
+	const NORMAL_TIME_BUDGET_MS  = 5.0;
 
 
     // ---------- resolve and keep DOM references ----------
@@ -559,8 +559,11 @@ function commitBatch(batch) {
    function loop(now) {
   if (!M.pfRect || !M.wRect) computeMetrics();
 
-  const dt = (now - last) / 1000;  // keep backlog intact on resume
+  let dt = (now - last) / 1000;
   last = now;
+  
+  // Clamp dt to prevent massive backlog spikes after short backgrounding (< 1s)
+  if (dt > 0.1) dt = 0.1;
   
   // ---- JS Physics Update ----
   // Iterate active coins, update position, handle TTL
