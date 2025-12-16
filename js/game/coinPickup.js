@@ -760,7 +760,14 @@ export function initCoinPickup({
   }
 
   const resolvedSrc = new URL(soundSrc, document.baseURI).href;
-  const isCoin = (el) => el instanceof HTMLElement && el.dataset.collected !== '1' && el.matches(coinSelector);
+  
+  // Optimization: use _coinObj if present, fallback to dataset/matches
+  const isCoin = (el) => {
+      if (!(el instanceof HTMLElement)) return false;
+      // Fast path: Check for attached object
+      if (el._coinObj) return !el._coinObj.isRemoved && el.dataset.collected !== '1';
+      return el.dataset.collected !== '1' && el.matches(coinSelector);
+  };
 
   function ensureInteractive(el){ try { el.style.pointerEvents = 'auto'; } catch {} }
   cl.querySelectorAll(coinSelector).forEach(ensureInteractive);
@@ -922,7 +929,8 @@ export function initCoinPickup({
       animateAndRemove(el, opts || {});
 
       const base = resolveCoinBase(el);
-      const spawnLevelStr = el.dataset.mutationLevel || null;
+      // Fast path: use attached object if available
+      const spawnLevelStr = el._coinObj?.mutationLevel ?? (el.dataset.mutationLevel || null);
       
       let inc = applyCoinMultiplier(base);
       let xpInc = cloneBn(XP_PER_COIN);
