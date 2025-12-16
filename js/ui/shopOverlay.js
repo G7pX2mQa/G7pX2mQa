@@ -447,6 +447,8 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   window.addEventListener('pointercancel', endDrag);
   
   bar.addEventListener('pointerdown', (e) => { if (e.target === thumb) return; const rect = bar.getBoundingClientRect(); const clickY = e.clientY - rect.top; const thH = thumb.clientHeight; const range = Math.max(0, bar.clientHeight - thH); const targetY = Math.max(0, Math.min(clickY - thH / 2, range)); const scrollMax = Math.max(1, scroller.scrollHeight - scroller.clientHeight); scroller.scrollTop = (targetY / Math.max(1, range)) * scrollMax; showBar(); scheduleHide(FADE_SCROLL_MS); });
+
+  updateAll();
 }
 
 // --- Logic Helpers ---
