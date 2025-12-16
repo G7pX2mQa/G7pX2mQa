@@ -2046,6 +2046,19 @@ function selectMerchantTab(key) {
   }
 
   try { localStorage.setItem(sk(MERCHANT_TAB_KEY_BASE), key); } catch {}
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const scroller = merchantOverlayEl?.querySelector(".merchant-content");
+      console.log("DEBUG: Updating scrollbar for tab switch", scroller);
+      if (scroller && scroller.__customScroll && typeof scroller.__customScroll.updateAll === "function") {
+        console.log("DEBUG: Calling updateAll");
+        scroller.__customScroll.updateAll();
+      } else {
+        console.log("DEBUG: updateAll not found or scroller missing", scroller && scroller.__customScroll);
+      }
+    });
+  });
 }
 
 export function unlockMerchantTabs(keys = []) {
