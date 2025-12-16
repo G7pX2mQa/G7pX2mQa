@@ -1009,6 +1009,29 @@ function triggerSurgeWaveAnimation() {
   }, 2000);
 }
 
+function getSurgeBarLevel(slot) {
+  let barLevel = 0n;
+  try {
+    const raw = localStorage.getItem(SURGE_BAR_LEVEL_KEY(slot));
+    if (raw) {
+       if (raw === 'Infinity') return 0n;
+       barLevel = BigInt(raw);
+    }
+  } catch {}
+  return barLevel < 0n ? 0n : barLevel;
+}
+
+function getLog10BigInt(val) {
+    if (!Number.isFinite(val)) return 0n;
+    if (val <= Number.MAX_SAFE_INTEGER) return BigInt(Math.floor(val));
+    try {
+        const str = val.toLocaleString('en-US', { useGrouping: false });
+        return BigInt(str.split('.')[0]); 
+    } catch {
+        return 0n;
+    }
+}
+
 function updateWaveBar() {
   const slot = ensureResetSlot();
   if (slot == null) return;
@@ -1017,18 +1040,10 @@ function updateWaveBar() {
 
   let currentWaves = bank.waves?.value ?? bnZero();
   
-  let barLevel = 0;
-  try {
-    const raw = localStorage.getItem(SURGE_BAR_LEVEL_KEY(slot));
-    barLevel = parseInt(raw || '0', 10);
-    if (!Number.isFinite(barLevel)) barLevel = 0;
-  } catch {}
+  let barLevel = getSurgeBarLevel(slot);
 
   // Requirement: 10 * 10^Level
-  let req = BigNum.fromInt(10);
-  if (barLevel > 0) {
-    req = req.mulBigNumInteger(bigNumFromLog10(barLevel));
-  }
+  let req = new BigNum(10n, { base: 0, offset: barLevel });
   
   let changed = false;
 
@@ -1037,25 +1052,28 @@ function updateWaveBar() {
   const logReq = approxLog10BigNum(req);
 
   if (!Number.isFinite(logCurrent) && currentWaves.isInfinite?.()) {
-    logCurrent = Number.MAX_SAFE_INTEGER;
+    logCurrent = Number.MAX_VALUE;
   }
 
-  if (Number.isFinite(logCurrent) && Number.isFinite(logReq) && logCurrent > logReq + 2) {
-    const targetLevel = Math.max(barLevel, Math.floor(logCurrent - 1));
-    if (targetLevel > barLevel) {
-      try {
-        const nextReq = BigNum.fromInt(10).mulBigNumInteger(bigNumFromLog10(targetLevel));
-        // Cost = (10^(targetLevel+1) - 10^(barLevel+1)) / 9
-        const cost = nextReq.sub(req).div(BigNum.fromInt(9));
+  if (Number.isFinite(logCurrent) && Number.isFinite(logReq) && logCurrent > logReq + 5) {
+    try {
+        const logCurrentBigInt = getLog10BigInt(logCurrent);
+        const targetLevel = logCurrentBigInt > 0n ? logCurrentBigInt - 1n : 0n;
 
-        if (currentWaves.cmp(cost) >= 0) {
-          currentWaves = currentWaves.sub(cost);
-          barLevel = targetLevel;
-          changed = true;
-          req = nextReq;
+        if (targetLevel > barLevel) {
+            const nextReq = new BigNum(10n, { base: 0, offset: targetLevel });
+            
+            // Cost = (10^(targetLevel+1) - 10^(barLevel+1)) / 9
+            const cost = nextReq.sub(req).div(BigNum.fromInt(9));
+
+            if (currentWaves.cmp(cost) >= 0) {
+              currentWaves = currentWaves.sub(cost);
+              barLevel = targetLevel;
+              changed = true;
+              req = nextReq;
+            }
         }
-      } catch {}
-    }
+    } catch {}
   }
   
   let safety = 0;
@@ -1065,7 +1083,7 @@ function updateWaveBar() {
       
       currentWaves = currentWaves.sub(req);
       
-      barLevel++;
+      barLevel += 1n;
       changed = true;
       
       req = req.mulBigNumInteger(BigNum.fromInt(10));
@@ -1073,7 +1091,7 @@ function updateWaveBar() {
   }
   
   if (changed) {
-      localStorage.setItem(SURGE_BAR_LEVEL_KEY(slot), String(barLevel));
+      localStorage.setItem(SURGE_BAR_LEVEL_KEY(slot), barLevel.toString());
       
       isUpdatingWaveBar = true;
       try {
@@ -1466,17 +1484,10 @@ function updateSurgeCard() {
   // Bar Logic Visualization
   const slot = ensureResetSlot();
   const currentWaves = bank.waves?.value ?? bnZero();
-  let barLevel = 0;
-  try {
-    const raw = localStorage.getItem(SURGE_BAR_LEVEL_KEY(slot));
-    barLevel = parseInt(raw || '0', 10);
-    if (!Number.isFinite(barLevel)) barLevel = 0;
-  } catch {}
+  let barLevel = 0n;
+  try { barLevel = getSurgeBarLevel(slot); } catch {}
   
-  let req = BigNum.fromInt(10);
-  if (barLevel > 0) {
-    req = req.mulBigNumInteger(bigNumFromLog10(barLevel));
-  }
+  let req = new BigNum(10n, { base: 0, offset: barLevel });
   
   let pct = 0;
   if (currentWaves && req && !req.isZero?.()) {
