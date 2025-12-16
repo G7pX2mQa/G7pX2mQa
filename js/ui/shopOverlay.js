@@ -408,7 +408,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
 
   const updateThumb = () => {
     const { scrollHeight, clientHeight, scrollTop } = scroller;
-    const barH = bar.clientHeight;
+    const barH = bar.clientHeight || scroller.clientHeight;
     const visibleRatio = clientHeight / Math.max(1, scrollHeight);
     const thumbH = Math.max(28, Math.round(barH * visibleRatio));
     const maxScroll = Math.max(1, scrollHeight - clientHeight);
