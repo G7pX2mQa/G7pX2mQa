@@ -234,7 +234,7 @@ export function createSpawner({
     }
     const getSurge = () => (surgePool.length ? surgePool.pop() : makeSurge());
     function releaseSurge(el) {
-        el.classList.remove('run');
+        el.classList.remove('run', 'run-b');
         if (el.parentNode)
             el.remove();
         if (surgePool.length < SURGE_POOL_MAX)
@@ -522,9 +522,13 @@ function commitBatch(batch) {
     if (newSurges.length) playWaveOncePerBurst();
 
     for (const surge of newSurges) {
-      surge.classList.remove('run');
-      void surge.offsetWidth;
-      surge.classList.add('run');
+      if (surge.classList.contains('run')) {
+        surge.classList.remove('run');
+        surge.classList.add('run-b');
+      } else {
+        surge.classList.remove('run-b');
+        surge.classList.add('run');
+      }
       const onEnd = (e) => {
         if (e.target === surge) releaseSurge(surge);
       };
