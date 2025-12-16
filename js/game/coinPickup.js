@@ -395,13 +395,21 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   };
 
   const pointerOpts = { passive: true };
+
+  const forceUpdateAndMove = (e) => {
+    updatePlayfieldRect();
+    updatePointerFromEvent(e);
+  };
+
   playfield.addEventListener('pointermove', updatePointerFromEvent, pointerOpts);
-  playfield.addEventListener('pointerdown', updatePointerFromEvent, pointerOpts);
-  playfield.addEventListener('pointerenter', updatePointerFromEvent, pointerOpts);
+  playfield.addEventListener('pointerdown', forceUpdateAndMove, pointerOpts);
+  playfield.addEventListener('pointerenter', forceUpdateAndMove, pointerOpts);
   playfield.addEventListener('pointerleave', handlePointerLeave, pointerOpts);
   playfield.addEventListener('pointercancel', handlePointerLeave, pointerOpts);
   window.addEventListener('resize', handleResize);
   window.addEventListener('scroll', handleScroll, { passive: true });
+  window.addEventListener('focus', updatePlayfieldRect, { passive: true });
+  document.addEventListener('visibilitychange', updatePlayfieldRect, { passive: true });
   window.addEventListener('saveSlot:change', refreshMagnetLevel);
   document.addEventListener('ccc:upgrades:changed', refreshMagnetLevel);
 
