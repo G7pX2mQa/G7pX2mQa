@@ -296,6 +296,7 @@ function getAreas() {
                 { key: CURRENCIES.GOLD,  label: 'Gold'  },
                 { key: CURRENCIES.MAGIC, label: 'Magic' },
                 { key: CURRENCIES.GEARS, label: 'Gears' },
+                { key: CURRENCIES.WAVES, label: 'Waves' },
             ],
             stats: [
                 { key: 'spawnRate', label: 'Spawn Rate' },
@@ -2830,6 +2831,17 @@ function buildAreaCalculators(container) {
                         { key: 'mp', label: 'Cumulative MP' },
                     ],
                     compute: ({ coins, mp }) => window.resetSystem?.computeInfuseMagicFromInputs?.(coins, mp),
+                },
+                {
+                    label: 'Pending Waves (Surge)',
+                    inputs: [
+                        { key: 'xpLevel', label: 'XP Level' },
+                        { key: 'coins', label: 'Coins' },
+                        { key: 'gold', label: 'Gold' },
+                        { key: 'magic', label: 'Magic' },
+                        { key: 'mp', label: 'Cumulative MP' },
+                    ],
+                    compute: ({ xpLevel, coins, gold, magic, mp }) => window.resetSystem?.computeSurgeWavesFromInputs?.(xpLevel, coins, gold, magic, mp),
                 },
             ],
         },
