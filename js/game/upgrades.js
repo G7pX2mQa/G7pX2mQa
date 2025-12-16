@@ -127,6 +127,17 @@ export function approxLog10BigNum(value) {
   if (!value) return Number.NEGATIVE_INFINITY;
   if (value.isZero?.()) return Number.NEGATIVE_INFINITY;
   if (value.isInfinite?.()) return Number.POSITIVE_INFINITY;
+
+  if (typeof value.sig === 'bigint') {
+    const sigNum = Number(value.sig);
+    if (sigNum > 0) {
+      const sigLog = Math.log10(sigNum);
+      const e = value.e || 0;
+      const off = Number(value._eOffset || 0n);
+      return sigLog + e + off;
+    }
+  }
+
   let storage;
   try {
     storage = value.toStorage();
