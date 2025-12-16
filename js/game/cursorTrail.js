@@ -337,6 +337,8 @@ export function createCursorTrail(playfield) {
   // --- Listeners ---
   window.addEventListener('resize', resize);
   window.addEventListener('scroll', updateBounds, { passive: true });
+  window.addEventListener('focus', updateBounds, { passive: true });
+  document.addEventListener('visibilitychange', updateBounds, { passive: true });
   
   const opts = { passive: true };
   
@@ -345,8 +347,13 @@ export function createCursorTrail(playfield) {
       onPointerMove(e);
   };
 
+  const onPointerDown = (e) => {
+      updateBounds();
+      onPointerMove(e);
+  };
+
   playfield.addEventListener('pointermove', onPointerMove, opts);
-  playfield.addEventListener('pointerdown', onPointerMove, opts);
+  playfield.addEventListener('pointerdown', onPointerDown, opts);
   playfield.addEventListener('pointerenter', onPointerEnter, opts);
   playfield.addEventListener('pointerleave', onPointerLeave, opts);
   playfield.addEventListener('pointercancel', onPointerLeave, opts);
@@ -365,10 +372,12 @@ export function createCursorTrail(playfield) {
 
     try { window.removeEventListener('resize', resize); } catch {}
     try { window.removeEventListener('scroll', updateBounds); } catch {}
+    try { window.removeEventListener('focus', updateBounds); } catch {}
+    try { document.removeEventListener('visibilitychange', updateBounds); } catch {}
     
     try {
       playfield.removeEventListener('pointermove', onPointerMove);
-      playfield.removeEventListener('pointerdown', onPointerMove);
+      playfield.removeEventListener('pointerdown', onPointerDown);
       playfield.removeEventListener('pointerenter', onPointerEnter); 
       playfield.removeEventListener('pointerleave', onPointerLeave);
       playfield.removeEventListener('pointercancel', onPointerLeave);
