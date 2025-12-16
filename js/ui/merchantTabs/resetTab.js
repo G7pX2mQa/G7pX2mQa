@@ -1364,7 +1364,7 @@ function updateInfuseCard() {
       } else {
          const expected = `
           <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-            Infusing for the first time will unlock new Shop upgrades, a new Merchant dialogue, and a new tab in the Delve menu: <strong style="color:#c68cff">Workshop</strong><br>
+            Infusing for the first time will unlock new Shop upgrades, a new Merchant dialogue, and a new tab: <strong style="color:#c68cff">Workshop</strong><br>
             This new tab will allow you to passively generate Gears<br>
             Spend Gears on new upgrades in the Shop to automate various things
           </span>
