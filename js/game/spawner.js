@@ -478,6 +478,7 @@ function commitBatch(batch) {
     
     // Create Coin Object
     const coinObj = {
+        mutationLevel: mutationUnlockedSnapshot ? mutationLevelSnapshot.toString() : '0',
         el,
         x: coin.x0,
         y: coin.y0,
