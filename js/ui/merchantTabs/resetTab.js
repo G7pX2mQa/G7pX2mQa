@@ -1043,14 +1043,16 @@ function updateWaveBar() {
   if (Number.isFinite(logCurrent) && Number.isFinite(logReq) && logCurrent > logReq + 2) {
     const targetLevel = Math.max(barLevel, Math.floor(logCurrent - 1));
     if (targetLevel > barLevel) {
-      const largestCost = BigNum.fromInt(10).mulBigNumInteger(bigNumFromLog10(targetLevel - 1));
-      const totalCostApprox = largestCost.mulDecimal('1.111111111111111111');
       try {
-        if (currentWaves.cmp(totalCostApprox) >= 0) {
-          currentWaves = currentWaves.sub(totalCostApprox);
+        const nextReq = BigNum.fromInt(10).mulBigNumInteger(bigNumFromLog10(targetLevel));
+        // Cost = (10^(targetLevel+1) - 10^(barLevel+1)) / 9
+        const cost = nextReq.sub(req).div(BigNum.fromInt(9));
+
+        if (currentWaves.cmp(cost) >= 0) {
+          currentWaves = currentWaves.sub(cost);
           barLevel = targetLevel;
           changed = true;
-          req = BigNum.fromInt(10).mulBigNumInteger(bigNumFromLog10(barLevel));
+          req = nextReq;
         }
       } catch {}
     }
