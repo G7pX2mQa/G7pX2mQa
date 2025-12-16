@@ -1518,9 +1518,13 @@ function applyXpState({ level, progress }) {
   // normal accumulation.
   if ((level != null || progress != null) && zero) {
     if (levelIsFinite && !progressIsFinite) {
-      nextProgress = zero.clone?.() ?? zero;
+      if (level != null) {
+        nextProgress = zero.clone?.() ?? zero;
+      }
     } else if (progressIsFinite && !levelIsFinite) {
-      nextLevel = zero.clone?.() ?? zero;
+      if (progress != null) {
+        nextLevel = zero.clone?.() ?? zero;
+      }
     }
   }
 
