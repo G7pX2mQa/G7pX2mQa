@@ -50,6 +50,13 @@ const FORGE_RESET_SOUND_SRC = 'sounds/forge_reset.ogg';
 const INFUSE_RESET_SOUND_SRC = 'sounds/infuse_reset.ogg';
 const SURGE_RESET_SOUND_SRC = 'sounds/surge_reset.ogg';
 
+// Add reset names here (e.g. 'forge', 'infuse', 'surge') to exclude them from wiping the playfield
+const RESET_WIPE_EXCLUSIONS = [];
+
+function shouldWipePlayfield(resetType) {
+  return !RESET_WIPE_EXCLUSIONS.includes(resetType);
+}
+
 let forgeResetAudio = null;
 function playForgeResetSound() {
   try {
@@ -881,6 +888,11 @@ export function performForgeReset() {
   }
   initMutationSystem();
   unlockMutationSystem();
+  
+  if (shouldWipePlayfield('forge')) {
+    try { window.spawner?.clearPlayfield?.(); } catch {}
+  }
+
   updateResetPanel();
   return true;
 }
@@ -910,7 +922,9 @@ export function performInfuseReset() {
   recomputePendingGold();
   recomputePendingMagic();
   
-  try { window.spawner?.clearPlayfield?.(); } catch {}
+  if (shouldWipePlayfield('infuse')) {
+    try { window.spawner?.clearPlayfield?.(); } catch {}
+  }
 
   setInfuseUnlocked(true);
   if (!resetState.hasDoneInfuseReset) {
@@ -960,7 +974,10 @@ export function performSurgeReset() {
   
   playSurgeResetSound();
   triggerSurgeWaveAnimation();
-  try { window.spawner?.clearPlayfield?.(); } catch {}
+  
+  if (shouldWipePlayfield('surge')) {
+    try { window.spawner?.clearPlayfield?.(); } catch {}
+  }
   
   updateResetPanel();
   return true;
