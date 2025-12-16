@@ -1246,7 +1246,7 @@ function ensureMerchantScrollbar() {
 
   const updateThumb = () => {
     const { scrollHeight, clientHeight, scrollTop } = scroller;
-    const barH = bar.clientHeight || 1;
+    const barH = bar.clientHeight || scroller.clientHeight || 1;
 
     const visibleRatio = clientHeight / Math.max(1, scrollHeight);
     const thumbH = Math.max(28, Math.round(barH * visibleRatio));
