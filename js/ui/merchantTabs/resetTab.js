@@ -1135,9 +1135,9 @@ function buildPanel(panelEl) {
                 <p data-reset-desc="surge">
                   Resets everything Infuse does as well as Magic and Magic upgrades for Waves<br>
                   Increase pending Wave amount by increasing Coins, XP Level, Gold, MP, and Magic<br>
-                  Below is a bar which shows how much progress you have toward the next Surge<br>
-                  Each Surge requires 10x more Waves than the last<br>
-                  Right below the bar is a list of each Surge's benefits
+				  Waves cannot be spent on upgrades, rather they are only useful for filling a bar
+                  The bar below shows how much Wave progress you have until the next Surge<br>
+                  Each Surge provides a powerful boost, but Wave requirement increases 10x each Surge
                 </p>
               </div>
               <div class="merchant-reset__status" data-reset-status="surge"></div>
