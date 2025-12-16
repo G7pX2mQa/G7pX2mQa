@@ -753,6 +753,12 @@ function recomputePendingWaves() {
   const mp = getTotalCumulativeMp();
 
   resetState.pendingWaves = computeSurgeWaves(xpLevel, coins, gold, magic, mp);
+
+  if (!hasDoneSurgeReset()) {
+    if (resetState.pendingWaves.cmp(BN.fromInt(10)) > 0) {
+      resetState.pendingWaves = BN.fromInt(10);
+    }
+  }
 }
 
 function canAccessForgeTab() {
@@ -1008,6 +1014,27 @@ function updateWaveBar() {
   }
   
   let changed = false;
+
+  // Optimization for massive waves: jump to the approximate level
+  const logCurrent = approxLog10BigNum(currentWaves);
+  const logReq = approxLog10BigNum(req);
+
+  if (Number.isFinite(logCurrent) && Number.isFinite(logReq) && logCurrent > logReq + 2) {
+    const targetLevel = Math.max(barLevel, Math.floor(logCurrent - 1));
+    if (targetLevel > barLevel) {
+      const largestCost = BigNum.fromInt(10).mulBigNumInteger(bigNumFromLog10(targetLevel - 1));
+      const totalCostApprox = largestCost.mulDecimal('1.111111111111111111');
+      try {
+        if (currentWaves.cmp(totalCostApprox) >= 0) {
+          currentWaves = currentWaves.sub(totalCostApprox);
+          barLevel = targetLevel;
+          changed = true;
+          req = BigNum.fromInt(10).mulBigNumInteger(bigNumFromLog10(barLevel));
+        }
+      } catch {}
+    }
+  }
+  
   let safety = 0;
   
   while (safety < 100) {
