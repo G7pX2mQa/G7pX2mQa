@@ -1359,6 +1359,7 @@ function ensureMerchantScrollbar() {
 
   // mark so we don't double-init
   scroller.__customScroll = { bar, thumb, ro, updateAll };
+  updateAll();
 }
 
 function ensureMerchantOverlay() {
