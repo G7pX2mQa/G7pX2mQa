@@ -335,17 +335,34 @@ function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
   const logMagic = approxLog10BigNum(magicBn);
   const logMp = approxLog10BigNum(mpBn);
 
-  const coinsMult = Number.isFinite(logCoins) ? Math.max(1, logCoins / 24) : 1;
-  const goldMult = Number.isFinite(logGold) ? Math.max(1, logGold / 13) : 1;
-  const magicMult = Number.isFinite(logMagic) ? Math.max(1, logMagic / 5.4) : 1;
-  const mpMult = Number.isFinite(logMp) ? Math.max(1, logMp / 12) : 1;
+  // Handle Infinity
+  if (logCoins === Number.POSITIVE_INFINITY || 
+      logGold === Number.POSITIVE_INFINITY || 
+      logMagic === Number.POSITIVE_INFINITY || 
+      logMp === Number.POSITIVE_INFINITY) {
+    return BN.fromAny('Infinity');
+  }
 
-  const totalMult = coinsMult * goldMult * magicMult * mpMult;
+  const LOG1_1 = Math.log10(1.1);
+  let logSum = 0;
+
+  if (Number.isFinite(logCoins) && logCoins > 24) {
+    logSum += (logCoins - 24) * LOG1_1;
+  }
+  if (Number.isFinite(logGold) && logGold > 13) {
+    logSum += (logGold - 13) * LOG1_1;
+  }
+  if (Number.isFinite(logMagic) && logMagic > 5) {
+    logSum += (logMagic - 5) * LOG1_1;
+  }
+  if (Number.isFinite(logMp) && logMp > 12) {
+    logSum += (logMp - 12) * LOG1_1;
+  }
   
-  // Combine: 10 * totalMult * 10^(xpTerm)
-  // log10(Waves) = 1 + log10(totalMult) + xpTerm
+  // Combine: 10 * 10^logSum * 10^(xpTerm)
+  // log10(Waves) = 1 + logSum + xpTerm
   
-  const logTotal = 1 + Math.log10(totalMult) + xpTerm;
+  const logTotal = 1 + logSum + xpTerm;
   if (!Number.isFinite(logTotal)) return BN.fromAny('Infinity');
   
   return bigNumFromLog10(logTotal).floorToInteger();
