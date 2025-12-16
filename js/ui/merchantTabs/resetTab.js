@@ -36,6 +36,7 @@ import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 import { clearPendingGains } from '../../game/coinPickup.js';
 
 const BN = BigNum;
+const LOG1_1 = Math.log10(1.1);
 const bnZero = () => BN.fromInt(0);
 const bnOne = () => BN.fromInt(1);
 
@@ -343,7 +344,6 @@ function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
     return BN.fromAny('Infinity');
   }
 
-  const LOG1_1 = Math.log10(1.1);
   let logSum = 0;
 
   if (Number.isFinite(logCoins) && logCoins > 24) {
