@@ -40,6 +40,34 @@ const pendingAreaSaves = new Map(); // key -> {areaKey, stateArr, slot} [Legacy/
 const pendingUpgradeSaves = new Map(); // key -> {areaKey, upgId, state, slot}
 let pendingNotify = false;
 
+const deferredWrites = new Map();
+let deferredFlushTimer = null;
+
+function flushDeferredWrites() {
+  if (deferredWrites.size === 0) return;
+  deferredWrites.forEach(({ areaKey, upgId, state, slot }, key) => {
+    try {
+      const payload = JSON.stringify(state);
+      localStorage.setItem(key, payload);
+      try { primeStorageWatcherSnapshot(key, payload); } catch {}
+    } catch (e) {
+      console.warn('Failed to save deferred upgrade state', areaKey, upgId, e);
+    }
+  });
+  deferredWrites.clear();
+}
+
+function initDeferredFlush() {
+  if (typeof window === 'undefined') return;
+  if (deferredFlushTimer) return;
+  deferredFlushTimer = setInterval(flushDeferredWrites, 2000);
+  try { window.addEventListener('beforeunload', flushDeferredWrites); } catch {}
+  try { window.addEventListener('pagehide', flushDeferredWrites); } catch {}
+  try { document.addEventListener('visibilitychange', () => {
+      if (document.hidden) flushDeferredWrites();
+  }); } catch {}
+}
+
 export function batchUpgradeOperations(fn) {
   if (isBatching) {
     return fn();
@@ -3171,6 +3199,15 @@ function loadUpgradeFromStorage(areaKey, upgId, slot) {
         } catch {}
     }
 
+    if (deferredWrites.has(key)) {
+        try {
+            const deferred = deferredWrites.get(key);
+            if (deferred?.state) {
+                return JSON.parse(JSON.stringify(deferred.state));
+            }
+        } catch {}
+    }
+
     try {
         const raw = localStorage.getItem(key);
         return raw ? JSON.parse(raw) : null;
@@ -3209,12 +3246,17 @@ function loadAreaState(areaKey, slot = getActiveSlot(), options = {}) {
   return arr;
 }
 
-function saveUpgradeState(areaKey, upgId, state, slot = getActiveSlot()) {
+function saveUpgradeState(areaKey, upgId, state, slot = getActiveSlot(), options = {}) {
     const key = getUpgradeStorageKey(areaKey, upgId, slot);
     if (!key) return;
     
     if (isBatching) {
         pendingUpgradeSaves.set(key, { areaKey, upgId, state, slot });
+        return;
+    }
+
+    if (options && options.deferSave) {
+        deferredWrites.set(key, { areaKey, upgId, state, slot });
         return;
     }
 
@@ -3404,7 +3446,7 @@ try {
   return state;
 }
 
-function commitUpgradeState(state) {
+function commitUpgradeState(state, options = {}) {
   if (!state) return;
   const { areaKey } = state;
   const slot = state.slot ?? getActiveSlot();
@@ -3454,7 +3496,7 @@ try {
     rec.hmEvolutions = normalizeHmEvolutionCount(state.hmEvolutions);
   }
 
-  saveUpgradeState(areaKey, normalizedId, rec, slot);
+  saveUpgradeState(areaKey, normalizedId, rec, slot, options);
   state.slot = slot;
 }
 
@@ -3896,7 +3938,7 @@ export function setLevel(areaKey, upgId, lvl, clampToCap = true, options = {}) {
     state.nextCostBn = BigNum.fromInt(0);
   }
 
-  commitUpgradeState(state);
+  commitUpgradeState(state, { deferSave: options?.deferSave });
   invalidateUpgradeState(areaKey, upgId);
   emitUpgradeLevelChange(upg, prevLevelNum, prevLevelBn, state.lvl, state.lvlBn);
   notifyChanged();
@@ -4588,7 +4630,8 @@ export function performFreeAutobuy(areaKey, upgId) {
 
   // Set the new level without deducting currency
   const nextLevelBn = lvlBn.add(countBn);
-  setLevel(areaKey, upgId, nextLevelBn, true);
+  initDeferredFlush();
+  setLevel(areaKey, upgId, nextLevelBn, true, { deferSave: true });
 
   return { bought: countBn };
 }
