@@ -1134,9 +1134,13 @@ function buildPanel(panelEl) {
               <div class="merchant-reset__titles">
                 <p data-reset-desc="surge">
                   Resets everything Infuse does as well as Magic and Magic upgrades for Waves<br>
-                  Waves fill the bar below to unlock powerful milestones
+                  Increase pending Wave amount by increasing Coins, XP Level, Gold, MP, and Magic<br>
+                  Below is a bar which shows how much progress you have toward the next Surge<br>
+                  Each Surge requires 10x more Waves than the last<br>
+                  Right below the bar is a list of each Surge's benefits
                 </p>
               </div>
+              <div class="merchant-reset__status" data-reset-status="surge"></div>
               <!-- Wave Bar -->
               <div class="merchant-reset__bar-container" style="margin-top: 8px;">
                  <div class="merchant-reset__bar-wrapper" style="background: rgba(0,0,0,0.3); height: 24px; border-radius: 4px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
@@ -1144,7 +1148,6 @@ function buildPanel(panelEl) {
                     <span class="merchant-reset__bar-text" data-reset-bar-text="surge" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">0 / 10</span>
                  </div>
               </div>
-              <div class="merchant-reset__status" data-reset-status="surge"></div>
             </div>
 
             <div class="merchant-reset__actions">
@@ -1436,12 +1439,12 @@ function updateSurgeCard() {
         if (el.status.innerHTML !== '') el.status.innerHTML = '';
       } else {
          const expected = `
-          <span style="color:#00e5ff; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-            Surging for the first time will unlock a new set of upgrades and features in the future.
-            <br>You will also get <strong>10 Waves</strong> to start with!
+          <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+            Surging for the first time will unlock a new Merchant dialogue and a new tab: <span style="color:#00e5ff"><strong>Warps</strong></span><br>
+            Warps may speed up gameplay a bit, so definitely check them out
           </span>
          `.trim();
-         if (!el.status.innerHTML.includes('Surging')) el.status.innerHTML = expected;
+         if (!el.status.innerHTML.includes('Warps')) el.status.innerHTML = expected;
       }
   }
 
