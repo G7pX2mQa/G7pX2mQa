@@ -247,12 +247,11 @@ function getXpLevelBn() {
 
 function computeForgeGold(coinsBn, levelBn) {
   if (!coinsBn || typeof coinsBn !== 'object') return bnZero();
-  if (coinsBn.isZero?.()) return bnZero();
   const logCoins = approxLog10BigNum(coinsBn);
   if (!Number.isFinite(logCoins)) {
-    return logCoins > 0 ? BN.fromAny('Infinity') : bnZero();
+    if (logCoins > 0) return BN.fromAny('Infinity');
   }
-  const logScaled = logCoins - 5;
+  const logScaled = Math.max(0, logCoins - 5);
   if (!Number.isFinite(logScaled)) return bnZero();
   const pow2 = bigNumFromLog10(logScaled * Math.log10(2));
   const levelNum = Math.max(0, levelToNumber(levelBn));
@@ -273,16 +272,13 @@ function computeForgeGold(coinsBn, levelBn) {
 }
 
 function computeInfuseMagicBase(coinsBn, cumulativeMpBn) {
-  if (!coinsBn || coinsBn.isZero?.()) return bnZero();
+  if (!coinsBn) return bnZero();
 
-  const threshold = BN.fromAny('1e12');
-  if (coinsBn.cmp(threshold) < 0) return bnZero();
 
   const logCoins = approxLog10BigNum(coinsBn);
-  if (!Number.isFinite(logCoins)) return BN.fromAny('Infinity');
+  if (!Number.isFinite(logCoins)) { if (logCoins > 0) return BN.fromAny('Infinity'); }
 
-  const logCRatio = logCoins - 12;
-  if (logCRatio < 0) return bnZero();
+  const logCRatio = Math.max(0, logCoins - 12);
 
   const LOG_BASE = 0.811078; // Math.log10(6.4726)
   const LOG_1_5 = 0.176091;  // Math.log10(1.5)
@@ -813,8 +809,6 @@ export function canPerformForgeReset() {
   if (!isForgeUnlocked()) return false;
   if (!meetsLevelRequirement()) return false;
   if (resetState.pendingGold.isZero?.()) return false;
-  const coins = bank.coins?.value;
-  if (!coins || coins.isZero?.()) return false;
   return true;
 }
 
@@ -822,8 +816,6 @@ export function canPerformInfuseReset() {
   if (!isInfuseUnlocked()) return false;
   if (!meetsInfuseRequirement()) return false;
   if (resetState.pendingMagic.isZero?.()) return false;
-  const coins = bank.coins?.value;
-  if (!coins || coins.isZero?.()) return false;
   return true;
 }
 
@@ -1324,10 +1316,6 @@ function updateForgeCard({ goldMult = null } = {}) {
     return;
   }
 
-  if (resetState.pendingGold.isZero?.()) {
-    updateResetButtonContent(el.btn, { disabled: true, msg: 'Collect more coins to earn Gold from a Forge reset' });
-    return;
-  }
 
   updateResetButtonContent(el.btn, { disabled: false }, GOLD_ICON_SRC, getPendingGoldWithMultiplier(goldMult));
 }
@@ -1373,10 +1361,6 @@ function updateInfuseCard() {
     return;
   }
   
-  if (resetState.pendingMagic.isZero?.()) {
-    updateResetButtonContent(el.btn, { disabled: true, msg: 'Collect more coins to earn Magic from an Infuse reset' });
-    return;
-  }
   
   updateResetButtonContent(el.btn, { disabled: false }, MAGIC_ICON_SRC, resetState.pendingMagic);
 }
