@@ -507,14 +507,15 @@ function commitBatch(batch) {
 
   // Trigger transitions for coins
   if (newCoins.length > 0) {
-      // Force reflow to ensure start position is applied
-      void refs.c.offsetWidth;
-      
-      for (const c of newCoins) {
-          if (!c.el) continue;
-          c.el.style.transition = `transform ${animationDurationMs}ms ${CUBIC_BEZIER} ${c.jitterMs}ms`;
-          c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
-      }
+      // Defer transition application to avoid forced reflow
+      requestAnimationFrame(() => {
+        for (const c of newCoins) {
+            if (!c.el) continue;
+            c.el.style.transition = `transform ${animationDurationMs}ms ${CUBIC_BEZIER} ${c.jitterMs}ms`;
+            c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
+        }
+      });
+
   }
 
   requestAnimationFrame(() => {
