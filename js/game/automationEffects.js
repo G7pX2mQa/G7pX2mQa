@@ -14,7 +14,8 @@ import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js'
 import { getActiveSlot } from '../util/storage.js';
 
 let accumulator = 0;
-let autobuyAccumulator = 0;
+let autobuyIndex = 0;
+let workshopTicker = 0;
 
 // Autobuyer Toggle Cache
 // Structure: Map<string, string> where key is the localStorage key and value is the setting ('0' or '1')
@@ -78,10 +79,6 @@ function onTick(dt) {
 }
 
 function updateAutobuyers(dt) {
-  autobuyAccumulator += dt;
-  if (autobuyAccumulator < 0.2) return; // 5Hz throttling
-  autobuyAccumulator = 0;
-
   const coinAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_COIN_UPGRADES_ID) > 0;
   const bookAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_BOOK_UPGRADES_ID) > 0;
   const goldAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_GOLD_UPGRADES_ID) > 0;
@@ -91,37 +88,43 @@ function updateAutobuyers(dt) {
   if (!coinAutobuy && !bookAutobuy && !goldAutobuy && !magicAutobuy && !workshopAutobuy) return;
 
   const slot = getActiveSlot();
-  // Ensure cache slot is synced at start of tick processing to handle external slot changes
-  // although ensureCacheSlot is called inside getAutobuyerToggle, calling it here once is safe
   ensureCacheSlot(slot);
 
-  // Process standard upgrades if any standard autobuyer is active
+  // Tick-sliced processing for standard upgrades
   if (coinAutobuy || bookAutobuy || goldAutobuy || magicAutobuy) {
     const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
-    for (const upg of upgrades) {
-      let shouldAutobuy = false;
-
-      if (upg.costType === 'coins' && coinAutobuy) shouldAutobuy = true;
-      else if (upg.costType === 'books' && bookAutobuy) shouldAutobuy = true;
-      else if (upg.costType === 'gold' && goldAutobuy) shouldAutobuy = true;
-      else if (upg.costType === 'magic' && magicAutobuy) shouldAutobuy = true;
-
-      if (shouldAutobuy) {
-        // Use cached getter
-        const setting = getAutobuyerToggle(AREA_KEYS.STARTER_COVE, upg.id);
-        if (setting === '0') continue; // Skip if explicitly disabled
+    if (upgrades.length > 0) {
+      // Process 2 upgrades per tick (20Hz) -> 40 upgrades/sec check rate
+      // Spreads out localStorage writes to avoid INP spikes
+      for (let i = 0; i < 2; i++) {
+        autobuyIndex = (autobuyIndex + 1) % upgrades.length;
+        const upg = upgrades[autobuyIndex];
         
-        performFreeAutobuy(AREA_KEYS.STARTER_COVE, upg.id);
+        let shouldAutobuy = false;
+        if (upg.costType === 'coins' && coinAutobuy) shouldAutobuy = true;
+        else if (upg.costType === 'books' && bookAutobuy) shouldAutobuy = true;
+        else if (upg.costType === 'gold' && goldAutobuy) shouldAutobuy = true;
+        else if (upg.costType === 'magic' && magicAutobuy) shouldAutobuy = true;
+
+        if (shouldAutobuy) {
+          const setting = getAutobuyerToggle(AREA_KEYS.STARTER_COVE, upg.id);
+          if (setting !== '0') {
+            performFreeAutobuy(AREA_KEYS.STARTER_COVE, upg.id);
+          }
+        }
       }
     }
   }
 
-  // Process workshop levels
+  // Process workshop levels (throttled to ~4Hz)
   if (workshopAutobuy) {
-    // Check standard automation toggle key (ccc:autobuy:automation:6)
-    const setting = getAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID);
-    if (setting !== '0') {
-      performFreeGenerationUpgrade();
+    workshopTicker++;
+    if (workshopTicker >= 5) {
+      workshopTicker = 0;
+      const setting = getAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID);
+      if (setting !== '0') {
+        performFreeGenerationUpgrade();
+      }
     }
   }
 }
