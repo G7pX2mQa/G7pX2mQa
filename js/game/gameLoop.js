@@ -21,13 +21,24 @@ function loop(now) {
 
   // Clamp dt to avoid spiral of death if tab was backgrounded for a long time
   // (Offline progress handles >1s usually, but we clamp here to be safe)
-  if (dt > 1.0) dt = 1.0; 
+  // Bolt: Increased to 60s to allow catching up after lag spikes (e.g. shop open)
+  // to prevent permanent desync of game state vs cursor position.
+  if (dt > 60.0) dt = 60.0; 
   if (dt < 0) dt = 0;
   
   accumulator += dt;
 
   // Process fixed steps
+  // Bolt: Limit ticks per frame to fast-forward instead of freezing the browser.
+  let ticksProcessed = 0;
+  const MAX_TICKS_PER_FRAME = 250; // ~12.5s of simulation per frame
+
   while (accumulator >= FIXED_STEP) {
+    if (ticksProcessed >= MAX_TICKS_PER_FRAME) {
+      // Break early; remaining accumulator will be processed next frame (fast-forward)
+      break;
+    }
+
     tickListeners.forEach(listener => {
       try {
         listener(FIXED_STEP);
@@ -36,6 +47,7 @@ function loop(now) {
       }
     });
     accumulator -= FIXED_STEP;
+    ticksProcessed++;
   }
 
   rafId = requestAnimationFrame(loop);
