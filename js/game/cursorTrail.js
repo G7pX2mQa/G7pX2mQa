@@ -97,7 +97,11 @@ export function createCursorTrail(playfield) {
 
   const updateBounds = () => {
     if (destroyed) return;
-    rect = playfield.getBoundingClientRect();
+    // Optimization: Assume playfield fills the viewport (position: fixed, inset: 0)
+    // This avoids getBoundingClientRect() forcing reflows or returning stale offsets
+    const w = document.documentElement.clientWidth;
+    const h = document.documentElement.clientHeight;
+    rect = { left: 0, top: 0, width: w, height: h, right: w, bottom: h, x: 0, y: 0 };
   };
 
   const resize = () => {
@@ -177,8 +181,9 @@ export function createCursorTrail(playfield) {
 
     // Calculate offset once per event
     // Note: rect.left/top are screen coordinates. clientX/Y are screen coordinates.
-    const offsetX = rect.left;
-    const offsetY = rect.top;
+    // Optimization: rect.left/top are assumed 0 for full-screen playfield
+    const offsetX = 0;
+    const offsetY = 0;
 
     // Helper to check bounds
     const isIn = (x, y) => (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height);
