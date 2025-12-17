@@ -35,6 +35,7 @@ import {
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
 import { getGenerationLevelKey, getGenerationUpgradeCost } from '../ui/merchantTabs/workshopTab.js';
+import { getSurgeBarLevelKey } from '../ui/merchantTabs/resetTab.js';
 import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 
@@ -1963,6 +1964,100 @@ function buildAreaStats(container, area) {
                 genLevelRow.setValue(newVal);
             }
         });
+    }
+
+    // Surge Level
+    const surgeLevelKey = getSurgeBarLevelKey(slot);
+    if (surgeLevelKey) {
+        let currentSurgeLevel = 0;
+        try {
+            const raw = localStorage.getItem(surgeLevelKey);
+            if (raw === 'Infinity') {
+                currentSurgeLevel = Infinity;
+            } else {
+                currentSurgeLevel = BigNum.fromAny(raw || '0');
+            }
+        } catch {
+            currentSurgeLevel = BigNum.fromInt(0);
+        }
+
+        const surgeLevelRow = createInputRow('Surge Level', currentSurgeLevel, (value, { setValue }) => {
+            let valToStore = '0';
+            let valForDisplay = 0;
+
+            if (value instanceof BigNum) {
+                 if (value.isInfinite()) {
+                     valToStore = 'Infinity';
+                     valForDisplay = Infinity;
+                 } else {
+                     valToStore = value.toPlainIntegerString();
+                     valForDisplay = value;
+                 }
+            } else if (value === Infinity || (typeof value === 'string' && /infinity/i.test(value))) {
+                 valToStore = 'Infinity';
+                 valForDisplay = Infinity;
+            } else {
+                 valToStore = String(value);
+                 valForDisplay = value;
+            }
+
+            try {
+                localStorage.setItem(surgeLevelKey, valToStore);
+                flagDebugUsage();
+                
+                const displayStr = valForDisplay === Infinity ? 'Infinity' : formatNumber(valForDisplay);
+                const prevStr = (currentSurgeLevel === Infinity || (currentSurgeLevel instanceof BigNum && currentSurgeLevel.isInfinite())) 
+                                ? 'Infinity' 
+                                : formatNumber(currentSurgeLevel);
+                
+                logAction(`Modified Surge Level (The Cove) ${prevStr} → ${displayStr}`);
+                
+                if (valForDisplay === Infinity) {
+                    currentSurgeLevel = Infinity;
+                } else if (valForDisplay instanceof BigNum) {
+                    currentSurgeLevel = valForDisplay;
+                } else {
+                    currentSurgeLevel = BigNum.fromAny(valForDisplay);
+                }
+            } catch {}
+            
+            setValue(valForDisplay);
+            try { window.resetSystem?.updateResetPanel?.(); } catch {}
+        }, {
+            storageKey: surgeLevelKey,
+            onLockChange: (locked) => {
+                 let newVal = BigNum.fromInt(0);
+                 try {
+                    const r = localStorage.getItem(surgeLevelKey);
+                     if (r === 'Infinity') {
+                         newVal = Infinity;
+                     } else {
+                         newVal = BigNum.fromAny(r || '0');
+                     }
+                 } catch {}
+                 surgeLevelRow.setValue(newVal);
+            }
+        });
+        
+        registerLiveBinding({
+            type: 'surge-level', 
+            slot,
+            refresh: () => {
+                 if (slot !== getActiveSlot()) return;
+                 let newVal = BigNum.fromInt(0);
+                 try {
+                    const r = localStorage.getItem(surgeLevelKey);
+                     if (r === 'Infinity') {
+                         newVal = Infinity;
+                     } else {
+                         newVal = BigNum.fromAny(r || '0');
+                     }
+                 } catch {}
+                 surgeLevelRow.setValue(newVal);
+            }
+        });
+        
+        container.appendChild(surgeLevelRow.row);
     }
 }
 
