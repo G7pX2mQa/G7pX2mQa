@@ -2797,7 +2797,7 @@ export const REGISTRY = [
     id: 14,
     tie: UPGRADE_TIES.COIN_VALUE_III,
     title: "Coin Value III",
-    desc: `Increases Coin value by +${formatNumber(BigNum.fromInt(30000))}% per level`,
+    desc: `Increases Coin value by +${formatNumber(BigNum.fromInt(50000))}% per level`,
     lvlCap: 100,
     baseCost: 1,
     costType: "magic",
@@ -2812,14 +2812,14 @@ export const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `Coin value bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addPctPerLevel(300),
+    effectMultiplier: E.addPctPerLevel(500),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 15,
     tie: UPGRADE_TIES.XP_VALUE_III,
     title: "XP Value III",
-    desc: "Increases XP value by +200% per level",
+    desc: "Increases XP value by +300% per level",
     lvlCap: 100,
     baseCost: 3,
     costType: "magic",
@@ -2834,7 +2834,7 @@ export const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `XP value bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addPctPerLevel(2),
+    effectMultiplier: E.addPctPerLevel(3),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
