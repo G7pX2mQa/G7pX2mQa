@@ -264,6 +264,15 @@ function setupLiveBindingListeners() {
     };
     window.addEventListener('workshop:change', workshopHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('workshop:change', workshopHandler));
+
+    const surgeHandler = (event) => {
+        const { slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'surge-level'
+            && binding.slot === targetSlot);
+    };
+    window.addEventListener('surge:level:change', surgeHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('surge:level:change', surgeHandler));
 }
 
 const XP_KEY_PREFIX = 'ccc:xp';
