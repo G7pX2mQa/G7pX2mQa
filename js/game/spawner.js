@@ -566,36 +566,37 @@ export function createSpawner({
     function drawSettledCoins() {
         if (!ctx || !canvasDirty) return;
         
-        const logicalW = canvas.width / (window.devicePixelRatio || 1);
-        const logicalH = canvas.height / (window.devicePixelRatio || 1);
-        
+        // Clear canvas
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
         
+        // Optimization: Batch context operations
+        // Settled coins always have rot=0 and scale=1, so we avoid per-coin save/restore/transform
+        
+        if (enableDropShadow) {
+             ctx.save();
+             ctx.shadowColor = 'rgba(0,0,0,0.35)';
+             ctx.shadowBlur = 2;
+             ctx.shadowOffsetY = 2;
+        }
+
         const count = activeCoins.length;
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
             if (c.settled && !c.isRemoved && !c.el) {
                 const img = getImage(c.src);
                 if (img && img.complete && img.naturalWidth > 0) {
-                     ctx.save();
-                     ctx.translate(c.x + coinSize/2, c.y + coinSize/2);
-                     ctx.rotate(c.rot * Math.PI / 180);
-                     ctx.scale(c.scale, c.scale);
-                     
-                     if (enableDropShadow) {
-                         ctx.shadowColor = 'rgba(0,0,0,0.35)';
-                         ctx.shadowBlur = 2;
-                         ctx.shadowOffsetY = 2;
-                     }
-
-                     ctx.drawImage(img, -coinSize/2, -coinSize/2, coinSize, coinSize);
-                     ctx.restore();
+                     ctx.drawImage(img, c.x, c.y, coinSize, coinSize);
                 }
             }
         }
+        
+        if (enableDropShadow) {
+            ctx.restore();
+        }
+
         canvasDirty = false;
     }
 
