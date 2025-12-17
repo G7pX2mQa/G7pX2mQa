@@ -442,6 +442,10 @@ function buildWorkshopUI(container) {
   const rightCol = container.querySelector('.workshop-side-right');
   const upgradeBtn = container.querySelector('[data-workshop="upgrade-gen"]');
   upgradeBtn.addEventListener('click', () => { buyGenerationUpgrade(); });
+  upgradeBtn.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      buyMaxGenerationUpgrade();
+  });
   const automationBtn = container.querySelector('.btn-automation-shop');
   automationBtn.addEventListener('click', () => { openShop('automation'); });
   const syncLayout = () => {
@@ -701,4 +705,63 @@ export function performFreeGenerationUpgrade() {
     }
   }
   return false;
+}
+
+function buyMaxGenerationUpgrade() {
+  if (bank.coins.value.isInfinite()) {
+      if (performFreeGenerationUpgrade()) {
+          playPurchaseSfx();
+      }
+      return;
+  }
+  
+  const coinsLog = approxLog10BigNum(bank.coins.value);
+  if (!Number.isFinite(coinsLog)) {
+     if (bank.coins.value.isZero()) return;
+  }
+  
+  if (calculateWorkshopCostLog(currentGenerationLevel) > coinsLog) return;
+  
+  if (currentGenerationLevel.cmp(9e15) > 0) return; 
+
+  let low = Number(currentGenerationLevel.toPlainIntegerString());
+  let high = 9e15; 
+  if (coinsLog === Infinity) high = 9e15; 
+
+  let best = low;
+  while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      if (calculateWorkshopCostLog(BigNum.fromInt(mid)) <= coinsLog) {
+          best = mid;
+          low = mid + 1;
+      } else {
+          high = mid - 1;
+      }
+  }
+  
+  let targetLevelVal = best + 1;
+  let currentVal = Number(currentGenerationLevel.toPlainIntegerString());
+  
+  let startL = Math.max(currentVal, targetLevelVal - 100);
+  
+  let totalCost = BigNum.zero();
+  for (let l = startL; l < targetLevelVal; l++) {
+      totalCost = totalCost.add(getGenerationUpgradeCost(BigNum.fromInt(l)));
+  }
+  
+  if (totalCost.cmp(bank.coins.value) > 0) {
+      let topCost = getGenerationUpgradeCost(BigNum.fromInt(targetLevelVal - 1));
+      totalCost = totalCost.sub(topCost);
+      targetLevelVal--;
+  }
+  
+  let targetLevel = BigNum.fromInt(targetLevelVal);
+  if (targetLevel.cmp(currentGenerationLevel) > 0) {
+      if (saveGenerationLevel(targetLevel)) {
+          currentGenerationLevel = targetLevel;
+          bank.coins.sub(totalCost);
+          updateWorkshopTab();
+          playPurchaseSfx();
+      }
+  }
 }
