@@ -1104,6 +1104,7 @@ function updateWaveBar() {
   
   if (changed) {
       try { localStorage.setItem(SURGE_BAR_LEVEL_KEY(slot), barLevel.toString()); } catch {}
+      try { window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level: barLevel } })); } catch {}
       
       isUpdatingWaveBar = true;
       try {
