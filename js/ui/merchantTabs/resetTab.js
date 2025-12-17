@@ -20,6 +20,8 @@ import {
   getUpgradesForArea,
   getLevelNumber,
   setLevel,
+  approxLog10BigNum,
+  bigNumFromLog10,
 } from '../../game/upgrades.js';
 import {
   initMutationSystem,
@@ -34,82 +36,6 @@ import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 import { clearPendingGains } from '../../game/coinPickup.js';
 
 const BN = BigNum;
-
-function approxLog10BigNum(value) {
-  if (!(value instanceof BigNum)) {
-    try {
-      value = BigNum.fromAny(value ?? 0);
-    } catch {
-      return Number.NEGATIVE_INFINITY;
-    }
-  }
-  if (!value) return Number.NEGATIVE_INFINITY;
-  if (value.isZero?.()) return Number.NEGATIVE_INFINITY;
-  if (value.isInfinite?.()) return Number.POSITIVE_INFINITY;
-
-  if (typeof value.sig === 'bigint') {
-    const sigNum = Number(value.sig);
-    if (sigNum > 0) {
-      const sigLog = Math.log10(sigNum);
-      const e = value.e || 0;
-      const off = Number(value._eOffset || 0n);
-      return sigLog + e + off;
-    }
-  }
-
-  let storage;
-  try {
-    storage = value.toStorage();
-  } catch {
-    return Number.NEGATIVE_INFINITY;
-  }
-  const parts = storage.split(':');
-  const sigStr = parts[2] ?? '0';
-  let expPart = parts[3] ?? '0';
-  let offsetStr = '0';
-  const caret = expPart.indexOf('^');
-  if (caret >= 0) {
-    offsetStr = expPart.slice(caret + 1) || '0';
-    expPart = expPart.slice(0, caret) || '0';
-  }
-  const baseExp = Number(expPart || '0');
-  const offset = Number(offsetStr || '0');
-  const digits = sigStr.replace(/^0+/, '') || '0';
-  if (digits === '0') return Number.NEGATIVE_INFINITY;
-
-  let sigLog;
-  if (digits.length <= 15) {
-    const sigNum = Number(digits);
-    if (!Number.isFinite(sigNum) || sigNum <= 0) return Number.NEGATIVE_INFINITY;
-    sigLog = Math.log10(sigNum);
-  } else {
-    const head = Number(digits.slice(0, 15));
-    if (!Number.isFinite(head) || head <= 0) return Number.NEGATIVE_INFINITY;
-    sigLog = Math.log10(head) + (digits.length - 15);
-  }
-
-  const expSum = (Number.isFinite(baseExp) ? baseExp : 0) + (Number.isFinite(offset) ? offset : 0);
-  return sigLog + expSum;
-}
-
-function bigNumFromLog10(log10Value) {
-  if (!Number.isFinite(log10Value)) {
-    return log10Value > 0 ? BigNum.fromAny('Infinity') : BigNum.fromInt(0);
-  }
-  
-  if (log10Value <= -1e12) return BigNum.fromInt(0);
-  const p = BigNum.DEFAULT_PRECISION;
-  let intPart = Math.floor(log10Value);
-  let frac = log10Value - intPart;
-  if (frac < 0) {
-    frac += 1;
-    intPart -= 1;
-  }
-  const mantissa = Math.pow(10, frac + (p - 1));
-  const sig = BigInt(Math.max(1, Math.round(mantissa)));
-  const exp = intPart - (p - 1);
-  return new BigNum(sig, exp, p);
-}
 
 const LOG1_1 = Math.log10(1.1);
 const bnZero = () => BN.fromInt(0);
@@ -1096,14 +1022,14 @@ function getSurgeBarLevel(slot) {
   return barLevel < 0n ? 0n : barLevel;
 }
 
-function getLog10BigInt(val) {
-    if (!Number.isFinite(val)) return 0n;
-    // For very large log values (e.g. from Infinity or massive offsets), handle them safely
-    if (val >= Number.MAX_SAFE_INTEGER) {
-        // Val is effectively integer-like at this magnitude
-        try { return BigInt(val); } catch { return 0n; }
-    }
-    return BigInt(Math.floor(val));
+function getSafeLog10BigInt(bn) {
+  if (!(bn instanceof BN)) return -1n;
+  if (bn.isZero?.() || bn.isInfinite?.()) return -1n;
+  let totalExp = BigInt(bn.e || 0);
+  if (bn._eOffset) totalExp += bn._eOffset;
+  const s = bn.sig.toString();
+  const sigLog = BigInt(s.length - 1);
+  return totalExp + sigLog;
 }
 
 function updateWaveBar() {
@@ -1122,16 +1048,11 @@ function updateWaveBar() {
   let changed = false;
 
   // Optimization for massive waves: jump to the approximate level
-  let logCurrent = approxLog10BigNum(currentWaves);
-  const logReq = approxLog10BigNum(req);
+  const logCurrentBigInt = getSafeLog10BigInt(currentWaves);
+  const logReqBigInt = getSafeLog10BigInt(req);
 
-  if (!Number.isFinite(logCurrent) && currentWaves.isInfinite?.()) {
-    logCurrent = Number.MAX_VALUE;
-  }
-
-  if (Number.isFinite(logCurrent) && Number.isFinite(logReq) && logCurrent > logReq + 5) {
+  if (logCurrentBigInt != -1n && logReqBigInt != -1n && logCurrentBigInt > logReqBigInt + 5n) {
     try {
-        const logCurrentBigInt = getLog10BigInt(logCurrent);
         const targetLevel = logCurrentBigInt > 0n ? logCurrentBigInt - 1n : 0n;
 
         if (targetLevel > barLevel) {
