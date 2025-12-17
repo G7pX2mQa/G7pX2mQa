@@ -331,6 +331,10 @@ export function computeInfuseMagicFromInputs(coinsBn, cumulativeMpBn) {
   return computeInfuseMagic(coinsBn, cumulativeMpBn);
 }
 
+export function computeSurgeWavesFromInputs(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
+  return computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn);
+}
+
 function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
   const xpLevel = levelToNumber(xpLevelBn);
   if (xpLevel < 201) return bnZero();
@@ -1690,6 +1694,7 @@ if (typeof window !== 'undefined') {
     computePendingForgeGold,
     computeForgeGoldFromInputs,
     computeInfuseMagicFromInputs,
+    computeSurgeWavesFromInputs,
     getForgeDebugOverrideState,
     hasDoneForgeReset,
     isForgeUnlocked,
