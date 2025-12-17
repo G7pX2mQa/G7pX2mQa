@@ -14,7 +14,6 @@ import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js'
 import { getActiveSlot } from '../util/storage.js';
 
 let accumulator = 0;
-let autobuyIndex = 0;
 let workshopTicker = 0;
 
 // Autobuyer Toggle Cache
@@ -94,12 +93,8 @@ function updateAutobuyers(dt) {
   if (coinAutobuy || bookAutobuy || goldAutobuy || magicAutobuy) {
     const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
     if (upgrades.length > 0) {
-      // Process 2 upgrades per tick (20Hz) -> 40 upgrades/sec check rate
-      // Spreads out localStorage writes to avoid INP spikes
-      for (let i = 0; i < 2; i++) {
-        autobuyIndex = (autobuyIndex + 1) % upgrades.length;
-        const upg = upgrades[autobuyIndex];
-        
+      // Process all eligible non-maxed upgrades every tick
+      for (const upg of upgrades) {
         let shouldAutobuy = false;
         if (upg.costType === 'coins' && coinAutobuy) shouldAutobuy = true;
         else if (upg.costType === 'books' && bookAutobuy) shouldAutobuy = true;
@@ -109,7 +104,11 @@ function updateAutobuyers(dt) {
         if (shouldAutobuy) {
           const setting = getAutobuyerToggle(AREA_KEYS.STARTER_COVE, upg.id);
           if (setting !== '0') {
-            performFreeAutobuy(AREA_KEYS.STARTER_COVE, upg.id);
+            const currentLevel = getLevelNumber(AREA_KEYS.STARTER_COVE, upg.id);
+            const cap = upg.lvlCap ?? Infinity;
+            if (currentLevel < cap) {
+              performFreeAutobuy(AREA_KEYS.STARTER_COVE, upg.id);
+            }
           }
         }
       }
