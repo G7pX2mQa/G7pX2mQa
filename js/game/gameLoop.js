@@ -8,7 +8,8 @@ let paused = false;
 let lastTime = 0;
 let accumulator = 0;
 
-function loop(now) {
+function loop() {
+  const now = performance.now();
   if (paused) {
       lastTime = now;
       rafId = requestAnimationFrame(loop);
