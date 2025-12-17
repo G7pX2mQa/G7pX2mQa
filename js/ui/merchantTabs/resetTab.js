@@ -34,6 +34,7 @@ import {
 } from '../../game/mutationSystem.js';
 import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 import { clearPendingGains } from '../../game/coinPickup.js';
+import { getVisibleMilestones } from '../../game/surgeMilestones.js';
 
 const BN = BigNum;
 
@@ -145,6 +146,7 @@ const resetState = {
       bar: null,
       barFill: null,
       barText: null,
+      milestones: null,
     },
   },
   layerButtons: {},
@@ -1224,6 +1226,9 @@ function buildPanel(panelEl) {
                     <span class="merchant-reset__bar-text" data-reset-bar-text="surge" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">0 / 10</span>
                  </div>
               </div>
+              
+              <!-- Surge Milestones -->
+              <div class="surge-milestone-container" data-reset-milestones="surge"></div>
             </div>
 
             <div class="merchant-reset__actions">
@@ -1262,6 +1267,7 @@ function buildPanel(panelEl) {
   resetState.elements.surge.btn = panelEl.querySelector('[data-reset-action="surge"]');
   resetState.elements.surge.barFill = panelEl.querySelector('[data-reset-bar-fill="surge"]');
   resetState.elements.surge.barText = panelEl.querySelector('[data-reset-bar-text="surge"]');
+  resetState.elements.surge.milestones = panelEl.querySelector('[data-reset-milestones="surge"]');
 
   // Sidebar Buttons
   resetState.layerButtons = {
@@ -1500,6 +1506,25 @@ function updateSurgeCard() {
   
   if (el.barFill) el.barFill.style.width = `${pct}%`;
   if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums">${formatBn(currentWaves)} / ${formatBn(req)}</span>`;
+
+  if (el.milestones) {
+    const visible = getVisibleMilestones(barLevel);
+    let msHtml = '';
+    visible.forEach(m => {
+        const isReached = BigInt(m.surgeLevel) <= barLevel;
+        const reachedClass = isReached ? 'is-reached' : '';
+        const desc = m.description.map(d => `<div>- ${d}</div>`).join('');
+        msHtml += `
+          <div class="surge-milestone-item ${reachedClass}">
+            <div class="surge-milestone-title">Surge ${m.surgeLevel}</div>
+            <div class="surge-milestone-desc">${desc}</div>
+          </div>
+        `;
+    });
+    if (el.milestones.innerHTML !== msHtml) {
+        el.milestones.innerHTML = msHtml;
+    }
+  }
 
   el.card.classList.toggle('is-complete', !!resetState.hasDoneSurgeReset);
 
