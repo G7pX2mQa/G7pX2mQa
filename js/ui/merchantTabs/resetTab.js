@@ -106,7 +106,8 @@ const INFUSE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:infuseUnlocked:${slot}`;
 const SURGE_UNLOCK_KEY = (slot) => `ccc:reset:surge:${slot}`;
 const SURGE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:surgeUnlocked:${slot}`;
 const SURGE_COMPLETED_KEY = (slot) => `ccc:reset:surge:completed:${slot}`;
-const SURGE_BAR_LEVEL_KEY = (slot) => `ccc:reset:surge:barLevel:${slot}`;
+export const getSurgeBarLevelKey = (slot) => `ccc:reset:surge:barLevel:${slot}`;
+const SURGE_BAR_LEVEL_KEY = getSurgeBarLevelKey;
 
 const MIN_FORGE_LEVEL = BN.fromInt(31);
 const MIN_INFUSE_MUTATION_LEVEL = BN.fromInt(7);
@@ -1021,11 +1022,19 @@ function getSurgeBarLevel(slot) {
   try {
     const raw = localStorage.getItem(SURGE_BAR_LEVEL_KEY(slot));
     if (raw) {
-       if (raw === 'Infinity') return 0n;
+       if (raw === 'Infinity') return Infinity;
        barLevel = BigInt(raw);
     }
   } catch {}
   return barLevel < 0n ? 0n : barLevel;
+}
+
+function isSurgeLevelLocked(slot) {
+  const key = SURGE_BAR_LEVEL_KEY(slot);
+  if (typeof window !== 'undefined' && window.__cccLockedStorageKeys instanceof Set) {
+    return window.__cccLockedStorageKeys.has(key);
+  }
+  return false;
 }
 
 function getSafeLog10BigInt(bn) {
@@ -1043,10 +1052,12 @@ function updateWaveBar() {
   if (slot == null) return;
   if (!isSurgeUnlocked()) return;
   if (isUpdatingWaveBar) return;
+  if (isSurgeLevelLocked(slot)) return;
 
   let currentWaves = bank.waves?.value ?? bnZero();
   
   let barLevel = getSurgeBarLevel(slot);
+  if (barLevel === Infinity) return;
 
   // Requirement: 10 * 10^Level
   let req = new BigNum(10n, { base: 0, offset: barLevel });
@@ -1492,16 +1503,25 @@ function updateSurgeCard() {
   let barLevel = 0n;
   try { barLevel = getSurgeBarLevel(slot); } catch {}
   
-  let req = new BigNum(10n, { base: 0, offset: barLevel });
+  let req;
+  if (barLevel === Infinity) {
+    req = BigNum.fromAny('Infinity');
+  } else {
+    req = new BigNum(10n, { base: 0, offset: barLevel });
+  }
   
   let pct = 0;
   if (currentWaves && req && !req.isZero?.()) {
-      try {
-          const ratio = currentWaves.div(req);
-          // Convert to number for percentage
-          const rNum = Number(ratio.toScientific?.() ?? '0');
-          pct = Math.min(100, Math.max(0, rNum * 100));
-      } catch { pct = 0; }
+      if (req.isInfinite?.()) {
+          pct = 0;
+      } else {
+          try {
+              const ratio = currentWaves.div(req);
+              // Convert to number for percentage
+              const rNum = Number(ratio.toScientific?.() ?? '0');
+              pct = Math.min(100, Math.max(0, rNum * 100));
+          } catch { pct = 0; }
+      }
   }
   
   if (el.barFill) el.barFill.style.width = `${pct}%`;
