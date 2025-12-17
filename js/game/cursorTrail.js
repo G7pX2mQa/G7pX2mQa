@@ -217,9 +217,10 @@ export function createCursorTrail(playfield) {
     pointsQueue.length = 0; // Clear queue on leave
   };
 
-  const loop = (now) => {
+  const loop = () => {
     if (destroyed) return;
     
+    const now = performance.now();
     if (!lastTime) lastTime = now;
     let dt = now - lastTime;
     lastTime = now;
