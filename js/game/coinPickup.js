@@ -190,7 +190,10 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
 
   const updatePlayfieldRect = () => {
     if (destroyed) return;
-    playfieldRect = playfield.getBoundingClientRect();
+    // Optimization: Assume playfield fills the viewport (position: fixed, inset: 0)
+    const w = document.documentElement.clientWidth;
+    const h = document.documentElement.clientHeight;
+    playfieldRect = { left: 0, top: 0, width: w, height: h, right: w, bottom: h, x: 0, y: 0 };
   };
 
   const hideIndicator = () => {
@@ -329,8 +332,9 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     if (!playfieldRect) updatePlayfieldRect();
     const rect = playfieldRect;
 
-    localX = pointerClientX - rect.left;
-    localY = pointerClientY - rect.top;
+    // Optimization: rect.left/top assumed 0
+    localX = pointerClientX;
+    localY = pointerClientY;
     pointerInside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
     
     ensureSweepLoop();
@@ -1026,7 +1030,12 @@ export function initCoinPickup({
 
   const BRUSH_R = 25; // Slightly larger for single check
   let cachedPfRect = null;
-  const updateCachedRect = () => { cachedPfRect = pf.getBoundingClientRect(); };
+  const updateCachedRect = () => {
+      // Optimization: Assume playfield fills viewport
+      const w = document.documentElement.clientWidth;
+      const h = document.documentElement.clientHeight;
+      cachedPfRect = { left: 0, top: 0, width: w, height: h, right: w, bottom: h, x: 0, y: 0 };
+  };
   window.addEventListener('resize', updateCachedRect);
   window.addEventListener('scroll', updateCachedRect, { passive: true });
   updateCachedRect();
@@ -1043,8 +1052,9 @@ export function initCoinPickup({
   function brushAt(x,y){
     if (spawner && typeof spawner.findCoinsInRadius === 'function') {
         if (!cachedPfRect) updateCachedRect();
-        const localX = x - cachedPfRect.left;
-        const localY = y - cachedPfRect.top;
+        // Optimization: cachedPfRect.left/top are 0
+        const localX = x;
+        const localY = y;
         
         let candidates = [];
         if (typeof spawner.findCoinsInPath === 'function' && lastBrushLocalX !== null && lastBrushLocalY !== null) {
