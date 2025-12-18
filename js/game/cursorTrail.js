@@ -346,7 +346,7 @@ export function createCursorTrail(playfield) {
   window.addEventListener('focus', updateBounds, { passive: true });
   document.addEventListener('visibilitychange', updateBounds, { passive: true });
   
-  const opts = { passive: true };
+  const winOpts = { passive: true, capture: true };
   
   const onPointerEnter = (e) => {
       updateBounds();
@@ -358,11 +358,10 @@ export function createCursorTrail(playfield) {
       onPointerMove(e);
   };
 
-  playfield.addEventListener('pointermove', onPointerMove, opts);
-  playfield.addEventListener('pointerdown', onPointerDown, opts);
-  playfield.addEventListener('pointerenter', onPointerEnter, opts);
-  playfield.addEventListener('pointerleave', onPointerLeave, opts);
-  playfield.addEventListener('pointercancel', onPointerLeave, opts);
+  window.addEventListener('pointermove', onPointerMove, winOpts);
+  window.addEventListener('pointerdown', onPointerDown, winOpts);
+  playfield.addEventListener('pointerenter', onPointerEnter, { passive: true });
+  playfield.addEventListener('pointerleave', onPointerLeave, { passive: true });
 
   resize();
   rafId = requestAnimationFrame(loop);
@@ -382,11 +381,10 @@ export function createCursorTrail(playfield) {
     try { document.removeEventListener('visibilitychange', updateBounds); } catch {}
     
     try {
-      playfield.removeEventListener('pointermove', onPointerMove);
-      playfield.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove, winOpts);
+      window.removeEventListener('pointerdown', onPointerDown, winOpts);
       playfield.removeEventListener('pointerenter', onPointerEnter); 
       playfield.removeEventListener('pointerleave', onPointerLeave);
-      playfield.removeEventListener('pointercancel', onPointerLeave);
     } catch {}
     
     canvas.remove();
