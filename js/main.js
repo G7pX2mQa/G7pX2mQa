@@ -376,6 +376,7 @@ function enterArea(areaID) {
           initialRate: 1,
           surgeLifetimeMs: 1800,
           surgeWidthVw: 22,
+          initialBurst: 0,
         });
         window.spawner = spawner;
         const applyMutationSprite = () => {
@@ -421,9 +422,6 @@ function enterArea(areaID) {
         try { initXpSystem(); } catch {}
       }
       spawner.start();
-      if (spawner && typeof spawner.playEntranceWave === 'function') {
-        spawner.playEntranceWave();
-      }
       break;
     }
 
@@ -701,6 +699,9 @@ images: [
     if (titleEl) titleEl.style.opacity = '0';
     enterArea(AREAS.STARTER_COVE);
     processOfflineProgress();
+    if (window.spawner && typeof window.spawner.playEntranceWave === 'function') {
+      window.spawner.playEntranceWave();
+    }
     notifyGameSessionStarted?.();
     markProgressDirty?.('slot-entered');
   });
