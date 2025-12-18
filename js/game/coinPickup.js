@@ -169,8 +169,6 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   const indicator = document.createElement('div');
   indicator.className = 'magnet-indicator';
   indicator.setAttribute('aria-hidden', 'true');
-  indicator.style.pointerEvents = 'none';
-  indicator.style.willChange = 'transform';
   playfield.appendChild(indicator);
 
   let pointerInside = false;
@@ -398,24 +396,26 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     try { window.removeEventListener('resize', handleResize); } catch {}
     try { window.removeEventListener('saveSlot:change', refreshMagnetLevel); } catch {}
     try { document.removeEventListener('ccc:upgrades:changed', refreshMagnetLevel); } catch {}
-    try { window.removeEventListener('pointermove', updatePointerFromEvent, pointerOpts); } catch {}
-    try { window.removeEventListener('pointerdown', forceUpdateAndMove, pointerOpts); } catch {}
-    try { playfield.removeEventListener('pointerenter', forceUpdateAndMove); } catch {}
+    try { playfield.removeEventListener('pointermove', updatePointerFromEvent); } catch {}
+    try { playfield.removeEventListener('pointerdown', updatePointerFromEvent); } catch {}
+    try { playfield.removeEventListener('pointerenter', updatePointerFromEvent); } catch {}
     try { playfield.removeEventListener('pointerleave', handlePointerLeave); } catch {}
+    try { playfield.removeEventListener('pointercancel', handlePointerLeave); } catch {}
     try { indicator.remove(); } catch {}
   };
 
-  const pointerOpts = { passive: true, capture: true };
+  const pointerOpts = { passive: true };
 
   const forceUpdateAndMove = (e) => {
     updatePlayfieldRect();
     updatePointerFromEvent(e);
   };
 
-  window.addEventListener('pointermove', updatePointerFromEvent, pointerOpts);
-  window.addEventListener('pointerdown', forceUpdateAndMove, pointerOpts);
-  playfield.addEventListener('pointerenter', forceUpdateAndMove, { passive: true });
-  playfield.addEventListener('pointerleave', handlePointerLeave, { passive: true });
+  playfield.addEventListener('pointermove', updatePointerFromEvent, pointerOpts);
+  playfield.addEventListener('pointerdown', forceUpdateAndMove, pointerOpts);
+  playfield.addEventListener('pointerenter', forceUpdateAndMove, pointerOpts);
+  playfield.addEventListener('pointerleave', handlePointerLeave, pointerOpts);
+  playfield.addEventListener('pointercancel', handlePointerLeave, pointerOpts);
   window.addEventListener('resize', handleResize);
   window.addEventListener('scroll', handleScroll, { passive: true });
   window.addEventListener('focus', updatePlayfieldRect, { passive: true });
@@ -1155,14 +1155,10 @@ export function initCoinPickup({
     }
   }
 
-  const brushOpts = { passive: true, capture: true };
-  const onBrushMove = (e) => scheduleBrush(e.clientX, e.clientY);
-  const onBrushTouch = (e) => { if (e.pointerType !== 'mouse') scheduleBrush(e.clientX, e.clientY); };
-
-  window.addEventListener('pointerdown', onBrushMove, brushOpts);
-  window.addEventListener('pointermove', onBrushTouch, brushOpts);
-  window.addEventListener('pointerup',   onBrushTouch, brushOpts);
-  window.addEventListener('mousemove', onBrushMove, brushOpts);
+  pf.addEventListener('pointerdown', (e) => { scheduleBrush(e.clientX, e.clientY); }, { passive: true });
+  pf.addEventListener('pointermove', (e) => { if (e.pointerType !== 'mouse') scheduleBrush(e.clientX, e.clientY); }, { passive: true });
+  pf.addEventListener('pointerup',   (e) => { if (e.pointerType !== 'mouse') scheduleBrush(e.clientX, e.clientY); }, { passive: true });
+  pf.addEventListener('mousemove', (e) => { scheduleBrush(e.clientX, e.clientY); }, { passive: true });
 
   function setMobileVolume(v){
     const vol = Math.max(0, Math.min(1, Number(v) || 0));
@@ -1196,12 +1192,6 @@ export function initCoinPickup({
       if (!IS_MOBILE) {
         cl.removeEventListener('mouseover', onDelegatedInteract);
       }
-    } catch {}
-    try {
-      window.removeEventListener('pointerdown', onBrushMove, brushOpts);
-      window.removeEventListener('pointermove', onBrushTouch, brushOpts);
-      window.removeEventListener('pointerup', onBrushTouch, brushOpts);
-      window.removeEventListener('mousemove', onBrushMove, brushOpts);
     } catch {}
     try { ['pointerdown','pointermove','pointerup','mousemove'].forEach(evt => pf.replaceWith(pf.cloneNode(true))); } catch {}
   };
