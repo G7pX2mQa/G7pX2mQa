@@ -950,6 +950,8 @@ export function performSurgeReset() {
   const reward = resetState.pendingWaves.clone?.() ?? resetState.pendingWaves;
   if (reward.isZero?.()) return false;
 
+  const slot = ensureResetSlot();
+
   try {
     if (bank.waves?.add) {
       bank.waves.add(reward);
@@ -982,7 +984,7 @@ export function performSurgeReset() {
   
   playSurgeResetSound();
   triggerSurgeWaveAnimation();
-  
+
   if (shouldWipePlayfield('surge')) {
     try { window.spawner?.clearPlayfield?.(); } catch {}
   }
@@ -1046,6 +1048,7 @@ function getSafeLog10BigInt(bn) {
   const sigLog = BigInt(s.length - 1);
   return totalExp + sigLog;
 }
+
 
 function updateWaveBar() {
   const slot = ensureResetSlot();
@@ -1232,10 +1235,10 @@ function buildPanel(panelEl) {
               </div>
               <div class="merchant-reset__status" data-reset-status="surge"></div>
               <!-- Wave Bar -->
-              <div class="merchant-reset__bar-container" style="margin-top: 8px;">
-                 <div class="merchant-reset__bar-wrapper" style="background: rgba(0,0,0,0.3); height: 24px; border-radius: 4px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
-                    <div class="merchant-reset__bar-fill" data-reset-bar-fill="surge" style="width: 0%; height: 100%; background: linear-gradient(90deg, #00c6ff, #0072ff); transition: width 0.2s;"></div>
-                    <span class="merchant-reset__bar-text" data-reset-bar-text="surge" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">0 / 10</span>
+              <div class="merchant-reset__bar-container">
+                 <div class="merchant-reset__bar-wrapper">
+                    <div class="merchant-reset__bar-fill" data-reset-bar-fill="surge"></div>
+                    <span class="merchant-reset__bar-text" data-reset-bar-text="surge">0 / 10</span>
                  </div>
               </div>
               
