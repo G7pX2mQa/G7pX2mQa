@@ -174,7 +174,7 @@ export function createCursorTrail(playfield) {
   const onPointerMove = (e) => {
     if (destroyed) return;
     if (!rafId) {
-      lastTime = performance.now();
+      lastTime = 0;
       rafId = requestAnimationFrame(loop);
     }
     if (!rect.width) updateBounds();
