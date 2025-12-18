@@ -3154,18 +3154,23 @@ function setAllUpgradesZero(onlyUnlocked = false) {
         });
     });
 
-    batchUpgradeOperations(() => {
-        targets.forEach(({ areaKey, upg }) => {
-            try {
-                setAutobuyerToggle(areaKey, upg.id, '0');
-                setLevel(areaKey, upg.id, 0);
-                count++;
-            } catch (e) {
-                console.warn('Failed to zero upgrade', upg, e);
-            }
+    const resetAction = () => {
+        batchUpgradeOperations(() => {
+            targets.forEach(({ areaKey, upg }) => {
+                try {
+                    setAutobuyerToggle(areaKey, upg.id, '0');
+                    setLevel(areaKey, upg.id, 0);
+                } catch (e) {
+                    console.warn('Failed to zero upgrade', upg, e);
+                }
+            });
         });
-    });
-    return count;
+    };
+
+    resetAction();
+    setTimeout(resetAction, 500);
+
+    return targets.length;
 }
 
 function setAllAutomationToggles(targetState) {
