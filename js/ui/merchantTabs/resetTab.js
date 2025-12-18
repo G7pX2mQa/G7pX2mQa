@@ -342,8 +342,8 @@ function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
   const xpLevel = levelToNumber(xpLevelBn);
   if (xpLevel < 201) return bnZero();
 
-  // Formula: 10 * 10^((XP - 201)/20) * Multipliers
-  const xpTerm = (xpLevel - 201) / 20;
+  // Formula: 10 * 10^((XP - 201)/30) * Multipliers
+  const xpTerm = (xpLevel - 201) / 30;
   
   // Log-based multipliers
   const logCoins = approxLog10BigNum(coinsBn);
@@ -1529,7 +1529,7 @@ function updateSurgeCard() {
   }
   
   if (el.barFill) el.barFill.style.width = `${pct}%`;
-  if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums">${formatBn(currentWaves)} / ${formatBn(req)}</span>`;
+  if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}"> ${formatBn(currentWaves)} / <img src="${WAVES_ICON_SRC}"> ${formatBn(req)}</span>`;
 
   if (el.milestones) {
     const visible = getVisibleMilestones(barLevel);
@@ -1605,8 +1605,21 @@ export function onSurgeUpgradeUnlocked() {
   updateResetPanel();
 }
 
+function triggerSurgeBarAnimation() {
+  if (!resetState.elements.surge.barFill) return;
+  const wrapper = resetState.elements.surge.barFill.parentElement;
+  if (!wrapper) return;
+  
+  wrapper.classList.remove('surge-bar-pulse');
+  void wrapper.offsetWidth;
+  wrapper.classList.add('surge-bar-pulse');
+}
+
 function bindGlobalEvents() {
   if (typeof window === 'undefined') return;
+  window.addEventListener('surge:level:change', () => {
+    triggerSurgeBarAnimation();
+  });
   window.addEventListener('currency:change', (e) => {
     if (e.detail?.key === 'coins') {
       recomputePendingGold();
