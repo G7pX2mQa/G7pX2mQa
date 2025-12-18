@@ -4,10 +4,7 @@ import { triggerPassiveCollect } from './coinPickup.js';
 import { 
   AUTOMATION_AREA_KEY, 
   EFFECTIVE_AUTO_COLLECT_ID, 
-  AUTOBUY_COIN_UPGRADES_ID,
-  AUTOBUY_BOOK_UPGRADES_ID,
-  AUTOBUY_GOLD_UPGRADES_ID,
-  AUTOBUY_MAGIC_UPGRADES_ID,
+  MASTER_AUTOBUY_IDS,
   AUTOBUY_WORKSHOP_LEVELS_ID
 } from './automationUpgrades.js';
 import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js';
@@ -77,45 +74,64 @@ function onTick(dt) {
   updateAutobuyers(dt);
 }
 
+let _groupedUpgradesCache = null;
+
+/**
+ * ⚡ Bolt Optimization:
+ * Cache upgrades grouped by cost type to avoid filtering the registry
+ * and allocating a new array every tick.
+ */
+function getGroupedUpgrades() {
+  if (_groupedUpgradesCache) return _groupedUpgradesCache;
+
+  const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
+  const groups = {};
+
+  for (const upg of upgrades) {
+    const type = upg.costType;
+    if (!groups[type]) {
+      groups[type] = [];
+    }
+    groups[type].push(upg);
+  }
+
+  _groupedUpgradesCache = groups;
+  return _groupedUpgradesCache;
+}
+
+function processAutobuyGroup(upgrades) {
+  if (!upgrades || upgrades.length === 0) return;
+  for (const upg of upgrades) {
+    const setting = getAutobuyerToggle(AREA_KEYS.STARTER_COVE, upg.id);
+    if (setting !== '0') {
+      const currentLevel = getLevelNumber(AREA_KEYS.STARTER_COVE, upg.id);
+      const cap = upg.lvlCap ?? Infinity;
+      if (currentLevel < cap) {
+        performFreeAutobuy(AREA_KEYS.STARTER_COVE, upg.id);
+      }
+    }
+  }
+}
+
 function updateAutobuyers(dt) {
-  const coinAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_COIN_UPGRADES_ID) > 0;
-  const bookAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_BOOK_UPGRADES_ID) > 0;
-  const goldAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_GOLD_UPGRADES_ID) > 0;
-  const magicAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_MAGIC_UPGRADES_ID) > 0;
-  const workshopAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID) > 0;
-
-  if (!coinAutobuy && !bookAutobuy && !goldAutobuy && !magicAutobuy && !workshopAutobuy) return;
-
   const slot = getActiveSlot();
   ensureCacheSlot(slot);
 
   // Tick-sliced processing for standard upgrades
-  if (coinAutobuy || bookAutobuy || goldAutobuy || magicAutobuy) {
-    const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
-    if (upgrades.length > 0) {
-      // Process all eligible non-maxed upgrades every tick
-      for (const upg of upgrades) {
-        let shouldAutobuy = false;
-        if (upg.costType === 'coins' && coinAutobuy) shouldAutobuy = true;
-        else if (upg.costType === 'books' && bookAutobuy) shouldAutobuy = true;
-        else if (upg.costType === 'gold' && goldAutobuy) shouldAutobuy = true;
-        else if (upg.costType === 'magic' && magicAutobuy) shouldAutobuy = true;
-
-        if (shouldAutobuy) {
-          const setting = getAutobuyerToggle(AREA_KEYS.STARTER_COVE, upg.id);
-          if (setting !== '0') {
-            const currentLevel = getLevelNumber(AREA_KEYS.STARTER_COVE, upg.id);
-            const cap = upg.lvlCap ?? Infinity;
-            if (currentLevel < cap) {
-              performFreeAutobuy(AREA_KEYS.STARTER_COVE, upg.id);
-            }
-          }
-        }
+  // Iterate over MASTER_AUTOBUY_IDS to dynamically handle cost types
+  const groups = getGroupedUpgrades();
+  for (const [idStr, currencyKey] of Object.entries(MASTER_AUTOBUY_IDS)) {
+    const id = Number(idStr);
+    // Check if this specific autobuyer is purchased/active
+    if (getLevelNumber(AUTOMATION_AREA_KEY, id) > 0) {
+      if (groups[currencyKey]) {
+        processAutobuyGroup(groups[currencyKey]);
       }
     }
   }
 
   // Process workshop levels (throttled to ~4Hz)
+  const workshopAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID) > 0;
   if (workshopAutobuy) {
     workshopTicker++;
     if (workshopTicker >= 5) {
