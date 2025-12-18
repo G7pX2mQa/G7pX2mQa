@@ -76,7 +76,7 @@ export function createSpawner({
     backlogCap = 600,
     maxActiveCoins = IS_MOBILE ? MAX_ACTIVE_COINS_MOBILE : 5000,
     initialBurst = 1,
-    coinTtlMs = 1e9,
+    coinTtlMs = 1e99,
     waveSoundSrc = 'sounds/wave_spawn.ogg',
     waveSoundDesktopVolume = 0.45,
     waveSoundMobileVolume  = 0.2,
