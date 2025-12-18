@@ -1608,6 +1608,11 @@ export function onSurgeUpgradeUnlocked() {
 }
 
 function triggerSurgeBarAnimation() {
+  if (!resetState.panel) return;
+  const overlay = resetState.panel.closest('.merchant-overlay');
+  if (!overlay || !overlay.classList.contains('is-open')) return;
+  if (!resetState.panel.classList.contains('is-active')) return;
+
   if (!resetState.elements.surge.barFill) return;
   const barFill = resetState.elements.surge.barFill;
   const wrapper = barFill.parentElement;
