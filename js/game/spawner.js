@@ -563,6 +563,43 @@ export function createSpawner({
             commitBatch(batch);
     }
 
+    // Helper to draw a single coin image at its position
+    // Assumes ctx is set up and valid
+    function drawCoin(ctx, c) {
+        const img = getImage(c.src);
+        if (img && img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, c.x, c.y, coinSize, coinSize);
+            return true;
+        }
+        return false;
+    }
+
+    function drawSingleCoin(c) {
+        if (!ctx) return;
+        
+        // If the canvas is already dirty, a full redraw is pending anyway,
+        // so we can skip this single draw to avoid redundancy.
+        if (canvasDirty) return;
+
+        if (enableDropShadow) {
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,0.35)';
+            ctx.shadowBlur = 2;
+            ctx.shadowOffsetY = 2;
+        }
+        
+        const drawn = drawCoin(ctx, c);
+        
+        if (enableDropShadow) {
+            ctx.restore();
+        }
+        
+        if (!drawn) {
+            // Image not ready yet? We must force a retry later.
+            canvasDirty = true;
+        }
+    }
+
     function drawSettledCoins() {
         if (!ctx || !canvasDirty) return;
         
@@ -586,10 +623,7 @@ export function createSpawner({
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
             if (c.settled && !c.isRemoved && !c.el) {
-                const img = getImage(c.src);
-                if (img && img.complete && img.naturalWidth > 0) {
-                     ctx.drawImage(img, c.x, c.y, coinSize, coinSize);
-                }
+                drawCoin(ctx, c);
             }
         }
         
@@ -638,7 +672,7 @@ export function createSpawner({
                   if (c.el) {
                       releaseCoin(c.el);
                       c.el = null;
-                      canvasDirty = true;
+                      drawSingleCoin(c);
                   }
                   continue;
               }
@@ -876,10 +910,10 @@ export function createSpawner({
       if (!rafId) start();
     }
   });
-
+  
     function playEntranceWave() {
-        if (!validRefs()) return;
-        spawnBurst(1);
+      if (!validRefs()) return;
+      spawnBurst(1);
     }
 
     return {
@@ -894,6 +928,6 @@ export function createSpawner({
         findCoinsInPath,
         detachCoin,
         recycleCoin: releaseCoin,
-        playEntranceWave,
+		playEntranceWave,
     };
 }
