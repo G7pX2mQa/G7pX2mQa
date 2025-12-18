@@ -429,8 +429,8 @@
 
 .merchant-reset__bar-wrapper {
   background: rgba(0,0,0,0.3);
-  height: 24px;
-  border-radius: 4px;
+  height: 40px;
+  border-radius: 999px;
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,0.1);
@@ -442,6 +442,7 @@
   width: 0%;
   background: linear-gradient(90deg, #00c6ff, #0072ff);
   transition: width 0.2s;
+  border-radius: 999px;
 }
 
 .merchant-reset__bar-text {
@@ -453,7 +454,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 16px;
+  font-weight: 700;
   color: #fff;
   text-shadow: 0 1px 2px rgba(0,0,0,0.8);
   user-select: text;
