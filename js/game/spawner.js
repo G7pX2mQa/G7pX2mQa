@@ -877,6 +877,11 @@ export function createSpawner({
     }
   });
 
+    function playEntranceWave() {
+        if (!validRefs()) return;
+        spawnBurst(1);
+    }
+
     return {
         start,
         stop,
@@ -889,5 +894,6 @@ export function createSpawner({
         findCoinsInPath,
         detachCoin,
         recycleCoin: releaseCoin,
+        playEntranceWave,
     };
 }
