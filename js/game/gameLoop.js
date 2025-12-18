@@ -22,8 +22,7 @@ function loop(timestamp) {
   lastTime = now;
 
   // Clamp dt to avoid spiral of death if tab was backgrounded for a long time
-  // (Offline progress handles >1s usually, but we clamp here to be safe)
-  // Bolt: Increased to 60s to allow catching up after lag spikes (e.g. shop open)
+  // (Offline progress handles >1s usually, but we clamp here to be safe
   // to prevent permanent desync of game state vs cursor position.
   if (dt > 60.0) dt = 60.0; 
   if (dt < 0) dt = 0;
@@ -31,13 +30,15 @@ function loop(timestamp) {
   accumulator += dt;
 
   // Process fixed steps
-  // Bolt: Limit ticks per frame to fast-forward instead of freezing the browser.
+  // Limit ticks per frame to fast-forward instead of freezing the browser.
   let ticksProcessed = 0;
   const MAX_TICKS_PER_FRAME = 250; // ~12.5s of simulation per frame
 
   while (accumulator >= FIXED_STEP) {
     if (ticksProcessed >= MAX_TICKS_PER_FRAME) {
       // Break early; remaining accumulator will be processed next frame (fast-forward)
+      // If we hit the limit, discard excess accumulator to prevent death spiral.
+      accumulator = accumulator % FIXED_STEP;
       break;
     }
 
