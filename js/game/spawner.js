@@ -767,6 +767,107 @@ export function createSpawner({
         return `translate3d(${c.x}px, ${c.y}px, 0) rotate(${c.rot}deg) scale(${c.scale})`;
     }
     
+    function ensureCoinVisual(c) {
+        if (c.el) return c.el;
+        if (c.isRemoved) return null;
+        
+        const el = getCoin();
+        el.style.transition = '';
+        el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
+        el.style.background = `url(${c.src}) center/contain no-repeat`;
+        el.style.opacity = '1';
+        el.dataset.mutationLevel = c.mutationLevel;
+        
+        el._coinObj = c;
+        c.el = el;
+        refs.c.appendChild(el);
+        canvasDirty = true;
+        return el;
+    }
+
+    function findCoinTargetsInRadius(centerX, centerY, radius) {
+        const radiusSq = radius * radius;
+        const candidates = [];
+        const count = activeCoins.length;
+        
+        const minX = centerX - radius;
+        const maxX = centerX + radius;
+        const minY = centerY - radius;
+        const maxY = centerY + radius;
+        
+        for (let i = 0; i < count; i++) {
+            const c = activeCoins[i];
+            const cx = c.x + (coinSize / 2);
+            if (cx < minX || cx > maxX) continue;
+            
+            const cy = c.y + (coinSize / 2);
+            if (cy < minY || cy > maxY) continue;
+
+            const dx = cx - centerX;
+            const dy = cy - centerY;
+            
+            if ((dx*dx + dy*dy) <= radiusSq) {
+                if (!c.isRemoved) {
+                    candidates.push(c);
+                }
+            }
+        }
+        return candidates;
+    }
+
+    function findCoinTargetsInPath(x1, y1, x2, y2, radius) {
+        const radiusSq = radius * radius;
+        const candidates = [];
+        const count = activeCoins.length;
+
+        const minX = Math.min(x1, x2) - radius;
+        const maxX = Math.max(x1, x2) + radius;
+        const minY = Math.min(y1, y2) - radius;
+        const maxY = Math.max(y1, y2) + radius;
+
+        const vx = x2 - x1;
+        const vy = y2 - y1;
+        const lenSq = vx * vx + vy * vy;
+        const crossLimit = radiusSq * lenSq;
+
+        for (let i = 0; i < count; i++) {
+            const c = activeCoins[i];
+            const cx = c.x + (coinSize / 2);
+            
+            if (cx < minX || cx > maxX) continue;
+            
+            const cy = c.y + (coinSize / 2);
+            
+            if (cy < minY || cy > maxY) continue;
+
+            const wx = cx - x1;
+            const wy = cy - y1;
+            
+            const dot = wx * vx + wy * vy;
+            
+            let hit = false;
+            if (dot <= 0) {
+                if ((wx * wx + wy * wy) <= radiusSq) hit = true;
+            } else if (dot >= lenSq) {
+                const dx = cx - x2;
+                const dy = cy - y2;
+                if ((dx * dx + dy * dy) <= radiusSq) hit = true;
+            } else {
+                const cross = wx * vy - wy * vx;
+                if (cross * cross <= crossLimit) hit = true;
+            }
+            
+            if (hit && !c.isRemoved) {
+                candidates.push(c);
+            }
+        }
+        return candidates;
+    }
+
+    function removeCoinTarget(c) {
+        removeCoin(c);
+    }
+
     function findCoinsInRadius(centerX, centerY, radius) {
         const radiusSq = radius * radius;
         const candidates = [];
@@ -892,6 +993,10 @@ export function createSpawner({
         getCoinTransform,
         findCoinsInRadius,
         findCoinsInPath,
+        findCoinTargetsInRadius,
+        findCoinTargetsInPath,
+        ensureCoinVisual,
+        removeCoinTarget,
         detachCoin,
         recycleCoin: releaseCoin,
         playEntranceWave,
