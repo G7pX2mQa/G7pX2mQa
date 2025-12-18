@@ -3158,6 +3158,7 @@ function setAllUpgradesZero(onlyUnlocked = false) {
         targets.forEach(({ areaKey, upg }) => {
             try {
                 setLevel(areaKey, upg.id, 0);
+                setAutobuyerToggle(areaKey, upg.id, '0');
                 count++;
             } catch (e) {
                 console.warn('Failed to zero upgrade', upg, e);
