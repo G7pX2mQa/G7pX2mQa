@@ -219,50 +219,56 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     if (!pointerInside || radiusPx <= 0) return;
     
     // Optimized: Use Spawner's spatial lookup if available
-    if (spawner && typeof spawner.findCoinsInRadius === 'function') {
-        // spawner operates in local playfield coordinates (x, y relative to top-left of playfield)
-        // localX, localY are already relative to playfieldRect
-        
+    if (spawner && typeof spawner.findCoinTargetsInRadius === 'function') {
         const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
         
         let candidates = [];
-        // Use swept path check if available && we have a previous position
-        if (typeof spawner.findCoinsInPath === 'function' && lastLocalX !== null && lastLocalY !== null) {
-             candidates = spawner.findCoinsInPath(lastLocalX, lastLocalY, localX, localY, radiusWithBuffer);
+        if (typeof spawner.findCoinTargetsInPath === 'function' && lastLocalX !== null && lastLocalY !== null) {
+             candidates = spawner.findCoinTargetsInPath(lastLocalX, lastLocalY, localX, localY, radiusWithBuffer);
         } else {
-             candidates = spawner.findCoinsInRadius(localX, localY, radiusWithBuffer);
+             candidates = spawner.findCoinTargetsInRadius(localX, localY, radiusWithBuffer);
         }
 
-        // Update last position
         lastLocalX = localX;
         lastLocalY = localY;
         
         if (candidates && candidates.length > 0) {
-            // Helper to resolve transform from spawner or DOM
-            const getTransform = (el) => {
-                if (spawner && typeof spawner.getCoinTransform === 'function') {
-                    return spawner.getCoinTransform(el);
-                }
-                return el.style.transform || 'translate3d(0,0,0)';
-            };
-
             if (typeof collectBatchFn === 'function') {
                  const items = [];
                  for (let i = 0; i < candidates.length; i++) {
-                     const el = candidates[i];
-                     items.push({ el, opts: { transform: getTransform(el) } });
+                     const c = candidates[i];
+                     const item = { coin: c };
+                     if (c.el && spawner.getCoinTransform) {
+                         item.opts = { transform: spawner.getCoinTransform(c.el) };
+                     }
+                     items.push(item);
                  }
                  collectBatchFn(items);
             } else {
-                const transforms = [];
                 for (let i = 0; i < candidates.length; i++) {
-                    const el = candidates[i];
-                    transforms.push(getTransform(el));
-                }
-                for (let i = 0; i < candidates.length; i++) {
-                    collectFn(candidates[i], { transform: transforms[i] });
+                    const c = candidates[i];
+                    const el = spawner.ensureCoinVisual ? spawner.ensureCoinVisual(c) : c.el;
+                    if (el) {
+                        const t = spawner.getCoinTransform ? spawner.getCoinTransform(el) : (el.style.transform || '');
+                        collectFn(el, { transform: t });
+                    }
                 }
             }
+        }
+    } else if (spawner && typeof spawner.findCoinsInRadius === 'function') {
+        // Fallback
+        const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
+        const candidates = spawner.findCoinsInRadius(localX, localY, radiusWithBuffer);
+        lastLocalX = localX; lastLocalY = localY;
+        
+        if (candidates && candidates.length > 0) {
+             const items = [];
+             for (let i = 0; i < candidates.length; i++) {
+                 const el = candidates[i];
+                 const t = spawner.getCoinTransform ? spawner.getCoinTransform(el) : el.style.transform;
+                 items.push({ el, opts: { transform: t } });
+             }
+             if (typeof collectBatchFn === 'function') collectBatchFn(items);
         }
     } else {
         // Fallback (Slow) - should not be hit if spawner is passed
@@ -933,16 +939,43 @@ export function initCoinPickup({
     const xpEnabled = typeof isXpSystemUnlocked === 'function' ? isXpSystemUnlocked() : true;
     const mutEnabled = typeof isMutationUnlocked === 'function' && isMutationUnlocked();
 
-    for (const { el, opts } of items) {
-      if (!isCoin(el)) continue;
-      el.dataset.collected = '1';
+    const MAX_VISUALS = 50;
+    let visualCount = 0;
+
+    for (const item of items) {
+      let el = item.el;
+      let coinObj = item.coin;
+      
+      if (!coinObj && el && el._coinObj) coinObj = el._coinObj;
+      if (el && !isCoin(el)) continue;
+      if (coinObj && coinObj.isRemoved) continue;
+
       collectedCount++;
+      if (el) el.dataset.collected = '1';
 
-      animateAndRemove(el, opts || {});
+      if (visualCount < MAX_VISUALS) {
+           if (!el && coinObj && spawner && spawner.ensureCoinVisual) {
+               el = spawner.ensureCoinVisual(coinObj);
+               if (el) el.dataset.collected = '1';
+           }
+           if (el) {
+               animateAndRemove(el, item.opts || {});
+               visualCount++;
+           } else {
+               if (coinObj && spawner && spawner.removeCoinTarget) spawner.removeCoinTarget(coinObj);
+           }
+      } else {
+           if (coinObj && spawner && spawner.removeCoinTarget) {
+               spawner.removeCoinTarget(coinObj);
+           } else if (el) {
+               if (spawner && spawner.detachCoin) spawner.detachCoin(el);
+               if (spawner && spawner.recycleCoin) spawner.recycleCoin(el);
+               else el.remove();
+           }
+      }
 
-      const base = resolveCoinBase(el);
-      // Fast path: use attached object if available
-      const spawnLevelStr = el._coinObj?.mutationLevel ?? (el.dataset.mutationLevel || null);
+      const base = el ? resolveCoinBase(el) : BASE_COIN_VALUE;
+      const spawnLevelStr = coinObj?.mutationLevel ?? (el?.dataset?.mutationLevel || null);
       
       let inc = applyCoinMultiplier(base);
       let xpInc = cloneBn(XP_PER_COIN);
@@ -1050,17 +1083,16 @@ export function initCoinPickup({
   }, { passive: true });
 
   function brushAt(x,y){
-    if (spawner && typeof spawner.findCoinsInRadius === 'function') {
+    if (spawner && typeof spawner.findCoinTargetsInRadius === 'function') {
         if (!cachedPfRect) updateCachedRect();
-        // Optimization: cachedPfRect.left/top are 0
         const localX = x;
         const localY = y;
         
         let candidates = [];
-        if (typeof spawner.findCoinsInPath === 'function' && lastBrushLocalX !== null && lastBrushLocalY !== null) {
-            candidates = spawner.findCoinsInPath(lastBrushLocalX, lastBrushLocalY, localX, localY, BRUSH_R);
+        if (typeof spawner.findCoinTargetsInPath === 'function' && lastBrushLocalX !== null && lastBrushLocalY !== null) {
+            candidates = spawner.findCoinTargetsInPath(lastBrushLocalX, lastBrushLocalY, localX, localY, BRUSH_R);
         } else {
-            candidates = spawner.findCoinsInRadius(localX, localY, BRUSH_R);
+            candidates = spawner.findCoinTargetsInRadius(localX, localY, BRUSH_R);
         }
         
         lastBrushLocalX = localX;
@@ -1069,11 +1101,25 @@ export function initCoinPickup({
         if (candidates && candidates.length > 0) {
             const items = [];
             for (let i = 0; i < candidates.length; i++) {
-                const el = candidates[i];
-                const transform = (spawner && typeof spawner.getCoinTransform === 'function') 
-                    ? spawner.getCoinTransform(el) 
-                    : (el.style.transform || 'translate3d(0,0,0)');
-                items.push({ el, opts: { transform } });
+                const c = candidates[i];
+                const item = { coin: c };
+                if (c.el && spawner.getCoinTransform) {
+                    item.opts = { transform: spawner.getCoinTransform(c.el) };
+                }
+                items.push(item);
+            }
+            collectBatch(items);
+        }
+    } else if (spawner && typeof spawner.findCoinsInRadius === 'function') {
+        if (!cachedPfRect) updateCachedRect();
+        const localX = x; const localY = y;
+        const candidates = spawner.findCoinsInRadius(localX, localY, BRUSH_R);
+        lastBrushLocalX = localX; lastBrushLocalY = localY;
+        if (candidates && candidates.length > 0) {
+            const items = [];
+            for(const el of candidates) {
+                const t = spawner.getCoinTransform ? spawner.getCoinTransform(el) : el.style.transform;
+                items.push({ el, opts: { transform: t } });
             }
             collectBatch(items);
         }
