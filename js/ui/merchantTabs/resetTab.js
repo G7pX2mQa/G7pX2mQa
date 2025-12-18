@@ -1528,8 +1528,10 @@ function updateSurgeCard() {
       }
   }
   
-  if (el.barFill) el.barFill.style.width = `${pct}%`;
-  if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}"> ${formatBn(currentWaves)} / <img src="${WAVES_ICON_SRC}"> ${formatBn(req)}</span>`;
+  if (el.barFill) {
+    el.barFill.style.width = `${pct}%`;
+  }
+  if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}">${formatBn(currentWaves)} / <img src="${WAVES_ICON_SRC}">${formatBn(req)}</span>`;
 
   if (el.milestones) {
     const visible = getVisibleMilestones(barLevel);
@@ -1607,12 +1609,33 @@ export function onSurgeUpgradeUnlocked() {
 
 function triggerSurgeBarAnimation() {
   if (!resetState.elements.surge.barFill) return;
-  const wrapper = resetState.elements.surge.barFill.parentElement;
+  const barFill = resetState.elements.surge.barFill;
+  const wrapper = barFill.parentElement;
   if (!wrapper) return;
   
   wrapper.classList.remove('surge-bar-pulse');
-  void wrapper.offsetWidth;
+  
+  // Snap to 100% immediately
+  barFill.style.transition = 'none';
+  barFill.style.width = '100%';
+  
+  void barFill.offsetWidth;
+  
   wrapper.classList.add('surge-bar-pulse');
+  // Match the pulse animation duration (0.5s) for the drain effect.
+  // This causes the bar to animate from the forced 100% (set above) 
+  // down to the actual value (set by updateSurgeCard below).
+  barFill.style.transition = 'width 0.5s ease-out';
+  
+  // Trigger update to animate to actual value
+  updateSurgeCard();
+
+  wrapper.addEventListener('animationend', () => {
+    wrapper.classList.remove('surge-bar-pulse');
+    // Revert to default stylesheet transition
+    barFill.style.transition = '';
+    updateSurgeCard();
+  }, { once: true });
 }
 
 function bindGlobalEvents() {
