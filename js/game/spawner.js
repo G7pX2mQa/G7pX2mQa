@@ -561,6 +561,26 @@ export function createSpawner({
             commitBatch(batch);
     }
 
+    function getCoinState(c, now) {
+        if (c.settled || c.isRemoved) {
+            return { x: c.x, y: c.y, rot: 0, scale: 1 };
+        }
+        const elapsed = now - c.startTime;
+        if (elapsed < 0) {
+            return { x: c.startX, y: c.startY, rot: -10, scale: 0.96 };
+        }
+        let t = elapsed / c.duration;
+        if (t >= 1) {
+             return { x: c.endX, y: c.endY, rot: 0, scale: 1 };
+        }
+        const ease = easeOutCubic(t);
+        const x = c.startX + (c.endX - c.startX) * ease;
+        const y = c.startY + (c.endY - c.startY) * ease;
+        const rot = -10 + (10 * ease);
+        const scale = 0.96 + (0.04 * ease);
+        return { x, y, rot, scale };
+    }
+
     function drawSettledCoins() {
         if (!ctx || !canvasDirty) return;
         
@@ -641,19 +661,9 @@ export function createSpawner({
                   continue;
               }
               
-              const ease = easeOutCubic(t);
-              
-              const curX = c.startX + (c.endX - c.startX) * ease;
-              const curY = c.startY + (c.endY - c.startY) * ease;
-              
-              c.x = curX;
-              c.y = curY;
-              
-              const rot = -10 + (10 * ease);
-              const scale = 0.96 + (0.04 * ease);
-              
-              c.rot = rot;
-              c.scale = scale;
+              // Optimization: We skip updating c.x/y/rot/scale every frame.
+              // We calculate them on-demand for hit testing.
+              // Visuals are handled by CSS transitions so this is safe.
           }
       }
 
@@ -762,7 +772,8 @@ export function createSpawner({
     function getCoinTransform(el) {
         const c = el._coinObj;
         if (!c) return el.style.transform || 'translate3d(0,0,0)';
-        return `translate3d(${c.x}px, ${c.y}px, 0) rotate(${c.rot}deg) scale(${c.scale})`;
+        const { x, y, rot, scale } = getCoinState(c, performance.now());
+        return `translate3d(${x}px, ${y}px, 0) rotate(${rot}deg) scale(${scale})`;
     }
     
     function ensureCoinVisual(c) {
@@ -792,13 +803,23 @@ export function createSpawner({
         const maxX = centerX + radius;
         const minY = centerY - radius;
         const maxY = centerY + radius;
+
+        const now = performance.now();
         
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
-            const cx = c.x + (coinSize / 2);
-            if (cx < minX || cx > maxX) continue;
+            let cx, cy;
             
-            const cy = c.y + (coinSize / 2);
+            if (c.settled) {
+                cx = c.x + (coinSize / 2);
+                cy = c.y + (coinSize / 2);
+            } else {
+                const s = getCoinState(c, now);
+                cx = s.x + (coinSize / 2);
+                cy = s.y + (coinSize / 2);
+            }
+            
+            if (cx < minX || cx > maxX) continue;
             if (cy < minY || cy > maxY) continue;
 
             const dx = cx - centerX;
@@ -827,15 +848,21 @@ export function createSpawner({
         const vy = y2 - y1;
         const lenSq = vx * vx + vy * vy;
         const crossLimit = radiusSq * lenSq;
+        const now = performance.now();
 
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
-            const cx = c.x + (coinSize / 2);
+            let cx, cy;
+            if (c.settled) {
+                cx = c.x + (coinSize / 2);
+                cy = c.y + (coinSize / 2);
+            } else {
+                const s = getCoinState(c, now);
+                cx = s.x + (coinSize / 2);
+                cy = s.y + (coinSize / 2);
+            }
             
             if (cx < minX || cx > maxX) continue;
-            
-            const cy = c.y + (coinSize / 2);
-            
             if (cy < minY || cy > maxY) continue;
 
             const wx = cx - x1;
@@ -875,13 +902,22 @@ export function createSpawner({
         const maxX = centerX + radius;
         const minY = centerY - radius;
         const maxY = centerY + radius;
+
+        const now = performance.now();
         
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
-            const cx = c.x + (coinSize / 2);
-            if (cx < minX || cx > maxX) continue;
+            let cx, cy;
+            if (c.settled) {
+                cx = c.x + (coinSize / 2);
+                cy = c.y + (coinSize / 2);
+            } else {
+                const s = getCoinState(c, now);
+                cx = s.x + (coinSize / 2);
+                cy = s.y + (coinSize / 2);
+            }
             
-            const cy = c.y + (coinSize / 2);
+            if (cx < minX || cx > maxX) continue;
             if (cy < minY || cy > maxY) continue;
 
             const dx = cx - centerX;
@@ -921,15 +957,21 @@ export function createSpawner({
         const vy = y2 - y1;
         const lenSq = vx * vx + vy * vy;
         const crossLimit = radiusSq * lenSq;
+        const now = performance.now();
 
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
-            const cx = c.x + (coinSize / 2);
+            let cx, cy;
+            if (c.settled) {
+                cx = c.x + (coinSize / 2);
+                cy = c.y + (coinSize / 2);
+            } else {
+                const s = getCoinState(c, now);
+                cx = s.x + (coinSize / 2);
+                cy = s.y + (coinSize / 2);
+            }
             
             if (cx < minX || cx > maxX) continue;
-            
-            const cy = c.y + (coinSize / 2);
-            
             if (cy < minY || cy > maxY) continue;
 
             const wx = cx - x1;
