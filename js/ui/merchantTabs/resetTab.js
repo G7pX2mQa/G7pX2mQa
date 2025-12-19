@@ -35,6 +35,7 @@ import {
 import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 import { clearPendingGains } from '../../game/coinPickup.js';
 import { getVisibleMilestones } from '../../game/surgeMilestones.js';
+import { ensureCustomScrollbar } from '../shopOverlay.js';
 
 const BN = BigNum;
 
@@ -1285,6 +1286,16 @@ function buildPanel(panelEl) {
   resetState.elements.surge.barFill = panelEl.querySelector('[data-reset-bar-fill="surge"]');
   resetState.elements.surge.barText = panelEl.querySelector('[data-reset-bar-text="surge"]');
   resetState.elements.surge.milestones = panelEl.querySelector('[data-reset-milestones="surge"]');
+  resetState.elements.surge.headerVal = panelEl.querySelector('[data-surge-level]');
+
+  if (resetState.elements.surge.milestones && resetState.elements.surge.card) {
+      ensureCustomScrollbar(
+        panelEl, 
+        resetState.elements.surge.card, 
+        '[data-reset-milestones="surge"]',
+        { orientation: 'horizontal' }
+      );
+  }
 
   // Sidebar Buttons
   resetState.layerButtons = {
@@ -1551,20 +1562,35 @@ function updateSurgeCard() {
           <div class="surge-milestone-item ${reachedClass}" data-is-reached="${isReached}">
             <div class="surge-milestone-title">Surge ${m.surgeLevel}</div>
             <div class="surge-milestone-desc">${desc}</div>
+            <div class="surge-milestone-title" style="visibility:hidden">Surge ${m.surgeLevel}</div>
           </div>
         `;
     });
     if (el.milestones.innerHTML !== msHtml) {
         el.milestones.innerHTML = msHtml;
-        
+        el.milestones.dataset.scrolled = '0';
+    }
+
+    if (el.milestones.dataset.scrolled !== '1') {
         requestAnimationFrame(() => {
-           if (!el.milestones) return;
-           const reachedItems = el.milestones.querySelectorAll('.surge-milestone-item[data-is-reached="true"]');
-           if (reachedItems.length > 0) {
-              const lastReached = reachedItems[reachedItems.length - 1];
-              const scrollLeft = lastReached.offsetLeft - el.milestones.offsetLeft;
-              el.milestones.scrollTo({ left: scrollLeft, behavior: 'smooth' });
-           }
+           requestAnimationFrame(() => {
+               if (!el.milestones) return;
+               if (el.milestones.offsetParent === null) return;
+
+               const reachedItems = el.milestones.querySelectorAll('.surge-milestone-item[data-is-reached="true"]');
+               if (reachedItems.length > 0) {
+                  const lastReached = reachedItems[reachedItems.length - 1];
+                  const allItems = el.milestones.children;
+                  const isLastItem = lastReached === allItems[allItems.length - 1];
+                  
+                  if (isLastItem) {
+                      el.milestones.scrollTo({ left: el.milestones.scrollWidth, behavior: 'auto' });
+                  } else {
+                      el.milestones.scrollTo({ left: lastReached.offsetLeft, behavior: 'auto' });
+                  }
+                  el.milestones.dataset.scrolled = '1';
+               }
+           });
         });
     }
   }
