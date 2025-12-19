@@ -373,12 +373,15 @@ function currencyIconHTML(type) {
 const TRANSPARENT_PX = "data:image/webp;base64,UklGRhIAAABXRUJQVlA4IBgAAAAwAQCdASoIAAIAAAAcJaQAA3AA";
 
 // --- Custom Scrollbar ---
-export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.shop-scroller') {
+export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.shop-scroller', options = {}) {
+  const { orientation = 'vertical' } = options;
+  const isVertical = orientation === 'vertical';
+
   const scroller = overlayEl?.querySelector(scrollerSelector);
   if (!scroller || scroller.__customScroll) return;
 
   const bar = document.createElement('div');
-  bar.className = 'shop-scrollbar';
+  bar.className = `shop-scrollbar${isVertical ? '' : ' is-horizontal'}`;
   const thumb = document.createElement('div');
   thumb.className = 'shop-scrollbar__thumb';
   bar.appendChild(thumb);
@@ -392,7 +395,8 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   const supportsScrollEnd = 'onscrollend' in window;
 
   const syncScrollShadow = () => {
-    const hasShadow = (scroller.scrollTop || 0) > 0;
+    const scrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
+    const hasShadow = (scrollPos || 0) > 0;
     sheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
   };
 
@@ -400,23 +404,49 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
     if (!scroller.isConnected || !sheetEl.isConnected) return;
     const scrollerRect = scroller.getBoundingClientRect();
     const sheetRect = sheetEl.getBoundingClientRect();
-    const top = Math.max(0, scrollerRect.top - sheetRect.top);
-    const bottom = Math.max(0, sheetRect.bottom - scrollerRect.bottom);
-    bar.style.top = top + 'px';
-    bar.style.bottom = bottom + 'px';
+    
+    if (isVertical) {
+      const top = Math.max(0, scrollerRect.top - sheetRect.top);
+      const bottom = Math.max(0, sheetRect.bottom - scrollerRect.bottom);
+      bar.style.top = top + 'px';
+      bar.style.bottom = bottom + 'px';
+      // Reset horizontal
+      bar.style.left = ''; bar.style.right = ''; 
+    } else {
+      const left = Math.max(0, scrollerRect.left - sheetRect.left);
+      const right = Math.max(0, sheetRect.right - scrollerRect.right);
+      bar.style.left = left + 'px';
+      bar.style.right = right + 'px';
+      // Reset vertical
+      bar.style.top = ''; bar.style.bottom = '6px';
+      bar.style.height = '8px';
+    }
   };
 
   const updateThumb = () => {
-    const { scrollHeight, clientHeight, scrollTop } = scroller;
-    const barH = bar.clientHeight || scroller.clientHeight;
-    const visibleRatio = clientHeight / Math.max(1, scrollHeight);
-    const thumbH = Math.max(28, Math.round(barH * visibleRatio));
-    const maxScroll = Math.max(1, scrollHeight - clientHeight);
-    const range = Math.max(0, barH - thumbH);
-    const y = Math.round((scrollTop / maxScroll) * range);
-    thumb.style.height = thumbH + 'px';
-    thumb.style.transform = `translateY(${y}px)`;
-    bar.style.display = (scrollHeight <= clientHeight + 1) ? 'none' : '';
+    const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
+    const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
+    const scrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
+    
+    const barSize = isVertical ? (bar.clientHeight || clientSize) : (bar.clientWidth || clientSize);
+    
+    const visibleRatio = clientSize / Math.max(1, scrollSize);
+    const thumbSize = Math.max(28, Math.round(barSize * visibleRatio));
+    const maxScroll = Math.max(1, scrollSize - clientSize);
+    const range = Math.max(0, barSize - thumbSize);
+    const pos = Math.round((scrollPos / maxScroll) * range);
+    
+    if (isVertical) {
+      thumb.style.height = thumbSize + 'px';
+      thumb.style.width = '100%';
+      thumb.style.transform = `translateY(${pos}px)`;
+    } else {
+      thumb.style.width = thumbSize + 'px';
+      thumb.style.height = '100%';
+      thumb.style.transform = `translateX(${pos}px)`;
+    }
+    
+    bar.style.display = (scrollSize <= clientSize + 1) ? 'none' : '';
   };
 
   const updateAll = () => { updateBounds(); updateThumb(); syncScrollShadow(); };
@@ -433,20 +463,70 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   window.addEventListener('resize', updateAll);
   requestAnimationFrame(updateAll);
 
-  // Drag logic omitted for brevity as it's purely UI polish, but we can keep it if space permits.
-  // ...Keeping logic...
+  // Drag logic
   let dragging = false;
-  let dragStartY = 0;
-  let startScrollTop = 0;
-  const startDrag = (e) => { dragging = true; dragStartY = e.clientY; startScrollTop = scroller.scrollTop; thumb.classList.add('dragging'); showBar(); try { thumb.setPointerCapture(e.pointerId); } catch {} e.preventDefault(); };
-  const onDragMove = (e) => { if (!dragging) return; const range = Math.max(1, bar.clientHeight - thumb.clientHeight); const scrollMax = Math.max(1, scroller.scrollHeight - scroller.clientHeight); const deltaY = e.clientY - dragStartY; scroller.scrollTop = startScrollTop + (deltaY / range) * scrollMax; };
-  const endDrag = (e) => { if (!dragging) return; dragging = false; thumb.classList.remove('dragging'); scheduleHide(FADE_DRAG_MS); try { thumb.releasePointerCapture(e.pointerId); } catch {} };
+  let dragStartPos = 0;
+  let startScrollPos = 0;
+  
+  const startDrag = (e) => { 
+    dragging = true; 
+    dragStartPos = isVertical ? e.clientY : e.clientX; 
+    startScrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft; 
+    thumb.classList.add('dragging'); 
+    showBar(); 
+    try { thumb.setPointerCapture(e.pointerId); } catch {} 
+    e.preventDefault(); 
+  };
+  
+  const onDragMove = (e) => { 
+    if (!dragging) return; 
+    const barSize = isVertical ? bar.clientHeight : bar.clientWidth;
+    const thumbSize = isVertical ? thumb.clientHeight : thumb.clientWidth;
+    const range = Math.max(1, barSize - thumbSize); 
+    const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
+    const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
+    const scrollMax = Math.max(1, scrollSize - clientSize); 
+    
+    const currentPos = isVertical ? e.clientY : e.clientX;
+    const delta = currentPos - dragStartPos; 
+    
+    const newPos = startScrollPos + (delta / range) * scrollMax;
+    if (isVertical) scroller.scrollTop = newPos;
+    else scroller.scrollLeft = newPos;
+  };
+  
+  const endDrag = (e) => { 
+    if (!dragging) return; 
+    dragging = false; 
+    thumb.classList.remove('dragging'); 
+    scheduleHide(FADE_DRAG_MS); 
+    try { thumb.releasePointerCapture(e.pointerId); } catch {} 
+  };
+  
   thumb.addEventListener('pointerdown', startDrag);
   window.addEventListener('pointermove', onDragMove, { passive: true });
   window.addEventListener('pointerup', endDrag);
   window.addEventListener('pointercancel', endDrag);
   
-  bar.addEventListener('pointerdown', (e) => { if (e.target === thumb) return; const rect = bar.getBoundingClientRect(); const clickY = e.clientY - rect.top; const thH = thumb.clientHeight; const range = Math.max(0, bar.clientHeight - thH); const targetY = Math.max(0, Math.min(clickY - thH / 2, range)); const scrollMax = Math.max(1, scroller.scrollHeight - scroller.clientHeight); scroller.scrollTop = (targetY / Math.max(1, range)) * scrollMax; showBar(); scheduleHide(FADE_SCROLL_MS); });
+  bar.addEventListener('pointerdown', (e) => { 
+    if (e.target === thumb) return; 
+    const rect = bar.getBoundingClientRect(); 
+    const clickPos = isVertical ? (e.clientY - rect.top) : (e.clientX - rect.left); 
+    const thumbSize = isVertical ? thumb.clientHeight : thumb.clientWidth; 
+    const barSize = isVertical ? bar.clientHeight : bar.clientWidth;
+    const range = Math.max(0, barSize - thumbSize); 
+    const targetPos = Math.max(0, Math.min(clickPos - thumbSize / 2, range)); 
+    const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
+    const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
+    const scrollMax = Math.max(1, scrollSize - clientSize); 
+    
+    const newScroll = (targetPos / Math.max(1, range)) * scrollMax;
+    if (isVertical) scroller.scrollTop = newScroll;
+    else scroller.scrollLeft = newScroll;
+    
+    showBar(); 
+    scheduleHide(FADE_SCROLL_MS); 
+  });
 
   updateAll();
 }
