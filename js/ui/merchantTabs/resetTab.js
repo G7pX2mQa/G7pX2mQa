@@ -148,6 +148,7 @@ const resetState = {
       barFill: null,
       barText: null,
       milestones: null,
+      headerVal: null,
     },
   },
   layerButtons: {},
@@ -1242,7 +1243,8 @@ function buildPanel(panelEl) {
                  </div>
               </div>
               
-              <!-- Surge Milestones -->
+              <!-- Surge Header & Milestones -->
+              <div class="surge-header">You are at Surge <span class="surge-level-display" data-surge-level>0</span></div>
               <div class="surge-milestone-container" data-reset-milestones="surge"></div>
             </div>
 
@@ -1531,6 +1533,11 @@ function updateSurgeCard() {
   if (el.barFill) {
     el.barFill.style.width = `${pct}%`;
   }
+
+  if (el.headerVal) {
+    const sLevel = barLevel === Infinity ? '∞' : barLevel.toString();
+    if (el.headerVal.textContent !== sLevel) el.headerVal.textContent = sLevel;
+  }
   if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}">${formatBn(currentWaves)} / <img src="${WAVES_ICON_SRC}">${formatBn(req)}</span>`;
 
   if (el.milestones) {
@@ -1541,7 +1548,7 @@ function updateSurgeCard() {
         const reachedClass = isReached ? 'is-reached' : '';
         const desc = m.description.map(d => `<div>- ${d}</div>`).join('');
         msHtml += `
-          <div class="surge-milestone-item ${reachedClass}">
+          <div class="surge-milestone-item ${reachedClass}" data-is-reached="${isReached}">
             <div class="surge-milestone-title">Surge ${m.surgeLevel}</div>
             <div class="surge-milestone-desc">${desc}</div>
           </div>
@@ -1549,6 +1556,16 @@ function updateSurgeCard() {
     });
     if (el.milestones.innerHTML !== msHtml) {
         el.milestones.innerHTML = msHtml;
+        
+        requestAnimationFrame(() => {
+           if (!el.milestones) return;
+           const reachedItems = el.milestones.querySelectorAll('.surge-milestone-item[data-is-reached="true"]');
+           if (reachedItems.length > 0) {
+              const lastReached = reachedItems[reachedItems.length - 1];
+              const scrollLeft = lastReached.offsetLeft - el.milestones.offsetLeft;
+              el.milestones.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+           }
+        });
     }
   }
 
