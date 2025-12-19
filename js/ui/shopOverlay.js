@@ -452,6 +452,12 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   };
 
   const updateAll = () => { updateBounds(); updateThumb(); syncScrollShadow(); };
+
+  if (typeof MutationObserver !== 'undefined') {
+      const obs = new MutationObserver(() => updateAll());
+      obs.observe(scroller, { childList: true, subtree: true, characterData: true });
+  }
+
   const showBar = () => { if (!isTouch) return; sheetEl.classList.add('is-scrolling'); clearTimeout(scroller.__fadeTimer); };
   const scheduleHide = (delay) => { if (!isTouch) return; clearTimeout(scroller.__fadeTimer); scroller.__fadeTimer = setTimeout(() => { sheetEl.classList.remove('is-scrolling'); }, delay); };
   const onScroll = () => { updateThumb(); syncScrollShadow(); if (isTouch) showBar(); if (!supportsScrollEnd) scheduleHide(FADE_SCROLL_MS); };
