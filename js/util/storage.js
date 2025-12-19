@@ -535,15 +535,7 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
   const zero = BigNum.fromInt(0);
   if (!k) return prev;
   if (isCurrencyLocked(key, slot)) {
-    let deltaBn = null;
-    if (delta) {
-      try {
-        deltaBn = delta instanceof BigNum ? delta.clone?.() ?? delta : BigNum.fromAny(delta);
-      } catch { deltaBn = null; }
-    }
-    const detail = { key, value: prev, slot, delta: deltaBn ?? undefined };
-    notifyCurrencySubscribers(detail);
-    try { window.dispatchEvent(new CustomEvent('currency:change', { detail })); } catch {}
+    // ⚡ Bolt: Return early to prevent event spam and GC pressure when value is locked.
     return prev;
   } // Respect debug-panel storage locks
 
