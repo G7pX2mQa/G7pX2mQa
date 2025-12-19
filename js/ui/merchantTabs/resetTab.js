@@ -1246,7 +1246,9 @@ function buildPanel(panelEl) {
               
               <!-- Surge Header & Milestones -->
               <div class="surge-header">You are at Surge <span class="surge-level-display" data-surge-level>0</span></div>
-              <div class="surge-milestone-container" data-reset-milestones="surge"></div>
+              <div class="surge-milestone-wrapper">
+                  <div class="surge-milestone-container" data-reset-milestones="surge"></div>
+              </div>
             </div>
 
             <div class="merchant-reset__actions">
@@ -1288,10 +1290,11 @@ function buildPanel(panelEl) {
   resetState.elements.surge.milestones = panelEl.querySelector('[data-reset-milestones="surge"]');
   resetState.elements.surge.headerVal = panelEl.querySelector('[data-surge-level]');
 
-  if (resetState.elements.surge.milestones && resetState.elements.surge.card) {
+  const surgeWrapper = panelEl.querySelector('.surge-milestone-wrapper');
+  if (resetState.elements.surge.milestones && surgeWrapper) {
       ensureCustomScrollbar(
         panelEl, 
-        resetState.elements.surge.card, 
+        surgeWrapper, 
         '[data-reset-milestones="surge"]',
         { orientation: 'horizontal' }
       );
@@ -1546,8 +1549,8 @@ function updateSurgeCard() {
   }
 
   if (el.headerVal) {
-    const sLevel = barLevel === Infinity ? '∞' : barLevel.toString();
-    if (el.headerVal.textContent !== sLevel) el.headerVal.textContent = sLevel;
+    const sLevel = barLevel === Infinity ? '<span class="surge-infinity-symbol">∞</span>' : barLevel.toString();
+    if (el.headerVal.innerHTML !== sLevel) el.headerVal.innerHTML = sLevel;
   }
   if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}">${formatBn(currentWaves)} / <img src="${WAVES_ICON_SRC}">${formatBn(req)}</span>`;
 
@@ -1586,7 +1589,7 @@ function updateSurgeCard() {
                   if (isLastItem) {
                       el.milestones.scrollTo({ left: el.milestones.scrollWidth, behavior: 'auto' });
                   } else {
-                      el.milestones.scrollTo({ left: lastReached.offsetLeft, behavior: 'auto' });
+                      el.milestones.scrollTo({ left: lastReached.offsetLeft - 12, behavior: 'auto' });
                   }
                   el.milestones.dataset.scrolled = '1';
                }
