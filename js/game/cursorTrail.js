@@ -367,9 +367,13 @@ export function createCursorTrail(playfield) {
   resize();
   rafId = requestAnimationFrame(loop);
 
+  // Periodically update bounds to sync with any layout shifts
+  const syncInterval = setInterval(updateBounds, 1000);
+
   const destroy = () => {
     destroyed = true;
     if (rafId) cancelAnimationFrame(rafId);
+    if (syncInterval) clearInterval(syncInterval);
     
     if (resizeObserver) {
         resizeObserver.disconnect();
