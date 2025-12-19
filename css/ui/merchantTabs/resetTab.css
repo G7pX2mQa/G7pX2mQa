@@ -149,7 +149,7 @@
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   text-align: center;
 }
 
@@ -209,8 +209,7 @@
 }
 
 .merchant-reset__status:empty {
-  visibility: hidden;
-  min-height: 44px;
+  display: none;
 }
 
 .merchant-reset__card.is-forge-complete .merchant-reset__status,
@@ -424,7 +423,6 @@
 .merchant-reset__bar-container {
   width: 100%;
   max-width: 430px;
-  margin-top: 8px;
 }
 
 .merchant-reset__bar-wrapper {
@@ -524,7 +522,6 @@
 /* Surge Header */
 .surge-header {
   text-align: center;
-  margin-bottom: 2px;
   font-size: 1.1rem;
   font-weight: 700;
   color: #fff;
@@ -549,13 +546,13 @@
 
 /* Surge Milestones */
 .surge-milestone-wrapper {
-  margin-top: 4px;
   width: 100%;
   max-width: 800px;
   height: 244px;
   background: rgba(0, 0, 0, 0.25);
   border-radius: 8px;
   position: relative;
+  padding: 0 12px;
 }
 
 .surge-milestone-container {
@@ -565,7 +562,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
+  padding: 12px 0;
   overflow-x: auto;
   overflow-y: hidden;
   white-space: nowrap;
