@@ -9,6 +9,8 @@ import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgr
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0n;
 
+const MAX_ACTIVE_COINS_MOBILE = 2500
+
 // Cache for coin images (src -> Image)
 const imgCache = new Map();
 
@@ -72,7 +74,7 @@ export function createSpawner({
     coinsPerSecond = 1,
     perFrameBudget = 24,
     backlogCap = 600,
-    maxActiveCoins = 10000,
+    maxActiveCoins = IS_MOBILE ? MAX_ACTIVE_COINS_MOBILE : 10000,
     initialBurst = 1,
     coinTtlMs = 1e99,
     waveSoundSrc = 'sounds/wave_spawn.ogg',
@@ -630,7 +632,7 @@ export function createSpawner({
       let dt = (now - last) / 1000;
       last = now;
       
-      if (dt > 0.1) dt = 0.1;
+      let accrualDt = dt; if (dt > 0.1) dt = 0.1;
       
       {
           for (let i = activeCoins.length - 1; i >= 0; i--) {
@@ -667,7 +669,7 @@ export function createSpawner({
           }
       }
 
-      carry += rate * dt;
+      carry += rate * accrualDt;
       const due = carry | 0;
 
       let cap = isTouch ? MOBILE_BACKLOG_CAP : backlogCap;
