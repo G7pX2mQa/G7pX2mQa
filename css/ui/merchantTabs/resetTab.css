@@ -538,9 +538,9 @@
 .surge-infinity-symbol {
   position: relative;
   top: 1px;
-  color: #00e5ff;
+  color: #00e5ff !important;
   font-weight: 900;
-  -webkit-text-fill-color: #00e5ff;
+  -webkit-text-fill-color: #00e5ff !important;
 }
 
 .surge-milestone-wrapper.has-active-scrollbar .surge-milestone-container {
@@ -639,10 +639,10 @@
 /* Horizontal Custom Scrollbar */
 .shop-scrollbar.is-horizontal {
   width: auto;
-  right: 6px;
-  left: 6px;
+  right: 12px !important;
+  left: 12px !important;
   top: auto;
-  bottom: 20px;
+  bottom: 26px;
   height: 12px;
 }
 
