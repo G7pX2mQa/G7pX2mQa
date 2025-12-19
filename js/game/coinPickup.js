@@ -187,6 +187,8 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   let rafId = 0;
   let destroyed = false;
   let playfieldRect = null;
+  // Periodically update bounds to sync with any layout shifts
+  let syncInterval = null;
 
   const updatePlayfieldRect = () => {
     if (destroyed) return;
@@ -392,6 +394,7 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
       cancelAnimationFrame(rafId);
       rafId = 0;
     }
+    if (syncInterval) clearInterval(syncInterval);
     try { window.removeEventListener('scroll', handleScroll); } catch {}
     try { window.removeEventListener('resize', handleResize); } catch {}
     try { window.removeEventListener('saveSlot:change', refreshMagnetLevel); } catch {}
@@ -422,6 +425,8 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   document.addEventListener('visibilitychange', updatePlayfieldRect, { passive: true });
   window.addEventListener('saveSlot:change', refreshMagnetLevel);
   document.addEventListener('ccc:upgrades:changed', refreshMagnetLevel);
+
+  syncInterval = setInterval(updatePlayfieldRect, 1000);
 
   refreshMagnetLevel();
 
@@ -1166,7 +1171,11 @@ export function initCoinPickup({
     if (mobileFallback) mobileFallback.volume = vol;
   }
 
+  // Periodically update bounds to sync with any layout shifts
+  const rectInterval = setInterval(updateCachedRect, 1000);
+
   const destroy = () => {
+    clearInterval(rectInterval);
     flushPendingGains();
     updateHudFn = () => {};
     if (typeof window !== 'undefined') {
