@@ -465,9 +465,9 @@
   height: 1.4em;
   width: auto;
   vertical-align: middle;
-  margin: 0 1px 2px 0;
+  margin: 0 3px 2px 0;
   position: relative;
-  top: -1px;
+  top: 0;
 }
 
 @keyframes surgeBarPulse {
@@ -520,11 +520,27 @@
   }
 }
 
+
+/* Surge Header */
+.surge-header {
+  text-align: center;
+  margin-bottom: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+.surge-level-display {
+  color: #00e5ff;
+}
+
 /* Surge Milestones */
 .surge-milestone-container {
-  margin-top: 12px;
+  margin-top: 4px;
   width: 100%;
-  height: 72px;
+  max-width: 440px;
+  height: 80px;
   background: rgba(0, 0, 0, 0.25);
   border-radius: 8px;
   display: flex;
@@ -534,6 +550,7 @@
   overflow-x: auto;
   overflow-y: hidden;
   white-space: nowrap;
+  position: relative;
   
   /* Horizontal Scrollbar Styling */
   scrollbar-gutter: stable;
@@ -542,7 +559,7 @@
 }
 
 .surge-milestone-container::-webkit-scrollbar {
-  height: 6px;
+  height: 12px;
 }
 
 .surge-milestone-container::-webkit-scrollbar-track {
@@ -553,7 +570,7 @@
 .surge-milestone-container::-webkit-scrollbar-thumb {
   background: hsl(0 0% 100% / .22);
   border-radius: 99px;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
   background-clip: content-box;
 }
 
@@ -562,11 +579,10 @@
 }
 
 .surge-milestone-item {
-  flex: 0 0 auto;
-  min-width: 110px;
-  height: 48px;
-  background: #ffffff;
-  color: #1a1a1a;
+  flex: 0 0 calc(50% - 6px);
+  height: 60px;
+  background: linear-gradient(to bottom, #808080, #969696 50%, #808080);
+  color: #ffffff;
   border-radius: 6px;
   padding: 4px 8px;
   display: flex;
@@ -576,27 +592,47 @@
   text-align: center;
   transition: background 0.3s ease;
   user-select: none;
+  border: 1px solid rgba(0,0,0,0.1);
 }
 
 .surge-milestone-item.is-reached {
   background: linear-gradient(90deg, #00c6ff, #0072ff);
-  color: #ffffff;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.2);
 }
 
 .surge-milestone-title {
   font-weight: 800;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   margin-bottom: 2px;
   line-height: 1.2;
+  -webkit-text-stroke: 1.5px black;
+  paint-order: stroke fill;
 }
 
 .surge-milestone-desc {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   line-height: 1.1;
-  opacity: 0.85;
+  opacity: 1;
+  font-weight: 700;
+  -webkit-text-stroke: 1px black;
+  paint-order: stroke fill;
+  white-space: normal;
 }
 
-.surge-milestone-item.is-reached .surge-milestone-title {
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+@media (hover: none) and (pointer: coarse) {
+  .surge-milestone-title,
+  .surge-milestone-desc {
+    -webkit-text-stroke: 0 transparent;
+    text-shadow:
+      0 0.5px 0 #000,
+      0 -0.5px 0 #000,
+      0.5px 0 0 #000,
+      -0.5px 0 0 #000,
+      0.5px 0.5px 0 #000,
+      -0.5px 0.5px 0 #000,
+      0.5px -0.5px 0 #000,
+      -0.5px -0.5px 0 #000,
+      0 1px 0 rgba(0,0,0,0.55);
+  }
 }
