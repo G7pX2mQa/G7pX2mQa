@@ -539,11 +539,12 @@
   position: relative;
   top: 1px;
   color: #00e5ff;
+  font-weight: 900;
   -webkit-text-fill-color: #00e5ff;
 }
 
 .surge-milestone-wrapper.has-active-scrollbar .surge-milestone-container {
-  padding-bottom: 28px;
+  padding-bottom: 40px;
 }
 
 /* Surge Milestones */
@@ -641,7 +642,7 @@
   right: 6px;
   left: 6px;
   top: auto;
-  bottom: 12px;
+  bottom: 20px;
   height: 12px;
 }
 
