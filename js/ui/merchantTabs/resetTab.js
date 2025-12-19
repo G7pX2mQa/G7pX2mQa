@@ -1549,7 +1549,8 @@ function updateSurgeCard() {
   }
 
   if (el.headerVal) {
-    const sLevel = barLevel === Infinity ? '<span class="surge-infinity-symbol">∞</span>' : barLevel.toString();
+    const isInf = barLevel === Infinity || (typeof barLevel.isInfinite === 'function' && barLevel.isInfinite()) || String(barLevel) === 'Infinity';
+    const sLevel = isInf ? '<span class="surge-infinity-symbol">∞</span>' : barLevel.toString();
     if (el.headerVal.innerHTML !== sLevel) el.headerVal.innerHTML = sLevel;
   }
   if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}">${formatBn(currentWaves)} / <img src="${WAVES_ICON_SRC}">${formatBn(req)}</span>`;
@@ -1587,9 +1588,9 @@ function updateSurgeCard() {
                   const isLastItem = lastReached === allItems[allItems.length - 1];
                   
                   if (isLastItem) {
-                      el.milestones.scrollTo({ left: el.milestones.scrollWidth, behavior: 'auto' });
+                      el.milestones.scrollTo({ left: el.milestones.scrollWidth, behavior: 'smooth' });
                   } else {
-                      el.milestones.scrollTo({ left: lastReached.offsetLeft - 12, behavior: 'auto' });
+                      el.milestones.scrollTo({ left: lastReached.offsetLeft - 12, behavior: 'smooth' });
                   }
                   el.milestones.dataset.scrolled = '1';
                }
