@@ -22,7 +22,6 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-bottom: 24px;
 }
 
 .merchant-reset__spacer {
@@ -423,6 +422,7 @@
 .merchant-reset__bar-container {
   width: 100%;
   max-width: 430px;
+  margin-top: 10px;
 }
 
 .merchant-reset__bar-wrapper {
@@ -553,6 +553,7 @@
   border-radius: 8px;
   position: relative;
   padding: 0 12px;
+  margin-bottom: 16px;
 }
 
 .surge-milestone-container {
