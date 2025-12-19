@@ -418,8 +418,8 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
       bar.style.left = left + 'px';
       bar.style.right = right + 'px';
       // Reset vertical
-      bar.style.top = ''; bar.style.bottom = '6px';
-      bar.style.height = '8px';
+      bar.style.top = ''; bar.style.bottom = '';
+      bar.style.height = '';
     }
   };
 
@@ -446,7 +446,9 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
       thumb.style.transform = `translateX(${pos}px)`;
     }
     
-    bar.style.display = (scrollSize <= clientSize + 1) ? 'none' : '';
+    const hasOverflow = (scrollSize > clientSize + 1);
+    bar.style.display = hasOverflow ? '' : 'none';
+    sheetEl?.classList.toggle('has-active-scrollbar', hasOverflow);
   };
 
   const updateAll = () => { updateBounds(); updateThumb(); syncScrollShadow(); };
