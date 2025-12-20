@@ -2032,6 +2032,15 @@ function buildAreaStats(container, area) {
             
             setValue(valForDisplay);
             try { window.resetSystem?.updateResetPanel?.(); } catch {}
+            try {
+                let eventLevel = currentSurgeLevel;
+                if (eventLevel !== Infinity && eventLevel instanceof BigNum) {
+                    try { eventLevel = BigInt(eventLevel.toPlainIntegerString()); } catch {}
+                }
+                window.dispatchEvent(new CustomEvent('surge:level:change', {
+                    detail: { slot, level: eventLevel }
+                }));
+            } catch {}
         }, {
             storageKey: surgeLevelKey,
             onLockChange: (locked) => {
