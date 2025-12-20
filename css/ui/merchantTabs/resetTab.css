@@ -541,7 +541,7 @@
 }
 
 .surge-milestone-wrapper.has-active-scrollbar .surge-milestone-container {
-  padding-bottom: 40px;
+  padding-bottom: 32px;
 }
 
 /* Surge Milestones */
@@ -640,12 +640,13 @@
   right: 12px !important;
   left: 12px !important;
   top: auto;
-  bottom: 26px;
-  height: 12px;
+  bottom: 12px;
+  height: 18px;
 }
 
 .shop-scrollbar.is-horizontal .shop-scrollbar__thumb {
   height: 100%;
   width: auto;
   min-width: 28px;
+  min-height: 0;
 }
