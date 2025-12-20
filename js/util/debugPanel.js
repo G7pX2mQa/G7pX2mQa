@@ -2373,8 +2373,8 @@ function getUnlockRowDefinitions(slot) {
             slot,
         },
 		{
-            labelText: 'Unlock Warps',
-            description: 'If true, unlocks the Warps tab',
+            labelText: 'Unlock Warp',
+            description: 'If true, unlocks the Warp tab',
             isUnlocked: () => {
                 try { return window.resetSystem?.hasDoneSurgeReset?.() ?? false; }
                 catch { return false; }
