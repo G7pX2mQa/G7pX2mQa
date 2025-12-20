@@ -5,7 +5,7 @@ import { playPurchaseSfx } from '../shopOverlay.js';
 const WARP_CHARGES_KEY = (slot) => `ccc:warp:charges:${slot}`;
 const WARP_LAST_CHARGE_KEY = (slot) => `ccc:warp:lastCharge:${slot}`;
 
-const MAX_WARPSS = 24;
+const MAX_WARPS = 24;
 const CHARGE_TIME_MS = 60 * 60 * 1000; // 1 hour
 const WARP_DURATION_SEC = 300; // 5 minutes
 
@@ -47,7 +47,7 @@ export function checkWarpRecharge() {
     
     let { charges, lastCharge } = getWarpState(slot);
     
-    if (charges >= MAX_WARPSS) return; // Full
+    if (charges >= MAX_WARPS) return; // Full
     
     const now = Date.now();
     const elapsed = now - lastCharge;
@@ -80,7 +80,7 @@ function performWarp() {
     if (charges <= 0) return;
     
     // If we are at MAX, we start the timer now
-    if (charges >= MAX_WARPSS) {
+    if (charges >= MAX_WARPS) {
         lastCharge = Date.now();
     }
     
