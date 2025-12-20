@@ -6,7 +6,7 @@ export const MERCHANT_DIALOGUES = {
 
       r_who: { type: 'line', say: 'I am the Merchant.', next: 'c2' },
       r_where: { type: 'line', say: 'The Cove.',          next: 'c2' },
-      r_confused: { type: 'line', say: 'Okay.',                next: 'c2' },
+      r_confused: { type: 'line', say: 'Okay.',                next: 'c3' },
 
       c1: { type: 'choice', options: [
         { label: 'Who are you?', to: 'r_who' },
@@ -44,6 +44,7 @@ export const MERCHANT_DIALOGUES = {
       m1a: { type: 'line', say: 'Yes I did.', next: 'c1a' },
       m1b: { type: 'line', say: 'Hello.',    next: 'c1b' },
       m1c: { type: 'line', say: 'Okay.',       next: 'c1c' },
+	  m1d: { type: 'line', say: 'Fine.',       next: 'c1d' },
 
       c1a: { type: 'choice', options: [
         { label: 'No you didn’t.', to: 'm1a' },
@@ -53,13 +54,19 @@ export const MERCHANT_DIALOGUES = {
 
       c1b: { type: 'choice', options: [
         { label: 'You never answered my questions.', to: 'm1a' },
-        { label: 'That does not help.',              to: 'm1c' },
+        { label: 'How are you?',              to: 'm1d' },
         { label: 'Okay.',                              to: 'm2b' },
       ]},
 
       c1c: { type: 'choice', options: [
         { label: 'Yes.',  to: 'm2a' },
         { label: 'Hmm…',  to: 'm1c' },
+        { label: 'Okay.',   to: 'm2b' },
+      ]},
+	  
+	  c1d: { type: 'choice', options: [
+        { label: 'That\'s nice.',  to: 'm2b' },
+        { label: 'Good.',  to: 'm2b' },
         { label: 'Okay.',   to: 'm2b' },
       ]},
 
@@ -93,7 +100,7 @@ export const MERCHANT_DIALOGUES = {
         { label: 'Yes I did that.',       to: 'm1c' },
       ]},
 
-      m1a: { type: 'line', say: 'The XP system is a powerful ancient mechanism, allowing for rapid influx of Coin output. Increasing your XP Level grants you Books infused with my power, capable of great things.', next: 'c1a' },
+      m1a: { type: 'line', say: 'The XP system is a powerful thing, allowing for rapid influx of Coin output. Increasing your XP Level grants you Books infused with my power, capable of great things.', next: 'c1a' },
       m1b: { type: 'line', say: 'It means you can grow passively stronger by collecting coins.', next: 'c1b' },
       m1c: { type: 'line', say: 'And do you know how the XP system works?', next: 'c1c' },
 
@@ -104,7 +111,7 @@ export const MERCHANT_DIALOGUES = {
       ]},
       c1b: { type: 'choice', options: [
         { label: 'Can you explain in more detail?', to: 'm1a' },
-        { label: 'Why?',                           to: 'm2c' },
+        { label: 'Why?',                           to: 'm2g' },
         { label: 'Okay.',                          to: 'm3a' },
       ]},
       c1c: { type: 'choice', options: [
@@ -118,6 +125,7 @@ export const MERCHANT_DIALOGUES = {
       m2d: { type: 'line', say: 'What?',    next: 'c2c' },
       m2e: { type: 'line', say: 'I’ve already told you, so you can increase your Coin output.', next: 'c2c' },
       m2f: { type: 'line', say: 'Are you sure you don’t want free Books?', next: 'c3a' },
+	  m2g: { type: 'line', say: 'You just can.', next: 'c2c' },
 
       c2a: { type: 'choice', options: [
 	    { label: 'No.',                               to: 'm2f' },
@@ -157,7 +165,7 @@ export const MERCHANT_DIALOGUES = {
 
       m1a: { type: 'line', say: 'Sure, ask me anything about the Forge and I will answer.',     next: 'c1a' },
       m1b: { type: 'line', say: 'Sure, ask me anything about Mutations and I will answer.',     next: 'c1b' },
-      m1c: { type: 'line', say: '…',                                                            next: 'c3a' },
+      m1c: { type: 'line', say: 'What do you mean you forgot??',                                                            next: 'c3a' },
 
       c1a: { type: 'choice', options: [
         { label: 'Where did it come from?',                       to: 'm2a' },
@@ -251,7 +259,7 @@ export const MERCHANT_DIALOGUES = {
 
     m1a: { type: 'line', say: 'What would you like to know?', next: 'c1a' },
     m1b: { type: 'line', say: 'What would you like to know?', next: 'c1b' },
-    m1c: { type: 'line', say: '…', next: 'c1c' },
+    m1c: { type: 'line', say: 'Wow. Just wow.', next: 'c1c' },
 
     c1a: { type: 'choice', options: [
       { label: 'Why do you have magic powers?', to: 'm2a' },
@@ -381,7 +389,7 @@ export const MERCHANT_DIALOGUES = {
       { label: '???', to: 'm6a' },
     ]},
 
-    m5a: { type: 'line', say: '…', next: 'c5a' },
+    m5a: { type: 'line', say: 'Okay.', next: 'c5a' },
 
     c5a: { type: 'choice', options: [
       { label: '…', to: 'm6a' },
