@@ -48,8 +48,36 @@ let initialized = false;
 let unregisterCoinMultiplierProvider = null;
 let unregisterXpGainMultiplierProvider = null;
 
+const mutationGainMultiplierProviders = new Set();
+let externalMutationGainMultiplierProvider = null;
+
 function scheduleCoinMultiplierRefresh() {
   try { refreshCoinMultiplierFromXpLevel(); } catch {}
+}
+
+function applyMutationMultipliers(amount) {
+  let inc = amount;
+  if (!inc.isZero?.()) {
+    const providers = mutationGainMultiplierProviders.size > 0
+      ? Array.from(mutationGainMultiplierProviders)
+      : (typeof externalMutationGainMultiplierProvider === 'function' ? [externalMutationGainMultiplierProvider] : []);
+    for (const provider of providers) {
+      if (typeof provider !== 'function') continue;
+      try {
+        const maybe = provider({
+          baseGain: inc.clone?.() ?? inc,
+          mutationLevel: mutationState.level.clone?.() ?? mutationState.level,
+          mutationUnlocked: mutationState.unlocked,
+        });
+        if (maybe instanceof BN) {
+          inc = maybe.clone?.() ?? maybe;
+        } else if (maybe != null) {
+          inc = BN.fromAny(maybe);
+        }
+      } catch {}
+    }
+  }
+  return inc;
 }
 
 function ensureExternalMultiplierProviders() {
@@ -676,6 +704,7 @@ export function addMutationPower(amount) {
       inc = bnZero();
     }
 
+    inc = applyMutationMultipliers(inc);
     inc = applyStatMultiplierOverride('mutation', inc);
 
     const detail = emitChange('progress', {
@@ -698,6 +727,7 @@ export function addMutationPower(amount) {
     inc = bnZero();
   }
 
+  inc = applyMutationMultipliers(inc);
   inc = applyStatMultiplierOverride('mutation', inc);
 
   if (inc.isZero?.()) return getMutationState();
@@ -808,6 +838,31 @@ export function getMutationMultiplier() {
   catch { return bnOne(); }
 }
 
+export function getMutationGainMultiplier() {
+  let mult = BigNum.fromInt(1);
+  if (mutationGainMultiplierProviders.size > 0 || externalMutationGainMultiplierProvider) {
+    const providers = mutationGainMultiplierProviders.size > 0
+      ? Array.from(mutationGainMultiplierProviders)
+      : (typeof externalMutationGainMultiplierProvider === 'function' ? [externalMutationGainMultiplierProvider] : []);
+    for (const provider of providers) {
+      if (typeof provider !== 'function') continue;
+      try {
+        const maybe = provider({
+          baseGain: mult.clone?.() ?? mult,
+          mutationLevel: mutationState.level.clone?.() ?? mutationState.level,
+          mutationUnlocked: mutationState.unlocked,
+        });
+        if (maybe instanceof BN) {
+          mult = maybe.clone?.() ?? maybe;
+        } else if (maybe != null) {
+          mult = BN.fromAny(maybe);
+        }
+      } catch {}
+    }
+  }
+  return mult;
+}
+
 export function getMutationCoinSprite() {
   if (!mutationState.unlocked || mutationState.level.isZero?.()) {
     return 'img/currencies/coin/coin.webp';
@@ -828,6 +883,14 @@ export function onMutationChange(callback) {
   return () => { listeners.delete(callback); };
 }
 
+export function addExternalMutationGainMultiplierProvider(fn) {
+  if (typeof fn !== 'function') return () => {};
+  mutationGainMultiplierProviders.add(fn);
+  return () => {
+    mutationGainMultiplierProviders.delete(fn);
+  };
+}
+
 if (typeof window !== 'undefined') {
   window.mutationSystem = window.mutationSystem || {};
   Object.assign(window.mutationSystem, {
@@ -838,6 +901,8 @@ if (typeof window !== 'undefined') {
     getMutationMultiplier,
     isMutationUnlocked,
     getTotalCumulativeMp,
+    addExternalMutationGainMultiplierProvider,
+    getMutationGainMultiplier,
   });
 }
 
