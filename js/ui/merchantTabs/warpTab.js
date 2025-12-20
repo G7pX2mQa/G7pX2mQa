@@ -111,7 +111,7 @@ export function updateWarpTab(skipRechargeCheck = false) {
     
     const counterEl = warpTabPanel.querySelector('.warp-counter');
     if (counterEl) {
-        counterEl.innerHTML = `Warp remaining: <span class="text-cyan">${charges} / ${MAX_WARPS}</span>`;
+        counterEl.innerHTML = `Warps remaining: <span class="text-cyan">${charges} / ${MAX_WARPS}</span>`;
     }
     
     const timerEl = warpTabPanel.querySelector('.warp-timer');
