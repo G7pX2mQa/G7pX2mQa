@@ -1030,6 +1030,7 @@ function getSurgeBarLevel(slot) {
        barLevel = BigInt(raw);
     }
   } catch {}
+  if (barLevel === Infinity) return Infinity;
   return barLevel < 0n ? 0n : barLevel;
 }
 
@@ -1052,8 +1053,16 @@ function getSafeLog10BigInt(bn) {
 }
 
 function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
-  let barLevel = startLevelBigInt;
+  if (startLevelBigInt === Infinity || (typeof startLevelBigInt === 'string' && startLevelBigInt === 'Infinity')) {
+    return { level: Infinity, remainingWaves: wavesBn, changed: false, safety: 0 };
+  }
+
   let currentWaves = wavesBn.clone ? wavesBn.clone() : wavesBn;
+  if (currentWaves.isInfinite?.()) {
+    return { level: Infinity, remainingWaves: currentWaves, changed: true, safety: 0 };
+  }
+
+  let barLevel = startLevelBigInt;
   let req = new BigNum(10n, { base: 0, offset: barLevel });
   let changed = false;
 
@@ -1133,7 +1142,7 @@ function updateWaveBar() {
 }
 
 function formatBn(value) {
-  if (value && (value === 'Infinity' || (typeof value.isInfinite === 'function' && value.isInfinite()))) {
+  if (value === Infinity || (value && (value === 'Infinity' || (typeof value.isInfinite === 'function' && value.isInfinite())))) {
     return '<span class="infinity-symbol">∞</span>';
   }
   let bn = value;
@@ -1576,8 +1585,16 @@ function updateSurgeCard() {
        const pending = resetState.pendingWaves;
        if (pending && !pending.isZero?.()) {
            const predicted = predictSurgeLevel(barLevel, currentWaves, pending);
-           if (predicted > barLevel) {
-               newContent = `Your Surge will increase from <span class="surge-level-display">${sLevel}</span> to <span class="surge-level-display">${formatBn(predicted)}</span>`;
+           let isIncrease = false;
+           if (predicted === Infinity) {
+             isIncrease = true;
+           } else {
+             try { isIncrease = predicted > barLevel; } catch {}
+           }
+
+           if (isIncrease) {
+               const pLevel = (predicted === Infinity) ? '<span class="surge-infinity-symbol">∞</span>' : formatBn(predicted);
+               newContent = `Your Surge will increase from <span class="surge-level-display">${sLevel}</span> to <span class="surge-level-display">${pLevel}</span>`;
            }
        }
     }
