@@ -44,6 +44,7 @@ let setDebugPanelAccess;
 let applyStatMultiplierOverride;
 let startGameLoop;
 let notifyGameSessionStarted;
+let ensureGameDom;
 
 const pendingPreloadedAudio = [];
 
@@ -355,6 +356,11 @@ function enterArea(areaID) {
         menuRoot.style.display = 'none';
       }
       document.body.classList.remove('menu-bg');
+
+      if (typeof ensureGameDom === 'function') {
+        ensureGameDom();
+      }
+
       const gameRoot = document.getElementById('game-root');
       if (gameRoot) {
         gameRoot.hidden = false;
@@ -477,6 +483,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/offlinePanel.js'),
     import('./ui/merchantTabs/workshopTab.js'),
     import('./game/automationEffects.js'),
+    import('./game/domInit.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -603,6 +610,7 @@ images: [
     offlinePanelModule,
     workshopTabModule,
     automationEffectsModule,
+    domInitModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -625,6 +633,7 @@ images: [
   const { initOfflineTracker, processOfflineProgress } = offlinePanelModule;
   const { initWorkshopSystem } = workshopTabModule;
   const { initAutomationEffects } = automationEffectsModule;
+  ({ ensureGameDom } = domInitModule);
 
   window.bank = bank;
 
