@@ -11,7 +11,7 @@ import {
   addExternalXpGainMultiplierProvider,
   refreshCoinMultiplierFromXpLevel,
 } from './xpSystem.js';
-import { getMutationMultiplier } from './mutationSystem.js';
+import { getMutationMultiplier, addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
 import {
   initResetSystem,
   onForgeUpgradeUnlocked,
@@ -4490,6 +4490,18 @@ export function registerXpUpgradeEffects() {
   } catch {}
 
 
+
+  try {
+    addExternalMutationGainMultiplierProvider(({ baseGain, mutationUnlocked }) => {
+      if (!mutationUnlocked) return baseGain;
+      let gain = baseGain instanceof BigNum
+        ? baseGain.clone?.() ?? baseGain
+        : BigNum.fromAny(baseGain ?? 0);
+      
+      const { mpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+      return safeMultiplyBigNum(gain, mpValue);
+    });
+  } catch {}
 
   syncBookCurrencyMultiplierFromUpgrade();
   if (typeof window !== 'undefined') {
