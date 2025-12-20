@@ -15,7 +15,7 @@ import { addMutationPower } from './mutationSystem.js';
 
 let initialized = false;
 
-function formatTimeCompact(ms) {
+export function formatTimeCompact(ms) {
     const s = Math.floor(ms / 1000);
     if (s < 60) return `${s}s`;
     const m = Math.floor(s / 60);
@@ -46,7 +46,11 @@ const PRIORITY_ORDER = [
     { key: 'waves',     icon: 'img/currencies/gear/gear.webp',   singular: 'Wave',     plural: 'Waves' },
 ];
 
-function createOfflinePanel(rewards, offlineMs) {
+export function showOfflinePanel(rewards, offlineMs) {
+    // Remove existing panel if any
+    const existing = document.querySelector('.offline-overlay');
+    if (existing) existing.remove();
+
     const overlay = document.createElement('div');
     overlay.className = 'offline-overlay';
     
@@ -152,43 +156,17 @@ function createOfflinePanel(rewards, offlineMs) {
     return overlay;
 }
 
-export function processOfflineProgress() {
-    // 1. Ensure we are actually in a save slot (prevent Main Menu triggers)
+export function calculateOfflineRewards(seconds) {
     const slot = getActiveSlot();
-    if (slot == null) {
-        // If we are on the menu, we do nothing. 
-        // We do NOT resume loop here because the loop might not even be started yet 
-        // or handled by main menu logic.
-        return; 
-    }
+    if (slot == null) return {};
 
-    const lastSave = getLastSaveTime();
-    const now = Date.now();
-    
-    if (lastSave <= 0) return;
-    
-    const diff = now - lastSave;
-    if (diff < 1000) return; // Ignore gaps < 1s
-    
-    if (!hasDoneInfuseReset()) return;
-
-    const seconds = diff / 1000;
-    
-    // Calculate Rewards
-    // (Only Gears implemented currently)
+    const rewards = {};
     const gearRate = getGearsProductionRate ? getGearsProductionRate() : BigNum.fromInt(0);
     const gearsEarned = gearRate.mulDecimal(String(seconds)).floorToInteger();
-    
-    const rewards = {};
-    let hasRewards = false;
     
     if (!gearsEarned.isZero()) {
         if (!isCurrencyLocked('gears', slot)) {
             rewards.gears = gearsEarned;
-            hasRewards = true;
-            
-            // Award immediately
-            if (bank.gears) bank.gears.add(rewards.gears);
         }
     }
 
@@ -204,44 +182,76 @@ export function processOfflineProgress() {
             if (!coinsEarned.isZero()) {
                 if (!isCurrencyLocked('coins', slot)) {
                     rewards.coins = coinsEarned;
-                    hasRewards = true;
-                    if (bank.coins) bank.coins.add(coinsEarned);
                 }
             }
             if (!xpEarned.isZero()) {
                 if (!isStorageKeyLocked(`ccc:xp:progress:${slot}`)) {
                     rewards.xp = xpEarned;
-                    hasRewards = true;
-                    try {
-                        const xpResult = addXp(xpEarned);
-                        if (xpResult && xpResult.xpLevelsGained && !xpResult.xpLevelsGained.isZero()) {
-                            rewards.xp_levels = xpResult.xpLevelsGained;
-                        }
-                    } catch {}
                 }
             }
             if (!mpEarned.isZero()) {
                 if (!isStorageKeyLocked(`ccc:mutation:progress:${slot}`)) {
                     rewards.mp = mpEarned;
-                    hasRewards = true;
-                    try {
-                        const mpResult = addMutationPower(mpEarned);
-                        if (mpResult && mpResult.levelsGained && !mpResult.levelsGained.isZero()) {
-                            rewards.mp_levels = mpResult.levelsGained;
-                        }
-                    } catch {}
                 }
             }
         }
     }
+    return rewards;
+}
+
+export function grantOfflineRewards(rewards) {
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    
+    if (rewards.gears) {
+        if (bank.gears) bank.gears.add(rewards.gears);
+    }
+    if (rewards.coins) {
+        if (bank.coins) bank.coins.add(rewards.coins);
+    }
+    if (rewards.xp) {
+         try {
+            const xpResult = addXp(rewards.xp);
+            if (xpResult && xpResult.xpLevelsGained && !xpResult.xpLevelsGained.isZero()) {
+                rewards.xp_levels = xpResult.xpLevelsGained;
+            }
+        } catch {}
+    }
+    if (rewards.mp) {
+        try {
+            const mpResult = addMutationPower(rewards.mp);
+            if (mpResult && mpResult.levelsGained && !mpResult.levelsGained.isZero()) {
+                rewards.mp_levels = mpResult.levelsGained;
+            }
+        } catch {}
+    }
+}
+
+export function processOfflineProgress() {
+    // 1. Ensure we are actually in a save slot (prevent Main Menu triggers)
+    const slot = getActiveSlot();
+    if (slot == null) {
+        return; 
+    }
+
+    const lastSave = getLastSaveTime();
+    const now = Date.now();
+    
+    if (lastSave <= 0) return;
+    
+    const diff = now - lastSave;
+    if (diff < 1000) return; // Ignore gaps < 1s
+    
+    if (!hasDoneInfuseReset()) return;
+
+    const seconds = diff / 1000;
+    
+    const rewards = calculateOfflineRewards(seconds);
+    const hasRewards = Object.keys(rewards).length > 0;
     
     if (hasRewards) {
-        // Remove existing panel if any
-        const existing = document.querySelector('.offline-overlay');
-        if (existing) existing.remove();
-
-        // Do NOT pause game loop here (per requirement)
-        createOfflinePanel(rewards, diff);
+        grantOfflineRewards(rewards);
+        showOfflinePanel(rewards, diff);
     }
     return hasRewards;
 }
@@ -268,4 +278,4 @@ export function initOfflineTracker(checkActiveState, onReward) {
         }
     });
 }
-window.createOfflinePanel = createOfflinePanel;
+window.createOfflinePanel = showOfflinePanel;
