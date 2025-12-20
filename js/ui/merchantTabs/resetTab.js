@@ -422,7 +422,7 @@ export function setSurgeResetCompleted(value) {
   resetState.hasDoneSurgeReset = !!value;
   try { localStorage.setItem(SURGE_COMPLETED_KEY(slot), resetState.hasDoneSurgeReset ? '1' : '0'); }
   catch {}
-  // Notify for "Unlock Warps" toggle in debug panel
+  // Notify for "Unlock Warp" toggle in debug panel
   try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'surge_completed', slot } })); }
   catch {}
 }
@@ -1668,12 +1668,12 @@ function updateSurgeCard() {
       } else {
          const expected = `
           <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-            Surging for the first time will unlock a new Merchant dialogue and a new tab: <span style="color:#00e5ff"><strong>Warps</strong></span><br>
-            Warps may speed up gameplay a bit, so definitely check them out<br>
+            Surging for the first time will unlock a new Merchant dialogue and a new tab: <span style="color:#00e5ff"><strong>Warp</strong></span><br>
+            Warp may speed up gameplay a bit, so definitely check them out<br>
 			You can only get 10 Waves on your first Surge, so you should do it immediately
           </span>
          `.trim();
-         if (!el.status.innerHTML.includes('Warps')) el.status.innerHTML = expected;
+         if (!el.status.innerHTML.includes('Warp')) el.status.innerHTML = expected;
       }
   }
 
