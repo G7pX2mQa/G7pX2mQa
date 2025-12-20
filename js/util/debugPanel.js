@@ -2274,6 +2274,20 @@ function setAllStatsToInfinity() {
         }
     } catch {}
 
+    // Surge Level
+    try {
+        const surgeLevelKey = getSurgeBarLevelKey(slot);
+        if (surgeLevelKey) {
+            const raw = localStorage.getItem(surgeLevelKey);
+            if (raw !== 'Infinity') {
+                localStorage.setItem(surgeLevelKey, 'Infinity');
+                touched += 1;
+            }
+        }
+    } catch {}
+
+    try { refreshLiveBindings(); } catch {}
+
     return touched;
 }
 
@@ -2303,6 +2317,32 @@ function setAllStatsToZero() {
             touched += 1;
         }
     } catch {}
+
+    // Workshop Level
+    try {
+        const genLevelKey = getGenerationLevelKey(slot);
+        if (genLevelKey) {
+            const raw = localStorage.getItem(genLevelKey);
+            if (raw !== '0') {
+                localStorage.setItem(genLevelKey, '0');
+                touched += 1;
+            }
+        }
+    } catch {}
+
+    // Surge Level
+    try {
+        const surgeLevelKey = getSurgeBarLevelKey(slot);
+        if (surgeLevelKey) {
+            const raw = localStorage.getItem(surgeLevelKey);
+            if (raw !== '0') {
+                localStorage.setItem(surgeLevelKey, '0');
+                touched += 1;
+            }
+        }
+    } catch {}
+
+    try { refreshLiveBindings(); } catch {}
 
     return touched;
 }
