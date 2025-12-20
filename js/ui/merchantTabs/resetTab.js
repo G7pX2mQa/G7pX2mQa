@@ -1051,22 +1051,10 @@ function getSafeLog10BigInt(bn) {
   return totalExp + sigLog;
 }
 
-
-function updateWaveBar() {
-  const slot = ensureResetSlot();
-  if (slot == null) return;
-  if (!isSurgeUnlocked()) return;
-  if (isUpdatingWaveBar) return;
-  if (isSurgeLevelLocked(slot)) return;
-
-  let currentWaves = bank.waves?.value ?? bnZero();
-  
-  let barLevel = getSurgeBarLevel(slot);
-  if (barLevel === Infinity) return;
-
-  // Requirement: 10 * 10^Level
+function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
+  let barLevel = startLevelBigInt;
+  let currentWaves = wavesBn.clone ? wavesBn.clone() : wavesBn;
   let req = new BigNum(10n, { base: 0, offset: barLevel });
-  
   let changed = false;
 
   // Optimization for massive waves: jump to the approximate level
@@ -1075,52 +1063,70 @@ function updateWaveBar() {
 
   if (logCurrentBigInt != -1n && logReqBigInt != -1n && logCurrentBigInt > logReqBigInt + 5n) {
     try {
-        const targetLevel = logCurrentBigInt > 0n ? logCurrentBigInt - 1n : 0n;
+      const targetLevel = logCurrentBigInt > 0n ? logCurrentBigInt - 1n : 0n;
 
-        if (targetLevel > barLevel) {
-            const nextReq = new BigNum(10n, { base: 0, offset: targetLevel });
-            
-            // Cost = (10^(targetLevel+1) - 10^(barLevel+1)) / 9
-            const cost = nextReq.sub(req).div(BigNum.fromInt(9));
+      if (targetLevel > barLevel) {
+        const nextReq = new BigNum(10n, { base: 0, offset: targetLevel });
 
-            if (currentWaves.cmp(cost) >= 0) {
-              currentWaves = currentWaves.sub(cost);
-              barLevel = targetLevel;
-              changed = true;
-              req = nextReq;
-            }
+        // Cost = (10^(targetLevel+1) - 10^(barLevel+1)) / 9
+        const cost = nextReq.sub(req).div(BigNum.fromInt(9));
+
+        if (currentWaves.cmp(cost) >= 0) {
+          currentWaves = currentWaves.sub(cost);
+          barLevel = targetLevel;
+          changed = true;
+          req = nextReq;
         }
+      }
     } catch {}
   }
-  
+
   let safety = 0;
-  
+
   while (safety < 100) {
-      if (currentWaves.cmp(req) < 0) break;
-      
-      currentWaves = currentWaves.sub(req);
-      
-      barLevel += 1n;
-      changed = true;
-      
-      req = req.mulBigNumInteger(BigNum.fromInt(10));
-      safety++;
+    if (currentWaves.cmp(req) < 0) break;
+
+    currentWaves = currentWaves.sub(req);
+
+    barLevel += 1n;
+    changed = true;
+
+    req = req.mulBigNumInteger(BigNum.fromInt(10));
+    safety++;
   }
   
-  if (changed) {
+  return { level: barLevel, remainingWaves: currentWaves, changed, safety };
+}
+
+function updateWaveBar() {
+  const slot = ensureResetSlot();
+  if (slot == null) return;
+  if (!isSurgeUnlocked()) return;
+  if (isUpdatingWaveBar) return;
+  if (isSurgeLevelLocked(slot)) return;
+
+  const currentWaves = bank.waves?.value ?? bnZero();
+  
+  let barLevel = getSurgeBarLevel(slot);
+  if (barLevel === Infinity) return;
+
+  const result = calculateSurgeLevelJump(barLevel, currentWaves);
+  
+  if (result.changed) {
+      barLevel = result.level;
       try { localStorage.setItem(SURGE_BAR_LEVEL_KEY(slot), barLevel.toString()); } catch {}
       try { window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level: barLevel } })); } catch {}
       
       isUpdatingWaveBar = true;
       try {
-        bank.waves.set(currentWaves);
+        bank.waves.set(result.remainingWaves);
       } finally {
         isUpdatingWaveBar = false;
       }
 
       updateResetPanel();
 
-      if (safety >= 100) {
+      if (result.safety >= 100) {
         setTimeout(updateWaveBar, 0);
       }
   }
@@ -1130,7 +1136,11 @@ function formatBn(value) {
   if (value && (value === 'Infinity' || (typeof value.isInfinite === 'function' && value.isInfinite()))) {
     return '<span class="infinity-symbol">∞</span>';
   }
-  try { return formatNumber(value); }
+  let bn = value;
+  if (typeof value === 'bigint') {
+    try { bn = BN.fromInt(value); } catch {}
+  }
+  try { return formatNumber(bn); }
   catch { return value?.toString?.() ?? '0'; }
 }
 
@@ -1289,6 +1299,7 @@ function buildPanel(panelEl) {
   resetState.elements.surge.barText = panelEl.querySelector('[data-reset-bar-text="surge"]');
   resetState.elements.surge.milestones = panelEl.querySelector('[data-reset-milestones="surge"]');
   resetState.elements.surge.headerVal = panelEl.querySelector('[data-surge-level]');
+  resetState.elements.surge.header = panelEl.querySelector('.surge-header');
 
   const surgeWrapper = panelEl.querySelector('.surge-milestone-wrapper');
   if (resetState.elements.surge.milestones && surgeWrapper) {
@@ -1498,6 +1509,13 @@ function updateInfuseCard() {
   updateResetButtonContent(el.btn, { disabled: false }, MAGIC_ICON_SRC, resetState.pendingMagic);
 }
 
+
+function predictSurgeLevel(currentLevelBigInt, currentWaves, pendingWaves) {
+  const availableWaves = currentWaves.add(pendingWaves);
+  const result = calculateSurgeLevelJump(currentLevelBigInt, availableWaves);
+  return result.level;
+}
+
 function updateSurgeCard() {
   const el = resetState.elements.surge;
   if (!el.card || !el.btn) return;
@@ -1548,7 +1566,27 @@ function updateSurgeCard() {
     el.barFill.style.width = `${pct}%`;
   }
 
-  if (el.headerVal) {
+  if (el.header) {
+    const isInf = barLevel === Infinity || (typeof barLevel.isInfinite === 'function' && barLevel.isInfinite()) || String(barLevel) === 'Infinity';
+    const sLevel = isInf ? '<span class="surge-infinity-symbol">∞</span>' : formatBn(barLevel);
+    
+    let newContent = `You are at Surge <span class="surge-level-display" data-surge-level>${sLevel}</span>`;
+    
+    if (!isInf) {
+       const pending = resetState.pendingWaves;
+       if (pending && !pending.isZero?.()) {
+           const predicted = predictSurgeLevel(barLevel, currentWaves, pending);
+           if (predicted > barLevel) {
+               newContent = `Your Surge will increase from <span class="surge-level-display">${sLevel}</span> to <span class="surge-level-display">${formatBn(predicted)}</span>`;
+           }
+       }
+    }
+
+    if (el.header.innerHTML !== newContent) {
+        el.header.innerHTML = newContent;
+        el.headerVal = el.header.querySelector('[data-surge-level]');
+    }
+  } else if (el.headerVal) {
     const isInf = barLevel === Infinity || (typeof barLevel.isInfinite === 'function' && barLevel.isInfinite()) || String(barLevel) === 'Infinity';
     const sLevel = isInf ? '<span class="surge-infinity-symbol">∞</span>' : barLevel.toString();
     if (el.headerVal.innerHTML !== sLevel) el.headerVal.innerHTML = sLevel;
