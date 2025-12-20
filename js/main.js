@@ -675,7 +675,7 @@ images: [
   } catch {}
 
   startGameLoop();
-  initOfflineTracker(() => currentArea === AREAS.STARTER_COVE, () => { if (window.spawner) window.spawner.clearBacklog(); });
+  initOfflineTracker(() => currentArea === AREAS.STARTER_COVE);
 
   try { initWorkshopSystem(); } catch(e) { console.error('Workshop init failed', e); }
   try { initAutomationEffects(); } catch(e) { console.error('Automation init failed', e); }
