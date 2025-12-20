@@ -70,6 +70,8 @@ let originalRemoveItem = null;
 const STAT_MULTIPLIER_STORAGE_PREFIX = 'ccc:debug:stat-mult';
 const ACTION_LOG_STORAGE_PREFIX = 'ccc:actionLog';
 const MAX_ACTION_LOG_ENTRIES = 100;
+const WARP_CHARGES_KEY = (slot) => `ccc:warp:charges:${slot}`;
+const MAX_WARPS = 24;
 
 function isOnMenu() {
     const menuRoot = document.querySelector('.menu-root');
@@ -3412,6 +3414,19 @@ function buildMiscContent(content) {
                 updateActionLogDisplay();
                 flagDebugUsage();
                 logAction('Action log wiped and reset.');
+            },
+        },
+        {
+            label: 'Restock Warps',
+            onClick: () => {
+                const slot = getActiveSlot();
+                if (slot != null) {
+                    try {
+                        localStorage.setItem(WARP_CHARGES_KEY(slot), String(MAX_WARPS));
+                        flagDebugUsage();
+                        logAction('Restocked Warps to full.');
+                    } catch {}
+                }
             },
         },
     ];
