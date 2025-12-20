@@ -3,8 +3,6 @@
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { getMutationState, onMutationChange } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
-import { getLevelNumber } from './upgrades.js';
-import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0n;
@@ -73,7 +71,7 @@ export function createSpawner({
     surgeWidthVw = 22,
     coinsPerSecond = 1,
     perFrameBudget = 24,
-    backlogCap = 600,
+    backlogCap = 10000,
     maxActiveCoins = IS_MOBILE ? MAX_ACTIVE_COINS_MOBILE : 10000,
     initialBurst = 1,
     coinTtlMs = 1e99,
@@ -86,7 +84,7 @@ export function createSpawner({
 
     let currentCoinSrc = coinSrc;
     const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-    const MOBILE_BACKLOG_CAP = 50;
+    const MOBILE_BACKLOG_CAP = perFrameBudget;
     let burstUntil = 0;
 
     const BURST_WINDOW_MS        = 120;
@@ -673,13 +671,6 @@ export function createSpawner({
       const due = carry | 0;
 
       let cap = isTouch ? MOBILE_BACKLOG_CAP : backlogCap;
-      const autoCollectLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) || 0;
-      if (autoCollectLevel > 0) {
-        const activeCap = Math.min(perFrameBudget + 2, 30);
-        if (cap > activeCap) {
-          cap = activeCap;
-        }
-      }
 
       if (queued > cap) queued = cap;
 
