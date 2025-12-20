@@ -71,7 +71,7 @@ export function createSpawner({
     surgeWidthVw = 22,
     coinsPerSecond = 1,
     perFrameBudget = 24,
-    backlogDrainRate = 25,
+    backlogDrainRate = 50,
     backlogCap = 10000,
     maxActiveCoins = IS_MOBILE ? MAX_ACTIVE_COINS_MOBILE : 10000,
     initialBurst = 1,
