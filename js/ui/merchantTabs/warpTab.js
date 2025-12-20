@@ -148,7 +148,7 @@ export function initWarpTab(panel) {
             </div>
             <div class="warp-status">
                 <div class="warp-timer">Next warp in 60m</div>
-                <div class="warp-counter">Warp remaining: <span class="text-cyan">24 / 24</span></div>
+                <div class="warp-counter">Warps remaining: <span class="text-cyan">24 / 24</span></div>
             </div>
             <button type="button" class="warp-btn">Warp</button>
         </div>
