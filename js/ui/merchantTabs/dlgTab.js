@@ -10,6 +10,7 @@ import { MERCHANT_DIALOGUES } from '../../misc/merchantDialogues.js';
 import { getXpState, isXpSystemUnlocked } from '../../game/xpSystem.js';
 import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset } from './resetTab.js';
 import { initWorkshopTab, updateWorkshopTab } from './workshopTab.js';
+import { initWarpTab, updateWarpTab } from './warpTab.js';
 import { blockInteraction } from '../shopOverlay.js';
 import {
   shouldSkipGhostTap,
@@ -83,14 +84,14 @@ const MERCHANT_TABS_DEF = [
   { key: 'dialogue',  label: 'Dialogue', unlocked: true },
   { key: 'reset',     label: 'Reset',    unlocked: false, lockedLabel: '???' },
   { key: 'workshop',  label: 'Workshop', unlocked: false, lockedLabel: '???' },
-  { key: 'warps',     label: 'Warps',    unlocked: false, lockedLabel: '???' },
+  { key: 'warp',     label: 'Warp',    unlocked: false, lockedLabel: '???' },
 ];
 
 const merchantTabUnlockState = new Map([
   ['dialogue', true],
   ['reset', false],
   ['workshop', false],
-  ['warps', false],
+  ['warp', false],
 ]);
 
 const REWARD_ICON_SRC = {
@@ -273,14 +274,14 @@ function syncWorkshopTabUnlockState() {
   setMerchantTabUnlocked('workshop', unlocked);
 }
 
-function syncWarpsTabUnlockState() {
+function syncWarpTabUnlockState() {
   let unlocked = false;
   try {
     if (typeof hasDoneSurgeReset === 'function') {
       unlocked = hasDoneSurgeReset();
     }
   } catch {}
-  setMerchantTabUnlocked('warps', unlocked);
+  setMerchantTabUnlocked('warp', unlocked);
 }
 
 let merchantDlgWatcherSlot = null;
@@ -1421,13 +1422,13 @@ function ensureMerchantOverlay() {
   panelWorkshop.className = 'merchant-panel';
   panelWorkshop.id = 'merchant-panel-workshop';
 
-  const panelWarps = document.createElement('section');
-  panelWarps.className = 'merchant-panel';
-  panelWarps.id = 'merchant-panel-warps';
+  const panelWarp = document.createElement('section');
+  panelWarp.className = 'merchant-panel';
+  panelWarp.id = 'merchant-panel-warp';
 
   syncForgeTabUnlockState();
   syncWorkshopTabUnlockState();
-  syncWarpsTabUnlockState();
+  syncWarpTabUnlockState();
 
   MERCHANT_TABS_DEF.forEach(def => {
     if (def.key === 'dialogue') merchantTabUnlockState.set('dialogue', true);
@@ -1463,10 +1464,10 @@ function ensureMerchantOverlay() {
   merchantTabs.panels['dialogue']  = panelDialogue;
   merchantTabs.panels['reset']     = panelReset;
   merchantTabs.panels['workshop']  = panelWorkshop;
-  merchantTabs.panels['warps']     = panelWarps;
+  merchantTabs.panels['warp']     = panelWarp;
   merchantTabs.tablist = tabs;
 
-  panelsWrap.append(panelDialogue, panelReset, panelWorkshop, panelWarps);
+  panelsWrap.append(panelDialogue, panelReset, panelWorkshop, panelWarp);
   content.append(tabs, panelsWrap);
 
   syncForgeTabUnlockState();
@@ -1477,6 +1478,7 @@ function ensureMerchantOverlay() {
   try { updateResetPanel(); } catch {}
   
   try { initWorkshopTab(panelWorkshop); } catch {}
+  try { initWarpTab(panelWarp); } catch {}
 
   if (!forgeUnlockListenerBound && typeof window !== 'undefined') {
     const handleUnlockChange = (event) => {
@@ -1485,7 +1487,7 @@ function ensureMerchantOverlay() {
       
       if (key === 'forge' || !key) syncForgeTabUnlockState();
       if (key === 'infuse' || !key) syncWorkshopTabUnlockState();
-      if (key === 'surge_completed' || !key) syncWarpsTabUnlockState();
+      if (key === 'surge_completed' || !key) syncWarpTabUnlockState();
     };
     window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
     window.addEventListener('saveSlot:change', handleUnlockChange, { passive: true });
@@ -2062,6 +2064,9 @@ function selectMerchantTab(key) {
 
   if (key === 'dialogue') {
     try { renderDialogueList(); } catch {}
+  }
+  if (key === 'warp') {
+    try { updateWarpTab(); } catch {}
   }
 
   try { localStorage.setItem(sk(MERCHANT_TAB_KEY_BASE), key); } catch {}
