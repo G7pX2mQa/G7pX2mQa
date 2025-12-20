@@ -484,6 +484,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./ui/merchantTabs/workshopTab.js'),
     import('./game/automationEffects.js'),
     import('./game/domInit.js'),
+    import('./game/surgeEffects.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -611,6 +612,7 @@ images: [
     workshopTabModule,
     automationEffectsModule,
     domInitModule,
+    surgeEffectsModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -634,6 +636,7 @@ images: [
   const { initWorkshopSystem } = workshopTabModule;
   const { initAutomationEffects } = automationEffectsModule;
   ({ ensureGameDom } = domInitModule);
+  const { initSurgeEffects } = surgeEffectsModule;
 
   window.bank = bank;
 
@@ -688,6 +691,7 @@ images: [
 
   try { initWorkshopSystem(); } catch(e) { console.error('Workshop init failed', e); }
   try { initAutomationEffects(); } catch(e) { console.error('Automation init failed', e); }
+  try { initSurgeEffects(); } catch(e) { console.error('Surge effects init failed', e); }
   
   applyPendingSlotWipe();
   ensureStorageDefaults();
