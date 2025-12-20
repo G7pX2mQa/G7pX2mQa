@@ -378,7 +378,7 @@ export const MERCHANT_DIALOGUES = {
     m4e: { type: 'line', say: 'No.', next: 'c5a' },
 
     c4a: { type: 'choice', options: [
-      { label: 'Are you trying to be annoying on purpose?', to: 'm5a' },
+      { label: 'Are you trying to be annoying on purpose?', to: 'm5b' },
       { label: 'You’re not being helpful.', to: 'm5a' },
       { label: 'Nothing, nevermind…', to: 'm6a' },
     ]},
@@ -390,6 +390,7 @@ export const MERCHANT_DIALOGUES = {
     ]},
 
     m5a: { type: 'line', say: 'Okay.', next: 'c5a' },
+	m5b: { type: 'line', say: 'No.', next: 'c5a' },
 
     c5a: { type: 'choice', options: [
       { label: '…', to: 'm6a' },
