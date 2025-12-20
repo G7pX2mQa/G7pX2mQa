@@ -45,7 +45,7 @@ export const SURGE_MILESTONES = [
   },
   {
     id: 7,
-    surgeLevel: 100,
+    surgeLevel: 1000,
     description: [
       "Very far future"
     ]
@@ -87,3 +87,4 @@ export function getVisibleMilestones(currentSurgeLevel) {
   // Return all reached + up to 2 future
   return [...reached, ...future.slice(0, 2)];
 }
+
