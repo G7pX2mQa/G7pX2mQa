@@ -67,7 +67,7 @@ async function resetDistDir() {
   await fs.mkdir(DIST_DIR, { recursive: true });
 }
 
-function minifyHtmlChunk(chunk) {
+function minifyHtmlChunk(chunk, trim = true) {
   if (!chunk || !chunk.includes("<")) return chunk;
 
   // Remove HTML comments (including legacy single-line ones) before whitespace collapsing.
@@ -122,7 +122,8 @@ function minifyHtmlChunk(chunk) {
     out += ch;
   }
 
-  return out.replace(/>\s+</g, "><").replace(/\s+/g, " ").trim();
+  out = out.replace(/>\s+</g, "><").replace(/\s+/g, " ");
+  return trim ? out.trim() : out;
 }
 
 function minifyTemplateBody(body) {
@@ -163,8 +164,9 @@ function minifyTemplateBody(body) {
   }
 
   return parts
-    .map((part) => (part.type === "text" ? minifyHtmlChunk(part.value) : part.value))
-    .join("");
+    .map((part) => (part.type === "text" ? minifyHtmlChunk(part.value, false) : part.value))
+    .join("")
+    .trim();
 }
 
 function htmlTemplateMinifierPlugin({ enabled }) {
