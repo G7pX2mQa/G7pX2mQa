@@ -16,7 +16,7 @@ import {
     setCurrencyMultiplierBN,
 } from './storage.js';
 import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpGainMultiplier, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
-import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
+import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationGainMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
 import {
     getUpgradeStorageKey,
@@ -603,7 +603,7 @@ function getGameStatMultiplier(statKey) {
             const mult = getXpGainMultiplier();
             if (mult) return mult;
         } else if (statKey === 'mutation') {
-            const valueMult = getMpValueMultiplierBn?.();
+            const valueMult = getMutationGainMultiplier?.();
             if (valueMult) return valueMult;
 
             const mult = getMutationMultiplier();
@@ -3492,16 +3492,27 @@ function buildMiscContent(content) {
         const target = resetSelect.value || DEFAULT_MISC_RESET_SELECTION;
         const lockKeys = resolveResetLockKeys();
         const shouldRelock = resetLockToggle.isLocked();
-        const result = withTemporaryUnlock(lockKeys, () => resetStatsAndMultipliers(target))
-            ?? { label: target, count: 0 };
-        if (shouldRelock) {
-            lockKeys.forEach((key) => lockStorageKey(key));
-        }
-        resetLockToggle.refresh();
-        const { label, count } = result;
-        const nounPhrase = count === 1 ? 'value and multiplier' : 'values and multipliers';
-        flagDebugUsage();
-        logAction(`Reset ${nounPhrase} for ${label} to defaults.`);
+
+        const performReset = (logEntry = true) => {
+            const result = withTemporaryUnlock(lockKeys, () => resetStatsAndMultipliers(target))
+                ?? { label: target, count: 0 };
+
+            if (shouldRelock) {
+                lockKeys.forEach((key) => lockStorageKey(key));
+            }
+
+            resetLockToggle.refresh();
+            flagDebugUsage();
+
+            if (logEntry) {
+                const { label, count } = result;
+                const nounPhrase = count === 1 ? 'value and multiplier' : 'values and multipliers';
+                logAction(`Reset ${nounPhrase} for ${label} to defaults.`);
+            }
+        };
+
+        performReset(true);
+        setTimeout(() => performReset(false), 100);
     });
     resetRow.appendChild(resetBtn);
     content.appendChild(resetRow);
