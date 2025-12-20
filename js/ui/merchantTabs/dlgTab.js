@@ -1183,8 +1183,8 @@ const engine = new DialogueEngine({
     ];
   }
 
-  if (claimed && meta.scriptId === 2 && script.nodes.m2a) {
-    script.nodes.m2a.say = 'I\'ve already given you Books, goodbye.';
+  if (claimed && meta.scriptId === 2 && script.nodes.m3a) {
+    script.nodes.m3a.say = 'I\'ve already given you Books, goodbye.';
 	if (script.nodes.c2a) {
       script.nodes.c2a.options = [
         { label: 'Goodbye.', to: 'end_nr' },
