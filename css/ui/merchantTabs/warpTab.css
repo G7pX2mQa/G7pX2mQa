@@ -1,0 +1,125 @@
+.warp-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    padding: 24px;
+    text-align: center;
+    color: #fff;
+    height: 100%;
+}
+
+.warp-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin: 0;
+    color: #00e5ff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.55);
+}
+
+.warp-desc {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 100%;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #e6f5ff;
+}
+
+.warp-desc p {
+    margin: 0;
+}
+
+.text-cyan {
+    color: #00e5ff;
+    font-weight: 700;
+}
+
+.warp-status {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.warp-timer {
+    font-size: 1.1rem;
+    color: #cbd5e1;
+    min-height: 1.6em;
+}
+
+.warp-counter {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.warp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 26px;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #ffffff;
+    background: linear-gradient(to bottom, #00c6ff, #0072ff);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 
+        0 6px 0 hsl(213 90% 20%),
+        0 0 0 3px hsl(213 96% 10% / 0.9);
+    transition: background 0.3s ease, transform 0.1s;
+    min-width: min(300px, 100%);
+    user-select: none;
+    -webkit-text-stroke: 0 transparent;
+    text-shadow:
+        0 0.75px 0 #000,
+        0 -0.75px 0 #000,
+        0.75px 0 0 #000,
+        -0.75px 0 0 #000,
+        0.75px 0.75px 0 #000,
+        -0.75px 0.5px 0 #000,
+        0.75px -0.75px 0 #000,
+        -0.75px -0.75px 0 #000,
+        0 1px 0 rgba(0,0,0,0.55);
+}
+
+.warp-btn:not(:disabled):hover,
+.warp-btn:not(:disabled):focus-visible {
+    animation: surgeWavePulse 1.1s infinite ease-in-out;
+}
+
+.warp-btn:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 
+        0 4px 0 hsl(213 90% 20%),
+        0 0 0 3px hsl(213 96% 10% / 0.9);
+}
+
+.warp-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(0.8);
+}
+
+@keyframes surgeWavePulse {
+  0% {
+    box-shadow:
+      0 0 10px 2px hsl(213 100% 60% / 0.3),
+      0 6px 0 hsl(213 90% 20%),
+      0 0 0 3px hsl(213 96% 10% / 0.9);
+  }
+  50% {
+    box-shadow:
+      0 0 18px 5px hsl(193 100% 65% / 0.55),
+      0 6px 0 hsl(213 90% 20%),
+      0 0 0 3px hsl(213 96% 12% / 1);
+  }
+  100% {
+    box-shadow:
+      0 0 10px 2px hsl(213 100% 60% / 0.3),
+      0 6px 0 hsl(213 90% 20%),
+      0 0 0 3px hsl(213 96% 10% / 0.9);
+  }
+}
