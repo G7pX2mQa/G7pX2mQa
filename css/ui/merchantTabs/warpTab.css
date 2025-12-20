@@ -123,3 +123,11 @@
       0 0 0 3px hsl(213 96% 10% / 0.9);
   }
 }
+
+.warp-desc,
+.warp-timer,
+.warp-counter {
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
+}
