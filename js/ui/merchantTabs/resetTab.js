@@ -825,6 +825,12 @@ export function isSurgeUnlocked() {
   return !!resetState.surgeUnlocked;
 }
 
+export function getCurrentSurgeLevel() {
+  const slot = ensureResetSlot();
+  if (slot == null) return 0n;
+  return getSurgeBarLevel(slot);
+}
+
 export function hasDoneForgeReset() {
   ensurePersistentFlagsPrimed();
   return !!resetState.hasDoneForgeReset;
@@ -1905,5 +1911,6 @@ if (typeof window !== 'undefined') {
     getSurgeDebugOverrideState,
     setSurgeResetCompleted,
     hasDoneSurgeReset,
+    getCurrentSurgeLevel,
   });
 }
