@@ -8,7 +8,7 @@ import {
 import { BigNum } from '../../util/bigNum.js';
 import { MERCHANT_DIALOGUES } from '../../misc/merchantDialogues.js';
 import { getXpState, isXpSystemUnlocked } from '../../game/xpSystem.js';
-import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset, hasDoneInfuseReset, getCurrentSurgeLevel } from './resetTab.js';
+import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset } from './resetTab.js';
 import { initWorkshopTab, updateWorkshopTab } from './workshopTab.js';
 import { blockInteraction } from '../shopOverlay.js';
 import {
@@ -276,9 +276,9 @@ function syncWorkshopTabUnlockState() {
 function syncWarpsTabUnlockState() {
   let unlocked = false;
   try {
-    const level = getCurrentSurgeLevel();
-    if (level === Infinity) unlocked = true;
-    else if (typeof level === 'bigint') unlocked = level >= 1n;
+    if (typeof hasDoneSurgeReset === 'function') {
+      unlocked = hasDoneSurgeReset();
+    }
   } catch {}
   setMerchantTabUnlocked('warps', unlocked);
 }
@@ -1485,11 +1485,10 @@ function ensureMerchantOverlay() {
       
       if (key === 'forge' || !key) syncForgeTabUnlockState();
       if (key === 'infuse' || !key) syncWorkshopTabUnlockState();
+      if (key === 'surge_completed' || !key) syncWarpsTabUnlockState();
     };
     window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
     window.addEventListener('saveSlot:change', handleUnlockChange, { passive: true });
-    window.addEventListener('surge:level:change', syncWarpsTabUnlockState, { passive: true });
-    window.addEventListener('saveSlot:change', syncWarpsTabUnlockState, { passive: true });
     forgeUnlockListenerBound = true;
   }
 
