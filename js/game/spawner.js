@@ -3,6 +3,7 @@
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { getMutationState, onMutationChange } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
+import { isSurge2Active } from './surgeEffects.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0n;
@@ -59,13 +60,37 @@ function getImage(src) {
   return img;
 }
 
+// Surge 2 Constants
+const COIN_SIZES = [40, 55, 80, 125, 200, 320, 512];
+const COIN_VALUE_MULTS = [1, 25, 625, 15625, 390625, 9765625, 244140625];
+// Probabilities for Size 1 to 6 (Size 0 is fallback)
+// Checked from rarest (Size 6) to commonest (Size 1)
+const COIN_CHANCES = [
+    0,          // Size 0 (N/A)
+    0.1,        // Size 1: 1/10
+    0.01,       // Size 2: 1/100
+    0.001,      // Size 3: 1/1000
+    0.0001,     // Size 4: 1/10000
+    0.00001,    // Size 5: 1/100000
+    0.01    // Size 6: 1/1000000
+];
+const COIN_SOUND_SUFFIXES = [
+    '', // Size 0 uses default
+    '_size1.ogg',
+    '_size2.ogg',
+    '_size3.ogg',
+    '_size4.ogg',
+    '_size5.ogg',
+    '_size6.ogg'
+];
+
 export function createSpawner({
     playfieldSelector = '.area-cove .playfield',
     waterSelector = '.water-base',
     surgesHost = '.surges',
     coinsHost = '.coins-layer',
     coinSrc = 'img/coin/coin.webp',
-    coinSize = 40,
+    coinSize: baseCoinSize = 40, // Renamed to baseCoinSize
     animationDurationMs = 1500,
     surgeLifetimeMs = 1400,
     surgeWidthVw = 22,
@@ -81,6 +106,9 @@ export function createSpawner({
     enableDropShadow = false,
 } = {}) {
 
+    // Ensure COIN_SIZES[0] matches the passed baseCoinSize if possible, or just respect constants
+    // The constants are hardcoded based on requirements.
+    
     let currentCoinSrc = coinSrc;
 
     const refs = {
@@ -183,8 +211,7 @@ export function createSpawner({
         const el = document.createElement('div');
         el.className = 'coin';
         el.style.position = 'absolute';
-        el.style.width = `${coinSize}px`;
-        el.style.height = `${coinSize}px`;
+        // Width/Height set on spawn
         el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
         el.style.borderRadius = '50%';
         el.style.pointerEvents = 'auto';
@@ -202,6 +229,10 @@ export function createSpawner({
        el.style.opacity = '1';
        
        el.classList.remove('coin--collected');
+       // Remove size classes
+       for (let i = 0; i <= 6; i++) {
+           el.classList.remove(`coin--size-${i}`);
+       }
        el.style.removeProperty('--ccc-start');
 
        delete el.dataset.dieAt;
@@ -386,7 +417,7 @@ export function createSpawner({
       else          playWaveHtmlVolume(waveSoundDesktopVolume);
     }
 
-    function planCoinFromWave(wave) {
+    function planCoinFromWave(wave, coinSize, sizeIndex) {
         if (!wave) return null;
         const { x: waveX, y: waveTop, w: waveW } = wave;
 
@@ -395,7 +426,29 @@ export function createSpawner({
         const startY = waveTop + 10 - coinSize / 2;
 
         const drift = Math.random() * 100 - 50;
-        const endX = clamp(startX + drift, COIN_MARGIN, M.pfW - coinSize - COIN_MARGIN);
+        
+        let endX;
+        
+        // Logic to "tend toward the middle" for larger coins
+        // and handle overflow.
+        const effectiveMargin = COIN_MARGIN + (sizeIndex >= 3 ? 15 * (sizeIndex - 2) : 0);
+        
+        if (coinSize >= M.pfW) {
+            // If coin is wider than playfield, center it
+            endX = (M.pfW - coinSize) / 2;
+        } else {
+            // Restrict bounds for larger coins
+            const minX = effectiveMargin;
+            const maxX = M.pfW - coinSize - effectiveMargin;
+            
+            // If margin made range invalid, fallback to center or simple clamp
+            if (minX >= maxX) {
+                 endX = (M.pfW - coinSize) / 2;
+            } else {
+                 endX = clamp(startX + drift, minX, maxX);
+            }
+        }
+
         const minY = Math.max(M.wRect.height + 80, 120);
         const maxY = Math.max(minY + 40, M.safeBottom - coinSize - 6);
         const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
@@ -418,6 +471,10 @@ export function createSpawner({
             computeMetrics();
 
         if (maxActiveCoins !== Infinity && activeCoins.length >= maxActiveCoins) {
+            // Try to find a non-forceDom coin to remove
+            // But if all are forceDom (Size 4+), we remove oldest anyway (user cancelled preservation logic)
+            // But actually user said "Don't worry about preservation functionality yet".
+            // So we just remove the oldest.
             const oldest = activeCoins[0];
             if (oldest) removeCoin(oldest, 0);
         }
@@ -436,12 +493,27 @@ export function createSpawner({
             w: waveW
         };
 
-        const coinPlan = planCoinFromWave(wave);
+        // Determine coin size
+        let sizeIndex = 0;
+        if (isSurge2Active()) {
+            const r = Math.random();
+            for (let i = 6; i >= 1; i--) {
+                if (r < COIN_CHANCES[i]) {
+                    sizeIndex = i;
+                    break;
+                }
+            }
+        }
+        
+        const size = COIN_SIZES[sizeIndex];
+
+        const coinPlan = planCoinFromWave(wave, size, sizeIndex);
         if (!coinPlan) return null;
 
         return {
             wave,
-            coin: coinPlan
+            coin: coinPlan,
+            sizeIndex
         };
     }
 
@@ -455,7 +527,7 @@ export function createSpawner({
       const newCoins = [];
       const now = performance.now();
 
-      for (const { wave, coin } of batch) {
+      for (const { wave, coin, sizeIndex } of batch) {
         if (wave) {
           const surge = getSurge();
           surge.style.left = `${wave.x}px`;
@@ -465,7 +537,14 @@ export function createSpawner({
           newSurges.push(surge);
         }
 
+        const size = COIN_SIZES[sizeIndex];
+        const valMult = COIN_VALUE_MULTS[sizeIndex];
+        const forceDom = sizeIndex >= 4;
+
         const el = getCoin();
+        el.style.width = `${size}px`;
+        el.style.height = `${size}px`;
+        el.className = `coin coin--size-${sizeIndex}`; // Add size class
         el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
         
         el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
@@ -494,7 +573,13 @@ export function createSpawner({
             dieAt: now + coinTtlMs,
             jitterMs: coin.jitterMs,
             isRemoved: false,
-            settled: false
+            settled: false,
+            // Surge 2 properties
+            size: size,
+            sizeIndex: sizeIndex,
+            valueMultiplier: valMult,
+            forceDom: forceDom,
+            soundSrc: COIN_SOUND_SUFFIXES[sizeIndex] ? `sounds/coin_pickup${COIN_SOUND_SUFFIXES[sizeIndex]}` : null
         };
         
         el._coinObj = coinObj;
@@ -575,7 +660,9 @@ export function createSpawner({
     function drawSingleSettledCoin(c) {
         const img = getImage(c.src);
         if (img && img.complete && img.naturalWidth > 0) {
-             ctx.drawImage(img, c.x, c.y, coinSize, coinSize);
+             // Use coin specific size
+             const size = c.size || baseCoinSize;
+             ctx.drawImage(img, c.x, c.y, size, size);
         }
     }
 
@@ -602,6 +689,7 @@ export function createSpawner({
             const count = activeCoins.length;
             for (let i = 0; i < count; i++) {
                 const c = activeCoins[i];
+                // DOM-forced coins are not drawn on canvas
                 if (c.settled && !c.isRemoved && !c.el) {
                     drawSingleSettledCoin(c);
                 }
@@ -671,10 +759,15 @@ export function createSpawner({
                   c.y = c.endY;
                   c.rot = 0;
                   c.scale = 1;
-                  if (c.el) {
+                  // If forceDom (Size 4+), we keep it as DOM element and do NOT push to canvas buffer
+                  if (c.el && !c.forceDom) {
                       releaseCoin(c.el);
                       c.el = null;
                       newlySettledBuffer.push(c);
+                  } else if (c.el) {
+                      // Ensure final state is set properly for DOM coins
+                      c.el.style.transition = 'none';
+                      c.el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
                   }
                   continue;
               }
@@ -773,6 +866,11 @@ export function createSpawner({
         if (c.isRemoved) return null;
         
         const el = getCoin();
+        const size = c.size || baseCoinSize;
+        el.style.width = `${size}px`;
+        el.style.height = `${size}px`;
+        el.className = `coin coin--size-${c.sizeIndex || 0}`;
+        
         el.style.transition = '';
         el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
         el.style.background = `url(${c.src}) center/contain no-repeat`;
@@ -800,15 +898,17 @@ export function createSpawner({
         
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
+            const size = c.size || baseCoinSize;
+            
             let cx, cy;
             
             if (c.settled) {
-                cx = c.x + (coinSize / 2);
-                cy = c.y + (coinSize / 2);
+                cx = c.x + (size / 2);
+                cy = c.y + (size / 2);
             } else {
                 const s = getCoinState(c, now);
-                cx = s.x + (coinSize / 2);
-                cy = s.y + (coinSize / 2);
+                cx = s.x + (size / 2);
+                cy = s.y + (size / 2);
             }
             
             if (cx < minX || cx > maxX) continue;
@@ -844,14 +944,16 @@ export function createSpawner({
 
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
+            const size = c.size || baseCoinSize;
+            
             let cx, cy;
             if (c.settled) {
-                cx = c.x + (coinSize / 2);
-                cy = c.y + (coinSize / 2);
+                cx = c.x + (size / 2);
+                cy = c.y + (size / 2);
             } else {
                 const s = getCoinState(c, now);
-                cx = s.x + (coinSize / 2);
-                cy = s.y + (coinSize / 2);
+                cx = s.x + (size / 2);
+                cy = s.y + (size / 2);
             }
             
             if (cx < minX || cx > maxX) continue;
@@ -899,14 +1001,16 @@ export function createSpawner({
         
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
+            const size = c.size || baseCoinSize;
+            
             let cx, cy;
             if (c.settled) {
-                cx = c.x + (coinSize / 2);
-                cy = c.y + (coinSize / 2);
+                cx = c.x + (size / 2);
+                cy = c.y + (size / 2);
             } else {
                 const s = getCoinState(c, now);
-                cx = s.x + (coinSize / 2);
-                cy = s.y + (coinSize / 2);
+                cx = s.x + (size / 2);
+                cy = s.y + (size / 2);
             }
             
             if (cx < minX || cx > maxX) continue;
@@ -917,17 +1021,7 @@ export function createSpawner({
             
             if ((dx*dx + dy*dy) <= radiusSq) {
                 if (!c.el && !c.isRemoved) {
-                     const el = getCoin();
-                     el.style.transition = '';
-                     el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
-                     el.style.background = `url(${c.src}) center/contain no-repeat`;
-                     el.style.opacity = '1';
-                     el.dataset.mutationLevel = c.mutationLevel;
-                     
-                     el._coinObj = c;
-                     c.el = el;
-                     refs.c.appendChild(el);
-                     canvasDirty = true;
+                     ensureCoinVisual(c);
                 }
                 if (c.el) candidates.push(c.el);
             }
@@ -953,14 +1047,16 @@ export function createSpawner({
 
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
+            const size = c.size || baseCoinSize;
+            
             let cx, cy;
             if (c.settled) {
-                cx = c.x + (coinSize / 2);
-                cy = c.y + (coinSize / 2);
+                cx = c.x + (size / 2);
+                cy = c.y + (size / 2);
             } else {
                 const s = getCoinState(c, now);
-                cx = s.x + (coinSize / 2);
-                cy = s.y + (coinSize / 2);
+                cx = s.x + (size / 2);
+                cy = s.y + (size / 2);
             }
             
             if (cx < minX || cx > maxX) continue;
@@ -985,17 +1081,7 @@ export function createSpawner({
             
             if (hit) {
                 if (!c.el && !c.isRemoved) {
-                     const el = getCoin();
-                     el.style.transition = '';
-                     el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
-                     el.style.background = `url(${c.src}) center/contain no-repeat`;
-                     el.style.opacity = '1';
-                     el.dataset.mutationLevel = c.mutationLevel;
-                     
-                     el._coinObj = c;
-                     c.el = el;
-                     refs.c.appendChild(el);
-                     canvasDirty = true;
+                     ensureCoinVisual(c);
                 }
                 if (c.el) candidates.push(c.el);
             }
