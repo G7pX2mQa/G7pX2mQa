@@ -176,7 +176,8 @@ export function createSpawner({
     const coinPool = [];
     const surgePool = [];
 
-    const activeCoins = []; 
+    const activeCoins = [];
+    const newlySettledBuffer = [];
 
     function makeCoin() {
         const el = document.createElement('div');
@@ -571,41 +572,68 @@ export function createSpawner({
         return { x, y, rot, scale };
     }
 
-    function drawSettledCoins() {
-        if (!ctx || !canvasDirty) return;
-        
-        // Clear canvas
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
-        
-        // Optimization: Batch context operations
-        // Settled coins always have rot=0 and scale=1, so we avoid per-coin save/restore/transform
-        
-        if (enableDropShadow) {
-             ctx.save();
-             ctx.shadowColor = 'rgba(0,0,0,0.35)';
-             ctx.shadowBlur = 2;
-             ctx.shadowOffsetY = 2;
+    function drawSingleSettledCoin(c) {
+        const img = getImage(c.src);
+        if (img && img.complete && img.naturalWidth > 0) {
+             ctx.drawImage(img, c.x, c.y, coinSize, coinSize);
         }
+    }
 
-        const count = activeCoins.length;
-        for (let i = 0; i < count; i++) {
-            const c = activeCoins[i];
-            if (c.settled && !c.isRemoved && !c.el) {
-                const img = getImage(c.src);
-                if (img && img.complete && img.naturalWidth > 0) {
-                     ctx.drawImage(img, c.x, c.y, coinSize, coinSize);
+    function drawSettledCoins() {
+        if (!ctx) return;
+        
+        if (canvasDirty) {
+            // Full redraw
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+            
+            // Optimization: Batch context operations
+            // Settled coins always have rot=0 and scale=1, so we avoid per-coin save/restore/transform
+            
+            if (enableDropShadow) {
+                 ctx.save();
+                 ctx.shadowColor = 'rgba(0,0,0,0.35)';
+                 ctx.shadowBlur = 2;
+                 ctx.shadowOffsetY = 2;
+            }
+
+            const count = activeCoins.length;
+            for (let i = 0; i < count; i++) {
+                const c = activeCoins[i];
+                if (c.settled && !c.isRemoved && !c.el) {
+                    drawSingleSettledCoin(c);
                 }
             }
-        }
-        
-        if (enableDropShadow) {
-            ctx.restore();
-        }
+            
+            if (enableDropShadow) {
+                ctx.restore();
+            }
 
-        canvasDirty = false;
+            canvasDirty = false;
+            newlySettledBuffer.length = 0;
+        } else if (newlySettledBuffer.length > 0) {
+            // Incremental draw
+            if (enableDropShadow) {
+                 ctx.save();
+                 ctx.shadowColor = 'rgba(0,0,0,0.35)';
+                 ctx.shadowBlur = 2;
+                 ctx.shadowOffsetY = 2;
+            }
+
+            for (let i = 0; i < newlySettledBuffer.length; i++) {
+                const c = newlySettledBuffer[i];
+                if (!c.isRemoved && c.settled && !c.el) {
+                    drawSingleSettledCoin(c);
+                }
+            }
+
+            if (enableDropShadow) {
+                ctx.restore();
+            }
+            newlySettledBuffer.length = 0;
+        }
     }
 
     let rate = coinsPerSecond;
@@ -646,7 +674,7 @@ export function createSpawner({
                   if (c.el) {
                       releaseCoin(c.el);
                       c.el = null;
-                      canvasDirty = true;
+                      newlySettledBuffer.push(c);
                   }
                   continue;
               }
