@@ -147,7 +147,7 @@ export function initWarpTab(panel) {
                 <p>Use your Warps wisely as they only recharge once every hour</p>
             </div>
             <div class="warp-status">
-                <div class="warp-timer">Next warp in 60m</div>
+                <div class="warp-timer">Next warp in: 60m</div>
                 <div class="warp-counter">Warps remaining: <span class="text-cyan">24 / 24</span></div>
             </div>
             <button type="button" class="warp-btn">Warp</button>
