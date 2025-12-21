@@ -344,8 +344,8 @@ function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
   const xpLevel = levelToNumber(xpLevelBn);
   if (xpLevel < 201) return bnZero();
 
-  // Formula: 10 * 10^((XP - 201)/30) * Multipliers
-  const xpTerm = (xpLevel - 201) / 30;
+  // Formula: 10 * 10^((XP - 201)/35) * Multipliers
+  const xpTerm = (xpLevel - 201) / 35;
   
   // Log-based multipliers
   const logCoins = approxLog10BigNum(coinsBn);
