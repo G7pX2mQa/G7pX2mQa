@@ -1435,19 +1435,60 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       } else desc.hidden = true;
       
       const info = ensureChild(content, 'upg-info');
-      info.innerHTML = '';
-      info.appendChild(spacer('12px'));
       
+      let spacerTop = info.querySelector('.info-spacer-top');
+      if (!spacerTop) {
+          spacerTop = document.createElement('div');
+          spacerTop.className = 'info-spacer-top';
+          spacerTop.style.height = '12px';
+          if (info.firstChild) info.insertBefore(spacerTop, info.firstChild);
+          else info.appendChild(spacerTop);
+      }
+      if (info.firstElementChild !== spacerTop) info.prepend(spacerTop);
+      let cursor = spacerTop;
+      const placeAfterCursor = (el) => {
+          if (cursor.nextElementSibling !== el) info.insertBefore(el, cursor.nextSibling);
+          cursor = el;
+      };
+
       if (locked && lockState?.reason && !isHiddenUpgrade) {
           const descText = (model.displayDesc || '').trim();
           const reasonText = String(lockState.reason ?? '').trim();
           if (descText !== reasonText) {
-              const note = document.createElement('div'); note.className = 'upg-line lock-note'; note.textContent = lockState.reason;
-              info.appendChild(note); info.appendChild(spacer('12px'));
+              let wrap = info.querySelector('.lock-wrapper');
+              if (!wrap) { 
+                 wrap = document.createElement('div'); wrap.className = 'lock-wrapper';
+                 const line = document.createElement('div'); line.className = 'upg-line lock-note';
+                 const sp = document.createElement('div'); sp.style.height = '12px';
+                 wrap.append(line, sp);
+              }
+              const line = wrap.querySelector('.lock-note');
+              if (line.textContent !== lockState.reason) line.textContent = lockState.reason;
+              placeAfterCursor(wrap);
+          } else {
+              const wrap = info.querySelector('.lock-wrapper');
+              if (wrap) wrap.remove();
           }
+      } else {
+          const wrap = info.querySelector('.lock-wrapper');
+          if (wrap) wrap.remove();
       }
+
       if (model.effect && !(locked && lockState?.hideEffect)) {
-          info.appendChild(makeLine(`<span class="bonus-line">${model.effect}</span>`)); info.appendChild(spacer('12px'));
+          let wrap = info.querySelector('.effect-wrapper');
+          if (!wrap) {
+               wrap = document.createElement('div'); wrap.className = 'effect-wrapper';
+               const line = document.createElement('div'); line.className = 'upg-line';
+               const sp = document.createElement('div'); sp.style.height = '12px';
+               wrap.append(line, sp);
+          }
+          const line = wrap.querySelector('.upg-line');
+          const html = `<span class="bonus-line">${model.effect}</span>`;
+          if (line.innerHTML !== html) line.innerHTML = html;
+          placeAfterCursor(wrap);
+      } else {
+          const wrap = info.querySelector('.effect-wrapper');
+          if (wrap) wrap.remove();
       }
       
       const iconHTML = currencyIconHTML(model.upg.costType);
@@ -1455,15 +1496,20 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       const stopBuying = capReached || evolveReady;
       
       if (!model.unlockUpgrade && !stopBuying && (!locked || !lockState?.hideCost)) {
-          const costs = document.createElement('div'); costs.className = 'upg-costs';
+          const costs = ensureChild(info, 'upg-costs');
+          placeAfterCursor(costs);
           
           const costLabel = getCurrencyLabel(model.upg.costType, nextPriceBn);
-          const lineCost = document.createElement('div'); lineCost.className = 'upg-line';
-          lineCost.innerHTML = `Cost: ${iconHTML} ${bank[model.upg.costType].fmt(nextPriceBn)} ${costLabel}`;
-          costs.appendChild(lineCost);
+          const costHtml = `Cost: ${iconHTML} ${bank[model.upg.costType].fmt(nextPriceBn)} ${costLabel}`;
+          
+          const lineCost = ensureChild(costs, 'cost-line', 'div');
+          if (!lineCost.className.includes('upg-line')) lineCost.className = 'upg-line cost-line';
+          if (lineCost.innerHTML !== costHtml) lineCost.innerHTML = costHtml;
           
           if (isHM) {
-             const lineMilestone = document.createElement('div'); lineMilestone.className = 'upg-line';
+             const lineMilestone = ensureChild(costs, 'milestone-line', 'div');
+             if (!lineMilestone.className.includes('upg-line')) lineMilestone.className = 'upg-line milestone-line';
+
              let milestoneCost = '—';
              let milestoneLabel = '';
              const isAutomated = isUpgradeAutomated(model.upg);
@@ -1496,15 +1542,22 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                 }
              } catch {}
              const prefix = isAutomated ? 'Cost at next milestone:' : 'Cost to next milestone:';
-             lineMilestone.innerHTML = `${prefix} ${iconHTML} ${milestoneCost} ${milestoneLabel}`;
-             costs.appendChild(lineMilestone);
+             const milestoneHtml = `${prefix} ${iconHTML} ${milestoneCost} ${milestoneLabel}`;
+             if (lineMilestone.innerHTML !== milestoneHtml) lineMilestone.innerHTML = milestoneHtml;
+          } else {
+             const lineMilestone = costs.querySelector('.milestone-line');
+             if (lineMilestone) lineMilestone.remove();
           }
           
           const haveLabel = getCurrencyLabel(model.upg.costType, model.have);
-          const lineHave = document.createElement('div'); lineHave.className = 'upg-line';
-          lineHave.innerHTML = `You have: ${iconHTML} ${bank[model.upg.costType].fmt(model.have)} ${haveLabel}`;
-          costs.appendChild(lineHave);
-          info.appendChild(costs);
+          const haveHtml = `You have: ${iconHTML} ${bank[model.upg.costType].fmt(model.have)} ${haveLabel}`;
+          
+          const lineHave = ensureChild(costs, 'have-line', 'div');
+          if (!lineHave.className.includes('upg-line')) lineHave.className = 'upg-line have-line';
+          if (lineHave.innerHTML !== haveHtml) lineHave.innerHTML = haveHtml;
+      } else {
+          const costs = info.querySelector('.upg-costs');
+          if (costs) costs.remove();
       }
       
       // Milestones Row
