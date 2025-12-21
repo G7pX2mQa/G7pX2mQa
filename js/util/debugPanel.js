@@ -2295,9 +2295,16 @@ function setAllStatsToInfinity() {
             if (raw !== 'Infinity') {
                 localStorage.setItem(surgeLevelKey, 'Infinity');
                 touched += 1;
+                try {
+                    window.dispatchEvent(new CustomEvent('surge:level:change', {
+                        detail: { slot, level: Infinity }
+                    }));
+                } catch {}
             }
         }
     } catch {}
+
+    try { window.resetSystem?.updateResetPanel?.(); } catch {}
 
     try { refreshLiveBindings(); } catch {}
 
@@ -2351,9 +2358,16 @@ function setAllStatsToZero() {
             if (raw !== '0') {
                 localStorage.setItem(surgeLevelKey, '0');
                 touched += 1;
+                try {
+                    window.dispatchEvent(new CustomEvent('surge:level:change', {
+                        detail: { slot, level: 0n }
+                    }));
+                } catch {}
             }
         }
     } catch {}
+
+    try { window.resetSystem?.updateResetPanel?.(); } catch {}
 
     try { refreshLiveBindings(); } catch {}
 
