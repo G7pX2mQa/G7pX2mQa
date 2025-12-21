@@ -1,6 +1,6 @@
 import { getActiveSlot } from '../../util/storage.js';
 import { formatTimeCompact, calculateOfflineRewards, grantOfflineRewards, showOfflinePanel } from '../../game/offlinePanel.js';
-import { playPurchaseSfx } from '../shopOverlay.js';
+import { createSfxPlayer } from '../shopOverlay.js';
 
 const WARP_CHARGES_KEY = (slot) => `ccc:warp:charges:${slot}`;
 const WARP_LAST_CHARGE_KEY = (slot) => `ccc:warp:lastCharge:${slot}`;
@@ -8,6 +8,8 @@ const WARP_LAST_CHARGE_KEY = (slot) => `ccc:warp:lastCharge:${slot}`;
 const MAX_WARPS = 24;
 const CHARGE_TIME_MS = 60 * 60 * 1000; // 1 hour
 const WARP_DURATION_SEC = 300; // 5 minutes
+
+const warpSfx = createSfxPlayer({ src: 'sounds/warp.ogg', mobileVolume: 0.5, desktopVolume: 0.5 });
 
 let warpTabPanel = null;
 let updateTimer = null;
@@ -69,6 +71,22 @@ export function checkWarpRecharge() {
     }
 }
 
+function triggerWarpVisuals() {
+    const overlay = document.createElement('div');
+    overlay.className = 'warp-overlay';
+    document.body.appendChild(overlay);
+
+    // Stage 2: Harsh distortion (3s)
+    setTimeout(() => {
+        overlay.classList.add('stage-2');
+    }, 3000);
+
+    // End (7.25s)
+    setTimeout(() => {
+        overlay.remove();
+    }, 7250);
+}
+
 function performWarp() {
     const slot = getActiveSlot();
     if (slot == null) return;
@@ -87,13 +105,16 @@ function performWarp() {
     charges--;
     saveWarpState(slot, charges, lastCharge);
     
-    // Grant rewards
-    const rewards = calculateOfflineRewards(WARP_DURATION_SEC);
-    grantOfflineRewards(rewards);
-    showOfflinePanel(rewards, WARP_DURATION_SEC * 1000);
-    
-    playPurchaseSfx();
     updateWarpTab(true);
+    
+    warpSfx.play();
+    triggerWarpVisuals();
+    
+    setTimeout(() => {
+        const rewards = calculateOfflineRewards(WARP_DURATION_SEC);
+        grantOfflineRewards(rewards);
+        showOfflinePanel(rewards, WARP_DURATION_SEC * 1000);
+    }, 7250);
 }
 
 export function updateWarpTab(skipRechargeCheck = false) {
