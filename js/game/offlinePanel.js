@@ -20,16 +20,16 @@ export function formatTimeCompact(ms) {
     if (s < 60) return `${s}s`;
     const m = Math.floor(s / 60);
     const rs = s % 60;
-    if (m < 60) return `${m}m ${rs}s`;
+    if (m < 60) return rs === 0 ? `${m}m` : `${m}m ${rs}s`;
     const h = Math.floor(m / 60);
     const rm = m % 60;
-    if (h < 24) return `${h}h ${rm}m`;
+    if (h < 24) return rm === 0 ? `${h}h` : `${h}h ${rm}m`;
     const d = Math.floor(h / 24);
     const rh = h % 24;
-    if (d < 365) return `${d}d ${rh}h`;
+    if (d < 365) return rh === 0 ? `${d}d` : `${d}d ${rh}h`;
     const y = Math.floor(d / 365);
     const rd = d % 365;
-    return `${y}y ${rd}d`;
+    return rd === 0 ? `${y}y` : `${y}y ${rd}d`;
 }
 
 // Visual Priority Map
