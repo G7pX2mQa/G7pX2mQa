@@ -581,6 +581,12 @@ images: [
 	  'sounds/surge_reset.ogg',
 	  'sounds/evolve_upg.ogg',
 	  'sounds/warp.ogg',
+	  'sounds/coin_pickup_size1.ogg',
+	  'sounds/coin_pickup_size2.ogg',
+	  'sounds/coin_pickup_size3.ogg',
+	  'sounds/coin_pickup_size4.ogg',
+	  'sounds/coin_pickup_size5.ogg',
+	  'sounds/coin_pickup_size6.ogg',
     ],
     fonts: true,
   };
