@@ -67,7 +67,7 @@
 /* Reset Card (Common) */
 .merchant-reset__card {
   border-radius: 18px;
-  padding: 20px 22px 22px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -125,7 +125,7 @@
 .merchant-reset__card.is-forge-complete,
 .merchant-reset__card.is-complete {
   justify-content: flex-start;
-  padding: 14px 18px 16px;
+  padding: 16px 18px;
   min-height: 150px;
   gap: 10px;
 }
@@ -481,7 +481,7 @@
 /* Mobile Styling */
 @media (max-width: 900px) {
   .merchant-reset {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
   }
 
