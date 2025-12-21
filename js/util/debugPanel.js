@@ -39,6 +39,8 @@ import { getSurgeBarLevelKey } from '../ui/merchantTabs/resetTab.js';
 import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 
+import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
+import { calculateOfflineRewards, grantOfflineRewards, showOfflinePanel } from '../game/offlinePanel.js';
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
@@ -3423,11 +3425,28 @@ function buildMiscContent(content) {
                 if (slot != null) {
                     try {
                         localStorage.setItem(WARP_CHARGES_KEY(slot), String(MAX_WARPS));
+                        updateWarpTab(true);
                         flagDebugUsage();
                         logAction('Restocked Warps to full.');
                     } catch {}
                 }
             },
+        },
+        {
+            label: 'OP Time Warp',
+            onClick: () => {
+                const raw = window.prompt("Enter amount of seconds to warp:");
+                if (raw == null) return;
+                const seconds = parseFloat(raw);
+                if (!Number.isFinite(seconds) || seconds <= 0) return;
+
+                const rewards = calculateOfflineRewards(seconds);
+                grantOfflineRewards(rewards);
+                showOfflinePanel(rewards, seconds * 1000);
+
+                flagDebugUsage();
+                logAction(`Performed OP Time Warp for ${seconds} seconds.`);
+            }
         },
     ];
 
