@@ -14,6 +14,7 @@
 .area-cove .magnet-indicator {
   position: absolute;
   pointer-events: none;
+  background-color: rgba(80, 145, 255, 0.15);
   border: 2px solid rgb(80 145 255);
   border-radius: 50%;
   box-shadow:
