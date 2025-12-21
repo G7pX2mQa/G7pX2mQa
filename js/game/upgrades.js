@@ -3239,6 +3239,10 @@ function saveUpgradeState(areaKey, upgId, state, slot = getActiveSlot(), options
         return;
     }
 
+    if (deferredWrites.has(key)) {
+        deferredWrites.delete(key);
+    }
+
     try {
         const payload = JSON.stringify(state);
         localStorage.setItem(key, payload);
