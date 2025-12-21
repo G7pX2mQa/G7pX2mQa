@@ -212,16 +212,26 @@ export function grantOfflineRewards(rewards) {
     if (rewards.xp) {
          try {
             const xpResult = addXp(rewards.xp);
-            if (xpResult && xpResult.xpLevelsGained && !xpResult.xpLevelsGained.isZero()) {
-                rewards.xp_levels = xpResult.xpLevelsGained;
+            if (xpResult) {
+                if (xpResult.xpLevelsGained && !xpResult.xpLevelsGained.isZero()) {
+                    rewards.xp_levels = xpResult.xpLevelsGained;
+                }
+                if (xpResult.xpAdded) {
+                    rewards.xp = xpResult.xpAdded;
+                }
             }
         } catch {}
     }
     if (rewards.mp) {
         try {
             const mpResult = addMutationPower(rewards.mp);
-            if (mpResult && mpResult.levelsGained && !mpResult.levelsGained.isZero()) {
-                rewards.mp_levels = mpResult.levelsGained;
+            if (mpResult) {
+                if (mpResult.levelsGained && !mpResult.levelsGained.isZero()) {
+                    rewards.mp_levels = mpResult.levelsGained;
+                }
+                if (mpResult.delta) {
+                    rewards.mp = mpResult.delta;
+                }
             }
         } catch {}
     }
