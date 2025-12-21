@@ -14,7 +14,7 @@ export function createCursorTrail(playfield) {
   // --- Configuration ---
   const CAPACITY = 10000;
   const PARTICLE_LIFETIME = 500; // ms
-  const INTERPOLATION_STEP = 10; // px
+  const INTERPOLATION_STEP = 4; // px
   // MAX_SPAWN_PER_FRAME is less relevant with coalesced events but still good for sanity
   const MAX_SPAWN_PER_FRAME = 2000; 
   
