@@ -71,6 +71,8 @@ export function createSpawner({
     surgeWidthVw = 22,
     coinsPerSecond = 1,
     perFrameBudget = 24,
+    backlogDrainRate = 10,
+    backlogCap = 10000,
     maxActiveCoins = IS_MOBILE ? MAX_ACTIVE_COINS_MOBILE : 10000,
     initialBurst = 1,
     coinTtlMs = 1e99,
@@ -83,10 +85,13 @@ export function createSpawner({
 
     let currentCoinSrc = coinSrc;
     const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const MOBILE_BACKLOG_CAP = perFrameBudget;
     let burstUntil = 0;
 
     const BURST_WINDOW_MS        = 120;
     const BURST_TIME_BUDGET_MS   = 10.0;
+    const BURST_HARD_CAP         = 60;
+    const ONE_SHOT_THRESHOLD     = 180;
     const NORMAL_TIME_BUDGET_MS  = 5.0;
 
     const refs = {
@@ -618,6 +623,8 @@ export function createSpawner({
     let rafId = null;
     let last = performance.now();
     let carry = 0;
+    let queued = 0;
+    let drainAccumulator = 0;
     
     function loop(now) {
       if (!M.pfRect || !M.wRect) computeMetrics();
@@ -625,8 +632,7 @@ export function createSpawner({
       let dt = (now - last) / 1000;
       last = now;
       
-      // Cap dt to 0.1s to prevent huge jumps, effectively disabling accrual for long pauses
-      if (dt > 0.1) dt = 0.1;
+      let accrualDt = dt; if (dt > 0.1) dt = 0.1;
       
       {
           for (let i = activeCoins.length - 1; i >= 0; i--) {
@@ -663,32 +669,54 @@ export function createSpawner({
           }
       }
 
-      // Calculate new coins to spawn
-      const produced = rate * dt + carry;
-      const due = Math.floor(produced);
-      carry = produced - due;
+      carry += rate * accrualDt;
+      const due = carry | 0;
 
-      let spawnTarget = Math.min(due, perFrameBudget);
+      let cap = isTouch ? MOBILE_BACKLOG_CAP : backlogCap;
+
+      if (queued > cap) queued = cap;
+
+      if (due > 0) {
+        queued = Math.min(cap, queued + due);
+        carry -= due;
+      }
+
+      drainAccumulator += (rate + backlogDrainRate) * accrualDt;
+      const maxAccum = perFrameBudget + 5;
+      if (drainAccumulator > maxAccum) drainAccumulator = maxAccum;
+
+      const drainAllowed = Math.floor(drainAccumulator);
+      let spawnTarget = Math.min(queued, perFrameBudget, drainAllowed);
       let timeBudgetMs = NORMAL_TIME_BUDGET_MS;
 
-      // Simple burst handling for touch
-      if (isTouch && now < burstUntil && spawnTarget > 0) {
+      if (isTouch && now < burstUntil && queued > 0) {
+        if (queued <= ONE_SHOT_THRESHOLD) {
+          spawnTarget  = queued;
           timeBudgetMs = BURST_TIME_BUDGET_MS;
+        } else {
+          spawnTarget  = Math.min(queued, BURST_HARD_CAP);
+          timeBudgetMs = BURST_TIME_BUDGET_MS;
+        }
       }
 
       if (spawnTarget > 0) {
         const t0 = performance.now();
         const batch = [];
-        
+        let baseSpawned = 0;
         for (let i = 0; i < spawnTarget; i++) {
           if (performance.now() - t0 > timeBudgetMs) break;
           const plan = planSpawn();
           if (plan) {
             batch.push(plan);
+            baseSpawned += 1;
           }
         }
         if (batch.length) {
           commitBatch(batch);
+          if (baseSpawned > 0) {
+            queued = Math.max(0, queued - baseSpawned);
+            drainAccumulator = Math.max(0, drainAccumulator - baseSpawned);
+          }
         }
       }
 
@@ -725,6 +753,8 @@ export function createSpawner({
     }
 
     function clearBacklog() {
+        queued = 0;
+        drainAccumulator = 0;
         carry = 0;
         last = performance.now();
     }
