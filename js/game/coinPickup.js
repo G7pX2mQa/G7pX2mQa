@@ -682,6 +682,18 @@ export function triggerPassiveCollect(count = 1) {
   }
 }
 
+// Surge Screen Effects
+function triggerUniqueScreenEffect() {
+  document.body.classList.remove('surge-flash');
+  void document.body.offsetWidth;
+  document.body.classList.add('surge-flash');
+}
+function triggerMindBogglingEffect() {
+  document.body.classList.remove('surge-shake');
+  void document.body.offsetWidth;
+  document.body.classList.add('surge-shake');
+}
+
 export function initCoinPickup({
   spawner,
   playfieldSelector   = '.area-cove .playfield',
@@ -795,80 +807,102 @@ export function initCoinPickup({
   function ensureInteractive(el){ try { el.style.pointerEvents = 'auto'; } catch {} }
   cl.querySelectorAll(coinSelector).forEach(ensureInteractive);
   
-  // ----- Audio (Mobile: WebAudio + fallback) -----
-  let ac = null, masterGain = null, buffer = null;
-  let webAudioReady = false, webAudioLoading = false;
+  // ----- Audio Handling -----
+  let ac = null, masterGain = null;
+  // Fallback map for buffers
+  const audioBuffers = new Map();
+  const loadingBuffers = new Set();
+  
+  // Pool for the default sound (frequent)
+  let pool = null, pIdx = 0, lastAt = 0;
+  if (!IS_MOBILE){
+    pool = Array.from({ length: 8 }, () => { const a = new Audio(resolvedSrc); a.preload = 'auto'; a.volume = 0.3; return a; });
+  }
 
-  let mobileFallback = null;
-  function playCoinMobileFallback(){
-    if (!mobileFallback){
-      mobileFallback = new Audio(resolvedSrc);
-      mobileFallback.preload = 'auto';
-    }
-    mobileFallback.muted = false;
-    mobileFallback.volume = 0.12; // Const
-    try {
-      mobileFallback.currentTime = 0;
-      mobileFallback.play();
-    } catch {}
+  function playCoinMobileFallback(src = resolvedSrc){
+      const a = new Audio(src);
+      a.volume = 0.12; 
+      try {
+        a.currentTime = 0;
+        a.play().catch(()=>{});
+      } catch {}
+  }
+
+  async function ensureWebAudioBuffer(src) {
+      if (!ac || !('AudioContext' in window || 'webkitAudioContext' in window)) return;
+      if (audioBuffers.has(src) || loadingBuffers.has(src)) return;
+      
+      loadingBuffers.add(src);
+      try {
+          const res = await fetch(src, { cache: 'force-cache' });
+          const arr = await res.arrayBuffer();
+          const buf = await new Promise((ok, err) => ac.decodeAudioData(arr, ok, err));
+          audioBuffers.set(src, buf);
+      } catch (e) {
+          console.warn('[coinPickup] WebAudio buffer load failed for', src, e);
+      } finally {
+          loadingBuffers.delete(src);
+      }
   }
 
   async function initWebAudioOnce(){
-    if (webAudioReady || webAudioLoading) return;
+    if (ac) return;
     if (!('AudioContext' in window || 'webkitAudioContext' in window)) return;
 
-    webAudioLoading = true;
     ac = new (window.AudioContext || window.webkitAudioContext)();
     masterGain = ac.createGain();
     masterGain.gain.value = 0.12; // Const
     masterGain.connect(ac.destination);
 
-    try {
-      const res = await fetch(resolvedSrc, { cache: 'force-cache' });
-      const arr = await res.arrayBuffer();
-      buffer = await new Promise((ok, err) => ac.decodeAudioData(arr, ok, err));
-      if (ac.state === 'suspended') { try { await ac.resume(); } catch {} }
-      webAudioReady = true;
-    } catch (e) {
-      console.warn('[coinPickup] WebAudio init failed:', e);
-    } finally {
-      webAudioLoading = false;
-    }
+    if (ac.state === 'suspended') { try { await ac.resume(); } catch {} }
+    
+    // Load default
+    ensureWebAudioBuffer(resolvedSrc);
   }
 
-  function playCoinWebAudio(){
+  function playCoinWebAudio(src = resolvedSrc){
     if (ac && ac.state === 'suspended'){ try { ac.resume(); } catch {} }
-
-    if (IS_MOBILE && (!webAudioReady || !ac || !buffer || !masterGain || (ac && ac.state !== 'running'))) {
-      if (!webAudioLoading) initWebAudioOnce();
-      playCoinMobileFallback();
-      return true;
-    }
-
-    if (!webAudioReady || !ac || !buffer || !masterGain) {
-      if (!webAudioLoading) initWebAudioOnce();
-      return true;
+    
+    const buffer = audioBuffers.get(src);
+    if (!buffer) {
+        if (!loadingBuffers.has(src)) ensureWebAudioBuffer(src);
+        if (IS_MOBILE) playCoinMobileFallback(src);
+        return true;
     }
 
     try {
-      const src = ac.createBufferSource();
-      src.buffer = buffer;
-      try { src.detune = 0; } catch {}
+      const source = ac.createBufferSource();
+      source.buffer = buffer;
+      try { source.detune = 0; } catch {}
       masterGain.gain.setValueAtTime(0.12, ac.currentTime);
-      src.connect(masterGain);
+      source.connect(masterGain);
       const t = ac.currentTime + Math.random()*0.006;
-      src.start(t);
+      source.start(t);
       return true;
     } catch (e){
       console.warn('[coinPickup] playCoinWebAudio error:', e);
-      if (IS_MOBILE) playCoinMobileFallback();
+      if (IS_MOBILE) playCoinMobileFallback(src);
       return false;
     }
   }
 
-  function playSound(){
-    if (IS_MOBILE) return playCoinWebAudio();
-    return playCoinHtmlAudio();
+  function playSound(src = resolvedSrc){
+    if (IS_MOBILE) {
+        if (!ac) initWebAudioOnce();
+        return playCoinWebAudio(src);
+    }
+    // Desktop behavior
+    if (src === resolvedSrc) {
+        // Use pool for default sound
+        const now = performance.now(); if ((now - lastAt) < 40) return; lastAt = now;
+        const a = pool[pIdx++ % pool.length];
+        try { a.currentTime = 0; a.play(); } catch {}
+    } else {
+        // Use new Audio for rare/unique sounds
+        const a = new Audio(src);
+        a.volume = 0.3;
+        try { a.play().catch(()=>{}); } catch {}
+    }
   }
 
   const warm = () => { if (IS_MOBILE) initWebAudioOnce(); };
@@ -876,16 +910,6 @@ export function initCoinPickup({
     window.addEventListener(evt, warm, { once: true, passive: true, capture: true });
     pf.addEventListener(evt, warm, { once: true, passive: true, capture: true });
   });
-
-  let pool = null, pIdx = 0, lastAt = 0;
-  if (!IS_MOBILE){
-    pool = Array.from({ length: 8 }, () => { const a = new Audio(resolvedSrc); a.preload = 'auto'; a.volume = 0.3; return a; });
-  }
-  function playCoinHtmlAudio(){
-    const now = performance.now(); if ((now - lastAt) < 40) return; lastAt = now;
-    const a = pool[pIdx++ % pool.length];
-    try { a.currentTime = 0; a.play(); } catch {}
-  }
 
   function animateAndRemove(el, opts = {}){
     // Notify spawner that this coin is "taken" so physics stops
@@ -932,8 +956,36 @@ export function initCoinPickup({
   function collectBatch(items) {
     if (!items || !items.length) return;
     
-    // Play sound once per batch
-    playSound();
+    // Find best sound and max size in batch
+    let bestSoundSrc = resolvedSrc;
+    let maxSizeIndex = -1;
+    let foundSound = false;
+
+    for (const item of items) {
+        const coinObj = item.coin || (item.el && item.el._coinObj);
+        if (coinObj) {
+            if (coinObj.sizeIndex !== undefined) {
+                if (coinObj.sizeIndex > maxSizeIndex) {
+                    maxSizeIndex = coinObj.sizeIndex;
+                    if (coinObj.soundSrc) {
+                        bestSoundSrc = coinObj.soundSrc;
+                        foundSound = true;
+                    }
+                }
+            } else if (coinObj.soundSrc && !foundSound) {
+                bestSoundSrc = coinObj.soundSrc;
+                foundSound = true;
+            }
+        }
+    }
+
+    playSound(bestSoundSrc);
+    
+    if (maxSizeIndex >= 6) {
+        triggerMindBogglingEffect();
+    } else if (maxSizeIndex >= 5) {
+        triggerUniqueScreenEffect();
+    }
 
     let totalCoin = null;
     let totalXp = null;
@@ -983,6 +1035,14 @@ export function initCoinPickup({
       const spawnLevelStr = coinObj?.mutationLevel ?? (el?.dataset?.mutationLevel || null);
       
       let inc = applyCoinMultiplier(base);
+      
+      // SURGE 2: Value Multiplier
+      if (coinObj && coinObj.valueMultiplier && coinObj.valueMultiplier > 1) {
+          try {
+             inc = inc.mulBigNumInteger(BigNum.fromInt(coinObj.valueMultiplier));
+          } catch {}
+      }
+
       let xpInc = cloneBn(XP_PER_COIN);
 
       const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
@@ -1168,7 +1228,6 @@ export function initCoinPickup({
   function setMobileVolume(v){
     const vol = Math.max(0, Math.min(1, Number(v) || 0));
     if (masterGain && ac) masterGain.gain.setValueAtTime(vol, ac.currentTime);
-    if (mobileFallback) mobileFallback.volume = vol;
   }
 
   // Periodically update bounds to sync with any layout shifts
