@@ -580,6 +580,7 @@ images: [
 	  'sounds/infuse_reset.ogg',
 	  'sounds/surge_reset.ogg',
 	  'sounds/evolve_upg.ogg',
+	  'sounds/warp.ogg',
     ],
     fonts: true,
   };
@@ -707,6 +708,7 @@ images: [
   }
 
   initSlots(() => {
+    if (currentArea === AREAS.STARTER_COVE) return;
     setHasOpenedSaveSlot(true);
     document.body.classList.add('has-opened');
     if (titleEl) titleEl.style.opacity = '0';
