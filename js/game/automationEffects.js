@@ -9,6 +9,7 @@ import {
 } from './automationUpgrades.js';
 import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js';
 import { getActiveSlot } from '../util/storage.js';
+import { isSurge2Active } from './surgeEffects.js';
 
 let accumulator = 0;
 let workshopTicker = 0;
@@ -157,10 +158,14 @@ export function updateAutomation(dt) {
   const interval = 1 / rate;
 
   if (accumulator >= interval) {
-    const count = Math.floor(accumulator / interval);
-    if (count > 0) {
-      triggerPassiveCollect(count);
-      accumulator -= count * interval;
+    const ticks = Math.floor(accumulator / interval);
+    if (ticks > 0) {
+      let collectCount = ticks;
+      if (isSurge2Active()) {
+        collectCount *= 10;
+      }
+      triggerPassiveCollect(collectCount);
+      accumulator -= ticks * interval;
     }
   }
 }
