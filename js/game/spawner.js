@@ -71,8 +71,6 @@ export function createSpawner({
     surgeWidthVw = 22,
     coinsPerSecond = 1,
     perFrameBudget = 24,
-    backlogDrainRate = 10,
-    backlogCap = 10000,
     maxActiveCoins = IS_MOBILE ? MAX_ACTIVE_COINS_MOBILE : 10000,
     initialBurst = 1,
     coinTtlMs = 1e99,
@@ -84,15 +82,6 @@ export function createSpawner({
 } = {}) {
 
     let currentCoinSrc = coinSrc;
-    const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-    const MOBILE_BACKLOG_CAP = perFrameBudget;
-    let burstUntil = 0;
-
-    const BURST_WINDOW_MS        = 120;
-    const BURST_TIME_BUDGET_MS   = 10.0;
-    const BURST_HARD_CAP         = 60;
-    const ONE_SHOT_THRESHOLD     = 180;
-    const NORMAL_TIME_BUDGET_MS  = 5.0;
 
     const refs = {
         pf: document.querySelector(playfieldSelector),
@@ -623,8 +612,6 @@ export function createSpawner({
     let rafId = null;
     let last = performance.now();
     let carry = 0;
-    let queued = 0;
-    let drainAccumulator = 0;
     
     function loop(now) {
       if (!M.pfRect || !M.wRect) computeMetrics();
@@ -632,7 +619,8 @@ export function createSpawner({
       let dt = (now - last) / 1000;
       last = now;
       
-      let accrualDt = dt; if (dt > 0.1) dt = 0.1;
+      // Cap dt to prevent massive backlog/catch-up after tab-switch
+      if (dt > 0.1) dt = 0.1;
       
       {
           for (let i = activeCoins.length - 1; i >= 0; i--) {
@@ -669,55 +657,31 @@ export function createSpawner({
           }
       }
 
-      carry += rate * accrualDt;
-      const due = carry | 0;
-
-      let cap = isTouch ? MOBILE_BACKLOG_CAP : backlogCap;
-
-      if (queued > cap) queued = cap;
-
-      if (due > 0) {
-        queued = Math.min(cap, queued + due);
-        carry -= due;
-      }
-
-      drainAccumulator += (rate + backlogDrainRate) * accrualDt;
-      const maxAccum = perFrameBudget + 5;
-      if (drainAccumulator > maxAccum) drainAccumulator = maxAccum;
-
-      const drainAllowed = Math.floor(drainAccumulator);
-      let spawnTarget = Math.min(queued, perFrameBudget, drainAllowed);
-      let timeBudgetMs = NORMAL_TIME_BUDGET_MS;
-
-      if (isTouch && now < burstUntil && queued > 0) {
-        if (queued <= ONE_SHOT_THRESHOLD) {
-          spawnTarget  = queued;
-          timeBudgetMs = BURST_TIME_BUDGET_MS;
-        } else {
-          spawnTarget  = Math.min(queued, BURST_HARD_CAP);
-          timeBudgetMs = BURST_TIME_BUDGET_MS;
-        }
-      }
-
-      if (spawnTarget > 0) {
-        const t0 = performance.now();
-        const batch = [];
-        let baseSpawned = 0;
-        for (let i = 0; i < spawnTarget; i++) {
-          if (performance.now() - t0 > timeBudgetMs) break;
-          const plan = planSpawn();
-          if (plan) {
-            batch.push(plan);
-            baseSpawned += 1;
+      carry += rate * dt;
+      let spawnCount = Math.floor(carry);
+      
+      if (spawnCount > 0) {
+          carry -= spawnCount;
+          // Cap at perFrameBudget to prevent freezing, discarding excess (no backlog)
+          let spawnTarget = Math.min(spawnCount, perFrameBudget);
+          
+          if (spawnTarget > 0) {
+             const t0 = performance.now();
+             const batch = [];
+             // 5ms budget similar to original normal budget
+             const timeBudgetMs = 5.0;
+             
+             for (let i = 0; i < spawnTarget; i++) {
+                if (performance.now() - t0 > timeBudgetMs) break;
+                const plan = planSpawn();
+                if (plan) {
+                    batch.push(plan);
+                }
+             }
+             if (batch.length) {
+                 commitBatch(batch);
+             }
           }
-        }
-        if (batch.length) {
-          commitBatch(batch);
-          if (baseSpawned > 0) {
-            queued = Math.max(0, queued - baseSpawned);
-            drainAccumulator = Math.max(0, drainAccumulator - baseSpawned);
-          }
-        }
       }
 
       drawSettledCoins();
@@ -753,8 +717,6 @@ export function createSpawner({
     }
 
     function clearBacklog() {
-        queued = 0;
-        drainAccumulator = 0;
         carry = 0;
         last = performance.now();
     }
@@ -1015,7 +977,6 @@ export function createSpawner({
 
    document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
-      if (isTouch) burstUntil = performance.now() + BURST_WINDOW_MS;
       if (!rafId) start();
     }
   });
