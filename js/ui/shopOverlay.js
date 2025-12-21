@@ -1609,7 +1609,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       
       if (locked || capReached) {
           actions.querySelectorAll('button:not(.shop-close)').forEach(btn => btn.remove());
-          if (document.activeElement && document.activeElement !== closeBtn && !actions.contains(document.activeElement)) closeBtn.focus();
+          if (document.activeElement && document.activeElement !== closeBtn && !actions.contains(document.activeElement) && !document.activeElement.closest('.debug-panel')) closeBtn.focus();
       } else {
           const canAffordNext = model.have.cmp(nextPriceBn) >= 0;
           const ensureButton = (className, text, onClick, index, disabled=false) => {
