@@ -2,7 +2,7 @@ export const MERCHANT_DIALOGUES = {
   0: {
     start: 'n0',
     nodes: {
-      n0: { type: 'line', say: 'So you want to delve deeper within my shop, do you?', next: 'c1' },
+      n0: { type: 'line', say: 'So you want to delve deeper within my Shop, do you?', next: 'c1' },
 
       r_who: { type: 'line', say: 'I am the Merchant.', next: 'c2' },
       r_where: { type: 'line', say: 'The Cove.',          next: 'c2' },
