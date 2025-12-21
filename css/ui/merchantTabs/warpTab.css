@@ -131,3 +131,46 @@
     -webkit-user-select: text;
     cursor: text;
 }
+
+/* Warp Visual Effects */
+.warp-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99990; /* Below offline panel (99999) */
+    pointer-events: none;
+    animation: warp-charge 3s linear forwards;
+    /* Ensure hardware acceleration */
+    will-change: backdrop-filter, transform;
+}
+
+.warp-overlay.stage-2 {
+    animation: warp-harsh 4.25s linear forwards;
+}
+
+@keyframes warp-charge {
+    0% { 
+        backdrop-filter: hue-rotate(0deg) blur(0px); 
+        -webkit-backdrop-filter: hue-rotate(0deg) blur(0px);
+        transform: scale(1); 
+    }
+    100% { 
+        backdrop-filter: hue-rotate(90deg) blur(3px); 
+        -webkit-backdrop-filter: hue-rotate(90deg) blur(3px);
+        transform: scale(1.03); 
+    }
+}
+
+@keyframes warp-harsh {
+    0% { 
+        /* Match warp-charge 100% */
+        backdrop-filter: hue-rotate(90deg) blur(3px); 
+        -webkit-backdrop-filter: hue-rotate(90deg) blur(3px);
+        transform: scale(1.03); 
+    }
+    100% { 
+        /* Aggressive increase */
+        backdrop-filter: hue-rotate(270deg) blur(10px) contrast(1.5) saturate(2); 
+        -webkit-backdrop-filter: hue-rotate(270deg) blur(10px) contrast(1.5) saturate(2);
+        transform: scale(1.15); 
+    }
+}
