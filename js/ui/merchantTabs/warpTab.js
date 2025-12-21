@@ -99,13 +99,20 @@ function performWarp() {
     
     // If we are at MAX, we start the timer now
     if (charges >= MAX_WARPS) {
-        lastCharge = Date.now();
+        // Offset by 50ms so the timer starts at 59m 59s instead of 1h
+        lastCharge = Date.now() - 50;
     }
     
     charges--;
     saveWarpState(slot, charges, lastCharge);
     
     updateWarpTab(true);
+    
+    // Reset timer loop to synchronize tick with click
+    if (updateTimer) clearInterval(updateTimer);
+    updateTimer = setInterval(() => {
+        updateWarpTab();
+    }, 1000);
     
     warpSfx.play();
     triggerWarpVisuals();
