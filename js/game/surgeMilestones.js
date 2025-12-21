@@ -11,7 +11,8 @@ export const SURGE_MILESTONES = [
     id: 2,
     surgeLevel: 2,
     description: [
-      "Placeholder text"
+      "Allows some Coins to spawn with a larger size, yielding collection multipliers<br><span style=\"color:#888888\">- The largest Coins will be always preserved even when other Coins despawn</span>",
+      "Improves the effectiveness of Effective Auto-Collect by <span style=\"color:#00e5ff\">10x</span>"
     ]
   },
   {
@@ -87,4 +88,3 @@ export function getVisibleMilestones(currentSurgeLevel) {
   // Return all reached + up to 2 future
   return [...reached, ...future.slice(0, 2)];
 }
-
