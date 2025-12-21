@@ -150,6 +150,7 @@
   align-items: center;
   gap: 20px;
   text-align: center;
+  min-width: 0;
 }
 
 .merchant-reset__actions {
@@ -548,6 +549,7 @@
 .surge-milestone-wrapper {
   width: 100%;
   max-width: 800px;
+  min-width: 0;
   height: 244px;
   background: rgba(0, 0, 0, 0.25);
   border-radius: 8px;
@@ -660,6 +662,6 @@
 /* Surge Milestone Mobile Breakpoint */
 @media (max-width: 800px) {
   .surge-milestone-item {
-    flex: 0 0 calc(100% - 12px);
+    flex: 0 0 100%;
   }
 }
