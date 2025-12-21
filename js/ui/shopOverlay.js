@@ -245,7 +245,7 @@ const EVOLVE_SFX_SRC = 'sounds/evolve_upg.ogg';
 const MOBILE_PURCHASE_VOLUME = 0.12;
 const DESKTOP_PURCHASE_VOLUME = 0.3;
 
-function createSfxPlayer({ src, mobileVolume, desktopVolume }) {
+export function createSfxPlayer({ src, mobileVolume, desktopVolume }) {
   let base = null;
   
   let ac = null;
@@ -1609,11 +1609,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       
       if (locked || capReached) {
           actions.querySelectorAll('button:not(.shop-close)').forEach(btn => btn.remove());
-          if (document.activeElement && document.activeElement !== closeBtn && !actions.contains(document.activeElement)) {
-              if (!document.activeElement.closest('.debug-panel')) {
-                  closeBtn.focus();
-              }
-          }
+          if (document.activeElement && document.activeElement !== closeBtn && !actions.contains(document.activeElement)) closeBtn.focus();
       } else {
           const canAffordNext = model.have.cmp(nextPriceBn) >= 0;
           const ensureButton = (className, text, onClick, index, disabled=false) => {
