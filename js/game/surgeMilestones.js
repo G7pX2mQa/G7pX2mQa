@@ -12,7 +12,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 2,
     description: [
       "Allows some Coins to spawn with a larger size, yielding collection multipliers; the largest Coins won't despawn even when others do",
-      "Improves the effectiveness of Effective Auto-Collect by <span style=\"color:#00e5ff\">10x</span>"
+      "Improves Effective Auto-Collect by <span style=\"color:#00e5ff\">10x</span>"
     ]
   },
   {
