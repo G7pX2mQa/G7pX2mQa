@@ -391,7 +391,13 @@ function enterArea(areaID) {
         };
         applyMutationSprite();
         onMutationChangeGame?.(applyMutationSprite);
-        initCoinPickup({ spawner });
+        const pickup = initCoinPickup({ spawner });
+        if (spawner && typeof spawner.setDependencies === 'function') {
+            spawner.setDependencies({
+                collectBatch: pickup.collectBatch,
+                getMagnetUnit: pickup.getMagnetUnitPx
+            });
+        }
                 const applyUpgradesToSpawner = () => {
                 try {
                         const areaKey = getUpgAreaKey();
