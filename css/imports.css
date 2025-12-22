@@ -5,7 +5,7 @@
 @import "./core/utilities.css";
 @import "./game/background.css";
 @import "./ui/hud.css";
-@import "./game/waves.css";
+@import "./game/wave.css";
 @import "./game/coin.css";
 @import "./game/offline_panel.css";
 @import "./ui/shop.css";
