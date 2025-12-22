@@ -1274,5 +1274,7 @@ export function initCoinPickup({
     },
     setMobileVolume,
     destroy,
+    collectBatch,
+    getMagnetUnitPx: computeMagnetUnitPx,
   };
 }
