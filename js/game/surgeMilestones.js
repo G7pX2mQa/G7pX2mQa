@@ -4,7 +4,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 1,
     description: [
       "Multiplies Coin, XP, and MP value by <span style=\"color:#00e5ff\">10x</span>",
-      "Unlocks the Warps tab"
+      "Unlocks the Warp tab"
     ]
   },
   {
