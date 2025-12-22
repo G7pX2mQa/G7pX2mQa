@@ -587,6 +587,7 @@ images: [
 	  'sounds/coin_pickup_size4.ogg',
 	  'sounds/coin_pickup_size5.ogg',
 	  'sounds/coin_pickup_size6.ogg',
+	  'sounds/lightning_strike.ogg',
     ],
     fonts: true,
   };
