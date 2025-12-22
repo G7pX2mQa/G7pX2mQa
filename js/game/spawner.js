@@ -69,9 +69,9 @@ const COIN_CHANCES = [
     0,          // Size 0 (N/A)
     0.1,        // Size 1: 1/10
     0.01,       // Size 2: 1/100
-    0.001,      // Size 3: 1/1000
-    0.0001,     // Size 4: 1/10000
-    0.00001,    // Size 5: 1/100000
+    0.01,      // Size 3: 1/1000
+    0.01,     // Size 4: 1/10000
+    0.01,    // Size 5: 1/100000
     0.01    // Size 6: 1/1000000
 ];
 const COIN_SOUND_SUFFIXES = [
