@@ -106,9 +106,6 @@ export function createSpawner({
     enableDropShadow = false,
 } = {}) {
 
-    // Ensure COIN_SIZES[0] matches the passed baseCoinSize if possible, or just respect constants
-    // The constants are hardcoded based on requirements.
-    
     let currentCoinSrc = coinSrc;
 
     const refs = {
@@ -143,6 +140,27 @@ export function createSpawner({
         canvas.style.pointerEvents = 'none';
         refs.c.appendChild(canvas);
         ctx = canvas.getContext('2d', { alpha: true });
+    }
+
+    let fxCanvas = null;
+    let fxCtx = null;
+    if (refs.c) {
+        fxCanvas = document.createElement('canvas');
+        fxCanvas.style.position = 'absolute';
+        fxCanvas.style.inset = '0';
+        fxCanvas.style.pointerEvents = 'none';
+        fxCanvas.style.zIndex = '40';
+        refs.c.appendChild(fxCanvas);
+        fxCtx = fxCanvas.getContext('2d', { alpha: true });
+    }
+
+    let deps = {
+        collectBatch: null,
+        getMagnetUnit: null
+    };
+
+    function setDependencies(d) {
+        deps = { ...deps, ...d };
     }
 
     let M = {
@@ -182,6 +200,19 @@ export function createSpawner({
              canvasDirty = true;
         }
 
+        if (fxCanvas) {
+             const dpr = window.devicePixelRatio || 1;
+             fxCanvas.width = pfRect.width * dpr;
+             fxCanvas.height = pfRect.height * dpr;
+             fxCanvas.style.width = pfRect.width + 'px';
+             fxCanvas.style.height = pfRect.height + 'px';
+             
+             if (fxCtx) {
+                 fxCtx.setTransform(1, 0, 0, 1, 0, 0);
+                 fxCtx.scale(dpr, dpr);
+             }
+        }
+
         return true;
     }
 
@@ -211,12 +242,19 @@ export function createSpawner({
         const el = document.createElement('div');
         el.className = 'coin';
         el.style.position = 'absolute';
-        // Width/Height set on spawn
-        el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
-        el.style.borderRadius = '50%';
         el.style.pointerEvents = 'auto';
         el.style.willChange = 'transform';
         el.style.contain = 'layout paint style size';
+        
+        const inner = document.createElement('div');
+        inner.className = 'coin-inner';
+        inner.style.width = '100%';
+        inner.style.height = '100%';
+        inner.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
+        inner.style.borderRadius = '50%';
+        
+        el.appendChild(inner);
+
         if (enableDropShadow)
             el.style.filter = 'drop-shadow(0 2px 2px rgba(0,0,0,.35))';
         return el;
@@ -471,10 +509,6 @@ export function createSpawner({
             computeMetrics();
 
         if (maxActiveCoins !== Infinity && activeCoins.length >= maxActiveCoins) {
-            // Try to find a non-forceDom coin to remove
-            // But if all are forceDom (Size 4+), we remove oldest anyway (user cancelled preservation logic)
-            // But actually user said "Don't worry about preservation functionality yet".
-            // So we just remove the oldest.
             const oldest = activeCoins[0];
             if (oldest) removeCoin(oldest, 0);
         }
@@ -545,7 +579,10 @@ export function createSpawner({
         el.style.width = `${size}px`;
         el.style.height = `${size}px`;
         el.className = `coin coin--size-${sizeIndex}`; // Add size class
-        el.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
+        // Update inner background
+        if (el.firstChild) {
+             el.firstChild.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
+        }
         
         el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
         el.style.opacity = '1';
@@ -670,14 +707,10 @@ export function createSpawner({
         if (!ctx) return;
         
         if (canvasDirty) {
-            // Full redraw
             ctx.save();
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.restore();
-            
-            // Optimization: Batch context operations
-            // Settled coins always have rot=0 and scale=1, so we avoid per-coin save/restore/transform
             
             if (enableDropShadow) {
                  ctx.save();
@@ -689,7 +722,6 @@ export function createSpawner({
             const count = activeCoins.length;
             for (let i = 0; i < count; i++) {
                 const c = activeCoins[i];
-                // DOM-forced coins are not drawn on canvas
                 if (c.settled && !c.isRemoved && !c.el) {
                     drawSingleSettledCoin(c);
                 }
@@ -702,7 +734,6 @@ export function createSpawner({
             canvasDirty = false;
             newlySettledBuffer.length = 0;
         } else if (newlySettledBuffer.length > 0) {
-            // Incremental draw
             if (enableDropShadow) {
                  ctx.save();
                  ctx.shadowColor = 'rgba(0,0,0,0.35)';
@@ -735,7 +766,6 @@ export function createSpawner({
       let dt = (now - last) / 1000;
       last = now;
       
-      // Cap dt to prevent massive backlog/catch-up after tab-switch
       if (dt > 0.1) dt = 0.1;
       
       {
@@ -747,7 +777,45 @@ export function createSpawner({
                   continue;
               }
               
-              if (c.settled) continue;
+              if (c.settled) {
+                // Size 6 Logic
+                if (c.sizeIndex === 6 && !c.isRemoved) {
+                    if (!c.lastStrikeTime) c.lastStrikeTime = now;
+                    if (now - c.lastStrikeTime > 1667) {
+                         if (deps.collectBatch && deps.getMagnetUnit) {
+                             const radius = deps.getMagnetUnit();
+                             const cx = c.x + c.size/2;
+                             const cy = c.y + c.size/2;
+                             const targets = findCoinTargetsInRadius(cx, cy, radius);
+                             
+                             let target = null;
+                             const candidates = [];
+                             for(const t of targets) {
+                                 if (t !== c && !t.isRemoved) candidates.push(t);
+                             }
+                             
+                             if (candidates.length > 0) {
+                                 target = candidates[Math.floor(Math.random() * candidates.length)];
+                             }
+                             
+                             if (target) {
+                                 c.lastStrikeTime = now;
+                                 deps.collectBatch([{ coin: target }]);
+                                 
+                                 addBolt(c, target);
+                                 addStain(target.x + (target.size||baseCoinSize)/2, target.y + (target.size||baseCoinSize)/2, target.size || baseCoinSize);
+                                 
+                                 const audio = new Audio('sounds/lightning_strike.ogg');
+                                 audio.volume = 0.4;
+                                 audio.play().catch(()=>{});
+                             } else {
+                                 c.lastStrikeTime = now;
+                             }
+                         }
+                    }
+                }
+                continue;
+              }
               
               const elapsed = now - c.startTime;
               if (elapsed < 0) continue;
@@ -783,13 +851,11 @@ export function createSpawner({
       
       if (spawnCount > 0) {
           carry -= spawnCount;
-          // Cap at perFrameBudget to prevent freezing, discarding excess (no backlog)
           let spawnTarget = Math.min(spawnCount, perFrameBudget);
           
           if (spawnTarget > 0) {
              const t0 = performance.now();
              const batch = [];
-             // 5ms budget similar to original normal budget
              const timeBudgetMs = 5.0;
              
              for (let i = 0; i < spawnTarget; i++) {
@@ -806,6 +872,7 @@ export function createSpawner({
       }
 
       drawSettledCoins();
+      drawFx(dt);
 
       rafId = requestAnimationFrame(loop);
     }
@@ -873,7 +940,11 @@ export function createSpawner({
         
         el.style.transition = '';
         el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
-        el.style.background = `url(${c.src}) center/contain no-repeat`;
+        
+        if (el.firstChild) {
+            el.firstChild.style.background = `url(${c.src}) center/contain no-repeat`;
+        }
+        
         el.style.opacity = '1';
         el.dataset.mutationLevel = c.mutationLevel;
         
@@ -1100,6 +1171,137 @@ export function createSpawner({
         spawnBurst(1);
     }
 
+    // --- FX System ---
+    const bolts = []; // { x1, y1, x2, y2, age, life }
+    const sparks = []; // { x, y, vx, vy, age, life, color }
+
+    function addBolt(sourceCoin, targetCoin) {
+        if (!sourceCoin || !targetCoin) return;
+        const sSize = sourceCoin.size || baseCoinSize;
+        const tSize = targetCoin.size || baseCoinSize;
+        const x1 = sourceCoin.x + sSize/2;
+        const y1 = sourceCoin.y + sSize/2;
+        const x2 = targetCoin.x + tSize/2;
+        const y2 = targetCoin.y + tSize/2;
+        
+        bolts.push({
+            x1, y1, x2, y2,
+            age: 0,
+            life: 0.15 // seconds
+        });
+    }
+
+    function addStain(cx, cy, size) {
+        if (!refs.pf) return;
+        const st = document.createElement('div');
+        st.className = 'coin-stain';
+        const d = size * 1.2;
+        st.style.width = `${d}px`;
+        st.style.height = `${d}px`;
+        st.style.left = `${cx - d/2}px`;
+        st.style.top = `${cy - d/2}px`;
+        refs.pf.appendChild(st);
+        
+        // Remove after 60s
+        setTimeout(() => {
+            st.style.opacity = '0';
+            setTimeout(() => { if(st.parentNode) st.remove(); }, 1000);
+        }, 60000);
+    }
+
+    function drawFx(dt) {
+        if (!fxCtx || !fxCanvas) return;
+        fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+        
+        // Update and draw bolts
+        fxCtx.lineCap = 'round';
+        fxCtx.lineJoin = 'round';
+        for (let i = bolts.length - 1; i >= 0; i--) {
+            const b = bolts[i];
+            b.age += dt;
+            if (b.age >= b.life) {
+                bolts.splice(i, 1);
+                continue;
+            }
+            
+            const alpha = 1 - (b.age / b.life);
+            fxCtx.strokeStyle = `rgba(180, 220, 255, ${alpha})`;
+            fxCtx.lineWidth = 3;
+            fxCtx.shadowColor = 'rgba(200, 230, 255, 0.8)';
+            fxCtx.shadowBlur = 10;
+            
+            // Jagged line
+            const segments = 6;
+            fxCtx.beginPath();
+            fxCtx.moveTo(b.x1, b.y1);
+            
+            for (let j = 1; j <= segments; j++) {
+                const t = j / segments;
+                const tx = b.x1 + (b.x2 - b.x1) * t;
+                const ty = b.y1 + (b.y2 - b.y1) * t;
+                
+                if (j === segments) {
+                    fxCtx.lineTo(b.x2, b.y2);
+                } else {
+                    const perpX = -(b.y2 - b.y1);
+                    const perpY = (b.x2 - b.x1);
+                    const len = Math.sqrt(perpX*perpX + perpY*perpY);
+                    const scale = (Math.random() - 0.5) * 40 * (1 - Math.abs(t - 0.5)); // Bulge in middle
+                    fxCtx.lineTo(tx + (perpX/len)*scale, ty + (perpY/len)*scale);
+                }
+            }
+            fxCtx.stroke();
+            fxCtx.shadowBlur = 0;
+        }
+
+        // Generate sparks for Size 5/6
+        // Limit spark generation?
+        const now = performance.now();
+        for (const c of activeCoins) {
+            if (c.settled && !c.isRemoved) {
+                if (c.sizeIndex >= 5) {
+                    // Chance to spawn spark
+                    if (Math.random() < 0.2) { // 20% chance per frame
+                        const angle = Math.random() * Math.PI * 2;
+                        const dist = (c.size/2) * (0.8 + Math.random()*0.4);
+                        const cx = c.x + c.size/2;
+                        const cy = c.y + c.size/2;
+                        sparks.push({
+                            x: cx, y: cy,
+                            vx: Math.cos(angle) * 100,
+                            vy: Math.sin(angle) * 100,
+                            age: 0,
+                            life: 0.3 + Math.random() * 0.3,
+                            color: c.sizeIndex === 6 ? '#aaddff' : '#ffeb3b', // Size 6 blue/white, Size 5 yellow
+                            size: c.sizeIndex === 6 ? 3 : 2
+                        });
+                    }
+                }
+            }
+        }
+
+        // Draw sparks
+        for (let i = sparks.length - 1; i >= 0; i--) {
+            const s = sparks[i];
+            s.age += dt;
+            if (s.age >= s.life) {
+                sparks.splice(i, 1);
+                continue;
+            }
+            
+            s.x += s.vx * dt;
+            s.y += s.vy * dt;
+            
+            const alpha = 1 - (s.age / s.life);
+            fxCtx.fillStyle = s.color;
+            fxCtx.globalAlpha = alpha;
+            fxCtx.beginPath();
+            fxCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+            fxCtx.fill();
+            fxCtx.globalAlpha = 1;
+        }
+    }
+
     return {
         start,
         stop,
@@ -1117,5 +1319,6 @@ export function createSpawner({
         detachCoin,
         recycleCoin: releaseCoin,
         playEntranceWave,
+        setDependencies,
     };
 }
