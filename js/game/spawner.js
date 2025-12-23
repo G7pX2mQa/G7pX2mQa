@@ -817,12 +817,12 @@ export function createSpawner({
 
                 // Size 5 Logic (Blue Lightning)
                 if (c.sizeIndex === 5 && !c.isRemoved) {
-                    if (!c.lastLightningTime) c.lastLightningTime = now + Math.random() * 500;
-                    if (!c.nextLightningInterval) c.nextLightningInterval = 400 + Math.random() * 200; // ~0.5s average
+                    if (!c.lastLightningTime) c.lastLightningTime = now;
+                    if (!c.nextLightningInterval) c.nextLightningInterval = 200 + Math.random() * 100; // ~0.25s average
 
                     if (now - c.lastLightningTime > c.nextLightningInterval) {
                         c.lastLightningTime = now;
-                        c.nextLightningInterval = 400 + Math.random() * 200;
+                        c.nextLightningInterval = 200 + Math.random() * 100;
 
                         const angle = Math.random() * Math.PI * 2;
                         const r = c.size / 2;
@@ -844,8 +844,11 @@ export function createSpawner({
                             age: 0,
                             life: 0.15, // fast zap
                             jaggedScale: 15, // slightly more jagged
-                            width: 5 // Thicker
+                            width: 20 // Thicker
                         });
+
+                        const audio = new Audio('sounds/lightning_zap.ogg');
+                        audio.play().catch(()=>{});
                     }
                 }
                 continue;
