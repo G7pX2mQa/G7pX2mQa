@@ -73,6 +73,7 @@ const COIN_CHANCES = [
     0.03,     // Size 4: 1/10000
     0.02,    // Size 5: 1/100000
     0.01    // Size 6: 1/1000000
+	// these values have been TEMPORARILY modified for testing
 ];
 const COIN_SOUND_SUFFIXES = [
     '', // Size 0 uses default
@@ -546,7 +547,7 @@ export function createSpawner({
 
         return {
             wave,
-            coin: coinPlan,
+            coin: planCoinFromWave(wave, size, sizeIndex),
             sizeIndex
         };
     }
@@ -777,6 +778,22 @@ export function createSpawner({
                   continue;
               }
               
+              // NEW: Size 5 Logic (Blue Lightning) moved here
+              if (c.sizeIndex === 5 && !c.isRemoved) {
+                    if (!c.lastLightningTime) {
+                        c.lastLightningTime = now - 1000; 
+                        c.nextLightningInterval = 0;
+                    }
+                    if (now - c.lastLightningTime > c.nextLightningInterval) {
+                        c.lastLightningTime = now;
+                        c.nextLightningInterval = 200 + Math.random() * 100;
+                        // Spawn 3 simultaneous bolts
+                        for (let k = 0; k < 3; k++) {
+                            createBranchingLightning(c, now);
+                        }
+                    }
+              }
+
               if (c.settled) {
                 // Size 6 Logic
                 if (c.sizeIndex === 6 && !c.isRemoved) {
@@ -815,42 +832,8 @@ export function createSpawner({
                     }
                 }
 
-                // Size 5 Logic (Blue Lightning)
-                if (c.sizeIndex === 5 && !c.isRemoved) {
-                    if (!c.lastLightningTime) c.lastLightningTime = now;
-                    if (!c.nextLightningInterval) c.nextLightningInterval = 200 + Math.random() * 100; // ~0.25s average
+                // OLD Size 5 Logic REMOVED
 
-                    if (now - c.lastLightningTime > c.nextLightningInterval) {
-                        c.lastLightningTime = now;
-                        c.nextLightningInterval = 200 + Math.random() * 100;
-
-                        const angle = Math.random() * Math.PI * 2;
-                        const r = c.size / 2;
-                        const cx = c.x + r;
-                        const cy = c.y + r;
-                        
-                        // Start slightly inside edge
-                        const startX = cx + Math.cos(angle) * (r * 0.85);
-                        const startY = cy + Math.sin(angle) * (r * 0.85);
-                        
-                        // Extend outward
-                        const len = r * (0.5 + Math.random() * 0.6);
-                        const endX = startX + Math.cos(angle) * len;
-                        const endY = startY + Math.sin(angle) * len;
-                        
-                        bolts.push({
-                            x1: startX, y1: startY,
-                            x2: endX, y2: endY,
-                            age: 0,
-                            life: 0.15, // fast zap
-                            jaggedScale: 15, // slightly more jagged
-                            width: 20 // Thicker
-                        });
-
-                        const audio = new Audio('sounds/lightning_zap.ogg');
-                        audio.play().catch(()=>{});
-                    }
-                }
                 continue;
               }
               
@@ -1246,10 +1229,65 @@ export function createSpawner({
         }, 60000);
     }
 
+    // NEW HELPER
+    function createBranchingLightning(coin, now) {
+         const angle = Math.random() * Math.PI * 2;
+         const r = (coin.size || baseCoinSize) / 2;
+         
+         const startDist = r * 0.6;
+         const relStartX = Math.cos(angle) * startDist;
+         const relStartY = Math.sin(angle) * startDist;
+         
+         const len = r * (0.7 + Math.random() * 0.6); 
+         const relEndX = Math.cos(angle) * (startDist + len);
+         const relEndY = Math.sin(angle) * (startDist + len);
+         
+         bolts.push({
+             parentCoin: coin,
+             relX1: relStartX, relY1: relStartY,
+             relX2: relEndX, relY2: relEndY,
+             x1: 0, y1: 0, x2: 0, y2: 0, 
+             age: 0,
+             life: 0.2, 
+             jaggedScale: 20,
+             width: 5.0 
+         });
+         
+         const numBranches = 3 + Math.floor(Math.random() * 3); 
+         for (let i = 0; i < numBranches; i++) {
+             const t = 0.3 + Math.random() * 0.5;
+             const bSx = relStartX + (relEndX - relStartX) * t;
+             const bSy = relStartY + (relEndY - relStartY) * t;
+             
+             const branchAngle = angle + (Math.random() * 1.2 - 0.6); 
+             const branchLen = len * (0.4 + Math.random() * 0.4);
+             
+             const bEx = bSx + Math.cos(branchAngle) * branchLen;
+             const bEy = bSy + Math.sin(branchAngle) * branchLen;
+             
+             bolts.push({
+                 parentCoin: coin,
+                 relX1: bSx, relY1: bSy,
+                 relX2: bEx, relY2: bEy,
+                 x1: 0, y1: 0, x2: 0, y2: 0,
+                 age: 0,
+                 life: 0.2,
+                 jaggedScale: 10,
+                 width: 2.5
+             });
+         }
+
+         const audio = new Audio('sounds/lightning_zap.ogg');
+         audio.volume = 0.25;
+         audio.play().catch(()=>{});
+    }
+
     function drawFx(dt) {
         if (!fxCtx || !fxCanvas) return;
         fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
         
+        const now = performance.now();
+
         // Update and draw bolts
         fxCtx.lineCap = 'round';
         fxCtx.lineJoin = 'round';
@@ -1260,32 +1298,49 @@ export function createSpawner({
                 bolts.splice(i, 1);
                 continue;
             }
+
+            let startX = b.x1, startY = b.y1;
+            let endX = b.x2, endY = b.y2;
+
+            if (b.parentCoin) {
+                 const s = getCoinState(b.parentCoin, now);
+                 const cx = s.x + (b.parentCoin.size || baseCoinSize) / 2;
+                 const cy = s.y + (b.parentCoin.size || baseCoinSize) / 2;
+                 startX = cx + b.relX1;
+                 startY = cy + b.relY1;
+                 endX = cx + b.relX2;
+                 endY = cy + b.relY2;
+            }
             
             const alpha = 1 - (b.age / b.life);
-            fxCtx.strokeStyle = `rgba(180, 220, 255, ${alpha})`;
+            fxCtx.strokeStyle = `rgba(200, 240, 255, ${alpha})`;
             fxCtx.lineWidth = b.width || 3;
-            fxCtx.shadowColor = 'rgba(200, 230, 255, 0.8)';
-            fxCtx.shadowBlur = 10;
+            fxCtx.shadowColor = 'rgba(220, 245, 255, 0.9)';
+            fxCtx.shadowBlur = 20;
             
             // Jagged line
             const segments = 6;
             fxCtx.beginPath();
-            fxCtx.moveTo(b.x1, b.y1);
+            fxCtx.moveTo(startX, startY);
             
             for (let j = 1; j <= segments; j++) {
                 const t = j / segments;
-                const tx = b.x1 + (b.x2 - b.x1) * t;
-                const ty = b.y1 + (b.y2 - b.y1) * t;
+                const tx = startX + (endX - startX) * t;
+                const ty = startY + (endY - startY) * t;
                 
                 if (j === segments) {
-                    fxCtx.lineTo(b.x2, b.y2);
+                    fxCtx.lineTo(endX, endY);
                 } else {
-                    const perpX = -(b.y2 - b.y1);
-                    const perpY = (b.x2 - b.x1);
+                    const perpX = -(endY - startY);
+                    const perpY = (endX - startX);
                     const len = Math.sqrt(perpX*perpX + perpY*perpY);
                     const jaggedness = b.jaggedScale || 40;
-                    const scale = (Math.random() - 0.5) * jaggedness * (1 - Math.abs(t - 0.5)); // Bulge in middle
-                    fxCtx.lineTo(tx + (perpX/len)*scale, ty + (perpY/len)*scale);
+                    if (len > 0) {
+                        const scale = (Math.random() - 0.5) * jaggedness * (1 - Math.abs(t - 0.5)); // Bulge in middle
+                        fxCtx.lineTo(tx + (perpX/len)*scale, ty + (perpY/len)*scale);
+                    } else {
+                        fxCtx.lineTo(tx, ty);
+                    }
                 }
             }
             fxCtx.stroke();
@@ -1293,8 +1348,6 @@ export function createSpawner({
         }
 
         // Generate sparks for Size 6 only
-        // Limit spark generation?
-        const now = performance.now();
         for (const c of activeCoins) {
             if (c.settled && !c.isRemoved) {
                 if (c.sizeIndex === 6) {
