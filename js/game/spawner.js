@@ -794,44 +794,62 @@ export function createSpawner({
                     }
               }
 
-              if (c.settled) {
-                // Size 6 Logic
-                if (c.sizeIndex === 6 && !c.isRemoved) {
-                    if (!c.lastStrikeTime) c.lastStrikeTime = now;
-                    if (now - c.lastStrikeTime > 1667) {
-                         if (deps.collectBatch && deps.getMagnetUnit) {
-                             const radius = deps.getMagnetUnit();
-                             const cx = c.x + c.size/2;
-                             const cy = c.y + c.size/2;
-                             const targets = findCoinTargetsInRadius(cx, cy, radius);
-                             
-                             let target = null;
-                             const candidates = [];
-                             for(const t of targets) {
-                                 if (t !== c && !t.isRemoved) candidates.push(t);
-                             }
-                             
-                             if (candidates.length > 0) {
-                                 target = candidates[Math.floor(Math.random() * candidates.length)];
-                             }
-                             
-                             if (target) {
-                                 c.lastStrikeTime = now;
-                                 deps.collectBatch([{ coin: target }]);
-                                 
-                                 addBolt(c, target);
-                                 addStain(target.x + (target.size||baseCoinSize)/2, target.y + (target.size||baseCoinSize)/2, target.size || baseCoinSize);
-                                 
-                                 const audio = new Audio('sounds/lightning_strike.ogg');
-                                 audio.volume = 0.4;
-                                 audio.play().catch(()=>{});
-                             } else {
-                                 c.lastStrikeTime = now;
-                             }
-                         }
-                    }
-                }
+              // Size 6 Logic
+              if (c.sizeIndex === 6 && !c.isRemoved) {
+                   if (!c.lastLightningTime) {
+                      c.lastLightningTime = now - 1000;
+                      c.nextLightningInterval = 0;
+                  }
+                  if (now - c.lastLightningTime > c.nextLightningInterval) {
+                      c.lastLightningTime = now;
+                      c.nextLightningInterval = 200 + Math.random() * 100;
 
+                      if (deps.collectBatch) {
+                           const s = getCoinState(c, now);
+                           const cx = s.x + c.size/2;
+                           const cy = s.y + c.size/2;
+                           const searchRadius = 800;
+                           const targets = findCoinTargetsInRadius(cx, cy, searchRadius);
+                           
+                           const candidates = [];
+                           const minDistSq = (c.size/2) * (c.size/2);
+
+                           for(const t of targets) {
+                               if (t === c || t.isRemoved) continue;
+                               // Only attack size 3 or lower
+                               if (t.sizeIndex > 3) continue;
+
+                               const tx = t.x + (t.size||baseCoinSize)/2;
+                               const ty = t.y + (t.size||baseCoinSize)/2;
+                               const dx = tx - cx;
+                               const dy = ty - cy;
+                               if (dx*dx + dy*dy > minDistSq) {
+                                   candidates.push(t);
+                               }
+                           }
+
+                           if (candidates.length > 0) {
+                               const target = candidates[Math.floor(Math.random() * candidates.length)];
+                               
+                               const targetSize = target.size || baseCoinSize;
+                               const tx = target.x + targetSize/2;
+                               const ty = target.y + targetSize/2;
+                               
+                               createTargetedBranchingLightning(c, tx, ty);
+
+                               addStain(tx, ty, targetSize);
+                               
+                               deps.collectBatch([{ coin: target }]);
+                               
+                               const audio = new Audio('sounds/lightning_strike.ogg');
+                               audio.volume = 0.25;
+                               audio.play().catch(()=>{});
+                           }
+                      }
+                  }
+              }
+
+              if (c.settled) {
                 // OLD Size 5 Logic REMOVED
 
                 continue;
@@ -1282,6 +1300,82 @@ export function createSpawner({
          audio.play().catch(()=>{});
     }
 
+    function createTargetedBranchingLightning(sourceCoin, targetX, targetY) {
+         if (!sourceCoin) return;
+         const size = sourceCoin.size || baseCoinSize;
+         // Calculate start pos on source coin rim
+         // We can use parentCoin support but endX/endY will be absolute.
+         // However, we need to know the initial angle to pick the start point on the rim.
+         // Since drawFx recalculates startX based on parentCoin, we need relX1 to be fixed.
+         // But if source rotates, fixed relX1 rotates with it? No, drawFx just adds cx + relX1.
+         // Wait, getCoinState returns rot, but drawFx does NOT use rot for position calc.
+         // So relX1 is just offset from center in screen space (if coin doesn't rotate visually in position logic).
+         // The coin visual rotates via CSS or canvas draw, but x/y is center?
+         // Actually spawner.js logic for `getCoinState` returns `rot`. 
+         // But `drawFx` ignores `s.rot` for bolt endpoints. 
+         // This means if we set relX1, it stays at that offset relative to center, ignoring rotation.
+         // That's fine.
+         
+         const now = performance.now();
+         const s = getCoinState(sourceCoin, now);
+         const cx = s.x + size/2;
+         const cy = s.y + size/2;
+         
+         const dx = targetX - cx;
+         const dy = targetY - cy;
+         const angle = Math.atan2(dy, dx);
+         const dist = Math.sqrt(dx*dx + dy*dy);
+         
+         const startDist = (size / 2) * 0.85; 
+         const relStartX = Math.cos(angle) * startDist;
+         const relStartY = Math.sin(angle) * startDist;
+         
+         // Main bolt
+         // Start is relative to parent, End is absolute.
+         bolts.push({
+             parentCoin: sourceCoin,
+             relX1: relStartX, relY1: relStartY,
+             x2: targetX, y2: targetY,
+             age: 0,
+             life: 0.25,
+             width: 6,
+             jaggedScale: 25
+         });
+         
+         // Branches
+         // We calculate branches in absolute space based on the current snapshot of Main Bolt.
+         // They won't track the parent, but that's acceptable for branches usually.
+         // Or we can try to make them relative too? No, end point is fixed.
+         // Let's just make branches absolute segments.
+         
+         const startX = cx + relStartX;
+         const startY = cy + relStartY;
+         
+         const numBranches = 2 + Math.floor(Math.random() * 2);
+         for (let i = 0; i < numBranches; i++) {
+             const t = 0.2 + Math.random() * 0.6; // Split 20-80% along path
+             
+             // Interpolate along the straight line for split point
+             const splitX = startX + (targetX - startX) * t;
+             const splitY = startY + (targetY - startY) * t;
+             
+             const branchAngle = angle + (Math.random() * 1.5 - 0.75); // deviation
+             const branchLen = dist * (0.15 + Math.random() * 0.2); // length relative to total distance
+             
+             const endBX = splitX + Math.cos(branchAngle) * branchLen;
+             const endBY = splitY + Math.sin(branchAngle) * branchLen;
+             
+             bolts.push({
+                 x1: splitX, y1: splitY,
+                 x2: endBX, y2: endBY,
+                 age: 0,
+                 life: 0.25, // match main
+                 width: 2.5,
+                 jaggedScale: 15
+             });
+         }
+    }
+
     function drawFx(dt) {
         if (!fxCtx || !fxCanvas) return;
         fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
@@ -1308,8 +1402,10 @@ export function createSpawner({
                  const cy = s.y + (b.parentCoin.size || baseCoinSize) / 2;
                  startX = cx + b.relX1;
                  startY = cy + b.relY1;
-                 endX = cx + b.relX2;
-                 endY = cy + b.relY2;
+                 if (b.relX2 !== undefined) {
+                     endX = cx + b.relX2;
+                     endY = cy + b.relY2;
+                 }
             }
             
             const alpha = 1 - (b.age / b.life);
@@ -1347,29 +1443,6 @@ export function createSpawner({
             fxCtx.shadowBlur = 0;
         }
 
-        // Generate sparks for Size 6 only
-        for (const c of activeCoins) {
-            if (c.settled && !c.isRemoved) {
-                if (c.sizeIndex === 6) {
-                    // Chance to spawn spark
-                    if (Math.random() < 0.2) { // 20% chance per frame
-                        const angle = Math.random() * Math.PI * 2;
-                        const dist = (c.size/2) * (0.8 + Math.random()*0.4);
-                        const cx = c.x + c.size/2;
-                        const cy = c.y + c.size/2;
-                        sparks.push({
-                            x: cx, y: cy,
-                            vx: Math.cos(angle) * 100,
-                            vy: Math.sin(angle) * 100,
-                            age: 0,
-                            life: 0.3 + Math.random() * 0.3,
-                            color: '#aaddff', // Size 6 blue/white
-                            size: 3
-                        });
-                    }
-                }
-            }
-        }
 
         // Draw sparks
         for (let i = sparks.length - 1; i >= 0; i--) {
