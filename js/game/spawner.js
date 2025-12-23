@@ -244,7 +244,7 @@ export function createSpawner({
         el.style.position = 'absolute';
         el.style.pointerEvents = 'auto';
         el.style.willChange = 'transform';
-        el.style.contain = 'layout paint style size';
+        el.style.contain = 'layout style size';
         
         const inner = document.createElement('div');
         inner.className = 'coin-inner';
@@ -814,6 +814,40 @@ export function createSpawner({
                          }
                     }
                 }
+
+                // Size 5 Logic (Blue Lightning)
+                if (c.sizeIndex === 5 && !c.isRemoved) {
+                    if (!c.lastLightningTime) c.lastLightningTime = now + Math.random() * 500;
+                    if (!c.nextLightningInterval) c.nextLightningInterval = 400 + Math.random() * 200; // ~0.5s average
+
+                    if (now - c.lastLightningTime > c.nextLightningInterval) {
+                        c.lastLightningTime = now;
+                        c.nextLightningInterval = 400 + Math.random() * 200;
+
+                        const angle = Math.random() * Math.PI * 2;
+                        const r = c.size / 2;
+                        const cx = c.x + r;
+                        const cy = c.y + r;
+                        
+                        // Start slightly inside edge
+                        const startX = cx + Math.cos(angle) * (r * 0.85);
+                        const startY = cy + Math.sin(angle) * (r * 0.85);
+                        
+                        // Extend outward
+                        const len = r * (0.5 + Math.random() * 0.6);
+                        const endX = startX + Math.cos(angle) * len;
+                        const endY = startY + Math.sin(angle) * len;
+                        
+                        bolts.push({
+                            x1: startX, y1: startY,
+                            x2: endX, y2: endY,
+                            age: 0,
+                            life: 0.15, // fast zap
+                            jaggedScale: 15, // slightly more jagged
+                            width: 5 // Thicker
+                        });
+                    }
+                }
                 continue;
               }
               
@@ -1172,7 +1206,7 @@ export function createSpawner({
     }
 
     // --- FX System ---
-    const bolts = []; // { x1, y1, x2, y2, age, life }
+    const bolts = []; // { x1, y1, x2, y2, age, life, jaggedScale, width }
     const sparks = []; // { x, y, vx, vy, age, life, color }
 
     function addBolt(sourceCoin, targetCoin) {
@@ -1226,7 +1260,7 @@ export function createSpawner({
             
             const alpha = 1 - (b.age / b.life);
             fxCtx.strokeStyle = `rgba(180, 220, 255, ${alpha})`;
-            fxCtx.lineWidth = 3;
+            fxCtx.lineWidth = b.width || 3;
             fxCtx.shadowColor = 'rgba(200, 230, 255, 0.8)';
             fxCtx.shadowBlur = 10;
             
@@ -1246,7 +1280,8 @@ export function createSpawner({
                     const perpX = -(b.y2 - b.y1);
                     const perpY = (b.x2 - b.x1);
                     const len = Math.sqrt(perpX*perpX + perpY*perpY);
-                    const scale = (Math.random() - 0.5) * 40 * (1 - Math.abs(t - 0.5)); // Bulge in middle
+                    const jaggedness = b.jaggedScale || 40;
+                    const scale = (Math.random() - 0.5) * jaggedness * (1 - Math.abs(t - 0.5)); // Bulge in middle
                     fxCtx.lineTo(tx + (perpX/len)*scale, ty + (perpY/len)*scale);
                 }
             }
@@ -1254,12 +1289,12 @@ export function createSpawner({
             fxCtx.shadowBlur = 0;
         }
 
-        // Generate sparks for Size 5/6
+        // Generate sparks for Size 6 only
         // Limit spark generation?
         const now = performance.now();
         for (const c of activeCoins) {
             if (c.settled && !c.isRemoved) {
-                if (c.sizeIndex >= 5) {
+                if (c.sizeIndex === 6) {
                     // Chance to spawn spark
                     if (Math.random() < 0.2) { // 20% chance per frame
                         const angle = Math.random() * Math.PI * 2;
@@ -1272,8 +1307,8 @@ export function createSpawner({
                             vy: Math.sin(angle) * 100,
                             age: 0,
                             life: 0.3 + Math.random() * 0.3,
-                            color: c.sizeIndex === 6 ? '#aaddff' : '#ffeb3b', // Size 6 blue/white, Size 5 yellow
-                            size: c.sizeIndex === 6 ? 3 : 2
+                            color: '#aaddff', // Size 6 blue/white
+                            size: 3
                         });
                     }
                 }
