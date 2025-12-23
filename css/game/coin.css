@@ -49,22 +49,6 @@
   will-change: transform;
 }
 
-.coin--size-6::before {
-  content: "";
-  position: absolute;
-  top: -50%; left: -50%; width: 200%; height: 200%;
-  border-radius: 50%;
-  backdrop-filter: blur(3px) hue-rotate(20deg);
-  z-index: -1;
-  pointer-events: none;
-  animation: gravityPulse 3s ease-in-out infinite alternate;
-}
-
-@keyframes gravityPulse {
-  from { transform: scale(0.9); opacity: 0.6; }
-  to { transform: scale(1.1); opacity: 0.8; }
-}
-
 /* Size 5 effects now handled by JS canvas bolts */
 
 .coin-stain {
@@ -72,7 +56,7 @@
   border-radius: 50%;
   background: radial-gradient(circle, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 70%);
   pointer-events: none;
-  z-index: 5;
+  z-index: 1;
   transition: opacity 1s;
 }
 
