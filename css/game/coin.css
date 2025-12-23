@@ -65,6 +65,8 @@
   to { transform: scale(1.1); opacity: 0.8; }
 }
 
+/* Size 5 effects now handled by JS canvas bolts */
+
 .coin-stain {
   position: absolute;
   border-radius: 50%;
