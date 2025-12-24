@@ -1,3 +1,4 @@
+import { markSaveSlotModified } from '../util/storage.js';
 
 const TICK_RATE = 20;
 const FIXED_STEP = 1 / TICK_RATE; // 0.05s
@@ -7,6 +8,11 @@ let rafId = null;
 let paused = false;
 let lastTime = 0;
 let accumulator = 0;
+
+// Anti-Cheat: Runtime Time Travel Detection
+let lastRuntimeCheckReal = 0;
+let lastRuntimeCheckPerf = 0;
+const RUNTIME_CHECK_INTERVAL_MS = 2000;
 
 function loop(timestamp) {
   if (!timestamp) timestamp = performance.now();
@@ -52,6 +58,39 @@ function loop(timestamp) {
     accumulator -= FIXED_STEP;
     ticksProcessed++;
   }
+  
+  // Anti-Cheat Check
+  // We check periodically to compare Wall Clock Time (Date.now) vs Monotonic Time (performance.now)
+  // If Wall Clock moves significantly faster than Monotonic, it's a speed hack or time skip while running.
+  // If Wall Clock moves BACKWARDS, it's a reverse time skip.
+  if (lastRuntimeCheckReal === 0 || lastRuntimeCheckPerf === 0) {
+      lastRuntimeCheckReal = Date.now();
+      lastRuntimeCheckPerf = now;
+  } else {
+      const perfDelta = now - lastRuntimeCheckPerf;
+      // perform check every 2 seconds
+      if (perfDelta > RUNTIME_CHECK_INTERVAL_MS) {
+          const realNow = Date.now();
+          const realDelta = realNow - lastRuntimeCheckReal;
+          
+          // Check 1: Backward Jump
+          // If real time went backwards by more than 1 second (buffer), catch it.
+          if (realDelta < -1000) {
+               markSaveSlotModified();
+          }
+          // Check 2: Forward Speed Hack / Skip
+          // If real time advanced significantly more than monotonic time.
+          // e.g. Monotonic says 2s passed, but Real says 60s passed.
+          // Buffer: allow up to 2x variance or +5s to be safe against drift/lag, but skipping minutes is obvious.
+          // Let's be lenient: if realDelta is > perfDelta + 10000ms (10s)
+          else if (realDelta > perfDelta + 10000) {
+              markSaveSlotModified();
+          }
+          
+          lastRuntimeCheckReal = realNow;
+          lastRuntimeCheckPerf = now;
+      }
+  }
 
   rafId = requestAnimationFrame(loop);
 }
@@ -64,12 +103,19 @@ export function resumeGameLoop() {
   paused = false;
   lastTime = performance.now();
   accumulator = 0; // Reset accumulator on resume to avoid burst
+  
+  // Reset cheat detection anchors to prevent flagging legitimate sleep/suspend time
+  // as a speed hack (since Date.now advances during sleep, but performance.now behavior varies or loop stops).
+  lastRuntimeCheckReal = 0; 
+  lastRuntimeCheckPerf = 0;
 }
 
 export function startGameLoop() {
   if (rafId) return;
   lastTime = performance.now();
   accumulator = 0;
+  lastRuntimeCheckReal = 0;
+  lastRuntimeCheckPerf = 0;
   rafId = requestAnimationFrame(loop);
 }
 
