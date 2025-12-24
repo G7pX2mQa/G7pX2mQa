@@ -772,6 +772,7 @@ export function createSpawner({
       {
           for (let i = activeCoins.length - 1; i >= 0; i--) {
               const c = activeCoins[i];
+              if (!c) continue; // Safety check if array was mutated
               
               if (now >= c.dieAt) {
                   removeCoin(c, i);
@@ -808,14 +809,15 @@ export function createSpawner({
                            const s = getCoinState(c, now);
                            const cx = s.x + c.size/2;
                            const cy = s.y + c.size/2;
-                           const searchRadius = 800;
-                           const targets = findCoinTargetsInRadius(cx, cy, searchRadius);
                            
+                           // Identify potential candidates globally (no radius limit)
                            const candidates = [];
                            const minDistSq = (c.size/2) * (c.size/2);
 
-                           for(const t of targets) {
-                               if (t === c || t.isRemoved) continue;
+                           const totalCoins = activeCoins.length;
+                           for (let k = 0; k < totalCoins; k++) {
+                               const t = activeCoins[k];
+                               if (t === c || t.isRemoved || t.settled === false) continue;
                                // Only attack size 3 or lower
                                if (t.sizeIndex > 3) continue;
 
@@ -823,27 +825,44 @@ export function createSpawner({
                                const ty = t.y + (t.size||baseCoinSize)/2;
                                const dx = tx - cx;
                                const dy = ty - cy;
+                               
+                               // Ensure not overlapping source
                                if (dx*dx + dy*dy > minDistSq) {
                                    candidates.push(t);
                                }
                            }
 
                            if (candidates.length > 0) {
-                               const target = candidates[Math.floor(Math.random() * candidates.length)];
+                               // Shuffle candidates to pick up to 3 distinct ones
+                               for (let k = candidates.length - 1; k > 0; k--) {
+                                   const j = Math.floor(Math.random() * (k + 1));
+                                   [candidates[k], candidates[j]] = [candidates[j], candidates[k]];
+                               }
                                
-                               const targetSize = target.size || baseCoinSize;
-                               const tx = target.x + targetSize/2;
-                               const ty = target.y + targetSize/2;
-                               
-                               createTargetedBranchingLightning(c, tx, ty);
+                               const targets = candidates.slice(0, 3);
+                               const itemsToCollect = [];
+                               let audioPlayed = false;
 
-                               addStain(tx, ty, targetSize);
+                               for (const target of targets) {
+                                   const targetSize = target.size || baseCoinSize;
+                                   const tx = target.x + targetSize/2;
+                                   const ty = target.y + targetSize/2;
+                                   
+                                   createTargetedBranchingLightning(c, tx, ty);
+                                   addStain(tx, ty, targetSize);
+                                   itemsToCollect.push({ coin: target });
+                                   
+                                   if (!audioPlayed) {
+                                       const audio = new Audio('sounds/lightning_strike.ogg');
+                                       audio.volume = 0.25;
+                                       audio.play().catch(()=>{});
+                                       audioPlayed = true;
+                                   }
+                               }
                                
-                               deps.collectBatch([{ coin: target }]);
-                               
-                               const audio = new Audio('sounds/lightning_strike.ogg');
-                               audio.volume = 0.25;
-                               audio.play().catch(()=>{});
+                               if (itemsToCollect.length > 0) {
+                                   deps.collectBatch(itemsToCollect);
+                               }
                            }
                       }
                   }
@@ -1240,11 +1259,11 @@ export function createSpawner({
         st.style.top = `${cy - d/2}px`;
         refs.pf.appendChild(st);
         
-        // Remove after 60s
+        // Remove after 5s
         setTimeout(() => {
             st.style.opacity = '0';
             setTimeout(() => { if(st.parentNode) st.remove(); }, 1000);
-        }, 60000);
+        }, 5000);
     }
 
     // NEW HELPER
@@ -1307,14 +1326,6 @@ export function createSpawner({
          // We can use parentCoin support but endX/endY will be absolute.
          // However, we need to know the initial angle to pick the start point on the rim.
          // Since drawFx recalculates startX based on parentCoin, we need relX1 to be fixed.
-         // But if source rotates, fixed relX1 rotates with it? No, drawFx just adds cx + relX1.
-         // Wait, getCoinState returns rot, but drawFx does NOT use rot for position calc.
-         // So relX1 is just offset from center in screen space (if coin doesn't rotate visually in position logic).
-         // The coin visual rotates via CSS or canvas draw, but x/y is center?
-         // Actually spawner.js logic for `getCoinState` returns `rot`. 
-         // But `drawFx` ignores `s.rot` for bolt endpoints. 
-         // This means if we set relX1, it stays at that offset relative to center, ignoring rotation.
-         // That's fine.
          
          const now = performance.now();
          const s = getCoinState(sourceCoin, now);
@@ -1342,25 +1353,22 @@ export function createSpawner({
              jaggedScale: 25
          });
          
-         // Branches
+         // Branches for visual complexity ("tons of branches")
          // We calculate branches in absolute space based on the current snapshot of Main Bolt.
-         // They won't track the parent, but that's acceptable for branches usually.
-         // Or we can try to make them relative too? No, end point is fixed.
-         // Let's just make branches absolute segments.
          
          const startX = cx + relStartX;
          const startY = cy + relStartY;
          
-         const numBranches = 2 + Math.floor(Math.random() * 2);
+         const numBranches = 6 + Math.floor(Math.random() * 5); // Increased for complexity
          for (let i = 0; i < numBranches; i++) {
-             const t = 0.2 + Math.random() * 0.6; // Split 20-80% along path
+             const t = 0.1 + Math.random() * 0.8; // Split 10-90% along path
              
              // Interpolate along the straight line for split point
              const splitX = startX + (targetX - startX) * t;
              const splitY = startY + (targetY - startY) * t;
              
-             const branchAngle = angle + (Math.random() * 1.5 - 0.75); // deviation
-             const branchLen = dist * (0.15 + Math.random() * 0.2); // length relative to total distance
+             const branchAngle = angle + (Math.random() * 1.6 - 0.8); // deviation
+             const branchLen = dist * (0.1 + Math.random() * 0.3); // length relative to total distance
              
              const endBX = splitX + Math.cos(branchAngle) * branchLen;
              const endBY = splitY + Math.sin(branchAngle) * branchLen;
@@ -1370,9 +1378,28 @@ export function createSpawner({
                  x2: endBX, y2: endBY,
                  age: 0,
                  life: 0.25, // match main
-                 width: 2.5,
+                 width: 2.0,
                  jaggedScale: 15
              });
+             
+             // Occasional sub-branch
+             if (Math.random() < 0.4) {
+                 const subT = 0.5;
+                 const subSx = splitX + (endBX - splitX) * subT;
+                 const subSy = splitY + (endBY - splitY) * subT;
+                 const subAngle = branchAngle + (Math.random() * 1.0 - 0.5);
+                 const subLen = branchLen * 0.5;
+                 
+                 bolts.push({
+                     x1: subSx, y1: subSy,
+                     x2: subSx + Math.cos(subAngle) * subLen,
+                     y2: subSy + Math.sin(subAngle) * subLen,
+                     age: 0,
+                     life: 0.25,
+                     width: 1.5,
+                     jaggedScale: 10
+                 });
+             }
          }
     }
 
