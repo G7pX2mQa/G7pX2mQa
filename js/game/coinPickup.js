@@ -1035,15 +1035,22 @@ export function initCoinPickup({
       const spawnLevelStr = coinObj?.mutationLevel ?? (el?.dataset?.mutationLevel || null);
       
       let inc = applyCoinMultiplier(base);
-      
+      let xpInc = cloneBn(XP_PER_COIN);
+      let mpInc = cloneBn(mpValueMultiplierBn);
+
       // SURGE 2: Value Multiplier
       if (coinObj && coinObj.valueMultiplier && coinObj.valueMultiplier > 1) {
+          const multBn = BigNum.fromInt(coinObj.valueMultiplier);
           try {
-             inc = inc.mulBigNumInteger(BigNum.fromInt(coinObj.valueMultiplier));
+             inc = inc.mulBigNumInteger(multBn);
+          } catch {}
+          try {
+             xpInc = xpInc.mulBigNumInteger(multBn);
+          } catch {}
+          try {
+             mpInc = mpInc.mulBigNumInteger(multBn);
           } catch {}
       }
-
-      let xpInc = cloneBn(XP_PER_COIN);
 
       const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
       if (mutationMultiplier) {
@@ -1058,7 +1065,7 @@ export function initCoinPickup({
          totalXp = mergeGain(totalXp, xpInc);
       }
       if (mutEnabled) {
-         totalMp = mergeGain(totalMp, mpValueMultiplierBn);
+         totalMp = mergeGain(totalMp, mpInc);
       }
     }
 
