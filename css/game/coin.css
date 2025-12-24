@@ -54,8 +54,6 @@
   will-change: transform;
 }
 
-/* Size 5 effects now handled by JS canvas bolts */
-
 .coin-stain {
   position: absolute;
   border-radius: 50%;
@@ -63,56 +61,4 @@
   pointer-events: none;
   z-index: 1;
   transition: opacity 1s;
-}
-
-/* Surge Screen Effects */
-@keyframes surgeShakeAnim {
-  0% { transform: translate3d(0, 0, 0); }
-  10% { transform: translate3d(-8px, -8px, 0) rotate(-1deg); }
-  20% { transform: translate3d(8px, 8px, 0) rotate(1deg); }
-  30% { transform: translate3d(-8px, 8px, 0); }
-  40% { transform: translate3d(8px, -8px, 0); }
-  50% { transform: translate3d(-8px, 0, 0); }
-  60% { transform: translate3d(8px, 0, 0); }
-  70% { transform: translate3d(0, 8px, 0); }
-  80% { transform: translate3d(0, -8px, 0); }
-  100% { transform: translate3d(0, 0, 0); }
-}
-
-@keyframes surgeFlashAnim {
-  0% { background-color: rgba(255, 255, 255, 0); }
-  10% { background-color: rgba(255, 255, 255, 0.6); }
-  100% { background-color: rgba(255, 255, 255, 0); }
-}
-
-@keyframes surgeInvertAnim {
-  0% { filter: invert(0); }
-  5% { filter: invert(1); }
-  15% { filter: invert(0); }
-  25% { filter: invert(0.2); }
-  35% { filter: invert(0); }
-  100% { filter: invert(0); }
-}
-
-body.surge-flash::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-  animation: surgeFlashAnim 0.3s ease-out forwards;
-}
-
-body.surge-shake {
-  animation: surgeShakeAnim 0.6s ease-out forwards;
-}
-/* Size 6 gets the shake AND invert */
-body.surge-shake::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9998;
-  backdrop-filter: invert(0);
-  animation: surgeInvertAnim 0.6s ease-out forwards;
 }
