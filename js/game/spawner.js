@@ -72,7 +72,7 @@ const COIN_CHANCES = [
     0.04,      // Size 3: 1/1000
     0.03,     // Size 4: 1/10000
     0.02,    // Size 5: 1/100000
-    0.01    // Size 6: 1/1000000
+    0.01,    // Size 6: 1/1000000
 	// these values have been TEMPORARILY modified for testing
 ];
 const COIN_SOUND_SUFFIXES = [
@@ -1259,11 +1259,11 @@ export function createSpawner({
         st.style.top = `${cy - d/2}px`;
         refs.pf.appendChild(st);
         
-        // Remove after 5s
+        // Remove after 2.5s
         setTimeout(() => {
             st.style.opacity = '0';
             setTimeout(() => { if(st.parentNode) st.remove(); }, 1000);
-        }, 5000);
+        }, 2500);
     }
 
     // NEW HELPER
