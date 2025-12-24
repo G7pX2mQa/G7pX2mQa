@@ -33,9 +33,14 @@
 }
 
 /* Surge 2 Coin Sizes & Effects */
-.coin--size-4 { z-index: 10; }
-.coin--size-5 { z-index: 20; }
-.coin--size-6 { z-index: 30; }
+/* Layering: Active coins sit just above their settled counterparts (z=10,20,etc) but below larger coins */
+.coin--size-0 { z-index: 11; }
+.coin--size-1 { z-index: 21; }
+.coin--size-2 { z-index: 31; }
+.coin--size-3 { z-index: 41; }
+.coin--size-4 { z-index: 51; }
+.coin--size-5 { z-index: 61; }
+.coin--size-6 { z-index: 71; }
 
 @keyframes coinSpin {
   from { transform: rotate(0deg); }
