@@ -682,18 +682,6 @@ export function triggerPassiveCollect(count = 1) {
   }
 }
 
-// Surge Screen Effects
-function triggerUniqueScreenEffect() {
-  document.body.classList.remove('surge-flash');
-  void document.body.offsetWidth;
-  document.body.classList.add('surge-flash');
-}
-function triggerMindBogglingEffect() {
-  document.body.classList.remove('surge-shake');
-  void document.body.offsetWidth;
-  document.body.classList.add('surge-shake');
-}
-
 export function initCoinPickup({
   spawner,
   playfieldSelector   = '.area-cove .playfield',
@@ -980,12 +968,6 @@ export function initCoinPickup({
     }
 
     playSound(bestSoundSrc);
-    
-    if (maxSizeIndex >= 6) {
-        triggerMindBogglingEffect();
-    } else if (maxSizeIndex >= 5) {
-        triggerUniqueScreenEffect();
-    }
 
     let totalCoin = null;
     let totalXp = null;
