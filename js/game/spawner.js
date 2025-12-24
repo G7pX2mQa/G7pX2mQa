@@ -130,17 +130,32 @@ export function createSpawner({
         });
     }
 
-    let canvas = null;
-    let ctx = null;
+    // MULTI-LAYER CANVAS SYSTEM
+    // We create one canvas per size (0-6).
+    // Size 0: z-index 10
+    // Size 1: z-index 20
+    // ...
+    // Size 6: z-index 70
+    // Active DOM coins will be interleaved via CSS (11, 21, ..., 71).
+    const NUM_LAYERS = 7;
+    const canvases = [];
+    const contexts = [];
     let canvasDirty = false;
 
     if (refs.c) {
-        canvas = document.createElement('canvas');
-        canvas.style.position = 'absolute';
-        canvas.style.inset = '0';
-        canvas.style.pointerEvents = 'none';
-        refs.c.appendChild(canvas);
-        ctx = canvas.getContext('2d', { alpha: true });
+        for (let i = 0; i < NUM_LAYERS; i++) {
+            const canvas = document.createElement('canvas');
+            canvas.style.position = 'absolute';
+            canvas.style.inset = '0';
+            canvas.style.pointerEvents = 'none';
+            // Base z-index for settled coins of this size
+            canvas.style.zIndex = `${10 + (i * 10)}`; 
+            refs.c.appendChild(canvas);
+            
+            const ctx = canvas.getContext('2d', { alpha: true });
+            canvases.push(canvas);
+            contexts.push(ctx);
+        }
     }
 
     let fxCanvas = null;
@@ -150,7 +165,8 @@ export function createSpawner({
         fxCanvas.style.position = 'absolute';
         fxCanvas.style.inset = '0';
         fxCanvas.style.pointerEvents = 'none';
-        fxCanvas.style.zIndex = '40';
+        // FX sits on top of everything
+        fxCanvas.style.zIndex = '100'; 
         refs.c.appendChild(fxCanvas);
         fxCtx = fxCanvas.getContext('2d', { alpha: true });
     }
@@ -185,24 +201,30 @@ export function createSpawner({
             pfW: pfRect.width
         };
 
-        if (canvas) {
-             const dpr = window.devicePixelRatio || 1;
-             canvas.width = pfRect.width * dpr;
-             canvas.height = pfRect.height * dpr;
-             canvas.style.width = pfRect.width + 'px';
-             canvas.style.height = pfRect.height + 'px';
-             
-             if (ctx) {
-                 ctx.setTransform(1, 0, 0, 1, 0, 0);
-                 ctx.scale(dpr, dpr);
-                 ctx.imageSmoothingEnabled = true;
-                 ctx.imageSmoothingQuality = 'high';
-             }
-             canvasDirty = true;
-        }
+        const dpr = window.devicePixelRatio || 1;
+        
+        // Resize all layer canvases
+        canvases.forEach((canvas, i) => {
+            if (canvas) {
+                canvas.width = pfRect.width * dpr;
+                canvas.height = pfRect.height * dpr;
+                canvas.style.width = pfRect.width + 'px';
+                canvas.style.height = pfRect.height + 'px';
+                
+                const ctx = contexts[i];
+                if (ctx) {
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    ctx.scale(dpr, dpr);
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                }
+            }
+        });
+        
+        // Mark dirty to redraw settled coins on resized canvases
+        canvasDirty = true;
 
         if (fxCanvas) {
-             const dpr = window.devicePixelRatio || 1;
              fxCanvas.width = pfRect.width * dpr;
              fxCanvas.height = pfRect.height * dpr;
              fxCanvas.style.width = pfRect.width + 'px';
@@ -695,7 +717,7 @@ export function createSpawner({
         return { x, y, rot, scale };
     }
 
-    function drawSingleSettledCoin(c) {
+    function drawSingleSettledCoin(ctx, c) {
         const img = getImage(c.src);
         if (img && img.complete && img.naturalWidth > 0) {
              // Use coin specific size
@@ -705,52 +727,65 @@ export function createSpawner({
     }
 
     function drawSettledCoins() {
-        if (!ctx) return;
+        if (!contexts.length) return;
         
         if (canvasDirty) {
-            ctx.save();
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.restore();
-            
-            if (enableDropShadow) {
-                 ctx.save();
-                 ctx.shadowColor = 'rgba(0,0,0,0.35)';
-                 ctx.shadowBlur = 2;
-                 ctx.shadowOffsetY = 2;
-            }
+            // Clear all canvases
+            contexts.forEach((ctx, i) => {
+                if (canvases[i]) {
+                    ctx.save();
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    ctx.clearRect(0, 0, canvases[i].width, canvases[i].height);
+                    ctx.restore();
+                    
+                    if (enableDropShadow) {
+                         ctx.save();
+                         ctx.shadowColor = 'rgba(0,0,0,0.35)';
+                         ctx.shadowBlur = 2;
+                         ctx.shadowOffsetY = 2;
+                    }
+                }
+            });
 
             const count = activeCoins.length;
             for (let i = 0; i < count; i++) {
                 const c = activeCoins[i];
                 if (c.settled && !c.isRemoved && !c.el) {
-                    drawSingleSettledCoin(c);
+                    const layerIdx = c.sizeIndex || 0;
+                    if (contexts[layerIdx]) {
+                        drawSingleSettledCoin(contexts[layerIdx], c);
+                    }
                 }
             }
             
             if (enableDropShadow) {
-                ctx.restore();
+                contexts.forEach(ctx => ctx.restore());
             }
 
             canvasDirty = false;
             newlySettledBuffer.length = 0;
         } else if (newlySettledBuffer.length > 0) {
             if (enableDropShadow) {
-                 ctx.save();
-                 ctx.shadowColor = 'rgba(0,0,0,0.35)';
-                 ctx.shadowBlur = 2;
-                 ctx.shadowOffsetY = 2;
+                 contexts.forEach(ctx => {
+                     ctx.save();
+                     ctx.shadowColor = 'rgba(0,0,0,0.35)';
+                     ctx.shadowBlur = 2;
+                     ctx.shadowOffsetY = 2;
+                 });
             }
 
             for (let i = 0; i < newlySettledBuffer.length; i++) {
                 const c = newlySettledBuffer[i];
                 if (!c.isRemoved && c.settled && !c.el) {
-                    drawSingleSettledCoin(c);
+                    const layerIdx = c.sizeIndex || 0;
+                    if (contexts[layerIdx]) {
+                        drawSingleSettledCoin(contexts[layerIdx], c);
+                    }
                 }
             }
 
             if (enableDropShadow) {
-                ctx.restore();
+                 contexts.forEach(ctx => ctx.restore());
             }
             newlySettledBuffer.length = 0;
         }
