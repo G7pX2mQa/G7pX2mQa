@@ -1,4 +1,4 @@
-import { getLastSaveTime, getActiveSlot, isCurrencyLocked, isStorageKeyLocked } from '../util/storage.js';
+import { getLastSaveTime, getActiveSlot, isCurrencyLocked, isStorageKeyLocked, markSaveSlotModified } from '../util/storage.js';
 import { getGearsProductionRate } from '../ui/merchantTabs/workshopTab.js';
 import { hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
 import { pauseGameLoop, resumeGameLoop } from './gameLoop.js';
@@ -248,6 +248,13 @@ export function processOfflineProgress() {
     const now = Date.now();
     
     if (lastSave <= 0) return;
+
+    // Detect reverse time travel (user changed clock back after saving in future)
+    // Tolerance of 10 seconds to avoid drift issues
+    if (now < lastSave - 10000) {
+        markSaveSlotModified(slot);
+        return;
+    }
     
     const diff = now - lastSave;
     if (diff < 1000) return; // Ignore gaps < 1s
