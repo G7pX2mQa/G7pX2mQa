@@ -65,16 +65,15 @@ const COIN_SIZES = [40, 55, 80, 125, 200, 320, 512];
 // Ratio of radius where lightning originates (to match the inner ridge of the coin art)
 const LIGHTNING_START_RADIUS_RATIO = 0.78;
 const COIN_VALUE_MULTS = [1, 25, 625, 15625, 390625, 9765625, 244140625];
-// Probabilities for Size 1 to 6 (Size 0 is fallback)
-// Checked from rarest (Size 6) to commonest (Size 1)
+// Probabilities for Size 1 to 6 (Size 0 is fallback) while the Surge 2 milestone is active
 const COIN_CHANCES = [
     0,          // Size 0 (N/A)
     0.1,        // Size 1: 1/10
     0.01,       // Size 2: 1/100
     0.001,      // Size 3: 1/1000
-    0.005,     // Size 4: 1/10000
-    0.00001,    // Size 5: 1/100000
-    0.000001,    // Size 6: 1/1000000
+    0.03,     // Size 4: 1/10000
+    0.02,    // Size 5: 1/100000
+    0.01,    // Size 6: 1/1000000
 	// these values have been TEMPORARILY modified for testing
 ];
 const COIN_SOUND_SUFFIXES = [
