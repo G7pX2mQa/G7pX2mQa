@@ -266,6 +266,7 @@ export function createSpawner({
         el.className = 'coin';
         el.style.position = 'absolute';
         el.style.pointerEvents = 'auto';
+        el.style.borderRadius = '50%';
         el.style.willChange = 'transform';
         el.style.contain = 'layout style size';
         
