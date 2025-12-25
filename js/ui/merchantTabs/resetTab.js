@@ -906,7 +906,7 @@ export function performForgeReset() {
   unlockMutationSystem();
   
   if (shouldWipePlayfield('forge')) {
-    try { window.spawner?.clearPlayfield?.(); } catch {}
+    try { window.spawner?.clearPlayfield?.('forge'); } catch {}
   }
 
   updateResetPanel();
@@ -939,7 +939,7 @@ export function performInfuseReset() {
   recomputePendingMagic();
   
   if (shouldWipePlayfield('infuse')) {
-    try { window.spawner?.clearPlayfield?.(); } catch {}
+    try { window.spawner?.clearPlayfield?.('infuse'); } catch {}
   }
 
   setInfuseUnlocked(true);
@@ -994,7 +994,7 @@ export function performSurgeReset() {
   triggerSurgeWaveAnimation();
 
   if (shouldWipePlayfield('surge')) {
-    try { window.spawner?.clearPlayfield?.(); } catch {}
+    try { window.spawner?.clearPlayfield?.('surge'); } catch {}
   }
   
   updateResetPanel();
