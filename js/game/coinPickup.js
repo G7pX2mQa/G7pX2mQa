@@ -1143,10 +1143,11 @@ export function initCoinPickup({
         const localY = y;
         
         let candidates = [];
+        // Use visual hitbox = true for cursor interaction
         if (typeof spawner.findCoinTargetsInPath === 'function' && lastBrushLocalX !== null && lastBrushLocalY !== null) {
-            candidates = spawner.findCoinTargetsInPath(lastBrushLocalX, lastBrushLocalY, localX, localY, BRUSH_R);
+            candidates = spawner.findCoinTargetsInPath(lastBrushLocalX, lastBrushLocalY, localX, localY, BRUSH_R, true);
         } else {
-            candidates = spawner.findCoinTargetsInRadius(localX, localY, BRUSH_R);
+            candidates = spawner.findCoinTargetsInRadius(localX, localY, BRUSH_R, true);
         }
         
         lastBrushLocalX = localX;
