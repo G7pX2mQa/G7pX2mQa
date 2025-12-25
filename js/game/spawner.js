@@ -70,10 +70,10 @@ const COIN_CHANCES = [
     0,          // Size 0 (N/A)
     0.1,        // Size 1: 1/10
     0.01,       // Size 2: 1/100
-    0.001,      // Size 3: 1/1000
-    0.03,     // Size 4: 1/10000
-    0.02,    // Size 5: 1/100000
-    0.01,    // Size 6: 1/1000000
+    0.1,      // Size 3: 1/1000
+    0.0000000003,     // Size 4: 1/10000
+    0.0000000000002,    // Size 5: 1/100000
+    0.00000000001,    // Size 6: 1/1000000
 	// these values have been TEMPORARILY modified for testing
 ];
 const COIN_SOUND_SUFFIXES = [
@@ -1591,3 +1591,4 @@ export function createSpawner({
         hasBigCoins: () => isSurge2Active() && activeCoins.some(c => c.sizeIndex >= 4),
     };
 }
+
