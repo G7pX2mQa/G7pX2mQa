@@ -1047,15 +1047,20 @@ export function createSpawner({
         return el;
     }
 
-    function findCoinTargetsInRadius(centerX, centerY, radius) {
+    function findCoinTargetsInRadius(centerX, centerY, radius, useVisualHitbox) {
+        let searchRadius = radius;
+        if (useVisualHitbox) {
+             searchRadius = Math.max(radius, 260);
+        }
+
         const radiusSq = radius * radius;
         const candidates = [];
         const count = activeCoins.length;
         
-        const minX = centerX - radius;
-        const maxX = centerX + radius;
-        const minY = centerY - radius;
-        const maxY = centerY + radius;
+        const minX = centerX - searchRadius;
+        const maxX = centerX + searchRadius;
+        const minY = centerY - searchRadius;
+        const maxY = centerY + searchRadius;
 
         const now = performance.now();
         
@@ -1080,7 +1085,13 @@ export function createSpawner({
             const dx = cx - centerX;
             const dy = cy - centerY;
             
-            if ((dx*dx + dy*dy) <= radiusSq) {
+            let limitSq = radiusSq;
+            if (useVisualHitbox && (c.sizeIndex || 0) > 0) {
+                 const r = size / 2;
+                 limitSq = r * r;
+            }
+
+            if ((dx*dx + dy*dy) <= limitSq) {
                 if (!c.isRemoved) {
                     candidates.push(c);
                 }
@@ -1089,15 +1100,20 @@ export function createSpawner({
         return candidates;
     }
 
-    function findCoinTargetsInPath(x1, y1, x2, y2, radius) {
+    function findCoinTargetsInPath(x1, y1, x2, y2, radius, useVisualHitbox) {
+        let searchRadius = radius;
+        if (useVisualHitbox) {
+             searchRadius = Math.max(radius, 260);
+        }
+
         const radiusSq = radius * radius;
         const candidates = [];
         const count = activeCoins.length;
 
-        const minX = Math.min(x1, x2) - radius;
-        const maxX = Math.max(x1, x2) + radius;
-        const minY = Math.min(y1, y2) - radius;
-        const maxY = Math.max(y1, y2) + radius;
+        const minX = Math.min(x1, x2) - searchRadius;
+        const maxX = Math.max(x1, x2) + searchRadius;
+        const minY = Math.min(y1, y2) - searchRadius;
+        const maxY = Math.max(y1, y2) + searchRadius;
 
         const vx = x2 - x1;
         const vy = y2 - y1;
@@ -1127,16 +1143,22 @@ export function createSpawner({
             
             const dot = wx * vx + wy * vy;
             
+            let limitSq = radiusSq;
+            if (useVisualHitbox && (c.sizeIndex || 0) > 0) {
+                 const r = size / 2;
+                 limitSq = r * r;
+            }
+            
             let hit = false;
             if (dot <= 0) {
-                if ((wx * wx + wy * wy) <= radiusSq) hit = true;
+                if ((wx * wx + wy * wy) <= limitSq) hit = true;
             } else if (dot >= lenSq) {
                 const dx = cx - x2;
                 const dy = cy - y2;
-                if ((dx * dx + dy * dy) <= radiusSq) hit = true;
+                if ((dx * dx + dy * dy) <= limitSq) hit = true;
             } else {
                 const cross = wx * vy - wy * vx;
-                if (cross * cross <= crossLimit) hit = true;
+                if (cross * cross <= limitSq * lenSq) hit = true;
             }
             
             if (hit && !c.isRemoved) {
