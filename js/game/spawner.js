@@ -70,11 +70,10 @@ const COIN_CHANCES = [
     0,          // Size 0 (N/A)
     0.1,        // Size 1: 1/10
     0.01,       // Size 2: 1/100
-    0.1,      // Size 3: 1/1000
-    0.0000000003,     // Size 4: 1/10000
-    0.0000000000002,    // Size 5: 1/100000
-    0.00000000001,    // Size 6: 1/1000000
-	// these values have been TEMPORARILY modified for testing
+    0.001,      // Size 3: 1/1000
+    0.0001,     // Size 4: 1/10000
+    0.00001,    // Size 5: 1/100000
+    0.000001,    // Size 6: 1/1000000
 ];
 const COIN_SOUND_SUFFIXES = [
     '', // Size 0 uses default
@@ -271,11 +270,14 @@ export function createSpawner({
         el.style.willChange = 'transform';
         el.style.contain = 'layout style size';
         
-        const inner = document.createElement('div');
+        const inner = document.createElement('img');
         inner.className = 'coin-inner';
+        inner.draggable = false;
+        inner.alt = '';
         inner.style.width = '100%';
         inner.style.height = '100%';
-        inner.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
+        inner.src = currentCoinSrc;
+        inner.style.objectFit = 'contain';
         inner.style.borderRadius = '50%';
         
         el.appendChild(inner);
@@ -615,9 +617,9 @@ export function createSpawner({
         el.style.width = `${size}px`;
         el.style.height = `${size}px`;
         el.className = `coin coin--size-${sizeIndex}`; // Add size class
-        // Update inner background
+        // Update inner image src
         if (el.firstChild) {
-             el.firstChild.style.background = `url(${currentCoinSrc}) center/contain no-repeat`;
+             el.firstChild.src = currentCoinSrc;
         }
         
         el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
@@ -1054,7 +1056,7 @@ export function createSpawner({
         el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
         
         if (el.firstChild) {
-            el.firstChild.style.background = `url(${c.src}) center/contain no-repeat`;
+            el.firstChild.src = c.src;
         }
         
         el.style.opacity = '1';
@@ -1591,4 +1593,3 @@ export function createSpawner({
         hasBigCoins: () => isSurge2Active() && activeCoins.some(c => c.sizeIndex >= 4),
     };
 }
-
