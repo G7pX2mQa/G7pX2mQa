@@ -535,8 +535,19 @@ export function createSpawner({
             computeMetrics();
 
         if (maxActiveCoins !== Infinity && activeCoins.length >= maxActiveCoins) {
-            const oldest = activeCoins[0];
-            if (oldest) removeCoin(oldest, 0);
+            let indexToRemove = 0;
+            if (isSurge2Active()) {
+                indexToRemove = -1;
+                for (let i = 0; i < activeCoins.length; i++) {
+                    if (activeCoins[i].sizeIndex < 4) {
+                        indexToRemove = i;
+                        break;
+                    }
+                }
+                if (indexToRemove === -1) return null;
+            }
+            const oldest = activeCoins[indexToRemove];
+            if (oldest) removeCoin(oldest, indexToRemove);
         }
 
         const pfW = M.pfW;
@@ -1004,8 +1015,15 @@ export function createSpawner({
         last = performance.now();
     }
 
-    function clearPlayfield() {
+    function clearPlayfield(resetType) {
+        const keepBigCoins = isSurge2Active() && !!resetType;
         for (let i = activeCoins.length - 1; i >= 0; i--) {
+            const c = activeCoins[i];
+            if (keepBigCoins && c.sizeIndex >= 4) {
+                 c.mutationLevel = mutationUnlockedSnapshot ? mutationLevelSnapshot.toString() : '0';
+                 if (c.el) c.el.dataset.mutationLevel = c.mutationLevel;
+                 continue;
+            }
             removeCoin(activeCoins[i], i);
         }
         clearBacklog();
@@ -1571,5 +1589,6 @@ export function createSpawner({
         recycleCoin: releaseCoin,
         playEntranceWave,
         setDependencies,
+        hasBigCoins: () => isSurge2Active() && activeCoins.some(c => c.sizeIndex >= 4),
     };
 }
