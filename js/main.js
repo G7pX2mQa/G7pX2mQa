@@ -664,6 +664,14 @@ images: [
     }
   }
 
+  window.addEventListener('beforeunload', (e) => {
+    if (window.spawner && typeof window.spawner.hasBigCoins === 'function' && window.spawner.hasBigCoins()) {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    }
+  });
+
   installGhostTapGuard?.();
   initGlobalGhostTap?.();
   initGlobalOverlayEsc?.();
