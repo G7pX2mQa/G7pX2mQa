@@ -62,6 +62,8 @@ function getImage(src) {
 
 // Surge 2 Constants
 const COIN_SIZES = [40, 55, 80, 125, 200, 320, 512];
+// Ratio of radius where lightning originates (to match the inner ridge of the coin art)
+const LIGHTNING_START_RADIUS_RATIO = 0.78;
 const COIN_VALUE_MULTS = [1, 25, 625, 15625, 390625, 9765625, 244140625];
 // Probabilities for Size 1 to 6 (Size 0 is fallback)
 // Checked from rarest (Size 6) to commonest (Size 1)
@@ -1329,7 +1331,7 @@ export function createSpawner({
          const angle = Math.random() * Math.PI * 2;
          const r = (coin.size || baseCoinSize) / 2;
          
-         const startDist = r * 0.6;
+         const startDist = r * LIGHTNING_START_RADIUS_RATIO;
          const relStartX = Math.cos(angle) * startDist;
          const relStartY = Math.sin(angle) * startDist;
          
@@ -1395,7 +1397,7 @@ export function createSpawner({
          const angle = Math.atan2(dy, dx);
          const dist = Math.sqrt(dx*dx + dy*dy);
          
-         const startDist = (size / 2) * 0.85; 
+         const startDist = (size / 2) * LIGHTNING_START_RADIUS_RATIO; 
          const relStartX = Math.cos(angle) * startDist;
          const relStartY = Math.sin(angle) * startDist;
          
