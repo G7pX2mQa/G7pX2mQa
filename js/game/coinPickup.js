@@ -15,6 +15,7 @@ import {
 } from './mutationSystem.js';
 import { getMpValueMultiplierBn, getMagnetLevel } from './upgrades.js';
 import { createCursorTrail } from './cursorTrail.js';
+import { playAudio } from '../util/audioManager.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelIsInfiniteSnapshot = false;
@@ -796,108 +797,23 @@ export function initCoinPickup({
   cl.querySelectorAll(coinSelector).forEach(ensureInteractive);
   
   // ----- Audio Handling -----
-  let ac = null, masterGain = null;
-  // Fallback map for buffers
-  const audioBuffers = new Map();
-  const loadingBuffers = new Set();
-  
-  // Pool for the default sound (frequent)
-  let pool = null, pIdx = 0, lastAt = 0;
-  if (!IS_MOBILE){
-    pool = Array.from({ length: 8 }, () => { const a = new Audio(resolvedSrc); a.preload = 'auto'; a.volume = 0.3; return a; });
-  }
-
-  function playCoinMobileFallback(src = resolvedSrc){
-      const a = new Audio(src);
-      a.volume = 0.12; 
-      try {
-        a.currentTime = 0;
-        a.play().catch(()=>{});
-      } catch {}
-  }
-
-  async function ensureWebAudioBuffer(src) {
-      if (!ac || !('AudioContext' in window || 'webkitAudioContext' in window)) return;
-      if (audioBuffers.has(src) || loadingBuffers.has(src)) return;
-      
-      loadingBuffers.add(src);
-      try {
-          const res = await fetch(src, { cache: 'force-cache' });
-          const arr = await res.arrayBuffer();
-          const buf = await new Promise((ok, err) => ac.decodeAudioData(arr, ok, err));
-          audioBuffers.set(src, buf);
-      } catch (e) {
-          console.warn('[coinPickup] WebAudio buffer load failed for', src, e);
-      } finally {
-          loadingBuffers.delete(src);
-      }
-  }
-
-  async function initWebAudioOnce(){
-    if (ac) return;
-    if (!('AudioContext' in window || 'webkitAudioContext' in window)) return;
-
-    ac = new (window.AudioContext || window.webkitAudioContext)();
-    masterGain = ac.createGain();
-    masterGain.gain.value = 0.12; // Const
-    masterGain.connect(ac.destination);
-
-    if (ac.state === 'suspended') { try { await ac.resume(); } catch {} }
-    
-    // Load default
-    ensureWebAudioBuffer(resolvedSrc);
-  }
-
-  function playCoinWebAudio(src = resolvedSrc){
-    if (ac && ac.state === 'suspended'){ try { ac.resume(); } catch {} }
-    
-    const buffer = audioBuffers.get(src);
-    if (!buffer) {
-        if (!loadingBuffers.has(src)) ensureWebAudioBuffer(src);
-        if (IS_MOBILE) playCoinMobileFallback(src);
-        return true;
-    }
-
-    try {
-      const source = ac.createBufferSource();
-      source.buffer = buffer;
-      try { source.detune = 0; } catch {}
-      masterGain.gain.setValueAtTime(0.12, ac.currentTime);
-      source.connect(masterGain);
-      const t = ac.currentTime + Math.random()*0.006;
-      source.start(t);
-      return true;
-    } catch (e){
-      console.warn('[coinPickup] playCoinWebAudio error:', e);
-      if (IS_MOBILE) playCoinMobileFallback(src);
-      return false;
-    }
-  }
+  // Replaced with audioManager
+  const COIN_VOLUME = IS_MOBILE ? 0.12 : 0.3;
+  let lastAt = 0;
 
   function playSound(src = resolvedSrc){
-    if (IS_MOBILE) {
-        if (!ac) initWebAudioOnce();
-        return playCoinWebAudio(src);
-    }
-    // Desktop behavior
+    // Debounce slightly for default sound to avoid overwhelming accumulation
     if (src === resolvedSrc) {
-        // Use pool for default sound
-        const now = performance.now(); if ((now - lastAt) < 40) return; lastAt = now;
-        const a = pool[pIdx++ % pool.length];
-        try { a.currentTime = 0; a.play(); } catch {}
-    } else {
-        // Use new Audio for rare/unique sounds
-        const a = new Audio(src);
-        a.volume = 0.3;
-        try { a.play().catch(()=>{}); } catch {}
+        const now = performance.now();
+        if ((now - lastAt) < 40) return; 
+        lastAt = now;
     }
+    
+    // Use shared audio manager
+    playAudio(src, { 
+        volume: COIN_VOLUME
+    });
   }
-
-  const warm = () => { if (IS_MOBILE) initWebAudioOnce(); };
-  ['pointerdown', 'touchstart', 'click'].forEach(evt => {
-    window.addEventListener(evt, warm, { once: true, passive: true, capture: true });
-    pf.addEventListener(evt, warm, { once: true, passive: true, capture: true });
-  });
 
   function animateAndRemove(el, opts = {}){
     // Notify spawner that this coin is "taken" so physics stops
@@ -1216,8 +1132,7 @@ export function initCoinPickup({
   pf.addEventListener('mousemove', (e) => { scheduleBrush(e.clientX, e.clientY); }, { passive: true });
 
   function setMobileVolume(v){
-    const vol = Math.max(0, Math.min(1, Number(v) || 0));
-    if (masterGain && ac) masterGain.gain.setValueAtTime(vol, ac.currentTime);
+    // Mobile volume handled externally or ignored for now
   }
 
   // Periodically update bounds to sync with any layout shifts
