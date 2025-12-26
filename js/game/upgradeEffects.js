@@ -139,7 +139,6 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       }
       acc.coinSpawn *= val;
     } else if (upg.effectType === 'coin_value') {
-      // Handles Endless Coins and other coin value upgrades
       acc.coinValue = safeMultiplyBigNum(acc.coinValue, baseEffect);
     } else if (upg.effectType === 'xp_value') {
       acc.xpValue = safeMultiplyBigNum(acc.xpValue, baseEffect);
