@@ -5,6 +5,7 @@ import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } fro
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { formatNumber } from '../util/numFormat.js';
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
+import { getCurrentSurgeLevel } from '../ui/merchantTabs/resetTab.js';
 
 const KEY_PREFIX = 'ccc:xp';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
@@ -942,29 +943,42 @@ function persistState() {
 function handleXpLevelUpRewards() {
   syncCoinMultiplierWithXpLevel(true);
 
-  let reward = bnOne();
-  if (typeof externalBookRewardProvider === 'function') {
+  // Check surge level first
+  let currentSurgeLevel = 0;
+  try {
+    const sl = getCurrentSurgeLevel();
+    if (typeof sl === 'bigint') currentSurgeLevel = Number(sl);
+    else if (typeof sl === 'number') currentSurgeLevel = sl;
+    else if (sl === Infinity || sl === 'Infinity') currentSurgeLevel = Infinity;
+  } catch {}
+
+  // Only give standard rewards if Surge Level < 3
+  if (currentSurgeLevel < 3) {
+    let reward = bnOne();
+    if (typeof externalBookRewardProvider === 'function') {
+      try {
+        const maybe = externalBookRewardProvider({
+          baseReward: reward.clone?.() ?? reward,
+          xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
+          xpUnlocked: xpState.unlocked,
+        });
+        if (maybe instanceof BigNum) {
+          reward = maybe.clone?.() ?? maybe;
+        } else if (maybe != null) {
+          reward = BigNum.fromAny(maybe);
+        }
+      } catch {}
+    }
+
     try {
-      const maybe = externalBookRewardProvider({
-        baseReward: reward.clone?.() ?? reward,
-        xpLevel: xpState.xpLevel.clone?.() ?? xpState.xpLevel,
-        xpUnlocked: xpState.unlocked,
-      });
-      if (maybe instanceof BigNum) {
-        reward = maybe.clone?.() ?? maybe;
-      } else if (maybe != null) {
-        reward = BigNum.fromAny(maybe);
+      if (bank?.books?.addWithMultiplier) {
+        bank.books.addWithMultiplier(reward);
+      } else if (bank?.books?.add) {
+        bank.books.add(reward);
       }
     } catch {}
   }
 
-  try {
-    if (bank?.books?.addWithMultiplier) {
-      bank.books.addWithMultiplier(reward);
-    } else if (bank?.books?.add) {
-      bank.books.add(reward);
-    }
-  } catch {}
   const syncedLevelInfo = xpLevelBigIntInfo(xpState.xpLevel);
   if (!syncedLevelInfo.finite) {
     lastSyncedCoinLevel = null;
