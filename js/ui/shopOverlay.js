@@ -12,6 +12,7 @@ import { openMerchant,
     MERCHANT_MET_EVENT
 } from './merchantTabs/dlgTab.js';
 import { takePreloadedAudio } from '../util/audioCache.js';
+import { playAudio } from '../util/audioManager.js';
 import {
   AREA_KEYS,
   UPGRADE_TIES,
@@ -245,124 +246,18 @@ const EVOLVE_SFX_SRC = 'sounds/evolve_upg.ogg';
 const MOBILE_PURCHASE_VOLUME = 0.12;
 const DESKTOP_PURCHASE_VOLUME = 0.3;
 
-export function createSfxPlayer({ src, mobileVolume, desktopVolume }) {
-  let base = null;
-  
-  let ac = null;
-  let gain = null;
-  let buffer = null;
-  let bufferPromise = null;
-  let bufferPromiseHandled = false;
-  let pendingPlays = 0;
-
-  function ensureBase() {
-    if (base) return base;
-    const preloaded = takePreloadedAudio(src);
-    const el = preloaded || new Audio(src);
-    el.preload = 'auto';
-    el.playsInline = true;
-    el.crossOrigin = 'anonymous';
-    el.load?.();
-    base = el;
-    return base;
-  }
-
-  function ensureWebAudio() {
-    if (!IS_MOBILE) return false;
-    const baseAudio = ensureBase();
-    if (!baseAudio) return false;
-    if (!('AudioContext' in window || 'webkitAudioContext' in window)) return false;
-    try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { ac = null; return false; }
-    if (!ac) return false;
-    if (ac.state === 'suspended') { try { ac.resume(); } catch (_) {} }
-    if (!gain) { gain = ac.createGain(); gain.connect(ac.destination); }
-    return true;
-  }
-
-  function ensureBuffer() {
-    if (!ac) return null;
-    if (buffer) return buffer;
-    if (bufferPromise) return null;
-    const srcUrl = ensureBase()?.currentSrc || src;
-    try {
-      bufferPromise = fetch(srcUrl)
-        .then((resp) => (resp.ok ? resp.arrayBuffer() : Promise.reject(resp.status)))
-        .then((buf) => new Promise((resolve, reject) => {
-          let settled = false;
-          ac.decodeAudioData(buf, (decoded) => { if (!settled) { settled = true; resolve(decoded); } }, (err) => { if (!settled) { settled = true; reject(err); } });
-        }))
-        .then((decoded) => { buffer = decoded; bufferPromise = null; return decoded; })
-        .catch(() => { bufferPromise = null; return null; });
-    } catch (_) { bufferPromise = null; }
-    return buffer || null;
-  }
-
-  function playMobileFallback() {
-    const baseAudio = ensureBase();
-    if (!baseAudio) return;
-    baseAudio.muted = false;
-    baseAudio.volume = mobileVolume;
-    try { baseAudio.currentTime = 0; } catch (_) {}
-    baseAudio.play().catch(() => {});
-  }
-
-  function playMobileWebAudio() {
-    if (!ensureWebAudio()) return false;
-    if (!ac || !gain) return false;
-
-    const playBuffer = (decoded) => {
-      if (!decoded) return false;
-      try {
-        const node = ac.createBufferSource();
-        node.buffer = decoded;
-        node.connect(gain);
-        try { gain.gain.setValueAtTime(mobileVolume, ac.currentTime); } catch (_) { gain.gain.value = mobileVolume; }
-        node.start();
-        return true;
-      } catch (_) { return false; }
-    };
-
-    if (buffer) return playBuffer(buffer);
-    pendingPlays += 1;
-    if (!bufferPromise) ensureBuffer();
-    
-    if (bufferPromise && !bufferPromiseHandled) {
-      bufferPromiseHandled = true;
-      bufferPromise.then((decoded) => {
-        const plays = Math.max(1, pendingPlays);
-        pendingPlays = 0;
-        if (!decoded) { for (let i = 0; i < plays; i++) playMobileFallback(); return; }
-        for (let i = 0; i < plays; i++) { if (!playBuffer(decoded)) { playMobileFallback(); break; } }
-      });
-    }
-    return true;
-  }
-
-  return {
-    play() {
-      try {
-        if (IS_MOBILE) {
-          if (playMobileWebAudio()) return;
-          playMobileFallback();
-          return;
-        }
-        const baseAudio = ensureBase();
-        if (baseAudio) {
-           baseAudio.volume = desktopVolume;
-           const a = baseAudio.cloneNode();
-           a.volume = desktopVolume;
-           a.play().catch(() => {});
-        }
-      } catch {}
-    },
-  };
+export function playPurchaseSfx() { 
+    const vol = IS_MOBILE ? MOBILE_PURCHASE_VOLUME : DESKTOP_PURCHASE_VOLUME;
+    playAudio(PURCHASE_SFX_SRC, { volume: vol });
 }
 
-const purchaseSfx = createSfxPlayer({ src: PURCHASE_SFX_SRC, mobileVolume: MOBILE_PURCHASE_VOLUME, desktopVolume: DESKTOP_PURCHASE_VOLUME });
-const evolveSfx = createSfxPlayer({ src: EVOLVE_SFX_SRC, mobileVolume: MOBILE_PURCHASE_VOLUME * 2, desktopVolume: DESKTOP_PURCHASE_VOLUME * 2 });
+function playEvolveSfx() { 
+    const vol = IS_MOBILE ? (MOBILE_PURCHASE_VOLUME * 2) : (DESKTOP_PURCHASE_VOLUME * 2);
+    playAudio(EVOLVE_SFX_SRC, { volume: vol });
+}
 
-export function playPurchaseSfx() { purchaseSfx.play(); }
-function playEvolveSfx() { evolveSfx.play(); }
+// Deprecated: createSfxPlayer is no longer used, but kept as a no-op if other modules import it (none currently).
+export function createSfxPlayer() { return { play() {} }; }
 
 function currencyIconHTML(type) {
   const src = CURRENCY_ICON_SRC[type] || CURRENCY_ICON_SRC.coins;
