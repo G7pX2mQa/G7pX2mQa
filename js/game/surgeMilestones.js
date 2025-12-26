@@ -19,8 +19,8 @@ export const SURGE_MILESTONES = [
     id: 3,
     surgeLevel: 3,
     description: [
-      "Placeholder text",
-      "Another one"
+      "Generates Books based on XP Level instead of earning a flat amount of Books on level up",
+      "Unlocks a new Book upgrade"
     ]
   },
   {
