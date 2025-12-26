@@ -1330,7 +1330,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       }
 
       const hasAutobuyer = autobuyLevel > 0;
-      const showAutoToggle = hasAutobuyer && (isAutomationMaster || standardAutobuyId || isWorkshopMaster);
+      const showAutoToggle = hasAutobuyer && (isAutomationMaster || standardAutobuyId || isWorkshopMaster) && !isHiddenUpgrade;
 
       if (!showAutoToggle) {
           if (autoToggleWrapper) autoToggleWrapper.remove();
