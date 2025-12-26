@@ -18,6 +18,8 @@ import {
   isInfuseUnlocked,
   hasDoneInfuseReset,
   onSurgeUpgradeUnlocked,
+  getCurrentSurgeLevel,
+  hasDoneSurgeReset,
 } from '../ui/merchantTabs/resetTab.js';
 import { REGISTRY as AUTOMATION_REGISTRY, AUTOMATION_AREA_KEY } from './automationUpgrades.js';
 import {
@@ -255,6 +257,7 @@ export const UPGRADE_TIES = {
   FASTER_COINS_III: 'magic_4',
   ENDLESS_MP: 'coin_4',
   UNLOCK_SURGE: 'none_4',
+  ENDLESS_COINS: 'book_4',
 };
 
 const HM_MILESTONES_STARTER_COVE = [
@@ -2628,6 +2631,70 @@ export const REGISTRY = [
         try { onForgeUpgradeUnlocked(); } catch {}
       }
     },
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 20,
+    tie: UPGRADE_TIES.ENDLESS_COINS,
+    title: "Endless Coins",
+    desc: "Multiplies Coin value by 1.1x per level",
+    lvlCap: HM_EVOLUTION_INTERVAL,
+    baseCost: 1e20,
+    costType: "books",
+    upgType: "HM",
+    effectType: "coin_value",
+    icon: "sc_upg_icons/coin_val_hm1.webp",
+    scalingPreset: 'HM',
+    costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
+    nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
+    computeLockState(ctx) {
+      const surgeLevel = getCurrentSurgeLevel();
+      // surgeLevel might be BigNum or Number or Infinity.
+      // getCurrentSurgeLevel returns BigInt or Infinity.
+      
+      let isUnlocked = false;
+      if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
+          isUnlocked = true;
+      } else if (typeof surgeLevel === 'bigint') {
+          isUnlocked = surgeLevel >= 3n;
+      } else if (typeof surgeLevel === 'number') {
+          isUnlocked = surgeLevel >= 3;
+      }
+      
+      if (isUnlocked) {
+          return { locked: false };
+      }
+      
+      if (hasDoneSurgeReset()) {
+          const revealText = "Reach Surge 3 to reveal this upgrade";
+          return {
+              locked: true,
+              iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+              titleOverride: HIDDEN_UPGRADE_TITLE,
+              descOverride: revealText,
+              reason: revealText,
+              hidden: true,
+              hideCost: true,
+              hideEffect: true,
+              useLockedBase: true,
+          };
+      }
+      
+      return {
+          locked: true,
+          hidden: true,
+      };
+    },
+    effectSummary(level) {
+      const lvlBn = ensureLevelBigNum(level);
+      let baseMult;
+      try { baseMult = this.effectMultiplier(lvlBn); }
+      catch { baseMult = 1; }
+      const { selfMult } = computeHmMultipliers(this, lvlBn, this.area);
+      const total = safeMultiplyBigNum(baseMult, selfMult);
+      return `Coin value bonus: ${formatMultForUi(total)}x`;
+    },
+    effectMultiplier: E.powPerLevel(1.1),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
