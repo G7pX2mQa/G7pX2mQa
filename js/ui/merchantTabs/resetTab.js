@@ -36,6 +36,7 @@ import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 import { clearPendingGains } from '../../game/coinPickup.js';
 import { getVisibleMilestones } from '../../game/surgeMilestones.js';
 import { ensureCustomScrollbar } from '../shopOverlay.js';
+import { playAudio } from '../../util/audioManager.js';
 
 const BN = BigNum;
 
@@ -60,40 +61,16 @@ function shouldWipePlayfield(resetType) {
   return !RESET_WIPE_EXCLUSIONS.includes(resetType);
 }
 
-let forgeResetAudio = null;
 function playForgeResetSound() {
-  try {
-    if (!forgeResetAudio) {
-      forgeResetAudio = new Audio(FORGE_RESET_SOUND_SRC);
-    } else {
-      forgeResetAudio.currentTime = 0;
-    }
-    forgeResetAudio.play().catch(() => {});
-  } catch {}
+  playAudio(FORGE_RESET_SOUND_SRC, { volume: 0.4 });
 }
 
-let infuseResetAudio = null;
 function playInfuseResetSound() {
-  try {
-    if (!infuseResetAudio) {
-      infuseResetAudio = new Audio(INFUSE_RESET_SOUND_SRC);
-    } else {
-      infuseResetAudio.currentTime = 0;
-    }
-    infuseResetAudio.play().catch(() => {});
-  } catch {}
+  playAudio(INFUSE_RESET_SOUND_SRC, { volume: 0.45 });
 }
 
-let surgeResetAudio = null;
 function playSurgeResetSound() {
-  try {
-    if (!surgeResetAudio) {
-      surgeResetAudio = new Audio(SURGE_RESET_SOUND_SRC);
-    } else {
-      surgeResetAudio.currentTime = 0;
-    }
-    surgeResetAudio.play().catch(() => {});
-  } catch {}
+  playAudio(SURGE_RESET_SOUND_SRC, { volume: 0.5 });
 }
 
 const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
