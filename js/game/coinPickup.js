@@ -801,15 +801,12 @@ export function initCoinPickup({
   const audioBuffers = new Map();
   const loadingBuffers = new Set();
   
-  // Pool for the default sound (frequent)
-  let pool = null, pIdx = 0, lastAt = 0;
-  if (!IS_MOBILE){
-    pool = Array.from({ length: 8 }, () => { const a = new Audio(resolvedSrc); a.preload = 'auto'; a.volume = 0.3; return a; });
-  }
+  // Throttle state for default sound
+  let lastAt = 0;
 
   function playCoinMobileFallback(src = resolvedSrc){
       const a = new Audio(src);
-      a.volume = 0.12; 
+      a.volume = IS_MOBILE ? 0.12 : 0.3; 
       try {
         a.currentTime = 0;
         a.play().catch(()=>{});
@@ -839,7 +836,7 @@ export function initCoinPickup({
 
     ac = new (window.AudioContext || window.webkitAudioContext)();
     masterGain = ac.createGain();
-    masterGain.gain.value = 0.12; // Const
+    masterGain.gain.value = IS_MOBILE ? 0.12 : 0.3; // Const based on platform
     masterGain.connect(ac.destination);
 
     if (ac.state === 'suspended') { try { await ac.resume(); } catch {} }
@@ -854,7 +851,8 @@ export function initCoinPickup({
     const buffer = audioBuffers.get(src);
     if (!buffer) {
         if (!loadingBuffers.has(src)) ensureWebAudioBuffer(src);
-        if (IS_MOBILE) playCoinMobileFallback(src);
+        // Fallback for both platforms if buffer not ready
+        playCoinMobileFallback(src);
         return true;
     }
 
@@ -862,38 +860,36 @@ export function initCoinPickup({
       const source = ac.createBufferSource();
       source.buffer = buffer;
       try { source.detune = 0; } catch {}
-      masterGain.gain.setValueAtTime(0.12, ac.currentTime);
+      
+      // If mobile volume slider changed masterGain, we should respect it.
+      // But for desktop we ensure 0.3 if not set otherwise.
+      // Since setMobileVolume changes masterGain, we just use current value.
+      
       source.connect(masterGain);
       const t = ac.currentTime + Math.random()*0.006;
       source.start(t);
       return true;
     } catch (e){
       console.warn('[coinPickup] playCoinWebAudio error:', e);
-      if (IS_MOBILE) playCoinMobileFallback(src);
+      playCoinMobileFallback(src);
       return false;
     }
   }
 
   function playSound(src = resolvedSrc){
-    if (IS_MOBILE) {
-        if (!ac) initWebAudioOnce();
-        return playCoinWebAudio(src);
+    if (!ac) initWebAudioOnce();
+    
+    // Throttle default sound on desktop to avoid overwhelming
+    if (!IS_MOBILE && src === resolvedSrc) {
+        const now = performance.now();
+        if ((now - lastAt) < 40) return;
+        lastAt = now;
     }
-    // Desktop behavior
-    if (src === resolvedSrc) {
-        // Use pool for default sound
-        const now = performance.now(); if ((now - lastAt) < 40) return; lastAt = now;
-        const a = pool[pIdx++ % pool.length];
-        try { a.currentTime = 0; a.play(); } catch {}
-    } else {
-        // Use new Audio for rare/unique sounds
-        const a = new Audio(src);
-        a.volume = 0.3;
-        try { a.play().catch(()=>{}); } catch {}
-    }
+    
+    return playCoinWebAudio(src);
   }
 
-  const warm = () => { if (IS_MOBILE) initWebAudioOnce(); };
+  const warm = () => { initWebAudioOnce(); };
   ['pointerdown', 'touchstart', 'click'].forEach(evt => {
     window.addEventListener(evt, warm, { once: true, passive: true, capture: true });
     pf.addEventListener(evt, warm, { once: true, passive: true, capture: true });
