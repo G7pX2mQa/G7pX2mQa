@@ -13,40 +13,6 @@ const MAX_ACTIVE_COINS_MOBILE = 2500
 // Cache for coin images (src -> Image)
 const imgCache = new Map();
 
-// Simple Audio Pool for Lightning
-const lightningAudioPool = new Map(); // src -> Array<Audio>
-
-function playPooledAudio(src, volume = 0.25) {
-    let pool = lightningAudioPool.get(src);
-    if (!pool) {
-        pool = [];
-        lightningAudioPool.set(src, pool);
-    }
-    
-    // Find a free audio element
-    let audio = pool.find(a => a.paused || a.ended);
-    if (!audio) {
-        if (pool.length < 12) { // Limit pool size per sound
-            audio = new Audio(src);
-            audio.volume = volume;
-            pool.push(audio);
-        } else {
-            // Pool full, steal the oldest one (first in list)
-            audio = pool[0];
-            // Move to end to rotate usage
-            pool.shift();
-            pool.push(audio);
-        }
-    }
-    
-    // Reset volume just in case
-    audio.volume = volume;
-    try {
-        audio.currentTime = 0;
-        audio.play().catch(()=>{});
-    } catch {}
-}
-
 function updateMutationSnapshot(state) {
   if (!state || typeof state !== 'object') {
     mutationUnlockedSnapshot = false;
@@ -937,7 +903,9 @@ export function createSpawner({
                                    itemsToCollect.push({ coin: target });
                                    
                                    if (!audioPlayed) {
-                                       playPooledAudio('sounds/lightning_strike.ogg', 0.25);
+                                       const audio = new Audio('sounds/lightning_strike.ogg');
+                                       audio.volume = 0.25;
+                                       audio.play().catch(()=>{});
                                        audioPlayed = true;
                                    }
                                }
@@ -1425,7 +1393,9 @@ export function createSpawner({
              });
          }
 
-         playPooledAudio('sounds/lightning_zap.ogg', 0.25);
+         const audio = new Audio('sounds/lightning_zap.ogg');
+         audio.volume = 0.25;
+         audio.play().catch(()=>{});
     }
 
     function createTargetedBranchingLightning(sourceCoin, targetX, targetY) {
