@@ -4,6 +4,7 @@ import { takePreloadedAudio } from '../util/audioCache.js';
 import { getMutationState, onMutationChange } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
 import { isSurge2Active } from './surgeEffects.js';
+import { playAudio } from '../util/audioManager.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0n;
@@ -358,128 +359,15 @@ export function createSpawner({
     }
     
     const waveURL = new URL(waveSoundSrc, document.baseURI).href;
-    let waveHtmlEl = null; 
-    let waveHtmlSource = null;
     let waveLastAt = 0;
-    let wavePool = null, waveIdx = 0;
-
-    function ensureWavePool() {
-      if (wavePool) return wavePool;
-
-      const preloaded = takePreloadedAudio(waveSoundSrc);
-      const poolSize = 4;
-      wavePool = Array.from({ length: poolSize }, (_, idx) => {
-        if (idx === 0 && preloaded) {
-          preloaded.preload = 'auto';
-          try { preloaded.currentTime = 0; } catch (_) {}
-          preloaded.volume = 1;
-          return preloaded;
-        }
-        const a = new Audio(waveURL);
-        a.preload = 'auto';
-        a.load?.();
-        return a;
-      });
-
-      if (preloaded) {
-        for (let i = 1; i < wavePool.length; i++) {
-          wavePool[i].load?.();
-        }
-      }
-
-      return wavePool;
-    }
-
-    function playWaveHtmlVolume(vol) {
-      if (IS_MOBILE) {
-        try {
-          ac = ac || new (window.AudioContext || window.webkitAudioContext)();
-          if (ac.state === 'suspended') ac.resume();
-          gain = gain || ac.createGain();
-          gain.gain.value = waveSoundMobileVolume;
-          gain.connect(ac.destination);
-
-          if (!waveHtmlEl) {
-            waveHtmlEl = new Audio(waveURL);
-            waveHtmlEl.preload = 'auto';
-            waveHtmlEl.playsInline = true;
-            waveHtmlEl.crossOrigin = 'anonymous';
-          }
-          if (!waveHtmlSource) {
-            waveHtmlSource = ac.createMediaElementSource(waveHtmlEl);
-            waveHtmlSource.connect(gain);
-          }
-
-          waveHtmlEl.muted = false;
-          waveHtmlEl.volume = 1.0;
-          waveHtmlEl.currentTime = 0;
-          waveHtmlEl.play().catch(() => {});
-          return;
-        } catch (e) {
-          try { const a = new Audio(waveURL); a.muted = true; a.play().catch(() => {}); } catch {}
-          return;
-        }
-      }
-
-      const pool = ensureWavePool();
-      const a = pool[waveIdx++ % pool.length];
-      a.volume = vol;
-      try { a.currentTime = 0; a.play(); } catch {}
-    }
-
-    let ac = null, gain = null, waveBuf = null, waveLoading = false;
-    async function ensureWaveWA() {
-      if (waveBuf || waveLoading) return;
-      waveLoading = true;
-      try {
-        ac = ac || new (window.AudioContext || window.webkitAudioContext)();
-        gain = gain || ac.createGain();
-        gain.gain.value = waveSoundMobileVolume;
-        gain.connect(ac.destination);
-
-        const res = await fetch(waveURL, { cache: 'force-cache' });
-        const arr = await res.arrayBuffer();
-        waveBuf = await new Promise((ok, err) =>
-          ac.decodeAudioData ? ac.decodeAudioData(arr, ok, err) : ok(null)
-        );
-        if (ac.state === 'suspended') { try { await ac.resume(); } catch {} }
-      } catch (_) {} finally { waveLoading = false; }
-    }
-
-    function playWaveMobile() {
-      try { if (ac && ac.state === 'suspended') ac.resume(); } catch {}
-      if (waveBuf && ac && gain) {
-        try {
-          const src = ac.createBufferSource();
-          src.buffer = waveBuf;
-          src.connect(gain);
-          src.start();
-          return;
-        } catch {}
-      }
-      playWaveHtmlVolume(waveSoundMobileVolume);
-      ensureWaveWA();
-    }
-
-    const warmWave = () => { if (IS_MOBILE) ensureWaveWA(); };
-    ['pointerdown','touchstart'].forEach(evt =>
-      window.addEventListener(evt, warmWave, { once: true, passive: true, capture: true })
-    );
-
-    ensureWavePool();
-
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && IS_MOBILE && ac && ac.state === 'suspended') {
-        try { ac.resume(); } catch {}
-      }
-    });
 
     function playWaveOncePerBurst() {
       const now = performance.now();
       if (now - waveLastAt < waveSoundMinIntervalMs) return;
       waveLastAt = now;
-      if (IS_MOBILE) playWaveMobile();
-      else          playWaveHtmlVolume(waveSoundDesktopVolume);
+      
+      const vol = IS_MOBILE ? waveSoundMobileVolume : waveSoundDesktopVolume;
+      playAudio(waveURL, { volume: vol });
     }
 
     function planCoinFromWave(wave, coinSize, sizeIndex) {
@@ -903,9 +791,7 @@ export function createSpawner({
                                    itemsToCollect.push({ coin: target });
                                    
                                    if (!audioPlayed) {
-                                       const audio = new Audio('sounds/lightning_strike.ogg');
-                                       audio.volume = 0.25;
-                                       audio.play().catch(()=>{});
+                                       playAudio('sounds/lightning_strike.ogg', { volume: 0.25 });
                                        audioPlayed = true;
                                    }
                                }
@@ -1393,9 +1279,7 @@ export function createSpawner({
              });
          }
 
-         const audio = new Audio('sounds/lightning_zap.ogg');
-         audio.volume = 0.25;
-         audio.play().catch(()=>{});
+         playAudio('sounds/lightning_zap.ogg', { volume: 0.25 });
     }
 
     function createTargetedBranchingLightning(sourceCoin, targetX, targetY) {
