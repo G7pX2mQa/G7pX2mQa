@@ -100,9 +100,11 @@ export const MERCHANT_DIALOGUES = {
         { label: 'Yes I did that.',       to: 'm1c' },
       ]},
 
-      m1a: { type: 'line', say: 'The XP system is a powerful thing, allowing for rapid influx of Coin output. Increasing your XP Level grants you Books infused with my power, capable of great things.', next: 'c1a' },
-      m1b: { type: 'line', say: 'It means you can grow passively stronger by collecting coins.', next: 'c1b' },
+      m1a: { type: 'line', say: 'Good things.', next: 'c1a' },
+      m1b: { type: 'line', say: 'It means you are stronger now.', next: 'c1b' },
       m1c: { type: 'line', say: 'And do you know how the XP system works?', next: 'c1c' },
+	  m1d: { type: 'line', say: 'You\'ll be fine you don\'t really need to know how it works anyway.', next: 'c1d' },
+	  m13: { type: 'line', say: 'No.', next: 'c1d' },
 
       c1a: { type: 'choice', options: [
         { label: 'Why does this thing even exist?', to: 'm2b' },
@@ -110,14 +112,19 @@ export const MERCHANT_DIALOGUES = {
         { label: 'Okay.',                                              to: 'm3a' },
       ]},
       c1b: { type: 'choice', options: [
-        { label: 'Can you explain in more detail?', to: 'm1a' },
+        { label: 'Can you explain in more detail?', to: 'm1e' },
         { label: 'Why?',                           to: 'm2g' },
         { label: 'Okay.',                          to: 'm3a' },
       ]},
       c1c: { type: 'choice', options: [
-        { label: 'I have no idea.',              to: 'm1a' },
-        { label: 'I don’t know the full details.', to: 'm1a' },
+        { label: 'I have no idea.',              to: 'm1d' },
+        { label: 'I don’t know the full details.', to: 'm1d' },
         { label: 'Yes.',                         to: 'm3a' },
+      ]},
+	   c1d: { type: 'choice', options: [
+        { label: '...',              to: 'm3a' },
+        { label: '...', to: 'm3a' },
+        { label: '...',                         to: 'm3a' },
       ]},
 	  
       m2b: { type: 'line', say: 'I dunno.', next: 'c2b' },
