@@ -302,22 +302,14 @@ function preloadImages(sources, onEach) {
 }
 
 function preloadAudio(sources, onEach) {
-  return sources.map(url => new Promise(resolve => {
-    const a = new Audio();
-    const done = () => { try { onEach?.(url); } catch {} resolve(url); };
-    a.addEventListener('canplaythrough', () => {
-      if (typeof registerPreloadedAudio === 'function') {
-        registerPreloadedAudio(url, a);
-      } else {
-        pendingPreloadedAudio.push({ url, audio: a });
-      }
-      done();
-    }, { once: true });
-    a.addEventListener('error', done, { once: true });
-    a.preload = 'auto';
-    a.src = url;
-    a.load?.();
-  }));
+  return sources.map(async url => {
+    try {
+        const { loadAudio } = await import('./util/audioManager.js');
+        await loadAudio(url);
+    } catch {}
+    try { onEach?.(url); } catch {}
+    return url;
+  });
 }
 
 function preloadFonts(onEach) {
@@ -467,6 +459,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const loader = showLoader('Loading assets...', resolveSkip);
 
   await nextFrame();
+  
+  // Initialize audio early
+  const { initAudio } = await import('./util/audioManager.js');
+  initAudio();
 
   const modulePromise = Promise.all([
     import('./util/slots.js'),
@@ -655,14 +651,7 @@ images: [
 
   window.bank = bank;
 
-  if (typeof registerPreloadedAudio === 'function' && pendingPreloadedAudio.length) {
-    while (pendingPreloadedAudio.length) {
-      const entry = pendingPreloadedAudio.shift();
-      if (!entry) continue;
-      try { registerPreloadedAudio(entry.url, entry.audio); }
-      catch {}
-    }
-  }
+  // No longer using pendingPreloadedAudio since audioManager handles buffering internally
 
   window.addEventListener('beforeunload', (e) => {
     if (window.spawner && typeof window.spawner.hasBigCoins === 'function' && window.spawner.hasBigCoins()) {
