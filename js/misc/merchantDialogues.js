@@ -232,7 +232,7 @@ export const MERCHANT_DIALOGUES = {
       m3c: { type: 'line', say: 'It just does.', next: 'c3a' },
       m3d: { type: 'line', say: 'Yes it did.', next: 'c3a' },
       m3e: { type: 'line', say: 'Trust in the process.', next: 'c3a' },
-      m3f: { type: 'line', say: 'Each new mutation applied to a coin alters its appearance. It could be argued that each mutation is more visually striking than the previous.', next: 'c3b' },
+      m3f: { type: 'line', say: 'Each new mutation applied to a coin alters its appearance.', next: 'c3b' },
 
       c3a: { type: 'choice', options: [
         { label: '…', to: 'm4a' },
