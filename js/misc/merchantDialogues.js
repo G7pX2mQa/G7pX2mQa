@@ -246,7 +246,7 @@ export const MERCHANT_DIALOGUES = {
         { label: 'Okay.',                       to: 'm4a' },
       ]},
 	  
-	  c3a: { type: 'choice', options: [
+	  c3c: { type: 'choice', options: [
         { label: '…', to: 'm4c' },
         { label: '…', to: 'm4c' },
         { label: '…', to: 'm4c' },
