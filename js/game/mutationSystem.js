@@ -469,8 +469,22 @@ function persistState() {
   }
 }
 
+function isKeyLocked(key) {
+  if (typeof window !== 'undefined' && window.__cccLockedStorageKeys) {
+    return window.__cccLockedStorageKeys.has(key);
+  }
+  return false;
+}
+
 function normalizeProgress() {
   if (!mutationState.unlocked) return;
+
+  const slot = mutationState.slot ?? getActiveSlot();
+  if (slot != null && isKeyLocked(KEY_LEVEL(slot))) {
+    // Level locked: ensure requirement is current but do not consume progress to level up
+    ensureRequirement();
+    return;
+  }
 
   ensureRequirement();
   let currentReq = mutationState.requirement;
@@ -684,7 +698,16 @@ export function setMutationUnlockedForDebug(unlocked) {
 
 export function addMutationPower(amount) {
   initMutationSystem();
+  const slot = mutationState.slot ?? getActiveSlot();
+
+  // If Progress is locked, we cannot accumulate MP without causing lag/reverts.
+  if (slot != null && isKeyLocked(KEY_PROGRESS(slot))) {
+    return getMutationState();
+  }
+
   if (!mutationState.unlocked) return getMutationState();
+
+  const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
 
   if (mutationState.level && mutationState.level.isInfinite?.()) {
     const prevLevel = mutationState.level.clone?.() ?? mutationState.level;
@@ -742,9 +765,13 @@ export function addMutationPower(amount) {
   // If MP overflows to BigNum Infinity, treat that as reaching mutation Infinity.
   const progInf = mutationState.progress.isInfinite?.();
   if (progInf) {
-    try {
-      mutationState.level = BN.fromAny('Infinity');
-    } catch {}
+    
+    // Only set Mutation Level to infinity if it's not locked.
+    if (!levelLocked) {
+        try {
+          mutationState.level = BN.fromAny('Infinity');
+        } catch {}
+    }
 
     // Keep progress locked at Infinity once we reach mutation ∞
     try {
