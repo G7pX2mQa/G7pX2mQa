@@ -43,7 +43,7 @@ export const MERCHANT_DIALOGUES = {
 
       m1a: { type: 'line', say: 'Yes I did.', next: 'c1a' },
       m1b: { type: 'line', say: 'Hello.',    next: 'c1b' },
-      m1c: { type: 'line', say: 'Okay.',       next: 'c1c' },
+      m1c: { type: 'line', say: 'Okay.',       next: 'c1e' },
 	  m1d: { type: 'line', say: 'Fine.',       next: 'c1d' },
 
       c1a: { type: 'choice', options: [
@@ -68,6 +68,11 @@ export const MERCHANT_DIALOGUES = {
         { label: 'That\'s nice.',  to: 'm2b' },
         { label: 'Good.',  to: 'm2b' },
         { label: 'Okay.',   to: 'm2b' },
+      ]},
+	  c1e: { type: 'choice', options: [
+        { label: '...',  to: 'm2b' },
+        { label: '...',  to: 'm2b' },
+        { label: '...',   to: 'm2b' },
       ]},
 
       m2a: { type: 'line', say: 'No.', next: 'c1c' },
