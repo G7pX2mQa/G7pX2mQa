@@ -1331,18 +1331,16 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       
       const info = ensureChild(content, 'upg-info');
       
-      let spacerTop = info.querySelector('.info-spacer-top');
-      if (!spacerTop) {
-          spacerTop = document.createElement('div');
-          spacerTop.className = 'info-spacer-top';
-          spacerTop.style.height = '12px';
-          if (info.firstChild) info.insertBefore(spacerTop, info.firstChild);
-          else info.appendChild(spacerTop);
-      }
-      if (info.firstElementChild !== spacerTop) info.prepend(spacerTop);
-      let cursor = spacerTop;
+      const legacySpacer = info.querySelector('.info-spacer-top');
+      if (legacySpacer) legacySpacer.remove();
+
+      let cursor = null;
       const placeAfterCursor = (el) => {
-          if (cursor.nextElementSibling !== el) info.insertBefore(el, cursor.nextSibling);
+          if (!cursor) {
+              if (info.firstElementChild !== el) info.prepend(el);
+          } else {
+              if (cursor.nextElementSibling !== el) info.insertBefore(el, cursor.nextSibling);
+          }
           cursor = el;
       };
 
@@ -1354,8 +1352,11 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
               if (!wrap) { 
                  wrap = document.createElement('div'); wrap.className = 'lock-wrapper';
                  const line = document.createElement('div'); line.className = 'upg-line lock-note';
-                 const sp = document.createElement('div'); sp.style.height = '12px';
-                 wrap.append(line, sp);
+                 wrap.append(line);
+              }
+              const children = Array.from(wrap.children);
+              for (const c of children) {
+                  if (c.tagName === 'DIV' && !c.className && c.style.height === '12px') c.remove();
               }
               const line = wrap.querySelector('.lock-note');
               if (line.textContent !== lockState.reason) line.textContent = lockState.reason;
@@ -1374,8 +1375,11 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           if (!wrap) {
                wrap = document.createElement('div'); wrap.className = 'effect-wrapper';
                const line = document.createElement('div'); line.className = 'upg-line';
-               const sp = document.createElement('div'); sp.style.height = '12px';
-               wrap.append(line, sp);
+               wrap.append(line);
+          }
+          const children = Array.from(wrap.children);
+          for (const c of children) {
+              if (c.tagName === 'DIV' && !c.className && c.style.height === '12px') c.remove();
           }
           const line = wrap.querySelector('.upg-line');
           const html = `<span class="bonus-line">${model.effect}</span>`;
