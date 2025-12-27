@@ -2669,11 +2669,11 @@ export const REGISTRY = [
           const revealText = "Reach Surge 3 to reveal this upgrade";
           return {
               locked: true,
-              iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-              titleOverride: HIDDEN_UPGRADE_TITLE,
+              iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+              titleOverride: LOCKED_UPGRADE_TITLE,
               descOverride: revealText,
               reason: revealText,
-              hidden: true,
+              hidden: false,
               hideCost: true,
               hideEffect: true,
               useLockedBase: true,
@@ -2685,6 +2685,7 @@ export const REGISTRY = [
           hidden: true,
       };
     },
+    onLevelChange() { try { refreshCoinMultiplierFromXpLevel(); } catch {} },
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
       let baseMult;
