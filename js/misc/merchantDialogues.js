@@ -183,7 +183,7 @@ export const MERCHANT_DIALOGUES = {
 
       m1a: { type: 'line', say: 'Sure, ask me anything about the Forge and I will answer.',     next: 'c1a' },
       m1b: { type: 'line', say: 'Sure, ask me anything about Mutations and I will answer.',     next: 'c1b' },
-      m1c: { type: 'line', say: 'What do you mean you forgot??',                                                            next: 'c3a' },
+      m1c: { type: 'line', say: 'What do you mean you forgot??',                                                            next: 'c3c' },
 
       c1a: { type: 'choice', options: [
         { label: 'Where did it come from?',                       to: 'm2a' },
@@ -245,9 +245,16 @@ export const MERCHANT_DIALOGUES = {
         { label: 'Cool.',                       to: 'm4a' },
         { label: 'Okay.',                       to: 'm4a' },
       ]},
+	  
+	  c3a: { type: 'choice', options: [
+        { label: '…', to: 'm4c' },
+        { label: '…', to: 'm4c' },
+        { label: '…', to: 'm4c' },
+      ]},
 
       m4a: { type: 'line', say: 'Any more questions?', next: 'c4a' },
       m4b: { type: 'line', say: 'It just does.', next: 'c3a' },
+      m4b: { type: 'line', say: 'Well you have to ask me something while you\'re here.', next: 'c4a' },
 
       c4a: { type: 'choice', options: [
         { label: 'I’d like to learn more about the forge.',     to: 'm1a' },
