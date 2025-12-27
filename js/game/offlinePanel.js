@@ -12,6 +12,7 @@ import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgr
 import { getPassiveCoinReward } from './coinPickup.js';
 import { addXp } from './xpSystem.js';
 import { addMutationPower } from './mutationSystem.js';
+import { getBookProductionRate } from './surgeEffects.js';
 
 let initialized = false;
 
@@ -170,6 +171,17 @@ export function calculateOfflineRewards(seconds) {
         }
     }
 
+    // Books (Surge 3)
+    const bookRate = getBookProductionRate ? getBookProductionRate() : BigNum.fromInt(0);
+    if (!bookRate.isZero()) {
+        const booksEarned = bookRate.mulDecimal(String(seconds)).floorToInteger();
+        if (!booksEarned.isZero()) {
+            if (!isCurrencyLocked('books', slot)) {
+                rewards.books = booksEarned;
+            }
+        }
+    }
+
     const autoLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) || 0;
     if (autoLevel > 0) {
         const totalPassives = Math.floor(autoLevel * seconds);
@@ -203,12 +215,7 @@ export function grantOfflineRewards(rewards) {
     const slot = getActiveSlot();
     if (slot == null) return;
     
-    if (rewards.gears) {
-        if (bank.gears) bank.gears.add(rewards.gears);
-    }
-    if (rewards.coins) {
-        if (bank.coins) bank.coins.add(rewards.coins);
-    }
+    // Handle special systems (XP, MP)
     if (rewards.xp) {
          try {
             const xpResult = addXp(rewards.xp);
@@ -234,6 +241,16 @@ export function grantOfflineRewards(rewards) {
                 }
             }
         } catch {}
+    }
+
+    // Handle standard currencies automatically
+    for (const key of Object.keys(rewards)) {
+        // Skip special keys handled above or created during handling
+        if (key === 'xp' || key === 'mp' || key === 'xp_levels' || key === 'mp_levels') continue;
+        
+        if (bank[key] && typeof bank[key].add === 'function') {
+            bank[key].add(rewards[key]);
+        }
     }
 }
 
