@@ -156,7 +156,7 @@ export const MERCHANT_DIALOGUES = {
       ]},
 
       m3a: { type: 'line', say: 'Would you like some Books? Free of charge. They will help you accelerate your Coin output.', next: 'c2a' },
-      m3b: { type: 'line', say: 'Let me ask again, do you want free Books?.', next: 'c3b' },
+      m3b: { type: 'line', say: 'Let me ask again, do you want free Books?', next: 'c3b' },
 
       c3a: { type: 'choice', options: [
         { label: 'Okay, actually give me the free stuff.',        to: 'end' },
