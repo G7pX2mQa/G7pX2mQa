@@ -690,9 +690,23 @@ function resetLockedXpState() {
   syncCoinMultiplierWithXpLevel(true);
 }
 
+function isKeyLocked(key) {
+  if (typeof window !== 'undefined' && window.__cccLockedStorageKeys) {
+    return window.__cccLockedStorageKeys.has(key);
+  }
+  return false;
+}
+
 function normalizeProgress(applyRewards = false) {
   // If either level or progress is already ∞, enforce the invariant and bail.
   if (enforceXpInfinityInvariant()) {
+    return;
+  }
+
+  const slot = getActiveSlot();
+  if (slot != null && isKeyLocked(KEY_XP_LEVEL(slot))) {
+    // If level is locked, we can't level up. Just update requirement and return.
+    updateXpRequirement();
     return;
   }
 
@@ -1080,6 +1094,19 @@ export function resetXpProgress({ keepUnlock = true } = {}) {
 export function addXp(amount, { silent = false } = {}) {
   ensureStateLoaded();
   const slot = lastSlot ?? getActiveSlot();
+
+  // If Progress is locked, we cannot accumulate XP without causing lag/reverts.
+  if (slot != null && isKeyLocked(KEY_PROGRESS(slot))) {
+    return {
+      unlocked: xpState.unlocked,
+      xpLevelsGained: bnZero(),
+      xpAdded: bnZero(),
+      xpLevel: xpState.xpLevel,
+      progress: xpState.progress,
+      requirement: requirementBn,
+      slot
+    };
+  }
   
   // 1. Basic Unlock Check
   if (!xpState.unlocked) {
@@ -1144,6 +1171,9 @@ export function addXp(amount, { silent = false } = {}) {
   xpState.progress = xpState.progress.add(inc);
   updateXpRequirement();
 
+  // Check if Level is locked before attempting to level up
+  const levelLocked = slot != null && isKeyLocked(KEY_XP_LEVEL(slot));
+
   // 6. Handle Infinity (Early Exit)
   const progressIsInf = bigNumIsInfinite(xpState.progress);
   const levelIsInf = bigNumIsInfinite(xpState.xpLevel);
@@ -1151,9 +1181,21 @@ export function addXp(amount, { silent = false } = {}) {
 
   if (progressIsInf || levelIsInf || gainIsInf) {
     const inf = infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-    xpState.xpLevel = inf.clone?.() ?? inf;
+    
+    // Only set XP Level to infinity if it's not locked.
+    // If it is locked, it stays at its current value (unless it was already infinite).
+    if (!levelLocked) {
+        xpState.xpLevel = inf.clone?.() ?? inf;
+    }
+    
     xpState.progress = inf.clone?.() ?? inf;
-    requirementBn = inf.clone?.() ?? inf;
+    
+    // Requirement becomes infinity if level is infinity, OR if we force it.
+    // If level is finite but locked, requirement is finite.
+    // But we just set progress to infinity.
+    // If progress is infinite and requirement is finite, that's fine.
+    // We should recompute requirement based on actual level.
+    updateXpRequirement();
 
     enforceXpInfinityInvariant();
     persistState();
@@ -1199,100 +1241,66 @@ export function addXp(amount, { silent = false } = {}) {
     return detail;
   }
 
-  /* Optimization: 
-     Instead of iterating one by one, we estimate the target level based on the log10 of current progress.
-     
-     The curve is roughly: Req(L) ≈ Base * (1.1)^L * (2.5)^(L/10).
-     Log(Req) ≈ Log(Base) + L * Log(1.1) + (L/10) * Log(2.5)
-     Log(Req) ≈ Log(Base) + L * (Log(1.1) + 0.1 * Log(2.5))
-     
-     We reverse this to find L given the current Progress (which acts as the "Requirement" for that higher level).
-     L ≈ (Log(Progress) - Log(Base)) / (Log(1.1) + 0.1 * Log(2.5))
-  */
-  
-  const currentProgressLog = approxLog10(xpState.progress);
-  // Constants derived from: Math.log10(1.1) + 0.1 * Math.log10(2.5)
-  // 0.04139... + 0.03979... ≈ 0.081186686
-  const COMBINED_LOG_FACTOR = 0.08118668602542883;
-
-  // We only switch to approximation if the gap is likely massive
-  // If the log difference is small, the standard loop is safer and more precise.
-  // If the log difference is > 2 (100x requirement), we try to skip.
-  const reqLog = approxLog10(requirementBn);
-  
-  if (currentProgressLog - reqLog > 2) {
-    const baseLevelBn = xpState.xpLevel;
-    
-    // Estimate how many levels we *might* gain.
-    // This is an over-approximation because it ignores the 'staircase' of the exact requirement,
-    // but it gets us close.
-    const logDiff = currentProgressLog - reqLog;
-    const estimatedGain = Math.floor(logDiff / COMBINED_LOG_FACTOR);
-    
-    if (estimatedGain > 500) {
-      // Calculate the jump
-      // We subtract a safety buffer (e.g. 5 levels) to ensure we don't overshoot
-      // into negative progress due to precision loss in the log math.
-      const safeGain = BigInt(Math.max(0, estimatedGain - 5));
+  if (!levelLocked) {
+      /* Optimization: 
+         Instead of iterating one by one, we estimate the target level based on the log10 of current progress.
+         ...
+      */
       
-      if (safeGain > 0n) {
-        const jumpBn = BigNum.fromAny(safeGain.toString());
-        xpState.xpLevel = xpState.xpLevel.add(jumpBn);
-        xpLevelsGained = xpLevelsGained.add(jumpBn);
+      const currentProgressLog = approxLog10(xpState.progress);
+      // Constants derived from: Math.log10(1.1) + 0.1 * Math.log10(2.5)
+      // 0.04139... + 0.03979... ≈ 0.081186686
+      const COMBINED_LOG_FACTOR = 0.08118668602542883;
+
+      // We only switch to approximation if the gap is likely massive
+      const reqLog = approxLog10(requirementBn);
+      
+      if (currentProgressLog - reqLog > 2) {
+        const baseLevelBn = xpState.xpLevel;
         
-        // Update requirement to the new level to check if we are still above it
+        const logDiff = currentProgressLog - reqLog;
+        const estimatedGain = Math.floor(logDiff / COMBINED_LOG_FACTOR);
+        
+        if (estimatedGain > 500) {
+          const safeGain = BigInt(Math.max(0, estimatedGain - 5));
+          
+          if (safeGain > 0n) {
+            const jumpBn = BigNum.fromAny(safeGain.toString());
+            xpState.xpLevel = xpState.xpLevel.add(jumpBn);
+            xpLevelsGained = xpLevelsGained.add(jumpBn);
+            
+            updateXpRequirement();
+            
+             if (bank?.books?.add) {
+                try {
+                  let bulkReward = jumpBn.clone();
+                  bank.books.add(bulkReward);
+                } catch {}
+             }
+          }
+        }
+      }
+
+      // 8. Finalize with standard loop (Cleanup)
+      let guard = 0;
+      const limit = 500; // Hard limit to prevent freezes if approximation fails
+      
+      while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
+        xpState.progress = xpState.progress.sub(requirementBn);
+        xpState.xpLevel = xpState.xpLevel.add(bnOne());
+        xpLevelsGained = xpLevelsGained.add(bnOne());
+        
+        handleXpLevelUpRewards();
         updateXpRequirement();
         
-        // Note: We deliberately DO NOT call handleXpLevelUpRewards() for every skipped level 
-        // in a massive jump (e.g. 1 million levels) because that would freeze the UI.
-        // Instead, we just sync the coin multiplier at the end. 
-        // If your game relies on per-level "Book" rewards, you would batch add them here:
-        // bank.books.add(bookRewardPerLevel.mul(jumpBn));
-        
-        // Sync rewards for the bulk jump (assuming 1 book per level flat reward structure for bulk)
-        // If rewards vary per level, this needs a more complex integration formula.
-        // For this specific system, handleXpLevelUpRewards simply calls syncCoinMultiplier 
-        // and adds a book. We can batch the book add:
-         if (bank?.books?.add) {
-            try {
-              let bulkReward = jumpBn.clone();
-              // Apply book provider if exists (assuming it scales linearly or we take a snapshot)
-              // Since provider depends on level, doing it accurately for 1e100 levels is impossible iteratively.
-              // We effectively skip intermediate complex reward calculations for performance.
-              bank.books.add(bulkReward);
-            } catch {}
-         }
+        const reqIsInf = bigNumIsInfinite(requirementBn);
+        if (reqIsInf) break;
+        guard += 1;
       }
-    }
-  }
-
-  // 8. Finalize with standard loop (Cleanup)
-  // This handles the remaining small number of levels (or the whole thing if the jump was small)
-  // ensuring exact precision for the final transition.
-  let guard = 0;
-  const limit = 500; // Hard limit to prevent freezes if approximation fails
-  
-  while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
-    xpState.progress = xpState.progress.sub(requirementBn);
-    xpState.xpLevel = xpState.xpLevel.add(bnOne());
-    xpLevelsGained = xpLevelsGained.add(bnOne());
-    
-    // Handle specific rewards for these 'real' level ups
-    handleXpLevelUpRewards();
-    updateXpRequirement();
-    
-    const reqIsInf = bigNumIsInfinite(requirementBn);
-    if (reqIsInf) break;
-    guard += 1;
-  }
-  
-  // If we hit the limit, we simply cap the progress to 0 (or leave it) to prevent infinite loops.
-  // In a perfect system, we'd do another jump, but 500 iterations is plenty for "cleanup".
-  if (guard >= limit && xpState.progress.cmp(requirementBn) >= 0) {
-      // Emergency break: if we still have progress > requirement after max iterations,
-      // it means the growth curve is too shallow compared to progress. 
-      // We force a sync and stop.
-      updateXpRequirement(); 
+      
+      if (guard >= limit && xpState.progress.cmp(requirementBn) >= 0) {
+          updateXpRequirement(); 
+      }
   }
 
   // 9. Persist and Notify
