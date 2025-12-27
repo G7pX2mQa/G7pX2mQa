@@ -132,6 +132,7 @@ const resetState = {
   },
   layerButtons: {},
   flagsPrimed: false,
+  lastRenderedSurgeLevel: null,
 };
 
 const watchers = [];
@@ -1615,9 +1616,14 @@ function updateSurgeCard() {
           </div>
         `;
     });
+
+    if (resetState.lastRenderedSurgeLevel !== barLevel) {
+        resetState.lastRenderedSurgeLevel = barLevel;
+        if (el.milestones) el.milestones.dataset.scrolled = '0';
+    }
+
     if (el.milestones.innerHTML !== msHtml) {
         el.milestones.innerHTML = msHtml;
-        el.milestones.dataset.scrolled = '0';
     }
 
     if (el.milestones.dataset.scrolled !== '1') {
