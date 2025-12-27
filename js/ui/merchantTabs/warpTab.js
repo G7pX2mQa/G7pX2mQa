@@ -1,6 +1,6 @@
 import { getActiveSlot } from '../../util/storage.js';
 import { formatTimeCompact, calculateOfflineRewards, grantOfflineRewards, showOfflinePanel } from '../../game/offlinePanel.js';
-import { createSfxPlayer } from '../shopOverlay.js';
+import { playAudio } from '../../util/audioManager.js';
 
 const WARP_CHARGES_KEY = (slot) => `ccc:warp:charges:${slot}`;
 const WARP_LAST_CHARGE_KEY = (slot) => `ccc:warp:lastCharge:${slot}`;
@@ -9,7 +9,8 @@ const MAX_WARPS = 24;
 const CHARGE_TIME_MS = 60 * 60 * 1000; // 1 hour
 const WARP_DURATION_SEC = 300; // 5 minutes
 
-const warpSfx = createSfxPlayer({ src: 'sounds/warp.ogg', mobileVolume: 0.5, desktopVolume: 0.5 });
+// const warpSfx = createSfxPlayer({ src: 'sounds/warp.ogg', mobileVolume: 0.5, desktopVolume: 0.5 });
+const WARP_SFX_SRC = 'sounds/warp.ogg';
 
 let warpTabPanel = null;
 let updateTimer = null;
@@ -114,7 +115,9 @@ function performWarp() {
         updateWarpTab();
     }, 1000);
     
-    warpSfx.play();
+    // warpSfx.play();
+    playAudio(WARP_SFX_SRC, { volume: 0.5 });
+    
     triggerWarpVisuals();
     
     setTimeout(() => {
