@@ -104,7 +104,7 @@ export const MERCHANT_DIALOGUES = {
       m1b: { type: 'line', say: 'It means you are stronger now.', next: 'c1b' },
       m1c: { type: 'line', say: 'And do you know how the XP system works?', next: 'c1c' },
 	  m1d: { type: 'line', say: 'You\'ll be fine you don\'t really need to know how it works anyway.', next: 'c1d' },
-	  m13: { type: 'line', say: 'No.', next: 'c1d' },
+	  m1e: { type: 'line', say: 'No.', next: 'c1d' },
 
       c1a: { type: 'choice', options: [
         { label: 'Why does this thing even exist?', to: 'm2b' },
@@ -130,9 +130,9 @@ export const MERCHANT_DIALOGUES = {
       m2b: { type: 'line', say: 'I dunno.', next: 'c2b' },
       m2c: { type: 'line', say: 'Because I dunno.', next: 'c2c' },
       m2d: { type: 'line', say: 'What?',    next: 'c2c' },
-      m2e: { type: 'line', say: 'I’ve already told you, so you can increase your Coin output.', next: 'c2c' },
+      m2e: { type: 'line', say: 'I’ve already told you, so you can increase your Coin output.', next: 'c2d' },
       m2f: { type: 'line', say: 'Are you sure you don’t want free Books?', next: 'c3a' },
-	  m2g: { type: 'line', say: 'You just can.', next: 'c2c' },
+	  m2g: { type: 'line', say: 'You just are.', next: 'c2c' },
 
       c2a: { type: 'choice', options: [
 	    { label: 'No.',                               to: 'm2f' },
@@ -149,13 +149,24 @@ export const MERCHANT_DIALOGUES = {
         { label: '…', to: 'm3a' },
         { label: '…', to: 'm3a' },
       ]},
+	  c2d: { type: 'choice', options: [
+        { label: '…', to: 'm3b' },
+        { label: '…', to: 'm3b' },
+        { label: '…', to: 'm3b' },
+      ]},
 
-      m3a: { type: 'line', say: 'Would you like some Books, free of charge? They will help you accelerate your Coin output.', next: 'c2a' },
+      m3a: { type: 'line', say: 'Would you like some Books? Free of charge. They will help you accelerate your Coin output.', next: 'c2a' },
+      m3b: { type: 'line', say: 'Let me ask again, do you want free Books?.', next: 'c3b' },
 
       c3a: { type: 'choice', options: [
         { label: 'Okay, actually give me the free stuff.',        to: 'end' },
         { label: 'Okay fine, I’ll take those books off your hands.', to: 'end' },
         { label: 'I don’t need your charity.',                    to: 'end_nr' },
+      ]},
+	  c3b: { type: 'choice', options: [
+        { label: 'Yes please.',        to: 'end' },
+        { label: 'Sure.',                 to: 'end' },
+        { label: 'No.',                    to: 'end_nr' },
       ]},
     }
   },
