@@ -2669,11 +2669,11 @@ export const REGISTRY = [
           const revealText = "Reach Surge 3 to reveal this upgrade";
           return {
               locked: true,
-              iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-              titleOverride: LOCKED_UPGRADE_TITLE,
+              iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+              titleOverride: HIDDEN_UPGRADE_TITLE,
               descOverride: revealText,
               reason: revealText,
-              hidden: false,
+              hidden: true,
               hideCost: true,
               hideEffect: true,
               useLockedBase: true,
@@ -2682,7 +2682,12 @@ export const REGISTRY = [
       
       return {
           locked: true,
-          hidden: true,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Locked',
       };
     },
     onLevelChange() { try { refreshCoinMultiplierFromXpLevel(); } catch {} },
@@ -4503,6 +4508,9 @@ export function performFreeAutobuy(areaKey, upgId) {
 
   const storageKey = keyForArea(areaKey, state.slot);
   if (isStorageKeyLocked(storageKey)) return { bought: 0 };
+
+  const upgradeKey = getUpgradeStorageKey(areaKey, upgId, state.slot);
+  if (isStorageKeyLocked(upgradeKey)) return { bought: 0 };
 
   if (isUpgradeLocked(areaKey, upg)) return { bought: 0 };
 
