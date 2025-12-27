@@ -254,7 +254,7 @@ export const MERCHANT_DIALOGUES = {
 
       m4a: { type: 'line', say: 'Any more questions?', next: 'c4a' },
       m4b: { type: 'line', say: 'It just does.', next: 'c3a' },
-      m4b: { type: 'line', say: 'Well you have to ask me something while you\'re here.', next: 'c4a' },
+      m4c: { type: 'line', say: 'Well you have to ask me something while you\'re here.', next: 'c4a' },
 
       c4a: { type: 'choice', options: [
         { label: 'I’d like to learn more about the forge.',     to: 'm1a' },
