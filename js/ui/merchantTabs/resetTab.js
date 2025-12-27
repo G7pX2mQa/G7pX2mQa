@@ -37,6 +37,7 @@ import { clearPendingGains } from '../../game/coinPickup.js';
 import { getVisibleMilestones } from '../../game/surgeMilestones.js';
 import { ensureCustomScrollbar } from '../shopOverlay.js';
 import { playAudio } from '../../util/audioManager.js';
+import { getBookProductionRate } from '../../game/surgeEffects.js';
 
 const BN = BigNum;
 
@@ -1599,7 +1600,13 @@ function updateSurgeCard() {
     visible.forEach(m => {
         const isReached = BigInt(m.surgeLevel) <= barLevel;
         const reachedClass = isReached ? 'is-reached' : '';
-        const desc = m.description.map(d => `<div>- ${d}</div>`).join('');
+        let desc = m.description.map(d => `<div>- ${d}</div>`).join('');
+
+        if (isReached && m.surgeLevel === 3) {
+            const rate = getBookProductionRate ? getBookProductionRate() : BN.fromInt(0);
+            desc += `<div style="color:#02e815">- Current Books/sec: ${formatNumber(rate)}</div>`;
+        }
+
         msHtml += `
           <div class="surge-milestone-item ${reachedClass}" data-is-reached="${isReached}">
             <div class="surge-milestone-title">Surge ${m.surgeLevel}</div>
