@@ -63,12 +63,9 @@ export function isSurge3Active() {
   return false;
 }
 
-function onTick(dt) {
-  if (!isSurge3Active()) return;
-  if (!bookRateAccumulator) {
-    bookRateAccumulator = new RateAccumulator('books', bank);
-  }
-
+export function getBookProductionRate() {
+  if (!isSurge3Active()) return BigNum.fromInt(0);
+  
   // Formula: max(1, floor(1 * exp(0.50 * xp_level)))
   const xpState = getXpState();
   const xpLevelBn = xpState.xpLevel;
@@ -115,6 +112,16 @@ function onTick(dt) {
     const mult = bank.books.mult.get();
     baseRate = baseRate.mulBigNumInteger(mult);
   }
+  return baseRate;
+}
+
+function onTick(dt) {
+  if (!isSurge3Active()) return;
+  if (!bookRateAccumulator) {
+    bookRateAccumulator = new RateAccumulator('books', bank);
+  }
+
+  const baseRate = getBookProductionRate();
 
   // Accumulate
   if (baseRate.cmp(1e9) > 0 || baseRate.isInfinite?.()) {
