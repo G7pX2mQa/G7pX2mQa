@@ -1144,25 +1144,6 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
   const spacer = (h) => { const s = document.createElement('div'); s.style.height = h; return s; };
   const makeLine = (html) => { const d = document.createElement('div'); d.className = 'upg-line'; d.innerHTML = html; return d; };
   
-  function recenterUnlockOverlayIfNeeded(model) {
-     const content = upgSheetEl.querySelector('.upg-content');
-     if (!content) return;
-     const lockState = model?.lockState || adapter.getLockState(upgDef.id) || {};
-     const isHiddenUpgrade = !!(lockState.hidden || lockState.hideEffect || lockState.hideCost);
-     if (!model || !model.unlockUpgrade || isHiddenUpgrade) { content.style.marginTop = ''; return; }
-     
-     const header = upgSheetEl.querySelector('.upg-header');
-     const actions = upgSheetEl.querySelector('.upg-actions');
-     if (!header || !actions) return;
-     
-     content.style.marginTop = '';
-     const headerRect = header.getBoundingClientRect();
-     const actionsRect = actions.getBoundingClientRect();
-     const contentRect = content.getBoundingClientRect();
-     const available = actionsRect.top - headerRect.bottom;
-     const freeSpace = available - contentRect.height;
-     if (freeSpace <= 0) return;
-     content.style.marginTop = `${freeSpace * 0.42}px`;
   }
   
   let initialRender = true;
@@ -1536,7 +1517,6 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                   const { evolved } = adapter.evolve(upgDef.id);
                   if (evolved) { playEvolveSfx(); updateShopOverlay(); rerender(); }
               }, 1, false);
-              recenterUnlockOverlayIfNeeded(model);
               return;
           }
           
@@ -1551,12 +1531,11 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                        updateShopOverlay(); rerender();
                    }
                }, 1, !canAffordNext);
-               recenterUnlockOverlayIfNeeded(model);
-               return;
           }
           
-          actions.querySelectorAll('.hm-evolve-btn, .btn-unlock').forEach(b => b.remove());
           
+          actions.querySelectorAll('.hm-evolve-btn, .btn-unlock').forEach(b => b.remove());
+
           const performBuy = () => {
               const fresh = adapter.getUiModel(upgDef.id);
               if (fresh.have.cmp(fresh.nextPrice instanceof BigNum ? fresh.nextPrice : BigNum.fromAny(fresh.nextPrice||0)) < 0) return;
@@ -1610,9 +1589,6 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
               const stale = actions.querySelector('.btn-buy-next'); if (stale) stale.remove();
           }
       }
-      recenterUnlockOverlayIfNeeded(model);
-  };
-  
   const onUpdate = () => { if (!upgOpenLocal) return; rerender(); };
   adapter.events.forEach(evt => window.addEventListener(evt, onUpdate));
   if (mode === 'standard') document.addEventListener('ccc:upgrades:changed', onUpdate);
