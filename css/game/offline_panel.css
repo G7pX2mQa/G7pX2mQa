@@ -167,3 +167,19 @@
         top: 0px;
     }
 }
+
+.offline-pre-auto-note {
+    font-size: 18px;
+    text-align: center;
+    padding: 24px 24px 4px 24px;
+    width: 80%;
+    max-width: 1075px;
+    margin: 0 auto;
+    color: #fff;
+    line-height: 1.5;
+    font-weight: 600; /* Match semi-bold feel */
+}
+
+.offline-pre-auto-note + .offline-scroll-container {
+    padding-top: 0;
+}
