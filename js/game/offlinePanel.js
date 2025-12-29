@@ -13,6 +13,7 @@ import { getPassiveCoinReward } from './coinPickup.js';
 import { addXp } from './xpSystem.js';
 import { addMutationPower } from './mutationSystem.js';
 import { getBookProductionRate } from './surgeEffects.js';
+import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 
 let initialized = false;
 
@@ -274,17 +275,30 @@ export function calculatePreAutomationRewards(seconds) {
         if (eff && eff.coinsPerSecondMult) {
             spawnRate = 1 * eff.coinsPerSecondMult;
         }
-    } catch {
+    } catch (e) {
+        console.error('Offline rewards calc error:', e);
         spawnRate = 1;
+    }
+
+    if (typeof applyStatMultiplierOverride === 'function') {
+        const override = applyStatMultiplierOverride('spawnRate', BigNum.fromAny(spawnRate));
+        try {
+            if (override instanceof BigNum) {
+                // If override is large, toScientific is safer
+                spawnRate = Number(override.toScientific(6));
+            } else {
+                spawnRate = Number(override);
+            }
+        } catch {}
     }
 
     const totalCoins = Math.floor(spawnRate * seconds);
 
     if (totalCoins > 0) {
         const singleReward = getPassiveCoinReward();
-        const coinsEarned = singleReward.coins.mulBigNumInteger(BigNum.fromInt(totalCoins));
-        const xpEarned = singleReward.xp.mulBigNumInteger(BigNum.fromInt(totalCoins));
-        const mpEarned = singleReward.mp.mulBigNumInteger(BigNum.fromInt(totalCoins));
+        const coinsEarned = singleReward.coins.mulBigNumInteger(BigNum.fromAny(totalCoins));
+        const xpEarned = singleReward.xp.mulBigNumInteger(BigNum.fromAny(totalCoins));
+        const mpEarned = singleReward.mp.mulBigNumInteger(BigNum.fromAny(totalCoins));
 
         if (!coinsEarned.isZero()) {
              rewards.coins = coinsEarned;
