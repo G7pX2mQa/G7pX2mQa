@@ -7,7 +7,7 @@ import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { ensureCustomScrollbar } from '../ui/shopOverlay.js';
 import { IS_MOBILE } from '../main.js';
-import { getLevelNumber } from './upgrades.js';
+import { getLevelNumber, computeUpgradeEffects, getCurrentAreaKey as getUpgAreaKey } from './upgrades.js';
 import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
 import { getPassiveCoinReward } from './coinPickup.js';
 import { addXp } from './xpSystem.js';
@@ -47,7 +47,7 @@ const PRIORITY_ORDER = [
     { key: 'waves',     icon: 'img/currencies/gear/gear.webp',   singular: 'Wave',     plural: 'Waves' },
 ];
 
-export function showOfflinePanel(rewards, offlineMs) {
+export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
     // Remove existing panel if any
     const existing = document.querySelector('.offline-overlay');
     if (existing) existing.remove();
@@ -60,7 +60,7 @@ export function showOfflinePanel(rewards, offlineMs) {
     
     const header = document.createElement('div');
     header.className = 'offline-header';
-    header.textContent = 'Offline Progress';
+    header.textContent = isPreAutomation ? 'Pre-Automation Offline Gift' : 'Offline Progress';
     
     const subHeader = document.createElement('div');
     subHeader.className = 'offline-subheader';
@@ -68,6 +68,13 @@ export function showOfflinePanel(rewards, offlineMs) {
 
     const contentWrapper = document.createElement('div');
     contentWrapper.className = 'offline-content-wrapper';
+
+    if (isPreAutomation) {
+        const note = document.createElement('div');
+        note.className = 'offline-pre-auto-note';
+        note.textContent = "Until you unlock proper automation, Coins have to be collected manually. As a gift to not discourage idle play before unlocking automation, provided below are the rewards from Coins that would have spawned if you were active in the game.";
+        contentWrapper.appendChild(note);
+    }
 	
 	const scrollContainer = document.createElement('div');
     scrollContainer.className = 'offline-scroll-container';
@@ -254,6 +261,48 @@ export function grantOfflineRewards(rewards) {
     }
 }
 
+export function calculatePreAutomationRewards(seconds) {
+    const slot = getActiveSlot();
+    if (slot == null) return {};
+
+    const rewards = {};
+    const areaKey = getUpgAreaKey();
+    let spawnRate = 1;
+
+    try {
+        const eff = computeUpgradeEffects(areaKey);
+        if (eff && eff.coinsPerSecondMult) {
+            spawnRate = 1 * eff.coinsPerSecondMult;
+        }
+    } catch {
+        spawnRate = 1;
+    }
+
+    const totalCoins = Math.floor(spawnRate * seconds);
+
+    if (totalCoins > 0) {
+        const singleReward = getPassiveCoinReward();
+        const coinsEarned = singleReward.coins.mulBigNumInteger(BigNum.fromInt(totalCoins));
+        const xpEarned = singleReward.xp.mulBigNumInteger(BigNum.fromInt(totalCoins));
+        const mpEarned = singleReward.mp.mulBigNumInteger(BigNum.fromInt(totalCoins));
+
+        if (!coinsEarned.isZero()) {
+             rewards.coins = coinsEarned;
+        }
+        if (!xpEarned.isZero()) {
+            if (!isStorageKeyLocked(`ccc:xp:progress:${slot}`)) {
+                rewards.xp = xpEarned;
+            }
+        }
+        if (!mpEarned.isZero()) {
+            if (!isStorageKeyLocked(`ccc:mutation:progress:${slot}`)) {
+                rewards.mp = mpEarned;
+            }
+        }
+    }
+    return rewards;
+}
+
 export function processOfflineProgress() {
     // 1. Ensure we are actually in a save slot (prevent Main Menu triggers)
     const slot = getActiveSlot();
@@ -276,10 +325,19 @@ export function processOfflineProgress() {
     const diff = now - lastSave;
     if (diff < 1000) return; // Ignore gaps < 1s
     
-    if (!hasDoneInfuseReset()) return;
-
     const seconds = diff / 1000;
-    
+
+    if (!hasDoneInfuseReset()) {
+        const rewards = calculatePreAutomationRewards(seconds);
+        const hasRewards = Object.keys(rewards).length > 0;
+        
+        if (hasRewards) {
+            grantOfflineRewards(rewards);
+            showOfflinePanel(rewards, diff, true);
+        }
+        return hasRewards;
+    }
+
     const rewards = calculateOfflineRewards(seconds);
     const hasRewards = Object.keys(rewards).length > 0;
     
