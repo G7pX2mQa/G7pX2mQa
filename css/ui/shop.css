@@ -481,6 +481,7 @@
 .upg-overlay.is-open .upg-sheet { transform: translateY(0); }
 
 .upg-sheet {
+  --upg-spacing: 40px;
   position: absolute;
   left: 0; right: 0; bottom: 0; top: 0;
   display: grid;
@@ -538,15 +539,16 @@
   justify-content:center;
   padding-bottom:2vh;
   will-change: transform;
+  gap: var(--upg-spacing);
 }
 
 .upg-sheet:not(.is-maxed) .upg-content { 
-  transform: translateY(-12vh);
+  transform: none;
   padding-top: 2vh;
 }
 
 .upg-sheet.is-maxed .upg-content{
-  transform: translateY(-20vh);
+  transform: none;
   padding-top: 0.5vh;
   padding-bottom: 3vh;
 }
@@ -556,10 +558,10 @@
 }
 
 .upg-sheet.is-locked-hidden .upg-content{
-  transform: translateY(-24vh);
+  transform: none;
   padding-top: 2vh;
   padding-bottom: 2vh;
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 .upg-sheet.is-unlock-upgrade .upg-content {
@@ -571,7 +573,7 @@
 .upg-desc.centered{
   text-align:center;
   font-size: clamp(32px, 4.6vw, 50px);
-  margin-top: 4px;
+  margin-top: 0;
   white-space: pre-line;
 }
 
@@ -581,8 +583,8 @@
 
 .upg-info{
   display:grid;
-  gap:24px;
-  margin:24px 0 4px;
+  gap: var(--upg-spacing);
+  margin: 0;
   text-align:center;
   color:#fff;
 }
@@ -591,7 +593,7 @@
   margin-top: 50px;
 }
 
-.upg-costs{ gap:2px; margin-top:16px; }
+.upg-costs{ display:grid; gap:2px; margin-top:0; }
 
 .upg-line{
   font-size: clamp(32px, 4.6vw, 50px);
@@ -739,7 +741,7 @@
     --upg-line-size:  clamp(30px, 5vmin, 50px);
   }
 
-  .upg-info{ gap: 18px; }
+  .upg-sheet{ --upg-spacing: 18px; }
 }
 
 
@@ -930,29 +932,31 @@
 
 .upg-sheet.is-hm-upgrade {
   grid-template-rows: auto minmax(0, 1fr) auto;
+  /* --upg-spacing: 12px; REMOVED to inherit from main rule */
 }
 
 .upg-sheet.is-hm-upgrade .upg-content {
   align-items: stretch;
-  justify-content: flex-start;
+  /* justify-content: flex-start;  Removed to allow centering */
   padding: 12px 18px 16px;
   transform: none;
-  gap: 12px;
   overflow-y: auto;
   min-height: 0;
+}
+
+.upg-sheet.is-hm-upgrade.hm-evolve-ready {
+  --upg-spacing: clamp(12px, 3vh, 24px);
 }
 
 .upg-sheet.is-hm-upgrade.hm-evolve-ready .upg-content {
   justify-content: flex-start;
   padding-top: clamp(10px, 4vh, 60px);
   padding-bottom: clamp(10px, 3vh, 32px);
-  gap: clamp(12px, 3vh, 24px);
 }
 
 .upg-sheet.is-hm-upgrade .upg-info {
   width: 100%;
   text-align: center;
-  gap: 10px;
 }
 
 .upg-sheet.is-hm-upgrade .upg-desc.centered {
@@ -967,7 +971,7 @@
 
 .upg-sheet.is-hm-upgrade .hm-view-milestones-row {
   width: 100%;
-  margin-top: 4px;
+  margin-top: calc(var(--upg-spacing) * -1 + 4px);
 }
 
 .upg-sheet.is-hm-upgrade .upg-line {
@@ -992,21 +996,21 @@
     transform: none !important;
     padding-top: 1.2rem !important;
     padding-bottom: 1.2rem !important;
-    justify-content: flex-start !important;
+    justify-content: center !important;
   }
   
   .upg-sheet.is-maxed:not(.is-unlock-upgrade) .upg-content {
-    transform: translateY(-15vh) !important;
+    transform: none !important;
     padding-top: 1.2rem !important;
     padding-bottom: 1.2rem !important;
-    justify-content: flex-start !important;
+    justify-content: center !important;
   }
 
   .upg-sheet.is-maxed.is-unlock-upgrade .upg-content {
     transform: none !important;
     padding-top: calc(1.2rem + 15vh) !important;
     padding-bottom: 1.2rem !important;
-    justify-content: flex-start !important;
+    justify-content: center !important;
   }
 
   .upg-actions {
@@ -1037,15 +1041,12 @@
   }
 
   .upg-sheet.is-hm-upgrade .upg-desc.centered {
-    margin-top: 6px;
+    margin-top: 0;
     font-size: clamp(22px, 2.8vw, 30px);
     line-height: 1.2;
   }
 
-  .upg-sheet.is-hm-upgrade .upg-info {
-    margin-top: 6px;
-    gap: 6px;
-  }
+  /* REMOVED: .upg-sheet.is-hm-upgrade { --upg-spacing: 6px; } */
 
   .upg-sheet.is-hm-upgrade .upg-line {
     font-size: clamp(22px, 3vw, 30px);
@@ -1053,7 +1054,12 @@
   }
 
   .upg-sheet.is-hm-upgrade .hm-view-milestones-row {
-    margin-top: 4px;
+    margin-top: calc(var(--upg-spacing) * -1 + 4px);
+  }
+  
+  .upg-sheet.is-hm-upgrade .upg-info {
+    margin-top: 0;
+    gap: var(--upg-spacing); /* Use standard spacing or let it be flexible if needed, but for now ensure it follows the variable */
   }
 }
 
