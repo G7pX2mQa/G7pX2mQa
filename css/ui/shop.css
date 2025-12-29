@@ -532,43 +532,19 @@
 .upg-title { font-size: clamp(44px, 6vw, 72px); font-weight: 700; }
 .upg-level { font-size: clamp(18px, 2.6vw, 28px); opacity: .92; }
 
-.upg-content{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  padding-bottom:2vh;
+.upg-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2vh 0;
   will-change: transform;
   gap: var(--upg-spacing);
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
 }
 
-.upg-sheet:not(.is-maxed) .upg-content { 
-  transform: none;
-  padding-top: 2vh;
-}
-
-.upg-sheet.is-maxed .upg-content{
-  transform: none;
-  padding-top: 0.5vh;
-  padding-bottom: 3vh;
-}
-
-.upg-sheet.is-unlock-short .upg-content {
-  transform: none;
-}
-
-.upg-sheet.is-locked-hidden .upg-content{
-  transform: none;
-  padding-top: 2vh;
-  padding-bottom: 2vh;
-  justify-content: center;
-}
-
-.upg-sheet.is-unlock-upgrade .upg-content {
-  transform: none;
-  padding-top: 1.5vh;
-  padding-bottom: 2vh;
-}
 
 .upg-desc.centered{
   text-align:center;
@@ -747,26 +723,6 @@
 }
 
 
-@media (hover: none) and (pointer: coarse) and (orientation: portrait) and (min-width: 700px) {
-  .upg-sheet:not(.is-maxed) .upg-content {
-    transform: translateY(-18vh);
-    padding-top: 3vh;
-  }
-
-  .upg-sheet.is-maxed .upg-content {
-    transform: translateY(-26vh);
-    padding-top: 1vh;
-  }
-
-  .upg-sheet.is-locked-hidden .upg-content {
-    transform: translateY(-30vh);
-    padding-top: 0.5vh;
-  }
-  
-  .upg-sheet.is-unlock-short .upg-content {
-    transform: translateY(10vh);
-  }
-}
 
 @media (hover: none) and (pointer: coarse) and (max-width: 600px) {
   :root{
@@ -937,24 +893,11 @@
   /* --upg-spacing: 12px; REMOVED to inherit from main rule */
 }
 
-.upg-sheet.is-hm-upgrade .upg-content {
-  align-items: stretch;
-  /* justify-content: flex-start;  Removed to allow centering */
-  padding: 12px 18px 16px;
-  transform: none;
-  overflow-y: auto;
-  min-height: 0;
-}
 
 .upg-sheet.is-hm-upgrade.hm-evolve-ready {
   --upg-spacing: clamp(12px, 3vh, 24px);
 }
 
-.upg-sheet.is-hm-upgrade.hm-evolve-ready .upg-content {
-  justify-content: flex-start;
-  padding-top: clamp(10px, 4vh, 60px);
-  padding-bottom: clamp(10px, 3vh, 32px);
-}
 
 .upg-sheet.is-hm-upgrade .upg-info {
   width: 100%;
@@ -991,30 +934,6 @@
   -webkit-text-fill-color: currentColor;
 }
 
-@media (max-height: 850px) and (hover: hover) and (pointer: fine) {
-  .upg-sheet:not(.is-maxed):not(.is-unlock-upgrade) .upg-content,
-  .upg-sheet.is-locked-hidden .upg-content,
-  .upg-sheet.is-unlock-short .upg-content {
-    transform: none !important;
-    padding-top: 1.2rem !important;
-    padding-bottom: 1.2rem !important;
-    justify-content: center !important;
-  }
-  
-  .upg-sheet.is-maxed:not(.is-unlock-upgrade) .upg-content {
-    transform: none !important;
-    padding-top: 1.2rem !important;
-    padding-bottom: 1.2rem !important;
-    justify-content: center !important;
-  }
-
-  .upg-sheet.is-maxed.is-unlock-upgrade .upg-content {
-    transform: none !important;
-    padding-top: calc(1.2rem + 15vh) !important;
-    padding-bottom: 1.2rem !important;
-    justify-content: center !important;
-  }
-
   .upg-actions {
     padding-top: 4px;
     padding-bottom: calc(10px + env(safe-area-inset-bottom));
@@ -1026,7 +945,6 @@
     height: clamp(52px, 12vh, 86px);
     font-size: clamp(18px, 3vw, 26px);
   }
-}
 
 @media (max-height: 850px) {
   /* HM upgrades: smaller text + tighter layout on short viewports */
@@ -1079,13 +997,6 @@
 }
 
 /* Automation Upgrades */
-.upg-overlay.is-automation-upgrade .upg-sheet .upg-content {
-  transform: translateY(-13vh);
-}
-
-.upg-overlay.is-automation-upgrade .upg-sheet.is-no-effect .upg-content {
-  transform: translateY(-15vh);
-}
 
 .upg-overlay.is-automation-upgrade .upg-desc.centered,
 .upg-overlay.is-automation-upgrade .upg-line {
@@ -1143,15 +1054,6 @@
   background: hsla(0, 80%, 40%, 0.28);
 }
 
-@media (min-width: 1400px) and (hover: hover) and (pointer: fine) {
-  .upg-sheet.is-magnet-upgrade:not(.is-maxed) .upg-content {
-    transform: translateY(-7.5vh);
-  }
-
-  .upg-sheet.is-magnet-upgrade.is-maxed .upg-content {
-    transform: translateY(-14vh);
-  }
-}
 
 @media (max-width: 1500px) and (hover: hover) and (pointer: fine) {
   .upg-sheet.is-magnet-upgrade .upg-desc.centered,
