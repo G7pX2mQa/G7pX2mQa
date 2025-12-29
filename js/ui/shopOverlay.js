@@ -35,8 +35,8 @@ import {
   shouldSkipGhostTap,
   suppressNextGhostTap,
 } from '../util/ghostTapGuard.js';
-import { 
-  AUTOMATION_AREA_KEY, 
+import {
+  AUTOMATION_AREA_KEY,
   AUTOBUY_COIN_UPGRADES_ID,
   AUTOBUY_BOOK_UPGRADES_ID,
   AUTOBUY_GOLD_UPGRADES_ID,
@@ -79,14 +79,14 @@ function isUpgradeAutomated(upgDef) {
     if (!upgDef || !upgDef.costType) return false;
     const autoId = COST_TYPE_TO_AUTO_ID[upgDef.costType];
     if (!autoId) return false;
-    
+
     // Check if player has the automation upgrade
     const autoLevel = getLevelNumber(AUTOMATION_AREA_KEY, autoId);
     if (autoLevel <= 0) return false;
-    
+
     // Check toggle
     const val = getAutobuyerToggle(upgDef.area, upgDef.id);
-    
+
     // Default is ON (if not '0')
     return val !== '0';
 }
@@ -220,7 +220,7 @@ function stripTags(html) {
 export function getCurrencyLabel(type, amountBn) {
   if (type === 'gold') return 'Gold';
   if (type === 'magic') return 'Magic';
-  
+
   let isOne = false;
   if (amountBn && typeof amountBn.cmp === 'function') {
       isOne = !amountBn.isInfinite() && amountBn.cmp(1) === 0;
@@ -236,7 +236,7 @@ export function getCurrencyLabel(type, amountBn) {
   if (type === 'coins') return isOne ? 'Coin' : 'Coins';
   if (type === 'books') return isOne ? 'Book' : 'Books';
   if (type === 'gears') return isOne ? 'Gear' : 'Gears';
-  
+
   return type ? (type.charAt(0).toUpperCase() + type.slice(1)) : '';
 }
 
@@ -246,12 +246,12 @@ const EVOLVE_SFX_SRC = 'sounds/evolve_upg.ogg';
 const MOBILE_PURCHASE_VOLUME = 0.12;
 const DESKTOP_PURCHASE_VOLUME = 0.3;
 
-export function playPurchaseSfx() { 
+export function playPurchaseSfx() {
     const vol = IS_MOBILE ? MOBILE_PURCHASE_VOLUME : DESKTOP_PURCHASE_VOLUME;
     playAudio(PURCHASE_SFX_SRC, { volume: vol });
 }
 
-function playEvolveSfx() { 
+function playEvolveSfx() {
     const vol = IS_MOBILE ? (MOBILE_PURCHASE_VOLUME * 2) : (DESKTOP_PURCHASE_VOLUME * 2);
     playAudio(EVOLVE_SFX_SRC, { volume: vol });
 }
@@ -299,14 +299,14 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
     if (!scroller.isConnected || !sheetEl.isConnected) return;
     const scrollerRect = scroller.getBoundingClientRect();
     const sheetRect = sheetEl.getBoundingClientRect();
-    
+
     if (isVertical) {
       const top = Math.max(0, scrollerRect.top - sheetRect.top);
       const bottom = Math.max(0, sheetRect.bottom - scrollerRect.bottom);
       bar.style.top = top + 'px';
       bar.style.bottom = bottom + 'px';
       // Reset horizontal
-      bar.style.left = ''; bar.style.right = ''; 
+      bar.style.left = ''; bar.style.right = '';
     } else {
       const left = Math.max(0, scrollerRect.left - sheetRect.left);
       const right = Math.max(0, sheetRect.right - scrollerRect.right);
@@ -322,15 +322,15 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
     const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
     const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
     const scrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
-    
+
     const barSize = isVertical ? (bar.clientHeight || clientSize) : (bar.clientWidth || clientSize);
-    
+
     const visibleRatio = clientSize / Math.max(1, scrollSize);
     const thumbSize = Math.max(28, Math.round(barSize * visibleRatio));
     const maxScroll = Math.max(1, scrollSize - clientSize);
     const range = Math.max(0, barSize - thumbSize);
     const pos = Math.round((scrollPos / maxScroll) * range);
-    
+
     if (isVertical) {
       thumb.style.height = thumbSize + 'px';
       thumb.style.width = '100%';
@@ -340,7 +340,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
       thumb.style.height = '100%';
       thumb.style.transform = `translateX(${pos}px)`;
     }
-    
+
     const hasOverflow = (scrollSize > clientSize + 1);
     bar.style.display = hasOverflow ? '' : 'none';
     sheetEl?.classList.toggle('has-active-scrollbar', hasOverflow);
@@ -370,65 +370,65 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   let dragging = false;
   let dragStartPos = 0;
   let startScrollPos = 0;
-  
-  const startDrag = (e) => { 
-    dragging = true; 
-    dragStartPos = isVertical ? e.clientY : e.clientX; 
-    startScrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft; 
-    thumb.classList.add('dragging'); 
-    showBar(); 
-    try { thumb.setPointerCapture(e.pointerId); } catch {} 
-    e.preventDefault(); 
+
+  const startDrag = (e) => {
+    dragging = true;
+    dragStartPos = isVertical ? e.clientY : e.clientX;
+    startScrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
+    thumb.classList.add('dragging');
+    showBar();
+    try { thumb.setPointerCapture(e.pointerId); } catch {}
+    e.preventDefault();
   };
-  
-  const onDragMove = (e) => { 
-    if (!dragging) return; 
+
+  const onDragMove = (e) => {
+    if (!dragging) return;
     const barSize = isVertical ? bar.clientHeight : bar.clientWidth;
     const thumbSize = isVertical ? thumb.clientHeight : thumb.clientWidth;
-    const range = Math.max(1, barSize - thumbSize); 
+    const range = Math.max(1, barSize - thumbSize);
     const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
     const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
-    const scrollMax = Math.max(1, scrollSize - clientSize); 
-    
+    const scrollMax = Math.max(1, scrollSize - clientSize);
+
     const currentPos = isVertical ? e.clientY : e.clientX;
-    const delta = currentPos - dragStartPos; 
-    
+    const delta = currentPos - dragStartPos;
+
     const newPos = startScrollPos + (delta / range) * scrollMax;
     if (isVertical) scroller.scrollTop = newPos;
     else scroller.scrollLeft = newPos;
   };
-  
-  const endDrag = (e) => { 
-    if (!dragging) return; 
-    dragging = false; 
-    thumb.classList.remove('dragging'); 
-    scheduleHide(FADE_DRAG_MS); 
-    try { thumb.releasePointerCapture(e.pointerId); } catch {} 
+
+  const endDrag = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    thumb.classList.remove('dragging');
+    scheduleHide(FADE_DRAG_MS);
+    try { thumb.releasePointerCapture(e.pointerId); } catch {}
   };
-  
+
   thumb.addEventListener('pointerdown', startDrag);
   window.addEventListener('pointermove', onDragMove, { passive: true });
   window.addEventListener('pointerup', endDrag);
   window.addEventListener('pointercancel', endDrag);
-  
-  bar.addEventListener('pointerdown', (e) => { 
-    if (e.target === thumb) return; 
-    const rect = bar.getBoundingClientRect(); 
-    const clickPos = isVertical ? (e.clientY - rect.top) : (e.clientX - rect.left); 
-    const thumbSize = isVertical ? thumb.clientHeight : thumb.clientWidth; 
+
+  bar.addEventListener('pointerdown', (e) => {
+    if (e.target === thumb) return;
+    const rect = bar.getBoundingClientRect();
+    const clickPos = isVertical ? (e.clientY - rect.top) : (e.clientX - rect.left);
+    const thumbSize = isVertical ? thumb.clientHeight : thumb.clientWidth;
     const barSize = isVertical ? bar.clientHeight : bar.clientWidth;
-    const range = Math.max(0, barSize - thumbSize); 
-    const targetPos = Math.max(0, Math.min(clickPos - thumbSize / 2, range)); 
+    const range = Math.max(0, barSize - thumbSize);
+    const targetPos = Math.max(0, Math.min(clickPos - thumbSize / 2, range));
     const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
     const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
-    const scrollMax = Math.max(1, scrollSize - clientSize); 
-    
+    const scrollMax = Math.max(1, scrollSize - clientSize);
+
     const newScroll = (targetPos / Math.max(1, range)) * scrollMax;
     if (isVertical) scroller.scrollTop = newScroll;
     else scroller.scrollLeft = newScroll;
-    
-    showBar(); 
-    scheduleHide(FADE_SCROLL_MS); 
+
+    showBar();
+    scheduleHide(FADE_SCROLL_MS);
   });
 
   updateAll();
@@ -442,9 +442,9 @@ function levelsRemainingToCap(upg, currentLevelBn, currentLevelNumber) {
   if (capBn.isInfinite?.()) return BigNum.fromAny('Infinity');
 
   let lvlBn;
-  try { lvlBn = currentLevelBn instanceof BigNum ? currentLevelBn : BigNum.fromAny(currentLevelBn ?? currentLevelNumber ?? 0); } 
+  try { lvlBn = currentLevelBn instanceof BigNum ? currentLevelBn : BigNum.fromAny(currentLevelBn ?? currentLevelNumber ?? 0); }
   catch { const fallback = Math.max(0, Math.floor(Number(currentLevelNumber) || 0)); lvlBn = BigNum.fromInt(fallback); }
-  
+
   if (lvlBn.isInfinite?.()) return BigNum.fromInt(0);
   try {
     const capPlain = capBn.toPlainIntegerString?.();
@@ -456,7 +456,7 @@ function levelsRemainingToCap(upg, currentLevelBn, currentLevelNumber) {
       return BigNum.fromInt(0);
     }
   } catch {}
-  
+
   const capNumber = Number.isFinite(upg.lvlCap) ? Math.max(0, Math.floor(upg.lvlCap)) : Infinity;
   if (!Number.isFinite(capNumber)) return BigNum.fromAny('Infinity');
   const lvlNumber = Math.max(0, Math.floor(Number(currentLevelNumber) || 0));
@@ -489,7 +489,7 @@ function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
   try {
     if (typeof upg.costAtLevel === 'function') {
         const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
-        const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1)); 
+        const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1));
         const farProbeLevel = Math.min(Number.isFinite(cap) ? cap : lvl + 32, lvl + 32);
         const cFar = BigNum.fromAny(upg.costAtLevel(farProbeLevel));
         const isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
@@ -508,7 +508,7 @@ function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
         }
     }
   } catch {}
-  
+
   const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : undefined;
   const { count } = evaluateBulkPurchase(upg, lvlBn, walletBn, room, { fastOnly: true });
   return count ?? BigNum.fromInt(0);
@@ -529,15 +529,15 @@ class ShopInstance {
         this.delveBtnEl = null;
         this.updateHandler = this.update.bind(this);
     }
-    
+
     get adapter() {
         return getAdapter(this.mode);
     }
-    
+
     get delveButtonVisible() {
         return this.adapter.delveButtonVisible;
     }
-    
+
     updateDelveGlow() {
         if (!this.delveBtnEl || this.mode !== 'standard') return;
         const met = hasMetMerchant();
@@ -547,17 +547,17 @@ class ShopInstance {
     buildUpgradesData() {
         this.upgrades = this.adapter.getUiData();
     }
-    
+
     render() {
         const grid = this.overlayEl?.querySelector('.shop-grid');
         if (!grid) return;
-        
+
         const seenIds = new Set();
-        
+
         for (const key in this.upgrades) {
             const upg = this.upgrades[key];
             seenIds.add(String(upg.id));
-            
+
             let btn = grid.querySelector(`.shop-upgrade[data-upg-id="${upg.id}"]`);
             if (!btn) {
                 btn = document.createElement('button');
@@ -566,7 +566,7 @@ class ShopInstance {
                 btn.type = 'button';
                 btn.setAttribute('role', 'gridcell');
                 btn.dataset.upgId = String(upg.id);
-                
+
                 const tile = document.createElement('div');
                 tile.className = 'shop-tile';
                 const baseImg = document.createElement('img');
@@ -576,12 +576,12 @@ class ShopInstance {
                 iconImg.className = 'icon';
                 iconImg.alt = '';
                 iconImg.addEventListener('error', () => { iconImg.src = TRANSPARENT_PX; });
-                
+
                 tile.appendChild(baseImg);
                 tile.appendChild(iconImg);
                 btn.appendChild(tile);
                 grid.appendChild(btn);
-                
+
                 // Listeners
                 btn.addEventListener('click', (event) => {
                     const el = event.currentTarget;
@@ -597,16 +597,16 @@ class ShopInstance {
                     }
                     if (el.upgMeta) openUpgradeOverlay(el.upgMeta, this.mode);
                 });
-                
+
                 btn.addEventListener('contextmenu', (e) => {
                     if (IS_MOBILE) return;
                     const el = e.currentTarget;
                     if (el.dataset.locked === '1') return;
                     e.preventDefault();
                     e.stopPropagation();
-                    
+
                     if (!el.upgMeta) return;
-					
+
                     const model = this.adapter.getUiModel(el.upgMeta.id);
                     if (model?.hmReadyToEvolve) {
                         const { evolved } = this.adapter.evolve(el.upgMeta.id);
@@ -616,10 +616,10 @@ class ShopInstance {
                         }
                         return;
                     }
-					
+
                     const { bought } = this.adapter.buyMax(el.upgMeta.id);
                     const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
-                    
+
                     if (!boughtBn.isZero?.()) {
                         playPurchaseSfx();
                         if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
@@ -629,10 +629,10 @@ class ShopInstance {
                     }
                 });
             }
-            
+
             // Update Meta
             btn.upgMeta = upg.meta;
-            
+
             // Logic derived from original renderShopGrid...
             const locked = !!upg.locked;
             const lockIcon = upg.lockState?.iconOverride;
@@ -657,7 +657,7 @@ class ShopInstance {
             const isHM = upg.meta?.upgType === 'HM';
             const evolveReady = isHM && upg.hmReady;
             btn.classList.toggle('hm-evolve-ready', evolveReady);
-            
+
             const canPlusBn = locked ? BigNum.fromInt(0) : computeAffordableLevels(upg.meta, upg.levelNumeric, upg.level);
             const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
             const levelHtml = formatNumber(upg.level);
@@ -665,12 +665,12 @@ class ShopInstance {
             const plusHtml = formatNumber(plusBn);
             const plusPlain = stripTags(plusHtml);
             const hasPlus = !plusBn.isZero?.();
-            
+
             const rawCap = Number.isFinite(upg.lvlCap) ? upg.lvlCap : (Number.isFinite(upg.meta?.lvlCap) ? upg.meta.lvlCap : Infinity);
             const capNumber = Number.isFinite(rawCap) ? Math.max(0, Math.floor(rawCap)) : Infinity;
             const levelNumber = Number.isFinite(upg.levelNumeric) ? upg.levelNumeric : NaN;
             const capReached = evolveReady ? false : (upg.level?.isInfinite?.() ? true : (Number.isFinite(capNumber) && Number.isFinite(levelNumber) ? levelNumber >= capNumber : false));
-            
+
             const isSingleLevelCap = Number.isFinite(capNumber) && capNumber === 1;
             const isUnlockUpgrade = !!upg.meta?.unlockUpgrade;
             const showUnlockableBadge = !locked && isUnlockUpgrade && !capReached;
@@ -709,21 +709,21 @@ class ShopInstance {
                 }
                 btn.setAttribute('aria-label', `${upg.title}, ${badgePlain}`);
             }
-            
+
             if (locked) btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
             else if (upg.meta?.unlockUpgrade) btn.title = 'Left-click: Details • Right-click: Unlock';
             else btn.title = 'Left-click: Details • Right-click: Buy Max';
-            
+
             // DOM Structure Update
             const tileEl = btn.firstElementChild;
             const baseImgEl = tileEl.querySelector('.base');
             const iconImgEl = tileEl.querySelector('.icon');
-            
+
             const costType = upg.meta?.costType || 'coins';
             const useLockedBase = upg.useLockedBase || locked;
             const baseSrc = useLockedBase ? LOCKED_BASE_ICON_SRC : (upg.baseIconOverride || BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins);
             if (baseImgEl.src !== baseSrc) baseImgEl.src = baseSrc;
-            
+
             const rawIcon = upg.icon;
             if (!rawIcon) {
                 if (!iconImgEl.hidden) iconImgEl.hidden = true;
@@ -732,7 +732,7 @@ class ShopInstance {
                 const iconSrc = rawIcon;
                 if (iconImgEl._lastSrc !== iconSrc) { iconImgEl.src = iconSrc; iconImgEl._lastSrc = iconSrc; }
             }
-            
+
             let maxedOverlay = tileEl.querySelector('.maxed-overlay');
             const isAutomated = !locked && isUpgradeAutomated(upg.meta);
             const showMaxed = !locked && capReached;
@@ -748,7 +748,7 @@ class ShopInstance {
 				const targetSrc = showMaxed ? MAXED_BASE_OVERLAY_SRC : AUTOMATED_OVERLAY_SRC;
                 if (maxedOverlay.src !== targetSrc) maxedOverlay.src = targetSrc;
             } else if (maxedOverlay) maxedOverlay.remove();
-            
+
             let badge = tileEl.querySelector('.level-badge');
             if (!locked) {
                 if (!badge) { badge = document.createElement('span'); badge.className = 'level-badge'; tileEl.appendChild(badge); }
@@ -761,7 +761,7 @@ class ShopInstance {
                 else { if (badge.innerHTML !== badgeHtml) badge.innerHTML = badgeHtml; }
             } else if (badge) badge.remove();
         }
-        
+
         // Cleanup stale
         Array.from(grid.children).forEach(child => {
             if (child.dataset.upgId && !seenIds.has(child.dataset.upgId)) child.remove();
@@ -770,54 +770,54 @@ class ShopInstance {
 
     ensureOverlay() {
         if (this.overlayEl) return;
-        
+
         this.overlayEl = document.createElement('div');
         this.overlayEl.className = 'shop-overlay';
         if (this.mode === 'automation') {
             this.overlayEl.classList.add('automation-shop-overlay');
             // Unique ID not strictly required by CSS but useful
-            this.overlayEl.id = 'automation-shop-overlay'; 
+            this.overlayEl.id = 'automation-shop-overlay';
         } else {
             this.overlayEl.id = 'shop-overlay';
         }
-        
+
         this.sheetEl = document.createElement('div');
         this.sheetEl.className = 'shop-sheet';
         this.sheetEl.setAttribute('role', 'dialog');
-        
+
         const grabber = document.createElement('div');
         grabber.className = 'shop-grabber';
         grabber.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
-        
+
         const content = document.createElement('div');
         content.className = 'shop-content';
-        
+
         const header = document.createElement('header');
         header.className = 'shop-header';
         header.innerHTML = `<div class="shop-title">${this.adapter.title}</div><div class="shop-line" aria-hidden="true"></div>`;
-        
+
         const grid = document.createElement('div');
         grid.className = 'shop-grid';
         if (this.mode === 'standard') grid.id = 'shop-grid'; // backwards compat for ID query
         grid.setAttribute('role', 'grid');
-        
+
         const scroller = document.createElement('div');
         scroller.className = 'shop-scroller';
         scroller.appendChild(grid);
-        
+
         content.append(header, scroller);
         ensureCustomScrollbar(this.overlayEl, this.sheetEl, '.shop-scroller');
-        
+
         const actions = document.createElement('div');
         actions.className = 'shop-actions';
-        
+
         const closeBtn = document.createElement('button');
         closeBtn.type = 'button';
         closeBtn.className = 'shop-close';
         closeBtn.textContent = 'Close';
-        
+
         actions.appendChild(closeBtn);
-        
+
         if (this.delveButtonVisible) {
             const delveBtn = document.createElement('button');
             delveBtn.type = 'button';
@@ -832,21 +832,21 @@ class ShopInstance {
             this.updateDelveGlow();
             actions.append(delveBtn);
         }
-        
+
         this.sheetEl.append(grabber, content, actions);
         this.overlayEl.appendChild(this.sheetEl);
         document.body.appendChild(this.overlayEl);
-        
+
         // Listeners
         this.overlayEl.addEventListener('pointerdown', (e) => {
             if (e.pointerType === 'mouse') return;
             this.postOpenPointer = true;
         }, { capture: true, passive: true });
-        
+
         this.overlayEl.addEventListener('touchstart', (e) => {
              this.postOpenPointer = true;
         }, { capture: true, passive: true });
-        
+
         this.overlayEl.addEventListener('click', (e) => {
             if (!IS_MOBILE) return;
             if (!this.postOpenPointer) {
@@ -854,12 +854,12 @@ class ShopInstance {
                 return;
             }
         }, { capture: true });
-        
+
         closeBtn.addEventListener('click', () => {
              if (IS_MOBILE) blockInteraction(80);
              this.close();
         }, { passive: true });
-        
+
         setupDragToClose(grabber, this.sheetEl, () => this.isOpen, () => {
              this.isOpen = false;
              this.closeTimer = setTimeout(() => {
@@ -867,15 +867,15 @@ class ShopInstance {
                  this.close(true);
              }, 150);
         });
-        
+
         this.update(true);
     }
-    
+
     open() {
         this.ensureOverlay();
-        
+
         if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
-        
+
         // Bind events if needed
         if (!this.eventsBound) {
             this.adapter.events.forEach(evt => window.addEventListener(evt, this.updateHandler));
@@ -884,48 +884,48 @@ class ShopInstance {
             }
             this.eventsBound = true;
         }
-        
+
         this.update(true);
         if (this.isOpen) return;
-        
+
         this.isOpen = true;
         this.sheetEl.style.transition = 'none';
         this.sheetEl.style.transform = 'translateY(100%)';
         this.overlayEl.style.pointerEvents = 'auto';
-        
+
         void this.sheetEl.offsetHeight;
-        
+
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 this.sheetEl.style.transition = '';
                 this.sheetEl.style.transform = '';
                 this.overlayEl.classList.add('is-open');
                 this.postOpenPointer = false;
-                
+
                 if (IS_MOBILE) {
                     try { setTimeout(() => suppressNextGhostTap(240), 120); } catch {}
                 }
-                
+
                 blockInteraction(10);
                 ensureCustomScrollbar(this.overlayEl, this.sheetEl);
-                
+
                 const focusable = this.overlayEl.querySelector('.shop-upgrade') || this.overlayEl.querySelector('.shop-grid');
                 if (focusable) focusable.focus();
             });
         });
     }
-    
+
     close(force = false) {
         const forceClose = force === true;
         const overlayOpen = this.overlayEl?.classList?.contains('is-open');
-        
+
         if (!forceClose && !this.isOpen && !overlayOpen) {
             if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
             return;
         }
-        
+
         if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
-        
+
         this.isOpen = false;
         if (this.sheetEl) {
             this.sheetEl.style.transition = '';
@@ -936,7 +936,7 @@ class ShopInstance {
             this.overlayEl.style.pointerEvents = 'none';
         }
         this.postOpenPointer = false;
-        
+
         if (this.eventsBound) {
              this.adapter.events.forEach(evt => window.removeEventListener(evt, this.updateHandler));
              if (this.mode === 'standard') {
@@ -945,7 +945,7 @@ class ShopInstance {
              this.eventsBound = false;
         }
     }
-    
+
     update(force = false) {
         if (!force && !this.isOpen) return;
         this.buildUpgradesData();
@@ -977,11 +977,11 @@ export function updateShopOverlay(force = false) {
 
 export function setUpgradeCount() { updateShopOverlay(true); }
 
-export function getUpgrades() { 
-    // Return standard upgrades for backward compat? 
+export function getUpgrades() {
+    // Return standard upgrades for backward compat?
     // Or merge? getUpgrades was previously only returning current adapter data.
     // If standard is open, return standard. If automation is open, return automation.
-    // If both, prioritizing automation makes sense? 
+    // If both, prioritizing automation makes sense?
     // Or standard is "main" upgrades.
     // Let's assume this is mostly for standard shop.
     return shops.standard.upgrades;
@@ -1094,7 +1094,7 @@ function openHmMilestoneDialog(lines) {
     const li = document.createElement('li');
     const text = document.createElement('span');
     text.className = 'hm-milestone-text';
-    if (line && typeof line === 'object') { text.textContent = line.text ?? ''; if (line.achieved) li.classList.add('hm-milestone-achieved'); } 
+    if (line && typeof line === 'object') { text.textContent = line.text ?? ''; if (line.achieved) li.classList.add('hm-milestone-achieved'); }
     else { text.textContent = line; }
     li.appendChild(text); list.appendChild(li);
   }
@@ -1119,7 +1119,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
   let upgOpenLocal = true;
 
   const adapter = getAdapter(mode);
-  
+
   // Initial checks
   const initialLockState = adapter.getLockState(upgDef.id) || {};
   const initialLocked = !!initialLockState.locked;
@@ -1128,7 +1128,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
 
   const isHM = (upgDef.upgType === 'HM');
   const isEndlessXp = (upgDef.tie === UPGRADE_TIES.ENDLESS_XP);
-  
+
   function ensureChild(parent, className, tagName = 'div') {
       const targetClasses = className.split(' ').filter(c => c.length > 0);
       let el = null; const extras = [];
@@ -1143,48 +1143,29 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
   }
   const spacer = (h) => { const s = document.createElement('div'); s.style.height = h; return s; };
   const makeLine = (html) => { const d = document.createElement('div'); d.className = 'upg-line'; d.innerHTML = html; return d; };
-  
-  function recenterUnlockOverlayIfNeeded(model) {
-     const content = upgSheetEl.querySelector('.upg-content');
-     if (!content) return;
-     const lockState = model?.lockState || adapter.getLockState(upgDef.id) || {};
-     const isHiddenUpgrade = !!(lockState.hidden || lockState.hideEffect || lockState.hideCost);
-     if (!model || !model.unlockUpgrade || isHiddenUpgrade) { content.style.marginTop = ''; return; }
-     
-     const header = upgSheetEl.querySelector('.upg-header');
-     const actions = upgSheetEl.querySelector('.upg-actions');
-     if (!header || !actions) return;
-     
-     content.style.marginTop = '';
-     const headerRect = header.getBoundingClientRect();
-     const actionsRect = actions.getBoundingClientRect();
-     const contentRect = content.getBoundingClientRect();
-     const available = actionsRect.top - headerRect.bottom;
-     const freeSpace = available - contentRect.height;
-     if (freeSpace <= 0) return;
-     content.style.marginTop = `${freeSpace * 0.42}px`;
+
   }
-  
+
   let initialRender = true;
-  
+
   const rerender = () => {
       const model = adapter.getUiModel(upgDef.id);
       if (!model) return;
-      
+
       const lockState = model.lockState || adapter.getLockState(upgDef.id);
       const locked = !!lockState?.locked;
       const isHiddenUpgrade = locked && (lockState?.hidden || lockState?.hideEffect || lockState?.hideCost);
       const isUnlockVisible = !!model.unlockUpgrade && !isHiddenUpgrade;
-      
+
       upgSheetEl.classList.toggle('is-locked-hidden', isHiddenUpgrade);
-      
+
       const header = upgSheetEl.querySelector('.upg-header');
       const title = ensureChild(header, 'upg-title');
       if (title.textContent !== (model.displayTitle || model.upg.title)) title.textContent = model.displayTitle || model.upg.title;
-      
+
       const evolveReady = !!model.hmReadyToEvolve;
       const capReached = evolveReady ? false : (model.lvlBn?.isInfinite?.() ? true : (Number.isFinite(model.upg.lvlCap) ? model.lvl >= model.upg.lvlCap : false));
-      
+
       const level = ensureChild(header, 'upg-level');
       const capHtml = model.lvlCapFmtHtml ?? model.upg.lvlCapFmtHtml ?? formatNumber(model.lvlCapBn);
       const capPlain = model.lvlCapFmtText ?? model.upg.lvlCapFmtText ?? stripTags(capHtml);
@@ -1194,7 +1175,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       if (level.getAttribute('aria-label') !== levelPlain) level.setAttribute('aria-label', levelPlain);
       level.hidden = isHiddenUpgrade;
       if (!isHiddenUpgrade) level.removeAttribute('aria-hidden');
-      
+
       upgSheetEl.classList.toggle('is-maxed', capReached);
       upgSheetEl.classList.toggle('hm-evolve-ready', evolveReady);
       upgSheetEl.classList.toggle('is-unlock-upgrade', isUnlockVisible);
@@ -1212,7 +1193,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       const isWorkshopMaster = (mode === 'automation' && upgDef.id === AUTOBUY_WORKSHOP_LEVELS_ID);
 
       const isAutomationMaster = !!masterCostType;
-      
+
       // Check for Standard Upgrade logic in Standard Shop
       const standardAutobuyId = (mode === 'standard') ? COST_TYPE_TO_AUTOBUY_ID[upgDef.costType] : null;
 
@@ -1236,7 +1217,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              autoToggleWrapper.style.marginTop = '12px';
              header.appendChild(autoToggleWrapper);
          }
-         
+
          let toggleBtn = autoToggleWrapper.querySelector('button');
          if (!toggleBtn) {
              toggleBtn = document.createElement('button');
@@ -1245,14 +1226,14 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              toggleBtn.style.fontSize = '16px';
              toggleBtn.style.width = 'auto';
              toggleBtn.style.minWidth = '180px';
-             
+
              toggleBtn.addEventListener('click', (e) => {
                  if (typeof toggleBtn._onClick === 'function') toggleBtn._onClick(e);
              });
-             
+
              autoToggleWrapper.appendChild(toggleBtn);
          }
-         
+
          const activeSlot = getActiveSlot();
          const slotSuffix = activeSlot != null ? `:${activeSlot}` : '';
 
@@ -1266,7 +1247,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                  if (u.costType === masterCostType) {
                      const childKey = `ccc:autobuy:${u.area}:${u.id}${slotSuffix}`;
                      // Use cached getter if available or fallback (here master check logic is slightly complex)
-                     // But wait, the master logic sums up children. 
+                     // But wait, the master logic sums up children.
                      // We should use getAutobuyerToggle(u.area, u.id) here to be consistent!
                      if (getAutobuyerToggle(u.area, u.id) !== '0') {
                          anyEnabled = true;
@@ -1290,17 +1271,17 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              toggleBtn.textContent = 'Automation: OFF';
              toggleBtn.style.backgroundColor = '';
          }
-         
+
          toggleBtn._onClick = (e) => {
              e.preventDefault(); e.stopPropagation();
              if (IS_MOBILE) blockInteraction(50);
-             
+
              const newState = !isEnabled;
              const val = newState ? '1' : '0';
-             
+
              if (isAutomationMaster) {
                  localStorage.setItem(`ccc:autobuy:master:${masterCostType}${slotSuffix}`, val);
-                 const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE); 
+                 const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
                  upgrades.forEach(u => {
                     if (u.costType === masterCostType) {
                         setAutobuyerToggle(u.area, u.id, val);
@@ -1313,10 +1294,10 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
          };
       }
       // -------------------------------
-      
+
       const content = upgSheetEl.querySelector('.upg-content');
       if (initialRender) { content.scrollTop = 0; initialRender = false; }
-      
+
       const desc = ensureChild(content, 'upg-desc centered');
       desc.classList.toggle('lock-desc', isHiddenUpgrade);
       const baseDesc = (model.displayDesc || model.upg.desc || '').trim();
@@ -1328,9 +1309,9 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           if (desc.textContent !== baseDesc) desc.textContent = baseDesc;
           desc.hidden = false;
       } else desc.hidden = true;
-      
+
       const info = ensureChild(content, 'upg-info');
-      
+
       const legacySpacer = info.querySelector('.info-spacer-top');
       if (legacySpacer) legacySpacer.remove();
 
@@ -1349,7 +1330,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           const reasonText = String(lockState.reason ?? '').trim();
           if (descText !== reasonText) {
               let wrap = info.querySelector('.lock-wrapper');
-              if (!wrap) { 
+              if (!wrap) {
                  wrap = document.createElement('div'); wrap.className = 'lock-wrapper';
                  const line = document.createElement('div'); line.className = 'upg-line lock-note';
                  wrap.append(line);
@@ -1389,22 +1370,22 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           const wrap = info.querySelector('.effect-wrapper');
           if (wrap) wrap.remove();
       }
-      
+
       const iconHTML = currencyIconHTML(model.upg.costType);
       const nextPriceBn = model.nextPrice instanceof BigNum ? model.nextPrice : BigNum.fromAny(model.nextPrice || 0);
       const stopBuying = capReached || evolveReady;
-      
+
       if (!model.unlockUpgrade && !stopBuying && (!locked || !lockState?.hideCost)) {
           const costs = ensureChild(info, 'upg-costs');
           placeAfterCursor(costs);
-          
+
           const costLabel = getCurrencyLabel(model.upg.costType, nextPriceBn);
           const costHtml = `Cost: ${iconHTML} ${bank[model.upg.costType].fmt(nextPriceBn)} ${costLabel}`;
-          
+
           const lineCost = ensureChild(costs, 'cost-line', 'div');
           if (!lineCost.className.includes('upg-line')) lineCost.className = 'upg-line cost-line';
           if (lineCost.innerHTML !== costHtml) lineCost.innerHTML = costHtml;
-          
+
           if (isHM) {
              const lineMilestone = ensureChild(costs, 'milestone-line', 'div');
              if (!lineMilestone.className.includes('upg-line')) lineMilestone.className = 'upg-line milestone-line';
@@ -1422,12 +1403,12 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                             if (s && s !== 'Infinity') targetLevelNum = Number(s);
                             else targetLevelNum = Number(targetLevelBn.toString());
                         } catch { targetLevelNum = 0; }
-                        
+
                         let costAt = BigNum.fromInt(0);
                         try {
                             costAt = BigNum.fromAny(model.upg.costAtLevel(targetLevelNum));
                         } catch {}
-                        
+
                         milestoneCost = bank[model.upg.costType].fmt(costAt);
                         milestoneLabel = getCurrencyLabel(model.upg.costType, costAt);
                     } else {
@@ -1447,10 +1428,10 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              const lineMilestone = costs.querySelector('.milestone-line');
              if (lineMilestone) lineMilestone.remove();
           }
-          
+
           const haveLabel = getCurrencyLabel(model.upg.costType, model.have);
           const haveHtml = `You have: ${iconHTML} ${bank[model.upg.costType].fmt(model.have)} ${haveLabel}`;
-          
+
           const lineHave = ensureChild(costs, 'have-line', 'div');
           if (!lineHave.className.includes('upg-line')) lineHave.className = 'upg-line have-line';
           if (lineHave.innerHTML !== haveHtml) lineHave.innerHTML = haveHtml;
@@ -1458,7 +1439,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           const costs = info.querySelector('.upg-costs');
           if (costs) costs.remove();
       }
-      
+
       // Milestones Row
       if (isHM && !isHiddenUpgrade) {
           let milestonesRow = content.querySelector('.hm-view-milestones-row');
@@ -1481,7 +1462,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                      const achieved = (() => {
                         if (model.lvlBn?.isInfinite?.()) return true;
                         try { return model.lvlBn?.cmp?.(milestoneLevelBn) >= 0; } catch {}
-                        return false; 
+                        return false;
                      })();
                      let text = `Level ${levelText}: Multiplies this upgrade’s effect by ${mult}x`;
                      if (target === 'xp') text = `Level ${levelText}: Multiplies XP value by ${mult}x`;
@@ -1496,7 +1477,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       } else {
           const mr = content.querySelector('.hm-view-milestones-row'); if(mr) mr.remove();
       }
-      
+
       // Actions
       const actions = upgSheetEl.querySelector('.upg-actions');
       let closeBtn = actions.querySelector('.shop-close');
@@ -1505,7 +1486,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           closeBtn.addEventListener('click', () => { upgOpenLocal = false; closeUpgradeMenu(); });
           actions.appendChild(closeBtn);
       }
-      
+
       if (locked || capReached) {
           actions.querySelectorAll('button:not(.shop-close)').forEach(btn => btn.remove());
           if (document.activeElement && document.activeElement !== closeBtn && !actions.contains(document.activeElement) && !document.activeElement.closest('.debug-panel')) closeBtn.focus();
@@ -1515,12 +1496,12 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
               let btn = actions.querySelector(`.${className.split(' ').join('.')}`);
               if (!btn) {
                   btn = document.createElement('button'); btn.type='button'; btn.className=className; btn.textContent=text;
-                  
+
                   const invoke = () => { if (typeof btn._onClick === 'function') btn._onClick(); };
                   if ('PointerEvent' in window) btn.addEventListener('pointerdown', (e) => { if(e.pointerType==='mouse'||(typeof e.button==='number'&&e.button!==0))return; invoke(); e.preventDefault(); }, {passive:false});
                   else btn.addEventListener('touchstart', (e)=>{ invoke(); e.preventDefault(); }, {passive:false});
                   btn.addEventListener('click', ()=>{ if(IS_MOBILE)return; invoke(); });
-                  
+
                   const siblings = actions.children;
                   if (index >= siblings.length) actions.appendChild(btn); else actions.insertBefore(btn, siblings[index]);
               }
@@ -1529,17 +1510,16 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
               if(btn.disabled!==disabled) btn.disabled=disabled;
               return btn;
           };
-          
+
           if (evolveReady) {
               actions.querySelectorAll('button:not(.shop-close):not(.hm-evolve-btn)').forEach(b => b.remove());
               ensureButton('shop-delve hm-evolve-btn', 'Evolve', () => {
                   const { evolved } = adapter.evolve(upgDef.id);
                   if (evolved) { playEvolveSfx(); updateShopOverlay(); rerender(); }
               }, 1, false);
-              recenterUnlockOverlayIfNeeded(model);
               return;
           }
-          
+
           if (model.unlockUpgrade) {
                actions.querySelectorAll('button:not(.shop-close):not(.btn-unlock)').forEach(b => b.remove());
                ensureButton('shop-delve btn-unlock', 'Unlock', () => {
@@ -1551,12 +1531,11 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                        updateShopOverlay(); rerender();
                    }
                }, 1, !canAffordNext);
-               recenterUnlockOverlayIfNeeded(model);
-               return;
           }
-          
+
+
           actions.querySelectorAll('.hm-evolve-btn, .btn-unlock').forEach(b => b.remove());
-          
+
           const performBuy = () => {
               const fresh = adapter.getUiModel(upgDef.id);
               if (fresh.have.cmp(fresh.nextPrice instanceof BigNum ? fresh.nextPrice : BigNum.fromAny(fresh.nextPrice||0)) < 0) return;
@@ -1565,7 +1544,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
               if (!boughtBn.isZero?.()) { playPurchaseSfx(); updateShopOverlay(); rerender(); }
           };
           ensureButton('shop-delve btn-buy-one', 'Buy', performBuy, 1, !canAffordNext);
-          
+
           const capNumber = Number.isFinite(model.upg.lvlCap) ? model.upg.lvlCap : Infinity;
           const isSingleLevelCap = capNumber === 1;
 
@@ -1582,7 +1561,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
               const stale = actions.querySelector('.btn-buy-max');
               if (stale) stale.remove();
           }
-          
+
           if (isHM) {
               const performBuyNext = () => {
                   const fresh = adapter.getUiModel(upgDef.id);
@@ -1610,13 +1589,10 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
               const stale = actions.querySelector('.btn-buy-next'); if (stale) stale.remove();
           }
       }
-      recenterUnlockOverlayIfNeeded(model);
-  };
-  
   const onUpdate = () => { if (!upgOpenLocal) return; rerender(); };
   adapter.events.forEach(evt => window.addEventListener(evt, onUpdate));
   if (mode === 'standard') document.addEventListener('ccc:upgrades:changed', onUpdate);
-  
+
   rerender();
   upgOverlayEl.classList.add('is-open');
   upgOverlayEl.classList.toggle('is-automation-upgrade', mode === 'automation');
@@ -1626,7 +1602,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
   upgSheetEl.style.transform = 'translateY(100%)';
   void upgSheetEl.offsetHeight;
   requestAnimationFrame(() => { upgSheetEl.style.transition = ''; upgSheetEl.style.transform = ''; });
-  
+
   upgOverlayCleanup = () => {
      upgOpenLocal = false;
      adapter.events.forEach(evt => window.removeEventListener(evt, onUpdate));
