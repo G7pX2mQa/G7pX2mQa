@@ -973,7 +973,7 @@
 
 .upg-sheet.is-hm-upgrade .hm-view-milestones-row {
   width: 100%;
-  margin-top: calc(var(--upg-spacing) * -1 + 4px);
+  margin-top: calc(var(--upg-spacing) * -1 + 14px);
 }
 
 .upg-sheet.is-hm-upgrade .upg-line {
@@ -1056,7 +1056,7 @@
   }
 
   .upg-sheet.is-hm-upgrade .hm-view-milestones-row {
-    margin-top: calc(var(--upg-spacing) * -1 + 4px);
+    margin-top: calc(var(--upg-spacing) * -1 + 14px);
   }
   
   .upg-sheet.is-hm-upgrade .upg-info {
