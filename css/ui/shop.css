@@ -485,7 +485,7 @@
   position: absolute;
   left: 0; right: 0; bottom: 0; top: 0;
   display: grid;
-  grid-template-rows: auto 1fr auto;   /* header | content | actions */
+  grid-template-rows: auto auto 1fr auto;   /* grabber | header | content | actions */
   background: rgba(12,16,20,.92);
   backdrop-filter: blur(6px);
   transform: translateY(100%);
@@ -497,10 +497,6 @@
   -webkit-user-select: none;
   user-select: none;
   -webkit-user-drag: none;
-}
-
-.upg-sheet.is-unlock-upgrade {
-  grid-template-rows: auto auto 1fr auto;
 }
 
 .upg-grabber {
@@ -525,9 +521,10 @@
 }
 
 .upg-header {
-  padding: 10px 18px 0;
+  padding: 0 18px;
   text-align: center;
   color: #fff;
+  flex-shrink: 0;
 }
 .upg-title { font-size: clamp(44px, 6vw, 72px); font-weight: 700; }
 .upg-level { font-size: clamp(18px, 2.6vw, 28px); opacity: .92; }
@@ -537,7 +534,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2vh 0;
+  padding: 12px 0;
   will-change: transform;
   gap: var(--upg-spacing);
   overflow-y: auto;
@@ -549,12 +546,11 @@
 .upg-desc.centered{
   text-align:center;
   font-size: clamp(32px, 4.6vw, 50px);
-  margin-top: 0;
   white-space: pre-line;
 }
 
 .upg-desc.centered.lock-desc{
-  margin-top: 0;
+  
 }
 
 .upg-info{
@@ -565,13 +561,9 @@
   color:#fff;
 }
 
-.upg-sheet.is-locked-hidden .upg-info{
-  margin-top: 50px;
-}
+
 
 .upg-costs{ display:grid; gap:2px; margin-top:0; }
-
-.upg-sheet.is-hm-upgrade .upg-costs{position:relative;top:0}
 
 .upg-line{
   font-size: clamp(32px, 4.6vw, 50px);
@@ -888,16 +880,9 @@
 .hm-milestones-close:hover { filter: brightness(1.05); }
 .hm-milestones-close:active { transform: translateY(1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
 
-.upg-sheet.is-hm-upgrade {
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  /* --upg-spacing: 12px; REMOVED to inherit from main rule */
-}
-
-
 .upg-sheet.is-hm-upgrade.hm-evolve-ready {
   --upg-spacing: clamp(12px, 3vh, 24px);
 }
-
 
 .upg-sheet.is-hm-upgrade .upg-info {
   width: 100%;
@@ -916,7 +901,6 @@
 
 .upg-sheet.is-hm-upgrade .hm-view-milestones-row {
   width: 100%;
-  margin-top: calc(var(--upg-spacing) * -1 + 14px);
 }
 
 .upg-sheet.is-hm-upgrade .upg-line {
@@ -948,10 +932,6 @@
 
 @media (max-height: 850px) {
   /* HM upgrades: smaller text + tighter layout on short viewports */
-  .upg-sheet.is-hm-upgrade .upg-header {
-    padding-top: 6px;
-  }
-
   .upg-sheet.is-hm-upgrade .upg-title {
     font-size: clamp(32px, 4vw, 50px);
   }
@@ -961,25 +941,13 @@
   }
 
   .upg-sheet.is-hm-upgrade .upg-desc.centered {
-    margin-top: 0;
     font-size: clamp(22px, 2.8vw, 30px);
     line-height: 1.2;
   }
 
-  /* REMOVED: .upg-sheet.is-hm-upgrade { --upg-spacing: 6px; } */
-
   .upg-sheet.is-hm-upgrade .upg-line {
     font-size: clamp(22px, 3vw, 30px);
     line-height: 1.15;
-  }
-
-  .upg-sheet.is-hm-upgrade .hm-view-milestones-row {
-    margin-top: calc(var(--upg-spacing) * -1 + 14px);
-  }
-  
-  .upg-sheet.is-hm-upgrade .upg-info {
-    margin-top: 0;
-    gap: var(--upg-spacing); /* Use standard spacing or let it be flexible if needed, but for now ensure it follows the variable */
   }
 }
 
@@ -1011,6 +979,9 @@
 }
 
 /* === Automation Toggle Button === */
+.auto-toggle-wrapper {
+    margin-top: 12px;
+}
 .auto-toggle-wrapper .shop-delve,
 .auto-toggle-wrapper .shop-close {
   min-width: 180px;
