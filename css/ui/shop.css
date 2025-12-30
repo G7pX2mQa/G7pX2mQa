@@ -485,7 +485,7 @@
   position: absolute;
   left: 0; right: 0; bottom: 0; top: 0;
   display: grid;
-  grid-template-rows: auto auto 1fr auto;   /* grabber | header | content | actions */
+  grid-template-rows: auto auto 1fr auto auto;   /* grabber | header | content | milestones | actions */
   background: rgba(12,16,20,.92);
   backdrop-filter: blur(6px);
   transform: translateY(100%);
@@ -540,6 +540,12 @@
   overflow-y: auto;
   min-height: 0;
   flex: 1;
+}
+
+.upg-milestones {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 10px;
 }
 
 
