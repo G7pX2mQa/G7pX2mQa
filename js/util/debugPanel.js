@@ -35,12 +35,12 @@ import {
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
 import { getGenerationLevelKey, getGenerationUpgradeCost } from '../ui/merchantTabs/workshopTab.js';
-import { getSurgeBarLevelKey } from '../ui/merchantTabs/resetTab.js';
+import { getSurgeBarLevelKey, hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
 import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 
 import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
-import { calculateOfflineRewards, grantOfflineRewards, showOfflinePanel } from '../game/offlinePanel.js';
+import { calculateOfflineRewards, grantOfflineRewards, showOfflinePanel, calculatePreAutomationRewards } from '../game/offlinePanel.js';
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
@@ -3454,9 +3454,18 @@ function buildMiscContent(content) {
                 const seconds = parseFloat(raw);
                 if (!Number.isFinite(seconds) || seconds <= 0) return;
 
-                const rewards = calculateOfflineRewards(seconds);
+                let rewards;
+                let isPreAutomation = false;
+
+                if (!hasDoneInfuseReset()) {
+                    rewards = calculatePreAutomationRewards(seconds);
+                    isPreAutomation = true;
+                } else {
+                    rewards = calculateOfflineRewards(seconds);
+                }
+
                 grantOfflineRewards(rewards);
-                showOfflinePanel(rewards, seconds * 1000);
+                showOfflinePanel(rewards, seconds * 1000, isPreAutomation);
 
                 flagDebugUsage();
                 logAction(`Performed OP Time Warp for ${seconds} seconds.`);
