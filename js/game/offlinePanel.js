@@ -18,7 +18,52 @@ import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 let initialized = false;
 
 export function formatTimeCompact(ms) {
-    const s = Math.floor(ms / 1000);
+    const msBn = BigNum.fromAny(ms);
+    // Constants for time units
+    const ONE_SECOND = 1000;
+    const ONE_MINUTE = 60 * ONE_SECOND;
+    const ONE_HOUR = 60 * ONE_MINUTE;
+    const ONE_DAY = 24 * ONE_HOUR;
+    const ONE_YEAR = 365 * ONE_DAY;
+
+    const bnYear = BigNum.fromInt(ONE_YEAR);
+    
+    // Logic:
+    // If < 1 year, keep using standard logic (it cycles through d/h/m/s).
+    // If >= 1 year, format years using BigNum formatNumber, and append remaining days.
+    
+    // Check if ms >= ONE_YEAR
+    if (msBn.cmp(bnYear) >= 0) {
+        const years = msBn.div(bnYear).floorToInteger();
+        // Calculate remaining days: (ms % ONE_YEAR) / ONE_DAY
+        // Since BigNum doesn't have modulo, we do: ms - (years * ONE_YEAR)
+        const yearsInMs = years.mulBigNumInteger(bnYear);
+        const remainingMs = msBn.sub(yearsInMs);
+        
+        // Days can be calculated safely as a Number since remainingMs < ONE_YEAR (approx 3e10)
+        // BigNum -> String -> Number
+        let days = 0;
+        try {
+            const daysBn = remainingMs.div(BigNum.fromInt(ONE_DAY)).floorToInteger();
+            days = Number(daysBn.toPlainIntegerString());
+        } catch {
+            days = 0;
+        }
+
+        return days === 0 ? `${formatNumber(years)}y` : `${formatNumber(years)}y ${days}d`;
+    }
+
+    // Fallback to standard logic for < 1 year (or if ms input is standard number)
+    // Convert BigNum to number if safe, otherwise it would have been caught above (unless negative/zero)
+    let s_val = 0;
+    try {
+        if (ms instanceof BigNum) s_val = Number(ms.toPlainIntegerString()) / 1000;
+        else s_val = Number(ms) / 1000;
+    } catch {
+        s_val = 0;
+    }
+
+    const s = Math.floor(s_val);
     if (s < 60) return `${s}s`;
     const m = Math.floor(s / 60);
     const rs = s % 60;
@@ -28,10 +73,7 @@ export function formatTimeCompact(ms) {
     if (h < 24) return rm === 0 ? `${h}h` : `${h}h ${rm}m`;
     const d = Math.floor(h / 24);
     const rh = h % 24;
-    if (d < 365) return rh === 0 ? `${d}d` : `${d}d ${rh}h`;
-    const y = Math.floor(d / 365);
-    const rd = d % 365;
-    return rd === 0 ? `${y}y` : `${y}y ${rd}d`;
+    return rh === 0 ? `${d}d` : `${d}d ${rh}h`;
 }
 
 // Visual Priority Map
@@ -169,9 +211,14 @@ export function calculateOfflineRewards(seconds) {
     const slot = getActiveSlot();
     if (slot == null) return {};
 
+    // Convert seconds to BigNum to handle both normal offline progress and massive OP Time Warps
+    const secondsBn = BigNum.fromAny(seconds);
     const rewards = {};
     const gearRate = getGearsProductionRate ? getGearsProductionRate() : BigNum.fromInt(0);
-    const gearsEarned = gearRate.mulDecimal(String(seconds)).floorToInteger();
+    
+    // Update: use BigNum multiplication for accuracy with large inputs
+    // mulBigNumInteger is correct because we are effectively multiplying rate * time
+    const gearsEarned = gearRate.mulBigNumInteger(secondsBn).floorToInteger();
     
     if (!gearsEarned.isZero()) {
         if (!isCurrencyLocked('gears', slot)) {
@@ -182,7 +229,7 @@ export function calculateOfflineRewards(seconds) {
     // Books (Surge 3)
     const bookRate = getBookProductionRate ? getBookProductionRate() : BigNum.fromInt(0);
     if (!bookRate.isZero()) {
-        const booksEarned = bookRate.mulDecimal(String(seconds)).floorToInteger();
+        const booksEarned = bookRate.mulBigNumInteger(secondsBn).floorToInteger();
         if (!booksEarned.isZero()) {
             if (!isCurrencyLocked('books', slot)) {
                 rewards.books = booksEarned;
@@ -192,12 +239,14 @@ export function calculateOfflineRewards(seconds) {
 
     const autoLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) || 0;
     if (autoLevel > 0) {
-        const totalPassives = Math.floor(autoLevel * seconds);
-        if (totalPassives > 0) {
+        // Update: use BigNum to calculate totalPassives safely
+        const totalPassives = BigNum.fromInt(autoLevel).mulBigNumInteger(secondsBn).floorToInteger();
+        
+        if (!totalPassives.isZero()) {
             const singleReward = getPassiveCoinReward();
-            const coinsEarned = singleReward.coins.mulBigNumInteger(BigNum.fromInt(totalPassives));
-            const xpEarned = singleReward.xp.mulBigNumInteger(BigNum.fromInt(totalPassives));
-            const mpEarned = singleReward.mp.mulBigNumInteger(BigNum.fromInt(totalPassives));
+            const coinsEarned = singleReward.coins.mulBigNumInteger(totalPassives);
+            const xpEarned = singleReward.xp.mulBigNumInteger(totalPassives);
+            const mpEarned = singleReward.mp.mulBigNumInteger(totalPassives);
             
             if (!coinsEarned.isZero()) {
                 if (!isCurrencyLocked('coins', slot)) {
@@ -266,39 +315,36 @@ export function calculatePreAutomationRewards(seconds) {
     const slot = getActiveSlot();
     if (slot == null) return {};
 
+    const secondsBn = BigNum.fromAny(seconds);
     const rewards = {};
     const areaKey = getUpgAreaKey();
-    let spawnRate = 1;
+    let spawnRate = BigNum.fromInt(1);
 
     try {
         const eff = computeUpgradeEffects(areaKey);
         if (eff && eff.coinsPerSecondMult) {
-            spawnRate = 1 * eff.coinsPerSecondMult;
+            spawnRate = BigNum.fromAny(eff.coinsPerSecondMult);
         }
     } catch (e) {
         console.error('Offline rewards calc error:', e);
-        spawnRate = 1;
+        spawnRate = BigNum.fromInt(1);
     }
 
     if (typeof applyStatMultiplierOverride === 'function') {
-        const override = applyStatMultiplierOverride('spawnRate', BigNum.fromAny(spawnRate));
+        const override = applyStatMultiplierOverride('spawnRate', spawnRate);
         try {
-            if (override instanceof BigNum) {
-                // If override is large, toScientific is safer
-                spawnRate = Number(override.toScientific(6));
-            } else {
-                spawnRate = Number(override);
-            }
+             spawnRate = BigNum.fromAny(override);
         } catch {}
     }
 
-    const totalCoins = Math.floor(spawnRate * seconds);
+    // Update: use BigNum multiplication
+    const totalCoins = spawnRate.mulBigNumInteger(secondsBn).floorToInteger();
 
-    if (totalCoins > 0) {
+    if (!totalCoins.isZero()) {
         const singleReward = getPassiveCoinReward();
-        const coinsEarned = singleReward.coins.mulBigNumInteger(BigNum.fromAny(totalCoins));
-        const xpEarned = singleReward.xp.mulBigNumInteger(BigNum.fromAny(totalCoins));
-        const mpEarned = singleReward.mp.mulBigNumInteger(BigNum.fromAny(totalCoins));
+        const coinsEarned = singleReward.coins.mulBigNumInteger(totalCoins);
+        const xpEarned = singleReward.xp.mulBigNumInteger(totalCoins);
+        const mpEarned = singleReward.mp.mulBigNumInteger(totalCoins);
 
         if (!coinsEarned.isZero()) {
              rewards.coins = coinsEarned;
