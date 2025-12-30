@@ -1236,7 +1236,7 @@ function buildPanel(panelEl) {
                   Increase pending Wave amount by increasing Coins, XP Level, Gold, MP, and Magic<br>
 				  Waves cannot be spent on upgrades, rather they are only useful for filling a bar<br>
                   Each time you fill this bar below, obtain powerful bonuses from Surge milestones<br>
-                  Multiple milestones may be obtained in one reset, but Wave requirement scales 10x each fill.
+                  Multiple milestones may be obtained in one reset, but Wave requirement scales 10x each fill
                 </p>
               </div>
               <div class="merchant-reset__status" data-reset-status="surge"></div>
