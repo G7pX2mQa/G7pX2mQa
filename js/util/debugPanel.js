@@ -3451,8 +3451,8 @@ function buildMiscContent(content) {
             onClick: () => {
                 const raw = window.prompt("Enter amount of seconds to warp:");
                 if (raw == null) return;
-                const seconds = parseFloat(raw);
-                if (!Number.isFinite(seconds) || seconds <= 0) return;
+                const seconds = parseBigNumInput(raw);
+                if (!seconds || (typeof seconds.isZero === 'function' && seconds.isZero()) || (typeof seconds.isNegative === 'function' && seconds.isNegative())) return;
 
                 let rewards;
                 let isPreAutomation = false;
@@ -3465,10 +3465,11 @@ function buildMiscContent(content) {
                 }
 
                 grantOfflineRewards(rewards);
-                showOfflinePanel(rewards, seconds * 1000, isPreAutomation);
+                const ms = seconds.mulSmall ? seconds.mulSmall(1000) : seconds.mulBigNumInteger(BigNum.fromInt(1000));
+                showOfflinePanel(rewards, ms, isPreAutomation);
 
                 flagDebugUsage();
-                logAction(`Performed OP Time Warp for ${seconds} seconds.`);
+                logAction(`Performed OP Time Warp for ${formatNumber(seconds)} seconds.`);
             }
         },
     ];
