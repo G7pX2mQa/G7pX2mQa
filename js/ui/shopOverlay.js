@@ -1014,10 +1014,13 @@ function ensureUpgradeOverlay() {
   const content = document.createElement('div');
   content.className = 'upg-content';
 
+  const milestones = document.createElement('div');
+  milestones.className = 'upg-milestones';
+
   const actions = document.createElement('div');
   actions.className = 'upg-actions';
 
-  upgSheetEl.append(grab, header, content, actions);
+  upgSheetEl.append(grab, header, content, milestones, actions);
   upgOverlayEl.appendChild(upgSheetEl);
   document.body.appendChild(upgOverlayEl);
 
@@ -1438,7 +1441,8 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       
       // Milestones Row
       if (isHM && !isHiddenUpgrade) {
-          let milestonesRow = content.querySelector('.hm-view-milestones-row');
+          const milestonesContainer = upgSheetEl.querySelector('.upg-milestones');
+          let milestonesRow = milestonesContainer.querySelector('.hm-view-milestones-row');
           if (!milestonesRow) {
               milestonesRow = document.createElement('div'); milestonesRow.className = 'hm-view-milestones-row';
               const btn = document.createElement('button'); btn.type='button'; btn.className='shop-delve hm-view-milestones'; btn.textContent='View Milestones';
@@ -1468,10 +1472,11 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                  });
                  openHmMilestoneDialog(lines);
               });
-              milestonesRow.appendChild(btn); content.appendChild(milestonesRow);
+              milestonesRow.appendChild(btn); milestonesContainer.appendChild(milestonesRow);
           }
       } else {
-          const mr = content.querySelector('.hm-view-milestones-row'); if(mr) mr.remove();
+          const milestonesContainer = upgSheetEl.querySelector('.upg-milestones');
+          if (milestonesContainer) milestonesContainer.innerHTML = '';
       }
       
       // Actions
