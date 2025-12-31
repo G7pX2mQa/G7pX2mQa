@@ -268,6 +268,20 @@ function currencyIconHTML(type) {
 const TRANSPARENT_PX = "data:image/webp;base64,UklGRhIAAABXRUJQVlA4IBgAAAAwAQCdASoIAAIAAAAcJaQAA3AA";
 
 // --- Custom Scrollbar ---
+const SCROLL_TIMELINE_STYLES_ID = 'ccc-scroll-timeline-styles';
+function injectScrollTimelineStyles() {
+  if (document.getElementById(SCROLL_TIMELINE_STYLES_ID)) return;
+  const style = document.createElement('style');
+  style.id = SCROLL_TIMELINE_STYLES_ID;
+  style.textContent = `
+    @keyframes scroll-thumb-move {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(var(--thumb-x, 0), var(--thumb-y, 0)); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.shop-scroller', options = {}) {
   const { orientation = 'vertical' } = options;
   const isVertical = orientation === 'vertical';
@@ -289,9 +303,32 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   const FADE_DRAG_MS = 120;
   const supportsScrollEnd = 'onscrollend' in window;
 
+  // --- Scroll-Driven Animation Support Check ---
+  const supportsTimelineScope = CSS.supports('timeline-scope', 'none');
+  const useCssTimeline = supportsTimelineScope && CSS.supports('animation-timeline', 'scroll()');
+
+  if (useCssTimeline) {
+    injectScrollTimelineStyles();
+    const uniqueId = Math.random().toString(36).slice(2, 8);
+    const timelineName = `--custom-scroll-${uniqueId}`;
+    
+    sheetEl.style.timelineScope = timelineName;
+    scroller.style.scrollTimelineName = timelineName;
+    scroller.style.scrollTimelineAxis = isVertical ? 'block' : 'inline';
+    
+    thumb.style.animationName = 'scroll-thumb-move';
+    thumb.style.animationTimeline = timelineName;
+    thumb.style.animationDuration = '1ms'; // Required syntax, though driven by timeline
+    thumb.style.animationTimingFunction = 'linear';
+    thumb.style.animationFillMode = 'both';
+  }
+
+  let lastShadow = null;
   const syncScrollShadow = () => {
     const scrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
     const hasShadow = (scrollPos || 0) > 0;
+    if (lastShadow === hasShadow) return;
+    lastShadow = hasShadow;
     sheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
   };
 
@@ -305,40 +342,66 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
       const bottom = Math.max(0, sheetRect.bottom - scrollerRect.bottom);
       bar.style.top = top + 'px';
       bar.style.bottom = bottom + 'px';
-      // Reset horizontal
       bar.style.left = ''; bar.style.right = ''; 
     } else {
       const left = Math.max(0, scrollerRect.left - sheetRect.left);
       const right = Math.max(0, sheetRect.right - scrollerRect.right);
       bar.style.left = left + 'px';
       bar.style.right = right + 'px';
-      // Reset vertical
       bar.style.top = ''; bar.style.bottom = '';
       bar.style.height = '';
     }
   };
 
+  let lastState = {};
   const updateThumb = () => {
     const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
     const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
     const scrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
-    
     const barSize = isVertical ? (bar.clientHeight || clientSize) : (bar.clientWidth || clientSize);
     
+    if (
+      lastState.scrollSize === scrollSize &&
+      lastState.clientSize === clientSize &&
+      lastState.barSize === barSize &&
+      (useCssTimeline || lastState.scrollPos === scrollPos)
+    ) {
+      return;
+    }
+    
+    lastState = { scrollSize, clientSize, scrollPos, barSize };
+
     const visibleRatio = clientSize / Math.max(1, scrollSize);
     const thumbSize = Math.max(28, Math.round(barSize * visibleRatio));
     const maxScroll = Math.max(1, scrollSize - clientSize);
     const range = Math.max(0, barSize - thumbSize);
-    const pos = Math.round((scrollPos / maxScroll) * range);
     
     if (isVertical) {
       thumb.style.height = thumbSize + 'px';
       thumb.style.width = '100%';
-      thumb.style.transform = `translateY(${pos}px)`;
     } else {
       thumb.style.width = thumbSize + 'px';
       thumb.style.height = '100%';
-      thumb.style.transform = `translateX(${pos}px)`;
+    }
+
+    if (useCssTimeline) {
+      // With CSS Scroll-Driven Animations, we just update the travel distance variable
+      // The timeline automatically maps scroll 0-100% to animation 0-100%
+      if (isVertical) {
+        thumb.style.setProperty('--thumb-y', `${range}px`);
+        thumb.style.setProperty('--thumb-x', '0px');
+      } else {
+        thumb.style.setProperty('--thumb-x', `${range}px`);
+        thumb.style.setProperty('--thumb-y', '0px');
+      }
+    } else {
+      // Fallback: manual transform
+      const pos = Math.round((scrollPos / maxScroll) * range);
+      if (isVertical) {
+        thumb.style.transform = `translateY(${pos}px)`;
+      } else {
+        thumb.style.transform = `translateX(${pos}px)`;
+      }
     }
     
     const hasOverflow = (scrollSize > clientSize + 1);
@@ -358,13 +421,15 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   const onScroll = () => { updateThumb(); syncScrollShadow(); if (isTouch) showBar(); if (!supportsScrollEnd) scheduleHide(FADE_SCROLL_MS); };
   const onScrollEnd = () => scheduleHide(FADE_SCROLL_MS);
 
+  // We always listen to 'scroll' for shadow updates and touch visibility logic,
+  // but for the thumb movement itself, CSS handles it if supported.
   scroller.addEventListener('scroll', onScroll, { passive: true });
   if (supportsScrollEnd) scroller.addEventListener('scrollend', onScrollEnd, { passive: true });
 
   const ro = new ResizeObserver(updateAll);
   ro.observe(scroller);
   window.addEventListener('resize', updateAll);
-  requestAnimationFrame(updateAll);
+  requestAnimationFrame(updateAll); // Initial kick
 
   // Drag logic
   let dragging = false;
