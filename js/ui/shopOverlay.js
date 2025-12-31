@@ -1211,31 +1211,32 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       const hasAutobuyer = autobuyLevel > 0;
       const showAutoToggle = hasAutobuyer && (isAutomationMaster || standardAutobuyId || isWorkshopMaster) && !isHiddenUpgrade;
 
-      if (!showAutoToggle) {
-          if (autoToggleWrapper) autoToggleWrapper.remove();
-      } else {
-         if (!autoToggleWrapper) {
-             autoToggleWrapper = document.createElement('div');
-             autoToggleWrapper.className = 'auto-toggle-wrapper hm-view-milestones-row';
-             header.appendChild(autoToggleWrapper);
-         }
-         
-         let toggleBtn = autoToggleWrapper.querySelector('button');
-         if (!toggleBtn) {
-             toggleBtn = document.createElement('button');
-             toggleBtn.type = 'button';
-             toggleBtn.style.padding = '10px 14px';
-             toggleBtn.style.fontSize = '16px';
-             toggleBtn.style.width = 'auto';
-             toggleBtn.style.minWidth = '180px';
-             
-             toggleBtn.addEventListener('click', (e) => {
-                 if (typeof toggleBtn._onClick === 'function') toggleBtn._onClick(e);
-             });
-             
-             autoToggleWrapper.appendChild(toggleBtn);
-         }
-         
+      if (!autoToggleWrapper) {
+          autoToggleWrapper = document.createElement('div');
+          autoToggleWrapper.className = 'auto-toggle-wrapper hm-view-milestones-row';
+          header.appendChild(autoToggleWrapper);
+      }
+      
+      let toggleBtn = autoToggleWrapper.querySelector('button');
+      if (!toggleBtn) {
+          toggleBtn = document.createElement('button');
+          toggleBtn.type = 'button';
+          toggleBtn.style.padding = '10px 14px';
+          toggleBtn.style.fontSize = '16px';
+          toggleBtn.style.width = 'auto';
+          toggleBtn.style.minWidth = '180px';
+          
+          toggleBtn.addEventListener('click', (e) => {
+              if (typeof toggleBtn._onClick === 'function') toggleBtn._onClick(e);
+          });
+          
+          autoToggleWrapper.appendChild(toggleBtn);
+      }
+      
+      if (showAutoToggle) {
+         toggleBtn.style.visibility = '';
+         toggleBtn.style.pointerEvents = 'auto';
+
          const activeSlot = getActiveSlot();
          const slotSuffix = activeSlot != null ? `:${activeSlot}` : '';
 
@@ -1294,6 +1295,12 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              }
              rerender();
          };
+      } else {
+         toggleBtn.style.visibility = 'hidden';
+         toggleBtn.style.pointerEvents = 'none';
+         toggleBtn.className = 'shop-delve';
+         toggleBtn.textContent = 'Automation: ON'; // Dummy content for height
+         toggleBtn._onClick = null;
       }
       // -------------------------------
       
@@ -1440,13 +1447,31 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       }
       
       // Milestones Row
+      const milestonesContainer = upgSheetEl.querySelector('.upg-milestones');
+      let milestonesRow = milestonesContainer.querySelector('.hm-view-milestones-row');
+      
+      if (!milestonesRow) {
+          milestonesRow = document.createElement('div'); 
+          milestonesRow.className = 'hm-view-milestones-row';
+          const btn = document.createElement('button'); 
+          btn.type='button'; 
+          btn.className='shop-delve hm-view-milestones'; 
+          btn.textContent='View Milestones';
+          btn.addEventListener('click', (e) => {
+              // Use _onClick pattern
+              if (btn._onClick) btn._onClick(e);
+          });
+          milestonesRow.appendChild(btn); 
+          milestonesContainer.appendChild(milestonesRow);
+      }
+      
+      const milestoneBtn = milestonesRow.querySelector('button');
+
       if (isHM && !isHiddenUpgrade) {
-          const milestonesContainer = upgSheetEl.querySelector('.upg-milestones');
-          let milestonesRow = milestonesContainer.querySelector('.hm-view-milestones-row');
-          if (!milestonesRow) {
-              milestonesRow = document.createElement('div'); milestonesRow.className = 'hm-view-milestones-row';
-              const btn = document.createElement('button'); btn.type='button'; btn.className='shop-delve hm-view-milestones'; btn.textContent='View Milestones';
-              btn.addEventListener('click', () => {
+          milestoneBtn.style.visibility = '';
+          milestoneBtn.style.pointerEvents = 'auto';
+          
+          milestoneBtn._onClick = () => {
                  const milestones = Array.isArray(model.hmMilestones) ? model.hmMilestones : [];
                  const evolutions = Math.max(0, Math.floor(Number(model.hmEvolutions ?? 0)));
                  const evolutionOffset = (() => { try { return BigInt(HM_EVOLUTION_INTERVAL) * BigInt(evolutions); } catch { return 0n; } })();
@@ -1471,12 +1496,11 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                      return { text, achieved };
                  });
                  openHmMilestoneDialog(lines);
-              });
-              milestonesRow.appendChild(btn); milestonesContainer.appendChild(milestonesRow);
-          }
+          };
       } else {
-          const milestonesContainer = upgSheetEl.querySelector('.upg-milestones');
-          if (milestonesContainer) milestonesContainer.innerHTML = '';
+          milestoneBtn.style.visibility = 'hidden';
+          milestoneBtn.style.pointerEvents = 'none';
+          milestoneBtn._onClick = null;
       }
       
       // Actions
