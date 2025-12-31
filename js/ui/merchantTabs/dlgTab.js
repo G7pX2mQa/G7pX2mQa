@@ -1099,6 +1099,20 @@ const engine = new DialogueEngine({
 }
 
 // ========================= Merchant Overlay (Delve) =========================
+const SCROLL_TIMELINE_STYLES_ID = 'ccc-scroll-timeline-styles';
+function injectScrollTimelineStyles() {
+  if (document.getElementById(SCROLL_TIMELINE_STYLES_ID)) return;
+  const style = document.createElement('style');
+  style.id = SCROLL_TIMELINE_STYLES_ID;
+  style.textContent = `
+    @keyframes scroll-thumb-move {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(var(--thumb-x, 0), var(--thumb-y, 0)); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 function ensureMerchantScrollbar() {
   const scroller = merchantOverlayEl?.querySelector('.merchant-content');
   if (!scroller || scroller.__customScroll) return;
@@ -1117,8 +1131,31 @@ function ensureMerchantScrollbar() {
   const supportsScrollEnd = 'onscrollend' in window;
   let fadeTimer = null;
 
+  // --- Scroll-Driven Animation Support Check ---
+  const supportsTimelineScope = CSS.supports('timeline-scope', 'none');
+  const useCssTimeline = supportsTimelineScope && CSS.supports('animation-timeline', 'scroll()');
+
+  if (useCssTimeline) {
+    injectScrollTimelineStyles();
+    const uniqueId = Math.random().toString(36).slice(2, 8);
+    const timelineName = `--merchant-scroll-${uniqueId}`;
+    
+    merchantSheetEl.style.timelineScope = timelineName;
+    scroller.style.scrollTimelineName = timelineName;
+    scroller.style.scrollTimelineAxis = 'block'; // Merchant only has vertical
+    
+    thumb.style.animationName = 'scroll-thumb-move';
+    thumb.style.animationTimeline = timelineName;
+    thumb.style.animationDuration = '1ms';
+    thumb.style.animationTimingFunction = 'linear';
+    thumb.style.animationFillMode = 'both';
+  }
+
+  let lastShadow = null;
   const syncScrollShadow = () => {
     const hasShadow = (scroller.scrollTop || 0) > 0;
+    if (lastShadow === hasShadow) return;
+    lastShadow = hasShadow;
     merchantSheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
   };
 
@@ -1134,19 +1171,36 @@ function ensureMerchantScrollbar() {
     bar.style.bottom = bottom + 'px';
   };
 
+  let lastState = {};
   const updateThumb = () => {
     const { scrollHeight, clientHeight, scrollTop } = scroller;
     const barH = bar.clientHeight || scroller.clientHeight || 1;
+
+    if (
+        lastState.scrollHeight === scrollHeight &&
+        lastState.clientHeight === clientHeight &&
+        lastState.barH === barH &&
+        (useCssTimeline || lastState.scrollTop === scrollTop)
+    ) {
+        return;
+    }
+    lastState = { scrollHeight, clientHeight, scrollTop, barH };
 
     const visibleRatio = clientHeight / Math.max(1, scrollHeight);
     const thumbH = Math.max(28, Math.round(barH * visibleRatio));
 
     const maxScroll = Math.max(1, scrollHeight - clientHeight);
     const range = Math.max(0, barH - thumbH);
-    const y = Math.round((scrollTop / maxScroll) * range);
-
+    
     thumb.style.height = thumbH + 'px';
-    thumb.style.transform = `translateY(${y}px)`;
+    
+    if (useCssTimeline) {
+        thumb.style.setProperty('--thumb-y', `${range}px`);
+        thumb.style.setProperty('--thumb-x', '0px');
+    } else {
+        const y = Math.round((scrollTop / maxScroll) * range);
+        thumb.style.transform = `translateY(${y}px)`;
+    }
 
     bar.style.display = (scrollHeight <= clientHeight + 1) ? 'none' : '';
   };
@@ -1180,6 +1234,7 @@ function ensureMerchantScrollbar() {
 
   const onScrollEnd = () => scheduleHide(FADE_SCROLL_MS);
 
+  // Always listen to scroll for shadows and visibility
   scroller.addEventListener('scroll', onScroll, { passive: true });
   if (supportsScrollEnd) {
     scroller.addEventListener('scrollend', onScrollEnd, { passive: true });
@@ -1188,7 +1243,7 @@ function ensureMerchantScrollbar() {
   const ro = new ResizeObserver(updateAll);
   ro.observe(scroller);
   window.addEventListener('resize', updateAll);
-  requestAnimationFrame(updateAll);
+  requestAnimationFrame(updateAll); // Initial kick
 
   // ----- Drag thumb to scroll -----
   let dragging = false;
