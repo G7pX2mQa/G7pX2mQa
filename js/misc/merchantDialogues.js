@@ -199,7 +199,7 @@ export const MERCHANT_DIALOGUES = {
       c1b: { type: 'choice', options: [
         { label: 'Why do they exist?',              to: 'm2d' },
         { label: 'What do mutations do for me?',    to: 'm2e' },
-        { label: 'Why are they important at all?',  to: 'm2e' },
+        { label: 'Why are they important at all?',  to: 'm2f' },
       ]},
 
       m2a: { type: 'line', say: 'I made it.', next: 'c2a' },
@@ -207,6 +207,7 @@ export const MERCHANT_DIALOGUES = {
       m2c: { type: 'line', say: 'Trust me, it’ll pay off in the future.', next: 'c2c' },
       m2d: { type: 'line', say: 'They just do.', next: 'c3a' },
       m2e: { type: 'line', say: 'Something.', next: 'c2d' },
+      m2f: { type: 'line', say: 'They just are.', next: 'c3a' },
 
       c2a: { type: 'choice', options: [
         { label: 'Really?', to: 'm3a' },
