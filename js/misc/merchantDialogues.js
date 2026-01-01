@@ -188,7 +188,7 @@ export const MERCHANT_DIALOGUES = {
 
       m1a: { type: 'line', say: 'Sure, ask me anything about the Forge and I will answer.',     next: 'c1a' },
       m1b: { type: 'line', say: 'Sure, ask me anything about Mutations and I will answer.',     next: 'c1b' },
-      m1c: { type: 'line', say: 'What do you mean you forgot??',                                                            next: 'c3c' },
+      m1c: { type: 'line', say: 'What do you mean you forgot??',                                                            next: 'c3b' },
 
       c1a: { type: 'choice', options: [
         { label: 'Where did it come from?',                       to: 'm2a' },
@@ -206,7 +206,7 @@ export const MERCHANT_DIALOGUES = {
       m2b: { type: 'line', say: 'Increase your Coins and XP Level to boost the output of the Forge.', next: 'c2b' },
       m2c: { type: 'line', say: 'Trust me, it’ll pay off in the future.', next: 'c2c' },
       m2d: { type: 'line', say: 'They just do.', next: 'c3a' },
-      m2e: { type: 'line', say: 'Earn double Coin and XP output for each level of Mutation applied to a Coin.', next: 'c2d' },
+      m2e: { type: 'line', say: 'Something.', next: 'c2d' },
 
       c2a: { type: 'choice', options: [
         { label: 'Really?', to: 'm3a' },
@@ -228,8 +228,8 @@ export const MERCHANT_DIALOGUES = {
 
       c2d: { type: 'choice', options: [
         { label: 'How will I know if a coin is mutated?', to: 'm3f' },
-        { label: 'That sounds cool.',                     to: 'm4a' },
-        { label: 'Okay.',                                 to: 'm4a' },
+        { label: 'Not helpful but alright.',                     to: 'm4a' },
+        { label: 'Okay...',                                 to: 'm4a' },
       ]},
 
       m3a: { type: 'line', say: 'Nope. I lied.', next: 'c3a' },
@@ -237,18 +237,12 @@ export const MERCHANT_DIALOGUES = {
       m3c: { type: 'line', say: 'It just does.', next: 'c3a' },
       m3d: { type: 'line', say: 'Yes it did.', next: 'c3a' },
       m3e: { type: 'line', say: 'Trust in the process.', next: 'c3a' },
-      m3f: { type: 'line', say: 'Each new mutation applied to a coin alters its appearance.', next: 'c3b' },
+      m3f: { type: 'line', say: 'Just look at it.', next: 'c3a' },
 
       c3a: { type: 'choice', options: [
         { label: '…', to: 'm4a' },
         { label: '…', to: 'm4a' },
         { label: '…', to: 'm4a' },
-      ]},
-
-      c3b: { type: 'choice', options: [
-        { label: 'Why does it work like that?', to: 'm4b' },
-        { label: 'Cool.',                       to: 'm4a' },
-        { label: 'Okay.',                       to: 'm4a' },
       ]},
 	  
 	  c3c: { type: 'choice', options: [
