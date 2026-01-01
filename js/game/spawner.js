@@ -542,7 +542,13 @@ export function createSpawner({
             sizeIndex: sizeIndex,
             valueMultiplier: valMult,
             forceDom: forceDom,
-            soundSrc: COIN_SOUND_SUFFIXES[sizeIndex] ? `sounds/coin_pickup${COIN_SOUND_SUFFIXES[sizeIndex]}` : null
+            soundSrc: COIN_SOUND_SUFFIXES[sizeIndex] ? `sounds/coin_pickup${COIN_SOUND_SUFFIXES[sizeIndex]}` : null,
+            // Pre-calculate trajectory bounds for fast spatial rejection
+            // We pad by size to account for the coin's dimensions and rotation
+            bMinX: Math.min(coin.x0, coin.x1) - size,
+            bMaxX: Math.max(coin.x0, coin.x1) + size,
+            bMinY: Math.min(coin.y0, coin.y1) - size,
+            bMaxY: Math.max(coin.y0, coin.y1) + size
         };
         
         el._coinObj = coinObj;
@@ -974,6 +980,12 @@ export function createSpawner({
         
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
+
+            // Fast rejection based on trajectory bounds
+            if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
+                continue;
+            }
+
             const size = c.size || baseCoinSize;
             
             let cx, cy;
@@ -1031,6 +1043,12 @@ export function createSpawner({
 
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
+
+            // Fast rejection based on trajectory bounds
+            if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
+                continue;
+            }
+
             const size = c.size || baseCoinSize;
             
             let cx, cy;
@@ -1094,6 +1112,12 @@ export function createSpawner({
         
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
+
+            // Fast rejection based on trajectory bounds
+            if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
+                continue;
+            }
+
             const size = c.size || baseCoinSize;
             
             let cx, cy;
@@ -1140,6 +1164,12 @@ export function createSpawner({
 
         for (let i = 0; i < count; i++) {
             const c = activeCoins[i];
+
+            // Fast rejection based on trajectory bounds
+            if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
+                continue;
+            }
+
             const size = c.size || baseCoinSize;
             
             let cx, cy;
