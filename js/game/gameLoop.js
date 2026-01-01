@@ -4,6 +4,7 @@ const TICK_RATE = 20;
 const FIXED_STEP = 1 / TICK_RATE; // 0.05s
 
 const tickListeners = new Set();
+const frameListeners = new Set();
 let rafId = null;
 let paused = false;
 let lastTime = 0;
@@ -59,6 +60,15 @@ function loop(timestamp) {
     ticksProcessed++;
   }
   
+  // Process frame listeners (rendering, interpolation)
+  frameListeners.forEach(listener => {
+    try {
+      listener(now / 1000, dt); // Pass time in seconds
+    } catch (e) {
+      console.error('Error in game frame listener:', e);
+    }
+  });
+
   // Anti-Cheat Check
   // We check periodically to compare Wall Clock Time (Date.now) vs Monotonic Time (performance.now)
   // If Wall Clock moves significantly faster than Monotonic, it's a speed hack or time skip while running.
@@ -131,6 +141,14 @@ export function registerTick(callback) {
   tickListeners.add(callback);
   return () => {
     tickListeners.delete(callback);
+  };
+}
+
+export function registerFrame(callback) {
+  if (typeof callback !== 'function') return () => {};
+  frameListeners.add(callback);
+  return () => {
+    frameListeners.delete(callback);
   };
 }
 
