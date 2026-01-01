@@ -25,12 +25,15 @@ export class WaterSystem {
 
     init(canvasId) {
         this.canvas = document.getElementById(canvasId);
-        if (!this.canvas) return;
+        if (!this.canvas) {
+            console.error('[WaterSystem] Canvas not found:', canvasId);
+            return;
+        }
 
         // Try to get WebGL context
         this.gl = this.canvas.getContext('webgl', { alpha: true, depth: false, antialias: false });
         if (!this.gl) {
-            console.warn('WebGL not supported');
+            console.warn('[WaterSystem] WebGL not supported');
             return;
         }
 
@@ -56,7 +59,7 @@ export class WaterSystem {
         gl.linkProgram(this.program);
 
         if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
-            console.error('Program link error:', gl.getProgramInfoLog(this.program));
+            console.error('[WaterSystem] Program link error:', gl.getProgramInfoLog(this.program));
             return;
         }
 
@@ -81,7 +84,7 @@ export class WaterSystem {
         gl.shaderSource(s, source);
         gl.compileShader(s);
         if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-            console.error('Shader compile error:', gl.getShaderInfoLog(s));
+            console.error('[WaterSystem] Shader compile error:', gl.getShaderInfoLog(s));
             gl.deleteShader(s);
             return null;
         }
@@ -162,6 +165,14 @@ export class WaterSystem {
 
     render(totalTime) {
         if (!this.gl || !this.program) return;
+        
+        // Auto-recover from 0x0 size (e.g. if initialized while hidden)
+        if (this.width === 0 || this.height === 0) {
+            this.resize();
+        }
+
+        if (this.width === 0 || this.height === 0) return;
+
         const gl = this.gl;
 
         gl.clearColor(0, 0, 0, 0);
