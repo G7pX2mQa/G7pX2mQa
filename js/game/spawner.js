@@ -5,6 +5,7 @@ import { getMutationState, onMutationChange } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
 import { isSurge2Active } from './surgeEffects.js';
 import { playAudio } from '../util/audioManager.js';
+import { waterSystem} from './webgl/waterSystem.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0n;
