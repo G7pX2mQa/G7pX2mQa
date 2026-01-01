@@ -43,8 +43,11 @@ let onMutationChangeGame;
 let setDebugPanelAccess;
 let applyStatMultiplierOverride;
 let startGameLoop;
+let registerTick;
+let registerFrame;
 let notifyGameSessionStarted;
 let ensureGameDom;
+let waterSystem;
 
 const pendingPreloadedAudio = [];
 
@@ -353,9 +356,28 @@ function enterArea(areaID) {
         ensureGameDom();
       }
 
+      // Initialize Water System
+      if (waterSystem) {
+        waterSystem.init('water-effects');
+        
+        // Register update loop (simulation)
+        if (typeof registerTick === 'function') {
+            registerTick((dt) => waterSystem.update(dt));
+        }
+        
+        // Register render loop (visuals)
+        if (typeof registerFrame === 'function') {
+            registerFrame((totalTime) => waterSystem.render(totalTime));
+        }
+      }
+
       const gameRoot = document.getElementById('game-root');
       if (gameRoot) {
         gameRoot.hidden = false;
+        if (waterSystem) {
+            // Delay resize to ensure DOM layout is updated after unhiding
+            requestAnimationFrame(() => waterSystem.resize());
+        }
         initHudButtons();
       }
 
@@ -487,6 +509,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/automationEffects.js'),
     import('./game/domInit.js'),
     import('./game/surgeEffects.js'),
+    import('./game/webgl/waterSystem.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -624,6 +647,7 @@ images: [
     automationEffectsModule,
     domInitModule,
     surgeEffectsModule,
+    waterSystemModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -642,12 +666,13 @@ images: [
   ({ installGhostTapGuard, initGlobalGhostTap } = guardModule);
   ({ initGlobalOverlayEsc } = escModule);
   ({ setDebugPanelAccess, applyStatMultiplierOverride } = debugPanelModule);
-  ({ startGameLoop } = gameLoopModule);
+  ({ startGameLoop, registerTick, registerFrame } = gameLoopModule);
   const { initOfflineTracker, processOfflineProgress } = offlinePanelModule;
   const { initWorkshopSystem } = workshopTabModule;
   const { initAutomationEffects } = automationEffectsModule;
   ({ ensureGameDom } = domInitModule);
   const { initSurgeEffects } = surgeEffectsModule;
+  ({ waterSystem } = waterSystemModule);
 
   window.bank = bank;
 
