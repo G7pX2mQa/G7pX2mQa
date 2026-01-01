@@ -229,7 +229,7 @@ export const MERCHANT_DIALOGUES = {
       c2d: { type: 'choice', options: [
         { label: 'How will I know if a coin is mutated?', to: 'm3f' },
         { label: 'Not helpful but alright.',                     to: 'm4a' },
-        { label: 'Okay...',                                 to: 'm4a' },
+        { label: 'Okay.',                                 to: 'm4a' },
       ]},
 
       m3a: { type: 'line', say: 'Nope. I lied.', next: 'c3a' },
@@ -245,7 +245,7 @@ export const MERCHANT_DIALOGUES = {
         { label: '…', to: 'm4a' },
       ]},
 	  
-	  c3c: { type: 'choice', options: [
+	  c3b: { type: 'choice', options: [
         { label: '…', to: 'm4c' },
         { label: '…', to: 'm4c' },
         { label: '…', to: 'm4c' },
