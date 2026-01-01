@@ -355,6 +355,11 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     lastLocalX = null;
     lastLocalY = null;
   };
+  
+  const resetPointerHistory = () => {
+    lastLocalX = null;
+    lastLocalY = null;
+  };
 
   const refreshMagnetLevel = () => {
     const nextLevel = getMagnetLevel();
@@ -388,6 +393,16 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     }
     ensureSweepLoop();
   };
+  
+  const forceUpdateAndMove = (e) => {
+    updatePlayfieldRect();
+    updatePointerFromEvent(e);
+  };
+
+  const handlePointerEnter = (e) => {
+    resetPointerHistory();
+    forceUpdateAndMove(e);
+  };
 
   const destroy = () => {
     destroyed = true;
@@ -401,29 +416,29 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     try { window.removeEventListener('saveSlot:change', refreshMagnetLevel); } catch {}
     try { document.removeEventListener('ccc:upgrades:changed', refreshMagnetLevel); } catch {}
     try { playfield.removeEventListener('pointermove', updatePointerFromEvent); } catch {}
-    try { playfield.removeEventListener('pointerdown', updatePointerFromEvent); } catch {}
-    try { playfield.removeEventListener('pointerenter', updatePointerFromEvent); } catch {}
+    try { playfield.removeEventListener('pointerdown', forceUpdateAndMove); } catch {}
+    try { playfield.removeEventListener('pointerenter', handlePointerEnter); } catch {}
     try { playfield.removeEventListener('pointerleave', handlePointerLeave); } catch {}
     try { playfield.removeEventListener('pointercancel', handlePointerLeave); } catch {}
+    try { window.removeEventListener('blur', resetPointerHistory); } catch {}
     try { indicator.remove(); } catch {}
   };
 
   const pointerOpts = { passive: true };
 
-  const forceUpdateAndMove = (e) => {
-    updatePlayfieldRect();
-    updatePointerFromEvent(e);
-  };
-
   playfield.addEventListener('pointermove', updatePointerFromEvent, pointerOpts);
   playfield.addEventListener('pointerdown', forceUpdateAndMove, pointerOpts);
-  playfield.addEventListener('pointerenter', forceUpdateAndMove, pointerOpts);
+  playfield.addEventListener('pointerenter', handlePointerEnter, pointerOpts);
   playfield.addEventListener('pointerleave', handlePointerLeave, pointerOpts);
   playfield.addEventListener('pointercancel', handlePointerLeave, pointerOpts);
   window.addEventListener('resize', handleResize);
   window.addEventListener('scroll', handleScroll, { passive: true });
   window.addEventListener('focus', updatePlayfieldRect, { passive: true });
-  document.addEventListener('visibilitychange', updatePlayfieldRect, { passive: true });
+  window.addEventListener('blur', resetPointerHistory, { passive: true });
+  document.addEventListener('visibilitychange', () => {
+      updatePlayfieldRect();
+      if (document.hidden) resetPointerHistory();
+  }, { passive: true });
   window.addEventListener('saveSlot:change', refreshMagnetLevel);
   document.addEventListener('ccc:upgrades:changed', refreshMagnetLevel);
 
@@ -1046,11 +1061,15 @@ export function initCoinPickup({
   let lastBrushLocalX = null;
   let lastBrushLocalY = null;
 
-  // Reset brush history on leave
-  pf.addEventListener('pointerleave', () => {
+  const resetBrushHistory = () => {
       lastBrushLocalX = null;
       lastBrushLocalY = null;
-  }, { passive: true });
+  };
+
+  // Reset brush history on leave/enter/blur
+  pf.addEventListener('pointerleave', resetBrushHistory, { passive: true });
+  pf.addEventListener('pointerenter', resetBrushHistory, { passive: true });
+  window.addEventListener('blur', resetBrushHistory, { passive: true });
 
   function brushAt(x,y){
     if (spawner && typeof spawner.findCoinTargetsInRadius === 'function') {
@@ -1147,6 +1166,7 @@ export function initCoinPickup({
       window.removeEventListener('beforeunload', flushPendingGains);
       window.removeEventListener('currency:multiplier', onCoinMultiplierChange);
       window.removeEventListener('currency:change', onCurrencyChange);
+      window.removeEventListener('blur', resetBrushHistory);
     }
     if (typeof mutationUnsub === 'function') {
       try { mutationUnsub(); } catch {}
