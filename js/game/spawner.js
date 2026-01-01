@@ -453,6 +453,10 @@ export function createSpawner({
             y: waveTop,
             w: waveW
         };
+        
+        if (waterSystem) {
+             waterSystem.addWave(waveX, waveTop, waveW);
+        }
 
         // Determine coin size
         let sizeIndex = 0;
