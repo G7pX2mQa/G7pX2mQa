@@ -106,9 +106,9 @@ export const MERCHANT_DIALOGUES = {
       ]},
 
       m1a: { type: 'line', say: 'Good things.', next: 'c1a' },
-      m1b: { type: 'line', say: 'It means you are stronger now.', next: 'c1b' },
+      m1b: { type: 'line', say: 'It means something.', next: 'c1b' },
       m1c: { type: 'line', say: 'And do you know how the XP system works?', next: 'c1c' },
-	  m1d: { type: 'line', say: 'You\'ll be fine you don\'t really need to know how it works anyway.', next: 'c1d' },
+	  m1d: { type: 'line', say: 'You\'ll be fine, you don\'t really need to know how it works anyway.', next: 'c1d' },
 	  m1e: { type: 'line', say: 'No.', next: 'c1d' },
 
       c1a: { type: 'choice', options: [
@@ -118,7 +118,7 @@ export const MERCHANT_DIALOGUES = {
       ]},
       c1b: { type: 'choice', options: [
         { label: 'Can you explain in more detail?', to: 'm1e' },
-        { label: 'Why?',                           to: 'm2g' },
+        { label: 'What?',                           to: 'm2g' },
         { label: 'Okay.',                          to: 'm3a' },
       ]},
       c1c: { type: 'choice', options: [
@@ -137,7 +137,7 @@ export const MERCHANT_DIALOGUES = {
       m2d: { type: 'line', say: 'What?',    next: 'c2c' },
       m2e: { type: 'line', say: 'I’ve already told you, so you can increase your Coin output.', next: 'c2d' },
       m2f: { type: 'line', say: 'Are you sure you don’t want free Books?', next: 'c3a' },
-	  m2g: { type: 'line', say: 'You just are.', next: 'c2c' },
+	  m2g: { type: 'line', say: 'What?', next: 'c2c' },
 
       c2a: { type: 'choice', options: [
 	    { label: 'No.',                               to: 'm2f' },
