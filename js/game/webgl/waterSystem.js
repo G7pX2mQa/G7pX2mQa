@@ -24,11 +24,19 @@ export class WaterSystem {
     }
 
     init(canvasId) {
-        this.canvas = document.getElementById(canvasId);
-        if (!this.canvas) {
+        const newCanvas = document.getElementById(canvasId);
+        if (!newCanvas) {
             console.error('[WaterSystem] Canvas not found:', canvasId);
             return;
         }
+
+        // If we are re-initializing on the same canvas, just resize and return
+        if (this.gl && this.canvas === newCanvas) {
+            this.resize();
+            return;
+        }
+
+        this.canvas = newCanvas;
 
         // Try to get WebGL context
         this.gl = this.canvas.getContext('webgl', { alpha: true, depth: false, antialias: false });
@@ -45,7 +53,11 @@ export class WaterSystem {
         this.createBuffer();
         this.resize();
 
-        window.addEventListener('resize', () => this.resize());
+        // Only add resize listener once
+        if (!this._boundResize) {
+            this._boundResize = () => this.resize();
+            window.addEventListener('resize', this._boundResize);
+        }
     }
 
     createProgram() {
@@ -135,6 +147,12 @@ export class WaterSystem {
         // We need to normalize them to 0-1 for the shader
         // But wait, the spawner passes absolute pixels. 
         // We'll normalize in update().
+        
+        // Safety cap for performance to prevent lag after long sessions or huge accumulation
+        const MAX_LOGICAL_WAVES = 200;
+        if (this.waves.length >= MAX_LOGICAL_WAVES) {
+             this.waves.shift(); // Remove oldest
+        }
         
         this.waves.push({
             x, y, width,
