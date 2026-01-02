@@ -49,6 +49,10 @@ let notifyGameSessionStarted;
 let ensureGameDom;
 let waterSystem;
 
+// Store unsubscribe functions for water system to avoid duplicate listeners
+let waterTickUnsub = null;
+let waterFrameUnsub = null;
+
 const pendingPreloadedAudio = [];
 
 function applyPendingSlotWipe() {
@@ -360,14 +364,24 @@ function enterArea(areaID) {
       if (waterSystem) {
         waterSystem.init('water-effects');
         
+        // Unregister old listeners if they exist to prevent leaks
+        if (waterTickUnsub) {
+            try { waterTickUnsub(); } catch {}
+            waterTickUnsub = null;
+        }
+        if (waterFrameUnsub) {
+            try { waterFrameUnsub(); } catch {}
+            waterFrameUnsub = null;
+        }
+        
         // Register update loop (simulation)
         if (typeof registerTick === 'function') {
-            registerTick((dt) => waterSystem.update(dt));
+            waterTickUnsub = registerTick((dt) => waterSystem.update(dt));
         }
         
         // Register render loop (visuals)
         if (typeof registerFrame === 'function') {
-            registerFrame((totalTime) => waterSystem.render(totalTime));
+            waterFrameUnsub = registerFrame((totalTime) => waterSystem.render(totalTime));
         }
       }
 
