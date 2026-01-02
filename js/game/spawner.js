@@ -254,11 +254,9 @@ export function createSpawner({
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
     const COIN_POOL_MAX = Math.max(2000, maxActiveCoins * 3);
-    const SURGE_POOL_MAX = 800;
     const COIN_MARGIN = 12;
 
     const coinPool = [];
-    const surgePool = [];
 
     const activeCoins = [];
     const newlySettledBuffer = [];
@@ -342,21 +340,6 @@ export function createSpawner({
             }
             coinEl._coinObj = null;
         }
-    }
-
-    function makeSurge() {
-        const el = document.createElement('div');
-        el.className = 'wave-surge';
-        el.style.willChange = 'transform, opacity';
-        return el;
-    }
-    const getSurge = () => (surgePool.length ? surgePool.pop() : makeSurge());
-    function releaseSurge(el) {
-        el.classList.remove('run', 'run-b');
-        if (el.parentNode)
-            el.remove();
-        if (surgePool.length < SURGE_POOL_MAX)
-            surgePool.push(el);
     }
     
     const waveURL = new URL(waveSoundSrc, document.baseURI).href;
@@ -485,21 +468,15 @@ export function createSpawner({
     function commitBatch(batch) {
       if (!batch.length || !validRefs()) return;
 
-      const wavesFrag = document.createDocumentFragment();
       const coinsFrag = document.createDocumentFragment();
       
-      const newSurges = [];
       const newCoins = [];
       const now = performance.now();
+      let hasWaves = false;
 
       for (const { wave, coin, sizeIndex } of batch) {
         if (wave) {
-          const surge = getSurge();
-          surge.style.left = `${wave.x}px`;
-          surge.style.top = `${wave.y}px`;
-          surge.style.width = `${wave.w}px`;
-          wavesFrag.appendChild(surge);
-          newSurges.push(surge);
+            hasWaves = true;
         }
 
         const size = COIN_SIZES[sizeIndex];
@@ -563,7 +540,6 @@ export function createSpawner({
         coinsFrag.appendChild(el);
       }
 
-      refs.s.appendChild(wavesFrag);
       refs.c.appendChild(coinsFrag);
 
       if (newCoins.length > 0) {
@@ -576,23 +552,11 @@ export function createSpawner({
           });
       }
 
-      requestAnimationFrame(() => {
-        if (newSurges.length) playWaveOncePerBurst();
-
-        for (const surge of newSurges) {
-          if (surge.classList.contains('run')) {
-            surge.classList.remove('run');
-            surge.classList.add('run-b');
-          } else {
-            surge.classList.remove('run-b');
-            surge.classList.add('run');
-          }
-          const onEnd = (e) => {
-            if (e.target === surge) releaseSurge(surge);
-          };
-          surge.addEventListener('animationend', onEnd, { once: true });
-        }
-      });
+      if (hasWaves) {
+          requestAnimationFrame(() => {
+             playWaveOncePerBurst();
+          });
+      }
     }
 
     function spawnBurst(n = 1) {
