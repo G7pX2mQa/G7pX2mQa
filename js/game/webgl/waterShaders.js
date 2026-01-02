@@ -1,3 +1,5 @@
+// js/game/webgl/waterShaders.js
+
 export const VERTEX_SHADER = `
 attribute vec2 position;
 varying vec2 vUv;
@@ -13,9 +15,7 @@ precision mediump float;
 varying vec2 vUv;
 uniform float uTime;
 uniform vec2 uResolution;
-uniform vec3 uWaveParams[20]; // [x, y, width]
-uniform float uWaveTimes[20]; // [elapsedTime]
-uniform int uWaveCount;
+uniform sampler2D uWaveMap; // [R = height/intensity]
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
 uniform vec3 uColorFoam;
@@ -50,67 +50,87 @@ float fbm(vec2 st) {
 }
 
 void main() {
+    // 1. Sample Wave Map for distortion and foam
+    float waveVal = texture2D(uWaveMap, vUv).r;
+    
+    // Calculate gradient for normal-like distortion
+    // We sample slightly offset to get the slope
+    float eps = 1.0 / 256.0; // Estimate
+    float hRight = texture2D(uWaveMap, vUv + vec2(eps, 0.0)).r;
+    float hUp    = texture2D(uWaveMap, vUv + vec2(0.0, eps)).r;
+    
+    vec2 distortion = vec2(hRight - waveVal, hUp - waveVal) * 5.0; // Strength multiplier
+    
+    // 2. Base Water Pattern
     vec2 st = gl_FragCoord.xy / uResolution.xy;
-    // Correct aspect ratio for circular shapes
     vec2 aspect = vec2(uResolution.x / uResolution.y, 1.0);
-    vec2 uv = st * aspect;
+    vec2 uv = st * aspect; // For noise
+    
+    // Distort the UV used for noise
+    vec2 distortedUV = uv + distortion * 0.2;
+    
+    // FBM Noise for water surface
+    float noiseVal = fbm(distortedUV * 8.0 + uTime * 0.2);
+    
+    // 3. Mixing
+    // Base color mix based on noise
+    vec3 color = mix(uColorDeep, uColorShallow, noiseVal * 0.6 + 0.2);
+    
+    // Add Shockwave Foam
+    // If waveVal is high (peak of the ring), add foam
+    float foamMask = smoothstep(0.4, 0.9, waveVal);
+    
+    // Distort foam slightly with noise so it looks organic
+    float organicFoam = foamMask * smoothstep(0.2, 0.8, noiseVal + 0.3);
+    
+    color = mix(color, uColorFoam, organicFoam);
+    
+    // Additional highlight from distortion (fake specular)
+    float highlight = max(0.0, distortion.x + distortion.y) * 2.0;
+    color += uColorFoam * highlight * 0.3;
 
-    float mask = 0.0;
-    float foamMask = 0.0;
-    
-    // Iterate through active waves
-    for (int i = 0; i < 20; i++) {
-        if (i >= uWaveCount) break;
-        
-        vec3 params = uWaveParams[i]; // x (0-1), y (0-1), width (0-1)
-        float t = uWaveTimes[i];      // elapsed time in seconds
+    gl_FragColor = vec4(color, 1.0);
+}
+`;
 
-        // Convert normalized coords to aspect-corrected uv space
-        vec2 center = vec2(params.x, 1.0 - params.y) * aspect; 
-        
-        // Wave logic: An arc or blob moving down
-        // It starts at 'center' and moves down over time
-        // But the spawner updates the Y position, so params.y is current Y.
-        
-        // Visual Shape: A metaball-like blob
-        // Width is params.z
-        float radius = params.z * 0.5;
-        
-        vec2 distVec = uv - center;
-        float dist = length(distVec);
-        
-        // Distortion
-        float noiseVal = fbm(uv * 10.0 + uTime * 0.5) * 0.1;
-        
-        // Soft edge (metaball influence)
-        // We use a smoothstep to create a solid core and soft edge
-        float influence = smoothstep(radius + 0.05, radius - 0.05, dist + noiseVal);
-        
-        // Fade out based on life/time if handled in JS, or just use alpha
-        // We assume params are updated every frame, so we just draw opacity 1 here
-        // But we can add foam at the edges
-        
-        mask += influence;
-        
-        // Foam is the edge of the influence
-        float foam = smoothstep(radius + 0.02, radius - 0.01, dist + noiseVal) - smoothstep(radius - 0.04, radius - 0.08, dist + noiseVal);
-        foamMask += max(0.0, foam);
-    }
+export const WAVE_VERTEX_SHADER = `
+attribute vec2 aPosition;
+attribute vec2 aUv;
+attribute float aAlpha;
+
+varying vec2 vUv;
+varying float vAlpha;
+
+void main() {
+    vUv = aUv;
+    vAlpha = aAlpha;
+    gl_Position = vec4(aPosition, 0.0, 1.0);
+}
+`;
+
+export const WAVE_FRAGMENT_SHADER = `
+precision mediump float;
+varying vec2 vUv;
+varying float vAlpha;
+
+void main() {
+    // Draw a Shockwave Ring
+    // Center is 0.5, 0.5
+    vec2 center = vec2(0.5);
+    float dist = distance(vUv, center);
     
-    if (mask <= 0.01) {
-        discard;
-    }
+    // Ring shape: expand outward.
+    // We assume the quad is expanding in JS, so we just draw a static ring here.
+    // Sharp outer, soft inner.
+    // Radius 0.5 is the edge of the quad.
     
-    mask = clamp(mask, 0.0, 1.0);
-    foamMask = clamp(foamMask, 0.0, 1.0);
+    // "Thick expanding ring"
+    float outer = smoothstep(0.5, 0.45, dist);
+    float inner = smoothstep(0.25, 0.4, dist);
     
-    vec3 color = mix(uColorDeep, uColorShallow, mask);
-    color = mix(color, uColorFoam, foamMask);
+    float ring = outer * inner;
     
-    // Final alpha - if it's a "wave", it should be somewhat opaque to cover the coin
-    // But maybe slightly translucent at the edges
-    float alpha = smoothstep(0.0, 0.2, mask) * 0.9; // 0.9 max opacity
-    
-    gl_FragColor = vec4(color, alpha);
+    // Output intensity
+    gl_FragColor = vec4(ring * vAlpha, 0.0, 0.0, 1.0);
 }
 `;
