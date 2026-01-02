@@ -20,6 +20,12 @@ export class WaterSystem {
             foam: [0.95, 0.98, 1.0]
         };
 
+        // Performance: Pre-allocate arrays and pool
+        this.MAX_SHADER_WAVES = 20;
+        this.waveParamsArray = new Float32Array(this.MAX_SHADER_WAVES * 3);
+        this.waveTimesArray = new Float32Array(this.MAX_SHADER_WAVES);
+        this.wavePool = [];
+
         this.uniformLocations = {};
     }
 
@@ -151,14 +157,26 @@ export class WaterSystem {
         // Safety cap for performance to prevent lag after long sessions or huge accumulation
         const MAX_LOGICAL_WAVES = 200;
         if (this.waves.length >= MAX_LOGICAL_WAVES) {
-             this.waves.shift(); // Remove oldest
+             const removed = this.waves.shift(); // Remove oldest
+             if (removed) this.wavePool.push(removed);
         }
         
-        this.waves.push({
-            x, y, width,
-            time: 0,
-            duration: 2.5 // Seconds
-        });
+        let w;
+        if (this.wavePool.length > 0) {
+            w = this.wavePool.pop();
+            w.x = x;
+            w.y = y;
+            w.width = width;
+            w.time = 0;
+            w.duration = 2.5;
+        } else {
+            w = {
+                x, y, width,
+                time: 0,
+                duration: 2.5 // Seconds
+            };
+        }
+        this.waves.push(w);
     }
 
     update(dt) {
@@ -176,7 +194,8 @@ export class WaterSystem {
             w.y += 100 * dt; 
             
             if (w.time > w.duration) {
-                this.waves.splice(i, 1);
+                const removed = this.waves.splice(i, 1)[0];
+                if (removed) this.wavePool.push(removed);
             }
         }
     }
@@ -206,9 +225,6 @@ export class WaterSystem {
 
         // Pack waves into uniforms
         // Max 20 waves as per shader
-        const MAX_WAVES = 20;
-        const paramsArray = new Float32Array(MAX_WAVES * 3);
-        const timesArray = new Float32Array(MAX_WAVES);
         
         // Helper to normalize
         // We assume the canvas covers the whole playfield area
@@ -216,7 +232,7 @@ export class WaterSystem {
         const cssWidth = this.canvas.width / (Math.min(window.devicePixelRatio, 2) * this.quality);
         const cssHeight = this.canvas.height / (Math.min(window.devicePixelRatio, 2) * this.quality);
 
-        const count = Math.min(this.waves.length, MAX_WAVES);
+        const count = Math.min(this.waves.length, this.MAX_SHADER_WAVES);
         
         for (let i = 0; i < count; i++) {
             const w = this.waves[i];
@@ -225,15 +241,15 @@ export class WaterSystem {
             const ny = w.y / cssHeight;
             const nw = w.width / cssWidth;
             
-            paramsArray[i*3 + 0] = nx;
-            paramsArray[i*3 + 1] = ny;
-            paramsArray[i*3 + 2] = nw;
+            this.waveParamsArray[i*3 + 0] = nx;
+            this.waveParamsArray[i*3 + 1] = ny;
+            this.waveParamsArray[i*3 + 2] = nw;
             
-            timesArray[i] = w.time;
+            this.waveTimesArray[i] = w.time;
         }
         
-        gl.uniform3fv(this.uniformLocations.uWaveParams, paramsArray);
-        gl.uniform1fv(this.uniformLocations.uWaveTimes, timesArray);
+        gl.uniform3fv(this.uniformLocations.uWaveParams, this.waveParamsArray);
+        gl.uniform1fv(this.uniformLocations.uWaveTimes, this.waveTimesArray);
         gl.uniform1i(this.uniformLocations.uWaveCount, count);
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
