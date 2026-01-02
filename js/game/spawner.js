@@ -354,53 +354,6 @@ export function createSpawner({
       playAudio(waveURL, { volume: vol });
     }
 
-    function planCoinFromWave(wave, coinSize, sizeIndex) {
-        if (!wave) return null;
-        const { x: waveX, y: waveTop, w: waveW } = wave;
-
-        const crestCenter = waveX + waveW / 2 + (Math.random() * 60 - 30);
-        const startX = crestCenter - coinSize / 2;
-        const startY = waveTop + 10 - coinSize / 2;
-
-        const drift = Math.random() * 100 - 50;
-        
-        let endX;
-        
-        // Logic to "tend toward the middle" for larger coins
-        // and handle overflow.
-        const effectiveMargin = COIN_MARGIN + (sizeIndex >= 3 ? 15 * (sizeIndex - 2) : 0);
-        
-        if (coinSize >= M.pfW) {
-            // If coin is wider than playfield, center it
-            endX = (M.pfW - coinSize) / 2;
-        } else {
-            // Restrict bounds for larger coins
-            const minX = effectiveMargin;
-            const maxX = M.pfW - coinSize - effectiveMargin;
-            
-            // If margin made range invalid, fallback to center or simple clamp
-            if (minX >= maxX) {
-                 endX = (M.pfW - coinSize) / 2;
-            } else {
-                 endX = clamp(startX + drift, minX, maxX);
-            }
-        }
-
-        const minY = Math.max(M.wRect.height + 80, 120);
-        const maxY = Math.max(minY + 40, M.safeBottom - coinSize - 6);
-        const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
-        
-        const jitterMs = Math.random() * 100;
-
-        return {
-            x0: startX,
-            y0: startY,
-            x1: endX,
-            y1: endY,
-            jitterMs,
-        };
-    }
-
     function planSpawn() {
         if (!validRefs())
             return null;
@@ -424,22 +377,8 @@ export function createSpawner({
         }
 
         const pfW = M.pfW;
-        const waveW = clamp(pfW * (surgeWidthVw / 100), 220, 520);
-        const leftMax = Math.max(1, pfW - waveW - COIN_MARGIN * 2);
-        const waveX = Math.random() * leftMax + COIN_MARGIN;
-
         const waterToPfTop = M.wRect.top - M.pfRect.top;
-        const waveTop = Math.max(0, waterToPfTop + M.wRect.height * 0.05);
-
-        const wave = {
-            x: waveX,
-            y: waveTop,
-            w: waveW
-        };
-        
-        if (waterSystem) {
-             waterSystem.addWave(waveX, waveTop, waveW);
-        }
+        const spawnY = Math.max(0, waterToPfTop + M.wRect.height * 0.05);
 
         // Determine coin size
         let sizeIndex = 0;
@@ -452,15 +391,43 @@ export function createSpawner({
                 }
             }
         }
-        
         const size = COIN_SIZES[sizeIndex];
 
-        const coinPlan = planCoinFromWave(wave, size, sizeIndex);
-        if (!coinPlan) return null;
+        // Determine X
+        const effectiveMargin = COIN_MARGIN + (sizeIndex >= 3 ? 15 * (sizeIndex - 2) : 0);
+        const minX = effectiveMargin;
+        const maxX = Math.max(minX, pfW - size - effectiveMargin);
+        const spawnX = minX + Math.random() * (maxX - minX);
+
+        // Plan Coin Trajectory
+        const drift = Math.random() * 100 - 50;
+        let endX;
+        
+        if (size >= M.pfW) {
+            endX = (M.pfW - size) / 2;
+        } else {
+             const mx = M.pfW - size - effectiveMargin;
+             if (minX >= mx) endX = (M.pfW - size)/2;
+             else endX = clamp(spawnX + drift, minX, mx);
+        }
+        
+        const minY = Math.max(M.wRect.height + 80, 120);
+        const maxY = Math.max(minY + 40, M.safeBottom - size - 6);
+        const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
+        const jitterMs = Math.random() * 100;
+        
+        const coin = {
+            x0: spawnX, y0: spawnY,
+            x1: endX, y1: endY,
+            jitterMs
+        };
+
+        const waveCenterX = spawnX + size / 2;
+        const waveCenterY = spawnY + size / 2;
 
         return {
-            wave,
-            coin: planCoinFromWave(wave, size, sizeIndex),
+            wave: { x: waveCenterX, y: waveCenterY, size: size },
+            coin,
             sizeIndex
         };
     }
@@ -477,6 +444,9 @@ export function createSpawner({
       for (const { wave, coin, sizeIndex } of batch) {
         if (wave) {
             hasWaves = true;
+            if (waterSystem) {
+                waterSystem.addWave(wave.x, wave.y, wave.size);
+            }
         }
 
         const size = COIN_SIZES[sizeIndex];
