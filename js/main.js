@@ -362,7 +362,7 @@ function enterArea(areaID) {
 
       // Initialize Water System
       if (waterSystem) {
-        waterSystem.init('water-effects');
+        waterSystem.init('water-background', 'water-effects');
         
         // Unregister old listeners if they exist to prevent leaks
         if (waterTickUnsub) {
