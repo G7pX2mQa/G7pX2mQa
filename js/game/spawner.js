@@ -90,7 +90,6 @@ const COIN_SOUND_SUFFIXES = [
 export function createSpawner({
     playfieldSelector = '.area-cove .playfield',
     waterSelector = '.water-base',
-    surgesHost = '.surges',
     coinsHost = '.coins-layer',
     coinSrc = 'img/coin/coin.webp',
     coinSize: baseCoinSize = 40, // Renamed to baseCoinSize
@@ -114,20 +113,18 @@ export function createSpawner({
     const refs = {
         pf: document.querySelector(playfieldSelector),
         w: document.querySelector(waterSelector),
-        s: document.querySelector(surgesHost),
         c: document.querySelector(coinsHost),
         hud: document.getElementById('hud-bottom'),
     };
 
     function validRefs() {
-        return !!(refs.pf && refs.w && refs.s && refs.c);
+        return !!(refs.pf && refs.w && refs.c);
     }
 
     if (!validRefs()) {
         console.warn('[Spawner] Missing required nodes. Check your selectors:', {
             playfieldSelector,
             waterSelector,
-            surgesHost,
             coinsHost
         });
     }
