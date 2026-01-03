@@ -56,40 +56,69 @@ void main() {
     vec4 waveInfo = texture2D(uWaveMap, vUv);
     float waveVal = waveInfo.r; // Intensity
     
+    // 2. Coordinate setup
+    // vUv.y = 1.0 at Top.
+    // distFromTop: 0.0 (Top) -> 1.0 (Bottom)
+    float distFromTop = 1.0 - vUv.y;
+    
+    // 3. Define Water Edge
+    // The "Shoreline" is defined by a base level + wave intensity pushing it down.
+    // Base level: How far down the screen the calm water extends (e.g., 0.18 = 18% down)
+    float baseLevel = 0.02; 
+    
+    // Wave influence: Waves push the edge further down.
+    // scale waveVal to a screen-percentage displacement.
+    float wavePush = waveVal * 0.80; 
+    
+    float waterEdge = baseLevel + wavePush;
+    
+    // 4. Alpha Mask (The Cutoff)
+    // We want opaque water above the edge, transparent below.
+    // Use a small smoothstep for anti-aliasing but keep it sharp.
+    float edgeSoftness = 0.01;
+    // If distFromTop < waterEdge -> water
+    // distFromTop > waterEdge -> dry
+    // smoothstep(waterEdge - edgeSoftness, waterEdge, distFromTop) goes 0->1 at the edge
+    // We want 1->0
+    float alpha = 1.0 - smoothstep(waterEdge - edgeSoftness, waterEdge, distFromTop);
+    
+    if (alpha < 0.01) {
+        // Discarding can save fill rate, but setting alpha to 0 is also fine.
+        gl_FragColor = vec4(0.0);
+        return;
+    }
+
+    // 5. Water Surface Color
+    // Mix Deep (Top) to Shallow (Near Edge)
+    // Normalize distFromTop against the current waterEdge to get a 0.0-1.0 gradient within the water body
+    // Avoid divide by zero
+    float safeEdge = max(waterEdge, 0.001);
+    float depthFactor = clamp(distFromTop / safeEdge, 0.0, 1.0);
+    
+    // Distortion from waves for the noise lookup
     float eps = 2.0 / uResolution.x;
     float hRight = texture2D(uWaveMap, vUv + vec2(eps, 0.0)).r;
     float hUp    = texture2D(uWaveMap, vUv + vec2(0.0, eps)).r;
+    vec2 distortion = vec2(waveVal - hRight, waveVal - hUp) * 4.0;
     
-    vec2 distortion = vec2(waveVal - hRight, waveVal - hUp) * 2.0;
-    
-    // 2. Base Water Pattern
+    // Base Water Pattern (FBM)
     vec2 st = gl_FragCoord.xy / uResolution.xy;
     vec2 aspect = vec2(uResolution.x / uResolution.y, 1.0);
     vec2 uv = st * aspect;
-    
-    // Distort the UV used for noise
     vec2 distortedUV = uv + distortion * 0.05;
     
     // FBM Noise for water surface
     float noiseVal = fbm(distortedUV * 8.0 + uTime * 0.2);
     
-    // 3. Mixing
-    vec3 color = mix(uColorDeep, uColorShallow, noiseVal * 0.6 + 0.2);
+    // Mix Colors
+    // calm deep water at top, shallow at bottom, modulated by noise
+    vec3 waterColor = mix(uColorDeep, uColorShallow, depthFactor + noiseVal * 0.1);
     
-    // Add Highlights from the wave map
-    // "Interact with the water" -> The wave map itself adds foam/light
-    
-    // Foam threshold
-    float foam = smoothstep(0.2, 0.8, waveVal);
-    
-    // Mix foam
-    color = mix(color, uColorFoam, foam * 0.8);
-    
-    // Specular highlight on wave edges
-    float highlight = length(distortion) * 4.0;
-    color += uColorFoam * highlight * 0.5;
+    // 6. No Foam (User Request)
+    // Just use the base water color
+    vec3 finalColor = waterColor;
 
-    gl_FragColor = vec4(color, 1.0);
+    gl_FragColor = vec4(finalColor, alpha * 0.95);
 }
 `;
 
