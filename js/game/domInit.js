@@ -63,7 +63,7 @@ export function ensureGameDom() {
         </div>
 
         <div class="coins-layer" id="coins-layer"></div>
-        <canvas id="water-effects" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20;"></canvas>
+        <canvas id="water-effects" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99;"></canvas>
       </section>
 
       <nav class="hud-bottom" id="hud-bottom">
