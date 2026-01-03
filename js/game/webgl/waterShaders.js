@@ -9,6 +9,7 @@ void main() {
 }
 `;
 
+// Main Water Shader (Renders the final water look using the FBO map)
 export const FRAGMENT_SHADER = `
 precision mediump float;
 
@@ -50,53 +51,53 @@ float fbm(vec2 st) {
 }
 
 void main() {
-    // 1. Sample Wave Map for distortion and foam
-    float waveVal = texture2D(uWaveMap, vUv).r;
+    // 1. Sample Wave Map
+    // We sample center and neighbors to get normals
+    vec4 waveInfo = texture2D(uWaveMap, vUv);
+    float waveVal = waveInfo.r; // Intensity
     
-    // Calculate gradient for normal-like distortion
-    // We sample slightly offset to get the slope
-    float eps = 1.0 / 256.0; // Estimate
+    float eps = 2.0 / uResolution.x;
     float hRight = texture2D(uWaveMap, vUv + vec2(eps, 0.0)).r;
     float hUp    = texture2D(uWaveMap, vUv + vec2(0.0, eps)).r;
     
-    vec2 distortion = vec2(hRight - waveVal, hUp - waveVal) * 5.0; // Strength multiplier
+    vec2 distortion = vec2(waveVal - hRight, waveVal - hUp) * 2.0;
     
     // 2. Base Water Pattern
     vec2 st = gl_FragCoord.xy / uResolution.xy;
     vec2 aspect = vec2(uResolution.x / uResolution.y, 1.0);
-    vec2 uv = st * aspect; // For noise
+    vec2 uv = st * aspect;
     
     // Distort the UV used for noise
-    vec2 distortedUV = uv + distortion * 0.2;
+    vec2 distortedUV = uv + distortion * 0.05;
     
     // FBM Noise for water surface
     float noiseVal = fbm(distortedUV * 8.0 + uTime * 0.2);
     
     // 3. Mixing
-    // Base color mix based on noise
     vec3 color = mix(uColorDeep, uColorShallow, noiseVal * 0.6 + 0.2);
     
-    // Add Shockwave Foam
-    // If waveVal is high (peak of the ring), add foam
-    float foamMask = smoothstep(0.4, 0.9, waveVal);
+    // Add Highlights from the wave map
+    // "Interact with the water" -> The wave map itself adds foam/light
     
-    // Distort foam slightly with noise so it looks organic
-    float organicFoam = foamMask * smoothstep(0.2, 0.8, noiseVal + 0.3);
+    // Foam threshold
+    float foam = smoothstep(0.2, 0.8, waveVal);
     
-    color = mix(color, uColorFoam, organicFoam);
+    // Mix foam
+    color = mix(color, uColorFoam, foam * 0.8);
     
-    // Additional highlight from distortion (fake specular)
-    float highlight = max(0.0, distortion.x + distortion.y) * 2.0;
-    color += uColorFoam * highlight * 0.3;
+    // Specular highlight on wave edges
+    float highlight = length(distortion) * 4.0;
+    color += uColorFoam * highlight * 0.5;
 
     gl_FragColor = vec4(color, 1.0);
 }
 `;
 
+// Wave Sprite Vertex Shader (Standard quad)
 export const WAVE_VERTEX_SHADER = `
 attribute vec2 aPosition;
 attribute vec2 aUv;
-attribute float aAlpha;
+attribute float aAlpha; // Not strictly used if we just draw fresh, but kept for compatibility
 
 varying vec2 vUv;
 varying float vAlpha;
@@ -108,29 +109,90 @@ void main() {
 }
 `;
 
-export const WAVE_FRAGMENT_SHADER = `
+// Wave Brush: Draws the initial "Stamp" of the wave
+export const WAVE_BRUSH_FRAGMENT_SHADER = `
 precision mediump float;
 varying vec2 vUv;
 varying float vAlpha;
 
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
 void main() {
-    // Draw a Shockwave Ring
-    // Center is 0.5, 0.5
-    vec2 center = vec2(0.5);
-    float dist = distance(vUv, center);
+    // We want a "Wave Front" shape.
+    // Center 0.5.
+    // Shape: Horizontal arc, fading at sides, sharp at bottom (leading edge), soft at top (trailing edge).
     
-    // Ring shape: expand outward.
-    // We assume the quad is expanding in JS, so we just draw a static ring here.
-    // Sharp outer, soft inner.
-    // Radius 0.5 is the edge of the quad.
+    // 1. Horizontal Fade (Sides)
+    float xDist = abs(vUv.x - 0.5) * 2.0; // 0 to 1
+    float xFade = smoothstep(1.0, 0.0, xDist);
     
-    // "Thick expanding ring"
-    float outer = smoothstep(0.5, 0.45, dist);
-    float inner = smoothstep(0.25, 0.4, dist);
+    // 2. Vertical Profile
+    // We want it to look like it's crashing DOWN.
+    // Bottom (y=1 in texture? No, y=0 is usually bottom in UVs, but let's check orientation).
+    // Let's assume standard UV: 0,0 bottom-left.
+    // We want the "Front" to be at the bottom or top depending on motion.
+    // User said "crashing in from top".
+    // So the wave should visually look like the leading edge is at the bottom (moving down).
     
-    float ring = outer * inner;
+    float y = vUv.y;
     
-    // Output intensity
-    gl_FragColor = vec4(ring * vAlpha, 0.0, 0.0, 1.0);
+    // Sharp leading edge at bottom (near 0), soft trailing edge at top (near 1)
+    // Actually, let's center it vertically so we don't clip.
+    
+    // Curve: Bend the y slightly based on x to give it a "C" or "U" shape?
+    // A slight "U" shape (sides higher) looks like a wave front.
+    float curve = (vUv.x - 0.5) * (vUv.x - 0.5) * 0.5;
+    float yRel = vUv.y - curve; // Adjusted Y
+    
+    // Main Intensity Profile
+    // Peak around 0.3, fade up to 1.0, sharp cut below 0.2
+    float front = smoothstep(0.1, 0.3, yRel);
+    float back = smoothstep(0.9, 0.3, yRel);
+    
+    float shape = front * back * xFade;
+    
+    // Add some noise for "foam" / "water" texture
+    float n = random(vUv * 10.0);
+    shape *= (0.8 + 0.2 * n);
+    
+    gl_FragColor = vec4(shape * vAlpha, 0.0, 0.0, 1.0);
+}
+`;
+
+// Simulation Shader: Handles Decay and Flow
+export const SIMULATION_FRAGMENT_SHADER = `
+precision mediump float;
+
+uniform sampler2D uLastFrame;
+uniform vec2 uResolution;
+uniform float uDt;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / uResolution;
+    
+    // Flow/Drift Logic
+    // "Crashing in from top" -> Waves should move DOWN screen.
+    // To move content DOWN, we sample UP (y + offset).
+    vec2 offset = vec2(0.0, 0.003); // Drift speed
+    
+    // Sample
+    vec4 color = texture2D(uLastFrame, uv + offset);
+    
+    // Decay
+    // Fade out over time.
+    color *= 0.96; 
+    
+    // Optional: Horizontal spread (diffusion) to make it ripple?
+    // Simple 3-tap blur on X
+    float eps = 1.0 / uResolution.x;
+    vec4 l = texture2D(uLastFrame, uv + offset + vec2(-eps, 0.0));
+    vec4 r = texture2D(uLastFrame, uv + offset + vec2(eps, 0.0));
+    
+    // Slight blur integration
+    color = mix(color, (l + r) * 0.5, 0.1);
+
+    gl_FragColor = color;
 }
 `;
