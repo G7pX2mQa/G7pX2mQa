@@ -1010,6 +1010,12 @@ export function createSpawner({
             
             const dot = wx * vx + wy * vy;
             
+            let limitSq = radiusSq;
+            if (useVisualHitbox && (c.sizeIndex || 0) > 0) {
+                 const r = size / 2;
+                 limitSq = r * r;
+            }
+
             let hit = false;
             if (dot <= 0) {
                 if ((wx * wx + wy * wy) <= limitSq) hit = true;
