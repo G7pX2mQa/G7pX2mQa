@@ -423,7 +423,9 @@ export function createSpawner({
         };
 
         const waveCenterX = spawnX + size / 2;
-        const waveCenterY = spawnY + size / 2;
+        // Shift wave spawn up so it starts slightly offscreen (top edge)
+        // Adjust this factor to control how much "offscreen" it starts
+        const waveCenterY = spawnY + size / 2 - size * 0.8;
 
         return {
             wave: { x: waveCenterX, y: waveCenterY, size: size },
@@ -1007,12 +1009,6 @@ export function createSpawner({
             const wy = cy - y1;
             
             const dot = wx * vx + wy * vy;
-            
-            let limitSq = radiusSq;
-            if (useVisualHitbox && (c.sizeIndex || 0) > 0) {
-                 const r = size / 2;
-                 limitSq = r * r;
-            }
             
             let hit = false;
             if (dot <= 0) {
