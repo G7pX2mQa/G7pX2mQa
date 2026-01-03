@@ -5,34 +5,14 @@
   position: relative;
 }
 
-/* Layer order: sand (default) < water-base (3) < coins (5) < surges (80 - WebGL) */
+/* Layer order: water-background (1) < coins (5) < surges (80 - WebGL) */
 
 /* Coins — behind water & surges */
 .area-cove .playfield .coins-layer {
   position: absolute;
   inset: 0;
-  z-index: 5; /* Above water-base (3), below WebGL waves (80) */
+  z-index: 5; /* Above water-base (1), below WebGL waves (80) */
   pointer-events: none;
-}
-
-/* Static water band (visible at the top) */
-.area-cove .playfield .water-base {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: min(22svh, 22%);
-  z-index: 3;
-
-  /* Deep Blue Gradient - Matched to WebGL Water System */
-  background: linear-gradient(
-    to bottom,
-    rgb(87, 187, 219) 0%,
-    hsl(191 64% 56%) 35%,
-    hsl(188 60% 54% / 0.5) 65%,
-    transparent 100%
-  );
-
-  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
-          mask-image: linear-gradient(to bottom, #000 70%, transparent 100%);
 }
 
 /* Surges container - Kept for legacy structure if needed, but WebGL handles visuals */
