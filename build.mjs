@@ -307,7 +307,9 @@ function escapeTemplateNewlines(content) {
     COMMENT_MULTI: 9,
     TEMPLATE_EXPR_COMMENT_SINGLE: 10,
     TEMPLATE_EXPR_COMMENT_MULTI: 11,
-    REGEX: 12
+    REGEX: 12,
+    TEMPLATE_EXPR_REGEX: 14,
+    TEMPLATE_EXPR_REGEX_CLASS: 15
   };
 
   let state = State.CODE;
@@ -415,49 +417,11 @@ function escapeTemplateNewlines(content) {
       case State.REGEX: {
           if (escaped) { escaped = false; output += ch; break; }
           if (ch === "\\") { escaped = true; output += ch; break; }
-          if (ch === "[") { 
-              // Char class inside regex. Handles `/[/]/`
-              // We need a sub-state or just simple counting?
-              // Simple regex state might be enough if we just handle escaped chars.
-              // But `[` can contain `/`.
-              // We effectively need to ignore `/` until `]`.
-              // But `]` can be escaped.
-              // Let's rely on escape handling. `[` is not special for state transition unless we track it?
-              // Standard regex grammar: `[` starts Class. `\` escapes next. `]` ends Class.
-              // `/` inside Class is char.
-              // So we need to handle Class state.
-              // Let's just assume no nested classes (they aren't valid in JS regex).
-              // Actually `[` escapes are valid.
-              // We can hack this by saying if we see `[`, we wait for `]`.
-              // But wait, `escapeTemplateNewlines` is a single pass.
-              // We can switch to REGEX_CLASS state?
-              // Let's keep it simple: Just handle escapes.
-              // If we see `[`, we enter "REGEX_CLASS" logic implicitly?
-              // No, let's make it explicit or `[` might contain `/`.
-              // `var r = /[/]/;` -> `[` starts class. `/` is literal. `]` ends. `/` ends regex.
-              // If we don't handle `[`, we see `/` and end regex at the middle slash.
-              // So yes, we need REGEX_CLASS.
-              // But let's add `REGEX_CLASS` to enum if needed. Or just a flag.
-              // But the state enum is integer.
-              // Let's optimize: `REGEX` state will handle `[` manually?
-              // No, cleanest is a new state.
-              // But I can't easily change the enum structure mid-loop logic without re-architecting.
-              // Actually I can just add `REGEX_CLASS` state.
-              // But I'll do it inline:
-              // If ch === '[', we just output and enter a "loop until ]" block? No, async input stream? No, sync string.
-              // We can't block.
-              // So I will assume `[` means simple class.
-              // But wait, `build.mjs` state machine approach is fine.
-              // I'll add `REGEX_CLASS` state.
-          }
-          // Wait, I can't add state to the `switch` if I don't define it in the const.
-          // I will define it.
-          // State.REGEX_CLASS = 13.
-          
+          if (ch === "[") { state = 13; output += ch; break; } // Enter REGEX_CLASS
           if (ch === "/") {
               state = State.CODE;
               output += ch;
-              updateLastChar(ch); // Regex literal is a value
+              updateLastChar(ch);
               break;
           }
           output += ch;
@@ -497,7 +461,16 @@ function escapeTemplateNewlines(content) {
         if (escaped) { escaped = false; output += ch; break; }
         if (ch === "\\") { escaped = true; output += ch; break; }
         if (ch === "`") { state = State.CODE; output += ch; updateLastChar(ch); break; }
-        if (ch === "$" && next === "{") { state = State.TEMPLATE_EXPR_CODE; braceDepth = 1; output += "${"; i += 1; break; }
+        if (ch === "$" && next === "{") { 
+            state = State.TEMPLATE_EXPR_CODE; 
+            braceDepth = 1; 
+            output += "${"; 
+            i += 1; 
+            lastNonSpaceChar = '{';
+            lastWord = '';
+            isCollectingWord = false;
+            break; 
+        }
         if (ch === "\n" || ch === "\r") { emitEscapedNewline(); break; }
         output += ch;
         break;
@@ -505,19 +478,40 @@ function escapeTemplateNewlines(content) {
       case State.TEMPLATE_EXPR_CODE: {
         if (ch === "/" && next === "/") { state = State.TEMPLATE_EXPR_COMMENT_SINGLE; output += ch; break; }
         if (ch === "/" && next === "*") { state = State.TEMPLATE_EXPR_COMMENT_MULTI; output += ch; break; }
+        
+        if (ch === "/") {
+            let isDivision = false;
+            if (lastNonSpaceChar) {
+                if (/[)\]}'"`]/.test(lastNonSpaceChar)) {
+                    isDivision = true;
+                } else if (/[a-zA-Z0-9_$]/.test(lastNonSpaceChar)) {
+                    if (REGEX_PRECEDING_KEYWORDS.has(lastWord)) {
+                        isDivision = false;
+                    } else {
+                        isDivision = true;
+                    }
+                }
+            }
+            if (!isDivision) {
+                state = State.TEMPLATE_EXPR_REGEX;
+            }
+        }
+        
         if (escaped) { escaped = false; output += ch; break; }
         if (ch === "\\") { escaped = true; output += ch; break; }
         if (ch === "'") { state = State.TEMPLATE_EXPR_SINGLE; output += ch; break; }
         if (ch === '"') { state = State.TEMPLATE_EXPR_DOUBLE; output += ch; break; }
         if (ch === "`") { state = State.TEMPLATE_EXPR_TEMPLATE; output += ch; break; }
-        if (ch === "{") { braceDepth += 1; output += ch; break; }
+        if (ch === "{") { braceDepth += 1; output += ch; updateLastChar(ch); break; }
         if (ch === "}") {
           braceDepth -= 1;
           output += ch;
+          updateLastChar(ch);
           if (braceDepth <= 0) state = State.TEMPLATE;
           break;
         }
         output += ch;
+        updateLastChar(ch);
         break;
       }
       case State.TEMPLATE_EXPR_SINGLE: {
@@ -552,8 +546,23 @@ function escapeTemplateNewlines(content) {
       case State.TEMPLATE_EXPR_TEMPLATE: {
         if (escaped) { escaped = false; output += ch; break; }
         if (ch === "\\") { escaped = true; output += ch; break; }
-        if (ch === "`") { state = State.TEMPLATE_EXPR_CODE; output += ch; break; }
-        if (ch === "$" && next === "{") { state = State.TEMPLATE_EXPR_CODE; braceDepth += 1; output += "${"; i += 1; break; }
+        if (ch === "`") { 
+            state = State.TEMPLATE_EXPR_CODE; 
+            output += ch; 
+            // When returning to code from template, the backtick IS the last char
+            updateLastChar(ch); 
+            break; 
+        }
+        if (ch === "$" && next === "{") { 
+            state = State.TEMPLATE_EXPR_CODE; 
+            braceDepth += 1; 
+            output += "${"; 
+            i += 1; 
+            lastNonSpaceChar = '{';
+            lastWord = '';
+            isCollectingWord = false;
+            break; 
+        }
         if (ch === "\n" || ch === "\r") { emitEscapedNewline(); break; }
         output += ch;
         break;
@@ -566,243 +575,35 @@ function escapeTemplateNewlines(content) {
           output += ch;
           break;
       }
+      
+      case State.TEMPLATE_EXPR_REGEX: {
+          if (escaped) { escaped = false; output += ch; break; }
+          if (ch === "\\") { escaped = true; output += ch; break; }
+          if (ch === "[") { state = State.TEMPLATE_EXPR_REGEX_CLASS; output += ch; break; } 
+          if (ch === "/") {
+              state = State.TEMPLATE_EXPR_CODE;
+              output += ch;
+              updateLastChar(ch);
+              break;
+          }
+          output += ch;
+          break;
+      }
+      
+      case State.TEMPLATE_EXPR_REGEX_CLASS: {
+          if (escaped) { escaped = false; output += ch; break; }
+          if (ch === "\\") { escaped = true; output += ch; break; }
+          if (ch === "]") { state = State.TEMPLATE_EXPR_REGEX; output += ch; break; }
+          output += ch;
+          break;
+      }
+      
       default: {
         output += ch;
       }
     }
     
-    // Patch state transition to include REGEX_CLASS from REGEX
-    if (state === State.REGEX && !escaped && ch === '[') {
-        state = 13; // REGEX_CLASS
-    }
   }
 
   return output;
 }
-
-function escapeNewlinesPlugin() {
-  return {
-    name: "escape-template-newlines",
-    setup(build) {
-      build.onEnd(async (result) => {
-        if (result.errors.length) return;
-        const outputs = Object.keys(result.metafile?.outputs || {}).filter((f) => f.endsWith(".js"));
-        if (!outputs.length) return;
-
-        await Promise.all(
-          outputs.map(async (outfile) => {
-            const resolved = path.isAbsolute(outfile) ? outfile : path.resolve(outfile);
-            const original = await fs.readFile(resolved, "utf8");
-            const escaped = escapeTemplateNewlines(original);
-            if (escaped !== original) {
-              await fs.writeFile(resolved, escaped, "utf8");
-            }
-          })
-        );
-      });
-    },
-  };
-}
-
-function buildOptions({ minify, sourcemap }) {
-  return {
-    entryPoints: { bundle: APP_ENTRY, styles: STYLES_ENTRY },
-    entryNames: "[name]",
-    bundle: true,
-    outdir: DIST_DIR,
-    write: true,
-    minify,
-    sourcemap,
-    metafile: true,
-    loader: {
-      ".css": "css",
-      ".html": "text",
-      ".jpg": "file",
-      ".jpeg": "file",
-      ".webp": "file",
-      ".svg": "file",
-      ".ico": "file",
-      ".ogg": "file",
-      ".wav": "file",
-    },
-    assetNames: "assets/[name]-[hash]",
-    external: ["img/*", "sounds/*", "favicon/*"],
-    logOverride: { "ignored-bare-import": "silent" },
-    plugins: [
-      escapeNewlinesPlugin(),
-      htmlTemplateMinifierPlugin({ enabled: minify }),
-      htmlOutputPlugin({ template: "index.html", minify }),
-    ],
-  };
-}
-
-async function buildAssets({ minify, sourcemap }) {
-  await build(buildOptions({ minify, sourcemap }));
-}
-async function copyStaticAssets() {
-  await fs.mkdir(DIST_DIR, { recursive: true });
-
-  const tasks = [
-    fs.cp("favicon", resolveDist("favicon"), { recursive: true, force: true }),
-    fs.cp("img", resolveDist("img"), { recursive: true, force: true }),
-    fs.cp("sounds", resolveDist("sounds"), { recursive: true, force: true }),
-  ];
-
-  await Promise.all(tasks);
-}
-
-function modeOptions(mode) {
-  if (mode === "prod") {
-    return { minify: true, sourcemap: "external" };
-  }
-  return { minify: false, sourcemap: true };
-}
-
-async function buildAll({ mode = "dev" } = {}) {
-  const { minify, sourcemap } = modeOptions(mode);
-  await resetDistDir();
-  await Promise.all([buildAssets({ minify, sourcemap }), copyStaticAssets()]);
-}
-
-async function watchAll() {
-  const { minify, sourcemap } = modeOptions("dev");
-  await resetDistDir();
-  const buildContext = await context(buildOptions({ minify, sourcemap }));
-  await buildContext.watch();
-  await copyStaticAssets();
-
-  const watchers = [];
-
-  const staticTargets = [
-    { path: "favicon", recursive: true, task: copyStaticAssets },
-    { path: "img", recursive: true, task: copyStaticAssets },
-    { path: "sounds", recursive: true, task: copyStaticAssets },
-  ];
-
-  const sourceTargets = [
-    { path: "index.html", recursive: false, task: () => buildContext.rebuild() },
-  ];
-
-  const addWatcher = ({ path: target, recursive, task }) => {
-    if (!target) return;
-    watchers.push(
-      watch(target, { recursive }, async () => {
-        await task();
-      })
-    );
-  };
-
-  [...staticTargets, ...sourceTargets].forEach(addWatcher);
-
-  process.on("SIGINT", async () => {
-    await Promise.all([buildContext.dispose()]);
-    watchers.forEach((w) => w.close());
-    process.exit(0);
-  });
-}
-
-async function serveAll({ mode = "dev" } = {}) {
-  const { minify, sourcemap } = modeOptions(mode);
-  await resetDistDir();
-  const buildContext = await context(buildOptions({ minify, sourcemap }));
-  await buildContext.watch();
-  await copyStaticAssets();
-
-  const watchers = [];
-
-  const staticTargets = [
-    { path: "favicon", recursive: true, task: copyStaticAssets },
-    { path: "img", recursive: true, task: copyStaticAssets },
-    { path: "sounds", recursive: true, task: copyStaticAssets },
-  ];
-
-  const sourceTargets = [
-    { path: "index.html", recursive: false, task: () => buildContext.rebuild() },
-  ];
-
-  const addWatcher = ({ path: target, recursive, task }) => {
-    if (!target) return;
-    watchers.push(
-      watch(target, { recursive }, async () => {
-        await task();
-      })
-    );
-  };
-
-  [...staticTargets, ...sourceTargets].forEach(addWatcher);
-
-  const internalServer = await buildContext.serve({ servedir: DIST_DIR, port: 8001, host: "127.0.0.1" });
-
-  const proxy = http.createServer((req, res) => {
-    const forward = http.request(
-      {
-        hostname: internalServer.host,
-        port: internalServer.port,
-        path: req.url,
-        method: req.method,
-        headers: req.headers,
-      },
-      (proxyRes) => {
-        res.writeHead(proxyRes.statusCode || 500, {
-          ...proxyRes.headers,
-          "cache-control": "public, max-age=31536000, immutable",
-        });
-        proxyRes.pipe(res, { end: true });
-      }
-    );
-
-    forward.on("error", (err) => {
-      console.error("Proxy error", err);
-      res.statusCode = 502;
-      res.end("Proxy error");
-    });
-
-    if (req.readableEnded) {
-      forward.end();
-    } else {
-      req.pipe(forward, { end: true });
-    }
-  });
-
-  proxy.listen(8000, "0.0.0.0", () => {
-    console.log(`Serving ${DIST_DIR} at http://localhost:8000`);
-  });
-
-  const shutdown = async () => {
-    await Promise.all([buildContext.dispose()]);
-    internalServer.stop();
-    proxy.close();
-    watchers.forEach((w) => w.close());
-    process.exit(0);
-  };
-
-  process.on("SIGINT", shutdown);
-}
-
-function parseMode(args) {
-  return args.includes("--prod") ? "prod" : "dev";
-}
-
-async function main() {
-  const [command, ...rest] = process.argv.slice(2);
-  const mode = parseMode(rest);
-
-  if (command === "build") {
-    await buildAll({ mode });
-    return;
-  }
-
-  if (command === "watch") {
-    await watchAll();
-    return;
-  }
-
-  if (command === "serve") {
-    await serveAll({ mode });
-    return;
-  }
-
-  console.log("Usage: node build.mjs [build|watch|serve] [--prod|--dev]");
-}
-
-await main();
