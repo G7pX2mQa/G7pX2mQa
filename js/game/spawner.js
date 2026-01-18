@@ -10,7 +10,7 @@ import { waterSystem} from './webgl/waterSystem.js';
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0n;
 
-const MAX_ACTIVE_COINS_MOBILE = 2500;
+const MAX_ACTIVE_COINS_MOBILE = 2500
 
 // Cache for coin images (src -> Image)
 const imgCache = new Map();
@@ -89,7 +89,7 @@ const COIN_SOUND_SUFFIXES = [
 
 export function createSpawner({
     playfieldSelector = '.area-cove .playfield',
-    waterSelector = '.water-base',
+    waterSelector = '#water-logic-marker',
     coinsHost = '.coins-layer',
     coinSrc = 'img/coin/coin.webp',
     coinSize: baseCoinSize = 40, // Renamed to baseCoinSize
