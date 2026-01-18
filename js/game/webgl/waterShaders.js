@@ -9,25 +9,23 @@ void main() {
 }
 `;
 
-// --- BACKGROUND SHADER (Water Body) ---
-// Darker at top, clearer (transparent) at bottom.
-// Slight wobble using noise/time.
-// Updated to react to wave simulation and handle alpha better.
-export const BACKGROUND_FRAGMENT_SHADER = `
+// Main Water Shader (Renders the final water look using the FBO map)
+export const FRAGMENT_SHADER = `
 precision mediump float;
 
 varying vec2 vUv;
 uniform float uTime;
 uniform vec2 uResolution;
+uniform sampler2D uWaveMap; // [R = height/intensity]
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
-uniform sampler2D uWaveMap;
-uniform float uHeightRatio; 
+uniform vec3 uColorFoam;
 
-// Simple noise for wobble
+// Simple pseudo-random noise
 float random(vec2 st) {
     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
 }
+
 float noise(vec2 st) {
     vec2 i = floor(st);
     vec2 f = fract(st);
@@ -39,87 +37,88 @@ float noise(vec2 st) {
     return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
 }
 
-void main() {
-    // 1. Remap UVs to match the Wave Simulation
-    // Bg covers the top portion of the screen (e.g. 0 to 18%)
-    // But in WebGL UVs (0 at bottom, 1 at top), this corresponds to the TOP slice.
-    // So BgUV range [0, 1] maps to WaveUV range [1.0 - ratio, 1.0]
-    float waveV = vUv.y * uHeightRatio + (1.0 - uHeightRatio);
-    vec2 waveUv = vec2(vUv.x, waveV);
-
-    // Sample Wave Map for distortion
-    float waveVal = texture2D(uWaveMap, waveUv).r;
-
-    // 2. Wobble logic + Wave Interaction
-    float timeScale = uTime * 0.8;
-    float wobbleX = sin(vUv.y * 12.0 + timeScale) * 0.008;
-    float wobbleY = cos(vUv.x * 12.0 + timeScale) * 0.008;
-    
-    // Wave Push: Stronger push where waves are present
-    vec2 wavePush = vec2(0.0, waveVal * 0.05);
-
-    vec2 distortedUv = vUv + vec2(wobbleX, wobbleY) + wavePush;
-    
-    // Gradient Factor: 1.0 at Top, 0.0 at Bottom
-    float depth = smoothstep(0.0, 1.0, distortedUv.y);
-    
-    // Color Mix
-    // Deep color at top, Shallow color at bottom
-    // Bias towards deep
-    vec3 color = mix(uColorShallow, uColorDeep, smoothstep(0.2, 0.9, depth));
-    
-    // Alpha Mix
-    // "Not white at the end" -> Keep it opaque or semi-opaque at the bottom
-    // We keep alpha high to ensure the blue color is visible against the background.
-    // Old: smoothstep(0.1, 0.8, depth + n * 0.05) -> Fades to 0.0
-    // New: Blend from 0.8 (bottom) to 1.0 (top)
-    float alpha = smoothstep(-0.5, 0.8, depth); 
-    alpha = clamp(alpha, 0.85, 1.0); // Minimum opacity 0.85 to avoid "white" look
-    
-    gl_FragColor = vec4(color, alpha);
-}
-`;
-
-// --- FOREGROUND SHADER (Waves/Surges) ---
-// High speed, Foam at crests, Transparent elsewhere.
-export const FRAGMENT_SHADER = `
-precision mediump float;
-
-varying vec2 vUv;
-uniform float uTime;
-uniform vec2 uResolution;
-uniform sampler2D uWaveMap; 
-uniform vec3 uColorDeep;
-uniform vec3 uColorShallow;
-uniform vec3 uColorFoam;
-
-void main() {
-    vec4 waveInfo = texture2D(uWaveMap, vUv);
-    float waveVal = waveInfo.r; 
-    
-    // Threshold: Only draw if wave is strong enough
-    if (waveVal < 0.05) {
-        discard; // Fully transparent
+float fbm(vec2 st) {
+    float v = 0.0;
+    float a = 0.5;
+    vec2 shift = vec2(100.0);
+    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+    for (int i = 0; i < 3; ++i) {
+        v += a * noise(st);
+        st = rot * st * 2.0 + shift;
+        a *= 0.5;
     }
+    return v;
+}
+
+void main() {
+    // 1. Sample Wave Map
+    // We sample center and neighbors to get normals
+    vec4 waveInfo = texture2D(uWaveMap, vUv);
+    float waveVal = waveInfo.r; // Intensity
     
-    // Calculate intensity for foam
-    // "Waves should extend slightly past the water" -> handled by wave simulation propagation
+    // 2. Coordinate setup
+    // vUv.y = 1.0 at Top.
+    // distFromTop: 0.0 (Top) -> 1.0 (Bottom)
+    float distFromTop = 1.0 - vUv.y;
     
-    // Foam logic: High wave values = Foam
-    float foamThreshold = 0.6;
-    float isFoam = smoothstep(foamThreshold, foamThreshold + 0.1, waveVal);
+    // 3. Define Water Edge
+    // The "Shoreline" is defined by a base level + wave intensity pushing it down.
+    // Base level: How far down the screen the calm water extends (e.g., 0.18 = 18% down)
+    float baseLevel = 0.02; 
     
-    // Color
-    // Mix between Shallow Blue and Foam White
-    vec3 finalColor = mix(uColorShallow, uColorFoam, isFoam);
+    // Wave influence: Waves push the edge further down.
+    // scale waveVal to a screen-percentage displacement.
+    float wavePush = waveVal * 0.80; 
     
-    // Alpha
-    // Waves must be opaque enough to cover the coins (which are behind them)
-    // "Waves should be fast enough to cover the coins for a while until they fade"
-    float alpha = smoothstep(0.05, 0.4, waveVal); // Linear fade in
-    alpha = clamp(alpha, 0.0, 1.0); // Ensure it hits 1.0 for opacity
+    float waterEdge = baseLevel + wavePush;
     
-    gl_FragColor = vec4(finalColor, alpha);
+    // 4. Alpha Mask (The Cutoff)
+    // We want opaque water above the edge, transparent below.
+    // Use a small smoothstep for anti-aliasing but keep it sharp.
+    float edgeSoftness = 0.01;
+    // If distFromTop < waterEdge -> water
+    // distFromTop > waterEdge -> dry
+    // smoothstep(waterEdge - edgeSoftness, waterEdge, distFromTop) goes 0->1 at the edge
+    // We want 1->0
+    float alpha = 1.0 - smoothstep(waterEdge - edgeSoftness, waterEdge, distFromTop);
+    
+    if (alpha < 0.01) {
+        // Discarding can save fill rate, but setting alpha to 0 is also fine.
+        gl_FragColor = vec4(0.0);
+        return;
+    }
+
+    // 5. Water Surface Color
+    // Mix Deep (Top) to Shallow (Near Edge)
+    // Normalize distFromTop against the current waterEdge to get a 0.0-1.0 gradient within the water body
+    // Avoid divide by zero
+    float safeEdge = max(waterEdge, 0.001);
+    float depthFactor = clamp(distFromTop / safeEdge, 0.0, 1.0);
+    
+    // Distortion from waves for the noise lookup
+    float eps = 2.0 / uResolution.x;
+    float hRight = texture2D(uWaveMap, vUv + vec2(eps, 0.0)).r;
+    float hUp    = texture2D(uWaveMap, vUv + vec2(0.0, eps)).r;
+    vec2 distortion = vec2(waveVal - hRight, waveVal - hUp) * 4.0;
+    
+    // Base Water Pattern (FBM)
+    vec2 st = gl_FragCoord.xy / uResolution.xy;
+    vec2 aspect = vec2(uResolution.x / uResolution.y, 1.0);
+    vec2 uv = st * aspect;
+    vec2 distortedUV = uv + distortion * 0.05;
+    
+    // FBM Noise for water surface
+    float noiseVal = fbm(distortedUV * 8.0 + uTime * 0.2);
+    
+    // Mix Colors
+    // calm deep water at top, shallow at bottom, modulated by noise
+    vec3 waterColor = mix(uColorDeep, uColorShallow, depthFactor + noiseVal * 0.1);
+    
+    // 6. No Foam (User Request)
+    // Just use the base water color
+    vec3 finalColor = waterColor;
+
+    gl_FragColor = vec4(finalColor, alpha * 0.95);
 }
 `;
 
@@ -127,7 +126,7 @@ void main() {
 export const WAVE_VERTEX_SHADER = `
 attribute vec2 aPosition;
 attribute vec2 aUv;
-attribute float aAlpha; 
+attribute float aAlpha; // Not strictly used if we just draw fresh, but kept for compatibility
 
 varying vec2 vUv;
 varying float vAlpha;
@@ -150,20 +149,40 @@ float random(vec2 st) {
 }
 
 void main() {
-    float xDist = abs(vUv.x - 0.5) * 2.0; 
+    // We want a "Wave Front" shape.
+    // Center 0.5.
+    // Shape: Horizontal arc, fading at sides, sharp at bottom (leading edge), soft at top (trailing edge).
+    
+    // 1. Horizontal Fade (Sides)
+    float xDist = abs(vUv.x - 0.5) * 2.0; // 0 to 1
     float xFade = smoothstep(1.0, 0.0, xDist);
+    
+    // 2. Vertical Profile
+    // We want it to look like it's crashing DOWN.
+    // Bottom (y=1 in texture? No, y=0 is usually bottom in UVs, but let's check orientation).
+    // Let's assume standard UV: 0,0 bottom-left.
+    // We want the "Front" to be at the bottom or top depending on motion.
+    // User said "crashing in from top".
+    // So the wave should visually look like the leading edge is at the bottom (moving down).
     
     float y = vUv.y;
     
-    // Shape logic: Curved wave front
-    float curve = (vUv.x - 0.5) * (vUv.x - 0.5) * 0.5;
-    float yRel = vUv.y - curve; 
+    // Sharp leading edge at bottom (near 0), soft trailing edge at top (near 1)
+    // Actually, let's center it vertically so we don't clip.
     
+    // Curve: Bend the y slightly based on x to give it a "C" or "U" shape?
+    // A slight "U" shape (sides higher) looks like a wave front.
+    float curve = (vUv.x - 0.5) * (vUv.x - 0.5) * 0.5;
+    float yRel = vUv.y - curve; // Adjusted Y
+    
+    // Main Intensity Profile
+    // Peak around 0.3, fade up to 1.0, sharp cut below 0.2
     float front = smoothstep(0.1, 0.3, yRel);
     float back = smoothstep(0.9, 0.3, yRel);
     
     float shape = front * back * xFade;
     
+    // Add some noise for "foam" / "water" texture
     float n = random(vUv * 10.0);
     shape *= (0.8 + 0.2 * n);
     
@@ -172,7 +191,6 @@ void main() {
 `;
 
 // Simulation Shader: Handles Decay and Flow
-// "Coins rushing in very quickly... violent" -> High speed flow
 export const SIMULATION_FRAGMENT_SHADER = `
 precision mediump float;
 
@@ -183,26 +201,26 @@ uniform float uDt;
 void main() {
     vec2 uv = gl_FragCoord.xy / uResolution;
     
-    // Flow Vector: Moves waves DOWN rapidly
-    // Increased offset for "Violent" speed
-    // Old: 0.003 -> New: 0.008 -> Newer: 0.015
-    vec2 flowOffset = vec2(0.0, 0.015); 
+    // Flow/Drift Logic
+    // "Crashing in from top" -> Waves should move DOWN screen.
+    // To move content DOWN, we sample UP (y + offset).
+    vec2 offset = vec2(0.0, 0.003); // Drift speed
     
-    vec4 color = texture2D(uLastFrame, uv + flowOffset);
+    // Sample
+    vec4 color = texture2D(uLastFrame, uv + offset);
     
-    // Decay: Waves fade out over time
-    // We want them to stick around long enough to cover coins, but not forever.
-    // 0.98 is very slow decay. 0.95 is fast. 0.92 is faster.
-    color *= 0.92; 
+    // Decay
+    // Fade out over time.
+    color *= 0.96; 
     
-    // Diffusion (Blur/Spread)
-    // Reduced diffusion to keep them "distinct"
+    // Optional: Horizontal spread (diffusion) to make it ripple?
+    // Simple 3-tap blur on X
     float eps = 1.0 / uResolution.x;
-    vec4 l = texture2D(uLastFrame, uv + flowOffset + vec2(-eps, 0.0));
-    vec4 r = texture2D(uLastFrame, uv + flowOffset + vec2(eps, 0.0));
+    vec4 l = texture2D(uLastFrame, uv + offset + vec2(-eps, 0.0));
+    vec4 r = texture2D(uLastFrame, uv + offset + vec2(eps, 0.0));
     
-    // Low mix factor = crisper edges
-    color = mix(color, (l + r) * 0.5, 0.02); 
+    // Slight blur integration
+    color = mix(color, (l + r) * 0.5, 0.1);
 
     gl_FragColor = color;
 }
