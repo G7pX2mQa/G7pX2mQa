@@ -57,11 +57,16 @@ export function ensureGameDom() {
       </div>
 
       <section class="playfield" aria-label="Starter Cove Sand">
-        <div class="waves" id="waves"></div>
+        <!-- Logic Marker for Physics -->
+        <div id="water-logic-marker" style="position: absolute; top: 0; left: 0; width: 100%; height: 22%; pointer-events: none; visibility: hidden;"></div>
 
-        <canvas id="water-background" class="water-base" style="position: absolute; top: 0; left: 0; width: 100%; height: 18%; pointer-events: none; z-index: 1;"></canvas>
+        <!-- Background Water (Ripples) - Behind Coins -->
+        <canvas id="water-background" class="water-base" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;"></canvas>
+
         <div class="coins-layer" id="coins-layer"></div>
-        <canvas id="water-effects" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99;"></canvas>
+
+        <!-- Foreground Waves (Foam) - Above Coins -->
+        <canvas id="water-effects" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 80;"></canvas>
       </section>
 
       <nav class="hud-bottom" id="hud-bottom">
