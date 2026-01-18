@@ -1,426 +1,340 @@
-import { COMMON_VERTEX_SHADER, RIPPLE_SIM_FS, RIPPLE_DROP_FS, WATER_RENDER_FS, FOAM_QUAD_VS, FOAM_FS } from './waterShaders.js';
+import {
+    VERTEX_SHADER,
+    BACKGROUND_FRAGMENT_SHADER,
+    FRAGMENT_SHADER,
+    WAVE_VERTEX_SHADER,
+    WAVE_BRUSH_FRAGMENT_SHADER,
+    SIMULATION_FRAGMENT_SHADER
+} from './waterShaders.js';
+
+// --- Colors Extracted from Legacy 2D System ---
+const COLOR_DEEP = [0.039, 0.180, 0.302];    // #0a2e4d
+const COLOR_SHALLOW = [0.161, 0.502, 0.725]; // #2980b9
+const COLOR_FOAM = [1.0, 1.0, 1.0];
+
+function createShader(gl, type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+    }
+    return shader;
+}
+
+function createProgram(gl, vsSource, fsSource) {
+    const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+    const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+    if (!vs || !fs) return null;
+
+    const program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Program link error:', gl.getProgramInfoLog(program));
+        return null;
+    }
+    return program;
+}
 
 export class WaterSystem {
     constructor() {
-        // --- Contexts ---
+        this.bgCanvas = null;
+        this.fgCanvas = null;
         this.glBg = null;
         this.glFg = null;
-        this.canvasBg = null;
-        this.canvasFg = null;
-        
-        // --- Background (Ripple Sim) ---
-        this.bgWidth = 0;
-        this.bgHeight = 0;
-        this.rippleRes = 0.5; // Resolution scale for simulation
-        
-        this.fbo1 = null; this.tex1 = null;
-        this.fbo2 = null; this.tex2 = null;
-        this.bgQuadBuffer = null;
-        
-        this.progSim = null;
-        this.progDrop = null;
-        this.progRender = null;
-        
-        this.dropQueue = []; // {x, y, radius, strength} (Normalized UV)
-        
-        // --- Foreground (Foam) ---
-        this.fgWidth = 0;
-        this.fgHeight = 0;
-        
-        this.foamParticles = []; 
-        this.MAX_PARTICLES = 1000;
-        this.foamData = new Float32Array(this.MAX_PARTICLES * 6 * 6); // 6 verts * 6 floats (2pos + 2center + 1size + 1life)
-        this.foamBuffer = null;
-        this.progFoam = null;
 
-        // Extensions
-        this.extFloat = null;
-        this.extLinear = null;
+        this.bgProgram = null;
+        this.fgProgram = null;
+        this.simProgram = null;
+        this.brushProgram = null;
+
+        this.width = 0;
+        this.height = 0;
+        this.lastTime = 0;
+
+        // Simulation State
+        this.simRes = 256;
+        this.readFBO = null;
+        this.writeFBO = null;
+        this.readTexture = null;
+        this.writeTexture = null;
+
+        // Buffers
+        this.quadBufferBg = null;
+        this.quadBufferFg = null;
+        this.brushBuffer = null;
+
+        this._boundResize = null;
     }
 
-    init(bgId, fgId) {
-        this.canvasBg = document.getElementById(bgId);
-        this.canvasFg = document.getElementById(fgId);
-        
-        if (!this.canvasBg || !this.canvasFg) return;
-        
-        // Initialize Background GL
-        this.glBg = this.canvasBg.getContext('webgl', { depth: false, alpha: false });
-        // Initialize Foreground GL
-        this.glFg = this.canvasFg.getContext('webgl', { depth: false, alpha: true, premultipliedAlpha: false });
-        
+    init(backCanvasId, frontCanvasId) {
+        this.bgCanvas = document.getElementById(backCanvasId);
+        this.fgCanvas = document.getElementById(frontCanvasId);
+
+        if (!this.bgCanvas || !this.fgCanvas) return;
+
+        // Enable Foreground Canvas (Previously hidden)
+        this.fgCanvas.style.display = 'block';
+
+        // Initialize WebGL Contexts
+        this.glBg = this.bgCanvas.getContext('webgl', { alpha: true, depth: false }) || 
+                    this.bgCanvas.getContext('experimental-webgl');
+        this.glFg = this.fgCanvas.getContext('webgl', { alpha: true, depth: false }) || 
+                    this.fgCanvas.getContext('experimental-webgl');
+
         if (!this.glBg || !this.glFg) {
-            console.error('WebGL not supported');
+            console.error('WaterSystem: WebGL not supported');
             return;
         }
-        
-        this.initBg();
-        this.initFg();
+
+        this.initShaders();
+        this.initBuffers();
+        this.initSimulation();
         
         this.resize();
-        window.addEventListener('resize', () => this.resize());
-    }
-    
-    initBg() {
-        const gl = this.glBg;
-        gl.disable(gl.DEPTH_TEST);
         
-        // Enable Extensions for Float Textures
-        this.extFloat = gl.getExtension('OES_texture_float');
-        this.extLinear = gl.getExtension('OES_texture_float_linear');
-
-        if (!this.extFloat) {
-            console.warn('WebGL OES_texture_float not supported. Water simulation may fall back to low precision or fail.');
+        if (!this._boundResize) {
+            this._boundResize = () => this.resize();
+            window.addEventListener('resize', this._boundResize);
         }
-
-        // Shaders
-        this.progSim = this.createProgram(gl, COMMON_VERTEX_SHADER, RIPPLE_SIM_FS, 'RIPPLE_SIM');
-        this.progDrop = this.createProgram(gl, COMMON_VERTEX_SHADER, RIPPLE_DROP_FS, 'RIPPLE_DROP');
-        this.progRender = this.createProgram(gl, COMMON_VERTEX_SHADER, WATER_RENDER_FS, 'WATER_RENDER');
-        
-        // Quad Buffer
-        this.bgQuadBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.bgQuadBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-            -1, -1, 0, 0,
-             1, -1, 1, 0,
-            -1,  1, 0, 1,
-             1,  1, 1, 1
-        ]), gl.STATIC_DRAW);
-        
-        // FBOs created in resize()
     }
-    
-    initFg() {
+
+    initShaders() {
+        // Background Context Shaders
+        this.bgProgram = createProgram(this.glBg, VERTEX_SHADER, BACKGROUND_FRAGMENT_SHADER);
+
+        // Foreground Context Shaders
+        this.fgProgram = createProgram(this.glFg, VERTEX_SHADER, FRAGMENT_SHADER);
+        this.simProgram = createProgram(this.glFg, VERTEX_SHADER, SIMULATION_FRAGMENT_SHADER);
+        this.brushProgram = createProgram(this.glFg, WAVE_VERTEX_SHADER, WAVE_BRUSH_FRAGMENT_SHADER);
+    }
+
+    initBuffers() {
+        const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+
+        // Background Quad
+        const glBg = this.glBg;
+        this.quadBufferBg = glBg.createBuffer();
+        glBg.bindBuffer(glBg.ARRAY_BUFFER, this.quadBufferBg);
+        glBg.bufferData(glBg.ARRAY_BUFFER, vertices, glBg.STATIC_DRAW);
+
+        // Foreground Quad (for Sim and Render)
+        const glFg = this.glFg;
+        this.quadBufferFg = glFg.createBuffer();
+        glFg.bindBuffer(glFg.ARRAY_BUFFER, this.quadBufferFg);
+        glFg.bufferData(glFg.ARRAY_BUFFER, vertices, glFg.STATIC_DRAW);
+
+        // Brush Buffer (Dynamic)
+        this.brushBuffer = glFg.createBuffer();
+    }
+
+    initSimulation() {
         const gl = this.glFg;
-        gl.disable(gl.DEPTH_TEST);
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        
-        this.progFoam = this.createProgram(gl, FOAM_QUAD_VS, FOAM_FS, 'FOAM');
-        
-        this.foamBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.foamBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, this.foamData.byteLength, gl.DYNAMIC_DRAW);
-    }
-    
-    createProgram(gl, vsSrc, fsSrc, name = '') {
-        if (!vsSrc || !fsSrc) {
-            console.error(`Shader source missing for ${name}`, { vsLen: vsSrc?.length, fsLen: fsSrc?.length });
-            return null;
-        }
+        const w = this.simRes;
+        const h = this.simRes;
 
-        const vs = gl.createShader(gl.VERTEX_SHADER);
-        gl.shaderSource(vs, vsSrc);
-        gl.compileShader(vs);
-        if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
-            console.error(`VS Compile Error (${name}):`, gl.getShaderInfoLog(vs));
-            return null;
-        }
-        
-        const fs = gl.createShader(gl.FRAGMENT_SHADER);
-        gl.shaderSource(fs, fsSrc);
-        gl.compileShader(fs);
-        if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
-            console.error(`FS Compile Error (${name}):`, gl.getShaderInfoLog(fs));
-            return null;
-        }
-        
-        const prog = gl.createProgram();
-        gl.attachShader(prog, vs);
-        gl.attachShader(prog, fs);
-        gl.linkProgram(prog);
-        
-        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-            console.error(`Link Error (${name}):`, gl.getProgramInfoLog(prog));
-            return null;
-        }
+        // Try to enable float textures
+        gl.getExtension('OES_texture_float');
+        gl.getExtension('OES_texture_float_linear');
 
-        return prog;
-    }
-    
-    resize() {
-        const dpr = Math.min(window.devicePixelRatio, 2);
-        
-        // BG Resize
-        if (this.canvasBg) {
-            const rect = this.canvasBg.getBoundingClientRect();
-            
-            // Prevent zero-size FBO creation
-            if (rect.width > 0 && rect.height > 0) {
-                this.canvasBg.width = rect.width * dpr * this.rippleRes;
-                this.canvasBg.height = rect.height * dpr * this.rippleRes;
-                this.bgWidth = this.canvasBg.width;
-                this.bgHeight = this.canvasBg.height;
-                this.initFBOs();
-            }
-        }
-        
-        // FG Resize
-        if (this.canvasFg) {
-            const rect = this.canvasFg.getBoundingClientRect();
-            if (rect.width > 0 && rect.height > 0) {
-                this.canvasFg.width = rect.width * dpr;
-                this.canvasFg.height = rect.height * dpr;
-                this.fgWidth = this.canvasFg.width;
-                this.fgHeight = this.canvasFg.height;
-                if (this.glFg) this.glFg.viewport(0, 0, this.fgWidth, this.fgHeight);
-            }
-        }
-    }
-    
-    initFBOs() {
-        const gl = this.glBg;
-        if (!gl) return;
-        
-        // Cleanup existing resources to prevent leaks
-        if (this.fbo1) gl.deleteFramebuffer(this.fbo1);
-        if (this.tex1) gl.deleteTexture(this.tex1);
-        if (this.fbo2) gl.deleteFramebuffer(this.fbo2);
-        if (this.tex2) gl.deleteTexture(this.tex2);
-
-        const createFBO = () => {
+        const createTex = () => {
             const tex = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, tex);
-            
-            // Determine Texture Type and Filter
-            let type = gl.UNSIGNED_BYTE;
-            let minFilter = gl.LINEAR;
-            let magFilter = gl.LINEAR;
-
-            if (this.extFloat) {
-                type = gl.FLOAT;
-                // Only use LINEAR filtering if the float_linear extension is present
-                if (!this.extLinear) {
-                    minFilter = gl.NEAREST;
-                    magFilter = gl.NEAREST;
-                }
-            }
-
-            // Safe texture initialization
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.bgWidth, this.bgHeight, 0, gl.RGBA, type, null);
-            
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.FLOAT, null);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            
-            const fbo = gl.createFramebuffer();
-            gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-            
-            // Check status
-            const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-            if (status !== gl.FRAMEBUFFER_COMPLETE) {
-                console.error("WaterSystem: Framebuffer incomplete", status);
-            }
-            
-            return { fbo, tex };
+            return tex;
         };
-        
-        const f1 = createFBO();
-        this.fbo1 = f1.fbo; this.tex1 = f1.tex;
-        
-        const f2 = createFBO();
-        this.fbo2 = f2.fbo; this.tex2 = f2.tex;
-        
-        // Clear
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo1);
-        gl.clearColor(0,0,0,0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo2);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    }
-    
-    addWave(x, y, size) {
-        // x,y are screen coordinates (pixels). size is pixel diameter.
-        
-        // 1. Add Ripple Drop
-        if (this.canvasBg) {
-            const rect = this.canvasBg.getBoundingClientRect(); 
-            // Protect against zero rect
-            if (rect.width > 0 && rect.height > 0) {
-                const uvX = x / rect.width;
-                const uvY = 1.0 - (y / rect.height); 
-                const radiusUV = (size * 0.5) / rect.width; 
-                
-                this.dropQueue.push({ x: uvX, y: uvY, r: radiusUV * 2.0, s: 0.15 });
-            }
-        }
-        
-        // 2. Add Foam Particle
-        if (this.foamParticles.length < this.MAX_PARTICLES) {
-            this.foamParticles.push({
-                x: x, 
-                y: y,
-                size: size * 2.0, // Initial splash size
-                life: 1.0,
-                vx: (Math.random() - 0.5) * 50,
-                vy: 100 + Math.random() * 100 // Move down
-            });
-        }
-    }
-    
-    update(dt) {
-        // Update Foam
-        for (let i = this.foamParticles.length - 1; i >= 0; i--) {
-            const p = this.foamParticles[i];
-            p.x += p.vx * dt;
-            p.y += p.vy * dt;
-            p.life -= dt * 1.5; // Fade fast
-            p.size += dt * 50; // Expand
-            
-            if (p.life <= 0) {
-                this.foamParticles.splice(i, 1);
-            }
-        }
-    }
-    
-    render(totalTime) {
-        this.renderBg(totalTime);
-        this.renderFg(totalTime);
-    }
-    
-    renderBg(time) {
-        const gl = this.glBg;
-        // Verify GL, FBOs, and Programs exist
-        if (!gl || !this.fbo1 || !this.fbo2) return;
-        if (!this.progSim || !this.progDrop || !this.progRender) return;
-        
-        gl.viewport(0, 0, this.bgWidth, this.bgHeight);
-        
-        const drawQuad = (prog) => {
-            gl.useProgram(prog);
-            const posLoc = gl.getAttribLocation(prog, 'aPosition');
-            const uvLoc = gl.getAttribLocation(prog, 'aUv');
-            
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.bgQuadBuffer);
-            gl.enableVertexAttribArray(posLoc);
-            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 16, 0);
-            gl.enableVertexAttribArray(uvLoc);
-            gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 16, 8);
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        };
-        
-        // 1. Process Drops (Ping-Pong)
-        if (this.dropQueue.length > 0) {
-            gl.useProgram(this.progDrop);
-            
-            // Set static uniforms once if possible, but we are switching FBOs
-            const uCenter = gl.getUniformLocation(this.progDrop, 'uCenter');
-            const uRadius = gl.getUniformLocation(this.progDrop, 'uRadius');
-            const uStrength = gl.getUniformLocation(this.progDrop, 'uStrength');
-            const uTexture = gl.getUniformLocation(this.progDrop, 'uTexture');
-            const uResolution = gl.getUniformLocation(this.progDrop, 'uResolution');
 
-            while(this.dropQueue.length > 0) {
-                const d = this.dropQueue.shift();
-                
-                gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo2);
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, this.tex1); // Read from current
-                
-                gl.uniform1i(uTexture, 0);
-                gl.uniform2f(uResolution, this.bgWidth, this.bgHeight);
-                gl.uniform2f(uCenter, d.x, d.y);
-                gl.uniform1f(uRadius, d.r);
-                gl.uniform1f(uStrength, d.s);
-                
-                drawQuad(this.progDrop);
-                
-                // Swap
-                const tempF = this.fbo1; this.fbo1 = this.fbo2; this.fbo2 = tempF;
-                const tempT = this.tex1; this.tex1 = this.tex2; this.tex2 = tempT;
-            }
+        this.readTexture = createTex();
+        this.writeTexture = createTex();
+
+        this.readFBO = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.readFBO);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.readTexture, 0);
+
+        this.writeFBO = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.writeFBO);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.writeTexture, 0);
+        
+        // Check FBO status
+        const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+        if (status !== gl.FRAMEBUFFER_COMPLETE) {
+            console.warn('WaterSystem: Float FBO not supported, fallback to BYTE');
+            // Fallback logic could go here (recreate textures with UNSIGNED_BYTE)
+            // For now we assume decent hardware
         }
-        
-        // 2. Simulation Step
-        // Read FBO1 -> Write FBO2
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo2);
-        gl.useProgram(this.progSim);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.tex1);
-        gl.uniform1i(gl.getUniformLocation(this.progSim, 'uTexture'), 0);
-        gl.uniform2f(gl.getUniformLocation(this.progSim, 'uResolution'), this.bgWidth, this.bgHeight);
-        gl.uniform1f(gl.getUniformLocation(this.progSim, 'uDamping'), 0.98);
-        drawQuad(this.progSim);
-        
-        // Swap
-        const tempF = this.fbo1; this.fbo1 = this.fbo2; this.fbo2 = tempF;
-        const tempT = this.tex1; this.tex1 = this.tex2; this.tex2 = tempT;
-        
-        // 3. Render to Screen
+
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.useProgram(this.progRender);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.tex1); // Read final state
-        gl.uniform1i(gl.getUniformLocation(this.progRender, 'uTexture'), 0);
-        gl.uniform2f(gl.getUniformLocation(this.progRender, 'uResolution'), this.bgWidth, this.bgHeight);
-        drawQuad(this.progRender);
     }
-    
-    renderFg(time) {
+
+    resize() {
+        const dpr = window.devicePixelRatio || 1;
+
+        if (this.bgCanvas && this.glBg) {
+            const rect = this.bgCanvas.getBoundingClientRect();
+            this.bgCanvas.width = rect.width * dpr;
+            this.bgCanvas.height = rect.height * dpr;
+            this.glBg.viewport(0, 0, this.bgCanvas.width, this.bgCanvas.height);
+        }
+
+        if (this.fgCanvas && this.glFg) {
+            const rect = this.fgCanvas.getBoundingClientRect();
+            this.width = rect.width;
+            this.height = rect.height;
+            this.fgCanvas.width = rect.width * dpr;
+            this.fgCanvas.height = rect.height * dpr;
+            this.glFg.viewport(0, 0, this.fgCanvas.width, this.fgCanvas.height);
+        }
+    }
+
+    // Called by Spawner when items drop
+    addWave(x, y, size) {
+        if (!this.glFg || !this.brushProgram) return;
         const gl = this.glFg;
-        // Check program and particles
-        if (!gl || !this.progFoam || this.foamParticles.length === 0) {
-            if (gl) gl.clear(gl.COLOR_BUFFER_BIT); 
-            return;
-        }
+
+        gl.useProgram(this.brushProgram);
+        // Draw into the READ FBO (which is the current state)
+        // Note: Ideally we draw into Write, but we need to accumulate.
+        // For simplicity, we draw into ReadTexture so the next Sim step picks it up.
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.readFBO);
+        gl.viewport(0, 0, this.simRes, this.simRes);
+
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE);
+
+        // Compute Quad coordinates (-1 to 1)
+        // Note: 'size' is in pixels.
+        // We need to map pixels to WebGL Clip Space
+        const brushSize = Math.max(0.05, size / this.width) * 4.0; // Boost size for visibility
         
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        gl.useProgram(this.progFoam);
+        const ndcX = (x / this.width) * 2 - 1;
+        const ndcY = -((y / this.height) * 2 - 1); // Flip Y for WebGL
+
+        const s = brushSize;
+        // Quad vertices: x, y, u, v, alpha
+        // Alpha hardcoded to 1.0 for now
+        const data = new Float32Array([
+            ndcX - s, ndcY - s, 0, 0, 1,
+            ndcX + s, ndcY - s, 1, 0, 1,
+            ndcX - s, ndcY + s, 0, 1, 1,
+            ndcX + s, ndcY + s, 1, 1, 1
+        ]);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.brushBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+
+        const aPos = gl.getAttribLocation(this.brushProgram, 'aPosition');
+        const aUv = gl.getAttribLocation(this.brushProgram, 'aUv');
+        const aAlpha = gl.getAttribLocation(this.brushProgram, 'aAlpha');
+
+        // Stride = 5 floats * 4 bytes = 20
+        gl.enableVertexAttribArray(aPos);
+        gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 20, 0);
+
+        gl.enableVertexAttribArray(aUv);
+        gl.vertexAttribPointer(aUv, 2, gl.FLOAT, false, 20, 8);
+
+        gl.enableVertexAttribArray(aAlpha);
+        gl.vertexAttribPointer(aAlpha, 1, gl.FLOAT, false, 20, 16);
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        gl.disable(gl.BLEND);
         
-        // Update Buffer
-        const arr = this.foamData;
-        let count = 0;
-        let offset = 0;
+        // Restore Viewport
+        gl.viewport(0, 0, this.fgCanvas.width, this.fgCanvas.height);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+
+    update(dt) {
+        // No-op, we use render loop
+    }
+
+    render(totalTime) {
+        if (!this.glBg || !this.glFg) return;
         
-        for (let i = 0; i < this.foamParticles.length; i++) {
-            const p = this.foamParticles[i];
-            
-            const writeVert = (qx, qy) => {
-                arr[offset++] = qx; arr[offset++] = qy;
-                arr[offset++] = p.x; arr[offset++] = p.y;
-                arr[offset++] = p.size;
-                arr[offset++] = p.life;
-            };
-            
-            writeVert(-1, -1);
-            writeVert( 1, -1);
-            writeVert(-1,  1);
-            writeVert(-1,  1);
-            writeVert( 1, -1);
-            writeVert( 1,  1);
-            
-            count++;
-        }
+        // Update Time (Slower speed)
+        // We use totalTime directly but scale it in the shader call
+        const simTime = totalTime * 0.001 * 0.5; // Slow down factor
         
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.foamBuffer);
-        gl.bufferSubData(gl.ARRAY_BUFFER, 0, arr.subarray(0, count * 6 * 6));
+        // --- 1. Simulation Step (Foreground Context) ---
+        const glFg = this.glFg;
+        glFg.useProgram(this.simProgram);
+        glFg.viewport(0, 0, this.simRes, this.simRes);
         
-        // Pointers
-        const stride = 6 * 4;
-        const locQuad = gl.getAttribLocation(this.progFoam, 'aQuadCoord');
-        const locCenter = gl.getAttribLocation(this.progFoam, 'aCenter');
-        const locSize = gl.getAttribLocation(this.progFoam, 'aSize');
-        const locLife = gl.getAttribLocation(this.progFoam, 'aLife');
+        // Write to WriteFBO
+        glFg.bindFramebuffer(glFg.FRAMEBUFFER, this.writeFBO);
         
-        gl.enableVertexAttribArray(locQuad);
-        gl.vertexAttribPointer(locQuad, 2, gl.FLOAT, false, stride, 0);
+        // Read from ReadTexture
+        glFg.activeTexture(glFg.TEXTURE0);
+        glFg.bindTexture(glFg.TEXTURE_2D, this.readTexture);
+        glFg.uniform1i(glFg.getUniformLocation(this.simProgram, 'uLastFrame'), 0);
+        glFg.uniform2f(glFg.getUniformLocation(this.simProgram, 'uResolution'), this.simRes, this.simRes);
+        glFg.uniform1f(glFg.getUniformLocation(this.simProgram, 'uDt'), 0.016); // Fixed timestep approximation
+
+        // Draw Full Screen Quad
+        glFg.bindBuffer(glFg.ARRAY_BUFFER, this.quadBufferFg);
+        const aPosSim = glFg.getAttribLocation(this.simProgram, 'position');
+        glFg.enableVertexAttribArray(aPosSim);
+        glFg.vertexAttribPointer(aPosSim, 2, glFg.FLOAT, false, 0, 0);
         
-        gl.enableVertexAttribArray(locCenter);
-        gl.vertexAttribPointer(locCenter, 2, gl.FLOAT, false, stride, 8);
+        glFg.drawArrays(glFg.TRIANGLE_STRIP, 0, 4);
+
+        // Swap
+        const temp = this.readTexture;
+        this.readTexture = this.writeTexture;
+        this.writeTexture = temp;
+
+        const tempFBO = this.readFBO;
+        this.readFBO = this.writeFBO;
+        this.writeFBO = tempFBO;
+
+        // --- 2. Render Background (Water Body) ---
+        const glBg = this.glBg;
+        glBg.viewport(0, 0, this.bgCanvas.width, this.bgCanvas.height);
+        glBg.useProgram(this.bgProgram);
         
-        gl.enableVertexAttribArray(locSize);
-        gl.vertexAttribPointer(locSize, 1, gl.FLOAT, false, stride, 16);
+        glBg.uniform3fv(glBg.getUniformLocation(this.bgProgram, 'uColorDeep'), COLOR_DEEP);
+        glBg.uniform3fv(glBg.getUniformLocation(this.bgProgram, 'uColorShallow'), COLOR_SHALLOW);
+        glBg.uniform1f(glBg.getUniformLocation(this.bgProgram, 'uTime'), simTime);
+        glBg.uniform2f(glBg.getUniformLocation(this.bgProgram, 'uResolution'), this.bgCanvas.width, this.bgCanvas.height);
+
+        glBg.bindBuffer(glBg.ARRAY_BUFFER, this.quadBufferBg);
+        const aPosBg = glBg.getAttribLocation(this.bgProgram, 'position');
+        glBg.enableVertexAttribArray(aPosBg);
+        glBg.vertexAttribPointer(aPosBg, 2, glBg.FLOAT, false, 0, 0);
         
-        gl.enableVertexAttribArray(locLife);
-        gl.vertexAttribPointer(locLife, 1, gl.FLOAT, false, stride, 20);
+        glBg.drawArrays(glBg.TRIANGLE_STRIP, 0, 4);
+
+        // --- 3. Render Foreground (Waves/Foam) ---
+        glFg.bindFramebuffer(glFg.FRAMEBUFFER, null); // Screen
+        glFg.viewport(0, 0, this.fgCanvas.width, this.fgCanvas.height);
+        glFg.useProgram(this.fgProgram);
+        glFg.clearColor(0, 0, 0, 0);
+        glFg.clear(glFg.COLOR_BUFFER_BIT);
+
+        glFg.activeTexture(glFg.TEXTURE0);
+        glFg.bindTexture(glFg.TEXTURE_2D, this.readTexture); // Use latest sim result
+        glFg.uniform1i(glFg.getUniformLocation(this.fgProgram, 'uWaveMap'), 0);
         
-        gl.uniform2f(gl.getUniformLocation(this.progFoam, 'uResolution'), this.fgWidth, this.fgHeight);
-        
-        gl.drawArrays(gl.TRIANGLES, 0, count * 6);
+        glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorShallow'), COLOR_SHALLOW);
+        glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorFoam'), COLOR_FOAM);
+        // Note: uColorDeep is unused in FG shader logic but we can pass it
+        glFg.uniform1f(glFg.getUniformLocation(this.fgProgram, 'uTime'), simTime);
+
+        glFg.bindBuffer(glFg.ARRAY_BUFFER, this.quadBufferFg);
+        const aPosFg = glFg.getAttribLocation(this.fgProgram, 'position');
+        glFg.enableVertexAttribArray(aPosFg);
+        glFg.vertexAttribPointer(aPosFg, 2, glFg.FLOAT, false, 0, 0);
+
+        glFg.drawArrays(glFg.TRIANGLE_STRIP, 0, 4);
     }
 }
 
