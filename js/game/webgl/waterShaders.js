@@ -22,7 +22,7 @@ uniform vec2 uResolution;
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
 uniform sampler2D uWaveMap;
-uniform float uHeightRatio; // Ratio of BgHeight / FgHeight (e.g. 0.18)
+uniform float uHeightRatio; 
 
 // Simple noise for wobble
 float random(vec2 st) {
