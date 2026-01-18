@@ -43,7 +43,7 @@ export {
 
 export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
 
-export const HM_EVOLUTION_INTERVAL = 1000;
+export const HM_EVOLUTION_INTERVAL = 10000;
 const HM_EVOLUTION_EFFECT_MULT_BN = BigNum.fromInt(1000);
 const DEFAULT_AREA_KEY = '';
 
@@ -4548,5 +4548,6 @@ export function performFreeAutobuy(areaKey, upgId) {
 }
 
 registerXpUpgradeEffects();
+
 
 
