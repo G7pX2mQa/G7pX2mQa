@@ -11,7 +11,7 @@ import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js'
 import { getActiveSlot } from '../util/storage.js';
 import { isSurge2Active } from './surgeEffects.js';
 
-let accumulator = 1;
+let accumulator = 0;
 let workshopTicker = 0;
 
 // Autobuyer Toggle Cache
@@ -184,4 +184,5 @@ export function initAutomationEffects() {
     });
   }
 }
+
 
