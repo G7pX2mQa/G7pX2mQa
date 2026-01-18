@@ -32,6 +32,10 @@ export class WaterSystem {
         this.foamData = new Float32Array(this.MAX_PARTICLES * 6 * 6); // 6 verts * 6 floats (2pos + 2center + 1size + 1life)
         this.foamBuffer = null;
         this.progFoam = null;
+
+        // Extensions
+        this.extFloat = null;
+        this.extLinear = null;
     }
 
     init(bgId, fgId) {
@@ -61,10 +65,18 @@ export class WaterSystem {
         const gl = this.glBg;
         gl.disable(gl.DEPTH_TEST);
         
+        // Enable Extensions for Float Textures
+        this.extFloat = gl.getExtension('OES_texture_float');
+        this.extLinear = gl.getExtension('OES_texture_float_linear');
+
+        if (!this.extFloat) {
+            console.warn('WebGL OES_texture_float not supported. Water simulation may fall back to low precision or fail.');
+        }
+
         // Shaders
-        this.progSim = this.createProgram(gl, COMMON_VERTEX_SHADER, RIPPLE_SIM_FS);
-        this.progDrop = this.createProgram(gl, COMMON_VERTEX_SHADER, RIPPLE_DROP_FS);
-        this.progRender = this.createProgram(gl, COMMON_VERTEX_SHADER, WATER_RENDER_FS);
+        this.progSim = this.createProgram(gl, COMMON_VERTEX_SHADER, RIPPLE_SIM_FS, 'RIPPLE_SIM');
+        this.progDrop = this.createProgram(gl, COMMON_VERTEX_SHADER, RIPPLE_DROP_FS, 'RIPPLE_DROP');
+        this.progRender = this.createProgram(gl, COMMON_VERTEX_SHADER, WATER_RENDER_FS, 'WATER_RENDER');
         
         // Quad Buffer
         this.bgQuadBuffer = gl.createBuffer();
@@ -85,19 +97,24 @@ export class WaterSystem {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         
-        this.progFoam = this.createProgram(gl, FOAM_QUAD_VS, FOAM_FS);
+        this.progFoam = this.createProgram(gl, FOAM_QUAD_VS, FOAM_FS, 'FOAM');
         
         this.foamBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.foamBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, this.foamData.byteLength, gl.DYNAMIC_DRAW);
     }
     
-    createProgram(gl, vsSrc, fsSrc) {
+    createProgram(gl, vsSrc, fsSrc, name = '') {
+        if (!vsSrc || !fsSrc) {
+            console.error(`Shader source missing for ${name}`, { vsLen: vsSrc?.length, fsLen: fsSrc?.length });
+            return null;
+        }
+
         const vs = gl.createShader(gl.VERTEX_SHADER);
         gl.shaderSource(vs, vsSrc);
         gl.compileShader(vs);
         if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
-            console.error(gl.getShaderInfoLog(vs));
+            console.error(`VS Compile Error (${name}):`, gl.getShaderInfoLog(vs));
             return null;
         }
         
@@ -105,7 +122,7 @@ export class WaterSystem {
         gl.shaderSource(fs, fsSrc);
         gl.compileShader(fs);
         if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
-            console.error(gl.getShaderInfoLog(fs));
+            console.error(`FS Compile Error (${name}):`, gl.getShaderInfoLog(fs));
             return null;
         }
         
@@ -113,6 +130,12 @@ export class WaterSystem {
         gl.attachShader(prog, vs);
         gl.attachShader(prog, fs);
         gl.linkProgram(prog);
+        
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+            console.error(`Link Error (${name}):`, gl.getProgramInfoLog(prog));
+            return null;
+        }
+
         return prog;
     }
     
@@ -122,21 +145,27 @@ export class WaterSystem {
         // BG Resize
         if (this.canvasBg) {
             const rect = this.canvasBg.getBoundingClientRect();
-            this.canvasBg.width = rect.width * dpr * this.rippleRes;
-            this.canvasBg.height = rect.height * dpr * this.rippleRes;
-            this.bgWidth = this.canvasBg.width;
-            this.bgHeight = this.canvasBg.height;
-            this.initFBOs();
+            
+            // Prevent zero-size FBO creation
+            if (rect.width > 0 && rect.height > 0) {
+                this.canvasBg.width = rect.width * dpr * this.rippleRes;
+                this.canvasBg.height = rect.height * dpr * this.rippleRes;
+                this.bgWidth = this.canvasBg.width;
+                this.bgHeight = this.canvasBg.height;
+                this.initFBOs();
+            }
         }
         
         // FG Resize
         if (this.canvasFg) {
             const rect = this.canvasFg.getBoundingClientRect();
-            this.canvasFg.width = rect.width * dpr;
-            this.canvasFg.height = rect.height * dpr;
-            this.fgWidth = this.canvasFg.width;
-            this.fgHeight = this.canvasFg.height;
-            if (this.glFg) this.glFg.viewport(0, 0, this.fgWidth, this.fgHeight);
+            if (rect.width > 0 && rect.height > 0) {
+                this.canvasFg.width = rect.width * dpr;
+                this.canvasFg.height = rect.height * dpr;
+                this.fgWidth = this.canvasFg.width;
+                this.fgHeight = this.canvasFg.height;
+                if (this.glFg) this.glFg.viewport(0, 0, this.fgWidth, this.fgHeight);
+            }
         }
     }
     
@@ -144,20 +173,48 @@ export class WaterSystem {
         const gl = this.glBg;
         if (!gl) return;
         
+        // Cleanup existing resources to prevent leaks
+        if (this.fbo1) gl.deleteFramebuffer(this.fbo1);
+        if (this.tex1) gl.deleteTexture(this.tex1);
+        if (this.fbo2) gl.deleteFramebuffer(this.fbo2);
+        if (this.tex2) gl.deleteTexture(this.tex2);
+
         const createFBO = () => {
             const tex = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, tex);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.bgWidth, this.bgHeight, 0, gl.RGBA, gl.FLOAT, null) ||
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.bgWidth, this.bgHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
             
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            // Determine Texture Type and Filter
+            let type = gl.UNSIGNED_BYTE;
+            let minFilter = gl.LINEAR;
+            let magFilter = gl.LINEAR;
+
+            if (this.extFloat) {
+                type = gl.FLOAT;
+                // Only use LINEAR filtering if the float_linear extension is present
+                if (!this.extLinear) {
+                    minFilter = gl.NEAREST;
+                    magFilter = gl.NEAREST;
+                }
+            }
+
+            // Safe texture initialization
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.bgWidth, this.bgHeight, 0, gl.RGBA, type, null);
+            
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             
             const fbo = gl.createFramebuffer();
             gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+            
+            // Check status
+            const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+            if (status !== gl.FRAMEBUFFER_COMPLETE) {
+                console.error("WaterSystem: Framebuffer incomplete", status);
+            }
+            
             return { fbo, tex };
         };
         
@@ -181,20 +238,19 @@ export class WaterSystem {
         
         // 1. Add Ripple Drop
         if (this.canvasBg) {
-            // Need normalized 0..1 coordinates for shader
-            // Assume canvasBg covers screen or at least x,y are relative to it?
-            // domInit makes canvas fullscreen fixed.
-            const rect = this.canvasBg.getBoundingClientRect(); // Should match window if fixed inset 0
-            const uvX = x / rect.width;
-            const uvY = 1.0 - (y / rect.height); // Flip Y for WebGL texture coords usually
-            const radiusUV = (size * 0.5) / rect.width; 
-            
-            this.dropQueue.push({ x: uvX, y: uvY, r: radiusUV * 2.0, s: 0.15 });
+            const rect = this.canvasBg.getBoundingClientRect(); 
+            // Protect against zero rect
+            if (rect.width > 0 && rect.height > 0) {
+                const uvX = x / rect.width;
+                const uvY = 1.0 - (y / rect.height); 
+                const radiusUV = (size * 0.5) / rect.width; 
+                
+                this.dropQueue.push({ x: uvX, y: uvY, r: radiusUV * 2.0, s: 0.15 });
+            }
         }
         
         // 2. Add Foam Particle
         if (this.foamParticles.length < this.MAX_PARTICLES) {
-            // Foam moves down. Start at impact.
             this.foamParticles.push({
                 x: x, 
                 y: y,
@@ -228,7 +284,9 @@ export class WaterSystem {
     
     renderBg(time) {
         const gl = this.glBg;
+        // Verify GL, FBOs, and Programs exist
         if (!gl || !this.fbo1 || !this.fbo2) return;
+        if (!this.progSim || !this.progDrop || !this.progRender) return;
         
         gl.viewport(0, 0, this.bgWidth, this.bgHeight);
         
@@ -247,36 +305,24 @@ export class WaterSystem {
         
         // 1. Process Drops (Ping-Pong)
         if (this.dropQueue.length > 0) {
-            // Write to FBO2, reading FBO1
-            gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo2);
             gl.useProgram(this.progDrop);
             
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.tex1);
-            gl.uniform1i(gl.getUniformLocation(this.progDrop, 'uTexture'), 0);
-            gl.uniform2f(gl.getUniformLocation(this.progDrop, 'uResolution'), this.bgWidth, this.bgHeight);
-            
+            // Set static uniforms once if possible, but we are switching FBOs
             const uCenter = gl.getUniformLocation(this.progDrop, 'uCenter');
             const uRadius = gl.getUniformLocation(this.progDrop, 'uRadius');
             const uStrength = gl.getUniformLocation(this.progDrop, 'uStrength');
-            
-            // Apply all drops in one go? No, shader handles one.
-            // Ideally use instance drawing or loop.
-            // Loop for now (simple).
-            // Actually, for multiple drops, we need to accumulate.
-            // Read FBO1 -> Draw Drop -> FBO2
-            // Then Swap.
-            
-            // To process multiple drops in one frame without multiple swaps:
-            // Just apply last one? Or do strictly one per frame?
-            // Loop swaps.
-            
+            const uTexture = gl.getUniformLocation(this.progDrop, 'uTexture');
+            const uResolution = gl.getUniformLocation(this.progDrop, 'uResolution');
+
             while(this.dropQueue.length > 0) {
                 const d = this.dropQueue.shift();
                 
                 gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo2);
+                gl.activeTexture(gl.TEXTURE0);
                 gl.bindTexture(gl.TEXTURE_2D, this.tex1); // Read from current
                 
+                gl.uniform1i(uTexture, 0);
+                gl.uniform2f(uResolution, this.bgWidth, this.bgHeight);
                 gl.uniform2f(uCenter, d.x, d.y);
                 gl.uniform1f(uRadius, d.r);
                 gl.uniform1f(uStrength, d.s);
@@ -316,8 +362,9 @@ export class WaterSystem {
     
     renderFg(time) {
         const gl = this.glFg;
-        if (!gl || this.foamParticles.length === 0) {
-            if (gl) gl.clear(gl.COLOR_BUFFER_BIT); // Ensure clear
+        // Check program and particles
+        if (!gl || !this.progFoam || this.foamParticles.length === 0) {
+            if (gl) gl.clear(gl.COLOR_BUFFER_BIT); 
             return;
         }
         
@@ -331,9 +378,6 @@ export class WaterSystem {
         
         for (let i = 0; i < this.foamParticles.length; i++) {
             const p = this.foamParticles[i];
-            // Quad vertices (6)
-            // Attributes: QuadCoord(2), Center(2), Size(1), Life(1)
-            // Total 6 floats per vertex
             
             const writeVert = (qx, qy) => {
                 arr[offset++] = qx; arr[offset++] = qy;
