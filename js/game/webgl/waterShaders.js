@@ -12,6 +12,7 @@ void main() {
 // --- BACKGROUND SHADER (Water Body) ---
 // Darker at top, clearer (transparent) at bottom.
 // Slight wobble using noise/time.
+// Updated to react to wave simulation and handle alpha better.
 export const BACKGROUND_FRAGMENT_SHADER = `
 precision mediump float;
 
@@ -20,6 +21,8 @@ uniform float uTime;
 uniform vec2 uResolution;
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
+uniform sampler2D uWaveMap;
+uniform float uHeightRatio; // Ratio of BgHeight / FgHeight (e.g. 0.18)
 
 // Simple noise for wobble
 float random(vec2 st) {
@@ -37,38 +40,41 @@ float noise(vec2 st) {
 }
 
 void main() {
-    // 1. Gradient Logic: Top (y=0) is Deep/Dark, Bottom (y=1) is Shallow/Clear
-    // vUv.y goes 0 (bottom) to 1 (top) usually? 
-    // Wait, standard quad: (-1,-1) -> (1,1). vUv = pos*0.5+0.5.
-    // (-1,-1) -> vUv=(0,0) (Bottom-Left)
-    // ( 1, 1) -> vUv=(1,1) (Top-Right)
+    // 1. Remap UVs to match the Wave Simulation
+    // Bg covers the top portion of the screen (e.g. 0 to 18%)
+    // But in WebGL UVs (0 at bottom, 1 at top), this corresponds to the TOP slice.
+    // So BgUV range [0, 1] maps to WaveUV range [1.0 - ratio, 1.0]
+    float waveV = vUv.y * uHeightRatio + (1.0 - uHeightRatio);
+    vec2 waveUv = vec2(vUv.x, waveV);
+
+    // Sample Wave Map for distortion
+    float waveVal = texture2D(uWaveMap, waveUv).r;
+
+    // 2. Wobble logic + Wave Interaction
+    float timeScale = uTime * 0.8;
+    float wobbleX = sin(vUv.y * 12.0 + timeScale) * 0.008;
+    float wobbleY = cos(vUv.x * 12.0 + timeScale) * 0.008;
     
-    // We want Top (vUv.y=1) to be Dark.
-    // We want Bottom (vUv.y=0) to be Clear/Transparent.
-    
-    // Wobble logic
-    // We displace the UVs slightly over time to make the water look like it's moving gently.
-    float timeScale = uTime * 0.8; // Increased speed for noticeable idle movement
-    float waveX = sin(vUv.y * 12.0 + timeScale) * 0.008; // Increased amplitude
-    float waveY = cos(vUv.x * 12.0 + timeScale) * 0.008;
-    
-    // Add some noise for "texture"
-    float n = noise(vUv * 5.0 + vec2(uTime * 0.2));
-    
-    vec2 distortedUv = vUv + vec2(waveX, waveY);
+    // Wave Push: Stronger push where waves are present
+    vec2 wavePush = vec2(0.0, waveVal * 0.05);
+
+    vec2 distortedUv = vUv + vec2(wobbleX, wobbleY) + wavePush;
     
     // Gradient Factor: 1.0 at Top, 0.0 at Bottom
     float depth = smoothstep(0.0, 1.0, distortedUv.y);
     
     // Color Mix
     // Deep color at top, Shallow color at bottom
-    // We bias it towards Deep quickly at the top
+    // Bias towards deep
     vec3 color = mix(uColorShallow, uColorDeep, smoothstep(0.2, 0.9, depth));
     
     // Alpha Mix
-    // Opaque at Top (1.0), Transparent at Bottom (0.0)
-    // "Clearer toward the bottom but not white/foamy"
-    float alpha = smoothstep(0.1, 0.8, depth + n * 0.05);
+    // "Not white at the end" -> Keep it opaque or semi-opaque at the bottom
+    // We keep alpha high to ensure the blue color is visible against the background.
+    // Old: smoothstep(0.1, 0.8, depth + n * 0.05) -> Fades to 0.0
+    // New: Blend from 0.8 (bottom) to 1.0 (top)
+    float alpha = smoothstep(-0.5, 0.8, depth); 
+    alpha = clamp(alpha, 0.85, 1.0); // Minimum opacity 0.85 to avoid "white" look
     
     gl_FragColor = vec4(color, alpha);
 }
@@ -186,8 +192,8 @@ void main() {
     
     // Decay: Waves fade out over time
     // We want them to stick around long enough to cover coins, but not forever.
-    // 0.98 is very slow decay. 0.95 is fast.
-    color *= 0.975; 
+    // 0.98 is very slow decay. 0.95 is fast. 0.92 is faster.
+    color *= 0.92; 
     
     // Diffusion (Blur/Spread)
     // Reduced diffusion to keep them "distinct"
