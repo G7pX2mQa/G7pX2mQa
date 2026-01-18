@@ -160,13 +160,15 @@ export class WaterSystem {
         const h = this.simRes;
 
         // Try to enable float textures
-        gl.getExtension('OES_texture_float');
+        const extFloat = gl.getExtension('OES_texture_float');
         gl.getExtension('OES_texture_float_linear');
+        
+        const texType = extFloat ? gl.FLOAT : gl.UNSIGNED_BYTE;
 
         const createTex = () => {
             const tex = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, tex);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.FLOAT, null);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, texType, null);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -188,7 +190,7 @@ export class WaterSystem {
         // Check FBO status
         const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
         if (status !== gl.FRAMEBUFFER_COMPLETE) {
-            console.warn('WaterSystem: Float FBO not supported, fallback to BYTE');
+            console.warn('WaterSystem: FBO not complete', status);
         }
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -229,6 +231,8 @@ export class WaterSystem {
     // Called by Spawner when items drop
     addWave(x, y, size) {
         if (!this.glFg || !this.brushProgram) return;
+        // Don't draw if simulation buffers are not ready
+        if (!this.readFBO || !this.bgReadFBO) return;
 
         // Draw to both contexts
         this.addWaveToContext(this.glFg, this.brushProgram, this.brushBuffer, this.readFBO, x, y, size);
@@ -236,6 +240,7 @@ export class WaterSystem {
     }
 
     addWaveToContext(gl, program, buffer, fbo, x, y, size) {
+        if (!program) return;
         gl.useProgram(program);
         gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
         gl.viewport(0, 0, this.simRes, this.simRes);
@@ -263,14 +268,20 @@ export class WaterSystem {
         const aUv = gl.getAttribLocation(program, 'aUv');
         const aAlpha = gl.getAttribLocation(program, 'aAlpha');
 
-        gl.enableVertexAttribArray(aPos);
-        gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 20, 0);
+        if (aPos >= 0) {
+            gl.enableVertexAttribArray(aPos);
+            gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 20, 0);
+        }
 
-        gl.enableVertexAttribArray(aUv);
-        gl.vertexAttribPointer(aUv, 2, gl.FLOAT, false, 20, 8);
+        if (aUv >= 0) {
+            gl.enableVertexAttribArray(aUv);
+            gl.vertexAttribPointer(aUv, 2, gl.FLOAT, false, 20, 8);
+        }
 
-        gl.enableVertexAttribArray(aAlpha);
-        gl.vertexAttribPointer(aAlpha, 1, gl.FLOAT, false, 20, 16);
+        if (aAlpha >= 0) {
+            gl.enableVertexAttribArray(aAlpha);
+            gl.vertexAttribPointer(aAlpha, 1, gl.FLOAT, false, 20, 16);
+        }
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -285,15 +296,22 @@ export class WaterSystem {
 
     render(totalTime) {
         if (!this.glBg || !this.glFg) return;
+        // Crash prevention: Ensure shaders are compiled
+        if (!this.bgProgram || !this.fgProgram) return;
         
         const simTime = totalTime * 0.001 * 0.5;
         
         // --- 1. Simulation Step (Both Contexts) ---
-        this.stepSimulation(this.glFg, this.simProgram, this.quadBufferFg, false);
-        this.stepSimulation(this.glBg, this.bgSimProgram, this.quadBufferBg, true);
+        if (this.simProgram && this.quadBufferFg) {
+            this.stepSimulation(this.glFg, this.simProgram, this.quadBufferFg, false);
+        }
+        if (this.bgSimProgram && this.quadBufferBg) {
+            this.stepSimulation(this.glBg, this.bgSimProgram, this.quadBufferBg, true);
+        }
 
         // --- 2. Render Background (Water Body) ---
         const glBg = this.glBg;
+        glBg.bindFramebuffer(glBg.FRAMEBUFFER, null); // Fix feedback loop
         glBg.viewport(0, 0, this.bgCanvas.width, this.bgCanvas.height);
         glBg.useProgram(this.bgProgram);
         
@@ -313,8 +331,10 @@ export class WaterSystem {
 
         glBg.bindBuffer(glBg.ARRAY_BUFFER, this.quadBufferBg);
         const aPosBg = glBg.getAttribLocation(this.bgProgram, 'position');
-        glBg.enableVertexAttribArray(aPosBg);
-        glBg.vertexAttribPointer(aPosBg, 2, glBg.FLOAT, false, 0, 0);
+        if (aPosBg >= 0) {
+            glBg.enableVertexAttribArray(aPosBg);
+            glBg.vertexAttribPointer(aPosBg, 2, glBg.FLOAT, false, 0, 0);
+        }
         
         glBg.drawArrays(glBg.TRIANGLE_STRIP, 0, 4);
 
@@ -336,13 +356,16 @@ export class WaterSystem {
 
         glFg.bindBuffer(glFg.ARRAY_BUFFER, this.quadBufferFg);
         const aPosFg = glFg.getAttribLocation(this.fgProgram, 'position');
-        glFg.enableVertexAttribArray(aPosFg);
-        glFg.vertexAttribPointer(aPosFg, 2, glFg.FLOAT, false, 0, 0);
+        if (aPosFg >= 0) {
+            glFg.enableVertexAttribArray(aPosFg);
+            glFg.vertexAttribPointer(aPosFg, 2, glFg.FLOAT, false, 0, 0);
+        }
 
         glFg.drawArrays(glFg.TRIANGLE_STRIP, 0, 4);
     }
 
     stepSimulation(gl, program, quadBuffer, isBg) {
+        if (!program) return;
         gl.useProgram(program);
         gl.viewport(0, 0, this.simRes, this.simRes);
         
@@ -350,6 +373,8 @@ export class WaterSystem {
         const writeFBO = isBg ? this.bgWriteFBO : this.writeFBO;
         const writeTex = isBg ? this.bgWriteTexture : this.writeTexture;
         const readFBO = isBg ? this.bgReadFBO : this.readFBO;
+
+        if (!writeFBO || !readTex) return;
 
         // Write to WriteFBO
         gl.bindFramebuffer(gl.FRAMEBUFFER, writeFBO);
@@ -363,8 +388,10 @@ export class WaterSystem {
 
         gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
         const aPos = gl.getAttribLocation(program, 'position');
-        gl.enableVertexAttribArray(aPos);
-        gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+        if (aPos >= 0) {
+            gl.enableVertexAttribArray(aPos);
+            gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+        }
         
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
