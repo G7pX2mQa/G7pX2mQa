@@ -2489,7 +2489,7 @@ export const REGISTRY = [
     tie: UPGRADE_TIES.FASTER_COINS,
     title: "Faster Coins",
     desc: "Increases Coin Spawn Rate by +10% per level",
-    lvlCap: 1000000000000000,
+    lvlCap: 10,
     baseCost: 10,
     costType: "coins",
     upgType: "NM",
@@ -4548,4 +4548,5 @@ export function performFreeAutobuy(areaKey, upgId) {
 }
 
 registerXpUpgradeEffects();
+
 
