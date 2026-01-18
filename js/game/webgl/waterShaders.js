@@ -1,179 +1,203 @@
 // js/game/webgl/waterShaders.js
 
-export const COMMON_VERTEX_SHADER = `
-attribute vec2 aPosition;
-attribute vec2 aUv;
+export const VERTEX_SHADER = `
+attribute vec2 position;
 varying vec2 vUv;
 void main() {
+    vUv = position * 0.5 + 0.5;
+    gl_Position = vec4(position, 0.0, 1.0);
+}
+`;
+
+// --- BACKGROUND SHADER (Water Body) ---
+// Darker at top, clearer (transparent) at bottom.
+// Slight wobble using noise/time.
+export const BACKGROUND_FRAGMENT_SHADER = `
+precision mediump float;
+
+varying vec2 vUv;
+uniform float uTime;
+uniform vec2 uResolution;
+uniform vec3 uColorDeep;
+uniform vec3 uColorShallow;
+
+// Simple noise for wobble
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+float noise(vec2 st) {
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+    float a = random(i);
+    float b = random(i + vec2(1.0, 0.0));
+    float c = random(i + vec2(0.0, 1.0));
+    float d = random(i + vec2(1.0, 1.0));
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+void main() {
+    // 1. Gradient Logic: Top (y=0) is Deep/Dark, Bottom (y=1) is Shallow/Clear
+    // vUv.y goes 0 (bottom) to 1 (top) usually? 
+    // Wait, standard quad: (-1,-1) -> (1,1). vUv = pos*0.5+0.5.
+    // (-1,-1) -> vUv=(0,0) (Bottom-Left)
+    // ( 1, 1) -> vUv=(1,1) (Top-Right)
+    
+    // We want Top (vUv.y=1) to be Dark.
+    // We want Bottom (vUv.y=0) to be Clear/Transparent.
+    
+    // Wobble logic
+    // We displace the UVs slightly over time to make the water look like it's moving gently.
+    float timeScale = uTime * 0.8; // Increased speed for noticeable idle movement
+    float waveX = sin(vUv.y * 12.0 + timeScale) * 0.008; // Increased amplitude
+    float waveY = cos(vUv.x * 12.0 + timeScale) * 0.008;
+    
+    // Add some noise for "texture"
+    float n = noise(vUv * 5.0 + vec2(uTime * 0.2));
+    
+    vec2 distortedUv = vUv + vec2(waveX, waveY);
+    
+    // Gradient Factor: 1.0 at Top, 0.0 at Bottom
+    float depth = smoothstep(0.0, 1.0, distortedUv.y);
+    
+    // Color Mix
+    // Deep color at top, Shallow color at bottom
+    // We bias it towards Deep quickly at the top
+    vec3 color = mix(uColorShallow, uColorDeep, smoothstep(0.2, 0.9, depth));
+    
+    // Alpha Mix
+    // Opaque at Top (1.0), Transparent at Bottom (0.0)
+    // "Clearer toward the bottom but not white/foamy"
+    float alpha = smoothstep(0.1, 0.8, depth + n * 0.05);
+    
+    gl_FragColor = vec4(color, alpha);
+}
+`;
+
+// --- FOREGROUND SHADER (Waves/Surges) ---
+// High speed, Foam at crests, Transparent elsewhere.
+export const FRAGMENT_SHADER = `
+precision mediump float;
+
+varying vec2 vUv;
+uniform float uTime;
+uniform vec2 uResolution;
+uniform sampler2D uWaveMap; 
+uniform vec3 uColorDeep;
+uniform vec3 uColorShallow;
+uniform vec3 uColorFoam;
+
+void main() {
+    vec4 waveInfo = texture2D(uWaveMap, vUv);
+    float waveVal = waveInfo.r; 
+    
+    // Threshold: Only draw if wave is strong enough
+    if (waveVal < 0.05) {
+        discard; // Fully transparent
+    }
+    
+    // Calculate intensity for foam
+    // "Waves should extend slightly past the water" -> handled by wave simulation propagation
+    
+    // Foam logic: High wave values = Foam
+    float foamThreshold = 0.6;
+    float isFoam = smoothstep(foamThreshold, foamThreshold + 0.1, waveVal);
+    
+    // Color
+    // Mix between Shallow Blue and Foam White
+    vec3 finalColor = mix(uColorShallow, uColorFoam, isFoam);
+    
+    // Alpha
+    // Waves must be opaque enough to cover the coins (which are behind them)
+    // "Waves should be fast enough to cover the coins for a while until they fade"
+    float alpha = smoothstep(0.05, 0.4, waveVal); // Linear fade in
+    alpha = clamp(alpha, 0.0, 1.0); // Ensure it hits 1.0 for opacity
+    
+    gl_FragColor = vec4(finalColor, alpha);
+}
+`;
+
+// Wave Sprite Vertex Shader (Standard quad)
+export const WAVE_VERTEX_SHADER = `
+attribute vec2 aPosition;
+attribute vec2 aUv;
+attribute float aAlpha; 
+
+varying vec2 vUv;
+varying float vAlpha;
+
+void main() {
     vUv = aUv;
+    vAlpha = aAlpha;
     gl_Position = vec4(aPosition, 0.0, 1.0);
 }
 `;
 
-// --- RIPPLE SIMULATION (Background) ---
-
-export const RIPPLE_SIM_FS = `
-precision mediump float;
-uniform sampler2D uTexture;
-uniform vec2 uResolution;
-uniform float uDamping;
-
-void main() {
-    vec2 uv = gl_FragCoord.xy / uResolution;
-    vec2 pixel = 1.0 / uResolution;
-
-    // R = Height, G = Velocity
-    
-    // Sample neighbors
-    float left = texture2D(uTexture, uv + vec2(-pixel.x, 0.0)).r;
-    float right = texture2D(uTexture, uv + vec2(pixel.x, 0.0)).r;
-    float up = texture2D(uTexture, uv + vec2(0.0, -pixel.y)).r;
-    float down = texture2D(uTexture, uv + vec2(0.0, pixel.y)).r;
-    
-    vec4 data = texture2D(uTexture, uv);
-    float height = data.r;
-    float vel = data.g;
-    
-    // Wave equation
-    float avg = (left + right + up + down) * 0.25;
-    float force = (avg - height) * 2.0; 
-    
-    vel += force;
-    vel *= uDamping;
-    height += vel;
-    
-    gl_FragColor = vec4(height, vel, 0.0, 1.0);
-}
-`;
-
-export const RIPPLE_DROP_FS = `
-precision mediump float;
-uniform sampler2D uTexture;
-uniform vec2 uCenter; // UV 0..1
-uniform float uRadius;
-uniform float uStrength;
-uniform vec2 uResolution;
-
-void main() {
-    vec2 uv = gl_FragCoord.xy / uResolution;
-    vec4 data = texture2D(uTexture, uv);
-    
-    // Aspect correction for circle
-    float aspect = uResolution.x / uResolution.y;
-    vec2 p = uv; 
-    p.x *= aspect;
-    vec2 c = uCenter;
-    c.x *= aspect;
-    
-    float dist = distance(p, c);
-    
-    if (dist < uRadius) {
-        float h = cos(dist / uRadius * 1.5708); // Quarter sine
-        data.r -= h * uStrength; 
-    }
-    
-    gl_FragColor = data;
-}
-`;
-
-export const WATER_RENDER_FS = `
-precision mediump float;
-uniform sampler2D uTexture;
-uniform vec2 uResolution;
-
-void main() {
-    vec2 uv = gl_FragCoord.xy / uResolution;
-    vec2 pixel = 1.0 / uResolution;
-    
-    float h = texture2D(uTexture, uv).r;
-    
-    // Normal Calc
-    float hL = texture2D(uTexture, uv + vec2(-pixel.x, 0.0)).r;
-    float hR = texture2D(uTexture, uv + vec2(pixel.x, 0.0)).r;
-    float hU = texture2D(uTexture, uv + vec2(0.0, -pixel.y)).r;
-    float hD = texture2D(uTexture, uv + vec2(0.0, pixel.y)).r;
-    
-    vec3 normal = normalize(vec3(hL - hR, hD - hU, 0.2)); 
-    vec3 lightDir = normalize(vec3(0.5, 0.7, 0.5));
-    
-    // Specular
-    vec3 viewDir = vec3(0.0, 0.0, 1.0);
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
-    
-    // Colors
-    // Deep blue background + height variation
-    vec3 col = vec3(0.05, 0.2, 0.45); 
-    col += (h * 0.2); // Brighter peaks
-    
-    col += spec * 0.3;
-    
-    gl_FragColor = vec4(col, 1.0);
-}
-`;
-
-// --- FOAM PARTICLES (Foreground) ---
-
-export const FOAM_QUAD_VS = `
-attribute vec2 aQuadCoord; // -1..1
-attribute vec2 aCenter;    // Pixels
-attribute float aSize;     // Pixels
-attribute float aLife;     // 0..1
-
-uniform vec2 uResolution;
-
-varying vec2 vUv;
-varying float vLife;
-
-void main() {
-    vLife = aLife;
-    vUv = aQuadCoord * 0.5 + 0.5;
-    
-    // Convert Pixel center to NDC
-    vec2 ndcCenter = (aCenter / uResolution) * 2.0 - 1.0;
-    ndcCenter.y *= -1.0; // Flip Y
-    
-    vec2 sizeNDC = vec2(aSize / uResolution.x, aSize / uResolution.y) * 2.0;
-    
-    vec2 pos = ndcCenter + (aQuadCoord * sizeNDC * 0.5);
-    gl_Position = vec4(pos, 0.0, 1.0);
-}
-`;
-
-export const FOAM_FS = `
+// Wave Brush: Draws the initial "Stamp" of the wave
+export const WAVE_BRUSH_FRAGMENT_SHADER = `
 precision mediump float;
 varying vec2 vUv;
-varying float vLife;
+varying float vAlpha;
 
-float hash(vec2 p) { return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
-
-float noise(vec2 x) {
-    vec2 i = floor(x);
-    vec2 f = fract(x);
-    float a = hash(i);
-    float b = hash(i + vec2(1.0, 0.0));
-    float c = hash(i + vec2(0.0, 1.0));
-    float d = hash(i + vec2(1.0, 1.0));
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
 }
 
 void main() {
-    float dist = distance(vUv, vec2(0.5));
-    if (dist > 0.5) discard;
+    float xDist = abs(vUv.x - 0.5) * 2.0; 
+    float xFade = smoothstep(1.0, 0.0, xDist);
     
-    float alpha = smoothstep(0.5, 0.3, dist);
+    float y = vUv.y;
     
-    // Detailed Foam Texture
-    float n = noise(vUv * 10.0 + vec2(0.0, vLife * 2.0));
-    float n2 = noise(vUv * 20.0 - vec2(vLife * 3.0, 0.0));
-    float finalNoise = (n + n2) * 0.5;
+    // Shape logic: Curved wave front
+    float curve = (vUv.x - 0.5) * (vUv.x - 0.5) * 0.5;
+    float yRel = vUv.y - curve; 
     
-    float threshold = 1.0 - vLife; // As life drops, threshold rises
-    if (finalNoise < threshold * 0.8) discard;
+    float front = smoothstep(0.1, 0.3, yRel);
+    float back = smoothstep(0.9, 0.3, yRel);
     
-    vec3 col = vec3(0.95, 0.98, 1.0);
+    float shape = front * back * xFade;
     
-    gl_FragColor = vec4(col, alpha * vLife);
+    float n = random(vUv * 10.0);
+    shape *= (0.8 + 0.2 * n);
+    
+    gl_FragColor = vec4(shape * vAlpha, 0.0, 0.0, 1.0);
+}
+`;
+
+// Simulation Shader: Handles Decay and Flow
+// "Coins rushing in very quickly... violent" -> High speed flow
+export const SIMULATION_FRAGMENT_SHADER = `
+precision mediump float;
+
+uniform sampler2D uLastFrame;
+uniform vec2 uResolution;
+uniform float uDt;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / uResolution;
+    
+    // Flow Vector: Moves waves DOWN rapidly
+    // Increased offset for "Violent" speed
+    // Old: 0.003 -> New: 0.008 -> Newer: 0.015
+    vec2 flowOffset = vec2(0.0, 0.015); 
+    
+    vec4 color = texture2D(uLastFrame, uv + flowOffset);
+    
+    // Decay: Waves fade out over time
+    // We want them to stick around long enough to cover coins, but not forever.
+    // 0.98 is very slow decay. 0.95 is fast.
+    color *= 0.975; 
+    
+    // Diffusion (Blur/Spread)
+    // Reduced diffusion to keep them "distinct"
+    float eps = 1.0 / uResolution.x;
+    vec4 l = texture2D(uLastFrame, uv + flowOffset + vec2(-eps, 0.0));
+    vec4 r = texture2D(uLastFrame, uv + flowOffset + vec2(eps, 0.0));
+    
+    // Low mix factor = crisper edges
+    color = mix(color, (l + r) * 0.5, 0.02); 
+
+    gl_FragColor = color;
 }
 `;
