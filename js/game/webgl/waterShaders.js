@@ -1,136 +1,179 @@
 // js/game/webgl/waterShaders.js
 
-export const VERTEX_SHADER = `
-attribute vec2 position;
-varying vec2 vUv;
-void main() {
-    vUv = position * 0.5 + 0.5;
-    gl_Position = vec4(position, 0.0, 1.0);
-}
-`;
-
-export const FRAGMENT_SHADER = `
-precision mediump float;
-
-varying vec2 vUv;
-uniform float uTime;
-uniform vec2 uResolution;
-uniform sampler2D uWaveMap; // [R = height/intensity]
-uniform vec3 uColorDeep;
-uniform vec3 uColorShallow;
-uniform vec3 uColorFoam;
-
-// Simple pseudo-random noise
-float random(vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-}
-
-float noise(vec2 st) {
-    vec2 i = floor(st);
-    vec2 f = fract(st);
-    float a = random(i);
-    float b = random(i + vec2(1.0, 0.0));
-    float c = random(i + vec2(0.0, 1.0));
-    float d = random(i + vec2(1.0, 1.0));
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-}
-
-float fbm(vec2 st) {
-    float v = 0.0;
-    float a = 0.5;
-    vec2 shift = vec2(100.0);
-    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
-    for (int i = 0; i < 3; ++i) {
-        v += a * noise(st);
-        st = rot * st * 2.0 + shift;
-        a *= 0.5;
-    }
-    return v;
-}
-
-void main() {
-    // 1. Sample Wave Map for distortion and foam
-    float waveVal = texture2D(uWaveMap, vUv).r;
-    
-    // Calculate gradient for normal-like distortion
-    // We sample slightly offset to get the slope
-    float eps = 1.0 / 256.0; // Estimate
-    float hRight = texture2D(uWaveMap, vUv + vec2(eps, 0.0)).r;
-    float hUp    = texture2D(uWaveMap, vUv + vec2(0.0, eps)).r;
-    
-    vec2 distortion = vec2(hRight - waveVal, hUp - waveVal) * 5.0; // Strength multiplier
-    
-    // 2. Base Water Pattern
-    vec2 st = gl_FragCoord.xy / uResolution.xy;
-    vec2 aspect = vec2(uResolution.x / uResolution.y, 1.0);
-    vec2 uv = st * aspect; // For noise
-    
-    // Distort the UV used for noise
-    vec2 distortedUV = uv + distortion * 0.2;
-    
-    // FBM Noise for water surface
-    float noiseVal = fbm(distortedUV * 8.0 + uTime * 0.2);
-    
-    // 3. Mixing
-    // Base color mix based on noise
-    vec3 color = mix(uColorDeep, uColorShallow, noiseVal * 0.6 + 0.2);
-    
-    // Add Shockwave Foam
-    // If waveVal is high (peak of the ring), add foam
-    float foamMask = smoothstep(0.4, 0.9, waveVal);
-    
-    // Distort foam slightly with noise so it looks organic
-    float organicFoam = foamMask * smoothstep(0.2, 0.8, noiseVal + 0.3);
-    
-    color = mix(color, uColorFoam, organicFoam);
-    
-    // Additional highlight from distortion (fake specular)
-    float highlight = max(0.0, distortion.x + distortion.y) * 2.0;
-    color += uColorFoam * highlight * 0.3;
-
-    gl_FragColor = vec4(color, 1.0);
-}
-`;
-
-export const WAVE_VERTEX_SHADER = `
+export const COMMON_VERTEX_SHADER = `
 attribute vec2 aPosition;
 attribute vec2 aUv;
-attribute float aAlpha;
-
 varying vec2 vUv;
-varying float vAlpha;
-
 void main() {
     vUv = aUv;
-    vAlpha = aAlpha;
     gl_Position = vec4(aPosition, 0.0, 1.0);
 }
 `;
 
-export const WAVE_FRAGMENT_SHADER = `
+// --- RIPPLE SIMULATION (Background) ---
+
+export const RIPPLE_SIM_FS = `
 precision mediump float;
-varying vec2 vUv;
-varying float vAlpha;
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+uniform float uDamping;
 
 void main() {
-    // Draw a Shockwave Ring
-    // Center is 0.5, 0.5
-    vec2 center = vec2(0.5);
-    float dist = distance(vUv, center);
+    vec2 uv = gl_FragCoord.xy / uResolution;
+    vec2 pixel = 1.0 / uResolution;
+
+    // R = Height, G = Velocity
     
-    // Ring shape: expand outward.
-    // We assume the quad is expanding in JS, so we just draw a static ring here.
-    // Sharp outer, soft inner.
-    // Radius 0.5 is the edge of the quad.
+    // Sample neighbors
+    float left = texture2D(uTexture, uv + vec2(-pixel.x, 0.0)).r;
+    float right = texture2D(uTexture, uv + vec2(pixel.x, 0.0)).r;
+    float up = texture2D(uTexture, uv + vec2(0.0, -pixel.y)).r;
+    float down = texture2D(uTexture, uv + vec2(0.0, pixel.y)).r;
     
-    // "Thick expanding ring"
-    float outer = smoothstep(0.5, 0.45, dist);
-    float inner = smoothstep(0.25, 0.4, dist);
+    vec4 data = texture2D(uTexture, uv);
+    float height = data.r;
+    float vel = data.g;
     
-    float ring = outer * inner;
+    // Wave equation
+    float avg = (left + right + up + down) * 0.25;
+    float force = (avg - height) * 2.0; 
     
-    // Output intensity
-    gl_FragColor = vec4(ring * vAlpha, 0.0, 0.0, 1.0);
+    vel += force;
+    vel *= uDamping;
+    height += vel;
+    
+    gl_FragColor = vec4(height, vel, 0.0, 1.0);
+}
+`;
+
+export const RIPPLE_DROP_FS = `
+precision mediump float;
+uniform sampler2D uTexture;
+uniform vec2 uCenter; // UV 0..1
+uniform float uRadius;
+uniform float uStrength;
+uniform vec2 uResolution;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / uResolution;
+    vec4 data = texture2D(uTexture, uv);
+    
+    // Aspect correction for circle
+    float aspect = uResolution.x / uResolution.y;
+    vec2 p = uv; 
+    p.x *= aspect;
+    vec2 c = uCenter;
+    c.x *= aspect;
+    
+    float dist = distance(p, c);
+    
+    if (dist < uRadius) {
+        float h = cos(dist / uRadius * 1.5708); // Quarter sine
+        data.r -= h * uStrength; 
+    }
+    
+    gl_FragColor = data;
+}
+`;
+
+export const WATER_RENDER_FS = `
+precision mediump float;
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / uResolution;
+    vec2 pixel = 1.0 / uResolution;
+    
+    float h = texture2D(uTexture, uv).r;
+    
+    // Normal Calc
+    float hL = texture2D(uTexture, uv + vec2(-pixel.x, 0.0)).r;
+    float hR = texture2D(uTexture, uv + vec2(pixel.x, 0.0)).r;
+    float hU = texture2D(uTexture, uv + vec2(0.0, -pixel.y)).r;
+    float hD = texture2D(uTexture, uv + vec2(0.0, pixel.y)).r;
+    
+    vec3 normal = normalize(vec3(hL - hR, hD - hU, 0.2)); 
+    vec3 lightDir = normalize(vec3(0.5, 0.7, 0.5));
+    
+    // Specular
+    vec3 viewDir = vec3(0.0, 0.0, 1.0);
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16.0);
+    
+    // Colors
+    // Deep blue background + height variation
+    vec3 col = vec3(0.05, 0.2, 0.45); 
+    col += (h * 0.2); // Brighter peaks
+    
+    col += spec * 0.3;
+    
+    gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+// --- FOAM PARTICLES (Foreground) ---
+
+export const FOAM_QUAD_VS = `
+attribute vec2 aQuadCoord; // -1..1
+attribute vec2 aCenter;    // Pixels
+attribute float aSize;     // Pixels
+attribute float aLife;     // 0..1
+
+uniform vec2 uResolution;
+
+varying vec2 vUv;
+varying float vLife;
+
+void main() {
+    vLife = aLife;
+    vUv = aQuadCoord * 0.5 + 0.5;
+    
+    // Convert Pixel center to NDC
+    vec2 ndcCenter = (aCenter / uResolution) * 2.0 - 1.0;
+    ndcCenter.y *= -1.0; // Flip Y
+    
+    vec2 sizeNDC = vec2(aSize / uResolution.x, aSize / uResolution.y) * 2.0;
+    
+    vec2 pos = ndcCenter + (aQuadCoord * sizeNDC * 0.5);
+    gl_Position = vec4(pos, 0.0, 1.0);
+}
+`;
+
+export const FOAM_FS = `
+precision mediump float;
+varying vec2 vUv;
+varying float vLife;
+
+float hash(vec2 p) { return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
+
+float noise(vec2 x) {
+    vec2 i = floor(x);
+    vec2 f = fract(x);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+void main() {
+    float dist = distance(vUv, vec2(0.5));
+    if (dist > 0.5) discard;
+    
+    float alpha = smoothstep(0.5, 0.3, dist);
+    
+    // Detailed Foam Texture
+    float n = noise(vUv * 10.0 + vec2(0.0, vLife * 2.0));
+    float n2 = noise(vUv * 20.0 - vec2(vLife * 3.0, 0.0));
+    float finalNoise = (n + n2) * 0.5;
+    
+    float threshold = 1.0 - vLife; // As life drops, threshold rises
+    if (finalNoise < threshold * 0.8) discard;
+    
+    vec3 col = vec3(0.95, 0.98, 1.0);
+    
+    gl_FragColor = vec4(col, alpha * vLife);
 }
 `;
