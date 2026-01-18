@@ -70,6 +70,10 @@ async function resetDistDir() {
 function minifyHtmlChunk(chunk, trim = true) {
   if (!chunk || !chunk.includes("<")) return chunk;
 
+  // Heuristic: if it contains < but no HTML tag start (like <div, </span, <!), assume it's not HTML.
+  // We look for < followed by a letter, /, !, or ?
+  if (!/<[a-zA-Z\/!?]/.test(chunk)) return chunk;
+
   // Remove HTML comments (including legacy single-line ones) before whitespace collapsing.
   const withoutComments = chunk.replace(/<!--([\s\S]*?)-->/g, "");
 
