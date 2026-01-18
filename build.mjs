@@ -303,6 +303,10 @@ function escapeTemplateNewlines(content) {
     TEMPLATE_EXPR_SINGLE: 5,
     TEMPLATE_EXPR_DOUBLE: 6,
     TEMPLATE_EXPR_TEMPLATE: 7,
+    COMMENT_SINGLE: 8,
+    COMMENT_MULTI: 9,
+    TEMPLATE_EXPR_COMMENT_SINGLE: 10,
+    TEMPLATE_EXPR_COMMENT_MULTI: 11,
   };
 
   let state = State.CODE;
@@ -323,6 +327,8 @@ function escapeTemplateNewlines(content) {
 
     switch (state) {
       case State.CODE: {
+        if (ch === "/" && next === "/") { state = State.COMMENT_SINGLE; output += ch; break; }
+        if (ch === "/" && next === "*") { state = State.COMMENT_MULTI; output += ch; break; }
         if (ch === "'") { state = State.SINGLE; output += ch; break; }
         if (ch === '"') { state = State.DOUBLE; output += ch; break; }
         if (ch === "`") { state = State.TEMPLATE; output += ch; break; }
@@ -343,6 +349,21 @@ function escapeTemplateNewlines(content) {
         if (ch === '"') state = State.CODE;
         break;
       }
+      case State.COMMENT_SINGLE: {
+        if (ch === "\n" || ch === "\r") { state = State.CODE; output += ch; break; }
+        output += ch;
+        break;
+      }
+      case State.COMMENT_MULTI: {
+        if (ch === "*" && next === "/") {
+          state = State.CODE;
+          output += "*/";
+          i += 1;
+          break;
+        }
+        output += ch;
+        break;
+      }
       case State.TEMPLATE: {
         if (escaped) { escaped = false; output += ch; break; }
         if (ch === "\\") { escaped = true; output += ch; break; }
@@ -353,6 +374,8 @@ function escapeTemplateNewlines(content) {
         break;
       }
       case State.TEMPLATE_EXPR_CODE: {
+        if (ch === "/" && next === "/") { state = State.TEMPLATE_EXPR_COMMENT_SINGLE; output += ch; break; }
+        if (ch === "/" && next === "*") { state = State.TEMPLATE_EXPR_COMMENT_MULTI; output += ch; break; }
         if (escaped) { escaped = false; output += ch; break; }
         if (ch === "\\") { escaped = true; output += ch; break; }
         if (ch === "'") { state = State.TEMPLATE_EXPR_SINGLE; output += ch; break; }
@@ -380,6 +403,21 @@ function escapeTemplateNewlines(content) {
         if (ch === "\\") { escaped = true; output += ch; break; }
         output += ch;
         if (ch === '"') state = State.TEMPLATE_EXPR_CODE;
+        break;
+      }
+      case State.TEMPLATE_EXPR_COMMENT_SINGLE: {
+        if (ch === "\n" || ch === "\r") { state = State.TEMPLATE_EXPR_CODE; output += ch; break; }
+        output += ch;
+        break;
+      }
+      case State.TEMPLATE_EXPR_COMMENT_MULTI: {
+        if (ch === "*" && next === "/") {
+          state = State.TEMPLATE_EXPR_CODE;
+          output += "*/";
+          i += 1;
+          break;
+        }
+        output += ch;
         break;
       }
       case State.TEMPLATE_EXPR_TEMPLATE: {
