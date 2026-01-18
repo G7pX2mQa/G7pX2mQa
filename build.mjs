@@ -307,12 +307,44 @@ function escapeTemplateNewlines(content) {
     COMMENT_MULTI: 9,
     TEMPLATE_EXPR_COMMENT_SINGLE: 10,
     TEMPLATE_EXPR_COMMENT_MULTI: 11,
+    REGEX: 12
   };
 
   let state = State.CODE;
   let braceDepth = 0;
   let escaped = false;
   let output = "";
+  
+  // Track last significant char to distinguish regex from division.
+  // We care if it looks like a value (identifier, number, closing bracket) or an operator/keyword.
+  // Division usually follows: Identifier, ), ], }, Number.
+  // Regex usually follows: (, ,, =, :, [, !, &, |, ?, {, }, ;, and keywords (return, throw, etc).
+  // This is a heuristic.
+  let lastNonSpaceChar = '';
+  
+  // Keywords that can precede a regex literal.
+  // Note: 'in', 'instanceof' are operators, so division is unlikely after them? "foo" in /a/? No.
+  // But keywords like 'if', 'while', 'for' are followed by '(', so we track '('.
+  // 'return', 'throw', 'case', 'yield', 'await', 'typeof', 'void', 'delete', 'else'
+  // are the main ones where `/` follows immediately.
+  // However, identifying keywords without a tokenizer is hard.
+  // We will fallback to a simpler heuristic:
+  // If last char is `)`, `]`, `}`, or an alphanumeric char (identifier/number), it's DIVISION.
+  // Otherwise (operator, punctuation), it's REGEX.
+  // Exceptions: `return`, `typeof` etc end in alphanumeric but expect regex.
+  // If we miss those, we treat `return /foo/` as division `return / foo /`?
+  // `return` is a statement. `return / 2` is invalid syntax usually unless return value is divided?
+  // `return 5 / 2`.
+  // `return/foo/` -> Valid regex.
+  // So we really need to know if the alphanumeric word was a keyword.
+  // We can track the last "word" seen.
+  
+  let lastWord = "";
+  let isCollectingWord = false;
+
+  const REGEX_PRECEDING_KEYWORDS = new Set([
+    "return", "throw", "case", "else", "typeof", "void", "delete", "await", "yield", "do"
+  ]);
 
   for (let i = 0; i < content.length; i += 1) {
     const ch = content[i];
@@ -324,33 +356,130 @@ function escapeTemplateNewlines(content) {
         i += 1;
       }
     };
+    
+    // Helpers to update state for division detection
+    const updateLastChar = (c) => {
+        if (!/\s/.test(c)) {
+            lastNonSpaceChar = c;
+        }
+        
+        if (/[a-zA-Z0-9_$]/.test(c)) {
+            if (!isCollectingWord) {
+                lastWord = "";
+                isCollectingWord = true;
+            }
+            lastWord += c;
+        } else {
+            isCollectingWord = false;
+        }
+    };
 
     switch (state) {
       case State.CODE: {
         if (ch === "/" && next === "/") { state = State.COMMENT_SINGLE; output += ch; break; }
         if (ch === "/" && next === "*") { state = State.COMMENT_MULTI; output += ch; break; }
-        if (ch === "'") { state = State.SINGLE; output += ch; break; }
-        if (ch === '"') { state = State.DOUBLE; output += ch; break; }
-        if (ch === "`") { state = State.TEMPLATE; output += ch; break; }
+        
+        if (ch === "/") {
+            // Regex or Division?
+            let isDivision = false;
+            
+            if (lastNonSpaceChar) {
+                if (/[)\]}'"`]/.test(lastNonSpaceChar)) {
+                    isDivision = true;
+                } else if (/[a-zA-Z0-9_$]/.test(lastNonSpaceChar)) {
+                    // Ends in identifier or number.
+                    // Check if it's a special keyword.
+                    if (REGEX_PRECEDING_KEYWORDS.has(lastWord)) {
+                        isDivision = false;
+                    } else {
+                        isDivision = true;
+                    }
+                }
+            }
+            
+            if (!isDivision) {
+                state = State.REGEX;
+            }
+            // else remain in CODE (division)
+        }
+
+        if (ch === "'") { state = State.SINGLE; output += ch; updateLastChar(ch); break; }
+        if (ch === '"') { state = State.DOUBLE; output += ch; updateLastChar(ch); break; }
+        if (ch === "`") { state = State.TEMPLATE; output += ch; updateLastChar(ch); break; }
+        
         output += ch;
+        updateLastChar(ch);
         break;
       }
+      
+      case State.REGEX: {
+          if (escaped) { escaped = false; output += ch; break; }
+          if (ch === "\\") { escaped = true; output += ch; break; }
+          if (ch === "[") { 
+              // Char class inside regex. Handles `/[/]/`
+              // We need a sub-state or just simple counting?
+              // Simple regex state might be enough if we just handle escaped chars.
+              // But `[` can contain `/`.
+              // We effectively need to ignore `/` until `]`.
+              // But `]` can be escaped.
+              // Let's rely on escape handling. `[` is not special for state transition unless we track it?
+              // Standard regex grammar: `[` starts Class. `\` escapes next. `]` ends Class.
+              // `/` inside Class is char.
+              // So we need to handle Class state.
+              // Let's just assume no nested classes (they aren't valid in JS regex).
+              // Actually `[` escapes are valid.
+              // We can hack this by saying if we see `[`, we wait for `]`.
+              // But wait, `escapeTemplateNewlines` is a single pass.
+              // We can switch to REGEX_CLASS state?
+              // Let's keep it simple: Just handle escapes.
+              // If we see `[`, we enter "REGEX_CLASS" logic implicitly?
+              // No, let's make it explicit or `[` might contain `/`.
+              // `var r = /[/]/;` -> `[` starts class. `/` is literal. `]` ends. `/` ends regex.
+              // If we don't handle `[`, we see `/` and end regex at the middle slash.
+              // So yes, we need REGEX_CLASS.
+              // But let's add `REGEX_CLASS` to enum if needed. Or just a flag.
+              // But the state enum is integer.
+              // Let's optimize: `REGEX` state will handle `[` manually?
+              // No, cleanest is a new state.
+              // But I can't easily change the enum structure mid-loop logic without re-architecting.
+              // Actually I can just add `REGEX_CLASS` state.
+              // But I'll do it inline:
+              // If ch === '[', we just output and enter a "loop until ]" block? No, async input stream? No, sync string.
+              // We can't block.
+              // So I will assume `[` means simple class.
+              // But wait, `build.mjs` state machine approach is fine.
+              // I'll add `REGEX_CLASS` state.
+          }
+          // Wait, I can't add state to the `switch` if I don't define it in the const.
+          // I will define it.
+          // State.REGEX_CLASS = 13.
+          
+          if (ch === "/") {
+              state = State.CODE;
+              output += ch;
+              updateLastChar(ch); // Regex literal is a value
+              break;
+          }
+          output += ch;
+          break;
+      }
+
       case State.SINGLE: {
         if (escaped) { escaped = false; output += ch; break; }
         if (ch === "\\") { escaped = true; output += ch; break; }
         output += ch;
-        if (ch === "'") state = State.CODE;
+        if (ch === "'") { state = State.CODE; updateLastChar(ch); }
         break;
       }
       case State.DOUBLE: {
         if (escaped) { escaped = false; output += ch; break; }
         if (ch === "\\") { escaped = true; output += ch; break; }
         output += ch;
-        if (ch === '"') state = State.CODE;
+        if (ch === '"') { state = State.CODE; updateLastChar(ch); }
         break;
       }
       case State.COMMENT_SINGLE: {
-        if (ch === "\n" || ch === "\r") { state = State.CODE; output += ch; break; }
+        if (ch === "\n" || ch === "\r") { state = State.CODE; output += ch; /* newline is not a token value really */ break; }
         output += ch;
         break;
       }
@@ -367,7 +496,7 @@ function escapeTemplateNewlines(content) {
       case State.TEMPLATE: {
         if (escaped) { escaped = false; output += ch; break; }
         if (ch === "\\") { escaped = true; output += ch; break; }
-        if (ch === "`") { state = State.CODE; output += ch; break; }
+        if (ch === "`") { state = State.CODE; output += ch; updateLastChar(ch); break; }
         if (ch === "$" && next === "{") { state = State.TEMPLATE_EXPR_CODE; braceDepth = 1; output += "${"; i += 1; break; }
         if (ch === "\n" || ch === "\r") { emitEscapedNewline(); break; }
         output += ch;
@@ -429,9 +558,22 @@ function escapeTemplateNewlines(content) {
         output += ch;
         break;
       }
+      // New state for REGEX_CLASS handling (13)
+      case 13: { // REGEX_CLASS
+          if (escaped) { escaped = false; output += ch; break; }
+          if (ch === "\\") { escaped = true; output += ch; break; }
+          if (ch === "]") { state = State.REGEX; output += ch; break; }
+          output += ch;
+          break;
+      }
       default: {
         output += ch;
       }
+    }
+    
+    // Patch state transition to include REGEX_CLASS from REGEX
+    if (state === State.REGEX && !escaped && ch === '[') {
+        state = 13; // REGEX_CLASS
     }
   }
 
