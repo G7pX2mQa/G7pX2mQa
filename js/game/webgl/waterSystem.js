@@ -51,6 +51,10 @@ export class WaterSystem {
         this.fgProgram = null;
         this.simProgram = null;
         this.brushProgram = null;
+        
+        // Background Context Simulation Programs
+        this.bgSimProgram = null;
+        this.bgBrushProgram = null;
 
         this.width = 0;
         this.height = 0;
@@ -58,15 +62,24 @@ export class WaterSystem {
 
         // Simulation State
         this.simRes = 256;
+        
+        // Fg Simulation State
         this.readFBO = null;
         this.writeFBO = null;
         this.readTexture = null;
         this.writeTexture = null;
 
+        // Bg Simulation State
+        this.bgReadFBO = null;
+        this.bgWriteFBO = null;
+        this.bgReadTexture = null;
+        this.bgWriteTexture = null;
+
         // Buffers
         this.quadBufferBg = null;
         this.quadBufferFg = null;
         this.brushBuffer = null;
+        this.bgBrushBuffer = null; // New buffer for BG context brush
 
         this._boundResize = null;
     }
@@ -106,6 +119,8 @@ export class WaterSystem {
     initShaders() {
         // Background Context Shaders
         this.bgProgram = createProgram(this.glBg, VERTEX_SHADER, BACKGROUND_FRAGMENT_SHADER);
+        this.bgSimProgram = createProgram(this.glBg, VERTEX_SHADER, SIMULATION_FRAGMENT_SHADER);
+        this.bgBrushProgram = createProgram(this.glBg, WAVE_VERTEX_SHADER, WAVE_BRUSH_FRAGMENT_SHADER);
 
         // Foreground Context Shaders
         this.fgProgram = createProgram(this.glFg, VERTEX_SHADER, FRAGMENT_SHADER);
@@ -121,6 +136,9 @@ export class WaterSystem {
         this.quadBufferBg = glBg.createBuffer();
         glBg.bindBuffer(glBg.ARRAY_BUFFER, this.quadBufferBg);
         glBg.bufferData(glBg.ARRAY_BUFFER, vertices, glBg.STATIC_DRAW);
+        
+        // Background Brush Buffer
+        this.bgBrushBuffer = glBg.createBuffer();
 
         // Foreground Quad (for Sim and Render)
         const glFg = this.glFg;
@@ -133,7 +151,11 @@ export class WaterSystem {
     }
 
     initSimulation() {
-        const gl = this.glFg;
+        this.initContextSimulation(this.glFg, false);
+        this.initContextSimulation(this.glBg, true);
+    }
+
+    initContextSimulation(gl, isBg) {
         const w = this.simRes;
         const h = this.simRes;
 
@@ -152,26 +174,36 @@ export class WaterSystem {
             return tex;
         };
 
-        this.readTexture = createTex();
-        this.writeTexture = createTex();
+        const readTex = createTex();
+        const writeTex = createTex();
 
-        this.readFBO = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.readFBO);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.readTexture, 0);
+        const readFBO = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, readFBO);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, readTex, 0);
 
-        this.writeFBO = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.writeFBO);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.writeTexture, 0);
+        const writeFBO = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, writeFBO);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, writeTex, 0);
         
         // Check FBO status
         const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
         if (status !== gl.FRAMEBUFFER_COMPLETE) {
             console.warn('WaterSystem: Float FBO not supported, fallback to BYTE');
-            // Fallback logic could go here (recreate textures with UNSIGNED_BYTE)
-            // For now we assume decent hardware
         }
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+        if (isBg) {
+            this.bgReadTexture = readTex;
+            this.bgWriteTexture = writeTex;
+            this.bgReadFBO = readFBO;
+            this.bgWriteFBO = writeFBO;
+        } else {
+            this.readTexture = readTex;
+            this.writeTexture = writeTex;
+            this.readFBO = readFBO;
+            this.writeFBO = writeFBO;
+        }
     }
 
     resize() {
@@ -197,29 +229,26 @@ export class WaterSystem {
     // Called by Spawner when items drop
     addWave(x, y, size) {
         if (!this.glFg || !this.brushProgram) return;
-        const gl = this.glFg;
 
-        gl.useProgram(this.brushProgram);
-        // Draw into the READ FBO (which is the current state)
-        // Note: Ideally we draw into Write, but we need to accumulate.
-        // For simplicity, we draw into ReadTexture so the next Sim step picks it up.
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.readFBO);
+        // Draw to both contexts
+        this.addWaveToContext(this.glFg, this.brushProgram, this.brushBuffer, this.readFBO, x, y, size);
+        this.addWaveToContext(this.glBg, this.bgBrushProgram, this.bgBrushBuffer, this.bgReadFBO, x, y, size);
+    }
+
+    addWaveToContext(gl, program, buffer, fbo, x, y, size) {
+        gl.useProgram(program);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
         gl.viewport(0, 0, this.simRes, this.simRes);
 
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE);
 
-        // Compute Quad coordinates (-1 to 1)
-        // Note: 'size' is in pixels.
-        // We need to map pixels to WebGL Clip Space
-        const brushSize = Math.max(0.05, size / this.width) * 4.0; // Boost size for visibility
+        const brushSize = Math.max(0.05, size / this.width) * 4.0;
         
         const ndcX = (x / this.width) * 2 - 1;
-        const ndcY = -((y / this.height) * 2 - 1); // Flip Y for WebGL
+        const ndcY = -((y / this.height) * 2 - 1);
 
         const s = brushSize;
-        // Quad vertices: x, y, u, v, alpha
-        // Alpha hardcoded to 1.0 for now
         const data = new Float32Array([
             ndcX - s, ndcY - s, 0, 0, 1,
             ndcX + s, ndcY - s, 1, 0, 1,
@@ -227,14 +256,13 @@ export class WaterSystem {
             ndcX + s, ndcY + s, 1, 1, 1
         ]);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.brushBuffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
 
-        const aPos = gl.getAttribLocation(this.brushProgram, 'aPosition');
-        const aUv = gl.getAttribLocation(this.brushProgram, 'aUv');
-        const aAlpha = gl.getAttribLocation(this.brushProgram, 'aAlpha');
+        const aPos = gl.getAttribLocation(program, 'aPosition');
+        const aUv = gl.getAttribLocation(program, 'aUv');
+        const aAlpha = gl.getAttribLocation(program, 'aAlpha');
 
-        // Stride = 5 floats * 4 bytes = 20
         gl.enableVertexAttribArray(aPos);
         gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 20, 0);
 
@@ -247,9 +275,7 @@ export class WaterSystem {
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
         gl.disable(gl.BLEND);
-        
-        // Restore Viewport
-        gl.viewport(0, 0, this.fgCanvas.width, this.fgCanvas.height);
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
 
@@ -260,41 +286,11 @@ export class WaterSystem {
     render(totalTime) {
         if (!this.glBg || !this.glFg) return;
         
-        // Update Time (Slower speed)
-        // We use totalTime directly but scale it in the shader call
-        const simTime = totalTime * 0.001 * 0.5; // Slow down factor
+        const simTime = totalTime * 0.001 * 0.5;
         
-        // --- 1. Simulation Step (Foreground Context) ---
-        const glFg = this.glFg;
-        glFg.useProgram(this.simProgram);
-        glFg.viewport(0, 0, this.simRes, this.simRes);
-        
-        // Write to WriteFBO
-        glFg.bindFramebuffer(glFg.FRAMEBUFFER, this.writeFBO);
-        
-        // Read from ReadTexture
-        glFg.activeTexture(glFg.TEXTURE0);
-        glFg.bindTexture(glFg.TEXTURE_2D, this.readTexture);
-        glFg.uniform1i(glFg.getUniformLocation(this.simProgram, 'uLastFrame'), 0);
-        glFg.uniform2f(glFg.getUniformLocation(this.simProgram, 'uResolution'), this.simRes, this.simRes);
-        glFg.uniform1f(glFg.getUniformLocation(this.simProgram, 'uDt'), 0.016); // Fixed timestep approximation
-
-        // Draw Full Screen Quad
-        glFg.bindBuffer(glFg.ARRAY_BUFFER, this.quadBufferFg);
-        const aPosSim = glFg.getAttribLocation(this.simProgram, 'position');
-        glFg.enableVertexAttribArray(aPosSim);
-        glFg.vertexAttribPointer(aPosSim, 2, glFg.FLOAT, false, 0, 0);
-        
-        glFg.drawArrays(glFg.TRIANGLE_STRIP, 0, 4);
-
-        // Swap
-        const temp = this.readTexture;
-        this.readTexture = this.writeTexture;
-        this.writeTexture = temp;
-
-        const tempFBO = this.readFBO;
-        this.readFBO = this.writeFBO;
-        this.writeFBO = tempFBO;
+        // --- 1. Simulation Step (Both Contexts) ---
+        this.stepSimulation(this.glFg, this.simProgram, this.quadBufferFg, false);
+        this.stepSimulation(this.glBg, this.bgSimProgram, this.quadBufferBg, true);
 
         // --- 2. Render Background (Water Body) ---
         const glBg = this.glBg;
@@ -305,6 +301,15 @@ export class WaterSystem {
         glBg.uniform3fv(glBg.getUniformLocation(this.bgProgram, 'uColorShallow'), COLOR_SHALLOW);
         glBg.uniform1f(glBg.getUniformLocation(this.bgProgram, 'uTime'), simTime);
         glBg.uniform2f(glBg.getUniformLocation(this.bgProgram, 'uResolution'), this.bgCanvas.width, this.bgCanvas.height);
+        
+        // Bind Wave Map (Simulation Result)
+        glBg.activeTexture(glBg.TEXTURE0);
+        glBg.bindTexture(glBg.TEXTURE_2D, this.bgReadTexture);
+        glBg.uniform1i(glBg.getUniformLocation(this.bgProgram, 'uWaveMap'), 0);
+
+        // Calculate height ratio for UV remapping
+        const ratio = (this.fgCanvas.height > 0) ? (this.bgCanvas.height / this.fgCanvas.height) : 0.18;
+        glBg.uniform1f(glBg.getUniformLocation(this.bgProgram, 'uHeightRatio'), ratio);
 
         glBg.bindBuffer(glBg.ARRAY_BUFFER, this.quadBufferBg);
         const aPosBg = glBg.getAttribLocation(this.bgProgram, 'position');
@@ -314,6 +319,7 @@ export class WaterSystem {
         glBg.drawArrays(glBg.TRIANGLE_STRIP, 0, 4);
 
         // --- 3. Render Foreground (Waves/Foam) ---
+        const glFg = this.glFg;
         glFg.bindFramebuffer(glFg.FRAMEBUFFER, null); // Screen
         glFg.viewport(0, 0, this.fgCanvas.width, this.fgCanvas.height);
         glFg.useProgram(this.fgProgram);
@@ -326,7 +332,6 @@ export class WaterSystem {
         
         glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorShallow'), COLOR_SHALLOW);
         glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorFoam'), COLOR_FOAM);
-        // Note: uColorDeep is unused in FG shader logic but we can pass it
         glFg.uniform1f(glFg.getUniformLocation(this.fgProgram, 'uTime'), simTime);
 
         glFg.bindBuffer(glFg.ARRAY_BUFFER, this.quadBufferFg);
@@ -335,6 +340,46 @@ export class WaterSystem {
         glFg.vertexAttribPointer(aPosFg, 2, glFg.FLOAT, false, 0, 0);
 
         glFg.drawArrays(glFg.TRIANGLE_STRIP, 0, 4);
+    }
+
+    stepSimulation(gl, program, quadBuffer, isBg) {
+        gl.useProgram(program);
+        gl.viewport(0, 0, this.simRes, this.simRes);
+        
+        const readTex = isBg ? this.bgReadTexture : this.readTexture;
+        const writeFBO = isBg ? this.bgWriteFBO : this.writeFBO;
+        const writeTex = isBg ? this.bgWriteTexture : this.writeTexture;
+        const readFBO = isBg ? this.bgReadFBO : this.readFBO;
+
+        // Write to WriteFBO
+        gl.bindFramebuffer(gl.FRAMEBUFFER, writeFBO);
+        
+        // Read from ReadTexture
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, readTex);
+        gl.uniform1i(gl.getUniformLocation(program, 'uLastFrame'), 0);
+        gl.uniform2f(gl.getUniformLocation(program, 'uResolution'), this.simRes, this.simRes);
+        gl.uniform1f(gl.getUniformLocation(program, 'uDt'), 0.016);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+        const aPos = gl.getAttribLocation(program, 'position');
+        gl.enableVertexAttribArray(aPos);
+        gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+        
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        // Swap
+        if (isBg) {
+            this.bgReadTexture = writeTex;
+            this.bgWriteTexture = readTex;
+            this.bgReadFBO = writeFBO;
+            this.bgWriteFBO = readFBO;
+        } else {
+            this.readTexture = writeTex;
+            this.writeTexture = readTex;
+            this.readFBO = writeFBO;
+            this.writeFBO = readFBO;
+        }
     }
 }
 
