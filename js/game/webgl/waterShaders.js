@@ -1,19 +1,15 @@
-// js/game/webgl/waterShaders.js
 
-export const VERTEX_SHADER = `
-attribute vec2 position;
+export const VERTEX_SHADER = `attribute vec2 position;
 varying vec2 vUv;
 void main() {
     vUv = position * 0.5 + 0.5;
     gl_Position = vec4(position, 0.0, 1.0);
-}
-`;
+}`;
 
 // --- BACKGROUND SHADER (Water Body) ---
 // Darker at top, clearer (transparent) at bottom.
 // Slight wobble using noise/time.
-export const BACKGROUND_FRAGMENT_SHADER = `
-precision mediump float;
+export const BACKGROUND_FRAGMENT_SHADER = `precision mediump float;
 
 varying vec2 vUv;
 uniform float uTime;
@@ -71,13 +67,11 @@ void main() {
     float alpha = smoothstep(0.1, 0.8, depth + n * 0.05);
     
     gl_FragColor = vec4(color, alpha);
-}
-`;
+}`;
 
 // --- FOREGROUND SHADER (Waves/Surges) ---
 // High speed, Foam at crests, Transparent elsewhere.
-export const FRAGMENT_SHADER = `
-precision mediump float;
+export const FRAGMENT_SHADER = `precision mediump float;
 
 varying vec2 vUv;
 uniform float uTime;
@@ -114,12 +108,10 @@ void main() {
     alpha = clamp(alpha, 0.0, 1.0); // Ensure it hits 1.0 for opacity
     
     gl_FragColor = vec4(finalColor, alpha);
-}
-`;
+}`;
 
 // Wave Sprite Vertex Shader (Standard quad)
-export const WAVE_VERTEX_SHADER = `
-attribute vec2 aPosition;
+export const WAVE_VERTEX_SHADER = `attribute vec2 aPosition;
 attribute vec2 aUv;
 attribute float aAlpha; 
 
@@ -130,12 +122,10 @@ void main() {
     vUv = aUv;
     vAlpha = aAlpha;
     gl_Position = vec4(aPosition, 0.0, 1.0);
-}
-`;
+}`;
 
 // Wave Brush: Draws the initial "Stamp" of the wave
-export const WAVE_BRUSH_FRAGMENT_SHADER = `
-precision mediump float;
+export const WAVE_BRUSH_FRAGMENT_SHADER = `precision mediump float;
 varying vec2 vUv;
 varying float vAlpha;
 
@@ -162,13 +152,11 @@ void main() {
     shape *= (0.8 + 0.2 * n);
     
     gl_FragColor = vec4(shape * vAlpha, 0.0, 0.0, 1.0);
-}
-`;
+}`;
 
 // Simulation Shader: Handles Decay and Flow
 // "Coins rushing in very quickly... violent" -> High speed flow
-export const SIMULATION_FRAGMENT_SHADER = `
-precision mediump float;
+export const SIMULATION_FRAGMENT_SHADER = `precision mediump float;
 
 uniform sampler2D uLastFrame;
 uniform vec2 uResolution;
@@ -199,5 +187,4 @@ void main() {
     color = mix(color, (l + r) * 0.5, 0.02); 
 
     gl_FragColor = color;
-}
-`;
+}`;
