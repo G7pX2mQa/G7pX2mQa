@@ -318,35 +318,30 @@ function escapeTemplateNewlines(content) {
   let output = "";
   
   // Track last significant char to distinguish regex from division.
-  // We care if it looks like a value (identifier, number, closing bracket) or an operator/keyword.
-  // Division usually follows: Identifier, ), ], }, Number.
-  // Regex usually follows: (, ,, =, :, [, !, &, |, ?, {, }, ;, and keywords (return, throw, etc).
-  // This is a heuristic.
   let lastNonSpaceChar = '';
-  
-  // Keywords that can precede a regex literal.
-  // Note: 'in', 'instanceof' are operators, so division is unlikely after them? "foo" in /a/? No.
-  // But keywords like 'if', 'while', 'for' are followed by '(', so we track '('.
-  // 'return', 'throw', 'case', 'yield', 'await', 'typeof', 'void', 'delete', 'else'
-  // are the main ones where `/` follows immediately.
-  // However, identifying keywords without a tokenizer is hard.
-  // We will fallback to a simpler heuristic:
-  // If last char is `)`, `]`, `}`, or an alphanumeric char (identifier/number), it's DIVISION.
-  // Otherwise (operator, punctuation), it's REGEX.
-  // Exceptions: `return`, `typeof` etc end in alphanumeric but expect regex.
-  // If we miss those, we treat `return /foo/` as division `return / foo /`?
-  // `return` is a statement. `return / 2` is invalid syntax usually unless return value is divided?
-  // `return 5 / 2`.
-  // `return/foo/` -> Valid regex.
-  // So we really need to know if the alphanumeric word was a keyword.
-  // We can track the last "word" seen.
-  
   let lastWord = "";
   let isCollectingWord = false;
 
   const REGEX_PRECEDING_KEYWORDS = new Set([
     "return", "throw", "case", "else", "typeof", "void", "delete", "await", "yield", "do"
   ]);
+
+  // Helpers to update state for division detection
+  const updateLastChar = (c) => {
+    if (!/\s/.test(c)) {
+        lastNonSpaceChar = c;
+    }
+    
+    if (/[a-zA-Z0-9_$]/.test(c)) {
+        if (!isCollectingWord) {
+            lastWord = "";
+            isCollectingWord = true;
+        }
+        lastWord += c;
+    } else {
+        isCollectingWord = false;
+    }
+  };
 
   for (let i = 0; i < content.length; i += 1) {
     const ch = content[i];
@@ -357,23 +352,6 @@ function escapeTemplateNewlines(content) {
       if (ch === "\r" && next === "\n") {
         i += 1;
       }
-    };
-    
-    // Helpers to update state for division detection
-    const updateLastChar = (c) => {
-        if (!/\s/.test(c)) {
-            lastNonSpaceChar = c;
-        }
-        
-        if (/[a-zA-Z0-9_$]/.test(c)) {
-            if (!isCollectingWord) {
-                lastWord = "";
-                isCollectingWord = true;
-            }
-            lastWord += c;
-        } else {
-            isCollectingWord = false;
-        }
     };
 
     switch (state) {
@@ -607,3 +585,234 @@ function escapeTemplateNewlines(content) {
 
   return output;
 }
+
+function escapeNewlinesPlugin() {
+  return {
+    name: "escape-template-newlines",
+    setup(build) {
+      build.onEnd(async (result) => {
+        try {
+            if (result.errors.length) return;
+            const outputs = Object.keys(result.metafile?.outputs || {}).filter((f) => f.endsWith(".js"));
+            if (!outputs.length) return;
+
+            await Promise.all(
+              outputs.map(async (outfile) => {
+                const resolved = path.isAbsolute(outfile) ? outfile : path.resolve(outfile);
+                const original = await fs.readFile(resolved, "utf8");
+                const escaped = escapeTemplateNewlines(original);
+                if (escaped !== original) {
+                  await fs.writeFile(resolved, escaped, "utf8");
+                }
+              })
+            );
+        } catch (e) {
+            console.error("Error in escape-template-newlines plugin:", e);
+        }
+      });
+    },
+  };
+}
+
+function buildOptions({ minify, sourcemap }) {
+  return {
+    entryPoints: { bundle: APP_ENTRY, styles: STYLES_ENTRY },
+    entryNames: "[name]",
+    bundle: true,
+    outdir: DIST_DIR,
+    write: true,
+    minify,
+    sourcemap,
+    metafile: true,
+    loader: {
+      ".css": "css",
+      ".html": "text",
+      ".jpg": "file",
+      ".jpeg": "file",
+      ".webp": "file",
+      ".svg": "file",
+      ".ico": "file",
+      ".ogg": "file",
+      ".wav": "file",
+    },
+    assetNames: "assets/[name]-[hash]",
+    external: ["img/*", "sounds/*", "favicon/*"],
+    logOverride: { "ignored-bare-import": "silent" },
+    plugins: [
+      escapeNewlinesPlugin(),
+      htmlTemplateMinifierPlugin({ enabled: minify }),
+      htmlOutputPlugin({ template: "index.html", minify }),
+    ],
+  };
+}
+
+async function buildAssets({ minify, sourcemap }) {
+  await build(buildOptions({ minify, sourcemap }));
+}
+async function copyStaticAssets() {
+  await fs.mkdir(DIST_DIR, { recursive: true });
+
+  const tasks = [
+    fs.cp("favicon", resolveDist("favicon"), { recursive: true, force: true }),
+    fs.cp("img", resolveDist("img"), { recursive: true, force: true }),
+    fs.cp("sounds", resolveDist("sounds"), { recursive: true, force: true }),
+  ];
+
+  await Promise.all(tasks);
+}
+
+function modeOptions(mode) {
+  if (mode === "prod") {
+    return { minify: true, sourcemap: "external" };
+  }
+  return { minify: false, sourcemap: true };
+}
+
+async function buildAll({ mode = "dev" } = {}) {
+  const { minify, sourcemap } = modeOptions(mode);
+  await resetDistDir();
+  await Promise.all([buildAssets({ minify, sourcemap }), copyStaticAssets()]);
+}
+
+async function watchAll() {
+  const { minify, sourcemap } = modeOptions("dev");
+  await resetDistDir();
+  const buildContext = await context(buildOptions({ minify, sourcemap }));
+  await buildContext.watch();
+  await copyStaticAssets();
+
+  const watchers = [];
+
+  const staticTargets = [
+    { path: "favicon", recursive: true, task: copyStaticAssets },
+    { path: "img", recursive: true, task: copyStaticAssets },
+    { path: "sounds", recursive: true, task: copyStaticAssets },
+  ];
+
+  const sourceTargets = [
+    { path: "index.html", recursive: false, task: () => buildContext.rebuild() },
+  ];
+
+  const addWatcher = ({ path: target, recursive, task }) => {
+    if (!target) return;
+    watchers.push(
+      watch(target, { recursive }, async () => {
+        await task();
+      })
+    );
+  };
+
+  [...staticTargets, ...sourceTargets].forEach(addWatcher);
+
+  process.on("SIGINT", async () => {
+    await Promise.all([buildContext.dispose()]);
+    watchers.forEach((w) => w.close());
+    process.exit(0);
+  });
+}
+
+async function serveAll({ mode = "dev" } = {}) {
+  const { minify, sourcemap } = modeOptions(mode);
+  await resetDistDir();
+  const buildContext = await context(buildOptions({ minify, sourcemap }));
+  await buildContext.watch();
+  await copyStaticAssets();
+
+  const watchers = [];
+
+  const staticTargets = [
+    { path: "favicon", recursive: true, task: copyStaticAssets },
+    { path: "img", recursive: true, task: copyStaticAssets },
+    { path: "sounds", recursive: true, task: copyStaticAssets },
+  ];
+
+  const sourceTargets = [
+    { path: "index.html", recursive: false, task: () => buildContext.rebuild() },
+  ];
+
+  const addWatcher = ({ path: target, recursive, task }) => {
+    if (!target) return;
+    watchers.push(
+      watch(target, { recursive }, async () => {
+        await task();
+      })
+    );
+  };
+
+  [...staticTargets, ...sourceTargets].forEach(addWatcher);
+
+  const internalServer = await buildContext.serve({ servedir: DIST_DIR, port: 8001, host: "127.0.0.1" });
+
+  const proxy = http.createServer((req, res) => {
+    const forward = http.request(
+      {
+        hostname: internalServer.host,
+        port: internalServer.port,
+        path: req.url,
+        method: req.method,
+        headers: req.headers,
+      },
+      (proxyRes) => {
+        res.writeHead(proxyRes.statusCode || 500, {
+          ...proxyRes.headers,
+          "cache-control": "public, max-age=31536000, immutable",
+        });
+        proxyRes.pipe(res, { end: true });
+      }
+    );
+
+    forward.on("error", (err) => {
+      console.error("Proxy error", err);
+      res.statusCode = 502;
+      res.end("Proxy error");
+    });
+
+    if (req.readableEnded) {
+      forward.end();
+    } else {
+      req.pipe(forward, { end: true });
+    }
+  });
+
+  proxy.listen(8000, "0.0.0.0", () => {
+    console.log(`Serving ${DIST_DIR} at http://localhost:8000`);
+  });
+
+  const shutdown = async () => {
+    await Promise.all([buildContext.dispose()]);
+    internalServer.stop();
+    proxy.close();
+    watchers.forEach((w) => w.close());
+    process.exit(0);
+  };
+
+  process.on("SIGINT", shutdown);
+}
+
+function parseMode(args) {
+  return args.includes("--prod") ? "prod" : "dev";
+}
+
+async function main() {
+  const [command, ...rest] = process.argv.slice(2);
+  const mode = parseMode(rest);
+
+  if (command === "build") {
+    await buildAll({ mode });
+    return;
+  }
+
+  if (command === "watch") {
+    await watchAll();
+    return;
+  }
+
+  if (command === "serve") {
+    await serveAll({ mode });
+    return;
+  }
+
+  console.log("Usage: node build.mjs [build|watch|serve] [--prod|--dev]");
+}
+
+await main();
