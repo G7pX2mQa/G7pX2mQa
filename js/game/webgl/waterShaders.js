@@ -1,4 +1,4 @@
-
+/* it's important that all comments in this file do not use the single line variant otherwise it will not compile correctly */
 export const VERTEX_SHADER = `attribute vec2 position;
 varying vec2 vUv;
 void main() {
@@ -17,7 +17,7 @@ uniform vec2 uResolution;
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
 
-// Simple noise for wobble
+/* Simple noise for wobble */
 float random(vec2 st) {
     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
 }
@@ -33,37 +33,37 @@ float noise(vec2 st) {
 }
 
 void main() {
-    // 1. Gradient Logic: Top (y=0) is Deep/Dark, Bottom (y=1) is Shallow/Clear
-    // vUv.y goes 0 (bottom) to 1 (top) usually? 
-    // Wait, standard quad: (-1,-1) -> (1,1). vUv = pos*0.5+0.5.
-    // (-1,-1) -> vUv=(0,0) (Bottom-Left)
-    // ( 1, 1) -> vUv=(1,1) (Top-Right)
+    /* 1. Gradient Logic: Top (y=0) is Deep/Dark, Bottom (y=1) is Shallow/Clear */
+    /* vUv.y goes 0 (bottom) to 1 (top) usually? */
+    /* Wait, standard quad: (-1,-1) -> (1,1). vUv = pos*0.5+0.5. */
+    /* (-1,-1) -> vUv=(0,0) (Bottom-Left) */
+    /* ( 1, 1) -> vUv=(1,1) (Top-Right) */
     
-    // We want Top (vUv.y=1) to be Dark.
-    // We want Bottom (vUv.y=0) to be Clear/Transparent.
+    /* We want Top (vUv.y=1) to be Dark. */
+    /* We want Bottom (vUv.y=0) to be Clear/Transparent. */
     
-    // Wobble logic
-    // We displace the UVs slightly over time to make the water look like it's moving gently.
-    float timeScale = uTime * 0.8; // Increased speed for noticeable idle movement
-    float waveX = sin(vUv.y * 12.0 + timeScale) * 0.008; // Increased amplitude
+    /* Wobble logic */
+    /* We displace the UVs slightly over time to make the water look like it's moving gently. */
+    float timeScale = uTime * 0.8; /* Increased speed for noticeable idle movement */
+    float waveX = sin(vUv.y * 12.0 + timeScale) * 0.008; /* Increased amplitude */
     float waveY = cos(vUv.x * 12.0 + timeScale) * 0.008;
     
-    // Add some noise for "texture"
+    /* Add some noise for "texture" */
     float n = noise(vUv * 5.0 + vec2(uTime * 0.2));
     
     vec2 distortedUv = vUv + vec2(waveX, waveY);
     
-    // Gradient Factor: 1.0 at Top, 0.0 at Bottom
+    /* Gradient Factor: 1.0 at Top, 0.0 at Bottom */
     float depth = smoothstep(0.0, 1.0, distortedUv.y);
     
-    // Color Mix
-    // Deep color at top, Shallow color at bottom
-    // We bias it towards Deep quickly at the top
+    /* Color Mix */
+    /* Deep color at top, Shallow color at bottom */
+    /* We bias it towards Deep quickly at the top */
     vec3 color = mix(uColorShallow, uColorDeep, smoothstep(0.2, 0.9, depth));
     
-    // Alpha Mix
-    // Opaque at Top (1.0), Transparent at Bottom (0.0)
-    // "Clearer toward the bottom but not white/foamy"
+    /* Alpha Mix */
+    /* Opaque at Top (1.0), Transparent at Bottom (0.0) */
+    /* "Clearer toward the bottom but not white/foamy" */
     float alpha = smoothstep(0.1, 0.8, depth + n * 0.05);
     
     gl_FragColor = vec4(color, alpha);
@@ -85,27 +85,27 @@ void main() {
     vec4 waveInfo = texture2D(uWaveMap, vUv);
     float waveVal = waveInfo.r; 
     
-    // Threshold: Only draw if wave is strong enough
+    /* Threshold: Only draw if wave is strong enough */
     if (waveVal < 0.05) {
-        discard; // Fully transparent
+        discard; /* Fully transparent */
     }
     
-    // Calculate intensity for foam
-    // "Waves should extend slightly past the water" -> handled by wave simulation propagation
+    /* Calculate intensity for foam */
+    /* "Waves should extend slightly past the water" -> handled by wave simulation propagation */
     
-    // Foam logic: High wave values = Foam
+    /* Foam logic: High wave values = Foam */
     float foamThreshold = 0.6;
     float isFoam = smoothstep(foamThreshold, foamThreshold + 0.1, waveVal);
     
-    // Color
-    // Mix between Shallow Blue and Foam White
+    /* Color */
+    /* Mix between Shallow Blue and Foam White */
     vec3 finalColor = mix(uColorShallow, uColorFoam, isFoam);
     
-    // Alpha
-    // Waves must be opaque enough to cover the coins (which are behind them)
-    // "Waves should be fast enough to cover the coins for a while until they fade"
-    float alpha = smoothstep(0.05, 0.4, waveVal); // Linear fade in
-    alpha = clamp(alpha, 0.0, 1.0); // Ensure it hits 1.0 for opacity
+    /* Alpha */
+    /* Waves must be opaque enough to cover the coins (which are behind them) */
+    /* "Waves should be fast enough to cover the coins for a while until they fade" */
+    float alpha = smoothstep(0.05, 0.4, waveVal); /* Linear fade in */
+    alpha = clamp(alpha, 0.0, 1.0); /* Ensure it hits 1.0 for opacity */
     
     gl_FragColor = vec4(finalColor, alpha);
 }`;
@@ -139,7 +139,7 @@ void main() {
     
     float y = vUv.y;
     
-    // Shape logic: Curved wave front
+    /* Shape logic: Curved wave front */
     float curve = (vUv.x - 0.5) * (vUv.x - 0.5) * 0.5;
     float yRel = vUv.y - curve; 
     
@@ -165,25 +165,25 @@ uniform float uDt;
 void main() {
     vec2 uv = gl_FragCoord.xy / uResolution;
     
-    // Flow Vector: Moves waves DOWN rapidly
-    // Increased offset for "Violent" speed
-    // Old: 0.003 -> New: 0.008 -> Newer: 0.015
+    /* Flow Vector: Moves waves DOWN rapidly */
+    /* Increased offset for "Violent" speed */
+    /* Old: 0.003 -> New: 0.008 -> Newer: 0.015 */
     vec2 flowOffset = vec2(0.0, 0.015); 
     
     vec4 color = texture2D(uLastFrame, uv + flowOffset);
     
-    // Decay: Waves fade out over time
-    // We want them to stick around long enough to cover coins, but not forever.
-    // 0.98 is very slow decay. 0.95 is fast.
+    /* Decay: Waves fade out over time */
+    /* We want them to stick around long enough to cover coins, but not forever. */
+    /* 0.98 is very slow decay. 0.95 is fast. */
     color *= 0.975; 
     
-    // Diffusion (Blur/Spread)
-    // Reduced diffusion to keep them "distinct"
+    /* Diffusion (Blur/Spread) */
+    /* Reduced diffusion to keep them "distinct" */
     float eps = 1.0 / uResolution.x;
     vec4 l = texture2D(uLastFrame, uv + flowOffset + vec2(-eps, 0.0));
     vec4 r = texture2D(uLastFrame, uv + flowOffset + vec2(eps, 0.0));
     
-    // Low mix factor = crisper edges
+    /* Low mix factor = crisper edges */
     color = mix(color, (l + r) * 0.5, 0.02); 
 
     gl_FragColor = color;
