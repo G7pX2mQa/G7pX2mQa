@@ -89,7 +89,7 @@ const COIN_SOUND_SUFFIXES = [
 
 export function createSpawner({
     playfieldSelector = '.area-cove .playfield',
-    waterSelector = '.water-base',
+    waterSelector = '#water-logic-marker',
     coinsHost = '.coins-layer',
     coinSrc = 'img/coin/coin.webp',
     coinSize: baseCoinSize = 40, // Renamed to baseCoinSize
