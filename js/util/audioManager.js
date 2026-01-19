@@ -90,7 +90,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
   
   // Try Web Audio first
   if (ctx) {
-    if (ctx.state === 'suspended') ctx.resume().catch(()=>{});
+    if (ctx.state === 'suspended' && !document.hidden) ctx.resume().catch(()=>{});
     
     const buffer = buffers.get(url);
     if (buffer) {
@@ -144,4 +144,14 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
 export function registerPreloadedBuffer(src, buffer) {
   const url = new URL(src, document.baseURI).href;
   buffers.set(url, buffer);
+}
+
+export function setAudioSuspended(suspended) {
+  if (audioContext) {
+    if (suspended) {
+      if (audioContext.state === 'running') audioContext.suspend().catch(()=>{});
+    } else {
+      if (audioContext.state === 'suspended') audioContext.resume().catch(()=>{});
+    }
+  }
 }
