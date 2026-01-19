@@ -628,6 +628,7 @@ images: [
 	  'sounds/coin_pickup_size6.ogg',
 	  'sounds/lightning_strike.ogg',
 	  'sounds/lightning_zap.ogg',
+	  'sounds/The_Cove.ogg',
     ],
     fonts: true,
   };
