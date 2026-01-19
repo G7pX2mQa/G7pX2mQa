@@ -1,5 +1,7 @@
 // js/main.js
 
+import { playAudio } from './util/audioManager.js';
+
 export const DEBUG_PANEL_ACCESS = true; // I will change this to false for prod so the readme makes sense
 export const IS_MOBILE = (() => {
   if (typeof window === 'undefined') return false;
@@ -119,6 +121,7 @@ export const AREAS = {
 };
 
 let currentArea = AREAS.MENU;
+let currentMusic = null;
 let spawner = null;
 let cleanupUpgradesListener = null;
 
@@ -346,11 +349,18 @@ async function preloadAssetsWithProgress({ images = [], audio = [], fonts = true
 ----------------------------*/
 function enterArea(areaID) {
   if (currentArea === areaID) return;
+
+  if (currentMusic) {
+    currentMusic.stop();
+    currentMusic = null;
+  }
+
   currentArea = areaID;
 
   const menuRoot = document.querySelector('.menu-root');
   switch (areaID) {
     case AREAS.STARTER_COVE: {
+      currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true });
       if (menuRoot) {
         menuRoot.style.display = 'none';
       }
