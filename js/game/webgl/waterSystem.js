@@ -61,7 +61,7 @@ export class WaterSystem {
         this.height = 0;
         
         // Simulation State
-        this.simRes = 256;
+        this.simRes = 512;
         
         // BG Sim
         this.bgReadFBO = null;
@@ -236,9 +236,12 @@ export class WaterSystem {
         const ndcY = -((y / this.height) * 2 - 1); // Flip Y for WebGL
 
         const s = brushSize;
-        // Stretch width, squash height for horizontal wave shape
-        const wX = s * 2.5; 
-        const wY = s * 0.8; 
+        const aspect = (this.width && this.height) ? (this.width / this.height) : 1.0;
+
+        // Counter-scale width in simulation to ensure circular shape on screen
+        const shapeScale = 1.2; 
+        const wX = (s * shapeScale) / aspect; 
+        const wY = s * shapeScale; 
         
         // Quad vertices: x, y, u, v, alpha
         const data = new Float32Array([
