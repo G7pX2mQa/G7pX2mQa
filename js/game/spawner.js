@@ -408,7 +408,10 @@ export function createSpawner({
              else endX = clamp(spawnX + drift, minX, mx);
         }
         
-        const minY = Math.max(M.wRect.height + 80, 120);
+        // Clamp water height contribution to ~30% of screen to prevent coins going offscreen
+        // if the water element is mis-sized or visually overridden.
+        const effectiveWaterH = Math.min(M.wRect.height, M.pfRect.height * 0.3);
+        const minY = Math.max(effectiveWaterH + 80, 120);
         const maxY = Math.max(minY + 40, M.safeBottom - size - 6);
         const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
         const jitterMs = Math.random() * 100;
