@@ -7,78 +7,83 @@ void main() {
 }`;
 
 // --- BACKGROUND SHADER (Water Body) ---
-// Darker at top, clearer (transparent) at bottom.
-// Slight wobble using noise/time.
+// Renders the water volume, caustics, and shoreline.
+// Sits BEHIND the coins.
 export const BACKGROUND_FRAGMENT_SHADER = `precision mediump float;
 
 varying vec2 vUv;
 uniform float uTime;
 uniform vec2 uResolution;
-uniform sampler2D uWaveMap; /* NEW: Receive wave data for distortion */
+uniform sampler2D uWaveMap; 
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
 
-/* Simple noise for wobble */
-float random(vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+/* Pseudo-random */
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
 }
-float noise(vec2 st) {
-    vec2 i = floor(st);
-    vec2 f = fract(st);
-    float a = random(i);
-    float b = random(i + vec2(1.0, 0.0));
-    float c = random(i + vec2(0.0, 1.0));
-    float d = random(i + vec2(1.0, 1.0));
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+
+/* Value Noise */
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f*f*(3.0-2.0*f);
+    return mix(mix(hash(i + vec2(0.0,0.0)), hash(i + vec2(1.0,0.0)), u.x),
+               mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0,1.0)), u.x), u.y);
+}
+
+/* Caustics Pattern: Layered noise moving at different speeds */
+float caustics(vec2 uv, float t) {
+    float n1 = noise(uv * 12.0 + vec2(t * 0.2, t * 0.4));
+    float n2 = noise(uv * 15.0 - vec2(t * 0.3, t * 0.1));
+    return pow(min(n1, n2), 2.0) * 3.0; /* Sharpen intersects */
 }
 
 void main() {
-    /* Wave Influence ("Jolt") */
-    /* Read the wave map to see where active waves are. */
+    /* Sample Wave Simulation for distortion */
     vec4 waveInfo = texture2D(uWaveMap, vUv);
-    /* Strength of the jolt/distortion based on wave intensity */
-    float waveDistort = waveInfo.r * 0.02; 
+    float waveH = waveInfo.r; 
     
-    vec2 distortedUv = vUv;
-    /* Push/Bulge effect: waves push texture outwards/downwards */
-    distortedUv.x += waveDistort * 0.5; 
-    distortedUv.y += waveDistort; 
+    /* Distort UVs for the seabed/caustics based on wave height (Refraction) */
+    vec2 uv = vUv;
+    uv += vec2(waveH * 0.02, waveH * 0.01);
     
-    /* Standard wobble */
-    float timeScale = uTime * 0.5;
-    float waveX = sin(distortedUv.y * 10.0 + timeScale) * 0.005;
-    float waveY = cos(distortedUv.x * 10.0 + timeScale) * 0.005;
-    distortedUv += vec2(waveX, waveY);
+    /* Calculate Water Depth/Shoreline */
+    /* Y=1 is Top, Y=0 is Bottom. Water is at the top. */
+    /* Shoreline is roughly at 0.82 (18% from top) */
     
-    /* Gradient Logic */
-    /* "Water ends shortly down from the top" */
-    /* 1.0 is Top, 0.0 is Bottom. */
-    float depth = smoothstep(0.0, 1.0, distortedUv.y);
+    /* Add noise to shoreline edge */
+    float edgeNoise = noise(vec2(uv.x * 10.0, uTime * 0.5));
+    float shoreY = 0.82 + edgeNoise * 0.015;
     
-    /* Cutoff: Transparency starts around y=0.7 */
-    /* smoothstep(0.6, 0.9, depth) means: */
-    /* Below 0.6: Alpha 0 (Sand) */
-    /* 0.6 to 0.9: Fade */
-    /* Above 0.9: Alpha 1 (Deep Water) */
-    float waterBody = smoothstep(0.65, 0.95, depth);
+    /* 0.0 = Dry Sand, 1.0 = Deep Water */
+    float waterMask = smoothstep(shoreY - 0.02, shoreY + 0.05, uv.y);
     
-    /* Color Mix */
-    vec3 color = mix(uColorShallow, uColorDeep, smoothstep(0.75, 1.0, depth));
-    
-    /* Add "Jolt" highlight: brighten water slightly where waves are */
-    color += uColorShallow * waveInfo.r * 0.3;
+    if (waterMask < 0.01) {
+        discard; /* Optimization */
+    }
 
-    /* Alpha Mix */
-    /* Add some noise to the shoreline edge */
-    float n = noise(vUv * 10.0 + vec2(uTime * 0.2));
-    float alpha = smoothstep(0.0, 1.0, waterBody + n * 0.02);
+    /* Color Gradient */
+    /* Mix Shallow -> Deep based on Y */
+    float depthGradient = smoothstep(shoreY, 1.0, uv.y);
+    vec3 color = mix(uColorShallow, uColorDeep, depthGradient);
+    
+    /* Add Caustics */
+    float cau = caustics(uv, uTime);
+    color += vec3(0.8, 0.9, 1.0) * cau * 0.15 * waterMask;
+    
+    /* Darken under waves (Fake Ambient Occlusion from the waves above) */
+    color -= vec3(0.2) * waveH;
+    
+    /* Alpha */
+    float alpha = waterMask * 0.9; /* Slightly transparent */
     
     gl_FragColor = vec4(color, alpha);
 }`;
 
 // --- FOREGROUND SHADER (Waves/Surges) ---
-// High speed, Foam at crests, Transparent elsewhere.
+// Renders the waves, foam, and highlights.
+// Sits ON TOP of the coins.
 export const FRAGMENT_SHADER = `precision mediump float;
 
 varying vec2 vUv;
@@ -90,27 +95,53 @@ uniform vec3 uColorShallow;
 uniform vec3 uColorFoam;
 
 void main() {
-    vec4 waveInfo = texture2D(uWaveMap, vUv);
+    vec2 uv = vUv;
+    vec4 waveInfo = texture2D(uWaveMap, uv);
     float waveVal = waveInfo.r; 
     
-    /* Threshold: Only draw if wave is strong enough */
-    if (waveVal < 0.05) {
-        discard; /* Fully transparent */
+    /* Thresholds */
+    if (waveVal < 0.02) {
+        discard; 
     }
     
-    /* Foam logic: High wave values = Foam */
-    float foamThreshold = 0.5;
-    float isFoam = smoothstep(foamThreshold, foamThreshold + 0.2, waveVal);
+    /* 1. Wave Body (Translucent Blue) */
+    float waveBodyAlpha = smoothstep(0.02, 0.1, waveVal);
+    vec3 waveColor = mix(uColorShallow, uColorDeep, 0.2); // Mostly shallow color
     
-    /* Color */
-    /* Mix between Shallow Blue and Foam White */
-    vec3 finalColor = mix(uColorShallow, uColorFoam, isFoam);
+    /* 2. Specular Highlight (Fake Lighting) */
+    /* Estimate Gradient */
+    float eps = 1.0 / 256.0; // Sim resolution approximation
+    float hL = texture2D(uWaveMap, uv + vec2(-eps, 0.0)).r;
+    float hR = texture2D(uWaveMap, uv + vec2(eps, 0.0)).r;
+    float hU = texture2D(uWaveMap, uv + vec2(0.0, eps)).r;
+    float hD = texture2D(uWaveMap, uv + vec2(0.0, -eps)).r;
     
-    /* Alpha */
-    float alpha = smoothstep(0.05, 0.4, waveVal); 
-    alpha = clamp(alpha, 0.0, 0.85); /* Slightly transparent waves */
+    vec3 normal = normalize(vec3(hL - hR, hD - hU, 0.2)); /* Arbitrary Z */
+    vec3 lightDir = normalize(vec3(-0.5, -0.5, 1.0)); /* Top-Left Sun */
+    float specular = pow(max(dot(normal, lightDir), 0.0), 4.0);
     
-    gl_FragColor = vec4(finalColor, alpha);
+    /* 3. Foam (White Crests) */
+    /* Foam appears at high wave values and trailing edges */
+    float foamThreshold = 0.45;
+    float isFoam = smoothstep(foamThreshold, foamThreshold + 0.1, waveVal);
+    
+    /* Add noise to foam to break it up */
+    // Simple hash based on UV
+    float n = fract(sin(dot(uv * 100.0, vec2(12.9898,78.233))) * 43758.5453);
+    isFoam *= (0.8 + 0.4 * n);
+
+    /* Combine */
+    vec3 finalColor = mix(waveColor, uColorFoam, isFoam);
+    
+    /* Add Specular (only on water, less on foam) */
+    finalColor += vec3(1.0) * specular * 0.5 * (1.0 - isFoam);
+    
+    /* Final Alpha */
+    float finalAlpha = waveBodyAlpha * 0.8; /* Base transparency */
+    finalAlpha += isFoam * 0.2; /* Foam is more opaque */
+    finalAlpha = clamp(finalAlpha, 0.0, 0.95);
+    
+    gl_FragColor = vec4(finalColor, finalAlpha);
 }`;
 
 // Wave Sprite Vertex Shader (Standard quad)
@@ -127,46 +158,35 @@ void main() {
     gl_Position = vec4(aPosition, 0.0, 1.0);
 }`;
 
-// Wave Brush: Draws the initial "Stamp" of the wave
-// Redesigned: Horizontal Wave Front
+// --- BRUSH SHADER ---
+// Draws the initial shape of a new wave.
+// Redesigned: A smooth "Drop" or "Capsule" shape that looks natural.
 export const WAVE_BRUSH_FRAGMENT_SHADER = `precision mediump float;
 varying vec2 vUv;
 varying float vAlpha;
 
-float random(vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-}
-
 void main() {
-    /* 1. Horizontal Shape (Wide X) */
-    float xDist = abs(vUv.x - 0.5) * 2.0; 
-    /* Smooth fade at the edges of the brush stamp */
-    float xFade = smoothstep(1.0, 0.5, xDist);
+    /* Center (0.5, 0.5) */
+    vec2 p = vUv - 0.5;
     
-    /* 2. Wave Front (Y axis) */
-    /* Sharp front, trailing back */
-    float y = vUv.y;
-    /* Slight curve to look natural */
-    float curve = (vUv.x - 0.5) * (vUv.x - 0.5) * 0.3;
-    float yRel = y - curve;
+    /* Shape: Wide Oval / Capsule */
+    /* Stretching X to simulate a wide wave front */
+    float dist = length(vec2(p.x * 0.6, p.y)); 
     
-    /* Front edge (leading edge of the wave) */
-    float front = smoothstep(0.1, 0.2, yRel);
-    /* Back edge (trailing foam) */
-    float back = smoothstep(0.7, 0.2, yRel);
+    /* Smooth Drop: 1.0 at center, 0.0 at edge */
+    float shape = smoothstep(0.5, 0.0, dist);
     
-    float shape = front * back * xFade;
+    /* Bias towards the front? (Bottom) */
+    /* To make it look like a rolling wave front, we can sharpen the bottom edge */
+    /* But simpler is often better for simulation inputs */
     
-    /* Noise/Texture */
-    float n = random(vUv * 20.0);
-    shape *= (0.6 + 0.4 * n);
-    
+    shape = pow(shape, 1.5); /* sharpen curve */
+
     gl_FragColor = vec4(shape * vAlpha, 0.0, 0.0, 1.0);
 }`;
 
-// Simulation Shader: Handles Decay and Flow
-// "Waves sort of fade out and quickly"
-// "Push other water outward"
+// --- SIMULATION SHADER ---
+// Handles the physics: Advection (Movement), Diffusion (Spread), Decay.
 export const SIMULATION_FRAGMENT_SHADER = `precision mediump float;
 
 uniform sampler2D uLastFrame;
@@ -175,23 +195,27 @@ uniform float uDt;
 
 void main() {
     vec2 uv = gl_FragCoord.xy / uResolution;
+    vec2 pixel = 1.0 / uResolution;
     
-    /* Flow Vector: Moves waves DOWN */
-    vec2 flowOffset = vec2(0.0, 0.008); 
+    /* 1. Advection (Flow Downwards) */
+    /* Move sample point UP to simulate flow DOWN */
+    /* Add slight variance based on X to break uniformity? No, keep flow smooth. */
+    vec2 flow = vec2(0.0, 0.007); 
     
-    vec4 color = texture2D(uLastFrame, uv + flowOffset);
+    /* 2. Diffusion (Blur/Spread) */
+    /* Sample neighbors to spread the wave out laterally */
+    vec4 center = texture2D(uLastFrame, uv + flow);
+    vec4 left   = texture2D(uLastFrame, uv + flow + vec2(-pixel.x, 0.0));
+    vec4 right  = texture2D(uLastFrame, uv + flow + vec2(pixel.x, 0.0));
+    vec4 up     = texture2D(uLastFrame, uv + flow + vec2(0.0, pixel.y));
+    vec4 down   = texture2D(uLastFrame, uv + flow + vec2(0.0, -pixel.y));
     
-    /* Decay: Waves fade out quickly */
-    color *= 0.94; 
+    /* Simple Gaussian-ish blur */
+    vec4 blurred = (center * 0.4) + ((left + right + up + down) * 0.15);
     
-    /* Diffusion (Spread Outward) */
-    /* Increased spread to simulate "pushing" */
-    float eps = 1.0 / uResolution.x;
-    vec4 l = texture2D(uLastFrame, uv + flowOffset + vec2(-eps * 3.0, 0.0)); /* Look further sideways */
-    vec4 r = texture2D(uLastFrame, uv + flowOffset + vec2(eps * 3.0, 0.0));
+    /* 3. Decay */
+    /* Waves lose energy over time */
+    blurred *= 0.96; 
     
-    /* Mix neighbors */
-    color = mix(color, (l + r) * 0.5, 0.15); 
-
-    gl_FragColor = color;
+    gl_FragColor = blurred;
 }`;
