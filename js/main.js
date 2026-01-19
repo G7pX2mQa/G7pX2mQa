@@ -1,6 +1,6 @@
 // js/main.js
 
-import { playAudio } from './util/audioManager.js';
+import { playAudio, setAudioSuspended } from './util/audioManager.js';
 
 export const DEBUG_PANEL_ACCESS = true; // I will change this to false for prod so the readme makes sense
 export const IS_MOBILE = (() => {
@@ -710,6 +710,19 @@ images: [
       return '';
     }
   });
+  document.addEventListener('visibilitychange', () => {
+    const hidden = document.hidden;
+    setAudioSuspended(hidden);
+    if (currentMusic && currentMusic.element) {
+      if (hidden) {
+        currentMusic.element.pause();
+      } else {
+        currentMusic.element.play().catch(() => {});
+      }
+    }
+  });
+
+
 
   installGhostTapGuard?.();
   initGlobalGhostTap?.();
