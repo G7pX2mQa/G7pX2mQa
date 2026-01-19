@@ -360,7 +360,14 @@ function enterArea(areaID) {
   const menuRoot = document.querySelector('.menu-root');
   switch (areaID) {
     case AREAS.STARTER_COVE: {
-      currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true });
+      // Defer music to ensure the area is fully loaded/painted before playing.
+      // Using setTimeout puts this in the next macrotask, after the rendering step.
+      setTimeout(() => {
+        if (currentArea === AREAS.STARTER_COVE) {
+          currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true });
+        }
+      }, 50);
+
       if (menuRoot) {
         menuRoot.style.display = 'none';
       }
