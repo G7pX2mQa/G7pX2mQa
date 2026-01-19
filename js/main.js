@@ -360,13 +360,18 @@ function enterArea(areaID) {
   const menuRoot = document.querySelector('.menu-root');
   switch (areaID) {
     case AREAS.STARTER_COVE: {
-      // Defer music to ensure the area is fully loaded/painted before playing.
-      // Using setTimeout puts this in the next macrotask, after the rendering step.
-      setTimeout(() => {
-        if (currentArea === AREAS.STARTER_COVE) {
-          currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true });
-        }
-      }, 50);
+      // Defer music until the area is visually painted + a small buffer.
+      // We use double-RAF to ensure the browser has completed the paint cycle,
+      // plus a 50ms timeout to be absolutely safe against any visual lag/jank.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            if (currentArea === AREAS.STARTER_COVE) {
+              currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true });
+            }
+          }, 50);
+        });
+      });
 
       if (menuRoot) {
         menuRoot.style.display = 'none';
