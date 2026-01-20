@@ -34,8 +34,8 @@ float noise(vec2 p) {
 
 /* Caustics Pattern: Layered noise moving at different speeds */
 float caustics(vec2 uv, float t) {
-    float n1 = noise(uv * 12.0 + vec2(t * 0.2, t * 0.4));
-    float n2 = noise(uv * 15.0 - vec2(t * 0.3, t * 0.1));
+    float n1 = noise(uv * 12.0 + vec2(t * 0.5, t * 0.9));
+    float n2 = noise(uv * 15.0 - vec2(t * 0.4, t * 0.2));
     return pow(min(n1, n2), 2.0) * 3.0; /* Sharpen intersects */
 }
 
@@ -54,7 +54,9 @@ void main() {
     
     /* Add noise to shoreline edge */
     float edgeNoise = noise(vec2(uv.x * 10.0, uTime * 0.5));
-    float shoreY = 0.82 + edgeNoise * 0.015;
+    // float shoreY = 0.05 + edgeNoise * 0.015;
+    /* FORCE FULL SCREEN WATER: Set shoreY effectively below 0 */
+    float shoreY = -0.2 + edgeNoise * 0.015;
     
     /* 0.0 = Dry Sand, 1.0 = Deep Water */
     float waterMask = smoothstep(shoreY - 0.02, shoreY + 0.05, uv.y);
@@ -100,12 +102,14 @@ void main() {
     float waveVal = waveInfo.r; 
     
     /* Thresholds */
-    if (waveVal < 0.02) {
+    if (waveVal < 0.0001) {
         discard; 
     }
     
     /* 1. Wave Body (Translucent Blue) */
-    float waveBodyAlpha = smoothstep(0.02, 0.1, waveVal);
+    /* Fades out via alpha as waveVal decreases */
+    /* Lower threshold to keep width as it decays */
+    float waveBodyAlpha = smoothstep(0.0001, 0.1, waveVal);
     vec3 waveColor = mix(uColorShallow, uColorDeep, 0.2); // Mostly shallow color
     
     /* 2. Specular Highlight (Fake Lighting) */
@@ -140,6 +144,12 @@ void main() {
     float finalAlpha = waveBodyAlpha * 0.8; /* Base transparency */
     finalAlpha += isFoam * 0.2; /* Foam is more opaque */
     finalAlpha = clamp(finalAlpha, 0.0, 0.95);
+
+    /* POSITIONAL FADE: Fade out as wave moves down the screen */
+    /* uv.y goes from 0 (bottom) to 1 (top). */
+    /* Fade out in the bottom 40% of the screen. */
+    float positionalFade = smoothstep(0.0, 0.4, uv.y);
+    finalAlpha *= positionalFade;
     
     gl_FragColor = vec4(finalColor, finalAlpha);
 }`;
@@ -171,7 +181,7 @@ void main() {
     
     /* Shape: Wide Oval / Capsule */
     /* Stretching X to simulate a wide wave front */
-    float dist = length(vec2(p.x * 0.6, p.y)); 
+    float dist = length(vec2(p.x * 0.25, p.y)); 
     
     /* Smooth Drop: 1.0 at center, 0.0 at edge */
     float shape = smoothstep(0.5, 0.0, dist);
@@ -199,7 +209,6 @@ void main() {
     
     /* 1. Advection (Flow Downwards) */
     /* Move sample point UP to simulate flow DOWN */
-    /* Add slight variance based on X to break uniformity? No, keep flow smooth. */
     vec2 flow = vec2(0.0, 0.007); 
     
     /* 2. Diffusion (Blur/Spread) */
@@ -208,14 +217,17 @@ void main() {
     vec4 left   = texture2D(uLastFrame, uv + flow + vec2(-pixel.x, 0.0));
     vec4 right  = texture2D(uLastFrame, uv + flow + vec2(pixel.x, 0.0));
     vec4 up     = texture2D(uLastFrame, uv + flow + vec2(0.0, pixel.y));
-    vec4 down   = texture2D(uLastFrame, uv + flow + vec2(0.0, -pixel.y));
+    /* vec4 down   = texture2D(uLastFrame, uv + flow + vec2(0.0, -pixel.y)); */
     
     /* Simple Gaussian-ish blur */
-    vec4 blurred = (center * 0.4) + ((left + right + up + down) * 0.15);
+    /* Bias blur downwards by reading from UP. */
+    /* Propagating from UP to Center moves info DOWN. Matches flow. */
+    vec4 blurred = (center * 0.4) + ((left + right + up) * 0.2);
     
     /* 3. Decay */
     /* Waves lose energy over time */
-    blurred *= 0.96; 
+    /* Slower decay to keep shape longer (0.96 -> 0.99) */
+    blurred *= 0.99; 
     
     gl_FragColor = blurred;
 }`;
