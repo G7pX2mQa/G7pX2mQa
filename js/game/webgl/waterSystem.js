@@ -334,7 +334,9 @@ export class WaterSystem {
     render(totalTime) {
         if (!this.glBg || !this.glFg) return;
         
-        const simTime = totalTime * 0.001 * 0.5; // Slow down factor
+        // totalTime is in seconds. 
+        // We use a factor of 0.1 to ensure movement is visible but not strobing.
+        const simTime = totalTime * 0.1; 
         
         // --- 1. Simulation Step (BG) ---
         const bgState = this.runSimStep(
