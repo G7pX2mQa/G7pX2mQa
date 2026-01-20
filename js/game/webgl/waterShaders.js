@@ -6,9 +6,9 @@ void main() {
     gl_Position = vec4(position, 0.0, 1.0);
 }`;
 
-// --- BACKGROUND SHADER (Water Body) ---
-// Renders the water volume, caustics, and shoreline.
-// Sits BEHIND the coins.
+/* --- BACKGROUND SHADER (Water Body) --- */
+/* Renders the water volume, caustics, and shoreline. */
+/* Sits BEHIND the coins. */
 export const BACKGROUND_FRAGMENT_SHADER = `precision mediump float;
 
 varying vec2 vUv;
@@ -54,9 +54,9 @@ void main() {
     
     /* Add noise to shoreline edge */
     float edgeNoise = noise(vec2(uv.x * 10.0, uTime * 0.5));
-    // float shoreY = 0.05 + edgeNoise * 0.015;
-    /* FORCE FULL SCREEN WATER: Set shoreY effectively below 0 */
-    float shoreY = -0.2 + edgeNoise * 0.015;
+    
+    /* Target Top 15% (0.85). */
+    float shoreY = 0.85 + edgeNoise * 0.015;
     
     /* 0.0 = Dry Sand, 1.0 = Deep Water */
     float waterMask = smoothstep(shoreY - 0.02, shoreY + 0.05, uv.y);
@@ -83,9 +83,9 @@ void main() {
     gl_FragColor = vec4(color, alpha);
 }`;
 
-// --- FOREGROUND SHADER (Waves/Surges) ---
-// Renders the waves, foam, and highlights.
-// Sits ON TOP of the coins.
+/* --- FOREGROUND SHADER (Waves/Surges) --- */
+/* Renders the waves, foam, and highlights. */
+/* Sits ON TOP of the coins. */
 export const FRAGMENT_SHADER = `precision mediump float;
 
 varying vec2 vUv;
@@ -108,13 +108,13 @@ void main() {
     
     /* 1. Wave Body (Translucent Blue) */
     /* Fades out via alpha as waveVal decreases */
-    /* Lower threshold to keep width as it decays */
-    float waveBodyAlpha = smoothstep(0.0001, 0.1, waveVal);
-    vec3 waveColor = mix(uColorShallow, uColorDeep, 0.2); // Mostly shallow color
+    /* Raised threshold from 0.0001 to 0.2 to cut off trails faster */
+    float waveBodyAlpha = smoothstep(0.2, 0.5, waveVal);
+    vec3 waveColor = mix(uColorShallow, uColorDeep, 0.2); /* Mostly shallow color */
     
     /* 2. Specular Highlight (Fake Lighting) */
     /* Estimate Gradient */
-    float eps = 1.0 / 256.0; // Sim resolution approximation
+    float eps = 1.0 / 256.0; /* Sim resolution approximation */
     float hL = texture2D(uWaveMap, uv + vec2(-eps, 0.0)).r;
     float hR = texture2D(uWaveMap, uv + vec2(eps, 0.0)).r;
     float hU = texture2D(uWaveMap, uv + vec2(0.0, eps)).r;
@@ -130,7 +130,7 @@ void main() {
     float isFoam = smoothstep(foamThreshold, foamThreshold + 0.1, waveVal);
     
     /* Add noise to foam to break it up */
-    // Simple hash based on UV
+    /* Simple hash based on UV */
     float n = fract(sin(dot(uv * 100.0, vec2(12.9898,78.233))) * 43758.5453);
     isFoam *= (0.8 + 0.4 * n);
 
@@ -154,7 +154,7 @@ void main() {
     gl_FragColor = vec4(finalColor, finalAlpha);
 }`;
 
-// Wave Sprite Vertex Shader (Standard quad)
+/* Wave Sprite Vertex Shader (Standard quad) */
 export const WAVE_VERTEX_SHADER = `attribute vec2 aPosition;
 attribute vec2 aUv;
 attribute float aAlpha; 
@@ -168,9 +168,9 @@ void main() {
     gl_Position = vec4(aPosition, 0.0, 1.0);
 }`;
 
-// --- BRUSH SHADER ---
-// Draws the initial shape of a new wave.
-// Redesigned: A smooth "Drop" or "Capsule" shape that looks natural.
+/* --- BRUSH SHADER --- */
+/* Draws the initial shape of a new wave. */
+/* Redesigned: A smooth "Drop" or "Capsule" shape that looks natural. */
 export const WAVE_BRUSH_FRAGMENT_SHADER = `precision mediump float;
 varying vec2 vUv;
 varying float vAlpha;
@@ -195,8 +195,8 @@ void main() {
     gl_FragColor = vec4(shape * vAlpha, 0.0, 0.0, 1.0);
 }`;
 
-// --- SIMULATION SHADER ---
-// Handles the physics: Advection (Movement), Diffusion (Spread), Decay.
+/* --- SIMULATION SHADER --- */
+/* Handles the physics: Advection (Movement), Diffusion (Spread), Decay. */
 export const SIMULATION_FRAGMENT_SHADER = `precision mediump float;
 
 uniform sampler2D uLastFrame;
@@ -226,8 +226,8 @@ void main() {
     
     /* 3. Decay */
     /* Waves lose energy over time */
-    /* Slower decay to keep shape longer (0.96 -> 0.99) */
-    blurred *= 0.99; 
+    /* Increased decay to prevent waterfall artifacts (0.99 -> 0.96) */
+    blurred *= 0.96; 
     
     gl_FragColor = blurred;
 }`;
