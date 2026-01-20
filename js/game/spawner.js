@@ -423,9 +423,9 @@ export function createSpawner({
         };
 
         const waveCenterX = spawnX + size / 2;
-        // Shift wave spawn up so it starts slightly offscreen (top edge)
-        // Adjust this factor to control how much "offscreen" it starts
-        const waveCenterY = spawnY + size / 2 - size * 0.8;
+        // Spawn slightly offscreen to the top (relative to water top)
+        // We want it to roll in, so we position it so only the bottom edge is initially visible.
+        const waveCenterY = waterToPfTop - size * 0.6;
 
         return {
             wave: { x: waveCenterX, y: waveCenterY, size: size },
