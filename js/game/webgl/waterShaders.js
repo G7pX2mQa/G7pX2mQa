@@ -110,7 +110,7 @@ void main() {
     /* Fades out via alpha as waveVal decreases */
     /* Raised threshold from 0.0001 to 0.2 to cut off trails faster */
     float waveBodyAlpha = smoothstep(0.2, 0.5, waveVal);
-    vec3 waveColor = mix(uColorShallow, uColorDeep, 0.2); /* Mostly shallow color */
+    vec3 waveColor = mix(uColorShallow, uColorDeep, 0.6); /* More deep/vivid blue */
     
     /* 2. Specular Highlight (Fake Lighting) */
     /* Estimate Gradient */
@@ -126,16 +126,17 @@ void main() {
     
     /* 3. Foam (White Crests) */
     /* Foam appears at high wave values and trailing edges */
-    float foamThreshold = 0.45;
-    float isFoam = smoothstep(foamThreshold, foamThreshold + 0.1, waveVal);
+    /* Increased threshold to 0.85 so foam is only on the very peak/crest */
+    float foamThreshold = 0.85;
+    float isFoam = smoothstep(foamThreshold, 1.0, waveVal);
     
     /* Add noise to foam to break it up */
     /* Simple hash based on UV */
     float n = fract(sin(dot(uv * 100.0, vec2(12.9898,78.233))) * 43758.5453);
     isFoam *= (0.8 + 0.4 * n);
 
-    /* Combine */
-    vec3 finalColor = mix(waveColor, uColorFoam, isFoam);
+    /* Combine - Reduce foam strength so it doesn't wash out the blue */
+    vec3 finalColor = mix(waveColor, uColorFoam, isFoam * 0.3);
     
     /* Add Specular (only on water, less on foam) */
     finalColor += vec3(1.0) * specular * 0.5 * (1.0 - isFoam);
@@ -147,8 +148,8 @@ void main() {
 
     /* POSITIONAL FADE: Fade out as wave moves down the screen */
     /* uv.y goes from 0 (bottom) to 1 (top). */
-    /* Fade out in the bottom 40% of the screen. */
-    float positionalFade = smoothstep(0.0, 0.4, uv.y);
+    /* Water is at ~0.85. Fade out shortly below that. */
+    float positionalFade = smoothstep(0.70, 0.80, uv.y);
     finalAlpha *= positionalFade;
     
     gl_FragColor = vec4(finalColor, finalAlpha);
@@ -179,9 +180,9 @@ void main() {
     /* Center (0.5, 0.5) */
     vec2 p = vUv - 0.5;
     
-    /* Shape: Wide Oval / Capsule */
-    /* Stretching X to simulate a wide wave front */
-    float dist = length(vec2(p.x * 0.25, p.y)); 
+    /* Shape: Tall Pill Shape */
+    /* p.x * 0.25 makes it wide. p.y * 0.6 makes it tall. */
+    float dist = length(vec2(p.x * 0.25, p.y * 0.6)); 
     
     /* Smooth Drop: 1.0 at center, 0.0 at edge */
     float shape = smoothstep(0.5, 0.0, dist);
@@ -211,23 +212,20 @@ void main() {
     /* Move sample point UP to simulate flow DOWN */
     vec2 flow = vec2(0.0, 0.007); 
     
-    /* 2. Diffusion (Blur/Spread) */
-    /* Sample neighbors to spread the wave out laterally */
-    vec4 center = texture2D(uLastFrame, uv + flow);
-    vec4 left   = texture2D(uLastFrame, uv + flow + vec2(-pixel.x, 0.0));
-    vec4 right  = texture2D(uLastFrame, uv + flow + vec2(pixel.x, 0.0));
-    vec4 up     = texture2D(uLastFrame, uv + flow + vec2(0.0, pixel.y));
-    /* vec4 down   = texture2D(uLastFrame, uv + flow + vec2(0.0, -pixel.y)); */
+    vec2 sourceUv = uv + flow;
+
+    /* Boundary Check: If pulling from off-screen, return empty water. */
+    /* This prevents the "infinite trail" caused by clamping the top pixel. */
+    if (sourceUv.y > 1.0) {
+        gl_FragColor = vec4(0.0);
+        return;
+    }
     
-    /* Simple Gaussian-ish blur */
-    /* Bias blur downwards by reading from UP. */
-    /* Propagating from UP to Center moves info DOWN. Matches flow. */
-    vec4 blurred = (center * 0.4) + ((left + right + up) * 0.2);
+    /* 2. No Diffusion (Solid Shape) */
+    vec4 center = texture2D(uLastFrame, sourceUv);
     
-    /* 3. Decay */
-    /* Waves lose energy over time */
-    /* Increased decay to prevent waterfall artifacts (0.99 -> 0.96) */
-    blurred *= 0.96; 
+    /* 3. No Decay */
+    /* Waves maintain full intensity until they fade positionally */
     
-    gl_FragColor = blurred;
+    gl_FragColor = center;
 }`;
