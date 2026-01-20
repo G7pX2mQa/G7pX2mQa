@@ -17,9 +17,10 @@ function createShader(gl, type, source) {
     gl.shaderSource(shader, source);
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+        const log = gl.getShaderInfoLog(shader);
+        console.error('Shader compile error:', log);
         gl.deleteShader(shader);
-        return null;
+        throw new Error('Shader compile error: ' + log);
     }
     return shader;
 }
@@ -34,8 +35,9 @@ function createProgram(gl, vsSource, fsSource) {
     gl.attachShader(program, fs);
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error('Program link error:', gl.getProgramInfoLog(program));
-        return null;
+        const log = gl.getProgramInfoLog(program);
+        console.error('Program link error:', log);
+        throw new Error('Program link error: ' + log);
     }
     return program;
 }
