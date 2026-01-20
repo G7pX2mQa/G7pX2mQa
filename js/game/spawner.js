@@ -375,7 +375,7 @@ export function createSpawner({
 
         const pfW = M.pfW;
         const waterToPfTop = M.wRect.top - M.pfRect.top;
-        const spawnY = Math.max(0, waterToPfTop + M.wRect.height * 0.05);
+        const spawnY = Math.max(0, waterToPfTop);
 
         // Determine coin size
         let sizeIndex = 0;
