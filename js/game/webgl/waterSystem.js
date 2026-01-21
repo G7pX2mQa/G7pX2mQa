@@ -10,8 +10,9 @@ import {
 // --- Colors Extracted from Legacy 2D System ---
 const COLOR_DEEP = [0.039, 0.180, 0.302];    // #0a2e4d
 const COLOR_SHALLOW = [0.161, 0.502, 0.725]; // #2980b9
-const COLOR_WAVE = [0.6, 0.9, 1.0];          // Very Light Blue (Foam-like Head)
-const COLOR_WAVE_DEEP = [0.0, 0.3, 0.9];     // Vivid Oceanic Blue (Tail)
+// Updated to Vivid Oceanic Blue Gradient
+const COLOR_WAVE = [0.2, 1.0, 1.0];          // Bright Cyan/Aqua (Head)
+const COLOR_WAVE_DEEP = [0.0, 0.5, 1.0];     // Vivid Bright Blue (Tail)
 
 function createShader(gl, type, source) {
     const shader = gl.createShader(type);
