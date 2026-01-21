@@ -91,7 +91,7 @@ void main() {
     color += vec3(0.8, 0.9, 1.0) * cau * 0.15 * waterMask;
     
     /* Darken under waves (Fake Ambient Occlusion from the waves above) */
-    color -= vec3(0.2) * waveH;
+    /* color -= vec3(0.2) * waveH; */ /* Disabled to prevent black artifacts */
     
     /* Alpha */
     float alpha = waterMask * 0.9; /* Slightly transparent */
@@ -194,8 +194,12 @@ void main() {
     /* Make wave fully opaque in center */
     float finalAlpha = smoothstep(0.0, 0.1, waveVal); 
     
-    /* REMOVED POSITIONAL FADE to ensure full opacity as requested by user. */
-    /* The wave will be fully opaque until it disappears from simulation. */
+    /* Positional Fade: Fade out quickly after traveling 70% of screen height. */
+    /* Waves move from Top (Y=1) to Bottom (Y=0). */
+    /* So we want them to disappear when Y < 0.3 (roughly). */
+    
+    float fadeEdge = smoothstep(0.15, 0.3, uv.y);
+    finalAlpha *= fadeEdge;
     
     gl_FragColor = vec4(finalColor, finalAlpha);
 }`;
