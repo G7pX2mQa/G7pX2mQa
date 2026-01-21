@@ -94,7 +94,6 @@ uniform vec2 uResolution;
 uniform sampler2D uWaveMap; 
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
-uniform vec3 uColorWave;      /* Turquoise (Front) */
 uniform vec3 uColorWaveDeep;  /* Deep Blue (Back) */
 
 void main() {
@@ -107,25 +106,8 @@ void main() {
         discard; 
     }
     
-    /* Gradient Calculation for Front/Back detection */
-    /* Use finite difference to find vertical slope */
-    /* Use uResolution to get pixel size, but use 2.0 pixel offset for smoother derivatives */
-    float eps = 2.0 / uResolution.y; 
-    float hU = texture2D(uWaveMap, uv + vec2(0.0, eps)).r;
-    float hD = texture2D(uWaveMap, uv - vec2(0.0, eps)).r;
-    
-    /* Positive dHdy means Height increases as Y increases. */
-    /* With waves moving down (Tail Top, Head Bottom): */
-    /* Moving UP (increasing Y) goes from Head (0->1) to Tail (1->0). */
-    /* So Leading Edge (Bottom) has Positive Slope. */
-    /* Trailing Edge (Top) has Negative Slope. */
-    float dHdy = (hU - hD) * 3.0; /* Reduced scale to prevent hard clipping (White Outline) */
-
-    /* 1. Base Color Gradient */
-    /* Map dHdy to mix factor. Front(Pos) -> Light, Back(Neg) -> Deep */
-    /* Wide range to handle the soft slopes of the new brush */
-    float gradMix = smoothstep(-0.8, 0.8, dHdy);
-    vec3 waveColor = mix(uColorWaveDeep, uColorWave, gradMix);
+    /* 1. Base Color (No Foam) */
+    vec3 waveColor = uColorWaveDeep;
     
     /* Final Color Mix (Pure Gradient, No Foam/Specular) */
     vec3 finalColor = waveColor;
