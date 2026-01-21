@@ -95,6 +95,7 @@ uniform sampler2D uWaveMap;
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
 uniform vec3 uColorFoam;
+uniform vec3 uColorWave; /* NEW: Vivid Blue for waves */
 
 void main() {
     vec2 uv = vUv;
@@ -106,11 +107,10 @@ void main() {
         discard; 
     }
     
-    /* 1. Wave Body (Translucent Blue) */
-    /* Fades out via alpha as waveVal decreases */
-    /* Raised threshold from 0.0001 to 0.2 to cut off trails faster */
-    float waveBodyAlpha = smoothstep(0.2, 0.5, waveVal);
-    vec3 waveColor = mix(uColorShallow, uColorDeep, 0.6); /* More deep/vivid blue */
+    /* 1. Wave Body (Vivid Blue) */
+    /* Keep it solid */
+    float waveBodyAlpha = smoothstep(0.1, 0.3, waveVal);
+    vec3 waveColor = uColorWave; 
     
     /* 2. Specular Highlight (Fake Lighting) */
     /* Estimate Gradient */
@@ -120,31 +120,30 @@ void main() {
     float hU = texture2D(uWaveMap, uv + vec2(0.0, eps)).r;
     float hD = texture2D(uWaveMap, uv + vec2(0.0, -eps)).r;
     
-    vec3 normal = normalize(vec3(hL - hR, hD - hU, 0.2)); /* Arbitrary Z */
-    vec3 lightDir = normalize(vec3(-0.5, -0.5, 1.0)); /* Top-Left Sun */
-    float specular = pow(max(dot(normal, lightDir), 0.0), 4.0);
+    vec3 normal = normalize(vec3(hL - hR, hD - hU, 0.2)); 
+    vec3 lightDir = normalize(vec3(-0.5, -0.5, 1.0)); 
+    /* Sharper highlight */
+    float specular = pow(max(dot(normal, lightDir), 0.0), 16.0);
     
-    /* 3. Foam (White Crests) */
-    /* Foam appears at high wave values and trailing edges */
-    /* Increased threshold to 0.85 so foam is only on the very peak/crest */
-    float foamThreshold = 0.85;
-    float isFoam = smoothstep(foamThreshold, 1.0, waveVal);
+    /* 3. Foam (Leading Edge Only) */
+    float dH_dY = (hU - hD); 
     
-    /* Add noise to foam to break it up */
-    /* Simple hash based on UV */
+    float foamSignal = smoothstep(0.005, 0.04, dH_dY);
+    foamSignal *= smoothstep(0.3, 0.6, waveVal);
+    
     float n = fract(sin(dot(uv * 100.0, vec2(12.9898,78.233))) * 43758.5453);
-    isFoam *= (0.8 + 0.4 * n);
+    float isFoam = foamSignal * (0.6 + 0.4 * n);
 
-    /* Combine - Reduce foam strength so it doesn't wash out the blue */
-    vec3 finalColor = mix(waveColor, uColorFoam, isFoam * 0.3);
+    /* Combine - Minimal foam */
+    vec3 finalColor = mix(waveColor, uColorFoam, isFoam * 0.02); // Minimal foam
     
-    /* Add Specular (only on water, less on foam) */
-    finalColor += vec3(1.0) * specular * 0.5 * (1.0 - isFoam);
+    /* Add Specular (Lower intensity) */
+    finalColor += vec3(1.0) * specular * 0.05 * (1.0 - isFoam);
     
-    /* Final Alpha */
-    float finalAlpha = waveBodyAlpha * 0.8; /* Base transparency */
-    finalAlpha += isFoam * 0.2; /* Foam is more opaque */
-    finalAlpha = clamp(finalAlpha, 0.0, 0.95);
+    /* Final Alpha - More opaque for vivid color */
+    float finalAlpha = waveBodyAlpha * 0.95; 
+    finalAlpha += isFoam * 0.05; 
+    finalAlpha = clamp(finalAlpha, 0.0, 1.0);
 
     /* POSITIONAL FADE: Fade out as wave moves down the screen */
     /* uv.y goes from 0 (bottom) to 1 (top). */
@@ -171,7 +170,7 @@ void main() {
 
 /* --- BRUSH SHADER --- */
 /* Draws the initial shape of a new wave. */
-/* Redesigned: A smooth "Drop" or "Capsule" shape that looks natural. */
+/* Redesigned: Horizontal Pill Shape. */
 export const WAVE_BRUSH_FRAGMENT_SHADER = `precision mediump float;
 varying vec2 vUv;
 varying float vAlpha;
@@ -180,18 +179,21 @@ void main() {
     /* Center (0.5, 0.5) */
     vec2 p = vUv - 0.5;
     
-    /* Shape: Tall Pill Shape */
-    /* p.x * 0.25 makes it wide. p.y * 0.6 makes it tall. */
-    float dist = length(vec2(p.x * 0.25, p.y * 0.6)); 
+    /* Shape: Horizontal Pill (Capsule) */
+    /* We want it wider than it is tall. */
     
-    /* Smooth Drop: 1.0 at center, 0.0 at edge */
-    float shape = smoothstep(0.5, 0.0, dist);
+    float halfLen = 0.25; // Length of the straight segment
+    float radius = 0.22;  // Radius of the round caps and thickness
     
-    /* Bias towards the front? (Bottom) */
-    /* To make it look like a rolling wave front, we can sharpen the bottom edge */
-    /* But simpler is often better for simulation inputs */
+    /* SDF for horizontal segment (-halfLen, 0) to (halfLen, 0) */
+    /* Distance to the line segment on X axis */
+    float dist = length(vec2(max(0.0, abs(p.x) - halfLen), p.y));
     
-    shape = pow(shape, 1.5); /* sharpen curve */
+    /* Smooth Drop: 1.0 inside, 0.0 outside radius */
+    float shape = smoothstep(radius, radius - 0.02, dist);
+    
+    /* Bias/Sharpen */
+    shape = pow(shape, 1.5); 
 
     gl_FragColor = vec4(shape * vAlpha, 0.0, 0.0, 1.0);
 }`;
