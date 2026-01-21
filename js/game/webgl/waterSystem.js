@@ -10,9 +10,8 @@ import {
 // --- Colors Extracted from Legacy 2D System ---
 const COLOR_DEEP = [0.039, 0.180, 0.302];    // #0a2e4d
 const COLOR_SHALLOW = [0.161, 0.502, 0.725]; // #2980b9
-const COLOR_FOAM = [0.8, 0.95, 1.0];         // Light Cyan Foam
-const COLOR_WAVE = [0.0, 0.8, 0.85];         // Lighter Turquoise
-const COLOR_WAVE_DEEP = [0.05, 0.25, 0.55];  // Softer Deep Blue
+const COLOR_WAVE = [0.6, 0.9, 1.0];          // Very Light Blue (Foam-like Head)
+const COLOR_WAVE_DEEP = [0.0, 0.3, 0.9];     // Vivid Oceanic Blue (Tail)
 
 function createShader(gl, type, source) {
     const shader = gl.createShader(type);
@@ -399,7 +398,6 @@ export class WaterSystem {
         glFg.uniform1i(glFg.getUniformLocation(this.fgProgram, 'uWaveMap'), 0);
         
         glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorShallow'), COLOR_SHALLOW);
-        glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorFoam'), COLOR_FOAM);
         glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorWave'), COLOR_WAVE); 
         glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorWaveDeep'), COLOR_WAVE_DEEP);
         glFg.uniform1f(glFg.getUniformLocation(this.fgProgram, 'uTime'), simTime);
