@@ -194,14 +194,14 @@ void main() {
     /* Make wave fully opaque in center */
     float finalAlpha = smoothstep(0.0, 0.1, waveVal); 
     
-    /* Positional Fade: Fade out quickly after traveling 70% of screen height. */
+    /* Positional Fade: Fade out quickly after traveling partial screen height. */
     /* Waves move from Top (Y=1) to Bottom (Y=0). */
-    /* So we want them to disappear when Y < 0.3 (roughly). */
+    /* So we want them to disappear when Y < 0.65 (roughly). */
     
-    float fadeEdge = smoothstep(0.15, 0.3, uv.y);
+    float fadeEdge = smoothstep(0.65, 0.80, uv.y);
     finalAlpha *= fadeEdge;
     
-    gl_FragColor = vec4(finalColor, finalAlpha);
+    gl_FragColor = vec4(finalColor * finalAlpha, finalAlpha);
 }`;
 
 /* Wave Sprite Vertex Shader (Standard quad) */
