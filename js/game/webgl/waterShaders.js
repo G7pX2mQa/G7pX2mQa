@@ -86,7 +86,7 @@ void main() {
 /* --- FOREGROUND SHADER (Waves/Surges) --- */
 /* Renders the waves, foam, and highlights. */
 /* Sits ON TOP of the coins. */
-export const FRAGMENT_SHADER = `precision mediump float;
+export const FRAGMENT_SHADER = `precision highp float;
 
 varying vec2 vUv;
 uniform float uTime;
@@ -95,6 +95,21 @@ uniform sampler2D uWaveMap;
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
 uniform vec3 uColorWaveDeep;  /* Deep Blue (Back) */
+uniform vec3 uColorWave;      /* Light Blue (Highlights/Crumple) */
+
+/* Pseudo-random */
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+/* Value Noise */
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f*f*(3.0-2.0*f);
+    return mix(mix(hash(i + vec2(0.0,0.0)), hash(i + vec2(1.0,0.0)), u.x),
+               mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0,1.0)), u.x), u.y);
+}
 
 void main() {
     vec2 uv = vUv;
@@ -106,19 +121,50 @@ void main() {
         discard; 
     }
     
-    /* 1. Base Color (No Foam) */
-    vec3 waveColor = uColorWaveDeep;
+    /* Generate Crumpled Texture Pattern */
+    /* Scale UVs for noise frequency */
+    vec2 noiseUV = uv * 8.0; 
     
-    /* Final Color Mix (Pure Gradient, No Foam/Specular) */
+    /* Animate noise */
+    noiseUV += vec2(uTime * 0.3, uTime * 0.1);
+    
+    /* Layered Ridge Noise for crumple effect (Lines) */
+    /* Ridge = 1.0 - abs(noise * 2 - 1) */
+    
+    float n1 = noise(noiseUV);
+    float ridge1 = 1.0 - abs(n1 * 2.0 - 1.0);
+    
+    float n2 = noise(noiseUV * 2.5 + vec2(uTime * 0.2));
+    float ridge2 = 1.0 - abs(n2 * 2.0 - 1.0);
+    
+    /* Combine ridges to get intersecting lines */
+    /* Multiplying them creates a 'cell' like structure, averaging makes it messy. */
+    /* Let's try average but sharpened */
+    float crumple = (ridge1 + ridge2) * 0.5;
+    
+    /* Sharpen the ridges to make them look like crease lines */
+    /* High power makes the peaks narrower */
+    crumple = pow(crumple, 4.0);
+    
+    /* Invert so lines are the feature? Or keep peaks as lines? */
+    /* Usually creases catch light. Let's make peaks light color. */
+    
+    /* Contrast enhancement */
+    crumple = smoothstep(0.1, 0.6, crumple);
+
+    /* Mix Colors */
+    /* Base is Deep Blue, Add Light Blue based on crumple lines */
+    vec3 waveColor = mix(uColorWaveDeep, uColorWave, crumple);
+    
+    /* Final Color Mix (No Specular) */
     vec3 finalColor = waveColor;
     
     /* Final Alpha */
-    /* Smooth falloff at edges due to soft brush */
-    float finalAlpha = smoothstep(0.0, 0.5, waveVal) * 0.95; 
+    /* Make wave fully opaque in center */
+    float finalAlpha = smoothstep(0.0, 0.1, waveVal); 
     
-    /* POSITIONAL FADE: Fade out as wave moves down the screen */
-    float positionalFade = smoothstep(0.70, 0.80, uv.y);
-    finalAlpha *= positionalFade;
+    /* REMOVED POSITIONAL FADE to ensure full opacity as requested by user. */
+    /* The wave will be fully opaque until it disappears from simulation. */
     
     gl_FragColor = vec4(finalColor, finalAlpha);
 }`;
