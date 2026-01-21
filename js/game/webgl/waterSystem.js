@@ -246,7 +246,7 @@ export class WaterSystem {
         // Counter-scale width in simulation to ensure circular shape on screen
         const shapeScale = 1.2; 
         const wX = (s * shapeScale) / aspect; 
-        const wY = s * shapeScale; 
+        const wY = s * shapeScale * 0.6; // Flatten vertically
         
         // Quad vertices: x, y, u, v, alpha
         const data = new Float32Array([
