@@ -95,7 +95,8 @@ uniform sampler2D uWaveMap;
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
 uniform vec3 uColorFoam;
-uniform vec3 uColorWave; /* NEW: Vivid Blue for waves */
+uniform vec3 uColorWave;      /* Turquoise (Front) */
+uniform vec3 uColorWaveDeep;  /* Deep Blue (Back) */
 
 void main() {
     vec2 uv = vUv;
@@ -107,47 +108,59 @@ void main() {
         discard; 
     }
     
-    /* 1. Wave Body (Vivid Blue) */
-    /* Keep it solid */
-    float waveBodyAlpha = smoothstep(0.1, 0.3, waveVal);
-    vec3 waveColor = uColorWave; 
+    /* Gradient Calculation for Front/Back detection */
+    /* Use finite difference to find vertical slope */
+    float eps = 1.0 / 256.0; 
+    float hU = texture2D(uWaveMap, uv + vec2(0.0, eps)).r;
+    float hD = texture2D(uWaveMap, uv - vec2(0.0, eps)).r;
     
-    /* 2. Specular Highlight (Fake Lighting) */
-    /* Estimate Gradient */
-    float eps = 1.0 / 256.0; /* Sim resolution approximation */
+    /* Positive dHdy means Height increases as Y increases. */
+    /* With waves moving down (Tail Top, Head Bottom): */
+    /* Moving UP (increasing Y) goes from Head (0->1) to Tail (1->0). */
+    /* So Leading Edge (Bottom) has Positive Slope. */
+    /* Trailing Edge (Top) has Negative Slope. */
+    float dHdy = (hU - hD); 
+
+    /* 1. Base Color Gradient */
+    /* Map dHdy to mix factor. Front(Pos) -> Light, Back(Neg) -> Deep */
+    /* Widen range significantly for a smooth body gradient instead of a hard split */
+    float gradMix = smoothstep(-0.3, 0.3, dHdy);
+    vec3 waveColor = mix(uColorWaveDeep, uColorWave, gradMix);
+    
+    /* 2. Foam (Leading Edge Only) */
+    /* Needs high positive slope (Steep Front) */
+    /* Soften the threshold */
+    float foamSignal = smoothstep(0.05, 0.25, dHdy);
+    
+    /* "Froth" Noise: Time-based wobble */
+    float n = fract(sin(dot(uv * 40.0 + vec2(0.0, uTime * 2.0), vec2(12.9898,78.233))) * 43758.5453);
+    float foamNoise = smoothstep(0.0, 1.0, n); /* Full range noise */
+    
+    /* Combine Signal and Noise */
+    /* Blend softly */
+    float isFoam = smoothstep(0.2, 0.9, foamSignal * (0.6 + 0.4 * foamNoise));
+    
+    /* Mask foam to wave body */
+    isFoam *= smoothstep(0.1, 0.5, waveVal);
+
+    /* 3. Specular Highlight (Fake Lighting) */
     float hL = texture2D(uWaveMap, uv + vec2(-eps, 0.0)).r;
     float hR = texture2D(uWaveMap, uv + vec2(eps, 0.0)).r;
-    float hU = texture2D(uWaveMap, uv + vec2(0.0, eps)).r;
-    float hD = texture2D(uWaveMap, uv + vec2(0.0, -eps)).r;
     
     vec3 normal = normalize(vec3(hL - hR, hD - hU, 0.2)); 
     vec3 lightDir = normalize(vec3(-0.5, -0.5, 1.0)); 
-    /* Sharper highlight */
     float specular = pow(max(dot(normal, lightDir), 0.0), 16.0);
     
-    /* 3. Foam (Leading Edge Only) */
-    float dH_dY = (hU - hD); 
+    /* Final Color Mix */
+    vec3 finalColor = mix(waveColor, uColorFoam, isFoam); 
     
-    float foamSignal = smoothstep(0.005, 0.04, dH_dY);
-    foamSignal *= smoothstep(0.3, 0.6, waveVal);
+    /* Add Specular (masked by foam) */
+    finalColor += vec3(1.0) * specular * 0.1 * (1.0 - isFoam);
     
-    float n = fract(sin(dot(uv * 100.0, vec2(12.9898,78.233))) * 43758.5453);
-    float isFoam = foamSignal * (0.6 + 0.4 * n);
-
-    /* Combine - Minimal foam */
-    vec3 finalColor = mix(waveColor, uColorFoam, isFoam * 0.02); // Minimal foam
+    /* Final Alpha */
+    float finalAlpha = waveVal * 0.95; 
     
-    /* Add Specular (Lower intensity) */
-    finalColor += vec3(1.0) * specular * 0.05 * (1.0 - isFoam);
-    
-    /* Final Alpha - More opaque for vivid color */
-    float finalAlpha = waveBodyAlpha * 0.95; 
-    finalAlpha += isFoam * 0.05; 
-    finalAlpha = clamp(finalAlpha, 0.0, 1.0);
-
     /* POSITIONAL FADE: Fade out as wave moves down the screen */
-    /* uv.y goes from 0 (bottom) to 1 (top). */
-    /* Water is at ~0.85. Fade out shortly below that. */
     float positionalFade = smoothstep(0.70, 0.80, uv.y);
     finalAlpha *= positionalFade;
     
@@ -170,7 +183,7 @@ void main() {
 
 /* --- BRUSH SHADER --- */
 /* Draws the initial shape of a new wave. */
-/* Redesigned: Horizontal Pill Shape. */
+/* Redesigned: Vertical Teardrop with Concave Top. */
 export const WAVE_BRUSH_FRAGMENT_SHADER = `precision mediump float;
 varying vec2 vUv;
 varying float vAlpha;
@@ -179,20 +192,38 @@ void main() {
     /* Center (0.5, 0.5) */
     vec2 p = vUv - 0.5;
     
-    /* Shape: Horizontal Pill (Capsule) */
-    /* We want it wider than it is tall. */
+    /* Shape: Vertical Teardrop */
+    /* Head (Bottom, y < 0), Tail (Top, y > 0) */
     
-    float halfLen = 0.25; // Length of the straight segment
-    float radius = 0.22;  // Radius of the round caps and thickness
+    float r = 0.22;
+    float tailLen = 0.35;
     
-    /* SDF for horizontal segment (-halfLen, 0) to (halfLen, 0) */
-    /* Distance to the line segment on X axis */
-    float dist = length(vec2(max(0.0, abs(p.x) - halfLen), p.y));
+    float d = 0.0;
     
-    /* Smooth Drop: 1.0 inside, 0.0 outside radius */
-    float shape = smoothstep(radius, radius - 0.02, dist);
+    if (p.y <= 0.0) {
+        /* Round Head */
+        d = length(p) - r;
+    } else {
+        /* Tapered Tail */
+        float w = r * (1.0 - smoothstep(0.0, tailLen, p.y));
+        d = abs(p.x) - w;
+    }
+    
+    float shape = 1.0 - smoothstep(0.0, 0.01, d);
+    
+    /* Concave Dip (Saddle) at Top Crest */
+    /* Subtract a circular notch from the tip */
+    float notchY = tailLen; 
+    float notchR = 0.15;
+    vec2 notchPos = vec2(0.0, notchY);
+    float notchDist = length(p - notchPos);
+    
+    /* Carve out the notch */
+    float notchMask = smoothstep(notchR - 0.02, notchR + 0.02, notchDist);
+    shape *= notchMask;
     
     /* Bias/Sharpen */
+    shape = clamp(shape, 0.0, 1.0);
     shape = pow(shape, 1.5); 
 
     gl_FragColor = vec4(shape * vAlpha, 0.0, 0.0, 1.0);
@@ -216,18 +247,13 @@ void main() {
     
     vec2 sourceUv = uv + flow;
 
-    /* Boundary Check: If pulling from off-screen, return empty water. */
-    /* This prevents the "infinite trail" caused by clamping the top pixel. */
+    /* Boundary Check */
     if (sourceUv.y > 1.0) {
         gl_FragColor = vec4(0.0);
         return;
     }
     
-    /* 2. No Diffusion (Solid Shape) */
     vec4 center = texture2D(uLastFrame, sourceUv);
-    
-    /* 3. No Decay */
-    /* Waves maintain full intensity until they fade positionally */
     
     gl_FragColor = center;
 }`;
