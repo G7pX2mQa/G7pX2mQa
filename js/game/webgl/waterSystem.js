@@ -11,6 +11,7 @@ import {
 const COLOR_DEEP = [0.039, 0.180, 0.302];    // #0a2e4d
 const COLOR_SHALLOW = [0.161, 0.502, 0.725]; // #2980b9
 const COLOR_FOAM = [1.0, 1.0, 1.0];
+const COLOR_WAVE = [0.2, 0.6, 1.0];          // Vivid Blue for waves
 
 function createShader(gl, type, source) {
     const shader = gl.createShader(type);
@@ -232,7 +233,7 @@ export class WaterSystem {
         gl.blendFunc(gl.ONE, gl.ONE);
 
         // Map pixels to WebGL Clip Space
-        const brushSize = Math.max(0.05, size / this.width) * 4.0; 
+        const brushSize = Math.max(0.05, size / this.width) * 7.0; 
         
         const ndcX = (x / this.width) * 2 - 1;
         const ndcY = -((y / this.height) * 2 - 1); // Flip Y for WebGL
@@ -397,6 +398,7 @@ export class WaterSystem {
         
         glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorShallow'), COLOR_SHALLOW);
         glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorFoam'), COLOR_FOAM);
+        glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorWave'), COLOR_WAVE); // New: Pass Vivid Blue
         glFg.uniform1f(glFg.getUniformLocation(this.fgProgram, 'uTime'), simTime);
 
         glFg.bindBuffer(glFg.ARRAY_BUFFER, this.quadBufferFg);
