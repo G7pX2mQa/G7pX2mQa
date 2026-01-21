@@ -18,6 +18,22 @@ uniform sampler2D uWaveMap;
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
 
+/* Manual Bilinear Filtering for uWaveMap (512x512) */
+/* Essential if OES_texture_float_linear is missing on device */
+vec4 sampleWave(sampler2D tex, vec2 uv) {
+    vec2 res = vec2(512.0);
+    vec2 st = uv * res - 0.5;
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+    
+    vec4 a = texture2D(tex, (i + vec2(0.5, 0.5)) / res);
+    vec4 b = texture2D(tex, (i + vec2(1.5, 0.5)) / res);
+    vec4 c = texture2D(tex, (i + vec2(0.5, 1.5)) / res);
+    vec4 d = texture2D(tex, (i + vec2(1.5, 1.5)) / res);
+    
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+
 /* Pseudo-random */
 float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -40,8 +56,8 @@ float caustics(vec2 uv, float t) {
 }
 
 void main() {
-    /* Sample Wave Simulation for distortion */
-    vec4 waveInfo = texture2D(uWaveMap, vUv);
+    /* Sample Wave Simulation for distortion using Manual Bilinear */
+    vec4 waveInfo = sampleWave(uWaveMap, vUv);
     float waveH = waveInfo.r; 
     
     /* Distort UVs for the seabed/caustics based on wave height (Refraction) */
@@ -97,6 +113,21 @@ uniform vec3 uColorShallow;
 uniform vec3 uColorWaveDeep;  /* Deep Blue (Back) */
 uniform vec3 uColorWave;      /* Light Blue (Highlights/Crumple) */
 
+/* Manual Bilinear Filtering for uWaveMap (512x512) */
+vec4 sampleWave(sampler2D tex, vec2 uv) {
+    vec2 res = vec2(512.0);
+    vec2 st = uv * res - 0.5;
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+    
+    vec4 a = texture2D(tex, (i + vec2(0.5, 0.5)) / res);
+    vec4 b = texture2D(tex, (i + vec2(1.5, 0.5)) / res);
+    vec4 c = texture2D(tex, (i + vec2(0.5, 1.5)) / res);
+    vec4 d = texture2D(tex, (i + vec2(1.5, 1.5)) / res);
+    
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+
 /* Pseudo-random */
 float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -113,7 +144,7 @@ float noise(vec2 p) {
 
 void main() {
     vec2 uv = vUv;
-    vec4 waveInfo = texture2D(uWaveMap, uv);
+    vec4 waveInfo = sampleWave(uWaveMap, uv);
     float waveVal = waveInfo.r; 
     
     /* Thresholds */
@@ -225,7 +256,7 @@ void main() {
 
 /* --- SIMULATION SHADER --- */
 /* Handles the physics: Advection (Movement), Diffusion (Spread), Decay. */
-export const SIMULATION_FRAGMENT_SHADER = `precision mediump float;
+export const SIMULATION_FRAGMENT_SHADER = `precision highp float;
 
 uniform sampler2D uLastFrame;
 uniform vec2 uResolution;
@@ -237,7 +268,8 @@ void main() {
     
     /* 1. Advection (Flow Downwards) */
     /* Move sample point UP to simulate flow DOWN */
-    vec2 flow = vec2(0.0, 0.007); 
+    /* Snapped to integer pixels (4px) to prevent sub-pixel banding artifacts */
+    vec2 flow = vec2(0.0, 4.0 / uResolution.y); 
     
     vec2 sourceUv = uv + flow;
 
@@ -249,5 +281,8 @@ void main() {
     
     vec4 center = texture2D(uLastFrame, sourceUv);
     
-    gl_FragColor = center;
+    /* Apply decay to replicate the fading behavior that was previously */
+    /* a side-effect of mediump precision loss. */
+    /* INCREASED to 0.992 to reduce quantization banding on 8-bit textures */
+    gl_FragColor = center * 0.992;
 }`;
