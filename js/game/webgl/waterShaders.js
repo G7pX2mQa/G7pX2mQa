@@ -17,8 +17,34 @@ uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
 
 void main() {
-    /* Simple vertical gradient from Deep (top) to Shallow (bottom) */
-    vec3 col = mix(uColorShallow, uColorDeep, vUv.y);
+    /* Wave animation settings */
+    float speed = 1.2;
+    float time = uTime * speed;
+    
+    /* Combine sine waves for a more natural look */
+    /* vUv.x is 0..1 across the screen width */
+    float wave1 = sin(vUv.x * 8.0 - time) * 0.04;
+    float wave2 = sin(vUv.x * 15.0 - time * 0.6) * 0.02;
+    float wave = wave1 + wave2;
+
+    /* Define the shoreline height (baseline) */
+    /* vUv.y=0 is bottom of canvas, vUv.y=1 is top */
+    /* We want to discard pixels below this threshold */
+    float threshold = 0.2 + wave; 
+
+    if (vUv.y < threshold) {
+        discard;
+    }
+
+    /* Recalculate gradient based on the new "bottom" */
+    /* Map vUv.y from [threshold, 1.0] to [0.0, 1.0] */
+    float gradientY = clamp((vUv.y - threshold) / (1.0 - threshold), 0.0, 1.0);
+    
+    vec3 col = mix(uColorShallow, uColorDeep, gradientY);
+    
+    /* Add a subtle "foam" or highlight at the edge */
+    float edge = 1.0 - smoothstep(0.0, 0.04, vUv.y - threshold);
+    col = mix(col, vec3(1.0, 1.0, 1.0), edge * 0.4);
     
     gl_FragColor = vec4(col, 1.0);
 }`;
