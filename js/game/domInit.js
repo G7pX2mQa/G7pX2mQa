@@ -59,9 +59,9 @@ export function ensureGameDom() {
       <section class="playfield" aria-label="Starter Cove Sand">
         <div class="waves" id="waves"></div>
 
-        <canvas id="water-background" class="water-base" style="position: absolute; top: 0; left: 0; width: 100%; height: 20%; pointer-events: none; z-index: 1;"></canvas>
+        <canvas id="water-background" class="water-base" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: 1;"></canvas>
         <div class="coins-layer" id="coins-layer"></div>
-        <canvas id="water-effects" style="position: absolute; top: 0; left: 0; width: 100%; height: 15%; pointer-events: none; z-index: 99;"></canvas>
+        <canvas id="water-effects" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: 99;"></canvas>
       </section>
 
       <nav class="hud-bottom" id="hud-bottom">
