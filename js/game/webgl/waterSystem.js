@@ -8,11 +8,11 @@ import {
 } from './waterShaders.js';
 
 // --- Colors Extracted from Legacy 2D System ---
-const COLOR_DEEP = [0.039, 0.180, 0.302];    // #0a2e4d
-const COLOR_SHALLOW = [0.161, 0.502, 0.725]; // #2980b9
+const COLOR_DEEP = [0.0, 0.3, 0.7];          // Deep Royal Blue
+const COLOR_SHALLOW = [0.0, 0.7, 0.8];       // Bright Turquoise
 // Updated to Vivid Oceanic Blue Gradient
-const COLOR_WAVE = [0.2, 1.0, 1.0];          // Bright Cyan/Aqua (Head)
-const COLOR_WAVE_DEEP = [0.0, 0.5, 1.0];     // Vivid Bright Blue (Tail)
+const COLOR_WAVE = [0.9, 0.95, 1.0];         // White Foam (Highlights)
+const COLOR_WAVE_DEEP = [0.0, 0.5, 0.6];     // Darker Turquoise (Shadows)
 
 function createShader(gl, type, source) {
     const shader = gl.createShader(type);
