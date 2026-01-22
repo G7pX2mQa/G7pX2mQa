@@ -102,7 +102,7 @@ void main() {
 /* --- FOREGROUND SHADER (Waves/Surges) --- */
 /* Renders the waves, foam, and highlights. */
 /* Sits ON TOP of the coins. */
-export const FRAGMENT_SHADER = `precision highp float;
+export const FRAGMENT_SHADER = `precision mediump float;
 
 varying vec2 vUv;
 uniform float uTime;
@@ -192,7 +192,7 @@ void main() {
     
     /* Final Alpha */
     /* Make wave fully opaque in center */
-    float finalAlpha = smoothstep(0.0, 0.1, waveVal); 
+    float finalAlpha = smoothstep(0.0, 0.6, waveVal); 
     
     /* Positional Fade: Fade out quickly after traveling partial screen height. */
     /* Waves move from Top (Y=1) to Bottom (Y=0). */
@@ -260,7 +260,7 @@ void main() {
 
 /* --- SIMULATION SHADER --- */
 /* Handles the physics: Advection (Movement), Diffusion (Spread), Decay. */
-export const SIMULATION_FRAGMENT_SHADER = `precision highp float;
+export const SIMULATION_FRAGMENT_SHADER = `precision mediump float;
 
 uniform sampler2D uLastFrame;
 uniform vec2 uResolution;
