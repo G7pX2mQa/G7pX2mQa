@@ -16,71 +16,9 @@ uniform vec2 uResolution;
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
 
-/* Pseudo-random */
-float hash(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
-}
-
-/* Value Noise */
-float noise(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    vec2 u = f*f*(3.0-2.0*f);
-    return mix(mix(hash(i + vec2(0.0,0.0)), hash(i + vec2(1.0,0.0)), u.x),
-               mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0,1.0)), u.x), u.y);
-}
-
-/* Fractal Brownian Motion (FBM) for rolling waves */
-float fbm(vec2 uv) {
-    float value = 0.0;
-    float amplitude = 0.5;
-    vec2 shift = vec2(100.0);
-    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
-    
-    for (int i = 0; i < 4; i++) {
-        value += amplitude * noise(uv);
-        uv = rot * uv * 2.0 + shift;
-        amplitude *= 0.5;
-    }
-    return value;
-}
-
 void main() {
-    vec2 uv = vUv;
-    
-    /* 1. Base Rolling Swells */
-    /* Move downwards over time */
-    vec2 move = vec2(0.0, -uTime * 0.2);
-    
-    /* Primary large shapes */
-    float height = fbm(uv * 3.0 + move);
-    
-    /* Secondary detail */
-    float detail = fbm(uv * 10.0 + move * 1.5);
-    
-    /* Combine */
-    float waveH = height * 0.8 + detail * 0.2;
-    
-    /* 2. Colors */
-    /* Mix from Deep to Shallow/Bright based on height */
-    /* Vivid colors are passed in via uniforms, but we can tweak brightness here */
-    vec3 col = mix(uColorDeep, uColorShallow, smoothstep(0.2, 0.8, waveH));
-    
-    /* 3. Specular Highlights (Sun Glint) */
-    /* Approximate normal based on derivatives of noise */
-    float hRight = fbm((uv + vec2(0.01, 0.0)) * 3.0 + move);
-    float hUp = fbm((uv + vec2(0.0, 0.01)) * 3.0 + move);
-    
-    vec3 normal = normalize(vec3(hRight - height, hUp - height, 0.05));
-    vec3 lightDir = normalize(vec3(-0.5, 0.5, 1.0)); /* Top-Left Sun */
-    
-    float spec = max(0.0, dot(normal, lightDir));
-    spec = pow(spec, 4.0); /* Shininess */
-    
-    col += vec3(1.0) * spec * 0.3; /* Add soft white highlight */
-
-    /* 4. Shoreline / Depth Fade (Optional, kept simple for open ocean feel) */
-    /* Keeping full alpha for "open ocean" look, or slight fade at very top if needed */
+    /* Simple vertical gradient from Deep (top) to Shallow (bottom) */
+    vec3 col = mix(uColorShallow, uColorDeep, vUv.y);
     
     gl_FragColor = vec4(col, 1.0);
 }`;
