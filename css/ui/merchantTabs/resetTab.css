@@ -194,6 +194,11 @@
   margin-top: 16px;
 }
 
+.merchant-reset__card.is-forge-complete .merchant-reset__titles p,
+.merchant-reset__card.is-complete:not(.is-surge) .merchant-reset__titles p {
+  padding-bottom: 8px;
+}
+
 .merchant-reset__status {
   color: #f0f8ff;
   font-size: 0.96rem;
