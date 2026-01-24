@@ -422,10 +422,16 @@ export function createSpawner({
             jitterMs
         };
 
-        const waveCenterX = spawnX + size / 2;
-        // Spawn slightly offscreen to the top (relative to water top)
-        // We want it to roll in, so we position it so only the bottom edge is initially visible.
-        const waveCenterY = waterToPfTop - size * 0.6;
+        // Transform coordinates from Playfield Space to Water Canvas Space
+        const waterToPfLeft = M.pfRect.left - M.wRect.left;
+        
+        const waveCenterX = (spawnX + size / 2) + waterToPfLeft;
+        
+        // waveCenterY needs to be in Water coords
+        // spawnY is in Playfield coords. 
+        // y_water = y_playfield + (pfRect.top - wRect.top)
+        // (pfRect.top - wRect.top) is -waterToPfTop
+        const waveCenterY = spawnY - waterToPfTop;
 
         return {
             wave: { x: waveCenterX, y: waveCenterY, size: size },
