@@ -187,7 +187,7 @@ void main() {
     
     /* Shape: Wide Horizontal Ellipse */
     /* width=0.4, height=0.08 */
-    float d = length(p / vec2(1.0, 0.2)); 
+    float d = length(p / vec2(1.0, 0.45)); 
     
     float shape = 1.0 - smoothstep(0.2, 0.35, d);
     shape = clamp(shape, 0.0, 1.0);
