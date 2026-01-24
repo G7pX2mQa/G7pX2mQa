@@ -239,7 +239,7 @@ export class WaterSystem {
         gl.blendFunc(gl.ONE, gl.ONE);
 
         // Map pixels to WebGL Clip Space
-        const brushSize = Math.max(0.05, size / this.width) * 7.0; 
+        const brushSize = Math.max(0.05, size / this.width) * 15.0; 
         
         const ndcX = (x / this.width) * 2 - 1;
         const ndcY = -((y / this.height) * 2 - 1); // Flip Y for WebGL
@@ -249,8 +249,8 @@ export class WaterSystem {
 
         // Counter-scale width in simulation to ensure circular shape on screen
         const shapeScale = 1.2; 
-        const wX = (s * shapeScale) / aspect; 
-        const wY = s * shapeScale * 0.6; // Flatten vertically
+        const wX = (s * shapeScale * 3.0) / aspect; 
+        const wY = s * shapeScale; // Flatten vertically
         
         // Quad vertices: x, y, u, v, alpha
         const data = new Float32Array([
