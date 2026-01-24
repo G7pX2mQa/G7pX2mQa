@@ -12,7 +12,7 @@ const COLOR_DEEP = [0.0, 0.3, 0.7];          // Deep Royal Blue
 const COLOR_SHALLOW = [0.0, 0.7, 0.8];       // Bright Turquoise
 // Updated to Vivid Oceanic Blue Gradient
 const COLOR_WAVE = [0.9, 0.95, 1.0];         // White Foam (Highlights)
-const COLOR_WAVE_DEEP = [0.0, 0.3, 0.7];     // Deep Blue (Matches Background Deep)
+const COLOR_WAVE_DEEP = [0.0, 0.5, 0.6];     // Darker Turquoise (Shadows)
 
 function createShader(gl, type, source) {
     const shader = gl.createShader(type);
@@ -88,10 +88,6 @@ export class WaterSystem {
         this.fgBrushBuffer = null;
 
         this._boundResize = null;
-
-        // Auto-Spawn Logic
-        this.spawnTimer = 0;
-        this.nextSpawnTime = 0.5; // Initial delay
     }
 
     init(backCanvasId, frontCanvasId) {
@@ -337,36 +333,7 @@ export class WaterSystem {
     }
 
     update(dt) {
-        // "Natural Swell" Auto Spawning Logic
-        this.spawnTimer += dt;
-        
-        // Use a loop in case dt is large, but limit it to avoid burst
-        let attempts = 0;
-        while (this.spawnTimer >= this.nextSpawnTime && attempts < 3) {
-            this.spawnTimer -= this.nextSpawnTime;
-            
-            // Randomize next interval: 0.05s to 0.12s (Much faster spawn for faster waves)
-            this.nextSpawnTime = 0.05 + Math.random() * 0.07;
-            
-            this.spawnRandomWave();
-            attempts++;
-        }
-    }
-
-    spawnRandomWave() {
-        if (!this.width) return;
-        
-        // Random X Position (0 to Width)
-        const x = Math.random() * this.width;
-        
-        // Spawn at the top
-        const y = 0; 
-        
-        // Size: 30% to 50% of screen width (Bolder, stronger waves)
-        const sizePct = 0.3 + Math.random() * 0.2;
-        const size = this.width * sizePct;
-        
-        this.addWave(x, y, size);
+        // No-op
     }
 
     render(totalTime) {
