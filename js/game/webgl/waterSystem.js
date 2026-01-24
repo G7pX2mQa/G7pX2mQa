@@ -337,20 +337,7 @@ export class WaterSystem {
     }
 
     update(dt) {
-        // "Natural Swell" Auto Spawning Logic
-        this.spawnTimer += dt;
-        
-        // Use a loop in case dt is large, but limit it to avoid burst
-        let attempts = 0;
-        while (this.spawnTimer >= this.nextSpawnTime && attempts < 3) {
-            this.spawnTimer -= this.nextSpawnTime;
-            
-            // Randomize next interval: 0.05s to 0.12s (Much faster spawn for faster waves)
-            this.nextSpawnTime = 0.05 + Math.random() * 0.07;
-            
-            this.spawnRandomWave();
-            attempts++;
-        }
+        // "Natural Swell" Auto Spawning Logic - DISABLED
     }
 
     spawnRandomWave() {
