@@ -2,6 +2,9 @@
 
 let audioContext = null;
 let masterGain = null;
+let musicGain = null;
+let musicFilter = null;
+
 const buffers = new Map();
 const loadPromises = new Map();
 
@@ -19,6 +22,17 @@ function getAudioContext() {
   
   // Initial gain setup
   masterGain.gain.value = 1.0; 
+
+  // Music Pipeline: Source -> Filter -> MusicGain -> MasterGain
+  musicGain = audioContext.createGain();
+  musicGain.gain.value = 1.0;
+  musicGain.connect(masterGain);
+
+  musicFilter = audioContext.createBiquadFilter();
+  musicFilter.type = 'lowpass';
+  musicFilter.frequency.value = 22050; // Open by default
+  musicFilter.Q.value = 1; // Slight resonance or neutral
+  musicFilter.connect(musicGain);
   
   return audioContext;
 }
@@ -83,8 +97,9 @@ export async function loadAudio(src) {
  * @param {number} [options.detune=0] - Detune in cents.
  * @param {number} [options.playbackRate=1.0] - Playback rate.
  * @param {boolean} [options.loop=false] - Whether to loop.
+ * @param {string} [options.type='sfx'] - 'sfx' or 'music'.
  */
-export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, loop = false } = {}) {
+export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, loop = false, type = 'sfx' } = {}) {
   const ctx = getAudioContext();
   const url = new URL(src, document.baseURI).href;
   
@@ -104,13 +119,21 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
         gainNode.gain.value = volume;
         
         source.connect(gainNode);
-        gainNode.connect(masterGain);
+        
+        // Routing logic
+        if (type === 'music') {
+            gainNode.connect(musicFilter);
+        } else {
+            gainNode.connect(masterGain);
+        }
+
         source.start(0);
         return {
             stop: () => {
                 try { source.stop(); } catch {}
             },
-            source
+            source,
+            element: null // No HTML5 audio element
         };
     } else {
         // Trigger load for next time
@@ -120,6 +143,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
 
   // Fallback: HTML5 Audio (if Web Audio unavailable or buffer not loaded yet)
   // Note: This might still have latency, but it's a fallback.
+  // Note: Fallback does NOT support the filter effect as it bypasses Web Audio graph.
   try {
       const a = new Audio(url);
       a.volume = volume;
@@ -154,4 +178,23 @@ export function setAudioSuspended(suspended) {
       if (audioContext.state === 'suspended') audioContext.resume().catch(()=>{});
     }
   }
+}
+
+export function setMusicUnderwater(underwater) {
+    if (!musicFilter) return;
+    
+    // Instant transition as requested
+    const frequency = underwater ? 600 : 22050;
+    
+    // We can use setTargetAtTime for a tiny micro-fade to avoid pops, or just set value.
+    // Given "Instant", setting value directly or with a tiny time constant is best.
+    // 0 time constant is effectively instant.
+    
+    try {
+        const now = audioContext.currentTime;
+        musicFilter.frequency.cancelScheduledValues(now);
+        musicFilter.frequency.setValueAtTime(frequency, now);
+    } catch {
+        musicFilter.frequency.value = frequency;
+    }
 }
