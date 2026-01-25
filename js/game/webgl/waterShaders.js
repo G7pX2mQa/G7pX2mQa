@@ -143,22 +143,36 @@ void main() {
 
 /* --- BRUSH SHADER --- */
 /* Spawns a new wave crest. */
-/* Shape: Wide Horizontal Bar/Ellipse (The crest of a wave) */
+/* Shape: Blue Pill with White Leading Edge */
 export const WAVE_BRUSH_FRAGMENT_SHADER = `precision mediump float;
 varying vec2 vUv;
 varying float vAlpha;
 
+float sdRoundedBox(vec2 p, vec2 b, float r) {
+    vec2 q = abs(p) - b;
+    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+}
+
 void main() {
     vec2 p = vUv - 0.5;
     
-    /* Shape: Wide Horizontal Ellipse */
-    /* width=0.4, height=0.08 */
-    float d = length(p / vec2(1.0, 0.2)); 
+    /* Shape: Rounded Box (Pill) */
+    vec2 b = vec2(0.35, 0.15);
+    float r = 0.05;
+    float d = sdRoundedBox(p, b, r);
     
-    float shape = 1.0 - smoothstep(0.2, 0.35, d);
+    float shape = 1.0 - smoothstep(0.0, 0.02, d);
     shape = clamp(shape, 0.0, 1.0);
 
-    gl_FragColor = vec4(shape * vAlpha, 0.0, 0.0, 1.0);
+    /* Intensity Gradient: White Foam at Bottom (Leading Edge), Blue Body at Top */
+    /* vUv.y: 0=Bottom, 1=Top */
+    /* We want foam only at the very bottom, rapidly fading to blue body */
+    float foam = smoothstep(0.45, 0.3, vUv.y);
+    
+    /* Map gradient: Bottom=1.0 (Foam), Body=0.3 */
+    float intensity = mix(0.3, 1.0, foam);
+
+    gl_FragColor = vec4(shape * intensity * vAlpha, 0.0, 0.0, 1.0);
 }`;
 
 /* --- SIMULATION SHADER --- */
@@ -173,8 +187,8 @@ void main() {
     vec2 uv = gl_FragCoord.xy / uResolution;
     
     /* Flow Downwards */
-    /* Speed: 2.0 pixels per frame (at sim res) */
-    vec2 flow = vec2(0.0, 2.0 / uResolution.y); 
+    /* Speed: 5.0 pixels per frame (at sim res) */
+    vec2 flow = vec2(0.0, 5.0 / uResolution.y); 
     
     vec2 sourceUv = uv + flow;
 
