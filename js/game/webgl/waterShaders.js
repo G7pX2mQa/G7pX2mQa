@@ -100,65 +100,64 @@ void main() {
     /* Cutoff for very low intensity to save performance/pixels */
     if (rawIntensity < 0.001) discard;
     
-    /* <--- 1. Domain Distortion ---> */
-    /* Distort the UVs slightly using noise to make the wave feel liquid */
-    /* We scroll the noise over time */
+    /* <--- 1. Domain Distortion & Noise ---> */
     float distortion = fbm(uv * 10.0 + uTime * 0.5);
-    
-    /* <--- 2. Detailed Noise Texture ---> */
-    /* Generate a detailed water surface texture */
     float surfaceNoise = fbm(uv * 15.0 - vec2(0.0, uTime * 2.5)); /* Move texture down */
     
-    /* <--- 3. Shape the Wave Profile ---> */
-    /* Combine raw intensity with noise. */
-    /* High rawIntensity (center of wave) pushes through the noise. */
-    /* Low rawIntensity (edges) gets broken up by noise. */
-    float waveHeight = rawIntensity;
+    /* <--- 2. Calculate Vertical Gradient (Slope) ---> */
+    /* Wave moves DOWN (High Y to Low Y). */
+    /* Leading Edge (Bottom): Intensity INCREASES as Y increases (from 0 below to 1 in wave). */
+    /* Trailing Edge (Top): Intensity DECREASES as Y increases. */
+    /* dIdy = current - below. */
+    /* If positive, we are on the leading edge/slope. */
+    /* If negative or zero, we are on the body or trailing edge. */
     
-    /* Add some "choppiness" to the wave height based on the surface noise */
-    /* stronger waves smooth out the noise (surface tension) */
-    float detail = surfaceNoise * 0.3;
-    float finalHeight = smoothstep(0.0, 1.0, waveHeight + detail * 0.5);
+    float dStep = 1.0 / uResolution.y;
+    float below = texture2D(uWaveMap, uv - vec2(0.0, dStep)).r;
+    float dIdy = (rawIntensity - below) * 5.0; /* Boost gradient magnitude */
     
-    /* <--- 4. Color Gradient Mixing ---> */
-    /* We want a gradient: Deep Blue (Back) -> Turquoise (Body) -> White (Crest/Foam) */
+    /* <--- 3. Styling Logic ---> */
     
-    /* Base Transparency: The wave becomes more opaque as it gets taller */
-    float alpha = smoothstep(0.02, 0.2, finalHeight);
+    /* A. Color Gradient */
+    /* Leading Edge (positive gradient) -> Bright White (Foam) */
+    /* Body/Trailing (neutral/negative) -> Deep Blue / Transparent */
     
-    /* Mix 1: Deep Blue -> Turquoise */
-    /* Occurs in the lower-mid range of height */
-    float mix1 = smoothstep(0.1, 0.4, finalHeight);
-    vec3 bodyColor = mix(uColorWaveDeep, uColorShallow, mix1);
+    float foamSignal = smoothstep(0.0, 0.2, dIdy);
+    float foamNoise = step(0.5, surfaceNoise);
     
-    /* Mix 2: Turquoise -> White (Foam) */
-    /* Occurs at the peak height */
-    /* We use a sharper step to define the "foam cap" */
-    float mix2 = smoothstep(0.6, 0.9, finalHeight);
+    /* Base Body Color: Mix Deep and Shallow based on intensity, favoring Deep for the body */
+    vec3 colBody = mix(uColorWaveDeep, uColorShallow, rawIntensity * 0.4);
+    vec3 colFoam = uColorWave;
     
-    /* Add "foam bubbles" noise to the white cap */
-    float foamTexture = step(0.6, surfaceNoise); /* binary noise for bubbles */
-    float foamMix = mix(mix2, mix2 + foamTexture * 0.2, 0.5); /* blend uniform foam with bubbles */
+    /* Mix body and foam based on the gradient signal */
+    vec3 finalColor = mix(colBody, colFoam, foamSignal * (0.8 + 0.2 * foamNoise));
     
-    vec3 finalColor = mix(bodyColor, uColorWave, clamp(foamMix, 0.0, 1.0));
-    
-    /* <--- 5. Specular / Rim Light ---> */
-    /* Fake a light source from top-left */
-    float light = noise(uv * 40.0 + uTime);
-    float rim = smoothstep(0.8, 0.95, finalHeight) * light;
-    finalColor += vec3(0.8, 0.9, 1.0) * rim * 0.5;
-    
-    /* <--- 6. Edge/Shadow Definition ---> */
-    /* Darken the trailing edge slightly for depth */
-    /* Don't apply edge here because we discarded low intensity, */
-    /* but we can darken the "low height" parts that remain */
-    finalColor *= (0.8 + 0.2 * smoothstep(0.05, 0.2, rawIntensity));
+    /* B. Opacity & Softness */
+    /* "Center semi-transparent" -> Max alpha < 1.0 for body */
+    /* "Leading edge bright white" -> Alpha 1.0 */
+    /* "Trailing edge fade out" -> Alpha drops to 0 */
 
-    /* <--- 7. Screen Fade ---> */
+    /* Base Alpha: linear fade in from 0 */
+    float baseAlpha = smoothstep(0.0, 1.0, rawIntensity); 
+    
+    /* Target Alpha: 0.5 (semi-transparent) at body, 1.0 at foam front */
+    float targetAlpha = mix(0.5, 1.0, foamSignal);
+    
+    /* Soft Trailing Edge: Fade out where gradient is negative (back of wave) */
+    /* dIdy < 0 implies we are on the top edge falling off. */
+    /* Map dIdy [-0.1, 0.0] to Alpha [0.0, 1.0] */
+    float backFade = smoothstep(-0.05, 0.0, dIdy);
+    
+    float finalAlpha = baseAlpha * targetAlpha * backFade;
+    
+    /* Clamp final alpha */
+    finalAlpha = clamp(finalAlpha, 0.0, 1.0);
+
+    /* <--- 4. Screen Fade ---> */
     /* Fade out at the very bottom and top to avoid hard clipping */
     float screenFade = smoothstep(0.0, 0.05, uv.y) * (1.0 - smoothstep(0.95, 1.0, uv.y));
     
-    gl_FragColor = vec4(finalColor, alpha * screenFade);
+    gl_FragColor = vec4(finalColor, finalAlpha * screenFade);
 }`;
 
 /* Wave Sprite Vertex Shader (Standard quad) */
@@ -177,7 +176,7 @@ void main() {
 
 /* --- BRUSH SHADER --- */
 /* Spawns a new wave crest. */
-/* Shape: Wide Horizontal Bar/Ellipse (The crest of a wave) */
+/* Shape: Crescent (Convex bottom, concave top, horns up) */
 export const WAVE_BRUSH_FRAGMENT_SHADER = `precision mediump float;
 varying vec2 vUv;
 varying float vAlpha;
@@ -185,11 +184,23 @@ varying float vAlpha;
 void main() {
     vec2 p = vUv - 0.5;
     
-    /* Shape: Wide Horizontal Ellipse */
-    /* width=0.4, height=0.08 */
-    float d = length(p / vec2(1.0, 0.45)); 
+    /* Flatten the coordinate system to make it wide */
+    p = p / vec2(1.0, 0.5); 
     
-    float shape = 1.0 - smoothstep(0.2, 0.35, d);
+    float r1 = 0.4;        /* Main circle radius */
+    float r2 = 0.35;       /* Cutout circle radius */
+    float shift = 0.15;    /* Shift cutout UP to remove top part */
+    
+    float d1 = length(p) - r1;
+    float d2 = length(p - vec2(0.0, shift)) - r2;
+    
+    /* Intersect Main Circle with Outside of Cutout Circle */
+    float d = max(d1, -d2);
+    
+    /* Smoothstep for anti-aliasing */
+    /* Inside is negative. Boundary at 0. */
+    float shape = smoothstep(0.02, 0.0, d);
+    
     shape = clamp(shape, 0.0, 1.0);
 
     gl_FragColor = vec4(shape * vAlpha, 0.0, 0.0, 1.0);
@@ -217,8 +228,16 @@ void main() {
         return;
     }
     
+    /* Horizontal Spread (Blur) */
+    float spread = 1.0 / uResolution.x;
+    
     vec4 center = texture2D(uLastFrame, sourceUv);
+    vec4 left   = texture2D(uLastFrame, sourceUv - vec2(spread, 0.0));
+    vec4 right  = texture2D(uLastFrame, sourceUv + vec2(spread, 0.0));
+    
+    /* Mix center with neighbors for diffusion */
+    vec4 blurred = mix(center, (left + right) * 0.5, 0.1);
     
     /* Decay */
-    gl_FragColor = center * 0.99;
+    gl_FragColor = blurred * 0.99;
 }`;
