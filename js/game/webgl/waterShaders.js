@@ -83,32 +83,48 @@ void main() {
     
     if (intensity < 0.01) discard;
     
-    /* Create Foam Texture */
-    /* Move noise opposite to wave direction slightly for turbulence */
-    float foamNoise = noise(uv * 20.0 + vec2(0.0, uTime * 0.5));
+    /* Directional Noise: Streaky vertical noise for rushing water effect */
+    /* Stretch heavily along Y-axis to simulate speed/motion blur */
+    float streakyNoise = noise(vec2(uv.x * 60.0, uv.y * 4.0 + uTime * 4.0));
     
-    /* Erode the intensity with noise */
-    float foam = intensity - (foamNoise * 0.2);
-    foam = smoothstep(0.2, 0.5, foam);
+    /* Define Zones based on Intensity */
+    /* Body (Medium Intensity): Darker/turbulent blue with noise */
+    /* Edge (High Intensity): Bright white foam */
     
-    /* Color: White Foam + Light Blue tint */
-    vec3 foamColor = vec3(0.95, 0.98, 1.0); /* Bright White-Blue */
+    float foamThreshold = 0.5;
+    float foamMix = smoothstep(foamThreshold, foamThreshold + 0.2, intensity);
     
-    /* Add a shadow/edge outline */
-    float outline = smoothstep(0.0, 0.2, intensity) - smoothstep(0.2, 0.5, intensity);
-    vec3 outlineColor = uColorShallow * 0.8;
+    /* Base Colors */
+    vec3 bodyColor = uColorWaveDeep;
+    vec3 foamColor = vec3(1.0, 1.0, 1.0);
     
-    /* Final Mix */
-    /* Mostly foam color, fading out */
-    vec3 finalColor = foamColor;
+    /* Mix Colors */
+    vec3 finalColor = mix(bodyColor, foamColor, foamMix);
     
-    /* Alpha Fade */
-    float alpha = foam * smoothstep(0.0, 0.2, intensity);
+    /* Add streaks to the body part */
+    if (foamMix < 0.9) {
+        finalColor += (streakyNoise - 0.5) * 0.15 * (1.0 - foamMix);
+    }
     
-    /* Positional Fade (Top/Bottom of screen) */
+    /* Hard Edge & Opacity */
+    /* Ensure the front (bottom) remains sharp, back trails off */
+    
+    /* Base Alpha - sharp cut at low intensity */
+    float alpha = smoothstep(0.01, 0.05, intensity);
+    
+    /* Body is semi-transparent, Foam is opaque */
+    float bodyAlpha = 0.6;
+    float foamAlpha = 0.95;
+    
+    float finalAlpha = mix(bodyAlpha, foamAlpha, foamMix);
+    
+    /* Combine alphas */
+    finalAlpha *= alpha;
+    
+    /* Screen Fade */
     float screenFade = smoothstep(0.0, 0.1, uv.y) * (1.0 - smoothstep(0.9, 1.0, uv.y));
     
-    gl_FragColor = vec4(finalColor, alpha * screenFade);
+    gl_FragColor = vec4(finalColor, finalAlpha * screenFade);
 }`;
 
 /* Wave Sprite Vertex Shader (Standard quad) */
