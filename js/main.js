@@ -367,7 +367,7 @@ function enterArea(areaID) {
         requestAnimationFrame(() => {
           setTimeout(() => {
             if (currentArea === AREAS.STARTER_COVE) {
-              currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true });
+              currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
             }
           }, 50);
         });
