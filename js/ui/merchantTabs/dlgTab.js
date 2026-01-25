@@ -17,7 +17,7 @@ import {
   suppressNextGhostTap,
 } from '../../util/ghostTapGuard.js';
 import { IS_MOBILE } from '../../main.js';
-import { playAudio } from '../../util/audioManager.js';
+import { playAudio, setMusicUnderwater } from '../../util/audioManager.js';
 
 function nowMs() {
   if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
@@ -958,6 +958,7 @@ const doCloseFromBtn = (e) => {
 
 function openDialogueModal(id, meta) {
   primeTypingSfx();
+  setMusicUnderwater(true);
 
   const overlay = document.createElement('div');
   overlay.className = 'merchant-firstchat';
@@ -999,6 +1000,7 @@ document.addEventListener('keydown', onEscToCancel, { capture: true });
 
   // Close helpers — end (with reward) vs cancel (no reward)
   const closeModal = () => {
+    setMusicUnderwater(false);
 	document.removeEventListener('keydown', onEscToCancel, { capture: true });
     overlay.classList.remove('is-visible');
     merchantOverlayEl.classList.remove('firstchat-active');
@@ -1716,6 +1718,8 @@ function startConversation(id, meta) {
   const row = panel;                                        // big tap target
   let choicesEl = panel.querySelector('.merchant-choices');
 
+  setMusicUnderwater(true);
+
   // Ensure blank + hide choices before typing
   choicesEl.classList.remove('is-visible');
   choicesEl.innerHTML = '';
@@ -1725,6 +1729,7 @@ function startConversation(id, meta) {
     choicesEl,
     skipTargets: [textEl, row, bubble],
     onEnd: (info) => {
+      setMusicUnderwater(false);
 	  if (info && info.noReward) {
         textEl.textContent = '…';
         renderDialogueList();
@@ -1748,11 +1753,14 @@ function runFirstMeet() {
   const cardEl = fc.querySelector('.merchant-firstchat__card');
   const choicesEl = fc.querySelector('#merchant-first-choices');
 
+  setMusicUnderwater(true);
+
   const engine = new DialogueEngine({
     textEl,
     choicesEl,
     skipTargets: [textEl, rowEl, cardEl],
     onEnd: () => {
+      setMusicUnderwater(false);
       try { localStorage.setItem(sk(MERCHANT_MET_KEY_BASE), '1'); } catch {}
       try { window.dispatchEvent(new Event(MERCHANT_MET_EVENT)); } catch {}
       fc.classList.remove('is-visible');
@@ -1856,6 +1864,8 @@ export function openMerchant() {
 export function closeMerchant() {
   if (!merchantOpen) return;
   
+  setMusicUnderwater(false);
+
   if (IS_MOBILE) {
     try { suppressNextGhostTap(100); } catch {}
     try { blockInteraction(80); } catch {}
