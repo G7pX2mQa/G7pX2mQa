@@ -348,7 +348,7 @@ export function createSpawner({
       waveLastAt = now;
       
       const vol = IS_MOBILE ? waveSoundMobileVolume : waveSoundDesktopVolume;
-      playAudio(waveURL, { volume: vol });
+      playAudio(waveURL, { volume: vol, type: 'music' });
     }
 
     function planSpawn() {
