@@ -431,7 +431,8 @@ export function createSpawner({
         // spawnY is in Playfield coords. 
         // y_water = y_playfield + (pfRect.top - wRect.top)
         // (pfRect.top - wRect.top) is -waterToPfTop
-        const waveCenterY = spawnY - waterToPfTop;
+        // Move up by 0.1 size to ensure coin is covered
+        const waveCenterY = spawnY - waterToPfTop - size * 0.1;
 
         return {
             wave: { x: waveCenterX, y: waveCenterY, size: size },
@@ -471,7 +472,7 @@ export function createSpawner({
         }
         
         el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
-        el.style.opacity = '1';
+        el.style.opacity = '0'; // Hide initially to sync with wave render
 
         if (mutationUnlockedSnapshot) {
           el.dataset.mutationLevel = mutationLevelSnapshot.toString();
@@ -526,6 +527,7 @@ export function createSpawner({
                 if (!c.el) continue;
                 c.el.style.transition = `transform ${animationDurationMs}ms ${CUBIC_BEZIER} ${c.jitterMs}ms`;
                 c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
+                c.el.style.opacity = '1'; // Show after wave renders
             }
           });
       }
