@@ -183,7 +183,7 @@ void main() {
     /* We want foam only at the very bottom, rapidly fading to blue body */
     /* Note: Inverted smoothstep (edge0 > edge1) is used here to flip the gradient direction */
     /* Reducing 0.45 to 0.42 shrinks the foam cap height */
-    float foam = smoothstep(0.36, 0.24, vUv.y);
+    float foam = smoothstep(0.45, 0.24, vUv.y);
     
     /* Body Gradient: Fade out towards the tail */
     /* Starts fading around 0.4 (just after foam ends) and hits 0.0 at the top */
