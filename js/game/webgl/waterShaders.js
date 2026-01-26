@@ -91,7 +91,7 @@ void main() {
     /* Body (Medium Intensity): Darker/turbulent blue with noise */
     /* Edge (High Intensity): Bright white foam */
     
-    float foamThreshold = 0.5;
+    float foamThreshold = 0.2;
     float foamMix = smoothstep(foamThreshold, foamThreshold + 0.2, intensity);
     
     /* Base Colors */
@@ -109,22 +109,19 @@ void main() {
     /* Hard Edge & Opacity */
     /* Ensure the front (bottom) remains sharp, back trails off */
     
-    /* Base Alpha - sharp cut at low intensity */
-    float alpha = smoothstep(0.01, 0.05, intensity);
+    /* Calculate Alpha based on Intensity */
+    /* High Intensity (Front/Bottom): Alpha 1.0 (Fully Opaque) */
+    /* Medium Intensity (Body): Alpha 1.0 (Fully Opaque) */
+    /* Low Intensity (Top/Tail): Fades to 0.0 */
     
-    /* Body is semi-transparent, Foam is opaque */
-    float bodyAlpha = 0.6;
-    float foamAlpha = 0.95;
-    
-    float finalAlpha = mix(bodyAlpha, foamAlpha, foamMix);
-    
-    /* Combine alphas */
-    finalAlpha *= alpha;
+    float finalAlpha = smoothstep(0.02, 0.15, intensity);
     
     /* Screen Fade */
     float screenFade = smoothstep(0.0, 0.1, uv.y) * (1.0 - smoothstep(0.9, 1.0, uv.y));
     
-    gl_FragColor = vec4(finalColor, finalAlpha * screenFade);
+    /* Premultiply Alpha for correct blending (WebGL default is premultipliedAlpha: true) */
+    float alpha = finalAlpha * screenFade;
+    gl_FragColor = vec4(finalColor * alpha, alpha);
 }`;
 
 /* Wave Sprite Vertex Shader (Standard quad) */
@@ -167,10 +164,17 @@ void main() {
     /* Intensity Gradient: White Foam at Bottom (Leading Edge), Blue Body at Top */
     /* vUv.y: 0=Bottom, 1=Top */
     /* We want foam only at the very bottom, rapidly fading to blue body */
-    float foam = smoothstep(0.45, 0.3, vUv.y);
+    /* Note: Inverted smoothstep (edge0 > edge1) is used here to flip the gradient direction */
+    /* Reducing 0.45 to 0.42 shrinks the foam cap height */
+    float foam = smoothstep(0.42, 0.3, vUv.y);
     
-    /* Map gradient: Bottom=1.0 (Foam), Body=0.3 */
-    float intensity = mix(0.3, 1.0, foam);
+    /* Body Gradient: Fade out towards the tail */
+    /* Starts fading around 0.4 (just after foam ends) and hits 0.0 at the top */
+    float bodyFade = smoothstep(0.4, 0.7, vUv.y);
+    float bodyBase = mix(0.15, 0.0, bodyFade);
+
+    /* Map gradient: Bottom=1.0 (Foam), Body=bodyBase */
+    float intensity = mix(bodyBase, 1.0, foam);
 
     gl_FragColor = vec4(shape * intensity * vAlpha, 0.0, 0.0, 1.0);
 }`;
