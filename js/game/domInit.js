@@ -61,7 +61,9 @@ export function ensureGameDom() {
 
         <canvas id="water-background" class="water-base" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: 1;"></canvas>
         <div class="coins-layer" id="coins-layer"></div>
-        <canvas id="water-effects" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: 99;"></canvas>
+        <canvas id="water-fg-0" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: 80;"></canvas>
+        <canvas id="water-fg-1" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: 85;"></canvas>
+        <canvas id="water-fg-2" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: 90;"></canvas>
       </section>
 
       <nav class="hud-bottom" id="hud-bottom">
