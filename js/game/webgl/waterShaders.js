@@ -78,7 +78,7 @@ void main() {
     vec2 uv = vUv;
     
     /* Sample the simulation (physics) */
-    vec4 waveInfo = texture2D(uWaveMap, uv);
+    vec4 waveInfo = texture2D(uWaveMap, uv - vec2(0.0, 0.04));
     float intensity = waveInfo.r; 
     
     if (intensity < 0.01) discard;
