@@ -117,7 +117,25 @@ void main() {
     float finalAlpha = smoothstep(0.02, 0.15, intensity);
     
     /* Screen Fade */
-    float screenFade = smoothstep(0.0, 0.1, uv.y) * (1.0 - smoothstep(0.9, 1.0, uv.y));
+    /* OLD: float screenFade = smoothstep(0.0, 0.1, uv.y) * (1.0 - smoothstep(0.9, 1.0, uv.y)); */
+    
+    /* Dynamic Shoreline Fade */
+    /* Replicate the wave calculation from BACKGROUND_FRAGMENT_SHADER */
+    /* Note: speed must match BACKGROUND_FRAGMENT_SHADER (1.2) */
+    float speed = 1.2;
+    float time = uTime * speed;
+    float wave1 = sin(uv.x * 8.0 - time) * 0.04;
+    float wave2 = sin(uv.x * 15.0 - time * 0.6) * 0.02;
+    float wave = wave1 + wave2;
+    float threshold = 0.2 + wave;
+    
+    /* Fade out quickly after exiting the water body (below threshold) */
+    /* We want full opacity at 'threshold' and 0.0 opacity at 'threshold - 0.2' */
+    /* Increased fade distance to 0.2 to account for 5x speed (avoids popping in 2 frames) */
+    float shoreFade = smoothstep(threshold - 0.2, threshold, uv.y);
+    
+    float topFade = 1.0 - smoothstep(0.9, 1.0, uv.y);
+    float screenFade = shoreFade * topFade;
     
     /* Premultiply Alpha for correct blending (WebGL default is premultipliedAlpha: true) */
     float alpha = finalAlpha * screenFade;
@@ -166,7 +184,7 @@ void main() {
     /* We want foam only at the very bottom, rapidly fading to blue body */
     /* Note: Inverted smoothstep (edge0 > edge1) is used here to flip the gradient direction */
     /* Reducing 0.45 to 0.42 shrinks the foam cap height */
-    float foam = smoothstep(0.42, 0.3, vUv.y);
+    float foam = smoothstep(0.36, 0.24, vUv.y);
     
     /* Body Gradient: Fade out towards the tail */
     /* Starts fading around 0.4 (just after foam ends) and hits 0.0 at the top */
@@ -191,8 +209,8 @@ void main() {
     vec2 uv = gl_FragCoord.xy / uResolution;
     
     /* Flow Downwards */
-    /* Speed: 5.0 pixels per frame (at sim res) */
-    vec2 flow = vec2(0.0, 5.0 / uResolution.y); 
+    /* Speed: 15.0 pixels per frame (at sim res) */
+    vec2 flow = vec2(0.0, 15.0 / uResolution.y); 
     
     vec2 sourceUv = uv + flow;
 
