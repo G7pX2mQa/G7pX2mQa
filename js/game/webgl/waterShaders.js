@@ -208,8 +208,8 @@ void main() {
     vec2 uv = gl_FragCoord.xy / uResolution;
     
     /* Flow Downwards */
-    /* Speed: 15.0 pixels per frame (at sim res) */
-    vec2 flow = vec2(0.0, 15.0 / uResolution.y); 
+    /* Speed: 16.0 pixels per frame (at sim res) */
+    vec2 flow = vec2(0.0, 16.0 / uResolution.y); 
     
     vec2 sourceUv = uv + flow;
 
