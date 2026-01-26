@@ -414,7 +414,7 @@ export function createSpawner({
         const minY = Math.max(effectiveWaterH + 80, 120);
         const maxY = Math.max(minY + 40, M.safeBottom - size - 6);
         const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
-        const jitterMs = Math.random() * 100;
+        const jitterMs = 0;
         
         const coin = {
             x0: spawnX, y0: spawnY,
