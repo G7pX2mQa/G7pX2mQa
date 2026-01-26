@@ -91,7 +91,7 @@ void main() {
     /* Body (Medium Intensity): Darker/turbulent blue with noise */
     /* Edge (High Intensity): Bright white foam */
     
-    float foamThreshold = 0.2;
+    float foamThreshold = 0.5;
     float foamMix = smoothstep(foamThreshold, foamThreshold + 0.2, intensity);
     
     /* Base Colors */
@@ -134,8 +134,7 @@ void main() {
     /* Increased fade distance to 0.2 to account for 5x speed (avoids popping in 2 frames) */
     float shoreFade = smoothstep(threshold - 0.2, threshold, uv.y);
     
-    float topFade = 1.0 - smoothstep(0.9, 1.0, uv.y);
-    float screenFade = shoreFade * topFade;
+    float screenFade = shoreFade;
     
     /* Premultiply Alpha for correct blending (WebGL default is premultipliedAlpha: true) */
     float alpha = finalAlpha * screenFade;
@@ -189,7 +188,7 @@ void main() {
     /* Body Gradient: Fade out towards the tail */
     /* Starts fading around 0.4 (just after foam ends) and hits 0.0 at the top */
     float bodyFade = smoothstep(0.4, 0.7, vUv.y);
-    float bodyBase = mix(0.15, 0.0, bodyFade);
+    float bodyBase = mix(0.45, 0.0, bodyFade);
 
     /* Map gradient: Bottom=1.0 (Foam), Body=bodyBase */
     float intensity = mix(bodyBase, 1.0, foam);
