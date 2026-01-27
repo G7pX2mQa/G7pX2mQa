@@ -11,8 +11,8 @@ import {
 const COLOR_DEEP = [0.2, 0.5, 0.9];          // Deep Royal Blue
 const COLOR_SHALLOW = [0.2, 0.9, 1.0];       // Bright Turquoise
 // Updated to Vivid Oceanic Blue Gradient
-const COLOR_WAVE = [0.9, 0.95, 1.0];         // White Foam (Highlights)
-const COLOR_WAVE_DEEP = [0.2, 0.5, 0.9];     // Deep Blue (Matches Background Deep)
+const COLOR_WAVE = [1.0, 1.0, 1.0];          // White Foam (Highlights)
+const COLOR_WAVE_DEEP = [0.45, 0.8, 1.0];    // Brighter Blue (Lighter for visibility)
 
 function createShader(gl, type, source) {
     const shader = gl.createShader(type);
