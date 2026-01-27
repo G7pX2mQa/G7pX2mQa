@@ -378,13 +378,19 @@ function enterArea(areaID) {
       }
       document.body.classList.remove('menu-bg');
 
+      // Config for water layers
+      const FG_LAYER_COUNT = 5;
+      const FG_START_Z = 80;
+
       if (typeof ensureGameDom === 'function') {
-        ensureGameDom();
+        ensureGameDom(FG_LAYER_COUNT, FG_START_Z);
       }
 
       // Initialize Water System
       if (waterSystem) {
-        waterSystem.init('water-background', ['water-fg-0', 'water-fg-1', 'water-fg-2']);
+        // Generate IDs: ['water-fg-0', 'water-fg-1', ...]
+        const fgIds = Array.from({ length: FG_LAYER_COUNT }, (_, i) => `water-fg-${i}`);
+        waterSystem.init('water-background', fgIds);
         
         // Unregister old listeners if they exist to prevent leaks
         if (waterTickUnsub) {
