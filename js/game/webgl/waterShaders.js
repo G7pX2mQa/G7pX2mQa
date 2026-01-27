@@ -23,14 +23,14 @@ void main() {
     
     /* Combine sine waves for a more natural look */
     /* vUv.x is 0..1 across the screen width */
-    float wave1 = sin(vUv.x * 8.0 - time) * 0.04;
-    float wave2 = sin(vUv.x * 15.0 - time * 0.6) * 0.02;
+    float wave1 = sin(vUv.x * 8.0 - time) * 0.0285;
+    float wave2 = sin(vUv.x * 15.0 - time * 0.6) * 0.014;
     float wave = wave1 + wave2;
 
     /* Define the shoreline height (baseline) */
     /* vUv.y=0 is bottom of canvas, vUv.y=1 is top */
     /* We want to discard pixels below this threshold */
-    float threshold = 0.2 + wave; 
+    float threshold = 0.428 + wave; 
 
     if (vUv.y < threshold) {
         discard;
@@ -43,7 +43,7 @@ void main() {
     vec3 col = mix(uColorShallow, uColorDeep, gradientY);
     
     /* Add a subtle "foam" or highlight at the edge */
-    float edge = 1.0 - smoothstep(0.0, 0.04, vUv.y - threshold);
+    float edge = 1.0 - smoothstep(0.0, 0.028, vUv.y - threshold);
     col = mix(col, vec3(1.0, 1.0, 1.0), edge * 0.4);
     
     gl_FragColor = vec4(col, 1.0);
@@ -79,7 +79,7 @@ void main() {
     
     /* Sample the simulation (physics) */
     /* Wave Logic */
-    vec2 waveUV = uv - vec2(0.0, 0.04);
+    vec2 waveUV = uv - vec2(0.0, 0.0285);
     float intensity = texture2D(uWaveMap, waveUV).r;
     
     /* Shadow Logic: Look UP for the casting object (Standard drop shadow falls down) */
@@ -130,15 +130,15 @@ void main() {
     /* Note: speed must match BACKGROUND_FRAGMENT_SHADER (1.2) */
     float speed = 1.2;
     float time = uTime * speed;
-    float wave1 = sin(uv.x * 8.0 - time) * 0.04;
-    float wave2 = sin(uv.x * 15.0 - time * 0.6) * 0.02;
+    float wave1 = sin(uv.x * 8.0 - time) * 0.0285;
+    float wave2 = sin(uv.x * 15.0 - time * 0.6) * 0.014;
     float wave = wave1 + wave2;
-    float threshold = 0.2 + wave;
+    float threshold = 0.428 + wave;
     
     /* Fade out quickly after exiting the water body (below threshold) */
     /* We want full opacity at 'threshold' and 0.0 opacity at 'threshold - 0.2' */
     /* Increased fade distance to 0.2 to account for 5x speed (avoids popping in 2 frames) */
-    float shoreFade = smoothstep(threshold - 0.2, threshold, uv.y);
+    float shoreFade = smoothstep(0.0, threshold, uv.y);
     
     float screenFade = shoreFade;
     
@@ -229,7 +229,7 @@ void main() {
     
     /* Flow Downwards */
     /* Speed: 16.0 pixels per frame (at sim res) -> 960.0 pixels per second */
-    vec2 flow = vec2(0.0, (960.0 * uDt) / uResolution.y); 
+    vec2 flow = vec2(0.0, (685.0 * uDt) / uResolution.y); 
     
     vec2 sourceUv = uv + flow;
 
