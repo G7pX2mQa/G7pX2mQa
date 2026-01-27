@@ -1,10 +1,17 @@
-export function ensureGameDom() {
+export function ensureGameDom(layerCount, startZ) {
   if (document.getElementById('game-root')) return;
 
   const main = document.createElement('main');
   main.id = 'game-root';
   main.className = 'area area-cove';
   main.hidden = true;
+
+  // Generate foreground canvases dynamically
+  let waterLayersHtml = '';
+  for (let i = 0; i < layerCount; i++) {
+    const zIndex = startZ + i;
+    waterLayersHtml += `<canvas id="water-fg-${i}" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: ${zIndex};"></canvas>\n        `;
+  }
 
   main.innerHTML = `
       <div class="hud-top">
@@ -61,9 +68,7 @@ export function ensureGameDom() {
 
         <canvas id="water-background" class="water-base" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: 1;"></canvas>
         <div class="coins-layer" id="coins-layer"></div>
-        <canvas id="water-fg-0" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: 80;"></canvas>
-        <canvas id="water-fg-1" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: 85;"></canvas>
-        <canvas id="water-fg-2" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: 90;"></canvas>
+        ${waterLayersHtml.trim()}
       </section>
 
       <nav class="hud-bottom" id="hud-bottom">
