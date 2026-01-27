@@ -1,3 +1,6 @@
+import { formatNumber } from '../util/numFormat.js';
+import { BigNum } from '../util/bigNum.js';
+
 export const SURGE_MILESTONES = [
   {
     id: 1,
@@ -25,30 +28,9 @@ export const SURGE_MILESTONES = [
   },
   {
     id: 4,
-    surgeLevel: 10,
+    surgeLevel: 4,
     description: [
-      "Future thing"
-    ]
-  },
-  {
-    id: 5,
-    surgeLevel: 20,
-    description: [
-      "Big future thing"
-    ]
-  },
-  {
-    id: 6,
-    surgeLevel: 50,
-    description: [
-      "Far future"
-    ]
-  },
-  {
-    id: 7,
-    surgeLevel: 1000,
-    description: [
-      "Very far future"
+      `Multiplies MP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e12))}x</span>`
     ]
   }
 ];
