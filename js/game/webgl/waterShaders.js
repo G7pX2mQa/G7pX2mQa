@@ -78,10 +78,16 @@ void main() {
     vec2 uv = vUv;
     
     /* Sample the simulation (physics) */
-    vec4 waveInfo = texture2D(uWaveMap, uv - vec2(0.0, 0.04));
-    float intensity = waveInfo.r; 
+    /* Wave Logic */
+    vec2 waveUV = uv - vec2(0.0, 0.04);
+    float intensity = texture2D(uWaveMap, waveUV).r;
     
-    if (intensity < 0.01) discard;
+    /* Shadow Logic: Look UP for the casting object (Standard drop shadow falls down) */
+    float shadowOffset = 8.0 / uResolution.y; 
+    float shadowIntensity = texture2D(uWaveMap, waveUV + vec2(0.0, shadowOffset)).r;
+    
+    /* Discard only if BOTH are empty */
+    if (intensity < 0.01 && shadowIntensity < 0.01) discard;
     
     /* Directional Noise: Streaky vertical noise for rushing water effect */
     /* Stretch heavily along Y-axis to simulate speed/motion blur */
@@ -136,9 +142,23 @@ void main() {
     
     float screenFade = shoreFade;
     
-    /* Premultiply Alpha for correct blending (WebGL default is premultipliedAlpha: true) */
-    float alpha = finalAlpha * screenFade;
-    gl_FragColor = vec4(finalColor * alpha, alpha);
+    /* --- Composite Shadow & Wave --- */
+    float waveAlpha = finalAlpha * screenFade;
+    
+    /* Shadow Alpha */
+    float shadowBaseAlpha = smoothstep(0.02, 0.15, shadowIntensity);
+    /* Shadow is weaker (40% opacity) */
+    float shadowAlpha = shadowBaseAlpha * 0.4 * screenFade;
+    
+    /* Mix: Wave over Shadow */
+    /* OutAlpha = WaveAlpha + ShadowAlpha * (1 - WaveAlpha) */
+    float outAlpha = waveAlpha + shadowAlpha * (1.0 - waveAlpha);
+    
+    /* OutRGB = WaveRGB * WaveAlpha + ShadowRGB * ShadowAlpha * (1 - WaveAlpha) */
+    /* Shadow is black (RGB=0), so second term is 0 */
+    vec3 outRGB = finalColor * waveAlpha; 
+    
+    gl_FragColor = vec4(outRGB, outAlpha);
 }`;
 
 /* Wave Sprite Vertex Shader (Standard quad) */
