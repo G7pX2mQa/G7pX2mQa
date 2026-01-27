@@ -10,7 +10,7 @@ export function ensureGameDom(layerCount, startZ) {
   let waterLayersHtml = '';
   for (let i = 0; i < layerCount; i++) {
     const zIndex = startZ + i;
-    waterLayersHtml += `<canvas id="water-fg-${i}" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: ${zIndex};"></canvas>\n        `;
+    waterLayersHtml += `<canvas id="water-fg-${i}" style="position: absolute; top: 0; left: 0; width: 100%; height: 35%; pointer-events: none; z-index: ${zIndex};"></canvas>\n        `;
   }
 
   main.innerHTML = `
@@ -66,7 +66,7 @@ export function ensureGameDom(layerCount, startZ) {
       <section class="playfield" aria-label="Starter Cove Sand">
         <div class="waves" id="waves"></div>
 
-        <canvas id="water-background" class="water-base" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; pointer-events: none; z-index: 1;"></canvas>
+        <canvas id="water-background" class="water-base" style="position: absolute; top: 0; left: 0; width: 100%; height: 35%; pointer-events: none; z-index: 1;"></canvas>
         <div class="coins-layer" id="coins-layer"></div>
         ${waterLayersHtml.trim()}
       </section>
