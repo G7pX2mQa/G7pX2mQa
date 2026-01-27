@@ -250,7 +250,7 @@ export class WaterSystem {
         }
     }
 
-    applyBrush(gl, program, buffer, fbo, x, y, size) {
+    applyBrush(gl, program, buffer, fbo, x, y, width, height) {
         gl.useProgram(program);
         gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
         gl.viewport(0, 0, this.simRes, this.simRes);
@@ -259,18 +259,11 @@ export class WaterSystem {
         gl.blendFunc(gl.ONE, gl.ONE);
 
         // Map pixels to WebGL Clip Space
-        const brushSize = Math.max(0.05, size / this.width) * 10; 
-        
         const ndcX = (x / this.width) * 2 - 1;
         const ndcY = -((y / this.height) * 2 - 1); // Flip Y for WebGL
 
-        const s = brushSize;
-        const aspect = (this.width && this.height) ? (this.width / this.height) : 1.0;
-
-        // Counter-scale width in simulation to ensure circular shape on screen
-        const shapeScale = 1.2; 
-        const wX = (s * shapeScale * 2.0) / aspect; 
-        const wY = s * shapeScale * 1.25;
+        const wX = (width / this.width);
+        const wY = (height / this.height);
         
         // Quad vertices: x, y, u, v, alpha
         const data = new Float32Array([
@@ -303,7 +296,7 @@ export class WaterSystem {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
 
-    addWave(x, y, size) {
+    addWave(x, y, width, height, forceTopLayer = false) {
         if (!this.glBg || this.fgLayers.length === 0) return;
 
         // 1. Apply to BG Sim (Always, for water distortion)
@@ -312,11 +305,16 @@ export class WaterSystem {
             this.bgBrushProgram, 
             this.bgBrushBuffer, 
             this.bgReadFBO, 
-            x, y, size
+            x, y, width, height
         );
 
-        // 2. Apply to ONE Random FG Layer (To distribute density)
-        const layerIdx = Math.floor(Math.random() * this.fgLayers.length);
+        // 2. Apply to ONE FG Layer (To distribute density)
+        // If forceTopLayer is true, use the last layer (highest visual priority).
+        // Otherwise, pick a random layer.
+        const layerIdx = forceTopLayer 
+            ? this.fgLayers.length - 1 
+            : Math.floor(Math.random() * this.fgLayers.length);
+            
         const layer = this.fgLayers[layerIdx];
         
         this.applyBrush(
@@ -324,7 +322,7 @@ export class WaterSystem {
             layer.brushProgram, 
             layer.brushBuffer, 
             layer.readFBO, 
-            x, y, size
+            x, y, width, height
         );
     }
 
@@ -373,9 +371,10 @@ export class WaterSystem {
         const y = 0; 
         
         const sizePct = 0.3 + Math.random() * 0.2;
-        const size = this.width * sizePct;
+        const width = this.width * sizePct;
+        const height = width * 0.5; // Aspect ratio approx
         
-        this.addWave(x, y, size);
+        this.addWave(x, y, width, height);
     }
 
     render(totalTime, dt) {
