@@ -22,6 +22,7 @@ import {
   setLevel,
   approxLog10BigNum,
   bigNumFromLog10,
+  formatMultForUi,
 } from '../../game/upgrades.js';
 import {
   initMutationSystem,
@@ -37,7 +38,7 @@ import { clearPendingGains } from '../../game/coinPickup.js';
 import { getVisibleMilestones } from '../../game/surgeMilestones.js';
 import { ensureCustomScrollbar } from '../shopOverlay.js';
 import { playAudio } from '../../util/audioManager.js';
-import { getBookProductionRate } from '../../game/surgeEffects.js';
+import { getBookProductionRate, getSurge6WealthMultipliers } from '../../game/surgeEffects.js';
 
 const BN = BigNum;
 
@@ -1606,6 +1607,16 @@ function updateSurgeCard() {
         if (isReached && m.surgeLevel === 3) {
             const rate = getBookProductionRate ? getBookProductionRate() : BN.fromInt(0);
             desc += `<div style="color:#02e815">- Current Books/sec: ${formatNumber(rate)}</div>`;
+        }
+
+        if (isReached && m.surgeLevel === 6) {
+            const mults = getSurge6WealthMultipliers();
+            desc = `
+              <div>- Unspent Coins boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.coins)}x</span></div>
+              <div>- Unspent Books boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.books)}x</span></div>
+              <div>- Unspent Gold boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.gold)}x</span></div>
+              <div>- Unspent Magic boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.magic)}x</span></div>
+            `;
         }
 
         msHtml += `
