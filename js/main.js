@@ -409,7 +409,7 @@ function enterArea(areaID) {
         
         // Register render loop (visuals)
         if (typeof registerFrame === 'function') {
-            waterFrameUnsub = registerFrame((totalTime) => waterSystem.render(totalTime));
+            waterFrameUnsub = registerFrame((totalTime, dt) => waterSystem.render(totalTime, dt));
         }
       }
 
