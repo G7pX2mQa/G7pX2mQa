@@ -87,6 +87,18 @@ const COIN_SOUND_SUFFIXES = [
     '_size6.ogg'
 ];
 
+// Explicit Wave Dimensions (Viewport Width % and approx Height in VW %) for each Coin Size
+// "Manual values" as requested, starting with ~22vw for Size 0 to match original standard.
+const WAVE_DEFS = [
+    { w: 22, h: 12 },  // Size 0 (Standard)
+    { w: 28, h: 15 },  // Size 1
+    { w: 36, h: 19 },  // Size 2
+    { w: 48, h: 25 },  // Size 3
+    { w: 64, h: 34 },  // Size 4
+    { w: 85, h: 45 },  // Size 5
+    { w: 120, h: 65 }, // Size 6
+];
+
 export function createSpawner({
     playfieldSelector = '.area-cove .playfield',
     waterSelector = '#water-background',
@@ -425,17 +437,26 @@ export function createSpawner({
         // Transform coordinates from Playfield Space to Water Canvas Space
         const waterToPfLeft = M.pfRect.left - M.wRect.left;
         
+        const def = WAVE_DEFS[sizeIndex];
+        const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+        
+        // Add random fluctuation (approx +/- 15%)
+        const randScale = 0.85 + Math.random() * 0.3;
+        
+        const waveW = vw * (def.w / 100) * randScale;
+        const waveH = vw * (def.h / 100) * randScale;
+        
         const waveCenterX = (spawnX + size / 2) + waterToPfLeft;
         
         // waveCenterY needs to be in Water coords
         // spawnY is in Playfield coords. 
         // y_water = y_playfield + (pfRect.top - wRect.top)
         // (pfRect.top - wRect.top) is -waterToPfTop
-        // Move up by 0.1 size to ensure coin is covered
-        const waveCenterY = spawnY - waterToPfTop - size * 0.1;
+        // We want the wave to be centered roughly on the spawn point so it engulfs the coin.
+        const waveCenterY = spawnY - waterToPfTop;
 
         return {
-            wave: { x: waveCenterX, y: waveCenterY, size: size },
+            wave: { x: waveCenterX, y: waveCenterY, width: waveW, height: waveH },
             coin,
             sizeIndex
         };
@@ -454,7 +475,9 @@ export function createSpawner({
         if (wave) {
             hasWaves = true;
             if (waterSystem) {
-                waterSystem.addWave(wave.x, wave.y, wave.size);
+                // Force top layer for large waves (Size 4, 5, 6)
+                const forceTop = sizeIndex >= 4;
+                waterSystem.addWave(wave.x, wave.y, wave.width, wave.height, forceTop);
             }
         }
 
