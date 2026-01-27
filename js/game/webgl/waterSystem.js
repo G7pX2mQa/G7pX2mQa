@@ -259,7 +259,7 @@ export class WaterSystem {
         gl.blendFunc(gl.ONE, gl.ONE);
 
         // Map pixels to WebGL Clip Space
-        const brushSize = Math.max(0.05, size / this.width) * 15.0; 
+        const brushSize = Math.max(0.05, size / this.width) * 10; 
         
         const ndcX = (x / this.width) * 2 - 1;
         const ndcY = -((y / this.height) * 2 - 1); // Flip Y for WebGL
@@ -372,7 +372,6 @@ export class WaterSystem {
         // Spawn at the top
         const y = 0; 
         
-        // Size: 30% to 50% of screen width (Bolder, stronger waves)
         const sizePct = 0.3 + Math.random() * 0.2;
         const size = this.width * sizePct;
         
