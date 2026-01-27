@@ -228,8 +228,8 @@ void main() {
     vec2 uv = gl_FragCoord.xy / uResolution;
     
     /* Flow Downwards */
-    /* Speed: 16.0 pixels per frame (at sim res) */
-    vec2 flow = vec2(0.0, 16.0 / uResolution.y); 
+    /* Speed: 16.0 pixels per frame (at sim res) -> 960.0 pixels per second */
+    vec2 flow = vec2(0.0, (960.0 * uDt) / uResolution.y); 
     
     vec2 sourceUv = uv + flow;
 
@@ -241,5 +241,9 @@ void main() {
     vec4 center = texture2D(uLastFrame, sourceUv);
     
     /* Decay */
-    gl_FragColor = center * 0.99;
+    /* Correct decay for variable timestep */
+    /* 0.99 per 1/60th second -> pow(0.99, dt * 60.0) */
+    float decay = pow(0.99, uDt * 60.0);
+    
+    gl_FragColor = center * decay;
 }`;
