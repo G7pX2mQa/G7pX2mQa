@@ -96,7 +96,7 @@ void main() {
     
     /* Base Colors */
     vec3 bodyColor = uColorWaveDeep;
-    vec3 foamColor = vec3(1.0, 1.0, 1.0);
+    vec3 foamColor = uColorWave;
     
     /* Mix Colors */
     vec3 finalColor = mix(bodyColor, foamColor, foamMix);
