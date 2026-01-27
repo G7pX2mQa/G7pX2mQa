@@ -9,7 +9,7 @@ import {
 import { addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
 import { getCurrentSurgeLevel } from '../ui/merchantTabs/resetTab.js';
 import { registerTick, RateAccumulator } from './gameLoop.js';
-import { bigNumFromLog10 } from './upgrades.js';
+import { bigNumFromLog10, approxLog10BigNum } from './upgrades.js';
 
 const BN = BigNum;
 const MULTIPLIER = 10;
@@ -74,6 +74,66 @@ export function isSurge4Active() {
     return cachedSurgeLevel >= 4;
   }
   return false;
+}
+
+export function isSurge6Active() {
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) return true;
+  if (cachedSurgeLevel === Number.POSITIVE_INFINITY) return true;
+  
+  if (typeof cachedSurgeLevel === 'bigint') {
+    return cachedSurgeLevel >= 6n;
+  }
+  if (typeof cachedSurgeLevel === 'number') {
+    return cachedSurgeLevel >= 6;
+  }
+  return false;
+}
+
+export function getSurge6WealthMultipliers() {
+  if (!isSurge6Active()) {
+      return {
+          coins: BigNum.fromInt(1),
+          books: BigNum.fromInt(1),
+          gold: BigNum.fromInt(1),
+          magic: BigNum.fromInt(1),
+          total: BigNum.fromInt(1)
+      };
+  }
+
+  const calc = (amount) => {
+      if (!amount) return BigNum.fromInt(1);
+      if (amount.isInfinite?.()) return BigNum.fromAny('Infinity');
+
+      const log10 = approxLog10BigNum(amount);
+      if (!Number.isFinite(log10)) {
+          return BigNum.fromInt(1);
+      }
+      
+      // Formula: 2 ^ (log10(amount) / 3)
+      const power = log10 / 3;
+      if (power <= 0) return BigNum.fromInt(1);
+      
+      // 2^power = 10^(power * log10(2))
+      const log10Result = power * Math.log10(2);
+      return bigNumFromLog10(log10Result);
+  };
+
+  const c = calc(bank.coins?.value);
+  const b = calc(bank.books?.value);
+  const g = calc(bank.gold?.value);
+  const m = calc(bank.magic?.value);
+  
+  let total = c.mulBigNumInteger ? c.mulBigNumInteger(b) : c; 
+  total = total.mulBigNumInteger ? total.mulBigNumInteger(g) : total;
+  total = total.mulBigNumInteger ? total.mulBigNumInteger(m) : total;
+  
+  return {
+      coins: c,
+      books: b,
+      gold: g,
+      magic: m,
+      total
+  };
 }
 
 export function getBookProductionRate() {
@@ -192,6 +252,13 @@ export function initSurgeEffects() {
   addExternalMutationGainMultiplierProvider(({ baseGain }) => {
     if (!isSurge4Active()) return baseGain;
     return baseGain.mulBigNumInteger(BigNum.fromInt(1e12));
+  });
+
+  addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+    if (!isSurge6Active()) return baseMultiplier;
+    const wealth = getSurge6WealthMultipliers();
+    if (wealth.total.cmp(1) <= 0) return baseMultiplier;
+    return baseMultiplier.mulBigNumInteger(wealth.total);
   });
   
   // Surge 3: Disable flat Book reward
