@@ -32,6 +32,13 @@ export const SURGE_MILESTONES = [
     description: [
       `Multiplies MP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e12))}x</span>`
     ]
+  },
+    {
+    id: 5,
+    surgeLevel: 5,
+    description: [
+      "Unlocks a new Gold upgrade"
+    ]
   }
 ];
 
