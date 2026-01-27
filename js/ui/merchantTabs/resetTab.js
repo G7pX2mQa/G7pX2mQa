@@ -1767,6 +1767,18 @@ function bindGlobalEvents() {
         updateWaveBar();
         updateResetPanel();
     }
+    if (e.detail?.key === 'gold' || e.detail?.key === 'magic' || e.detail?.key === 'books') {
+        recomputePendingWaves();
+        updateResetPanel();
+    }
+  });
+  window.addEventListener('surge:bookResidue', () => {
+    if (resetState.panel && resetState.panel.offsetParent !== null) {
+       const surgeCard = resetState.elements.surge.card;
+       if (surgeCard && surgeCard.style.display !== 'none') {
+           updateResetPanel();
+       }
+    }
   });
   window.addEventListener('currency:multiplier', (e) => {
     const detail = e?.detail;
