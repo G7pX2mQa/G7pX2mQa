@@ -328,7 +328,7 @@ export class WaterSystem {
         );
     }
 
-    runSimStep(gl, program, quadBuffer, readFBO, writeFBO, readTex, writeTex) {
+    runSimStep(gl, program, quadBuffer, readFBO, writeFBO, readTex, writeTex, dt) {
         gl.useProgram(program);
         gl.viewport(0, 0, this.simRes, this.simRes);
         
@@ -340,7 +340,7 @@ export class WaterSystem {
         gl.bindTexture(gl.TEXTURE_2D, readTex);
         gl.uniform1i(gl.getUniformLocation(program, 'uLastFrame'), 0);
         gl.uniform2f(gl.getUniformLocation(program, 'uResolution'), this.simRes, this.simRes);
-        gl.uniform1f(gl.getUniformLocation(program, 'uDt'), 0.016); // Fixed timestep
+        gl.uniform1f(gl.getUniformLocation(program, 'uDt'), dt); // Variable timestep
 
         // Draw Full Screen Quad
         gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
@@ -379,32 +379,62 @@ export class WaterSystem {
         this.addWave(x, y, size);
     }
 
-    render(totalTime) {
+    render(totalTime, dt) {
         if (!this.glBg) return;
         
         // totalTime is in seconds. 
         const simTime = totalTime * 2; 
+
+        // --- Hybrid Sub-stepping Logic ---
+        // 1. Clamp dt to prevent spiral of death on massive lag (max 0.1s = 10fps)
+        const safeDt = Math.min(dt, 0.1);
+        
+        // 2. Define High-FPS threshold (approx 25fps = 0.04s)
+        // If frame time is fast (High FPS), run 1 step with actual dt to preserve smoothness.
+        // If frame time is slow (Low FPS/Lag), sub-step with 60hz chunks to preserve stability.
+        const FPS_THRESHOLD = 0.04; 
+        const SUB_STEP = 0.016; // ~60hz
+        
+        let steps = [];
+        
+        if (safeDt < FPS_THRESHOLD) {
+             steps.push(safeDt);
+        } else {
+             let remaining = safeDt;
+             while (remaining > 0) {
+                 let step = Math.min(remaining, SUB_STEP);
+                 steps.push(step);
+                 remaining -= step;
+             }
+        }
         
         // --- 1. Simulation Step (BG) ---
-        const bgState = this.runSimStep(
-            this.glBg, this.bgSimProgram, this.quadBufferBg,
-            this.bgReadFBO, this.bgWriteFBO, this.bgReadTexture, this.bgWriteTexture
-        );
-        this.bgReadFBO = bgState.readFBO;
-        this.bgWriteFBO = bgState.writeFBO;
-        this.bgReadTexture = bgState.readTex;
-        this.bgWriteTexture = bgState.writeTex;
+        // Run gathered steps
+        steps.forEach(stepDt => {
+            const bgState = this.runSimStep(
+                this.glBg, this.bgSimProgram, this.quadBufferBg,
+                this.bgReadFBO, this.bgWriteFBO, this.bgReadTexture, this.bgWriteTexture,
+                stepDt
+            );
+            this.bgReadFBO = bgState.readFBO;
+            this.bgWriteFBO = bgState.writeFBO;
+            this.bgReadTexture = bgState.readTex;
+            this.bgWriteTexture = bgState.writeTex;
+        });
 
         // --- 2. Simulation Step (FG Layers) ---
         this.fgLayers.forEach(layer => {
-            const fgState = this.runSimStep(
-                layer.gl, layer.simProgram, layer.quadBuffer,
-                layer.readFBO, layer.writeFBO, layer.readTexture, layer.writeTexture
-            );
-            layer.readFBO = fgState.readFBO;
-            layer.writeFBO = fgState.writeFBO;
-            layer.readTexture = fgState.readTex;
-            layer.writeTexture = fgState.writeTex;
+            steps.forEach(stepDt => {
+                const fgState = this.runSimStep(
+                    layer.gl, layer.simProgram, layer.quadBuffer,
+                    layer.readFBO, layer.writeFBO, layer.readTexture, layer.writeTexture,
+                    stepDt
+                );
+                layer.readFBO = fgState.readFBO;
+                layer.writeFBO = fgState.writeFBO;
+                layer.readTexture = fgState.readTex;
+                layer.writeTexture = fgState.writeTex;
+            });
         });
 
         // --- 3. Render Background (Water Body) ---
