@@ -63,6 +63,19 @@ export function isSurge3Active() {
   return false;
 }
 
+export function isSurge4Active() {
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) return true;
+  if (cachedSurgeLevel === Number.POSITIVE_INFINITY) return true;
+  
+  if (typeof cachedSurgeLevel === 'bigint') {
+    return cachedSurgeLevel >= 4n;
+  }
+  if (typeof cachedSurgeLevel === 'number') {
+    return cachedSurgeLevel >= 4;
+  }
+  return false;
+}
+
 export function getBookProductionRate() {
   if (!isSurge3Active()) return BigNum.fromInt(0);
   
@@ -136,7 +149,6 @@ function onTick(dt) {
       // We manually update it with variable dt support by bypassing addRate 
       // if RateAccumulator isn't dt-aware, but here we can just do manual accumulation for consistency
       // or assume addRate is fixed step.
-      // Wait, RateAccumulator in gameLoop.js uses fixed step.
       // Ideally we should modify RateAccumulator to take dt, or manually implement it here.
       // Let's implement manual accumulation here for safety and precision.
       
@@ -175,6 +187,11 @@ export function initSurgeEffects() {
   addExternalMutationGainMultiplierProvider(({ baseGain }) => {
     if (currentMultiplier.cmp(BigNum.fromInt(1)) === 0) return baseGain;
     return baseGain.mulBigNumInteger(currentMultiplier);
+  });
+
+  addExternalMutationGainMultiplierProvider(({ baseGain }) => {
+    if (!isSurge4Active()) return baseGain;
+    return baseGain.mulBigNumInteger(BigNum.fromInt(1e12));
   });
   
   // Surge 3: Disable flat Book reward
