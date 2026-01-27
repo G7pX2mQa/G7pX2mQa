@@ -447,6 +447,7 @@ export class WaterSystem {
             glFg.uniform3fv(glFg.getUniformLocation(layer.program, 'uColorWave'), COLOR_WAVE); 
             glFg.uniform3fv(glFg.getUniformLocation(layer.program, 'uColorWaveDeep'), COLOR_WAVE_DEEP);
             glFg.uniform1f(glFg.getUniformLocation(layer.program, 'uTime'), simTime);
+            glFg.uniform2f(glFg.getUniformLocation(layer.program, 'uResolution'), layer.canvas.width, layer.canvas.height);
 
             glFg.bindBuffer(glFg.ARRAY_BUFFER, layer.quadBuffer);
             const aPosFg = glFg.getAttribLocation(layer.program, 'position');
