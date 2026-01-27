@@ -39,6 +39,16 @@ export const SURGE_MILESTONES = [
     description: [
       "Unlocks a new Gold upgrade"
     ]
+  },
+  {
+    id: 6,
+    surgeLevel: 6,
+    description: [
+      "Unspent Coins boost Coins",
+      "Unspent Books boost Coins",
+      "Unspent Gold boosts Coins",
+      "Unspent Magic boosts Coins"
+    ]
   }
 ];
 
