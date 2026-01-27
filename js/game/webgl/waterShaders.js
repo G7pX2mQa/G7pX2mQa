@@ -136,9 +136,9 @@ void main() {
     float threshold = 0.428 + wave;
     
     /* Fade out quickly after exiting the water body (below threshold) */
-    /* We want full opacity at 'threshold' and 0.0 opacity at 'threshold - 0.2' */
-    /* Increased fade distance to 0.2 to account for 5x speed (avoids popping in 2 frames) */
-    float shoreFade = smoothstep(0.0, threshold, uv.y);
+    /* Fade starts slightly higher than the threshold to soften the transition */
+    /* We want full opacity at 'threshold + 0.15' and 0.0 opacity at '0.0' */
+    float shoreFade = smoothstep(0.0, threshold + 0.05, uv.y);
     
     float screenFade = shoreFade;
     
