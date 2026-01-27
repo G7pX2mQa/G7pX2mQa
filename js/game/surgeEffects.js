@@ -100,17 +100,41 @@ export function getSurge6WealthMultipliers() {
       };
   }
 
-  const calc = (amount) => {
-      if (!amount) return BigNum.fromInt(1);
+  const calc = (amount, residue = 0) => {
+      if (!amount) {
+        if (residue <= 0) return BigNum.fromInt(1);
+        const log10 = Math.log10(residue);
+        const power = log10 / 3;
+        if (power <= 0) return BigNum.fromInt(1);
+        const log10Result = power * Math.log10(2);
+        return bigNumFromLog10(log10Result);
+      }
+
       if (amount.isInfinite?.()) return BigNum.fromAny('Infinity');
 
-      const log10 = approxLog10BigNum(amount);
-      if (!Number.isFinite(log10)) {
-          return BigNum.fromInt(1);
+      const log10Bn = approxLog10BigNum(amount);
+      let finalLog10 = log10Bn;
+
+      if (!Number.isFinite(log10Bn)) {
+         if (residue > 0) {
+            finalLog10 = Math.log10(residue);
+         } else {
+            return BigNum.fromInt(1);
+         }
+      } else if (log10Bn < 15 && residue > 0) {
+         try {
+             const val = Number(amount.toPlainIntegerString());
+             if (Number.isFinite(val)) {
+                 const total = val + residue;
+                 if (total > 0) {
+                     finalLog10 = Math.log10(total);
+                 }
+             }
+         } catch {}
       }
       
       // Formula: 2 ^ (log10(amount) / 3)
-      const power = log10 / 3;
+      const power = finalLog10 / 3;
       if (power <= 0) return BigNum.fromInt(1);
       
       // 2^power = 10^(power * log10(2))
@@ -119,7 +143,14 @@ export function getSurge6WealthMultipliers() {
   };
 
   const c = calc(bank.coins?.value);
-  const b = calc(bank.books?.value);
+  
+  let bookVal = bank.books?.value;
+  let bookResidue = 0;
+  if (typeof window !== 'undefined' && typeof window.__bookResidue === 'number') {
+      bookResidue = window.__bookResidue;
+  }
+  const b = calc(bookVal, bookResidue);
+  
   const g = calc(bank.gold?.value);
   const m = calc(bank.magic?.value);
   
@@ -214,6 +245,11 @@ function onTick(dt) {
       
       if (!window.__bookResidue) window.__bookResidue = 0;
       window.__bookResidue += rateNum * dt;
+
+      if (window.__bookResidue > 0) {
+        try { window.dispatchEvent(new CustomEvent('surge:bookResidue')); } catch {}
+      }
+
       if (window.__bookResidue >= 1) {
           const whole = Math.floor(window.__bookResidue);
           window.__bookResidue -= whole;
