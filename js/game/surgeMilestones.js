@@ -49,6 +49,13 @@ export const SURGE_MILESTONES = [
       "Unspent Gold boosts Coins",
       "Unspent Magic boosts Coins"
     ]
+  },
+  {
+    id: 7,
+    surgeLevel: 7,
+    description: [
+      "Unlocks a new Magic upgrade"
+    ]
   }
 ];
 
