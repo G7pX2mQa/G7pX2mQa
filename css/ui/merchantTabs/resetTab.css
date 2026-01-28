@@ -687,20 +687,19 @@
 
 /* Tsunami Text Animation */
 @keyframes tsunami-destructive {
-  0% { transform: translate(0, 0) scale(1); filter: blur(0); opacity: 1; }
-  10% { transform: translate(-2px, 1px) scale(1.02); filter: blur(0.5px); }
-  20% { transform: translate(2px, -2px) scale(0.98); opacity: 0.8; }
-  30% { transform: translate(-3px, 0px) skewX(5deg); }
-  40% { transform: translate(3px, 2px) skewX(-5deg); }
-  50% { transform: translate(0, 0) scale(1); filter: blur(0); opacity: 1; }
+  0% { transform: translate(0, 0); }
+  10% { transform: translate(-2px, 1px); }
+  20% { transform: translate(2px, -2px); }
+  30% { transform: translate(-3px, 0px); }
+  40% { transform: translate(3px, 2px); }
+  50% { transform: translate(0, 0); }
   60% { transform: translate(1px, -1px); }
   70% { transform: translate(-1px, 1px); }
-  80% { transform: translate(2px, 2px) scale(1.05); filter: blur(1px); }
-  90% { transform: translate(-2px, -2px) scale(0.95); opacity: 0.9; }
+  80% { transform: translate(2px, 2px); }
+  90% { transform: translate(-2px, -2px); }
   100% { transform: translate(0, 0); }
 }
 
 .tsunami-text {
-  font-weight: 800;
   animation: tsunami-destructive 0.8s infinite linear;
 }
