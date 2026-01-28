@@ -819,6 +819,7 @@ export const bank = new Proxy({}, {
 
 if (typeof window !== 'undefined') {
   window.bank = bank;
-  window.coins = bank.coins;
-  window.books = bank.books;
+  for (const currency of Object.values(CURRENCIES)) {
+    window[currency] = bank[currency];
+  }
 }
