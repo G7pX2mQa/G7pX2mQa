@@ -259,6 +259,7 @@ export const UPGRADE_TIES = {
   UNLOCK_SURGE: 'none_4',
   ENDLESS_COINS: 'book_4',
   ENDLESS_COINS_II: 'gold_5',
+  ENDLESS_COINS_III: 'magic_5',
 };
 
 const HM_MILESTONES_STARTER_COVE = [
@@ -2993,7 +2994,7 @@ export const REGISTRY = [
     title: "Endless Coins II",
     desc: "Multiplies Coin value by 1.1x per level",
     lvlCap: HM_EVOLUTION_INTERVAL,
-    baseCost: 1e9,
+    baseCost: 1e10,
     costType: "gold",
     upgType: "HM",
     effectType: "coin_value",
@@ -3022,6 +3023,77 @@ export const REGISTRY = [
 
       if (xp201) {
           const revealText = "Reach Surge 5 to reveal this upgrade";
+          return {
+              locked: true,
+              iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+              titleOverride: HIDDEN_UPGRADE_TITLE,
+              descOverride: revealText,
+              reason: revealText,
+              hidden: true,
+              hideCost: true,
+              hideEffect: true,
+              useLockedBase: true,
+          };
+      }
+      
+      return {
+          locked: true,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Locked',
+      };
+    },
+    onLevelChange() { try { refreshCoinMultiplierFromXpLevel(); } catch {} },
+    effectSummary(level) {
+      const lvlBn = ensureLevelBigNum(level);
+      let baseMult;
+      try { baseMult = this.effectMultiplier(lvlBn); }
+      catch { baseMult = 1; }
+      const { selfMult } = computeHmMultipliers(this, lvlBn, this.area);
+      const total = safeMultiplyBigNum(baseMult, selfMult);
+      return `Coin value bonus: ${formatMultForUi(total)}x`;
+    },
+    effectMultiplier: E.powPerLevel(1.1),
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 22,
+    tie: UPGRADE_TIES.ENDLESS_COINS_III,
+    title: "Endless Coins III",
+    desc: "Multiplies Coin value by 1.1x per level",
+    lvlCap: HM_EVOLUTION_INTERVAL,
+    baseCost: 1e15,
+    costType: "magic",
+    upgType: "HM",
+    effectType: "coin_value",
+    icon: "sc_upg_icons/coin_val_hm3.webp",
+    scalingPreset: 'HM',
+    costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
+    nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
+    computeLockState(ctx) {
+      const surgeLevel = getCurrentSurgeLevel();
+      
+      let isUnlocked = false;
+      if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
+          isUnlocked = true;
+      } else if (typeof surgeLevel === 'bigint') {
+          isUnlocked = surgeLevel >= 7n;
+      } else if (typeof surgeLevel === 'number') {
+          isUnlocked = surgeLevel >= 7;
+      }
+      
+      if (isUnlocked) {
+          return { locked: false };
+      }
+      
+      let xp201 = false;
+      try { const xpBn = currentXpLevelBigNum(); xp201 = levelBigNumToNumber(xpBn) >= 201; } catch {}
+
+      if (xp201) {
+          const revealText = "Reach Surge 7 to reveal this upgrade";
           return {
               locked: true,
               iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
@@ -4549,7 +4621,6 @@ export function upgradeUiModel(areaKey, upgId) {
       );
     }
   }
-
   const hmMilestones = resolveHmMilestones(upg, areaKey);
   let effect = '';
   if (typeof upg.effectSummary === 'function' && !(locked && lockState.hideEffect)) {
