@@ -2946,7 +2946,10 @@ export const REGISTRY = [
           return { locked: false };
       }
       
-      if (hasDoneSurgeReset()) {
+      let xp201 = false;
+      try { const xpBn = currentXpLevelBigNum(); xp201 = levelBigNumToNumber(xpBn) >= 201; } catch {}
+
+      if (xp201) {
           const revealText = "Reach Surge 3 to reveal this upgrade";
           return {
               locked: true,
@@ -3014,7 +3017,10 @@ export const REGISTRY = [
           return { locked: false };
       }
       
-      if (hasDoneSurgeReset()) {
+      let xp201 = false;
+      try { const xpBn = currentXpLevelBigNum(); xp201 = levelBigNumToNumber(xpBn) >= 201; } catch {}
+
+      if (xp201) {
           const revealText = "Reach Surge 5 to reveal this upgrade";
           return {
               locked: true,
