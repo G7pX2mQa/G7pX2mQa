@@ -611,6 +611,7 @@ images: [
   'img/sc_upg_icons/coin_val3.webp',
   'img/sc_upg_icons/coin_val_hm1.webp',
   'img/sc_upg_icons/coin_val_hm2.webp',
+  'img/sc_upg_icons/coin_val_hm3.webp',
   'img/sc_upg_icons/faster_coins1.webp',
   'img/sc_upg_icons/faster_coins2.webp',
   'img/sc_upg_icons/faster_coins3.webp',
