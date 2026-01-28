@@ -133,8 +133,8 @@ export function getSurge6WealthMultipliers() {
          } catch {}
       }
       
-      // Formula: 2 ^ (log10(amount) / 3)
-      const power = finalLog10 / 3;
+      // Formula: 2 ^ (log10(amount) / 25)
+      const power = finalLog10 / 25;
       if (power <= 0) return BigNum.fromInt(1);
       
       // 2^power = 10^(power * log10(2))
@@ -287,7 +287,7 @@ export function initSurgeEffects() {
 
   addExternalMutationGainMultiplierProvider(({ baseGain }) => {
     if (!isSurge4Active()) return baseGain;
-    return baseGain.mulBigNumInteger(BigNum.fromInt(1e12));
+    return baseGain.mulBigNumInteger(BigNum.fromInt(1e6));
   });
 
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
