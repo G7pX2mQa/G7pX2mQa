@@ -13,7 +13,7 @@ import { bigNumFromLog10, approxLog10BigNum } from './upgrades.js';
 
 const BN = BigNum;
 const MULTIPLIER = 10;
-const LOG10_EXP_0_1 = 0.04342944819; // log10(e^0.1)
+const LOG10_EXP_0_25 = 0.10857362048; // log10(e^0.25)
 
 let currentMultiplier = BigNum.fromInt(1);
 let cachedSurgeLevel = 0n;
@@ -170,7 +170,7 @@ export function getSurge6WealthMultipliers() {
 export function getBookProductionRate() {
   if (!isSurge3Active()) return BigNum.fromInt(0);
   
-  // Formula: max(1, floor(1 * exp(0.10 * xp_level)))
+  // Formula: max(1, floor(1 * exp(0.25 * xp_level)))
   const xpState = getXpState();
   const xpLevelBn = xpState.xpLevel;
   
@@ -178,11 +178,11 @@ export function getBookProductionRate() {
   if (xpLevelBn.isInfinite?.()) {
      baseRate = BigNum.fromAny('Infinity');
   } else {
-     // BigNum-safe logic for 10^(0.043... * xpLevel)
+     // BigNum-safe logic for 10^(0.108... * xpLevel)
      if (xpLevelBn.cmp(1e16) > 0) {
-         // Exponent E = floor(xpLevel * 0.043429...)
+         // Exponent E = floor(xpLevel * 0.108573...)
          // We can calculate this using BigNum math.
-         const logValBn = xpLevelBn.mulDecimal(String(LOG10_EXP_0_1), 18);
+         const logValBn = xpLevelBn.mulDecimal(String(LOG10_EXP_0_25), 18);
          
          // Extract E from logValBn
          // logValBn is roughly the exponent of 10. 
@@ -203,7 +203,7 @@ export function getBookProductionRate() {
          }
      } else {
          const lvlNum = Number(xpLevelBn.toPlainIntegerString());
-         const logVal = lvlNum * LOG10_EXP_0_1;
+         const logVal = lvlNum * LOG10_EXP_0_25;
          baseRate = bigNumFromLog10(logVal);
      }
   }
