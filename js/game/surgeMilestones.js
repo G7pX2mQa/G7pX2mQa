@@ -56,6 +56,13 @@ export const SURGE_MILESTONES = [
     description: [
       "Unlocks a new Magic upgrade"
     ]
+  },
+  {
+    id: 8,
+    surgeLevel: 8,
+    description: [
+      "Invokes the Tsunami"
+    ]
   }
 ];
 
