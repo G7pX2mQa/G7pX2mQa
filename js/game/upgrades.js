@@ -2994,7 +2994,7 @@ export const REGISTRY = [
     title: "Endless Coins II",
     desc: "Multiplies Coin value by 1.1x per level",
     lvlCap: HM_EVOLUTION_INTERVAL,
-    baseCost: 1e10,
+    baseCost: 1e11,
     costType: "gold",
     upgType: "HM",
     effectType: "coin_value",
