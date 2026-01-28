@@ -21,7 +21,7 @@ import {
   getCurrentSurgeLevel,
   hasDoneSurgeReset,
 } from '../ui/merchantTabs/resetTab.js';
-import { REGISTRY as AUTOMATION_REGISTRY, AUTOMATION_AREA_KEY } from './automationUpgrades.js';
+import { REGISTRY as AUTOMATION_REGISTRY, AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
 import {
   invalidateEffectsCache,
   triggerUpgradesChanged,
@@ -4529,7 +4529,27 @@ export function upgradeUiModel(areaKey, upgId) {
   const lockState = getUpgradeLockState(areaKey, upgId);
   const locked = !!lockState.locked;
   const displayTitle = lockState.titleOverride ?? upg.title;
-  const displayDesc = lockState.descOverride ?? upg.desc;
+  let displayDesc = lockState.descOverride ?? upg.desc;
+
+  if (areaKey === AUTOMATION_AREA_KEY && normalizeUpgradeId(upgId) === EFFECTIVE_AUTO_COLLECT_ID) {
+    const surgeLevel = getCurrentSurgeLevel();
+    let isSurge2 = false;
+    if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
+      isSurge2 = true;
+    } else if (typeof surgeLevel === 'bigint') {
+      isSurge2 = surgeLevel >= 2n;
+    } else if (typeof surgeLevel === 'number') {
+      isSurge2 = surgeLevel >= 2;
+    }
+
+    if (isSurge2 && displayDesc) {
+      displayDesc = displayDesc.replace(
+        'Generates the equivalent of picking up a Coin on an interval',
+        'Generates the equivalent of picking up 10 Coins (Surge 2!) on an interval'
+      );
+    }
+  }
+
   const hmMilestones = resolveHmMilestones(upg, areaKey);
   let effect = '';
   if (typeof upg.effectSummary === 'function' && !(locked && lockState.hideEffect)) {
