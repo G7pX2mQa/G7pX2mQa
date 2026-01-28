@@ -287,7 +287,7 @@ export function initSurgeEffects() {
 
   addExternalMutationGainMultiplierProvider(({ baseGain }) => {
     if (!isSurge4Active()) return baseGain;
-    return baseGain.mulBigNumInteger(BigNum.fromInt(1e14));
+    return baseGain.mulBigNumInteger(BigNum.fromInt(4.444e12));
   });
 
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
