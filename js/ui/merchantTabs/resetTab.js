@@ -1600,11 +1600,17 @@ function updateSurgeCard() {
 
   if (el.milestones) {
     const visible = getVisibleMilestones(barLevel);
-    let msHtml = '';
-    visible.forEach(m => {
+    const existingItems = Array.from(el.milestones.children);
+    
+    visible.forEach((m, i) => {
         const isReached = BigInt(m.surgeLevel) <= barLevel;
         const reachedClass = isReached ? 'is-reached' : '';
-        let desc = m.description.map(d => `<div>- ${d}</div>`).join('');
+        let desc = m.description.map(d => {
+            if (d.includes('Invokes the Tsunami') && !isReached) {
+                return `<div class="tsunami-text">- ${d}</div>`;
+            }
+            return `<div>- ${d}</div>`;
+        }).join('');
 
         if (isReached && m.surgeLevel === 3) {
             const rate = getBookProductionRate ? getBookProductionRate() : BN.fromInt(0);
@@ -1621,22 +1627,45 @@ function updateSurgeCard() {
             `;
         }
 
-        msHtml += `
-          <div class="surge-milestone-item ${reachedClass}" data-is-reached="${isReached}">
+        const itemHtmlContent = `
             <div class="surge-milestone-title">Surge ${m.surgeLevel}</div>
             <div class="surge-milestone-desc">${desc}</div>
             <div class="surge-milestone-title" style="visibility:hidden">Surge ${m.surgeLevel}</div>
-          </div>
         `;
+        
+        let itemEl = existingItems[i];
+        
+        if (!itemEl) {
+            itemEl = document.createElement('div');
+            itemEl.className = `surge-milestone-item ${reachedClass}`;
+            itemEl.dataset.isReached = String(isReached);
+            itemEl.innerHTML = itemHtmlContent;
+            itemEl.__lastHtml = itemHtmlContent;
+            el.milestones.appendChild(itemEl);
+        } else {
+            if (itemEl.className !== `surge-milestone-item ${reachedClass}`) {
+                itemEl.className = `surge-milestone-item ${reachedClass}`;
+            }
+            const isReachedStr = String(isReached);
+            if (itemEl.dataset.isReached !== isReachedStr) {
+                itemEl.dataset.isReached = isReachedStr;
+            }
+            
+            if (itemEl.__lastHtml !== itemHtmlContent) {
+                itemEl.innerHTML = itemHtmlContent;
+                itemEl.__lastHtml = itemHtmlContent;
+            }
+        }
     });
+    
+    // Remove excess elements
+    while (el.milestones.children.length > visible.length) {
+        el.milestones.lastChild.remove();
+    }
 
     if (resetState.lastRenderedSurgeLevel !== barLevel) {
         resetState.lastRenderedSurgeLevel = barLevel;
         if (el.milestones) el.milestones.dataset.scrolled = '0';
-    }
-
-    if (el.milestones.innerHTML !== msHtml) {
-        el.milestones.innerHTML = msHtml;
     }
 
     if (el.milestones.dataset.scrolled !== '1') {
