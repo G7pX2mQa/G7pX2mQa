@@ -1544,7 +1544,9 @@ function updateSurgeCard() {
   }
   
   let pct = 0;
-  if (currentWaves && req && !req.isZero?.()) {
+  if (currentWaves?.isInfinite?.()) {
+      pct = 100;
+  } else if (currentWaves && req && !req.isZero?.()) {
       if (req.isInfinite?.()) {
           pct = 0;
       } else {
