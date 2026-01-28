@@ -133,8 +133,8 @@ export function getSurge6WealthMultipliers() {
          } catch {}
       }
       
-      // Formula: 2 ^ (log10(amount) / 10)
-      const power = finalLog10 / 10;
+      // Formula: 2 ^ (log10(amount) / 6)
+      const power = finalLog10 / 6;
       if (power <= 0) return BigNum.fromInt(1);
       
       // 2^power = 10^(power * log10(2))
