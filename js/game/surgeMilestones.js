@@ -30,7 +30,7 @@ export const SURGE_MILESTONES = [
     id: 4,
     surgeLevel: 4,
     description: [
-      `Multiplies MP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e6))}x</span>`
+      `Multiplies MP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e12))}x</span>`
     ]
   },
     {
