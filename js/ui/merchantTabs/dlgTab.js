@@ -1100,7 +1100,7 @@ const engine = new DialogueEngine({
   engine.start();
 }
 
-// ========================= Merchant Overlay (Delve) =========================
+// ========================= Delve Menu =========================
 const SCROLL_TIMELINE_STYLES_ID = 'ccc-scroll-timeline-styles';
 function injectScrollTimelineStyles() {
   if (document.getElementById(SCROLL_TIMELINE_STYLES_ID)) return;
