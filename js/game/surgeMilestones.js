@@ -1,5 +1,7 @@
 import { formatNumber } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
+import { bigNumFromLog10, approxLog10BigNum } from './upgrades.js';
+import { getTsunamiNerf } from './surgeEffects.js';
 
 export const SURGE_MILESTONES = [
   {
@@ -68,10 +70,12 @@ export const SURGE_MILESTONES = [
 
 export function getVisibleMilestones(currentSurgeLevel) {
   let currentLevel = 0;
+  let isSurge8 = false;
   
   // Handle different number types safely
   if (typeof currentSurgeLevel === 'number') {
     currentLevel = currentSurgeLevel;
+    if (currentLevel >= 8) isSurge8 = true;
   } else if (typeof currentSurgeLevel === 'bigint') {
     // Safety clamp for very large BigInts to avoid Number conversion issues
     // though surge levels likely won't exceed Number.MAX_SAFE_INTEGER
@@ -80,10 +84,17 @@ export function getVisibleMilestones(currentSurgeLevel) {
     } else {
       currentLevel = Number(currentSurgeLevel);
     }
+    if (currentSurgeLevel >= 8n) isSurge8 = true;
+  } else if (currentSurgeLevel === Infinity) {
+      currentLevel = Infinity;
+      isSurge8 = true;
   } else if (currentSurgeLevel && typeof currentSurgeLevel.toString === 'function') {
       try {
           const val = Number(currentSurgeLevel.toString());
           if (!isNaN(val)) currentLevel = val;
+          if (currentSurgeLevel === 'Infinity' || val === Infinity) {
+              isSurge8 = true;
+          }
       } catch {}
   }
   
@@ -91,10 +102,62 @@ export function getVisibleMilestones(currentSurgeLevel) {
   const future = [];
   
   for (const m of SURGE_MILESTONES) {
+    let milestone = m;
+    
+    if (isSurge8) {
+      // Clone milestone to avoid mutating the original
+      milestone = { ...m, description: [...m.description] };
+      
+      const nerf = getTsunamiNerf();
+      
+      if (m.id === 1) {
+        // 10x -> 10^nerf x
+        const val = Math.pow(10, nerf);
+        let valStr = formatNumber(BigNum.fromAny(val));
+        // Ensure decimal formatting for small numbers if formatNumber defaults to integer
+        if (Math.abs(val - Math.round(val)) > 0.001) {
+             valStr = val.toFixed(2);
+             if (valStr.endsWith('.00')) valStr = valStr.slice(0, -3);
+        } else if (val < 1000) {
+             valStr = String(Math.round(val));
+        }
+        
+        milestone.description[0] = milestone.description[0].replace(
+            /<span style="color:#00e5ff">.*?x<\/span>/, 
+            `<span style="color:#00e5ff">${valStr}x</span>`
+        );
+      } else if (m.id === 2) {
+        // Auto-collect 10x -> 10^nerf x
+        const val = Math.pow(10, nerf);
+        let valStr = formatNumber(BigNum.fromAny(val));
+        if (Math.abs(val - Math.round(val)) > 0.001) {
+             valStr = val.toFixed(2);
+             if (valStr.endsWith('.00')) valStr = valStr.slice(0, -3);
+        } else if (val < 1000) {
+             valStr = String(Math.round(val));
+        }
+
+        milestone.description[1] = milestone.description[1].replace(
+            /<span style="color:#00e5ff">.*?x<\/span>/, 
+            `<span style="color:#00e5ff">${valStr}x</span>`
+        );
+      } else if (m.id === 4) {
+        // 4.444e12 -> (4.444e12)^nerf
+        const log10 = Math.log10(4.444e12);
+        const newVal = bigNumFromLog10(log10 * nerf);
+        const valStr = formatNumber(newVal);
+        
+        milestone.description[0] = milestone.description[0].replace(
+            /<span style="color:#00e5ff">.*?x<\/span>/, 
+            `<span style="color:#00e5ff">${valStr}x</span>`
+        );
+      }
+    }
+
     if (m.surgeLevel <= currentLevel) {
-      reached.push(m);
+      reached.push(milestone);
     } else {
-      future.push(m);
+      future.push(milestone);
     }
   }
   
