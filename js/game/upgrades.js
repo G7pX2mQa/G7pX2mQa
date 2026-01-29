@@ -21,6 +21,7 @@ import {
   getCurrentSurgeLevel,
   hasDoneSurgeReset,
 } from '../ui/merchantTabs/resetTab.js';
+import { getTsunamiNerf } from './surgeEffects.js';
 import { REGISTRY as AUTOMATION_REGISTRY, AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
 import {
   invalidateEffectsCache,
@@ -4615,10 +4616,32 @@ export function upgradeUiModel(areaKey, upgId) {
     }
 
     if (isSurge2 && displayDesc) {
-      displayDesc = displayDesc.replace(
-        'Generates the equivalent of picking up a Coin on an interval',
-        'Generates the equivalent of picking up 10 Coins (Surge 2!) on an interval'
-      );
+      let multiplier = 10;
+      
+      // Determine if Surge 8 is active locally to avoid cycle with surgeEffects.js
+      let isSurge8 = false;
+      const sVal = getCurrentSurgeLevel();
+      if (sVal === Infinity || (typeof sVal === 'string' && sVal === 'Infinity')) isSurge8 = true;
+      else if (sVal === Number.POSITIVE_INFINITY) isSurge8 = true;
+      else if (typeof sVal === 'bigint') isSurge8 = sVal >= 8n;
+      else if (typeof sVal === 'number') isSurge8 = sVal >= 8;
+
+      if (isSurge8) {
+          const nerf = getTsunamiNerf();
+          multiplier = Math.pow(10, nerf);
+      }
+      
+      if (Math.abs(multiplier - 1) > 0.0001) {
+          let multStr = '10';
+          if (multiplier !== 10) {
+              multStr = formatMultForUi(multiplier);
+          }
+
+          displayDesc = displayDesc.replace(
+            'Generates the equivalent of picking up a Coin on an interval',
+            `Generates the equivalent of picking up ${multStr} Coins (Surge 2!) on an interval`
+          );
+      }
     }
   }
   const hmMilestones = resolveHmMilestones(upg, areaKey);
