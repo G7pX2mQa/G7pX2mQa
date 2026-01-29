@@ -4714,3 +4714,95 @@ export function performFreeAutobuy(areaKey, upgId) {
 }
 
 registerXpUpgradeEffects();
+
+export function buyCheap(areaKey, upgId) {
+  const state = ensureUpgradeState(areaKey, upgId);
+  const upg = state.upg;
+  if (!upg) return { bought: 0, spent: BigNum.fromInt(0) };
+  if (isUpgradeLocked(areaKey, upg)) return { bought: 0, spent: BigNum.fromInt(0) };
+
+  const lvlBn = state.lvlBn ?? ensureLevelBigNum(state.lvl);
+  const startLvl = levelBigNumToNumber(lvlBn);
+  const cap = Number.isFinite(upg.lvlCap) ? upg.lvlCap : Infinity;
+  
+  if (Number.isFinite(cap) && startLvl >= cap) return { bought: 0, spent: BigNum.fromInt(0) };
+
+  const walletHandle = bank[upg.costType];
+  const wallet = walletHandle?.value instanceof BigNum ? walletHandle.value.clone() : BigNum.fromAny(walletHandle?.value ?? 0);
+  if (wallet.isZero()) return { bought: 0, spent: BigNum.fromInt(0) };
+
+  // 1. Calculate Max possible purchase (Budget: Wallet)
+  // Use evaluateBulkPurchase to get the max count N
+  const maxEval = evaluateBulkPurchase(upg, lvlBn, wallet, BigNum.fromAny('Infinity'));
+  let n = maxEval.numericCount; 
+  
+  if (n <= 0) return { bought: 0, spent: BigNum.fromInt(0) };
+  
+  // 2. Find optimal k <= n
+  // Condition for k: 
+  //   Last bought level (k-1) cost <= 0.1 * Remaining Wallet (after buying k-1)
+  
+  // Helper to check k (k is number of levels to buy)
+  const check = (k) => {
+      if (k <= 0) return true; 
+      
+      // Calculate Remainder after buying k-1 levels
+      // Cost of buying 0..k-2 (total k-1 levels)
+      const costOfPrev = totalCostBigNum(upg, startLvl, k - 1);
+      const walletRem = wallet.sub(costOfPrev);
+      
+      // Cost of the k-th level (index startLvl + k - 1)
+      const nextLevel = startLvl + k - 1;
+      // Optimization: if scaling is simple/constant, could compute directly, but costAtLevel is safe.
+      const costOfNext = BigNum.fromAny(upg.costAtLevel(nextLevel));
+      
+      const threshold = walletRem.div(10);
+      return costOfNext.cmp(threshold) <= 0;
+  };
+  
+  let bestK = 0;
+  
+  if (n < 2000) {
+      // Linear scan backwards
+      // We can incrementally update spent to be faster than calling totalCostBigNum repeatedly
+      
+      let currentSpent = maxEval.spent;
+      let currentK = n;
+      
+      while (currentK > 0) {
+          // Level index of the last one bought
+          const lastLvlIdx = startLvl + currentK - 1;
+          const lastCost = BigNum.fromAny(upg.costAtLevel(lastLvlIdx));
+          
+          // Cost of K-1 levels
+          const prevSpent = currentSpent.sub(lastCost);
+          const prevRem = wallet.sub(prevSpent);
+          
+          const threshold = prevRem.div(10);
+          if (lastCost.cmp(threshold) <= 0) {
+              bestK = currentK;
+              break;
+          }
+          
+          currentSpent = prevSpent;
+          currentK--;
+      }
+  } else {
+      // Binary Search
+      let lo = 0, hi = n;
+      while (lo < hi) {
+          const mid = Math.ceil((lo + hi) / 2);
+          if (check(mid)) {
+              lo = mid;
+          } else {
+              hi = mid - 1;
+          }
+      }
+      bestK = lo;
+  }
+  
+  if (bestK <= 0) return { bought: 0, spent: BigNum.fromInt(0) };
+  
+  // 3. Execute Buy
+  return buyTowards(areaKey, upgId, bestK);
+}
