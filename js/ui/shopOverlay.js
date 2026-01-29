@@ -25,6 +25,7 @@ import {
   upgradeUiModel,
   buyOne,
   buyMax,
+  buyCheap,
   buyTowards,
   evaluateBulkPurchase,
   getUpgradeLockState,
@@ -160,6 +161,7 @@ const SHOP_ADAPTERS = {
         getUiModel: (id) => upgradeUiModel(getCurrentAreaKey(), id),
         buyOne: (id) => buyOne(getCurrentAreaKey(), id),
         buyMax: (id) => buyMax(getCurrentAreaKey(), id),
+        buyCheap: (id) => buyCheap(getCurrentAreaKey(), id),
         buyNext: (id, amount) => buyTowards(getCurrentAreaKey(), id, amount),
         getLockState: (id) => getUpgradeLockState(getCurrentAreaKey(), id),
         evolve: (id) => evolveUpgrade(getCurrentAreaKey(), id),
@@ -1647,9 +1649,29 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                   if (!boughtBn.isZero?.()) { playPurchaseSfx(); updateShopOverlay(); rerender(); }
               };
               ensureButton('shop-delve btn-buy-max', 'Buy Max', performBuyMax, 2, !canAffordNext);
+
+              // Exclude early upgrades (Ids 1, 3, 4, 5, 6)
+              const isExcluded = [1, 3, 4, 5, 6].includes(resolveUpgradeId(model.upg));
+              if (!isHM && !isExcluded) {
+                  const performBuyCheap = () => {
+                      const fresh = adapter.getUiModel(upgDef.id);
+                      if (fresh.have.cmp(BigNum.fromInt(1)) < 0) return;
+                      const buyFn = adapter.buyCheap;
+                      if (!buyFn) return;
+                      const { bought } = buyFn(upgDef.id);
+                      const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                      if (!boughtBn.isZero?.()) { playPurchaseSfx(); updateShopOverlay(); rerender(); }
+                  };
+                  ensureButton('shop-delve btn-buy-cheap', 'Buy Cheap', performBuyCheap, 3, !canAffordNext);
+              } else {
+                  const stale = actions.querySelector('.btn-buy-cheap');
+                  if (stale) stale.remove();
+              }
           } else {
               const stale = actions.querySelector('.btn-buy-max');
               if (stale) stale.remove();
+              const staleCheap = actions.querySelector('.btn-buy-cheap');
+              if (staleCheap) staleCheap.remove();
           }
           
           if (isHM) {
