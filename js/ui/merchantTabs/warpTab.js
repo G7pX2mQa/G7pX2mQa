@@ -7,7 +7,7 @@ const WARP_LAST_CHARGE_KEY = (slot) => `ccc:warp:lastCharge:${slot}`;
 
 const MAX_WARPS = 24;
 const CHARGE_TIME_MS = 60 * 60 * 1000; // 1 hour
-const WARP_DURATION_SEC = 300; // 5 minutes
+const WARP_DURATION_SEC = 150; // 2 minutes 30 seconds
 
 // const warpSfx = createSfxPlayer({ src: 'sounds/warp.ogg', mobileVolume: 0.5, desktopVolume: 0.5 });
 const WARP_SFX_SRC = 'sounds/warp.ogg';
@@ -173,7 +173,7 @@ export function initWarpTab(panel) {
         <div class="warp-tab">
             <h3 class="warp-title">Warp</h3>
             <div class="warp-desc">
-                <p>Click the Warp button below to instantly gain <span class="text-cyan">5m</span> of offline progress when you want to speed something up</p>
+                <p>Click the Warp button below to instantly gain <span class="text-cyan">2m 30s</span> of offline progress when you want to speed something up</p>
                 <p>Warp length will never be increased because it's intended to be a small boost</p>
                 <p>Use your Warps wisely as they only recharge once every hour</p>
             </div>
