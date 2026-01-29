@@ -667,9 +667,9 @@ export function triggerPassiveCollect(count = 1) {
   if (count <= 0) return;
   const { coinGain, xpGain, mpGain } = calculateCoinValue(null);
   
-  const totalCoin = coinGain.mulBigNumInteger(BigNum.fromInt(count));
-  const totalXp = xpGain.mulBigNumInteger(BigNum.fromInt(count));
-  const totalMp = mpGain.mulBigNumInteger(BigNum.fromInt(count));
+  const totalCoin = coinGain.mulBigNumInteger(BigNum.fromAny(count));
+  const totalXp = xpGain.mulBigNumInteger(BigNum.fromAny(count));
+  const totalMp = mpGain.mulBigNumInteger(BigNum.fromAny(count));
 
   const coinsLocked = isCurrencyLocked(CURRENCIES.COINS);
   const incIsZero = typeof totalCoin?.isZero === 'function' ? totalCoin.isZero() : false;
