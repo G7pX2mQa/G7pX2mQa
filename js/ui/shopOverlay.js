@@ -662,6 +662,92 @@ class ShopInstance {
                         event.stopImmediatePropagation();
                         return;
                     }
+
+                    if (event.shiftKey || event.ctrlKey) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        if (!el.upgMeta) return;
+
+                        const id = el.upgMeta.id;
+                        const isHM = el.upgMeta.upgType === 'HM';
+                        const isExcludedCheap = [1, 3, 4, 5, 6].includes(resolveUpgradeId(el.upgMeta));
+
+                        // Shift + Click -> Buy Cheap
+                        if (event.shiftKey) {
+                            if (!isHM && !isExcludedCheap) {
+                                if (this.adapter.buyCheap) {
+                                    const { bought } = this.adapter.buyCheap(id);
+                                    const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                                    if (!boughtBn.isZero?.()) {
+                                        playPurchaseSfx();
+                                        this.update();
+                                    }
+                                    return;
+                                }
+                            }
+                            // Fallback to Buy Max
+                            const { bought } = this.adapter.buyMax(id);
+                            const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                            if (!boughtBn.isZero?.()) {
+                                playPurchaseSfx();
+                                if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
+                                    try { unlockMerchantTabs(['reset']); } catch {}
+                                }
+                                this.update();
+                            }
+                            return;
+                        }
+
+                        // Ctrl + Click -> Buy Next (HM only)
+                        if (event.ctrlKey) {
+                            if (isHM) {
+                                const model = this.adapter.getUiModel(id);
+                                if (model) {
+                                    if (!model.hmReadyToEvolve) {
+                                        const target = model.hmNextMilestone;
+                                        if (target && model.lvlBn && target.cmp(model.lvlBn) > 0) {
+                                            let deltaNum = 0;
+                                            try {
+                                                const diffPlain = target.sub(model.lvlBn).toPlainIntegerString?.();
+                                                deltaNum = Math.max(0, Math.floor(Number((diffPlain && diffPlain !== 'Infinity') ? diffPlain : target.sub(model.lvlBn).toString())));
+                                            } catch {}
+
+                                            const walletRaw = bank[model.upg.costType]?.value;
+                                            const walletBn = walletRaw instanceof BigNum ? walletRaw : BigNum.fromAny(walletRaw ?? 0);
+                                            const evalResult = evaluateBulkPurchase(model.upg, model.lvlBn, walletBn, deltaNum);
+                                            const count = evalResult.count;
+
+                                            let reachable = false;
+                                            try { const plain = count?.toPlainIntegerString?.(); reachable = (plain && plain !== 'Infinity') ? Number(plain) >= deltaNum : Number(count ?? 0) >= deltaNum; } catch {}
+
+                                            if (reachable) {
+                                                const purchase = this.adapter.buyNext(id, deltaNum);
+                                                const boughtBn = purchase.bought instanceof BigNum ? purchase.bought : BigNum.fromAny(purchase.bought ?? 0);
+                                                if (!boughtBn.isZero?.()) {
+                                                    playPurchaseSfx();
+                                                    this.update();
+                                                }
+                                                return;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Fallback to Buy Max
+                            const { bought } = this.adapter.buyMax(id);
+                            const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
+                            if (!boughtBn.isZero?.()) {
+                                playPurchaseSfx();
+                                if (isForgeUnlockUpgrade(el.upgMeta, this.mode)) {
+                                    try { unlockMerchantTabs(['reset']); } catch {}
+                                }
+                                this.update();
+                            }
+                            return;
+                        }
+                    }
+
                     if (el.upgMeta) openUpgradeOverlay(el.upgMeta, this.mode);
                 });
                 
