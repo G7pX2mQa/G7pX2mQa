@@ -18,6 +18,36 @@ const LOG10_EXP_0_2 = 0.08685889638; // log10(e^0.2)
 let currentMultiplier = BigNum.fromInt(1);
 let cachedSurgeLevel = 0n;
 let bookRateAccumulator = null;
+let tsunamiNerfExponent = 0.00;
+
+export function getTsunamiNerf() {
+  return tsunamiNerfExponent;
+}
+
+export function setTsunamiNerf(value) {
+  tsunamiNerfExponent = Number(value) || 0;
+}
+
+export function isSurge8Active() {
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) return true;
+  if (cachedSurgeLevel === Number.POSITIVE_INFINITY) return true;
+
+  if (typeof cachedSurgeLevel === 'bigint') {
+    return cachedSurgeLevel >= 8n;
+  }
+  if (typeof cachedSurgeLevel === 'number') {
+    return cachedSurgeLevel >= 8;
+  }
+  return false;
+}
+
+function applyTsunamiNerf(bn) {
+  if (!isSurge8Active()) return bn;
+  const log10 = approxLog10BigNum(bn);
+  if (!Number.isFinite(log10)) return bn;
+  const nerf = getTsunamiNerf();
+  return bigNumFromLog10(log10 * nerf);
+}
 
 function updateMultiplier() {
   const level = getCurrentSurgeLevel();
@@ -31,7 +61,13 @@ function updateMultiplier() {
   }
 
   if (isReached) {
-    currentMultiplier = BigNum.fromInt(MULTIPLIER);
+    if (isSurge8Active()) {
+      const nerf = getTsunamiNerf();
+      const log10 = Math.log10(MULTIPLIER);
+      currentMultiplier = bigNumFromLog10(log10 * nerf);
+    } else {
+      currentMultiplier = BigNum.fromInt(MULTIPLIER);
+    }
   } else {
     currentMultiplier = BigNum.fromInt(1);
   }
@@ -154,15 +190,24 @@ export function getSurge6WealthMultipliers() {
   const g = calc(bank.gold?.value);
   const m = calc(bank.magic?.value);
   
-  let total = c.mulBigNumInteger ? c.mulBigNumInteger(b) : c; 
-  total = total.mulBigNumInteger ? total.mulBigNumInteger(g) : total;
-  total = total.mulBigNumInteger ? total.mulBigNumInteger(m) : total;
+  let cOut = c, bOut = b, gOut = g, mOut = m;
+
+  if (isSurge8Active()) {
+    cOut = applyTsunamiNerf(c);
+    bOut = applyTsunamiNerf(b);
+    gOut = applyTsunamiNerf(g);
+    mOut = applyTsunamiNerf(m);
+  }
+
+  let total = cOut.mulBigNumInteger ? cOut.mulBigNumInteger(bOut) : cOut; 
+  total = total.mulBigNumInteger ? total.mulBigNumInteger(gOut) : total;
+  total = total.mulBigNumInteger ? total.mulBigNumInteger(mOut) : total;
   
   return {
-      coins: c,
-      books: b,
-      gold: g,
-      magic: m,
+      coins: cOut,
+      books: bOut,
+      gold: gOut,
+      magic: mOut,
       total
   };
 }
@@ -216,6 +261,11 @@ export function getBookProductionRate() {
     const mult = bank.books.mult.get();
     baseRate = baseRate.mulBigNumInteger(mult);
   }
+
+  if (isSurge8Active()) {
+    baseRate = applyTsunamiNerf(baseRate);
+  }
+
   return baseRate;
 }
 
@@ -287,7 +337,13 @@ export function initSurgeEffects() {
 
   addExternalMutationGainMultiplierProvider(({ baseGain }) => {
     if (!isSurge4Active()) return baseGain;
-    return baseGain.mulBigNumInteger(BigNum.fromInt(4.444e12));
+    let mult = BigNum.fromInt(4.444e12);
+    if (isSurge8Active()) {
+        const nerf = getTsunamiNerf();
+        const logVal = Math.log10(4.444e12);
+        mult = bigNumFromLog10(logVal * nerf);
+    }
+    return baseGain.mulBigNumInteger(mult);
   });
 
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
