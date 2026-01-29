@@ -3,7 +3,7 @@
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { getMutationState, onMutationChange } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
-import { isSurge2Active } from './surgeEffects.js';
+import { isSurge2Active, isSurge8Active, getTsunamiNerf } from './surgeEffects.js';
 import { playAudio } from '../util/audioManager.js';
 import { waterSystem} from './webgl/waterSystem.js';
 
@@ -482,7 +482,14 @@ export function createSpawner({
         }
 
         const size = COIN_SIZES[sizeIndex];
-        const valMult = COIN_VALUE_MULTS[sizeIndex];
+        let valMult = 1;
+        if (isSurge8Active()) {
+             const nerf = getTsunamiNerf();
+             const base = Math.pow(25, nerf);
+             valMult = Math.pow(base, sizeIndex);
+        } else {
+             valMult = COIN_VALUE_MULTS[sizeIndex];
+        }
         const forceDom = sizeIndex >= 4;
 
         const el = getCoin();
