@@ -674,7 +674,7 @@ class ShopInstance {
 
                         // Shift + Click -> Buy Cheap
                         if (event.shiftKey) {
-                            if (!isHM && !isExcludedCheap) {
+                            if (!isExcludedCheap) {
                                 if (this.adapter.buyCheap) {
                                     const { bought } = this.adapter.buyCheap(id);
                                     const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
