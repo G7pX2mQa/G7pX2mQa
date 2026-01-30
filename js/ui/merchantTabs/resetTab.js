@@ -38,7 +38,7 @@ import { clearPendingGains } from '../../game/coinPickup.js';
 import { getVisibleMilestones } from '../../game/surgeMilestones.js';
 import { ensureCustomScrollbar } from '../shopOverlay.js';
 import { playAudio } from '../../util/audioManager.js';
-import { getBookProductionRate, getSurge6WealthMultipliers } from '../../game/surgeEffects.js';
+import { getBookProductionRate, getSurge6WealthMultipliers, getTsunamiNerf } from '../../game/surgeEffects.js';
 
 const BN = BigNum;
 
@@ -1627,7 +1627,21 @@ function updateSurgeCard() {
             `;
         }
 
+        let isSurge8 = false;
+        if (barLevel === Infinity || (typeof barLevel === 'string' && barLevel === 'Infinity')) isSurge8 = true;
+        else if (typeof barLevel.isInfinite === 'function' && barLevel.isInfinite()) isSurge8 = true;
+        else if (typeof barLevel === 'bigint' && barLevel >= 8n) isSurge8 = true;
+        else if (typeof barLevel === 'number' && barLevel >= 8) isSurge8 = true;
+
+        let nerfArrow = '';
+        if (isSurge8 && getTsunamiNerf() !== 1) {
+             if (m.id === 1 || m.id === 2 || m.id === 3 || m.id === 4 || m.id === 6) {
+                 nerfArrow = '<div class="surge-milestone-nerf-arrow"></div>';
+             }
+        }
+
         const itemHtmlContent = `
+            ${nerfArrow}
             <div class="surge-milestone-title">Surge ${m.surgeLevel}</div>
             <div class="surge-milestone-desc">${desc}</div>
             <div class="surge-milestone-title" style="visibility:hidden">Surge ${m.surgeLevel}</div>
