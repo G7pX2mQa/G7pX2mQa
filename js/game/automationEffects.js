@@ -9,7 +9,7 @@ import {
 } from './automationUpgrades.js';
 import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js';
 import { getActiveSlot } from '../util/storage.js';
-import { isSurge2Active, isSurge8Active, getTsunamiNerf } from './surgeEffects.js';
+import { isSurgeActive, getTsunamiNerf } from './surgeEffects.js';
 
 let accumulator = 0;
 let workshopTicker = 0;
@@ -161,8 +161,8 @@ export function updateAutomation(dt) {
     const ticks = Math.floor(accumulator / interval);
     if (ticks > 0) {
       let collectCount = ticks;
-      if (isSurge2Active()) {
-        if (isSurge8Active()) {
+      if (isSurgeActive(2)) {
+        if (isSurgeActive(8)) {
             const nerf = getTsunamiNerf();
             collectCount *= Math.pow(10, nerf);
         } else {
