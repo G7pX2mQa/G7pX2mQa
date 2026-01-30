@@ -268,6 +268,7 @@ export function createSpawner({
     const coinPool = [];
 
     const activeCoins = [];
+    let garbageCount = 0;
     const newlySettledBuffer = [];
 
     function makeCoin() {
@@ -325,10 +326,15 @@ export function createSpawner({
         
         let idx = knownIndex;
         if (idx === -1 || activeCoins[idx] !== coinObj) {
-            idx = activeCoins.indexOf(coinObj);
+            if (coinObj.index !== undefined && activeCoins[coinObj.index] === coinObj) {
+                idx = coinObj.index;
+            } else {
+                idx = activeCoins.indexOf(coinObj);
+            }
         }
         if (idx !== -1) {
-            activeCoins.splice(idx, 1);
+            activeCoins[idx] = null;
+            garbageCount++;
         }
         
         if (coinObj.el) {
@@ -343,9 +349,16 @@ export function createSpawner({
     function detachCoin(coinEl) {
         const coinObj = coinEl._coinObj;
         if (coinObj) {
-            const idx = activeCoins.indexOf(coinObj);
+            let idx = -1;
+            if (coinObj.index !== undefined && activeCoins[coinObj.index] === coinObj) {
+                idx = coinObj.index;
+            } else {
+                idx = activeCoins.indexOf(coinObj);
+            }
+
             if (idx !== -1) {
-                activeCoins.splice(idx, 1);
+                activeCoins[idx] = null;
+                garbageCount++;
             }
             coinEl._coinObj = null;
         }
@@ -369,18 +382,26 @@ export function createSpawner({
         if (!M.pfRect || !M.wRect)
             computeMetrics();
 
-        if (maxActiveCoins !== Infinity && activeCoins.length >= maxActiveCoins) {
-            let indexToRemove = 0;
+        if (maxActiveCoins !== Infinity && (activeCoins.length - garbageCount) >= maxActiveCoins) {
+            let indexToRemove = -1;
             if (isSurge2Active()) {
-                indexToRemove = -1;
                 for (let i = 0; i < activeCoins.length; i++) {
-                    if (activeCoins[i].sizeIndex < 4) {
+                    const c = activeCoins[i];
+                    if (c && c.sizeIndex < 4) {
                         indexToRemove = i;
                         break;
                     }
                 }
-                if (indexToRemove === -1) return null;
+            } else {
+                for (let i = 0; i < activeCoins.length; i++) {
+                    if (activeCoins[i]) {
+                        indexToRemove = i;
+                        break;
+                    }
+                }
             }
+            if (indexToRemove === -1) return null;
+            
             const oldest = activeCoins[indexToRemove];
             if (oldest) removeCoin(oldest, indexToRemove);
         }
@@ -543,6 +564,7 @@ export function createSpawner({
         };
         
         el._coinObj = coinObj;
+        coinObj.index = activeCoins.length;
         activeCoins.push(coinObj);
         newCoins.push(coinObj);
         
@@ -637,8 +659,8 @@ export function createSpawner({
 
             const count = activeCoins.length;
             for (let i = 0; i < count; i++) {
-                const c = activeCoins[i];
-                if (c.settled && !c.isRemoved && !c.el) {
+                const c = activeCoins[i]; if (!c) continue;
+                if (c && c.settled && !c.isRemoved && !c.el) {
                     const layerIdx = c.sizeIndex || 0;
                     if (contexts[layerIdx]) {
                         drawSingleSettledCoin(contexts[layerIdx], c);
@@ -694,7 +716,7 @@ export function createSpawner({
       
       {
           for (let i = activeCoins.length - 1; i >= 0; i--) {
-              const c = activeCoins[i];
+              const c = activeCoins[i]; if (!c) continue;
               if (!c) continue; // Safety check if array was mutated
               
               if (now >= c.dieAt) {
@@ -740,6 +762,7 @@ export function createSpawner({
                            const totalCoins = activeCoins.length;
                            for (let k = 0; k < totalCoins; k++) {
                                const t = activeCoins[k];
+                               if (!t) continue;
                                if (t === c || t.isRemoved || t.settled === false) continue;
                                // Only attack size 3 or lower
                                if (t.sizeIndex > 3) continue;
@@ -850,6 +873,18 @@ export function createSpawner({
       }
 
       drawSettledCoins();
+      if (garbageCount > 50) {
+          let w = 0;
+          for (let r = 0; r < activeCoins.length; r++) {
+              const c = activeCoins[r];
+              if (c !== null) {
+                  c.index = w;
+                  activeCoins[w++] = c;
+              }
+          }
+          activeCoins.length = w;
+          garbageCount = 0;
+      }
       drawFx(dt);
 
       rafId = requestAnimationFrame(loop);
@@ -890,7 +925,8 @@ export function createSpawner({
     function clearPlayfield(resetType) {
         const keepBigCoins = isSurge2Active() && !!resetType;
         for (let i = activeCoins.length - 1; i >= 0; i--) {
-            const c = activeCoins[i];
+            const c = activeCoins[i]; if (!c) continue;
+            if (!c) continue;
             if (keepBigCoins && c.sizeIndex >= 4) {
                  c.mutationLevel = mutationUnlockedSnapshot ? mutationLevelSnapshot.toString() : '0';
                  if (c.el) c.el.dataset.mutationLevel = c.mutationLevel;
@@ -958,7 +994,7 @@ export function createSpawner({
         const now = performance.now();
         
         for (let i = 0; i < count; i++) {
-            const c = activeCoins[i];
+            const c = activeCoins[i]; if (!c) continue;
 
             // Fast rejection based on trajectory bounds
             if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
@@ -1021,7 +1057,7 @@ export function createSpawner({
         const now = performance.now();
 
         for (let i = 0; i < count; i++) {
-            const c = activeCoins[i];
+            const c = activeCoins[i]; if (!c) continue;
 
             // Fast rejection based on trajectory bounds
             if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
@@ -1090,7 +1126,7 @@ export function createSpawner({
         const now = performance.now();
         
         for (let i = 0; i < count; i++) {
-            const c = activeCoins[i];
+            const c = activeCoins[i]; if (!c) continue;
 
             // Fast rejection based on trajectory bounds
             if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
@@ -1142,7 +1178,7 @@ export function createSpawner({
         const now = performance.now();
 
         for (let i = 0; i < count; i++) {
-            const c = activeCoins[i];
+            const c = activeCoins[i]; if (!c) continue;
 
             // Fast rejection based on trajectory bounds
             if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
@@ -1483,6 +1519,6 @@ export function createSpawner({
         recycleCoin: releaseCoin,
         playEntranceWave,
         setDependencies,
-        hasBigCoins: () => isSurge2Active() && activeCoins.some(c => c.sizeIndex >= 4),
+        hasBigCoins: () => isSurge2Active() && activeCoins.some(c => c && c.sizeIndex >= 4),
     };
 }
