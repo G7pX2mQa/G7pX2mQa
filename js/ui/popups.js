@@ -130,6 +130,7 @@ function createPopupEntry(type, meta, amount) {
 }
 
 function showPopup(type, amount, overrides = {}) {
+  if (typeof window !== 'undefined' && window.__tsunamiActive) return;
   // Check locks
   const slot = getActiveSlot();
   if (slot != null) {
