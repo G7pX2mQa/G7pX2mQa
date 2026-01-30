@@ -6,6 +6,7 @@ import { IS_MOBILE } from '../main.js';
 import { isSurgeActive, getTsunamiNerf } from './surgeEffects.js';
 import { playAudio } from '../util/audioManager.js';
 import { waterSystem} from './webgl/waterSystem.js';
+import { shouldBlockBigCoins } from '../ui/merchantTabs/resetTab.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0n;
@@ -421,6 +422,11 @@ export function createSpawner({
                 }
             }
         }
+
+        if (sizeIndex >= 4 && shouldBlockBigCoins && shouldBlockBigCoins()) {
+            sizeIndex = 3;
+        }
+
         const size = COIN_SIZES[sizeIndex];
 
         // Determine X
@@ -1229,6 +1235,7 @@ export function createSpawner({
 
    document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
+      if (typeof window !== 'undefined' && window.__tsunamiActive) return;
       if (!rafId) start();
     }
   });
