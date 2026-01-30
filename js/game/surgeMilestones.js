@@ -7,6 +7,7 @@ export const SURGE_MILESTONES = [
   {
     id: 1,
     surgeLevel: 1,
+    affectedByTsunami: true,
     description: [
       "Multiplies Coin, XP, and MP value by <span style=\"color:#00e5ff\">10x</span>",
       "Unlocks the Warp tab"
@@ -15,6 +16,7 @@ export const SURGE_MILESTONES = [
   {
     id: 2,
     surgeLevel: 2,
+    affectedByTsunami: true,
     description: [
       "Allows some Coins to spawn with a larger size, yielding collection multipliers; the largest Coins won't despawn even when others do",
       "Improves Effective Auto-Collect by <span style=\"color:#00e5ff\">10x</span>"
@@ -23,6 +25,7 @@ export const SURGE_MILESTONES = [
   {
     id: 3,
     surgeLevel: 3,
+    affectedByTsunami: true,
     description: [
       "Generates Books based on XP Level instead of earning a flat amount of Books on level up",
       "Unlocks a new Book upgrade"
@@ -31,6 +34,7 @@ export const SURGE_MILESTONES = [
   {
     id: 4,
     surgeLevel: 4,
+    affectedByTsunami: true,
     description: [
       `Multiplies MP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(4.444e12))}x</span>`
     ]
@@ -45,6 +49,7 @@ export const SURGE_MILESTONES = [
   {
     id: 6,
     surgeLevel: 6,
+    affectedByTsunami: true,
     description: [
       "Unspent Coins boost Coins",
       "Unspent Books boost Coins",
@@ -67,6 +72,10 @@ export const SURGE_MILESTONES = [
     ]
   }
 ];
+
+export const NERFED_SURGE_MILESTONE_IDS = SURGE_MILESTONES
+    .filter(m => m.affectedByTsunami)
+    .map(m => m.id);
 
 export function getVisibleMilestones(currentSurgeLevel) {
   let currentLevel = 0;
