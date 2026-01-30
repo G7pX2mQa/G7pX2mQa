@@ -1738,7 +1738,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
 
               // Exclude early upgrades (Ids 1, 3, 4, 5, 6)
               const isExcluded = [1, 3, 4, 5, 6].includes(resolveUpgradeId(model.upg));
-              if (!isHM && !isExcluded) {
+              if (!isExcluded) {
                   const performBuyCheap = () => {
                       const fresh = adapter.getUiModel(upgDef.id);
                       if (fresh.have.cmp(BigNum.fromInt(1)) < 0) return;
