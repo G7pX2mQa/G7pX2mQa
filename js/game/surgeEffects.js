@@ -15,9 +15,32 @@ const BN = BigNum;
 const MULTIPLIER = 10;
 const LOG10_EXP_0_2 = 0.08685889638; // log10(e^0.2)
 const TSUNAMI_NERF_KEY = (slot) => `ccc:surge:tsunamiNerf:${slot}`;
+const TSUNAMI_SEEN_KEY = (slot) => `ccc:unlock:tsunami:${slot}`;
 
 export function getTsunamiNerfKey(slot) {
   return TSUNAMI_NERF_KEY(slot);
+}
+
+export function getTsunamiSequenceSeen() {
+  const slot = getActiveSlot();
+  if (slot == null) return false;
+  try {
+    return localStorage.getItem(TSUNAMI_SEEN_KEY(slot)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setTsunamiSequenceSeen(value) {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+  const normalized = !!value;
+  try {
+    localStorage.setItem(TSUNAMI_SEEN_KEY(slot), normalized ? '1' : '0');
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'tsunami', slot } }));
+    }
+  } catch {}
 }
 
 let currentMultiplier = BigNum.fromInt(1);
