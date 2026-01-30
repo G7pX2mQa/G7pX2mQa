@@ -36,7 +36,7 @@ import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
 import { getGenerationLevelKey, getGenerationUpgradeCost } from '../ui/merchantTabs/workshopTab.js';
 import { getSurgeBarLevelKey, hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
-import { getTsunamiNerf, setTsunamiNerf, getTsunamiNerfKey } from '../game/surgeEffects.js';
+import { getTsunamiNerf, setTsunamiNerf, getTsunamiNerfKey, getTsunamiSequenceSeen, setTsunamiSequenceSeen } from '../game/surgeEffects.js';
 import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 
@@ -2664,6 +2664,23 @@ function getUnlockRowDefinitions(slot) {
             },
             onDisable: () => {
                 try { setJeffUnlocked(false); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Tsunami',
+            description: 'If true, marks the Tsunami sequence as seen',
+            isUnlocked: () => {
+                try { return !!getTsunamiSequenceSeen(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setTsunamiSequenceSeen(true); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setTsunamiSequenceSeen(false); }
                 catch {}
             },
             slot,
