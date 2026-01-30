@@ -708,8 +708,8 @@
 /* Tsunami Nerf Arrow */
 .surge-milestone-nerf-arrow {
   position: absolute;
-  top: 4px;
-  right: 12px;
+  top: -1px;
+  right: 42px;
   width: 40px;
   height: 40px;
   animation: nerfArrowBob 1.5s infinite ease-in-out;
@@ -722,13 +722,12 @@
   position: absolute;
   width: 18px;
   height: 18px;
-  border-right: 6px solid #c68cff;
-  border-bottom: 6px solid #c68cff;
+  border-right: 6px solid #2a5caa;
+  border-bottom: 6px solid #2a5caa;
   transform: rotate(45deg);
   left: 50%;
   margin-left: -9px;
-  box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-  filter: drop-shadow(0 0 4px #a020f0);
+  filter: drop-shadow(0 0 4px #1a3c7a);
 }
 
 .surge-milestone-nerf-arrow::before {
