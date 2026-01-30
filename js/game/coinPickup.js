@@ -953,15 +953,14 @@ export function initCoinPickup({
 
       // SURGE 2: Value Multiplier
       if (coinObj && coinObj.valueMultiplier && coinObj.valueMultiplier > 1) {
-          const multBn = BigNum.fromInt(coinObj.valueMultiplier);
           try {
-             inc = inc.mulBigNumInteger(multBn);
+             inc = inc.mulDecimalFloor(coinObj.valueMultiplier);
           } catch {}
           try {
-             xpInc = xpInc.mulBigNumInteger(multBn);
+             xpInc = xpInc.mulDecimalFloor(coinObj.valueMultiplier);
           } catch {}
           try {
-             mpInc = mpInc.mulBigNumInteger(multBn);
+             mpInc = mpInc.mulDecimalFloor(coinObj.valueMultiplier);
           } catch {}
       }
 
