@@ -36,9 +36,16 @@ import {
 import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 import { clearPendingGains } from '../../game/coinPickup.js';
 import { getVisibleMilestones, NERFED_SURGE_MILESTONE_IDS } from '../../game/surgeMilestones.js';
-import { ensureCustomScrollbar } from '../shopOverlay.js';
+import { ensureCustomScrollbar, closeShop } from '../shopOverlay.js';
 import { playAudio } from '../../util/audioManager.js';
-import { getBookProductionRate, getSurge6WealthMultipliers, getTsunamiNerf } from '../../game/surgeEffects.js';
+import { 
+  getBookProductionRate, 
+  getSurge6WealthMultipliers, 
+  getTsunamiNerf,
+  getTsunamiSequenceSeen,
+  setTsunamiSequenceSeen
+} from '../../game/surgeEffects.js';
+import { closeMerchant } from './dlgTab.js';
 
 const BN = BigNum;
 
@@ -931,18 +938,12 @@ export function performInfuseReset() {
   return true;
 }
 
-export function performSurgeReset() {
-  if (!isSurgeUnlocked()) return false;
-  if (getXpLevelNumber() < 201) return false;
-  
-  const reward = resetState.pendingWaves.clone?.() ?? resetState.pendingWaves;
-  if (reward.isZero?.()) return false;
-
+function applySurgeResetLogic(rewardWaves, { playEffects = true, skipVisuals = false } = {}) {
   const slot = ensureResetSlot();
 
   try {
-    if (bank.waves?.add) {
-      bank.waves.add(reward);
+    if (bank.waves?.add && rewardWaves && !rewardWaves.isZero?.()) {
+      bank.waves.add(rewardWaves);
     }
   } catch {}
 
@@ -951,7 +952,6 @@ export function performSurgeReset() {
   try { bank.magic.set(0); } catch {}
   
   try {
-     const slot = getActiveSlot();
      const KEY_LEVEL = (s) => `ccc:mutation:level:${s}`;
      const KEY_PROGRESS = (s) => `ccc:mutation:progress:${s}`;
      localStorage.setItem(KEY_LEVEL(slot), '0');
@@ -970,14 +970,102 @@ export function performSurgeReset() {
   recomputePendingMagic();
   recomputePendingWaves();
   
-  playSurgeResetSound();
-  triggerSurgeWaveAnimation();
+  if (playEffects) {
+      if (!skipVisuals) playSurgeResetSound();
+      if (!skipVisuals) triggerSurgeWaveAnimation();
+  }
 
   if (shouldWipePlayfield('surge')) {
     try { window.spawner?.clearPlayfield?.('surge'); } catch {}
   }
   
   updateResetPanel();
+}
+
+function startTsunamiSequence() {
+    // 1. Dispatch music stop
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:stopMusic'));
+    
+    // 2. Stop spawning
+    if (window.spawner && typeof window.spawner.stop === 'function') {
+        window.spawner.stop();
+    }
+    
+    // 3. Close overlays
+    try { closeShop(true); } catch {}
+    try { closeMerchant(); } catch {}
+    
+    // 4. Black screen overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'tsunami-sequence-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.backgroundColor = 'black';
+    overlay.style.zIndex = '2147483645';
+    overlay.style.pointerEvents = 'all';
+    document.body.appendChild(overlay);
+    
+    // 5. Set active flag
+    window.__tsunamiActive = true;
+    
+    // 6. Timer
+    setTimeout(endTsunamiSequence, 3000);
+}
+
+function endTsunamiSequence() {
+    // 1. Remove overlay
+    const overlay = document.getElementById('tsunami-sequence-overlay');
+    if (overlay) overlay.remove();
+    
+    // 2. Set Seen Flag
+    setTsunamiSequenceSeen(true);
+    
+    // 3. Force Reset (0 waves, no effects)
+    applySurgeResetLogic(BigNum.fromInt(0), { playEffects: false });
+    
+    // 4. Restart music
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:restartMusic'));
+    
+    // 5. Resume spawning
+    if (window.spawner && typeof window.spawner.start === 'function') {
+        window.spawner.start();
+    }
+    
+    // 6. Clear active flag
+    window.__tsunamiActive = false;
+}
+
+export function performSurgeReset() {
+  if (!isSurgeUnlocked()) return false;
+  if (getXpLevelNumber() < 201) return false;
+  
+  const reward = resetState.pendingWaves.clone?.() ?? resetState.pendingWaves;
+  if (reward.isZero?.()) return false;
+
+  const slot = ensureResetSlot();
+  
+  // Calculate if we hit Surge 8
+  const currentWaves = bank.waves?.value ?? bnZero();
+  const barLevel = getSurgeBarLevel(slot);
+  const potentialLevel = predictSurgeLevel(barLevel, currentWaves, reward);
+  
+  let isSurge8 = false;
+  if (potentialLevel === Infinity) isSurge8 = true;
+  else if (typeof potentialLevel === 'bigint') isSurge8 = potentialLevel >= 8n;
+  else if (typeof potentialLevel === 'number') isSurge8 = potentialLevel >= 8;
+  
+  // Check sequence condition
+  if (isSurge8 && !getTsunamiSequenceSeen()) {
+      // Trigger sequence logic
+      // First reset (give waves, reset stuff), but NO visuals/sound
+      applySurgeResetLogic(reward, { playEffects: false });
+      
+      startTsunamiSequence();
+      return true;
+  }
+
+  // Normal reset
+  applySurgeResetLogic(reward, { playEffects: true });
   return true;
 }
 
