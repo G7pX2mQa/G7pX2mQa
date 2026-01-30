@@ -605,6 +605,10 @@
   border: 1px solid rgba(255,255,255,0.2);
 }
 
+.surge-milestone-item.is-nerfed {
+  background: linear-gradient(to bottom, #4169E1, #002366);
+}
+
 .surge-milestone-title {
   font-weight: 800;
   font-size: 1.2rem;
