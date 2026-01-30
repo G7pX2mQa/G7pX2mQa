@@ -12,7 +12,7 @@ import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgr
 import { getPassiveCoinReward } from './coinPickup.js';
 import { addXp } from './xpSystem.js';
 import { addMutationPower } from './mutationSystem.js';
-import { getBookProductionRate, isSurge2Active } from './surgeEffects.js';
+import { getBookProductionRate, isSurgeActive } from './surgeEffects.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 
 let initialized = false;
@@ -241,7 +241,7 @@ export function calculateOfflineRewards(seconds) {
     if (autoLevel > 0) {
         // Update: use BigNum to calculate totalPassives safely
         let multiplier = 1;
-        if (isSurge2Active()) {
+        if (isSurgeActive(2)) {
              multiplier = 10;
         }
 
