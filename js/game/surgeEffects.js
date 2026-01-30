@@ -1,5 +1,5 @@
 import { BigNum } from '../util/bigNum.js';
-import { bank } from '../util/storage.js';
+import { bank, getActiveSlot, isStorageKeyLocked } from '../util/storage.js';
 import { 
   addExternalCoinMultiplierProvider, 
   addExternalXpGainMultiplierProvider,
@@ -14,6 +14,11 @@ import { bigNumFromLog10, approxLog10BigNum } from './upgrades.js';
 const BN = BigNum;
 const MULTIPLIER = 10;
 const LOG10_EXP_0_2 = 0.08685889638; // log10(e^0.2)
+const TSUNAMI_NERF_KEY = (slot) => `ccc:surge:tsunamiNerf:${slot}`;
+
+export function getTsunamiNerfKey(slot) {
+  return TSUNAMI_NERF_KEY(slot);
+}
 
 let currentMultiplier = BigNum.fromInt(1);
 let cachedSurgeLevel = 0n;
@@ -25,7 +30,29 @@ export function getTsunamiNerf() {
 }
 
 export function setTsunamiNerf(value) {
-  tsunamiNerfExponent = Number(value) || 0;
+  let val = Number(value);
+  if (Number.isNaN(val)) val = 0;
+  
+  // Treat Infinity or > 1 as 1.00 (nerf restored)
+  if (!Number.isFinite(val) || val > 1) {
+    val = 1;
+  }
+  if (val < 0) val = 0;
+  
+  const slot = getActiveSlot();
+  if (slot != null) {
+      const key = TSUNAMI_NERF_KEY(slot);
+      if (isStorageKeyLocked(key)) return;
+      
+      try {
+        localStorage.setItem(key, val.toFixed(2));
+      } catch {}
+  }
+  
+  tsunamiNerfExponent = val;
+  
+  updateMultiplier();
+  try { window.dispatchEvent(new CustomEvent('surge:nerf:change', { detail: { value: val } })); } catch {}
 }
 
 export function isSurge8Active() {
@@ -308,14 +335,49 @@ function onTick(dt) {
   }
 }
 
+function loadTsunamiNerf(slot) {
+  if (slot == null) return;
+  const stored = localStorage.getItem(TSUNAMI_NERF_KEY(slot));
+  if (stored !== null) {
+      tsunamiNerfExponent = Number(stored);
+      // Ensure validity on load
+      if (Number.isNaN(tsunamiNerfExponent) || !Number.isFinite(tsunamiNerfExponent)) {
+          tsunamiNerfExponent = isSurge8Active() ? 0.00 : 1.00;
+      }
+  } else {
+      // Default behavior if not stored
+      if (isSurge8Active()) {
+          tsunamiNerfExponent = 0.00;
+      } else {
+          tsunamiNerfExponent = 1.00;
+      }
+  }
+}
+
 export function initSurgeEffects() {
+  const slot = getActiveSlot();
+  // Update multiplier first to ensure cachedSurgeLevel is set,
+  // allowing isSurge8Active() to return the correct state for loadTsunamiNerf default logic.
+  updateMultiplier();
+  loadTsunamiNerf(slot);
+  // Update multiplier again to apply the loaded nerf value.
   updateMultiplier();
 
   if (typeof window !== 'undefined') {
     window.addEventListener('surge:level:change', () => {
+      const wasActive = isSurge8Active();
       updateMultiplier();
+      const isActive = isSurge8Active();
+
+      if (!wasActive && isActive) {
+          setTsunamiNerf(0.00);
+      } else if (wasActive && !isActive) {
+          setTsunamiNerf(1.00);
+      }
     });
+
     window.addEventListener('saveSlot:change', () => {
+      loadTsunamiNerf(getActiveSlot());
       updateMultiplier();
     });
   }
