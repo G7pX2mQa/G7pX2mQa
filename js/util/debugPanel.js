@@ -1052,8 +1052,15 @@ function formatBigNumForInput(value) {
 }
 
 function parseBigNumInput(raw) {
-    const trimmed = String(raw ?? '').trim();
+    let trimmed = String(raw ?? '').trim();
     if (!trimmed) return BigNum.fromInt(0);
+
+    if (trimmed.startsWith('.')) {
+        trimmed = '0' + trimmed;
+    } else if (trimmed.startsWith('-.')) {
+        trimmed = '-0' + trimmed.substring(1);
+    }
+
     try {
         if (/^inf(?:inity)?$/i.test(trimmed)) {
             return BigNum.fromAny('Infinity');
