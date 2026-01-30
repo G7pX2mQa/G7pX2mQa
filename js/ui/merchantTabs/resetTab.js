@@ -1633,28 +1633,18 @@ function updateSurgeCard() {
         else if (typeof barLevel === 'bigint' && barLevel >= 8n) isSurge8 = true;
         else if (typeof barLevel === 'number' && barLevel >= 8) isSurge8 = true;
 
-        let nerfArrow = '';
-        if (isSurge8 && getTsunamiNerf() !== 1) {
-             if (NERFED_SURGE_MILESTONE_IDS.includes(m.id)) {
-                 nerfArrow = '<div class="surge-milestone-nerf-arrow"></div>';
-             }
-        }
-
-        const itemHtmlContent = `
-            ${nerfArrow}
-            <div class="surge-milestone-title">Surge ${m.surgeLevel}</div>
-            <div class="surge-milestone-desc">${desc}</div>
-            <div class="surge-milestone-title" style="visibility:hidden">Surge ${m.surgeLevel}</div>
-        `;
-        
         let itemEl = existingItems[i];
         
         if (!itemEl) {
             itemEl = document.createElement('div');
             itemEl.className = `surge-milestone-item ${reachedClass}`;
             itemEl.dataset.isReached = String(isReached);
-            itemEl.innerHTML = itemHtmlContent;
-            itemEl.__lastHtml = itemHtmlContent;
+            itemEl.innerHTML = `
+                <div class="surge-milestone-nerf-arrow" style="display:none"></div>
+                <div class="surge-milestone-title">Surge ${m.surgeLevel}</div>
+                <div class="surge-milestone-desc"></div>
+                <div class="surge-milestone-title" style="visibility:hidden">Surge ${m.surgeLevel}</div>
+            `;
             el.milestones.appendChild(itemEl);
         } else {
             if (itemEl.className !== `surge-milestone-item ${reachedClass}`) {
@@ -1664,11 +1654,27 @@ function updateSurgeCard() {
             if (itemEl.dataset.isReached !== isReachedStr) {
                 itemEl.dataset.isReached = isReachedStr;
             }
-            
-            if (itemEl.__lastHtml !== itemHtmlContent) {
-                itemEl.innerHTML = itemHtmlContent;
-                itemEl.__lastHtml = itemHtmlContent;
-            }
+        }
+        
+        // Update Description
+        const descEl = itemEl.querySelector('.surge-milestone-desc');
+        if (descEl && descEl.innerHTML !== desc) {
+            descEl.innerHTML = desc;
+        }
+
+        // Update Arrow
+        const arrowEl = itemEl.querySelector('.surge-milestone-nerf-arrow');
+        if (arrowEl) {
+             let shouldHaveArrow = false;
+             if (isSurge8 && getTsunamiNerf() !== 1) {
+                if (NERFED_SURGE_MILESTONE_IDS.includes(m.id)) {
+                    shouldHaveArrow = true;
+                }
+             }
+             const display = shouldHaveArrow ? '' : 'none';
+             if (arrowEl.style.display !== display) {
+                 arrowEl.style.display = display;
+             }
         }
     });
     
