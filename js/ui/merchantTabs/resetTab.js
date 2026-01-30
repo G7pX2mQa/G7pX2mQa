@@ -1008,7 +1008,10 @@ function startTsunamiSequence() {
     // 5. Set active flag
     window.__tsunamiActive = true;
     
-    // 6. Timer
+    // 6. Set Seen Flag (immediately, to prevent softlock/re-sequence if user quits early)
+    setTsunamiSequenceSeen(true);
+    
+    // 7. Timer
     setTimeout(endTsunamiSequence, 3000);
 }
 
@@ -1017,10 +1020,7 @@ function endTsunamiSequence() {
     const overlay = document.getElementById('tsunami-sequence-overlay');
     if (overlay) overlay.remove();
     
-    // 2. Set Seen Flag
-    setTsunamiSequenceSeen(true);
-    
-    // 3. Force Reset (0 waves, no effects)
+    // 2. Force Reset (0 waves, no effects)
     applySurgeResetLogic(BigNum.fromInt(0), { playEffects: false });
     
     // 4. Restart music
