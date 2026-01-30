@@ -36,6 +36,7 @@ import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
 import { getGenerationLevelKey, getGenerationUpgradeCost } from '../ui/merchantTabs/workshopTab.js';
 import { getSurgeBarLevelKey, hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
+import { getTsunamiNerf, setTsunamiNerf, getTsunamiNerfKey } from '../game/surgeEffects.js';
 import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 
@@ -277,6 +278,15 @@ function setupLiveBindingListeners() {
     };
     window.addEventListener('surge:level:change', surgeHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('surge:level:change', surgeHandler));
+
+    const tsunamiHandler = (event) => {
+        const { slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'tsunami-nerf'
+            && (binding.slot == null || binding.slot === targetSlot));
+    };
+    window.addEventListener('surge:nerf:change', tsunamiHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('surge:nerf:change', tsunamiHandler));
 }
 
 const XP_KEY_PREFIX = 'ccc:xp';
@@ -1231,7 +1241,7 @@ function restoreAllDialoguesForDebug() {
     return { restored };
 }
 
-function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey, onLockChange } = {}) {
+function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey, onLockChange, format } = {}) {
     const row = document.createElement('div');
     row.className = 'debug-panel-row';
 
@@ -1260,7 +1270,9 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
             return;
         }
         pendingValue = null;
-        input.value = formatBigNumForInput(value);
+        input.value = typeof format === 'function'
+            ? format(value)
+            : formatBigNumForInput(value);
     };
 
     row.appendChild(input);
@@ -2081,6 +2093,62 @@ function buildAreaStats(container, area) {
         
         container.appendChild(surgeLevelRow.row);
     }
+
+    // Tsunami Exponent
+    // This value is 0.00 when the tsunami is fully active (nerfing everything),
+    // and goes up to 1.00 (restored) as you gain Surge Levels.
+    // We display it as a decimal (0.00 - 1.00).
+    const tsunamiNerf = getTsunamiNerf();
+    const tsunamiRow = createInputRow('Tsunami Exponent', tsunamiNerf.toFixed(2), (value, { setValue }) => {
+        let valNum = Number(value);
+        
+        // Handle BigNum inputs or "inf"
+        if (value instanceof BigNum) {
+             if (value.isInfinite()) valNum = Infinity;
+             else valNum = Number(value.toScientific(10));
+        } else if (typeof value === 'string' && /infinity/i.test(value)) {
+             valNum = Infinity;
+        }
+
+        if (Number.isNaN(valNum)) {
+             setValue(getTsunamiNerf().toFixed(2));
+             return;
+        }
+        
+        // "Make the maximum value (so entering inf or a larger number would set it to) 1.00"
+        if (valNum > 1 || valNum === Infinity) valNum = 1;
+        if (valNum < 0) valNum = 0;
+        
+        // "Also always round and/or show two decimal places"
+        valNum = Math.round(valNum * 100) / 100;
+
+        const prev = getTsunamiNerf();
+        setTsunamiNerf(valNum);
+        
+        flagDebugUsage();
+        if (Math.abs(prev - valNum) > 0.0001) {
+            logAction(`Modified Tsunami Exponent (The Cove) ${prev.toFixed(2)} → ${valNum.toFixed(2)}`);
+        }
+        setValue(valNum.toFixed(2));
+    }, {
+        storageKey: getTsunamiNerfKey(slot),
+        format: (val) => {
+            // Ensure we format nicely as a number with 2 decimals if possible
+            const n = Number(val);
+            return Number.isFinite(n) ? n.toFixed(2) : String(val);
+        }
+    });
+    
+    registerLiveBinding({
+        type: 'tsunami-nerf',
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            const val = getTsunamiNerf();
+            tsunamiRow.setValue(val.toFixed(2));
+        }
+    });
+    container.appendChild(tsunamiRow.row);
 }
 
 function buildAreaUpgrades(container, area) {
