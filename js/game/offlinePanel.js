@@ -91,6 +91,8 @@ const PRIORITY_ORDER = [
 ];
 
 export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
+    if (window.__tsunamiActive) return;
+
     // Remove existing panel if any
     const existing = document.querySelector('.offline-overlay');
     if (existing) existing.remove();
