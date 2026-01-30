@@ -3,7 +3,7 @@
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { getMutationState, onMutationChange } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
-import { isSurge2Active, isSurge8Active, getTsunamiNerf } from './surgeEffects.js';
+import { isSurgeActive, getTsunamiNerf } from './surgeEffects.js';
 import { playAudio } from '../util/audioManager.js';
 import { waterSystem} from './webgl/waterSystem.js';
 
@@ -384,7 +384,7 @@ export function createSpawner({
 
         if (maxActiveCoins !== Infinity && (activeCoins.length - garbageCount) >= maxActiveCoins) {
             let indexToRemove = -1;
-            if (isSurge2Active()) {
+            if (isSurgeActive(2)) {
                 for (let i = 0; i < activeCoins.length; i++) {
                     const c = activeCoins[i];
                     if (c && c.sizeIndex < 4) {
@@ -412,7 +412,7 @@ export function createSpawner({
 
         // Determine coin size
         let sizeIndex = 0;
-        if (isSurge2Active()) {
+        if (isSurgeActive(2)) {
             const r = Math.random();
             for (let i = 6; i >= 1; i--) {
                 if (r < COIN_CHANCES[i]) {
@@ -504,7 +504,7 @@ export function createSpawner({
 
         const size = COIN_SIZES[sizeIndex];
         let valMult = 1;
-        if (isSurge8Active()) {
+        if (isSurgeActive(8)) {
              const nerf = getTsunamiNerf();
              const base = Math.pow(25, nerf);
              valMult = Math.pow(base, sizeIndex);
@@ -923,7 +923,7 @@ export function createSpawner({
     }
 
     function clearPlayfield(resetType) {
-        const keepBigCoins = isSurge2Active() && !!resetType;
+        const keepBigCoins = isSurgeActive(2) && !!resetType;
         for (let i = activeCoins.length - 1; i >= 0; i--) {
             const c = activeCoins[i]; if (!c) continue;
             if (!c) continue;
@@ -1519,6 +1519,6 @@ export function createSpawner({
         recycleCoin: releaseCoin,
         playEntranceWave,
         setDependencies,
-        hasBigCoins: () => isSurge2Active() && activeCoins.some(c => c && c.sizeIndex >= 4),
+        hasBigCoins: () => isSurgeActive(2) && activeCoins.some(c => c && c.sizeIndex >= 4),
     };
 }
