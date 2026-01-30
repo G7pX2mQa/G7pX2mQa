@@ -35,7 +35,7 @@ import {
 } from '../../game/mutationSystem.js';
 import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 import { clearPendingGains } from '../../game/coinPickup.js';
-import { getVisibleMilestones } from '../../game/surgeMilestones.js';
+import { getVisibleMilestones, NERFED_SURGE_MILESTONE_IDS } from '../../game/surgeMilestones.js';
 import { ensureCustomScrollbar } from '../shopOverlay.js';
 import { playAudio } from '../../util/audioManager.js';
 import { getBookProductionRate, getSurge6WealthMultipliers, getTsunamiNerf } from '../../game/surgeEffects.js';
@@ -1635,7 +1635,7 @@ function updateSurgeCard() {
 
         let nerfArrow = '';
         if (isSurge8 && getTsunamiNerf() !== 1) {
-             if (m.id === 1 || m.id === 2 || m.id === 3 || m.id === 4 || m.id === 6) {
+             if (NERFED_SURGE_MILESTONE_IDS.includes(m.id)) {
                  nerfArrow = '<div class="surge-milestone-nerf-arrow"></div>';
              }
         }
