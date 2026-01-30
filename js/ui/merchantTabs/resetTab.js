@@ -1633,11 +1633,17 @@ function updateSurgeCard() {
         else if (typeof barLevel === 'bigint' && barLevel >= 8n) isSurge8 = true;
         else if (typeof barLevel === 'number' && barLevel >= 8) isSurge8 = true;
 
+        let isNerfed = false;
+        if (isReached && isSurge8 && getTsunamiNerf() < 1 && NERFED_SURGE_MILESTONE_IDS.includes(m.id)) {
+            isNerfed = true;
+        }
+        const nerfedClass = isNerfed ? ' is-nerfed' : '';
+
         let itemEl = existingItems[i];
         
         if (!itemEl) {
             itemEl = document.createElement('div');
-            itemEl.className = `surge-milestone-item ${reachedClass}`;
+            itemEl.className = `surge-milestone-item ${reachedClass}${nerfedClass}`;
             itemEl.dataset.isReached = String(isReached);
             itemEl.innerHTML = `
                 <div class="surge-milestone-nerf-arrow" style="display:none"></div>
@@ -1647,8 +1653,8 @@ function updateSurgeCard() {
             `;
             el.milestones.appendChild(itemEl);
         } else {
-            if (itemEl.className !== `surge-milestone-item ${reachedClass}`) {
-                itemEl.className = `surge-milestone-item ${reachedClass}`;
+            if (itemEl.className !== `surge-milestone-item ${reachedClass}${nerfedClass}`) {
+                itemEl.className = `surge-milestone-item ${reachedClass}${nerfedClass}`;
             }
             const isReachedStr = String(isReached);
             if (itemEl.dataset.isReached !== isReachedStr) {
