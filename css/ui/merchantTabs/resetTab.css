@@ -596,6 +596,7 @@
   transition: background 0.3s ease;
   user-select: none;
   border: 1px solid rgba(0,0,0,0.1);
+  position: relative;
 }
 
 .surge-milestone-item.is-reached {
@@ -702,4 +703,43 @@
 
 .tsunami-text {
   animation: tsunami-destructive 0.8s infinite linear;
+}
+
+/* Tsunami Nerf Arrow */
+.surge-milestone-nerf-arrow {
+  position: absolute;
+  top: 4px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  animation: nerfArrowBob 1.5s infinite ease-in-out;
+  pointer-events: none;
+}
+
+.surge-milestone-nerf-arrow::before,
+.surge-milestone-nerf-arrow::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-right: 6px solid #c68cff;
+  border-bottom: 6px solid #c68cff;
+  transform: rotate(45deg);
+  left: 50%;
+  margin-left: -9px;
+  box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  filter: drop-shadow(0 0 4px #a020f0);
+}
+
+.surge-milestone-nerf-arrow::before {
+  top: 3px;
+}
+
+.surge-milestone-nerf-arrow::after {
+  top: 16px;
+}
+
+@keyframes nerfArrowBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(7px); }
 }
