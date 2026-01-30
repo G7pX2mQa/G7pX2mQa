@@ -325,6 +325,24 @@ function loadTsunamiNerf(slot) {
   }
 }
 
+function compareSurgeLevels(prev, curr) {
+  const isInfPrev = prev === Infinity || (typeof prev === 'string' && prev === 'Infinity') || prev === Number.POSITIVE_INFINITY;
+  const isInfCurr = curr === Infinity || (typeof curr === 'string' && curr === 'Infinity') || curr === Number.POSITIVE_INFINITY;
+  
+  if (isInfPrev && isInfCurr) return 0;
+  if (isInfCurr) return 1;
+  if (isInfPrev) return -1;
+  
+  let p = BigInt(0);
+  let c = BigInt(0);
+  try { p = typeof prev === 'bigint' ? prev : BigInt(prev); } catch {}
+  try { c = typeof curr === 'bigint' ? curr : BigInt(curr); } catch {}
+  
+  if (c > p) return 1;
+  if (c < p) return -1;
+  return 0;
+}
+
 export function initSurgeEffects() {
   const slot = getActiveSlot();
   // Update multiplier first to ensure cachedSurgeLevel is set,
@@ -336,12 +354,27 @@ export function initSurgeEffects() {
 
   if (typeof window !== 'undefined') {
     window.addEventListener('surge:level:change', () => {
+      const prevLevel = cachedSurgeLevel;
       const wasActive = isSurgeActive(8);
+      
       updateMultiplier();
+      
+      const currLevel = cachedSurgeLevel;
       const isActive = isSurgeActive(8);
 
       if (!wasActive && isActive) {
           setTsunamiNerf(0.00);
+          if (!getTsunamiSequenceSeen()) {
+              setTsunamiSequenceSeen(true);
+          }
+      } else if (isActive) {
+          // If already active, check if level increased
+          if (compareSurgeLevels(prevLevel, currLevel) > 0) {
+              setTsunamiNerf(0.00);
+              if (!getTsunamiSequenceSeen()) {
+                  setTsunamiSequenceSeen(true);
+              }
+          }
       } else if (wasActive && !isActive) {
           setTsunamiNerf(1.00);
       }
