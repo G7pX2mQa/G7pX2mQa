@@ -100,6 +100,28 @@ const MIN_FORGE_LEVEL = BN.fromInt(31);
 const MIN_INFUSE_MUTATION_LEVEL = BN.fromInt(7);
 
 let isUpdatingWaveBar = false;
+let _shouldBlockBigCoins = false;
+
+export function shouldBlockBigCoins() {
+  return _shouldBlockBigCoins;
+}
+
+function updateBlockBigCoinsStatus() {
+  const slot = ensureResetSlot();
+  const currentWaves = bank.waves?.value ?? bnZero();
+  let barLevel = 0n;
+  try { barLevel = getSurgeBarLevel(slot); } catch {}
+  
+  const pending = resetState.pendingWaves;
+  const potentialLevel = predictSurgeLevel(barLevel, currentWaves, pending);
+
+  let isSurge8 = false;
+  if (potentialLevel === Infinity) isSurge8 = true;
+  else if (typeof potentialLevel === 'bigint') isSurge8 = potentialLevel >= 8n;
+  else if (typeof potentialLevel === 'number') isSurge8 = potentialLevel >= 8;
+
+  _shouldBlockBigCoins = isSurge8 && !getTsunamiSequenceSeen();
+}
 
 const resetState = {
   slot: null,
@@ -763,6 +785,7 @@ function recomputePendingWaves() {
       resetState.pendingWaves = BN.fromInt(10);
     }
   }
+  updateBlockBigCoinsStatus();
 }
 
 function canAccessForgeTab() {
@@ -1012,7 +1035,7 @@ function startTsunamiSequence() {
     setTsunamiSequenceSeen(true);
     
     // 7. Timer
-    setTimeout(endTsunamiSequence, 3000);
+    setTimeout(endTsunamiSequence, 15000);
 }
 
 function endTsunamiSequence() {
@@ -1213,6 +1236,7 @@ function updateWaveBar() {
         setTimeout(updateWaveBar, 0);
       }
   }
+  updateBlockBigCoinsStatus();
 }
 
 function formatBn(value) {
@@ -2070,5 +2094,6 @@ if (typeof window !== 'undefined') {
     setSurgeResetCompleted,
     hasDoneSurgeReset,
     getCurrentSurgeLevel,
+    shouldBlockBigCoins,
   });
 }
