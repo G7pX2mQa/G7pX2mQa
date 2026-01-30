@@ -722,6 +722,26 @@ images: [
 
   window.bank = bank;
 
+  // Global Audio Control for Events
+  if (typeof window !== 'undefined') {
+    window.addEventListener('audio:stopMusic', () => {
+        if (currentMusic) {
+            try { currentMusic.stop(); } catch {}
+            currentMusic = null;
+        }
+    });
+
+    window.addEventListener('audio:restartMusic', () => {
+        if (currentMusic) {
+            try { currentMusic.stop(); } catch {}
+            currentMusic = null;
+        }
+        if (currentArea === AREAS.STARTER_COVE) {
+            currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
+        }
+    });
+  }
+
   // No longer using pendingPreloadedAudio since audioManager handles buffering internally
 
   window.addEventListener('beforeunload', (e) => {
