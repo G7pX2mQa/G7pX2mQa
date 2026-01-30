@@ -50,7 +50,7 @@ export class BigNum {
       return new BigNum(1n, BigNum.MAX_E, p);
     }
 
-    const match = s.match(/^(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i);
+    const match = s.match(/^([+-]?\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i);
     if (!match) {
       return new BigNum(BigInt(s), 0, p);
     }
@@ -59,8 +59,17 @@ export class BigNum {
     let exponent = expPart ? parseInt(expPart, 10) : 0;
     exponent -= fracPart.length;
 
-    const digits = (intPart + fracPart).replace(/^0+/, '') || '0';
-    const sig = BigInt(digits);
+    let sign = '';
+    let digitsRaw = intPart + fracPart;
+    if (digitsRaw.startsWith('-')) {
+        sign = '-';
+        digitsRaw = digitsRaw.slice(1);
+    } else if (digitsRaw.startsWith('+')) {
+        digitsRaw = digitsRaw.slice(1);
+    }
+
+    const digits = digitsRaw.replace(/^0+/, '') || '0';
+    const sig = BigInt(sign + digits);
     return new BigNum(sig, exponent, p);
   }
 
@@ -93,7 +102,7 @@ export class BigNum {
       const trimmed = input.trim();
       if (trimmed.startsWith('BN:')) return BigNum.fromStorage(trimmed, p);
       if (/^inf(?:inity)?$/i.test(trimmed)) return new BigNum(1n, BigNum.MAX_E, p);
-      if (/^\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i.test(trimmed)) return BigNum.fromScientific(trimmed, p);
+      if (/^[+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i.test(trimmed)) return BigNum.fromScientific(trimmed, p);
     }
     if (typeof input === 'number') {
       if (!Number.isFinite(input)) return new BigNum(1n, BigNum.MAX_E, p);
