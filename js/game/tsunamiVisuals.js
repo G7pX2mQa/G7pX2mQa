@@ -116,6 +116,66 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
 
     // Handle resizing
     let width, height;
+    let props = [];
+    let sandSpeckles = [];
+
+    function generateProps() {
+        props = [];
+        sandSpeckles = [];
+        const sandY = height * 0.65;
+        const d3y = sandY + height * 0.15;
+        
+        // Generate static speckles
+        for(let i=0; i<100; i++) {
+            const sx = Math.random() * width;
+            const sy = d3y + Math.random() * (height - d3y);
+            sandSpeckles.push({x: sx, y: sy});
+        }
+        
+        const isSafe = (x, y) => {
+            // HUD Avoidance
+            // Center X band (25% to 75%)
+            if (x > width * 0.25 && x < width * 0.75) {
+                // Main HUD is around 65% to 85% Y
+                // So if we are in that X band, we must be lower than 85%
+                if (y < height * 0.85) return false;
+            }
+            return true;
+        };
+
+        const addProp = (type, count, scaleBase, scaleVar) => {
+            for(let i=0; i<count; i++) {
+                let x, y, safe = false;
+                let attempts = 0;
+                while(!safe && attempts < 50) {
+                    x = Math.random() * width;
+                    // Spawn mostly at the top of the beach (avoiding water area > 0.85)
+                    const maxY = height * 0.88; 
+                    // Bias towards sandY (top) using quadratic curve
+                    const r = Math.random();
+                    y = sandY + 20 + (r * r) * (maxY - sandY - 20);
+                    
+                    if (isSafe(x, y)) safe = true;
+                    attempts++;
+                }
+                if(safe) {
+                    // Perspective scaling: items further down (larger y) are closer -> larger
+                    const depth = (y - sandY) / (height - sandY); // 0 to 1
+                    const perspScale = 0.6 + depth * 0.6; 
+                    
+                    const scale = (scaleBase + Math.random() * scaleVar) * perspScale;
+                    props.push({ type, x, y, scale });
+                }
+            }
+        };
+
+        addProp('tree', 12, 0.8, 0.4);
+        addProp('rock', 20, 0.6, 0.4);
+        addProp('shell', 30, 0.3, 0.3);
+
+        props.sort((a, b) => a.y - b.y);
+    }
+
     function resize() {
         width = window.innerWidth;
         height = window.innerHeight;
@@ -123,6 +183,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         bgCanvas.height = height;
         fgCanvas.width = width;
         fgCanvas.height = height;
+        generateProps();
     }
     window.addEventListener('resize', resize);
     resize();
@@ -147,7 +208,9 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         foam: '#e0f7fa',
         sandLight: '#f1dcb1',
         sandDark: '#debe7c',
-        rock: '#5d4037'
+        rock: '#5d4037',
+        leaf: '#4caf50',
+        shell: '#fff0f5'
     };
 
     const STORM_PALETTE = {
@@ -160,7 +223,9 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         foam: '#4a6fa5',
         sandLight: '#2c2a20', // Dark wet sand
         sandDark: '#1a1810',
-        rock: '#1a1a1a'
+        rock: '#1a1a1a',
+        leaf: '#1b2e1b',
+        shell: '#3b3035'
     };
 
     const lightningState = {
@@ -232,6 +297,137 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         ctx.closePath();
     }
 
+    // --- Procedural Drawing Helpers ---
+    function drawPalmTree(ctx, x, y, scale, palette) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+
+        // Trunk
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(10, -40, -5, -80); 
+        ctx.lineTo(5, -80);
+        ctx.quadraticCurveTo(20, -40, 10, 0);
+        ctx.fillStyle = palette.rock; // Use rock color (brown) for trunk
+        ctx.fill();
+
+        // Leaves
+        ctx.translate(0, -80);
+        ctx.fillStyle = palette.leaf;
+        for(let i=0; i<7; i++) {
+            ctx.save();
+            ctx.rotate((i / 7) * Math.PI * 2 - Math.PI/2); // Spread around top
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(30, -10, 60, 0);
+            ctx.quadraticCurveTo(30, 10, 0, 0);
+            ctx.fill();
+            ctx.restore();
+        }
+        ctx.restore();
+    }
+
+    function drawRock(ctx, x, y, scale, palette) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        
+        ctx.fillStyle = palette.rock;
+        ctx.beginPath();
+        ctx.moveTo(-20, 0);
+        ctx.bezierCurveTo(-20, -15, -10, -25, 0, -25);
+        ctx.bezierCurveTo(10, -25, 20, -15, 20, 0);
+        ctx.fill();
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 20, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    function drawShell(ctx, x, y, scale, palette) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+
+        ctx.fillStyle = palette.shell;
+        ctx.beginPath();
+        ctx.arc(0, 0, 10, Math.PI, 0);
+        ctx.lineTo(0,0);
+        ctx.fill();
+        
+        ctx.strokeStyle = palette.sandDark;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for(let i=1; i<5; i++) {
+            const angle = Math.PI + (i/5)*Math.PI;
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(angle)*10, Math.sin(angle)*10);
+        }
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    function drawDunes(ctx, width, height, sandY, palette) {
+        // Base Background
+        ctx.fillStyle = palette.sandDark;
+        ctx.fillRect(0, sandY, width, height - sandY);
+
+        // Dune 1 (Back)
+        ctx.fillStyle = palette.sandDark;
+        // Slightly lighter than base for contrast? 
+        // Actually palette.sandDark is the darkest. palette.sandLight is lightest.
+        // Let's interpolate manually or just use alpha.
+        
+        // Let's use semi-transparent light sand to create layers.
+        
+        ctx.save();
+        
+        // Layer 1
+        ctx.fillStyle = palette.sandLight; 
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.moveTo(0, height);
+        ctx.lineTo(0, sandY);
+        ctx.bezierCurveTo(width*0.3, sandY - 20, width*0.7, sandY + 20, width, sandY);
+        ctx.lineTo(width, height);
+        ctx.fill();
+
+        // Layer 2 (Closer)
+        ctx.globalAlpha = 0.6;
+        const d2y = sandY + height * 0.05;
+        ctx.beginPath();
+        ctx.moveTo(0, height);
+        ctx.lineTo(0, d2y);
+        ctx.bezierCurveTo(width*0.4, d2y + 40, width*0.6, d2y - 10, width, d2y + 20);
+        ctx.lineTo(width, height);
+        ctx.fill();
+        
+        // Layer 3 (Closest)
+        ctx.globalAlpha = 1.0;
+        const d3y = sandY + height * 0.15;
+        ctx.beginPath();
+        ctx.moveTo(0, height);
+        ctx.lineTo(0, d3y);
+        ctx.bezierCurveTo(width*0.2, d3y - 10, width*0.8, d3y + 30, width, d3y + 10);
+        ctx.lineTo(width, height);
+        ctx.fill();
+
+        // Speckles/Texture
+        ctx.fillStyle = palette.sandDark;
+        ctx.globalAlpha = 0.1;
+        sandSpeckles.forEach(s => {
+            ctx.fillRect(s.x, s.y, 2, 2);
+        });
+
+        ctx.restore();
+    }
+
     // --- Render Loop ---
     function loop() {
         if (!isRunning) return;
@@ -274,6 +470,8 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             sandLight: lerpColor(SUNNY_PALETTE.sandLight, STORM_PALETTE.sandLight, stormFactor),
             sandDark: lerpColor(SUNNY_PALETTE.sandDark, STORM_PALETTE.sandDark, stormFactor),
             rock: lerpColor(SUNNY_PALETTE.rock, STORM_PALETTE.rock, stormFactor),
+            leaf: lerpColor(SUNNY_PALETTE.leaf, STORM_PALETTE.leaf, stormFactor),
+            shell: lerpColor(SUNNY_PALETTE.shell, STORM_PALETTE.shell, stormFactor)
         };
 
         // Screen Shake
@@ -338,13 +536,24 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             bgCtx.restore();
         }
 
-        // 4. Draw Sand (BG)
+        // 4. Draw Sand & Props (BG)
         const sandY = height * 0.65; // Starts at 65% down
-        const sandGrad = bgCtx.createLinearGradient(0, sandY, 0, height);
-        sandGrad.addColorStop(0, currentPalette.sandLight);
-        sandGrad.addColorStop(1, currentPalette.sandDark);
-        bgCtx.fillStyle = sandGrad;
-        bgCtx.fillRect(0, sandY, width, height - sandY);
+        
+        // Draw Dunes
+        drawDunes(bgCtx, width, height, sandY, currentPalette);
+
+        // Draw Props
+        // Only draw props if they are not underwater?
+        // Actually, the tsunami covers everything eventually.
+        // The water drawing logic (step 7 and 8) is on fgCanvas (foreground).
+        // Props are on bgCanvas.
+        // So they will be naturally covered by the water drawn on fgCanvas.
+        
+        props.forEach(prop => {
+            if (prop.type === 'tree') drawPalmTree(bgCtx, prop.x, prop.y, prop.scale, currentPalette);
+            else if (prop.type === 'rock') drawRock(bgCtx, prop.x, prop.y, prop.scale, currentPalette);
+            else if (prop.type === 'shell') drawShell(bgCtx, prop.x, prop.y, prop.scale, currentPalette);
+        });
 
         // 5. Draw Cliffs - REMOVED
 
