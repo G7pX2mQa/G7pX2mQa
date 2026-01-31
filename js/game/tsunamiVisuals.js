@@ -137,8 +137,8 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             // Center X band (25% to 75%)
             if (x > width * 0.25 && x < width * 0.75) {
                 // Main HUD is around 65% to 85% Y
-                // So if we are in that X band, we must be lower than 85%
-                if (y < height * 0.85) return false;
+                // So if we are in that X band, we must be higher than 75% (top of sand)
+                if (y > height * 0.75) return false;
             }
             return true;
         };
