@@ -487,21 +487,34 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             return;
         }
 
-        // Timeline Phases
-        // 0.0 - 0.2: Sunny, Calm
-        // 0.2 - 0.5: Transition (Darkening, Tides Rise slightly)
-        // 0.5 - 0.8: Storm, Tsunami Wall Visible, Rain, Shake
-        // 0.8 - 1.0: Impact, Chaos, Blackout
+        // Timeline Constants (ms)
+        const FADE_IN_END = 5000;
+        const STORM_START = 6000;
+        const STRIKE_TIME = 55000;
+        const FADE_OUT_START = 55000;
+        const IMPACT_START = 45000;
 
-        // Determine "Storm Factor" (0 = sunny, 1 = full apocalypse)
+        // 1. Storm Factor (0 to 1)
+        // 0s - 7.5s: 0
+        // 7.5s - 55s: Ramp 0 -> 1
         let stormFactor = 0;
-        if (progress < 0.2) stormFactor = 0;
-        else if (progress < 0.5) stormFactor = (progress - 0.2) / 0.3; // 0 to 1
-        else stormFactor = 1;
+        if (elapsed < STORM_START) {
+            stormFactor = 0;
+        } else if (elapsed < STRIKE_TIME) {
+            stormFactor = (elapsed - STORM_START) / (STRIKE_TIME - STORM_START);
+        } else {
+            stormFactor = 1;
+        }
 
-        // Determine "Impact Factor" (0 = normal view, 1 = underwater/blackout)
+        // 2. Impact Factor (Chaos/Strike)
+        // Ramps up chaos leading to the strike
+        // Let's start ramping it up in the last 10s before strike
         let impactFactor = 0;
-        if (progress > 0.75) impactFactor = (progress - 0.75) / 0.25;
+        if (elapsed > IMPACT_START) {
+            impactFactor = Math.max(0, (elapsed - IMPACT_START) / (STRIKE_TIME - IMPACT_START));
+        }
+        // Clamp impact factor to 1 until fade out completes, though elapsed > STRIKE_TIME covers it.
+        if (elapsed > STRIKE_TIME) impactFactor = 1;
 
         // Interpolate Palette
         const currentPalette = {
@@ -629,8 +642,10 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         }
 
         // 7. Distant Tsunami Wall (FG)
-        if (progress > 0.4) {
-            const wallProgress = (progress - 0.4) / 0.6; // 0 to 1
+        // Start showing wall when storm is roughly 30% active (around 22s mark)
+        const WALL_START_FACTOR = 0.3; 
+        if (stormFactor > WALL_START_FACTOR) {
+            const wallProgress = (stormFactor - WALL_START_FACTOR) / (1 - WALL_START_FACTOR); // 0 to 1
             const wallHeight = lerp(0, height * 1.5, wallProgress * wallProgress); // Accelerate
             
             fgCtx.fillStyle = currentPalette.waterDeep;
@@ -752,9 +767,19 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             fgCtx.stroke();
         }
 
-        // 10. Final Blackout Fade (FG)
-        if (progress > 0.9) {
-            const fade = (progress - 0.9) / 0.1;
+        // 10. Intro Fade In (FG)
+        if (elapsed < FADE_IN_END) {
+            let opacity = 1;
+            if (elapsed > 1000) {
+                opacity = 1 - ((elapsed - 1000) / (FADE_IN_END - 1000));
+            }
+            fgCtx.fillStyle = `rgba(0, 0, 0, ${opacity})`;
+            fgCtx.fillRect(0, 0, width, height);
+        }
+
+        // 11. Final Blackout Fade Out (FG)
+        if (elapsed > FADE_OUT_START) {
+            const fade = Math.min(1, (elapsed - FADE_OUT_START) / (durationMs - FADE_OUT_START));
             fgCtx.fillStyle = `rgba(0, 0, 0, ${fade})`;
             fgCtx.fillRect(0, 0, width, height);
         }
