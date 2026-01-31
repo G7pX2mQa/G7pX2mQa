@@ -35,27 +35,34 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         wrapper.style.position = 'absolute';
         wrapper.style.left = '50%';
         
-        // Perspective transform to make them look like they are lying on the sand
-        // Flipped upside down (rotateZ 180deg) and flattened (rotateX 25deg)
-        // Moved to center (translate -50%)
-        let rotationZ = 180;
-        let rotationX = 25;
+        // Flipped upside down (rotateZ 180deg) and tilted back (rotateX 25deg)
+        const transformBase = `perspective(600px) rotateX(25deg) rotateZ(180deg)`;
         
-        // Vary rotation slightly for MP to avoid perfect parallelism (chaos)
-        if (type === 'mp') rotationZ += 3;
+        const hasXp = !!options.xpHTML;
+        const hasMp = !!options.mpHTML;
 
-        wrapper.style.transform = `translateX(-50%) perspective(600px) rotateZ(${rotationZ}deg) rotateX(${rotationX}deg)`;
-        wrapper.style.transformOrigin = 'center center';
-        
-        // Sand is approx 65% to 85%
-        // Stack order (Top to Bottom on Screen): MP, XP, Coin (Coin at bottom/closest to water)
-        if (type === 'mp') {
-            wrapper.style.top = '66%';
-        } else if (type === 'xp') {
-            wrapper.style.top = '72%';
-        } else if (type === 'coin') {
-            wrapper.style.top = '78%';
+        if (type === 'coin') {
+            wrapper.style.top = '77%';
+            wrapper.style.transform = `translateX(-50%) ${transformBase}`;
+        } else if (hasXp && hasMp) {
+            // Both XP and MP: Side-by-side centered
+            // Compromise vertical position
+            wrapper.style.top = '70%';
+            if (type === 'mp') {
+                // Left side (gap of ~50px total)
+                wrapper.style.transform = `translateX(calc(-100% - 25px)) ${transformBase}`;
+            } else {
+                // Right side (XP)
+                wrapper.style.transform = `translateX(25px) ${transformBase}`;
+            }
+        } else {
+            // Single XP or MP
+            if (type === 'mp') wrapper.style.top = '66%';
+            else if (type === 'xp') wrapper.style.top = '72%';
+            wrapper.style.transform = `translateX(-50%) ${transformBase}`;
         }
+        
+        wrapper.style.transformOrigin = 'center center';
         
         const counter = wrapper.firstElementChild;
         if (counter) {
