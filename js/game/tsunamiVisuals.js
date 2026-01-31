@@ -10,6 +10,9 @@
  */
 
 export function playTsunamiSequence(container, durationMs = 15000, onComplete, options = {}) {
+    // Hide cursor
+    container.style.cursor = 'none';
+
     // --- BG Canvas (Sky, Sand) ---
     const bgCanvas = document.createElement('canvas');
     bgCanvas.id = 'tsunami-bg-canvas';
@@ -125,6 +128,13 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         const sandY = height * 0.65;
         const d3y = sandY + height * 0.15;
         
+        // Merchant Safe Zone
+        const merchScale = Math.min(width, height) * 0.0005; 
+        const merchW = 300 * merchScale;
+        const merchX = width * 0.80;
+        const merchSafeMin = merchX - (merchW * 0.6);
+        const merchSafeMax = merchX + (merchW * 0.6);
+
         // Generate static speckles
         for(let i=0; i<100; i++) {
             const sx = Math.random() * width;
@@ -153,6 +163,12 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
                     if (y > limitY) return false;
                 }
             }
+
+            // Merchant Avoidance
+            if (type === 'tree' && x > merchSafeMin && x < merchSafeMax) {
+                return false;
+            }
+
             return true;
         };
 
@@ -792,6 +808,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
 
     function cleanup() {
         isRunning = false;
+        container.style.cursor = '';
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
         window.removeEventListener('resize', resize);
         if (bgCanvas.parentNode) bgCanvas.parentNode.removeChild(bgCanvas);
