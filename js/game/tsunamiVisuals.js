@@ -184,9 +184,8 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
                                     const dx = p.x - x;
                                     const dy = p.y - y;
                                     const dist = Math.sqrt(dx*dx + dy*dy);
-                                    // Use a threshold relative to width, e.g., 2% of width or fixed px
-                                    // 50px is a reasonable starting point for desktop, maybe scale with width
-                                    if (dist < width * 0.05) { 
+                                    // Ensure decent spacing: larger of 8% width or 100px
+                                    if (dist < Math.max(width * 0.08, 100)) { 
                                         safe = false;
                                         break;
                                     }
@@ -212,8 +211,9 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         addProp('tree', outerTreeCount, 0.8, 0.4, () => Math.random() * (width * 0.1));
         // Right
         addProp('tree', outerTreeCount, 0.8, 0.4, () => (width * 0.9) + Math.random() * (width * 0.1));
-        // Center
-        addProp('tree', 8, 0.8, 0.4, () => (width * 0.1) + Math.random() * (width * 0.8));
+        // Center: Ensure at least 5 trees
+        const centerTreeCount = 5 + Math.floor(Math.random() * 3);
+        addProp('tree', centerTreeCount, 0.8, 0.4, () => (width * 0.1) + Math.random() * (width * 0.8));
         
         addProp('rock', 20, 0.6, 0.4);
         addProp('shell', 30, 0.3, 0.3);
