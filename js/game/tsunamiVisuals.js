@@ -134,11 +134,12 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         
         const isSafe = (x, y) => {
             // HUD Avoidance
-            // Center X band (25% to 75%)
-            if (x > width * 0.25 && x < width * 0.75) {
-                // Main HUD is around 65% to 85% Y
-                // So if we are in that X band, we must be higher than 75% (top of sand)
-                if (y > height * 0.75) return false;
+            // Center X band (20% to 80%)
+            if (x > width * 0.20 && x < width * 0.80) {
+                // Main HUD occupies roughly 70% to 85% Y, but lies on a higher z-index.
+                // We allow spawning behind the HUD, but avoid spawning in the water (y > 0.85).
+                // This ensures the middle area is populated.
+                if (y > height * 0.85) return false;
             }
             return true;
         };
