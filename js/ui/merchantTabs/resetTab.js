@@ -1048,7 +1048,7 @@ function startTsunamiSequence() {
     };
 
     // 8. Start Visuals
-    tsunamiCleanup = playTsunamiSequence(overlay, 15000, endTsunamiSequence, visualOptions);
+    tsunamiCleanup = playTsunamiSequence(overlay, 60000, endTsunamiSequence, visualOptions);
 }
 
 function endTsunamiSequence() {
