@@ -132,7 +132,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             sandSpeckles.push({x: sx, y: sy});
         }
         
-        const isSafe = (x, y) => {
+        const isSafe = (x, y, type) => {
             // HUD Avoidance
             // Center X band (10% to 90%)
             if (x > width * 0.10 && x < width * 0.90) {
@@ -144,6 +144,14 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
                 const limitY = sandY + (sandH * 0.15);
 
                 if (y > limitY) return false;
+            } else {
+                // Outer bands: Only spawn in the top 50% of the sand region
+                // Restrict this logic ONLY to trees
+                if (type === 'tree') {
+                    const sandH = height - sandY;
+                    const limitY = sandY + (sandH * 0.50);
+                    if (y > limitY) return false;
+                }
             }
             return true;
         };
@@ -153,7 +161,27 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
                 let x, y, safe = false;
                 let attempts = 0;
                 while(!safe && attempts < 50) {
-                    x = Math.random() * width;
+                    if (type === 'tree') {
+                        // Weighted Random X for Density Control
+                        // Outer bands (20% total width) have 2x density of center band (80% width).
+                        // Probabilities: Outer = 1/3 (~33.3%), Center = 2/3 (~66.6%).
+                        const randP = Math.random();
+                        if (randP < 1/3) {
+                            // Outer Bands
+                            if (Math.random() < 0.5) {
+                                x = Math.random() * (width * 0.1); // Left 0-10%
+                            } else {
+                                x = (width * 0.9) + Math.random() * (width * 0.1); // Right 90-100%
+                            }
+                        } else {
+                            // Center Band
+                            x = (width * 0.1) + Math.random() * (width * 0.8); // Center 10-90%
+                        }
+                    } else {
+                        // Standard Uniform Distribution for non-trees
+                        x = Math.random() * width;
+                    }
+
                     // Spawn anywhere on the sand (sandY to height)
                     // The isSafe function handles the specific restrictions for the middle.
                     const maxY = height; 
@@ -161,7 +189,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
                     const r = Math.random();
                     y = sandY + 20 + (r * r) * (maxY - sandY - 20);
                     
-                    if (isSafe(x, y)) safe = true;
+                    if (isSafe(x, y, type)) safe = true;
                     attempts++;
                 }
                 if(safe) {
