@@ -46,6 +46,7 @@ import {
   setTsunamiSequenceSeen
 } from '../../game/surgeEffects.js';
 import { closeMerchant } from './dlgTab.js';
+import { playTsunamiSequence } from '../tsunamiVisuals.js';
 
 const BN = BigNum;
 
@@ -1005,6 +1006,8 @@ function applySurgeResetLogic(rewardWaves, { playEffects = true, skipVisuals = f
   updateResetPanel();
 }
 
+let tsunamiCleanup = null;
+
 function startTsunamiSequence() {
     // 1. Dispatch music stop
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:stopMusic'));
@@ -1034,11 +1037,26 @@ function startTsunamiSequence() {
     // 6. Set Seen Flag (immediately, to prevent softlock/re-sequence if user quits early)
     setTsunamiSequenceSeen(true);
     
-    // 7. Timer
-    setTimeout(endTsunamiSequence, 15000);
+    // 7. Capture State for Visuals
+    const coinCounter = document.querySelector('.coin-counter');
+    const xpCounter = document.querySelector('.xp-counter');
+    const mpCounter = document.querySelector('.mp-counter');
+    const visualOptions = {
+        coinHTML: coinCounter ? coinCounter.outerHTML : '',
+        xpHTML: xpCounter ? xpCounter.outerHTML : '',
+        mpHTML: mpCounter ? mpCounter.outerHTML : ''
+    };
+
+    // 8. Start Visuals
+    tsunamiCleanup = playTsunamiSequence(overlay, 15000, endTsunamiSequence, visualOptions);
 }
 
 function endTsunamiSequence() {
+    if (tsunamiCleanup) {
+        tsunamiCleanup();
+        tsunamiCleanup = null;
+    }
+
     // 1. Remove overlay
     const overlay = document.getElementById('tsunami-sequence-overlay');
     if (overlay) overlay.remove();
@@ -1080,10 +1098,11 @@ export function performSurgeReset() {
   // Check sequence condition
   if (isSurge8 && !getTsunamiSequenceSeen()) {
       // Trigger sequence logic
-      // First reset (give waves, reset stuff), but NO visuals/sound
-      applySurgeResetLogic(reward, { playEffects: false });
-      
       startTsunamiSequence();
+      
+      // First reset (give waves, reset stuff), but NO visuals/sound
+      // We do this after starting sequence so the visualizer captures pre-reset XP/MP
+      applySurgeResetLogic(reward, { playEffects: false });
       return true;
   }
 
