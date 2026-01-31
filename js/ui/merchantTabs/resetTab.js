@@ -46,7 +46,7 @@ import {
   setTsunamiSequenceSeen
 } from '../../game/surgeEffects.js';
 import { closeMerchant } from './dlgTab.js';
-import { playTsunamiSequence } from '../tsunamiVisuals.js';
+import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 
 const BN = BigNum;
 
