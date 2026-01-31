@@ -156,29 +156,15 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             return true;
         };
 
-        const addProp = (type, count, scaleBase, scaleVar) => {
+        const addProp = (type, count, scaleBase, scaleVar, xFn) => {
             for(let i=0; i<count; i++) {
                 let x, y, safe = false;
                 let attempts = 0;
                 while(!safe && attempts < 50) {
-                    if (type === 'tree') {
-                        // Weighted Random X for Density Control
-                        // Outer bands (20% total width) have 2x density of center band (80% width).
-                        // Probabilities: Outer = 1/3 (~33.3%), Center = 2/3 (~66.6%).
-                        const randP = Math.random();
-                        if (randP < 1/3) {
-                            // Outer Bands
-                            if (Math.random() < 0.5) {
-                                x = Math.random() * (width * 0.1); // Left 0-10%
-                            } else {
-                                x = (width * 0.9) + Math.random() * (width * 0.1); // Right 90-100%
-                            }
-                        } else {
-                            // Center Band
-                            x = (width * 0.1) + Math.random() * (width * 0.8); // Center 10-90%
-                        }
+                    if (xFn) {
+                        x = xFn();
                     } else {
-                        // Standard Uniform Distribution for non-trees
+                        // Standard Uniform Distribution
                         x = Math.random() * width;
                     }
 
@@ -189,7 +175,25 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
                     const r = Math.random();
                     y = sandY + 20 + (r * r) * (maxY - sandY - 20);
                     
-                    if (isSafe(x, y, type)) safe = true;
+                    if (isSafe(x, y, type)) {
+                        safe = true;
+                        // Distance check for trees to prevent clumping
+                        if (type === 'tree') {
+                            for (const p of props) {
+                                if (p.type === 'tree') {
+                                    const dx = p.x - x;
+                                    const dy = p.y - y;
+                                    const dist = Math.sqrt(dx*dx + dy*dy);
+                                    // Use a threshold relative to width, e.g., 2% of width or fixed px
+                                    // 50px is a reasonable starting point for desktop, maybe scale with width
+                                    if (dist < width * 0.05) { 
+                                        safe = false;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
                     attempts++;
                 }
                 if(safe) {
@@ -203,7 +207,14 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             }
         };
 
-        addProp('tree', 12, 0.8, 0.4);
+        const outerTreeCount = 3 + Math.floor(Math.random() * 3);
+        // Left
+        addProp('tree', outerTreeCount, 0.8, 0.4, () => Math.random() * (width * 0.1));
+        // Right
+        addProp('tree', outerTreeCount, 0.8, 0.4, () => (width * 0.9) + Math.random() * (width * 0.1));
+        // Center
+        addProp('tree', 8, 0.8, 0.4, () => (width * 0.1) + Math.random() * (width * 0.8));
+        
         addProp('rock', 20, 0.6, 0.4);
         addProp('shell', 30, 0.3, 0.3);
 
