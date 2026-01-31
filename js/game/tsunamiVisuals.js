@@ -134,12 +134,16 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         
         const isSafe = (x, y) => {
             // HUD Avoidance
-            // Center X band (20% to 80%)
-            if (x > width * 0.20 && x < width * 0.80) {
+            // Center X band (10% to 90%)
+            if (x > width * 0.10 && x < width * 0.90) {
                 // Main HUD occupies roughly 70% to 85% Y, but lies on a higher z-index.
-                // We allow spawning behind the HUD, but avoid spawning in the water (y > 0.85).
-                // This ensures the middle area is populated.
-                if (y > height * 0.85) return false;
+                // We allow spawning behind the HUD.
+                // User requirement: In the middle band, only spawn in the top 15% of the sand.
+                // Sand is from sandY to height.
+                const sandH = height - sandY;
+                const limitY = sandY + (sandH * 0.15);
+
+                if (y > limitY) return false;
             }
             return true;
         };
@@ -150,8 +154,9 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
                 let attempts = 0;
                 while(!safe && attempts < 50) {
                     x = Math.random() * width;
-                    // Spawn mostly at the top of the beach (avoiding water area > 0.85)
-                    const maxY = height * 0.88; 
+                    // Spawn anywhere on the sand (sandY to height)
+                    // The isSafe function handles the specific restrictions for the middle.
+                    const maxY = height; 
                     // Bias towards sandY (top) using quadratic curve
                     const r = Math.random();
                     y = sandY + 20 + (r * r) * (maxY - sandY - 20);
