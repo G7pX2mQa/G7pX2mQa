@@ -10,7 +10,7 @@
  */
 
 export function playTsunamiSequence(container, durationMs = 15000, onComplete, options = {}) {
-    // Hide cursor
+    // Hide cursor initially
     container.style.cursor = 'none';
 
     // --- BG Canvas (Sky, Sand) ---
@@ -110,7 +110,6 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
     merchantImg.src = 'img/misc/merchant.webp';
     let merchantLoaded = false;
     merchantImg.onload = () => { 
-        console.log('Tsunami: Merchant loaded');
         merchantLoaded = true; 
     };
     merchantImg.onerror = (e) => {
@@ -268,6 +267,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
     const startTime = Date.now();
     let isRunning = true;
     let animationFrameId;
+    let visualsFinished = false;
 
     // --- Configuration & State ---
     
@@ -308,6 +308,16 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         bolts: [],
         nextFlashTime: 0
     };
+
+    // New State for "Crazy Stuff"
+    let beaconsActive = false;
+    let beacons = [];
+    let beaconStartTime = 0;
+    let finalFadeActive = false;
+    let finalFadeStart = 0;
+    let finalFadeDuration = 5000;
+    let finalExplosionTriggered = false;
+    let flashWhite = 0;
 
     const waves = [];
     const layerCount = 6;
@@ -502,6 +512,71 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         ctx.restore();
     }
 
+    function spawnBeacon(ctx, width, height, forceSize = null) {
+        // Darker blue range: 225-245 (Pure Blue to Indigo, avoiding Cyan & Purple)
+        const sizeMult = forceSize ? forceSize : 1;
+        const isFinal = !!forceSize && forceSize > 5;
+        
+        beacons.push({
+            x: isFinal ? width / 2 : Math.random() * width,
+            y: isFinal ? height / 2 : Math.random() * height,
+            radius: 0,
+            maxRadius: isFinal ? Math.max(width, height) * 1.5 : (100 + Math.random() * 400) * sizeMult,
+            speed: isFinal ? 40 : (5 + Math.random() * 15) * sizeMult,
+            opacity: 1,
+            hue: 225 + Math.random() * 15, 
+            life: 1.0
+        });
+    }
+
+    function drawBeacons(ctx, width, height, intensity = 0.5, allowSpawn = true) {
+        // Dynamic spawn chance based on intensity
+        const chance = 0.1 + (intensity * 0.7);
+        const spawnCount = Math.floor(1 + intensity * 4); 
+
+        if (allowSpawn) {
+            for(let k=0; k<spawnCount; k++) {
+                if (beacons.length < 50 && Math.random() < chance) {
+                    const sizeMult = 1 + intensity * 2;
+                    spawnBeacon(ctx, width, height, sizeMult);
+                }
+            }
+        }
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter'; // Additive blending
+
+        for (let i = beacons.length - 1; i >= 0; i--) {
+            const b = beacons[i];
+            b.radius += b.speed;
+            b.opacity -= 0.015; // Slightly faster fade
+            b.life -= 0.015;
+
+            if (b.opacity <= 0 || b.radius > b.maxRadius) {
+                beacons.splice(i, 1);
+                continue;
+            }
+
+            const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.radius);
+            // Deep Blue gradients
+            const alpha = b.opacity;
+            // 80% lightness in center (was 90%)
+            grad.addColorStop(0, `hsla(${b.hue}, 100%, 80%, ${alpha})`); 
+            // 40% lightness mid (Deep Blue)
+            grad.addColorStop(0.3, `hsla(${b.hue}, 100%, 40%, ${alpha * 0.9})`); 
+            // 15% lightness outer (Very Dark Blue)
+            grad.addColorStop(0.7, `hsla(${b.hue}, 100%, 15%, ${alpha * 0.6})`); 
+            grad.addColorStop(1, `hsla(${b.hue}, 100%, 5%, 0)`);
+
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
     // --- Render Loop ---
     function loop() {
         if (!isRunning) return;
@@ -510,10 +585,10 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         const elapsed = now - startTime;
         const progress = Math.min(elapsed / durationMs, 1.0);
 
-        if (progress >= 1.0) {
-            cleanup();
+        if (progress >= 1.0 && !visualsFinished) {
+            visualsFinished = true;
             if (onComplete) onComplete();
-            return;
+            // Do not return; keep looping to allow beacons etc.
         }
 
         // Timeline Constants (ms)
@@ -815,11 +890,59 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             fgCtx.fillRect(-50, -50, width + 100, height + 100);
         }
 
-        // 11. Final Blackout Fade Out (FG)
+        // 11. Initial Storm Fade Out (FG) - Time Based
         if (elapsed > FADE_OUT_START) {
             const fade = Math.min(1, (elapsed - FADE_OUT_START) / FADE_OUT_DURATION);
             fgCtx.fillStyle = `rgba(0, 0, 0, ${fade})`;
             fgCtx.fillRect(-50, -50, width + 100, height + 100);
+        }
+
+        // 12. Solar Beacons (Crazy Stuff) - Triggered Manually, On Top of Black
+        if (beaconsActive) {
+            const beaconElapsed = now - beaconStartTime;
+            
+            // 15 seconds total duration. 
+            // Ramp up 0 -> 1 over 14.5s
+            // Final explosion at 14.5s
+            // Fade starts at 15s (handled by finalFadeActive)
+            
+            let intensity = 0;
+            let allowSpawn = true;
+            
+            if (beaconElapsed < 14500) {
+                intensity = beaconElapsed / 14500;
+            } else {
+                intensity = 1.0;
+                // Final explosion check
+                if (!finalExplosionTriggered) {
+                    finalExplosionTriggered = true;
+                    // Spawn huge explosion center screen
+                    spawnBeacon(fgCtx, width, height, 15.0); 
+                    flashWhite = 3; // Flash frames
+                }
+            }
+            
+            // Stop regular spawning when final fade starts
+            if (finalFadeActive) {
+                allowSpawn = false;
+            }
+            
+            drawBeacons(fgCtx, width, height, intensity, allowSpawn);
+        }
+
+        // 13. Final Blackout Fade Out (FG) - Manual Trigger
+        if (finalFadeActive) {
+            const fadeElapsed = now - finalFadeStart;
+            const fade = Math.min(1, fadeElapsed / finalFadeDuration);
+            fgCtx.fillStyle = `rgba(0, 0, 0, ${fade})`;
+            fgCtx.fillRect(-50, -50, width + 100, height + 100);
+        }
+
+        // 14. Flash White (Boom)
+        if (flashWhite > 0) {
+            fgCtx.fillStyle = `rgba(255, 255, 255, ${flashWhite / 3})`;
+            fgCtx.fillRect(-50, -50, width + 100, height + 100);
+            flashWhite--;
         }
 
         bgCtx.restore();
@@ -838,6 +961,34 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         if (uiContainer.parentNode) uiContainer.parentNode.removeChild(uiContainer);
     }
 
+    function triggerBeacons() {
+        beaconsActive = true;
+        beaconStartTime = Date.now();
+        finalExplosionTriggered = false;
+        flashWhite = 0;
+    }
+
+    function triggerFinalFade() {
+        finalFadeActive = true;
+        finalFadeStart = Date.now();
+    }
+
+    function showCursor() {
+        container.style.cursor = '';
+    }
+
+    function hideCursor() {
+        container.style.cursor = 'none';
+    }
+
     loop();
-    return cleanup;
+    
+    // Return controls
+    return {
+        cleanup,
+        triggerBeacons,
+        triggerFinalFade,
+        showCursor,
+        hideCursor
+    };
 }
