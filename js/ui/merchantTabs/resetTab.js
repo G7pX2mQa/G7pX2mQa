@@ -1,2118 +1,821 @@
-// js/ui/merchantTabs/resetTab.js
-import { BigNum } from '../../util/bigNum.js';
-import {
-  bank,
-  getActiveSlot,
-  watchStorageKey,
-  primeStorageWatcherSnapshot,
-  onCurrencyChange,
-  CURRENCIES,
-} from '../../util/storage.js';
-import { formatNumber } from '../../util/numFormat.js';
-import {
-  getXpState,
-  resetXpProgress,
-  onXpChange,
-} from '../../game/xpSystem.js';
-import {
-  AREA_KEYS,
-  UPGRADE_TIES,
-  getUpgradesForArea,
-  getLevelNumber,
-  setLevel,
-  approxLog10BigNum,
-  bigNumFromLog10,
-  formatMultForUi,
-} from '../../game/upgrades.js';
-import {
-  initMutationSystem,
-  unlockMutationSystem,
-  isMutationUnlocked,
-  getMutationCoinSprite,
-  onMutationChange,
-  getMutationState,
-  getTotalCumulativeMp,
-} from '../../game/mutationSystem.js';
-import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
-import { clearPendingGains } from '../../game/coinPickup.js';
-import { getVisibleMilestones, NERFED_SURGE_MILESTONE_IDS } from '../../game/surgeMilestones.js';
-import { ensureCustomScrollbar, closeShop } from '../shopOverlay.js';
-import { playAudio } from '../../util/audioManager.js';
-import { 
-  getBookProductionRate, 
-  getSurge6WealthMultipliers, 
-  getTsunamiNerf,
-  getTsunamiSequenceSeen,
-  setTsunamiSequenceSeen
-} from '../../game/surgeEffects.js';
-import { closeMerchant } from './dlgTab.js';
-import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 
-const BN = BigNum;
-
-const LOG1_1 = Math.log10(1.1);
-const bnZero = () => BN.fromInt(0);
-const bnOne = () => BN.fromInt(1);
-
-const GOLD_ICON_SRC = 'img/currencies/gold/gold.webp';
-const MAGIC_ICON_SRC = 'img/currencies/magic/magic.webp';
-const RESET_ICON_SRC = 'img/misc/forge.webp';
-const INFUSE_ICON_SRC = 'img/misc/infuse.webp';
-const SURGE_ICON_SRC = 'img/misc/surge.webp';
-const WAVES_ICON_SRC = 'img/currencies/wave/wave.webp';
-const FORGE_RESET_SOUND_SRC = 'sounds/forge_reset.ogg';
-const INFUSE_RESET_SOUND_SRC = 'sounds/infuse_reset.ogg';
-const SURGE_RESET_SOUND_SRC = 'sounds/surge_reset.ogg';
-
-// Add reset names here (e.g. 'forge', 'infuse', 'surge') to exclude them from wiping the playfield
-const RESET_WIPE_EXCLUSIONS = [];
-
-function shouldWipePlayfield(resetType) {
-  return !RESET_WIPE_EXCLUSIONS.includes(resetType);
-}
-
-function playForgeResetSound() {
-  playAudio(FORGE_RESET_SOUND_SRC, { volume: 0.4 });
-}
-
-function playInfuseResetSound() {
-  playAudio(INFUSE_RESET_SOUND_SRC, { volume: 0.45 });
-}
-
-function playSurgeResetSound() {
-  playAudio(SURGE_RESET_SOUND_SRC, { volume: 0.5 });
-}
-
-const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
-const FORGE_COMPLETED_KEY = (slot) => `ccc:reset:forge:completed:${slot}`;
-const FORGE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:forgeUnlocked:${slot}`;
-
-const INFUSE_UNLOCK_KEY = (slot) => `ccc:reset:infuse:${slot}`;
-const INFUSE_COMPLETED_KEY = (slot) => `ccc:reset:infuse:completed:${slot}`;
-const INFUSE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:infuseUnlocked:${slot}`;
-
-const SURGE_UNLOCK_KEY = (slot) => `ccc:reset:surge:${slot}`;
-const SURGE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:surgeUnlocked:${slot}`;
-const SURGE_COMPLETED_KEY = (slot) => `ccc:reset:surge:completed:${slot}`;
-export const getSurgeBarLevelKey = (slot) => `ccc:reset:surge:barLevel:${slot}`;
-const SURGE_BAR_LEVEL_KEY = getSurgeBarLevelKey;
-
-const MIN_FORGE_LEVEL = BN.fromInt(31);
-const MIN_INFUSE_MUTATION_LEVEL = BN.fromInt(7);
-
-let isUpdatingWaveBar = false;
-let _shouldBlockBigCoins = false;
-
-export function shouldBlockBigCoins() {
-  return _shouldBlockBigCoins;
-}
-
-function updateBlockBigCoinsStatus() {
-  const slot = ensureResetSlot();
-  const currentWaves = bank.waves?.value ?? bnZero();
-  let barLevel = 0n;
-  try { barLevel = getSurgeBarLevel(slot); } catch {}
-  
-  const pending = resetState.pendingWaves;
-  const potentialLevel = predictSurgeLevel(barLevel, currentWaves, pending);
-
-  let isSurge8 = false;
-  if (potentialLevel === Infinity) isSurge8 = true;
-  else if (typeof potentialLevel === 'bigint') isSurge8 = potentialLevel >= 8n;
-  else if (typeof potentialLevel === 'number') isSurge8 = potentialLevel >= 8;
-
-  _shouldBlockBigCoins = isSurge8 && !getTsunamiSequenceSeen();
-}
-
-const resetState = {
-  slot: null,
-  forgeUnlocked: false,
-  forgeDebugOverride: null,
-  hasDoneForgeReset: false,
-  infuseUnlocked: false,
-  infuseDebugOverride: null,
-  hasDoneInfuseReset: false,
-  surgeUnlocked: false,
-  surgeDebugOverride: null,
-  hasDoneSurgeReset: false,
-  pendingGold: bnZero(),
-  pendingMagic: bnZero(),
-  pendingWaves: bnZero(),
-  panel: null,
-  elements: {
-    forge: {
-      card: null,
-      status: null,
-      btn: null,
-    },
-    infuse: {
-      card: null,
-      status: null,
-      btn: null,
-    },
-    surge: {
-      card: null,
-      status: null,
-      btn: null,
-      bar: null,
-      barFill: null,
-      barText: null,
-      milestones: null,
-      headerVal: null,
-    },
-  },
-  layerButtons: {},
-  flagsPrimed: false,
-  lastRenderedSurgeLevel: null,
-};
-
-const watchers = [];
-let watchersBoundSlot = null;
-let initialized = false;
-let mutationUnsub = null;
-let pendingGoldInputSignature = null;
-let coinChangeUnsub = null;
-let xpChangeUnsub = null;
-
-function resetPendingGoldSignature() {
-  pendingGoldInputSignature = null;
-}
-
-function notifyForgeUnlockChange() {
-  const slot = resetState.slot ?? getActiveSlot();
-  try {
-    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'forge', slot } }));
-  } catch {}
-}
-
-function notifyInfuseUnlockChange() {
-  const slot = resetState.slot ?? getActiveSlot();
-  try {
-    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'infuse', slot } }));
-  } catch {}
-}
-
-function notifySurgeUnlockChange() {
-  const slot = resetState.slot ?? getActiveSlot();
-  try {
-    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'surge', slot } }));
-  } catch {}
-}
-
-function getPendingGoldWithMultiplier(multiplierOverride = null) {
-  try {
-    if (multiplierOverride) {
-      const mult = multiplierOverride instanceof BN ? multiplierOverride : BN.fromAny(multiplierOverride ?? 1);
-      if (mult.isInfinite?.()) return BN.fromAny('Infinity');
-      return resetState.pendingGold.mulBigNumInteger(mult);
-    }
-    return bank.gold?.mult?.applyTo?.(resetState.pendingGold) ?? resetState.pendingGold;
-  } catch {
-    return resetState.pendingGold;
-  }
-}
-
-function cleanupWatchers() {
-  while (watchers.length) {
-    const stop = watchers.pop();
-    try { stop?.(); } catch {}
-  }
-}
-
-function ensureValueListeners() {
-  if (!coinChangeUnsub && typeof onCurrencyChange === 'function') {
-    coinChangeUnsub = onCurrencyChange((detail = {}) => {
-      if (detail?.key && detail.key !== CURRENCIES.COINS && detail.key !== CURRENCIES.WAVES) return;
-      if (detail?.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
-      
-      if (detail?.key === CURRENCIES.WAVES) {
-          updateWaveBar();
-          updateResetPanel();
-      } else {
-          recomputePendingGold();
-          recomputePendingMagic();
-          recomputePendingWaves();
-      }
-    });
-  }
-  if (!xpChangeUnsub && typeof onXpChange === 'function') {
-    xpChangeUnsub = onXpChange((detail = {}) => {
-      if (detail?.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
-      recomputePendingGold();
-      recomputePendingWaves();
-      updateResetPanel();
-    });
-  }
-}
-
-function levelToNumber(levelBn) {
-  if (!levelBn || typeof levelBn !== 'object') return 0;
-  if (levelBn.isInfinite?.()) return Number.POSITIVE_INFINITY;
-  try {
-    const plain = levelBn.toPlainIntegerString?.();
-    if (plain && plain !== 'Infinity' && plain.length <= 15) {
-      const num = Number(plain);
-      if (Number.isFinite(num)) return num;
-    }
-  } catch {}
-  const approx = approxLog10BigNum(levelBn);
-  if (!Number.isFinite(approx)) return Number.POSITIVE_INFINITY;
-  if (approx > 308) return Number.POSITIVE_INFINITY;
-  return Math.pow(10, approx);
-}
-
-function getXpLevelBn() {
-  try {
-    const state = getXpState();
-    if (state && state.xpLevel) return state.xpLevel;
-  } catch {}
-  return bnZero();
-}
-
-function computeForgeGold(coinsBn, levelBn) {
-  if (!coinsBn || typeof coinsBn !== 'object') return bnZero();
-  const logCoins = approxLog10BigNum(coinsBn);
-  if (!Number.isFinite(logCoins)) {
-    if (logCoins > 0) return BN.fromAny('Infinity');
-  }
-  const logScaled = Math.max(0, logCoins - 5);
-  if (!Number.isFinite(logScaled)) return bnZero();
-  const pow2 = bigNumFromLog10(logScaled * Math.log10(2));
-  const levelNum = Math.max(0, levelToNumber(levelBn));
-  const levelFactor = Math.max(0, (levelNum - 30) / 5);
-  const pow14 = levelFactor <= 0
-    ? bnOne()
-    : bigNumFromLog10(levelFactor * Math.log10(1.4));
-  const floorLog = Math.floor(logScaled);
-  const pow115 = floorLog <= 0
-    ? bnOne()
-    : bigNumFromLog10(floorLog * Math.log10(1.15));
-  let total = BN.fromInt(10);
-  total = total.mulBigNumInteger(pow2);
-  total = total.mulBigNumInteger(pow14);
-  total = total.mulBigNumInteger(pow115);
-  const floored = total.floorToInteger();
-  return floored.isZero?.() ? bnZero() : floored;
-}
-
-function computeInfuseMagicBase(coinsBn, cumulativeMpBn) {
-  if (!coinsBn) return bnZero();
-
-
-  const logCoins = approxLog10BigNum(coinsBn);
-  if (!Number.isFinite(logCoins)) { if (logCoins > 0) return BN.fromAny('Infinity'); }
-
-  const logCRatio = Math.max(0, logCoins - 12);
-
-  const LOG_BASE = 0.811078; // Math.log10(6.4726)
-  const LOG_1_5 = 0.176091;  // Math.log10(1.5)
-  const LOG_1_03 = 0.012837; // Math.log10(1.03)
-  const LOG_2 = 0.301030;    // Math.log10(2)
-
-  let logMpRatio = 0;
-  if (cumulativeMpBn && !cumulativeMpBn.isZero?.()) {
-    const logMp = approxLog10BigNum(cumulativeMpBn);
-    if (Number.isFinite(logMp)) {
-       logMpRatio = Math.max(0, logMp - 4);
-    }
-  }
-
-  const term1 = logCRatio * LOG_1_5;
-  const term2 = Math.floor(logCRatio) * LOG_1_03;
-  const term3 = logMpRatio * LOG_2;
-
-  const totalLog = LOG_BASE + term1 + term2 + term3;
-  
-  if (!Number.isFinite(totalLog)) return BN.fromAny('Infinity');
-  
-  return bigNumFromLog10(totalLog).floorToInteger();
-}
-
-function computeInfuseMagic(coinsBn, cumulativeMpBn, multiplierOverride = null) {
-  const base = computeInfuseMagicBase(coinsBn, cumulativeMpBn);
-  if (multiplierOverride) {
-    const mult = multiplierOverride instanceof BN ? multiplierOverride : BN.fromAny(multiplierOverride ?? 1);
-    if (mult.isInfinite?.()) return BN.fromAny('Infinity');
-    return base.mulBigNumInteger(mult);
-  }
-  return bank.magic?.mult?.applyTo?.(base) ?? base;
-}
-
-export function computeForgeGoldFromInputs(coinsBn, levelBn) {
-  return computeForgeGold(coinsBn, levelBn);
-}
-
-export function computeInfuseMagicFromInputs(coinsBn, cumulativeMpBn) {
-  return computeInfuseMagic(coinsBn, cumulativeMpBn);
-}
-
-export function computeSurgeWavesFromInputs(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
-  return computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn);
-}
-
-function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
-  const xpLevel = levelToNumber(xpLevelBn);
-  if (xpLevel < 201) return bnZero();
-
-  // Formula: 10 * 10^((XP - 201)/35) * Multipliers
-  const xpTerm = (xpLevel - 201) / 35;
-  
-  // Log-based multipliers
-  const logCoins = approxLog10BigNum(coinsBn);
-  const logGold = approxLog10BigNum(goldBn);
-  const logMagic = approxLog10BigNum(magicBn);
-  const logMp = approxLog10BigNum(mpBn);
-
-  // Handle Infinity
-  if (logCoins === Number.POSITIVE_INFINITY || 
-      logGold === Number.POSITIVE_INFINITY || 
-      logMagic === Number.POSITIVE_INFINITY || 
-      logMp === Number.POSITIVE_INFINITY) {
-    return BN.fromAny('Infinity');
-  }
-
-  let logSum = 0;
-
-  if (Number.isFinite(logCoins) && logCoins > 24) {
-    logSum += (logCoins - 24) * LOG1_1;
-  }
-  if (Number.isFinite(logGold) && logGold > 13) {
-    logSum += (logGold - 13) * LOG1_1;
-  }
-  if (Number.isFinite(logMagic) && logMagic > 5) {
-    logSum += (logMagic - 5) * LOG1_1;
-  }
-  if (Number.isFinite(logMp) && logMp > 12) {
-    logSum += (logMp - 12) * LOG1_1;
-  }
-  
-  // Combine: 10 * 10^logSum * 10^(xpTerm)
-  // log10(Waves) = 1 + logSum + xpTerm
-  
-  const logTotal = 1 + logSum + xpTerm;
-  if (!Number.isFinite(logTotal)) return BN.fromAny('Infinity');
-  
-  return bigNumFromLog10(logTotal).floorToInteger();
-}
-
-function getXpLevelNumber() {
-  return Math.max(0, levelToNumber(getXpLevelBn()));
-}
-
-function ensureResetSlot() {
-  if (resetState.slot != null) return resetState.slot;
-  const slot = getActiveSlot();
-  resetState.slot = slot;
-  return slot;
-}
-
-export function setForgeResetCompleted(value) {
-  const slot = ensureResetSlot();
-  if (slot == null) return;
-  resetState.hasDoneForgeReset = !!value;
-  try { localStorage.setItem(FORGE_COMPLETED_KEY(slot), resetState.hasDoneForgeReset ? '1' : '0'); }
-  catch {}
-  try { window.dispatchEvent(new CustomEvent('forge:completed', { detail: { slot } })); }
-  catch {}
-}
-
-export function setInfuseResetCompleted(value) {
-  const slot = ensureResetSlot();
-  if (slot == null) return;
-  resetState.hasDoneInfuseReset = !!value;
-  try { localStorage.setItem(INFUSE_COMPLETED_KEY(slot), resetState.hasDoneInfuseReset ? '1' : '0'); }
-  catch {}
-  try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'infuse', slot } })); }
-  catch {}
-}
-
-export function setSurgeResetCompleted(value) {
-  const slot = ensureResetSlot();
-  if (slot == null) return;
-  resetState.hasDoneSurgeReset = !!value;
-  try { localStorage.setItem(SURGE_COMPLETED_KEY(slot), resetState.hasDoneSurgeReset ? '1' : '0'); }
-  catch {}
-  // Notify for "Unlock Warp" toggle in debug panel
-  try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'surge_completed', slot } })); }
-  catch {}
-}
-
-function getForgeDebugOverride(slot = getActiveSlot()) {
-  if (slot == null) return null;
-  try {
-    const raw = localStorage.getItem(FORGE_DEBUG_OVERRIDE_KEY(slot));
-    if (raw === '1') return true;
-    if (raw === '0') return false;
-  } catch {}
-  return null;
-}
-
-export function getForgeDebugOverrideState(slot = getActiveSlot()) {
-  return getForgeDebugOverride(slot);
-}
-
-export function setForgeDebugOverride(value, slot = getActiveSlot()) {
-  if (slot == null) return;
-  const normalized = value == null ? null : !!value;
-  if (resetState.forgeDebugOverride === normalized) return;
-
-  resetState.forgeDebugOverride = normalized;
-
-  if (normalized == null) {
-    try { localStorage.removeItem(FORGE_DEBUG_OVERRIDE_KEY(slot)); } catch {}
-  } else {
-    try { localStorage.setItem(FORGE_DEBUG_OVERRIDE_KEY(slot), normalized ? '1' : '0'); }
-    catch {}
-  }
-  primeStorageWatcherSnapshot(FORGE_DEBUG_OVERRIDE_KEY(slot));
-  notifyForgeUnlockChange();
-  updateResetPanel();
-}
-
-function getInfuseDebugOverride(slot = getActiveSlot()) {
-  if (slot == null) return null;
-  try {
-    const raw = localStorage.getItem(INFUSE_DEBUG_OVERRIDE_KEY(slot));
-    if (raw === '1') return true;
-    if (raw === '0') return false;
-  } catch {}
-  return null;
-}
-
-export function getInfuseDebugOverrideState(slot = getActiveSlot()) {
-  return getInfuseDebugOverride(slot);
-}
-
-export function setInfuseUnlockedForDebug(value) {
-  setInfuseUnlocked(value);
-}
-
-export function setInfuseDebugOverride(value, slot = getActiveSlot()) {
-  if (slot == null) return;
-  const normalized = value == null ? null : !!value;
-  if (resetState.infuseDebugOverride === normalized) return;
-
-  resetState.infuseDebugOverride = normalized;
-
-  if (normalized == null) {
-    try { localStorage.removeItem(INFUSE_DEBUG_OVERRIDE_KEY(slot)); } catch {}
-  } else {
-    try { localStorage.setItem(INFUSE_DEBUG_OVERRIDE_KEY(slot), normalized ? '1' : '0'); }
-    catch {}
-  }
-  primeStorageWatcherSnapshot(INFUSE_DEBUG_OVERRIDE_KEY(slot));
-  notifyInfuseUnlockChange();
-  updateResetPanel();
-}
-
-function setInfuseUnlocked(value) {
-  const slot = ensureResetSlot();
-  if (slot == null) return;
-  const next = !!value;
-  if (resetState.infuseUnlocked === next) return;
-  resetState.infuseUnlocked = next;
-  try { localStorage.setItem(INFUSE_UNLOCK_KEY(slot), resetState.infuseUnlocked ? '1' : '0'); }
-  catch {}
-  primeStorageWatcherSnapshot(INFUSE_UNLOCK_KEY(slot));
-  notifyInfuseUnlockChange();
-}
-
-function setForgeUnlocked(value) {
-  const slot = ensureResetSlot();
-  if (slot == null) return;
-  const next = !!value;
-  if (resetState.forgeUnlocked === next) return;
-  resetState.forgeUnlocked = next;
-  try { localStorage.setItem(FORGE_UNLOCK_KEY(slot), resetState.forgeUnlocked ? '1' : '0'); }
-  catch {}
-  primeStorageWatcherSnapshot(FORGE_UNLOCK_KEY(slot));
-  notifyForgeUnlockChange();
-}
-
-function getSurgeDebugOverride(slot = getActiveSlot()) {
-  if (slot == null) return null;
-  try {
-    const raw = localStorage.getItem(SURGE_DEBUG_OVERRIDE_KEY(slot));
-    if (raw === '1') return true;
-    if (raw === '0') return false;
-  } catch {}
-  return null;
-}
-
-export function getSurgeDebugOverrideState(slot = getActiveSlot()) {
-  return getSurgeDebugOverride(slot);
-}
-
-export function setSurgeUnlockedForDebug(value) {
-  setSurgeUnlocked(value);
-}
-
-function setSurgeUnlocked(value) {
-  const slot = ensureResetSlot();
-  if (slot == null) return;
-  const next = !!value;
-  if (resetState.surgeUnlocked === next) return;
-  resetState.surgeUnlocked = next;
-  try { localStorage.setItem(SURGE_UNLOCK_KEY(slot), resetState.surgeUnlocked ? '1' : '0'); }
-  catch {}
-  primeStorageWatcherSnapshot(SURGE_UNLOCK_KEY(slot));
-  notifySurgeUnlockChange();
-}
-
-function readPersistentFlags(slot) {
-  if (slot == null) {
-    resetState.forgeUnlocked = false;
-    resetState.forgeDebugOverride = null;
-    resetState.hasDoneForgeReset = false;
-    resetState.infuseUnlocked = false;
-    resetState.infuseDebugOverride = null;
-    resetState.hasDoneInfuseReset = false;
-    resetState.surgeUnlocked = false;
-    resetState.surgeDebugOverride = null;
-    resetState.hasDoneSurgeReset = false;
-    resetState.flagsPrimed = false;
-    return;
-  }
-  try {
-    resetState.forgeUnlocked = localStorage.getItem(FORGE_UNLOCK_KEY(slot)) === '1';
-  } catch {
-    resetState.forgeUnlocked = false;
-  }
-  resetState.forgeDebugOverride = getForgeDebugOverride(slot);
-  try {
-    resetState.hasDoneForgeReset = localStorage.getItem(FORGE_COMPLETED_KEY(slot)) === '1';
-  } catch {
-    resetState.hasDoneForgeReset = false;
-  }
-  try {
-    resetState.infuseUnlocked = localStorage.getItem(INFUSE_UNLOCK_KEY(slot)) === '1';
-  } catch {
-    resetState.infuseUnlocked = false;
-  }
-  try {
-    resetState.hasDoneInfuseReset = localStorage.getItem(INFUSE_COMPLETED_KEY(slot)) === '1';
-  } catch {
-    resetState.hasDoneInfuseReset = false;
-  }
-  resetState.infuseDebugOverride = getInfuseDebugOverride(slot);
-  
-  try {
-    resetState.surgeUnlocked = localStorage.getItem(SURGE_UNLOCK_KEY(slot)) === '1';
-  } catch {
-    resetState.surgeUnlocked = false;
-  }
-  resetState.surgeDebugOverride = getSurgeDebugOverride(slot);
-  try {
-    resetState.hasDoneSurgeReset = localStorage.getItem(SURGE_COMPLETED_KEY(slot)) === '1';
-  } catch {
-    resetState.hasDoneSurgeReset = false;
-  }
-
-  resetState.flagsPrimed = true;
-}
-
-function ensurePersistentFlagsPrimed() {
-  const slot = getActiveSlot();
-  if (slot == null) {
-    resetState.flagsPrimed = false;
-    return;
-  }
-  if (resetState.slot !== slot) {
-    resetState.slot = slot;
-    resetPendingGoldSignature();
-    resetState.flagsPrimed = false;
-  }
-  if (!resetState.flagsPrimed) {
-    readPersistentFlags(slot);
-  }
-}
-
-function bindStorageWatchers(slot) {
-  if (watchersBoundSlot === slot) return;
-  cleanupWatchers();
-  watchersBoundSlot = slot;
-  if (slot == null) return;
-  watchers.push(watchStorageKey(FORGE_UNLOCK_KEY(slot), {
-    onChange(value) {
-      const next = value === '1';
-      if (resetState.forgeUnlocked !== next) {
-        resetState.forgeUnlocked = next;
-        notifyForgeUnlockChange();
-        updateResetPanel();
-      }
-    },
-  }));
-  watchers.push(watchStorageKey(FORGE_COMPLETED_KEY(slot), {
-    onChange(value) {
-      const next = value === '1';
-      if (resetState.hasDoneForgeReset !== next) {
-        resetState.hasDoneForgeReset = next;
-        updateResetPanel();
-      }
-    },
-  }));
-  watchers.push(watchStorageKey(FORGE_DEBUG_OVERRIDE_KEY(slot), {
-    onChange(value) {
-      let next = null;
-      if (value === '1') next = true;
-      else if (value === '0') next = false;
-      if (resetState.forgeDebugOverride !== next) {
-        resetState.forgeDebugOverride = next;
-        notifyForgeUnlockChange();
-        updateResetPanel();
-      }
-    },
-  }));
-  watchers.push(watchStorageKey(INFUSE_UNLOCK_KEY(slot), {
-    onChange(value) {
-      const next = value === '1';
-      if (resetState.infuseUnlocked !== next) {
-        resetState.infuseUnlocked = next;
-        notifyInfuseUnlockChange();
-        updateResetPanel();
-      }
-    },
-  }));
-  watchers.push(watchStorageKey(INFUSE_COMPLETED_KEY(slot), {
-    onChange(value) {
-      const next = value === '1';
-      if (resetState.hasDoneInfuseReset !== next) {
-        resetState.hasDoneInfuseReset = next;
-        updateResetPanel();
-      }
-    },
-  }));
-  watchers.push(watchStorageKey(INFUSE_DEBUG_OVERRIDE_KEY(slot), {
-    onChange(value) {
-      let next = null;
-      if (value === '1') next = true;
-      else if (value === '0') next = false;
-      if (resetState.infuseDebugOverride !== next) {
-        resetState.infuseDebugOverride = next;
-        notifyInfuseUnlockChange();
-        updateResetPanel();
-      }
-    },
-  }));
-  watchers.push(watchStorageKey(SURGE_UNLOCK_KEY(slot), {
-    onChange(value) {
-      const next = value === '1';
-      if (resetState.surgeUnlocked !== next) {
-        resetState.surgeUnlocked = next;
-        notifySurgeUnlockChange();
-        updateResetPanel();
-      }
-    },
-  }));
-  watchers.push(watchStorageKey(SURGE_DEBUG_OVERRIDE_KEY(slot), {
-    onChange(value) {
-      let next = null;
-      if (value === '1') next = true;
-      else if (value === '0') next = false;
-      if (resetState.surgeDebugOverride !== next) {
-        resetState.surgeDebugOverride = next;
-        notifySurgeUnlockChange();
-        updateResetPanel();
-      }
-    },
-  }));
-  watchers.push(watchStorageKey(SURGE_COMPLETED_KEY(slot), {
-    onChange(value) {
-      const next = value === '1';
-      if (resetState.hasDoneSurgeReset !== next) {
-        resetState.hasDoneSurgeReset = next;
-        updateResetPanel();
-      }
-    },
-  }));
-}
-
-function getPendingInputSignature(coins, level) {
-  const coinSig = coins?.toStorage?.()
-    ?? coins?.toString?.()
-    ?? String(coins ?? '');
-  const levelSig = level?.toStorage?.()
-    ?? level?.toString?.()
-    ?? String(level ?? '');
-  return `${coinSig}|${levelSig}`;
-}
-
-function recomputePendingGold(force = false) {
-  const coins = bank.coins?.value ?? bnZero();
-  const level = getXpLevelBn();
-  const signature = getPendingInputSignature(coins, level);
-  if (!force && pendingGoldInputSignature === signature) {
-    return;
-  }
-  pendingGoldInputSignature = signature;
-
-  if (!meetsLevelRequirement()) {
-    resetState.pendingGold = bnZero();
-  } else {
-    resetState.pendingGold = computeForgeGold(coins, level);
-  }
-
-  updateResetPanel();
-}
-
-export function recomputePendingMagic(multiplierOverride = null) {
-  const coins = bank.coins?.value ?? bnZero();
-  const cumulativeMp = getTotalCumulativeMp();
-  
-  if (!meetsInfuseRequirement()) {
-    resetState.pendingMagic = bnZero();
-  } else {
-    resetState.pendingMagic = computeInfuseMagic(coins, cumulativeMp, multiplierOverride);
-  }
-  recomputePendingWaves();
-  updateResetPanel();
-}
-
-function recomputePendingWaves() {
-  if (!isSurgeUnlocked()) {
-    resetState.pendingWaves = bnZero();
-    return;
-  }
-  const xpLevel = getXpLevelBn();
-  const coins = bank.coins?.value ?? bnZero();
-  const gold = bank.gold?.value ?? bnZero();
-  const magic = bank.magic?.value ?? bnZero();
-  const mp = getTotalCumulativeMp();
-
-  resetState.pendingWaves = computeSurgeWaves(xpLevel, coins, gold, magic, mp);
-
-  if (!hasDoneSurgeReset()) {
-    if (resetState.pendingWaves.cmp(BN.fromInt(10)) > 0) {
-      resetState.pendingWaves = BN.fromInt(10);
-    }
-  }
-  updateBlockBigCoinsStatus();
-}
-
-function canAccessForgeTab() {
-  const override = getForgeDebugOverride();
-  if (override != null) return !!override;
-  return resetState.forgeUnlocked || getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.UNLOCK_FORGE) >= 1;
-}
-
-function meetsLevelRequirement() {
-  try {
-    const levelBn = getXpLevelBn();
-    if (levelBn && typeof levelBn.cmp === 'function') {
-      return levelBn.cmp(MIN_FORGE_LEVEL) >= 0;
-    }
-  } catch {}
-  return false;
-}
-
-function meetsInfuseRequirement() {
-  try {
-    const mState = getMutationState();
-    if (mState && mState.level && typeof mState.level.cmp === 'function') {
-      return mState.level.cmp(MIN_INFUSE_MUTATION_LEVEL) >= 0;
-    }
-  } catch {}
-  return false;
-}
-
-export function isForgeUnlocked() {
-  ensurePersistentFlagsPrimed();
-  const override = getForgeDebugOverride();
-  if (override != null) return !!override;
-  return !!resetState.forgeUnlocked || canAccessForgeTab();
-}
-
-export function isInfuseUnlocked() {
-  ensurePersistentFlagsPrimed();
-  const override = getInfuseDebugOverride();
-  if (override != null) return !!override;
-  return !!resetState.infuseUnlocked;
-}
-
-export function isSurgeUnlocked() {
-  ensurePersistentFlagsPrimed();
-  const override = getSurgeDebugOverride();
-  if (override != null) return !!override;
-  return !!resetState.surgeUnlocked;
-}
-
-export function getCurrentSurgeLevel() {
-  const slot = ensureResetSlot();
-  if (slot == null) return 0n;
-  return getSurgeBarLevel(slot);
-}
-
-export function hasDoneForgeReset() {
-  ensurePersistentFlagsPrimed();
-  return !!resetState.hasDoneForgeReset;
-}
-
-export function hasDoneInfuseReset() {
-  ensurePersistentFlagsPrimed();
-  return !!resetState.hasDoneInfuseReset;
-}
-
-export function hasDoneSurgeReset() {
-  ensurePersistentFlagsPrimed();
-  return !!resetState.hasDoneSurgeReset;
-}
-
-export function computePendingForgeGold() {
-  recomputePendingGold();
-  return resetState.pendingGold.clone?.() ?? resetState.pendingGold;
-}
-
-export function canPerformForgeReset() {
-  if (!isForgeUnlocked()) return false;
-  if (!meetsLevelRequirement()) return false;
-  if (resetState.pendingGold.isZero?.()) return false;
-  return true;
-}
-
-export function canPerformInfuseReset() {
-  if (!isInfuseUnlocked()) return false;
-  if (!meetsInfuseRequirement()) return false;
-  if (resetState.pendingMagic.isZero?.()) return false;
-  return true;
-}
-
-function resetUpgrades({ resetGold = false, resetMagic = false } = {}) {
-  const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
-  for (const upg of upgrades) {
-    if (!upg) continue;
-    const tieKey = upg.tieKey || upg.tie;
-    if (tieKey === UPGRADE_TIES.UNLOCK_XP || tieKey === UPGRADE_TIES.UNLOCK_FORGE || tieKey === UPGRADE_TIES.UNLOCK_INFUSE || tieKey === UPGRADE_TIES.UNLOCK_SURGE) continue;
-    if (upg.costType === 'gold' && !resetGold) continue;
-    if (upg.costType === 'magic' && !resetMagic) continue;
-    setLevel(AREA_KEYS.STARTER_COVE, upg.id, 0, true, { resetHmEvolutions: true });
-  }
-}
-
-function applyForgeResetEffects({ resetGold = false, resetMagic = false } = {}) {
-  try { bank.coins.set(0); } catch {}
-  try { bank.books.set(0); } catch {}
-  try { resetXpProgress({ keepUnlock: true }); } catch {}
-  try { clearPendingGains(); } catch {}
-  resetUpgrades({ resetGold, resetMagic });
-}
-
-export function performForgeReset() {
-  if (!canPerformForgeReset()) return false;
-  const reward = resetState.pendingGold.clone?.() ?? resetState.pendingGold;
-  try {
-    const withMultiplier = bank.gold?.mult?.applyTo?.(reward) ?? reward;
-    if (bank.gold?.add) {
-      bank.gold.add(withMultiplier);
-    }
-  } catch {}
-  
-  applyForgeResetEffects({ resetGold: false });
-
-  recomputePendingGold();
-  setForgeUnlocked(true);
-  if (!resetState.hasDoneForgeReset) {
-    setForgeResetCompleted(true);
-  }
-  initMutationSystem();
-  unlockMutationSystem();
-  
-  if (shouldWipePlayfield('forge')) {
-    try { window.spawner?.clearPlayfield?.('forge'); } catch {}
-  }
-
-  updateResetPanel();
-  return true;
-}
-
-export function performInfuseReset() {
-  if (!canPerformInfuseReset()) return false;
-  const reward = resetState.pendingMagic.clone?.() ?? resetState.pendingMagic;
-  try {
-    if (bank.magic?.add) {
-       bank.magic.add(reward);
-    }
-  } catch {}
-
-  applyForgeResetEffects({ resetGold: true });
-
-  try { bank.gold.set(0); } catch {}
-  
-  try {
-     const slot = getActiveSlot();
-     const KEY_LEVEL = (s) => `ccc:mutation:level:${s}`;
-     const KEY_PROGRESS = (s) => `ccc:mutation:progress:${s}`;
-     localStorage.setItem(KEY_LEVEL(slot), '0');
-     localStorage.setItem(KEY_PROGRESS(slot), '0');
-     initMutationSystem({ forceReload: true });
-  } catch {}
-
-  recomputePendingGold();
-  recomputePendingMagic();
-  
-  if (shouldWipePlayfield('infuse')) {
-    try { window.spawner?.clearPlayfield?.('infuse'); } catch {}
-  }
-
-  setInfuseUnlocked(true);
-  if (!resetState.hasDoneInfuseReset) {
-    setInfuseResetCompleted(true);
-  }
-
-  updateResetPanel();
-  return true;
-}
-
-function applySurgeResetLogic(rewardWaves, { playEffects = true, skipVisuals = false } = {}) {
-  const slot = ensureResetSlot();
-
-  try {
-    if (bank.waves?.add && rewardWaves && !rewardWaves.isZero?.()) {
-      bank.waves.add(rewardWaves);
-    }
-  } catch {}
-
-  applyForgeResetEffects({ resetGold: true, resetMagic: true });
-  try { bank.gold.set(0); } catch {}
-  try { bank.magic.set(0); } catch {}
-  
-  try {
-     const KEY_LEVEL = (s) => `ccc:mutation:level:${s}`;
-     const KEY_PROGRESS = (s) => `ccc:mutation:progress:${s}`;
-     localStorage.setItem(KEY_LEVEL(slot), '0');
-     localStorage.setItem(KEY_PROGRESS(slot), '0');
-     initMutationSystem({ forceReload: true });
-  } catch {}
-
-  updateWaveBar();
-
-  setSurgeUnlocked(true);
-  if (!resetState.hasDoneSurgeReset) {
-    setSurgeResetCompleted(true);
-  }
-
-  recomputePendingGold();
-  recomputePendingMagic();
-  recomputePendingWaves();
-  
-  if (playEffects) {
-      if (!skipVisuals) playSurgeResetSound();
-      if (!skipVisuals) triggerSurgeWaveAnimation();
-  }
-
-  if (shouldWipePlayfield('surge')) {
-    try { window.spawner?.clearPlayfield?.('surge'); } catch {}
-  }
-  
-  updateResetPanel();
-}
-
-let tsunamiCleanup = null;
-
-function startTsunamiSequence() {
-    // 1. Dispatch music stop
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:stopMusic'));
-    
-    // 2. Stop spawning
-    if (window.spawner && typeof window.spawner.stop === 'function') {
-        window.spawner.stop();
-    }
-    
-    // 3. Close overlays
-    try { closeShop(true); } catch {}
-    try { closeMerchant(); } catch {}
-    
-    // 4. Black screen overlay
-    const overlay = document.createElement('div');
-    overlay.id = 'tsunami-sequence-overlay';
-    overlay.style.position = 'fixed';
-    overlay.style.inset = '0';
-    overlay.style.backgroundColor = 'black';
-    overlay.style.zIndex = '2147483645';
-    overlay.style.pointerEvents = 'all';
-    document.body.appendChild(overlay);
-    
-    // 5. Set active flag
-    window.__tsunamiActive = true;
-    
-    // 6. Set Seen Flag (immediately, to prevent softlock/re-sequence if user quits early)
-    setTsunamiSequenceSeen(true);
-    
-    // 7. Capture State for Visuals
-    const coinCounter = document.querySelector('.coin-counter');
-    const xpCounter = document.querySelector('.xp-counter');
-    const mpCounter = document.querySelector('.mp-counter');
-    const visualOptions = {
-        coinHTML: coinCounter ? coinCounter.outerHTML : '',
-        xpHTML: xpCounter ? xpCounter.outerHTML : '',
-        mpHTML: mpCounter ? mpCounter.outerHTML : ''
-    };
-
-    // 8. Start Visuals
-    tsunamiCleanup = playTsunamiSequence(overlay, 60000, endTsunamiSequence, visualOptions);
-}
-
-function endTsunamiSequence() {
-    if (tsunamiCleanup) {
-        tsunamiCleanup();
-        tsunamiCleanup = null;
-    }
-
-    // 1. Remove overlay
-    const overlay = document.getElementById('tsunami-sequence-overlay');
-    if (overlay) overlay.remove();
-    
-    // 2. Force Reset (0 waves, no effects)
-    applySurgeResetLogic(BigNum.fromInt(0), { playEffects: false });
-    
-    // 4. Restart music
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:restartMusic'));
-    
-    // 5. Resume spawning
-    if (window.spawner && typeof window.spawner.start === 'function') {
-        window.spawner.start();
-    }
-    
-    // 6. Clear active flag
-    window.__tsunamiActive = false;
-}
-
-export function performSurgeReset() {
-  if (!isSurgeUnlocked()) return false;
-  if (getXpLevelNumber() < 201) return false;
-  
-  const reward = resetState.pendingWaves.clone?.() ?? resetState.pendingWaves;
-  if (reward.isZero?.()) return false;
-
-  const slot = ensureResetSlot();
-  
-  // Calculate if we hit Surge 8
-  const currentWaves = bank.waves?.value ?? bnZero();
-  const barLevel = getSurgeBarLevel(slot);
-  const potentialLevel = predictSurgeLevel(barLevel, currentWaves, reward);
-  
-  let isSurge8 = false;
-  if (potentialLevel === Infinity) isSurge8 = true;
-  else if (typeof potentialLevel === 'bigint') isSurge8 = potentialLevel >= 8n;
-  else if (typeof potentialLevel === 'number') isSurge8 = potentialLevel >= 8;
-  
-  // Check sequence condition
-  if (isSurge8 && !getTsunamiSequenceSeen()) {
-      // Trigger sequence logic
-      startTsunamiSequence();
-      
-      // First reset (give waves, reset stuff), but NO visuals/sound
-      // We do this after starting sequence so the visualizer captures pre-reset XP/MP
-      applySurgeResetLogic(reward, { playEffects: false });
-      return true;
-  }
-
-  // Normal reset
-  applySurgeResetLogic(reward, { playEffects: true });
-  return true;
-}
-
-function triggerSurgeWaveAnimation() {
-  if (typeof document === 'undefined') return;
-  const existing = document.querySelector('.surge-wipe-overlay');
-  if (existing) existing.remove();
-
-  const overlay = document.createElement('div');
-  overlay.className = 'surge-wipe-overlay';
-  
-  const wave = document.createElement('div');
-  wave.className = 'surge-wipe-wave';
-  
-  overlay.appendChild(wave);
-  document.body.appendChild(overlay);
-
-  void wave.offsetWidth;
-  wave.classList.add('animate');
-
-  wave.addEventListener('animationend', () => {
-     overlay.remove();
-  }, { once: true });
-  
-  setTimeout(() => {
-     if (document.body.contains(overlay)) overlay.remove();
-  }, 2000);
-}
-
-function getSurgeBarLevel(slot) {
-  let barLevel = 0n;
-  try {
-    const raw = localStorage.getItem(SURGE_BAR_LEVEL_KEY(slot));
-    if (raw) {
-       if (raw === 'Infinity') return Infinity;
-       barLevel = BigInt(raw);
-    }
-  } catch {}
-  if (barLevel === Infinity) return Infinity;
-  return barLevel < 0n ? 0n : barLevel;
-}
-
-function isSurgeLevelLocked(slot) {
-  const key = SURGE_BAR_LEVEL_KEY(slot);
-  if (typeof window !== 'undefined' && window.__cccLockedStorageKeys instanceof Set) {
-    return window.__cccLockedStorageKeys.has(key);
-  }
-  return false;
-}
-
-function getSafeLog10BigInt(bn) {
-  if (!(bn instanceof BN)) return -1n;
-  if (bn.isZero?.() || bn.isInfinite?.()) return -1n;
-  let totalExp = BigInt(bn.e || 0);
-  if (bn._eOffset) totalExp += bn._eOffset;
-  const s = bn.sig.toString();
-  const sigLog = BigInt(s.length - 1);
-  return totalExp + sigLog;
-}
-
-function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
-  if (startLevelBigInt === Infinity || (typeof startLevelBigInt === 'string' && startLevelBigInt === 'Infinity')) {
-    return { level: Infinity, remainingWaves: wavesBn, changed: false, safety: 0 };
-  }
-
-  let currentWaves = wavesBn.clone ? wavesBn.clone() : wavesBn;
-  if (currentWaves.isInfinite?.()) {
-    return { level: Infinity, remainingWaves: currentWaves, changed: true, safety: 0 };
-  }
-
-  let barLevel = startLevelBigInt;
-  let req = new BigNum(10n, { base: 0, offset: barLevel });
-  let changed = false;
-
-  // Optimization for massive waves: jump to the approximate level
-  const logCurrentBigInt = getSafeLog10BigInt(currentWaves);
-  const logReqBigInt = getSafeLog10BigInt(req);
-
-  if (logCurrentBigInt != -1n && logReqBigInt != -1n && logCurrentBigInt > logReqBigInt + 5n) {
-    try {
-      const targetLevel = logCurrentBigInt > 0n ? logCurrentBigInt - 1n : 0n;
-
-      if (targetLevel > barLevel) {
-        const nextReq = new BigNum(10n, { base: 0, offset: targetLevel });
-
-        // Cost = (10^(targetLevel+1) - 10^(barLevel+1)) / 9
-        const cost = nextReq.sub(req).div(BigNum.fromInt(9));
-
-        if (currentWaves.cmp(cost) >= 0) {
-          currentWaves = currentWaves.sub(cost);
-          barLevel = targetLevel;
-          changed = true;
-          req = nextReq;
-        }
-      }
-    } catch {}
-  }
-
-  let safety = 0;
-
-  while (safety < 100) {
-    if (currentWaves.cmp(req) < 0) break;
-
-    currentWaves = currentWaves.sub(req);
-
-    barLevel += 1n;
-    changed = true;
-
-    req = req.mulBigNumInteger(BigNum.fromInt(10));
-    safety++;
-  }
-  
-  return { level: barLevel, remainingWaves: currentWaves, changed, safety };
-}
-
-function updateWaveBar() {
-  const slot = ensureResetSlot();
-  if (slot == null) return;
-  if (!isSurgeUnlocked()) return;
-  if (isUpdatingWaveBar) return;
-  if (isSurgeLevelLocked(slot)) return;
-
-  const currentWaves = bank.waves?.value ?? bnZero();
-  
-  let barLevel = getSurgeBarLevel(slot);
-  if (barLevel === Infinity) return;
-
-  const result = calculateSurgeLevelJump(barLevel, currentWaves);
-  
-  if (result.changed) {
-      barLevel = result.level;
-      try { localStorage.setItem(SURGE_BAR_LEVEL_KEY(slot), barLevel.toString()); } catch {}
-      try { window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level: barLevel } })); } catch {}
-      
-      isUpdatingWaveBar = true;
-      try {
-        bank.waves.set(result.remainingWaves);
-      } finally {
-        isUpdatingWaveBar = false;
-      }
-
-      updateResetPanel();
-
-      if (result.safety >= 100) {
-        setTimeout(updateWaveBar, 0);
-      }
-  }
-  updateBlockBigCoinsStatus();
-}
-
-function formatBn(value) {
-  if (value === Infinity || (value && (value === 'Infinity' || (typeof value.isInfinite === 'function' && value.isInfinite())))) {
-    return '<span class="infinity-symbol">∞</span>';
-  }
-  let bn = value;
-  if (typeof value === 'bigint') {
-    try { bn = BN.fromInt(value); } catch {}
-  }
-  try { return formatNumber(bn); }
-  catch { return value?.toString?.() ?? '0'; }
-}
-
-function buildPanel(panelEl) {
-  panelEl.innerHTML = `
-    <div class="merchant-reset">
-      <aside class="merchant-reset__sidebar">
-        <button type="button" class="merchant-reset__layer" data-reset-layer="forge">
-          <img src="${RESET_ICON_SRC}" alt="">
-          <span>Forge</span>
-        </button>
-        <button type="button" class="merchant-reset__layer" data-reset-layer="infuse" style="display:none">
-          <img src="${INFUSE_ICON_SRC}" alt="">
-          <span>Infuse</span>
-        </button>
-        <button type="button" class="merchant-reset__layer" data-reset-layer="surge" style="display:none">
-          <img src="${SURGE_ICON_SRC}" alt="">
-          <span>Surge</span>
-        </button>
-      </aside>
-      
-      <div class="merchant-reset__list">
-        <!-- FORGE CARD -->
-        <div class="merchant-reset__card merchant-reset__main" id="reset-card-forge">
-          <div class="merchant-reset__layout">
-            <header class="merchant-reset__header">
-              <div class="merchant-reset__titles">
-                <h3>Forge</h3>
-              </div>
-            </header>
-
-            <div class="merchant-reset__content">
-              <div class="merchant-reset__titles">
-                <p data-reset-desc="forge">
-                  Resets Coins, Books, XP, Coin upgrades, and Book upgrades for Gold<br>
-                  Increase pending Gold amount by increasing Coins and XP Level<br>
-                  The button below shows how much Gold you will get upon reset
-                </p>
-              </div>
-              <div class="merchant-reset__status" data-reset-status="forge"></div>
-            </div>
-
-            <div class="merchant-reset__actions">
-              <button type="button" class="merchant-reset__action" data-reset-action="forge">
-                <span class="merchant-reset__action-plus">+</span>
-                <span class="merchant-reset__action-icon">
-                  <img src="${GOLD_ICON_SRC}" alt="">
-                </span>
-                <span class="merchant-reset__action-amount" data-reset-pending="forge">0</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- INFUSE CARD -->
-        <div class="merchant-reset__card merchant-reset__main is-infuse" id="reset-card-infuse" style="display:none">
-          <div class="merchant-reset__layout">
-            <header class="merchant-reset__header">
-              <div class="merchant-reset__titles">
-                <h3>Infuse</h3>
-              </div>
-            </header>
-
-            <div class="merchant-reset__content">
-              <div class="merchant-reset__titles">
-                <p data-reset-desc="infuse">
-                  Resets everything Forge does as well as Gold, MP, and Gold upgrades for Magic<br>
-                  Increase pending Magic amount by increasing Coins and MP
-                </p>
-              </div>
-              <div class="merchant-reset__status" data-reset-status="infuse"></div>
-            </div>
-
-            <div class="merchant-reset__actions">
-              <button type="button" class="merchant-reset__action" data-reset-action="infuse">
-                <span class="merchant-reset__action-plus">+</span>
-                <span class="merchant-reset__action-icon">
-                  <img src="${MAGIC_ICON_SRC}" alt="">
-                </span>
-                <span class="merchant-reset__action-amount" data-reset-pending="infuse">0</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- SURGE CARD -->
-        <div class="merchant-reset__card merchant-reset__main is-surge" id="reset-card-surge" style="display:none">
-          <div class="merchant-reset__layout">
-            <header class="merchant-reset__header">
-              <div class="merchant-reset__titles">
-                <h3>Surge</h3>
-              </div>
-            </header>
-
-            <div class="merchant-reset__content">
-              <div class="merchant-reset__titles">
-                <p data-reset-desc="surge">
-                  Resets everything Infuse does as well as Magic and Magic upgrades for Waves<br>
-                  Increase pending Wave amount by increasing Coins, XP Level, Gold, MP, and Magic<br>
-				  Waves cannot be spent on upgrades, rather they are only useful for filling a bar<br>
-                  Each time you fill this bar below, obtain powerful bonuses from Surge milestones<br>
-                  Multiple milestones may be obtained in one reset, but Wave requirement scales 10x each fill
-                </p>
-              </div>
-              <div class="merchant-reset__status" data-reset-status="surge"></div>
-              <!-- Wave Bar -->
-              <div class="merchant-reset__bar-container">
-                 <div class="merchant-reset__bar-wrapper">
-                    <div class="merchant-reset__bar-fill" data-reset-bar-fill="surge"></div>
-                    <span class="merchant-reset__bar-text" data-reset-bar-text="surge">0 / 10</span>
-                 </div>
-              </div>
-              
-              <!-- Surge Header & Milestones -->
-              <div class="surge-header">You are at Surge <span class="surge-level-display" data-surge-level>0</span></div>
-              <div class="surge-milestone-wrapper">
-                  <div class="surge-milestone-container" data-reset-milestones="surge"></div>
-              </div>
-            </div>
-
-            <div class="merchant-reset__actions">
-              <button type="button" class="merchant-reset__action" data-reset-action="surge">
-                <span class="merchant-reset__action-plus">+</span>
-                <span class="merchant-reset__action-icon">
-                  <img src="${WAVES_ICON_SRC}" alt="">
-                </span>
-                <span class="merchant-reset__action-amount" data-reset-pending="surge">0</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="merchant-reset__spacer"></div>
-    </div>
-  `;
-  resetState.panel = panelEl;
-  
-  // Bind Forge Elements
-  resetState.elements.forge.card = panelEl.querySelector('#reset-card-forge');
-  resetState.elements.forge.status = panelEl.querySelector('[data-reset-status="forge"]');
-  resetState.elements.forge.btn = panelEl.querySelector('[data-reset-action="forge"]');
-  resetState.elements.forge.pending = panelEl.querySelector('[data-reset-pending="forge"]');
-
-  // Bind Infuse Elements
-  resetState.elements.infuse.card = panelEl.querySelector('#reset-card-infuse');
-  resetState.elements.infuse.status = panelEl.querySelector('[data-reset-status="infuse"]');
-  resetState.elements.infuse.btn = panelEl.querySelector('[data-reset-action="infuse"]');
-  resetState.elements.infuse.pending = panelEl.querySelector('[data-reset-pending="infuse"]');
-
-  // Bind Surge Elements
-  resetState.elements.surge.card = panelEl.querySelector('#reset-card-surge');
-  resetState.elements.surge.status = panelEl.querySelector('[data-reset-status="surge"]');
-  resetState.elements.surge.btn = panelEl.querySelector('[data-reset-action="surge"]');
-  resetState.elements.surge.barFill = panelEl.querySelector('[data-reset-bar-fill="surge"]');
-  resetState.elements.surge.barText = panelEl.querySelector('[data-reset-bar-text="surge"]');
-  resetState.elements.surge.milestones = panelEl.querySelector('[data-reset-milestones="surge"]');
-  resetState.elements.surge.headerVal = panelEl.querySelector('[data-surge-level]');
-  resetState.elements.surge.header = panelEl.querySelector('.surge-header');
-
-  const surgeWrapper = panelEl.querySelector('.surge-milestone-wrapper');
-  if (resetState.elements.surge.milestones && surgeWrapper) {
-      ensureCustomScrollbar(
-        panelEl, 
-        surgeWrapper, 
-        '[data-reset-milestones="surge"]',
-        { orientation: 'horizontal' }
-      );
-  }
-
-  // Sidebar Buttons
-  resetState.layerButtons = {
-    forge: panelEl.querySelector('[data-reset-layer="forge"]'),
-    infuse: panelEl.querySelector('[data-reset-layer="infuse"]'),
-    surge: panelEl.querySelector('[data-reset-layer="surge"]'),
-  };
-  
-  // Sidebar Click Handlers (Scroll)
-  Object.entries(resetState.layerButtons).forEach(([key, btn]) => {
-    if (!btn) return;
-
-    let lastPointerType = null;
-    const handleClick = (e) => {
-      if (e && e.isTrusted && shouldSkipGhostTap(btn)) return;
-      // markGhostTapTarget removed - global handler manages clicks
-      
-      const card = resetState.elements[key]?.card;
-      if (card) {
-        const scrollContainer = card.closest('.merchant-content');
-        if (key === 'forge' && scrollContainer) {
-          scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }
-    };
-
-    btn.addEventListener('click', (e) => {
-        if (lastPointerType && lastPointerType !== 'mouse') {
-            lastPointerType = null;
-            return;
-        }
-        lastPointerType = null;
-        handleClick(e);
-    });
-  });
-  
-  // Action Button Handlers
-  if (resetState.elements.forge.btn) {
-    resetState.elements.forge.btn.addEventListener('click', () => {
-       if (performForgeReset()) {
-         playForgeResetSound();
-         updateResetPanel();
-       }
-    });
-  }
-
-  if (resetState.elements.infuse.btn) {
-    resetState.elements.infuse.btn.addEventListener('click', () => {
-       if (performInfuseReset()) {
-         playInfuseResetSound();
-         updateResetPanel();
-       }
-    });
-  }
-
-  if (resetState.elements.surge.btn) {
-    resetState.elements.surge.btn.addEventListener('click', () => {
-       if (performSurgeReset()) {
-         // performSurgeReset handles playing sound
-         updateResetPanel();
-       }
-    });
-  }
-
-  updateResetPanel();
-}
-
-export function initResetPanel(panelEl) {
-  if (!panelEl || panelEl.__resetInit) return;
-  panelEl.__resetInit = true;
-  buildPanel(panelEl);
-}
-
-function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn) {
-  if (!btn) return;
-  const { disabled, msg } = state;
-  
-  if (btn.disabled !== disabled) btn.disabled = disabled;
-  
-  // State: "msg" or "action"
-  const targetMode = msg ? 'msg' : 'action';
-  const currentMode = btn.dataset.mode;
-  
-  if (targetMode === 'msg') {
-      if (currentMode !== 'msg' || btn.textContent !== msg) {
-          btn.innerHTML = `<span class="merchant-reset__req-msg">${msg}</span>`;
-          btn.dataset.mode = 'msg';
-      }
-      return;
-  }
-  
-  // Action mode
-  const amountStr = formatBn(pendingAmountBn);
-  
-  if (currentMode !== 'action') {
-      // Build structure
-      btn.innerHTML = `
-        <span class="merchant-reset__action-plus">+</span>
-        <span class="merchant-reset__action-icon"><img src="${iconSrc}" alt=""></span>
-        <span class="merchant-reset__action-amount">${amountStr}</span>
-      `;
-      btn.dataset.mode = 'action';
-  } else {
-      // Update amount only
-      const amountEl = btn.querySelector('.merchant-reset__action-amount');
-      if (amountEl && amountEl.innerHTML !== amountStr) {
-          amountEl.innerHTML = amountStr;
-      }
-      // Ensure icon (in case it was somehow lost or incorrect, though unlikely here)
-      const iconImg = btn.querySelector('.merchant-reset__action-icon img');
-      if (iconImg && !iconImg.src.includes(iconSrc)) iconImg.src = iconSrc;
-  }
-}
-
-function updateForgeCard({ goldMult = null } = {}) {
-  const el = resetState.elements.forge;
-  if (!el.card || !el.btn) return;
-
-  if (!isForgeUnlocked()) {
-     updateResetButtonContent(el.btn, { disabled: true, msg: 'Unlock the Forge upgrade to access resets' });
-     return;
-  }
-
-  ensurePersistentFlagsPrimed();
-  el.card.classList.toggle('is-forge-complete', !!resetState.hasDoneForgeReset);
-  
-  if (el.status) {
-      if (resetState.hasDoneForgeReset) {
-        if (el.status.innerHTML !== '') el.status.innerHTML = '';
-      } else {
-        const expected = `
-          <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-            Forging for the first time will unlock new Shop upgrades, a new Merchant dialogue, and
-            <strong style="color:#ffb347; text-shadow: 0 3px 6px rgba(0,0,0,0.55);
-            ">Mutations</strong><br>
-            Mutated Coins yield more Coin and XP value than normal
-          </span>
-        `.trim();
-        // Simple length check or substring to avoid constant re-render
-        if (!el.status.innerHTML.includes('Mutations')) el.status.innerHTML = expected;
-      }
-  }
-
-  if (!meetsLevelRequirement()) {
-    updateResetButtonContent(el.btn, { disabled: true, msg: 'Reach XP Level 31 to perform a Forge reset' });
-    return;
-  }
-
-
-  updateResetButtonContent(el.btn, { disabled: false }, GOLD_ICON_SRC, getPendingGoldWithMultiplier(goldMult));
-}
-
-function updateInfuseCard() {
-  const el = resetState.elements.infuse;
-  if (!el.card || !el.btn) return;
-
-  if (!isInfuseUnlocked()) {
-    if (el.card.style.display !== 'none') el.card.style.display = 'none';
-    if (resetState.layerButtons.infuse && resetState.layerButtons.infuse.style.display !== 'none') {
-        resetState.layerButtons.infuse.style.display = 'none';
-    }
-    return;
-  }
-
-  if (el.card.style.display !== 'flex') el.card.style.display = 'flex';
-  if (resetState.layerButtons.infuse && resetState.layerButtons.infuse.style.display !== 'flex') {
-      resetState.layerButtons.infuse.style.display = 'flex';
-  }
-
-  ensurePersistentFlagsPrimed();
-  
-  el.card.classList.toggle('is-complete', !!resetState.hasDoneInfuseReset);
-
-  if (el.status) {
-      if (resetState.hasDoneInfuseReset) {
-        if (el.status.innerHTML !== '') el.status.innerHTML = '';
-      } else {
-         const expected = `
-          <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-            Infusing for the first time will unlock new Shop upgrades, a new Merchant dialogue, and a new tab: <strong style="color:#c68cff">Workshop</strong><br>
-            This new tab will allow you to passively generate Gears<br>
-            Spend Gears on new upgrades in the Shop to automate various things
-          </span>
-         `.trim();
-         if (!el.status.innerHTML.includes('Workshop')) el.status.innerHTML = expected;
-      }
-  }
-
-  if (!meetsInfuseRequirement()) {
-    updateResetButtonContent(el.btn, { disabled: true, msg: 'Reach Mutation Level 7 to perform an Infuse reset' });
-    return;
-  }
-  
-  
-  updateResetButtonContent(el.btn, { disabled: false }, MAGIC_ICON_SRC, resetState.pendingMagic);
-}
-
-
-function predictSurgeLevel(currentLevelBigInt, currentWaves, pendingWaves) {
-  const availableWaves = currentWaves.add(pendingWaves);
-  const result = calculateSurgeLevelJump(currentLevelBigInt, availableWaves);
-  return result.level;
-}
-
-function updateSurgeCard() {
-  const el = resetState.elements.surge;
-  if (!el.card || !el.btn) return;
-
-  if (!isSurgeUnlocked()) {
-    if (el.card.style.display !== 'none') el.card.style.display = 'none';
-    if (resetState.layerButtons.surge && resetState.layerButtons.surge.style.display !== 'none') {
-        resetState.layerButtons.surge.style.display = 'none';
-    }
-    return;
-  }
-
-  if (el.card.style.display !== 'flex') el.card.style.display = 'flex';
-  if (resetState.layerButtons.surge && resetState.layerButtons.surge.style.display !== 'flex') {
-      resetState.layerButtons.surge.style.display = 'flex';
-  }
-
-  ensurePersistentFlagsPrimed();
-  
-  // Bar Logic Visualization
-  const slot = ensureResetSlot();
-  const currentWaves = bank.waves?.value ?? bnZero();
-  let barLevel = 0n;
-  try { barLevel = getSurgeBarLevel(slot); } catch {}
-  
-  let req;
-  if (barLevel === Infinity) {
-    req = BigNum.fromAny('Infinity');
-  } else {
-    req = new BigNum(10n, { base: 0, offset: barLevel });
-  }
-  
-  let pct = 0;
-  if (currentWaves?.isInfinite?.()) {
-      pct = 100;
-  } else if (currentWaves && req && !req.isZero?.()) {
-      if (req.isInfinite?.()) {
-          pct = 0;
-      } else {
-          try {
-              const ratio = currentWaves.div(req);
-              // Convert to number for percentage
-              const rNum = Number(ratio.toScientific?.() ?? '0');
-              pct = Math.min(100, Math.max(0, rNum * 100));
-          } catch { pct = 0; }
-      }
-  }
-  
-  if (el.barFill) {
-    el.barFill.style.width = `${pct}%`;
-  }
-
-  if (el.header) {
-    const isInf = barLevel === Infinity || (typeof barLevel.isInfinite === 'function' && barLevel.isInfinite()) || String(barLevel) === 'Infinity';
-    const sLevel = isInf ? '<span class="surge-infinity-symbol">∞</span>' : formatBn(barLevel);
-    
-    let newContent = `You are at Surge <span class="surge-level-display" data-surge-level>${sLevel}</span>`;
-    
-    if (!isInf) {
-       const pending = resetState.pendingWaves;
-       if (pending && !pending.isZero?.()) {
-           const predicted = predictSurgeLevel(barLevel, currentWaves, pending);
-           let isIncrease = false;
-           if (predicted === Infinity) {
-             isIncrease = true;
-           } else {
-             try { isIncrease = predicted > barLevel; } catch {}
-           }
-
-           if (isIncrease) {
-               const pLevel = (predicted === Infinity) ? '<span class="surge-infinity-symbol">∞</span>' : formatBn(predicted);
-               newContent = `Your Surge will increase from <span class="surge-level-display">${sLevel}</span> to <span class="surge-level-display">${pLevel}</span>`;
-           }
-       }
-    }
-
-    if (el.header.innerHTML !== newContent) {
-        el.header.innerHTML = newContent;
-        el.headerVal = el.header.querySelector('[data-surge-level]');
-    }
-  } else if (el.headerVal) {
-    const isInf = barLevel === Infinity || (typeof barLevel.isInfinite === 'function' && barLevel.isInfinite()) || String(barLevel) === 'Infinity';
-    const sLevel = isInf ? '<span class="surge-infinity-symbol">∞</span>' : barLevel.toString();
-    if (el.headerVal.innerHTML !== sLevel) el.headerVal.innerHTML = sLevel;
-  }
-  if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}">${formatBn(currentWaves)} / <img src="${WAVES_ICON_SRC}">${formatBn(req)}</span>`;
-
-  if (el.milestones) {
-    const visible = getVisibleMilestones(barLevel);
-    const existingItems = Array.from(el.milestones.children);
-    
-    visible.forEach((m, i) => {
-        const isReached = BigInt(m.surgeLevel) <= barLevel;
-        const reachedClass = isReached ? 'is-reached' : '';
-        let desc = m.description.map(d => {
-            if (d.includes('Invokes the Tsunami') && !isReached) {
-                return `<div class="tsunami-text">- ${d}</div>`;
-            }
-            return `<div>- ${d}</div>`;
-        }).join('');
-
-        if (isReached && m.surgeLevel === 3) {
-            const rate = getBookProductionRate ? getBookProductionRate() : BN.fromInt(0);
-            desc += `<div style="color:#02e815">- Current Books/sec: ${formatNumber(rate)}</div>`;
-        }
-
-        if (isReached && m.surgeLevel === 6) {
-            const mults = getSurge6WealthMultipliers();
-            desc = `
-              <div>- Unspent Coins boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.coins)}x</span></div>
-              <div>- Unspent Books boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.books)}x</span></div>
-              <div>- Unspent Gold boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.gold)}x</span></div>
-              <div>- Unspent Magic boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.magic)}x</span></div>
-            `;
-        }
-
-        let isSurge8 = false;
-        if (barLevel === Infinity || (typeof barLevel === 'string' && barLevel === 'Infinity')) isSurge8 = true;
-        else if (typeof barLevel.isInfinite === 'function' && barLevel.isInfinite()) isSurge8 = true;
-        else if (typeof barLevel === 'bigint' && barLevel >= 8n) isSurge8 = true;
-        else if (typeof barLevel === 'number' && barLevel >= 8) isSurge8 = true;
-
-        let isNerfed = false;
-        if (isReached && isSurge8 && getTsunamiNerf() < 1 && NERFED_SURGE_MILESTONE_IDS.includes(m.id)) {
-            isNerfed = true;
-        }
-        const nerfedClass = isNerfed ? ' is-nerfed' : '';
-
-        let itemEl = existingItems[i];
+/**
+ * Tsunami Visual Sequence
+ * 
+ * A 15-second narrative animation:
+ * 1. Calm Sunny Cove (Sand + Cliffs visible)
+ * 2. Darkening Sky & Rising Tide
+ * 3. The Roaring Approach (Flooding the Cove)
+ * 4. Impact & Chaos
+ */
+
+export function playTsunamiSequence(container, durationMs = 15000, onComplete, options = {}) {
+    // Hide cursor
+    container.style.cursor = 'none';
+
+    // --- BG Canvas (Sky, Sand) ---
+    const bgCanvas = document.createElement('canvas');
+    bgCanvas.id = 'tsunami-bg-canvas';
+    bgCanvas.style.position = 'absolute';
+    bgCanvas.style.inset = '0';
+    bgCanvas.style.width = '100%';
+    bgCanvas.style.height = '100%';
+    bgCanvas.style.zIndex = '2147483644'; // Bottom
+    container.appendChild(bgCanvas);
+
+    // --- Overlay UI (XP/MP) ---
+    const uiContainer = document.createElement('div');
+    uiContainer.id = 'tsunami-ui-container';
+    uiContainer.style.position = 'absolute';
+    uiContainer.style.inset = '0';
+    uiContainer.style.zIndex = '2147483645'; // Middle
+    uiContainer.style.pointerEvents = 'none';
+    uiContainer.style.color = '#fff';
+    uiContainer.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
+
+    // Helper to style wrappers
+    function styleWrapper(wrapper, type) {
+        wrapper.style.position = 'absolute';
+        wrapper.style.left = '50%';
         
-        if (!itemEl) {
-            itemEl = document.createElement('div');
-            itemEl.className = `surge-milestone-item ${reachedClass}${nerfedClass}`;
-            itemEl.dataset.isReached = String(isReached);
-            itemEl.innerHTML = `
-                <div class="surge-milestone-nerf-arrow" style="display:none"></div>
-                <div class="surge-milestone-title">Surge ${m.surgeLevel}</div>
-                <div class="surge-milestone-desc"></div>
-                <div class="surge-milestone-title" style="visibility:hidden">Surge ${m.surgeLevel}</div>
-            `;
-            el.milestones.appendChild(itemEl);
+        // Flipped upside down (rotateZ 180deg) and tilted back (rotateX 25deg)
+        const transformBase = `perspective(600px) rotateX(25deg) rotateZ(180deg)`;
+        
+        const hasXp = !!options.xpHTML;
+        const hasMp = !!options.mpHTML;
+
+        if (type === 'coin') {
+            wrapper.style.top = '77%';
+            wrapper.style.transform = `translateX(-50%) ${transformBase}`;
+        } else if (hasXp && hasMp) {
+            // Both XP and MP: Side-by-side centered
+            // Compromise vertical position
+            wrapper.style.top = '70%';
+            if (type === 'mp') {
+                // Left side (gap of ~50px total)
+                wrapper.style.transform = `translateX(calc(-100% - 25px)) ${transformBase}`;
+            } else {
+                // Right side (XP)
+                wrapper.style.transform = `translateX(25px) ${transformBase}`;
+            }
         } else {
-            if (itemEl.className !== `surge-milestone-item ${reachedClass}${nerfedClass}`) {
-                itemEl.className = `surge-milestone-item ${reachedClass}${nerfedClass}`;
-            }
-            const isReachedStr = String(isReached);
-            if (itemEl.dataset.isReached !== isReachedStr) {
-                itemEl.dataset.isReached = isReachedStr;
-            }
+            // Single XP or MP
+            if (type === 'mp') wrapper.style.top = '66%';
+            else if (type === 'xp') wrapper.style.top = '72%';
+            wrapper.style.transform = `translateX(-50%) ${transformBase}`;
         }
         
-        // Update Description
-        const descEl = itemEl.querySelector('.surge-milestone-desc');
-        if (descEl && descEl.innerHTML !== desc) {
-            descEl.innerHTML = desc;
+        wrapper.style.transformOrigin = 'center center';
+        
+        const counter = wrapper.firstElementChild;
+        if (counter) {
+            counter.removeAttribute('hidden');
+            counter.style.display = 'flex';
         }
+    }
+    
+    if (options.coinHTML) {
+        const coinWrapper = document.createElement('div');
+        coinWrapper.innerHTML = options.coinHTML;
+        styleWrapper(coinWrapper, 'coin');
+        uiContainer.appendChild(coinWrapper);
+    }
+    if (options.xpHTML) {
+        const xpWrapper = document.createElement('div');
+        xpWrapper.innerHTML = options.xpHTML;
+        styleWrapper(xpWrapper, 'xp');
+        uiContainer.appendChild(xpWrapper);
+    }
+    if (options.mpHTML) {
+        const mpWrapper = document.createElement('div');
+        mpWrapper.innerHTML = options.mpHTML;
+        styleWrapper(mpWrapper, 'mp');
+        uiContainer.appendChild(mpWrapper);
+    }
+    container.appendChild(uiContainer);
 
-        // Update Arrow
-        const arrowEl = itemEl.querySelector('.surge-milestone-nerf-arrow');
-        if (arrowEl) {
-             let shouldHaveArrow = false;
-             if (isSurge8 && getTsunamiNerf() !== 1) {
-                if (NERFED_SURGE_MILESTONE_IDS.includes(m.id)) {
-                    shouldHaveArrow = true;
+    // --- FG Canvas (Water, Effects) ---
+    const fgCanvas = document.createElement('canvas');
+    fgCanvas.id = 'tsunami-fg-canvas';
+    fgCanvas.style.position = 'absolute';
+    fgCanvas.style.inset = '0';
+    fgCanvas.style.width = '100%';
+    fgCanvas.style.height = '100%';
+    fgCanvas.style.zIndex = '2147483646'; // Top
+    fgCanvas.style.pointerEvents = 'none';
+    container.appendChild(fgCanvas);
+
+    // --- Assets ---
+    const merchantImg = new Image();
+    merchantImg.src = 'img/misc/merchant.webp';
+    let merchantLoaded = false;
+    merchantImg.onload = () => { 
+        merchantLoaded = true; 
+    };
+    merchantImg.onerror = (e) => {
+        console.error('Tsunami: Merchant load failed', e);
+    };
+
+    // Handle resizing
+    let width, height;
+    let props = [];
+    let sandSpeckles = [];
+
+    function generateProps() {
+        props = [];
+        sandSpeckles = [];
+        const sandY = height * 0.65;
+        const d3y = sandY + height * 0.15;
+        
+        // Merchant Safe Zone
+        const merchScale = Math.min(width, height) * 0.0005; 
+        const merchW = 300 * merchScale;
+        const merchX = width * 0.80;
+        const merchSafeMin = merchX - (merchW * 0.6);
+        const merchSafeMax = merchX + (merchW * 0.6);
+
+        // Generate static speckles
+        for(let i=0; i<100; i++) {
+            const sx = Math.random() * width;
+            const sy = d3y + Math.random() * (height - d3y);
+            sandSpeckles.push({x: sx, y: sy});
+        }
+        
+        const isSafe = (x, y, type) => {
+            // HUD Avoidance
+            // Center X band (10% to 90%)
+            if (x > width * 0.10 && x < width * 0.90) {
+                // Main HUD occupies roughly 70% to 85% Y, but lies on a higher z-index.
+                // We allow spawning behind the HUD.
+                // User requirement: In the middle band, only spawn in the top 15% of the sand.
+                // Sand is from sandY to height.
+                const sandH = height - sandY;
+                const limitY = sandY + (sandH * 0.15);
+
+                if (y > limitY) return false;
+            } else {
+                // Outer bands: Only spawn in the top 50% of the sand region
+                // Restrict this logic ONLY to trees
+                if (type === 'tree') {
+                    const sandH = height - sandY;
+                    const limitY = sandY + (sandH * 0.50);
+                    if (y > limitY) return false;
                 }
-             }
-             const display = shouldHaveArrow ? '' : 'none';
-             if (arrowEl.style.display !== display) {
-                 arrowEl.style.display = display;
-             }
-        }
-    });
+            }
+
+            // Merchant Avoidance
+            if (type === 'tree' && x > merchSafeMin && x < merchSafeMax) {
+                return false;
+            }
+
+            return true;
+        };
+
+        const addProp = (type, count, scaleBase, scaleVar, xFn) => {
+            for(let i=0; i<count; i++) {
+                let x, y, safe = false;
+                let attempts = 0;
+                while(!safe && attempts < 50) {
+                    if (xFn) {
+                        x = xFn();
+                    } else {
+                        // Standard Uniform Distribution
+                        x = Math.random() * width;
+                    }
+
+                    // Spawn anywhere on the sand (sandY to height)
+                    // The isSafe function handles the specific restrictions for the middle.
+                    const maxY = height; 
+                    // Bias towards sandY (top) using quadratic curve
+                    const r = Math.random();
+                    y = sandY + 20 + (r * r) * (maxY - sandY - 20);
+                    
+                    if (isSafe(x, y, type)) {
+                        safe = true;
+                        // Distance check for trees to prevent clumping
+                        if (type === 'tree') {
+                            for (const p of props) {
+                                if (p.type === 'tree') {
+                                    const dx = p.x - x;
+                                    const dy = p.y - y;
+                                    const dist = Math.sqrt(dx*dx + dy*dy);
+                                    // Ensure decent spacing: larger of 8% width or 100px
+                                    if (dist < Math.max(width * 0.08, 100)) { 
+                                        safe = false;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    attempts++;
+                }
+                if(safe) {
+                    // Perspective scaling: items further down (larger y) are closer -> larger
+                    const depth = (y - sandY) / (height - sandY); // 0 to 1
+                    const perspScale = 0.6 + depth * 0.6; 
+                    
+                    const scale = (scaleBase + Math.random() * scaleVar) * perspScale;
+                    props.push({ type, x, y, scale });
+                }
+            }
+        };
+
+        const outerTreeCount = 3 + Math.floor(Math.random() * 3);
+        // Left
+        addProp('tree', outerTreeCount, 0.8, 0.4, () => Math.random() * (width * 0.1));
+        // Right
+        addProp('tree', outerTreeCount, 0.8, 0.4, () => (width * 0.9) + Math.random() * (width * 0.1));
+        // Center: Ensure at least 5 trees
+        const centerTreeCount = 5 + Math.floor(Math.random() * 3);
+        addProp('tree', centerTreeCount, 0.8, 0.4, () => (width * 0.1) + Math.random() * (width * 0.8));
+        
+        addProp('rock', 20, 0.6, 0.4);
+        addProp('shell', 30, 0.3, 0.3);
+
+        props.sort((a, b) => a.y - b.y);
+    }
+
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        bgCanvas.width = width;
+        bgCanvas.height = height;
+        fgCanvas.width = width;
+        fgCanvas.height = height;
+        generateProps();
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const bgCtx = bgCanvas.getContext('2d', { alpha: false });
+    const fgCtx = fgCanvas.getContext('2d', { alpha: true });
     
-    // Remove excess elements
-    while (el.milestones.children.length > visible.length) {
-        el.milestones.lastChild.remove();
-    }
+    const startTime = Date.now();
+    let isRunning = true;
+    let animationFrameId;
 
-    if (resetState.lastRenderedSurgeLevel !== barLevel) {
-        resetState.lastRenderedSurgeLevel = barLevel;
-        if (el.milestones) el.milestones.dataset.scrolled = '0';
-    }
+    // --- Configuration & State ---
+    
+    // Palettes for interpolation
+    const SUNNY_PALETTE = {
+        skyTop: '#4fa8ff',
+        skyBottom: '#b8e1ff',
+        sun: '#ffeb3b',
+        waterDeep: '#005b96',
+        waterMid: '#0077be',
+        waterPeak: '#2a9df4',
+        foam: '#e0f7fa',
+        sandLight: '#f1dcb1',
+        sandDark: '#debe7c',
+        rock: '#5d4037',
+        leaf: '#4caf50',
+        shell: '#fff0f5'
+    };
 
-    if (el.milestones.dataset.scrolled !== '1') {
-        requestAnimationFrame(() => {
-           requestAnimationFrame(() => {
-               if (!el.milestones) return;
-               if (el.milestones.offsetParent === null) return;
+    const STORM_PALETTE = {
+        skyTop: '#000510',
+        skyBottom: '#000815',
+        sun: '#2a2a2a', // Dim/hidden
+        waterDeep: '#000030',
+        waterMid: '#000060',
+        waterPeak: '#000090',
+        foam: '#3060b0',
+        sandLight: '#2c2a20', // Dark wet sand
+        sandDark: '#1a1810',
+        rock: '#1a1a1a',
+        leaf: '#1b2e1b',
+        shell: '#3b3035'
+    };
 
-               const reachedItems = el.milestones.querySelectorAll('.surge-milestone-item[data-is-reached="true"]');
-               if (reachedItems.length > 0) {
-                  const lastReached = reachedItems[reachedItems.length - 1];
-                  const allItems = el.milestones.children;
-                  const isLastItem = lastReached === allItems[allItems.length - 1];
-                  
-                  if (isLastItem) {
-                      el.milestones.scrollTo({ left: el.milestones.scrollWidth, behavior: 'smooth' });
-                  } else {
-                      el.milestones.scrollTo({ left: lastReached.offsetLeft - 12, behavior: 'smooth' });
-                  }
-                  el.milestones.dataset.scrolled = '1';
-               }
-           });
+    const lightningState = {
+        active: false,
+        flashOpacity: 0,
+        bolts: [],
+        nextFlashTime: 0
+    };
+
+    const waves = [];
+    const layerCount = 6;
+    for (let i = 0; i < layerCount; i++) {
+        waves.push({
+            offset: Math.random() * 1000,
+            speedBase: 0.001 + (i * 0.0005),
+            amplitudeBase: 10 + (i * 5),
         });
     }
-  }
 
-  el.card.classList.toggle('is-complete', !!resetState.hasDoneSurgeReset);
+    const rainParticles = [];
+    const maxRain = 400;
 
-  if (el.status) {
-      if (resetState.hasDoneSurgeReset) {
-        if (el.status.innerHTML !== '') el.status.innerHTML = '';
-      } else {
-         const expected = `
-          <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-            Surging for the first time will unlock a new Merchant dialogue and a new tab: <span style="color:#00e5ff"><strong>Warp</strong></span><br>
-            Warps may speed up gameplay a bit, so definitely check them out<br>
-			You can only get 10 Waves on your first Surge, so you should do it immediately
-          </span>
-         `.trim();
-         if (!el.status.innerHTML.includes('Warp')) el.status.innerHTML = expected;
-      }
-  }
-
-  if (getXpLevelNumber() < 201) {
-    updateResetButtonContent(el.btn, { disabled: true, msg: 'Reach XP Level 201 to perform a Surge reset' });
-    return;
-  }
-  
-  if (resetState.pendingWaves.isZero?.()) {
-    updateResetButtonContent(el.btn, { disabled: true, msg: 'Collect more coins/resources to earn Waves from a Surge reset' });
-    return;
-  }
-  
-  updateResetButtonContent(el.btn, { disabled: false }, WAVES_ICON_SRC, resetState.pendingWaves);
-}
-
-export function updateResetPanel({ goldMult = null } = {}) {
-  if (!resetState.panel) return;
-  updateForgeCard({ goldMult });
-  updateInfuseCard();
-  updateSurgeCard();
-}
-
-export function onForgeUpgradeUnlocked() {
-  initResetSystem();
-  setForgeUnlocked(true);
-  updateResetPanel();
-}
-
-export function onInfuseUpgradeUnlocked() {
-  initResetSystem();
-  setInfuseUnlocked(true);
-  updateResetPanel();
-}
-
-export function onSurgeUpgradeUnlocked() {
-  initResetSystem();
-  setSurgeUnlocked(true);
-  updateResetPanel();
-}
-
-function triggerSurgeBarAnimation() {
-  if (!resetState.panel) return;
-  const overlay = resetState.panel.closest('.merchant-overlay');
-  if (!overlay || !overlay.classList.contains('is-open')) return;
-  if (!resetState.panel.classList.contains('is-active')) return;
-
-  if (!resetState.elements.surge.barFill) return;
-  const barFill = resetState.elements.surge.barFill;
-  const wrapper = barFill.parentElement;
-  if (!wrapper) return;
-  
-  wrapper.classList.remove('surge-bar-pulse');
-  
-  // Snap to 100% immediately
-  barFill.style.transition = 'none';
-  barFill.style.width = '100%';
-  
-  void barFill.offsetWidth;
-  
-  wrapper.classList.add('surge-bar-pulse');
-  // Match the pulse animation duration (0.5s) for the drain effect.
-  // This causes the bar to animate from the forced 100% (set above) 
-  // down to the actual value (set by updateSurgeCard below).
-  barFill.style.transition = 'width 0.5s ease-out';
-  
-  // Trigger update to animate to actual value
-  updateSurgeCard();
-
-  wrapper.addEventListener('animationend', () => {
-    wrapper.classList.remove('surge-bar-pulse');
-    // Revert to default stylesheet transition
-    barFill.style.transition = '';
-    updateSurgeCard();
-  }, { once: true });
-}
-
-function bindGlobalEvents() {
-  if (typeof window === 'undefined') return;
-  window.addEventListener('surge:level:change', () => {
-    triggerSurgeBarAnimation();
-  });
-  window.addEventListener('currency:change', (e) => {
-    if (e.detail?.key === 'coins') {
-      recomputePendingGold();
-      recomputePendingMagic();
-      recomputePendingWaves();
+    // --- Helpers ---
+    function lerp(start, end, t) {
+        return start * (1 - t) + end * t;
     }
-    if (e.detail?.key === 'waves') {
-        updateWaveBar();
-        updateResetPanel();
-    }
-    if (e.detail?.key === 'gold' || e.detail?.key === 'magic' || e.detail?.key === 'books') {
-        recomputePendingWaves();
-        updateResetPanel();
-    }
-  });
-  window.addEventListener('surge:bookResidue', () => {
-    if (resetState.panel && resetState.panel.offsetParent !== null) {
-       const surgeCard = resetState.elements.surge.card;
-       if (surgeCard && surgeCard.style.display !== 'none') {
-           updateResetPanel();
-       }
-    }
-  });
-  window.addEventListener('currency:multiplier', (e) => {
-    const detail = e?.detail;
-    if (!detail) return;
-    if (detail.key === CURRENCIES.GOLD) {
-      if (detail.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
-      recomputePendingGold(true);
-      // Pass the new multiplier explicitly so visual updates are instant
-      const goldMult = detail.mult instanceof BigNum ? detail.mult : BN.fromAny(detail.mult ?? 1);
-      
-      // Force update with explicit override to ensure reactivity
-      if (resetState.panel) {
-        updateForgeCard({ goldMult });
-      }
-      return;
-    }
-    if (detail.key === CURRENCIES.MAGIC) {
-      if (detail.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
-      const magicMult = detail.mult instanceof BigNum ? detail.mult : BN.fromAny(detail.mult ?? 1);
-      recomputePendingMagic(magicMult);
-      // Ensure visual update happens immediately with the new multiplier
-      if (resetState.panel) {
-        updateInfuseCard();
-      }
-      return;
-    }
-  });
-  window.addEventListener('xp:change', () => {
-    recomputePendingGold();
-    recomputePendingWaves();
-    updateResetPanel();
-  });
-  window.addEventListener('mutation:change', () => {
-    recomputePendingMagic();
-    recomputePendingWaves();
-    updateResetPanel();
-  });
-  window.addEventListener('debug:change', (e) => {
-    if (e?.detail?.slot != null && resetState.slot != null && e.detail.slot !== resetState.slot) return;
-    resetPendingGoldSignature();
-    recomputePendingGold(true);
-    recomputePendingMagic();
-    recomputePendingWaves();
-    updateResetPanel();
-  });
-}
 
-export function initResetSystem() {
-  if (initialized) {
-    resetState.slot = getActiveSlot();
-    resetPendingGoldSignature();
-    ensureValueListeners();
-    recomputePendingGold(true);
-    recomputePendingMagic();
-    recomputePendingWaves();
-    return;
-  }
-  
-  // Guard against circular dependency initialization issues
-  try {
-    initMutationSystem();
-  } catch (e) {
-    // If initMutationSystem fails (likely due to accessing hudRefs before mutationSystem fully loads in a circular dep cycle),
-    // we abort initialization. This allows a subsequent call (e.g. from main.js) to succeed later.
-    return;
-  }
-
-  initialized = true;
-  const slot = getActiveSlot();
-  resetState.slot = slot;
-  resetPendingGoldSignature();
-  readPersistentFlags(slot);
-  if (resetState.hasDoneForgeReset && !isMutationUnlocked()) {
-    try { unlockMutationSystem(); } catch {}
-  }
-  if (!resetState.forgeUnlocked && canAccessForgeTab()) {
-    setForgeUnlocked(true);
-  }
-  bindStorageWatchers(slot);
-  ensureValueListeners();
-  bindGlobalEvents();
-  recomputePendingGold(true);
-  recomputePendingMagic();
-  recomputePendingWaves();
-  if (mutationUnsub) {
-    try { mutationUnsub(); } catch {}
-    mutationUnsub = null;
-  }
-  mutationUnsub = onMutationChange(() => {
-    const sprite = getMutationCoinSprite();
-    if (typeof window !== 'undefined' && window.spawner && typeof window.spawner.setCoinSprite === 'function') {
-      try { window.spawner.setCoinSprite(sprite); } catch {}
+    // Hex to RGB helper for color interpolation
+    function hexToRgb(hex) {
+        const bigint = parseInt(hex.slice(1), 16);
+        return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
     }
-  });
-  if (typeof window !== 'undefined') {
-    window.addEventListener('saveSlot:change', () => {
-      const nextSlot = getActiveSlot();
-      resetState.slot = nextSlot;
-      resetPendingGoldSignature();
-      readPersistentFlags(nextSlot);
-      if (resetState.hasDoneForgeReset && !isMutationUnlocked()) {
-        try { unlockMutationSystem(); } catch {}
-      }
-      if (!resetState.forgeUnlocked && canAccessForgeTab()) {
-        setForgeUnlocked(true);
-      }
-      bindStorageWatchers(nextSlot);
-      ensureValueListeners();
-      recomputePendingGold(true);
-      recomputePendingMagic();
-      recomputePendingWaves();
-      updateResetPanel();
-    });
-  }
-}
 
-if (typeof window !== 'undefined') {
-  window.resetSystem = window.resetSystem || {};
-  Object.assign(window.resetSystem, {
-    initResetSystem,
-    performForgeReset,
-    performInfuseReset,
-    performSurgeReset,
-    computePendingForgeGold,
-    computeForgeGoldFromInputs,
-    computeInfuseMagicFromInputs,
-    computeSurgeWavesFromInputs,
-    getForgeDebugOverrideState,
-    hasDoneForgeReset,
-    isForgeUnlocked,
-    setForgeDebugOverride,
-    setForgeResetCompleted,
-    updateResetPanel,
-    isInfuseUnlocked,
-    setInfuseDebugOverride,
-    getInfuseDebugOverrideState,
-    recomputePendingMagic,
-    setInfuseUnlockedForDebug,
-    setInfuseResetCompleted,
-    hasDoneInfuseReset,
-    isSurgeUnlocked,
-    setSurgeUnlockedForDebug,
-    getSurgeDebugOverrideState,
-    setSurgeResetCompleted,
-    hasDoneSurgeReset,
-    getCurrentSurgeLevel,
-    shouldBlockBigCoins,
-  });
+    function lerpColor(c1, c2, t) {
+        const rgb1 = hexToRgb(c1);
+        const rgb2 = hexToRgb(c2);
+        const r = Math.round(lerp(rgb1.r, rgb2.r, t));
+        const g = Math.round(lerp(rgb1.g, rgb2.g, t));
+        const b = Math.round(lerp(rgb1.b, rgb2.b, t));
+        return `rgb(${r},${g},${b})`;
+    }
+
+    function createBolt(x, y, height) {
+        const segments = [];
+        let currX = x;
+        let currY = y;
+        const segmentHeight = 20;
+        while (currY < height) {
+            const nextX = currX + (Math.random() - 0.5) * 60;
+            const nextY = currY + segmentHeight + Math.random() * 30;
+            segments.push({ x1: currX, y1: currY, x2: nextX, y2: nextY });
+            currX = nextX;
+            currY = nextY;
+        }
+        return segments;
+    }
+
+    function drawRoundedRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+    }
+
+    // --- Procedural Drawing Helpers ---
+    function drawPalmTree(ctx, x, y, scale, palette) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+
+        // Trunk
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(10, -40, -5, -80); 
+        ctx.lineTo(5, -80);
+        ctx.quadraticCurveTo(20, -40, 10, 0);
+        ctx.fillStyle = palette.rock; // Use rock color (brown) for trunk
+        ctx.fill();
+
+        // Leaves
+        ctx.translate(0, -80);
+        ctx.fillStyle = palette.leaf;
+        for(let i=0; i<7; i++) {
+            ctx.save();
+            ctx.rotate((i / 7) * Math.PI * 2 - Math.PI/2); // Spread around top
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(30, -10, 60, 0);
+            ctx.quadraticCurveTo(30, 10, 0, 0);
+            ctx.fill();
+            ctx.restore();
+        }
+        ctx.restore();
+    }
+
+    function drawRock(ctx, x, y, scale, palette) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        
+        ctx.fillStyle = palette.rock;
+        ctx.beginPath();
+        ctx.moveTo(-20, 0);
+        ctx.bezierCurveTo(-20, -15, -10, -25, 0, -25);
+        ctx.bezierCurveTo(10, -25, 20, -15, 20, 0);
+        ctx.fill();
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 20, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    function drawShell(ctx, x, y, scale, palette) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+
+        ctx.fillStyle = palette.shell;
+        ctx.beginPath();
+        ctx.arc(0, 0, 10, Math.PI, 0);
+        ctx.lineTo(0,0);
+        ctx.fill();
+        
+        ctx.strokeStyle = palette.sandDark;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for(let i=1; i<5; i++) {
+            const angle = Math.PI + (i/5)*Math.PI;
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(angle)*10, Math.sin(angle)*10);
+        }
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    function drawDunes(ctx, width, height, sandY, palette) {
+        // Base Background
+        ctx.fillStyle = palette.sandDark;
+        ctx.fillRect(-50, sandY, width + 100, height - sandY);
+
+        // Dune 1 (Back)
+        ctx.fillStyle = palette.sandDark;
+        // Slightly lighter than base for contrast? 
+        // Actually palette.sandDark is the darkest. palette.sandLight is lightest.
+        // Let's interpolate manually or just use alpha.
+        
+        // Let's use semi-transparent light sand to create layers.
+        
+        ctx.save();
+        
+        // Layer 1
+        ctx.fillStyle = palette.sandLight; 
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.moveTo(-50, height);
+        ctx.lineTo(-50, sandY);
+        ctx.bezierCurveTo(width*0.3, sandY - 20, width*0.7, sandY + 20, width + 50, sandY);
+        ctx.lineTo(width + 50, height);
+        ctx.fill();
+
+        // Layer 2 (Closer)
+        ctx.globalAlpha = 0.6;
+        const d2y = sandY + height * 0.05;
+        ctx.beginPath();
+        ctx.moveTo(-50, height);
+        ctx.lineTo(-50, d2y);
+        ctx.bezierCurveTo(width*0.4, d2y + 40, width*0.6, d2y - 10, width + 50, d2y + 20);
+        ctx.lineTo(width + 50, height);
+        ctx.fill();
+        
+        // Layer 3 (Closest)
+        ctx.globalAlpha = 1.0;
+        const d3y = sandY + height * 0.15;
+        ctx.beginPath();
+        ctx.moveTo(-50, height);
+        ctx.lineTo(-50, d3y);
+        ctx.bezierCurveTo(width*0.2, d3y - 10, width*0.8, d3y + 30, width + 50, d3y + 10);
+        ctx.lineTo(width + 50, height);
+        ctx.fill();
+
+        // Speckles/Texture
+        ctx.fillStyle = palette.sandDark;
+        ctx.globalAlpha = 0.1;
+        sandSpeckles.forEach(s => {
+            ctx.fillRect(s.x, s.y, 2, 2);
+        });
+
+        ctx.restore();
+    }
+
+    // --- Render Loop ---
+    function loop() {
+        if (!isRunning) return;
+
+        const now = Date.now();
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / durationMs, 1.0);
+
+        if (progress >= 1.0) {
+            cleanup();
+            if (onComplete) onComplete();
+            return;
+        }
+
+        // Timeline Constants (ms)
+        const FADE_IN_END = 5000;
+        const STORM_START = 6000;
+        const STRIKE_TIME = 50000;
+        const FADE_OUT_START = 50000;
+        const FADE_OUT_DURATION = 5000;
+        const IMPACT_START = 40000;
+
+        // 1. Storm Factor (0 to 1)
+        // 0s - 7.5s: 0
+        // 7.5s - 55s: Ramp 0 -> 1
+        let stormFactor = 0;
+        if (elapsed < STORM_START) {
+            stormFactor = 0;
+        } else if (elapsed < STRIKE_TIME) {
+            stormFactor = (elapsed - STORM_START) / (STRIKE_TIME - STORM_START);
+        } else {
+            stormFactor = 1;
+        }
+
+        // 2. Impact Factor (Chaos/Strike)
+        // Ramps up chaos leading to the strike
+        // Let's start ramping it up in the last 10s before strike
+        let impactFactor = 0;
+        if (elapsed > IMPACT_START) {
+            impactFactor = Math.max(0, (elapsed - IMPACT_START) / (STRIKE_TIME - IMPACT_START));
+        }
+        // Clamp impact factor to 1 until fade out completes, though elapsed > STRIKE_TIME covers it.
+        if (elapsed > STRIKE_TIME) impactFactor = 1;
+
+        // Interpolate Palette
+        const currentPalette = {
+            skyTop: lerpColor(SUNNY_PALETTE.skyTop, STORM_PALETTE.skyTop, stormFactor),
+            skyBottom: lerpColor(SUNNY_PALETTE.skyBottom, STORM_PALETTE.skyBottom, stormFactor),
+            sun: lerpColor(SUNNY_PALETTE.sun, STORM_PALETTE.sun, stormFactor),
+            waterDeep: lerpColor(SUNNY_PALETTE.waterDeep, STORM_PALETTE.waterDeep, stormFactor),
+            waterMid: lerpColor(SUNNY_PALETTE.waterMid, STORM_PALETTE.waterMid, stormFactor),
+            waterPeak: lerpColor(SUNNY_PALETTE.waterPeak, STORM_PALETTE.waterPeak, stormFactor),
+            foam: lerpColor(SUNNY_PALETTE.foam, STORM_PALETTE.foam, stormFactor),
+            sandLight: lerpColor(SUNNY_PALETTE.sandLight, STORM_PALETTE.sandLight, stormFactor),
+            sandDark: lerpColor(SUNNY_PALETTE.sandDark, STORM_PALETTE.sandDark, stormFactor),
+            rock: lerpColor(SUNNY_PALETTE.rock, STORM_PALETTE.rock, stormFactor),
+            leaf: lerpColor(SUNNY_PALETTE.leaf, STORM_PALETTE.leaf, stormFactor),
+            shell: lerpColor(SUNNY_PALETTE.shell, STORM_PALETTE.shell, stormFactor)
+        };
+
+        // Screen Shake
+        let shakeX = 0;
+        let shakeY = 0;
+        if (stormFactor > 0.5) {
+            const shakeMag = (stormFactor - 0.5) * 2 * 5 + (impactFactor * 25);
+            shakeX = (Math.random() - 0.5) * shakeMag;
+            shakeY = (Math.random() - 0.5) * shakeMag;
+        }
+
+        // Clear FG
+        fgCtx.clearRect(0, 0, width, height);
+
+        bgCtx.save();
+        bgCtx.translate(shakeX, shakeY);
+        
+        fgCtx.save();
+        fgCtx.translate(shakeX, shakeY);
+
+        // 1. Draw Sky (BG)
+        if (lightningState.flashOpacity > 0) {
+            bgCtx.fillStyle = `rgba(255, 255, 255, ${lightningState.flashOpacity * 0.9})`;
+            bgCtx.fillRect(-50, -50, width + 100, height + 100);
+            lightningState.flashOpacity -= 0.1;
+        } else {
+            const grad = bgCtx.createLinearGradient(0, 0, 0, height);
+            grad.addColorStop(0, currentPalette.skyTop);
+            grad.addColorStop(1, currentPalette.skyBottom);
+            bgCtx.fillStyle = grad;
+            bgCtx.fillRect(-50, -50, width + 100, height + 100);
+        }
+
+        // 2. Draw Sun (BG)
+        if (stormFactor < 1.0) {
+            const sunY = height * 0.15 + (stormFactor * 50); // Sun sets slightly
+            bgCtx.beginPath();
+            bgCtx.arc(width * 0.7, sunY, 40, 0, Math.PI * 2);
+            bgCtx.fillStyle = currentPalette.sun;
+            bgCtx.globalAlpha = 1 - stormFactor; // Fade out
+            bgCtx.shadowColor = currentPalette.sun;
+            bgCtx.shadowBlur = 20;
+            bgCtx.fill();
+            bgCtx.globalAlpha = 1.0;
+            bgCtx.shadowBlur = 0;
+        }
+
+        // 3. Draw Merchant (BG)
+        if (merchantLoaded && stormFactor < 1) { 
+            bgCtx.save();
+            // Position: Right side, lower down
+            const merchScale = Math.min(width, height) * 0.0005; 
+            const merchW = 300 * merchScale;
+            const merchH = 300 * merchScale; 
+            // Position him to peek from behind the sand
+            const merchX = width * 0.80; 
+            const merchY = height * 0.60; 
+
+            bgCtx.translate(merchX, merchY);
+            bgCtx.rotate(0.1); // Slight slant
+            bgCtx.drawImage(merchantImg, -merchW/2, -merchH/2, merchW, merchH);
+            bgCtx.restore();
+        }
+
+        // 4. Draw Sand & Props (BG)
+        const sandY = height * 0.65; // Starts at 65% down
+        
+        // Draw Dunes
+        drawDunes(bgCtx, width, height, sandY, currentPalette);
+
+        // Draw Props
+        // Only draw props if they are not underwater?
+        // Actually, the tsunami covers everything eventually.
+        // The water drawing logic (step 7 and 8) is on fgCanvas (foreground).
+        // Props are on bgCanvas.
+        // So they will be naturally covered by the water drawn on fgCanvas.
+        
+        props.forEach(prop => {
+            if (prop.type === 'tree') drawPalmTree(bgCtx, prop.x, prop.y, prop.scale, currentPalette);
+            else if (prop.type === 'rock') drawRock(bgCtx, prop.x, prop.y, prop.scale, currentPalette);
+            else if (prop.type === 'shell') drawShell(bgCtx, prop.x, prop.y, prop.scale, currentPalette);
+        });
+
+        // 5. Draw Cliffs - REMOVED
+
+        // 6. Lightning Logic (FG)
+        if (stormFactor > 0.8 && now > lightningState.nextFlashTime) {
+            lightningState.active = true;
+            lightningState.flashOpacity = 0.3 + Math.random() * 0.5;
+            lightningState.bolts = [];
+            if (Math.random() > 0.2) {
+                lightningState.bolts.push(createBolt(Math.random() * width, 0, height * 0.5));
+            }
+            // Rapid fire near end
+            const delayBase = lerp(2000, 100, impactFactor);
+            lightningState.nextFlashTime = now + delayBase + Math.random() * delayBase;
+        }
+
+        if (lightningState.flashOpacity > 0.05 && lightningState.bolts.length > 0) {
+            fgCtx.strokeStyle = '#fff';
+            fgCtx.lineWidth = 2 + Math.random() * 2;
+            fgCtx.beginPath();
+            lightningState.bolts.forEach(bolt => {
+                bolt.forEach(seg => {
+                    fgCtx.moveTo(seg.x1, seg.y1);
+                    fgCtx.lineTo(seg.x2, seg.y2);
+                });
+            });
+            fgCtx.stroke();
+        }
+
+        // 7. Distant Tsunami Wall (FG)
+        // Start showing wall when storm is roughly 30% active (around 22s mark)
+        const WALL_START_FACTOR = 0.3; 
+        if (stormFactor > WALL_START_FACTOR) {
+            const wallProgress = (stormFactor - WALL_START_FACTOR) / (1 - WALL_START_FACTOR); // 0 to 1
+            const wallHeight = lerp(0, height * 1.5, wallProgress * wallProgress); // Accelerate
+            
+            fgCtx.fillStyle = currentPalette.waterDeep;
+            fgCtx.beginPath();
+            
+            fgCtx.moveTo(-50, height);
+            fgCtx.lineTo(-50, height - wallHeight * 0.3); // Left side lower
+            
+            // Bezier for the wave crest
+            fgCtx.bezierCurveTo(
+                width * 0.3, height - wallHeight * 0.4, 
+                width * 0.6, height - wallHeight * 1.2, // The crest peak
+                width + 50, height - wallHeight * 0.8
+            );
+            
+            fgCtx.lineTo(width + 50, height);
+            fgCtx.fill();
+        }
+
+        // 8. Normal Ocean Waves (FG)
+        const tideRise = lerp(0, height * 0.5, stormFactor); 
+        const impactRise = lerp(0, height * 1.5, impactFactor * impactFactor);
+        
+        // Start water lower to show sand (0.85)
+        const baseWaterY = height * 0.85 - tideRise - impactRise;
+
+        waves.forEach((wave, index) => {
+            // Mix colors based on layer
+            let baseColor;
+            if (index === layerCount - 1) baseColor = currentPalette.waterPeak;
+            else if (index % 2 === 0) baseColor = currentPalette.waterDeep;
+            else baseColor = currentPalette.waterMid;
+
+            fgCtx.fillStyle = baseColor;
+            fgCtx.beginPath();
+
+            // Turbulence
+            const waveAmp = wave.amplitudeBase * (1 + stormFactor * 2 + impactFactor * 5);
+            const waveFreq = 0.003 + (stormFactor * 0.005);
+            const speed = wave.speedBase * (1 + stormFactor * 5 + impactFactor * 10);
+            
+            const timeOffset = elapsed * speed + wave.offset;
+            const yOffset = index * 15 * (1 - impactFactor); // Compress layers on impact
+
+            const layerY = baseWaterY + yOffset;
+
+            fgCtx.moveTo(-50, height);
+            fgCtx.lineTo(-50, layerY);
+
+            for (let x = -50; x <= width + 50; x += 15) {
+                const y = layerY + 
+                          Math.sin(x * waveFreq + timeOffset) * waveAmp + 
+                          Math.cos(x * waveFreq * 2.3 + timeOffset) * (waveAmp * 0.5);
+                fgCtx.lineTo(x, y);
+            }
+
+            fgCtx.lineTo(width + 50, height);
+            fgCtx.fill();
+
+            // Foam on top layer or high storm factor
+            if (index === layerCount - 1 || (stormFactor > 0.6 && index > layerCount - 3)) {
+                fgCtx.fillStyle = `rgba(255, 255, 255, ${0.1 + stormFactor * 0.3})`;
+                // Simple foam pass
+                fgCtx.beginPath();
+                for (let x = -50; x <= width + 50; x += 10) {
+                    let y = layerY + 
+                          Math.sin(x * waveFreq + timeOffset) * waveAmp + 
+                          Math.cos(x * waveFreq * 2.3 + timeOffset) * (waveAmp * 0.5);
+                    if (Math.random() > 0.5) y -= 5; // Spray
+                    if(x===-50) fgCtx.moveTo(x,y); else fgCtx.lineTo(x, y);
+                }
+                fgCtx.lineTo(width + 50, height);
+                fgCtx.lineTo(-50, height);
+                fgCtx.fill();
+            }
+        });
+
+        // 9. Rain (FG)
+        if (stormFactor > 0.3) {
+            const rainIntensity = (stormFactor - 0.3) / 0.7;
+            const rainCount = Math.floor(maxRain * rainIntensity);
+            
+            fgCtx.strokeStyle = `rgba(200, 220, 255, ${0.1 + rainIntensity * 0.3})`;
+            fgCtx.lineWidth = 1 + rainIntensity;
+            fgCtx.beginPath();
+
+            // Add particles
+            if (rainParticles.length < rainCount) {
+                for(let i=0; i<10; i++) {
+                    rainParticles.push({
+                        x: Math.random() * width * 1.5, // Wide spawn for angle
+                        y: -100,
+                        speed: 20 + Math.random() * 20,
+                        len: 10 + Math.random() * 20
+                    });
+                }
+            }
+
+            const wind = 10 + rainIntensity * 20;
+
+            for (let i = 0; i < rainParticles.length; i++) {
+                const p = rainParticles[i];
+                p.y += p.speed;
+                p.x -= wind;
+
+                fgCtx.moveTo(p.x, p.y);
+                fgCtx.lineTo(p.x - wind * 0.5, p.y + p.len);
+
+                if (p.y > height || p.x < -100) {
+                    if (i < rainCount) {
+                        p.x = Math.random() * width * 1.5;
+                        p.y = -50;
+                    } else {
+                        rainParticles.splice(i, 1);
+                        i--;
+                    }
+                }
+            }
+            fgCtx.stroke();
+        }
+
+        // 10. Intro Fade In (FG)
+        if (elapsed < FADE_IN_END) {
+            let opacity = 1;
+            if (elapsed > 1000) {
+                opacity = 1 - ((elapsed - 1000) / (FADE_IN_END - 1000));
+            }
+            fgCtx.fillStyle = `rgba(0, 0, 0, ${opacity})`;
+            fgCtx.fillRect(-50, -50, width + 100, height + 100);
+        }
+
+        // 11. Final Blackout Fade Out (FG)
+        if (elapsed > FADE_OUT_START) {
+            const fade = Math.min(1, (elapsed - FADE_OUT_START) / FADE_OUT_DURATION);
+            fgCtx.fillStyle = `rgba(0, 0, 0, ${fade})`;
+            fgCtx.fillRect(-50, -50, width + 100, height + 100);
+        }
+
+        bgCtx.restore();
+        fgCtx.restore();
+
+        animationFrameId = requestAnimationFrame(loop);
+    }
+
+    function cleanup() {
+        isRunning = false;
+        container.style.cursor = '';
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        window.removeEventListener('resize', resize);
+        if (bgCanvas.parentNode) bgCanvas.parentNode.removeChild(bgCanvas);
+        if (fgCanvas.parentNode) fgCanvas.parentNode.removeChild(fgCanvas);
+        if (uiContainer.parentNode) uiContainer.parentNode.removeChild(uiContainer);
+    }
+
+    loop();
+    return cleanup;
 }
