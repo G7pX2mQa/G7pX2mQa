@@ -2028,5 +2028,74 @@ export function unlockMerchantTabs(keys = []) {
   keys.forEach(key => setMerchantTabUnlocked(key, true));
 }
 
+export function runTsunamiDialogue(container, onComplete) {
+  const script = {
+    start: 'n1',
+    nodes: {
+      'n1': { type: 'line', say: 'O Great Tsunami…', next: 'c1' },
+      'c1': { type: 'choice', options: [{ label: '...', to: 'n2' }] },
+      'n2': { type: 'line', say: 'Cover this Cove in your wet embrace…', next: 'c2' },
+      'c2': { type: 'choice', options: [{ label: '...', to: 'n3' }] },
+      'n3': { type: 'line', say: 'We have thirsted for far too long…', next: 'c3' },
+      'c3': { type: 'choice', options: [{ label: '...', to: 'n4' }] },
+      'n4': { type: 'line', say: 'Awaken what once was lost…', next: 'c4' },
+      'c4': { type: 'choice', options: [{ label: '...', to: 'n5' }] },
+      'n5': { type: 'line', say: 'You will have my deepest gratitude…', next: 'c5' },
+      'c5': { type: 'choice', options: [{ label: '...', to: 'end' }] },
+    }
+  };
+
+  const overlay = document.createElement('div');
+  overlay.className = 'merchant-firstchat is-visible';
+  overlay.style.zIndex = '2147483647'; 
+  
+  overlay.innerHTML = `
+    <div class="merchant-firstchat__card" role="dialog" aria-label="Tsunami Dialogue">
+      <div class="merchant-firstchat__header">
+        <div class="name">Merchant</div>
+        <div class="rule" aria-hidden="true"></div>
+      </div>
+      <div class="merchant-firstchat__row">
+        <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
+        <div class="merchant-firstchat__text" id="tsunami-dlg-line">…</div>
+      </div>
+      <div class="merchant-firstchat__choices" id="tsunami-dlg-choices"></div>
+    </div>
+  `;
+  
+  container.appendChild(overlay);
+  
+  const textEl = overlay.querySelector('#tsunami-dlg-line');
+  const choicesEl = overlay.querySelector('#tsunami-dlg-choices');
+  const rowEl = overlay.querySelector('.merchant-firstchat__row');
+  const cardEl = overlay.querySelector('.merchant-firstchat__card');
+
+  primeTypingSfx();
+
+  const blockEsc = (e) => {
+    if (e.key === 'Escape') {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  };
+  document.addEventListener('keydown', blockEsc, { capture: true });
+
+  const engine = new DialogueEngine({
+    textEl,
+    choicesEl,
+    skipTargets: [textEl, rowEl, cardEl],
+    onEnd: () => {
+       document.removeEventListener('keydown', blockEsc, { capture: true });
+       stopTypingSfx();
+       __isTypingActive = false;
+       overlay.remove();
+       if (onComplete) onComplete();
+    }
+  });
+
+  engine.load(script);
+  engine.start();
+}
+
 // Expose for other modules that may build UI later
 export { ensureMerchantOverlay };
