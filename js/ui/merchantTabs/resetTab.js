@@ -1048,11 +1048,19 @@ function startTsunamiSequence() {
     };
 
     // 8. Start Visuals
-    tsunamiCleanup = playTsunamiSequence(overlay, 60000, () => {
+    // Restored 60000ms duration for proper storm buildup/blackout timing
+    // onComplete now signifies "Ready for Dialogue" (screen is black)
+    const controls = playTsunamiSequence(overlay, 60000, () => {
+        // 9. Start Dialogue (Screen is black, visuals still running in background)
+        if (controls && controls.showCursor) controls.showCursor();
+        
         runTsunamiDialogue(overlay, () => {
-            setTimeout(endTsunamiSequence, 5000);
-        });
+            // Dialogue/Crazy Stuff finished
+            setTimeout(endTsunamiSequence, 0);
+        }, controls);
     }, visualOptions);
+    
+    tsunamiCleanup = controls.cleanup;
 }
 
 function endTsunamiSequence() {
