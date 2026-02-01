@@ -1086,6 +1086,12 @@ function endTsunamiSequence() {
     
     // 6. Clear active flag
     window.__tsunamiActive = false;
+
+    // 7. Set Dialogue Pending Flag
+    const slot = getActiveSlot();
+    if (slot != null) {
+        try { localStorage.setItem(`ccc:tsunami:dialoguePending:${slot}`, '1'); } catch {}
+    }
 }
 
 export function performSurgeReset() {
