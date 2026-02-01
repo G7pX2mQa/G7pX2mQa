@@ -45,7 +45,7 @@ import {
   getTsunamiSequenceSeen,
   setTsunamiSequenceSeen
 } from '../../game/surgeEffects.js';
-import { closeMerchant } from './dlgTab.js';
+import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 
 const BN = BigNum;
@@ -1048,7 +1048,11 @@ function startTsunamiSequence() {
     };
 
     // 8. Start Visuals
-    tsunamiCleanup = playTsunamiSequence(overlay, 60000, endTsunamiSequence, visualOptions);
+    tsunamiCleanup = playTsunamiSequence(overlay, 60000, () => {
+        runTsunamiDialogue(overlay, () => {
+            setTimeout(endTsunamiSequence, 5000);
+        });
+    }, visualOptions);
 }
 
 function endTsunamiSequence() {
