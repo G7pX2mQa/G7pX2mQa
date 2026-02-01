@@ -121,6 +121,24 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
     let width, height;
     let props = [];
     let sandSpeckles = [];
+    let clouds = [];
+    let cloudBaseY = 0;
+
+    function generateClouds() {
+        clouds = [];
+        cloudBaseY = height * 0.25;
+        // Puffs along the bottom edge
+        const puffSize = Math.min(width, height) * 0.15;
+        const numPuffs = Math.ceil(width / (puffSize * 0.5)) + 2;
+        
+        for(let i=0; i<numPuffs; i++) {
+            clouds.push({
+                x: (i * puffSize * 0.5) - puffSize,
+                y: cloudBaseY - (puffSize * 0.2) + (Math.random() * (puffSize * 0.2)),
+                r: (puffSize * 0.6) + Math.random() * (puffSize * 0.4)
+            });
+        }
+    }
 
     function generateProps() {
         props = [];
@@ -237,20 +255,32 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         props.sort((a, b) => a.y - b.y);
     }
 
+    const bgCtx = bgCanvas.getContext('2d', { alpha: false });
+    const fgCtx = fgCanvas.getContext('2d', { alpha: true });
+
     function resize() {
+        const dpr = window.devicePixelRatio || 1;
         width = window.innerWidth;
         height = window.innerHeight;
-        bgCanvas.width = width;
-        bgCanvas.height = height;
-        fgCanvas.width = width;
-        fgCanvas.height = height;
+
+        bgCanvas.width = width * dpr;
+        bgCanvas.height = height * dpr;
+        bgCanvas.style.width = width + 'px';
+        bgCanvas.style.height = height + 'px';
+
+        fgCanvas.width = width * dpr;
+        fgCanvas.height = height * dpr;
+        fgCanvas.style.width = width + 'px';
+        fgCanvas.style.height = height + 'px';
+
+        bgCtx.scale(dpr, dpr);
+        fgCtx.scale(dpr, dpr);
+
         generateProps();
+        generateClouds();
     }
     window.addEventListener('resize', resize);
     resize();
-
-    const bgCtx = bgCanvas.getContext('2d', { alpha: false });
-    const fgCtx = fgCanvas.getContext('2d', { alpha: true });
     
     const startTime = Date.now();
     let isRunning = true;
@@ -278,10 +308,10 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         skyTop: '#000510',
         skyBottom: '#000815',
         sun: '#2a2a2a', // Dim/hidden
-        waterDeep: '#001040',
-        waterMid: '#002070',
-        waterPeak: '#0030a0',
-        foam: '#5080d0',
+        waterDeep: '#000030',
+        waterMid: '#000060',
+        waterPeak: '#000090',
+        foam: '#3060b0',
         sandLight: '#2c2a20', // Dark wet sand
         sandDark: '#1a1810',
         rock: '#1a1a1a',
@@ -594,6 +624,44 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             bgCtx.shadowBlur = 0;
         }
 
+        // 2.5 Draw Thunderclouds (BG)
+        if (stormFactor > 0) {
+            bgCtx.save();
+            const cloudOpacity = Math.min(1, stormFactor * 1.5); // Fade in quickly
+            bgCtx.fillStyle = `rgba(30, 35, 45, ${cloudOpacity})`;
+            
+            // Solid top block
+            bgCtx.fillRect(-50, -50, width + 100, cloudBaseY + 50);
+            
+            // Puffs
+            bgCtx.beginPath();
+            clouds.forEach(c => {
+                bgCtx.moveTo(c.x + c.r, c.y);
+                bgCtx.arc(c.x, c.y, c.r, 0, Math.PI*2);
+            });
+            bgCtx.fill();
+            bgCtx.restore();
+        }
+
+        // 2.5 Draw Thunderclouds (BG)
+        if (stormFactor > 0) {
+            bgCtx.save();
+            const cloudOpacity = Math.min(1, stormFactor * 1.5); // Fade in quickly
+            bgCtx.fillStyle = `rgba(30, 35, 45, ${cloudOpacity})`;
+            
+            // Solid top block
+            bgCtx.fillRect(-50, -50, width + 100, cloudBaseY + 50);
+            
+            // Puffs
+            bgCtx.beginPath();
+            clouds.forEach(c => {
+                bgCtx.moveTo(c.x + c.r, c.y);
+                bgCtx.arc(c.x, c.y, c.r, 0, Math.PI*2);
+            });
+            bgCtx.fill();
+            bgCtx.restore();
+        }
+
         // 3. Draw Merchant (BG)
         if (merchantLoaded && stormFactor < 1) { 
             bgCtx.save();
@@ -638,7 +706,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             lightningState.flashOpacity = 0.3 + Math.random() * 0.5;
             lightningState.bolts = [];
             if (Math.random() > 0.2) {
-                lightningState.bolts.push(createBolt(Math.random() * width, 0, height * 0.5));
+                lightningState.bolts.push(createBolt(Math.random() * width, cloudBaseY, height * 0.5));
             }
             // Rapid fire near end
             const delayBase = lerp(2000, 100, impactFactor);
@@ -754,7 +822,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
                 for(let i=0; i<10; i++) {
                     rainParticles.push({
                         x: Math.random() * width * 1.5, // Wide spawn for angle
-                        y: -100,
+                        y: cloudBaseY,
                         speed: 20 + Math.random() * 20,
                         len: 10 + Math.random() * 20
                     });
@@ -774,7 +842,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
                 if (p.y > height || p.x < -100) {
                     if (i < rainCount) {
                         p.x = Math.random() * width * 1.5;
-                        p.y = -50;
+                        p.y = cloudBaseY;
                     } else {
                         rainParticles.splice(i, 1);
                         i--;
