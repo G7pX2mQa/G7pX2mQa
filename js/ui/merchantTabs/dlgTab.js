@@ -1893,6 +1893,8 @@ export function openMerchant() {
 
   // Check for pending Lab unlock
   const slot = getActiveSlot();
+  let forcedDialogueTab = false;
+
   if (slot != null) {
       const pendingKey = `ccc:tsunami:labPending:${slot}`;
       if (localStorage.getItem(pendingKey) === '1') {
@@ -1900,6 +1902,7 @@ export function openMerchant() {
           try { localStorage.setItem(LAB_UNLOCK_KEY(slot), '1'); } catch {}
           syncLabTabUnlockState();
           try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'lab', slot } })); } catch {}
+          forcedDialogueTab = true;
       }
   }
 
@@ -1939,6 +1942,11 @@ export function openMerchant() {
     // Restore last tab
     let last = 'dialogue';
     try { last = localStorage.getItem(sk(MERCHANT_TAB_KEY_BASE)) || 'dialogue'; } catch {}
+    
+    if (forcedDialogueTab) {
+        last = 'dialogue';
+    }
+    
     selectMerchantTab(last);
 
     // Ensure no orphaned audio
