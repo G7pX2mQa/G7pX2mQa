@@ -38,8 +38,8 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         wrapper.style.position = 'absolute';
         wrapper.style.left = '50%';
         
-        // Flipped upside down (rotateZ 180deg) and tilted back (rotateX 25deg)
-        const transformBase = `perspective(600px) rotateX(25deg) rotateZ(180deg)`;
+        // Flipped upside down (rotateZ 180deg) and tilted back (rotateX 50deg)
+        const transformBase = `perspective(600px) rotateX(50deg) rotateZ(180deg)`;
         
         const hasXp = !!options.xpHTML;
         const hasMp = !!options.mpHTML;
@@ -50,13 +50,13 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         } else if (hasXp && hasMp) {
             // Both XP and MP: Side-by-side centered
             // Compromise vertical position
-            wrapper.style.top = '70%';
+            wrapper.style.top = '72.5%';
             if (type === 'mp') {
-                // Left side (gap of ~50px total)
-                wrapper.style.transform = `translateX(calc(-100% - 25px)) ${transformBase}`;
+                // Left side (gap of ~88px total)
+                wrapper.style.transform = `translateX(calc(-100% - 44px)) ${transformBase}`;
             } else {
                 // Right side (XP)
-                wrapper.style.transform = `translateX(25px) ${transformBase}`;
+                wrapper.style.transform = `translateX(44px) ${transformBase}`;
             }
         } else {
             // Single XP or MP
