@@ -713,8 +713,38 @@ function stopTypingSfx() {
 // ========================= Typewriter =========================
 function typeText(el, full, msPerChar = 22, skipTargets = []) {
   return new Promise((resolve) => {
-    let i = 0, skipping = false;
+    // Basic HTML parser for typewriter
+    const segments = [];
+    let currentText = '';
+    let inTag = false;
+    
+    for (let i = 0; i < full.length; i++) {
+        const char = full[i];
+        if (char === '<') {
+            if (currentText) {
+                segments.push({ type: 'text', content: currentText });
+                currentText = '';
+            }
+            inTag = true;
+            currentText += char;
+        } else if (char === '>' && inTag) {
+            currentText += char;
+            segments.push({ type: 'tag', content: currentText });
+            currentText = '';
+            inTag = false;
+        } else {
+            currentText += char;
+        }
+    }
+    if (currentText) {
+        segments.push({ type: inTag ? 'tag' : 'text', content: currentText });
+    }
+
+    let segIndex = 0;
+    let charIndex = 0;
+    let skipping = false;
     let armed = false;
+    let buffer = '';
 
     __isTypingActive = true;
     startTypingSfx();
@@ -731,7 +761,7 @@ function typeText(el, full, msPerChar = 22, skipTargets = []) {
     });
 
     el.classList.add('is-typing');
-    el.textContent = '';
+    el.innerHTML = '';
 
     const cleanup = () => {
       targets.forEach(t => t.removeEventListener('click', skip));
@@ -742,10 +772,38 @@ function typeText(el, full, msPerChar = 22, skipTargets = []) {
     };
 
     const tick = () => {
-      if (skipping) { el.textContent = full; cleanup(); resolve(); return; }
-      el.textContent = full.slice(0, i++);
-      if (i <= full.length) setTimeout(tick, msPerChar);
-      else { cleanup(); resolve(); }
+      if (skipping) {
+          el.innerHTML = full;
+          cleanup();
+          resolve();
+          return;
+      }
+      
+      if (segIndex >= segments.length) {
+          cleanup();
+          resolve();
+          return;
+      }
+
+      const seg = segments[segIndex];
+      
+      if (seg.type === 'tag') {
+          buffer += seg.content;
+          el.innerHTML = buffer;
+          segIndex++;
+          tick();
+      } else {
+          // Type text char by char
+          buffer += seg.content[charIndex];
+          el.innerHTML = buffer;
+          charIndex++;
+          
+          if (charIndex >= seg.content.length) {
+              segIndex++;
+              charIndex = 0;
+          }
+          setTimeout(tick, msPerChar);
+      }
     };
     tick();
   });
@@ -2028,8 +2086,8 @@ export function unlockMerchantTabs(keys = []) {
   keys.forEach(key => setMerchantTabUnlocked(key, true));
 }
 
-export function runTsunamiDialogue(container, onComplete) {
-  const script = {
+export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
+  const scriptPart1 = {
     start: 'n1',
     nodes: {
       'n1': { type: 'line', say: 'O Great Tsunami…', next: 'c1' },
@@ -2048,6 +2106,8 @@ export function runTsunamiDialogue(container, onComplete) {
   const overlay = document.createElement('div');
   overlay.className = 'merchant-firstchat is-visible';
   overlay.style.zIndex = '2147483647'; 
+  overlay.style.userSelect = 'none';
+  overlay.style.webkitUserSelect = 'none';
   
   overlay.innerHTML = `
     <div class="merchant-firstchat__card" role="dialog" aria-label="Tsunami Dialogue">
@@ -2057,7 +2117,7 @@ export function runTsunamiDialogue(container, onComplete) {
       </div>
       <div class="merchant-firstchat__row">
         <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
-        <div class="merchant-firstchat__text" id="tsunami-dlg-line">…</div>
+        <div class="merchant-firstchat__text" id="tsunami-dlg-line" style="user-select: none; -webkit-user-select: none;">…</div>
       </div>
       <div class="merchant-firstchat__choices" id="tsunami-dlg-choices"></div>
     </div>
@@ -2080,20 +2140,108 @@ export function runTsunamiDialogue(container, onComplete) {
   };
   document.addEventListener('keydown', blockEsc, { capture: true });
 
+  const runPart2 = () => {
+    // 15 seconds visual effect then fade
+    setTimeout(() => {
+        // Trigger Beacon Effect
+        if (tsunamiControls && tsunamiControls.triggerBeacons) {
+            tsunamiControls.triggerBeacons();
+        }
+        
+        // Wait 15 seconds for effect
+        setTimeout(() => {
+            // Trigger Fade
+            if (tsunamiControls && tsunamiControls.triggerFinalFade) {
+                tsunamiControls.triggerFinalFade();
+            }
+            
+            // Wait 5 seconds for fade
+            setTimeout(() => {
+                // Final Dialogue
+                runFinalLine();
+            }, 5000);
+            
+        }, 15000);
+        
+    }, 1000); // 1s delay start
+  };
+
+  const runFinalLine = () => {
+      if (tsunamiControls && tsunamiControls.showCursor) tsunamiControls.showCursor();
+
+      // Re-show overlay content for final line
+      overlay.innerHTML = `
+        <div class="merchant-firstchat__card" role="dialog" aria-label="Tsunami Dialogue">
+          <div class="merchant-firstchat__header">
+            <div class="name">Merchant</div>
+            <div class="rule" aria-hidden="true"></div>
+          </div>
+          <div class="merchant-firstchat__row">
+            <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
+            <div class="merchant-firstchat__text" id="tsunami-dlg-line-2" style="user-select: none; -webkit-user-select: none;">…</div>
+          </div>
+          <div class="merchant-firstchat__choices" id="tsunami-dlg-choices-2"></div>
+        </div>
+      `;
+      
+      const textEl2 = overlay.querySelector('#tsunami-dlg-line-2');
+      const choicesEl2 = overlay.querySelector('#tsunami-dlg-choices-2');
+      const rowEl2 = overlay.querySelector('.merchant-firstchat__row');
+      const cardEl2 = overlay.querySelector('.merchant-firstchat__card');
+      
+      const finalScript = {
+          start: 'final',
+          nodes: {
+              'final': { 
+                  type: 'line', 
+                  say: 'I’m sure the <span style="color:#00e5ff">Player</span> will have some questions when they wake up, but I will deal with that when I must.', 
+                  next: 'end' 
+              },
+              'end': { type: 'choice', options: [{ label: '...', to: 'end' }] }
+          }
+      };
+      
+      const engine2 = new DialogueEngine({
+          textEl: textEl2,
+          choicesEl: choicesEl2,
+          skipTargets: [textEl2, rowEl2, cardEl2],
+          onEnd: () => {
+              // Hide Dialogue
+              overlay.innerHTML = ''; // Hide UI
+              if (tsunamiControls && tsunamiControls.hideCursor) tsunamiControls.hideCursor();
+              
+              // 5 seconds darkness
+              setTimeout(() => {
+                  document.removeEventListener('keydown', blockEsc, { capture: true });
+                  stopTypingSfx();
+                  __isTypingActive = false;
+                  overlay.remove();
+                  if (onComplete) onComplete();
+              }, 5000);
+          }
+      });
+      
+      engine2.load(finalScript);
+      engine2.start();
+  };
+
   const engine = new DialogueEngine({
     textEl,
     choicesEl,
     skipTargets: [textEl, rowEl, cardEl],
     onEnd: () => {
-       document.removeEventListener('keydown', blockEsc, { capture: true });
-       stopTypingSfx();
-       __isTypingActive = false;
-       overlay.remove();
-       if (onComplete) onComplete();
+        // Hide Dialogue UI temporarily
+        overlay.innerHTML = '';
+        stopTypingSfx();
+        __isTypingActive = false;
+        
+        if (tsunamiControls && tsunamiControls.hideCursor) tsunamiControls.hideCursor();
+        
+        runPart2();
     }
   });
 
-  engine.load(script);
+  engine.load(scriptPart1);
   engine.start();
 }
 
