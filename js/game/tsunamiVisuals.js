@@ -278,7 +278,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         sun: '#ffeb3b',
         waterDeep: '#005b96',
         waterMid: '#0077be',
-        waterPeak: '#2a9df4',
+        waterPeak: '#2a80c0', // Slightly darker/less cyan peak (was #2a9df4)
         foam: '#e0f7fa',
         sandLight: '#f1dcb1',
         sandDark: '#debe7c',
@@ -291,10 +291,10 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         skyTop: '#000510',
         skyBottom: '#000815',
         sun: '#2a2a2a', // Dim/hidden
-        waterDeep: '#000030',
-        waterMid: '#000060',
-        waterPeak: '#000090',
-        foam: '#3060b0',
+        waterDeep: '#0a1a35', // Deep vibrant dark blue
+        waterMid: '#152b4f',  // Vibrant navy
+        waterPeak: '#203c69', // Lighter vibrant storm blue
+        foam: '#203c69',      // Matches waterPeak (no visible foam)
         sandLight: '#2c2a20', // Dark wet sand
         sandDark: '#1a1810',
         rock: '#1a1a1a',
@@ -673,6 +673,50 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             fgCtx.stroke();
         }
 
+        // 6.5. Rain (FG) - Moved here to be behind water
+        if (stormFactor > 0.3) {
+            const rainIntensity = (stormFactor - 0.3) / 0.7;
+            const rainCount = Math.floor(maxRain * rainIntensity);
+            
+            fgCtx.strokeStyle = `rgba(120, 180, 255, ${0.1 + rainIntensity * 0.3})`;
+            fgCtx.lineWidth = 1 + rainIntensity;
+            fgCtx.beginPath();
+
+            // Add particles
+            if (rainParticles.length < rainCount) {
+                for(let i=0; i<10; i++) {
+                    rainParticles.push({
+                        x: Math.random() * width * 1.5, // Wide spawn for angle
+                        y: cloudBaseY,
+                        speed: 20 + Math.random() * 20,
+                        len: 10 + Math.random() * 20
+                    });
+                }
+            }
+
+            const wind = 10 + rainIntensity * 20;
+
+            for (let i = 0; i < rainParticles.length; i++) {
+                const p = rainParticles[i];
+                p.y += p.speed;
+                p.x -= wind;
+
+                fgCtx.moveTo(p.x, p.y);
+                fgCtx.lineTo(p.x - wind * 0.5, p.y + p.len);
+
+                if (p.y > height || p.x < -100) {
+                    if (i < rainCount) {
+                        p.x = Math.random() * width * 1.5;
+                        p.y = cloudBaseY;
+                    } else {
+                        rainParticles.splice(i, 1);
+                        i--;
+                    }
+                }
+            }
+            fgCtx.stroke();
+        }
+
         // 7. Distant Tsunami Wall (FG)
         // Start showing wall when storm is roughly 30% active (around 22s mark)
         const WALL_START_FACTOR = 0.3; 
@@ -739,7 +783,12 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
 
             // Foam on top layer or high storm factor
             if (index === layerCount - 1 || (stormFactor > 0.6 && index > layerCount - 3)) {
-                fgCtx.fillStyle = `rgba(255, 255, 255, ${0.1 + stormFactor * 0.3})`;
+                // fgCtx.fillStyle = `rgba(255, 255, 255, ${0.1 + stormFactor * 0.3})`;
+                // Use palette foam color instead of hardcoded white
+                fgCtx.save();
+                fgCtx.globalAlpha = 0.1 + stormFactor * 0.3;
+                fgCtx.fillStyle = currentPalette.foam;
+
                 // Simple foam pass
                 fgCtx.beginPath();
                 for (let x = -50; x <= width + 50; x += 10) {
@@ -752,52 +801,9 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
                 fgCtx.lineTo(width + 50, height + 100);
                 fgCtx.lineTo(-50, height + 100);
                 fgCtx.fill();
+                fgCtx.restore();
             }
         });
-
-        // 9. Rain (FG)
-        if (stormFactor > 0.3) {
-            const rainIntensity = (stormFactor - 0.3) / 0.7;
-            const rainCount = Math.floor(maxRain * rainIntensity);
-            
-            fgCtx.strokeStyle = `rgba(120, 180, 255, ${0.1 + rainIntensity * 0.3})`;
-            fgCtx.lineWidth = 1 + rainIntensity;
-            fgCtx.beginPath();
-
-            // Add particles
-            if (rainParticles.length < rainCount) {
-                for(let i=0; i<10; i++) {
-                    rainParticles.push({
-                        x: Math.random() * width * 1.5, // Wide spawn for angle
-                        y: cloudBaseY,
-                        speed: 20 + Math.random() * 20,
-                        len: 10 + Math.random() * 20
-                    });
-                }
-            }
-
-            const wind = 10 + rainIntensity * 20;
-
-            for (let i = 0; i < rainParticles.length; i++) {
-                const p = rainParticles[i];
-                p.y += p.speed;
-                p.x -= wind;
-
-                fgCtx.moveTo(p.x, p.y);
-                fgCtx.lineTo(p.x - wind * 0.5, p.y + p.len);
-
-                if (p.y > height || p.x < -100) {
-                    if (i < rainCount) {
-                        p.x = Math.random() * width * 1.5;
-                        p.y = cloudBaseY;
-                    } else {
-                        rainParticles.splice(i, 1);
-                        i--;
-                    }
-                }
-            }
-            fgCtx.stroke();
-        }
 
         // 10. Intro Fade In (FG)
         if (elapsed < FADE_IN_END) {
