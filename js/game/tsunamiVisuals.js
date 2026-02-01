@@ -275,13 +275,13 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
     };
 
     const STORM_PALETTE = {
-        skyTop: '#020205',
-        skyBottom: '#0a0f1a',
+        skyTop: '#000510',
+        skyBottom: '#000815',
         sun: '#2a2a2a', // Dim/hidden
-        waterDeep: '#04060a',
-        waterMid: '#0b1624',
-        waterPeak: '#182b42',
-        foam: '#4a6fa5',
+        waterDeep: '#001040',
+        waterMid: '#002070',
+        waterPeak: '#0030a0',
+        foam: '#5080d0',
         sandLight: '#2c2a20', // Dark wet sand
         sandDark: '#1a1810',
         rock: '#1a1a1a',
@@ -437,7 +437,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
     function drawDunes(ctx, width, height, sandY, palette) {
         // Base Background
         ctx.fillStyle = palette.sandDark;
-        ctx.fillRect(0, sandY, width, height - sandY);
+        ctx.fillRect(-50, sandY, width + 100, height - sandY);
 
         // Dune 1 (Back)
         ctx.fillStyle = palette.sandDark;
@@ -453,30 +453,30 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         ctx.fillStyle = palette.sandLight; 
         ctx.globalAlpha = 0.3;
         ctx.beginPath();
-        ctx.moveTo(0, height);
-        ctx.lineTo(0, sandY);
-        ctx.bezierCurveTo(width*0.3, sandY - 20, width*0.7, sandY + 20, width, sandY);
-        ctx.lineTo(width, height);
+        ctx.moveTo(-50, height + 100);
+        ctx.lineTo(-50, sandY);
+        ctx.bezierCurveTo(width*0.3, sandY - 20, width*0.7, sandY + 20, width + 50, sandY);
+        ctx.lineTo(width + 50, height + 100);
         ctx.fill();
 
         // Layer 2 (Closer)
         ctx.globalAlpha = 0.6;
         const d2y = sandY + height * 0.05;
         ctx.beginPath();
-        ctx.moveTo(0, height);
-        ctx.lineTo(0, d2y);
-        ctx.bezierCurveTo(width*0.4, d2y + 40, width*0.6, d2y - 10, width, d2y + 20);
-        ctx.lineTo(width, height);
+        ctx.moveTo(-50, height + 100);
+        ctx.lineTo(-50, d2y);
+        ctx.bezierCurveTo(width*0.4, d2y + 40, width*0.6, d2y - 10, width + 50, d2y + 20);
+        ctx.lineTo(width + 50, height + 100);
         ctx.fill();
         
         // Layer 3 (Closest)
         ctx.globalAlpha = 1.0;
         const d3y = sandY + height * 0.15;
         ctx.beginPath();
-        ctx.moveTo(0, height);
-        ctx.lineTo(0, d3y);
-        ctx.bezierCurveTo(width*0.2, d3y - 10, width*0.8, d3y + 30, width, d3y + 10);
-        ctx.lineTo(width, height);
+        ctx.moveTo(-50, height + 100);
+        ctx.lineTo(-50, d3y);
+        ctx.bezierCurveTo(width*0.2, d3y - 10, width*0.8, d3y + 30, width + 50, d3y + 10);
+        ctx.lineTo(width + 50, height + 100);
         ctx.fill();
 
         // Speckles/Texture
@@ -506,9 +506,10 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         // Timeline Constants (ms)
         const FADE_IN_END = 5000;
         const STORM_START = 6000;
-        const STRIKE_TIME = 55000;
-        const FADE_OUT_START = 55000;
-        const IMPACT_START = 45000;
+        const STRIKE_TIME = 50000;
+        const FADE_OUT_START = 50000;
+        const FADE_OUT_DURATION = 5000;
+        const IMPACT_START = 40000;
 
         // 1. Storm Factor (0 to 1)
         // 0s - 7.5s: 0
@@ -569,14 +570,14 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         // 1. Draw Sky (BG)
         if (lightningState.flashOpacity > 0) {
             bgCtx.fillStyle = `rgba(255, 255, 255, ${lightningState.flashOpacity * 0.9})`;
-            bgCtx.fillRect(-20, -20, width + 40, height + 40);
+            bgCtx.fillRect(-50, -50, width + 100, height + 100);
             lightningState.flashOpacity -= 0.1;
         } else {
             const grad = bgCtx.createLinearGradient(0, 0, 0, height);
             grad.addColorStop(0, currentPalette.skyTop);
             grad.addColorStop(1, currentPalette.skyBottom);
             bgCtx.fillStyle = grad;
-            bgCtx.fillRect(-20, -20, width + 40, height + 40);
+            bgCtx.fillRect(-50, -50, width + 100, height + 100);
         }
 
         // 2. Draw Sun (BG)
@@ -667,17 +668,17 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             fgCtx.fillStyle = currentPalette.waterDeep;
             fgCtx.beginPath();
             
-            fgCtx.moveTo(0, height);
-            fgCtx.lineTo(0, height - wallHeight * 0.3); // Left side lower
+            fgCtx.moveTo(-50, height + 100);
+            fgCtx.lineTo(-50, height - wallHeight * 0.3); // Left side lower
             
             // Bezier for the wave crest
             fgCtx.bezierCurveTo(
                 width * 0.3, height - wallHeight * 0.4, 
                 width * 0.6, height - wallHeight * 1.2, // The crest peak
-                width, height - wallHeight * 0.8
+                width + 50, height - wallHeight * 0.8
             );
             
-            fgCtx.lineTo(width, height);
+            fgCtx.lineTo(width + 50, height + 100);
             fgCtx.fill();
         }
 
@@ -708,17 +709,17 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
 
             const layerY = baseWaterY + yOffset;
 
-            fgCtx.moveTo(0, height);
-            fgCtx.lineTo(0, layerY);
+            fgCtx.moveTo(-50, height + 100);
+            fgCtx.lineTo(-50, layerY);
 
-            for (let x = 0; x <= width; x += 15) {
+            for (let x = -50; x <= width + 50; x += 15) {
                 const y = layerY + 
                           Math.sin(x * waveFreq + timeOffset) * waveAmp + 
                           Math.cos(x * waveFreq * 2.3 + timeOffset) * (waveAmp * 0.5);
                 fgCtx.lineTo(x, y);
             }
 
-            fgCtx.lineTo(width, height);
+            fgCtx.lineTo(width + 50, height + 100);
             fgCtx.fill();
 
             // Foam on top layer or high storm factor
@@ -726,15 +727,15 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
                 fgCtx.fillStyle = `rgba(255, 255, 255, ${0.1 + stormFactor * 0.3})`;
                 // Simple foam pass
                 fgCtx.beginPath();
-                for (let x = 0; x <= width; x += 10) {
+                for (let x = -50; x <= width + 50; x += 10) {
                     let y = layerY + 
                           Math.sin(x * waveFreq + timeOffset) * waveAmp + 
                           Math.cos(x * waveFreq * 2.3 + timeOffset) * (waveAmp * 0.5);
                     if (Math.random() > 0.5) y -= 5; // Spray
-                    if(x===0) fgCtx.moveTo(x,y); else fgCtx.lineTo(x, y);
+                    if(x===-50) fgCtx.moveTo(x,y); else fgCtx.lineTo(x, y);
                 }
-                fgCtx.lineTo(width, height);
-                fgCtx.lineTo(0, height);
+                fgCtx.lineTo(width + 50, height + 100);
+                fgCtx.lineTo(-50, height + 100);
                 fgCtx.fill();
             }
         });
@@ -744,7 +745,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             const rainIntensity = (stormFactor - 0.3) / 0.7;
             const rainCount = Math.floor(maxRain * rainIntensity);
             
-            fgCtx.strokeStyle = `rgba(200, 220, 255, ${0.1 + rainIntensity * 0.3})`;
+            fgCtx.strokeStyle = `rgba(120, 180, 255, ${0.1 + rainIntensity * 0.3})`;
             fgCtx.lineWidth = 1 + rainIntensity;
             fgCtx.beginPath();
 
@@ -790,14 +791,14 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
                 opacity = 1 - ((elapsed - 1000) / (FADE_IN_END - 1000));
             }
             fgCtx.fillStyle = `rgba(0, 0, 0, ${opacity})`;
-            fgCtx.fillRect(0, 0, width, height);
+            fgCtx.fillRect(-50, -50, width + 100, height + 100);
         }
 
         // 11. Final Blackout Fade Out (FG)
         if (elapsed > FADE_OUT_START) {
-            const fade = Math.min(1, (elapsed - FADE_OUT_START) / (durationMs - FADE_OUT_START));
+            const fade = Math.min(1, (elapsed - FADE_OUT_START) / FADE_OUT_DURATION);
             fgCtx.fillStyle = `rgba(0, 0, 0, ${fade})`;
-            fgCtx.fillRect(0, 0, width, height);
+            fgCtx.fillRect(-50, -50, width + 100, height + 100);
         }
 
         bgCtx.restore();
