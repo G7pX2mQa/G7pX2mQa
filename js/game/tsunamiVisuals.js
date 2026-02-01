@@ -685,6 +685,8 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
 
 
         // 3. Draw Merchant (BG)
+        const sandY = height * 0.65; // Starts at 65% down
+
         if (merchantLoaded && stormFactor < 1) { 
             bgCtx.save();
             // Position: Right side, lower down
@@ -693,7 +695,12 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             const merchH = 300 * merchScale; 
             // Position him to peek from behind the sand
             const merchX = width * 0.80; 
-            const merchY = height * 0.60; 
+            
+            // Anchor to sand line so he doesn't float on mobile
+            // Bottom of sprite is at (merchY + merchH/2).
+            // We want bottom to be slightly below sandY (overlap).
+            const overlap = merchH * 0.15; 
+            const merchY = sandY - (merchH / 2) + overlap;
 
             bgCtx.translate(merchX, merchY);
             bgCtx.rotate(0.1); // Slight slant
@@ -702,8 +709,6 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         }
 
         // 4. Draw Sand & Props (BG)
-        const sandY = height * 0.65; // Starts at 65% down
-        
         // Draw Dunes
         drawDunes(bgCtx, width, height, sandY, currentPalette);
 
