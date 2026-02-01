@@ -8,10 +8,11 @@ import {
 import { BigNum } from '../../util/bigNum.js';
 import { MERCHANT_DIALOGUES } from '../../misc/merchantDialogues.js';
 import { getXpState, isXpSystemUnlocked } from '../../game/xpSystem.js';
-import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset } from './resetTab.js';
+import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset, isSurgeUnlocked, getCurrentSurgeLevel } from './resetTab.js';
 import { initWorkshopTab, updateWorkshopTab } from './workshopTab.js';
 import { initWarpTab, updateWarpTab } from './warpTab.js';
-import { initLabTab, updateLabTab } from './labTab.js';
+import { initLabTab, updateLabTab, hasVisitedLab } from './labTab.js';
+import { getTsunamiSequenceSeen } from '../../game/surgeEffects.js';
 import { blockInteraction, updateShopOverlay } from '../shopOverlay.js';
 import {
   shouldSkipGhostTap,
@@ -293,7 +294,12 @@ const LAB_UNLOCK_KEY = (slot) => `ccc:unlock:lab:${slot}`;
 function isLabUnlocked() {
   const slot = getActiveSlot();
   if (slot == null) return false;
-  try { return localStorage.getItem(LAB_UNLOCK_KEY(slot)) === '1'; } catch { return false; }
+  try {
+    if (typeof getTsunamiSequenceSeen === 'function' && getTsunamiSequenceSeen()) return true;
+    return localStorage.getItem(LAB_UNLOCK_KEY(slot)) === '1';
+  } catch {
+    return false;
+  }
 }
 
 function syncLabTabUnlockState() {
@@ -448,6 +454,9 @@ function ensureProgressEvents() {
       if (detailSlot != null && detailSlot !== getActiveSlot()) return;
       handler();
     });
+    window.addEventListener('unlock:change', handler);
+    window.addEventListener('debug:change', handler);
+    window.addEventListener('surge:level:change', handler);
   }
 
   document.addEventListener('ccc:upgrades:changed', handler);
@@ -588,6 +597,76 @@ export const DLG_CATALOG = {
         icon: MYSTERIOUS_ICON_SRC,
         headerTitle: HIDDEN_DIALOGUE_TITLE,
         ariaLabel: 'Hidden merchant dialogue, do a Forge reset to reveal this dialogue',
+      };
+    },
+  },
+  5: {
+    title: 'A Strange Surge',
+    blurb: 'Discuss the Surge with the Merchant',
+    scriptId: 5,
+    reward: { type: 'coins', amount: 2 },
+    once: true,
+    unlock: (progress) => {
+      if (typeof hasDoneSurgeReset === 'function' && hasDoneSurgeReset()) {
+        return true;
+      }
+      if (typeof isSurgeUnlocked === 'function' && isSurgeUnlocked()) {
+        return {
+          status: 'mysterious',
+          requirement: 'Do a Surge reset to reveal this dialogue',
+          message: 'Do a Surge reset to reveal this dialogue',
+          icon: MYSTERIOUS_ICON_SRC,
+          headerTitle: HIDDEN_DIALOGUE_TITLE,
+          ariaLabel: 'Hidden merchant dialogue, do a Surge reset to reveal this dialogue',
+        };
+      }
+      return {
+        status: 'locked',
+        title: '???',
+        blurb: 'Locked',
+        tooltip: 'Locked Dialogue',
+        ariaLabel: 'Locked Dialogue',
+      };
+    },
+  },
+  6: {
+    title: 'The Empty Lab',
+    blurb: 'Ask about the Lab',
+    scriptId: 6,
+    reward: { type: 'coins', amount: 2 },
+    once: true,
+    unlock: (progress) => {
+      if (typeof getTsunamiSequenceSeen === 'function' && getTsunamiSequenceSeen()) {
+        return true;
+      }
+
+      const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0n;
+      let isSurge8 = false;
+      if (surgeLevel === Infinity) isSurge8 = true;
+      else if (typeof surgeLevel === 'bigint') isSurge8 = surgeLevel >= 8n;
+      else if (typeof surgeLevel === 'number') isSurge8 = surgeLevel >= 8;
+
+      if (isSurge8) {
+        return true;
+      }
+
+      if (typeof hasDoneSurgeReset === 'function' && hasDoneSurgeReset()) {
+        return {
+          status: 'mysterious',
+          requirement: 'Reach Surge 8 to reveal this dialogue',
+          message: 'Reach Surge 8 to reveal this dialogue',
+          icon: MYSTERIOUS_ICON_SRC,
+          headerTitle: HIDDEN_DIALOGUE_TITLE,
+          ariaLabel: 'Hidden merchant dialogue, reach Surge 8 to reveal this dialogue',
+        };
+      }
+      
+      return {
+        status: 'locked',
+        title: '???',
+        blurb: 'Locked',
+        tooltip: 'Locked Dialogue',
+        ariaLabel: 'Locked Dialogue',
       };
     },
   },
@@ -1031,6 +1110,11 @@ const doCloseFromBtn = (e) => {
 
 function openDialogueModal(id, meta) {
   primeTypingSfx();
+
+  let scriptId = meta.scriptId;
+  if (String(id) === '6' && typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
+    scriptId = 7;
+  }
   setMusicUnderwater(true);
 
   const overlay = document.createElement('div');
@@ -1125,7 +1209,7 @@ const engine = new DialogueEngine({
   const state = loadDlgState();
   const claimed = !!state[id]?.claimed;
 
-  const script = structuredClone(MERCHANT_DIALOGUES[meta.scriptId]);
+  const script = structuredClone(MERCHANT_DIALOGUES[scriptId]);
 
   if (claimed && script.nodes.m2b && script.nodes.c2a && meta.scriptId === 1) {
     script.nodes.m2b.say = 'I\'ve already given you Coins, goodbye.';
