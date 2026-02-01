@@ -291,10 +291,10 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         skyTop: '#000510',
         skyBottom: '#000815',
         sun: '#2a2a2a', // Dim/hidden
-        waterDeep: '#0a1a35', // Deep vibrant dark blue
-        waterMid: '#152b4f',  // Vibrant navy
-        waterPeak: '#203c69', // Lighter vibrant storm blue
-        foam: '#203c69',      // Matches waterPeak (no visible foam)
+        waterDeep: '#050e2e', // Menacing deep dark blue
+        waterMid: '#08183d',  // Dark navy
+        waterPeak: '#102a5c', // Menacing storm blue
+        foam: '#102a5c',      // Matches waterPeak (no visible foam)
         sandLight: '#2c2a20', // Dark wet sand
         sandDark: '#1a1810',
         rock: '#1a1a1a',
