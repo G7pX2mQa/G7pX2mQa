@@ -11,7 +11,8 @@ import { getXpState, isXpSystemUnlocked } from '../../game/xpSystem.js';
 import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset } from './resetTab.js';
 import { initWorkshopTab, updateWorkshopTab } from './workshopTab.js';
 import { initWarpTab, updateWarpTab } from './warpTab.js';
-import { blockInteraction } from '../shopOverlay.js';
+import { initLabTab, updateLabTab } from './labTab.js';
+import { blockInteraction, updateShopOverlay } from '../shopOverlay.js';
 import {
   shouldSkipGhostTap,
   suppressNextGhostTap,
@@ -86,6 +87,7 @@ const MERCHANT_TABS_DEF = [
   { key: 'reset',     label: 'Reset',    unlocked: false, lockedLabel: '???' },
   { key: 'workshop',  label: 'Workshop', unlocked: false, lockedLabel: '???' },
   { key: 'warp',     label: 'Warp',    unlocked: false, lockedLabel: '???' },
+  { key: 'lab',      label: 'Lab',     unlocked: false, lockedLabel: '???' },
 ];
 
 const merchantTabUnlockState = new Map([
@@ -93,6 +95,7 @@ const merchantTabUnlockState = new Map([
   ['reset', false],
   ['workshop', false],
   ['warp', false],
+  ['lab', false],
 ]);
 
 const REWARD_ICON_SRC = {
@@ -283,6 +286,18 @@ function syncWarpTabUnlockState() {
     }
   } catch {}
   setMerchantTabUnlocked('warp', unlocked);
+}
+
+const LAB_UNLOCK_KEY = (slot) => `ccc:unlock:lab:${slot}`;
+
+function isLabUnlocked() {
+  const slot = getActiveSlot();
+  if (slot == null) return false;
+  try { return localStorage.getItem(LAB_UNLOCK_KEY(slot)) === '1'; } catch { return false; }
+}
+
+function syncLabTabUnlockState() {
+  setMerchantTabUnlocked('lab', isLabUnlocked());
 }
 
 let merchantDlgWatcherSlot = null;
@@ -1418,9 +1433,14 @@ function ensureMerchantOverlay() {
   panelWarp.className = 'merchant-panel';
   panelWarp.id = 'merchant-panel-warp';
 
+  const panelLab = document.createElement('section');
+  panelLab.className = 'merchant-panel';
+  panelLab.id = 'merchant-panel-lab';
+
   syncForgeTabUnlockState();
   syncWorkshopTabUnlockState();
   syncWarpTabUnlockState();
+  syncLabTabUnlockState();
 
   MERCHANT_TABS_DEF.forEach(def => {
     if (def.key === 'dialogue') merchantTabUnlockState.set('dialogue', true);
@@ -1456,10 +1476,11 @@ function ensureMerchantOverlay() {
   merchantTabs.panels['dialogue']  = panelDialogue;
   merchantTabs.panels['reset']     = panelReset;
   merchantTabs.panels['workshop']  = panelWorkshop;
-  merchantTabs.panels['warp']     = panelWarp;
+  merchantTabs.panels['warp']      = panelWarp;
+  merchantTabs.panels['lab']       = panelLab;
   merchantTabs.tablist = tabs;
 
-  panelsWrap.append(panelDialogue, panelReset, panelWorkshop, panelWarp);
+  panelsWrap.append(panelDialogue, panelReset, panelWorkshop, panelWarp, panelLab);
   content.append(tabs, panelsWrap);
 
   syncForgeTabUnlockState();
@@ -1471,6 +1492,7 @@ function ensureMerchantOverlay() {
   
   try { initWorkshopTab(panelWorkshop); } catch {}
   try { initWarpTab(panelWarp); } catch {}
+  try { initLabTab(panelLab); } catch {}
 
   if (!forgeUnlockListenerBound && typeof window !== 'undefined') {
     const handleUnlockChange = (event) => {
@@ -1480,6 +1502,7 @@ function ensureMerchantOverlay() {
       if (key === 'forge' || !key) syncForgeTabUnlockState();
       if (key === 'infuse' || !key) syncWorkshopTabUnlockState();
       if (key === 'surge_completed' || !key) syncWarpTabUnlockState();
+      if (key === 'lab' || !key) syncLabTabUnlockState();
     };
     window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
     window.addEventListener('saveSlot:change', handleUnlockChange, { passive: true });
@@ -1868,6 +1891,18 @@ export function openMerchant() {
   }
   merchantOpen = true;
 
+  // Check for pending Lab unlock
+  const slot = getActiveSlot();
+  if (slot != null) {
+      const pendingKey = `ccc:tsunami:labPending:${slot}`;
+      if (localStorage.getItem(pendingKey) === '1') {
+          try { localStorage.removeItem(pendingKey); } catch {}
+          try { localStorage.setItem(LAB_UNLOCK_KEY(slot), '1'); } catch {}
+          syncLabTabUnlockState();
+          try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'lab', slot } })); } catch {}
+      }
+  }
+
   // Check whether this is the very first time we’re meeting the Merchant
   let met = false;
   try {
@@ -2068,6 +2103,9 @@ function selectMerchantTab(key) {
   if (key === 'warp') {
     try { updateWarpTab(); } catch {}
   }
+  if (key === 'lab') {
+    try { updateLabTab(); } catch {}
+  }
 
   try { localStorage.setItem(sk(MERCHANT_TAB_KEY_BASE), key); } catch {}
 
@@ -2243,6 +2281,71 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
 
   engine.load(scriptPart1);
   engine.start();
+}
+
+export function runPostTsunamiShopDialogue(onComplete) {
+    const overlay = document.createElement('div');
+    overlay.className = 'merchant-firstchat is-visible';
+    overlay.style.zIndex = '2147483647';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    
+    overlay.innerHTML = `
+      <div class="merchant-firstchat__card" role="dialog" aria-label="Urgent Message">
+        <div class="merchant-firstchat__header">
+          <div class="name">Merchant</div>
+          <div class="rule" aria-hidden="true"></div>
+        </div>
+        <div class="merchant-firstchat__row">
+          <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
+          <div class="merchant-firstchat__text" id="post-tsunami-line">…</div>
+        </div>
+        <div class="merchant-firstchat__choices" id="post-tsunami-choices"></div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    const textEl = overlay.querySelector('#post-tsunami-line');
+    const choicesEl = overlay.querySelector('#post-tsunami-choices');
+    const rowEl = overlay.querySelector('.merchant-firstchat__row');
+    const cardEl = overlay.querySelector('.merchant-firstchat__card');
+
+    primeTypingSfx();
+
+    const script = {
+        start: 'n1',
+        nodes: {
+            'n1': { 
+                type: 'line', 
+                say: '<span style="color:#00e5ff">Player</span>, quickly, come to the Lab.', 
+                next: 'c1' 
+            },
+            'c1': { 
+                type: 'choice', 
+                options: [
+                    { label: 'What?', to: 'end' },
+                    { label: 'The Lab?', to: 'end' },
+                    { label: '???', to: 'end' }
+                ] 
+            }
+        }
+    };
+
+    const engine = new DialogueEngine({
+        textEl,
+        choicesEl,
+        skipTargets: [textEl, rowEl, cardEl],
+        onEnd: () => {
+            stopTypingSfx();
+            __isTypingActive = false;
+            overlay.remove();
+            if (onComplete) onComplete();
+        }
+    });
+
+    engine.load(script);
+    engine.start();
 }
 
 // Expose for other modules that may build UI later
