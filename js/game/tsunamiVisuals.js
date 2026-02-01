@@ -121,24 +121,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
     let width, height;
     let props = [];
     let sandSpeckles = [];
-    let clouds = [];
     let cloudBaseY = 0;
-
-    function generateClouds() {
-        clouds = [];
-        cloudBaseY = height * 0.25;
-        // Puffs along the bottom edge
-        const puffSize = Math.min(width, height) * 0.15;
-        const numPuffs = Math.ceil(width / (puffSize * 0.5)) + 2;
-        
-        for(let i=0; i<numPuffs; i++) {
-            clouds.push({
-                x: (i * puffSize * 0.5) - puffSize,
-                y: cloudBaseY - (puffSize * 0.2) + (Math.random() * (puffSize * 0.2)),
-                r: (puffSize * 0.6) + Math.random() * (puffSize * 0.4)
-            });
-        }
-    }
 
     function generateProps() {
         props = [];
@@ -277,7 +260,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         fgCtx.scale(dpr, dpr);
 
         generateProps();
-        generateClouds();
+        cloudBaseY = -50;
     }
     window.addEventListener('resize', resize);
     resize();
@@ -624,43 +607,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             bgCtx.shadowBlur = 0;
         }
 
-        // 2.5 Draw Thunderclouds (BG)
-        if (stormFactor > 0) {
-            bgCtx.save();
-            const cloudOpacity = Math.min(1, stormFactor * 1.5); // Fade in quickly
-            bgCtx.fillStyle = `rgba(30, 35, 45, ${cloudOpacity})`;
-            
-            // Solid top block
-            bgCtx.fillRect(-50, -50, width + 100, cloudBaseY + 50);
-            
-            // Puffs
-            bgCtx.beginPath();
-            clouds.forEach(c => {
-                bgCtx.moveTo(c.x + c.r, c.y);
-                bgCtx.arc(c.x, c.y, c.r, 0, Math.PI*2);
-            });
-            bgCtx.fill();
-            bgCtx.restore();
-        }
 
-        // 2.5 Draw Thunderclouds (BG)
-        if (stormFactor > 0) {
-            bgCtx.save();
-            const cloudOpacity = Math.min(1, stormFactor * 1.5); // Fade in quickly
-            bgCtx.fillStyle = `rgba(30, 35, 45, ${cloudOpacity})`;
-            
-            // Solid top block
-            bgCtx.fillRect(-50, -50, width + 100, cloudBaseY + 50);
-            
-            // Puffs
-            bgCtx.beginPath();
-            clouds.forEach(c => {
-                bgCtx.moveTo(c.x + c.r, c.y);
-                bgCtx.arc(c.x, c.y, c.r, 0, Math.PI*2);
-            });
-            bgCtx.fill();
-            bgCtx.restore();
-        }
 
         // 3. Draw Merchant (BG)
         if (merchantLoaded && stormFactor < 1) { 
