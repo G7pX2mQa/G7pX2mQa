@@ -446,4 +446,60 @@ export const MERCHANT_DIALOGUES = {
     ]},
     }
   },
+  5: {
+    start: 'n0',
+    nodes: {
+      n0: { type: 'line', say: 'You have felt the Surge, haven\'t you?', next: 'c0' },
+
+      c0: { type: 'choice', options: [
+        { label: 'Yes.', to: 'm1a' },
+        { label: 'It was... intense.', to: 'm1b' },
+        { label: 'What was that?', to: 'm1c' },
+      ]},
+
+      m1a: { type: 'line', say: 'Good.', next: 'c1' },
+      m1b: { type: 'line', say: 'Indeed.', next: 'c1' },
+      m1c: { type: 'line', say: 'Progress.', next: 'c1' },
+
+      c1: { type: 'choice', options: [
+        { label: '...', to: 'end' },
+        { label: '...', to: 'end' },
+        { label: '...', to: 'end' },
+      ]},
+    }
+  },
+  6: {
+    start: 'n0',
+    nodes: {
+      n0: { type: 'line', say: 'Ah, you found the Lab.', next: 'c0' },
+
+      c0: { type: 'choice', options: [
+        { label: 'It looks empty.', to: 'm1a' },
+        { label: 'What is this place?', to: 'm1b' },
+        { label: '...', to: 'm1c' },
+      ]},
+
+      m1a: { type: 'line', say: 'For now.', next: 'c1' },
+      m1b: { type: 'line', say: 'A place for experiments.', next: 'c1' },
+      m1c: { type: 'line', say: 'Take a look around.', next: 'c1' },
+
+      c1: { type: 'choice', options: [
+        { label: 'Okay.', to: 'end' },
+        { label: 'Sure.', to: 'end' },
+        { label: '...', to: 'end' },
+      ]},
+    }
+  },
+  7: {
+    start: 'n0',
+    nodes: {
+      n0: { type: 'line', say: 'What are you doing?? Come to the Lab, quickly.', next: 'c0' },
+
+      c0: { type: 'choice', options: [
+        { label: '...', to: 'end_nr' },
+        { label: '...', to: 'end_nr' },
+        { label: '...', to: 'end_nr' },
+      ]},
+    }
+  },
 };
