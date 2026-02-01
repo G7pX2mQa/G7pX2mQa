@@ -278,8 +278,8 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         sun: '#ffeb3b',
         waterDeep: '#005b96',
         waterMid: '#0077be',
-        waterPeak: '#2a80c0', // Slightly darker/less cyan peak (was #2a9df4)
-        foam: '#e0f7fa',
+        waterPeak: '#005b96',
+        foam: '#005b96',
         sandLight: '#f1dcb1',
         sandDark: '#debe7c',
         rock: '#5d4037',
