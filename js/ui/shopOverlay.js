@@ -9,7 +9,8 @@ import { openMerchant,
     primeTypingSfx,
     unlockMerchantTabs,
     hasMetMerchant,
-    MERCHANT_MET_EVENT
+    MERCHANT_MET_EVENT,
+    runPostTsunamiShopDialogue
 } from './merchantTabs/dlgTab.js';
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { playAudio } from '../util/audioManager.js';
@@ -608,7 +609,14 @@ class ShopInstance {
     updateDelveGlow() {
         if (!this.delveBtnEl || this.mode !== 'standard') return;
         const met = hasMetMerchant();
-        this.delveBtnEl.classList.toggle('is-new', !met);
+        let shouldGlow = !met;
+        
+        const slot = getActiveSlot();
+        if (slot != null && localStorage.getItem(`ccc:tsunami:labPending:${slot}`) === '1') {
+            shouldGlow = true;
+        }
+        
+        this.delveBtnEl.classList.toggle('is-new', shouldGlow);
     }
 
     buildUpgradesData() {
@@ -1042,6 +1050,18 @@ class ShopInstance {
         if (this.isOpen) return;
         
         this.isOpen = true;
+
+        if (this.mode === 'standard') {
+            const slot = getActiveSlot();
+            if (slot != null && localStorage.getItem(`ccc:tsunami:dialoguePending:${slot}`) === '1') {
+                runPostTsunamiShopDialogue(() => {
+                    try { localStorage.removeItem(`ccc:tsunami:dialoguePending:${slot}`); } catch {}
+                    try { localStorage.setItem(`ccc:tsunami:labPending:${slot}`, '1'); } catch {}
+                    this.update(true);
+                });
+            }
+        }
+
         this.sheetEl.style.transition = 'none';
         this.sheetEl.style.transform = 'translateY(100%)';
         this.overlayEl.style.pointerEvents = 'auto';
