@@ -133,6 +133,7 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
                 try { source.stop(); } catch {}
             },
             source,
+            gainNode,
             element: null // No HTML5 audio element
         };
     } else {
