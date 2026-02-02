@@ -2273,6 +2273,11 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
   document.addEventListener('keydown', blockEsc, { capture: true });
 
   const runPart2 = () => {
+    // Stop storm ambience immediately when Part 1 ends, before the 1s delay
+    if (tsunamiControls && tsunamiControls.stopAmbience) {
+        tsunamiControls.stopAmbience();
+    }
+
     // 15 seconds visual effect then fade
     setTimeout(() => {
         // Trigger Beacon Effect
