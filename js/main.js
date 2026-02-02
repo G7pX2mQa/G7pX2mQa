@@ -660,6 +660,12 @@ images: [
 	  'sounds/lightning_strike.ogg',
 	  'sounds/lightning_zap.ogg',
 	  'sounds/The_Cove.ogg',
+    'sounds/tsu_storm_ambience.ogg',
+    'sounds/tsu_rumble.ogg',
+    'sounds/tsu_beacon_spawn.ogg',
+    'sounds/tsu_beacon_hum_loop.ogg',
+    'sounds/tsu_beacon_charge.ogg',
+    'sounds/tsu_explosion.ogg',
     ],
     fonts: true,
   };
