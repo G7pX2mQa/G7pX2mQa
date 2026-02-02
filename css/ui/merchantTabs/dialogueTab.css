@@ -583,12 +583,11 @@
   .merchant-dialogue-list .dlg-blurb,
   .merchant-dialogue-list .dlg-reward,
   .merchant-dialogue-list .dlg-again {
-    -webkit-user-select: text;
-    user-select: text;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
-  .merchant-dialogue-list .coin-icon,
-  .merchant-dialogue-list .book-icon {
+  .merchant-dialogue-list {
     -webkit-user-select: none;
     user-select: none;
   }
