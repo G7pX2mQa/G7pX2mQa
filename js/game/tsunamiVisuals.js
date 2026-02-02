@@ -1,14 +1,3 @@
-
-/**
- * Tsunami Visual Sequence
- * 
- * A 15-second narrative animation:
- * 1. Calm Sunny Cove (Sand + Cliffs visible)
- * 2. Darkening Sky & Rising Tide
- * 3. The Roaring Approach (Flooding the Cove)
- * 4. Impact & Chaos
- */
-
 import { playAudio } from '../util/audioManager.js';
 
 export function playTsunamiSequence(container, durationMs, onComplete, options = {}) {
@@ -22,7 +11,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
     let explosionAudioTriggered = false;
 
     // Start Ambience Immediately (Wind/Storm Buildup)
-    ambienceAudio = playAudio('sounds/tsu_storm_ambience.ogg', { volume: 0.8, loop: true });
+    ambienceAudio = playAudio('sounds/tsu_storm_ambience.ogg', { volume: 0.8 });
 
     // --- BG Canvas (Sky, Sand) ---
     const bgCanvas = document.createElement('canvas');
@@ -599,7 +588,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
             visualsFinished = true;
             
             // Fix: Stop storm audio when visuals finish, to handle desync from tab switching
-            // Removed ambienceAudio.stop() here so it persists into dialogue
+            if (ambienceAudio) ambienceAudio.stop();
             if (rumbleAudio) rumbleAudio.stop();
 
             if (onComplete) onComplete();
@@ -925,7 +914,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
                         playAudio('sounds/tsu_explosion.ogg', { volume: 1.0 });
                         
                         // Stop hum/charge
-                        // if (humAudio) humAudio.stop(); // Removed to keep hum playing
+                        if (humAudio) humAudio.stop();
                     }
                 }
             }
@@ -998,7 +987,8 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
     function triggerFinalFade() {
         finalFadeActive = true;
         finalFadeStart = Date.now();
-        // Hum audio continues until cleanup (end of sequence)
+        // Ensure hum stops if it hasn't already
+        if (humAudio) humAudio.stop();
     }
 
     function showCursor() {
@@ -1016,13 +1006,6 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         }
     }
 
-    function stopAmbience() {
-        if (ambienceAudio) {
-            ambienceAudio.stop();
-            ambienceAudio = null;
-        }
-    }
-
     loop();
     
     // Return controls
@@ -1032,7 +1015,6 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         triggerFinalFade,
         showCursor,
         hideCursor,
-        stopHumLoop,
-        stopAmbience
+        stopHumLoop
     };
 }
