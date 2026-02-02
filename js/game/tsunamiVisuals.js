@@ -22,7 +22,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
     let explosionAudioTriggered = false;
 
     // Start Ambience Immediately (Wind/Storm Buildup)
-    ambienceAudio = playAudio('sounds/tsu_storm_ambience.ogg', { volume: 0.8 });
+    ambienceAudio = playAudio('sounds/tsu_storm_ambience.ogg', { volume: 0.8, loop: true });
 
     // --- BG Canvas (Sky, Sand) ---
     const bgCanvas = document.createElement('canvas');
@@ -599,7 +599,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
             visualsFinished = true;
             
             // Fix: Stop storm audio when visuals finish, to handle desync from tab switching
-            if (ambienceAudio) ambienceAudio.stop();
+            // Removed ambienceAudio.stop() here so it persists into dialogue
             if (rumbleAudio) rumbleAudio.stop();
 
             if (onComplete) onComplete();
@@ -998,8 +998,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
     function triggerFinalFade() {
         finalFadeActive = true;
         finalFadeStart = Date.now();
-        // Ensure hum stops if it hasn't already
-        if (humAudio) humAudio.stop();
+        // Hum audio continues until cleanup (end of sequence)
     }
 
     function showCursor() {
@@ -1017,6 +1016,13 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         }
     }
 
+    function stopAmbience() {
+        if (ambienceAudio) {
+            ambienceAudio.stop();
+            ambienceAudio = null;
+        }
+    }
+
     loop();
     
     // Return controls
@@ -1026,6 +1032,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         triggerFinalFade,
         showCursor,
         hideCursor,
-        stopHumLoop
+        stopHumLoop,
+        stopAmbience
     };
 }
