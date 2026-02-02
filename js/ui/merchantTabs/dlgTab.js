@@ -2381,6 +2381,8 @@ export function runPostTsunamiShopDialogue(onComplete) {
     overlay.style.zIndex = '2147483647';
     overlay.style.position = 'fixed';
     overlay.style.inset = '0';
+    overlay.style.userSelect = 'none';
+    overlay.style.webkitUserSelect = 'none';
     
     overlay.innerHTML = `
       <div class="merchant-firstchat__card" role="dialog" aria-label="Urgent Message">
@@ -2390,7 +2392,7 @@ export function runPostTsunamiShopDialogue(onComplete) {
         </div>
         <div class="merchant-firstchat__row">
           <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
-          <div class="merchant-firstchat__text" id="post-tsunami-line">…</div>
+          <div class="merchant-firstchat__text" id="post-tsunami-line" style="user-select: none; -webkit-user-select: none;">…</div>
         </div>
         <div class="merchant-firstchat__choices" id="post-tsunami-choices"></div>
       </div>
