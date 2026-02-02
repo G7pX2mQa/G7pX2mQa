@@ -852,20 +852,20 @@ function typeText(el, full, msPerChar = 22, skipTargets = []) {
       armed = true;
       targets.forEach(t => t.addEventListener('click', skip, { once: true }));
       document.addEventListener('keydown', onKey, { once: true });
-    });
+      });
 
-    el.classList.add('is-typing');
-    el.innerHTML = '';
+      el.classList.add('is-typing');
+      el.innerHTML = '';
 
-    const cleanup = () => {
+      const cleanup = () => {
       targets.forEach(t => t.removeEventListener('click', skip));
       document.removeEventListener('keydown', onKey);
       el.classList.remove('is-typing');
       stopTypingSfx();
       __isTypingActive = false;
-    };
+      };
 
-    const tick = () => {
+      const tick = () => {
       if (skipping) {
           el.innerHTML = full;
           cleanup();
@@ -898,42 +898,42 @@ function typeText(el, full, msPerChar = 22, skipTargets = []) {
           }
           setTimeout(tick, msPerChar);
       }
-    };
-    tick();
+      };
+      tick();
   });
 }
 
 // ========================= DialogueEngine =========================
 class DialogueEngine {
   constructor({ textEl, choicesEl, skipTargets, onEnd, onChoice }) {
-    this.textEl = textEl;
-    this.choicesEl = choicesEl;
-    this.skipTargets = skipTargets;
-    this.onEnd = onEnd || (() => {});
-    this.onChoice = onChoice;
-    this.nodes = {};
-    this.current = null;
+      this.textEl = textEl;
+      this.choicesEl = choicesEl;
+      this.skipTargets = skipTargets;
+      this.onEnd = onEnd || (() => {});
+      this.onChoice = onChoice;
+      this.nodes = {};
+      this.current = null;
 
-    this.deferNextChoices = false;
-    this._reservedH = 0;
+      this.deferNextChoices = false;
+      this._reservedH = 0;
   }
 
   load(script) {
-    this.nodes = script.nodes || {};
-    this.startId = script.start;
+      this.nodes = script.nodes || {};
+      this.startId = script.start;
   }
 
   async start() {
-    if (!this.startId) return;
-    await this.goto(this.startId);
+      if (!this.startId) return;
+      await this.goto(this.startId);
   }
 
   async goto(id) {
-    const node = this.nodes[id];
-    if (!node) return;
-    this.current = id;
+      const node = this.nodes[id];
+      if (!node) return;
+      this.current = id;
 
-    if (node.type === 'line') {
+      if (node.type === 'line') {
       const nextNode = this.nodes[node.next];
 
       // Pre-render next choices invisibly to reserve height (unless deferring)
@@ -963,21 +963,21 @@ class DialogueEngine {
       if (node.next === 'end' || node.end === true) return this.onEnd();
       if (node.next) return this.goto(node.next);
       return;
-    }
+      }
 
-    if (node.type === 'choice') {
+      if (node.type === 'choice') {
       this._renderChoices(node.options || [], false);
-    }
+      }
   }
 
   _hideChoices() {
-    this.choicesEl.classList.remove('is-visible');
-    this._applyInlineChoiceHide();
+      this.choicesEl.classList.remove('is-visible');
+      this._applyInlineChoiceHide();
   }
 
   _renderChoices(options, prepare = false) {
-    this.choicesEl.innerHTML = '';
-    for (const opt of options) {
+      this.choicesEl.innerHTML = '';
+      for (const opt of options) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'choice';
@@ -1002,32 +1002,32 @@ class DialogueEngine {
         await this.goto(opt.to);
       }, { once: true });
       this.choicesEl.appendChild(btn);
-    }
+      }
 
-    if (prepare) {
+      if (prepare) {
       this.choicesEl.classList.remove('is-visible');
       this._applyInlineChoiceHide();
       return;
-    }
-    this._clearInlineChoiceHide();
-    requestAnimationFrame(() => this.choicesEl.classList.add('is-visible'));
+      }
+      this._clearInlineChoiceHide();
+      requestAnimationFrame(() => this.choicesEl.classList.add('is-visible'));
   }
 
   _revealPreparedChoices() {
-    this._clearInlineChoiceHide();
-    requestAnimationFrame(() => this.choicesEl.classList.add('is-visible'));
+      this._clearInlineChoiceHide();
+      requestAnimationFrame(() => this.choicesEl.classList.add('is-visible'));
   }
 
   _applyInlineChoiceHide() {
-    this.choicesEl.style.opacity = '0';
-    this.choicesEl.style.transform = 'translateY(6px)';
-    this.choicesEl.style.pointerEvents = 'none';
+      this.choicesEl.style.opacity = '0';
+      this.choicesEl.style.transform = 'translateY(6px)';
+      this.choicesEl.style.pointerEvents = 'none';
   }
 
   _clearInlineChoiceHide() {
-    this.choicesEl.style.opacity = '';
-    this.choicesEl.style.transform = '';
-    this.choicesEl.style.pointerEvents = '';
+      this.choicesEl.style.opacity = '';
+      this.choicesEl.style.transform = '';
+      this.choicesEl.style.pointerEvents = '';
   }
 }
 
@@ -1040,7 +1040,7 @@ function openDialogueLockInfo(lockInfo = {}) {
   overlay.className = 'merchant-firstchat merchant-lockinfo';
   overlay.setAttribute('data-dismissible', '1');
   overlay.innerHTML = `
-    <div class="merchant-firstchat__card" role="dialog" aria-label="${lockInfo.ariaLabel || HIDDEN_DIALOGUE_TITLE}">
+      <div class="merchant-firstchat__card" role="dialog" aria-label="${lockInfo.ariaLabel || HIDDEN_DIALOGUE_TITLE}">
       <div class="merchant-firstchat__header">
         <div class="name"></div>
         <div class="rule" aria-hidden="true"></div>
@@ -1052,7 +1052,7 @@ function openDialogueLockInfo(lockInfo = {}) {
       <div class="merchant-firstchat__actions merchant-lockinfo__actions">
         <button type="button" class="merchant-firstchat__continue merchant-lockinfo__close">Close</button>
       </div>
-    </div>
+      </div>
   `;
 
   merchantOverlayEl.appendChild(overlay);
@@ -1071,30 +1071,30 @@ function openDialogueLockInfo(lockInfo = {}) {
   let closed = false;
 
   const close = () => {
-    if (closed) return;
-    closed = true;
-    overlay.classList.remove('is-visible');
-    merchantOverlayEl.classList.remove('firstchat-active');
-    stopTypingSfx();
-    __isTypingActive = false;
-    document.removeEventListener('keydown', onEsc, true);
-    setTimeout(() => overlay.remove(), 160);
+      if (closed) return;
+      closed = true;
+      overlay.classList.remove('is-visible');
+      merchantOverlayEl.classList.remove('firstchat-active');
+      stopTypingSfx();
+      __isTypingActive = false;
+      document.removeEventListener('keydown', onEsc, true);
+      setTimeout(() => overlay.remove(), 160);
   };
 
   const onEsc = (e) => {
-    if (e.key !== 'Escape') return;
-    e.preventDefault();
-    close();
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      close();
   };
 
   document.addEventListener('keydown', onEsc, true);
 
 overlay.addEventListener('pointerdown', (e) => {
   if (!cardEl.contains(e.target)) {
-    // Don’t arm global ghost guard for background taps — just shield briefly
-    e.preventDefault();
-    blockInteraction(160);
-    close();
+      // Don’t arm global ghost guard for background taps — just shield briefly
+      e.preventDefault();
+      blockInteraction(160);
+      close();
   }
 });
 
@@ -1113,7 +1113,7 @@ function openDialogueModal(id, meta) {
 
   let scriptId = meta.scriptId;
   if (String(id) === '6' && typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
-    scriptId = 7;
+      scriptId = 7;
   }
   setMusicUnderwater(true);
 
@@ -1121,7 +1121,7 @@ function openDialogueModal(id, meta) {
   overlay.className = 'merchant-firstchat';
   overlay.setAttribute('data-dismissible', '1');
   overlay.innerHTML = `
-    <div class="merchant-firstchat__card" role="dialog" aria-label="${meta.title}">
+      <div class="merchant-firstchat__card" role="dialog" aria-label="${meta.title}">
       <div class="merchant-firstchat__header">
         <div class="name">${getMerchantName()}</div>
         <div class="rule" aria-hidden="true"></div>
@@ -1131,7 +1131,7 @@ function openDialogueModal(id, meta) {
         <div class="merchant-firstchat__text">…</div>
       </div>
       <div class="merchant-firstchat__choices"></div>
-    </div>
+      </div>
   `;
   merchantOverlayEl.appendChild(overlay);
 const onEscToCancel = (e) => {
@@ -1157,27 +1157,27 @@ document.addEventListener('keydown', onEscToCancel, { capture: true });
 
   // Close helpers — end (with reward) vs cancel (no reward)
   const closeModal = () => {
-    setMusicUnderwater(false);
+      setMusicUnderwater(false);
 	document.removeEventListener('keydown', onEscToCancel, { capture: true });
-    overlay.classList.remove('is-visible');
-    merchantOverlayEl.classList.remove('firstchat-active');
-    stopTypingSfx();
-    __isTypingActive = false;
-    overlay.remove();
+      overlay.classList.remove('is-visible');
+      merchantOverlayEl.classList.remove('firstchat-active');
+      stopTypingSfx();
+      __isTypingActive = false;
+      overlay.remove();
   };
 
   const cancelWithoutReward = () => {
-    if (ended) return;
-    ended = true;
-    closeModal();               // no reward
-    renderDialogueList();       // refresh UI state
+      if (ended) return;
+      ended = true;
+      closeModal();               // no reward
+      renderDialogueList();       // refresh UI state
   };
 
 overlay.addEventListener('pointerdown', (e) => {
   if (!cardEl.contains(e.target)) {
-    e.preventDefault();
-    if (e.pointerType !== 'mouse') blockInteraction(160);
-    cancelWithoutReward();
+      e.preventDefault();
+      if (e.pointerType !== 'mouse') blockInteraction(160);
+      cancelWithoutReward();
   }
 });
 
@@ -1185,24 +1185,24 @@ const engine = new DialogueEngine({
   textEl,
   choicesEl,
   skipTargets: [textEl, rowEl, cardEl],
-    onChoice: (nodeId, opt) => {
+      onChoice: (nodeId, opt) => {
       if (meta.scriptId === 4 && nodeId === 'c4b') {
         setJeffUnlocked(true);
       }
-    },
+      },
   onEnd: (info) => {
-    if (ended) return;
-    ended = true;
+      if (ended) return;
+      ended = true;
 
-    if (info && info.noReward) {
+      if (info && info.noReward) {
       renderDialogueList();
       closeModal();
       return;
-    }
+      }
 
-    completeDialogueOnce(id, meta);
-    renderDialogueList();
-    closeModal();
+      completeDialogueOnce(id, meta);
+      renderDialogueList();
+      closeModal();
   }
 });
 
@@ -1212,45 +1212,45 @@ const engine = new DialogueEngine({
   const script = structuredClone(MERCHANT_DIALOGUES[scriptId]);
 
   if (claimed && script.nodes.m2b && script.nodes.c2a && meta.scriptId === 1) {
-    script.nodes.m2b.say = 'I\'ve already given you Coins, goodbye.';
-    script.nodes.c2a.options = [
+      script.nodes.m2b.say = 'I\'ve already given you Coins, goodbye.';
+      script.nodes.c2a.options = [
       { label: 'Goodbye.', to: 'end_nr' },
       { label: 'Goodbye.', to: 'end_nr' },
       { label: 'Goodbye.', to: 'end_nr' },
-    ];
+      ];
   }
 
   if (claimed && meta.scriptId === 2 && script.nodes.m3a) {
-    script.nodes.m3a.say = 'I\'ve already given you Books, goodbye.';
+      script.nodes.m3a.say = 'I\'ve already given you Books, goodbye.';
 	if (script.nodes.c2a) {
       script.nodes.c2a.options = [
         { label: 'Goodbye.', to: 'end_nr' },
         { label: 'Goodbye.', to: 'end_nr' },
         { label: 'Goodbye.', to: 'end_nr' },
       ];
-    }
+      }
   }
   
   if (claimed && meta.scriptId === 3 && script.nodes.m5a) {
-    script.nodes.m5a.say = 'I\'ve already given you Gold, goodbye.';
-    if (script.nodes.c5a) {
+      script.nodes.m5a.say = 'I\'ve already given you Gold, goodbye.';
+      if (script.nodes.c5a) {
       script.nodes.c5a.options = [
         { label: 'Goodbye.', to: 'end_nr' },
         { label: 'Goodbye.', to: 'end_nr' },
         { label: 'Goodbye.', to: 'end_nr' },
       ];
-    }
+      }
   }
 
   if (claimed && meta.scriptId === 4 && script.nodes.m7a) {
-    script.nodes.m7a.say = 'I\'ve already given you Magic, goodbye.';
-    if (script.nodes.c7a) {
+      script.nodes.m7a.say = 'I\'ve already given you Magic, goodbye.';
+      if (script.nodes.c7a) {
       script.nodes.c7a.options = [
         { label: 'Goodbye.', to: 'end_nr' },
         { label: 'Goodbye.', to: 'end_nr' },
         { label: 'Goodbye.', to: 'end_nr' },
       ];
-    }
+      }
   }
 
   engine.load(script);
@@ -1264,10 +1264,10 @@ function injectScrollTimelineStyles() {
   const style = document.createElement('style');
   style.id = SCROLL_TIMELINE_STYLES_ID;
   style.textContent = `
-    @keyframes scroll-thumb-move {
+      @keyframes scroll-thumb-move {
       0% { transform: translate(0, 0); }
       100% { transform: translate(var(--thumb-x, 0), var(--thumb-y, 0)); }
-    }
+      }
   `;
   document.head.appendChild(style);
 }
@@ -1295,100 +1295,100 @@ function ensureMerchantScrollbar() {
   const useCssTimeline = supportsTimelineScope && CSS.supports('animation-timeline', 'scroll()');
 
   if (useCssTimeline) {
-    injectScrollTimelineStyles();
-    const uniqueId = Math.random().toString(36).slice(2, 8);
-    const timelineName = `--merchant-scroll-${uniqueId}`;
+      injectScrollTimelineStyles();
+      const uniqueId = Math.random().toString(36).slice(2, 8);
+      const timelineName = `--merchant-scroll-${uniqueId}`;
     
-    merchantSheetEl.style.timelineScope = timelineName;
-    scroller.style.scrollTimelineName = timelineName;
-    scroller.style.scrollTimelineAxis = 'block'; // Merchant only has vertical
+      merchantSheetEl.style.timelineScope = timelineName;
+      scroller.style.scrollTimelineName = timelineName;
+      scroller.style.scrollTimelineAxis = 'block'; // Merchant only has vertical
     
-    thumb.style.animationName = 'scroll-thumb-move';
-    thumb.style.animationTimeline = timelineName;
-    thumb.style.animationDuration = '1ms';
-    thumb.style.animationTimingFunction = 'linear';
-    thumb.style.animationFillMode = 'both';
+      thumb.style.animationName = 'scroll-thumb-move';
+      thumb.style.animationTimeline = timelineName;
+      thumb.style.animationDuration = '1ms';
+      thumb.style.animationTimingFunction = 'linear';
+      thumb.style.animationFillMode = 'both';
   }
 
   let lastShadow = null;
   const syncScrollShadow = () => {
-    const hasShadow = (scroller.scrollTop || 0) > 0;
-    if (lastShadow === hasShadow) return;
-    lastShadow = hasShadow;
-    merchantSheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
+      const hasShadow = (scroller.scrollTop || 0) > 0;
+      if (lastShadow === hasShadow) return;
+      lastShadow = hasShadow;
+      merchantSheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
   };
 
   const updateBounds = () => {
-    const grabber = merchantOverlayEl.querySelector('.merchant-grabber');
-    const header  = merchantOverlayEl.querySelector('.merchant-header');
-    const actions = merchantOverlayEl.querySelector('.merchant-actions');
+      const grabber = merchantOverlayEl.querySelector('.merchant-grabber');
+      const header  = merchantOverlayEl.querySelector('.merchant-header');
+      const actions = merchantOverlayEl.querySelector('.merchant-actions');
 
-    const top = ((grabber?.offsetHeight || 0) + (header?.offsetHeight || 0)) | 0;
-    const bottom = (actions?.offsetHeight || 0) | 0;
+      const top = ((grabber?.offsetHeight || 0) + (header?.offsetHeight || 0)) | 0;
+      const bottom = (actions?.offsetHeight || 0) | 0;
 
-    bar.style.top = top + 'px';
-    bar.style.bottom = bottom + 'px';
+      bar.style.top = top + 'px';
+      bar.style.bottom = bottom + 'px';
   };
 
   let lastState = {};
   const updateThumb = () => {
-    const { scrollHeight, clientHeight, scrollTop } = scroller;
-    const barH = bar.clientHeight || scroller.clientHeight || 1;
+      const { scrollHeight, clientHeight, scrollTop } = scroller;
+      const barH = bar.clientHeight || scroller.clientHeight || 1;
 
-    if (
+      if (
         lastState.scrollHeight === scrollHeight &&
         lastState.clientHeight === clientHeight &&
         lastState.barH === barH &&
         (useCssTimeline || lastState.scrollTop === scrollTop)
-    ) {
+      ) {
         return;
-    }
-    lastState = { scrollHeight, clientHeight, scrollTop, barH };
+      }
+      lastState = { scrollHeight, clientHeight, scrollTop, barH };
 
-    const visibleRatio = clientHeight / Math.max(1, scrollHeight);
-    const thumbH = Math.max(28, Math.round(barH * visibleRatio));
+      const visibleRatio = clientHeight / Math.max(1, scrollHeight);
+      const thumbH = Math.max(28, Math.round(barH * visibleRatio));
 
-    const maxScroll = Math.max(1, scrollHeight - clientHeight);
-    const range = Math.max(0, barH - thumbH);
+      const maxScroll = Math.max(1, scrollHeight - clientHeight);
+      const range = Math.max(0, barH - thumbH);
     
-    thumb.style.height = thumbH + 'px';
+      thumb.style.height = thumbH + 'px';
     
-    if (useCssTimeline) {
+      if (useCssTimeline) {
         thumb.style.setProperty('--thumb-y', `${range}px`);
         thumb.style.setProperty('--thumb-x', '0px');
-    } else {
+      } else {
         const y = Math.round((scrollTop / maxScroll) * range);
         thumb.style.transform = `translateY(${y}px)`;
-    }
+      }
 
-    bar.style.display = (scrollHeight <= clientHeight + 1) ? 'none' : '';
+      bar.style.display = (scrollHeight <= clientHeight + 1) ? 'none' : '';
   };
 
   const updateAll = () => {
-    updateBounds();
-    updateThumb();
-    syncScrollShadow();
+      updateBounds();
+      updateThumb();
+      syncScrollShadow();
   };
 
   const showBar = () => {
-    if (!isTouch) return;
-    merchantSheetEl.classList.add('is-scrolling');
-    if (fadeTimer) clearTimeout(fadeTimer);
+      if (!isTouch) return;
+      merchantSheetEl.classList.add('is-scrolling');
+      if (fadeTimer) clearTimeout(fadeTimer);
   };
 
   const scheduleHide = (delay) => {
-    if (!isTouch) return;
-    if (fadeTimer) clearTimeout(fadeTimer);
-    fadeTimer = setTimeout(() => {
+      if (!isTouch) return;
+      if (fadeTimer) clearTimeout(fadeTimer);
+      fadeTimer = setTimeout(() => {
       merchantSheetEl.classList.remove('is-scrolling');
-    }, delay);
+      }, delay);
   };
 
   const onScroll = () => {
-    updateThumb();
-    syncScrollShadow();
-    if (isTouch) showBar();
-    if (!supportsScrollEnd) scheduleHide(FADE_SCROLL_MS);
+      updateThumb();
+      syncScrollShadow();
+      if (isTouch) showBar();
+      if (!supportsScrollEnd) scheduleHide(FADE_SCROLL_MS);
   };
 
   const onScrollEnd = () => scheduleHide(FADE_SCROLL_MS);
@@ -1396,7 +1396,7 @@ function ensureMerchantScrollbar() {
   // Always listen to scroll for shadows and visibility
   scroller.addEventListener('scroll', onScroll, { passive: true });
   if (supportsScrollEnd) {
-    scroller.addEventListener('scrollend', onScrollEnd, { passive: true });
+      scroller.addEventListener('scrollend', onScrollEnd, { passive: true });
   }
 
   const ro = new ResizeObserver(updateAll);
@@ -1410,32 +1410,32 @@ function ensureMerchantScrollbar() {
   let startScrollTop = 0;
 
   const startDrag = (e) => {
-    dragging = true;
-    dragStartY = e.clientY;
-    startScrollTop = scroller.scrollTop;
-    thumb.classList.add('dragging');
-    showBar();
-    try { thumb.setPointerCapture(e.pointerId); } catch {}
-    e.preventDefault();
+      dragging = true;
+      dragStartY = e.clientY;
+      startScrollTop = scroller.scrollTop;
+      thumb.classList.add('dragging');
+      showBar();
+      try { thumb.setPointerCapture(e.pointerId); } catch {}
+      e.preventDefault();
   };
 
   const onDragMove = (e) => {
-    if (!dragging) return;
-    const barH = bar.clientHeight || 1;
-    const thH = thumb.clientHeight || 1;
-    const range = Math.max(1, barH - thH);
-    const scrollMax = Math.max(1, scroller.scrollHeight - scroller.clientHeight);
-    const deltaY = e.clientY - dragStartY;
-    const scrollDelta = (deltaY / range) * scrollMax;
-    scroller.scrollTop = startScrollTop + scrollDelta;
+      if (!dragging) return;
+      const barH = bar.clientHeight || 1;
+      const thH = thumb.clientHeight || 1;
+      const range = Math.max(1, barH - thH);
+      const scrollMax = Math.max(1, scroller.scrollHeight - scroller.clientHeight);
+      const deltaY = e.clientY - dragStartY;
+      const scrollDelta = (deltaY / range) * scrollMax;
+      scroller.scrollTop = startScrollTop + scrollDelta;
   };
 
   const endDrag = (e) => {
-    if (!dragging) return;
-    dragging = false;
-    thumb.classList.remove('dragging');
-    scheduleHide(FADE_DRAG_MS);
-    try { thumb.releasePointerCapture(e.pointerId); } catch {}
+      if (!dragging) return;
+      dragging = false;
+      thumb.classList.remove('dragging');
+      scheduleHide(FADE_DRAG_MS);
+      try { thumb.releasePointerCapture(e.pointerId); } catch {}
   };
 
   thumb.addEventListener('pointerdown', startDrag);
@@ -1445,20 +1445,20 @@ function ensureMerchantScrollbar() {
 
   // Click track to jump
   bar.addEventListener('pointerdown', (e) => {
-    if (e.target === thumb) return;
-    const rect = bar.getBoundingClientRect();
-    const clickY = e.clientY - rect.top;
+      if (e.target === thumb) return;
+      const rect = bar.getBoundingClientRect();
+      const clickY = e.clientY - rect.top;
 
-    const barH = bar.clientHeight || 1;
-    const thH = thumb.clientHeight || 1;
-    const range = Math.max(0, barH - thH);
-    const targetY = Math.max(0, Math.min(clickY - thH / 2, range));
+      const barH = bar.clientHeight || 1;
+      const thH = thumb.clientHeight || 1;
+      const range = Math.max(0, barH - thH);
+      const targetY = Math.max(0, Math.min(clickY - thH / 2, range));
 
-    const scrollMax = Math.max(1, scroller.scrollHeight - scroller.clientHeight);
-    scroller.scrollTop = (targetY / Math.max(1, range)) * scrollMax;
+      const scrollMax = Math.max(1, scroller.scrollHeight - scroller.clientHeight);
+      scroller.scrollTop = (targetY / Math.max(1, range)) * scrollMax;
 
-    showBar();
-    scheduleHide(FADE_SCROLL_MS);
+      showBar();
+      scheduleHide(FADE_SCROLL_MS);
   });
 
   // mark so we don't double-init
@@ -1487,8 +1487,8 @@ function ensureMerchantOverlay() {
   const header = document.createElement('header');
   header.className = 'merchant-header';
   header.innerHTML = `
-    <div class="merchant-title">Merchant</div>
-    <div class="merchant-line" aria-hidden="true"></div>
+      <div class="merchant-title">Merchant</div>
+      <div class="merchant-line" aria-hidden="true"></div>
   `;
 
   const content = document.createElement('div');
@@ -1527,34 +1527,34 @@ function ensureMerchantOverlay() {
   syncLabTabUnlockState();
 
   MERCHANT_TABS_DEF.forEach(def => {
-    if (def.key === 'dialogue') merchantTabUnlockState.set('dialogue', true);
-    const stored = merchantTabUnlockState.get(def.key);
-    const unlocked = stored != null ? stored : !!def.unlocked;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'merchant-tab';
-    btn.dataset.tab = def.key;
-    const lockedLabel = def.lockedLabel || '???';
-    btn.textContent = unlocked ? def.label : lockedLabel;
+      if (def.key === 'dialogue') merchantTabUnlockState.set('dialogue', true);
+      const stored = merchantTabUnlockState.get(def.key);
+      const unlocked = stored != null ? stored : !!def.unlocked;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'merchant-tab';
+      btn.dataset.tab = def.key;
+      const lockedLabel = def.lockedLabel || '???';
+      btn.textContent = unlocked ? def.label : lockedLabel;
       if (!unlocked) {
         btn.classList.add('is-locked');
         btn.disabled = true;
         btn.title = '???';
       } else {
       btn.title = def.label || 'Tab';
-    }
-    def.unlocked = unlocked;
-    merchantTabUnlockState.set(def.key, unlocked);
-    bindRapidActivation(btn, (event) => {
+      }
+      def.unlocked = unlocked;
+      merchantTabUnlockState.set(def.key, unlocked);
+      bindRapidActivation(btn, (event) => {
       if (btn.disabled) {
         event?.preventDefault?.();
         return;
       }
       selectMerchantTab(def.key);
-    });
+      });
 
-    tabs.appendChild(btn);
-    merchantTabs.buttons[def.key] = btn;
+      tabs.appendChild(btn);
+      merchantTabs.buttons[def.key] = btn;
   });
 
   merchantTabs.panels['dialogue']  = panelDialogue;
@@ -1579,7 +1579,7 @@ function ensureMerchantOverlay() {
   try { initLabTab(panelLab); } catch {}
 
   if (!forgeUnlockListenerBound && typeof window !== 'undefined') {
-    const handleUnlockChange = (event) => {
+      const handleUnlockChange = (event) => {
       const { key, slot } = event?.detail ?? {};
       if (slot != null && slot !== getActiveSlot()) return;
       
@@ -1587,26 +1587,26 @@ function ensureMerchantOverlay() {
       if (key === 'infuse' || !key) syncWorkshopTabUnlockState();
       if (key === 'surge_completed' || !key) syncWarpTabUnlockState();
       if (key === 'lab' || !key) syncLabTabUnlockState();
-    };
-    window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
-    window.addEventListener('saveSlot:change', handleUnlockChange, { passive: true });
-    forgeUnlockListenerBound = true;
+      };
+      window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
+      window.addEventListener('saveSlot:change', handleUnlockChange, { passive: true });
+      forgeUnlockListenerBound = true;
   }
 
-    const actions = document.createElement('div');
-    actions.className = 'merchant-actions';
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'merchant-close';
-    closeBtn.textContent = 'Close';
-    merchantCloseBtn = closeBtn;
-    actions.appendChild(closeBtn);
+      const actions = document.createElement('div');
+      actions.className = 'merchant-actions';
+      const closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'merchant-close';
+      closeBtn.textContent = 'Close';
+      merchantCloseBtn = closeBtn;
+      actions.appendChild(closeBtn);
 
   // First-time chat overlay
   const firstChat = document.createElement('div');
   firstChat.className = 'merchant-firstchat merchant-firstchat--initial';
   firstChat.innerHTML = `
-    <div class="merchant-firstchat__card" role="dialog" aria-label="First chat">
+      <div class="merchant-firstchat__card" role="dialog" aria-label="First chat">
       <div class="merchant-firstchat__header">
         <div class="name">Merchant</div>
         <div class="rule" aria-hidden="true"></div>
@@ -1616,7 +1616,7 @@ function ensureMerchantOverlay() {
         <div class="merchant-firstchat__text" id="merchant-first-line">…</div>
       </div>
       <div class="merchant-firstchat__choices" id="merchant-first-choices"></div>
-    </div>
+      </div>
   `;
 
   merchantSheetEl.append(grabber, header, content, actions, firstChat);
@@ -1626,17 +1626,17 @@ function ensureMerchantOverlay() {
   ensureMerchantScrollbar();
 
   if (!merchantEventsBound) {
-    merchantEventsBound = true;
+      merchantEventsBound = true;
 
-    const onCloseClick = () => { closeMerchant(); };
+      const onCloseClick = () => { closeMerchant(); };
 
-    bindRapidActivation(closeBtn, onCloseClick, { once: false });
-    document.addEventListener('keydown', onKeydownForMerchant);
-    grabber.addEventListener('pointerdown', onMerchantDragStart);
-    grabber.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+      bindRapidActivation(closeBtn, onCloseClick, { once: false });
+      document.addEventListener('keydown', onKeydownForMerchant);
+      grabber.addEventListener('pointerdown', onMerchantDragStart);
+      grabber.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
 
-    // Allow priming via any pointer in the overlay (mobile-safe)
-    merchantOverlayEl.addEventListener('pointerdown', primeTypingSfx, { once: true });
+      // Allow priming via any pointer in the overlay (mobile-safe)
+      merchantOverlayEl.addEventListener('pointerdown', primeTypingSfx, { once: true });
   }
 }
 
@@ -1662,13 +1662,13 @@ function handleDialogueCardClick(event) {
   if (!ctx) return;
 
   if (card.classList.contains('is-locked') && !ctx.isMysterious) {
-    event?.preventDefault?.();
-    return;
+      event?.preventDefault?.();
+      return;
   }
   if (ctx.unlocked) {
-    openDialogueModal(ctx.id, ctx.meta);
+      openDialogueModal(ctx.id, ctx.meta);
   } else if (ctx.isMysterious) {
-    openDialogueLockInfo(ctx.lockInfo);
+      openDialogueLockInfo(ctx.lockInfo);
   }
 }
 
@@ -1686,16 +1686,16 @@ function renderDialogueList() {
   const seenIds = new Set();
 
   Object.entries(DLG_CATALOG).forEach(([id, meta]) => {
-    seenIds.add(String(id));
-    const entryState = state[id] || {};
-    const storedStatus = entryState.status || 'locked';
-    const storedRank = dialogueStatusRank(storedStatus);
+      seenIds.add(String(id));
+      const entryState = state[id] || {};
+      const storedStatus = entryState.status || 'locked';
+      const storedRank = dialogueStatusRank(storedStatus);
 
-    let lockInfo = resolveDialogueLock(meta, progress);
-    let status = lockInfo.status;
-    let rank = dialogueStatusRank(status);
+      let lockInfo = resolveDialogueLock(meta, progress);
+      let status = lockInfo.status;
+      let rank = dialogueStatusRank(status);
 
-    if (rank > storedRank) {
+      if (rank > storedRank) {
       entryState.status = status;
       if (status === 'mysterious') {
         entryState.lockSnapshot = snapshotLockDisplay(lockInfo);
@@ -1704,7 +1704,7 @@ function renderDialogueList() {
       }
       state[id] = entryState;
       stateDirty = true;
-    } else if (rank < storedRank) {
+      } else if (rank < storedRank) {
       if (storedStatus === 'unlocked') {
         lockInfo = buildUnlockedDialogueInfo(meta);
         status = 'unlocked';
@@ -1725,16 +1725,16 @@ function renderDialogueList() {
         status = 'mysterious';
         rank = dialogueStatusRank(status);
       }
-    }
+      }
 
-    const unlocked = status === 'unlocked';
-    const isMysterious = status === 'mysterious';
-    const locked = status === 'locked';
-    const claimed = !!entryState.claimed;
-    const showComplete = unlocked && !!(meta.once && claimed);
+      const unlocked = status === 'unlocked';
+      const isMysterious = status === 'mysterious';
+      const locked = status === 'locked';
+      const claimed = !!entryState.claimed;
+      const showComplete = unlocked && !!(meta.once && claimed);
 
-    let card = list.querySelector(`.dlg-card[data-dlg-id="${id}"]`);
-    if (!card) {
+      let card = list.querySelector(`.dlg-card[data-dlg-id="${id}"]`);
+      if (!card) {
       card = document.createElement('button');
       card.type = 'button';
       card.className = 'dlg-card';
@@ -1754,38 +1754,38 @@ function renderDialogueList() {
       
       // Bind once; handler uses element context
       bindRapidActivation(card, handleDialogueCardClick);
-    }
+      }
 
-    // Update Context
-    card._dlgCtx = { id, meta, lockInfo, unlocked, isMysterious };
+      // Update Context
+      card._dlgCtx = { id, meta, lockInfo, unlocked, isMysterious };
 
-    // Update Classes
-    card.dataset.dlgStatus = status;
-    if (card.disabled !== !!locked) card.disabled = !!locked;
-    card.classList.toggle('is-locked', locked);
-    card.classList.toggle('is-mysterious', isMysterious);
-    card.classList.toggle('is-complete', !!showComplete);
-    card.classList.toggle('has-again', !!showComplete);
+      // Update Classes
+      card.dataset.dlgStatus = status;
+      if (card.disabled !== !!locked) card.disabled = !!locked;
+      card.classList.toggle('is-locked', locked);
+      card.classList.toggle('is-mysterious', isMysterious);
+      card.classList.toggle('is-complete', !!showComplete);
+      card.classList.toggle('has-again', !!showComplete);
 
-    if (locked) {
+      if (locked) {
       if (card.getAttribute('aria-disabled') !== 'true') card.setAttribute('aria-disabled', 'true');
       if (card.getAttribute('tabindex') !== '-1') card.setAttribute('tabindex', '-1');
-    } else {
+      } else {
       if (card.hasAttribute('aria-disabled')) card.removeAttribute('aria-disabled');
       if (card.hasAttribute('tabindex')) card.removeAttribute('tabindex');
-    }
+      }
 
-    // Update Content
-    const titleEl = card.querySelector('.dlg-title');
-    const titleText = unlocked ? meta.title : (lockInfo.title ?? '???');
-    if (titleEl.textContent !== titleText) titleEl.textContent = titleText;
+      // Update Content
+      const titleEl = card.querySelector('.dlg-title');
+      const titleText = unlocked ? meta.title : (lockInfo.title ?? '???');
+      if (titleEl.textContent !== titleText) titleEl.textContent = titleText;
 
-    const blurbEl = card.querySelector('.dlg-blurb');
-    const blurbText = unlocked ? meta.blurb : (lockInfo.blurb ?? '');
-    if (blurbEl.textContent !== blurbText) blurbEl.textContent = blurbText;
+      const blurbEl = card.querySelector('.dlg-blurb');
+      const blurbText = unlocked ? meta.blurb : (lockInfo.blurb ?? '');
+      if (blurbEl.textContent !== blurbText) blurbEl.textContent = blurbText;
 
-    const rewardEl = card.querySelector('.dlg-reward');
-    if (unlocked && meta.reward) {
+      const rewardEl = card.querySelector('.dlg-reward');
+      if (unlocked && meta.reward) {
       const iconSrc = REWARD_ICON_SRC[meta.reward.type];
       if (iconSrc) {
         // Reuse inner structure if it matches, to avoid flicker
@@ -1828,37 +1828,37 @@ function renderDialogueList() {
         rewardEl.removeAttribute('aria-label');
       }
       if (rewardEl.style.display === 'none') rewardEl.style.display = '';
-    } else {
+      } else {
       if (rewardEl.textContent !== '') rewardEl.textContent = '';
       if (rewardEl.style.display !== 'none') rewardEl.style.display = 'none';
-    }
+      }
 
-    const ariaLabel = unlocked
+      const ariaLabel = unlocked
       ? `${meta.title}${showComplete ? ' (completed)' : ''}`
       : (lockInfo.ariaLabel || (isMysterious ? 'Hidden merchant dialogue' : 'Locked merchant dialogue'));
-    if (card.getAttribute('aria-label') !== ariaLabel) card.setAttribute('aria-label', ariaLabel);
+      if (card.getAttribute('aria-label') !== ariaLabel) card.setAttribute('aria-label', ariaLabel);
 
-    if (lockInfo.tooltip) {
+      if (lockInfo.tooltip) {
       if (card.title !== lockInfo.tooltip) card.title = lockInfo.tooltip;
-    } else if (unlocked) {
+      } else if (unlocked) {
       const hint = 'Left-click: Start Dialogue';
       if (card.title !== hint) card.title = hint;
-    } else {
+      } else {
       if (card.hasAttribute('title')) card.removeAttribute('title');
-    }
+      }
 
-    // "Ask Again" footer
-    let againEl = card.querySelector('.dlg-again');
-    if (showComplete) {
+      // "Ask Again" footer
+      let againEl = card.querySelector('.dlg-again');
+      if (showComplete) {
       if (!againEl) {
         againEl = document.createElement('div');
         againEl.className = 'dlg-again';
         againEl.textContent = 'Ask Again?';
         card.appendChild(againEl);
       }
-    } else if (againEl) {
+      } else if (againEl) {
       againEl.remove();
-    }
+      }
   });
   
   // Cleanup stale
@@ -1869,7 +1869,7 @@ function renderDialogueList() {
   });
 
   if (stateDirty) {
-    saveDlgState(state);
+      saveDlgState(state);
   }
 }
 
@@ -1890,10 +1890,10 @@ function startConversation(id, meta) {
   choicesEl.innerHTML = '';
 
   const engine = new DialogueEngine({
-    textEl,
-    choicesEl,
-    skipTargets: [textEl, row, bubble],
-    onEnd: (info) => {
+      textEl,
+      choicesEl,
+      skipTargets: [textEl, row, bubble],
+      onEnd: (info) => {
       setMusicUnderwater(false);
 	  if (info && info.noReward) {
         textEl.textContent = '…';
@@ -1921,16 +1921,16 @@ function runFirstMeet() {
   setMusicUnderwater(true);
 
   const engine = new DialogueEngine({
-    textEl,
-    choicesEl,
-    skipTargets: [textEl, rowEl, cardEl],
-    onEnd: () => {
+      textEl,
+      choicesEl,
+      skipTargets: [textEl, rowEl, cardEl],
+      onEnd: () => {
       setMusicUnderwater(false);
       try { localStorage.setItem(sk(MERCHANT_MET_KEY_BASE), '1'); } catch {}
       try { window.dispatchEvent(new Event(MERCHANT_MET_EVENT)); } catch {}
       fc.classList.remove('is-visible');
       merchantOverlayEl.classList.remove('firstchat-active');
-    }
+      }
   });
 
   engine.load(MERCHANT_DIALOGUES[0]);
@@ -1946,18 +1946,18 @@ function resetFirstChatOverlayState() {
 
   const textEl = fc.querySelector('#merchant-first-line');
   if (textEl) {
-    textEl.classList.remove('is-typing');
-    textEl.textContent = '…';
+      textEl.classList.remove('is-typing');
+      textEl.textContent = '…';
   }
 
   const choicesEl = fc.querySelector('#merchant-first-choices');
   if (choicesEl) {
-    choicesEl.classList.remove('is-visible');
-    choicesEl.style.opacity = '0';
-    choicesEl.style.transform = 'translateY(6px)';
-    choicesEl.style.pointerEvents = 'none';
-    choicesEl.style.minHeight = '';
-    choicesEl.innerHTML = '';
+      choicesEl.classList.remove('is-visible');
+      choicesEl.style.opacity = '0';
+      choicesEl.style.transform = 'translateY(6px)';
+      choicesEl.style.pointerEvents = 'none';
+      choicesEl.style.minHeight = '';
+      choicesEl.innerHTML = '';
   }
 
   merchantOverlayEl.classList.remove('firstchat-active');
@@ -1969,9 +1969,9 @@ export function openMerchant() {
 
   const activeEl = document.activeElement;
   if (activeEl instanceof HTMLElement && !merchantOverlayEl.contains(activeEl)) {
-    merchantLastFocus = activeEl;
+      merchantLastFocus = activeEl;
   } else {
-    merchantLastFocus = null;
+      merchantLastFocus = null;
   }
   merchantOpen = true;
 
@@ -1993,14 +1993,14 @@ export function openMerchant() {
   // Check whether this is the very first time we’re meeting the Merchant
   let met = false;
   try {
-    met = localStorage.getItem(sk(MERCHANT_MET_KEY_BASE)) === '1';
+      met = localStorage.getItem(sk(MERCHANT_MET_KEY_BASE)) === '1';
   } catch {
-    met = false;
+      met = false;
   }
 
   // For the very first chat, pin the sheet in place (no slide-up animation)
   if (!met) {
-    merchantOverlayEl.classList.add('firstchat-instant');
+      merchantOverlayEl.classList.add('firstchat-instant');
   }
 
   // Reset transform and transition
@@ -2011,38 +2011,40 @@ export function openMerchant() {
   // Animate in next frame
   void merchantSheetEl.offsetHeight;
   requestAnimationFrame(() => {
-    // Only restore the sheet transition for normal opens
-    if (!merchantOverlayEl.classList.contains('firstchat-instant')) {
+    requestAnimationFrame(() => {
+      // Only restore the sheet transition for normal opens
+      if (!merchantOverlayEl.classList.contains('firstchat-instant')) {
       merchantSheetEl.style.transition = '';
-    }
+      }
 
-    merchantOverlayEl.classList.add('is-open');
-    blockInteraction(140);
+      merchantOverlayEl.classList.add('is-open');
+      blockInteraction(140);
 
-    if (merchantCloseBtn && typeof merchantCloseBtn.focus === 'function') {
+      if (merchantCloseBtn && typeof merchantCloseBtn.focus === 'function') {
       try { merchantCloseBtn.focus({ preventScroll: true }); } catch {}
-    }
+      }
 
-    // Restore last tab
-    let last = 'dialogue';
-    try { last = localStorage.getItem(sk(MERCHANT_TAB_KEY_BASE)) || 'dialogue'; } catch {}
+      // Restore last tab
+      let last = 'dialogue';
+      try { last = localStorage.getItem(sk(MERCHANT_TAB_KEY_BASE)) || 'dialogue'; } catch {}
     
-    if (forcedDialogueTab) {
+      if (forcedDialogueTab) {
         last = 'dialogue';
-    }
+      }
     
-    selectMerchantTab(last);
+      selectMerchantTab(last);
 
-    // Ensure no orphaned audio
-    stopTypingSfx();
+      // Ensure no orphaned audio
+      stopTypingSfx();
 
-    // First-time chat
-    if (!met) {
+      // First-time chat
+      if (!met) {
       const fc = merchantOverlayEl.querySelector('.merchant-firstchat');
       fc?.classList.add('is-visible');
       merchantOverlayEl.classList.add('firstchat-active');
       runFirstMeet();
-    }
+      }
+    });
   });
 }
 
