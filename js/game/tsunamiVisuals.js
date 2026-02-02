@@ -11,7 +11,7 @@
 
 import { playAudio } from '../util/audioManager.js';
 
-export function playTsunamiSequence(container, durationMs = 15000, onComplete, options = {}) {
+export function playTsunamiSequence(container, durationMs, onComplete, options = {}) {
     // Hide cursor initially
     container.style.cursor = 'none';
 
