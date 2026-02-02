@@ -447,8 +447,6 @@
   border: 2px solid var(--merchant-border, rgba(255,255,255,.12));
   color: #fff;
   cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
   transition: background 120ms ease, transform 90ms ease, opacity 120ms ease;
 }
 .dlg-card:not(.is-complete):hover { background: rgba(255,255,255,.18); }
