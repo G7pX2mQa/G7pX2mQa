@@ -597,6 +597,11 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
 
         if (progress >= 1.0 && !visualsFinished) {
             visualsFinished = true;
+            
+            // Fix: Stop storm audio when visuals finish, to handle desync from tab switching
+            if (ambienceAudio) ambienceAudio.stop();
+            if (rumbleAudio) rumbleAudio.stop();
+
             if (onComplete) onComplete();
             // Do not return; keep looping to allow beacons etc.
         }
