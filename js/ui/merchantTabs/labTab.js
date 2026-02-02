@@ -48,6 +48,7 @@ class LabSystem {
     constructor(container) {
         this.container = container;
         this.canvas = document.createElement('canvas');
+        this.canvas.classList.add('lab-bg-canvas');
         this.canvas.style.display = 'block';
         this.canvas.style.width = '100%';
         this.canvas.style.height = '100%';
@@ -74,7 +75,7 @@ class LabSystem {
         this.returnBtn.addEventListener('click', () => {
             this.camX = 0;
             this.camY = 0;
-            this.zoom = 0.5;
+            this.zoom = 0.25;
             this.returnBtn.style.display = 'none';
         });
         
@@ -82,7 +83,8 @@ class LabSystem {
         
         this.camX = 0;
         this.camY = 0;
-        this.zoom = 0.5;
+        this.zoom = 0.25;
+        this.bursts = [];
         
         this.isDragging = false;
         this.lastMouse = { x: 0, y: 0 };
@@ -194,6 +196,25 @@ class LabSystem {
     
     update(dt) {
         this.checkBounds();
+
+        // Update Bursts
+        for (let i = this.bursts.length - 1; i >= 0; i--) {
+            const b = this.bursts[i];
+            b.time += dt;
+
+            // Update particles
+            for(const p of b.particles) {
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                // Friction
+                p.vx *= 0.95; 
+                p.vy *= 0.95;
+            }
+
+            if (b.time >= b.life) {
+                this.bursts.splice(i, 1);
+            }
+        }
         
         // WASD Movement
         const baseSpeed = 500;
@@ -319,14 +340,124 @@ class LabSystem {
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 1;
         ctx.strokeRect(sqX, sqY, sqScreenSize, sqScreenSize);
+
+        // Draw Bursts
+        const MAX_RADIUS = 35;
+        // Ring configurations: [delay, duration]
+        const ringConfigs = [
+            { delay: 0.00, dur: 0.50 }, // Outer
+            { delay: 0.05, dur: 0.55 }, // Middle
+            { delay: 0.10, dur: 0.60 }  // Inner
+        ];
+        
+        for (const b of this.bursts) {
+            // Calculate screen center for the burst
+            const cx = (b.x - this.camX) * this.zoom + w/2;
+            const cy = (b.y - this.camY) * this.zoom + h/2;
+            
+            // Draw 3 Soft Rings
+            // r.delay affects order: 0.00 (Outer), 0.05 (Middle), 0.10 (Inner)
+            // To make inner rings more visible, we boost their alpha multiplier
+            for (let i = 0; i < ringConfigs.length; i++) {
+                const r = ringConfigs[i];
+                const rt = b.time - r.delay;
+                if (rt > 0 && rt < r.dur) {
+                    const prog = rt / r.dur;
+                    const ease = 1 - Math.pow(1 - prog, 3); // Ease out cubic
+                    const rad = MAX_RADIUS * ease;
+                    const alpha = Math.max(0, 1 - Math.pow(prog, 2)); // Fade out
+
+                    // Boost visibility for inner rings (higher index = more inner)
+                    // Index 0: Outer (base)
+                    // Index 1: Middle (1.5x)
+                    // Index 2: Inner (2.0x)
+                    const visibilityBoost = 1.0 + (i * 0.5); 
+
+                    // Soft Radial Gradient "Ring"
+                    // Inner radius varies to keep the ring "thick" but soft
+                    const grad = ctx.createRadialGradient(cx, cy, rad * 0.6, cx, cy, rad);
+                    
+                    // Center of ring (transparent)
+                    grad.addColorStop(0, `rgba(255, 200, 50, 0)`);
+                    
+                    // "Peak" of the soft ring - slight orange shift
+                    // We mix orange (255, 160, 0) and yellow (255, 240, 100)
+                    grad.addColorStop(0.7, `rgba(255, 170, 20, ${Math.min(1, alpha * 0.15 * visibilityBoost)})`); // Orange-ish inner
+                    grad.addColorStop(0.9, `rgba(255, 240, 80, ${Math.min(1, alpha * 0.2 * visibilityBoost)})`); // Yellow-ish outer
+                    
+                    // Edge (transparent)
+                    grad.addColorStop(1, `rgba(255, 200, 50, 0)`);
+                    
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // Draw Particles with Glow
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#ffff00';
+            
+            for(const p of b.particles) {
+                if (b.time < p.life) {
+                    const pAlpha = 1 - (b.time / p.life);
+                    // Particles are offset from the burst center
+                    const px = cx + p.x;
+                    const py = cy + p.y;
+                    
+                    ctx.fillStyle = `rgba(255, 255, 150, ${pAlpha})`;
+                    ctx.beginPath();
+                    ctx.arc(px, py, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // Reset shadow
+            ctx.shadowBlur = 0;
+        }
     }
     
+    addBurst(x, y) {
+        // x, y are World Coordinates
+        const particles = [];
+        const count = 10;
+        for(let i=0; i<count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 30 + Math.random() * 40; // Screen pixels per second
+            particles.push({
+                x: 0, 
+                y: 0,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 0.4 + Math.random() * 0.3 // 0.4 to 0.7
+            });
+        }
+
+        this.bursts.push({ 
+            x, y, 
+            time: 0, 
+            life: 0.7,
+            particles 
+        });
+    }
+
+    addBurstFromScreen(mx, my) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = mx - rect.left;
+        const y = my - rect.top;
+        const wx = this.camX + (x - this.width/2) / this.zoom;
+        const wy = this.camY + (y - this.height/2) / this.zoom;
+        this.addBurst(wx, wy);
+    }
+
     // -- Input Handlers --
     
     onMouseDown(e) {
         if (e.button !== 0) return;
         this.isDragging = true;
         this.lastMouse = { x: e.clientX, y: e.clientY };
+        this.addBurstFromScreen(e.clientX, e.clientY);
     }
     
     onMouseMove(e) {
@@ -389,6 +520,11 @@ class LabSystem {
         } else if (e.touches.length === 2) {
             this.isDragging = false; 
             this.pinchDist = this.getTouchDist(e.touches);
+        }
+        
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+            this.addBurstFromScreen(t.clientX, t.clientY);
         }
     }
     
