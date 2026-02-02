@@ -1586,7 +1586,7 @@ function ensureMerchantOverlay() {
       if (key === 'forge' || !key) syncForgeTabUnlockState();
       if (key === 'infuse' || !key) syncWorkshopTabUnlockState();
       if (key === 'surge_completed' || !key) syncWarpTabUnlockState();
-      if (key === 'lab' || !key) syncLabTabUnlockState();
+      if (key === 'lab' || key === 'tsunami' || !key) syncLabTabUnlockState();
       };
       window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
       window.addEventListener('saveSlot:change', handleUnlockChange, { passive: true });
