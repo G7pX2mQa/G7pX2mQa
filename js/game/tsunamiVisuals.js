@@ -9,9 +9,21 @@
  * 4. Impact & Chaos
  */
 
+import { playAudio } from '../util/audioManager.js';
+
 export function playTsunamiSequence(container, durationMs = 15000, onComplete, options = {}) {
     // Hide cursor initially
     container.style.cursor = 'none';
+
+    // --- Audio Handles ---
+    let ambienceAudio = null;
+    let rumbleAudio = null;
+    let humAudio = null;
+    let chargeAudioTriggered = false;
+    let explosionAudioTriggered = false;
+
+    // Start Ambience Immediately (Wind/Storm Buildup)
+    ambienceAudio = playAudio('sounds/tsu_storm_ambience.ogg', { volume: 0.8 });
 
     // --- BG Canvas (Sky, Sand) ---
     const bgCanvas = document.createElement('canvas');
@@ -302,13 +314,6 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         shell: '#3b3035'
     };
 
-    const lightningState = {
-        active: false,
-        flashOpacity: 0,
-        bolts: [],
-        nextFlashTime: 0
-    };
-
     // New State for "Crazy Stuff"
     let beaconsActive = false;
     let beacons = [];
@@ -517,6 +522,12 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         const sizeMult = forceSize ? forceSize : 1;
         const isFinal = !!forceSize && forceSize > 5;
         
+        // Sound for spawn
+        // Safety: Explicitly block sound if explosion has triggered
+        if (beaconsActive && !isFinal && !finalExplosionTriggered && Math.random() < 0.25) {
+             playAudio('sounds/tsu_beacon_spawn.ogg', { volume: 0.3 + Math.random() * 0.2 });
+        }
+
         beacons.push({
             x: isFinal ? width / 2 : Math.random() * width,
             y: isFinal ? height / 2 : Math.random() * height,
@@ -534,7 +545,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         const chance = 0.1 + (intensity * 0.7);
         const spawnCount = Math.floor(1 + intensity * 4); 
 
-        if (allowSpawn) {
+        if (allowSpawn && !finalExplosionTriggered) {
             for(let k=0; k<spawnCount; k++) {
                 if (beacons.length < 50 && Math.random() < chance) {
                     const sizeMult = 1 + intensity * 2;
@@ -611,15 +622,17 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
             stormFactor = 1;
         }
 
-        // 2. Impact Factor (Chaos/Strike)
-        // Ramps up chaos leading to the strike
-        // Let's start ramping it up in the last 10s before strike
+        // Audio: Rumble (Impact)
         let impactFactor = 0;
         if (elapsed > IMPACT_START) {
             impactFactor = Math.max(0, (elapsed - IMPACT_START) / (STRIKE_TIME - IMPACT_START));
         }
         // Clamp impact factor to 1 until fade out completes, though elapsed > STRIKE_TIME covers it.
         if (elapsed > STRIKE_TIME) impactFactor = 1;
+
+        if (impactFactor > 0.1 && !rumbleAudio) {
+            rumbleAudio = playAudio('sounds/tsu_rumble.ogg', { volume: 0.8 });
+        }
 
         // Interpolate Palette
         const currentPalette = {
@@ -640,8 +653,14 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         // Screen Shake
         let shakeX = 0;
         let shakeY = 0;
-        if (stormFactor > 0.5) {
-            const shakeMag = (stormFactor - 0.5) * 2 * 5 + (impactFactor * 25);
+        if (stormFactor > 0.5 || finalExplosionTriggered) {
+            let shakeMag = (stormFactor - 0.5) * 2 * 5 + (impactFactor * 25);
+            
+            // Extra chaos during explosion (flashWhite is counting down from 60)
+            if (flashWhite > 0) {
+                 shakeMag += 50; 
+            }
+            
             shakeX = (Math.random() - 0.5) * shakeMag;
             shakeY = (Math.random() - 0.5) * shakeMag;
         }
@@ -656,17 +675,11 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         fgCtx.translate(shakeX, shakeY);
 
         // 1. Draw Sky (BG)
-        if (lightningState.flashOpacity > 0) {
-            bgCtx.fillStyle = `rgba(255, 255, 255, ${lightningState.flashOpacity * 0.9})`;
-            bgCtx.fillRect(-50, -50, width + 100, height + 100);
-            lightningState.flashOpacity -= 0.1;
-        } else {
-            const grad = bgCtx.createLinearGradient(0, 0, 0, height);
-            grad.addColorStop(0, currentPalette.skyTop);
-            grad.addColorStop(1, currentPalette.skyBottom);
-            bgCtx.fillStyle = grad;
-            bgCtx.fillRect(-50, -50, width + 100, height + 100);
-        }
+        const grad = bgCtx.createLinearGradient(0, 0, 0, height);
+        grad.addColorStop(0, currentPalette.skyTop);
+        grad.addColorStop(1, currentPalette.skyBottom);
+        bgCtx.fillStyle = grad;
+        bgCtx.fillRect(-50, -50, width + 100, height + 100);
 
         // 2. Draw Sun (BG)
         if (stormFactor < 1.0) {
@@ -727,31 +740,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
 
         // 5. Draw Cliffs - REMOVED
 
-        // 6. Lightning Logic (FG)
-        if (stormFactor > 0.8 && now > lightningState.nextFlashTime) {
-            lightningState.active = true;
-            lightningState.flashOpacity = 0.3 + Math.random() * 0.5;
-            lightningState.bolts = [];
-            if (Math.random() > 0.2) {
-                lightningState.bolts.push(createBolt(Math.random() * width, cloudBaseY, height * 0.5));
-            }
-            // Rapid fire near end
-            const delayBase = lerp(2000, 100, impactFactor);
-            lightningState.nextFlashTime = now + delayBase + Math.random() * delayBase;
-        }
-
-        if (lightningState.flashOpacity > 0.05 && lightningState.bolts.length > 0) {
-            fgCtx.strokeStyle = '#fff';
-            fgCtx.lineWidth = 2 + Math.random() * 2;
-            fgCtx.beginPath();
-            lightningState.bolts.forEach(bolt => {
-                bolt.forEach(seg => {
-                    fgCtx.moveTo(seg.x1, seg.y1);
-                    fgCtx.lineTo(seg.x2, seg.y2);
-                });
-            });
-            fgCtx.stroke();
-        }
+        // 6. Lightning Logic (FG) - REMOVED
 
         // 6.5. Rain (FG) - Moved here to be behind water
         if (stormFactor > 0.3) {
@@ -906,25 +895,41 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         if (beaconsActive) {
             const beaconElapsed = now - beaconStartTime;
             
-            // 15 seconds total duration. 
-            // Ramp up 0 -> 1 over 14.5s
-            // Final explosion at 14.5s
-            // Fade starts at 15s (handled by finalFadeActive)
+            // 15 seconds total duration.
+            // Requirement: Explosion much later (closer to fade out).
+            // Let's aim for 12.0s (total sequence is ~15s).
+            
+            const EXPLOSION_TIME = 12000;
             
             let intensity = 0;
             let allowSpawn = true;
             
-            if (beaconElapsed < 14500) {
-                intensity = beaconElapsed / 14500;
+            // Ramp up 0 -> 1 over 12.0s
+            if (beaconElapsed < EXPLOSION_TIME) {
+                intensity = beaconElapsed / EXPLOSION_TIME;
             } else {
                 intensity = 1.0;
                 // Final explosion check
                 if (!finalExplosionTriggered) {
                     finalExplosionTriggered = true;
                     // Spawn huge explosion center screen
-                    spawnBeacon(fgCtx, width, height, 15.0); 
-                    flashWhite = 3; // Flash frames
+                    spawnBeacon(fgCtx, width, height, 25.0); // Larger visual impact
+                    flashWhite = 60; // Extended flash frames (approx 1 sec at 60fps)
+                    
+                    if (!explosionAudioTriggered) {
+                        explosionAudioTriggered = true;
+                        playAudio('sounds/tsu_explosion.ogg', { volume: 1.0 });
+                        
+                        // Stop hum/charge
+                        if (humAudio) humAudio.stop();
+                    }
                 }
+            }
+            
+            // Audio: Charge up (start 4s before explosion)
+            if (beaconElapsed > (EXPLOSION_TIME - 4000) && !chargeAudioTriggered && !finalExplosionTriggered) {
+                chargeAudioTriggered = true;
+                playAudio('sounds/tsu_beacon_charge.ogg', { volume: 0.8 });
             }
             
             // Stop regular spawning when final fade starts
@@ -945,7 +950,16 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
 
         // 14. Flash White (Boom)
         if (flashWhite > 0) {
-            fgCtx.fillStyle = `rgba(255, 255, 255, ${flashWhite / 3})`;
+            // Smooth fade out: 60 frames max. 
+            // Normalized 0 to 1.
+            const t = flashWhite / 60; 
+            // Ease out cubic (starts fast, slows down) or simple linear?
+            // User requested "fades out smoothly". 
+            // Linear opacity: t. 
+            // Let's use a curve to keep it bright longer then fade.
+            const alpha = t * t; 
+            
+            fgCtx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
             fgCtx.fillRect(-50, -50, width + 100, height + 100);
             flashWhite--;
         }
@@ -964,6 +978,11 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         if (bgCanvas.parentNode) bgCanvas.parentNode.removeChild(bgCanvas);
         if (fgCanvas.parentNode) fgCanvas.parentNode.removeChild(fgCanvas);
         if (uiContainer.parentNode) uiContainer.parentNode.removeChild(uiContainer);
+        
+        // Stop Audio
+        if (ambienceAudio) ambienceAudio.stop();
+        if (rumbleAudio) rumbleAudio.stop();
+        if (humAudio) humAudio.stop();
     }
 
     function triggerBeacons() {
@@ -971,11 +990,18 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         beaconStartTime = Date.now();
         finalExplosionTriggered = false;
         flashWhite = 0;
+        
+        // Audio: Hum Loop
+        if (!humAudio) {
+            humAudio = playAudio('sounds/tsu_beacon_hum_loop.ogg', { loop: true, volume: 0.6 });
+        }
     }
 
     function triggerFinalFade() {
         finalFadeActive = true;
         finalFadeStart = Date.now();
+        // Ensure hum stops if it hasn't already
+        if (humAudio) humAudio.stop();
     }
 
     function showCursor() {
