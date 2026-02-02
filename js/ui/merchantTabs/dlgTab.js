@@ -620,11 +620,12 @@ export const DLG_CATALOG = {
         };
       }
       return {
-        status: 'locked',
-        title: '???',
-        blurb: 'Locked',
-        tooltip: 'Locked Dialogue',
-        ariaLabel: 'Locked Dialogue',
+        status: 'mysterious',
+        requirement: 'Do a Surge reset to reveal this dialogue',
+        message: 'Do a Surge reset to reveal this dialogue',
+        icon: MYSTERIOUS_ICON_SRC,
+        headerTitle: HIDDEN_DIALOGUE_TITLE,
+        ariaLabel: 'Hidden merchant dialogue, do a Surge reset to reveal this dialogue',
       };
     },
   },
