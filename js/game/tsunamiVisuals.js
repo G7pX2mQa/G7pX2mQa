@@ -925,7 +925,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
                         playAudio('sounds/tsu_explosion.ogg', { volume: 1.0 });
                         
                         // Stop hum/charge
-                        if (humAudio) humAudio.stop();
+                        // if (humAudio) humAudio.stop(); // Removed to keep hum playing
                     }
                 }
             }
