@@ -1190,19 +1190,20 @@ function loadDialogueState(slot = getActiveSlot()) {
 
 function grantDialogueReward(reward) {
     if (!reward) return;
-    if (reward.type === 'coins') {
-        try { bank.coins.add(reward.amount); }
-        catch (e) { console.warn('Failed to grant coin reward:', reward, e); }
-        return;
-    }
-    if (reward.type === 'books') {
+
+    if (Object.values(CURRENCIES).includes(reward.type)) {
         try {
-            bank.books.addWithMultiplier?.(reward.amount) ?? bank.books.add(reward.amount);
+            if (reward.type === CURRENCIES.BOOKS) {
+                bank.books.addWithMultiplier?.(reward.amount) ?? bank.books.add(reward.amount);
+            } else {
+                bank[reward.type].add(reward.amount);
+            }
         } catch (e) {
-            console.warn('Failed to grant book reward:', reward, e);
+            console.warn(`Failed to grant ${reward.type} reward:`, reward, e);
         }
         return;
     }
+
     try { window.dispatchEvent(new CustomEvent('merchantReward', { detail: reward })); }
     catch {}
 }
