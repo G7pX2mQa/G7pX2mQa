@@ -986,7 +986,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         
         // Audio: Hum Loop
         if (!humAudio) {
-            humAudio = playAudio('sounds/tsu_beacon_hum.ogg', {volume: 0.6 });
+            humAudio = playAudio('sounds/tsu_beacon_hum.ogg', { loop: true, volume: 0.6 });
         }
     }
 
