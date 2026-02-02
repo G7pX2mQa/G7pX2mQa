@@ -610,7 +610,15 @@ export const DLG_CATALOG = {
       if (typeof hasDoneSurgeReset === 'function' && hasDoneSurgeReset()) {
         return true;
       }
-      if (typeof isSurgeUnlocked === 'function' && isSurgeUnlocked()) {
+      if (!progress?.xpUnlocked || (progress?.xpLevel ?? 0) < 201) {
+        return {
+          status: 'locked',
+          title: '???',
+          blurb: 'Locked',
+          tooltip: 'Locked Dialogue',
+          ariaLabel: 'Locked Dialogue',
+        };
+      }
         return {
           status: 'mysterious',
           requirement: 'Do a Surge reset to reveal this dialogue',
