@@ -2326,7 +2326,7 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
           nodes: {
               'final': { 
                   type: 'line', 
-                  say: 'I’m sure the <span style="color:#00e5ff">Player</span> will have some questions when they wake up, but I will deal with that when I must.', 
+                  say: 'I am sure the <span style="color:#00e5ff">Player</span> will have some questions when they wake up, but I will deal with that when I must.', 
                   next: 'end' 
               },
               'end': { type: 'choice', options: [{ label: '...', to: 'end' }] }
