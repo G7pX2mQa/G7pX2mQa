@@ -19,7 +19,6 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
     let ambienceAudio = null;
     let rumbleAudio = null;
     let humAudio = null;
-    let chargeAudioTriggered = false;
     let explosionAudioTriggered = false;
 
     // Start Ambience Immediately (Wind/Storm Buildup)
@@ -524,7 +523,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         
         // Sound for spawn
         // Safety: Explicitly block sound if explosion has triggered
-        if (beaconsActive && !isFinal && !finalExplosionTriggered && Math.random() < 0.25) {
+        if (beaconsActive && !isFinal && !finalExplosionTriggered) {
              playAudio('sounds/tsu_beacon_spawn.ogg', { volume: 0.3 + Math.random() * 0.2 });
         }
 
@@ -926,12 +925,6 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
                 }
             }
             
-            // Audio: Charge up (start 4s before explosion)
-            if (beaconElapsed > (EXPLOSION_TIME - 4000) && !chargeAudioTriggered && !finalExplosionTriggered) {
-                chargeAudioTriggered = true;
-                playAudio('sounds/tsu_beacon_charge.ogg', { volume: 0.8 });
-            }
-            
             // Stop regular spawning when final fade starts
             if (finalFadeActive) {
                 allowSpawn = false;
@@ -1012,6 +1005,13 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         container.style.cursor = 'none';
     }
 
+    function stopHumLoop() {
+        if (humAudio) {
+            humAudio.stop();
+            humAudio = null;
+        }
+    }
+
     loop();
     
     // Return controls
@@ -1020,6 +1020,7 @@ export function playTsunamiSequence(container, durationMs = 15000, onComplete, o
         triggerBeacons,
         triggerFinalFade,
         showCursor,
-        hideCursor
+        hideCursor,
+        stopHumLoop
     };
 }
