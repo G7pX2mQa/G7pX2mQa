@@ -56,6 +56,82 @@ class LabSystem {
         this.container.appendChild(this.canvas);
         this.ctx = this.canvas.getContext('2d', { alpha: false });
         
+        // Stats UI Container
+        this.statsContainer = document.createElement('div');
+        this.statsContainer.style.position = 'absolute';
+        this.statsContainer.style.top = '20px';
+        this.statsContainer.style.left = '50%';
+        this.statsContainer.style.transform = 'translateX(-50%)';
+        this.statsContainer.style.zIndex = '10';
+        this.statsContainer.style.display = 'flex';
+        this.statsContainer.style.flexDirection = 'column';
+        this.statsContainer.style.alignItems = 'center';
+        this.statsContainer.style.gap = '6px';
+        this.statsContainer.style.pointerEvents = 'none';
+        this.statsContainer.style.width = '100%'; // Ensure full width for centering
+
+        // --- Common Text Style ---
+        const applyTextStyle = (el, fontSize, strokeWidth = '1px') => {
+            el.style.fontFamily = 'var(--font-ui), system-ui, sans-serif';
+            el.style.fontWeight = '900';
+            el.style.color = '#fff';
+            el.style.fontSize = fontSize;
+            el.style.webkitTextStroke = `${strokeWidth} #000`;
+            el.style.textShadow = '0 1px 0 rgba(0,0,0,0.35)';
+            el.style.letterSpacing = '0.5px';
+            el.style.lineHeight = '1';
+            el.style.textAlign = 'center';
+            el.style.whiteSpace = 'nowrap';
+            el.style.overflow = 'hidden';
+            el.style.textOverflow = 'ellipsis';
+        };
+
+        // --- Common Bar Style ---
+        const applyBarStyle = (el) => {
+            el.style.backgroundColor = '#0a1020'; // Base color (fallback)
+            el.style.background = 'linear-gradient(180deg, #1a2b45, #0a1020)';
+            el.style.border = '2px solid #000';
+            el.style.borderRadius = '0';
+            el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.5)';
+            el.style.display = 'flex';
+            el.style.alignItems = 'center';
+            el.style.justifyContent = 'center';
+            el.style.boxSizing = 'border-box';
+            el.style.margin = '0 auto'; // Center in container
+        };
+
+        // Lab Level Bar (Biggest)
+        this.levelBar = document.createElement('div');
+        this.levelBar.textContent = 'Lab Level: 0';
+        applyBarStyle(this.levelBar);
+        applyTextStyle(this.levelBar, '24px', '1px');
+        this.levelBar.style.padding = '8px 12px';
+        this.levelBar.style.height = '42px';
+        this.levelBar.style.width = 'var(--coin-bar-w)'; // Matches Coin Bar
+        this.statsContainer.appendChild(this.levelBar);
+
+        // Coins Needed Bar (Medium)
+        this.coinsBar = document.createElement('div');
+        this.coinsBar.textContent = 'Coins needed to reach Lab Level 1: 0';
+        applyBarStyle(this.coinsBar);
+        applyTextStyle(this.coinsBar, '16px', '0.75px');
+        this.coinsBar.style.padding = '6px 12px';
+        this.coinsBar.style.height = '32px';
+        this.coinsBar.style.width = 'calc(var(--coin-bar-w) * 0.9)'; // 90% width
+        this.statsContainer.appendChild(this.coinsBar);
+
+        // Nerf Exponent Bar (Smallest)
+        this.nerfBar = document.createElement('div');
+        this.nerfBar.textContent = 'Tsunami nerf exponent: ^0.00';
+        applyBarStyle(this.nerfBar);
+        applyTextStyle(this.nerfBar, '14px', '0.5px');
+        this.nerfBar.style.padding = '4px 12px';
+        this.nerfBar.style.height = '26px';
+        this.nerfBar.style.width = 'calc(var(--coin-bar-w) * 0.8)'; // 80% width
+        this.statsContainer.appendChild(this.nerfBar);
+
+        this.container.appendChild(this.statsContainer);
+        
         // Return Button
         this.returnBtn = document.createElement('button');
         this.returnBtn.textContent = 'Return to (0,0)';
@@ -85,7 +161,7 @@ class LabSystem {
         // Help Text
         this.helpText = document.createElement('div');
         this.helpText.style.position = 'absolute';
-        this.helpText.style.bottom = '12px';
+        this.helpText.style.bottom = '8px';
         this.helpText.style.left = '12px';
         this.helpText.style.pointerEvents = 'none';
         this.helpText.style.zIndex = '10';
@@ -177,6 +253,7 @@ class LabSystem {
         this.canvas.remove();
         this.returnBtn.remove();
         this.helpText.remove();
+        this.statsContainer.remove();
     }
     
     resize() {
