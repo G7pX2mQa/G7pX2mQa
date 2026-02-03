@@ -3,8 +3,10 @@ import { IS_MOBILE } from '../../main.js';
 import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { getTsunamiNerf } from '../../game/surgeEffects.js';
+import { registerTick } from '../../game/gameLoop.js';
 
 const LAB_VISITED_KEY = (slot) => `ccc:lab:visited:${slot}`;
+const LAB_LEVEL_KEY = (slot) => `ccc:lab:level:${slot}`;
 
 export function hasVisitedLab() {
   const slot = getActiveSlot();
@@ -25,7 +27,7 @@ export function setLabVisited(value) {
   } catch {}
 }
 
-export const getLabLevelKey = (slot) => `ccc:lab:level:${slot}`;
+export const getLabLevelKey = (slot) => LAB_LEVEL_KEY(slot);
 
 export function getLabLevel() {
   const slot = getActiveSlot();
@@ -37,9 +39,8 @@ export function getLabLevel() {
   }
   
   try {
-    const raw = localStorage.getItem(getLabLevelKey(slot));
+    const raw = localStorage.getItem(LAB_LEVEL_KEY(slot));
     if (!raw) return BigNum.fromInt(0);
-    // Support legacy BigInt parsing or new BigNum storage
     return BigNum.fromAny(raw);
   } catch {
     return BigNum.fromInt(0);
@@ -51,7 +52,10 @@ export function setLabLevel(value) {
   if (slot == null) return;
   try {
     const valBn = BigNum.fromAny(value);
-    localStorage.setItem(getLabLevelKey(slot), valBn.toStorage());
+    const current = getLabLevel();
+    if (valBn.cmp(current) === 0) return;
+
+    localStorage.setItem(LAB_LEVEL_KEY(slot), valBn.toStorage());
     window.dispatchEvent(new CustomEvent('lab:level:change', { detail: { slot, level: valBn } }));
   } catch {}
 }
@@ -61,74 +65,89 @@ export function getLabCost(level) {
     const lvl = BigNum.fromAny(level);
     if (lvl.isInfinite()) return BigNum.fromAny('Infinity');
     
-    let lvlBigInt;
+    // Safety for huge levels:
+    // If level is massive (e.g. > 1e308), the cost exponent would be 1e308 + 30.
+    
     try {
-        // Handle huge levels by converting to BigInt (supports arbitrary size)
-        lvlBigInt = BigInt(lvl.toPlainIntegerString());
-    } catch {
+        if (lvl.cmp(1e15) < 0) {
+             const lvlNum = Number(lvl.toPlainIntegerString());
+             const exponent = 30 + lvlNum;
+             return new BigNum(1n, { base: exponent, offset: 0n });
+        }
+        
+        // Limit: If Level > 1e1,000,000 (approx), toPlainIntegerString returns 'Infinity'.
+        if (lvl.cmp(BigNum.fromScientific("1e1000000")) > 0) {
+             return BigNum.fromAny('Infinity');
+        }
+        
+        const lvlStr = lvl.toPlainIntegerString();
+        if (lvlStr === 'Infinity') return BigNum.fromAny('Infinity');
+        
+        const lvlBigInt = BigInt(lvlStr);
+        const totalExponent = 30n + lvlBigInt;
+        
+        return new BigNum(1n, { base: 0, offset: totalExponent });
+
+    } catch (e) {
+        console.error("Error calculating lab cost", e);
         return BigNum.fromAny('Infinity');
     }
-
-    const exponent = 30n + lvlBigInt;
-    // Use offset for arbitrary large exponents
-    return new BigNum(1n, { base: 0, offset: exponent });
 }
 
-export function buyLabLevel() {
-    const level = getLabLevel();
-    if (level.isInfinite()) return false;
-    
-    const cost = getLabCost(level);
-    if (bank.coins.value.cmp(cost) >= 0) {
-        bank.coins.sub(cost);
-        
-        let increment = BigNum.fromInt(1);
-        
-        // Adaptive scaling:
-        // Up to 1e12: increment by 1.
-        // Above 1e12: increment by 10^(log10(level) - 11).
-        // e.g. at 1e12 (log 12) -> 10^(12-11) = 10^1 = 10.
-        // e.g. at 1e13 (log 13) -> 10^(13-11) = 10^2 = 100.
-        
-        // We use level.decExp (or level.e if within normal range)
-        // If level < 1e12, we stick to 1.
-        
-        // 1e12 has 13 digits (1 + 12 zeros). BigNum p is 18.
-        // We can check level.e directly if offset is 0.
-        
-        // Safety check for huge numbers
-        if (level.e >= 12 || level._eOffset > 0n) {
-             // Calculate effective exponent
-             let exponent = level.e;
-             if (level._eOffset) {
-                 // If offset exists, exponent is huge.
-                 // We need to add offset to e.
-                 // BigNum .e is a Number. ._eOffset is a BigInt.
-                 // If _eOffset is huge, the result won't fit in Number.
-                 // But we just need to construct 10^(exp - 11).
-                 // We can construct a BigNum directly.
-                 
-                 // inc_exp = (e + offset) - 11
-                 const offsetBi = BigInt(level._eOffset);
-                 const eBi = BigInt(level.e);
-                 const totalExp = offsetBi + eBi;
-                 const incExp = totalExp - 11n;
-                 
-                 increment = new BigNum(1n, { base: 0, offset: incExp });
-             } else {
-                 // Standard large number (no offset yet)
-                 const incExp = level.e - 11;
-                 if (incExp > 0) {
-                     increment = new BigNum(1n, incExp);
-                 }
-             }
-        }
+// Calculate max level affordable with current coins
+// Level = floor(log10(Coins) - 30)
+export function getLabLevelFromCoins(coins) {
+    if (!coins || coins.isZero() || coins.isNegative()) return BigNum.fromInt(0);
+    if (coins.isInfinite()) return BigNum.fromAny('Infinity');
 
-        setLabLevel(level.add(increment));
-        return true;
+    let exponentBn;
+    if (coins._eOffset !== 0n) {
+        const eVal = BigInt(coins.e) + coins._eOffset;
+        const sigNum = Number(coins.sig);
+        const logSig = Math.log10(sigNum);
+        const logSigInt = Math.floor(logSig); 
+        
+        const levelBase = eVal - 30n + BigInt(logSigInt);
+        
+        if (levelBase < 0n) return BigNum.fromInt(0);
+        
+        return BigNum.fromInt(levelBase); 
     }
-    return false;
+    
+    const e = coins.e;
+    const sigNum = Number(coins.sig);
+    const logSig = Math.log10(sigNum);
+    const val = e + logSig - 30;
+    
+    if (val < 0) return BigNum.fromInt(0);
+    return BigNum.fromInt(Math.floor(val));
 }
+
+export function updateLabLevel() {
+    const coins = bank.coins.value;
+    const currentLevel = getLabLevel();
+    
+    if (coins.isInfinite()) {
+        if (!currentLevel.isInfinite()) {
+            setLabLevel(BigNum.fromAny('Infinity'));
+        }
+        return;
+    }
+    
+    const targetLevel = getLabLevelFromCoins(coins);
+    
+    // Only increase level
+    if (targetLevel.cmp(currentLevel) > 0) {
+        setLabLevel(targetLevel);
+    }
+}
+
+// Named "initLabLogic" to distinguish from "initLabTab" (UI)
+export function initLabLogic() {
+    registerTick(updateLabLevel);
+}
+
+// --- UI Logic Below ---
 
 let labSystem = null;
 
@@ -232,7 +251,7 @@ class LabSystem {
         this.coinsBar.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            buyLabLevel();
+            updateLabLevel();
         });
         
         this.statsContainer.appendChild(this.coinsBar);
@@ -425,14 +444,14 @@ class LabSystem {
         this.checkBounds();
 
         const currentLevel = getLabLevel();
-        const cost = getLabCost(currentLevel);
+        // Show cost for NEXT level (current + 1), since we already reached current
+        const cost = getLabCost(currentLevel.add(1));
         const currentNerf = getTsunamiNerf();
         
         // Update UI Text if needed
-        // Compare BigNums
         if (!this.lastRenderedLevel || currentLevel.cmp(this.lastRenderedLevel) !== 0 || !this.lastCost || cost.cmp(this.lastCost) !== 0) {
-            this.levelBar.textContent = `Lab Level: ${formatNumber(currentLevel)}`;
-            this.coinsBar.textContent = `Coins needed to increment Lab Level: ${formatNumber(cost)}`; 
+            this.levelBar.innerHTML = `Lab Level: ${formatNumber(currentLevel)}`;
+            this.coinsBar.innerHTML = `Coins needed to increment Lab Level: ${formatNumber(cost)}`; 
             this.lastRenderedLevel = currentLevel;
             this.lastCost = cost;
         }
@@ -442,12 +461,7 @@ class LabSystem {
             this.lastRenderedNerf = currentNerf;
         }
         
-        // Visual feedback for affordability
-        if (bank.coins.value.cmp(cost) >= 0) {
-             this.coinsBar.style.borderColor = '#0f0'; 
-        } else {
-             this.coinsBar.style.borderColor = '#000'; 
-        }
+        this.coinsBar.style.borderColor = '#000'; 
 
         // Update Bursts
         for (let i = this.bursts.length - 1; i >= 0; i--) {
@@ -608,8 +622,6 @@ class LabSystem {
             const cy = (b.y - this.camY) * this.zoom + h/2;
             
             // Draw 3 Soft Rings
-            // r.delay affects order: 0.00 (Outer), 0.05 (Middle), 0.10 (Inner)
-            // To make inner rings more visible, we boost their alpha multiplier
             for (let i = 0; i < ringConfigs.length; i++) {
                 const r = ringConfigs[i];
                 const rt = b.time - r.delay;
@@ -620,20 +632,15 @@ class LabSystem {
                     const alpha = Math.max(0, 1 - Math.pow(prog, 2)); // Fade out
 
                     // Boost visibility for inner rings (higher index = more inner)
-                    // Index 0: Outer (base)
-                    // Index 1: Middle (1.5x)
-                    // Index 2: Inner (2.0x)
                     const visibilityBoost = 1.0 + (i * 0.5); 
 
                     // Soft Radial Gradient "Ring"
-                    // Inner radius varies to keep the ring "thick" but soft
                     const grad = ctx.createRadialGradient(cx, cy, rad * 0.6, cx, cy, rad);
                     
                     // Center of ring (transparent)
                     grad.addColorStop(0, `rgba(255, 200, 50, 0)`);
                     
                     // "Peak" of the soft ring - slight orange shift
-                    // We mix orange (255, 160, 0) and yellow (255, 240, 100)
                     grad.addColorStop(0.7, `rgba(255, 170, 20, ${Math.min(1, alpha * 0.15 * visibilityBoost)})`); // Orange-ish inner
                     grad.addColorStop(0.9, `rgba(255, 240, 80, ${Math.min(1, alpha * 0.2 * visibilityBoost)})`); // Yellow-ish outer
                     
@@ -654,7 +661,6 @@ class LabSystem {
             for(const p of b.particles) {
                 if (b.time < p.life) {
                     const pAlpha = 1 - (b.time / p.life);
-                    // Particles are offset from the burst center
                     const px = cx + p.x;
                     const py = cy + p.y;
                     
@@ -733,7 +739,6 @@ class LabSystem {
         const oldZoom = this.zoom;
         let newZoom = oldZoom * (1 + delta);
         
-        // Infinite zoom limits (or practically infinite)
         if (newZoom < Number.MIN_VALUE) newZoom = Number.MIN_VALUE;
         if (newZoom > Number.MAX_VALUE) newZoom = Number.MAX_VALUE;
         
