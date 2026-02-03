@@ -29,14 +29,20 @@ export const getLabLevelKey = (slot) => `ccc:lab:level:${slot}`;
 
 export function getLabLevel() {
   const slot = getActiveSlot();
-  if (slot == null) return 0n;
+  if (slot == null) return BigNum.fromInt(0);
+  
+  // If coins are infinite, Lab Level is effectively infinite
+  if (bank.coins.value.isInfinite()) {
+      return BigNum.fromAny('Infinity');
+  }
+  
   try {
     const raw = localStorage.getItem(getLabLevelKey(slot));
-    if (!raw) return 0n;
-    // Support BigInt parsing
-    try { return BigInt(raw); } catch { return 0n; }
+    if (!raw) return BigNum.fromInt(0);
+    // Support legacy BigInt parsing or new BigNum storage
+    return BigNum.fromAny(raw);
   } catch {
-    return 0n;
+    return BigNum.fromInt(0);
   }
 }
 
@@ -44,41 +50,81 @@ export function setLabLevel(value) {
   const slot = getActiveSlot();
   if (slot == null) return;
   try {
-    // Handle BigNum, BigInt, Number, String
-    let valStr = '0';
-    if (value instanceof BigNum) {
-        valStr = value.toPlainIntegerString();
-    } else {
-        valStr = String(value);
-    }
-    
-    // Validate it's an integer string
-    if (!/^\d+$/.test(valStr)) valStr = '0';
-    
-    localStorage.setItem(getLabLevelKey(slot), valStr);
-    
-    // Dispatch event with BigInt value if possible, or string? 
-    // debugPanel expects what? It handles events but reads storage/getter usually.
-    // We'll dispatch a BigInt.
-    window.dispatchEvent(new CustomEvent('lab:level:change', { detail: { slot, level: BigInt(valStr) } }));
+    const valBn = BigNum.fromAny(value);
+    localStorage.setItem(getLabLevelKey(slot), valBn.toStorage());
+    window.dispatchEvent(new CustomEvent('lab:level:change', { detail: { slot, level: valBn } }));
   } catch {}
 }
 
 export function getLabCost(level) {
     // Cost = 10^(30 + level)
-    // level is expected to be BigInt
-    const lvl = BigInt(level);
-    const exponent = 30n + lvl;
+    const lvl = BigNum.fromAny(level);
+    if (lvl.isInfinite()) return BigNum.fromAny('Infinity');
+    
+    let lvlBigInt;
+    try {
+        // Handle huge levels by converting to BigInt (supports arbitrary size)
+        lvlBigInt = BigInt(lvl.toPlainIntegerString());
+    } catch {
+        return BigNum.fromAny('Infinity');
+    }
+
+    const exponent = 30n + lvlBigInt;
     // Use offset for arbitrary large exponents
     return new BigNum(1n, { base: 0, offset: exponent });
 }
 
 export function buyLabLevel() {
     const level = getLabLevel();
+    if (level.isInfinite()) return false;
+    
     const cost = getLabCost(level);
     if (bank.coins.value.cmp(cost) >= 0) {
         bank.coins.sub(cost);
-        setLabLevel(level + 1n);
+        
+        let increment = BigNum.fromInt(1);
+        
+        // Adaptive scaling:
+        // Up to 1e12: increment by 1.
+        // Above 1e12: increment by 10^(log10(level) - 11).
+        // e.g. at 1e12 (log 12) -> 10^(12-11) = 10^1 = 10.
+        // e.g. at 1e13 (log 13) -> 10^(13-11) = 10^2 = 100.
+        
+        // We use level.decExp (or level.e if within normal range)
+        // If level < 1e12, we stick to 1.
+        
+        // 1e12 has 13 digits (1 + 12 zeros). BigNum p is 18.
+        // We can check level.e directly if offset is 0.
+        
+        // Safety check for huge numbers
+        if (level.e >= 12 || level._eOffset > 0n) {
+             // Calculate effective exponent
+             let exponent = level.e;
+             if (level._eOffset) {
+                 // If offset exists, exponent is huge.
+                 // We need to add offset to e.
+                 // BigNum .e is a Number. ._eOffset is a BigInt.
+                 // If _eOffset is huge, the result won't fit in Number.
+                 // But we just need to construct 10^(exp - 11).
+                 // We can construct a BigNum directly.
+                 
+                 // inc_exp = (e + offset) - 11
+                 const offsetBi = BigInt(level._eOffset);
+                 const eBi = BigInt(level.e);
+                 const totalExp = offsetBi + eBi;
+                 const incExp = totalExp - 11n;
+                 
+                 increment = new BigNum(1n, { base: 0, offset: incExp });
+             } else {
+                 // Standard large number (no offset yet)
+                 const incExp = level.e - 11;
+                 if (incExp > 0) {
+                     increment = new BigNum(1n, incExp);
+                 }
+             }
+        }
+
+        setLabLevel(level.add(increment));
         return true;
     }
     return false;
@@ -164,7 +210,7 @@ class LabSystem {
 
         // Lab Level Bar (Biggest)
         this.levelBar = document.createElement('div');
-        this.levelBar.textContent = `Lab Level: ${getLabLevel()}`;
+        this.levelBar.textContent = `Lab Level: ${formatNumber(getLabLevel())}`;
         applyBarStyle(this.levelBar);
         applyTextStyle(this.levelBar, '24px', '1px');
         this.levelBar.style.padding = '8px 12px';
@@ -289,7 +335,7 @@ class LabSystem {
         // Initial resize
         requestAnimationFrame(() => this.resize());
 
-        this.lastRenderedLevel = -1n; // Use BigInt for comparison
+        this.lastRenderedLevel = null;
     }
     
     addBind(target, type, handler, opts) {
@@ -383,9 +429,9 @@ class LabSystem {
         const currentNerf = getTsunamiNerf();
         
         // Update UI Text if needed
-        // Note: currentLevel is BigInt, lastRenderedLevel is BigInt (initially -1n)
-        if (currentLevel !== this.lastRenderedLevel || !this.lastCost || cost.cmp(this.lastCost) !== 0) {
-            this.levelBar.textContent = `Lab Level: ${formatNumber(BigNum.fromInt(currentLevel))}`;
+        // Compare BigNums
+        if (!this.lastRenderedLevel || currentLevel.cmp(this.lastRenderedLevel) !== 0 || !this.lastCost || cost.cmp(this.lastCost) !== 0) {
+            this.levelBar.textContent = `Lab Level: ${formatNumber(currentLevel)}`;
             this.coinsBar.textContent = `Coins needed to increment Lab Level: ${formatNumber(cost)}`; 
             this.lastRenderedLevel = currentLevel;
             this.lastCost = cost;
@@ -396,12 +442,11 @@ class LabSystem {
             this.lastRenderedNerf = currentNerf;
         }
         
-        // Visual feedback for affordability (check every frame or periodically)
-        // Since coins change rapidly, checking every frame is okay for now.
+        // Visual feedback for affordability
         if (bank.coins.value.cmp(cost) >= 0) {
              this.coinsBar.style.borderColor = '#0f0'; 
         } else {
-             this.coinsBar.style.borderColor = '#000'; // Default border color from applyBarStyle
+             this.coinsBar.style.borderColor = '#000'; 
         }
 
         // Update Bursts
