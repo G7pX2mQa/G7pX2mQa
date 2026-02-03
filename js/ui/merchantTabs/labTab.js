@@ -1,4 +1,5 @@
 import { getActiveSlot } from '../../util/storage.js';
+import { IS_MOBILE } from '../../main.js';
 
 const LAB_VISITED_KEY = (slot) => `ccc:lab:visited:${slot}`;
 
@@ -81,6 +82,35 @@ class LabSystem {
         
         this.container.appendChild(this.returnBtn);
         
+        // Help Text
+        this.helpText = document.createElement('div');
+        this.helpText.style.position = 'absolute';
+        this.helpText.style.bottom = '12px';
+        this.helpText.style.left = '12px';
+        this.helpText.style.pointerEvents = 'none';
+        this.helpText.style.zIndex = '10';
+        this.helpText.style.fontFamily = 'var(--font-ui), system-ui, sans-serif';
+        this.helpText.style.fontSize = '14px';
+        this.helpText.style.lineHeight = '1.5';
+        this.helpText.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
+        
+        const lines = IS_MOBILE ? [
+            ['Node Details:', 'Tap'],
+            ['Move Camera:', 'Tap and hold'],
+            ['Zoom In/Out:', 'Pinch screen']
+        ] : [
+            ['Node Details:', 'Left click'],
+            ['Move Camera:', 'Left click and hold or WASD'],
+            ['Zoom In/Out:', 'Scroll']
+        ];
+        
+        let helpHtml = '';
+        for (const [label, val] of lines) {
+            helpHtml += `<div><span style="color: #fff; font-weight: 400;">${label}</span><span style="color: #ccc; margin-left: 6px;">${val}</span></div>`;
+        }
+        this.helpText.innerHTML = helpHtml;
+        this.container.appendChild(this.helpText);
+        
         this.camX = 0;
         this.camY = 0;
         this.zoom = 0.25;
@@ -146,6 +176,7 @@ class LabSystem {
         }
         this.canvas.remove();
         this.returnBtn.remove();
+        this.helpText.remove();
     }
     
     resize() {
