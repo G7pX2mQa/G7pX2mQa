@@ -212,7 +212,7 @@ class LabSystem {
         this.levelBar = document.createElement('div');
         this.levelBar.textContent = `Lab Level: ${formatNumber(getLabLevel())}`;
         applyBarStyle(this.levelBar);
-        applyTextStyle(this.levelBar, '24px', '1px');
+        applyTextStyle(this.levelBar, '26px', '1px');
         this.levelBar.style.padding = '8px 12px';
         this.levelBar.style.height = '42px';
         this.levelBar.style.width = 'var(--coin-bar-w)'; // Matches Coin Bar
@@ -222,7 +222,7 @@ class LabSystem {
         this.coinsBar = document.createElement('div');
         this.coinsBar.textContent = 'Coins needed to increment Lab Level: 0';
         applyBarStyle(this.coinsBar);
-        applyTextStyle(this.coinsBar, '16px', '0.75px');
+        applyTextStyle(this.coinsBar, '16px', '0.9px');
         this.coinsBar.style.padding = '6px 12px';
         this.coinsBar.style.height = '32px';
         this.coinsBar.style.width = 'calc(var(--coin-bar-w) * 0.9)'; // 90% width
@@ -241,7 +241,7 @@ class LabSystem {
         this.nerfBar = document.createElement('div');
         this.nerfBar.textContent = 'Tsunami nerf exponent: ^0.00';
         applyBarStyle(this.nerfBar);
-        applyTextStyle(this.nerfBar, '14px', '0.5px');
+        applyTextStyle(this.nerfBar, '14px', '0.8px');
         this.nerfBar.style.padding = '4px 12px';
         this.nerfBar.style.height = '26px';
         this.nerfBar.style.width = 'calc(var(--coin-bar-w) * 0.8)'; // 80% width
@@ -293,7 +293,7 @@ class LabSystem {
             ['Zoom In/Out:', 'Pinch screen']
         ] : [
             ['Node Details:', 'Left click'],
-            ['Move Camera:', 'Left click and hold or WASD'],
+            ['Move Camera:', 'Left click and drag or WASD'],
             ['Zoom In/Out:', 'Scroll']
         ];
         
