@@ -2115,21 +2115,23 @@ function buildAreaStats(container, area) {
     // Lab Level
     const labLevel = getLabLevel();
     const labLevelRow = createInputRow('Lab Level', labLevel, (value, { setValue }) => {
-        let valNum = Number(value);
-        if (Number.isNaN(valNum) || valNum < 0) {
+        let valBn;
+        try {
+             valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+             if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
+        } catch {
              setValue(getLabLevel());
              return;
         }
-        valNum = Math.floor(valNum);
 
         const prev = getLabLevel();
-        setLabLevel(valNum);
+        setLabLevel(valBn);
         
         flagDebugUsage();
-        if (prev !== valNum) {
-            logAction(`Modified Lab Level (The Cove) ${prev} → ${valNum}`);
+        if (!bigNumEquals(prev, valBn)) {
+            logAction(`Modified Lab Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
         }
-        setValue(valNum);
+        setValue(valBn);
     }, {
         storageKey: getLabLevelKey(slot)
     });
