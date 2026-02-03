@@ -1,5 +1,8 @@
-import { getActiveSlot } from '../../util/storage.js';
+import { getActiveSlot, bank } from '../../util/storage.js';
 import { IS_MOBILE } from '../../main.js';
+import { BigNum } from '../../util/bigNum.js';
+import { formatNumber } from '../../util/numFormat.js';
+import { getTsunamiNerf } from '../../game/surgeEffects.js';
 
 const LAB_VISITED_KEY = (slot) => `ccc:lab:visited:${slot}`;
 
@@ -26,12 +29,14 @@ export const getLabLevelKey = (slot) => `ccc:lab:level:${slot}`;
 
 export function getLabLevel() {
   const slot = getActiveSlot();
-  if (slot == null) return 0;
+  if (slot == null) return 0n;
   try {
     const raw = localStorage.getItem(getLabLevelKey(slot));
-    return raw ? parseInt(raw, 10) || 0 : 0;
+    if (!raw) return 0n;
+    // Support BigInt parsing
+    try { return BigInt(raw); } catch { return 0n; }
   } catch {
-    return 0;
+    return 0n;
   }
 }
 
@@ -39,9 +44,44 @@ export function setLabLevel(value) {
   const slot = getActiveSlot();
   if (slot == null) return;
   try {
-    localStorage.setItem(getLabLevelKey(slot), String(value));
-    window.dispatchEvent(new CustomEvent('lab:level:change', { detail: { slot, level: value } }));
+    // Handle BigNum, BigInt, Number, String
+    let valStr = '0';
+    if (value instanceof BigNum) {
+        valStr = value.toPlainIntegerString();
+    } else {
+        valStr = String(value);
+    }
+    
+    // Validate it's an integer string
+    if (!/^\d+$/.test(valStr)) valStr = '0';
+    
+    localStorage.setItem(getLabLevelKey(slot), valStr);
+    
+    // Dispatch event with BigInt value if possible, or string? 
+    // debugPanel expects what? It handles events but reads storage/getter usually.
+    // We'll dispatch a BigInt.
+    window.dispatchEvent(new CustomEvent('lab:level:change', { detail: { slot, level: BigInt(valStr) } }));
   } catch {}
+}
+
+export function getLabCost(level) {
+    // Cost = 10^(30 + level)
+    // level is expected to be BigInt
+    const lvl = BigInt(level);
+    const exponent = 30n + lvl;
+    // Use offset for arbitrary large exponents
+    return new BigNum(1n, { base: 0, offset: exponent });
+}
+
+export function buyLabLevel() {
+    const level = getLabLevel();
+    const cost = getLabCost(level);
+    if (bank.coins.value.cmp(cost) >= 0) {
+        bank.coins.sub(cost);
+        setLabLevel(level + 1n);
+        return true;
+    }
+    return false;
 }
 
 let labSystem = null;
@@ -140,6 +180,15 @@ class LabSystem {
         this.coinsBar.style.padding = '6px 12px';
         this.coinsBar.style.height = '32px';
         this.coinsBar.style.width = 'calc(var(--coin-bar-w) * 0.9)'; // 90% width
+        this.coinsBar.style.pointerEvents = 'auto'; // Enable clicks
+        this.coinsBar.style.cursor = 'pointer';
+        
+        this.coinsBar.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            buyLabLevel();
+        });
+        
         this.statsContainer.appendChild(this.coinsBar);
 
         // Nerf Exponent Bar (Smallest)
@@ -240,7 +289,7 @@ class LabSystem {
         // Initial resize
         requestAnimationFrame(() => this.resize());
 
-        this.lastRenderedLevel = -1;
+        this.lastRenderedLevel = -1n; // Use BigInt for comparison
     }
     
     addBind(target, type, handler, opts) {
@@ -329,13 +378,30 @@ class LabSystem {
     update(dt) {
         this.checkBounds();
 
-        // Update UI Text if needed
         const currentLevel = getLabLevel();
-        if (currentLevel !== this.lastRenderedLevel) {
-            this.levelBar.textContent = `Lab Level: ${currentLevel}`;
-            // Placeholder cost: 0
-            this.coinsBar.textContent = `Coins needed to increment Lab Level: 0`; 
+        const cost = getLabCost(currentLevel);
+        const currentNerf = getTsunamiNerf();
+        
+        // Update UI Text if needed
+        // Note: currentLevel is BigInt, lastRenderedLevel is BigInt (initially -1n)
+        if (currentLevel !== this.lastRenderedLevel || !this.lastCost || cost.cmp(this.lastCost) !== 0) {
+            this.levelBar.textContent = `Lab Level: ${formatNumber(BigNum.fromInt(currentLevel))}`;
+            this.coinsBar.textContent = `Coins needed to increment Lab Level: ${formatNumber(cost)}`; 
             this.lastRenderedLevel = currentLevel;
+            this.lastCost = cost;
+        }
+
+        if (currentNerf !== this.lastRenderedNerf) {
+            this.nerfBar.textContent = `Tsunami nerf exponent: ^${currentNerf.toFixed(2)}`;
+            this.lastRenderedNerf = currentNerf;
+        }
+        
+        // Visual feedback for affordability (check every frame or periodically)
+        // Since coins change rapidly, checking every frame is okay for now.
+        if (bank.coins.value.cmp(cost) >= 0) {
+             this.coinsBar.style.borderColor = '#0f0'; 
+        } else {
+             this.coinsBar.style.borderColor = '#000'; // Default border color from applyBarStyle
         }
 
         // Update Bursts
