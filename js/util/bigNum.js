@@ -482,9 +482,16 @@ export class BigNum {
     const head = s[0];
     const tail = s.slice(1, 1 + digits).replace(/0+$/g, '');
     const mant = tail ? `${head}.${tail}` : head;
-    const exp = this.#effectiveExponentNumber();
-    const E = Number.isFinite(exp) ? (exp + (this.p - 1)) : (this.e + (this.p - 1));
-    return `${mant}e${E}`;
+    
+    const offsetNum = this.#offsetAsNumber();
+    if (Number.isFinite(offsetNum)) {
+        const exp = this.e + offsetNum;
+        const E = exp + (this.p - 1);
+        return `${mant}e${E}`;
+    } else {
+        const totalExp = BigInt(this.e) + this._eOffset + BigInt(this.p - 1);
+        return `${mant}e${totalExp.toString()}`;
+    }
   }
 
   toPlainIntegerString() {
