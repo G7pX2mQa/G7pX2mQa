@@ -2198,6 +2198,9 @@ function selectMerchantTab(key) {
     try { updateWarpTab(); } catch {}
   }
   if (key === 'lab') {
+    if (typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
+        runLabIntroDialogue();
+    }
     try { updateLabTab(); } catch {}
   }
 
@@ -2376,6 +2379,72 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
 
   engine.load(scriptPart1);
   engine.start();
+}
+
+export function runLabIntroDialogue() {
+    const overlay = document.createElement('div');
+    overlay.className = 'merchant-firstchat is-visible';
+    overlay.style.zIndex = '2147483647';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.userSelect = 'none';
+    overlay.style.webkitUserSelect = 'none';
+    
+    overlay.innerHTML = `
+      <div class="merchant-firstchat__card" role="dialog" aria-label="Lab Introduction">
+        <div class="merchant-firstchat__header">
+          <div class="name">Merchant</div>
+          <div class="rule" aria-hidden="true"></div>
+        </div>
+        <div class="merchant-firstchat__row">
+          <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
+          <div class="merchant-firstchat__text" id="lab-intro-line" style="user-select: none; -webkit-user-select: none;">…</div>
+        </div>
+        <div class="merchant-firstchat__choices" id="lab-intro-choices"></div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    const textEl = overlay.querySelector('#lab-intro-line');
+    const choicesEl = overlay.querySelector('#lab-intro-choices');
+    const rowEl = overlay.querySelector('.merchant-firstchat__row');
+    const cardEl = overlay.querySelector('.merchant-firstchat__card');
+
+    primeTypingSfx();
+
+    const script = {
+        start: 'n1',
+        nodes: {
+            'n1': { 
+                type: 'line', 
+                say: 'Hey, <span style="color:#00e5ff">Player</span>, welcome to the Lab. I\'ll keep it brief: Research nodes, increase your Lab Level to research nodes faster, and you\'ll be making tons of Coins. Your Surge milestones were sacrificed temporarily to the Tsunami but that\'s not important, get to researching!', 
+                next: 'c1' 
+            },
+            'c1': { 
+                type: 'choice', 
+                options: [
+                    { label: 'What???', to: 'end_nr' },
+                    { label: 'Tsunami sacrifice???', to: 'end_nr' },
+                    { label: '???', to: 'end_nr' }
+                ] 
+            }
+        }
+    };
+
+    const engine = new DialogueEngine({
+        textEl,
+        choicesEl,
+        skipTargets: [textEl, rowEl, cardEl],
+        onEnd: () => {
+            stopTypingSfx();
+            __isTypingActive = false;
+            overlay.remove();
+        }
+    });
+
+    engine.load(script);
+    engine.start();
 }
 
 export function runPostTsunamiShopDialogue(onComplete) {
