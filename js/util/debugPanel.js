@@ -41,6 +41,7 @@ import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 
 import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
+import { getLabLevel, setLabLevel, getLabLevelKey } from '../ui/merchantTabs/labTab.js';
 import { calculateOfflineRewards, grantOfflineRewards, showOfflinePanel, calculatePreAutomationRewards } from '../game/offlinePanel.js';
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
@@ -287,6 +288,15 @@ function setupLiveBindingListeners() {
     };
     window.addEventListener('surge:nerf:change', tsunamiHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('surge:nerf:change', tsunamiHandler));
+
+    const labHandler = (event) => {
+        const { slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'lab-level'
+            && (binding.slot == null || binding.slot === targetSlot));
+    };
+    window.addEventListener('lab:level:change', labHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('lab:level:change', labHandler));
 }
 
 const XP_KEY_PREFIX = 'ccc:xp';
@@ -2101,6 +2111,39 @@ function buildAreaStats(container, area) {
         
         container.appendChild(surgeLevelRow.row);
     }
+
+    // Lab Level
+    const labLevel = getLabLevel();
+    const labLevelRow = createInputRow('Lab Level', labLevel, (value, { setValue }) => {
+        let valNum = Number(value);
+        if (Number.isNaN(valNum) || valNum < 0) {
+             setValue(getLabLevel());
+             return;
+        }
+        valNum = Math.floor(valNum);
+
+        const prev = getLabLevel();
+        setLabLevel(valNum);
+        
+        flagDebugUsage();
+        if (prev !== valNum) {
+            logAction(`Modified Lab Level (The Cove) ${prev} → ${valNum}`);
+        }
+        setValue(valNum);
+    }, {
+        storageKey: getLabLevelKey(slot)
+    });
+    
+    registerLiveBinding({
+        type: 'lab-level',
+        slot,
+        refresh: () => {
+            if (slot !== getActiveSlot()) return;
+            labLevelRow.setValue(getLabLevel());
+        }
+    });
+    
+    container.appendChild(labLevelRow.row);
 
     // Tsunami Exponent
     // This value is 0.00 when the tsunami is fully active (nerfing everything),
