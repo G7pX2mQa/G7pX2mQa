@@ -552,6 +552,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/domInit.js'),
     import('./game/surgeEffects.js'),
     import('./game/webgl/waterSystem.js'),
+    import('./ui/merchantTabs/labTab.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -699,6 +700,7 @@ images: [
     domInitModule,
     surgeEffectsModule,
     waterSystemModule,
+    labTabModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -724,6 +726,7 @@ images: [
   ({ ensureGameDom } = domInitModule);
   const { initSurgeEffects } = surgeEffectsModule;
   ({ waterSystem } = waterSystemModule);
+  const { initLabLogic } = labTabModule;
 
   window.bank = bank;
 
@@ -813,6 +816,7 @@ images: [
   try { initWorkshopSystem(); } catch(e) { console.error('Workshop init failed', e); }
   try { initAutomationEffects(); } catch(e) { console.error('Automation init failed', e); }
   try { initSurgeEffects(); } catch(e) { console.error('Surge effects init failed', e); }
+  try { initLabLogic(); } catch(e) { console.error('Lab system init failed', e); }
   
   applyPendingSlotWipe();
   ensureStorageDefaults();
