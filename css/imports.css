@@ -13,5 +13,6 @@
 @import "./ui/merchantTabs/resetTab.css";
 @import "./ui/merchantTabs/workshopTab.css";
 @import "./ui/merchantTabs/warpTab.css";
+@import "./ui/merchantTabs/labTab.css";
 @import "./ui/popups.css";
 @import "./misc/debug.css";
