@@ -222,7 +222,7 @@ export class BigNum {
   #effectiveExponentNumber() {
     if (this.inf) return Number.POSITIVE_INFINITY;
     const offset = this.#offsetAsNumber();
-    if (!Number.isFinite(offset)) return this.e;
+    if (!Number.isFinite(offset)) return offset;
     return this.e + offset;
   }
 
@@ -471,7 +471,7 @@ export class BigNum {
   get decExp() {
     if (this.inf) return Number.POSITIVE_INFINITY;
     const exp = this.#effectiveExponentNumber();
-    if (!Number.isFinite(exp)) return this.e + (this.p - 1);
+    if (!Number.isFinite(exp)) return exp;
     return exp + (this.p - 1);
   }
 
@@ -498,7 +498,7 @@ export class BigNum {
     if (this.inf) return 'Infinity';
     if (this.isZero()) return '0';
     const exp = this.#effectiveExponentNumber();
-    if (!Number.isFinite(exp)) return 'Infinity';
+    if (!Number.isFinite(exp)) return exp > 0 ? 'Infinity' : '0';
     const intDigits = exp + this.p;
     if (intDigits <= 0) return '0';
     if (intDigits > BigNum.MAX_PLAIN_DIGITS) return 'Infinity';
