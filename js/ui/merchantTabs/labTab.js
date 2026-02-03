@@ -22,6 +22,28 @@ export function setLabVisited(value) {
   } catch {}
 }
 
+export const getLabLevelKey = (slot) => `ccc:lab:level:${slot}`;
+
+export function getLabLevel() {
+  const slot = getActiveSlot();
+  if (slot == null) return 0;
+  try {
+    const raw = localStorage.getItem(getLabLevelKey(slot));
+    return raw ? parseInt(raw, 10) || 0 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function setLabLevel(value) {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+  try {
+    localStorage.setItem(getLabLevelKey(slot), String(value));
+    window.dispatchEvent(new CustomEvent('lab:level:change', { detail: { slot, level: value } }));
+  } catch {}
+}
+
 let labSystem = null;
 
 export function initLabTab(panel) {
@@ -59,14 +81,14 @@ class LabSystem {
         // Stats UI Container
         this.statsContainer = document.createElement('div');
         this.statsContainer.style.position = 'absolute';
-        this.statsContainer.style.top = '20px';
+        this.statsContainer.style.top = '0px';
         this.statsContainer.style.left = '50%';
         this.statsContainer.style.transform = 'translateX(-50%)';
         this.statsContainer.style.zIndex = '10';
         this.statsContainer.style.display = 'flex';
         this.statsContainer.style.flexDirection = 'column';
         this.statsContainer.style.alignItems = 'center';
-        this.statsContainer.style.gap = '6px';
+        this.statsContainer.style.gap = '0px';
         this.statsContainer.style.pointerEvents = 'none';
         this.statsContainer.style.width = '100%'; // Ensure full width for centering
 
@@ -88,9 +110,9 @@ class LabSystem {
 
         // --- Common Bar Style ---
         const applyBarStyle = (el) => {
-            el.style.backgroundColor = '#0a1020'; // Base color (fallback)
-            el.style.background = 'linear-gradient(180deg, #1a2b45, #0a1020)';
-            el.style.border = '2px solid #000';
+            el.style.backgroundColor = '#151b2b'; // Base color (fallback)
+            el.style.background = 'linear-gradient(180deg, #253650, #151b2b)';
+            el.style.border = '3px solid #000';
             el.style.borderRadius = '0';
             el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.5)';
             el.style.display = 'flex';
@@ -102,7 +124,7 @@ class LabSystem {
 
         // Lab Level Bar (Biggest)
         this.levelBar = document.createElement('div');
-        this.levelBar.textContent = 'Lab Level: 0';
+        this.levelBar.textContent = `Lab Level: ${getLabLevel()}`;
         applyBarStyle(this.levelBar);
         applyTextStyle(this.levelBar, '24px', '1px');
         this.levelBar.style.padding = '8px 12px';
@@ -112,7 +134,7 @@ class LabSystem {
 
         // Coins Needed Bar (Medium)
         this.coinsBar = document.createElement('div');
-        this.coinsBar.textContent = 'Coins needed to reach Lab Level 1: 0';
+        this.coinsBar.textContent = 'Coins needed to increment Lab Level: 0';
         applyBarStyle(this.coinsBar);
         applyTextStyle(this.coinsBar, '16px', '0.75px');
         this.coinsBar.style.padding = '6px 12px';
@@ -217,6 +239,8 @@ class LabSystem {
         
         // Initial resize
         requestAnimationFrame(() => this.resize());
+
+        this.lastRenderedLevel = -1;
     }
     
     addBind(target, type, handler, opts) {
@@ -304,6 +328,15 @@ class LabSystem {
     
     update(dt) {
         this.checkBounds();
+
+        // Update UI Text if needed
+        const currentLevel = getLabLevel();
+        if (currentLevel !== this.lastRenderedLevel) {
+            this.levelBar.textContent = `Lab Level: ${currentLevel}`;
+            // Placeholder cost: 0
+            this.coinsBar.textContent = `Coins needed to increment Lab Level: 0`; 
+            this.lastRenderedLevel = currentLevel;
+        }
 
         // Update Bursts
         for (let i = this.bursts.length - 1; i >= 0; i--) {
