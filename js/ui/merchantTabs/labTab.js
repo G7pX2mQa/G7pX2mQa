@@ -196,6 +196,7 @@ class LabSystem {
         this.statsContainer.style.gap = '0px';
         this.statsContainer.style.pointerEvents = 'none';
         this.statsContainer.style.width = '100%'; // Ensure full width for centering
+        this.statsContainer.classList.add('lab-stats-container');
 
         // --- Common Text Style ---
         const applyTextStyle = (el, fontSize, strokeWidth = '1px') => {
@@ -229,7 +230,7 @@ class LabSystem {
 
         // Lab Level Bar (Biggest)
         this.levelBar = document.createElement('div');
-        this.levelBar.textContent = `Lab Level: ${formatNumber(getLabLevel())}`;
+        this.levelBar.innerHTML = `Lab Level: ${formatNumber(getLabLevel())}`;
         applyBarStyle(this.levelBar);
         applyTextStyle(this.levelBar, '26px', '1px');
         this.levelBar.style.padding = '8px 12px';
@@ -239,7 +240,7 @@ class LabSystem {
 
         // Coins Needed Bar (Medium)
         this.coinsBar = document.createElement('div');
-        this.coinsBar.textContent = 'Coins needed to increment Lab Level: 0';
+        this.coinsBar.innerHTML = 'Coins needed to increment Lab Level: 0';
         applyBarStyle(this.coinsBar);
         applyTextStyle(this.coinsBar, '16px', '0.9px');
         this.coinsBar.style.padding = '6px 12px';
