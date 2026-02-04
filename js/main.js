@@ -17,6 +17,10 @@ export const IS_MOBILE = (() => {
   return detected;
 })();
 
+if (IS_MOBILE) {
+  document.documentElement.classList.add('is-mobile');
+}
+
 let initSlots;
 let createSpawner;
 let initCoinPickup;
