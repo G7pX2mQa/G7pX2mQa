@@ -124,6 +124,11 @@ export function getLabLevelFromCoins(coins) {
 }
 
 export function updateLabLevel() {
+    const slot = getActiveSlot();
+    if (slot != null && typeof window !== 'undefined' && window.__cccLockedStorageKeys?.has(LAB_LEVEL_KEY(slot))) {
+        return;
+    }
+
     const coins = bank.coins.value;
     const currentLevel = getLabLevel();
     
