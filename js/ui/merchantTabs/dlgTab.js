@@ -2393,7 +2393,7 @@ export function runLabIntroDialogue() {
     overlay.innerHTML = `
       <div class="merchant-firstchat__card" role="dialog" aria-label="Lab Introduction">
         <div class="merchant-firstchat__header">
-          <div class="name">Merchant</div>
+          <div class="name">${getMerchantName()}</div>
           <div class="rule" aria-hidden="true"></div>
         </div>
         <div class="merchant-firstchat__row">
@@ -2459,7 +2459,7 @@ export function runPostTsunamiShopDialogue(onComplete) {
     overlay.innerHTML = `
       <div class="merchant-firstchat__card" role="dialog" aria-label="Urgent Message">
         <div class="merchant-firstchat__header">
-          <div class="name">Merchant</div>
+          <div class="name">${getMerchantName()}</div>
           <div class="rule" aria-hidden="true"></div>
         </div>
         <div class="merchant-firstchat__row">
