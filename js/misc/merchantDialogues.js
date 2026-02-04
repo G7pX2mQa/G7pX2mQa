@@ -398,7 +398,7 @@ export const MERCHANT_DIALOGUES = {
     m4a: { type: 'line', say: 'Yes I did.', next: 'c3a' },
     m4b: { type: 'line', say: 'Like what?', next: 'c4a' },
     m4c: { type: 'line', say: '3.', next: 'c5a' },
-    m4d: { type: 'line', say: 'Okay you caught me, I’m actually a fraud, my Magic is fake, nothing is real, the Coins are made of plastic, the sky is a dome, my name’s not even Merchant it’s Jeff.', next: 'c4b' },
+    m4d: { type: 'line', say: 'Okay you caught me, I\’m actually a fraud, my Magic is fake, nothing is real, the Coins are made of plastic, the sky\'s a dome, my name\’s not even Merchant it’s Jeff.', next: 'c4b' },
     m4e: { type: 'line', say: 'No.', next: 'c5a' },
 
     c4a: { type: 'choice', options: [
