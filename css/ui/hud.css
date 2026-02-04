@@ -709,3 +709,7 @@ background: linear-gradient(90deg,
 .coin-amount .infinity-symbol {
   top: -0.11em;
 }
+
+.is-mobile .coin-amount {
+  top: -0.5px;
+}
