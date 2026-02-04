@@ -61,17 +61,17 @@ export function setLabLevel(value) {
 }
 
 export function getLabCost(level) {
-    // Cost = 10^(30 + level)
+    // Cost = 10^(29 + level)
     const lvl = BigNum.fromAny(level);
     if (lvl.isInfinite()) return BigNum.fromAny('Infinity');
     
     // Safety for huge levels:
-    // If level is massive (e.g. > 1e308), the cost exponent would be 1e308 + 30.
+    // If level is massive (e.g. > 1e308), the cost exponent would be 1e308 + 29.
     
     try {
         if (lvl.cmp(1e15) < 0) {
              const lvlNum = Number(lvl.toPlainIntegerString());
-             const exponent = 30 + lvlNum;
+             const exponent = 29 + lvlNum;
              return new BigNum(1n, { base: exponent, offset: 0n });
         }
         
@@ -84,7 +84,7 @@ export function getLabCost(level) {
         if (lvlStr === 'Infinity') return BigNum.fromAny('Infinity');
         
         const lvlBigInt = BigInt(lvlStr);
-        const totalExponent = 30n + lvlBigInt;
+        const totalExponent = 29n + lvlBigInt;
         
         return new BigNum(1n, { base: 0, offset: totalExponent });
 
@@ -95,7 +95,7 @@ export function getLabCost(level) {
 }
 
 // Calculate max level affordable with current coins
-// Level = floor(log10(Coins) - 30)
+// Level = floor(log10(Coins) - 29)
 export function getLabLevelFromCoins(coins) {
     if (!coins || coins.isZero() || coins.isNegative()) return BigNum.fromInt(0);
     if (coins.isInfinite()) return BigNum.fromAny('Infinity');
@@ -107,7 +107,7 @@ export function getLabLevelFromCoins(coins) {
         const logSig = Math.log10(sigNum);
         const logSigInt = Math.floor(logSig); 
         
-        const levelBase = eVal - 30n + BigInt(logSigInt);
+        const levelBase = eVal - 29n + BigInt(logSigInt);
         
         if (levelBase < 0n) return BigNum.fromInt(0);
         
@@ -117,7 +117,7 @@ export function getLabLevelFromCoins(coins) {
     const e = coins.e;
     const sigNum = Number(coins.sig);
     const logSig = Math.log10(sigNum);
-    const val = e + logSig - 30;
+    const val = e + logSig - 29;
     
     if (val < 0) return BigNum.fromInt(0);
     return BigNum.fromInt(Math.floor(val));
