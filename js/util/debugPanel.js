@@ -41,7 +41,7 @@ import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 
 import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
-import { getLabLevel, setLabLevel, getLabLevelKey } from '../ui/merchantTabs/labTab.js';
+import { getLabLevel, setLabLevel, getLabLevelKey, getRpMultBase } from '../ui/merchantTabs/labTab.js';
 import { calculateOfflineRewards, grantOfflineRewards, showOfflinePanel, calculatePreAutomationRewards } from '../game/offlinePanel.js';
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
@@ -294,6 +294,9 @@ function setupLiveBindingListeners() {
         const targetSlot = slot ?? getActiveSlot();
         refreshLiveBindings((binding) => binding.type === 'lab-level'
             && (binding.slot == null || binding.slot === targetSlot));
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && binding.key === 'rp'
+            && (binding.slot == null || binding.slot === targetSlot));
     };
     window.addEventListener('lab:level:change', labHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('lab:level:change', labHandler));
@@ -317,6 +320,7 @@ const STAT_MULTIPLIERS = [
     { key: 'spawnRate', label: 'Spawn Rate' },
     { key: 'xp', label: 'XP' },
     { key: 'mutation', label: 'MP' },
+    { key: 'rp', label: 'RP' },
 ];
 
 function getAreas() {
@@ -637,6 +641,9 @@ function getGameStatMultiplier(statKey) {
             if (eff?.coinsPerSecondMult) {
                 return BigNum.fromAny(eff.coinsPerSecondMult);
             }
+        }
+        else if (statKey === 'rp') {
+            return getRpMultBase();
         }
     } catch {}
 
