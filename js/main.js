@@ -635,6 +635,8 @@ images: [
   'img/sc_upg_icons/autobuy_magic.webp',
   'img/sc_upg_icons/autobuy_workshop_level.webp',
   
+  // ==== img/lab_icons ====
+  'img/lab_icons/tsunami_exponent_buff.webp',
   
   // ==== img/stats/mp ====
   'img/stats/mp/mp.webp',
