@@ -135,6 +135,7 @@ export class BigNum {
       if (b.inf) return BigNum.zero(this.p);
       return this.clone();
     }
+    if (b.isZero()) return this.clone();
     if (b.inf) return BigNum.zero(this.p);
 
     if (this.cmp(b) <= 0) return BigNum.zero(this.p);
