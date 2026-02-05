@@ -201,6 +201,7 @@ class LabSystem {
         this.statsContainer.style.gap = '0px';
         this.statsContainer.style.pointerEvents = 'none';
         this.statsContainer.style.width = '100%'; // Ensure full width for centering
+        this.statsContainer.style.overflow = 'hidden';
         this.statsContainer.classList.add('lab-stats-container');
 
         // --- Common Text Style ---
