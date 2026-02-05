@@ -46,6 +46,7 @@ export const MAX_LEVEL_DELTA = BigNum.fromAny('Infinity');
 
 export const HM_EVOLUTION_INTERVAL = 1000;
 const HM_EVOLUTION_EFFECT_MULT_BN = BigNum.fromInt(1000);
+const HM_EVOLUTION_LOG10 = 3; // log10(1000)
 const DEFAULT_AREA_KEY = '';
 
 export const AREA_KEYS = {
@@ -1513,8 +1514,10 @@ export function computeHmMultipliers(upg, levelBn, areaKey = DEFAULT_AREA_KEY) {
   }
 
   const evolutions = activeEvolutionsForUpgrade(upg);
-  for (let i = 0; i < evolutions; i += 1) {
-    selfMult = safeMultiplyBigNum(selfMult, HM_EVOLUTION_EFFECT_MULT_BN);
+  if (evolutions > 0) {
+    const totalLog10 = HM_EVOLUTION_LOG10 * evolutions;
+    const evolMult = bigNumFromLog10(totalLog10);
+    selfMult = safeMultiplyBigNum(selfMult, evolMult);
   }
 
   return { selfMult, xpMult, coinMult, mpMult };
