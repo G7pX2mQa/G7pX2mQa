@@ -195,6 +195,7 @@ function bigNumPowerOf10(logBn) {
   }
 
   let mantissa = Math.pow(10, fractionalNumber);
+  mantissa = Number(mantissa.toPrecision(15));
 
   const precision = 18;
   const scaleFactor = 10n ** BigInt(precision);
