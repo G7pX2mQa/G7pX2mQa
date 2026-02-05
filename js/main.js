@@ -638,15 +638,14 @@ images: [
   // ==== img/lab_icons ====
   'img/lab_icons/tsunami_exponent_buff.webp',
   
-  // ==== img/stats/mp ====
+  // ==== img/stats ====
   'img/stats/mp/mp.webp',
   'img/stats/mp/mp_base.webp',
   'img/stats/mp/mp_plus_base.webp',
-
-  // ==== img/stats/xp ====
   'img/stats/xp/xp.webp',
   'img/stats/xp/xp_base.webp',
   'img/stats/xp/xp_plus_base.webp',
+  'img/stats/rp/rp_base.webp',
 ],
     audio: [
       'sounds/coin_pickup.ogg',
