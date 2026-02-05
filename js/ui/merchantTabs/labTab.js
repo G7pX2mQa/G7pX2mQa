@@ -4,6 +4,8 @@ import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { getTsunamiNerf } from '../../game/surgeEffects.js';
 import { registerTick } from '../../game/gameLoop.js';
+import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
+
 
 const LAB_VISITED_KEY = (slot) => `ccc:lab:visited:${slot}`;
 const LAB_LEVEL_KEY = (slot) => `ccc:lab:level:${slot}`;
@@ -150,6 +152,97 @@ export function updateLabLevel() {
 // Named "initLabLogic" to distinguish from "initLabTab" (UI)
 export function initLabLogic() {
     registerTick(updateLabLevel);
+}
+
+
+// --- RP Logic ---
+
+function bigNumIsInfinite(bn) {
+  return !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
+}
+
+function bigNumToFiniteNumber(bn) {
+  if (!bn || typeof bn !== 'object') return 0;
+  if (bigNumIsInfinite(bn)) return Number.POSITIVE_INFINITY;
+  const sci = typeof bn.toScientific === 'function' ? bn.toScientific(18) : String(bn);
+  if (!sci || sci === 'Infinity') return Number.POSITIVE_INFINITY;
+  const match = sci.match(/^([0-9]+(?:\.[0-9]+)?)e([+-]?\d+)$/i);
+  if (match) {
+    const mant = parseFloat(match[1]);
+    const exp = parseInt(match[2], 10);
+    if (!Number.isFinite(mant) || !Number.isFinite(exp)) return Number.POSITIVE_INFINITY;
+    if (exp >= 309) return Number.POSITIVE_INFINITY;
+    return mant * Math.pow(10, exp);
+  }
+  const num = Number(sci);
+  return Number.isFinite(num) ? num : Number.POSITIVE_INFINITY;
+}
+
+const infinityRequirementBn = BigNum.fromAny('Infinity');
+const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
+
+function bigNumPowerOf10(logBn) {
+  if (bigNumIsInfinite(logBn) || (typeof logBn.cmp === 'function' && logBn.cmp(maxLog10Bn) >= 0)) {
+      return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  const integerPart = logBn.floorToInteger();
+  const fractionalPart = logBn.sub(integerPart);
+  const fractionalNumber = bigNumToFiniteNumber(fractionalPart);
+
+  if (!Number.isFinite(fractionalNumber)) {
+      return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  let mantissa = Math.pow(10, fractionalNumber);
+
+  const precision = 18;
+  const scaleFactor = 10n ** BigInt(precision);
+
+  let exponentAdjustment = 0n;
+  if (mantissa >= 10) {
+      mantissa /= 10;
+      exponentAdjustment = 1n;
+  }
+
+  const sig = BigInt(Math.round(mantissa * Number(scaleFactor)));
+
+  const integerPartString = integerPart.toPlainIntegerString();
+  if (integerPartString === 'Infinity') {
+      return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+  const integerPartBigInt = BigInt(integerPartString);
+
+  const totalExponent = integerPartBigInt + exponentAdjustment - BigInt(precision);
+
+  const E_LIMIT = 250;
+  const eBigInt = totalExponent % BigInt(E_LIMIT);
+  const e = Number(eBigInt);
+  const offset = totalExponent - eBigInt;
+
+  return new BigNum(sig, { base: e, offset: offset });
+}
+
+export function getRpMultBase() {
+    const level = getLabLevel();
+    if (bigNumIsInfinite(level)) return BigNum.fromAny('Infinity');
+    
+    // 2^level = 10^(level * log10(2))
+    // log10(2) approx 0.3010299956639812
+    const log10Of2 = "0.3010299956639812"; 
+    
+    // level * log10(2)
+    const exponent = level.mulDecimal(log10Of2, 18);
+    
+    return bigNumPowerOf10(exponent);
+}
+
+export function getRpMult() {
+    const base = getRpMultBase();
+    if (typeof applyStatMultiplierOverride === 'function') {
+        return applyStatMultiplierOverride('rp', base);
+    }
+    return base;
 }
 
 // --- UI Logic Below ---
