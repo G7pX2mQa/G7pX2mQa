@@ -389,7 +389,7 @@ class LabSystem {
         this.returnBtn.addEventListener('click', () => {
             this.camX = 0;
             this.camY = 0;
-            this.zoom = 0.25;
+            this.zoom = 0.2;
             this.returnBtn.style.display = 'none';
         });
         
@@ -426,8 +426,13 @@ class LabSystem {
         
         this.camX = 0;
         this.camY = 0;
-        this.zoom = 0.25;
+        this.zoom = 0.2;
         this.bursts = [];
+
+        this.nodeImage = new Image();
+        this.nodeImage.src = 'img/lab_icons/tsunami_exponent_buff.webp';
+        this.nodeImage.onload = () => console.log('Lab icon loaded:', this.nodeImage.src, this.nodeImage.naturalWidth);
+        this.nodeImage.onerror = (e) => console.error('Lab icon failed to load:', this.nodeImage.src, e);
         
         this.isDragging = false;
         this.lastMouse = { x: 0, y: 0 };
@@ -498,10 +503,12 @@ class LabSystem {
     resize() {
         if (!this.container.isConnected) return;
         const rect = this.container.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
         this.width = rect.width;
         this.height = rect.height;
-        this.canvas.width = this.width;
-        this.canvas.height = this.height;
+        this.canvas.width = Math.floor(this.width * dpr);
+        this.canvas.height = Math.floor(this.height * dpr);
+        this.ctx.scale(dpr, dpr);
         this.render(); 
     }
     
@@ -694,19 +701,15 @@ class LabSystem {
         }
         ctx.stroke();
         
-        // Draw (0,0) Black Square
-        // Size 50x50 world units
-        const sqSize = 50;
-        const sqScreenSize = sqSize * z;
-        const sqX = (0 - this.camX) * z + w/2 - sqScreenSize/2;
-        const sqY = (0 - this.camY) * z + h/2 - sqScreenSize/2;
-        
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(sqX, sqY, sqScreenSize, sqScreenSize);
-        
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(sqX, sqY, sqScreenSize, sqScreenSize);
+        // Draw Center Image (512x512 world units)
+        if (this.nodeImage && this.nodeImage.complete && this.nodeImage.naturalWidth !== 0) {
+            const imgSize = 512;
+            const imgScreenSize = imgSize * z;
+            const imgX = (0 - this.camX) * z + w/2 - imgScreenSize/2;
+            const imgY = (0 - this.camY) * z + h/2 - imgScreenSize/2;
+            
+            ctx.drawImage(this.nodeImage, imgX, imgY, imgScreenSize, imgScreenSize);
+        }
 
         // Draw Bursts
         const MAX_RADIUS = 35;
