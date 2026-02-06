@@ -645,6 +645,7 @@ images: [
   'img/stats/xp/xp.webp',
   'img/stats/xp/xp_base.webp',
   'img/stats/xp/xp_plus_base.webp',
+  'img/stats/rp/rp.webp',
   'img/stats/rp/rp_base.webp',
 ],
     audio: [
