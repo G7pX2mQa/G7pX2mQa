@@ -12,7 +12,8 @@ import {
     getResearchNodeRp,
     isResearchNodeActive,
     setResearchNodeActive,
-    getResearchNodeRequirement
+    getResearchNodeRequirement,
+    getTsunamiResearchBonus
 } from '../../game/labNodes.js';
 import { setupDragToClose } from '../shopOverlay.js';
 
@@ -556,7 +557,11 @@ class LabSystem {
 
         const currentLevel = getLabLevel();
         const cost = getLabCost(currentLevel.add(1));
-        const currentNerf = getTsunamiNerf();
+        
+        const baseNerf = getTsunamiNerf();
+        const bonus = getTsunamiResearchBonus();
+        let effectiveNerf = baseNerf + bonus;
+        if (effectiveNerf > 1) effectiveNerf = 1;
         
         if (!this.lastRenderedLevel || currentLevel.cmp(this.lastRenderedLevel) !== 0 || !this.lastCost || cost.cmp(this.lastCost) !== 0) {
             this.levelBar.innerHTML = `Lab Level: ${formatNumber(currentLevel)}`;
@@ -565,9 +570,9 @@ class LabSystem {
             this.lastCost = cost;
         }
 
-        if (currentNerf !== this.lastRenderedNerf) {
-            this.nerfBar.textContent = `Tsunami nerf exponent: ^${currentNerf.toFixed(2)}`;
-            this.lastRenderedNerf = currentNerf;
+        if (effectiveNerf !== this.lastRenderedNerf) {
+            this.nerfBar.textContent = `Tsunami exponent: ^${effectiveNerf.toFixed(2)}`;
+            this.lastRenderedNerf = effectiveNerf;
         }
         
         // Update Bursts
@@ -751,7 +756,7 @@ class LabSystem {
                  
                  progress = Math.max(0, Math.min(1, progress));
                  
-                 const barWidth = baseScreenSize * 1.2;
+                 const barWidth = baseScreenSize * 0.96;
                  const barHeight = baseScreenSize * 0.18;
                  const barX = cx - barWidth / 2;
                  const barY = cy + baseScreenSize / 2 + (baseScreenSize * 0.05); 
@@ -762,8 +767,8 @@ class LabSystem {
                  
                  // Progress Fill (Darkish Blue Gradient)
                  const grad = ctx.createLinearGradient(barX, barY, barX, barY + barHeight);
-                 grad.addColorStop(0, '#2b5876');
-                 grad.addColorStop(1, '#4e4376');
+                 grad.addColorStop(0, '#2a5298');
+                 grad.addColorStop(1, '#1e3c72');
                  
                  ctx.fillStyle = grad;
                  ctx.fillRect(barX, barY, barWidth * progress, barHeight);
