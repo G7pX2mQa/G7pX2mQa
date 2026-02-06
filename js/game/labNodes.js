@@ -3,16 +3,16 @@ import { getActiveSlot, isStorageKeyLocked } from '../util/storage.js';
 import { getLabLevel, getRpMult } from '../ui/merchantTabs/labTab.js';
 
 // --- Storage Keys ---
-const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${slot}:${id}`;
-const NODE_RP_KEY = (slot, id) => `ccc:lab:node:rp:${slot}:${id}`;
-const NODE_ACTIVE_KEY = (slot, id) => `ccc:lab:node:active:${slot}:${id}`;
+const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
+const NODE_RP_KEY = (slot, id) => `ccc:lab:node:rp:${id}:${slot}`;
+const NODE_ACTIVE_KEY = (slot, id) => `ccc:lab:node:active:${id}:${slot}`;
 
 // --- Constants ---
 export const RESEARCH_NODES = [
     {
         id: 0,
         title: "Tsunami Exponent Restoration",
-        desc: "Increases the Tsunami exponent by +0.01 per level.",
+        desc: "Increases the Tsunami exponent by +0.01 per level",
         baseRpReq: 10,
         scale: 2.0,
         maxLevel: 10,
