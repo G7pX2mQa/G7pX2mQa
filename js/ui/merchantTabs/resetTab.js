@@ -45,6 +45,7 @@ import {
   getTsunamiSequenceSeen,
   setTsunamiSequenceSeen
 } from '../../game/surgeEffects.js';
+import { getTsunamiResearchBonus } from '../../game/labNodes.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 
@@ -1782,8 +1783,13 @@ function updateSurgeCard() {
         else if (typeof barLevel === 'bigint' && barLevel >= 8n) isSurge8 = true;
         else if (typeof barLevel === 'number' && barLevel >= 8) isSurge8 = true;
 
+        const baseNerf = getTsunamiNerf();
+        const bonus = getTsunamiResearchBonus();
+        let effectiveNerf = baseNerf + bonus;
+        if (effectiveNerf > 1) effectiveNerf = 1;
+
         let isNerfed = false;
-        if (isReached && isSurge8 && getTsunamiNerf() < 1 && NERFED_SURGE_MILESTONE_IDS.includes(m.id)) {
+        if (isReached && isSurge8 && effectiveNerf < 1 && NERFED_SURGE_MILESTONE_IDS.includes(m.id)) {
             isNerfed = true;
         }
         const nerfedClass = isNerfed ? ' is-nerfed' : '';
@@ -1821,7 +1827,7 @@ function updateSurgeCard() {
         const arrowEl = itemEl.querySelector('.surge-milestone-nerf-arrow');
         if (arrowEl) {
              let shouldHaveArrow = false;
-             if (isSurge8 && getTsunamiNerf() !== 1) {
+             if (isSurge8 && effectiveNerf < 1) {
                 if (NERFED_SURGE_MILESTONE_IDS.includes(m.id)) {
                     shouldHaveArrow = true;
                 }
