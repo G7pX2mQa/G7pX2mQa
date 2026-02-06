@@ -3,14 +3,14 @@ import { getActiveSlot, isStorageKeyLocked } from '../util/storage.js';
 import { getLabLevel, getRpMult } from '../ui/merchantTabs/labTab.js';
 
 // --- Storage Keys ---
-const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
-const NODE_RP_KEY = (slot, id) => `ccc:lab:node:rp:${id}:${slot}`;
+export const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
+export const NODE_RP_KEY = (slot, id) => `ccc:lab:node:rp:${id}:${slot}`;
 const NODE_ACTIVE_KEY = (slot, id) => `ccc:lab:node:active:${id}:${slot}`;
 
 // --- Constants ---
 export const RESEARCH_NODES = [
     {
-        id: 0,
+        id: 1,
         title: "Tsunami Exponent Restoration",
         desc: "Increases Tsunami exponent by +0.01 per level",
         baseRpReq: 10,
@@ -123,6 +123,10 @@ export function setResearchNodeRp(id, rp) {
     // In-memory update only. Persisted via saveLabNodes.
     const s = ensureNodeState(id);
     s.rp = BigNum.fromAny(rp);
+    
+    try {
+        window.dispatchEvent(new CustomEvent('lab:node:rp', { detail: { id, rp: s.rp } }));
+    } catch {}
 }
 
 export function isResearchNodeActive(id) {
@@ -146,7 +150,7 @@ export function setResearchNodeActive(id, active) {
 // --- Logic ---
 
 export function getResearchNodeRequirement(id) {
-    const node = RESEARCH_NODES[id];
+    const node = RESEARCH_NODES.find(n => n.id === id);
     if (!node) return BigNum.fromAny('Infinity');
     
     const level = getResearchNodeLevel(id);
@@ -167,8 +171,9 @@ export function getResearchNodeRequirement(id) {
 }
 
 export function getTsunamiResearchBonus() {
-    const node = RESEARCH_NODES[0];
-    const level = getResearchNodeLevel(0);
+    const node = RESEARCH_NODES.find(n => n.id === 1);
+    const level = getResearchNodeLevel(1);
+    if (!node) return 0;
     return level * node.effectPerLevel;
 }
 
