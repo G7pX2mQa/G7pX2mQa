@@ -48,6 +48,7 @@ import {
     setResearchNodeLevel,
     getResearchNodeRp,
     setResearchNodeRp,
+    getTsunamiResearchBonus,
     NODE_LEVEL_KEY,
     NODE_RP_KEY
 } from '../game/labNodes.js';
@@ -316,6 +317,11 @@ function setupLiveBindingListeners() {
         refreshLiveBindings((binding) => binding.type === 'lab-node-level'
             && binding.slot === targetSlot
             && binding.id === id);
+        
+        if (id === 1) {
+            refreshLiveBindings((binding) => binding.type === 'tsunami-nerf'
+                && (binding.slot == null || binding.slot === targetSlot));
+        }
     };
     window.addEventListener('lab:node:change', labNodeHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('lab:node:change', labNodeHandler));
@@ -2187,8 +2193,16 @@ function buildAreaStats(container, area) {
     // This value is 0.00 when the tsunami is fully active (nerfing everything),
     // and goes up to 1.00 (restored) as you gain Surge Levels.
     // We display it as a decimal (0.00 - 1.00).
-    const tsunamiNerf = getTsunamiNerf();
-    const tsunamiRow = createInputRow('Tsunami Exponent', tsunamiNerf.toFixed(2), (value, { setValue }) => {
+    // The displayed value includes the Research Lab bonus.
+    const getEffectiveTsunamiNerf = () => {
+        const base = getTsunamiNerf();
+        const bonus = getTsunamiResearchBonus();
+        let val = base + bonus;
+        if (val > 1) val = 1;
+        return val;
+    };
+
+    const tsunamiRow = createInputRow('Tsunami Exponent', getEffectiveTsunamiNerf().toFixed(2), (value, { setValue }) => {
         let valNum = Number(value);
         
         // Handle BigNum inputs or "inf"
@@ -2200,25 +2214,35 @@ function buildAreaStats(container, area) {
         }
 
         if (Number.isNaN(valNum)) {
-             setValue(getTsunamiNerf().toFixed(2));
+             setValue(getEffectiveTsunamiNerf().toFixed(2));
              return;
         }
         
-        // "Make the maximum value (so entering inf or a larger number would set it to) 1.00"
-        if (valNum > 1 || valNum === Infinity) valNum = 1;
-        if (valNum < 0) valNum = 0;
+        // The user is inputting the *effective* value they want.
+        // We need to calculate what base value produces that effective value.
+        // Effective = Base + Bonus
+        // Base = Effective - Bonus
         
-        // "Also always round and/or show two decimal places"
-        valNum = Math.round(valNum * 100) / 100;
+        const bonus = getTsunamiResearchBonus();
+        let targetBase = valNum - bonus;
+        
+        // Clamp base to [0, 1] (logic from before, though strictly it should be 0 to 1)
+        if (targetBase > 1) targetBase = 1;
+        // It's possible for targetBase to be < 0 if they input something smaller than the bonus.
+        // In that case, we set base to 0.
+        if (targetBase < 0) targetBase = 0;
+        
+        // Round base to 2 decimal places to keep it clean
+        targetBase = Math.round(targetBase * 100) / 100;
 
-        const prev = getTsunamiNerf();
-        setTsunamiNerf(valNum);
+        const prevBase = getTsunamiNerf();
+        setTsunamiNerf(targetBase);
         
         flagDebugUsage();
-        if (Math.abs(prev - valNum) > 0.0001) {
-            logAction(`Modified Tsunami Exponent (The Cove) ${prev.toFixed(2)} → ${valNum.toFixed(2)}`);
+        if (Math.abs(prevBase - targetBase) > 0.0001) {
+            logAction(`Modified Tsunami Exponent (The Cove) Base:${prevBase.toFixed(2)} → ${targetBase.toFixed(2)} (Effective: ${valNum.toFixed(2)})`);
         }
-        setValue(valNum.toFixed(2));
+        setValue(getEffectiveTsunamiNerf().toFixed(2));
     }, {
         storageKey: getTsunamiNerfKey(slot),
         format: (val) => {
@@ -2233,7 +2257,7 @@ function buildAreaStats(container, area) {
         slot,
         refresh: () => {
             if (slot !== getActiveSlot()) return;
-            const val = getTsunamiNerf();
+            const val = getEffectiveTsunamiNerf();
             tsunamiRow.setValue(val.toFixed(2));
         }
     });
