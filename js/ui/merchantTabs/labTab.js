@@ -828,8 +828,7 @@ class LabSystem {
         
         this.overlay = document.createElement('div');
         this.overlay.className = 'shop-overlay'; 
-        this.overlay.style.zIndex = '100'; 
-        this.overlay.style.pointerEvents = 'auto';
+        this.overlay.style.zIndex = '4005';
         
         const sheet = document.createElement('div');
         sheet.className = 'shop-sheet';
@@ -896,14 +895,27 @@ class LabSystem {
         closeBtn.textContent = 'Close';
         closeBtn.onclick = () => {
             this.activeOverlayId = null;
-            this.overlay.remove();
-            this.overlay = null;
+            if (this.overlay) {
+                this.overlay.classList.remove('is-open');
+                setTimeout(() => {
+                    if (this.overlay) {
+                        this.overlay.remove();
+                        this.overlay = null;
+                    }
+                }, 300);
+            }
         };
         
         actions.append(toggleBtn, closeBtn);
         sheet.append(grabber, content, actions);
         this.overlay.appendChild(sheet);
         document.body.appendChild(this.overlay);
+        
+        requestAnimationFrame(() => {
+            if (this.overlay) {
+                this.overlay.classList.add('is-open');
+            }
+        });
         
         this.updateNodeOverlay();
     }
