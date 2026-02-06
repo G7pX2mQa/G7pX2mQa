@@ -721,6 +721,70 @@ class LabSystem {
              if (img.complete && img.naturalWidth !== 0) {
                  ctx.drawImage(img, cx - imgScreenSize/2, cy - imgScreenSize/2, imgScreenSize, imgScreenSize);
              }
+
+             // Draw Active Progress Bar
+             if (!isMaxed && isResearchNodeActive(node.id)) {
+                 const req = getResearchNodeRequirement(node.id);
+                 let progress = 0;
+                 
+                 // Handle progress calculation safely
+                 if (req.isInfinite?.() || (typeof req.cmp === 'function' && req.cmp(BigNum.fromAny('Infinity')) === 0)) {
+                     progress = 0;
+                 } else {
+                     const rp = getResearchNodeRp(node.id);
+                     if (rp.isZero?.()) {
+                         progress = 0;
+                     } else {
+                         try {
+                            if (req.isZero?.()) {
+                                progress = 1;
+                            } else {
+                                const ratio = rp.div(req);
+                                const ratioSci = ratio.toScientific(5);
+                                progress = Number(ratioSci);
+                            }
+                         } catch (e) {
+                            progress = 0;
+                         }
+                     }
+                 }
+                 
+                 progress = Math.max(0, Math.min(1, progress));
+                 
+                 const barWidth = baseScreenSize * 1.2;
+                 const barHeight = baseScreenSize * 0.18;
+                 const barX = cx - barWidth / 2;
+                 const barY = cy + baseScreenSize / 2 + (baseScreenSize * 0.05); 
+                 
+                 // Background
+                 ctx.fillStyle = '#111';
+                 ctx.fillRect(barX, barY, barWidth, barHeight);
+                 
+                 // Progress Fill (Darkish Blue Gradient)
+                 const grad = ctx.createLinearGradient(barX, barY, barX, barY + barHeight);
+                 grad.addColorStop(0, '#2b5876');
+                 grad.addColorStop(1, '#4e4376');
+                 
+                 ctx.fillStyle = grad;
+                 ctx.fillRect(barX, barY, barWidth * progress, barHeight);
+                 
+                 // Border
+                 ctx.strokeStyle = '#fff';
+                 ctx.lineWidth = Math.max(1, 2 * z); 
+                 ctx.strokeRect(barX, barY, barWidth, barHeight);
+                 
+                 // Text
+                 ctx.fillStyle = '#fff';
+                 ctx.font = `bold ${Math.max(10, barHeight * 0.7)}px system-ui`;
+                 ctx.textAlign = 'center';
+                 ctx.textBaseline = 'middle';
+                 ctx.strokeStyle = '#000';
+                 ctx.lineWidth = 2; 
+                 
+                 const text = `Level ${nodeLevel}`;
+                 ctx.strokeText(text, barX + barWidth / 2, barY + barHeight / 2);
+                 ctx.fillText(text, barX + barWidth / 2, barY + barHeight / 2);
+             }
         }
 
         // Draw Bursts
