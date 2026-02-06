@@ -12,7 +12,7 @@ export const RESEARCH_NODES = [
     {
         id: 0,
         title: "Tsunami Exponent Restoration",
-        desc: "Increases the Tsunami exponent by +0.01 per level",
+        desc: "Increases Tsunami exponent by +0.01 per level",
         baseRpReq: 10,
         scale: 2.0,
         maxLevel: 10,
