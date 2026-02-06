@@ -695,7 +695,7 @@ class LabSystem {
              // We extend the bottom check (cy + ...) because the level bar hangs below the main image
              const nodeLevel = getResearchNodeLevel(node.id);
              const isMaxed = nodeLevel >= node.maxLevel;
-             const hasBar = !isMaxed && isResearchNodeActive(node.id);
+             const hasBar = !isMaxed;
              
              // The bar is offset by ~0.05 * baseScreenSize and has height ~0.18 * baseScreenSize
              // So it extends to about 0.5 + 0.05 + 0.18 = 0.73 * baseScreenSize from center.
