@@ -1,6 +1,7 @@
 import { BigNum } from '../util/bigNum.js';
 import { getActiveSlot, isStorageKeyLocked } from '../util/storage.js';
 import { getLabLevel, getRpMult } from '../ui/merchantTabs/labTab.js';
+import { addExternalCoinMultiplierProvider, addExternalXpGainMultiplierProvider } from './xpSystem.js';
 
 // --- Storage Keys ---
 export const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
@@ -20,6 +21,32 @@ export const RESEARCH_NODES = [
         y: 0,
         icon: 'img/lab_icons/tsunami_exponent_buff.webp',
         effectPerLevel: 0.01
+    },
+    {
+        id: 2,
+        title: "Experimental Coin Value",
+        desc: "Multiplies Coin value by 1.5x per level",
+        baseRpReq: 1000,
+        scale: 2.0,
+        maxLevel: 10,
+        parentId: 1,
+        x: -1000,
+        y: 1000,
+        icon: 'img/lab_icons/coin_val0.webp',
+        effectPerLevel: 0
+    },
+    {
+        id: 3,
+        title: "Experimental XP Value",
+        desc: "Multiplies XP value by 1.5x per level",
+        baseRpReq: 1000,
+        scale: 2.0,
+        maxLevel: 10,
+        parentId: 1,
+        x: 1000,
+        y: 1000,
+        icon: 'img/sc_upg_icons/xp_val1.webp',
+        effectPerLevel: 0
     }
 ];
 
@@ -149,6 +176,19 @@ export function setResearchNodeActive(id, active) {
 
 // --- Logic ---
 
+export function isResearchNodeVisible(id) {
+    const node = RESEARCH_NODES.find(n => n.id === id);
+    if (!node) return false;
+    if (!node.parentId) return true; // Root nodes always visible
+    
+    // Visible if parent is maxed
+    const parentLevel = getResearchNodeLevel(node.parentId);
+    const parent = RESEARCH_NODES.find(n => n.id === node.parentId);
+    if (!parent) return true; 
+    
+    return parentLevel >= parent.maxLevel;
+}
+
 export function getResearchNodeRequirement(id) {
     const node = RESEARCH_NODES.find(n => n.id === id);
     if (!node) return BigNum.fromAny('Infinity');
@@ -186,6 +226,8 @@ export function tickResearch(dt) {
     const rpPerTick = rpPerSec.mulDecimal(dt.toString(), 18);
 
     RESEARCH_NODES.forEach(node => {
+        if (!isResearchNodeVisible(node.id)) return;
+        
         if (isResearchNodeActive(node.id)) {
             const currentRp = getResearchNodeRp(node.id);
             const req = getResearchNodeRequirement(node.id);
@@ -207,5 +249,39 @@ export function tickResearch(dt) {
             
             setResearchNodeRp(node.id, nextRp);
         }
+    });
+}
+
+// --- Multipliers ---
+
+export function getLabCoinMultiplier() {
+    const node = RESEARCH_NODES.find(n => n.id === 2);
+    if (!node) return BigNum.fromInt(1);
+    const level = getResearchNodeLevel(node.id);
+    if (level <= 0) return BigNum.fromInt(1);
+    
+    const val = Math.pow(1.5, level);
+    return BigNum.fromAny(val);
+}
+
+export function getLabXpMultiplier() {
+    const node = RESEARCH_NODES.find(n => n.id === 3);
+    if (!node) return BigNum.fromInt(1);
+    const level = getResearchNodeLevel(node.id);
+    if (level <= 0) return BigNum.fromInt(1);
+    
+    const val = Math.pow(1.5, level);
+    return BigNum.fromAny(val);
+}
+
+export function initLabMultipliers() {
+    addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+        const labMult = getLabCoinMultiplier();
+        return baseMultiplier.mul(labMult);
+    });
+    
+    addExternalXpGainMultiplierProvider(({ baseGain }) => {
+        const labMult = getLabXpMultiplier();
+        return baseGain.mul(labMult);
     });
 }
