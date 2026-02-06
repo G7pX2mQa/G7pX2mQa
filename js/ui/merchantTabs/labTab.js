@@ -381,9 +381,10 @@ class LabSystem {
         this.returnBtn.style.padding = '10px 20px';
         this.returnBtn.style.fontSize = '16px';
         this.returnBtn.style.cursor = 'pointer';
-        this.returnBtn.style.backgroundColor = '#222';
+        this.returnBtn.style.backgroundColor = '#151b2b';
+        this.returnBtn.style.background = 'linear-gradient(180deg, #253650, #151b2b)';
         this.returnBtn.style.color = '#fff';
-        this.returnBtn.style.border = '2px solid #555';
+        this.returnBtn.style.border = '2px solid #000';
         this.returnBtn.style.borderRadius = '4px';
         
         this.returnBtn.addEventListener('click', () => {
@@ -691,8 +692,18 @@ class LabSystem {
              const cy = (node.y - this.camY) * z + h/2;
              
              // Check visibility
+             // We extend the bottom check (cy + ...) because the level bar hangs below the main image
+             const nodeLevel = getResearchNodeLevel(node.id);
+             const isMaxed = nodeLevel >= node.maxLevel;
+             const hasBar = !isMaxed && isResearchNodeActive(node.id);
+             
+             // The bar is offset by ~0.05 * baseScreenSize and has height ~0.18 * baseScreenSize
+             // So it extends to about 0.5 + 0.05 + 0.18 = 0.73 * baseScreenSize from center.
+             // We use 0.8 to be safe when bar is present, otherwise 0.5.
+             const bottomBound = hasBar ? 0.8 : 0.5;
+             
              if (cx + baseScreenSize/2 < 0 || cx - baseScreenSize/2 > w ||
-                 cy + baseScreenSize/2 < 0 || cy - baseScreenSize/2 > h) {
+                 cy + baseScreenSize * bottomBound < 0 || cy - baseScreenSize/2 > h) {
                  continue;
              }
              
@@ -702,9 +713,6 @@ class LabSystem {
              }
              
              // Draw Active/Maxed Border
-             const nodeLevel = getResearchNodeLevel(node.id);
-             const isMaxed = nodeLevel >= node.maxLevel;
-             
              if (isMaxed) {
                  if (this.maxedBorderImage.complete && this.maxedBorderImage.naturalWidth !== 0) {
                      ctx.drawImage(this.maxedBorderImage, cx - baseScreenSize/2, cy - baseScreenSize/2, baseScreenSize, baseScreenSize);
@@ -728,7 +736,7 @@ class LabSystem {
              }
 
              // Draw Active Progress Bar
-             if (!isMaxed && isResearchNodeActive(node.id)) {
+             if (hasBar) {
                  const req = getResearchNodeRequirement(node.id);
                  let progress = 0;
                  
@@ -780,11 +788,11 @@ class LabSystem {
                  
                  // Text
                  ctx.fillStyle = '#fff';
-                 ctx.font = `bold ${Math.max(10, barHeight * 0.7)}px system-ui`;
+                 ctx.font = `bold ${barHeight * 0.7}px system-ui`;
                  ctx.textAlign = 'center';
                  ctx.textBaseline = 'middle';
                  ctx.strokeStyle = '#000';
-                 ctx.lineWidth = 2; 
+                 ctx.lineWidth = Math.max(0.5, barHeight * 0.08); 
                  
                  const text = `Level ${nodeLevel}`;
                  ctx.strokeText(text, barX + barWidth / 2, barY + barHeight / 2);
