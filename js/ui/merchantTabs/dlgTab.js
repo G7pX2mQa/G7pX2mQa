@@ -2424,8 +2424,8 @@ export function runLabIntroDialogue() {
             'c1': { 
                 type: 'choice', 
                 options: [
-                    { label: 'What???', to: 'end_nr' },
-                    { label: 'Tsunami sacrifice???', to: 'end_nr' },
+                    { label: 'I don\'t understand.', to: 'end_nr' },
+                    { label: 'Tsunami sacrifice?', to: 'end_nr' },
                     { label: '???', to: 'end_nr' }
                 ] 
             }
