@@ -10,6 +10,7 @@ import { addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
 import { getCurrentSurgeLevel } from '../ui/merchantTabs/resetTab.js';
 import { registerTick, RateAccumulator } from './gameLoop.js';
 import { bigNumFromLog10, approxLog10BigNum } from './upgrades.js';
+import { getTsunamiResearchBonus } from './labNodes.js';
 
 const BN = BigNum;
 const MULTIPLIER = 10;
@@ -96,7 +97,11 @@ function applyTsunamiNerf(bn) {
   const log10 = approxLog10BigNum(bn);
   if (!Number.isFinite(log10)) return bn;
   const nerf = getTsunamiNerf();
-  return bigNumFromLog10(log10 * nerf);
+  
+  let effective = nerf + getTsunamiResearchBonus();
+  if (effective > 1) effective = 1;
+
+  return bigNumFromLog10(log10 * effective);
 }
 
 function updateMultiplier() {
@@ -113,8 +118,12 @@ function updateMultiplier() {
   if (isReached) {
     if (isSurgeActive(8)) {
       const nerf = getTsunamiNerf();
+      
+      let effective = nerf + getTsunamiResearchBonus();
+      if (effective > 1) effective = 1;
+
       const log10 = Math.log10(MULTIPLIER);
-      currentMultiplier = bigNumFromLog10(log10 * nerf);
+      currentMultiplier = bigNumFromLog10(log10 * effective);
     } else {
       currentMultiplier = BigNum.fromInt(MULTIPLIER);
     }
@@ -380,6 +389,10 @@ export function initSurgeEffects() {
       }
     });
 
+    window.addEventListener('lab:node:change', () => {
+        updateMultiplier();
+    });
+
     window.addEventListener('saveSlot:change', () => {
       loadTsunamiNerf(getActiveSlot());
       updateMultiplier();
@@ -406,8 +419,12 @@ export function initSurgeEffects() {
     let mult = BigNum.fromInt(4.444e12);
     if (isSurgeActive(8)) {
         const nerf = getTsunamiNerf();
+        
+        let effective = nerf + getTsunamiResearchBonus();
+        if (effective > 1) effective = 1;
+
         const logVal = Math.log10(4.444e12);
-        mult = bigNumFromLog10(logVal * nerf);
+        mult = bigNumFromLog10(logVal * effective);
     }
     return baseGain.mulBigNumInteger(mult);
   });
