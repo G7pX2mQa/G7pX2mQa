@@ -13,7 +13,9 @@ import {
     isResearchNodeActive,
     setResearchNodeActive,
     getResearchNodeRequirement,
-    getTsunamiResearchBonus
+    getTsunamiResearchBonus,
+    initLabMultipliers,
+    isResearchNodeVisible
 } from '../../game/labNodes.js';
 import { setupDragToClose } from '../shopOverlay.js';
 
@@ -156,6 +158,7 @@ export function initLabLogic() {
     registerTick(updateLabLevel);
     // Also register research tick
     registerTick(tickResearch);
+    initLabMultipliers();
 }
 
 // --- RP Logic Helper for Node ---
@@ -617,6 +620,19 @@ class LabSystem {
         }
     }
     
+    getNodePosition(node) {
+        let x = node.x, y = node.y;
+        let curr = node;
+        while (curr.parentId) {
+            const parent = RESEARCH_NODES.find(n => n.id === curr.parentId);
+            if (!parent) break;
+            x += parent.x;
+            y += parent.y;
+            curr = parent;
+        }
+        return { x, y };
+    }
+
     render() {
         const ctx = this.ctx;
         const w = this.width;
@@ -681,25 +697,58 @@ class LabSystem {
         }
         ctx.stroke();
         
+        // --- Calculate Visibility & Positions ---
+        const visibleNodes = [];
+        const nodePositions = new Map();
+        
+        for (const node of RESEARCH_NODES) {
+             if (isResearchNodeVisible(node.id)) {
+                 visibleNodes.push(node);
+                 nodePositions.set(node.id, this.getNodePosition(node));
+             }
+        }
+
+        // --- Draw Connections ---
+        ctx.strokeStyle = '#2a5298'; // Dark blue
+        ctx.lineWidth = 10 * z;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        
+        for (const node of visibleNodes) {
+             if (node.parentId) {
+                 const parent = RESEARCH_NODES.find(n => n.id === node.parentId);
+                 if (parent && nodePositions.has(parent.id)) {
+                     const start = nodePositions.get(parent.id);
+                     const end = nodePositions.get(node.id);
+                     
+                     const sx = (start.x - this.camX) * z + w/2;
+                     const sy = (start.y - this.camY) * z + h/2;
+                     const ex = (end.x - this.camX) * z + w/2;
+                     const ey = (end.y - this.camY) * z + h/2;
+                     
+                     ctx.moveTo(sx, sy);
+                     ctx.lineTo(ex, ey);
+                 }
+             }
+        }
+        ctx.stroke();
+
         // --- Draw Nodes ---
         const imgSize = 512;
         const imgScreenSize = imgSize * z;
         const baseSize = imgSize * 1.6;
         const baseScreenSize = baseSize * z;
         
-        for (const node of RESEARCH_NODES) {
-             const cx = (node.x - this.camX) * z + w/2;
-             const cy = (node.y - this.camY) * z + h/2;
+        for (const node of visibleNodes) {
+             const pos = nodePositions.get(node.id);
+             const cx = (pos.x - this.camX) * z + w/2;
+             const cy = (pos.y - this.camY) * z + h/2;
              
              // Check visibility
-             // We extend the bottom check (cy + ...) because the level bar hangs below the main image
              const nodeLevel = getResearchNodeLevel(node.id);
              const isMaxed = nodeLevel >= node.maxLevel;
              const hasBar = !isMaxed;
              
-             // The bar is offset by ~0.05 * baseScreenSize and has height ~0.18 * baseScreenSize
-             // So it extends to about 0.5 + 0.05 + 0.18 = 0.73 * baseScreenSize from center.
-             // We use 0.8 to be safe when bar is present, otherwise 0.5.
              const bottomBound = hasBar ? 0.8 : 0.5;
              
              if (cx + baseScreenSize/2 < 0 || cx - baseScreenSize/2 > w ||
@@ -892,8 +941,11 @@ class LabSystem {
         const clickRadius = (512 / 2) * 1.6; // Base size radius in world units
         
         for (const node of RESEARCH_NODES) {
-            const dx = wx - node.x;
-            const dy = wy - node.y;
+            if (!isResearchNodeVisible(node.id)) continue;
+            
+            const pos = this.getNodePosition(node);
+            const dx = wx - pos.x;
+            const dy = wy - pos.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
             
             if (dist <= clickRadius) {
@@ -1014,7 +1066,12 @@ class LabSystem {
     updateNodeOverlay() {
         if (this.activeOverlayId == null || !this.overlay) return;
         const node = RESEARCH_NODES.find(n => n.id === this.activeOverlayId);
-        if (!node) return;
+        if (!node || !isResearchNodeVisible(node.id)) {
+            if (this.overlay) this.overlay.remove();
+            this.activeOverlayId = null;
+            this.overlay = null;
+            return;
+        }
         
         const level = getResearchNodeLevel(node.id);
         const rp = getResearchNodeRp(node.id);
@@ -1083,8 +1140,11 @@ class LabSystem {
         let hovering = false;
         const clickRadius = (512 / 2) * 1.6;
         for (const node of RESEARCH_NODES) {
-            const dx = wx - node.x;
-            const dy = wy - node.y;
+            if (!isResearchNodeVisible(node.id)) continue;
+            
+            const pos = this.getNodePosition(node);
+            const dx = wx - pos.x;
+            const dy = wy - pos.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
             if (dist <= clickRadius) {
                 hovering = true;
