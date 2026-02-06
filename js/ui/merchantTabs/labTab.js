@@ -358,7 +358,7 @@ class LabSystem {
 
         // Nerf Exponent Bar
         this.nerfBar = document.createElement('div');
-        this.nerfBar.textContent = 'Tsunami nerf exponent: ^0.00';
+        this.nerfBar.textContent = 'Tsunami exponent: ^0.00';
         applyBarStyle(this.nerfBar);
         applyTextStyle(this.nerfBar, '14px', '0.8px');
         this.nerfBar.style.padding = '4px 12px';
