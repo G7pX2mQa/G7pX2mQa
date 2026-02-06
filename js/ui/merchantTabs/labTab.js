@@ -434,6 +434,9 @@ class LabSystem {
         this.activeBorderImage = new Image();
         this.activeBorderImage.src = 'img/misc/green_border.webp';
 
+        this.maxedBorderImage = new Image();
+        this.maxedBorderImage.src = 'img/misc/maxed.webp';
+
         this.nodeImages = {};
         
         this.isDragging = false;
@@ -693,8 +696,15 @@ class LabSystem {
                  ctx.drawImage(this.baseImage, cx - baseScreenSize/2, cy - baseScreenSize/2, baseScreenSize, baseScreenSize);
              }
              
-             // Draw Active Border if active
-             if (isResearchNodeActive(node.id)) {
+             // Draw Active/Maxed Border
+             const nodeLevel = getResearchNodeLevel(node.id);
+             const isMaxed = nodeLevel >= node.maxLevel;
+             
+             if (isMaxed) {
+                 if (this.maxedBorderImage.complete && this.maxedBorderImage.naturalWidth !== 0) {
+                     ctx.drawImage(this.maxedBorderImage, cx - baseScreenSize/2, cy - baseScreenSize/2, baseScreenSize, baseScreenSize);
+                 }
+             } else if (isResearchNodeActive(node.id)) {
                  if (this.activeBorderImage.complete && this.activeBorderImage.naturalWidth !== 0) {
                      ctx.drawImage(this.activeBorderImage, cx - baseScreenSize/2, cy - baseScreenSize/2, baseScreenSize, baseScreenSize);
                  }
@@ -869,13 +879,11 @@ class LabSystem {
         // Active Status
         this.overlayActiveStatus = document.createElement('div');
         this.overlayActiveStatus.className = 'upg-line';
-        this.overlayActiveStatus.style.fontWeight = 'bold';
         
         // Progress
         this.overlayProgress = document.createElement('div');
         this.overlayProgress.className = 'upg-line';
         this.overlayProgress.style.color = '#aaa';
-        this.overlayProgress.style.fontSize = '20px';
         
         info.append(this.overlayBonus, this.overlayActiveStatus, this.overlayProgress);
         content.append(desc, info);
@@ -884,10 +892,10 @@ class LabSystem {
         const actions = document.createElement('div');
         actions.className = 'upg-actions';
         
-        const toggleBtn = document.createElement('button');
-        toggleBtn.className = 'shop-delve';
-        toggleBtn.textContent = 'Toggle';
-        toggleBtn.onclick = () => {
+        this.overlayToggleBtn = document.createElement('button');
+        this.overlayToggleBtn.className = 'shop-delve';
+        this.overlayToggleBtn.textContent = 'Toggle';
+        this.overlayToggleBtn.onclick = () => {
              const active = isResearchNodeActive(id);
              setResearchNodeActive(id, !active);
              this.updateNodeOverlay();
@@ -909,7 +917,7 @@ class LabSystem {
             }
         };
         
-        actions.append(closeBtn, toggleBtn);
+        actions.append(closeBtn, this.overlayToggleBtn);
         
         sheet.append(grabber, header, content, actions);
         this.overlay.appendChild(sheet);
@@ -936,18 +944,33 @@ class LabSystem {
         const req = getResearchNodeRequirement(node.id);
         const active = isResearchNodeActive(node.id);
         
-        this.overlayLevel.textContent = `Level ${level} / ${node.maxLevel}`;
+        const isMaxed = level >= node.maxLevel;
+        
+        if (isMaxed) {
+             this.overlayLevel.textContent = `Level ${level} / ${node.maxLevel} (MAXED)`;
+             this.overlayActiveStatus.style.display = 'none';
+             this.overlayProgress.style.display = 'none';
+             if (this.overlayToggleBtn) this.overlayToggleBtn.style.display = 'none';
+        } else {
+             this.overlayLevel.textContent = `Level ${level} / ${node.maxLevel}`;
+             this.overlayActiveStatus.style.display = '';
+             this.overlayProgress.style.display = '';
+             if (this.overlayToggleBtn) this.overlayToggleBtn.style.display = '';
+        }
         
         const effect = level * node.effectPerLevel;
         this.overlayBonus.textContent = `Tsunami exponent bonus: +${effect.toFixed(2)}`;
         
-        this.overlayActiveStatus.textContent = `Currently Active: ${active ? 'Yes' : 'No'}`;
-        this.overlayActiveStatus.style.color = active ? '#4f4' : '#f44';
-        
-        const rpFmt = rp.cmp(1e9) > 0 ? formatNumber(rp) : rp.toString(); // Simple format if small
-        const reqFmt = req.isInfinite?.() ? 'Infinity' : (req.cmp(1e9) > 0 ? formatNumber(req) : req.toString());
-        
-        this.overlayProgress.innerHTML = `RP to next level: ${formatNumber(rp)} / ${formatNumber(req)}`;
+        if (!isMaxed) {
+            this.overlayActiveStatus.textContent = `Currently active: ${active ? 'Yes' : 'No'}`;
+            this.overlayActiveStatus.style.color = active ? '#4f4' : '#f44';
+            this.overlayActiveStatus.style.webkitTextFillColor = active ? '#4f4' : '#f44';
+            
+            const rpFmt = rp.cmp(1e9) > 0 ? formatNumber(rp) : rp.toString();
+            const reqFmt = req.isInfinite?.() ? 'Infinity' : (req.cmp(1e9) > 0 ? formatNumber(req) : req.toString());
+            
+            this.overlayProgress.innerHTML = `RP to next level: ${formatNumber(rp)} / ${formatNumber(req)}`;
+        }
     }
 
     // -- Input Handlers --
