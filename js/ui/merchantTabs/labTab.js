@@ -80,7 +80,7 @@ export function getLabCost(level) {
     try {
         if (lvl.cmp(1e15) < 0) {
              const lvlNum = Number(lvl.toPlainIntegerString());
-             const exponent = 29 + lvlNum;
+             const exponent = 23 + lvlNum;
              return new BigNum(1n, { base: exponent, offset: 0n });
         }
         
@@ -92,7 +92,7 @@ export function getLabCost(level) {
         if (lvlStr === 'Infinity') return BigNum.fromAny('Infinity');
         
         const lvlBigInt = BigInt(lvlStr);
-        const totalExponent = 29n + lvlBigInt;
+        const totalExponent = 23n + lvlBigInt;
         
         return new BigNum(1n, { base: 0, offset: totalExponent });
 
@@ -113,7 +113,7 @@ export function getLabLevelFromCoins(coins) {
         const logSig = Math.log10(sigNum);
         const logSigInt = Math.floor(logSig); 
         
-        const levelBase = eVal - 29n + BigInt(logSigInt);
+        const levelBase = eVal - 23n + BigInt(logSigInt);
         
         if (levelBase < 0n) return BigNum.fromInt(0);
         
@@ -123,7 +123,7 @@ export function getLabLevelFromCoins(coins) {
     const e = coins.e;
     const sigNum = Number(coins.sig);
     const logSig = Math.log10(sigNum);
-    const val = e + logSig - 29;
+    const val = e + logSig - 23;
     
     if (val < 0) return BigNum.fromInt(0);
     return BigNum.fromInt(Math.floor(val));
