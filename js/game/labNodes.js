@@ -194,8 +194,13 @@ export function tickResearch(dt) {
             
             let nextRp = currentRp.add(rpPerTick);
             
-            if (nextRp.cmp(req) >= 0) {
-                nextRp = nextRp.sub(req);
+            while (true) {
+                const currentReq = getResearchNodeRequirement(node.id);
+                if (nextRp.cmp(currentReq) < 0) break;
+                
+                if (getResearchNodeLevel(node.id) >= node.maxLevel) break;
+
+                nextRp = nextRp.sub(currentReq);
                 const oldLevel = getResearchNodeLevel(node.id);
                 setResearchNodeLevel(node.id, oldLevel + 1);
             }
