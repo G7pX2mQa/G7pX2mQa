@@ -389,7 +389,7 @@ class LabSystem {
         this.returnBtn.addEventListener('click', () => {
             this.camX = 0;
             this.camY = 0;
-            this.zoom = 0.2;
+            this.zoom = 0.15;
             this.returnBtn.style.display = 'none';
         });
         
@@ -426,8 +426,11 @@ class LabSystem {
         
         this.camX = 0;
         this.camY = 0;
-        this.zoom = 0.2;
+        this.zoom = 0.15;
         this.bursts = [];
+
+        this.baseImage = new Image();
+        this.baseImage.src = 'img/stats/rp/rp_base.webp';
 
         this.nodeImage = new Image();
         this.nodeImage.src = 'img/lab_icons/tsunami_exponent_buff.webp';
@@ -702,13 +705,25 @@ class LabSystem {
         ctx.stroke();
         
         // Draw Center Image (512x512 world units)
+        const imgSize = 512;
+        const imgScreenSize = imgSize * z;
+        
+        const baseSize = imgSize * 1.6;
+        const baseScreenSize = baseSize * z;
+        
+        const cx = (0 - this.camX) * z + w/2;
+        const cy = (0 - this.camY) * z + h/2;
+
+        if (this.baseImage && this.baseImage.complete && this.baseImage.naturalWidth !== 0) {
+            const bx = cx - baseScreenSize/2;
+            const by = cy - baseScreenSize/2;
+            ctx.drawImage(this.baseImage, bx, by, baseScreenSize, baseScreenSize);
+        }
+
         if (this.nodeImage && this.nodeImage.complete && this.nodeImage.naturalWidth !== 0) {
-            const imgSize = 512;
-            const imgScreenSize = imgSize * z;
-            const imgX = (0 - this.camX) * z + w/2 - imgScreenSize/2;
-            const imgY = (0 - this.camY) * z + h/2 - imgScreenSize/2;
-            
-            ctx.drawImage(this.nodeImage, imgX, imgY, imgScreenSize, imgScreenSize);
+            const ix = cx - imgScreenSize/2;
+            const iy = cy - imgScreenSize/2;
+            ctx.drawImage(this.nodeImage, ix, iy, imgScreenSize, imgScreenSize);
         }
 
         // Draw Bursts
@@ -857,6 +872,8 @@ class LabSystem {
         
         this.camX = mouseWorldX - (mx - this.width/2) / newZoom;
         this.camY = mouseWorldY - (my - this.height/2) / newZoom;
+        
+        this.pinchDist = dist;
     }
     
     // Touch
