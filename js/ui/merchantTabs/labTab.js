@@ -14,6 +14,7 @@ import {
     setResearchNodeActive,
     getResearchNodeRequirement
 } from '../../game/labNodes.js';
+import { setupDragToClose } from '../shopOverlay.js';
 
 const LAB_VISITED_KEY = (slot) => `ccc:lab:visited:${slot}`;
 const LAB_LEVEL_KEY = (slot) => `ccc:lab:level:${slot}`;
@@ -827,59 +828,61 @@ class LabSystem {
         }
         
         this.overlay = document.createElement('div');
-        this.overlay.className = 'shop-overlay'; 
+        this.overlay.className = 'upg-overlay'; 
         this.overlay.style.zIndex = '4005';
         
         const sheet = document.createElement('div');
-        sheet.className = 'shop-sheet';
+        sheet.className = 'upg-sheet';
+        sheet.style.gridTemplateRows = 'auto auto 1fr auto';
         
         const grabber = document.createElement('div');
-        grabber.className = 'shop-grabber';
+        grabber.className = 'upg-grabber';
         grabber.innerHTML = `<div class="grab-handle"></div>`;
         
-        const content = document.createElement('div');
-        content.className = 'shop-content';
-        content.style.padding = '20px';
-        content.style.textAlign = 'center';
+        const header = document.createElement('div');
+        header.className = 'upg-header';
         
-        // Title
         const title = document.createElement('div');
-        title.className = 'shop-title';
+        title.className = 'upg-title';
         title.textContent = node.title;
-        title.style.marginBottom = '10px';
         
-        // Level
         this.overlayLevel = document.createElement('div');
         this.overlayLevel.className = 'upg-level'; 
         
+        header.append(title, this.overlayLevel);
+        
+        const content = document.createElement('div');
+        content.className = 'upg-content';
+        
         // Description
         const desc = document.createElement('div');
-        desc.className = 'upg-desc';
+        desc.className = 'upg-desc centered';
         desc.textContent = node.desc;
-        desc.style.marginBottom = '15px';
+        
+        const info = document.createElement('div');
+        info.className = 'upg-info';
         
         // Bonus (Effect)
         this.overlayBonus = document.createElement('div');
-        this.overlayBonus.className = 'bonus-line';
-        this.overlayBonus.style.marginBottom = '20px';
+        this.overlayBonus.className = 'upg-line';
         
         // Active Status
         this.overlayActiveStatus = document.createElement('div');
-        this.overlayActiveStatus.style.fontSize = '18px';
+        this.overlayActiveStatus.className = 'upg-line';
         this.overlayActiveStatus.style.fontWeight = 'bold';
-        this.overlayActiveStatus.style.marginBottom = '10px';
         
         // Progress
         this.overlayProgress = document.createElement('div');
-        this.overlayProgress.style.fontSize = '16px';
+        this.overlayProgress.className = 'upg-line';
         this.overlayProgress.style.color = '#aaa';
-        this.overlayProgress.style.marginBottom = '20px';
+        this.overlayProgress.style.fontSize = '20px';
         
-        content.append(title, this.overlayLevel, desc, this.overlayBonus, this.overlayActiveStatus, this.overlayProgress);
+        info.append(this.overlayBonus, this.overlayActiveStatus, this.overlayProgress);
+        content.append(desc, info);
         
         // Actions
         const actions = document.createElement('div');
-        actions.className = 'shop-actions';
+        actions.className = 'upg-actions';
         
         const toggleBtn = document.createElement('button');
         toggleBtn.className = 'shop-delve';
@@ -906,10 +909,13 @@ class LabSystem {
             }
         };
         
-        actions.append(toggleBtn, closeBtn);
-        sheet.append(grabber, content, actions);
+        actions.append(closeBtn, toggleBtn);
+        
+        sheet.append(grabber, header, content, actions);
         this.overlay.appendChild(sheet);
         document.body.appendChild(this.overlay);
+        
+        setupDragToClose(grabber, sheet, () => !!this.overlay, () => closeBtn.click());
         
         requestAnimationFrame(() => {
             if (this.overlay) {
@@ -933,7 +939,7 @@ class LabSystem {
         this.overlayLevel.textContent = `Level ${level} / ${node.maxLevel}`;
         
         const effect = level * node.effectPerLevel;
-        this.overlayBonus.textContent = `Current Effect: +${effect.toFixed(2)} Exponent`;
+        this.overlayBonus.textContent = `Tsunami exponent bonus: +${effect.toFixed(2)}`;
         
         this.overlayActiveStatus.textContent = `Currently Active: ${active ? 'Yes' : 'No'}`;
         this.overlayActiveStatus.style.color = active ? '#4f4' : '#f44';
@@ -941,7 +947,7 @@ class LabSystem {
         const rpFmt = rp.cmp(1e9) > 0 ? formatNumber(rp) : rp.toString(); // Simple format if small
         const reqFmt = req.isInfinite?.() ? 'Infinity' : (req.cmp(1e9) > 0 ? formatNumber(req) : req.toString());
         
-        this.overlayProgress.textContent = `RP to next level: ${formatNumber(rp)} / ${formatNumber(req)}`;
+        this.overlayProgress.innerHTML = `RP to next level: ${formatNumber(rp)} / ${formatNumber(req)}`;
     }
 
     // -- Input Handlers --
