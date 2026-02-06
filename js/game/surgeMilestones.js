@@ -2,6 +2,7 @@ import { formatNumber } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from './upgrades.js';
 import { getTsunamiNerf } from './surgeEffects.js';
+import { getTsunamiResearchBonus } from './labNodes.js';
 
 export const SURGE_MILESTONES = [
   {
@@ -117,7 +118,10 @@ export function getVisibleMilestones(currentSurgeLevel) {
       // Clone milestone to avoid mutating the original
       milestone = { ...m, description: [...m.description] };
       
-      const nerf = getTsunamiNerf();
+      const baseNerf = getTsunamiNerf();
+      const bonus = getTsunamiResearchBonus();
+      let nerf = baseNerf + bonus;
+      if (nerf > 1) nerf = 1;
       
       if (m.id === 1) {
         // 10x -> 10^nerf x
