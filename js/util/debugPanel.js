@@ -42,6 +42,15 @@ import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } f
 
 import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
 import { getLabLevel, setLabLevel, getLabLevelKey, getRpMultBase } from '../ui/merchantTabs/labTab.js';
+import { 
+    RESEARCH_NODES,
+    getResearchNodeLevel,
+    setResearchNodeLevel,
+    getResearchNodeRp,
+    setResearchNodeRp,
+    NODE_LEVEL_KEY,
+    NODE_RP_KEY
+} from '../game/labNodes.js';
 import { calculateOfflineRewards, grantOfflineRewards, showOfflinePanel, calculatePreAutomationRewards } from '../game/offlinePanel.js';
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
@@ -300,6 +309,26 @@ function setupLiveBindingListeners() {
     };
     window.addEventListener('lab:level:change', labHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('lab:level:change', labHandler));
+
+    const labNodeHandler = (event) => {
+        const { id, level } = event?.detail ?? {};
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'lab-node-level'
+            && binding.slot === targetSlot
+            && binding.id === id);
+    };
+    window.addEventListener('lab:node:change', labNodeHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('lab:node:change', labNodeHandler));
+
+    const labNodeRpHandler = (event) => {
+        const { id, rp } = event?.detail ?? {};
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'lab-node-rp'
+            && binding.slot === targetSlot
+            && binding.id === id);
+    };
+    window.addEventListener('lab:node:rp', labNodeRpHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('lab:node:rp', labNodeRpHandler));
 }
 
 const XP_KEY_PREFIX = 'ccc:xp';
@@ -3127,6 +3156,99 @@ function buildAreaStatMultipliers(container, area) {
     });
 }
 
+function buildLabNodesDebug(container) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit lab nodes.';
+        container.appendChild(msg);
+        return;
+    }
+
+    if (!RESEARCH_NODES || RESEARCH_NODES.length === 0) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'No lab nodes found.';
+        container.appendChild(msg);
+        return;
+    }
+
+    RESEARCH_NODES.forEach((node) => {
+        const nodeContainer = createSubsection(`${node.title || `Node ${node.id}`} (ID: ${node.id})`, (sub) => {
+            // Level
+            const levelKey = NODE_LEVEL_KEY(slot, node.id);
+            const levelRow = createInputRow('Level', getResearchNodeLevel(node.id), (value, { setValue }) => {
+                let valNum = Number(value);
+                if (value instanceof BigNum) {
+                     valNum = value.isInfinite() ? Infinity : Number(value.toScientific(10));
+                }
+                if (Number.isNaN(valNum) || valNum < 0) return;
+                
+                // Allow up to maxLevel
+                if (valNum > node.maxLevel) valNum = node.maxLevel;
+                valNum = Math.floor(valNum);
+
+                const prev = getResearchNodeLevel(node.id);
+                setResearchNodeLevel(node.id, valNum);
+                flagDebugUsage();
+                
+                if (prev !== valNum) {
+                    logAction(`Modified Node ${node.id} Level (The Cove) ${prev} → ${valNum}`);
+                }
+                setValue(valNum);
+            }, {
+                storageKey: levelKey
+            });
+            registerLiveBinding({
+                type: 'lab-node-level',
+                slot,
+                id: node.id,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    levelRow.setValue(getResearchNodeLevel(node.id));
+                }
+            });
+            sub.appendChild(levelRow.row);
+
+            // RP
+            const rpKey = NODE_RP_KEY(slot, node.id);
+            const rpRow = createInputRow('Current RP', getResearchNodeRp(node.id), (value, { setValue }) => {
+                let bn;
+                try {
+                     bn = value instanceof BigNum ? value : BigNum.fromAny(value);
+                     if (bn.isNegative && bn.isNegative()) bn = BigNum.fromInt(0);
+                } catch {
+                     setValue(getResearchNodeRp(node.id));
+                     return;
+                }
+
+                const prev = getResearchNodeRp(node.id);
+                setResearchNodeRp(node.id, bn);
+                flagDebugUsage();
+                
+                if (!bigNumEquals(prev, bn)) {
+                    logAction(`Modified Node ${node.id} RP (The Cove) ${formatNumber(prev)} → ${formatNumber(bn)}`);
+                }
+                setValue(bn);
+            }, {
+                storageKey: rpKey
+            });
+            registerLiveBinding({
+                type: 'lab-node-rp',
+                slot,
+                id: node.id,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    rpRow.setValue(getResearchNodeRp(node.id));
+                }
+            });
+            sub.appendChild(rpRow.row);
+        });
+        container.appendChild(nodeContainer);
+    });
+}
+
 function buildAreaCalculators(container) {
     const calculators = [
         {
@@ -3289,9 +3411,13 @@ function buildAreasContent(content) {
             });
             
             let automationUpgrades = null;
+            let labNodesSection = null;
             if (area.key === AREA_KEYS.STARTER_COVE) {
                 automationUpgrades = createSubsection('Automation Upgrades', (sub) => {
                     buildAreaUpgrades(sub, { key: AREA_KEYS.AUTOMATION, title: 'Automation' });
+                });
+                labNodesSection = createSubsection('Lab Nodes', (sub) => {
+                    buildLabNodesDebug(sub);
                 });
             }
 
@@ -3305,6 +3431,9 @@ function buildAreasContent(content) {
             areaContent.appendChild(upgrades);
             if (automationUpgrades) {
                 areaContent.appendChild(automationUpgrades);
+            }
+            if (labNodesSection) {
+                areaContent.appendChild(labNodesSection);
             }
             areaContent.appendChild(calculators);
         });
@@ -3992,8 +4121,6 @@ function applyDebugPanelAccess(enabled) {
     }
     createDebugPanelToggleButton();
 }
-
-applyDebugPanelAccess(false);
 
 document.addEventListener('keydown', event => {
     if (!debugPanelAccess || isOnMenu()) return;
