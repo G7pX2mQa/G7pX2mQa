@@ -8,6 +8,15 @@ import { formatNumber } from '../util/numFormat.js';
 import { ensureCustomScrollbar } from '../ui/shopOverlay.js';
 import { IS_MOBILE } from '../main.js';
 import { getLevelNumber, computeUpgradeEffects, getCurrentAreaKey as getUpgAreaKey } from './upgrades.js';
+import { getRpMult } from '../ui/merchantTabs/labTab.js';
+import { 
+    RESEARCH_NODES, 
+    getResearchNodeLevel, 
+    getResearchNodeRp, 
+    isResearchNodeActive, 
+    setResearchNodeLevel, 
+    setResearchNodeRp
+} from './labNodes.js';
 import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
 import { getPassiveCoinReward } from './coinPickup.js';
 import { addXp } from './xpSystem.js';
@@ -88,6 +97,7 @@ const PRIORITY_ORDER = [
     { key: 'magic',     icon: 'img/currencies/magic/magic.webp', singular: 'Magic',    plural: 'Magic' },
     { key: 'gears',     icon: 'img/currencies/gear/gear.webp',   singular: 'Gear',     plural: 'Gears' },
     { key: 'waves',     icon: 'img/currencies/gear/gear.webp',   singular: 'Wave',     plural: 'Waves' },
+    { key: 'research_levels', icon: 'img/stats/rp/rp.webp',      singular: 'Level',    plural: 'Levels' },
 ];
 
 export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
@@ -131,7 +141,41 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
     PRIORITY_ORDER.forEach(config => {
         const key = config.key;
         const val = rewards[key];
-        if (!val || val.isZero()) return;
+        if (!val) return;
+        if (typeof val.isZero === 'function' && val.isZero()) return;
+
+        if (key === 'research_levels') {
+            if (Array.isArray(val)) {
+                val.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'offline-row';
+                    
+                    const plus = document.createElement('span');
+                    plus.className = 'offline-plus';
+                    plus.style.color = '#004F96'; 
+                    plus.textContent = '+';
+                    
+                    const icon = document.createElement('img');
+                    icon.className = 'offline-icon';
+                    icon.src = config.icon;
+                    icon.alt = 'RP';
+                    
+                    const text = document.createElement('span');
+                    text.className = 'offline-text';
+                    text.style.color = '#004F96';
+                    
+                    const levelCount = BigNum.fromInt(item.levels);
+                    const label = (levelCount.cmp(BigNum.fromInt(1)) === 0) ? 'Level' : 'Levels';
+                    text.textContent = `${formatNumber(levelCount)} ${label} of ${item.name}`;
+                    
+                    row.appendChild(plus);
+                    row.appendChild(icon);
+                    row.appendChild(text);
+                    list.appendChild(row);
+                });
+            }
+            return;
+        }
 
         const row = document.createElement('div');
         row.className = 'offline-row';
@@ -209,6 +253,18 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
     return overlay;
 }
 
+// Helper to calculate research cost locally to avoid state dependency issues during simulation
+function getSimulatedReq(node, level) {
+    if (level >= node.maxLevel) return BigNum.fromAny('Infinity');
+    const log10Scale = Math.log10(node.scale); 
+    const log10Base = Math.log10(node.baseRpReq);
+    const totalLog10 = log10Base + (level * log10Scale);
+    const intPart = Math.floor(totalLog10);
+    const fracPart = totalLog10 - intPart;
+    const mantissa = Math.pow(10, fracPart);
+    return new BigNum(BigInt(Math.round(mantissa * 1e14)), { base: intPart, offset: -14n });
+}
+
 export function calculateOfflineRewards(seconds) {
     const slot = getActiveSlot();
     if (slot == null) return {};
@@ -216,6 +272,44 @@ export function calculateOfflineRewards(seconds) {
     // Convert seconds to BigNum to handle both normal offline progress and massive OP Time Warps
     const secondsBn = BigNum.fromAny(seconds);
     const rewards = {};
+
+    // --- Research Lab Progress ---
+    const rpMult = getRpMult ? getRpMult() : BigNum.fromInt(0);
+    if (rpMult && !rpMult.isZero()) {
+        const totalRp = rpMult.mulBigNumInteger(secondsBn);
+        
+        const activeNodes = RESEARCH_NODES.filter(n => isResearchNodeActive(n.id));
+        const researchLevels = [];
+        const researchProgress = {};
+
+        for (const node of activeNodes) {
+             let tempLevel = getResearchNodeLevel(node.id);
+             let tempRp = getResearchNodeRp(node.id).add(totalRp);
+             let levelsGained = 0;
+             const maxLevel = node.maxLevel;
+
+             while (tempLevel < maxLevel) {
+                 const req = getSimulatedReq(node, tempLevel);
+                 if (req.isInfinite && req.isInfinite()) break;
+                 if (tempRp.cmp(req) < 0) break;
+                 
+                 tempRp = tempRp.sub(req);
+                 tempLevel++;
+                 levelsGained++;
+             }
+             
+             if (levelsGained > 0) {
+                 researchLevels.push({ name: node.title, levels: levelsGained });
+             }
+             // Always store progress (RP update) even if no levels gained
+             researchProgress[node.id] = { level: tempLevel, rp: tempRp };
+        }
+        
+        if (researchLevels.length > 0) rewards.research_levels = researchLevels;
+        if (Object.keys(researchProgress).length > 0) rewards.research_progress = researchProgress;
+    }
+    // -----------------------------
+
     const gearRate = getGearsProductionRate ? getGearsProductionRate() : BigNum.fromInt(0);
     
     // Update: use BigNum multiplication for accuracy with large inputs
@@ -310,10 +404,22 @@ export function grantOfflineRewards(rewards) {
         } catch {}
     }
 
+    // Handle Research
+    if (rewards.research_progress) {
+        for (const [idStr, data] of Object.entries(rewards.research_progress)) {
+             const nodeId = parseInt(idStr, 10);
+             if (!isNaN(nodeId)) {
+                 setResearchNodeLevel(nodeId, data.level);
+                 setResearchNodeRp(nodeId, data.rp);
+             }
+        }
+    }
+
     // Handle standard currencies automatically
     for (const key of Object.keys(rewards)) {
         // Skip special keys handled above or created during handling
         if (key === 'xp' || key === 'mp' || key === 'xp_levels' || key === 'mp_levels') continue;
+        if (key === 'research_levels' || key === 'research_progress') continue;
         
         if (bank[key] && typeof bank[key].add === 'function') {
             bank[key].add(rewards[key]);
