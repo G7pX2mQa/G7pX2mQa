@@ -181,6 +181,10 @@
   padding: 0;
   cursor: pointer;
   outline-offset: 4px;
+  border-radius: 50%;
+  width: var(--shop-tile);
+  height: var(--shop-tile);
+  justify-self: center;
 }
 
 .shop-upgrade.is-locked {
