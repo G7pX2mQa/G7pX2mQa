@@ -15,9 +15,12 @@ import {
     getResearchNodeRequirement,
     getTsunamiResearchBonus,
     initLabMultipliers,
-    isResearchNodeVisible
+    isResearchNodeVisible,
+    getLabCoinMultiplier,
+    getLabXpMultiplier
 } from '../../game/labNodes.js';
 import { setupDragToClose } from '../shopOverlay.js';
+import { formatMultForUi } from '../../game/upgrades.js';
 
 const LAB_VISITED_KEY = (slot) => `ccc:lab:visited:${slot}`;
 const LAB_LEVEL_KEY = (slot) => `ccc:lab:level:${slot}`;
@@ -1092,8 +1095,16 @@ class LabSystem {
              if (this.overlayToggleBtn) this.overlayToggleBtn.style.display = '';
         }
         
-        const effect = level * node.effectPerLevel;
-        this.overlayBonus.textContent = `Tsunami exponent bonus: +${effect.toFixed(2)}`;
+        if (node.id === 2) {
+            const val = getLabCoinMultiplier();
+            this.overlayBonus.textContent = `Coin value bonus: ${formatMultForUi(val)}x`;
+        } else if (node.id === 3) {
+            const val = getLabXpMultiplier();
+            this.overlayBonus.textContent = `XP value bonus: ${formatMultForUi(val)}x`;
+        } else {
+            const effect = level * node.effectPerLevel;
+            this.overlayBonus.textContent = `Tsunami exponent bonus: +${effect.toFixed(2)}`;
+        }
         
         if (!isMaxed) {
             this.overlayActiveStatus.textContent = `Currently active: ${active ? 'Yes' : 'No'}`;
