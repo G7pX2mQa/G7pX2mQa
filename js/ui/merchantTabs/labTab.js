@@ -626,16 +626,8 @@ class LabSystem {
     }
     
     getNodePosition(node) {
-        let x = node.x, y = node.y;
-        let curr = node;
-        while (curr.parentId) {
-            const parent = RESEARCH_NODES.find(n => n.id === curr.parentId);
-            if (!parent) break;
-            x += parent.x;
-            y += parent.y;
-            curr = parent;
-        }
-        return { x, y };
+        // Absolute coordinates
+        return { x: node.x, y: node.y };
     }
 
     render() {
@@ -720,19 +712,22 @@ class LabSystem {
         ctx.beginPath();
         
         for (const node of visibleNodes) {
-             if (node.parentId) {
-                 const parent = RESEARCH_NODES.find(n => n.id === node.parentId);
-                 if (parent && nodePositions.has(parent.id)) {
-                     const start = nodePositions.get(parent.id);
-                     const end = nodePositions.get(node.id);
-                     
-                     const sx = (start.x - this.camX) * z + w/2;
-                     const sy = (start.y - this.camY) * z + h/2;
-                     const ex = (end.x - this.camX) * z + w/2;
-                     const ey = (end.y - this.camY) * z + h/2;
-                     
-                     ctx.moveTo(sx, sy);
-                     ctx.lineTo(ex, ey);
+             // Draw lines to ALL visible parents
+             if (node.parentIds && node.parentIds.length > 0) {
+                 for (const parentId of node.parentIds) {
+                     const parent = RESEARCH_NODES.find(n => n.id === parentId);
+                     if (parent && nodePositions.has(parent.id)) {
+                         const start = nodePositions.get(parent.id);
+                         const end = nodePositions.get(node.id);
+                         
+                         const sx = (start.x - this.camX) * z + w/2;
+                         const sy = (start.y - this.camY) * z + h/2;
+                         const ex = (end.x - this.camX) * z + w/2;
+                         const ey = (end.y - this.camY) * z + h/2;
+                         
+                         ctx.moveTo(sx, sy);
+                         ctx.lineTo(ex, ey);
+                     }
                  }
              }
         }
@@ -1112,8 +1107,10 @@ class LabSystem {
         } else if (node.id === 3) {
             const val = getLabXpMultiplier();
             this.overlayBonus.textContent = `XP value bonus: ${formatMultForUi(val)}x`;
+        } else if (node.id === 4) {
+             this.overlayBonus.textContent = `Experiment unlocked: ${level >= 1 ? 'Yes' : 'No'}`;
         } else {
-            const effect = level * node.effectPerLevel;
+            const effect = level * 0.01;
             this.overlayBonus.textContent = `Tsunami exponent bonus: +${effect.toFixed(2)}`;
         }
         
