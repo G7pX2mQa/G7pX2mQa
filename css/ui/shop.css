@@ -182,9 +182,6 @@
   cursor: pointer;
   outline-offset: 4px;
   border-radius: 50%;
-  width: var(--shop-tile);
-  height: var(--shop-tile);
-  justify-self: center;
 }
 
 .shop-upgrade.is-locked {
@@ -217,6 +214,7 @@
   height: var(--shop-tile);
   display: block;
   margin: 0 auto;
+  border-radius: 50%;
 }
 
 .shop-tile img.base,
