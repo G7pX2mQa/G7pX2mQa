@@ -750,9 +750,9 @@ class LabSystem {
              // Check visibility
              const nodeLevel = getResearchNodeLevel(node.id);
              const isMaxed = nodeLevel >= node.maxLevel;
-             const hasBar = !isMaxed;
+             const hasBar = true;
              
-             const bottomBound = hasBar ? 0.8 : 0.5;
+             const bottomBound = 0.8;
              
              if (cx + baseScreenSize/2 < 0 || cx - baseScreenSize/2 > w ||
                  cy + baseScreenSize * bottomBound < 0 || cy - baseScreenSize/2 > h) {
@@ -792,24 +792,28 @@ class LabSystem {
                  const req = getResearchNodeRequirement(node.id);
                  let progress = 0;
                  
-                 // Handle progress calculation safely
-                 if (req.isInfinite?.() || (typeof req.cmp === 'function' && req.cmp(BigNum.fromAny('Infinity')) === 0)) {
-                     progress = 0;
+                 if (isMaxed) {
+                     progress = 1;
                  } else {
-                     const rp = getResearchNodeRp(node.id);
-                     if (rp.isZero?.()) {
+                     // Handle progress calculation safely
+                     if (req.isInfinite?.() || (typeof req.cmp === 'function' && req.cmp(BigNum.fromAny('Infinity')) === 0)) {
                          progress = 0;
                      } else {
-                         try {
-                            if (req.isZero?.()) {
-                                progress = 1;
-                            } else {
-                                const ratio = rp.div(req);
-                                const ratioSci = ratio.toScientific(5);
-                                progress = Number(ratioSci);
-                            }
-                         } catch (e) {
-                            progress = 0;
+                         const rp = getResearchNodeRp(node.id);
+                         if (rp.isZero?.()) {
+                             progress = 0;
+                         } else {
+                             try {
+                                if (req.isZero?.()) {
+                                    progress = 1;
+                                } else {
+                                    const ratio = rp.div(req);
+                                    const ratioSci = ratio.toScientific(5);
+                                    progress = Number(ratioSci);
+                                }
+                             } catch (e) {
+                                progress = 0;
+                             }
                          }
                      }
                  }
@@ -846,7 +850,8 @@ class LabSystem {
                  ctx.strokeStyle = '#000';
                  ctx.lineWidth = Math.max(0.5, barHeight * 0.08); 
                  
-                 const text = `Level ${nodeLevel}`;
+                 let text = `Level ${nodeLevel}`;
+                 if (isMaxed) text = 'Level: MAXED';
                  ctx.strokeText(text, barX + barWidth / 2, barY + barHeight / 2);
                  ctx.fillText(text, barX + barWidth / 2, barY + barHeight / 2);
              }
