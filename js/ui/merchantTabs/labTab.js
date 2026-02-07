@@ -846,14 +846,18 @@ class LabSystem {
                  ctx.fillStyle = '#fff';
                  ctx.font = `bold ${barHeight * 0.7}px system-ui`;
                  ctx.textAlign = 'center';
-                 ctx.textBaseline = 'middle';
+                 ctx.textBaseline = 'alphabetic';
                  ctx.strokeStyle = '#000';
                  ctx.lineWidth = Math.max(0.5, barHeight * 0.08); 
                  
                  let text = `Level ${nodeLevel}`;
-                 if (isMaxed) text = 'Level: MAXED';
-                 ctx.strokeText(text, barX + barWidth / 2, barY + barHeight / 2);
-                 ctx.fillText(text, barX + barWidth / 2, barY + barHeight / 2);
+                 if (isMaxed) text = 'MAXED';
+
+                 const metrics = ctx.measureText(text);
+                 const textY = barY + barHeight / 2 + (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent) / 2;
+
+                 ctx.strokeText(text, barX + barWidth / 2, textY);
+                 ctx.fillText(text, barX + barWidth / 2, textY);
              }
         }
 
