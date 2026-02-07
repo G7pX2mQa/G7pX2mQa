@@ -23,7 +23,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 0,
         y: 0,
-        icon: 'img/lab_icons/tsunami_exponent_buff.webp',
+        icon: 'lab_icons/tsunami_exponent_buff.webp',
         parentIds: []
     },
     {
@@ -36,7 +36,7 @@ export const RESEARCH_NODES = [
         parentIds: [1],
         x: -1000,
         y: 1000,
-        icon: 'img/lab_icons/coin_val0.webp'
+        icon: 'lab_icons/coin_val0.webp'
     },
     {
         id: 3,
@@ -48,7 +48,7 @@ export const RESEARCH_NODES = [
         parentIds: [1],
         x: 1000,
         y: 1000,
-        icon: 'img/sc_upg_icons/xp_val1.webp'
+        icon: 'sc_upg_icons/xp_val1.webp'
     },
     {
         id: 4,
@@ -59,7 +59,7 @@ export const RESEARCH_NODES = [
         maxLevel: 1,
         x: 0,
         y: -1000,
-        icon: 'img/misc/experiment.webp',
+        icon: 'misc/experiment.webp',
         parentIds: [2, 3]
     }
 ];
