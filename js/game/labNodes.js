@@ -1,7 +1,11 @@
 import { BigNum } from '../util/bigNum.js';
 import { getActiveSlot, isStorageKeyLocked } from '../util/storage.js';
 import { getLabLevel, getRpMult } from '../ui/merchantTabs/labTab.js';
-import { addExternalCoinMultiplierProvider, addExternalXpGainMultiplierProvider } from './xpSystem.js';
+import { 
+    addExternalCoinMultiplierProvider, 
+    addExternalXpGainMultiplierProvider,
+    refreshCoinMultiplierFromXpLevel
+} from './xpSystem.js';
 
 // --- Storage Keys ---
 export const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
@@ -307,12 +311,20 @@ export function getLabXpMultiplier() {
 export function initLabMultipliers() {
     addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
         const labMult = getLabCoinMultiplier();
-        return baseMultiplier.mul(labMult);
+        return baseMultiplier.mulDecimal(labMult.toScientific());
     });
     
     addExternalXpGainMultiplierProvider(({ baseGain }) => {
         const labMult = getLabXpMultiplier();
-        return baseGain.mul(labMult);
+        return baseGain.mulDecimal(labMult.toScientific());
     });
+
+    if (typeof window !== 'undefined') {
+        window.addEventListener('lab:node:change', ({ detail }) => {
+            if (detail && detail.id === 2) {
+                refreshCoinMultiplierFromXpLevel();
+            }
+        });
+    }
 }
 window.RESEARCH_NODES = RESEARCH_NODES; window.isResearchNodeVisible = isResearchNodeVisible;
