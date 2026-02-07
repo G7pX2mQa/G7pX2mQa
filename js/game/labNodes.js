@@ -20,7 +20,7 @@ export const RESEARCH_NODES = [
         x: 0,
         y: 0,
         icon: 'img/lab_icons/tsunami_exponent_buff.webp',
-        effectPerLevel: 0.01
+        parentIds: []
     },
     {
         id: 2,
@@ -29,11 +29,10 @@ export const RESEARCH_NODES = [
         baseRpReq: 1000,
         scale: 2.0,
         maxLevel: 10,
-        parentId: 1,
+        parentIds: [1],
         x: -1000,
         y: 1000,
-        icon: 'img/lab_icons/coin_val0.webp',
-        effectPerLevel: 0
+        icon: 'img/lab_icons/coin_val0.webp'
     },
     {
         id: 3,
@@ -42,11 +41,22 @@ export const RESEARCH_NODES = [
         baseRpReq: 1000,
         scale: 2.0,
         maxLevel: 10,
-        parentId: 1,
+        parentIds: [1],
         x: 1000,
         y: 1000,
-        icon: 'img/sc_upg_icons/xp_val1.webp',
-        effectPerLevel: 0
+        icon: 'img/sc_upg_icons/xp_val1.webp'
+    },
+    {
+        id: 4,
+        title: "Unlock Experiment",
+        desc: "Unlocks the Experiment reset",
+        baseRpReq: 1000000,
+        scale: 1.0,
+        maxLevel: 1,
+        x: 0,
+        y: -1000,
+        icon: 'img/misc/experiment.webp',
+        parentIds: [2, 3]
     }
 ];
 
@@ -187,14 +197,22 @@ export function setResearchNodeActive(id, active) {
 export function isResearchNodeVisible(id) {
     const node = RESEARCH_NODES.find(n => n.id === id);
     if (!node) return false;
-    if (!node.parentId) return true; // Root nodes always visible
     
-    // Visible if parent is maxed
-    const parentLevel = getResearchNodeLevel(node.parentId);
-    const parent = RESEARCH_NODES.find(n => n.id === node.parentId);
-    if (!parent) return true; 
+    // Root nodes always visible
+    if (!node.parentIds || node.parentIds.length === 0) return true;
     
-    return parentLevel >= parent.maxLevel;
+    // Visible if ALL parents are maxed
+    for (const parentId of node.parentIds) {
+        const parent = RESEARCH_NODES.find(n => n.id === parentId);
+        if (!parent) continue; // Should probably not happen, but safe to ignore
+        
+        const parentLevel = getResearchNodeLevel(parentId);
+        if (parentLevel < parent.maxLevel) {
+            return false;
+        }
+    }
+    
+    return true;
 }
 
 export function getResearchNodeRequirement(id) {
@@ -219,10 +237,14 @@ export function getResearchNodeRequirement(id) {
 }
 
 export function getTsunamiResearchBonus() {
-    const node = RESEARCH_NODES.find(n => n.id === 1);
     const level = getResearchNodeLevel(1);
-    if (!node) return 0;
-    return level * node.effectPerLevel;
+    if (level <= 0) return 0;
+    // Effect per level is 0.01 (hardcoded for node 1)
+    return level * 0.01;
+}
+
+export function isExperimentUnlocked() {
+    return getResearchNodeLevel(4) >= 1;
 }
 
 export function tickResearch(dt) {
@@ -293,3 +315,4 @@ export function initLabMultipliers() {
         return baseGain.mul(labMult);
     });
 }
+window.RESEARCH_NODES = RESEARCH_NODES; window.isResearchNodeVisible = isResearchNodeVisible;
