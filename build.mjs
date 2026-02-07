@@ -317,6 +317,8 @@ function escapeTemplateNewlines(content) {
   let escaped = false;
   let output = "";
   
+  const stack = [];
+  
   // Track last significant char to distinguish regex from division.
   let lastNonSpaceChar = '';
   let lastWord = "";
@@ -440,6 +442,7 @@ function escapeTemplateNewlines(content) {
         if (ch === "\\") { escaped = true; output += ch; break; }
         if (ch === "`") { state = State.CODE; output += ch; updateLastChar(ch); break; }
         if (ch === "$" && next === "{") { 
+            stack.push({ state: State.TEMPLATE }); // Push current state
             state = State.TEMPLATE_EXPR_CODE; 
             braceDepth = 1; 
             output += "${"; 
@@ -479,13 +482,32 @@ function escapeTemplateNewlines(content) {
         if (ch === "\\") { escaped = true; output += ch; break; }
         if (ch === "'") { state = State.TEMPLATE_EXPR_SINGLE; output += ch; break; }
         if (ch === '"') { state = State.TEMPLATE_EXPR_DOUBLE; output += ch; break; }
-        if (ch === "`") { state = State.TEMPLATE_EXPR_TEMPLATE; output += ch; break; }
+        
+        if (ch === "`") { 
+            stack.push({ state: State.TEMPLATE_EXPR_CODE, braceDepth });
+            state = State.TEMPLATE_EXPR_TEMPLATE; 
+            output += ch; 
+            updateLastChar(ch); 
+            break; 
+        }
+
         if (ch === "{") { braceDepth += 1; output += ch; updateLastChar(ch); break; }
         if (ch === "}") {
           braceDepth -= 1;
           output += ch;
           updateLastChar(ch);
-          if (braceDepth <= 0) state = State.TEMPLATE;
+          if (braceDepth <= 0) {
+              const popped = stack.pop();
+              if (popped) {
+                  state = popped.state;
+                  // If we popped back to CODE, we need to restore braceDepth? 
+                  // No, we are popping back to STRING (TEMPLATE or TEMPLATE_EXPR_TEMPLATE).
+                  // So braceDepth is irrelevant for the new state.
+              } else {
+                  // Fallback if stack empty (unbalanced?)
+                  state = State.TEMPLATE;
+              }
+          }
           break;
         }
         output += ch;
@@ -525,15 +547,22 @@ function escapeTemplateNewlines(content) {
         if (escaped) { escaped = false; output += ch; break; }
         if (ch === "\\") { escaped = true; output += ch; break; }
         if (ch === "`") { 
-            state = State.TEMPLATE_EXPR_CODE; 
+            // Return to previous code state
+            const popped = stack.pop();
+            if (popped) {
+                state = popped.state;
+                braceDepth = popped.braceDepth;
+            } else {
+                 state = State.TEMPLATE_EXPR_CODE;
+            }
             output += ch; 
-            // When returning to code from template, the backtick IS the last char
             updateLastChar(ch); 
             break; 
         }
         if (ch === "$" && next === "{") { 
+            stack.push({ state: State.TEMPLATE_EXPR_TEMPLATE });
             state = State.TEMPLATE_EXPR_CODE; 
-            braceDepth += 1; 
+            braceDepth = 1; 
             output += "${"; 
             i += 1; 
             lastNonSpaceChar = '{';
