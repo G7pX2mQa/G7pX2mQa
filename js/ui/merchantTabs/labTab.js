@@ -420,6 +420,7 @@ class LabSystem {
             ['Zoom In/Out:', 'Pinch screen']
         ] : [
             ['Node Details:', 'Left click'],
+            ['Toggle Node:', 'Right click'],
             ['Move Camera:', 'Left click and drag or WASD'],
             ['Zoom In/Out:', 'Scroll']
         ];
@@ -481,6 +482,7 @@ class LabSystem {
     }
     
     setupInput() {
+        this.addBind(this.canvas, 'contextmenu', (e) => e.preventDefault());
         this.addBind(this.canvas, 'mousedown', this.onMouseDown.bind(this));
         this.addBind(window, 'mousemove', this.onMouseMove.bind(this));
         this.addBind(window, 'mouseup', this.onMouseUp.bind(this));
@@ -1129,7 +1131,43 @@ class LabSystem {
 
     // -- Input Handlers --
     
+    handleRightClick(x, y) {
+        const rect = this.canvas.getBoundingClientRect();
+        const mx = x - rect.left;
+        const my = y - rect.top;
+        const wx = this.camX + (mx - this.width/2) / this.zoom;
+        const wy = this.camY + (my - this.height/2) / this.zoom;
+        
+        const clickRadius = (512 / 2) * 1.6;
+        
+        for (const node of RESEARCH_NODES) {
+            if (!isResearchNodeVisible(node.id)) continue;
+            
+            const pos = this.getNodePosition(node);
+            const dx = wx - pos.x;
+            const dy = wy - pos.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if (dist <= clickRadius) {
+                 const level = getResearchNodeLevel(node.id);
+                 if (level >= node.maxLevel) return;
+
+                 const active = isResearchNodeActive(node.id);
+                 setResearchNodeActive(node.id, !active);
+
+                 if (this.activeOverlayId === node.id) {
+                     this.updateNodeOverlay();
+                 }
+                 return;
+            }
+        }
+    }
+
     onMouseDown(e) {
+        if (e.button === 2) {
+            this.handleRightClick(e.clientX, e.clientY);
+            return;
+        }
         if (e.button !== 0) return;
         this.isDragging = true;
         this.dragStart = { x: e.clientX, y: e.clientY };
