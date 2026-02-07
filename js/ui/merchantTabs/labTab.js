@@ -869,7 +869,9 @@ class LabSystem {
                  ctx.lineWidth = Math.max(0.5, barHeight * 0.08); 
                  
                  let text = `Level ${nodeLevel}`;
-                 if (isMaxed) text = 'MAXED';
+                 if (isMaxed) {
+                     text = node.maxLevel === 1 ? 'UNLOCKED' : 'MAXED';
+                 }
 
                  const metrics = ctx.measureText(text);
                  const textY = barY + barHeight / 2 + (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent) / 2;
@@ -1111,7 +1113,8 @@ class LabSystem {
         const isMaxed = level >= node.maxLevel;
         
         if (isMaxed) {
-             this.overlayLevel.textContent = `Level ${level} / ${node.maxLevel} (MAXED)`;
+             const statusText = node.maxLevel === 1 ? '(UNLOCKED)' : '(MAXED)';
+             this.overlayLevel.textContent = `Level ${level} / ${node.maxLevel} ${statusText}`;
              this.overlayActiveStatus.style.display = 'none';
              this.overlayProgress.style.display = 'none';
              if (this.overlayToggleBtn) this.overlayToggleBtn.style.display = 'none';
