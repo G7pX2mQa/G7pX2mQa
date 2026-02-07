@@ -279,6 +279,8 @@ export function updateLabTab() {
   }
 }
 
+const NODE_IMG_SIZE = 512 * 0.95;
+
 class LabSystem {
     constructor(container) {
         this.container = container;
@@ -734,7 +736,7 @@ class LabSystem {
         ctx.stroke();
 
         // --- Draw Nodes ---
-        const imgSize = 512;
+        const imgSize = NODE_IMG_SIZE;
         const imgScreenSize = imgSize * z;
         const baseSize = imgSize * 1.6;
         const baseScreenSize = baseSize * z;
@@ -947,7 +949,7 @@ class LabSystem {
         const wy = this.camY + (my - this.height/2) / this.zoom;
         
         // Check for node click
-        const clickRadius = (512 / 2) * 1.6; // Base size radius in world units
+        const clickRadius = (NODE_IMG_SIZE / 2) * 1.6; // Base size radius in world units
         
         for (const node of RESEARCH_NODES) {
             if (!isResearchNodeVisible(node.id)) continue;
@@ -1135,7 +1137,7 @@ class LabSystem {
         const wx = this.camX + (mx - this.width/2) / this.zoom;
         const wy = this.camY + (my - this.height/2) / this.zoom;
         
-        const clickRadius = (512 / 2) * 1.6;
+        const clickRadius = (NODE_IMG_SIZE / 2) * 1.6;
         
         for (const node of RESEARCH_NODES) {
             if (!isResearchNodeVisible(node.id)) continue;
@@ -1193,7 +1195,7 @@ class LabSystem {
         const wy = this.camY + (my - this.height/2) / this.zoom;
 
         let hovering = false;
-        const clickRadius = (512 / 2) * 1.6;
+        const clickRadius = (NODE_IMG_SIZE / 2) * 1.6;
         for (const node of RESEARCH_NODES) {
             if (!isResearchNodeVisible(node.id)) continue;
             
