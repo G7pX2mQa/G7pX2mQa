@@ -571,6 +571,11 @@ images: [
   'img/currencies/coin/coin_base.webp',
   'img/currencies/coin/coin_plus_base.webp',
 
+  // ==== img/currencies/dna ====
+  'img/currencies/dna/dna.webp',
+  'img/currencies/dna/dna_base.webp',
+  'img/currencies/dna/dna_plus_base.webp',
+
   // ==== img/currencies/gear ====
   'img/currencies/gear/gear.webp',
   'img/currencies/gear/gear_base.webp',
@@ -592,6 +597,8 @@ images: [
   'img/currencies/wave/wave_plus_base.webp',
 
   // ==== img/misc ====
+  'img/misc/experiment.webp',
+  'img/misc/experiment_plus_base.webp',
   'img/misc/forge.webp',
   'img/misc/forge_plus_base.webp',
   'img/misc/infuse.webp',
