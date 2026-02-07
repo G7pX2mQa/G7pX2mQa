@@ -561,6 +561,19 @@ class LabSystem {
         } else {
             this.returnBtn.style.display = 'none';
         }
+
+        // Hard limits to prevent crashes (although loop protection should handle rendering)
+        const MAX_COORD = 1e25;
+        const MAX_ZOOM = 1e25;
+        const MIN_ZOOM = 1e-15;
+
+        if (this.camX > MAX_COORD) this.camX = MAX_COORD;
+        if (this.camX < -MAX_COORD) this.camX = -MAX_COORD;
+        if (this.camY > MAX_COORD) this.camY = MAX_COORD;
+        if (this.camY < -MAX_COORD) this.camY = -MAX_COORD;
+        
+        if (this.zoom > MAX_ZOOM) this.zoom = MAX_ZOOM;
+        if (this.zoom < MIN_ZOOM) this.zoom = MIN_ZOOM;
     }
     
     update(dt) {
@@ -661,6 +674,9 @@ class LabSystem {
             if ((endX - startX) / gridUnit > 1000) return; 
 
             for (let x = startX; x <= endX; x += gridUnit) {
+                // Safeguard against infinite loops due to precision loss
+                if (x + gridUnit <= x) break;
+                
                 const sx = (x - this.camX) * z + w/2;
                 ctx.moveTo(sx, 0);
                 ctx.lineTo(sx, h);
@@ -668,6 +684,9 @@ class LabSystem {
             const startY = Math.floor((this.camY - (h/2)/z) / gridUnit) * gridUnit;
             const endY = Math.ceil((this.camY + (h/2)/z) / gridUnit) * gridUnit;
             for (let y = startY; y <= endY; y += gridUnit) {
+                // Safeguard against infinite loops due to precision loss
+                if (y + gridUnit <= y) break;
+
                 const sy = (y - this.camY) * z + h/2;
                 ctx.moveTo(0, sy);
                 ctx.lineTo(w, sy);
@@ -1232,6 +1251,7 @@ class LabSystem {
         const oldZoom = this.zoom;
         let newZoom = oldZoom * (1 + delta);
         
+        // Let checkBounds handle clamping
         if (newZoom < Number.MIN_VALUE) newZoom = Number.MIN_VALUE;
         if (newZoom > Number.MAX_VALUE) newZoom = Number.MAX_VALUE;
         
@@ -1291,7 +1311,7 @@ class LabSystem {
                 
                 const oldZoom = this.zoom;
                 let newZoom = oldZoom * scale;
-                // Infinite zoom
+                // Infinite zoom (clamped by checkBounds)
                 if (newZoom < Number.MIN_VALUE) newZoom = Number.MIN_VALUE;
                 if (newZoom > Number.MAX_VALUE) newZoom = Number.MAX_VALUE;
                 
