@@ -715,7 +715,7 @@ class LabSystem {
 
         // --- Draw Connections ---
         ctx.strokeStyle = '#2a5298'; // Dark blue
-        ctx.lineWidth = 10 * z;
+        ctx.lineWidth = 20 * z;
         ctx.lineCap = 'round';
         ctx.beginPath();
         
