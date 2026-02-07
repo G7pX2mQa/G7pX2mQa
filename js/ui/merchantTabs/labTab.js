@@ -22,6 +22,10 @@ import {
 import { setupDragToClose } from '../shopOverlay.js';
 import { formatMultForUi } from '../../game/upgrades.js';
 
+const CAM_MAX_COORD = 1e308;
+const CAM_MAX_ZOOM = 1e300;
+const CAM_MIN_ZOOM = 1e-300;
+
 const LAB_VISITED_KEY = (slot) => `ccc:lab:visited:${slot}`;
 const LAB_LEVEL_KEY = (slot) => `ccc:lab:level:${slot}`;
 
@@ -563,17 +567,13 @@ class LabSystem {
         }
 
         // Hard limits to prevent crashes (although loop protection should handle rendering)
-        const MAX_COORD = 1e25;
-        const MAX_ZOOM = 1e25;
-        const MIN_ZOOM = 1e-15;
-
-        if (this.camX > MAX_COORD) this.camX = MAX_COORD;
-        if (this.camX < -MAX_COORD) this.camX = -MAX_COORD;
-        if (this.camY > MAX_COORD) this.camY = MAX_COORD;
-        if (this.camY < -MAX_COORD) this.camY = -MAX_COORD;
+        if (this.camX > CAM_MAX_COORD) this.camX = CAM_MAX_COORD;
+        if (this.camX < -CAM_MAX_COORD) this.camX = -CAM_MAX_COORD;
+        if (this.camY > CAM_MAX_COORD) this.camY = CAM_MAX_COORD;
+        if (this.camY < -CAM_MAX_COORD) this.camY = -CAM_MAX_COORD;
         
-        if (this.zoom > MAX_ZOOM) this.zoom = MAX_ZOOM;
-        if (this.zoom < MIN_ZOOM) this.zoom = MIN_ZOOM;
+        if (this.zoom > CAM_MAX_ZOOM) this.zoom = CAM_MAX_ZOOM;
+        if (this.zoom < CAM_MIN_ZOOM) this.zoom = CAM_MIN_ZOOM;
     }
     
     update(dt) {
@@ -1257,9 +1257,9 @@ class LabSystem {
         const oldZoom = this.zoom;
         let newZoom = oldZoom * (1 + delta);
         
-        // Let checkBounds handle clamping
-        if (newZoom < Number.MIN_VALUE) newZoom = Number.MIN_VALUE;
-        if (newZoom > Number.MAX_VALUE) newZoom = Number.MAX_VALUE;
+        // Clamp newZoom immediately to prevent camera drift at limits
+        if (newZoom < CAM_MIN_ZOOM) newZoom = CAM_MIN_ZOOM;
+        if (newZoom > CAM_MAX_ZOOM) newZoom = CAM_MAX_ZOOM;
         
         const rect = this.canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
@@ -1317,9 +1317,9 @@ class LabSystem {
                 
                 const oldZoom = this.zoom;
                 let newZoom = oldZoom * scale;
-                // Infinite zoom (clamped by checkBounds)
-                if (newZoom < Number.MIN_VALUE) newZoom = Number.MIN_VALUE;
-                if (newZoom > Number.MAX_VALUE) newZoom = Number.MAX_VALUE;
+                // Clamp newZoom immediately to prevent camera drift at limits
+                if (newZoom < CAM_MIN_ZOOM) newZoom = CAM_MIN_ZOOM;
+                if (newZoom > CAM_MAX_ZOOM) newZoom = CAM_MAX_ZOOM;
                 
                 const center = this.getTouchCenter(e.touches);
                 const rect = this.canvas.getBoundingClientRect();
