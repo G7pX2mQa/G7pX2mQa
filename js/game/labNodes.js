@@ -13,7 +13,7 @@ export const RESEARCH_NODES = [
     {
         id: 1,
         title: "Tsunami Exponent Restoration",
-        desc: "Increases Tsunami exponent by +0.01 per level",
+        desc: "Increases the Tsunami exponent by +0.01 per level",
         baseRpReq: 10,
         scale: 2.0,
         maxLevel: 10,
@@ -165,6 +165,14 @@ export function setResearchNodeActive(id, active) {
     const slot = getActiveSlot();
     if (slot == null) return;
     
+    if (active) {
+        RESEARCH_NODES.forEach(n => {
+            if (n.id !== id && isResearchNodeActive(n.id)) {
+                setResearchNodeActive(n.id, false);
+            }
+        });
+    }
+
     const s = ensureNodeState(id);
     s.active = !!active;
     
