@@ -1,6 +1,6 @@
 import { BigNum } from '../util/bigNum.js';
 import { getActiveSlot, isStorageKeyLocked } from '../util/storage.js';
-import { getLabLevel, getRpMult } from '../ui/merchantTabs/labTab.js';
+import { getLabLevel, setLabLevel, getRpMult } from '../ui/merchantTabs/labTab.js';
 import { 
     addExternalCoinMultiplierProvider, 
     addExternalXpGainMultiplierProvider,
@@ -11,6 +11,7 @@ import {
 export const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
 export const NODE_RP_KEY = (slot, id) => `ccc:lab:node:rp:${id}:${slot}`;
 const NODE_ACTIVE_KEY = (slot, id) => `ccc:lab:node:active:${id}:${slot}`;
+const NODE_DISCOVERED_KEY = (slot, id) => `ccc:lab:node:discovered:${id}:${slot}`;
 
 // --- Constants ---
 export const RESEARCH_NODES = [
@@ -74,7 +75,8 @@ function ensureNodeState(id) {
         labState.nodes[id] = {
             rp: BigNum.fromInt(0),
             level: 0,
-            active: false
+            active: false,
+            discovered: false
         };
     }
     return labState.nodes[id];
@@ -91,10 +93,14 @@ function loadNodeState(slot, id) {
         
         const act = localStorage.getItem(NODE_ACTIVE_KEY(slot, id));
         s.active = act === '1';
+
+        const disc = localStorage.getItem(NODE_DISCOVERED_KEY(slot, id));
+        s.discovered = disc === '1';
     } catch {
         s.level = 0;
         s.rp = BigNum.fromInt(0);
         s.active = false;
+        s.discovered = false;
     }
 }
 
@@ -196,14 +202,34 @@ export function setResearchNodeActive(id, active) {
     } catch {}
 }
 
+export function setResearchNodeDiscovered(id, discovered) {
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    
+    const s = ensureNodeState(id);
+    if (s.discovered === !!discovered) return;
+    
+    s.discovered = !!discovered;
+    try {
+        localStorage.setItem(NODE_DISCOVERED_KEY(slot, id), s.discovered ? '1' : '0');
+    } catch {}
+}
+
 // --- Logic ---
 
 export function isResearchNodeVisible(id) {
     const node = RESEARCH_NODES.find(n => n.id === id);
     if (!node) return false;
     
+    // Check persistent discovery state
+    const s = ensureNodeState(id);
+    if (s.discovered) return true;
+    
     // Root nodes always visible
-    if (!node.parentIds || node.parentIds.length === 0) return true;
+    if (!node.parentIds || node.parentIds.length === 0) {
+        setResearchNodeDiscovered(id, true);
+        return true;
+    }
     
     // Visible if ALL parents are maxed
     for (const parentId of node.parentIds) {
@@ -216,6 +242,7 @@ export function isResearchNodeVisible(id) {
         }
     }
     
+    setResearchNodeDiscovered(id, true);
     return true;
 }
 
@@ -249,6 +276,25 @@ export function getTsunamiResearchBonus() {
 
 export function isExperimentUnlocked() {
     return getResearchNodeLevel(4) >= 1;
+}
+
+export function resetLab(exceptions = []) {
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    
+    // Reset Lab Level
+    try {
+        setLabLevel(0);
+    } catch {}
+
+    // Reset Nodes
+    RESEARCH_NODES.forEach(node => {
+        if (exceptions.includes(node.id)) return;
+        
+        setResearchNodeLevel(node.id, 0);
+        setResearchNodeRp(node.id, BigNum.fromInt(0));
+        setResearchNodeActive(node.id, false);
+    });
 }
 
 export function tickResearch(dt) {
