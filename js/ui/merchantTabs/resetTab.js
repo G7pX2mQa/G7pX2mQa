@@ -47,7 +47,8 @@ import {
 } from '../../game/surgeEffects.js';
 import { 
     getTsunamiResearchBonus,
-    isExperimentUnlocked as isLabExperimentUnlocked 
+    isExperimentUnlocked as isLabExperimentUnlocked,
+    resetLab
 } from '../../game/labNodes.js';
 import { getLabLevel } from './labTab.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
@@ -70,9 +71,12 @@ const WAVES_ICON_SRC = 'img/currencies/wave/wave.webp';
 const FORGE_RESET_SOUND_SRC = 'sounds/forge_reset.ogg';
 const INFUSE_RESET_SOUND_SRC = 'sounds/infuse_reset.ogg';
 const SURGE_RESET_SOUND_SRC = 'sounds/surge_reset.ogg';
+const EXPERIMENT_RESET_SOUND_SRC = 'sounds/experiment_reset.ogg';
 
 // Add reset names here (e.g. 'forge', 'infuse', 'surge') to exclude them from wiping the playfield
 const RESET_WIPE_EXCLUSIONS = [];
+
+const MIN_EXPERIMENT_DNA = BN.fromAny('99999999999999');
 
 function shouldWipePlayfield(resetType) {
   return !RESET_WIPE_EXCLUSIONS.includes(resetType);
@@ -88,6 +92,10 @@ function playInfuseResetSound() {
 
 function playSurgeResetSound() {
   playAudio(SURGE_RESET_SOUND_SRC, { volume: 0.5 });
+}
+
+function playExperimentResetSound() {
+  playAudio(EXPERIMENT_RESET_SOUND_SRC, { volume: 0.5 });
 }
 
 const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
@@ -838,13 +846,34 @@ function recomputePendingDna() {
         resetState.pendingDna = bnZero();
         return;
     }
-    // Placeholder formula: Lab Level + XP Level
+    // Formula: 2^labLevel * 2^(xpLevel/20)
     const labLevel = getLabLevel ? getLabLevel() : bnZero();
     const xpLevel = getXpLevelBn();
     try {
-        resetState.pendingDna = labLevel.add(xpLevel);
-    } catch {
-        resetState.pendingDna = bnZero();
+        const labFactor = labLevel.mulDecimal('0.30103', 18);
+        const xpTerm = xpLevel.div(BigNum.fromInt(20));
+        const xpFactor = xpTerm.mulDecimal('0.30103', 18);
+        
+        const totalLog10 = labFactor.add(xpFactor);
+        
+        let logVal = 0;
+        if (totalLog10.isInfinite()) {
+             logVal = Infinity;
+        } else {
+             // toScientific returns string, Number() parses it.
+             logVal = Number(totalLog10.toScientific(10));
+        }
+        
+        resetState.pendingDna = bigNumFromLog10(logVal).floorToInteger();
+    } catch (e) {
+        // Fallback for extreme values or errors
+        // Simplified fallback: 2^labLevel
+        try {
+             // If calculation fails, assume 0 for safety
+             resetState.pendingDna = bnZero();
+        } catch {
+             resetState.pendingDna = bnZero();
+        }
     }
 }
 
@@ -1072,6 +1101,47 @@ function applySurgeResetLogic(rewardWaves, { playEffects = true, skipVisuals = f
   }
   
   updateResetPanel();
+}
+
+function performExperimentReset() {
+    if (!isExperimentUnlocked()) return false;
+    
+    // Check Requirements
+    const labLevel = getLabLevel ? getLabLevel() : bnZero();
+    if (labLevel.cmp(10) < 0) return false;
+    
+    const reward = resetState.pendingDna.clone?.() ?? resetState.pendingDna;
+    if (reward.cmp(MIN_EXPERIMENT_DNA) < 0) return false;
+    
+    // Grant DNA
+    try {
+        if (bank.DNA?.add) {
+            bank.DNA.add(reward);
+        }
+    } catch {}
+    
+    // Trigger Surge Reset Logic (wipes everything Surge does)
+    // Pass 0 waves because we aren't giving waves, just using the wipe mechanic
+    applySurgeResetLogic(bnZero(), { playEffects: false });
+    
+    playExperimentResetSound();
+
+    // Wipe Lab (except node 4)
+    resetLab([4]);
+    
+    // Set Completed Flag
+    if (!resetState.hasDoneExperimentReset) {
+        setExperimentResetCompleted(true);
+    }
+    
+    // Update UI
+    recomputePendingGold();
+    recomputePendingMagic();
+    recomputePendingWaves();
+    recomputePendingDna();
+    updateResetPanel();
+    
+    return true;
 }
 
 let tsunamiCleanup = null;
@@ -1629,8 +1699,6 @@ function buildPanel(panelEl) {
     });
   }
 
-  // Experiment button handler pending actual functionality
-  /*
   if (resetState.elements.experiment.btn) {
     resetState.elements.experiment.btn.addEventListener('click', () => {
        if (performExperimentReset()) {
@@ -1638,7 +1706,6 @@ function buildPanel(panelEl) {
        }
     });
   }
-  */
 
   updateResetPanel();
 }
@@ -2056,6 +2123,20 @@ function updateExperimentCard() {
       }
   }
 
+  // Priority 1: Lab Level 10
+  const labLevel = getLabLevel ? getLabLevel() : bnZero();
+  if (labLevel.cmp(10) < 0) {
+      updateResetButtonContent(el.btn, { disabled: true, msg: 'Reach Lab Level 10 to perform an Experiment reset' });
+      return;
+  }
+
+  // Priority 2: DNA Requirement
+  const pending = resetState.pendingDna;
+  if (pending.cmp(MIN_EXPERIMENT_DNA) < 0) {
+      updateResetButtonContent(el.btn, { disabled: true, msg: `Reach ${formatBn(MIN_EXPERIMENT_DNA)} pending DNA to perform an Experiment reset` });
+      return;
+  }
+
   updateResetButtonContent(el.btn, { disabled: false }, DNA_ICON_SRC, resetState.pendingDna);
 }
 
@@ -2195,6 +2276,13 @@ function bindGlobalEvents() {
     recomputePendingDna();
     updateResetPanel();
   });
+  window.addEventListener('lab:level:change', () => {
+      recomputePendingDna();
+      updateResetPanel();
+  });
+  window.addEventListener('lab:node:change', () => {
+      updateResetPanel();
+  });
 }
 
 export function initResetSystem() {
@@ -2276,6 +2364,7 @@ if (typeof window !== 'undefined') {
     performForgeReset,
     performInfuseReset,
     performSurgeReset,
+    performExperimentReset,
     computePendingForgeGold,
     computeForgeGoldFromInputs,
     computeInfuseMagicFromInputs,
