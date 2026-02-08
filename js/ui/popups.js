@@ -6,7 +6,7 @@ import { CURRENCIES, isCurrencyLocked, isStorageKeyLocked, getActiveSlot, getCur
 
 const DEFAULT_DURATION = 6767;
 
-const POPUP_ORDER = ['coins', 'xp', 'books', 'gold', 'mp', 'magic', 'gears'];
+const POPUP_ORDER = ['coins', 'xp', 'books', 'gold', 'mp', 'magic', 'gears', 'dna'];
 
 const POPUP_META = {
   [CURRENCIES.COINS]: {
@@ -36,6 +36,10 @@ const POPUP_META = {
   [CURRENCIES.GEARS]: {
     icon: 'img/currencies/gear/gear.webp',
     iconAlt: 'Gears',
+  },
+  [CURRENCIES.DNA]: {
+    icon: 'img/currencies/dna/dna.webp',
+    iconAlt: 'DNA',
   },
 };
 
