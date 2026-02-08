@@ -45,7 +45,11 @@ import {
   getTsunamiSequenceSeen,
   setTsunamiSequenceSeen
 } from '../../game/surgeEffects.js';
-import { getTsunamiResearchBonus } from '../../game/labNodes.js';
+import { 
+    getTsunamiResearchBonus,
+    isExperimentUnlocked as isLabExperimentUnlocked 
+} from '../../game/labNodes.js';
+import { getLabLevel } from './labTab.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 
@@ -57,9 +61,11 @@ const bnOne = () => BN.fromInt(1);
 
 const GOLD_ICON_SRC = 'img/currencies/gold/gold.webp';
 const MAGIC_ICON_SRC = 'img/currencies/magic/magic.webp';
+const DNA_ICON_SRC = 'img/currencies/dna/dna.webp';
 const RESET_ICON_SRC = 'img/misc/forge.webp';
 const INFUSE_ICON_SRC = 'img/misc/infuse.webp';
 const SURGE_ICON_SRC = 'img/misc/surge.webp';
+const EXPERIMENT_ICON_SRC = 'img/misc/experiment.webp';
 const WAVES_ICON_SRC = 'img/currencies/wave/wave.webp';
 const FORGE_RESET_SOUND_SRC = 'sounds/forge_reset.ogg';
 const INFUSE_RESET_SOUND_SRC = 'sounds/infuse_reset.ogg';
@@ -97,6 +103,8 @@ const SURGE_DEBUG_OVERRIDE_KEY = (slot) => `ccc:debug:surgeUnlocked:${slot}`;
 const SURGE_COMPLETED_KEY = (slot) => `ccc:reset:surge:completed:${slot}`;
 export const getSurgeBarLevelKey = (slot) => `ccc:reset:surge:barLevel:${slot}`;
 const SURGE_BAR_LEVEL_KEY = getSurgeBarLevelKey;
+
+const EXPERIMENT_COMPLETED_KEY = (slot) => `ccc:reset:experiment:completed:${slot}`;
 
 const MIN_FORGE_LEVEL = BN.fromInt(31);
 const MIN_INFUSE_MUTATION_LEVEL = BN.fromInt(7);
@@ -136,9 +144,11 @@ const resetState = {
   surgeUnlocked: false,
   surgeDebugOverride: null,
   hasDoneSurgeReset: false,
+  hasDoneExperimentReset: false,
   pendingGold: bnZero(),
   pendingMagic: bnZero(),
   pendingWaves: bnZero(),
+  pendingDna: bnZero(),
   panel: null,
   elements: {
     forge: {
@@ -160,6 +170,11 @@ const resetState = {
       barText: null,
       milestones: null,
       headerVal: null,
+    },
+    experiment: {
+      card: null,
+      status: null,
+      btn: null,
     },
   },
   layerButtons: {},
@@ -241,6 +256,7 @@ function ensureValueListeners() {
       if (detail?.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
       recomputePendingGold();
       recomputePendingWaves();
+      recomputePendingDna();
       updateResetPanel();
     });
   }
@@ -438,6 +454,16 @@ export function setSurgeResetCompleted(value) {
   catch {}
 }
 
+export function setExperimentResetCompleted(value) {
+  const slot = ensureResetSlot();
+  if (slot == null) return;
+  resetState.hasDoneExperimentReset = !!value;
+  try { localStorage.setItem(EXPERIMENT_COMPLETED_KEY(slot), resetState.hasDoneExperimentReset ? '1' : '0'); }
+  catch {}
+  try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'experiment_completed', slot } })); }
+  catch {}
+}
+
 function getForgeDebugOverride(slot = getActiveSlot()) {
   if (slot == null) return null;
   try {
@@ -571,6 +597,7 @@ function readPersistentFlags(slot) {
     resetState.surgeUnlocked = false;
     resetState.surgeDebugOverride = null;
     resetState.hasDoneSurgeReset = false;
+    resetState.hasDoneExperimentReset = false;
     resetState.flagsPrimed = false;
     return;
   }
@@ -607,6 +634,11 @@ function readPersistentFlags(slot) {
     resetState.hasDoneSurgeReset = localStorage.getItem(SURGE_COMPLETED_KEY(slot)) === '1';
   } catch {
     resetState.hasDoneSurgeReset = false;
+  }
+  try {
+    resetState.hasDoneExperimentReset = localStorage.getItem(EXPERIMENT_COMPLETED_KEY(slot)) === '1';
+  } catch {
+    resetState.hasDoneExperimentReset = false;
   }
 
   resetState.flagsPrimed = true;
@@ -726,6 +758,15 @@ function bindStorageWatchers(slot) {
       }
     },
   }));
+  watchers.push(watchStorageKey(EXPERIMENT_COMPLETED_KEY(slot), {
+    onChange(value) {
+      const next = value === '1';
+      if (resetState.hasDoneExperimentReset !== next) {
+        resetState.hasDoneExperimentReset = next;
+        updateResetPanel();
+      }
+    },
+  }));
 }
 
 function getPendingInputSignature(coins, level) {
@@ -772,6 +813,7 @@ export function recomputePendingMagic(multiplierOverride = null) {
 function recomputePendingWaves() {
   if (!isSurgeUnlocked()) {
     resetState.pendingWaves = bnZero();
+    recomputePendingDna();
     return;
   }
   const xpLevel = getXpLevelBn();
@@ -787,7 +829,23 @@ function recomputePendingWaves() {
       resetState.pendingWaves = BN.fromInt(10);
     }
   }
+  recomputePendingDna();
   updateBlockBigCoinsStatus();
+}
+
+function recomputePendingDna() {
+    if (!isExperimentUnlocked()) {
+        resetState.pendingDna = bnZero();
+        return;
+    }
+    // Placeholder formula: Lab Level + XP Level
+    const labLevel = getLabLevel ? getLabLevel() : bnZero();
+    const xpLevel = getXpLevelBn();
+    try {
+        resetState.pendingDna = labLevel.add(xpLevel);
+    } catch {
+        resetState.pendingDna = bnZero();
+    }
 }
 
 function canAccessForgeTab() {
@@ -837,6 +895,10 @@ export function isSurgeUnlocked() {
   return !!resetState.surgeUnlocked;
 }
 
+export function isExperimentUnlocked() {
+    return isLabExperimentUnlocked();
+}
+
 export function getCurrentSurgeLevel() {
   const slot = ensureResetSlot();
   if (slot == null) return 0n;
@@ -856,6 +918,11 @@ export function hasDoneInfuseReset() {
 export function hasDoneSurgeReset() {
   ensurePersistentFlagsPrimed();
   return !!resetState.hasDoneSurgeReset;
+}
+
+export function hasDoneExperimentReset() {
+  ensurePersistentFlagsPrimed();
+  return !!resetState.hasDoneExperimentReset;
 }
 
 export function computePendingForgeGold() {
@@ -1305,6 +1372,10 @@ function buildPanel(panelEl) {
           <img src="${SURGE_ICON_SRC}" alt="">
           <span>Surge</span>
         </button>
+        <button type="button" class="merchant-reset__layer" data-reset-layer="experiment" style="display:none">
+          <img src="${EXPERIMENT_ICON_SRC}" alt="">
+          <span>Experiment</span>
+        </button>
       </aside>
       
       <div class="merchant-reset__list">
@@ -1417,6 +1488,37 @@ function buildPanel(panelEl) {
             </div>
           </div>
         </div>
+
+        <!-- EXPERIMENT CARD -->
+        <div class="merchant-reset__card merchant-reset__main is-experiment" id="reset-card-experiment" style="display:none">
+          <div class="merchant-reset__layout">
+            <header class="merchant-reset__header">
+              <div class="merchant-reset__titles">
+                <h3>Experiment</h3>
+              </div>
+            </header>
+
+            <div class="merchant-reset__content">
+              <div class="merchant-reset__titles">
+                <p data-reset-desc="experiment">
+                  Resets everything Surge does as well as the entire Lab for DNA<br>
+                  Increase pending DNA amount by increasing Lab Level and XP Level
+                </p>
+              </div>
+              <div class="merchant-reset__status" data-reset-status="experiment"></div>
+            </div>
+
+            <div class="merchant-reset__actions">
+              <button type="button" class="merchant-reset__action" data-reset-action="experiment">
+                <span class="merchant-reset__action-plus">+</span>
+                <span class="merchant-reset__action-icon">
+                  <img src="${DNA_ICON_SRC}" alt="">
+                </span>
+                <span class="merchant-reset__action-amount" data-reset-pending="experiment">0</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="merchant-reset__spacer"></div>
@@ -1446,6 +1548,11 @@ function buildPanel(panelEl) {
   resetState.elements.surge.headerVal = panelEl.querySelector('[data-surge-level]');
   resetState.elements.surge.header = panelEl.querySelector('.surge-header');
 
+  // Bind Experiment Elements
+  resetState.elements.experiment.card = panelEl.querySelector('#reset-card-experiment');
+  resetState.elements.experiment.status = panelEl.querySelector('[data-reset-status="experiment"]');
+  resetState.elements.experiment.btn = panelEl.querySelector('[data-reset-action="experiment"]');
+
   const surgeWrapper = panelEl.querySelector('.surge-milestone-wrapper');
   if (resetState.elements.surge.milestones && surgeWrapper) {
       ensureCustomScrollbar(
@@ -1461,6 +1568,7 @@ function buildPanel(panelEl) {
     forge: panelEl.querySelector('[data-reset-layer="forge"]'),
     infuse: panelEl.querySelector('[data-reset-layer="infuse"]'),
     surge: panelEl.querySelector('[data-reset-layer="surge"]'),
+    experiment: panelEl.querySelector('[data-reset-layer="experiment"]'),
   };
   
   // Sidebar Click Handlers (Scroll)
@@ -1520,6 +1628,17 @@ function buildPanel(panelEl) {
        }
     });
   }
+
+  // Experiment button handler pending actual functionality
+  /*
+  if (resetState.elements.experiment.btn) {
+    resetState.elements.experiment.btn.addEventListener('click', () => {
+       if (performExperimentReset()) {
+         updateResetPanel();
+       }
+    });
+  }
+  */
 
   updateResetPanel();
 }
@@ -1903,11 +2022,49 @@ function updateSurgeCard() {
   updateResetButtonContent(el.btn, { disabled: false }, WAVES_ICON_SRC, resetState.pendingWaves);
 }
 
+function updateExperimentCard() {
+  const el = resetState.elements.experiment;
+  if (!el.card || !el.btn) return;
+
+  if (!isExperimentUnlocked()) {
+    if (el.card.style.display !== 'none') el.card.style.display = 'none';
+    if (resetState.layerButtons.experiment && resetState.layerButtons.experiment.style.display !== 'none') {
+        resetState.layerButtons.experiment.style.display = 'none';
+    }
+    return;
+  }
+
+  if (el.card.style.display !== 'flex') el.card.style.display = 'flex';
+  if (resetState.layerButtons.experiment && resetState.layerButtons.experiment.style.display !== 'flex') {
+      resetState.layerButtons.experiment.style.display = 'flex';
+  }
+
+  ensurePersistentFlagsPrimed();
+  
+  el.card.classList.toggle('is-complete', !!resetState.hasDoneExperimentReset);
+
+  if (el.status) {
+      if (resetState.hasDoneExperimentReset) {
+        if (el.status.innerHTML !== '') el.status.innerHTML = '';
+      } else {
+         const expected = `
+          <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+            Experimenting for the first time will unlock new Lab nodes
+          </span>
+         `.trim();
+         if (el.status.innerHTML !== expected) el.status.innerHTML = expected;
+      }
+  }
+
+  updateResetButtonContent(el.btn, { disabled: false }, DNA_ICON_SRC, resetState.pendingDna);
+}
+
 export function updateResetPanel({ goldMult = null } = {}) {
   if (!resetState.panel) return;
   updateForgeCard({ goldMult });
   updateInfuseCard();
   updateSurgeCard();
+  updateExperimentCard();
 }
 
 export function onForgeUpgradeUnlocked() {
@@ -2021,6 +2178,7 @@ function bindGlobalEvents() {
   window.addEventListener('xp:change', () => {
     recomputePendingGold();
     recomputePendingWaves();
+    recomputePendingDna();
     updateResetPanel();
   });
   window.addEventListener('mutation:change', () => {
@@ -2034,6 +2192,7 @@ function bindGlobalEvents() {
     recomputePendingGold(true);
     recomputePendingMagic();
     recomputePendingWaves();
+    recomputePendingDna();
     updateResetPanel();
   });
 }
@@ -2046,6 +2205,7 @@ export function initResetSystem() {
     recomputePendingGold(true);
     recomputePendingMagic();
     recomputePendingWaves();
+    recomputePendingDna();
     return;
   }
   
@@ -2075,6 +2235,7 @@ export function initResetSystem() {
   recomputePendingGold(true);
   recomputePendingMagic();
   recomputePendingWaves();
+  recomputePendingDna();
   if (mutationUnsub) {
     try { mutationUnsub(); } catch {}
     mutationUnsub = null;
@@ -2102,6 +2263,7 @@ export function initResetSystem() {
       recomputePendingGold(true);
       recomputePendingMagic();
       recomputePendingWaves();
+      recomputePendingDna();
       updateResetPanel();
     });
   }
@@ -2138,5 +2300,8 @@ if (typeof window !== 'undefined') {
     hasDoneSurgeReset,
     getCurrentSurgeLevel,
     shouldBlockBigCoins,
+    hasDoneExperimentReset,
+    setExperimentResetCompleted,
+    isExperimentUnlocked,
   });
 }
