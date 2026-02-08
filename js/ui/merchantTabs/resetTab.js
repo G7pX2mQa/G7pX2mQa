@@ -36,7 +36,7 @@ import {
 import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 import { clearPendingGains } from '../../game/coinPickup.js';
 import { getVisibleMilestones, NERFED_SURGE_MILESTONE_IDS } from '../../game/surgeMilestones.js';
-import { ensureCustomScrollbar, closeShop } from '../shopOverlay.js';
+import { ensureCustomScrollbar, closeShop, openShop } from '../shopOverlay.js';
 import { playAudio } from '../../util/audioManager.js';
 import { 
   getBookProductionRate, 
@@ -1572,10 +1572,12 @@ function buildPanel(panelEl) {
               <div class="merchant-reset__titles">
                 <p data-reset-desc="experiment">
                   Resets everything Surge does as well as the entire Lab for DNA<br>
-                  Increase pending DNA amount by increasing Lab Level and XP Level
+                  Increase pending DNA amount by increasing Lab Level and XP Level<br>
+                  Click on the Upgrades button below to access DNA upgrades
                 </p>
               </div>
               <div class="merchant-reset__status" data-reset-status="experiment"></div>
+              <button class="btn-dna-shop">DNA</button>
             </div>
 
             <div class="merchant-reset__actions">
@@ -1706,6 +1708,33 @@ function buildPanel(panelEl) {
        }
     });
   }
+  const dnaBtn = panelEl.querySelector('.btn-dna-shop');
+  if (dnaBtn) {
+      dnaBtn.addEventListener('click', () => { openShop('dna'); });
+
+      const syncLayout = () => {
+          const statsBtn = document.querySelector('.hud-bottom [data-btn="stats"]');
+          if (statsBtn && dnaBtn) {
+              const rect = statsBtn.getBoundingClientRect();
+              dnaBtn.style.width = `${rect.width}px`;
+              dnaBtn.style.height = `${rect.height}px`;
+              dnaBtn.style.minWidth = '0';
+              dnaBtn.style.maxWidth = 'none';
+          }
+      };
+
+      if (typeof ResizeObserver !== 'undefined') {
+          const ro = new ResizeObserver(syncLayout);
+          const hud = document.querySelector('.hud-bottom');
+          if (hud) ro.observe(hud);
+          window.addEventListener('resize', syncLayout);
+          requestAnimationFrame(syncLayout);
+      } else {
+          window.addEventListener('resize', syncLayout);
+          requestAnimationFrame(syncLayout);
+      }
+  }
+
 
   updateResetPanel();
 }
