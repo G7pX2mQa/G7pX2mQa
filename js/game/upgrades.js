@@ -23,6 +23,7 @@ import {
 } from '../ui/merchantTabs/resetTab.js';
 import { getTsunamiNerf } from './surgeEffects.js';
 import { REGISTRY as AUTOMATION_REGISTRY, AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
+import { REGISTRY as DNA_REGISTRY, DNA_AREA_KEY } from './dnaUpgrades.js';
 import {
   invalidateEffectsCache,
   triggerUpgradesChanged,
@@ -52,6 +53,7 @@ const DEFAULT_AREA_KEY = '';
 export const AREA_KEYS = {
   STARTER_COVE: 'starter_cove',
   AUTOMATION: AUTOMATION_AREA_KEY,
+  DNA: DNA_AREA_KEY,
 };
 
 let isBatching = false;
@@ -3134,6 +3136,7 @@ export const REGISTRY = [
     effectMultiplier: E.powPerLevel(1.1),
   },
   ...AUTOMATION_REGISTRY,
+  ...DNA_REGISTRY,
 
 ];
 for (const upg of REGISTRY) {
