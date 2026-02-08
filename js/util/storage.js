@@ -360,6 +360,7 @@ export const CURRENCIES = {
   MAGIC: 'magic',
   GEARS: 'gears',
   WAVES: 'waves',
+  DNA: 'dna',
 };
 
 let _activeSlotCache = undefined;
