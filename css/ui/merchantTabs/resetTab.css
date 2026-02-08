@@ -318,6 +318,8 @@
   justify-content: center;
   position: relative;
   top: 1.5px;
+  margin-right: 2px;
+  margin-left: 1px;
 }
 
 .merchant-reset__action-icon img {
