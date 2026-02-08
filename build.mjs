@@ -784,7 +784,7 @@ async function serveAll({ mode = "dev" } = {}) {
       (proxyRes) => {
         res.writeHead(proxyRes.statusCode || 500, {
           ...proxyRes.headers,
-          "cache-control": "public, max-age=31536000, immutable",
+          "cache-control": "no-cache",
         });
         proxyRes.pipe(res, { end: true });
       }
