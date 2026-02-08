@@ -750,6 +750,15 @@
 }
 
 /* Experiment Theme */
+.merchant-reset__card.is-experiment .merchant-reset__layout {
+  grid-template-rows: auto auto auto;
+  align-content: center;
+}
+
+.merchant-reset__card.is-experiment .merchant-reset__content {
+  justify-content: center;
+}
+
 .merchant-reset__card.is-experiment {
   background:
     linear-gradient(180deg,
@@ -805,7 +814,7 @@
   border: 4px solid #000;
   border-radius: 8px;
   padding: 0;
-  margin: 20px 0;
+  margin: 0 0 16px 0;
   
   display: grid;
   place-items: center;
