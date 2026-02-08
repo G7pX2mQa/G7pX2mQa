@@ -19,6 +19,10 @@
   user-select: none;
 }
 
+.dna-shop-overlay {
+  z-index: 4005;
+}
+
 .shop-overlay.is-open {
   pointer-events: auto;
 }
