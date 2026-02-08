@@ -322,6 +322,10 @@ function setupLiveBindingListeners() {
             refreshLiveBindings((binding) => binding.type === 'tsunami-nerf'
                 && (binding.slot == null || binding.slot === targetSlot));
         }
+        if (id === 4) {
+            refreshLiveBindings((binding) => binding.type === 'unlock'
+                && (binding.slot == null || binding.slot === targetSlot));
+        }
     };
     window.addEventListener('lab:node:change', labNodeHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('lab:node:change', labNodeHandler));
@@ -370,6 +374,7 @@ function getAreas() {
                 { key: CURRENCIES.MAGIC, label: 'Magic' },
                 { key: CURRENCIES.GEARS, label: 'Gears' },
                 { key: CURRENCIES.WAVES, label: 'Waves' },
+                { key: CURRENCIES.DNA,   label: 'DNA'   },
             ],
             stats: [
                 { key: 'spawnRate', label: 'Spawn Rate' },
