@@ -753,54 +753,54 @@
 .merchant-reset__card.is-experiment {
   background:
     linear-gradient(180deg,
-      hsl(225 80% 55% / 0.96),
-      hsl(225 70% 34% / 0.98));
-  border: 1px solid hsl(225 80% 55% / 0.85);
+      #2a5298,
+      #1e3c72);
+  border: 1px solid #2a5298;
   box-shadow:
-    0 18px 40px hsl(225 75% 5% / 0.85),
+    0 18px 40px #080d18d9,
     inset 0 1px 0 rgba(255,255,255,0.10);
 }
 
 /* Experiment Button */
 .merchant-reset__card.is-experiment .merchant-reset__action {
-  background: linear-gradient(180deg, hsl(225 95% 60%), hsl(225 85% 47%));
+  background: linear-gradient(180deg, #2a5298, #1e3c72);
   box-shadow:
-    0 6px 0 hsl(225 90% 20%),
-    0 0 0 3px hsl(225 96% 10% / 0.9);
+    0 6px 0 #0e1622,
+    0 0 0 3px #080d18e6;
 }
 
 .merchant-reset__card.is-experiment .merchant-reset__action:not(:disabled):hover,
 .merchant-reset__card.is-experiment .merchant-reset__action:not(:disabled):focus-visible {
   background: linear-gradient(
     180deg,
-    hsl(225 95% 63%),
-    hsl(225 85% 48%)
+    #325bad,
+    #234582
   );
   animation: experimentPulse 1.1s infinite ease-in-out;
 }
 
 .merchant-reset__layer[data-reset-layer="experiment"] {
-  background: linear-gradient(180deg, rgba(32, 60, 240, 0.4), rgba(20, 40, 180, 0.25));
-  box-shadow: inset 0 0 0 2px rgba(40, 100, 255, 0.35);
+  background: linear-gradient(180deg, rgba(42, 82, 152, 0.4), rgba(30, 60, 114, 0.25));
+  box-shadow: inset 0 0 0 2px rgba(42, 82, 152, 0.35);
 }
 
 @keyframes experimentPulse {
   0% {
     box-shadow:
-      0 0 10px 2px hsl(225 100% 60% / 0.3),
-      0 6px 0 hsl(225 90% 20%),
-      0 0 0 3px hsl(225 96% 10% / 0.9);
+      0 0 10px 2px rgba(42, 82, 152, 0.3),
+      0 6px 0 #0e1622,
+      0 0 0 3px #080d18e6;
   }
   50% {
     box-shadow:
-      0 0 18px 5px hsl(225 100% 65% / 0.55),
-      0 6px 0 hsl(225 90% 20%),
-      0 0 0 3px hsl(225 96% 12% / 1);
+      0 0 18px 5px rgba(50, 91, 173, 0.55),
+      0 6px 0 #0e1622,
+      0 0 0 3px #0a1020;
   }
   100% {
     box-shadow:
-      0 0 10px 2px hsl(225 100% 60% / 0.3),
-      0 6px 0 hsl(225 90% 20%),
-      0 0 0 3px hsl(225 96% 10% / 0.9);
+      0 0 10px 2px rgba(42, 82, 152, 0.3),
+      0 6px 0 #0e1622,
+      0 0 0 3px #080d18e6;
   }
 }
