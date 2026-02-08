@@ -97,6 +97,7 @@ const PRIORITY_ORDER = [
     { key: 'magic',     icon: 'img/currencies/magic/magic.webp', singular: 'Magic',    plural: 'Magic' },
     { key: 'gears',     icon: 'img/currencies/gear/gear.webp',   singular: 'Gear',     plural: 'Gears' },
     { key: 'waves',     icon: 'img/currencies/gear/gear.webp',   singular: 'Wave',     plural: 'Waves' },
+    { key: 'DNA',       icon: 'img/currencies/dna/dna.webp',     singular: 'DNA',      plural: 'DNA' },
     { key: 'research_levels', icon: 'img/stats/rp/rp.webp',      singular: 'Level',    plural: 'Levels' },
 ];
 
