@@ -47,6 +47,7 @@ import {
   MASTER_AUTOBUY_IDS
 } from '../game/automationUpgrades.js';
 import { getAutobuyerToggle, setAutobuyerToggle } from '../game/automationEffects.js';
+import { DNA_AREA_KEY } from '../game/dnaUpgrades.js';
 
 // --- Shared State ---
 const ICON_DIR = 'img/';
@@ -177,6 +178,18 @@ const SHOP_ADAPTERS = {
         buyMax: (id) => buyMax(AUTOMATION_AREA_KEY, id),
         buyNext: (id, amount) => buyTowards(AUTOMATION_AREA_KEY, id, amount),
         getLockState: (id) => getUpgradeLockState(AUTOMATION_AREA_KEY, id),
+        evolve: () => ({ evolved: false }),
+        events: ['ccc:upgrades:changed', 'currency:change']
+    },
+    dna: {
+        title: 'DNA Upgrades',
+        delveButtonVisible: false,
+        getUiData: () => getShopUiData(DNA_AREA_KEY),
+        getUiModel: (id) => upgradeUiModel(DNA_AREA_KEY, id),
+        buyOne: (id) => buyOne(DNA_AREA_KEY, id),
+        buyMax: (id) => buyMax(DNA_AREA_KEY, id),
+        buyNext: (id, amount) => buyTowards(DNA_AREA_KEY, id, amount),
+        getLockState: (id) => getUpgradeLockState(DNA_AREA_KEY, id),
         evolve: () => ({ evolved: false }),
         events: ['ccc:upgrades:changed', 'currency:change']
     }
