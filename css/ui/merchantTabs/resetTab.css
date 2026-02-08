@@ -799,3 +799,61 @@
       0 0 0 3px #080d18e6;
   }
 }
+
+.btn-dna-shop {
+  appearance: none;
+  border: 4px solid #000;
+  border-radius: 8px;
+  padding: 0;
+  margin: 20px 0;
+  
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  outline: none;
+  
+  background: linear-gradient(180deg, #1e3c72, #001f3f);
+  
+  font-weight: 900;
+  font-size: clamp(18px, 2.5vw, 32px); /* Matches HUD btn-stats */
+  color: #fff;
+  
+  -webkit-text-stroke: 1px #000;
+  text-stroke: 1px #000;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+  
+  transition: transform 120ms ease, filter 120ms ease;
+  user-select: none;
+  
+  height: clamp(64px, 10svh, 110px); /* Matches HUD height */
+  
+  /* Width logic to match HUD button size (approximate) */
+  width: calc(25vw - 16px);
+  min-width: 120px;
+  max-width: 280px;
+  
+  white-space: normal;
+  line-height: 1.1;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.btn-dna-shop:active {
+  transform: translateY(1px) scale(0.997);
+}
+
+@media(max-width: 632px) {
+    .btn-dna-shop {
+        width: calc(50vw - 16px);
+        max-width: none;
+    }
+}
+@media(pointer: coarse) {
+    .btn-dna-shop {
+        -webkit-text-stroke: 0 !important;
+        text-stroke: 0 !important;
+        -webkit-text-fill-color: #fff;
+        text-shadow: 0 .5px 0 #000, 0 -.5px 0 #000, .5px 0 0 #000, -.5px 0 0 #000, .5px .5px 0 #000, -.5px .5px 0 #000, -.5px -.5px 0 #000, -.5px -.5px 0 #000, 0 1px 0 rgba(0,0,0,.28);
+    }
+}
