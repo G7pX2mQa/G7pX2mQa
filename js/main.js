@@ -664,6 +664,7 @@ images: [
 	  'sounds/forge_reset.ogg',
 	  'sounds/infuse_reset.ogg',
 	  'sounds/surge_reset.ogg',
+	  'sounds/experiment_reset.ogg',
 	  'sounds/evolve_upg.ogg',
 	  'sounds/warp.ogg',
 	  'sounds/coin_pickup_size1.ogg',
