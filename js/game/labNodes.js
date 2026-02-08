@@ -17,7 +17,7 @@ const NODE_DISCOVERED_KEY = (slot, id) => `ccc:lab:node:discovered:${id}:${slot}
 export const RESEARCH_NODES = [
     {
         id: 1,
-        title: "Tsunami Exponent Restoration",
+        title: "Node 1: Tsunami Exponent Restoration",
         desc: "Increases the Tsunami exponent by +0.01 per level",
         baseRpReq: 10,
         scale: 2.0,
@@ -29,7 +29,7 @@ export const RESEARCH_NODES = [
     },
     {
         id: 2,
-        title: "Experimental Coin Value",
+        title: "Node 2: Experimental Coin Value",
         desc: "Multiplies Coin value by 1.5x per level",
         baseRpReq: 1000,
         scale: 2.0,
@@ -41,7 +41,7 @@ export const RESEARCH_NODES = [
     },
     {
         id: 3,
-        title: "Experimental XP Value",
+        title: "Node 3: Experimental XP Value",
         desc: "Multiplies XP value by 1.5x per level",
         baseRpReq: 1000,
         scale: 2.0,
@@ -53,9 +53,9 @@ export const RESEARCH_NODES = [
     },
     {
         id: 4,
-        title: "Unlock Experiment",
+        title: "Node 4: Unlock Experiment",
         desc: "Unlocks the Experiment reset",
-        baseRpReq: 1000000,
+        baseRpReq: 1e6,
         scale: 1.0,
         maxLevel: 1,
         x: 0,
