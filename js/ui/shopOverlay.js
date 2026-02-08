@@ -951,6 +951,9 @@ class ShopInstance {
             this.overlayEl.classList.add('automation-shop-overlay');
             // Unique ID not strictly required by CSS but useful
             this.overlayEl.id = 'automation-shop-overlay'; 
+        } else if (this.mode === 'dna') {
+            this.overlayEl.classList.add('dna-shop-overlay');
+            this.overlayEl.id = 'dna-shop-overlay';
         } else {
             this.overlayEl.id = 'shop-overlay';
         }
@@ -1143,7 +1146,8 @@ class ShopInstance {
 // --- Static Instances ---
 const shops = {
     standard: new ShopInstance('standard'),
-    automation: new ShopInstance('automation')
+    automation: new ShopInstance('automation'),
+    dna: new ShopInstance('dna')
 };
 
 export function openShop(mode = 'standard') {
