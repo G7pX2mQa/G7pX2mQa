@@ -2791,6 +2791,48 @@ function getUnlockRowDefinitions(slot) {
             },
             slot,
         },
+        {
+            labelText: 'Unlock Experiment',
+            description: 'If true, Lab node 4 is maxed',
+            isUnlocked: () => {
+                try { return getResearchNodeLevel(4) >= 1; }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setResearchNodeLevel(4, 1); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setResearchNodeLevel(4, 0); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Past N4',
+            description: 'If true, unlocks Lab nodes past node 4',
+            isUnlocked: () => {
+                try { return !!window.resetSystem?.hasDoneExperimentReset?.(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setExperimentResetCompleted?.(true); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setExperimentResetCompleted?.(false); }
+                catch {}
+                try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+            },
+            slot,
+        },
     ];
 }
 
