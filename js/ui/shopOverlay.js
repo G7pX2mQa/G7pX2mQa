@@ -57,6 +57,7 @@ const BASE_ICON_SRC_BY_COST = {
   gold: 'img/currencies/gold/gold_base.webp',
   magic: 'img/currencies/magic/magic_base.webp',
   gears: 'img/currencies/gear/gear_base.webp',
+  dna: 'img/currencies/dna/dna_base.webp',
 };
 const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.webp';
 const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
@@ -67,6 +68,7 @@ const CURRENCY_ICON_SRC = {
   gold: 'img/currencies/gold/gold.webp',
   magic: 'img/currencies/magic/magic.webp',
   gears: 'img/currencies/gear/gear.webp',
+  dna: 'img/currencies/dna/dna.webp',
 };
 
 const FORGE_UNLOCK_UPGRADE_ID = 7;
