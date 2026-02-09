@@ -1,6 +1,7 @@
 import { BigNum } from '../util/bigNum.js';
 import { getActiveSlot, isStorageKeyLocked } from '../util/storage.js';
 import { getLabLevel, setLabLevel, getRpMult } from '../ui/merchantTabs/labTab.js';
+import { formatMultForUi } from './upgrades.js';
 import { 
     addExternalCoinMultiplierProvider, 
     addExternalXpGainMultiplierProvider,
@@ -26,7 +27,8 @@ export const RESEARCH_NODES = [
         x: 0,
         y: 0,
         icon: 'lab_icons/tsunami_exponent_buff.webp',
-        parentIds: []
+        parentIds: [],
+        bonusLine: (level) => `Tsunami exponent bonus: +${(level * 0.01).toFixed(2)}`
     },
     {
         id: 2,
@@ -38,7 +40,8 @@ export const RESEARCH_NODES = [
         parentIds: [1],
         x: -1000,
         y: 1000,
-        icon: 'lab_icons/coin_val0.webp'
+        icon: 'lab_icons/coin_val0.webp',
+        bonusLine: (level) => `Coin value bonus: ${formatMultForUi(getLabCoinMultiplier())}x`
     },
     {
         id: 3,
@@ -50,7 +53,8 @@ export const RESEARCH_NODES = [
         parentIds: [1],
         x: 1000,
         y: 1000,
-        icon: 'sc_upg_icons/xp_val1.webp'
+        icon: 'sc_upg_icons/xp_val1.webp',
+        bonusLine: (level) => `XP value bonus: ${formatMultForUi(getLabXpMultiplier())}x`
     },
     {
         id: 4,
@@ -62,7 +66,8 @@ export const RESEARCH_NODES = [
         x: 0,
         y: -1000,
         icon: 'misc/experiment.webp',
-        parentIds: [2, 3]
+        parentIds: [2, 3],
+        bonusLine: () => ''
     },
     {
         id: 5,
@@ -74,7 +79,8 @@ export const RESEARCH_NODES = [
         x: -1000,
         y: -1000,
         icon: 'lab_icons/gold_val0.webp',
-        parentIds: [4]
+        parentIds: [4],
+        bonusLine: (level) => `Gold value bonus: ${formatMultForUi(getLabGoldMultiplier())}x`
     },
     {
         id: 6,
@@ -86,7 +92,21 @@ export const RESEARCH_NODES = [
         x: 1000,
         y: -1000,
         icon: 'lab_icons/magic_val0.webp',
-        parentIds: [4]
+        parentIds: [4],
+        bonusLine: (level) => `Magic value bonus: ${formatMultForUi(getLabMagicMultiplier())}x`
+    },
+    {
+        id: 7,
+        title: "Node 7: Experimental Wave Value",
+        desc: "Multiplies Wave value by 1.25x per level",
+        baseRpReq: 1e9,
+        scale: 2.0,
+        maxLevel: 10,
+        x: 0,
+        y: 1000,
+        icon: 'lab_icons/wave_val0.webp',
+        parentIds: [5, 6],
+        bonusLine: (level) => `Wave value bonus: ${formatMultForUi(getLabWaveMultiplier())}x`
     }
 ];
 
@@ -411,6 +431,16 @@ export function getLabMagicMultiplier() {
     if (level <= 0) return BigNum.fromInt(1);
     
     const val = Math.pow(1.5, level);
+    return BigNum.fromAny(val);
+}
+
+export function getLabWaveMultiplier() {
+    const node = RESEARCH_NODES.find(n => n.id === 7);
+    if (!node) return BigNum.fromInt(1);
+    const level = getResearchNodeLevel(node.id);
+    if (level <= 0) return BigNum.fromInt(1);
+    
+    const val = Math.pow(1.25, level);
     return BigNum.fromAny(val);
 }
 
