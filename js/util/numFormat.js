@@ -6,7 +6,7 @@
 //
 // Also prettifies the exponent itself (e.g., 1.000e1,000 / 1.000e1.000Qd / 1.000e1.000e308)
 
-import { BigNum } from './bigNum.js';
+import { BigNum, approxLog10BigNum } from './bigNum.js';
 
 // Suffixes copied from CCC (descending exponents).
 const SUFFIX_ENTRIES = [
@@ -245,4 +245,29 @@ export function formatNumber(bn){
   else { intStr = head.slice(0, intDigits); fracStr = head.slice(intDigits); }
 
   return `${intStr}${decimals ? '.' + fracStr : ''}${suffix}`;
+}
+
+export function formatMultForUi(value) {
+  try {
+    if (value && (value instanceof BigNum || value.toPlainIntegerString)) {
+      const log10 = approxLog10BigNum(value);
+      if (Number.isFinite(log10) && log10 < 3) {
+        const approx = Math.pow(10, log10);
+        return String(approx.toFixed(3))
+          .replace(/\.0+$/, '')
+          .replace(/(\.\d*?)0+$/, '$1');
+      }
+      return formatNumber(value);
+    }
+
+    const n = Number(value) || 0;
+    if (Math.abs(n) < 1000) {
+      return String(n.toFixed(3))
+        .replace(/\.0+$/, '')
+        .replace(/(\.\d*?)0+$/, '$1');
+    }
+    return formatNumber(BigNum.fromAny(n));
+  } catch {
+    return '1';
+  }
 }
