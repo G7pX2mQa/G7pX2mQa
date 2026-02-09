@@ -14,6 +14,14 @@ import { isSurgeActive, getTsunamiNerf } from './surgeEffects.js';
 let accumulator = 0;
 let workshopTicker = 0;
 
+const externalEacProviders = [];
+
+export function addExternalEacMultiplierProvider(provider) {
+  if (typeof provider === 'function') {
+    externalEacProviders.push(provider);
+  }
+}
+
 // Autobuyer Toggle Cache
 // Structure: Map<string, string> where key is the localStorage key and value is the setting ('0' or '1')
 const autobuyerCache = new Map();
@@ -147,7 +155,14 @@ function updateAutobuyers(dt) {
 
 export function updateAutomation(dt) {
   const level = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID);
-  const rate = level; // Rate = level (coins/sec)
+  let rate = level; // Rate = level (coins/sec)
+
+  for (const provider of externalEacProviders) {
+    try {
+      const val = provider();
+      if (Number.isFinite(val)) rate *= val;
+    } catch {}
+  }
 
   if (rate <= 0) {
     accumulator = 0;
