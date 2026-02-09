@@ -12,6 +12,7 @@ export const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
 export const NODE_RP_KEY = (slot, id) => `ccc:lab:node:rp:${id}:${slot}`;
 const NODE_ACTIVE_KEY = (slot, id) => `ccc:lab:node:active:${id}:${slot}`;
 const NODE_DISCOVERED_KEY = (slot, id) => `ccc:lab:node:discovered:${id}:${slot}`;
+const EXPERIMENT_COMPLETED_KEY = (slot) => `ccc:reset:experiment:completed:${slot}`;
 
 // --- Constants ---
 export const RESEARCH_NODES = [
@@ -62,6 +63,30 @@ export const RESEARCH_NODES = [
         y: -1000,
         icon: 'misc/experiment.webp',
         parentIds: [2, 3]
+    },
+    {
+        id: 5,
+        title: "Node 5: Experimental Gold Value",
+        desc: "Multiplies Gold value by 1.5x per level",
+        baseRpReq: 1e6,
+        scale: 2.0,
+        maxLevel: 10,
+        x: -1000,
+        y: -1000,
+        icon: 'lab_icons/gold_val0.webp',
+        parentIds: [4]
+    },
+    {
+        id: 6,
+        title: "Node 6: Experimental Magic Value",
+        desc: "Multiplies Magic value by 1.5x per level",
+        baseRpReq: 1e6,
+        scale: 2.0,
+        maxLevel: 10,
+        x: 1000,
+        y: -1000,
+        icon: 'lab_icons/magic_val0.webp',
+        parentIds: [4]
     }
 ];
 
@@ -230,6 +255,21 @@ export function isResearchNodeVisible(id) {
         setResearchNodeDiscovered(id, true);
         return true;
     }
+
+    // Node 5 & 6 require Experiment Reset to be completed
+    if (id === 5 || id === 6) {
+        const slot = getActiveSlot();
+        if (slot != null) {
+            try {
+                const completed = localStorage.getItem(EXPERIMENT_COMPLETED_KEY(slot)) === '1';
+                if (!completed) return false;
+            } catch {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
     
     // Visible if ALL parents are maxed
     for (const parentId of node.parentIds) {
@@ -346,6 +386,26 @@ export function getLabCoinMultiplier() {
 
 export function getLabXpMultiplier() {
     const node = RESEARCH_NODES.find(n => n.id === 3);
+    if (!node) return BigNum.fromInt(1);
+    const level = getResearchNodeLevel(node.id);
+    if (level <= 0) return BigNum.fromInt(1);
+    
+    const val = Math.pow(1.5, level);
+    return BigNum.fromAny(val);
+}
+
+export function getLabGoldMultiplier() {
+    const node = RESEARCH_NODES.find(n => n.id === 5);
+    if (!node) return BigNum.fromInt(1);
+    const level = getResearchNodeLevel(node.id);
+    if (level <= 0) return BigNum.fromInt(1);
+    
+    const val = Math.pow(1.5, level);
+    return BigNum.fromAny(val);
+}
+
+export function getLabMagicMultiplier() {
+    const node = RESEARCH_NODES.find(n => n.id === 6);
     if (!node) return BigNum.fromInt(1);
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
