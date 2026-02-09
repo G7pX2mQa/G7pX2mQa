@@ -517,3 +517,99 @@ export class BigNum {
     return this.toPlainIntegerString();
   }
 }
+
+// --- BigNum Utilities ---
+
+export function approxLog10BigNum(value) {
+  if (!(value instanceof BigNum)) {
+    try {
+      value = BigNum.fromAny(value ?? 0);
+    } catch {
+      return Number.NEGATIVE_INFINITY;
+    }
+  }
+  if (!value) return Number.NEGATIVE_INFINITY;
+  if (value.isZero?.()) return Number.NEGATIVE_INFINITY;
+  if (value.isInfinite?.()) return Number.POSITIVE_INFINITY;
+
+  if (typeof value.sig === 'bigint') {
+    const sigNum = Number(value.sig);
+    if (sigNum > 0) {
+      const sigLog = Math.log10(sigNum);
+      const e = value.e || 0;
+      const off = Number(value._eOffset || 0n);
+      return sigLog + e + off;
+    }
+  }
+
+  let storage;
+  try {
+    storage = value.toStorage();
+  } catch {
+    return Number.NEGATIVE_INFINITY;
+  }
+  const parts = storage.split(':');
+  const sigStr = parts[2] ?? '0';
+  let expPart = parts[3] ?? '0';
+  let offsetStr = '0';
+  const caret = expPart.indexOf('^');
+  if (caret >= 0) {
+    offsetStr = expPart.slice(caret + 1) || '0';
+    expPart = expPart.slice(0, caret) || '0';
+  }
+  const baseExp = Number(expPart || '0');
+  const offset = Number(offsetStr || '0');
+  const digits = sigStr.replace(/^0+/, '') || '0';
+  if (digits === '0') return Number.NEGATIVE_INFINITY;
+
+  let sigLog;
+  if (digits.length <= 15) {
+    const sigNum = Number(digits);
+    if (!Number.isFinite(sigNum) || sigNum <= 0) return Number.NEGATIVE_INFINITY;
+    sigLog = Math.log10(sigNum);
+  } else {
+    const head = Number(digits.slice(0, 15));
+    if (!Number.isFinite(head) || head <= 0) return Number.NEGATIVE_INFINITY;
+    sigLog = Math.log10(head) + (digits.length - 15);
+  }
+
+  const expSum = (Number.isFinite(baseExp) ? baseExp : 0) + (Number.isFinite(offset) ? offset : 0);
+  return sigLog + expSum;
+}
+
+export function bigNumFromLog10(log10Value) {
+  if (!Number.isFinite(log10Value)) {
+    return log10Value > 0 ? BigNum.fromAny('Infinity') : BigNum.fromInt(0);
+  }
+  
+  if (log10Value <= -1e12) return BigNum.fromInt(0);
+  const p = BigNum.DEFAULT_PRECISION;
+  let intPart = Math.floor(log10Value);
+  let frac = log10Value - intPart;
+  if (frac < 0) {
+    frac += 1;
+    intPart -= 1;
+  }
+  const mantissa = Math.pow(10, frac + (p - 1));
+  const sig = BigInt(Math.max(1, Math.round(mantissa)));
+  const exp = intPart - (p - 1);
+  return new BigNum(sig, exp, p);
+}
+
+const LN10 = Math.log(10);
+
+export function log10OnePlusPow10(exponent) {
+  if (!Number.isFinite(exponent)) {
+    if (exponent > 0) return exponent;
+    if (exponent === 0) return Math.log10(2);
+    return 0;
+  }
+  if (exponent > 308) return exponent;
+  if (exponent < -20) {
+    const pow = Math.pow(10, exponent);
+    return pow / LN10;
+  }
+  const pow = Math.pow(10, exponent);
+  if (!Number.isFinite(pow)) return exponent > 0 ? exponent : 0;
+  return Math.log1p(pow) / LN10;
+}
