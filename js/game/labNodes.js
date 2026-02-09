@@ -7,6 +7,8 @@ import {
     addExternalXpGainMultiplierProvider,
     refreshCoinMultiplierFromXpLevel
 } from './xpSystem.js';
+import { addExternalSpawnRateMultiplierProvider } from './upgradeEffects.js';
+import { addExternalEacMultiplierProvider } from './automationEffects.js';
 
 // --- Storage Keys ---
 export const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
@@ -107,6 +109,32 @@ export const RESEARCH_NODES = [
         icon: 'lab_icons/wave_val0.webp',
         parentIds: [5, 6],
         bonusLine: (level) => `Wave value bonus: ${formatMultForUi(getLabWaveMultiplier())}x`
+    },
+    {
+        id: 8,
+        title: "Node 8: Experimental Spawn Rate",
+        desc: "Increases Coin Spawn Rate by +10% per level",
+        baseRpReq: 1e12,
+        scale: 2.0,
+        maxLevel: 10,
+        x: -1000,
+        y: 0,
+        icon: 'sc_upg_icons/faster_coins1.webp',
+        parentIds: [7],
+        bonusLine: (level) => `Coin Spawn Rate bonus: ${formatMultForUi(getLabSpawnRateBonus())}x`
+    },
+    {
+        id: 9,
+        title: "Node 9: Experimental EAC Value",
+        desc: "Increases Effective Auto-Collect value by +10% per level",
+        baseRpReq: 1e12,
+        scale: 2.0,
+        maxLevel: 10,
+        x: 1000,
+        y: 0,
+        icon: 'sc_upg_icons/effective_auto_collect.webp',
+        parentIds: [7],
+        bonusLine: (level) => `EAC value bonus: ${formatMultForUi(getLabEacBonus())}x`
     }
 ];
 
@@ -450,6 +478,20 @@ export function getLabWaveMultiplier() {
     return BigNum.fromAny(val);
 }
 
+export function getLabSpawnRateBonus() {
+    const node = RESEARCH_NODES.find(n => n.id === 8);
+    if (!node) return 1;
+    const level = getResearchNodeLevel(node.id);
+    return 1 + (level * 0.1);
+}
+
+export function getLabEacBonus() {
+    const node = RESEARCH_NODES.find(n => n.id === 9);
+    if (!node) return 1;
+    const level = getResearchNodeLevel(node.id);
+    return 1 + (level * 0.1);
+}
+
 export function initLabMultipliers() {
     addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
         const labMult = getLabCoinMultiplier();
@@ -460,6 +502,9 @@ export function initLabMultipliers() {
         const labMult = getLabXpMultiplier();
         return baseGain.mulDecimal(labMult.toScientific());
     });
+
+    addExternalSpawnRateMultiplierProvider(() => getLabSpawnRateBonus());
+    addExternalEacMultiplierProvider(() => getLabEacBonus());
 
     if (typeof window !== 'undefined') {
         window.addEventListener('lab:node:change', ({ detail }) => {
