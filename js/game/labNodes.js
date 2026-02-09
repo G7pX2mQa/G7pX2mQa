@@ -1,14 +1,14 @@
 import { BigNum } from '../util/bigNum.js';
 import { getActiveSlot, isStorageKeyLocked } from '../util/storage.js';
 import { getLabLevel, setLabLevel, getRpMult } from '../ui/merchantTabs/labTab.js';
-import { formatMultForUi } from './upgrades.js';
+import { formatMultForUi } from '../util/numFormat.js';
 import { 
     addExternalCoinMultiplierProvider, 
     addExternalXpGainMultiplierProvider,
     refreshCoinMultiplierFromXpLevel
 } from './xpSystem.js';
-import { addExternalSpawnRateMultiplierProvider } from './upgradeEffects.js';
-import { addExternalEacMultiplierProvider } from './automationEffects.js';
+import { addExternalSpawnRateMultiplierProvider, triggerUpgradesChanged } from './upgradeEffects.js';
+import { addExternalEacMultiplierProvider, addExternalEacAmountMultiplierProvider } from './automationEffects.js';
 
 // --- Storage Keys ---
 export const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
@@ -504,12 +504,15 @@ export function initLabMultipliers() {
     });
 
     addExternalSpawnRateMultiplierProvider(() => getLabSpawnRateBonus());
-    addExternalEacMultiplierProvider(() => getLabEacBonus());
+    addExternalEacAmountMultiplierProvider(() => getLabEacBonus());
 
     if (typeof window !== 'undefined') {
         window.addEventListener('lab:node:change', ({ detail }) => {
             if (detail && detail.id === 2) {
                 refreshCoinMultiplierFromXpLevel();
+            }
+            if (detail && detail.id === 8) {
+                triggerUpgradesChanged();
             }
         });
     }
