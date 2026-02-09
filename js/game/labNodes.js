@@ -17,7 +17,7 @@ const NODE_DISCOVERED_KEY = (slot, id) => `ccc:lab:node:discovered:${id}:${slot}
 export const RESEARCH_NODES = [
     {
         id: 1,
-        title: "Node 1: Tsunami Exponent Restoration",
+        title: "Node 1: Tsunami Exponent Buff",
         desc: "Increases the Tsunami exponent by +0.01 per level",
         baseRpReq: 10,
         scale: 2.0,
