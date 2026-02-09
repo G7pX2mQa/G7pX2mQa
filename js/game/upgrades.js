@@ -3146,6 +3146,35 @@ for (const upg of REGISTRY) {
   }
   upg.baseCost = toUpgradeBigNum(upg.baseCost ?? 0, 0);
   upg.baseCostBn = upg.baseCost;
+
+  if (upg._dnaEffectVal) {
+    if (upg._costScaling === 'HM') {
+      upg.costAtLevel = function(level) { return costAtLevelUsingScaling(this, level); };
+      upg.nextCostAfter = function(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); };
+    }
+    
+    if (typeof upg.effectMultiplier !== 'function') {
+      upg.effectMultiplier = E.powPerLevel(upg._dnaEffectVal);
+    }
+    
+    if (typeof upg.effectSummary !== 'function') {
+      upg.effectSummary = function(level) {
+        const lvlBn = ensureLevelBigNum(level);
+        let baseMult;
+        try { baseMult = this.effectMultiplier(lvlBn); }
+        catch { baseMult = 1; }
+        const { selfMult } = computeHmMultipliers(this, lvlBn, this.area);
+        const total = safeMultiplyBigNum(baseMult, selfMult);
+        
+        let label = "Bonus";
+        if (this.effectType === 'coin_value') label = "Coin value bonus";
+        if (this.effectType === 'xp_value') label = "XP value bonus";
+        
+        return `${label}: ${formatMultForUi(total)}x`;
+      };
+    }
+  }
+
   upg.numUpgEvolutions = normalizeHmEvolutionCount(upg.numUpgEvolutions);
   if (upg.upgType === 'HM') {
     applyHmEvolutionMeta(upg, upg.numUpgEvolutions);
