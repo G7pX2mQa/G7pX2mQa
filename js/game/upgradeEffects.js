@@ -28,6 +28,14 @@ const BASE_CPS = 1;
 let _cachedUpgradeMultipliers = null;
 let listeners = [];
 
+const externalSpawnRateProviders = [];
+
+export function addExternalSpawnRateMultiplierProvider(provider) {
+  if (typeof provider === 'function') {
+    externalSpawnRateProviders.push(provider);
+  }
+}
+
 export function invalidateEffectsCache() {
   _cachedUpgradeMultipliers = null;
 }
@@ -165,6 +173,15 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
         acc.magnetRadius += val;
       }
     }
+  }
+
+  for (const provider of externalSpawnRateProviders) {
+    try {
+      const val = provider();
+      if (Number.isFinite(val)) {
+        acc.coinSpawn *= val;
+      }
+    } catch {}
   }
 
   _cachedUpgradeMultipliers = acc;
