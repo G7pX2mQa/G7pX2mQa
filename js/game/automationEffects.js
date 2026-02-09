@@ -22,6 +22,33 @@ export function addExternalEacMultiplierProvider(provider) {
   }
 }
 
+const externalEacAmountProviders = [];
+
+export function addExternalEacAmountMultiplierProvider(provider) {
+  if (typeof provider === 'function') {
+    externalEacAmountProviders.push(provider);
+  }
+}
+
+export function getEacAmountMultiplier() {
+  let mult = 1;
+  if (isSurgeActive(2)) {
+    if (isSurgeActive(8)) {
+        const nerf = getTsunamiNerf();
+        mult *= Math.pow(10, nerf);
+    } else {
+        mult *= 10;
+    }
+  }
+  for (const provider of externalEacAmountProviders) {
+    try {
+      const val = provider();
+      if (Number.isFinite(val)) mult *= val;
+    } catch {}
+  }
+  return mult;
+}
+
 // Autobuyer Toggle Cache
 // Structure: Map<string, string> where key is the localStorage key and value is the setting ('0' or '1')
 const autobuyerCache = new Map();
@@ -176,14 +203,7 @@ export function updateAutomation(dt) {
     const ticks = Math.floor(accumulator / interval);
     if (ticks > 0) {
       let collectCount = ticks;
-      if (isSurgeActive(2)) {
-        if (isSurgeActive(8)) {
-            const nerf = getTsunamiNerf();
-            collectCount *= Math.pow(10, nerf);
-        } else {
-            collectCount *= 10;
-        }
-      }
+      collectCount *= getEacAmountMultiplier();
       triggerPassiveCollect(collectCount);
       accumulator -= ticks * interval;
     }
