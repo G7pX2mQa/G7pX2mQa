@@ -1,6 +1,6 @@
 import { formatNumber } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
-import { bigNumFromLog10, approxLog10BigNum } from './upgrades.js';
+import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
 import { getTsunamiNerf } from './surgeEffects.js';
 import { getTsunamiResearchBonus } from './labNodes.js';
 
