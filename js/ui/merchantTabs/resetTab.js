@@ -48,7 +48,9 @@ import {
 import { 
     getTsunamiResearchBonus,
     isExperimentUnlocked as isLabExperimentUnlocked,
-    resetLab
+    resetLab,
+    getLabGoldMultiplier,
+    getLabMagicMultiplier
 } from '../../game/labNodes.js';
 import { getLabLevel } from './labTab.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
@@ -225,12 +227,16 @@ function notifySurgeUnlockChange() {
 
 function getPendingGoldWithMultiplier(multiplierOverride = null) {
   try {
+    const labMult = getLabGoldMultiplier();
+    let val = resetState.pendingGold.clone?.() ?? resetState.pendingGold;
     if (multiplierOverride) {
       const mult = multiplierOverride instanceof BN ? multiplierOverride : BN.fromAny(multiplierOverride ?? 1);
       if (mult.isInfinite?.()) return BN.fromAny('Infinity');
-      return resetState.pendingGold.mulBigNumInteger(mult);
+      val = val.mulBigNumInteger(mult);
+    } else {
+      val = bank.gold?.mult?.applyTo?.(val) ?? val;
     }
-    return bank.gold?.mult?.applyTo?.(resetState.pendingGold) ?? resetState.pendingGold;
+    return val.mulDecimal(labMult.toScientific());
   } catch {
     return resetState.pendingGold;
   }
@@ -355,12 +361,16 @@ function computeInfuseMagicBase(coinsBn, cumulativeMpBn) {
 
 function computeInfuseMagic(coinsBn, cumulativeMpBn, multiplierOverride = null) {
   const base = computeInfuseMagicBase(coinsBn, cumulativeMpBn);
+  const labMult = getLabMagicMultiplier();
+  let result;
   if (multiplierOverride) {
     const mult = multiplierOverride instanceof BN ? multiplierOverride : BN.fromAny(multiplierOverride ?? 1);
     if (mult.isInfinite?.()) return BN.fromAny('Infinity');
-    return base.mulBigNumInteger(mult);
+    result = base.mulBigNumInteger(mult);
+  } else {
+    result = bank.magic?.mult?.applyTo?.(base) ?? base;
   }
-  return bank.magic?.mult?.applyTo?.(base) ?? base;
+  return result.mulDecimal(labMult.toScientific());
 }
 
 export function computeForgeGoldFromInputs(coinsBn, levelBn) {
@@ -995,11 +1005,10 @@ function applyForgeResetEffects({ resetGold = false, resetMagic = false } = {}) 
 
 export function performForgeReset() {
   if (!canPerformForgeReset()) return false;
-  const reward = resetState.pendingGold.clone?.() ?? resetState.pendingGold;
+  const finalReward = getPendingGoldWithMultiplier();
   try {
-    const withMultiplier = bank.gold?.mult?.applyTo?.(reward) ?? reward;
     if (bank.gold?.add) {
-      bank.gold.add(withMultiplier);
+      bank.gold.add(finalReward);
     }
   } catch {}
   
@@ -2310,6 +2319,7 @@ function bindGlobalEvents() {
       updateResetPanel();
   });
   window.addEventListener('lab:node:change', () => {
+      recomputePendingMagic();
       updateResetPanel();
   });
 }
