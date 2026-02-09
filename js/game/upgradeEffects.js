@@ -96,6 +96,13 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
   if (_cachedUpgradeMultipliers) return _cachedUpgradeMultipliers;
 
   const upgrades = getUpgradesForArea(areaKey);
+  const additionalUpgrades = [];
+  if (areaKey === AREA_KEYS.STARTER_COVE && AREA_KEYS.DNA) {
+    const dnaUpgrades = getUpgradesForArea(AREA_KEYS.DNA);
+    additionalUpgrades.push(...dnaUpgrades);
+  }
+  const allUpgrades = [...upgrades, ...additionalUpgrades];
+
   const acc = {
     coinValue: BigNum.fromInt(1),
     xpValue: BigNum.fromInt(1),
@@ -105,10 +112,11 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     magnetRadius: 0,
   };
 
-  for (const upg of upgrades) {
+  for (const upg of allUpgrades) {
     if (!upg.effectType) continue;
 
-    const lvlBn = getLevel(areaKey, upg.id);
+    const effectiveArea = upg.area || areaKey;
+    const lvlBn = getLevel(effectiveArea, upg.id);
     const lvlNum = levelBigNumToNumber(lvlBn);
 
     let baseEffect = null;
@@ -122,7 +130,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     }
 
     if (upg.upgType === 'HM') {
-      const { selfMult, xpMult, coinMult, mpMult } = computeHmMultipliers(upg, lvlBn, areaKey);
+      const { selfMult, xpMult, coinMult, mpMult } = computeHmMultipliers(upg, lvlBn, effectiveArea);
       acc.xpValue = safeMultiplyBigNum(acc.xpValue, xpMult);
       acc.coinValue = safeMultiplyBigNum(acc.coinValue, coinMult);
       acc.mpValue = safeMultiplyBigNum(acc.mpValue, mpMult);
