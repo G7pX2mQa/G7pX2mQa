@@ -195,8 +195,10 @@ export function getResearchNodeLevel(id) {
 
 export function setResearchNodeLevel(id, level) {
     const slot = getActiveSlot();
-    if (slot == null) return;
+    if (slot == null) return false;
     
+    if (isStorageKeyLocked(NODE_LEVEL_KEY(slot, id))) return false;
+
     const s = ensureNodeState(id);
     s.level = level;
     
@@ -204,6 +206,7 @@ export function setResearchNodeLevel(id, level) {
         localStorage.setItem(NODE_LEVEL_KEY(slot, id), level.toString());
         window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { id, level } }));
     } catch {}
+    return true;
 }
 
 export function getResearchNodeRp(id) {
@@ -212,6 +215,9 @@ export function getResearchNodeRp(id) {
 }
 
 export function setResearchNodeRp(id, rp) {
+    const slot = getActiveSlot();
+    if (slot != null && isStorageKeyLocked(NODE_RP_KEY(slot, id))) return;
+
     // In-memory update only. Persisted via saveLabNodes.
     const s = ensureNodeState(id);
     s.rp = BigNum.fromAny(rp);
@@ -384,7 +390,7 @@ export function tickResearch(dt) {
 
                 nextRp = nextRp.sub(currentReq);
                 const oldLevel = getResearchNodeLevel(node.id);
-                setResearchNodeLevel(node.id, oldLevel + 1);
+                if (!setResearchNodeLevel(node.id, oldLevel + 1)) break;
             }
             
             setResearchNodeRp(node.id, nextRp);
