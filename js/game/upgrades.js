@@ -1,7 +1,9 @@
 // js/game/upgrades.js
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot, isStorageKeyLocked } from '../util/storage.js';
-import { BigNum } from '../util/bigNum.js';
-import { formatNumber } from '../util/numFormat.js';
+import { BigNum, approxLog10BigNum, bigNumFromLog10, log10OnePlusPow10 } from '../util/bigNum.js';
+export { approxLog10BigNum, bigNumFromLog10, log10OnePlusPow10 };
+import { formatNumber, formatMultForUi } from '../util/numFormat.js';
+export { formatMultForUi };
 import {
   unlockXpSystem,
   isXpSystemUnlocked,
@@ -23,6 +25,7 @@ import {
 } from '../ui/merchantTabs/resetTab.js';
 import { getTsunamiNerf } from './surgeEffects.js';
 import { REGISTRY as AUTOMATION_REGISTRY, AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
+import { getEacAmountMultiplier } from './automationEffects.js';
 import { REGISTRY as DNA_REGISTRY, DNA_AREA_KEY } from './dnaUpgrades.js';
 import {
   invalidateEffectsCache,
@@ -165,81 +168,7 @@ function sanitizeStoredLevelValue(raw, { allowEmpty = false } = {}) {
   return trimmed;
 }
 
-export function approxLog10BigNum(value) {
-  if (!(value instanceof BigNum)) {
-    try {
-      value = BigNum.fromAny(value ?? 0);
-    } catch {
-      return Number.NEGATIVE_INFINITY;
-    }
-  }
-  if (!value) return Number.NEGATIVE_INFINITY;
-  if (value.isZero?.()) return Number.NEGATIVE_INFINITY;
-  if (value.isInfinite?.()) return Number.POSITIVE_INFINITY;
 
-  if (typeof value.sig === 'bigint') {
-    const sigNum = Number(value.sig);
-    if (sigNum > 0) {
-      const sigLog = Math.log10(sigNum);
-      const e = value.e || 0;
-      const off = Number(value._eOffset || 0n);
-      return sigLog + e + off;
-    }
-  }
-
-  let storage;
-  try {
-    storage = value.toStorage();
-  } catch {
-    return Number.NEGATIVE_INFINITY;
-  }
-  const parts = storage.split(':');
-  const sigStr = parts[2] ?? '0';
-  let expPart = parts[3] ?? '0';
-  let offsetStr = '0';
-  const caret = expPart.indexOf('^');
-  if (caret >= 0) {
-    offsetStr = expPart.slice(caret + 1) || '0';
-    expPart = expPart.slice(0, caret) || '0';
-  }
-  const baseExp = Number(expPart || '0');
-  const offset = Number(offsetStr || '0');
-  const digits = sigStr.replace(/^0+/, '') || '0';
-  if (digits === '0') return Number.NEGATIVE_INFINITY;
-
-  let sigLog;
-  if (digits.length <= 15) {
-    const sigNum = Number(digits);
-    if (!Number.isFinite(sigNum) || sigNum <= 0) return Number.NEGATIVE_INFINITY;
-    sigLog = Math.log10(sigNum);
-  } else {
-    const head = Number(digits.slice(0, 15));
-    if (!Number.isFinite(head) || head <= 0) return Number.NEGATIVE_INFINITY;
-    sigLog = Math.log10(head) + (digits.length - 15);
-  }
-
-  const expSum = (Number.isFinite(baseExp) ? baseExp : 0) + (Number.isFinite(offset) ? offset : 0);
-  return sigLog + expSum;
-}
-
-export function bigNumFromLog10(log10Value) {
-  if (!Number.isFinite(log10Value)) {
-    return log10Value > 0 ? BigNum.fromAny('Infinity') : BigNum.fromInt(0);
-  }
-  
-  if (log10Value <= -1e12) return BigNum.fromInt(0);
-  const p = BigNum.DEFAULT_PRECISION;
-  let intPart = Math.floor(log10Value);
-  let frac = log10Value - intPart;
-  if (frac < 0) {
-    frac += 1;
-    intPart -= 1;
-  }
-  const mantissa = Math.pow(10, frac + (p - 1));
-  const sig = BigInt(Math.max(1, Math.round(mantissa)));
-  const exp = intPart - (p - 1);
-  return new BigNum(sig, exp, p);
-}
 
 export const UPGRADE_TIES = {
   FASTER_COINS: 'coin_1',
@@ -1814,21 +1743,6 @@ function totalCostBigNum(upg, startLevel, count) {
   return bigNumFromLog10(totalLog);
 }
 
-function log10OnePlusPow10(exponent) {
-  if (!Number.isFinite(exponent)) {
-    if (exponent > 0) return exponent;
-    if (exponent === 0) return Math.log10(2);
-    return 0;
-  }
-  if (exponent > 308) return exponent;
-  if (exponent < -20) {
-    const pow = Math.pow(10, exponent);
-    return pow / LN10;
-  }
-  const pow = Math.pow(10, exponent);
-  if (!Number.isFinite(pow)) return exponent > 0 ? exponent : 0;
-  return Math.log1p(pow) / LN10;
-}
 
 const MAX_LEVEL_DELTA_LIMIT = (() => {
   try {
@@ -2411,30 +2325,6 @@ function formatBigNumAsHtml(bn) {
   return formatNumber(bn instanceof BigNum ? bn : BigNum.fromAny(bn ?? 0));
 }
 
-export function formatMultForUi(value) {
-  try {
-    if (value && (value instanceof BigNum || value.toPlainIntegerString)) {
-      const log10 = approxLog10BigNum(value);
-      if (Number.isFinite(log10) && log10 < 3) {
-        const approx = Math.pow(10, log10);
-        return String(approx.toFixed(3))
-          .replace(/\.0+$/, '')
-          .replace(/(\.\d*?)0+$/, '$1');
-      }
-      return formatNumber(value);
-    }
-
-    const n = Number(value) || 0;
-    if (Math.abs(n) < 1000) {
-      return String(n.toFixed(3))
-        .replace(/\.0+$/, '')
-        .replace(/(\.\d*?)0+$/, '$1');
-    }
-    return formatNumber(BigNum.fromAny(n));
-  } catch {
-    return '1';
-  }
-}
 
 
 function formatBigNumAsPlain(bn) {
@@ -4640,43 +4530,13 @@ export function upgradeUiModel(areaKey, upgId) {
   let displayDesc = lockState.descOverride ?? upg.desc;
 
   if (areaKey === AUTOMATION_AREA_KEY && normalizeUpgradeId(upgId) === EFFECTIVE_AUTO_COLLECT_ID) {
-    const surgeLevel = getCurrentSurgeLevel();
-    let isSurge2 = false;
-    if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
-      isSurge2 = true;
-    } else if (typeof surgeLevel === 'bigint') {
-      isSurge2 = surgeLevel >= 2n;
-    } else if (typeof surgeLevel === 'number') {
-      isSurge2 = surgeLevel >= 2;
-    }
-
-    if (isSurge2 && displayDesc) {
-      let multiplier = 10;
-      
-      // Determine if Surge 8 is active locally to avoid cycle with surgeEffects.js
-      let isSurge8 = false;
-      const sVal = getCurrentSurgeLevel();
-      if (sVal === Infinity || (typeof sVal === 'string' && sVal === 'Infinity')) isSurge8 = true;
-      else if (sVal === Number.POSITIVE_INFINITY) isSurge8 = true;
-      else if (typeof sVal === 'bigint') isSurge8 = sVal >= 8n;
-      else if (typeof sVal === 'number') isSurge8 = sVal >= 8;
-
-      if (isSurge8) {
-          const nerf = getTsunamiNerf();
-          multiplier = Math.pow(10, nerf);
-      }
-      
-      if (Math.abs(multiplier - 1) > 0.0001) {
-          let multStr = '10';
-          if (multiplier !== 10) {
-              multStr = formatMultForUi(multiplier);
-          }
-
-          displayDesc = displayDesc.replace(
-            'Generates the equivalent of picking up a Coin on an interval',
-            `Generates the equivalent of picking up ${multStr} Coins (Surge 2!) on an interval`
-          );
-      }
+    const multiplier = getEacAmountMultiplier();
+    if (Math.abs(multiplier - 1) > 0.0001 && displayDesc) {
+      const multStr = formatMultForUi(multiplier);
+      displayDesc = displayDesc.replace(
+        "Generates the equivalent of picking up a Coin on an interval",
+        "Generates the equivalent of picking up " + multStr + " Coins on an interval"
+      );
     }
   }
   const hmMilestones = resolveHmMilestones(upg, areaKey);
