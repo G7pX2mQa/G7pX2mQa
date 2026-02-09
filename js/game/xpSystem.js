@@ -1,6 +1,6 @@
 // js/game/xpSystem.js
 
-import { BigNum } from '../util/bigNum.js';
+import { BigNum, approxLog10BigNum as approxLog10, bigNumFromLog10 } from '../util/bigNum.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { formatNumber } from '../util/numFormat.js';
@@ -396,72 +396,6 @@ function stripHtml(value) {
   return value.replace(/<[^>]*>/g, '');
 }
 
-function approxLog10(bn) {
-  if (!bn || typeof bn !== 'object') return Number.NEGATIVE_INFINITY;
-  if (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())) {
-    return Number.POSITIVE_INFINITY;
-  }
-  if (bn.isZero?.() || (typeof bn.isZero === 'function' && bn.isZero())) {
-    return Number.NEGATIVE_INFINITY;
-  }
-
-  // Prefer the BigNum internal representation so we can handle chained-exponent
-  // values (e.g. 1e8.11e21) without going through lossy string parsing.
-  const sig = bn.sig;
-  const expBase = typeof bn.e === 'number' ? bn.e : Number(bn.e ?? 0);
-  const expOffset = typeof bn._eOffset === 'bigint'
-    ? bigIntToFloatApprox(bn._eOffset)
-    : Number(bn._eOffset ?? 0);
-
-  if (!Number.isFinite(expBase)) {
-    return expBase > 0 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
-  }
-  if (!Number.isFinite(expOffset)) {
-    return expOffset > 0 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
-  }
-
-  const totalExponent = expBase + expOffset;
-  if (!Number.isFinite(totalExponent)) {
-    return totalExponent > 0 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
-  }
-
-  let mantissaLog = 0;
-  if (typeof sig === 'bigint') {
-    const sigStr = sig.toString();
-    const trimmed = sigStr.replace(/^0+/, '');
-    if (!trimmed) return Number.NEGATIVE_INFINITY;
-    const digits = trimmed.length;
-    const headDigits = Math.min(digits, 15);
-    const headSlice = trimmed.slice(0, headDigits);
-    const head = Number.parseFloat(headSlice);
-    if (Number.isFinite(head) && head > 0) {
-      mantissaLog = Math.log10(head) + (digits - headDigits);
-    } else {
-      mantissaLog = digits - 1;
-    }
-  } else {
-    try {
-      const sci = typeof bn.toScientific === 'function' ? bn.toScientific(12) : String(bn);
-      if (!sci || sci === '0') return Number.NEGATIVE_INFINITY;
-      if (sci === 'Infinity') return Number.POSITIVE_INFINITY;
-      const match = sci.match(/^([0-9]+(?:\.[0-9]+)?)e([+-]?\d+)$/i);
-      if (match) {
-        const mant = parseFloat(match[1]);
-        const exp = parseInt(match[2], 10) || 0;
-        if (!(mant > 0) || !Number.isFinite(mant)) return Number.NEGATIVE_INFINITY;
-        mantissaLog = Math.log10(mant) + exp;
-      } else {
-        const num = Number(sci);
-        if (!Number.isFinite(num) || num <= 0) return Number.NEGATIVE_INFINITY;
-        mantissaLog = Math.log10(num);
-      }
-    } catch {
-      return Number.NEGATIVE_INFINITY;
-    }
-  }
-
-  return totalExponent + mantissaLog;
-}
 
 function bonusMultipliersCount(levelBigInt) {
   if (levelBigInt <= 1n) return 0n;
@@ -498,43 +432,6 @@ function ensureExactRequirementCacheUpTo(levelBigInt) {
   highestCachedExactLevel = currentLevel;
 }
 
-function bigNumFromLog10(log10Value) {
-  if (!Number.isFinite(log10Value) || log10Value >= BigNum.MAX_E) {
-    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-  }
-
-  let exponent = Math.floor(log10Value);
-  let fractional = log10Value - exponent;
-  if (!Number.isFinite(fractional)) {
-    fractional = 0;
-  }
-
-  let mantissa = Math.pow(10, fractional);
-  if (!Number.isFinite(mantissa) || mantissa <= 0) {
-    mantissa = 1;
-  }
-
-  if (mantissa >= 10) {
-    mantissa /= 10;
-    exponent += 1;
-  }
-
-  let exponentStr;
-  try {
-    exponentStr = Number.isFinite(exponent)
-      ? exponent.toLocaleString('en', { useGrouping: false })
-      : String(exponent);
-  } catch {
-    exponentStr = String(exponent);
-  }
-
-  const sci = `${mantissa.toPrecision(18)}e${exponentStr}`;
-  try {
-    return BigNum.fromScientific(sci).floorToInteger();
-  } catch {
-    return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-  }
-}
 
 function approximateRequirementFromLevel(levelBn) {
   const baseLevel = highestCachedExactLevel > 0n ? highestCachedExactLevel : 0n;
