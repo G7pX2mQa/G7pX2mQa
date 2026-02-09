@@ -32,6 +32,7 @@ let bank;
 let getHasOpenedSaveSlot;
 let setHasOpenedSaveSlot;
 let ensureStorageDefaults;
+let ensureMultiplierDefaults;
 let getUpgAreaKey;
 let computeUpgradeEffects;
 let initXpSystem;
@@ -727,7 +728,7 @@ images: [
   ({ createSpawner } = spawnerModule);
   ({ initCoinPickup } = coinPickupModule);
   ({ initHudButtons } = hudButtonsModule);
-  ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted } = storageModule);
+  ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults } = storageModule);
   void saveIntegrityModule;
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
   ({ registerPreloadedAudio } = audioCacheModule);
@@ -857,6 +858,7 @@ images: [
     document.body.classList.add('has-opened');
     if (titleEl) titleEl.style.opacity = '0';
     enterArea(AREAS.STARTER_COVE);
+    ensureMultiplierDefaults();
     processOfflineProgress();
     if (window.spawner && typeof window.spawner.playEntranceWave === 'function') {
       window.spawner.playEntranceWave();
