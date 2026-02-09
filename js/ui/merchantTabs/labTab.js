@@ -1125,20 +1125,16 @@ class LabSystem {
              if (this.overlayToggleBtn) this.overlayToggleBtn.style.display = '';
         }
         
-        if (node.id === 2) {
-            this.overlayBonus.style.display = '';
-            const val = getLabCoinMultiplier();
-            this.overlayBonus.textContent = `Coin value bonus: ${formatMultForUi(val)}x`;
-        } else if (node.id === 3) {
-            this.overlayBonus.style.display = '';
-            const val = getLabXpMultiplier();
-            this.overlayBonus.textContent = `XP value bonus: ${formatMultForUi(val)}x`;
-        } else if (node.id === 4) {
-             this.overlayBonus.style.display = 'none';
+        if (typeof node.bonusLine === 'function') {
+            const line = node.bonusLine(level);
+            if (line) {
+                this.overlayBonus.style.display = '';
+                this.overlayBonus.textContent = line;
+            } else {
+                this.overlayBonus.style.display = 'none';
+            }
         } else {
-            this.overlayBonus.style.display = '';
-            const effect = level * 0.01;
-            this.overlayBonus.textContent = `Tsunami exponent bonus: +${effect.toFixed(2)}`;
+            this.overlayBonus.style.display = 'none';
         }
         
         if (!isMaxed) {
