@@ -95,7 +95,7 @@ function playSurgeResetSound() {
 }
 
 function playExperimentResetSound() {
-  playAudio(EXPERIMENT_RESET_SOUND_SRC, { volume: 0.5 });
+  playAudio(EXPERIMENT_RESET_SOUND_SRC, { volume: 0.8 });
 }
 
 const FORGE_UNLOCK_KEY = (slot) => `ccc:reset:forge:${slot}`;
