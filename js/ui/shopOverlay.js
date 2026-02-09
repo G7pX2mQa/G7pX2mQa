@@ -238,6 +238,7 @@ function stripTags(html) {
 export function getCurrencyLabel(type, amountBn) {
   if (type === 'gold') return 'Gold';
   if (type === 'magic') return 'Magic';
+  if (type === 'dna') return 'DNA';
   
   let isOne = false;
   if (amountBn && typeof amountBn.cmp === 'function') {
