@@ -4,7 +4,7 @@ import { BigNum } from '../util/bigNum.js';
 import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { formatNumber } from '../util/numFormat.js';
-import { approxLog10BigNum, bigNumFromLog10 } from './upgrades.js';
+import { approxLog10BigNum, bigNumFromLog10 } from '../util/bigNum.js';
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
 import { refreshCoinMultiplierFromXpLevel } from './xpSystem.js';
 
