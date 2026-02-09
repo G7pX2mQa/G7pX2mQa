@@ -9,7 +9,7 @@ import {
 import { addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
 import { getCurrentSurgeLevel } from '../ui/merchantTabs/resetTab.js';
 import { registerTick, RateAccumulator } from './gameLoop.js';
-import { bigNumFromLog10, approxLog10BigNum } from './upgrades.js';
+import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
 import { getTsunamiResearchBonus } from './labNodes.js';
 
 const BN = BigNum;
