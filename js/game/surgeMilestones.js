@@ -1,4 +1,4 @@
-import { formatNumber } from '../util/numFormat.js';
+import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
 import { getTsunamiNerf } from './surgeEffects.js';
@@ -126,14 +126,7 @@ export function getVisibleMilestones(currentSurgeLevel) {
       if (m.id === 1) {
         // 10x -> 10^nerf x
         const val = Math.pow(10, nerf);
-        let valStr = formatNumber(BigNum.fromAny(val));
-        // Ensure decimal formatting for small numbers if formatNumber defaults to integer
-        if (Math.abs(val - Math.round(val)) > 0.001) {
-             valStr = val.toFixed(2);
-             if (valStr.endsWith('.00')) valStr = valStr.slice(0, -3);
-        } else if (val < 1000) {
-             valStr = String(Math.round(val));
-        }
+        const valStr = formatMultForUi(val);
         
         milestone.description[0] = milestone.description[0].replace(
             /<span style="color:#00e5ff">.*?x<\/span>/, 
@@ -142,13 +135,7 @@ export function getVisibleMilestones(currentSurgeLevel) {
       } else if (m.id === 2) {
         // Auto-collect 10x -> 10^nerf x
         const val = Math.pow(10, nerf);
-        let valStr = formatNumber(BigNum.fromAny(val));
-        if (Math.abs(val - Math.round(val)) > 0.001) {
-             valStr = val.toFixed(2);
-             if (valStr.endsWith('.00')) valStr = valStr.slice(0, -3);
-        } else if (val < 1000) {
-             valStr = String(Math.round(val));
-        }
+        const valStr = formatMultForUi(val);
 
         milestone.description[1] = milestone.description[1].replace(
             /<span style="color:#00e5ff">.*?x<\/span>/, 
