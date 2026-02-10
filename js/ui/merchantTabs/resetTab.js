@@ -1435,6 +1435,65 @@ function formatBn(value) {
   catch { return value?.toString?.() ?? '0'; }
 }
 
+
+function generateDnaSvgDataUri() {
+  const w = 120; // Tile width matching CSS animation
+  const h = 100; // coordinate system height
+  const colors = { red: '#d93629', blue: '#4ba7d8' };
+  
+  let paths = [];
+  
+  // Rungs (8 per period)
+  for(let i=0; i<8; i++) {
+      const x = (i/8) * w;
+      const angle = (i/8) * Math.PI * 2;
+      const y1 = 50 + 30 * Math.sin(angle);
+      const y2 = 50 + 30 * Math.sin(angle + Math.PI);
+      
+      // Opacity: Max at peaks (angle PI/2, 3PI/2), Min at nodes (0, PI)
+      const opacity = 0.2 + 0.6 * Math.abs(Math.sin(angle));
+      
+      paths.push(`<line x1="${x.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="rgba(255,255,255,${opacity.toFixed(2)})" stroke-width="2" />`);
+  }
+
+  const segments = 20; 
+  
+  // Function to generate path d attribute
+  const getPath = (startAngle, endAngle, color, phaseOffset) => {
+      let d = "";
+      for (let i=0; i<=segments; i++) {
+          const t = i / segments;
+          const angle = startAngle + t * (endAngle - startAngle);
+          const x = (angle / (Math.PI * 2)) * w;
+          const y = 50 + 30 * Math.sin(angle + phaseOffset);
+          d += (i===0 ? "M" : "L") + ` ${x.toFixed(1)} ${y.toFixed(1)}`;
+      }
+      return `<path d="${d}" stroke="${color}" stroke-width="6" fill="none" stroke-linecap="round" />`;
+  };
+
+  // Draw Order for intertwining effect:
+  // 1. Blue (0..PI) - Back
+  // 2. Red (PI..2PI) - Back
+  // 3. Red (0..PI) - Front
+  // 4. Blue (PI..2PI) - Front
+  
+  // Blue 0..PI (Phase PI) -> sin(t + PI)
+  paths.push(getPath(0, Math.PI, colors.blue, Math.PI));
+  
+  // Red PI..2PI (Phase 0) -> sin(t)
+  paths.push(getPath(Math.PI, Math.PI*2, colors.red, 0));
+  
+  // Red 0..PI (Phase 0) -> sin(t)
+  paths.push(getPath(0, Math.PI, colors.red, 0));
+  
+  // Blue PI..2PI (Phase PI) -> sin(t + PI)
+  paths.push(getPath(Math.PI, Math.PI*2, colors.blue, Math.PI));
+  
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" preserveAspectRatio="none">${paths.join('')}</svg>`;
+  
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 function buildPanel(panelEl) {
   panelEl.innerHTML = `
     <div class="merchant-reset">
@@ -1722,25 +1781,16 @@ function buildPanel(panelEl) {
       // Build structure
       dnaContainer.innerHTML = `
         <button class="btn-dna-shop">
-          <div class="dna-strand-layer"></div>
           <div class="dna-label">DNA</div>
         </button>
       `;
       
       const dnaBtn = dnaContainer.querySelector(".btn-dna-shop");
-      const strandLayer = dnaBtn.querySelector(".dna-strand-layer");
-      
-      // Build dynamic strands
-      const numStrands = 24; // Number of segments visible
-      for (let i = 0; i < numStrands; i++) {
-          const segment = document.createElement("div");
-          segment.className = "dna-segment";
-          // Alternate red/blue
-          segment.classList.add(i % 2 === 0 ? "is-red" : "is-blue");
-          // Add offset index for JS-driven animation delays or positions
-          segment.style.setProperty("--i", i);
-          strandLayer.appendChild(segment);
-      }
+
+      // Set DNA SVG Background
+      const svgUri = generateDnaSvgDataUri();
+      dnaBtn.style.backgroundImage = `url("${svgUri}")`;
+      dnaBtn.style.backgroundSize = `120px 100%`;
 
       dnaBtn.addEventListener("click", () => { openShop("dna"); });
 
@@ -1748,15 +1798,13 @@ function buildPanel(panelEl) {
           const observer = new IntersectionObserver((entries) => {
               entries.forEach(entry => {
                   if (entry.isIntersecting) {
-                      dnaBtn.classList.add('is-animating');
+                      dnaBtn.style.animationPlayState = 'running';
                   } else {
-                      dnaBtn.classList.remove('is-animating');
+                      dnaBtn.style.animationPlayState = 'paused';
                   }
               });
           }, { threshold: 0.1 });
           observer.observe(dnaBtn);
-      } else {
-          dnaBtn.classList.add('is-animating');
       }
 
       const syncLayout = () => {
