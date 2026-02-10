@@ -135,6 +135,19 @@ export const RESEARCH_NODES = [
         icon: 'sc_upg_icons/effective_auto_collect.webp',
         parentIds: [7],
         bonusLine: (level) => `EAC value bonus: ${formatMultForUi(getLabEacBonus())}x`
+    },
+    {
+        id: 10,
+        title: "Node 10: Tsunami Exponent Buff II",
+        desc: "Increases the Tsunami exponent by +0.01 per level",
+        baseRpReq: 1e15,
+        scale: 2.0,
+        maxLevel: 10,
+        x: 0,
+        y: -2000,
+        icon: 'lab_icons/tsunami_exponent_buff.webp',
+        parentIds: [8, 9],
+        bonusLine: (level) => `Tsunami exponent bonus: +${(level * 0.01).toFixed(2)}`
     }
 ];
 
@@ -397,10 +410,14 @@ export function getResearchNodeRequirement(id) {
 }
 
 export function getTsunamiResearchBonus() {
-    const level = getResearchNodeLevel(1);
-    if (level <= 0) return 0;
-    // Effect per level is 0.01 (hardcoded for node 1)
-    return level * 0.01;
+    let bonus = 0;
+    const level1 = getResearchNodeLevel(1);
+    if (level1 > 0) bonus += level1 * 0.01;
+    
+    const level10 = getResearchNodeLevel(10);
+    if (level10 > 0) bonus += level10 * 0.01;
+    
+    return bonus;
 }
 
 export function isExperimentUnlocked() {
