@@ -3272,6 +3272,9 @@ if (typeof window !== 'undefined') {
     bindUpgradeStorageWatchersForSlot(getActiveSlot());
     notifyChanged();
   });
+  window.addEventListener('surge:level:change', () => {
+    notifyChanged();
+  });
 }
 
 function migrateLegacyStorage(areaKey, slot) {
