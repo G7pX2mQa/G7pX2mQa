@@ -35,7 +35,7 @@ export const RESEARCH_NODES = [
     {
         id: 2,
         title: "Node 2: Experimental Coin Value",
-        desc: "Multiplies Coin value by 1.5x per level",
+        desc: "Multiplies Coin value by 2x per level",
         baseRpReq: 1000,
         scale: 2.0,
         maxLevel: 10,
@@ -48,7 +48,7 @@ export const RESEARCH_NODES = [
     {
         id: 3,
         title: "Node 3: Experimental XP Value",
-        desc: "Multiplies XP value by 1.5x per level",
+        desc: "Multiplies XP value by 2x per level",
         baseRpReq: 1000,
         scale: 2.0,
         maxLevel: 10,
@@ -74,7 +74,7 @@ export const RESEARCH_NODES = [
     {
         id: 5,
         title: "Node 5: Experimental Gold Value",
-        desc: "Multiplies Gold value by 1.5x per level",
+        desc: "Multiplies Gold value by 2x per level",
         baseRpReq: 1e6,
         scale: 2.0,
         maxLevel: 10,
@@ -87,7 +87,7 @@ export const RESEARCH_NODES = [
     {
         id: 6,
         title: "Node 6: Experimental Magic Value",
-        desc: "Multiplies Magic value by 1.5x per level",
+        desc: "Multiplies Magic value by 2x per level",
         baseRpReq: 1e6,
         scale: 2.0,
         maxLevel: 10,
@@ -490,7 +490,7 @@ export function getLabCoinMultiplier() {
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
     
-    const val = Math.pow(1.5, level);
+    const val = Math.pow(2.0, level);
     return BigNum.fromAny(val);
 }
 
@@ -500,7 +500,7 @@ export function getLabXpMultiplier() {
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
     
-    const val = Math.pow(1.5, level);
+    const val = Math.pow(2.0, level);
     return BigNum.fromAny(val);
 }
 
@@ -510,7 +510,7 @@ export function getLabGoldMultiplier() {
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
     
-    const val = Math.pow(1.5, level);
+    const val = Math.pow(2.0, level);
     return BigNum.fromAny(val);
 }
 
@@ -520,7 +520,7 @@ export function getLabMagicMultiplier() {
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
     
-    const val = Math.pow(1.5, level);
+    const val = Math.pow(2.0, level);
     return BigNum.fromAny(val);
 }
 
