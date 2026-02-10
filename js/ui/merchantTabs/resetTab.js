@@ -1744,6 +1744,21 @@ function buildPanel(panelEl) {
 
       dnaBtn.addEventListener("click", () => { openShop("dna"); });
 
+      if (typeof IntersectionObserver !== 'undefined') {
+          const observer = new IntersectionObserver((entries) => {
+              entries.forEach(entry => {
+                  if (entry.isIntersecting) {
+                      dnaBtn.classList.add('is-animating');
+                  } else {
+                      dnaBtn.classList.remove('is-animating');
+                  }
+              });
+          }, { threshold: 0.1 });
+          observer.observe(dnaBtn);
+      } else {
+          dnaBtn.classList.add('is-animating');
+      }
+
       const syncLayout = () => {
           const statsBtn = document.querySelector(".hud-bottom [data-btn=stats]");
           if (statsBtn && dnaBtn) {
