@@ -138,11 +138,29 @@ export const RESEARCH_NODES = [
     }
 ];
 
+export const NODE_MAP = new Map(RESEARCH_NODES.map(n => [n.id, n]));
+
 // --- State Cache ---
+let _cachedExperimentCompleted = null;
+let _cachedSlot = null;
 const labState = {
     nodes: {}
 };
 let activeNodeId = null;
+
+function reloadExperimentCache() {
+    const slot = getActiveSlot();
+    _cachedSlot = slot;
+    if (slot == null) {
+        _cachedExperimentCompleted = false;
+        return;
+    }
+    try {
+        _cachedExperimentCompleted = localStorage.getItem(EXPERIMENT_COMPLETED_KEY(slot)) === '1';
+    } catch {
+        _cachedExperimentCompleted = false;
+    }
+}
 
 function ensureNodeState(id) {
     if (!labState.nodes[id]) {
@@ -179,6 +197,7 @@ function loadNodeState(slot, id) {
 }
 
 export function reloadLabNodes() {
+    reloadExperimentCache(); // Reload experiment status
     const slot = getActiveSlot();
     labState.nodes = {}; // Clear cache
     activeNodeId = null;
@@ -216,6 +235,13 @@ if (typeof window !== 'undefined') {
     setInterval(saveLabNodes, 1000);
     // Save on unload
     window.addEventListener('beforeunload', saveLabNodes);
+
+    // Listen for experiment unlock
+    window.addEventListener('unlock:change', ({ detail }) => {
+        if (detail && detail.key === 'experiment_completed') {
+            reloadExperimentCache();
+        }
+    });
     
     // Initial load
     reloadLabNodes();
@@ -312,7 +338,7 @@ export function setResearchNodeDiscovered(id, discovered) {
 // --- Logic ---
 
 export function isResearchNodeVisible(id) {
-    const node = RESEARCH_NODES.find(n => n.id === id);
+    const node = NODE_MAP.get(id);
     if (!node) return false;
     
     // Check persistent discovery state
@@ -327,23 +353,17 @@ export function isResearchNodeVisible(id) {
 
     // Node 5 & 6 require Experiment Reset to be completed
     if (id === 5 || id === 6) {
-        const slot = getActiveSlot();
-        if (slot != null) {
-            try {
-                const completed = localStorage.getItem(EXPERIMENT_COMPLETED_KEY(slot)) === '1';
-                if (!completed) return false;
-            } catch {
-                return false;
-            }
-        } else {
-            return false;
+        // Use cached value
+        if (_cachedSlot !== getActiveSlot() || _cachedExperimentCompleted === null) {
+             reloadExperimentCache();
         }
+        if (!_cachedExperimentCompleted) return false;
     }
     
     // Visible if ALL parents are maxed
     for (const parentId of node.parentIds) {
-        const parent = RESEARCH_NODES.find(n => n.id === parentId);
-        if (!parent) continue; // Should probably not happen, but safe to ignore
+        const parent = NODE_MAP.get(parentId);
+        if (!parent) continue; 
         
         const parentLevel = getResearchNodeLevel(parentId);
         if (parentLevel < parent.maxLevel) {
@@ -356,7 +376,7 @@ export function isResearchNodeVisible(id) {
 }
 
 export function getResearchNodeRequirement(id) {
-    const node = RESEARCH_NODES.find(n => n.id === id);
+    const node = NODE_MAP.get(id);
     if (!node) return BigNum.fromAny('Infinity');
     
     const level = getResearchNodeLevel(id);
@@ -416,7 +436,7 @@ export function tickResearch(dt) {
 
     if (activeNodeId === null) return;
 
-    const node = RESEARCH_NODES.find(n => n.id === activeNodeId);
+    const node = NODE_MAP.get(activeNodeId);
     if (!node) return;
     
     if (!isResearchNodeVisible(node.id)) return;
@@ -448,7 +468,7 @@ export function tickResearch(dt) {
 // --- Multipliers ---
 
 export function getLabCoinMultiplier() {
-    const node = RESEARCH_NODES.find(n => n.id === 2);
+    const node = NODE_MAP.get(2);
     if (!node) return BigNum.fromInt(1);
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
@@ -458,7 +478,7 @@ export function getLabCoinMultiplier() {
 }
 
 export function getLabXpMultiplier() {
-    const node = RESEARCH_NODES.find(n => n.id === 3);
+    const node = NODE_MAP.get(3);
     if (!node) return BigNum.fromInt(1);
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
@@ -468,7 +488,7 @@ export function getLabXpMultiplier() {
 }
 
 export function getLabGoldMultiplier() {
-    const node = RESEARCH_NODES.find(n => n.id === 5);
+    const node = NODE_MAP.get(5);
     if (!node) return BigNum.fromInt(1);
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
@@ -478,7 +498,7 @@ export function getLabGoldMultiplier() {
 }
 
 export function getLabMagicMultiplier() {
-    const node = RESEARCH_NODES.find(n => n.id === 6);
+    const node = NODE_MAP.get(6);
     if (!node) return BigNum.fromInt(1);
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
@@ -488,7 +508,7 @@ export function getLabMagicMultiplier() {
 }
 
 export function getLabWaveMultiplier() {
-    const node = RESEARCH_NODES.find(n => n.id === 7);
+    const node = NODE_MAP.get(7);
     if (!node) return BigNum.fromInt(1);
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
@@ -498,14 +518,14 @@ export function getLabWaveMultiplier() {
 }
 
 export function getLabSpawnRateBonus() {
-    const node = RESEARCH_NODES.find(n => n.id === 8);
+    const node = NODE_MAP.get(8);
     if (!node) return 1;
     const level = getResearchNodeLevel(node.id);
     return 1 + (level * 0.1);
 }
 
 export function getLabEacBonus() {
-    const node = RESEARCH_NODES.find(n => n.id === 9);
+    const node = NODE_MAP.get(9);
     if (!node) return 1;
     const level = getResearchNodeLevel(node.id);
     return 1 + (level * 0.1);
