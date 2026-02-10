@@ -1468,7 +1468,7 @@ function generateDnaSvgDataUri() {
           const y = 50 + 30 * Math.sin(angle + phaseOffset);
           d += (i===0 ? "M" : "L") + ` ${x.toFixed(1)} ${y.toFixed(1)}`;
       }
-      return `<path d="${d}" stroke="${color}" stroke-width="6" fill="none" stroke-linecap="round" />`;
+      return `<path d="${d}" stroke="${color}" stroke-width="6" fill="none" stroke-linecap="butt" />`;
   };
 
   // Draw Order for intertwining effect:
@@ -1477,17 +1477,19 @@ function generateDnaSvgDataUri() {
   // 3. Red (0..PI) - Front
   // 4. Blue (PI..2PI) - Front
   
+  const overlap = 0.2; // Extend lines slightly to prevent gaps between tiles
+
   // Blue 0..PI (Phase PI) -> sin(t + PI)
-  paths.push(getPath(0, Math.PI, colors.blue, Math.PI));
+  paths.push(getPath(-overlap, Math.PI, colors.blue, Math.PI));
   
   // Red PI..2PI (Phase 0) -> sin(t)
-  paths.push(getPath(Math.PI, Math.PI*2, colors.red, 0));
+  paths.push(getPath(Math.PI, Math.PI*2 + overlap, colors.red, 0));
   
   // Red 0..PI (Phase 0) -> sin(t)
-  paths.push(getPath(0, Math.PI, colors.red, 0));
+  paths.push(getPath(-overlap, Math.PI, colors.red, 0));
   
   // Blue PI..2PI (Phase PI) -> sin(t + PI)
-  paths.push(getPath(Math.PI, Math.PI*2, colors.blue, Math.PI));
+  paths.push(getPath(Math.PI, Math.PI*2 + overlap, colors.blue, Math.PI));
   
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" preserveAspectRatio="none">${paths.join('')}</svg>`;
   
