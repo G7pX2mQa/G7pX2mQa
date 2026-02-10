@@ -29,22 +29,57 @@ const CAM_MIN_ZOOM = 1e-300;
 const LAB_VISITED_KEY = (slot) => `ccc:lab:visited:${slot}`;
 const LAB_LEVEL_KEY = (slot) => `ccc:lab:level:${slot}`;
 
+// --- Caching ---
+let _cachedLabLevel = null;
+let _cachedLabVisited = null;
+let _cachedSlot = null;
+
+function reloadLabCache() {
+    const slot = getActiveSlot();
+    _cachedSlot = slot;
+    
+    if (slot == null) {
+        _cachedLabLevel = BigNum.fromInt(0);
+        _cachedLabVisited = false;
+        return;
+    }
+
+    // Load Level
+    try {
+        const raw = localStorage.getItem(LAB_LEVEL_KEY(slot));
+        if (!raw) _cachedLabLevel = BigNum.fromInt(0);
+        else _cachedLabLevel = BigNum.fromAny(raw);
+    } catch {
+        _cachedLabLevel = BigNum.fromInt(0);
+    }
+
+    // Load Visited
+    try {
+        _cachedLabVisited = localStorage.getItem(LAB_VISITED_KEY(slot)) === '1';
+    } catch {
+        _cachedLabVisited = false;
+    }
+}
+
 // --- Exported Getters/Setters ---
 
 export function hasVisitedLab() {
   const slot = getActiveSlot();
   if (slot == null) return false;
-  try {
-    return localStorage.getItem(LAB_VISITED_KEY(slot)) === '1';
-  } catch {
-    return false;
+  if (_cachedSlot !== slot || _cachedLabVisited === null) {
+      reloadLabCache();
   }
+  return _cachedLabVisited;
 }
 
 export function setLabVisited(value) {
   const slot = getActiveSlot();
   if (slot == null) return;
   const normalized = !!value;
+  
+  if (_cachedLabVisited === normalized && _cachedSlot === slot) return;
+  _cachedLabVisited = normalized;
+
   try {
     localStorage.setItem(LAB_VISITED_KEY(slot), normalized ? '1' : '0');
   } catch {}
@@ -60,13 +95,10 @@ export function getLabLevel() {
       return BigNum.fromAny('Infinity');
   }
   
-  try {
-    const raw = localStorage.getItem(LAB_LEVEL_KEY(slot));
-    if (!raw) return BigNum.fromInt(0);
-    return BigNum.fromAny(raw);
-  } catch {
-    return BigNum.fromInt(0);
+  if (_cachedSlot !== slot || _cachedLabLevel === null) {
+      reloadLabCache();
   }
+  return _cachedLabLevel;
 }
 
 export function setLabLevel(value) {
@@ -74,9 +106,15 @@ export function setLabLevel(value) {
   if (slot == null) return;
   try {
     const valBn = BigNum.fromAny(value);
-    const current = getLabLevel();
-    if (valBn.cmp(current) === 0) return;
+    
+    // Ensure cache is loaded so we can compare
+    if (_cachedSlot !== slot || _cachedLabLevel === null) {
+        reloadLabCache();
+    }
+    
+    if (valBn.cmp(_cachedLabLevel) === 0) return;
 
+    _cachedLabLevel = valBn;
     localStorage.setItem(LAB_LEVEL_KEY(slot), valBn.toStorage());
     window.dispatchEvent(new CustomEvent('lab:level:change', { detail: { slot, level: valBn } }));
   } catch {}
@@ -162,6 +200,10 @@ export function updateLabLevel() {
 }
 
 export function initLabLogic() {
+    reloadLabCache();
+    if (typeof window !== 'undefined') {
+        window.addEventListener('saveSlot:change', reloadLabCache);
+    }
     registerTick(updateLabLevel);
     // Also register research tick
     registerTick(tickResearch);
