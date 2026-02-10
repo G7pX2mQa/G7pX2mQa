@@ -1471,25 +1471,35 @@ function generateDnaSvgDataUri() {
       return `<path d="${d}" stroke="${color}" stroke-width="6" fill="none" stroke-linecap="butt" />`;
   };
 
-  // Draw Order for intertwining effect:
-  // 1. Blue (0..PI) - Back
-  // 2. Red (PI..2PI) - Back
-  // 3. Red (0..PI) - Front
-  // 4. Blue (PI..2PI) - Front
-  
   const overlap = 0.2; // Extend lines slightly to prevent gaps between tiles
 
-  // Blue 0..PI (Phase PI) -> sin(t + PI)
-  paths.push(getPath(-overlap, Math.PI, colors.blue, Math.PI));
+  // Improved Draw Order for smoother weaving:
+  // Instead of drawing whole 0..PI segments, we split at PI/2 boundaries to properly layer
+  // the strands at the crossing points (0 and PI).
   
-  // Red PI..2PI (Phase 0) -> sin(t)
-  paths.push(getPath(Math.PI, Math.PI*2 + overlap, colors.red, 0));
+  // Back Layer (drawn first)
+  // Blue at 0 (Back), Blue at 2PI (Back), Red at PI (Back)
   
-  // Red 0..PI (Phase 0) -> sin(t)
-  paths.push(getPath(-overlap, Math.PI, colors.red, 0));
+  // Blue Back 1: 0..PI/2 (Phase PI)
+  paths.push(getPath(-overlap, Math.PI/2 + overlap, colors.blue, Math.PI));
   
-  // Blue PI..2PI (Phase PI) -> sin(t + PI)
-  paths.push(getPath(Math.PI, Math.PI*2 + overlap, colors.blue, Math.PI));
+  // Blue Back 2: 3PI/2..2PI (Phase PI)
+  paths.push(getPath(3*Math.PI/2 - overlap, 2*Math.PI + overlap, colors.blue, Math.PI));
+  
+  // Red Back: PI/2..3PI/2 (Phase 0)
+  paths.push(getPath(Math.PI/2 - overlap, 3*Math.PI/2 + overlap, colors.red, 0));
+  
+  // Front Layer (drawn last)
+  // Red at 0 (Front), Red at 2PI (Front), Blue at PI (Front)
+  
+  // Red Front 1: 0..PI/2 (Phase 0)
+  paths.push(getPath(-overlap, Math.PI/2 + overlap, colors.red, 0));
+  
+  // Red Front 2: 3PI/2..2PI (Phase 0)
+  paths.push(getPath(3*Math.PI/2 - overlap, 2*Math.PI + overlap, colors.red, 0));
+  
+  // Blue Front: PI/2..3PI/2 (Phase PI)
+  paths.push(getPath(Math.PI/2 - overlap, 3*Math.PI/2 + overlap, colors.blue, Math.PI));
   
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" preserveAspectRatio="none">${paths.join('')}</svg>`;
   
