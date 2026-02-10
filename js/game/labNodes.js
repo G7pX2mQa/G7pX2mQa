@@ -8,7 +8,7 @@ import {
     refreshCoinMultiplierFromXpLevel
 } from './xpSystem.js';
 import { addExternalSpawnRateMultiplierProvider, triggerUpgradesChanged } from './upgradeEffects.js';
-import { addExternalEacMultiplierProvider, addExternalEacAmountMultiplierProvider } from './automationEffects.js';
+import { addExternalEacMultiplierProvider, addExternalEacAmountMultiplierProvider, setTsunamiBonusProvider } from './automationEffects.js';
 
 // --- Storage Keys ---
 export const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
@@ -142,6 +142,7 @@ export const RESEARCH_NODES = [
 const labState = {
     nodes: {}
 };
+let activeNodeId = null;
 
 function ensureNodeState(id) {
     if (!labState.nodes[id]) {
@@ -180,8 +181,14 @@ function loadNodeState(slot, id) {
 export function reloadLabNodes() {
     const slot = getActiveSlot();
     labState.nodes = {}; // Clear cache
+    activeNodeId = null;
     if (slot != null) {
-        RESEARCH_NODES.forEach(n => loadNodeState(slot, n.id));
+        RESEARCH_NODES.forEach(n => {
+            loadNodeState(slot, n.id);
+            if (labState.nodes[n.id].active) {
+                activeNodeId = n.id;
+            }
+        });
     }
 }
 
@@ -264,21 +271,29 @@ export function setResearchNodeActive(id, active) {
     const slot = getActiveSlot();
     if (slot == null) return;
     
-    if (active) {
-        RESEARCH_NODES.forEach(n => {
-            if (n.id !== id && isResearchNodeActive(n.id)) {
-                setResearchNodeActive(n.id, false);
-            }
-        });
+    const shouldBeActive = !!active;
+
+    if (shouldBeActive) {
+        // Deactivate currently active node if it's different
+        if (activeNodeId !== null && activeNodeId !== id) {
+             setResearchNodeActive(activeNodeId, false);
+        }
+        activeNodeId = id;
+    } else {
+        if (activeNodeId === id) {
+            activeNodeId = null;
+        }
     }
 
     const s = ensureNodeState(id);
-    s.active = !!active;
-    
-    try {
-        localStorage.setItem(NODE_ACTIVE_KEY(slot, id), s.active ? '1' : '0');
-        window.dispatchEvent(new CustomEvent('lab:node:active', { detail: { id, active: s.active } }));
-    } catch {}
+    // Only update if state actually changes to avoid redundant events/storage writes
+    if (s.active !== shouldBeActive) {
+        s.active = shouldBeActive;
+        try {
+            localStorage.setItem(NODE_ACTIVE_KEY(slot, id), s.active ? '1' : '0');
+            window.dispatchEvent(new CustomEvent('lab:node:active', { detail: { id, active: s.active } }));
+        } catch {}
+    }
 }
 
 export function setResearchNodeDiscovered(id, discovered) {
@@ -381,13 +396,17 @@ export function resetLab(exceptions = []) {
         setLabLevel(0);
     } catch {}
 
+    // Deactivate current active node
+    if (activeNodeId !== null) {
+        setResearchNodeActive(activeNodeId, false);
+    }
+
     // Reset Nodes
     RESEARCH_NODES.forEach(node => {
         if (exceptions.includes(node.id)) return;
         
         setResearchNodeLevel(node.id, 0);
         setResearchNodeRp(node.id, BigNum.fromInt(0));
-        setResearchNodeActive(node.id, false);
     });
 }
 
@@ -395,35 +414,35 @@ export function tickResearch(dt) {
     const mult = getRpMult();
     if (mult.isZero?.()) return;
 
+    if (activeNodeId === null) return;
+
+    const node = RESEARCH_NODES.find(n => n.id === activeNodeId);
+    if (!node) return;
+    
+    if (!isResearchNodeVisible(node.id)) return;
+
     // RP per second = 1 * Multiplier
     const rpPerSec = mult; 
     const rpPerTick = rpPerSec.mulDecimal(dt.toString(), 18);
-
-    RESEARCH_NODES.forEach(node => {
-        if (!isResearchNodeVisible(node.id)) return;
+    
+    const currentRp = getResearchNodeRp(node.id);
+    
+    if (getResearchNodeLevel(node.id) >= node.maxLevel) return;
+    
+    let nextRp = currentRp.add(rpPerTick);
+    
+    while (true) {
+        const currentReq = getResearchNodeRequirement(node.id);
+        if (nextRp.cmp(currentReq) < 0) break;
         
-        if (isResearchNodeActive(node.id)) {
-            const currentRp = getResearchNodeRp(node.id);
-            const req = getResearchNodeRequirement(node.id);
-            
-            if (getResearchNodeLevel(node.id) >= node.maxLevel) return;
-            
-            let nextRp = currentRp.add(rpPerTick);
-            
-            while (true) {
-                const currentReq = getResearchNodeRequirement(node.id);
-                if (nextRp.cmp(currentReq) < 0) break;
-                
-                if (getResearchNodeLevel(node.id) >= node.maxLevel) break;
+        if (getResearchNodeLevel(node.id) >= node.maxLevel) break;
 
-                nextRp = nextRp.sub(currentReq);
-                const oldLevel = getResearchNodeLevel(node.id);
-                if (!setResearchNodeLevel(node.id, oldLevel + 1)) break;
-            }
-            
-            setResearchNodeRp(node.id, nextRp);
-        }
-    });
+        nextRp = nextRp.sub(currentReq);
+        const oldLevel = getResearchNodeLevel(node.id);
+        if (!setResearchNodeLevel(node.id, oldLevel + 1)) break;
+    }
+    
+    setResearchNodeRp(node.id, nextRp);
 }
 
 // --- Multipliers ---
@@ -505,6 +524,8 @@ export function initLabMultipliers() {
 
     addExternalSpawnRateMultiplierProvider(() => getLabSpawnRateBonus());
     addExternalEacAmountMultiplierProvider(() => getLabEacBonus());
+    
+    setTsunamiBonusProvider(() => getTsunamiResearchBonus());
 
     if (typeof window !== 'undefined') {
         window.addEventListener('lab:node:change', ({ detail }) => {
