@@ -1586,7 +1586,7 @@ function buildPanel(panelEl) {
                 </p>
               </div>
               <div class="merchant-reset__status" data-reset-status="experiment"></div>
-              <button class="btn-dna-shop">DNA</button>
+              <div class="dna-btn-container"></div>
             </div>
 
             <div class="merchant-reset__actions">
@@ -1717,33 +1717,55 @@ function buildPanel(panelEl) {
        }
     });
   }
-  const dnaBtn = panelEl.querySelector('.btn-dna-shop');
-  if (dnaBtn) {
-      dnaBtn.addEventListener('click', () => { openShop('dna'); });
+  const dnaContainer = panelEl.querySelector(".dna-btn-container");
+  if (dnaContainer) {
+      // Build structure
+      dnaContainer.innerHTML = `
+        <button class="btn-dna-shop">
+          <div class="dna-strand-layer"></div>
+          <div class="dna-label">DNA</div>
+        </button>
+      `;
+      
+      const dnaBtn = dnaContainer.querySelector(".btn-dna-shop");
+      const strandLayer = dnaBtn.querySelector(".dna-strand-layer");
+      
+      // Build dynamic strands
+      const numStrands = 24; // Number of segments visible
+      for (let i = 0; i < numStrands; i++) {
+          const segment = document.createElement("div");
+          segment.className = "dna-segment";
+          // Alternate red/blue
+          segment.classList.add(i % 2 === 0 ? "is-red" : "is-blue");
+          // Add offset index for JS-driven animation delays or positions
+          segment.style.setProperty("--i", i);
+          strandLayer.appendChild(segment);
+      }
+
+      dnaBtn.addEventListener("click", () => { openShop("dna"); });
 
       const syncLayout = () => {
-          const statsBtn = document.querySelector('.hud-bottom [data-btn="stats"]');
+          const statsBtn = document.querySelector(".hud-bottom [data-btn=stats]");
           if (statsBtn && dnaBtn) {
               const rect = statsBtn.getBoundingClientRect();
               dnaBtn.style.width = `${rect.width}px`;
               dnaBtn.style.height = `${rect.height}px`;
-              dnaBtn.style.minWidth = '0';
-              dnaBtn.style.maxWidth = 'none';
+              dnaBtn.style.minWidth = "0";
+              dnaBtn.style.maxWidth = "none";
           }
       };
 
-      if (typeof ResizeObserver !== 'undefined') {
+      if (typeof ResizeObserver !== "undefined") {
           const ro = new ResizeObserver(syncLayout);
-          const hud = document.querySelector('.hud-bottom');
+          const hud = document.querySelector(".hud-bottom");
           if (hud) ro.observe(hud);
-          window.addEventListener('resize', syncLayout);
+          window.addEventListener("resize", syncLayout);
           requestAnimationFrame(syncLayout);
       } else {
-          window.addEventListener('resize', syncLayout);
+          window.addEventListener("resize", syncLayout);
           requestAnimationFrame(syncLayout);
       }
   }
-
 
   updateResetPanel();
 }
