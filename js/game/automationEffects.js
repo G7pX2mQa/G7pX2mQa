@@ -14,6 +14,12 @@ import { isSurgeActive, getTsunamiNerf } from './surgeEffects.js';
 let accumulator = 0;
 let workshopTicker = 0;
 
+let tsunamiBonusProvider = () => 0;
+
+export function setTsunamiBonusProvider(fn) {
+  tsunamiBonusProvider = fn;
+}
+
 const externalEacProviders = [];
 
 export function addExternalEacMultiplierProvider(provider) {
@@ -35,7 +41,10 @@ export function getEacAmountMultiplier() {
   if (isSurgeActive(2)) {
     if (isSurgeActive(8)) {
         const nerf = getTsunamiNerf();
-        mult *= Math.pow(10, nerf);
+        const bonus = tsunamiBonusProvider();
+        let effective = nerf + bonus;
+        if (effective > 1) effective = 1;
+        mult *= Math.pow(10, effective);
     } else {
         mult *= 10;
     }
