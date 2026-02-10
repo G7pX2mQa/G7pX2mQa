@@ -1641,7 +1641,7 @@ function buildPanel(panelEl) {
                 <p data-reset-desc="experiment">
                   Resets everything Surge does as well as the entire Lab for DNA<br>
                   Increase pending DNA amount by increasing Lab Level and XP Level<br>
-                  Click the big colorful button below to access DNA upgrades
+                  Click the button below to access DNA upgrades
                 </p>
               </div>
               <div class="merchant-reset__status" data-reset-status="experiment"></div>
