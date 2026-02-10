@@ -816,28 +816,28 @@
   padding: 0;
   margin: 0 0 16px 0;
   
+  /* DNA Theme */
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+  background: #001226; /* Dark void blue base */
+  box-shadow: inset 0 0 16px rgba(0,0,0,0.6);
+  
   display: grid;
   place-items: center;
   cursor: pointer;
   touch-action: manipulation;
   outline: none;
   
-  background: linear-gradient(45deg, #bf0001, #00b0ef);
-  
   font-weight: 900;
-  font-size: clamp(18px, 2.5vw, 32px); /* Matches HUD btn-stats */
+  font-size: clamp(18px, 2.5vw, 32px);
   color: #fff;
-  
-  -webkit-text-stroke: 1px #000;
-  text-stroke: 1px #000;
-  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
   
   transition: transform 120ms ease, filter 120ms ease;
   user-select: none;
   
-  height: clamp(64px, 10svh, 110px); /* Matches HUD height */
+  height: clamp(64px, 10svh, 110px);
   
-  /* Width logic to match HUD button size (approximate) */
   width: calc(25vw - 16px);
   min-width: 120px;
   max-width: 280px;
@@ -846,6 +846,81 @@
   line-height: 1.1;
   text-align: center;
   box-sizing: border-box;
+}
+
+/* Container for the DNA strands */
+.dna-strand-layer {
+  display: block; 
+  transform: none;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+
+/* Individual Segment */
+.dna-segment {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 20px; /* Width of the color stripe */
+  /* Skew to create diagonal */
+  transform: skewX(-35deg); 
+  
+  /* 
+     We need them to move.
+     Let"s position them using --i
+  */
+  left: calc(var(--i) * 36px - 50px); /* Spacing */
+  
+  animation: dna-move-stripes 2s linear infinite;
+  
+  box-shadow: 0 0 4px rgba(0,0,0,0.5); /* slight depth */
+}
+
+.dna-segment.is-red {
+  background: linear-gradient(to bottom, #d93629 0%, #bf0001 50%, #8f0000 100%);
+  border-left: 1px solid rgba(0,0,0,0.3);
+  border-right: 1px solid rgba(0,0,0,0.3);
+}
+
+.dna-segment.is-blue {
+  background: linear-gradient(to bottom, #4ba7d8 0%, #00b0ef 50%, #007fb3 100%);
+  border-left: 1px solid rgba(0,0,0,0.3);
+  border-right: 1px solid rgba(0,0,0,0.3);
+}
+
+@keyframes dna-move-stripes {
+  from { transform: skewX(-35deg) translateX(0); }
+  to { transform: skewX(-35deg) translateX(72px); } /* Move by 2 * spacing (36 * 2 = 72) */
+}
+
+/* Label styling */
+.dna-label {
+  position: relative;
+  z-index: 1;
+  -webkit-text-stroke: 1px #000;
+  text-stroke: 1px #000;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+}
+
+/* Cylinder Overlay */
+.btn-dna-shop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  /* Hard lighting cut at 50% */
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.15) 0%,
+    rgba(255,255,255,0.05) 49%,
+    rgba(0,0,0,0.1) 50%,
+    rgba(0,0,0,0.4) 100%
+  );
+  pointer-events: none;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.8);
 }
 
 .btn-dna-shop:active {
