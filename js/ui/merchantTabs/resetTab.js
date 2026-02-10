@@ -1806,20 +1806,8 @@ function buildPanel(panelEl) {
 
       dnaBtn.addEventListener("click", () => { openShop("dna"); });
 
-      if (typeof IntersectionObserver !== 'undefined') {
-          const observer = new IntersectionObserver((entries) => {
-              entries.forEach(entry => {
-                  if (entry.isIntersecting) {
-                      dnaBtn.style.animationPlayState = 'running';
-                  } else {
-                      dnaBtn.style.animationPlayState = 'paused';
-                  }
-              });
-          }, { threshold: 0.1 });
-          observer.observe(dnaBtn);
-      }
-
       const syncLayout = () => {
+          if (!dnaBtn.offsetParent) return;
           const statsBtn = document.querySelector(".hud-bottom [data-btn=stats]");
           if (statsBtn && dnaBtn) {
               const rect = statsBtn.getBoundingClientRect();
@@ -1829,6 +1817,24 @@ function buildPanel(panelEl) {
               dnaBtn.style.maxWidth = "none";
           }
       };
+
+      if (typeof IntersectionObserver !== 'undefined') {
+          const observer = new IntersectionObserver((entries) => {
+              entries.forEach(entry => {
+                  if (entry.isIntersecting) {
+                      if (dnaBtn.style.animationPlayState !== 'running') {
+                          dnaBtn.style.animationPlayState = 'running';
+                      }
+                      syncLayout();
+                  } else {
+                      if (dnaBtn.style.animationPlayState !== 'paused') {
+                          dnaBtn.style.animationPlayState = 'paused';
+                      }
+                  }
+              });
+          }, { threshold: 0.1 });
+          observer.observe(panelEl);
+      }
 
       if (typeof ResizeObserver !== "undefined") {
           const ro = new ResizeObserver(syncLayout);
