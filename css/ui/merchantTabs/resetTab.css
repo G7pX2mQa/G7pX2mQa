@@ -766,7 +766,7 @@
       #122445);
   border: 1px solid #2a5298;
   box-shadow:
-    0 18px 40px #080d18d9,
+    0 18px 40px #101a2ed9,
     inset 0 1px 0 rgba(255,255,255,0.10);
 }
 
@@ -775,7 +775,7 @@
   background: linear-gradient(180deg, #3b6cc9, #254885);
   box-shadow:
     0 6px 0 #0e1622,
-    0 0 0 3px #080d18e6;
+    0 0 0 3px #101a2ee6;
 }
 
 .merchant-reset__card.is-experiment .merchant-reset__action:not(:disabled):hover,
@@ -793,7 +793,7 @@
     box-shadow:
       0 0 10px 2px #3b6cc94d,
       0 6px 0 #0e1622,
-      0 0 0 3px #080d18e6;
+      0 0 0 3px #101a2ee6;
   }
   50% {
     box-shadow:
@@ -805,7 +805,7 @@
     box-shadow:
       0 0 10px 2px #3b6cc94d,
       0 6px 0 #0e1622,
-      0 0 0 3px #080d18e6;
+      0 0 0 3px #101a2ee6;
   }
 }
 
@@ -820,7 +820,7 @@
   position: relative;
   z-index: 0;
   overflow: hidden;
-  background-color: #001226; /* Dark void blue base */
+  background-color: #101a2e; /* Dark void blue base */
   
   display: grid;
   place-items: center;
