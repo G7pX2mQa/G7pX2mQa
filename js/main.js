@@ -1,6 +1,7 @@
 // js/main.js
 
 import { playAudio, setAudioSuspended } from './util/audioManager.js';
+import { initFpsTracker } from './util/fpsTracker.js';
 
 export const DEBUG_PANEL_ACCESS = true; // I will change this to false for prod so the readme makes sense
 export const IS_MOBILE = (() => {
@@ -534,6 +535,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const skipPromise = new Promise(resolve => { resolveSkip = resolve; });
 
   const loader = showLoader('Loading assets...', resolveSkip);
+  initFpsTracker();
 
   await nextFrame();
   
