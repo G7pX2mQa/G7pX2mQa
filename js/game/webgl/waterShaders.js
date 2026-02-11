@@ -8,7 +8,11 @@ void main() {
 
 /* --- BACKGROUND SHADER (Water Body) --- */
 /* Renders the rolling ocean swells and sun glints. */
-export const BACKGROUND_FRAGMENT_SHADER = `precision mediump float;
+export const BACKGROUND_FRAGMENT_SHADER = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
 
 varying vec2 vUv;
 uniform float uTime;
@@ -51,7 +55,11 @@ void main() {
 
 /* --- FOREGROUND SHADER (Waves/Surges) --- */
 /* Renders the active game waves as Foam/Whitecaps. */
-export const FRAGMENT_SHADER = `precision mediump float;
+export const FRAGMENT_SHADER = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
 
 varying vec2 vUv;
 uniform float uTime;
@@ -178,7 +186,11 @@ void main() {
 /* --- BRUSH SHADER --- */
 /* Spawns a new wave crest. */
 /* Shape: Blue Pill with White Leading Edge */
-export const WAVE_BRUSH_FRAGMENT_SHADER = `precision mediump float;
+export const WAVE_BRUSH_FRAGMENT_SHADER = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
 varying vec2 vUv;
 varying float vAlpha;
 
@@ -218,7 +230,11 @@ void main() {
 
 /* --- SIMULATION SHADER --- */
 /* Moves the waves down. */
-export const SIMULATION_FRAGMENT_SHADER = `precision mediump float;
+export const SIMULATION_FRAGMENT_SHADER = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
 
 uniform sampler2D uLastFrame;
 uniform vec2 uResolution;
