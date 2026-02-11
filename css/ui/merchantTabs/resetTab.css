@@ -847,15 +847,28 @@
   box-sizing: border-box;
 
   /* Double Helix Animation */
+  position: relative;
+  overflow: hidden;
+}
+
+.dna-btn-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: calc(100% + 120px);
   background-repeat: repeat-x;
   background-position: 0 center;
-  /* background-size is set in JS to match SVG width */
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
   animation: dna-scroll 4s linear infinite;
+  z-index: 0;
+  pointer-events: none;
 }
 
 @keyframes dna-scroll {
-  from { background-position: 0 center; }
-  to { background-position: -120px center; }
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-120px, 0, 0); }
 }
 
 /* Label styling */
