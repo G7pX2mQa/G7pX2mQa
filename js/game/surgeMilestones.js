@@ -71,6 +71,14 @@ export const SURGE_MILESTONES = [
     description: [
       "Invokes the Tsunami"
     ]
+  },
+  {
+    id: 9,
+    surgeLevel: 9,
+    affectedByTsunami: true,
+    description: [
+      "Significantly boosts DNA gained from the Experiment reset"
+    ]
   }
 ];
 
