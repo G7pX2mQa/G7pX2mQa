@@ -74,7 +74,7 @@ export const RESEARCH_NODES = [
     {
         id: 5,
         title: "Node 5: Experimental Gold Value",
-        desc: "Multiplies Gold value by 2x per level",
+        desc: "Multiplies Gold value by 5x per level",
         baseRpReq: 1e6,
         scale: 2.0,
         maxLevel: 10,
@@ -87,7 +87,7 @@ export const RESEARCH_NODES = [
     {
         id: 6,
         title: "Node 6: Experimental Magic Value",
-        desc: "Multiplies Magic value by 2x per level",
+        desc: "Multiplies Magic value by 5x per level",
         baseRpReq: 1e6,
         scale: 2.0,
         maxLevel: 10,
@@ -510,7 +510,7 @@ export function getLabGoldMultiplier() {
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
     
-    const val = Math.pow(2.0, level);
+    const val = Math.pow(5.0, level);
     return BigNum.fromAny(val);
 }
 
@@ -520,7 +520,7 @@ export function getLabMagicMultiplier() {
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
     
-    const val = Math.pow(2.0, level);
+    const val = Math.pow(5.0, level);
     return BigNum.fromAny(val);
 }
 
