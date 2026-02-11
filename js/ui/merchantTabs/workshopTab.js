@@ -11,9 +11,11 @@ import { AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID } from '../../game/auto
 
 const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
 const GEAR_HUD_ICON_SRC = 'img/currencies/gear/gear_plus_base.webp';
+const gearImage = new Image();
+gearImage.src = GEAR_ICON_SRC;
 const COIN_ICON_SRC = 'img/currencies/coin/coin.webp';
 
-const MAX_GEAR_DECORATIONS = 100;
+const MAX_GEAR_DECORATIONS = 300;
 
 let workshopEl = null;
 let initialized = false;
@@ -339,15 +341,60 @@ function resetWorkshopState() {
 function syncGearDecorations(container) {
   if (!container) return;
   let entry = animatedGears.get(container);
-  if (!entry) {
-    const rect = container.getBoundingClientRect();
-    entry = { gears: [], width: rect.width, height: rect.height, needsDistribution: !rect.width || !rect.height };
-    animatedGears.set(container, entry);
+  
+  // Ensure canvas exists
+  let canvas = container.querySelector('canvas.workshop-gear-canvas');
+  if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.classList.add('workshop-gear-canvas');
+      canvas.style.position = 'absolute';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.pointerEvents = 'none';
+      canvas.style.userSelect = 'none';
+      canvas.style.zIndex = '0';
+      container.appendChild(canvas);
   }
+
   const rect = container.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+
+  if (!entry) {
+    entry = { 
+        gears: [], 
+        width: rect.width, 
+        height: rect.height, 
+        needsDistribution: !rect.width || !rect.height,
+        canvas: canvas,
+        ctx: canvas.getContext('2d', { alpha: true }) 
+    };
+    // Initialize canvas resolution
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    entry.ctx.scale(dpr, dpr);
+    animatedGears.set(container, entry);
+  } else {
+    // Update canvas reference if for some reason it changed (unlikely but safe)
+    if (!entry.canvas) {
+        entry.canvas = canvas;
+        entry.ctx = canvas.getContext('2d', { alpha: true });
+        entry.ctx.scale(dpr, dpr);
+    }
+  }
+
   if (rect.width > 0 && rect.height > 0) {
     entry.width = rect.width;
     entry.height = rect.height;
+    const targetWidth = Math.round(rect.width * dpr);
+    const targetHeight = Math.round(rect.height * dpr);
+
+    if (entry.canvas.width !== targetWidth || entry.canvas.height !== targetHeight) {
+        entry.canvas.width = targetWidth;
+        entry.canvas.height = targetHeight;
+        entry.ctx.scale(dpr, dpr);
+    }
   }
   
   // Cap at 100 gears, but handle BigNum level safely
@@ -360,12 +407,9 @@ function syncGearDecorations(container) {
 
   const targetCount = Math.min(Math.floor(lvlNum), MAX_GEAR_DECORATIONS);
   const gears = entry.gears;
+  
+  // Create new gears (state only)
   while (gears.length < targetCount) {
-    const img = document.createElement('img');
-    img.src = GEAR_ICON_SRC;
-    img.classList.add('workshop-bg-gear');
-    img.alt = '';
-    img.setAttribute('aria-hidden', 'true');
     const size = 32 + Math.random() * 48;
     let x = 0;
     let y = 0;
@@ -382,15 +426,13 @@ function syncGearDecorations(container) {
     const dy = Math.sin(angle) * GEAR_SPEED;
     const rotation = Math.random() * 360;
     const rotationSpeed = (Math.random() < 0.5 ? -1 : 1) * (GEAR_ROTATION_SPEED_BASE + Math.random() * GEAR_ROTATION_VARIANCE);
-    img.style.width = `${size}px`;
-    img.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rotation}deg)`;
-    img.style.willChange = 'transform';
-    container.appendChild(img);
-    gears.push({ element: img, x, y, dx, dy, rotation, rotationSpeed, size });
+    
+    gears.push({ x, y, dx, dy, rotation, rotationSpeed, size });
   }
+  
+  // Remove excess gears
   while (gears.length > targetCount) {
-    const g = gears.pop();
-    if (g.element.parentNode) g.element.parentNode.removeChild(g.element);
+    gears.pop();
   }
 }
 
@@ -465,8 +507,17 @@ function buildWorkshopUI(container) {
            const entry = animatedGears.get(col);
            if (entry) {
              const rect = col.getBoundingClientRect();
+             const dpr = window.devicePixelRatio || 1;
              entry.width = rect.width;
              entry.height = rect.height;
+             const targetWidth = Math.round(rect.width * dpr);
+             const targetHeight = Math.round(rect.height * dpr);
+
+             if (entry.canvas && (entry.canvas.width !== targetWidth || entry.canvas.height !== targetHeight)) {
+                 entry.canvas.width = targetWidth;
+                 entry.canvas.height = targetHeight;
+                 entry.ctx.scale(dpr, dpr);
+             }
              if (entry.needsDistribution && entry.width > 0 && entry.height > 0) {
                  entry.needsDistribution = false;
                  for (const g of entry.gears) {
@@ -474,7 +525,6 @@ function buildWorkshopUI(container) {
                      if (g.x < 0) g.x = 0;
                      g.y = Math.random() * (entry.height - g.size);
                      if (g.y < 0) g.y = 0;
-                     g.element.style.transform = `translate3d(${g.x}px, ${g.y}px, 0) rotate(${g.rotation}deg)`;
                  }
              }
            }
@@ -581,8 +631,14 @@ function startRenderLoop() {
         if (dt > 0.1) dt = 0.1; 
         for (const [container, data] of animatedGears) {
             if (!container.isConnected) continue;
-            const { gears, width, height } = data;
-            if (!width || !height) continue;
+            const { gears, width, height, ctx } = data;
+            if (!width || !height || !ctx) continue;
+            
+            ctx.clearRect(0, 0, width, height);
+
+            // If image not loaded, skip drawing
+            if (!gearImage.complete || gearImage.naturalWidth === 0) continue;
+
             for (const g of gears) {
                 g.x += g.dx * dt;
                 g.y += g.dy * dt;
@@ -591,7 +647,17 @@ function startRenderLoop() {
                 if (g.y < 0) { g.y = 0; g.dy = -g.dy; }
                 else if (g.y + g.size > height) { g.y = height - g.size; g.dy = -g.dy; }
                 g.rotation += g.rotationSpeed * dt;
-                g.element.style.transform = `translate3d(${g.x}px, ${g.y}px, 0) rotate(${g.rotation}deg)`;
+                
+                // Draw to canvas
+                // Translate to center of gear
+                const cx = g.x + g.size / 2;
+                const cy = g.y + g.size / 2;
+                
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(g.rotation * Math.PI / 180);
+                ctx.drawImage(gearImage, -g.size / 2, -g.size / 2, g.size, g.size);
+                ctx.restore();
             }
         }
     }
