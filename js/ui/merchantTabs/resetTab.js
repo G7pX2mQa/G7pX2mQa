@@ -1808,10 +1808,12 @@ function buildPanel(panelEl) {
           const statsBtn = document.querySelector(".hud-bottom [data-btn=stats]");
           if (statsBtn && dnaBtn) {
               const rect = statsBtn.getBoundingClientRect();
-              dnaBtn.style.width = `${rect.width}px`;
-              dnaBtn.style.height = `${rect.height}px`;
-              dnaBtn.style.minWidth = "0";
-              dnaBtn.style.maxWidth = "none";
+              const w = `${rect.width}px`;
+              const h = `${rect.height}px`;
+              if (dnaBtn.style.width !== w) dnaBtn.style.width = w;
+              if (dnaBtn.style.height !== h) dnaBtn.style.height = h;
+              if (dnaBtn.style.minWidth !== "0") dnaBtn.style.minWidth = "0";
+              if (dnaBtn.style.maxWidth !== "none") dnaBtn.style.maxWidth = "none";
           }
       };
 
