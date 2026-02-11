@@ -1,8 +1,16 @@
+export const getSurge9Description = (slot) => {
+  const state = getSurge9State(slot);
+  if (state === 0) return "This milestone is hidden for now";
+  if (state === 1) return "This milestone is hidden until you research Lab Node 4";
+  return "Significantly boosts DNA gained from the Experiment reset";
+};
+
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
 import { getTsunamiNerf } from './surgeEffects.js';
-import { getTsunamiResearchBonus } from './labNodes.js';
+import { getTsunamiResearchBonus, getResearchNodeLevel } from './labNodes.js';
+import { getActiveSlot } from '../util/storage.js';
 
 export const SURGE_MILESTONES = [
   {
@@ -86,6 +94,25 @@ export const NERFED_SURGE_MILESTONE_IDS = SURGE_MILESTONES
     .filter(m => m.affectedByTsunami)
     .map(m => m.id);
 
+const SURGE_9_STATE_KEY = (slot) => `ccc:surge:milestone9:state:${slot}`;
+
+function getSurge9State(slot) {
+    if (slot == null) return 0;
+    try {
+        const val = localStorage.getItem(SURGE_9_STATE_KEY(slot));
+        return val ? parseInt(val, 10) : 0;
+    } catch {
+        return 0;
+    }
+}
+
+function saveSurge9State(slot, state) {
+    if (slot == null) return;
+    try {
+        localStorage.setItem(SURGE_9_STATE_KEY(slot), state.toString());
+    } catch {}
+}
+
 export function getVisibleMilestones(currentSurgeLevel) {
   let currentLevel = 0;
   let isSurge8 = false;
@@ -115,6 +142,32 @@ export function getVisibleMilestones(currentSurgeLevel) {
           }
       } catch {}
   }
+
+  // --- Surge 9 Text Logic ---
+  const slot = getActiveSlot();
+  let s9State = getSurge9State(slot);
+  let newState = s9State;
+  
+  console.log(`[Surge9] Slot: ${slot}, s9State: ${s9State}, currentSurgeLevel: ${currentSurgeLevel}, isSurge8: ${isSurge8}`);
+
+  // 0 -> 1: Reached Surge 8 (lifetime, triggered by monotonic one-way upgrade)
+  // We use current isSurge8 check. If we are currently at Surge 8+, we can unlock state 1.
+  if (newState < 1) {
+      if (isSurge8) newState = 1;
+  }
+  
+  // 1 -> 2: Lab Node 4 Researched
+  if (newState < 2) {
+      const lab4Level = getResearchNodeLevel(4);
+      if (lab4Level >= 1) newState = 2;
+  }
+  
+  if (newState !== s9State) {
+      console.log(`[Surge9] Transitioning state ${s9State} -> ${newState}`);
+      s9State = newState;
+      saveSurge9State(slot, s9State);
+  }
+  // -------------------------
   
   const reached = [];
   const future = [];
@@ -160,6 +213,23 @@ export function getVisibleMilestones(currentSurgeLevel) {
             `<span style="color:#00e5ff">${valStr}x</span>`
         );
       }
+    }
+
+    if (m.id === 9) {
+        // Ensure clone if not already cloned
+        if (milestone === m) {
+            milestone = { ...m, description: [...m.description] };
+        }
+        
+        if (s9State === 0) {
+            milestone.description = ["This milestone is hidden for now"];
+            console.log('[Surge9] Hiding description (State 0)');
+        } else if (s9State === 1) {
+            milestone.description = ["This milestone is hidden until you research Lab Node 4"];
+            console.log('[Surge9] Showing hint (State 1)');
+        } else {
+            console.log('[Surge9] Showing full description (State 2)');
+        }
     }
 
     if (m.surgeLevel <= currentLevel) {
