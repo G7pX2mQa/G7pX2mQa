@@ -580,6 +580,9 @@ export function createSpawner({
       refs.c.appendChild(coinsFrag);
 
       if (newCoins.length > 0) {
+          // Force layout to ensure start position is recorded for transition
+          if (newCoins[0].el) void newCoins[0].el.offsetHeight;
+
           requestAnimationFrame(() => {
             for (const c of newCoins) {
                 if (!c.el) continue;
