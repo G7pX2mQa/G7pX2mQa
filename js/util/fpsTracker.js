@@ -1,3 +1,4 @@
+
 export const SHOW_FPS = true;
 
 export function initFpsTracker() {
@@ -26,7 +27,7 @@ export function initFpsTracker() {
     frameCount++;
     const elapsed = now - lastTime;
     
-    if (elapsed >= 1000) {
+    if (elapsed >= 250) {
       const fps = Math.round((frameCount * 1000) / elapsed);
       fpsDiv.textContent = `FPS: ${fps}`;
       frameCount = 0;
