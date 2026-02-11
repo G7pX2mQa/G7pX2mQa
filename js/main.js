@@ -185,7 +185,7 @@ function showLoader(text = 'Loading assets...', onSkip) {
     height: '100%',
     background: '#fff',
     transform: 'translateZ(0)',
-    transition: 'width .15s linear',
+    // transition: 'width .15s linear', // Removed to fix progress lag
   });
 
   const pct = document.createElement('div');
@@ -260,15 +260,21 @@ function setLoaderProgress(loaderEl, fraction) {
   loaderEl.__pct.textContent = pct + '%';
 }
 
-function finishAndHideLoader(loaderEl) {
+function finishAndHideLoader(loaderEl, successText) {
   if (!loaderEl || loaderEl.__done) return;
   loaderEl.__done = true;
+
+  // Force 100% width immediately without transition so it doesn't look stuck
+  if (loaderEl.__fill) {
+    loaderEl.__fill.style.transition = 'none';
+    loaderEl.__fill.style.width = '100%';
+  }
 
   const MIN_FINISHED_DWELL_MS = 500;
   if (loaderEl.__label) {
     loaderEl.__label.textContent = loaderEl.__skipped
       ? 'Loading Skipped'
-      : 'Finished loading assets';
+      : (successText || 'Finished loading assets');
   }
   loaderEl.offsetHeight;
 
@@ -352,7 +358,7 @@ async function preloadAssetsWithProgress({ images = [], audio = [], fonts = true
 /* ---------------------------
    GAME AREA CONTROL
 ----------------------------*/
-function enterArea(areaID) {
+function enterArea(areaID, playMusic = true) {
   if (currentArea === areaID) return;
 
   if (currentMusic) {
@@ -365,18 +371,20 @@ function enterArea(areaID) {
   const menuRoot = document.querySelector('.menu-root');
   switch (areaID) {
     case AREAS.STARTER_COVE: {
-      // Defer music until the area is visually painted + a small buffer.
-      // We use double-RAF to ensure the browser has completed the paint cycle,
-      // plus a 25ms timeout to be absolutely safe against any visual lag/jank.
-      requestAnimationFrame(() => {
+      if (playMusic) {
+        // Defer music until the area is visually painted + a small buffer.
+        // We use double-RAF to ensure the browser has completed the paint cycle,
+        // plus a 25ms timeout to be absolutely safe against any visual lag/jank.
         requestAnimationFrame(() => {
-          setTimeout(() => {
-            if (currentArea === AREAS.STARTER_COVE) {
-              currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
-            }
-          }, 25);
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              if (currentArea === AREAS.STARTER_COVE) {
+                currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
+              }
+            }, 25);
+          });
         });
-      });
+      }
 
       if (menuRoot) {
         menuRoot.style.display = 'none';
@@ -852,19 +860,61 @@ images: [
     if (titleEl) titleEl.style.opacity = '1';
   }
 
-  initSlots(() => {
+  initSlots(async () => {
     if (currentArea === AREAS.STARTER_COVE) return;
+
+    // Show a temporary loader to fix INP (give browser time to paint)
+    // and provide feedback for the heavy init process.
+    const loader = showLoader('Loading game...');
+    const start = performance.now();
+
+    // Yield to main thread so the loader actually renders
+    await nextFrame();
+    await nextFrame();
+
     setHasOpenedSaveSlot(true);
     document.body.classList.add('has-opened');
     if (titleEl) titleEl.style.opacity = '0';
-    enterArea(AREAS.STARTER_COVE);
+    enterArea(AREAS.STARTER_COVE, false); // Defer music
+
+    setLoaderProgress(loader, 0.2);
+    await nextFrame();
+
     ensureMultiplierDefaults();
+    
+    setLoaderProgress(loader, 0.4);
+    await nextFrame();
+
     processOfflineProgress();
+    
+    setLoaderProgress(loader, 0.7);
+    await nextFrame();
+    
+    notifyGameSessionStarted?.();
+    markProgressDirty?.('slot-entered');
+
+    setLoaderProgress(loader, 0.9);
+    await nextFrame();
+
+    // Ensure loader stays for at least 500ms so text is readable
+    const elapsed = performance.now() - start;
+    if (elapsed < 500) {
+      await new Promise(r => setTimeout(r, 500 - elapsed));
+    }
+
+    setLoaderProgress(loader, 1);
+    finishAndHideLoader(loader, 'Game Loaded');
+
+    // 300ms delay before starting music/wave
+    await new Promise(r => setTimeout(r, 750));
+
+    // Start music and wave now that loader is hidden
+    if (currentArea === AREAS.STARTER_COVE) {
+        currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
+    }
     if (window.spawner && typeof window.spawner.playEntranceWave === 'function') {
       window.spawner.playEntranceWave();
     }
-    notifyGameSessionStarted?.();
-    markProgressDirty?.('slot-entered');
   });
 
   if (typeof window !== 'undefined' && flushBackupSnapshot) {
