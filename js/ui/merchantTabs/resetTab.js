@@ -1450,10 +1450,7 @@ function generateDnaSvgDataUri() {
       const y1 = 50 + 30 * Math.sin(angle);
       const y2 = 50 + 30 * Math.sin(angle + Math.PI);
       
-      // Opacity: Max at peaks (angle PI/2, 3PI/2), Min at nodes (0, PI)
-      const opacity = 0.2 + 0.6 * Math.abs(Math.sin(angle));
-      
-      paths.push(`<line x1="${x.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="rgba(255,255,255,${opacity.toFixed(2)})" stroke-width="2" />`);
+      paths.push(`<line x1="${x.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#ffffff" stroke-width="2" />`);
   }
 
   const segments = 20; 
