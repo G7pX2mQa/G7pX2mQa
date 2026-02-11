@@ -44,7 +44,9 @@ import {
   getSurge6WealthMultipliers, 
   getTsunamiNerf,
   getTsunamiSequenceSeen,
-  setTsunamiSequenceSeen
+  setTsunamiSequenceSeen,
+  isSurgeActive,
+  getEffectiveTsunamiNerf
 } from '../../game/surgeEffects.js';
 import { 
     getTsunamiResearchBonus,
@@ -856,15 +858,33 @@ function recomputePendingDna() {
         resetState.pendingDna = bnZero();
         return;
     }
-    // Formula: 2^labLevel * 2^(xpLevel/20)
+    
+    let logBaseVal = 0.30103; // log10(2)
+    let logMultiplier = 0;
+
+    if (isSurgeActive(9)) {
+        const effectiveNerf = getEffectiveTsunamiNerf();
+        // Base: 2 + nerf
+        logBaseVal = Math.log10(2 + effectiveNerf);
+        // Multiplier: 10^(10*nerf) -> log10 is 10*nerf
+        logMultiplier = 10 * effectiveNerf;
+    }
+
+    const logBaseStr = logBaseVal.toFixed(18);
+
+    // Formula: Multiplier * Base^labLevel * Base^(xpLevel/20)
     const labLevel = getLabLevel ? getLabLevel() : bnZero();
     const xpLevel = getXpLevelBn();
     try {
-        const labFactor = labLevel.mulDecimal('0.30103', 18);
+        const labFactor = labLevel.mulDecimal(logBaseStr, 18);
         const xpTerm = xpLevel.div(BigNum.fromInt(20));
-        const xpFactor = xpTerm.mulDecimal('0.30103', 18);
+        const xpFactor = xpTerm.mulDecimal(logBaseStr, 18);
         
-        const totalLog10 = labFactor.add(xpFactor);
+        let totalLog10 = labFactor.add(xpFactor);
+
+        if (logMultiplier > 0) {
+             totalLog10 = totalLog10.add(BigNum.fromAny(logMultiplier));
+        }
         
         let logVal = 0;
         if (totalLog10.isInfinite()) {
@@ -2112,10 +2132,7 @@ function updateSurgeCard() {
         else if (typeof barLevel === 'bigint' && barLevel >= 8n) isSurge8 = true;
         else if (typeof barLevel === 'number' && barLevel >= 8) isSurge8 = true;
 
-        const baseNerf = getTsunamiNerf();
-        const bonus = getTsunamiResearchBonus();
-        let effectiveNerf = baseNerf + bonus;
-        if (effectiveNerf > 1) effectiveNerf = 1;
+        const effectiveNerf = getEffectiveTsunamiNerf();
 
         let isNerfed = false;
         if (isReached && isSurge8 && effectiveNerf < 1 && NERFED_SURGE_MILESTONE_IDS.includes(m.id)) {
