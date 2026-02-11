@@ -1790,16 +1790,20 @@ function buildPanel(panelEl) {
       // Build structure
       dnaContainer.innerHTML = `
         <button class="btn-dna-shop">
+          <div class="dna-btn-bg"></div>
           <div class="dna-label">DNA</div>
         </button>
       `;
       
       const dnaBtn = dnaContainer.querySelector(".btn-dna-shop");
+      const dnaBg = dnaBtn.querySelector(".dna-btn-bg");
 
       // Set DNA SVG Background
       const svgUri = generateDnaSvgDataUri();
-      dnaBtn.style.backgroundImage = `url("${svgUri}")`;
-      dnaBtn.style.backgroundSize = `120px 100%`;
+      if (dnaBg) {
+          dnaBg.style.backgroundImage = `url("${svgUri}")`;
+          dnaBg.style.backgroundSize = `120px 100%`;
+      }
 
       dnaBtn.addEventListener("click", () => { openShop("dna"); });
 
@@ -1821,13 +1825,13 @@ function buildPanel(panelEl) {
           const observer = new IntersectionObserver((entries) => {
               entries.forEach(entry => {
                   if (entry.isIntersecting) {
-                      if (dnaBtn.style.animationPlayState !== 'running') {
-                          dnaBtn.style.animationPlayState = 'running';
+                      if (dnaBg && dnaBg.style.animationPlayState !== 'running') {
+                          dnaBg.style.animationPlayState = 'running';
                       }
                       syncLayout();
                   } else {
-                      if (dnaBtn.style.animationPlayState !== 'paused') {
-                          dnaBtn.style.animationPlayState = 'paused';
+                      if (dnaBg && dnaBg.style.animationPlayState !== 'paused') {
+                          dnaBg.style.animationPlayState = 'paused';
                       }
                   }
               });
