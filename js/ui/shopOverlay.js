@@ -192,7 +192,7 @@ const SHOP_ADAPTERS = {
         buyMax: (id) => buyMax(DNA_AREA_KEY, id),
         buyNext: (id, amount) => buyTowards(DNA_AREA_KEY, id, amount),
         getLockState: (id) => getUpgradeLockState(DNA_AREA_KEY, id),
-        evolve: () => ({ evolved: false }),
+        evolve: (id) => evolveUpgrade(DNA_AREA_KEY, id),
         events: ['ccc:upgrades:changed', 'currency:change']
     }
 };
