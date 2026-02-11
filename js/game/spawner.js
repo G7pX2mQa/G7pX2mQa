@@ -271,6 +271,7 @@ export function createSpawner({
     const activeCoins = [];
     let garbageCount = 0;
     const newlySettledBuffer = [];
+    const dirtyRegions = [];
 
     function makeCoin() {
         const el = document.createElement('div');
@@ -343,7 +344,12 @@ export function createSpawner({
             coinObj.el = null;
         } else {
             // Was on canvas, need redraw
-            canvasDirty = true;
+            dirtyRegions.push({
+                layer: coinObj.sizeIndex || 0,
+                x: coinObj.x,
+                y: coinObj.y,
+                size: coinObj.size || baseCoinSize
+            });
         }
     }
     
@@ -683,10 +689,74 @@ export function createSpawner({
 
             canvasDirty = false;
             newlySettledBuffer.length = 0;
-        } else if (newlySettledBuffer.length > 0) {
-            if (enableDropShadow) {
-                 contexts.forEach(ctx => {
-                     ctx.save();
+            dirtyRegions.length = 0;
+        } else {
+            // Partial updates for removed coins
+            if (dirtyRegions.length > 0) {
+                if (enableDropShadow) {
+                     contexts.forEach(ctx => {
+                         ctx.save();
+                         ctx.shadowColor = 'rgba(0,0,0,0.35)';
+                         ctx.shadowBlur = 2;
+                         ctx.shadowOffsetY = 2;
+                     });
+                }
+
+                const count = activeCoins.length;
+                // Process dirty regions
+                for (let i = 0; i < dirtyRegions.length; i++) {
+                    const r = dirtyRegions[i];
+                    const ctx = contexts[r.layer];
+                    if (!ctx) continue;
+                    
+                    // Clear the hole (expanded for shadows/AA)
+                    const pad = 8;
+                    const cx = r.x - pad;
+                    const cy = r.y - pad;
+                    const cSize = r.size + (pad * 2);
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(cx, cy, cSize, cSize);
+                    ctx.clip();
+                    ctx.clearRect(cx, cy, cSize, cSize);
+                    
+                    // Redraw overlapping settled coins
+                    // We only check coins on the same layer since layers are separate canvases
+                    const minX = cx;
+                    const maxX = cx + cSize;
+                    const minY = cy;
+                    const maxY = cy + cSize;
+                    
+                    for (let j = 0; j < count; j++) {
+                        const c = activeCoins[j];
+                        if (!c || !c.settled || c.isRemoved || c.el) continue;
+                        if ((c.sizeIndex || 0) !== r.layer) continue;
+                        
+                        // Simple AABB check
+                        const cSize = c.size || baseCoinSize;
+                        const cMinX = c.x;
+                        const cMaxX = c.x + cSize;
+                        const cMinY = c.y;
+                        const cMaxY = c.y + cSize;
+                        
+                        if (cMaxX > minX && cMinX < maxX && cMaxY > minY && cMinY < maxY) {
+                             drawSingleSettledCoin(ctx, c);
+                        }
+                    }
+                    ctx.restore();
+                }
+                
+                if (enableDropShadow) {
+                     contexts.forEach(ctx => ctx.restore());
+                }
+                dirtyRegions.length = 0;
+            }
+
+            if (newlySettledBuffer.length > 0) {
+                if (enableDropShadow) {
+                     contexts.forEach(ctx => {
+                         ctx.save();
                      ctx.shadowColor = 'rgba(0,0,0,0.35)';
                      ctx.shadowBlur = 2;
                      ctx.shadowOffsetY = 2;
@@ -708,6 +778,7 @@ export function createSpawner({
             }
             newlySettledBuffer.length = 0;
         }
+    }
     }
 
     let rate = coinsPerSecond;
@@ -981,7 +1052,14 @@ export function createSpawner({
         el._coinObj = c;
         c.el = el;
         refs.c.appendChild(el);
-        canvasDirty = true;
+        
+        dirtyRegions.push({
+            layer: c.sizeIndex || 0,
+            x: c.x,
+            y: c.y,
+            size: c.size || baseCoinSize
+        });
+        
         return el;
     }
 
