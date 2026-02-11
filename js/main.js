@@ -153,7 +153,7 @@ function showLoader(text = 'Loading assets...', onSkip) {
     color: '#fff',
     display: 'grid',
     placeItems: 'center',
-    zIndex: '2147483647',
+    zIndex: '2147483646',
     opacity: '1', 
     transition: 'opacity 0.4s ease',
   });
