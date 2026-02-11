@@ -178,6 +178,7 @@ const SHOP_ADAPTERS = {
         getUiModel: (id) => upgradeUiModel(AUTOMATION_AREA_KEY, id),
         buyOne: (id) => buyOne(AUTOMATION_AREA_KEY, id),
         buyMax: (id) => buyMax(AUTOMATION_AREA_KEY, id),
+        buyCheap: (id) => buyCheap(AUTOMATION_AREA_KEY, id),
         buyNext: (id, amount) => buyTowards(AUTOMATION_AREA_KEY, id, amount),
         getLockState: (id) => getUpgradeLockState(AUTOMATION_AREA_KEY, id),
         evolve: () => ({ evolved: false }),
@@ -190,6 +191,7 @@ const SHOP_ADAPTERS = {
         getUiModel: (id) => upgradeUiModel(DNA_AREA_KEY, id),
         buyOne: (id) => buyOne(DNA_AREA_KEY, id),
         buyMax: (id) => buyMax(DNA_AREA_KEY, id),
+        buyCheap: (id) => buyCheap(DNA_AREA_KEY, id),
         buyNext: (id, amount) => buyTowards(DNA_AREA_KEY, id, amount),
         getLockState: (id) => getUpgradeLockState(DNA_AREA_KEY, id),
         evolve: (id) => evolveUpgrade(DNA_AREA_KEY, id),
@@ -698,7 +700,7 @@ class ShopInstance {
 
                         // Shift + Click -> Buy Cheap
                         if (event.shiftKey) {
-                            if (!isExcludedCheap) {
+                            if (isHM || !isExcludedCheap) {
                                 if (this.adapter.buyCheap) {
                                     const { bought } = this.adapter.buyCheap(id);
                                     const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
