@@ -79,7 +79,7 @@ const EXPERIMENT_RESET_SOUND_SRC = 'sounds/experiment_reset.ogg';
 // Add reset names here (e.g. 'forge', 'infuse', 'surge') to exclude them from wiping the playfield
 const RESET_WIPE_EXCLUSIONS = [];
 
-const MIN_EXPERIMENT_DNA = BN.fromAny('99999999999999');
+const MIN_EXPERIMENT_DNA = BN.fromAny('1e8');
 
 function shouldWipePlayfield(resetType) {
   return !RESET_WIPE_EXCLUSIONS.includes(resetType);
