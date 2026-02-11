@@ -1,5 +1,6 @@
 // js/ui/merchantTabs/resetTab.js
 import { BigNum } from '../../util/bigNum.js';
+import { IS_MOBILE } from '../../main.js';
 import {
   bank,
   getActiveSlot,
@@ -1650,7 +1651,7 @@ function buildPanel(panelEl) {
                 <p data-reset-desc="experiment">
                   Resets everything Surge does as well as the entire Lab for DNA<br>
                   Increase pending DNA amount by increasing Lab Level and XP Level<br>
-                  Click the button below to access DNA upgrades
+                  ${IS_MOBILE ? 'Tap' : 'Click'} the button below to access DNA upgrades
                 </p>
               </div>
               <div class="merchant-reset__status" data-reset-status="experiment"></div>
