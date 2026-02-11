@@ -53,6 +53,13 @@ export function getTsunamiNerf() {
   return tsunamiNerfExponent;
 }
 
+export function getEffectiveTsunamiNerf() {
+  const nerf = getTsunamiNerf();
+  let effective = nerf + getTsunamiResearchBonus();
+  if (effective > 1) effective = 1;
+  return effective;
+}
+
 export function setTsunamiNerf(value) {
   let val = Number(value);
   if (Number.isNaN(val)) val = 0;
@@ -96,10 +103,8 @@ function applyTsunamiNerf(bn) {
   if (!isSurgeActive(8)) return bn;
   const log10 = approxLog10BigNum(bn);
   if (!Number.isFinite(log10)) return bn;
-  const nerf = getTsunamiNerf();
   
-  let effective = nerf + getTsunamiResearchBonus();
-  if (effective > 1) effective = 1;
+  const effective = getEffectiveTsunamiNerf();
 
   return bigNumFromLog10(log10 * effective);
 }
@@ -117,10 +122,7 @@ function updateMultiplier() {
 
   if (isReached) {
     if (isSurgeActive(8)) {
-      const nerf = getTsunamiNerf();
-      
-      let effective = nerf + getTsunamiResearchBonus();
-      if (effective > 1) effective = 1;
+      const effective = getEffectiveTsunamiNerf();
 
       const log10 = Math.log10(MULTIPLIER);
       currentMultiplier = bigNumFromLog10(log10 * effective);
@@ -418,10 +420,7 @@ export function initSurgeEffects() {
     if (!isSurgeActive(4)) return baseGain;
     let mult = BigNum.fromInt(4.444e12);
     if (isSurgeActive(8)) {
-        const nerf = getTsunamiNerf();
-        
-        let effective = nerf + getTsunamiResearchBonus();
-        if (effective > 1) effective = 1;
+        const effective = getEffectiveTsunamiNerf();
 
         const logVal = Math.log10(4.444e12);
         mult = bigNumFromLog10(logVal * effective);
