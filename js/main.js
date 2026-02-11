@@ -877,6 +877,11 @@ images: [
     if (titleEl) titleEl.style.opacity = '0';
     enterArea(AREAS.STARTER_COVE, false); // Defer music
 
+    if (spawner) {
+      spawner.stop();
+      spawner.clearPlayfield();
+    }
+
     setLoaderProgress(loader, 0.2);
     await nextFrame();
 
@@ -912,8 +917,11 @@ images: [
     if (currentArea === AREAS.STARTER_COVE) {
         currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
     }
-    if (window.spawner && typeof window.spawner.playEntranceWave === 'function') {
-      window.spawner.playEntranceWave();
+    if (window.spawner) {
+      window.spawner.start();
+      if (typeof window.spawner.playEntranceWave === 'function') {
+        window.spawner.playEntranceWave();
+      }
     }
   });
 
