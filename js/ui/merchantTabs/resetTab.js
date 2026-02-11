@@ -79,7 +79,6 @@ const EXPERIMENT_RESET_SOUND_SRC = 'sounds/experiment_reset.ogg';
 // Add reset names here (e.g. 'forge', 'infuse', 'surge') to exclude them from wiping the playfield
 const RESET_WIPE_EXCLUSIONS = [];
 
-const MIN_EXPERIMENT_DNA = BN.fromAny('1e8');
 
 function shouldWipePlayfield(resetType) {
   return !RESET_WIPE_EXCLUSIONS.includes(resetType);
@@ -1121,7 +1120,6 @@ function performExperimentReset() {
     if (labLevel.cmp(10) < 0) return false;
     
     const reward = resetState.pendingDna.clone?.() ?? resetState.pendingDna;
-    if (reward.cmp(MIN_EXPERIMENT_DNA) < 0) return false;
     
     // Grant DNA
     try {
@@ -2275,12 +2273,6 @@ function updateExperimentCard() {
       return;
   }
 
-  // Priority 2: DNA Requirement
-  const pending = resetState.pendingDna;
-  if (pending.cmp(MIN_EXPERIMENT_DNA) < 0) {
-      updateResetButtonContent(el.btn, { disabled: true, msg: `Reach ${formatBn(MIN_EXPERIMENT_DNA)} pending DNA to perform an Experiment reset` });
-      return;
-  }
 
   updateResetButtonContent(el.btn, { disabled: false }, DNA_ICON_SRC, resetState.pendingDna);
 }
