@@ -2109,6 +2109,26 @@ function buildAreaStats(container, area) {
                 } else {
                     currentSurgeLevel = BigNum.fromAny(valForDisplay);
                 }
+
+                // If setting level to >= 8, enforce Tsunami Nerf state immediately
+                let isSurge8 = false;
+                if (currentSurgeLevel === Infinity) {
+                    isSurge8 = true;
+                } else if (currentSurgeLevel instanceof BigNum) {
+                    // Check against 8
+                    if (typeof currentSurgeLevel.cmp === 'function' && currentSurgeLevel.cmp(8) >= 0) {
+                        isSurge8 = true;
+                    }
+                } else if (typeof currentSurgeLevel === 'number') {
+                    if (currentSurgeLevel >= 8) isSurge8 = true;
+                }
+
+                if (isSurge8) {
+                    setTsunamiNerf(0.00);
+                    if (!getTsunamiSequenceSeen()) {
+                        setTsunamiSequenceSeen(true);
+                    }
+                }
             } catch {}
             
             setValue(valForDisplay);
