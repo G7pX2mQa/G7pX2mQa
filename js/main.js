@@ -908,7 +908,7 @@ images: [
     }
 
     setLoaderProgress(loader, 1);
-    finishAndHideLoader(loader, 'Game Loaded');
+    finishAndHideLoader(loader, 'Finished loading game');
 
     // 300ms delay before starting music/wave
     await new Promise(r => setTimeout(r, 750));
