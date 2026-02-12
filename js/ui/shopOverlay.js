@@ -344,14 +344,21 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
     thumb.style.animationFillMode = 'both';
   }
 
-  let lastShadow = null;
-  const syncScrollShadow = () => {
-    const scrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
-    const hasShadow = (scrollPos || 0) > 0;
-    if (lastShadow === hasShadow) return;
-    lastShadow = hasShadow;
-    sheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
+  // --- Cached Metrics to Avoid Layout Thrashing ---
+  let cachedMetrics = {
+    scrollSize: 0,
+    clientSize: 0,
+    barSize: 0,
+    thumbSize: 0,
+    maxScroll: 1,
+    range: 0,
+    visibleRatio: 1
   };
+
+  let lastShadow = null;
+  
+  // rAF loop state
+  let isScrollTickPending = false;
 
   const updateBounds = () => {
     if (!scroller.isConnected || !sheetEl.isConnected) return;
@@ -374,28 +381,18 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
     }
   };
 
-  let lastState = {};
-  const updateThumb = () => {
+  const updateMetrics = () => {
     const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
     const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
-    const scrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
+    // Use clientSize as barSize fallback, assuming bar matches scroller dim
     const barSize = isVertical ? (bar.clientHeight || clientSize) : (bar.clientWidth || clientSize);
     
-    if (
-      lastState.scrollSize === scrollSize &&
-      lastState.clientSize === clientSize &&
-      lastState.barSize === barSize &&
-      (useCssTimeline || lastState.scrollPos === scrollPos)
-    ) {
-      return;
-    }
-    
-    lastState = { scrollSize, clientSize, scrollPos, barSize };
-
     const visibleRatio = clientSize / Math.max(1, scrollSize);
     const thumbSize = Math.max(28, Math.round(barSize * visibleRatio));
     const maxScroll = Math.max(1, scrollSize - clientSize);
     const range = Math.max(0, barSize - thumbSize);
+
+    cachedMetrics = { scrollSize, clientSize, barSize, thumbSize, maxScroll, range, visibleRatio };
     
     if (isVertical) {
       thumb.style.height = thumbSize + 'px';
@@ -406,8 +403,6 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
     }
 
     if (useCssTimeline) {
-      // With CSS Scroll-Driven Animations, we just update the travel distance variable
-      // The timeline automatically maps scroll 0-100% to animation 0-100%
       if (isVertical) {
         thumb.style.setProperty('--thumb-y', `${range}px`);
         thumb.style.setProperty('--thumb-x', '0px');
@@ -415,39 +410,74 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
         thumb.style.setProperty('--thumb-x', `${range}px`);
         thumb.style.setProperty('--thumb-y', '0px');
       }
-    } else {
-      // Fallback: manual transform
-      const pos = Math.round((scrollPos / maxScroll) * range);
-      if (isVertical) {
-        thumb.style.transform = `translateY(${pos}px)`;
-      } else {
-        thumb.style.transform = `translateX(${pos}px)`;
-      }
     }
-    
+
     const hasOverflow = (scrollSize > clientSize + 1);
     bar.style.display = hasOverflow ? '' : 'none';
     sheetEl?.classList.toggle('has-active-scrollbar', hasOverflow);
+    
+    // Force immediate visual update on metric change
+    performScrollUpdate(); 
   };
 
-  const updateAll = () => { updateBounds(); updateThumb(); syncScrollShadow(); };
+  const performScrollUpdate = () => {
+    isScrollTickPending = false;
+    
+    const scrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
+    
+    // 1. Shadow
+    const hasShadow = (scrollPos || 0) > 0;
+    if (lastShadow !== hasShadow) {
+      lastShadow = hasShadow;
+      sheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
+    }
+
+    // 2. Thumb Position (if not using CSS Timeline)
+    if (!useCssTimeline) {
+        const { maxScroll, range } = cachedMetrics;
+        const pos = Math.round((scrollPos / maxScroll) * range);
+        if (isVertical) {
+          thumb.style.transform = `translateY(${pos}px)`;
+        } else {
+          thumb.style.transform = `translateX(${pos}px)`;
+        }
+    }
+    
+    if (isTouch) showBar();
+  };
+
+  const updateAll = () => { updateBounds(); updateMetrics(); };
+
+  // Debounce for mutation observer to prevent layout thrashing on frequent updates
+  let debounceTimer;
+  const debouncedUpdateAll = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(updateAll, 100);
+  };
 
   if (typeof MutationObserver !== 'undefined') {
-      const obs = new MutationObserver(() => updateAll());
+      const obs = new MutationObserver(() => debouncedUpdateAll());
       obs.observe(scroller, { childList: true, subtree: true, characterData: true });
   }
 
   const showBar = () => { if (!isTouch) return; sheetEl.classList.add('is-scrolling'); clearTimeout(scroller.__fadeTimer); };
   const scheduleHide = (delay) => { if (!isTouch) return; clearTimeout(scroller.__fadeTimer); scroller.__fadeTimer = setTimeout(() => { sheetEl.classList.remove('is-scrolling'); }, delay); };
-  const onScroll = () => { updateThumb(); syncScrollShadow(); if (isTouch) showBar(); if (!supportsScrollEnd) scheduleHide(FADE_SCROLL_MS); };
+  
+  const onScroll = () => { 
+      if (!isScrollTickPending) {
+          isScrollTickPending = true;
+          window.requestAnimationFrame(performScrollUpdate);
+      }
+      if (!supportsScrollEnd) scheduleHide(FADE_SCROLL_MS); 
+  };
   const onScrollEnd = () => scheduleHide(FADE_SCROLL_MS);
 
-  // We always listen to 'scroll' for shadow updates and touch visibility logic,
-  // but for the thumb movement itself, CSS handles it if supported.
   scroller.addEventListener('scroll', onScroll, { passive: true });
   if (supportsScrollEnd) scroller.addEventListener('scrollend', onScrollEnd, { passive: true });
 
-  const ro = new ResizeObserver(updateAll);
+  const ro = new ResizeObserver(() => {
+     updateAll(); 
+  });
   ro.observe(scroller);
   window.addEventListener('resize', updateAll);
   requestAnimationFrame(updateAll); // Initial kick
@@ -469,17 +499,13 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   
   const onDragMove = (e) => { 
     if (!dragging) return; 
-    const barSize = isVertical ? bar.clientHeight : bar.clientWidth;
-    const thumbSize = isVertical ? thumb.clientHeight : thumb.clientWidth;
-    const range = Math.max(1, barSize - thumbSize); 
-    const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
-    const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
-    const scrollMax = Math.max(1, scrollSize - clientSize); 
+    const { range, maxScroll } = cachedMetrics;
+    if (range <= 0) return;
     
     const currentPos = isVertical ? e.clientY : e.clientX;
     const delta = currentPos - dragStartPos; 
     
-    const newPos = startScrollPos + (delta / range) * scrollMax;
+    const newPos = startScrollPos + (delta / range) * maxScroll;
     if (isVertical) scroller.scrollTop = newPos;
     else scroller.scrollLeft = newPos;
   };
@@ -501,15 +527,11 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
     if (e.target === thumb) return; 
     const rect = bar.getBoundingClientRect(); 
     const clickPos = isVertical ? (e.clientY - rect.top) : (e.clientX - rect.left); 
-    const thumbSize = isVertical ? thumb.clientHeight : thumb.clientWidth; 
-    const barSize = isVertical ? bar.clientHeight : bar.clientWidth;
-    const range = Math.max(0, barSize - thumbSize); 
-    const targetPos = Math.max(0, Math.min(clickPos - thumbSize / 2, range)); 
-    const scrollSize = isVertical ? scroller.scrollHeight : scroller.scrollWidth;
-    const clientSize = isVertical ? scroller.clientHeight : scroller.clientWidth;
-    const scrollMax = Math.max(1, scrollSize - clientSize); 
+    const { thumbSize, range, maxScroll } = cachedMetrics;
     
-    const newScroll = (targetPos / Math.max(1, range)) * scrollMax;
+    const targetPos = Math.max(0, Math.min(clickPos - thumbSize / 2, range)); 
+    
+    const newScroll = (targetPos / Math.max(1, range)) * maxScroll;
     if (isVertical) scroller.scrollTop = newScroll;
     else scroller.scrollLeft = newScroll;
     
