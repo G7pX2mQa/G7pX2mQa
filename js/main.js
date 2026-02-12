@@ -567,6 +567,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/surgeEffects.js'),
     import('./game/webgl/waterSystem.js'),
     import('./ui/merchantTabs/labTab.js'),
+    import('./util/fpsTracker.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -731,6 +732,7 @@ images: [
     surgeEffectsModule,
     waterSystemModule,
     labTabModule,
+    fpsTrackerModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -757,6 +759,7 @@ images: [
   const { initSurgeEffects } = surgeEffectsModule;
   ({ waterSystem } = waterSystemModule);
   const { initLabLogic } = labTabModule;
+  const { initFpsTracker } = fpsTrackerModule;
 
   window.bank = bank;
 
@@ -847,6 +850,7 @@ images: [
   try { initAutomationEffects(); } catch(e) { console.error('Automation init failed', e); }
   try { initSurgeEffects(); } catch(e) { console.error('Surge effects init failed', e); }
   try { initLabLogic(); } catch(e) { console.error('Lab system init failed', e); }
+  try { initFpsTracker(); } catch(e) { console.error('FPS tracker init failed', e); }
   
   applyPendingSlotWipe();
   ensureStorageDefaults();
