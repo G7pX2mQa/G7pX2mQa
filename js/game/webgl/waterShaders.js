@@ -36,7 +36,7 @@ void main() {
     /* We want to discard pixels below this threshold */
     float threshold = 0.428 + wave; 
 
-    if (vUv.y < threshold) {
+    if (threshold > vUv.y) {
         discard;
     }
 
@@ -95,7 +95,7 @@ void main() {
     float shadowIntensity = texture2D(uWaveMap, waveUV + vec2(0.0, shadowOffset)).r;
     
     /* Discard only if BOTH are empty */
-    if (intensity < 0.01 && shadowIntensity < 0.01) discard;
+    if (0.01 > intensity && 0.01 > shadowIntensity) discard;
     
     /* Directional Noise: Streaky vertical noise for rushing water effect */
     /* Stretch heavily along Y-axis to simulate speed/motion blur */
@@ -116,7 +116,7 @@ void main() {
     vec3 finalColor = mix(bodyColor, foamColor, foamMix);
     
     /* Add streaks to the body part */
-    if (foamMix < 0.9) {
+    if (0.9 > foamMix) {
         finalColor += (streakyNoise - 0.5) * 0.15 * (1.0 - foamMix);
     }
     
