@@ -260,19 +260,26 @@ function setLoaderProgress(loaderEl, fraction) {
   loaderEl.__pct.textContent = pct + '%';
 }
 
-function finishAndHideLoader(loaderEl) {
+function finishAndHideLoader(loaderEl, onFadeStart, finishedText) {
   if (!loaderEl || loaderEl.__done) return;
   loaderEl.__done = true;
 
   const MIN_FINISHED_DWELL_MS = 500;
   if (loaderEl.__label) {
-    loaderEl.__label.textContent = loaderEl.__skipped
-      ? 'Loading Skipped'
-      : 'Finished loading assets';
+    if (finishedText) {
+      loaderEl.__label.textContent = finishedText;
+    } else {
+      loaderEl.__label.textContent = loaderEl.__skipped
+        ? 'Loading Skipped'
+        : 'Finished loading assets';
+    }
   }
   loaderEl.offsetHeight;
 
   setTimeout(() => {
+    if (typeof onFadeStart === 'function') {
+      try { onFadeStart(); } catch (e) { console.error(e); }
+    }
     loaderEl.style.opacity = '0';
     const onEnd = () => {
       loaderEl.remove();
@@ -852,19 +859,43 @@ images: [
     if (titleEl) titleEl.style.opacity = '1';
   }
 
-  initSlots(() => {
+  initSlots(async () => {
     if (currentArea === AREAS.STARTER_COVE) return;
     setHasOpenedSaveSlot(true);
     document.body.classList.add('has-opened');
     if (titleEl) titleEl.style.opacity = '0';
-    enterArea(AREAS.STARTER_COVE);
+
+    const loader = showLoader('Loading game...');
+    const stepDelay = () => new Promise(r => setTimeout(r, 120));
+
+    // Milestone 1: Multipliers
+    setLoaderProgress(loader, 0.2);
+    await stepDelay();
     ensureMultiplierDefaults();
+    
+    // Milestone 2: Offline Progress
+    setLoaderProgress(loader, 0.4);
+    await stepDelay();
     processOfflineProgress();
-    if (window.spawner && typeof window.spawner.playEntranceWave === 'function') {
-      window.spawner.playEntranceWave();
-    }
+
+    // Milestone 3: Session Start
+    setLoaderProgress(loader, 0.65);
+    await stepDelay();
     notifyGameSessionStarted?.();
+
+    // Milestone 4: Finalizing
+    setLoaderProgress(loader, 0.9);
+    await stepDelay();
     markProgressDirty?.('slot-entered');
+
+    setLoaderProgress(loader, 1);
+
+    finishAndHideLoader(loader, () => {
+      enterArea(AREAS.STARTER_COVE);
+      if (window.spawner && typeof window.spawner.playEntranceWave === 'function') {
+        window.spawner.playEntranceWave();
+      }
+    }, 'Finished loading game');
   });
 
   if (typeof window !== 'undefined' && flushBackupSnapshot) {
