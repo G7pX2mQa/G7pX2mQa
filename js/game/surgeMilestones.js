@@ -87,6 +87,13 @@ export const SURGE_MILESTONES = [
     description: [
       "Significantly boosts DNA gained from the Experiment reset"
     ]
+  },
+  {
+    id: 10,
+    surgeLevel: 10,
+    description: [
+      "Unlocks new DNA upgrades"
+    ]
   }
 ];
 
