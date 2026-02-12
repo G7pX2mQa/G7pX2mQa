@@ -101,7 +101,7 @@ export const RESEARCH_NODES = [
         id: 7,
         title: "Node 7: Experimental Wave Value",
         desc: "Multiplies Wave value by 1.1x per level",
-        baseRpReq: 1e9,
+        baseRpReq: 1e8,
         scale: 2.0,
         maxLevel: 10,
         x: 0,
