@@ -22,7 +22,7 @@ export const RESEARCH_NODES = [
     {
         id: 1,
         title: "Node 1: Tsunami Exponent Buff",
-        desc: "Increases the Tsunami exponent by +0.01 per level",
+        desc: "Increases the Tsunami Exponent by +0.01 per level",
         baseRpReq: 10,
         scale: 2.0,
         maxLevel: 10,
@@ -30,7 +30,7 @@ export const RESEARCH_NODES = [
         y: 0,
         icon: 'lab_icons/tsunami_exponent_buff.webp',
         parentIds: [],
-        bonusLine: (level) => `Tsunami exponent bonus: +${(level * 0.01).toFixed(2)}`
+        bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`
     },
     {
         id: 2,
@@ -139,7 +139,7 @@ export const RESEARCH_NODES = [
     {
         id: 10,
         title: "Node 10: Tsunami Exponent Buff II",
-        desc: "Increases the Tsunami exponent by +0.01 per level",
+        desc: "Increases the Tsunami Exponent by +0.01 per level",
         baseRpReq: 1e15,
         scale: 2.0,
         maxLevel: 10,
@@ -147,7 +147,7 @@ export const RESEARCH_NODES = [
         y: -2000,
         icon: 'lab_icons/tsunami_exponent_buff.webp',
         parentIds: [8, 9],
-        bonusLine: (level) => `Tsunami exponent bonus: +${(level * 0.01).toFixed(2)}`
+        bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`
     }
 ];
 
