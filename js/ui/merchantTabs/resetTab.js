@@ -866,8 +866,8 @@ function recomputePendingDna() {
         const effectiveNerf = getEffectiveTsunamiNerf();
         // Base: 2 + nerf
         logBaseVal = Math.log10(2 + effectiveNerf);
-        // Multiplier: 10^(20*nerf) -> log10 is 20*nerf
-        logMultiplier = 20 * effectiveNerf;
+        // Multiplier: 10^(30*nerf) -> log10 is 30*nerf
+        logMultiplier = 30 * effectiveNerf;
     }
 
     const logBaseStr = logBaseVal.toFixed(18);
