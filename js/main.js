@@ -639,6 +639,8 @@ images: [
   'img/sc_upg_icons/faster_coins1.webp',
   'img/sc_upg_icons/faster_coins2.webp',
   'img/sc_upg_icons/faster_coins3.webp',
+  'img/sc_upg_icons/gold_val_dna.webp',
+  'img/sc_upg_icons/magic_val_dna.webp',
   'img/sc_upg_icons/magnet.webp',
   'img/sc_upg_icons/mp_val1.webp',
   'img/sc_upg_icons/mp_val2.webp',
