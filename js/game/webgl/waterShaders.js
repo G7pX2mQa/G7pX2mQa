@@ -1,5 +1,6 @@
 /* it's important that all literal comments in this file do not use the single line variant otherwise it will not compile correctly */
-export const VERTEX_SHADER = `attribute vec2 position;
+export const VERTEX_SHADER = `precision highp float;
+attribute vec2 position;
 varying vec2 vUv;
 void main() {
     vUv = position * 0.5 + 0.5;
