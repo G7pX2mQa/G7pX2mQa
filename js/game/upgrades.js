@@ -3713,6 +3713,13 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
         xpLevel,
         baseLocked: state.locked,
         getUpgradeLevel(targetId) { return getLevelNumber(areaKey, targetId); },
+        currentSurgeLevel: getCurrentSurgeLevel(),
+        constants: {
+          MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          HIDDEN_UPGRADE_TITLE,
+          LOCKED_UPGRADE_TITLE,
+          LOCKED_UPGRADE_ICON_DATA_URL,
+        }
       };
       const custom = upg.computeLockState(ctx);
       state = mergeLockStates(state, custom);
