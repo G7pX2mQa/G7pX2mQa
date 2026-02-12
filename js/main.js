@@ -260,11 +260,10 @@ function setLoaderProgress(loaderEl, fraction) {
   loaderEl.__pct.textContent = pct + '%';
 }
 
-function finishAndHideLoader(loaderEl, onFadeStart, finishedText) {
+function finishAndHideLoader(loaderEl, onFadeStart, finishedText, dwellMs = 500) {
   if (!loaderEl || loaderEl.__done) return;
   loaderEl.__done = true;
 
-  const MIN_FINISHED_DWELL_MS = 500;
   if (loaderEl.__label) {
     if (finishedText) {
       loaderEl.__label.textContent = finishedText;
@@ -276,10 +275,11 @@ function finishAndHideLoader(loaderEl, onFadeStart, finishedText) {
   }
   loaderEl.offsetHeight;
 
-  setTimeout(() => {
+  setTimeout(async () => {
     if (typeof onFadeStart === 'function') {
       try { onFadeStart(); } catch (e) { console.error(e); }
     }
+    await twoFrames();
     loaderEl.style.opacity = '0';
     const onEnd = () => {
       loaderEl.remove();
@@ -287,7 +287,7 @@ function finishAndHideLoader(loaderEl, onFadeStart, finishedText) {
     };
     loaderEl.addEventListener('transitionend', onEnd, { once: true });
     setTimeout(onEnd, 450);
-  }, MIN_FINISHED_DWELL_MS);
+  }, dwellMs);
 }
 
 /* ---------------------------
@@ -374,14 +374,14 @@ function enterArea(areaID) {
     case AREAS.STARTER_COVE: {
       // Defer music until the area is visually painted + a small buffer.
       // We use double-RAF to ensure the browser has completed the paint cycle,
-      // plus a 25ms timeout to be absolutely safe against any visual lag/jank.
+      // plus a 300ms timeout to wait a beat before audio kicks in.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setTimeout(() => {
             if (currentArea === AREAS.STARTER_COVE) {
               currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
             }
-          }, 25);
+          }, 300);
         });
       });
 
@@ -501,7 +501,9 @@ function enterArea(areaID) {
       if (typeof initXpSystem === 'function') {
         try { initXpSystem(); } catch {}
       }
-      spawner.start();
+      setTimeout(() => {
+        if (currentArea === AREAS.STARTER_COVE && spawner) spawner.start();
+      }, 300);
       break;
     }
 
@@ -892,10 +894,12 @@ images: [
 
     finishAndHideLoader(loader, () => {
       enterArea(AREAS.STARTER_COVE);
-      if (window.spawner && typeof window.spawner.playEntranceWave === 'function') {
-        window.spawner.playEntranceWave();
-      }
-    }, 'Finished loading game');
+      setTimeout(() => {
+        if (window.spawner && typeof window.spawner.playEntranceWave === 'function') {
+          window.spawner.playEntranceWave();
+        }
+      }, 300);
+    }, 'Finished loading game', 200);
   });
 
   if (typeof window !== 'undefined' && flushBackupSnapshot) {
