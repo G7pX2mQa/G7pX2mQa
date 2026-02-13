@@ -3501,10 +3501,14 @@ function buildAreasContent(content) {
             });
             
             let automationUpgrades = null;
+            let dnaUpgrades = null;
             let labNodesSection = null;
             if (area.key === AREA_KEYS.STARTER_COVE) {
                 automationUpgrades = createSubsection('Automation Upgrades', (sub) => {
                     buildAreaUpgrades(sub, { key: AREA_KEYS.AUTOMATION, title: 'Automation' });
+                });
+                dnaUpgrades = createSubsection('DNA Upgrades', (sub) => {
+                    buildAreaUpgrades(sub, { key: AREA_KEYS.DNA, title: 'DNA' });
                 });
                 labNodesSection = createSubsection('Lab Nodes', (sub) => {
                     buildLabNodesDebug(sub);
@@ -3521,6 +3525,9 @@ function buildAreasContent(content) {
             areaContent.appendChild(upgrades);
             if (automationUpgrades) {
                 areaContent.appendChild(automationUpgrades);
+            }
+            if (dnaUpgrades) {
+                areaContent.appendChild(dnaUpgrades);
             }
             if (labNodesSection) {
                 areaContent.appendChild(labNodesSection);
