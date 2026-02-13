@@ -387,6 +387,47 @@ export function computeSurgeWavesFromInputs(xpLevelBn, coinsBn, goldBn, magicBn,
   return computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn);
 }
 
+export function computePendingDnaFromInputs(labLevelBn, xpLevelBn) {
+    if (!labLevelBn) labLevelBn = bnZero();
+    if (!xpLevelBn) xpLevelBn = bnZero();
+    
+    let logBaseVal = 0.30103; // log10(2)
+    let logMultiplier = 0;
+
+    if (isSurgeActive(9)) {
+        const effectiveNerf = getEffectiveTsunamiNerf();
+        // Base: 2 + nerf
+        logBaseVal = Math.log10(2 + effectiveNerf);
+        // Multiplier: 10^(30*nerf) -> log10 is 30*nerf
+        logMultiplier = 30 * effectiveNerf;
+    }
+
+    const logBaseStr = logBaseVal.toFixed(18);
+
+    try {
+        const labFactor = labLevelBn.mulDecimal(logBaseStr, 18);
+        const xpTerm = xpLevelBn.div(BigNum.fromInt(20));
+        const xpFactor = xpTerm.mulDecimal(logBaseStr, 18);
+        
+        let totalLog10 = labFactor.add(xpFactor);
+
+        if (logMultiplier > 0) {
+             totalLog10 = totalLog10.add(BigNum.fromAny(logMultiplier));
+        }
+        
+        let logVal = 0;
+        if (totalLog10.isInfinite()) {
+             logVal = Infinity;
+        } else {
+             logVal = Number(totalLog10.toScientific(10));
+        }
+        
+        return bigNumFromLog10(logVal).floorToInteger();
+    } catch (e) {
+        return bnZero();
+    }
+}
+
 function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
   const xpLevel = levelToNumber(xpLevelBn);
   if (xpLevel < 201) return bnZero();
@@ -2524,6 +2565,7 @@ if (typeof window !== 'undefined') {
     computeForgeGoldFromInputs,
     computeInfuseMagicFromInputs,
     computeSurgeWavesFromInputs,
+    computePendingDnaFromInputs,
     getForgeDebugOverrideState,
     hasDoneForgeReset,
     isForgeUnlocked,
