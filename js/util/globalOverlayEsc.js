@@ -6,9 +6,8 @@ const PRIORITY_SELECTORS = [
   { sel: '.merchant-firstchat.is-visible', btn: null, yield: true }, // Don't close parent if chat is open; chat handles itself
   { sel: '.upg-overlay.is-open', btn: '.shop-close' }, // Upgrade details modal
   // Automation Shop has both .shop-overlay and .automation-shop-overlay
-  { sel: '.automation-shop-overlay.is-open', btn: '.shop-close' },
   { sel: '.merchant-overlay.is-open', btn: '.merchant-close' },
-  { sel: '.shop-overlay.is-open', btn: '.shop-close' }, // Main Shop
+  { sel: '.shop-overlay.is-open', btn: '.shop-close', closeAll: true }, // Main Shop (and others like DNA/Automation)
 ];
 
 function handleEsc(e) {
@@ -17,7 +16,7 @@ function handleEsc(e) {
   let yields = false;
   let closedAny = false;
 
-  for (const { sel, btn, yield: shouldYield } of PRIORITY_SELECTORS) {
+  for (const { sel, btn, yield: shouldYield, closeAll } of PRIORITY_SELECTORS) {
     const candidates = document.querySelectorAll(sel);
     if (candidates.length > 0) {
       if (shouldYield) {
@@ -26,12 +25,23 @@ function handleEsc(e) {
         continue;
       }
 
-      const topMost = candidates[candidates.length - 1];
-      const closeButton = topMost.querySelector(btn || '.shop-close');
+      if (closeAll) {
+        // If configured to close all, iterate and close each matching overlay
+        candidates.forEach(el => {
+          const closeButton = el.querySelector(btn || '.shop-close');
+          if (closeButton) {
+            closeButton.click();
+            closedAny = true;
+          }
+        });
+      } else {
+        const topMost = candidates[candidates.length - 1];
+        const closeButton = topMost.querySelector(btn || '.shop-close');
 
-      if (closeButton) {
-        closeButton.click();
-        closedAny = true;
+        if (closeButton) {
+          closeButton.click();
+          closedAny = true;
+        }
       }
     }
   }
