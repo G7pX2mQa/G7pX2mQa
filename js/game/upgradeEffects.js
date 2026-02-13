@@ -115,6 +115,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     coinValue: BigNum.fromInt(1),
     xpValue: BigNum.fromInt(1),
     mpValue: BigNum.fromInt(1),
+    goldValue: BigNum.fromInt(1),
+    magicValue: BigNum.fromInt(1),
     bookValue: BigNum.fromInt(1),
     coinSpawn: 1.0,
     magnetRadius: 0,
@@ -160,6 +162,10 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.xpValue = safeMultiplyBigNum(acc.xpValue, baseEffect);
     } else if (upg.effectType === 'mp_value') {
       acc.mpValue = safeMultiplyBigNum(acc.mpValue, baseEffect);
+    } else if (upg.effectType === 'gold_value') {
+      acc.goldValue = safeMultiplyBigNum(acc.goldValue, baseEffect);
+    } else if (upg.effectType === 'magic_value') {
+      acc.magicValue = safeMultiplyBigNum(acc.magicValue, baseEffect);
     } else if (upg.effectType === 'book_value') {
       acc.bookValue = safeMultiplyBigNum(acc.bookValue, baseEffect);
     } else if (upg.effectType === 'magnet_radius') {
@@ -197,7 +203,25 @@ export function computeUpgradeEffects(areaKey) {
     coinValueMultiplier: mults.coinValue,
     xpGainMultiplier: mults.xpValue,
     bookRewardMultiplier: mults.bookValue,
+    goldValueMultiplier: mults.goldValue,
+    magicValueMultiplier: mults.magicValue,
   };
+}
+
+export function syncGoldMagicMultipliersFromUpgrades() {
+  const { goldValue, magicValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+  
+  try {
+    if (bank.gold?.mult?.set) {
+      bank.gold.mult.set(goldValue);
+    }
+  } catch {}
+
+  try {
+    if (bank.magic?.mult?.set) {
+      bank.magic.mult.set(magicValue);
+    }
+  } catch {}
 }
 
 export function getMpValueMultiplierBn() {
@@ -220,6 +244,9 @@ export function getMagnetLevel() {
 
 export function registerXpUpgradeEffects() {
   try { initResetSystem(); } catch {}
+
+  syncGoldMagicMultipliersFromUpgrades();
+  onUpgradesChanged(syncGoldMagicMultipliersFromUpgrades);
 
   try {
     addExternalCoinMultiplierProvider(({ baseMultiplier, xpUnlocked }) => {
@@ -262,6 +289,7 @@ export function registerXpUpgradeEffects() {
     window.addEventListener('saveSlot:change', () => {
       try { syncBookCurrencyMultiplierFromUpgrade(); } catch {}
       try { refreshCoinMultiplierFromXpLevel(); } catch {}
+      try { syncGoldMagicMultipliersFromUpgrades(); } catch {}
     });
   }
 }
