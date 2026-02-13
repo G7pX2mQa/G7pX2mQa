@@ -2,7 +2,7 @@
 // Using a debug panel is much faster and more convenient than
 // Editing local storage every time I want to change something.
 
-import { BigNum } from './bigNum.js';
+import { BigNum, bigNumFromLog10 } from './bigNum.js';
 import { formatNumber } from './numFormat.js';
 import {
     bank,
@@ -3371,6 +3371,14 @@ function buildAreaCalculators(container) {
                     ],
                     compute: ({ xpLevel, coins, gold, magic, mp }) => window.resetSystem?.computeSurgeWavesFromInputs?.(xpLevel, coins, gold, magic, mp),
                 },
+                {
+                    label: 'Pending DNA (Experiment)',
+                    inputs: [
+                        { key: 'labLevel', label: 'Lab Level' },
+                        { key: 'xpLevel', label: 'XP Level' },
+                    ],
+                    compute: ({ labLevel, xpLevel }) => window.resetSystem?.computePendingDnaFromInputs?.(labLevel, xpLevel),
+                },
             ],
         },
         {
@@ -3410,6 +3418,28 @@ function buildAreaCalculators(container) {
                         { key: 'level', label: 'Level' },
                     ],
                     compute: ({ level }) => getGenerationUpgradeCost(level),
+                },
+                {
+                    label: 'Lab Level RP Boost',
+                    inputs: [
+                        { key: 'level', label: 'Lab Level' },
+                    ],
+                    compute: ({ level }) => {
+                        let lvlNum = 0;
+                        if (level instanceof BigNum) {
+                            if (level.isInfinite()) return BigNum.fromAny('Infinity');
+                            try {
+                                lvlNum = Number(level.toScientific(10));
+                            } catch { lvlNum = 0; }
+                        } else {
+                            lvlNum = Number(level);
+                        }
+                        
+                        if (!Number.isFinite(lvlNum)) return BigNum.fromInt(1);
+                        
+                        const logVal = lvlNum * Math.log10(2);
+                        return bigNumFromLog10(logVal);
+                    },
                 },
             ],
         },
