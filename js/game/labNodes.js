@@ -144,7 +144,7 @@ export const RESEARCH_NODES = [
         scale: 5.0,
         maxLevel: 10,
         x: 0,
-        y: 2000,
+        y: -2000,
         icon: 'lab_icons/tsunami_exponent_buff.webp',
         parentIds: [8, 9],
         bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`
