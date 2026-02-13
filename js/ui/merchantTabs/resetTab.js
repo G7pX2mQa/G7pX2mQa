@@ -387,14 +387,16 @@ export function computeSurgeWavesFromInputs(xpLevelBn, coinsBn, goldBn, magicBn,
   return computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn);
 }
 
-export function computePendingDnaFromInputs(labLevelBn, xpLevelBn) {
+export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Override = null) {
     if (!labLevelBn) labLevelBn = bnZero();
     if (!xpLevelBn) xpLevelBn = bnZero();
     
     let logBaseVal = 0.30103; // log10(2)
     let logMultiplier = 0;
 
-    if (isSurgeActive(9)) {
+    const useSurge9 = isSurge9Override !== null ? !!isSurge9Override : isSurgeActive(9);
+
+    if (useSurge9) {
         const effectiveNerf = getEffectiveTsunamiNerf();
         // Base: 2 + nerf
         logBaseVal = Math.log10(2 + effectiveNerf);
