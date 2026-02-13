@@ -1996,7 +1996,6 @@ function buildAreaStats(container, area) {
         const genLevelRow = createInputRow('Workshop Level', currentGenLevel, (value, { setValue }) => {
             // Helper to get a finite number from input, which might be BigNum or string/number
             let valNum = Number(value);
-            console.log('[DebugPanel] Workshop Level Commit. Value type:', typeof value, 'IsBigNum:', value instanceof BigNum, 'Value:', value);
 
             if (value instanceof BigNum) {
                  if (value.isInfinite()) {
