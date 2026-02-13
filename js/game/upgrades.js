@@ -3056,6 +3056,10 @@ for (const upg of REGISTRY) {
         const { selfMult } = computeHmMultipliers(this, lvlBn, this.area);
         const total = safeMultiplyBigNum(baseMult, selfMult);
         
+        if (typeof this.bonusLine === 'function') {
+            return this.bonusLine(level, total);
+        }
+        
         let label = "Bonus";
         if (this.effectType === 'coin_value') label = "Coin value bonus";
         if (this.effectType === 'xp_value') label = "XP value bonus";
@@ -3300,7 +3304,6 @@ function migrateLegacyStorage(areaKey, slot) {
                     }
                 }
             });
-            console.log(`[UpgradeMigration] Migrated ${migratedCount} upgrades for area ${areaKey} slot ${slot}`);
         }
     } catch (e) {
         console.warn('Failed to migrate legacy upgrade storage', e);
@@ -3711,6 +3714,7 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
         xpUnlocked,
         xpLevelBn,
         xpLevel,
+        surgeLevel: getCurrentSurgeLevel(),
         baseLocked: state.locked,
         getUpgradeLevel(targetId) { return getLevelNumber(areaKey, targetId); },
       };
