@@ -186,6 +186,7 @@
   cursor: pointer;
   outline-offset: 4px;
   border-radius: 50%;
+  justify-self: center;
 }
 
 .shop-upgrade.is-locked {
