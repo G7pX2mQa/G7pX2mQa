@@ -239,19 +239,6 @@ export function getVisibleMilestones(currentSurgeLevel) {
         }
     }
 
-    if (m.id === 10) {
-        // Ensure clone if not already cloned
-        if (milestone === m) {
-            milestone = { ...m, description: [...m.description] };
-        }
-        
-        // Similar visibility requirements as Surge 9, but skipping "hidden for now" (state 0)
-        // since this milestone only appears when Surge 8 is reached (state >= 1).
-        if (s9State < 2) {
-            milestone.description = ["This milestone is hidden until you research Lab Node 4"];
-        }
-    }
-
     if (m.surgeLevel <= currentLevel) {
       reached.push(milestone);
     } else {
