@@ -3376,8 +3376,17 @@ function buildAreaCalculators(container) {
                     inputs: [
                         { key: 'labLevel', label: 'Lab Level' },
                         { key: 'xpLevel', label: 'XP Level' },
+                        {
+                            key: 'isSurge9',
+                            type: 'select',
+                            defaultValue: 'No',
+                            options: [
+                                { value: 'No', label: 'Surge 9? No' },
+                                { value: 'Yes', label: 'Surge 9? Yes' },
+                            ],
+                        },
                     ],
-                    compute: ({ labLevel, xpLevel }) => window.resetSystem?.computePendingDnaFromInputs?.(labLevel, xpLevel),
+                    compute: ({ labLevel, xpLevel, isSurge9 }) => window.resetSystem?.computePendingDnaFromInputs?.(labLevel, xpLevel, isSurge9 === 'Yes'),
                 },
             ],
         },
