@@ -1070,7 +1070,7 @@ class LabSystem {
         // Description
         const desc = document.createElement('div');
         desc.className = 'upg-desc centered';
-        desc.textContent = node.desc;
+        desc.innerHTML = node.desc;
         
         const info = document.createElement('div');
         info.className = 'upg-info';
