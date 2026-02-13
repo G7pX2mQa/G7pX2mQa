@@ -653,6 +653,7 @@ images: [
   'img/sc_upg_icons/effective_auto_collect.webp',
   'img/sc_upg_icons/autobuy_coin.webp',
   'img/sc_upg_icons/autobuy_book.webp',
+  'img/sc_upg_icons/autobuy_dna.webp',
   'img/sc_upg_icons/autobuy_gold.webp',
   'img/sc_upg_icons/autobuy_magic.webp',
   'img/sc_upg_icons/autobuy_workshop_level.webp',
