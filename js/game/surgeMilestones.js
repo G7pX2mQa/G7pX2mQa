@@ -112,7 +112,8 @@ export const SURGE_MILESTONES = [
     id: 11,
     surgeLevel: 11,
     description: [
-      "Unlocks a new automation upgrade"
+      "Unlocks a new automation upgrade",
+      "Makes each Workshop Level quadruple Gear production instead of tripling it"
     ]
   }
 ];
