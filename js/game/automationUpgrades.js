@@ -140,7 +140,7 @@ const UPGRADE_DEFINITIONS = [
     desc: 'Automatically buys DNA upgrades',
     icon: 'sc_upg_icons/autobuy_dna.webp',
     lvlCap: 1,
-    baseCost: 1e21,
+    baseCost: 1e25,
     costType: 'gears',
     upgType: 'NM',
     costAtLevel() {
