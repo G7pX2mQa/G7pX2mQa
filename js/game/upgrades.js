@@ -3530,7 +3530,8 @@ try {
   let nextCostStale = !costLevelStorage || costLevelStorage !== normalizedLvlStorage;
 
   let nextCostBn = null;
-  if (!nextCostStale && rec.nextCost != null) {
+  // FORCE RECALCULATION: Ignore stored nextCost to ensure code updates apply.
+  if (false && !nextCostStale && rec.nextCost != null) {
     try {
       nextCostBn = BigNum.fromAny(rec.nextCost);
     } catch {
