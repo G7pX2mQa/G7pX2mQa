@@ -7,14 +7,19 @@ export const AUTOBUY_BOOK_UPGRADES_ID = 3;
 export const AUTOBUY_GOLD_UPGRADES_ID = 4;
 export const AUTOBUY_MAGIC_UPGRADES_ID = 5;
 export const AUTOBUY_WORKSHOP_LEVELS_ID = 6;
+export const AUTOBUY_DNA_UPGRADES_ID = 7;
 
 // Maps an Automation Upgrade ID to the cost type it controls (Master Switch logic).
 export const MASTER_AUTOBUY_IDS = {
   [AUTOBUY_COIN_UPGRADES_ID]: 'coins',
   [AUTOBUY_BOOK_UPGRADES_ID]: 'books',
   [AUTOBUY_GOLD_UPGRADES_ID]: 'gold',
-  [AUTOBUY_MAGIC_UPGRADES_ID]: 'magic'
+  [AUTOBUY_MAGIC_UPGRADES_ID]: 'magic',
+  [AUTOBUY_DNA_UPGRADES_ID]: 'dna'
 };
+
+const MYSTERIOUS_ICON = 'img/misc/mysterious.webp';
+const HIDDEN_TITLE = 'Hidden Upgrade';
 
 const UPGRADE_DEFINITIONS = [
   {
@@ -124,6 +129,53 @@ const UPGRADE_DEFINITIONS = [
     },
     effectSummary() {
       return null;
+    }
+  },
+  {
+    area: AUTOMATION_AREA_KEY,
+    id: AUTOBUY_DNA_UPGRADES_ID,
+    title: 'Autobuy DNA Upgrades',
+    desc: 'Automatically buys DNA upgrades',
+    icon: 'sc_upg_icons/autobuy_dna.webp',
+    lvlCap: 1,
+    baseCost: 1e99,
+    costType: 'gears',
+    upgType: 'NM',
+    costAtLevel() {
+      return BigNum.fromAny('1e99');
+    },
+    effectSummary() {
+      return null;
+    },
+    computeLockState(ctx) {
+        const sl = ctx.surgeLevel;
+        let isUnlocked = false;
+        
+        if (typeof sl === 'number') {
+            if (sl >= 11 || sl === Infinity) isUnlocked = true;
+        } else if (typeof sl === 'bigint') {
+            if (sl >= 11n) isUnlocked = true;
+        } else if (typeof sl === 'string') {
+             if (sl === 'Infinity' || parseFloat(sl) === Infinity) isUnlocked = true;
+             else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 11) isUnlocked = true;
+        } else if (sl && typeof sl.isInfinite === 'function' && sl.isInfinite()) {
+             isUnlocked = true;
+        }
+        
+        if (isUnlocked) return { locked: false };
+        
+        const revealText = "Reach Surge 11 to reveal this upgrade";
+        return {
+            locked: true,
+            iconOverride: MYSTERIOUS_ICON,
+            titleOverride: HIDDEN_TITLE,
+            descOverride: revealText,
+            reason: revealText,
+            hidden: true,
+            hideCost: true,
+            hideEffect: true,
+            useLockedBase: true
+        };
     }
   }
 ];
