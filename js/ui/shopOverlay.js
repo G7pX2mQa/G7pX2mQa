@@ -51,6 +51,9 @@ import { getAutobuyerToggle, setAutobuyerToggle } from '../game/automationEffect
 import { DNA_AREA_KEY } from '../game/dnaUpgrades.js';
 
 // --- Shared State ---
+const scrollingElements = new Set();
+export function isAnyMenuScrolling() { return scrollingElements.size > 0; }
+
 const ICON_DIR = 'img/';
 const BASE_ICON_SRC_BY_COST = {
   coins: 'img/currencies/coin/coin_base.webp',
@@ -362,6 +365,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   
   // rAF loop state
   let isScrollTickPending = false;
+  let scrollTimeout = null;
 
   const updateBounds = () => {
     if (!scroller.isConnected || !sheetEl.isConnected) return;
@@ -467,6 +471,17 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   const scheduleHide = (delay) => { if (!isTouch) return; clearTimeout(scroller.__fadeTimer); scroller.__fadeTimer = setTimeout(() => { sheetEl.classList.remove('is-scrolling'); }, delay); };
   
   const onScroll = () => { 
+      if (!scrollingElements.has(scroller)) {
+          scrollingElements.add(scroller);
+      }
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+          if (scrollingElements.has(scroller)) {
+              scrollingElements.delete(scroller);
+              window.dispatchEvent(new CustomEvent('menu:scrollStop'));
+          }
+      }, 150);
+
       if (!isScrollTickPending) {
           isScrollTickPending = true;
           window.requestAnimationFrame(performScrollUpdate);
@@ -1167,10 +1182,17 @@ class ShopInstance {
     
     update(force = false) {
         if (!force && !this.isOpen) return;
+        if (!force && isAnyMenuScrolling()) return;
         this.buildUpgradesData();
         this.render();
         this.updateDelveGlow();
     }
+}
+
+if (typeof window !== "undefined") {
+    window.addEventListener("menu:scrollStop", () => {
+        updateShopOverlay(true);
+    });
 }
 
 // --- Static Instances ---
