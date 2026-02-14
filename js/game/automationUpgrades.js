@@ -144,7 +144,7 @@ const UPGRADE_DEFINITIONS = [
     costType: 'gears',
     upgType: 'NM',
     costAtLevel() {
-      return BigNum.fromAny('1e99');
+      return BigNum.fromAny('1e27');
     },
     effectSummary() {
       return null;
