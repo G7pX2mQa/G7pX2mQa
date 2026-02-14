@@ -8,6 +8,7 @@ import { hasDoneInfuseReset } from './resetTab.js';
 import { bigNumFromLog10, getLevelNumber, approxLog10BigNum } from '../../game/upgrades.js';
 import { IS_MOBILE } from '../../main.js';
 import { AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID } from '../../game/automationUpgrades.js';
+import { isSurgeActive } from "../../game/surgeEffects.js";
 
 const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
 const GEAR_HUD_ICON_SRC = 'img/currencies/gear/gear_plus_base.webp';
@@ -27,6 +28,7 @@ let renderFrameId = null;
 // Upgrade Constants
 const GENERATION_UPGRADE_BASE_COST_LOG = 12; // 1T = 1e12
 const LOG10_2 = 0.3010299956639812; 
+const LOG10_3 = 0.47712125471966244;
 
 // Scaling Thresholds & Constants
 const L1 = 1e6;
@@ -208,15 +210,16 @@ function getGearsPerSecond(level) {
   if (!(level instanceof BigNum)) {
       bnLevel = BigNum.fromAny(level);
   }
+  const logBase = isSurgeActive(7) ? LOG10_3 : LOG10_2;
 
   if (bnLevel.isZero()) {
     baseRate = BigNum.fromInt(1);
   } else if (bnLevel.isInfinite()) {
     baseRate = BigNum.fromAny('Infinity');
   } else {
-    // If level is huge, we can use mulDecimal(LOG10_2)
+    // If level is huge, we can use mulDecimal(logBase)
     // level * 0.301... => log10(rate)
-    const logValue = bnLevel.mulDecimal(LOG10_2);
+    const logValue = bnLevel.mulDecimal(logBase);
     // bigNumFromLog10 expects a number if possible, or handles large numbers?
     // bigNumFromLog10 impl in upgrades.js:
     // export function bigNumFromLog10(logVal) {
@@ -233,7 +236,7 @@ function getGearsPerSecond(level) {
     if (bnLevel.cmp(9e15) <= 0) {
         // Safe to use standard number math
         const lvlNum = Number(bnLevel.toString());
-        const logVal = lvlNum * LOG10_2;
+        const logVal = lvlNum * logBase;
         baseRate = bigNumFromLog10(logVal);
     } else {
         // Level is huge. 
@@ -244,7 +247,7 @@ function getGearsPerSecond(level) {
         // BigNum constructor takes { base: e }
         
         // mulDecimal returns BigNum
-        const logExpBn = bnLevel.mulDecimal(LOG10_2);
+        const logExpBn = bnLevel.mulDecimal(logBase);
         
         // If logExpBn is massive, it becomes the exponent 'e' of the new BigNum
         // We need to extract the value from BigNum logExpBn to use as exponent.
@@ -314,7 +317,7 @@ function onTick() {
   if (currentGenerationLevel.cmp(20) < 0) {
       // Safe to convert to number
       const lvlNum = Number(currentGenerationLevel.toPlainIntegerString());
-      const rateNum = Math.pow(2, lvlNum);
+      const rateNum = Math.pow(isSurgeActive(7) ? 3 : 2, lvlNum);
       const perTickNum = rateNum / 20;
       const wholeNum = Math.floor(perTickNum);
       const frac = perTickNum - wholeNum;
@@ -460,7 +463,7 @@ function buildWorkshopUI(container) {
           </div>
           <div class="workshop-description">
             Spend Coins to increase your Workshop Level<br>
-            Each increase of your Workshop Level will double the rate of Gear production<br>
+            Each increase of your Workshop Level will <span data-workshop="production-verb">double</span> the rate of Gear production<br>
             ${descText}<br>
             Spend Gears in the Automation Shop to unlock powerful automation upgrades<br>
 			Automation upgrades will never be reset by any reset layer
@@ -558,6 +561,11 @@ function buildWorkshopUI(container) {
 
 export function updateWorkshopTab() {
   if (!workshopEl) return;
+  const verbEl = workshopEl.querySelector("[data-workshop=\"production-verb\"]");
+  if (verbEl) {
+      const verb = isSurgeActive(7) ? "triple" : "double";
+      if (verbEl.textContent !== verb) verbEl.textContent = verb;
+  }
   const gearsAmountEl = workshopEl.querySelector('[data-workshop="gears-amount"]');
   const gearsRateEl = workshopEl.querySelector('[data-workshop="gears-rate"]');
   const upgradeCostEl = workshopEl.querySelector('[data-workshop="upgrade-cost"]');
