@@ -44,6 +44,7 @@ import {
   AUTOBUY_GOLD_UPGRADES_ID,
   AUTOBUY_MAGIC_UPGRADES_ID,
   AUTOBUY_WORKSHOP_LEVELS_ID,
+  AUTOBUY_DNA_UPGRADES_ID,
   MASTER_AUTOBUY_IDS
 } from '../game/automationUpgrades.js';
 import { getAutobuyerToggle, setAutobuyerToggle } from '../game/automationEffects.js';
@@ -77,7 +78,8 @@ const COST_TYPE_TO_AUTO_ID = {
   coins: AUTOBUY_COIN_UPGRADES_ID,
   books: AUTOBUY_BOOK_UPGRADES_ID,
   gold: AUTOBUY_GOLD_UPGRADES_ID,
-  magic: AUTOBUY_MAGIC_UPGRADES_ID
+  magic: AUTOBUY_MAGIC_UPGRADES_ID,
+  dna: AUTOBUY_DNA_UPGRADES_ID
 };
 
 function isUpgradeAutomated(upgDef) {
@@ -102,7 +104,8 @@ const COST_TYPE_TO_AUTOBUY_ID = {
   coins: AUTOBUY_COIN_UPGRADES_ID,
   books: AUTOBUY_BOOK_UPGRADES_ID,
   gold: AUTOBUY_GOLD_UPGRADES_ID,
-  magic: AUTOBUY_MAGIC_UPGRADES_ID
+  magic: AUTOBUY_MAGIC_UPGRADES_ID,
+  dna: AUTOBUY_DNA_UPGRADES_ID
 };
 
 
@@ -1415,7 +1418,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       const isAutomationMaster = !!masterCostType;
       
       // Check for Standard Upgrade logic in Standard Shop
-      const standardAutobuyId = (mode === 'standard') ? COST_TYPE_TO_AUTOBUY_ID[upgDef.costType] : null;
+      const standardAutobuyId = (mode === 'standard' || mode === 'dna') ? COST_TYPE_TO_AUTOBUY_ID[upgDef.costType] : null;
 
       let autobuyLevel = 0;
       if (standardAutobuyId) {
@@ -1461,7 +1464,10 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
          if (isAutomationMaster) {
              const key = `ccc:autobuy:master:${masterCostType}${slotSuffix}`;
              // Check if ANY child upgrade is enabled
-             const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
+             const upgrades = [
+                 ...getUpgradesForArea(AREA_KEYS.STARTER_COVE),
+                 ...getUpgradesForArea(DNA_AREA_KEY)
+             ];
              let anyEnabled = false;
              for (const u of upgrades) {
                  if (u.costType === masterCostType) {
