@@ -19,7 +19,9 @@ export const MASTER_AUTOBUY_IDS = {
 };
 
 const MYSTERIOUS_ICON = 'img/misc/mysterious.webp';
+const LOCKED_ICON = 'img/misc/locked.webp';
 const HIDDEN_TITLE = 'Hidden Upgrade';
+const LOCKED_TITLE = 'Locked Upgrade';
 
 const UPGRADE_DEFINITIONS = [
   {
@@ -163,6 +165,20 @@ const UPGRADE_DEFINITIONS = [
         }
         
         if (isUnlocked) return { locked: false };
+
+        if (!ctx.surgeUnlocked) {
+            return {
+                locked: true,
+                iconOverride: LOCKED_ICON,
+                titleOverride: LOCKED_TITLE,
+                descOverride: 'Locked',
+                reason: 'Locked',
+                hidden: false,
+                hideCost: true,
+                hideEffect: true,
+                useLockedBase: true
+            };
+        }
         
         const revealText = "Reach Surge 11 to reveal this upgrade";
         return {
