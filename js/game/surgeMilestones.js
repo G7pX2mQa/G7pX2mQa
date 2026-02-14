@@ -82,7 +82,8 @@ export const SURGE_MILESTONES = [
     id: 7,
     surgeLevel: 7,
     description: [
-      "Unlocks a new Magic upgrade"
+      "Unlocks a new Magic upgrade",
+      "Makes each Workshop Level <i>triple</i> Gear production instead of doubling it"
     ]
   },
   {
