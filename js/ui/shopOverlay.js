@@ -1501,7 +1501,10 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              
              if (isAutomationMaster) {
                  localStorage.setItem(`ccc:autobuy:master:${masterCostType}${slotSuffix}`, val);
-                 const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE); 
+                 const upgrades = [
+                     ...getUpgradesForArea(AREA_KEYS.STARTER_COVE),
+                     ...getUpgradesForArea(DNA_AREA_KEY)
+                 ];
                  upgrades.forEach(u => {
                     if (u.costType === masterCostType) {
                         setAutobuyerToggle(u.area, u.id, val);
