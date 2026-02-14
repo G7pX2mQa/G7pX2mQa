@@ -22,6 +22,7 @@ import {
   onSurgeUpgradeUnlocked,
   getCurrentSurgeLevel,
   hasDoneSurgeReset,
+  isSurgeUnlocked,
 } from '../ui/merchantTabs/resetTab.js';
 import { getTsunamiNerf } from './surgeEffects.js';
 import { REGISTRY as AUTOMATION_REGISTRY, AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
@@ -3715,6 +3716,7 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
         xpLevelBn,
         xpLevel,
         surgeLevel: getCurrentSurgeLevel(),
+        surgeUnlocked: isSurgeUnlocked(),
         baseLocked: state.locked,
         getUpgradeLevel(targetId) { return getLevelNumber(areaKey, targetId); },
       };
