@@ -11,6 +11,12 @@ export const getSurge10Description = (slot) => {
   return "Unlocks new DNA upgrades";
 };
 
+export const getSurge11Description = (slot) => {
+  const state = getSurge11State(slot);
+  if (state === 0) return "This milestone is hidden until you research Lab Node 4";
+  return "Unlocks a new automation upgrade";
+};
+
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
@@ -100,6 +106,13 @@ export const SURGE_MILESTONES = [
     description: [
       "Unlocks new DNA upgrades"
     ]
+  },
+  {
+    id: 11,
+    surgeLevel: 11,
+    description: [
+      "Unlocks a new automation upgrade"
+    ]
   }
 ];
 
@@ -109,6 +122,7 @@ export const NERFED_SURGE_MILESTONE_IDS = SURGE_MILESTONES
 
 const SURGE_9_STATE_KEY = (slot) => `ccc:surge:milestone9:state:${slot}`;
 const SURGE_10_STATE_KEY = (slot) => `ccc:surge:milestone10:state:${slot}`;
+const SURGE_11_STATE_KEY = (slot) => `ccc:surge:milestone11:state:${slot}`;
 
 function getSurge9State(slot) {
     if (slot == null) return 0;
@@ -141,6 +155,23 @@ function saveSurge10State(slot, state) {
     if (slot == null) return;
     try {
         localStorage.setItem(SURGE_10_STATE_KEY(slot), state.toString());
+    } catch {}
+}
+
+function getSurge11State(slot) {
+    if (slot == null) return 0;
+    try {
+        const val = localStorage.getItem(SURGE_11_STATE_KEY(slot));
+        return val ? parseInt(val, 10) : 0;
+    } catch {
+        return 0;
+    }
+}
+
+function saveSurge11State(slot, state) {
+    if (slot == null) return;
+    try {
+        localStorage.setItem(SURGE_11_STATE_KEY(slot), state.toString());
     } catch {}
 }
 
@@ -212,6 +243,22 @@ export function getVisibleMilestones(currentSurgeLevel) {
       saveSurge10State(slot, s10State);
   }
   // -------------------------
+
+  // --- Surge 11 Text Logic ---
+  let s11State = getSurge11State(slot);
+  let newS11State = s11State;
+
+  // 0 -> 1: Lab Node 4 Researched
+  if (newS11State < 1) {
+      const lab4Level = getResearchNodeLevel(4);
+      if (lab4Level >= 1) newS11State = 1;
+  }
+
+  if (newS11State !== s11State) {
+      s11State = newS11State;
+      saveSurge11State(slot, s11State);
+  }
+  // -------------------------
   
   const reached = [];
   const future = [];
@@ -279,6 +326,17 @@ export function getVisibleMilestones(currentSurgeLevel) {
         }
         
         if (s10State === 0) {
+            milestone.description = ["This milestone is hidden until you research Lab Node 4"];
+        }
+    }
+
+    if (m.id === 11) {
+        // Ensure clone if not already cloned
+        if (milestone === m) {
+            milestone = { ...m, description: [...m.description] };
+        }
+        
+        if (s11State === 0) {
             milestone.description = ["This milestone is hidden until you research Lab Node 4"];
         }
     }
