@@ -3,7 +3,7 @@ import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { bank, CURRENCIES, getActiveSlot } from '../../util/storage.js';
 import { registerTick } from '../../game/gameLoop.js';
-import { openShop, playPurchaseSfx } from '../shopOverlay.js';
+import { openShop, playPurchaseSfx, isAnyMenuScrolling } from '../shopOverlay.js';
 import { hasDoneInfuseReset } from './resetTab.js';
 import { bigNumFromLog10, getLevelNumber, approxLog10BigNum } from '../../game/upgrades.js';
 import { IS_MOBILE } from '../../main.js';
@@ -622,7 +622,7 @@ function startRenderLoop() {
   const loop = (timestamp) => {
     if (workshopEl && workshopEl.isConnected) {
         const gearsAmountEl = workshopEl.querySelector('[data-workshop="gears-amount"]');
-        if (gearsAmountEl) {
+        if (gearsAmountEl && !isAnyMenuScrolling()) {
              gearsAmountEl.innerHTML = bank.gears.fmt(bank.gears.value);
         }
         if (!lastRenderTime) lastRenderTime = timestamp;
