@@ -129,7 +129,10 @@ let _groupedUpgradesCache = null;
 function getGroupedUpgrades() {
   if (_groupedUpgradesCache) return _groupedUpgradesCache;
 
-  const upgrades = getUpgradesForArea(AREA_KEYS.STARTER_COVE);
+  const upgrades = [
+    ...getUpgradesForArea(AREA_KEYS.STARTER_COVE),
+    ...getUpgradesForArea(AREA_KEYS.DNA)
+  ];
   const groups = {};
 
   for (const upg of upgrades) {
@@ -147,12 +150,13 @@ function getGroupedUpgrades() {
 function processAutobuyGroup(upgrades) {
   if (!upgrades || upgrades.length === 0) return;
   for (const upg of upgrades) {
-    const setting = getAutobuyerToggle(AREA_KEYS.STARTER_COVE, upg.id);
+    const area = upg.area || AREA_KEYS.STARTER_COVE;
+    const setting = getAutobuyerToggle(area, upg.id);
     if (setting !== '0') {
-      const currentLevel = getLevelNumber(AREA_KEYS.STARTER_COVE, upg.id);
+      const currentLevel = getLevelNumber(area, upg.id);
       const cap = upg.lvlCap ?? Infinity;
       if (currentLevel < cap) {
-        performFreeAutobuy(AREA_KEYS.STARTER_COVE, upg.id);
+        performFreeAutobuy(area, upg.id);
       }
     }
   }
