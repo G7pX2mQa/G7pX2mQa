@@ -37,7 +37,7 @@ import {
 import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 import { clearPendingGains } from '../../game/coinPickup.js';
 import { getVisibleMilestones, NERFED_SURGE_MILESTONE_IDS } from '../../game/surgeMilestones.js';
-import { ensureCustomScrollbar, closeShop, openShop } from '../shopOverlay.js';
+import { ensureCustomScrollbar, closeShop, openShop, isAnyMenuScrolling } from '../shopOverlay.js';
 import { playAudio } from '../../util/audioManager.js';
 import { 
   getBookProductionRate, 
@@ -2339,6 +2339,7 @@ function updateExperimentCard() {
 
 export function updateResetPanel({ goldMult = null } = {}) {
   if (!resetState.panel) return;
+  if (isAnyMenuScrolling()) return;
   updateForgeCard({ goldMult });
   updateInfuseCard();
   updateSurgeCard();
@@ -2401,6 +2402,9 @@ function triggerSurgeBarAnimation() {
 
 function bindGlobalEvents() {
   if (typeof window === 'undefined') return;
+  window.addEventListener('menu:scrollStop', () => {
+    updateResetPanel();
+  });
   window.addEventListener('surge:level:change', () => {
     triggerSurgeBarAnimation();
   });
