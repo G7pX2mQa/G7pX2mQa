@@ -134,6 +134,36 @@ function updateMultiplier() {
   }
 }
 
+export function getSurge15Multiplier(preview = false) {
+  if (!preview && !isSurgeActive(15)) return BigNum.fromInt(1);
+  
+  const dna = bank.dna?.value;
+  if (!dna) return BigNum.fromInt(1);
+
+  const calc = (amount) => {
+    if (!amount) return BigNum.fromInt(1);
+    if (amount.isInfinite?.()) return BigNum.fromAny('Infinity');
+    
+    const log10Bn = approxLog10BigNum(amount);
+    if (!Number.isFinite(log10Bn) || log10Bn <= 0) return BigNum.fromInt(1);
+
+    // Formula: 2 ^ log10(amount)
+    const power = log10Bn;
+    if (power <= 0) return BigNum.fromInt(1);
+
+    const log10Result = power * Math.log10(2);
+    return bigNumFromLog10(log10Result);
+  };
+
+  const mult = calc(dna);
+
+  if (isSurgeActive(8)) {
+     return applyTsunamiNerf(mult);
+  }
+
+  return mult;
+}
+
 export function getSurge6WealthMultipliers() {
   if (!isSurgeActive(6)) {
       return {
@@ -481,6 +511,13 @@ export function initSurgeEffects() {
     const wealth = getSurge6WealthMultipliers();
     if (wealth.total.cmp(1) <= 0) return baseMultiplier;
     return baseMultiplier.mulBigNumInteger(wealth.total);
+  });
+
+  addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+    if (!isSurgeActive(15)) return baseMultiplier;
+    const mult = getSurge15Multiplier();
+    if (mult.cmp(1) <= 0) return baseMultiplier;
+    return baseMultiplier.mulBigNumInteger(mult);
   });
   
   // Surge 3: Disable flat Book reward
