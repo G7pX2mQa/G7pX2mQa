@@ -345,7 +345,7 @@ function onTick(dt) {
       if (bank.gold) bank.gold.add(amountToAdd);
   }
 
-  if (isSurgeActive(15)) {
+  if (isSurgeActive(16)) {
       const effectiveNerf = getEffectiveTsunamiNerf();
       const mapped = effectiveNerf * 1.5 - 0.5;
       
