@@ -2,7 +2,7 @@ import { getActiveSlot, bank } from '../../util/storage.js';
 import { IS_MOBILE } from '../../main.js';
 import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
-import { getTsunamiNerf } from '../../game/surgeEffects.js';
+import { getTsunamiNerf, isSurgeActive, getEffectiveTsunamiNerf } from '../../game/surgeEffects.js';
 import { registerTick } from '../../game/gameLoop.js';
 import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
 import { 
@@ -283,6 +283,22 @@ function bigNumPowerOf10(logBn) {
 export function getRpMultBase() {
     const level = getLabLevel();
     if (bigNumIsInfinite(level)) return BigNum.fromAny('Infinity');
+
+    if (isSurgeActive(12)) {
+        const effectiveNerf = getEffectiveTsunamiNerf();
+        
+        // Multiplier: 10^(10 * nerf) -> Log10 contribution: 10 * nerf
+        const multLog10 = 10 * effectiveNerf;
+        
+        // Base: (2 + nerf)^level -> Log10 contribution: level * log10(2 + nerf)
+        const base = 2 + effectiveNerf;
+        const log10Base = Math.log10(base).toFixed(18);
+        
+        const exponentFromBase = level.mulDecimal(log10Base, 18);
+        const exponent = exponentFromBase.add(BigNum.fromAny(String(multLog10)));
+        
+        return bigNumPowerOf10(exponent);
+    }
     
     // 2^level = 10^(level * log10(2))
     const log10Of2 = "0.3010299956639812"; 
