@@ -3,7 +3,7 @@
 // Editing local storage every time I want to change something.
 
 import { BigNum, bigNumFromLog10 } from './bigNum.js';
-import { formatNumber } from './numFormat.js';
+import { formatNumber, formatMultForUi } from './numFormat.js';
 import {
     bank,
     CURRENCIES,
@@ -3489,6 +3489,23 @@ function buildAreaCalculators(container) {
                         },
                     ],
                     compute: ({ baseCost, level, mode }) => computeDefaultUpgradeCost(baseCost, level, mode),
+                },
+                {
+                    label: 'Gold Gen Pct',
+                    inputs: [
+                        { key: 'tsunamiExp', label: 'Tsunami Exponent' },
+                    ],
+                    compute: ({ tsunamiExp }) => {
+                        let val = Number(tsunamiExp);
+                        if (tsunamiExp instanceof BigNum) {
+                            val = tsunamiExp.isInfinite() ? Infinity : Number(tsunamiExp.toScientific(10));
+                        }
+                        if (!Number.isFinite(val)) return '—';
+                        
+                        const mapped = val * 1.5 - 0.5;
+                        const pct = Math.pow(100, mapped);
+                        return formatMultForUi(pct) + '%';
+                    },
                 },
             ],
         },
