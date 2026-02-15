@@ -2180,6 +2180,16 @@ function updateSurgeCard() {
             
             desc += `<div style="color:#02e815">- Current Gold/sec: ${formatMultForUi(goldPerSec)}</div>`;
         }
+        if (isReached && m.surgeLevel === 15) {
+            const effectiveNerf = getEffectiveTsunamiNerf();
+            const mapped = effectiveNerf * 1.5 - 0.5;
+            const log10Rate = 2 * mapped - 2;
+            const rateMultiplier = bigNumFromLog10(log10Rate);
+            
+            const magicPerSec = resetState.pendingMagic.mulDecimal(rateMultiplier.toScientific());
+            
+            desc += `<div style="color:#02e815">- Current Magic/sec: ${formatMultForUi(magicPerSec)}</div>`;
+        }
 
         let isSurge8 = false;
         if (barLevel === Infinity || (typeof barLevel === 'string' && barLevel === 'Infinity')) isSurge8 = true;
