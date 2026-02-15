@@ -1158,7 +1158,7 @@ export function addXp(amount, { silent = false } = {}) {
         const logDiff = currentProgressLog - reqLog;
         const estimatedGain = Math.floor(logDiff / COMBINED_LOG_FACTOR);
         
-        if (estimatedGain > 10) {
+        if (estimatedGain >= 10) {
           const safeGain = BigInt(Math.max(0, estimatedGain - 5));
           
           if (safeGain > 0n) {
