@@ -404,6 +404,17 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
         logMultiplier = 30 * effectiveNerf;
     }
 
+    if (isSurgeActive(14)) {
+        // Multiplier: 14.14e12
+        if (isSurgeActive(8)) {
+            const effectiveNerf = getEffectiveTsunamiNerf();
+            const log14 = Math.log10(14.14e12);
+            logMultiplier += log14 * effectiveNerf;
+        } else {
+            logMultiplier += Math.log10(14.14e12);
+        }
+    }
+
     const logBaseStr = logBaseVal.toFixed(18);
 
     try {
@@ -911,6 +922,17 @@ function recomputePendingDna() {
         logBaseVal = Math.log10(2 + effectiveNerf);
         // Multiplier: 10^(30*nerf) -> log10 is 30*nerf
         logMultiplier = 30 * effectiveNerf;
+    }
+
+    if (isSurgeActive(14)) {
+        // Multiplier: 14.14e12
+        if (isSurgeActive(8)) {
+            const effectiveNerf = getEffectiveTsunamiNerf();
+            const log14 = Math.log10(14.14e12);
+            logMultiplier += log14 * effectiveNerf;
+        } else {
+            logMultiplier += Math.log10(14.14e12);
+        }
     }
 
     const logBaseStr = logBaseVal.toFixed(18);
