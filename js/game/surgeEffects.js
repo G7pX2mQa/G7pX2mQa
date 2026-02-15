@@ -6,8 +6,8 @@ import {
   getXpState,
   setExternalBookRewardProvider
 } from './xpSystem.js';
-import { addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
-import { getCurrentSurgeLevel, computeForgeGoldFromInputs } from '../ui/merchantTabs/resetTab.js';
+import { addExternalMutationGainMultiplierProvider, getTotalCumulativeMp } from './mutationSystem.js';
+import { getCurrentSurgeLevel, computeForgeGoldFromInputs, computeInfuseMagicFromInputs } from '../ui/merchantTabs/resetTab.js';
 import { registerTick, RateAccumulator } from './gameLoop.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
 import { getTsunamiResearchBonus, getLabGoldMultiplier } from './labNodes.js';
