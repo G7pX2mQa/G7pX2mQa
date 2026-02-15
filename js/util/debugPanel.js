@@ -3491,7 +3491,7 @@ function buildAreaCalculators(container) {
                     compute: ({ baseCost, level, mode }) => computeDefaultUpgradeCost(baseCost, level, mode),
                 },
                 {
-                    label: 'Gold Gen Pct',
+                    label: 'Currency Generation Percentage',
                     inputs: [
                         { key: 'tsunamiExp', label: 'Tsunami Exponent' },
                     ],
