@@ -36,7 +36,7 @@ import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
 import { getGenerationLevelKey, getGenerationUpgradeCost } from '../ui/merchantTabs/workshopTab.js';
 import { getSurgeBarLevelKey, hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
-import { getTsunamiNerf, setTsunamiNerf, getTsunamiNerfKey, getTsunamiSequenceSeen, setTsunamiSequenceSeen } from '../game/surgeEffects.js';
+import { getTsunamiNerf, setTsunamiNerf, getTsunamiNerfKey, getTsunamiSequenceSeen, setTsunamiSequenceSeen, getEffectiveTsunamiNerf } from '../game/surgeEffects.js';
 import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 
@@ -3432,8 +3432,17 @@ function buildAreaCalculators(container) {
                     label: 'Lab Level RP Boost',
                     inputs: [
                         { key: 'level', label: 'Lab Level' },
+                        {
+                            key: 'isSurge12',
+                            type: 'select',
+                            defaultValue: 'No',
+                            options: [
+                                { value: 'No', label: 'Surge 12? No' },
+                                { value: 'Yes', label: 'Surge 12? Yes' },
+                            ],
+                        },
                     ],
-                    compute: ({ level }) => {
+                    compute: ({ level, isSurge12 }) => {
                         let lvlNum = 0;
                         if (level instanceof BigNum) {
                             if (level.isInfinite()) return BigNum.fromAny('Infinity');
@@ -3445,6 +3454,15 @@ function buildAreaCalculators(container) {
                         }
                         
                         if (!Number.isFinite(lvlNum)) return BigNum.fromInt(1);
+                        
+                        if (isSurge12 === 'Yes') {
+                            const effectiveNerf = getEffectiveTsunamiNerf();
+                            const multLog10 = 10 * effectiveNerf;
+                            const base = 2 + effectiveNerf;
+                            const logBase = Math.log10(base);
+                            const totalLog = (lvlNum * logBase) + multLog10;
+                            return bigNumFromLog10(totalLog);
+                        }
                         
                         const logVal = lvlNum * Math.log10(2);
                         return bigNumFromLog10(logVal);
