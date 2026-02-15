@@ -7,10 +7,10 @@ import {
   setExternalBookRewardProvider
 } from './xpSystem.js';
 import { addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
-import { getCurrentSurgeLevel } from '../ui/merchantTabs/resetTab.js';
+import { getCurrentSurgeLevel, computeForgeGoldFromInputs } from '../ui/merchantTabs/resetTab.js';
 import { registerTick, RateAccumulator } from './gameLoop.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
-import { getTsunamiResearchBonus } from './labNodes.js';
+import { getTsunamiResearchBonus, getLabGoldMultiplier } from './labNodes.js';
 
 const BN = BigNum;
 const MULTIPLIER = 10;
@@ -279,41 +279,70 @@ export function getBookProductionRate() {
 }
 
 function onTick(dt) {
-  if (!isSurgeActive(3)) return;
-  if (!bookRateAccumulator) {
-    bookRateAccumulator = new RateAccumulator('books', bank);
+  if (isSurgeActive(3)) {
+      if (!bookRateAccumulator) {
+        bookRateAccumulator = new RateAccumulator('books', bank);
+      }
+
+      const baseRate = getBookProductionRate();
+
+      // Accumulate
+      if (baseRate.cmp(1e9) > 0 || baseRate.isInfinite?.()) {
+          // Direct add per tick for large numbers, using dt
+          // dt might be > 0.05 if lag occurs, but usually 0.05
+          const perTick = baseRate.mulDecimal(String(dt), 18);
+          if (bank.books) bank.books.add(perTick);
+      } else {
+          // Use accumulator for small numbers to handle fractional accumulation
+          const rateNum = Number(baseRate.toScientific());
+          // RateAccumulator expects amount per second
+          // We manually update it with variable dt support by bypassing addRate 
+          // if RateAccumulator isn't dt-aware, but here we can just do manual accumulation for consistency
+          // or assume addRate is fixed step.
+          // Ideally we should modify RateAccumulator to take dt, or manually implement it here.
+          // Let's implement manual accumulation here for safety and precision.
+          
+          if (!window.__bookResidue) window.__bookResidue = 0;
+          window.__bookResidue += rateNum * dt;
+
+          if (window.__bookResidue > 0) {
+            try { window.dispatchEvent(new CustomEvent('surge:bookResidue')); } catch {}
+          }
+
+          if (window.__bookResidue >= 1) {
+              const whole = Math.floor(window.__bookResidue);
+              window.__bookResidue -= whole;
+              if (bank.books) bank.books.add(BigNum.fromInt(whole));
+          }
+      }
   }
 
-  const baseRate = getBookProductionRate();
-
-  // Accumulate
-  if (baseRate.cmp(1e9) > 0 || baseRate.isInfinite?.()) {
-      // Direct add per tick for large numbers, using dt
-      // dt might be > 0.05 if lag occurs, but usually 0.05
-      const perTick = baseRate.mulDecimal(String(dt), 18);
-      if (bank.books) bank.books.add(perTick);
-  } else {
-      // Use accumulator for small numbers to handle fractional accumulation
-      const rateNum = Number(baseRate.toScientific());
-      // RateAccumulator expects amount per second
-      // We manually update it with variable dt support by bypassing addRate 
-      // if RateAccumulator isn't dt-aware, but here we can just do manual accumulation for consistency
-      // or assume addRate is fixed step.
-      // Ideally we should modify RateAccumulator to take dt, or manually implement it here.
-      // Let's implement manual accumulation here for safety and precision.
+  if (isSurgeActive(13)) {
+      const effectiveNerf = getEffectiveTsunamiNerf();
+      const mapped = effectiveNerf * 1.5 - 0.5;
       
-      if (!window.__bookResidue) window.__bookResidue = 0;
-      window.__bookResidue += rateNum * dt;
-
-      if (window.__bookResidue > 0) {
-        try { window.dispatchEvent(new CustomEvent('surge:bookResidue')); } catch {}
-      }
-
-      if (window.__bookResidue >= 1) {
-          const whole = Math.floor(window.__bookResidue);
-          window.__bookResidue -= whole;
-          if (bank.books) bank.books.add(BigNum.fromInt(whole));
-      }
+      const log10Rate = 2 * mapped - 2;
+      const rateMultiplier = bigNumFromLog10(log10Rate);
+      
+      const coins = bank.coins?.value;
+      const xpState = getXpState();
+      
+      // Calculate pending Gold (base)
+      const basePending = computeForgeGoldFromInputs(coins, xpState.xpLevel);
+      
+      // Apply multipliers
+      // 1. Bank Gold multiplier
+      let pending = bank.gold?.mult?.applyTo?.(basePending) ?? basePending;
+      
+      // 2. Lab Gold multiplier
+      const labMult = getLabGoldMultiplier();
+      pending = pending.mulDecimal(labMult.toScientific());
+      
+      // Multiply by rate and dt
+      const perSec = pending.mulDecimal(rateMultiplier.toScientific());
+      const amountToAdd = perSec.mulDecimal(String(dt), 18);
+      
+      if (bank.gold) bank.gold.add(amountToAdd);
   }
 }
 
