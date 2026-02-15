@@ -344,6 +344,25 @@ function onTick(dt) {
       
       if (bank.gold) bank.gold.add(amountToAdd);
   }
+
+  if (isSurgeActive(15)) {
+      const effectiveNerf = getEffectiveTsunamiNerf();
+      const mapped = effectiveNerf * 1.5 - 0.5;
+      
+      const log10Rate = 2 * mapped - 2;
+      const rateMultiplier = bigNumFromLog10(log10Rate);
+      
+      const coins = bank.coins?.value;
+      const cumulativeMp = getTotalCumulativeMp();
+      
+      const pending = computeInfuseMagicFromInputs(coins, cumulativeMp);
+      
+      // Multiply by rate and dt
+      const perSec = pending.mulDecimal(rateMultiplier.toScientific());
+      const amountToAdd = perSec.mulDecimal(String(dt), 18);
+      
+      if (bank.magic) bank.magic.add(amountToAdd);
+  }
 }
 
 function loadTsunamiNerf(slot) {
