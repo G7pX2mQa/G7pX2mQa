@@ -135,8 +135,8 @@ export const SURGE_MILESTONES = [
     ]
   },
   {
-    id: 15,
-    surgeLevel: 15,
+    id: 16,
+    surgeLevel: 16,
     affectedByTsunami: true,
     description: [
       "Generates <span style=\"color:#00e5ff\">0.1%</span> of your pending Magic each second"
@@ -377,7 +377,7 @@ export function getVisibleMilestones(currentSurgeLevel) {
         }
     }
 
-    if (m.id === 15) {
+    if (m.id === 16) {
       if (milestone === m) {
           milestone = { ...m, description: [...m.description] };
       }
