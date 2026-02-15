@@ -14,7 +14,7 @@ export const getSurge10Description = (slot) => {
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
-import { getTsunamiNerf, getEffectiveTsunamiNerf } from './surgeEffects.js';
+import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier } from './surgeEffects.js';
 import { getTsunamiResearchBonus, getResearchNodeLevel } from './labNodes.js';
 import { getActiveSlot } from '../util/storage.js';
 
@@ -135,6 +135,14 @@ export const SURGE_MILESTONES = [
     ]
   },
   {
+    id: 15,
+    surgeLevel: 15,
+    affectedByTsunami: true,
+    description: [
+      "Unspent DNA boosts Coins: <span style=\"color:#00e5ff\">1x</span>"
+    ]
+  },
+  {
     id: 16,
     surgeLevel: 16,
     affectedByTsunami: true,
@@ -151,6 +159,7 @@ export const NERFED_SURGE_MILESTONE_IDS = SURGE_MILESTONES
 const SURGE_9_STATE_KEY = (slot) => `ccc:surge:milestone9:state:${slot}`;
 const SURGE_10_STATE_KEY = (slot) => `ccc:surge:milestone10:state:${slot}`;
 const SURGE_14_STATE_KEY = (slot) => `ccc:surge:milestone14:state:${slot}`;
+const SURGE_15_STATE_KEY = (slot) => `ccc:surge:milestone15:state:${slot}`;
 
 function getSurge9State(slot) {
     if (slot == null) return 0;
@@ -200,6 +209,23 @@ function saveSurge14State(slot, state) {
     if (slot == null) return;
     try {
         localStorage.setItem(SURGE_14_STATE_KEY(slot), state.toString());
+    } catch {}
+}
+
+function getSurge15State(slot) {
+    if (slot == null) return 0;
+    try {
+        const val = localStorage.getItem(SURGE_15_STATE_KEY(slot));
+        return val ? parseInt(val, 10) : 0;
+    } catch {
+        return 0;
+    }
+}
+
+function saveSurge15State(slot, state) {
+    if (slot == null) return;
+    try {
+        localStorage.setItem(SURGE_15_STATE_KEY(slot), state.toString());
     } catch {}
 }
 
@@ -277,6 +303,21 @@ export function getVisibleMilestones(currentSurgeLevel) {
   if (newS14State !== s14State) {
       s14State = newS14State;
       saveSurge14State(slot, s14State);
+  }
+  // -------------------------
+
+  // --- Surge 15 Text Logic ---
+  let s15State = getSurge15State(slot);
+  let newS15State = s15State;
+
+  if (newS15State < 1) {
+      const lab4Level = getResearchNodeLevel(4);
+      if (lab4Level >= 1) newS15State = 1;
+  }
+
+  if (newS15State !== s15State) {
+      s15State = newS15State;
+      saveSurge15State(slot, s15State);
   }
   // -------------------------
   
@@ -374,6 +415,20 @@ export function getVisibleMilestones(currentSurgeLevel) {
         
         if (s14State === 0) {
             milestone.description = ["This milestone is hidden until you research Lab Node 4"];
+        }
+    }
+    
+    if (m.id === 15) {
+        if (milestone === m) {
+            milestone = { ...m, description: [...m.description] };
+        }
+        
+        if (s15State === 0) {
+            milestone.description = ["This milestone is hidden until you research Lab Node 4"];
+        } else {
+            const mult = getSurge15Multiplier(true);
+            const valStr = formatMultForUi(mult);
+            milestone.description[0] = `Unspent DNA boosts Coins: <span style="color:#00e5ff">${valStr}x</span>`;
         }
     }
 
