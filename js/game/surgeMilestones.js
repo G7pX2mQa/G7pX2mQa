@@ -11,18 +11,6 @@ export const getSurge10Description = (slot) => {
   return "Unlocks new DNA upgrades";
 };
 
-export const getSurge11Description = (slot) => {
-  const state = getSurge11State(slot);
-  if (state === 0) return "This milestone is hidden until you research Lab Node 4";
-  return "Unlocks a new automation upgrade";
-};
-
-export const getSurge12Description = (slot) => {
-  const state = getSurge12State(slot);
-  if (state === 0) return "This milestone is hidden until you research Lab Node 4";
-  return "Significantly boosts the effect Lab Level has on RP multiplier";
-};
-
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
@@ -139,6 +127,14 @@ export const SURGE_MILESTONES = [
     ]
   },
   {
+    id: 14,
+    surgeLevel: 14,
+    affectedByTsunami: true,
+    description: [
+      `Multiplies DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(14.44e12))}x</span>`
+    ]
+  },
+  {
     id: 15,
     surgeLevel: 15,
     affectedByTsunami: true,
@@ -154,7 +150,7 @@ export const NERFED_SURGE_MILESTONE_IDS = SURGE_MILESTONES
 
 const SURGE_9_STATE_KEY = (slot) => `ccc:surge:milestone9:state:${slot}`;
 const SURGE_10_STATE_KEY = (slot) => `ccc:surge:milestone10:state:${slot}`;
-const SURGE_11_STATE_KEY = (slot) => `ccc:surge:milestone11:state:${slot}`;
+const SURGE_14_STATE_KEY = (slot) => `ccc:surge:milestone14:state:${slot}`;
 
 function getSurge9State(slot) {
     if (slot == null) return 0;
@@ -190,53 +186,31 @@ function saveSurge10State(slot, state) {
     } catch {}
 }
 
-function getSurge11State(slot) {
+function getSurge14State(slot) {
     if (slot == null) return 0;
     try {
-        const val = localStorage.getItem(SURGE_11_STATE_KEY(slot));
+        const val = localStorage.getItem(SURGE_14_STATE_KEY(slot));
         return val ? parseInt(val, 10) : 0;
     } catch {
         return 0;
     }
 }
 
-function saveSurge11State(slot, state) {
+function saveSurge14State(slot, state) {
     if (slot == null) return;
     try {
-        localStorage.setItem(SURGE_11_STATE_KEY(slot), state.toString());
-    } catch {}
-}
-
-function getSurge12State(slot) {
-    if (slot == null) return 0;
-    try {
-        const val = localStorage.getItem(SURGE_12_STATE_KEY(slot));
-        return val ? parseInt(val, 10) : 0;
-    } catch {
-        return 0;
-    }
-}
-
-function saveSurge12State(slot, state) {
-    if (slot == null) return;
-    try {
-        localStorage.setItem(SURGE_12_STATE_KEY(slot), state.toString());
+        localStorage.setItem(SURGE_14_STATE_KEY(slot), state.toString());
     } catch {}
 }
 
 export function getVisibleMilestones(currentSurgeLevel) {
-  console.log("getVisibleMilestones called with:", currentSurgeLevel);
-  console.log("SURGE_MILESTONES length:", SURGE_MILESTONES.length);
   let currentLevel = 0;
   let isSurge8 = false;
   
-  // Handle different number types safely
   if (typeof currentSurgeLevel === 'number') {
     currentLevel = currentSurgeLevel;
     if (currentLevel >= 8) isSurge8 = true;
   } else if (typeof currentSurgeLevel === 'bigint') {
-    // Safety clamp for very large BigInts to avoid Number conversion issues
-    // though surge levels likely won't exceed Number.MAX_SAFE_INTEGER
     if (currentSurgeLevel > Number.MAX_SAFE_INTEGER) {
       currentLevel = Number.MAX_SAFE_INTEGER;
     } else {
@@ -261,13 +235,10 @@ export function getVisibleMilestones(currentSurgeLevel) {
   let s9State = getSurge9State(slot);
   let newState = s9State;
 
-  // 0 -> 1: Reached Surge 8 (lifetime, triggered by monotonic one-way upgrade)
-  // We use current isSurge8 check. If we are currently at Surge 8+, we can unlock state 1.
   if (newState < 1) {
       if (isSurge8) newState = 1;
   }
   
-  // 1 -> 2: Lab Node 4 Researched
   if (newState < 2) {
       const lab4Level = getResearchNodeLevel(4);
       if (lab4Level >= 1) newState = 2;
@@ -283,7 +254,6 @@ export function getVisibleMilestones(currentSurgeLevel) {
   let s10State = getSurge10State(slot);
   let newS10State = s10State;
 
-  // 0 -> 1: Lab Node 4 Researched
   if (newS10State < 1) {
       const lab4Level = getResearchNodeLevel(4);
       if (lab4Level >= 1) newS10State = 1;
@@ -295,35 +265,18 @@ export function getVisibleMilestones(currentSurgeLevel) {
   }
   // -------------------------
 
-  // --- Surge 11 Text Logic ---
-  let s11State = getSurge11State(slot);
-  let newS11State = s11State;
+  // --- Surge 14 Text Logic ---
+  let s14State = getSurge14State(slot);
+  let newS14State = s14State;
 
-  // 0 -> 1: Lab Node 4 Researched
-  if (newS11State < 1) {
+  if (newS14State < 1) {
       const lab4Level = getResearchNodeLevel(4);
-      if (lab4Level >= 1) newS11State = 1;
+      if (lab4Level >= 1) newS14State = 1;
   }
 
-  if (newS11State !== s11State) {
-      s11State = newS11State;
-      saveSurge11State(slot, s11State);
-  }
-  // -------------------------
-
-  // --- Surge 12 Text Logic ---
-  let s12State = getSurge12State(slot);
-  let newS12State = s12State;
-
-  // 0 -> 1: Lab Node 4 Researched
-  if (newS12State < 1) {
-      const lab4Level = getResearchNodeLevel(4);
-      if (lab4Level >= 1) newS12State = 1;
-  }
-
-  if (newS12State !== s12State) {
-      s12State = newS12State;
-      saveSurge12State(slot, s12State);
+  if (newS14State !== s14State) {
+      s14State = newS14State;
+      saveSurge14State(slot, s14State);
   }
   // -------------------------
   
@@ -343,7 +296,6 @@ export function getVisibleMilestones(currentSurgeLevel) {
       if (nerf > 1) nerf = 1;
       
       if (m.id === 1) {
-        // 10x -> 10^nerf x
         const val = Math.pow(10, nerf);
         const valStr = formatMultForUi(val);
         
@@ -352,7 +304,6 @@ export function getVisibleMilestones(currentSurgeLevel) {
             `<span style="color:#00e5ff">${valStr}x</span>`
         );
       } else if (m.id === 2) {
-        // Auto-collect 10x -> 10^nerf x
         const val = Math.pow(10, nerf);
         const valStr = formatMultForUi(val);
 
@@ -361,8 +312,16 @@ export function getVisibleMilestones(currentSurgeLevel) {
             `<span style="color:#00e5ff">${valStr}x</span>`
         );
       } else if (m.id === 4) {
-        // 4.444e12 -> (4.444e12)^nerf
         const log10 = Math.log10(4.444e12);
+        const newVal = bigNumFromLog10(log10 * nerf);
+        const valStr = formatNumber(newVal);
+        
+        milestone.description[0] = milestone.description[0].replace(
+            /<span style="color:#00e5ff">.*?x<\/span>/, 
+            `<span style="color:#00e5ff">${valStr}x</span>`
+        );
+      } else if (m.id === 14) {
+        const log10 = Math.log10(14.44e12);
         const newVal = bigNumFromLog10(log10 * nerf);
         const valStr = formatNumber(newVal);
         
@@ -374,7 +333,6 @@ export function getVisibleMilestones(currentSurgeLevel) {
     }
 
     if (m.id === 9) {
-        // Ensure clone if not already cloned
         if (milestone === m) {
             milestone = { ...m, description: [...m.description] };
         }
@@ -387,7 +345,6 @@ export function getVisibleMilestones(currentSurgeLevel) {
     }
 
     if (m.id === 10) {
-        // Ensure clone if not already cloned
         if (milestone === m) {
             milestone = { ...m, description: [...m.description] };
         }
@@ -397,30 +354,7 @@ export function getVisibleMilestones(currentSurgeLevel) {
         }
     }
 
-    if (m.id === 11) {
-        // Ensure clone if not already cloned
-        if (milestone === m) {
-            milestone = { ...m, description: [...m.description] };
-        }
-        
-        if (s11State === 0) {
-            milestone.description = ["This milestone is hidden until you research Lab Node 4"];
-        }
-    }
-
-    if (m.id === 12) {
-        // Ensure clone if not already cloned
-        if (milestone === m) {
-            milestone = { ...m, description: [...m.description] };
-        }
-        
-        if (s12State === 0) {
-            milestone.description = ["This milestone is hidden until you research Lab Node 4"];
-        }
-    }
-
     if (m.id === 13) {
-      // Ensure clone if not already cloned
       if (milestone === m) {
           milestone = { ...m, description: [...m.description] };
       }
@@ -433,8 +367,17 @@ export function getVisibleMilestones(currentSurgeLevel) {
       milestone.description[0] = `Generates <span style="color:#00e5ff">${valStr}%</span> of your pending Gold each second`;
     }
 
+    if (m.id === 14) {
+        if (milestone === m) {
+            milestone = { ...m, description: [...m.description] };
+        }
+        
+        if (s14State === 0) {
+            milestone.description = ["This milestone is hidden until you research Lab Node 4"];
+        }
+    }
+
     if (m.id === 15) {
-      // Ensure clone if not already cloned
       if (milestone === m) {
           milestone = { ...m, description: [...m.description] };
       }
@@ -454,6 +397,5 @@ export function getVisibleMilestones(currentSurgeLevel) {
     }
   }
   
-  // Return all reached + up to 2 future
   return [...reached, ...future.slice(0, 2)];
 }
