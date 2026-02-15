@@ -2,7 +2,7 @@ export const getSurge9Description = (slot) => {
   const state = getSurge9State(slot);
   if (state === 0) return "This milestone is hidden for now";
   if (state === 1) return "This milestone is hidden until you research Lab Node 4";
-  return "Significantly boosts DNA value";
+  return "Significantly boosts DNA gained from the Experiment reset";
 };
 
 export const getSurge10Description = (slot) => {
@@ -104,7 +104,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 9,
     affectedByTsunami: true,
     description: [
-      "Significantly boosts DNA value"
+      "Significantly boosts DNA gained from the Experiment reset"
     ]
   },
   {
