@@ -104,7 +104,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 9,
     affectedByTsunami: true,
     description: [
-      "Significantly boosts DNA gained from the Experiment reset"
+      "Significantly boosts DNA value"
     ]
   },
   {
