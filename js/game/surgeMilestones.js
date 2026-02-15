@@ -26,7 +26,7 @@ export const getSurge12Description = (slot) => {
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
-import { getTsunamiNerf } from './surgeEffects.js';
+import { getTsunamiNerf, getEffectiveTsunamiNerf } from './surgeEffects.js';
 import { getTsunamiResearchBonus, getResearchNodeLevel } from './labNodes.js';
 import { getActiveSlot } from '../util/storage.js';
 
@@ -129,6 +129,14 @@ export const SURGE_MILESTONES = [
     description: [
       "Significantly boosts the effect Lab Level has on RP multiplier"
     ]
+  },
+  {
+    id: 13,
+    surgeLevel: 13,
+    affectedByTsunami: true,
+    description: [
+      "Generates <span style=\"color:#00e5ff\">0.1%</span> of your pending Gold each second"
+    ]
   }
 ];
 
@@ -209,6 +217,8 @@ function saveSurge12State(slot, state) {
 }
 
 export function getVisibleMilestones(currentSurgeLevel) {
+  console.log("getVisibleMilestones called with:", currentSurgeLevel);
+  console.log("SURGE_MILESTONES length:", SURGE_MILESTONES.length);
   let currentLevel = 0;
   let isSurge8 = false;
   
@@ -399,6 +409,20 @@ export function getVisibleMilestones(currentSurgeLevel) {
         if (s12State === 0) {
             milestone.description = ["This milestone is hidden until you research Lab Node 4"];
         }
+    }
+
+    if (m.id === 13) {
+      // Ensure clone if not already cloned
+      if (milestone === m) {
+          milestone = { ...m, description: [...m.description] };
+      }
+      
+      const effectiveNerf = getEffectiveTsunamiNerf();
+      const mapped = effectiveNerf * 1.5 - 0.5;
+      const pct = Math.pow(100, mapped);
+      const valStr = formatMultForUi(pct);
+
+      milestone.description[0] = `Generates <span style="color:#00e5ff">${valStr}%</span> of your pending Gold each second`;
     }
 
     if (m.surgeLevel <= currentLevel) {
