@@ -117,6 +117,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     mpValue: BigNum.fromInt(1),
     goldValue: BigNum.fromInt(1),
     magicValue: BigNum.fromInt(1),
+    waveValue: BigNum.fromInt(1),
     bookValue: BigNum.fromInt(1),
     coinSpawn: 1.0,
     magnetRadius: 0,
@@ -166,6 +167,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.goldValue = safeMultiplyBigNum(acc.goldValue, baseEffect);
     } else if (upg.effectType === 'magic_value') {
       acc.magicValue = safeMultiplyBigNum(acc.magicValue, baseEffect);
+    } else if (upg.effectType === 'wave_value') {
+      acc.waveValue = safeMultiplyBigNum(acc.waveValue, baseEffect);
     } else if (upg.effectType === 'book_value') {
       acc.bookValue = safeMultiplyBigNum(acc.bookValue, baseEffect);
     } else if (upg.effectType === 'magnet_radius') {
@@ -208,8 +211,8 @@ export function computeUpgradeEffects(areaKey) {
   };
 }
 
-export function syncGoldMagicMultipliersFromUpgrades() {
-  const { goldValue, magicValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+export function syncCurrencyMultipliersFromUpgrades() {
+  const { goldValue, magicValue, waveValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
   
   try {
     if (bank.gold?.mult?.set) {
@@ -220,6 +223,12 @@ export function syncGoldMagicMultipliersFromUpgrades() {
   try {
     if (bank.magic?.mult?.set) {
       bank.magic.mult.set(magicValue);
+    }
+  } catch {}
+
+  try {
+    if (bank.waves?.mult?.set) {
+      bank.waves.mult.set(waveValue);
     }
   } catch {}
 }
@@ -245,8 +254,8 @@ export function getMagnetLevel() {
 export function registerXpUpgradeEffects() {
   try { initResetSystem(); } catch {}
 
-  syncGoldMagicMultipliersFromUpgrades();
-  onUpgradesChanged(syncGoldMagicMultipliersFromUpgrades);
+  syncCurrencyMultipliersFromUpgrades();
+  onUpgradesChanged(syncCurrencyMultipliersFromUpgrades);
 
   try {
     addExternalCoinMultiplierProvider(({ baseMultiplier, xpUnlocked }) => {
@@ -289,7 +298,7 @@ export function registerXpUpgradeEffects() {
     window.addEventListener('saveSlot:change', () => {
       try { syncBookCurrencyMultiplierFromUpgrade(); } catch {}
       try { refreshCoinMultiplierFromXpLevel(); } catch {}
-      try { syncGoldMagicMultipliersFromUpgrades(); } catch {}
+      try { syncCurrencyMultipliersFromUpgrades(); } catch {}
     });
   }
 }
