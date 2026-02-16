@@ -490,7 +490,8 @@ function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
   const logTotal = 1 + logSum + xpTerm;
   if (!Number.isFinite(logTotal)) return BN.fromAny('Infinity');
   
-  return bigNumFromLog10(logTotal).floorToInteger();
+  const baseWaves = bigNumFromLog10(logTotal).floorToInteger();
+  return bank.waves?.mult?.applyTo?.(baseWaves) ?? baseWaves;
 }
 
 function getXpLevelNumber() {
@@ -2234,7 +2235,7 @@ function updateSurgeCard() {
 
         if (isReached && m.surgeLevel === 3) {
             const rate = getBookProductionRate ? getBookProductionRate() : BN.fromInt(0);
-            desc += `<div style="color:#02e815">- Current Books/sec: ${formatNumber(rate)}</div>`;
+            desc += `<div style="color:#02e815">- Current Books/sec: ${formatNumber(rate.floorToInteger())}</div>`;
         }
 
         if (isReached && m.surgeLevel === 6) {
@@ -2256,7 +2257,7 @@ function updateSurgeCard() {
             const pending = getPendingGoldWithMultiplier();
             const goldPerSec = pending.mulDecimal(rateMultiplier.toScientific());
             
-            desc += `<div style="color:#02e815">- Current Gold/sec: ${formatMultForUi(goldPerSec)}</div>`;
+            desc += `<div style="color:#02e815">- Current Gold/sec: ${formatNumber(goldPerSec.floorToInteger())}</div>`;
         }
         if (isReached && m.surgeLevel === 16) {
             const effectiveNerf = getEffectiveTsunamiNerf();
@@ -2266,7 +2267,7 @@ function updateSurgeCard() {
             
             const magicPerSec = resetState.pendingMagic.mulDecimal(rateMultiplier.toScientific());
             
-            desc += `<div style="color:#02e815">- Current Magic/sec: ${formatMultForUi(magicPerSec)}</div>`;
+            desc += `<div style="color:#02e815">- Current Magic/sec: ${formatNumber(magicPerSec.floorToInteger())}</div>`;
         }
 
         let isSurge8 = false;
