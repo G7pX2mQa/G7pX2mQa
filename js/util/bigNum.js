@@ -460,7 +460,7 @@ export class BigNum {
     if (this.inf || this.isZero()) return this.clone();
     const nb = BigInt(numerBigInt);
     if (nb === 0n) return BigNum.zero(this.p);
-    return new BigNum(this.sig * nb, this.e - (scale | 0), this.p);
+    return new BigNum(this.sig * nb, { base: this.e - (scale | 0), offset: this._eOffset }, this.p);
   }
 
   // Same as above but floors to an integer.
