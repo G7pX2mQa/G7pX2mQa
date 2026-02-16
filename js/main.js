@@ -568,6 +568,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/webgl/waterSystem.js'),
     import('./ui/merchantTabs/labTab.js'),
     import('./util/fpsTracker.js'),
+    import('./ui/notifications.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -738,6 +739,7 @@ images: [
     waterSystemModule,
     labTabModule,
     fpsTrackerModule,
+    notificationModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -765,6 +767,7 @@ images: [
   ({ waterSystem } = waterSystemModule);
   const { initLabLogic } = labTabModule;
   const { initFpsTracker } = fpsTrackerModule;
+  const { initNotifications } = notificationModule;
 
   window.bank = bank;
 
@@ -861,6 +864,7 @@ images: [
   ensureStorageDefaults();
   markProgressDirty?.('ensure-defaults');
   initPopups();
+  initNotifications();
 
   const titleEl = document.getElementById('panel-title');
   if (getHasOpenedSaveSlot()) {
