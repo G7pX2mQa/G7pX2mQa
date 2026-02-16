@@ -2445,7 +2445,7 @@ export const REGISTRY = [
     lvlCap: 1,
     upgType: "NM",
     icon: "stats/xp/xp.webp",
-    baseIconOverride: "img/stats/xp/xp_base.webp",
+    baseIconOverride: "stats/xp/xp_base.webp",
     unlockUpgrade: true,
     costAtLevel() { return BigNum.fromInt(0); },
     nextCostAfter() { return BigNum.fromInt(0); },
@@ -2552,7 +2552,7 @@ export const REGISTRY = [
     lvlCap: 1,
     upgType: "NM",
     icon: "misc/forge.webp",
-    baseIconOverride: "img/stats/mp/mp_base.webp",
+    baseIconOverride: "stats/mp/mp_base.webp",
     requiresUnlockXp: true,
     revealRequirement: 'Reach XP Level 31 to reveal this upgrade',
     unlockUpgrade: true,
@@ -2694,7 +2694,7 @@ export const REGISTRY = [
     lvlCap: 1,
     upgType: "NM",
     icon: "misc/infuse.webp",
-    baseIconOverride: "img/misc/infuse_base.webp",
+    baseIconOverride: "misc/infuse_base.webp",
     requiresUnlockXp: true,
     revealRequirement: 'Reach XP Level 101 to reveal this upgrade',
     unlockUpgrade: true,
@@ -2832,7 +2832,7 @@ export const REGISTRY = [
     lvlCap: 1,
     upgType: "NM",
     icon: "",
-    baseIconOverride: "img/misc/surge_plus_base.webp",
+    baseIconOverride: "misc/surge_plus_base.webp",
     requiresUnlockXp: true,
     revealRequirement: 'Reach XP Level 201 to reveal this upgrade',
     unlockUpgrade: true,
@@ -4119,7 +4119,7 @@ export function getUpgradeLockState(areaKey, upgId) {
   return computeUpgradeLockStateFor(areaKey, upg);
 }
 
-function normalizeUpgradeIconPath(iconPath) {
+export function normalizeUpgradeIconPath(iconPath) {
   const raw = String(iconPath ?? '').trim();
   if (!raw) return '';
 
