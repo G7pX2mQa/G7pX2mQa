@@ -2,7 +2,7 @@
     position: fixed;
     top: 15vh;
     right: -5px; /* Hide the right border offscreen */
-    z-index: 1700;
+    z-index: 2147483645;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -24,23 +24,23 @@
     box-shadow: 0 4px 8px rgba(0,0,0,0.4);
     
     transform: translateX(120%);
-    opacity: 0;
+    /* opacity: 0; removed to disable fade */
     /* Enter transition: 0.5s */
-    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease-out;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     
     pointer-events: none;
 }
 
 .notification.is-visible {
     transform: translateX(0);
-    opacity: 1;
+    /* opacity: 1; removed */
 }
 
 .notification.is-leaving {
     transform: translateX(120%);
-    opacity: 0;
+    /* opacity: 0; removed */
     /* Leave transition: 1s */
-    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1), opacity 1s ease-out;
+    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .notification-icon {
