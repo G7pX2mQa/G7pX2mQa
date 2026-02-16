@@ -454,6 +454,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   };
 
   const updateAll = () => { updateBounds(); updateMetrics(); };
+  if (scroller.__customScroll) scroller.__customScroll.update = updateAll;
 
   // Debounce for mutation observer to prevent layout thrashing on frequent updates
   let debounceTimer;
