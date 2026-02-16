@@ -701,6 +701,7 @@ images: [
     'sounds/tsu_beacon_spawn.ogg',
     'sounds/tsu_beacon_hum.ogg',
     'sounds/tsu_explosion.ogg',
+	'sounds/notif_ding.ogg',
     ],
     fonts: true,
   };
