@@ -60,6 +60,7 @@ let waterSystem;
 let waterTickUnsub = null;
 let waterFrameUnsub = null;
 
+let unpauseNotifications = null;
 const pendingPreloadedAudio = [];
 
 function applyPendingSlotWipe() {
@@ -380,6 +381,7 @@ function enterArea(areaID) {
           setTimeout(() => {
             if (currentArea === AREAS.STARTER_COVE) {
               currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
+              if (typeof unpauseNotifications === "function") unpauseNotifications();
             }
           }, 300);
         });
@@ -767,9 +769,12 @@ images: [
   ({ waterSystem } = waterSystemModule);
   const { initLabLogic } = labTabModule;
   const { initFpsTracker } = fpsTrackerModule;
-  const { initNotifications } = notificationModule;
+  const { initNotifications, unpauseNotifications: _unpause, showNotification } = notificationModule;
+  unpauseNotifications = _unpause;
 
   window.bank = bank;
+  window.unpauseNotifications = unpauseNotifications;
+  window.showNotification = showNotification;
 
   // Global Audio Control for Events
   if (typeof window !== 'undefined') {
