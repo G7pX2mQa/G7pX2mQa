@@ -926,7 +926,12 @@ class LabSystem {
                  ctx.strokeStyle = '#000';
                  ctx.lineWidth = Math.max(0.5, barHeight * 0.08); 
                  
-                 let text = `Level ${nodeLevel}`;
+                 let text = '';
+                 {
+                     let lvlStr = formatNumber(BigNum.fromAny(nodeLevel));
+                     if (lvlStr.indexOf('<') >= 0) lvlStr = '∞';
+                     text = `Level ${lvlStr}`;
+                 }
                  if (isMaxed) {
                      text = node.maxLevel === 1 ? 'UNLOCKED' : 'MAXED';
                  }
@@ -1172,12 +1177,12 @@ class LabSystem {
         
         if (isMaxed) {
              const statusText = '(MAXED)';
-             this.overlayLevel.textContent = `Level ${level} / ${node.maxLevel} ${statusText}`;
+             this.overlayLevel.innerHTML = `Level ${formatNumber(BigNum.fromAny(level))} / ${formatNumber(BigNum.fromAny(node.maxLevel))} ${statusText}`;
              this.overlayActiveStatus.style.display = 'none';
              this.overlayProgress.style.display = 'none';
              if (this.overlayToggleBtn) this.overlayToggleBtn.style.display = 'none';
         } else {
-             this.overlayLevel.textContent = `Level ${level} / ${node.maxLevel}`;
+             this.overlayLevel.innerHTML = `Level ${formatNumber(BigNum.fromAny(level))} / ${formatNumber(BigNum.fromAny(node.maxLevel))}`;
              this.overlayActiveStatus.style.display = '';
              this.overlayProgress.style.display = '';
              if (this.overlayToggleBtn) this.overlayToggleBtn.style.display = '';
@@ -1187,7 +1192,7 @@ class LabSystem {
             const line = node.bonusLine(level);
             if (line) {
                 this.overlayBonus.style.display = '';
-                this.overlayBonus.textContent = line;
+                this.overlayBonus.innerHTML = line;
             } else {
                 this.overlayBonus.style.display = 'none';
             }
