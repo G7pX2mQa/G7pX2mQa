@@ -22,6 +22,7 @@ import {
   getLevel,
   getLevelNumber,
   getIconUrl,
+  normalizeUpgradeIconPath,
   formatMultForUi,
   upgradeUiModel,
   buyOne,
@@ -156,7 +157,7 @@ function getShopUiData(areaKey) {
             locked,
             lockState,
             useLockedBase: !!lockState.useLockedBase || locked,
-            baseIconOverride: def.baseIconOverride || lockState.baseIconOverride || null,
+            baseIconOverride: normalizeUpgradeIconPath(def.baseIconOverride || lockState.baseIconOverride),
             hmReady,
         };
     }
