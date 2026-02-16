@@ -2202,7 +2202,7 @@ function updateSurgeCard() {
             
             desc += `<div style="color:#02e815">- Current Gold/sec: ${formatMultForUi(goldPerSec)}</div>`;
         }
-        if (isReached && m.surgeLevel === 15) {
+        if (isReached && m.surgeLevel === 16) {
             const effectiveNerf = getEffectiveTsunamiNerf();
             const mapped = effectiveNerf * 1.5 - 0.5;
             const log10Rate = 2 * mapped - 2;
