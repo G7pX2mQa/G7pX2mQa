@@ -644,6 +644,7 @@ images: [
   'img/sc_upg_icons/magnet.webp',
   'img/sc_upg_icons/mp_val1.webp',
   'img/sc_upg_icons/mp_val2.webp',
+  'img/sc_upg_icons/wave_val_dna.webp',
   'img/sc_upg_icons/xp_val1.webp',
   'img/sc_upg_icons/xp_val2.webp',
   'img/sc_upg_icons/xp_val3.webp',
