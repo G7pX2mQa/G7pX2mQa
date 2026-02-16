@@ -17,7 +17,7 @@ export const REGISTRY = [
     upgType: "HM",
     scalingPreset: 'HM',
     icon: "sc_upg_icons/coin_val_dna.webp",
-    baseIconOverride: "img/currencies/dna/dna_base.webp",
+    baseIconOverride: "currencies/dna/dna_base.webp",
     effectType: "coin_value",
     _dnaEffectVal: 1.1,
     _costScaling: 'HM',
@@ -34,7 +34,7 @@ export const REGISTRY = [
     upgType: "HM",
     scalingPreset: 'HM',
     icon: "sc_upg_icons/xp_val_dna.webp",
-    baseIconOverride: "img/currencies/dna/dna_base.webp",
+    baseIconOverride: "currencies/dna/dna_base.webp",
     effectType: "xp_value",
     _dnaEffectVal: 1.1,
     _costScaling: 'HM',
@@ -51,7 +51,7 @@ export const REGISTRY = [
     upgType: "HM",
     scalingPreset: 'HM',
     icon: "sc_upg_icons/gold_val_dna.webp",
-    baseIconOverride: "img/currencies/dna/dna_base.webp",
+    baseIconOverride: "currencies/dna/dna_base.webp",
     effectType: "gold_value",
     _dnaEffectVal: 1.1,
     _costScaling: 'HM',
@@ -98,7 +98,7 @@ export const REGISTRY = [
     upgType: "HM",
     scalingPreset: 'HM',
     icon: "sc_upg_icons/magic_val_dna.webp",
-    baseIconOverride: "img/currencies/dna/dna_base.webp",
+    baseIconOverride: "currencies/dna/dna_base.webp",
     effectType: "magic_value",
     _dnaEffectVal: 1.1,
     _costScaling: 'HM',
@@ -121,6 +121,53 @@ export const REGISTRY = [
         if (isUnlocked) return { locked: false };
         
         const revealText = "Reach Surge 10 to reveal this upgrade";
+        return {
+            locked: true,
+            iconOverride: MYSTERIOUS_ICON,
+            titleOverride: HIDDEN_TITLE,
+            descOverride: revealText,
+            reason: revealText,
+            hidden: true,
+            hideCost: true,
+            hideEffect: true,
+            useLockedBase: true
+        };
+    }
+  },
+  {
+    area: DNA_AREA_KEY,
+    id: 5,
+    title: "DNA Wave Value",
+    desc: "Multiplies Wave value by 1.1x per level",
+    lvlCap: 1000,
+    baseCost: 1e42,
+    costType: "dna",
+    upgType: "HM",
+    scalingPreset: 'HM',
+    icon: "sc_upg_icons/wave_val_dna.webp",
+    baseIconOverride: "currencies/dna/dna_base.webp",
+    effectType: "wave_value",
+    _dnaEffectVal: 1.1,
+    _costScaling: 'HM',
+    bonusLine: (level, total) => `Wave value bonus: ${formatMultForUi(total)}x`,
+    computeLockState(ctx) {
+        const sl = ctx.surgeLevel;
+        let isUnlocked = false;
+        
+        if (typeof sl === 'number') {
+            if (sl >= 17 || sl === Infinity) isUnlocked = true;
+        } else if (typeof sl === 'bigint') {
+            if (sl >= 17n) isUnlocked = true;
+        } else if (typeof sl === 'string') {
+             if (sl === 'Infinity' || parseFloat(sl) === Infinity) isUnlocked = true;
+             else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 17) isUnlocked = true;
+        } else if (sl && typeof sl.isInfinite === 'function' && sl.isInfinite()) {
+             isUnlocked = true;
+        }
+        
+        if (isUnlocked) return { locked: false };
+        
+        const revealText = "Reach Surge 17 to reveal this upgrade";
         return {
             locked: true,
             iconOverride: MYSTERIOUS_ICON,
