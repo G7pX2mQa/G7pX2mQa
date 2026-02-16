@@ -2333,6 +2333,13 @@ function updateSurgeCard() {
         el.milestones.lastChild.remove();
     }
 
+    // Force scrollbar update if content changed
+    requestAnimationFrame(() => {
+        if (el.milestones && el.milestones.__customScroll && typeof el.milestones.__customScroll.update === 'function') {
+            el.milestones.__customScroll.update();
+        }
+    });
+
     if (resetState.lastRenderedSurgeLevel !== barLevel) {
         resetState.lastRenderedSurgeLevel = barLevel;
         if (el.milestones) el.milestones.dataset.scrolled = '0';
