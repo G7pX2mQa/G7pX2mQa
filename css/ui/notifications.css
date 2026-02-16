@@ -1,0 +1,67 @@
+.notification-container {
+    position: fixed;
+    top: 15vh;
+    right: -5px; /* Hide the right border offscreen */
+    z-index: 1700;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    pointer-events: none;
+    gap: 10px;
+    padding-left: 16px;
+    padding-right: 0;
+}
+
+.notification {
+    background-color: #ada382;
+    border: 1px solid #ffeb3b;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    width: min(400px, 90vw);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    
+    transform: translateX(120%);
+    opacity: 0;
+    /* Enter transition: 0.5s */
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease-out;
+    
+    pointer-events: none;
+}
+
+.notification.is-visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.notification.is-leaving {
+    transform: translateX(120%);
+    opacity: 0;
+    /* Leave transition: 1s */
+    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1), opacity 1s ease-out;
+}
+
+.notification-icon {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
+}
+
+.notification-text {
+    color: #fff;
+    font-family: var(--font-ui, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif);
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    font-weight: 900;
+    text-shadow: 
+        -1px -1px 0 #000,  
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 2px 2px rgba(0,0,0,0.5);
+    line-height: 1.2;
+    word-break: break-word;
+}
