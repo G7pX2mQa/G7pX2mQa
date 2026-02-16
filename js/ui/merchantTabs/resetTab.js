@@ -162,6 +162,13 @@ const resetState = {
   pendingWaves: bnZero(),
   pendingDna: bnZero(),
   panel: null,
+  visible: {
+    forge: false,
+    infuse: false,
+    surge: false,
+    experiment: false,
+    surgeMilestones: false
+  },
   elements: {
     forge: {
       card: null,
@@ -1796,6 +1803,46 @@ function buildPanel(panelEl) {
       );
   }
 
+  // Init IntersectionObserver to track visibility
+  if (typeof IntersectionObserver !== 'undefined') {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const target = entry.target;
+        const isVisible = entry.isIntersecting;
+        
+        if (target === resetState.elements.forge.card) {
+          resetState.visible.forge = isVisible;
+          if (isVisible) updateForgeCard();
+        } else if (target === resetState.elements.infuse.card) {
+          resetState.visible.infuse = isVisible;
+          if (isVisible) updateInfuseCard();
+        } else if (target === resetState.elements.surge.card) {
+          resetState.visible.surge = isVisible;
+          if (isVisible) updateSurgeCard();
+        } else if (target === resetState.elements.experiment.card) {
+          resetState.visible.experiment = isVisible;
+          if (isVisible) updateExperimentCard();
+        } else if (target === resetState.elements.surge.milestones) {
+          resetState.visible.surgeMilestones = isVisible;
+          if (isVisible) updateSurgeCard();
+        }
+      });
+    }, { threshold: 0 }); // Trigger if even 1 pixel is visible
+
+    if (resetState.elements.forge.card) observer.observe(resetState.elements.forge.card);
+    if (resetState.elements.infuse.card) observer.observe(resetState.elements.infuse.card);
+    if (resetState.elements.surge.card) observer.observe(resetState.elements.surge.card);
+    if (resetState.elements.experiment.card) observer.observe(resetState.elements.experiment.card);
+    if (resetState.elements.surge.milestones) observer.observe(resetState.elements.surge.milestones);
+  } else {
+    // Fallback if IO not supported
+    resetState.visible.forge = true;
+    resetState.visible.infuse = true;
+    resetState.visible.surge = true;
+    resetState.visible.experiment = true;
+    resetState.visible.surgeMilestones = true;
+  }
+
   // Sidebar Buttons
   resetState.layerButtons = {
     forge: panelEl.querySelector('[data-reset-layer="forge"]'),
@@ -1990,9 +2037,14 @@ function updateForgeCard({ goldMult = null } = {}) {
   if (!el.card || !el.btn) return;
 
   if (!isForgeUnlocked()) {
+     // Even if not visible, we might want to set msg state once, but defer DOM updates
+     // However, let's just stick to the plan: if not visible, return.
+     if (!resetState.visible.forge) return;
      updateResetButtonContent(el.btn, { disabled: true, msg: 'Unlock the Forge upgrade to access resets' });
      return;
   }
+  
+  if (!resetState.visible.forge) return;
 
   ensurePersistentFlagsPrimed();
   el.card.classList.toggle('is-forge-complete', !!resetState.hasDoneForgeReset);
@@ -2039,6 +2091,8 @@ function updateInfuseCard() {
   if (resetState.layerButtons.infuse && resetState.layerButtons.infuse.style.display !== 'flex') {
       resetState.layerButtons.infuse.style.display = 'flex';
   }
+  
+  if (!resetState.visible.infuse) return;
 
   ensurePersistentFlagsPrimed();
   
@@ -2091,6 +2145,8 @@ function updateSurgeCard() {
   if (resetState.layerButtons.surge && resetState.layerButtons.surge.style.display !== 'flex') {
       resetState.layerButtons.surge.style.display = 'flex';
   }
+  
+  if (!resetState.visible.surge) return;
 
   ensurePersistentFlagsPrimed();
   
@@ -2162,7 +2218,7 @@ function updateSurgeCard() {
   }
   if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}">${formatBn(currentWaves)} / <img src="${WAVES_ICON_SRC}">${formatBn(req)}</span>`;
 
-  if (el.milestones) {
+  if (el.milestones && resetState.visible.surgeMilestones) {
     const visible = getVisibleMilestones(barLevel);
     const existingItems = Array.from(el.milestones.children);
     
@@ -2352,6 +2408,8 @@ function updateExperimentCard() {
   if (resetState.layerButtons.experiment && resetState.layerButtons.experiment.style.display !== 'flex') {
       resetState.layerButtons.experiment.style.display = 'flex';
   }
+  
+  if (!resetState.visible.experiment) return;
 
   ensurePersistentFlagsPrimed();
   
@@ -2383,7 +2441,8 @@ function updateExperimentCard() {
 
 export function updateResetPanel({ goldMult = null } = {}) {
   if (!resetState.panel) return;
-  if (isAnyMenuScrolling()) return;
+  // We no longer block updates during scrolling because we have efficient visibility checks
+  // for each card. This ensures values update even while holding scrollbars.
   updateForgeCard({ goldMult });
   updateInfuseCard();
   updateSurgeCard();
