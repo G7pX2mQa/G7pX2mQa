@@ -1,4 +1,4 @@
-import { BigNum } from '../util/bigNum.js';
+import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../util/bigNum.js';
 import { getActiveSlot, isStorageKeyLocked } from '../util/storage.js';
 import { getLabLevel, setLabLevel, getRpMult } from '../ui/merchantTabs/labTab.js';
 import { formatMultForUi } from '../util/numFormat.js';
@@ -396,17 +396,15 @@ export function getResearchNodeRequirement(id) {
     if (level >= node.maxLevel) return BigNum.fromAny('Infinity');
     
     // Cost = Base * (Scale ^ Level)
-    const log10Scale = Math.log10(node.scale); 
+    const scaleBn = BigNum.fromAny(node.scale);
+    const log10Scale = approxLog10BigNum(scaleBn); 
     
-    const log10Base = Math.log10(node.baseRpReq);
+    const baseBn = BigNum.fromAny(node.baseRpReq);
+    const log10Base = approxLog10BigNum(baseBn);
+    
     const totalLog10 = log10Base + (level * log10Scale);
     
-    const intPart = Math.floor(totalLog10);
-    const fracPart = totalLog10 - intPart;
-    const mantissa = Math.pow(10, fracPart);
-    
-    // Constructor handles normalization
-    return new BigNum(BigInt(Math.round(mantissa * 1e14)), { base: intPart, offset: -14n });
+    return bigNumFromLog10(totalLog10);
 }
 
 export function getTsunamiResearchBonus() {
@@ -467,6 +465,88 @@ export function tickResearch(dt) {
     if (getResearchNodeLevel(node.id) >= node.maxLevel) return;
     
     let nextRp = currentRp.add(rpPerTick);
+
+    // Optimized bulk leveling for large jumps
+    const currentLevel = getResearchNodeLevel(node.id);
+    if (currentLevel < node.maxLevel || !Number.isFinite(node.maxLevel)) {
+        const currentReq = getResearchNodeRequirement(node.id);
+        const logRp = approxLog10BigNum(nextRp);
+        const logReq = approxLog10BigNum(currentReq);
+
+        if (logRp - logReq > 2) {
+            let jump = 0n;
+            let cost = BigNum.zero();
+            
+            const scaleBn = BigNum.fromAny(node.scale);
+            const scaleMinus1 = scaleBn.sub(1);
+            let isLinear = false;
+            
+            // Check if scale is effectively 1
+            if (scaleMinus1.isZero()) isLinear = true;
+            else {
+                // Check if close to 1 (handling potential floating point weirdness if scale is Number)
+                const absDiff = Math.abs(Number(scaleBn.toScientific()) - 1.0);
+                if (absDiff < 1e-9) isLinear = true;
+            }
+
+            if (isLinear) {
+                // Linear scaling (Scale ≈ 1)
+                const jumpBn = nextRp.div(currentReq).floorToInteger();
+                let jumpStr = jumpBn.toPlainIntegerString();
+                // Safety clamp to max safe integer
+                if (jumpStr === 'Infinity' || jumpStr.length > 15) {
+                    jumpStr = "9007199254740991"; 
+                }
+                try {
+                    jump = BigInt(jumpStr);
+                } catch {
+                    jump = 0n;
+                }
+                
+                if (Number.isFinite(node.maxLevel)) {
+                    const rem = BigInt(node.maxLevel) - BigInt(currentLevel);
+                    if (jump > rem) jump = rem;
+                }
+                
+                if (jump > 0n) {
+                    cost = currentReq.mulScaledInt(jump, 0);
+                }
+            } else if (scaleMinus1.isZero() === false && (scaleMinus1.sig > 0n || scaleMinus1.isInfinite())) {
+                 // Geometric scaling (Scale > 1)
+                 const logS = approxLog10BigNum(scaleBn);
+                 const logSMinus1 = approxLog10BigNum(scaleMinus1);
+                 
+                 // (logRp - logReq + log(S-1)) / log(S)
+                 const numerator = (logRp - logReq) + logSMinus1;
+                 const approxLevels = Math.floor(numerator / logS);
+
+                 if (approxLevels > 5) {
+                     let safeJump = BigInt(Math.max(0, approxLevels - 5));
+                     if (Number.isFinite(node.maxLevel)) {
+                         const rem = BigInt(node.maxLevel) - BigInt(currentLevel);
+                         if (safeJump > rem) safeJump = rem;
+                     }
+                     
+                     if (safeJump > 0n) {
+                         jump = safeJump;
+                         
+                         // Cost = currentReq * ((S^jump - 1) / (S-1))
+                         const totalLog = Number(jump) * logS;
+                         const sPowJump = bigNumFromLog10(totalLog);
+                         
+                         const costFactor = sPowJump.sub(1).div(scaleMinus1);
+                         cost = currentReq.mulBigNumInteger(costFactor);
+                     }
+                 }
+            }
+
+            if (jump > 0n) {
+                nextRp = nextRp.sub(cost);
+                const newLevel = currentLevel + Number(jump);
+                setResearchNodeLevel(node.id, newLevel);
+            }
+        }
+    }
     
     while (true) {
         const currentReq = getResearchNodeRequirement(node.id);
@@ -476,7 +556,12 @@ export function tickResearch(dt) {
 
         nextRp = nextRp.sub(currentReq);
         const oldLevel = getResearchNodeLevel(node.id);
-        if (!setResearchNodeLevel(node.id, oldLevel + 1)) break;
+        const nextLevel = oldLevel + 1;
+        
+        // Safety check for precision loss at extremely high levels (> 9e15)
+        if (nextLevel <= oldLevel) break;
+
+        if (!setResearchNodeLevel(node.id, nextLevel)) break;
     }
     
     setResearchNodeRp(node.id, nextRp);
