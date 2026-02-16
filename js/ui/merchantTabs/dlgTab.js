@@ -2217,6 +2217,12 @@ function selectMerchantTab(key) {
   });
 }
 
+export function isViewingLabTab() {
+  if (!merchantOpen) return false;
+  const btn = merchantTabs.buttons['lab'];
+  return btn && btn.classList.contains('is-active');
+}
+
 export function unlockMerchantTabs(keys = []) {
   keys.forEach(key => setMerchantTabUnlocked(key, true));
 }
