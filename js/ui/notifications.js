@@ -3,6 +3,9 @@ import { playAudio } from '../util/audioManager.js';
 import { isViewingLabTab } from './merchantTabs/dlgTab.js';
 
 let container = null;
+const queue = [];
+let isProcessing = false;
+let isPaused = true;
 
 function ensureContainer() {
     if (container) return container;
@@ -12,52 +15,84 @@ function ensureContainer() {
     return container;
 }
 
-export function showNotification(text, iconSrc, duration = 4000) {
-    const parent = ensureContainer();
+export function unpauseNotifications() {
+    isPaused = false;
+    processQueue();
+}
+
+async function processQueue() {
+    if (isProcessing || isPaused || queue.length === 0) return;
+    isProcessing = true;
+
+    const { text, iconSrc, duration } = queue.shift();
     
-    const el = document.createElement('div');
-    el.className = 'notification';
+    await displayNotification(text, iconSrc, duration);
     
-    if (iconSrc) {
-        const icon = document.createElement('img');
-        icon.src = iconSrc;
-        icon.className = 'notification-icon';
-        icon.alt = '';
-        el.appendChild(icon);
+    isProcessing = false;
+    // Process next item if any
+    if (queue.length > 0) {
+        processQueue();
     }
-    
-    const content = document.createElement('div');
-    content.className = 'notification-text';
-    content.innerHTML = text; 
-    el.appendChild(content);
-    
-    parent.appendChild(el);
-    
-    // Animate in
-    requestAnimationFrame(() => {
+}
+
+function displayNotification(text, iconSrc, duration) {
+    return new Promise((resolve) => {
+        const parent = ensureContainer();
+        
+        const el = document.createElement('div');
+        el.className = 'notification';
+        
+        if (iconSrc) {
+            const icon = document.createElement('img');
+            icon.src = iconSrc;
+            icon.className = 'notification-icon';
+            icon.alt = '';
+            el.appendChild(icon);
+        }
+        
+        const content = document.createElement('div');
+        content.className = 'notification-text';
+        content.innerHTML = text; 
+        el.appendChild(content);
+        
+        parent.appendChild(el);
+        
+        playAudio('sounds/notif_ding.ogg', { volume: 0.5 });
+        
+        // Animate in
+        // Use double RAF to ensure transition triggers
         requestAnimationFrame(() => {
-            el.classList.add('is-visible');
+            requestAnimationFrame(() => {
+                el.classList.add('is-visible');
+            });
         });
-    });
-    
-    playAudio('sounds/notif_ding.ogg', { volume: 0.5 });
-    
-    // Schedule removal
-    setTimeout(() => {
-        el.classList.remove('is-visible');
-        el.classList.add('is-leaving');
         
-        const remove = () => {
-            el.remove();
-        };
-        
-        el.addEventListener('transitionend', remove, { once: true });
-        
-        // Safety cleanup
+        // Wait for duration
         setTimeout(() => {
-            if (el.isConnected) el.remove();
-        }, 600);
-    }, duration);
+            el.classList.remove('is-visible');
+            el.classList.add('is-leaving');
+            
+            const cleanup = () => {
+                el.remove();
+                resolve();
+            };
+            
+            el.addEventListener('transitionend', cleanup, { once: true });
+            
+            // Safety timeout in case transitionend doesn't fire
+            setTimeout(() => {
+                if (el.isConnected) {
+                    el.remove();
+                    resolve();
+                }
+            }, 1200); // 1.2s safety for transition
+        }, duration);
+    });
+}
+
+export function showNotification(text, iconSrc, duration = 6767) {
+    queue.push({ text, iconSrc, duration });
+    processQueue();
 }
 
 export function initNotifications() {
