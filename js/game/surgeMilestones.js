@@ -149,6 +149,13 @@ export const SURGE_MILESTONES = [
     description: [
       "Generates <span style=\"color:#00e5ff\">0.1%</span> of your pending Magic each second"
     ]
+  },
+  {
+    id: 17,
+    surgeLevel: 17,
+    description: [
+      "Unlocks a new DNA upgrade"
+    ]
   }
 ];
 
