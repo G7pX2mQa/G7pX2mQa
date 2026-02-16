@@ -1839,6 +1839,40 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
   const remainingToHundred = 100 - startLevelNum;
   if (Number.isFinite(startLevelNum) && remainingToHundred > 0) {
     const limit = Math.min(room, remainingToHundred);
+
+    // ⚡ Bolt Optimization: If wallet is massive compared to cost, skip the expensive loop.
+    // The loop calls costAtLevel which itself loops for levels < 100 (O(N^2) total).
+    // If we have enough currency to easily buy this batch, assume we buy it all.
+    if (opts.fastOnly && scaling && Number.isFinite(scaling.ratioLog10) && Number.isFinite(scaling.baseLog10)) {
+      const walletLog = approxLog10BigNum(walletBn);
+      // Estimate log cost of the most expensive level in this batch
+      // Cost ~= base * ratio^level -> logCost = baseLog + level * ratioLog
+      const maxLevelInBatch = startLevelNum + limit;
+      const maxCostLog = scaling.baseLog10 + (maxLevelInBatch * scaling.ratioLog10);
+
+      // If wallet is > 100,000x the max cost (log difference > 5), we can definitely afford this batch.
+      if (walletLog > maxCostLog + 5) {
+        const countBn = countToBigNum(limit);
+        const nextStartLevel = startLevelNum + limit;
+        // Recurse for the rest. Pass full wallet as spent is negligible.
+        const tail = calculateBulkPurchase(
+          upg,
+          nextStartLevel,
+          walletBn,
+          room - limit,
+          options,
+        );
+
+        const tailCount = tail?.count instanceof BigNum ? tail.count : countToBigNum(tail?.numericCount ?? 0);
+        return {
+          count: countBn.add(tailCount),
+          spent: zero, // fastOnly doesn't need accurate spent
+          nextPrice: tail?.nextPrice ?? zero,
+          numericCount: limit + (tail?.numericCount ?? 0),
+        };
+      }
+    }
+
     let price = BigNum.fromAny(upg.costAtLevel(startLevelNum));
     let spent = zero;
     let count = 0;
