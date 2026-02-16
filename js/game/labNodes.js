@@ -274,6 +274,7 @@ export function setResearchNodeLevel(id, level) {
     if (isStorageKeyLocked(NODE_LEVEL_KEY(slot, id))) return false;
 
     const s = ensureNodeState(id);
+    if (s.level === level) return true;
     s.level = level;
     
     try {
