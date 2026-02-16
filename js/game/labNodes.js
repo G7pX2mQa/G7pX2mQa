@@ -569,14 +569,17 @@ export function tickResearch(dt) {
 
 // --- Multipliers ---
 
+const LOG10_2 = Math.log10(2);
+const LOG10_3 = Math.log10(3);
+const LOG10_1_1 = Math.log10(1.1);
+
 export function getLabCoinMultiplier() {
     const node = NODE_MAP.get(2);
     if (!node) return BigNum.fromInt(1);
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
     
-    const val = Math.pow(2.0, level);
-    return BigNum.fromAny(val);
+    return bigNumFromLog10(level * LOG10_2);
 }
 
 export function getLabXpMultiplier() {
@@ -585,8 +588,7 @@ export function getLabXpMultiplier() {
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
     
-    const val = Math.pow(2.0, level);
-    return BigNum.fromAny(val);
+    return bigNumFromLog10(level * LOG10_2);
 }
 
 export function getLabGoldMultiplier() {
@@ -595,8 +597,7 @@ export function getLabGoldMultiplier() {
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
     
-    const val = Math.pow(3.0, level);
-    return BigNum.fromAny(val);
+    return bigNumFromLog10(level * LOG10_3);
 }
 
 export function getLabMagicMultiplier() {
@@ -605,8 +606,7 @@ export function getLabMagicMultiplier() {
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
     
-    const val = Math.pow(3.0, level);
-    return BigNum.fromAny(val);
+    return bigNumFromLog10(level * LOG10_3);
 }
 
 export function getLabWaveMultiplier() {
@@ -615,8 +615,7 @@ export function getLabWaveMultiplier() {
     const level = getResearchNodeLevel(node.id);
     if (level <= 0) return BigNum.fromInt(1);
     
-    const val = Math.pow(1.1, level);
-    return BigNum.fromAny(val);
+    return bigNumFromLog10(level * LOG10_1_1);
 }
 
 export function getLabSpawnRateBonus() {
