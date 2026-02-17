@@ -520,6 +520,31 @@ export function initSurgeEffects() {
     return baseMultiplier.mulBigNumInteger(mult);
   });
   
+  // Surge 17 (Div 1e5) and Surge 18 (Mul 1e10) for Coins
+  addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+    let log10Total = 0;
+    
+    // Surge 17: Divide by 1e5 -> -5
+    if (isSurgeActive(17)) {
+        log10Total -= 5;
+    }
+    
+    // Surge 18: Multiply by 1e10 -> +10
+    if (isSurgeActive(18)) {
+        log10Total += 10;
+    }
+    
+    if (log10Total === 0) return baseMultiplier;
+    
+    if (isSurgeActive(8)) {
+        const effective = getEffectiveTsunamiNerf();
+        log10Total *= effective;
+    }
+    
+    const mult = bigNumFromLog10(log10Total);
+    return baseMultiplier.mulBigNumInteger(mult);
+  });
+  
   // Surge 3: Disable flat Book reward
   setExternalBookRewardProvider(({ baseReward }) => {
      if (isSurgeActive(3)) {
@@ -529,4 +554,25 @@ export function initSurgeEffects() {
   });
 
   registerTick(onTick);
+}
+
+export function getSurgeMagicMultiplier() {
+    let log10Total = 0;
+    
+    if (isSurgeActive(17)) {
+        log10Total += 10;
+    }
+    
+    if (isSurgeActive(18)) {
+        log10Total -= 5;
+    }
+    
+    if (log10Total === 0) return BigNum.fromInt(1);
+    
+    if (isSurgeActive(8)) {
+        const effective = getEffectiveTsunamiNerf();
+        log10Total *= effective;
+    }
+    
+    return bigNumFromLog10(log10Total);
 }
