@@ -13,7 +13,7 @@ import { initWorkshopTab, updateWorkshopTab } from './workshopTab.js';
 import { initWarpTab, updateWarpTab } from './warpTab.js';
 import { initLabTab, updateLabTab, hasVisitedLab } from './labTab.js';
 import { getTsunamiSequenceSeen } from '../../game/surgeEffects.js';
-import { blockInteraction, updateShopOverlay } from '../shopOverlay.js';
+import { blockInteraction, updateShopOverlay, closeDelveSpecificOverlays } from '../shopOverlay.js';
 import {
   shouldSkipGhostTap,
   suppressNextGhostTap,
@@ -2107,6 +2107,7 @@ function onKeydownForMerchant(e) {
 
     if (targetIndex >= 0 && targetIndex < MERCHANT_TABS_DEF.length) {
       e.preventDefault();
+      closeDelveSpecificOverlays();
       selectMerchantTab(MERCHANT_TABS_DEF[targetIndex].key);
     }
   }
