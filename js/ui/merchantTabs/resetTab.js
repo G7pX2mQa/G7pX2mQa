@@ -422,6 +422,24 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
         }
     }
 
+    if (isSurgeActive(17)) {
+        if (isSurgeActive(8)) {
+            const effectiveNerf = getEffectiveTsunamiNerf();
+            logMultiplier -= 5 * effectiveNerf;
+        } else {
+            logMultiplier -= 5;
+        }
+    }
+
+    if (isSurgeActive(18)) {
+        if (isSurgeActive(8)) {
+            const effectiveNerf = getEffectiveTsunamiNerf();
+            logMultiplier -= 5 * effectiveNerf;
+        } else {
+            logMultiplier -= 5;
+        }
+    }
+
     const logBaseStr = logBaseVal.toFixed(18);
 
     try {
@@ -940,6 +958,24 @@ function recomputePendingDna() {
             logMultiplier += log14 * effectiveNerf;
         } else {
             logMultiplier += Math.log10(14.14e6);
+        }
+    }
+
+    if (isSurgeActive(17)) {
+        if (isSurgeActive(8)) {
+            const effectiveNerf = getEffectiveTsunamiNerf();
+            logMultiplier -= 5 * effectiveNerf;
+        } else {
+            logMultiplier -= 5;
+        }
+    }
+
+    if (isSurgeActive(18)) {
+        if (isSurgeActive(8)) {
+            const effectiveNerf = getEffectiveTsunamiNerf();
+            logMultiplier -= 5 * effectiveNerf;
+        } else {
+            logMultiplier -= 5;
         }
     }
 
