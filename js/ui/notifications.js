@@ -90,7 +90,7 @@ function displayNotification(text, iconSrc, duration) {
     });
 }
 
-export function showNotification(text, iconSrc, duration = 6767) {
+export function showNotification(text, iconSrc, duration = 5000) {
     queue.push({ text, iconSrc, duration });
     processQueue();
 }
