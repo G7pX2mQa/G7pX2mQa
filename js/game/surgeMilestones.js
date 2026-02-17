@@ -131,7 +131,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 14,
     affectedByTsunami: true,
     description: [
-      `Multiplies DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(14.14e6))}x</span>`
+      `Multiplies DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(14.14e12))}x</span>`
     ]
   },
   {
@@ -387,7 +387,7 @@ export function getVisibleMilestones(currentSurgeLevel) {
             `<span style="color:#00e5ff">${valStr}x</span>`
         );
       } else if (m.id === 14) {
-        const log10 = Math.log10(14.14e6);
+        const log10 = Math.log10(14.14e12);
         const newVal = bigNumFromLog10(log10 * nerf);
         const valStr = formatNumber(newVal);
         
@@ -410,8 +410,8 @@ export function getVisibleMilestones(currentSurgeLevel) {
             `<span style="color:#00e5ff">${multStr}x</span>`
         );
         milestone.description[1] = milestone.description[1].replace(
-            /<span style="color:#d93629">.*?<\/span>/, 
-            `<span style="color:#d93629">${divStr}x</span>`
+            /<span style="color:#00e5ff">.*?<\/span>/, 
+            `<span style="color:#00e5ff">${divStr}x</span>`
         );
       } else if (m.id === 18) {
         const logMult = 10;
@@ -428,8 +428,8 @@ export function getVisibleMilestones(currentSurgeLevel) {
             `<span style="color:#00e5ff">${multStr}x</span>`
         );
         milestone.description[1] = milestone.description[1].replace(
-            /<span style="color:#d93629">.*?<\/span>/, 
-            `<span style="color:#d93629">${divStr}x</span>`
+            /<span style="color:#00e5ff">.*?<\/span>/, 
+            `<span style="color:#00e5ff">${divStr}x</span>`
         );
       }
     }
