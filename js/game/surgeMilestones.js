@@ -156,7 +156,8 @@ export const SURGE_MILESTONES = [
     affectedByTsunami: true,
     description: [
       `Multiplies Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e10))}x</span>`,
-      `Divides Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`
+      `Divides Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
+      `Divides DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`
     ]
   },
   {
@@ -165,7 +166,8 @@ export const SURGE_MILESTONES = [
     affectedByTsunami: true,
     description: [
       `Multiplies Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e10))}x</span>`,
-      `Divides Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`
+      `Divides Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
+      `Divides DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`
     ]
   },
   {
@@ -417,6 +419,10 @@ export function getVisibleMilestones(currentSurgeLevel) {
             /<span style="color:#00e5ff">.*?<\/span>/, 
             `<span style="color:#00e5ff">${divStr}x</span>`
         );
+        milestone.description[2] = milestone.description[2].replace(
+            /<span style="color:#00e5ff">.*?<\/span>/, 
+            `<span style="color:#00e5ff">${divStr}x</span>`
+        );
       } else if (m.id === 18) {
         const logMult = 10;
         const logDiv = 5;
@@ -432,6 +438,10 @@ export function getVisibleMilestones(currentSurgeLevel) {
             `<span style="color:#00e5ff">${multStr}x</span>`
         );
         milestone.description[1] = milestone.description[1].replace(
+            /<span style="color:#00e5ff">.*?<\/span>/, 
+            `<span style="color:#00e5ff">${divStr}x</span>`
+        );
+        milestone.description[2] = milestone.description[2].replace(
             /<span style="color:#00e5ff">.*?<\/span>/, 
             `<span style="color:#00e5ff">${divStr}x</span>`
         );
