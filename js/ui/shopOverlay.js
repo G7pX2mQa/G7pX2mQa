@@ -1214,6 +1214,20 @@ export function closeShop(force = false) {
     Object.values(shops).forEach(s => s.close(force));
 }
 
+export function closeDelveSpecificOverlays() {
+    Object.entries(shops).forEach(([key, shop]) => {
+        if (key !== 'standard') {
+            shop.close();
+        }
+    });
+
+    if (upgOpen && currentUpgradeMode !== 'standard') {
+        closeUpgradeMenu();
+        const existing = document.querySelector('.hm-milestones-overlay');
+        if (existing) existing.remove();
+    }
+}
+
 export function updateShopOverlay(force = false) {
     // Update all open shops
     Object.values(shops).forEach(s => s.update(force));
@@ -1236,6 +1250,7 @@ let upgOverlayEl = null;
 let upgSheetEl = null;
 let upgOpen = false;
 let upgOverlayCleanup = null;
+let currentUpgradeMode = 'standard';
 
 function ensureUpgradeOverlay() {
   if (upgOverlayEl) return;
@@ -1365,6 +1380,7 @@ function openHmMilestoneDialog(lines) {
 export function openUpgradeOverlay(upgDef, mode = 'standard') {
   ensureUpgradeOverlay();
   upgOpen = true;
+  currentUpgradeMode = mode;
   let upgOpenLocal = true;
 
   const adapter = getAdapter(mode);
