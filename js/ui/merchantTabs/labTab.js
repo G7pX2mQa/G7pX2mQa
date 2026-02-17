@@ -287,11 +287,11 @@ export function getRpMultBase() {
     if (isSurgeActive(12)) {
         const effectiveNerf = getEffectiveTsunamiNerf();
         
-        // Multiplier: 10^(10 * nerf) -> Log10 contribution: 10 * nerf
-        const multLog10 = 10 * effectiveNerf;
+        // Multiplier: 10^(5 * nerf) -> Log10 contribution: 5 * nerf
+        const multLog10 = 5 * effectiveNerf;
         
-        // Base: (2 + nerf)^level -> Log10 contribution: level * log10(2 + nerf)
-        const base = 2 + effectiveNerf;
+        // Base: (2 + nerf/2)^level -> Log10 contribution: level * log10(2 + nerf/2)
+        const base = 2 + (effectiveNerf / 2);
         const log10Base = Math.log10(base).toFixed(18);
         
         const exponentFromBase = level.mulDecimal(log10Base, 18);
