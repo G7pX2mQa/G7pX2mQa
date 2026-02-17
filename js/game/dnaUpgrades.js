@@ -140,7 +140,7 @@ export const REGISTRY = [
     title: "DNA Wave Value",
     desc: "Multiplies Wave value by 1.1x per level",
     lvlCap: 1000,
-    baseCost: 1e42,
+    baseCost: 1e39,
     costType: "dna",
     upgType: "HM",
     scalingPreset: 'HM',
