@@ -153,6 +153,24 @@ export const SURGE_MILESTONES = [
   {
     id: 17,
     surgeLevel: 17,
+    affectedByTsunami: true,
+    description: [
+      `Multiplies Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e10))}x</span>`,
+      `Divides Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`
+    ]
+  },
+  {
+    id: 18,
+    surgeLevel: 18,
+    affectedByTsunami: true,
+    description: [
+      `Multiplies Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e10))}x</span>`,
+      `Divides Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`
+    ]
+  },
+  {
+    id: 19,
+    surgeLevel: 19,
     description: [
       "Unlocks a new DNA upgrade"
     ]
@@ -376,6 +394,42 @@ export function getVisibleMilestones(currentSurgeLevel) {
         milestone.description[0] = milestone.description[0].replace(
             /<span style="color:#00e5ff">.*?x<\/span>/, 
             `<span style="color:#00e5ff">${valStr}x</span>`
+        );
+      } else if (m.id === 17) {
+        const logMult = 10;
+        const logDiv = 5;
+        
+        const newMult = bigNumFromLog10(logMult * nerf);
+        const newDiv = bigNumFromLog10(logDiv * nerf);
+        
+        const multStr = formatNumber(newMult);
+        const divStr = formatNumber(newDiv);
+        
+        milestone.description[0] = milestone.description[0].replace(
+            /<span style="color:#00e5ff">.*?<\/span>/, 
+            `<span style="color:#00e5ff">${multStr}x</span>`
+        );
+        milestone.description[1] = milestone.description[1].replace(
+            /<span style="color:#d93629">.*?<\/span>/, 
+            `<span style="color:#d93629">${divStr}x</span>`
+        );
+      } else if (m.id === 18) {
+        const logMult = 10;
+        const logDiv = 5;
+        
+        const newMult = bigNumFromLog10(logMult * nerf);
+        const newDiv = bigNumFromLog10(logDiv * nerf);
+        
+        const multStr = formatNumber(newMult);
+        const divStr = formatNumber(newDiv);
+        
+        milestone.description[0] = milestone.description[0].replace(
+            /<span style="color:#00e5ff">.*?<\/span>/, 
+            `<span style="color:#00e5ff">${multStr}x</span>`
+        );
+        milestone.description[1] = milestone.description[1].replace(
+            /<span style="color:#d93629">.*?<\/span>/, 
+            `<span style="color:#d93629">${divStr}x</span>`
         );
       }
     }
