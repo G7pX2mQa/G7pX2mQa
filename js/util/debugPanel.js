@@ -3457,8 +3457,8 @@ function buildAreaCalculators(container) {
                         
                         if (isSurge12 === 'Yes') {
                             const effectiveNerf = getEffectiveTsunamiNerf();
-                            const multLog10 = 10 * effectiveNerf;
-                            const base = 2 + effectiveNerf;
+                            const multLog10 = 5 * effectiveNerf;
+                            const base = 2 + (effectiveNerf / 2);
                             const logBase = Math.log10(base);
                             const totalLog = (lvlNum * logBase) + multLog10;
                             return bigNumFromLog10(totalLog);
