@@ -155,19 +155,19 @@ export const REGISTRY = [
         let isUnlocked = false;
         
         if (typeof sl === 'number') {
-            if (sl >= 17 || sl === Infinity) isUnlocked = true;
+            if (sl >= 19 || sl === Infinity) isUnlocked = true;
         } else if (typeof sl === 'bigint') {
-            if (sl >= 17n) isUnlocked = true;
+            if (sl >= 19n) isUnlocked = true;
         } else if (typeof sl === 'string') {
              if (sl === 'Infinity' || parseFloat(sl) === Infinity) isUnlocked = true;
-             else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 17) isUnlocked = true;
+             else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 19) isUnlocked = true;
         } else if (sl && typeof sl.isInfinite === 'function' && sl.isInfinite()) {
              isUnlocked = true;
         }
         
         if (isUnlocked) return { locked: false };
         
-        const revealText = "Reach Surge 17 to reveal this upgrade";
+        const revealText = "Reach Surge 19 to reveal this upgrade";
         return {
             locked: true,
             iconOverride: MYSTERIOUS_ICON,
