@@ -405,8 +405,8 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
 
     if (useSurge9) {
         const effectiveNerf = getEffectiveTsunamiNerf();
-        // Base: 2 + nerf
-        logBaseVal = Math.log10(2 + effectiveNerf);
+        // Base: 2 + nerf (nerfed to 2 + 0.5*nerf for max 2.5)
+        logBaseVal = Math.log10(2 + effectiveNerf * 0.5);
         // Multiplier: 10^(30*nerf) -> log10 is 30*nerf
         logMultiplier = 30 * effectiveNerf;
     }
@@ -926,8 +926,8 @@ function recomputePendingDna() {
 
     if (isSurgeActive(9)) {
         const effectiveNerf = getEffectiveTsunamiNerf();
-        // Base: 2 + nerf
-        logBaseVal = Math.log10(2 + effectiveNerf);
+        // Base: 2 + nerf (nerfed to 2 + 0.5*nerf for max 2.5)
+        logBaseVal = Math.log10(2 + effectiveNerf * 0.5);
         // Multiplier: 10^(30*nerf) -> log10 is 30*nerf
         logMultiplier = 30 * effectiveNerf;
     }
