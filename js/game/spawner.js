@@ -517,7 +517,8 @@ export function createSpawner({
         const size = COIN_SIZES[sizeIndex];
         let valMult = 1;
         if (isSurgeActive(8)) {
-             const nerf = getTsunamiNerf();
+             let nerf = getTsunamiNerf();
+             if (sizeIndex >= 4) nerf = 1.0;
              const base = Math.pow(25, nerf);
              valMult = Math.pow(base, sizeIndex);
         } else {
