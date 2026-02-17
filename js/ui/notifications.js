@@ -85,7 +85,7 @@ function displayNotification(text, iconSrc, duration) {
                     el.remove();
                     resolve();
                 }
-            }, 1200); // 1.2s safety for transition
+            }, 600);
         }, duration);
     });
 }
