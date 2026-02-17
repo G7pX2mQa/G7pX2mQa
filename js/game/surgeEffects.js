@@ -147,8 +147,8 @@ export function getSurge15Multiplier(preview = false) {
     const log10Bn = approxLog10BigNum(amount);
     if (!Number.isFinite(log10Bn) || log10Bn <= 0) return BigNum.fromInt(1);
 
-    // Formula: 2 ^ log10(amount)
-    const power = log10Bn;
+    // Formula: 2 ^ (log10(amount) / 6)
+    const power = log10Bn / 6;
     if (power <= 0) return BigNum.fromInt(1);
 
     const log10Result = power * Math.log10(2);
