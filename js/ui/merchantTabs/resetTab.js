@@ -412,13 +412,13 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
     }
 
     if (isSurgeActive(14)) {
-        // Multiplier: 14.14e12
+        // Multiplier: 14.14e18
         if (isSurgeActive(8)) {
             const effectiveNerf = getEffectiveTsunamiNerf();
-            const log14 = Math.log10(14.14e12);
+            const log14 = Math.log10(14.14e18);
             logMultiplier += log14 * effectiveNerf;
         } else {
-            logMultiplier += Math.log10(14.14e12);
+            logMultiplier += Math.log10(14.14e18);
         }
     }
 
