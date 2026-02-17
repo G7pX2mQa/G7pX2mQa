@@ -115,7 +115,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 12,
     affectedByTsunami: true,
     description: [
-      "Boosts the effect Lab Level has on RP multiplier"
+      "Adequately boosts the effect Lab Level has on RP multiplier"
     ]
   },
   {
