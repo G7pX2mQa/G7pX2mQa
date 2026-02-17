@@ -131,7 +131,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 14,
     affectedByTsunami: true,
     description: [
-      `Multiplies DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(14.14e12))}x</span>`
+      `Multiplies DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(14.14e18))}x</span>`
     ]
   },
   {
@@ -377,6 +377,10 @@ export function getVisibleMilestones(currentSurgeLevel) {
             /<span style="color:#00e5ff">.*?x<\/span>/, 
             `<span style="color:#00e5ff">${valStr}x</span>`
         );
+
+        if (nerf < 1) {
+            milestone.description.push("The largest Coins BYPASS the exponent");
+        }
       } else if (m.id === 4) {
         const log10 = Math.log10(4.444e12);
         const newVal = bigNumFromLog10(log10 * nerf);
@@ -387,7 +391,7 @@ export function getVisibleMilestones(currentSurgeLevel) {
             `<span style="color:#00e5ff">${valStr}x</span>`
         );
       } else if (m.id === 14) {
-        const log10 = Math.log10(14.14e12);
+        const log10 = Math.log10(14.14e18);
         const newVal = bigNumFromLog10(log10 * nerf);
         const valStr = formatNumber(newVal);
         
