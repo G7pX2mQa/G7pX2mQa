@@ -1,6 +1,7 @@
 // js/ui/hudButtons.js
 
 import { openShop } from './shopOverlay.js';
+import { ensureMerchantOverlay } from './merchantTabs/dlgTab.js';
 import { getActiveSlot, hasModifiedSave } from '../util/storage.js';
 import {
   shouldSkipGhostTap,
@@ -165,6 +166,15 @@ export function initHudButtons() {
   updateShopButtonTamperState();
 
   applyHudLayout();
+  
+  // Preload Merchant Overlay (Delve screen) during idle time
+  // This is a performance optimization to ensure the heavy DOM is ready
+  // before the user clicks the "Delve" button in the shop.
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(() => ensureMerchantOverlay(), { timeout: 5000 });
+  } else {
+    setTimeout(() => ensureMerchantOverlay(), 100);
+  }
 
   if (!listenersBound) {
     listenersBound = true;
