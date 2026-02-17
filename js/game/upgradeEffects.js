@@ -22,6 +22,7 @@ import {
   bigNumFromLog10,
   UPGRADE_TIES
 } from './upgrades.js';
+import { getSurgeMagicMultiplier } from './surgeEffects.js';
 
 const BASE_CPS = 1;
 
@@ -222,7 +223,9 @@ export function syncCurrencyMultipliersFromUpgrades() {
 
   try {
     if (bank.magic?.mult?.set) {
-      bank.magic.mult.set(magicValue);
+      const surgeMult = getSurgeMagicMultiplier();
+      const finalMagicValue = safeMultiplyBigNum(magicValue, surgeMult);
+      bank.magic.mult.set(finalMagicValue);
     }
   } catch {}
 
@@ -299,6 +302,13 @@ export function registerXpUpgradeEffects() {
       try { syncBookCurrencyMultiplierFromUpgrade(); } catch {}
       try { refreshCoinMultiplierFromXpLevel(); } catch {}
       try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+    });
+    
+    window.addEventListener('surge:level:change', () => {
+        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+    });
+    window.addEventListener('surge:nerf:change', () => {
+        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
     });
   }
 }
