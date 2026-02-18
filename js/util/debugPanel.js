@@ -3807,22 +3807,6 @@ function buildMiscContent(content) {
             },
         },
         {
-            label: 'Max All [UL] Upgs',
-            onClick: () => {
-                const count = setAllUpgradesMaxed(true);
-                flagDebugUsage();
-                logAction(`Maxed ${count} unlocked upgrades.`);
-            },
-        },
-        {
-            label: 'All [UL] Upgs 0',
-            onClick: () => {
-                const count = setAllUpgradesZero(true);
-                flagDebugUsage();
-                logAction(`Reset ${count} unlocked upgrades to 0.`);
-            },
-        },
-        {
             label: 'Max All Upgs',
             onClick: () => {
                 const count = setAllUpgradesMaxed(false);
