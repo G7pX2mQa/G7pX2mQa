@@ -382,9 +382,6 @@ export function getVisibleMilestones(currentSurgeLevel) {
             `<span style="color:#00e5ff">${valStr}x</span>`
         );
 
-        if (nerf < 1) {
-            milestone.description.push("The largest Coins bypass the exponent");
-        }
       } else if (m.id === 4) {
         const log10 = Math.log10(4.444e12);
         const newVal = bigNumFromLog10(log10 * nerf);
