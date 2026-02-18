@@ -157,7 +157,8 @@ export const SURGE_MILESTONES = [
     description: [
       `Multiplies Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e10))}x</span>`,
       `Divides Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
-      `Divides DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`
+      `Divides DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
+      "Halves Wave value (immune to exponent)"
     ]
   },
   {
@@ -167,7 +168,8 @@ export const SURGE_MILESTONES = [
     description: [
       `Multiplies Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e10))}x</span>`,
       `Divides Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
-      `Divides DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`
+      `Divides DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
+      "Halves Wave value (immune to exponent)"
     ]
   },
   {
