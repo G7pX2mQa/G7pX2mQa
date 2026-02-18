@@ -4,8 +4,10 @@ import {
   addExternalCoinMultiplierProvider, 
   addExternalXpGainMultiplierProvider,
   getXpState,
-  setExternalBookRewardProvider
+  setExternalBookRewardProvider,
+  refreshCoinMultiplierFromXpLevel
 } from './xpSystem.js';
+import { syncCurrencyMultipliersFromUpgrades } from './upgradeEffects.js';
 import { addExternalMutationGainMultiplierProvider, getTotalCumulativeMp } from './mutationSystem.js';
 import { getCurrentSurgeLevel, computeForgeGoldFromInputs, computeInfuseMagicFromInputs } from '../ui/merchantTabs/resetTab.js';
 import { registerTick, RateAccumulator } from './gameLoop.js';
@@ -162,6 +164,36 @@ export function getSurge15Multiplier(preview = false) {
   }
 
   return mult;
+}
+
+export function getSurge15Divisor(preview = false) {
+  if (!preview && !isSurgeActive(15)) return BigNum.fromInt(1);
+  
+  const dna = bank.dna?.value;
+  if (!dna) return BigNum.fromInt(1);
+
+  const calc = (amount) => {
+    if (!amount) return BigNum.fromInt(1);
+    if (amount.isInfinite?.()) return BigNum.fromAny('Infinity');
+    
+    const log10Bn = approxLog10BigNum(amount);
+    if (!Number.isFinite(log10Bn) || log10Bn <= 0) return BigNum.fromInt(1);
+
+    // Formula: 2 ^ (log10(amount) / 3)
+    const power = log10Bn / 3;
+    if (power <= 0) return BigNum.fromInt(1);
+
+    const log10Result = power * Math.log10(2);
+    return bigNumFromLog10(log10Result);
+  };
+
+  const div = calc(dna);
+
+  if (isSurgeActive(8)) {
+     return applyTsunamiNerf(div);
+  }
+
+  return div;
 }
 
 export function getSurge6WealthMultipliers() {
@@ -477,6 +509,14 @@ export function initSurgeEffects() {
       loadTsunamiNerf(getActiveSlot());
       updateMultiplier();
     });
+    
+    // Listen for DNA changes to update dynamic multipliers
+    window.addEventListener('currency:change', (e) => {
+        if (e.detail?.key === 'dna') {
+            try { refreshCoinMultiplierFromXpLevel(); } catch {}
+            try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+        }
+    });
   }
 
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
@@ -515,12 +555,23 @@ export function initSurgeEffects() {
 
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
     if (!isSurgeActive(15)) return baseMultiplier;
+    
+    let result = baseMultiplier;
+    
     const mult = getSurge15Multiplier();
-    if (mult.cmp(1) <= 0) return baseMultiplier;
-    return baseMultiplier.mulBigNumInteger(mult);
+    if (mult.cmp(1) > 0) {
+        result = result.mulBigNumInteger(mult);
+    }
+    
+    const div = getSurge15Divisor();
+    if (div.cmp(1) > 0) {
+        result = result.div(div);
+    }
+    
+    return result;
   });
   
-  // Surge 17 (Div 1e5) and Surge 18 (Mul 1e10) for Coins
+  // Surge 17 (Div 1e5) and Surge 18 (Mul 1e15) for Coins
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
     let log10Total = 0;
     
@@ -529,9 +580,9 @@ export function initSurgeEffects() {
         log10Total -= 5;
     }
     
-    // Surge 18: Multiply by 1e10 -> +10
+    // Surge 18: Multiply by 1e15 -> +15
     if (isSurgeActive(18)) {
-        log10Total += 10;
+        log10Total += 15;
     }
     
     if (log10Total === 0) return baseMultiplier;
@@ -560,19 +611,29 @@ export function getSurgeMagicMultiplier() {
     let log10Total = 0;
     
     if (isSurgeActive(17)) {
-        log10Total += 10;
+        log10Total += 15;
     }
     
     if (isSurgeActive(18)) {
         log10Total -= 5;
     }
     
-    if (log10Total === 0) return BigNum.fromInt(1);
-    
     if (isSurgeActive(8)) {
         const effective = getEffectiveTsunamiNerf();
         log10Total *= effective;
     }
     
-    return bigNumFromLog10(log10Total);
+    let result = BigNum.fromInt(1);
+    if (log10Total !== 0) {
+        result = bigNumFromLog10(log10Total);
+    }
+
+    if (isSurgeActive(15)) {
+        const div = getSurge15Divisor();
+        if (div.cmp(1) > 0) {
+            result = result.div(div);
+        }
+    }
+    
+    return result;
 }
