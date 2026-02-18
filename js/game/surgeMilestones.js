@@ -131,7 +131,9 @@ export const SURGE_MILESTONES = [
     surgeLevel: 14,
     affectedByTsunami: true,
     description: [
-      `Multiplies DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(14.14e18))}x</span>`
+      `Multiplies DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(14.14e18))}x</span>`,
+      "Unlocks Combo: Collecting Coins increases a Combo which alleviates the exponent effect on larger Coins (Combo decays quickly)",
+      "Combo effect is shown in the Coin Counter"
     ]
   },
   {
