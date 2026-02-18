@@ -1,18 +1,18 @@
-
 import { getActiveSlot } from '../util/storage.js';
 
 // Configuration
-const MAX_ACTIVE_TIME_SEC = 600;
+const MAX_ACTIVE_TIME_SEC = 1000;
 const DECAY_WINDOW_SEC = 15;
 const MOVEMENT_HISTORY_WINDOW_MS = 2000;
-const MIN_UNIQUE_CELLS = 3;
-const GRID_COLS = 10;
-const GRID_ROWS = 10;
+const MIN_MOVEMENT_EXTENT_PX = 50;
+const MIN_UNIQUE_REGIONS = 3;
+const REGION_SIZE = 50; // Used for anti-macro grid
 
 // State
 let activeTimeSec = 0; // The "potential" combo time
-let decayTimerSec = 0; // Time since last coin collection
-let movementHistory = []; // { timestamp, col, row }
+let decayCounter = 0; // Integer seconds since last coin collection
+let decayAccumulator = 0; // Float accumulator for partial seconds
+let movementHistory = []; // { timestamp, x, y }
 let isMoving = false;
 let isSurge14ActiveFn = () => false;
 
@@ -21,20 +21,11 @@ let lastGrowthTime = 0;
 
 function resetState() {
     activeTimeSec = 0;
-    decayTimerSec = 0;
+    decayCounter = 0;
+    decayAccumulator = 0;
     movementHistory = [];
     isMoving = false;
     lastGrowthTime = 0;
-}
-
-// Grid calculation
-function getGridCell(x, y) {
-    if (typeof window === 'undefined') return { col: 0, row: 0 };
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const col = Math.floor((x / w) * GRID_COLS);
-    const row = Math.floor((y / h) * GRID_ROWS);
-    return { col, row };
 }
 
 export function onPointerMove(x, y) {
@@ -44,8 +35,7 @@ export function onPointerMove(x, y) {
     const now = performance.now();
     
     // Add to history
-    const cell = getGridCell(x, y);
-    movementHistory.push({ timestamp: now, ...cell });
+    movementHistory.push({ timestamp: now, x, y });
     
     // Prune old history
     const cutoff = now - MOVEMENT_HISTORY_WINDOW_MS;
@@ -59,42 +49,68 @@ export function onCoinCollected() {
     
     const now = performance.now();
     
-    // Reset decay timer on collection
-    decayTimerSec = 0;
+    // Check activity FIRST
+    if (!checkActivity(now)) {
+        return; 
+    }
     
-    // Check activity for potential growth
-    if (checkActivity(now)) {
-        // Enforce 1 second rate limit
-        // "collecting any amount of coins in a given second should increment the second counter up one second"
-        
-        // Initial state or long gap check
-        if (now - lastGrowthTime >= 1000) {
-            activeTimeSec += 1;
-            if (activeTimeSec > MAX_ACTIVE_TIME_SEC) {
-                activeTimeSec = MAX_ACTIVE_TIME_SEC;
-            }
-            lastGrowthTime = now;
+    // Reset decay timer on collection
+    decayCounter = 0;
+    decayAccumulator = 0;
+    
+    // Enforce 1 second rate limit for growth
+    if (now - lastGrowthTime >= 1000) {
+        activeTimeSec += 1;
+        if (activeTimeSec > MAX_ACTIVE_TIME_SEC) {
+            activeTimeSec = MAX_ACTIVE_TIME_SEC;
         }
+        lastGrowthTime = now;
     }
 }
 
 function checkActivity(now) {
-    if (movementHistory.length === 0) return false;
+    if (movementHistory.length < 2) return false;
     
-    // Count unique cells in history
-    const uniqueCells = new Set();
     const cutoff = now - MOVEMENT_HISTORY_WINDOW_MS;
     
     // Prune stale entries before checking
     while (movementHistory.length > 0 && movementHistory[0].timestamp < cutoff) {
         movementHistory.shift();
     }
+
+    if (movementHistory.length < 2) return false;
     
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    const uniqueRegions = new Set();
+
     for (const entry of movementHistory) {
-        uniqueCells.add(`${entry.col},${entry.row}`);
+        if (entry.x < minX) minX = entry.x;
+        if (entry.x > maxX) maxX = entry.x;
+        if (entry.y < minY) minY = entry.y;
+        if (entry.y > maxY) maxY = entry.y;
+
+        // Anti-macro: Count unique 50x50 regions visited
+        const regionX = Math.floor(entry.x / REGION_SIZE);
+        const regionY = Math.floor(entry.y / REGION_SIZE);
+        uniqueRegions.add(`${regionX},${regionY}`);
     }
-    
-    return uniqueCells.size >= MIN_UNIQUE_CELLS;
+
+    const width = maxX - minX;
+    const height = maxY - minY;
+
+    // Check 1: Must cover minimum extent (not just small twitching)
+    if (width < MIN_MOVEMENT_EXTENT_PX && height < MIN_MOVEMENT_EXTENT_PX) {
+        return false;
+    }
+
+    // Check 2: Must visit minimum number of unique regions (not just A <-> B macro)
+    // A simple back-and-forth between two points might only visit 2 regions.
+    if (uniqueRegions.size < MIN_UNIQUE_REGIONS) {
+        return false;
+    }
+
+    return true;
 }
 
 export function updateCombo(dt) {
@@ -103,12 +119,19 @@ export function updateCombo(dt) {
     const now = performance.now();
     
     // 1. Process Decay
-    // "if the 15 second timer fully goes by without any coins collected, the potential combo should be fully reset to 0"
-    if (decayTimerSec < DECAY_WINDOW_SEC) {
-        decayTimerSec += dt;
-        if (decayTimerSec >= DECAY_WINDOW_SEC) {
-            activeTimeSec = 0;
-            // Note: We don't reset decayTimerSec here, it stays "expired" until a coin is collected.
+    // "change the decay to happen every second, not every game tick"
+    if (decayCounter < DECAY_WINDOW_SEC) {
+        decayAccumulator += dt;
+        while (decayAccumulator >= 1.0) {
+            decayAccumulator -= 1.0;
+            // Only increment if we haven't hit the cap
+            if (decayCounter < DECAY_WINDOW_SEC) {
+                decayCounter += 1;
+                // If we hit the cap, reset potential
+                if (decayCounter >= DECAY_WINDOW_SEC) {
+                    activeTimeSec = 0;
+                }
+            }
         }
     }
     
@@ -126,13 +149,11 @@ export function getComboRestorationFactor() {
     // 1. Calculate Potential (0.0 to 1.0 based on 1000s)
     let potential = Math.min(1, Math.max(0, activeTimeSec / MAX_ACTIVE_TIME_SEC));
     
-    // 2. Calculate Decay Penalty (Linear decay over 15s)
-    // "decrease every game tick for 15 seconds"
-    // "if a coin is collected... reverted back to the maximum potential"
-    // So if decayTimer is 0, factor is 1.0. If 7.5s, factor is 0.5. If 15s, factor is 0.0.
+    // 2. Calculate Decay Penalty (Discrete steps over 15s)
     let decayFactor = 0;
-    if (decayTimerSec < DECAY_WINDOW_SEC) {
-        decayFactor = Math.max(0, 1 - (decayTimerSec / DECAY_WINDOW_SEC));
+    if (decayCounter < DECAY_WINDOW_SEC) {
+        // Linear but discrete: (15 - counter) / 15
+        decayFactor = Math.max(0, 1 - (decayCounter / DECAY_WINDOW_SEC));
     }
     
     return potential * decayFactor;
@@ -144,15 +165,12 @@ export function initComboSystem(checkFn) {
     }
 
     if (typeof window !== 'undefined') {
-        // Reset state on slot load
         window.addEventListener('saveSlot:change', resetState);
         
-        // Listen for global pointer movement to feed combo system
         window.addEventListener('pointermove', (e) => {
              onPointerMove(e.clientX, e.clientY);
         }, { passive: true });
         
-        // Initial reset
         resetState();
     }
 }
