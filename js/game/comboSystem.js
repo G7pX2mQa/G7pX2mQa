@@ -2,7 +2,7 @@ import { getActiveSlot } from '../util/storage.js';
 
 // Configuration
 const MAX_ACTIVE_TIME_SEC = 1000;
-const DECAY_WINDOW_SEC = 15;
+const DECAY_WINDOW_SEC = 60;
 
 // State
 let activeTimeSec = 0; // The "potential" combo time
