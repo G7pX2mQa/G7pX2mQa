@@ -16,6 +16,8 @@ import {
 import { getMpValueMultiplierBn, getMagnetLevel } from './upgrades.js';
 import { createCursorTrail } from './cursorTrail.js';
 import { playAudio } from '../util/audioManager.js';
+import { onCoinCollected } from './comboSystem.js';
+import { getComboUiString } from './surgeEffects.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelIsInfiniteSnapshot = false;
@@ -731,10 +733,13 @@ export function initCoinPickup({
   
   updateHudFn = () => {
     const formatted = formatNumber(coinsVal);
-    if (formatted.includes('<span')) {
-      amt.innerHTML = formatted;
+    const comboStr = getComboUiString();
+    const fullText = formatted + comboStr;
+
+    if (fullText.includes('<span')) {
+      amt.innerHTML = fullText;
     } else {
-      amt.textContent = formatted;
+      amt.textContent = fullText;
     }
   };
   
@@ -982,6 +987,8 @@ export function initCoinPickup({
     }
 
     if (collectedCount === 0) return;
+
+    onCoinCollected();
 
     if (totalCoin && !totalCoin.isZero?.()) {
       try {
