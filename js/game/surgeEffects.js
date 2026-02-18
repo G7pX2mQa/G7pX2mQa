@@ -90,7 +90,7 @@ export function getComboUiString() {
     
     let finalStr = ` (+^${str})`;
     if (factor >= 1.0) {
-        finalStr = `<span style="color: #00e5ff">${finalStr}</span>`;
+        finalStr = `<span style="color: #02e815">${finalStr}</span>`;
     }
     
     return finalStr;
