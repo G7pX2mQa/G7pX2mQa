@@ -509,7 +509,7 @@ export function getVisibleMilestones(currentSurgeLevel) {
 
             const div = getSurge15Divisor(true);
             const divStr = formatMultForUi(div);
-            milestone.description.push(`Unspent DNA also divides the value of Coins and Magic: <span style="color:#00e5ff">${divStr}</span>`);
+            milestone.description.push(`Unspent DNA also divides the value of Coins and Magic: <span style="color:#00e5ff">${divStr}x</span>`);
         }
     }
 
