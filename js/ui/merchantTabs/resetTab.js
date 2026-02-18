@@ -505,7 +505,12 @@ function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
   // Combine: 10 * 10^logSum * 10^(xpTerm)
   // log10(Waves) = 1 + logSum + xpTerm
   
-  const logTotal = 1 + logSum + xpTerm;
+  let logTotal = 1 + logSum + xpTerm;
+
+  // Surge 17 and 18 halve Wave value (immune to exponent)
+  if (isSurgeActive(17)) logTotal -= Math.log10(2);
+  if (isSurgeActive(18)) logTotal -= Math.log10(2);
+
   if (!Number.isFinite(logTotal)) return BN.fromAny('Infinity');
   
   const baseWaves = bigNumFromLog10(logTotal).floorToInteger();
