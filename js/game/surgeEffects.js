@@ -88,7 +88,12 @@ export function getComboUiString() {
     let str = formatMultForUi(added);
     if (str === '0') str = '0.000';
     
-    return ` (+^${str})`;
+    let finalStr = ` (+^${str})`;
+    if (factor >= 1.0) {
+        finalStr = `<span style="color: #00e5ff">${finalStr}</span>`;
+    }
+    
+    return finalStr;
 }
 
 export function setTsunamiNerf(value) {
