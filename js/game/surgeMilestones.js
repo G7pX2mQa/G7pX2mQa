@@ -14,7 +14,7 @@ export const getSurge10Description = (slot) => {
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
-import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier } from './surgeEffects.js';
+import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor } from './surgeEffects.js';
 import { getTsunamiResearchBonus, getResearchNodeLevel } from './labNodes.js';
 import { getActiveSlot } from '../util/storage.js';
 
@@ -155,7 +155,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 17,
     affectedByTsunami: true,
     description: [
-      `Multiplies Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e10))}x</span>`,
+      `Multiplies Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e15))}x</span>`,
       `Divides Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
       `Divides DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
       "Halves Wave value (immune to exponent)"
@@ -166,7 +166,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 18,
     affectedByTsunami: true,
     description: [
-      `Multiplies Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e10))}x</span>`,
+      `Multiplies Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e15))}x</span>`,
       `Divides Magic value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
       `Divides DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(1e5))}x</span>`,
       "Halves Wave value (immune to exponent)"
@@ -404,7 +404,7 @@ export function getVisibleMilestones(currentSurgeLevel) {
             `<span style="color:#00e5ff">${valStr}x</span>`
         );
       } else if (m.id === 17) {
-        const logMult = 10;
+        const logMult = 15;
         const logDiv = 5;
         
         const newMult = bigNumFromLog10(logMult * nerf);
@@ -426,7 +426,7 @@ export function getVisibleMilestones(currentSurgeLevel) {
             `<span style="color:#00e5ff">${divStr}x</span>`
         );
       } else if (m.id === 18) {
-        const logMult = 10;
+        const logMult = 15;
         const logDiv = 5;
         
         const newMult = bigNumFromLog10(logMult * nerf);
@@ -506,6 +506,10 @@ export function getVisibleMilestones(currentSurgeLevel) {
             const mult = getSurge15Multiplier(true);
             const valStr = formatMultForUi(mult);
             milestone.description[0] = `Unspent DNA boosts Coins: <span style="color:#00e5ff">${valStr}x</span>`;
+
+            const div = getSurge15Divisor(true);
+            const divStr = formatMultForUi(div);
+            milestone.description.push(`Unspent DNA also divides the value of Coins and Magic: <span style="color:#00e5ff">${divStr}</span>`);
         }
     }
 
