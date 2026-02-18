@@ -179,8 +179,8 @@ export function getSurge15Divisor(preview = false) {
     const log10Bn = approxLog10BigNum(amount);
     if (!Number.isFinite(log10Bn) || log10Bn <= 0) return BigNum.fromInt(1);
 
-    // Formula: 2 ^ (log10(amount) / 3)
-    const power = log10Bn / 3;
+    // Formula: 2 ^ (log10(amount) / 2)
+    const power = log10Bn / 2;
     if (power <= 0) return BigNum.fromInt(1);
 
     const log10Result = power * Math.log10(2);
