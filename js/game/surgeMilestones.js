@@ -383,7 +383,7 @@ export function getVisibleMilestones(currentSurgeLevel) {
         );
 
         if (nerf < 1) {
-            milestone.description.push("The largest Coins BYPASS the exponent");
+            milestone.description.push("The largest Coins bypass the exponent");
         }
       } else if (m.id === 4) {
         const log10 = Math.log10(4.444e12);
