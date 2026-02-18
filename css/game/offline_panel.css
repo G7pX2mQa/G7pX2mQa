@@ -119,6 +119,8 @@
 
 .offline-icon.icon-magic {
     transform: scale(1.1);
+    margin-left: -2px;
+    margin-right: -2px;
 }
 
 .offline-text {
