@@ -117,10 +117,11 @@
 	margin-left: 1px;
 }
 
-.offline-icon.icon-magic {
+.offline-icon[src*="magic"] {
     transform: scale(1.1);
-    margin-left: -2px;
-    margin-right: -2px;
+    /* Remove 2px spacing */
+    margin-left: -1px !important;
+    margin-right: -2px !important;
 }
 
 .offline-text {
