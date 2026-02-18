@@ -3,8 +3,8 @@ import { getActiveSlot } from '../util/storage.js';
 // Configuration
 const MAX_ACTIVE_TIME_SEC = 1000;
 const DECAY_WINDOW_SEC = 15;
-const MOVEMENT_HISTORY_WINDOW_MS = 2000;
-const MIN_MOVEMENT_EXTENT_PX = 50;
+const MOVEMENT_HISTORY_WINDOW_MS = 250;
+const MIN_MOVEMENT_EXTENT_PX = 5;
 const MIN_UNIQUE_REGIONS = 3;
 const REGION_SIZE = 50; // Used for anti-macro grid
 
