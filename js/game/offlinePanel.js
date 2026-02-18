@@ -21,8 +21,13 @@ import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgr
 import { getPassiveCoinReward } from './coinPickup.js';
 import { addXp } from './xpSystem.js';
 import { addMutationPower } from './mutationSystem.js';
-import { getBookProductionRate, isSurgeActive } from './surgeEffects.js';
+import { getBookProductionRate, isSurgeActive, getEffectiveTsunamiNerf } from './surgeEffects.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
+import { getXpState } from './xpSystem.js';
+import { getTotalCumulativeMp } from './mutationSystem.js';
+import { computeForgeGoldFromInputs, computeInfuseMagicFromInputs } from '../ui/merchantTabs/resetTab.js';
+import { getLabGoldMultiplier } from './labNodes.js';
+import { bigNumFromLog10 } from '../util/bigNum.js';
 
 let initialized = false;
 
@@ -331,6 +336,40 @@ export function calculateOfflineRewards(seconds) {
             if (!isCurrencyLocked('books', slot)) {
                 rewards.books = booksEarned;
             }
+        }
+    }
+
+    // Surge 13 (Gold) and Surge 16 (Magic)
+    if (isSurgeActive(13) || isSurgeActive(16)) {
+        const effectiveNerf = getEffectiveTsunamiNerf();
+        const mapped = effectiveNerf * 1.5 - 0.5;
+        const log10Rate = 2 * mapped - 2;
+        const rateMultiplier = bigNumFromLog10(log10Rate);
+        const totalMultiplier = rateMultiplier.mulDecimal(String(seconds));
+
+        if (isSurgeActive(13)) {
+             const coins = bank.coins?.value;
+             const xpState = getXpState();
+             const basePending = computeForgeGoldFromInputs(coins, xpState.xpLevel);
+             let pending = bank.gold?.mult?.applyTo?.(basePending) ?? basePending;
+             const labMult = getLabGoldMultiplier();
+             pending = pending.mulDecimal(labMult.toScientific());
+             
+             const goldEarned = pending.mulDecimal(totalMultiplier.toScientific());
+             if (goldEarned.cmp(0) > 0 && !isCurrencyLocked('gold', slot)) {
+                 rewards.gold = goldEarned;
+             }
+        }
+
+        if (isSurgeActive(16)) {
+             const coins = bank.coins?.value;
+             const cumulativeMp = getTotalCumulativeMp();
+             const pending = computeInfuseMagicFromInputs(coins, cumulativeMp);
+             
+             const magicEarned = pending.mulDecimal(totalMultiplier.toScientific());
+             if (magicEarned.cmp(0) > 0 && !isCurrencyLocked('magic', slot)) {
+                 rewards.magic = magicEarned;
+             }
         }
     }
 
