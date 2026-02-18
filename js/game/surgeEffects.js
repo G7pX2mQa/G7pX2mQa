@@ -13,6 +13,8 @@ import { getCurrentSurgeLevel, computeForgeGoldFromInputs, computeInfuseMagicFro
 import { registerTick, RateAccumulator } from './gameLoop.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
 import { getTsunamiResearchBonus, getLabGoldMultiplier } from './labNodes.js';
+import { getComboRestorationFactor, updateCombo, initComboSystem } from './comboSystem.js';
+import { formatMultForUi } from '../util/numFormat.js';
 
 const BN = BigNum;
 const MULTIPLIER = 10;
@@ -59,7 +61,34 @@ export function getEffectiveTsunamiNerf() {
   const nerf = getTsunamiNerf();
   let effective = nerf + getTsunamiResearchBonus();
   if (effective > 1) effective = 1;
+
+  if (isSurgeActive(14)) {
+      const factor = getComboRestorationFactor();
+      const diff = 1.0 - effective;
+      effective += diff * factor;
+  }
+  
   return effective;
+}
+
+export function getComboUiString() {
+    if (!isSurgeActive(14)) return '';
+    
+    const nerf = getTsunamiNerf();
+    let baseEffective = nerf + getTsunamiResearchBonus();
+    if (baseEffective > 1) baseEffective = 1;
+    
+    const factor = getComboRestorationFactor();
+    const diff = 1.0 - baseEffective;
+    const added = diff * factor;
+    
+    // Show if combo is active (non-zero factor), even if added value is very small
+    if (factor <= 0) return '';
+    
+    let str = formatMultForUi(added);
+    if (str === '0') str = '0.000';
+    
+    return ` (+^${str})`;
 }
 
 export function setTsunamiNerf(value) {
@@ -341,6 +370,10 @@ export function getBookProductionRate() {
 }
 
 function onTick(dt) {
+  if (isSurgeActive(14)) {
+      updateCombo(dt);
+  }
+
   if (isSurgeActive(3)) {
       if (!bookRateAccumulator) {
         bookRateAccumulator = new RateAccumulator('books', bank);
@@ -465,6 +498,8 @@ function compareSurgeLevels(prev, curr) {
 }
 
 export function initSurgeEffects() {
+  initComboSystem(() => isSurgeActive(14) && (getTsunamiNerf() + getTsunamiResearchBonus() < 1.0));
+
   const slot = getActiveSlot();
   // Update multiplier first to ensure cachedSurgeLevel is set,
   // allowing isSurgeActive(8) to return the correct state for loadTsunamiNerf default logic.
