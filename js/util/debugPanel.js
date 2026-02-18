@@ -48,6 +48,8 @@ import {
     setResearchNodeLevel,
     getResearchNodeRp,
     setResearchNodeRp,
+    isResearchNodeActive,
+    setResearchNodeActive,
     getTsunamiResearchBonus,
     NODE_LEVEL_KEY,
     NODE_RP_KEY
@@ -3866,6 +3868,36 @@ function buildMiscContent(content) {
                 const { locks, toggles } = lockAllUnlockUpgrades();
                 flagDebugUsage();
                 logAction(`Locked all unlock-type upgrades (${locks} entries) and unlock flags (${toggles} toggled).`);
+            },
+        },
+        {
+            label: 'Max All Lab Nodes',
+            onClick: () => {
+                let count = 0;
+                RESEARCH_NODES.forEach((node) => {
+                   if (Number.isFinite(node.maxLevel)) {
+                       setResearchNodeLevel(node.id, node.maxLevel);
+                       count++;
+                   }
+                });
+                flagDebugUsage();
+                logAction(`Maxed ${count} Lab Nodes.`);
+            },
+        },
+        {
+            label: 'All Lab Nodes 0',
+            onClick: () => {
+                let count = 0;
+                RESEARCH_NODES.forEach((node) => {
+                    setResearchNodeLevel(node.id, 0);
+                    setResearchNodeRp(node.id, 0);
+                    if (isResearchNodeActive(node.id)) {
+                        setResearchNodeActive(node.id, false);
+                    }
+                    count++;
+                });
+                flagDebugUsage();
+                logAction(`Reset ${count} Lab Nodes to 0 (Level & RP).`);
             },
         },
         {
