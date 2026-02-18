@@ -2,7 +2,7 @@
 import { getActiveSlot } from '../util/storage.js';
 
 // Configuration
-const MAX_ACTIVE_TIME_SEC = 1000;
+const MAX_ACTIVE_TIME_SEC = 600;
 const DECAY_WINDOW_SEC = 15;
 const MOVEMENT_HISTORY_WINDOW_MS = 2000;
 const MIN_UNIQUE_CELLS = 3;
