@@ -16,7 +16,7 @@ const gearImage = new Image();
 gearImage.src = GEAR_ICON_SRC;
 const COIN_ICON_SRC = 'img/currencies/coin/coin.webp';
 
-const MAX_GEAR_DECORATIONS = 300;
+const MAX_GEAR_DECORATIONS = 100;
 
 let workshopEl = null;
 let initialized = false;
