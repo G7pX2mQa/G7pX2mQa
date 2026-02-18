@@ -3807,7 +3807,7 @@ function buildMiscContent(content) {
             },
         },
         {
-            label: 'All [UL] Upgs Maxed',
+            label: 'Max All [UL] Upgs',
             onClick: () => {
                 const count = setAllUpgradesMaxed(true);
                 flagDebugUsage();
@@ -3823,7 +3823,7 @@ function buildMiscContent(content) {
             },
         },
         {
-            label: 'All Upgs Maxed',
+            label: 'Max All Upgs',
             onClick: () => {
                 const count = setAllUpgradesMaxed(false);
                 flagDebugUsage();
