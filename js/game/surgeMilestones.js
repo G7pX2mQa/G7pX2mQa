@@ -123,7 +123,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 13,
     affectedByTsunami: true,
     description: [
-      "Generates <span style=\"color:#00e5ff\">0.1%</span> of your pending Gold each second"
+      "Activates generator: Passively generates <span style=\"color:#00e5ff\">0.1%</span> of pending Gold every second"
     ]
   },
   {
@@ -147,7 +147,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 16,
     affectedByTsunami: true,
     description: [
-      "Generates <span style=\"color:#00e5ff\">0.1%</span> of your pending Magic each second"
+      "Activates generator: Passively generates <span style=\"color:#00e5ff\">0.1%</span> of pending Magic every second"
     ]
   },
   {
@@ -482,7 +482,7 @@ export function getVisibleMilestones(currentSurgeLevel) {
       const pct = Math.pow(100, mapped);
       const valStr = formatMultForUi(pct);
 
-      milestone.description[0] = `Generates <span style="color:#00e5ff">${valStr}%</span> of your pending Gold each second`;
+      milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Gold every second`;
     }
 
     if (m.id === 14) {
@@ -523,7 +523,7 @@ export function getVisibleMilestones(currentSurgeLevel) {
       const pct = Math.pow(100, mapped);
       const valStr = formatMultForUi(pct);
 
-      milestone.description[0] = `Generates <span style="color:#00e5ff">${valStr}%</span> of your pending Magic each second`;
+      milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Magic every second`;
     }
 
     if (m.surgeLevel <= currentLevel) {
