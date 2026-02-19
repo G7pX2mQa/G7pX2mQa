@@ -55,6 +55,15 @@ import {
     NODE_RP_KEY
 } from '../game/labNodes.js';
 import { calculateOfflineRewards, grantOfflineRewards, showOfflinePanel, calculatePreAutomationRewards } from '../game/offlinePanel.js';
+import { 
+    getActiveCombo, 
+    setActiveCombo, 
+    getMaxCombo, 
+    setComboLocked, 
+    addComboChangeListener, 
+    removeComboChangeListener 
+} from '../game/comboSystem.js';
+
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
@@ -341,6 +350,13 @@ function setupLiveBindingListeners() {
     };
     window.addEventListener('lab:node:rp', labNodeRpHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('lab:node:rp', labNodeRpHandler));
+
+    const comboHandler = (val) => {
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'combo' && binding.slot === targetSlot);
+    };
+    addComboChangeListener(comboHandler);
+    addDebugPanelCleanup(() => removeComboChangeListener(comboHandler));
 }
 
 const XP_KEY_PREFIX = 'ccc:xp';
@@ -1777,6 +1793,7 @@ function buildAreaCurrencies(container, area) {
         return;
     }
 
+
     const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
 
     area.currencies.forEach((currency) => {
@@ -1818,6 +1835,7 @@ function buildAreaStats(container, area) {
         msg.textContent = 'Select a save slot to edit stats.';
         container.appendChild(msg);
         return;
+
     }
 	
 	    const spawnRateKey = 'spawnRate';
@@ -2288,6 +2306,45 @@ function buildAreaStats(container, area) {
         }
     });
     container.appendChild(tsunamiRow.row);
+    if (area.key === AREA_KEYS.STARTER_COVE) {
+        const comboLockKey = `ccc:debug:comboLock:${slot}`;
+        const comboRow = createInputRow('Combo', getActiveCombo(), (value, { setValue }) => {
+            let nextVal = 0;
+            if (value === Infinity || (value instanceof BigNum && value.isInfinite())) {
+                nextVal = getMaxCombo();
+            } else {
+                try {
+                    nextVal = value instanceof BigNum ? Number(value.toScientific(10)) : Number(value);
+                } catch {
+                    nextVal = Number(value);
+                }
+                if (Number.isNaN(nextVal)) nextVal = 0;
+            }
+            setActiveCombo(nextVal);
+            setValue(getActiveCombo());
+            flagDebugUsage();
+        }, {
+            storageKey: comboLockKey,
+            onLockChange: (locked) => setComboLocked(locked),
+            format: (val) => {
+                const n = Number(val);
+                return (Number.isFinite(n) && Math.abs(n) < 1e9) ? n.toFixed(3) : formatNumber(val);
+            },
+        });
+        
+        // Initialize lock state from storage
+        setComboLocked(isStorageKeyLocked(comboLockKey));
+
+        registerLiveBinding({
+            type: 'combo',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                comboRow.setValue(getActiveCombo());
+            },
+        });
+        container.appendChild(comboRow.row);
+    }
 }
 
 function buildAreaUpgrades(container, area) {
