@@ -62,6 +62,12 @@ export function getEffectiveTsunamiNerf() {
   let effective = nerf + getTsunamiResearchBonus();
   if (effective > 1) effective = 1;
 
+  return effective;
+}
+
+export function getEffectiveTsunamiNerfWithCombo() {
+  let effective = getEffectiveTsunamiNerf();
+
   if (isSurgeActive(14)) {
       const factor = getComboRestorationFactor();
       const diff = 1.0 - effective;
