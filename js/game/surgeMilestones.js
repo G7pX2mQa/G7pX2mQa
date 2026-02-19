@@ -178,7 +178,8 @@ export const SURGE_MILESTONES = [
     id: 19,
     surgeLevel: 19,
     description: [
-      "Unlocks a new DNA upgrade"
+      "Unlocks a new DNA upgrade",
+      "Doubles XP value (immune to exponent)"
     ]
   }
 ];
