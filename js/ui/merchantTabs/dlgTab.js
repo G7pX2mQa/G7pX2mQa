@@ -12,6 +12,7 @@ import { initResetPanel, initResetSystem, updateResetPanel, isForgeUnlocked, has
 import { initWorkshopTab, updateWorkshopTab } from './workshopTab.js';
 import { initWarpTab, updateWarpTab } from './warpTab.js';
 import { initLabTab, updateLabTab, hasVisitedLab } from './labTab.js';
+import { initChannelTab, updateChannelTab, getChannelUnlockState, setChannelUnlockChecker } from './channelTab.js';
 import { getTsunamiSequenceSeen } from '../../game/surgeEffects.js';
 import { blockInteraction, updateShopOverlay, closeDelveSpecificOverlays } from '../shopOverlay.js';
 import {
@@ -89,6 +90,7 @@ const MERCHANT_TABS_DEF = [
   { key: 'workshop',  label: 'Workshop', unlocked: false, lockedLabel: '???' },
   { key: 'warp',     label: 'Warp',    unlocked: false, lockedLabel: '???' },
   { key: 'lab',      label: 'Lab',     unlocked: false, lockedLabel: '???' },
+  { key: 'channel',  label: 'Channel', unlocked: false, lockedLabel: '???' },
 ];
 
 const merchantTabUnlockState = new Map([
@@ -97,6 +99,7 @@ const merchantTabUnlockState = new Map([
   ['workshop', false],
   ['warp', false],
   ['lab', false],
+  ['channel', false],
 ]);
 
 const REWARD_ICON_SRC = {
@@ -304,6 +307,27 @@ function isLabUnlocked() {
 
 function syncLabTabUnlockState() {
   setMerchantTabUnlocked('lab', isLabUnlocked());
+}
+
+// Inject surge level check into channelTab
+setChannelUnlockChecker((level) => {
+    // We assume surge level is available via isSurgeUnlocked or similar, 
+    // but the most reliable is directly checking current level
+    const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0n;
+    if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) return true;
+    if (surgeLevel === Number.POSITIVE_INFINITY) return true;
+
+    if (typeof surgeLevel === 'bigint') {
+        return surgeLevel >= BigInt(level);
+    }
+    if (typeof surgeLevel === 'number') {
+        return surgeLevel >= level;
+    }
+    return false;
+});
+
+function syncChannelTabUnlockState() {
+    setMerchantTabUnlocked('channel', getChannelUnlockState());
 }
 
 let merchantDlgWatcherSlot = null;
@@ -1521,10 +1545,15 @@ function ensureMerchantOverlay() {
   panelLab.className = 'merchant-panel';
   panelLab.id = 'merchant-panel-lab';
 
+  const panelChannel = document.createElement('section');
+  panelChannel.className = 'merchant-panel';
+  panelChannel.id = 'merchant-panel-channel';
+
   syncForgeTabUnlockState();
   syncWorkshopTabUnlockState();
   syncWarpTabUnlockState();
   syncLabTabUnlockState();
+  syncChannelTabUnlockState();
 
   MERCHANT_TABS_DEF.forEach(def => {
       if (def.key === 'dialogue') merchantTabUnlockState.set('dialogue', true);
@@ -1562,9 +1591,10 @@ function ensureMerchantOverlay() {
   merchantTabs.panels['workshop']  = panelWorkshop;
   merchantTabs.panels['warp']      = panelWarp;
   merchantTabs.panels['lab']       = panelLab;
+  merchantTabs.panels['channel']   = panelChannel;
   merchantTabs.tablist = tabs;
 
-  panelsWrap.append(panelDialogue, panelReset, panelWorkshop, panelWarp, panelLab);
+  panelsWrap.append(panelDialogue, panelReset, panelWorkshop, panelWarp, panelLab, panelChannel);
   content.append(tabs, panelsWrap);
 
   syncForgeTabUnlockState();
@@ -1577,6 +1607,7 @@ function ensureMerchantOverlay() {
   try { initWorkshopTab(panelWorkshop); } catch {}
   try { initWarpTab(panelWarp); } catch {}
   try { initLabTab(panelLab); } catch {}
+  try { initChannelTab(panelChannel); } catch {}
 
   if (!forgeUnlockListenerBound && typeof window !== 'undefined') {
       const handleUnlockChange = (event) => {
@@ -1587,9 +1618,12 @@ function ensureMerchantOverlay() {
       if (key === 'infuse' || !key) syncWorkshopTabUnlockState();
       if (key === 'surge_completed' || !key) syncWarpTabUnlockState();
       if (key === 'lab' || key === 'tsunami' || !key) syncLabTabUnlockState();
+      if (key === 'channel' || !key) syncChannelTabUnlockState();
       };
       window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
       window.addEventListener('saveSlot:change', handleUnlockChange, { passive: true });
+      // Also update channel tab on surge level change
+      window.addEventListener('surge:level:change', () => syncChannelTabUnlockState(), { passive: true });
       forgeUnlockListenerBound = true;
   }
 
@@ -2208,6 +2242,9 @@ function selectMerchantTab(key) {
         runLabIntroDialogue();
     }
     try { updateLabTab(); } catch {}
+  }
+  if (key === 'channel') {
+    try { updateChannelTab(); } catch {}
   }
 
   try { localStorage.setItem(sk(MERCHANT_TAB_KEY_BASE), key); } catch {}
