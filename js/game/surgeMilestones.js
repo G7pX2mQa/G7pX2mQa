@@ -181,6 +181,17 @@ export const SURGE_MILESTONES = [
       "Unlocks a new DNA upgrade",
       "Doubles XP value (immune to exponent)"
     ]
+  },
+  {
+    id: 20,
+    surgeLevel: 20,
+    description: [
+      "Unlocks the <span style=\"color:#FFEB3B\">Channel</span> tab",
+	  "Unlocks new Lab nodes",
+	  "Unlocks a new Coin upgrade",
+	  "Unlocks a new Merchant dialogue",
+      "Combo no longer decays"
+    ]
   }
 ];
 
