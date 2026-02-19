@@ -42,6 +42,7 @@ import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } f
 
 import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
 import { getLabLevel, setLabLevel, getLabLevelKey, getRpMultBase } from '../ui/merchantTabs/labTab.js';
+import { getChannelUnlockState } from '../ui/merchantTabs/channelTab.js';
 import { 
     RESEARCH_NODES,
     getResearchNodeLevel,
@@ -2660,6 +2661,27 @@ function getUnlockRowDefinitions(slot) {
                 catch {}
                 try { window.resetSystem?.updateResetPanel?.(); }
                 catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Channel',
+            description: 'If true, unlocks the Channel tab',
+            isUnlocked: () => {
+                try { return !!getChannelUnlockState(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                const slot = getActiveSlot();
+                if (slot == null) return;
+                try { localStorage.setItem(`ccc:unlock:channel:${slot}`, '1'); } catch {}
+                try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'channel', slot } })); } catch {}
+            },
+            onDisable: () => {
+                const slot = getActiveSlot();
+                if (slot == null) return;
+                try { localStorage.setItem(`ccc:unlock:channel:${slot}`, '0'); } catch {}
+                try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'channel', slot } })); } catch {}
             },
             slot,
         },
