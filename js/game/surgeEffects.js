@@ -69,9 +69,9 @@ export function getEffectiveTsunamiNerfWithCombo() {
   let effective = getEffectiveTsunamiNerf();
 
   if (isSurgeActive(14)) {
-      const factor = getComboRestorationFactor();
-      const diff = 1.0 - effective;
-      effective += diff * factor;
+      const added = getComboRestorationFactor();
+      effective += added;
+      if (effective > 1) effective = 1;
   }
   
   return effective;
@@ -80,22 +80,22 @@ export function getEffectiveTsunamiNerfWithCombo() {
 export function getComboUiString() {
     if (!isSurgeActive(14)) return '';
     
-    const nerf = getTsunamiNerf();
-    let baseEffective = nerf + getTsunamiResearchBonus();
-    if (baseEffective > 1) baseEffective = 1;
-    
-    const factor = getComboRestorationFactor();
-    const diff = 1.0 - baseEffective;
-    const added = diff * factor;
+    const added = getComboRestorationFactor();
     
     // Show if combo is active (non-zero factor), even if added value is very small
-    if (factor <= 0) return '';
+    if (added <= 0) return '';
     
     let str = formatMultForUi(added);
     if (str === '0') str = '0.000';
     
     let finalStr = ` (+^${str})`;
-    if (factor >= 1.0) {
+    
+    const nerf = getTsunamiNerf();
+    let baseEffective = nerf + getTsunamiResearchBonus();
+    if (baseEffective > 1) baseEffective = 1;
+    const gap = 1.0 - baseEffective;
+    
+    if (added >= gap - 0.000001 && gap > 0) {
         finalStr = `<span style="color: #02e815">${finalStr}</span>`;
     }
     
@@ -509,7 +509,10 @@ function compareSurgeLevels(prev, curr) {
 }
 
 export function initSurgeEffects() {
-  initComboSystem(() => isSurgeActive(14) && (getTsunamiNerf() + getTsunamiResearchBonus() < 1.0));
+  initComboSystem(
+      () => isSurgeActive(14) && (getTsunamiNerf() + getTsunamiResearchBonus() < 1.0),
+      () => 1.0 - getEffectiveTsunamiNerf()
+  );
 
   const slot = getActiveSlot();
   // Update multiplier first to ensure cachedSurgeLevel is set,
