@@ -29,6 +29,7 @@
   transition: transform var(--merchant-anim);
   box-shadow: var(--merchant-shadow);
   --merchant-fade-size: clamp(18px, 5vw, 40px);
+  will-change: transform;
 }
 .merchant-overlay.is-open .merchant-sheet { transform: translateY(0); }
 
