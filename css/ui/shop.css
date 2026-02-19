@@ -37,6 +37,7 @@
   transform: translateY(100%);
   transition: transform var(--shop-anim);
   box-shadow: var(--shop-shadow);
+  will-change: transform;
 }
 
 .shop-overlay:not(.is-open) .shop-sheet,
@@ -498,6 +499,7 @@
   transform: translateY(100%);
   transition: transform 180ms ease;
   box-shadow: 0 -14px 40px rgba(0,0,0,.45);
+  will-change: transform;
 }
 
 .upg-overlay img {
