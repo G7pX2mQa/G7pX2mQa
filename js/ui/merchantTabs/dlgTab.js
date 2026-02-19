@@ -2185,6 +2185,11 @@ function selectMerchantTab(key) {
   const unlocked = merchantTabUnlockState.get(key);
   if (!def || !unlocked) key = 'dialogue';
 
+  if (merchantSheetEl) {
+    if (key === 'lab') merchantSheetEl.classList.add('is-lab-active');
+    else merchantSheetEl.classList.remove('is-lab-active');
+  }
+
   for (const k in merchantTabs.buttons) {
     merchantTabs.buttons[k].classList.toggle('is-active', k === key);
   }
