@@ -575,6 +575,11 @@ export function initSurgeEffects() {
     return baseGain.mulBigNumInteger(currentMultiplier);
   });
 
+  addExternalXpGainMultiplierProvider(({ baseGain }) => {
+    if (!isSurgeActive(19)) return baseGain;
+    return baseGain.mulSmall(2);
+  });
+
   addExternalMutationGainMultiplierProvider(({ baseGain }) => {
     if (currentMultiplier.cmp(BigNum.fromInt(1)) === 0) return baseGain;
     return baseGain.mulBigNumInteger(currentMultiplier);
