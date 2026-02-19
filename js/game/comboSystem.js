@@ -14,15 +14,28 @@ let getMaxComboFn = () => 1.0; // Default max combo if not provided
 // New: Rate limiting for growth
 let lastGrowthTime = 0;
 
+// New: Debug Panel features
+let isComboLocked = false;
+const comboChangeListeners = new Set();
+
 function resetState() {
+    isComboLocked = false;
     activeComboValue = 0;
     decayCounter = 0;
     decayAccumulator = 0;
     lastGrowthTime = 0;
+    notifyComboChange();
+}
+
+function notifyComboChange() {
+    comboChangeListeners.forEach(fn => {
+        try { fn(activeComboValue); } catch {}
+    });
 }
 
 export function onCoinCollected() {
     if (!isSurge14ActiveFn()) return;
+    if (isComboLocked) return;
     
     const now = performance.now();
     
@@ -34,9 +47,11 @@ export function onCoinCollected() {
     if (now - lastGrowthTime >= 1000) {
         const maxVal = getMaxComboFn();
         
+        let changed = false;
         // Ensure we are within bounds before adding
         if (activeComboValue < maxVal) {
             activeComboValue += COMBO_INCREMENT_AMOUNT;
+            changed = true;
             // Clamp
             if (activeComboValue > maxVal) {
                 activeComboValue = maxVal;
@@ -44,19 +59,24 @@ export function onCoinCollected() {
         } else if (activeComboValue > maxVal) {
             // If cap dropped below current value
             activeComboValue = maxVal;
+            changed = true;
         }
 
+        if (changed) notifyComboChange();
         lastGrowthTime = now;
     }
 }
 
 export function updateCombo(dt) {
     if (!isSurge14ActiveFn()) return;
+    if (isComboLocked) return;
 
     // Continuous cap check
     const maxVal = getMaxComboFn();
+    let changed = false;
     if (activeComboValue > maxVal) {
         activeComboValue = maxVal;
+        changed = true;
     }
     
     // 1. Process Decay
@@ -71,10 +91,12 @@ export function updateCombo(dt) {
                 // If we hit the cap (fully decayed), reset value
                 if (decayCounter >= DECAY_WINDOW_SEC) {
                     activeComboValue = 0;
+                    changed = true;
                 }
             }
         }
     }
+    if (changed) notifyComboChange();
 }
 
 // Returns the absolute value to add to the nerf exponent
@@ -107,3 +129,15 @@ export function initComboSystem(checkFn, maxComboFn) {
         resetState();
     }
 }
+
+// Debug Exports
+export function setComboLocked(locked) { isComboLocked = !!locked; }
+export function getComboLocked() { return isComboLocked; }
+export function setActiveCombo(val) { 
+    activeComboValue = Number(val) || 0; 
+    notifyComboChange();
+}
+export function getActiveCombo() { return activeComboValue; }
+export function getMaxCombo() { return getMaxComboFn(); }
+export function addComboChangeListener(fn) { comboChangeListeners.add(fn); }
+export function removeComboChangeListener(fn) { comboChangeListeners.delete(fn); }
