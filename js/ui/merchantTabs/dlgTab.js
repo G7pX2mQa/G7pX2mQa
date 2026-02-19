@@ -2003,6 +2003,27 @@ export function openMerchant() {
       merchantOverlayEl.classList.add('firstchat-instant');
   }
 
+  // Restore last tab (MOVED UP)
+  let last = 'dialogue';
+  try { last = localStorage.getItem(sk(MERCHANT_TAB_KEY_BASE)) || 'dialogue'; } catch {}
+
+  if (forcedDialogueTab) {
+    last = 'dialogue';
+  }
+
+  selectMerchantTab(last);
+
+  // Ensure no orphaned audio
+  stopTypingSfx();
+
+  // First-time chat
+  if (!met) {
+    const fc = merchantOverlayEl.querySelector('.merchant-firstchat');
+    fc?.classList.add('is-visible');
+    merchantOverlayEl.classList.add('firstchat-active');
+    runFirstMeet();
+  }
+
   // Reset transform and transition
   merchantSheetEl.style.transition = 'none';
   merchantSheetEl.style.transform = '';
@@ -2022,27 +2043,6 @@ export function openMerchant() {
 
       if (merchantCloseBtn && typeof merchantCloseBtn.focus === 'function') {
       try { merchantCloseBtn.focus({ preventScroll: true }); } catch {}
-      }
-
-      // Restore last tab
-      let last = 'dialogue';
-      try { last = localStorage.getItem(sk(MERCHANT_TAB_KEY_BASE)) || 'dialogue'; } catch {}
-    
-      if (forcedDialogueTab) {
-        last = 'dialogue';
-      }
-    
-      selectMerchantTab(last);
-
-      // Ensure no orphaned audio
-      stopTypingSfx();
-
-      // First-time chat
-      if (!met) {
-      const fc = merchantOverlayEl.querySelector('.merchant-firstchat');
-      fc?.classList.add('is-visible');
-      merchantOverlayEl.classList.add('firstchat-active');
-      runFirstMeet();
       }
     });
   });
