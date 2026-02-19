@@ -1571,12 +1571,7 @@ function ensureMerchantOverlay() {
   syncWorkshopTabUnlockState();
 
   try { initResetSystem(); } catch {}
-  try { initResetPanel(panelReset); } catch {}
-  try { updateResetPanel(); } catch {}
-  
-  try { initWorkshopTab(panelWorkshop); } catch {}
-  try { initWarpTab(panelWarp); } catch {}
-  try { initLabTab(panelLab); } catch {}
+  // Lazy init: initResetPanel, initWorkshopTab, initWarpTab, initLabTab deferred to selectMerchantTab
 
   if (!forgeUnlockListenerBound && typeof window !== 'undefined') {
       const handleUnlockChange = (event) => {
@@ -2195,10 +2190,38 @@ function selectMerchantTab(key) {
   if (key === 'dialogue') {
     try { renderDialogueList(); } catch {}
   }
+  if (key === 'reset') {
+    const panel = merchantTabs.panels['reset'];
+    if (panel && !panel.__resetInit) {
+        try { initResetPanel(panel); } catch {}
+    } else {
+        try { updateResetPanel(); } catch {}
+    }
+  }
+  if (key === 'workshop') {
+    const panel = merchantTabs.panels['workshop'];
+    if (panel && !panel.__workshopInit) {
+        try { initWorkshopTab(panel); } catch {}
+    } else {
+        try { updateWorkshopTab(); } catch {}
+    }
+  }
   if (key === 'warp') {
-    try { updateWarpTab(); } catch {}
+    const panel = merchantTabs.panels['warp'];
+    if (panel && !panel.__warpInit) {
+        try { initWarpTab(panel); } catch {}
+    } else {
+        try { updateWarpTab(); } catch {}
+    }
   }
   if (key === 'lab') {
+    const panel = merchantTabs.panels['lab'];
+    if (panel && !panel.__labInit) {
+        try {
+            initLabTab(panel);
+            panel.__labInit = true;
+        } catch {}
+    }
     if (typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
         runLabIntroDialogue();
     }
