@@ -511,7 +511,14 @@ function compareSurgeLevels(prev, curr) {
 export function initSurgeEffects() {
   initComboSystem(
       () => isSurgeActive(14) && (getTsunamiNerf() + getTsunamiResearchBonus() < 1.0),
-      () => 1.0 - getEffectiveTsunamiNerf()
+      () => 1.0 - getEffectiveTsunamiNerf(),
+      () => {
+          const level = getCurrentSurgeLevel();
+          if (level === Infinity || (typeof level === 'string' && level === 'Infinity') || level === Number.POSITIVE_INFINITY) return true;
+          if (typeof level === 'bigint') return level >= 20n;
+          if (typeof level === 'number') return level >= 20;
+          return false;
+      }
   );
 
   const slot = getActiveSlot();
