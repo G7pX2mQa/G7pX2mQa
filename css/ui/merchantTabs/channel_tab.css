@@ -14,7 +14,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-width: 600px;
+  max-width: 800px;
   width: 100%;
 }
 
@@ -41,6 +41,7 @@
   width: 100%;
   display: flex;
   justify-content: center;
+  max-width: 600px;
 }
 
 .channel-upgrade-btn {
@@ -76,10 +77,6 @@
   filter: grayscale(1);
 }
 
-.channel-upgrade-btn:disabled .channel-upgrade-title {
-  opacity: .7;
-}
-
 .channel-upgrade-title {
   font-weight: 700;
   font-size: 18px;
@@ -108,59 +105,97 @@
   margin-top: 4px;
 }
 
+/* List Layout */
 .channel-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
   width: 100%;
-  max-width: 500px;
-  align-items: center;
+  max-width: 900px;
+  align-items: stretch;
 }
 
-.channel-bar-container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.channel-list-header,
+.channel-row {
+  display: grid;
+  /* Adjusted grid: First column (Bar) needs space for the icon hanging off left */
+  /* Grid: Bar | Level | Alloc | Controls */
+  grid-template-columns: minmax(200px, 2fr) 80px 120px 140px; 
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px;
 }
 
-.channel-bar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.95rem;
+.channel-list-header {
   font-weight: 700;
+  color: #aaa;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-.channel-name {
+/* Ensure centering of headers */
+.list-head-name { 
+  text-align: center; 
+  /* Align "Channels" header with the bar (which has 20px left margin) */
+  padding-left: 20px; 
+}
+
+.channel-row {
+  background: none;
+  padding: 8px 0;
+  border-radius: 0;
+}
+
+/* 
+   XP/MP Bar Replication 
+   Variables mapped from .xp-counter in hud.css
+*/
+.channel-bar-container {
+  --ch-bar-h: clamp(34px, 5.2svh, 46px);
+  --ch-plus-size: clamp(52px, 7.4svh, 76px);
+  --ch-bar-outline: 3px;
+  --ch-bar-underlap: 0.44;
+
+  position: relative;
+  /* Height is driven by the max of bar height or icon size */
+  height: max(var(--ch-plus-size), var(--ch-bar-h));
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: #fff;
+  /* Ensure we have margin left to prevent icon cutoff if it hangs out */
+  /* The icon is shifted left by ~0.56 * size. Approx 40px max. */
+  /* Adding margin-left to safe-guard layout */
+  margin-left: 20px; 
+  width: calc(100% - 20px);
 }
 
-.channel-icon {
-  width: 24px;
-  height: 24px;
+.channel-icon-overlay {
+  position: absolute;
+  top: 50%;
+  /* Replicate XP bar icon positioning */
+  left: calc((var(--ch-bar-underlap) - 1) * var(--ch-plus-size));
+  transform: translateY(-50%);
+  width: var(--ch-plus-size);
+  height: auto;
   object-fit: contain;
+  z-index: 2;
+  pointer-events: none;
+  /* User requested "attached to the left" like XP bar */
 }
 
-.channel-level {
-  color: #ffe64d;
-}
-
-.channel-bar-wrapper {
+.channel-bar-inner {
   position: relative;
-  height: 28px;
-  background: #1a1a1a;
-  border: 2px solid #333;
-  border-radius: 999px;
+  z-index: 1;
+  flex: 1;
+  width: 100%;
+  height: var(--ch-bar-h);
+  border: var(--ch-bar-outline) solid #01060f; /* Matched XP border color */
+  border-radius: 0; /* Matched XP radius */
+  background: linear-gradient(180deg, #1a1a1a, #0d0d0d);
+  box-shadow: inset 0 6px 10px rgba(255,255,255,0.08), inset 0 -6px 8px rgba(0,0,0,0.5);
   overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .channel-bar-fill {
@@ -169,72 +204,129 @@
   left: 0;
   bottom: 0;
   width: 0%;
-  background: linear-gradient(90deg, #ffd700, #ffa500);
-  border-radius: 999px;
+  background: linear-gradient(90deg, #ffd700 0%, #ffa500 50%, #ff8c00 100%); /* Gold/Orange */
   transition: width 0.1s linear;
 }
 
-.channel-bar-text {
+.channel-bar-fill::after {
+  content: "";
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  background: linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0));
+  mix-blend-mode: overlay;
+}
+
+.channel-bar-text {
+  position: relative;
   z-index: 2;
-}
-
-.channel-allocation {
+  height: 100%;
+  width: 100%;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-top: 4px;
-}
-
-.btn-allocate {
-  appearance: none;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  justify-content: center; /* Centered as requested */
+  gap: 6px;
+  
+  /* Text styling */
+  font-size: clamp(14px, 2vw, 18px); /* Increased size */
+  font-weight: 700;
   color: #fff;
-  border-radius: 6px;
-  padding: 4px 12px;
-  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+  pointer-events: none;
+}
+
+/* Values */
+.channel-level-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.channel-alloc-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* Controls */
+.channel-row-controls {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.btn-ch-control {
+  appearance: none;
+  background: linear-gradient(180deg, #4a4a4a, #2a2a2a);
+  border: 1px solid #000;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: 700;
   font-size: 0.9rem;
+  width: 32px;
+  height: 32px;
   cursor: pointer;
-  transition: background 0.1s;
+  display: grid;
+  place-items: center;
+  user-select: none;
 }
 
-.btn-allocate:hover {
-  background: rgba(255, 255, 255, 0.2);
+.btn-ch-control:hover {
+  background: linear-gradient(180deg, #5a5a5a, #3a3a3a);
 }
 
-.btn-allocate:active {
+.btn-ch-control:active {
   transform: translateY(1px);
+  background: #2a2a2a;
 }
 
-.btn-allocate:disabled {
+.btn-ch-control:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  filter: grayscale(1);
 }
 
-.channel-rate {
-  font-size: 0.85rem;
-  color: #aaa;
+.btn-ch-cap {
+  width: auto;
+  padding: 0 8px;
+  font-size: 0.8rem;
 }
 
+/* Mobile Responsive */
 @media (max-width: 600px) {
-  .channel-tab {
-    padding: 12px;
+  .channel-list-header {
+    display: none; 
   }
   
-  .channel-upgrade-btn {
-    width: 100%;
-    /* font-size: 1.1rem; is this needed? .channel-upgrade-title handles size. */
+  .channel-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 
+      "bar bar"
+      "lvl alloc"
+      "ctrl ctrl";
+    gap: 8px;
   }
   
   .channel-bar-container {
-    padding: 8px;
+    grid-area: bar;
+    /* Adjust dimensions for mobile if needed, though clamp() handles much */
+    margin-left: 16px;
+    width: calc(100% - 16px);
+  }
+  
+  .channel-level-val::before { content: "Lvl: "; color: #aaa; font-size: 0.8rem; font-weight: 400; }
+  .channel-alloc-val::before { content: "Alloc: "; color: #aaa; font-size: 0.8rem; font-weight: 400; }
+  
+  .channel-level-val { grid-area: lvl; justify-self: start; }
+  .channel-alloc-val { grid-area: alloc; justify-self: end; }
+  
+  .channel-row-controls {
+    grid-area: ctrl;
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .btn-ch-control {
+    flex: 1;
+    height: 40px;
   }
 }
