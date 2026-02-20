@@ -1,0 +1,222 @@
+.channel-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  color: #fff;
+}
+
+.channel-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 600px;
+  width: 100%;
+}
+
+.channel-explainer {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #e6f5ff;
+  white-space: pre-line;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.channel-total-fp {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ffe64d;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.channel-controls {
+  margin-bottom: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-focus-upgrade {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 24px;
+  min-width: min(300px, 100%);
+  
+  /* Yellow Gradient Theme */
+  background: linear-gradient(180deg, #ffd700, #daa520);
+  box-shadow: 0 6px #8b6914, 0 0 0 3px rgba(139, 105, 20, 0.6);
+  
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.2rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  
+  cursor: pointer;
+  transition: transform 0.1s, filter 0.1s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.btn-focus-upgrade:active {
+  transform: translateY(2px);
+  box-shadow: 0 4px #8b6914, 0 0 0 3px rgba(139, 105, 20, 0.6);
+}
+
+.btn-focus-upgrade:hover {
+  filter: brightness(1.1);
+}
+
+.focus-upgrade-cost {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  font-weight: 600;
+}
+
+.focus-capacity-display {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 4px;
+}
+
+.channel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 500px;
+  align-items: center;
+}
+
+.channel-bar-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.channel-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.channel-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+}
+
+.channel-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.channel-level {
+  color: #ffe64d;
+}
+
+.channel-bar-wrapper {
+  position: relative;
+  height: 28px;
+  background: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.channel-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 0%;
+  background: linear-gradient(90deg, #ffd700, #ffa500);
+  border-radius: 999px;
+  transition: width 0.1s linear;
+}
+
+.channel-bar-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  z-index: 2;
+}
+
+.channel-allocation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.btn-allocate {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.btn-allocate:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-allocate:active {
+  transform: translateY(1px);
+}
+
+.btn-allocate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.channel-rate {
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+@media (max-width: 600px) {
+  .channel-tab {
+    padding: 12px;
+  }
+  
+  .btn-focus-upgrade {
+    width: 100%;
+    font-size: 1.1rem;
+  }
+  
+  .channel-bar-container {
+    padding: 8px;
+  }
+}

@@ -1,0 +1,371 @@
+/* Workshop Tab Styles */
+
+/* 
+   Structural Fixes: 
+   Ensure the container hierarchy allows full-height expansion 
+*/
+.merchant-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.merchant-panels {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.merchant-panel.is-active {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* Main Workshop Container */
+.merchant-workshop {
+  display: flex;
+  flex-direction: row; /* Keeps center alignment logic */
+  position: relative;
+  flex: 1; /* Grow to fill the panel */
+  min-height: 100%; /* Fallback */
+  color: #fff;
+  font-family: var(--font-ui);
+  box-sizing: border-box;
+  justify-content: center;
+  align-items: stretch; /* Stretch children to full height */
+  container-type: inline-size;
+}
+
+@media (pointer: fine) {
+  .merchant-workshop {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+}
+
+/* Center Column - contains the actual UI */
+.workshop-center-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 632px;
+  padding: 16px;
+  box-sizing: border-box;
+  flex: 0 0 auto; /* Do not grow or shrink beyond 632px/100% logic */
+  z-index: 1; /* Ensure it stays above side cols */
+  margin: 0 auto; /* Ensure centering */
+}
+
+/* Side Columns - for gear decorations */
+/* Converted to absolute positioning to avoid affecting center col width */
+.workshop-side-col {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: max(0px, calc(50% - 316px)); /* Fill space outside the 632px center */
+  overflow: hidden;
+  display: none; /* Hidden by default on small screens */
+  pointer-events: none; /* purely decorative */
+}
+
+.workshop-side-left {
+  left: 0;
+}
+
+.workshop-side-right {
+  right: 0;
+}
+
+@media (min-width: 800px) {
+  .workshop-side-col {
+    display: block;
+  }
+}
+
+/* Background Gears */
+.workshop-bg-gear {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+.workshop-info-panel,
+.workshop-doubler-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.workshop-info-panel {
+  background-color: #333;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+/* Gear HUD Bar */
+.workshop-gear-hud {
+  position: relative;
+  width: min(90%, 400px);
+  margin-bottom: 12px;
+  
+  /* Sizing variables - scaled slightly smaller than main HUD */
+  --gear-bar-h: clamp(36px, 5svh, 54px);
+  --gear-icon-s: calc(var(--gear-bar-h) * 1.4);
+  
+  height: var(--gear-icon-s);
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Center the bar horizontally */
+}
+
+.workshop-gear-plus {
+  position: absolute;
+  top: 50%;
+  /* Attach to the left side, centered on the edge like Coin HUD */
+  left: calc(var(--gear-icon-s) * -0.5);
+  transform: translateY(-50%);
+  width: var(--gear-icon-s);
+  height: var(--gear-icon-s);
+  object-fit: contain;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.workshop-gear-bar {
+  height: var(--gear-bar-h);
+  width: 100%;
+  
+  /* Simple gray downward gradient */
+  background: linear-gradient(180deg, #999 0%, #666 100%);
+  border: 3px solid #000;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  padding: 0 16px;
+  box-sizing: border-box;
+  
+  box-shadow: 
+    inset 0 2px 4px rgba(255,255,255,0.25), 
+    inset 0 -2px 4px rgba(0,0,0,0.25);
+    
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+.workshop-gear-amount {
+  position: relative;
+  top: -1.5px;
+  font-weight: 900;
+  font-size: clamp(20px, 4cqw, 32px); /* Responsive font size */
+  color: #fff;
+  line-height: 1;
+  z-index: 10;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+  pointer-events: auto;
+  
+  /* Desktop text stroke */
+  -webkit-text-stroke: 1px #000;
+  text-stroke: 1px #000;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+}
+
+@media (pointer: coarse) {
+  .workshop-gear-amount {
+    /* Mobile text style matching hud.css */
+	top: 1px;
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    -webkit-text-fill-color: #fff;
+    text-shadow:
+      0 0.5px 0 #000, 0 -0.5px 0 #000,
+      0.5px 0 0 #000, -0.5px 0 0 #000,
+      0.5px 0.5px 0 #000, 0.5px -0.5px 0 #000,
+      -0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000,
+      0 1px 0 rgba(0,0,0,0.28);
+  }
+}
+
+.workshop-rate-display {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin-bottom: 16px;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+  pointer-events: auto;
+}
+
+.workshop-rate-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.workshop-description {
+  font-size: 16px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+/* Doubler Panel */
+.workshop-upgrade-btn {
+  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 100%); /* Brighter active state */
+  border: 2px solid #6a6a6a;
+  border-radius: 12px;
+  padding: 16px 24px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  transition: transform 0.1s, filter 0.1s;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  user-select: none;
+}
+
+.workshop-upgrade-btn:active {
+  transform: scale(0.98);
+  filter: brightness(0.9);
+}
+
+.workshop-upgrade-btn:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%); /* Darker inactive state */
+  border-color: #444;
+}
+
+.workshop-upgrade-btn:disabled > * {
+  filter: grayscale(1);
+}
+
+.workshop-upgrade-btn:disabled .workshop-upgrade-title {
+  opacity: 0.7;
+}
+
+.workshop-upgrade-title {
+  font-weight: bold;
+  font-size: 18px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.workshop-upgrade-effect {
+  font-size: 15px;
+  color: #88ff88;
+}
+
+.workshop-upgrade-cost {
+  font-size: 15px;
+  color: #D9D621;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.workshop-upgrade-cost-icon {
+  width: 16px;
+  height: 16px;
+  position: relative;
+  top: 1px;
+  margin-left: 1px;
+}
+
+.workshop-gear-amount .infinity-symbol {
+  top: -0.06em;
+}
+
+/* Automation Shop Button - Styled like HUD .btn-stats */
+.btn-automation-shop {
+  appearance: none;
+  border: 4px solid #000;
+  border-radius: 8px;
+  padding: 0;
+  margin: 0 0 24px 0;
+  
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  outline: none;
+  
+  background: linear-gradient(180deg,#e04a3f,#b92b20); /* Same as btn-stats */
+  
+  font-weight: 900;
+  font-size: clamp(18px, 2.5cqw, 32px); /* Matches HUD btn-stats */
+  color: #fff;
+  
+  -webkit-text-stroke: 1px #000;
+  text-stroke: 1px #000;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+  
+  transition: transform 120ms ease, filter 120ms ease;
+  user-select: none;
+  
+  height: clamp(64px, 10svh, 110px); /* Matches HUD height */
+  
+  /* Width logic to match HUD button size (approximate) */
+  width: calc(25vw - 16px);
+  min-width: 120px;
+  max-width: 280px;
+  
+  white-space: normal;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.btn-automation-shop:active {
+  transform: translateY(1px) scale(0.997);
+}
+
+/* Responsive adjustments */
+@media (max-width: 632px) {
+  /* .workshop-info-panel, .workshop-doubler-panel width is now controlled by .workshop-center-col */
+  /* But .workshop-center-col is 100% width already */
+  
+  .btn-automation-shop {
+    /* On mobile, HUD buttons are often 50% width (2 cols) */
+    width: calc(50vw - 16px);
+    max-width: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .btn-automation-shop,
+  .workshop-gears-display .coin-amount {
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    -webkit-text-fill-color: #fff;
+    text-shadow:
+      0 0.5px 0 #000, 0 -0.5px 0 #000,
+      0.5px 0 0 #000, -0.5px 0 0 #000,
+      0.5px 0.5px 0 #000, 0.5px -0.5px 0 #000,
+      -0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000,
+      0 1px 0 rgba(0,0,0,0.28);
+  }
+}
+
+.automation-shop-overlay {
+  z-index: 4005 !important;
+}
+
+.workshop-upgrade-btn.is-automated {
+  border: 5px solid #1DF71D !important;
+}
