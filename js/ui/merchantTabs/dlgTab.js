@@ -1601,13 +1601,6 @@ function ensureMerchantOverlay() {
   syncWorkshopTabUnlockState();
 
   try { initResetSystem(); } catch {}
-  try { initResetPanel(panelReset); } catch {}
-  try { updateResetPanel(); } catch {}
-  
-  try { initWorkshopTab(panelWorkshop); } catch {}
-  try { initWarpTab(panelWarp); } catch {}
-  try { initLabTab(panelLab); } catch {}
-  try { initChannelTab(panelChannel); } catch {}
 
   if (!forgeUnlockListenerBound && typeof window !== 'undefined') {
       const handleUnlockChange = (event) => {
@@ -2234,16 +2227,26 @@ function selectMerchantTab(key) {
   if (key === 'dialogue') {
     try { renderDialogueList(); } catch {}
   }
+  if (key === 'reset') {
+    try { initResetPanel(merchantTabs.panels['reset']); } catch {}
+    try { updateResetPanel(); } catch {}
+  }
+  if (key === 'workshop') {
+    try { initWorkshopTab(merchantTabs.panels['workshop']); } catch {}
+  }
   if (key === 'warp') {
+    try { initWarpTab(merchantTabs.panels['warp']); } catch {}
     try { updateWarpTab(); } catch {}
   }
   if (key === 'lab') {
+    try { initLabTab(merchantTabs.panels['lab']); } catch {}
     if (typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
         runLabIntroDialogue();
     }
     try { updateLabTab(); } catch {}
   }
   if (key === 'channel') {
+    try { initChannelTab(merchantTabs.panels['channel']); } catch {}
     try { updateChannelTab(); } catch {}
   }
 
