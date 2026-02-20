@@ -29,7 +29,7 @@ const CHANNELS = {
 const CHANNEL_DEFS = {
     [CHANNELS.COIN]: {
         id: CHANNELS.COIN,
-        name: 'Coin Channel',
+        name: 'Coin',
         icon: 'img/currencies/coin/coin_plus_base.webp',
         baseReq: 1, // 1 FP per level
         description: 'Boosts Global Coin Value by +100% per level',
@@ -454,26 +454,40 @@ function buildUI(panel) {
     const list = document.createElement('div');
     list.className = 'channel-list';
     
-    // Render Channel Bars
+    // Header Row
+    const listHeader = document.createElement('div');
+    listHeader.className = 'channel-list-header';
+    listHeader.innerHTML = `
+        <div class="list-head-name">Channels</div>
+        <div class="list-head-level">Level</div>
+        <div class="list-head-alloc">Focus Allocated</div>
+        <div class="list-head-controls"></div>
+    `;
+    list.appendChild(listHeader);
+    
+    // Render Channel Rows
     for (const [id, def] of Object.entries(CHANNEL_DEFS)) {
         const item = document.createElement('div');
-        item.className = 'channel-bar-container';
+        item.className = 'channel-row';
         item.innerHTML = `
-            <div class="channel-bar-header">
-                <div class="channel-name">
-                    <img src="${def.icon}" class="channel-icon" alt="">
-                    ${def.name}
-                </div>
-                <div class="channel-level" id="ch-lvl-${id}">Lvl 0</div>
+            <div class="channel-bar-container">
+                 <img src="${def.icon}" class="channel-icon-overlay" alt="">
+                 <div class="channel-bar-inner">
+                    <div class="channel-bar-fill" id="ch-fill-${id}"></div>
+                    <div class="channel-bar-text">
+                        <span class="channel-name-text">${def.name}</span>
+                    </div>
+                 </div>
             </div>
-            <div class="channel-bar-wrapper">
-                <div class="channel-bar-fill" id="ch-fill-${id}"></div>
-                <div class="channel-bar-text" id="ch-text-${id}">0 / 1 FP</div>
-            </div>
-            <div class="channel-allocation">
-                <button class="btn-allocate" data-action="sub" data-id="${id}">-</button>
-                <div class="channel-rate">Focus: <span id="ch-alloc-${id}">0</span></div>
-                <button class="btn-allocate" data-action="add" data-id="${id}">+</button>
+            
+            <div class="channel-level-val" id="ch-lvl-${id}">0</div>
+            
+            <div class="channel-alloc-val" id="ch-alloc-${id}">0</div>
+            
+            <div class="channel-row-controls">
+                <button class="btn-ch-control" data-action="add" data-id="${id}">+</button>
+                <button class="btn-ch-control" data-action="sub" data-id="${id}">-</button>
+                <button class="btn-ch-control btn-ch-cap" data-action="cap" data-id="${id}">Cap</button>
             </div>
         `;
         list.appendChild(item);
@@ -489,12 +503,23 @@ function buildUI(panel) {
         buyMaxFocusCapacity();
     });
 
-    wrapper.querySelectorAll('.btn-allocate').forEach(btn => {
+    wrapper.querySelectorAll('.btn-ch-control').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const id = e.target.dataset.id;
             const action = e.target.dataset.action;
-            const amount = action === 'add' ? 1 : -1;
-            allocateFocus(id, amount);
+            
+            if (action === 'add') {
+                allocateFocus(id, 1);
+            } else if (action === 'sub') {
+                allocateFocus(id, -1);
+            } else if (action === 'cap') {
+                let currentTotal = 0;
+                for(const c of Object.values(state.channels)) currentTotal += c.allocated;
+                const available = state.focusCapacity - currentTotal;
+                if (available > 0) {
+                    allocateFocus(id, available);
+                }
+            }
         });
     });
 }
@@ -537,14 +562,15 @@ export function updateChannelTab() {
     // Allocation Buttons State
     for (const id in CHANNEL_DEFS) {
         const ch = state.channels[id];
-        const btnAdd = channelPanel.querySelector(`.btn-allocate[data-id="${id}"][data-action="add"]`);
-        if (btnAdd) {
-            btnAdd.disabled = (totalAlloc >= state.focusCapacity);
-        }
-        const btnSub = channelPanel.querySelector(`.btn-allocate[data-id="${id}"][data-action="sub"]`);
-        if (btnSub) {
-            btnSub.disabled = (ch.allocated <= 0);
-        }
+        const btnAdd = channelPanel.querySelector(`.btn-ch-control[data-id="${id}"][data-action="add"]`);
+        const btnCap = channelPanel.querySelector(`.btn-ch-control[data-id="${id}"][data-action="cap"]`);
+        const btnSub = channelPanel.querySelector(`.btn-ch-control[data-id="${id}"][data-action="sub"]`);
+        
+        const isFull = (totalAlloc >= state.focusCapacity);
+
+        if (btnAdd) btnAdd.disabled = isFull;
+        if (btnCap) btnCap.disabled = isFull;
+        if (btnSub) btnSub.disabled = (ch.allocated <= 0);
     }
 }
 
@@ -555,13 +581,12 @@ function updateChannelVisuals() {
         const ch = state.channels[id];
         
         const elLvl = channelPanel.querySelector(`#ch-lvl-${id}`);
-        if (elLvl) elLvl.textContent = `Lvl ${formatNumber(ch.level)}`;
+        if (elLvl) elLvl.textContent = formatNumber(ch.level);
         
         const elAlloc = channelPanel.querySelector(`#ch-alloc-${id}`);
         if (elAlloc) elAlloc.textContent = ch.allocated;
         
         const elFill = channelPanel.querySelector(`#ch-fill-${id}`);
-        const elText = channelPanel.querySelector(`#ch-text-${id}`);
         
         // Progress
         // Req is always 1.
@@ -579,7 +604,6 @@ function updateChannelVisuals() {
         }
 
         if (elFill) elFill.style.width = `${pct}%`;
-        if (elText) elText.textContent = `${ch.fp.toFixed(2)} / 1 FP`;
     }
 }
 
