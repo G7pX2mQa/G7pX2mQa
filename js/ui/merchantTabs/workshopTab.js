@@ -2,7 +2,7 @@
 import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { bank, CURRENCIES, getActiveSlot } from '../../util/storage.js';
-import { registerTick } from '../../game/gameLoop.js';
+import { registerTick, TICK_RATE, FIXED_STEP } from '../../game/gameLoop.js';
 import { openShop, playPurchaseSfx, isAnyMenuScrolling } from '../shopOverlay.js';
 import { hasDoneInfuseReset } from './resetTab.js';
 import { bigNumFromLog10, getLevelNumber, approxLog10BigNum } from '../../game/upgrades.js';
@@ -307,7 +307,7 @@ function buyGenerationUpgrade() {
 function onTick() {
   if (!hasDoneInfuseReset()) return;
   const rateBn = getGearsPerSecond(currentGenerationLevel);
-  const perTick = rateBn.mulDecimal('0.05');
+  const perTick = rateBn.mulDecimal(String(FIXED_STEP));
   const whole = perTick.floorToInteger();
   const hasWhole = !whole.isZero();
   if (hasWhole) {
@@ -319,7 +319,7 @@ function onTick() {
       // Safe to convert to number
       const lvlNum = Number(currentGenerationLevel.toPlainIntegerString());
       const rateNum = Math.pow(isSurgeActive(11) ? 4 : (isSurgeActive(7) ? 3 : 2), lvlNum);
-      const perTickNum = rateNum / 20;
+      const perTickNum = rateNum / TICK_RATE;
       const wholeNum = Math.floor(perTickNum);
       const frac = perTickNum - wholeNum;
       accumulatorBuffer += frac;
