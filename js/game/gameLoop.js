@@ -160,7 +160,7 @@ export class RateAccumulator {
   }
 
   addRate(amountPerSecond) {
-    // This logic assumes 20 ticks per second (FIXED_STEP)
+    // This logic assumes TICK_RATE ticks per second (FIXED_STEP)
     const perTick = amountPerSecond * FIXED_STEP;
     this.buffer += perTick;
 
