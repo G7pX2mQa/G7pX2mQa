@@ -9,11 +9,12 @@
 @import "./game/coin.css";
 @import "./game/offline_panel.css";
 @import "./ui/shop.css";
-@import "./ui/merchantTabs/dialogueTab.css";
-@import "./ui/merchantTabs/resetTab.css";
-@import "./ui/merchantTabs/workshopTab.css";
-@import "./ui/merchantTabs/warpTab.css";
-@import "./ui/merchantTabs/labTab.css";
+@import "./ui/merchantTabs/dialogue_tab.css";
+@import "./ui/merchantTabs/reset_tab.css";
+@import "./ui/merchantTabs/workshop_tab.css";
+@import "./ui/merchantTabs/warp_tab.css";
+@import "./ui/merchantTabs/lab_tab.css";
+@import "./ui/merchantTabs/channel_tab.css";
 @import "./ui/popups.css";
 @import "./ui/notifications.css";
 @import "./misc/debug.css";
