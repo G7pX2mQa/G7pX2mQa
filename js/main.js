@@ -571,6 +571,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./ui/merchantTabs/labTab.js'),
     import('./util/fpsTracker.js'),
     import('./ui/notifications.js'),
+    import('./ui/merchantTabs/channelTab.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -742,6 +743,7 @@ images: [
     labTabModule,
     fpsTrackerModule,
     notificationModule,
+    channelTabModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -770,6 +772,7 @@ images: [
   const { initLabLogic } = labTabModule;
   const { initFpsTracker } = fpsTrackerModule;
   const { initNotifications, unpauseNotifications: _unpause, showNotification } = notificationModule;
+  const { initChannelSystem } = channelTabModule;
   unpauseNotifications = _unpause;
 
   window.bank = bank;
