@@ -321,7 +321,8 @@ export function getRpMult() {
 let labSystem = null;
 
 export function initLabTab(panel) {
-  if (!panel) return;
+  if (!panel || panel.__labInit) return;
+  panel.__labInit = true;
   panel.innerHTML = '';
   panel.style.position = 'relative';
   panel.style.overflow = 'hidden';
