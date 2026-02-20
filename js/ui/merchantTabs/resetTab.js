@@ -57,6 +57,7 @@ import {
 } from '../../game/labNodes.js';
 import { getLabLevel } from './labTab.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
+import { resetChannels } from './channelTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 
 const BN = BigNum;
