@@ -395,7 +395,7 @@ function onTick(dt) {
       // Accumulate
       if (baseRate.cmp(1e9) > 0 || baseRate.isInfinite?.()) {
           // Direct add per tick for large numbers, using dt
-          // dt might be > 0.05 if lag occurs, but usually 0.05
+          // dt corresponds to FIXED_STEP (usually 0.05s)
           const perTick = baseRate.mulDecimal(String(dt), 18);
           if (bank.books) bank.books.add(perTick);
       } else {
