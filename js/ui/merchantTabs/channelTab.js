@@ -1,84 +1,551 @@
-import { getActiveSlot } from '../../util/storage.js';
+import { BigNum } from '../../util/bigNum.js';
+import { formatNumber } from '../../util/numFormat.js';
+import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../../util/storage.js';
+import { registerTick } from '../../game/gameLoop.js';
+import { addExternalCoinMultiplierProvider } from '../../game/xpSystem.js';
+import { playPurchaseSfx } from '../shopOverlay.js';
 
+/* =========================================
+   CONSTANTS & KEYS
+   ========================================= */
+
+const KEY_PREFIX = 'ccc:channel';
+const KEY_FOCUS_CAPACITY = (slot) => `${KEY_PREFIX}:capacity:${slot}`;
+const KEY_TOTAL_FP = (slot) => `${KEY_PREFIX}:totalFP:${slot}`;
+// We store channel data in a single JSON object for simplicity, or separate keys? 
+// Separate keys are safer for partial updates/watches, but JSON is cleaner for "list of channels".
+// Given we only have one channel now, let's use a structured key per channel or a single state object.
+// Let's use `${KEY_PREFIX}:data:${slot}` storing { [channelId]: { level: '0', fp: '0', allocated: 0 } }
+const KEY_CHANNEL_DATA = (slot) => `${KEY_PREFIX}:data:${slot}`;
+
+const BASE_FOCUS_COST_LOG = 999; // 1e999
+const MAX_FOCUS_CAPACITY = 1000;
+
+const CHANNELS = {
+    COIN: 'coin'
+};
+
+const CHANNEL_DEFS = {
+    [CHANNELS.COIN]: {
+        id: CHANNELS.COIN,
+        name: 'Coin Channel',
+        icon: 'img/currencies/coin/coin_plus_base.webp',
+        baseReq: 1, // 1 FP per level
+        description: 'Boosts Global Coin Value by +100% per level',
+    }
+};
+
+/* =========================================
+   STATE
+   ========================================= */
+
+let channelSystemInitialized = false;
 let channelTabInitialized = false;
 let channelPanel = null;
 
-export function isChannelUnlocked() {
-  const slot = getActiveSlot();
-  if (slot == null) return false;
-  
-  // Check if manually unlocked via debug/console
-  try {
-      if (localStorage.getItem(`ccc:unlock:channel:${slot}`) === '1') return true;
-  } catch {}
+const state = {
+    focusCapacity: 1,
+    totalFPAccumulated: BigNum.fromInt(0),
+    channels: {
+        [CHANNELS.COIN]: {
+            level: BigNum.fromInt(0),
+            fp: 0, // float for sub-1 amounts
+            allocated: 0
+        }
+    }
+};
 
-  // Check Surge 20
-  // We need to import isSurgeActive, but surgeEffects imports from here potentially (circular dep?)
-  // Actually, surgeEffects is usually imported by dlgTab.
-  // We can inject the checker or use a global event listener, or import it dynamically if needed.
-  // For simplicity, let's assume the caller (dlgTab) will handle the primary unlock logic or pass it.
-  // BUT, to keep it self-contained:
-  try {
-      // Dynamic import to avoid circular dependency if surgeEffects imports dlgTab which imports this.
-      // However, surgeEffects is a game system, dlgTab is UI.
-      // Let's rely on the caller passing the state or checking it in dlgTab.
-      // For now, let's just return false and let dlgTab manage the "unlocked" state based on its own logic (Surge 20).
-      // Wait, the plan says "Implement isChannelUnlocked... using isSurgeActive(20)".
-      // Let's try importing it. js/game/surgeEffects.js
-      // surgeEffects imports: bigNum, storage, xpSystem, upgradeEffects, mutationSystem, resetTab, gameLoop, labNodes, comboSystem, numFormat.
-      // It does NOT import dlgTab. So we are safe to import surgeEffects here?
-      // No, resetTab imports dlgTab. surgeEffects imports resetTab. So surgeEffects -> resetTab -> dlgTab.
-      // If dlgTab imports channelTab, and channelTab imports surgeEffects, we have a cycle:
-      // dlgTab -> channelTab -> surgeEffects -> resetTab -> dlgTab.
-      // We must avoid importing surgeEffects here.
-      
-      // Solution: dlgTab will determine if it's unlocked and pass that state, OR we use a global checker.
-      // actually, isSurgeActive is also available via window if we expose it, or we can just check the surge level directly from storage/resetTab.
-      // resetTab imports dlgTab? Yes.
-      // So we can't import resetTab either.
-      
-      // Let's make isChannelUnlocked rely ONLY on the storage flag for now, and let dlgTab handle the Surge 20 check
-      // and SET the storage flag or handle the "OR" logic itself.
-      // Actually, the plan says "isChannelUnlocked will check isSurgeActive(20) OR debug flag".
-      // To break the cycle, we can inject the `isSurgeActive` function or let dlgTab pass it.
-      // Let's implement `setChannelUnlockChecker` or similar.
-  } catch {}
-  
-  return false; 
+/* =========================================
+   PERSISTENCE
+   ========================================= */
+
+function getSlot() {
+    return getActiveSlot();
 }
 
-let isSurgeActiveFn = () => false;
+function loadState() {
+    const slot = getSlot();
+    if (slot == null) return;
 
-export function setChannelUnlockChecker(fn) {
-    isSurgeActiveFn = fn;
+    // Load Capacity
+    try {
+        const capRaw = localStorage.getItem(KEY_FOCUS_CAPACITY(slot));
+        state.focusCapacity = capRaw ? parseInt(capRaw, 10) : 1;
+        if (isNaN(state.focusCapacity)) state.focusCapacity = 1;
+    } catch {
+        state.focusCapacity = 1;
+    }
+
+    // Load Total FP
+    try {
+        const totalRaw = localStorage.getItem(KEY_TOTAL_FP(slot));
+        state.totalFPAccumulated = totalRaw ? BigNum.fromAny(totalRaw) : BigNum.fromInt(0);
+    } catch {
+        state.totalFPAccumulated = BigNum.fromInt(0);
+    }
+
+    // Load Channel Data
+    try {
+        const dataRaw = localStorage.getItem(KEY_CHANNEL_DATA(slot));
+        if (dataRaw) {
+            const parsed = JSON.parse(dataRaw);
+            for (const id in parsed) {
+                if (state.channels[id]) {
+                    state.channels[id].level = BigNum.fromAny(parsed[id].level || 0);
+                    state.channels[id].fp = Number(parsed[id].fp || 0);
+                    state.channels[id].allocated = Number(parsed[id].allocated || 0);
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to load channel data", e);
+    }
+    
+    // Ensure allocation doesn't exceed capacity (safety check)
+    let totalAlloc = 0;
+    for (const ch of Object.values(state.channels)) {
+        totalAlloc += ch.allocated;
+    }
+    if (totalAlloc > state.focusCapacity) {
+        // Reset allocations if invalid
+        for (const id in state.channels) {
+            state.channels[id].allocated = 0;
+        }
+    }
+}
+
+function saveState() {
+    const slot = getSlot();
+    if (slot == null) return;
+
+    localStorage.setItem(KEY_FOCUS_CAPACITY(slot), String(state.focusCapacity));
+    localStorage.setItem(KEY_TOTAL_FP(slot), state.totalFPAccumulated.toStorage());
+
+    const dataToSave = {};
+    for (const [id, ch] of Object.entries(state.channels)) {
+        dataToSave[id] = {
+            level: ch.level.toStorage(),
+            fp: ch.fp,
+            allocated: ch.allocated
+        };
+    }
+    localStorage.setItem(KEY_CHANNEL_DATA(slot), JSON.stringify(dataToSave));
+}
+
+// Partial save for frequent updates (game loop)?
+// Actually, saving every tick is bad. We should save periodically or on important events.
+// But for this task, standard practice in this codebase seems to be `saveSlot:change` reloads,
+// and we might rely on auto-save or explicit save triggers.
+// `util/storage.js` has watchers, but for our custom keys we manage them.
+// We will save on upgrade/allocate interactions.
+// For passive gain, we might rely on the global save loop if there is one, or just save periodically.
+// The `gameLoop.js` doesn't inherently save. `storage.js` has a heartbeat.
+// We'll implement a debounced save or save on window unload/hide.
+
+let saveTimeout = null;
+function scheduleSave() {
+    if (saveTimeout) return;
+    saveTimeout = setTimeout(() => {
+        saveTimeout = null;
+        saveState();
+    }, 2000);
+}
+
+/* =========================================
+   LOGIC
+   ========================================= */
+
+function getFocusUpgradeCost() {
+    if (state.focusCapacity >= MAX_FOCUS_CAPACITY) return BigNum.fromAny('Infinity');
+    
+    // Cost = 1e(999 + (capacity - 1))
+    // Base (cap 1) = 1e999
+    // Cap 2 = 1e1000
+    const exponent = BASE_FOCUS_COST_LOG + (state.focusCapacity - 1);
+    
+    // Create BigNum from exponent
+    // BigNum structure for 10^N is roughly { sig: 1, e: N } or using fromLog10
+    // But standard `fromLog10` logic might be simpler or constructing manually if N is huge.
+    // Since N starts at 999, it fits in standard BigNum exponent.
+    // However, if capacity approaches 1000, exponent approaches 2000. BigNum handles this fine.
+    
+    return BigNum.fromScientific(`1e${exponent}`);
+}
+
+export function upgradeFocusCapacity() {
+    const cost = getFocusUpgradeCost();
+    if (cost.isInfinite()) return; // Maxed
+    
+    if (bank.coins.value.cmp(cost) >= 0) {
+        bank.coins.sub(cost);
+        state.focusCapacity++;
+        saveState();
+        updateChannelTab();
+        playPurchaseSfx();
+    }
+}
+
+export function allocateFocus(channelId, amount) {
+    const ch = state.channels[channelId];
+    if (!ch) return;
+
+    let currentTotalAllocated = 0;
+    for (const c of Object.values(state.channels)) {
+        currentTotalAllocated += c.allocated;
+    }
+
+    const available = state.focusCapacity - currentTotalAllocated;
+    
+    // If trying to add
+    if (amount > 0) {
+        const toAdd = Math.min(amount, available);
+        if (toAdd > 0) {
+            ch.allocated += toAdd;
+            saveState();
+            updateChannelTab();
+        }
+    } 
+    // If trying to remove
+    else if (amount < 0) {
+        const toRemove = Math.min(Math.abs(amount), ch.allocated);
+        if (toRemove > 0) {
+            ch.allocated -= toRemove;
+            saveState();
+            updateChannelTab();
+        }
+    }
 }
 
 export function getChannelUnlockState() {
-    const slot = getActiveSlot();
-    if (slot == null) return false;
-    
-    // 1. Debug/Manual Flag
-    try {
-        if (localStorage.getItem(`ccc:unlock:channel:${slot}`) === '1') return true;
-    } catch {}
-    
-    // 2. Surge 20
-    if (isSurgeActiveFn(20)) return true;
+    // Check manual unlock flag (debug/testing)
+    const slot = getSlot();
+    if (slot != null) {
+        try {
+            if (localStorage.getItem(`ccc:unlock:channel:${slot}`) === '1') return true;
+        } catch {}
+    }
+
+    if (_unlockChecker) {
+        return _unlockChecker(20);
+    }
     
     return false;
 }
 
-export function initChannelTab(panelEl) {
-  if (channelTabInitialized) return;
-  channelPanel = panelEl;
-  
-  // Empty for now
-  panelEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">Channel Tab (Empty)</div>';
-  
-  channelTabInitialized = true;
+// Injected checker is mostly for dlgTab, but we expose the logic here too.
+export function isChannelUnlocked() {
+    return getChannelUnlockState();
+}
+
+// Needed for dlgTab interface compatibility
+let _unlockChecker = null;
+export function setChannelUnlockChecker(fn) {
+    _unlockChecker = fn;
+}
+
+export function resetChannels(type) {
+    if (type === 'surge') {
+        // Reset Levels, FP, Total FP
+        // Keep Capacity, Allocation
+        state.totalFPAccumulated = BigNum.fromInt(0);
+        for (const id in state.channels) {
+            state.channels[id].level = BigNum.fromInt(0);
+            state.channels[id].fp = 0;
+        }
+        saveState();
+        updateChannelTab();
+    }
+}
+
+export function getChannelCoinMultiplier({ baseMultiplier }) {
+    // Multiplier = 1 + Coin_Channel_Level
+    const level = state.channels[CHANNELS.COIN]?.level || BigNum.fromInt(0);
+    const mult = BigNum.fromInt(1).add(level);
+    
+    // Apply to base
+    return baseMultiplier.mulBigNumInteger(mult);
+}
+
+/* =========================================
+   GAME LOOP
+   ========================================= */
+
+function onTick(dt) {
+    if (!isChannelUnlocked()) return;
+
+    let changes = false;
+
+    // dt is in seconds
+    // Requirement: "1 FP per allocated Focus per second (but it will accrue in game ticks)"
+    
+    for (const id in state.channels) {
+        const ch = state.channels[id];
+        if (ch.allocated <= 0) continue;
+
+        const rate = ch.allocated; // FP per second
+        const gain = rate * dt;
+        
+        // High Rate Logic
+        // Req is static 1.
+        // If gain per tick > 1 (meaning we level up multiple times per tick), just math it.
+        // Actually the prompt said: "When the rate of FP accrual ... exceeds 20 times the bar's requirement"
+        // Requirement = 1. So if rate (allocated) > 20/tick?
+        // Wait, rate is per second. gain is per tick (dt).
+        // If gain > 20 * 1, we do bulk.
+        // Even if gain > 1, we should probably do bulk to avoid looping.
+        
+        const req = 1; // Static requirement
+        
+        // Accumulate global stats
+        const gainBn = BigNum.fromAny(gain); // Rough conversion for accumulation
+        // For total FP, we should probably just track purely numerical if small, but BigNum if large.
+        // Since levels scale linearly, Total FP = Total Levels * 1 + Current FP (approx).
+        // But let's just add the gain.
+        // BigNum construction from small float might be precise enough.
+        
+        // Since gain is likely small (e.g. 0.05 * 10 = 0.5), BigNum might trunc? 
+        // BigNum handles floats if initialized via fromAny usually? No, it's integer based primarily.
+        // However, `state.totalFPAccumulated` is BigNum.
+        // We should accumulate `gain` in a float buffer if it's small, or handle it carefully.
+        // But given "1e999" costs, levels will get high.
+        // If gain is huge (e.g. 1e50 focus), BigNum is needed.
+        
+        // Hybrid approach:
+        // 1. Add gain to current FP (float/number).
+        // 2. While FP >= 1, Level Up.
+        
+        if (gain > 1e15) {
+            // Massive gain, use BigNum logic directly
+            const gainBig = BigNum.fromAny(gain); // Assuming fromAny handles huge numbers/scientific string
+            state.totalFPAccumulated = state.totalFPAccumulated.add(gainBig);
+            
+            // Levels gained = gain (since req is 1)
+            ch.level = ch.level.add(gainBig);
+            changes = true;
+        } else {
+            // Standard/Small gain
+            ch.fp += gain;
+            
+            // Add to total (safely)
+            // If total is huge, adding small dt gain might be lost precision-wise, but that's standard floating point issue.
+            // If total is BigNum, adding a small number: `add(BigNum.fromInt(gain))`?
+            // Gain is < 1e15, so it fits in Number.
+            // But if Gain is 0.5, BigNum.fromInt(0.5) -> 0.
+            // We only add *whole* levels to Total FP? 
+            // "Display total FP accumulated... for people can track their total FP accumulated"
+            // Usually this means accrued resource.
+            // Let's accrue only when levels happen or use a separate buffer?
+            // Actually, simply: Total FP should track `Level * 1 + FP`.
+            // But reset clears it? No, reset clears `Levels`. Total FP is persistent?
+            // Prompt: "total FP accumulated will be [reset upon doing a Surge reset]"
+            // Ah, so Total FP tracks progress *this run*.
+            // So Total FP = (Current Level * 1) + Current FP.
+            // We can just calculate it on demand for display! No need to increment per tick.
+            // Wait, "Pay attention to total FP allocated to see when new things will unlock".
+            // Since cost is 1 per level, Total FP is basically Total Levels.
+            // Let's simply update `totalFPAccumulated` based on current levels + fp.
+            
+            const fpBig = BigNum.fromAny(Math.floor(ch.fp));
+            if (!fpBig.isZero()) {
+                ch.level = ch.level.add(fpBig);
+                ch.fp -= Math.floor(ch.fp);
+                changes = true;
+            }
+        }
+    }
+
+    if (changes) {
+        // Re-sum total FP for display (Logic: Total Levels of all channels + partial FP?)
+        // Or just sum of levels. Since FP < 1 usually, it doesn't matter much for big numbers.
+        let sum = BigNum.fromInt(0);
+        for (const id in state.channels) {
+            sum = sum.add(state.channels[id].level);
+        }
+        state.totalFPAccumulated = sum;
+        
+        updateChannelTab(); // Schedule update
+        scheduleSave();
+    }
+}
+
+/* =========================================
+   UI
+   ========================================= */
+
+function buildUI(panel) {
+    panel.innerHTML = '';
+    panel.className = 'channel-tab';
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'channel-header';
+    header.innerHTML = `
+        <div class="channel-explainer">
+            Channel your Focus into Channels to increase Channel Levels<br>
+            Each Channel has a focus currency or stat it will boost<br>
+            Gain +100% value to the Channel's focus for each level of any Channel<br>
+            Purchase and allocate Focus into Channels so they may level up passively<br>
+            The more Focus a Channel has allocated, the quicker it will gain FP and level up<br>
+            Pay attention to total FP allocated to see when new things will unlock<br>
+            Channel Levels will reset upon doing a Surge reset, but unlocked Channels will not
+        </div>
+        <div class="channel-total-fp">Total FP Accumulated: <span id="ch-total-fp">0</span></div>
+    `;
+    panel.appendChild(header);
+
+    // Controls (Focus Capacity)
+    const controls = document.createElement('div');
+    controls.className = 'channel-controls';
+    controls.innerHTML = `
+        <button class="btn-focus-upgrade" id="btn-focus-upg">
+            <span>Increase Focus Amount</span>
+            <span class="focus-upgrade-cost" id="focus-cost">Cost: 1e999 Coins</span>
+            <div class="focus-capacity-display">Capacity: <span id="focus-cap">1/1</span></div>
+        </button>
+    `;
+    panel.appendChild(controls);
+
+    // Channel List
+    const list = document.createElement('div');
+    list.className = 'channel-list';
+    
+    // Render Channel Bars
+    for (const [id, def] of Object.entries(CHANNEL_DEFS)) {
+        const item = document.createElement('div');
+        item.className = 'channel-bar-container';
+        item.innerHTML = `
+            <div class="channel-bar-header">
+                <div class="channel-name">
+                    <img src="${def.icon}" class="channel-icon" alt="">
+                    ${def.name}
+                </div>
+                <div class="channel-level" id="ch-lvl-${id}">Lvl 0</div>
+            </div>
+            <div class="channel-bar-wrapper">
+                <div class="channel-bar-fill" id="ch-fill-${id}"></div>
+                <div class="channel-bar-text" id="ch-text-${id}">0 / 1 FP</div>
+            </div>
+            <div class="channel-allocation">
+                <button class="btn-allocate" data-action="sub" data-id="${id}">-</button>
+                <div class="channel-rate">Focus: <span id="ch-alloc-${id}">0</span></div>
+                <button class="btn-allocate" data-action="add" data-id="${id}">+</button>
+            </div>
+        `;
+        list.appendChild(item);
+    }
+    panel.appendChild(list);
+
+    // Bind Events
+    const btnUpg = panel.querySelector('#btn-focus-upg');
+    btnUpg.addEventListener('click', upgradeFocusCapacity);
+
+    panel.querySelectorAll('.btn-allocate').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.target.dataset.id;
+            const action = e.target.dataset.action;
+            const amount = action === 'add' ? 1 : -1;
+            allocateFocus(id, amount);
+        });
+    });
 }
 
 export function updateChannelTab() {
-  if (!channelTabInitialized || !channelPanel) return;
-  // Update logic here
+    if (!channelTabInitialized || !channelPanel) return;
+    
+    // Update Total FP
+    const elTotal = channelPanel.querySelector('#ch-total-fp');
+    if (elTotal) elTotal.textContent = formatNumber(state.totalFPAccumulated);
+
+    // Update Focus Button
+    const btnUpg = channelPanel.querySelector('#btn-focus-upg');
+    const cost = getFocusUpgradeCost();
+    const elCost = channelPanel.querySelector('#focus-cost');
+    const elCap = channelPanel.querySelector('#focus-cap');
+    
+    // Calculate total allocated for display
+    let totalAlloc = 0;
+    for (const c of Object.values(state.channels)) totalAlloc += c.allocated;
+
+    if (elCap) elCap.textContent = `${totalAlloc}/${state.focusCapacity}`;
+
+    if (cost.isInfinite()) {
+        if (btnUpg) {
+            btnUpg.disabled = true;
+            btnUpg.classList.add('is-maxed');
+        }
+        if (elCost) elCost.textContent = "MAXED";
+    } else {
+        if (btnUpg) {
+            btnUpg.disabled = bank.coins.value.cmp(cost) < 0;
+            btnUpg.classList.remove('is-maxed');
+        }
+        if (elCost) elCost.textContent = `Cost: ${formatNumber(cost)} Coins`;
+    }
+
+    // Update Channels
+    for (const id in CHANNEL_DEFS) {
+        const ch = state.channels[id];
+        
+        const elLvl = channelPanel.querySelector(`#ch-lvl-${id}`);
+        if (elLvl) elLvl.textContent = `Lvl ${formatNumber(ch.level)}`;
+        
+        const elAlloc = channelPanel.querySelector(`#ch-alloc-${id}`);
+        if (elAlloc) elAlloc.textContent = ch.allocated;
+        
+        const elFill = channelPanel.querySelector(`#ch-fill-${id}`);
+        const elText = channelPanel.querySelector(`#ch-text-${id}`);
+        
+        // Progress
+        // Req is always 1.
+        // FP is float 0..1 (mostly)
+        const pct = Math.min(100, Math.max(0, ch.fp * 100));
+        if (elFill) elFill.style.width = `${pct}%`;
+        if (elText) elText.textContent = `${ch.fp.toFixed(2)} / 1 FP`;
+        
+        // Allocation Buttons State
+        const btnAdd = channelPanel.querySelector(`.btn-allocate[data-id="${id}"][data-action="add"]`);
+        if (btnAdd) {
+            btnAdd.disabled = (totalAlloc >= state.focusCapacity);
+        }
+        const btnSub = channelPanel.querySelector(`.btn-allocate[data-id="${id}"][data-action="sub"]`);
+        if (btnSub) {
+            btnSub.disabled = (ch.allocated <= 0);
+        }
+    }
+}
+
+/* =========================================
+   INITIALIZATION
+   ========================================= */
+
+export function initChannelSystem() {
+    if (channelSystemInitialized) return;
+    channelSystemInitialized = true;
+
+    // Load State
+    if (typeof window !== 'undefined') {
+        window.addEventListener('saveSlot:change', () => {
+            loadState();
+            updateChannelTab();
+        });
+    }
+    loadState();
+
+    // Register Tick
+    registerTick((dt) => onTick(dt));
+
+    // Register Multiplier Provider
+    addExternalCoinMultiplierProvider((params) => getChannelCoinMultiplier(params));
+}
+
+export function initChannelTab(panelEl) {
+    if (channelTabInitialized) return;
+    
+    // Ensure system is init (UI might load before main.js calls initChannelSystem in some race cases, though unlikely)
+    initChannelSystem();
+
+    channelPanel = panelEl;
+    buildUI(panelEl);
+    channelTabInitialized = true;
+    updateChannelTab();
 }
