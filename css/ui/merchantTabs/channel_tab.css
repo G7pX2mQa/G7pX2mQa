@@ -43,45 +43,63 @@
   justify-content: center;
 }
 
-.btn-focus-upgrade {
-  appearance: none;
-  border: 0;
-  border-radius: 999px;
-  padding: 12px 24px;
-  min-width: min(300px, 100%);
-  
-  /* Yellow Gradient Theme */
-  background: linear-gradient(180deg, #ffd700, #daa520);
-  box-shadow: 0 6px #8b6914, 0 0 0 3px rgba(139, 105, 20, 0.6);
-  
+.channel-upgrade-btn {
+  background: linear-gradient(180deg, #7a6a3a, #5a4a2a);
+  border: 2px solid #7a6a3a;
+  border-radius: 12px;
+  padding: 16px 24px;
   color: #fff;
-  font-weight: 800;
-  font-size: 1.2rem;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-  
   cursor: pointer;
-  transition: transform 0.1s, filter 0.1s;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  width: 100%;
+  transition: transform .1s, filter .1s;
+  box-shadow: 0 4px 10px #0000004d;
   user-select: none;
-  -webkit-user-select: none;
 }
 
-.btn-focus-upgrade:active {
-  transform: translateY(2px);
-  box-shadow: 0 4px #8b6914, 0 0 0 3px rgba(139, 105, 20, 0.6);
+.channel-upgrade-btn:active {
+  transform: scale(.98);
+  filter: brightness(.9);
 }
 
-.btn-focus-upgrade:hover {
-  filter: brightness(1.1);
+.channel-upgrade-btn:disabled {
+  opacity: .8;
+  cursor: not-allowed;
+  background: linear-gradient(180deg, #3a3a2a, #2a2a1a);
+  border-color: #443;
 }
 
-.focus-upgrade-cost {
-  font-size: 0.9rem;
-  opacity: 0.9;
-  font-weight: 600;
+.channel-upgrade-btn:disabled > * {
+  filter: grayscale(1);
+}
+
+.channel-upgrade-btn:disabled .channel-upgrade-title {
+  opacity: .7;
+}
+
+.channel-upgrade-title {
+  font-weight: 700;
+  font-size: 18px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+
+.channel-upgrade-cost {
+  font-size: 15px;
+  color: #d9d621;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.channel-upgrade-cost-icon {
+  width: 16px;
+  height: 16px;
+  position: relative;
+  top: 1px;
+  margin-left: 1px;
 }
 
 .focus-capacity-display {
@@ -211,9 +229,9 @@
     padding: 12px;
   }
   
-  .btn-focus-upgrade {
+  .channel-upgrade-btn {
     width: 100%;
-    font-size: 1.1rem;
+    /* font-size: 1.1rem; is this needed? .channel-upgrade-title handles size. */
   }
   
   .channel-bar-container {
