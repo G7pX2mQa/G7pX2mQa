@@ -1,9 +1,10 @@
 import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../../util/storage.js';
-import { registerTick } from '../../game/gameLoop.js';
+import { registerTick, FIXED_STEP } from '../../game/gameLoop.js';
 import { addExternalCoinMultiplierProvider } from '../../game/xpSystem.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
+import { approxLog10BigNum } from '../../game/upgrades.js';
 
 /* =========================================
    CONSTANTS & KEYS
@@ -185,6 +186,58 @@ export function upgradeFocusCapacity() {
     }
 }
 
+function buyMaxFocusCapacity() {
+    if (state.focusCapacity >= MAX_FOCUS_CAPACITY) return;
+    if (bank.coins.value.isZero()) return;
+
+    // Cost(C) = 1e(999 + C - 1)
+    
+    const coinsLog = approxLog10BigNum(bank.coins.value);
+    if (!Number.isFinite(coinsLog)) return;
+
+    // Max affordable single cost exponent
+    // coinsLog >= 999 + (target - 1) - 1 => coinsLog >= 997 + target
+    // target <= coinsLog - 997
+    const maxK = Math.floor(coinsLog - 997);
+    
+    let target = Math.min(MAX_FOCUS_CAPACITY, Math.max(state.focusCapacity, maxK));
+    
+    // Cap target at MAX_FOCUS_CAPACITY
+    if (target > MAX_FOCUS_CAPACITY) target = MAX_FOCUS_CAPACITY;
+    
+    if (target <= state.focusCapacity) return;
+
+    // Check if we can afford buying up to target
+    while (target > state.focusCapacity) {
+        // Cost of last upgrade (target-1 -> target)
+        // Exponent = 999 + (target - 1) - 1 = 997 + target
+        const exponent = 997 + target;
+        const cost = BigNum.fromScientific(`1e${exponent}`);
+        
+        if (bank.coins.value.cmp(cost) < 0) {
+            target--;
+            continue;
+        }
+        
+        // We want one transaction for the sum.
+        // Sum is approx cost * 1.111...
+        const total = cost.mulDecimal('1.11111111');
+        
+        if (bank.coins.value.cmp(total) >= 0) {
+            // Can afford!
+            bank.coins.sub(total);
+            state.focusCapacity = target;
+            saveState();
+            updateChannelTab();
+            playPurchaseSfx();
+            return;
+        } else {
+            // Cannot afford sum. Try target-1.
+            target--;
+        }
+    }
+}
+
 export function allocateFocus(channelId, amount) {
     const ch = state.channels[channelId];
     if (!ch) return;
@@ -274,6 +327,7 @@ function onTick(dt) {
     if (!isChannelUnlocked()) return;
 
     let changes = false;
+    let visualUpdate = false;
 
     // dt is in seconds
     // Requirement: "1 FP per allocated Focus per second (but it will accrue in game ticks)"
@@ -284,6 +338,8 @@ function onTick(dt) {
 
         const rate = ch.allocated; // FP per second
         const gain = rate * dt;
+        
+        if (gain > 0) visualUpdate = true;
         
         // High Rate Logic
         // Req is static 1.
@@ -326,25 +382,6 @@ function onTick(dt) {
             // Standard/Small gain
             ch.fp += gain;
             
-            // Add to total (safely)
-            // If total is huge, adding small dt gain might be lost precision-wise, but that's standard floating point issue.
-            // If total is BigNum, adding a small number: `add(BigNum.fromInt(gain))`?
-            // Gain is < 1e15, so it fits in Number.
-            // But if Gain is 0.5, BigNum.fromInt(0.5) -> 0.
-            // We only add *whole* levels to Total FP? 
-            // "Display total FP accumulated... for people can track their total FP accumulated"
-            // Usually this means accrued resource.
-            // Let's accrue only when levels happen or use a separate buffer?
-            // Actually, simply: Total FP should track `Level * 1 + FP`.
-            // But reset clears it? No, reset clears `Levels`. Total FP is persistent?
-            // Prompt: "total FP accumulated will be [reset upon doing a Surge reset]"
-            // Ah, so Total FP tracks progress *this run*.
-            // So Total FP = (Current Level * 1) + Current FP.
-            // We can just calculate it on demand for display! No need to increment per tick.
-            // Wait, "Pay attention to total FP allocated to see when new things will unlock".
-            // Since cost is 1 per level, Total FP is basically Total Levels.
-            // Let's simply update `totalFPAccumulated` based on current levels + fp.
-            
             const fpBig = BigNum.fromAny(Math.floor(ch.fp));
             if (!fpBig.isZero()) {
                 ch.level = ch.level.add(fpBig);
@@ -365,6 +402,8 @@ function onTick(dt) {
         
         updateChannelTab(); // Schedule update
         scheduleSave();
+    } else if (visualUpdate && channelTabInitialized && channelPanel) {
+        updateChannelVisuals();
     }
 }
 
@@ -374,7 +413,9 @@ function onTick(dt) {
 
 function buildUI(panel) {
     panel.innerHTML = '';
-    panel.className = 'channel-tab';
+    
+    const wrapper = document.createElement('div');
+    wrapper.className = 'channel-tab';
 
     // Header
     const header = document.createElement('div');
@@ -387,23 +428,27 @@ function buildUI(panel) {
             Purchase and allocate Focus into Channels so they may level up passively<br>
             The more Focus a Channel has allocated, the quicker it will gain FP and level up<br>
             Pay attention to total FP accumulated to see when new things will unlock<br>
-            Channel Levels will reset upon doing a Surge reset, however unlocked Channels will stay
+            Channels will reset upon Surge or similar reset, but unlocked Channels are permanent
         </div>
         <div class="channel-total-fp">Total FP Accumulated: <span id="ch-total-fp">0</span></div>
     `;
-    panel.appendChild(header);
+    wrapper.appendChild(header);
 
     // Controls (Focus Capacity)
     const controls = document.createElement('div');
     controls.className = 'channel-controls';
+    const COIN_ICON_SRC = 'img/currencies/coin/coin.webp';
     controls.innerHTML = `
-        <button class="btn-focus-upgrade" id="btn-focus-upg">
-            <span>Increase Focus Amount</span>
-            <span class="focus-upgrade-cost" id="focus-cost">Cost: 1e999 Coins</span>
+        <button class="channel-upgrade-btn" id="btn-focus-upg">
+            <span class="channel-upgrade-title">Increase Focus Amount</span>
+            <span class="channel-upgrade-cost">
+               Cost: <img src="${COIN_ICON_SRC}" class="channel-upgrade-cost-icon" alt="Coins">
+               <span id="focus-cost">1e999 Coins</span>
+            </span>
             <div class="focus-capacity-display">Capacity: <span id="focus-cap">1/1</span></div>
         </button>
     `;
-    panel.appendChild(controls);
+    wrapper.appendChild(controls);
 
     // Channel List
     const list = document.createElement('div');
@@ -433,13 +478,18 @@ function buildUI(panel) {
         `;
         list.appendChild(item);
     }
-    panel.appendChild(list);
+    wrapper.appendChild(list);
+    panel.appendChild(wrapper);
 
     // Bind Events
-    const btnUpg = panel.querySelector('#btn-focus-upg');
+    const btnUpg = wrapper.querySelector('#btn-focus-upg');
     btnUpg.addEventListener('click', upgradeFocusCapacity);
+    btnUpg.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        buyMaxFocusCapacity();
+    });
 
-    panel.querySelectorAll('.btn-allocate').forEach(btn => {
+    wrapper.querySelectorAll('.btn-allocate').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const id = e.target.dataset.id;
             const action = e.target.dataset.action;
@@ -479,10 +529,28 @@ export function updateChannelTab() {
             btnUpg.disabled = bank.coins.value.cmp(cost) < 0;
             btnUpg.classList.remove('is-maxed');
         }
-        if (elCost) elCost.textContent = `Cost: ${formatNumber(cost)} Coins`;
+        if (elCost) elCost.textContent = `${formatNumber(cost)} Coins`;
     }
 
-    // Update Channels
+    updateChannelVisuals();
+
+    // Allocation Buttons State
+    for (const id in CHANNEL_DEFS) {
+        const ch = state.channels[id];
+        const btnAdd = channelPanel.querySelector(`.btn-allocate[data-id="${id}"][data-action="add"]`);
+        if (btnAdd) {
+            btnAdd.disabled = (totalAlloc >= state.focusCapacity);
+        }
+        const btnSub = channelPanel.querySelector(`.btn-allocate[data-id="${id}"][data-action="sub"]`);
+        if (btnSub) {
+            btnSub.disabled = (ch.allocated <= 0);
+        }
+    }
+}
+
+function updateChannelVisuals() {
+    if (!channelTabInitialized || !channelPanel) return;
+
     for (const id in CHANNEL_DEFS) {
         const ch = state.channels[id];
         
@@ -498,19 +566,20 @@ export function updateChannelTab() {
         // Progress
         // Req is always 1.
         // FP is float 0..1 (mostly)
-        const pct = Math.min(100, Math.max(0, ch.fp * 100));
+        let pct = Math.min(100, Math.max(0, ch.fp * 100));
+        
+        // Force full bar if rate >= 20 * capacity (capacity is 1)
+        // Rate (allocated) is per second. We gain allocated * FIXED_STEP per tick.
+        // If gain per tick >= 1, we fill the bar instantly.
+        // gain >= 1 => allocated * FIXED_STEP >= 1 => allocated >= 1 / FIXED_STEP
+        const threshold = 1 / FIXED_STEP;
+        
+        if (ch.allocated >= threshold) {
+            pct = 100;
+        }
+
         if (elFill) elFill.style.width = `${pct}%`;
         if (elText) elText.textContent = `${ch.fp.toFixed(2)} / 1 FP`;
-        
-        // Allocation Buttons State
-        const btnAdd = channelPanel.querySelector(`.btn-allocate[data-id="${id}"][data-action="add"]`);
-        if (btnAdd) {
-            btnAdd.disabled = (totalAlloc >= state.focusCapacity);
-        }
-        const btnSub = channelPanel.querySelector(`.btn-allocate[data-id="${id}"][data-action="sub"]`);
-        if (btnSub) {
-            btnSub.disabled = (ch.allocated <= 0);
-        }
     }
 }
 
