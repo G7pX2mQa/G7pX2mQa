@@ -1,7 +1,7 @@
 import { markSaveSlotModified } from '../util/storage.js';
 
-const TICK_RATE = 20;
-const FIXED_STEP = 1 / TICK_RATE; // 0.05s
+export const TICK_RATE = 20;
+export const FIXED_STEP = 1 / TICK_RATE; // 0.05s
 
 const tickListeners = new Set();
 const frameListeners = new Set();
