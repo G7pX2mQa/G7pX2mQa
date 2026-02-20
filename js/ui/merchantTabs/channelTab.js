@@ -386,7 +386,7 @@ function buildUI(panel) {
             Gain +100% value to the Channel's focus for each level of any Channel<br>
             Purchase and allocate Focus into Channels so they may level up passively<br>
             The more Focus a Channel has allocated, the quicker it will gain FP and level up<br>
-            Pay attention to total FP allocated to see when new things will unlock<br>
+            Pay attention to total FP accumulated to see when new things will unlock<br>
             Channel Levels will reset upon doing a Surge reset, however unlocked Channels will stay
         </div>
         <div class="channel-total-fp">Total FP Accumulated: <span id="ch-total-fp">0</span></div>
