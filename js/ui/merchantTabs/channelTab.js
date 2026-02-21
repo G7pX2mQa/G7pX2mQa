@@ -572,6 +572,57 @@ export function updateChannelTab() {
         if (btnCap) btnCap.disabled = isFull;
         if (btnSub) btnSub.disabled = (ch.allocated <= 0);
     }
+
+    alignChannelColumns();
+}
+
+function alignChannelColumns() {
+    if (!channelPanel) return;
+    const header = channelPanel.querySelector('.channel-list-header');
+    if (!header) return;
+
+    // We expect header children to correspond to grid columns.
+    // Index 1: Level, Index 2: Alloc
+    if (header.children.length < 4) return;
+
+    const levelHeader = header.children[1];
+    const allocHeader = header.children[2];
+
+    const levelRect = levelHeader.getBoundingClientRect();
+    const allocRect = allocHeader.getBoundingClientRect();
+
+    const levelCenter = levelRect.left + levelRect.width / 2;
+    const allocCenter = allocRect.left + allocRect.width / 2;
+
+    const rows = channelPanel.querySelectorAll('.channel-row');
+    rows.forEach(row => {
+        const levelVal = row.querySelector('.channel-level-val');
+        const allocVal = row.querySelector('.channel-alloc-val');
+
+        if (levelVal) {
+            // Reset transform to measure natural position
+            levelVal.style.transform = '';
+            const rect = levelVal.getBoundingClientRect();
+            const currentCenter = rect.left + rect.width / 2;
+            const diff = levelCenter - currentCenter;
+            
+            // Only apply if diff is significant (e.g. > 0.5px) to avoid jitter
+            if (Math.abs(diff) > 0.5) {
+                levelVal.style.transform = `translateX(${diff}px)`;
+            }
+        }
+
+        if (allocVal) {
+            allocVal.style.transform = '';
+            const rect = allocVal.getBoundingClientRect();
+            const currentCenter = rect.left + rect.width / 2;
+            const diff = allocCenter - currentCenter;
+            
+            if (Math.abs(diff) > 0.5) {
+                allocVal.style.transform = `translateX(${diff}px)`;
+            }
+        }
+    });
 }
 
 function updateChannelVisuals() {
@@ -584,7 +635,7 @@ function updateChannelVisuals() {
         if (elLvl) elLvl.textContent = formatNumber(ch.level);
         
         const elAlloc = channelPanel.querySelector(`#ch-alloc-${id}`);
-        if (elAlloc) elAlloc.textContent = ch.allocated;
+        if (elAlloc) elAlloc.textContent = formatNumber(ch.allocated);
         
         const elFill = channelPanel.querySelector(`#ch-fill-${id}`);
         
@@ -641,4 +692,10 @@ export function initChannelTab(panelEl) {
     buildUI(panelEl);
     channelTabInitialized = true;
     updateChannelTab();
+    
+    // Initial alignment check
+    setTimeout(alignChannelColumns, 0);
+
+    // Ensure alignment persists on resize
+    window.addEventListener('resize', alignChannelColumns);
 }
