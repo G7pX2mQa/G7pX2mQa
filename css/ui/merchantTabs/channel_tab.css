@@ -120,7 +120,7 @@
   display: grid;
   /* Adjusted grid: First column (Bar) needs space for the icon hanging off left */
   /* Grid: Bar | Level | Alloc | Controls */
-  grid-template-columns: minmax(200px, 2fr) 80px 120px 140px; 
+  grid-template-columns: minmax(200px, 2fr) 80px 150px 140px; 
   align-items: center;
   gap: 12px;
   padding: 0 8px;
@@ -139,13 +139,14 @@
 /* Ensure centering of headers */
 .list-head-name { 
   text-align: center; 
-  /* Align "Channels" header with the bar (which has 20px left margin) */
-  padding-left: 20px; 
+  /* Align "Channels" header with the bar (which has 10px left margin and 50px right) */
+  padding-left: 10px; 
+  padding-right: 50px;
 }
 
 .channel-row {
   background: none;
-  padding: 8px 0;
+  padding: 8px 8px; /* Maintain vertical padding, restore horizontal padding */
   border-radius: 0;
 }
 
@@ -167,8 +168,9 @@
   /* Ensure we have margin left to prevent icon cutoff if it hangs out */
   /* The icon is shifted left by ~0.56 * size. Approx 40px max. */
   /* Adding margin-left to safe-guard layout */
-  margin-left: 20px; 
-  width: calc(100% - 20px);
+  margin-left: 10px; 
+  margin-right: 50px;
+  width: calc(100% - 60px);
 }
 
 .channel-icon-overlay {
@@ -239,12 +241,18 @@
   font-size: 1.1rem;
   font-weight: 700;
   color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .channel-alloc-val {
   font-size: 1.1rem;
   font-weight: 700;
   color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Controls */
