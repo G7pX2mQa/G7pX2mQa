@@ -5,6 +5,7 @@ import { registerTick, FIXED_STEP } from '../../game/gameLoop.js';
 import { addExternalCoinMultiplierProvider } from '../../game/xpSystem.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { approxLog10BigNum } from '../../game/upgrades.js';
+import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
 
 /* =========================================
    CONSTANTS & KEYS
@@ -26,7 +27,7 @@ const CHANNELS = {
     COIN: 'coin'
 };
 
-const CHANNEL_DEFS = {
+export const CHANNEL_DEFS = {
     [CHANNELS.COIN]: {
         id: CHANNELS.COIN,
         name: 'Coin',
@@ -39,6 +40,8 @@ const CHANNEL_DEFS = {
 /* =========================================
    STATE
    ========================================= */
+
+const fpMultiplierProviders = new Set();
 
 let channelSystemInitialized = false;
 let channelTabInitialized = false;
@@ -319,6 +322,48 @@ export function getChannelCoinMultiplier({ baseMultiplier }) {
     return baseMultiplier.mulBigNumInteger(mult);
 }
 
+export function addExternalFpMultiplierProvider(fn) {
+    if (typeof fn === 'function') fpMultiplierProviders.add(fn);
+}
+
+export function getFpMultiplier() {
+    let mult = BigNum.fromInt(1);
+    for (const provider of fpMultiplierProviders) {
+        try {
+            const res = provider(mult.clone());
+            if (res instanceof BigNum) mult = res;
+            else if (typeof res === 'number') mult = BigNum.fromAny(res);
+        } catch {}
+    }
+    return mult;
+}
+
+// --- Debug Panel Helpers ---
+
+export function getChannelLevel(id) {
+    return state.channels[id]?.level || BigNum.fromInt(0);
+}
+
+export function setChannelLevel(id, val) {
+    if (!state.channels[id]) return;
+    state.channels[id].level = val instanceof BigNum ? val : BigNum.fromAny(val);
+    saveState();
+    updateChannelTab();
+    window.dispatchEvent(new CustomEvent('channel:change', { detail: { id, type: 'level' } }));
+}
+
+export function getChannelFp(id) {
+    return state.channels[id]?.fp || 0;
+}
+
+export function setChannelFp(id, val) {
+    if (!state.channels[id]) return;
+    state.channels[id].fp = Number(val) || 0;
+    saveState();
+    updateChannelTab();
+    window.dispatchEvent(new CustomEvent('channel:change', { detail: { id, type: 'fp' } }));
+}
+
 /* =========================================
    GAME LOOP
    ========================================= */
@@ -332,32 +377,35 @@ function onTick(dt) {
     // dt is in seconds
     // Requirement: "1 FP per allocated Focus per second (but it will accrue in game ticks)"
     
+    // Compute global FP multiplier once per tick
+    const fpMult = getFpMultiplier();
+
     for (const id in state.channels) {
         const ch = state.channels[id];
         if (ch.allocated <= 0) continue;
 
-        const rate = ch.allocated; // FP per second
-        const gain = rate * dt;
+        const rate = BigNum.fromAny(ch.allocated); // FP per second
+        let gainBn = rate.mulDecimal(String(dt));
+        
+        // Apply FP Multiplier
+        gainBn = gainBn.mulBigNumInteger(fpMult);
+        
+        // Apply Debug Override
+        gainBn = applyStatMultiplierOverride('fp', gainBn);
+        
+        const gain = Number(gainBn.toScientific(10));
         
         if (gain > 0) visualUpdate = true;
         
         // High Rate Logic
         // Req is static 1.
-        // If gain per tick > 1 (meaning we level up multiple times per tick), just math it.
-        // Actually the prompt said: "When the rate of FP accrual ... exceeds 20 times the bar's requirement"
-        // Requirement = 1. So if rate (allocated) > 20/tick?
-        // Wait, rate is per second. gain is per tick (dt).
-        // If gain > 20 * 1, we do bulk.
-        // Even if gain > 1, we should probably do bulk to avoid looping.
         
         const req = 1; // Static requirement
         
         // Accumulate global stats
-        const gainBn = BigNum.fromAny(gain); // Rough conversion for accumulation
         // For total FP, we should probably just track purely numerical if small, but BigNum if large.
         // Since levels scale linearly, Total FP = Total Levels * 1 + Current FP (approx).
         // But let's just add the gain.
-        // BigNum construction from small float might be precise enough.
         
         // Since gain is likely small (e.g. 0.05 * 10 = 0.5), BigNum might trunc? 
         // BigNum handles floats if initialized via fromAny usually? No, it's integer based primarily.
@@ -402,6 +450,7 @@ function onTick(dt) {
         
         updateChannelTab(); // Schedule update
         scheduleSave();
+        window.dispatchEvent(new CustomEvent('channel:change', { detail: { type: 'tick' } }));
     } else if (visualUpdate && channelTabInitialized && channelPanel) {
         updateChannelVisuals();
     }
