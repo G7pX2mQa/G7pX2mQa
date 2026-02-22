@@ -2,7 +2,7 @@ import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../../util/storage.js';
 import { registerTick, FIXED_STEP } from '../../game/gameLoop.js';
-import { addExternalCoinMultiplierProvider } from '../../game/xpSystem.js';
+import { addExternalCoinMultiplierProvider, refreshCoinMultiplierFromXpLevel } from '../../game/xpSystem.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { approxLog10BigNum } from '../../game/upgrades.js';
 import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
@@ -352,6 +352,7 @@ export function setChannelLevel(id, val) {
     state.channels[id].level = val instanceof BigNum ? val : BigNum.fromAny(val);
     saveState();
     updateChannelTab();
+    refreshCoinMultiplierFromXpLevel();
     window.dispatchEvent(new CustomEvent('channel:change', { detail: { id, type: 'level' } }));
 }
 
@@ -404,9 +405,7 @@ function onTick(dt) {
         // Apply Debug Override
         gainBn = applyStatMultiplierOverride('fp', gainBn);
         
-        const gain = Number(gainBn.toScientific(10));
-        
-        if (gain > 0) visualUpdate = true;
+        if (!gainBn.isZero()) visualUpdate = true;
         
         // High Rate Logic
         // Req is static 1.
@@ -429,17 +428,17 @@ function onTick(dt) {
         // 1. Add gain to current FP (float/number).
         // 2. While FP >= 1, Level Up.
         
-        if (gain > 1e15) {
+        if (gainBn.cmp(1e15) > 0) {
             // Massive gain, use BigNum logic directly
-            const gainBig = BigNum.fromAny(gain); // Assuming fromAny handles huge numbers/scientific string
             if (!levelLocked) {
-                state.totalFPAccumulated = state.totalFPAccumulated.add(gainBig);
+                state.totalFPAccumulated = state.totalFPAccumulated.add(gainBn);
                 // Levels gained = gain (since req is 1)
-                ch.level = ch.level.add(gainBig);
+                ch.level = ch.level.add(gainBn);
                 changes = true;
             }
         } else {
             // Standard/Small gain
+            const gain = Number(gainBn.toScientific(10));
             
             // Handle BigNum FP (if set via Debug)
             if (ch.fp instanceof BigNum) {
@@ -494,6 +493,7 @@ function onTick(dt) {
         
         updateChannelTab(); // Schedule update
         scheduleSave();
+        refreshCoinMultiplierFromXpLevel();
         window.dispatchEvent(new CustomEvent('channel:change', { detail: { type: 'tick' } }));
     } else if (visualUpdate) {
         if (channelTabInitialized && channelPanel) {
@@ -525,8 +525,8 @@ function buildUI(panel) {
             Gain +100% value to the Channel's focus for each level of any Channel<br>
             Purchase and allocate Focus into Channels so they may level up passively<br>
             The more Focus a Channel has allocated, the quicker it will gain FP and level up<br>
-            Pay attention to total FP accumulated to see when new things will unlock<br>
-            Channels will reset upon Surge or similar reset, but unlocked Channels are permanent
+            Pay attention to Channel Level requirements to unlock new Channels<br>
+            Surge and higher resets will reset Channels, but unlocked Channels are permanent
         </div>
         <div class="channel-total-fp">Total FP Accumulated: <span id="ch-total-fp">0</span></div>
     `;
@@ -752,14 +752,23 @@ function updateChannelVisuals() {
         
         let pct = Math.min(100, Math.max(0, fpVal * 100));
         
-        // Force full bar if rate >= 20 * capacity (capacity is 1)
-        // Rate (allocated) is per second. We gain allocated * FIXED_STEP per tick.
+        // Force full bar if effective rate per tick is >= 1
+        // Rate (allocated) is per second. We gain allocated * fpMult * FIXED_STEP per tick.
         // If gain per tick >= 1, we fill the bar instantly.
-        // gain >= 1 => allocated * FIXED_STEP >= 1 => allocated >= 1 / FIXED_STEP
-        const threshold = 1 / FIXED_STEP;
+        // (allocated * fpMult) * FIXED_STEP >= 1  => (allocated * fpMult) >= 1/FIXED_STEP
+        
+        const safeFixedStep = (typeof FIXED_STEP === 'number' && FIXED_STEP > 0) ? FIXED_STEP : 0.05;
+        const threshold = 1 / safeFixedStep;
         
         let effectiveRate = BigNum.fromAny(ch.allocated);
-        if (fpMult) effectiveRate = effectiveRate.mulBigNumInteger(fpMult);
+        
+        // Apply multiplier if valid (supports integer and BigNum mults)
+        if (fpMult && !fpMult.isZero()) {
+             effectiveRate = effectiveRate.mulBigNumInteger(fpMult);
+        }
+        
+        // Apply Debug Override
+        effectiveRate = applyStatMultiplierOverride('fp', effectiveRate);
         
         // Quick check for infinity or huge numbers
         if (effectiveRate.isInfinite() || effectiveRate.cmp(threshold) >= 0) {
