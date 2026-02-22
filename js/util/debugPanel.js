@@ -42,7 +42,15 @@ import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } f
 
 import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
 import { getLabLevel, setLabLevel, getLabLevelKey, getRpMultBase } from '../ui/merchantTabs/labTab.js';
-import { getChannelUnlockState } from '../ui/merchantTabs/channelTab.js';
+import { 
+    getChannelUnlockState, 
+    CHANNEL_DEFS, 
+    getChannelLevel, 
+    setChannelLevel, 
+    getChannelFp, 
+    setChannelFp, 
+    getFpMultiplier 
+} from '../ui/merchantTabs/channelTab.js';
 import { 
     RESEARCH_NODES,
     getResearchNodeLevel,
@@ -379,6 +387,7 @@ const STAT_MULTIPLIERS = [
     { key: 'xp', label: 'XP' },
     { key: 'mutation', label: 'MP' },
     { key: 'rp', label: 'RP' },
+    { key: 'fp', label: 'FP' },
 ];
 
 function getAreas() {
@@ -3420,6 +3429,87 @@ function buildLabNodesDebug(container) {
     });
 }
 
+function buildChannelDebug(container) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit channels.';
+        container.appendChild(msg);
+        return;
+    }
+
+    if (!CHANNEL_DEFS) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'No channels found.';
+        container.appendChild(msg);
+        return;
+    }
+
+    Object.values(CHANNEL_DEFS).forEach((def) => {
+        const nodeContainer = createSubsection(`${def.name || def.id} Channel`, (sub) => {
+            // Level
+            const levelRow = createInputRow('Level', getChannelLevel(def.id), (value, { setValue }) => {
+                let valBn;
+                try {
+                     valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+                     if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
+                } catch {
+                     setValue(getChannelLevel(def.id));
+                     return;
+                }
+
+                const prev = getChannelLevel(def.id);
+                setChannelLevel(def.id, valBn);
+                flagDebugUsage();
+                
+                if (!bigNumEquals(prev, valBn)) {
+                    logAction(`Modified Channel ${def.name} Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
+                }
+                setValue(valBn);
+            });
+            registerLiveBinding({
+                type: 'channel-level',
+                slot,
+                id: def.id,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    levelRow.setValue(getChannelLevel(def.id));
+                }
+            });
+            sub.appendChild(levelRow.row);
+
+            // FP
+            const fpRow = createInputRow('Current FP', getChannelFp(def.id), (value, { setValue }) => {
+                let valNum = Number(value);
+                if (value instanceof BigNum) valNum = Number(value.toScientific(10));
+                
+                setChannelFp(def.id, valNum);
+                flagDebugUsage();
+                
+                setValue(valNum);
+            }, {
+                format: (val) => {
+                    const n = Number(val);
+                    return (Number.isFinite(n) && Math.abs(n) < 1e9) ? n.toFixed(4) : formatNumber(val);
+                }
+            });
+            registerLiveBinding({
+                type: 'channel-fp',
+                slot,
+                id: def.id,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    fpRow.setValue(getChannelFp(def.id));
+                }
+            });
+            sub.appendChild(fpRow.row);
+        });
+        container.appendChild(nodeContainer);
+    });
+}
+
 function buildAreaCalculators(container) {
     const calculators = [
         {
@@ -3633,6 +3723,7 @@ function buildAreasContent(content) {
     const areas = getAreas();
 
     areas.forEach((area) => {
+        console.log('[Debug] Building Area:', area.key);
         const areaContainer = createSubsection(area.title, (areaContent) => {
             const currencies = createSubsection('Currencies', (sub) => {
                 buildAreaCurrencies(sub, area);
@@ -3658,7 +3749,9 @@ function buildAreasContent(content) {
             let automationUpgrades = null;
             let dnaUpgrades = null;
             let labNodesSection = null;
+            let channelsSection = null;
             if (area.key === AREA_KEYS.STARTER_COVE) {
+                console.log('[Debug] In Cove Block');
                 automationUpgrades = createSubsection('Automation Upgrades', (sub) => {
                     buildAreaUpgrades(sub, { key: AREA_KEYS.AUTOMATION, title: 'Automation' });
                 });
@@ -3667,6 +3760,9 @@ function buildAreasContent(content) {
                 });
                 labNodesSection = createSubsection('Lab Nodes', (sub) => {
                     buildLabNodesDebug(sub);
+                });
+                channelsSection = createSubsection('Channels', (sub) => {
+                    buildChannelDebug(sub);
                 });
             }
 
@@ -3686,6 +3782,9 @@ function buildAreasContent(content) {
             }
             if (labNodesSection) {
                 areaContent.appendChild(labNodesSection);
+            }
+            if (channelsSection) {
+                areaContent.appendChild(channelsSection);
             }
             areaContent.appendChild(calculators);
         });
