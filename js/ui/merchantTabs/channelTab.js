@@ -53,7 +53,7 @@ const state = {
     channels: {
         [CHANNELS.COIN]: {
             level: BigNum.fromInt(0),
-            fp: 0, // float for sub-1 amounts
+            fp: 0, // float for sub-1 amounts, or BigNum if huge/debug
             allocated: 0
         }
     }
@@ -96,6 +96,9 @@ function loadState() {
             for (const id in parsed) {
                 if (state.channels[id]) {
                     state.channels[id].level = BigNum.fromAny(parsed[id].level || 0);
+                    // Persistence of huge FP (BigNum) is not strictly supported by JSON.parse/stringify directly without custom reviver
+                    // but we generally rely on number for FP. If it was huge, it resets on reload to Number (Infinity if too big).
+                    // This is acceptable behavior for now.
                     state.channels[id].fp = Number(parsed[id].fp || 0);
                     state.channels[id].allocated = Number(parsed[id].allocated || 0);
                 }
@@ -129,7 +132,7 @@ function saveState() {
     for (const [id, ch] of Object.entries(state.channels)) {
         dataToSave[id] = {
             level: ch.level.toStorage(),
-            fp: ch.fp,
+            fp: (ch.fp instanceof BigNum) ? ch.fp.toStorage() : ch.fp,
             allocated: ch.allocated
         };
     }
@@ -358,7 +361,8 @@ export function getChannelFp(id) {
 
 export function setChannelFp(id, val) {
     if (!state.channels[id]) return;
-    state.channels[id].fp = Number(val) || 0;
+    // Update to support BigNum/Infinity from debug
+    state.channels[id].fp = val; 
     saveState();
     updateChannelTab();
     window.dispatchEvent(new CustomEvent('channel:change', { detail: { id, type: 'fp' } }));
@@ -379,10 +383,17 @@ function onTick(dt) {
     
     // Compute global FP multiplier once per tick
     const fpMult = getFpMultiplier();
+    const slot = getSlot();
 
     for (const id in state.channels) {
         const ch = state.channels[id];
         if (ch.allocated <= 0) continue;
+
+        // Debug Locking
+        const fpLocked = typeof window !== 'undefined' && window.__cccLockedStorageKeys?.has(`ccc:channel:fp:${id}:${slot}`);
+        const levelLocked = typeof window !== 'undefined' && window.__cccLockedStorageKeys?.has(`ccc:channel:level:${id}:${slot}`);
+
+        if (fpLocked) continue;
 
         const rate = BigNum.fromAny(ch.allocated); // FP per second
         let gainBn = rate.mulDecimal(String(dt));
@@ -421,20 +432,53 @@ function onTick(dt) {
         if (gain > 1e15) {
             // Massive gain, use BigNum logic directly
             const gainBig = BigNum.fromAny(gain); // Assuming fromAny handles huge numbers/scientific string
-            state.totalFPAccumulated = state.totalFPAccumulated.add(gainBig);
-            
-            // Levels gained = gain (since req is 1)
-            ch.level = ch.level.add(gainBig);
-            changes = true;
+            if (!levelLocked) {
+                state.totalFPAccumulated = state.totalFPAccumulated.add(gainBig);
+                // Levels gained = gain (since req is 1)
+                ch.level = ch.level.add(gainBig);
+                changes = true;
+            }
         } else {
             // Standard/Small gain
-            ch.fp += gain;
             
-            const fpBig = BigNum.fromAny(Math.floor(ch.fp));
-            if (!fpBig.isZero()) {
-                ch.level = ch.level.add(fpBig);
-                ch.fp -= Math.floor(ch.fp);
-                changes = true;
+            // Handle BigNum FP (if set via Debug)
+            if (ch.fp instanceof BigNum) {
+                if (ch.fp.isInfinite()) {
+                    if (!levelLocked) {
+                        ch.level = BigNum.fromAny('Infinity');
+                        changes = true;
+                    }
+                } else {
+                    ch.fp = ch.fp.add(gain);
+                    let fpBig = ch.fp.floorToInteger();
+                    if (!fpBig.isZero()) {
+                        if (!levelLocked) {
+                            ch.level = ch.level.add(fpBig);
+                        }
+                        ch.fp = ch.fp.sub(fpBig);
+                        changes = true;
+                    }
+                }
+            } else {
+                ch.fp += gain;
+                
+                // Promote to BigNum if it became Infinity
+                if (!Number.isFinite(ch.fp)) {
+                     ch.fp = BigNum.fromAny(ch.fp); // Infinity
+                     if (!levelLocked) {
+                         ch.level = BigNum.fromAny('Infinity');
+                         changes = true;
+                     }
+                } else {
+                    const fpBig = BigNum.fromAny(Math.floor(ch.fp));
+                    if (!fpBig.isZero()) {
+                        if (!levelLocked) {
+                            ch.level = ch.level.add(fpBig);
+                        }
+                        ch.fp -= Math.floor(ch.fp);
+                        changes = true;
+                    }
+                }
             }
         }
     }
@@ -451,8 +495,13 @@ function onTick(dt) {
         updateChannelTab(); // Schedule update
         scheduleSave();
         window.dispatchEvent(new CustomEvent('channel:change', { detail: { type: 'tick' } }));
-    } else if (visualUpdate && channelTabInitialized && channelPanel) {
-        updateChannelVisuals();
+    } else if (visualUpdate) {
+        if (channelTabInitialized && channelPanel) {
+            updateChannelVisuals();
+        }
+        // Dispatch event for debug panel real-time updates even if no level up
+        // We do this every tick if there's visual update (FP gain)
+        window.dispatchEvent(new CustomEvent('channel:change', { detail: { type: 'tick-visual' } }));
     }
 }
 
@@ -677,6 +726,8 @@ function alignChannelColumns() {
 function updateChannelVisuals() {
     if (!channelTabInitialized || !channelPanel) return;
 
+    const fpMult = getFpMultiplier();
+
     for (const id in CHANNEL_DEFS) {
         const ch = state.channels[id];
         
@@ -691,7 +742,15 @@ function updateChannelVisuals() {
         // Progress
         // Req is always 1.
         // FP is float 0..1 (mostly)
-        let pct = Math.min(100, Math.max(0, ch.fp * 100));
+        
+        // Support BigNum FP visual
+        let fpVal = ch.fp;
+        if (fpVal instanceof BigNum) {
+             if (fpVal.isInfinite()) fpVal = Infinity;
+             else try { fpVal = Number(fpVal.toScientific(5)); } catch { fpVal = 0; }
+        }
+        
+        let pct = Math.min(100, Math.max(0, fpVal * 100));
         
         // Force full bar if rate >= 20 * capacity (capacity is 1)
         // Rate (allocated) is per second. We gain allocated * FIXED_STEP per tick.
@@ -699,7 +758,11 @@ function updateChannelVisuals() {
         // gain >= 1 => allocated * FIXED_STEP >= 1 => allocated >= 1 / FIXED_STEP
         const threshold = 1 / FIXED_STEP;
         
-        if (ch.allocated >= threshold) {
+        let effectiveRate = BigNum.fromAny(ch.allocated);
+        if (fpMult) effectiveRate = effectiveRate.mulBigNumInteger(fpMult);
+        
+        // Quick check for infinity or huge numbers
+        if (effectiveRate.isInfinite() || effectiveRate.cmp(threshold) >= 0) {
             pct = 100;
         }
 
