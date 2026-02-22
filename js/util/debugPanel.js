@@ -366,6 +366,18 @@ function setupLiveBindingListeners() {
     };
     addComboChangeListener(comboHandler);
     addDebugPanelCleanup(() => removeComboChangeListener(comboHandler));
+
+    const channelHandler = (event) => {
+        const { id } = event?.detail ?? {};
+        const targetSlot = getActiveSlot();
+        refreshLiveBindings((binding) => 
+            (binding.type === 'channel-level' || binding.type === 'channel-fp')
+            && binding.slot === targetSlot
+            && (id == null || binding.id == null || binding.id === id)
+        );
+    };
+    window.addEventListener('channel:change', channelHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('channel:change', channelHandler));
 }
 
 const XP_KEY_PREFIX = 'ccc:xp';
@@ -3450,6 +3462,7 @@ function buildChannelDebug(container) {
     Object.values(CHANNEL_DEFS).forEach((def) => {
         const nodeContainer = createSubsection(`${def.name || def.id} Channel`, (sub) => {
             // Level
+            const levelKey = `ccc:channel:level:${def.id}:${slot}`;
             const levelRow = createInputRow('Level', getChannelLevel(def.id), (value, { setValue }) => {
                 let valBn;
                 try {
@@ -3468,6 +3481,8 @@ function buildChannelDebug(container) {
                     logAction(`Modified Channel ${def.name} Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
                 }
                 setValue(valBn);
+            }, {
+                storageKey: levelKey,
             });
             registerLiveBinding({
                 type: 'channel-level',
@@ -3481,19 +3496,23 @@ function buildChannelDebug(container) {
             sub.appendChild(levelRow.row);
 
             // FP
+            const fpKey = `ccc:channel:fp:${def.id}:${slot}`;
             const fpRow = createInputRow('Current FP', getChannelFp(def.id), (value, { setValue }) => {
-                let valNum = Number(value);
-                if (value instanceof BigNum) valNum = Number(value.toScientific(10));
+                let valBn;
+                try {
+                     valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+                     if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
+                } catch {
+                     setValue(getChannelFp(def.id));
+                     return;
+                }
                 
-                setChannelFp(def.id, valNum);
+                setChannelFp(def.id, valBn);
                 flagDebugUsage();
                 
-                setValue(valNum);
+                setValue(valBn);
             }, {
-                format: (val) => {
-                    const n = Number(val);
-                    return (Number.isFinite(n) && Math.abs(n) < 1e9) ? n.toFixed(4) : formatNumber(val);
-                }
+                storageKey: fpKey,
             });
             registerLiveBinding({
                 type: 'channel-fp',
