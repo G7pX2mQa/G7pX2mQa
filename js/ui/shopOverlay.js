@@ -656,7 +656,6 @@ class ShopInstance {
         this.upgrades = {};
         this.delveBtnEl = null;
         this.updateHandler = this.update.bind(this);
-        this.pendingUpdate = false;
     }
     
     get adapter() {
@@ -1184,29 +1183,8 @@ class ShopInstance {
     }
     
     update(force = false) {
-        if (force) {
-            this.performUpdate();
-            return;
-        }
-
-        if (!this.isOpen) return;
-        if (isAnyMenuScrolling()) return;
-
-        if (!this.pendingUpdate) {
-            this.pendingUpdate = true;
-            requestAnimationFrame(() => {
-                if (this.pendingUpdate) {
-                    this.performUpdate();
-                }
-            });
-        }
-    }
-
-    performUpdate() {
-        this.pendingUpdate = false;
-        if (!this.isOpen) return;
-        if (isAnyMenuScrolling()) return;
-
+        if (!force && !this.isOpen) return;
+        if (!force && isAnyMenuScrolling()) return;
         this.buildUpgradesData();
         this.render();
         this.updateDelveGlow();
