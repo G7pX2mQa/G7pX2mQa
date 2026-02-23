@@ -13,7 +13,6 @@ import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
 
 const KEY_PREFIX = 'ccc:channel';
 const KEY_FOCUS_CAPACITY = (slot) => `${KEY_PREFIX}:capacity:${slot}`;
-const KEY_TOTAL_FP = (slot) => `${KEY_PREFIX}:totalFP:${slot}`;
 // We store channel data in a single JSON object for simplicity, or separate keys? 
 // Separate keys are safer for partial updates/watches, but JSON is cleaner for "list of channels".
 // Given we only have one channel now, let's use a structured key per channel or a single state object.
@@ -32,7 +31,7 @@ export const CHANNEL_DEFS = {
         id: CHANNELS.COIN,
         name: 'Coin',
         icon: 'img/currencies/coin/coin_plus_base.webp',
-        baseReq: 1, // 1 FP per level
+        baseReq: 10, // 10 FP per level
         description: 'Boosts Global Coin Value by +100% per level',
     }
 };
@@ -49,7 +48,6 @@ let channelPanel = null;
 
 const state = {
     focusCapacity: 1,
-    totalFPAccumulated: BigNum.fromInt(0),
     channels: {
         [CHANNELS.COIN]: {
             level: BigNum.fromInt(0),
@@ -78,14 +76,6 @@ function loadState() {
         if (isNaN(state.focusCapacity)) state.focusCapacity = 1;
     } catch {
         state.focusCapacity = 1;
-    }
-
-    // Load Total FP
-    try {
-        const totalRaw = localStorage.getItem(KEY_TOTAL_FP(slot));
-        state.totalFPAccumulated = totalRaw ? BigNum.fromAny(totalRaw) : BigNum.fromInt(0);
-    } catch {
-        state.totalFPAccumulated = BigNum.fromInt(0);
     }
 
     // Load Channel Data
@@ -126,7 +116,6 @@ function saveState() {
     if (slot == null) return;
 
     localStorage.setItem(KEY_FOCUS_CAPACITY(slot), String(state.focusCapacity));
-    localStorage.setItem(KEY_TOTAL_FP(slot), state.totalFPAccumulated.toStorage());
 
     const dataToSave = {};
     for (const [id, ch] of Object.entries(state.channels)) {
@@ -304,9 +293,8 @@ export function setChannelUnlockChecker(fn) {
 
 export function resetChannels(type) {
     if (type === 'surge') {
-        // Reset Levels, FP, Total FP
+        // Reset Levels, FP
         // Keep Capacity, Allocation
-        state.totalFPAccumulated = BigNum.fromInt(0);
         for (const id in state.channels) {
             state.channels[id].level = BigNum.fromInt(0);
             state.channels[id].fp = 0;
@@ -408,32 +396,19 @@ function onTick(dt) {
         if (!gainBn.isZero()) visualUpdate = true;
         
         // High Rate Logic
-        // Req is static 1.
-        
-        const req = 1; // Static requirement
-        
-        // Accumulate global stats
-        // For total FP, we should probably just track purely numerical if small, but BigNum if large.
-        // Since levels scale linearly, Total FP = Total Levels * 1 + Current FP (approx).
-        // But let's just add the gain.
-        
-        // Since gain is likely small (e.g. 0.05 * 10 = 0.5), BigNum might trunc? 
-        // BigNum handles floats if initialized via fromAny usually? No, it's integer based primarily.
-        // However, `state.totalFPAccumulated` is BigNum.
-        // We should accumulate `gain` in a float buffer if it's small, or handle it carefully.
-        // But given "1e999" costs, levels will get high.
-        // If gain is huge (e.g. 1e50 focus), BigNum is needed.
+        // req: The FP requirement to gain 1 Level
+        const req = CHANNEL_DEFS[id]?.baseReq;
         
         // Hybrid approach:
         // 1. Add gain to current FP (float/number).
-        // 2. While FP >= 1, Level Up.
+        // 2. While FP >= req, Level Up.
         
         if (gainBn.cmp(1e15) > 0) {
             // Massive gain, use BigNum logic directly
             if (!levelLocked) {
-                state.totalFPAccumulated = state.totalFPAccumulated.add(gainBn);
-                // Levels gained = gain (since req is 1)
-                ch.level = ch.level.add(gainBn);
+                // Levels gained = gain / req
+                const levels = gainBn.div(req).floorToInteger();
+                ch.level = ch.level.add(levels);
                 changes = true;
             }
         } else {
@@ -449,12 +424,16 @@ function onTick(dt) {
                     }
                 } else {
                     ch.fp = ch.fp.add(gain);
-                    let fpBig = ch.fp.floorToInteger();
-                    if (!fpBig.isZero()) {
+                    // Check if we have enough for levels
+                    // levels = floor(fp / req)
+                    let levels = ch.fp.div(req).floorToInteger();
+                    
+                    if (!levels.isZero()) {
                         if (!levelLocked) {
-                            ch.level = ch.level.add(fpBig);
+                            ch.level = ch.level.add(levels);
                         }
-                        ch.fp = ch.fp.sub(fpBig);
+                        // Subtract cost: levels * req
+                        ch.fp = ch.fp.sub(levels.mulSmall(req));
                         changes = true;
                     }
                 }
@@ -469,13 +448,16 @@ function onTick(dt) {
                          changes = true;
                      }
                 } else {
-                    const fpBig = BigNum.fromAny(Math.floor(ch.fp));
-                    if (!fpBig.isZero()) {
-                        if (!levelLocked) {
-                            ch.level = ch.level.add(fpBig);
+                    // While FP >= req
+                    if (ch.fp >= req) {
+                        const levels = Math.floor(ch.fp / req);
+                        if (levels > 0) {
+                            if (!levelLocked) {
+                                ch.level = ch.level.add(BigNum.fromInt(levels));
+                            }
+                            ch.fp -= levels * req;
+                            changes = true;
                         }
-                        ch.fp -= Math.floor(ch.fp);
-                        changes = true;
                     }
                 }
             }
@@ -483,14 +465,6 @@ function onTick(dt) {
     }
 
     if (changes) {
-        // Re-sum total FP for display (Logic: Total Levels of all channels + partial FP?)
-        // Or just sum of levels. Since FP < 1 usually, it doesn't matter much for big numbers.
-        let sum = BigNum.fromInt(0);
-        for (const id in state.channels) {
-            sum = sum.add(state.channels[id].level);
-        }
-        state.totalFPAccumulated = sum;
-        
         updateChannelTab(); // Schedule update
         scheduleSave();
         refreshCoinMultiplierFromXpLevel();
@@ -528,7 +502,6 @@ function buildUI(panel) {
             Pay attention to Channel Level requirements to unlock new Channels<br>
             Surge and higher resets will reset Channels, but unlocked Channels are permanent
         </div>
-        <div class="channel-total-fp">Total FP Accumulated: <span id="ch-total-fp">0</span></div>
     `;
     wrapper.appendChild(header);
 
@@ -538,7 +511,7 @@ function buildUI(panel) {
     const COIN_ICON_SRC = 'img/currencies/coin/coin.webp';
     controls.innerHTML = `
         <button class="channel-upgrade-btn" id="btn-focus-upg">
-            <span class="channel-upgrade-title">Increase Focus Amount</span>
+            <span class="channel-upgrade-title">Increase Focus Capacity</span>
             <span class="channel-upgrade-cost">
                Cost: <img src="${COIN_ICON_SRC}" class="channel-upgrade-cost-icon" alt="Coins">
                <span id="focus-cost">1e999 Coins</span>
@@ -625,10 +598,6 @@ function buildUI(panel) {
 export function updateChannelTab() {
     if (!channelTabInitialized || !channelPanel) return;
     
-    // Update Total FP
-    const elTotal = channelPanel.querySelector('#ch-total-fp');
-    if (elTotal) elTotal.textContent = formatNumber(state.totalFPAccumulated);
-
     // Update Focus Button
     const btnUpg = channelPanel.querySelector('#btn-focus-upg');
     const cost = getFocusUpgradeCost();
@@ -740,8 +709,8 @@ function updateChannelVisuals() {
         const elFill = channelPanel.querySelector(`#ch-fill-${id}`);
         
         // Progress
-        // Req is always 1.
-        // FP is float 0..1 (mostly)
+        // req is dynamic
+        const req = CHANNEL_DEFS[id]?.baseReq;
         
         // Support BigNum FP visual
         let fpVal = ch.fp;
@@ -750,15 +719,19 @@ function updateChannelVisuals() {
              else try { fpVal = Number(fpVal.toScientific(5)); } catch { fpVal = 0; }
         }
         
-        let pct = Math.min(100, Math.max(0, fpVal * 100));
+        // Percent = (fp / req) * 100
+        let pct = 0;
+        if (req > 0) {
+            pct = Math.min(100, Math.max(0, (fpVal / req) * 100));
+        }
         
-        // Force full bar if effective rate per tick is >= 1
+        // Force full bar if effective rate per tick is >= req
         // Rate (allocated) is per second. We gain allocated * fpMult * FIXED_STEP per tick.
-        // If gain per tick >= 1, we fill the bar instantly.
-        // (allocated * fpMult) * FIXED_STEP >= 1  => (allocated * fpMult) >= 1/FIXED_STEP
+        // If gain per tick >= req, we fill the bar instantly.
+        // (allocated * fpMult) * FIXED_STEP >= req  => (allocated * fpMult) >= req/FIXED_STEP
         
         const safeFixedStep = (typeof FIXED_STEP === 'number' && FIXED_STEP > 0) ? FIXED_STEP : 0.05;
-        const threshold = 1 / safeFixedStep;
+        const threshold = req / safeFixedStep;
         
         let effectiveRate = BigNum.fromAny(ch.allocated);
         
