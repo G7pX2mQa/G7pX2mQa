@@ -26,13 +26,11 @@
 
 .flow-explainer {
   font-size: 0.95rem;
-  line-height: 1.4;
   color: #e6f5ff;
-  white-space: pre-line;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 12px;
+  background: rgba(67, 145, 240, 0.15);
+  padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #7aa7de;
 }
 
 /* List Layout */
@@ -147,6 +145,10 @@
   transition: width 0.1s linear;
 }
 
+#flow-fill-coin {
+  background: linear-gradient(90deg, #FFFF00 0%, #989812 100%);
+}
+
 .flow-bar-fill::after {
   content: "";
   position: absolute;
@@ -192,31 +194,41 @@
 
 .flow-toggle-btn {
   appearance: none;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  border: 1px solid hsla(0, 80%, 40%, 0.45);
+  border-radius: 0;
   color: #fff;
   font-weight: 700;
   font-size: 0.9rem;
   padding: 6px 16px;
   cursor: pointer;
   user-select: none;
-  background: rgb(255, 68, 68); /* OFF color */
-  transition: background 0.1s, transform 0.1s;
+  background: hsla(0, 80%, 40%, 0.15);
   min-width: 60px;
 }
 
+.flow-toggle-btn:hover {
+  background: hsla(0, 80%, 40%, 0.22);
+}
+
+.flow-toggle-btn:active {
+  transform: translateY(1px);
+  background: hsla(0, 80%, 40%, 0.28);
+}
+
 .flow-toggle-btn.is-active {
-  background: rgb(68, 255, 68); /* ON color */
+  border: 1px solid hsla(150, 60%, 35%, 0.45);
+  background: hsla(150, 60%, 35%, 0.15);
   color: #fff; /* Ensure text is white */
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
-.flow-toggle-btn:hover {
-  filter: brightness(1.1);
+.flow-toggle-btn.is-active:hover {
+  background: hsla(150, 60%, 35%, 0.22);
 }
 
-.flow-toggle-btn:active {
-  transform: scale(0.95);
+.flow-toggle-btn.is-active:active {
+  transform: translateY(1px);
+  background: hsla(150, 60%, 35%, 0.28);
 }
 
 /* Mobile Responsive */
