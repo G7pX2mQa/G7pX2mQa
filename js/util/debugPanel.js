@@ -43,14 +43,14 @@ import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } f
 import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
 import { getLabLevel, setLabLevel, getLabLevelKey, getRpMultBase } from '../ui/merchantTabs/labTab.js';
 import { 
-    getChannelUnlockState, 
-    CHANNEL_DEFS, 
-    getChannelLevel, 
-    setChannelLevel, 
-    getChannelFp, 
-    setChannelFp, 
+    getFlowUnlockState, 
+    WATERWHEEL_DEFS, 
+    getWaterwheelLevel, 
+    setWaterwheelLevel, 
+    getWaterwheelFp, 
+    setWaterwheelFp, 
     getFpMultiplier 
-} from '../ui/merchantTabs/channelTab.js';
+} from '../ui/merchantTabs/flowTab.js';
 import { 
     RESEARCH_NODES,
     getResearchNodeLevel,
@@ -367,17 +367,17 @@ function setupLiveBindingListeners() {
     addComboChangeListener(comboHandler);
     addDebugPanelCleanup(() => removeComboChangeListener(comboHandler));
 
-    const channelHandler = (event) => {
+    const flowHandler = (event) => {
         const { id } = event?.detail ?? {};
         const targetSlot = getActiveSlot();
         refreshLiveBindings((binding) => 
-            (binding.type === 'channel-level' || binding.type === 'channel-fp')
+            (binding.type === 'flow-level' || binding.type === 'flow-fp')
             && binding.slot === targetSlot
             && (id == null || binding.id == null || binding.id === id)
         );
     };
-    window.addEventListener('channel:change', channelHandler, { passive: true });
-    addDebugPanelCleanup(() => window.removeEventListener('channel:change', channelHandler));
+    window.addEventListener('flow:change', flowHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('flow:change', flowHandler));
 }
 
 const XP_KEY_PREFIX = 'ccc:xp';
@@ -2686,23 +2686,23 @@ function getUnlockRowDefinitions(slot) {
             slot,
         },
         {
-            labelText: 'Unlock Channel',
-            description: 'If true, unlocks the Channel tab',
+            labelText: 'Unlock Flow',
+            description: 'If true, unlocks the Flow tab',
             isUnlocked: () => {
-                try { return !!getChannelUnlockState(); }
+                try { return !!getFlowUnlockState(); }
                 catch { return false; }
             },
             onEnable: () => {
                 const slot = getActiveSlot();
                 if (slot == null) return;
-                try { localStorage.setItem(`ccc:unlock:channel:${slot}`, '1'); } catch {}
-                try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'channel', slot } })); } catch {}
+                try { localStorage.setItem(`ccc:unlock:flow:${slot}`, '1'); } catch {}
+                try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'flow', slot } })); } catch {}
             },
             onDisable: () => {
                 const slot = getActiveSlot();
                 if (slot == null) return;
-                try { localStorage.setItem(`ccc:unlock:channel:${slot}`, '0'); } catch {}
-                try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'channel', slot } })); } catch {}
+                try { localStorage.setItem(`ccc:unlock:flow:${slot}`, '0'); } catch {}
+                try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'flow', slot } })); } catch {}
             },
             slot,
         },
@@ -3441,73 +3441,73 @@ function buildLabNodesDebug(container) {
     });
 }
 
-function buildChannelDebug(container) {
+function buildFlowDebug(container) {
     const slot = getActiveSlot();
     if (slot == null) {
         const msg = document.createElement('div');
         msg.className = 'debug-panel-empty';
-        msg.textContent = 'Select a save slot to edit channels.';
+        msg.textContent = 'Select a save slot to edit flow.';
         container.appendChild(msg);
         return;
     }
 
-    if (!CHANNEL_DEFS) {
+    if (!WATERWHEEL_DEFS) {
         const msg = document.createElement('div');
         msg.className = 'debug-panel-empty';
-        msg.textContent = 'No channels found.';
+        msg.textContent = 'No waterwheels found.';
         container.appendChild(msg);
         return;
     }
 
-    Object.values(CHANNEL_DEFS).forEach((def) => {
-        const nodeContainer = createSubsection(`${def.name || def.id} Channel`, (sub) => {
+    Object.values(WATERWHEEL_DEFS).forEach((def) => {
+        const nodeContainer = createSubsection(`${def.name || def.id} Waterwheel`, (sub) => {
             // Level
-            const levelKey = `ccc:channel:level:${def.id}:${slot}`;
-            const levelRow = createInputRow('Level', getChannelLevel(def.id), (value, { setValue }) => {
+            const levelKey = `ccc:flow:level:${def.id}:${slot}`;
+            const levelRow = createInputRow('Level', getWaterwheelLevel(def.id), (value, { setValue }) => {
                 let valBn;
                 try {
                      valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
                      if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
                 } catch {
-                     setValue(getChannelLevel(def.id));
+                     setValue(getWaterwheelLevel(def.id));
                      return;
                 }
 
-                const prev = getChannelLevel(def.id);
-                setChannelLevel(def.id, valBn);
+                const prev = getWaterwheelLevel(def.id);
+                setWaterwheelLevel(def.id, valBn);
                 flagDebugUsage();
                 
                 if (!bigNumEquals(prev, valBn)) {
-                    logAction(`Modified Channel ${def.name} Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
+                    logAction(`Modified Waterwheel ${def.name} Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
                 }
                 setValue(valBn);
             }, {
                 storageKey: levelKey,
             });
             registerLiveBinding({
-                type: 'channel-level',
+                type: 'flow-level',
                 slot,
                 id: def.id,
                 refresh: () => {
                     if (slot !== getActiveSlot()) return;
-                    levelRow.setValue(getChannelLevel(def.id));
+                    levelRow.setValue(getWaterwheelLevel(def.id));
                 }
             });
             sub.appendChild(levelRow.row);
 
             // FP
-            const fpKey = `ccc:channel:fp:${def.id}:${slot}`;
-            const fpRow = createInputRow('Current FP', getChannelFp(def.id), (value, { setValue }) => {
+            const fpKey = `ccc:flow:fp:${def.id}:${slot}`;
+            const fpRow = createInputRow('Current FP', getWaterwheelFp(def.id), (value, { setValue }) => {
                 let valBn;
                 try {
                      valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
                      if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
                 } catch {
-                     setValue(getChannelFp(def.id));
+                     setValue(getWaterwheelFp(def.id));
                      return;
                 }
                 
-                setChannelFp(def.id, valBn);
+                setWaterwheelFp(def.id, valBn);
                 flagDebugUsage();
                 
                 setValue(valBn);
@@ -3515,12 +3515,12 @@ function buildChannelDebug(container) {
                 storageKey: fpKey,
             });
             registerLiveBinding({
-                type: 'channel-fp',
+                type: 'flow-fp',
                 slot,
                 id: def.id,
                 refresh: () => {
                     if (slot !== getActiveSlot()) return;
-                    fpRow.setValue(getChannelFp(def.id));
+                    fpRow.setValue(getWaterwheelFp(def.id));
                 }
             });
             sub.appendChild(fpRow.row);
@@ -3768,7 +3768,7 @@ function buildAreasContent(content) {
             let automationUpgrades = null;
             let dnaUpgrades = null;
             let labNodesSection = null;
-            let channelsSection = null;
+            let waterwheelsSection = null;
             if (area.key === AREA_KEYS.STARTER_COVE) {
                 console.log('[Debug] In Cove Block');
                 automationUpgrades = createSubsection('Automation Upgrades', (sub) => {
@@ -3780,8 +3780,8 @@ function buildAreasContent(content) {
                 labNodesSection = createSubsection('Lab Nodes', (sub) => {
                     buildLabNodesDebug(sub);
                 });
-                channelsSection = createSubsection('Channels', (sub) => {
-                    buildChannelDebug(sub);
+                waterwheelsSection = createSubsection('Waterwheels', (sub) => {
+                    buildFlowDebug(sub);
                 });
             }
 
@@ -3802,8 +3802,8 @@ function buildAreasContent(content) {
             if (labNodesSection) {
                 areaContent.appendChild(labNodesSection);
             }
-            if (channelsSection) {
-                areaContent.appendChild(channelsSection);
+            if (waterwheelsSection) {
+                areaContent.appendChild(waterwheelsSection);
             }
             areaContent.appendChild(calculators);
         });
