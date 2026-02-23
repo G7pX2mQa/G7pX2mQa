@@ -1226,6 +1226,10 @@ export function closeDelveSpecificOverlays() {
         const existing = document.querySelector('.hm-milestones-overlay');
         if (existing) existing.remove();
     }
+
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ccc:close-delve-overlays'));
+    }
 }
 
 export function updateShopOverlay(force = false) {
