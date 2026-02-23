@@ -12,8 +12,7 @@ import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
    ========================================= */
 
 const KEY_PREFIX = 'ccc:flow'; 
-// Storing { [waterwheelId]: { level: '0', fp: '0', active: false } }
-const KEY_FLOW_DATA = (slot) => `${KEY_PREFIX}:data:${slot}`;
+const KEY_WATERWHEEL = (id, slot) => `${KEY_PREFIX}:${id}:${slot}`;
 
 const WATERWHEELS = {
     COIN: 'coin'
@@ -63,14 +62,38 @@ function loadState() {
 
     // Load Flow Data
     try {
-        const dataRaw = localStorage.getItem(KEY_FLOW_DATA(slot));
-        if (dataRaw) {
-            const parsed = JSON.parse(dataRaw);
-            for (const id in parsed) {
-                if (state.waterwheels[id]) {
-                    state.waterwheels[id].level = BigNum.fromAny(parsed[id].level || 0);
-                    state.waterwheels[id].fp = Number(parsed[id].fp || 0);
-                    state.waterwheels[id].active = !!parsed[id].active;
+        // Migration: Check for old single-object key
+        const oldKey = `${KEY_PREFIX}:data:${slot}`;
+        const oldDataRaw = localStorage.getItem(oldKey);
+        
+        if (oldDataRaw) {
+            // Migration Path
+            try {
+                const parsed = JSON.parse(oldDataRaw);
+                for (const id in parsed) {
+                    if (state.waterwheels[id]) {
+                        state.waterwheels[id].level = BigNum.fromAny(parsed[id].level || 0);
+                        state.waterwheels[id].fp = Number(parsed[id].fp || 0);
+                        state.waterwheels[id].active = !!parsed[id].active;
+                    }
+                }
+                // Save to new individual keys
+                saveState();
+                // Clean up old key
+                localStorage.removeItem(oldKey);
+            } catch (e) {
+                console.warn("Migration failed for flow data", e);
+            }
+        } else {
+            // Standard Load from individual keys
+            for (const id in state.waterwheels) {
+                const key = KEY_WATERWHEEL(id, slot);
+                const dataRaw = localStorage.getItem(key);
+                if (dataRaw) {
+                    const parsed = JSON.parse(dataRaw);
+                    state.waterwheels[id].level = BigNum.fromAny(parsed.level || 0);
+                    state.waterwheels[id].fp = Number(parsed.fp || 0);
+                    state.waterwheels[id].active = !!parsed.active;
                 }
             }
         }
@@ -99,15 +122,14 @@ function saveState() {
     const slot = getSlot();
     if (slot == null) return;
 
-    const dataToSave = {};
     for (const [id, ch] of Object.entries(state.waterwheels)) {
-        dataToSave[id] = {
+        const dataToSave = {
             level: ch.level.toStorage(),
             fp: (ch.fp instanceof BigNum) ? ch.fp.toStorage() : ch.fp,
             active: ch.active
         };
+        localStorage.setItem(KEY_WATERWHEEL(id, slot), JSON.stringify(dataToSave));
     }
-    localStorage.setItem(KEY_FLOW_DATA(slot), JSON.stringify(dataToSave));
 }
 
 let saveTimeout = null;
@@ -168,16 +190,7 @@ export function setFlowUnlockChecker(fn) {
     _unlockChecker = fn;
 }
 
-export function resetWaterwheels(type) {
-    if (type === 'surge') {
-        for (const id in state.waterwheels) {
-            state.waterwheels[id].level = BigNum.fromInt(0);
-            state.waterwheels[id].fp = 0;
-        }
-        saveState();
-        updateFlowTab();
-    }
-}
+
 
 export function getWaterwheelCoinMultiplier({ baseMultiplier }) {
     const level = state.waterwheels[WATERWHEELS.COIN]?.level || BigNum.fromInt(0);
