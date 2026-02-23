@@ -18,10 +18,13 @@
 
 .flow-header {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
   gap: 12px;
-  max-width: 800px;
+  max-width: 100%;
   width: 100%;
+  position: relative;
 }
 
 .flow-explainer {
@@ -31,6 +34,50 @@
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid #7aa7de;
+  max-width: 800px;
+  width: 100%;
+  flex-shrink: 0;
+  z-index: 2;
+  
+  /* Layout for internal minis + text */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.flow-explainer-text {
+  flex: 1;
+  text-align: center;
+  min-width: 0; /* Allow text to wrap/shrink properly in flex */
+}
+
+.flow-minis-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 4px 0;
+}
+
+/* Mini Waterwheels */
+.flow-ww-wrapper.flow-ww-mini {
+  width: 32px;
+  aspect-ratio: 1/1;
+  /* Keep same animation as big ones */
+}
+
+.flow-ww-wrapper.flow-ww-mini .flow-ww-depth {
+  /* Reduced depth for smaller scale */
+  transform: translateZ(-6px);
+}
+
+/* Hide minis on small screens to save space */
+@media (max-width: 600px) {
+  .flow-minis-col {
+    display: none;
+  }
 }
 
 /* List Layout */
@@ -256,4 +303,54 @@
   
   .flow-level-val { grid-area: lvl; justify-self: start; }
   .flow-row-controls { grid-area: state; justify-self: end; }
+}
+
+/* Waterwheel Visuals */
+.flow-ww-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  overflow: visible;
+  perspective: 1000px;
+}
+
+@media (max-width: 1000px) {
+  .flow-ww-container {
+    display: none;
+  }
+}
+
+.flow-ww-wrapper {
+  position: relative;
+  width: min(80%, 300px);
+  aspect-ratio: 1/1;
+  transform-style: preserve-3d;
+  animation: flow-ww-spin 8s linear infinite;
+}
+
+.flow-ww-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.flow-ww-main {
+  transform: translateZ(0);
+}
+
+.flow-ww-depth {
+  /* Create a "depth" layer behind */
+  transform: translateZ(-15px);
+  filter: brightness(0.5);
+  opacity: 0.8;
+}
+
+@keyframes flow-ww-spin {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
 }
