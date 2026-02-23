@@ -679,6 +679,9 @@ images: [
   'img/stats/xp/xp_plus_base.webp',
   'img/stats/rp/rp.webp',
   'img/stats/rp/rp_base.webp',
+  
+    // ==== img/waterwheels ====
+	'img/waterwheels/waterwheel_coin.webp',
 ],
     audio: [
       'sounds/coin_pickup.ogg',
