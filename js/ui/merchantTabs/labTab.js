@@ -1130,16 +1130,7 @@ class LabSystem {
         closeBtn.className = 'shop-close';
         closeBtn.textContent = 'Close';
         closeBtn.onclick = () => {
-            this.activeOverlayId = null;
-            if (this.overlay) {
-                this.overlay.classList.remove('is-open');
-                setTimeout(() => {
-                    if (this.overlay) {
-                        this.overlay.remove();
-                        this.overlay = null;
-                    }
-                }, 300);
-            }
+            this.closeNodeOverlay();
         };
         
         actions.append(closeBtn, this.overlayToggleBtn);
@@ -1159,6 +1150,19 @@ class LabSystem {
         this.updateNodeOverlay();
     }
     
+    closeNodeOverlay() {
+        this.activeOverlayId = null;
+        if (this.overlay) {
+            this.overlay.classList.remove('is-open');
+            setTimeout(() => {
+                if (this.overlay) {
+                    this.overlay.remove();
+                    this.overlay = null;
+                }
+            }, 300);
+        }
+    }
+
     updateNodeOverlay() {
         if (this.activeOverlayId == null || !this.overlay) return;
         const node = RESEARCH_NODES.find(n => n.id === this.activeOverlayId);
@@ -1412,4 +1416,12 @@ class LabSystem {
             this.lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         }
     }
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('ccc:close-delve-overlays', () => {
+        if (labSystem) {
+             labSystem.closeNodeOverlay();
+        }
+    });
 }
