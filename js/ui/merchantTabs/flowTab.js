@@ -23,8 +23,10 @@ export const WATERWHEEL_DEFS = {
         id: WATERWHEELS.COIN,
         name: 'Coin',
         icon: 'img/currencies/coin/coin_plus_base.webp',
+        image: 'img/waterwheels/waterwheel_coin.webp',
         baseReq: 10, // 10 FP per level
         description: 'Boosts Global Coin Value by +100% per level',
+        unlocked: true
     }
 };
 
@@ -43,7 +45,8 @@ const state = {
         [WATERWHEELS.COIN]: {
             level: BigNum.fromInt(0),
             fp: 0,
-            active: false
+            active: false,
+            unlocked: true
         }
     }
 };
@@ -94,6 +97,7 @@ function loadState() {
                     state.waterwheels[id].level = BigNum.fromAny(parsed.level || 0);
                     state.waterwheels[id].fp = Number(parsed.fp || 0);
                     state.waterwheels[id].active = !!parsed.active;
+                    state.waterwheels[id].unlocked = parsed.unlocked !== undefined ? !!parsed.unlocked : (WATERWHEEL_DEFS[id]?.unlocked || false);
                 }
             }
         }
@@ -126,7 +130,8 @@ function saveState() {
         const dataToSave = {
             level: ch.level.toStorage(),
             fp: (ch.fp instanceof BigNum) ? ch.fp.toStorage() : ch.fp,
-            active: ch.active
+            active: ch.active,
+            unlocked: ch.unlocked
         };
         localStorage.setItem(KEY_WATERWHEEL(id, slot), JSON.stringify(dataToSave));
     }
@@ -332,6 +337,10 @@ function onTick(dt) {
         }
     }
 
+    if (flowTabInitialized && flowPanel) {
+        updateWaterwheelVisuals();
+    }
+
     if (changes) {
         updateFlowTab();
         scheduleSave();
@@ -349,6 +358,15 @@ function onTick(dt) {
    UI
    ========================================= */
 
+function createWaterwheelHTML(extraClass = '') {
+    return `
+        <div class="flow-ww-wrapper ${extraClass}">
+             <img src="" class="flow-ww-img flow-ww-depth" alt="">
+             <img src="" class="flow-ww-img flow-ww-main" alt="Waterwheel">
+        </div>
+    `;
+}
+
 function buildUI(panel) {
     panel.innerHTML = '';
     
@@ -358,18 +376,46 @@ function buildUI(panel) {
     // Header
     const header = document.createElement('div');
     header.className = 'flow-header';
-    header.innerHTML = `
-        <div class="flow-explainer">
-            Direct your Flow to make the Great Waterwheels turn,<br>
-            Within the Forgotten Channels these hidden relics yearn,<br>
-            To split the surging waters is a wish the depths denied,<br>
-            So choose with careful strategy where power shall reside,<br>
-            While each wheel works hard to increase your every gain,<br>
-            As milestones unlock more links within the ancient chain,<br>
-            Command the rushing waters, push the limits of the machine,<br>
-            To wake the strongest multipliers that The Cove has ever seen.
-        </div>
+    
+    const wwLeft = document.createElement('div');
+    wwLeft.className = 'flow-ww-container flow-ww-left';
+    wwLeft.innerHTML = createWaterwheelHTML();
+    
+    const explainer = document.createElement('div');
+    explainer.className = 'flow-explainer';
+    
+    const minisLeft = document.createElement('div');
+    minisLeft.className = 'flow-minis-col';
+    minisLeft.innerHTML = Array(4).fill(null).map(() => createWaterwheelHTML('flow-ww-mini')).join('');
+    
+    const text = document.createElement('div');
+    text.className = 'flow-explainer-text';
+    text.innerHTML = `
+        Direct your Flow to make the Great Waterwheels turn,<br>
+        Within the Forgotten Channels these hidden relics yearn,<br>
+        To split the surging waters is a wish the depths denied,<br>
+        So choose with careful strategy where power shall reside,<br>
+        While each wheel works hard to increase your every gain,<br>
+        As milestones unlock more links within the ancient chain,<br>
+        Command the rushing waters, push the limits of the machine,<br>
+        To wake the strongest multipliers that The Cove has ever seen.
     `;
+
+    const minisRight = document.createElement('div');
+    minisRight.className = 'flow-minis-col';
+    minisRight.innerHTML = Array(4).fill(null).map(() => createWaterwheelHTML('flow-ww-mini')).join('');
+
+    explainer.appendChild(minisLeft);
+    explainer.appendChild(text);
+    explainer.appendChild(minisRight);
+
+    const wwRight = document.createElement('div');
+    wwRight.className = 'flow-ww-container flow-ww-right';
+    wwRight.innerHTML = createWaterwheelHTML();
+
+    header.appendChild(wwLeft);
+    header.appendChild(explainer);
+    header.appendChild(wwRight);
     wrapper.appendChild(header);
 
     // List
@@ -443,6 +489,32 @@ export function updateFlowTab() {
     }
 
     alignFlowColumns();
+}
+
+function updateWaterwheelVisuals() {
+    if (!flowPanel) return;
+    
+    const unlocked = [];
+    for (const id in state.waterwheels) {
+        if (state.waterwheels[id].unlocked) {
+            const def = WATERWHEEL_DEFS[id];
+            if (def && def.image) unlocked.push(def);
+        }
+    }
+    
+    if (unlocked.length === 0) return;
+    
+    const time = Date.now();
+    const index = Math.floor(time / 2000) % unlocked.length;
+    const currentDef = unlocked[index];
+    
+    const imgs = flowPanel.querySelectorAll('.flow-ww-img');
+    imgs.forEach(img => {
+        // Only update if src is different to avoid flicker/reload
+        if (!img.src || img.src.indexOf(currentDef.image) === -1) {
+            img.src = currentDef.image;
+        }
+    });
 }
 
 function alignFlowColumns() {
