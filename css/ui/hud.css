@@ -444,7 +444,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
     rgba(255,120,0,1) 50%,
     rgba(200,60,0,1) 100%
   );
-  transition: width 160ms ease-out;
 }
 
 .mp-bar__fill::after{
@@ -568,8 +567,6 @@ background: linear-gradient(90deg,
   rgba(0,150,255,1) 50%,
   rgba(0,70,210,1) 100%
 );
-
-  transition: width 160ms ease-out;
 }
 
 .xp-bar__fill::after{
