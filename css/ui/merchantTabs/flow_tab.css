@@ -31,7 +31,7 @@
   font-size: 0.95rem;
   color: #e6f5ff;
   background: rgba(67, 145, 240, 0.15);
-  padding: 10px 4px;
+  padding: 10px 16px;
   border-radius: 12px;
   border: 1px solid #7aa7de;
   max-width: 800px;
@@ -61,15 +61,6 @@
   padding: 4px 0;
 }
 
-.flow-minis-col:first-child {
-  position: relative;
-  left: 2px;
-}
-
-.flow-minis-col:last-child {
-  position: relative;
-  right: 2px;
-}
 
 /* Mini Waterwheels */
 .flow-ww-wrapper.flow-ww-mini {
