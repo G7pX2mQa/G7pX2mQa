@@ -190,7 +190,12 @@
 }
 
 #flow-fill-coin {
-  background: linear-gradient(90deg, #FFFF00 0%, #989812 100%);
+background: linear-gradient(
+  to right, 
+  #FFF200 0%, 
+  #FFD700 45%, 
+  #FF8C00 100%
+);
 }
 
 .flow-bar-fill::after {
