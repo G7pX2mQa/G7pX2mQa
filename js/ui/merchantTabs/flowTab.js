@@ -26,7 +26,8 @@ export const WATERWHEEL_DEFS = {
         image: 'img/waterwheels/waterwheel_coin.webp',
         baseReq: 10, // 10 FP per level
         description: 'Boosts Global Coin Value by +100% per level',
-        unlocked: true
+        unlocked: true,
+        styleKey: 'coins'
     }
 };
 
@@ -256,6 +257,88 @@ export function setWaterwheelFp(id, val) {
     saveState();
     updateFlowTab();
     window.dispatchEvent(new CustomEvent('flow:change', { detail: { id, type: 'fp' } }));
+}
+
+export function calculateWaterwheelOffline(seconds) {
+    if (!isFlowUnlocked()) return {};
+
+    const fpMult = getFpMultiplier();
+    const result = {};
+    // Base rate 1 FP/sec
+    let totalGainBn = BigNum.fromInt(1).mulDecimal(String(seconds));
+    totalGainBn = totalGainBn.mulBigNumInteger(fpMult);
+    totalGainBn = applyStatMultiplierOverride('fp', totalGainBn);
+
+    if (totalGainBn.isZero()) return {};
+
+    for (const id in state.waterwheels) {
+        const ch = state.waterwheels[id];
+        if (!ch.active) continue;
+
+        const req = WATERWHEEL_DEFS[id]?.baseReq || 10;
+        
+        let currentFpBn;
+        if (ch.fp instanceof BigNum) currentFpBn = ch.fp.clone();
+        else currentFpBn = BigNum.fromAny(ch.fp);
+        
+        let finalFpBn = currentFpBn.add(totalGainBn);
+        let levelsGained = BigNum.fromInt(0);
+
+        if (!finalFpBn.isInfinite()) {
+             const reqBn = BigNum.fromInt(req);
+             const levels = finalFpBn.div(reqBn).floorToInteger();
+             
+             if (!levels.isZero()) {
+                 levelsGained = levels;
+                 finalFpBn = finalFpBn.sub(levels.mulSmall(req));
+             }
+        }
+        
+        // Return result if there was any gain (levels or just fp progress)
+        result[id] = {
+            levels: levelsGained,
+            fp: finalFpBn,
+            name: WATERWHEEL_DEFS[id]?.name || id
+        };
+    }
+    
+    return result;
+}
+
+export function applyWaterwheelOffline(offlineData) {
+    if (!offlineData) return;
+    let changes = false;
+    
+    for (const id in offlineData) {
+        const data = offlineData[id];
+        const ch = state.waterwheels[id];
+        if (!ch) continue;
+        
+        if (data.levels && !data.levels.isZero()) {
+             ch.level = ch.level.add(data.levels);
+             changes = true;
+        }
+        
+        if (data.fp !== undefined) {
+            // Convert to number if small enough, consistent with onTick
+            if (data.fp instanceof BigNum) {
+                const val = Number(data.fp.toScientific(5));
+                if (Number.isFinite(val) && val < 1e15) {
+                    ch.fp = val;
+                } else {
+                    ch.fp = data.fp;
+                }
+            } else {
+                ch.fp = data.fp;
+            }
+        }
+    }
+    
+    if (changes) {
+        saveState();
+        updateFlowTab();
+        refreshCoinMultiplierFromXpLevel();
+    }
 }
 
 /* =========================================
