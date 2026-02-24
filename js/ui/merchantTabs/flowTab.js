@@ -21,7 +21,7 @@ const WATERWHEELS = {
 export const WATERWHEEL_DEFS = {
     [WATERWHEELS.COIN]: {
         id: WATERWHEELS.COIN,
-        name: 'Coin',
+        name: 'Coin Waterwheel',
         icon: 'img/waterwheels/waterwheel_coin.webp',
         image: 'img/waterwheels/waterwheel_coin.webp',
         baseReq: 10, // 10 FP per level
@@ -599,7 +599,7 @@ function buildUI(panel) {
     const listHeader = document.createElement('div');
     listHeader.className = 'flow-list-header';
     listHeader.innerHTML = `
-        <div class="list-head-name">Waterwheels</div>
+        <div class="list-head-name">Waterwheel</div>
         <div class="list-head-level">Level</div>
         <div class="list-head-state">Flow State</div>
     `;
