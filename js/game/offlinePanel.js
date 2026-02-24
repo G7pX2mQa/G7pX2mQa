@@ -210,7 +210,7 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
                     
                     const levelCount = BigNum.fromAny(item.levels);
                     const label = (levelCount.cmp(BigNum.fromInt(1)) === 0) ? 'Level' : 'Levels';
-                    text.textContent = `${formatNumber(levelCount)} ${label} of ${item.name} Waterwheel`;
+                    text.textContent = `${formatNumber(levelCount)} ${label} of ${item.name}`;
                     
                     row.appendChild(plus);
                     row.appendChild(icon);
