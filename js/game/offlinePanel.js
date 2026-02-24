@@ -28,6 +28,7 @@ import { getTotalCumulativeMp } from './mutationSystem.js';
 import { computeForgeGoldFromInputs, computeInfuseMagicFromInputs } from '../ui/merchantTabs/resetTab.js';
 import { getLabGoldMultiplier } from './labNodes.js';
 import { bigNumFromLog10 } from '../util/bigNum.js';
+import { calculateWaterwheelOffline, applyWaterwheelOffline, WATERWHEEL_DEFS } from '../ui/merchantTabs/flowTab.js';
 
 let initialized = false;
 
@@ -104,6 +105,7 @@ const PRIORITY_ORDER = [
     { key: 'waves',     icon: 'img/currencies/gear/gear.webp',   singular: 'Wave',     plural: 'Waves' },
     { key: 'DNA',       icon: 'img/currencies/dna/dna.webp',     singular: 'DNA',      plural: 'DNA' },
     { key: 'research_levels', icon: 'img/stats/rp/rp.webp',      singular: 'Level',    plural: 'Levels' },
+    { key: 'waterwheel_levels', icon: 'img/waterwheels/waterwheel_coin.webp', singular: 'Level', plural: 'Levels' },
 ];
 
 export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
@@ -173,6 +175,42 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
                     const levelCount = BigNum.fromInt(item.levels);
                     const label = (levelCount.cmp(BigNum.fromInt(1)) === 0) ? 'Level' : 'Levels';
                     text.textContent = `${formatNumber(levelCount)} ${label} of ${item.name}`;
+                    
+                    row.appendChild(plus);
+                    row.appendChild(icon);
+                    row.appendChild(text);
+                    list.appendChild(row);
+                });
+            }
+            return;
+        }
+
+        if (key === 'waterwheel_levels') {
+            if (Array.isArray(val)) {
+                val.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'offline-row';
+                    
+                    const def = WATERWHEEL_DEFS[item.id];
+                    const colorClass = def?.styleKey ? `text-${def.styleKey}` : 'text-coins';
+
+                    const plus = document.createElement('span');
+                    plus.className = 'offline-plus';
+                    plus.classList.add(colorClass); 
+                    plus.textContent = '+';
+                    
+                    const icon = document.createElement('img');
+                    icon.className = 'offline-icon';
+                    icon.src = def?.icon || 'img/waterwheels/waterwheel_coin.webp';
+                    icon.alt = 'WW';
+                    
+                    const text = document.createElement('span');
+                    text.className = 'offline-text';
+                    text.classList.add(colorClass);
+                    
+                    const levelCount = BigNum.fromAny(item.levels);
+                    const label = (levelCount.cmp(BigNum.fromInt(1)) === 0) ? 'Level' : 'Levels';
+                    text.textContent = `${formatNumber(levelCount)} ${label} of ${item.name} Waterwheel`;
                     
                     row.appendChild(plus);
                     row.appendChild(icon);
@@ -314,6 +352,17 @@ export function calculateOfflineRewards(seconds) {
         if (researchLevels.length > 0) rewards.research_levels = researchLevels;
         if (Object.keys(researchProgress).length > 0) rewards.research_progress = researchProgress;
     }
+    
+    // --- Waterwheels Progress ---
+    const waterwheelData = calculateWaterwheelOffline(seconds);
+    const waterwheelLevels = [];
+    for (const [id, data] of Object.entries(waterwheelData)) {
+        if (data.levels && !data.levels.isZero()) {
+            waterwheelLevels.push({ id, ...data });
+        }
+    }
+    if (waterwheelLevels.length > 0) rewards.waterwheel_levels = waterwheelLevels;
+    if (Object.keys(waterwheelData).length > 0) rewards.waterwheel_progress = waterwheelData;
     // -----------------------------
 
     const gearRate = getGearsProductionRate ? getGearsProductionRate() : BigNum.fromInt(0);
@@ -454,12 +503,18 @@ export function grantOfflineRewards(rewards) {
              }
         }
     }
+    
+    // Handle Waterwheels
+    if (rewards.waterwheel_progress) {
+        applyWaterwheelOffline(rewards.waterwheel_progress);
+    }
 
     // Handle standard currencies automatically
     for (const key of Object.keys(rewards)) {
         // Skip special keys handled above or created during handling
         if (key === 'xp' || key === 'mp' || key === 'xp_levels' || key === 'mp_levels') continue;
         if (key === 'research_levels' || key === 'research_progress') continue;
+        if (key === 'waterwheel_levels' || key === 'waterwheel_progress') continue;
         
         if (bank[key] && typeof bank[key].add === 'function') {
             bank[key].add(rewards[key]);
