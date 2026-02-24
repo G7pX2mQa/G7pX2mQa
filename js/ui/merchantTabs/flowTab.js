@@ -359,10 +359,18 @@ function onTick(dt) {
    ========================================= */
 
 function createWaterwheelHTML(extraClass = '') {
+    // 4 Layers for double-sided faces:
+    // 1: Front (Bright)
+    // 2: Back of Front (Dark)
+    // 3: Front of Back (Dark)
+    // 4: Back (Bright)
+    const layers = Array(4).fill(0).map((_, i) => 
+        `<img src="" class="flow-ww-img flow-ww-layer" alt="">`
+    ).join('');
+
     return `
         <div class="flow-ww-wrapper ${extraClass}">
-             <img src="" class="flow-ww-img flow-ww-depth" alt="">
-             <img src="" class="flow-ww-img flow-ww-main" alt="Waterwheel">
+             ${layers}
         </div>
     `;
 }
