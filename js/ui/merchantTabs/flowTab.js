@@ -404,6 +404,9 @@ function onTick(dt) {
 function onFrame(time, dt) {
     if (!flowTabInitialized || !flowPanel) return;
 
+    if (!flowPanel.classList.contains('is-active')) return;
+    if (!flowPanel.closest('.merchant-overlay.is-open')) return;
+
     for (const id in state.waterwheels) {
         if (!state.visuals[id]) continue;
         const v = state.visuals[id];
@@ -412,7 +415,7 @@ function onFrame(time, dt) {
             let speed = v.speed;
             if (v.isMax || speed > 20) speed = 20;
 
-            v.rotation += speed * 360 * dt;
+            v.rotation -= speed * 360 * dt;
             v.rotation %= 360;
 
             const el = document.getElementById(`flow-icon-${id}`);
