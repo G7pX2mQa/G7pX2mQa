@@ -69,11 +69,6 @@
   /* Keep same animation as big ones */
 }
 
-.flow-ww-wrapper.flow-ww-mini .flow-ww-depth {
-  /* Reduced depth for smaller scale */
-  transform: translateZ(-6px);
-}
-
 /* Hide minis on small screens to save space */
 @media (max-width: 600px) {
   .flow-minis-col {
@@ -338,17 +333,38 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
-.flow-ww-main {
+/* Layer 1: Front Face (Bright) */
+.flow-ww-layer:nth-child(1) {
   transform: translateZ(0);
 }
 
-.flow-ww-depth {
-  /* Create a "depth" layer behind */
+/* Layer 2: Back of Front Face (Dark) */
+.flow-ww-layer:nth-child(2) {
+  transform: translateZ(0) rotateY(180deg);
+  filter: brightness(0.5);
+}
+
+/* Layer 3: Front of Back Face (Dark) */
+.flow-ww-layer:nth-child(3) {
   transform: translateZ(-15px);
   filter: brightness(0.5);
-  opacity: 0.8;
+}
+
+/* Layer 4: Back Face (Bright) */
+.flow-ww-layer:nth-child(4) {
+  transform: translateZ(-15px) rotateY(180deg);
+}
+
+.flow-ww-wrapper.flow-ww-mini .flow-ww-layer:nth-child(3),
+.flow-ww-wrapper.flow-ww-mini .flow-ww-layer:nth-child(4) {
+  transform: translateZ(-6px);
+}
+.flow-ww-wrapper.flow-ww-mini .flow-ww-layer:nth-child(4) {
+  transform: translateZ(-6px) rotateY(180deg);
 }
 
 @keyframes flow-ww-spin {
