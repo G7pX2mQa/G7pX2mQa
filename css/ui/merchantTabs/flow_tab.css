@@ -54,8 +54,8 @@
 }
 
 .flow-minis-col {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 6px;
   flex-shrink: 0;
   padding: 4px 0;
@@ -63,7 +63,7 @@
 
 /* Mini Waterwheels */
 .flow-ww-wrapper.flow-ww-mini {
-  width: 32px;
+  width: 80px;
   aspect-ratio: 1/1;
   /* Keep same animation as big ones */
 }
