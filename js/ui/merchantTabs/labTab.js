@@ -500,6 +500,7 @@ class LabSystem {
         this.camX = 0;
         this.camY = 0;
         this.zoom = 0.15;
+        this.rect = null;
         this.bursts = [];
 
         this.baseImage = new Image();
@@ -587,6 +588,7 @@ class LabSystem {
         this.canvas.width = Math.floor(this.width * dpr);
         this.canvas.height = Math.floor(this.height * dpr);
         this.ctx.scale(dpr, dpr);
+        this.rect = this.canvas.getBoundingClientRect();
         this.render(); 
     }
     
@@ -818,7 +820,18 @@ class LabSystem {
         const imgScreenSize = imgSize * z;
         const baseSize = imgSize * 1.6;
         const baseScreenSize = baseSize * z;
+
+        // Optimization: Pre-calculate font and line styles common to all nodes
+        const barHeight = baseScreenSize * 0.18;
+        const barWidth = baseScreenSize * 0.96;
+        const textFontSize = barHeight * 0.7;
         
+        ctx.font = `bold ${textFontSize}px system-ui`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        const borderLineWidth = Math.max(1, 2 * z);
+        const textLineWidth = Math.max(0.5, barHeight * 0.08);
+
         for (const node of visibleNodes) {
              const pos = nodePositions.get(node.id);
              const cx = (pos.x - this.camX) * z + w/2;
@@ -897,8 +910,6 @@ class LabSystem {
                  
                  progress = Math.max(0, Math.min(1, progress));
                  
-                 const barWidth = baseScreenSize * 0.96;
-                 const barHeight = baseScreenSize * 0.18;
                  const barX = cx - barWidth / 2;
                  const barY = cy + baseScreenSize / 2 + (baseScreenSize * 0.05); 
                  
@@ -916,16 +927,14 @@ class LabSystem {
                  
                  // Border
                  ctx.strokeStyle = '#fff';
-                 ctx.lineWidth = Math.max(1, 2 * z); 
+                 ctx.lineWidth = borderLineWidth;
                  ctx.strokeRect(barX, barY, barWidth, barHeight);
                  
                  // Text
                  ctx.fillStyle = '#fff';
-                 ctx.font = `bold ${barHeight * 0.7}px system-ui`;
-                 ctx.textAlign = 'center';
-                 ctx.textBaseline = 'alphabetic';
+                 // Font already set
                  ctx.strokeStyle = '#000';
-                 ctx.lineWidth = Math.max(0.5, barHeight * 0.08); 
+                 ctx.lineWidth = textLineWidth;
                  
                  let text = '';
                  {
@@ -1017,7 +1026,7 @@ class LabSystem {
     }
 
     addBurstFromScreen(mx, my) {
-        const rect = this.canvas.getBoundingClientRect();
+        const rect = this.rect || this.canvas.getBoundingClientRect();
         const x = mx - rect.left;
         const y = my - rect.top;
         const wx = this.camX + (x - this.width/2) / this.zoom;
@@ -1027,7 +1036,7 @@ class LabSystem {
 
     handleClick(x, y) {
         // x,y in screen coords
-        const rect = this.canvas.getBoundingClientRect();
+        const rect = this.rect || this.canvas.getBoundingClientRect();
         const mx = x - rect.left;
         const my = y - rect.top;
         const wx = this.camX + (mx - this.width/2) / this.zoom;
@@ -1220,7 +1229,7 @@ class LabSystem {
     // -- Input Handlers --
     
     handleRightClick(x, y) {
-        const rect = this.canvas.getBoundingClientRect();
+        const rect = this.rect || this.canvas.getBoundingClientRect();
         const mx = x - rect.left;
         const my = y - rect.top;
         const wx = this.camX + (mx - this.width/2) / this.zoom;
@@ -1271,13 +1280,16 @@ class LabSystem {
             
             this.camX -= dx / this.zoom;
             this.camY -= dy / this.zoom;
-            this.canvas.style.cursor = 'grabbing';
+            
+            if (this.canvas.style.cursor !== 'grabbing') {
+                this.canvas.style.cursor = 'grabbing';
+            }
             return;
         }
 
         // Hover logic
         this.lastMouse = { x: e.clientX, y: e.clientY };
-        const rect = this.canvas.getBoundingClientRect();
+        const rect = this.rect || this.canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
         const wx = this.camX + (mx - this.width/2) / this.zoom;
@@ -1297,7 +1309,10 @@ class LabSystem {
                 break;
             }
         }
-        this.canvas.style.cursor = hovering ? 'pointer' : 'default';
+        const cursor = hovering ? 'pointer' : 'default';
+        if (this.canvas.style.cursor !== cursor) {
+             this.canvas.style.cursor = cursor;
+        }
     }
     
     onMouseUp(e) {
@@ -1325,7 +1340,7 @@ class LabSystem {
         if (newZoom < CAM_MIN_ZOOM) newZoom = CAM_MIN_ZOOM;
         if (newZoom > CAM_MAX_ZOOM) newZoom = CAM_MAX_ZOOM;
         
-        const rect = this.canvas.getBoundingClientRect();
+        const rect = this.rect || this.canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
         
@@ -1386,7 +1401,7 @@ class LabSystem {
                 if (newZoom > CAM_MAX_ZOOM) newZoom = CAM_MAX_ZOOM;
                 
                 const center = this.getTouchCenter(e.touches);
-                const rect = this.canvas.getBoundingClientRect();
+                const rect = this.rect || this.canvas.getBoundingClientRect();
                 const mx = center.x - rect.left;
                 const my = center.y - rect.top;
                 
