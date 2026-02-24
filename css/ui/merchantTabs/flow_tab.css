@@ -155,8 +155,9 @@
 .flow-icon-overlay {
   position: absolute;
   top: 50%;
-  /* Replicate XP bar icon positioning */
-  left: calc((var(--flow-bar-underlap) - 1) * var(--flow-plus-size));
+  /* Center exactly on the left edge (0) */
+  left: 0;
+  margin-left: calc(var(--flow-plus-size) * -0.5);
   transform: translateY(-50%);
   width: var(--flow-plus-size);
   height: auto;
@@ -185,7 +186,7 @@
   bottom: 0;
   width: 0%;
   background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%); 
-  transition: width 0.1s linear;
+
 }
 
 #flow-fill-coin {
@@ -370,4 +371,9 @@
 @keyframes flow-ww-spin {
   0% { transform: rotateY(0deg); }
   100% { transform: rotateY(360deg); }
+}
+
+/* Nudge waterwheel center to the right */
+.flow-icon-overlay {
+  margin-left: calc(var(--flow-plus-size) * -0.5 + 2px);
 }
