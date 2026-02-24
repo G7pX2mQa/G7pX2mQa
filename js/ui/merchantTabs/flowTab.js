@@ -1,7 +1,7 @@
 import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../../util/storage.js';
-import { registerTick, FIXED_STEP } from '../../game/gameLoop.js';
+import { registerTick, registerFrame, FIXED_STEP } from '../../game/gameLoop.js';
 import { addExternalCoinMultiplierProvider, refreshCoinMultiplierFromXpLevel } from '../../game/xpSystem.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { approxLog10BigNum } from '../../game/upgrades.js';
@@ -22,7 +22,7 @@ export const WATERWHEEL_DEFS = {
     [WATERWHEELS.COIN]: {
         id: WATERWHEELS.COIN,
         name: 'Coin',
-        icon: 'img/currencies/coin/coin_plus_base.webp',
+        icon: 'img/waterwheels/waterwheel_coin.webp',
         image: 'img/waterwheels/waterwheel_coin.webp',
         baseReq: 10, // 10 FP per level
         description: 'Boosts Global Coin Value by +100% per level',
@@ -47,6 +47,13 @@ const state = {
             fp: 0,
             active: false,
             unlocked: true
+        }
+    },
+    visuals: {
+        [WATERWHEELS.COIN]: {
+            rotation: 0,
+            speed: 0,
+            isMax: false
         }
     }
 };
@@ -165,6 +172,11 @@ export function toggleWaterwheel(waterwheelId) {
     } else {
         // If turning OFF
         ch.active = false;
+        // Reset speed
+        if (state.visuals[waterwheelId]) {
+            state.visuals[waterwheelId].speed = 0;
+            state.visuals[waterwheelId].isMax = false;
+        }
     }
     
     saveState();
@@ -264,13 +276,24 @@ function onTick(dt) {
 
     for (const id in state.waterwheels) {
         const ch = state.waterwheels[id];
-        if (!ch.active) continue;
+        // Ensure visual state exists
+        if (!state.visuals[id]) state.visuals[id] = { rotation: 0, speed: 0, isMax: false };
+        
+        if (!ch.active) {
+            state.visuals[id].speed = 0;
+            state.visuals[id].isMax = false;
+            continue;
+        }
 
         // Debug Locking
         const fpLocked = typeof window !== 'undefined' && window.__cccLockedStorageKeys?.has(`ccc:flow:fp:${id}:${slot}`);
         const levelLocked = typeof window !== 'undefined' && window.__cccLockedStorageKeys?.has(`ccc:flow:level:${id}:${slot}`);
 
-        if (fpLocked) continue;
+        if (fpLocked) {
+            state.visuals[id].speed = 0;
+            state.visuals[id].isMax = false;
+            continue;
+        }
 
         // Base rate 1 FP/sec
         let gainBn = BigNum.fromInt(1).mulDecimal(String(dt));
@@ -284,6 +307,30 @@ function onTick(dt) {
         if (!gainBn.isZero()) visualUpdate = true;
         
         const req = WATERWHEEL_DEFS[id]?.baseReq;
+
+        // --- Visual Speed Calculation ---
+        const reqBn = BigNum.fromInt(req);
+        // If gain per tick >= requirement, bar is filling instantly every tick -> Max Speed
+        if (gainBn.cmp(reqBn) >= 0) {
+            state.visuals[id].isMax = true;
+            state.visuals[id].speed = 20;
+        } else {
+            state.visuals[id].isMax = false;
+            // gainBn is gain per tick (approx 0.05s). 
+            // gainPerSec = gainBn / dt
+            // speed = gainPerSec / req = (gainBn / dt) / req
+            let gainVal = 0;
+            try {
+                gainVal = Number(gainBn.toScientific(5));
+            } catch { gainVal = 0; }
+            
+            // Avoid division by zero
+            if (dt > 0 && req > 0) {
+                state.visuals[id].speed = (gainVal / dt) / req;
+            } else {
+                state.visuals[id].speed = 0;
+            }
+        }
         
         if (gainBn.cmp(1e15) > 0) {
             if (!levelLocked) {
@@ -351,6 +398,38 @@ function onTick(dt) {
             updateFlowVisuals();
         }
         window.dispatchEvent(new CustomEvent('flow:change', { detail: { type: 'tick-visual' } }));
+    }
+}
+
+function onFrame(time, dt) {
+    if (!flowTabInitialized || !flowPanel) return;
+
+    for (const id in state.waterwheels) {
+        if (!state.visuals[id]) continue;
+        const v = state.visuals[id];
+        
+        if (v.speed > 0 || v.rotation > 0) {
+            let speed = v.speed;
+            if (v.isMax || speed > 20) speed = 20;
+
+            v.rotation += speed * 360 * dt;
+            v.rotation %= 360;
+
+            const el = document.getElementById(`flow-icon-${id}`);
+            if (el) {
+                let transform = `translateY(-50%) rotate(${v.rotation}deg)`;
+                
+                if (v.isMax) {
+                    // Shake effect at max speed
+                    // Random offset between -2px and 2px
+                    const dx = (Math.random() - 0.5) * 4;
+                    const dy = (Math.random() - 0.5) * 4;
+                    transform = `translate(${dx}px, calc(-50% + ${dy}px)) rotate(${v.rotation}deg)`;
+                }
+                
+                el.style.transform = transform;
+            }
+        }
     }
 }
 
@@ -446,7 +525,7 @@ function buildUI(panel) {
         item.className = 'flow-row';
         item.innerHTML = `
             <div class="flow-bar-container">
-                 <img src="${def.icon}" class="flow-icon-overlay" alt="">
+                 <img src="${def.icon}" class="flow-icon-overlay" id="flow-icon-${id}" alt="">
                  <div class="flow-bar-inner">
                     <div class="flow-bar-fill" id="flow-fill-${id}"></div>
                     <div class="flow-bar-text">
@@ -634,6 +713,7 @@ export function initFlowSystem() {
     loadState();
 
     registerTick((dt) => onTick(dt));
+    registerFrame((time, dt) => onFrame(time, dt));
 
     addExternalCoinMultiplierProvider((params) => getWaterwheelCoinMultiplier(params));
 }
