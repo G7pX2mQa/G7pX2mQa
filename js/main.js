@@ -870,6 +870,7 @@ images: [
   try { initSurgeEffects(); } catch(e) { console.error('Surge effects init failed', e); }
   try { initLabLogic(); } catch(e) { console.error('Lab system init failed', e); }
   try { initFpsTracker(); } catch(e) { console.error('FPS tracker init failed', e); }
+  try { initFlowSystem(); } catch(e) { console.error('Flow system init failed', e); }
   
   applyPendingSlotWipe();
   ensureStorageDefaults();
