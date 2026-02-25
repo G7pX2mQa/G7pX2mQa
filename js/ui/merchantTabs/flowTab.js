@@ -14,6 +14,8 @@ import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
 const KEY_PREFIX = 'ccc:flow'; 
 const KEY_WATERWHEEL = (id, slot) => `${KEY_PREFIX}:${id}:${slot}`;
 
+const EFFECT_PERCENTAGE = 100;
+
 const WATERWHEELS = {
     COIN: 'coin'
 };
@@ -601,6 +603,7 @@ function buildUI(panel) {
     listHeader.innerHTML = `
         <div class="list-head-name">Waterwheel</div>
         <div class="list-head-level">Level</div>
+        <div class="list-head-effect">Effect</div>
         <div class="list-head-state">Flow State</div>
     `;
     list.appendChild(listHeader);
@@ -621,6 +624,8 @@ function buildUI(panel) {
             </div>
             
             <div class="flow-level-val" id="flow-lvl-${id}">0</div>
+            
+            <div class="flow-effect-val" id="flow-effect-${id}">+0%</div>
             
             <div class="flow-row-controls">
                 <button class="flow-toggle-btn" data-id="${id}">OFF</button>
@@ -695,20 +700,24 @@ function alignFlowColumns() {
     const header = flowPanel.querySelector('.flow-list-header');
     if (!header) return;
 
-    if (header.children.length < 3) return;
+    if (header.children.length < 4) return;
 
     const levelHeader = header.children[1];
-    const stateHeader = header.children[2];
+    const effectHeader = header.children[2];
+    const stateHeader = header.children[3];
 
     const levelRect = levelHeader.getBoundingClientRect();
+    const effectRect = effectHeader.getBoundingClientRect();
     const stateRect = stateHeader.getBoundingClientRect();
 
     const levelCenter = levelRect.left + levelRect.width / 2;
+    const effectCenter = effectRect.left + effectRect.width / 2;
     const stateCenter = stateRect.left + stateRect.width / 2;
 
     const rows = flowPanel.querySelectorAll('.flow-row');
     rows.forEach(row => {
         const levelVal = row.querySelector('.flow-level-val');
+        const effectVal = row.querySelector('.flow-effect-val');
         const stateVal = row.querySelector('.flow-row-controls'); // Centering controls under header
 
         if (levelVal) {
@@ -719,6 +728,17 @@ function alignFlowColumns() {
             
             if (Math.abs(diff) > 0.5) {
                 levelVal.style.transform = `translateX(${diff}px)`;
+            }
+        }
+
+        if (effectVal) {
+            effectVal.style.transform = '';
+            const rect = effectVal.getBoundingClientRect();
+            const currentCenter = rect.left + rect.width / 2;
+            const diff = effectCenter - currentCenter;
+            
+            if (Math.abs(diff) > 0.5) {
+                effectVal.style.transform = `translateX(${diff}px)`;
             }
         }
 
@@ -745,6 +765,12 @@ function updateFlowVisuals() {
         
         const elLvl = flowPanel.querySelector(`#flow-lvl-${id}`);
         if (elLvl) elLvl.textContent = formatNumber(ch.level);
+        
+        const elEffect = flowPanel.querySelector(`#flow-effect-${id}`);
+        if (elEffect) {
+            const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
+            elEffect.textContent = `+${formatNumber(effectVal)}%`;
+        }
         
         const elFill = flowPanel.querySelector(`#flow-fill-${id}`);
         
