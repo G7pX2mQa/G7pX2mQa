@@ -552,9 +552,6 @@ function buildUI(panel) {
     const header = document.createElement('div');
     header.className = 'flow-header';
     
-    const wwLeft = document.createElement('div');
-    wwLeft.className = 'flow-ww-container flow-ww-left';
-    wwLeft.innerHTML = createWaterwheelHTML();
     
     const explainer = document.createElement('div');
     explainer.className = 'flow-explainer';
@@ -584,13 +581,8 @@ function buildUI(panel) {
     explainer.appendChild(text);
     explainer.appendChild(minisRight);
 
-    const wwRight = document.createElement('div');
-    wwRight.className = 'flow-ww-container flow-ww-right';
-    wwRight.innerHTML = createWaterwheelHTML();
 
-    header.appendChild(wwLeft);
     header.appendChild(explainer);
-    header.appendChild(wwRight);
     wrapper.appendChild(header);
 
     // List
