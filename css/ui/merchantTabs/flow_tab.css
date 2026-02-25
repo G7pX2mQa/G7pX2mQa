@@ -63,22 +63,10 @@
 
 
 /* Mini Waterwheels */
-.flow-ww-anchor.flow-ww-mini {
+.flow-ww-wrapper.flow-ww-mini {
   width: 80px;
   aspect-ratio: 1/1;
-}
-
-/* Main Waterwheels */
-.flow-ww-anchor.flow-ww-main {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  margin-left: calc(var(--flow-plus-size) * -0.5 + 2px);
-  transform: translateY(-50%);
-  width: var(--flow-plus-size);
-  height: var(--flow-plus-size);
-  z-index: 2;
-  pointer-events: none;
+  /* Keep same animation as big ones */
 }
 
 /* Hide minis on small screens to save space */
