@@ -6,6 +6,7 @@ import { addExternalCoinMultiplierProvider, refreshCoinMultiplierFromXpLevel } f
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { approxLog10BigNum } from '../../game/upgrades.js';
 import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
+import { WaterwheelRenderer } from '../../game/webgl/waterwheelRenderer.js';
 
 /* =========================================
    CONSTANTS & KEYS
@@ -38,6 +39,7 @@ export const WATERWHEEL_DEFS = {
    ========================================= */
 
 const fpMultiplierProviders = new Set();
+const waterwheelRenderer = new WaterwheelRenderer();
 
 let flowSystemInitialized = false;
 let flowTabInitialized = false;
@@ -491,6 +493,9 @@ function onFrame(time, dt) {
 
     if (!flowPanel.classList.contains('is-active')) return;
     if (!flowPanel.closest('.merchant-overlay.is-open')) return;
+    
+    // --- Render WebGL Waterwheels ---
+    waterwheelRenderer.render(dt);
 
     for (const id in state.waterwheels) {
         if (!state.visuals[id]) continue;
@@ -556,9 +561,13 @@ function buildUI(panel) {
     const explainer = document.createElement('div');
     explainer.className = 'flow-explainer';
     
+    // REPLACE: Create Canvases instead of divs
     const minisLeft = document.createElement('div');
     minisLeft.className = 'flow-minis-col';
-    minisLeft.innerHTML = Array(4).fill(null).map(() => createWaterwheelHTML('flow-ww-mini')).join('');
+    // Use canvas elements
+    minisLeft.innerHTML = Array(4).fill(null).map(() => 
+        `<canvas class="flow-ww-canvas" width="80" height="80" style="width: 80px; height: 80px;"></canvas>`
+    ).join('');
     
     const text = document.createElement('div');
     text.className = 'flow-explainer-text';
@@ -575,7 +584,10 @@ function buildUI(panel) {
 
     const minisRight = document.createElement('div');
     minisRight.className = 'flow-minis-col';
-    minisRight.innerHTML = Array(4).fill(null).map(() => createWaterwheelHTML('flow-ww-mini')).join('');
+    // Use canvas elements
+    minisRight.innerHTML = Array(4).fill(null).map(() => 
+        `<canvas class="flow-ww-canvas" width="80" height="80" style="width: 80px; height: 80px;"></canvas>`
+    ).join('');
 
     explainer.appendChild(minisLeft);
     explainer.appendChild(text);
@@ -677,6 +689,9 @@ function updateWaterwheelVisuals() {
     const time = Date.now();
     const index = Math.floor(time / 2000) % unlocked.length;
     const currentDef = unlocked[index];
+    
+    // Update WebGL Texture
+    waterwheelRenderer.setImage(currentDef.image);
     
     const imgs = flowPanel.querySelectorAll('.flow-ww-img');
     imgs.forEach(img => {
@@ -829,6 +844,12 @@ export function initFlowTab(panelEl) {
 
     flowPanel = panelEl;
     buildUI(panelEl);
+
+    // Initialize WebGL Canvases
+    const canvases = flowPanel.querySelectorAll('.flow-ww-canvas');
+    waterwheelRenderer.clear();
+    canvases.forEach(c => waterwheelRenderer.addCanvas(c));
+
     flowTabInitialized = true;
     updateFlowTab();
     
