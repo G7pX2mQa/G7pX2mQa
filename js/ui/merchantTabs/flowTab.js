@@ -6,7 +6,6 @@ import { addExternalCoinMultiplierProvider, refreshCoinMultiplierFromXpLevel } f
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { approxLog10BigNum } from '../../game/upgrades.js';
 import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
-import { waterwheelRenderer } from '../../game/webgl/waterwheelRenderer.js';
 
 /* =========================================
    CONSTANTS & KEYS
@@ -43,7 +42,6 @@ const fpMultiplierProviders = new Set();
 let flowSystemInitialized = false;
 let flowTabInitialized = false;
 let flowPanel = null;
-let currentMiniTexture = null;
 
 const state = {
     waterwheels: {
@@ -493,8 +491,7 @@ function onFrame(time, dt) {
 
     if (!flowPanel.classList.contains('is-active')) return;
     if (!flowPanel.closest('.merchant-overlay.is-open')) return;
-    
-    // --- 1. Update Rotations (Simulation) ---
+
     for (const id in state.waterwheels) {
         if (!state.visuals[id]) continue;
         const v = state.visuals[id];
@@ -505,83 +502,43 @@ function onFrame(time, dt) {
 
             v.rotation -= speed * 360 * dt;
             v.rotation %= 360;
+
+            const el = document.getElementById(`flow-icon-${id}`);
+            if (el) {
+                let transform = `translateY(-50%) rotate(${v.rotation}deg)`;
+                
+                if (v.isMax) {
+                    // Shake effect at max speed
+                    // Random offset between -2px and 2px
+                    const dx = (Math.random() - 0.5) * 4;
+                    const dy = (Math.random() - 0.5) * 4;
+                    transform = `translate(${dx}px, calc(-50% + ${dy}px)) rotate(${v.rotation}deg)`;
+                }
+                
+                el.style.transform = transform;
+            }
         }
     }
-    
-    // --- 2. Gather Items for Renderer ---
-    const items = [];
-    const dpr = window.devicePixelRatio || 1;
-    
-    // Minis (Header)
-    const miniRotation = (time / 8000) * Math.PI * 2;
-    
-    if (currentMiniTexture) {
-        const minis = flowPanel.querySelectorAll('.flow-ww-anchor[data-type="mini"]');
-        minis.forEach(el => {
-            const rect = el.getBoundingClientRect();
-            // Simple visibility check
-            if (rect.bottom < 0 || rect.top > window.innerHeight) return;
-            
-            items.push({
-                x: rect.left + rect.width / 2,
-                y: rect.top + rect.height / 2,
-                size: Math.max(rect.width, rect.height), // Ensure square-ish
-                rotation: miniRotation,
-                imageUrl: currentMiniTexture,
-                alpha: 1.0
-            });
-        });
-    }
-    
-    // Mains (List)
-    const mains = flowPanel.querySelectorAll('.flow-ww-anchor[data-type="main"]');
-    mains.forEach(el => {
-        const id = el.dataset.id;
-        if (!id) return;
-        
-        const rect = el.getBoundingClientRect();
-        if (rect.bottom < 0 || rect.top > window.innerHeight) return;
-        
-        const def = WATERWHEEL_DEFS[id];
-        if (!def) return;
-        
-        const v = state.visuals[id];
-        let rotationDeg = v ? v.rotation : 0;
-        let rotationRad = (rotationDeg * Math.PI) / 180;
-        
-        let cx = rect.left + rect.width / 2;
-        let cy = rect.top + rect.height / 2;
-        
-        // Shake effect if Max
-        if (v && v.isMax) {
-             const dx = (Math.random() - 0.5) * 4;
-             const dy = (Math.random() - 0.5) * 4;
-             cx += dx;
-             cy += dy;
-        }
-        
-        items.push({
-            x: cx,
-            y: cy,
-            size: Math.max(rect.width, rect.height),
-            rotation: rotationRad,
-            imageUrl: def.image,
-            alpha: 1.0
-        });
-    });
-    
-    // --- 3. Render ---
-    waterwheelRenderer.render(items);
 }
 
 /* =========================================
    UI
    ========================================= */
 
-function createWaterwheelHTML(extraClass = '', type = 'mini', id = '') {
-    const dataId = id ? `data-id="${id}"` : '';
+function createWaterwheelHTML(extraClass = '') {
+    // 4 Layers for double-sided faces:
+    // 1: Front (Bright)
+    // 2: Back of Front (Dark)
+    // 3: Front of Back (Dark)
+    // 4: Back (Bright)
+    const layers = Array(4).fill(0).map((_, i) => 
+        `<img src="" class="flow-ww-img flow-ww-layer" alt="">`
+    ).join('');
+
     return `
-        <div class="flow-ww-anchor ${extraClass}" data-type="${type}" ${dataId}></div>
+        <div class="flow-ww-wrapper ${extraClass}">
+             ${layers}
+        </div>
     `;
 }
 
@@ -601,7 +558,7 @@ function buildUI(panel) {
     
     const minisLeft = document.createElement('div');
     minisLeft.className = 'flow-minis-col';
-    minisLeft.innerHTML = Array(4).fill(null).map(() => createWaterwheelHTML('flow-ww-mini', 'mini')).join('');
+    minisLeft.innerHTML = Array(4).fill(null).map(() => createWaterwheelHTML('flow-ww-mini')).join('');
     
     const text = document.createElement('div');
     text.className = 'flow-explainer-text';
@@ -618,7 +575,7 @@ function buildUI(panel) {
 
     const minisRight = document.createElement('div');
     minisRight.className = 'flow-minis-col';
-    minisRight.innerHTML = Array(4).fill(null).map(() => createWaterwheelHTML('flow-ww-mini', 'mini')).join('');
+    minisRight.innerHTML = Array(4).fill(null).map(() => createWaterwheelHTML('flow-ww-mini')).join('');
 
     explainer.appendChild(minisLeft);
     explainer.appendChild(text);
@@ -649,7 +606,7 @@ function buildUI(panel) {
         item.className = 'flow-row';
         item.innerHTML = `
             <div class="flow-bar-container">
-                 ${createWaterwheelHTML('flow-ww-main', 'main', id)}
+                 <img src="${def.icon}" class="flow-icon-overlay" id="flow-icon-${id}" alt="">
                  <div class="flow-bar-inner">
                     <div class="flow-bar-fill" id="flow-fill-${id}"></div>
                     <div class="flow-bar-text">
@@ -705,6 +662,8 @@ export function updateFlowTab() {
 }
 
 function updateWaterwheelVisuals() {
+    if (!flowPanel) return;
+    
     const unlocked = [];
     for (const id in state.waterwheels) {
         if (state.waterwheels[id].unlocked) {
@@ -719,8 +678,13 @@ function updateWaterwheelVisuals() {
     const index = Math.floor(time / 2000) % unlocked.length;
     const currentDef = unlocked[index];
     
-    // Update global state for minis
-    currentMiniTexture = currentDef.image;
+    const imgs = flowPanel.querySelectorAll('.flow-ww-img');
+    imgs.forEach(img => {
+        // Only update if src is different to avoid flicker/reload
+        if (!img.src || img.src.indexOf(currentDef.image) === -1) {
+            img.src = currentDef.image;
+        }
+    });
 }
 
 function alignFlowColumns() {
@@ -864,11 +828,7 @@ export function initFlowTab(panelEl) {
     initFlowSystem();
 
     flowPanel = panelEl;
-    
-    // Init Renderer
     buildUI(panelEl);
-    waterwheelRenderer.init(panelEl);
-    
     flowTabInitialized = true;
     updateFlowTab();
     
