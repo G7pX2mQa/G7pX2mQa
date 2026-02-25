@@ -866,9 +866,9 @@ export function initFlowTab(panelEl) {
     flowPanel = panelEl;
     
     // Init Renderer
+    buildUI(panelEl);
     waterwheelRenderer.init(panelEl);
     
-    buildUI(panelEl);
     flowTabInitialized = true;
     updateFlowTab();
     
