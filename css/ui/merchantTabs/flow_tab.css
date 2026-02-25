@@ -319,21 +319,7 @@ background: linear-gradient(
 }
 
 /* Waterwheel Visuals */
-.flow-ww-container {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-width: 0;
-  overflow: visible;
-  perspective: 1000px;
-}
 
-@media (max-width: 1000px) {
-  .flow-ww-container {
-    display: none;
-  }
-}
 
 .flow-ww-wrapper {
   position: relative;
