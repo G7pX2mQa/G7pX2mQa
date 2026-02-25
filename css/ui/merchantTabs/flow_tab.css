@@ -89,8 +89,8 @@
 .flow-list-header,
 .flow-row {
   display: grid;
-  /* Grid: Bar | Level | State */
-  grid-template-columns: auto 80px 100px; 
+  /* Grid: Bar | Level | Effect | State */
+  grid-template-columns: auto 70px 120px 100px;
   align-items: center;
   gap: 12px;
   /* Left padding matches icon overhang + 12px gap */
@@ -105,6 +105,10 @@
   margin-bottom: 4px;
   padding-bottom: 4px;
   position: relative;
+}
+
+.flow-list-header div {
+  white-space: nowrap;
 }
 
 .flow-list-header::after {
@@ -122,7 +126,7 @@
   text-align: center; 
   /* Align "Waterwheels" header with the bar to match right-alignment */
   margin-left: auto;
-  margin-right: 50px;
+  margin-right: 15px;
   width: min(var(--coin-bar-w, 520px), clamp(200px, 44vw, 440px));
   padding: 0;
 }
@@ -148,7 +152,7 @@
   /* The icon is shifted left by ~0.56 * size. Approx 40px max. */
   /* Adding margin-left to safe-guard layout */
   margin-left: auto; 
-  margin-right: 50px;
+  margin-right: 15px;
   width: min(var(--coin-bar-w, 520px), clamp(200px, 44vw, 440px));
 }
 
@@ -291,7 +295,8 @@ background: linear-gradient(
     grid-template-columns: 1fr auto;
     grid-template-areas: 
       "bar bar"
-      "lvl state";
+      "lvl state"
+      "effect effect";
     gap: 8px;
   }
   
@@ -302,8 +307,10 @@ background: linear-gradient(
   }
   
   .flow-level-val::before { content: "Lvl: "; color: #aaa; font-size: 0.8rem; font-weight: 400; }
+  .flow-effect-val::before { content: "Effect: "; color: #aaa; font-size: 0.8rem; font-weight: 400; }
   
   .flow-level-val { grid-area: lvl; justify-self: start; }
+  .flow-effect-val { grid-area: effect; justify-self: start; font-size: 1rem; }
   .flow-row-controls { grid-area: state; justify-self: end; }
 }
 
@@ -381,4 +388,20 @@ background: linear-gradient(
 /* Nudge waterwheel center to the right */
 .flow-icon-overlay {
   margin-left: calc(var(--flow-plus-size) * -0.5 + 2px);
+}
+
+/* Effect Column */
+.list-head-effect,
+.flow-effect-val {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+}
+
+.list-head-effect {
+  color: #aaa;
+  font-size: 0.9rem;
 }
