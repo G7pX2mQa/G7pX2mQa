@@ -718,54 +718,57 @@ function alignFlowColumns() {
     const effectHeader = header.children[2];
     const stateHeader = header.children[3];
 
-    const levelRect = levelHeader.getBoundingClientRect();
-    const effectRect = effectHeader.getBoundingClientRect();
-    const stateRect = stateHeader.getBoundingClientRect();
-
-    // Use centers to align columns precisely
-    const levelCenter = levelRect.left + levelRect.width / 2;
-    const effectCenter = effectRect.left + effectRect.width / 2;
-    const stateCenter = stateRect.left + stateRect.width / 2;
-
-    const rows = flowPanel.querySelectorAll('.flow-row');
+    const rows = Array.from(flowPanel.querySelectorAll('.flow-row'));
+    
+    // Collect all elements to manage
+    const levelEls = [levelHeader];
+    const effectEls = [effectHeader];
+    const stateEls = [stateHeader];
+    
     rows.forEach(row => {
-        const levelVal = row.querySelector('.flow-level-val');
-        const effectVal = row.querySelector('.flow-effect-val');
-        const stateVal = row.querySelector('.flow-row-controls');
-
-        if (levelVal) {
-            levelVal.style.transform = '';
-            const rect = levelVal.getBoundingClientRect();
-            const currentCenter = rect.left + rect.width / 2;
-            const diff = levelCenter - currentCenter;
-            
-            if (Math.abs(diff) > 0.1) { // Refined threshold for sub-pixel alignment
-                levelVal.style.transform = `translateX(${diff}px)`;
-            }
-        }
-
-        if (effectVal) {
-            effectVal.style.transform = '';
-            const rect = effectVal.getBoundingClientRect();
-            const currentCenter = rect.left + rect.width / 2;
-            const diff = effectCenter - currentCenter;
-            
-            if (Math.abs(diff) > 0.1) {
-                effectVal.style.transform = `translateX(${diff}px)`;
-            }
-        }
-
-        if (stateVal) {
-            stateVal.style.transform = '';
-            const rect = stateVal.getBoundingClientRect();
-            const currentCenter = rect.left + rect.width / 2;
-            const diff = stateCenter - currentCenter;
-            
-            if (Math.abs(diff) > 0.1) {
-                stateVal.style.transform = `translateX(${diff}px)`;
-            }
-        }
+        const l = row.querySelector('.flow-level-val');
+        const e = row.querySelector('.flow-effect-val');
+        const s = row.querySelector('.flow-row-controls');
+        if (l) levelEls.push(l);
+        if (e) effectEls.push(e);
+        if (s) stateEls.push(s);
     });
+
+    // 1. Reset Transforms (Batch Write)
+    levelEls.forEach(el => el.style.transform = '');
+    effectEls.forEach(el => el.style.transform = '');
+    stateEls.forEach(el => el.style.transform = '');
+
+    // 2. Measure Centers (Batch Read)
+    const getCenter = (el) => {
+        const rect = el.getBoundingClientRect();
+        return rect.left + rect.width / 2;
+    };
+    
+    let maxLevelCenter = 0;
+    levelEls.forEach(el => maxLevelCenter = Math.max(maxLevelCenter, getCenter(el)));
+    
+    let maxEffectCenter = 0;
+    effectEls.forEach(el => maxEffectCenter = Math.max(maxEffectCenter, getCenter(el)));
+    
+    let maxStateCenter = 0;
+    stateEls.forEach(el => maxStateCenter = Math.max(maxStateCenter, getCenter(el)));
+
+    // 3. Apply Transforms (Batch Write)
+    const alignGroup = (els, targetCenter) => {
+        els.forEach(el => {
+            const rect = el.getBoundingClientRect();
+            const center = rect.left + rect.width / 2;
+            const diff = targetCenter - center;
+            if (Math.abs(diff) > 0.5) {
+                el.style.transform = `translateX(${diff}px)`;
+            }
+        });
+    };
+    
+    alignGroup(levelEls, maxLevelCenter);
+    alignGroup(effectEls, maxEffectCenter);
+    alignGroup(stateEls, maxStateCenter);
 }
 
 function updateFlowVisuals() {
