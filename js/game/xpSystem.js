@@ -2,6 +2,7 @@
 
 import { BigNum, approxLog10BigNum as approxLog10, bigNumFromLog10 } from '../util/bigNum.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
+import { registerTick } from './gameLoop.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { formatNumber } from '../util/numFormat.js';
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
@@ -24,10 +25,8 @@ xpRequirementCache.set('0', requirementBn);
 let highestCachedExactLevel = 0n;
 const infinityRequirementBn = BigNum.fromAny('Infinity');
 
-let lastSyncedCoinLevel = null;
-let lastSyncedCoinLevelWasInfinite = false;
-let lastSyncedCoinUsedApproximation = false;
-let lastSyncedCoinApproxKey = null;
+let lastSyncedMultiplier = null;
+let xpTickListener = null;
 let externalCoinMultiplierProvider = null;
 let externalXpGainMultiplierProvider = null;
 const coinMultiplierProviders = new Set();
@@ -675,24 +674,13 @@ function syncCoinMultiplierWithXpLevel(force = false) {
   const levelIsInfinite = !levelInfo.finite;
   const levelStorageKey = typeof xpState.xpLevel?.toStorage === 'function' ? xpState.xpLevel.toStorage() : null;
 
-  if (!force) {
-    if (levelIsInfinite && lastSyncedCoinLevelWasInfinite) {
-      return;
-    }
-    if (!levelIsInfinite && levelBigInt != null && !lastSyncedCoinLevelWasInfinite && !lastSyncedCoinUsedApproximation && lastSyncedCoinLevel != null && levelBigInt === lastSyncedCoinLevel) {
-      return;
-    }
-    if (!levelIsInfinite && levelBigInt == null && lastSyncedCoinUsedApproximation && levelStorageKey && lastSyncedCoinApproxKey && levelStorageKey === lastSyncedCoinApproxKey) {
-      return;
-    }
-  }
 
   if (levelIsInfinite) {
-    try { multApi.set(infinityRequirementBn); } catch {}
-    lastSyncedCoinLevel = null;
-    lastSyncedCoinLevelWasInfinite = true;
-    lastSyncedCoinUsedApproximation = false;
-    lastSyncedCoinApproxKey = null;
+    const inf = infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+    if (!force && bigNumEqualsSafe(inf, lastSyncedMultiplier)) return;
+
+    try { multApi.set(inf); } catch {}
+    lastSyncedMultiplier = inf;
     return;
   }
 
@@ -737,23 +725,11 @@ function syncCoinMultiplierWithXpLevel(force = false) {
   }
 
   const multIsInf = finalMultiplier.isInfinite?.() || (typeof finalMultiplier.isInfinite === 'function' && finalMultiplier.isInfinite());
+
+  if (!force && bigNumEqualsSafe(finalMultiplier, lastSyncedMultiplier)) return;
+
   try { multApi.set(finalMultiplier.clone?.() ?? finalMultiplier); } catch {}
-  if (multIsInf) {
-    lastSyncedCoinLevel = null;
-    lastSyncedCoinLevelWasInfinite = true;
-    lastSyncedCoinUsedApproximation = false;
-    lastSyncedCoinApproxKey = null;
-  } else if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
-    lastSyncedCoinLevel = levelBigInt;
-    lastSyncedCoinLevelWasInfinite = false;
-    lastSyncedCoinUsedApproximation = false;
-    lastSyncedCoinApproxKey = null;
-  } else {
-    lastSyncedCoinLevel = null;
-    lastSyncedCoinLevelWasInfinite = false;
-    lastSyncedCoinUsedApproximation = true;
-    lastSyncedCoinApproxKey = levelStorageKey;
-  }
+  lastSyncedMultiplier = finalMultiplier.clone?.() ?? finalMultiplier;
 }
 
 function ensureStateLoaded(force = false) {
@@ -883,23 +859,6 @@ function handleXpLevelUpRewards() {
       bank.books.add(reward);
     }
   } catch {}
-  const syncedLevelInfo = xpLevelBigIntInfo(xpState.xpLevel);
-  if (!syncedLevelInfo.finite) {
-    lastSyncedCoinLevel = null;
-    lastSyncedCoinLevelWasInfinite = true;
-    lastSyncedCoinUsedApproximation = false;
-    lastSyncedCoinApproxKey = null;
-  } else if (syncedLevelInfo.bigInt != null) {
-    lastSyncedCoinLevel = syncedLevelInfo.bigInt;
-    lastSyncedCoinLevelWasInfinite = false;
-    lastSyncedCoinUsedApproximation = false;
-    lastSyncedCoinApproxKey = null;
-  } else {
-    lastSyncedCoinLevel = null;
-    lastSyncedCoinLevelWasInfinite = false;
-    lastSyncedCoinUsedApproximation = true;
-    lastSyncedCoinApproxKey = typeof xpState.xpLevel?.toStorage === 'function' ? xpState.xpLevel.toStorage() : null;
-  }
 }
 
 function updateHud() {
@@ -957,6 +916,9 @@ export function initXpSystem({ forceReload = false } = {}) {
   updateXpRequirement();
   updateHud();
   ensureXpStorageWatchers();
+  if (!xpTickListener) {
+    xpTickListener = registerTick(() => syncCoinMultiplierWithXpLevel(false));
+  }
   return getXpState();
 }
 
@@ -1204,26 +1166,6 @@ export function addXp(amount, { silent = false } = {}) {
   persistState();
   updateHud();
 
-  // Maintain sync flags logic from original
-  const syncedLevelAfterAdd = xpLevelBigIntInfo(xpState.xpLevel);
-  if (!syncedLevelAfterAdd.finite) {
-    lastSyncedCoinLevel = null;
-    lastSyncedCoinLevelWasInfinite = true;
-    lastSyncedCoinUsedApproximation = false;
-    lastSyncedCoinApproxKey = null;
-  } else if (syncedLevelAfterAdd.bigInt != null) {
-    lastSyncedCoinLevel = syncedLevelAfterAdd.bigInt;
-    lastSyncedCoinLevelWasInfinite = false;
-    lastSyncedCoinUsedApproximation = false;
-    lastSyncedCoinApproxKey = null;
-  } else {
-    lastSyncedCoinLevel = null;
-    lastSyncedCoinLevelWasInfinite = false;
-    lastSyncedCoinUsedApproximation = true;
-    lastSyncedCoinApproxKey = typeof xpState.xpLevel?.toStorage === 'function'
-      ? xpState.xpLevel.toStorage()
-      : null;
-  }
 
   const detail = {
     unlocked: true,
