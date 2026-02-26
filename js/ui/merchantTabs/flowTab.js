@@ -2,7 +2,7 @@ import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../../util/storage.js';
 import { registerTick, registerFrame, FIXED_STEP } from '../../game/gameLoop.js';
-import { addExternalCoinMultiplierProvider, refreshCoinMultiplierFromXpLevel, addExternalXpGainMultiplierProvider } from '../../game/xpSystem.js';
+import { addExternalCoinMultiplierProvider, addExternalXpGainMultiplierProvider } from '../../game/xpSystem.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { approxLog10BigNum } from '../../game/upgrades.js';
 import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
@@ -280,7 +280,6 @@ export function setWaterwheelLevel(id, val) {
     state.waterwheels[id].level = val instanceof BigNum ? val : BigNum.fromAny(val);
     saveState();
     updateFlowTab();
-    refreshCoinMultiplierFromXpLevel();
     window.dispatchEvent(new CustomEvent('flow:change', { detail: { id, type: 'level' } }));
 }
 
@@ -374,7 +373,6 @@ export function applyWaterwheelOffline(offlineData) {
     if (changes) {
         saveState();
         updateFlowTab();
-        refreshCoinMultiplierFromXpLevel();
     }
 }
 
@@ -549,7 +547,6 @@ function onTick(dt) {
     if (changes) {
         updateFlowTab();
         scheduleSave();
-        refreshCoinMultiplierFromXpLevel();
         window.dispatchEvent(new CustomEvent('flow:change', { detail: { type: 'tick' } }));
     } else if (visualUpdate) {
         if (flowTabInitialized && flowPanel) {
