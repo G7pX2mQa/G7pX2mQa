@@ -500,7 +500,6 @@ class LabSystem {
         this.camX = 0;
         this.camY = 0;
         this.zoom = 0.15;
-        this.rect = null;
         this.bursts = [];
 
         this.baseImage = new Image();
@@ -588,7 +587,6 @@ class LabSystem {
         this.canvas.width = Math.floor(this.width * dpr);
         this.canvas.height = Math.floor(this.height * dpr);
         this.ctx.scale(dpr, dpr);
-        this.rect = this.canvas.getBoundingClientRect();
         this.render(); 
     }
     
@@ -1026,7 +1024,7 @@ class LabSystem {
     }
 
     addBurstFromScreen(mx, my) {
-        const rect = this.rect || this.canvas.getBoundingClientRect();
+        const rect = this.canvas.getBoundingClientRect();
         const x = mx - rect.left;
         const y = my - rect.top;
         const wx = this.camX + (x - this.width/2) / this.zoom;
@@ -1036,7 +1034,7 @@ class LabSystem {
 
     handleClick(x, y) {
         // x,y in screen coords
-        const rect = this.rect || this.canvas.getBoundingClientRect();
+        const rect = this.canvas.getBoundingClientRect();
         const mx = x - rect.left;
         const my = y - rect.top;
         const wx = this.camX + (mx - this.width/2) / this.zoom;
@@ -1229,7 +1227,7 @@ class LabSystem {
     // -- Input Handlers --
     
     handleRightClick(x, y) {
-        const rect = this.rect || this.canvas.getBoundingClientRect();
+        const rect = this.canvas.getBoundingClientRect();
         const mx = x - rect.left;
         const my = y - rect.top;
         const wx = this.camX + (mx - this.width/2) / this.zoom;
@@ -1289,7 +1287,7 @@ class LabSystem {
 
         // Hover logic
         this.lastMouse = { x: e.clientX, y: e.clientY };
-        const rect = this.rect || this.canvas.getBoundingClientRect();
+        const rect = this.canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
         const wx = this.camX + (mx - this.width/2) / this.zoom;
@@ -1401,7 +1399,7 @@ class LabSystem {
                 if (newZoom > CAM_MAX_ZOOM) newZoom = CAM_MAX_ZOOM;
                 
                 const center = this.getTouchCenter(e.touches);
-                const rect = this.rect || this.canvas.getBoundingClientRect();
+                const rect = this.canvas.getBoundingClientRect();
                 const mx = center.x - rect.left;
                 const my = center.y - rect.top;
                 
