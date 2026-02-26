@@ -4,8 +4,7 @@ import {
   addExternalCoinMultiplierProvider, 
   addExternalXpGainMultiplierProvider,
   getXpState,
-  setExternalBookRewardProvider,
-  refreshCoinMultiplierFromXpLevel
+  setExternalBookRewardProvider
 } from './xpSystem.js';
 import { syncCurrencyMultipliersFromUpgrades } from './upgradeEffects.js';
 import { addExternalMutationGainMultiplierProvider, getTotalCumulativeMp } from './mutationSystem.js';
@@ -569,7 +568,6 @@ export function initSurgeEffects() {
     // Listen for DNA changes to update dynamic multipliers
     window.addEventListener('currency:change', (e) => {
         if (e.detail?.key === 'dna') {
-            try { refreshCoinMultiplierFromXpLevel(); } catch {}
             try { syncCurrencyMultipliersFromUpgrades(); } catch {}
         }
     });
