@@ -44,7 +44,7 @@ void main() {
     // If pos.x is -1, term is -cosR.
     // So we want:
     
-    float effectiveScale = max(abs(cosR), uMinX);
+    float effectiveScale = abs(cosR) + uMinX * abs(sinR);
     widthTerm = pos.x * s * effectiveScale;
     
     float x = centerTerm + widthTerm;
@@ -259,10 +259,10 @@ export class WaterwheelRenderer {
             gl.uniform1f(gl.getUniformLocation(inst.program, 'uRotation'), this.rotation);
             gl.uniform1f(gl.getUniformLocation(inst.program, 'uThickness'), this.thickness);
             
-            // Calculate minimum width in clip space (approx 1.2 pixels)
+            // Calculate minimum width in clip space (approx 2.5 pixels)
             // Clip width is 2.0.
-            // minX = 1.2 / width * 2.0
-            const minX = (1.2 / Math.max(1, width)) * 2.0;
+            // minX = 2.5 / width * 2.0
+            const minX = (2.5 / Math.max(1, width)) * 2.0;
             gl.uniform1f(gl.getUniformLocation(inst.program, 'uMinX'), minX);
             
             const uLayerLoc = gl.getUniformLocation(inst.program, 'uLayer');
