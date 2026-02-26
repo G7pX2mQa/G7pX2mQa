@@ -4,8 +4,7 @@ import { getLabLevel, setLabLevel, getRpMult } from '../ui/merchantTabs/labTab.j
 import { formatMultForUi } from '../util/numFormat.js';
 import { 
     addExternalCoinMultiplierProvider, 
-    addExternalXpGainMultiplierProvider,
-    refreshCoinMultiplierFromXpLevel
+    addExternalXpGainMultiplierProvider
 } from './xpSystem.js';
 import { addExternalSpawnRateMultiplierProvider, triggerUpgradesChanged } from './upgradeEffects.js';
 import { addExternalEacMultiplierProvider, addExternalEacAmountMultiplierProvider, setTsunamiBonusProvider } from './automationEffects.js';
@@ -729,9 +728,6 @@ export function initLabMultipliers() {
 
     if (typeof window !== 'undefined') {
         window.addEventListener('lab:node:change', ({ detail }) => {
-            if (detail && (detail.id === 2 || detail.id === 11)) {
-                refreshCoinMultiplierFromXpLevel();
-            }
             if (detail && detail.id === 8) {
                 triggerUpgradesChanged();
             }
