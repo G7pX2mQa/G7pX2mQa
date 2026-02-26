@@ -69,12 +69,6 @@
   /* Keep same animation as big ones */
 }
 
-/* Hide minis on small screens to save space */
-@media (max-width: 600px) {
-  .flow-minis-col {
-    display: none;
-  }
-}
 
 /* List Layout */
 .flow-list {
@@ -93,8 +87,8 @@
   grid-template-columns: auto 140px 140px 100px;
   align-items: center;
   gap: 12px;
-  /* Left padding matches icon overhang + 12px gap */
-  padding: 0 8px 0 calc((1 - var(--flow-bar-underlap)) * var(--flow-plus-size) + 12px);
+  /* Left padding matches icon overhang */
+  padding: 0 8px 0 calc((1 - var(--flow-bar-underlap)) * var(--flow-plus-size));
 }
 
 .flow-list-header {
@@ -109,6 +103,7 @@
 
 .flow-list-header div {
   white-space: nowrap;
+  text-align: center;
 }
 
 .flow-list-header::after {
@@ -194,12 +189,7 @@
 }
 
 #flow-fill-coin {
-background: linear-gradient(
-  to right, 
-  #FFF200 0%, 
-  #FFD700 45%, 
-  #FF8C00 100%
-);
+  background: linear-gradient(to right, #C29200, #FFC107);
 }
 
 .flow-bar-fill::after {
@@ -290,6 +280,14 @@ background: linear-gradient(
 
 /* Mobile Responsive */
 @media (max-width: 600px) {
+  .flow-minis-col {
+    display: none;
+  }
+
+  .flow-explainer {
+    font-size: 0.71rem;
+  }
+
   .flow-list-header {
     display: none; 
   }
