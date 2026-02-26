@@ -755,11 +755,16 @@ function alignFlowColumns() {
     stateEls.forEach(el => maxStateCenter = Math.max(maxStateCenter, getCenter(el)));
 
     // 3. Apply Transforms (Batch Write)
-    const alignGroup = (els, targetCenter) => {
-        els.forEach(el => {
+    const alignGroup = (els, targetCenter, headerOffset = 0) => {
+        els.forEach((el, index) => {
             const rect = el.getBoundingClientRect();
             const center = rect.left + rect.width / 2;
-            const diff = targetCenter - center;
+            let diff = targetCenter - center;
+            
+            if (index === 0) { // Header
+                diff += headerOffset;
+            }
+
             if (Math.abs(diff) > 0.5) {
                 el.style.transform = `translateX(${diff}px)`;
             }
@@ -768,7 +773,7 @@ function alignFlowColumns() {
     
     alignGroup(levelEls, maxLevelCenter);
     alignGroup(effectEls, maxEffectCenter);
-    alignGroup(stateEls, maxStateCenter);
+    alignGroup(stateEls, maxStateCenter, -1);
 }
 
 function updateFlowVisuals() {
