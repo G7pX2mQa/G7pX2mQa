@@ -1532,38 +1532,58 @@ export function createSpawner({
             }
             
             const alpha = 1 - (b.age / b.life);
-            fxCtx.strokeStyle = `rgba(200, 240, 255, ${alpha})`;
-            fxCtx.lineWidth = b.width || 3;
-            fxCtx.shadowColor = 'rgba(220, 245, 255, 0.9)';
-            fxCtx.shadowBlur = 20;
-            
-            // Jagged line
-            const segments = 6;
-            fxCtx.beginPath();
-            fxCtx.moveTo(startX, startY);
-            
-            for (let j = 1; j <= segments; j++) {
-                const t = j / segments;
-                const tx = startX + (endX - startX) * t;
-                const ty = startY + (endY - startY) * t;
-                
-                if (j === segments) {
-                    fxCtx.lineTo(endX, endY);
-                } else {
-                    const perpX = -(endY - startY);
-                    const perpY = (endX - startX);
+
+            // Pre-calculate jagged points so we can draw the same path twice (glow + core)
+            if (!b.points) {
+                b.points = [];
+                const segments = 6;
+                b.points.push({ x: 0, y: 0 }); // Start relative (0,0)
+
+                // Vector from start to end
+                const fullDx = endX - startX;
+                const fullDy = endY - startY;
+
+                for (let j = 1; j < segments; j++) {
+                    const t = j / segments;
+                    // Current point on straight line relative to start
+                    const tx = fullDx * t;
+                    const ty = fullDy * t;
+                    
+                    const perpX = -fullDy;
+                    const perpY = fullDx;
                     const len = Math.sqrt(perpX*perpX + perpY*perpY);
-                    const jaggedness = b.jaggedScale || 40;
+                    
+                    let ox = 0, oy = 0;
                     if (len > 0) {
-                        const scale = (Math.random() - 0.5) * jaggedness * (1 - Math.abs(t - 0.5)); // Bulge in middle
-                        fxCtx.lineTo(tx + (perpX/len)*scale, ty + (perpY/len)*scale);
-                    } else {
-                        fxCtx.lineTo(tx, ty);
+                        const jaggedness = b.jaggedScale || 40;
+                        const scale = (Math.random() - 0.5) * jaggedness * (1 - Math.abs(t - 0.5));
+                        ox = (perpX/len) * scale;
+                        oy = (perpY/len) * scale;
                     }
+                    b.points.push({ x: tx + ox, y: ty + oy });
                 }
+                b.points.push({ x: fullDx, y: fullDy }); // End relative
             }
-            fxCtx.stroke();
-            fxCtx.shadowBlur = 0;
+            
+            // Draw function to reuse path
+            const drawPath = (ctx, width, color) => {
+                ctx.lineWidth = width;
+                ctx.strokeStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                for (let j = 1; j < b.points.length; j++) {
+                    const p = b.points[j];
+                    ctx.lineTo(startX + p.x, startY + p.y);
+                }
+                ctx.stroke();
+            };
+
+            // 1. Glow Pass (Thick, lower opacity)
+            // Replaces expensive shadowBlur
+            drawPath(fxCtx, (b.width || 3) * 3.5, `rgba(220, 245, 255, ${alpha * 0.3})`);
+
+            // 2. Core Pass (Thin, high opacity)
+            drawPath(fxCtx, b.width || 3, `rgba(200, 240, 255, ${alpha})`);
         }
 
 
