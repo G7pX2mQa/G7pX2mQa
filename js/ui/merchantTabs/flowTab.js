@@ -413,12 +413,18 @@ function onTick(dt) {
                     state.waterwheels[id].unlocked = shouldUnlock;
                     changes = true;
                     
-                    if (!shouldUnlock && state.waterwheels[id].active) {
-                        state.waterwheels[id].active = false;
-                        // Reset visuals for this one
-                         if (state.visuals[id]) {
-                            state.visuals[id].speed = 0;
-                            state.visuals[id].isMax = false;
+                    if (!shouldUnlock) {
+                        // Reset progress
+                        state.waterwheels[id].level = BigNum.fromInt(0);
+                        state.waterwheels[id].fp = 0;
+
+                        if (state.waterwheels[id].active) {
+                            state.waterwheels[id].active = false;
+                            // Reset visuals for this one
+                             if (state.visuals[id]) {
+                                state.visuals[id].speed = 0;
+                                state.visuals[id].isMax = false;
+                            }
                         }
                     }
                 }
@@ -753,8 +759,8 @@ function updateWaterwheelVisuals() {
     
     if (unlocked.length === 0) return;
     
-    const time = Date.now();
-    const index = Math.floor(time / 2000) % unlocked.length;
+    // Change every 180 degrees (PI radians)
+    const index = Math.floor(waterwheelRenderer.rotation / Math.PI) % unlocked.length;
     const currentDef = unlocked[index];
     
     // Update WebGL Texture
