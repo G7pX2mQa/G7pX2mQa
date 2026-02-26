@@ -192,6 +192,16 @@
   background: linear-gradient(to right, #C29200, #FFC107);
 }
 
+#flow-fill-xp {
+  background: linear-gradient(to right, #31d0f7 0%, #0855bf 100%);
+}
+
+.flow-locked-text {
+  color: #aaa !important;
+  text-shadow: none !important;
+  font-weight: 400 !important;
+}
+
 .flow-bar-fill::after {
   content: "";
   position: absolute;
