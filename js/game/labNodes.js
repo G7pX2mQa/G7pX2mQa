@@ -175,6 +175,32 @@ export const RESEARCH_NODES = [
         icon: 'sc_upg_icons/xp_val1.webp',
         parentIds: [10],
         bonusLine: (level) => `XP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`
+    },
+    {
+        id: 13,
+        title: "Node 13: Experimental Gold Value II",
+        desc: "Multiplies Gold value by 3x per level\nThis node scales 10x RP each level",
+        baseRpReq: 1e25,
+        scale: 10.0,
+        maxLevel: 10,
+        x: -2000,
+        y: -1000,
+        icon: 'lab_icons/gold_val0.webp',
+        parentIds: [10],
+        bonusLine: (level) => `Gold value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`
+    },
+    {
+        id: 14,
+        title: "Node 14: Experimental Magic Value II",
+        desc: "Multiplies Magic value by 3x per level\nThis node scales 10x RP each level",
+        baseRpReq: 1e26,
+        scale: 10.0,
+        maxLevel: 10,
+        x: 2000,
+        y: -1000,
+        icon: 'lab_icons/magic_val0.webp',
+        parentIds: [10],
+        bonusLine: (level) => `Magic value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`
     }
 ];
 
@@ -635,21 +661,31 @@ export function getLabXpMultiplier() {
 }
 
 export function getLabGoldMultiplier() {
-    const node = NODE_MAP.get(5);
-    if (!node) return BigNum.fromInt(1);
-    const level = getResearchNodeLevel(node.id);
-    if (level <= 0) return BigNum.fromInt(1);
+    let totalLevel = 0;
     
-    return bigNumFromLog10(level * LOG10_3);
+    const node5 = NODE_MAP.get(5);
+    if (node5) totalLevel += getResearchNodeLevel(node5.id);
+    
+    const node13 = NODE_MAP.get(13);
+    if (node13) totalLevel += getResearchNodeLevel(node13.id);
+    
+    if (totalLevel <= 0) return BigNum.fromInt(1);
+    
+    return bigNumFromLog10(totalLevel * LOG10_3);
 }
 
 export function getLabMagicMultiplier() {
-    const node = NODE_MAP.get(6);
-    if (!node) return BigNum.fromInt(1);
-    const level = getResearchNodeLevel(node.id);
-    if (level <= 0) return BigNum.fromInt(1);
+    let totalLevel = 0;
     
-    return bigNumFromLog10(level * LOG10_3);
+    const node6 = NODE_MAP.get(6);
+    if (node6) totalLevel += getResearchNodeLevel(node6.id);
+    
+    const node14 = NODE_MAP.get(14);
+    if (node14) totalLevel += getResearchNodeLevel(node14.id);
+    
+    if (totalLevel <= 0) return BigNum.fromInt(1);
+    
+    return bigNumFromLog10(totalLevel * LOG10_3);
 }
 
 export function getLabWaveMultiplier() {
