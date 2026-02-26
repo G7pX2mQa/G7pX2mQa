@@ -1601,6 +1601,7 @@ function ensureMerchantOverlay() {
   syncWorkshopTabUnlockState();
 
   try { initResetSystem(); } catch {}
+  try { initFlowTab(panelFlow); } catch {}
 
   if (!forgeUnlockListenerBound && typeof window !== 'undefined') {
       const handleUnlockChange = (event) => {
