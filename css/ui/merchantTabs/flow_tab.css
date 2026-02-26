@@ -30,10 +30,10 @@
 .flow-explainer {
   font-size: 0.95rem;
   color: #e6f5ff;
-  background: rgba(67, 145, 240, 0.15);
+  background: rgba(64, 224, 208, 0.15);
   padding: 10px 16px;
   border-radius: 12px;
-  border: 1px solid #7aa7de;
+  border: 1px solid #48D1CC;
   max-width: 800px;
   width: 100%;
   flex-shrink: 0;
