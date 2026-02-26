@@ -4,7 +4,6 @@ import { initResetSystem } from '../ui/merchantTabs/resetTab.js';
 import {
   addExternalCoinMultiplierProvider,
   addExternalXpGainMultiplierProvider,
-  refreshCoinMultiplierFromXpLevel,
   isXpSystemUnlocked,
 } from './xpSystem.js';
 import { addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
@@ -45,7 +44,6 @@ export function triggerUpgradesChanged() {
   _cachedUpgradeMultipliers = null;
   try { listeners.forEach(cb => cb()); } catch {}
   try { document.dispatchEvent(new CustomEvent('ccc:upgrades:changed')); } catch {}
-  try { refreshCoinMultiplierFromXpLevel(); } catch {}
 }
 
 export function onUpgradesChanged(cb) {
@@ -300,7 +298,6 @@ export function registerXpUpgradeEffects() {
   if (typeof window !== 'undefined') {
     window.addEventListener('saveSlot:change', () => {
       try { syncBookCurrencyMultiplierFromUpgrade(); } catch {}
-      try { refreshCoinMultiplierFromXpLevel(); } catch {}
       try { syncCurrencyMultipliersFromUpgrades(); } catch {}
     });
     
