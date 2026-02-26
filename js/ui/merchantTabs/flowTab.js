@@ -2,7 +2,7 @@ import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../../util/storage.js';
 import { registerTick, registerFrame, FIXED_STEP } from '../../game/gameLoop.js';
-import { addExternalCoinMultiplierProvider, refreshCoinMultiplierFromXpLevel } from '../../game/xpSystem.js';
+import { addExternalCoinMultiplierProvider, refreshCoinMultiplierFromXpLevel, addExternalXpGainMultiplierProvider } from '../../game/xpSystem.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { approxLog10BigNum } from '../../game/upgrades.js';
 import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
@@ -18,7 +18,8 @@ const KEY_WATERWHEEL = (id, slot) => `${KEY_PREFIX}:${id}:${slot}`;
 const EFFECT_PERCENTAGE = 100;
 
 const WATERWHEELS = {
-    COIN: 'coin'
+    COIN: 'coin',
+    XP: 'xp'
 };
 
 export const WATERWHEEL_DEFS = {
@@ -31,6 +32,18 @@ export const WATERWHEEL_DEFS = {
         description: 'Boosts Global Coin Value by +100% per level',
         unlocked: true,
         styleKey: 'coins'
+    },
+    [WATERWHEELS.XP]: {
+        id: WATERWHEELS.XP,
+        name: 'XP Waterwheel',
+        icon: 'img/waterwheels/waterwheel_xp.webp',
+        image: 'img/waterwheels/waterwheel_xp.webp',
+        baseReq: 1000, // 1000 FP per level
+        description: 'Boosts Global XP Gain by +100% per level',
+        unlocked: false,
+        prev: WATERWHEELS.COIN,
+        unlockReq: 1000,
+        styleKey: 'xp'
     }
 };
 
@@ -52,10 +65,21 @@ const state = {
             fp: 0,
             active: false,
             unlocked: true
+        },
+        [WATERWHEELS.XP]: {
+            level: BigNum.fromInt(0),
+            fp: 0,
+            active: false,
+            unlocked: false
         }
     },
     visuals: {
         [WATERWHEELS.COIN]: {
+            rotation: 0,
+            speed: 0,
+            isMax: false
+        },
+        [WATERWHEELS.XP]: {
             rotation: 0,
             speed: 0,
             isMax: false
@@ -165,6 +189,7 @@ function scheduleSave() {
 export function toggleWaterwheel(waterwheelId) {
     const ch = state.waterwheels[waterwheelId];
     if (!ch) return;
+    if (!ch.unlocked) return; // Prevent toggling if locked
 
     const wasActive = ch.active;
 
@@ -218,6 +243,14 @@ export function getWaterwheelCoinMultiplier({ baseMultiplier }) {
     const level = state.waterwheels[WATERWHEELS.COIN]?.level || BigNum.fromInt(0);
     const mult = BigNum.fromInt(1).add(level);
     return baseMultiplier.mulBigNumInteger(mult);
+}
+
+export function getWaterwheelXpMultiplier({ baseGain }) {
+    const level = state.waterwheels[WATERWHEELS.XP]?.level || BigNum.fromInt(0);
+    // +100% per level means multiplier = 1 + level
+    // e.g. level 1 -> 2x multiplier (+100%)
+    const mult = BigNum.fromInt(1).add(level);
+    return baseGain.mulBigNumInteger(mult);
 }
 
 export function addExternalFpMultiplierProvider(fn) {
@@ -360,6 +393,38 @@ function onTick(dt) {
     
     const fpMult = getFpMultiplier();
     const slot = getSlot();
+    
+    // Unlock Logic
+    // Check XP unlock condition: Coin Waterwheel Level >= 1000
+    // We do this check before processing gains, so it updates dynamically
+    const coinLevel = state.waterwheels[WATERWHEELS.COIN]?.level || BigNum.fromInt(0);
+    const xpDef = WATERWHEEL_DEFS[WATERWHEELS.XP];
+    
+    // Generic Unlock Logic check (future proofing)
+    for (const id in WATERWHEEL_DEFS) {
+        const def = WATERWHEEL_DEFS[id];
+        if (def.prev && def.unlockReq) {
+            const prevCh = state.waterwheels[def.prev];
+            if (prevCh) {
+                const threshold = BigNum.fromInt(def.unlockReq);
+                const shouldUnlock = prevCh.level.cmp(threshold) >= 0;
+                
+                if (state.waterwheels[id].unlocked !== shouldUnlock) {
+                    state.waterwheels[id].unlocked = shouldUnlock;
+                    changes = true;
+                    
+                    if (!shouldUnlock && state.waterwheels[id].active) {
+                        state.waterwheels[id].active = false;
+                        // Reset visuals for this one
+                         if (state.visuals[id]) {
+                            state.visuals[id].speed = 0;
+                            state.visuals[id].isMax = false;
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     for (const id in state.waterwheels) {
         const ch = state.waterwheels[id];
@@ -548,6 +613,7 @@ function createWaterwheelHTML(extraClass = '') {
 }
 
 function buildUI(panel) {
+    console.log("Building Flow UI. DEFS keys:", Object.keys(WATERWHEEL_DEFS));
     panel.innerHTML = '';
     
     const wrapper = document.createElement('div');
@@ -614,6 +680,7 @@ function buildUI(panel) {
     
     // Rows
     for (const [id, def] of Object.entries(WATERWHEEL_DEFS)) {
+        console.log("Creating row for:", id, def);
         const item = document.createElement('div');
         item.className = 'flow-row';
         item.innerHTML = `
@@ -622,7 +689,7 @@ function buildUI(panel) {
                  <div class="flow-bar-inner">
                     <div class="flow-bar-fill" id="flow-fill-${id}"></div>
                     <div class="flow-bar-text">
-                        <span class="flow-name-text">${def.name}</span>
+                        <span class="flow-name-text" id="flow-name-${id}">${def.name}</span>
                     </div>
                  </div>
             </div>
@@ -631,7 +698,7 @@ function buildUI(panel) {
             
             <div class="flow-effect-val" id="flow-effect-${id}">+0%</div>
             
-            <div class="flow-row-controls">
+            <div class="flow-row-controls" id="flow-controls-${id}">
                 <button class="flow-toggle-btn" data-id="${id}">OFF</button>
             </div>
         `;
@@ -783,49 +850,78 @@ function updateFlowVisuals() {
 
     for (const id in WATERWHEEL_DEFS) {
         const ch = state.waterwheels[id];
+        const def = WATERWHEEL_DEFS[id];
         
+        const elIcon = flowPanel.querySelector(`#flow-icon-${id}`);
         const elLvl = flowPanel.querySelector(`#flow-lvl-${id}`);
-        if (elLvl) elLvl.textContent = formatNumber(ch.level);
-        
         const elEffect = flowPanel.querySelector(`#flow-effect-${id}`);
-        if (elEffect) {
-            const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
-            elEffect.textContent = `+${formatNumber(effectVal)}%`;
-        }
-        
+        const elControls = flowPanel.querySelector(`#flow-controls-${id}`);
+        const elName = flowPanel.querySelector(`#flow-name-${id}`);
         const elFill = flowPanel.querySelector(`#flow-fill-${id}`);
         
-        const req = WATERWHEEL_DEFS[id]?.baseReq;
-        
-        let fpVal = ch.fp;
-        if (fpVal instanceof BigNum) {
-             if (fpVal.isInfinite()) fpVal = Infinity;
-             else try { fpVal = Number(fpVal.toScientific(5)); } catch { fpVal = 0; }
-        }
-        
-        let pct = 0;
-        if (req > 0) {
-            pct = Math.min(100, Math.max(0, (fpVal / req) * 100));
-        }
-        
-        // If active, visualize "full" if gain per tick is enough to fill?
-        // Maybe not needed for ON/OFF system, but kept for consistency with logic
-        if (ch.active) {
-            const safeFixedStep = (typeof FIXED_STEP === 'number' && FIXED_STEP > 0) ? FIXED_STEP : 0.05;
-            const threshold = req / safeFixedStep;
+        if (!ch.unlocked) {
+            // Locked State
+            if (elIcon) elIcon.style.opacity = '0';
+            if (elLvl) elLvl.style.visibility = 'hidden';
+            if (elEffect) elEffect.style.visibility = 'hidden';
+            if (elControls) elControls.style.visibility = 'hidden';
             
-            let effectiveRate = BigNum.fromInt(1);
-            if (fpMult && !fpMult.isZero()) {
-                 effectiveRate = effectiveRate.mulBigNumInteger(fpMult);
+            if (elName) {
+                elName.textContent = `Level ${formatNumber(def.unlockReq)} in prev.`;
+                elName.classList.add('flow-locked-text');
             }
-            effectiveRate = applyStatMultiplierOverride('fp', effectiveRate);
             
-            if (effectiveRate.isInfinite() || effectiveRate.cmp(threshold) >= 0) {
-                pct = 100;
+            if (elFill) elFill.style.width = '0%';
+            
+        } else {
+            // Unlocked State
+            if (elIcon) elIcon.style.opacity = '1';
+            if (elLvl) {
+                 elLvl.style.visibility = 'visible';
+                 elLvl.textContent = formatNumber(ch.level);
             }
-        }
+            if (elEffect) {
+                elEffect.style.visibility = 'visible';
+                const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
+                elEffect.textContent = `+${formatNumber(effectVal)}%`;
+            }
+            if (elControls) elControls.style.visibility = 'visible';
+            
+            if (elName) {
+                elName.textContent = def.name;
+                elName.classList.remove('flow-locked-text');
+            }
+            
+            const req = def?.baseReq;
+            
+            let fpVal = ch.fp;
+            if (fpVal instanceof BigNum) {
+                 if (fpVal.isInfinite()) fpVal = Infinity;
+                 else try { fpVal = Number(fpVal.toScientific(5)); } catch { fpVal = 0; }
+            }
+            
+            let pct = 0;
+            if (req > 0) {
+                pct = Math.min(100, Math.max(0, (fpVal / req) * 100));
+            }
+            
+            if (ch.active) {
+                const safeFixedStep = (typeof FIXED_STEP === 'number' && FIXED_STEP > 0) ? FIXED_STEP : 0.05;
+                const threshold = req / safeFixedStep;
+                
+                let effectiveRate = BigNum.fromInt(1);
+                if (fpMult && !fpMult.isZero()) {
+                     effectiveRate = effectiveRate.mulBigNumInteger(fpMult);
+                }
+                effectiveRate = applyStatMultiplierOverride('fp', effectiveRate);
+                
+                if (effectiveRate.isInfinite() || effectiveRate.cmp(threshold) >= 0) {
+                    pct = 100;
+                }
+            }
 
-        if (elFill) elFill.style.width = `${pct}%`;
+            if (elFill) elFill.style.width = `${pct}%`;
+        }
     }
 }
 
@@ -849,6 +945,7 @@ export function initFlowSystem() {
     registerFrame((time, dt) => onFrame(time, dt));
 
     addExternalCoinMultiplierProvider((params) => getWaterwheelCoinMultiplier(params));
+    addExternalXpGainMultiplierProvider((params) => getWaterwheelXpMultiplier(params));
 }
 
 export function initFlowTab(panelEl) {
