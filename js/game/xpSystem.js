@@ -1313,10 +1313,6 @@ export function setExternalCoinMultiplierProvider(fn) {
   syncCoinMultiplierWithXpLevel(true);
 }
 
-export function refreshCoinMultiplierFromXpLevel() {
-  ensureStateLoaded();
-  syncCoinMultiplierWithXpLevel(true);
-}
 
 export function setExternalXpGainMultiplierProvider(fn) {
   externalXpGainMultiplierProvider = typeof fn === 'function' ? fn : null;
@@ -1364,7 +1360,6 @@ if (typeof window !== 'undefined') {
     getXpGainMultiplier,
     setExternalCoinMultiplierProvider,
     addExternalCoinMultiplierProvider,
-    refreshCoinMultiplierFromXpLevel,
     setExternalXpGainMultiplierProvider,
     addExternalXpGainMultiplierProvider,
     setExternalBookRewardProvider,
