@@ -118,7 +118,7 @@
 }
 
 .offline-icon[src*="magic"] {
-    transform: scale(1.1);
+    transform: scale(1.05);
     /* Remove 2px spacing */
     margin-left: -1px !important;
     margin-right: -2px !important;
