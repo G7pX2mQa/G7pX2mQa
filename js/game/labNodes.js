@@ -9,6 +9,7 @@ import {
 import { addExternalSpawnRateMultiplierProvider, triggerUpgradesChanged } from './upgradeEffects.js';
 import { addExternalEacMultiplierProvider, addExternalEacAmountMultiplierProvider, setTsunamiBonusProvider } from './automationEffects.js';
 import { isSurgeActive } from './surgeEffects.js';
+import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
 
 // --- Storage Keys ---
 export const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
@@ -226,6 +227,32 @@ export const RESEARCH_NODES = [
         icon: 'lab_icons/dna_val0.webp',
         parentIds: [10],
         bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`
+    },
+    {
+        id: 17,
+        title: "Node 17: Experimental FP Value",
+        desc: "Multiplies FP value by 2x per level\nThis node scales 10x RP each level",
+        baseRpReq: 1e29,
+        scale: 10.0,
+        maxLevel: 10,
+        x: -2000,
+        y: 1000,
+        icon: 'lab_icons/fp_val0.webp',
+        parentIds: [10],
+        bonusLine: (level) => `FP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`
+    },
+    {
+        id: 18,
+        title: "Node 18: Experimental FP Value II",
+        desc: "Multiplies FP value by 2x per level\nThis node scales 10x RP each level",
+        baseRpReq: 1e30,
+        scale: 10.0,
+        maxLevel: 10,
+        x: 2000,
+        y: 1000,
+        icon: 'lab_icons/fp_val0.webp',
+        parentIds: [10],
+        bonusLine: (level) => `FP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`
     }
 ];
 
@@ -770,6 +797,28 @@ export function getLabDnaMultiplier() {
     return bigNumFromLog10(level * LOG10_2);
 }
 
+export function getLabFpMultiplier() {
+    let logTotal = 0;
+
+    // Node 17
+    const node17 = NODE_MAP.get(17);
+    if (node17) {
+        const level = getResearchNodeLevel(node17.id);
+        if (level > 0) logTotal += level * LOG10_2;
+    }
+    
+    // Node 18
+    const node18 = NODE_MAP.get(18);
+    if (node18) {
+        const level = getResearchNodeLevel(node18.id);
+        if (level > 0) logTotal += level * LOG10_2;
+    }
+
+    if (logTotal === 0) return BigNum.fromInt(1);
+    
+    return bigNumFromLog10(logTotal);
+}
+
 export function getLabSpawnRateBonus() {
     const node = NODE_MAP.get(8);
     if (!node) return 1;
@@ -798,6 +847,11 @@ export function initLabMultipliers() {
     addExternalSpawnRateMultiplierProvider(() => getLabSpawnRateBonus());
     addExternalEacAmountMultiplierProvider(() => getLabEacBonus());
     
+    addExternalFpMultiplierProvider((mult) => {
+        const labMult = getLabFpMultiplier();
+        return mult.mulDecimal(labMult.toScientific());
+    });
+
     setTsunamiBonusProvider(() => getTsunamiResearchBonus());
 
     if (typeof window !== 'undefined') {
