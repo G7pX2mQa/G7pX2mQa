@@ -53,7 +53,8 @@ import {
     isExperimentUnlocked as isLabExperimentUnlocked,
     resetLab,
     getLabGoldMultiplier,
-    getLabMagicMultiplier
+    getLabMagicMultiplier,
+    getLabDnaMultiplier
 } from '../../game/labNodes.js';
 import { getLabLevel } from './labTab.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
@@ -460,7 +461,15 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
              logVal = Number(totalLog10.toScientific(10));
         }
         
-        return bigNumFromLog10(logVal).floorToInteger();
+        let result = bigNumFromLog10(logVal).floorToInteger();
+
+        // Apply Lab DNA Multiplier (Node 16)
+        const labDnaMult = getLabDnaMultiplier();
+        if (labDnaMult.cmp(1) > 0) {
+            result = result.mulDecimal(labDnaMult.toScientific());
+        }
+        
+        return result;
     } catch (e) {
         return bnZero();
     }
@@ -1008,7 +1017,15 @@ function recomputePendingDna() {
              logVal = Number(totalLog10.toScientific(10));
         }
         
-        resetState.pendingDna = bigNumFromLog10(logVal).floorToInteger();
+        let result = bigNumFromLog10(logVal).floorToInteger();
+
+        // Apply Lab DNA Multiplier (Node 16)
+        const labDnaMult = getLabDnaMultiplier();
+        if (labDnaMult.cmp(1) > 0) {
+            result = result.mulDecimal(labDnaMult.toScientific());
+        }
+        
+        resetState.pendingDna = result;
     } catch (e) {
         // Fallback for extreme values or errors
         // Simplified fallback: 2^labLevel
