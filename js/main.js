@@ -669,6 +669,7 @@ images: [
   'img/lab_icons/gold_val0.webp',
   'img/lab_icons/magic_val0.webp',
   'img/lab_icons/wave_val0.webp',
+  'img/lab_icons/dna_val0.webp',
   
   // ==== img/stats ====
   'img/stats/mp/mp.webp',
