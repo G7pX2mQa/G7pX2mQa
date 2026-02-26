@@ -670,6 +670,7 @@ images: [
   'img/lab_icons/magic_val0.webp',
   'img/lab_icons/wave_val0.webp',
   'img/lab_icons/dna_val0.webp',
+  'img/lab_icons/fp_val0.webp',
   
   // ==== img/stats ====
   'img/stats/mp/mp.webp',
@@ -680,6 +681,7 @@ images: [
   'img/stats/xp/xp_plus_base.webp',
   'img/stats/rp/rp.webp',
   'img/stats/rp/rp_base.webp',
+  'img/stats/fp/fp.webp',
   
     // ==== img/waterwheels ====
 	'img/waterwheels/waterwheel_coin.webp',
