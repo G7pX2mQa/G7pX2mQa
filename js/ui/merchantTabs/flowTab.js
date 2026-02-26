@@ -702,10 +702,15 @@ function updateWaterwheelVisuals() {
     });
 }
 
+/**
+ * Refines the alignment of the Flow tab columns by measuring header positions
+ * and applying compensatory transforms to the row values.
+ */
 function alignFlowColumns() {
-    if (!flowPanel) return;
+    if (!flowPanel || !flowPanel.isConnected) return;
+    
     const header = flowPanel.querySelector('.flow-list-header');
-    if (!header) return;
+    if (!header || header.offsetParent === null) return; // Hidden or not rendered
 
     if (header.children.length < 4) return;
 
@@ -717,6 +722,7 @@ function alignFlowColumns() {
     const effectRect = effectHeader.getBoundingClientRect();
     const stateRect = stateHeader.getBoundingClientRect();
 
+    // Use centers to align columns precisely
     const levelCenter = levelRect.left + levelRect.width / 2;
     const effectCenter = effectRect.left + effectRect.width / 2;
     const stateCenter = stateRect.left + stateRect.width / 2;
@@ -725,7 +731,7 @@ function alignFlowColumns() {
     rows.forEach(row => {
         const levelVal = row.querySelector('.flow-level-val');
         const effectVal = row.querySelector('.flow-effect-val');
-        const stateVal = row.querySelector('.flow-row-controls'); // Centering controls under header
+        const stateVal = row.querySelector('.flow-row-controls');
 
         if (levelVal) {
             levelVal.style.transform = '';
@@ -733,7 +739,7 @@ function alignFlowColumns() {
             const currentCenter = rect.left + rect.width / 2;
             const diff = levelCenter - currentCenter;
             
-            if (Math.abs(diff) > 0.5) {
+            if (Math.abs(diff) > 0.1) { // Refined threshold for sub-pixel alignment
                 levelVal.style.transform = `translateX(${diff}px)`;
             }
         }
@@ -744,7 +750,7 @@ function alignFlowColumns() {
             const currentCenter = rect.left + rect.width / 2;
             const diff = effectCenter - currentCenter;
             
-            if (Math.abs(diff) > 0.5) {
+            if (Math.abs(diff) > 0.1) {
                 effectVal.style.transform = `translateX(${diff}px)`;
             }
         }
@@ -755,7 +761,7 @@ function alignFlowColumns() {
             const currentCenter = rect.left + rect.width / 2;
             const diff = stateCenter - currentCenter;
             
-            if (Math.abs(diff) > 0.5) {
+            if (Math.abs(diff) > 0.1) {
                 stateVal.style.transform = `translateX(${diff}px)`;
             }
         }
