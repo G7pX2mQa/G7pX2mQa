@@ -6,6 +6,7 @@ import {
   addExternalXpGainMultiplierProvider,
   isXpSystemUnlocked,
 } from './xpSystem.js';
+import { getLabWaveMultiplier } from './labNodes.js';
 import { addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
 import {
   REGISTRY,
@@ -229,7 +230,9 @@ export function syncCurrencyMultipliersFromUpgrades() {
 
   try {
     if (bank.waves?.mult?.set) {
-      bank.waves.mult.set(waveValue);
+      const labMult = getLabWaveMultiplier();
+      const finalWaveValue = safeMultiplyBigNum(waveValue, labMult);
+      bank.waves.mult.set(finalWaveValue);
     }
   } catch {}
 }
@@ -305,6 +308,9 @@ export function registerXpUpgradeEffects() {
         try { syncCurrencyMultipliersFromUpgrades(); } catch {}
     });
     window.addEventListener('surge:nerf:change', () => {
+        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+    });
+    window.addEventListener('lab:node:change', () => {
         try { syncCurrencyMultipliersFromUpgrades(); } catch {}
     });
   }
