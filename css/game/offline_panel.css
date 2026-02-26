@@ -124,6 +124,7 @@
     /* Remove 2px spacing */
     margin-left: -1px !important;
     margin-right: -2px !important;
+	left: 1px;
 }
 
 .offline-text {
