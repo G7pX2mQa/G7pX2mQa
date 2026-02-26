@@ -6,7 +6,6 @@ import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { formatNumber } from '../util/numFormat.js';
 import { approxLog10BigNum, bigNumFromLog10 } from '../util/bigNum.js';
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
-import { refreshCoinMultiplierFromXpLevel } from './xpSystem.js';
 
 const KEY_PREFIX = 'ccc:mutation';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
@@ -51,9 +50,6 @@ let unregisterXpGainMultiplierProvider = null;
 const mutationGainMultiplierProviders = new Set();
 let externalMutationGainMultiplierProvider = null;
 
-function scheduleCoinMultiplierRefresh() {
-  try { refreshCoinMultiplierFromXpLevel(); } catch {}
-}
 
 function applyMutationMultipliers(amount) {
   let inc = amount;
@@ -540,7 +536,6 @@ function applyState(newState, { skipPersist = false } = {}) {
   if (!skipPersist) persistState();
   updateHud();
   emitChange('load');
-  scheduleCoinMultiplierRefresh();
 }
 
 function readStateFromStorage(slot) {
@@ -591,7 +586,6 @@ function bindStorageWatchers(slot) {
         ensureRequirement();
         updateHud();
         emitChange('storage');
-        scheduleCoinMultiplierRefresh();
       }
     },
   }));
@@ -605,7 +599,6 @@ function bindStorageWatchers(slot) {
           ensureRequirement();
           updateHud();
           emitChange('storage');
-          scheduleCoinMultiplierRefresh();
         }
       } catch {}
     },
@@ -646,7 +639,6 @@ export function initMutationSystem({ forceReload = false } = {}) {
   readStateFromStorage(slot);
   bindStorageWatchers(slot);
   updateHud();
-  scheduleCoinMultiplierRefresh();
   if (typeof window !== 'undefined') {
     window.addEventListener('saveSlot:change', () => {
       const nextSlot = getActiveSlot();
@@ -654,7 +646,6 @@ export function initMutationSystem({ forceReload = false } = {}) {
       readStateFromStorage(nextSlot);
       bindStorageWatchers(nextSlot);
       updateHud();
-      scheduleCoinMultiplierRefresh();
       emitChange('slot');
     });
   }
@@ -682,7 +673,6 @@ export function unlockMutationSystem() {
   persistState();
   updateHud();
   emitChange('unlock');
-  scheduleCoinMultiplierRefresh();
   return true;
 }
 
@@ -793,7 +783,6 @@ export function addMutationPower(amount) {
 
   const levelsGained = mutationState.level.sub(prevLevel);
   if (!levelsGained.isZero?.()) {
-    scheduleCoinMultiplierRefresh();
   }
 
   const detail = emitChange('progress', {
