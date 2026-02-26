@@ -9,6 +9,7 @@ import {
 } from './xpSystem.js';
 import { addExternalSpawnRateMultiplierProvider, triggerUpgradesChanged } from './upgradeEffects.js';
 import { addExternalEacMultiplierProvider, addExternalEacAmountMultiplierProvider, setTsunamiBonusProvider } from './automationEffects.js';
+import { isSurgeActive } from './surgeEffects.js';
 
 // --- Storage Keys ---
 export const NODE_LEVEL_KEY = (slot, id) => `ccc:lab:node:level:${id}:${slot}`;
@@ -43,7 +44,7 @@ export const RESEARCH_NODES = [
         x: -1000,
         y: 1000,
         icon: 'lab_icons/coin_val0.webp',
-        bonusLine: (level) => `Coin value bonus: ${formatMultForUi(getLabCoinMultiplier())}x`
+        bonusLine: (level) => `Coin value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`
     },
     {
         id: 3,
@@ -56,7 +57,7 @@ export const RESEARCH_NODES = [
         x: 1000,
         y: 1000,
         icon: 'sc_upg_icons/xp_val1.webp',
-        bonusLine: (level) => `XP value bonus: ${formatMultForUi(getLabXpMultiplier())}x`
+        bonusLine: (level) => `XP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`
     },
     {
         id: 4,
@@ -82,7 +83,7 @@ export const RESEARCH_NODES = [
         y: -1000,
         icon: 'lab_icons/gold_val0.webp',
         parentIds: [4],
-        bonusLine: (level) => `Gold value bonus: ${formatMultForUi(getLabGoldMultiplier())}x`
+        bonusLine: (level) => `Gold value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`
     },
     {
         id: 6,
@@ -95,7 +96,7 @@ export const RESEARCH_NODES = [
         y: -1000,
         icon: 'lab_icons/magic_val0.webp',
         parentIds: [4],
-        bonusLine: (level) => `Magic value bonus: ${formatMultForUi(getLabMagicMultiplier())}x`
+        bonusLine: (level) => `Magic value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`
     },
     {
         id: 7,
@@ -108,7 +109,7 @@ export const RESEARCH_NODES = [
         y: 1000,
         icon: 'lab_icons/wave_val0.webp',
         parentIds: [5, 6],
-        bonusLine: (level) => `Wave value bonus: ${formatMultForUi(getLabWaveMultiplier())}x`
+        bonusLine: (level) => `Wave value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.1)))}x`
     },
     {
         id: 8,
@@ -121,7 +122,7 @@ export const RESEARCH_NODES = [
         y: 0,
         icon: 'sc_upg_icons/faster_coins1.webp',
         parentIds: [7],
-        bonusLine: (level) => `Coin Spawn Rate bonus: ${formatMultForUi(getLabSpawnRateBonus())}x`
+        bonusLine: (level) => `Coin Spawn Rate bonus: ${formatMultForUi(1 + (level * 0.1))}x`
     },
     {
         id: 9,
@@ -134,7 +135,7 @@ export const RESEARCH_NODES = [
         y: 0,
         icon: 'sc_upg_icons/effective_auto_collect.webp',
         parentIds: [7],
-        bonusLine: (level) => `EAC value bonus: ${formatMultForUi(getLabEacBonus())}x`
+        bonusLine: (level) => `EAC value bonus: ${formatMultForUi(1 + (level * 0.1))}x`
     },
     {
         id: 10,
@@ -148,6 +149,32 @@ export const RESEARCH_NODES = [
         icon: 'lab_icons/tsunami_exponent_buff.webp',
         parentIds: [8, 9],
         bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`
+    },
+    {
+        id: 11,
+        title: "Node 11: Experimental Coin Value II",
+        desc: "Multiplies Coin value by 2x per level\nThis node scales <strong>10x</strong> RP each level",
+        baseRpReq: 1e23,
+        scale: 10.0,
+        maxLevel: 10,
+        x: -2000,
+        y: -2000,
+        icon: 'lab_icons/coin_val0.webp',
+        parentIds: [10],
+        bonusLine: (level) => `Coin value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`
+    },
+    {
+        id: 12,
+        title: "Node 12: Experimental XP Value II",
+        desc: "Multiplies XP value by 2x per level\nThis node scales <strong>10x</strong> RP each level",
+        baseRpReq: 1e24,
+        scale: 10.0,
+        maxLevel: 10,
+        x: 2000,
+        y: -2000,
+        icon: 'sc_upg_icons/xp_val1.webp',
+        parentIds: [10],
+        bonusLine: (level) => `XP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`
     }
 ];
 
@@ -374,6 +401,11 @@ export function isResearchNodeVisible(id) {
         if (!_cachedExperimentCompleted) return false;
     }
     
+    // Nodes attached to Node 10 require Surge 20
+    if (node.parentIds && node.parentIds.includes(10)) {
+        if (!isSurgeActive(20)) return false;
+    }
+
     // Visible if ALL parents are maxed
     for (const parentId of node.parentIds) {
         const parent = NODE_MAP.get(parentId);
@@ -575,21 +607,31 @@ const LOG10_3 = Math.log10(3);
 const LOG10_1_1 = Math.log10(1.1);
 
 export function getLabCoinMultiplier() {
-    const node = NODE_MAP.get(2);
-    if (!node) return BigNum.fromInt(1);
-    const level = getResearchNodeLevel(node.id);
-    if (level <= 0) return BigNum.fromInt(1);
+    let totalLevel = 0;
     
-    return bigNumFromLog10(level * LOG10_2);
+    const node2 = NODE_MAP.get(2);
+    if (node2) totalLevel += getResearchNodeLevel(node2.id);
+    
+    const node11 = NODE_MAP.get(11);
+    if (node11) totalLevel += getResearchNodeLevel(node11.id);
+    
+    if (totalLevel <= 0) return BigNum.fromInt(1);
+    
+    return bigNumFromLog10(totalLevel * LOG10_2);
 }
 
 export function getLabXpMultiplier() {
-    const node = NODE_MAP.get(3);
-    if (!node) return BigNum.fromInt(1);
-    const level = getResearchNodeLevel(node.id);
-    if (level <= 0) return BigNum.fromInt(1);
+    let totalLevel = 0;
     
-    return bigNumFromLog10(level * LOG10_2);
+    const node3 = NODE_MAP.get(3);
+    if (node3) totalLevel += getResearchNodeLevel(node3.id);
+    
+    const node12 = NODE_MAP.get(12);
+    if (node12) totalLevel += getResearchNodeLevel(node12.id);
+    
+    if (totalLevel <= 0) return BigNum.fromInt(1);
+    
+    return bigNumFromLog10(totalLevel * LOG10_2);
 }
 
 export function getLabGoldMultiplier() {
@@ -651,7 +693,7 @@ export function initLabMultipliers() {
 
     if (typeof window !== 'undefined') {
         window.addEventListener('lab:node:change', ({ detail }) => {
-            if (detail && detail.id === 2) {
+            if (detail && (detail.id === 2 || detail.id === 11)) {
                 refreshCoinMultiplierFromXpLevel();
             }
             if (detail && detail.id === 8) {
