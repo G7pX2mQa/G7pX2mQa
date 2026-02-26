@@ -8,7 +8,6 @@ import {
   unlockXpSystem,
   isXpSystemUnlocked,
   getXpState,
-  refreshCoinMultiplierFromXpLevel,
 } from './xpSystem.js';
 import { getMutationMultiplier } from './mutationSystem.js';
 import {
@@ -2499,7 +2498,6 @@ export const REGISTRY = [
       return `Coin value bonus: ${formatMultForUi(mult)}x`;
     },
     effectMultiplier: E.addPctPerLevel(0.50),
-    onLevelChange() { try { refreshCoinMultiplierFromXpLevel(); } catch {} },
   },
   {
     area: AREA_KEYS.STARTER_COVE,
@@ -2586,7 +2584,6 @@ export const REGISTRY = [
       return `Coin value bonus: ${formatMultForUi(mult)}x`;
     },
     effectMultiplier: E.addPctPerLevel(10),
-    onLevelChange() { try { refreshCoinMultiplierFromXpLevel(); } catch {} },
   },
   {
     area: AREA_KEYS.STARTER_COVE,
@@ -2906,7 +2903,6 @@ export const REGISTRY = [
           descOverride: 'Locked',
       };
     },
-    onLevelChange() { try { refreshCoinMultiplierFromXpLevel(); } catch {} },
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
       let baseMult;
@@ -2977,7 +2973,6 @@ export const REGISTRY = [
           descOverride: 'Locked',
       };
     },
-    onLevelChange() { try { refreshCoinMultiplierFromXpLevel(); } catch {} },
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
       let baseMult;
@@ -3048,7 +3043,6 @@ export const REGISTRY = [
           descOverride: 'Locked',
       };
     },
-    onLevelChange() { try { refreshCoinMultiplierFromXpLevel(); } catch {} },
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
       let baseMult;
