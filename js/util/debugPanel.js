@@ -3742,7 +3742,6 @@ function buildAreasContent(content) {
     const areas = getAreas();
 
     areas.forEach((area) => {
-        console.log('[Debug] Building Area:', area.key);
         const areaContainer = createSubsection(area.title, (areaContent) => {
             const currencies = createSubsection('Currencies', (sub) => {
                 buildAreaCurrencies(sub, area);
@@ -3770,7 +3769,6 @@ function buildAreasContent(content) {
             let labNodesSection = null;
             let waterwheelsSection = null;
             if (area.key === AREA_KEYS.STARTER_COVE) {
-                console.log('[Debug] In Cove Block');
                 automationUpgrades = createSubsection('Automation Upgrades', (sub) => {
                     buildAreaUpgrades(sub, { key: AREA_KEYS.AUTOMATION, title: 'Automation' });
                 });
