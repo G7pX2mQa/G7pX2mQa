@@ -757,7 +757,7 @@ function updateWaterwheelVisuals() {
     if (unlocked.length === 0) return;
     
     // Change every 180 degrees (PI radians)
-    const index = Math.floor(waterwheelRenderer.rotation / Math.PI) % unlocked.length;
+    const index = Math.floor((waterwheelRenderer.rotation - Math.PI / 2) / Math.PI) % unlocked.length;
     const currentDef = unlocked[index];
     
     // Update WebGL Texture
