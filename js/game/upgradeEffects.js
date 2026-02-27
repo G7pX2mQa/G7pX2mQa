@@ -23,6 +23,7 @@ import {
   UPGRADE_TIES
 } from './upgrades.js';
 import { getSurgeMagicMultiplier } from './surgeEffects.js';
+import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
 
 const BASE_CPS = 1;
 
@@ -119,6 +120,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     magicValue: BigNum.fromInt(1),
     waveValue: BigNum.fromInt(1),
     bookValue: BigNum.fromInt(1),
+    fpValue: BigNum.fromInt(1),
     coinSpawn: 1.0,
     magnetRadius: 0,
   };
@@ -171,6 +173,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.waveValue = safeMultiplyBigNum(acc.waveValue, baseEffect);
     } else if (upg.effectType === 'book_value') {
       acc.bookValue = safeMultiplyBigNum(acc.bookValue, baseEffect);
+    } else if (upg.effectType === 'fp_value') {
+      acc.fpValue = safeMultiplyBigNum(acc.fpValue, baseEffect);
     } else if (upg.effectType === 'magnet_radius') {
       let val = 0;
       if (baseEffect instanceof BigNum) {
@@ -294,6 +298,14 @@ export function registerXpUpgradeEffects() {
       
       const { mpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
       return safeMultiplyBigNum(gain, mpValue);
+    });
+  } catch {}
+
+  try {
+    addExternalFpMultiplierProvider((mult) => {
+      const { fpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+      if (!fpValue) return mult;
+      return safeMultiplyBigNum(mult, fpValue);
     });
   } catch {}
 
