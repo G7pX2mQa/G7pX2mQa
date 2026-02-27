@@ -629,7 +629,6 @@ function createWaterwheelHTML(extraClass = '') {
 }
 
 function buildUI(panel) {
-    console.log("Building Flow UI. DEFS keys:", Object.keys(WATERWHEEL_DEFS));
     panel.innerHTML = '';
     
     const wrapper = document.createElement('div');
@@ -696,7 +695,6 @@ function buildUI(panel) {
     
     // Rows
     for (const [id, def] of Object.entries(WATERWHEEL_DEFS)) {
-        console.log("Creating row for:", id, def);
         const item = document.createElement('div');
         item.className = 'flow-row';
         item.innerHTML = `
