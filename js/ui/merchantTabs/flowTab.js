@@ -196,7 +196,17 @@ export function toggleWaterwheel(waterwheelId) {
     // If turning ON, deactivate all others first
     if (!wasActive) {
         for (const id in state.waterwheels) {
-            state.waterwheels[id].active = false;
+            // Implicitly turning OFF others
+            if (state.waterwheels[id].active) {
+                state.waterwheels[id].active = false;
+                if (state.visuals[id]) {
+                    if (state.visuals[id].isMax) {
+                        state.waterwheels[id].fp = 0;
+                    }
+                    state.visuals[id].speed = 0;
+                    state.visuals[id].isMax = false;
+                }
+            }
         }
         ch.active = true;
     } else {
@@ -204,6 +214,9 @@ export function toggleWaterwheel(waterwheelId) {
         ch.active = false;
         // Reset speed
         if (state.visuals[waterwheelId]) {
+            if (state.visuals[waterwheelId].isMax) {
+                ch.fp = 0;
+            }
             state.visuals[waterwheelId].speed = 0;
             state.visuals[waterwheelId].isMax = false;
         }
