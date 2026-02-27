@@ -33,6 +33,8 @@ import {
   getUpgradeLockState,
   evolveUpgrade,
   HM_EVOLUTION_INTERVAL,
+  isHmReadyToEvolve,
+  getHmEvolutions,
 } from '../game/upgrades.js';
 import {
   shouldSkipGhostTap,
@@ -143,7 +145,7 @@ function getShopUiData(areaKey) {
         const desc = lockState.descOverride ?? def.desc;
         const locked = !!lockState.locked;
         const hmReady = (def.upgType === 'HM')
-            ? !!upgradeUiModel(areaKey, def.id)?.hmReadyToEvolve
+            ? isHmReadyToEvolve(def, lvlBn, getHmEvolutions(areaKey, def.id))
             : false;
         upgrades[def.id] = {
             id: def.id,
@@ -655,9 +657,19 @@ class ShopInstance {
         this.postOpenPointer = false;
         this.upgrades = {};
         this.delveBtnEl = null;
-        this.updateHandler = this.update.bind(this);
+        this.renderPending = false;
+        this.updateHandler = this.queueUpdate.bind(this);
     }
     
+    queueUpdate() {
+        if (this.renderPending) return;
+        this.renderPending = true;
+        requestAnimationFrame(() => {
+            this.renderPending = false;
+            if (this.isOpen) this.update();
+        });
+    }
+
     get adapter() {
         return getAdapter(this.mode);
     }
@@ -1397,6 +1409,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
 
   const isHM = (upgDef.upgType === 'HM');
   const isEndlessXp = (upgDef.tie === UPGRADE_TIES.ENDLESS_XP);
+  const isEndlessFp = (upgDef.tie === UPGRADE_TIES.ENDLESS_FP);
   
   function ensureChild(parent, className, tagName = 'div') {
       const targetClasses = className.split(' ').filter(c => c.length > 0);
@@ -1448,6 +1461,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       upgSheetEl.classList.toggle('is-unlock-upgrade', isUnlockVisible);
       upgSheetEl.classList.toggle('is-hm-upgrade', isHM && !isHiddenUpgrade);
       upgSheetEl.classList.toggle('is-endless-xp', isEndlessXp);
+	  upgSheetEl.classList.toggle('is-endless-fp', isEndlessFp);
       upgSheetEl.classList.toggle('is-magnet-upgrade', upgDef.tie === UPGRADE_TIES.MAGNET);
 	  upgSheetEl.classList.toggle('is-no-effect', !model.effect);
 
