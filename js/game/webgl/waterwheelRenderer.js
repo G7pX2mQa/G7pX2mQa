@@ -112,7 +112,7 @@ export class WaterwheelRenderer {
         this.layerCount = 30; // Number of layers
         this.thickness = 0.4; // Thickness of the stack
         
-        this.rotation = 0;
+        this.rotation = Math.PI / 2;
         this.speed = 1.0;
         this._dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
     }
