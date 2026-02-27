@@ -193,6 +193,7 @@ export const UPGRADE_TIES = {
   ENDLESS_COINS: 'book_4',
   ENDLESS_COINS_II: 'gold_5',
   ENDLESS_COINS_III: 'magic_5',
+  ENDLESS_FP: 'coin_5',
 };
 
 const HM_MILESTONES_STARTER_COVE = [
@@ -3051,6 +3052,74 @@ export const REGISTRY = [
       const { selfMult } = computeHmMultipliers(this, lvlBn, this.area);
       const total = safeMultiplyBigNum(baseMult, selfMult);
       return `Coin value bonus: ${formatMultForUi(total)}x`;
+    },
+    effectMultiplier: E.powPerLevel(1.1),
+  },
+  {
+    area: AREA_KEYS.STARTER_COVE,
+    id: 23,
+    tie: UPGRADE_TIES.ENDLESS_FP,
+    title: "Endless FP",
+    desc: "Multiplies FP value by 1.1x per level\nFP is very important for increasing Waterwheel Levels",
+    lvlCap: HM_EVOLUTION_INTERVAL,
+    baseCost: 1e90,
+    costType: "coins",
+    upgType: "HM",
+    effectType: "fp_value",
+    icon: "sc_upg_icons/fp_val_hm.webp",
+    scalingPreset: 'HM',
+    costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
+    nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
+    computeLockState(ctx) {
+      const surgeLevel = ctx.surgeLevel;
+      
+      let surge20 = false;
+      if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
+          surge20 = true;
+      } else if (typeof surgeLevel === 'bigint') {
+          surge20 = surgeLevel >= 20n;
+      } else if (typeof surgeLevel === 'number') {
+          surge20 = surgeLevel >= 20;
+      }
+
+      if (!surge20) {
+          const revealText = "Reach Surge 20 to reveal this upgrade";
+          return {
+              locked: true,
+              iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+              titleOverride: HIDDEN_UPGRADE_TITLE,
+              descOverride: revealText,
+              reason: revealText,
+              hidden: true,
+              hideCost: true,
+              hideEffect: true,
+              useLockedBase: true,
+          };
+      }
+      
+      if (ctx.xpLevel < 201) {
+          return {
+              locked: true,
+              hidden: false,
+              hideCost: true,
+              hideEffect: true,
+              useLockedBase: true,
+              titleOverride: LOCKED_UPGRADE_TITLE,
+              descOverride: 'Locked',
+              reason: 'Reach XP Level 201 to unlock',
+          };
+      }
+      
+      return { locked: false };
+    },
+    effectSummary(level) {
+      const lvlBn = ensureLevelBigNum(level);
+      let baseMult;
+      try { baseMult = this.effectMultiplier(lvlBn); }
+      catch { baseMult = 1; }
+      const { selfMult } = computeHmMultipliers(this, lvlBn, this.area);
+      const total = safeMultiplyBigNum(baseMult, selfMult);
+      return `FP value bonus: ${formatMultForUi(total)}x`;
     },
     effectMultiplier: E.powPerLevel(1.1),
   },
