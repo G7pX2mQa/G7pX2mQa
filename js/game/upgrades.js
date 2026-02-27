@@ -4057,7 +4057,7 @@ function isUpgradeLocked(areaKey, upg) {
   return !!computeUpgradeLockStateFor(areaKey, upg).locked;
 }
 
-function isHmReadyToEvolve(upg, lvlBn, evolutions = null) {
+export function isHmReadyToEvolve(upg, lvlBn, evolutions = null) {
   if (!upg || upg.upgType !== 'HM') return false;
 
   // Once an HM upgrade reaches BN Infinity, treat it as permanently maxed
