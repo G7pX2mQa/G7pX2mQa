@@ -2278,7 +2278,10 @@ function updateSurgeCard() {
   if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}">${formatBn(currentWaves)} / <img src="${WAVES_ICON_SRC}">${formatBn(req)}</span>`;
 
   if (el.milestones && resetState.visible.surgeMilestones) {
-    const visible = getVisibleMilestones(barLevel);
+    const visible = getVisibleMilestones(barLevel, {
+      pendingGold: getPendingGoldWithMultiplier(),
+      pendingMagic: resetState.pendingMagic
+    });
     const existingItems = Array.from(el.milestones.children);
     
     visible.forEach((m, i) => {
@@ -2288,7 +2291,7 @@ function updateSurgeCard() {
             if (d === ' ') {
                 return `<div style="text-align: center;">- -</div>`;
             }
-            if (d.includes('Current bonus:')) {
+            if (d.includes('Current bonus:') || d.includes('Current Books/sec:') || d.includes('Current Gold/sec:') || d.includes('Current Magic/sec:')) {
                 return `<div style="color:#02e815">- ${d.replace('<span style="color:#02e815">', '').replace('</span>', '')}</div>`;
             }
             if (d.includes('Invokes the Tsunami') && !isReached) {
@@ -2297,42 +2300,6 @@ function updateSurgeCard() {
             return `<div>- ${d}</div>`;
         }).join('');
 
-        if (isReached && m.surgeLevel === 3) {
-            const rate = getBookProductionRate ? getBookProductionRate() : BN.fromInt(0);
-            desc += `<div style="color:#02e815">- Current Books/sec: ${formatNumber(rate.floorToInteger())}</div>`;
-        }
-
-        if (isReached && m.surgeLevel === 6) {
-            const mults = getSurge6WealthMultipliers();
-            desc = `
-              <div>- Unspent Coins boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.coins)}x</span></div>
-              <div>- Unspent Books boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.books)}x</span></div>
-              <div>- Unspent Gold boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.gold)}x</span></div>
-              <div>- Unspent Magic boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.magic)}x</span></div>
-            `;
-        }
-
-        if (isReached && m.surgeLevel === 13) {
-            const effectiveNerf = getEffectiveTsunamiNerf();
-            const mapped = effectiveNerf * 1.5 - 0.5;
-            const log10Rate = 2 * mapped - 2;
-            const rateMultiplier = bigNumFromLog10(log10Rate);
-            
-            const pending = getPendingGoldWithMultiplier();
-            const goldPerSec = pending.mulDecimal(rateMultiplier.toScientific());
-            
-            desc += `<div style="color:#02e815">- Current Gold/sec: ${formatNumber(goldPerSec.floorToInteger())}</div>`;
-        }
-        if (isReached && m.surgeLevel === 16) {
-            const effectiveNerf = getEffectiveTsunamiNerf();
-            const mapped = effectiveNerf * 1.5 - 0.5;
-            const log10Rate = 2 * mapped - 2;
-            const rateMultiplier = bigNumFromLog10(log10Rate);
-            
-            const magicPerSec = resetState.pendingMagic.mulDecimal(rateMultiplier.toScientific());
-            
-            desc += `<div style="color:#02e815">- Current Magic/sec: ${formatNumber(magicPerSec.floorToInteger())}</div>`;
-        }
 
         let isSurge8 = false;
         if (barLevel === Infinity || (typeof barLevel === 'string' && barLevel === 'Infinity')) isSurge8 = true;
