@@ -48,7 +48,8 @@ import {
   isSurgeActive,
   getEffectiveTsunamiNerf,
   getSurge25Multiplier,
-  getSurge27Multiplier
+  getSurge27Multiplier,
+  getSurge29Multiplier
 } from '../../game/surgeEffects.js';
 import { 
     getTsunamiResearchBonus,
@@ -554,7 +555,15 @@ function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
 
   if (!Number.isFinite(logTotal)) return BN.fromAny('Infinity');
   
-  const baseWaves = bigNumFromLog10(logTotal).floorToInteger();
+  let baseWaves = bigNumFromLog10(logTotal).floorToInteger();
+  
+  const surge29Mult = getSurge29Multiplier();
+  if (surge29Mult.isInfinite?.()) {
+      baseWaves = BN.fromAny('Infinity');
+  } else if (surge29Mult.cmp(1) > 0) {
+      baseWaves = baseWaves.mulBigNumInteger(surge29Mult);
+  }
+  
   return bank.waves?.mult?.applyTo?.(baseWaves) ?? baseWaves;
 }
 
