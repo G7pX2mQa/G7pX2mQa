@@ -14,7 +14,7 @@ export const getSurge10Description = (slot) => {
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
-import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier, getSurge21BonusPercentage, getSurge23Multiplier, getSurge23BonusPercentage, getSurge25Multiplier, getSurge25BonusPercentage, getSurge27Multiplier, getSurge27BonusPercentage, getSurge29Multiplier, getSurge29BonusPercentage, getSurge31Multiplier, getSurge31BonusPercentage, getBookProductionRate, getSurge6WealthMultipliers} from "./surgeEffects.js";
+import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier, getSurge21BonusPercentage, getSurge23Multiplier, getSurge23BonusPercentage, getSurge25Multiplier, getSurge25BonusPercentage, getSurge27Multiplier, getSurge27BonusPercentage, getSurge29Multiplier, getSurge29BonusPercentage, getSurge31Multiplier, getSurge31BonusPercentage, getSurge33Multiplier, getSurge33BonusPercentage, getBookProductionRate, getSurge6WealthMultipliers} from "./surgeEffects.js";
 import { getTsunamiResearchBonus, getResearchNodeLevel } from './labNodes.js';
 import { getActiveSlot } from '../util/storage.js';
 
@@ -239,6 +239,14 @@ export const SURGE_MILESTONES = [
     affectedByTsunami: true,
     description: [
       "Increases DNA value by <span style=\"color:#00e5ff\">+100%</span> per Surge milestone after 30"
+    ]
+  },
+  {
+    id: 27,
+    surgeLevel: 33,
+    affectedByTsunami: true,
+    description: [
+      "Increases FP value by <span style=\"color:#00e5ff\">+100%</span> per Surge milestone after 32"
     ]
   }
 ];
@@ -639,6 +647,29 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             formattedBonus = "Infinity";
         } else {
             const diffBN = currentLevelBN.sub(BigNum.fromInt(20));
+            const totalBonusPct = diffBN.cmp(0) > 0 ? diffBN.mulDecimal(baseBonusPct) : BigNum.fromInt(0);
+            formattedBonus = formatNumber(totalBonusPct);
+        }
+        milestone.description.push(`Current bonus: +${formattedBonus}%`);
+      }
+    }
+
+    if (m.id === 27) {
+      if (milestone === m) {
+          milestone = { ...m, description: [...m.description] };
+      }
+
+      const baseBonusPct = getSurge33BonusPercentage();
+      const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
+      milestone.description[0] = `Increases FP value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge milestone after 32`;
+
+      if (currentLevel >= 33) {
+        const mult = getSurge33Multiplier();
+        let formattedBonus = "0";
+        if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
+            formattedBonus = "Infinity";
+        } else {
+            const diffBN = currentLevelBN.sub(BigNum.fromInt(32));
             const totalBonusPct = diffBN.cmp(0) > 0 ? diffBN.mulDecimal(baseBonusPct) : BigNum.fromInt(0);
             formattedBonus = formatNumber(totalBonusPct);
         }
