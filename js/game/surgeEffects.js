@@ -14,6 +14,7 @@ import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
 import { getTsunamiResearchBonus, getLabGoldMultiplier } from './labNodes.js';
 import { getComboRestorationFactor, updateCombo, initComboSystem } from './comboSystem.js';
 import { formatMultForUi } from '../util/numFormat.js';
+import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
 
 const BN = BigNum;
 const MULTIPLIER = 10;
@@ -334,6 +335,33 @@ export function getSurge31Multiplier() {
   const bonusPct = getSurge31BonusPercentage();
   
   const diffBN = levelBN.sub(BigNum.fromInt(30));
+  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+}
+
+export function getSurge33BonusPercentage() {
+  const effective = getEffectiveTsunamiNerf();
+  if (effective === 0) return 0;
+  return Math.floor(Math.pow(1e10, effective) + 1e-6);
+}
+
+export function getSurge33Multiplier() {
+  if (!isSurgeActive(33)) return BigNum.fromInt(1);
+  
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) {
+    return BigNum.fromAny("Infinity");
+  }
+  
+  let levelBN;
+  try {
+    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+  } catch (e) {
+    return BigNum.fromInt(1);
+  }
+
+  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(32)) <= 0) return BigNum.fromInt(1);
+  const bonusPct = getSurge33BonusPercentage();
+  
+  const diffBN = levelBN.sub(BigNum.fromInt(32));
   return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
@@ -822,6 +850,18 @@ export function initSurgeEffects() {
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
     if (!isSurgeActive(21)) return baseMultiplier;
     const mult = getSurge21Multiplier();
+    if (mult.isInfinite?.()) {
+        return BigNum.fromAny("Infinity");
+    }
+    if (mult.cmp(BigNum.fromInt(1)) > 0) {
+        return baseMultiplier.mulBigNumInteger(mult);
+    }
+    return baseMultiplier;
+  });
+
+  addExternalFpMultiplierProvider((baseMultiplier) => {
+    if (!isSurgeActive(33)) return baseMultiplier;
+    const mult = getSurge33Multiplier();
     if (mult.isInfinite?.()) {
         return BigNum.fromAny("Infinity");
     }
