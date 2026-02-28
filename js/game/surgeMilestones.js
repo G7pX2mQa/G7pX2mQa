@@ -584,7 +584,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       }
 
       const baseBonusPct = getSurge21BonusPercentage();
-      const formattedBaseBonus = formatMultForUi(baseBonusPct);
+      const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
       milestone.description[0] = `Increases Coin value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge milestone after 20`;
 
       if (currentLevel >= 21) {
@@ -593,8 +593,8 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         if (mult === Infinity) {
             formattedBonus = "Infinity";
         } else {
-            const totalBonusPct = (mult - 1) * 100;
-            formattedBonus = formatMultForUi(totalBonusPct);
+            const totalBonusPct = baseBonusPct * Math.max(0, currentLevel - 20);
+            formattedBonus = formatNumber(BigNum.fromAny(totalBonusPct));
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
