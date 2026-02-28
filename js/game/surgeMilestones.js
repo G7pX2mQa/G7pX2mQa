@@ -292,10 +292,13 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
   let currentLevel = 0;
   let isSurge8 = false;
   
+  let currentLevelBN = BigNum.fromInt(0);
   if (typeof currentSurgeLevel === 'number') {
     currentLevel = currentSurgeLevel;
+    currentLevelBN = BigNum.fromInt(currentLevel);
     if (currentLevel >= 8) isSurge8 = true;
   } else if (typeof currentSurgeLevel === 'bigint') {
+    currentLevelBN = BigNum.fromAny(currentSurgeLevel.toString());
     if (currentSurgeLevel > Number.MAX_SAFE_INTEGER) {
       currentLevel = Number.MAX_SAFE_INTEGER;
     } else {
@@ -304,10 +307,12 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
     if (currentSurgeLevel >= 8n) isSurge8 = true;
   } else if (currentSurgeLevel === Infinity) {
       currentLevel = Infinity;
+      currentLevelBN = BigNum.fromAny("Infinity");
       isSurge8 = true;
   } else if (currentSurgeLevel && typeof currentSurgeLevel.toString === 'function') {
       try {
           const val = Number(currentSurgeLevel.toString());
+          currentLevelBN = BigNum.fromAny(currentSurgeLevel.toString());
           if (!isNaN(val)) currentLevel = val;
           if (currentSurgeLevel === 'Infinity' || val === Infinity) {
               isSurge8 = true;
@@ -598,11 +603,12 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       if (currentLevel >= 21) {
         const mult = getSurge21Multiplier();
         let formattedBonus = "0";
-        if (mult === Infinity) {
+        if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
             formattedBonus = "Infinity";
         } else {
-            const totalBonusPct = baseBonusPct * Math.max(0, currentLevel - 20);
-            formattedBonus = formatNumber(BigNum.fromAny(totalBonusPct));
+            const diffBN = currentLevelBN.sub(BigNum.fromInt(20));
+            const totalBonusPct = diffBN.cmp(0) > 0 ? diffBN.mulDecimal(baseBonusPct) : BigNum.fromInt(0);
+            formattedBonus = formatNumber(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
@@ -620,11 +626,12 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       if (currentLevel >= 23) {
         const mult = getSurge23Multiplier();
         let formattedBonus = "0";
-        if (mult === Infinity) {
+        if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
             formattedBonus = "Infinity";
         } else {
-            const totalBonusPct = baseBonusPct * Math.max(0, currentLevel - 22);
-            formattedBonus = formatNumber(BigNum.fromAny(totalBonusPct));
+            const diffBN = currentLevelBN.sub(BigNum.fromInt(22));
+            const totalBonusPct = diffBN.cmp(0) > 0 ? diffBN.mulDecimal(baseBonusPct) : BigNum.fromInt(0);
+            formattedBonus = formatNumber(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
