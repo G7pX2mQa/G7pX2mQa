@@ -47,7 +47,8 @@ import {
   setTsunamiSequenceSeen,
   isSurgeActive,
   getEffectiveTsunamiNerf,
-  getSurge25Multiplier
+  getSurge25Multiplier,
+  getSurge27Multiplier
 } from '../../game/surgeEffects.js';
 import { 
     getTsunamiResearchBonus,
@@ -259,6 +260,27 @@ function getPendingGoldWithMultiplier(multiplierOverride = null) {
     return val.mulDecimal(labMult.toScientific());
   } catch {
     return resetState.pendingGold;
+  }
+}
+
+function getPendingMagicWithMultiplier(multiplierOverride = null) {
+  try {
+    const surge27Mult = getSurge27Multiplier();
+    
+    let val = resetState.pendingMagic.clone?.() ?? resetState.pendingMagic;
+    
+    // We don't apply labMult or bank mult here because computeInfuseMagic 
+    // already applies them when calculating resetState.pendingMagic.
+    // However, we need to apply the new Surge 27 multiplier here for the UI.
+    
+    if (surge27Mult.isInfinite?.()) return BN.fromAny('Infinity');
+    if (surge27Mult.cmp(1) > 0) {
+        val = val.mulBigNumInteger(surge27Mult);
+    }
+
+    return val;
+  } catch {
+    return resetState.pendingMagic;
   }
 }
 
@@ -1140,7 +1162,7 @@ export function canPerformForgeReset() {
 export function canPerformInfuseReset() {
   if (!isInfuseUnlocked()) return false;
   if (!meetsInfuseRequirement()) return false;
-  if (resetState.pendingMagic.isZero?.()) return false;
+  if (getPendingMagicWithMultiplier().isZero?.()) return false;
   return true;
 }
 
@@ -1193,7 +1215,7 @@ export function performForgeReset() {
 
 export function performInfuseReset() {
   if (!canPerformInfuseReset()) return false;
-  const reward = resetState.pendingMagic.clone?.() ?? resetState.pendingMagic;
+  const reward = getPendingMagicWithMultiplier();
   try {
     if (bank.magic?.add) {
        bank.magic.add(reward);
@@ -2188,7 +2210,7 @@ function updateInfuseCard() {
   }
   
   
-  updateResetButtonContent(el.btn, { disabled: false }, MAGIC_ICON_SRC, resetState.pendingMagic);
+  updateResetButtonContent(el.btn, { disabled: false }, MAGIC_ICON_SRC, getPendingMagicWithMultiplier());
 }
 
 
@@ -2290,7 +2312,7 @@ function updateSurgeCard() {
   if (el.milestones && resetState.visible.surgeMilestones) {
     const visible = getVisibleMilestones(barLevel, {
       pendingGold: getPendingGoldWithMultiplier(),
-      pendingMagic: resetState.pendingMagic
+      pendingMagic: getPendingMagicWithMultiplier()
     });
     const existingItems = Array.from(el.milestones.children);
     
