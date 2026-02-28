@@ -875,7 +875,11 @@ function updateFlowVisuals() {
         
         if (!ch.unlocked) {
             // Locked State
-            if (elIcon) elIcon.style.opacity = '0';
+            if (elIcon) {
+                if (elIcon.getAttribute('src') !== 'img/misc/locked.webp') {
+                    elIcon.src = 'img/misc/locked.webp';
+                }
+            }
             if (elLvl) elLvl.style.visibility = 'hidden';
             if (elEffect) elEffect.style.visibility = 'hidden';
             if (elControls) elControls.style.visibility = 'hidden';
@@ -889,7 +893,12 @@ function updateFlowVisuals() {
             
         } else {
             // Unlocked State
-            if (elIcon) elIcon.style.opacity = '1';
+            if (elIcon) {
+                // Check against def.icon or relative path, let's just use def.icon
+                if (elIcon.getAttribute('src') !== def.icon) {
+                    elIcon.src = def.icon;
+                }
+            }
             if (elLvl) {
                  elLvl.style.visibility = 'visible';
                  elLvl.textContent = formatNumber(ch.level);
