@@ -256,6 +256,33 @@ export function getSurge25Multiplier() {
   return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
+export function getSurge27BonusPercentage() {
+  const effective = getEffectiveTsunamiNerf();
+  if (effective === 0) return 0;
+  return Math.floor(Math.pow(1e10, effective) + 1e-6);
+}
+
+export function getSurge27Multiplier() {
+  if (!isSurgeActive(27)) return BigNum.fromInt(1);
+  
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) {
+    return BigNum.fromAny("Infinity");
+  }
+  
+  let levelBN;
+  try {
+    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+  } catch (e) {
+    return BigNum.fromInt(1);
+  }
+
+  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(26)) <= 0) return BigNum.fromInt(1);
+  const bonusPct = getSurge27BonusPercentage();
+  
+  const diffBN = levelBN.sub(BigNum.fromInt(26));
+  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+}
+
 export function getSurge15Multiplier(preview = false) {
   if (!preview && !isSurgeActive(15)) return BigNum.fromInt(1);
   
@@ -549,7 +576,14 @@ function onTick(dt) {
       const coins = bank.coins?.value;
       const cumulativeMp = getTotalCumulativeMp();
       
-      const pending = computeInfuseMagicFromInputs(coins, cumulativeMp);
+      let pending = computeInfuseMagicFromInputs(coins, cumulativeMp);
+      
+      const surge27Mult = getSurge27Multiplier();
+      if (surge27Mult.isInfinite?.()) {
+          pending = BigNum.fromAny('Infinity');
+      } else if (surge27Mult.cmp(1) > 0) {
+          pending = pending.mulBigNumInteger(surge27Mult);
+      }
       
       // Multiply by rate and dt
       const perSec = pending.mulDecimal(rateMultiplier.toScientific());
