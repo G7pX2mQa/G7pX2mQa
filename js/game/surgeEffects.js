@@ -175,6 +175,28 @@ function updateMultiplier() {
   }
 }
 
+export function getSurge21Multiplier() {
+  if (!isSurgeActive(21)) return 1;
+  
+  if (cachedSurgeLevel === Infinity) {
+    return Infinity;
+  }
+  
+  let levelNum = 0;
+  if (typeof cachedSurgeLevel === 'bigint') {
+    if (cachedSurgeLevel > Number.MAX_SAFE_INTEGER) {
+      levelNum = Number.MAX_SAFE_INTEGER;
+    } else {
+      levelNum = Number(cachedSurgeLevel);
+    }
+  } else {
+    levelNum = Number(cachedSurgeLevel);
+  }
+
+  if (isNaN(levelNum)) return 1;
+  return 1 + Math.max(0, levelNum - 20);
+}
+
 export function getSurge15Multiplier(preview = false) {
   if (!preview && !isSurgeActive(15)) return BigNum.fromInt(1);
   
@@ -630,6 +652,18 @@ export function initSurgeEffects() {
     return result;
   });
   
+  addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+    if (!isSurgeActive(21)) return baseMultiplier;
+    const mult = getSurge21Multiplier();
+    if (mult === Infinity) {
+        return BigNum.fromAny('Infinity');
+    }
+    if (mult > 1) {
+        return baseMultiplier.mulBigNumInteger(BigNum.fromInt(Math.floor(mult)));
+    }
+    return baseMultiplier;
+  });
+
   // Surge 17 (Div 1e5) and Surge 18 (Mul 1e15) for Coins
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
     let log10Total = 0;
