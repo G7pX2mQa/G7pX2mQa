@@ -283,6 +283,33 @@ export function getSurge27Multiplier() {
   return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
+export function getSurge29BonusPercentage() {
+  const effective = getEffectiveTsunamiNerf();
+  if (effective === 0) return 0;
+  return Math.floor(Math.pow(1e10, effective) + 1e-6);
+}
+
+export function getSurge29Multiplier() {
+  if (!isSurgeActive(29)) return BigNum.fromInt(1);
+  
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) {
+    return BigNum.fromAny("Infinity");
+  }
+  
+  let levelBN;
+  try {
+    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+  } catch (e) {
+    return BigNum.fromInt(1);
+  }
+
+  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(28)) <= 0) return BigNum.fromInt(1);
+  const bonusPct = getSurge29BonusPercentage();
+  
+  const diffBN = levelBN.sub(BigNum.fromInt(28));
+  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+}
+
 export function getSurge15Multiplier(preview = false) {
   if (!preview && !isSurgeActive(15)) return BigNum.fromInt(1);
   
