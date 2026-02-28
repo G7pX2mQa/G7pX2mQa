@@ -2285,6 +2285,12 @@ function updateSurgeCard() {
         const isReached = BigInt(m.surgeLevel) <= barLevel;
         const reachedClass = isReached ? 'is-reached' : '';
         let desc = m.description.map(d => {
+            if (d === ' ') {
+                return `<div style="text-align: center;">- -</div>`;
+            }
+            if (d.includes('Current bonus:')) {
+                return `<div style="color:#02e815">- ${d.replace('<span style="color:#02e815">', '').replace('</span>', '')}</div>`;
+            }
             if (d.includes('Invokes the Tsunami') && !isReached) {
                 return `<div class="tsunami-text">- ${d}</div>`;
             }
