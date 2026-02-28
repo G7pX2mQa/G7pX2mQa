@@ -375,7 +375,7 @@ function enterArea(areaID) {
     case AREAS.STARTER_COVE: {
       // Defer music until the area is visually painted + a small buffer.
       // We use double-RAF to ensure the browser has completed the paint cycle,
-      // plus a 300ms timeout to wait a beat before audio kicks in.
+      // plus a 200ms timeout to wait a beat before audio kicks in.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setTimeout(() => {
@@ -383,7 +383,7 @@ function enterArea(areaID) {
               currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
               if (typeof unpauseNotifications === "function") unpauseNotifications();
             }
-          }, 300);
+          }, 200);
         });
       });
 
