@@ -178,7 +178,7 @@ function updateMultiplier() {
 export function getSurge21BonusPercentage() {
   const effective = getEffectiveTsunamiNerf();
   if (effective === 0) return 0;
-  return Math.pow(1e10, effective);
+  return Math.floor(Math.pow(1e10, effective) + 1e-6);
 }
 
 export function getSurge21Multiplier() {
