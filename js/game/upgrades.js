@@ -2933,23 +2933,29 @@ export const REGISTRY = [
     computeLockState(ctx) {
       const surgeLevel = getCurrentSurgeLevel();
       
-      let isUnlocked = false;
+      let surge5 = false;
       if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
-          isUnlocked = true;
+          surge5 = true;
       } else if (typeof surgeLevel === 'bigint') {
-          isUnlocked = surgeLevel >= 5n;
+          surge5 = surgeLevel >= 5n;
       } else if (typeof surgeLevel === 'number') {
-          isUnlocked = surgeLevel >= 5;
+          surge5 = surgeLevel >= 5;
       }
-      
-      if (isUnlocked) {
-          return { locked: false };
-      }
-      
-      let xp201 = false;
-      try { const xpBn = currentXpLevelBigNum(); xp201 = levelBigNumToNumber(xpBn) >= 201; } catch {}
 
-      if (xp201) {
+      if (ctx.xpLevel < 201) {
+          return {
+              locked: true,
+              hidden: false,
+              hideCost: true,
+              hideEffect: true,
+              useLockedBase: true,
+              titleOverride: LOCKED_UPGRADE_TITLE,
+              descOverride: 'Locked',
+              reason: 'Reach XP Level 201 to unlock',
+          };
+      }
+
+      if (!surge5) {
           const revealText = "Reach Surge 5 to reveal this upgrade";
           return {
               locked: true,
@@ -2964,15 +2970,7 @@ export const REGISTRY = [
           };
       }
       
-      return {
-          locked: true,
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: 'Locked',
-      };
+      return { locked: false };
     },
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
@@ -3003,23 +3001,29 @@ export const REGISTRY = [
     computeLockState(ctx) {
       const surgeLevel = getCurrentSurgeLevel();
       
-      let isUnlocked = false;
+      let surge7 = false;
       if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
-          isUnlocked = true;
+          surge7 = true;
       } else if (typeof surgeLevel === 'bigint') {
-          isUnlocked = surgeLevel >= 7n;
+          surge7 = surgeLevel >= 7n;
       } else if (typeof surgeLevel === 'number') {
-          isUnlocked = surgeLevel >= 7;
+          surge7 = surgeLevel >= 7;
       }
-      
-      if (isUnlocked) {
-          return { locked: false };
-      }
-      
-      let xp201 = false;
-      try { const xpBn = currentXpLevelBigNum(); xp201 = levelBigNumToNumber(xpBn) >= 201; } catch {}
 
-      if (xp201) {
+      if (ctx.xpLevel < 201) {
+          return {
+              locked: true,
+              hidden: false,
+              hideCost: true,
+              hideEffect: true,
+              useLockedBase: true,
+              titleOverride: LOCKED_UPGRADE_TITLE,
+              descOverride: 'Locked',
+              reason: 'Reach XP Level 201 to unlock',
+          };
+      }
+
+      if (!surge7) {
           const revealText = "Reach Surge 7 to reveal this upgrade";
           return {
               locked: true,
@@ -3034,15 +3038,7 @@ export const REGISTRY = [
           };
       }
       
-      return {
-          locked: true,
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: 'Locked',
-      };
+      return { locked: false };
     },
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
@@ -3082,6 +3078,19 @@ export const REGISTRY = [
           surge20 = surgeLevel >= 20;
       }
 
+      if (ctx.xpLevel < 201) {
+          return {
+              locked: true,
+              hidden: false,
+              hideCost: true,
+              hideEffect: true,
+              useLockedBase: true,
+              titleOverride: LOCKED_UPGRADE_TITLE,
+              descOverride: 'Locked',
+              reason: 'Reach XP Level 201 to unlock',
+          };
+      }
+
       if (!surge20) {
           const revealText = "Reach Surge 20 to reveal this upgrade";
           return {
@@ -3094,19 +3103,6 @@ export const REGISTRY = [
               hideCost: true,
               hideEffect: true,
               useLockedBase: true,
-          };
-      }
-      
-      if (ctx.xpLevel < 201) {
-          return {
-              locked: true,
-              hidden: false,
-              hideCost: true,
-              hideEffect: true,
-              useLockedBase: true,
-              titleOverride: LOCKED_UPGRADE_TITLE,
-              descOverride: 'Locked',
-              reason: 'Reach XP Level 201 to unlock',
           };
       }
       
