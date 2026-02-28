@@ -14,7 +14,7 @@ export const getSurge10Description = (slot) => {
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
-import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier , getBookProductionRate, getSurge6WealthMultipliers} from './surgeEffects.js';
+import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier, getSurge21BonusPercentage, getBookProductionRate, getSurge6WealthMultipliers} from "./surgeEffects.js";
 import { getTsunamiResearchBonus, getResearchNodeLevel } from './labNodes.js';
 import { getActiveSlot } from '../util/storage.js';
 
@@ -196,7 +196,7 @@ export const SURGE_MILESTONES = [
   {
     id: 21,
     surgeLevel: 21,
-    affectedByTsunami: false,
+    affectedByTsunami: true,
     description: [
       "Increases Coin value by <span style=\"color:#00e5ff\">+100%</span> per Surge milestone after 20"
     ]
@@ -582,7 +582,10 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       if (milestone === m) {
           milestone = { ...m, description: [...m.description] };
       }
-      milestone.description[0] = `Increases Coin value by <span style="color:#00e5ff">+100%</span> per Surge milestone after 20`;
+
+      const baseBonusPct = getSurge21BonusPercentage();
+      const formattedBaseBonus = formatMultForUi(baseBonusPct);
+      milestone.description[0] = `Increases Coin value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge milestone after 20`;
 
       if (currentLevel >= 21) {
         const mult = getSurge21Multiplier();
@@ -590,8 +593,8 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         if (mult === Infinity) {
             formattedBonus = "Infinity";
         } else {
-            const bonusPct = (mult - 1) * 100;
-            formattedBonus = formatNumber(BigNum.fromAny(bonusPct));
+            const totalBonusPct = (mult - 1) * 100;
+            formattedBonus = formatMultForUi(totalBonusPct);
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
       }
