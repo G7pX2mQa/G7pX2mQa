@@ -126,8 +126,9 @@ function minifyHtmlChunk(chunk, trim = true) {
   return trim ? out.trim() : out;
 }
 
-function minifyTemplateBody(body) {
-  if (!body || !body.includes("<")) return body;
+function minifyTemplateBody(body, isWebGL = false) {
+  if (!body) return body;
+  if (!isWebGL && !body.includes("<")) return body;
 
   const parts = [];
   let cursor = 0;
@@ -164,7 +165,19 @@ function minifyTemplateBody(body) {
   }
 
   return parts
-    .map((part) => (part.type === "text" ? minifyHtmlChunk(part.value, false) : part.value))
+    .map((part) => {
+      if (part.type === "text") {
+        let text = part.value;
+        if (isWebGL) {
+          text = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+        }
+        if (body.includes("<")) {
+          text = minifyHtmlChunk(text, false);
+        }
+        return text;
+      }
+      return part.value;
+    })
     .join("")
     .trim();
 }
@@ -178,6 +191,7 @@ function htmlTemplateMinifierPlugin({ enabled }) {
       build.onLoad({ filter: /\.js$/ }, async (args) => {
         if (args.path.includes("node_modules")) return;
         const source = await fs.readFile(args.path, "utf8");
+        const isWebGL = args.path.replace(/\\/g, "/").includes("/webgl/");
 
         let output = "";
         let cursor = 0;
@@ -212,7 +226,7 @@ function htmlTemplateMinifierPlugin({ enabled }) {
             }
 
             if (ch === "`") {
-              output += minifyTemplateBody(body) + "`";
+              output += minifyTemplateBody(body, isWebGL) + "`";
               cursor = i + 1;
               break;
             }
