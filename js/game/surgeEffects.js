@@ -229,6 +229,33 @@ export function getSurge23Multiplier() {
   return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
+export function getSurge25BonusPercentage() {
+  const effective = getEffectiveTsunamiNerf();
+  if (effective === 0) return 0;
+  return Math.floor(Math.pow(1e10, effective) + 1e-6);
+}
+
+export function getSurge25Multiplier() {
+  if (!isSurgeActive(25)) return BigNum.fromInt(1);
+  
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) {
+    return BigNum.fromAny("Infinity");
+  }
+  
+  let levelBN;
+  try {
+    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+  } catch (e) {
+    return BigNum.fromInt(1);
+  }
+
+  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(24)) <= 0) return BigNum.fromInt(1);
+  const bonusPct = getSurge25BonusPercentage();
+  
+  const diffBN = levelBN.sub(BigNum.fromInt(24));
+  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+}
+
 export function getSurge15Multiplier(preview = false) {
   if (!preview && !isSurgeActive(15)) return BigNum.fromInt(1);
   
@@ -493,7 +520,15 @@ function onTick(dt) {
       // 1. Bank Gold multiplier
       let pending = bank.gold?.mult?.applyTo?.(basePending) ?? basePending;
       
-      // 2. Lab Gold multiplier
+      // 2. Surge 25 Multiplier
+      const surge25Mult = getSurge25Multiplier();
+      if (surge25Mult.isInfinite?.()) {
+          pending = BigNum.fromAny('Infinity');
+      } else if (surge25Mult.cmp(1) > 0) {
+          pending = pending.mulBigNumInteger(surge25Mult);
+      }
+      
+      // 3. Lab Gold multiplier
       const labMult = getLabGoldMultiplier();
       pending = pending.mulDecimal(labMult.toScientific());
       
