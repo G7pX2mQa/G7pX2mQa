@@ -14,7 +14,7 @@ export const getSurge10Description = (slot) => {
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
-import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier, getSurge21BonusPercentage, getBookProductionRate, getSurge6WealthMultipliers} from "./surgeEffects.js";
+import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier, getSurge21BonusPercentage, getSurge23Multiplier, getSurge23BonusPercentage, getBookProductionRate, getSurge6WealthMultipliers} from "./surgeEffects.js";
 import { getTsunamiResearchBonus, getResearchNodeLevel } from './labNodes.js';
 import { getActiveSlot } from '../util/storage.js';
 
@@ -199,6 +199,14 @@ export const SURGE_MILESTONES = [
     affectedByTsunami: true,
     description: [
       "Increases Coin value by <span style=\"color:#00e5ff\">+100%</span> per Surge milestone after 20"
+    ]
+  },
+  {
+    id: 22,
+    surgeLevel: 23,
+    affectedByTsunami: true,
+    description: [
+      "Increases XP value by <span style=\"color:#00e5ff\">+100%</span> per Surge milestone after 22"
     ]
   }
 ];
@@ -594,6 +602,28 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             formattedBonus = "Infinity";
         } else {
             const totalBonusPct = baseBonusPct * Math.max(0, currentLevel - 20);
+            formattedBonus = formatNumber(BigNum.fromAny(totalBonusPct));
+        }
+        milestone.description.push(`Current bonus: +${formattedBonus}%`);
+      }
+    }
+
+    if (m.id === 22) {
+      if (milestone === m) {
+          milestone = { ...m, description: [...m.description] };
+      }
+
+      const baseBonusPct = getSurge23BonusPercentage();
+      const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
+      milestone.description[0] = `Increases XP value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge milestone after 22`;
+
+      if (currentLevel >= 23) {
+        const mult = getSurge23Multiplier();
+        let formattedBonus = "0";
+        if (mult === Infinity) {
+            formattedBonus = "Infinity";
+        } else {
+            const totalBonusPct = baseBonusPct * Math.max(0, currentLevel - 22);
             formattedBonus = formatNumber(BigNum.fromAny(totalBonusPct));
         }
         milestone.description.push(`Current bonus: +${formattedBonus}%`);
