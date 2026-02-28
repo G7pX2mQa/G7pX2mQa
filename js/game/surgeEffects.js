@@ -182,26 +182,24 @@ export function getSurge21BonusPercentage() {
 }
 
 export function getSurge21Multiplier() {
-  if (!isSurgeActive(21)) return 1;
+  if (!isSurgeActive(21)) return BigNum.fromInt(1);
   
-  if (cachedSurgeLevel === Infinity) {
-    return Infinity;
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) {
+    return BigNum.fromAny("Infinity");
   }
   
-  let levelNum = 0;
-  if (typeof cachedSurgeLevel === "bigint") {
-    if (cachedSurgeLevel > Number.MAX_SAFE_INTEGER) {
-      levelNum = Number.MAX_SAFE_INTEGER;
-    } else {
-      levelNum = Number(cachedSurgeLevel);
-    }
-  } else {
-    levelNum = Number(cachedSurgeLevel);
+  let levelBN;
+  try {
+    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+  } catch (e) {
+    return BigNum.fromInt(1);
   }
 
-  if (isNaN(levelNum)) return 1;
+  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(20)) <= 0) return BigNum.fromInt(1);
   const bonusPct = getSurge21BonusPercentage();
-  return 1 + Math.max(0, levelNum - 20) * (bonusPct / 100);
+  
+  const diffBN = levelBN.sub(BigNum.fromInt(20));
+  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
 export function getSurge23BonusPercentage() {
@@ -211,26 +209,24 @@ export function getSurge23BonusPercentage() {
 }
 
 export function getSurge23Multiplier() {
-  if (!isSurgeActive(22)) return 1;
+  if (!isSurgeActive(22)) return BigNum.fromInt(1);
   
-  if (cachedSurgeLevel === Infinity) {
-    return Infinity;
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) {
+    return BigNum.fromAny("Infinity");
   }
   
-  let levelNum = 0;
-  if (typeof cachedSurgeLevel === "bigint") {
-    if (cachedSurgeLevel > Number.MAX_SAFE_INTEGER) {
-      levelNum = Number.MAX_SAFE_INTEGER;
-    } else {
-      levelNum = Number(cachedSurgeLevel);
-    }
-  } else {
-    levelNum = Number(cachedSurgeLevel);
+  let levelBN;
+  try {
+    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+  } catch (e) {
+    return BigNum.fromInt(1);
   }
 
-  if (isNaN(levelNum)) return 1;
+  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(22)) <= 0) return BigNum.fromInt(1);
   const bonusPct = getSurge23BonusPercentage();
-  return 1 + Math.max(0, levelNum - 22) * (bonusPct / 100);
+  
+  const diffBN = levelBN.sub(BigNum.fromInt(22));
+  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
 export function getSurge15Multiplier(preview = false) {
@@ -649,11 +645,11 @@ export function initSurgeEffects() {
   addExternalXpGainMultiplierProvider(({ baseGain }) => {
     if (!isSurgeActive(22)) return baseGain;
     const mult = getSurge23Multiplier();
-    if (mult === Infinity) {
+    if (mult.isInfinite?.()) {
         return BigNum.fromAny("Infinity");
     }
-    if (mult > 1) {
-        return baseGain.mulDecimal(mult);
+    if (mult.cmp(BigNum.fromInt(1)) > 0) {
+        return baseGain.mulBigNumInteger(mult);
     }
     return baseGain;
   });
@@ -703,11 +699,11 @@ export function initSurgeEffects() {
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
     if (!isSurgeActive(21)) return baseMultiplier;
     const mult = getSurge21Multiplier();
-    if (mult === Infinity) {
+    if (mult.isInfinite?.()) {
         return BigNum.fromAny("Infinity");
     }
-    if (mult > 1) {
-        return baseMultiplier.mulDecimal(mult);
+    if (mult.cmp(BigNum.fromInt(1)) > 0) {
+        return baseMultiplier.mulBigNumInteger(mult);
     }
     return baseMultiplier;
   });
