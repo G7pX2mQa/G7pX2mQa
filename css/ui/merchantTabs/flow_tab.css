@@ -189,11 +189,11 @@
 }
 
 #flow-fill-coin {
-  background: linear-gradient(to right, #C29200, #FFC107);
+  background: linear-gradient(90deg, #C29200, #FFC107);
 }
 
 #flow-fill-xp {
-  background: linear-gradient(to right, #31d0f7 0%, #0855bf 100%);
+  background: linear-gradient(90deg, #31D0F7, #0855BF);
 }
 
 .flow-locked-text {
