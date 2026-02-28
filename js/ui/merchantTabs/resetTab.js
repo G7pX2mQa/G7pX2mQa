@@ -49,7 +49,8 @@ import {
   getEffectiveTsunamiNerf,
   getSurge25Multiplier,
   getSurge27Multiplier,
-  getSurge29Multiplier
+  getSurge29Multiplier,
+  getSurge31Multiplier
 } from '../../game/surgeEffects.js';
 import { 
     getTsunamiResearchBonus,
@@ -500,6 +501,13 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
         const labDnaMult = getLabDnaMultiplier();
         if (labDnaMult.cmp(1) > 0) {
             result = result.mulDecimal(labDnaMult.toScientific());
+        }
+        
+        const surge31Mult = getSurge31Multiplier();
+        if (surge31Mult.isInfinite?.()) {
+            result = BigNum.fromAny('Infinity');
+        } else if (surge31Mult.cmp(1) > 0) {
+            result = result.mulBigNumInteger(surge31Mult);
         }
         
         return result;
@@ -1064,6 +1072,13 @@ function recomputePendingDna() {
         const labDnaMult = getLabDnaMultiplier();
         if (labDnaMult.cmp(1) > 0) {
             result = result.mulDecimal(labDnaMult.toScientific());
+        }
+        
+        const surge31Mult = getSurge31Multiplier();
+        if (surge31Mult.isInfinite?.()) {
+            result = BigNum.fromAny('Infinity');
+        } else if (surge31Mult.cmp(1) > 0) {
+            result = result.mulBigNumInteger(surge31Mult);
         }
         
         resetState.pendingDna = result;
