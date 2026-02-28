@@ -14,7 +14,7 @@ export const getSurge10Description = (slot) => {
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
-import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor } from './surgeEffects.js';
+import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier } from './surgeEffects.js';
 import { getTsunamiResearchBonus, getResearchNodeLevel } from './labNodes.js';
 import { getActiveSlot } from '../util/storage.js';
 
@@ -191,6 +191,14 @@ export const SURGE_MILESTONES = [
 	  "Unlocks a new Coin upgrade",
 	  "Unlocks a new Merchant dialogue",
       "Combo no longer decays"
+    ]
+  },
+  {
+    id: 21,
+    surgeLevel: 21,
+    affectedByTsunami: false,
+    description: [
+      "Increases Coin value by <span style=\"color:#00e5ff\">+100%</span> per Surge milestone after 20"
     ]
   }
 ];
@@ -535,6 +543,25 @@ export function getVisibleMilestones(currentSurgeLevel) {
       const valStr = formatMultForUi(pct);
 
       milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Magic every second`;
+    }
+
+    if (m.id === 21) {
+      if (milestone === m) {
+          milestone = { ...m, description: [...m.description] };
+      }
+      milestone.description[0] = `Increases Coin value by <span style="color:#00e5ff">+100%</span> per Surge milestone after 20`;
+
+      if (currentLevel >= 21) {
+        const mult = getSurge21Multiplier();
+        let formattedBonus = "0";
+        if (mult === Infinity) {
+            formattedBonus = "Infinity";
+        } else {
+            const bonusPct = (mult - 1) * 100;
+            formattedBonus = formatNumber(BigNum.fromAny(bonusPct));
+        }
+        milestone.description.push(`Current bonus: +${formattedBonus}%`);
+      }
     }
 
     if (m.surgeLevel <= currentLevel) {
