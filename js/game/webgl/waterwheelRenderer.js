@@ -4,7 +4,7 @@ precision mediump float;
 attribute vec2 aPosition;
 attribute vec2 aUv;
 varying vec2 vUv;
-uniform float uLayer; // 0.0 to 1.0
+uniform float uLayer; /* 0.0 to 1.0 */
 uniform float uRotation;
 uniform float uThickness; 
 uniform float uMinX;
@@ -15,34 +15,34 @@ void main() {
     float cosR = cos(uRotation);
     float sinR = sin(uRotation);
     
-    // Centered Z offset
+    /* Centered Z offset */
     float zOffset = (uLayer - 0.5) * uThickness;
     
     vec3 pos = vec3(aPosition, zOffset);
     
-    // Rotate Y
-    // x = pos.x * cosR - pos.z * sinR;
-    // We separate the width term (pos.x * cosR) from the center shift (-pos.z * sinR)
+    /* Rotate Y */
+    /* x = pos.x * cosR - pos.z * sinR; */
+    /* We separate the width term (pos.x * cosR) from the center shift (-pos.z * sinR) */
     
     float centerTerm = -pos.z * sinR;
     float widthTerm = pos.x * cosR;
     
-    // Enforce minimum width
-    // We want widthTerm to have magnitude at least uMinX, preserving sign
-    // If widthTerm is too small, we boost it.
-    // If cosR is 0, we need a fallback sign based on rotation direction/phase?
-    // Actually, sign(cosR) is enough. If cosR is exactly 0, we pick arbitrary sign (e.g. 1.0).
+    /* Enforce minimum width */
+    /* We want widthTerm to have magnitude at least uMinX, preserving sign */
+    /* If widthTerm is too small, we boost it. */
+    /* If cosR is 0, we need a fallback sign based on rotation direction/phase? */
+    /* Actually, sign(cosR) is enough. If cosR is exactly 0, we pick arbitrary sign (e.g. 1.0). */
     
     float s = sign(cosR);
     if (s == 0.0) s = 1.0;
     
-    // Effective width scale should be max(abs(cosR), uMinX)
-    // But applied to pos.x
-    // So x = centerTerm + pos.x * s * max(abs(cosR), uMinX);
-    // Wait, widthTerm was pos.x * cosR.
-    // If pos.x is 1, term is cosR.
-    // If pos.x is -1, term is -cosR.
-    // So we want:
+    /* Effective width scale should be max(abs(cosR), uMinX) */
+    /* But applied to pos.x */
+    /* So x = centerTerm + pos.x * s * max(abs(cosR), uMinX); */
+    /* Wait, widthTerm was pos.x * cosR. */
+    /* If pos.x is 1, term is cosR. */
+    /* If pos.x is -1, term is -cosR. */
+    /* So we want: */
     
     float effectiveScale = abs(cosR) + uMinX * abs(sinR);
     widthTerm = pos.x * s * effectiveScale;
@@ -50,9 +50,9 @@ void main() {
     float x = centerTerm + widthTerm;
     float z = pos.x * sinR + pos.z * cosR;
     
-    // Simple Orthographic Projection
-    // Z is passed for depth buffer
-    // We scale down slightly to fit rotation
+    /* Simple Orthographic Projection */
+    /* Z is passed for depth buffer */
+    /* We scale down slightly to fit rotation */
     gl_Position = vec4(x * 0.8, pos.y * 0.8, z * 0.5, 1.0); 
 }
 `;
@@ -67,8 +67,8 @@ void main() {
     vec4 color = texture2D(uTexture, vUv);
     if (color.a < 0.1) discard;
     
-    // Slight darkening for inner layers to simulate shadow/volume
-    // Outer layers (0.0 and 1.0) are brightest
+    /* Slight darkening for inner layers to simulate shadow/volume */
+    /* Outer layers (0.0 and 1.0) are brightest */
     float dist = abs(uLayer - 0.5) * 2.0; 
     float shade = 0.6 + 0.4 * dist; 
     
