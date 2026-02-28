@@ -14,7 +14,7 @@ export const getSurge10Description = (slot) => {
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
-import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier } from './surgeEffects.js';
+import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier , getBookProductionRate, getSurge6WealthMultipliers} from './surgeEffects.js';
 import { getTsunamiResearchBonus, getResearchNodeLevel } from './labNodes.js';
 import { getActiveSlot } from '../util/storage.js';
 
@@ -280,7 +280,7 @@ function saveSurge15State(slot, state) {
     } catch {}
 }
 
-export function getVisibleMilestones(currentSurgeLevel) {
+export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
   let currentLevel = 0;
   let isSurge8 = false;
   
@@ -469,6 +469,27 @@ export function getVisibleMilestones(currentSurgeLevel) {
       }
     }
 
+    if (m.id === 3 && m.surgeLevel <= currentLevel) {
+        if (milestone === m) {
+            milestone = { ...m, description: [...m.description] };
+        }
+        const rate = getBookProductionRate ? getBookProductionRate() : BigNum.fromInt(0);
+        milestone.description.push(`Current Books/sec: ${formatNumber(rate.floorToInteger())}`);
+    }
+
+    if (m.id === 6 && m.surgeLevel <= currentLevel) {
+        if (milestone === m) {
+            milestone = { ...m, description: [...m.description] };
+        }
+        const mults = getSurge6WealthMultipliers();
+        milestone.description = [
+          `Unspent Coins boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.coins)}x</span>`,
+          `Unspent Books boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.books)}x</span>`,
+          `Unspent Gold boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.gold)}x</span>`,
+          `Unspent Magic boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.magic)}x</span>`
+        ];
+    }
+
     if (m.id === 9) {
         if (milestone === m) {
             milestone = { ...m, description: [...m.description] };
@@ -502,6 +523,12 @@ export function getVisibleMilestones(currentSurgeLevel) {
       const valStr = formatMultForUi(pct);
 
       milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Gold every second`;
+      if (m.surgeLevel <= currentLevel && pendingVals.pendingGold) {
+          const log10Rate = 2 * mapped - 2;
+          const rateMultiplier = bigNumFromLog10(log10Rate);
+          const goldPerSec = pendingVals.pendingGold.mulDecimal(rateMultiplier.toScientific());
+          milestone.description.push(`Current Gold/sec: ${formatNumber(goldPerSec.floorToInteger())}`);
+      }
     }
 
     if (m.id === 14) {
@@ -543,6 +570,12 @@ export function getVisibleMilestones(currentSurgeLevel) {
       const valStr = formatMultForUi(pct);
 
       milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending Magic every second`;
+      if (m.surgeLevel <= currentLevel && pendingVals.pendingMagic) {
+          const log10Rate = 2 * mapped - 2;
+          const rateMultiplier = bigNumFromLog10(log10Rate);
+          const magicPerSec = pendingVals.pendingMagic.mulDecimal(rateMultiplier.toScientific());
+          milestone.description.push(`Current Magic/sec: ${formatNumber(magicPerSec.floorToInteger())}`);
+      }
     }
 
     if (m.id === 21) {
