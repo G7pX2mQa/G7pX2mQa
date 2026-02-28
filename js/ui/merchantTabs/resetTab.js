@@ -46,7 +46,8 @@ import {
   getTsunamiSequenceSeen,
   setTsunamiSequenceSeen,
   isSurgeActive,
-  getEffectiveTsunamiNerf
+  getEffectiveTsunamiNerf,
+  getSurge25Multiplier
 } from '../../game/surgeEffects.js';
 import { 
     getTsunamiResearchBonus,
@@ -238,7 +239,10 @@ function notifySurgeUnlockChange() {
 function getPendingGoldWithMultiplier(multiplierOverride = null) {
   try {
     const labMult = getLabGoldMultiplier();
+    const surge25Mult = getSurge25Multiplier();
+    
     let val = resetState.pendingGold.clone?.() ?? resetState.pendingGold;
+    
     if (multiplierOverride) {
       const mult = multiplierOverride instanceof BN ? multiplierOverride : BN.fromAny(multiplierOverride ?? 1);
       if (mult.isInfinite?.()) return BN.fromAny('Infinity');
@@ -246,6 +250,12 @@ function getPendingGoldWithMultiplier(multiplierOverride = null) {
     } else {
       val = bank.gold?.mult?.applyTo?.(val) ?? val;
     }
+    
+    if (surge25Mult.isInfinite?.()) return BN.fromAny('Infinity');
+    if (surge25Mult.cmp(1) > 0) {
+        val = val.mulBigNumInteger(surge25Mult);
+    }
+
     return val.mulDecimal(labMult.toScientific());
   } catch {
     return resetState.pendingGold;
