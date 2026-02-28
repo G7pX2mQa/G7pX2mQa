@@ -175,6 +175,12 @@ function updateMultiplier() {
   }
 }
 
+export function getSurge21BonusPercentage() {
+  const effective = getEffectiveTsunamiNerf();
+  if (effective === 0) return 0;
+  return Math.pow(1e10, effective);
+}
+
 export function getSurge21Multiplier() {
   if (!isSurgeActive(21)) return 1;
   
@@ -183,7 +189,7 @@ export function getSurge21Multiplier() {
   }
   
   let levelNum = 0;
-  if (typeof cachedSurgeLevel === 'bigint') {
+  if (typeof cachedSurgeLevel === "bigint") {
     if (cachedSurgeLevel > Number.MAX_SAFE_INTEGER) {
       levelNum = Number.MAX_SAFE_INTEGER;
     } else {
@@ -194,7 +200,8 @@ export function getSurge21Multiplier() {
   }
 
   if (isNaN(levelNum)) return 1;
-  return 1 + Math.max(0, levelNum - 20);
+  const bonusPct = getSurge21BonusPercentage();
+  return 1 + Math.max(0, levelNum - 20) * (bonusPct / 100);
 }
 
 export function getSurge15Multiplier(preview = false) {
@@ -656,10 +663,10 @@ export function initSurgeEffects() {
     if (!isSurgeActive(21)) return baseMultiplier;
     const mult = getSurge21Multiplier();
     if (mult === Infinity) {
-        return BigNum.fromAny('Infinity');
+        return BigNum.fromAny("Infinity");
     }
     if (mult > 1) {
-        return baseMultiplier.mulBigNumInteger(BigNum.fromInt(Math.floor(mult)));
+        return baseMultiplier.mulDecimal(mult);
     }
     return baseMultiplier;
   });
