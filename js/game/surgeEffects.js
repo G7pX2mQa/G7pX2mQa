@@ -204,6 +204,35 @@ export function getSurge21Multiplier() {
   return 1 + Math.max(0, levelNum - 20) * (bonusPct / 100);
 }
 
+export function getSurge23BonusPercentage() {
+  const effective = getEffectiveTsunamiNerf();
+  if (effective === 0) return 0;
+  return Math.floor(Math.pow(1e10, effective) + 1e-6);
+}
+
+export function getSurge23Multiplier() {
+  if (!isSurgeActive(22)) return 1;
+  
+  if (cachedSurgeLevel === Infinity) {
+    return Infinity;
+  }
+  
+  let levelNum = 0;
+  if (typeof cachedSurgeLevel === "bigint") {
+    if (cachedSurgeLevel > Number.MAX_SAFE_INTEGER) {
+      levelNum = Number.MAX_SAFE_INTEGER;
+    } else {
+      levelNum = Number(cachedSurgeLevel);
+    }
+  } else {
+    levelNum = Number(cachedSurgeLevel);
+  }
+
+  if (isNaN(levelNum)) return 1;
+  const bonusPct = getSurge23BonusPercentage();
+  return 1 + Math.max(0, levelNum - 22) * (bonusPct / 100);
+}
+
 export function getSurge15Multiplier(preview = false) {
   if (!preview && !isSurgeActive(15)) return BigNum.fromInt(1);
   
@@ -615,6 +644,18 @@ export function initSurgeEffects() {
   addExternalXpGainMultiplierProvider(({ baseGain }) => {
     if (!isSurgeActive(19)) return baseGain;
     return baseGain.mulSmall(2);
+  });
+
+  addExternalXpGainMultiplierProvider(({ baseGain }) => {
+    if (!isSurgeActive(22)) return baseGain;
+    const mult = getSurge23Multiplier();
+    if (mult === Infinity) {
+        return BigNum.fromAny("Infinity");
+    }
+    if (mult > 1) {
+        return baseGain.mulDecimal(mult);
+    }
+    return baseGain;
   });
 
   addExternalMutationGainMultiplierProvider(({ baseGain }) => {
