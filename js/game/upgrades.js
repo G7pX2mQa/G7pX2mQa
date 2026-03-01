@@ -1258,8 +1258,9 @@ export function computeDefaultUpgradeCost(baseCost, level, upgType = 'NM') {
 }
 
 const DEFAULT_SCALING_PRESETS = {
-  STANDARD(upg) {
+    STANDARD(upg) {
     const upgType = `${upg?.upgType ?? ''}`.toUpperCase();
+    const harshness = upg && upg.scalingHarshness && upg.scalingHarshness > 0 ? upg.scalingHarshness : 1;
     if (upgType === 'HM') {
       const evol = activeEvolutionsForUpgrade(upg);
       const evolThreshold = 1000; // Corresponds to level 1M
@@ -1269,16 +1270,17 @@ const DEFAULT_SCALING_PRESETS = {
         const r = 1.001;
         // Sum of a geometric series: 0.1 * r * (r^n - 1) / (r - 1)
         const extra_scaling = 0.1 * (r / (r - 1)) * (Math.pow(r, evol_after_1m) - 1);
-        return 1.50 + base_scaling + extra_scaling;
+        return (1.50 + base_scaling + extra_scaling) * harshness;
       }
-      return 1.50 + (0.10 * evol);
+      return (1.50 + (0.10 * evol)) * harshness;
     }
-    return 1.20;
+    return 1.20 * harshness;
   },
   HM(upg) {
     const evol = activeEvolutionsForUpgrade(upg);
+    const harshness = upg && upg.scalingHarshness && upg.scalingHarshness > 0 ? upg.scalingHarshness : 1;
     // Relaxed linear scaling for Phase 1 & 2 (up to 1,000,000 evolutions / Level 1B)
-    let ratio = 1.50 + (0.10 * evol);
+    let ratio = (1.50 + (0.10 * evol)) * harshness;
 
     // Phase 3: Double-Exponential Softcap starting at Level 1 Billion
     const softcapStart = 1_000_000;
@@ -1287,12 +1289,15 @@ const DEFAULT_SCALING_PRESETS = {
       // Calibrated to hit BN Infinity around Level 4 Trillion (4e9 evolutions)
       const rate = 1.8e-7;
       const baseLog = 5;
-      const ratioLog10 = baseLog * Math.exp(rate * delta);
-      let ratio = Infinity;
-      if (ratioLog10 < 308) {
-        ratio = Math.pow(10, ratioLog10);
+      let ratioLog10 = baseLog * Math.exp(rate * delta);
+      if (harshness !== 1) {
+        ratioLog10 += Math.log10(harshness);
       }
-      return { ratio, ratioLog10 };
+      let finalRatio = Infinity;
+      if (ratioLog10 < 308) {
+        finalRatio = Math.pow(10, ratioLog10);
+      }
+      return { ratio: finalRatio, ratioLog10 };
     }
     return ratio;
   },
@@ -3056,7 +3061,7 @@ export const REGISTRY = [
     id: 23,
     tie: UPGRADE_TIES.ENDLESS_FP,
     title: "Endless FP",
-    desc: "Multiplies FP value by 1.1x per level\nFP is very important for increasing Waterwheel Levels",
+    desc: "Multiplies FP value by 1.1x per level\nFP is very important for increasing Waterwheel Levels\nThis upgrade is very strong so it will scale faster than usual",
     lvlCap: HM_EVOLUTION_INTERVAL,
     baseCost: 1e90,
     costType: "coins",
@@ -3064,6 +3069,7 @@ export const REGISTRY = [
     effectType: "fp_value",
     icon: "sc_upg_icons/fp_val_hm.webp",
     scalingPreset: 'HM',
+    scalingHarshness: 5,
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
     nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
     computeLockState(ctx) {
