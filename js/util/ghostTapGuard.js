@@ -217,6 +217,15 @@ export function installGhostTapGuard(options = {}) {
   }
 }
 
+
+let swipeSafeState = {
+  active: false,
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+  button: null
+};
+
 function handleInstantClick(event) {
   if (event.pointerType === 'mouse') return;
   if (typeof event.button === 'number' && event.button !== 0) return;
@@ -235,17 +244,29 @@ function handleInstantClick(event) {
   // NOTE: .debug-panel and .debug-panel-action-log are intentionally NOT excluded
   // to allow ghost tapping on debug buttons as per user request.
   
-  // Exclude Shop list
-  if (buttonLike.closest('.shop-scroller')) return;
-
-  // Exclude Automation Shop list
-  if (buttonLike.closest('.automation-shop-scroller')) return;
+  const isScrollable = 
+    buttonLike.closest('.shop-scroller') ||
+    buttonLike.closest('.automation-shop-scroller') ||
+    (buttonLike.closest('.merchant-dialogue-list') && !buttonLike.closest('.merchant-firstchat')) ||
+    buttonLike.closest('.merchant-tabs');
   
-  // Exclude Dialogue list
-  if (buttonLike.closest('.merchant-dialogue-list') && !buttonLike.closest('.merchant-firstchat')) return;
-
-  // Exclude Merchant Tabs list
-  if (buttonLike.closest('.merchant-tabs')) return;
+  if (isScrollable) {
+    if (buttonLike.dataset.noGhost === 'true') return;
+    
+    swipeSafeState.active = true;
+    swipeSafeState.button = buttonLike;
+    
+    if (event.touches && event.touches.length > 0) {
+      swipeSafeState.startX = event.touches[0].clientX;
+      swipeSafeState.startY = event.touches[0].clientY;
+      swipeSafeState.pointerId = null;
+    } else {
+      swipeSafeState.startX = event.clientX || 0;
+      swipeSafeState.startY = event.clientY || 0;
+      swipeSafeState.pointerId = event.pointerId;
+    }
+    return;
+  }
 
   // If a specific element asked to avoid this logic, bail
   if (buttonLike.dataset.noGhost === 'true') return;
@@ -267,6 +288,50 @@ function handleInstantClick(event) {
   buttonLike.click();
 }
 
+function handleSwipeSafeEnd(event) {
+  if (!swipeSafeState.active) return;
+  
+  if (event.pointerType === 'mouse') {
+    swipeSafeState.active = false;
+    return;
+  }
+  
+  if (swipeSafeState.pointerId != null && event.pointerId != null && event.pointerId !== swipeSafeState.pointerId) {
+    return;
+  }
+
+  const buttonLike = swipeSafeState.button;
+  swipeSafeState.active = false;
+  swipeSafeState.button = null;
+  
+  if (!buttonLike || !event.isTrusted) return;
+
+  let endX = 0;
+  let endY = 0;
+  if (event.changedTouches && event.changedTouches.length > 0) {
+    endX = event.changedTouches[0].clientX;
+    endY = event.changedTouches[0].clientY;
+  } else {
+    endX = event.clientX || 0;
+    endY = event.clientY || 0;
+  }
+
+  const dx = Math.abs(endX - swipeSafeState.startX);
+  const dy = Math.abs(endY - swipeSafeState.startY);
+
+  // If movement is very small, it's a tap, not a scroll
+  if (dx < 10 && dy < 10) {
+    markGhostTapTarget(buttonLike, 2000, 300);
+    if (event.cancelable) event.preventDefault();
+    buttonLike.click();
+  }
+}
+
+function handleSwipeSafeCancel() {
+  swipeSafeState.active = false;
+  swipeSafeState.button = null;
+}
+
 export function initGlobalGhostTap() {
   const doc = getDocument();
   if (!doc || typeof window === 'undefined') return;
@@ -275,8 +340,12 @@ export function initGlobalGhostTap() {
   if (hasPointer) {
     // capturing phase to intercept before internal UI logic
     doc.addEventListener('pointerdown', handleInstantClick, { capture: false, passive: false });
+    doc.addEventListener('pointerup', handleSwipeSafeEnd, { capture: false, passive: false });
+    doc.addEventListener('pointercancel', handleSwipeSafeCancel, { capture: false, passive: true });
   } else if ('ontouchstart' in window) {
     doc.addEventListener('touchstart', handleInstantClick, { capture: false, passive: false });
+    doc.addEventListener('touchend', handleSwipeSafeEnd, { capture: false, passive: false });
+    doc.addEventListener('touchcancel', handleSwipeSafeCancel, { capture: false, passive: true });
   }
 }
 
