@@ -201,7 +201,7 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
                     
                     const icon = document.createElement('img');
                     icon.className = 'offline-icon';
-                    icon.src = def?.icon || 'img/waterwheels/waterwheel_coin.webp';
+                    icon.src = def?.image;
                     icon.alt = 'WW';
                     
                     const text = document.createElement('span');
