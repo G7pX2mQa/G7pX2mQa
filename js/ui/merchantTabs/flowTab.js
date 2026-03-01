@@ -20,7 +20,8 @@ const EFFECT_PERCENTAGE = 100;
 const WATERWHEELS = {
     COIN: 'coin',
     XP: 'xp',
-    GOLD: 'gold'
+    GOLD: 'gold',
+    MAGIC: 'magic'
 };
 
 export const WATERWHEEL_DEFS = {
@@ -51,6 +52,16 @@ export const WATERWHEEL_DEFS = {
         prev: WATERWHEELS.XP,
         unlockReq: 1e5,
         styleKey: 'gold'
+    },
+    [WATERWHEELS.MAGIC]: {
+        id: WATERWHEELS.MAGIC,
+        name: 'Magic Waterwheel',
+        image: 'img/waterwheels/waterwheel_magic.webp',
+        baseReq: 1e16,
+        unlocked: false,
+        prev: WATERWHEELS.XP,
+        unlockReq: 1e9,
+        styleKey: 'magic'
     }
 };
 
@@ -84,6 +95,12 @@ const state = {
             fp: 0,
             active: false,
             unlocked: false
+        },
+        [WATERWHEELS.MAGIC]: {
+            level: BigNum.fromInt(0),
+            fp: 0,
+            active: false,
+            unlocked: false
         }
     },
     visuals: {
@@ -98,6 +115,11 @@ const state = {
             isMax: false
         },
         [WATERWHEELS.GOLD]: {
+            rotation: 0,
+            speed: 0,
+            isMax: false
+        },
+        [WATERWHEELS.MAGIC]: {
             rotation: 0,
             speed: 0,
             isMax: false
@@ -289,6 +311,18 @@ export function getWaterwheelGoldMultiplier(baseValue) {
     const mult = BigNum.fromInt(1).add(level);
     
     // Support being called with BigNum directly or property object depending on how it's integrated
+    let val = baseValue;
+    if (baseValue && baseValue.baseMultiplier) val = baseValue.baseMultiplier;
+    
+    if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
+    
+    return val.mulBigNumInteger(mult);
+}
+
+export function getWaterwheelMagicMultiplier(baseValue) {
+    const level = state.waterwheels[WATERWHEELS.MAGIC]?.level || BigNum.fromInt(0);
+    const mult = BigNum.fromInt(1).add(level);
+    
     let val = baseValue;
     if (baseValue && baseValue.baseMultiplier) val = baseValue.baseMultiplier;
     
