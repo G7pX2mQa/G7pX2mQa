@@ -50,7 +50,8 @@ import {
   getSurge25Multiplier,
   getSurge27Multiplier,
   getSurge29Multiplier,
-  getSurge31Multiplier
+  getSurge31Multiplier,
+  getSurge35Multiplier
 } from '../../game/surgeEffects.js';
 import { 
     getTsunamiResearchBonus,
@@ -260,6 +261,12 @@ function getPendingGoldWithMultiplier(multiplierOverride = null) {
         val = val.mulBigNumInteger(surge25Mult);
     }
 
+    const surge35Mult = getSurge35Multiplier();
+    if (surge35Mult.isInfinite?.()) return BN.fromAny('Infinity');
+    if (surge35Mult.cmp(1) > 0) {
+        val = val.mulBigNumInteger(surge35Mult);
+    }
+
     val = val.mulDecimal(labMult.toScientific());
 
     return getWaterwheelGoldMultiplier(val);
@@ -281,6 +288,12 @@ function getPendingMagicWithMultiplier(multiplierOverride = null) {
     if (surge27Mult.isInfinite?.()) return BN.fromAny('Infinity');
     if (surge27Mult.cmp(1) > 0) {
         val = val.mulBigNumInteger(surge27Mult);
+    }
+
+    const surge35Mult = getSurge35Multiplier();
+    if (surge35Mult.isInfinite?.()) return BN.fromAny('Infinity');
+    if (surge35Mult.cmp(1) > 0) {
+        val = val.mulBigNumInteger(surge35Mult);
     }
 
     return val;
@@ -512,6 +525,13 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
         } else if (surge31Mult.cmp(1) > 0) {
             result = result.mulBigNumInteger(surge31Mult);
         }
+
+        const surge35Mult = getSurge35Multiplier();
+        if (surge35Mult.isInfinite?.()) {
+            result = BigNum.fromAny('Infinity');
+        } else if (surge35Mult.cmp(1) > 0) {
+            result = result.mulBigNumInteger(surge35Mult);
+        }
         
         return result;
     } catch (e) {
@@ -573,6 +593,13 @@ function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
       baseWaves = BN.fromAny('Infinity');
   } else if (surge29Mult.cmp(1) > 0) {
       baseWaves = baseWaves.mulBigNumInteger(surge29Mult);
+  }
+
+  const surge35Mult = getSurge35Multiplier();
+  if (surge35Mult.isInfinite?.()) {
+      baseWaves = BN.fromAny('Infinity');
+  } else if (surge35Mult.cmp(1) > 0) {
+      baseWaves = baseWaves.mulBigNumInteger(surge35Mult);
   }
   
   return bank.waves?.mult?.applyTo?.(baseWaves) ?? baseWaves;
@@ -1082,6 +1109,13 @@ function recomputePendingDna() {
             result = BigNum.fromAny('Infinity');
         } else if (surge31Mult.cmp(1) > 0) {
             result = result.mulBigNumInteger(surge31Mult);
+        }
+
+        const surge35Mult = getSurge35Multiplier();
+        if (surge35Mult.isInfinite?.()) {
+            result = BigNum.fromAny('Infinity');
+        } else if (surge35Mult.cmp(1) > 0) {
+            result = result.mulBigNumInteger(surge35Mult);
         }
         
         if (bank.dna?.mult?.applyTo) { result = bank.dna.mult.applyTo(result); } else if (bank.DNA?.mult?.applyTo) { result = bank.DNA.mult.applyTo(result); }
