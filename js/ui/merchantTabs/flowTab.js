@@ -29,7 +29,6 @@ export const WATERWHEEL_DEFS = {
         icon: 'img/waterwheels/waterwheel_coin.webp',
         image: 'img/waterwheels/waterwheel_coin.webp',
         baseReq: 10, // 10 FP per level
-        description: 'Boosts Global Coin Value by +100% per level',
         unlocked: true,
         styleKey: 'coins'
     },
@@ -39,7 +38,6 @@ export const WATERWHEEL_DEFS = {
         icon: 'img/waterwheels/waterwheel_xp.webp',
         image: 'img/waterwheels/waterwheel_xp.webp',
         baseReq: 1000, // 1000 FP per level
-        description: 'Boosts Global XP Gain by +100% per level',
         unlocked: false,
         prev: WATERWHEELS.COIN,
         unlockReq: 1000,
