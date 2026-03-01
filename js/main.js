@@ -724,7 +724,11 @@ images: [
   const assetsPromise = preloadAssetsWithProgress(ASSET_MANIFEST, f => {
     progress = f;
     setLoaderProgress(loader, f);
-  });
+  }).then(() => Promise.all([ // fixes some image preload issue on mobile
+    warmImage('img/currencies/coin/coin_plus_base.webp'),
+    warmImage('img/stats/xp/xp_plus_base.webp'),
+    warmImage('img/stats/mp/mp_plus_base.webp'),
+  ]));
 
   const [
     slotsModule,
@@ -853,12 +857,6 @@ images: [
   await nextFrame();
 
   finishAndHideLoader(loader);
-
-  await Promise.all([ // fixes some image preload issue on mobile
-    warmImage('img/currencies/coin/coin_plus_base.webp'),
-    warmImage('img/stats/xp/xp_plus_base.webp'),
-	warmImage('img/stats/mp/mp_plus_base.webp'),
-  ]);
   
   // Ensure we start with no active slot so game loops don't run for a lingering slot ID
   try {
