@@ -137,19 +137,19 @@ export const REGISTRY = [
   {
     area: DNA_AREA_KEY,
     id: 5,
-    title: "DNA Wave Value",
-    desc: "Multiplies Wave value by 1.1x per level",
+    title: "DNA DNA Value",
+    desc: "Multiplies DNA value by 1.1x per level",
     lvlCap: 1000,
     baseCost: 1e39,
     costType: "dna",
     upgType: "HM",
     scalingPreset: 'HM',
-    icon: "sc_upg_icons/wave_val_dna.webp",
+    icon: "lab_icons/dna_val0.webp",
     baseIconOverride: "currencies/dna/dna_base.webp",
-    effectType: "wave_value",
+    effectType: "dna_value",
     _dnaEffectVal: 1.1,
     _costScaling: 'HM',
-    bonusLine: (level, total) => `Wave value bonus: ${formatMultForUi(total)}x`,
+    bonusLine: (level, total) => `DNA value bonus: ${formatMultForUi(total)}x`,
     computeLockState(ctx) {
         const sl = ctx.surgeLevel;
         let isUnlocked = false;
