@@ -63,6 +63,7 @@ import {
 import { getLabLevel } from './labTab.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
+import { getWaterwheelGoldMultiplier } from './flowTab.js';
 
 const BN = BigNum;
 
@@ -259,7 +260,9 @@ function getPendingGoldWithMultiplier(multiplierOverride = null) {
         val = val.mulBigNumInteger(surge25Mult);
     }
 
-    return val.mulDecimal(labMult.toScientific());
+    val = val.mulDecimal(labMult.toScientific());
+
+    return getWaterwheelGoldMultiplier(val);
   } catch {
     return resetState.pendingGold;
   }
