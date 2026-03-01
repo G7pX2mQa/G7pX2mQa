@@ -248,7 +248,8 @@ function handleInstantClick(event) {
     buttonLike.closest('.shop-scroller') ||
     buttonLike.closest('.automation-shop-scroller') ||
     (buttonLike.closest('.merchant-dialogue-list') && !buttonLike.closest('.merchant-firstchat')) ||
-    buttonLike.closest('.merchant-tabs');
+    buttonLike.closest('.merchant-tabs') ||
+    buttonLike.closest('.merchant-reset__sidebar');
   
   if (isScrollable) {
     if (buttonLike.dataset.noGhost === 'true') return;
