@@ -244,6 +244,9 @@ function handleInstantClick(event) {
   // Exclude Dialogue list
   if (buttonLike.closest('.merchant-dialogue-list') && !buttonLike.closest('.merchant-firstchat')) return;
 
+  // Exclude Merchant Tabs list
+  if (buttonLike.closest('.merchant-tabs')) return;
+
   // If a specific element asked to avoid this logic, bail
   if (buttonLike.dataset.noGhost === 'true') return;
 
