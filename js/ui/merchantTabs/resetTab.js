@@ -1084,6 +1084,7 @@ function recomputePendingDna() {
             result = result.mulBigNumInteger(surge31Mult);
         }
         
+        if (bank.dna?.mult?.applyTo) { result = bank.dna.mult.applyTo(result); } else if (bank.DNA?.mult?.applyTo) { result = bank.DNA.mult.applyTo(result); }
         resetState.pendingDna = result;
     } catch (e) {
         // Fallback for extreme values or errors
