@@ -196,6 +196,10 @@
   background: linear-gradient(90deg, #31D0F7, #0855BF);
 }
 
+#flow-fill-gold {
+  background: linear-gradient(90deg, #FFA200 0%, #FF9100 50%, #D35400 100%);
+}
+
 .flow-locked-text {
   color: #aaa !important;
   text-shadow: none !important;
