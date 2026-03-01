@@ -26,7 +26,6 @@ export const WATERWHEEL_DEFS = {
     [WATERWHEELS.COIN]: {
         id: WATERWHEELS.COIN,
         name: 'Coin Waterwheel',
-        icon: 'img/waterwheels/waterwheel_coin.webp',
         image: 'img/waterwheels/waterwheel_coin.webp',
         baseReq: 10, // 10 FP per level
         unlocked: true,
@@ -35,7 +34,6 @@ export const WATERWHEEL_DEFS = {
     [WATERWHEELS.XP]: {
         id: WATERWHEELS.XP,
         name: 'XP Waterwheel',
-        icon: 'img/waterwheels/waterwheel_xp.webp',
         image: 'img/waterwheels/waterwheel_xp.webp',
         baseReq: 1000, // 1000 FP per level
         unlocked: false,
@@ -697,7 +695,7 @@ function buildUI(panel) {
         item.className = 'flow-row';
         item.innerHTML = `
             <div class="flow-bar-container">
-                 <img src="${def.icon}" class="flow-icon-overlay" id="flow-icon-${id}" alt="">
+                 <img src="${def.image}" class="flow-icon-overlay" id="flow-icon-${id}" alt="">
                  <div class="flow-bar-inner">
                     <div class="flow-bar-fill" id="flow-fill-${id}"></div>
                     <div class="flow-bar-text">
@@ -892,9 +890,9 @@ function updateFlowVisuals() {
         } else {
             // Unlocked State
             if (elIcon) {
-                // Check against def.icon or relative path, let's just use def.icon
-                if (elIcon.getAttribute('src') !== def.icon) {
-                    elIcon.src = def.icon;
+                // Check against def.image or relative path, let's just use def.image
+                if (elIcon.getAttribute('src') !== def.image) {
+                    elIcon.src = def.image;
                 }
             }
             if (elLvl) {
