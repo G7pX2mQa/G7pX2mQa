@@ -200,6 +200,10 @@
   background: linear-gradient(90deg, #FFA200 0%, #FF9100 50%, #D35400 100%);
 }
 
+#flow-fill-magic {
+  background: linear-gradient(90deg, #E087FF 0%, #8A2BE2 50%, #4B0082 100%);
+}
+
 .flow-locked-text {
   color: #aaa !important;
   text-shadow: none !important;
