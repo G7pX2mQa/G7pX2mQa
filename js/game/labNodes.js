@@ -179,7 +179,7 @@ export const RESEARCH_NODES = [
     {
         id: 13,
         title: "Node 13: Experimental Gold Value II",
-        desc: "Multiplies Gold value by 5x per level\nThis node scales 10x RP each level",
+        desc: "Multiplies Gold value by 4x per level\nThis node scales <strong>10x</strong> RP each level",
         baseRpReq: 1e25,
         scale: 10.0,
         maxLevel: 10,
@@ -187,12 +187,12 @@ export const RESEARCH_NODES = [
         y: -1000,
         icon: 'lab_icons/gold_val0.webp',
         parentIds: [10],
-        bonusLine: (level) => `Gold value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(5)))}x`
+        bonusLine: (level) => `Gold value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(4)))}x`
     },
     {
         id: 14,
         title: "Node 14: Experimental Magic Value II",
-        desc: "Multiplies Magic value by 5x per level\nThis node scales 10x RP each level",
+        desc: "Multiplies Magic value by 4x per level\nThis node scales <strong>10x</strong> RP each level",
         baseRpReq: 1e26,
         scale: 10.0,
         maxLevel: 10,
@@ -200,25 +200,25 @@ export const RESEARCH_NODES = [
         y: -1000,
         icon: 'lab_icons/magic_val0.webp',
         parentIds: [10],
-        bonusLine: (level) => `Magic value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(5)))}x`
+        bonusLine: (level) => `Magic value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(4)))}x`
     },
     {
         id: 15,
-        title: "Node 15: Experimental Wave Value II",
-        desc: "Multiplies Wave value by 1.5x per level\nThis node scales 10x RP each level",
+        title: "Node 15: Experimental DNA Value",
+        desc: "Multiplies DNA value by 1.25x per level\nThis node scales <strong>10x</strong> RP each level",
         baseRpReq: 1e27,
         scale: 10.0,
         maxLevel: 10,
         x: -2000,
         y: 0,
-        icon: 'lab_icons/wave_val0.webp',
+        icon: 'lab_icons/dna_val0.webp',
         parentIds: [10],
-        bonusLine: (level) => `Wave value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.5)))}x`
+        bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.25)))}x`
     },
     {
         id: 16,
-        title: "Node 16: Experimental DNA Value",
-        desc: "Multiplies DNA value by 1.5x per level\nThis node scales 10x RP each level",
+        title: "Node 16: Experimental DNA Value II",
+        desc: "Multiplies DNA value by 1.25x per level\nThis node scales <strong>10x</strong> RP each level",
         baseRpReq: 1e28,
         scale: 10.0,
         maxLevel: 10,
@@ -226,12 +226,12 @@ export const RESEARCH_NODES = [
         y: 0,
         icon: 'lab_icons/dna_val0.webp',
         parentIds: [10],
-        bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.5)))}x`
+        bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.25)))}x`
     },
     {
         id: 17,
         title: "Node 17: Experimental FP Value",
-        desc: "Multiplies FP value by 1.25x per level\nThis node scales 10x RP each level",
+        desc: "Multiplies FP value by 1.25x per level\nThis node scales <strong>10x</strong> RP each level",
         baseRpReq: 1e29,
         scale: 10.0,
         maxLevel: 10,
@@ -244,7 +244,7 @@ export const RESEARCH_NODES = [
     {
         id: 18,
         title: "Node 18: Experimental FP Value II",
-        desc: "Multiplies FP value by 1.25x per level\nThis node scales 10x RP each level",
+        desc: "Multiplies FP value by 1.25x per level\nThis node scales <strong>10x</strong> RP each level",
         baseRpReq: 1e30,
         scale: 10.0,
         maxLevel: 10,
@@ -682,6 +682,7 @@ export function tickResearch(dt) {
 
 const LOG10_2 = Math.log10(2);
 const LOG10_3 = Math.log10(3);
+const LOG10_4 = Math.log10(4);
 const LOG10_1_1 = Math.log10(1.1);
 const LOG10_5 = Math.log10(5);
 const LOG10_10 = 1; // Math.log10(10)
@@ -740,7 +741,7 @@ export function getLabGoldMultiplier() {
     const node13 = NODE_MAP.get(13);
     if (node13) {
         const level = getResearchNodeLevel(node13.id);
-        if (level > 0) logTotal += level * LOG10_5;
+        if (level > 0) logTotal += level * LOG10_4;
     }
     
     if (logTotal === 0) return BigNum.fromInt(1);
@@ -760,7 +761,7 @@ export function getLabMagicMultiplier() {
     const node14 = NODE_MAP.get(14);
     if (node14) {
         const level = getResearchNodeLevel(node14.id);
-        if (level > 0) logTotal += level * LOG10_5;
+        if (level > 0) logTotal += level * LOG10_4;
     }
     
     if (logTotal === 0) return BigNum.fromInt(1);
@@ -770,18 +771,12 @@ export function getLabMagicMultiplier() {
 
 export function getLabWaveMultiplier() {
     const node7 = NODE_MAP.get(7);
-    const node15 = NODE_MAP.get(15);
     
     let logTotal = 0;
 
     if (node7) {
         const level = getResearchNodeLevel(node7.id);
         if (level > 0) logTotal += level * LOG10_1_1;
-    }
-    
-    if (node15) {
-        const level = getResearchNodeLevel(node15.id);
-        if (level > 0) logTotal += level * LOG10_1_5;
     }
 
     if (logTotal === 0) return BigNum.fromInt(1);
@@ -790,13 +785,23 @@ export function getLabWaveMultiplier() {
 }
 
 export function getLabDnaMultiplier() {
+    let logTotal = 0;
+
+    const node15 = NODE_MAP.get(15);
+    if (node15) {
+        const level = getResearchNodeLevel(node15.id);
+        if (level > 0) logTotal += level * LOG10_1_25;
+    }
+
     const node16 = NODE_MAP.get(16);
-    if (!node16) return BigNum.fromInt(1);
+    if (node16) {
+        const level = getResearchNodeLevel(node16.id);
+        if (level > 0) logTotal += level * LOG10_1_25;
+    }
+
+    if (logTotal === 0) return BigNum.fromInt(1);
     
-    const level = getResearchNodeLevel(node16.id);
-    if (level <= 0) return BigNum.fromInt(1);
-    
-    return bigNumFromLog10(level * LOG10_1_5);
+    return bigNumFromLog10(logTotal);
 }
 
 export function getLabFpMultiplier() {
