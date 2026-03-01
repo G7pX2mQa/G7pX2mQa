@@ -19,7 +19,8 @@ const EFFECT_PERCENTAGE = 100;
 
 const WATERWHEELS = {
     COIN: 'coin',
-    XP: 'xp'
+    XP: 'xp',
+    GOLD: 'gold'
 };
 
 export const WATERWHEEL_DEFS = {
@@ -40,6 +41,16 @@ export const WATERWHEEL_DEFS = {
         prev: WATERWHEELS.COIN,
         unlockReq: 1000,
         styleKey: 'xp'
+    },
+    [WATERWHEELS.GOLD]: {
+        id: WATERWHEELS.GOLD,
+        name: 'Gold Waterwheel',
+        image: 'img/waterwheels/waterwheel_gold.webp',
+        baseReq: 1e7,
+        unlocked: false,
+        prev: WATERWHEELS.XP,
+        unlockReq: 1e5,
+        styleKey: 'gold'
     }
 };
 
@@ -67,6 +78,12 @@ const state = {
             fp: 0,
             active: false,
             unlocked: false
+        },
+        [WATERWHEELS.GOLD]: {
+            level: BigNum.fromInt(0),
+            fp: 0,
+            active: false,
+            unlocked: false
         }
     },
     visuals: {
@@ -76,6 +93,11 @@ const state = {
             isMax: false
         },
         [WATERWHEELS.XP]: {
+            rotation: 0,
+            speed: 0,
+            isMax: false
+        },
+        [WATERWHEELS.GOLD]: {
             rotation: 0,
             speed: 0,
             isMax: false
@@ -260,6 +282,19 @@ export function getWaterwheelXpMultiplier({ baseGain }) {
     // e.g. level 1 -> 2x multiplier (+100%)
     const mult = BigNum.fromInt(1).add(level);
     return baseGain.mulBigNumInteger(mult);
+}
+
+export function getWaterwheelGoldMultiplier(baseValue) {
+    const level = state.waterwheels[WATERWHEELS.GOLD]?.level || BigNum.fromInt(0);
+    const mult = BigNum.fromInt(1).add(level);
+    
+    // Support being called with BigNum directly or property object depending on how it's integrated
+    let val = baseValue;
+    if (baseValue && baseValue.baseMultiplier) val = baseValue.baseMultiplier;
+    
+    if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
+    
+    return val.mulBigNumInteger(mult);
 }
 
 export function addExternalFpMultiplierProvider(fn) {
@@ -881,7 +916,11 @@ function updateFlowVisuals() {
             if (elControls) elControls.style.visibility = 'hidden';
             
             if (elName) {
-                elName.textContent = `Level ${formatNumber(def.unlockReq)} in prev.`;
+                let reqStr = String(def.unlockReq);
+                try {
+                    reqStr = formatNumber(BigNum.fromAny(def.unlockReq));
+                } catch(e) {}
+                elName.textContent = `Level ${reqStr} in prev.`;
                 elName.classList.add('flow-locked-text');
             }
             
