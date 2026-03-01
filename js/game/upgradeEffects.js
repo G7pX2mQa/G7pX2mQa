@@ -119,6 +119,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     goldValue: BigNum.fromInt(1),
     magicValue: BigNum.fromInt(1),
     waveValue: BigNum.fromInt(1),
+    dnaValue: BigNum.fromInt(1),
     bookValue: BigNum.fromInt(1),
     fpValue: BigNum.fromInt(1),
     coinSpawn: 1.0,
@@ -171,6 +172,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.magicValue = safeMultiplyBigNum(acc.magicValue, baseEffect);
     } else if (upg.effectType === 'wave_value') {
       acc.waveValue = safeMultiplyBigNum(acc.waveValue, baseEffect);
+    } else if (upg.effectType === 'dna_value') {
+      acc.dnaValue = safeMultiplyBigNum(acc.dnaValue, baseEffect);
     } else if (upg.effectType === 'book_value') {
       acc.bookValue = safeMultiplyBigNum(acc.bookValue, baseEffect);
     } else if (upg.effectType === 'fp_value') {
@@ -212,11 +215,12 @@ export function computeUpgradeEffects(areaKey) {
     bookRewardMultiplier: mults.bookValue,
     goldValueMultiplier: mults.goldValue,
     magicValueMultiplier: mults.magicValue,
+    dnaValueMultiplier: mults.dnaValue,
   };
 }
 
 export function syncCurrencyMultipliersFromUpgrades() {
-  const { goldValue, magicValue, waveValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+  const { goldValue, magicValue, waveValue, dnaValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
   
   try {
     if (bank.gold?.mult?.set) {
@@ -237,6 +241,14 @@ export function syncCurrencyMultipliersFromUpgrades() {
       const labMult = getLabWaveMultiplier();
       const finalWaveValue = safeMultiplyBigNum(waveValue, labMult);
       bank.waves.mult.set(finalWaveValue);
+    }
+  } catch {}
+
+  try {
+    if (bank.DNA?.mult?.set) {
+      bank.DNA.mult.set(dnaValue);
+    } else if (bank.dna?.mult?.set) {
+      bank.dna.mult.set(dnaValue);
     }
   } catch {}
 }
