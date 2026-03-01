@@ -365,6 +365,33 @@ export function getSurge33Multiplier() {
   return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
+export function getSurge35BonusPercentage() {
+  const effective = getEffectiveTsunamiNerf();
+  if (effective === 0) return 0;
+  return Math.floor(Math.pow(1e10, effective) / 4 + 1e-6);
+}
+
+export function getSurge35Multiplier() {
+  if (!isSurgeActive(35)) return BigNum.fromInt(1);
+  
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) {
+    return BigNum.fromAny("Infinity");
+  }
+  
+  let levelBN;
+  try {
+    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+  } catch (e) {
+    return BigNum.fromInt(1);
+  }
+
+  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(34)) <= 0) return BigNum.fromInt(1);
+  const bonusPct = getSurge35BonusPercentage();
+  
+  const diffBN = levelBN.sub(BigNum.fromInt(34));
+  return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+}
+
 export function getSurge15Multiplier(preview = false) {
   if (!preview && !isSurgeActive(15)) return BigNum.fromInt(1);
   
@@ -636,6 +663,14 @@ function onTick(dt) {
       } else if (surge25Mult.cmp(1) > 0) {
           pending = pending.mulBigNumInteger(surge25Mult);
       }
+
+      // Surge 35 Multiplier (Gold)
+      const surge35Mult = getSurge35Multiplier();
+      if (surge35Mult.isInfinite?.()) {
+          pending = BigNum.fromAny('Infinity');
+      } else if (surge35Mult.cmp(1) > 0) {
+          pending = pending.mulBigNumInteger(surge35Mult);
+      }
       
       // 3. Lab Gold multiplier
       const labMult = getLabGoldMultiplier();
@@ -665,6 +700,13 @@ function onTick(dt) {
           pending = BigNum.fromAny('Infinity');
       } else if (surge27Mult.cmp(1) > 0) {
           pending = pending.mulBigNumInteger(surge27Mult);
+      }
+
+      const surge35Mult = getSurge35Multiplier();
+      if (surge35Mult.isInfinite?.()) {
+          pending = BigNum.fromAny('Infinity');
+      } else if (surge35Mult.cmp(1) > 0) {
+          pending = pending.mulBigNumInteger(surge35Mult);
       }
       
       // Multiply by rate and dt
@@ -805,6 +847,18 @@ export function initSurgeEffects() {
     return baseGain;
   });
 
+  addExternalXpGainMultiplierProvider(({ baseGain }) => {
+    if (!isSurgeActive(35)) return baseGain;
+    const mult = getSurge35Multiplier();
+    if (mult.isInfinite?.()) {
+        return BigNum.fromAny("Infinity");
+    }
+    if (mult.cmp(BigNum.fromInt(1)) > 0) {
+        return baseGain.mulBigNumInteger(mult);
+    }
+    return baseGain;
+  });
+
   addExternalMutationGainMultiplierProvider(({ baseGain }) => {
     if (currentMultiplier.cmp(BigNum.fromInt(1)) === 0) return baseGain;
     return baseGain.mulBigNumInteger(currentMultiplier);
@@ -859,9 +913,33 @@ export function initSurgeEffects() {
     return baseMultiplier;
   });
 
+  addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+    if (!isSurgeActive(35)) return baseMultiplier;
+    const mult = getSurge35Multiplier();
+    if (mult.isInfinite?.()) {
+        return BigNum.fromAny("Infinity");
+    }
+    if (mult.cmp(BigNum.fromInt(1)) > 0) {
+        return baseMultiplier.mulBigNumInteger(mult);
+    }
+    return baseMultiplier;
+  });
+
   addExternalFpMultiplierProvider((baseMultiplier) => {
     if (!isSurgeActive(33)) return baseMultiplier;
     const mult = getSurge33Multiplier();
+    if (mult.isInfinite?.()) {
+        return BigNum.fromAny("Infinity");
+    }
+    if (mult.cmp(BigNum.fromInt(1)) > 0) {
+        return baseMultiplier.mulBigNumInteger(mult);
+    }
+    return baseMultiplier;
+  });
+
+  addExternalFpMultiplierProvider((baseMultiplier) => {
+    if (!isSurgeActive(35)) return baseMultiplier;
+    const mult = getSurge35Multiplier();
     if (mult.isInfinite?.()) {
         return BigNum.fromAny("Infinity");
     }
