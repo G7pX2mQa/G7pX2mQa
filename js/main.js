@@ -688,6 +688,7 @@ images: [
 	'img/waterwheels/waterwheel_coin.webp',
 	'img/waterwheels/waterwheel_xp.webp',
 	'img/waterwheels/waterwheel_gold.webp',
+	'img/waterwheels/waterwheel_magic.webp',
 ],
     audio: [
       'sounds/coin_pickup.ogg',
