@@ -676,12 +676,6 @@
   .surge-milestone-item {
     flex: 0 0 100%;
   }
-  .surge-milestone-title {
-    font-size: 0.72rem;
-  }
-  .surge-milestone-desc {
-    font-size: 0.6rem;
-  }
 }
 
 /* Ensure Custom Scrollbar Visible on Touch for Surge Milestones */
