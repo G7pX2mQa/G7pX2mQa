@@ -909,15 +909,15 @@
     }
 }
 @media(pointer: coarse) {
-    .btn-dna-shop {
+    .btn-dna-shop .dna-label {
         -webkit-text-stroke: 0 !important;
         text-stroke: 0 !important;
         -webkit-text-fill-color: #fff;
-        text-shadow: 0 .5px 0 #000, 0 -.5px 0 #000, .5px 0 0 #000, -.5px 0 0 #000, .5px .5px 0 #000, -.5px .5px 0 #000, -.5px -.5px 0 #000, -.5px -.5px 0 #000, 0 1px 0 rgba(0,0,0,.28);
+        text-shadow:
+            0 0.5px 0 #000, 0 -0.5px 0 #000,
+            0.5px 0 0 #000, -0.5px 0 0 #000,
+            0.5px 0.5px 0 #000, 0.5px -0.5px 0 #000,
+            -0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000,
+            0 1px 0 rgba(0,0,0,0.28) !important;
     }
-}
-
-/* Obsolete classes hidden/removed */
-.dna-strand-layer, .dna-segment {
-  display: none;
 }
