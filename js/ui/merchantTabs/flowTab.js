@@ -27,7 +27,7 @@ export const WATERWHEEL_DEFS = {
         id: WATERWHEELS.COIN,
         name: 'Coin Waterwheel',
         image: 'img/waterwheels/waterwheel_coin.webp',
-        baseReq: 10, // 10 FP per level
+        baseReq: 10,
         unlocked: true,
         styleKey: 'coins'
     },
@@ -35,7 +35,7 @@ export const WATERWHEEL_DEFS = {
         id: WATERWHEELS.XP,
         name: 'XP Waterwheel',
         image: 'img/waterwheels/waterwheel_xp.webp',
-        baseReq: 1000, // 1000 FP per level
+        baseReq: 1000,
         unlocked: false,
         prev: WATERWHEELS.COIN,
         unlockReq: 1000,
