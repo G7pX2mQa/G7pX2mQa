@@ -310,35 +310,39 @@
     display: none; 
   }
   
+  .flow-list {
+    width: 100%;
+    align-items: center; /* Center the rows */
+  }
+
   .flow-row {
-    padding: 12px 12px 16px 12px;
+    /* Keep padding symmetrical. The overhang is on the left, so we add equal padding on both left and right to center everything visually */
+    padding: 16px max(12px, calc(var(--flow-plus-size) * 0.5 + 8px));
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-areas: 
       "lvl effect state"
       "line line line"
       "bar bar bar";
-    /* Use clamp for gap so it scales down on very thin screens */
-    gap: clamp(4px, 2vw, 12px);
+    gap: clamp(8px, 3vw, 16px);
     
-    border: 1px solid rgba(72, 209, 204, 0.4); /* Faint cyan #48D1CC */
+    border: 1px solid rgba(72, 209, 204, 0.4);
     border-radius: 12px;
-    background: rgba(64, 224, 208, 0.05); /* Faint cyan bg */
-    width: 100%;
+    background: rgba(64, 224, 208, 0.05);
+    
+    /* Fill width with margin same as explainer */
+    width: 100%; /* Fill container width */
     max-width: 800px;
     box-sizing: border-box;
     position: relative;
-    
-    /* Center the container */
     margin: 0 auto;
   }
   
   .flow-bar-container {
     grid-area: bar;
-    /* Overhang width is var(--flow-plus-size) / 2 */
-    margin-left: calc(var(--flow-plus-size) * 0.5);
-    margin-right: 0;
-    width: min(80vw, 100% - calc(var(--flow-plus-size) * 0.5));
-    justify-self: center; /* center the bar horizontally within its grid area */
+    margin: 0;
+    /* 80% screen width constraint */
+    width: min(80vw, 100%);
+    justify-self: center;
   }
   
   .flow-level-val::before { content: "Lvl: "; color: #aaa; font-size: 0.8rem; font-weight: 400; }
@@ -348,18 +352,31 @@
   .flow-effect-val { grid-area: effect; justify-self: center; align-self: center; font-size: 1rem; text-align: center; }
   .flow-row-controls { grid-area: state; justify-self: center; align-self: center; }
 
-  /* Horizontal line pseudo-element in the grid */
+  /* Horizontal line */
   .flow-row::after {
     content: "";
     grid-area: line;
     width: 100%;
     height: 1px;
-    background: rgba(72, 209, 204, 0.3); /* Faint cyan */
+    background: rgba(72, 209, 204, 0.3);
     margin: 4px 0;
+  }
+  
+  /* Locked State Overrides */
+  .flow-row.is-locked {
+    grid-template-areas: "bar bar bar";
+    grid-template-rows: auto;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    gap: 0;
+  }
+  
+  .flow-row.is-locked::after {
+    display: none;
   }
 }
 
-/* Very Small Mobile Responsive */
+
 @media (max-width: 400px) {
   .flow-explainer {
     font-size: 0.6rem;
