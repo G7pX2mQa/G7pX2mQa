@@ -68,6 +68,9 @@
   overflow: hidden;
   display: none; /* Hidden by default on small screens */
   pointer-events: none; /* purely decorative */
+  border: 2px solid #6a6a6a;
+  border-radius: 8px;
+  box-sizing: border-box;
 }
 
 .workshop-side-left {
@@ -104,7 +107,9 @@
 .workshop-info-panel {
   background-color: #333;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: 8px;
+  border: 2px solid #6a6a6a;
+  box-sizing: border-box;
 }
 
 /* Gear HUD Bar */
@@ -221,6 +226,7 @@
   color: rgba(255, 255, 255, 0.9);
   text-align: center;
   text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  margin-top: 8px;
 }
 
 /* Doubler Panel */
