@@ -615,6 +615,19 @@ export function updateWorkshopTab() {
     if (leftCol) syncGearDecorations(leftCol);
     if (rightCol) syncGearDecorations(rightCol);
   }
+
+  // Hide the gear container borders if Workshop Level is 0
+  const isLevelZero = currentGenerationLevel.isZero();
+  const leftCol = workshopEl.querySelector('.workshop-side-left');
+  const rightCol = workshopEl.querySelector('.workshop-side-right');
+  if (leftCol) {
+    leftCol.style.opacity = isLevelZero ? '0' : '1';
+    leftCol.style.pointerEvents = isLevelZero ? 'none' : '';
+  }
+  if (rightCol) {
+    rightCol.style.opacity = isLevelZero ? '0' : '1';
+    rightCol.style.pointerEvents = isLevelZero ? 'none' : '';
+  }
 }
 
 function stopRenderLoop() {
