@@ -2,3 +2,32 @@
     font-size: 1.25em;
 	margin-left: 4px;
 }
+
+@media (pointer: coarse) {
+    .lab-bar-text {
+        -webkit-text-stroke: 0 !important;
+        text-stroke: 0 !important;
+        -webkit-text-fill-color: #fff;
+        text-shadow:
+            0 0.35px 0 #000, 0 -0.35px 0 #000,
+            0.35px 0 0 #000, -0.35px 0 0 #000,
+            0.35px 0.35px 0 #000, 0.35px -0.35px 0 #000,
+            -0.35px 0.35px 0 #000, -0.35px -0.35px 0 #000,
+            0 1px 0 rgba(0,0,0,0.28) !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .lab-level-bar {
+        width: 100% !important;
+    }
+    .lab-coins-bar {
+        width: 95% !important;
+    }
+    .lab-coins-bar.lab-bar-text {
+        font-size: 10.7px !important;
+    }
+    .lab-nerf-bar {
+        width: 90% !important;
+    }
+}
