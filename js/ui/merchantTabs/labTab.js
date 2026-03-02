@@ -402,6 +402,7 @@ class LabSystem {
         // Lab Level Bar
         this.levelBar = document.createElement('div');
         this.levelBar.innerHTML = `Lab Level: ${formatNumber(getLabLevel())}`;
+        this.levelBar.classList.add('lab-bar-text', 'lab-level-bar');
         applyBarStyle(this.levelBar);
         applyTextStyle(this.levelBar, '26px', '1px');
         this.levelBar.style.padding = '8px 12px';
@@ -412,6 +413,7 @@ class LabSystem {
         // Coins Needed Bar
         this.coinsBar = document.createElement('div');
         this.coinsBar.innerHTML = 'Coins needed to increment Lab Level: 0';
+        this.coinsBar.classList.add('lab-bar-text', 'lab-coins-bar');
         applyBarStyle(this.coinsBar);
         applyTextStyle(this.coinsBar, '16px', '0.9px');
         this.coinsBar.style.padding = '6px 12px';
@@ -431,6 +433,7 @@ class LabSystem {
         // Nerf Exponent Bar
         this.nerfBar = document.createElement('div');
         this.nerfBar.textContent = 'Tsunami Exponent: ^0.00';
+        this.nerfBar.classList.add('lab-bar-text', 'lab-nerf-bar');
         applyBarStyle(this.nerfBar);
         applyTextStyle(this.nerfBar, '14px', '0.8px');
         this.nerfBar.style.padding = '4px 12px';
