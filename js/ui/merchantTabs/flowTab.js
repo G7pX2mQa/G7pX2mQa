@@ -76,6 +76,184 @@ let flowSystemInitialized = false;
 let flowTabInitialized = false;
 let flowPanel = null;
 
+
+const animatedWaterwheels = new Map();
+const waterwheelImages = {};
+for (const key in WATERWHEEL_DEFS) {
+    waterwheelImages[key] = new Image();
+    waterwheelImages[key].src = WATERWHEEL_DEFS[key].image;
+}
+
+const WATERWHEEL_ORDER = [WATERWHEELS.COIN, WATERWHEELS.XP, WATERWHEELS.GOLD, WATERWHEELS.MAGIC];
+
+function syncWaterwheelDecorations(container) {
+    if (!container) return;
+    let entry = animatedWaterwheels.get(container);
+
+    let canvas = container.querySelector('canvas.flow-ww-bg-canvas');
+    if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.classList.add('flow-ww-bg-canvas');
+        canvas.style.position = 'absolute';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.pointerEvents = 'none';
+        canvas.style.userSelect = 'none';
+        canvas.style.zIndex = '0';
+        container.appendChild(canvas);
+    }
+
+    const rect = container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    if (!entry) {
+        entry = {
+            wheels: [],
+            width: rect.width,
+            height: rect.height,
+            needsDistribution: !rect.width || !rect.height,
+            canvas: canvas,
+            ctx: canvas.getContext('2d', { alpha: true })
+        };
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        entry.ctx.scale(dpr, dpr);
+        animatedWaterwheels.set(container, entry);
+    } else {
+        if (!entry.canvas) {
+            entry.canvas = canvas;
+            entry.ctx = canvas.getContext('2d', { alpha: true });
+            entry.ctx.scale(dpr, dpr);
+        }
+    }
+
+    if (rect.width > 0 && rect.height > 0) {
+        entry.width = rect.width;
+        entry.height = rect.height;
+        const targetWidth = Math.round(rect.width * dpr);
+        const targetHeight = Math.round(rect.height * dpr);
+
+        if (entry.canvas.width !== targetWidth || entry.canvas.height !== targetHeight) {
+            entry.canvas.width = targetWidth;
+            entry.canvas.height = targetHeight;
+            entry.ctx.scale(dpr, dpr);
+        }
+    }
+
+    let totalWheels = 0;
+    const targetCounts = {};
+    for (const key of WATERWHEEL_ORDER) {
+        const lvl = state.waterwheels[key].level;
+        let count = 0;
+        if (lvl.cmp(0) > 0) {
+            let numLvl = 0;
+            if (lvl.cmp(1e30) > 0) numLvl = 1e30; 
+            else numLvl = Number(lvl.toPlainIntegerString());
+            
+            // Formula: Log10(Level * 10), max 30 per type
+            const logVal = Math.floor(Math.log10(numLvl * 10));
+            count = Math.max(0, Math.min(logVal, 30));
+        }
+        targetCounts[key] = count;
+        totalWheels += count;
+    }
+
+    // Adjust borders
+    if (totalWheels === 0) {
+        container.style.border = 'none';
+    } else {
+        container.style.border = '1px solid rgba(72, 209, 204, 0.4)';
+    }
+
+    // Reconcile wheels
+    const newWheels = [];
+    for (let i = 0; i < WATERWHEEL_ORDER.length; i++) {
+        const type = WATERWHEEL_ORDER[i];
+        const targetCount = targetCounts[type];
+        let currentCount = 0;
+
+        // Keep existing wheels of this type
+        for (const w of entry.wheels) {
+            if (w.type === type) {
+                if (currentCount < targetCount) {
+                    newWheels.push(w);
+                    currentCount++;
+                }
+            }
+        }
+
+        // Add new wheels
+        while (currentCount < targetCount) {
+            const size = 48 + Math.random() * 48;
+            let x = 0;
+            let y = 0;
+            if (entry.width > 0 && entry.height > 0) {
+                x = Math.random() * (entry.width - size);
+                y = Math.random() * (entry.height - size);
+                if (x < 0) x = 0;
+                if (y < 0) y = 0;
+            } else {
+                entry.needsDistribution = true;
+            }
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 40 + Math.random() * 40;
+            const dx = Math.cos(angle) * speed;
+            const dy = Math.sin(angle) * speed;
+            const rotation = Math.random() * 360;
+            const rotationSpeed = (Math.random() < 0.5 ? -1 : 1) * (30 + Math.random() * 60);
+
+            newWheels.push({ type, layer: i, x, y, dx, dy, rotation, rotationSpeed, size });
+            currentCount++;
+        }
+    }
+    
+    // Sort by layer
+    newWheels.sort((a, b) => a.layer - b.layer);
+    entry.wheels = newWheels;
+}
+
+const syncFlowLayout = () => {
+    if (flowPanel && flowPanel.isConnected) {
+        const left = flowPanel.querySelector('.flow-side-left');
+        const right = flowPanel.querySelector('.flow-side-right');
+        const updateBounds = (col) => {
+            if (!col) return;
+            const entry = animatedWaterwheels.get(col);
+            if (entry) {
+                const rect = col.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                entry.width = rect.width;
+                entry.height = rect.height;
+                const targetWidth = Math.round(rect.width * dpr);
+                const targetHeight = Math.round(rect.height * dpr);
+
+                if (entry.canvas && (entry.canvas.width !== targetWidth || entry.canvas.height !== targetHeight)) {
+                    entry.canvas.width = targetWidth;
+                    entry.canvas.height = targetHeight;
+                    entry.ctx.scale(dpr, dpr);
+                }
+                if (entry.needsDistribution && entry.width > 0 && entry.height > 0) {
+                    entry.needsDistribution = false;
+                    for (const w of entry.wheels) {
+                        w.x = Math.random() * (entry.width - w.size);
+                        if (w.x < 0) w.x = 0;
+                        w.y = Math.random() * (entry.height - w.size);
+                        if (w.y < 0) w.y = 0;
+                    }
+                }
+            }
+        };
+        updateBounds(left);
+        updateBounds(right);
+    }
+};
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('resize', syncFlowLayout);
+}
+
 const state = {
     waterwheels: {
         [WATERWHEELS.COIN]: {
@@ -643,6 +821,37 @@ function onFrame(time, dt) {
     // --- Render WebGL Waterwheels ---
     waterwheelRenderer.render(dt);
 
+    // Render Side Column Waterwheels
+    for (const [container, data] of animatedWaterwheels) {
+        if (!container.isConnected) continue;
+        const { wheels, width, height, ctx } = data;
+        if (!width || !height || !ctx) continue;
+        
+        ctx.clearRect(0, 0, width, height);
+
+        for (const w of wheels) {
+            const img = waterwheelImages[w.type];
+            if (!img.complete || img.naturalWidth === 0) continue;
+
+            w.x += w.dx * dt;
+            w.y += w.dy * dt;
+            if (w.x < 0) { w.x = 0; w.dx = -w.dx; }
+            else if (w.x + w.size > width) { w.x = width - w.size; w.dx = -w.dx; }
+            if (w.y < 0) { w.y = 0; w.dy = -w.dy; }
+            else if (w.y + w.size > height) { w.y = height - w.size; w.dy = -w.dy; }
+            w.rotation += w.rotationSpeed * dt;
+            
+            const cx = w.x + w.size / 2;
+            const cy = w.y + w.size / 2;
+            
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(w.rotation * Math.PI / 180);
+            ctx.drawImage(img, -w.size / 2, -w.size / 2, w.size, w.size);
+            ctx.restore();
+        }
+    }
+
     for (const id in state.waterwheels) {
         if (!state.visuals[id]) continue;
         const v = state.visuals[id];
@@ -699,6 +908,15 @@ function buildUI(panel) {
     const wrapper = document.createElement('div');
     wrapper.className = 'flow-tab';
 
+    const sideLeft = document.createElement('div');
+    sideLeft.className = 'flow-side-col flow-side-left';
+    
+    const sideRight = document.createElement('div');
+    sideRight.className = 'flow-side-col flow-side-right';
+    
+    const centerCol = document.createElement('div');
+    centerCol.className = 'flow-center-col';
+
     // Header
     const header = document.createElement('div');
     header.className = 'flow-header';
@@ -741,7 +959,7 @@ function buildUI(panel) {
 
 
     header.appendChild(explainer);
-    wrapper.appendChild(header);
+    centerCol.appendChild(header);
 
     // List
     const list = document.createElement('div');
@@ -783,7 +1001,10 @@ function buildUI(panel) {
         `;
         list.appendChild(item);
     }
-    wrapper.appendChild(list);
+    centerCol.appendChild(list);
+    wrapper.appendChild(sideLeft);
+    wrapper.appendChild(centerCol);
+    wrapper.appendChild(sideRight);
     panel.appendChild(wrapper);
 
     // Bind Events
@@ -933,6 +1154,9 @@ function updateFlowVisuals() {
     if (!flowTabInitialized || !flowPanel) return;
 
     const fpMult = getFpMultiplier();
+    
+    syncWaterwheelDecorations(flowPanel.querySelector('.flow-side-left'));
+    syncWaterwheelDecorations(flowPanel.querySelector('.flow-side-right'));
 
     for (const id in WATERWHEEL_DEFS) {
         const ch = state.waterwheels[id];
@@ -1065,6 +1289,14 @@ export function initFlowTab(panelEl) {
 
     flowTabInitialized = true;
     updateFlowTab();
+    
+    if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(syncFlowLayout);
+        const leftCol = flowPanel.querySelector('.flow-side-left');
+        const rightCol = flowPanel.querySelector('.flow-side-right');
+        if (leftCol) ro.observe(leftCol);
+        if (rightCol) ro.observe(rightCol);
+    }
     
     setTimeout(alignFlowColumns, 0);
     window.addEventListener('resize', alignFlowColumns);
