@@ -944,6 +944,7 @@ function updateFlowVisuals() {
         const elControls = flowPanel.querySelector(`#flow-controls-${id}`);
         const elName = flowPanel.querySelector(`#flow-name-${id}`);
         const elFill = flowPanel.querySelector(`#flow-fill-${id}`);
+        const elRow = elFill ? elFill.closest('.flow-row') : null;
         
         if (!ch.unlocked) {
             // Locked State
@@ -952,9 +953,10 @@ function updateFlowVisuals() {
                     elIcon.src = 'img/misc/locked.webp';
                 }
             }
-            if (elLvl) elLvl.style.visibility = 'hidden';
-            if (elEffect) elEffect.style.visibility = 'hidden';
-            if (elControls) elControls.style.visibility = 'hidden';
+            if (elRow) elRow.classList.add('is-locked');
+            if (elLvl) elLvl.style.display = 'none';
+            if (elEffect) elEffect.style.display = 'none';
+            if (elControls) elControls.style.display = 'none';
             
             if (elName) {
                 let reqStr = String(def.unlockReq);
@@ -975,16 +977,17 @@ function updateFlowVisuals() {
                     elIcon.src = def.image;
                 }
             }
+            if (elRow) elRow.classList.remove('is-locked');
             if (elLvl) {
-                 elLvl.style.visibility = 'visible';
+                 elLvl.style.display = '';
                  elLvl.textContent = formatNumber(ch.level);
             }
             if (elEffect) {
-                elEffect.style.visibility = 'visible';
+                elEffect.style.display = '';
                 const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
                 elEffect.textContent = `+${formatNumber(effectVal)}%`;
             }
-            if (elControls) elControls.style.visibility = 'visible';
+            if (elControls) elControls.style.display = '';
             
             if (elName) {
                 elName.textContent = def.name;
