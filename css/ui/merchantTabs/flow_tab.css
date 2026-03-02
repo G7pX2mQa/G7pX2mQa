@@ -1,19 +1,63 @@
 .flow-tab {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
+  flex-direction: row;
+  justify-content: center;
+  align-items: stretch;
+  position: relative;
+  flex: 1;
+  min-height: 100%;
   width: 100%;
   box-sizing: border-box;
   text-align: center;
   color: #fff;
-  
+  container-type: inline-size;
+
   /* XP/MP Bar Replication Vars */
   --flow-bar-h: clamp(34px, 5.2svh, 46px);
   --flow-plus-size: clamp(52px, 7.4svh, 76px);
   --flow-bar-outline: 3px;
   --flow-bar-underlap: 0.44;
+}
+
+.flow-center-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 1000px;
+  padding: 16px;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  z-index: 1;
+  margin: 0 auto;
+}
+
+.flow-side-col {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: max(0px, calc(50% - 500px)); /* Fill space outside the 1000px center */
+  overflow: hidden;
+  display: none;
+  pointer-events: none;
+  border: 1px solid rgba(72, 209, 204, 0.4);
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+
+.flow-side-left {
+  left: 0;
+}
+
+.flow-side-right {
+  right: 0;
+}
+
+@media (min-width: 1050px) {
+  .flow-side-col {
+    display: block;
+  }
 }
 
 .flow-header {
