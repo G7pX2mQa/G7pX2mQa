@@ -296,17 +296,14 @@
   background: hsla(150, 60%, 35%, 0.28);
 }
 
-/* Tablet Responsive (Hide minis) */
+/* Mobile Responsive (Max 900px) */
 @media (max-width: 900px) {
   .flow-minis-col {
     display: none;
   }
-}
 
-/* Mobile Responsive */
-@media (max-width: 600px) {
   .flow-explainer {
-    font-size: 0.6rem;
+    font-size: 0.8rem;
   }
 
   .flow-list-header {
@@ -314,27 +311,70 @@
   }
   
   .flow-row {
-    padding: 8px;
-    grid-template-columns: 1fr auto;
+    padding: 12px 12px 16px 12px;
+    grid-template-columns: 1fr 1fr 1fr;
     grid-template-areas: 
-      "bar bar"
-      "lvl state"
-      "effect effect";
-    gap: 8px;
+      "lvl effect state"
+      "line line line"
+      "bar bar bar";
+    /* Use clamp for gap so it scales down on very thin screens */
+    gap: clamp(4px, 2vw, 12px);
+    
+    border: 1px solid rgba(72, 209, 204, 0.4); /* Faint cyan #48D1CC */
+    border-radius: 12px;
+    background: rgba(64, 224, 208, 0.05); /* Faint cyan bg */
+    width: 100%;
+    max-width: 800px;
+    box-sizing: border-box;
+    position: relative;
+    
+    /* Center the container */
+    margin: 0 auto;
   }
   
   .flow-bar-container {
     grid-area: bar;
-    margin-left: 16px;
-    width: calc(100% - 16px);
+    /* Overhang width is var(--flow-plus-size) / 2 */
+    margin-left: calc(var(--flow-plus-size) * 0.5);
+    margin-right: 0;
+    width: min(80vw, 100% - calc(var(--flow-plus-size) * 0.5));
+    justify-self: center; /* center the bar horizontally within its grid area */
   }
   
   .flow-level-val::before { content: "Lvl: "; color: #aaa; font-size: 0.8rem; font-weight: 400; }
   .flow-effect-val::before { content: "Effect: "; color: #aaa; font-size: 0.8rem; font-weight: 400; }
   
-  .flow-level-val { grid-area: lvl; justify-self: start; }
-  .flow-effect-val { grid-area: effect; justify-self: start; font-size: 1rem; }
-  .flow-row-controls { grid-area: state; justify-self: end; }
+  .flow-level-val { grid-area: lvl; justify-self: center; align-self: center; text-align: center; }
+  .flow-effect-val { grid-area: effect; justify-self: center; align-self: center; font-size: 1rem; text-align: center; }
+  .flow-row-controls { grid-area: state; justify-self: center; align-self: center; }
+
+  /* Horizontal line pseudo-element in the grid */
+  .flow-row::after {
+    content: "";
+    grid-area: line;
+    width: 100%;
+    height: 1px;
+    background: rgba(72, 209, 204, 0.3); /* Faint cyan */
+    margin: 4px 0;
+  }
+}
+
+/* Very Small Mobile Responsive */
+@media (max-width: 400px) {
+  .flow-explainer {
+    font-size: 0.6rem;
+  }
+  .flow-level-val, .flow-effect-val {
+    flex-direction: column; /* Stack "Lvl: " and number if it gets too tight, wait they are pseudo elements */
+    font-size: 0.9rem;
+  }
+  .flow-effect-val {
+    font-size: 0.85rem;
+  }
+  .flow-toggle-btn {
+    min-width: 50px;
+    padding: 4px 8px;
+  }
 }
 
 /* Waterwheel Visuals */
