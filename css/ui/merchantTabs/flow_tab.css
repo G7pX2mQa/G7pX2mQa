@@ -296,12 +296,15 @@
   background: hsla(150, 60%, 35%, 0.28);
 }
 
-/* Mobile Responsive */
-@media (max-width: 600px) {
+/* Tablet Responsive (Hide minis) */
+@media (max-width: 900px) {
   .flow-minis-col {
     display: none;
   }
+}
 
+/* Mobile Responsive */
+@media (max-width: 600px) {
   .flow-explainer {
     font-size: 0.6rem;
   }
