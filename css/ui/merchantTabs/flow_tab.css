@@ -109,7 +109,7 @@
 .flow-list-header::after {
   content: "";
   position: absolute;
-  left: 3px;
+  left: 0;
   right: 0;
   bottom: 0;
   height: 1px;
@@ -303,7 +303,7 @@
   }
 
   .flow-explainer {
-    font-size: 0.63rem;
+    font-size: 0.6rem;
   }
 
   .flow-list-header {
