@@ -856,20 +856,18 @@ function alignFlowColumns() {
     if (!flowPanel || !flowPanel.isConnected) return;
     
     const header = flowPanel.querySelector('.flow-list-header');
-    if (!header || header.offsetParent === null) return; // Hidden or not rendered
-
-    if (header.children.length < 4) return;
-
-    const levelHeader = header.children[1];
-    const effectHeader = header.children[2];
-    const stateHeader = header.children[3];
-
-    const rows = Array.from(flowPanel.querySelectorAll('.flow-row'));
     
-    // Collect all elements to manage
-    const levelEls = [levelHeader];
-    const effectEls = [effectHeader];
-    const stateEls = [stateHeader];
+    // We need to collect elements to clear transforms regardless of header visibility
+    const rows = Array.from(flowPanel.querySelectorAll('.flow-row'));
+    const levelEls = [];
+    const effectEls = [];
+    const stateEls = [];
+    
+    if (header && header.children.length >= 4) {
+        levelEls.push(header.children[1]);
+        effectEls.push(header.children[2]);
+        stateEls.push(header.children[3]);
+    }
     
     rows.forEach(row => {
         const l = row.querySelector('.flow-level-val');
@@ -884,6 +882,12 @@ function alignFlowColumns() {
     levelEls.forEach(el => el.style.transform = '');
     effectEls.forEach(el => el.style.transform = '');
     stateEls.forEach(el => el.style.transform = '');
+    
+    // If we are on mobile/tablet, we don't apply the desktop alignment logic
+    if (typeof window !== "undefined" && window.innerWidth <= 900) return;
+    
+    if (!header || header.offsetParent === null) return; // Hidden or not rendered
+    if (header.children.length < 4) return;
 
     // 2. Measure Centers (Batch Read)
     const getCenter = (el) => {
@@ -907,7 +911,10 @@ function alignFlowColumns() {
             const center = rect.left + rect.width / 2;
             let diff = targetCenter - center;
             
-            if (index === 0) { // Header
+            // Only the first element in each array is the header if header exists, 
+            // but we need to check if the first element is actually a header child.
+            // Let's just use the logic from the original code which assumes index 0 is header.
+            if (index === 0 && header && header.contains(els[0])) { 
                 diff += headerOffset;
             }
 
