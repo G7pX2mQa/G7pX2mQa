@@ -345,7 +345,7 @@
     justify-self: center;
   }
   
-  .flow-level-val::before { content: "Lvl: "; color: #aaa; font-size: 0.8rem; font-weight: 400; }
+  .flow-level-val::before { content: "Level: "; color: #aaa; font-size: 0.8rem; font-weight: 400; }
   .flow-effect-val::before { content: "Effect: "; color: #aaa; font-size: 0.8rem; font-weight: 400; }
   
   .flow-level-val { grid-area: lvl; justify-self: center; align-self: center; text-align: center; }
