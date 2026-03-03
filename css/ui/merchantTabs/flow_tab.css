@@ -37,8 +37,8 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: max(0px, calc(50% - 400px - 32px)); /* 400px from center, minus 16px margin on each side */
-  margin: 0 16px;
+  width: max(0px, calc(50% - 400px - 24px)); /* 400px from center, minus 12px margin on each side */
+  margin: 0;
   overflow: hidden;
   display: none;
   pointer-events: none;
