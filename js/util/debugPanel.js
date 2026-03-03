@@ -724,6 +724,8 @@ function getGameStatMultiplier(statKey) {
         }
         else if (statKey === 'rp') {
             return getRpMultBase();
+        } else if (statKey === 'fp') {
+            return getFpMultiplier();
         }
     } catch {}
 
