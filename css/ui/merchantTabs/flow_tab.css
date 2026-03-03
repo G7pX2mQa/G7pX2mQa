@@ -37,7 +37,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: max(0px, calc(50% - 400px - 24px)); /* 400px from center, minus 12px margin on each side */
+  width: max(0px, calc(50% - 458px - 12px));
   margin: 0;
   overflow: hidden;
   display: none;
