@@ -78,6 +78,7 @@ let flowPanel = null;
 
 
 const animatedWaterwheels = new Map();
+let visualPool = [];
 const waterwheelImages = {};
 for (const key in WATERWHEEL_DEFS) {
     waterwheelImages[key] = new Image();
@@ -167,36 +168,49 @@ function syncWaterwheelDecorations(container) {
         container.style.border = '2px solid rgba(72, 209, 204, 0.4)';
     }
 
-    // Reconcile wheels
-    const newWheels = [];
-    for (let i = 0; i < WATERWHEEL_ORDER.length; i++) {
-        const type = WATERWHEEL_ORDER[i];
+    // Update visualPool based on targetCounts
+    for (const type of WATERWHEEL_ORDER) {
         const targetCount = targetCounts[type];
-        let currentCount = 0;
-
-        // Size logic for the waterwheels
-        // Minimum size is 48, Maximum size is 128
-        const minSize = 48;
-        const maxSize = 128;
-        let size = minSize;
-        if (WATERWHEEL_ORDER.length > 1) {
-            size = minSize + i * ((maxSize - minSize) / (WATERWHEEL_ORDER.length - 1));
-        }
-
-        // Keep existing wheels of this type
-        for (const w of entry.wheels) {
-            if (w.type === type) {
-                if (currentCount < targetCount) {
-                    // Update size in case the order length changed
-                    w.size = size;
-                    newWheels.push(w);
-                    currentCount++;
+        let currentCount = visualPool.filter(t => t === type).length;
+        
+        if (targetCount > currentCount) {
+            for (let i = 0; i < targetCount - currentCount; i++) {
+                visualPool.push(type);
+            }
+        } else if (targetCount < currentCount) {
+            for (let i = visualPool.length - 1; i >= 0 && currentCount > targetCount; i--) {
+                if (visualPool[i] === type) {
+                    visualPool.splice(i, 1);
+                    currentCount--;
                 }
             }
         }
+    }
 
-        // Add new wheels
-        while (currentCount < targetCount) {
+    // Reconcile wheels
+    const newWheels = [];
+    const minSize = 48;
+    const maxSize = 128;
+
+    for (let i = 0; i < visualPool.length; i++) {
+        const type = visualPool[i];
+        const typeIndex = WATERWHEEL_ORDER.indexOf(type);
+        
+        // Size logic for the waterwheels
+        let size = minSize;
+        if (WATERWHEEL_ORDER.length > 1) {
+            size = minSize + typeIndex * ((maxSize - minSize) / (WATERWHEEL_ORDER.length - 1));
+        }
+
+        // Keep existing wheels of this type
+        const existingIdx = entry.wheels.findIndex(w => w.type === type && !w._reused);
+        if (existingIdx !== -1) {
+            const w = entry.wheels[existingIdx];
+            w._reused = true;
+            w.size = size;
+            newWheels.push(w);
+        } else {
+            // Add new wheels
             let x = 0;
             let y = 0;
             if (entry.width > 0 && entry.height > 0) {
@@ -214,13 +228,15 @@ function syncWaterwheelDecorations(container) {
             const rotation = Math.random() * 360;
             const rotationSpeed = (Math.random() < 0.5 ? -1 : 1) * (30 + Math.random() * 60);
 
-            newWheels.push({ type, layer: i, x, y, dx, dy, rotation, rotationSpeed, size });
-            currentCount++;
+            newWheels.push({ type, x, y, dx, dy, rotation, rotationSpeed, size, _reused: true });
         }
     }
     
-    // Sort by layer
-    newWheels.sort((a, b) => a.layer - b.layer);
+    // Clean up _reused flags
+    for (const w of newWheels) {
+        delete w._reused;
+    }
+
     entry.wheels = newWheels;
 }
 
@@ -329,6 +345,18 @@ function loadState() {
 
     // Load Flow Data
     try {
+        const vpKey = `${KEY_PREFIX}:visualPool:${slot}`;
+        const vpRaw = localStorage.getItem(vpKey);
+        if (vpRaw) {
+            try {
+                visualPool = JSON.parse(vpRaw);
+            } catch (e) {
+                visualPool = [];
+            }
+        } else {
+            visualPool = [];
+        }
+
         // Migration: Check for old single-object key
         const oldKey = `${KEY_PREFIX}:data:${slot}`;
         const oldDataRaw = localStorage.getItem(oldKey);
@@ -399,6 +427,9 @@ function saveState() {
         };
         localStorage.setItem(KEY_WATERWHEEL(id, slot), JSON.stringify(dataToSave));
     }
+    
+    // Save visual pool
+    localStorage.setItem(`${KEY_PREFIX}:visualPool:${slot}`, JSON.stringify(visualPool));
 }
 
 let saveTimeout = null;
