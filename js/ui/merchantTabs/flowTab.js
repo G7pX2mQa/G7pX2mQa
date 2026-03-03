@@ -59,7 +59,7 @@ export const WATERWHEEL_DEFS = {
         image: 'img/waterwheels/waterwheel_magic.webp',
         baseReq: 1e16,
         unlocked: false,
-        prev: WATERWHEELS.XP,
+        prev: WATERWHEELS.GOLD,
         unlockReq: 1e9,
         styleKey: 'magic'
     }
