@@ -164,7 +164,7 @@ function syncWaterwheelDecorations(container) {
     if (totalWheels === 0) {
         container.style.border = 'none';
     } else {
-        container.style.border = '1px solid rgba(72, 209, 204, 0.4)';
+        container.style.border = '2px solid rgba(72, 209, 204, 0.4)';
     }
 
     // Reconcile wheels
@@ -174,10 +174,21 @@ function syncWaterwheelDecorations(container) {
         const targetCount = targetCounts[type];
         let currentCount = 0;
 
+        // Size logic for the waterwheels
+        // Minimum size is 48, Maximum size is 192
+        const minSize = 48;
+        const maxSize = 192;
+        let size = minSize;
+        if (WATERWHEEL_ORDER.length > 1) {
+            size = minSize + i * ((maxSize - minSize) / (WATERWHEEL_ORDER.length - 1));
+        }
+
         // Keep existing wheels of this type
         for (const w of entry.wheels) {
             if (w.type === type) {
                 if (currentCount < targetCount) {
+                    // Update size in case the order length changed
+                    w.size = size;
                     newWheels.push(w);
                     currentCount++;
                 }
@@ -186,7 +197,6 @@ function syncWaterwheelDecorations(container) {
 
         // Add new wheels
         while (currentCount < targetCount) {
-            const size = 48 + Math.random() * 48;
             let x = 0;
             let y = 0;
             if (entry.width > 0 && entry.height > 0) {
