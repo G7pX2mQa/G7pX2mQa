@@ -484,7 +484,7 @@ class LabSystem {
         
         const lines = IS_MOBILE ? [
             ['Node Details:', 'Tap'],
-            ['Move Camera:', 'Hold and drag'],
+            ['Move Camera:', 'Tap and drag'],
             ['Zoom In/Out:', 'Pinch screen']
         ] : [
             ['Node Details:', 'Left click'],
