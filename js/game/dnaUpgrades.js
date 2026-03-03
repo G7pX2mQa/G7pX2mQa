@@ -144,7 +144,7 @@ export const REGISTRY = [
     costType: "dna",
     upgType: "HM",
     scalingPreset: 'HM',
-    icon: "lab_icons/dna_val_dna.webp",
+    icon: "sc_upg_icons/dna_val_dna.webp",
     baseIconOverride: "currencies/dna/dna_base.webp",
     effectType: "dna_value",
     _dnaEffectVal: 1.1,
