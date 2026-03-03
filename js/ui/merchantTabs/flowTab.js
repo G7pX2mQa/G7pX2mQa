@@ -175,9 +175,9 @@ function syncWaterwheelDecorations(container) {
         let currentCount = 0;
 
         // Size logic for the waterwheels
-        // Minimum size is 48, Maximum size is 192
+        // Minimum size is 48, Maximum size is 128
         const minSize = 48;
-        const maxSize = 192;
+        const maxSize = 128;
         let size = minSize;
         if (WATERWHEEL_ORDER.length > 1) {
             size = minSize + i * ((maxSize - minSize) / (WATERWHEEL_ORDER.length - 1));
