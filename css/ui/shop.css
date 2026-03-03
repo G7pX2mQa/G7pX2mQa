@@ -678,8 +678,7 @@
 
 .shop-upgrade.hm-evolve-ready .shop-tile {
   border-radius: 50%;
-  box-shadow: 0 0 16px hsla(26, 100%, 50%, 0.65);
-  animation: hm-evolve-glow 1.6s ease-in-out infinite;
+  animation: hm-evolve-scale 2s ease-in-out infinite;
 }
 
 .upg-sheet.hm-evolve-ready .upg-level {
@@ -755,17 +754,13 @@
   text-shadow: 0 0 12px hsla(26, 100%, 50%, 0.75);
 }
 
-@keyframes hm-evolve-glow {
+@keyframes hm-evolve-scale {
   0%,
   100% {
-    box-shadow:
-      0 0 18px 2px hsla(26, 100%, 50%, 0.65),
-      0 0 36px 6px hsla(26, 100%, 50%, 0.35);
+    transform: scale(0.87);
   }
   50% {
-    box-shadow:
-      0 0 26px 6px hsla(26, 100%, 55%, 0.9),
-      0 0 48px 12px hsla(26, 100%, 55%, 0.55);
+    transform: scale(1.13);
   }
 }
 
