@@ -896,7 +896,18 @@ function onFrame(time, dt) {
     for (const id in state.waterwheels) {
         if (!state.visuals[id]) continue;
         const v = state.visuals[id];
+        const ch = state.waterwheels[id];
         
+        if (ch && !ch.unlocked) {
+            if (v.rotation !== 0 || v.speed !== 0) {
+                v.rotation = 0;
+                v.speed = 0;
+                const el = document.getElementById(`flow-icon-${id}`);
+                if (el) el.style.transform = `translateY(-50%)`;
+            }
+            continue;
+        }
+
         if (v.speed > 0 || v.rotation > 0) {
             let speed = v.speed;
             if (v.isMax || speed > 20) speed = 20;
