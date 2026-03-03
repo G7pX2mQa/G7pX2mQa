@@ -37,11 +37,12 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: max(0px, calc(50% - 500px)); /* Fill space outside the 1000px center */
+  width: max(0px, calc(50% - 400px - 32px)); /* 400px from center, minus 16px margin on each side */
+  margin: 0 16px;
   overflow: hidden;
   display: none;
   pointer-events: none;
-  border: 1px solid rgba(72, 209, 204, 0.4);
+  border: 2px solid rgba(72, 209, 204, 0.4);
   border-radius: 12px;
   box-sizing: border-box;
 }
@@ -54,7 +55,7 @@
   right: 0;
 }
 
-@media (min-width: 1050px) {
+@media (min-width: 1500px) {
   .flow-side-col {
     display: block;
   }
