@@ -535,6 +535,15 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             /<span style="color:#00e5ff">.*?<\/span>/, 
             `<span style="color:#00e5ff">${divStr}x</span>`
         );
+      } else if (m.id === 29) {
+        const logMult = 30;
+        const newMult = bigNumFromLog10(logMult * nerf);
+        const multStr = formatNumber(newMult);
+        
+        milestone.description[0] = milestone.description[0].replace(
+            /<span style="color:#00e5ff">.*?<\/span>/, 
+            `<span style="color:#00e5ff">${multStr}x<\/span>`
+        );
       }
     }
 
