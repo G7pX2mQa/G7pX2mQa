@@ -4082,6 +4082,28 @@ function buildMiscContent(content) {
             },
         },
         {
+            label: 'Max Nodes Until X',
+            onClick: () => {
+                const raw = window.prompt("Input the Lab node number you want to max until (inclusive)");
+                if (raw == null) return;
+                const limit = parseInt(raw, 10);
+                if (isNaN(limit) || limit <= 0) return;
+
+                let count = 0;
+                RESEARCH_NODES.forEach((node) => {
+                    if (node.id <= limit) {
+                        const currentLevel = getResearchNodeLevel(node.id);
+                        if (currentLevel < node.maxLevel) {
+                            setResearchNodeLevel(node.id, node.maxLevel);
+                            count++;
+                        }
+                    }
+                });
+                flagDebugUsage();
+                logAction(`Maxed ${count} Lab Nodes up to node ${limit}.`);
+            },
+        },
+        {
             label: 'Wipe Action Log',
             onClick: () => {
                 persistActionLog([], slot);
