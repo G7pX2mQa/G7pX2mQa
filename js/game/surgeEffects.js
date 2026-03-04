@@ -949,7 +949,7 @@ export function initSurgeEffects() {
     return baseMultiplier;
   });
 
-  // Surge 17 (Div 1e5) and Surge 18 (Mul 1e15) for Coins
+  // Surge 17 (Div 1e5), Surge 18 (Mul 1e15), and Surge 40 (Mul 1e30) for Coins
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
     let log10Total = 0;
     
@@ -961,6 +961,11 @@ export function initSurgeEffects() {
     // Surge 18: Multiply by 1e15 -> +15
     if (isSurgeActive(18)) {
         log10Total += 15;
+    }
+
+    // Surge 40: Multiply by 1e30 -> +30
+    if (isSurgeActive(40)) {
+        log10Total += 30;
     }
     
     if (log10Total === 0) return baseMultiplier;
