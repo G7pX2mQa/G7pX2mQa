@@ -256,6 +256,14 @@ export const SURGE_MILESTONES = [
     description: [
       "Increases Coin, XP, Gold, Magic, Wave, DNA, and FP value by <span style=\"color:#00e5ff\">+25%</span> per Surge milestone after 34"
     ]
+  },
+  {
+    id: 29,
+    surgeLevel: 40,
+    affectedByTsunami: true,
+    description: [
+      `Multiplies Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromAny('1e30'))}x</span>`
+    ]
   }
 ];
 
