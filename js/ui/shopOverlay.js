@@ -69,6 +69,7 @@ const BASE_ICON_SRC_BY_COST = {
 const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.webp';
 const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
 const AUTOMATED_OVERLAY_SRC = 'img/misc/green_border.webp';
+const EVOLVE_READY_OVERLAY_SRC = 'img/misc/evolve_ready.webp';
 const CURRENCY_ICON_SRC = {
   coins: 'img/currencies/coin/coin.webp',
   books: 'img/currencies/book/book.webp',
@@ -969,16 +970,17 @@ class ShopInstance {
             let maxedOverlay = tileEl.querySelector('.maxed-overlay');
             const isAutomated = !locked && isUpgradeAutomated(upg.meta);
             const showMaxed = !locked && capReached;
+            const showEvolveReady = !locked && evolveReady;
             const showAutomated = !locked && !capReached && !evolveReady && isAutomated;
 
-            if (showMaxed || showAutomated) {
+            if (showEvolveReady || showMaxed || showAutomated) {
                 if (!maxedOverlay) {
                     maxedOverlay = document.createElement('img');
                     maxedOverlay.className = 'maxed-overlay';
                     maxedOverlay.alt = '';
                     tileEl.insertBefore(maxedOverlay, iconImgEl);
                 }
-				const targetSrc = showMaxed ? MAXED_BASE_OVERLAY_SRC : AUTOMATED_OVERLAY_SRC;
+				const targetSrc = showEvolveReady ? EVOLVE_READY_OVERLAY_SRC : (showMaxed ? MAXED_BASE_OVERLAY_SRC : AUTOMATED_OVERLAY_SRC);
                 if (maxedOverlay.src !== targetSrc) maxedOverlay.src = targetSrc;
             } else if (maxedOverlay) maxedOverlay.remove();
             
