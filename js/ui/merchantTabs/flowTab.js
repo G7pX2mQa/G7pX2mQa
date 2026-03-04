@@ -1239,11 +1239,16 @@ function updateFlowVisuals() {
                 try {
                     reqStr = formatNumber(BigNum.fromAny(def.unlockReq));
                 } catch(e) {}
-                elName.textContent = `Level ${reqStr} in prev.`;
-                elName.classList.add('flow-locked-text');
+                const newText = `Level ${reqStr} in prev.`;
+                if (elName.textContent !== newText) {
+                    elName.textContent = newText;
+                    elName.classList.add('flow-locked-text');
+                }
             }
             
-            if (elFill) elFill.style.width = '0%';
+            if (elFill && elFill.style.width !== '0%') {
+                elFill.style.width = '0%';
+            }
             
         } else {
             // Unlocked State
@@ -1253,21 +1258,29 @@ function updateFlowVisuals() {
                     elIcon.src = def.image;
                 }
             }
-            if (elRow) elRow.classList.remove('is-locked');
+            if (elRow) {
+                if (elRow.classList.contains('is-locked')) elRow.classList.remove('is-locked');
+            }
             if (elLvl) {
-                 elLvl.style.display = '';
-                 elLvl.textContent = formatNumber(ch.level);
+                 if (elLvl.style.display === 'none') elLvl.style.display = '';
+                 const newText = formatNumber(ch.level);
+                 if (elLvl.textContent !== newText) elLvl.textContent = newText;
             }
             if (elEffect) {
-                elEffect.style.display = '';
+                if (elEffect.style.display === 'none') elEffect.style.display = '';
                 const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
-                elEffect.textContent = `+${formatNumber(effectVal)}%`;
+                const newText = `+${formatNumber(effectVal)}%`;
+                if (elEffect.textContent !== newText) elEffect.textContent = newText;
             }
-            if (elControls) elControls.style.display = '';
+            if (elControls) {
+                if (elControls.style.display === 'none') elControls.style.display = '';
+            }
             
             if (elName) {
-                elName.textContent = def.name;
-                elName.classList.remove('flow-locked-text');
+                if (elName.textContent !== def.name) {
+                    elName.textContent = def.name;
+                    elName.classList.remove('flow-locked-text');
+                }
             }
             
             const req = def?.baseReq;
@@ -1298,7 +1311,10 @@ function updateFlowVisuals() {
                 }
             }
 
-            if (elFill) elFill.style.width = `${pct}%`;
+            if (elFill) {
+                const newWidth = `${pct}%`;
+                if (elFill.style.width !== newWidth) elFill.style.width = newWidth;
+            }
         }
     }
 }
