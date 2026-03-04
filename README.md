@@ -1,3 +1,6 @@
+***IMPORTANT NOTE FOR JULES IF YOU READ THIS: This README.md does not contain any relevant information to your task, the only relevant markdown file you should read is AGENTS.md***
+
+
 ***include the following section for the prod repo***
 
 # Debug Panel Access
