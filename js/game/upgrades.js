@@ -3595,6 +3595,25 @@ function ensureUpgradeState(areaKey, upgId) {
 
   let hmEvolutions = 0;
   if (upg?.upgType === 'HM') {
+    const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0n;
+    if (surgeLevel < 50) {
+      let rawLevel = ensureLevelBigNum(rec.lvl);
+      const cap = BigNum.fromInt(HM_EVOLUTION_INTERVAL);
+      if (rawLevel.cmp(cap) > 0) {
+        rec.lvl = cap.toStorage();
+        rec.nextCost = BigNum.fromAny(upg.costAtLevel(HM_EVOLUTION_INTERVAL)).toStorage();
+        rec.nextCostLvl = rec.lvl;
+        recNeedsSave = true;
+      }
+      if (rec.hmEvolutions > 0 || rec.evolutions > 0 || rec.evol > 0) {
+          rec.hmEvolutions = 0;
+          rec.evolutions = 0;
+          rec.evol = 0;
+          recNeedsSave = true;
+      }
+      upg.numUpgEvolutions = 0;
+    }
+
     hmEvolutions = normalizeHmEvolutionCount(
       rec.hmEvolutions ?? rec.evolutions ?? rec.evol ?? upg.numUpgEvolutions
     );
@@ -4061,6 +4080,9 @@ function isUpgradeLocked(areaKey, upg) {
 
 export function isHmReadyToEvolve(upg, lvlBn, evolutions = null) {
   if (!upg || upg.upgType !== 'HM') return false;
+
+  const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0n;
+  if (surgeLevel < 50) return false;
 
   // Once an HM upgrade reaches BN Infinity, treat it as permanently maxed
   // and suppress further evolutions so the UI can show the maxed frame.
