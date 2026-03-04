@@ -264,6 +264,14 @@ export const SURGE_MILESTONES = [
     description: [
       `Multiplies Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromAny('1e30'))}x</span>`
     ]
+  },
+  {
+    id: 30,
+    surgeLevel: 50,
+    affectedByTsunami: false,
+    description: [
+      "Unlocks Evolve: Milestone-type upgrades can be evolved every 1000 levels for a huge stat boost and a higher level cap"
+    ]
   }
 ];
 
