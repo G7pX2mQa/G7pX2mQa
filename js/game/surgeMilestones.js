@@ -599,11 +599,6 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         
         if (s14State === 0) {
             milestone.description = ["This milestone is hidden until you research Lab Node 4"];
-        } else if (currentLevel >= 20) {
-            milestone.description[1] = milestone.description[1].replace(
-                "(beware, Combo decays)",
-                "<s>(beware, Combo decays)</s>"
-            );
         }
     }
     
