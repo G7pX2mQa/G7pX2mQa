@@ -1071,6 +1071,9 @@ function buildUI(panel) {
 export function updateFlowTab() {
     if (!flowTabInitialized || !flowPanel) return;
     
+    syncWaterwheelDecorations(flowPanel.querySelector('.flow-side-left'));
+    syncWaterwheelDecorations(flowPanel.querySelector('.flow-side-right'));
+
     updateFlowVisuals();
 
     // Update Buttons
@@ -1206,9 +1209,6 @@ function updateFlowVisuals() {
     if (!flowTabInitialized || !flowPanel) return;
 
     const fpMult = getFpMultiplier();
-    
-    syncWaterwheelDecorations(flowPanel.querySelector('.flow-side-left'));
-    syncWaterwheelDecorations(flowPanel.querySelector('.flow-side-right'));
 
     for (const id in WATERWHEEL_DEFS) {
         const ch = state.waterwheels[id];
