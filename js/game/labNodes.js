@@ -205,35 +205,35 @@ export const RESEARCH_NODES = [
     {
         id: 15,
         title: "Node 15: Experimental DNA Value",
-        desc: "Multiplies DNA value by 1.25x per level\nThis node scales <strong>10x</strong> RP each level",
+        desc: "Multiplies DNA value by 1.5x per level\nThis node scales <strong>25x</strong> RP each level",
         baseRpReq: 1e45,
-        scale: 10.0,
+        scale: 25.0,
         maxLevel: 10,
         x: -2000,
         y: 0,
         icon: 'lab_icons/dna_val0.webp',
         parentIds: [10],
-        bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.25)))}x`
+        bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.5)))}x`
     },
     {
         id: 16,
         title: "Node 16: Experimental DNA Value II",
-        desc: "Multiplies DNA value by 1.25x per level\nThis node scales <strong>10x</strong> RP each level",
+        desc: "Multiplies DNA value by 1.5x per level\nThis node scales <strong>25x</strong> RP each level",
         baseRpReq: 1e46,
-        scale: 10.0,
+        scale: 25.0,
         maxLevel: 10,
         x: 2000,
         y: 0,
         icon: 'lab_icons/dna_val0.webp',
         parentIds: [10],
-        bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.25)))}x`
+        bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.5)))}x`
     },
     {
         id: 17,
         title: "Node 17: Experimental FP Value",
-        desc: "Multiplies FP value by 1.25x per level\nThis node scales <strong>10x</strong> RP each level",
-        baseRpReq: 1e56,
-        scale: 10.0,
+        desc: "Multiplies FP value by 1.25x per level\nThis node scales <strong>25x</strong> RP each level",
+        baseRpReq: 1e59,
+        scale: 25.0,
         maxLevel: 10,
         x: -2000,
         y: 1000,
@@ -244,9 +244,9 @@ export const RESEARCH_NODES = [
     {
         id: 18,
         title: "Node 18: Experimental FP Value II",
-        desc: "Multiplies FP value by 1.25x per level\nThis node scales <strong>10x</strong> RP each level",
-        baseRpReq: 1e57,
-        scale: 10.0,
+        desc: "Multiplies FP value by 1.25x per level\nThis node scales <strong>25x</strong> RP each level",
+        baseRpReq: 1e60,
+        scale: 25.0,
         maxLevel: 10,
         x: 2000,
         y: 1000,
@@ -790,13 +790,13 @@ export function getLabDnaMultiplier() {
     const node15 = NODE_MAP.get(15);
     if (node15) {
         const level = getResearchNodeLevel(node15.id);
-        if (level > 0) logTotal += level * LOG10_1_25;
+        if (level > 0) logTotal += level * LOG10_1_5;
     }
 
     const node16 = NODE_MAP.get(16);
     if (node16) {
         const level = getResearchNodeLevel(node16.id);
-        if (level > 0) logTotal += level * LOG10_1_25;
+        if (level > 0) logTotal += level * LOG10_1_5;
     }
 
     if (logTotal === 0) return BigNum.fromInt(1);
