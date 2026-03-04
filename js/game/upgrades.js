@@ -3063,7 +3063,7 @@ export const REGISTRY = [
     title: "Endless FP",
     desc: "Multiplies FP value by 1.1x per level\nFP is very important for increasing Waterwheel Levels\nThis upgrade is very strong so it will scale faster than usual",
     lvlCap: HM_EVOLUTION_INTERVAL,
-    baseCost: 1e90,
+    baseCost: 1e75,
     costType: "coins",
     upgType: "HM",
     effectType: "fp_value",
