@@ -612,6 +612,7 @@ images: [
   'img/currencies/wave/wave_plus_base.webp',
 
   // ==== img/misc ====
+  'img/misc/evolve_ready.webp',
   'img/misc/experiment.webp',
   'img/misc/experiment_plus_base.webp',
   'img/misc/forge.webp',
@@ -619,14 +620,14 @@ images: [
   'img/misc/infuse.webp',
   'img/misc/infuse_plus_base.webp',
   'img/misc/infuse_base.webp',
-  'img/misc/surge.webp',
-  'img/misc/surge_plus_base.webp',
   'img/misc/green_border.webp',
   'img/misc/locked.webp',
   'img/misc/locked_base.webp',
   'img/misc/maxed.webp',
   'img/misc/merchant.webp',
   'img/misc/mysterious.webp',
+  'img/misc/surge.webp',
+  'img/misc/surge_plus_base.webp',
 
   // ==== img/mutations ====
   ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.webp`),
