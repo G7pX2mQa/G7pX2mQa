@@ -202,7 +202,7 @@ export function getGenerationUpgradeCost(level) {
   if (bnLevel.isInfinite()) return BigNum.fromAny('Infinity');
   
   const logCost = calculateWorkshopCostLog(bnLevel);
-  return bigNumFromLog10(logCost);
+  return bigNumFromLog10(logCost, true);
 }
 
 function getGearsPerSecond(level) {
