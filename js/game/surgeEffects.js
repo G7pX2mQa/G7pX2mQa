@@ -392,6 +392,40 @@ export function getSurge35Multiplier() {
   return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
 }
 
+export function getSurge40Multiplier() {
+  if (!isSurgeActive(40)) return BigNum.fromInt(1);
+  
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) {
+    return BigNum.fromAny("Infinity");
+  }
+  
+  let levelBN;
+  try {
+    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+  } catch (e) {
+    return BigNum.fromInt(1);
+  }
+
+  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(39)) <= 0) return BigNum.fromInt(1);
+  
+  const diffBN = levelBN.sub(BigNum.fromInt(39));
+  
+  const diffNumStr = diffBN.toString();
+  if (diffNumStr.length > 15) {
+     const logTotalBN = diffBN.mulDecimal(Math.log10(2).toString());
+     const logTotalNum = Number(logTotalBN.toString());
+     return bigNumFromLog10(logTotalNum).floorToInteger();
+  } else {
+     const diffNum = Number(diffNumStr); 
+     if (diffNum <= 1024) {
+         return BigNum.fromAny((2n ** BigInt(diffNum)).toString());
+     } else {
+         const logTotal = diffNum * Math.log10(2);
+         return bigNumFromLog10(logTotal).floorToInteger();
+     }
+  }
+}
+
 export function getSurge15Multiplier(preview = false) {
   if (!preview && !isSurgeActive(15)) return BigNum.fromInt(1);
   
@@ -949,7 +983,7 @@ export function initSurgeEffects() {
     return baseMultiplier;
   });
 
-  // Surge 17 (Div 1e5), Surge 18 (Mul 1e15), and Surge 40 (Mul 1e30) for Coins
+    // Surge 17 (Div 1e5), and Surge 18 (Mul 1e15) for Coins
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
     let log10Total = 0;
     
@@ -962,11 +996,6 @@ export function initSurgeEffects() {
     if (isSurgeActive(18)) {
         log10Total += 15;
     }
-
-    // Surge 40: Multiply by 1e30 -> +30
-    if (isSurgeActive(40)) {
-        log10Total += 30;
-    }
     
     if (log10Total === 0) return baseMultiplier;
     
@@ -977,6 +1006,18 @@ export function initSurgeEffects() {
     
     const mult = bigNumFromLog10(log10Total);
     return baseMultiplier.mulBigNumInteger(mult);
+  });
+
+  addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
+    if (!isSurgeActive(40)) return baseMultiplier;
+    const mult = getSurge40Multiplier();
+    if (mult.isInfinite?.()) {
+        return BigNum.fromAny("Infinity");
+    }
+    if (mult.cmp(BigNum.fromInt(1)) > 0) {
+        return baseMultiplier.mulBigNumInteger(mult);
+    }
+    return baseMultiplier;
   });
   
   // Surge 3: Disable flat Book reward
