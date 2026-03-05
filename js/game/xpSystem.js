@@ -119,10 +119,23 @@ function bigNumPowerOf10(logBn) {
 
   const integerPart = logBn.floorToInteger();
   const fractionalPart = logBn.sub(integerPart);
-  const fractionalNumber = bigNumToFiniteNumber(fractionalPart);
+  let fractionalNumber = bigNumToFiniteNumber(fractionalPart);
 
   if (!Number.isFinite(fractionalNumber)) {
       return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+  }
+
+  // At extremely high levels, the fractional part is lost to precision limits.
+  // We inject a deterministic pseudo-random mantissa to make the numbers look nicer
+  // without causing flickering UI or breaking math stability.
+  let intPartNum;
+  try {
+      intPartNum = Number(integerPart.toPlainIntegerString?.() ?? integerPart.toString());
+  } catch {
+      intPartNum = logBigNumToNumber(integerPart);
+  }
+  if (fractionalNumber === 0 && Number.isFinite(intPartNum) && intPartNum > 100) {
+      fractionalNumber = Math.abs(Math.sin(intPartNum));
   }
 
   let mantissa = Math.pow(10, fractionalNumber);
