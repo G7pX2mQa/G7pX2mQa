@@ -462,8 +462,35 @@ function approximateRequirementFromLevel(levelBn) {
     totalLog = totalLog.add?.(deltaBonus.mulDecimal(LOG_DECADE_BONUS_DECIMAL, 18)) ?? totalLog;
   }
 
+  const softcapStartBn = BigNum.fromAny("1000000000000"); // 1 Trillion
+  if (levelBn.cmp?.(softcapStartBn) > 0) {
+    const softcapDeltaBn = levelBn.sub?.(softcapStartBn) ?? BigNum.fromInt(0);
+    let softcapDeltaNum;
+    try {
+        softcapDeltaNum = Number(softcapDeltaBn.toString());
+    } catch {
+        softcapDeltaNum = logBigNumToNumber(softcapDeltaBn);
+    }
+
+    if (Number.isFinite(softcapDeltaNum) && softcapDeltaNum > 0) {
+      // Hit Infinity at ~4 Trillion total (delta = 3 Trillion)
+      const baseSoftcapLog = 5;
+      const rate = 2.3605777e-10;
+      const penaltyLog10 = baseSoftcapLog * Math.exp(rate * softcapDeltaNum);
+
+      if (!Number.isFinite(penaltyLog10) || penaltyLog10 >= 1.7976931348623157e+308) {
+        return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+      }
+
+      const penaltyBn = BigNum.fromAny(penaltyLog10);
+      totalLog = totalLog.add?.(penaltyBn) ?? totalLog;
+    } else if (softcapDeltaNum > 0 || bigNumIsInfinite(softcapDeltaBn)) {
+      return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
+    }
+  }
+
   const logNumber = logBigNumToNumber(totalLog);
-  if (!Number.isFinite(logNumber)) {
+  if (!Number.isFinite(logNumber) || logNumber >= 1.7976931348623157e+308) {
     return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
 
@@ -1107,36 +1134,67 @@ export function addXp(amount, { silent = false } = {}) {
       */
       
       const currentProgressLog = approxLog10(xpState.progress);
-      // Constants derived from: Math.log10(1.1) + 0.1 * Math.log10(2.5)
-      // 0.04139... + 0.03979... ≈ 0.081186686
-      const COMBINED_LOG_FACTOR = 0.08118668602542883;
-
-      // We only switch to approximation if the gap is likely massive
       const reqLog = approxLog10(requirementBn);
       
+      // We only switch to approximation if the gap is likely massive
       if (currentProgressLog - reqLog > 2) {
         const baseLevelBn = xpState.xpLevel;
-        
-        const logDiff = currentProgressLog - reqLog;
-        const estimatedGain = Math.floor(logDiff / COMBINED_LOG_FACTOR);
-        
-        if (estimatedGain > 10) {
-          const safeGain = BigInt(Math.max(0, estimatedGain - 5));
-          
-          if (safeGain > 0n) {
-            const jumpBn = BigNum.fromAny(safeGain.toString());
-            xpState.xpLevel = xpState.xpLevel.add(jumpBn);
-            xpLevelsGained = xpLevelsGained.add(jumpBn);
-            
-            updateXpRequirement();
-            
-             if (bank?.books?.add) {
-                try {
-                  let bulkReward = jumpBn.clone();
-                  bank.books.add(bulkReward);
-                } catch {}
-             }
-          }
+        let currentLevelNum;
+        try {
+          currentLevelNum = Number(baseLevelBn.toPlainIntegerString?.() ?? baseLevelBn.toString());
+        } catch {
+          currentLevelNum = 0;
+        }
+
+        if (Number.isFinite(currentLevelNum)) {
+            // Fast binary search to find target level to prevent lag
+            const getLogForLevel = (levelNum) => {
+                // 0.041392685158225040 (LOG_STEP_DECIMAL)
+                // 0.397940008672037609 (LOG_DECADE_BONUS_DECIMAL)
+                let totalLog = levelNum * 0.041392685158225040;
+                totalLog += Math.floor(levelNum / 10) * 0.397940008672037609;
+                if (levelNum > 1000000000000) {
+                    const softcapDelta = levelNum - 1000000000000;
+                    totalLog += 5 * Math.exp(2.3605777e-10 * softcapDelta);
+                }
+                return totalLog;
+            };
+
+            let low = currentLevelNum;
+            let high = Math.max(currentLevelNum, 4500000000000);
+            let best = currentLevelNum;
+
+            for (let i = 0; i < 60; i++) {
+                const mid = Math.floor((low + high) / 2);
+                const midLog = getLogForLevel(mid);
+                if (midLog <= currentProgressLog) {
+                    best = mid;
+                    low = mid + 1;
+                } else {
+                    high = mid - 1;
+                }
+            }
+
+            const estimatedGain = best - currentLevelNum;
+            if (estimatedGain > 10) {
+                // Leave a 5 level buffer for safety, so the while loop cleans up exactly
+                const safeGain = Math.max(0, estimatedGain - 5);
+                // Only process if it is a safe integer to avoid precision drops on huge numbers
+                if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
+                    const safeGainBn = BigNum.fromAny(safeGain.toString());
+                    xpState.xpLevel = xpState.xpLevel.add(safeGainBn);
+                    xpLevelsGained = xpLevelsGained.add(safeGainBn);
+                    
+                    updateXpRequirement();
+                    
+                    if (bank?.books?.add) {
+                        try {
+                            let bulkReward = safeGainBn.clone();
+                            bank.books.add(bulkReward);
+                        } catch {}
+                    }
+                }
+            }
         }
       }
 
