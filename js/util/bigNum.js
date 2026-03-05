@@ -590,6 +590,18 @@ export function bigNumFromLog10(log10Value) {
     frac += 1;
     intPart -= 1;
   }
+
+  // At extremely high levels, the fractional part is lost to precision limits.
+  // We inject a deterministic pseudo-random mantissa to make the numbers look nicer
+  // without causing flickering UI or breaking math stability.
+  // Exception: Mutation 99 to 100 requirement is specifically tuned to be exactly 1.000e1.000e303.
+  if (frac === 0 && intPart > 100) {
+    const isMutation99to100Target = intPart >= 1e303 && intPart <= 1.00002e303;
+    if (!isMutation99to100Target) {
+      frac = Math.abs(Math.sin(intPart));
+    }
+  }
+
   const mantissa = Math.pow(10, frac + (p - 1));
   const sig = BigInt(Math.max(1, Math.round(mantissa)));
   const exp = intPart - (p - 1);
