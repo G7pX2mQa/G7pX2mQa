@@ -577,7 +577,7 @@ export function approxLog10BigNum(value) {
   return sigLog + expSum;
 }
 
-export function bigNumFromLog10(log10Value) {
+export function bigNumFromLog10(log10Value, noFuzz = false) {
   if (!Number.isFinite(log10Value)) {
     return log10Value > 0 ? BigNum.fromAny('Infinity') : BigNum.fromInt(0);
   }
@@ -595,7 +595,7 @@ export function bigNumFromLog10(log10Value) {
   // We inject a deterministic pseudo-random mantissa to make the numbers look nicer
   // without causing flickering UI or breaking math stability.
   // Exception: Mutation 99 to 100 requirement is specifically tuned to be exactly 1.000e1.000e303.
-  if (frac === 0 && intPart > 100) {
+  if (!noFuzz && frac === 0 && intPart > 1e15) {
     const isMutation99to100Target = intPart >= 1e303 && intPart <= 1.00002e303;
     if (!isMutation99to100Target) {
       frac = Math.abs(Math.sin(intPart));
