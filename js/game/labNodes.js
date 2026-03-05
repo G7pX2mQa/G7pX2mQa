@@ -1,7 +1,7 @@
 import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../util/bigNum.js';
 import { getActiveSlot, isStorageKeyLocked } from '../util/storage.js';
 import { getLabLevel, setLabLevel, getRpMult } from '../ui/merchantTabs/labTab.js';
-import { formatMultForUi } from '../util/numFormat.js';
+import { formatMultForUi, formatNumber } from '../util/numFormat.js';
 import { 
     addExternalCoinMultiplierProvider, 
     addExternalXpGainMultiplierProvider
@@ -253,6 +253,19 @@ export const RESEARCH_NODES = [
         icon: 'lab_icons/fp_val0.webp',
         parentIds: [10],
         bonusLine: (level) => `FP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.25)))}x`
+    },
+    {
+        id: 19,
+        title: "Node 19: Tsunami Exponent Buff III",
+        desc: `Increases the Tsunami Exponent by +0.01 per level\nThis node scales <strong>${formatNumber(BigNum.fromAny(1e6))}x</strong> RP each level`,
+        baseRpReq: 1e75,
+        scale: 1e6,
+        maxLevel: 10,
+        x: 0,
+        y: 2000,
+        icon: 'lab_icons/tsunami_exponent_buff.webp',
+        parentIds: [11, 12, 13, 14, 15, 16, 17, 18],
+        bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`
     }
 ];
 
@@ -525,6 +538,9 @@ export function getTsunamiResearchBonus() {
     
     const level10 = getResearchNodeLevel(10);
     if (level10 > 0) bonus += level10 * 0.01;
+    
+    const level19 = getResearchNodeLevel(19);
+    if (level19 > 0) bonus += level19 * 0.01;
     
     return bonus;
 }
