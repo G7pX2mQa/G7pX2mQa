@@ -1280,7 +1280,7 @@ const DEFAULT_SCALING_PRESETS = {
     const evol = activeEvolutionsForUpgrade(upg);
     const harshness = upg && upg.scalingHarshness && upg.scalingHarshness > 0 ? upg.scalingHarshness : 1;
     // Relaxed linear scaling for Phase 1 & 2 (up to 1,000,000 evolutions / Level 1B)
-    let ratio = (1.50 + (0.50 * evol)) * harshness;
+    let ratio = (1.50 + (0.25 * evol)) * harshness;
 
     // Phase 3: Double-Exponential Softcap starting at Level 1 Billion
     const softcapStart = 1_000_000;
