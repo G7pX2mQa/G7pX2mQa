@@ -914,7 +914,7 @@ export function initCoinPickup({
     const xpEnabled = typeof isXpSystemUnlocked === 'function' ? isXpSystemUnlocked() : true;
     const mutEnabled = typeof isMutationUnlocked === 'function' && isMutationUnlocked();
 
-    const MAX_VISUALS = 15;
+    const MAX_VISUALS = items.length >= 50 ? 5 : 15;
     let visualCount = 0;
 
     for (const item of items) {
