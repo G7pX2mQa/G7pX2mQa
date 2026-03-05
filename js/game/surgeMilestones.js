@@ -14,7 +14,7 @@ export const getSurge10Description = (slot) => {
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
-import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier, getSurge21BonusPercentage, getSurge23Multiplier, getSurge23BonusPercentage, getSurge25Multiplier, getSurge25BonusPercentage, getSurge27Multiplier, getSurge27BonusPercentage, getSurge29Multiplier, getSurge29BonusPercentage, getSurge31Multiplier, getSurge31BonusPercentage, getSurge33Multiplier, getSurge33BonusPercentage, getSurge35Multiplier, getSurge35BonusPercentage, getSurge40Multiplier, getBookProductionRate, getSurge6WealthMultipliers} from "./surgeEffects.js";
+import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier, getSurge21BonusPercentage, getSurge23Multiplier, getSurge23BonusPercentage, getSurge25Multiplier, getSurge25BonusPercentage, getSurge27Multiplier, getSurge27BonusPercentage, getSurge29Multiplier, getSurge29BonusPercentage, getSurge31Multiplier, getSurge31BonusPercentage, getSurge33Multiplier, getSurge33BonusPercentage, getSurge35Multiplier, getSurge35BonusPercentage, getSurge40Multiplier, getSurge50Multiplier, getBookProductionRate, getSurge6WealthMultipliers} from "./surgeEffects.js";
 import { getTsunamiResearchBonus, getResearchNodeLevel } from './labNodes.js';
 import { getActiveSlot } from '../util/storage.js';
 
@@ -266,8 +266,16 @@ export const SURGE_MILESTONES = [
     ]
   },
   {
-    id: 30,
+    id: 31,
     surgeLevel: 50,
+    affectedByTsunami: false,
+    description: [
+      "Doubles XP value per Surge milestone after 49 (immune to exponent)"
+    ]
+  },
+  {
+    id: 30,
+    surgeLevel: 60,
     affectedByTsunami: false,
     description: [
       "Unlocks Evolve: Milestone-type upgrades can be evolved every 1000 levels for a huge stat boost and a higher level cap"
@@ -685,6 +693,23 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
       if (currentLevel >= 40) {
         const mult = getSurge40Multiplier();
+        let formattedBonus = "0";
+        if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
+            formattedBonus = "Infinity";
+        } else {
+            formattedBonus = formatNumber(mult);
+        }
+        milestone.description.push(`Current bonus: <span style="color:#00ff00">${formattedBonus}x</span>`);
+      }
+    }
+
+    if (m.id === 31) {
+      if (milestone === m) {
+          milestone = { ...m, description: [...m.description] };
+      }
+
+      if (currentLevel >= 50) {
+        const mult = getSurge50Multiplier();
         let formattedBonus = "0";
         if (mult.isInfinite?.() || currentLevelBN.isInfinite?.()) {
             formattedBonus = "Infinity";
