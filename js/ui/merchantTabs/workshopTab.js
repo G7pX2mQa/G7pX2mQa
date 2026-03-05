@@ -464,7 +464,7 @@ function buildWorkshopUI(container) {
           </div>
           <div class="workshop-description">
             Spend Coins to increase your Workshop Level<br>
-            Each increase of your Workshop Level will <span data-workshop="production-verb">double</span> the rate of Gear production<br>
+            Each increase of your Workshop Level will <span data-workshop="production-verb">double</span> the Gear production rate<br>
             ${descText}<br>
             Spend Gears in the Automation Shop to unlock powerful automation upgrades<br>
 			Automation upgrades will never be reset by any reset layer
