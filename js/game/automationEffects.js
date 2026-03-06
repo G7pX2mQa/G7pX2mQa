@@ -1,11 +1,12 @@
 import { registerTick } from './gameLoop.js';
-import { getLevelNumber, performFreeAutobuy, getUpgradesForArea, AREA_KEYS } from './upgrades.js';
+import { getLevelNumber, performFreeAutobuy, getUpgradesForArea, AREA_KEYS, evolveUpgrade } from './upgrades.js';
 import { triggerPassiveCollect } from './coinPickup.js';
 import { 
   AUTOMATION_AREA_KEY, 
   EFFECTIVE_AUTO_COLLECT_ID, 
   MASTER_AUTOBUY_IDS,
-  AUTOBUY_WORKSHOP_LEVELS_ID
+  AUTOBUY_WORKSHOP_LEVELS_ID,
+  AUTOBUY_EVOLVE_UPGRADES_ID
 } from './automationUpgrades.js';
 import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js';
 import { getActiveSlot } from '../util/storage.js';
@@ -120,6 +121,7 @@ function onTick(dt) {
 }
 
 let _groupedUpgradesCache = null;
+let _hmUpgradesCache = null;
 
 /**
  * ⚡ Bolt Optimization:
@@ -134,6 +136,7 @@ function getGroupedUpgrades() {
     ...getUpgradesForArea(AREA_KEYS.DNA)
   ];
   const groups = {};
+  const hmUpgrades = [];
 
   for (const upg of upgrades) {
     const type = upg.costType;
@@ -141,10 +144,20 @@ function getGroupedUpgrades() {
       groups[type] = [];
     }
     groups[type].push(upg);
+    
+    if (upg.upgType === 'HM') {
+      hmUpgrades.push(upg);
+    }
   }
 
+  _hmUpgradesCache = hmUpgrades;
   _groupedUpgradesCache = groups;
   return _groupedUpgradesCache;
+}
+
+function getHmUpgrades() {
+  if (!_hmUpgradesCache) getGroupedUpgrades();
+  return _hmUpgradesCache;
 }
 
 function processAutobuyGroup(upgrades) {
@@ -160,6 +173,7 @@ function processAutobuyGroup(upgrades) {
       }
     }
   }
+
 }
 
 function updateAutobuyers(dt) {
@@ -188,6 +202,22 @@ function updateAutobuyers(dt) {
       const setting = getAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID);
       if (setting !== '0') {
         performFreeGenerationUpgrade();
+      }
+    }
+  }
+
+  // Process Auto-Evolve Upgrades
+  const evolveAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_EVOLVE_UPGRADES_ID) > 0;
+  if (evolveAutobuy) {
+    const setting = getAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_EVOLVE_UPGRADES_ID);
+    if (setting !== '0') {
+      const hmUpgrades = getHmUpgrades();
+      for (const upg of hmUpgrades) {
+        const area = upg.area || AREA_KEYS.STARTER_COVE;
+        // Only auto-evolve if the upgrade's standard autobuyer toggle is also ON
+        if (getAutobuyerToggle(area, upg.id) !== '0') {
+          evolveUpgrade(area, upg.id);
+        }
       }
     }
   }
