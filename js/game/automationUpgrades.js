@@ -167,13 +167,13 @@ const UPGRADE_DEFINITIONS = [
         
         if (isUnlocked) return { locked: false };
 
-        if (!ctx.surgeUnlocked) {
+        if (ctx.xpLevel < 201) {
             return {
                 locked: true,
                 iconOverride: LOCKED_ICON,
                 titleOverride: LOCKED_TITLE,
                 descOverride: 'Locked',
-                reason: 'Locked',
+                reason: 'Reach XP Level 201 to unlock',
                 hidden: false,
                 hideCost: true,
                 hideEffect: true,
@@ -228,13 +228,13 @@ const UPGRADE_DEFINITIONS = [
         
         if (isUnlocked) return { locked: false };
 
-        if (!ctx.surgeUnlocked) {
+        if (ctx.xpLevel < 201) {
             return {
                 locked: true,
                 iconOverride: LOCKED_ICON,
                 titleOverride: LOCKED_TITLE,
                 descOverride: 'Locked',
-                reason: 'Locked',
+                reason: 'Reach XP Level 201 to unlock',
                 hidden: false,
                 hideCost: true,
                 hideEffect: true,
