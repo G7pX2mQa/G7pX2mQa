@@ -199,7 +199,7 @@ const UPGRADE_DEFINITIONS = [
     area: AUTOMATION_AREA_KEY,
     id: AUTOBUY_EVOLVE_UPGRADES_ID,
     title: 'Auto-Evolve Upgrades',
-    desc: 'Automatically evolves upgrades when they are ready to do so',
+    desc: 'Automatically evolves upgrades when they are ready',
     icon: 'sc_upg_icons/autobuy_evolve.webp',
     lvlCap: 1,
     baseCost: 1e126,
