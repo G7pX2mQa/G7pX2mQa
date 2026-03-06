@@ -48,6 +48,7 @@ import {
   AUTOBUY_MAGIC_UPGRADES_ID,
   AUTOBUY_WORKSHOP_LEVELS_ID,
   AUTOBUY_DNA_UPGRADES_ID,
+  AUTOBUY_EVOLVE_UPGRADES_ID,
   MASTER_AUTOBUY_IDS
 } from '../game/automationUpgrades.js';
 import { getAutobuyerToggle, setAutobuyerToggle } from '../game/automationEffects.js';
@@ -1474,6 +1475,8 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       const masterCostType = (mode === 'automation') ? MASTER_AUTOBUY_IDS[upgDef.id] : null;
       // Also check for Workshop Level Master Switch (ID 6 in automation shop)
       const isWorkshopMaster = (mode === 'automation' && upgDef.id === AUTOBUY_WORKSHOP_LEVELS_ID);
+      // Check for Auto-Evolve Upgrades Master Switch (ID 8 in automation shop)
+      const isEvolveMaster = (mode === 'automation' && upgDef.id === AUTOBUY_EVOLVE_UPGRADES_ID);
 
       const isAutomationMaster = !!masterCostType;
       
@@ -1483,13 +1486,13 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       let autobuyLevel = 0;
       if (standardAutobuyId) {
           autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, standardAutobuyId);
-      } else if (isAutomationMaster || isWorkshopMaster) {
+      } else if (isAutomationMaster || isWorkshopMaster || isEvolveMaster) {
           // If viewing the master upgrade itself, we check its own level
           autobuyLevel = getLevelNumber(AUTOMATION_AREA_KEY, upgDef.id);
       }
 
       const hasAutobuyer = autobuyLevel > 0;
-      const showAutoToggle = hasAutobuyer && (isAutomationMaster || standardAutobuyId || isWorkshopMaster) && !isHiddenUpgrade;
+      const showAutoToggle = hasAutobuyer && (isAutomationMaster || standardAutobuyId || isWorkshopMaster || isEvolveMaster) && !isHiddenUpgrade;
 
       if (!autoToggleWrapper) {
           autoToggleWrapper = document.createElement('div');
