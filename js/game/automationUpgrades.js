@@ -8,6 +8,7 @@ export const AUTOBUY_GOLD_UPGRADES_ID = 4;
 export const AUTOBUY_MAGIC_UPGRADES_ID = 5;
 export const AUTOBUY_WORKSHOP_LEVELS_ID = 6;
 export const AUTOBUY_DNA_UPGRADES_ID = 7;
+export const AUTOBUY_EVOLVE_UPGRADES_ID = 8;
 
 // Maps an Automation Upgrade ID to the cost type it controls (Master Switch logic).
 export const MASTER_AUTOBUY_IDS = {
@@ -181,6 +182,67 @@ const UPGRADE_DEFINITIONS = [
         }
         
         const revealText = "Reach Surge 11 to reveal this upgrade";
+        return {
+            locked: true,
+            iconOverride: MYSTERIOUS_ICON,
+            titleOverride: HIDDEN_TITLE,
+            descOverride: revealText,
+            reason: revealText,
+            hidden: true,
+            hideCost: true,
+            hideEffect: true,
+            useLockedBase: true
+        };
+    }
+  },
+  {
+    area: AUTOMATION_AREA_KEY,
+    id: AUTOBUY_EVOLVE_UPGRADES_ID,
+    title: 'Auto-Evolve Upgrades',
+    desc: 'Automatically evolves upgrades when they are ready to do so',
+    icon: 'sc_upg_icons/autobuy_evolve.webp',
+    lvlCap: 1,
+    baseCost: 1e126,
+    costType: 'gears',
+    upgType: 'NM',
+    costAtLevel() {
+      return BigNum.fromAny('1e126');
+    },
+    effectSummary() {
+      return null;
+    },
+    computeLockState(ctx) {
+        const sl = ctx.surgeLevel;
+        let isUnlocked = false;
+        
+        if (typeof sl === 'number') {
+            if (sl >= 60 || sl === Infinity) isUnlocked = true;
+        } else if (typeof sl === 'bigint') {
+            if (sl >= 60n) isUnlocked = true;
+        } else if (typeof sl === 'string') {
+             if (sl === 'Infinity' || parseFloat(sl) === Infinity) isUnlocked = true;
+             else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 60) isUnlocked = true;
+        } else if (sl && typeof sl.isInfinite === 'function' && sl.isInfinite()) {
+             isUnlocked = true;
+        }
+        
+        if (isUnlocked) return { locked: false };
+
+        if (!ctx.surgeUnlocked) {
+            return {
+                locked: true,
+                iconOverride: LOCKED_ICON,
+                titleOverride: LOCKED_TITLE,
+                descOverride: 'Locked',
+                reason: 'Locked',
+                hidden: false,
+                hideCost: true,
+                hideEffect: true,
+                useLockedBase: true
+            };
+        }
+        
+        const revealText = "Reach Surge 60 to reveal this upgrade";
         return {
             locked: true,
             iconOverride: MYSTERIOUS_ICON,
