@@ -573,9 +573,6 @@ export function resetLab(exceptions = []) {
 }
 
 export function tickResearch(dt) {
-    const mult = getRpMult();
-    if (mult.isZero?.()) return;
-
     if (activeNodeId === null) return;
 
     const node = NODE_MAP.get(activeNodeId);
@@ -583,13 +580,23 @@ export function tickResearch(dt) {
     
     if (!isResearchNodeVisible(node.id)) return;
 
+    if (getResearchNodeLevel(node.id) >= node.maxLevel) return;
+
+    const labLvl = getLabLevel();
+    if (labLvl && (labLvl.isInfinite?.() || labLvl.cmp(1e308) >= 0 || labLvl.e >= BigNum.MAX_E)) {
+        setResearchNodeLevel(node.id, node.maxLevel);
+        setResearchNodeRp(node.id, BigNum.fromInt(0));
+        return;
+    }
+
+    const mult = getRpMult();
+    if (mult.isZero?.()) return;
+
     // RP per second = 1 * Multiplier
     const rpPerSec = mult; 
     const rpPerTick = rpPerSec.mulDecimal(dt.toString(), 18);
     
     const currentRp = getResearchNodeRp(node.id);
-    
-    if (getResearchNodeLevel(node.id) >= node.maxLevel) return;
     
     let nextRp = currentRp.add(rpPerTick);
 
