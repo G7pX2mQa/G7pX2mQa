@@ -278,7 +278,8 @@ export const SURGE_MILESTONES = [
     surgeLevel: 60,
     affectedByTsunami: false,
     description: [
-      "Unlocks Evolve: Milestone-type upgrades can be evolved every 1000 levels for a huge stat boost and a higher level cap"
+      "Unlocks Evolve: Milestone-type upgrades can be evolved every 1000 levels for a huge stat boost and a higher level cap",
+      "Unlocks a new automation upgrade"
     ]
   }
 ];
