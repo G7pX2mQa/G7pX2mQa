@@ -51,7 +51,9 @@ import {
   getSurge27Multiplier,
   getSurge29Multiplier,
   getSurge31Multiplier,
-  getSurge35Multiplier
+  getSurge35Multiplier,
+  getSurge70Multiplier,
+  getSurge80Multiplier
 } from '../../game/surgeEffects.js';
 import { 
     getTsunamiResearchBonus,
@@ -267,6 +269,12 @@ function getPendingGoldWithMultiplier(multiplierOverride = null) {
         val = val.mulBigNumInteger(surge35Mult);
     }
 
+    const surge70Mult = getSurge70Multiplier();
+    if (surge70Mult.isInfinite?.()) return BN.fromAny('Infinity');
+    if (surge70Mult.cmp(1) > 0) {
+        val = val.mulBigNumInteger(surge70Mult);
+    }
+
     val = val.mulDecimal(labMult.toScientific());
 
     return getWaterwheelGoldMultiplier(val);
@@ -294,6 +302,12 @@ function getPendingMagicWithMultiplier(multiplierOverride = null) {
     if (surge35Mult.isInfinite?.()) return BN.fromAny('Infinity');
     if (surge35Mult.cmp(1) > 0) {
         val = val.mulBigNumInteger(surge35Mult);
+    }
+
+    const surge80Mult = getSurge80Multiplier();
+    if (surge80Mult.isInfinite?.()) return BN.fromAny('Infinity');
+    if (surge80Mult.cmp(1) > 0) {
+        val = val.mulBigNumInteger(surge80Mult);
     }
 
     return val;
