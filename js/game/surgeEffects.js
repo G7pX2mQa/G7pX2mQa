@@ -426,6 +426,74 @@ export function getSurge40Multiplier() {
   }
 }
 
+export function getSurge70Multiplier() {
+  if (!isSurgeActive(70)) return BigNum.fromInt(1);
+  
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) {
+    return BigNum.fromAny("Infinity");
+  }
+  
+  let levelBN;
+  try {
+    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+  } catch (e) {
+    return BigNum.fromInt(1);
+  }
+
+  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(69)) <= 0) return BigNum.fromInt(1);
+  
+  const diffBN = levelBN.sub(BigNum.fromInt(69));
+  
+  const diffNumStr = diffBN.toString();
+  if (diffNumStr.length > 15) {
+     const logTotalBN = diffBN.mulDecimal(Math.log10(2).toString());
+     const logTotalNum = Number(logTotalBN.toString());
+     return bigNumFromLog10(logTotalNum).floorToInteger();
+  } else {
+     const diffNum = Number(diffNumStr); 
+     if (diffNum <= 1024) {
+         return BigNum.fromAny((2n ** BigInt(diffNum)).toString());
+     } else {
+         const logTotal = diffNum * Math.log10(2);
+         return bigNumFromLog10(logTotal).floorToInteger();
+     }
+  }
+}
+
+export function getSurge80Multiplier() {
+  if (!isSurgeActive(80)) return BigNum.fromInt(1);
+  
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) {
+    return BigNum.fromAny("Infinity");
+  }
+  
+  let levelBN;
+  try {
+    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+  } catch (e) {
+    return BigNum.fromInt(1);
+  }
+
+  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(79)) <= 0) return BigNum.fromInt(1);
+  
+  const diffBN = levelBN.sub(BigNum.fromInt(79));
+  
+  const diffNumStr = diffBN.toString();
+  if (diffNumStr.length > 15) {
+     const logTotalBN = diffBN.mulDecimal(Math.log10(2).toString());
+     const logTotalNum = Number(logTotalBN.toString());
+     return bigNumFromLog10(logTotalNum).floorToInteger();
+  } else {
+     const diffNum = Number(diffNumStr); 
+     if (diffNum <= 1024) {
+         return BigNum.fromAny((2n ** BigInt(diffNum)).toString());
+     } else {
+         const logTotal = diffNum * Math.log10(2);
+         return bigNumFromLog10(logTotal).floorToInteger();
+     }
+  }
+}
+
 export function getSurge50Multiplier() {
   if (!isSurgeActive(50)) return BigNum.fromInt(1);
   
