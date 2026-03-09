@@ -1587,7 +1587,12 @@ function ensureUpgradeScaling(upg) {
       var ratioMinus1 = 0;
     } else {
       ratio = Number(ratio);
-      ratioStr = decimalMultiplierString(ratio);
+      
+      // If the ratio is astronomically large, decimalMultiplierString and mulDecimal will fail 
+      // due to the lack of scientific notation support in Javascript's BigInt string parsing.
+      // However, if the ratio is this huge, we will only use logarithmic math anyway (since we skip the small loops).
+      // So we just set it to '1' or keep it as string to prevent crashes in the Exact loop which won't be used.
+      ratioStr = ratio > 1e18 ? '1' : decimalMultiplierString(ratio);
       
       // Use existing ratioLog10 if available and we are handling the Infinity case,
       // or if normal calculation would be redundant/less precise.
@@ -1651,7 +1656,8 @@ function costAtLevelUsingScaling(upg, level) {
   if (lvl === 0) return BigNum.fromAny(scaling.baseBn);
 
   // Approach A (robust & simple): multiply without flooring, floor once at end
-  if (lvl <= 100) {
+  // We only do this if the ratio is reasonably small enough to be represented as a decimal string
+  if (lvl <= 100 && scaling.ratio <= 1e18) {
     let price = BigNum.fromAny(scaling.baseBn);
     for (let i = 0; i < lvl; i += 1) {
       // precise decimal multiply (no truncation each step)
@@ -1661,7 +1667,7 @@ function costAtLevelUsingScaling(upg, level) {
   }
 
   // Existing mid-range anchor + tail (kept as-is)
-  if (lvl < 10000) {
+  if (lvl < 10000 && scaling.ratio <= 1e18) {
     const anchor = Math.max(0, lvl - 10);
     let price = bigNumFromLog10(scaling.baseLog10 + anchor * scaling.ratioLog10);
     for (let step = anchor; step < lvl; step += 1) {
@@ -1670,7 +1676,7 @@ function costAtLevelUsingScaling(upg, level) {
     return price.floorToInteger();
   }
 
-  // Very large levels: closed form via logs
+  // Very large levels (or astronomically large scaling ratios): closed form via logs
   return bigNumFromLog10(scaling.baseLog10 + lvl * scaling.ratioLog10).floorToInteger();
 }
 
@@ -4399,6 +4405,105 @@ export function evolveUpgrade(areaKey, upgId) {
   notifyChanged();
 
   return { evolved: true };
+}
+
+export function performFreeAutobuyEvolve(areaKey, upgId) {
+  const state = ensureUpgradeState(areaKey, upgId);
+  const upg = state.upg;
+  if (!upg || upg.upgType !== 'HM') return { evolved: false };
+
+  const lvlBn = state.lvlBn ?? ensureLevelBigNum(state.lvl);
+  if (!isHmReadyToEvolve(upg, lvlBn, state.hmEvolutions)) {
+    return { evolved: false };
+  }
+  
+  const walletHandle = bank[upg.costType];
+  const walletValue = walletHandle?.value;
+  const wallet = walletValue instanceof BigNum
+    ? walletValue.clone?.() ?? BigNum.fromAny(walletValue)
+    : BigNum.fromAny(walletValue ?? 0);
+
+  if (wallet.isZero?.()) return { evolved: false };
+
+  const currentEvolutions = normalizeHmEvolutionCount(state.hmEvolutions);
+  
+  let lowEvol = currentEvolutions;
+  let highEvol = currentEvolutions + 1;
+  let step = 1;
+
+  // Function to check if a specific evolution tier is affordable
+  // We do this by temporarily setting hmEvolutions to target, recalculating cost up to the target cap,
+  // and checking if wallet covers it.
+  const canAffordEvol = (targetEvol) => {
+    const origEvol = state.hmEvolutions;
+    state.hmEvolutions = targetEvol - 1; 
+    applyHmEvolutionMeta(upg, state.hmEvolutions);
+    ensureUpgradeScaling(upg);
+
+    // Calculate cost to reach the next cap (targetEvol * 1000)
+    const capBn = upg.lvlCapBn;
+    
+    // Check cost from current level to the cap
+    const levelsToBuy = capBn.sub(lvlBn);
+    if (levelsToBuy.cmp(BigNum.fromInt(0)) <= 0) {
+        state.hmEvolutions = origEvol;
+        applyHmEvolutionMeta(upg, origEvol);
+        ensureUpgradeScaling(upg);
+        return true;
+    }
+
+    const outcome = calculateBulkPurchase(upg, lvlBn, wallet, levelsToBuy);
+    
+    state.hmEvolutions = origEvol;
+    applyHmEvolutionMeta(upg, origEvol);
+    ensureUpgradeScaling(upg);
+
+    const affordable = outcome.count instanceof BigNum ? outcome.count : BigNum.fromAny(outcome.count ?? 0);
+    return affordable.cmp(levelsToBuy) >= 0;
+  };
+
+  // Exponential search to find an upper bound
+  while (true) {
+      if (!canAffordEvol(highEvol)) {
+          break;
+      }
+      lowEvol = highEvol;
+      highEvol += step;
+      step *= 2;
+      
+      // Safety cap for JS numbers just in case
+      if (highEvol > 1e15) break;
+  }
+
+  // Binary search to find exact max affordable evolution
+  let bestEvol = lowEvol;
+  while (lowEvol <= highEvol) {
+      const midEvol = Math.floor((lowEvol + highEvol) / 2);
+      if (canAffordEvol(midEvol)) {
+          bestEvol = midEvol;
+          lowEvol = midEvol + 1;
+      } else {
+          highEvol = midEvol - 1;
+      }
+  }
+
+  if (bestEvol > currentEvolutions) {
+      state.hmEvolutions = bestEvol;
+      applyHmEvolutionMeta(upg, bestEvol);
+      ensureUpgradeScaling(upg);
+
+      try { state.nextCostBn = BigNum.fromAny(upg.costAtLevel(state.lvl)); }
+      catch { state.nextCostBn = BigNum.fromAny('Infinity'); }
+
+      commitUpgradeState(state);
+      invalidateUpgradeState(areaKey, upgId);
+      emitUpgradeLevelChange(upg, state.lvl, lvlBn, state.lvl, lvlBn);
+      notifyChanged();
+
+      return { evolved: true };
+  }
+  
+  return { evolved: false };
 }
 
 export function buyMax(areaKey, upgId) {
