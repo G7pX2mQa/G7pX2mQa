@@ -297,6 +297,14 @@ export const SURGE_MILESTONES = [
     description: [
       "Doubles Magic value per Surge milestone after 79 (immune to exponent)"
     ]
+  },
+  {
+    id: 34,
+    surgeLevel: 90,
+    affectedByTsunami: true,
+    description: [
+      "Activates generator: Passively generates <span style=\"color:#00e5ff\">0.1%</span> of pending DNA every second"
+    ]
   }
 ];
 
@@ -677,6 +685,25 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
           const rateMultiplier = bigNumFromLog10(log10Rate);
           const magicPerSec = pendingVals.pendingMagic.mulDecimal(rateMultiplier.toScientific());
           milestone.description.push(`Current Magic/sec: ${formatNumber(magicPerSec.floorToInteger())}`);
+      }
+    }
+
+    if (m.id === 34) {
+      if (milestone === m) {
+          milestone = { ...m, description: [...m.description] };
+      }
+      
+      const effectiveNerf = getEffectiveTsunamiNerf();
+      const mapped = effectiveNerf * 1.5 - 0.5;
+      const pct = Math.pow(100, mapped);
+      const valStr = formatMultForUi(pct);
+
+      milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending DNA every second`;
+      if (m.surgeLevel <= currentLevel && pendingVals.pendingDna) {
+          const log10Rate = 2 * mapped - 2;
+          const rateMultiplier = bigNumFromLog10(log10Rate);
+          const dnaPerSec = pendingVals.pendingDna.mulDecimal(rateMultiplier.toScientific());
+          milestone.description.push(`Current DNA/sec: ${formatNumber(dnaPerSec.floorToInteger())}`);
       }
     }
 
