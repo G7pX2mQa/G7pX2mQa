@@ -4424,6 +4424,7 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
     : BigNum.fromAny(walletValue ?? 0);
 
   if (wallet.isZero?.()) return { evolved: false };
+  if (wallet.isInfinite?.()) return { evolved: false };
 
   const currentEvolutions = normalizeHmEvolutionCount(state.hmEvolutions);
   
@@ -4860,6 +4861,32 @@ export function performFreeAutobuy(areaKey, upgId) {
     : BigNum.fromAny(walletValue ?? 0);
 
   if (wallet.isZero?.()) return { bought: 0 };
+
+  if (wallet.isInfinite?.()) {
+    let targetLevelBn;
+
+    if (upg.upgType === 'HM') {
+      targetLevelBn = BigNum.fromAny('Infinity');
+
+      if (!upg.lvlCapBn?.isInfinite?.()) {
+        const infCap = BigNum.fromAny('Infinity');
+        upg.lvlCapBn = infCap;
+        upg.lvlCap = Number.POSITIVE_INFINITY;
+        upg.lvlCapFmtHtml = formatBigNumAsHtml(infCap);
+        upg.lvlCapFmtText = formatBigNumAsPlain(infCap);
+      }
+    } else {
+      const capBn = upg.lvlCapBn?.clone?.() ?? toUpgradeBigNum(upg.lvlCap ?? Infinity, Infinity);
+      targetLevelBn = capBn?.clone?.() ?? capBn;
+    }
+
+    if (targetLevelBn.cmp(lvlBn) > 0) {
+      initDeferredFlush();
+      setLevel(areaKey, upgId, targetLevelBn, true, { deferSave: true });
+      return { bought: targetLevelBn.sub(lvlBn) };
+    }
+    return { bought: 0 };
+  }
 
   const outcome = calculateBulkPurchase(upg, lvlBn, wallet, MAX_LEVEL_DELTA);
   const countBn = outcome.count instanceof BigNum
