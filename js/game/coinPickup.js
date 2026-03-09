@@ -640,6 +640,8 @@ function calculateCoinValue(spawnLevelStr) {
   let inc = applyCoinMultiplier(base);
   let xpInc = cloneBn(XP_PER_COIN);
 
+  refreshMpValueMultiplierCache();
+
   // If spawnLevelStr is null/undefined, use current mutation level (passive generation)
   const levelStr = spawnLevelStr ?? mutationCurrentLevelStr;
   const mutationMultiplier = computeMutationMultiplier(levelStr);
@@ -880,6 +882,8 @@ export function initCoinPickup({
   function collectBatch(items) {
     if (!items || !items.length) return;
     
+    refreshMpValueMultiplierCache();
+
     // Find best sound and max size in batch
     let bestSoundSrc = resolvedSrc;
     let maxSizeIndex = -1;
