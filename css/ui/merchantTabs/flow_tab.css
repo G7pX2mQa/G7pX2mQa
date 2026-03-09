@@ -11,6 +11,8 @@
   text-align: center;
   color: #fff;
   container-type: inline-size;
+  -webkit-user-select: text;
+  user-select: text;
 
   /* XP/MP Bar Replication Vars */
   --flow-bar-h: clamp(34px, 5.2svh, 46px);
@@ -42,6 +44,8 @@
   overflow: hidden;
   display: none;
   pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
   border: 2px solid rgba(72, 209, 204, 0.4);
   border-radius: 12px;
   box-sizing: border-box;
@@ -208,6 +212,8 @@
   object-fit: contain;
   z-index: 2;
   pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .flow-bar-inner {
@@ -279,6 +285,8 @@
   color: #fff;
   text-shadow: 0 1px 2px rgba(0,0,0,0.9);
   pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* Values */
