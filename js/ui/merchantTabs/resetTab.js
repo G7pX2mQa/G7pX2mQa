@@ -2388,7 +2388,8 @@ function updateSurgeCard() {
   if (el.milestones && resetState.visible.surgeMilestones) {
     const visible = getVisibleMilestones(barLevel, {
       pendingGold: getPendingGoldWithMultiplier(),
-      pendingMagic: getPendingMagicWithMultiplier()
+      pendingMagic: getPendingMagicWithMultiplier(),
+      pendingDna: resetState.pendingDna
     });
     const existingItems = Array.from(el.milestones.children);
     
@@ -2399,7 +2400,7 @@ function updateSurgeCard() {
             if (d === ' ') {
                 return `<div style="text-align: center;">- -</div>`;
             }
-            if (d.includes('Current bonus:') || d.includes('Current Books/sec:') || d.includes('Current Gold/sec:') || d.includes('Current Magic/sec:')) {
+            if (d.includes('Current bonus:') || d.includes('Current Books/sec:') || d.includes('Current Gold/sec:') || d.includes('Current Magic/sec:') || d.includes('Current DNA/sec:')) {
                 return `<div style="color:#02e815">- ${d.replace('<span style="color:#02e815">', '').replace('</span>', '')}</div>`;
             }
             if (d.includes('Invokes the Tsunami') && !isReached) {
