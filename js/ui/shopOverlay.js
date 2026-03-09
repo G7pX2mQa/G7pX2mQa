@@ -1708,9 +1708,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                         milestoneLabel = getCurrencyLabel(model.upg.costType, costAt);
                     } else {
                         const deltaBn = model.hmNextMilestone.sub(model.lvlBn);
-                        const deltaPlain = deltaBn.toPlainIntegerString?.();
-                        const deltaNum = Math.max(0, Math.floor(Number(deltaPlain && deltaPlain !== 'Infinity' ? deltaPlain : Number(deltaBn.toString() || 0))));
-                        const { spent } = evaluateBulkPurchase(model.upg, model.lvlBn, BigNum.fromAny('Infinity'), deltaNum);
+                        const { spent } = evaluateBulkPurchase(model.upg, model.lvlBn, BigNum.fromAny('Infinity'), deltaBn);
                         milestoneCost = bank[model.upg.costType].fmt(spent);
                         milestoneLabel = getCurrencyLabel(model.upg.costType, spent);
                     }
