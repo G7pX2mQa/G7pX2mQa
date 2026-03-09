@@ -4432,34 +4432,47 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
   let step = 1;
 
   // Function to check if a specific evolution tier is affordable
-  // We do this by temporarily setting hmEvolutions to target, recalculating cost up to the target cap,
-  // and checking if wallet covers it.
+  // We do this by calculating the cost of the *final* evolution interval
+  // leading up to the target cap using the scaling of targetEvol - 1.
+  // The geometric progression dictates that the vast majority of the cumulative cost
+  // comes from this final interval, making it a highly accurate proxy that prevents
+  // overshooting caused by ignoring progressive scaling across thousands of evolutions.
   const canAffordEvol = (targetEvol) => {
     const origEvol = state.hmEvolutions;
     state.hmEvolutions = targetEvol - 1; 
     applyHmEvolutionMeta(upg, state.hmEvolutions);
     ensureUpgradeScaling(upg);
 
-    // Calculate cost to reach the next cap (targetEvol * 1000)
     const capBn = upg.lvlCapBn;
     
-    // Check cost from current level to the cap
-    const levelsToBuy = capBn.sub(lvlBn);
-    if (levelsToBuy.cmp(BigNum.fromInt(0)) <= 0) {
+    // Total levels from current up to the target cap
+    const totalLevelsToBuy = capBn.sub(lvlBn);
+    if (totalLevelsToBuy.cmp(BigNum.fromInt(0)) <= 0) {
         state.hmEvolutions = origEvol;
         applyHmEvolutionMeta(upg, origEvol);
         ensureUpgradeScaling(upg);
         return true;
     }
 
-    const outcome = calculateBulkPurchase(upg, lvlBn, wallet, levelsToBuy);
+    // Determine how many levels we are buying inside the *final* evolution interval
+    // If the target is just 1 evolution away, we check the full delta.
+    // If it's multiple evolutions away, we only check the cost of the final interval (up to HM_EVOLUTION_INTERVAL levels)
+    const maxLevelsInFinalInterval = BigNum.fromAny(HM_EVOLUTION_INTERVAL);
+    const levelsToEvaluate = totalLevelsToBuy.cmp(maxLevelsInFinalInterval) > 0 
+        ? maxLevelsInFinalInterval 
+        : totalLevelsToBuy;
+    
+    // Start evaluating from the bottom of the final interval
+    const evaluateStartBn = capBn.sub(levelsToEvaluate);
+
+    const outcome = calculateBulkPurchase(upg, evaluateStartBn, wallet, levelsToEvaluate);
     
     state.hmEvolutions = origEvol;
     applyHmEvolutionMeta(upg, origEvol);
     ensureUpgradeScaling(upg);
 
     const affordable = outcome.count instanceof BigNum ? outcome.count : BigNum.fromAny(outcome.count ?? 0);
-    return affordable.cmp(levelsToBuy) >= 0;
+    return affordable.cmp(levelsToEvaluate) >= 0;
   };
 
   // Exponential search to find an upper bound
@@ -4499,6 +4512,10 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
       invalidateUpgradeState(areaKey, upgId);
       emitUpgradeLevelChange(upg, state.lvl, lvlBn, state.lvl, lvlBn);
       notifyChanged();
+
+      // Immediately purchase the levels for the newly unlocked evolution cap
+      // to prevent a 1-tick delay for the auto-buyer to catch up.
+      performFreeAutobuy(areaKey, upgId);
 
       return { evolved: true };
   }
