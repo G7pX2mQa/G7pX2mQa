@@ -1,5 +1,5 @@
 import { registerTick } from './gameLoop.js';
-import { getLevelNumber, performFreeAutobuy, getUpgradesForArea, AREA_KEYS, evolveUpgrade } from './upgrades.js';
+import { getLevelNumber, performFreeAutobuy, getUpgradesForArea, AREA_KEYS, evolveUpgrade, performFreeAutobuyEvolve } from './upgrades.js';
 import { triggerPassiveCollect } from './coinPickup.js';
 import { 
   AUTOMATION_AREA_KEY, 
@@ -216,7 +216,7 @@ function updateAutobuyers(dt) {
         const area = upg.area || AREA_KEYS.STARTER_COVE;
         // Only auto-evolve if the upgrade's standard autobuyer toggle is also ON
         if (getAutobuyerToggle(area, upg.id) !== '0') {
-          evolveUpgrade(area, upg.id);
+          performFreeAutobuyEvolve(area, upg.id);
         }
       }
     }
