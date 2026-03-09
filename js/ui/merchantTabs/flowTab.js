@@ -1240,8 +1240,8 @@ function updateFlowVisuals() {
                     reqStr = formatNumber(BigNum.fromAny(def.unlockReq));
                 } catch(e) {}
                 const newText = `Level ${reqStr} in prev.`;
-                if (elName.textContent !== newText) {
-                    elName.textContent = newText;
+                if (elName.innerHTML !== newText) {
+                    elName.innerHTML = newText;
                     elName.classList.add('flow-locked-text');
                 }
             }
@@ -1264,21 +1264,21 @@ function updateFlowVisuals() {
             if (elLvl) {
                  if (elLvl.style.display === 'none') elLvl.style.display = '';
                  const newText = formatNumber(ch.level);
-                 if (elLvl.textContent !== newText) elLvl.textContent = newText;
+                 if (elLvl.innerHTML !== newText) elLvl.innerHTML = newText;
             }
             if (elEffect) {
                 if (elEffect.style.display === 'none') elEffect.style.display = '';
                 const effectVal = ch.level.mulSmall(EFFECT_PERCENTAGE);
                 const newText = `+${formatNumber(effectVal)}%`;
-                if (elEffect.textContent !== newText) elEffect.textContent = newText;
+                if (elEffect.innerHTML !== newText) elEffect.innerHTML = newText;
             }
             if (elControls) {
                 if (elControls.style.display === 'none') elControls.style.display = '';
             }
             
             if (elName) {
-                if (elName.textContent !== def.name) {
-                    elName.textContent = def.name;
+                if (elName.innerHTML !== def.name) {
+                    elName.innerHTML = def.name;
                     elName.classList.remove('flow-locked-text');
                 }
             }
