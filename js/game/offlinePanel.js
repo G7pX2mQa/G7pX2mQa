@@ -8,7 +8,7 @@ import { formatNumber } from '../util/numFormat.js';
 import { ensureCustomScrollbar } from '../ui/shopOverlay.js';
 import { IS_MOBILE } from '../main.js';
 import { getLevelNumber, computeUpgradeEffects, getCurrentAreaKey as getUpgAreaKey } from './upgrades.js';
-import { getRpMult } from '../ui/merchantTabs/labTab.js';
+import { getRpMult, getLabLevel } from '../ui/merchantTabs/labTab.js';
 import { 
     RESEARCH_NODES, 
     getResearchNodeLevel, 
@@ -25,7 +25,7 @@ import { getBookProductionRate, isSurgeActive, getEffectiveTsunamiNerf } from '.
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { getXpState } from './xpSystem.js';
 import { getTotalCumulativeMp } from './mutationSystem.js';
-import { computeForgeGoldFromInputs, computeInfuseMagicFromInputs } from '../ui/merchantTabs/resetTab.js';
+import { computeForgeGoldFromInputs, computeInfuseMagicFromInputs, computePendingDnaFromInputs } from '../ui/merchantTabs/resetTab.js';
 import { getLabGoldMultiplier } from './labNodes.js';
 import { bigNumFromLog10 } from '../util/bigNum.js';
 import { calculateWaterwheelOffline, applyWaterwheelOffline, WATERWHEEL_DEFS } from '../ui/merchantTabs/flowTab.js';
@@ -388,8 +388,8 @@ export function calculateOfflineRewards(seconds) {
         }
     }
 
-    // Surge 13 (Gold) and Surge 16 (Magic)
-    if (isSurgeActive(13) || isSurgeActive(16)) {
+    // Surge 13 (Gold), Surge 16 (Magic), and Surge 90 (DNA)
+    if (isSurgeActive(13) || isSurgeActive(16) || isSurgeActive(90)) {
         const effectiveNerf = getEffectiveTsunamiNerf();
         const mapped = effectiveNerf * 1.5 - 0.5;
         const log10Rate = 2 * mapped - 2;
@@ -418,6 +418,18 @@ export function calculateOfflineRewards(seconds) {
              const magicEarned = pending.mulDecimal(totalMultiplier.toScientific());
              if (magicEarned.cmp(0) > 0 && !isCurrencyLocked('magic', slot)) {
                  rewards.magic = magicEarned;
+             }
+        }
+
+        if (isSurgeActive(90)) {
+             const xpState = getXpState();
+             const labLevel = getLabLevel();
+             let pending = computePendingDnaFromInputs(labLevel, xpState.xpLevel);
+             pending = bank.dna?.mult?.applyTo?.(pending) ?? pending;
+             
+             const dnaEarned = pending.mulDecimal(totalMultiplier.toScientific());
+             if (dnaEarned.cmp(0) > 0 && !isCurrencyLocked('dna', slot)) {
+                 rewards.dna = dnaEarned;
              }
         }
     }
