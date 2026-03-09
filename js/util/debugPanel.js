@@ -2592,6 +2592,17 @@ function setAllStatsToInfinity() {
         }
     } catch {}
 
+    // Waterwheels
+    try {
+        if (WATERWHEEL_DEFS) {
+            Object.values(WATERWHEEL_DEFS).forEach((def) => {
+                setWaterwheelLevel(def.id, inf);
+                setWaterwheelFp(def.id, inf);
+            });
+            touched += 1;
+        }
+    } catch {}
+
     try { window.resetSystem?.updateResetPanel?.(); } catch {}
 
     try { refreshLiveBindings(); } catch {}
@@ -2652,6 +2663,17 @@ function setAllStatsToZero() {
                     }));
                 } catch {}
             }
+        }
+    } catch {}
+
+    // Waterwheels
+    try {
+        if (WATERWHEEL_DEFS) {
+            Object.values(WATERWHEEL_DEFS).forEach((def) => {
+                setWaterwheelLevel(def.id, zero);
+                setWaterwheelFp(def.id, zero);
+            });
+            touched += 1;
         }
     } catch {}
 
@@ -3130,6 +3152,16 @@ function resetStatsAndMultipliers(target) {
             try { setDebugStatMultiplierOverride(key, BigNum.fromInt(1)); } catch {}
         });
 
+        // Waterwheels -> 0
+        try {
+            if (WATERWHEEL_DEFS) {
+                Object.values(WATERWHEEL_DEFS).forEach((def) => {
+                    setWaterwheelLevel(def.id, zero);
+                    setWaterwheelFp(def.id, zero);
+                });
+            }
+        } catch {}
+
         const totalCount = Object.values(CURRENCIES).length + STAT_MULTIPLIERS.length + 2; // XP + MP
         return { label: '[GOLD]all[/GOLD] currency/stats', count: totalCount };
     }
@@ -3165,6 +3197,16 @@ function resetStatsAndMultipliers(target) {
             }
         } catch {}
 
+        try {
+            if (WATERWHEEL_DEFS) {
+                Object.values(WATERWHEEL_DEFS).forEach((def) => {
+                    setWaterwheelLevel(def.id, zero);
+                    setWaterwheelFp(def.id, zero);
+                });
+                resetCount += 1;
+            }
+        } catch {}
+
         const label = resetCount === 1 ? '1 unlocked stat' : `${resetCount} unlocked stats`;
         return { label, count: resetCount };
     }
@@ -3191,6 +3233,16 @@ function resetStatsAndMultipliers(target) {
             if (getMutationState()?.unlocked) {
                 applyMutationState({ level: zero, progress: zero });
                 try { setDebugStatMultiplierOverride('mutation', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (WATERWHEEL_DEFS) {
+                Object.values(WATERWHEEL_DEFS).forEach((def) => {
+                    setWaterwheelLevel(def.id, zero);
+                    setWaterwheelFp(def.id, zero);
+                });
                 resetCount += 1;
             }
         } catch {}
