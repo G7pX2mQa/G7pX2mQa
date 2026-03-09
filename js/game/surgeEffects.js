@@ -8,7 +8,9 @@ import {
 } from './xpSystem.js';
 import { syncCurrencyMultipliersFromUpgrades } from './upgradeEffects.js';
 import { addExternalMutationGainMultiplierProvider, getTotalCumulativeMp } from './mutationSystem.js';
-import { getCurrentSurgeLevel, computeForgeGoldFromInputs, computeInfuseMagicFromInputs } from '../ui/merchantTabs/resetTab.js';
+import { getCurrentSurgeLevel, computeForgeGoldFromInputs, computeInfuseMagicFromInputs, computePendingDnaFromInputs } from '../ui/merchantTabs/resetTab.js';
+import { getResearchNodeLevel } from './labNodes.js';
+import { getLabLevel } from '../ui/merchantTabs/labTab.js';
 import { registerTick, RateAccumulator } from './gameLoop.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
 import { getTsunamiResearchBonus, getLabGoldMultiplier } from './labNodes.js';
@@ -850,6 +852,26 @@ function onTick(dt) {
       const amountToAdd = perSec.mulDecimal(String(dt), 18);
       
       if (bank.magic) bank.magic.add(amountToAdd);
+  }
+
+  if (isSurgeActive(90)) {
+      const effectiveNerf = getEffectiveTsunamiNerf();
+      const mapped = effectiveNerf * 1.5 - 0.5;
+      
+      const log10Rate = 2 * mapped - 2;
+      const rateMultiplier = bigNumFromLog10(log10Rate);
+      
+      const xpState = getXpState();
+      const labLevel = getLabLevel();
+      
+      let pending = computePendingDnaFromInputs(labLevel, xpState.xpLevel);
+      pending = bank.dna?.mult?.applyTo?.(pending) ?? pending;
+      
+      // Multiply by rate and dt
+      const perSec = pending.mulDecimal(rateMultiplier.toScientific());
+      const amountToAddDna = perSec.mulDecimal(String(dt), 18);
+      
+      if (bank.dna) bank.dna.add(amountToAddDna);
   }
 }
 
