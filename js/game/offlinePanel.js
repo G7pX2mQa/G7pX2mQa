@@ -429,7 +429,7 @@ export function calculateOfflineRewards(seconds) {
              
              const dnaEarned = pending.mulDecimal(totalMultiplier.toScientific());
              if (dnaEarned.cmp(0) > 0 && !isCurrencyLocked('dna', slot)) {
-                 rewards.dna = dnaEarned;
+                 rewards.DNA = dnaEarned;
              }
         }
     }
