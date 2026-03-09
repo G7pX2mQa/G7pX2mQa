@@ -786,11 +786,38 @@ function onTick(dt) {
         }
         
         if (gainBn.cmp(1e15) > 0) {
-            if (!levelLocked) {
-                const levels = gainBn.div(req).floorToInteger();
-                ch.level = ch.level.add(levels);
+            let currentFpBn = ch.fp instanceof BigNum ? ch.fp.clone() : BigNum.fromAny(ch.fp);
+            currentFpBn = currentFpBn.add(gainBn);
+            
+            if (!currentFpBn.isInfinite()) {
+                const reqBn = BigNum.fromInt(req);
+                const levels = currentFpBn.div(reqBn).floorToInteger();
+                
+                if (!levels.isZero()) {
+                    if (!levelLocked) {
+                        ch.level = ch.level.add(levels);
+                        currentFpBn = currentFpBn.sub(levels.mulSmall(req));
+                    } else {
+                        // Max out the FP visually if the level is locked
+                        currentFpBn = BigNum.fromInt(req);
+                    }
+                    changes = true;
+                }
+            } else if (!levelLocked) {
+                ch.level = BigNum.fromAny('Infinity');
                 changes = true;
             }
+            
+            const val = Number(currentFpBn.toScientific(5));
+            if (Number.isFinite(val) && val < 1e15) {
+                ch.fp = val;
+            } else {
+                ch.fp = currentFpBn;
+            }
+            
+            // We should mark changes = true if we gained FP even without leveling up, so the UI updates the bar.
+            // But visually it updates every frame anyway. To save state:
+            changes = true;
         } else {
             const gain = Number(gainBn.toScientific(10));
             
