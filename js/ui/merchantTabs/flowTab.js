@@ -1339,16 +1339,8 @@ function updateFlowVisuals() {
             
             const req = def?.baseReq;
             
-            let fpVal = ch.fp;
-            if (fpVal instanceof BigNum) {
-                 if (fpVal.isInfinite()) fpVal = Infinity;
-                 else try { fpVal = Number(fpVal.toScientific(5)); } catch { fpVal = 0; }
-            }
-            
             let pct = 0;
-            if (req > 0) {
-                pct = Math.min(100, Math.max(0, (fpVal / req) * 100));
-            }
+            let isMaxed = false;
             
             if (ch.active) {
                 const safeFixedStep = (typeof FIXED_STEP === 'number' && FIXED_STEP > 0) ? FIXED_STEP : 0.05;
@@ -1361,7 +1353,21 @@ function updateFlowVisuals() {
                 effectiveRate = applyStatMultiplierOverride('fp', effectiveRate);
                 
                 if (effectiveRate.isInfinite() || effectiveRate.cmp(threshold) >= 0) {
-                    pct = 100;
+                    isMaxed = true;
+                }
+            }
+            
+            if (isMaxed) {
+                pct = 100;
+            } else {
+                let fpVal = ch.fp;
+                if (fpVal instanceof BigNum) {
+                     if (fpVal.isInfinite()) fpVal = Infinity;
+                     else try { fpVal = Number(fpVal.toScientific(5)); } catch { fpVal = 0; }
+                }
+                
+                if (req > 0) {
+                    pct = Math.min(100, Math.max(0, (fpVal / req) * 100));
                 }
             }
 
