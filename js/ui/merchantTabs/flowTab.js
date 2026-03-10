@@ -245,6 +245,8 @@ const syncFlowLayout = () => {
     if (flowPanel && flowPanel.isConnected) {
         const left = flowPanel.querySelector('.flow-side-left');
         const right = flowPanel.querySelector('.flow-side-right');
+        syncWaterwheelDecorations(left);
+        syncWaterwheelDecorations(right);
         const updateBounds = (col) => {
             if (!col) return;
             const entry = animatedWaterwheels.get(col);
@@ -1116,8 +1118,8 @@ function buildUI(panel) {
 export function updateFlowTab() {
     if (!flowTabInitialized || !flowPanel) return;
     
-    syncWaterwheelDecorations(flowPanel.querySelector('.flow-side-left'));
-    syncWaterwheelDecorations(flowPanel.querySelector('.flow-side-right'));
+
+
 
     updateFlowVisuals();
 
@@ -1138,7 +1140,7 @@ export function updateFlowTab() {
         }
     }
 
-    alignFlowColumns();
+    debouncedAlignFlowColumns();
 }
 
 function updateWaterwheelVisuals() {
@@ -1174,6 +1176,12 @@ function updateWaterwheelVisuals() {
  * Refines the alignment of the Flow tab columns by measuring header positions
  * and applying compensatory transforms to the row values.
  */
+let alignFlowTimeout = null;
+function debouncedAlignFlowColumns() {
+    if (alignFlowTimeout) cancelAnimationFrame(alignFlowTimeout);
+    alignFlowTimeout = requestAnimationFrame(alignFlowColumns);
+}
+
 function alignFlowColumns() {
     if (!flowPanel || !flowPanel.isConnected) return;
     
@@ -1417,6 +1425,7 @@ export function initFlowTab(panelEl) {
 
     flowTabInitialized = true;
     updateFlowTab();
+    syncFlowLayout();
     
     if (typeof ResizeObserver !== 'undefined') {
         const ro = new ResizeObserver(syncFlowLayout);
