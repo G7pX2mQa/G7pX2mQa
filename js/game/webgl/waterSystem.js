@@ -1,3 +1,4 @@
+import { isMerchantOpen } from '../../ui/merchantTabs/dlgTab.js';
 import {
     VERTEX_SHADER,
     BACKGROUND_FRAGMENT_SHADER,
@@ -89,6 +90,9 @@ export class WaterSystem {
         this.bgBrushBuffer = null;
 
         this._boundResize = null;
+        
+        // Delve overlay optimization
+        this.merchantOpenTimer = 0;
     }
 
     init(backCanvasId, frontCanvasIds) {
@@ -379,6 +383,17 @@ export class WaterSystem {
 
     render(totalTime, dt) {
         if (!this.glBg) return;
+        
+        // Optimization: Skip rendering entirely when Delve is open
+        // Delay pausing by 150ms to allow the overlay opening transition to start
+        if (typeof isMerchantOpen === 'function') {
+            if (isMerchantOpen()) {
+                this.merchantOpenTimer += dt;
+                if (this.merchantOpenTimer > 0.15) return;
+            } else {
+                this.merchantOpenTimer = 0;
+            }
+        }
         
         // totalTime is in seconds. 
         const simTime = totalTime * 2; 
