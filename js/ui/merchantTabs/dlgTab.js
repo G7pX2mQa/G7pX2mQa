@@ -2264,6 +2264,10 @@ function selectMerchantTab(key) {
   });
 }
 
+export function isMerchantOpen() {
+  return merchantOpen;
+}
+
 export function isViewingLabTab() {
   if (!merchantOpen) return false;
   const btn = merchantTabs.buttons['lab'];
