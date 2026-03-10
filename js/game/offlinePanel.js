@@ -388,8 +388,8 @@ export function calculateOfflineRewards(seconds) {
         }
     }
 
-    // Surge 13 (Gold), Surge 16 (Magic), and Surge 90 (DNA)
-    if (isSurgeActive(13) || isSurgeActive(16) || isSurgeActive(90)) {
+    // Surge 13 (Gold), Surge 16 (Magic), and Surge 80 (DNA)
+    if (isSurgeActive(13) || isSurgeActive(16) || isSurgeActive(80)) {
         const effectiveNerf = getEffectiveTsunamiNerf();
         const mapped = effectiveNerf * 1.5 - 0.5;
         const log10Rate = 2 * mapped - 2;
@@ -421,7 +421,7 @@ export function calculateOfflineRewards(seconds) {
              }
         }
 
-        if (isSurgeActive(90)) {
+        if (isSurgeActive(80)) {
              const xpState = getXpState();
              const labLevel = getLabLevel();
              let pending = computePendingDnaFromInputs(labLevel, xpState.xpLevel);
