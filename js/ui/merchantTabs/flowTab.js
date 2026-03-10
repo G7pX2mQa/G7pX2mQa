@@ -75,6 +75,7 @@ const waterwheelRenderer = new WaterwheelRenderer();
 let flowSystemInitialized = false;
 let flowTabInitialized = false;
 let flowPanel = null;
+let flowDomCache = null;
 
 
 const animatedWaterwheels = new Map();
@@ -871,12 +872,12 @@ function onTick(dt) {
     if (changes) {
         updateFlowTab();
         scheduleSave();
-        window.dispatchEvent(new CustomEvent('flow:change', { detail: { type: 'tick' } }));
+        // The event with type 'tick' is not actually listened to anywhere useful, removing to save overhead
     } else if (visualUpdate) {
         if (flowTabInitialized && flowPanel) {
             updateFlowVisuals();
         }
-        window.dispatchEvent(new CustomEvent('flow:change', { detail: { type: 'tick-visual' } }));
+        // Removed CustomEvent('flow:change', { detail: { type: 'tick-visual' } }) for performance
     }
 }
 
@@ -929,8 +930,8 @@ function onFrame(time, dt) {
             if (v.rotation !== 0 || v.speed !== 0) {
                 v.rotation = 0;
                 v.speed = 0;
-                const el = document.getElementById(`flow-icon-${id}`);
-                if (el) el.style.transform = `translateY(-50%)`;
+                const el = flowDomCache ? flowDomCache[id]?.icon : document.getElementById(`flow-icon-${id}`);
+                if (el && el.style.transform !== `translateY(-50%)`) el.style.transform = `translateY(-50%)`;
             }
             continue;
         }
@@ -942,7 +943,7 @@ function onFrame(time, dt) {
             v.rotation -= speed * 360 * dt;
             v.rotation %= 360;
 
-            const el = document.getElementById(`flow-icon-${id}`);
+            const el = flowDomCache ? flowDomCache[id]?.icon : document.getElementById(`flow-icon-${id}`);
             if (el) {
                 let transform = `translateY(-50%) rotate(${v.rotation}deg)`;
                 
@@ -954,7 +955,9 @@ function onFrame(time, dt) {
                     transform = `translate(${dx}px, calc(-50% + ${dy}px)) rotate(${v.rotation}deg)`;
                 }
                 
-                el.style.transform = transform;
+                if (el.style.transform !== transform) {
+                    el.style.transform = transform;
+                }
             }
         }
     }
@@ -1093,6 +1096,21 @@ function buildUI(panel) {
             toggleWaterwheel(id);
         });
     });
+    
+    flowDomCache = {};
+    for (const id in WATERWHEEL_DEFS) {
+        const fillEl = wrapper.querySelector(`#flow-fill-${id}`);
+        flowDomCache[id] = {
+            icon: wrapper.querySelector(`#flow-icon-${id}`),
+            lvl: wrapper.querySelector(`#flow-lvl-${id}`),
+            effect: wrapper.querySelector(`#flow-effect-${id}`),
+            controls: wrapper.querySelector(`#flow-controls-${id}`),
+            name: wrapper.querySelector(`#flow-name-${id}`),
+            fill: fillEl,
+            row: fillEl ? fillEl.closest('.flow-row') : null,
+            toggleBtn: wrapper.querySelector(`.flow-toggle-btn[data-id="${id}"]`)
+        };
+    }
 }
 
 export function updateFlowTab() {
@@ -1106,15 +1124,16 @@ export function updateFlowTab() {
     // Update Buttons
     for (const id in WATERWHEEL_DEFS) {
         const ch = state.waterwheels[id];
-        const btn = flowPanel.querySelector(`.flow-toggle-btn[data-id="${id}"]`);
+        const cache = flowDomCache && flowDomCache[id];
+        const btn = cache ? cache.toggleBtn : flowPanel.querySelector(`.flow-toggle-btn[data-id="${id}"]`);
         
         if (btn) {
             if (ch.active) {
-                btn.textContent = "ON";
-                btn.classList.add('is-active');
+                if (btn.textContent !== "ON") btn.textContent = "ON";
+                if (!btn.classList.contains('is-active')) btn.classList.add('is-active');
             } else {
-                btn.textContent = "OFF";
-                btn.classList.remove('is-active');
+                if (btn.textContent !== "OFF") btn.textContent = "OFF";
+                if (btn.classList.contains('is-active')) btn.classList.remove('is-active');
             }
         }
     }
@@ -1181,16 +1200,21 @@ function alignFlowColumns() {
         if (s) stateEls.push(s);
     });
 
+    // If we are on mobile/tablet, we don't apply the desktop alignment logic
+    if (typeof window !== "undefined" && window.innerWidth <= 900) {
+        levelEls.forEach(el => { if (el.style.transform !== '') el.style.transform = ''; });
+        effectEls.forEach(el => { if (el.style.transform !== '') el.style.transform = ''; });
+        stateEls.forEach(el => { if (el.style.transform !== '') el.style.transform = ''; });
+        return;
+    }
+    
+    if (!header || header.offsetParent === null) return; // Hidden or not rendered
+    if (header.children.length < 4) return;
+
     // 1. Reset Transforms (Batch Write)
     levelEls.forEach(el => el.style.transform = '');
     effectEls.forEach(el => el.style.transform = '');
     stateEls.forEach(el => el.style.transform = '');
-    
-    // If we are on mobile/tablet, we don't apply the desktop alignment logic
-    if (typeof window !== "undefined" && window.innerWidth <= 900) return;
-    
-    if (!header || header.offsetParent === null) return; // Hidden or not rendered
-    if (header.children.length < 4) return;
 
     // 2. Measure Centers (Batch Read)
     const getCenter = (el) => {
@@ -1233,7 +1257,7 @@ function alignFlowColumns() {
 }
 
 function updateFlowVisuals() {
-    if (!flowTabInitialized || !flowPanel) return;
+    if (!flowTabInitialized || !flowPanel || !flowDomCache) return;
 
     const fpMult = getFpMultiplier();
 
@@ -1241,13 +1265,16 @@ function updateFlowVisuals() {
         const ch = state.waterwheels[id];
         const def = WATERWHEEL_DEFS[id];
         
-        const elIcon = flowPanel.querySelector(`#flow-icon-${id}`);
-        const elLvl = flowPanel.querySelector(`#flow-lvl-${id}`);
-        const elEffect = flowPanel.querySelector(`#flow-effect-${id}`);
-        const elControls = flowPanel.querySelector(`#flow-controls-${id}`);
-        const elName = flowPanel.querySelector(`#flow-name-${id}`);
-        const elFill = flowPanel.querySelector(`#flow-fill-${id}`);
-        const elRow = elFill ? elFill.closest('.flow-row') : null;
+        const cache = flowDomCache[id];
+        if (!cache) continue;
+        
+        const elIcon = cache.icon;
+        const elLvl = cache.lvl;
+        const elEffect = cache.effect;
+        const elControls = cache.controls;
+        const elName = cache.name;
+        const elFill = cache.fill;
+        const elRow = cache.row;
         
         if (!ch.unlocked) {
             // Locked State
