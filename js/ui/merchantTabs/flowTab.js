@@ -1122,6 +1122,7 @@ export function updateFlowTab() {
 
 
     updateFlowVisuals();
+    syncFlowLayout();
 
     // Update Buttons
     for (const id in WATERWHEEL_DEFS) {
