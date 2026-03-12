@@ -1202,6 +1202,7 @@ function decimalMultiplierString(value) {
 }
 
 function normalizeHmEvolutionCount(value) {
+  if (value === 'Infinity' || value === Infinity) return Infinity;
   const n = Number(value);
   if (Number.isFinite(n) && n > 0) return Math.max(0, Math.floor(n));
   return 0;
@@ -1209,6 +1210,7 @@ function normalizeHmEvolutionCount(value) {
 
 function activeEvolutionsForUpgrade(upg) {
   if (!upg) return 0;
+  if (upg.activeEvolutions === 'Infinity' || upg.activeEvolutions === Infinity) return Infinity;
   const active = Number(upg.activeEvolutions);
   if (Number.isFinite(active) && active >= 0) return active;
   return normalizeHmEvolutionCount(upg.numUpgEvolutions);
@@ -1308,13 +1310,13 @@ const DEFAULT_SCALING_PRESETS = {
 
 function hmLevelCapForEvolutions(evolutions) {
   const cycles = normalizeHmEvolutionCount(evolutions);
-  const cap = HM_EVOLUTION_INTERVAL * (cycles + 1);
-  const capBn = BigNum.fromAny(cap);
+  const cap = cycles === Infinity ? Infinity : HM_EVOLUTION_INTERVAL * (cycles + 1);
+  const capBn = cycles === Infinity ? BigNum.fromAny('Infinity') : BigNum.fromAny(cap);
   return {
     cap,
     capBn,
-    capFmtHtml: formatBigNumAsHtml(capBn),
-    capFmtText: formatBigNumAsPlain(capBn),
+    capFmtHtml: cycles === Infinity ? formatBigNumAsHtml(BigNum.fromAny('Infinity')) : formatBigNumAsHtml(capBn),
+    capFmtText: cycles === Infinity ? formatBigNumAsPlain(BigNum.fromAny('Infinity')) : formatBigNumAsPlain(capBn),
   };
 }
 
@@ -4090,12 +4092,14 @@ export function isHmReadyToEvolve(upg, lvlBn, evolutions = null) {
   const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0n;
   if (surgeLevel < 60) return false;
 
+  const safeEvol = (Number.isFinite(evolutions) || evolutions === Infinity || evolutions === 'Infinity')
+    ? evolutions
+    : activeEvolutionsForUpgrade(upg);
+
   // Once an HM upgrade reaches BN Infinity, treat it as permanently maxed
   // and suppress further evolutions so the UI can show the maxed frame.
   if (lvlBn?.isInfinite?.()) return false;
-  const safeEvol = Number.isFinite(evolutions)
-    ? evolutions
-    : activeEvolutionsForUpgrade(upg);
+  
   const { capBn, cap } = hmLevelCapForEvolutions(safeEvol);
   try { return lvlBn?.cmp?.(capBn) >= 0; }
   catch {}
@@ -4388,6 +4392,34 @@ export function evolveUpgrade(areaKey, upgId) {
   if (!upg || upg.upgType !== 'HM') return { evolved: false };
 
   const lvlBn = state.lvlBn ?? ensureLevelBigNum(state.lvl);
+  
+  const walletHandle = bank[upg.costType];
+  const walletValue = walletHandle?.value;
+  const wallet = walletValue instanceof BigNum
+    ? walletValue.clone?.() ?? BigNum.fromAny(walletValue)
+    : BigNum.fromAny(walletValue ?? 0);
+
+  if (wallet.isInfinite?.()) {
+    const currentEvolutions = normalizeHmEvolutionCount(state.hmEvolutions);
+    if (currentEvolutions === Infinity) return { evolved: false };
+
+    state.hmEvolutions = Infinity;
+    applyHmEvolutionMeta(upg, Infinity);
+    ensureUpgradeScaling(upg);
+
+    try { state.nextCostBn = BigNum.fromAny(upg.costAtLevel(state.lvl)); }
+    catch { state.nextCostBn = BigNum.fromAny('Infinity'); }
+
+    commitUpgradeState(state);
+    invalidateUpgradeState(areaKey, upgId);
+    emitUpgradeLevelChange(upg, state.lvl, lvlBn, state.lvl, lvlBn);
+    notifyChanged();
+
+    performFreeAutobuy(areaKey, upgId);
+
+    return { evolved: true };
+  }
+
   if (!isHmReadyToEvolve(upg, lvlBn, state.hmEvolutions)) {
     return { evolved: false };
   }
@@ -4413,9 +4445,6 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
   if (!upg || upg.upgType !== 'HM') return { evolved: false };
 
   const lvlBn = state.lvlBn ?? ensureLevelBigNum(state.lvl);
-  if (!isHmReadyToEvolve(upg, lvlBn, state.hmEvolutions)) {
-    return { evolved: false };
-  }
   
   const walletHandle = bank[upg.costType];
   const walletValue = walletHandle?.value;
@@ -4424,9 +4453,32 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
     : BigNum.fromAny(walletValue ?? 0);
 
   if (wallet.isZero?.()) return { evolved: false };
-  if (wallet.isInfinite?.()) return { evolved: false };
 
   const currentEvolutions = normalizeHmEvolutionCount(state.hmEvolutions);
+
+  if (wallet.isInfinite?.()) {
+    if (currentEvolutions === Infinity) return { evolved: false };
+
+    state.hmEvolutions = Infinity;
+    applyHmEvolutionMeta(upg, Infinity);
+    ensureUpgradeScaling(upg);
+
+    try { state.nextCostBn = BigNum.fromAny(upg.costAtLevel(state.lvl)); }
+    catch { state.nextCostBn = BigNum.fromAny('Infinity'); }
+
+    commitUpgradeState(state);
+    invalidateUpgradeState(areaKey, upgId);
+    emitUpgradeLevelChange(upg, state.lvl, lvlBn, state.lvl, lvlBn);
+    notifyChanged();
+
+    performFreeAutobuy(areaKey, upgId);
+
+    return { evolved: true };
+  }
+
+  if (!isHmReadyToEvolve(upg, lvlBn, state.hmEvolutions)) {
+    return { evolved: false };
+  }
   
   let lowEvol = currentEvolutions;
   let highEvol = currentEvolutions + 1;
