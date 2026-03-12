@@ -1,5 +1,5 @@
 import { registerTick } from './gameLoop.js';
-import { getLevelNumber, performFreeAutobuy, getUpgradesForArea, AREA_KEYS, evolveUpgrade, performFreeAutobuyEvolve } from './upgrades.js';
+import { getLevelNumber, performFreeAutobuy, getUpgradesForArea, AREA_KEYS, evolveUpgrade, performFreeAutobuyEvolve, batchUpgradeOperations } from './upgrades.js';
 import { triggerPassiveCollect } from './coinPickup.js';
 import { 
   AUTOMATION_AREA_KEY, 
@@ -177,50 +177,52 @@ function processAutobuyGroup(upgrades) {
 }
 
 function updateAutobuyers(dt) {
-  const slot = getActiveSlot();
-  ensureCacheSlot(slot);
+  batchUpgradeOperations(() => {
+    const slot = getActiveSlot();
+    ensureCacheSlot(slot);
 
-  // Tick-sliced processing for standard upgrades
-  // Iterate over MASTER_AUTOBUY_IDS to dynamically handle cost types
-  const groups = getGroupedUpgrades();
-  for (const [idStr, currencyKey] of Object.entries(MASTER_AUTOBUY_IDS)) {
-    const id = Number(idStr);
-    // Check if this specific autobuyer is purchased/active
-    if (getLevelNumber(AUTOMATION_AREA_KEY, id) > 0) {
-      if (groups[currencyKey]) {
-        processAutobuyGroup(groups[currencyKey]);
-      }
-    }
-  }
-
-  // Process workshop levels (throttled to ~4Hz)
-  const workshopAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID) > 0;
-  if (workshopAutobuy) {
-    workshopTicker++;
-    if (workshopTicker >= 5) {
-      workshopTicker = 0;
-      const setting = getAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID);
-      if (setting !== '0') {
-        performFreeGenerationUpgrade();
-      }
-    }
-  }
-
-  // Process Auto-Evolve Upgrades
-  const evolveAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_EVOLVE_UPGRADES_ID) > 0;
-  if (evolveAutobuy) {
-    const setting = getAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_EVOLVE_UPGRADES_ID);
-    if (setting !== '0') {
-      const hmUpgrades = getHmUpgrades();
-      for (const upg of hmUpgrades) {
-        const area = upg.area || AREA_KEYS.STARTER_COVE;
-        // Only auto-evolve if the upgrade's standard autobuyer toggle is also ON
-        if (getAutobuyerToggle(area, upg.id) !== '0') {
-          performFreeAutobuyEvolve(area, upg.id);
+    // Tick-sliced processing for standard upgrades
+    // Iterate over MASTER_AUTOBUY_IDS to dynamically handle cost types
+    const groups = getGroupedUpgrades();
+    for (const [idStr, currencyKey] of Object.entries(MASTER_AUTOBUY_IDS)) {
+      const id = Number(idStr);
+      // Check if this specific autobuyer is purchased/active
+      if (getLevelNumber(AUTOMATION_AREA_KEY, id) > 0) {
+        if (groups[currencyKey]) {
+          processAutobuyGroup(groups[currencyKey]);
         }
       }
     }
-  }
+
+    // Process workshop levels (throttled to ~4Hz)
+    const workshopAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID) > 0;
+    if (workshopAutobuy) {
+      workshopTicker++;
+      if (workshopTicker >= 5) {
+        workshopTicker = 0;
+        const setting = getAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID);
+        if (setting !== '0') {
+          performFreeGenerationUpgrade();
+        }
+      }
+    }
+
+    // Process Auto-Evolve Upgrades
+    const evolveAutobuy = getLevelNumber(AUTOMATION_AREA_KEY, AUTOBUY_EVOLVE_UPGRADES_ID) > 0;
+    if (evolveAutobuy) {
+      const setting = getAutobuyerToggle(AUTOMATION_AREA_KEY, AUTOBUY_EVOLVE_UPGRADES_ID);
+      if (setting !== '0') {
+        const hmUpgrades = getHmUpgrades();
+        for (const upg of hmUpgrades) {
+          const area = upg.area || AREA_KEYS.STARTER_COVE;
+          // Only auto-evolve if the upgrade's standard autobuyer toggle is also ON
+          if (getAutobuyerToggle(area, upg.id) !== '0') {
+            performFreeAutobuyEvolve(area, upg.id);
+          }
+        }
+      }
+    }
+  });
 }
 
 export function updateAutomation(dt) {
