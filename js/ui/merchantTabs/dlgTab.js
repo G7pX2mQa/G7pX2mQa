@@ -1334,15 +1334,7 @@ function ensureMerchantScrollbar() {
       thumb.style.animationFillMode = 'both';
   }
 
-  let lastShadow = null;
-  const syncScrollShadow = () => {
-      const hasShadow = (scroller.scrollTop || 0) > 0;
-      if (lastShadow === hasShadow) return;
-      lastShadow = hasShadow;
-      merchantSheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
-  };
-
-  const updateBounds = () => {
+const updateBounds = () => {
       const grabber = merchantOverlayEl.querySelector('.merchant-grabber');
       const header  = merchantOverlayEl.querySelector('.merchant-header');
       const actions = merchantOverlayEl.querySelector('.merchant-actions');
@@ -1354,44 +1346,69 @@ function ensureMerchantScrollbar() {
       bar.style.bottom = bottom + 'px';
   };
 
-  let lastState = {};
-  const updateThumb = () => {
-      const { scrollHeight, clientHeight, scrollTop } = scroller;
-      const barH = bar.clientHeight || scroller.clientHeight || 1;
+  // --- Cached Metrics to Avoid Layout Thrashing ---
+  let cachedMetrics = {
+      scrollHeight: 0,
+      clientHeight: 0,
+      barH: 0,
+      thumbH: 0,
+      maxScroll: 1,
+      range: 0
+  };
 
-      if (
-        lastState.scrollHeight === scrollHeight &&
-        lastState.clientHeight === clientHeight &&
-        lastState.barH === barH &&
-        (useCssTimeline || lastState.scrollTop === scrollTop)
-      ) {
-        return;
-      }
-      lastState = { scrollHeight, clientHeight, scrollTop, barH };
+  const updateMetrics = () => {
+      const { scrollHeight, clientHeight } = scroller;
+      const barH = bar.clientHeight || scroller.clientHeight || 1;
 
       const visibleRatio = clientHeight / Math.max(1, scrollHeight);
       const thumbH = Math.max(28, Math.round(barH * visibleRatio));
 
       const maxScroll = Math.max(1, scrollHeight - clientHeight);
       const range = Math.max(0, barH - thumbH);
-    
+
+      cachedMetrics = { scrollHeight, clientHeight, barH, thumbH, maxScroll, range };
+
       thumb.style.height = thumbH + 'px';
-    
+
       if (useCssTimeline) {
-        thumb.style.setProperty('--thumb-y', `${range}px`);
-        thumb.style.setProperty('--thumb-x', '0px');
-      } else {
-        const y = Math.round((scrollTop / maxScroll) * range);
-        thumb.style.transform = `translateY(${y}px)`;
+          thumb.style.setProperty('--thumb-y', `${range}px`);
+          thumb.style.setProperty('--thumb-x', '0px');
       }
 
       bar.style.display = (scrollHeight <= clientHeight + 1) ? 'none' : '';
+      
+      // Force immediate visual update
+      performScrollUpdate();
+  };
+
+  let lastShadow = null;
+  let isScrollTickPending = false;
+
+  const performScrollUpdate = () => {
+      isScrollTickPending = false;
+      
+      const scrollTop = scroller.scrollTop;
+
+      // 1. Shadow
+      const hasShadow = (scrollTop || 0) > 0;
+      if (lastShadow !== hasShadow) {
+          lastShadow = hasShadow;
+          merchantSheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
+      }
+
+      // 2. Thumb Position (if not using CSS Timeline)
+      if (!useCssTimeline) {
+          const { maxScroll, range } = cachedMetrics;
+          const y = Math.round((scrollTop / maxScroll) * range);
+          thumb.style.transform = `translateY(${y}px)`;
+      }
+
+      if (isTouch) showBar();
   };
 
   const updateAll = () => {
       updateBounds();
-      updateThumb();
-      syncScrollShadow();
+      updateMetrics();
   };
 
   const showBar = () => {
@@ -1404,14 +1421,15 @@ function ensureMerchantScrollbar() {
       if (!isTouch) return;
       if (fadeTimer) clearTimeout(fadeTimer);
       fadeTimer = setTimeout(() => {
-      merchantSheetEl.classList.remove('is-scrolling');
+          merchantSheetEl.classList.remove('is-scrolling');
       }, delay);
   };
 
   const onScroll = () => {
-      updateThumb();
-      syncScrollShadow();
-      if (isTouch) showBar();
+      if (!isScrollTickPending) {
+          isScrollTickPending = true;
+          window.requestAnimationFrame(performScrollUpdate);
+      }
       if (!supportsScrollEnd) scheduleHide(FADE_SCROLL_MS);
   };
 
@@ -1425,6 +1443,18 @@ function ensureMerchantScrollbar() {
 
   const ro = new ResizeObserver(updateAll);
   ro.observe(scroller);
+
+  let debounceTimer;
+  const debouncedUpdateAll = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(updateAll, 100);
+  };
+
+  if (typeof MutationObserver !== 'undefined') {
+      const obs = new MutationObserver(debouncedUpdateAll);
+      obs.observe(scroller, { childList: true, subtree: true, characterData: true });
+  }
+
   window.addEventListener('resize', updateAll);
   requestAnimationFrame(updateAll); // Initial kick
 
@@ -1445,12 +1475,10 @@ function ensureMerchantScrollbar() {
 
   const onDragMove = (e) => {
       if (!dragging) return;
-      const barH = bar.clientHeight || 1;
-      const thH = thumb.clientHeight || 1;
-      const range = Math.max(1, barH - thH);
-      const scrollMax = Math.max(1, scroller.scrollHeight - scroller.clientHeight);
+      const { range, maxScroll } = cachedMetrics;
+      if (range <= 0) return;
       const deltaY = e.clientY - dragStartY;
-      const scrollDelta = (deltaY / range) * scrollMax;
+      const scrollDelta = (deltaY / range) * maxScroll;
       scroller.scrollTop = startScrollTop + scrollDelta;
   };
 
@@ -1473,13 +1501,10 @@ function ensureMerchantScrollbar() {
       const rect = bar.getBoundingClientRect();
       const clickY = e.clientY - rect.top;
 
-      const barH = bar.clientHeight || 1;
-      const thH = thumb.clientHeight || 1;
-      const range = Math.max(0, barH - thH);
-      const targetY = Math.max(0, Math.min(clickY - thH / 2, range));
+      const { thumbH, range, maxScroll } = cachedMetrics;
+      const targetY = Math.max(0, Math.min(clickY - thumbH / 2, range));
 
-      const scrollMax = Math.max(1, scroller.scrollHeight - scroller.clientHeight);
-      scroller.scrollTop = (targetY / Math.max(1, range)) * scrollMax;
+      scroller.scrollTop = (targetY / Math.max(1, range)) * maxScroll;
 
       showBar();
       scheduleHide(FADE_SCROLL_MS);
