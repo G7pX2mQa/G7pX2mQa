@@ -73,6 +73,7 @@ uniform vec3 uColorWave;
 
 /* Simple noise for foam breakup */
 float hash(vec2 p) {
+    p = mod(p, 512.0);
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
 }
 float noise(vec2 p) {
