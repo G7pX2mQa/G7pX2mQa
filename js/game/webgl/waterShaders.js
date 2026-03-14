@@ -165,6 +165,10 @@ void main() {
     
     /* OutRGB = WaveRGB * WaveAlpha + ShadowRGB * ShadowAlpha * (1 - WaveAlpha) */
     /* Shadow is black (RGB=0), so second term is 0 */
+    /* PREMULTIPLIED ALPHA CORRECTION: Because we are blending with (ONE, ONE_MINUS_SRC_ALPHA), */
+    /* the color channels must be premultiplied by the alpha of the object they represent. */
+    /* The wave is 'finalColor' with opacity 'waveAlpha', so its premultiplied color is simply 'finalColor * waveAlpha'. */
+    /* The shadow is black, so it adds 0.0 to the RGB channels. */
     vec3 outRGB = finalColor * waveAlpha; 
     
     gl_FragColor = vec4(outRGB, outAlpha);
