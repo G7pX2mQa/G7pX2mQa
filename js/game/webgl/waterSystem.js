@@ -312,9 +312,17 @@ export class WaterSystem {
         );
     }
 
-    runSimStep(gl, program, quadBuffer, readFBO, writeFBO, readTex, writeTex, dt) {
-        gl.useProgram(program);
-        gl.viewport(0, 0, this.simRes, this.simRes);
+    runSimStep(gl, program, quadBuffer, readFBO, writeFBO, readTex, writeTex, dt, skipSetup = false) {
+        if (!skipSetup) {
+            gl.useProgram(program);
+            gl.viewport(0, 0, this.simRes, this.simRes);
+            gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+            const aPos = gl.getAttribLocation(program, "position");
+            gl.enableVertexAttribArray(aPos);
+            gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+            gl.uniform1i(gl.getUniformLocation(program, "uLastFrame"), 0);
+            gl.uniform2f(gl.getUniformLocation(program, "uResolution"), this.simRes, this.simRes);
+        }
         
         // Write to WriteFBO
         gl.bindFramebuffer(gl.FRAMEBUFFER, writeFBO);
@@ -322,15 +330,9 @@ export class WaterSystem {
         // Read from ReadTexture
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, readTex);
-        gl.uniform1i(gl.getUniformLocation(program, 'uLastFrame'), 0);
-        gl.uniform2f(gl.getUniformLocation(program, 'uResolution'), this.simRes, this.simRes);
         gl.uniform1f(gl.getUniformLocation(program, 'uDt'), dt); // Variable timestep
 
         // Draw Full Screen Quad
-        gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-        const aPos = gl.getAttribLocation(program, 'position');
-        gl.enableVertexAttribArray(aPos);
-        gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
         
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         
@@ -418,19 +420,31 @@ export class WaterSystem {
         });
 
         // --- 2. Simulation Step (FG Layers) ---
-        this.fgLayers.forEach(layer => {
+        if (steps.length > 0 && this.fgLayers.length > 0) {
+            const glFg = this.glFg;
+            glFg.useProgram(this.fgSimProgram);
+            glFg.viewport(0, 0, this.simRes, this.simRes);
+            glFg.bindBuffer(glFg.ARRAY_BUFFER, this.quadBufferFg);
+            const aPos = glFg.getAttribLocation(this.fgSimProgram, "position");
+            glFg.enableVertexAttribArray(aPos);
+            glFg.vertexAttribPointer(aPos, 2, glFg.FLOAT, false, 0, 0);
+            glFg.uniform1i(glFg.getUniformLocation(this.fgSimProgram, "uLastFrame"), 0);
+            glFg.uniform2f(glFg.getUniformLocation(this.fgSimProgram, "uResolution"), this.simRes, this.simRes);
+            
             steps.forEach(stepDt => {
-                const fgState = this.runSimStep(
-                    this.glFg, this.fgSimProgram, this.quadBufferFg,
-                    layer.readFBO, layer.writeFBO, layer.readTexture, layer.writeTexture,
-                    stepDt
-                );
-                layer.readFBO = fgState.readFBO;
-                layer.writeFBO = fgState.writeFBO;
-                layer.readTexture = fgState.readTex;
-                layer.writeTexture = fgState.writeTex;
+                this.fgLayers.forEach(layer => {
+                    const fgState = this.runSimStep(
+                        glFg, this.fgSimProgram, this.quadBufferFg,
+                        layer.readFBO, layer.writeFBO, layer.readTexture, layer.writeTexture,
+                        stepDt, true
+                    );
+                    layer.readFBO = fgState.readFBO;
+                    layer.writeFBO = fgState.writeFBO;
+                    layer.readTexture = fgState.readTex;
+                    layer.writeTexture = fgState.writeTex;
+                });
             });
-        });
+        }
 
         // --- 3. Render Background (Water Body) ---
         const glBg = this.glBg;
