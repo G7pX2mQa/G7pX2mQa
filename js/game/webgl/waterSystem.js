@@ -51,16 +51,12 @@ export class WaterSystem {
         this.bgCanvas = null;
         this.glBg = null;
 
-        // Array to hold multiple foreground layers
+        this.fgCanvas = null;
+        this.glFg = null;
+
+        // Array to hold multiple foreground layers (now just FBOs in single context)
         this.fgLayers = []; 
         /* Each layer object: {
-             canvas: HTMLCanvasElement,
-             gl: WebGLRenderingContext,
-             program: WebGLProgram,
-             simProgram: WebGLProgram,
-             brushProgram: WebGLProgram,
-             quadBuffer: WebGLBuffer,
-             brushBuffer: WebGLBuffer,
              readFBO: WebGLFramebuffer,
              writeFBO: WebGLFramebuffer,
              readTexture: WebGLTexture,
@@ -72,6 +68,11 @@ export class WaterSystem {
         this.bgProgram = null;
         this.bgSimProgram = null;
         this.bgBrushProgram = null;
+
+        // Foreground Context Programs
+        this.fgProgram = null;
+        this.fgSimProgram = null;
+        this.fgBrushProgram = null;
 
         this.width = 0;
         this.height = 0;
@@ -88,6 +89,8 @@ export class WaterSystem {
         // Buffers
         this.quadBufferBg = null;
         this.bgBrushBuffer = null;
+        this.quadBufferFg = null;
+        this.fgBrushBuffer = null;
 
         this._boundResize = null;
         
@@ -95,14 +98,12 @@ export class WaterSystem {
         this.merchantOpenTimer = 0;
     }
 
-    init(backCanvasId, frontCanvasIds) {
+    init(backCanvasId, frontCanvasId, numLayers = 5) {
         this.fgLayers = [];
         this.bgCanvas = document.getElementById(backCanvasId);
+        this.fgCanvas = document.getElementById(frontCanvasId);
         
-        // Handle array of foreground canvases
-        const ids = Array.isArray(frontCanvasIds) ? frontCanvasIds : [frontCanvasIds];
-        
-        if (!this.bgCanvas) return;
+        if (!this.bgCanvas || !this.fgCanvas) return;
 
         // Initialize Background Context
         this.glBg = this.bgCanvas.getContext('webgl', { alpha: true, depth: false }) || 
@@ -113,56 +114,41 @@ export class WaterSystem {
             return;
         }
 
+        // Initialize Foreground Context
+        this.fgCanvas.style.display = 'block';
+        this.glFg = this.fgCanvas.getContext('webgl', { alpha: true, depth: false }) || 
+                    this.fgCanvas.getContext('experimental-webgl');
+        
+        if (!this.glFg) {
+            console.error('WaterSystem: WebGL not supported for FG');
+            return;
+        }
+
         this.initBgShaders();
         this.initBgBuffers();
         this.initBgSimulation();
 
-        // Initialize Foreground Layers
-        ids.forEach(id => {
-            const canvas = document.getElementById(id);
-            if (!canvas) return;
-            
-            canvas.style.display = 'block';
-            
-            const gl = canvas.getContext('webgl', { alpha: true, depth: false }) || 
-                       canvas.getContext('experimental-webgl');
-            
-            if (!gl) {
-                console.error(`WaterSystem: WebGL not supported for layer ${id}`);
-                return;
-            }
+        // Initialize Foreground Shaders and Buffers
+        this.fgProgram = createProgram(this.glFg, VERTEX_SHADER, FRAGMENT_SHADER);
+        this.fgSimProgram = createProgram(this.glFg, VERTEX_SHADER, SIMULATION_FRAGMENT_SHADER);
+        this.fgBrushProgram = createProgram(this.glFg, WAVE_VERTEX_SHADER, WAVE_BRUSH_FRAGMENT_SHADER);
 
-            const layer = {
-                canvas: canvas,
-                gl: gl,
-                program: createProgram(gl, VERTEX_SHADER, FRAGMENT_SHADER),
-                simProgram: createProgram(gl, VERTEX_SHADER, SIMULATION_FRAGMENT_SHADER),
-                brushProgram: createProgram(gl, WAVE_VERTEX_SHADER, WAVE_BRUSH_FRAGMENT_SHADER),
-                quadBuffer: null,
-                brushBuffer: null,
-                readFBO: null,
-                writeFBO: null,
-                readTexture: null,
-                writeTexture: null
-            };
+        const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+        this.quadBufferFg = this.glFg.createBuffer();
+        this.glFg.bindBuffer(this.glFg.ARRAY_BUFFER, this.quadBufferFg);
+        this.glFg.bufferData(this.glFg.ARRAY_BUFFER, vertices, this.glFg.STATIC_DRAW);
+        this.fgBrushBuffer = this.glFg.createBuffer();
 
-            // Init Buffers for this layer
-            const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
-            layer.quadBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, layer.quadBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-            
-            layer.brushBuffer = gl.createBuffer();
-
-            // Init Sim for this layer
-            const simRes = this.createSimResources(gl);
-            layer.readFBO = simRes.readFBO;
-            layer.writeFBO = simRes.writeFBO;
-            layer.readTexture = simRes.readTex;
-            layer.writeTexture = simRes.writeTex;
-
-            this.fgLayers.push(layer);
-        });
+        // Initialize Foreground Layers (FBOs within single context)
+        for (let i = 0; i < numLayers; i++) {
+            const simRes = this.createSimResources(this.glFg);
+            this.fgLayers.push({
+                readFBO: simRes.readFBO,
+                writeFBO: simRes.writeFBO,
+                readTexture: simRes.readTex,
+                writeTexture: simRes.writeTex
+            });
+        }
 
         this.resize();
         
@@ -239,18 +225,14 @@ export class WaterSystem {
             this.glBg.viewport(0, 0, this.bgCanvas.width, this.bgCanvas.height);
         }
 
-        // Resize all foreground layers
-        if (this.fgLayers.length > 0) {
-            const rect = this.fgLayers[0].canvas.getBoundingClientRect(); // Assume all same size
+        if (this.fgCanvas && this.glFg) {
+            const rect = this.fgCanvas.getBoundingClientRect();
             this.width = rect.width;
             this.height = rect.height;
             
-            this.fgLayers.forEach(layer => {
-                 const rect = layer.canvas.getBoundingClientRect();
-                 layer.canvas.width = rect.width * dpr;
-                 layer.canvas.height = rect.height * dpr;
-                 layer.gl.viewport(0, 0, layer.canvas.width, layer.canvas.height);
-            });
+            this.fgCanvas.width = rect.width * dpr;
+            this.fgCanvas.height = rect.height * dpr;
+            this.glFg.viewport(0, 0, this.fgCanvas.width, this.fgCanvas.height);
         }
     }
 
@@ -301,7 +283,7 @@ export class WaterSystem {
     }
 
     addWave(x, y, width, height, forceTopLayer = false) {
-        if (!this.glBg || this.fgLayers.length === 0) return;
+        if (!this.glBg || !this.glFg || this.fgLayers.length === 0) return;
 
         // 1. Apply to BG Sim (Always, for water distortion)
         this.applyBrush(
@@ -322,9 +304,9 @@ export class WaterSystem {
         const layer = this.fgLayers[layerIdx];
         
         this.applyBrush(
-            layer.gl, 
-            layer.brushProgram, 
-            layer.brushBuffer, 
+            this.glFg, 
+            this.fgBrushProgram, 
+            this.fgBrushBuffer, 
             layer.readFBO, 
             x, y, width, height
         );
@@ -439,7 +421,7 @@ export class WaterSystem {
         this.fgLayers.forEach(layer => {
             steps.forEach(stepDt => {
                 const fgState = this.runSimStep(
-                    layer.gl, layer.simProgram, layer.quadBuffer,
+                    this.glFg, this.fgSimProgram, this.quadBufferFg,
                     layer.readFBO, layer.writeFBO, layer.readTexture, layer.writeTexture,
                     stepDt
                 );
@@ -474,31 +456,43 @@ export class WaterSystem {
         glBg.drawArrays(glBg.TRIANGLE_STRIP, 0, 4);
 
         // --- 4. Render Foreground Layers (Waves/Foam) ---
-        this.fgLayers.forEach(layer => {
-            const glFg = layer.gl;
+        if (this.glFg && this.fgCanvas) {
+            const glFg = this.glFg;
             glFg.bindFramebuffer(glFg.FRAMEBUFFER, null); 
-            glFg.viewport(0, 0, layer.canvas.width, layer.canvas.height);
-            glFg.useProgram(layer.program);
+            glFg.viewport(0, 0, this.fgCanvas.width, this.fgCanvas.height);
+            
+            // Clear the single foreground canvas once
             glFg.clearColor(0, 0, 0, 0);
             glFg.clear(glFg.COLOR_BUFFER_BIT);
 
-            glFg.activeTexture(glFg.TEXTURE0);
-            glFg.bindTexture(glFg.TEXTURE_2D, layer.readTexture); // Use FG sim result
-            glFg.uniform1i(glFg.getUniformLocation(layer.program, 'uWaveMap'), 0);
-            
-            glFg.uniform3fv(glFg.getUniformLocation(layer.program, 'uColorShallow'), COLOR_SHALLOW);
-            glFg.uniform3fv(glFg.getUniformLocation(layer.program, 'uColorWave'), COLOR_WAVE); 
-            glFg.uniform3fv(glFg.getUniformLocation(layer.program, 'uColorWaveDeep'), COLOR_WAVE_DEEP);
-            glFg.uniform1f(glFg.getUniformLocation(layer.program, 'uTime'), simTime);
-            glFg.uniform2f(glFg.getUniformLocation(layer.program, 'uResolution'), layer.canvas.width, layer.canvas.height);
+            // Enable blending for compositing multiple layers
+            glFg.enable(glFg.BLEND);
+            glFg.blendFunc(glFg.ONE, glFg.ONE_MINUS_SRC_ALPHA);
 
-            glFg.bindBuffer(glFg.ARRAY_BUFFER, layer.quadBuffer);
-            const aPosFg = glFg.getAttribLocation(layer.program, 'position');
+            glFg.useProgram(this.fgProgram);
+
+            glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorShallow'), COLOR_SHALLOW);
+            glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorWave'), COLOR_WAVE); 
+            glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorWaveDeep'), COLOR_WAVE_DEEP);
+            glFg.uniform1f(glFg.getUniformLocation(this.fgProgram, 'uTime'), simTime);
+            glFg.uniform2f(glFg.getUniformLocation(this.fgProgram, 'uResolution'), this.fgCanvas.width, this.fgCanvas.height);
+
+            glFg.bindBuffer(glFg.ARRAY_BUFFER, this.quadBufferFg);
+            const aPosFg = glFg.getAttribLocation(this.fgProgram, 'position');
             glFg.enableVertexAttribArray(aPosFg);
             glFg.vertexAttribPointer(aPosFg, 2, glFg.FLOAT, false, 0, 0);
 
-            glFg.drawArrays(glFg.TRIANGLE_STRIP, 0, 4);
-        });
+            // Draw each layer back-to-front
+            this.fgLayers.forEach(layer => {
+                glFg.activeTexture(glFg.TEXTURE0);
+                glFg.bindTexture(glFg.TEXTURE_2D, layer.readTexture); // Use FG sim result
+                glFg.uniform1i(glFg.getUniformLocation(this.fgProgram, 'uWaveMap'), 0);
+
+                glFg.drawArrays(glFg.TRIANGLE_STRIP, 0, 4);
+            });
+
+            glFg.disable(glFg.BLEND);
+        }
     }
 }
 
