@@ -6,12 +6,8 @@ export function ensureGameDom(layerCount, startZ) {
   main.className = 'area area-cove';
   main.hidden = true;
 
-  // Generate foreground canvases dynamically
-  let waterLayersHtml = '';
-  for (let i = 0; i < layerCount; i++) {
-    const zIndex = startZ + i;
-    waterLayersHtml += `<canvas id="water-fg-${i}" style="position: absolute; top: 0; left: 0; width: 100%; height: 35%; pointer-events: none; z-index: ${zIndex};"></canvas>\n        `;
-  }
+  // Generate a single master foreground canvas
+  let waterLayersHtml = `<canvas id="water-foreground" style="position: absolute; top: 0; left: 0; width: 100%; height: 35%; pointer-events: none; z-index: ${startZ};"></canvas>`;
 
   main.innerHTML = `
       <div class="hud-top">
