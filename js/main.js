@@ -402,9 +402,9 @@ function enterArea(areaID) {
 
       // Initialize Water System
       if (waterSystem) {
-        // Generate IDs: ['water-fg-0', 'water-fg-1', ...]
-        const fgIds = Array.from({ length: FG_LAYER_COUNT }, (_, i) => `water-fg-${i}`);
-        waterSystem.init('water-background', fgIds);
+
+         
+        waterSystem.init('water-background', 'water-foreground', FG_LAYER_COUNT);
         
         // Unregister old listeners if they exist to prevent leaks
         if (waterTickUnsub) {
