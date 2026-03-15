@@ -63,6 +63,46 @@ function getImage(src) {
   return img;
 }
 
+// Pre-rendered offscreen canvases for coins
+const preRenderedCoins = new Map();
+
+function getPreRenderedCoin(src, size) {
+    if (!src || typeof document === 'undefined') return null;
+    
+    let sizeMap = preRenderedCoins.get(src);
+    if (!sizeMap) {
+        sizeMap = new Map();
+        preRenderedCoins.set(src, sizeMap);
+    }
+    
+    let canvas = sizeMap.get(size);
+    if (!canvas) {
+        const img = getImage(src);
+        if (!img || !img.complete || img.naturalWidth === 0) {
+            // Wait for image to load before caching
+            if (img && !img.complete) {
+                img.addEventListener('load', () => getPreRenderedCoin(src, size), { once: true });
+            }
+            return img; // Fallback to raw image temporarily
+        }
+        
+        const dpr = window.devicePixelRatio || 1;
+        canvas = document.createElement('canvas');
+        canvas.width = Math.floor(size * dpr);
+        canvas.height = Math.floor(size * dpr);
+        
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, size, size);
+        
+        sizeMap.set(size, canvas);
+    }
+    
+    return canvas;
+}
+
 // Surge 2 Constants
 const COIN_SIZES = [40, 55, 80, 125, 200, 320, 512];
 // Ratio of radius where lightning originates (to match the inner ridge of the coin art)
@@ -118,7 +158,7 @@ export function createSpawner({
     waveSoundDesktopVolume = 0.45,
     waveSoundMobileVolume  = 0.2,
     waveSoundMinIntervalMs = 160,
-    enableDropShadow = false,
+
 } = {}) {
 
     let currentCoinSrc = coinSrc;
@@ -294,8 +334,6 @@ export function createSpawner({
         
         el.appendChild(inner);
 
-        if (enableDropShadow)
-            el.style.filter = 'drop-shadow(0 2px 2px rgba(0,0,0,.35))';
         return el;
     }
     const getCoin = () => (coinPool.length ? coinPool.pop() : makeCoin());
@@ -643,11 +681,17 @@ export function createSpawner({
     }
 
     function drawSingleSettledCoin(ctx, c) {
-        const img = getImage(c.src);
-        if (img && img.complete && img.naturalWidth > 0) {
-             // Use coin specific size
-             const size = c.size || baseCoinSize;
-             ctx.drawImage(img, c.x, c.y, size, size);
+        const size = c.size || baseCoinSize;
+        const renderable = getPreRenderedCoin(c.src, size);
+        
+        if (renderable) {
+            if (renderable instanceof HTMLCanvasElement) {
+                // Explicitly pass size so high-res offscreen canvas correctly scales down
+                ctx.drawImage(renderable, c.x, c.y, size, size);
+            } else if (renderable.complete && renderable.naturalWidth > 0) {
+                // Fallback if canvas isn't ready yet
+                ctx.drawImage(renderable, c.x, c.y, size, size);
+            }
         }
     }
 
@@ -662,13 +706,6 @@ export function createSpawner({
                     ctx.setTransform(1, 0, 0, 1, 0, 0);
                     ctx.clearRect(0, 0, canvases[i].width, canvases[i].height);
                     ctx.restore();
-                    
-                    if (enableDropShadow) {
-                         ctx.save();
-                         ctx.shadowColor = 'rgba(0,0,0,0.35)';
-                         ctx.shadowBlur = 2;
-                         ctx.shadowOffsetY = 2;
-                    }
                 }
             });
 
@@ -682,10 +719,6 @@ export function createSpawner({
                     }
                 }
             }
-            
-            if (enableDropShadow) {
-                contexts.forEach(ctx => ctx.restore());
-            }
 
             canvasDirty = false;
             newlySettledBuffer.length = 0;
@@ -693,15 +726,6 @@ export function createSpawner({
         } else {
             // Partial updates for removed coins
             if (dirtyRegions.length > 0) {
-                if (enableDropShadow) {
-                     contexts.forEach(ctx => {
-                         ctx.save();
-                         ctx.shadowColor = 'rgba(0,0,0,0.35)';
-                         ctx.shadowBlur = 2;
-                         ctx.shadowOffsetY = 2;
-                     });
-                }
-
                 const count = activeCoins.length;
                 // Process dirty regions
                 for (let i = 0; i < dirtyRegions.length; i++) {
@@ -734,11 +758,11 @@ export function createSpawner({
                         if ((c.sizeIndex || 0) !== r.layer) continue;
                         
                         // Simple AABB check
-                        const cSize = c.size || baseCoinSize;
+                        const cSize2 = c.size || baseCoinSize;
                         const cMinX = c.x;
-                        const cMaxX = c.x + cSize;
+                        const cMaxX = c.x + cSize2;
                         const cMinY = c.y;
-                        const cMaxY = c.y + cSize;
+                        const cMaxY = c.y + cSize2;
                         
                         if (cMaxX > minX && cMinX < maxX && cMaxY > minY && cMinY < maxY) {
                              drawSingleSettledCoin(ctx, c);
@@ -746,39 +770,22 @@ export function createSpawner({
                     }
                     ctx.restore();
                 }
-                
-                if (enableDropShadow) {
-                     contexts.forEach(ctx => ctx.restore());
-                }
                 dirtyRegions.length = 0;
             }
 
             if (newlySettledBuffer.length > 0) {
-                if (enableDropShadow) {
-                     contexts.forEach(ctx => {
-                         ctx.save();
-                     ctx.shadowColor = 'rgba(0,0,0,0.35)';
-                     ctx.shadowBlur = 2;
-                     ctx.shadowOffsetY = 2;
-                 });
-            }
-
-            for (let i = 0; i < newlySettledBuffer.length; i++) {
-                const c = newlySettledBuffer[i];
-                if (!c.isRemoved && c.settled && !c.el) {
-                    const layerIdx = c.sizeIndex || 0;
-                    if (contexts[layerIdx]) {
-                        drawSingleSettledCoin(contexts[layerIdx], c);
+                for (let i = 0; i < newlySettledBuffer.length; i++) {
+                    const c = newlySettledBuffer[i];
+                    if (!c.isRemoved && c.settled && !c.el) {
+                        const layerIdx = c.sizeIndex || 0;
+                        if (contexts[layerIdx]) {
+                            drawSingleSettledCoin(contexts[layerIdx], c);
+                        }
                     }
                 }
+                newlySettledBuffer.length = 0;
             }
-
-            if (enableDropShadow) {
-                 contexts.forEach(ctx => ctx.restore());
-            }
-            newlySettledBuffer.length = 0;
         }
-    }
     }
 
     let rate = coinsPerSecond;
