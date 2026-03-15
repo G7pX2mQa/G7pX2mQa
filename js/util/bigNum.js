@@ -89,7 +89,11 @@ export class BigNum {
     if (!str) return null;
     if (typeof str !== 'string') str = String(str);
     if (str.startsWith('BN:')) {
-      const [, pStr, sigStr, eStr] = str.split(':');
+      const parts = str.split(':');
+      if (parts[1] === 'infinite') {
+        return new BigNum(1n, { base: BigNum.MAX_E, inf: true }, p);
+      }
+      const [, pStr, sigStr, eStr] = parts;
       const pp = parseInt(pStr, 10) || p;
       let eNum = Number(eStr);
       if (!Number.isFinite(eNum)) eNum = BigNum.MAX_E;
@@ -118,7 +122,7 @@ export class BigNum {
 
   // ---------------------- PERSISTENCE ----------------------
   toStorage() {
-    if (this.inf) return `BN:${this.p}:${this.sig.toString()}:${BigNum.MAX_E}`;
+    if (this.inf) return `BN:infinite`;
     if (this.p === 0) return `BN:0::${this.e}`;
     return `BN:${this.p}:${this.sig.toString()}:${this.e}`;
   }
