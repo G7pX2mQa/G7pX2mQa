@@ -5,29 +5,45 @@ export class BigNum {
   static MAX_PLAIN_DIGITS = 1_000_000;    // safety cap for plain integer strings
 
   constructor(sig, e, p = BigNum.DEFAULT_PRECISION) {
-    this.p = p | 0;
-    this.sig = BigInt(sig);
+    let effectiveE = 0;
+    let inf = false;
 
     if (e && typeof e === 'object' && ('base' in e || 'inf' in e)) {
       const base = Number(e.base ?? 0);
-      const inf = !!e.inf;
+      inf = !!e.inf;
       if (inf || !Number.isFinite(base) || base >= BigNum.MAX_E) {
-        this.e = BigNum.MAX_E;
-        this.inf = true;
+        effectiveE = BigNum.MAX_E;
+        inf = true;
       } else {
-        this.e = Math.trunc(base);
-        this.inf = false;
+        effectiveE = Math.trunc(base);
       }
     } else {
       const ee = Number(e);
       if (!Number.isFinite(ee) || ee >= BigNum.MAX_E) {
-        this.e = BigNum.MAX_E;
-        this.inf = true;
+        effectiveE = BigNum.MAX_E;
+        inf = true;
       } else {
-        this.e = Math.trunc(ee);
-        this.inf = false;
+        effectiveE = Math.trunc(ee);
       }
     }
+
+    let targetP = p | 0;
+    const absE = Math.abs(effectiveE);
+    if (!inf && absE >= 10) {
+      const eMag = Math.floor(Math.log10(absE));
+      targetP = Math.max(0, 18 - eMag);
+    }
+    this.p = Math.min(p | 0, targetP);
+
+    this.e = effectiveE;
+    this.inf = inf;
+
+    if (this.p === 0 && !inf) {
+      this.sig = 1n; 
+    } else {
+      this.sig = (sig !== '' && sig !== null && sig !== undefined) ? BigInt(sig) : 1n;
+    }
+
     this.#normalize();
   }
 
@@ -77,7 +93,8 @@ export class BigNum {
       const pp = parseInt(pStr, 10) || p;
       let eNum = Number(eStr);
       if (!Number.isFinite(eNum)) eNum = BigNum.MAX_E;
-      return new BigNum(BigInt(sigStr), { base: eNum }, pp);
+      const parsedSig = sigStr ? BigInt(sigStr) : 1n;
+      return new BigNum(parsedSig, { base: eNum }, pp);
     }
     return BigNum.fromScientific(str, p);
   }
@@ -102,6 +119,7 @@ export class BigNum {
   // ---------------------- PERSISTENCE ----------------------
   toStorage() {
     if (this.inf) return `BN:${this.p}:${this.sig.toString()}:${BigNum.MAX_E}`;
+    if (this.p === 0) return `BN:0::${this.e}`;
     return `BN:${this.p}:${this.sig.toString()}:${this.e}`;
   }
 
@@ -195,8 +213,12 @@ export class BigNum {
 
     let s = this.sig;
     const p = this.p;
+    
+    // If precision is 0, we treat it effectively as 1 digit for the sake of shifting (val=1n to 9n),
+    // but the true value is just captured by exponent.
+    const targetP = p === 0 ? 1 : p;
     const d = s.toString().length;
-    const shift = d - p;
+    const shift = d - targetP;
 
     if (shift > 0) {
       const base = this.#pow10(shift);
@@ -206,7 +228,7 @@ export class BigNum {
       s = q;
       this.#adjustExponent(shift);
       if (this.e >= BigNum.MAX_E) { this.e = BigNum.MAX_E; this.inf = true; return; }
-      if (s.toString().length > p) { // carry overflow
+      if (s.toString().length > targetP) { // carry overflow
         s = s / 10n;
         this.#adjustExponent(1);
         if (this.e >= BigNum.MAX_E) { this.e = BigNum.MAX_E; this.inf = true; return; }
@@ -217,7 +239,13 @@ export class BigNum {
       this.#adjustExponent(-k);
     }
 
-    this.sig = s;
+    if (p === 0) {
+      // With precision 0, sig doesn't carry mantissa info but we can leave it normalized to 1n.
+      // E.g., if sig was 5n, it would just be 1n * 10^(e) + ... we'll just force it to 1n and perhaps tweak exponent if we wanted rounding, but at this scale it doesn't matter.
+      this.sig = 1n;
+    } else {
+      this.sig = s;
+    }
   }
 
   #alignSig(other) {
@@ -416,12 +444,22 @@ export class BigNum {
   toScientific(digits = 3) {
     if (this.inf) return 'Infinity';
     if (this.isZero()) return '0';
-    const s = this.sig.toString().padStart(this.p, '0');
+    
+    // We add p-1 for typical representations, but when p=0, effective p is 1 for magnitude calc.
+    const effectiveP = this.p === 0 ? 1 : this.p;
+    const E = this.e + (effectiveP - 1);
+    
+    if (E > 1.000001e6) {
+      // Just returning 'e' here; the ui/numFormat will handle styling 'e' followed by formatted exponent.
+      // E.g., it may replace e with 'e' and format E.
+      return `e${E}`;
+    }
+
+    const s = this.sig.toString().padStart(effectiveP, '0');
     const head = s[0];
     const tail = s.slice(1, 1 + digits).replace(/0+$/g, '');
     const mant = tail ? `${head}.${tail}` : head;
     
-    const E = this.e + (this.p - 1);
     return `${mant}e${E}`;
   }
 
@@ -512,17 +550,6 @@ export function bigNumFromLog10(log10Value, noFuzz = false) {
   if (frac < 0) {
     frac += 1;
     intPart -= 1;
-  }
-
-  // At extremely high levels, the fractional part is lost to precision limits.
-  // We inject a deterministic pseudo-random mantissa to make the numbers look nicer
-  // without causing flickering UI or breaking math stability.
-  // Exception: Mutation 99 to 100 requirement is specifically tuned to be exactly 1.000e1.000e303.
-  if (!noFuzz && frac === 0 && intPart > 1e15) {
-    const isMutation99to100Target = intPart >= 1e303 && intPart <= 1.00002e303;
-    if (!isMutation99to100Target) {
-      frac = Math.abs(Math.sin(intPart));
-    }
   }
 
   const mantissa = Math.pow(10, frac + (p - 1));
