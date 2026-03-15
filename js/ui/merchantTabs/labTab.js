@@ -152,20 +152,6 @@ export function getLabCost(level) {
 export function getLabLevelFromCoins(coins) {
     if (!coins || coins.isZero() || coins.isNegative()) return BigNum.fromInt(0);
     if (coins.isInfinite()) return BigNum.fromAny('Infinity');
-
-    let exponentBn;
-    if (coins._eOffset !== 0n) {
-        const eVal = BigInt(coins.e) + coins._eOffset;
-        const sigNum = Number(coins.sig);
-        const logSig = Math.log10(sigNum);
-        const logSigInt = Math.floor(logSig); 
-        
-        const levelBase = eVal - 20n + BigInt(logSigInt);
-        
-        if (levelBase < 0n) return BigNum.fromInt(0);
-        
-        return BigNum.fromInt(levelBase); 
-    }
     
     const e = coins.e;
     const sigNum = Number(coins.sig);
