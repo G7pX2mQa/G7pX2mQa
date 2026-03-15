@@ -1566,7 +1566,6 @@ function getSafeLog10BigInt(bn) {
   if (!(bn instanceof BN)) return -1n;
   if (bn.isZero?.() || bn.isInfinite?.()) return -1n;
   let totalExp = BigInt(bn.e || 0);
-  if (bn._eOffset) totalExp += bn._eOffset;
   const s = bn.sig.toString();
   const sigLog = BigInt(s.length - 1);
   return totalExp + sigLog;
