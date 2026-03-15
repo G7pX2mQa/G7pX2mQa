@@ -510,7 +510,21 @@ export function getSurge15Divisor(preview = false) {
     const power = log10Bn / 2;
     if (power <= 0) return BigNum.fromInt(1);
 
-    const log10Result = power * Math.log10(2);
+    let log10Result = power * Math.log10(2);
+    
+    // Softcap at 1e6
+    if (log10Result > 6) {
+        const excess = log10Result - 6;
+        // p calculated as log(1,000,000 - 6) / log((1.79e308 / 2 * log10(2)) - 6)
+        const p = 0.019516601981883437;
+        log10Result = 6 + Math.pow(excess, p);
+    }
+    
+    // Hardcap at 1e6
+    if (log10Result > 1.000001e6) {
+        log10Result = 1.000001e6;
+    }
+    
     return bigNumFromLog10(log10Result);
   };
 
