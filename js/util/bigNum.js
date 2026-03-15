@@ -8,7 +8,7 @@ export class BigNum {
     this.p = p | 0;
     this.sig = BigInt(sig);
 
-    if (e && typeof e === 'object' && ('base' in e || 'offset' in e || 'inf' in e)) {
+    if (e && typeof e === 'object' && ('base' in e || 'inf' in e)) {
       const base = Number(e.base ?? 0);
       const inf = !!e.inf;
       if (inf || !Number.isFinite(base) || base >= BigNum.MAX_E) {
@@ -17,8 +17,6 @@ export class BigNum {
       } else {
         this.e = Math.trunc(base);
         this.inf = false;
-        const off = e.offset ?? 0;
-        this.e += Number(typeof off === 'bigint' ? off : BigInt(off));
       }
     } else {
       const ee = Number(e);
@@ -77,17 +75,9 @@ export class BigNum {
     if (str.startsWith('BN:')) {
       const [, pStr, sigStr, eStr] = str.split(':');
       const pp = parseInt(pStr, 10) || p;
-      let baseStr = eStr;
-      let offset = 0;
-      const caret = eStr.indexOf('^');
-      if (caret >= 0) {
-        baseStr = eStr.slice(0, caret);
-        const offStr = eStr.slice(caret + 1) || '0';
-        offset = Number(offStr) || 0;
-      }
-      let eNum = Number(baseStr);
+      let eNum = Number(eStr);
       if (!Number.isFinite(eNum)) eNum = BigNum.MAX_E;
-      return new BigNum(BigInt(sigStr), { base: eNum + offset }, pp);
+      return new BigNum(BigInt(sigStr), { base: eNum }, pp);
     }
     return BigNum.fromScientific(str, p);
   }
@@ -489,15 +479,9 @@ export function approxLog10BigNum(value) {
   }
   const parts = storage.split(':');
   const sigStr = parts[2] ?? '0';
-  let expPart = parts[3] ?? '0';
-  let offsetStr = '0';
-  const caret = expPart.indexOf('^');
-  if (caret >= 0) {
-    offsetStr = expPart.slice(caret + 1) || '0';
-    expPart = expPart.slice(0, caret) || '0';
-  }
+  const expPart = parts[3] ?? '0';
   const baseExp = Number(expPart || '0');
-  const offset = Number(offsetStr || '0');
+  const offset = 0;
   const digits = sigStr.replace(/^0+/, '') || '0';
   if (digits === '0') return Number.NEGATIVE_INFINITY;
 
