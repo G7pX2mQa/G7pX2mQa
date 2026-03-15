@@ -800,7 +800,7 @@ function ensureCurrencyOverrideListener() {
                         const ratio = nextBn.div(baselineBn);
                         // If ratio != 1 (ignoring exact equality check for simplicity, or we can check via cmp)
                         // A ratio of exactly 1 means no change, so we can skip scaling.
-                        const ratioNum = ratio.sig === 1n && ratio.e === 0 && ratio._eOffset === 0n 
+                        const ratioNum = ratio.sig === 1n && ratio.e === 0 
                                          ? 1 
                                          : null; // dummy check, actually just multiply.
                         
@@ -813,13 +813,12 @@ function ensureCurrencyOverrideListener() {
                         // We need `override * ratio`.
                         // BigNum has `mulBigNumInteger`. It does NOT have `mulBigNum`.
                         // But `mulBigNumInteger` logic:
-                        // return new BigNum(this.sig * b.sig, { base: baseSum, offset: offsetSum }, this.p);
+                        // return new BigNum(this.sig * b.sig, { base: baseSum }, this.p);
                         // This logic is generic! It multiplies two BigNums.
                         // The method name says "Integer" but the implementation supports exponents.
                         // Let's verify BigNum.js implementation of mulBigNumInteger:
                         // const baseSum = this.e + b.e;
-                        // const offsetSum = this._eOffset + b._eOffset;
-                        // return new BigNum(this.sig * b.sig, { base: baseSum, offset: offsetSum }, this.p);
+                        // return new BigNum(this.sig * b.sig, { base: baseSum }, this.p);
                         // Yes, this is correct for ANY BigNum multiplication.
                         
                         const scaledOverride = override.mulBigNumInteger(ratio);
