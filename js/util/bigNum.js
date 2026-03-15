@@ -7,7 +7,6 @@ export class BigNum {
   constructor(sig, e, p = BigNum.DEFAULT_PRECISION) {
     this.p = p | 0;
     this.sig = BigInt(sig);
-    this._eOffset = 0n;
 
     if (e && typeof e === 'object' && ('base' in e || 'offset' in e || 'inf' in e)) {
       const base = Number(e.base ?? 0);
@@ -15,12 +14,11 @@ export class BigNum {
       if (inf || !Number.isFinite(base) || base >= BigNum.MAX_E) {
         this.e = BigNum.MAX_E;
         this.inf = true;
-        this._eOffset = 0n;
       } else {
         this.e = Math.trunc(base);
         this.inf = false;
         const off = e.offset ?? 0;
-        this._eOffset = typeof off === 'bigint' ? off : BigInt(off);
+        this.e += Number(typeof off === 'bigint' ? off : BigInt(off));
       }
     } else {
       const ee = Number(e);
@@ -80,17 +78,16 @@ export class BigNum {
       const [, pStr, sigStr, eStr] = str.split(':');
       const pp = parseInt(pStr, 10) || p;
       let baseStr = eStr;
-      let offset = 0n;
+      let offset = 0;
       const caret = eStr.indexOf('^');
       if (caret >= 0) {
         baseStr = eStr.slice(0, caret);
         const offStr = eStr.slice(caret + 1) || '0';
-        try { offset = BigInt(offStr); }
-        catch { offset = 0n; }
+        offset = Number(offStr) || 0;
       }
       let eNum = Number(baseStr);
       if (!Number.isFinite(eNum)) eNum = BigNum.MAX_E;
-      return new BigNum(BigInt(sigStr), { base: eNum, offset }, pp);
+      return new BigNum(BigInt(sigStr), { base: eNum + offset }, pp);
     }
     return BigNum.fromScientific(str, p);
   }
@@ -115,12 +112,11 @@ export class BigNum {
   // ---------------------- PERSISTENCE ----------------------
   toStorage() {
     if (this.inf) return `BN:${this.p}:${this.sig.toString()}:${BigNum.MAX_E}`;
-    const offsetSuffix = this._eOffset !== 0n ? `^${this._eOffset.toString()}` : '';
-    return `BN:${this.p}:${this.sig.toString()}:${this.e}${offsetSuffix}`;
+    return `BN:${this.p}:${this.sig.toString()}:${this.e}`;
   }
 
   clone() {
-    return new BigNum(this.sig, { base: this.e, offset: this._eOffset, inf: this.inf }, this.p);
+    return new BigNum(this.sig, { base: this.e, inf: this.inf }, this.p);
   }
 
   // ---------------------- STATE QUERIES ----------------------
@@ -166,23 +162,12 @@ export class BigNum {
   #pow10(k) { return k <= 0 ? 1n : 10n ** BigInt(k); }
 
   #expObj() {
-    return { base: this.e, offset: this._eOffset, inf: this.inf };
+    return { base: this.e, inf: this.inf };
   }
 
   #adjustExponent(delta) {
     if (this.inf || !delta) return;
-    const prev = this.e;
-    const next = prev + delta;
-    this.e = Math.trunc(next);
-    const applied = this.e - prev;
-    const leftover = BigInt(delta - applied);
-    if (leftover) this._eOffset += leftover;
-  }
-
-  #totalExponentBigInt() {
-    if (this.inf) return this._eOffset >= 0n ? BigInt(Number.MAX_SAFE_INTEGER) : -BigInt(Number.MAX_SAFE_INTEGER);
-    const base = BigInt(Math.trunc(this.e));
-    return base + this._eOffset;
+    this.e += delta;
   }
 
   #compareExponent(other) {
@@ -190,10 +175,8 @@ export class BigNum {
       if (this.inf && other.inf) return 0;
       return this.inf ? 1 : -1;
     }
-    const a = this.#totalExponentBigInt();
-    const b = other.#totalExponentBigInt();
-    if (a > b) return 1;
-    if (a < b) return -1;
+    if (this.e > other.e) return 1;
+    if (this.e < other.e) return -1;
     return 0;
   }
 
@@ -202,7 +185,7 @@ export class BigNum {
       if (this.inf && other.inf) return 0n;
       return this.inf ? BigInt(this.p + 3) : -BigInt(this.p + 3);
     }
-    const diff = this.#totalExponentBigInt() - other.#totalExponentBigInt();
+    const diff = BigInt(Math.trunc(this.e - other.e));
     const absDiff = diff < 0n ? -diff : diff;
     const limit = BigInt(this.p + 2);
     if (absDiff > limit) {
@@ -211,20 +194,9 @@ export class BigNum {
     return diff;
   }
 
-  #offsetAsNumber() {
-    if (this._eOffset === 0n) return 0;
-    const offNum = Number(this._eOffset);
-    if (!Number.isFinite(offNum) || !Number.isSafeInteger(offNum)) {
-      return offNum > 0 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
-    }
-    return offNum;
-  }
-
   #effectiveExponentNumber() {
     if (this.inf) return Number.POSITIVE_INFINITY;
-    const offset = this.#offsetAsNumber();
-    if (!Number.isFinite(offset)) return offset;
-    return this.e + offset;
+    return this.e;
   }
 
   #normalize() {
@@ -285,7 +257,7 @@ export class BigNum {
     return b.add(this);
   }
 
-  iadd(b) { const r = this.add(b); this.sig = r.sig; this.e = r.e; this._eOffset = r._eOffset; this.inf = r.inf; return this; }
+  iadd(b) { const r = this.add(b); this.sig = r.sig; this.e = r.e; this.inf = r.inf; return this; }
 
   mulSmall(k) {
     if (k < 0) throw new Error('BigNum only supports non-negative values');
@@ -296,7 +268,7 @@ export class BigNum {
     return out;
   }
 
-  imulSmall(k) { const r = this.mulSmall(k); this.sig = r.sig; this.e = r.e; this._eOffset = r._eOffset; this.inf = r.inf; return this; }
+  imulSmall(k) { const r = this.mulSmall(k); this.sig = r.sig; this.e = r.e; this.inf = r.inf; return this; }
 
   // Multiply by another non-negative integer BigNum (exact).
   mulBigNumInteger(other) {
@@ -308,14 +280,12 @@ export class BigNum {
       return out;
     }
     if (this.isZero() || b.isZero()) return BigNum.zero(this.p);
-    const baseSum = this.e + b.e;
-    const offsetSum = this._eOffset + b._eOffset;
-    return new BigNum(this.sig * b.sig, { base: baseSum, offset: offsetSum }, this.p);
+    return new BigNum(this.sig * b.sig, { base: this.e + b.e }, this.p);
   }
 
   imulBigNumInteger(other) {
     const r = this.mulBigNumInteger(other);
-    this.sig = r.sig; this.e = r.e; this._eOffset = r._eOffset; this.inf = r.inf;
+    this.sig = r.sig; this.e = r.e; this.inf = r.inf;
     return this;
   }
 
@@ -351,43 +321,20 @@ export class BigNum {
     const sigQuotient = numerator / b.sig; // Integer division
     
     // Exponent calculation:
-    // We used 'this.e' and 'b.e' for base exponents, plus offsets.
+    // We used 'this.e' and 'b.e' for base exponents.
     // However, BigNum normalization ensures sig is roughly 10^(p-1) to 10^p.
-    // So the exponent math is mostly correct if we trust .e and ._eOffset.
+    // So the exponent math is mostly correct if we trust .e.
     
     // The raw exponent difference:
-    const expDiffBase = BigInt(this.e) - BigInt(b.e);
-    const expDiffOffset = this._eOffset - b._eOffset;
+    const expDiffBase = this.e - b.e;
     
     // Adjust for the scaling we did (subtracting p from the exponent because we added it to sig)
-    const pBigInt = BigInt(this.p);
-    const totalExpBase = expDiffBase - pBigInt;
+    const resultBase = expDiffBase - this.p;
     
     // Construct new BigNum
     // We pass the total exponent info. The constructor/normalization will handle if sigQuotient is small/large.
     
-    // We need to fit totalExpBase + expDiffOffset into {base, offset}.
-    // base is a Number, offset is a BigInt.
-    
-    // Try to put as much as possible into 'base' (Number) to keep offset small if possible,
-    // though normalization handles it.
-    
-    // Safe conversion of expDiffBase to Number?
-    // expDiffBase can be large if inputs are large.
-    
-    // Let's just put everything into offset first, then let constructor handle it?
-    // Constructor expects 'base' to be Number.
-    
-    let resultBase = Number(totalExpBase);
-    let resultOffset = expDiffOffset;
-    
-    if (!Number.isSafeInteger(resultBase)) {
-         // If base is too large/small for Number, move it to offset.
-         resultOffset += totalExpBase;
-         resultBase = 0;
-    }
-    
-    return new BigNum(sigQuotient, { base: resultBase, offset: resultOffset }, this.p);
+    return new BigNum(sigQuotient, { base: resultBase }, this.p);
   }
 
   cmp(b) {
@@ -460,7 +407,7 @@ export class BigNum {
     if (this.inf || this.isZero()) return this.clone();
     const nb = BigInt(numerBigInt);
     if (nb === 0n) return BigNum.zero(this.p);
-    return new BigNum(this.sig * nb, { base: this.e - (scale | 0), offset: this._eOffset }, this.p);
+    return new BigNum(this.sig * nb, { base: this.e - (scale | 0) }, this.p);
   }
 
   // Same as above but floors to an integer.
@@ -484,15 +431,8 @@ export class BigNum {
     const tail = s.slice(1, 1 + digits).replace(/0+$/g, '');
     const mant = tail ? `${head}.${tail}` : head;
     
-    const offsetNum = this.#offsetAsNumber();
-    if (Number.isFinite(offsetNum)) {
-        const exp = this.e + offsetNum;
-        const E = exp + (this.p - 1);
-        return `${mant}e${E}`;
-    } else {
-        const totalExp = BigInt(this.e) + this._eOffset + BigInt(this.p - 1);
-        return `${mant}e${totalExp.toString()}`;
-    }
+    const E = this.e + (this.p - 1);
+    return `${mant}e${E}`;
   }
 
   toPlainIntegerString() {
@@ -537,8 +477,7 @@ export function approxLog10BigNum(value) {
     if (sigNum > 0) {
       const sigLog = Math.log10(sigNum);
       const e = value.e || 0;
-      const off = Number(value._eOffset || 0n);
-      return sigLog + e + off;
+      return sigLog + e;
     }
   }
 
