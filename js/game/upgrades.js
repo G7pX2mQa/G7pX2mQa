@@ -158,6 +158,7 @@ function sanitizeStoredLevelValue(raw, { allowEmpty = false } = {}) {
   if (trimmed.length > MAX_LEVEL_STORAGE_LENGTH) return 'Infinity';
 
   if (trimmed.startsWith('BN:')) {
+    if (trimmed === 'BN:infinite') return trimmed;
     const expPart = trimmed.slice(trimmed.lastIndexOf(':') + 1);
     const caret = expPart.indexOf('^');
     const expDigits = caret >= 0 ? expPart.slice(0, caret) : expPart;
