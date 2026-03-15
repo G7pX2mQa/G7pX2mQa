@@ -181,8 +181,14 @@ function mantissaFourDigits(sci) {
   const i = sci.toLowerCase().indexOf('e');
   if (i < 0) return sci;
 
-  // --- Normalize mantissa to exactly 4 significant digits (1.xxx) with rounding ---
   const rawMant = sci.slice(0, i);           // e.g., "3.2", "12.34" (should be 1.x form from toScientific)
+  const rawExp = sci.slice(i + 1);
+
+  if (!rawMant) {
+    return 'e' + formatExponentChain(rawExp);
+  }
+
+  // --- Normalize mantissa to exactly 4 significant digits (1.xxx) with rounding ---
   // Build digit string (no dot)
   let ds = rawMant.replace('.', '');
   if (!/^\d+$/.test(ds)) return sci;         // safety: if parsing failed, bail out
@@ -201,7 +207,6 @@ function mantissaFourDigits(sci) {
   const mantissa = head.slice(0,1) + '.' + head.slice(1); // "1.234" style with trailing zeros preserved
 
   // --- Pretty-format the exponent tail (can be "305" or "1e+100" etc.) ---
-  const rawExp = sci.slice(i + 1);
   return mantissa + 'e' + formatExponentChain(rawExp);
 }
 
