@@ -1133,8 +1133,7 @@ function formatBigNumForInput(value) {
     try {
         const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 0);
         if (bn.isInfinite?.()) {
-            const precision = Number.parseInt(bn?.p, 10) || BigNum.DEFAULT_PRECISION;
-            return `BN:${precision}:1:${BigNum.MAX_E}`;
+            return 'BN:infinite';
         }
         const storage = bn.toStorage?.();
         const [, pStr = `${BigNum.DEFAULT_PRECISION}`, sigPart = '', expPart = '0'] = (storage || '').split(':');
