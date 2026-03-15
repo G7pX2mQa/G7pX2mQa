@@ -133,7 +133,7 @@
 .flow-row {
   display: grid;
   /* Grid: Bar | Level | Effect | State */
-  grid-template-columns: auto 140px 140px 100px;
+  grid-template-columns: auto minmax(140px, auto) minmax(140px, auto) 100px;
   align-items: center;
   gap: 12px;
   /* Left padding matches icon overhang */
@@ -298,8 +298,6 @@
   justify-content: center;
   align-items: center;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   width: 100%;
 }
 
@@ -371,7 +369,8 @@
   .flow-row {
     /* Keep padding symmetrical. The overhang is on the left, so we add equal padding on both left and right to center everything visually */
     padding: 16px max(12px, calc(var(--flow-plus-size) * 0.5 + 8px));
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: auto auto auto;
+    justify-content: space-between;
     grid-template-areas: 
       "lvl effect state"
       "line line line"
@@ -520,8 +519,6 @@
   color: #fff;
   text-shadow: 0 1px 2px rgba(0,0,0,0.9);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   width: 100%;
 }
 
