@@ -1137,12 +1137,17 @@ function formatBigNumForInput(value) {
             return `BN:${precision}:1:${BigNum.MAX_E}`;
         }
         const storage = bn.toStorage?.();
-        const [, pStr = `${BigNum.DEFAULT_PRECISION}`, sigPart = '0', expPart = '0'] = (storage || '').split(':');
-        const precision = Number.parseInt(pStr, 10) || BigNum.DEFAULT_PRECISION;
+        const [, pStr = `${BigNum.DEFAULT_PRECISION}`, sigPart = '', expPart = '0'] = (storage || '').split(':');
+        let precision = Number.parseInt(pStr, 10);
+        if (Number.isNaN(precision)) precision = BigNum.DEFAULT_PRECISION;
         if (bn.isZero?.()) {
+            if (precision === 0) return `BN:0::${expPart}`;
             return `BN:${precision}:${'0'.repeat(precision)}:-17`;
         }
-        const paddedSig = sigPart.padStart(precision, '0');
+        if (precision === 0) {
+            return `BN:0::${expPart}`;
+        }
+        const paddedSig = sigPart ? sigPart.padStart(precision, '0') : '0'.repeat(precision);
         return `BN:${precision}:${paddedSig}:${expPart}`;
     } catch {
         return String(value ?? '');
