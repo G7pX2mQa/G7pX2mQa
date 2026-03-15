@@ -86,7 +86,8 @@ function getPreRenderedCoin(src, size) {
             return img; // Fallback to raw image temporarily
         }
         
-        const dpr = window.devicePixelRatio || 1;
+        // Force a minimum scale of 2 to ensure it looks good even when zoomed out temporarily
+        const dpr = Math.max(window.devicePixelRatio || 1, 2);
         canvas = document.createElement('canvas');
         canvas.width = Math.floor(size * dpr);
         canvas.height = Math.floor(size * dpr);
@@ -254,6 +255,9 @@ export function createSpawner({
         };
 
         const dpr = window.devicePixelRatio || 1;
+        if (typeof preRenderedCoins !== 'undefined') {
+            preRenderedCoins.clear();
+        }
         
         // Resize all layer canvases
         canvases.forEach((canvas, i) => {
