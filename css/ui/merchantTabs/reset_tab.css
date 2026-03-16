@@ -915,3 +915,30 @@
             0 1px 0 rgba(0,0,0,0.28) !important;
     }
 }
+
+/* Underwater Cavern Shimmer */
+.cavern-shimmer-text {
+  background: linear-gradient(
+    -45deg,
+    #00e5ff 0%,
+    #4db6ac 25%,
+    #81d4fa 50%,
+    #4db6ac 75%,
+    #00e5ff 100%
+  );
+  background-size: 200% auto;
+  color: #000;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: cavernShimmer 3s linear infinite;
+  display: inline-block;
+  font-weight: 900;
+  text-shadow: none;
+}
+
+@keyframes cavernShimmer {
+  to {
+    background-position: 200% center;
+  }
+}
