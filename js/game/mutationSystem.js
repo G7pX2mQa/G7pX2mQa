@@ -203,7 +203,7 @@ function computeRequirement(levelBn) {
     // R = 94778.06 ^ (1/40) ≈ 1.33235...
 
     const startVal = baseRequirementLog10(9); // ~3.83
-    const endVal = 500000.0000001;
+    const endVal = 500000;
     const steps = 49 - 9; // 40
 
     // Safety check for startVal
