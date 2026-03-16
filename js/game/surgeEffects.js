@@ -521,8 +521,8 @@ export function getSurge15Divisor(preview = false) {
     }
     
     // Hardcap at 1e6
-    if (log10Result > 1.000001e6) {
-        log10Result = 1.000001e6;
+    if (log10Result > 1000000) {
+        log10Result = 1000000;
     }
     
     return bigNumFromLog10(log10Result);
