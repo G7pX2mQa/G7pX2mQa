@@ -247,8 +247,15 @@ function computeRequirement(levelBn) {
     }
 
     // log10(requirement) = 10 ^ secondExp, nudged up slightly to avoid hitting exact thresholds
-    const baseLog10 = Math.pow(10, secondExp);
-    totalLog10 = baseLog10 * 1.00001;
+    // Make sure level 99 hits EXACTLY 1e303
+    let baseLog10;
+    if (baseLevel === 99) {
+      baseLog10 = 1e303;
+      totalLog10 = baseLog10;
+    } else {
+      baseLog10 = Math.pow(10, secondExp);
+      totalLog10 = baseLog10 * 1.00001;
+    }
   }
 
   if (!Number.isFinite(totalLog10) || totalLog10 <= 0) {
