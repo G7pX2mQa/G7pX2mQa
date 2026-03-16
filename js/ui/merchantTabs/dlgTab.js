@@ -2241,6 +2241,9 @@ function selectMerchantTab(key) {
   if (merchantSheetEl) {
     if (key === 'lab') merchantSheetEl.classList.add('is-lab-active');
     else merchantSheetEl.classList.remove('is-lab-active');
+
+    if (key === 'flow') merchantSheetEl.classList.add('is-flow-active');
+    else merchantSheetEl.classList.remove('is-flow-active');
   }
 
   for (const k in merchantTabs.buttons) {
