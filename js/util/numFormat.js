@@ -51,9 +51,9 @@ function formatExponentString(rawDigits, sign = '') {
   let ds = (rawDigits || '').replace(/^0+/, '') || '0';
 
   if (ds.length < 4) return sign + localeInt(ds);          // < 1,000
-  if (ds.length <= 7) {                                     // 1,000 .. 1,000,000
+  if (ds.length <= 7) {                                     // 1,000 .. <1,000,000
     const n = Number(ds);
-    if (Number.isFinite(n) && n <= 1_000_000) return sign + NF_INT.format(n);
+    if (Number.isFinite(n) && n < 1_000_000) return sign + NF_INT.format(n);
   }
 
   const E = ds.length - 1;
@@ -164,9 +164,18 @@ function formatExponentChain(expRaw) {
   const intDigits = remainder + 1;             // 1..3
   const decimals  = 4 - intDigits;             // 3..1
   let intStr, fracStr;
-  if (four.length > 4) { // carry overflow → one extra int digit, pad decimals with zeros
-    intStr = four.slice(0, intDigits + 1);
-    fracStr = '0'.repeat(decimals);
+  if (four.length > 4) { // carry overflow
+    const newK = k + 1;
+    const newExp = Math.floor(newK / 3) * 3;
+    const newSuffix = SUFFIX_BY_EXP.get(newExp) || '';
+    const newRemainder = newK - newExp;
+    const newIntDigits = newRemainder + 1;
+    const newDecimals = 4 - newIntDigits;
+    const newFour = "1000";
+    intStr = newFour.slice(0, newIntDigits);
+    fracStr = newFour.slice(newIntDigits);
+    const sign2Prefix = (sign2 === '-') ? '-' : '';
+    return topSign + sign2Prefix + intStr + (newDecimals ? ('.' + fracStr) : '') + newSuffix;
   } else {
     intStr = four.slice(0, intDigits);
     fracStr = four.slice(intDigits);
@@ -202,12 +211,20 @@ function mantissaFourDigits(sci) {
   if (next >= 53) head = addOneDigitString(head);
 
   // If carry overflow happened (e.g., 9.999 -> 10.00), re-normalize to 1.xxx by shifting
-  if (head.length > 4) head = head.slice(0, 4); // head is now "1000" after carry; that still prints as "1.000" below
+  let finalExp = rawExp;
+  if (head.length > 4) {
+    head = "1000"; // head is now "1000" after carry; that still prints as "1.000" below
+    // increment exponent
+    let m = finalExp.match(/^([+-]?)(\d+)$/);
+    if (m) {
+      finalExp = m[1] + (parseInt(m[2], 10) + 1).toString();
+    }
+  }
 
   const mantissa = head.slice(0,1) + '.' + head.slice(1); // "1.234" style with trailing zeros preserved
 
   // --- Pretty-format the exponent tail (can be "305" or "1e+100" etc.) ---
-  return mantissa + 'e' + formatExponentChain(rawExp);
+  return mantissa + 'e' + formatExponentChain(finalExp);
 }
 
 // Public API
@@ -220,7 +237,7 @@ export function formatNumber(bn){
 
   // Scientific for >= 1e303 (but pretty-print the exponent chain)
   if (E >= 303) {
-    return mantissaFourDigits(bn.toScientific(3));
+    return mantissaFourDigits(bn.toScientific(4));
   }
 
   // Plain integers < 1e6 → locale grouping
@@ -231,7 +248,7 @@ export function formatNumber(bn){
   // Suffix formatting using the legacy table
   const exp = Math.floor(E / 3) * 3;
   const suffix = SUFFIX_BY_EXP.get(exp);
-  if (!suffix) return mantissaFourDigits(bn.toScientific(3));
+  if (!suffix) return mantissaFourDigits(bn.toScientific(4));
 
   const d = E - exp;                 // 0..2
   const intDigits = d + 1;           // 1..3
@@ -246,8 +263,25 @@ export function formatNumber(bn){
   if (nextDigit >= 53) head = addOneDigitString(head);
 
   let intStr, fracStr;
-  if (head.length > totalDigits) { intStr = head.slice(0, intDigits + 1); fracStr = '0'.repeat(decimals); }
-  else { intStr = head.slice(0, intDigits); fracStr = head.slice(intDigits); }
+  if (head.length > totalDigits) {
+    const newE = E + 1;
+    const newExp = Math.floor(newE / 3) * 3;
+    const newSuffix = SUFFIX_BY_EXP.get(newExp);
+    if (!newSuffix) return mantissaFourDigits(bn.toScientific(4));
+    
+    const newD = newE - newExp;
+    const newIntDigits = newD + 1;
+    const newDecimals = 4 - newIntDigits;
+    
+    const newHead = "1000";
+    intStr = newHead.slice(0, newIntDigits);
+    fracStr = newHead.slice(newIntDigits);
+    return `${intStr}${newDecimals ? '.' + fracStr : ''}${newSuffix}`;
+  }
+  else { 
+    intStr = head.slice(0, intDigits); 
+    fracStr = head.slice(intDigits); 
+  }
 
   return `${intStr}${decimals ? '.' + fracStr : ''}${suffix}`;
 }
