@@ -454,7 +454,7 @@ export class BigNum {
     const effectiveP = this.p === 0 ? 1 : this.p;
     const E = this.e + (effectiveP - 1);
     
-    if (E > 1.000001e6) {
+    if (E >= 1000000) {
       // Just returning 'e' here; the ui/numFormat will handle styling 'e' followed by formatted exponent.
       // E.g., it may replace e with 'e' and format E.
       return `e${E}`;
