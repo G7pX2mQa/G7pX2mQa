@@ -289,6 +289,14 @@ export const SURGE_MILESTONES = [
     description: [
       "Activates generator: Passively generates <span style=\"color:#00e5ff\">0.1%</span> of pending DNA every second"
     ]
+  },
+  {
+    id: 33,
+    surgeLevel: 100,
+    affectedByTsunami: false,
+    description: [
+      "Unlocks new area: Underwater Cavern"
+    ]
   }
 ];
 
