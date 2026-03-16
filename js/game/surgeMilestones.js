@@ -295,7 +295,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 100,
     affectedByTsunami: false,
     description: [
-      "Unlocks new area: Underwater Cavern"
+      "Unlocks new area: <span class=\"cavern-shimmer-text\">Underwater Cavern</span>"
     ]
   }
 ];
