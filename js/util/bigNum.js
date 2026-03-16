@@ -338,7 +338,8 @@ export class BigNum {
     // To maintain precision, we scale sigA by 10^precision before integer division.
     // result = (sigA * 10^p / sigB) * 10^(expA - expB - p)
     
-    const scale = this.#pow10(this.p);
+    const targetPrecision = Math.max(this.p, b.p);
+    const scale = this.#pow10(targetPrecision);
     const numerator = this.sig * scale;
     const sigQuotient = numerator / b.sig; // Integer division
     
@@ -351,7 +352,7 @@ export class BigNum {
     const expDiffBase = this.e - b.e;
     
     // Adjust for the scaling we did (subtracting p from the exponent because we added it to sig)
-    const resultBase = expDiffBase - this.p;
+    const resultBase = expDiffBase - targetPrecision;
     
     // Construct new BigNum
     // We pass the total exponent info. The constructor/normalization will handle if sigQuotient is small/large.
