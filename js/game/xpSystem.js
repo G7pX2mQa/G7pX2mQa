@@ -164,7 +164,7 @@ function bigNumPowerOf10(logBn) {
   const e = Number(eBigInt);
   const offset = totalExponent - eBigInt;
 
-  return new BigNum(sig, { base: e, offset: offset });
+  return new BigNum(sig, { base: e + Number(offset) });
 }
 
 function approximateCoinMultiplierFromBigNum(levelBn) {
