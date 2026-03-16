@@ -917,13 +917,38 @@
 }
 
 /* Underwater Cavern Shimmer */
+.cavern-shimmer-wrapper {
+  position: relative;
+  display: inline-block;
+  font-weight: 900;
+  z-index: 1;
+}
+
+.cavern-shimmer-wrapper::before {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow:
+    0 0.5px 0 #000,
+    0 -0.5px 0 #000,
+    0.5px 0 0 #000,
+    -0.5px 0 0 #000,
+    0.5px 0.5px 0 #000,
+    -0.5px 0.5px 0 #000,
+    0.5px -0.5px 0 #000,
+    -0.5px -0.5px 0 #000,
+    0 1px 0 rgba(0,0,0,0.55);
+}
+
 .cavern-shimmer-text {
   background: linear-gradient(
     -45deg,
     #00e5ff 0%,
-    #4db6ac 25%,
-    #81d4fa 50%,
-    #4db6ac 75%,
+    #4db6ac 50%,
     #00e5ff 100%
   );
   background-size: 200% auto;
@@ -931,7 +956,7 @@
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: cavernShimmer 3s linear infinite;
+  animation: cavernShimmer 2s linear infinite;
   display: inline-block;
   font-weight: 900;
   text-shadow: none;
