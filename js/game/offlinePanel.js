@@ -306,7 +306,7 @@ function getSimulatedReq(node, level) {
     const intPart = Math.floor(totalLog10);
     const fracPart = totalLog10 - intPart;
     const mantissa = Math.pow(10, fracPart);
-    return new BigNum(BigInt(Math.round(mantissa * 1e14)), { base: intPart, offset: -14n });
+    return new BigNum(BigInt(Math.round(mantissa * 1e14)), { base: intPart - 14 });
 }
 
 export function calculateOfflineRewards(seconds) {
