@@ -128,7 +128,7 @@ export function getLabCost(level) {
         if (lvl.cmp(1e15) < 0) {
              const lvlNum = Number(lvl.toPlainIntegerString());
              const exponent = 20 + lvlNum;
-             return new BigNum(1n, { base: exponent, offset: 0n });
+             return new BigNum(1n, exponent);
         }
         
         if (lvl.cmp(BigNum.fromScientific("1e1000000")) > 0) {
@@ -141,7 +141,7 @@ export function getLabCost(level) {
         const lvlBigInt = BigInt(lvlStr);
         const totalExponent = 20n + lvlBigInt;
         
-        return new BigNum(1n, { base: 0, offset: totalExponent });
+        let expNum = Number(totalExponent); if (!Number.isFinite(expNum)) expNum = BigNum.MAX_E; return new BigNum(1n, expNum);
 
     } catch (e) {
         console.error("Error calculating lab cost", e);
@@ -258,12 +258,9 @@ function bigNumPowerOf10(logBn) {
 
   const totalExponent = integerPartBigInt + exponentAdjustment - BigInt(precision);
 
-  const E_LIMIT = 250;
-  const eBigInt = totalExponent % BigInt(E_LIMIT);
-  const e = Number(eBigInt);
-  const offset = totalExponent - eBigInt;
+  
 
-  return new BigNum(sig, { base: e, offset: offset });
+  let totalExpNum = Number(totalExponent); if (!Number.isFinite(totalExpNum)) totalExpNum = BigNum.MAX_E; return new BigNum(sig, totalExpNum);
 }
 
 export function getRpMultBase() {
@@ -885,7 +882,7 @@ class LabSystem {
                                     progress = 1;
                                 } else {
                                     const ratio = rp.div(req);
-                                    const ratioSci = ratio.toScientific(5);
+                                    const ratioSci = ratio.toScientific(15);
                                     progress = Number(ratioSci);
                                 }
                              } catch (e) {
