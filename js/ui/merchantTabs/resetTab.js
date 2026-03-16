@@ -1582,7 +1582,7 @@ function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
   }
 
   let barLevel = startLevelBigInt;
-  let req = new BigNum(10n, { base: 0, offset: barLevel });
+  let req = new BigNum(10n, { base: Number(barLevel) });
   let changed = false;
 
   // Optimization for massive waves: jump to the approximate level
@@ -1594,7 +1594,7 @@ function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
       const targetLevel = logCurrentBigInt > 0n ? logCurrentBigInt - 1n : 0n;
 
       if (targetLevel > barLevel) {
-        const nextReq = new BigNum(10n, { base: 0, offset: targetLevel });
+        const nextReq = new BigNum(10n, { base: Number(targetLevel) });
 
         // Cost = (10^(targetLevel+1) - 10^(barLevel+1)) / 9
         const cost = nextReq.sub(req).div(BigNum.fromInt(9));
@@ -2258,7 +2258,7 @@ function updateSurgeCard() {
   if (barLevel === Infinity) {
     req = BigNum.fromAny('Infinity');
   } else {
-    req = new BigNum(10n, { base: 0, offset: barLevel });
+    req = new BigNum(10n, { base: Number(barLevel) });
   }
   
   let pct = 0;
