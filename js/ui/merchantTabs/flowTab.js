@@ -6,6 +6,7 @@ import { addExternalCoinMultiplierProvider, addExternalXpGainMultiplierProvider 
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { approxLog10BigNum } from '../../game/upgrades.js';
 import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
+import { ensureMerchantScrollbar } from './dlgTab.js';
 import { WaterwheelRenderer } from '../../game/webgl/waterwheelRenderer.js';
 
 /* =========================================
@@ -1438,4 +1439,5 @@ export function initFlowTab(panelEl) {
     
     setTimeout(alignFlowColumns, 0);
     window.addEventListener('resize', alignFlowColumns);
+    setTimeout(() => ensureMerchantScrollbar('.flow-center-col', 'flow-scrollbar'), 0);
 }
