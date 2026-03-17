@@ -528,3 +528,20 @@
   color: #aaa;
   font-size: 0.9rem;
 }
+
+.flow-center-col::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+.flow-center-col {
+  scrollbar-width: none;
+}
+
+/* Flow custom scrollbar integration */
+.merchant-sheet:not(.is-flow-active) .flow-scrollbar {
+  display: none !important;
+}
+.merchant-sheet.is-flow-active .merchant-scrollbar:not(.flow-scrollbar) {
+  display: none !important;
+}
