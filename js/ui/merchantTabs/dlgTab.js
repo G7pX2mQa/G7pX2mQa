@@ -1296,13 +1296,13 @@ function injectScrollTimelineStyles() {
   document.head.appendChild(style);
 }
 
-function ensureMerchantScrollbar() {
-  const scroller = merchantOverlayEl?.querySelector('.merchant-content');
+export function ensureMerchantScrollbar(scrollerSelector = '.merchant-content', extraClass = '') {
+  const scroller = merchantOverlayEl?.querySelector(scrollerSelector);
   if (!scroller || scroller.__customScroll) return;
   if (!merchantSheetEl) return;
 
   const bar = document.createElement('div');
-  bar.className = 'merchant-scrollbar';
+  bar.className = 'merchant-scrollbar' + (extraClass ? ' ' + extraClass : '');
   const thumb = document.createElement('div');
   thumb.className = 'merchant-scrollbar__thumb';
   bar.appendChild(thumb);
