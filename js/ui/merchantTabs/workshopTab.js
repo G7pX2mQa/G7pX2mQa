@@ -443,10 +443,7 @@ function syncGearDecorations(container) {
 function buildWorkshopUI(container) {
   let descText = 'Click the big red button below to open the Automation Shop';
   if (IS_MOBILE) {
-    const isLargeScreen = Math.max(window.innerWidth, window.innerHeight) >= 900;
-    descText = isLargeScreen 
-      ? 'Tap the big red button below to open the Automation Shop'
-      : 'Tap the big red button below (scroll if needed) to open the Automation Shop';
+    descText = 'Tap the big red button below to open the Automation Shop';
   }
   container.innerHTML = `
     <div class="merchant-workshop">
