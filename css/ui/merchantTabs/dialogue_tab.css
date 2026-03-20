@@ -635,19 +635,16 @@
 }
 
 /* Lab tab specific overrides to prevent scrollbar */
-.merchant-sheet.is-lab-active .merchant-content,
-.merchant-sheet.is-flow-active .merchant-content {
+.merchant-sheet.is-lab-active .merchant-content {
   overflow: hidden !important;
 }
 
-.merchant-sheet.is-lab-active .merchant-panels,
-.merchant-sheet.is-flow-active .merchant-panels {
+.merchant-sheet.is-lab-active .merchant-panels {
   flex: 1 1 auto !important;
   min-height: 0 !important;
 }
 
-.merchant-sheet.is-lab-active .merchant-panel.is-active,
-.merchant-sheet.is-flow-active .merchant-panel.is-active {
+.merchant-sheet.is-lab-active .merchant-panel.is-active {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   height: 100%;
