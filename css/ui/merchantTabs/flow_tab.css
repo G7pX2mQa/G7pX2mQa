@@ -38,10 +38,10 @@
 }
 
 .flow-side-col {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: max(0px, calc(50% - 458px - 12px));
+  position: fixed;
+  top: 145px;
+  bottom: 80px;
+  width: max(0px, calc(50% - 458px - 24px));
   margin: 0;
   overflow: hidden;
   display: none;
@@ -51,14 +51,15 @@
   border: 2px solid rgba(72, 209, 204, 0.4);
   border-radius: 12px;
   box-sizing: border-box;
+  z-index: 5;
 }
 
 .flow-side-left {
-  left: 0;
+  left: 12px;
 }
 
 .flow-side-right {
-  right: 0;
+  right: 12px;
 }
 
 @media (min-width: 1500px) {
@@ -540,8 +541,5 @@
 
 /* Flow custom scrollbar integration */
 .merchant-sheet:not(.is-flow-active) .flow-scrollbar {
-  display: none !important;
-}
-.merchant-sheet.is-flow-active .merchant-scrollbar:not(.flow-scrollbar) {
   display: none !important;
 }
