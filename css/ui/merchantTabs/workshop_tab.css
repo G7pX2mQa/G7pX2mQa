@@ -59,26 +59,28 @@
 }
 
 /* Side Columns - for gear decorations */
-/* Converted to absolute positioning to avoid affecting center col width */
+/* Converted to fixed positioning to match flow side columns */
 .workshop-side-col {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: max(0px, calc(50% - 316px)); /* Fill space outside the 632px center */
+  position: fixed;
+  top: 145px;
+  bottom: 80px;
+  margin: 0;
+  width: max(0px, calc(50% - 316px - 12px));
   overflow: hidden;
   display: none; /* Hidden by default on small screens */
   pointer-events: none; /* purely decorative */
   border: 2px solid #6a6a6a;
   border-radius: 8px;
   box-sizing: border-box;
+  z-index: 5;
 }
 
 .workshop-side-left {
-  left: 0;
+  left: 12px;
 }
 
 .workshop-side-right {
-  right: 0;
+  right: 12px;
 }
 
 @media (min-width: 800px) {
