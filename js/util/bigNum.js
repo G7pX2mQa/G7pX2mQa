@@ -363,16 +363,35 @@ export class BigNum {
   cmp(b) {
     b = BigNum.fromAny(b, this.p);
     if (this.inf || b.inf) return this.inf === b.inf ? 0 : this.inf ? 1 : -1;
+    
     const thisIsZero = this.isZero();
     const otherIsZero = typeof b.isZero === 'function' ? b.isZero() : false;
     if (thisIsZero || otherIsZero) {
       if (thisIsZero && otherIsZero) return 0;
       return thisIsZero ? -1 : 1;
     }
+
     const expCmp = this.#compareExponent(b);
-    if (expCmp !== 0) return expCmp;
-    if (this.sig === b.sig) return 0;
-    return this.sig > b.sig ? 1 : -1;
+
+    // If magnitudes differ by a huge amount, safely fast path.
+    // The maximum possible compensation by a mismatched mantissa length is `p` (precision length).
+    const maxCompensable = Math.max(this.p, b.p) + 2; 
+    
+    if (Math.abs(this.e - b.e) > maxCompensable) {
+       return expCmp; // Cannot possibly be compensated by mantissa strings.
+    }
+
+    let aSig = this.sig;
+    let bSig = b.sig;
+
+    if (expCmp > 0) {
+      bSig = this.#alignSig(b);
+    } else if (expCmp < 0) {
+      aSig = b.#alignSig(this);
+    }
+
+    if (aSig === bSig) return 0;
+    return aSig > bSig ? 1 : -1;
   }
   // ----- Decimal multiply (exact, integer-safe) & flooring -----
 
