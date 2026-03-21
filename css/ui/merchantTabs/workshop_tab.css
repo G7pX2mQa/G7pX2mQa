@@ -70,7 +70,7 @@
   display: none; /* Hidden by default on small screens */
   pointer-events: none; /* purely decorative */
   border: 2px solid #6a6a6a;
-  border-radius: 8px;
+  border-radius: 12px;
   box-sizing: border-box;
   z-index: 5;
 }
