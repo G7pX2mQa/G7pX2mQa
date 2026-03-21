@@ -1308,7 +1308,6 @@ export function ensureMerchantScrollbar(scrollerSelector = '.merchant-content', 
   bar.appendChild(thumb);
   merchantSheetEl.appendChild(bar);
 
-  const isTouch = window.matchMedia?.('(hover: none) and (pointer: coarse)')?.matches;
   const FADE_SCROLL_MS = 150;
   const FADE_DRAG_MS = 120;
   const supportsScrollEnd = 'onscrollend' in window;
@@ -1399,11 +1398,12 @@ const updateBounds = () => {
       // 2. Thumb Position (if not using CSS Timeline)
       if (!useCssTimeline) {
           const { maxScroll, range } = cachedMetrics;
-          const y = Math.round((scrollTop / maxScroll) * range);
+          const rawY = (scrollTop / maxScroll) * range;
+          const y = IS_MOBILE ? rawY : Math.round(rawY);
           thumb.style.transform = `translateY(${y}px)`;
       }
 
-      if (isTouch) showBar();
+      if (IS_MOBILE) showBar();
   };
 
   const updateAll = () => {
@@ -1412,13 +1412,13 @@ const updateBounds = () => {
   };
 
   const showBar = () => {
-      if (!isTouch) return;
+      if (!IS_MOBILE) return;
       merchantSheetEl.classList.add('is-scrolling');
       if (fadeTimer) clearTimeout(fadeTimer);
   };
 
   const scheduleHide = (delay) => {
-      if (!isTouch) return;
+      if (!IS_MOBILE) return;
       if (fadeTimer) clearTimeout(fadeTimer);
       fadeTimer = setTimeout(() => {
           merchantSheetEl.classList.remove('is-scrolling');
