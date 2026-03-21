@@ -330,7 +330,6 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
 
   scroller.__customScroll = { bar, thumb };
 
-  const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   const FADE_SCROLL_MS = 150;
   const FADE_DRAG_MS = 120;
   const supportsScrollEnd = 'onscrollend' in window;
@@ -447,7 +446,8 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
     // 2. Thumb Position (if not using CSS Timeline)
     if (!useCssTimeline) {
         const { maxScroll, range } = cachedMetrics;
-        const pos = Math.round((scrollPos / maxScroll) * range);
+        const rawPos = (scrollPos / maxScroll) * range;
+        const pos = IS_MOBILE ? rawPos : Math.round(rawPos);
         if (isVertical) {
           thumb.style.transform = `translateY(${pos}px)`;
         } else {
@@ -455,7 +455,7 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
         }
     }
     
-    if (isTouch) showBar();
+    if (IS_MOBILE) showBar();
   };
 
   const updateAll = () => { updateBounds(); updateMetrics(); };
@@ -473,8 +473,8 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
       obs.observe(scroller, { childList: true, subtree: true, characterData: true });
   }
 
-  const showBar = () => { if (!isTouch) return; sheetEl.classList.add('is-scrolling'); clearTimeout(scroller.__fadeTimer); };
-  const scheduleHide = (delay) => { if (!isTouch) return; clearTimeout(scroller.__fadeTimer); scroller.__fadeTimer = setTimeout(() => { sheetEl.classList.remove('is-scrolling'); }, delay); };
+  const showBar = () => { if (!IS_MOBILE) return; sheetEl.classList.add('is-scrolling'); clearTimeout(scroller.__fadeTimer); };
+  const scheduleHide = (delay) => { if (!IS_MOBILE) return; clearTimeout(scroller.__fadeTimer); scroller.__fadeTimer = setTimeout(() => { sheetEl.classList.remove('is-scrolling'); }, delay); };
   
   const onScroll = () => { 
       if (!scrollingElements.has(scroller)) {
