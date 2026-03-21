@@ -1,6 +1,7 @@
 // js/ui/hudButtons.js
 
 import { openShop } from './shopOverlay.js';
+import { openSasOverlay } from './sasOverlay.js';
 import { ensureMerchantOverlay } from './merchantTabs/dlgTab.js';
 import { getActiveSlot, hasModifiedSave } from '../util/storage.js';
 import {
@@ -204,6 +205,8 @@ export function initHudButtons() {
         const key = btn.getAttribute('data-btn');
         if (key === 'shop') {
           openShop();
+        } else if (key === 'stats') {
+          openSasOverlay();
         }
         // future: help/settings/map can import their own modules, too
       };
@@ -212,7 +215,7 @@ export function initHudButtons() {
         const btn = e.target.closest('.game-btn');
         if (!btn) return;
         const key = btn.getAttribute('data-btn');
-        if (key !== 'shop') return;
+        if (key !== 'shop' && key !== 'stats') return;
         if (e.isTrusted && shouldSkipGhostTap(btn)) return;
         // markGhostTapTarget removed - global handler manages clicks
         activate(btn);
