@@ -43,12 +43,7 @@ class SettingsManager {
       const storageKey = this._getKey(key);
       const stored = localStorage.getItem(storageKey);
       if (stored !== null) {
-        try {
-          this.settings[key] = JSON.parse(stored);
-        } catch (e) {
-          // Fallback for older data or malformed JSON
-          this.settings[key] = stored === 'true';
-        }
+        this.settings[key] = JSON.parse(stored);
       } else {
         this.settings[key] = def.default;
       }
