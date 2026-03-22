@@ -5,15 +5,14 @@
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
   padding: 8px 0;
 }
 
 .setting-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 16px;
+  gap: 32px;
   margin: 0 32px;
 }
 
@@ -114,4 +113,11 @@
 .setting-toggle-input:focus-visible + .setting-toggle-label {
   outline: 2px solid #fff;
   outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .setting-row {
+    gap: 16px;
+    margin: 0 16px;
+  }
 }
