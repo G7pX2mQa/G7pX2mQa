@@ -9,6 +9,8 @@ export const SETTING_DEFINITIONS = {
   placeholder_setting: {
     id: 'placeholder_setting',
     label: 'I do nothing! Placeholder here!',
+    hasExtraInfo: true,
+    info: 'This is a placeholder setting and it does not do anything. This setting will be deleted in a future task.',
     default: false,
   }
 };
