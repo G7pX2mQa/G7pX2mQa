@@ -106,55 +106,84 @@ function renderSettings() {
   }
 
   for (const [key, def] of Object.entries(SETTING_DEFINITIONS)) {
-    const row = document.createElement('div');
-    row.className = 'setting-row';
+    const row = document.createElement("div");
+    row.className = "setting-row";
 
-    const desc = document.createElement('div');
-    desc.className = 'setting-description';
+    const desc = document.createElement("div");
+    desc.className = "setting-description";
     
-    const labelSpan = document.createElement('span');
-    labelSpan.textContent = def.label;
-    desc.appendChild(labelSpan);
+    if (def.type === "toggle") {
+      const labelSpan = document.createElement("span");
+      // Use span instead of label so clicks on the empty space don't naturally trigger it.
+      // We will handle the span click manually via event listener on the row.
+      labelSpan.textContent = def.label;
+      labelSpan.style.cursor = "pointer";
+      labelSpan.className = "setting-text-label";
+      // This prevents the label from expanding to fill the rest of the flex container
+      labelSpan.style.flex = "0 1 auto";
+      // Explicitly set width to fit-content to be safe
+      labelSpan.style.width = "max-content";
+      
+      desc.appendChild(labelSpan);
+    } else {
+      const labelSpan = document.createElement("span");
+      labelSpan.textContent = def.label;
+      desc.appendChild(labelSpan);
+    }
 
     if (def.hasExtraInfo && def.info) {
-      const infoIcon = document.createElement('span');
-      infoIcon.className = 'setting-info-icon';
-      infoIcon.textContent = '\u24D8';
+      const infoIcon = document.createElement("span");
+      infoIcon.className = "setting-info-icon";
+      infoIcon.textContent = "\u24D8";
       
-      const infoTooltip = document.createElement('div');
-      infoTooltip.className = 'setting-info-tooltip';
+      const infoTooltip = document.createElement("div");
+      infoTooltip.className = "setting-info-tooltip";
       infoTooltip.textContent = def.info;
       
       infoIcon.appendChild(infoTooltip);
       desc.appendChild(infoIcon);
     }
 
-    const toggleContainer = document.createElement('div');
-    toggleContainer.className = 'setting-toggle';
-    
-    // We create a custom toggle switch
-    const toggleInput = document.createElement('input');
-    toggleInput.type = 'checkbox';
-    toggleInput.className = 'setting-toggle-input';
-    toggleInput.id = `setting_toggle_${key}`;
-    toggleInput.checked = settingsManager.get(key);
+    if (def.type === "toggle") {
+      const toggleContainer = document.createElement("div");
+      toggleContainer.className = "setting-toggle";
+      
+      // We create a custom toggle switch
+      const toggleInput = document.createElement("input");
+      toggleInput.type = "checkbox";
+      toggleInput.className = "setting-toggle-input";
+      toggleInput.id = `setting_toggle_${key}`;
+      toggleInput.checked = settingsManager.get(key);
 
-    const toggleLabel = document.createElement('label');
-    toggleLabel.htmlFor = `setting_toggle_${key}`;
-    toggleLabel.className = 'setting-toggle-label';
+      const toggleLabel = document.createElement("label");
+      toggleLabel.htmlFor = `setting_toggle_${key}`;
+      toggleLabel.className = "setting-toggle-label";
 
-    toggleInput.addEventListener('change', (e) => {
-      settingsManager.set(key, e.target.checked);
-    });
+      toggleInput.addEventListener("change", (e) => {
+        settingsManager.set(key, e.target.checked);
+      });
 
-    // Optionally update input if setting changes from elsewhere while open
-    const unsub = settingsManager.subscribe(key, (newVal) => {
-      toggleInput.checked = newVal;
-    });
-    unsubscribers.push(unsub);
+      // Optionally update input if setting changes from elsewhere while open
+      const unsub = settingsManager.subscribe(key, (newVal) => {
+        toggleInput.checked = newVal;
+      });
+      unsubscribers.push(unsub);
 
-    toggleContainer.append(toggleInput, toggleLabel);
-    row.append(toggleContainer, desc);
+      toggleContainer.append(toggleInput, toggleLabel);
+      row.append(toggleContainer, desc);
+
+      row.style.cursor = 'pointer';
+      desc.style.cursor = 'default';
+      row.addEventListener('click', (e) => {
+        // Only allow clicking the actual row element (the gap) or the specific text label.
+        // Clicks strictly on `desc` will be ignored.
+        if (e.target === row || e.target.classList.contains('setting-text-label')) {
+          toggleInput.click();
+        }
+      });
+    } else {
+      row.append(desc);
+    }
     container.appendChild(row);
   }
 }
