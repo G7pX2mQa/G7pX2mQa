@@ -1,7 +1,7 @@
 // js/ui/hudButtons.js
 
 import { openShop } from './shopOverlay.js';
-import { openSasOverlay } from './sasOverlay.js';
+import { openSasOverlay } from './sas/sasOverlay.js';
 import { ensureMerchantOverlay } from './merchantTabs/dlgTab.js';
 import { getActiveSlot, hasModifiedSave } from '../util/storage.js';
 import {
