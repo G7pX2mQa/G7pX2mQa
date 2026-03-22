@@ -42,31 +42,46 @@
 }
 
 .setting-toggle-label {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   width: 100px;
   height: 44px;
-  background-color: #FF4444; /* Default OFF state color (red) */
-  border-radius: 8px; /* Rectangular instead of pill-shaped */
+  border-radius: 8px;
   position: relative;
   cursor: pointer;
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(255, 255, 255, 0.2);
+  /* Outward 3D perspective */
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.6),
+    0 1px 3px rgba(0, 0, 0, 0.4);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  border: 1px solid rgba(0,0,0,0.2);
-  /* The "OFF" text position */
+  /* Metallic outer border */
+  border: 2px solid transparent;
+  background-image: 
+    linear-gradient(to bottom, #bd3e3e, #9c1f1f), 
+    linear-gradient(to bottom, #ffffff, #a0a0a0, #333333);
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
   justify-content: flex-end;
-  padding-right: 9px;
+  padding: 0;
+  overflow: hidden; /* Important so thumb doesn't stick out of border radius */
 }
 
 .setting-toggle-label::before {
-  content: 'OFF';
-  color: #fff;
+  content: "OFF";
+  color: #ffffff;
   font-weight: 800;
-  font-size: 18px;
-  text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+  font-size: 16px;
+  text-shadow: none;
   -webkit-text-stroke: 1px #000;
   text-stroke: 1px #000;
+  z-index: 1;
+  position: relative;
+  width: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 @media (pointer: coarse) {
@@ -77,42 +92,76 @@
       0     0.5px 0 #000,   0    -0.5px 0 #000,
       0.5px 0     0 #000,  -0.5px 0     0 #000,
       0.5px 0.5px 0 #000,   0.5px -0.5px 0 #000,
-     -0.5px 0.5px 0 #000,  -0.5px -0.5px 0 #000,
-      0 1px 1px rgba(0,0,0,0.3);
+     -0.5px 0.5px 0 #000,  -0.5px -0.5px 0 #000;
   }
 }
 
 .setting-toggle-label::after {
-  content: '';
+  content: "";
   position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 44px; /* Big rectangular button */
-  height: 34px;
-  background-color: #E6E6E6; /* Light gray button */
-  border-radius: 4px;
-  box-shadow: inset 0 2px 2px rgba(255,255,255,1), inset 0 -2px 4px rgba(0,0,0,0.1), 0 2px 4px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(0,0,0,0.1);
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  box-sizing: border-box;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 4px,
+    rgba(0,0,0,0.1) 4px,
+    rgba(0,0,0,0.1) 5px,
+    rgba(255,255,255,0.4) 5px,
+    rgba(255,255,255,0.4) 6px
+  ), linear-gradient(to bottom, #f0f0f0, #c0c0c0, #808080);
+  
+  /* Match parent's border radius on the outer edge, square on inner edge */
+  border-radius: 6px 0 0 6px; 
+  box-shadow: 
+    inset 0 2px 2px rgba(255,255,255,0.9), 
+    inset 0 -2px 3px rgba(0,0,0,0.4),
+    2px 0 4px rgba(0,0,0,0.5); /* Shadow onto the track */
+    
+  border-right: 1px solid #555; /* Divider line in the middle */
+  z-index: 2;
 }
 
 .setting-toggle-input:checked + .setting-toggle-label {
-  background-color: #44FF44; /* ON state color (green) */
+  background-image: 
+    linear-gradient(to bottom, #3ebd4a, #1f9c1f),
+    linear-gradient(to bottom, #ffffff, #a0a0a0, #333333);
   justify-content: flex-start;
-  padding-left: 12px;
 }
 
 .setting-toggle-input:checked + .setting-toggle-label::before {
-  content: 'ON';
+  content: "ON";
+  color: #ffffff;
+  text-shadow: none;
+}
+
+@media (pointer: coarse) {
+  .setting-toggle-input:checked + .setting-toggle-label::before {
+    text-shadow:
+      0     0.5px 0 #000,   0    -0.5px 0 #000,
+      0.5px 0     0 #000,  -0.5px 0     0 #000,
+      0.5px 0.5px 0 #000,   0.5px -0.5px 0 #000,
+     -0.5px 0.5px 0 #000,  -0.5px -0.5px 0 #000;
+  }
 }
 
 .setting-toggle-input:checked + .setting-toggle-label::after {
-  transform: translateX(46px);
+  transform: translateX(100%);
+  border-radius: 0 6px 6px 0;
+  border-right: none;
+  border-left: 1px solid #555;
+  box-shadow: 
+    inset 0 2px 2px rgba(255,255,255,0.9), 
+    inset 0 -2px 3px rgba(0,0,0,0.4), 
+    -2px 0 4px rgba(0,0,0,0.5);
 }
 
-/* Optional: Focus states for accessibility */
 .setting-toggle-input:focus-visible + .setting-toggle-label {
   outline: 2px solid #fff;
-  outline-offset: 2px;
+  outline-offset: 4px;
 }
 
 @media (max-width: 600px) {
