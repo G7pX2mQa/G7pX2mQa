@@ -111,7 +111,23 @@ function renderSettings() {
 
     const desc = document.createElement('div');
     desc.className = 'setting-description';
-    desc.textContent = def.label;
+    
+    const labelSpan = document.createElement('span');
+    labelSpan.textContent = def.label;
+    desc.appendChild(labelSpan);
+
+    if (def.hasExtraInfo && def.info) {
+      const infoIcon = document.createElement('span');
+      infoIcon.className = 'setting-info-icon';
+      infoIcon.textContent = '\u24D8';
+      
+      const infoTooltip = document.createElement('div');
+      infoTooltip.className = 'setting-info-tooltip';
+      infoTooltip.textContent = def.info;
+      
+      infoIcon.appendChild(infoTooltip);
+      desc.appendChild(infoIcon);
+    }
 
     const toggleContainer = document.createElement('div');
     toggleContainer.className = 'setting-toggle';
