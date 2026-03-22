@@ -8,6 +8,7 @@ const SETTINGS_KEY_PREFIX = 'ccc_setting_';
 export const SETTING_DEFINITIONS = {
   placeholder_setting: {
     id: 'placeholder_setting',
+    type: 'toggle',
     label: 'I do nothing! Placeholder here!',
     hasExtraInfo: true,
     info: 'This is a placeholder setting and it does not do anything. This setting will be deleted in a future task.',
@@ -42,7 +43,12 @@ class SettingsManager {
       const storageKey = this._getKey(key);
       const stored = localStorage.getItem(storageKey);
       if (stored !== null) {
-        this.settings[key] = stored === 'true';
+        try {
+          this.settings[key] = JSON.parse(stored);
+        } catch (e) {
+          // Fallback for older data or malformed JSON
+          this.settings[key] = stored === 'true';
+        }
       } else {
         this.settings[key] = def.default;
       }
@@ -62,7 +68,7 @@ class SettingsManager {
     if (!(key in SETTING_DEFINITIONS)) return;
     this.settings[key] = value;
     const storageKey = this._getKey(key);
-    localStorage.setItem(storageKey, value.toString());
+    localStorage.setItem(storageKey, JSON.stringify(value));
     this.notify(key, value);
   }
 
