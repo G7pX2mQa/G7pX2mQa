@@ -368,7 +368,6 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   let lastShadow = null;
   
   // rAF loop state
-  let isScrollTickPending = false;
   let scrollTimeout = null;
 
   const updateBounds = () => {
@@ -432,8 +431,6 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
   };
 
   const performScrollUpdate = () => {
-    isScrollTickPending = false;
-    
     const scrollPos = isVertical ? scroller.scrollTop : scroller.scrollLeft;
     
     // 1. Shadow
@@ -488,11 +485,8 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
           }
       }, 150);
 
-      if (!isScrollTickPending) {
-          isScrollTickPending = true;
-          window.requestAnimationFrame(performScrollUpdate);
-      }
-      if (!supportsScrollEnd) scheduleHide(FADE_SCROLL_MS); 
+      performScrollUpdate();
+      scheduleHide(FADE_SCROLL_MS); 
   };
   const onScrollEnd = () => scheduleHide(FADE_SCROLL_MS);
 
