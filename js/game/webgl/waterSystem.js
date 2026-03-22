@@ -285,6 +285,11 @@ export class WaterSystem {
     addWave(x, y, width, height, forceTopLayer = false) {
         if (!this.glBg || !this.glFg || this.fgLayers.length === 0) return;
 
+        // Optimization: Skip adding waves when Delve is open
+        if (typeof isMerchantOpen === 'function' && isMerchantOpen() && this.merchantOpenTimer > 0.15) {
+            return;
+        }
+
         // 1. Apply to BG Sim (Always, for water distortion)
         this.applyBrush(
             this.glBg, 
