@@ -1381,11 +1381,8 @@ const updateBounds = () => {
   };
 
   let lastShadow = null;
-  let isScrollTickPending = false;
 
   const performScrollUpdate = () => {
-      isScrollTickPending = false;
-      
       const scrollTop = scroller.scrollTop;
 
       // 1. Shadow
@@ -1426,11 +1423,8 @@ const updateBounds = () => {
   };
 
   const onScroll = () => {
-      if (!isScrollTickPending) {
-          isScrollTickPending = true;
-          window.requestAnimationFrame(performScrollUpdate);
-      }
-      if (!supportsScrollEnd) scheduleHide(FADE_SCROLL_MS);
+      performScrollUpdate();
+      scheduleHide(FADE_SCROLL_MS);
   };
 
   const onScrollEnd = () => scheduleHide(FADE_SCROLL_MS);
