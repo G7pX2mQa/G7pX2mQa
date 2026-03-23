@@ -11,6 +11,14 @@ let isOpen = false;
 let closeTimer = null;
 let postOpenPointer = false;
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('unlock:change', () => {
+    if (isOpen && mainSettingsOverlayEl) {
+      renderSettings();
+    }
+  });
+}
+
 // Store unsubscribe functions for settings so they can be cleaned up
 const unsubscribers = [];
 
@@ -106,6 +114,10 @@ function renderSettings() {
   }
 
   for (const [key, def] of Object.entries(SETTING_DEFINITIONS)) {
+    if (def.unlockCondition && !def.unlockCondition()) {
+      continue;
+    }
+
     const row = document.createElement("div");
     row.className = "setting-row";
     
@@ -265,6 +277,7 @@ function renderSettings() {
       };
 
       sliderInput.addEventListener("input", (e) => {
+        settingsManager.set(key, parseFloat(e.target.value));
         updateSliderProgress();
       });
 
@@ -336,9 +349,11 @@ function renderSettings() {
       sliderContainer.append(visualTrack, markersContainer, sliderInput, thumbLabel, labelsContainer);
       sliderWrapper.appendChild(sliderContainer);
       
-      const clickGap = document.createElement("div");
-      clickGap.className = "setting-click-gap";
-      row.append(sliderWrapper, clickGap, desc);
+      // Space for gap layout consistency
+      const gapEl = document.createElement("div");
+      gapEl.style.width = "32px";
+      gapEl.style.height = "100%";
+      row.append(sliderWrapper, gapEl, desc);
 
       // Initial update
       updateSliderProgress();
@@ -408,9 +423,11 @@ function renderSettings() {
 
       dropdownWrapper.append(dropdownBtn, dropdownMenu);
 
-      const clickGap = document.createElement("div");
-      clickGap.className = "setting-click-gap";
-      row.append(dropdownWrapper, clickGap, desc);
+      // Space for gap layout consistency
+      const gapEl = document.createElement("div");
+      gapEl.style.width = "32px";
+      gapEl.style.height = "100%";
+      row.append(dropdownWrapper, gapEl, desc);
     } else {
       row.append(desc);
     }
