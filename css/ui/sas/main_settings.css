@@ -10,10 +10,16 @@
 
 .setting-row {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto auto 1fr;
   align-items: center;
-  gap: 32px;
+  gap: 0;
   margin: 0 40px 0 24px;
+}
+
+.setting-click-gap {
+  width: 32px;
+  height: 100%;
+  cursor: pointer;
 }
 
 .setting-description {
@@ -224,7 +230,7 @@
 
 @media (max-width: 600px) {
   .setting-row {
-    gap: 16px;
+    gap: 0;
     margin: 0 24px 0 8px;
   }
 }
