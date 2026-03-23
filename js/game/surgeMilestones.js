@@ -14,7 +14,7 @@ export const getSurge10Description = (slot) => {
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
-import { getTsunamiNerf, getEffectiveTsunamiNerf, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier, getSurge21BonusPercentage, getSurge23Multiplier, getSurge23BonusPercentage, getSurge25Multiplier, getSurge25BonusPercentage, getSurge27Multiplier, getSurge27BonusPercentage, getSurge29Multiplier, getSurge29BonusPercentage, getSurge31Multiplier, getSurge31BonusPercentage, getSurge33Multiplier, getSurge33BonusPercentage, getSurge35Multiplier, getSurge35BonusPercentage, getSurge40Multiplier, getSurge50Multiplier, getBookProductionRate, getSurge6WealthMultipliers} from "./surgeEffects.js";
+import { getBaseTsunamiExponent, getTsunamiExponent, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier, getSurge21BonusPercentage, getSurge23Multiplier, getSurge23BonusPercentage, getSurge25Multiplier, getSurge25BonusPercentage, getSurge27Multiplier, getSurge27BonusPercentage, getSurge29Multiplier, getSurge29BonusPercentage, getSurge31Multiplier, getSurge31BonusPercentage, getSurge33Multiplier, getSurge33BonusPercentage, getSurge35Multiplier, getSurge35BonusPercentage, getSurge40Multiplier, getSurge50Multiplier, getBookProductionRate, getSurge6WealthMultipliers} from "./surgeEffects.js";
 import { getTsunamiResearchBonus, getResearchNodeLevel } from './labNodes.js';
 import { getActiveSlot } from '../util/storage.js';
 
@@ -484,7 +484,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       // Clone milestone to avoid mutating the original
       milestone = { ...m, description: [...m.description] };
       
-      const baseNerf = getTsunamiNerf();
+      const baseNerf = getBaseTsunamiExponent();
       const bonus = getTsunamiResearchBonus();
       let nerf = baseNerf + bonus;
       if (nerf > 1) nerf = 1;
@@ -619,7 +619,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
           milestone = { ...m, description: [...m.description] };
       }
       
-      const effectiveNerf = getEffectiveTsunamiNerf();
+      const effectiveNerf = getTsunamiExponent();
       const mapped = effectiveNerf * 1.5 - 0.5;
       const pct = Math.pow(100, mapped);
       const valStr = formatMultForUi(pct);
@@ -666,7 +666,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
           milestone = { ...m, description: [...m.description] };
       }
       
-      const effectiveNerf = getEffectiveTsunamiNerf();
+      const effectiveNerf = getTsunamiExponent();
       const mapped = effectiveNerf * 1.5 - 0.5;
       const pct = Math.pow(100, mapped);
       const valStr = formatMultForUi(pct);
@@ -685,7 +685,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
           milestone = { ...m, description: [...m.description] };
       }
       
-      const effectiveNerf = getEffectiveTsunamiNerf();
+      const effectiveNerf = getTsunamiExponent();
       const mapped = effectiveNerf * 1.5 - 0.5;
       const pct = Math.pow(100, mapped);
       const valStr = formatMultForUi(pct);
