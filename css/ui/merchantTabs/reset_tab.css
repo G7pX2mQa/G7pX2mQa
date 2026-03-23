@@ -947,9 +947,9 @@
 .cavern-shimmer-text {
   background: linear-gradient(
     -45deg,
-    #00e5ff 0%,
-    #4db6ac 50%,
-    #00e5ff 100%
+    #009c9c 0%,
+    #8a6c4e 50%,
+    #009c9c 100%
   );
   background-size: 200% auto;
   color: #000;
