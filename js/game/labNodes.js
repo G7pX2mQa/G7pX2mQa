@@ -257,8 +257,8 @@ export const RESEARCH_NODES = [
     {
         id: 19,
         title: "Node 19: Tsunami Exponent Buff III",
-        desc: `Increases the Tsunami Exponent by +0.01 per level\nThis node scales <strong>${formatNumber(BigNum.fromAny(1e27))}x</strong> RP each level`,
-        baseRpReq: 1e75,
+        desc: `Increases the Tsunami Exponent by +0.01 per level\nThis node scales <strong>${formatNumber(BigNum.fromAny(1e18))}x</strong> RP each level`,
+        baseRpReq: 1e84,
         scale: 1e27,
         maxLevel: 10,
         x: 0,
