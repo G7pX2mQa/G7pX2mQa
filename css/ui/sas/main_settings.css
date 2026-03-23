@@ -26,6 +26,10 @@
   margin-bottom: 16px;
 }
 
+.setting-row.setting-row-slider .setting-click-gap {
+  margin-left: 8px;
+}
+
 .setting-click-gap {
   width: 32px;
   height: 100%;
