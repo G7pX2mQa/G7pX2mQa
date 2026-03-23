@@ -517,18 +517,12 @@
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-  transition: background-image 0.1s ease, border-color 0.1s ease;
   user-select: none;
 }
 
 .setting-dropdown-btn:hover {
   background-image: linear-gradient(to bottom, #333333, #262626);
   border-color: #5c5c5c;
-}
-
-.setting-dropdown-btn:active {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(0, 0, 0, 0.4);
-  transform: translateY(1px);
 }
 
 .setting-dropdown-value {
@@ -564,7 +558,6 @@
   opacity: 0;
   visibility: hidden;
   transform: translateY(-8px);
-  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
   z-index: 2000;
   overflow: hidden;
 }
@@ -581,7 +574,6 @@
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.1s ease;
 }
 
 .setting-dropdown-option:not(:last-child) {
