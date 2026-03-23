@@ -108,6 +108,10 @@ function renderSettings() {
   for (const [key, def] of Object.entries(SETTING_DEFINITIONS)) {
     const row = document.createElement("div");
     row.className = "setting-row";
+    
+    if (def.type === "slider") {
+      row.classList.add("setting-row-slider");
+    }
 
     const desc = document.createElement("div");
     desc.className = "setting-description";
