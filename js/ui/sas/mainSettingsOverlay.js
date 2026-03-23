@@ -139,6 +139,7 @@ function renderSettings() {
       infoIconImg.style.width = "1.2em";
       infoIconImg.style.height = "1.2em";
       infoIconImg.style.display = "block";
+      infoIconImg.style.borderRadius = "50%";
       infoIcon.appendChild(infoIconImg);
       
       const infoTooltip = document.createElement("div");
