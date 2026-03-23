@@ -271,6 +271,34 @@ function renderSettings() {
         updateSliderProgress();
       });
 
+      let pointerDownPos = null;
+      sliderInput.addEventListener('pointerdown', (e) => {
+        pointerDownPos = { x: e.clientX, y: e.clientY };
+      });
+      sliderInput.addEventListener('pointerup', (e) => {
+        if (!pointerDownPos) return;
+        const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+        if (dist < 5) {
+          const rect = sliderContainer.getBoundingClientRect();
+          let pct = (e.clientX - rect.left) / rect.width;
+          pct = Math.max(0, Math.min(1, pct));
+          const min = parseFloat(sliderInput.min);
+          const max = parseFloat(sliderInput.max);
+          const step = parseFloat(sliderInput.step) || 1;
+          
+          let val = min + pct * (max - min);
+          val = min + Math.round((val - min) / step) * step;
+          val = Math.max(min, Math.min(max, val));
+          
+          if (parseFloat(sliderInput.value) !== val) {
+            sliderInput.value = val;
+            settingsManager.set(key, val);
+            updateSliderProgress();
+          }
+        }
+        pointerDownPos = null;
+      });
+
       const unsub = settingsManager.subscribe(key, (newVal) => {
         sliderInput.value = newVal;
         updateSliderProgress();
