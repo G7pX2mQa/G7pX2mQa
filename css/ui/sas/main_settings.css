@@ -545,7 +545,10 @@
   color: #aaa;
 }
 
-
+.setting-dropdown-menu.is-open + .setting-dropdown-btn .setting-dropdown-icon,
+.setting-dropdown-wrapper:has(.setting-dropdown-menu.is-open) .setting-dropdown-icon {
+  transform: rotate(180deg);
+}
 
 .setting-dropdown-menu {
   position: absolute;
