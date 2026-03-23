@@ -134,7 +134,12 @@ function renderSettings() {
     if (def.hasExtraInfo && def.info) {
       const infoIcon = document.createElement("span");
       infoIcon.className = "setting-info-icon";
-      infoIcon.textContent = "\u24D8";
+      const infoIconImg = document.createElement("img");
+      infoIconImg.src = "img/misc/i.webp";
+      infoIconImg.style.width = "1.2em";
+      infoIconImg.style.height = "1.2em";
+      infoIconImg.style.display = "block";
+      infoIcon.appendChild(infoIconImg);
       
       const infoTooltip = document.createElement("div");
       infoTooltip.className = "setting-info-tooltip";
