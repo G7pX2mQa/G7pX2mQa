@@ -3,7 +3,7 @@
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { getMutationState, onMutationChange } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
-import { isSurgeActive, getTsunamiNerf, getEffectiveTsunamiNerfWithCombo } from './surgeEffects.js';
+import { isSurgeActive, getBaseTsunamiExponent, getEffectiveTsunamiNerfWithCombo } from './surgeEffects.js';
 import { playAudio } from '../util/audioManager.js';
 import { waterSystem} from './webgl/waterSystem.js';
 import { shouldBlockBigCoins } from '../ui/merchantTabs/resetTab.js';
