@@ -680,7 +680,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       }
     }
 
-    if (m.id === 32) {
+        if (m.id === 32) {
       if (milestone === m) {
           milestone = { ...m, description: [...m.description] };
       }
@@ -690,12 +690,19 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       const pct = Math.pow(100, mapped);
       const valStr = formatMultForUi(pct);
 
-      milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${valStr}%</span> of pending DNA every second`;
-      if (m.surgeLevel <= currentLevel && pendingVals.pendingDna) {
-          const log10Rate = 2 * mapped - 2;
-          const rateMultiplier = bigNumFromLog10(log10Rate);
-          const dnaPerSec = pendingVals.pendingDna.mulDecimal(rateMultiplier.toScientific());
-          milestone.description.push(`Current DNA/sec: ${formatNumber(dnaPerSec.floorToInteger())}`);
+      const tNerf = effectiveNerf;
+      if (tNerf === 0) {
+          milestone.description[0] = `Does not generate any DNA with a tsunami exponent of 0.00`;
+      } else {
+          const newPct = Math.pow(parseFloat(valStr), 1 / tNerf);
+          const newValStr = Number(newPct.toFixed(6));
+          milestone.description[0] = `Activates generator: Passively generates <span style="color:#00e5ff">${newValStr}%</span> (${valStr}^(1/${tNerf.toFixed(2)})) of pending DNA every second`;
+          if (m.surgeLevel <= currentLevel && pendingVals.pendingDna) {
+              const log10Rate = Math.log10(newPct / 100);
+              const rateMultiplier = bigNumFromLog10(log10Rate);
+              const dnaPerSec = pendingVals.pendingDna.mulDecimal(rateMultiplier.toScientific());
+              milestone.description.push(`Current DNA/sec: ${formatNumber(dnaPerSec.floorToInteger())}`);
+          }
       }
     }
 
