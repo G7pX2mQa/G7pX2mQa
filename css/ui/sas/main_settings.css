@@ -16,6 +16,11 @@
   margin: 0 40px 0 24px;
 }
 
+.setting-row.setting-row-slider {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
 .setting-click-gap {
   width: 32px;
   height: 100%;
@@ -32,6 +37,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.setting-row.setting-row-slider .setting-description {
+  transform: translateY(-5.5px);
 }
 
 .setting-info-icon {
