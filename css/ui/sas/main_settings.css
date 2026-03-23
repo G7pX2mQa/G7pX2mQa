@@ -38,6 +38,7 @@
   -webkit-touch-callout: none;
   user-select: none;
   margin-left: 8px;
+  border-radius: 50%;
 }
 
 .setting-info-tooltip {
