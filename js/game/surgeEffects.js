@@ -53,10 +53,10 @@ export function setTsunamiSequenceSeen(value) {
 let currentMultiplier = BigNum.fromInt(1);
 let cachedSurgeLevel = 0n;
 let bookRateAccumulator = null;
-let tsunamiNerfExponent = 0.00;
+let baseTsunamiExponent = 0.00; // declared as mutable because the base tsunami exponent can change over time depending on lab nodes
 
 export function getBaseTsunamiExponent() {
-  return tsunamiNerfExponent;
+  return baseTsunamiExponent;
 }
 
 export function getTsunamiExponent() {
@@ -124,7 +124,7 @@ export function setTsunamiNerf(value) {
       } catch {}
   }
   
-  tsunamiNerfExponent = val;
+  baseTsunamiExponent = val;
   
   updateMultiplier();
   try { window.dispatchEvent(new CustomEvent('surge:nerf:change', { detail: { value: val } })); } catch {}
@@ -831,17 +831,17 @@ function loadTsunamiNerf(slot) {
   if (slot == null) return;
   const stored = localStorage.getItem(TSUNAMI_NERF_KEY(slot));
   if (stored !== null) {
-      tsunamiNerfExponent = Number(stored);
+      baseTsunamiExponent = Number(stored);
       // Ensure validity on load
-      if (Number.isNaN(tsunamiNerfExponent) || !Number.isFinite(tsunamiNerfExponent)) {
-          tsunamiNerfExponent = isSurgeActive(8) ? 0.00 : 1.00;
+      if (Number.isNaN(baseTsunamiExponent) || !Number.isFinite(baseTsunamiExponent)) {
+          baseTsunamiExponent = isSurgeActive(8) ? 0.00 : 1.00;
       }
   } else {
       // Default behavior if not stored
       if (isSurgeActive(8)) {
-          tsunamiNerfExponent = 0.00;
+          baseTsunamiExponent = 0.00;
       } else {
-          tsunamiNerfExponent = 1.00;
+          baseTsunamiExponent = 1.00;
       }
   }
 }
