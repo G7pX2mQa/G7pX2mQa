@@ -36,7 +36,7 @@ import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
 import { getGenerationLevelKey, getGenerationUpgradeCost } from '../ui/merchantTabs/workshopTab.js';
 import { getSurgeBarLevelKey, hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
-import { getTsunamiNerf, setTsunamiNerf, getTsunamiNerfKey, getTsunamiSequenceSeen, setTsunamiSequenceSeen, getEffectiveTsunamiNerf } from '../game/surgeEffects.js';
+import { getBaseTsunamiExponent, setTsunamiNerf, getTsunamiNerfKey, getTsunamiSequenceSeen, setTsunamiSequenceSeen, getTsunamiExponent } from '../game/surgeEffects.js';
 import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 
@@ -2265,15 +2265,15 @@ function buildAreaStats(container, area) {
     // and goes up to 1.00 (restored) as you gain Surge Levels.
     // We display it as a decimal (0.00 - 1.00).
     // The displayed value includes the Research Lab bonus.
-    const getEffectiveTsunamiNerf = () => {
-        const base = getTsunamiNerf();
+    const getTsunamiExponent = () => {
+        const base = getBaseTsunamiExponent();
         const bonus = getTsunamiResearchBonus();
         let val = base + bonus;
         if (val > 1) val = 1;
         return val;
     };
 
-    const tsunamiRow = createInputRow('Tsunami Exponent', getEffectiveTsunamiNerf().toFixed(2), (value, { setValue }) => {
+    const tsunamiRow = createInputRow('Tsunami Exponent', getTsunamiExponent().toFixed(2), (value, { setValue }) => {
         let valNum = Number(value);
         
         // Handle BigNum inputs or "inf"
@@ -2285,7 +2285,7 @@ function buildAreaStats(container, area) {
         }
 
         if (Number.isNaN(valNum)) {
-             setValue(getEffectiveTsunamiNerf().toFixed(2));
+             setValue(getTsunamiExponent().toFixed(2));
              return;
         }
         
@@ -2306,14 +2306,14 @@ function buildAreaStats(container, area) {
         // Round base to 2 decimal places to keep it clean
         targetBase = Math.round(targetBase * 100) / 100;
 
-        const prevBase = getTsunamiNerf();
+        const prevBase = getBaseTsunamiExponent();
         setTsunamiNerf(targetBase);
         
         flagDebugUsage();
         if (Math.abs(prevBase - targetBase) > 0.0001) {
             logAction(`Modified Tsunami Exponent (The Cove) Base:${prevBase.toFixed(2)} → ${targetBase.toFixed(2)} (Effective: ${valNum.toFixed(2)})`);
         }
-        setValue(getEffectiveTsunamiNerf().toFixed(2));
+        setValue(getTsunamiExponent().toFixed(2));
     }, {
         storageKey: getTsunamiNerfKey(slot),
         format: (val) => {
@@ -2328,7 +2328,7 @@ function buildAreaStats(container, area) {
         slot,
         refresh: () => {
             if (slot !== getActiveSlot()) return;
-            const val = getEffectiveTsunamiNerf();
+            const val = getTsunamiExponent();
             tsunamiRow.setValue(val.toFixed(2));
         }
     });
@@ -3703,7 +3703,7 @@ function buildAreaCalculators(container) {
                         if (!Number.isFinite(lvlNum)) return BigNum.fromInt(1);
                         
                         if (isSurge12 === 'Yes') {
-                            const effectiveNerf = getEffectiveTsunamiNerf();
+                            const effectiveNerf = getTsunamiExponent();
                             const multLog10 = 5 * effectiveNerf;
                             const base = 2 + (effectiveNerf / 2);
                             const logBase = Math.log10(base);
