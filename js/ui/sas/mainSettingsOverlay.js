@@ -111,6 +111,8 @@ function renderSettings() {
     
     if (def.type === "slider") {
       row.classList.add("setting-row-slider");
+    } else if (def.type === "dropdown") {
+      row.classList.add("setting-row-dropdown");
     }
 
     const desc = document.createElement("div");
@@ -340,11 +342,95 @@ function renderSettings() {
 
       // Initial update
       updateSliderProgress();
+    } else if (def.type === "dropdown") {
+      const dropdownWrapper = document.createElement("div");
+      dropdownWrapper.className = "setting-dropdown-wrapper";
+
+      const dropdownBtn = document.createElement("button");
+      dropdownBtn.className = "setting-dropdown-btn";
+      
+      const dropdownValue = document.createElement("span");
+      dropdownValue.className = "setting-dropdown-value";
+      dropdownValue.textContent = settingsManager.get(key);
+      
+      const dropdownIcon = document.createElement("span");
+      dropdownIcon.className = "setting-dropdown-icon";
+      dropdownIcon.innerHTML = "&#9662;"; // Downward triangle
+
+      dropdownBtn.append(dropdownValue, dropdownIcon);
+
+      const dropdownMenu = document.createElement("div");
+      dropdownMenu.className = "setting-dropdown-menu";
+
+      if (def.options) {
+        def.options.forEach(opt => {
+          const optionEl = document.createElement("div");
+          optionEl.className = "setting-dropdown-option";
+          if (opt === settingsManager.get(key)) {
+            optionEl.classList.add("is-selected");
+          }
+          optionEl.textContent = opt;
+
+          optionEl.addEventListener("click", () => {
+            settingsManager.set(key, opt);
+            dropdownMenu.classList.remove("is-open");
+          });
+
+          dropdownMenu.appendChild(optionEl);
+        });
+      }
+
+      dropdownBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        
+        // Close all other open dropdowns
+        document.querySelectorAll(".setting-dropdown-menu.is-open").forEach(menu => {
+          if (menu !== dropdownMenu) {
+            menu.classList.remove("is-open");
+          }
+        });
+        
+        dropdownMenu.classList.toggle("is-open");
+      });
+
+      const unsub = settingsManager.subscribe(key, (newVal) => {
+        dropdownValue.textContent = newVal;
+        const options = dropdownMenu.querySelectorAll(".setting-dropdown-option");
+        options.forEach(opt => {
+          if (opt.textContent === newVal) {
+            opt.classList.add("is-selected");
+          } else {
+            opt.classList.remove("is-selected");
+          }
+        });
+      });
+      unsubscribers.push(unsub);
+
+      dropdownWrapper.append(dropdownBtn, dropdownMenu);
+
+      const clickGap = document.createElement("div");
+      clickGap.className = "setting-click-gap";
+      row.append(dropdownWrapper, clickGap, desc);
     } else {
       row.append(desc);
     }
     container.appendChild(row);
   }
+
+  // Handle closing the dropdowns when clicking outside
+  const handleOutsideClick = (e) => {
+    if (!e.target.closest('.setting-dropdown-wrapper')) {
+      document.querySelectorAll('.setting-dropdown-menu.is-open').forEach(menu => {
+        menu.classList.remove('is-open');
+      });
+    }
+  };
+  
+  mainSettingsOverlayEl.addEventListener('click', handleOutsideClick);
+  
+  unsubscribers.push(() => {
+    mainSettingsOverlayEl.removeEventListener('click', handleOutsideClick);
+  });
 }
 
 export function openMainSettingsOverlay() {
