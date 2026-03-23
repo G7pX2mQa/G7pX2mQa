@@ -2,7 +2,7 @@ import { getActiveSlot, bank } from '../../util/storage.js';
 import { IS_MOBILE } from '../../main.js';
 import { BigNum } from '../../util/bigNum.js';
 import { formatNumber } from '../../util/numFormat.js';
-import { getTsunamiNerf, isSurgeActive, getEffectiveTsunamiNerf } from '../../game/surgeEffects.js';
+import { getBaseTsunamiExponent, isSurgeActive, getTsunamiExponent } from '../../game/surgeEffects.js';
 import { registerTick } from '../../game/gameLoop.js';
 import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
 import { 
@@ -268,7 +268,7 @@ export function getRpMultBase() {
     if (bigNumIsInfinite(level)) return BigNum.fromAny('Infinity');
 
     if (isSurgeActive(12)) {
-        const effectiveNerf = getEffectiveTsunamiNerf();
+        const effectiveNerf = getTsunamiExponent();
         
         // Multiplier: 10^(5 * nerf) -> Log10 contribution: 5 * nerf
         const multLog10 = 5 * effectiveNerf;
@@ -627,7 +627,7 @@ class LabSystem {
         const currentLevel = getLabLevel();
         const cost = getLabCost(currentLevel.add(1));
         
-        const baseNerf = getTsunamiNerf();
+        const baseNerf = getBaseTsunamiExponent();
         const bonus = getTsunamiResearchBonus();
         let effectiveNerf = baseNerf + bonus;
         if (effectiveNerf > 1) effectiveNerf = 1;
