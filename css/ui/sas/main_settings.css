@@ -16,6 +16,11 @@
   margin: 0 40px 0 24px;
 }
 
+.setting-row:hover {
+  z-index: 100;
+  position: relative;
+}
+
 .setting-row.setting-row-slider {
   margin-top: 16px;
   margin-bottom: 16px;
