@@ -23,6 +23,14 @@ export const SETTING_DEFINITIONS = {
     max: 10,
     step: 1,
     default: 500,
+  },
+  placeholder_dropdown: {
+    id: 'placeholder_dropdown',
+    type: 'dropdown',
+    label: 'Placeholder dropdown',
+    hasExtraInfo: false,
+    options: ['Option 1', 'Option 2', 'Option 3'],
+    default: 'Option 1',
   }
 };
 
