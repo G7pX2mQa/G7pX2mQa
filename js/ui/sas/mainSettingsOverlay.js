@@ -189,6 +189,125 @@ function renderSettings() {
           toggleInput.click();
         }
       });
+    } else if (def.type === "slider") {
+      const sliderWrapper = document.createElement("div");
+      sliderWrapper.className = "setting-slider-wrapper";
+
+      const sliderContainer = document.createElement("div");
+      sliderContainer.className = "setting-slider-container";
+
+      const sliderInput = document.createElement("input");
+      sliderInput.type = "range";
+      sliderInput.className = "setting-slider-input";
+      sliderInput.id = `setting_slider_${key}`;
+      sliderInput.min = def.min;
+      sliderInput.max = def.max;
+      sliderInput.step = def.step;
+      sliderInput.value = settingsManager.get(key);
+      
+      // Create thumb label element first so updateSliderProgress can use it
+      const thumbLabel = document.createElement("div");
+      thumbLabel.className = "setting-slider-thumb-label";
+
+      // Create a visual track element (since the input will be made transparent and wider)
+      const visualTrack = document.createElement("div");
+      visualTrack.className = "setting-slider-visual-track";
+
+      const updateSliderProgress = () => {
+        const val = parseFloat(sliderInput.value);
+        const min = parseFloat(sliderInput.min);
+        const max = parseFloat(sliderInput.max);
+        const percentage = ((val - min) / (max - min)) * 100;
+        
+        // Apply progress variable to the container so both track and input can use it
+        sliderContainer.style.setProperty('--slider-progress', `${percentage}%`);
+        
+        // Update the thumb label text
+        thumbLabel.textContent = val;
+        
+        // Since the input range is now wider by exactly 36px (width of thumb) 
+        // and shifted left by 18px, the center of the thumb natively travels exactly 
+        // from 0% of the *container's* width to 100% of the *container's* width.
+        // So the label just needs to follow the percentage exactly.
+        thumbLabel.style.left = `${percentage}%`; 
+        
+        let thumbColor;
+        // Hex to RGB conversion for vibrant track colors:
+        // Vibrant Red (#ff2a2a): 255, 42, 42
+        // Vibrant Yellow (#ffea00): 255, 234, 0
+        // Vibrant Green (#24e524): 36, 229, 36
+        const cRed = [255, 42, 42];
+        const cYellow = [255, 234, 0];
+        const cGreen = [36, 229, 36];
+
+        if (percentage <= 50) {
+          // Interpolate Red to Yellow
+          const ratio = percentage / 50;
+          const r = Math.round(cRed[0] + (cYellow[0] - cRed[0]) * ratio);
+          const g = Math.round(cRed[1] + (cYellow[1] - cRed[1]) * ratio);
+          const b = Math.round(cRed[2] + (cYellow[2] - cRed[2]) * ratio);
+          thumbColor = `rgb(${r}, ${g}, ${b})`;
+        } else {
+          // Interpolate Yellow to Green
+          const ratio = (percentage - 50) / 50;
+          const r = Math.round(cYellow[0] + (cGreen[0] - cYellow[0]) * ratio);
+          const g = Math.round(cYellow[1] + (cGreen[1] - cYellow[1]) * ratio);
+          const b = Math.round(cYellow[2] + (cGreen[2] - cYellow[2]) * ratio);
+          thumbColor = `rgb(${r}, ${g}, ${b})`;
+        }
+        sliderContainer.style.setProperty('--slider-thumb-color', thumbColor);
+      };
+
+      sliderInput.addEventListener("input", (e) => {
+        updateSliderProgress();
+      });
+
+      sliderInput.addEventListener("change", (e) => {
+        settingsManager.set(key, parseFloat(e.target.value));
+        updateSliderProgress();
+      });
+
+      const unsub = settingsManager.subscribe(key, (newVal) => {
+        sliderInput.value = newVal;
+        updateSliderProgress();
+      });
+      unsubscribers.push(unsub);
+
+      const labelsContainer = document.createElement("div");
+      labelsContainer.className = "setting-slider-labels";
+      
+      const minLabel = document.createElement("div");
+      minLabel.className = "slider-label slider-label-min";
+      minLabel.innerHTML = `<span>${def.min}</span>`;
+      
+      const midVal = (parseFloat(def.min) + parseFloat(def.max)) / 2;
+      const midLabel = document.createElement("div");
+      midLabel.className = "slider-label slider-label-mid";
+      midLabel.innerHTML = `<span>${midVal}</span>`;
+      
+      const maxLabel = document.createElement("div");
+      maxLabel.className = "slider-label slider-label-max";
+      maxLabel.innerHTML = `<span>${def.max}</span>`;
+      
+      labelsContainer.append(minLabel, midLabel, maxLabel);
+      
+      const markersContainer = document.createElement("div");
+      markersContainer.className = "setting-slider-markers";
+      markersContainer.innerHTML = `
+        <div class="slider-marker marker-min"></div>
+        <div class="slider-marker marker-mid"></div>
+        <div class="slider-marker marker-max"></div>
+      `;
+      
+      sliderContainer.append(visualTrack, markersContainer, sliderInput, thumbLabel, labelsContainer);
+      sliderWrapper.appendChild(sliderContainer);
+      
+      const clickGap = document.createElement("div");
+      clickGap.className = "setting-click-gap";
+      row.append(sliderWrapper, clickGap, desc);
+
+      // Initial update
+      updateSliderProgress();
     } else {
       row.append(desc);
     }
