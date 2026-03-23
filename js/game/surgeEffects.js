@@ -803,22 +803,27 @@ function onTick(dt) {
 
   if (isSurgeActive(80)) {
       const effectiveNerf = getEffectiveTsunamiNerf();
-      const mapped = effectiveNerf * 1.5 - 0.5;
-      
-      const log10Rate = 2 * mapped - 2;
-      const rateMultiplier = bigNumFromLog10(log10Rate);
-      
-      const xpState = getXpState();
-      const labLevel = getLabLevel();
-      
-      let pending = computePendingDnaFromInputs(labLevel, xpState.xpLevel);
-      pending = bank.dna?.mult?.applyTo?.(pending) ?? pending;
-      
-      // Multiply by rate and dt
-      const perSec = pending.mulDecimal(rateMultiplier.toScientific());
-      const amountToAddDna = perSec.mulDecimal(String(dt), 18);
-      
-      if (bank.dna) bank.dna.add(amountToAddDna);
+      const tNerf = effectiveNerf;
+      if (tNerf > 0) {
+          const mapped = effectiveNerf * 1.5 - 0.5;
+          const pct = Math.pow(100, mapped);
+          const newPct = Math.pow(parseFloat(formatMultForUi(pct)), 1 / tNerf);
+          
+          const log10Rate = Math.log10(newPct / 100);
+          const rateMultiplier = bigNumFromLog10(log10Rate);
+          
+          const xpState = getXpState();
+          const labLevel = getLabLevel();
+          
+          let pending = computePendingDnaFromInputs(labLevel, xpState.xpLevel);
+          pending = bank.dna?.mult?.applyTo?.(pending) ?? pending;
+          
+          // Multiply by rate and dt
+          const perSec = pending.mulDecimal(rateMultiplier.toScientific());
+          const amountToAddDna = perSec.mulDecimal(String(dt), 18);
+          
+          if (bank.dna) bank.dna.add(amountToAddDna);
+      }
   }
 }
 
