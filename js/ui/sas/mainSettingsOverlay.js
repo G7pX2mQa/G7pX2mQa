@@ -175,14 +175,16 @@ function renderSettings() {
       unsubscribers.push(unsub);
 
       toggleContainer.append(toggleInput, toggleLabel);
-      row.append(toggleContainer, desc);
+      const clickGap = document.createElement("div");
+      clickGap.className = "setting-click-gap";
+      row.append(toggleContainer, clickGap, desc);
 
-      row.style.cursor = 'pointer';
+      row.style.cursor = 'default';
       desc.style.cursor = 'default';
       row.addEventListener('click', (e) => {
         // Only allow clicking the actual row element (the gap) or the specific text label.
         // Clicks strictly on `desc` will be ignored.
-        if (e.target === row || e.target.classList.contains('setting-text-label')) {
+        if (e.target === clickGap || e.target.classList.contains('setting-text-label')) {
           toggleInput.click();
         }
       });
