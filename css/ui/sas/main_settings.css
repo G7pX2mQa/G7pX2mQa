@@ -228,6 +228,237 @@
   outline-offset: 4px;
 }
 
+.setting-slider-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 200px;
+}
+
+.setting-slider-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative; /* important for absolute positioning of markers and visual track */
+}
+
+/* 
+ * The visual track that replaces the native track.
+ * This ensures it stays exactly 100% of the container width while the native input is wider.
+ */
+.setting-slider-visual-track {
+  position: absolute;
+  top: 6px; /* center of the 24px input */
+  left: 0;
+  width: 100%;
+  height: 12px;
+  border-radius: 6px;
+  border: 1px solid #555;
+  box-sizing: border-box;
+  /* Vibrant colors: #ff2a2a, #ffea00, #24e524 */
+  background-image: linear-gradient(to right, transparent var(--slider-progress, 50%), #333 var(--slider-progress, 50%)), linear-gradient(to right, #ff2a2a, #ffea00 50%, #24e524);
+  background-color: #333;
+  box-shadow: inset 0 2px 2px rgba(0,0,0,0.6), inset 0 -1px 2px rgba(255,255,255,0.1);
+  pointer-events: none; /* Let clicks pass through to input */
+  z-index: 0;
+}
+
+.setting-slider-input {
+  -webkit-appearance: none;
+  /* Make the input wider than container so thumb center can reach 0% and 100% of container */
+  width: calc(100% + 36px); 
+  height: 24px;
+  background: transparent;
+  outline: none;
+  margin: 0;
+  margin-left: -18px; /* shift left by half thumb width */
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  z-index: 2; /* above track and markers */
+  
+  /* For generating the content inside pseudo-element of range inputs */
+  --thumb-size: 36px;
+}
+
+/* Native tracks must be completely invisible since we use visual-track */
+.setting-slider-input::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 12px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.setting-slider-input::-moz-range-track {
+  width: 100%;
+  height: 12px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Base thumb styles */
+
+.setting-slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: 50%;
+  background: var(--slider-thumb-color, #e0d024);
+  background-image: linear-gradient(to bottom, rgba(255,255,255,0.4), rgba(0,0,0,0.3));
+  border: 2px solid #fff;
+  cursor: pointer;
+  margin-top: calc(-12px); /* (Track height / 2) - (Thumb height / 2) Approx: (12/2) - (36/2) = -12 */
+  box-shadow: 
+    0 4px 6px rgba(0,0,0,0.5),
+    inset 0 2px 3px rgba(255,255,255,0.6),
+    inset 0 -2px 3px rgba(0,0,0,0.3);
+  position: relative;
+}
+
+.setting-slider-input::-moz-range-thumb {
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: 50%;
+  background: var(--slider-thumb-color, #e0d024);
+  background-image: linear-gradient(to bottom, rgba(255,255,255,0.4), rgba(0,0,0,0.3));
+  border: 2px solid #fff;
+  cursor: pointer;
+  box-shadow: 
+    0 4px 6px rgba(0,0,0,0.5),
+    inset 0 2px 3px rgba(255,255,255,0.6),
+    inset 0 -2px 3px rgba(0,0,0,0.3);
+  position: relative;
+}
+
+/* 
+ * Pseudo-elements don't always work on thumb itself across browsers.
+ * For Chrome/Safari, ::after on thumb works if range input is styling properly.
+ * Firefox does NOT support ::after on -moz-range-thumb.
+ * Since CSS spec says inputs can't have pseudo elements, it's safer to style the input itself
+ * or use a wrapper trick. But let's try a clever trick: we use a sibling div and update its position?
+ * No, the easiest way to add text to the thumb natively is actually difficult.
+ * Wait, wait, actually we CAN'T use `content` directly on the input.
+ * Let's try it anyway because webkit might allow it. If not, we'll need a different approach.
+ */
+.setting-slider-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 200px;
+}
+
+.setting-slider-input::-webkit-slider-thumb {
+  /* FTS (Fake Text Stroke) or text-stroke for thumb text */
+  /* Webkit only trick for text inside thumb: we can't do it directly without an extra element. */
+}
+
+/* Thumb label to show the value */
+.setting-slider-thumb-label {
+  position: absolute;
+  top: calc(50% - 14px); /* Vertical center over the track */
+  transform: translate(-50%, -50%);
+  pointer-events: none; /* Let clicks pass through to the slider thumb */
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  z-index: 10;
+  
+  /* Desktop text stroke */
+  -webkit-text-stroke: 1px #000;
+  text-stroke: 1px #000;
+  text-shadow: none;
+}
+
+@media (pointer: coarse) {
+  .setting-slider-thumb-label {
+    /* Mobile fake text stroke (FTS) */
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    text-shadow:
+      0     0.5px 0 #000,   0    -0.5px 0 #000,
+      0.5px 0     0 #000,  -0.5px 0     0 #000,
+      0.5px 0.5px 0 #000,   0.5px -0.5px 0 #000,
+     -0.5px 0.5px 0 #000,  -0.5px -0.5px 0 #000;
+  }
+}
+
+/* 
+ * Markers that sit on the slider track
+ */
+/* The second .setting-slider-container block is unnecessary since it was already updated above */
+
+.setting-slider-markers {
+  position: absolute;
+  top: 6px; /* align with track */
+  left: 0;
+  width: 100%;
+  height: 12px; /* same as track */
+  pointer-events: none;
+  z-index: 1; /* BELOW the thumb (z-index 2), above visual track (z-index 0) */
+}
+
+.slider-marker {
+  position: absolute;
+  top: 0;
+  width: 5px; /* Thicker */
+  height: 20px; /* Taller */
+  transform: translate(-50%, -4px); /* Center horizontally, offset vertically (-4px because (20-12)/2 = 4) */
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
+/* Position exactly at percentages */
+.marker-min { left: 0%; background-color: #ff2a2a; }
+.marker-mid { left: 50%; background-color: #ffea00; }
+.marker-max { left: 100%; background-color: #24e524; }
+
+
+.setting-slider-input:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+}
+
+.setting-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 8px; /* space below the slider track */
+  position: relative;
+  height: 20px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.slider-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: absolute;
+}
+
+.slider-label-min {
+  left: 0;
+  transform: translateX(-50%);
+}
+
+.slider-label-mid {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.slider-label-max {
+  right: 0;
+  transform: translateX(50%);
+}
+
 @media (max-width: 600px) {
   .setting-row {
     gap: 0;
