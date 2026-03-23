@@ -55,12 +55,12 @@ let cachedSurgeLevel = 0n;
 let bookRateAccumulator = null;
 let tsunamiNerfExponent = 0.00;
 
-export function getTsunamiNerf() {
+export function getBaseTsunamiExponent() {
   return tsunamiNerfExponent;
 }
 
-export function getEffectiveTsunamiNerf() {
-  const nerf = getTsunamiNerf();
+export function getTsunamiExponent() {
+  const nerf = getBaseTsunamiExponent();
   let effective = nerf + getTsunamiResearchBonus();
   if (effective > 1) effective = 1;
 
@@ -68,7 +68,7 @@ export function getEffectiveTsunamiNerf() {
 }
 
 export function getEffectiveTsunamiNerfWithCombo() {
-  let effective = getEffectiveTsunamiNerf();
+  let effective = getTsunamiExponent();
 
   if (isSurgeActive(14)) {
       const added = getComboRestorationFactor();
@@ -92,7 +92,7 @@ export function getComboUiString() {
     
     let finalStr = ` (+^${str})`;
     
-    const nerf = getTsunamiNerf();
+    const nerf = getBaseTsunamiExponent();
     let baseEffective = nerf + getTsunamiResearchBonus();
     if (baseEffective > 1) baseEffective = 1;
     const gap = 1.0 - baseEffective;
@@ -148,7 +148,7 @@ function applyTsunamiNerf(bn) {
   const log10 = approxLog10BigNum(bn);
   if (!Number.isFinite(log10)) return bn;
   
-  const effective = getEffectiveTsunamiNerf();
+  const effective = getTsunamiExponent();
 
   return bigNumFromLog10(log10 * effective);
 }
@@ -166,7 +166,7 @@ function updateMultiplier() {
 
   if (isReached) {
     if (isSurgeActive(8)) {
-      const effective = getEffectiveTsunamiNerf();
+      const effective = getTsunamiExponent();
 
       const log10 = Math.log10(MULTIPLIER);
       currentMultiplier = bigNumFromLog10(log10 * effective);
@@ -179,7 +179,7 @@ function updateMultiplier() {
 }
 
 export function getSurge21BonusPercentage() {
-  const effective = getEffectiveTsunamiNerf();
+  const effective = getTsunamiExponent();
   if (effective === 0) return 0;
   return Math.floor(Math.pow(1e10, effective) + 1e-6);
 }
@@ -206,7 +206,7 @@ export function getSurge21Multiplier() {
 }
 
 export function getSurge23BonusPercentage() {
-  const effective = getEffectiveTsunamiNerf();
+  const effective = getTsunamiExponent();
   if (effective === 0) return 0;
   return Math.floor(Math.pow(1e10, effective) + 1e-6);
 }
@@ -233,7 +233,7 @@ export function getSurge23Multiplier() {
 }
 
 export function getSurge25BonusPercentage() {
-  const effective = getEffectiveTsunamiNerf();
+  const effective = getTsunamiExponent();
   if (effective === 0) return 0;
   return Math.floor(Math.pow(1e10, effective) + 1e-6);
 }
@@ -260,7 +260,7 @@ export function getSurge25Multiplier() {
 }
 
 export function getSurge27BonusPercentage() {
-  const effective = getEffectiveTsunamiNerf();
+  const effective = getTsunamiExponent();
   if (effective === 0) return 0;
   return Math.floor(Math.pow(1e10, effective) + 1e-6);
 }
@@ -287,7 +287,7 @@ export function getSurge27Multiplier() {
 }
 
 export function getSurge29BonusPercentage() {
-  const effective = getEffectiveTsunamiNerf();
+  const effective = getTsunamiExponent();
   if (effective === 0) return 0;
   return Math.floor(Math.pow(1e10, effective) + 1e-6);
 }
@@ -314,7 +314,7 @@ export function getSurge29Multiplier() {
 }
 
 export function getSurge31BonusPercentage() {
-  const effective = getEffectiveTsunamiNerf();
+  const effective = getTsunamiExponent();
   if (effective === 0) return 0;
   return Math.floor(Math.pow(1e10, effective) + 1e-6);
 }
@@ -341,7 +341,7 @@ export function getSurge31Multiplier() {
 }
 
 export function getSurge33BonusPercentage() {
-  const effective = getEffectiveTsunamiNerf();
+  const effective = getTsunamiExponent();
   if (effective === 0) return 0;
   return Math.floor(Math.pow(1e10, effective) + 1e-6);
 }
@@ -368,7 +368,7 @@ export function getSurge33Multiplier() {
 }
 
 export function getSurge35BonusPercentage() {
-  const effective = getEffectiveTsunamiNerf();
+  const effective = getTsunamiExponent();
   if (effective === 0) return 0;
   return Math.floor(Math.pow(1e10, effective) / 4 + 1e-6);
 }
@@ -725,7 +725,7 @@ function onTick(dt) {
   }
 
   if (isSurgeActive(13)) {
-      const effectiveNerf = getEffectiveTsunamiNerf();
+      const effectiveNerf = getTsunamiExponent();
       const mapped = effectiveNerf * 1.5 - 0.5;
       
       const log10Rate = 2 * mapped - 2;
@@ -769,7 +769,7 @@ function onTick(dt) {
   }
 
   if (isSurgeActive(16)) {
-      const effectiveNerf = getEffectiveTsunamiNerf();
+      const effectiveNerf = getTsunamiExponent();
       const mapped = effectiveNerf * 1.5 - 0.5;
       
       const log10Rate = 2 * mapped - 2;
@@ -802,7 +802,7 @@ function onTick(dt) {
   }
 
   if (isSurgeActive(80)) {
-      const effectiveNerf = getEffectiveTsunamiNerf();
+      const effectiveNerf = getTsunamiExponent();
       const tNerf = effectiveNerf;
       if (tNerf > 0) {
           const mapped = effectiveNerf * 1.5 - 0.5;
@@ -866,8 +866,8 @@ function compareSurgeLevels(prev, curr) {
 
 export function initSurgeEffects() {
   initComboSystem(
-      () => isSurgeActive(14) && (getTsunamiNerf() + getTsunamiResearchBonus() < 1.0),
-      () => 1.0 - getEffectiveTsunamiNerf(),
+      () => isSurgeActive(14) && (getBaseTsunamiExponent() + getTsunamiResearchBonus() < 1.0),
+      () => 1.0 - getTsunamiExponent(),
       () => {
           const level = getCurrentSurgeLevel();
           if (level === Infinity || (typeof level === 'string' && level === 'Infinity') || level === Number.POSITIVE_INFINITY) return true;
@@ -978,7 +978,7 @@ export function initSurgeEffects() {
     if (!isSurgeActive(4)) return baseGain;
     let mult = BigNum.fromInt(4.444e12);
     if (isSurgeActive(8)) {
-        const effective = getEffectiveTsunamiNerf();
+        const effective = getTsunamiExponent();
 
         const logVal = Math.log10(4.444e12);
         mult = bigNumFromLog10(logVal * effective);
@@ -1076,7 +1076,7 @@ export function initSurgeEffects() {
     if (log10Total === 0) return baseMultiplier;
     
     if (isSurgeActive(8)) {
-        const effective = getEffectiveTsunamiNerf();
+        const effective = getTsunamiExponent();
         log10Total *= effective;
     }
     
@@ -1131,7 +1131,7 @@ export function getSurgeMagicMultiplier() {
     }
     
     if (isSurgeActive(8)) {
-        const effective = getEffectiveTsunamiNerf();
+        const effective = getTsunamiExponent();
         log10Total *= effective;
     }
     
