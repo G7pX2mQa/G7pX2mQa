@@ -37,8 +37,21 @@ function getAudioContext() {
   return audioContext;
 }
 
+import { settingsManager } from '../game/settingsManager.js';
+
 export function initAudio() {
     getAudioContext();
+    
+    // Set initial volume based on settings
+    const initialVolume = settingsManager.get('music_volume');
+    if (initialVolume !== false) {
+        setMusicVolume(initialVolume);
+    }
+    
+    // Subscribe to future volume changes
+    settingsManager.subscribe('music_volume', (val) => {
+        setMusicVolume(val);
+    });
 }
 
 // "Warm" the context on user interaction
@@ -179,6 +192,21 @@ export function setAudioSuspended(suspended) {
       if (audioContext.state === 'suspended') audioContext.resume().catch(()=>{});
     }
   }
+}
+
+export function setMusicVolume(volumePercentage) {
+    if (!musicGain) return;
+    
+    // Map 0-100 to 0.0-1.0
+    const gainValue = Math.max(0, Math.min(100, volumePercentage)) / 100.0;
+    
+    try {
+        const now = audioContext.currentTime;
+        musicGain.gain.cancelScheduledValues(now);
+        musicGain.gain.setValueAtTime(gainValue, now);
+    } catch {
+        musicGain.gain.value = gainValue;
+    }
 }
 
 export function setMusicUnderwater(underwater) {
