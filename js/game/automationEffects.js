@@ -10,7 +10,7 @@ import {
 } from './automationUpgrades.js';
 import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js';
 import { getActiveSlot } from '../util/storage.js';
-import { isSurgeActive, getTsunamiNerf } from './surgeEffects.js';
+import { isSurgeActive, getBaseTsunamiExponent } from './surgeEffects.js';
 
 let accumulator = 0;
 let workshopTicker = 0;
@@ -41,7 +41,7 @@ export function getEacAmountMultiplier() {
   let mult = 1;
   if (isSurgeActive(2)) {
     if (isSurgeActive(8)) {
-        const nerf = getTsunamiNerf();
+        const nerf = getBaseTsunamiExponent();
         const bonus = tsunamiBonusProvider();
         let effective = nerf + bonus;
         if (effective > 1) effective = 1;
