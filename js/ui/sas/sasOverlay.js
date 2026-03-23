@@ -4,6 +4,8 @@ import { IS_MOBILE } from '../../main.js';
 import { blockInteraction, ensureCustomScrollbar, setupDragToClose } from '../shopOverlay.js';
 import { suppressNextGhostTap } from '../../util/ghostTapGuard.js';
 import { openMainSettingsOverlay } from './mainSettingsOverlay.js';
+import { openVisualsOverlay } from './visualsOverlay.js';
+import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
 
 let sasOverlayEl = null;
 let sasSheetEl = null;
@@ -99,6 +101,14 @@ function populateSasButtons() {
   mainBtn.textContent = "Main";
   mainBtn.addEventListener("click", () => { openMainSettingsOverlay(); });
   grid.appendChild(mainBtn);
+
+  if (hasDoneForgeReset()) {
+    const visBtn = document.createElement("button");
+    visBtn.className = "sas-btn";
+    visBtn.textContent = "Visuals";
+    visBtn.addEventListener("click", () => { openVisualsOverlay(); });
+    grid.appendChild(visBtn);
+  }
 }
 export function openSasOverlay() {
   buildSasOverlay();
