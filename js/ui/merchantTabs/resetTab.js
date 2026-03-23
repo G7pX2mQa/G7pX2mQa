@@ -42,11 +42,11 @@ import { playAudio } from '../../util/audioManager.js';
 import { 
   getBookProductionRate, 
   getSurge6WealthMultipliers, 
-  getTsunamiNerf,
+  getBaseTsunamiExponent,
   getTsunamiSequenceSeen,
   setTsunamiSequenceSeen,
   isSurgeActive,
-  getEffectiveTsunamiNerf,
+  getTsunamiExponent,
   getSurge25Multiplier,
   getSurge27Multiplier,
   getSurge29Multiplier,
@@ -450,7 +450,7 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
     const useSurge9 = isSurge9Override !== null ? !!isSurge9Override : isSurgeActive(9);
 
     if (useSurge9) {
-        const effectiveNerf = getEffectiveTsunamiNerf();
+        const effectiveNerf = getTsunamiExponent();
         // Base: 2 + nerf (nerfed to 2 + 0.5*nerf for max 2.5)
         logBaseVal = Math.log10(2 + effectiveNerf * 0.5);
         // Multiplier: 10^(30*nerf) -> log10 is 30*nerf
@@ -460,7 +460,7 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
     if (isSurgeActive(14)) {
         // Multiplier: 14.14e18
         if (isSurgeActive(8)) {
-            const effectiveNerf = getEffectiveTsunamiNerf();
+            const effectiveNerf = getTsunamiExponent();
             const log14 = Math.log10(14.14e18);
             logMultiplier += log14 * effectiveNerf;
         } else {
@@ -470,7 +470,7 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
 
     if (isSurgeActive(17)) {
         if (isSurgeActive(8)) {
-            const effectiveNerf = getEffectiveTsunamiNerf();
+            const effectiveNerf = getTsunamiExponent();
             logMultiplier -= 5 * effectiveNerf;
         } else {
             logMultiplier -= 5;
@@ -479,7 +479,7 @@ export function computePendingDnaFromInputs(labLevelBn, xpLevelBn, isSurge9Overr
 
     if (isSurgeActive(18)) {
         if (isSurgeActive(8)) {
-            const effectiveNerf = getEffectiveTsunamiNerf();
+            const effectiveNerf = getTsunamiExponent();
             logMultiplier -= 5 * effectiveNerf;
         } else {
             logMultiplier -= 5;
@@ -1031,7 +1031,7 @@ function recomputePendingDna() {
     let logMultiplier = 0;
 
     if (isSurgeActive(9)) {
-        const effectiveNerf = getEffectiveTsunamiNerf();
+        const effectiveNerf = getTsunamiExponent();
         // Base: 2 + nerf (nerfed to 2 + 0.5*nerf for max 2.5)
         logBaseVal = Math.log10(2 + effectiveNerf * 0.5);
         // Multiplier: 10^(30*nerf) -> log10 is 30*nerf
@@ -1041,7 +1041,7 @@ function recomputePendingDna() {
     if (isSurgeActive(14)) {
         // Multiplier: 14.14e6
         if (isSurgeActive(8)) {
-            const effectiveNerf = getEffectiveTsunamiNerf();
+            const effectiveNerf = getTsunamiExponent();
             const log14 = Math.log10(14.14e6);
             logMultiplier += log14 * effectiveNerf;
         } else {
@@ -1051,7 +1051,7 @@ function recomputePendingDna() {
 
     if (isSurgeActive(17)) {
         if (isSurgeActive(8)) {
-            const effectiveNerf = getEffectiveTsunamiNerf();
+            const effectiveNerf = getTsunamiExponent();
             logMultiplier -= 5 * effectiveNerf;
         } else {
             logMultiplier -= 5;
@@ -1060,7 +1060,7 @@ function recomputePendingDna() {
 
     if (isSurgeActive(18)) {
         if (isSurgeActive(8)) {
-            const effectiveNerf = getEffectiveTsunamiNerf();
+            const effectiveNerf = getTsunamiExponent();
             logMultiplier -= 5 * effectiveNerf;
         } else {
             logMultiplier -= 5;
@@ -2347,7 +2347,7 @@ function updateSurgeCard() {
         else if (typeof barLevel === 'bigint' && barLevel >= 8n) isSurge8 = true;
         else if (typeof barLevel === 'number' && barLevel >= 8) isSurge8 = true;
 
-        const effectiveNerf = getEffectiveTsunamiNerf();
+        const effectiveNerf = getTsunamiExponent();
 
         let isNerfed = false;
         if (isReached && isSurge8 && effectiveNerf < 1 && NERFED_SURGE_MILESTONE_IDS.includes(m.id)) {
