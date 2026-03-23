@@ -4,7 +4,7 @@ import { hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
 import { pauseGameLoop, resumeGameLoop } from './gameLoop.js';
 import { bank } from '../util/storage.js';
 import { BigNum } from '../util/bigNum.js';
-import { formatNumber } from '../util/numFormat.js';
+import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { ensureCustomScrollbar } from '../ui/shopOverlay.js';
 import { IS_MOBILE } from '../main.js';
 import { getLevelNumber, computeUpgradeEffects, getCurrentAreaKey as getUpgAreaKey } from './upgrades.js';
@@ -21,7 +21,7 @@ import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgr
 import { getPassiveCoinReward } from './coinPickup.js';
 import { addXp } from './xpSystem.js';
 import { addMutationPower } from './mutationSystem.js';
-import { getBookProductionRate, isSurgeActive, getEffectiveTsunamiNerf } from './surgeEffects.js';
+import { getBookProductionRate, isSurgeActive, getEffectiveTsunamiNerf, getTsunamiNerf } from './surgeEffects.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { getXpState } from './xpSystem.js';
 import { getTotalCumulativeMp } from './mutationSystem.js';
@@ -422,14 +422,23 @@ export function calculateOfflineRewards(seconds) {
         }
 
         if (isSurgeActive(80)) {
-             const xpState = getXpState();
-             const labLevel = getLabLevel();
-             let pending = computePendingDnaFromInputs(labLevel, xpState.xpLevel);
-             pending = bank.dna?.mult?.applyTo?.(pending) ?? pending;
-             
-             const dnaEarned = pending.mulDecimal(totalMultiplier.toScientific());
-             if (dnaEarned.cmp(0) > 0 && !isCurrencyLocked('dna', slot)) {
-                 rewards.DNA = dnaEarned;
+             const tNerf = effectiveNerf;
+             if (tNerf > 0) {
+                 const pct = Math.pow(100, mapped);
+                 const newPct = Math.pow(parseFloat(formatMultForUi(pct)), 1 / tNerf);
+                 const log10RateDna = Math.log10(newPct / 100);
+                 const rateMultiplierDna = bigNumFromLog10(log10RateDna);
+                 const totalMultiplierDna = rateMultiplierDna.mulDecimal(String(seconds));
+
+                 const xpState = getXpState();
+                 const labLevel = getLabLevel();
+                 let pending = computePendingDnaFromInputs(labLevel, xpState.xpLevel);
+                 pending = bank.dna?.mult?.applyTo?.(pending) ?? pending;
+                 
+                 const dnaEarned = pending.mulDecimal(totalMultiplierDna.toScientific());
+                 if (dnaEarned.cmp(0) > 0 && !isCurrencyLocked('dna', slot)) {
+                     rewards.DNA = dnaEarned;
+                 }
              }
         }
     }
