@@ -6,6 +6,17 @@ const SETTINGS_KEY_PREFIX = 'ccc_setting_';
 
 // Define the available settings and their defaults
 export const SETTING_DEFINITIONS = {
+  music_volume: {
+    id: 'music_volume',
+    type: 'slider',
+    label: 'Music volume',
+    hasExtraInfo: false,
+    min: 0,
+    max: 100,
+    step: 1,
+    default: 100,
+    unlockCondition: () => true,
+  },
   placeholder_setting: {
     id: 'placeholder_setting',
     type: 'toggle',
