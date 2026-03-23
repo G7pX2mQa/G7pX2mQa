@@ -1,4 +1,5 @@
 // js/util/audioManager.js
+import { settingsManager } from '../game/settingsManager.js';
 
 let audioContext = null;
 let masterGain = null;
@@ -36,8 +37,6 @@ function getAudioContext() {
   
   return audioContext;
 }
-
-import { settingsManager } from '../game/settingsManager.js';
 
 export function initAudio() {
     getAudioContext();
