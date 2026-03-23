@@ -23,7 +23,7 @@ import {
   hasDoneSurgeReset,
   isSurgeUnlocked,
 } from '../ui/merchantTabs/resetTab.js';
-import { getTsunamiNerf } from './surgeEffects.js';
+import { getBaseTsunamiExponent } from './surgeEffects.js';
 import { REGISTRY as AUTOMATION_REGISTRY, AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
 import { getEacAmountMultiplier } from './automationEffects.js';
 import { REGISTRY as DNA_REGISTRY, DNA_AREA_KEY } from './dnaUpgrades.js';
