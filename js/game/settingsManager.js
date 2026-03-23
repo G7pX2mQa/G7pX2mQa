@@ -13,6 +13,16 @@ export const SETTING_DEFINITIONS = {
     hasExtraInfo: true,
     info: 'This is a placeholder setting and it does not do anything. This setting will be deleted in a future task.',
     default: false,
+  },
+  placeholder_slider: {
+    id: 'placeholder_slider',
+    type: 'slider',
+    label: 'Placeholder slider',
+    hasExtraInfo: false,
+    min: 0,
+    max: 10,
+    step: 1,
+    default: 500,
   }
 };
 
