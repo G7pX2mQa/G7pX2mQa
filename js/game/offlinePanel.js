@@ -21,7 +21,7 @@ import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgr
 import { getPassiveCoinReward } from './coinPickup.js';
 import { addXp } from './xpSystem.js';
 import { addMutationPower } from './mutationSystem.js';
-import { getBookProductionRate, isSurgeActive, getEffectiveTsunamiNerf, getTsunamiNerf } from './surgeEffects.js';
+import { getBookProductionRate, isSurgeActive, getTsunamiExponent, getBaseTsunamiExponent } from './surgeEffects.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { getXpState } from './xpSystem.js';
 import { getTotalCumulativeMp } from './mutationSystem.js';
@@ -390,7 +390,7 @@ export function calculateOfflineRewards(seconds) {
 
     // Surge 13 (Gold), Surge 16 (Magic), and Surge 80 (DNA)
     if (isSurgeActive(13) || isSurgeActive(16) || isSurgeActive(80)) {
-        const effectiveNerf = getEffectiveTsunamiNerf();
+        const effectiveNerf = getTsunamiExponent();
         const mapped = effectiveNerf * 1.5 - 0.5;
         const log10Rate = 2 * mapped - 2;
         const rateMultiplier = bigNumFromLog10(log10Rate);
