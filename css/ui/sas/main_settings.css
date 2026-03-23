@@ -541,15 +541,11 @@
 
 .setting-dropdown-icon {
   margin-left: 8px;
-  font-size: 12px;
+  font-size: 16px;
   color: #aaa;
-  transition: transform 0.2s ease;
 }
 
-.setting-dropdown-menu.is-open + .setting-dropdown-btn .setting-dropdown-icon,
-.setting-dropdown-wrapper:has(.setting-dropdown-menu.is-open) .setting-dropdown-icon {
-  transform: rotate(180deg);
-}
+
 
 .setting-dropdown-menu {
   position: absolute;
@@ -578,11 +574,11 @@
 
 .setting-dropdown-option {
   padding: 10px 16px;
-  color: #e0e0e0;
+  color: #fff;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.1s ease, color 0.1s ease;
+  transition: background-color 0.1s ease;
 }
 
 .setting-dropdown-option:not(:last-child) {
@@ -591,10 +587,8 @@
 
 .setting-dropdown-option:hover {
   background-color: rgba(255, 255, 255, 0.1);
-  color: #fff;
 }
 
 .setting-dropdown-option.is-selected {
-  background-color: rgba(36, 229, 36, 0.15); /* Match the green from the slider/toggle */
-  color: #24e524;
+  background-color: #2196F3;
 }
