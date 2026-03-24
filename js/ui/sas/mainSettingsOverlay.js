@@ -114,6 +114,7 @@ function renderSettings() {
   }
 
   for (const [key, def] of Object.entries(SETTING_DEFINITIONS)) {
+    if (def.overlay && def.overlay !== 'main') continue;
     if (def.unlockCondition && !def.unlockCondition()) {
       continue;
     }
@@ -366,7 +367,9 @@ function renderSettings() {
       
       const dropdownValue = document.createElement("span");
       dropdownValue.className = "setting-dropdown-value";
-      dropdownValue.textContent = settingsManager.get(key);
+      dropdownValue.style.display = "flex";
+      dropdownValue.style.alignItems = "center";
+      dropdownValue.style.gap = "8px";
       
       const dropdownIcon = document.createElement("span");
       dropdownIcon.className = "setting-dropdown-icon";
@@ -376,24 +379,92 @@ function renderSettings() {
 
       const dropdownMenu = document.createElement("div");
       dropdownMenu.className = "setting-dropdown-menu";
+      
+      // Support dynamic options vs static options
+      const getOpts = () => {
+        if (def.getOptions) return def.getOptions();
+        return def.options || [];
+      };
 
-      if (def.options) {
-        def.options.forEach(opt => {
-          const optionEl = document.createElement("div");
-          optionEl.className = "setting-dropdown-option";
-          if (opt === settingsManager.get(key)) {
-            optionEl.classList.add("is-selected");
-          }
-          optionEl.textContent = opt;
+      const renderOption = (opt) => {
+        const optionEl = document.createElement("div");
+        optionEl.className = "setting-dropdown-option";
+        
+        const isObj = typeof opt === 'object' && opt !== null;
+        const val = isObj ? opt.value : opt;
+        const labelText = isObj ? opt.label : opt;
+        const iconSrc = isObj ? opt.icon : null;
+        
+        // Store the value as an attribute
+        optionEl.dataset.value = val;
 
-          optionEl.addEventListener("click", () => {
-            settingsManager.set(key, opt);
-            dropdownMenu.classList.remove("is-open");
-          });
+        if (val === settingsManager.get(key)) {
+          optionEl.classList.add("is-selected");
+        }
 
-          dropdownMenu.appendChild(optionEl);
+        optionEl.style.display = "flex";
+        optionEl.style.alignItems = "center";
+        optionEl.style.gap = "8px";
+
+        if (iconSrc) {
+          const img = document.createElement("img");
+          img.src = iconSrc;
+          img.style.width = "1.2em";
+          img.style.height = "1.2em";
+          img.style.objectFit = "contain";
+          optionEl.appendChild(img);
+        }
+
+        const textSpan = document.createElement("span");
+        textSpan.textContent = labelText;
+        optionEl.appendChild(textSpan);
+
+        optionEl.addEventListener("click", () => {
+          settingsManager.set(key, val);
+          dropdownMenu.classList.remove("is-open");
         });
-      }
+
+        return optionEl;
+      };
+
+      const buildMenu = () => {
+        dropdownMenu.innerHTML = '';
+        const opts = getOpts();
+        opts.forEach(opt => {
+          dropdownMenu.appendChild(renderOption(opt));
+        });
+      };
+      
+      buildMenu();
+
+      const updateSelectedValueDisplay = (newVal) => {
+        const opts = getOpts();
+        const selectedOpt = opts.find(o => {
+          if (typeof o === 'object' && o !== null) return o.value === newVal;
+          return o === newVal;
+        }) || newVal;
+        
+        dropdownValue.innerHTML = '';
+        
+        const isObj = typeof selectedOpt === 'object' && selectedOpt !== null;
+        const labelText = isObj ? selectedOpt.label : selectedOpt;
+        const iconSrc = isObj ? selectedOpt.icon : null;
+        
+        if (iconSrc) {
+          const img = document.createElement("img");
+          img.src = iconSrc;
+          img.style.width = "1.2em";
+          img.style.height = "1.2em";
+          img.style.objectFit = "contain";
+          dropdownValue.appendChild(img);
+        }
+
+        const textSpan = document.createElement("span");
+        textSpan.textContent = labelText;
+        dropdownValue.appendChild(textSpan);
+      };
+      
+      updateSelectedValueDisplay(settingsManager.get(key));
 
       dropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -405,14 +476,17 @@ function renderSettings() {
           }
         });
         
+        // Before opening, rebuild the menu in case options changed dynamically
+        buildMenu();
+        
         dropdownMenu.classList.toggle("is-open");
       });
 
       const unsub = settingsManager.subscribe(key, (newVal) => {
-        dropdownValue.textContent = newVal;
+        updateSelectedValueDisplay(newVal);
         const options = dropdownMenu.querySelectorAll(".setting-dropdown-option");
         options.forEach(opt => {
-          if (opt.textContent === newVal) {
+          if (opt.dataset.value === newVal) {
             opt.classList.add("is-selected");
           } else {
             opt.classList.remove("is-selected");
