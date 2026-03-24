@@ -1,8 +1,16 @@
 // js/game/settingsManager.js
 
 import { getActiveSlot } from '../util/storage.js';
+import { getHighestMutationLevel } from './mutationSystem.js';
 
 const SETTINGS_KEY_PREFIX = 'ccc_setting_';
+
+export const MUTATION_NAMES = [
+  'Normal', 'Bronze', 'Silver', 'Gold', 'Sapphire', 'Emerald', 'Ruby', 'Amethyst',
+  'Sunset', 'Void', 'Ethereal', 'Earth', 'Air', 'Fire', 'Water', 'Cookie',
+  'Pancake', 'Watermelon', 'Pepperoni', 'Pizza', 'Donut', 'Crystal Glass',
+  'Pure Diamond', 'Opal', 'Cosmic', 'Prismatic'
+];
 
 // Define the available settings and their defaults
 export const SETTING_DEFINITIONS = {
@@ -42,6 +50,34 @@ export const SETTING_DEFINITIONS = {
     hasExtraInfo: false,
     options: ['Option 1', 'Option 2', 'Option 3'],
     default: 'Option 1',
+  },
+  coin_mutation_visual: {
+    id: 'coin_mutation_visual',
+    type: 'dropdown',
+    label: 'Coin Mutation Visual',
+    overlay: 'visuals',
+    hasExtraInfo: false,
+    default: 'Default',
+    getOptions: () => {
+      let highest = 0;
+      try {
+        const hLevel = getHighestMutationLevel();
+        if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
+          const s = hLevel.toPlainIntegerString();
+          if (s !== 'Infinity') highest = parseInt(s, 10);
+        }
+      } catch (e) {}
+      
+      const opts = [];
+      opts.push({ value: 'Default', label: 'Default' });
+      opts.push({ value: 'Random', label: 'Random' });
+      for (let i = 0; i <= Math.min(highest, 25); i++) {
+        const name = MUTATION_NAMES[i] || `Mutation ${i}`;
+        const iconSrc = i === 0 ? 'img/currencies/coin/coin.webp' : `img/mutations/m${i}.webp`;
+        opts.push({ value: `M${i}`, label: `M${i} (${name})`, icon: iconSrc });
+      }
+      return opts;
+    }
   }
 };
 
@@ -76,6 +112,12 @@ class SettingsManager {
       } else {
         this.settings[key] = def.default;
       }
+      this.notify(key, this.settings[key]);
+    }
+  }
+
+  refresh(key) {
+    if (this.settings[key] !== undefined) {
       this.notify(key, this.settings[key]);
     }
   }
