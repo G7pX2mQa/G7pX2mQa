@@ -476,8 +476,9 @@ function persistState() {
   const unlockMismatch = persisted.unlocked !== mutationState.unlocked;
   const levelMismatch = persistedLevelRaw != null && expectedLevelRaw != null && persistedLevelRaw !== expectedLevelRaw;
   const progressMismatch = persistedProgressRaw != null && expectedProgressRaw != null && persistedProgressRaw !== expectedProgressRaw;
+  const highestLevelMismatch = toStorageSafe(persisted.highestLevel) != null && toStorageSafe(mutationState.highestLevel) != null && toStorageSafe(persisted.highestLevel) !== toStorageSafe(mutationState.highestLevel);
 
-  if (unlockMismatch || levelMismatch || progressMismatch) {
+  if (unlockMismatch || levelMismatch || progressMismatch || highestLevelMismatch) {
     applyState(persisted, { skipPersist: true });
   }
 }
@@ -546,6 +547,9 @@ function applyState(newState, { skipPersist = false } = {}) {
   mutationState.level = cloneBigNum(newState.level);
   mutationState.progress = cloneBigNum(newState.progress);
   mutationState.highestLevel = cloneBigNum(newState.highestLevel ?? mutationState.highestLevel);
+  if (mutationState.level.cmp?.(mutationState.highestLevel) > 0) {
+    mutationState.highestLevel = cloneBigNum(mutationState.level);
+  }
   if (!mutationState.unlocked) {
     mutationState.level = bnZero();
     mutationState.progress = bnZero();
@@ -567,7 +571,6 @@ function readStateFromStorage(slot) {
   let level = bnZero();
   let progress = bnZero();
   let highestLevel = bnZero();
-  const highestLevelRaw = localStorage.getItem(KEY_HIGHEST_LEVEL(targetSlot));
   try { unlocked = localStorage.getItem(KEY_UNLOCK(targetSlot)) === '1'; }
   catch {}
   try {
@@ -582,9 +585,9 @@ function readStateFromStorage(slot) {
     const rawHigh = localStorage.getItem(KEY_HIGHEST_LEVEL(targetSlot));
     if (rawHigh) highestLevel = BN.fromAny(rawHigh);
   } catch {}
-  if (level.gt(highestLevel)) highestLevel = level;
-  try { if (highestLevelRaw) highestLevel = BN.fromStorage(highestLevelRaw); } catch {}
-  if (level.gt(highestLevel)) highestLevel = level;
+  if (level.cmp(highestLevel) > 0) {
+    highestLevel = level.clone?.() ?? level;
+  }
   applyState({ unlocked, level, progress, highestLevel }, { skipPersist: true });
   mutationState.slot = targetSlot;
 }
@@ -790,6 +793,10 @@ export function addMutationPower(amount) {
         } catch {}
     }
 
+    if (mutationState.level.cmp?.(mutationState.highestLevel) > 0) {
+      mutationState.highestLevel = mutationState.level.clone?.() ?? mutationState.level;
+    }
+
     // Keep progress locked at Infinity once we reach mutation ∞
     try {
       mutationState.progress = BN.fromAny('Infinity');
@@ -805,11 +812,18 @@ export function addMutationPower(amount) {
     normalizeProgress();
   }
 
+  if (mutationState.level.cmp?.(mutationState.highestLevel) > 0) {
+    mutationState.highestLevel = mutationState.level.clone?.() ?? mutationState.level;
+  }
+
   persistState();
   updateHud();
 
   const levelsGained = mutationState.level.sub(prevLevel);
   if (!levelsGained.isZero?.()) {
+    if (mutationState.level.cmp?.(mutationState.highestLevel) > 0) {
+      mutationState.highestLevel = mutationState.level.clone?.() ?? mutationState.level;
+    }
   }
 
   const detail = emitChange('progress', {
