@@ -8,8 +8,8 @@ const SETTINGS_KEY_PREFIX = 'ccc_setting_';
 export const MUTATION_NAMES = [
   'Normal', 'Bronze', 'Silver', 'Gold', 'Sapphire', 'Emerald', 'Ruby', 'Amethyst',
   'Sunset', 'Void', 'Ethereal', 'Earth', 'Air', 'Fire', 'Water', 'Cookie',
-  'Pancake', 'Watermelon', 'Pepperoni', 'Pizza', 'Donut', 'Crystal Glass',
-  'Pure Diamond', 'Opal', 'Cosmic', 'Prismatic'
+  'Pancake', 'Watermelon', 'Pepperoni', 'Pizza', 'Donut', 'Glass',
+  'Diamond', 'Opal', 'Cosmic', 'Prismatic'
 ];
 
 // Define the available settings and their defaults
