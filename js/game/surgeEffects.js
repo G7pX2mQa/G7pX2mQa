@@ -67,7 +67,7 @@ export function getTsunamiExponent() {
   return effective;
 }
 
-export function getEffectiveTsunamiNerfWithCombo() {
+export function getTsunamiExponentWithCombo() {
   let effective = getTsunamiExponent();
 
   if (isSurgeActive(14)) {
