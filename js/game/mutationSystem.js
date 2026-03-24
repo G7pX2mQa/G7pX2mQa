@@ -11,6 +11,7 @@ const KEY_PREFIX = 'ccc:mutation';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
 const KEY_LEVEL = (slot) => `${KEY_PREFIX}:level:${slot}`;
 const KEY_PROGRESS = (slot) => `${KEY_PREFIX}:progress:${slot}`;
+const KEY_HIGHEST_LEVEL = (slot) => `${KEY_PREFIX}:highest_level:${slot}`;
 
 const BN = BigNum;
 const bnZero = () => BN.fromInt(0);
@@ -29,6 +30,7 @@ const mutationState = {
   level: bnZero(),
   progress: bnZero(),
   requirement: bnZero(),
+  highestLevel: bnZero(),
   slot: null,
 };
 
@@ -434,9 +436,12 @@ function persistState() {
   catch {}
   try { localStorage.setItem(KEY_PROGRESS(slot), mutationState.progress.toStorage()); }
   catch {}
+  try { localStorage.setItem(KEY_HIGHEST_LEVEL(slot), mutationState.highestLevel.toStorage()); }
+  catch {}
   primeStorageWatcherSnapshot(KEY_UNLOCK(slot));
   primeStorageWatcherSnapshot(KEY_LEVEL(slot));
   primeStorageWatcherSnapshot(KEY_PROGRESS(slot));
+  primeStorageWatcherSnapshot(KEY_HIGHEST_LEVEL(slot));
 
   // If storage writes are being blocked (e.g., via the Debug Panel lock toggle),
   // fall back to the persisted values so in-memory state doesn't keep drifting
@@ -445,6 +450,7 @@ function persistState() {
     let unlocked = mutationState.unlocked;
     let level = mutationState.level;
     let progress = mutationState.progress;
+    let highestLevel = mutationState.highestLevel;
     try { unlocked = localStorage.getItem(KEY_UNLOCK(slot)) === '1'; }
     catch {}
     try {
@@ -455,7 +461,11 @@ function persistState() {
       const rawProgress = localStorage.getItem(KEY_PROGRESS(slot));
       if (rawProgress) progress = BN.fromAny(rawProgress);
     } catch {}
-    return { unlocked, level, progress };
+    try {
+      const rawHighestLevel = localStorage.getItem(KEY_HIGHEST_LEVEL(slot));
+      if (rawHighestLevel) highestLevel = BN.fromAny(rawHighestLevel);
+    } catch {}
+    return { unlocked, level, progress, highestLevel };
   })();
 
   const persistedLevelRaw = toStorageSafe(persisted.level);
@@ -535,6 +545,7 @@ function applyState(newState, { skipPersist = false } = {}) {
   mutationState.unlocked = !!newState.unlocked;
   mutationState.level = cloneBigNum(newState.level);
   mutationState.progress = cloneBigNum(newState.progress);
+  mutationState.highestLevel = cloneBigNum(newState.highestLevel ?? mutationState.highestLevel);
   if (!mutationState.unlocked) {
     mutationState.level = bnZero();
     mutationState.progress = bnZero();
@@ -548,13 +559,15 @@ function applyState(newState, { skipPersist = false } = {}) {
 function readStateFromStorage(slot) {
   const targetSlot = slot ?? getActiveSlot();
   if (targetSlot == null) {
-    applyState({ unlocked: false, level: bnZero(), progress: bnZero() }, { skipPersist: true });
+    applyState({ unlocked: false, level: bnZero(), progress: bnZero(), highestLevel: bnZero() }, { skipPersist: true });
     mutationState.slot = null;
     return;
   }
   let unlocked = false;
   let level = bnZero();
   let progress = bnZero();
+  let highestLevel = bnZero();
+  const highestLevelRaw = localStorage.getItem(KEY_HIGHEST_LEVEL(targetSlot));
   try { unlocked = localStorage.getItem(KEY_UNLOCK(targetSlot)) === '1'; }
   catch {}
   try {
@@ -565,7 +578,14 @@ function readStateFromStorage(slot) {
     const rawProg = localStorage.getItem(KEY_PROGRESS(targetSlot));
     if (rawProg) progress = BN.fromAny(rawProg);
   } catch {}
-  applyState({ unlocked, level, progress }, { skipPersist: true });
+  try {
+    const rawHigh = localStorage.getItem(KEY_HIGHEST_LEVEL(targetSlot));
+    if (rawHigh) highestLevel = BN.fromAny(rawHigh);
+  } catch {}
+  if (level.gt(highestLevel)) highestLevel = level;
+  try { if (highestLevelRaw) highestLevel = BN.fromStorage(highestLevelRaw); } catch {}
+  if (level.gt(highestLevel)) highestLevel = level;
+  applyState({ unlocked, level, progress, highestLevel }, { skipPersist: true });
   mutationState.slot = targetSlot;
 }
 
@@ -960,4 +980,8 @@ export function getTotalCumulativeMp() {
   }
 
   return total;
+}
+
+export function getHighestMutationLevel() {
+  return mutationState.highestLevel;
 }
