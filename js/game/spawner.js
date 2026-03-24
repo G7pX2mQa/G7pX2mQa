@@ -3,7 +3,7 @@
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { getMutationState, onMutationChange } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
-import { isSurgeActive, getBaseTsunamiExponent, getEffectiveTsunamiNerfWithCombo } from './surgeEffects.js';
+import { isSurgeActive, getBaseTsunamiExponent, getTsunamiExponentWithCombo } from './surgeEffects.js';
 import { playAudio } from '../util/audioManager.js';
 import { waterSystem} from './webgl/waterSystem.js';
 import { shouldBlockBigCoins } from '../ui/merchantTabs/resetTab.js';
@@ -559,7 +559,7 @@ export function createSpawner({
         const size = COIN_SIZES[sizeIndex];
         let valMult = 1;
         if (isSurgeActive(8)) {
-             let nerf = getEffectiveTsunamiNerfWithCombo();
+             let nerf = getTsunamiExponentWithCombo();
              const base = Math.pow(25, nerf);
              valMult = Math.pow(base, sizeIndex);
         } else {
