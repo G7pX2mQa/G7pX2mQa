@@ -5,6 +5,7 @@ import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { formatNumber } from '../util/numFormat.js';
 import { approxLog10BigNum, bigNumFromLog10 } from '../util/bigNum.js';
+import { settingsManager } from "./settingsManager.js";
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
 
 const KEY_PREFIX = 'ccc:mutation';
@@ -921,6 +922,35 @@ export function getMutationGainMultiplier() {
 }
 
 export function getMutationCoinSprite() {
+  const visualSetting = settingsManager.get('coin_mutation_visual');
+
+  if (visualSetting !== 'Default') {
+    if (visualSetting === 'Random') {
+      let highest = 0;
+      try {
+        const hLevel = getHighestMutationLevel();
+        if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
+          const s = hLevel.toPlainIntegerString();
+          if (s !== 'Infinity') highest = parseInt(s, 10);
+        }
+      } catch (e) {}
+      highest = Math.min(highest, 25);
+      
+      const randIdx = Math.floor(Math.random() * (highest + 1));
+      if (randIdx === 0) return 'img/currencies/coin/coin.webp';
+      return `img/mutations/m${randIdx}.webp`;
+    }
+    
+    // Exact option like "M5", "M20" etc.
+    if (visualSetting && visualSetting.startsWith('M')) {
+      const num = parseInt(visualSetting.substring(1), 10);
+      if (!isNaN(num)) {
+        if (num === 0) return 'img/currencies/coin/coin.webp';
+        return `img/mutations/m${num}.webp`;
+      }
+    }
+  }
+
   if (!mutationState.unlocked || mutationState.level.isZero?.()) {
     return 'img/currencies/coin/coin.webp';
   }
