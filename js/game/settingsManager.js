@@ -54,7 +54,7 @@ export const SETTING_DEFINITIONS = {
   coin_mutation_visual: {
     id: 'coin_mutation_visual',
     type: 'dropdown',
-    label: 'Coin Mutation Visual',
+    label: 'Coin Mutation',
     overlay: 'visuals',
     hasExtraInfo: false,
     default: 'Default',
