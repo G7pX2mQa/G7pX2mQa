@@ -131,7 +131,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 14,
     affectedByTsunami: true,
     description: [
-      `Multiplies DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromInt(14.14e18))}x</span>`,
+      `Multiplies DNA value by <span style="color:#00e5ff">${formatNumber(BigNum.fromAny(14.14e6))}x</span>`,
       "Unlocks Combo: Collecting Coins increases a Combo which alleviates the exponent effect on larger Coins (beware, Combo decays)",
       "Combo effect is shown in the Coin Counter"
     ]
@@ -516,7 +516,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             `<span style="color:#00e5ff">${valStr}x</span>`
         );
       } else if (m.id === 14) {
-        const log10 = Math.log10(14.14e18);
+        const log10 = Math.log10(14.14e6);
         const newVal = bigNumFromLog10(log10 * nerf);
         const valStr = formatNumber(newVal);
         
