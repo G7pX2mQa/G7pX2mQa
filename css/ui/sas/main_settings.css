@@ -612,3 +612,59 @@
 .hide-ui {
     display: none !important;
 }
+
+/* Hide UI Popup (reusing some SAS/Merchant styling ideas but completely separate) */
+.hide-ui-popup {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-items: center;
+  z-index: 999999;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.hide-ui-popup.is-visible {
+  display: grid;
+  pointer-events: auto;
+}
+
+.hide-ui-popup::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(12px) brightness(0.6);
+  -webkit-backdrop-filter: blur(12px) brightness(0.6);
+  background: rgba(0, 0, 0, 0.50);
+}
+
+.hide-ui-popup__card {
+  position: relative;
+  width: min(720px, 92vw);
+  background: var(--sas-card, hsl(220 26% 12% / 1)); /* using sas-card or merchant-card fallback */
+  border: 1px solid var(--sas-border, hsl(215 28% 26% / 1));
+  box-shadow: 0 28px 80px hsl(215 60% 2% / 0.65);
+  padding: 16px;
+  pointer-events: auto;
+}
+
+.hide-ui-popup__row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+  min-height: 200px;
+}
+
+.hide-ui-popup__text {
+  color: hsl(0 0% 100% / .9);
+  text-align: center;
+  width: 100%;
+  font-size: 1.2em;
+}
+
+.hide-ui-popup__choices {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
