@@ -18,6 +18,7 @@ import { createCursorTrail } from './cursorTrail.js';
 import { playAudio } from '../util/audioManager.js';
 import { onCoinCollected } from './comboSystem.js';
 import { getComboUiString } from './surgeEffects.js';
+import { settingsManager } from './settingsManager.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelIsInfiniteSnapshot = false;
@@ -364,7 +365,7 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   };
 
   const refreshMagnetLevel = () => {
-    const nextLevel = getMagnetLevel();
+    const nextLevel = settingsManager.get('magnet_radius');
     magnetLevel = nextLevel;
     radiusPx = magnetLevel * unitPx;
     updateIndicator();
@@ -406,11 +407,18 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     forceUpdateAndMove(e);
   };
 
+  let settingsUnsub = null;
+  settingsUnsub = settingsManager.subscribe('magnet_radius', refreshMagnetLevel);
+
   const destroy = () => {
     destroyed = true;
     if (rafId) {
       cancelAnimationFrame(rafId);
       rafId = 0;
+    }
+    if (settingsUnsub) {
+      try { settingsUnsub(); } catch {}
+      settingsUnsub = null;
     }
     if (syncInterval) clearInterval(syncInterval);
     try { window.removeEventListener('scroll', handleScroll); } catch {}
