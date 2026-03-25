@@ -6,6 +6,121 @@ import { suppressNextGhostTap } from '../../util/ghostTapGuard.js';
 import { settingsManager, SETTING_DEFINITIONS } from '../../game/settingsManager.js';
 
 let mainSettingsOverlayEl = null;
+let uiHiddenPopupEl = null;
+let uiHiddenBtnEl = null;
+
+// Expose setup for initialization later to avoid immediate subscribe errors during bundle loading
+export function initUIHiding() {
+  settingsManager.subscribe('user_interface', applyUserInterfaceSetting);
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'x' || e.key === 'X') {
+      if (!settingsManager.get('user_interface')) {
+        settingsManager.set('user_interface', true);
+      }
+    }
+  });
+
+  // Run initial state once DOM is ready or defer
+  setTimeout(() => {
+    applyUserInterfaceSetting(settingsManager.get('user_interface'));
+  }, 100);
+}
+
+function applyUserInterfaceSetting(isUIEnabled) {
+  const elementsToHide = [
+    document.querySelector('.hud-top'),
+    document.querySelector('.hud-bottom'),
+    document.querySelector('.currency-popups'),
+    ...document.querySelectorAll('.merchant-btn')
+  ].filter(Boolean);
+
+  elementsToHide.forEach(el => {
+    if (isUIEnabled) {
+      el.classList.remove('hide-ui');
+    } else {
+      el.classList.add('hide-ui');
+    }
+  });
+
+  if (!isUIEnabled) {
+    if (!uiHiddenPopupEl) {
+      uiHiddenPopupEl = document.createElement('div');
+      uiHiddenPopupEl.className = 'sas-overlay is-open'; // Re-use styling for popup overlay
+      uiHiddenPopupEl.style.zIndex = '999999';
+      uiHiddenPopupEl.style.pointerEvents = 'auto';
+
+      const sheet = document.createElement('div');
+      sheet.className = 'sas-sheet';
+      sheet.setAttribute('role', 'dialog');
+      sheet.style.transform = 'translateY(0)';
+      
+      const content = document.createElement('div');
+      content.className = 'sas-content';
+      content.style.padding = '24px';
+      content.style.textAlign = 'center';
+      content.style.fontSize = '1.2em';
+      content.style.display = 'flex';
+      content.style.flexDirection = 'column';
+      content.style.alignItems = 'center';
+      content.style.justifyContent = 'center';
+      
+      const text = document.createElement('p');
+      if (IS_MOBILE) {
+        text.innerHTML = 'Press the button in the bottom right corner or refresh the page to re-enable UI';
+      } else {
+        text.innerHTML = 'Press "X" on your keyboard or refresh the page to re-enable UI';
+      }
+      content.appendChild(text);
+
+      const actions = document.createElement('div');
+      actions.className = 'sas-actions';
+      actions.style.marginTop = '24px';
+      
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'sas-close';
+      closeBtn.textContent = 'Close';
+      closeBtn.type = 'button';
+      closeBtn.addEventListener('click', () => {
+        if (uiHiddenPopupEl) uiHiddenPopupEl.style.display = 'none';
+      });
+      
+      actions.appendChild(closeBtn);
+      sheet.appendChild(content);
+      sheet.appendChild(actions);
+      uiHiddenPopupEl.appendChild(sheet);
+      document.body.appendChild(uiHiddenPopupEl);
+    }
+    uiHiddenPopupEl.style.display = '';
+
+    if (IS_MOBILE) {
+      if (!uiHiddenBtnEl) {
+        uiHiddenBtnEl = document.createElement('button');
+        uiHiddenBtnEl.textContent = 'X';
+        uiHiddenBtnEl.style.position = 'fixed';
+        uiHiddenBtnEl.style.bottom = '20px';
+        uiHiddenBtnEl.style.right = '20px';
+        uiHiddenBtnEl.style.width = '50px';
+        uiHiddenBtnEl.style.height = '50px';
+        uiHiddenBtnEl.style.borderRadius = '50%';
+        uiHiddenBtnEl.style.backgroundColor = '#d9534f';
+        uiHiddenBtnEl.style.color = 'white';
+        uiHiddenBtnEl.style.fontSize = '24px';
+        uiHiddenBtnEl.style.fontWeight = 'bold';
+        uiHiddenBtnEl.style.border = '2px solid white';
+        uiHiddenBtnEl.style.zIndex = '999998';
+        uiHiddenBtnEl.addEventListener('click', () => {
+          settingsManager.set('user_interface', true);
+        });
+        document.body.appendChild(uiHiddenBtnEl);
+      }
+      uiHiddenBtnEl.style.display = '';
+    }
+  } else {
+    if (uiHiddenPopupEl) uiHiddenPopupEl.style.display = 'none';
+    if (uiHiddenBtnEl) uiHiddenBtnEl.style.display = 'none';
+  }
+}
+
 let mainSettingsSheetEl = null;
 let isOpen = false;
 let closeTimer = null;
