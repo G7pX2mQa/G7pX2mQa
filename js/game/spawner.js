@@ -7,6 +7,7 @@ import { isSurgeActive, getBaseTsunamiExponent, getTsunamiExponentWithCombo } fr
 import { playAudio } from '../util/audioManager.js';
 import { waterSystem} from './webgl/waterSystem.js';
 import { shouldBlockBigCoins } from '../ui/merchantTabs/resetTab.js';
+import { settingsManager } from './settingsManager.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0n;
@@ -547,7 +548,7 @@ export function createSpawner({
       let hasWaves = false;
 
       for (const { wave, coin, sizeIndex } of batch) {
-        if (wave) {
+        if (wave && settingsManager.get('spawn_vessels')) {
             hasWaves = true;
             if (waterSystem) {
                 // Force top layer for large waves (Size 4, 5, 6)
