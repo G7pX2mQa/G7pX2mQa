@@ -608,3 +608,7 @@
 .setting-dropdown-option.is-selected {
   background-color: #2196F3;
 }
+
+.hide-ui {
+    display: none !important;
+}
