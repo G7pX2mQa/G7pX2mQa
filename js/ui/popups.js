@@ -2,6 +2,8 @@
 
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
+
+import { settingsManager } from '../game/settingsManager.js';
 import { CURRENCIES, isCurrencyLocked, isStorageKeyLocked, getActiveSlot, getCurrency } from '../util/storage.js';
 
 const DEFAULT_DURATION = 6767;
@@ -54,6 +56,7 @@ function ensureContainer() {
   container.className = 'currency-popups';
   container.setAttribute('aria-live', 'polite');
   container.setAttribute('aria-atomic', 'false');
+  if (!settingsManager.get('user_interface')) container.classList.add('hide-ui');
   document.body.appendChild(container);
   return container;
 }
@@ -135,6 +138,7 @@ function createPopupEntry(type, meta, amount) {
 
 function showPopup(type, amount, overrides = {}) {
   if (typeof window !== 'undefined' && window.__tsunamiActive) return;
+  if (!settingsManager.get('user_interface')) return;
   // Check locks
   const slot = getActiveSlot();
   if (slot != null) {
