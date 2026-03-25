@@ -136,6 +136,16 @@ class SettingsManager {
       } else {
         this.settings[key] = def.default;
       }
+
+      // Always force user_interface to be true on load 
+      // so the popup doesn't appear when loading into a save slot.
+      if (key === 'user_interface' && this.settings[key] === false) {
+        this.settings[key] = true;
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(true));
+        } catch (e) {}
+      }
+
       this.notify(key, this.settings[key]);
     }
   }
