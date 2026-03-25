@@ -45,37 +45,22 @@ function applyUserInterfaceSetting(isUIEnabled) {
   if (!isUIEnabled) {
     if (!uiHiddenPopupEl) {
       uiHiddenPopupEl = document.createElement('div');
-      uiHiddenPopupEl.className = 'merchant-firstchat is-visible'; // Re-use styling for popup overlay that covers full screen
+      uiHiddenPopupEl.className = 'hide-ui-popup is-visible'; // Re-use styling for popup overlay that covers full screen
       uiHiddenPopupEl.style.zIndex = '999999';
       uiHiddenPopupEl.style.pointerEvents = 'auto'; // Block background
 
       const card = document.createElement('div');
-      card.className = 'merchant-firstchat__card';
+      card.className = 'hide-ui-popup__card';
       card.setAttribute('role', 'dialog');
-      
-      const header = document.createElement('div');
-      header.className = 'merchant-firstchat__header';
-      
-      const title = document.createElement('div');
-      title.className = 'name';
-      title.textContent = 'Jeff';
-      
-      const rule = document.createElement('div');
-      rule.className = 'rule';
-      rule.setAttribute('aria-hidden', 'true');
-      
-      header.appendChild(title);
-      header.appendChild(rule);
-
       const row = document.createElement('div');
-      row.className = 'merchant-firstchat__row';
+      row.className = 'hide-ui-popup__row';
       row.style.alignItems = 'center';
       row.style.justifyContent = 'center';
       row.style.padding = '24px 0';
       row.style.minHeight = '200px';
 
       const text = document.createElement('div');
-      text.className = 'merchant-firstchat__text';
+      text.className = 'hide-ui-popup__text';
       text.style.textAlign = 'center';
       text.style.width = '100%';
       text.style.fontSize = '1.2em';
@@ -88,23 +73,25 @@ function applyUserInterfaceSetting(isUIEnabled) {
       row.appendChild(text);
 
       const actions = document.createElement('div');
-      actions.className = 'merchant-firstchat__choices';
+      actions.className = 'hide-ui-popup__choices sas-actions'; // added sas-actions to inherit button styles properly
       actions.style.display = 'flex';
       actions.style.justifyContent = 'center';
       actions.style.marginTop = '24px';
+      actions.style.padding = '0'; // reset any padding from sas-actions default
+      actions.style.border = 'none'; // reset any border
+      actions.style.background = 'transparent'; // reset background
       
       const closeBtn = document.createElement('button');
       closeBtn.className = 'sas-close'; // use existing button style
       closeBtn.textContent = 'Close';
       closeBtn.type = 'button';
-      closeBtn.style.minWidth = '130px';
+      closeBtn.style.minWidth = '180px';
       closeBtn.addEventListener('click', () => {
         if (uiHiddenPopupEl) uiHiddenPopupEl.style.display = 'none';
       });
       
       actions.appendChild(closeBtn);
       
-      card.appendChild(header);
       card.appendChild(row);
       card.appendChild(actions);
       uiHiddenPopupEl.appendChild(card);
