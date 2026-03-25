@@ -18,6 +18,7 @@ import {
     setResearchNodeRp
 } from './labNodes.js';
 import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
+import { settingsManager } from './settingsManager.js';
 import { getPassiveCoinReward } from './coinPickup.js';
 import { addXp } from './xpSystem.js';
 import { addMutationPower } from './mutationSystem.js';
@@ -600,6 +601,10 @@ export function processOfflineProgress() {
     const slot = getActiveSlot();
     if (slot == null) {
         return; 
+    }
+
+    if (!settingsManager.get('offline_progress')) {
+        return;
     }
 
     const lastSave = getLastSaveTime();
