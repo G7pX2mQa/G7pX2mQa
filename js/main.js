@@ -572,6 +572,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./util/fpsTracker.js'),
     import('./ui/notifications.js'),
     import('./ui/merchantTabs/flowTab.js'),
+    import('./ui/sas/mainSettingsOverlay.js'),
   ]);
 
   const ASSET_MANIFEST = {
@@ -761,6 +762,7 @@ images: [
     fpsTrackerModule,
     notificationModule,
     flowTabModule,
+    mainSettingsOverlayModule,
   ] = await modulePromise;
 
   ({ initSlots } = slotsModule);
@@ -885,6 +887,10 @@ images: [
   markProgressDirty?.('ensure-defaults');
   initPopups();
   initNotifications();
+  
+  if (mainSettingsOverlayModule && mainSettingsOverlayModule.initUIHiding) {
+    mainSettingsOverlayModule.initUIHiding();
+  }
 
   const titleEl = document.getElementById('panel-title');
   if (getHasOpenedSaveSlot()) {
