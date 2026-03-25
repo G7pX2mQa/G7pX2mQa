@@ -45,49 +45,69 @@ function applyUserInterfaceSetting(isUIEnabled) {
   if (!isUIEnabled) {
     if (!uiHiddenPopupEl) {
       uiHiddenPopupEl = document.createElement('div');
-      uiHiddenPopupEl.className = 'sas-overlay is-open'; // Re-use styling for popup overlay
+      uiHiddenPopupEl.className = 'merchant-firstchat is-visible'; // Re-use styling for popup overlay that covers full screen
       uiHiddenPopupEl.style.zIndex = '999999';
-      uiHiddenPopupEl.style.pointerEvents = 'auto';
+      uiHiddenPopupEl.style.pointerEvents = 'auto'; // Block background
 
-      const sheet = document.createElement('div');
-      sheet.className = 'sas-sheet';
-      sheet.setAttribute('role', 'dialog');
-      sheet.style.transform = 'translateY(0)';
+      const card = document.createElement('div');
+      card.className = 'merchant-firstchat__card';
+      card.setAttribute('role', 'dialog');
       
-      const content = document.createElement('div');
-      content.className = 'sas-content';
-      content.style.padding = '24px';
-      content.style.textAlign = 'center';
-      content.style.fontSize = '1.2em';
-      content.style.display = 'flex';
-      content.style.flexDirection = 'column';
-      content.style.alignItems = 'center';
-      content.style.justifyContent = 'center';
+      const header = document.createElement('div');
+      header.className = 'merchant-firstchat__header';
       
-      const text = document.createElement('p');
+      const title = document.createElement('div');
+      title.className = 'name';
+      title.textContent = 'Jeff';
+      
+      const rule = document.createElement('div');
+      rule.className = 'rule';
+      rule.setAttribute('aria-hidden', 'true');
+      
+      header.appendChild(title);
+      header.appendChild(rule);
+
+      const row = document.createElement('div');
+      row.className = 'merchant-firstchat__row';
+      row.style.alignItems = 'center';
+      row.style.justifyContent = 'center';
+      row.style.padding = '24px 0';
+      row.style.minHeight = '200px';
+
+      const text = document.createElement('div');
+      text.className = 'merchant-firstchat__text';
+      text.style.textAlign = 'center';
+      text.style.width = '100%';
+      text.style.fontSize = '1.2em';
+
       if (IS_MOBILE) {
         text.innerHTML = 'Press the button in the bottom right corner or refresh the page to re-enable UI';
       } else {
         text.innerHTML = 'Press "X" on your keyboard or refresh the page to re-enable UI';
       }
-      content.appendChild(text);
+      row.appendChild(text);
 
       const actions = document.createElement('div');
-      actions.className = 'sas-actions';
+      actions.className = 'merchant-firstchat__choices';
+      actions.style.display = 'flex';
+      actions.style.justifyContent = 'center';
       actions.style.marginTop = '24px';
       
       const closeBtn = document.createElement('button');
-      closeBtn.className = 'sas-close';
+      closeBtn.className = 'sas-close'; // use existing button style
       closeBtn.textContent = 'Close';
       closeBtn.type = 'button';
+      closeBtn.style.minWidth = '130px';
       closeBtn.addEventListener('click', () => {
         if (uiHiddenPopupEl) uiHiddenPopupEl.style.display = 'none';
       });
       
       actions.appendChild(closeBtn);
-      sheet.appendChild(content);
-      sheet.appendChild(actions);
-      uiHiddenPopupEl.appendChild(sheet);
+      
+      card.appendChild(header);
+      card.appendChild(row);
+      card.appendChild(actions);
+      uiHiddenPopupEl.appendChild(card);
       document.body.appendChild(uiHiddenPopupEl);
     }
     uiHiddenPopupEl.style.display = '';
