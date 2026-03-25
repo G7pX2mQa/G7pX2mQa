@@ -1,5 +1,7 @@
 // js/game/cursorTrail.js
 
+import { settingsManager } from './settingsManager.js';
+
 export function createCursorTrail(playfield) {
   if (!playfield || typeof window === 'undefined') {
     return { destroy() {} };
@@ -128,7 +130,7 @@ export function createCursorTrail(playfield) {
   }
 
   const spawn = (x, y) => {
-    if (freeCount <= 0) return;
+    if (freeCount <= 0 || !settingsManager.get('cursor_trail')) return;
     const idx = freeSlots[--freeCount];
     if (idx > maxActiveIndex) maxActiveIndex = idx;
     const offset = idx * STRIDE;
