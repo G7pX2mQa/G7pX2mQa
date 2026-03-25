@@ -41,7 +41,7 @@ export const SETTING_DEFINITIONS = {
   music_volume: {
     id: 'music_volume',
     type: 'slider',
-    label: 'Music volume',
+    label: 'Music Volume',
     hasExtraInfo: false,
     min: 0,
     max: 100,
