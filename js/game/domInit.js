@@ -1,7 +1,9 @@
+import { settingsManager } from './settingsManager.js';
 export function ensureGameDom(layerCount, startZ) {
   if (document.getElementById('game-root')) return;
 
   const main = document.createElement('main');
+  const uiHiddenClass = settingsManager.get('user_interface') ? '' : 'hide-ui';
   main.id = 'game-root';
   main.className = 'area area-cove';
   main.hidden = true;
@@ -10,7 +12,7 @@ export function ensureGameDom(layerCount, startZ) {
   let waterLayersHtml = `<canvas id="water-foreground" style="position: absolute; top: 0; left: 0; width: 100%; height: 35%; pointer-events: none; z-index: ${startZ};"></canvas>`;
 
   main.innerHTML = `
-      <div class="hud-top">
+      <div class="hud-top ${uiHiddenClass}">
         <div class="coin-counter">
           <img src="img/currencies/coin/coin_plus_base.webp" alt="" class="coin-plus"/>
           <div class="coin-bar">
@@ -67,7 +69,7 @@ export function ensureGameDom(layerCount, startZ) {
         ${waterLayersHtml.trim()}
       </section>
 
-      <nav class="hud-bottom" id="hud-bottom">
+      <nav class="hud-bottom ${uiHiddenClass}" id="hud-bottom">
         <button class="game-btn btn-help" data-btn="help"><span>Help</span></button>
         <button class="game-btn btn-shop" data-btn="shop"><span>Shop</span></button>
         <button class="game-btn btn-stats" data-btn="stats"><span>Stats &amp; Settings</span></button>
