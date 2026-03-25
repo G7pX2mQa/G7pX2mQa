@@ -14,6 +14,7 @@ import { openMerchant,
 } from './merchantTabs/dlgTab.js';
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { playAudio } from '../util/audioManager.js';
+import { settingsManager } from '../game/settingsManager.js';
 import {
   AREA_KEYS,
   UPGRADE_TIES,
@@ -990,6 +991,12 @@ class ShopInstance {
                 if (badgeHtml === badgePlain) { if (badge.textContent !== badgeHtml) badge.textContent = badgeHtml; }
                 else { if (badge.innerHTML !== badgeHtml) badge.innerHTML = badgeHtml; }
             } else if (badge) badge.remove();
+            
+            if (settingsManager.get('hide_maxed_upgrades') && capReached && !showEvolveReady) {
+                btn.style.display = 'none';
+            } else {
+                btn.style.display = '';
+            }
         }
         
         // Cleanup stale
