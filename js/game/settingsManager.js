@@ -14,6 +14,30 @@ export const MUTATION_NAMES = [
 
 // Define the available settings and their defaults
 export const SETTING_DEFINITIONS = {
+  hide_maxed_upgrades: {
+    id: 'hide_maxed_upgrades',
+    type: 'toggle',
+    label: 'Hide Maxed Upgrades',
+    hasExtraInfo: false,
+    default: false,
+    unlockCondition: () => true,
+  },
+  offline_progress: {
+    id: 'offline_progress',
+    type: 'toggle',
+    label: 'Offline Progress',
+    hasExtraInfo: false,
+    default: true,
+    unlockCondition: () => true,
+  },
+  user_interface: {
+    id: 'user_interface',
+    type: 'toggle',
+    label: 'User Interface',
+    hasExtraInfo: false,
+    default: true,
+    unlockCondition: () => true,
+  },
   music_volume: {
     id: 'music_volume',
     type: 'slider',
