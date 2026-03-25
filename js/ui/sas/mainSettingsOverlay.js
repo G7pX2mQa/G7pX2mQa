@@ -257,7 +257,7 @@ function renderSettings() {
       const labelSpan = document.createElement("span");
       // Use span instead of label so clicks on the empty space don't naturally trigger it.
       // We will handle the span click manually via event listener on the row.
-      labelSpan.textContent = def.label;
+      labelSpan.textContent = typeof def.label === 'function' ? def.label() : def.label;
       labelSpan.style.cursor = "pointer";
       labelSpan.className = "setting-text-label";
       // This prevents the label from expanding to fill the rest of the flex container
@@ -268,7 +268,7 @@ function renderSettings() {
       desc.appendChild(labelSpan);
     } else {
       const labelSpan = document.createElement("span");
-      labelSpan.textContent = def.label;
+      labelSpan.textContent = typeof def.label === 'function' ? def.label() : def.label;
       desc.appendChild(labelSpan);
     }
 
@@ -337,12 +337,15 @@ function renderSettings() {
       const sliderContainer = document.createElement("div");
       sliderContainer.className = "setting-slider-container";
 
+      const defMin = typeof def.min === 'function' ? def.min() : def.min;
+      const defMax = typeof def.max === 'function' ? def.max() : def.max;
+      
       const sliderInput = document.createElement("input");
       sliderInput.type = "range";
       sliderInput.className = "setting-slider-input";
       sliderInput.id = `setting_slider_${key}`;
-      sliderInput.min = def.min;
-      sliderInput.max = def.max;
+      sliderInput.min = defMin;
+      sliderInput.max = defMax;
       sliderInput.step = def.step;
       sliderInput.value = settingsManager.get(key);
       
@@ -448,16 +451,16 @@ function renderSettings() {
       
       const minLabel = document.createElement("div");
       minLabel.className = "slider-label slider-label-min";
-      minLabel.innerHTML = `<span>${def.min}</span>`;
+      minLabel.innerHTML = `<span>${defMin}</span>`;
       
-      const midVal = (parseFloat(def.min) + parseFloat(def.max)) / 2;
+      const midVal = (parseFloat(defMin) + parseFloat(defMax)) / 2;
       const midLabel = document.createElement("div");
       midLabel.className = "slider-label slider-label-mid";
       midLabel.innerHTML = `<span>${midVal}</span>`;
       
       const maxLabel = document.createElement("div");
       maxLabel.className = "slider-label slider-label-max";
-      maxLabel.innerHTML = `<span>${def.max}</span>`;
+      maxLabel.innerHTML = `<span>${defMax}</span>`;
       
       labelsContainer.append(minLabel, midLabel, maxLabel);
       
