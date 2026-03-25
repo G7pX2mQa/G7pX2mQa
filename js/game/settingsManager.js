@@ -2,6 +2,8 @@
 
 import { getActiveSlot } from '../util/storage.js';
 import { getHighestMutationLevel } from './mutationSystem.js';
+import { IS_MOBILE } from '../main.js';
+import { getMagnetLevel } from './upgrades.js';
 
 const SETTINGS_KEY_PREFIX = 'ccc_setting_';
 
@@ -38,6 +40,32 @@ export const SETTING_DEFINITIONS = {
     default: true,
     unlockCondition: () => true,
   },
+  cursor_trail: {
+    id: 'cursor_trail',
+    type: 'toggle',
+    label: () => IS_MOBILE ? 'Finger Trail' : 'Cursor Trail',
+    hasExtraInfo: false,
+    default: true,
+    unlockCondition: () => true,
+  },
+  show_cursor: {
+    id: 'show_cursor',
+    type: 'toggle',
+    label: 'Show Cursor',
+    hasExtraInfo: true,
+	info: 'Specifically on the playfield, the area the collectibles finalize their positions.',
+    default: false,
+    unlockCondition: () => !IS_MOBILE,
+  },
+  spawn_vessels: {
+    id: 'spawn_vessels',
+    type: 'toggle',
+    label: 'Spawn Vessels',
+    hasExtraInfo: true,
+    info: 'For example, the waves that spawn in The Cove; turning this setting OFF would hide these.',
+    default: true,
+    unlockCondition: () => true,
+  },
   music_volume: {
     id: 'music_volume',
     type: 'slider',
@@ -49,31 +77,17 @@ export const SETTING_DEFINITIONS = {
     default: 100,
     unlockCondition: () => true,
   },
-  placeholder_setting: {
-    id: 'placeholder_setting',
-    type: 'toggle',
-    label: 'I do nothing! Placeholder here!',
-    hasExtraInfo: true,
-    info: 'This is a placeholder setting and it does not do anything. This setting will be deleted in a future task.',
-    default: false,
-  },
-  placeholder_slider: {
-    id: 'placeholder_slider',
+
+  magnet_radius: {
+    id: 'magnet_radius',
     type: 'slider',
-    label: 'Placeholder slider',
+    label: 'Magnet Radius',
     hasExtraInfo: false,
     min: 0,
-    max: 10,
-    step: 1,
-    default: 500,
-  },
-  placeholder_dropdown: {
-    id: 'placeholder_dropdown',
-    type: 'dropdown',
-    label: 'Placeholder dropdown',
-    hasExtraInfo: false,
-    options: ['Option 1', 'Option 2', 'Option 3'],
-    default: 'Option 1',
+    max: () => getMagnetLevel(),
+    step: 0.1,
+    default: () => getMagnetLevel(),
+    unlockCondition: () => getMagnetLevel() >= 1,
   },
   coin_mutation_visual: {
     id: 'coin_mutation_visual',
@@ -134,7 +148,7 @@ class SettingsManager {
       if (stored !== null) {
         this.settings[key] = JSON.parse(stored);
       } else {
-        this.settings[key] = def.default;
+        this.settings[key] = typeof def.default === 'function' ? def.default() : def.default;
       }
 
       // Always force user_interface to be true on load 
@@ -158,8 +172,16 @@ class SettingsManager {
 
   get(key) {
     if (!(key in SETTING_DEFINITIONS)) return false;
+    const def = SETTING_DEFINITIONS[key];
     if (this.settings[key] === undefined) {
-      this.settings[key] = SETTING_DEFINITIONS[key].default;
+      this.settings[key] = typeof def.default === 'function' ? def.default() : def.default;
+    }
+    // For magnet_radius, we must ensure the saved value isn't greater than current max level.
+    if (key === 'magnet_radius') {
+      const maxLvl = typeof def.max === 'function' ? def.max() : def.max;
+      if (this.settings[key] > maxLvl) {
+         this.settings[key] = maxLvl;
+      }
     }
     return this.settings[key];
   }
