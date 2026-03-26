@@ -1,102 +1,15 @@
-// js/ui/sasOverlay.js
-
-import { IS_MOBILE } from '../../main.js';
-import { blockInteraction, ensureCustomScrollbar, setupDragToClose } from '../shopOverlay.js';
-import { suppressNextGhostTap } from '../../util/ghostTapGuard.js';
+import { createSASOverlay } from './sasOverlayBuilder.js';
 import { openMainSettingsOverlay } from './mainSettingsOverlay.js';
 import { openVisualsOverlay } from './visualsOverlay.js';
 import { openPerformanceOverlay } from './performanceOverlay.js';
 import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
 
-let sasOverlayEl = null;
-let sasSheetEl = null;
-let isOpen = false;
-let closeTimer = null;
-let postOpenPointer = false;
-
-function buildSasOverlay() {
-  if (sasOverlayEl) return;
-
-  sasOverlayEl = document.createElement('div');
-  sasOverlayEl.className = 'sas-overlay';
-  sasOverlayEl.id = 'sas-overlay';
-
-  sasSheetEl = document.createElement('div');
-  sasSheetEl.className = 'sas-sheet';
-  sasSheetEl.setAttribute('role', 'dialog');
-
-  const grabber = document.createElement('div');
-  grabber.className = 'sas-grabber';
-  grabber.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
-
-  const content = document.createElement('div');
-  content.className = 'sas-content';
-
-  const header = document.createElement('header');
-  header.className = 'sas-header';
-  header.innerHTML = `<div class="sas-title">Stats & Settings</div><div class="sas-line" aria-hidden="true"></div>`;
-
-  const grid = document.createElement('div');
-  grid.className = 'sas-grid';
-  grid.setAttribute('role', 'grid');
-
-  const scroller = document.createElement('div');
-  scroller.className = 'sas-scroller';
-  scroller.appendChild(grid);
-
-  content.append(header, scroller);
-  ensureCustomScrollbar(sasOverlayEl, sasSheetEl, '.sas-scroller');
-
-  const actions = document.createElement('div');
-  actions.className = 'sas-actions';
-
-  const closeBtn = document.createElement('button');
-  closeBtn.type = 'button';
-  closeBtn.className = 'sas-close';
-  closeBtn.textContent = 'Close';
-  actions.appendChild(closeBtn);
-
-  sasSheetEl.append(grabber, content, actions);
-  sasOverlayEl.appendChild(sasSheetEl);
-  document.body.appendChild(sasOverlayEl);
-
-  // Listeners
-  sasOverlayEl.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'mouse') return;
-    postOpenPointer = true;
-}, { capture: true, passive: true });
-
-  sasOverlayEl.addEventListener('touchstart', (e) => {
-    postOpenPointer = true;
-}, { capture: true, passive: true });
-
-  sasOverlayEl.addEventListener('click', (e) => {
-    if (!IS_MOBILE) return;
-    if (!postOpenPointer) {
-      e.preventDefault(); e.stopImmediatePropagation();
-      return;
-  }
-}, { capture: true });
-
-  closeBtn.addEventListener('click', () => {
-    if (IS_MOBILE) blockInteraction(80);
-    closeSasOverlay();
-}, { passive: true });
-
-  setupDragToClose(grabber, sasSheetEl, () => isOpen, () => {
-    isOpen = false;
-    closeTimer = setTimeout(() => {
-      closeTimer = null;
-      closeSasOverlay(true);
-  }, 150);
-});
-}
-
-function populateSasButtons() {
-  if (!sasOverlayEl) return;
-  const grid = sasOverlayEl.querySelector('.sas-grid');
+function populateSasButtons(overlayEl) {
+  const grid = overlayEl.querySelector('.sas-grid');
   if (!grid) return;
   grid.innerHTML = "";
+  grid.setAttribute('role', 'grid');
+  
   const mainBtn = document.createElement("button");
   mainBtn.className = "sas-btn";
   mainBtn.textContent = "Main";
@@ -117,61 +30,23 @@ function populateSasButtons() {
   perfBtn.addEventListener("click", () => { openPerformanceOverlay(); });
   grid.appendChild(perfBtn);
 }
-export function openSasOverlay() {
-  buildSasOverlay();
 
-  if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
-  
-  populateSasButtons();
-
-  if (isOpen) return;
-  isOpen = true;
-
-  sasSheetEl.style.transition = 'none';
-  sasSheetEl.style.transform = 'translateY(100%)';
-  sasOverlayEl.style.pointerEvents = 'auto';
-
-  void sasSheetEl.offsetHeight;
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      sasSheetEl.style.transition = '';
-      sasSheetEl.style.transform = '';
-      sasOverlayEl.classList.add('is-open');
-      postOpenPointer = false;
-
-      if (IS_MOBILE) {
-        try { setTimeout(() => suppressNextGhostTap(240), 120); } catch {}
-    }
-
-      blockInteraction(10);
-      ensureCustomScrollbar(sasOverlayEl, sasSheetEl, '.sas-scroller');
-
-      const focusable = sasOverlayEl.querySelector('.sas-btn') || sasOverlayEl.querySelector('.sas-grid');
-      if (focusable) focusable.focus();
-  });
+const sasOverlay = createSASOverlay({
+  id: 'sas-overlay',
+  title: 'Stats & Settings',
+  containerClass: 'sas-grid',
+  // Use default zIndex of 4010 from builder or unset
+  zIndex: '',
+  focusSelector: '.sas-btn, .sas-grid',
+  onRender: (overlayEl) => {
+    populateSasButtons(overlayEl);
+  }
 });
+
+export function openSasOverlay() {
+  sasOverlay.open();
 }
 
 export function closeSasOverlay(force = false) {
-  const forceClose = force === true;
-  const overlayOpen = sasOverlayEl?.classList?.contains('is-open');
-
-  if (!forceClose && !isOpen && !overlayOpen) {
-    if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
-    return;
-}
-
-  if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
-
-  isOpen = false;
-  if (sasSheetEl) {
-    sasSheetEl.style.transition = '';
-    sasSheetEl.style.transform = '';
-}
-  if (sasOverlayEl) {
-    sasOverlayEl.classList.remove('is-open');
-    sasOverlayEl.style.pointerEvents = 'none';
-}
-  postOpenPointer = false;
+  sasOverlay.close(force);
 }
