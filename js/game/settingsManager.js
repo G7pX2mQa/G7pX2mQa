@@ -4,6 +4,12 @@ import { getActiveSlot } from '../util/storage.js';
 import { getHighestMutationLevel } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
 import { getMagnetLevel } from './upgrades.js';
+import {
+  hasDoneForgeReset,
+  hasDoneInfuseReset,
+  hasDoneSurgeReset,
+  hasDoneExperimentReset
+} from '../ui/merchantTabs/resetTab.js';
 
 const SETTINGS_KEY_PREFIX = 'ccc_setting_';
 
@@ -116,6 +122,62 @@ export const SETTING_DEFINITIONS = {
       }
       return opts;
     }
+  },
+  forge_confirmation: {
+    id: 'forge_confirmation',
+    type: 'toggle',
+    label: 'Forge Confirmation',
+    overlay: 'confirmations',
+    hasExtraInfo: false,
+    default: false,
+    unlockCondition: () => {
+      try { return hasDoneForgeReset(); } catch { return false; }
+    },
+  },
+  infuse_confirmation: {
+    id: 'infuse_confirmation',
+    type: 'toggle',
+    label: 'Infuse Confirmation',
+    overlay: 'confirmations',
+    hasExtraInfo: false,
+    default: false,
+    unlockCondition: () => {
+      try { return hasDoneInfuseReset(); } catch { return false; }
+    },
+  },
+  surge_confirmation: {
+    id: 'surge_confirmation',
+    type: 'toggle',
+    label: 'Surge Confirmation',
+    overlay: 'confirmations',
+    hasExtraInfo: false,
+    default: false,
+    unlockCondition: () => {
+      try { return hasDoneSurgeReset(); } catch { return false; }
+    },
+  },
+  insufficient_waves_confirmation: {
+    id: 'insufficient_waves_confirmation',
+    type: 'toggle',
+    label: 'Insufficient Waves Confirmation',
+    overlay: 'confirmations',
+    hasExtraInfo: true,
+    info: 'For the Surge reset, if you have insufficient Waves such that performing a Surge reset would not increase your Surge, this confirmation ensures that you are aware that performing a Surge reset would not benefit you immediately.',
+    default: true,
+    unlockCondition: () => {
+      try { return hasDoneSurgeReset(); } catch { return false; }
+    },
+  },
+  experiment_confirmation: {
+    id: 'experiment_confirmation',
+    type: 'toggle',
+    label: 'Experiment Confirmation',
+    overlay: 'confirmations',
+    hasExtraInfo: false,
+    default: false,
+    unlockCondition: () => {
+      try { return hasDoneExperimentReset(); } catch { return false; }
+    },
   }
 };
 
