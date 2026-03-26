@@ -18,19 +18,28 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
     unsubscribers.pop()();
   }
 
-  for (const [key, def] of Object.entries(SETTING_DEFINITIONS)) {
-    // If the setting explicitly has an overlay, it must match the category.
-    // If it doesn't have an overlay defined, we assume it's for 'main'
-    const targetOverlay = def.overlay || 'main';
-    if (targetOverlay !== category) continue;
+  const unlockConditionCheckers = [];
 
-    if (def.unlockCondition && !def.unlockCondition()) {
-      continue;
-    }
+  for (const [key, def] of Object.entries(SETTING_DEFINITIONS)) {
+    const targetOverlay = def.overlay || "main";
+    if (targetOverlay !== category) continue;
 
     const row = document.createElement("div");
     row.className = "setting-row";
-    
+
+    if (def.unlockCondition) {
+      if (!def.unlockCondition()) {
+        row.style.display = "none";
+      }
+      unlockConditionCheckers.push(() => {
+        if (def.unlockCondition()) {
+          row.style.display = "";
+        } else {
+          row.style.display = "none";
+        }
+      });
+    }
+
     if (def.type === "slider") {
       row.classList.add("setting-row-slider");
     } else if (def.type === "dropdown") {
@@ -419,6 +428,24 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
     }
     container.appendChild(row);
   }
+  const updateUnlockConditions = () => {
+    unlockConditionCheckers.forEach(fn => fn());
+  };
+
+  const updateEvents = [
+    "forge:completed",
+    "infuse:completed",
+    "surge:completed",
+    "experiment:completed",
+    "unlock:change"
+  ];
+
+  updateEvents.forEach(evt => window.addEventListener(evt, updateUnlockConditions));
+
+  unsubscribers.push(() => {
+    updateEvents.forEach(evt => window.removeEventListener(evt, updateUnlockConditions));
+  });
+
 
   // Handle closing the dropdowns when clicking outside
   const handleOutsideClick = (e) => {
