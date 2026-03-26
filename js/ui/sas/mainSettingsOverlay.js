@@ -130,17 +130,17 @@ const unsubscribers = [];
 const mainSettingsOverlay = createSASOverlay({
   id: 'main-settings-overlay',
   title: 'Main Settings',
-  containerClass: 'main-settings-container',
+  containerClass: 'sas-settings-container',
   zIndex: '4010',
   onRender: (overlayEl) => {
-    renderSettingsMenu(overlayEl, '.main-settings-container', 'main', unsubscribers);
+    renderSettingsMenu(overlayEl, '.sas-settings-container', 'main', unsubscribers);
   }
 });
 
 if (typeof window !== 'undefined') {
   window.addEventListener('unlock:change', () => {
     if (mainSettingsOverlay.isOpen && mainSettingsOverlay.overlayEl) {
-      renderSettingsMenu(mainSettingsOverlay.overlayEl, '.main-settings-container', 'main', unsubscribers);
+      renderSettingsMenu(mainSettingsOverlay.overlayEl, '.sas-settings-container', 'main', unsubscribers);
     }
   });
 }
