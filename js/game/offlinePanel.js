@@ -22,7 +22,7 @@ import { settingsManager } from './settingsManager.js';
 import { getPassiveCoinReward } from './coinPickup.js';
 import { addXp } from './xpSystem.js';
 import { addMutationPower } from './mutationSystem.js';
-import { getBookProductionRate, isSurgeActive, getTsunamiExponent, getBaseTsunamiExponent } from './surgeEffects.js';
+import { getBookProductionRate, isSurgeActive, getTsunamiExponent } from './surgeEffects.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { getXpState } from './xpSystem.js';
 import { getTotalCumulativeMp } from './mutationSystem.js';
