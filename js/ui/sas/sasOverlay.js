@@ -5,6 +5,7 @@ import { blockInteraction, ensureCustomScrollbar, setupDragToClose } from '../sh
 import { suppressNextGhostTap } from '../../util/ghostTapGuard.js';
 import { openMainSettingsOverlay } from './mainSettingsOverlay.js';
 import { openVisualsOverlay } from './visualsOverlay.js';
+import { openPerformanceOverlay } from './performanceOverlay.js';
 import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
 
 let sasOverlayEl = null;
@@ -109,6 +110,12 @@ function populateSasButtons() {
     visBtn.addEventListener("click", () => { openVisualsOverlay(); });
     grid.appendChild(visBtn);
   }
+
+  const perfBtn = document.createElement("button");
+  perfBtn.className = "sas-btn";
+  perfBtn.textContent = "Performance";
+  perfBtn.addEventListener("click", () => { openPerformanceOverlay(); });
+  grid.appendChild(perfBtn);
 }
 export function openSasOverlay() {
   buildSasOverlay();
