@@ -42,7 +42,6 @@ import { playAudio } from '../../util/audioManager.js';
 import { 
   getBookProductionRate, 
   getSurge6WealthMultipliers, 
-  getBaseTsunamiExponent,
   getTsunamiSequenceSeen,
   setTsunamiSequenceSeen,
   isSurgeActive,
