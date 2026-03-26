@@ -2,6 +2,7 @@ import { createSASOverlay } from './sasOverlayBuilder.js';
 import { openMainSettingsOverlay } from './mainSettingsOverlay.js';
 import { openVisualsOverlay } from './visualsOverlay.js';
 import { openPerformanceOverlay } from './performanceOverlay.js';
+import { openConfirmationsOverlay } from './confirmationsOverlay.js';
 import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
 
 function populateSasButtons(overlayEl) {
@@ -29,6 +30,13 @@ function populateSasButtons(overlayEl) {
   perfBtn.textContent = "Performance";
   perfBtn.addEventListener("click", () => { openPerformanceOverlay(); });
   grid.appendChild(perfBtn);
+  if (hasDoneForgeReset()) {
+    const confBtn = document.createElement("button");
+    confBtn.className = "sas-btn";
+    confBtn.textContent = "Confirmations";
+    confBtn.addEventListener("click", () => { openConfirmationsOverlay(); });
+    grid.appendChild(confBtn);
+  }
 }
 
 const sasOverlay = createSASOverlay({
