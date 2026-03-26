@@ -1,6 +1,7 @@
 /* css/ui/sas/mainSettings.css */
 
-.main-settings-container {
+.main-settings-container,
+.sas-settings-container {
   display: flex;
   flex-direction: column;
   gap: 16px;
