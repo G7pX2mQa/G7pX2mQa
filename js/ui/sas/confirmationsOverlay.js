@@ -14,6 +14,18 @@ const confirmationsOverlay = createSASOverlay({
   }
 });
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('unlock:change', (e) => {
+    const detail = e?.detail;
+    if (!detail) return;
+    if (['forge', 'infuse', 'surge', 'experiment_completed'].includes(detail.key)) {
+      if (confirmationsOverlay.overlayEl && confirmationsOverlay.overlayEl.classList.contains('is-open')) {
+        renderSettingsMenu(confirmationsOverlay.overlayEl, '.sas-settings-container', 'confirmations', unsubscribers);
+      }
+    }
+  });
+}
+
 export function openConfirmationsOverlay() {
   confirmationsOverlay.open();
 }
