@@ -64,6 +64,7 @@ import { getLabLevel } from './labTab.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 import { getWaterwheelGoldMultiplier } from './flowTab.js';
+import { settingsManager } from '../../game/settingsManager.js';
 
 const BN = BigNum;
 
@@ -1244,6 +1245,9 @@ function applyForgeResetEffects({ resetGold = false, resetMagic = false } = {}) 
 
 export function performForgeReset() {
   if (!canPerformForgeReset()) return false;
+  if (settingsManager.get('forge_confirmation')) {
+    if (!window.confirm("Are you sure you want to do the Forge reset?")) return false;
+  }
   const finalReward = getPendingGoldWithMultiplier();
   try {
     if (bank.gold?.add) {
@@ -1271,6 +1275,9 @@ export function performForgeReset() {
 
 export function performInfuseReset() {
   if (!canPerformInfuseReset()) return false;
+  if (settingsManager.get('infuse_confirmation')) {
+    if (!window.confirm("Are you sure you want to do the Infuse reset?")) return false;
+  }
   const reward = getPendingMagicWithMultiplier();
   try {
     if (bank.magic?.add) {
@@ -1353,6 +1360,9 @@ function applySurgeResetLogic(rewardWaves, { playEffects = true, skipVisuals = f
 
 function performExperimentReset() {
     if (!isExperimentUnlocked()) return false;
+    if (settingsManager.get('experiment_confirmation')) {
+        if (!window.confirm("Are you sure you want to do the Experiment reset?")) return false;
+    }
     
     // Check Requirements
     const labLevel = getLabLevel ? getLabLevel() : bnZero();
@@ -1492,6 +1502,25 @@ export function performSurgeReset() {
   const currentWaves = bank.waves?.value ?? bnZero();
   const barLevel = getSurgeBarLevel(slot);
   const potentialLevel = predictSurgeLevel(barLevel, currentWaves, reward);
+
+  if (settingsManager.get('surge_confirmation')) {
+    if (!window.confirm("Are you sure you want to do the Surge reset?")) return false;
+  }
+
+  let isInsufficient = false;
+  if (potentialLevel !== Infinity) {
+      if (typeof potentialLevel === 'bigint') {
+          isInsufficient = potentialLevel <= barLevel;
+      } else if (typeof potentialLevel === 'number') {
+          isInsufficient = potentialLevel <= Number(barLevel);
+      }
+  }
+
+  if (isInsufficient && settingsManager.get('insufficient_waves_confirmation')) {
+      if (!window.confirm("Are you sure you want to do the Surge reset? You don't have enough pending Waves to reach the next Surge.")) {
+          return false;
+      }
+  }
   
   let isSurge8 = false;
   if (potentialLevel === Infinity) isSurge8 = true;
