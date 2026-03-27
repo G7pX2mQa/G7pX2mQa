@@ -23,17 +23,7 @@ function loop(timestamp) {
   if (!timestamp) timestamp = performance.now();
   const now = timestamp;
   
-  const fpsCap = settingsManager.get('fps_cap');
-  if (fpsCap && fpsCap < maxRefreshRate) {
-    const minFrameTime = 1000 / fpsCap;
-    if (now - lastFrameTime < minFrameTime) {
-      rafId = requestAnimationFrame(loop);
-      return;
-    }
-    lastFrameTime = now - (now - lastFrameTime) % minFrameTime;
-  } else {
-    lastFrameTime = now;
-  }
+  lastFrameTime = now;
 
   if (paused) {
       lastTime = now;
