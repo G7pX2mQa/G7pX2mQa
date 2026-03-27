@@ -1,3 +1,4 @@
+import { settingsManager } from '../settingsManager.js';
 
 const VERTEX_SHADER = `
 precision mediump float;
@@ -109,7 +110,8 @@ export class WaterwheelRenderer {
         this.instances = []; // Array of DOM canvas contexts: { canvas, ctx }
         this.currentImageUrl = null;
         this.image = null; // Image object
-        this.layerCount = 30; // Number of layers
+        const quality = settingsManager.get('graphics_quality');
+        this.layerCount = quality !== undefined ? Math.max(1, Math.floor(30 * (quality / 10))) : 30; // Number of layers
         this.thickness = 0.4; // Thickness of the stack
         
         this.rotation = Math.PI / 2;
