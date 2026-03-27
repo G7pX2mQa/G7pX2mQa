@@ -110,8 +110,8 @@ export class WaterwheelRenderer {
         this.instances = []; // Array of DOM canvas contexts: { canvas, ctx }
         this.currentImageUrl = null;
         this.image = null; // Image object
-        const quality = settingsManager.get('graphics_quality');
-        this.layerCount = quality !== undefined ? Math.max(1, Math.floor(30 * (quality / 10))) : 30; // Number of layers
+        this.layerCount = 30; this._qualityChecked = false;
+        
         this.thickness = 0.4; // Thickness of the stack
         
         this.rotation = Math.PI / 2;
@@ -119,6 +119,16 @@ export class WaterwheelRenderer {
         this._dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
 
         this._setupOffscreenWebGL();
+    }
+
+    _updateQualitySetting() {
+        if (!this._qualityChecked && typeof settingsManager !== 'undefined' && settingsManager.get) {
+            const quality = settingsManager.get('graphics_quality');
+            if (quality !== undefined) {
+                this.layerCount = Math.max(1, Math.floor(30 * (quality / 10)));
+                this._qualityChecked = true;
+            }
+        }
     }
 
     _setupOffscreenWebGL() {
@@ -219,6 +229,8 @@ export class WaterwheelRenderer {
 
     render(dt) {
         if (!this.gl || !this.texture || this.instances.length === 0) return;
+
+        this._updateQualitySetting();
 
         // Rotate
         this.rotation += dt * this.speed;
