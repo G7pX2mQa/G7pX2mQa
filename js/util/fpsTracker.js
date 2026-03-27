@@ -1,9 +1,7 @@
 
-export const SHOW_FPS = true;
+import { settingsManager } from '../game/settingsManager.js';
 
 export function initFpsTracker() {
-  if (!SHOW_FPS) return;
-
   const fpsDiv = document.createElement('div');
   fpsDiv.id = 'fps-tracker';
   Object.assign(fpsDiv.style, {
@@ -18,7 +16,12 @@ export function initFpsTracker() {
     fontSize: '12px',
     pointerEvents: 'none',
   });
+  fpsDiv.style.display = settingsManager.get('show_fps') ? 'block' : 'none';
   document.body.appendChild(fpsDiv);
+
+  settingsManager.subscribe('show_fps', (show) => {
+    fpsDiv.style.display = show ? 'block' : 'none';
+  });
 
   let frameCount = 0;
   let lastTime = performance.now();
