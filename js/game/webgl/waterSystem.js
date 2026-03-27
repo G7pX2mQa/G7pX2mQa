@@ -1,4 +1,5 @@
 import { isMerchantOpen } from '../../ui/merchantTabs/dlgTab.js';
+import { settingsManager } from '../settingsManager.js';
 import {
     VERTEX_SHADER,
     BACKGROUND_FRAGMENT_SHADER,
