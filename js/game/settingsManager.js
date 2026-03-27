@@ -11,7 +11,7 @@ import {
   hasDoneExperimentReset
 } from '../ui/merchantTabs/resetTab.js';
 
-const SETTINGS_KEY_PREFIX = 'ccc_setting_';
+const SETTINGS_KEY_PREFIX = 'ccc:setting:';
 
 export const MUTATION_NAMES = [
   'Normal', 'Bronze', 'Silver', 'Gold', 'Sapphire', 'Emerald', 'Ruby', 'Amethyst',
@@ -185,11 +185,36 @@ class SettingsManager {
   constructor() {
     this.settings = {};
     this.listeners = {};
+    this._isDefault = {};
+    this._lastMax = {};
     this.loadAll();
 
     if (typeof window !== 'undefined') {
       window.addEventListener('saveSlot:change', () => {
         this.loadAll();
+      });
+      document.addEventListener('ccc:upgrades:changed', () => {
+        const def = SETTING_DEFINITIONS['magnet_radius'];
+        const currentVal = this.settings['magnet_radius'];
+        const oldMax = this._lastMax['magnet_radius'];
+        const newMax = typeof def.max === 'function' ? def.max() : def.max;
+        
+        if (this._isDefault['magnet_radius'] || currentVal >= oldMax) {
+          // User was at the maximum or using defaults, keep them at the new max
+          this.settings['magnet_radius'] = newMax;
+          if (!this._isDefault['magnet_radius']) {
+            this.set('magnet_radius', newMax); // Persist if it wasn't default
+          } else {
+            this.notify('magnet_radius', newMax);
+          }
+        } else {
+          // Cap the value if it exceeds the new max (e.g., if somehow newMax went down)
+          if (currentVal > newMax) {
+            this.settings['magnet_radius'] = newMax;
+            this.set('magnet_radius', newMax);
+          }
+        }
+        this._lastMax['magnet_radius'] = newMax;
       });
     }
   }
@@ -204,13 +229,20 @@ class SettingsManager {
   }
 
   loadAll() {
+    this._isDefault = {};
+    this._lastMax = {};
     for (const [key, def] of Object.entries(SETTING_DEFINITIONS)) {
+      if (def.max !== undefined) {
+        this._lastMax[key] = typeof def.max === 'function' ? def.max() : def.max;
+      }
       const storageKey = this._getKey(key);
       const stored = localStorage.getItem(storageKey);
       if (stored !== null) {
         this.settings[key] = JSON.parse(stored);
+        this._isDefault[key] = false;
       } else {
         this.settings[key] = typeof def.default === 'function' ? def.default() : def.default;
+        this._isDefault[key] = true;
       }
 
       // Always force user_interface to be true on load 
@@ -235,8 +267,11 @@ class SettingsManager {
   get(key) {
     if (!(key in SETTING_DEFINITIONS)) return false;
     const def = SETTING_DEFINITIONS[key];
-    if (this.settings[key] === undefined) {
+    if (this._isDefault[key]) {
       this.settings[key] = typeof def.default === 'function' ? def.default() : def.default;
+    } else if (this.settings[key] === undefined) {
+      this.settings[key] = typeof def.default === 'function' ? def.default() : def.default;
+      this._isDefault[key] = true;
     }
     // For magnet_radius, we must ensure the saved value isn't greater than current max level.
     if (key === 'magnet_radius') {
@@ -251,6 +286,7 @@ class SettingsManager {
   set(key, value) {
     if (!(key in SETTING_DEFINITIONS)) return;
     this.settings[key] = value;
+    this._isDefault[key] = false;
     const storageKey = this._getKey(key);
     localStorage.setItem(storageKey, JSON.stringify(value));
     this.notify(key, value);
