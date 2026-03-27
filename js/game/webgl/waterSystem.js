@@ -99,6 +99,12 @@ export class WaterSystem {
     }
 
     init(backCanvasId, frontCanvasId, numLayers = 5) {
+        const quality = settingsManager.get('graphics_quality');
+        if (quality !== undefined) {
+           if (quality <= 3) numLayers = 1;
+           else if (quality <= 7) numLayers = Math.max(1, Math.floor(numLayers / 2));
+           else if (quality < 10) numLayers = Math.max(1, numLayers - 1);
+        }
         this.fgLayers = [];
         this.bgCanvas = document.getElementById(backCanvasId);
         this.fgCanvas = document.getElementById(frontCanvasId);
