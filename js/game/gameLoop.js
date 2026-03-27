@@ -1,4 +1,6 @@
 import { markSaveSlotModified } from '../util/storage.js';
+import { settingsManager } from './settingsManager.js';
+import { maxRefreshRate } from '../util/refreshRate.js';
 
 export const TICK_RATE = 20;
 export const FIXED_STEP = 1 / TICK_RATE; // 0.05s
@@ -15,9 +17,24 @@ let lastRuntimeCheckReal = 0;
 let lastRuntimeCheckPerf = 0;
 const RUNTIME_CHECK_INTERVAL_MS = 2000;
 
+let lastFrameTime = 0;
+
 function loop(timestamp) {
   if (!timestamp) timestamp = performance.now();
   const now = timestamp;
+  
+  const fpsCap = settingsManager.get('fps_cap');
+  if (fpsCap && fpsCap < maxRefreshRate) {
+    const minFrameTime = 1000 / fpsCap;
+    if (now - lastFrameTime < minFrameTime) {
+      rafId = requestAnimationFrame(loop);
+      return;
+    }
+    lastFrameTime = now - (now - lastFrameTime) % minFrameTime;
+  } else {
+    lastFrameTime = now;
+  }
+
   if (paused) {
       lastTime = now;
       rafId = requestAnimationFrame(loop);
