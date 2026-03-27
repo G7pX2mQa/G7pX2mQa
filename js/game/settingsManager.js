@@ -93,18 +93,6 @@ export const SETTING_DEFINITIONS = {
     default: false,
     unlockCondition: () => true,
   },
-  fps_cap: {
-    id: 'fps_cap',
-    type: 'slider',
-    label: 'FPS Cap',
-    overlay: 'performance',
-    hasExtraInfo: false,
-    min: 1,
-    max: () => maxRefreshRate,
-    step: 1,
-    default: () => maxRefreshRate,
-    unlockCondition: () => true,
-  },
   graphics_quality: {
     id: 'graphics_quality',
     type: 'slider',
@@ -224,29 +212,6 @@ class SettingsManager {
     this.loadAll();
 
     if (typeof window !== 'undefined') {
-      import('../util/refreshRate.js').then(({ onRefreshRateMeasured }) => {
-        onRefreshRateMeasured((newMaxRefreshRate) => {
-           const def = SETTING_DEFINITIONS['fps_cap'];
-           const currentVal = this.settings['fps_cap'];
-           const oldMax = this._lastMax['fps_cap'] || 60;
-           
-           if (this._isDefault['fps_cap'] || currentVal >= oldMax) {
-              this.settings['fps_cap'] = newMaxRefreshRate;
-              if (!this._isDefault['fps_cap']) {
-                this.set('fps_cap', newMaxRefreshRate);
-              } else {
-                this.notify('fps_cap', newMaxRefreshRate);
-              }
-           } else {
-              if (currentVal > newMaxRefreshRate) {
-                this.settings['fps_cap'] = newMaxRefreshRate;
-                this.set('fps_cap', newMaxRefreshRate);
-              }
-           }
-           this._lastMax['fps_cap'] = newMaxRefreshRate;
-        });
-      });
-
       window.addEventListener('saveSlot:change', () => {
         this.loadAll();
       });
@@ -330,8 +295,8 @@ class SettingsManager {
       this.settings[key] = typeof def.default === 'function' ? def.default() : def.default;
       this._isDefault[key] = true;
     }
-    // For magnet_radius and fps_cap, we must ensure the saved value isn't greater than current max level.
-    if (key === 'magnet_radius' || key === 'fps_cap') {
+    // For magnet_radius, we must ensure the saved value isn't greater than current max level.
+    if (key === 'magnet_radius') {
       const maxLvl = typeof def.max === 'function' ? def.max() : def.max;
       if (this.settings[key] > maxLvl) {
          this.settings[key] = maxLvl;
