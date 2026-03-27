@@ -236,12 +236,6 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
         pointerDownPos = null;
       });
 
-      const unsub = settingsManager.subscribe(key, (newVal) => {
-        sliderInput.value = newVal;
-        updateSliderProgress();
-      });
-      unsubscribers.push(unsub);
-
       const labelsContainer = document.createElement("div");
       labelsContainer.className = "setting-slider-labels";
       
@@ -260,6 +254,23 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
       
       labelsContainer.append(minLabel, midLabel, maxLabel);
       
+      const unsub = settingsManager.subscribe(key, (newVal) => {
+        if (typeof def.max === 'function') {
+          const currentDefMax = def.max();
+          sliderInput.max = currentDefMax;
+          const currentDefMin = typeof def.min === 'function' ? def.min() : def.min;
+          sliderInput.min = currentDefMin;
+          const currentMidVal = (parseFloat(currentDefMin) + parseFloat(currentDefMax)) / 2;
+          
+          minLabel.innerHTML = `<span>${currentDefMin}</span>`;
+          midLabel.innerHTML = `<span>${currentMidVal}</span>`;
+          maxLabel.innerHTML = `<span>${currentDefMax}</span>`;
+        }
+        sliderInput.value = newVal;
+        updateSliderProgress();
+      });
+      unsubscribers.push(unsub);
+
       const markersContainer = document.createElement("div");
       markersContainer.className = "setting-slider-markers";
       markersContainer.innerHTML = `
