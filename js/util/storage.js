@@ -690,17 +690,6 @@ export function peekCurrency(slot, key) {
   try { return BigNum.fromAny(raw); } catch { return BigNum.fromInt(0); }
 }
 
-// -------------------- UTILITIES --------------------
-export function clearAllStorage() {
-  Object.values(KEYS).forEach((v) => {
-    if (typeof v === 'string') {
-      localStorage.removeItem(v);
-    } else if (typeof v === 'object') {
-      Object.values(v).forEach((sub) => localStorage.removeItem(sub));
-    }
-  });
-}
-
 // -------------------- BANK FACADE --------------------
 function makeCurrencyHandle(key) {
   // callable preview: bank.coins("1e3")
