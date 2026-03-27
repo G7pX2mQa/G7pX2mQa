@@ -295,7 +295,7 @@ export class WaterwheelRenderer {
         gl.vertexAttribPointer(aUv, 2, gl.FLOAT, false, 16, 8);
         
         for (let i = 0; i < this.layerCount; i++) {
-            const layerNorm = i / (this.layerCount - 1);
+            const layerNorm = this.layerCount <= 1 ? 0.5 : i / (this.layerCount - 1);
             gl.uniform1f(uLayerLoc, layerNorm);
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         }
