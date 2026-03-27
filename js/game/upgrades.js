@@ -2955,6 +2955,10 @@ export const REGISTRY = [
           surge5 = surgeLevel >= 5;
       }
 
+      if (surge5) {
+          return { locked: false };
+      }
+
       if (ctx.xpLevel < 201) {
           return {
               locked: true,
@@ -2968,22 +2972,18 @@ export const REGISTRY = [
           };
       }
 
-      if (!surge5) {
-          const revealText = "Reach Surge 5 to reveal this upgrade";
-          return {
-              locked: true,
-              iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-              titleOverride: HIDDEN_UPGRADE_TITLE,
-              descOverride: revealText,
-              reason: revealText,
-              hidden: true,
-              hideCost: true,
-              hideEffect: true,
-              useLockedBase: true,
-          };
-      }
-      
-      return { locked: false };
+      const revealText = "Reach Surge 5 to reveal this upgrade";
+      return {
+          locked: true,
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
+          descOverride: revealText,
+          reason: revealText,
+          hidden: true,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+      };
     },
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
@@ -3023,6 +3023,10 @@ export const REGISTRY = [
           surge7 = surgeLevel >= 7;
       }
 
+      if (surge7) {
+          return { locked: false };
+      }
+
       if (ctx.xpLevel < 201) {
           return {
               locked: true,
@@ -3036,22 +3040,18 @@ export const REGISTRY = [
           };
       }
 
-      if (!surge7) {
-          const revealText = "Reach Surge 7 to reveal this upgrade";
-          return {
-              locked: true,
-              iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-              titleOverride: HIDDEN_UPGRADE_TITLE,
-              descOverride: revealText,
-              reason: revealText,
-              hidden: true,
-              hideCost: true,
-              hideEffect: true,
-              useLockedBase: true,
-          };
-      }
-      
-      return { locked: false };
+      const revealText = "Reach Surge 7 to reveal this upgrade";
+      return {
+          locked: true,
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
+          descOverride: revealText,
+          reason: revealText,
+          hidden: true,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+      };
     },
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
@@ -3092,6 +3092,10 @@ export const REGISTRY = [
           surge20 = surgeLevel >= 20;
       }
 
+      if (surge20) {
+          return { locked: false };
+      }
+
       if (ctx.xpLevel < 201) {
           return {
               locked: true,
@@ -3105,22 +3109,18 @@ export const REGISTRY = [
           };
       }
 
-      if (!surge20) {
-          const revealText = "Reach Surge 20 to reveal this upgrade";
-          return {
-              locked: true,
-              iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-              titleOverride: HIDDEN_UPGRADE_TITLE,
-              descOverride: revealText,
-              reason: revealText,
-              hidden: true,
-              hideCost: true,
-              hideEffect: true,
-              useLockedBase: true,
-          };
-      }
-      
-      return { locked: false };
+      const revealText = "Reach Surge 20 to reveal this upgrade";
+      return {
+          locked: true,
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
+          descOverride: revealText,
+          reason: revealText,
+          hidden: true,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+      };
     },
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
