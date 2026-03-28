@@ -1,4 +1,4 @@
-export let maxRefreshRate = 600; // Default until measured
+export let maxRefreshRate = 60; // Default until measured
 export let refreshRateMeasured = false;
 
 const listeners = [];
