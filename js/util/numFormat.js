@@ -8,6 +8,22 @@
 
 import { BigNum, approxLog10BigNum } from './bigNum.js';
 
+let currentNumberNotation = 'Standard';
+
+export function setNumberNotation(notation) {
+  currentNumberNotation = notation;
+}
+
+function getNotationMode(E) {
+  if (currentNumberNotation === 'Standard' || E < 6) return 'Standard';
+  if (currentNumberNotation === 'Scientific (1e6+)') return E >= 6 ? 'Scientific' : 'Standard';
+  if (currentNumberNotation === 'Scientific (1e33+)') return E >= 33 ? 'Scientific' : 'Standard';
+  if (currentNumberNotation === 'Engineering (1e6+)') return E >= 6 ? 'Engineering' : 'Standard';
+  if (currentNumberNotation === 'Engineering (1e33+)') return E >= 33 ? 'Engineering' : 'Standard';
+  return 'Standard';
+}
+
+
 // Suffixes copied from CCC (descending exponents).
 const SUFFIX_ENTRIES = [
   [300,'NoNg'],[297,'OcNg'],[294,'SpNg'],[291,'SxNg'],[288,'QnNg'],[285,'QdNg'],[282,'TNg'],[279,'DNg'],[276,'UNg'],[273,'Ng'],
@@ -47,6 +63,7 @@ function addOneDigitString(str){
   return a.join('');
 }
 
+
 function formatExponentString(rawDigits, sign = '') {
   let ds = (rawDigits || '').replace(/^0+/, '') || '0';
 
@@ -57,13 +74,33 @@ function formatExponentString(rawDigits, sign = '') {
   }
 
   const E = ds.length - 1;
+  const mode = getNotationMode(E);
 
-  if (E <= 300) {
+  if (mode === 'Standard') {
+    if (E <= 300) {
+      const exp = Math.floor(E / 3) * 3;
+      const suffix = SUFFIX_BY_EXP.get(exp) || '';
+      const d = E - exp;              // 0..2
+      const intDigits = d + 1;        // 1..3
+      const decimals = 4 - intDigits; // to keep FOUR visible digits
+      const totalDigits = intDigits + decimals;
+
+      if (ds.length < totalDigits + 1) ds += '0'.repeat(totalDigits + 1 - ds.length);
+      let head = ds.slice(0, totalDigits);
+      const nextDigit = ds.charCodeAt(totalDigits) || 48;
+      if (nextDigit >= 53) head = addOneDigitString(head);
+
+      let intStr, fracStr;
+      if (head.length > totalDigits) { intStr = head.slice(0, intDigits + 1); fracStr = '0'.repeat(decimals); }
+      else { intStr = head.slice(0, intDigits); fracStr = head.slice(intDigits); }
+
+      return sign + `${intStr}${decimals ? '.' + fracStr : ''}${suffix}`;
+    }
+  } else if (mode === 'Engineering') {
     const exp = Math.floor(E / 3) * 3;
-    const suffix = SUFFIX_BY_EXP.get(exp) || '';
-    const d = E - exp;              // 0..2
-    const intDigits = d + 1;        // 1..3
-    const decimals = 4 - intDigits; // to keep FOUR visible digits
+    const d = E - exp;
+    const intDigits = d + 1;
+    const decimals = 4 - intDigits;
     const totalDigits = intDigits + decimals;
 
     if (ds.length < totalDigits + 1) ds += '0'.repeat(totalDigits + 1 - ds.length);
@@ -71,24 +108,44 @@ function formatExponentString(rawDigits, sign = '') {
     const nextDigit = ds.charCodeAt(totalDigits) || 48;
     if (nextDigit >= 53) head = addOneDigitString(head);
 
-    let intStr, fracStr;
-    if (head.length > totalDigits) { intStr = head.slice(0, intDigits + 1); fracStr = '0'.repeat(decimals); }
-    else { intStr = head.slice(0, intDigits); fracStr = head.slice(intDigits); }
-
-    return sign + `${intStr}${decimals ? '.' + fracStr : ''}${suffix}`;
+    let intStr, fracStr, finalExpStr;
+    if (head.length > totalDigits) { 
+      // Carry overflow
+      const newE = E + 1;
+      const newExp = Math.floor(newE / 3) * 3;
+      const newD = newE - newExp;
+      const newIntDigits = newD + 1;
+      const newDecimals = 4 - newIntDigits;
+      const newHead = "1000";
+      intStr = newHead.slice(0, newIntDigits);
+      fracStr = newHead.slice(newIntDigits);
+      finalExpStr = formatExponentString(String(newExp));
+      return sign + `${intStr}${newDecimals ? '.' + fracStr : ''}e${finalExpStr}`;
+    } else { 
+      intStr = head.slice(0, intDigits); 
+      fracStr = head.slice(intDigits); 
+    }
+    return sign + `${intStr}${decimals ? '.' + fracStr : ''}e${formatExponentString(String(exp))}`;
   }
 
-  // Beyond our table: show scientific-within-exponent with FOUR-digit mantissa
+  // Beyond our table (or Scientific notation within bounds): show scientific-within-exponent with FOUR-digit mantissa
   const totalDigits = 4; // 1 integer + 3 decimals
   if (ds.length < totalDigits + 1) ds += '0'.repeat(totalDigits + 1 - ds.length);
   let head = ds.slice(0, totalDigits);
   const nextDigit = ds.charCodeAt(totalDigits) || 48;
   if (nextDigit >= 53) head = addOneDigitString(head);
 
+  let finalE = E;
+  if (head.length > totalDigits) {
+    head = "1000";
+    finalE++;
+  }
+
   const mantInt  = head.slice(0, 1);
   const mantFrac = head.slice(1);
-  return sign + `${mantInt}.${mantFrac}e` + formatExponentString(String(E));
+  return sign + `${mantInt}.${mantFrac}e` + formatExponentString(String(finalE));
 }
+
 
 function formatPowerOf10Exponent(kDigits, sign = '') {
   // Fast path to detect k ≥ 303 without bigints
@@ -114,6 +171,7 @@ function formatPowerOf10Exponent(kDigits, sign = '') {
 
   return sign + intPart + fracPart + suffix;
 }
+
 
 function formatExponentChain(expRaw) {
   expRaw = String(expRaw).trim();
@@ -146,13 +204,39 @@ function formatExponentChain(expRaw) {
   let four = ds.slice(0, 4);
   const next = ds.charCodeAt(4) || 48;
   if (next >= 53) four = addOneDigitString(four); // handle rounding carry later
+  
+  // Account for overflow locally for format calc
+  let localK = k;
+  if (four.length > 4) {
+    localK++;
+  }
+  
+  const mode = getNotationMode(localK);
 
-  if (kGe303) {
+  if (kGe303 || mode === 'Scientific') {
     // Beyond our suffix table inside the exponent → scientific-of-exponent
     // Keep the (rounded) exponent mantissa ("3.617") and pretty-format k itself.
+    if (four.length > 4) {
+      four = "1000";
+    }
     const mant = four.slice(0,1) + '.' + four.slice(1);
     const sign2Prefix = (sign2 === '-') ? '-' : '';
-    return topSign + mant + 'e' + formatExponentString(kDigits, sign2Prefix);
+    return topSign + mant + 'e' + formatExponentString(localK > k ? String(localK) : kDigits, sign2Prefix);
+  } else if (mode === 'Engineering') {
+    const exp = Math.floor(localK / 3) * 3;
+    const remainder = localK - exp;
+    const intDigits = remainder + 1;
+    const decimals = 4 - intDigits;
+    
+    let intStr, fracStr;
+    if (four.length > 4) {
+        four = "1000";
+    }
+    intStr = four.slice(0, intDigits);
+    fracStr = four.slice(intDigits);
+    
+    const sign2Prefix = (sign2 === '-') ? '-' : '';
+    return topSign + sign2Prefix + intStr + (decimals ? ('.' + fracStr) : '') + 'e' + formatExponentString(String(exp));
   }
 
   // Within our suffix table: choose suffix and place the decimal based on remainder
@@ -184,6 +268,7 @@ function formatExponentChain(expRaw) {
   const sign2Prefix = (sign2 === '-') ? '-' : '';
   return topSign + sign2Prefix + intStr + (decimals ? ('.' + fracStr) : '') + suffix;
 }
+
 
  /* Ensures the mantissa is always  4 digits */
 function mantissaFourDigits(sci) {
@@ -228,6 +313,7 @@ function mantissaFourDigits(sci) {
 }
 
 // Public API
+
 export function formatNumber(bn){
   if (!(bn instanceof BigNum)) return String(bn);
   if (bn.isInfinite && bn.isInfinite()) return '<span class="infinity-symbol">∞</span>';
@@ -235,14 +321,49 @@ export function formatNumber(bn){
 
   const E = bn.decExp ?? (bn.e + (bn.p - 1)); // decimal exponent
 
-  // Scientific for >= 1e303 (but pretty-print the exponent chain)
-  if (E >= 303) {
-    return mantissaFourDigits(bn.toScientific(4));
-  }
-
   // Plain integers < 1e6 → locale grouping
   if (E < 6) {
     return localeInt(bn.toPlainIntegerString());
+  }
+  
+  const mode = getNotationMode(E);
+
+  // Scientific for >= 1e303 (but pretty-print the exponent chain)
+  if (E >= 303 || mode === 'Scientific') {
+    return mantissaFourDigits(bn.toScientific(4));
+  } else if (mode === 'Engineering') {
+    const exp = Math.floor(E / 3) * 3;
+    const d = E - exp;                 // 0..2
+    const intDigits = d + 1;           // 1..3
+    const decimals  = 4 - intDigits;   // make FOUR visible digits
+    const totalDigits = intDigits + decimals;
+
+    let s = bn.sig.toString().padStart(bn.p, '0');
+    if (s.length < totalDigits + 1) s += '0'.repeat(totalDigits + 1 - s.length);
+
+    let head = s.slice(0, totalDigits);
+    const nextDigit = s.charCodeAt(totalDigits) || 48;
+    if (nextDigit >= 53) head = addOneDigitString(head);
+
+    let intStr, fracStr;
+    if (head.length > totalDigits) {
+      const newE = E + 1;
+      const newExp = Math.floor(newE / 3) * 3;
+      const newD = newE - newExp;
+      const newIntDigits = newD + 1;
+      const newDecimals = 4 - newIntDigits;
+      
+      const newHead = "1000";
+      intStr = newHead.slice(0, newIntDigits);
+      fracStr = newHead.slice(newIntDigits);
+      return `${intStr}${newDecimals ? '.' + fracStr : ''}e${formatExponentString(String(newExp))}`;
+    }
+    else { 
+      intStr = head.slice(0, intDigits); 
+      fracStr = head.slice(intDigits); 
+    }
+
+    return `${intStr}${decimals ? '.' + fracStr : ''}e${formatExponentString(String(exp))}`;
   }
 
   // Suffix formatting using the legacy table
@@ -285,6 +406,7 @@ export function formatNumber(bn){
 
   return `${intStr}${decimals ? '.' + fracStr : ''}${suffix}`;
 }
+
 
 export function formatMultForUi(value) {
   try {
