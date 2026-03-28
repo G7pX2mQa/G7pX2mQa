@@ -547,6 +547,7 @@
 }
 
 .setting-dropdown-menu {
+  display: none;
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
@@ -585,8 +586,19 @@
 }
 
 .setting-dropdown-menu.is-open {
+  display: block;
   opacity: 1;
   visibility: visible;
+  transform: translateY(0);
+}
+
+.setting-dropdown-menu.is-upwards {
+  top: auto;
+  bottom: calc(100% + 6px);
+  transform: translateY(8px);
+}
+
+.setting-dropdown-menu.is-upwards.is-open {
   transform: translateY(0);
 }
 
