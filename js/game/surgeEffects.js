@@ -153,6 +153,10 @@ function applyTsunamiNerf(bn) {
   return bigNumFromLog10(log10 * effective);
 }
 
+export function refreshSurgeMultiplierCache() {
+  updateMultiplier();
+}
+
 function updateMultiplier() {
   const level = getCurrentSurgeLevel();
   cachedSurgeLevel = level;
