@@ -25,7 +25,7 @@ let mutationLevelIsInfiniteSnapshot = false;
 let mutationCurrentLevelStr = '0';
 let mutationUnsub = null;
 
-function updateMutationSnapshot(state) {
+export function updateMutationSnapshot(state) {
   if (!state || typeof state !== 'object') {
     mutationUnlockedSnapshot = false;
     mutationLevelIsInfiniteSnapshot = false;
