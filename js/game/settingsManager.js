@@ -151,7 +151,7 @@ export const SETTING_DEFINITIONS = {
       { value: 'Scientific (1e33+)', label: 'Scientific (1e33+)' },
       { value: 'Engineering (1e6+)', label: 'Engineering (1e6+)' },
       { value: 'Engineering (1e33+)', label: 'Engineering (1e33+)' },
-      { value: 'Extended Suffixes', label: 'Extended Suffixes' }
+      { value: 'Extended Suffixes', label: 'Extended Suffixes (hell)' }
     ],
     unlockCondition: () => true
   },
