@@ -26,6 +26,7 @@ let createSpawner;
 let initCoinPickup;
 let refreshCoinMultiplierCache;
 let refreshMpValueMultiplierCache;
+let updateMutationSnapshot;
 let initHudButtons;
 let installGhostTapGuard;
 let initGlobalGhostTap;
@@ -41,6 +42,7 @@ let getUpgAreaKey;
 let computeUpgradeEffects;
 let syncCurrencyMultipliersFromUpgrades;
 let initXpSystem;
+let syncCoinMultiplierWithXpLevel;
 let onUpgradesChanged;
 let registerPreloadedAudio;
 let initPopups;
@@ -52,6 +54,7 @@ let initResetSystemGame;
 let initMutationSystem;
 let getMutationCoinSprite;
 let onMutationChangeGame;
+let getMutationState;
 let setDebugPanelAccess;
 let applyStatMultiplierOverride;
 let startGameLoop;
@@ -775,16 +778,16 @@ images: [
 
   ({ initSlots } = slotsModule);
   ({ createSpawner } = spawnerModule);
-  ({ initCoinPickup, refreshCoinMultiplierCache, refreshMpValueMultiplierCache } = coinPickupModule);
+  ({ initCoinPickup, refreshCoinMultiplierCache, refreshMpValueMultiplierCache, updateMutationSnapshot } = coinPickupModule);
   ({ initHudButtons } = hudButtonsModule);
   ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults } = storageModule);
   void saveIntegrityModule;
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
   ({ syncCurrencyMultipliersFromUpgrades } = upgradeEffectsModule);
   ({ registerPreloadedAudio } = audioCacheModule);
-  ({ initXpSystem } = xpModule);
+  ({ initXpSystem, syncCoinMultiplierWithXpLevel } = xpModule);
   ({ initResetSystem: initResetSystemGame } = resetModule);
-  ({ initMutationSystem, getMutationCoinSprite, onMutationChange: onMutationChangeGame } = mutationModule);
+  ({ initMutationSystem, getMutationCoinSprite, onMutationChange: onMutationChangeGame, getMutationState } = mutationModule);
   ({ initPopups } = popupModule);
   ({ installSuspendSafeguards, restoreFromBackupIfNeeded: restoreSuspendBackup, markProgressDirty, flushBackupSnapshot } = safetyModule);
   ({ installGhostTapGuard, initGlobalGhostTap } = guardModule);
@@ -925,8 +928,10 @@ images: [
     
     refreshSurgeMultiplierCache();
     syncCurrencyMultipliersFromUpgrades();
+    syncCoinMultiplierWithXpLevel(true);
     refreshCoinMultiplierCache();
     refreshMpValueMultiplierCache();
+    updateMutationSnapshot(getMutationState());
 
     // Milestone 2: Offline Progress
     setLoaderProgress(loader, 0.4);
