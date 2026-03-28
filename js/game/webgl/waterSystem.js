@@ -94,18 +94,64 @@ export class WaterSystem {
         this.fgBrushBuffer = null;
 
         this._boundResize = null;
+        this._qualityUnsub = null;
+        this._baseNumLayers = 5;
         
         // Delve overlay optimization
         this.merchantOpenTimer = 0;
     }
 
-    init(backCanvasId, frontCanvasId, numLayers = 5) {
+    _applyQualitySettings() {
+        if (!this.glFg || !this.glBg) return;
+
         const quality = settingsManager.get('graphics_quality');
+        let numLayers = this._baseNumLayers;
+        let newSimRes = 512;
+
         if (quality !== undefined) {
-           if (quality <= 3) numLayers = 1;
-           else if (quality <= 7) numLayers = Math.max(1, Math.floor(numLayers / 2));
-           else if (quality < 10) numLayers = Math.max(1, numLayers - 1);
+            // Determine number of layers
+            if (quality <= 3) numLayers = 1;
+            else if (quality <= 7) numLayers = Math.max(1, Math.floor(this._baseNumLayers / 2));
+            else if (quality < 10) numLayers = Math.max(1, this._baseNumLayers - 1);
+
+            // Determine simulation resolution based on quality
+            if (quality <= 2) newSimRes = 128;
+            else if (quality <= 5) newSimRes = 256;
+            else newSimRes = 512;
         }
+
+        const simResChanged = this.simRes !== newSimRes;
+        const numLayersChanged = this.fgLayers.length !== numLayers;
+
+        if (simResChanged || numLayersChanged) {
+            this.simRes = newSimRes;
+            
+            this.initBgSimulation(); // Recreate background FBOs
+
+            // Clear out old fg layers textures/framebuffers
+            for (const layer of this.fgLayers) {
+                if (layer.readTexture) this.glFg.deleteTexture(layer.readTexture);
+                if (layer.writeTexture) this.glFg.deleteTexture(layer.writeTexture);
+                if (layer.readFBO) this.glFg.deleteFramebuffer(layer.readFBO);
+                if (layer.writeFBO) this.glFg.deleteFramebuffer(layer.writeFBO);
+            }
+            
+            this.fgLayers = [];
+            // Recreate Foreground Layers
+            for (let i = 0; i < numLayers; i++) {
+                const simResRsrc = this.createSimResources(this.glFg);
+                this.fgLayers.push({
+                    readFBO: simResRsrc.readFBO,
+                    writeFBO: simResRsrc.writeFBO,
+                    readTexture: simResRsrc.readTex,
+                    writeTexture: simResRsrc.writeTex
+                });
+            }
+        }
+    }
+
+    init(backCanvasId, frontCanvasId, numLayers = 5) {
+        this._baseNumLayers = numLayers;
         this.fgLayers = [];
         this.bgCanvas = document.getElementById(backCanvasId);
         this.fgCanvas = document.getElementById(frontCanvasId);
@@ -146,22 +192,17 @@ export class WaterSystem {
         this.glFg.bufferData(this.glFg.ARRAY_BUFFER, vertices, this.glFg.STATIC_DRAW);
         this.fgBrushBuffer = this.glFg.createBuffer();
 
-        // Initialize Foreground Layers (FBOs within single context)
-        for (let i = 0; i < numLayers; i++) {
-            const simRes = this.createSimResources(this.glFg);
-            this.fgLayers.push({
-                readFBO: simRes.readFBO,
-                writeFBO: simRes.writeFBO,
-                readTexture: simRes.readTex,
-                writeTexture: simRes.writeTex
-            });
-        }
+        this._applyQualitySettings(); // Initialize fgLayers and bgSimulation dynamically
 
         this.resize();
         
         if (!this._boundResize) {
             this._boundResize = () => this.resize();
             window.addEventListener('resize', this._boundResize);
+        }
+
+        if (!this._qualityUnsub) {
+            this._qualityUnsub = settingsManager.subscribe('graphics_quality', () => this._applyQualitySettings());
         }
     }
 
@@ -181,6 +222,11 @@ export class WaterSystem {
     }
 
     initBgSimulation() {
+        if (this.bgReadTexture) this.glBg.deleteTexture(this.bgReadTexture);
+        if (this.bgWriteTexture) this.glBg.deleteTexture(this.bgWriteTexture);
+        if (this.bgReadFBO) this.glBg.deleteFramebuffer(this.bgReadFBO);
+        if (this.bgWriteFBO) this.glBg.deleteFramebuffer(this.bgWriteFBO);
+
         const bgRes = this.createSimResources(this.glBg);
         this.bgReadFBO = bgRes.readFBO;
         this.bgWriteFBO = bgRes.writeFBO;
@@ -464,10 +510,13 @@ export class WaterSystem {
         glBg.viewport(0, 0, this.bgCanvas.width, this.bgCanvas.height);
         glBg.useProgram(this.bgProgram);
         
+        const quality = settingsManager.get('graphics_quality');
+
         glBg.uniform3fv(glBg.getUniformLocation(this.bgProgram, 'uColorDeep'), COLOR_DEEP);
         glBg.uniform3fv(glBg.getUniformLocation(this.bgProgram, 'uColorShallow'), COLOR_SHALLOW);
         glBg.uniform1f(glBg.getUniformLocation(this.bgProgram, 'uTime'), simTime);
         glBg.uniform2f(glBg.getUniformLocation(this.bgProgram, 'uResolution'), this.bgCanvas.width, this.bgCanvas.height);
+        glBg.uniform1f(glBg.getUniformLocation(this.bgProgram, 'uQuality'), quality);
 
         // Bind BG Sim Texture for distortion
         glBg.activeTexture(glBg.TEXTURE0);
@@ -502,6 +551,7 @@ export class WaterSystem {
             glFg.uniform3fv(glFg.getUniformLocation(this.fgProgram, 'uColorWaveDeep'), COLOR_WAVE_DEEP);
             glFg.uniform1f(glFg.getUniformLocation(this.fgProgram, 'uTime'), simTime);
             glFg.uniform2f(glFg.getUniformLocation(this.fgProgram, 'uResolution'), this.fgCanvas.width, this.fgCanvas.height);
+            glFg.uniform1f(glFg.getUniformLocation(this.fgProgram, 'uQuality'), quality);
 
             glFg.bindBuffer(glFg.ARRAY_BUFFER, this.quadBufferFg);
             const aPosFg = glFg.getAttribLocation(this.fgProgram, 'position');
