@@ -47,6 +47,23 @@ function measureRefreshRate() {
       refreshRateMeasured = true;
       listeners.forEach(cb => cb(maxRefreshRate));
       listeners.length = 0; // Clear
+      
+      // If we measured <= 60, it might be due to background throttling before user interaction.
+      // Re-measure once upon first interaction to be sure.
+      if (maxRefreshRate <= 60 && !window.__hasRemeasuredRefreshRate) {
+        window.__hasRemeasuredRefreshRate = true;
+        
+        const remeasure = () => {
+          window.removeEventListener('pointerdown', remeasure);
+          window.removeEventListener('keydown', remeasure);
+          
+          refreshRateMeasured = false; // Reset flag to allow listeners if any re-subscribe
+          measureRefreshRate();
+        };
+        
+        window.addEventListener('pointerdown', remeasure, { once: true });
+        window.addEventListener('keydown', remeasure, { once: true });
+      }
     } else {
       rafId = requestAnimationFrame(loop);
     }
