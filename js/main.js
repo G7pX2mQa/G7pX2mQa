@@ -24,6 +24,8 @@ if (IS_MOBILE) {
 let initSlots;
 let createSpawner;
 let initCoinPickup;
+let refreshCoinMultiplierCache;
+let refreshMpValueMultiplierCache;
 let initHudButtons;
 let installGhostTapGuard;
 let initGlobalGhostTap;
@@ -33,8 +35,11 @@ let getHasOpenedSaveSlot;
 let setHasOpenedSaveSlot;
 let ensureStorageDefaults;
 let ensureMultiplierDefaults;
+let initSurgeEffects;
+let refreshSurgeMultiplierCache;
 let getUpgAreaKey;
 let computeUpgradeEffects;
+let syncCurrencyMultipliersFromUpgrades;
 let initXpSystem;
 let onUpgradesChanged;
 let registerPreloadedAudio;
@@ -552,6 +557,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./util/storage.js'),
     import('./util/saveIntegrity.js'),
     import('./game/upgrades.js'),
+    import('./game/upgradeEffects.js'),
     import('./util/audioCache.js'),
     import('./game/xpSystem.js'),
     import('./ui/merchantTabs/resetTab.js'),
@@ -743,6 +749,7 @@ images: [
     storageModule,
     saveIntegrityModule,
     upgradesModule,
+    upgradeEffectsModule,
     audioCacheModule,
     xpModule,
     resetModule,
@@ -768,11 +775,12 @@ images: [
 
   ({ initSlots } = slotsModule);
   ({ createSpawner } = spawnerModule);
-  ({ initCoinPickup } = coinPickupModule);
+  ({ initCoinPickup, refreshCoinMultiplierCache, refreshMpValueMultiplierCache } = coinPickupModule);
   ({ initHudButtons } = hudButtonsModule);
   ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults } = storageModule);
   void saveIntegrityModule;
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
+  ({ syncCurrencyMultipliersFromUpgrades } = upgradeEffectsModule);
   ({ registerPreloadedAudio } = audioCacheModule);
   ({ initXpSystem } = xpModule);
   ({ initResetSystem: initResetSystemGame } = resetModule);
@@ -787,7 +795,7 @@ images: [
   const { initWorkshopSystem } = workshopTabModule;
   const { initAutomationEffects } = automationEffectsModule;
   ({ ensureGameDom } = domInitModule);
-  const { initSurgeEffects } = surgeEffectsModule;
+  ({ initSurgeEffects, refreshSurgeMultiplierCache } = surgeEffectsModule);
   ({ waterSystem } = waterSystemModule);
   const { initLabLogic } = labTabModule;
   const { initFpsTracker } = fpsTrackerModule;
@@ -915,6 +923,11 @@ images: [
     await stepDelay();
     ensureMultiplierDefaults();
     
+    refreshSurgeMultiplierCache();
+    syncCurrencyMultipliersFromUpgrades();
+    refreshCoinMultiplierCache();
+    refreshMpValueMultiplierCache();
+
     // Milestone 2: Offline Progress
     setLoaderProgress(loader, 0.4);
     await stepDelay();
