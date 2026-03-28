@@ -8,7 +8,7 @@ export function initFpsTracker() {
     position: 'fixed',
     top: '0',
     left: '0',
-    zIndex: '2147483647',
+    zIndex: '2147483643',
     background: '#000',
     color: '#fff',
     fontFamily: 'monospace',
