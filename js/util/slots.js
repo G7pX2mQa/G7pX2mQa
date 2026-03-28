@@ -18,7 +18,8 @@ function coinsTextFor(slot) {
   if (!hasSlotData(slot)) return 'No Save Data';
   try {
     const bn = peekCurrency(slot, 'coins'); // BigNum
-    return formatNumber(bn);
+    const notation = localStorage.getItem(`ccc:setting:number_notation:${slot}`);
+    return formatNumber(bn, notation ? JSON.parse(notation) : null);
   } catch {
     return '0';
   }
