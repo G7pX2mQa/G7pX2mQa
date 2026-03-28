@@ -15,7 +15,9 @@ export function setNumberNotation(notation) {
 }
 
 function getNotationMode(E) {
-  if (currentNumberNotation === 'Standard' || E < 6) return 'Standard';
+  if (E < 6) return 'Standard';
+  if (currentNumberNotation === 'Standard') return 'Standard';
+  if (currentNumberNotation === 'Extended Suffixes') return 'Extended Suffixes';
   if (currentNumberNotation === 'Scientific (1e6+)') return E >= 6 ? 'Scientific' : 'Standard';
   if (currentNumberNotation === 'Scientific (1e33+)') return E >= 33 ? 'Scientific' : 'Standard';
   if (currentNumberNotation === 'Engineering (1e6+)') return E >= 6 ? 'Engineering' : 'Standard';
@@ -23,6 +25,53 @@ function getNotationMode(E) {
   return 'Standard';
 }
 
+
+const EXT_SUFFIX_UNITS = ['', 'U', 'D', 'T', 'Qd', 'Qn', 'Sx', 'Sp', 'Oc', 'No'];
+const EXT_SUFFIX_TENS = ['', 'De', 'Vt', 'Tg', 'qg', 'Qg', 'sg', 'Sg', 'Og', 'Ng'];
+const EXT_SUFFIX_HUNDREDS = ['', 'Ce', 'Dn', 'Tc', 'Qe', 'Qu', 'Sc', 'St', 'Oe', 'Ne'];
+const EXT_SUFFIX_TIERS = ['', 'Mi', 'Mc', 'Na', 'Pc', 'Fm', 'At', 'Zp', 'Yc', 'Xn', 'Ve', 'Me'];
+
+function getAbbreviation(illion) {
+  if (illion === 0) return '';
+  const u = illion % 10;
+  const t = Math.floor(illion / 10) % 10;
+  const h = Math.floor(illion / 100) % 10;
+  return EXT_SUFFIX_UNITS[u] + EXT_SUFFIX_TENS[t] + EXT_SUFFIX_HUNDREDS[h];
+}
+
+function getExtendedSuffix(illion) {
+  if (illion === 0) return '';
+  
+  let result = '';
+  let tier = 0;
+  let remaining = illion;
+  
+  while (remaining > 0) {
+    const chunk = remaining % 1000;
+    remaining = Math.floor(remaining / 1000);
+    
+    if (chunk > 0) {
+      let chunkSuffix = getAbbreviation(chunk);
+      
+      if (tier > 0) {
+        if (chunk === 1) {
+          chunkSuffix = ''; // For 1*1000^x, use 'Mi' instead of 'UMi'
+        }
+        
+        if (tier < EXT_SUFFIX_TIERS.length) {
+          chunkSuffix += EXT_SUFFIX_TIERS[tier];
+        } else {
+          chunkSuffix += getAbbreviation(tier);
+        }
+      }
+      
+      result = chunkSuffix + result;
+    }
+    tier++;
+  }
+  
+  return result;
+}
 
 // Suffixes copied from CCC (descending exponents).
 const SUFFIX_ENTRIES = [
@@ -329,7 +378,7 @@ export function formatNumber(bn){
   const mode = getNotationMode(E);
 
   // Scientific for >= 1e303 (but pretty-print the exponent chain)
-  if (E >= 303 || mode === 'Scientific') {
+  if (mode === 'Scientific' || (mode === 'Standard' && E >= 303)) {
     return mantissaFourDigits(bn.toScientific(4));
   } else if (mode === 'Engineering') {
     const exp = Math.floor(E / 3) * 3;
@@ -364,6 +413,47 @@ export function formatNumber(bn){
     }
 
     return `${intStr}${decimals ? '.' + fracStr : ''}e${formatExponentString(String(exp))}`;
+  }
+
+  if (mode === 'Extended Suffixes') {
+    const exp = Math.floor(E / 3) * 3;
+    const illion = Math.floor(E / 3) - 1;
+    const suffix = illion < 100 ? SUFFIX_BY_EXP.get(exp) : getExtendedSuffix(illion);
+    
+    const d = E - exp;                 // 0..2
+    const intDigits = d + 1;           // 1..3
+    const decimals  = 4 - intDigits;   // make FOUR visible digits
+    const totalDigits = intDigits + decimals;
+
+    let s = bn.sig.toString().padStart(bn.p, '0');
+    if (s.length < totalDigits + 1) s += '0'.repeat(totalDigits + 1 - s.length);
+
+    let head = s.slice(0, totalDigits);
+    const nextDigit = s.charCodeAt(totalDigits) || 48;
+    if (nextDigit >= 53) head = addOneDigitString(head);
+
+    let intStr, fracStr;
+    if (head.length > totalDigits) {
+      const newE = E + 1;
+      const newExp = Math.floor(newE / 3) * 3;
+      const newIllion = Math.floor(newE / 3) - 1;
+      const newSuffix = newIllion < 100 ? SUFFIX_BY_EXP.get(newExp) : getExtendedSuffix(newIllion);
+      
+      const newD = newE - newExp;
+      const newIntDigits = newD + 1;
+      const newDecimals = 4 - newIntDigits;
+      
+      const newHead = "1000";
+      intStr = newHead.slice(0, newIntDigits);
+      fracStr = newHead.slice(newIntDigits);
+      return E >= 1000000 ? newSuffix : `${intStr}${newDecimals ? '.' + fracStr : ''}${newSuffix}`;
+    }
+    else { 
+      intStr = head.slice(0, intDigits); 
+      fracStr = head.slice(intDigits); 
+    }
+
+    return E >= 1000000 ? suffix : `${intStr}${decimals ? '.' + fracStr : ''}${suffix}`;
   }
 
   // Suffix formatting using the legacy table
