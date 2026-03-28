@@ -19,12 +19,10 @@ export function initFpsTracker() {
   fpsDiv.style.display = settingsManager.get('show_fps') ? 'block' : 'none';
   document.body.appendChild(fpsDiv);
 
-  settingsManager.subscribe('show_fps', (show) => {
-    fpsDiv.style.display = show ? 'block' : 'none';
-  });
 
   let frameCount = 0;
   let lastTime = performance.now();
+  let rafId = null;
 
   function loop(now) {
     frameCount++;
@@ -37,8 +35,22 @@ export function initFpsTracker() {
       lastTime = now;
     }
     
-    requestAnimationFrame(loop);
+    rafId = requestAnimationFrame(loop);
   }
 
-  requestAnimationFrame(loop);
+  settingsManager.subscribe('show_fps', (show) => {
+    fpsDiv.style.display = show ? 'block' : 'none';
+    if (show && !rafId) {
+        lastTime = performance.now();
+        frameCount = 0;
+        rafId = requestAnimationFrame(loop);
+    } else if (!show && rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+    }
+  });
+
+  if (settingsManager.get('show_fps')) {
+      rafId = requestAnimationFrame(loop);
+  }
 }
