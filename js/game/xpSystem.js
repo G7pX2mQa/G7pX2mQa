@@ -703,7 +703,7 @@ function xpLevelBigIntInfo(xpLevelValue) {
   }
 }
 
-function syncCoinMultiplierWithXpLevel(force = false) {
+export function syncCoinMultiplierWithXpLevel(force = false) {
   const multApi = bank?.coins?.mult;
   if (!multApi || typeof multApi.set !== 'function' || typeof multApi.multiplyByDecimal !== 'function') {
     return;
