@@ -95,7 +95,7 @@ export class WaterSystem {
 
         this._boundResize = null;
         this._qualityUnsub = null;
-        this._baseNumLayers = 5;
+        this._baseNumLayers = 11;
         
         // Delve overlay optimization
         this.merchantOpenTimer = 0;
@@ -110,9 +110,7 @@ export class WaterSystem {
 
         if (quality !== undefined) {
             // Determine number of layers
-            if (quality <= 3) numLayers = 1;
-            else if (quality <= 7) numLayers = Math.max(1, Math.floor(this._baseNumLayers / 2));
-            else if (quality < 10) numLayers = Math.max(1, this._baseNumLayers - 1);
+            numLayers = Math.max(1, 11 - (10 - quality));
 
             // Determine simulation resolution based on quality
             if (quality <= 2) newSimRes = 128;
