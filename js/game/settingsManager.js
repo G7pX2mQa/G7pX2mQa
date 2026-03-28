@@ -2,6 +2,7 @@
 
 import { getActiveSlot } from '../util/storage.js';
 import { getHighestMutationLevel } from './mutationSystem.js';
+import { setNumberNotation } from '../util/numFormat.js';
 import { IS_MOBILE } from '../main.js';
 import { getMagnetLevel } from './upgrades.js';
 import {
@@ -126,6 +127,7 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => true,
   },
 
+
   magnet_radius: {
     id: 'magnet_radius',
     type: 'slider',
@@ -137,6 +139,22 @@ export const SETTING_DEFINITIONS = {
     default: () => getMagnetLevel(),
     unlockCondition: () => getMagnetLevel() >= 1,
   },
+  number_notation: {
+    id: 'number_notation',
+    type: 'dropdown',
+    label: 'Number Notation',
+    hasExtraInfo: false,
+    default: 'Standard',
+    options: [
+      { value: 'Standard', label: 'Standard' },
+      { value: 'Scientific (1e6+)', label: 'Scientific (1e6+)' },
+      { value: 'Scientific (1e33+)', label: 'Scientific (1e33+)' },
+      { value: 'Engineering (1e6+)', label: 'Engineering (1e6+)' },
+      { value: 'Engineering (1e33+)', label: 'Engineering (1e33+)' }
+    ],
+    unlockCondition: () => true
+  },
+
   coin_mutation_visual: {
     id: 'coin_mutation_visual',
     type: 'dropdown',
@@ -298,6 +316,7 @@ class SettingsManager {
 
       this.notify(key, this.settings[key]);
     }
+    setNumberNotation(this.settings['number_notation'] || 'Standard');
   }
 
   refresh(key) {
@@ -331,6 +350,11 @@ class SettingsManager {
     this._isDefault[key] = false;
     const storageKey = this._getKey(key);
     localStorage.setItem(storageKey, JSON.stringify(value));
+    
+    if (key === 'number_notation') {
+      setNumberNotation(value);
+    }
+    
     this.notify(key, value);
   }
 
