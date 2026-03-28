@@ -1,4 +1,3 @@
-
 .offline-overlay {
     position: fixed;
     inset: 0;
@@ -80,7 +79,7 @@
     flex-direction: column;
     gap: 2px;
     width: 100%;
-    max-width: 600px;
+    max-width: 100%;
     padding-top: 8px;
     padding-bottom: 8px;
 }
