@@ -111,7 +111,7 @@ export function setCoinMultiplier(x) {
   } catch {}
 }
 
-function refreshMpValueMultiplierCache() {
+export function refreshMpValueMultiplierCache() {
   try {
     const next = getMpValueMultiplierBn();
     if (next instanceof BigNum) {
@@ -539,7 +539,7 @@ export function clearPendingGains() {
 let coinMultiplierBn = null;
 let coinMultiplierIsInfinite = false;
 
-const refreshCoinMultiplierCache = () => {
+export const refreshCoinMultiplierCache = () => {
   try {
     const multHandle = bank?.coins?.mult;
     if (!multHandle || typeof multHandle.get !== 'function') {
