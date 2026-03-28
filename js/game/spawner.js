@@ -635,7 +635,11 @@ export function createSpawner({
           requestAnimationFrame(() => {
             for (const c of newCoins) {
                 if (!c.el) continue;
-                c.el.style.transition = `transform ${animationDurationMs}ms ${CUBIC_BEZIER} ${c.jitterMs}ms`;
+                if (settingsManager.get('insta_teleport')) {
+                    c.el.style.transition = 'none';
+                } else {
+                    c.el.style.transition = `transform ${animationDurationMs}ms ${CUBIC_BEZIER} ${c.jitterMs}ms`;
+                }
                 c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
                 c.el.style.opacity = '1'; // Show after wave renders
             }
@@ -911,10 +915,10 @@ export function createSpawner({
               }
               
               const elapsed = now - c.startTime;
-              if (elapsed < 0) continue;
+              if (elapsed < 0 && !settingsManager.get('insta_teleport')) continue;
               
               let t = elapsed / c.duration;
-              if (t >= 1) {
+              if (t >= 1 || settingsManager.get('insta_teleport')) {
                   c.settled = true;
                   c.x = c.endX;
                   c.y = c.endY;
