@@ -1136,7 +1136,7 @@ function openDialogueModal(id, meta) {
   primeTypingSfx();
 
   let scriptId = meta.scriptId;
-  if (String(id) === '6' && typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
+  if (isLabUnlocked() && typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
       scriptId = 7;
   }
   setMusicUnderwater(true);
