@@ -74,7 +74,7 @@
   transform: translateX(-50%);
   width: max-content;
   max-width: 300px;
-  background: linear-gradient(to bottom, rgba(60,60,60,0.95), rgba(40,40,40,0.95));
+  background: linear-gradient(to bottom, rgba(60,60,60,1), rgba(40,40,40,1));
   color: #fff;
   font-size: 14px;
   line-height: 1.4;
@@ -97,7 +97,7 @@
   transform: translateX(-50%);
   border-width: 6px;
   border-style: solid;
-  border-color: transparent transparent rgba(60,60,60,0.95) transparent;
+  border-color: transparent transparent rgba(60,60,60,1) transparent;
 }
 
 .setting-info-icon:hover .setting-info-tooltip,
