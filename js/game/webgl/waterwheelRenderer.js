@@ -122,11 +122,10 @@ export class WaterwheelRenderer {
     }
 
     _updateQualitySetting() {
-        if (!this._qualityChecked && typeof settingsManager !== 'undefined' && settingsManager.get) {
+        if (typeof settingsManager !== 'undefined' && settingsManager.get) {
             const quality = settingsManager.get('graphics_quality');
             if (quality !== undefined) {
                 this.layerCount = Math.max(1, Math.floor(30 * (quality / 10)));
-                this._qualityChecked = true;
             }
         }
     }
