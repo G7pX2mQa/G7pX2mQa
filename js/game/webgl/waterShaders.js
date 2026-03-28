@@ -18,6 +18,7 @@ precision mediump float;
 varying vec2 vUv;
 uniform float uTime;
 uniform vec2 uResolution;
+uniform float uQuality;
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
 
@@ -41,17 +42,25 @@ void main() {
         discard;
     }
 
-    /* Recalculate gradient based on the new "bottom" */
-    /* Map vUv.y from [threshold, 1.0] to [0.0, 1.0] */
-    float gradientY = clamp((vUv.y - threshold) / (1.0 - threshold), 0.0, 1.0);
-    
-    vec3 col = mix(uColorShallow, uColorDeep, gradientY);
-    
-    /* Add a subtle "foam" or highlight at the edge */
-    float edge = 1.0 - smoothstep(0.0, 0.028, vUv.y - threshold);
-    col = mix(col, vec3(1.0, 1.0, 1.0), edge * 0.4);
-    
-    gl_FragColor = vec4(col, 1.0);
+    /* Low Quality: Solid blue with simple white highlight */
+    if (uQuality <= 4.0) {
+        vec3 col = mix(uColorShallow, uColorDeep, 0.5);
+        float edge = (vUv.y - threshold) < 0.015 ? 1.0 : 0.0;
+        col = mix(col, vec3(1.0, 1.0, 1.0), edge * 0.5);
+        gl_FragColor = vec4(col, 1.0);
+    } else {
+        /* Recalculate gradient based on the new "bottom" */
+        /* Map vUv.y from [threshold, 1.0] to [0.0, 1.0] */
+        float gradientY = clamp((vUv.y - threshold) / (1.0 - threshold), 0.0, 1.0);
+        
+        vec3 col = mix(uColorShallow, uColorDeep, gradientY);
+        
+        /* Add a subtle "foam" or highlight at the edge */
+        float edge = 1.0 - smoothstep(0.0, 0.028, vUv.y - threshold);
+        col = mix(col, vec3(1.0, 1.0, 1.0), edge * 0.4);
+        
+        gl_FragColor = vec4(col, 1.0);
+    }
 }`;
 
 /* --- FOREGROUND SHADER (Waves/Surges) --- */
@@ -65,6 +74,7 @@ precision mediump float;
 varying vec2 vUv;
 uniform float uTime;
 uniform vec2 uResolution;
+uniform float uQuality;
 uniform sampler2D uWaveMap; 
 uniform vec3 uColorDeep;
 uniform vec3 uColorShallow;
@@ -99,38 +109,46 @@ void main() {
     /* Discard only if BOTH are empty */
     if (0.01 > intensity && 0.01 > shadowIntensity) discard;
     
-    /* Directional Noise: Streaky vertical noise for rushing water effect */
-    /* Stretch heavily along Y-axis to simulate speed/motion blur */
-    float streakyNoise = noise(vec2(uv.x * 60.0, uv.y * 4.0 + uTime * 4.0));
-    
-    /* Define Zones based on Intensity */
-    /* Body (Medium Intensity): Darker/turbulent blue with noise */
-    /* Edge (High Intensity): Bright white foam */
-    
-    float foamThreshold = 0.5;
-    float foamMix = smoothstep(foamThreshold, foamThreshold + 0.2, intensity);
-    
     /* Base Colors */
     vec3 bodyColor = uColorWaveDeep;
     vec3 foamColor = uColorWave;
     
-    /* Mix Colors */
-    vec3 finalColor = mix(bodyColor, foamColor, foamMix);
+    vec3 finalColor;
+    float finalAlpha;
     
-    /* Add streaks to the body part */
-    if (0.9 > foamMix) {
-        finalColor += (streakyNoise - 0.5) * 0.15 * (1.0 - foamMix);
+    /* Low Quality: simple colors without noise and simple crisp edges */
+    if (uQuality <= 4.0) {
+        float sharpFoam = intensity > 0.65 ? 1.0 : 0.0;
+        finalColor = mix(bodyColor, foamColor, sharpFoam);
+        finalAlpha = intensity > 0.05 ? 1.0 : 0.0;
+    } else {
+        /* Directional Noise: Streaky vertical noise for rushing water effect */
+        /* Stretch heavily along Y-axis to simulate speed/motion blur */
+        float streakyNoise = noise(vec2(uv.x * 60.0, uv.y * 4.0 + uTime * 4.0));
+        
+        /* Define Zones based on Intensity */
+        /* Body (Medium Intensity): Darker/turbulent blue with noise */
+        /* Edge (High Intensity): Bright white foam */
+        float foamThreshold = 0.5;
+        float foamMix = smoothstep(foamThreshold, foamThreshold + 0.2, intensity);
+        
+        /* Mix Colors */
+        finalColor = mix(bodyColor, foamColor, foamMix);
+        
+        /* Add streaks to the body part */
+        if (0.9 > foamMix) {
+            finalColor += (streakyNoise - 0.5) * 0.15 * (1.0 - foamMix);
+        }
+        
+        /* Hard Edge & Opacity */
+        /* Ensure the front (bottom) remains sharp, back trails off */
+        
+        /* Calculate Alpha based on Intensity */
+        /* High Intensity (Front/Bottom): Alpha 1.0 (Fully Opaque) */
+        /* Medium Intensity (Body): Alpha 1.0 (Fully Opaque) */
+        /* Low Intensity (Top/Tail): Fades to 0.0 */
+        finalAlpha = smoothstep(0.02, 0.15, intensity);
     }
-    
-    /* Hard Edge & Opacity */
-    /* Ensure the front (bottom) remains sharp, back trails off */
-    
-    /* Calculate Alpha based on Intensity */
-    /* High Intensity (Front/Bottom): Alpha 1.0 (Fully Opaque) */
-    /* Medium Intensity (Body): Alpha 1.0 (Fully Opaque) */
-    /* Low Intensity (Top/Tail): Fades to 0.0 */
-    
-    float finalAlpha = smoothstep(0.02, 0.15, intensity);
     
     /* Screen Fade */
     /* OLD: float screenFade = smoothstep(0.0, 0.1, uv.y) * (1.0 - smoothstep(0.9, 1.0, uv.y)); */
@@ -250,8 +268,9 @@ void main() {
     vec2 uv = gl_FragCoord.xy / uResolution;
     
     /* Flow Downwards */
-    /* Speed: 16.0 pixels per frame (at sim res) -> 960.0 pixels per second */
-    vec2 flow = vec2(0.0, (685.0 * uDt) / uResolution.y); 
+    /* Speed: scale speed relative to the base 512.0 resolution so physics is consistent */
+    float resRatio = uResolution.y / 512.0;
+    vec2 flow = vec2(0.0, (685.0 * resRatio * uDt) / uResolution.y); 
     
     vec2 sourceUv = uv + flow;
 
