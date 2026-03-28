@@ -171,7 +171,7 @@ function minifyTemplateBody(body, isWebGL = false) {
         if (isWebGL) {
           text = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
         }
-        if (body.includes("<")) {
+        if (!isWebGL && body.includes("<")) {
           text = minifyHtmlChunk(text, false);
         }
         return text;
