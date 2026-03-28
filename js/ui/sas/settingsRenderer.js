@@ -408,10 +408,86 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
           }
         });
         
+        const wasOpen = dropdownMenu.classList.contains("is-open");
+        
         // Before opening, rebuild the menu in case options changed dynamically
         buildMenu();
         
-        dropdownMenu.classList.toggle("is-open");
+        if (!wasOpen) {
+          // Temporarily make it visible to get its scrollHeight
+          const origVisibility = dropdownMenu.style.visibility;
+          const origDisplay = dropdownMenu.style.display;
+          
+          dropdownMenu.style.visibility = "hidden";
+          dropdownMenu.style.display = "block";
+          dropdownMenu.style.maxHeight = "none";
+          dropdownMenu.classList.add("is-open");
+          
+          const menuHeight = dropdownMenu.scrollHeight;
+          const rect = dropdownBtn.getBoundingClientRect();
+          
+          // Find the nearest scrollable container or fallback to viewport
+          let scrollContainer = dropdownBtn.parentElement;
+          let containerRect = null;
+          while (scrollContainer && scrollContainer !== document.body) {
+            const style = window.getComputedStyle(scrollContainer);
+            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+              containerRect = scrollContainer.getBoundingClientRect();
+              break;
+            }
+            scrollContainer = scrollContainer.parentElement;
+          }
+          
+          let viewportBottom, viewportTop;
+          if (containerRect) {
+            // Constrain to the visible area of the scroll container
+            viewportBottom = Math.min(window.innerHeight, containerRect.bottom);
+            viewportTop = Math.max(0, containerRect.top);
+          } else {
+            // Fallback to viewport
+            viewportBottom = window.innerHeight;
+            viewportTop = 0;
+          }
+          
+          const spaceBelow = viewportBottom - rect.bottom - 10; // 10px padding
+          const spaceAbove = rect.top - viewportTop - 10; // 10px padding
+          
+          dropdownMenu.classList.remove("is-open");
+          dropdownMenu.style.visibility = origVisibility;
+          dropdownMenu.style.display = origDisplay;
+          
+          let renderUpwards = false;
+          let newMaxHeight = spaceBelow;
+          
+          if (menuHeight <= spaceBelow) {
+            // Fits below
+            renderUpwards = false;
+            newMaxHeight = spaceBelow;
+          } else if (menuHeight <= spaceAbove) {
+            // Doesn't fit below but fits above
+            renderUpwards = true;
+            newMaxHeight = spaceAbove;
+          } else {
+            // Doesn't fit in either, pick the one with more space
+            if (spaceBelow >= spaceAbove) {
+              renderUpwards = false;
+              newMaxHeight = spaceBelow;
+            } else {
+              renderUpwards = true;
+              newMaxHeight = spaceAbove;
+            }
+          }
+          
+          if (renderUpwards) {
+            dropdownMenu.classList.add("is-upwards");
+          } else {
+            dropdownMenu.classList.remove("is-upwards");
+          }
+          dropdownMenu.style.maxHeight = `${newMaxHeight}px`;
+          dropdownMenu.classList.add("is-open");
+        } else {
+          dropdownMenu.classList.remove("is-open");
+        }
       });
 
       const unsub = settingsManager.subscribe(key, (newVal) => {
