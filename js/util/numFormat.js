@@ -14,14 +14,14 @@ export function setNumberNotation(notation) {
   currentNumberNotation = notation;
 }
 
-function getNotationMode(E) {
+export function getNotationMode(E, notation = currentNumberNotation) {
   if (E < 6) return 'Standard';
-  if (currentNumberNotation === 'Standard') return 'Standard';
-  if (currentNumberNotation === 'Extended Suffixes') return 'Extended Suffixes';
-  if (currentNumberNotation === 'Scientific (1e6+)') return E >= 6 ? 'Scientific' : 'Standard';
-  if (currentNumberNotation === 'Scientific (1e33+)') return E >= 33 ? 'Scientific' : 'Standard';
-  if (currentNumberNotation === 'Engineering (1e6+)') return E >= 6 ? 'Engineering' : 'Standard';
-  if (currentNumberNotation === 'Engineering (1e33+)') return E >= 33 ? 'Engineering' : 'Standard';
+  if (notation === 'Standard') return 'Standard';
+  if (notation === 'Extended Suffixes') return 'Extended Suffixes';
+  if (notation === 'Scientific (1e6+)') return E >= 6 ? 'Scientific' : 'Standard';
+  if (notation === 'Scientific (1e33+)') return E >= 33 ? 'Scientific' : 'Standard';
+  if (notation === 'Engineering (1e6+)') return E >= 6 ? 'Engineering' : 'Standard';
+  if (notation === 'Engineering (1e33+)') return E >= 33 ? 'Engineering' : 'Standard';
   return 'Standard';
 }
 
@@ -363,7 +363,7 @@ function mantissaFourDigits(sci) {
 
 // Public API
 
-export function formatNumber(bn){
+function _formatNumber(bn) {
   if (!(bn instanceof BigNum)) return String(bn);
   if (bn.isInfinite && bn.isInfinite()) return '<span class="infinity-symbol">∞</span>';
   if (bn.isZero()) return '0';
@@ -381,6 +381,9 @@ export function formatNumber(bn){
   if (mode === 'Scientific' || (mode === 'Standard' && E >= 303)) {
     return mantissaFourDigits(bn.toScientific(4));
   } else if (mode === 'Engineering') {
+	if (E >= 1000000) {
+      return mantissaFourDigits(bn.toScientific(4));
+    }
     const exp = Math.floor(E / 3) * 3;
     const d = E - exp;                 // 0..2
     const intDigits = d + 1;           // 1..3
@@ -497,6 +500,17 @@ export function formatNumber(bn){
   return `${intStr}${decimals ? '.' + fracStr : ''}${suffix}`;
 }
 
+
+export function formatNumber(bn, notationOverride = null) {
+  if (!notationOverride) return _formatNumber(bn);
+  const old = currentNumberNotation;
+  currentNumberNotation = notationOverride;
+  try {
+    return _formatNumber(bn);
+  } finally {
+    currentNumberNotation = old;
+  }
+}
 
 export function formatMultForUi(value) {
   try {
