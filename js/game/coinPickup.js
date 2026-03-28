@@ -860,7 +860,7 @@ export function initCoinPickup({
         }
     };
 
-    if (disableAnimation || IS_MOBILE) {
+    if (disableAnimation || IS_MOBILE || settingsManager.get('pickup_animation') === false) {
         recycle();
         return; 
     }
