@@ -206,15 +206,15 @@ pointer-events: none;
     grid-template-rows: auto auto;
     column-gap: 36px;
   }
-  .hud-top.hud-top--xp-mp > :nth-child(1) {
+  .hud-top.hud-top--xp-mp > .coin-counter {
     grid-column: 1 / -1;
   }
-  .hud-top.hud-top--xp-mp > :nth-child(2) {
+  .hud-top.hud-top--xp-mp > [data-xp-hud] {
     grid-column: 1;
     grid-row: 2;
     justify-self: end;
   }
-  .hud-top.hud-top--xp-mp > :nth-child(3) {
+  .hud-top.hud-top--xp-mp > [data-mp-hud] {
     grid-column: 2;
     grid-row: 2;
     justify-self: start;
@@ -229,7 +229,7 @@ pointer-events: none;
   .hud-top.hud-top--xp-only {
     grid-template-columns: auto;
   }
-  .hud-top.hud-top--xp-only > :nth-child(1) {
+  .hud-top.hud-top--xp-only > .coin-counter {
     grid-column: 1 / -1;
   }
   .hud-top.hud-top--xp-only > [data-xp-hud] {
