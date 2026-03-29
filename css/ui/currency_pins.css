@@ -1,3 +1,10 @@
+#pinned-currencies-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
 .pinned-currencies {
   position: absolute;
   top: 10px;
