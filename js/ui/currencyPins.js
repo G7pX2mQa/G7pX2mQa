@@ -63,20 +63,29 @@ export function refreshPinnedCurrencies() {
 
   pinnedIds.forEach(id => {
     const el = document.createElement('div');
-    el.className = 'pinned-currency';
+    el.className = 'pinned-currency-wrapper'; // changed wrapper class
     el.id = `pinned-currency-${id}`;
 
+    const bar = document.createElement('div');
+    bar.className = 'pinned-currency';
+    bar.dataset.currency = id; // Add data-currency attribute for shared CSS gradients
+
     const icon = document.createElement('img');
+    icon.className = 'pinned-currency-icon';
     // Map ID to icon filename. Many are id_plus_base.webp
-    icon.src = `img/currencies/${id}/${id}_plus_base.webp`;
+    // Some IDs have an 's' at the end (books, gears, waves) but the image files are singular
+    const iconBaseName = id.endsWith('s') ? id.slice(0, -1) : id;
+    icon.src = `img/currencies/${iconBaseName}/${iconBaseName}_plus_base.webp`;
     icon.onerror = () => {
       icon.src = 'img/currencies/coin/coin_plus_base.webp'; // fallback
     };
     
     const textSpan = document.createElement('span');
+    textSpan.className = 'pinned-currency-value';
     
-    el.appendChild(icon);
-    el.appendChild(textSpan);
+    bar.appendChild(icon);
+    bar.appendChild(textSpan);
+    el.appendChild(bar);
     pinnedContainer.appendChild(el);
 
     // Update value and subscribe to changes
@@ -108,10 +117,10 @@ setInterval(() => {
 
 function refreshPinnedCurrenciesValues() {
   if (!pinnedContainer) return;
-  const children = pinnedContainer.querySelectorAll('.pinned-currency');
+  const children = pinnedContainer.querySelectorAll('.pinned-currency-wrapper');
   children.forEach(el => {
     const id = el.id.replace('pinned-currency-', '');
-    const span = el.querySelector('span');
+    const span = el.querySelector('.pinned-currency-value');
     if (span) {
       span.textContent = formatNumber(getCurrency(id));
     }
