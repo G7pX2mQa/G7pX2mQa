@@ -225,6 +225,11 @@
   }
 }
 
+.sas-btn.sas-btn-currencies {
+  background: linear-gradient(#006900 0%, #008c00 15%, #00ba00 50%, #008c00 85%, #006900 100%);
+  transition: none;
+}
+
 .sas-actions {
   display: flex;
   justify-content: center;
