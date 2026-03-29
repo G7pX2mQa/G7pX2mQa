@@ -83,6 +83,73 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
       infoTooltip.className = "setting-info-tooltip";
       infoTooltip.textContent = def.info;
       
+      infoIcon.addEventListener("mouseenter", () => {
+        // Temporarily make visible to measure
+        infoTooltip.style.visibility = "hidden";
+        infoTooltip.style.display = "block";
+        infoTooltip.style.opacity = "0";
+        infoTooltip.style.maxHeight = "none";
+        infoTooltip.classList.remove("is-upwards");
+        
+        const tooltipHeight = infoTooltip.scrollHeight;
+        const rect = infoIcon.getBoundingClientRect();
+        
+        let scrollContainer = infoIcon.parentElement;
+        let containerRect = null;
+        while (scrollContainer && scrollContainer !== document.body) {
+          const style = window.getComputedStyle(scrollContainer);
+          if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+            containerRect = scrollContainer.getBoundingClientRect();
+            break;
+          }
+          scrollContainer = scrollContainer.parentElement;
+        }
+        
+        let viewportBottom, viewportTop;
+        if (containerRect) {
+          viewportBottom = Math.min(window.innerHeight, containerRect.bottom);
+          viewportTop = Math.max(0, containerRect.top);
+        } else {
+          viewportBottom = window.innerHeight;
+          viewportTop = 0;
+        }
+        
+        const spaceBelow = viewportBottom - rect.bottom - 10;
+        const spaceAbove = rect.top - viewportTop - 10;
+        
+        let renderUpwards = false;
+
+        if (tooltipHeight <= spaceBelow) {
+          renderUpwards = false;
+        } else if (tooltipHeight <= spaceAbove) {
+          renderUpwards = true;
+        } else {
+          if (spaceBelow >= spaceAbove) {
+            renderUpwards = false;
+          } else {
+            renderUpwards = true;
+          }
+        }
+
+        if (renderUpwards) {
+          infoTooltip.classList.add("is-upwards");
+        } else {
+          infoTooltip.classList.remove("is-upwards");
+        }
+        
+        infoTooltip.style.maxHeight = "";
+        infoTooltip.style.overflowY = "";
+        infoTooltip.style.visibility = "";
+        infoTooltip.style.display = "block";
+        infoTooltip.style.opacity = "";
+        infoTooltip.classList.add("is-visible");
+      });
+
+      infoIcon.addEventListener("mouseleave", () => {
+        infoTooltip.style.display = "";
+        infoTooltip.classList.remove("is-visible");
+      });
+
       infoIcon.appendChild(infoTooltip);
       desc.appendChild(infoIcon);
     }
