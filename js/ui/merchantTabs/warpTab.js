@@ -191,7 +191,7 @@ export function initWarpTab(panel) {
                 <p>Use your Warps wisely as they only recharge once every hour</p>
             </div>
             <div class="warp-warning-container" style="display: none; text-align: center; margin-top: 0rem;">
-                <p style="color: yellow; font-weight: bold; margin: 0; margin-bottom: 0.5rem;">Photosensitivity warning: the warp sequence intensely alters the game's colors in a way that may trigger discomfort for people with photosensitive epilepsy.<br>You may disable Warp's visual effects in the main settings.</p>
+                <p style="color: yellow; font-weight: bold; margin: 0; margin-bottom: 0.5rem;">Photosensitivity warning: the warp sequence intensely alters the game's colors in a way that may trigger discomfort for people with photosensitive epilepsy<br>You may disable Warp's visual effects in the main settings</p>
                 <button type="button" class="warp-ack-btn">Click here to acknowledge this warning and remove it</button>
             </div>
             <div class="warp-status">
