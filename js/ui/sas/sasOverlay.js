@@ -22,12 +22,11 @@ function populateSasButtons(overlayEl) {
   visBtn.className = "sas-btn";
   visBtn.textContent = "Visuals";
   visBtn.addEventListener("click", () => { openVisualsOverlay(); });
-  
   if (!hasDoneForgeReset()) {
     visBtn.style.display = 'none';
   }
   grid.appendChild(visBtn);
-  
+  // We add an event listener to unhide it.
   const updateVisBtnVisibility = () => {
     if (hasDoneForgeReset()) {
       visBtn.style.display = '';
@@ -50,19 +49,18 @@ function populateSasButtons(overlayEl) {
     confBtn.style.display = 'none';
   }
   grid.appendChild(confBtn);
-  
-  const curBtn = document.createElement("button");
-  curBtn.className = "sas-btn";
-  curBtn.textContent = "Currencies";
-  curBtn.addEventListener("click", () => { openCurrenciesOverlay(); });
-  grid.appendChild(curBtn);
-
   // We add an event listener to unhide it.
   const updateConfBtnVisibility = () => {
     if (hasDoneForgeReset()) {
       confBtn.style.display = '';
     }
   };
+  
+  const curBtn = document.createElement("button");
+  curBtn.className = "sas-btn";
+  curBtn.textContent = "Currencies";
+  curBtn.addEventListener("click", () => { openCurrenciesOverlay(); });
+  grid.appendChild(curBtn);
 
   // Just subscribe to something or rely on global re-render, but better to add an event listener
   window.addEventListener('forge:completed', updateConfBtnVisibility);
