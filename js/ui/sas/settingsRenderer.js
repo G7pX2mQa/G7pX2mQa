@@ -1,3 +1,4 @@
+import { createDropdown } from './dropdownUtils.js';
 import { settingsManager, SETTING_DEFINITIONS } from '../../game/settingsManager.js';
 
 /**
@@ -358,225 +359,27 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
       // Initial update
       updateSliderProgress();
     } else if (def.type === "dropdown") {
-      const dropdownWrapper = document.createElement("div");
-      dropdownWrapper.className = "setting-dropdown-wrapper";
-
-      const dropdownBtn = document.createElement("button");
-      dropdownBtn.className = "setting-dropdown-btn";
-      
-      const dropdownValue = document.createElement("span");
-      dropdownValue.className = "setting-dropdown-value";
-      dropdownValue.style.display = "flex";
-      dropdownValue.style.alignItems = "center";
-      dropdownValue.style.gap = "8px";
-      
-      const dropdownIcon = document.createElement("span");
-      dropdownIcon.className = "setting-dropdown-icon";
-      dropdownIcon.innerHTML = "&#9662;"; // Downward triangle
-
-      dropdownBtn.append(dropdownValue, dropdownIcon);
-
-      const dropdownMenu = document.createElement("div");
-      dropdownMenu.className = "setting-dropdown-menu";
-      
-      // Support dynamic options vs static options
       const getOpts = () => {
         if (def.getOptions) return def.getOptions();
         return def.options || [];
       };
 
-      const renderOption = (opt) => {
-        const optionEl = document.createElement("div");
-        optionEl.className = "setting-dropdown-option";
-        
-        const isObj = typeof opt === 'object' && opt !== null;
-        const val = isObj ? opt.value : opt;
-        const labelText = isObj ? opt.label : opt;
-        const iconSrc = isObj ? opt.icon : null;
-        
-        // Store the value as an attribute
-        optionEl.dataset.value = val;
-
-        if (val === settingsManager.get(key)) {
-          optionEl.classList.add("is-selected");
-        }
-
-        optionEl.style.display = "flex";
-        optionEl.style.alignItems = "center";
-        optionEl.style.gap = "8px";
-
-        if (iconSrc) {
-          const img = document.createElement("img");
-          img.src = iconSrc;
-          img.style.width = "1.2em";
-          img.style.height = "1.2em";
-          img.style.objectFit = "contain";
-          optionEl.appendChild(img);
-        }
-
-        const textSpan = document.createElement("span");
-        textSpan.textContent = labelText;
-        optionEl.appendChild(textSpan);
-
-        optionEl.addEventListener("click", () => {
-          settingsManager.set(key, val);
-          dropdownMenu.classList.remove("is-open");
-        });
-
-        return optionEl;
-      };
-
-      const buildMenu = () => {
-        dropdownMenu.innerHTML = '';
-        const opts = getOpts();
-        opts.forEach(opt => {
-          dropdownMenu.appendChild(renderOption(opt));
-        });
-      };
-      
-      buildMenu();
-
-      const updateSelectedValueDisplay = (newVal) => {
-        const opts = getOpts();
-        const selectedOpt = opts.find(o => {
-          if (typeof o === 'object' && o !== null) return o.value === newVal;
-          return o === newVal;
-        }) || newVal;
-        
-        dropdownValue.innerHTML = '';
-        
-        const isObj = typeof selectedOpt === 'object' && selectedOpt !== null;
-        const labelText = isObj ? selectedOpt.label : selectedOpt;
-        const iconSrc = isObj ? selectedOpt.icon : null;
-        
-        if (iconSrc) {
-          const img = document.createElement("img");
-          img.src = iconSrc;
-          img.style.width = "1.2em";
-          img.style.height = "1.2em";
-          img.style.objectFit = "contain";
-          dropdownValue.appendChild(img);
-        }
-
-        const textSpan = document.createElement("span");
-        textSpan.textContent = labelText;
-        dropdownValue.appendChild(textSpan);
-      };
-      
-      updateSelectedValueDisplay(settingsManager.get(key));
-
-      dropdownBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        
-        // Close all other open dropdowns
-        document.querySelectorAll(".setting-dropdown-menu.is-open").forEach(menu => {
-          if (menu !== dropdownMenu) {
-            menu.classList.remove("is-open");
-          }
-        });
-        
-        const wasOpen = dropdownMenu.classList.contains("is-open");
-        
-        // Before opening, rebuild the menu in case options changed dynamically
-        buildMenu();
-        
-        if (!wasOpen) {
-          // Temporarily make it visible to get its scrollHeight
-          const origVisibility = dropdownMenu.style.visibility;
-          const origDisplay = dropdownMenu.style.display;
-          
-          dropdownMenu.style.visibility = "hidden";
-          dropdownMenu.style.display = "block";
-          dropdownMenu.style.maxHeight = "none";
-          dropdownMenu.classList.add("is-open");
-          
-          const menuHeight = dropdownMenu.scrollHeight;
-          const rect = dropdownBtn.getBoundingClientRect();
-          
-          // Find the nearest scrollable container or fallback to viewport
-          let scrollContainer = dropdownBtn.parentElement;
-          let containerRect = null;
-          while (scrollContainer && scrollContainer !== document.body) {
-            const style = window.getComputedStyle(scrollContainer);
-            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-              containerRect = scrollContainer.getBoundingClientRect();
-              break;
-            }
-            scrollContainer = scrollContainer.parentElement;
-          }
-          
-          let viewportBottom, viewportTop;
-          if (containerRect) {
-            // Constrain to the visible area of the scroll container
-            viewportBottom = Math.min(window.innerHeight, containerRect.bottom);
-            viewportTop = Math.max(0, containerRect.top);
-          } else {
-            // Fallback to viewport
-            viewportBottom = window.innerHeight;
-            viewportTop = 0;
-          }
-          
-          const spaceBelow = viewportBottom - rect.bottom - 10; // 10px padding
-          const spaceAbove = rect.top - viewportTop - 10; // 10px padding
-          
-          dropdownMenu.classList.remove("is-open");
-          dropdownMenu.style.visibility = origVisibility;
-          dropdownMenu.style.display = origDisplay;
-          
-          let renderUpwards = false;
-          let newMaxHeight = spaceBelow;
-          
-          if (menuHeight <= spaceBelow) {
-            // Fits below
-            renderUpwards = false;
-            newMaxHeight = spaceBelow;
-          } else if (menuHeight <= spaceAbove) {
-            // Doesn't fit below but fits above
-            renderUpwards = true;
-            newMaxHeight = spaceAbove;
-          } else {
-            // Doesn't fit in either, pick the one with more space
-            if (spaceBelow >= spaceAbove) {
-              renderUpwards = false;
-              newMaxHeight = spaceBelow;
-            } else {
-              renderUpwards = true;
-              newMaxHeight = spaceAbove;
-            }
-          }
-          
-          if (renderUpwards) {
-            dropdownMenu.classList.add("is-upwards");
-          } else {
-            dropdownMenu.classList.remove("is-upwards");
-          }
-          dropdownMenu.style.maxHeight = `${newMaxHeight}px`;
-          dropdownMenu.classList.add("is-open");
-        } else {
-          dropdownMenu.classList.remove("is-open");
+      const { wrapper, cleanup } = createDropdown({
+        getOptions: getOpts,
+        getValue: () => settingsManager.get(key),
+        setValue: (val) => settingsManager.set(key, val),
+        subscribe: (callback) => {
+          const unsub = settingsManager.subscribe(key, callback);
+          return unsub;
         }
       });
-
-      const unsub = settingsManager.subscribe(key, (newVal) => {
-        updateSelectedValueDisplay(newVal);
-        const options = dropdownMenu.querySelectorAll(".setting-dropdown-option");
-        options.forEach(opt => {
-          if (opt.dataset.value === newVal) {
-            opt.classList.add("is-selected");
-          } else {
-            opt.classList.remove("is-selected");
-          }
-        });
-      });
-      unsubscribers.push(unsub);
-
-      dropdownWrapper.append(dropdownBtn, dropdownMenu);
+      unsubscribers.push(cleanup);
 
       // Space for gap layout consistency
       const gapEl = document.createElement("div");
       gapEl.style.width = "32px";
       gapEl.style.height = "100%";
-      row.append(dropdownWrapper, gapEl, desc);
+      row.append(wrapper, gapEl, desc);
     } else {
       row.append(desc);
     }
