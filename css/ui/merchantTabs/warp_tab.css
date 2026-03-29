@@ -102,6 +102,27 @@
     cursor: not-allowed;
     filter: grayscale(0.8);
 }
+.warp-ack-btn {
+    padding: 0.25rem 0.5rem;
+    background-color: hsl(220 32% 15% / 1); /* dark blue */
+    color: yellow;
+    border: 1px solid var(--merchant-border); /* standard blue border */
+    border-radius: 3px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: none;
+    text-shadow: none;
+    font-weight: normal;
+}
+
+.warp-ack-btn:hover {
+    background-color: hsl(220 32% 20% / 1);
+}
+
+.warp-ack-btn:active {
+    background-color: hsl(220 32% 10% / 1);
+}
 
 @keyframes surgeWavePulse {
   0% {
