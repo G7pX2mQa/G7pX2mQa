@@ -11,6 +11,7 @@ import {
 import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js';
 import { getActiveSlot } from '../util/storage.js';
 import { isSurgeActive, getBaseTsunamiExponent } from './surgeEffects.js';
+import { settingsManager } from './settingsManager.js';
 
 let accumulator = 0;
 let workshopTicker = 0;
@@ -226,6 +227,13 @@ function updateAutobuyers(dt) {
 }
 
 export function updateAutomation(dt) {
+  const eacEfficiency = settingsManager.get('eac_efficiency');
+  if (eacEfficiency === 0) {
+    accumulator = 0;
+    return;
+  }
+  const efficiencyMult = eacEfficiency !== undefined ? (eacEfficiency / 100) : 1;
+
   const level = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID);
   let rate = level; // Rate = level (coins/sec)
 
@@ -249,6 +257,7 @@ export function updateAutomation(dt) {
     if (ticks > 0) {
       let collectCount = ticks;
       collectCount *= getEacAmountMultiplier();
+      collectCount *= efficiencyMult;
       triggerPassiveCollect(collectCount);
       accumulator -= ticks * interval;
     }
