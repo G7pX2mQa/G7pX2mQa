@@ -165,6 +165,17 @@ function processAutobuyGroup(upgrades) {
   if (!upgrades || upgrades.length === 0) return;
   for (const upg of upgrades) {
     const area = upg.area || AREA_KEYS.STARTER_COVE;
+
+    // Check master currency toggle first
+    let isMasterEnabled = true;
+    if (upg.cost && upg.cost.type) {
+      if (settingsManager.get(`currency_${upg.cost.type}_autobuy`) === false) {
+        isMasterEnabled = false;
+      }
+    }
+
+    if (!isMasterEnabled) continue;
+
     const setting = getAutobuyerToggle(area, upg.id);
     if (setting !== '0') {
       const currentLevel = getLevelNumber(area, upg.id);
