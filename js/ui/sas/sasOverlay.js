@@ -46,17 +46,16 @@ function populateSasButtons(overlayEl) {
   confBtn.className = "sas-btn";
   confBtn.textContent = "Confirmations";
   confBtn.addEventListener("click", () => { openConfirmationsOverlay(); });
+  if (!hasDoneForgeReset()) {
+    confBtn.style.display = 'none';
+  }
+  grid.appendChild(confBtn);
   
   const curBtn = document.createElement("button");
   curBtn.className = "sas-btn";
   curBtn.textContent = "Currencies";
   curBtn.addEventListener("click", () => { openCurrenciesOverlay(); });
   grid.appendChild(curBtn);
-  
-  if (!hasDoneForgeReset()) {
-    confBtn.style.display = 'none';
-  }
-  grid.appendChild(confBtn);
 
   // We add an event listener to unhide it.
   const updateConfBtnVisibility = () => {
