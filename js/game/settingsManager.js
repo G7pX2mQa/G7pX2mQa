@@ -75,6 +75,20 @@ export const SETTING_DEFINITIONS = {
     default: true,
     unlockCondition: () => true,
   },
+  warp_vfx: {
+    id: 'warp_vfx',
+    type: 'toggle',
+    label: 'Warp VFX',
+    hasExtraInfo: false,
+    default: true,
+    unlockCondition: () => {
+      try {
+        return hasDoneSurgeReset();
+      } catch {
+        return false;
+      }
+    },
+  },
   music_volume: {
     id: 'music_volume',
     type: 'slider',
