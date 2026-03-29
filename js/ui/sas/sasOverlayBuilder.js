@@ -11,9 +11,10 @@ import { suppressNextGhostTap } from '../../util/ghostTapGuard.js';
  * @param {string} [options.zIndex] - The z-index string.
  * @param {string} [options.focusSelector] - The selector for the element to focus when opened.
  * @param {Function} [options.onRender] - Callback to populate the content container before opening.
+ * @param {Function} [options.onClose] - Callback to execute when the overlay is closed.
  * @returns {Object} An object containing the overlay element, sheet element, open and close methods, and state.
  */
-export function createSASOverlay({ id, title, containerClass, zIndex = '4010', focusSelector, onRender }) {
+export function createSASOverlay({ id, title, containerClass, zIndex = '4010', focusSelector, onRender, onClose }) {
   let overlayEl = null;
   let sheetEl = null;
   let isOpen = false;
@@ -160,6 +161,10 @@ export function createSASOverlay({ id, title, containerClass, zIndex = '4010', f
       overlayEl.style.pointerEvents = 'none';
     }
     postOpenPointer = false;
+
+    if (onClose) {
+      onClose();
+    }
   }
 
   return {
