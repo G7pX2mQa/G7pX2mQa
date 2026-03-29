@@ -7,7 +7,7 @@
 
 .pinned-currencies {
   position: absolute;
-  top: 10px;
+  top: 30vh;
   left: 10px;
   display: flex;
   flex-direction: column;
@@ -15,26 +15,69 @@
   z-index: 100;
   pointer-events: none; /* Let clicks pass through to the game */
 }
-
-.pinned-currency {
+.pinned-currency-wrapper {
+  position: relative;
   display: flex;
   align-items: center;
-  background-color: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  padding: 4px 8px;
-  backdrop-filter: blur(2px);
+  height: 28px;
+  margin-left: 14px; /* Space for the overlapping icon */
 }
 
-.pinned-currency img {
-  width: 24px;
-  height: 24px;
+.pinned-currency {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 225px;
+  height: 100%;
+  border: 2px solid #000 !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  /* Fallback background if no data-currency matches */
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.pinned-currency-icon {
+  position: absolute;
+  left: -14px; /* Half of width to overlap */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
   object-fit: contain;
-  margin-right: 8px;
+  z-index: 2;
 }
 
-.pinned-currency span {
-  color: white;
-  font-size: 14px;
-  font-weight: bold;
+.pinned-currency-value {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(calc(-50% + 8px), -50%);
+  z-index: 1;
+  white-space: nowrap;
+  
+  /* Desktop standard stroke */
+  -webkit-text-stroke: 1px #000;
+  text-stroke: 1px #000;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+  
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* FTS for mobile touch devices */
+@media (pointer: coarse) {
+  .pinned-currency-value {
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    -webkit-text-fill-color: #fff;
+    text-shadow:
+      0   1px 0 #000,  0  -1px 0 #000,
+      1px 0   0 #000, -1px 0   0 #000,
+      1px 1px 0 #000,  1px -1px 0 #000,
+     -1px 1px 0 #000, -1px -1px 0 #000,
+      0 2px 0 rgba(0,0,0,0.5) !important;
+  }
 }
