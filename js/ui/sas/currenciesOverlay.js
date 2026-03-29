@@ -5,6 +5,7 @@ import { CURRENCIES } from '../../util/storage.js';
 import { bank } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { settingsManager } from '../../game/settingsManager.js';
+import { createDropdown } from './dropdownUtils.js';
 
 // Base icon mapping for default states if they don't exactly match the folder name
 const BASE_ICONS = {
@@ -51,22 +52,18 @@ function ensureCurrencySettings() {
 function createCurrencyRow(container, isMaster, currencyId, iconSrc, baseSrc, amountText) {
   const row = document.createElement('div');
   row.className = 'currency-row' + (isMaster ? ' master-row' : '');
-
+  if (currencyId && currencyId !== 'master') row.dataset.currency = currencyId;
+  
   const info = document.createElement('div');
   info.className = 'currency-info';
   
   const iconWrapper = document.createElement('div');
   iconWrapper.className = 'currency-icon-wrapper';
   
-  const baseImg = document.createElement('img');
-  baseImg.className = 'currency-base';
-  baseImg.src = baseSrc;
-  
   const iconImg = document.createElement('img');
-  iconImg.className = 'currency-icon';
-  iconImg.src = iconSrc;
+  iconImg.className = 'currency-base';
+  iconImg.src = baseSrc;
   
-  iconWrapper.appendChild(baseImg);
   iconWrapper.appendChild(iconImg);
   
   const amountDiv = document.createElement('div');
@@ -81,88 +78,94 @@ function createCurrencyRow(container, isMaster, currencyId, iconSrc, baseSrc, am
   // Dropdown controls
   const controls = document.createElement('div');
   controls.className = 'currency-controls';
-  
-  const btn = document.createElement('button');
-  btn.className = 'currency-dropdown-btn';
-  btn.textContent = 'Settings';
-  
-  const menu = document.createElement('div');
-  menu.className = 'currency-dropdown-menu';
-  
-  const createToggle = (label, type) => {
-    const toggleRow = document.createElement('label');
-    toggleRow.className = 'currency-toggle-row';
-    toggleRow.textContent = label;
-    
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.className = 'currency-checkbox';
-    
-    // Check state
+
+  const opts = [
+    { value: 'popups', label: 'Popups' },
+    { value: 'autobuy', label: 'Autobuy' },
+    { value: 'pin', label: 'Pin' },
+  ];
+
+  const getDropdownValue = () => {
     if (!isMaster) {
-      cb.checked = settingsManager.get(getToggleKey(currencyId, type)) === true;
-      cb.addEventListener('change', (e) => {
-        settingsManager.set(getToggleKey(currencyId, type), e.target.checked);
-        if (type === 'pin') {
-          window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
-        }
-      });
+      const selected = [];
+      if (settingsManager.get(getToggleKey(currencyId, 'popups'))) selected.push('popups');
+      if (settingsManager.get(getToggleKey(currencyId, 'autobuy'))) selected.push('autobuy');
+      if (settingsManager.get(getToggleKey(currencyId, 'pin'))) selected.push('pin');
+      return selected;
     } else {
-      // For master, evaluate if all are true
       const allCurrencies = Object.values(CURRENCIES);
-      const allChecked = allCurrencies.every(c => settingsManager.get(getToggleKey(c, type)) === true);
-      const anyChecked = allCurrencies.some(c => settingsManager.get(getToggleKey(c, type)) === true);
-      cb.checked = allChecked;
-      if (!allChecked && anyChecked) {
-        cb.indeterminate = true;
-      }
-      
-      cb.addEventListener('change', (e) => {
-        const newVal = e.target.checked;
-        allCurrencies.forEach(c => {
-          settingsManager.set(getToggleKey(c, type), newVal);
-        });
-        // Re-render to update the child toggles
-        populateCurrenciesOverlay(container);
-        if (type === 'pin') {
-          window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
+      const selected = [];
+      ['popups', 'autobuy', 'pin'].forEach(type => {
+        if (allCurrencies.every(c => settingsManager.get(getToggleKey(c, type)))) {
+          selected.push(type);
         }
       });
+      return selected;
     }
-    
-    toggleRow.appendChild(cb);
-    return toggleRow;
   };
 
-  menu.appendChild(createToggle('Popups', 'popups'));
-  menu.appendChild(createToggle('Autobuy', 'autobuy'));
-  menu.appendChild(createToggle('Pin', 'pin'));
+  const setDropdownValue = (newVals) => {
+    const prevVals = getDropdownValue();
+    const toggledType = ['popups', 'autobuy', 'pin'].find(type => 
+      prevVals.includes(type) !== newVals.includes(type)
+    );
 
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isOpen = menu.classList.contains('is-open');
-    // Close any other open menus
-    document.querySelectorAll('.currency-dropdown-menu.is-open').forEach(m => m.classList.remove('is-open'));
-    if (!isOpen) {
-      menu.classList.add('is-open');
+    if (!toggledType) return;
+
+    const newVal = newVals.includes(toggledType);
+
+    if (!isMaster) {
+      settingsManager.set(getToggleKey(currencyId, toggledType), newVal);
+      if (toggledType === 'pin') {
+        window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
+      }
+    } else {
+      const allCurrencies = Object.values(CURRENCIES);
+      allCurrencies.forEach(c => {
+        settingsManager.set(getToggleKey(c, toggledType), newVal);
+      });
+      
+      // Update visually without full re-render
+      const overlayEl = container.closest('.sas-overlay');
+      if (overlayEl) {
+        // Update all child dropdown wrappers instead of replacing the DOM
+        const rows = overlayEl.querySelectorAll('.currency-row:not(.master-row)');
+        rows.forEach(row => {
+          if (row._updateDropdownVisually) {
+            row._updateDropdownVisually();
+          }
+        });
+      }
+      
+      if (toggledType === 'pin') {
+        window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
+      }
     }
-  });
-  
-  // Close menu on outside click
-  document.addEventListener('click', (e) => {
-    if (!row.contains(e.target)) {
-      menu.classList.remove('is-open');
-    }
+  };
+
+  const getDisplayValue = (vals) => {
+    const popupsStr = vals.includes('popups') ? 'Has popups' : 'No popups';
+    const autoStr = vals.includes('autobuy') ? 'Is automated' : 'Is not automated';
+    const pinStr = vals.includes('pin') ? 'Is pinned' : 'Is not pinned';
+    return `${popupsStr}, ${autoStr}, ${pinStr}`;
+  };
+
+  const { wrapper, cleanup, updateDisplay } = createDropdown({
+    getOptions: () => opts,
+    getValue: getDropdownValue,
+    setValue: setDropdownValue,
+    isChecklist: true,
+    getDisplayValue: getDisplayValue,
   });
 
-  controls.appendChild(btn);
-  controls.appendChild(menu);
-  
+  row._cleanupDropdown = cleanup;
+  row._updateDropdownVisually = updateDisplay;
+
+  controls.appendChild(wrapper);
   row.appendChild(controls);
 
   container.appendChild(row);
 }
-
 function populateCurrenciesOverlay(overlayEl) {
   const grid = overlayEl.querySelector('.currencies-grid');
   if (!grid) return;
@@ -182,8 +185,46 @@ function populateCurrenciesOverlay(overlayEl) {
     const amountStr = formatNumber(val);
     const iconSrc = ICONS[currency] || 'img/misc/mysterious.webp';
     const baseSrc = BASE_ICONS[currency] || 'img/misc/locked.webp';
-    createCurrencyRow(grid, false, currency, iconSrc, baseSrc, amountStr);
+    createCurrencyRow(grid, false, currency, iconSrc, baseSrc, amountStr + ' ' + (currency.charAt(0).toUpperCase() + currency.slice(1)));
   });
+}
+
+
+function handleOutsideClick(e) {
+  if (!currenciesOverlay.isOpen) return;
+  const overlayEl = currenciesOverlay.overlayEl;
+  if (!overlayEl) return;
+  
+  if (!e.target.closest('.setting-dropdown-wrapper')) {
+    const openMenus = overlayEl.querySelectorAll('.setting-dropdown-menu.is-open');
+    openMenus.forEach(menu => {
+      menu.classList.remove('is-open');
+    });
+  }
+}
+
+function handleCurrencyChange(e) {
+  if (!currenciesOverlay.isOpen) return;
+  const overlayEl = currenciesOverlay.overlayEl;
+  if (!overlayEl) return;
+  const grid = overlayEl.querySelector('.currencies-grid');
+  if (!grid) return;
+  
+  // If specific currency changed, update only that row
+  if (e.detail && e.detail.key) {
+    const currencyId = e.detail.key;
+    const row = grid.querySelector(`.currency-row[data-currency="${currencyId}"]`);
+    if (row) {
+      const amountEl = row.querySelector('.currency-amount');
+      if (amountEl) {
+        const val = bank[currencyId]?.value;
+        amountEl.textContent = formatNumber(val) + ' ' + (currencyId.charAt(0).toUpperCase() + currencyId.slice(1));
+      }
+    }
+  } else {
+    // If no specific detail, full re-render values
+    populateCurrenciesOverlay(overlayEl);
+  }
 }
 
 const currenciesOverlay = createSASOverlay({
@@ -193,6 +234,19 @@ const currenciesOverlay = createSASOverlay({
   focusSelector: '.currency-row, .currencies-grid',
   onRender: (overlayEl) => {
     populateCurrenciesOverlay(overlayEl);
+    window.addEventListener('currency:change', handleCurrencyChange);
+    document.addEventListener('click', handleOutsideClick);
+  },
+  onClose: () => {
+    window.removeEventListener('currency:change', handleCurrencyChange);
+    document.removeEventListener('click', handleOutsideClick);
+    // Cleanup dynamic dropdown listeners
+    if (currenciesOverlay.overlayEl) {
+      const rows = currenciesOverlay.overlayEl.querySelectorAll('.currency-row');
+      rows.forEach(row => {
+        if (row._cleanupDropdown) row._cleanupDropdown();
+      });
+    }
   }
 });
 
