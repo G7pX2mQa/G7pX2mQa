@@ -61,11 +61,28 @@
 
 .currency-amount {
   font-size: 24px;
-  font-weight: bold;
-  letter-spacing: 1px;
-  text-shadow: 1px 1px 2px #000;
-  -webkit-text-stroke: 1px #000;
   color: #fff;
+  font-weight: 900;
+  letter-spacing: .5px;
+  -webkit-text-stroke: 1px #000;
+  text-stroke: 1px #000;
+  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+@media (pointer: coarse) {
+  .currency-amount {
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    -webkit-text-fill-color: #fff;
+    text-shadow:
+      0   0.5px 0 #000,  0  -0.5px 0 #000,
+      0.5px 0   0 #000, -0.5px 0   0 #000,
+      0.5px 0.5px 0 #000,  0.5px -0.5px 0 #000,
+     -0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000,
+      0 1px 0 rgba(0,0,0,0.28) !important;
+  }
 }
 
 .currency-controls {
