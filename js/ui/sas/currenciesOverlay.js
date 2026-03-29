@@ -173,7 +173,7 @@ function populateCurrenciesOverlay(overlayEl) {
   
   // Master Row
   const uniqueCount = Object.keys(CURRENCIES).length;
-  createCurrencyRow(grid, true, 'master', 'img/misc/mysterious.webp', 'img/misc/locked.webp', `Unique Currencies Count: ${uniqueCount}`);
+  createCurrencyRow(grid, true, 'master', 'img/misc/mysterious.webp', 'img/misc/locked_base.webp', `Unique Currencies Count: ${uniqueCount}`);
 
   // Child Rows
   const currenciesList = Object.values(CURRENCIES);
