@@ -9,7 +9,7 @@
 @import "./game/coin.css";
 @import "./game/offline_panel.css";
 @import "./ui/shop.css";
-@import "./ui/sas/sas.css";
+@import "./ui/sas/sas_overlay.css";
 @import "./ui/merchantTabs/dialogue_tab.css";
 @import "./ui/merchantTabs/reset_tab.css";
 @import "./ui/merchantTabs/workshop_tab.css";
