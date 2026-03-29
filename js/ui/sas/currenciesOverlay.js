@@ -178,7 +178,7 @@ function populateCurrenciesOverlay(overlayEl) {
   // Child Rows
   const currenciesList = Object.values(CURRENCIES);
   currenciesList.forEach(currency => {
-    const val = bank.amount(currency);
+    const val = bank[currency]?.value;
     const amountStr = formatNumber(val);
     const iconSrc = ICONS[currency] || 'img/misc/mysterious.webp';
     const baseSrc = BASE_ICONS[currency] || 'img/misc/locked.webp';
