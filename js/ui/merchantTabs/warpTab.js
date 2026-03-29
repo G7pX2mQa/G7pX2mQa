@@ -190,9 +190,9 @@ export function initWarpTab(panel) {
                 <p>Warp length will never be increased because it's intended to be a small boost</p>
                 <p>Use your Warps wisely as they only recharge once every hour</p>
             </div>
-            <div class="warp-warning-container" style="display: none; text-align: center;">
-                <p style="color: yellow; font-weight: bold; margin: 0;">Photosensitivity warning: the warp sequence intensely alters the game's colors in a way that may trigger discomfort for people with photosensitive epilepsy.<br>You may disable Warp's visual effects in the main settings.</p>
-                <button type="button" class="warp-ack-btn" style="margin-top: 0.5rem; cursor: pointer;">Click here to acknowledge this warning and remove it</button>
+            <div class="warp-warning-container" style="display: none; text-align: center; margin-top: 1rem;">
+                <p style="color: yellow; font-weight: bold; margin: 0; margin-bottom: 0.5rem;">Photosensitivity warning: the warp sequence intensely alters the game's colors in a way that may trigger discomfort for people with photosensitive epilepsy.<br>You may disable Warp's visual effects in the main settings.</p>
+                <button type="button" class="warp-ack-btn">Click here to acknowledge this warning and remove it</button>
             </div>
             <div class="warp-status">
                 <div class="warp-timer">Next warp in: 60m</div>
