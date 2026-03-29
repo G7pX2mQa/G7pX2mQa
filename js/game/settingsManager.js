@@ -344,6 +344,24 @@ class SettingsManager {
 
       this.notify(key, this.settings[key]);
     }
+
+    // Load dynamic currency settings
+    const slot = getActiveSlot();
+    const suffix = slot != null ? `:${slot}` : "";
+    for (let i = 0; i < localStorage.length; i++) {
+      const storageKey = localStorage.key(i);
+      if (storageKey && storageKey.startsWith(SETTINGS_KEY_PREFIX + "currency_") && storageKey.endsWith(suffix)) {
+        const key = storageKey.substring(SETTINGS_KEY_PREFIX.length, storageKey.length - suffix.length);
+        try {
+          this.settings[key] = JSON.parse(localStorage.getItem(storageKey));
+          this._isDefault[key] = false;
+          this.notify(key, this.settings[key]);
+        } catch (e) {
+          console.error("Failed to parse currency setting", key, e);
+        }
+      }
+    }
+
     setNumberNotation(this.settings['number_notation'] || 'Standard');
   }
 
@@ -354,7 +372,13 @@ class SettingsManager {
   }
 
   get(key) {
-    if (!(key in SETTING_DEFINITIONS)) return false;
+    if (!(key in SETTING_DEFINITIONS) && !key.startsWith("currency_")) return false;
+    
+    // Support dynamic currency toggles
+    if (key.startsWith("currency_")) {
+      return this.settings[key];
+    }
+
     const def = SETTING_DEFINITIONS[key];
     if (this._isDefault[key]) {
       this.settings[key] = typeof def.default === 'function' ? def.default() : def.default;
@@ -373,7 +397,7 @@ class SettingsManager {
   }
 
   set(key, value) {
-    if (!(key in SETTING_DEFINITIONS)) return;
+    if (!(key in SETTING_DEFINITIONS) && !key.startsWith("currency_")) return;
     this.settings[key] = value;
     this._isDefault[key] = false;
     const storageKey = this._getKey(key);
