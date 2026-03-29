@@ -20,3 +20,5 @@
 @import "./ui/notifications.css";
 @import "./misc/debug.css";
 @import "./ui/sas/main_settings.css";
+@import "./ui/sas/currencies_overlay.css";
+@import "./ui/currency_pins.css"
