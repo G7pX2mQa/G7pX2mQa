@@ -139,6 +139,10 @@ function createPopupEntry(type, meta, amount) {
 function showPopup(type, amount, overrides = {}) {
   if (typeof window !== 'undefined' && window.__tsunamiActive) return;
   if (!settingsManager.get('user_interface')) return;
+
+  if (type in CURRENCIES || Object.values(CURRENCIES).includes(type)) {
+    if (settingsManager.get(`currency_${type}_popups`) === false) return;
+  }
   // Check locks
   const slot = getActiveSlot();
   if (slot != null) {
