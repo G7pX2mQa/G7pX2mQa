@@ -4,7 +4,8 @@ import { getActiveSlot } from '../util/storage.js';
 import { getHighestMutationLevel } from './mutationSystem.js';
 import { setNumberNotation } from '../util/numFormat.js';
 import { IS_MOBILE } from '../main.js';
-import { getMagnetLevel } from './upgrades.js';
+import { getMagnetLevel, getLevelNumber } from './upgrades.js';
+import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
 import {
   hasDoneForgeReset,
   hasDoneInfuseReset,
@@ -138,6 +139,18 @@ export const SETTING_DEFINITIONS = {
     step: 0.1,
     default: () => getMagnetLevel(),
     unlockCondition: () => getMagnetLevel() >= 1,
+  },
+  eac_efficiency: {
+    id: 'eac_efficiency',
+    type: 'slider',
+    label: 'EAC Efficiency',
+    hasExtraInfo: true,
+    info: 'This slider represents the efficiency at which your Effective Auto-Collect will generate things in any given area. Leave the slider at 100 for normal gameplay, or adjust it to a different number to have EAC run at n% efficiency. Set this slider value to 0 to completely disable EAC earnings.',
+    min: 0,
+    max: 100,
+    step: 1,
+    default: 100,
+    unlockCondition: () => getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) >= 1,
   },
   number_notation: {
     id: 'number_notation',
