@@ -59,7 +59,7 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
       // This prevents the label from expanding to fill the rest of the flex container
       labelSpan.style.flex = "0 1 auto";
       // Explicitly set width to fit-content to be safe
-      labelSpan.style.width = "max-content";
+      labelSpan.style.width = "auto";
       
       desc.appendChild(labelSpan);
     } else {
