@@ -57,7 +57,7 @@ function populateSasButtons(overlayEl) {
   };
   
   const curBtn = document.createElement("button");
-  curBtn.className = "sas-btn";
+  curBtn.className = "sas-btn sas-btn-currencies";
   curBtn.textContent = "Currencies";
   curBtn.addEventListener("click", () => { openCurrenciesOverlay(); });
   grid.appendChild(curBtn);
