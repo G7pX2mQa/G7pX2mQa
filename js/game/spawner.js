@@ -17,6 +17,14 @@ const MAX_ACTIVE_COINS_MOBILE = 2500
 // Cache for coin images (src -> Image)
 const imgCache = new Map();
 
+function getCanvasSmoothingQuality() {
+    const quality = settingsManager.get('graphics_quality');
+    if (quality === undefined) return 'high';
+    if (quality >= 8) return 'high';
+    if (quality >= 4) return 'medium';
+    return 'low';
+}
+
 function updateMutationSnapshot(state) {
   if (!state || typeof state !== 'object') {
     mutationUnlockedSnapshot = false;
@@ -64,8 +72,43 @@ function getImage(src) {
   return img;
 }
 
+
 // Pre-rendered offscreen canvases for coins
 const preRenderedCoins = new Map();
+const preRenderedUrls = new Map();
+
+function getPreRenderedCoinUrl(src, size) {
+    if (!src || typeof document === 'undefined') return src;
+    
+    // High quality or unscaled: use raw image URL
+    let resolutionScale = 1;
+    if (typeof settingsManager !== 'undefined') {
+        const quality = settingsManager.get('graphics_quality') ?? 10;
+        if (quality < 4) resolutionScale = 0.5;
+        else if (quality < 8) resolutionScale = 0.75;
+    }
+    if (resolutionScale === 1) return src;
+    
+    let sizeMap = preRenderedUrls.get(src);
+    if (!sizeMap) {
+        sizeMap = new Map();
+        preRenderedUrls.set(src, sizeMap);
+    }
+    
+    let url = sizeMap.get(size);
+    if (!url) {
+        const canvas = getPreRenderedCoin(src, size);
+        if (canvas && canvas instanceof HTMLCanvasElement) {
+            url = canvas.toDataURL('image/webp');
+            sizeMap.set(size, url);
+        } else {
+            return src; // Fallback if still loading
+        }
+    }
+    
+    return url;
+}
+
 
 function getPreRenderedCoin(src, size) {
     if (!src || typeof document === 'undefined') return null;
@@ -87,16 +130,29 @@ function getPreRenderedCoin(src, size) {
             return img; // Fallback to raw image temporarily
         }
         
-        // Force a minimum scale of 2 to ensure it looks good even when zoomed out temporarily
-        const dpr = Math.max(window.devicePixelRatio || 1, 2);
+        // Scale pre-rendered coin resolution based on graphics quality
+        let resolutionScale = 1;
+        if (typeof settingsManager !== 'undefined') {
+            const quality = settingsManager.get('graphics_quality') ?? 10;
+            if (quality < 4) {
+                resolutionScale = 0.5; // Half resolution for low quality
+            } else if (quality < 8) {
+                resolutionScale = 0.75; // 3/4 resolution for medium quality
+            }
+        }
+        
+        // Force a minimum scale of 2 to ensure it looks good even when zoomed out temporarily, multiplied by resolution scale
+        const baseDpr = Math.max(window.devicePixelRatio || 1, 2);
+        const dpr = baseDpr * resolutionScale;
+        
         canvas = document.createElement('canvas');
-        canvas.width = Math.floor(size * dpr);
-        canvas.height = Math.floor(size * dpr);
+        canvas.width = Math.max(1, Math.floor(size * dpr));
+        canvas.height = Math.max(1, Math.floor(size * dpr));
         
         const ctx = canvas.getContext('2d');
         ctx.scale(dpr, dpr);
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        ctx.imageSmoothingQuality = getCanvasSmoothingQuality();
         ctx.drawImage(img, 0, 0, size, size);
         
         sizeMap.set(size, canvas);
@@ -259,6 +315,9 @@ export function createSpawner({
         if (typeof preRenderedCoins !== 'undefined') {
             preRenderedCoins.clear();
         }
+        if (typeof preRenderedUrls !== 'undefined') {
+            preRenderedUrls.clear();
+        }
         
         // Resize all layer canvases
         canvases.forEach((canvas, i) => {
@@ -273,7 +332,7 @@ export function createSpawner({
                     ctx.setTransform(1, 0, 0, 1, 0, 0);
                     ctx.scale(dpr, dpr);
                     ctx.imageSmoothingEnabled = true;
-                    ctx.imageSmoothingQuality = 'high';
+                    ctx.imageSmoothingQuality = getCanvasSmoothingQuality();
                 }
             }
         });
@@ -297,6 +356,26 @@ export function createSpawner({
     }
 
     computeMetrics();
+
+    settingsManager.subscribe('graphics_quality', () => {
+        if (typeof preRenderedCoins !== 'undefined') {
+            preRenderedCoins.clear();
+        }
+        if (typeof preRenderedUrls !== 'undefined') {
+            preRenderedUrls.clear();
+        }
+        computeMetrics();
+        
+        // Dynamically update currently moving DOM coins to reflect new quality
+        for (let i = 0; i < activeCoins.length; i++) {
+            const c = activeCoins[i];
+            if (c && c.el && !c.settled && !c.isRemoved) {
+                if (c.el.firstChild) {
+                    c.el.firstChild.src = getPreRenderedCoinUrl(c.src, c.size || baseCoinSize);
+                }
+            }
+        }
+    });
 
     const ro = 'ResizeObserver' in window ? new ResizeObserver(() => computeMetrics()) : null;
     if (ro && refs.pf)
@@ -574,7 +653,7 @@ export function createSpawner({
         el.className = `coin coin--size-${sizeIndex}`; // Add size class
         // Update inner image src
         if (el.firstChild) {
-             el.firstChild.src = currentCoinSrc;
+             el.firstChild.src = getPreRenderedCoinUrl(currentCoinSrc, size);
         }
         
         el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
@@ -1059,7 +1138,7 @@ export function createSpawner({
         el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
         
         if (el.firstChild) {
-            el.firstChild.src = c.src;
+            el.firstChild.src = getPreRenderedCoinUrl(c.src, size);
         }
         
         el.style.opacity = '1';
