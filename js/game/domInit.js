@@ -1,4 +1,5 @@
 import { settingsManager } from './settingsManager.js';
+import { initPinnedCurrencies } from '../ui/currencyPins.js';
 export function ensureGameDom(layerCount, startZ) {
   if (document.getElementById('game-root')) return;
 
@@ -13,6 +14,7 @@ export function ensureGameDom(layerCount, startZ) {
 
   main.innerHTML = `
       <div class="hud-top ${uiHiddenClass}">
+        <div id="pinned-currencies-container"></div>
         <div class="coin-counter">
           <img src="img/currencies/coin/coin_plus_base.webp" alt="" class="coin-plus"/>
           <div class="coin-bar">
@@ -92,4 +94,6 @@ export function ensureGameDom(layerCount, startZ) {
 
   settingsManager.subscribe('show_cursor', applyCursorSetting);
   applyCursorSetting(settingsManager.get('show_cursor'));
+
+  initPinnedCurrencies(document.getElementById('pinned-currencies-container'));
 }
