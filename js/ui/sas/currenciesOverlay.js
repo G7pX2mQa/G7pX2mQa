@@ -49,10 +49,10 @@ function ensureCurrencySettings() {
   });
 }
 
-function createCurrencyRow(container, isMaster, currencyId, iconSrc, baseSrc, amountText) {
+function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc, amountText) {
   const row = document.createElement('div');
-  row.className = 'currency-row' + (isMaster ? ' master-row' : '');
-  if (currencyId && currencyId !== 'master') row.dataset.currency = currencyId;
+  row.className = 'currency-row' + (isUniversal ? ' universal-row' : '');
+  if (currencyId && currencyId !== 'universal') row.dataset.currency = currencyId;
   
   const info = document.createElement('div');
   info.className = 'currency-info';
@@ -86,7 +86,7 @@ function createCurrencyRow(container, isMaster, currencyId, iconSrc, baseSrc, am
   ];
 
   const getDropdownValue = () => {
-    if (!isMaster) {
+    if (!isUniversal) {
       const selected = [];
       if (settingsManager.get(getToggleKey(currencyId, 'popups'))) selected.push('popups');
       if (settingsManager.get(getToggleKey(currencyId, 'autobuy'))) selected.push('autobuy');
@@ -112,31 +112,32 @@ function createCurrencyRow(container, isMaster, currencyId, iconSrc, baseSrc, am
 
     if (!toggledType) return;
 
-    const newVal = newVals.includes(toggledType);
-
-    if (!isMaster) {
+    if (!isUniversal) {
+      const newVal = newVals.includes(toggledType);
       settingsManager.set(getToggleKey(currencyId, toggledType), newVal);
       if (toggledType === 'pin') {
         window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
       }
       const overlayEl = container.closest('.sas-overlay');
       if (overlayEl) {
-        const masterRow = overlayEl.querySelector('.master-row');
-        if (masterRow && masterRow._updateDropdownVisually) {
-          masterRow._updateDropdownVisually();
+        const universalRow = overlayEl.querySelector('.universal-row');
+        if (universalRow && universalRow._updateDropdownVisually) {
+          universalRow._updateDropdownVisually();
         }
       }
     } else {
       const allCurrencies = Object.values(CURRENCIES);
       allCurrencies.forEach(c => {
-        settingsManager.set(getToggleKey(c, toggledType), newVal);
+        settingsManager.set(getToggleKey(c, 'popups'), newVals.includes('popups'));
+        settingsManager.set(getToggleKey(c, 'autobuy'), newVals.includes('autobuy'));
+        settingsManager.set(getToggleKey(c, 'pin'), newVals.includes('pin'));
       });
       
       // Update visually without full re-render
       const overlayEl = container.closest('.sas-overlay');
       if (overlayEl) {
         // Update all child dropdown wrappers instead of replacing the DOM
-        const rows = overlayEl.querySelectorAll('.currency-row:not(.master-row)');
+        const rows = overlayEl.querySelectorAll('.currency-row:not(.universal-row)');
         rows.forEach(row => {
           if (row._updateDropdownVisually) {
             row._updateDropdownVisually();
@@ -144,14 +145,13 @@ function createCurrencyRow(container, isMaster, currencyId, iconSrc, baseSrc, am
         });
       }
       
-      if (toggledType === 'pin') {
-        window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
-      }
+      // Always dispatch event when modifying the universal toggle to apply any pin changes
+      window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
     }
   };
 
   const getDisplayValue = (vals) => {
-    if (isMaster) {
+    if (isUniversal) {
       const allCurrencies = Object.values(CURRENCIES);
       let hasVariance = false;
       ['popups', 'autobuy', 'pin'].forEach(type => {
@@ -178,9 +178,9 @@ function createCurrencyRow(container, isMaster, currencyId, iconSrc, baseSrc, am
       return span;
     };
     
-    const comma = () => {
+    const verticalBar = () => {
       const span = document.createElement('span');
-      span.textContent = ', ';
+      span.textContent = '| ';
       span.style.color = 'inherit';
       return span;
     };
@@ -191,9 +191,9 @@ function createCurrencyRow(container, isMaster, currencyId, iconSrc, baseSrc, am
 
     return [
       makeSpan(hasPopups ? 'Has popups' : 'No popups', hasPopups),
-      comma(),
+      verticalBar(),
       makeSpan(isAuto ? 'Is automated' : 'Is not automated', isAuto),
-      comma(),
+      verticalBar(),
       makeSpan(isPinned ? 'Is pinned' : 'Is not pinned', isPinned)
     ];
   };
@@ -222,9 +222,9 @@ function populateCurrenciesOverlay(overlayEl) {
   
   ensureCurrencySettings();
   
-  // Master Row
+  // Universal Row
   const uniqueCount = Object.keys(CURRENCIES).length;
-  createCurrencyRow(grid, true, 'master', 'img/misc/mysterious.webp', 'img/misc/locked_base.webp', "Global Setting Modifier");
+  createCurrencyRow(grid, true, 'universal', 'img/misc/mysterious.webp', 'img/misc/locked_base.webp', "Universal Toggle");
 
   // Child Rows
   const currenciesList = Object.values(CURRENCIES);
