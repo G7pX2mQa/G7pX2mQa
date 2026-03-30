@@ -698,10 +698,10 @@ export function initWorkshopSystem() {
           updateWorkshopTab();
       });
       window.addEventListener('currency:change', (e) => {
-          if (e.detail.key === CURRENCIES.COINS) { updateWorkshopTab(); }
+          if (e.detail && e.detail.key === CURRENCIES.COINS) { updateWorkshopTab(); }
       });
       window.addEventListener('currency:multiplier', (e) => {
-          if (e.detail.key === CURRENCIES.GEARS) { updateWorkshopTab(); }
+          if (e.detail && e.detail.key === CURRENCIES.GEARS) { updateWorkshopTab(); }
       });
       window.addEventListener('debug:change', () => {
           currentGenerationLevel = loadGenerationLevel();
