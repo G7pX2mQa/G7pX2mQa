@@ -151,26 +151,20 @@
   cursor: pointer;
 }
 
-.currency-row[data-currency="coins"], .pinned-currency[data-currency="coins"] { background: linear-gradient(to bottom, #3a3215 0%, #5e5225 15%, #6e612f 50%, #5e5225 85%, #3a3215 100%) !important; }
-.currency-row[data-currency="coins"] { border-color: #ffd700  !important; }
-
-.currency-row[data-currency="books"], .pinned-currency[data-currency="books"] { background: linear-gradient(to bottom, #152b3a 0%, #25465e 15%, #2f546e 50%, #25465e 85%, #152b3a 100%) !important; }
-.currency-row[data-currency="books"] { border-color: #5bc0de  !important; }
-
-.currency-row[data-currency="gold"], .pinned-currency[data-currency="gold"] { background: linear-gradient(to bottom, #3a2515 0%, #5e3d25 15%, #6e492f 50%, #5e3d25 85%, #3a2515 100%) !important; }
-.currency-row[data-currency="gold"] { border-color: #ffaa00  !important; }
-
-.currency-row[data-currency="magic"], .pinned-currency[data-currency="magic"] { background: linear-gradient(to bottom, #2b153a 0%, #46255e 15%, #542f6e 50%, #46255e 85%, #2b153a 100%) !important; }
-.currency-row[data-currency="magic"] { border-color: #b05bff  !important; }
-
-.currency-row[data-currency="gears"], .pinned-currency[data-currency="gears"] { background: linear-gradient(to bottom, #2a2a2a 0%, #444444 15%, #555555 50%, #444444 85%, #2a2a2a 100%) !important; }
-.currency-row[data-currency="gears"] { border-color: #999999  !important; }
-
-.currency-row[data-currency="waves"], .pinned-currency[data-currency="waves"] { background: linear-gradient(to bottom, #15323a 0%, #25525e 15%, #2f616e 50%, #25525e 85%, #15323a 100%) !important; }
-.currency-row[data-currency="waves"] { border-color: #00ccff  !important; }
-
-.currency-row[data-currency="dna"], .pinned-currency[data-currency="dna"] { background: linear-gradient(to bottom, #1a3a20 0%, #2a5e35 15%, #336e40 50%, #2a5e35 85%, #1a3a20 100%) !important; }
-.currency-row[data-currency="dna"] { border-color: #4ade80  !important; }
+.currency-row[data-currency="coins"], .pinned-currency[data-currency="coins"] { background: linear-gradient(to bottom, #d1a008 0%, #e3b527 15%, #ffd34c 50%, #e3b527 85%, #d1a008) !important; }
+.currency-row[data-currency="coins"] { border-color: #000  !important; }
+.currency-row[data-currency="books"], .pinned-currency[data-currency="books"] { background: linear-gradient(to bottom, #82551b 0%, #94601e 15%, #AC6C1B 50%, #94601e 85%, #82551b 100%) !important; }
+.currency-row[data-currency="books"] { border-color: #000  !important; }
+.currency-row[data-currency="gold"], .pinned-currency[data-currency="gold"] { background: linear-gradient(to bottom, #c27400 0%, #d98200 15%, #ffc400 50%, #d98200 85%, #c27400 100%) !important; }
+.currency-row[data-currency="gold"] { border-color: #000  !important; }
+.currency-row[data-currency="magic"], .pinned-currency[data-currency="magic"] { background: linear-gradient(to bottom, #42138A 0%, #6A1ECF 15%, #9F30FF 50%, #6A1ECF 85%, #42138A 100%) !important; }
+.currency-row[data-currency="magic"] { border-color: #000  !important; }
+.currency-row[data-currency="gears"], .pinned-currency[data-currency="gears"] { background: linear-gradient(to bottom, #5c5d61 0%, #8f9096 15%, #9d9fa6 50%, #8f9096 85%, #5c5d61 100%) !important; }
+.currency-row[data-currency="gears"] { border-color: #000  !important; }
+.currency-row[data-currency="waves"], .pinned-currency[data-currency="waves"] { background: linear-gradient(to bottom, #0286a1 0%, #02b1d4 15%, #00eded 50%, #02b1d4 85%, #0286a1 100%) !important; }
+.currency-row[data-currency="waves"] { border-color: #000  !important; }
+.currency-row[data-currency="dna"], .pinned-currency[data-currency="dna"] { background: repeating-linear-gradient(-45deg, #C00000, #C00000 30px, #00B0F0 30px, #00B0F0 60px) !important; }
+.currency-row[data-currency="dna"] { border-color: #000  !important; }
 
 .setting-dropdown-btn {
     font-size: 13px !important;
