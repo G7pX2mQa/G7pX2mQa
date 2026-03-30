@@ -36,6 +36,17 @@ export function initPinnedCurrencies(parentEl) {
   // Re-layout on resize
   window.addEventListener('resize', layoutPinnedCurrencies);
   window.addEventListener('orientationchange', layoutPinnedCurrencies);
+  
+  // Re-layout when game area becomes visible
+  window.addEventListener('menu:visibilitychange', (e) => {
+    if (e.detail && !e.detail.visible) {
+      // The menu is hidden, which means the game area is now visible.
+      // Wait for the next frame to ensure the DOM has updated and layout is calculated.
+      requestAnimationFrame(() => {
+        layoutPinnedCurrencies();
+      });
+    }
+  });
 }
 
 function updateVisibility(isVisible) {
@@ -140,35 +151,45 @@ export function layoutPinnedCurrencies() {
   const GAP_X = 8;
   const TOTAL_ITEM_H = ITEM_HEIGHT + GAP_Y;
 
-  // Find how many items fit entirely before the HUD
-  // Plus 2 items that are allowed to overlap the HUD in the first column
-  let N = Math.floor((availableHeight + GAP_Y) / TOTAL_ITEM_H);
-  if (N < 0) N = 0; // Edge case if pinned container is below HUD
-  
-  const firstColCapacity = N + 2;
-
   // We need the horizontal width for snaking
   // .pinned-currency is 225px wide + 14px left margin
   const ITEM_WIDTH = 225 + 14; 
   const TOTAL_ITEM_W = ITEM_WIDTH + GAP_X;
 
+  // Find how many items fit entirely before the HUD
+  let itemsAboveHud = Math.floor((availableHeight + GAP_Y) / TOTAL_ITEM_H);
+  if (itemsAboveHud < 0) itemsAboveHud = 0; // Edge case if pinned container is below HUD
+  
+  // Calculate the vertical offset to start overlapping items so they fall entirely inside the HUD.
+  // We align the first overlapping item either at its natural spacing if it already falls
+  // exactly on the HUD line, or we push it down exactly to the HUD's top offset.
+  const hudTopOffset = availableHeight;
+  const firstOverlappingTopPx = Math.max(itemsAboveHud * TOTAL_ITEM_H, hudTopOffset);
+
+  // Determine how many items comfortably fit vertically within the HUD's height
+  let itemsInsideHud = Math.floor((hudRect.height + GAP_Y) / TOTAL_ITEM_H);
+  if (itemsInsideHud < 1) itemsInsideHud = 1; // Fallback to at least 1 item to prevent divide-by-zero or empty columns
+
+  const firstColCapacity = itemsAboveHud + itemsInsideHud;
+
   children.forEach((el, index) => {
-    if (index < firstColCapacity) {
-      // First column
+    if (index < itemsAboveHud) {
+      // First column, above the HUD
       el.style.left = '0px';
       el.style.top = `${index * TOTAL_ITEM_H}px`;
+    } else if (index < firstColCapacity) {
+      // First column, overlapping the HUD
+      const rowInHud = index - itemsAboveHud;
+      el.style.left = '0px';
+      el.style.top = `${firstOverlappingTopPx + (rowInHud * TOTAL_ITEM_H)}px`;
     } else {
-      // Snaking horizontally, 2 items per column
+      // Snaking horizontally inside the HUD bounds
       const snakedIndex = index - firstColCapacity;
-      const col = Math.floor(snakedIndex / 2) + 1;
-      const rowInCol = snakedIndex % 2;
-
-      // They should align vertically with the bottom two items of the first column.
-      const baseYIndex = firstColCapacity - 2 + rowInCol;
-      const topPx = baseYIndex * TOTAL_ITEM_H;
+      const col = Math.floor(snakedIndex / itemsInsideHud) + 1;
+      const rowInHud = snakedIndex % itemsInsideHud;
 
       el.style.left = `${col * TOTAL_ITEM_W}px`;
-      el.style.top = `${topPx}px`;
+      el.style.top = `${firstOverlappingTopPx + (rowInHud * TOTAL_ITEM_H)}px`;
     }
   });
 }
