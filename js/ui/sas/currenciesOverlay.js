@@ -40,11 +40,11 @@ function ensureCurrencySettings() {
     if (settingsManager.get(getToggleKey(c, 'popups')) === undefined) {
       settingsManager.set(getToggleKey(c, 'popups'), true);
     }
-    if (settingsManager.get(getToggleKey(c, 'autobuy')) === undefined) {
-      settingsManager.set(getToggleKey(c, 'autobuy'), false);
+    if (settingsManager.get(getToggleKey(c, 'automated')) === undefined) {
+      settingsManager.set(getToggleKey(c, 'automated'), false);
     }
-    if (settingsManager.get(getToggleKey(c, 'pin')) === undefined) {
-      settingsManager.set(getToggleKey(c, 'pin'), false);
+    if (settingsManager.get(getToggleKey(c, 'pinned')) === undefined) {
+      settingsManager.set(getToggleKey(c, 'pinned'), false);
     }
   });
 }
@@ -81,21 +81,21 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
 
   const opts = [
     { value: 'popups', label: 'Popups' },
-    { value: 'autobuy', label: 'Autobuy' },
-    { value: 'pin', label: 'Pin' },
+    { value: 'automated', label: 'Automated' },
+    { value: 'pinned', label: 'Pinned' },
   ];
 
   const getDropdownValue = () => {
     if (!isUniversal) {
       const selected = [];
       if (settingsManager.get(getToggleKey(currencyId, 'popups'))) selected.push('popups');
-      if (settingsManager.get(getToggleKey(currencyId, 'autobuy'))) selected.push('autobuy');
-      if (settingsManager.get(getToggleKey(currencyId, 'pin'))) selected.push('pin');
+      if (settingsManager.get(getToggleKey(currencyId, 'automated'))) selected.push('automated');
+      if (settingsManager.get(getToggleKey(currencyId, 'pinned'))) selected.push('pinned');
       return selected;
     } else {
       const allCurrencies = Object.values(CURRENCIES);
       const selected = [];
-      ['popups', 'autobuy', 'pin'].forEach(type => {
+      ['popups', 'automated', 'pinned'].forEach(type => {
         if (allCurrencies.every(c => settingsManager.get(getToggleKey(c, type)))) {
           selected.push(type);
         }
@@ -106,7 +106,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
 
   const setDropdownValue = (newVals) => {
     const prevVals = getDropdownValue();
-    const toggledType = ['popups', 'autobuy', 'pin'].find(type => 
+    const toggledType = ['popups', 'automated', 'pinned'].find(type => 
       prevVals.includes(type) !== newVals.includes(type)
     );
 
@@ -115,7 +115,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
     if (!isUniversal) {
       const newVal = newVals.includes(toggledType);
       settingsManager.set(getToggleKey(currencyId, toggledType), newVal);
-      if (toggledType === 'pin') {
+      if (toggledType === 'pinned') {
         window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
       }
       const overlayEl = container.closest('.sas-overlay');
@@ -129,8 +129,8 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
       const allCurrencies = Object.values(CURRENCIES);
       allCurrencies.forEach(c => {
         settingsManager.set(getToggleKey(c, 'popups'), newVals.includes('popups'));
-        settingsManager.set(getToggleKey(c, 'autobuy'), newVals.includes('autobuy'));
-        settingsManager.set(getToggleKey(c, 'pin'), newVals.includes('pin'));
+        settingsManager.set(getToggleKey(c, 'automated'), newVals.includes('automated'));
+        settingsManager.set(getToggleKey(c, 'pinned'), newVals.includes('pinned'));
       });
       
       // Update visually without full re-render
@@ -154,7 +154,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
     if (isUniversal) {
       const allCurrencies = Object.values(CURRENCIES);
       let hasVariance = false;
-      ['popups', 'autobuy', 'pin'].forEach(type => {
+      ['popups', 'automated', 'pinned'].forEach(type => {
         const firstVal = settingsManager.get(getToggleKey(allCurrencies[0], type));
         for (let i = 1; i < allCurrencies.length; i++) {
           if (settingsManager.get(getToggleKey(allCurrencies[i], type)) !== firstVal) {
@@ -186,8 +186,8 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
     };
 
     const hasPopups = vals.includes('popups');
-    const isAuto = vals.includes('autobuy');
-    const isPinned = vals.includes('pin');
+    const isAuto = vals.includes('automated');
+    const isPinned = vals.includes('pinned');
 
     return [
       makeSpan(hasPopups ? 'Has popups' : 'No popups', hasPopups),
