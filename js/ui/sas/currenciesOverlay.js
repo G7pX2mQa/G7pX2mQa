@@ -6,6 +6,9 @@ import { bank } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { settingsManager } from '../../game/settingsManager.js';
 import { createDropdown } from './dropdownUtils.js';
+import { AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../../game/automationUpgrades.js';
+import { getLevelNumber } from '../../game/upgrades.js';
+
 
 // Base icon mapping for default states if they don't exactly match the folder name
 const BASE_ICONS = {
@@ -41,7 +44,7 @@ function ensureCurrencySettings() {
       settingsManager.set(getToggleKey(c, 'popups'), true);
     }
     if (settingsManager.get(getToggleKey(c, 'automated')) === undefined) {
-      settingsManager.set(getToggleKey(c, 'automated'), false);
+      settingsManager.set(getToggleKey(c, 'automated'), true);
     }
     if (settingsManager.get(getToggleKey(c, 'pinned')) === undefined) {
       settingsManager.set(getToggleKey(c, 'pinned'), false);
@@ -189,10 +192,27 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
     const isAuto = vals.includes('automated');
     const isPinned = vals.includes('pinned');
 
+    let isMasterUnlocked = false;
+    if (currencyId && !isUniversal) {
+      const masterUpgIdEntry = Object.entries(MASTER_AUTOBUY_IDS).find(([id, key]) => key === currencyId);
+      if (masterUpgIdEntry) {
+        const masterId = parseInt(masterUpgIdEntry[0]);
+        if (getLevelNumber(AUTOMATION_AREA_KEY, masterId) > 0) {
+          isMasterUnlocked = true;
+        }
+      }
+    }
+
+    const autoText = isUniversal 
+      ? (isAuto ? 'Is/Could be automated' : 'Is not/Wouldn\'t be automated')
+      : (isMasterUnlocked 
+          ? (isAuto ? 'Is automated' : 'Is not automated') 
+          : (isAuto ? 'Could be automated' : 'Wouldn\'t be automated'));
+
     return [
       makeSpan(hasPopups ? 'Has popups' : 'No popups', hasPopups),
       verticalBar(),
-      makeSpan(isAuto ? 'Is automated' : 'Is not automated', isAuto),
+      makeSpan(autoText, isAuto),
       verticalBar(),
       makeSpan(isPinned ? 'Is pinned' : 'Is not pinned', isPinned)
     ];
