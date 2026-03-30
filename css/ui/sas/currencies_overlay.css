@@ -163,7 +163,7 @@
 .currency-row[data-currency="gears"] { border-color: #000  !important; }
 .currency-row[data-currency="waves"], .pinned-currency[data-currency="waves"] { background: linear-gradient(to bottom, #0286a1 0%, #02b1d4 15%, #00eded 50%, #02b1d4 85%, #0286a1 100%) !important; }
 .currency-row[data-currency="waves"] { border-color: #000  !important; }
-.currency-row[data-currency="dna"], .pinned-currency[data-currency="dna"] { background: repeating-linear-gradient(-45deg, #C00000, #C00000 30px, #00B0F0 30px, #00B0F0 60px) !important; }
+.currency-row[data-currency="dna"], .pinned-currency[data-currency="dna"] { background: repeating-linear-gradient(-45deg, #C00000, #C00000 30.1px, #00B0F0 30.1px, #00B0F0 60.2px) !important; }
 .currency-row[data-currency="dna"] { border-color: #000  !important; }
 
 .setting-dropdown-btn {
