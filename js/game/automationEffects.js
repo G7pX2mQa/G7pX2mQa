@@ -168,8 +168,8 @@ function processAutobuyGroup(upgrades) {
 
     // Check master currency toggle first
     let isMasterEnabled = true;
-    if (upg.cost && upg.cost.type) {
-      if (settingsManager.get(`currency_${upg.cost.type}_automated`) === false) {
+    if (upg.costType) {
+      if (settingsManager.get(`currency_${upg.costType}_automated`) === false) {
         isMasterEnabled = false;
       }
     }
