@@ -1,3 +1,4 @@
+import { settingsManager } from '../game/settingsManager.js';
 // js/util/debugPanel.js
 // Using a debug panel is much faster and more convenient than
 // Editing local storage every time I want to change something.
@@ -3968,8 +3969,7 @@ function setAllAutomationToggles(targetState) {
     const automatedCostTypes = new Set(masterTypes);
     
     masterTypes.forEach(type => {
-         const key = `ccc:autobuy:master:${type}:${slot}`;
-         localStorage.setItem(key, val);
+         settingsManager.set(`currency_${type}_automated`, val === '1');
     });
 
     // 3. Set Individual Toggles (Logic state)
