@@ -121,6 +121,9 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
       if (toggledType === 'pinned') {
         window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
       }
+      if (toggledType === 'automated') {
+        window.dispatchEvent(new CustomEvent('currency:change'));
+      }
       const overlayEl = container.closest('.sas-overlay');
       if (overlayEl) {
         const universalRow = overlayEl.querySelector('.universal-row');
@@ -150,6 +153,9 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
       
       // Always dispatch event when modifying the universal toggle to apply any pin changes
       window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
+      if (toggledType === 'automated') {
+        window.dispatchEvent(new CustomEvent('currency:change'));
+      }
     }
   };
 
