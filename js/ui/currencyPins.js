@@ -24,12 +24,12 @@ export function initPinnedCurrencies(parentEl) {
   // Initial render
   refreshPinnedCurrencies();
 
-  // Watch for setting changes to 'currency_{id}_pin'
+  // Watch for setting changes to 'currency_{id}_pinned'
   // Since settingsManager.subscribe only works if the key exists or is added,
   // we need to subscribe individually or rely on a global settings change event.
   // We'll manually subscribe to all possible currencies.
   Object.values(CURRENCIES).forEach(id => {
-    const pinKey = `currency_${id}_pin`;
+    const pinKey = `currency_${id}_pinned`;
     settingsManager.subscribe(pinKey, () => refreshPinnedCurrencies());
   });
 
@@ -70,7 +70,7 @@ export function refreshPinnedCurrencies() {
 
   const pinnedIds = [];
   Object.values(CURRENCIES).forEach(id => {
-    const isPinned = settingsManager.get(`currency_${id}_pin`);
+    const isPinned = settingsManager.get(`currency_${id}_pinned`);
     if (isPinned) {
       pinnedIds.push(id);
     }
