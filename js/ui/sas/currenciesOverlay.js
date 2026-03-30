@@ -119,6 +119,13 @@ function createCurrencyRow(container, isMaster, currencyId, iconSrc, baseSrc, am
       if (toggledType === 'pin') {
         window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
       }
+      const overlayEl = container.closest('.sas-overlay');
+      if (overlayEl) {
+        const masterRow = overlayEl.querySelector('.master-row');
+        if (masterRow && masterRow._updateDropdownVisually) {
+          masterRow._updateDropdownVisually();
+        }
+      }
     } else {
       const allCurrencies = Object.values(CURRENCIES);
       allCurrencies.forEach(c => {
@@ -144,10 +151,51 @@ function createCurrencyRow(container, isMaster, currencyId, iconSrc, baseSrc, am
   };
 
   const getDisplayValue = (vals) => {
-    const popupsStr = vals.includes('popups') ? 'Has popups' : 'No popups';
-    const autoStr = vals.includes('autobuy') ? 'Is automated' : 'Is not automated';
-    const pinStr = vals.includes('pin') ? 'Is pinned' : 'Is not pinned';
-    return `${popupsStr}, ${autoStr}, ${pinStr}`;
+    if (isMaster) {
+      const allCurrencies = Object.values(CURRENCIES);
+      let hasVariance = false;
+      ['popups', 'autobuy', 'pin'].forEach(type => {
+        const firstVal = settingsManager.get(getToggleKey(allCurrencies[0], type));
+        for (let i = 1; i < allCurrencies.length; i++) {
+          if (settingsManager.get(getToggleKey(allCurrencies[i], type)) !== firstVal) {
+            hasVariance = true;
+            break;
+          }
+        }
+      });
+      if (hasVariance) {
+        const span = document.createElement("span");
+        span.textContent = "Variance within currencies detected";
+        span.style.color = "#ffaa00"; // Optional, can just be default or some other color, user didn't specify color for variance, just text
+        return span;
+      }
+    }
+
+    const makeSpan = (text, isTruthy) => {
+      const span = document.createElement('span');
+      span.textContent = text;
+      span.style.color = isTruthy ? '#44ff44' : '#ff4444';
+      return span;
+    };
+    
+    const comma = () => {
+      const span = document.createElement('span');
+      span.textContent = ', ';
+      span.style.color = 'inherit';
+      return span;
+    };
+
+    const hasPopups = vals.includes('popups');
+    const isAuto = vals.includes('autobuy');
+    const isPinned = vals.includes('pin');
+
+    return [
+      makeSpan(hasPopups ? 'Has popups' : 'No popups', hasPopups),
+      comma(),
+      makeSpan(isAuto ? 'Is automated' : 'Is not automated', isAuto),
+      comma(),
+      makeSpan(isPinned ? 'Is pinned' : 'Is not pinned', isPinned)
+    ];
   };
 
   const { wrapper, cleanup, updateDisplay } = createDropdown({
@@ -176,7 +224,7 @@ function populateCurrenciesOverlay(overlayEl) {
   
   // Master Row
   const uniqueCount = Object.keys(CURRENCIES).length;
-  createCurrencyRow(grid, true, 'master', 'img/misc/mysterious.webp', 'img/misc/locked_base.webp', `Unique Currencies Count: ${uniqueCount}`);
+  createCurrencyRow(grid, true, 'master', 'img/misc/mysterious.webp', 'img/misc/locked_base.webp', "Global Setting Modifier");
 
   // Child Rows
   const currenciesList = Object.values(CURRENCIES);
