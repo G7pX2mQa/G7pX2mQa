@@ -1526,26 +1526,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
 
          let isEnabled = true;
          if (isAutomationMaster) {
-             const key = `ccc:autobuy:master:${masterCostType}${slotSuffix}`;
-             // Check if ANY child upgrade is enabled
-             const upgrades = [
-                 ...getUpgradesForArea(AREA_KEYS.STARTER_COVE),
-                 ...getUpgradesForArea(DNA_AREA_KEY)
-             ];
-             let anyEnabled = false;
-             for (const u of upgrades) {
-                 if (u.costType === masterCostType) {
-                     const childKey = `ccc:autobuy:${u.area}:${u.id}${slotSuffix}`;
-                     // Use cached getter if available or fallback (here master check logic is slightly complex)
-                     // But wait, the master logic sums up children. 
-                     // We should use getAutobuyerToggle(u.area, u.id) here to be consistent!
-                     if (getAutobuyerToggle(u.area, u.id) !== '0') {
-                         anyEnabled = true;
-                         break;
-                     }
-                 }
-             }
-             isEnabled = anyEnabled;
+             isEnabled = settingsManager.get(`currency_${masterCostType}_automated`) !== false;
          } else {
              // Standard or Workshop Master
              const val = getAutobuyerToggle(upgDef.area, upgDef.id);
@@ -1570,19 +1551,11 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              const val = newState ? '1' : '0';
              
              if (isAutomationMaster) {
-                 localStorage.setItem(`ccc:autobuy:master:${masterCostType}${slotSuffix}`, val);
-                 const upgrades = [
-                     ...getUpgradesForArea(AREA_KEYS.STARTER_COVE),
-                     ...getUpgradesForArea(DNA_AREA_KEY)
-                 ];
-                 upgrades.forEach(u => {
-                    if (u.costType === masterCostType) {
-                        setAutobuyerToggle(u.area, u.id, val);
-                    }
-                 });
+                 settingsManager.set(`currency_${masterCostType}_automated`, newState);
              } else {
                  setAutobuyerToggle(upgDef.area, upgDef.id, val);
              }
+             window.dispatchEvent(new CustomEvent('currency:change'));
              rerender();
          };
       } else {
