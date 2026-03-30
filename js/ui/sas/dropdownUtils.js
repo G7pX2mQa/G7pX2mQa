@@ -123,9 +123,24 @@ export function createDropdown(options) {
     dropdownValueDisplay.innerHTML = '';
 
     if (isChecklist && getDisplayValue) {
-      const textSpan = document.createElement("span");
-      textSpan.textContent = getDisplayValue(newVal);
-      dropdownValueDisplay.appendChild(textSpan);
+      const displayVal = getDisplayValue(newVal);
+      if (displayVal instanceof Node) {
+        dropdownValueDisplay.appendChild(displayVal);
+      } else if (Array.isArray(displayVal)) {
+        displayVal.forEach(node => {
+          if (node instanceof Node) {
+            dropdownValueDisplay.appendChild(node);
+          } else {
+            const span = document.createElement("span");
+            span.textContent = node;
+            dropdownValueDisplay.appendChild(span);
+          }
+        });
+      } else {
+        const textSpan = document.createElement("span");
+        textSpan.textContent = displayVal;
+        dropdownValueDisplay.appendChild(textSpan);
+      }
       return;
     }
 
