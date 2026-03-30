@@ -70,8 +70,8 @@ export const MERCHANT_DIALOGUES = {
         { label: 'Okay.',   to: 'm2b' },
       ]},
 	  c1e: { type: 'choice', options: [
-        { label: '...',  to: 'm2b' },
-        { label: '...',  to: 'm2b' },
+        { label: 'What?',  to: 'm2b' },
+        { label: 'This isn\'t helpful.',  to: 'm2b' },
         { label: '...',   to: 'm2b' },
       ]},
 
