@@ -32,6 +32,10 @@ export function initPinnedCurrencies(parentEl) {
     const pinKey = `currency_${id}_pin`;
     settingsManager.subscribe(pinKey, () => refreshPinnedCurrencies());
   });
+
+  // Re-layout on resize
+  window.addEventListener('resize', layoutPinnedCurrencies);
+  window.addEventListener('orientationchange', layoutPinnedCurrencies);
 }
 
 function updateVisibility(isVisible) {
@@ -39,7 +43,7 @@ function updateVisibility(isVisible) {
     if (isVisible === false) {
       pinnedContainer.style.display = 'none';
     } else {
-      pinnedContainer.style.display = 'flex';
+      pinnedContainer.style.display = 'block';
     }
   }
 }
@@ -104,6 +108,68 @@ export function refreshPinnedCurrencies() {
     };
     window.addEventListener('currency:change', handleEvent);
     currencySubscriptions[id] = () => window.removeEventListener('currency:change', handleEvent);
+  });
+
+  layoutPinnedCurrencies();
+}
+
+export function layoutPinnedCurrencies() {
+  if (!pinnedContainer) return;
+
+  const children = Array.from(pinnedContainer.querySelectorAll('.pinned-currency-wrapper'));
+  if (children.length === 0) return;
+
+  const hudBottom = document.querySelector('.hud-bottom');
+  if (!hudBottom) {
+    // If hud-bottom doesn't exist, just stack them vertically
+    children.forEach((el, index) => {
+      el.style.left = '0px';
+      el.style.top = `${index * (28 + 8)}px`; // 28px height + 8px gap
+    });
+    return;
+  }
+
+  const pinnedRect = pinnedContainer.getBoundingClientRect();
+  const hudRect = hudBottom.getBoundingClientRect();
+
+  // Available vertical space from top of pinned container to top of hud-bottom
+  const availableHeight = hudRect.top - pinnedRect.top;
+
+  const ITEM_HEIGHT = 28;
+  const GAP_Y = 8;
+  const GAP_X = 8;
+  const TOTAL_ITEM_H = ITEM_HEIGHT + GAP_Y;
+
+  // Find how many items fit entirely before the HUD
+  // Plus 2 items that are allowed to overlap the HUD in the first column
+  let N = Math.floor((availableHeight + GAP_Y) / TOTAL_ITEM_H);
+  if (N < 0) N = 0; // Edge case if pinned container is below HUD
+  
+  const firstColCapacity = N + 2;
+
+  // We need the horizontal width for snaking
+  // .pinned-currency is 225px wide + 14px left margin
+  const ITEM_WIDTH = 225 + 14; 
+  const TOTAL_ITEM_W = ITEM_WIDTH + GAP_X;
+
+  children.forEach((el, index) => {
+    if (index < firstColCapacity) {
+      // First column
+      el.style.left = '0px';
+      el.style.top = `${index * TOTAL_ITEM_H}px`;
+    } else {
+      // Snaking horizontally, 2 items per column
+      const snakedIndex = index - firstColCapacity;
+      const col = Math.floor(snakedIndex / 2) + 1;
+      const rowInCol = snakedIndex % 2;
+
+      // They should align vertically with the bottom two items of the first column.
+      const baseYIndex = firstColCapacity - 2 + rowInCol;
+      const topPx = baseYIndex * TOTAL_ITEM_H;
+
+      el.style.left = `${col * TOTAL_ITEM_W}px`;
+      el.style.top = `${topPx}px`;
+    }
   });
 }
 
