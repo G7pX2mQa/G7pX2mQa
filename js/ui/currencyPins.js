@@ -152,8 +152,8 @@ export function layoutPinnedCurrencies() {
   const TOTAL_ITEM_H = ITEM_HEIGHT + GAP_Y;
 
   // We need the horizontal width for snaking
-  // .pinned-currency is 225px wide + 14px left margin
-  const ITEM_WIDTH = 225 + 14; 
+  // .pinned-currency is 150px wide + 14px left margin
+  const ITEM_WIDTH = 150 + 14; 
   const TOTAL_ITEM_W = ITEM_WIDTH + GAP_X;
 
   // Find how many items fit entirely before the HUD
