@@ -2476,8 +2476,8 @@ export const REGISTRY = [
     id: 3,
     tie: UPGRADE_TIES.FASTER_COINS_II,
     title: "Faster Coins II",
-    desc: "Increases Coin Spawn Rate by +10% per level",
-    lvlCap: 15,
+    desc: "Increases Coin Spawn Rate by +15% per level",
+    lvlCap: 10,
     baseCost: 1,
     costType: "books",
     upgType: "NM",
@@ -2490,7 +2490,7 @@ export const REGISTRY = [
       const mult = this.effectMultiplier(level);
       return `Coin Spawn Rate bonus: ${formatMultForUi(mult)}x`;
     },
-    effectMultiplier: E.addPctPerLevel(0.10),
+    effectMultiplier: E.addPctPerLevel(0.15),
   },
   {
     area: AREA_KEYS.STARTER_COVE,
