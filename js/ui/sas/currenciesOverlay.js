@@ -8,6 +8,7 @@ import { settingsManager } from '../../game/settingsManager.js';
 import { createDropdown } from './dropdownUtils.js';
 import { AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../../game/automationUpgrades.js';
 import { getLevelNumber } from '../../game/upgrades.js';
+import { setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../../game/automationEffects.js';
 
 
 // Base icon mapping for default states if they don't exactly match the folder name
@@ -92,15 +93,25 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
     if (!isUniversal) {
       const selected = [];
       if (settingsManager.get(getToggleKey(currencyId, 'popups'))) selected.push('popups');
-      if (settingsManager.get(getToggleKey(currencyId, 'automated'))) selected.push('automated');
+      
+      const collectiveState = getCollectiveAutobuyerState(currencyId);
+      let isAuto = collectiveState > 0;
+      
+      if (isAuto) selected.push('automated');
       if (settingsManager.get(getToggleKey(currencyId, 'pinned'))) selected.push('pinned');
       return selected;
     } else {
       const allCurrencies = Object.values(CURRENCIES);
       const selected = [];
       ['popups', 'automated', 'pinned'].forEach(type => {
-        if (allCurrencies.every(c => settingsManager.get(getToggleKey(c, type)))) {
-          selected.push(type);
+        if (type === 'automated') {
+           if (allCurrencies.every(c => getCollectiveAutobuyerState(c) === 1)) {
+              selected.push(type);
+           }
+        } else {
+           if (allCurrencies.every(c => settingsManager.get(getToggleKey(c, type)))) {
+             selected.push(type);
+           }
         }
       });
       return selected;
@@ -122,7 +133,9 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
         window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
       }
       if (toggledType === 'automated') {
+        setAllAutobuyersForCostType(currencyId, newVal);
         window.dispatchEvent(new CustomEvent('currency:change'));
+        window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
       }
       const overlayEl = container.closest('.sas-overlay');
       if (overlayEl) {
@@ -154,28 +167,48 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
       // Always dispatch event when modifying the universal toggle to apply any pin changes
       window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
       if (toggledType === 'automated') {
+        const isAutoEnabled = newVals.includes('automated');
+        allCurrencies.forEach(c => setAllAutobuyersForCostType(c, isAutoEnabled));
         window.dispatchEvent(new CustomEvent('currency:change'));
+        window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
       }
     }
   };
 
   const getDisplayValue = (vals) => {
+    let hasAutoVariance = false;
     if (isUniversal) {
       const allCurrencies = Object.values(CURRENCIES);
       let hasVariance = false;
       ['popups', 'automated', 'pinned'].forEach(type => {
-        const firstVal = settingsManager.get(getToggleKey(allCurrencies[0], type));
-        for (let i = 1; i < allCurrencies.length; i++) {
-          if (settingsManager.get(getToggleKey(allCurrencies[i], type)) !== firstVal) {
-            hasVariance = true;
-            break;
-          }
+        if (type === 'automated') {
+           const firstVal = getCollectiveAutobuyerState(allCurrencies[0]);
+           if (firstVal === 0.5) {
+               hasVariance = true;
+               hasAutoVariance = true;
+           }
+           for (let i = 1; i < allCurrencies.length; i++) {
+             const state = getCollectiveAutobuyerState(allCurrencies[i]);
+             if (state !== firstVal || state === 0.5) {
+               hasVariance = true;
+               hasAutoVariance = true;
+               break;
+             }
+           }
+        } else {
+           const firstVal = settingsManager.get(getToggleKey(allCurrencies[0], type));
+           for (let i = 1; i < allCurrencies.length; i++) {
+             if (settingsManager.get(getToggleKey(allCurrencies[i], type)) !== firstVal) {
+               hasVariance = true;
+               break;
+             }
+           }
         }
       });
       if (hasVariance) {
         const span = document.createElement("span");
         span.textContent = "Variance within currencies detected";
-        span.style.color = "#ffaa00"; // Optional, can just be default or some other color, user didn't specify color for variance, just text
+        span.style.color = "#ffaa00";
         return span;
       }
     }
@@ -199,7 +232,9 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
     const isPinned = vals.includes('pinned');
 
     let isMasterUnlocked = false;
+    let collectiveState = 0;
     if (currencyId && !isUniversal) {
+      collectiveState = getCollectiveAutobuyerState(currencyId);
       const masterUpgIdEntry = Object.entries(MASTER_AUTOBUY_IDS).find(([id, key]) => key === currencyId);
       if (masterUpgIdEntry) {
         const masterId = parseInt(masterUpgIdEntry[0]);
@@ -209,16 +244,43 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
       }
     }
 
-    const autoText = isUniversal 
-      ? (isAuto ? 'Is/Could be automated' : 'Is not/Wouldn\'t be automated')
-      : (isMasterUnlocked 
-          ? (isAuto ? 'Is automated' : 'Is not automated') 
-          : (isAuto ? 'Could be automated' : 'Wouldn\'t be automated'));
+    let autoText = '';
+    if (isUniversal) {
+      if (hasAutoVariance) {
+        autoText = 'Variance within currencies detected';
+      } else {
+        autoText = isAuto ? 'Is/Could be automated' : 'Is not/Wouldn\'t be automated';
+      }
+    } else {
+      if (collectiveState === 0.5) {
+        autoText = 'Is sort of automated';
+      } else {
+        if (isMasterUnlocked) {
+          autoText = collectiveState === 1 ? 'Is automated' : 'Is not automated';
+        } else {
+          autoText = collectiveState === 1 ? 'Could be automated' : 'Wouldn\'t be automated';
+        }
+      }
+    }
+
+    // Set color based on state
+    let autoSpan;
+    if (!isUniversal && collectiveState === 0.5) {
+      autoSpan = document.createElement('span');
+      autoSpan.textContent = autoText;
+      autoSpan.style.color = '#ffff44'; // Yellow for sort of
+    } else if (isUniversal && hasAutoVariance) {
+      autoSpan = document.createElement('span');
+      autoSpan.textContent = autoText;
+      autoSpan.style.color = '#ffaa00'; // Orange for variance
+    } else {
+      autoSpan = makeSpan(autoText, isUniversal ? isAuto : collectiveState === 1);
+    }
 
     return [
       makeSpan(hasPopups ? 'Has popups' : 'No popups', hasPopups),
       verticalBar(),
-      makeSpan(autoText, isAuto),
+      autoSpan,
       verticalBar(),
       makeSpan(isPinned ? 'Is pinned' : 'Is not pinned', isPinned)
     ];
