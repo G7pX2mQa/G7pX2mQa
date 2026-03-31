@@ -2,7 +2,7 @@
 
 import { IS_MOBILE } from '../../main.js';
 import { createSASOverlay } from './sasOverlayBuilder.js';
-import { CURRENCIES } from '../../util/storage.js';
+import { CURRENCIES, isCurrencyUnlocked } from '../../util/storage.js';
 import { bank } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { settingsManager } from '../../game/settingsManager.js';
@@ -39,8 +39,13 @@ function getToggleKey(currency, type) {
 }
 
 // Ensures default values for these keys exist
+
+function getUnlockedCurrencies() {
+  return Object.values(CURRENCIES).filter(c => isCurrencyUnlocked(c));
+}
+
 function ensureCurrencySettings() {
-  const currencies = Object.values(CURRENCIES);
+  const currencies = getUnlockedCurrencies();
   currencies.forEach(c => {
     if (settingsManager.get(getToggleKey(c, 'popups')) === undefined) {
       settingsManager.set(getToggleKey(c, 'popups'), true);
@@ -106,7 +111,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
       if (settingsManager.get(getToggleKey(currencyId, 'pinned'))) selected.push('pinned');
       return selected;
     } else {
-      const allCurrencies = Object.values(CURRENCIES);
+      const allCurrencies = getUnlockedCurrencies();
       let hasVariance = false;
       
       ['popups', 'automated', 'pinned'].forEach(type => {
@@ -186,7 +191,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
         }
       }
     } else {
-      const allCurrencies = Object.values(CURRENCIES);
+      const allCurrencies = getUnlockedCurrencies();
       allCurrencies.forEach(c => {
         settingsManager.set(getToggleKey(c, 'popups'), newVals.includes('popups'));
         settingsManager.set(getToggleKey(c, 'automated'), newVals.includes('automated'));
@@ -219,7 +224,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
   const getDisplayValue = (vals) => {
     let hasAutoVariance = false;
     if (isUniversal && !IS_MOBILE) {
-      const allCurrencies = Object.values(CURRENCIES);
+      const allCurrencies = getUnlockedCurrencies();
       let hasVariance = false;
       ['popups', 'automated', 'pinned'].forEach(type => {
         if (type === 'automated') {
@@ -352,11 +357,11 @@ function populateCurrenciesOverlay(overlayEl) {
   ensureCurrencySettings();
   
   // Universal Row
-  const uniqueCount = Object.keys(CURRENCIES).length;
+  const uniqueCount = getUnlockedCurrencies().length;
   createCurrencyRow(grid, true, 'universal', 'img/misc/mysterious.webp', 'img/misc/locked_base.webp', "Universal Toggle");
 
   // Child Rows
-  const currenciesList = Object.values(CURRENCIES);
+  const currenciesList = getUnlockedCurrencies();
   currenciesList.forEach(currency => {
     const val = bank[currency]?.value;
     const amountStr = formatNumber(val);
@@ -378,6 +383,14 @@ function handleOutsideClick(e) {
       menu.classList.remove('is-open');
     });
   }
+}
+
+
+function handleCurrencyUnlock(e) {
+  if (!currenciesOverlay.isOpen) return;
+  const overlayEl = currenciesOverlay.overlayEl;
+  if (!overlayEl) return;
+  populateCurrenciesOverlay(overlayEl);
 }
 
 function handleCurrencyChange(e) {
@@ -413,10 +426,12 @@ const currenciesOverlay = createSASOverlay({
   onRender: (overlayEl) => {
     populateCurrenciesOverlay(overlayEl);
     window.addEventListener('currency:change', handleCurrencyChange);
+    window.addEventListener('currency:unlock', handleCurrencyUnlock);
     document.addEventListener('click', handleOutsideClick);
   },
   onClose: () => {
     window.removeEventListener('currency:change', handleCurrencyChange);
+    window.removeEventListener('currency:unlock', handleCurrencyUnlock);
     document.removeEventListener('click', handleOutsideClick);
     // Cleanup dynamic dropdown listeners
     if (currenciesOverlay.overlayEl) {
@@ -445,7 +460,7 @@ let paintBrushState = {
 };
 
 function getUniversalState() {
-  const allCurrencies = Object.values(CURRENCIES);
+  const allCurrencies = getUnlockedCurrencies();
   let state = { popups: true, automated: true, pinned: true };
 
   ['popups', 'automated', 'pinned'].forEach(type => {
