@@ -20,6 +20,7 @@ import {
     getLabXpMultiplier
 } from '../../game/labNodes.js';
 import { setupDragToClose } from '../shopOverlay.js';
+import { settingsManager } from '../../game/settingsManager.js';
 import { formatMultForUi } from '../../game/upgrades.js';
 
 const CAM_MAX_COORD = 1e308;
@@ -467,6 +468,7 @@ class LabSystem {
         
         const lines = IS_MOBILE ? [
             ['Node Details:', 'Tap'],
+            ['Toggle Node:', 'Tap w/ Insta-Toggle Setting ON'],
             ['Move Camera:', 'Tap and drag'],
             ['Zoom In/Out:', 'Pinch screen']
         ] : [
@@ -1038,7 +1040,19 @@ class LabSystem {
             const dist = Math.sqrt(dx*dx + dy*dy);
             
             if (dist <= clickRadius) {
-                this.openNodeOverlay(node.id);
+                if (IS_MOBILE && settingsManager.get('lab_node_insta_toggle')) {
+                     const level = getResearchNodeLevel(node.id);
+                     if (level < node.maxLevel) {
+                         const active = isResearchNodeActive(node.id);
+                         setResearchNodeActive(node.id, !active);
+                         
+                         if (this.activeOverlayId === node.id) {
+                             this.updateNodeOverlay();
+                         }
+                     }
+                } else {
+                    this.openNodeOverlay(node.id);
+                }
                 return;
             }
         }
