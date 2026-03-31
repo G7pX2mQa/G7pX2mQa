@@ -1046,3 +1046,12 @@
     font-size: clamp(26px, 3.6vw, 40px);
   }
 }
+
+.shop-sort-of {
+    border: 1px solid hsla(45, 80%, 40%, 0.45);
+    background: hsla(45, 80%, 40%, 0.15);
+}
+
+.shop-sort-of:hover {
+    background: hsla(45, 80%, 40%, 0.22);
+}
