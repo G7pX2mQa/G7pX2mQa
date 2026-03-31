@@ -183,3 +183,38 @@
     padding: 6px 12px !important;
     min-width: 250px !important;
 }
+
+@keyframes rainbowTextScroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 100px 0; }
+}
+
+.paintbrush-btn-anim {
+  background: none !important;
+  border: 1px solid #222 !important;
+  position: relative;
+  z-index: 1;
+}
+
+.paintbrush-btn-anim .paintbrush-text {
+  background: repeating-linear-gradient(
+    -45deg,
+    #ff0000,
+    #ff7f00 10%,
+    #ffff00 20%,
+    #00ff00 30%,
+    #0000ff 40%,
+    #4b0082 50%,
+    #9400d3 60%,
+    #ff0000 70%
+  );
+  background-size: 100px 100px;
+  animation: rainbowTextScroll 2s linear infinite;
+  color: transparent !important;
+  -webkit-background-clip: text;
+  background-clip: text;
+  /* Since standard text-shadow renders on top of transparent text in some browsers,
+     we use standard webkit-text-stroke if needed, or rely on a wrapper, 
+     but webkit-text-stroke is easier: */
+  -webkit-text-stroke: 1px rgba(0,0,0,0.8);
+}
