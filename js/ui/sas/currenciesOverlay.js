@@ -1,5 +1,6 @@
 // js/ui/sas/currenciesOverlay.js
 
+import { IS_MOBILE } from '../../main.js';
 import { createSASOverlay } from './sasOverlayBuilder.js';
 import { CURRENCIES } from '../../util/storage.js';
 import { bank } from '../../util/storage.js';
@@ -89,7 +90,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
     { value: 'pinned', label: 'Pinned' },
   ];
 
-  if (isUniversal) {
+  if (isUniversal && !IS_MOBILE) {
     opts.push({ value: 'paintbrush', label: 'Enable Paint Brush Multi-Toggle', isButton: true, className: 'paintbrush-btn-anim' });
   }
 
@@ -217,7 +218,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
 
   const getDisplayValue = (vals) => {
     let hasAutoVariance = false;
-    if (isUniversal) {
+    if (isUniversal && !IS_MOBILE) {
       const allCurrencies = Object.values(CURRENCIES);
       let hasVariance = false;
       ['popups', 'automated', 'pinned'].forEach(type => {
@@ -285,7 +286,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
     }
 
     let autoText = '';
-    if (isUniversal) {
+    if (isUniversal && !IS_MOBILE) {
       if (hasAutoVariance) {
         autoText = 'Variance within currencies detected';
       } else {
