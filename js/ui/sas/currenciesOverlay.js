@@ -351,7 +351,7 @@ function populateCurrenciesOverlay(overlayEl) {
     const amountStr = formatNumber(val);
     const iconSrc = ICONS[currency] || 'img/misc/mysterious.webp';
     const baseSrc = BASE_ICONS[currency] || 'img/misc/locked.webp';
-    createCurrencyRow(grid, false, currency, iconSrc, baseSrc, amountStr + ' ' + (currency.charAt(0).toUpperCase() + currency.slice(1)));
+    createCurrencyRow(grid, false, currency, iconSrc, baseSrc, amountStr + ' ' + (currency === 'dna' ? 'DNA' : currency.charAt(0).toUpperCase() + currency.slice(1)));
   });
 }
 
@@ -385,7 +385,7 @@ function handleCurrencyChange(e) {
       const amountEl = row.querySelector('.currency-amount');
       if (amountEl) {
         const val = bank[currencyId]?.value;
-        amountEl.textContent = formatNumber(val) + ' ' + (currencyId.charAt(0).toUpperCase() + currencyId.slice(1));
+        amountEl.textContent = formatNumber(val) + ' ' + (currencyId === 'dna' ? 'DNA' : currencyId.charAt(0).toUpperCase() + currencyId.slice(1));
       }
     }
   } else {
