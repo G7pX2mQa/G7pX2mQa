@@ -134,7 +134,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
       }
       if (toggledType === 'automated') {
         setAllAutobuyersForCostType(currencyId, newVal);
-        window.dispatchEvent(new CustomEvent('currency:change'));
+        window.dispatchEvent(new CustomEvent('currency:change', { detail: { ignoreOverlayRender: true } }));
         window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
       }
       const overlayEl = container.closest('.sas-overlay');
@@ -169,7 +169,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
       if (toggledType === 'automated') {
         const isAutoEnabled = newVals.includes('automated');
         allCurrencies.forEach(c => setAllAutobuyersForCostType(c, isAutoEnabled));
-        window.dispatchEvent(new CustomEvent('currency:change'));
+        window.dispatchEvent(new CustomEvent('currency:change', { detail: { ignoreOverlayRender: true } }));
         window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
       }
     }
@@ -340,6 +340,7 @@ function handleOutsideClick(e) {
 }
 
 function handleCurrencyChange(e) {
+  if (e.detail && e.detail.ignoreOverlayRender) return;
   if (!currenciesOverlay.isOpen) return;
   const overlayEl = currenciesOverlay.overlayEl;
   if (!overlayEl) return;
