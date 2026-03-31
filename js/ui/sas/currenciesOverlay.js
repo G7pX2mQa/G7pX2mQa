@@ -503,6 +503,10 @@ function openPaintBrushMode() {
     labelEl.style.alignItems = 'center';
     labelEl.style.gap = '5px';
     labelEl.style.cursor = 'pointer';
+    labelEl.style.userSelect = 'none';
+    labelEl.style.webkitUserSelect = 'none';
+    labelEl.style.MozUserSelect = 'none';
+    labelEl.style.msUserSelect = 'none';
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
