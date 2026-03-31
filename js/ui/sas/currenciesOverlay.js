@@ -546,7 +546,7 @@ function openPaintBrushMode() {
   textEl.style.lineHeight = '1.4';
   textEl.style.color = '#ccc';
   textEl.style.textAlign = 'center';
-  textEl.textContent = "Left click and drag over any currency row to apply specific changes in accordance to the dropdown options listed right above this text. Use this tool to apply an arbitrary customization of settings to an arbitrary amount of currencies quickly. While this tool is active, rows covered in red will be unchanged, and rows covered in green will have changes applied.";
+  textEl.textContent = "Left click and drag over any currency row to apply specific changes in accordance to the dropdown options listed right above this text. Use this tool to apply arbitrary customizations of settings to an arbitrary amount of currencies quickly. Rows highlighted in red will be unchanged, and rows highlighted in green will be affected, apply changes when done.";
 
   // Buttons container
   const buttonsContainer = document.createElement('div');
