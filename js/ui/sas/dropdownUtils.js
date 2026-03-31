@@ -46,7 +46,12 @@ export function createDropdown(options) {
     
     optionEl.dataset.value = val;
 
-    if (isChecklist) {
+    const isButton = isObj && opt.isButton;
+
+    if (isButton) {
+      optionEl.style.justifyContent = "center";
+      optionEl.style.fontWeight = "bold";
+    } else if (isChecklist) {
       // In checklist mode, we add a checkbox
       const cb = document.createElement("input");
       cb.type = "checkbox";
@@ -82,6 +87,13 @@ export function createDropdown(options) {
     optionEl.appendChild(textSpan);
 
     optionEl.addEventListener("click", (e) => {
+      const isButton = isObj && opt.isButton;
+      if (isButton) {
+        dropdownMenu.classList.remove("is-open");
+        if (onClose) onClose();
+        setValue([val]); // Trigger special behaviour without being a checklist
+        return;
+      }
       if (isChecklist) {
         // Toggle value in array
         e.stopPropagation(); // prevent closing
