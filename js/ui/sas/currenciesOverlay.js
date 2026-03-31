@@ -10,6 +10,8 @@ import { createDropdown } from './dropdownUtils.js';
 import { AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../../game/automationUpgrades.js';
 import { getLevelNumber } from '../../game/upgrades.js';
 import { setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../../game/automationEffects.js';
+import { PRIORITY_ORDER } from '../../game/offlinePanel.js';
+import { BigNum } from '../../util/bigNum.js';
 
 
 // Base icon mapping for default states if they don't exactly match the folder name
@@ -367,7 +369,20 @@ function populateCurrenciesOverlay(overlayEl) {
     const amountStr = formatNumber(val);
     const iconSrc = ICONS[currency] || 'img/misc/mysterious.webp';
     const baseSrc = BASE_ICONS[currency] || 'img/misc/locked.webp';
-    createCurrencyRow(grid, false, currency, iconSrc, baseSrc, amountStr + ' ' + (currency === 'dna' ? 'DNA' : currency.charAt(0).toUpperCase() + currency.slice(1)));
+    
+    let displayName = currency === 'dna' ? 'DNA' : currency.charAt(0).toUpperCase() + currency.slice(1);
+    const config = PRIORITY_ORDER.find(c => c.key === currency);
+    if (config) {
+        let isOne = false;
+        if (val instanceof BigNum) {
+            isOne = !val.isInfinite() && val.cmp(BigNum.fromInt(1)) === 0;
+        } else {
+            isOne = (Number(val) === 1);
+        }
+        displayName = isOne ? config.singular : config.plural;
+    }
+
+    createCurrencyRow(grid, false, currency, iconSrc, baseSrc, amountStr + ' ' + displayName);
   });
 }
 
@@ -409,7 +424,20 @@ function handleCurrencyChange(e) {
       const amountEl = row.querySelector('.currency-amount');
       if (amountEl) {
         const val = bank[currencyId]?.value;
-        amountEl.textContent = formatNumber(val) + ' ' + (currencyId === 'dna' ? 'DNA' : currencyId.charAt(0).toUpperCase() + currencyId.slice(1));
+        
+        let displayName = currencyId === 'dna' ? 'DNA' : currencyId.charAt(0).toUpperCase() + currencyId.slice(1);
+        const config = PRIORITY_ORDER.find(c => c.key === currencyId);
+        if (config) {
+            let isOne = false;
+            if (val instanceof BigNum) {
+                isOne = !val.isInfinite() && val.cmp(BigNum.fromInt(1)) === 0;
+            } else {
+                isOne = (Number(val) === 1);
+            }
+            displayName = isOne ? config.singular : config.plural;
+        }
+
+        amountEl.textContent = formatNumber(val) + ' ' + displayName;
       }
     }
   } else {
