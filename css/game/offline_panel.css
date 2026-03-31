@@ -142,7 +142,7 @@
 .text-mp_levels { color: #FFC000; }
 .text-magic { color: #5F21DB; }
 .text-gears { color: #B0B1B8; }
-.text-DNA, .offline-plus.text-DNA {
+.text-dna, .offline-plus.text-dna {
     background: repeating-linear-gradient(-45deg, #C00000, #C00000 38px, #00B0F0 38px, #00B0F0 76px);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
