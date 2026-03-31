@@ -684,11 +684,11 @@ function flipRowStateFromEvent(e) {
   if (overlay) {
     if (overlay.dataset.state === 'red') {
       overlay.dataset.state = 'green';
-      overlay.style.background = 'rgba(0, 255, 0, 1)';
+      overlay.style.background = 'rgba(0, 255, 0, 0.5)';
       overlay.style.borderColor = 'rgba(0, 255, 0, 1)';
     } else {
       overlay.dataset.state = 'red';
-      overlay.style.background = 'rgba(255, 0, 0, 1)';
+      overlay.style.background = 'rgba(255, 0, 0, 0.5)';
       overlay.style.borderColor = 'rgba(255, 0, 0, 1)';
     }
   }
@@ -724,9 +724,18 @@ function initPaintBrushEvents() {
       // Top and bottom -6px ensures the rectangles touch each other.
       overlay.style.top = '-6px';
       overlay.style.bottom = '-6px';
-      overlay.style.left = `-${rect.left}px`;
-      overlay.style.width = '100vw';
-      overlay.style.background = 'rgba(255, 0, 0, 1)';
+      
+      // Use CSS variables for left and width to handle padding dynamically
+      // currencies-grid container (padding: 16px, handled by parent)
+      // currency-row (margin-left: 24px)
+      // So we want to extend left by margin-left + container padding
+      // Let's use a simpler approach by letting the width extend across the container.
+      // A safe way without hardcoding pixel values:
+      overlay.style.left = 'calc(-1 * (var(--grid-padding-left, 16px) + var(--row-margin-left, 24px)))';
+      // The container itself has 16px padding on the right
+      overlay.style.width = 'calc(100% + var(--grid-padding-left, 16px) + var(--row-margin-left, 24px) + var(--grid-padding-right, 16px))';
+      
+      overlay.style.background = 'rgba(255, 0, 0, 0.5)';
       overlay.style.boxSizing = 'border-box';
       overlay.style.border = '5px solid rgba(255, 0, 0, 1)';
       overlay.style.zIndex = '10';
