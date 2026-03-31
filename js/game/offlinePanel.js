@@ -93,20 +93,20 @@ export function formatTimeCompact(ms) {
 }
 
 // Visual Priority Map
-const PRIORITY_ORDER = [
-    { key: 'coins',     icon: 'img/currencies/coin/coin.webp',   singular: 'Coin',     plural: 'Coins' },
-    { key: 'xp',        icon: 'img/stats/xp/xp.webp',            singular: 'XP',       plural: 'XP' },
-    { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels' },
-    { key: 'books',     icon: 'img/currencies/book/book.webp',   singular: 'Book',     plural: 'Books' },
-    { key: 'gold',      icon: 'img/currencies/gold/gold.webp',   singular: 'Gold',     plural: 'Gold' },
-    { key: 'mp',        icon: 'img/stats/mp/mp.webp',            singular: 'MP',       plural: 'MP' },
-    { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation Level', plural: 'Mutation Levels' },
-    { key: 'magic',     icon: 'img/currencies/magic/magic.webp', singular: 'Magic',    plural: 'Magic' },
-    { key: 'gears',     icon: 'img/currencies/gear/gear.webp',   singular: 'Gear',     plural: 'Gears' },
-    { key: 'waves',     icon: 'img/currencies/gear/gear.webp',   singular: 'Wave',     plural: 'Waves' },
-    { key: 'DNA',       icon: 'img/currencies/dna/dna.webp',     singular: 'DNA',      plural: 'DNA' },
-    { key: 'research_levels', icon: 'img/stats/rp/rp.webp',      singular: 'Level',    plural: 'Levels' },
-    { key: 'waterwheel_levels', icon: 'img/waterwheels/waterwheel_coin.webp', singular: 'Level', plural: 'Levels' },
+export const PRIORITY_ORDER = [
+    { key: 'coins',     icon: 'img/currencies/coin/coin.webp',   singular: 'Coin',     plural: 'Coins', type: 'currency' },
+    { key: 'xp',        icon: 'img/stats/xp/xp.webp',            singular: 'XP',       plural: 'XP', type: 'levelStat' },
+    { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels', type: 'levelStat' },
+    { key: 'books',     icon: 'img/currencies/book/book.webp',   singular: 'Book',     plural: 'Books', type: 'currency' },
+    { key: 'gold',      icon: 'img/currencies/gold/gold.webp',   singular: 'Gold',     plural: 'Gold', type: 'currency' },
+    { key: 'mp',        icon: 'img/stats/mp/mp.webp',            singular: 'MP',       plural: 'MP', type: 'levelStat' },
+    { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation Level', plural: 'Mutation Levels', type: 'levelStat' },
+    { key: 'magic',     icon: 'img/currencies/magic/magic.webp', singular: 'Magic',    plural: 'Magic', type: 'currency' },
+    { key: 'gears',     icon: 'img/currencies/gear/gear.webp',   singular: 'Gear',     plural: 'Gears', type: 'currency' },
+    { key: 'waves',     icon: 'img/currencies/gear/gear.webp',   singular: 'Wave',     plural: 'Waves', type: 'currency' },
+    { key: 'dna',       icon: 'img/currencies/dna/dna.webp',     singular: 'DNA',      plural: 'DNA', type: 'currency' },
+    { key: 'research_levels', icon: 'img/stats/rp/rp.webp',      singular: 'Level',    plural: 'Levels', type: 'levelStat' },
+    { key: 'waterwheel_levels', icon: 'img/waterwheels/waterwheel_coin.webp', singular: 'Level', plural: 'Levels', type: 'levelStat' },
 ];
 
 export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
@@ -438,7 +438,7 @@ export function calculateOfflineRewards(seconds) {
                  
                  const dnaEarned = pending.mulDecimal(totalMultiplierDna.toScientific());
                  if (dnaEarned.cmp(0) > 0 && !isCurrencyLocked('dna', slot)) {
-                     rewards.DNA = dnaEarned;
+                     rewards.dna = dnaEarned;
                  }
              }
         }
