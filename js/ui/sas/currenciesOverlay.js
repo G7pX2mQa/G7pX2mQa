@@ -494,7 +494,8 @@ function openPaintBrushMode() {
   const togglesContainer = document.createElement('div');
   togglesContainer.style.display = 'flex';
   togglesContainer.style.justifyContent = 'space-around';
-  togglesContainer.style.padding = '5px 0';
+  togglesContainer.style.padding = '0';
+  togglesContainer.style.marginBottom = '-5px';
 
   const createToggle = (key, label) => {
     const labelEl = document.createElement('label');
