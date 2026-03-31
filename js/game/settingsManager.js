@@ -1,6 +1,7 @@
 // js/game/settingsManager.js
 
 import { getActiveSlot } from '../util/storage.js';
+import { getTsunamiSequenceSeen } from './surgeEffects.js';
 import { getHighestMutationLevel } from './mutationSystem.js';
 import { setNumberNotation } from '../util/numFormat.js';
 import { IS_MOBILE } from '../main.js';
@@ -84,6 +85,29 @@ export const SETTING_DEFINITIONS = {
     unlockCondition: () => {
       try {
         return hasDoneSurgeReset();
+      } catch {
+        return false;
+      }
+    },
+  },
+  lab_node_insta_toggle: {
+    id: 'lab_node_insta_toggle',
+    type: 'toggle',
+    label: 'Lab Node Insta-Toggle',
+    hasExtraInfo: true,
+    info: 'Do you hate having to click a lab node overlay, press Toggle, close the overlay, then when it completes, move onto the next, repeating this process forever? Toggle this setting ON to instantly toggle a node just by tapping on the node.',
+    default: false,
+    unlockCondition: () => {
+      try {
+        const slot = getActiveSlot();
+        if (slot == null) return false;
+        let isLabUnlocked = false;
+        if (typeof getTsunamiSequenceSeen === 'function' && getTsunamiSequenceSeen()) {
+            isLabUnlocked = true;
+        } else {
+            isLabUnlocked = localStorage.getItem(`labUnlock:${slot}`) === '1';
+        }
+        return isLabUnlocked && IS_MOBILE;
       } catch {
         return false;
       }
@@ -422,6 +446,16 @@ class SettingsManager {
     const newVal = !this.get(key);
     this.set(key, newVal);
     return newVal;
+  }
+  
+  delete(key) {
+    if (this.settings[key] !== undefined) {
+      delete this.settings[key];
+      delete this._isDefault[key];
+      const storageKey = this._getKey(key);
+      localStorage.removeItem(storageKey);
+      this.notify(key, undefined);
+    }
   }
 
   subscribe(key, callback) {
