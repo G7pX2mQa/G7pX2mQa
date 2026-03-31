@@ -4954,7 +4954,7 @@ export function performFreeAutobuy(areaKey, upgId) {
   return { bought: countBn };
 }
 
-registerXpUpgradeEffects();
+
 
 export function buyCheap(areaKey, upgId) {
   const state = ensureUpgradeState(areaKey, upgId);
