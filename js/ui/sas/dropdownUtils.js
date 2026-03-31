@@ -43,6 +43,9 @@ export function createDropdown(options) {
     const val = isObj ? opt.value : opt;
     const labelText = isObj ? opt.label : opt;
     const iconSrc = isObj ? opt.icon : null;
+    const customClass = isObj ? opt.className : null;
+    if (customClass) optionEl.classList.add(customClass);
+
     
     optionEl.dataset.value = val;
 
@@ -84,6 +87,10 @@ export function createDropdown(options) {
 
     const textSpan = document.createElement("span");
     textSpan.textContent = labelText;
+    // Apply a specific class for the paintbrush button text animation if needed
+    if (customClass === "paintbrush-btn-anim") {
+      textSpan.className = "paintbrush-text";
+    }
     optionEl.appendChild(textSpan);
 
     optionEl.addEventListener("click", (e) => {
