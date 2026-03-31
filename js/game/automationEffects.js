@@ -116,6 +116,50 @@ export function setAutobuyerToggle(area, id, value) {
   } catch {}
 }
 
+export function setAllAutobuyersForCostType(costType, isEnabled) {
+  const val = isEnabled ? '1' : '0';
+  batchUpgradeOperations(() => {
+    Object.values(AREA_KEYS).forEach(areaKey => {
+      const upgrades = getUpgradesForArea(areaKey);
+      upgrades.forEach(upg => {
+        if (costType === 'universal' || upg.costType === costType) {
+          setAutobuyerToggle(areaKey, upg.id, val);
+        }
+      });
+    });
+  });
+}
+
+/**
+ * Returns the collective automation state for a specific cost type.
+ * 0 = All OFF
+ * 1 = All ON
+ * 0.5 = Mixed ("Sort of ON")
+ */
+export function getCollectiveAutobuyerState(costType) {
+  let onCount = 0;
+  let totalCount = 0;
+
+  Object.values(AREA_KEYS).forEach(areaKey => {
+    const upgrades = getUpgradesForArea(areaKey);
+    upgrades.forEach(upg => {
+      if (costType === 'universal' || upg.costType === costType) {
+        totalCount++;
+        if (getAutobuyerToggle(areaKey, upg.id) !== '0') {
+          onCount++;
+        }
+      }
+    });
+  });
+
+  if (totalCount === 0) {
+    return settingsManager.get(`currency_${costType}_automated`) !== false ? 1 : 0;
+  }
+  if (onCount === 0) return 0;
+  if (onCount === totalCount) return 1;
+  return 0.5; // Mixed state
+}
+
 function onTick(dt) {
   updateAutomation(dt);
   updateAutobuyers(dt);
@@ -166,15 +210,9 @@ function processAutobuyGroup(upgrades) {
   for (const upg of upgrades) {
     const area = upg.area || AREA_KEYS.STARTER_COVE;
 
-    // Check master currency toggle first
-    let isMasterEnabled = true;
-    if (upg.costType) {
-      if (settingsManager.get(`currency_${upg.costType}_automated`) === false) {
-        isMasterEnabled = false;
-      }
-    }
-
-    if (!isMasterEnabled) continue;
+    // We no longer check the master currency toggle setting here.
+    // The master toggle now sets the individual upgrade toggles,
+    // so we can just rely on the individual toggle's state.
 
     const setting = getAutobuyerToggle(area, upg.id);
     if (setting !== '0') {
