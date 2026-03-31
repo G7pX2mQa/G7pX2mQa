@@ -41,6 +41,7 @@ let refreshSurgeMultiplierCache;
 let getUpgAreaKey;
 let computeUpgradeEffects;
 let syncCurrencyMultipliersFromUpgrades;
+let registerXpUpgradeEffects;
 let initXpSystem;
 let syncCoinMultiplierWithXpLevel;
 let onUpgradesChanged;
@@ -783,7 +784,7 @@ images: [
   ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults } = storageModule);
   void saveIntegrityModule;
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
-  ({ syncCurrencyMultipliersFromUpgrades } = upgradeEffectsModule);
+  ({ syncCurrencyMultipliersFromUpgrades, registerXpUpgradeEffects } = upgradeEffectsModule);
   ({ registerPreloadedAudio } = audioCacheModule);
   ({ initXpSystem, syncCoinMultiplierWithXpLevel } = xpModule);
   ({ initResetSystem: initResetSystemGame } = resetModule);
@@ -904,6 +905,7 @@ images: [
     mainSettingsOverlayModule.initUIHiding();
   }
 
+  registerXpUpgradeEffects();
   const titleEl = document.getElementById('panel-title');
   if (getHasOpenedSaveSlot()) {
     document.body.classList.add('has-opened');
