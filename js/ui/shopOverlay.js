@@ -52,7 +52,7 @@ import {
   AUTOBUY_EVOLVE_UPGRADES_ID,
   MASTER_AUTOBUY_IDS
 } from '../game/automationUpgrades.js';
-import { getAutobuyerToggle, setAutobuyerToggle } from '../game/automationEffects.js';
+import { getAutobuyerToggle, setAutobuyerToggle, setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../game/automationEffects.js';
 import { DNA_AREA_KEY } from '../game/dnaUpgrades.js';
 
 // --- Shared State ---
@@ -1525,22 +1525,31 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
          const slotSuffix = activeSlot != null ? `:${activeSlot}` : '';
 
          let isEnabled = true;
+         let collectiveState = null;
          if (isAutomationMaster) {
-             isEnabled = settingsManager.get(`currency_${masterCostType}_automated`) !== false;
+             collectiveState = getCollectiveAutobuyerState(masterCostType);
+             isEnabled = collectiveState > 0;
          } else {
              // Standard or Workshop Master
              const val = getAutobuyerToggle(upgDef.area, upgDef.id);
              isEnabled = val !== '0';
          }
 
-         if (isEnabled) {
+         if (isAutomationMaster && collectiveState === 0.5) {
+             toggleBtn.className = 'shop-sort-of';
+             toggleBtn.textContent = 'Automation: Sort of ON';
+             toggleBtn.style.color = ''; 
+             toggleBtn.style.backgroundColor = ''; 
+         } else if (isEnabled) {
              toggleBtn.className = 'shop-delve';
              toggleBtn.textContent = 'Automation: ON';
              toggleBtn.style.backgroundColor = '';
+             toggleBtn.style.color = '';
          } else {
              toggleBtn.className = 'shop-close';
              toggleBtn.textContent = 'Automation: OFF';
              toggleBtn.style.backgroundColor = '';
+             toggleBtn.style.color = '';
          }
          
          toggleBtn._onClick = (e) => {
@@ -1552,10 +1561,12 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              
              if (isAutomationMaster) {
                  settingsManager.set(`currency_${masterCostType}_automated`, newState);
+                 setAllAutobuyersForCostType(masterCostType, newState);
              } else {
                  setAutobuyerToggle(upgDef.area, upgDef.id, val);
              }
              window.dispatchEvent(new CustomEvent('currency:change'));
+             window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
              rerender();
          };
       } else {
