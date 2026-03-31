@@ -90,7 +90,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
   ];
 
   if (isUniversal) {
-    opts.push({ value: 'paintbrush', label: 'Enable Paint Brush Multi-Toggle', isButton: true });
+    opts.push({ value: 'paintbrush', label: 'Enable Paint Brush Multi-Toggle', isButton: true, className: 'paintbrush-btn-anim' });
   }
 
   const getDropdownValue = () => {
@@ -483,8 +483,8 @@ function openPaintBrushMode() {
   paintBrushPopup.style.borderBottomRightRadius = '8px';
   paintBrushPopup.style.padding = '15px';
   paintBrushPopup.style.zIndex = '10000';
-  paintBrushPopup.style.width = '400px';
-  paintBrushPopup.style.maxWidth = '90vw';
+  paintBrushPopup.style.width = '100vw';
+  paintBrushPopup.style.maxWidth = '800px';
   paintBrushPopup.style.boxShadow = '0 4px 15px rgba(0,0,0,0.5)';
   paintBrushPopup.style.display = 'flex';
   paintBrushPopup.style.flexDirection = 'column';
@@ -683,10 +683,12 @@ function flipRowStateFromEvent(e) {
   if (overlay) {
     if (overlay.dataset.state === 'red') {
       overlay.dataset.state = 'green';
-      overlay.style.background = 'rgba(0, 255, 0, 0.3)';
+      overlay.style.background = 'rgba(0, 255, 0, 1)';
+      overlay.style.borderColor = 'rgba(0, 255, 0, 1)';
     } else {
       overlay.dataset.state = 'red';
-      overlay.style.background = 'rgba(255, 0, 0, 0.3)';
+      overlay.style.background = 'rgba(255, 0, 0, 1)';
+      overlay.style.borderColor = 'rgba(255, 0, 0, 1)';
     }
   }
   hoveredRowDuringPaintBrush = row;
@@ -711,15 +713,21 @@ function initPaintBrushEvents() {
         r.style.position = 'relative';
       }
       
+      const rect = r.getBoundingClientRect();
+      
       // Add red overlay
       const overlay = document.createElement('div');
       overlay.className = 'paintbrush-row-overlay';
       overlay.style.position = 'absolute';
-      overlay.style.top = '0';
-      overlay.style.left = '-10px'; // Cover entire width plus some change
-      overlay.style.right = '-10px';
-      overlay.style.bottom = '0';
-      overlay.style.background = 'rgba(255, 0, 0, 0.3)';
+      // The gap between currency-rows in css is 12px, half is 6px.
+      // Top and bottom -6px ensures the rectangles touch each other.
+      overlay.style.top = '-6px';
+      overlay.style.bottom = '-6px';
+      overlay.style.left = `-${rect.left}px`;
+      overlay.style.width = '100vw';
+      overlay.style.background = 'rgba(255, 0, 0, 1)';
+      overlay.style.boxSizing = 'border-box';
+      overlay.style.border = '5px solid rgba(255, 0, 0, 1)';
       overlay.style.zIndex = '10';
       overlay.style.pointerEvents = 'none'; // Let the row receive mouse events
       overlay.dataset.state = 'red';
