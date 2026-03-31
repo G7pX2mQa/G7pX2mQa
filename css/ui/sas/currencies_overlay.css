@@ -186,7 +186,7 @@
 
 @keyframes rainbowTextScroll {
   0% { background-position: 0 0; }
-  100% { background-position: 100px 0; }
+  100% { background-position: 141.42px 141.42px; }
 }
 
 .paintbrush-btn-anim {
@@ -199,16 +199,17 @@
 .paintbrush-btn-anim .paintbrush-text {
   background: repeating-linear-gradient(
     -45deg,
-    #ff0000,
-    #ff7f00 10%,
-    #ffff00 20%,
-    #00ff00 30%,
-    #3131d6 40%,
-    #a224ff 50%,
-    #e29eff 60%
+    #ff0000 0px,
+    #ff7f00 14.28px,
+    #ffff00 28.57px,
+    #00ff00 42.85px,
+    #3131d6 57.14px,
+    #a224ff 71.42px,
+    #e29eff 85.71px,
+    #ff0000 100px
   );
-  background-size: 100px 100px;
-  animation: rainbowTextScroll 2s linear infinite;
+  background-size: 141.42px 141.42px;
+  animation: rainbowTextScroll 4s linear infinite;
   color: transparent !important;
   -webkit-background-clip: text;
   background-clip: text;
