@@ -203,9 +203,9 @@
     #ff7f00 10%,
     #ffff00 20%,
     #00ff00 30%,
-    #0000ff 40%,
-    #4b0082 50%,
-    #9400d3 60%,
+    #3131d6 40%,
+    #a224ff 50%,
+    #e29eff 60%,
     #ff0000 70%
   );
   background-size: 100px 100px;
@@ -213,8 +213,4 @@
   color: transparent !important;
   -webkit-background-clip: text;
   background-clip: text;
-  /* Since standard text-shadow renders on top of transparent text in some browsers,
-     we use standard webkit-text-stroke if needed, or rely on a wrapper, 
-     but webkit-text-stroke is easier: */
-  -webkit-text-stroke: 1px rgba(0,0,0,0.8);
 }
