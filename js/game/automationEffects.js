@@ -117,11 +117,14 @@ export function setAutobuyerToggle(area, id, value) {
 }
 
 export function setAllAutobuyersForCostType(costType, isEnabled) {
+  if (costType === 'gears') return;
+
   const val = isEnabled ? '1' : '0';
   batchUpgradeOperations(() => {
     Object.values(AREA_KEYS).forEach(areaKey => {
       const upgrades = getUpgradesForArea(areaKey);
       upgrades.forEach(upg => {
+        if (upg.costType === 'gears') return;
         if (costType === 'universal' || upg.costType === costType) {
           setAutobuyerToggle(areaKey, upg.id, val);
         }
@@ -137,6 +140,10 @@ export function setAllAutobuyersForCostType(costType, isEnabled) {
  * 0.5 = Mixed ("Sort of ON")
  */
 export function getCollectiveAutobuyerState(costType) {
+  if (costType === 'gears') {
+    return settingsManager.get(`currency_gears_automated`) !== false ? 1 : 0;
+  }
+
   let onCount = 0;
   let totalCount = 0;
 
