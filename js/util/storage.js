@@ -520,6 +520,28 @@ export function ensureMultiplierDefaults() {
   }
 }
 
+
+// -------------------- CURRENCY UNLOCK STATE --------------------
+export function isCurrencyUnlocked(key, slot = getActiveSlot()) {
+  if (key === CURRENCIES.COINS) return true;
+  const k = `${PREFIX}currency_unlocked:${key}:${slot}`;
+  return localStorage.getItem(k) === 'true';
+}
+
+export function setCurrencyUnlocked(key, value, slot = getActiveSlot()) {
+  const k = `${PREFIX}currency_unlocked:${key}:${slot}`;
+  const isCurrentlyUnlocked = isCurrencyUnlocked(key, slot);
+  const nextValue = !!value;
+  if (isCurrentlyUnlocked === nextValue) return;
+
+  localStorage.setItem(k, nextValue ? 'true' : 'false');
+  if (nextValue && typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent('currency:unlock', { detail: { key, slot } }));
+    } catch {}
+  }
+}
+
 // -------------------- AMOUNTS (BN) --------------------
 export function getCurrency(key) {
   const k = keyFor(KEYS.CURRENCY[key]);
@@ -543,6 +565,10 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
   let bn;
   try { bn = BigNum.fromAny(value); }
   catch { bn = BigNum.fromInt(0); }
+
+  if ((delta != null && BigNum.fromAny(delta).cmp(0) > 0) || bn.cmp(0) > 0) {
+    setCurrencyUnlocked(key, true, slot);
+  }
   if (bn.isNegative?.()) bn = BigNum.fromInt(0);
 
   const expectedRaw = bn.toStorage();
