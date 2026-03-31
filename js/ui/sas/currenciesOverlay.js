@@ -102,6 +102,36 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
       return selected;
     } else {
       const allCurrencies = Object.values(CURRENCIES);
+      let hasVariance = false;
+      
+      ['popups', 'automated', 'pinned'].forEach(type => {
+        if (type === 'automated') {
+           const firstVal = getCollectiveAutobuyerState(allCurrencies[0]);
+           if (firstVal === 0.5) {
+               hasVariance = true;
+           }
+           for (let i = 1; i < allCurrencies.length; i++) {
+             const state = getCollectiveAutobuyerState(allCurrencies[i]);
+             if (state !== firstVal || state === 0.5) {
+               hasVariance = true;
+               break;
+             }
+           }
+        } else {
+           const firstVal = settingsManager.get(getToggleKey(allCurrencies[0], type));
+           for (let i = 1; i < allCurrencies.length; i++) {
+             if (settingsManager.get(getToggleKey(allCurrencies[i], type)) !== firstVal) {
+               hasVariance = true;
+               break;
+             }
+           }
+        }
+      });
+
+      if (hasVariance) {
+        return [];
+      }
+
       const selected = [];
       ['popups', 'automated', 'pinned'].forEach(type => {
         if (type === 'automated') {
@@ -152,6 +182,9 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
         settingsManager.set(getToggleKey(c, 'pinned'), newVals.includes('pinned'));
       });
       
+      const isAutoEnabled = newVals.includes('automated');
+      allCurrencies.forEach(c => setAllAutobuyersForCostType(c, isAutoEnabled));
+      
       // Update visually without full re-render
       const overlayEl = container.closest('.sas-overlay');
       if (overlayEl) {
@@ -166,12 +199,9 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
       
       // Always dispatch event when modifying the universal toggle to apply any pin changes
       window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
-      if (toggledType === 'automated') {
-        const isAutoEnabled = newVals.includes('automated');
-        allCurrencies.forEach(c => setAllAutobuyersForCostType(c, isAutoEnabled));
-        window.dispatchEvent(new CustomEvent('currency:change', { detail: { ignoreOverlayRender: true } }));
-        window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
-      }
+      
+      window.dispatchEvent(new CustomEvent('currency:change', { detail: { ignoreOverlayRender: true } }));
+      window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
     }
   };
 
