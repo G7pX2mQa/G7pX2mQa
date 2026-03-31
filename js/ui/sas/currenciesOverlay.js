@@ -90,7 +90,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
   ];
 
   if (isUniversal) {
-    opts.push({ value: 'paintbrush', label: 'Paint Brush Multi-Toggle', isButton: true });
+    opts.push({ value: 'paintbrush', label: 'Enable Paint Brush Multi-Toggle', isButton: true });
   }
 
   const getDropdownValue = () => {
