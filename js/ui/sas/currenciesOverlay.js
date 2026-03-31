@@ -654,14 +654,19 @@ function applyPaintBrushChanges() {
 let isPaintBrushMouseDown = false;
 let hoveredRowDuringPaintBrush = null;
 
-function handlePaintBrushMouseDown(e) {
+function handlePaintBrushMouseDownDocument(e) {
   if (!paintBrushActive) return;
   if (e.button !== 0) return; // Only left click
   isPaintBrushMouseDown = true;
-  flipRowStateFromEvent(e);
+  
+  // If the initial mousedown is on a row, flip it
+  const row = e.target.closest('.currency-row:not(.universal-row)');
+  if (row && currenciesOverlay.overlayEl && currenciesOverlay.overlayEl.contains(row)) {
+    flipRowStateFromElement(row);
+  }
 }
 
-function handlePaintBrushMouseUp(e) {
+function handlePaintBrushMouseUpDocument(e) {
   if (!paintBrushActive) return;
   if (e.button !== 0) return;
   isPaintBrushMouseDown = false;
@@ -670,7 +675,7 @@ function handlePaintBrushMouseUp(e) {
 
 function handlePaintBrushMouseEnter(e) {
   if (!paintBrushActive || !isPaintBrushMouseDown) return;
-  flipRowStateFromEvent(e);
+  flipRowStateFromElement(e.currentTarget);
 }
 
 function handlePaintBrushMouseLeave(e) {
@@ -681,9 +686,8 @@ function handlePaintBrushMouseLeave(e) {
   }
 }
 
-function flipRowStateFromEvent(e) {
-  const row = e.currentTarget;
-  if (hoveredRowDuringPaintBrush === row) return; // Already flipped this entry
+function flipRowStateFromElement(row) {
+  if (!row || hoveredRowDuringPaintBrush === row) return; // Already flipped this entry
   
   const overlay = row.querySelector('.paintbrush-row-overlay');
   if (overlay) {
@@ -748,13 +752,13 @@ function initPaintBrushEvents() {
       overlay.dataset.state = 'red';
       r.appendChild(overlay);
 
-      // Attach mouse events directly to the row
-      r.addEventListener('mousedown', handlePaintBrushMouseDown);
+      // Attach mouse enter/leave events directly to the row
       r.addEventListener('mouseenter', handlePaintBrushMouseEnter);
       r.addEventListener('mouseleave', handlePaintBrushMouseLeave);
     });
     
-    document.addEventListener('mouseup', handlePaintBrushMouseUp);
+    document.addEventListener('mousedown', handlePaintBrushMouseDownDocument);
+    document.addEventListener('mouseup', handlePaintBrushMouseUpDocument);
   }
 }
 
@@ -773,12 +777,12 @@ function cleanupPaintBrushEvents() {
       const overlay = r.querySelector('.paintbrush-row-overlay');
       if (overlay) overlay.remove();
       
-      r.removeEventListener('mousedown', handlePaintBrushMouseDown);
       r.removeEventListener('mouseenter', handlePaintBrushMouseEnter);
       r.removeEventListener('mouseleave', handlePaintBrushMouseLeave);
     });
     
-    document.removeEventListener('mouseup', handlePaintBrushMouseUp);
+    document.removeEventListener('mousedown', handlePaintBrushMouseDownDocument);
+    document.removeEventListener('mouseup', handlePaintBrushMouseUpDocument);
   }
   isPaintBrushMouseDown = false;
   hoveredRowDuringPaintBrush = null;
