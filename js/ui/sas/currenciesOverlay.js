@@ -89,6 +89,10 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
     { value: 'pinned', label: 'Pinned' },
   ];
 
+  if (isUniversal) {
+    opts.push({ value: 'paintbrush', label: 'Paint Brush Multi-Toggle', isButton: true });
+  }
+
   const getDropdownValue = () => {
     if (!isUniversal) {
       const selected = [];
@@ -149,6 +153,12 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
   };
 
   const setDropdownValue = (newVals) => {
+    if (newVals.includes('paintbrush')) {
+      // User clicked the paintbrush button
+      openPaintBrushMode();
+      return;
+    }
+
     const prevVals = getDropdownValue();
     const toggledType = ['popups', 'automated', 'pinned'].find(type => 
       prevVals.includes(type) !== newVals.includes(type)
@@ -423,4 +433,330 @@ export function openCurrenciesOverlay() {
 
 export function closeCurrenciesOverlay(force = false) {
   currenciesOverlay.close(force);
+}
+
+let paintBrushActive = false;
+let paintBrushPopup = null;
+let paintBrushState = {
+  popups: false,
+  automated: false,
+  pinned: false
+};
+
+function getUniversalState() {
+  const allCurrencies = Object.values(CURRENCIES);
+  let state = { popups: true, automated: true, pinned: true };
+
+  ['popups', 'automated', 'pinned'].forEach(type => {
+    if (type === 'automated') {
+       if (!allCurrencies.every(c => getCollectiveAutobuyerState(c) === 1)) {
+          state.automated = false;
+       }
+    } else {
+       if (!allCurrencies.every(c => settingsManager.get(getToggleKey(c, type)))) {
+         state[type] = false;
+       }
+    }
+  });
+  return state;
+}
+
+function openPaintBrushMode() {
+  if (paintBrushActive) return;
+  paintBrushActive = true;
+  
+  // Get initial state from universal toggle
+  paintBrushState = getUniversalState();
+
+  // Create Popup
+  paintBrushPopup = document.createElement('div');
+  paintBrushPopup.className = 'paintbrush-popup';
+  paintBrushPopup.style.position = 'fixed';
+  paintBrushPopup.style.top = '0';
+  paintBrushPopup.style.left = '50%';
+  paintBrushPopup.style.transform = 'translateX(-50%)';
+  paintBrushPopup.style.background = '#111';
+  paintBrushPopup.style.color = '#fff';
+  paintBrushPopup.style.border = '1px solid #444';
+  paintBrushPopup.style.borderTop = 'none';
+  paintBrushPopup.style.borderBottomLeftRadius = '8px';
+  paintBrushPopup.style.borderBottomRightRadius = '8px';
+  paintBrushPopup.style.padding = '15px';
+  paintBrushPopup.style.zIndex = '10000';
+  paintBrushPopup.style.width = '400px';
+  paintBrushPopup.style.maxWidth = '90vw';
+  paintBrushPopup.style.boxShadow = '0 4px 15px rgba(0,0,0,0.5)';
+  paintBrushPopup.style.display = 'flex';
+  paintBrushPopup.style.flexDirection = 'column';
+  paintBrushPopup.style.gap = '15px';
+
+  // Toggles container
+  const togglesContainer = document.createElement('div');
+  togglesContainer.style.display = 'flex';
+  togglesContainer.style.justifyContent = 'space-around';
+  togglesContainer.style.padding = '5px 0';
+
+  const createToggle = (key, label) => {
+    const labelEl = document.createElement('label');
+    labelEl.style.display = 'flex';
+    labelEl.style.alignItems = 'center';
+    labelEl.style.gap = '5px';
+    labelEl.style.cursor = 'pointer';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = paintBrushState[key];
+    checkbox.addEventListener('change', (e) => {
+      paintBrushState[key] = e.target.checked;
+    });
+
+    labelEl.appendChild(checkbox);
+    labelEl.appendChild(document.createTextNode(label));
+    return labelEl;
+  };
+
+  togglesContainer.appendChild(createToggle('popups', 'Popups'));
+  togglesContainer.appendChild(createToggle('automated', 'Automated'));
+  togglesContainer.appendChild(createToggle('pinned', 'Pinned'));
+
+  // Descriptive text
+  const textEl = document.createElement('div');
+  textEl.style.fontSize = '0.9em';
+  textEl.style.lineHeight = '1.4';
+  textEl.style.color = '#ccc';
+  textEl.style.textAlign = 'center';
+  textEl.textContent = "Left click and drag over any currency row to apply specific changes in accordance to the dropdown options listed right above this text. Use this tool to apply an arbitrary customization of settings to an arbitrary amount of currencies quickly. While this tool is active, rows covered in red will be unchanged, and rows covered in green will have changes applied.";
+
+  // Buttons container
+  const buttonsContainer = document.createElement('div');
+  buttonsContainer.style.display = 'flex';
+  buttonsContainer.style.justifyContent = 'space-between';
+  buttonsContainer.style.gap = '10px';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel changes';
+  cancelBtn.style.background = '#aa0000';
+  cancelBtn.style.color = '#fff';
+  cancelBtn.style.border = 'none';
+  cancelBtn.style.padding = '8px 15px';
+  cancelBtn.style.borderRadius = '4px';
+  cancelBtn.style.cursor = 'pointer';
+  cancelBtn.style.flex = '1';
+  cancelBtn.addEventListener('click', closePaintBrushMode);
+
+  const applyBtn = document.createElement('button');
+  applyBtn.textContent = 'Apply changes';
+  applyBtn.style.background = '#008800';
+  applyBtn.style.color = '#fff';
+  applyBtn.style.border = 'none';
+  applyBtn.style.padding = '8px 15px';
+  applyBtn.style.borderRadius = '4px';
+  applyBtn.style.cursor = 'pointer';
+  applyBtn.style.flex = '1';
+  applyBtn.addEventListener('click', applyPaintBrushChanges);
+
+  buttonsContainer.appendChild(cancelBtn);
+  buttonsContainer.appendChild(applyBtn);
+
+  paintBrushPopup.appendChild(togglesContainer);
+  paintBrushPopup.appendChild(textEl);
+  paintBrushPopup.appendChild(buttonsContainer);
+
+  document.body.appendChild(paintBrushPopup);
+
+  initPaintBrushEvents();
+}
+
+function closePaintBrushMode() {
+  if (!paintBrushActive) return;
+  paintBrushActive = false;
+  if (paintBrushPopup) {
+    paintBrushPopup.remove();
+    paintBrushPopup = null;
+  }
+  cleanupPaintBrushEvents();
+}
+
+function applyPaintBrushChanges() {
+  const overlayEl = currenciesOverlay.overlayEl;
+  if (!overlayEl) {
+    closePaintBrushMode();
+    return;
+  }
+
+  const rows = overlayEl.querySelectorAll('.currency-row:not(.universal-row)');
+  let changedAny = false;
+  let changedPins = false;
+  let changedAuto = false;
+
+  rows.forEach(row => {
+    const overlay = row.querySelector('.paintbrush-row-overlay');
+    if (overlay && overlay.dataset.state === 'green') {
+      const currencyId = row.dataset.currency;
+      if (!currencyId) return;
+
+      changedAny = true;
+
+      const newPopups = paintBrushState.popups;
+      const newAutomated = paintBrushState.automated;
+      const newPinned = paintBrushState.pinned;
+
+      if (settingsManager.get(getToggleKey(currencyId, 'popups')) !== newPopups) {
+        settingsManager.set(getToggleKey(currencyId, 'popups'), newPopups);
+      }
+
+      if (settingsManager.get(getToggleKey(currencyId, 'pinned')) !== newPinned) {
+        settingsManager.set(getToggleKey(currencyId, 'pinned'), newPinned);
+        changedPins = true;
+      }
+
+      // getCollectiveAutobuyerState returns 0, 0.5, or 1.
+      // We only care if we are flipping from 0/0.5 to 1, or 1/0.5 to 0.
+      const currentState = getCollectiveAutobuyerState(currencyId);
+      const isAuto = currentState > 0;
+      if (isAuto !== newAutomated) {
+        setAllAutobuyersForCostType(currencyId, newAutomated);
+        changedAuto = true;
+      }
+      
+      settingsManager.set(getToggleKey(currencyId, 'automated'), newAutomated);
+      
+      if (row._updateDropdownVisually) {
+        row._updateDropdownVisually();
+      }
+    }
+  });
+
+  if (changedAny) {
+    if (changedPins) {
+      window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
+    }
+    if (changedAuto) {
+      window.dispatchEvent(new CustomEvent('currency:change', { detail: { ignoreOverlayRender: true } }));
+      window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
+    }
+    
+    const universalRow = overlayEl.querySelector('.universal-row');
+    if (universalRow && universalRow._updateDropdownVisually) {
+      universalRow._updateDropdownVisually();
+    }
+  }
+
+  closePaintBrushMode();
+}
+
+let isPaintBrushMouseDown = false;
+let hoveredRowDuringPaintBrush = null;
+
+function handlePaintBrushMouseDown(e) {
+  if (!paintBrushActive) return;
+  if (e.button !== 0) return; // Only left click
+  isPaintBrushMouseDown = true;
+  flipRowStateFromEvent(e);
+}
+
+function handlePaintBrushMouseUp(e) {
+  if (!paintBrushActive) return;
+  if (e.button !== 0) return;
+  isPaintBrushMouseDown = false;
+  hoveredRowDuringPaintBrush = null;
+}
+
+function handlePaintBrushMouseEnter(e) {
+  if (!paintBrushActive || !isPaintBrushMouseDown) return;
+  flipRowStateFromEvent(e);
+}
+
+function handlePaintBrushMouseLeave(e) {
+  if (!paintBrushActive) return;
+  const row = e.currentTarget;
+  if (hoveredRowDuringPaintBrush === row) {
+    hoveredRowDuringPaintBrush = null;
+  }
+}
+
+function flipRowStateFromEvent(e) {
+  const row = e.currentTarget;
+  if (hoveredRowDuringPaintBrush === row) return; // Already flipped this entry
+  
+  const overlay = row.querySelector('.paintbrush-row-overlay');
+  if (overlay) {
+    if (overlay.dataset.state === 'red') {
+      overlay.dataset.state = 'green';
+      overlay.style.background = 'rgba(0, 255, 0, 0.3)';
+    } else {
+      overlay.dataset.state = 'red';
+      overlay.style.background = 'rgba(255, 0, 0, 0.3)';
+    }
+  }
+  hoveredRowDuringPaintBrush = row;
+}
+
+function initPaintBrushEvents() {
+  // Disable normal dropdowns
+  const overlayEl = currenciesOverlay.overlayEl;
+  if (overlayEl) {
+    const controls = overlayEl.querySelectorAll('.currency-controls');
+    controls.forEach(c => {
+      c.style.pointerEvents = 'none';
+    });
+    
+    // Disable user select to prevent text selection while dragging
+    overlayEl.style.userSelect = 'none';
+
+    const rows = overlayEl.querySelectorAll('.currency-row:not(.universal-row)');
+    rows.forEach(r => {
+      // Ensure row is positioned relatively for the absolute overlay
+      if (window.getComputedStyle(r).position === 'static') {
+        r.style.position = 'relative';
+      }
+      
+      // Add red overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'paintbrush-row-overlay';
+      overlay.style.position = 'absolute';
+      overlay.style.top = '0';
+      overlay.style.left = '-10px'; // Cover entire width plus some change
+      overlay.style.right = '-10px';
+      overlay.style.bottom = '0';
+      overlay.style.background = 'rgba(255, 0, 0, 0.3)';
+      overlay.style.zIndex = '10';
+      overlay.style.pointerEvents = 'none'; // Let the row receive mouse events
+      overlay.dataset.state = 'red';
+      r.appendChild(overlay);
+
+      // Attach mouse events directly to the row
+      r.addEventListener('mousedown', handlePaintBrushMouseDown);
+      r.addEventListener('mouseenter', handlePaintBrushMouseEnter);
+      r.addEventListener('mouseleave', handlePaintBrushMouseLeave);
+    });
+    
+    document.addEventListener('mouseup', handlePaintBrushMouseUp);
+  }
+}
+
+function cleanupPaintBrushEvents() {
+  const overlayEl = currenciesOverlay.overlayEl;
+  if (overlayEl) {
+    const controls = overlayEl.querySelectorAll('.currency-controls');
+    controls.forEach(c => {
+      c.style.pointerEvents = '';
+    });
+    
+    overlayEl.style.userSelect = '';
+
+    const rows = overlayEl.querySelectorAll('.currency-row:not(.universal-row)');
+    rows.forEach(r => {
+      const overlay = r.querySelector('.paintbrush-row-overlay');
+      if (overlay) overlay.remove();
+      
+      r.removeEventListener('mousedown', handlePaintBrushMouseDown);
+      r.removeEventListener('mouseenter', handlePaintBrushMouseEnter);
+      r.removeEventListener('mouseleave', handlePaintBrushMouseLeave);
+    });
+    
+    document.removeEventListener('mouseup', handlePaintBrushMouseUp);
+  }
+  isPaintBrushMouseDown = false;
+  hoveredRowDuringPaintBrush = null;
 }
