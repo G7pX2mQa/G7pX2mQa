@@ -4,7 +4,9 @@ import { openVisualsOverlay } from './visualsOverlay.js';
 import { openPerformanceOverlay } from './performanceOverlay.js';
 import { openConfirmationsOverlay } from './confirmationsOverlay.js';
 import { openCurrenciesOverlay } from './currenciesOverlay.js';
+import { openLevelsOverlay } from './levelsOverlay.js';
 import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
+import { getXpState } from '../../game/xpSystem.js';
 
 function populateSasButtons(overlayEl) {
   const grid = overlayEl.querySelector('.sas-grid');
@@ -61,6 +63,25 @@ function populateSasButtons(overlayEl) {
   curBtn.textContent = "Currencies";
   curBtn.addEventListener("click", () => { openCurrenciesOverlay(); });
   grid.appendChild(curBtn);
+  
+  const lvlBtn = document.createElement("button");
+  lvlBtn.className = "sas-btn sas-btn-levels";
+  lvlBtn.textContent = "Levels";
+  lvlBtn.addEventListener("click", () => { openLevelsOverlay(); });
+  
+  // hide if XP is not unlocked
+  if (!getXpState()?.unlocked) {
+    lvlBtn.style.display = 'none';
+  }
+  grid.appendChild(lvlBtn);
+  
+  const updateLvlBtnVisibility = () => {
+    if (getXpState()?.unlocked) {
+      lvlBtn.style.display = '';
+    }
+  };
+  
+  window.addEventListener('xp:unlock', updateLvlBtnVisibility);
 
   // Just subscribe to something or rely on global re-render, but better to add an event listener
   window.addEventListener('forge:completed', updateConfBtnVisibility);
