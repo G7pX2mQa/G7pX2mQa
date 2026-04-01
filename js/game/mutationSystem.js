@@ -589,8 +589,8 @@ function readStateFromStorage(slot) {
   if (level.cmp(highestLevel) > 0) {
     highestLevel = level.clone?.() ?? level;
   }
-  applyState({ unlocked, level, progress, highestLevel }, { skipPersist: true });
   mutationState.slot = targetSlot;
+  applyState({ unlocked, level, progress, highestLevel }, { skipPersist: true });
 }
 
 function cleanupWatchers() {
