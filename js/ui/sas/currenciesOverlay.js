@@ -7,7 +7,7 @@ import { bank } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { settingsManager } from '../../game/settingsManager.js';
 import { createDropdown } from './dropdownUtils.js';
-import { createPaintBrush } from './paintbrushUtils.js';
+import { createPaintbrush } from './paintbrushUtils.js';
 import { AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../../game/automationUpgrades.js';
 import { getLevelNumber } from '../../game/upgrades.js';
 import { setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../../game/automationEffects.js';
@@ -164,7 +164,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
   const setDropdownValue = (newVals) => {
     if (newVals.includes('paintbrush')) {
       // User clicked the paintbrush button
-      openPaintBrushMode();
+      openPaintbrushMode();
       return;
     }
 
@@ -490,7 +490,7 @@ export function closeCurrenciesOverlay(force = false) {
 
 
 
-const paintbrush = createPaintBrush({
+const paintbrush = createPaintbrush({
   getOverlayEl: () => currenciesOverlay.overlayEl,
   getInitialState: () => {
     const allCurrencies = getUnlockedCurrencies();
@@ -515,7 +515,7 @@ const paintbrush = createPaintBrush({
     { key: 'pinned', label: 'Pinned' }
   ],
   descriptionText: "Left click and drag over any currency row to apply specific changes in accordance to the dropdown options listed right above this text. Use this tool to apply arbitrary customizations of settings to an arbitrary amount of currencies quickly. Rows highlighted in red will be unchanged, and rows highlighted in green will be affected, apply changes when done.",
-  onApply: (affectedRows, paintBrushState) => {
+  onApply: (affectedRows, paintbrushState) => {
     let changedAny = false;
     let changedPins = false;
     let changedAuto = false;
@@ -526,9 +526,9 @@ const paintbrush = createPaintBrush({
 
       changedAny = true;
 
-      const newPopups = paintBrushState.popups;
-      const newAutomated = paintBrushState.automated;
-      const newPinned = paintBrushState.pinned;
+      const newPopups = paintbrushState.popups;
+      const newAutomated = paintbrushState.automated;
+      const newPinned = paintbrushState.pinned;
 
       if (settingsManager.get(getToggleKey(currencyId, 'popups')) !== newPopups) {
         settingsManager.set(getToggleKey(currencyId, 'popups'), newPopups);
@@ -573,7 +573,7 @@ const paintbrush = createPaintBrush({
   }
 });
 
-function openPaintBrushMode() {
+function openPaintbrushMode() {
   paintbrush.open();
 }
 
