@@ -950,6 +950,20 @@ images: [
     await stepDelay();
     markProgressDirty?.('slot-entered');
 
+    console.log(`# Debug Panel Access
+To enable the in-game debug panel, enter the following code into the console:
+
+\`setDebugPanelAccess(true)\`
+
+To open the debug panel, simply press C on your keyboard.
+
+This will allow you to view and modify game values for testing.
+
+⚠️ Note:
+ANY modification of stats, currencies, upgrade levels, or other save data through the debug panel will permanently mark the save slot as modified. If the slot is marked as modified, its shop button will permanently turn from a fresh green to a poopy brown color, which I like to call the poop-shop of shame.
+
+Normal gameplay is unaffected unless you choose to modify values.`);
+
     setLoaderProgress(loader, 1);
 
     finishAndHideLoader(loader, () => {
