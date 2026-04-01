@@ -9,7 +9,7 @@ import { getMutationState } from '../../game/mutationSystem.js';
 import { bank } from '../../util/storage.js';
 import { settingsManager } from '../../game/settingsManager.js';
 import { createDropdown } from './dropdownUtils.js';
-import { createPaintBrush } from './paintbrushUtils.js';
+import { createPaintbrush } from './paintbrushUtils.js';
 
 function getStatValue(key) {
     if (key === 'xp_levels') {
@@ -177,7 +177,7 @@ function createLevelRow(container, isUniversal, levelConfig, progConfig, prefix)
 
   const setDropdownValue = (newVals) => {
     if (newVals.includes('paintbrush')) {
-      openPaintBrushMode();
+      openPaintbrushMode();
       return;
     }
 
@@ -360,7 +360,7 @@ export function closeLevelsOverlay(force = false) {
 
 
 
-const paintbrush = createPaintBrush({
+const paintbrush = createPaintbrush({
   getOverlayEl: () => levelsOverlay.overlayEl,
   getInitialState: () => {
     const allLevels = getUnlockedLevels().map(l => l.prefix);
@@ -378,7 +378,7 @@ const paintbrush = createPaintBrush({
     { key: 'pinned', label: 'Pinned' }
   ],
   descriptionText: "Left click and drag over any level row to apply specific changes. Rows highlighted in red will be unchanged, and rows highlighted in green will be affected.",
-  onApply: (affectedRows, paintBrushState) => {
+  onApply: (affectedRows, paintbrushState) => {
     let changedAny = false;
     let changedPins = false;
 
@@ -388,8 +388,8 @@ const paintbrush = createPaintBrush({
 
       changedAny = true;
 
-      const newPopups = paintBrushState.popups;
-      const newPinned = paintBrushState.pinned;
+      const newPopups = paintbrushState.popups;
+      const newPinned = paintbrushState.pinned;
 
       if (settingsManager.get(getToggleKey(prefix, 'popups')) !== newPopups) {
         settingsManager.set(getToggleKey(prefix, 'popups'), newPopups);
@@ -421,7 +421,7 @@ const paintbrush = createPaintBrush({
   }
 });
 
-function openPaintBrushMode() {
+function openPaintbrushMode() {
   paintbrush.open();
 }
 
