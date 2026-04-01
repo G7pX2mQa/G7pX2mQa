@@ -3,6 +3,10 @@
 import { settingsManager } from '../game/settingsManager.js';
 import { CURRENCIES, getCurrency } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
+import { PRIORITY_ORDER } from '../game/offlinePanel.js';
+import { getXpState } from '../game/xpSystem.js';
+import { getMutationState } from '../game/mutationSystem.js';
+import { bank } from '../util/storage.js';
 
 let pinnedContainer = null;
 let currencySubscriptions = {};
@@ -210,6 +214,253 @@ function refreshPinnedCurrenciesValues() {
     const span = el.querySelector('.pinned-currency-value');
     if (span) {
       span.textContent = formatNumber(getCurrency(id));
+    }
+  });
+}
+
+// --- LEVEL PINS ---
+
+let pinnedLevelsContainer = null;
+let levelSubscriptions = {};
+
+function getLevelStatValue(key) {
+    if (key === 'xp_levels') return getXpState()?.xpLevel;
+    if (key === 'mp_levels') return getMutationState()?.level;
+    if (bank && bank[key]) return bank[key].value;
+    if (window[key]) return typeof window[key] === 'function' ? window[key]() : window[key];
+    return null;
+}
+
+function getLevelProgRatio(prefix) {
+    if (prefix === 'xp') {
+        const state = getXpState();
+        if (!state) return 0;
+        const prog = state.progress;
+        const req = state.requirement;
+        if (!req || req.isZero?.()) return 0;
+        
+        let ratio = 0;
+        try {
+            const reqIsInf = req.isInfinite?.();
+            const progIsInf = prog.isInfinite?.();
+            if (reqIsInf) return progIsInf ? 1 : 0;
+            
+            // simple division or fallback to Math if BigNum provides division
+            // Wait, we can use progressRatio from xpSystem or just calculate an approx ratio
+            // But we don't have access to progressRatio.
+            // Let's do a simple log ratio or decimal conversion since these values can be large
+            // Fallback:
+            try {
+                const pNum = Number(prog.toString());
+                const rNum = Number(req.toString());
+                if(rNum > 0) ratio = pNum / rNum;
+            } catch(e) {
+                ratio = 0; 
+            }
+        } catch(e) {}
+        return Math.min(Math.max(ratio, 0), 1);
+    }
+    if (prefix === 'mp') {
+        const state = getMutationState();
+        if (!state) return 0;
+        const prog = state.progress;
+        const req = state.requirement;
+        if (!req || req.isZero?.()) return 0;
+        let ratio = 0;
+        try {
+            const pNum = Number(prog.toString());
+            const rNum = Number(req.toString());
+            if(rNum > 0) ratio = pNum / rNum;
+        } catch(e) {}
+        return Math.min(Math.max(ratio, 0), 1);
+    }
+    return 0;
+}
+
+export function initPinnedLevels(parentEl) {
+  if (pinnedLevelsContainer) return;
+
+  pinnedLevelsContainer = document.createElement('div');
+  pinnedLevelsContainer.className = 'pinned-levels';
+  pinnedLevelsContainer.id = 'pinned-levels';
+  
+  parentEl.appendChild(pinnedLevelsContainer);
+
+  settingsManager.subscribe('user_interface', updateLevelsVisibility);
+  updateLevelsVisibility(settingsManager.get('user_interface'));
+
+  refreshPinnedLevels();
+
+  const levelConfigs = PRIORITY_ORDER.filter(c => c.type === 'levelStat');
+  levelConfigs.forEach(levelConfig => {
+    const prefix = levelConfig.key.replace('_levels', '');
+    const pinKey = `level_${prefix}_pinned`;
+    settingsManager.subscribe(pinKey, () => refreshPinnedLevels());
+  });
+
+  window.addEventListener('resize', layoutPinnedLevels);
+  window.addEventListener('orientationchange', layoutPinnedLevels);
+  window.addEventListener('menu:visibilitychange', (e) => {
+    if (e.detail && !e.detail.visible) {
+      requestAnimationFrame(() => {
+        layoutPinnedLevels();
+      });
+    }
+  });
+  window.addEventListener('levels:pinsChanged', refreshPinnedLevels);
+}
+
+function updateLevelsVisibility(isVisible) {
+  if (pinnedLevelsContainer) {
+    if (isVisible === false) {
+      pinnedLevelsContainer.style.display = 'none';
+    } else {
+      pinnedLevelsContainer.style.display = 'block';
+    }
+  }
+}
+
+export function refreshPinnedLevels() {
+  if (!pinnedLevelsContainer) return;
+
+  pinnedLevelsContainer.innerHTML = '';
+  
+  Object.values(levelSubscriptions).forEach(unsub => unsub());
+  levelSubscriptions = {};
+
+  const levelConfigs = PRIORITY_ORDER.filter(c => c.type === 'levelStat');
+  const pinnedPrefixes = [];
+  
+  levelConfigs.forEach(levelConfig => {
+    const prefix = levelConfig.key.replace('_levels', '');
+    const isPinned = settingsManager.get(`level_${prefix}_pinned`);
+    if (isPinned) {
+      pinnedPrefixes.push({ prefix, levelConfig });
+    }
+  });
+
+  pinnedPrefixes.forEach(({ prefix, levelConfig }) => {
+    const el = document.createElement('div');
+    el.className = 'pinned-level-wrapper';
+    el.id = `pinned-level-${prefix}`;
+
+    const bar = document.createElement('div');
+    bar.className = 'pinned-level';
+    bar.dataset.level = prefix; 
+
+    const icon = document.createElement('img');
+    icon.className = 'pinned-level-icon';
+    
+    let iconSrc = levelConfig.icon || 'img/misc/mysterious.webp';
+    if (iconSrc && iconSrc.endsWith('.webp')) {
+      const parts = iconSrc.split('/');
+      const filename = parts.pop();
+      const baseName = filename.replace('.webp', '');
+      iconSrc = parts.join('/') + '/' + baseName + '_plus_base.webp';
+    }
+    icon.src = iconSrc;
+    icon.onerror = () => {
+      icon.src = 'img/misc/mysterious.webp';
+    };
+    
+    const textSpan = document.createElement('span');
+    textSpan.className = 'pinned-level-value';
+    
+    bar.appendChild(icon);
+    bar.appendChild(textSpan);
+    el.appendChild(bar);
+    pinnedLevelsContainer.appendChild(el);
+
+    const updateValAndProg = () => {
+      const amount = getLevelStatValue(levelConfig.key);
+      textSpan.textContent = formatNumber(amount);
+      const ratio = getLevelProgRatio(prefix);
+      bar.style.setProperty('--progress', `${(ratio * 100).toFixed(2)}%`);
+    };
+    
+    updateValAndProg();
+
+    const handleEvent = () => updateValAndProg();
+    
+    // XP and MP trigger custom events
+    if (prefix === 'xp') {
+        window.addEventListener('xp:change', handleEvent);
+        levelSubscriptions[prefix] = () => window.removeEventListener('xp:change', handleEvent);
+    } else if (prefix === 'mp') {
+        window.addEventListener('mutation:change', handleEvent);
+        levelSubscriptions[prefix] = () => window.removeEventListener('mutation:change', handleEvent);
+    } else {
+        // Fallback or generic event if needed
+    }
+  });
+
+  layoutPinnedLevels();
+}
+
+export function layoutPinnedLevels() {
+  if (!pinnedLevelsContainer) return;
+
+  const children = Array.from(pinnedLevelsContainer.querySelectorAll('.pinned-level-wrapper'));
+  if (children.length === 0) return;
+
+  const hudBottom = document.querySelector('.hud-bottom');
+  if (!hudBottom) {
+    children.forEach((el, index) => {
+      el.style.left = '0px';
+      el.style.top = `${index * (28 + 8)}px`; 
+    });
+    return;
+  }
+
+  const pinnedRect = pinnedLevelsContainer.getBoundingClientRect();
+  const hudRect = hudBottom.getBoundingClientRect();
+
+  const availableHeight = hudRect.top - pinnedRect.top;
+
+  const ITEM_HEIGHT = 28;
+  const GAP_Y = 8;
+  const TOTAL_ITEM_H = ITEM_HEIGHT + GAP_Y;
+  
+  let itemsAboveHud = Math.floor((availableHeight + GAP_Y) / TOTAL_ITEM_H);
+  if (itemsAboveHud < 0) itemsAboveHud = 0; 
+  
+  const hudTopOffset = availableHeight;
+  const firstOverlappingTopPx = Math.max(itemsAboveHud * TOTAL_ITEM_H, hudTopOffset);
+
+  children.forEach((el, index) => {
+    if (index < itemsAboveHud) {
+      el.style.left = '0px';
+      el.style.top = `${index * TOTAL_ITEM_H}px`;
+    } else {
+      const rowInHud = index - itemsAboveHud;
+      el.style.left = '0px';
+      el.style.top = `${firstOverlappingTopPx + (rowInHud * TOTAL_ITEM_H)}px`;
+    }
+  });
+}
+
+setInterval(() => {
+  if (pinnedLevelsContainer && pinnedLevelsContainer.style.display !== 'none') {
+    refreshPinnedLevelsValues();
+  }
+}, 100);
+
+function refreshPinnedLevelsValues() {
+  if (!pinnedLevelsContainer) return;
+  const children = pinnedLevelsContainer.querySelectorAll('.pinned-level-wrapper');
+  children.forEach(el => {
+    const prefix = el.id.replace('pinned-level-', '');
+    const config = PRIORITY_ORDER.find(c => c.key === prefix + '_levels');
+    if (config) {
+        const span = el.querySelector('.pinned-level-value');
+        if (span) {
+          span.textContent = formatNumber(getLevelStatValue(config.key));
+        }
+        const bar = el.querySelector('.pinned-level');
+        if (bar) {
+          const ratio = getLevelProgRatio(prefix);
+          bar.style.setProperty('--progress', `${(ratio * 100).toFixed(2)}%`);
+        }
     }
   });
 }
