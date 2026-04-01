@@ -125,6 +125,7 @@ function populateLevelsOverlay(overlayEl) {
     const prefix = levelConfig.key.replace('_levels', '');
     const progConfig = progConfigs.find(c => c.key === prefix);
     
+    if (!progConfig) return;
     const isUnlocked = getStatIsUnlocked(prefix);
 
     if (isUnlocked) {
