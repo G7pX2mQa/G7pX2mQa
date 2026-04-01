@@ -1,5 +1,5 @@
 import { settingsManager } from './settingsManager.js';
-import { initPinnedCurrencies } from '../ui/currencyPins.js';
+import { initPinnedCurrencies, initPinnedLevels } from '../ui/currencyPins.js';
 export function ensureGameDom(layerCount, startZ) {
   if (document.getElementById('game-root')) return;
 
@@ -96,4 +96,6 @@ export function ensureGameDom(layerCount, startZ) {
   applyCursorSetting(settingsManager.get('show_cursor'));
 
   initPinnedCurrencies(document.getElementById('pinned-currencies-container'));
+  // We use the same container for both currency and level pins because they share the same absolute positioning anchor in the HUD.
+  initPinnedLevels(document.getElementById('pinned-currencies-container'));
 }
