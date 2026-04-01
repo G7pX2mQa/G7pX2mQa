@@ -1,46 +1,46 @@
 // js/ui/sas/paintbrushUtils.js
 
-export function createPaintBrush({
+export function createPaintbrush({
     getInitialState,
     togglesConfig,
     descriptionText,
     onApply,
     getOverlayEl
 }) {
-    let paintBrushActive = false;
-    let paintBrushPopup = null;
-    let paintBrushState = {};
-    let paintBrushRowStates = {};
-    let isPaintBrushMouseDown = false;
-    let hoveredRowDuringPaintBrush = null;
+    let paintbrushActive = false;
+    let paintbrushPopup = null;
+    let paintbrushState = {};
+    let paintbrushRowStates = {};
+    let isPaintbrushMouseDown = false;
+    let hoveredRowDuringPaintbrush = null;
 
     function open() {
-        if (paintBrushActive) return;
-        paintBrushActive = true;
-        paintBrushRowStates = {};
+        if (paintbrushActive) return;
+        paintbrushActive = true;
+        paintbrushRowStates = {};
         
-        paintBrushState = getInitialState();
+        paintbrushState = getInitialState();
 
-        paintBrushPopup = document.createElement('div');
-        paintBrushPopup.className = 'paintbrush-popup';
-        paintBrushPopup.style.position = 'fixed';
-        paintBrushPopup.style.top = '0';
-        paintBrushPopup.style.left = '50%';
-        paintBrushPopup.style.transform = 'translateX(-50%)';
-        paintBrushPopup.style.background = '#111';
-        paintBrushPopup.style.color = '#fff';
-        paintBrushPopup.style.border = '1px solid #444';
-        paintBrushPopup.style.borderTop = 'none';
-        paintBrushPopup.style.borderBottomLeftRadius = '8px';
-        paintBrushPopup.style.borderBottomRightRadius = '8px';
-        paintBrushPopup.style.padding = '15px';
-        paintBrushPopup.style.zIndex = '10000';
-        paintBrushPopup.style.width = '100vw';
-        paintBrushPopup.style.maxWidth = '800px';
-        paintBrushPopup.style.boxShadow = '0 4px 15px rgba(0,0,0,0.5)';
-        paintBrushPopup.style.display = 'flex';
-        paintBrushPopup.style.flexDirection = 'column';
-        paintBrushPopup.style.gap = '15px';
+        paintbrushPopup = document.createElement('div');
+        paintbrushPopup.className = 'paintbrush-popup';
+        paintbrushPopup.style.position = 'fixed';
+        paintbrushPopup.style.top = '0';
+        paintbrushPopup.style.left = '50%';
+        paintbrushPopup.style.transform = 'translateX(-50%)';
+        paintbrushPopup.style.background = '#111';
+        paintbrushPopup.style.color = '#fff';
+        paintbrushPopup.style.border = '1px solid #444';
+        paintbrushPopup.style.borderTop = 'none';
+        paintbrushPopup.style.borderBottomLeftRadius = '8px';
+        paintbrushPopup.style.borderBottomRightRadius = '8px';
+        paintbrushPopup.style.padding = '15px';
+        paintbrushPopup.style.zIndex = '10000';
+        paintbrushPopup.style.width = '100vw';
+        paintbrushPopup.style.maxWidth = '800px';
+        paintbrushPopup.style.boxShadow = '0 4px 15px rgba(0,0,0,0.5)';
+        paintbrushPopup.style.display = 'flex';
+        paintbrushPopup.style.flexDirection = 'column';
+        paintbrushPopup.style.gap = '15px';
 
         const togglesContainer = document.createElement('div');
         togglesContainer.style.display = 'flex';
@@ -58,9 +58,9 @@ export function createPaintBrush({
 
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
-            checkbox.checked = paintBrushState[key];
+            checkbox.checked = paintbrushState[key];
             checkbox.addEventListener('change', (e) => {
-                paintBrushState[key] = e.target.checked;
+                paintbrushState[key] = e.target.checked;
             });
 
             labelEl.appendChild(checkbox);
@@ -109,11 +109,11 @@ export function createPaintBrush({
         buttonsContainer.appendChild(cancelBtn);
         buttonsContainer.appendChild(applyBtn);
 
-        paintBrushPopup.appendChild(togglesContainer);
-        paintBrushPopup.appendChild(textEl);
-        paintBrushPopup.appendChild(buttonsContainer);
+        paintbrushPopup.appendChild(togglesContainer);
+        paintbrushPopup.appendChild(textEl);
+        paintbrushPopup.appendChild(buttonsContainer);
 
-        document.body.appendChild(paintBrushPopup);
+        document.body.appendChild(paintbrushPopup);
 
         document.addEventListener('mousedown', handleMouseDownDocument);
         document.addEventListener('mouseup', handleMouseUpDocument);
@@ -122,12 +122,12 @@ export function createPaintBrush({
     }
 
     function close() {
-        if (!paintBrushActive) return;
-        paintBrushActive = false;
-        paintBrushRowStates = {};
-        if (paintBrushPopup) {
-            paintBrushPopup.remove();
-            paintBrushPopup = null;
+        if (!paintbrushActive) return;
+        paintbrushActive = false;
+        paintbrushRowStates = {};
+        if (paintbrushPopup) {
+            paintbrushPopup.remove();
+            paintbrushPopup = null;
         }
         
         document.removeEventListener('mousedown', handleMouseDownDocument);
@@ -153,16 +153,16 @@ export function createPaintBrush({
         });
 
         if (affectedRows.length > 0) {
-            onApply(affectedRows, paintBrushState);
+            onApply(affectedRows, paintbrushState);
         }
 
         close();
     }
 
     function handleMouseDownDocument(e) {
-        if (!paintBrushActive) return;
+        if (!paintbrushActive) return;
         if (e.button !== 0) return; 
-        isPaintBrushMouseDown = true;
+        isPaintbrushMouseDown = true;
         
         const row = e.target.closest('.currency-row:not(.universal-row)');
         const overlayEl = getOverlayEl();
@@ -172,27 +172,27 @@ export function createPaintBrush({
     }
 
     function handleMouseUpDocument(e) {
-        if (!paintBrushActive) return;
+        if (!paintbrushActive) return;
         if (e.button !== 0) return;
-        isPaintBrushMouseDown = false;
-        hoveredRowDuringPaintBrush = null;
+        isPaintbrushMouseDown = false;
+        hoveredRowDuringPaintbrush = null;
     }
 
     function handleMouseEnter(e) {
-        if (!paintBrushActive || !isPaintBrushMouseDown) return;
+        if (!paintbrushActive || !isPaintbrushMouseDown) return;
         flipRowStateFromElement(e.currentTarget);
     }
 
     function handleMouseLeave(e) {
-        if (!paintBrushActive) return;
+        if (!paintbrushActive) return;
         const row = e.currentTarget;
-        if (hoveredRowDuringPaintBrush === row) {
-            hoveredRowDuringPaintBrush = null;
+        if (hoveredRowDuringPaintbrush === row) {
+            hoveredRowDuringPaintbrush = null;
         }
     }
 
     function flipRowStateFromElement(row) {
-        if (!row || hoveredRowDuringPaintBrush === row) return;
+        if (!row || hoveredRowDuringPaintbrush === row) return;
         
         const overlay = row.querySelector('.paintbrush-row-overlay');
         const dataId = row.dataset.currency || row.dataset.level;
@@ -202,15 +202,15 @@ export function createPaintBrush({
                 overlay.dataset.state = 'green';
                 overlay.style.background = 'rgba(0, 255, 0, 0.5)';
                 overlay.style.borderColor = 'rgba(0, 255, 0, 1)';
-                if (dataId) paintBrushRowStates[dataId] = 'green';
+                if (dataId) paintbrushRowStates[dataId] = 'green';
             } else {
                 overlay.dataset.state = 'red';
                 overlay.style.background = 'rgba(255, 0, 0, 0.5)';
                 overlay.style.borderColor = 'rgba(255, 0, 0, 1)';
-                if (dataId) paintBrushRowStates[dataId] = 'red';
+                if (dataId) paintbrushRowStates[dataId] = 'red';
             }
         }
-        hoveredRowDuringPaintBrush = row;
+        hoveredRowDuringPaintbrush = row;
     }
 
     function initEvents() {
@@ -241,7 +241,7 @@ export function createPaintBrush({
                 overlay.style.pointerEvents = 'none'; 
                 
                 const dataId = r.dataset.currency || r.dataset.level;
-                if (dataId && paintBrushRowStates[dataId] === 'green') {
+                if (dataId && paintbrushRowStates[dataId] === 'green') {
                     overlay.style.background = 'rgba(0, 255, 0, 0.5)';
                     overlay.style.border = '5px solid rgba(0, 255, 0, 1)';
                     overlay.dataset.state = 'green';
@@ -278,12 +278,12 @@ export function createPaintBrush({
                 r.removeEventListener('mouseleave', handleMouseLeave);
             });
         }
-        isPaintBrushMouseDown = false;
-        hoveredRowDuringPaintBrush = null;
+        isPaintbrushMouseDown = false;
+        hoveredRowDuringPaintbrush = null;
     }
 
     function reinit() {
-        if (paintBrushActive) {
+        if (paintbrushActive) {
             cleanupEvents();
             initEvents();
         }
@@ -293,6 +293,6 @@ export function createPaintBrush({
         open,
         close,
         reinit,
-        isActive: () => paintBrushActive
+        isActive: () => paintbrushActive
     };
 }
