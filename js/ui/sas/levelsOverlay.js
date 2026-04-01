@@ -138,7 +138,7 @@ function createLevelRow(container, isUniversal, levelConfig, progConfig, prefix)
   ];
 
   if (isUniversal && !IS_MOBILE) {
-    opts.push({ value: 'paintbrush', label: 'Enable Paintbrush Multi-Toggle', isButton: true, className: 'paintbrush-btn-anim' });
+    opts.push({ value: 'paintbrush', label: 'Enable Multi-Toggle', isButton: true, className: 'paintbrush-btn-anim' });
   }
 
   const getDropdownValue = () => {
