@@ -1,466 +1,585 @@
-// js/ui/currencyPins.js
+// js/ui/sas/currenciesOverlay.js
 
-import { settingsManager } from '../game/settingsManager.js';
-import { CURRENCIES, getCurrency } from '../util/storage.js';
-import { formatNumber } from '../util/numFormat.js';
-import { PRIORITY_ORDER } from '../game/offlinePanel.js';
-import { getXpState } from '../game/xpSystem.js';
-import { getMutationState } from '../game/mutationSystem.js';
-import { bank } from '../util/storage.js';
+import { IS_MOBILE } from '../../main.js';
+import { createSASOverlay } from './sasOverlayBuilder.js';
+import { CURRENCIES, isCurrencyUnlocked } from '../../util/storage.js';
+import { bank } from '../../util/storage.js';
+import { formatNumber } from '../../util/numFormat.js';
+import { settingsManager } from '../../game/settingsManager.js';
+import { createDropdown } from './dropdownUtils.js';
+import { createPaintBrush } from './paintbrushUtils.js';
+import { AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../../game/automationUpgrades.js';
+import { getLevelNumber } from '../../game/upgrades.js';
+import { setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../../game/automationEffects.js';
+import { PRIORITY_ORDER } from '../../game/offlinePanel.js';
+import { BigNum } from '../../util/bigNum.js';
 
-let pinnedContainer = null;
-let currencySubscriptions = {};
-let settingsSubscriptions = {};
 
-export function initPinnedCurrencies(parentEl) {
-  if (pinnedContainer) return;
+// Base icon mapping for default states if they don't exactly match the folder name
+const BASE_ICONS = {
+  coins: 'img/currencies/coin/coin_plus_base.webp',
+  books: 'img/currencies/book/book_plus_base.webp',
+  gold: 'img/currencies/gold/gold_plus_base.webp',
+  magic: 'img/currencies/magic/magic_plus_base.webp',
+  gears: 'img/currencies/gear/gear_plus_base.webp',
+  waves: 'img/currencies/wave/wave_plus_base.webp',
+  dna: 'img/currencies/dna/dna_plus_base.webp',
+};
 
-  pinnedContainer = document.createElement('div');
-  pinnedContainer.className = 'pinned-currencies';
-  pinnedContainer.id = 'pinned-currencies';
-  
-  parentEl.appendChild(pinnedContainer);
+const ICONS = {
+  coins: 'img/currencies/coin/coin.webp',
+  books: 'img/currencies/book/book.webp',
+  gold: 'img/currencies/gold/gold.webp',
+  magic: 'img/currencies/magic/magic.webp',
+  gears: 'img/currencies/gear/gear.webp',
+  waves: 'img/currencies/wave/wave.webp',
+  dna: 'img/currencies/dna/dna.webp',
+};
 
-  // Subscribe to UI visibility
-  settingsManager.subscribe('user_interface', updateVisibility);
-  updateVisibility(settingsManager.get('user_interface'));
+// Returns a key like "currency_coins_popups"
+function getToggleKey(currency, type) {
+  return `currency_${currency}_${type}`;
+}
 
-  // Initial render
-  refreshPinnedCurrencies();
+// Ensures default values for these keys exist
 
-  // Watch for setting changes to 'currency_{id}_pinned'
-  // Since settingsManager.subscribe only works if the key exists or is added,
-  // we need to subscribe individually or rely on a global settings change event.
-  // We'll manually subscribe to all possible currencies.
-  Object.values(CURRENCIES).forEach(id => {
-    const pinKey = `currency_${id}_pinned`;
-    settingsManager.subscribe(pinKey, () => refreshPinnedCurrencies());
-  });
+function getUnlockedCurrencies() {
+  return Object.values(CURRENCIES).filter(c => isCurrencyUnlocked(c));
+}
 
-  // Re-layout on resize
-  window.addEventListener('resize', layoutPinnedCurrencies);
-  window.addEventListener('orientationchange', layoutPinnedCurrencies);
-  
-  // Re-layout when game area becomes visible
-  window.addEventListener('menu:visibilitychange', (e) => {
-    if (e.detail && !e.detail.visible) {
-      // The menu is hidden, which means the game area is now visible.
-      // Wait for the next frame to ensure the DOM has updated and layout is calculated.
-      requestAnimationFrame(() => {
-        layoutPinnedCurrencies();
-      });
+function ensureCurrencySettings() {
+  const currencies = getUnlockedCurrencies();
+  currencies.forEach(c => {
+    if (settingsManager.get(getToggleKey(c, 'popups')) === undefined) {
+      settingsManager.set(getToggleKey(c, 'popups'), true);
+    }
+    if (settingsManager.get(getToggleKey(c, 'automated')) === undefined) {
+      settingsManager.set(getToggleKey(c, 'automated'), true);
+    }
+    if (settingsManager.get(getToggleKey(c, 'pinned')) === undefined) {
+      settingsManager.set(getToggleKey(c, 'pinned'), false);
     }
   });
 }
 
-function updateVisibility(isVisible) {
-  if (pinnedContainer) {
-    if (isVisible === false) {
-      pinnedContainer.style.display = 'none';
-    } else {
-      pinnedContainer.style.display = 'block';
-    }
+function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc, amountText) {
+  const row = document.createElement('div');
+  row.className = 'currency-row' + (isUniversal ? ' universal-row' : '');
+  if (currencyId && currencyId !== 'universal') row.dataset.currency = currencyId;
+  
+  const info = document.createElement('div');
+  info.className = 'currency-info';
+  
+  const iconWrapper = document.createElement('div');
+  iconWrapper.className = 'currency-icon-wrapper';
+  
+  const iconImg = document.createElement('img');
+  iconImg.className = 'currency-base';
+  iconImg.src = baseSrc;
+  
+  iconWrapper.appendChild(iconImg);
+  
+  const amountDiv = document.createElement('div');
+  amountDiv.className = 'currency-amount';
+  amountDiv.textContent = amountText;
+  
+  info.appendChild(iconWrapper);
+  info.appendChild(amountDiv);
+  
+  row.appendChild(info);
+
+  // Dropdown controls
+  const controls = document.createElement('div');
+  controls.className = 'currency-controls';
+
+  const opts = [
+    { value: 'popups', label: 'Popups' },
+    { value: 'automated', label: 'Automated' },
+    { value: 'pinned', label: 'Pinned' },
+  ];
+
+  if (isUniversal && !IS_MOBILE) {
+    opts.push({ value: 'paintbrush', label: 'Enable Paintbrush Multi-Toggle', isButton: true, className: 'paintbrush-btn-anim' });
   }
-}
 
-export function refreshPinnedCurrencies() {
-  if (!pinnedContainer) return;
+  const getDropdownValue = () => {
+    if (!isUniversal) {
+      const selected = [];
+      if (settingsManager.get(getToggleKey(currencyId, 'popups'))) selected.push('popups');
+      
+      const collectiveState = getCollectiveAutobuyerState(currencyId);
+      let isAuto = collectiveState > 0;
+      
+      if (isAuto) selected.push('automated');
+      if (settingsManager.get(getToggleKey(currencyId, 'pinned'))) selected.push('pinned');
+      return selected;
+    } else {
+      const allCurrencies = getUnlockedCurrencies();
+      let hasVariance = false;
+      
+      ['popups', 'automated', 'pinned'].forEach(type => {
+        if (type === 'automated') {
+           const firstVal = getCollectiveAutobuyerState(allCurrencies[0]);
+           if (firstVal === 0.5) {
+               hasVariance = true;
+           }
+           for (let i = 1; i < allCurrencies.length; i++) {
+             const state = getCollectiveAutobuyerState(allCurrencies[i]);
+             if (state !== firstVal || state === 0.5) {
+               hasVariance = true;
+               break;
+             }
+           }
+        } else {
+           const firstVal = settingsManager.get(getToggleKey(allCurrencies[0], type));
+           for (let i = 1; i < allCurrencies.length; i++) {
+             if (settingsManager.get(getToggleKey(allCurrencies[i], type)) !== firstVal) {
+               hasVariance = true;
+               break;
+             }
+           }
+        }
+      });
 
-  pinnedContainer.innerHTML = '';
-  
-  // Clear old currency subscriptions
-  Object.values(currencySubscriptions).forEach(unsub => unsub());
-  currencySubscriptions = {};
-
-  const pinnedIds = [];
-  Object.values(CURRENCIES).forEach(id => {
-    const isPinned = settingsManager.get(`currency_${id}_pinned`);
-    if (isPinned) {
-      pinnedIds.push(id);
-    }
-  });
-
-  pinnedIds.forEach(id => {
-    const el = document.createElement('div');
-    el.className = 'pinned-currency-wrapper'; // changed wrapper class
-    el.id = `pinned-currency-${id}`;
-
-    const bar = document.createElement('div');
-    bar.className = 'pinned-currency';
-    bar.dataset.currency = id; // Add data-currency attribute for shared CSS gradients
-
-    const icon = document.createElement('img');
-    icon.className = 'pinned-currency-icon';
-    // Map ID to icon filename. Many are id_plus_base.webp
-    // Some IDs have an 's' at the end (books, gears, waves) but the image files are singular
-    const iconBaseName = id.endsWith('s') ? id.slice(0, -1) : id;
-    icon.src = `img/currencies/${iconBaseName}/${iconBaseName}_plus_base.webp`;
-    icon.onerror = () => {
-      icon.src = 'img/currencies/coin/coin_plus_base.webp'; // fallback
-    };
-    
-    const textSpan = document.createElement('span');
-    textSpan.className = 'pinned-currency-value';
-    
-    bar.appendChild(icon);
-    bar.appendChild(textSpan);
-    el.appendChild(bar);
-    pinnedContainer.appendChild(el);
-
-    // Update value and subscribe to changes
-    const updateVal = () => {
-      const amount = getCurrency(id);
-      textSpan.textContent = formatNumber(amount);
-    };
-    
-    updateVal();
-
-    // Setup listener. The game uses window event 'currency:change'
-    const handleEvent = (e) => {
-      if (e.detail && e.detail.key === id) {
-        updateVal();
+      if (hasVariance) {
+        return [];
       }
-    };
-    window.addEventListener('currency:change', handleEvent);
-    currencySubscriptions[id] = () => window.removeEventListener('currency:change', handleEvent);
-  });
 
-  layoutPinnedCurrencies();
-}
+      const selected = [];
+      ['popups', 'automated', 'pinned'].forEach(type => {
+        if (type === 'automated') {
+           if (allCurrencies.every(c => getCollectiveAutobuyerState(c) === 1)) {
+              selected.push(type);
+           }
+        } else {
+           if (allCurrencies.every(c => settingsManager.get(getToggleKey(c, type)))) {
+             selected.push(type);
+           }
+        }
+      });
+      return selected;
+    }
+  };
 
-export function layoutPinnedCurrencies() {
-  if (!pinnedContainer) return;
+  const setDropdownValue = (newVals) => {
+    if (newVals.includes('paintbrush')) {
+      // User clicked the paintbrush button
+      openPaintBrushMode();
+      return;
+    }
 
-  const children = Array.from(pinnedContainer.querySelectorAll('.pinned-currency-wrapper'));
-  if (children.length === 0) return;
+    const prevVals = getDropdownValue();
+    const toggledType = ['popups', 'automated', 'pinned'].find(type => 
+      prevVals.includes(type) !== newVals.includes(type)
+    );
 
-  const hudBottom = document.querySelector('.hud-bottom');
-  if (!hudBottom) {
-    // If hud-bottom doesn't exist, just stack them vertically
-    children.forEach((el, index) => {
-      el.style.left = '0px';
-      el.style.top = `${index * (28 + 8)}px`; // 28px height + 8px gap
-    });
-    return;
-  }
+    if (!toggledType) return;
 
-  const pinnedRect = pinnedContainer.getBoundingClientRect();
-  const hudRect = hudBottom.getBoundingClientRect();
-
-  // Available vertical space from top of pinned container to top of hud-bottom
-  const availableHeight = hudRect.top - pinnedRect.top;
-
-  const ITEM_HEIGHT = 28;
-  const GAP_Y = 8;
-  const GAP_X = 8;
-  const TOTAL_ITEM_H = ITEM_HEIGHT + GAP_Y;
-
-  // We need the horizontal width for snaking
-  // .pinned-currency is 150px wide + 14px left margin
-  const ITEM_WIDTH = 150 + 14; 
-  const TOTAL_ITEM_W = ITEM_WIDTH + GAP_X;
-
-  // Find how many items fit entirely before the HUD
-  let itemsAboveHud = Math.floor((availableHeight + GAP_Y) / TOTAL_ITEM_H);
-  if (itemsAboveHud < 0) itemsAboveHud = 0; // Edge case if pinned container is below HUD
-  
-  // Calculate the vertical offset to start overlapping items so they fall entirely inside the HUD.
-  // We align the first overlapping item either at its natural spacing if it already falls
-  // exactly on the HUD line, or we push it down exactly to the HUD's top offset.
-  const hudTopOffset = availableHeight;
-  const firstOverlappingTopPx = Math.max(itemsAboveHud * TOTAL_ITEM_H, hudTopOffset);
-
-  // Determine how many items comfortably fit vertically within the HUD's height
-  let itemsInsideHud = Math.floor((hudRect.height + GAP_Y) / TOTAL_ITEM_H);
-  if (itemsInsideHud < 1) itemsInsideHud = 1; // Fallback to at least 1 item to prevent divide-by-zero or empty columns
-
-  const firstColCapacity = itemsAboveHud + itemsInsideHud;
-
-  children.forEach((el, index) => {
-    if (index < itemsAboveHud) {
-      // First column, above the HUD
-      el.style.left = '0px';
-      el.style.top = `${index * TOTAL_ITEM_H}px`;
-    } else if (index < firstColCapacity) {
-      // First column, overlapping the HUD
-      const rowInHud = index - itemsAboveHud;
-      el.style.left = '0px';
-      el.style.top = `${firstOverlappingTopPx + (rowInHud * TOTAL_ITEM_H)}px`;
+    if (!isUniversal) {
+      const newVal = newVals.includes(toggledType);
+      settingsManager.set(getToggleKey(currencyId, toggledType), newVal);
+      if (toggledType === 'pinned') {
+        window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
+      }
+      if (toggledType === 'automated') {
+        setAllAutobuyersForCostType(currencyId, newVal);
+        window.dispatchEvent(new CustomEvent('currency:change', { detail: { ignoreOverlayRender: true } }));
+        window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
+      }
+      const overlayEl = container.closest('.sas-overlay');
+      if (overlayEl) {
+        const universalRow = overlayEl.querySelector('.universal-row');
+        if (universalRow && universalRow._updateDropdownVisually) {
+          universalRow._updateDropdownVisually();
+        }
+      }
     } else {
-      // Snaking horizontally inside the HUD bounds
-      const snakedIndex = index - firstColCapacity;
-      const col = Math.floor(snakedIndex / itemsInsideHud) + 1;
-      const rowInHud = snakedIndex % itemsInsideHud;
-
-      el.style.left = `${col * TOTAL_ITEM_W}px`;
-      el.style.top = `${firstOverlappingTopPx + (rowInHud * TOTAL_ITEM_H)}px`;
+      const allCurrencies = getUnlockedCurrencies();
+      allCurrencies.forEach(c => {
+        settingsManager.set(getToggleKey(c, 'popups'), newVals.includes('popups'));
+        settingsManager.set(getToggleKey(c, 'automated'), newVals.includes('automated'));
+        settingsManager.set(getToggleKey(c, 'pinned'), newVals.includes('pinned'));
+      });
+      
+      const isAutoEnabled = newVals.includes('automated');
+      allCurrencies.forEach(c => setAllAutobuyersForCostType(c, isAutoEnabled));
+      
+      // Update visually without full re-render
+      const overlayEl = container.closest('.sas-overlay');
+      if (overlayEl) {
+        // Update all child dropdown wrappers instead of replacing the DOM
+        const rows = overlayEl.querySelectorAll('.currency-row:not(.universal-row)');
+        rows.forEach(row => {
+          if (row._updateDropdownVisually) {
+            row._updateDropdownVisually();
+          }
+        });
+      }
+      
+      // Always dispatch event when modifying the universal toggle to apply any pin changes
+      window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
+      
+      window.dispatchEvent(new CustomEvent('currency:change', { detail: { ignoreOverlayRender: true } }));
+      window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
     }
+  };
+
+  const getDisplayValue = (vals) => {
+    let hasAutoVariance = false;
+    if (isUniversal && !IS_MOBILE) {
+      const allCurrencies = getUnlockedCurrencies();
+      let hasVariance = false;
+      ['popups', 'automated', 'pinned'].forEach(type => {
+        if (type === 'automated') {
+           const firstVal = getCollectiveAutobuyerState(allCurrencies[0]);
+           if (firstVal === 0.5) {
+               hasVariance = true;
+               hasAutoVariance = true;
+           }
+           for (let i = 1; i < allCurrencies.length; i++) {
+             const state = getCollectiveAutobuyerState(allCurrencies[i]);
+             if (state !== firstVal || state === 0.5) {
+               hasVariance = true;
+               hasAutoVariance = true;
+               break;
+             }
+           }
+        } else {
+           const firstVal = settingsManager.get(getToggleKey(allCurrencies[0], type));
+           for (let i = 1; i < allCurrencies.length; i++) {
+             if (settingsManager.get(getToggleKey(allCurrencies[i], type)) !== firstVal) {
+               hasVariance = true;
+               break;
+             }
+           }
+        }
+      });
+      if (hasVariance) {
+        const span = document.createElement("span");
+        span.textContent = "Variance within currencies detected";
+        span.style.color = "#ffaa00";
+        return span;
+      }
+    }
+
+    const makeSpan = (text, isTruthy) => {
+      const span = document.createElement('span');
+      span.textContent = text;
+      span.style.color = isTruthy ? '#44ff44' : '#ff4444';
+      return span;
+    };
+    
+    const verticalBar = () => {
+      const span = document.createElement('span');
+      span.textContent = '| ';
+      span.style.color = 'inherit';
+      return span;
+    };
+
+    const hasPopups = vals.includes('popups');
+    const isAuto = vals.includes('automated');
+    const isPinned = vals.includes('pinned');
+
+    let isMasterUnlocked = false;
+    let collectiveState = 0;
+    if (currencyId && !isUniversal) {
+      collectiveState = getCollectiveAutobuyerState(currencyId);
+      const masterUpgIdEntry = Object.entries(MASTER_AUTOBUY_IDS).find(([id, key]) => key === currencyId);
+      if (masterUpgIdEntry) {
+        const masterId = parseInt(masterUpgIdEntry[0]);
+        if (getLevelNumber(AUTOMATION_AREA_KEY, masterId) > 0) {
+          isMasterUnlocked = true;
+        }
+      }
+    }
+
+    let autoText = '';
+    if (isUniversal && !IS_MOBILE) {
+      if (hasAutoVariance) {
+        autoText = 'Variance within currencies detected';
+      } else {
+        autoText = isAuto ? 'Is/Could be automated' : 'Is not/Wouldn\'t be automated';
+      }
+    } else {
+      if (collectiveState === 0.5) {
+        autoText = 'Is sort of automated';
+      } else {
+        if (isMasterUnlocked) {
+          autoText = collectiveState === 1 ? 'Is automated' : 'Is not automated';
+        } else {
+          autoText = collectiveState === 1 ? 'Could be automated' : 'Wouldn\'t be automated';
+        }
+      }
+    }
+
+    // Set color based on state
+    let autoSpan;
+    if (!isUniversal && collectiveState === 0.5) {
+      autoSpan = document.createElement('span');
+      autoSpan.textContent = autoText;
+      autoSpan.style.color = '#ffff44'; // Yellow for sort of
+    } else if (isUniversal && hasAutoVariance) {
+      autoSpan = document.createElement('span');
+      autoSpan.textContent = autoText;
+      autoSpan.style.color = '#ffaa00'; // Orange for variance
+    } else {
+      autoSpan = makeSpan(autoText, isUniversal ? isAuto : collectiveState === 1);
+    }
+
+    return [
+      makeSpan(hasPopups ? 'Has popups' : 'No popups', hasPopups),
+      verticalBar(),
+      autoSpan,
+      verticalBar(),
+      makeSpan(isPinned ? 'Is pinned' : 'Is not pinned', isPinned)
+    ];
+  };
+
+  const { wrapper, cleanup, updateDisplay } = createDropdown({
+    getOptions: () => opts,
+    getValue: getDropdownValue,
+    setValue: setDropdownValue,
+    isChecklist: true,
+    getDisplayValue: getDisplayValue,
   });
+
+  row._cleanupDropdown = cleanup;
+  row._updateDropdownVisually = updateDisplay;
+
+  controls.appendChild(wrapper);
+  row.appendChild(controls);
+
+  container.appendChild(row);
 }
-
-// Ensure values are updated if there's no event dispatching by polling
-// Alternatively, we could hook into the game loop
-setInterval(() => {
-  if (pinnedContainer && pinnedContainer.style.display !== 'none') {
-    refreshPinnedCurrenciesValues();
-  }
-}, 100);
-
-function refreshPinnedCurrenciesValues() {
-  if (!pinnedContainer) return;
-  const children = pinnedContainer.querySelectorAll('.pinned-currency-wrapper');
-  children.forEach(el => {
-    const id = el.id.replace('pinned-currency-', '');
-    const span = el.querySelector('.pinned-currency-value');
-    if (span) {
-      span.textContent = formatNumber(getCurrency(id));
-    }
-  });
-}
-
-// --- LEVEL PINS ---
-
-let pinnedLevelsContainer = null;
-let levelSubscriptions = {};
-
-function getLevelStatValue(key) {
-    if (key === 'xp_levels') return getXpState()?.xpLevel;
-    if (key === 'mp_levels') return getMutationState()?.level;
-    if (bank && bank[key]) return bank[key].value;
-    if (window[key]) return typeof window[key] === 'function' ? window[key]() : window[key];
-    return null;
-}
-
-function getLevelProgRatio(prefix) {
-    if (prefix === 'xp') {
-        const state = getXpState();
-        if (!state) return 0;
-        const prog = state.progress;
-        const req = state.requirement;
-        if (!req || req.isZero?.()) return 0;
-        
-        let ratio = 0;
-        try {
-            const reqIsInf = req.isInfinite?.();
-            const progIsInf = prog.isInfinite?.();
-            if (reqIsInf) return progIsInf ? 1 : 0;
-            
-            // simple division or fallback to Math if BigNum provides division
-            // Wait, we can use progressRatio from xpSystem or just calculate an approx ratio
-            // But we don't have access to progressRatio.
-            // Let's do a simple log ratio or decimal conversion since these values can be large
-            // Fallback:
-            try {
-                const pNum = Number(prog.toString());
-                const rNum = Number(req.toString());
-                if(rNum > 0) ratio = pNum / rNum;
-            } catch(e) {
-                ratio = 0; 
-            }
-        } catch(e) {}
-        return Math.min(Math.max(ratio, 0), 1);
-    }
-    if (prefix === 'mp') {
-        const state = getMutationState();
-        if (!state) return 0;
-        const prog = state.progress;
-        const req = state.requirement;
-        if (!req || req.isZero?.()) return 0;
-        let ratio = 0;
-        try {
-            const pNum = Number(prog.toString());
-            const rNum = Number(req.toString());
-            if(rNum > 0) ratio = pNum / rNum;
-        } catch(e) {}
-        return Math.min(Math.max(ratio, 0), 1);
-    }
-    return 0;
-}
-
-export function initPinnedLevels(parentEl) {
-  if (pinnedLevelsContainer) return;
-
-  pinnedLevelsContainer = document.createElement('div');
-  pinnedLevelsContainer.className = 'pinned-levels';
-  pinnedLevelsContainer.id = 'pinned-levels';
+function populateCurrenciesOverlay(overlayEl) {
+  const grid = overlayEl.querySelector('.currencies-grid');
+  if (!grid) return;
+  grid.innerHTML = "";
+  grid.setAttribute('role', 'grid');
   
-  parentEl.appendChild(pinnedLevelsContainer);
+  ensureCurrencySettings();
+  
+  // Universal Row
+  const uniqueCount = getUnlockedCurrencies().length;
+  createCurrencyRow(grid, true, 'universal', 'img/misc/mysterious.webp', 'img/misc/locked_base.webp', "Universal Toggle");
 
-  settingsManager.subscribe('user_interface', updateLevelsVisibility);
-  updateLevelsVisibility(settingsManager.get('user_interface'));
+  // Child Rows
+  const currenciesList = getUnlockedCurrencies();
+  currenciesList.forEach(currency => {
+    const val = bank[currency]?.value;
+    const amountStr = formatNumber(val);
+    const iconSrc = ICONS[currency] || 'img/misc/mysterious.webp';
+    const baseSrc = BASE_ICONS[currency] || 'img/misc/locked.webp';
+    
+    let displayName = currency === 'dna' ? 'DNA' : currency.charAt(0).toUpperCase() + currency.slice(1);
+    const config = PRIORITY_ORDER.find(c => c.key === currency);
+    if (config) {
+        let isOne = false;
+        if (val instanceof BigNum) {
+            isOne = !val.isInfinite() && val.cmp(BigNum.fromInt(1)) === 0;
+        } else {
+            isOne = (Number(val) === 1);
+        }
+        displayName = isOne ? config.singular : config.plural;
+    }
 
-  refreshPinnedLevels();
-
-  const levelConfigs = PRIORITY_ORDER.filter(c => c.type === 'levelStat');
-  levelConfigs.forEach(levelConfig => {
-    const prefix = levelConfig.key.replace('_levels', '');
-    const pinKey = `level_${prefix}_pinned`;
-    settingsManager.subscribe(pinKey, () => refreshPinnedLevels());
+    createCurrencyRow(grid, false, currency, iconSrc, baseSrc, amountStr + ' ' + displayName);
   });
+}
 
-  window.addEventListener('resize', layoutPinnedLevels);
-  window.addEventListener('orientationchange', layoutPinnedLevels);
-  window.addEventListener('menu:visibilitychange', (e) => {
-    if (e.detail && !e.detail.visible) {
-      requestAnimationFrame(() => {
-        layoutPinnedLevels();
+
+function handleOutsideClick(e) {
+  if (!currenciesOverlay.isOpen) return;
+  const overlayEl = currenciesOverlay.overlayEl;
+  if (!overlayEl) return;
+  
+  if (!e.target.closest('.setting-dropdown-wrapper')) {
+    const openMenus = overlayEl.querySelectorAll('.setting-dropdown-menu.is-open');
+    openMenus.forEach(menu => {
+      menu.classList.remove('is-open');
+    });
+  }
+}
+
+
+function handleCurrencyUnlock(e) {
+  if (!currenciesOverlay.isOpen) return;
+  const overlayEl = currenciesOverlay.overlayEl;
+  if (!overlayEl) return;
+  populateCurrenciesOverlay(overlayEl);
+  if (paintbrush && paintbrush.isActive()) {
+    updatePaintbrushIfActive();
+    
+  }
+}
+
+function handleCurrencyChange(e) {
+  if (e.detail && e.detail.ignoreOverlayRender) return;
+  if (!currenciesOverlay.isOpen) return;
+  const overlayEl = currenciesOverlay.overlayEl;
+  if (!overlayEl) return;
+  const grid = overlayEl.querySelector('.currencies-grid');
+  if (!grid) return;
+  
+  // If specific currency changed, update only that row
+  if (e.detail && e.detail.key) {
+    const currencyId = e.detail.key;
+    const row = grid.querySelector(`.currency-row[data-currency="${currencyId}"]`);
+    if (row) {
+      const amountEl = row.querySelector('.currency-amount');
+      if (amountEl) {
+        const val = bank[currencyId]?.value;
+        
+        let displayName = currencyId === 'dna' ? 'DNA' : currencyId.charAt(0).toUpperCase() + currencyId.slice(1);
+        const config = PRIORITY_ORDER.find(c => c.key === currencyId);
+        if (config) {
+            let isOne = false;
+            if (val instanceof BigNum) {
+                isOne = !val.isInfinite() && val.cmp(BigNum.fromInt(1)) === 0;
+            } else {
+                isOne = (Number(val) === 1);
+            }
+            displayName = isOne ? config.singular : config.plural;
+        }
+
+        amountEl.textContent = formatNumber(val) + ' ' + displayName;
+      }
+    }
+  } else {
+    // If no specific detail, full re-render values
+    populateCurrenciesOverlay(overlayEl);
+    if (paintbrush && paintbrush.isActive()) {
+      updatePaintbrushIfActive();
+      
+    }
+  }
+}
+
+const currenciesOverlay = createSASOverlay({
+  id: 'currencies-overlay',
+  title: 'Currencies',
+  containerClass: 'currencies-grid',
+  focusSelector: '.currency-row, .currencies-grid',
+  onRender: (overlayEl) => {
+    populateCurrenciesOverlay(overlayEl);
+    window.addEventListener('currency:change', handleCurrencyChange);
+    window.addEventListener('currency:unlock', handleCurrencyUnlock);
+    document.addEventListener('click', handleOutsideClick);
+  },
+  onClose: () => {
+    window.removeEventListener('currency:change', handleCurrencyChange);
+    window.removeEventListener('currency:unlock', handleCurrencyUnlock);
+    document.removeEventListener('click', handleOutsideClick);
+    // Cleanup dynamic dropdown listeners
+    if (currenciesOverlay.overlayEl) {
+      const rows = currenciesOverlay.overlayEl.querySelectorAll('.currency-row');
+      rows.forEach(row => {
+        if (row._cleanupDropdown) row._cleanupDropdown();
       });
     }
-  });
-  window.addEventListener('levels:pinsChanged', refreshPinnedLevels);
-}
-
-function updateLevelsVisibility(isVisible) {
-  if (pinnedLevelsContainer) {
-    if (isVisible === false) {
-      pinnedLevelsContainer.style.display = 'none';
-    } else {
-      pinnedLevelsContainer.style.display = 'block';
-    }
   }
+});
+
+export function openCurrenciesOverlay() {
+  currenciesOverlay.open();
 }
 
-export function refreshPinnedLevels() {
-  if (!pinnedLevelsContainer) return;
-
-  pinnedLevelsContainer.innerHTML = '';
-  
-  Object.values(levelSubscriptions).forEach(unsub => unsub());
-  levelSubscriptions = {};
-
-  const levelConfigs = PRIORITY_ORDER.filter(c => c.type === 'levelStat');
-  const pinnedPrefixes = [];
-  
-  levelConfigs.forEach(levelConfig => {
-    const prefix = levelConfig.key.replace('_levels', '');
-    const isPinned = settingsManager.get(`level_${prefix}_pinned`);
-    if (isPinned) {
-      pinnedPrefixes.push({ prefix, levelConfig });
-    }
-  });
-
-  pinnedPrefixes.forEach(({ prefix, levelConfig }) => {
-    const el = document.createElement('div');
-    el.className = 'pinned-level-wrapper';
-    el.id = `pinned-level-${prefix}`;
-
-    const bar = document.createElement('div');
-    bar.className = 'pinned-level';
-    bar.dataset.level = prefix; 
-
-    const icon = document.createElement('img');
-    icon.className = 'pinned-level-icon';
-    
-    let iconSrc = levelConfig.icon || 'img/misc/mysterious.webp';
-    if (iconSrc && iconSrc.endsWith('.webp')) {
-      const parts = iconSrc.split('/');
-      const filename = parts.pop();
-      const baseName = filename.replace('.webp', '');
-      iconSrc = parts.join('/') + '/' + baseName + '_plus_base.webp';
-    }
-    icon.src = iconSrc;
-    icon.onerror = () => {
-      icon.src = 'img/misc/mysterious.webp';
-    };
-    
-    const textSpan = document.createElement('span');
-    textSpan.className = 'pinned-level-value';
-    
-    bar.appendChild(icon);
-    bar.appendChild(textSpan);
-    el.appendChild(bar);
-    pinnedLevelsContainer.appendChild(el);
-
-    const updateValAndProg = () => {
-      const amount = getLevelStatValue(levelConfig.key);
-      textSpan.textContent = formatNumber(amount);
-      const ratio = getLevelProgRatio(prefix);
-      bar.style.setProperty('--progress', `${(ratio * 100).toFixed(2)}%`);
-    };
-    
-    updateValAndProg();
-
-    const handleEvent = () => updateValAndProg();
-    
-    // XP and MP trigger custom events
-    if (prefix === 'xp') {
-        window.addEventListener('xp:change', handleEvent);
-        levelSubscriptions[prefix] = () => window.removeEventListener('xp:change', handleEvent);
-    } else if (prefix === 'mp') {
-        window.addEventListener('mutation:change', handleEvent);
-        levelSubscriptions[prefix] = () => window.removeEventListener('mutation:change', handleEvent);
-    } else {
-        // Fallback or generic event if needed
-    }
-  });
-
-  layoutPinnedLevels();
+export function closeCurrenciesOverlay(force = false) {
+  currenciesOverlay.close(force);
 }
 
-export function layoutPinnedLevels() {
-  if (!pinnedLevelsContainer) return;
 
-  const children = Array.from(pinnedLevelsContainer.querySelectorAll('.pinned-level-wrapper'));
-  if (children.length === 0) return;
 
-  const hudBottom = document.querySelector('.hud-bottom');
-  if (!hudBottom) {
-    children.forEach((el, index) => {
-      el.style.left = '0px';
-      el.style.top = `${index * (28 + 8)}px`; 
+const paintbrush = createPaintBrush({
+  getOverlayEl: () => currenciesOverlay.overlayEl,
+  getInitialState: () => {
+    const allCurrencies = getUnlockedCurrencies();
+    let state = { popups: true, automated: true, pinned: true };
+
+    ['popups', 'automated', 'pinned'].forEach(type => {
+      if (type === 'automated') {
+         if (!allCurrencies.every(c => getCollectiveAutobuyerState(c) === 1)) {
+            state.automated = false;
+         }
+      } else {
+         if (!allCurrencies.every(c => settingsManager.get(getToggleKey(c, type)))) {
+           state[type] = false;
+         }
+      }
     });
-    return;
-  }
+    return state;
+  },
+  togglesConfig: [
+    { key: 'popups', label: 'Popups' },
+    { key: 'automated', label: 'Automated' },
+    { key: 'pinned', label: 'Pinned' }
+  ],
+  descriptionText: "Left click and drag over any currency row to apply specific changes in accordance to the dropdown options listed right above this text. Use this tool to apply arbitrary customizations of settings to an arbitrary amount of currencies quickly. Rows highlighted in red will be unchanged, and rows highlighted in green will be affected, apply changes when done.",
+  onApply: (affectedRows, paintBrushState) => {
+    let changedAny = false;
+    let changedPins = false;
+    let changedAuto = false;
 
-  const pinnedRect = pinnedLevelsContainer.getBoundingClientRect();
-  const hudRect = hudBottom.getBoundingClientRect();
+    affectedRows.forEach(row => {
+      const currencyId = row.dataset.currency;
+      if (!currencyId) return;
 
-  const availableHeight = hudRect.top - pinnedRect.top;
+      changedAny = true;
 
-  const ITEM_HEIGHT = 28;
-  const GAP_Y = 8;
-  const TOTAL_ITEM_H = ITEM_HEIGHT + GAP_Y;
-  
-  let itemsAboveHud = Math.floor((availableHeight + GAP_Y) / TOTAL_ITEM_H);
-  if (itemsAboveHud < 0) itemsAboveHud = 0; 
-  
-  const hudTopOffset = availableHeight;
-  const firstOverlappingTopPx = Math.max(itemsAboveHud * TOTAL_ITEM_H, hudTopOffset);
+      const newPopups = paintBrushState.popups;
+      const newAutomated = paintBrushState.automated;
+      const newPinned = paintBrushState.pinned;
 
-  children.forEach((el, index) => {
-    if (index < itemsAboveHud) {
-      el.style.left = '0px';
-      el.style.top = `${index * TOTAL_ITEM_H}px`;
-    } else {
-      const rowInHud = index - itemsAboveHud;
-      el.style.left = '0px';
-      el.style.top = `${firstOverlappingTopPx + (rowInHud * TOTAL_ITEM_H)}px`;
+      if (settingsManager.get(getToggleKey(currencyId, 'popups')) !== newPopups) {
+        settingsManager.set(getToggleKey(currencyId, 'popups'), newPopups);
+      }
+
+      if (settingsManager.get(getToggleKey(currencyId, 'pinned')) !== newPinned) {
+        settingsManager.set(getToggleKey(currencyId, 'pinned'), newPinned);
+        changedPins = true;
+      }
+
+      const currentState = getCollectiveAutobuyerState(currencyId);
+      const isAuto = currentState > 0;
+      if (isAuto !== newAutomated) {
+        setAllAutobuyersForCostType(currencyId, newAutomated);
+        changedAuto = true;
+      }
+      
+      settingsManager.set(getToggleKey(currencyId, 'automated'), newAutomated);
+      
+      if (row._updateDropdownVisually) {
+        row._updateDropdownVisually();
+      }
+    });
+
+    if (changedAny) {
+      if (changedPins) {
+        window.dispatchEvent(new CustomEvent('currencies:pinsChanged'));
+      }
+      if (changedAuto) {
+        window.dispatchEvent(new CustomEvent('currency:change', { detail: { ignoreOverlayRender: true } }));
+        window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
+      }
+      
+      const overlayEl = currenciesOverlay.overlayEl;
+      if (overlayEl) {
+        const universalRow = overlayEl.querySelector('.universal-row');
+        if (universalRow && universalRow._updateDropdownVisually) {
+          universalRow._updateDropdownVisually();
+        }
+      }
     }
-  });
+  }
+});
+
+function openPaintBrushMode() {
+  paintbrush.open();
 }
 
-setInterval(() => {
-  if (pinnedLevelsContainer && pinnedLevelsContainer.style.display !== 'none') {
-    refreshPinnedLevelsValues();
+// Ensure the paintbrush events are re-initialized on change if active
+function updatePaintbrushIfActive() {
+  if (paintbrush.isActive()) {
+    paintbrush.reinit();
   }
-}, 100);
-
-function refreshPinnedLevelsValues() {
-  if (!pinnedLevelsContainer) return;
-  const children = pinnedLevelsContainer.querySelectorAll('.pinned-level-wrapper');
-  children.forEach(el => {
-    const prefix = el.id.replace('pinned-level-', '');
-    const config = PRIORITY_ORDER.find(c => c.key === prefix + '_levels');
-    if (config) {
-        const span = el.querySelector('.pinned-level-value');
-        if (span) {
-          span.textContent = formatNumber(getLevelStatValue(config.key));
-        }
-        const bar = el.querySelector('.pinned-level');
-        if (bar) {
-          const ratio = getLevelProgRatio(prefix);
-          bar.style.setProperty('--progress', `${(ratio * 100).toFixed(2)}%`);
-        }
-    }
-  });
 }
