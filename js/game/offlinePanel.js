@@ -18,6 +18,7 @@ import {
     setResearchNodeRp
 } from './labNodes.js';
 import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
+import { getEacAmountMultiplier } from './automationEffects.js';
 import { settingsManager } from './settingsManager.js';
 import { getPassiveCoinReward } from './coinPickup.js';
 import { addXp } from './xpSystem.js';
@@ -447,14 +448,11 @@ export function calculateOfflineRewards(seconds) {
     const autoLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) || 0;
     if (autoLevel > 0) {
         // Update: use BigNum to calculate totalPassives safely
-        let multiplier = 1;
-        if (isSurgeActive(2)) {
-             multiplier = 10;
-        }
+        const multiplier = getEacAmountMultiplier();
 
         const totalPassives = BigNum.fromInt(autoLevel)
             .mulBigNumInteger(secondsBn)
-            .mulBigNumInteger(BigNum.fromInt(multiplier))
+            .mulDecimal(String(multiplier))
             .floorToInteger();
         
         if (!totalPassives.isZero()) {
