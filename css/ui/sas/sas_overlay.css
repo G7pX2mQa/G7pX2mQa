@@ -230,6 +230,11 @@
   transition: none;
 }
 
+.sas-btn.sas-btn-levels {
+  background: linear-gradient(to bottom, #0a587c 0%, #107ba8 15%, #158fbf 50%, #107ba8 85%, #0a587c 100%);
+  transition: none;
+}
+
 .sas-actions {
   display: flex;
   justify-content: center;
