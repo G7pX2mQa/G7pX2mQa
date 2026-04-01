@@ -96,11 +96,11 @@ export function formatTimeCompact(ms) {
 // Visual Priority Map
 export const PRIORITY_ORDER = [
     { key: 'coins',     icon: 'img/currencies/coin/coin.webp',   singular: 'Coin',     plural: 'Coins', type: 'currency' },
-    { key: 'xp',        icon: 'img/stats/xp/xp.webp',            singular: 'XP',       plural: 'XP', type: 'levelStat' },
+    { key: 'xp',        icon: 'img/stats/xp/xp.webp',            singular: 'XP',       plural: 'XP', type: 'levelProg' },
     { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels', type: 'levelStat' },
     { key: 'books',     icon: 'img/currencies/book/book.webp',   singular: 'Book',     plural: 'Books', type: 'currency' },
     { key: 'gold',      icon: 'img/currencies/gold/gold.webp',   singular: 'Gold',     plural: 'Gold', type: 'currency' },
-    { key: 'mp',        icon: 'img/stats/mp/mp.webp',            singular: 'MP',       plural: 'MP', type: 'levelStat' },
+    { key: 'mp',        icon: 'img/stats/mp/mp.webp',            singular: 'MP',       plural: 'MP', type: 'levelProg' },
     { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation Level', plural: 'Mutation Levels', type: 'levelStat' },
     { key: 'magic',     icon: 'img/currencies/magic/magic.webp', singular: 'Magic',    plural: 'Magic', type: 'currency' },
     { key: 'gears',     icon: 'img/currencies/gear/gear.webp',   singular: 'Gear',     plural: 'Gears', type: 'currency' },
