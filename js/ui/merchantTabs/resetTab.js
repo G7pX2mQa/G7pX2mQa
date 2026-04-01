@@ -378,10 +378,6 @@ function computeForgeGold(coinsBn, levelBn) {
   total = total.mulBigNumInteger(pow14);
   total = total.mulBigNumInteger(pow115);
   const floored = total.floorToInteger();
-  // if the computed reset amount is exactly 0, give 0, otherwise ensure a minimum of 10
-  if (floored.isZero?.()) return bnZero();
-  if (floored.cmp(BN.fromInt(10)) < 0) return BN.fromInt(10);
-  return floored;
   if (floored.isZero?.()) return bnZero();
   if (floored.cmp(BN.fromInt(10)) < 0) return BN.fromInt(10);
   return floored;
@@ -428,11 +424,10 @@ function computeInfuseMagic(coinsBn, cumulativeMpBn, multiplierOverride = null) 
     const mult = multiplierOverride instanceof BN ? multiplierOverride : BN.fromAny(multiplierOverride ?? 1);
     if (mult.isInfinite?.()) return BN.fromAny('Infinity');
     result = base.mulBigNumInteger(mult);
-  const floored = result.floorToInteger();
-  // if the computed reset amount is exactly 0, give 0, otherwise ensure a minimum of 10
-  if (floored.isZero?.()) return bnZero();
-  if (floored.cmp(BN.fromInt(10)) < 0) return BN.fromInt(10);
-  return floored;
+  } else {
+    result = bank.magic?.mult?.applyTo?.(base) ?? base;
+  }
+  result = result.mulDecimal(labMult.toScientific());
 
   const floored = result.floorToInteger();
   if (floored.isZero?.()) return bnZero();
