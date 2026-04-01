@@ -1,17 +1,15 @@
+// js/ui/sas/levelsOverlay.js
+
+import { IS_MOBILE } from '../../main.js';
 import { createSASOverlay } from './sasOverlayBuilder.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { PRIORITY_ORDER } from '../../game/offlinePanel.js';
 import { getXpState } from '../../game/xpSystem.js';
 import { getMutationState } from '../../game/mutationSystem.js';
 import { bank } from '../../util/storage.js';
-
-// The prompt specifies: "I want the population of the Levels overlay to be automatic the moment a new level type is defined, so you see in js/game/offlinePanel.js how the level types have type: 'levelStat'? I want to add a new type in addition to levelStat which is levelProg short for level progress. Any time the key in this object is singular like xp or mp, those mean the progress values, while xp_levels or mp_levels are the actual level values. Anyway, let's focus on making the Levels button in the sas menu, its overlay (empty for now), and changing the offline panel internal logic slightly so that when I evenually add more level types, I won't even have to think about the Levels overlay, because everything will be handled by the PRIORITY_ORDER list, serving as both priority order and a general dictionary for currencies and stats."
-
-// We build dynamically. The user means we shouldn't hardcode if(key === 'xp') if we can avoid it.
-// However, the offlinePanel already uses special handling for xp/mp because they are not typical currencies in bank.
-// To satisfy "everything handled by PRIORITY_ORDER", we can try checking bank for future values or we assume they will add a generalized stat getter in the future.
-// Right now, we'll map xp/mp explicitly because that's the current game system, but we'll do it safely so future stats don't crash and default nicely.
-// A common pattern in this codebase for XP/MP is they are the only systems with state getters.
+import { settingsManager } from '../../game/settingsManager.js';
+import { createDropdown } from './dropdownUtils.js';
+import { createPaintBrush } from './paintbrushUtils.js';
 
 function getStatValue(key) {
     if (key === 'xp_levels') {
@@ -26,8 +24,6 @@ function getStatValue(key) {
     if (key === 'mp') {
         return getMutationState()?.progress;
     }
-    // Dynamic fallback for any newly added stats to PRIORITY_ORDER
-    // Assuming future stats might be added to bank or have global access
     if (bank && bank[key]) {
         return bank[key].value;
     }
@@ -44,15 +40,43 @@ function getStatIsUnlocked(prefix) {
     if (prefix === 'mp') {
         return getMutationState()?.unlocked;
     }
-    // Future stats: check storage or true
-    // "I won't even have to think about the Levels overlay"
     return true; 
 }
 
-function createLevelRow(container, levelConfig, progConfig) {
+function getUnlockedLevels() {
+    const levelConfigs = PRIORITY_ORDER.filter(c => c.type === 'levelStat');
+    const progConfigs = PRIORITY_ORDER.filter(c => c.type === 'levelProg');
+    const unlocked = [];
+    levelConfigs.forEach(levelConfig => {
+        const prefix = levelConfig.key.replace('_levels', '');
+        const progConfig = progConfigs.find(c => c.key === prefix);
+        if (progConfig && getStatIsUnlocked(prefix)) {
+            unlocked.push({ levelConfig, progConfig, prefix });
+        }
+    });
+    return unlocked;
+}
+
+function getToggleKey(prefix, type) {
+  return `level_${prefix}_${type}`;
+}
+
+function ensureLevelSettings() {
+  const levels = getUnlockedLevels();
+  levels.forEach(l => {
+    if (settingsManager.get(getToggleKey(l.prefix, 'popups')) === undefined) {
+      settingsManager.set(getToggleKey(l.prefix, 'popups'), true);
+    }
+    if (settingsManager.get(getToggleKey(l.prefix, 'pinned')) === undefined) {
+      settingsManager.set(getToggleKey(l.prefix, 'pinned'), false);
+    }
+  });
+}
+
+function createLevelRow(container, isUniversal, levelConfig, progConfig, prefix) {
   const row = document.createElement('div');
-  row.className = 'currency-row level-row';
-  row.dataset.level = levelConfig.key;
+  row.className = 'currency-row level-row' + (isUniversal ? ' universal-row' : '');
+  if (prefix && prefix !== 'universal') row.dataset.level = prefix;
   
   const info = document.createElement('div');
   info.className = 'currency-info';
@@ -63,17 +87,14 @@ function createLevelRow(container, levelConfig, progConfig) {
   const iconImg = document.createElement('img');
   iconImg.className = 'currency-base';
   
-  // They use `img/stats/xp/xp_plus_base.webp` for XP, which is the prefix + '_plus_base.webp'
-  const prefix = levelConfig.key.split('_')[0];
-  
-  let iconSrc = levelConfig.icon;
-  if (iconSrc && iconSrc.endsWith('.webp')) {
+  let iconSrc = isUniversal ? 'img/misc/mysterious.webp' : (levelConfig.icon || 'img/misc/mysterious.webp');
+  if (!isUniversal && iconSrc && iconSrc.endsWith('.webp')) {
       const parts = iconSrc.split('/');
       const filename = parts.pop();
       const baseName = filename.replace('.webp', '');
       iconSrc = parts.join('/') + '/' + baseName + '_plus_base.webp';
-  } else {
-      iconSrc = 'img/misc/mysterious.webp';
+  } else if (isUniversal) {
+      iconSrc = 'img/misc/locked_base.webp';
   }
   iconImg.src = iconSrc;
   
@@ -82,19 +103,23 @@ function createLevelRow(container, levelConfig, progConfig) {
   const amountDiv = document.createElement('div');
   amountDiv.className = 'currency-amount';
   
-  const levelVal = getStatValue(levelConfig.key);
-  const formattedLevel = formatNumber(levelVal) + ' ' + (levelVal && (typeof levelVal === 'number' ? levelVal === 1 : levelVal.cmp && levelVal.cmp(1) === 0) ? levelConfig.singular : levelConfig.plural);
-  amountDiv.textContent = formattedLevel;
-  
-  if (progConfig) {
-      const progVal = getStatValue(progConfig.key);
-      if (progVal !== null && progVal !== undefined) {
-          const progDiv = document.createElement('div');
-          progDiv.style.fontSize = '14px';
-          progDiv.style.color = '#ccc';
-          const formattedProg = formatNumber(progVal) + ' ' + (progVal && (typeof progVal === 'number' ? progVal === 1 : progVal.cmp && progVal.cmp(1) === 0) ? progConfig.singular : progConfig.plural);
-          progDiv.textContent = formattedProg;
-          amountDiv.appendChild(progDiv);
+  if (isUniversal) {
+      amountDiv.textContent = "Universal Toggle";
+  } else {
+      const levelVal = getStatValue(levelConfig.key);
+      const formattedLevel = formatNumber(levelVal) + ' ' + (levelVal && (typeof levelVal === 'number' ? levelVal === 1 : levelVal.cmp && levelVal.cmp(1) === 0) ? levelConfig.singular : levelConfig.plural);
+      amountDiv.textContent = formattedLevel;
+      
+      if (progConfig) {
+          const progVal = getStatValue(progConfig.key);
+          if (progVal !== null && progVal !== undefined) {
+              const progDiv = document.createElement('div');
+              progDiv.style.fontSize = '14px';
+              progDiv.style.color = '#ccc';
+              const formattedProg = formatNumber(progVal) + ' ' + (progVal && (typeof progVal === 'number' ? progVal === 1 : progVal.cmp && progVal.cmp(1) === 0) ? progConfig.singular : progConfig.plural);
+              progDiv.textContent = formattedProg;
+              amountDiv.appendChild(progDiv);
+          }
       }
   }
 
@@ -103,8 +128,157 @@ function createLevelRow(container, levelConfig, progConfig) {
   
   row.appendChild(info);
 
+  // Dropdown controls
   const controls = document.createElement('div');
   controls.className = 'currency-controls';
+
+  const opts = [
+    { value: 'popups', label: 'Popups' },
+    { value: 'pinned', label: 'Pinned' },
+  ];
+
+  if (isUniversal && !IS_MOBILE) {
+    opts.push({ value: 'paintbrush', label: 'Enable Paintbrush Multi-Toggle', isButton: true, className: 'paintbrush-btn-anim' });
+  }
+
+  const getDropdownValue = () => {
+    if (!isUniversal) {
+      const selected = [];
+      if (settingsManager.get(getToggleKey(prefix, 'popups'))) selected.push('popups');
+      if (settingsManager.get(getToggleKey(prefix, 'pinned'))) selected.push('pinned');
+      return selected;
+    } else {
+      const allLevels = getUnlockedLevels().map(l => l.prefix);
+      let hasVariance = false;
+      
+      ['popups', 'pinned'].forEach(type => {
+         const firstVal = settingsManager.get(getToggleKey(allLevels[0], type));
+         for (let i = 1; i < allLevels.length; i++) {
+           if (settingsManager.get(getToggleKey(allLevels[i], type)) !== firstVal) {
+             hasVariance = true;
+             break;
+           }
+         }
+      });
+
+      if (hasVariance) {
+        return [];
+      }
+
+      const selected = [];
+      ['popups', 'pinned'].forEach(type => {
+         if (allLevels.every(c => settingsManager.get(getToggleKey(c, type)))) {
+           selected.push(type);
+         }
+      });
+      return selected;
+    }
+  };
+
+  const setDropdownValue = (newVals) => {
+    if (newVals.includes('paintbrush')) {
+      openPaintBrushMode();
+      return;
+    }
+
+    const prevVals = getDropdownValue();
+    const toggledType = ['popups', 'pinned'].find(type => 
+      prevVals.includes(type) !== newVals.includes(type)
+    );
+
+    if (!toggledType) return;
+
+    if (!isUniversal) {
+      const newVal = newVals.includes(toggledType);
+      settingsManager.set(getToggleKey(prefix, toggledType), newVal);
+      if (toggledType === 'pinned') {
+        window.dispatchEvent(new CustomEvent('levels:pinsChanged'));
+      }
+      const overlayEl = container.closest('.sas-overlay');
+      if (overlayEl) {
+        const universalRow = overlayEl.querySelector('.universal-row');
+        if (universalRow && universalRow._updateDropdownVisually) {
+          universalRow._updateDropdownVisually();
+        }
+      }
+    } else {
+      const allLevels = getUnlockedLevels().map(l => l.prefix);
+      allLevels.forEach(c => {
+        settingsManager.set(getToggleKey(c, 'popups'), newVals.includes('popups'));
+        settingsManager.set(getToggleKey(c, 'pinned'), newVals.includes('pinned'));
+      });
+      
+      const overlayEl = container.closest('.sas-overlay');
+      if (overlayEl) {
+        const rows = overlayEl.querySelectorAll('.currency-row:not(.universal-row)');
+        rows.forEach(row => {
+          if (row._updateDropdownVisually) {
+            row._updateDropdownVisually();
+          }
+        });
+      }
+      
+      window.dispatchEvent(new CustomEvent('levels:pinsChanged'));
+    }
+  };
+
+  const getDisplayValue = (vals) => {
+    let hasVariance = false;
+    if (isUniversal && !IS_MOBILE) {
+      const allLevels = getUnlockedLevels().map(l => l.prefix);
+      ['popups', 'pinned'].forEach(type => {
+         const firstVal = settingsManager.get(getToggleKey(allLevels[0], type));
+         for (let i = 1; i < allLevels.length; i++) {
+           if (settingsManager.get(getToggleKey(allLevels[i], type)) !== firstVal) {
+             hasVariance = true;
+             break;
+           }
+         }
+      });
+      if (hasVariance) {
+        const span = document.createElement("span");
+        span.textContent = "Variance within levels detected";
+        span.style.color = "#ffaa00";
+        return span;
+      }
+    }
+
+    const makeSpan = (text, isTruthy) => {
+      const span = document.createElement('span');
+      span.textContent = text;
+      span.style.color = isTruthy ? '#44ff44' : '#ff4444';
+      return span;
+    };
+    
+    const verticalBar = () => {
+      const span = document.createElement('span');
+      span.textContent = '| ';
+      span.style.color = 'inherit';
+      return span;
+    };
+
+    const hasPopups = vals.includes('popups');
+    const isPinned = vals.includes('pinned');
+
+    return [
+      makeSpan(hasPopups ? 'Has popups' : 'No popups', hasPopups),
+      verticalBar(),
+      makeSpan(isPinned ? 'Is pinned' : 'Is not pinned', isPinned)
+    ];
+  };
+
+  const { wrapper, cleanup, updateDisplay } = createDropdown({
+    getOptions: () => opts,
+    getValue: getDropdownValue,
+    setValue: setDropdownValue,
+    isChecklist: true,
+    getDisplayValue: getDisplayValue,
+  });
+
+  row._cleanupDropdown = cleanup;
+  row._updateDropdownVisually = updateDisplay;
+
+  controls.appendChild(wrapper);
   row.appendChild(controls);
 
   container.appendChild(row);
@@ -116,21 +290,15 @@ function populateLevelsOverlay(overlayEl) {
   grid.innerHTML = "";
   grid.setAttribute('role', 'grid');
   
-  const levelConfigs = PRIORITY_ORDER.filter(c => c.type === 'levelStat');
-  const progConfigs = PRIORITY_ORDER.filter(c => c.type === 'levelProg');
+  const levels = getUnlockedLevels();
+  if (levels.length === 0) return;
 
-  levelConfigs.forEach(levelConfig => {
-    // Determine the base prefix, e.g. xp_levels -> xp
-    // Sometimes the prefix is the entire key before `_levels`
-    const prefix = levelConfig.key.replace('_levels', '');
-    const progConfig = progConfigs.find(c => c.key === prefix);
-    
-    if (!progConfig) return;
-    const isUnlocked = getStatIsUnlocked(prefix);
+  ensureLevelSettings();
+  
+  createLevelRow(grid, true, null, null, 'universal');
 
-    if (isUnlocked) {
-        createLevelRow(grid, levelConfig, progConfig);
-    }
+  levels.forEach(l => {
+    createLevelRow(grid, false, l.levelConfig, l.progConfig, l.prefix);
   });
 }
 
@@ -152,6 +320,10 @@ function handleStatChange(e) {
   const overlayEl = levelsOverlay.overlayEl;
   if (!overlayEl) return;
   populateLevelsOverlay(overlayEl);
+  if (paintbrush && paintbrush.isActive()) {
+    updatePaintbrushIfActive();
+    
+  }
 }
 
 const levelsOverlay = createSASOverlay({
@@ -169,6 +341,12 @@ const levelsOverlay = createSASOverlay({
     window.removeEventListener('xp:change', handleStatChange);
     window.removeEventListener('mutation:change', handleStatChange);
     document.removeEventListener('click', handleOutsideClick);
+    if (levelsOverlay.overlayEl) {
+      const rows = levelsOverlay.overlayEl.querySelectorAll('.currency-row');
+      rows.forEach(row => {
+        if (row._cleanupDropdown) row._cleanupDropdown();
+      });
+    }
   }
 });
 
@@ -178,4 +356,77 @@ export function openLevelsOverlay() {
 
 export function closeLevelsOverlay(force = false) {
   levelsOverlay.close(force);
+}
+
+
+
+const paintbrush = createPaintBrush({
+  getOverlayEl: () => levelsOverlay.overlayEl,
+  getInitialState: () => {
+    const allLevels = getUnlockedLevels().map(l => l.prefix);
+    let state = { popups: true, pinned: true };
+
+    ['popups', 'pinned'].forEach(type => {
+       if (!allLevels.every(c => settingsManager.get(getToggleKey(c, type)))) {
+         state[type] = false;
+       }
+    });
+    return state;
+  },
+  togglesConfig: [
+    { key: 'popups', label: 'Popups' },
+    { key: 'pinned', label: 'Pinned' }
+  ],
+  descriptionText: "Left click and drag over any level row to apply specific changes. Rows highlighted in red will be unchanged, and rows highlighted in green will be affected.",
+  onApply: (affectedRows, paintBrushState) => {
+    let changedAny = false;
+    let changedPins = false;
+
+    affectedRows.forEach(row => {
+      const prefix = row.dataset.level;
+      if (!prefix) return;
+
+      changedAny = true;
+
+      const newPopups = paintBrushState.popups;
+      const newPinned = paintBrushState.pinned;
+
+      if (settingsManager.get(getToggleKey(prefix, 'popups')) !== newPopups) {
+        settingsManager.set(getToggleKey(prefix, 'popups'), newPopups);
+      }
+
+      if (settingsManager.get(getToggleKey(prefix, 'pinned')) !== newPinned) {
+        settingsManager.set(getToggleKey(prefix, 'pinned'), newPinned);
+        changedPins = true;
+      }
+      
+      if (row._updateDropdownVisually) {
+        row._updateDropdownVisually();
+      }
+    });
+
+    if (changedAny) {
+      if (changedPins) {
+        window.dispatchEvent(new CustomEvent('levels:pinsChanged'));
+      }
+      
+      const overlayEl = levelsOverlay.overlayEl;
+      if (overlayEl) {
+        const universalRow = overlayEl.querySelector('.universal-row');
+        if (universalRow && universalRow._updateDropdownVisually) {
+          universalRow._updateDropdownVisually();
+        }
+      }
+    }
+  }
+});
+
+function openPaintBrushMode() {
+  paintbrush.open();
+}
+
+function updatePaintbrushIfActive() {
+  if (paintbrush && paintbrush.isActive()) {
+    paintbrush.reinit();
+  }
 }
