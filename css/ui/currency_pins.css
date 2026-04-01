@@ -78,3 +78,83 @@
       0 1px 0 rgba(0,0,0,0.5) !important;
   }
 }
+
+.pinned-levels {
+  position: absolute;
+  top: 30vh;
+  left: 176px; /* 10px + 14px + 150px + 2px border? Wait, TOTAL_ITEM_W is 150 + 14 + GAP_X=8 -> 172 + 10 = 182. Let's position it left: 182px */
+  z-index: 100;
+  pointer-events: none;
+}
+.pinned-level-wrapper {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  height: 28px;
+  margin-left: 14px;
+}
+
+.pinned-level {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 150px;
+  height: 100%;
+  border: 2px solid #000 !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.pinned-level-icon {
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  z-index: 2;
+}
+
+.pinned-level-value {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(calc(-50% + 8px), -50%);
+  z-index: 1;
+  white-space: nowrap;
+  
+  -webkit-text-stroke: 0.5px #000;
+  text-stroke: 0.5px #000;
+  text-shadow: 0 0.5px 0 rgba(0,0,0,0.35);
+  
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+@media (pointer: coarse) {
+  .pinned-level-value {
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    -webkit-text-fill-color: #fff;
+    text-shadow:
+      0   0.5px 0 #000,  0  -0.5px 0 #000,
+      0.5px 0   0 #000, -0.5px 0   0 #000,
+      0.5px 0.5px 0 #000,  0.5px -0.5px 0 #000,
+     -0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000,
+      0 1px 0 rgba(0,0,0,0.5) !important;
+  }
+}
+
+/* Gradients with progress variables */
+.pinned-level[data-level="xp"] {
+    background: linear-gradient(to right, #00B0F0 var(--progress, 0%), #1a4254 var(--progress, 0%)) !important;
+}
+
+.pinned-level[data-level="mp"] {
+    background: linear-gradient(to right, #9F30FF var(--progress, 0%), #311352 var(--progress, 0%)) !important;
+}
