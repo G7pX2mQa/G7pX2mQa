@@ -5,6 +5,7 @@ import { formatNumber } from '../util/numFormat.js';
 
 import { settingsManager } from '../game/settingsManager.js';
 import { CURRENCIES, isCurrencyLocked, isStorageKeyLocked, getActiveSlot, getCurrency } from '../util/storage.js';
+import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
 
 const DEFAULT_DURATION = 6767;
 
@@ -142,6 +143,11 @@ function showPopup(type, amount, overrides = {}) {
 
   if (type in CURRENCIES || Object.values(CURRENCIES).includes(type)) {
     if (settingsManager.get(`currency_${type}_popups`) === false) return;
+  }
+  
+  const progConfig = RESOURCE_REGISTRY.find(r => r.key === type && r.type === 'levelProg');
+  if (progConfig) {
+    if (settingsManager.get(`level_${type}_popups`) === false) return;
   }
   // Check locks
   const slot = getActiveSlot();
