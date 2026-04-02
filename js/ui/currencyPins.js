@@ -3,7 +3,7 @@
 import { settingsManager } from '../game/settingsManager.js';
 import { CURRENCIES, getCurrency } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
-import { PRIORITY_ORDER } from '../game/offlinePanel.js';
+import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
 import { getXpState } from '../game/xpSystem.js';
 import { getMutationState } from '../game/mutationSystem.js';
 import { bank } from '../util/storage.js';
@@ -291,7 +291,7 @@ export function initPinnedLevels(parentEl) {
 
   refreshPinnedLevels();
 
-  const levelConfigs = PRIORITY_ORDER.filter(c => c.type === 'levelStat');
+  const levelConfigs = RESOURCE_REGISTRY.filter(c => c.type === 'levelStat');
   levelConfigs.forEach(levelConfig => {
     const prefix = levelConfig.key.replace('_levels', '');
     const pinKey = `level_${prefix}_pinned`;
@@ -328,7 +328,7 @@ export function refreshPinnedLevels() {
   Object.values(levelSubscriptions).forEach(unsub => unsub());
   levelSubscriptions = {};
 
-  const levelConfigs = PRIORITY_ORDER.filter(c => c.type === 'levelStat');
+  const levelConfigs = RESOURCE_REGISTRY.filter(c => c.type === 'levelStat');
   const pinnedPrefixes = [];
   
   levelConfigs.forEach(levelConfig => {
@@ -366,16 +366,25 @@ export function refreshPinnedLevels() {
     const textSpan = document.createElement('span');
     textSpan.className = 'pinned-level-value';
     
+    const fill = document.createElement('div');
+    fill.className = 'pinned-level-fill';
+    bar.appendChild(fill);
     bar.appendChild(icon);
     bar.appendChild(textSpan);
     el.appendChild(bar);
     pinnedLevelsContainer.appendChild(el);
 
+    const progConfig = RESOURCE_REGISTRY.find(c => c.key === prefix);
+    if (progConfig) {
+      if (progConfig.bgGradient) bar.style.setProperty('--pinned-bg', progConfig.bgGradient);
+      if (progConfig.fillGradient) fill.style.setProperty('--pinned-fill', progConfig.fillGradient);
+    }
+
     const updateValAndProg = () => {
       const amount = getLevelStatValue(levelConfig.key);
       textSpan.textContent = formatNumber(amount);
       const ratio = getLevelProgRatio(prefix);
-      bar.style.setProperty('--progress', `${(ratio * 100).toFixed(2)}%`);
+      fill.style.setProperty('--progress', `${(ratio * 100).toFixed(2)}%`);
     };
     
     updateValAndProg();
@@ -450,16 +459,17 @@ function refreshPinnedLevelsValues() {
   const children = pinnedLevelsContainer.querySelectorAll('.pinned-level-wrapper');
   children.forEach(el => {
     const prefix = el.id.replace('pinned-level-', '');
-    const config = PRIORITY_ORDER.find(c => c.key === prefix + '_levels');
+    const config = RESOURCE_REGISTRY.find(c => c.key === prefix + '_levels');
     if (config) {
         const span = el.querySelector('.pinned-level-value');
         if (span) {
           span.textContent = formatNumber(getLevelStatValue(config.key));
         }
         const bar = el.querySelector('.pinned-level');
-        if (bar) {
+        const fill = el.querySelector('.pinned-level-fill');
+        if (bar && fill) {
           const ratio = getLevelProgRatio(prefix);
-          bar.style.setProperty('--progress', `${(ratio * 100).toFixed(2)}%`);
+          fill.style.setProperty('--progress', `${(ratio * 100).toFixed(2)}%`);
         }
     }
   });
