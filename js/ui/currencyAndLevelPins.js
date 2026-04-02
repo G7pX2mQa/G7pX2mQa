@@ -1,4 +1,4 @@
-// js/ui/currencyPins.js
+// js/ui/currencyAndLevelPins.js
 
 import { settingsManager } from '../game/settingsManager.js';
 import { CURRENCIES, getCurrency } from '../util/storage.js';
@@ -51,6 +51,9 @@ export function initPinnedCurrencies(parentEl) {
       });
     }
   });
+
+  // Re-render pins when save slot changes
+  window.addEventListener('saveSlot:change', refreshPinnedCurrencies);
 }
 
 function updateVisibility(isVisible) {
@@ -88,6 +91,11 @@ export function refreshPinnedCurrencies() {
     const bar = document.createElement('div');
     bar.className = 'pinned-currency';
     bar.dataset.currency = id; // Add data-currency attribute for shared CSS gradients
+
+    const currencyConfig = RESOURCE_REGISTRY.find(c => c.key === id);
+    if (currencyConfig && currencyConfig.bgGradient) {
+      bar.style.setProperty('background', currencyConfig.bgGradient, 'important');
+    }
 
     const icon = document.createElement('img');
     icon.className = 'pinned-currency-icon';
@@ -272,6 +280,9 @@ export function initPinnedLevels(parentEl) {
     }
   });
   window.addEventListener('levels:pinsChanged', refreshPinnedLevels);
+
+  // Re-render pins when save slot changes
+  window.addEventListener('saveSlot:change', refreshPinnedLevels);
 }
 
 function updateLevelsVisibility(isVisible) {
@@ -340,7 +351,7 @@ export function refreshPinnedLevels() {
 
     const progConfig = RESOURCE_REGISTRY.find(c => c.key === prefix);
     if (progConfig) {
-      if (progConfig.bgGradient) bar.style.setProperty('--pinned-bg', progConfig.bgGradient);
+      if (progConfig.pinBgGradient) bar.style.setProperty('--pinned-bg', progConfig.pinBgGradient);
       if (progConfig.borderColor) bar.style.setProperty('--pinned-border-color', progConfig.borderColor);
       if (progConfig.barOutline) bar.style.setProperty('--pinned-border-w', progConfig.barOutline);
       if (progConfig.barBoxShadow) bar.style.setProperty('--pinned-box-shadow', progConfig.barBoxShadow);
