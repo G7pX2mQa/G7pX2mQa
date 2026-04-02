@@ -3,7 +3,7 @@
 import { IS_MOBILE } from '../../main.js';
 import { createSASOverlay } from './sasOverlayBuilder.js';
 import { formatNumber } from '../../util/numFormat.js';
-import { PRIORITY_ORDER } from '../../game/offlinePanel.js';
+import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { getXpState } from '../../game/xpSystem.js';
 import { getMutationState } from '../../game/mutationSystem.js';
 import { bank } from '../../util/storage.js';
@@ -44,8 +44,8 @@ function getStatIsUnlocked(prefix) {
 }
 
 function getUnlockedLevels() {
-    const levelConfigs = PRIORITY_ORDER.filter(c => c.type === 'levelStat');
-    const progConfigs = PRIORITY_ORDER.filter(c => c.type === 'levelProg');
+    const levelConfigs = RESOURCE_REGISTRY.filter(c => c.type === 'levelStat');
+    const progConfigs = RESOURCE_REGISTRY.filter(c => c.type === 'levelProg');
     const unlocked = [];
     levelConfigs.forEach(levelConfig => {
         const prefix = levelConfig.key.replace('_levels', '');
