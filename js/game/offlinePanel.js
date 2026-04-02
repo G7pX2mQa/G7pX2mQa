@@ -103,7 +103,7 @@ export const RESOURCE_REGISTRY = [
         plural: 'XP', 
         type: 'levelProg', 
         pinBgGradient: 'linear-gradient(180deg, rgba(12,26,46,1), rgba(16,32,58,1))', 
-        bgGradient: 'linear-gradient(to bottom, #0050b3 0%, #0073e6 15%, #3399ff 50%, #0073e6 85%, #0050b3 100%)', 
+        bgGradient: 'linear-gradient(to bottom, #008bcc 0%, #00aeff 15%, #00c8fa 50%, #00aeff 85%, #008bcc 100%)', 
         fillGradient: 'linear-gradient(90deg, rgba(0,240,255,1) 0%, rgba(0,150,255,1) 50%, rgba(0,70,210,1) 100%)', 
         barOutline: '3px', 
         borderColor: '#01060f', 
@@ -113,7 +113,7 @@ export const RESOURCE_REGISTRY = [
     },
     { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels', type: 'levelStat' },
     { key: 'books', bgGradient: 'linear-gradient(to bottom, #82551b 0%, #94601e 15%, #AC6C1B 50%, #94601e 85%, #82551b 100%)',      icon: 'img/currencies/book/book.webp',   singular: 'Book',     plural: 'Books', type: 'currency' },
-    { key: 'gold', bgGradient: 'linear-gradient(to bottom, #c27400 0%, #d98200 15%, #ffc400 50%, #d98200 85%, #c27400 100%)',       icon: 'img/currencies/gold/gold.webp',   singular: 'Gold',     plural: 'Gold', type: 'currency' },
+    { key: 'gold', bgGradient: 'linear-gradient(to bottom, #a66f00 0%, #c48300 15%, #e69900 50%, #c48300 85%, #a66f00 100%)',       icon: 'img/currencies/gold/gold.webp',   singular: 'Gold',     plural: 'Gold', type: 'currency' },
     { 
         key: 'mp', 
         icon: 'img/stats/mp/mp.webp', 
