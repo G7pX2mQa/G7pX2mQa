@@ -1,5 +1,5 @@
 import { settingsManager } from './settingsManager.js';
-import { initPinnedCurrencies, initPinnedLevels } from '../ui/currencyPins.js';
+import { initPinnedCurrencies, initPinnedLevels } from '../ui/currencyAndLevelPins.js';
 import { RESOURCE_REGISTRY } from './offlinePanel.js';
 
 export function ensureGameDom(layerCount, startZ) {
@@ -106,7 +106,7 @@ export function ensureGameDom(layerCount, startZ) {
       const xpBar = document.getElementById('game-root').querySelector('.xp-bar');
       const xpFill = document.getElementById('game-root').querySelector('.xp-bar__fill');
       if (xpBar) {
-          if (xpConfig.bgGradient) xpBar.style.background = xpConfig.bgGradient;
+          if (xpConfig.pinBgGradient) xpBar.style.background = xpConfig.pinBgGradient;
           if (xpConfig.borderColor) xpBar.style.setProperty('--bar-border-color', xpConfig.borderColor);
           if (xpConfig.barBoxShadow) xpBar.style.setProperty('--bar-box-shadow', xpConfig.barBoxShadow);
       }
@@ -122,7 +122,7 @@ export function ensureGameDom(layerCount, startZ) {
       const mpBar = document.getElementById('game-root').querySelector('.mp-bar');
       const mpFill = document.getElementById('game-root').querySelector('.mp-bar__fill');
       if (mpBar) {
-          if (mpConfig.bgGradient) mpBar.style.background = mpConfig.bgGradient;
+          if (mpConfig.pinBgGradient) mpBar.style.background = mpConfig.pinBgGradient;
           if (mpConfig.borderColor) mpBar.style.setProperty('--bar-border-color', mpConfig.borderColor);
           if (mpConfig.barBoxShadow) mpBar.style.setProperty('--bar-box-shadow', mpConfig.barBoxShadow);
       }
