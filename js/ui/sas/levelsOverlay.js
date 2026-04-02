@@ -204,8 +204,8 @@ function createLevelRow(container, isUniversal, levelConfig, progConfig, prefix)
     } else {
       const allLevels = getUnlockedLevels().map(l => l.prefix);
       allLevels.forEach(c => {
-        settingsManager.set(getToggleKey(c, 'popups'), newVals.includes('popups'));
-        settingsManager.set(getToggleKey(c, 'pinned'), newVals.includes('pinned'));
+        settingsManager.set(getToggleKey(c, "popups"), newVals.includes("popups"));
+        settingsManager.set(getToggleKey(c, "pinned"), newVals.includes("pinned"));
       });
       
       const overlayEl = container.closest('.sas-overlay');
@@ -217,8 +217,7 @@ function createLevelRow(container, isUniversal, levelConfig, progConfig, prefix)
           }
         });
       }
-      
-      window.dispatchEvent(new CustomEvent('levels:pinsChanged'));
+      window.dispatchEvent(new CustomEvent("levels:pinsChanged"));
     }
   };
 
@@ -319,10 +318,49 @@ function handleStatChange(e) {
   if (!levelsOverlay.isOpen) return;
   const overlayEl = levelsOverlay.overlayEl;
   if (!overlayEl) return;
-  populateLevelsOverlay(overlayEl);
+  
+  const grid = overlayEl.querySelector(".currencies-grid");
+  if (!grid) return;
+
+  const levels = getUnlockedLevels();
+  let needsRerender = false;
+  if (grid.querySelectorAll(".currency-row:not(.universal-row)").length !== levels.length) {
+    needsRerender = true;
+  }
+
+  if (needsRerender) {
+    populateLevelsOverlay(overlayEl);
+  } else {
+
+  levels.forEach(l => {
+    const row = grid.querySelector(`.currency-row[data-level="${l.prefix}"]`);
+    if (row) {
+      const amountEl = row.querySelector(".currency-amount");
+      if (amountEl) {
+        amountEl.innerHTML = "";
+        const levelVal = getStatValue(l.levelConfig.key);
+        const formattedLevel = formatNumber(levelVal) + " " + (levelVal && (typeof levelVal === "number" ? levelVal === 1 : levelVal.cmp && levelVal.cmp(1) === 0) ? l.levelConfig.singular : l.levelConfig.plural);
+        
+        amountEl.textContent = formattedLevel;
+        
+        if (l.progConfig) {
+            const progVal = getStatValue(l.progConfig.key);
+            if (progVal !== null && progVal !== undefined) {
+                const progDiv = document.createElement("div");
+                progDiv.style.fontSize = "14px";
+                progDiv.style.color = "#ccc";
+                const formattedProg = formatNumber(progVal) + " " + (progVal && (typeof progVal === "number" ? progVal === 1 : progVal.cmp && progVal.cmp(1) === 0) ? l.progConfig.singular : l.progConfig.plural);
+                progDiv.textContent = formattedProg;
+                amountEl.appendChild(progDiv);
+            }
+        }
+    }
+      }
+  });
+  }
+  
   if (paintbrush && paintbrush.isActive()) {
     updatePaintbrushIfActive();
-    
   }
 }
 
