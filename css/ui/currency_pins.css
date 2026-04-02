@@ -17,7 +17,7 @@
   display: flex;
   align-items: center;
   height: 28px;
-  margin-left: 14px; /* Space for the overlapping icon */
+  margin-left: 22px; /* Space for the overlapping icon */
 }
 
 .pinned-currency {
@@ -34,7 +34,7 @@
 
 .pinned-currency-icon {
   position: absolute;
-  left: -14px; /* Half of width to overlap */
+  left: -22px; /* Offset to match standard hud icon underlap */
   top: 50%;
   transform: translateY(-50%);
   width: 32px;
@@ -82,7 +82,7 @@
 .pinned-levels {
   position: absolute;
   top: 30vh;
-  left: 182px;
+  left: 192px;
   z-index: 100;
   pointer-events: none;
 }
@@ -91,7 +91,7 @@
   display: flex;
   align-items: center;
   height: 28px;
-  margin-left: 14px;
+  margin-left: 22px;
 }
 
 .pinned-level {
@@ -100,14 +100,16 @@
   align-items: center;
   width: 150px;
   height: 100%;
-  border: 2px solid #000 !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  border: var(--pinned-border-w, 2px) solid var(--pinned-border-color, #000) !important;
+  box-shadow: 
+    0 2px 4px rgba(0,0,0,0.5),
+    var(--pinned-box-shadow, none);
   background: rgba(0, 0, 0, 0.5);
 }
 
 .pinned-level-icon {
   position: absolute;
-  left: -14px;
+  left: -22px; /* Offset to match standard hud icon underlap */
   top: 50%;
   transform: translateY(-50%);
   width: 32px;
@@ -168,4 +170,13 @@
     pointer-events: none;
     border-radius: inherit;
     overflow: hidden;
+}
+
+.pinned-level-fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--pinned-glass-bg, none);
+    opacity: var(--pinned-glass-opacity, 0);
+    mix-blend-mode: screen;
 }
