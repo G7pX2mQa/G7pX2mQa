@@ -180,3 +180,8 @@
     opacity: var(--pinned-glass-opacity, 0);
     mix-blend-mode: screen;
 }
+
+.pinned-currency-value .infinity-symbol,
+.pinned-level-value .infinity-symbol {
+  top: -1px;
+}
