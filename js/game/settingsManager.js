@@ -404,10 +404,10 @@ class SettingsManager {
   }
 
   get(key) {
-    if (!(key in SETTING_DEFINITIONS) && !key.startsWith("currency_")) return false;
+    if (!(key in SETTING_DEFINITIONS) && !(key.startsWith("currency_") || key.startsWith("level_"))) return false;
     
     // Support dynamic currency toggles
-    if (key.startsWith("currency_")) {
+    if (key.startsWith("currency_") || key.startsWith("level_")) {
       return this.settings[key];
     }
 
@@ -429,7 +429,7 @@ class SettingsManager {
   }
 
   set(key, value) {
-    if (!(key in SETTING_DEFINITIONS) && !key.startsWith("currency_")) return;
+    if (!(key in SETTING_DEFINITIONS) && !(key.startsWith("currency_") || key.startsWith("level_"))) return;
     this.settings[key] = value;
     this._isDefault[key] = false;
     const storageKey = this._getKey(key);
