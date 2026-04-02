@@ -76,7 +76,12 @@ function ensureLevelSettings() {
 function createLevelRow(container, isUniversal, levelConfig, progConfig, prefix) {
   const row = document.createElement('div');
   row.className = 'currency-row level-row' + (isUniversal ? ' universal-row' : '');
-  if (prefix && prefix !== 'universal') row.dataset.level = prefix;
+  if (prefix && prefix !== 'universal') {
+    row.dataset.level = prefix;
+    if (progConfig && progConfig.bgGradient) {
+      row.style.setProperty('background', progConfig.bgGradient, 'important');
+    }
+  }
   
   const info = document.createElement('div');
   info.className = 'currency-info';
