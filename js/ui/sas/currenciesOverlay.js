@@ -11,7 +11,7 @@ import { createPaintbrush } from './paintbrushUtils.js';
 import { AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../../game/automationUpgrades.js';
 import { getLevelNumber } from '../../game/upgrades.js';
 import { setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../../game/automationEffects.js';
-import { PRIORITY_ORDER } from '../../game/offlinePanel.js';
+import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { BigNum } from '../../util/bigNum.js';
 
 
@@ -372,7 +372,7 @@ function populateCurrenciesOverlay(overlayEl) {
     const baseSrc = BASE_ICONS[currency] || 'img/misc/locked.webp';
     
     let displayName = currency === 'dna' ? 'DNA' : currency.charAt(0).toUpperCase() + currency.slice(1);
-    const config = PRIORITY_ORDER.find(c => c.key === currency);
+    const config = RESOURCE_REGISTRY.find(c => c.key === currency);
     if (config) {
         let isOne = false;
         if (val instanceof BigNum) {
@@ -431,7 +431,7 @@ function handleCurrencyChange(e) {
         const val = bank[currencyId]?.value;
         
         let displayName = currencyId === 'dna' ? 'DNA' : currencyId.charAt(0).toUpperCase() + currencyId.slice(1);
-        const config = PRIORITY_ORDER.find(c => c.key === currencyId);
+        const config = RESOURCE_REGISTRY.find(c => c.key === currencyId);
         if (config) {
             let isOne = false;
             if (val instanceof BigNum) {
