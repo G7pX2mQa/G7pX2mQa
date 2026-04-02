@@ -95,14 +95,15 @@ export function formatTimeCompact(ms) {
 
 // Visual Priority Map
 export const RESOURCE_REGISTRY = [
-    { key: 'coins',     icon: 'img/currencies/coin/coin.webp',   singular: 'Coin',     plural: 'Coins', type: 'currency' },
+    { key: 'coins', bgGradient: 'linear-gradient(to bottom, #d1a008 0%, #e3b527 15%, #ffd34c 50%, #e3b527 85%, #d1a008 100%)',      icon: 'img/currencies/coin/coin.webp',   singular: 'Coin',     plural: 'Coins', type: 'currency' },
     { 
         key: 'xp', 
         icon: 'img/stats/xp/xp.webp', 
         singular: 'XP', 
         plural: 'XP', 
         type: 'levelProg', 
-        bgGradient: 'linear-gradient(180deg, rgba(12,26,46,1), rgba(16,32,58,1))', 
+        pinBgGradient: 'linear-gradient(180deg, rgba(12,26,46,1), rgba(16,32,58,1))', 
+        bgGradient: 'linear-gradient(to bottom, #0050b3 0%, #0073e6 15%, #3399ff 50%, #0073e6 85%, #0050b3 100%)', 
         fillGradient: 'linear-gradient(90deg, rgba(0,240,255,1) 0%, rgba(0,150,255,1) 50%, rgba(0,70,210,1) 100%)', 
         barOutline: '3px', 
         borderColor: '#01060f', 
@@ -111,15 +112,16 @@ export const RESOURCE_REGISTRY = [
         glassOpacity: '0.6' 
     },
     { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels', type: 'levelStat' },
-    { key: 'books',     icon: 'img/currencies/book/book.webp',   singular: 'Book',     plural: 'Books', type: 'currency' },
-    { key: 'gold',      icon: 'img/currencies/gold/gold.webp',   singular: 'Gold',     plural: 'Gold', type: 'currency' },
+    { key: 'books', bgGradient: 'linear-gradient(to bottom, #82551b 0%, #94601e 15%, #AC6C1B 50%, #94601e 85%, #82551b 100%)',      icon: 'img/currencies/book/book.webp',   singular: 'Book',     plural: 'Books', type: 'currency' },
+    { key: 'gold', bgGradient: 'linear-gradient(to bottom, #c27400 0%, #d98200 15%, #ffc400 50%, #d98200 85%, #c27400 100%)',       icon: 'img/currencies/gold/gold.webp',   singular: 'Gold',     plural: 'Gold', type: 'currency' },
     { 
         key: 'mp', 
         icon: 'img/stats/mp/mp.webp', 
         singular: 'MP', 
         plural: 'MP', 
         type: 'levelProg', 
-        bgGradient: 'linear-gradient(180deg, rgba(60,24,0,1), rgba(45,18,0,1))', 
+        pinBgGradient: 'linear-gradient(180deg, rgba(60,24,0,1), rgba(45,18,0,1))', 
+        bgGradient: 'linear-gradient(to bottom, #b35900 0%, #e67300 15%, #ff9933 50%, #e67300 85%, #b35900 100%)', 
         fillGradient: 'linear-gradient(90deg, rgba(255,170,0,1) 0%, rgba(255,120,0,1) 50%, rgba(200,60,0,1) 100%)', 
         barOutline: '3px', 
         borderColor: '#2a0b00', 
@@ -128,10 +130,10 @@ export const RESOURCE_REGISTRY = [
         glassOpacity: '0.55' 
     },
     { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation Level', plural: 'Mutation Levels', type: 'levelStat' },
-    { key: 'magic',     icon: 'img/currencies/magic/magic.webp', singular: 'Magic',    plural: 'Magic', type: 'currency' },
-    { key: 'gears',     icon: 'img/currencies/gear/gear.webp',   singular: 'Gear',     plural: 'Gears', type: 'currency' },
-    { key: 'waves',     icon: 'img/currencies/gear/gear.webp',   singular: 'Wave',     plural: 'Waves', type: 'currency' },
-    { key: 'dna',       icon: 'img/currencies/dna/dna.webp',     singular: 'DNA',      plural: 'DNA', type: 'currency' },
+    { key: 'magic', bgGradient: 'linear-gradient(to bottom, #42138A 0%, #6A1ECF 15%, #9F30FF 50%, #6A1ECF 85%, #42138A 100%)',     icon: 'img/currencies/magic/magic.webp', singular: 'Magic',    plural: 'Magic', type: 'currency' },
+    { key: 'gears', bgGradient: 'linear-gradient(to bottom, #5c5d61 0%, #8f9096 15%, #9d9fa6 50%, #8f9096 85%, #5c5d61 100%)',     icon: 'img/currencies/gear/gear.webp',   singular: 'Gear',     plural: 'Gears', type: 'currency' },
+    { key: 'waves', bgGradient: 'linear-gradient(to bottom, #0286a1 0%, #02b1d4 15%, #00eded 50%, #02b1d4 85%, #0286a1 100%)',     icon: 'img/currencies/gear/gear.webp',   singular: 'Wave',     plural: 'Waves', type: 'currency' },
+    { key: 'dna', bgGradient: 'repeating-linear-gradient(-45deg, #C00000, #C00000 30.1px, #00B0F0 30.1px, #00B0F0 60.2px)',       icon: 'img/currencies/dna/dna.webp',     singular: 'DNA',      plural: 'DNA', type: 'currency' },
     { key: 'research_levels', icon: 'img/stats/rp/rp.webp',      singular: 'Level',    plural: 'Levels', type: 'levelStat' },
     { key: 'waterwheel_levels', icon: 'img/waterwheels/waterwheel_coin.webp', singular: 'Level', plural: 'Levels', type: 'levelStat' },
 ];
