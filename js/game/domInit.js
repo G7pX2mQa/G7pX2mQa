@@ -1,5 +1,7 @@
 import { settingsManager } from './settingsManager.js';
 import { initPinnedCurrencies, initPinnedLevels } from '../ui/currencyPins.js';
+import { RESOURCE_REGISTRY } from './offlinePanel.js';
+
 export function ensureGameDom(layerCount, startZ) {
   if (document.getElementById('game-root')) return;
 
@@ -98,4 +100,20 @@ export function ensureGameDom(layerCount, startZ) {
   initPinnedCurrencies(document.getElementById('pinned-currencies-container'));
   // We use the same container for both currency and level pins because they share the same absolute positioning anchor in the HUD.
   initPinnedLevels(document.getElementById('pinned-currencies-container'));
+
+  const xpConfig = RESOURCE_REGISTRY.find(c => c.key === 'xp');
+  if (xpConfig) {
+      const xpBar = document.getElementById('game-root').querySelector('.xp-bar');
+      const xpFill = document.getElementById('game-root').querySelector('.xp-bar__fill');
+      if (xpBar && xpConfig.bgGradient) xpBar.style.background = xpConfig.bgGradient;
+      if (xpFill && xpConfig.fillGradient) xpFill.style.background = xpConfig.fillGradient;
+  }
+
+  const mpConfig = RESOURCE_REGISTRY.find(c => c.key === 'mp');
+  if (mpConfig) {
+      const mpBar = document.getElementById('game-root').querySelector('.mp-bar');
+      const mpFill = document.getElementById('game-root').querySelector('.mp-bar__fill');
+      if (mpBar && mpConfig.bgGradient) mpBar.style.background = mpConfig.bgGradient;
+      if (mpFill && mpConfig.fillGradient) mpFill.style.background = mpConfig.fillGradient;
+  }
 }
