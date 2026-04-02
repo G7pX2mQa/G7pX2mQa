@@ -105,15 +105,31 @@ export function ensureGameDom(layerCount, startZ) {
   if (xpConfig) {
       const xpBar = document.getElementById('game-root').querySelector('.xp-bar');
       const xpFill = document.getElementById('game-root').querySelector('.xp-bar__fill');
-      if (xpBar && xpConfig.bgGradient) xpBar.style.background = xpConfig.bgGradient;
-      if (xpFill && xpConfig.fillGradient) xpFill.style.background = xpConfig.fillGradient;
+      if (xpBar) {
+          if (xpConfig.bgGradient) xpBar.style.background = xpConfig.bgGradient;
+          if (xpConfig.borderColor) xpBar.style.setProperty('--bar-border-color', xpConfig.borderColor);
+          if (xpConfig.barBoxShadow) xpBar.style.setProperty('--bar-box-shadow', xpConfig.barBoxShadow);
+      }
+      if (xpFill) {
+          if (xpConfig.fillGradient) xpFill.style.background = xpConfig.fillGradient;
+          if (xpConfig.glassBg) xpFill.style.setProperty('--glass-bg', xpConfig.glassBg);
+          if (xpConfig.glassOpacity) xpFill.style.setProperty('--glass-opacity', xpConfig.glassOpacity);
+      }
   }
 
   const mpConfig = RESOURCE_REGISTRY.find(c => c.key === 'mp');
   if (mpConfig) {
       const mpBar = document.getElementById('game-root').querySelector('.mp-bar');
       const mpFill = document.getElementById('game-root').querySelector('.mp-bar__fill');
-      if (mpBar && mpConfig.bgGradient) mpBar.style.background = mpConfig.bgGradient;
-      if (mpFill && mpConfig.fillGradient) mpFill.style.background = mpConfig.fillGradient;
+      if (mpBar) {
+          if (mpConfig.bgGradient) mpBar.style.background = mpConfig.bgGradient;
+          if (mpConfig.borderColor) mpBar.style.setProperty('--bar-border-color', mpConfig.borderColor);
+          if (mpConfig.barBoxShadow) mpBar.style.setProperty('--bar-box-shadow', mpConfig.barBoxShadow);
+      }
+      if (mpFill) {
+          if (mpConfig.fillGradient) mpFill.style.background = mpConfig.fillGradient;
+          if (mpConfig.glassBg) mpFill.style.setProperty('--glass-bg', mpConfig.glassBg);
+          if (mpConfig.glassOpacity) mpFill.style.setProperty('--glass-opacity', mpConfig.glassOpacity);
+      }
   }
 }
