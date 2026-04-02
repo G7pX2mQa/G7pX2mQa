@@ -990,6 +990,11 @@ export function resetXpProgress({ keepUnlock = true } = {}) {
   return getXpState();
 }
 
+export function getXpProgressRatio() {
+  ensureStateLoaded();
+  return progressRatio(xpState.progress, requirementBn);
+}
+
 export function addXp(amount, { silent = false } = {}) {
   ensureStateLoaded();
   const slot = lastSlot ?? getActiveSlot();
@@ -1435,5 +1440,6 @@ if (typeof window !== 'undefined') {
     addExternalXpGainMultiplierProvider,
     setExternalBookRewardProvider,
     resetXpProgress,
+    getXpProgressRatio
   });
 }
