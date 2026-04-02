@@ -118,7 +118,7 @@ export function refreshPinnedCurrencies() {
     // Update value and subscribe to changes
     const updateVal = () => {
       const amount = getCurrency(id);
-      textSpan.textContent = formatNumber(amount);
+      textSpan.innerHTML = formatNumber(amount);
     };
     
     updateVal();
@@ -221,7 +221,7 @@ function refreshPinnedCurrenciesValues() {
     const id = el.id.replace('pinned-currency-', '');
     const span = el.querySelector('.pinned-currency-value');
     if (span) {
-      span.textContent = formatNumber(getCurrency(id));
+      span.innerHTML = formatNumber(getCurrency(id));
     }
   });
 }
@@ -363,7 +363,7 @@ export function refreshPinnedLevels() {
 
     const updateValAndProg = () => {
       const amount = getLevelStatValue(levelConfig.key);
-      textSpan.textContent = formatNumber(amount);
+      textSpan.innerHTML = formatNumber(amount);
       const ratio = getLevelProgRatio(prefix);
       fill.style.setProperty('--progress', `${(ratio * 100).toFixed(2)}%`);
     };
@@ -444,7 +444,7 @@ function refreshPinnedLevelsValues() {
     if (config) {
         const span = el.querySelector('.pinned-level-value');
         if (span) {
-          span.textContent = formatNumber(getLevelStatValue(config.key));
+          span.innerHTML = formatNumber(getLevelStatValue(config.key));
         }
         const bar = el.querySelector('.pinned-level');
         const fill = el.querySelector('.pinned-level-fill');
