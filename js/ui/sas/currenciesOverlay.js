@@ -65,7 +65,13 @@ function ensureCurrencySettings() {
 function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc, amountText) {
   const row = document.createElement('div');
   row.className = 'currency-row' + (isUniversal ? ' universal-row' : '');
-  if (currencyId && currencyId !== 'universal') row.dataset.currency = currencyId;
+  if (currencyId && currencyId !== 'universal') {
+    row.dataset.currency = currencyId;
+    const config = RESOURCE_REGISTRY.find(r => r.key === currencyId);
+    if (config && config.bgGradient) {
+      row.style.setProperty('background', config.bgGradient, 'important');
+    }
+  }
   
   const info = document.createElement('div');
   info.className = 'currency-info';
