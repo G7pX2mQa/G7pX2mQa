@@ -4,8 +4,8 @@ import { settingsManager } from '../game/settingsManager.js';
 import { CURRENCIES, getCurrency } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
 import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
-import { getXpState } from '../game/xpSystem.js';
-import { getMutationState } from '../game/mutationSystem.js';
+import { getXpState, getXpProgressRatio } from '../game/xpSystem.js';
+import { getMutationState, getMutationProgressRatio } from '../game/mutationSystem.js';
 import { bank } from '../util/storage.js';
 
 let pinnedContainer = null;
@@ -233,46 +233,10 @@ function getLevelStatValue(key) {
 
 function getLevelProgRatio(prefix) {
     if (prefix === 'xp') {
-        const state = getXpState();
-        if (!state) return 0;
-        const prog = state.progress;
-        const req = state.requirement;
-        if (!req || req.isZero?.()) return 0;
-        
-        let ratio = 0;
-        try {
-            const reqIsInf = req.isInfinite?.();
-            const progIsInf = prog.isInfinite?.();
-            if (reqIsInf) return progIsInf ? 1 : 0;
-            
-            // simple division or fallback to Math if BigNum provides division
-            // Wait, we can use progressRatio from xpSystem or just calculate an approx ratio
-            // But we don't have access to progressRatio.
-            // Let's do a simple log ratio or decimal conversion since these values can be large
-            // Fallback:
-            try {
-                const pNum = Number(prog.toString());
-                const rNum = Number(req.toString());
-                if(rNum > 0) ratio = pNum / rNum;
-            } catch(e) {
-                ratio = 0; 
-            }
-        } catch(e) {}
-        return Math.min(Math.max(ratio, 0), 1);
+        return getXpProgressRatio();
     }
     if (prefix === 'mp') {
-        const state = getMutationState();
-        if (!state) return 0;
-        const prog = state.progress;
-        const req = state.requirement;
-        if (!req || req.isZero?.()) return 0;
-        let ratio = 0;
-        try {
-            const pNum = Number(prog.toString());
-            const rNum = Number(req.toString());
-            if(rNum > 0) ratio = pNum / rNum;
-        } catch(e) {}
-        return Math.min(Math.max(ratio, 0), 1);
+        return getMutationProgressRatio();
     }
     return 0;
 }
@@ -377,7 +341,13 @@ export function refreshPinnedLevels() {
     const progConfig = RESOURCE_REGISTRY.find(c => c.key === prefix);
     if (progConfig) {
       if (progConfig.bgGradient) bar.style.setProperty('--pinned-bg', progConfig.bgGradient);
+      if (progConfig.borderColor) bar.style.setProperty('--pinned-border-color', progConfig.borderColor);
+      if (progConfig.barOutline) bar.style.setProperty('--pinned-border-w', progConfig.barOutline);
+      if (progConfig.barBoxShadow) bar.style.setProperty('--pinned-box-shadow', progConfig.barBoxShadow);
+      
       if (progConfig.fillGradient) fill.style.setProperty('--pinned-fill', progConfig.fillGradient);
+      if (progConfig.glassBg) fill.style.setProperty('--pinned-glass-bg', progConfig.glassBg);
+      if (progConfig.glassOpacity) fill.style.setProperty('--pinned-glass-opacity', progConfig.glassOpacity);
     }
 
     const updateValAndProg = () => {
