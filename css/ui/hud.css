@@ -427,7 +427,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   height: var(--mp-bar-h);
   border: var(--mp-bar-outline) solid #2a0b00;
   border-radius: 0;
-  background: linear-gradient(180deg, rgba(60,24,0,1), rgba(45,18,0,1));
   box-shadow:
     inset 0 6px 10px rgba(255,192,128,0.18),
     inset 0 -6px 14px rgba(0,0,0,0.52);
@@ -439,11 +438,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   position: absolute;
   inset: 0;
   width: var(--mp-fill, 0%);
-  background: linear-gradient(90deg,
-    rgba(255,170,0,1) 0%,
-    rgba(255,120,0,1) 50%,
-    rgba(200,60,0,1) 100%
-  );
 }
 
 .mp-bar__fill::after{
@@ -550,7 +544,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   height: var(--xp-bar-h);
   border: var(--xp-bar-outline) solid #01060f;
   border-radius: 0;
-  background: linear-gradient(180deg, rgba(12,26,46,1), rgba(16,32,58,1));
   box-shadow:
     inset 0 6px 10px rgba(255,255,255,0.14),
     inset 0 -6px 14px rgba(0,0,0,0.45);
@@ -562,11 +555,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   position: absolute;
   inset: 0;
   width: var(--xp-fill, 0%);
-background: linear-gradient(90deg,
-  rgba(0,240,255,1) 0%,
-  rgba(0,150,255,1) 50%,
-  rgba(0,70,210,1) 100%
-);
 }
 
 .xp-bar__fill::after{
