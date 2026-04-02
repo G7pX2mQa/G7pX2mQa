@@ -382,7 +382,7 @@ class SettingsManager {
     const suffix = slot != null ? `:${slot}` : "";
     for (let i = 0; i < localStorage.length; i++) {
       const storageKey = localStorage.key(i);
-      if (storageKey && storageKey.startsWith(SETTINGS_KEY_PREFIX + "currency_") && storageKey.endsWith(suffix)) {
+      if (storageKey && (storageKey.startsWith(SETTINGS_KEY_PREFIX + "currency_") || storageKey.startsWith(SETTINGS_KEY_PREFIX + "level_")) && storageKey.endsWith(suffix)) {
         const key = storageKey.substring(SETTINGS_KEY_PREFIX.length, storageKey.length - suffix.length);
         try {
           this.settings[key] = JSON.parse(localStorage.getItem(storageKey));
