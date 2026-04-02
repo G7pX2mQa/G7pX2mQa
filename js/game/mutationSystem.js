@@ -683,6 +683,10 @@ export function initMutationSystem({ forceReload = false } = {}) {
   return getMutationState();
 }
 
+export function getMutationProgressRatio() {
+  return progressRatio(mutationState.progress, mutationState.requirement);
+}
+
 export function getMutationState() {
   return {
     unlocked: mutationState.unlocked,
