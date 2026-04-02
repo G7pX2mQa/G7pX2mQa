@@ -94,13 +94,13 @@ export function formatTimeCompact(ms) {
 }
 
 // Visual Priority Map
-export const PRIORITY_ORDER = [
+export const RESOURCE_REGISTRY = [
     { key: 'coins',     icon: 'img/currencies/coin/coin.webp',   singular: 'Coin',     plural: 'Coins', type: 'currency' },
-    { key: 'xp',        icon: 'img/stats/xp/xp.webp',            singular: 'XP',       plural: 'XP', type: 'levelProg' },
+    { key: 'xp',        icon: 'img/stats/xp/xp.webp',            singular: 'XP',       plural: 'XP', type: 'levelProg', bgGradient: 'linear-gradient(180deg, rgba(12,26,46,1), rgba(16,32,58,1))', fillGradient: 'linear-gradient(90deg, rgba(0,240,255,1) 0%, rgba(0,150,255,1) 50%, rgba(0,70,210,1) 100%)' },
     { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels', type: 'levelStat' },
     { key: 'books',     icon: 'img/currencies/book/book.webp',   singular: 'Book',     plural: 'Books', type: 'currency' },
     { key: 'gold',      icon: 'img/currencies/gold/gold.webp',   singular: 'Gold',     plural: 'Gold', type: 'currency' },
-    { key: 'mp',        icon: 'img/stats/mp/mp.webp',            singular: 'MP',       plural: 'MP', type: 'levelProg' },
+    { key: 'mp',        icon: 'img/stats/mp/mp.webp',            singular: 'MP',       plural: 'MP', type: 'levelProg', bgGradient: 'linear-gradient(180deg, rgba(60,24,0,1), rgba(45,18,0,1))', fillGradient: 'linear-gradient(90deg, rgba(255,170,0,1) 0%, rgba(255,120,0,1) 50%, rgba(200,60,0,1) 100%)' },
     { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation Level', plural: 'Mutation Levels', type: 'levelStat' },
     { key: 'magic',     icon: 'img/currencies/magic/magic.webp', singular: 'Magic',    plural: 'Magic', type: 'currency' },
     { key: 'gears',     icon: 'img/currencies/gear/gear.webp',   singular: 'Gear',     plural: 'Gears', type: 'currency' },
@@ -148,7 +148,7 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
     list.className = 'offline-list';
     
     // Iterate rewards in priority order
-    PRIORITY_ORDER.forEach(config => {
+    RESOURCE_REGISTRY.forEach(config => {
         const key = config.key;
         const val = rewards[key];
         if (!val) return;
