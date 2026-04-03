@@ -679,7 +679,7 @@ function buildOptions({ minify, sourcemap }) {
       ".wav": "file",
     },
     assetNames: "assets/[name]-[hash]",
-    external: ["img/*", "sounds/*", "favicon/*"],
+    external: ["img/*", "sounds/*"],
     logOverride: { "ignored-bare-import": "silent" },
     plugins: [
       escapeNewlinesPlugin(),
@@ -696,7 +696,6 @@ async function copyStaticAssets() {
   await fs.mkdir(DIST_DIR, { recursive: true });
 
   const tasks = [
-    fs.cp("favicon", resolveDist("favicon"), { recursive: true, force: true }),
     fs.cp("img", resolveDist("img"), { recursive: true, force: true }),
     fs.cp("sounds", resolveDist("sounds"), { recursive: true, force: true }),
   ];
@@ -727,7 +726,6 @@ async function watchAll() {
   const watchers = [];
 
   const staticTargets = [
-    { path: "favicon", recursive: true, task: copyStaticAssets },
     { path: "img", recursive: true, task: copyStaticAssets },
     { path: "sounds", recursive: true, task: copyStaticAssets },
   ];
@@ -764,7 +762,6 @@ async function serveAll({ mode = "dev" } = {}) {
   const watchers = [];
 
   const staticTargets = [
-    { path: "favicon", recursive: true, task: copyStaticAssets },
     { path: "img", recursive: true, task: copyStaticAssets },
     { path: "sounds", recursive: true, task: copyStaticAssets },
   ];
