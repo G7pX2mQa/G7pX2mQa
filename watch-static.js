@@ -4,7 +4,6 @@ const { exec } = require('child_process');
 
 const targets = [
   { type: 'file', location: 'index.html' },
-  { type: 'dir', location: 'favicon' },
   { type: 'dir', location: 'img' },
   { type: 'dir', location: 'sounds' }
 ];
