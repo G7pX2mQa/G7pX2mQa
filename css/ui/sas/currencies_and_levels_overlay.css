@@ -56,7 +56,7 @@
   pointer-events: none;
 }
 
-@media (max-width: 599px) {
+@media (max-width: 600px) {
   .currency-icon-wrapper {
     /* If the row gets taller due to wrapping, we might want the icon anchored near the top rather than the absolute center, so it lines up with the text */
     top: 30px;
@@ -207,6 +207,17 @@
     line-height: 1.2 !important;
     height: auto !important;
 }
+
+.setting-dropdown-btn .setting-dropdown-value {
+    white-space: normal !important;
+    flex-wrap: wrap !important;
+}
+@media (max-width: 600px) {
+  .dropdown-vertical-bar {
+    display: none;
+  }
+}
+
 
 @keyframes rainbowTextScroll {
   0% { background-position: 0 0; }
