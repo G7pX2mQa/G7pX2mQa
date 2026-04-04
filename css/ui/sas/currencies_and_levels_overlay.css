@@ -10,6 +10,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   background: linear-gradient(to bottom, rgba(40, 40, 40, 0.95), rgba(25, 25, 25, 0.98));
   border: 3px solid #000;
   border-radius: 0;
@@ -37,6 +39,7 @@
   gap: 16px;
   flex: 1;
   padding-left: 48px;
+  min-width: 0; /* Prevent flex blowout */
 }
 
 .currency-icon-wrapper {
@@ -51,6 +54,14 @@
   justify-content: center;
   z-index: 2;
   pointer-events: none;
+}
+
+@media (max-width: 599px) {
+  .currency-icon-wrapper {
+    /* If the row gets taller due to wrapping, we might want the icon anchored near the top rather than the absolute center, so it lines up with the text */
+    top: 30px;
+    transform: translateY(-50%);
+  }
 }
 
 .currency-base {
@@ -111,6 +122,14 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex: 1 1 100%; /* allows it to grow and wrap nicely */
+  align-items: flex-end; /* right-align the buttons when it drops */
+}
+
+@media (min-width: 600px) {
+  .currency-controls {
+    flex: 0 0 auto;
+  }
 }
 
 .currency-dropdown-btn {
@@ -126,6 +145,10 @@
   align-items: center;
   justify-content: space-between;
   min-width: 140px;
+  white-space: normal;
+  text-align: left;
+  line-height: 1.2;
+  height: auto;
 }
 
 .currency-dropdown-btn:hover {
@@ -179,6 +202,10 @@
     font-size: 13px !important;
     font-weight: bold !important;
     padding: 6px 12px !important;
+    white-space: normal !important;
+    text-align: left !important;
+    line-height: 1.2 !important;
+    height: auto !important;
 }
 
 @keyframes rainbowTextScroll {
