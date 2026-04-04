@@ -453,5 +453,23 @@ function refreshPinnedLevelsValues() {
 if (typeof window !== 'undefined') {
     setTimeout(() => {
         window.dispatchEvent(new CustomEvent('level:requestState'));
+        
+        RESOURCE_REGISTRY.forEach(config => {
+            if (config.type === 'levelProg' && typeof config.getState === 'function') {
+                const state = config.getState();
+                if (state) {
+                    window.dispatchEvent(new CustomEvent('level:change', {
+                        detail: {
+                            prefix: config.key,
+                            level: state.level,
+                            progress: state.progress,
+                            requirement: state.requirement,
+                            isUnlocked: state.isUnlocked,
+                            ratio: state.ratio
+                        }
+                    }));
+                }
+            }
+        });
     }, 100);
 }
