@@ -973,8 +973,10 @@ export function unlockXpSystem() {
   persistState();
   updateHud();
   syncCoinMultiplierWithXpLevel(true);
+  const detail = getXpState();
   try {
-    window.dispatchEvent(new CustomEvent('xp:unlock', { detail: getXpState() }));
+    window.dispatchEvent(new CustomEvent('xp:unlock', { detail }));
+    window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'xp', level: detail.xpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getXpProgressRatio() } }));
   } catch {}
   return true;
 }
@@ -987,7 +989,11 @@ export function resetXpProgress({ keepUnlock = true } = {}) {
   persistState();
   updateHud();
   syncCoinMultiplierWithXpLevel(true);
-  return getXpState();
+  const detail = getXpState();
+  try {
+    window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'xp', level: detail.xpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getXpProgressRatio() } }));
+  } catch {}
+  return detail;
 }
 
 export function getXpProgressRatio() {
