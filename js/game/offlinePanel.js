@@ -21,12 +21,10 @@ import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgr
 import { getEacAmountMultiplier } from './automationEffects.js';
 import { settingsManager } from './settingsManager.js';
 import { getPassiveCoinReward } from './coinPickup.js';
-import { addXp } from './xpSystem.js';
-import { addMutationPower } from './mutationSystem.js';
+import { addXp, getXpProgressRatio, getXpState } from './xpSystem.js';
+import { addMutationPower, getMutationState, getMutationProgressRatio, getTotalCumulativeMp } from './mutationSystem.js';
 import { getBookProductionRate, isSurgeActive, getTsunamiExponent } from './surgeEffects.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
-import { getXpState } from './xpSystem.js';
-import { getTotalCumulativeMp } from './mutationSystem.js';
 import { computeForgeGoldFromInputs, computeInfuseMagicFromInputs, computePendingDnaFromInputs } from '../ui/merchantTabs/resetTab.js';
 import { getLabGoldMultiplier } from './labNodes.js';
 import { bigNumFromLog10 } from '../util/bigNum.js';
@@ -109,7 +107,18 @@ export const RESOURCE_REGISTRY = [
         borderColor: '#01060f', 
         barBoxShadow: 'inset 0 6px 10px rgba(255,255,255,0.14), inset 0 -6px 14px rgba(0,0,0,0.45)', 
         glassBg: 'linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0))', 
-        glassOpacity: '0.6' 
+        glassOpacity: '0.6',
+        getState: () => {
+            const state = getXpState();
+            if (!state) return null;
+            return {
+                level: state.xpLevel,
+                progress: state.progress,
+                requirement: state.requirement,
+                isUnlocked: state.unlocked,
+                ratio: getXpProgressRatio()
+            };
+        }
     },
     { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels', type: 'levelStat' },
     { key: 'books', bgGradient: 'linear-gradient(to bottom, #82551b 0%, #94601e 15%, #AC6C1B 50%, #94601e 85%, #82551b 100%)',      icon: 'img/currencies/book/book.webp',   singular: 'Book',     plural: 'Books', type: 'currency' },
@@ -127,7 +136,18 @@ export const RESOURCE_REGISTRY = [
         borderColor: '#2a0b00', 
         barBoxShadow: 'inset 0 6px 10px rgba(255,192,128,0.18), inset 0 -6px 14px rgba(0,0,0,0.52)', 
         glassBg: 'linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0))', 
-        glassOpacity: '0.55' 
+        glassOpacity: '0.55',
+        getState: () => {
+            const state = getMutationState();
+            if (!state) return null;
+            return {
+                level: state.level,
+                progress: state.progress,
+                requirement: state.requirement,
+                isUnlocked: state.unlocked,
+                ratio: getMutationProgressRatio()
+            };
+        }
     },
     { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation Level', plural: 'Mutation Levels', type: 'levelStat' },
     { key: 'magic', bgGradient: 'linear-gradient(to bottom, #42138A 0%, #6A1ECF 15%, #9F30FF 50%, #6A1ECF 85%, #42138A 100%)',     icon: 'img/currencies/magic/magic.webp', singular: 'Magic',    plural: 'Magic', type: 'currency' },
