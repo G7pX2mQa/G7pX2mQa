@@ -1955,7 +1955,7 @@ function buildAreaStats(container, area) {
     container.appendChild(xpLevelRow.row);
 
     const xpProgressKey = XP_KEYS.progress(slot);
-    const xpProgressRow = createInputRow('XP Progress', xp.progress, (value, { setValue }) => {
+    const xpProgressRow = createInputRow('XP', xp.progress, (value, { setValue }) => {
         const prev = getXpState();
         const prevLevel = prev?.xpLevel?.clone?.() ?? prev?.xpLevel;
         const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
@@ -1979,7 +1979,7 @@ function buildAreaStats(container, area) {
     container.appendChild(xpProgressRow.row);
 
     const mpLevelKey = MUTATION_KEYS.level(slot);
-    const mpLevelRow = createInputRow('MP Level', mutation.level, (value, { setValue }) => {
+    const mpLevelRow = createInputRow('Mutation Level', mutation.level, (value, { setValue }) => {
         const prev = getMutationState().level;
         applyMutationState({ level: value });
         const latest = getMutationState();
@@ -2000,7 +2000,7 @@ function buildAreaStats(container, area) {
     container.appendChild(mpLevelRow.row);
 
     const mpProgressKey = MUTATION_KEYS.progress(slot);
-    const mpProgressRow = createInputRow('MP Progress', mutation.progress, (value, { setValue }) => {
+    const mpProgressRow = createInputRow('MP', mutation.progress, (value, { setValue }) => {
         const prev = getMutationState();
         const prevLevel = prev?.level?.clone?.() ?? prev?.level;
         const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
