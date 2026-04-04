@@ -78,10 +78,17 @@ function populateSasButtons(overlayEl) {
   const updateLvlBtnVisibility = () => {
     if (getXpState()?.unlocked) {
       lvlBtn.style.display = '';
+    } else {
+      lvlBtn.style.display = 'none';
     }
   };
   
   window.addEventListener('xp:unlock', updateLvlBtnVisibility);
+  window.addEventListener('level:change', (e) => {
+    if (e.detail?.prefix === 'xp') {
+      updateLvlBtnVisibility();
+    }
+  });
 
   // Just subscribe to something or rely on global re-render, but better to add an event listener
   window.addEventListener('forge:completed', updateConfBtnVisibility);
