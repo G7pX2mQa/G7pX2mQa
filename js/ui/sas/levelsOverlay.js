@@ -104,32 +104,59 @@ function createLevelRow(container, isUniversal, levelConfig, progConfig, prefix)
   iconImg.src = iconSrc;
   
   iconWrapper.appendChild(iconImg);
+  info.appendChild(iconWrapper);
   
   const amountDiv = document.createElement('div');
   amountDiv.className = 'currency-amount';
   
   if (isUniversal) {
       amountDiv.textContent = "Universal Toggle";
+      info.appendChild(amountDiv);
   } else {
-      const levelVal = getStatValue(levelConfig.key);
-      const formattedLevel = formatNumber(levelVal) + ' ' + (levelVal && (typeof levelVal === 'number' ? levelVal === 1 : levelVal.cmp && levelVal.cmp(1) === 0) ? levelConfig.singular : levelConfig.plural);
-      amountDiv.textContent = formattedLevel;
+      amountDiv.classList.add('level-row-amount');
+      
+      const bar = document.createElement('div');
+      bar.className = 'level-row-bar'; // We reuse mp-bar styles as a base generic level bar
       
       if (progConfig) {
-          const progVal = getStatValue(progConfig.key);
-          if (progVal !== null && progVal !== undefined) {
-              const progDiv = document.createElement('div');
-              progDiv.style.fontSize = '14px';
-              progDiv.style.color = '#ccc';
-              const formattedProg = formatNumber(progVal) + ' ' + (progVal && (typeof progVal === 'number' ? progVal === 1 : progVal.cmp && progVal.cmp(1) === 0) ? progConfig.singular : progConfig.plural);
-              progDiv.textContent = formattedProg;
-              amountDiv.appendChild(progDiv);
-          }
+          if (progConfig.pinBgGradient) bar.style.background = progConfig.pinBgGradient;
+          if (progConfig.borderColor) bar.style.setProperty('--bar-border-color', progConfig.borderColor);
+          if (progConfig.barBoxShadow) bar.style.setProperty('--bar-box-shadow', progConfig.barBoxShadow);
       }
-  }
 
-  info.appendChild(iconWrapper);
-  info.appendChild(amountDiv);
+      const fill = document.createElement('div');
+      fill.className = 'level-row-bar__fill';
+      fill.dataset.fill = 'true';
+      if (progConfig) {
+          if (progConfig.fillGradient) fill.style.background = progConfig.fillGradient;
+          if (progConfig.glassBg) fill.style.setProperty('--glass-bg', progConfig.glassBg);
+          if (progConfig.glassOpacity) fill.style.setProperty('--glass-opacity', progConfig.glassOpacity);
+      }
+
+      const frame = document.createElement('div');
+      frame.className = 'level-row-bar__frame';
+
+      const levelDiv = document.createElement('div');
+      levelDiv.className = 'level-row-bar__level';
+      levelDiv.innerHTML = `${levelConfig.singular}<span class="level-row-level-value" data-level-val>0</span>`;
+
+      const divider = document.createElement('div');
+      divider.className = 'level-row-bar__divider';
+      divider.setAttribute('aria-hidden', 'true');
+
+      const progressDiv = document.createElement('div');
+      progressDiv.className = 'level-row-bar__progress';
+      progressDiv.innerHTML = `<span data-prog-val>0</span><span class="level-row-progress-separator">/</span><span data-req-val>10</span><span class="level-row-progress-suffix">${progConfig ? progConfig.singular : ''}</span>`;
+
+      frame.appendChild(levelDiv);
+      frame.appendChild(divider);
+      frame.appendChild(progressDiv);
+
+      bar.appendChild(fill);
+      bar.appendChild(frame);
+      amountDiv.appendChild(bar);
+      info.appendChild(amountDiv);
+  }
   
   row.appendChild(info);
 
@@ -340,26 +367,35 @@ function handleStatChange(e) {
   levels.forEach(l => {
     const row = grid.querySelector(`.currency-row[data-level="${l.prefix}"]`);
     if (row) {
-      const amountEl = row.querySelector(".currency-amount");
-      if (amountEl) {
-        amountEl.innerHTML = "";
-        const levelVal = getStatValue(l.levelConfig.key);
-        const formattedLevel = formatNumber(levelVal) + " " + (levelVal && (typeof levelVal === "number" ? levelVal === 1 : levelVal.cmp && levelVal.cmp(1) === 0) ? l.levelConfig.singular : l.levelConfig.plural);
-        
-        amountEl.textContent = formattedLevel;
-        
-        if (l.progConfig) {
-            const progVal = getStatValue(l.progConfig.key);
-            if (progVal !== null && progVal !== undefined) {
-                const progDiv = document.createElement("div");
-                progDiv.style.fontSize = "14px";
-                progDiv.style.color = "#ccc";
-                const formattedProg = formatNumber(progVal) + " " + (progVal && (typeof progVal === "number" ? progVal === 1 : progVal.cmp && progVal.cmp(1) === 0) ? l.progConfig.singular : l.progConfig.plural);
-                progDiv.textContent = formattedProg;
-                amountEl.appendChild(progDiv);
-            }
-        }
-    }
+      const levelVal = getStatValue(l.levelConfig.key);
+      const levelValEl = row.querySelector("[data-level-val]");
+      if (levelValEl) levelValEl.textContent = " " + formatNumber(levelVal);
+
+      if (l.progConfig) {
+          const progVal = getStatValue(l.progConfig.key);
+          const reqVal = getStatRequirement(l.prefix);
+          
+          const progValEl = row.querySelector("[data-prog-val]");
+          if (progValEl) progValEl.textContent = formatNumber(progVal);
+          
+          const reqValEl = row.querySelector("[data-req-val]");
+          
+          let pct = 0;
+          if (reqVal === Infinity || (typeof reqVal === 'string' && reqVal === 'Infinity') || (reqVal && typeof reqVal.isInfinite === 'function' && reqVal.isInfinite())) {
+             if (reqValEl) reqValEl.innerHTML = '<span class="infinity-symbol">∞</span>';
+             pct = 100;
+          } else {
+             if (reqValEl) reqValEl.textContent = formatNumber(reqVal);
+             if (reqVal && progVal !== null && progVal !== undefined) {
+                 const reqNum = Number(reqVal.toString());
+                 const progNum = Number(progVal.toString());
+                 if (reqNum > 0) pct = Math.min(100, Math.max(0, (progNum / reqNum) * 100));
+             }
+          }
+          
+          const fillEl = row.querySelector("[data-fill]");
+          if (fillEl) fillEl.style.width = `${pct}%`;
+      }
       }
   });
   }
