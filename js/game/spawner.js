@@ -132,9 +132,12 @@ function getPreRenderedCoin(src, size) {
         
         // Scale pre-rendered coin resolution based on graphics quality
         let resolutionScale = 1;
+        let isMaxQuality = false;
         if (typeof settingsManager !== 'undefined') {
             const quality = settingsManager.get('graphics_quality') ?? 10;
-            if (quality < 4) {
+            if (quality === 10) {
+                isMaxQuality = true;
+            } else if (quality < 4) {
                 resolutionScale = 0.5; // Half resolution for low quality
             } else if (quality < 8) {
                 resolutionScale = 0.75; // 3/4 resolution for medium quality
@@ -142,8 +145,14 @@ function getPreRenderedCoin(src, size) {
         }
         
         // Force a minimum scale of 2 to ensure it looks good even when zoomed out temporarily, multiplied by resolution scale
-        const baseDpr = Math.max(window.devicePixelRatio || 1, 2);
-        const dpr = baseDpr * resolutionScale;
+        let dpr;
+        if (isMaxQuality && img.naturalWidth > 0 && size > 0) {
+            dpr = img.naturalWidth / size;
+        } else {
+            const baseDpr = Math.max(window.devicePixelRatio || 1, 2);
+            dpr = baseDpr * resolutionScale;
+        }
+        
         
         canvas = document.createElement('canvas');
         canvas.width = Math.max(1, Math.floor(size * dpr));
@@ -311,7 +320,17 @@ export function createSpawner({
             pfW: pfRect.width
         };
 
-        const dpr = window.devicePixelRatio || 1;
+        let dpr = window.devicePixelRatio || 1;
+        if (typeof settingsManager !== "undefined") {
+            const quality = settingsManager.get("graphics_quality") ?? 10;
+            if (quality === 10) {
+                dpr = Math.max(dpr, 3);
+            } else if (quality < 4) {
+                dpr = Math.max(0.5, dpr * 0.5);
+            } else if (quality < 8) {
+                dpr = Math.max(1, dpr * 0.75);
+            }
+        }
         if (typeof preRenderedCoins !== 'undefined') {
             preRenderedCoins.clear();
         }
