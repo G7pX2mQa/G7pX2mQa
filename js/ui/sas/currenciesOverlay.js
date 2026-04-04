@@ -278,6 +278,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
     const verticalBar = () => {
       const span = document.createElement('span');
       span.textContent = '| ';
+      span.className = 'dropdown-vertical-bar';
       span.style.color = 'inherit';
       return span;
     };
