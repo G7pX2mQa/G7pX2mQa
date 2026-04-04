@@ -350,7 +350,7 @@ function handleExternalXpStorageChange(reason) {
       };
       notifyXpSubscribers(detail);
       if (typeof window !== 'undefined') {
-        try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
+        try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'xp', level: detail.xpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getXpProgressRatio() } })); } catch {}
       }
     }
   } finally {
@@ -1117,7 +1117,7 @@ export function addXp(amount, { silent = false } = {}) {
     };
     notifyXpSubscribers(detail);
     if (!silent && typeof window !== 'undefined') {
-      try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
+      try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'xp', level: detail.xpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getXpProgressRatio() } })); } catch {}
     }
     return detail;
   }
@@ -1140,7 +1140,7 @@ export function addXp(amount, { silent = false } = {}) {
     };
     notifyXpSubscribers(detail);
     if (!silent && typeof window !== 'undefined') {
-      try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
+      try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'xp', level: detail.xpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getXpProgressRatio() } })); } catch {}
     }
     return detail;
   }
@@ -1255,7 +1255,7 @@ export function addXp(amount, { silent = false } = {}) {
   
   notifyXpSubscribers(detail);
   if (!silent && typeof window !== 'undefined') {
-    try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
+    try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'xp', level: detail.xpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getXpProgressRatio() } })); } catch {}
   }
   return detail;
 }
@@ -1281,7 +1281,7 @@ export function broadcastXpChange(detailOverrides = {}) {
 
   notifyXpSubscribers(detail);
   if (typeof window !== 'undefined') {
-    try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); } catch {}
+    try { window.dispatchEvent(new CustomEvent('xp:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'xp', level: detail.xpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getXpProgressRatio() } })); } catch {}
   }
 
   return detail;
