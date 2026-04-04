@@ -22,6 +22,7 @@ export function createDropdown(options) {
   dropdownValueDisplay.className = "setting-dropdown-value";
   dropdownValueDisplay.style.display = "flex";
   dropdownValueDisplay.style.alignItems = "center";
+  dropdownValueDisplay.style.flexWrap = "wrap";
   dropdownValueDisplay.style.gap = "8px";
   
   const dropdownIcon = document.createElement("span");
