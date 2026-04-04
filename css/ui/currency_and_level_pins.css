@@ -40,6 +40,7 @@
   width: 32px;
   height: 32px;
   object-fit: contain;
+  image-rendering: high-quality;
   z-index: 2;
 }
 
@@ -115,6 +116,7 @@
   width: 32px;
   height: 32px;
   object-fit: contain;
+  image-rendering: high-quality;
   z-index: 2;
 }
 
