@@ -96,6 +96,17 @@
   }
 }
 
+.level-row-amount {
+  flex: 1;
+  display: flex;
+  margin-right: 16px;
+}
+
+.level-row-bar {
+  width: 100%;
+  margin-left: -12px;
+}
+
 .currency-controls {
   display: flex;
   flex-direction: column;
@@ -203,4 +214,91 @@
   color: transparent !important;
   -webkit-background-clip: text;
   background-clip: text;
+}
+
+
+/* Shared Level Bar Styles inside SAS Overlay */
+.currency-amount .level-row-bar {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  height: clamp(34px, 5.2svh, 46px);
+  border: var(--bar-outline-w, 3px) solid var(--bar-border-color, #2a0b00);
+  border-radius: 0;
+  box-shadow: var(--bar-box-shadow, inset 0 6px 10px rgba(255,192,128,0.18), inset 0 -6px 14px rgba(0,0,0,0.52));
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.currency-amount .level-row-bar__fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+}
+
+.currency-amount .level-row-bar__fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--glass-bg, linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0)));
+  opacity: var(--glass-opacity, 0.55);
+  mix-blend-mode: screen;
+}
+
+.currency-amount .level-row-bar__frame {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, 0.5svh, 6px);
+  padding: clamp(3px, 0.9svh, 5px) clamp(10px, 2.4vw, 16px);
+  font-size: clamp(10px, 1.6vw, 14px);
+  font-weight: 700;
+  color: #fff3e5;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.75) !important;
+  -webkit-text-stroke: 0 !important;
+  text-stroke: 0 !important;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.currency-amount .level-row-bar__level {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+  letter-spacing: 0;
+  line-height: 0.75;
+}
+
+.currency-amount .level-row-level-value {
+  font-size: clamp(12px, 2.0vw, 15px);
+}
+
+.currency-amount .level-row-bar__divider {
+  display: none;
+}
+
+.currency-amount .level-row-bar__progress {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px;
+  font-size: clamp(12px, 2.0vw, 15px);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  line-height: 0.75;
+}
+
+.currency-amount .level-row-progress-suffix {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.currency-amount .level-row-progress-separator {
+  opacity: 0.8;
 }
