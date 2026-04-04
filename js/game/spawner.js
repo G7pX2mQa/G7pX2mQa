@@ -146,8 +146,9 @@ function getPreRenderedCoin(src, size) {
         
         // Force a minimum scale of 2 to ensure it looks good even when zoomed out temporarily, multiplied by resolution scale
         let dpr;
-        if (isMaxQuality && img.naturalWidth > 0 && size > 0) {
-            dpr = img.naturalWidth / size;
+        if (isMaxQuality) {
+            const baseDpr = Math.max(window.devicePixelRatio || 1, 3);
+            dpr = baseDpr * resolutionScale;
         } else {
             const baseDpr = Math.max(window.devicePixelRatio || 1, 2);
             dpr = baseDpr * resolutionScale;
