@@ -21,6 +21,13 @@ function getStatIsUnlocked(prefix) {
     if (levelStateCache[prefix]) {
         return levelStateCache[prefix].isUnlocked;
     }
+    const progConfig = RESOURCE_REGISTRY.find(c => c.key === prefix);
+    if (progConfig && typeof progConfig.getState === 'function') {
+        const state = progConfig.getState();
+        if (state && state.isUnlocked !== undefined) {
+            return state.isUnlocked;
+        }
+    }
     return true;
 }
 
@@ -328,7 +335,7 @@ function handleOutsideClick(e) {
 }
 
 function handleStatChange(e) {
-  if (!levelsOverlay.isOpen) return;
+  if (e && !levelsOverlay.isOpen) return;
   const overlayEl = levelsOverlay.overlayEl;
   if (!overlayEl) return;
   
@@ -348,7 +355,12 @@ function handleStatChange(e) {
   levels.forEach(l => {
     const row = grid.querySelector(`.currency-row[data-level="${l.prefix}"]`);
     if (row) {
-      const state = levelStateCache[l.prefix] || {};
+      let state = levelStateCache[l.prefix];
+      if (!state && l.progConfig && typeof l.progConfig.getState === 'function') {
+        state = l.progConfig.getState();
+      }
+      state = state || {};
+
       const levelVal = state.level || 0;
       const levelValEl = row.querySelector("[data-level-val]");
       if (levelValEl) levelValEl.textContent = " " + formatNumber(levelVal);
@@ -396,6 +408,7 @@ const levelsOverlay = createSASOverlay({
     populateLevelsOverlay(overlayEl);
     window.addEventListener('level:change', handleStatChange);
     document.addEventListener('click', handleOutsideClick);
+    handleStatChange();
   },
   onClose: () => {
     window.removeEventListener('level:change', handleStatChange);
