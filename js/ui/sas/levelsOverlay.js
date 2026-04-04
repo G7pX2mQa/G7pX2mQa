@@ -4,43 +4,24 @@ import { IS_MOBILE } from '../../main.js';
 import { createSASOverlay } from './sasOverlayBuilder.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
-import { getXpState } from '../../game/xpSystem.js';
-import { getMutationState } from '../../game/mutationSystem.js';
-import { bank } from '../../util/storage.js';
-import { settingsManager } from '../../game/settingsManager.js';
-import { createDropdown } from './dropdownUtils.js';
-import { createPaintbrush } from './paintbrushUtils.js';
+import { bank } from "../../util/storage.js";
+import { settingsManager } from "../../game/settingsManager.js";
+import { createDropdown } from "./dropdownUtils.js";
+import { createPaintbrush } from "./paintbrushUtils.js";
 
-function getStatValue(key) {
-    if (key === 'xp_levels') {
-        return getXpState()?.xpLevel;
+const levelStateCache = {};
+
+window.addEventListener("level:change", (e) => {
+    if (e.detail && e.detail.prefix) {
+        levelStateCache[e.detail.prefix] = e.detail;
     }
-    if (key === 'xp') {
-        return getXpState()?.progress;
-    }
-    if (key === 'mp_levels') {
-        return getMutationState()?.level;
-    }
-    if (key === 'mp') {
-        return getMutationState()?.progress;
-    }
-    if (bank && bank[key]) {
-        return bank[key].value;
-    }
-    if (window[key]) {
-        return typeof window[key] === 'function' ? window[key]() : window[key];
-    }
-    return null;
-}
+});
 
 function getStatIsUnlocked(prefix) {
-    if (prefix === 'xp') {
-        return getXpState()?.unlocked;
+    if (levelStateCache[prefix]) {
+        return levelStateCache[prefix].isUnlocked;
     }
-    if (prefix === 'mp') {
-        return getMutationState()?.unlocked;
-    }
-    return true; 
+    return true;
 }
 
 function getUnlockedLevels() {
@@ -367,13 +348,14 @@ function handleStatChange(e) {
   levels.forEach(l => {
     const row = grid.querySelector(`.currency-row[data-level="${l.prefix}"]`);
     if (row) {
-      const levelVal = getStatValue(l.levelConfig.key);
+      const state = levelStateCache[l.prefix] || {};
+      const levelVal = state.level || 0;
       const levelValEl = row.querySelector("[data-level-val]");
       if (levelValEl) levelValEl.textContent = " " + formatNumber(levelVal);
 
       if (l.progConfig) {
-          const progVal = getStatValue(l.progConfig.key);
-          const reqVal = getStatRequirement(l.prefix);
+          const progVal = state.progress || 0;
+          const reqVal = state.requirement || 0;
           
           const progValEl = row.querySelector("[data-prog-val]");
           if (progValEl) progValEl.textContent = formatNumber(progVal);
@@ -381,8 +363,8 @@ function handleStatChange(e) {
           const reqValEl = row.querySelector("[data-req-val]");
           
           let pct = 0;
-          if (reqVal === Infinity || (typeof reqVal === 'string' && reqVal === 'Infinity') || (reqVal && typeof reqVal.isInfinite === 'function' && reqVal.isInfinite())) {
-             if (reqValEl) reqValEl.innerHTML = '<span class="infinity-symbol">∞</span>';
+          if (reqVal === Infinity || (typeof reqVal === "string" && reqVal === "Infinity") || (reqVal && typeof reqVal.isInfinite === "function" && reqVal.isInfinite())) {
+             if (reqValEl) reqValEl.innerHTML = "<span class=\"infinity-symbol\">∞</span>";
              pct = 100;
           } else {
              if (reqValEl) reqValEl.textContent = formatNumber(reqVal);
@@ -412,13 +394,11 @@ const levelsOverlay = createSASOverlay({
   focusSelector: '.level-row, .currencies-grid',
   onRender: (overlayEl) => {
     populateLevelsOverlay(overlayEl);
-    window.addEventListener('xp:change', handleStatChange);
-    window.addEventListener('mutation:change', handleStatChange);
+    window.addEventListener('level:change', handleStatChange);
     document.addEventListener('click', handleOutsideClick);
   },
   onClose: () => {
-    window.removeEventListener('xp:change', handleStatChange);
-    window.removeEventListener('mutation:change', handleStatChange);
+    window.removeEventListener('level:change', handleStatChange);
     document.removeEventListener('click', handleOutsideClick);
     if (levelsOverlay.overlayEl) {
       const rows = levelsOverlay.overlayEl.querySelectorAll('.currency-row');
