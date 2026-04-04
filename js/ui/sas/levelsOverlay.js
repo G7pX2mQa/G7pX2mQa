@@ -17,6 +17,12 @@ window.addEventListener("level:change", (e) => {
     }
 });
 
+setInterval(() => {
+  if (levelsOverlay && levelsOverlay.isOpen) {
+    handleStatChange(null);
+  }
+}, 100);
+
 function getStatIsUnlocked(prefix) {
     if (levelStateCache[prefix]) {
         return levelStateCache[prefix].isUnlocked;
@@ -350,7 +356,7 @@ function handleStatChange(e) {
 
   if (needsRerender) {
     populateLevelsOverlay(overlayEl);
-  } else {
+  }
 
   levels.forEach(l => {
     const row = grid.querySelector(`.currency-row[data-level="${l.prefix}"]`);
@@ -390,9 +396,8 @@ function handleStatChange(e) {
           const fillEl = row.querySelector("[data-fill]");
           if (fillEl) fillEl.style.width = `${pct}%`;
       }
-      }
+    }
   });
-  }
   
   if (paintbrush && paintbrush.isActive()) {
     updatePaintbrushIfActive();
