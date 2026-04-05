@@ -403,14 +403,6 @@ class LabSystem {
         this.coinsBar.style.padding = '6px 12px';
         this.coinsBar.style.height = '32px';
         this.coinsBar.style.width = 'calc(var(--coin-bar-w) * 0.9)'; 
-        this.coinsBar.style.pointerEvents = 'auto'; 
-        this.coinsBar.style.cursor = 'pointer';
-        
-        this.coinsBar.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            updateLabLevel();
-        });
         
         this.statsContainer.appendChild(this.coinsBar);
 
