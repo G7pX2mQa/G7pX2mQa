@@ -5,6 +5,7 @@ import { openPerformanceOverlay } from './performanceOverlay.js';
 import { openConfirmationsOverlay } from './confirmationsOverlay.js';
 import { openCurrenciesOverlay } from './currenciesOverlay.js';
 import { openLevelsOverlay } from './levelsOverlay.js';
+import { openAchievementsOverlay } from './achievementsOverlay.js';
 import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
 import { getXpState } from '../../game/xpSystem.js';
 
@@ -89,6 +90,12 @@ function populateSasButtons(overlayEl) {
       updateLvlBtnVisibility();
     }
   });
+
+  const achievementsBtn = document.createElement("button");
+  achievementsBtn.className = "sas-btn sas-btn-achievements";
+  achievementsBtn.textContent = "Achievements";
+  achievementsBtn.addEventListener("click", () => { openAchievementsOverlay(); });
+  grid.appendChild(achievementsBtn);
 
   // Just subscribe to something or rely on global re-render, but better to add an event listener
   window.addEventListener('forge:completed', updateConfBtnVisibility);
