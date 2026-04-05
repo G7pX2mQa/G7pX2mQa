@@ -41,11 +41,12 @@ function renderAchievements(gridEl) {
         const badge = document.createElement('span');
         badge.className = 'level-badge text-badge';
         
+        let appendBadge = true;
+
         if (state === ACHIEVEMENT_STATES.NOT_OWNED) {
             btn.classList.add('is-locked');
-            badge.textContent = 'Not Owned';
-            badge.style.background = 'rgba(0, 0, 0, 0.72)';
-            badge.style.color = '#d9d9d9';
+            iconImg.style.filter = 'brightness(0.05)';
+            appendBadge = false;
         } else if (state === ACHIEVEMENT_STATES.PENDING_CLAIM) {
             btn.classList.add('is-pending');
             badge.textContent = 'Pending Claim';
@@ -56,7 +57,9 @@ function renderAchievements(gridEl) {
             badge.classList.add('is-maxed');
         }
 
-        tile.appendChild(badge);
+        if (appendBadge) {
+            tile.appendChild(badge);
+        }
         btn.appendChild(tile);
         gridEl.appendChild(btn);
 
@@ -221,10 +224,16 @@ function openAchievementDetails(achievement) {
         claimBtn.textContent = 'Claim';
         claimBtn.addEventListener('click', () => {
             setAchievementState(achievement.id, ACHIEVEMENT_STATES.CLAIMED, slot);
-            closeAchievementDetails();
             if (currentGrid) renderAchievements(currentGrid);
+            // Also update the header level to '(Claimed)' so it visually reflects the change
+            const headerLevel = overlay.querySelector('.upg-level');
+            if (headerLevel) {
+                headerLevel.textContent = '(Claimed)';
+            }
+            // Remove the claim button from the DOM since it's now claimed
+            claimBtn.remove();
         });
-        actions.insertBefore(claimBtn, closeBtn);
+        actions.appendChild(claimBtn);
     }
 
     overlay.classList.add('is-open');
