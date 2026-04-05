@@ -222,6 +222,17 @@
     display: inline-flex !important;
 }
 
+@media (max-width: 600px) {
+  .setting-dropdown-btn .setting-dropdown-value {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+  }
+  .dropdown-vertical-bar {
+    display: none !important;
+  }
+}
+
 
 @keyframes rainbowTextScroll {
   0% { background-position: 0 0; }
