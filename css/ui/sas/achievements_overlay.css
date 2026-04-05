@@ -96,7 +96,7 @@
 .achievement-btn .level-badge {
   position: absolute;
   left: 50%;
-  bottom: -6%;
+  bottom: 8%;
   transform: translateX(-50%);
   min-width: 22px;
   height: 22px;
