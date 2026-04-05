@@ -532,9 +532,8 @@
 .setting-dropdown-value {
   text-align: left;
   flex: 1;
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .setting-dropdown-icon {
