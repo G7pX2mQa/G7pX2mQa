@@ -254,6 +254,7 @@
   justify-content: center;
   flex-shrink: 0;
   min-width: 200px; width: max-content;
+  max-width: 100%;
 }
 
 .setting-slider-container {
@@ -372,6 +373,7 @@
   justify-content: center;
   flex-shrink: 0;
   min-width: 200px; width: max-content;
+  max-width: 100%;
 }
 
 .setting-slider-input::-webkit-slider-thumb {
@@ -503,6 +505,7 @@
   justify-content: center;
   flex-shrink: 0;
   min-width: 200px; width: max-content;
+  max-width: 100%;
 }
 
 .setting-dropdown-btn {
