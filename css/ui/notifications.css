@@ -65,3 +65,9 @@
     line-height: 1.2;
     word-break: break-word;
 }
+
+.ach-claim-subtext {
+    font-size: smaller;
+    color: gray;
+    -webkit-text-stroke: 0;
+}
