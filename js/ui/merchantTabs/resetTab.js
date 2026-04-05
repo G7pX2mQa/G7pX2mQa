@@ -37,6 +37,7 @@ import {
 import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 import { clearPendingGains } from '../../game/coinPickup.js';
 import { getVisibleMilestones, NERFED_SURGE_MILESTONE_IDS } from '../../game/surgeMilestones.js';
+import { RESEARCH_NODES } from '../../game/labNodes.js';
 import { ensureCustomScrollbar, closeShop, openShop, isAnyMenuScrolling } from '../shopOverlay.js';
 import { playAudio } from '../../util/audioManager.js';
 import { 
@@ -65,6 +66,7 @@ import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 import { getWaterwheelGoldMultiplier } from './flowTab.js';
 import { settingsManager } from '../../game/settingsManager.js';
+import { checkAchievements } from '../../game/achievements.js';
 
 const BN = BigNum;
 
@@ -1390,8 +1392,13 @@ function performExperimentReset() {
     
     playExperimentResetSound();
 
-    // Wipe Lab (except node 4)
-    resetLab([4]);
+    // Wipe Lab
+    // If Surge 100 is reached, do not wipe lab nodes (just pass all node IDs as exceptions)
+    let labExceptions = [4];
+    if (isSurgeActive(100)) {
+        labExceptions = RESEARCH_NODES.map(n => n.id);
+    }
+    resetLab(labExceptions);
     
     // Set Completed Flag
     if (!resetState.hasDoneExperimentReset) {
@@ -2741,6 +2748,8 @@ export function initResetSystem() {
   recomputePendingMagic();
   recomputePendingWaves();
   recomputePendingDna();
+  checkAchievements();
+  
   if (mutationUnsub) {
     try { mutationUnsub(); } catch {}
     mutationUnsub = null;
@@ -2770,6 +2779,7 @@ export function initResetSystem() {
       recomputePendingWaves();
       recomputePendingDna();
       updateResetPanel();
+	  checkAchievements();
     });
   }
 }
