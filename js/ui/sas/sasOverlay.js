@@ -95,10 +95,20 @@ function populateSasButtons(overlayEl) {
   achievementsBtn.className = "sas-btn sas-btn-achievements";
   achievementsBtn.textContent = "Achievements";
   achievementsBtn.addEventListener("click", () => { openAchievementsOverlay(); });
+  if (!hasDoneForgeReset()) {
+    achievementsBtn.style.display = 'none';
+  }
   grid.appendChild(achievementsBtn);
+
+  const updateAchievementsBtnVisibility = () => {
+    if (hasDoneForgeReset()) {
+      achievementsBtn.style.display = '';
+    }
+  };
 
   // Just subscribe to something or rely on global re-render, but better to add an event listener
   window.addEventListener('forge:completed', updateConfBtnVisibility);
+  window.addEventListener('forge:completed', updateAchievementsBtnVisibility);
 }
 
 const sasOverlay = createSASOverlay({
