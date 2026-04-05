@@ -1,7 +1,6 @@
 import { createSASOverlay } from './sasOverlayBuilder.js';
 import { ACHIEVEMENTS, ACHIEVEMENT_STATES, getAchievementState, setAchievementState } from '../../game/achievements.js';
 import { getActiveSlot } from '../../util/storage.js';
-import { playAudio } from '../../util/audioManager.js';
 
 const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
 
