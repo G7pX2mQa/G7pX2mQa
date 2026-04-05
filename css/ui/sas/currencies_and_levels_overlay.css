@@ -4,6 +4,8 @@
   gap: 12px;
   padding: 16px;
   color: #fff;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .currency-row {
@@ -20,6 +22,8 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
   position: relative;
   margin-left: 24px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .currency-row.universal-row {
@@ -124,6 +128,7 @@
   gap: 6px;
   flex: 1 1 100%; /* allows it to grow and wrap nicely */
   align-items: flex-end; /* right-align the buttons when it drops */
+  max-width: 100%;
 }
 
 @media (min-width: 600px) {
@@ -211,6 +216,9 @@
 .setting-dropdown-btn .setting-dropdown-value {
     white-space: normal !important;
     flex-wrap: wrap !important;
+    display: flex !important;
+    justify-content: center !important;
+    gap: 4px !important;
 }
 
 
@@ -334,4 +342,13 @@
 
 .currency-amount .level-row-progress-separator {
   opacity: 0.8;
+}
+
+.sas-scroller {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.sas-content {
+  max-width: 100%;
 }
