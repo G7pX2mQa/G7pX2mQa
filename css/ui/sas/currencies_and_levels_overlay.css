@@ -212,11 +212,6 @@
     white-space: normal !important;
     flex-wrap: wrap !important;
 }
-@media (max-width: 600px) {
-  .dropdown-vertical-bar {
-    display: none;
-  }
-}
 
 
 @keyframes rainbowTextScroll {
