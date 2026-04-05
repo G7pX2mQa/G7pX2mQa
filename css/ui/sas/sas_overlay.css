@@ -235,6 +235,11 @@
   transition: none;
 }
 
+.sas-btn.sas-btn-achievements {
+  background: linear-gradient(to bottom, #8a6c00 0%, #b89100 15%, #dcb500 50%, #b89100 85%, #8a6c00 100%);
+  transition: none;
+}
+
 .sas-actions {
   display: flex;
   justify-content: center;
