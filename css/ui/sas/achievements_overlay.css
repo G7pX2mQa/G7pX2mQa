@@ -12,16 +12,22 @@
 
 @media (hover: none) and (pointer: coarse) {
   .achievements-grid {
-    --shop-tile: clamp(72px, calc(
+    --grid-pad: clamp(2px, 2.5vw, 8px);
+    --gap: clamp(8px, 3.5vw, 14px);
+    --cols: 3;
+    --shop-scroller-pad: clamp(2px, 2.5vw, 8px);
+    
+    --tile-fit: calc(
       (100vw - env(safe-area-inset-left) - env(safe-area-inset-right)
-        - (2 * clamp(2px, 2.5vw, 8px))
-        - (2 * clamp(2px, 2.5vw, 8px))
-        - (2 * clamp(8px, 3.5vw, 14px))
-      ) / 3
-    ), 124px);
+        - (2 * var(--shop-scroller-pad))
+        - (2 * var(--grid-pad))
+        - ((var(--cols) - 1) * var(--gap))
+      ) / var(--cols)
+    );
+    --shop-tile: clamp(72px, var(--tile-fit), 124px);
     grid-template-columns: repeat(auto-fit, minmax(var(--shop-tile), 1fr));
-    padding-inline: clamp(2px, 2.5vw, 8px);
-    gap: clamp(8px, 3.5vw, 14px);
+    padding-inline: var(--grid-pad);
+    gap: var(--gap);
     box-sizing: border-box;
   }
 }
@@ -53,7 +59,7 @@
   cursor: not-allowed;
 }
 
-.achievement-btn .shop-tile img.icon,
+.achievement-btn .shop-tile img.base,
 .achievement-btn .shop-tile img.maxed-overlay {
   position: absolute;
   inset: 0;
@@ -63,12 +69,24 @@
   pointer-events: none;
 }
 
-.achievement-btn .shop-tile img.icon {
+.achievement-btn .shop-tile img.base {
   z-index: 1;
 }
 
 .achievement-btn .shop-tile img.maxed-overlay {
   z-index: 2;
+}
+
+.achievement-btn .shop-tile img.icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 3;
 }
 
 .achievement-btn.is-locked .shop-tile img.icon {
@@ -78,7 +96,7 @@
 .achievement-btn .level-badge {
   position: absolute;
   left: 50%;
-  bottom: 8%;
+  bottom: -6%;
   transform: translateX(-50%);
   min-width: 22px;
   height: 22px;
