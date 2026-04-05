@@ -1,5 +1,6 @@
 import { getActiveSlot } from '../util/storage.js';
-import { isForgeUnlocked, isInfuseUnlocked, isSurgeUnlocked } from '../ui/merchantTabs/resetTab.js';
+import { hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset } from '../ui/merchantTabs/resetTab.js';
+import { showNotification } from '../ui/notifications.js';
 
 export const ACHIEVEMENT_STATES = {
     NOT_OWNED: 0,
@@ -14,7 +15,7 @@ export const ACHIEVEMENTS = [
         desc: 'Perform a Forge reset for the first time.',
         rewardText: 'nothing',
         icon: 'img/misc/forge_plus_base.webp',
-        checkCondition: () => isForgeUnlocked()
+        checkCondition: () => hasDoneForgeReset()
     },
     {
         id: 'unlock_workshop',
@@ -22,7 +23,7 @@ export const ACHIEVEMENTS = [
         desc: 'Perform an Infuse reset for the first time.',
         rewardText: 'nothing',
         icon: 'img/misc/infuse_plus_base.webp',
-        checkCondition: () => isInfuseUnlocked()
+        checkCondition: () => hasDoneInfuseReset()
     },
     {
         id: 'unlock_warp',
@@ -30,7 +31,7 @@ export const ACHIEVEMENTS = [
         desc: 'Perform a Surge reset for the first time.',
         rewardText: 'nothing',
         icon: 'img/misc/surge_plus_base.webp',
-        checkCondition: () => isSurgeUnlocked()
+        checkCondition: () => hasDoneSurgeReset()
     }
 ];
 
@@ -96,6 +97,9 @@ export function checkAchievements(slot = getActiveSlot()) {
             if (achievement.checkCondition()) {
                 setAchievementState(achievement.id, ACHIEVEMENT_STATES.PENDING_CLAIM, slot);
                 changed = true;
+                if (typeof window !== 'undefined') {
+                    showNotification(`Achievement: ${achievement.title} Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, achievement.icon);
+                }
             }
         }
     }
