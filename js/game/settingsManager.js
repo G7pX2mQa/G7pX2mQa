@@ -369,9 +369,9 @@ class SettingsManager {
       this.notify(key, this.settings[key]);
     }
 
-    // Clear old dynamic currency settings from memory to prevent bleed between slots
+    // Clear old dynamic currency and level settings from memory to prevent bleed between slots
     for (const k in this.settings) {
-      if (k.startsWith("currency_")) {
+      if (k.startsWith("currency_") || k.startsWith("level_")) {
         delete this.settings[k];
         delete this._isDefault[k];
       }
