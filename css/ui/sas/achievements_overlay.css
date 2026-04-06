@@ -74,7 +74,7 @@
 }
 
 .achievement-btn .shop-tile img.maxed-overlay {
-  z-index: 2;
+  z-index: 4;
 }
 
 .achievement-btn .shop-tile img.icon {
@@ -86,7 +86,7 @@
   height: 100%;
   object-fit: contain;
   pointer-events: none;
-  z-index: 3;
+  z-index: 2;
 }
 
 .achievement-btn.is-locked .shop-tile img.icon {
@@ -112,7 +112,7 @@
   background: rgba(0, 0, 0, 0.55);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
   pointer-events: none;
-  z-index: 3;
+  z-index: 2;
 }
 
 .achievement-btn .level-badge.text-badge {
