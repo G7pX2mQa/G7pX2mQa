@@ -4098,7 +4098,7 @@ export function isHmReadyToEvolve(upg, lvlBn, evolutions = null) {
 
   // Once an HM upgrade reaches BN Infinity, treat it as permanently maxed
   // and suppress further evolutions so the UI can show the maxed frame.
-  if (lvlBn?.isInfinite?.()) return false;
+  if (lvlBn?.isInfinite?.() && safeEvol === Infinity) return false;
   
   const { capBn, cap } = hmLevelCapForEvolutions(safeEvol);
   try { return lvlBn?.cmp?.(capBn) >= 0; }
