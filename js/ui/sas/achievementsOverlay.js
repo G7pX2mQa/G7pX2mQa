@@ -1,6 +1,6 @@
 import { createSASOverlay } from './sasOverlayBuilder.js';
 import { ACHIEVEMENTS, ACHIEVEMENT_STATES, getAchievementState, setAchievementState } from '../../game/achievements.js';
-import { getActiveSlot } from '../../util/storage.js';
+import { getActiveSlot, bank } from '../../util/storage.js';
 import { playAudio } from "../../util/audioManager.js";
 import { playPurchaseSfx } from '../shopOverlay.js';
 
@@ -77,6 +77,9 @@ function renderAchievements(gridEl) {
         btn.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             if (state === ACHIEVEMENT_STATES.PENDING_CLAIM) {
+                if (achievement.rewardAmount && bank.rainbowGems) {
+                    bank.rainbowGems.add(achievement.rewardAmount);
+                }
                 setAchievementState(achievement.id, ACHIEVEMENT_STATES.CLAIMED, slot);
                 playPurchaseSfx();
                 renderAchievements(gridEl);
@@ -203,14 +206,14 @@ function openAchievementDetails(achievement) {
 
     header.innerHTML = `
         <div class="upg-title">${achievement.title}</div>
-        <div class="upg-level">${state === ACHIEVEMENT_STATES.CLAIMED ? '(Claimed)' : state === ACHIEVEMENT_STATES.PENDING_CLAIM ? '(Pending Claim)' : '(Not Owned)'}</div>
+        <div class="upg-level">${state === ACHIEVEMENT_STATES.CLAIMED ? '(Claimed)' : state === ACHIEVEMENT_STATES.PENDING_CLAIM ? 'Pending Claim' : 'Not Owned'}</div>
     `;
 
     let contentHtml = `
         <div class="upg-desc centered">${achievement.desc}</div>
         <div class="upg-info">
             <div class="effect-wrapper">
-                <div class="upg-line"><span class="bonus-line">Reward: ${achievement.rewardText}</span></div>
+                <div class="upg-line"><span class="bonus-line">Reward: <img src="img/currencies/rainbow_gem.webp" class="currency-ico"> ${achievement.rewardAmount} Rainbow Gems</span></div>
             </div>
         </div>
     `;
@@ -229,13 +232,16 @@ function openAchievementDetails(achievement) {
         claimBtn.className = 'shop-delve';
         claimBtn.textContent = 'Claim';
         claimBtn.addEventListener('click', () => {
+            if (achievement.rewardAmount && bank.rainbowGems) {
+                bank.rainbowGems.add(achievement.rewardAmount);
+            }
             setAchievementState(achievement.id, ACHIEVEMENT_STATES.CLAIMED, slot);
             playPurchaseSfx();
             if (currentGrid) renderAchievements(currentGrid);
             // Also update the header level to '(Claimed)' so it visually reflects the change
             const headerLevel = overlay.querySelector('.upg-level');
             if (headerLevel) {
-                headerLevel.textContent = '(Claimed)';
+                headerLevel.textContent = 'Claimed';
             }
             // Remove the claim button from the DOM since it's now claimed
             claimBtn.remove();
