@@ -1,6 +1,7 @@
 import { createSASOverlay } from './sasOverlayBuilder.js';
 import { ACHIEVEMENTS, ACHIEVEMENT_STATES, getAchievementState, setAchievementState } from '../../game/achievements.js';
 import { getActiveSlot } from '../../util/storage.js';
+import { playAudio } from "../../util/audioManager.js";
 
 const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
 
@@ -47,14 +48,17 @@ function renderAchievements(gridEl) {
             btn.classList.add('is-locked');
             iconImg.style.filter = 'brightness(0.05)';
             appendBadge = false;
+            btn.title = '???';
         } else if (state === ACHIEVEMENT_STATES.PENDING_CLAIM) {
             btn.classList.add('is-pending');
             badge.textContent = 'Pending Claim';
             badge.classList.add('can-buy');
+            btn.title = achievement.title;
         } else if (state === ACHIEVEMENT_STATES.CLAIMED) {
             btn.classList.add('is-claimed');
             badge.textContent = 'Claimed';
             badge.classList.add('is-maxed');
+            btn.title = achievement.title;
         }
 
         if (appendBadge) {
@@ -73,6 +77,7 @@ function renderAchievements(gridEl) {
             e.preventDefault();
             if (state === ACHIEVEMENT_STATES.PENDING_CLAIM) {
                 setAchievementState(achievement.id, ACHIEVEMENT_STATES.CLAIMED, slot);
+                playAudio('sounds/purchase_upg.ogg');
                 renderAchievements(gridEl);
             }
         });
@@ -224,6 +229,7 @@ function openAchievementDetails(achievement) {
         claimBtn.textContent = 'Claim';
         claimBtn.addEventListener('click', () => {
             setAchievementState(achievement.id, ACHIEVEMENT_STATES.CLAIMED, slot);
+            playAudio('sounds/purchase_upg.ogg');
             if (currentGrid) renderAchievements(currentGrid);
             // Also update the header level to '(Claimed)' so it visually reflects the change
             const headerLevel = overlay.querySelector('.upg-level');
