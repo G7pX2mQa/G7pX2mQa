@@ -2,6 +2,7 @@ import { createSASOverlay } from './sasOverlayBuilder.js';
 import { ACHIEVEMENTS, ACHIEVEMENT_STATES, getAchievementState, setAchievementState } from '../../game/achievements.js';
 import { getActiveSlot } from '../../util/storage.js';
 import { playAudio } from "../../util/audioManager.js";
+import { playPurchaseSfx } from '../shopOverlay.js';
 
 const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
 
@@ -77,7 +78,7 @@ function renderAchievements(gridEl) {
             e.preventDefault();
             if (state === ACHIEVEMENT_STATES.PENDING_CLAIM) {
                 setAchievementState(achievement.id, ACHIEVEMENT_STATES.CLAIMED, slot);
-                playAudio('sounds/purchase_upg.ogg');
+                playPurchaseSfx();
                 renderAchievements(gridEl);
             }
         });
@@ -229,7 +230,7 @@ function openAchievementDetails(achievement) {
         claimBtn.textContent = 'Claim';
         claimBtn.addEventListener('click', () => {
             setAchievementState(achievement.id, ACHIEVEMENT_STATES.CLAIMED, slot);
-            playAudio('sounds/purchase_upg.ogg');
+            playPurchaseSfx();
             if (currentGrid) renderAchievements(currentGrid);
             // Also update the header level to '(Claimed)' so it visually reflects the change
             const headerLevel = overlay.querySelector('.upg-level');
