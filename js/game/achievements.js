@@ -1,5 +1,9 @@
 import { getActiveSlot } from '../util/storage.js';
 import { hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset } from '../ui/merchantTabs/resetTab.js';
+import { getTsunamiSequenceSeen } from './surgeEffects.js';
+import { hasDoneExperimentReset } from '../ui/merchantTabs/resetTab.js';
+import { getFlowUnlockState } from '../ui/merchantTabs/flowTab.js';
+import { hasEvolvedAnyUpgrade } from './upgrades.js';
 import { showNotification } from '../ui/notifications.js';
 
 export const ACHIEVEMENT_STATES = {
@@ -25,13 +29,68 @@ export const ACHIEVEMENTS = [
         icon: 'img/misc/infuse_plus_base.webp',
         checkCondition: () => hasDoneInfuseReset()
     },
-    {
+        {
         id: 'unlock_warp',
         title: 'Unlock Warp',
         desc: 'Perform a Surge reset for the first time.',
         rewardText: 'nothing',
         icon: 'img/misc/surge_plus_base.webp',
         checkCondition: () => hasDoneSurgeReset()
+    },
+    {
+        id: 'unlock_lab',
+        title: 'Unlock Lab',
+        desc: 'Unlock the Lab tab by witnessing the Tsunami.',
+        rewardText: 'nothing',
+        icon: 'img/stats/rp/rp_plus_base.webp',
+        checkCondition: () => {
+            if (typeof getTsunamiSequenceSeen === 'function') {
+                return getTsunamiSequenceSeen();
+            }
+            return false;
+        },
+        notifyCondition: () => {
+            return typeof window !== 'undefined' && !window.__tsunamiActive;
+        }
+    },
+    {
+        id: 'unlock_experiment',
+        title: 'Unlock Experiment',
+        desc: 'Perform an Experiment reset.',
+        rewardText: 'nothing',
+        icon: 'img/misc/experiment_plus_base.webp',
+        checkCondition: () => {
+            if (typeof hasDoneExperimentReset === 'function') {
+                return hasDoneExperimentReset();
+            }
+            return false;
+        }
+    },
+    {
+        id: 'unlock_flow',
+        title: 'Unlock Flow',
+        desc: 'Unlock the Flow tab.',
+        rewardText: 'nothing',
+        icon: 'img/stats/fp/fp_plus_base.webp',
+        checkCondition: () => {
+            if (typeof getFlowUnlockState === 'function') {
+                return !!getFlowUnlockState();
+            }
+            return false;
+        }
+    },
+    {
+        id: 'evolve_upgrade',
+        title: 'Evolve',
+        desc: 'Evolve an upgrade for the first time.',
+        rewardText: 'nothing',
+        icon: 'img/misc/evolve_achievement_icon.webp',
+        checkCondition: () => {
+            if (typeof hasEvolvedAnyUpgrade === 'function') {
+                return hasEvolvedAnyUpgrade();
+            }
+            return false;
+        }
     }
 ];
 
@@ -98,12 +157,27 @@ export function checkAchievements(slot = getActiveSlot()) {
                 setAchievementState(achievement.id, ACHIEVEMENT_STATES.PENDING_CLAIM, slot);
                 changed = true;
                 if (typeof window !== 'undefined') {
-                    showNotification(`Achievement: ${achievement.title} Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, achievement.icon);
+                    if (!achievement.notifyCondition || achievement.notifyCondition()) {
+                        showNotification(`Achievement: ${achievement.title} Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, achievement.icon);
+                    } else {
+                        window.__delayedAchievementNotifications = window.__delayedAchievementNotifications || [];
+                        window.__delayedAchievementNotifications.push({ title: achievement.title, icon: achievement.icon });
+                    }
                 }
             }
         }
     }
     return changed;
+}
+
+export function showDelayedAchievementNotifications() {
+    if (typeof window === 'undefined') return;
+    if (window.__delayedAchievementNotifications && window.__delayedAchievementNotifications.length > 0) {
+        for (const notif of window.__delayedAchievementNotifications) {
+            showNotification(`Achievement: ${notif.title} Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, notif.icon);
+        }
+        window.__delayedAchievementNotifications = [];
+    }
 }
 
 if (typeof window !== 'undefined') {
