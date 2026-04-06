@@ -614,6 +614,16 @@ function applyCurrencyState(currencyKey, value, slot = getActiveSlot()) {
         const effective = setCurrency(currencyKey, value, { previous });
         next = effective ?? previous;
         if (storageKey) primeStorageWatcherSnapshot(storageKey);
+        
+        // Update the last known amount so the event listener in popups.js
+        // calculates a delta of zero, preventing the duplicate standard popup.
+        if (typeof window !== 'undefined' && window.lastKnownAmounts) {
+             window.lastKnownAmounts.set(currencyKey, effective.clone?.() ?? effective);
+        }
+        
+        if (typeof window !== 'undefined' && window.showPopup) {
+            window.showPopup(currencyKey, effective, { overrideAmount: true });
+        }
     } catch {}
     finally {
         if (wasLocked) lockStorageKey(storageKey);
@@ -1701,7 +1711,10 @@ function applyXpState({ level, progress }) {
     // the Forge reset panel) can refresh immediately without waiting for normal
     // gameplay hooks to fire.
     try {
-        broadcastXpChange({ changeType: 'debug-panel', slot });
+        if (typeof window !== 'undefined' && window.showPopup) {
+            window.showPopup('xp', nextProgress, { overrideAmount: true });
+        }
+        broadcastXpChange({ changeType: 'debug-panel', slot, xpAdded: 0 });
     } catch {}
 
     // Also keep ALL debug live bindings in sync (including the Unlocks tab
@@ -1800,7 +1813,10 @@ function applyMutationState({ level, progress }) {
     } catch {}
 
     try {
-        broadcastMutationChange({ changeType: 'debug-panel', slot });
+        if (typeof window !== 'undefined' && window.showPopup) {
+            window.showPopup('mp', nextProgress, { overrideAmount: true });
+        }
+        broadcastMutationChange({ changeType: 'debug-panel', slot, delta: 0 });
     } catch {}
 
     try { window.resetSystem?.recomputePendingMagic?.(); } catch {}
@@ -4094,7 +4110,15 @@ function buildMiscContent(content) {
         {
             label: 'Unlock All Unlocks',
             onClick: () => {
-                const { unlocks, toggles } = unlockAllUnlocks();
+                if (typeof window !== 'undefined') window.__debugSuppressAchievementNotifications = true;
+                let unlocks = 0, toggles = 0;
+                try {
+                    const result = unlockAllUnlocks();
+                    unlocks = result.unlocks;
+                    toggles = result.toggles;
+                } finally {
+                    if (typeof window !== 'undefined') window.__debugSuppressAchievementNotifications = false;
+                }
                 flagDebugUsage();
                 logAction(`Unlocked all unlock-type upgrades (${unlocks} entries) and unlock flags (${toggles} toggled).`);
             },
