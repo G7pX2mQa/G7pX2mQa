@@ -409,6 +409,7 @@ function getAreas() {
             key: AREA_KEYS.STARTER_COVE,
             title: 'The Cove',
             currencies: [
+                { key: CURRENCIES.RAINBOW_GEMS, label: 'Rainbow Gems' },
                 { key: CURRENCIES.COINS, label: 'Coins' },
                 { key: CURRENCIES.BOOKS, label: 'Books' },
                 { key: CURRENCIES.GOLD,  label: 'Gold'  },
