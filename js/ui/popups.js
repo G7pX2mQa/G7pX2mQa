@@ -264,6 +264,7 @@ function handleSlotChange() {
 export function initPopups() {
   if (initialized) return;
   initialized = true;
+  window.showPopup = showPopup;
   ensureContainer();
   syncLastKnown();
   window.addEventListener('currency:change', handleCurrencyChange);
