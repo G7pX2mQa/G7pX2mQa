@@ -369,14 +369,14 @@ function handleStatChange(e) {
 
       const levelVal = state.level || 0;
       const levelValEl = row.querySelector("[data-level-val]");
-      if (levelValEl) levelValEl.textContent = " " + formatNumber(levelVal);
+      if (levelValEl) levelValEl.innerHTML = " " + formatNumber(levelVal);
 
       if (l.progConfig) {
           const progVal = state.progress || 0;
           const reqVal = state.requirement || 0;
           
           const progValEl = row.querySelector("[data-prog-val]");
-          if (progValEl) progValEl.textContent = formatNumber(progVal);
+          if (progValEl) progValEl.innerHTML = formatNumber(progVal);
           
           const reqValEl = row.querySelector("[data-req-val]");
           
@@ -385,7 +385,7 @@ function handleStatChange(e) {
              if (reqValEl) reqValEl.innerHTML = "<span class=\"infinity-symbol\">∞</span>";
              pct = 100;
           } else {
-             if (reqValEl) reqValEl.textContent = formatNumber(reqVal);
+             if (reqValEl) reqValEl.innerHTML = formatNumber(reqVal);
              if (reqVal && progVal !== null && progVal !== undefined) {
                  const reqNum = Number(reqVal.toString());
                  const progNum = Number(progVal.toString());
