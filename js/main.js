@@ -627,6 +627,7 @@ images: [
   'img/currencies/rainbow_gem.webp',
 
   // ==== img/misc ====
+  'img/misc/evolve_plus_base.webp',
   'img/misc/evolve_ready.webp',
   'img/misc/experiment.webp',
   'img/misc/experiment_plus_base.webp',
@@ -702,6 +703,9 @@ images: [
   'img/stats/rp/rp_base.webp',
   'img/stats/rp/rp_plus_base.webp',
   'img/stats/fp/fp.webp',
+  'img/stats/fp/fp_base.webp',
+  'img/stats/fp/fp_plus_base.webp',
+  
   
     // ==== img/waterwheels ====
 	'img/waterwheels/waterwheel_coin.webp',
