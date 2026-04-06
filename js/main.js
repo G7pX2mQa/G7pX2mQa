@@ -709,7 +709,6 @@ images: [
 	'img/waterwheels/waterwheel_magic.webp',
 ],
     audio: [
-	  'sounds/achievement_claim.ogg',
       'sounds/coin_pickup.ogg',
       'sounds/wave_spawn.ogg',
       'sounds/merchant_typing.ogg',
