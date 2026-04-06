@@ -66,7 +66,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
   
   const amountDiv = document.createElement('div');
   amountDiv.className = 'currency-amount';
-  amountDiv.textContent = amountText;
+  amountDiv.innerHTML = amountText;
   
   info.appendChild(iconWrapper);
   info.appendChild(amountDiv);
@@ -428,7 +428,7 @@ function handleCurrencyChange(e) {
             displayName = isOne ? config.singular : config.plural;
         }
 
-        amountEl.textContent = formatNumber(val) + ' ' + displayName;
+        amountEl.innerHTML = formatNumber(val) + ' ' + displayName;
       }
     }
   } else {
