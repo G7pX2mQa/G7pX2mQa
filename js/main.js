@@ -627,7 +627,7 @@ images: [
   'img/currencies/rainbow_gem.webp',
 
   // ==== img/misc ====
-  'img/misc/evolve_plus_base.webp',
+  'img/misc/evolve_achievement_icon.webp',
   'img/misc/evolve_ready.webp',
   'img/misc/experiment.webp',
   'img/misc/experiment_plus_base.webp',
