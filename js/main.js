@@ -700,6 +700,7 @@ images: [
   'img/stats/xp/xp_plus_base.webp',
   'img/stats/rp/rp.webp',
   'img/stats/rp/rp_base.webp',
+  'img/stats/rp/rp_plus_base.webp',
   'img/stats/fp/fp.webp',
   
     // ==== img/waterwheels ====
