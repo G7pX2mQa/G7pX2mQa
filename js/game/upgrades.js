@@ -4386,6 +4386,24 @@ export function buyOne(areaKey, upgId) {
   return { bought: 1, spent };
 }
 
+
+export function hasEvolvedAnyUpgrade(slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (typeof localStorage === 'undefined') return false;
+  return localStorage.getItem(`ccc:evolvedAnyUpgrade:${slotKey}`) === '1';
+}
+
+function markEvolvedAnyUpgrade(slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(`ccc:evolvedAnyUpgrade:${slotKey}`, '1');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'evolve_upgrade', slot } }));
+    }
+  } catch {}
+}
+
 export function evolveUpgrade(areaKey, upgId) {
   const state = ensureUpgradeState(areaKey, upgId);
   const upg = state.upg;
@@ -4417,6 +4435,7 @@ export function evolveUpgrade(areaKey, upgId) {
 
     performFreeAutobuy(areaKey, upgId);
 
+    markEvolvedAnyUpgrade();
     return { evolved: true };
   }
 
@@ -4436,6 +4455,7 @@ export function evolveUpgrade(areaKey, upgId) {
   emitUpgradeLevelChange(upg, state.lvl, lvlBn, state.lvl, lvlBn);
   notifyChanged();
 
+  markEvolvedAnyUpgrade();
   return { evolved: true };
 }
 
@@ -4473,6 +4493,7 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
 
     performFreeAutobuy(areaKey, upgId);
 
+    markEvolvedAnyUpgrade();
     return { evolved: true };
   }
 
@@ -4570,7 +4591,8 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
       // to prevent a 1-tick delay for the auto-buyer to catch up.
       performFreeAutobuy(areaKey, upgId);
 
-      return { evolved: true };
+      markEvolvedAnyUpgrade();
+    return { evolved: true };
   }
   
   return { evolved: false };
