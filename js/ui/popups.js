@@ -21,6 +21,7 @@ for (const res of RESOURCE_REGISTRY) {
 let container = null;
 let initialized = false;
 const lastKnownAmounts = new Map();
+if (typeof window !== 'undefined') window.lastKnownAmounts = lastKnownAmounts;
 const activePopups = new Map();
 
 function ensureContainer() {
@@ -144,7 +145,11 @@ function showPopup(type, amount, overrides = {}) {
 
   if (existing) {
     // Update the number but DO NOT reset its lifetime or animations.
-    existing.amount = existing.amount.add(bnAmount);
+    if (meta.overrideAmount) {
+      existing.amount = bnAmount;
+    } else {
+      existing.amount = existing.amount.add(bnAmount);
+    }
     existing.meta = meta;
     updateEntry(existing);
     return;
