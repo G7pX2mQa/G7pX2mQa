@@ -99,10 +99,21 @@ export function refreshPinnedCurrencies() {
 
     const icon = document.createElement('img');
     icon.className = 'pinned-currency-icon';
-    // Map ID to icon filename. Many are id_plus_base.webp
-    // Some IDs have an 's' at the end (books, gears, waves) but the image files are singular
-    const iconBaseName = id.endsWith('s') ? id.slice(0, -1) : id;
-    icon.src = `img/currencies/${iconBaseName}/${iconBaseName}_plus_base.webp`;
+    // Fetch specific icon from RESOURCE_REGISTRY if defined
+    let iconSrc;
+    if (currencyConfig && currencyConfig.icon) {
+        iconSrc = currencyConfig.icon;
+        if (!currencyConfig.noPlusBase && iconSrc.endsWith('.webp')) {
+            const parts = iconSrc.split('/');
+            const filename = parts.pop();
+            const baseName = filename.replace('.webp', '');
+            iconSrc = parts.join('/') + '/' + baseName + '_plus_base.webp';
+        }
+    } else {
+        const iconBaseName = id.endsWith('s') ? id.slice(0, -1) : id;
+        iconSrc = `img/currencies/${iconBaseName}/${iconBaseName}_plus_base.webp`;
+    }
+    icon.src = iconSrc;
     icon.onerror = () => {
       icon.src = 'img/currencies/coin/coin_plus_base.webp'; // fallback
     };
@@ -323,7 +334,7 @@ export function refreshPinnedLevels() {
     icon.className = 'pinned-level-icon';
     
     let iconSrc = levelConfig.icon || 'img/misc/mysterious.webp';
-    if (iconSrc && iconSrc.endsWith('.webp')) {
+    if (iconSrc && !levelConfig.noPlusBase && iconSrc.endsWith('.webp')) {
       const parts = iconSrc.split('/');
       const filename = parts.pop();
       const baseName = filename.replace('.webp', '');
