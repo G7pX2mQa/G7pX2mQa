@@ -93,8 +93,8 @@ export function formatTimeCompact(ms) {
 
 // Visual Priority Map
 export const RESOURCE_REGISTRY = [
-    { key: 'rainbowGems', bgGradient: 'linear-gradient(to bottom, #ff0000 0%, #ff8800 16%, #ffff00 33%, #00ff00 50%, #00ffff 66%, #0000ff 83%, #ff00ff 100%)', icon: 'img/currencies/rainbow_gem.webp', singular: 'Rainbow Gem', plural: 'Rainbow Gems', type: 'currency' },
-    { key: 'coins', bgGradient: 'linear-gradient(to bottom, #d1a008 0%, #e3b527 15%, #ffd34c 50%, #e3b527 85%, #d1a008 100%)',      icon: 'img/currencies/coin/coin.webp',   singular: 'Coin',     plural: 'Coins', type: 'currency' },
+    { key: 'rainbowGems', bgGradient: 'linear-gradient(to bottom in oklch, #ff0000, #ff8800, #ffff00, #00ff00, #00ffff, #0000ff, #a000ff, #ff00ff)', icon: 'img/currencies/rainbow_gem.webp', baseIcon: 'img/currencies/rainbow_gem.webp', noPlusBase: true, singular: 'Rainbow Gem', plural: 'Rainbow Gems', type: 'currency' },
+    { key: 'coins', bgGradient: 'linear-gradient(to bottom, #d1a008 0%, #e3b527 15%, #ffd34c 50%, #e3b527 85%, #d1a008 100%)',      icon: 'img/currencies/coin/coin.webp', baseIcon: 'img/currencies/coin/coin_plus_base.webp',   singular: 'Coin',     plural: 'Coins', type: 'currency' },
     { 
         key: 'xp', 
         icon: 'img/stats/xp/xp.webp', 
@@ -122,8 +122,8 @@ export const RESOURCE_REGISTRY = [
         }
     },
     { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels', type: 'levelStat' },
-    { key: 'books', bgGradient: 'linear-gradient(to bottom, #82551b 0%, #94601e 15%, #AC6C1B 50%, #94601e 85%, #82551b 100%)',      icon: 'img/currencies/book/book.webp',   singular: 'Book',     plural: 'Books', type: 'currency' },
-    { key: 'gold', bgGradient: 'linear-gradient(to bottom, #a66f00 0%, #c48300 15%, #e69900 50%, #c48300 85%, #a66f00 100%)',       icon: 'img/currencies/gold/gold.webp',   singular: 'Gold',     plural: 'Gold', type: 'currency' },
+    { key: 'books', bgGradient: 'linear-gradient(to bottom, #82551b 0%, #94601e 15%, #AC6C1B 50%, #94601e 85%, #82551b 100%)',      icon: 'img/currencies/book/book.webp', baseIcon: 'img/currencies/book/book_plus_base.webp',   singular: 'Book',     plural: 'Books', type: 'currency' },
+    { key: 'gold', bgGradient: 'linear-gradient(to bottom, #a66f00 0%, #c48300 15%, #e69900 50%, #c48300 85%, #a66f00 100%)',       icon: 'img/currencies/gold/gold.webp', baseIcon: 'img/currencies/gold/gold_plus_base.webp',   singular: 'Gold',     plural: 'Gold', type: 'currency' },
     { 
         key: 'mp', 
         icon: 'img/stats/mp/mp.webp', 
@@ -151,10 +151,10 @@ export const RESOURCE_REGISTRY = [
         }
     },
     { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation Level', plural: 'Mutation Levels', type: 'levelStat' },
-    { key: 'magic', bgGradient: 'linear-gradient(to bottom, #42138A 0%, #6A1ECF 15%, #9F30FF 50%, #6A1ECF 85%, #42138A 100%)',     icon: 'img/currencies/magic/magic.webp', singular: 'Magic',    plural: 'Magic', type: 'currency' },
-    { key: 'gears', bgGradient: 'linear-gradient(to bottom, #5c5d61 0%, #8f9096 15%, #9d9fa6 50%, #8f9096 85%, #5c5d61 100%)',     icon: 'img/currencies/gear/gear.webp',   singular: 'Gear',     plural: 'Gears', type: 'currency' },
-    { key: 'waves', bgGradient: 'linear-gradient(to bottom, #0286a1 0%, #02b1d4 15%, #00eded 50%, #02b1d4 85%, #0286a1 100%)',     icon: 'img/currencies/gear/gear.webp',   singular: 'Wave',     plural: 'Waves', type: 'currency' },
-    { key: 'dna', bgGradient: 'repeating-linear-gradient(-45deg, #C00000, #C00000 30.1px, #00B0F0 30.1px, #00B0F0 60.2px)',       icon: 'img/currencies/dna/dna.webp',     singular: 'DNA',      plural: 'DNA', type: 'currency' },
+    { key: 'magic', bgGradient: 'linear-gradient(to bottom, #42138A 0%, #6A1ECF 15%, #9F30FF 50%, #6A1ECF 85%, #42138A 100%)',     icon: 'img/currencies/magic/magic.webp', baseIcon: 'img/currencies/magic/magic_plus_base.webp', singular: 'Magic',    plural: 'Magic', type: 'currency' },
+    { key: 'gears', bgGradient: 'linear-gradient(to bottom, #5c5d61 0%, #8f9096 15%, #9d9fa6 50%, #8f9096 85%, #5c5d61 100%)',     icon: 'img/currencies/gear/gear.webp', baseIcon: 'img/currencies/gear/gear_plus_base.webp',   singular: 'Gear',     plural: 'Gears', type: 'currency' },
+    { key: 'waves', bgGradient: 'linear-gradient(to bottom, #0286a1 0%, #02b1d4 15%, #00eded 50%, #02b1d4 85%, #0286a1 100%)',     icon: 'img/currencies/wave/wave.webp', baseIcon: 'img/currencies/wave/wave_plus_base.webp',   singular: 'Wave',     plural: 'Waves', type: 'currency' },
+    { key: 'dna', bgGradient: 'repeating-linear-gradient(-45deg, #C00000, #C00000 30.1px, #00B0F0 30.1px, #00B0F0 60.2px)',       icon: 'img/currencies/dna/dna.webp', baseIcon: 'img/currencies/dna/dna_plus_base.webp',     singular: 'DNA',      plural: 'DNA', type: 'currency' },
     { key: 'research_levels', icon: 'img/stats/rp/rp.webp',      singular: 'Level',    plural: 'Levels', type: 'levelStat' },
     { key: 'waterwheel_levels', icon: 'img/waterwheels/waterwheel_coin.webp', singular: 'Level', plural: 'Levels', type: 'levelStat' },
 ];
