@@ -354,6 +354,7 @@ export const KEYS = {
 
 // -------------------- CURRENCIES --------------------
 export const CURRENCIES = {
+  RAINBOW_GEMS: 'rainbowGems',
   COINS: 'coins',
   BOOKS: 'books',
   GOLD: 'gold',
