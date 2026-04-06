@@ -18,6 +18,7 @@ export const ACHIEVEMENTS = [
         title: 'Forged',
         desc: 'Perform a Forge reset',
         rewardText: 'nothing',
+        rewardAmount: 50,
         icon: 'img/misc/forge_plus_base.webp',
         checkCondition: () => hasDoneForgeReset()
     },
@@ -26,6 +27,7 @@ export const ACHIEVEMENTS = [
         title: 'Infused',
         desc: 'Perform an Infuse reset',
         rewardText: 'nothing',
+        rewardAmount: 50,
         icon: 'img/misc/infuse_plus_base.webp',
         checkCondition: () => hasDoneInfuseReset()
     },
@@ -34,6 +36,7 @@ export const ACHIEVEMENTS = [
         title: 'Surged',
         desc: 'Perform a Surge reset',
         rewardText: 'nothing',
+        rewardAmount: 50,
         icon: 'img/misc/surge_plus_base.webp',
         checkCondition: () => hasDoneSurgeReset()
     },
@@ -42,6 +45,7 @@ export const ACHIEVEMENTS = [
         title: 'What Once Was Lost',
         desc: 'Unlock the Lab tab',
         rewardText: 'nothing',
+        rewardAmount: 50,
         icon: 'img/stats/rp/rp_plus_base.webp',
         checkCondition: () => {
             if (typeof getTsunamiSequenceSeen === 'function') {
@@ -58,6 +62,7 @@ export const ACHIEVEMENTS = [
         title: 'A Scientific Experiment',
         desc: 'Perform an Experiment reset',
         rewardText: 'nothing',
+        rewardAmount: 50,
         icon: 'img/misc/experiment_plus_base.webp',
         checkCondition: () => {
             if (typeof hasDoneExperimentReset === 'function') {
@@ -71,6 +76,7 @@ export const ACHIEVEMENTS = [
         title: 'Flowing',
         desc: 'Unlock the Flow tab',
         rewardText: 'nothing',
+        rewardAmount: 50,
         icon: 'img/stats/fp/fp_plus_base.webp',
         checkCondition: () => {
             if (typeof getFlowUnlockState === 'function') {
@@ -84,6 +90,7 @@ export const ACHIEVEMENTS = [
         title: 'Evolutionary',
         desc: 'Evolve an upgrade',
         rewardText: 'nothing',
+        rewardAmount: 50,
         icon: 'img/misc/evolve_achievement_icon.webp',
         checkCondition: () => {
             if (typeof hasEvolvedAnyUpgrade === 'function') {
