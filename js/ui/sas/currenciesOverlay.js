@@ -17,6 +17,7 @@ import { BigNum } from '../../util/bigNum.js';
 
 // Base icon mapping for default states if they don't exactly match the folder name
 const BASE_ICONS = {
+  rainbowGems: 'img/currencies/rainbow_gem.webp',
   coins: 'img/currencies/coin/coin_plus_base.webp',
   books: 'img/currencies/book/book_plus_base.webp',
   gold: 'img/currencies/gold/gold_plus_base.webp',
@@ -27,6 +28,7 @@ const BASE_ICONS = {
 };
 
 const ICONS = {
+  rainbowGems: 'img/currencies/rainbow_gem.webp',
   coins: 'img/currencies/coin/coin.webp',
   books: 'img/currencies/book/book.webp',
   gold: 'img/currencies/gold/gold.webp',
