@@ -9,43 +9,15 @@ import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
 
 const DEFAULT_DURATION = 6767;
 
-const POPUP_ORDER = ['coins', 'xp', 'books', 'gold', 'mp', 'magic', 'gears', 'dna'];
+const POPUP_ORDER = RESOURCE_REGISTRY.map(r => r.key);
 
-const POPUP_META = {
-  [CURRENCIES.COINS]: {
-    icon: 'img/currencies/coin/coin.webp',
-    iconAlt: 'Coin',
-  },
-  xp: {
-    icon: 'img/stats/xp/xp.webp',
-    iconAlt: 'XP',
-  },
-  [CURRENCIES.BOOKS]: {
-    icon: 'img/currencies/book/book.webp',
-    iconAlt: 'Book',
-  },
-  [CURRENCIES.GOLD]: {
-    icon: 'img/currencies/gold/gold.webp',
-    iconAlt: 'Gold',
-  },
-  mp: {
-    icon: 'img/stats/mp/mp.webp',
-    iconAlt: 'Mutation Power',
-  },
-  [CURRENCIES.MAGIC]: {
-    icon: 'img/currencies/magic/magic.webp',
-    iconAlt: 'Magic',
-  },
-  [CURRENCIES.GEARS]: {
-    icon: 'img/currencies/gear/gear.webp',
-    iconAlt: 'Gears',
-  },
-  [CURRENCIES.DNA]: {
-    icon: 'img/currencies/dna/dna.webp',
-    iconAlt: 'DNA',
-  },
-};
-
+const POPUP_META = {};
+for (const res of RESOURCE_REGISTRY) {
+  POPUP_META[res.key] = {
+    icon: res.icon,
+    iconAlt: res.name || res.label || res.key,
+  };
+}
 let container = null;
 let initialized = false;
 const lastKnownAmounts = new Map();
