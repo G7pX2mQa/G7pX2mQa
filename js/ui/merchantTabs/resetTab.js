@@ -62,6 +62,7 @@ import {
     getLabDnaMultiplier
 } from '../../game/labNodes.js';
 import { getLabLevel } from './labTab.js';
+import { showDelayedAchievementNotifications } from '../../game/achievements.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 import { getWaterwheelGoldMultiplier } from './flowTab.js';
@@ -1493,8 +1494,11 @@ function endTsunamiSequence() {
         window.spawner.start();
     }
     
-    // 6. Clear active flag
+        // 6. Clear active flag
     window.__tsunamiActive = false;
+    
+    // 6.5 Show any delayed achievements
+    try { showDelayedAchievementNotifications(); } catch {}
 
     // 7. Set Dialogue Pending Flag
     const slot = getActiveSlot();
