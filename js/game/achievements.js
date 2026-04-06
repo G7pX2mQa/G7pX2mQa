@@ -15,32 +15,32 @@ export const ACHIEVEMENT_STATES = {
 export const ACHIEVEMENTS = [
     {
         id: 'unlock_mp',
-        title: 'Unlock MP',
-        desc: 'Perform a Forge reset for the first time.',
+        title: 'Forged',
+        desc: 'Perform a Forge reset',
         rewardText: 'nothing',
         icon: 'img/misc/forge_plus_base.webp',
         checkCondition: () => hasDoneForgeReset()
     },
     {
         id: 'unlock_workshop',
-        title: 'Unlock Workshop',
-        desc: 'Perform an Infuse reset for the first time.',
+        title: 'Infused',
+        desc: 'Perform an Infuse reset',
         rewardText: 'nothing',
         icon: 'img/misc/infuse_plus_base.webp',
         checkCondition: () => hasDoneInfuseReset()
     },
         {
         id: 'unlock_warp',
-        title: 'Unlock Warp',
-        desc: 'Perform a Surge reset for the first time.',
+        title: 'Surged',
+        desc: 'Perform a Surge reset',
         rewardText: 'nothing',
         icon: 'img/misc/surge_plus_base.webp',
         checkCondition: () => hasDoneSurgeReset()
     },
     {
         id: 'unlock_lab',
-        title: 'Unlock Lab',
-        desc: 'Unlock the Lab tab by witnessing the Tsunami.',
+        title: 'What Once Was Lost',
+        desc: 'Unlock the Lab tab',
         rewardText: 'nothing',
         icon: 'img/stats/rp/rp_plus_base.webp',
         checkCondition: () => {
@@ -55,8 +55,8 @@ export const ACHIEVEMENTS = [
     },
     {
         id: 'unlock_experiment',
-        title: 'Unlock Experiment',
-        desc: 'Perform an Experiment reset.',
+        title: 'A Scientific Experiment',
+        desc: 'Perform an Experiment reset',
         rewardText: 'nothing',
         icon: 'img/misc/experiment_plus_base.webp',
         checkCondition: () => {
@@ -68,8 +68,8 @@ export const ACHIEVEMENTS = [
     },
     {
         id: 'unlock_flow',
-        title: 'Unlock Flow',
-        desc: 'Unlock the Flow tab.',
+        title: 'Flowing',
+        desc: 'Unlock the Flow tab',
         rewardText: 'nothing',
         icon: 'img/stats/fp/fp_plus_base.webp',
         checkCondition: () => {
@@ -81,8 +81,8 @@ export const ACHIEVEMENTS = [
     },
     {
         id: 'evolve_upgrade',
-        title: 'Evolve',
-        desc: 'Evolve an upgrade for the first time.',
+        title: 'Evolutionary',
+        desc: 'Evolve an upgrade',
         rewardText: 'nothing',
         icon: 'img/misc/evolve_achievement_icon.webp',
         checkCondition: () => {
@@ -158,7 +158,7 @@ export function checkAchievements(slot = getActiveSlot()) {
                 changed = true;
                 if (typeof window !== 'undefined') {
                     if (!achievement.notifyCondition || achievement.notifyCondition()) {
-                        showNotification(`Achievement: ${achievement.title} Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, achievement.icon);
+                        showNotification(`Achievement: "${achievement.title}" Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, achievement.icon);
                     } else {
                         window.__delayedAchievementNotifications = window.__delayedAchievementNotifications || [];
                         window.__delayedAchievementNotifications.push({ title: achievement.title, icon: achievement.icon });
@@ -174,7 +174,7 @@ export function showDelayedAchievementNotifications() {
     if (typeof window === 'undefined') return;
     if (window.__delayedAchievementNotifications && window.__delayedAchievementNotifications.length > 0) {
         for (const notif of window.__delayedAchievementNotifications) {
-            showNotification(`Achievement: ${notif.title} Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, notif.icon);
+            showNotification(`Achievement: "${notif.title}" Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, notif.icon);
         }
         window.__delayedAchievementNotifications = [];
     }
