@@ -15,29 +15,6 @@ import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { BigNum } from '../../util/bigNum.js';
 
 
-// Base icon mapping for default states if they don't exactly match the folder name
-const BASE_ICONS = {
-  rainbowGems: 'img/currencies/rainbow_gem.webp',
-  coins: 'img/currencies/coin/coin_plus_base.webp',
-  books: 'img/currencies/book/book_plus_base.webp',
-  gold: 'img/currencies/gold/gold_plus_base.webp',
-  magic: 'img/currencies/magic/magic_plus_base.webp',
-  gears: 'img/currencies/gear/gear_plus_base.webp',
-  waves: 'img/currencies/wave/wave_plus_base.webp',
-  dna: 'img/currencies/dna/dna_plus_base.webp',
-};
-
-const ICONS = {
-  rainbowGems: 'img/currencies/rainbow_gem.webp',
-  coins: 'img/currencies/coin/coin.webp',
-  books: 'img/currencies/book/book.webp',
-  gold: 'img/currencies/gold/gold.webp',
-  magic: 'img/currencies/magic/magic.webp',
-  gears: 'img/currencies/gear/gear.webp',
-  waves: 'img/currencies/wave/wave.webp',
-  dna: 'img/currencies/dna/dna.webp',
-};
-
 // Returns a key like "currency_coins_popups"
 function getToggleKey(currency, type) {
   return `currency_${currency}_${type}`;
@@ -377,11 +354,11 @@ function populateCurrenciesOverlay(overlayEl) {
   currenciesList.forEach(currency => {
     const val = bank[currency]?.value;
     const amountStr = formatNumber(val);
-    const iconSrc = ICONS[currency] || 'img/misc/mysterious.webp';
-    const baseSrc = BASE_ICONS[currency] || 'img/misc/locked.webp';
+    const config = RESOURCE_REGISTRY.find(c => c.key === currency);
+    const iconSrc = config?.icon || "img/misc/mysterious.webp";
+    const baseSrc = config?.baseIcon || "img/misc/locked.webp";
     
     let displayName = currency === 'dna' ? 'DNA' : currency.charAt(0).toUpperCase() + currency.slice(1);
-    const config = RESOURCE_REGISTRY.find(c => c.key === currency);
     if (config) {
         let isOne = false;
         if (val instanceof BigNum) {
