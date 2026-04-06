@@ -14,7 +14,7 @@ export const ACHIEVEMENT_STATES = {
 
 export const ACHIEVEMENTS = [
     {
-        id: 'unlock_mp',
+        id: 1,
         title: 'Forged',
         desc: 'Perform a Forge reset',
         rewardText: 'nothing',
@@ -22,7 +22,7 @@ export const ACHIEVEMENTS = [
         checkCondition: () => hasDoneForgeReset()
     },
     {
-        id: 'unlock_workshop',
+        id: 2,
         title: 'Infused',
         desc: 'Perform an Infuse reset',
         rewardText: 'nothing',
@@ -30,7 +30,7 @@ export const ACHIEVEMENTS = [
         checkCondition: () => hasDoneInfuseReset()
     },
         {
-        id: 'unlock_warp',
+        id: 3,
         title: 'Surged',
         desc: 'Perform a Surge reset',
         rewardText: 'nothing',
@@ -38,7 +38,7 @@ export const ACHIEVEMENTS = [
         checkCondition: () => hasDoneSurgeReset()
     },
     {
-        id: 'unlock_lab',
+        id: 4,
         title: 'What Once Was Lost',
         desc: 'Unlock the Lab tab',
         rewardText: 'nothing',
@@ -54,7 +54,7 @@ export const ACHIEVEMENTS = [
         }
     },
     {
-        id: 'unlock_experiment',
+        id: 5,
         title: 'A Scientific Experiment',
         desc: 'Perform an Experiment reset',
         rewardText: 'nothing',
@@ -67,7 +67,7 @@ export const ACHIEVEMENTS = [
         }
     },
     {
-        id: 'unlock_flow',
+        id: 6,
         title: 'Flowing',
         desc: 'Unlock the Flow tab',
         rewardText: 'nothing',
@@ -80,7 +80,7 @@ export const ACHIEVEMENTS = [
         }
     },
     {
-        id: 'evolve_upgrade',
+        id: 7,
         title: 'Evolutionary',
         desc: 'Evolve an upgrade',
         rewardText: 'nothing',
