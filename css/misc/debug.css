@@ -447,13 +447,12 @@
 }
 
 .debug-panel-row label {
-    flex: 1 1 auto;
+    flex: 1;
     font-size: 0.95em;
-    white-space: nowrap;
 }
 
 .debug-panel-input {
-    flex: 0 1 auto;
+    flex: 0 0 245px;
     max-width: 100%;
     background: #111;
     color: #fff;
@@ -568,10 +567,7 @@
 
 .debug-panel-input.debug-reset-values-select {
     box-sizing: border-box;
-    flex: 0 1 auto;
-    width: auto;
-    max-width: 100%;
-    text-overflow: ellipsis;
+    flex: 0 0 230px;
 
     /* Custom scrollbar (matches other debug panel scroll areas) */
     scrollbar-width: thin;
