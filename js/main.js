@@ -623,8 +623,9 @@ images: [
   'img/currencies/wave/wave_base.webp',
   'img/currencies/wave/wave_plus_base.webp',
   
-  // rainbow gem
+  // gems
   'img/currencies/rainbow_gem.webp',
+  'img/currencies/void_gem.webp',
 
   // ==== img/misc ====
   'img/misc/evolve_achievement_icon.webp',
