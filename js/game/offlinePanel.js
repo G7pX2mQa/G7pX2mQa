@@ -93,6 +93,7 @@ export function formatTimeCompact(ms) {
 
 // Visual Priority Map
 export const RESOURCE_REGISTRY = [
+    { key: 'voidGems', bgGradient: 'black', icon: 'img/currencies/void_gem.webp', baseIcon: 'img/currencies/void_gem.webp', noPlusBase: true, singular: 'Void Gem', plural: 'Void Gems', type: 'currency' },
     { key: 'rainbowGems', bgGradient: 'linear-gradient(to bottom in oklch, #ff0000, #ff8800, #ffff00, #00ff00, #00ffff, #0000ff, #a000ff, #ff00ff)', icon: 'img/currencies/rainbow_gem.webp', baseIcon: 'img/currencies/rainbow_gem.webp', noPlusBase: true, singular: 'Rainbow Gem', plural: 'Rainbow Gems', type: 'currency' },
     { key: 'coins', bgGradient: 'linear-gradient(to bottom, #d1a008 0%, #e3b527 15%, #ffd34c 50%, #e3b527 85%, #d1a008 100%)',      icon: 'img/currencies/coin/coin.webp', baseIcon: 'img/currencies/coin/coin_plus_base.webp',   singular: 'Coin',     plural: 'Coins', type: 'currency' },
     { 
