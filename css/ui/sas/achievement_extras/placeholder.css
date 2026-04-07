@@ -1,0 +1,14 @@
+/* css/ui/sas/achievement_extras/placeholder.css */
+
+/* Delete this file eventually and replace it with a rainbow gem shop css file, of which the following css would go in */
+
+.ae-tab-content {
+    color: white;
+    text-align: center;
+    padding: 20px;
+    font-size: 1.2rem;
+}
+
+#achievement-extras-overlay {
+    z-index: 4020;
+}
