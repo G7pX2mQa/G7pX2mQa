@@ -3,6 +3,7 @@ import { ACHIEVEMENTS, ACHIEVEMENT_STATES, getAchievementState, setAchievementSt
 import { getActiveSlot, bank } from '../../util/storage.js';
 import { playAudio } from "../../util/audioManager.js";
 import { playPurchaseSfx } from '../shopOverlay.js';
+import { openAchievementExtras } from './achievementExtras/rainbowGemShopTab.js';
 
 const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
 
@@ -130,6 +131,7 @@ const achievementsOverlay = createSASOverlay({
                 const slot = getActiveSlot();
                 localStorage.setItem(`ccc:achievements:delveClicked:${slot}`, '1');
                 updateDelveButton(delveBtn);
+                openAchievementExtras();
             });
 
             actionsContainer.appendChild(delveBtn);
