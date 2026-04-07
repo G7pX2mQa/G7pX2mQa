@@ -32,7 +32,7 @@ function renderAchievements(gridEl) {
 
         tile.appendChild(iconImg);
 
-        if (state === ACHIEVEMENT_STATES.CLAIMED) {
+        if (state === ACHIEVEMENT_STATES.ACHIEVED) {
             const maxedOverlay = document.createElement('img');
             maxedOverlay.className = 'maxed-overlay';
             maxedOverlay.alt = '';
@@ -55,9 +55,9 @@ function renderAchievements(gridEl) {
             badge.textContent = 'Pending Claim';
             badge.classList.add('can-buy');
             btn.title = achievement.title;
-        } else if (state === ACHIEVEMENT_STATES.CLAIMED) {
+        } else if (state === ACHIEVEMENT_STATES.ACHIEVED) {
             btn.classList.add('is-claimed');
-            badge.textContent = 'Claimed';
+            badge.textContent = 'Achieved';
             badge.classList.add('is-maxed');
             btn.title = achievement.title;
         }
@@ -80,7 +80,7 @@ function renderAchievements(gridEl) {
                 if (achievement.rewardAmount && bank.rainbowGems) {
                     bank.rainbowGems.add(achievement.rewardAmount);
                 }
-                setAchievementState(achievement.id, ACHIEVEMENT_STATES.CLAIMED, slot);
+                setAchievementState(achievement.id, ACHIEVEMENT_STATES.ACHIEVED, slot);
                 playPurchaseSfx();
                 renderAchievements(gridEl);
             }
@@ -206,7 +206,7 @@ function openAchievementDetails(achievement) {
 
     header.innerHTML = `
         <div class="upg-title">${achievement.title}</div>
-        <div class="upg-level">${state === ACHIEVEMENT_STATES.CLAIMED ? '(Claimed)' : state === ACHIEVEMENT_STATES.PENDING_CLAIM ? 'Pending Claim' : 'Not Owned'}</div>
+        <div class="upg-level">${state === ACHIEVEMENT_STATES.ACHIEVED ? 'Achieved' : state === ACHIEVEMENT_STATES.PENDING_CLAIM ? 'Pending Claim' : 'Not Owned'}</div>
     `;
 
     let contentHtml = `
@@ -235,13 +235,13 @@ function openAchievementDetails(achievement) {
             if (achievement.rewardAmount && bank.rainbowGems) {
                 bank.rainbowGems.add(achievement.rewardAmount);
             }
-            setAchievementState(achievement.id, ACHIEVEMENT_STATES.CLAIMED, slot);
+            setAchievementState(achievement.id, ACHIEVEMENT_STATES.ACHIEVED, slot);
             playPurchaseSfx();
             if (currentGrid) renderAchievements(currentGrid);
-            // Also update the header level to '(Claimed)' so it visually reflects the change
+            // Also update the header level to 'Achieved' so it visually reflects the change
             const headerLevel = overlay.querySelector('.upg-level');
             if (headerLevel) {
-                headerLevel.textContent = 'Claimed';
+                headerLevel.textContent = 'Achieved';
             }
             // Remove the claim button from the DOM since it's now claimed
             claimBtn.remove();
