@@ -9,7 +9,7 @@ import { showNotification } from '../ui/notifications.js';
 export const ACHIEVEMENT_STATES = {
     NOT_OWNED: 0,
     PENDING_CLAIM: 1,
-    CLAIMED: 2
+    ACHIEVED: 2
 };
 
 export const ACHIEVEMENTS = [
