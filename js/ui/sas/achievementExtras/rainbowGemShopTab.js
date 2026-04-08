@@ -350,21 +350,21 @@ export function updateRainbowGemShopTab() {
             tile.className = 'shop-tile';
             
             const iconImg = document.createElement('img');
-            iconImg.className = 'icon';
+            iconImg.className = 'base';
             iconImg.src = upg.iconPath || 'img/currencies/coin/coin.webp';
             iconImg.alt = upg.title;
 
             const maxedBorder = document.createElement('img');
-            maxedBorder.className = 'base'; // Using base class to position it same as base icons
+            maxedBorder.className = 'maxed-overlay'; // Using base class to position it same as base icons
             maxedBorder.src = 'img/misc/maxed.webp';
             maxedBorder.alt = '';
             maxedBorder.style.display = 'none'; // Hidden by default
             
-            tile.appendChild(maxedBorder);
             tile.appendChild(iconImg);
+            tile.appendChild(maxedBorder);
             
             const badge = document.createElement('div');
-            badge.className = 'shop-badge';
+            badge.className = 'level-badge text-badge';
             badge.textContent = 'Not Owned';
             
             btn.appendChild(tile);
@@ -391,13 +391,13 @@ export function updateRainbowGemShopTab() {
         const lvlNum = getLevelNumber(RAINBOW_GEM_AREA_KEY, upg.id);
         const isOwned = lvlNum > 0;
         
-        const badge = btn.querySelector('.shop-badge');
+        const badge = btn.querySelector('.level-badge');
         if (badge) {
             badge.textContent = isOwned ? 'Owned' : 'Not Owned';
-            badge.classList.toggle('maxed', isOwned);
+            badge.classList.toggle('is-maxed', isOwned);
         }
         
-        const maxedBorder = btn.querySelector('.base');
+        const maxedBorder = btn.querySelector('.maxed-overlay');
         if (maxedBorder) {
             maxedBorder.style.display = isOwned ? 'block' : 'none';
         }
