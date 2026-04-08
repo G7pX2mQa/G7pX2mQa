@@ -13,7 +13,7 @@ export const RAINBOW_GEM_UPGRADES = [
     costType: "rainbowGems",
     upgType: "NM",
     costAtLevel: () => 100,
-    iconPath: "img/currencies/coin/coin.webp",
+    icon: "img/currencies/coin/coin.webp",
     onLevelChange(payload) {
       if (typeof document === 'undefined') return;
       if (payload.newLevel >= 1) {
@@ -32,7 +32,7 @@ export const RAINBOW_GEM_UPGRADES = [
     costType: "rainbowGems",
     upgType: "NM",
     costAtLevel: () => 100,
-    iconPath: "img/currencies/coin/coin.webp"
+    icon: "img/currencies/coin/coin.webp"
   },
   {
     area: RAINBOW_GEM_AREA_KEY,
@@ -43,7 +43,7 @@ export const RAINBOW_GEM_UPGRADES = [
     costType: "rainbowGems",
     upgType: "NM",
     costAtLevel: () => 100,
-    iconPath: "img/currencies/coin/coin.webp"
+    icon: "img/currencies/coin/coin.webp"
   },
   {
     area: RAINBOW_GEM_AREA_KEY,
@@ -54,7 +54,7 @@ export const RAINBOW_GEM_UPGRADES = [
     costType: "rainbowGems",
     upgType: "NM",
     costAtLevel: () => 200,
-    iconPath: "img/currencies/coin/coin.webp",
+    icon: "img/currencies/coin/coin.webp",
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 2) {
@@ -90,7 +90,7 @@ export const RAINBOW_GEM_UPGRADES = [
     costType: "rainbowGems",
     upgType: "NM",
     costAtLevel: () => 200,
-    iconPath: "img/currencies/coin/coin.webp",
+    icon: "img/currencies/coin/coin.webp",
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 2) {
@@ -118,7 +118,7 @@ export const RAINBOW_GEM_UPGRADES = [
     costType: "rainbowGems",
     upgType: "NM",
     costAtLevel: () => 200,
-    iconPath: "img/currencies/coin/coin.webp",
+    icon: "img/currencies/coin/coin.webp",
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 2) {
