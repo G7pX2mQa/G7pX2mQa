@@ -369,11 +369,16 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     const nextLevel = settingsManager.get('magnet_radius');
     magnetLevel = nextLevel;
     radiusPx = magnetLevel * unitPx;
-    if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 3) >= 1) {
+    
+    // Clear both classes first
+    indicator.classList.remove('magnet-bronze', 'magnet-silver');
+    
+    if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 6) >= 1) {
+      indicator.classList.add('magnet-silver');
+    } else if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 3) >= 1) {
       indicator.classList.add('magnet-bronze');
-    } else {
-      indicator.classList.remove('magnet-bronze');
     }
+
     updateIndicator();
     ensureSweepLoop();
   };
