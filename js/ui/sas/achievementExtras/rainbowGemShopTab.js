@@ -1,5 +1,12 @@
 import { getActiveSlot, bank } from '../../../util/storage.js';
 import { IS_MOBILE } from '../../../main.js';
+
+import { BigNum } from '../../../util/bigNum.js';
+import { formatNumber } from '../../../util/numFormat.js';
+import { getLevel, getLevelNumber, evaluateBulkPurchase, buyMax, getUpgradeLockState, AREA_KEYS } from '../../../game/upgrades.js';
+import { openUpgradeOverlay, playPurchaseSfx } from '../../shopOverlay.js';
+import { RAINBOW_GEM_UPGRADES, RAINBOW_GEM_AREA_KEY } from '../../../game/rainbowGemUpgrades.js';
+
 import { blockInteraction } from '../../shopOverlay.js';
 import { shouldSkipGhostTap, suppressNextGhostTap } from '../../../util/ghostTapGuard.js';
 import { ensureCustomScrollbar } from '../../shopOverlay.js';
@@ -233,6 +240,12 @@ export function ensureOverlay() {
                 syncVoidTabUnlockState();
             }
         });
+        
+        document.addEventListener('ccc:upgrades:changed', () => {
+             if (isOpen && tabsState.panels['rainbow']?.classList.contains('is-active')) {
+                 updateRainbowGemShopTab();
+             }
+        });
     }
 }
 
@@ -305,12 +318,99 @@ export function closeOverlay(force = false) {
     }, 150);
 }
 
+
 export function initRainbowGemShopTab(panel) {
     if (!panel || panel.__rgInit) return;
     panel.__rgInit = true;
-    panel.innerHTML = `<div class="ae-tab-content">Rainbow Gem Shop content coming soon...</div>`;
+    panel.innerHTML = `
+        <div class="shop-scroller" style="height: 100%; position: relative;">
+            <div class="shop-grid" role="grid" id="ae-rainbow-shop-grid"></div>
+        </div>
+    `;
+    ensureCustomScrollbar(panel, panel, '.shop-scroller');
 }
 
+
+
 export function updateRainbowGemShopTab() {
-    // UI update logic here
+    const grid = document.getElementById('ae-rainbow-shop-grid');
+    if (!grid) return;
+
+    for (const upg of RAINBOW_GEM_UPGRADES) {
+        let btn = grid.querySelector(`.shop-upgrade[data-upgid="${upg.id}"]`);
+        
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.className = 'shop-upgrade';
+            btn.setAttribute('data-upgid', upg.id);
+            btn.type = 'button';
+            btn.setAttribute('role', 'gridcell');
+            
+            const tile = document.createElement('div');
+            tile.className = 'shop-tile';
+            
+            const iconImg = document.createElement('img');
+            iconImg.className = 'icon';
+            iconImg.src = upg.iconPath || 'img/currencies/coin/coin.webp';
+            iconImg.alt = upg.title;
+
+            const maxedBorder = document.createElement('img');
+            maxedBorder.className = 'base'; // Using base class to position it same as base icons
+            maxedBorder.src = 'img/misc/maxed.webp';
+            maxedBorder.alt = '';
+            maxedBorder.style.display = 'none'; // Hidden by default
+            
+            tile.appendChild(maxedBorder);
+            tile.appendChild(iconImg);
+            
+            const badge = document.createElement('div');
+            badge.className = 'shop-badge';
+            badge.textContent = 'Not Owned';
+            
+            btn.appendChild(tile);
+            btn.appendChild(badge);
+            grid.appendChild(btn);
+
+            btn.addEventListener('click', (event) => {
+                if (btn.disabled) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    return;
+                }
+                if (shouldSkipGhostTap(btn)) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    return;
+                }
+                
+                openUpgradeOverlay(upg, 'rainbow_gem_shop');
+            });
+        }
+        
+        // Update state
+        const lvlNum = getLevelNumber(RAINBOW_GEM_AREA_KEY, upg.id);
+        const isOwned = lvlNum > 0;
+        
+        const badge = btn.querySelector('.shop-badge');
+        if (badge) {
+            badge.textContent = isOwned ? 'Owned' : 'Not Owned';
+            badge.classList.toggle('maxed', isOwned);
+        }
+        
+        const maxedBorder = btn.querySelector('.base');
+        if (maxedBorder) {
+            maxedBorder.style.display = isOwned ? 'block' : 'none';
+        }
+
+        const lockState = getUpgradeLockState(RAINBOW_GEM_AREA_KEY, upg.id);
+        const locked = !!lockState.locked;
+        if (locked) {
+            btn.dataset.locked = '1';
+            btn.classList.add('is-locked');
+            if (badge) badge.textContent = 'Locked';
+        } else {
+            btn.dataset.locked = '0';
+            btn.classList.remove('is-locked');
+        }
+    }
 }
