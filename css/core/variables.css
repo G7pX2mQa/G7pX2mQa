@@ -41,3 +41,7 @@
   --body: 1rem;
   --tiny: .8rem;
 }
+
+body.font-times-new-roman {
+  --font-ui: "Times New Roman", Times, serif;
+}
