@@ -1,0 +1,38 @@
+/* css/ui/sas/achievement_extras/rainbow_gem_shop.css */
+
+
+
+.ae-tab-content {
+    color: white;
+    text-align: center;
+    padding: 20px;
+    font-size: 1.2rem;
+}
+
+#achievement-extras-overlay {
+    z-index: 4020;
+}
+#ae-rainbow-shop-grid {
+  --shop-tile: clamp(84px, 24vw, 128px);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  #ae-rainbow-shop-grid {
+    --grid-pad: clamp(2px, 2.5vw, 8px);
+    --gap: clamp(8px, 3.5vw, 14px);
+    --cols: 3;
+    --shop-scroller-pad: clamp(2px, 2.5vw, 8px);
+    
+    --tile-fit: calc(
+      (100vw - env(safe-area-inset-left) - env(safe-area-inset-right)
+        - (2 * var(--shop-scroller-pad))
+        - (2 * var(--grid-pad))
+        - ((var(--cols) - 1) * var(--gap))
+      ) / var(--cols)
+    );
+    --shop-tile: clamp(72px, var(--tile-fit), 124px);
+    padding-inline: var(--grid-pad);
+    gap: var(--gap);
+    box-sizing: border-box;
+  }
+}
