@@ -79,6 +79,7 @@ const CURRENCY_ICON_SRC = {
   magic: 'img/currencies/magic/magic.webp',
   gears: 'img/currencies/gear/gear.webp',
   dna: 'img/currencies/dna/dna.webp',
+  rainbowGems: 'img/currencies/rainbow_gem.webp',
 };
 
 const FORGE_UNLOCK_UPGRADE_ID = 7;
@@ -282,6 +283,7 @@ export function getCurrencyLabel(type, amountBn) {
   if (type === 'coins') return isOne ? 'Coin' : 'Coins';
   if (type === 'books') return isOne ? 'Book' : 'Books';
   if (type === 'gears') return isOne ? 'Gear' : 'Gears';
+  if (type === 'rainbowGems') return isOne ? 'Rainbow Gem' : 'Rainbow Gems';
   
   return type ? (type.charAt(0).toUpperCase() + type.slice(1)) : '';
 }
@@ -1466,7 +1468,10 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       const level = ensureChild(header, 'upg-level');
       const capHtml = model.lvlCapFmtHtml ?? model.upg.lvlCapFmtHtml ?? formatNumber(model.lvlCapBn);
       const capPlain = model.lvlCapFmtText ?? model.upg.lvlCapFmtText ?? stripTags(capHtml);
-      const levelHtml = evolveReady ? `Level ${model.lvlFmtHtml} / ${capHtml} (EVOLVE READY)` : (capReached ? `Level ${model.lvlFmtHtml} / ${capHtml} (MAXED)` : `Level ${model.lvlFmtHtml} / ${capHtml}`);
+      let levelHtml = evolveReady ? `Level ${model.lvlFmtHtml} / ${capHtml} (EVOLVE READY)` : (capReached ? `Level ${model.lvlFmtHtml} / ${capHtml} (MAXED)` : `Level ${model.lvlFmtHtml} / ${capHtml}`);
+      if (mode === 'rainbow_gem_shop') {
+          levelHtml = capReached ? 'Owned' : 'Not Owned';
+      }
       const levelPlain = stripTags(levelHtml);
       if (level.innerHTML !== levelHtml) level.innerHTML = levelHtml;
       if (level.getAttribute('aria-label') !== levelPlain) level.setAttribute('aria-label', levelPlain);
