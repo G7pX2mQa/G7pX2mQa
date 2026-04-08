@@ -1,6 +1,8 @@
 // js/game/cursorTrail.js
 
 import { settingsManager } from './settingsManager.js';
+import { getLevelNumber } from './upgrades.js';
+import { RAINBOW_GEM_AREA_KEY } from './rainbowGemUpgrades.js';
 
 export function createCursorTrail(playfield) {
   if (!playfield || typeof window === 'undefined') {
@@ -70,13 +72,22 @@ export function createCursorTrail(playfield) {
   texture.height = TEXTURE_SIZE;
   const tCtx = texture.getContext('2d');
   
-  tCtx.shadowColor = '#FFEB3B';
-  tCtx.shadowBlur = GLOW_RADIUS;
-  tCtx.fillStyle = '#FFEB3B';
+  const generateTexture = () => {
+    tCtx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+    let color = '#FFEB3B';
+    if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 2) >= 1) {
+      color = '#cd7f32';
+    }
+    tCtx.shadowColor = color;
+    tCtx.shadowBlur = GLOW_RADIUS;
+    tCtx.fillStyle = color;
+    
+    tCtx.beginPath();
+    tCtx.arc(CENTER, CENTER, PARTICLE_RADIUS, 0, Math.PI * 2);
+    tCtx.fill();
+  };
   
-  tCtx.beginPath();
-  tCtx.arc(CENTER, CENTER, PARTICLE_RADIUS, 0, Math.PI * 2);
-  tCtx.fill();
+  generateTexture();
 
   // --- Interaction State ---
   let pointerInside = false;
@@ -366,6 +377,8 @@ export function createCursorTrail(playfield) {
   playfield.addEventListener('pointerleave', onPointerLeave, opts);
   playfield.addEventListener('pointercancel', onPointerLeave, opts);
 
+  document.addEventListener('ccc:upgrades:changed', generateTexture);
+
   resize();
   rafId = requestAnimationFrame(loop);
 
@@ -386,6 +399,7 @@ export function createCursorTrail(playfield) {
     try { window.removeEventListener('scroll', updateBounds); } catch {}
     try { window.removeEventListener('focus', updateBounds); } catch {}
     try { document.removeEventListener('visibilitychange', updateBounds); } catch {}
+    try { document.removeEventListener('ccc:upgrades:changed', generateTexture); } catch {}
     
     try {
       playfield.removeEventListener('pointermove', onPointerMove);
