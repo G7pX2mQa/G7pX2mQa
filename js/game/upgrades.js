@@ -26,6 +26,7 @@ import {
 import { REGISTRY as AUTOMATION_REGISTRY, AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
 import { getEacAmountMultiplier } from './automationEffects.js';
 import { REGISTRY as DNA_REGISTRY, DNA_AREA_KEY } from './dnaUpgrades.js';
+import { RAINBOW_GEM_UPGRADES, RAINBOW_GEM_AREA_KEY } from './rainbowGemUpgrades.js';
 import {
   invalidateEffectsCache,
   triggerUpgradesChanged,
@@ -3135,6 +3136,7 @@ export const REGISTRY = [
   },
   ...AUTOMATION_REGISTRY,
   ...DNA_REGISTRY,
+  ...RAINBOW_GEM_UPGRADES,
 
 ];
 for (const upg of REGISTRY) {
