@@ -606,7 +606,7 @@ function levelsRemainingToCap(upg, currentLevelBn, currentLevelNumber) {
   return BigNum.fromInt(room);
 }
 
-function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
+export function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn) {
   let lvlBn;
   try { lvlBn = currentLevelBn instanceof BigNum ? currentLevelBn : BigNum.fromAny(currentLevelBn ?? currentLevelNumeric ?? 0); }
   catch { const fallback = Math.max(0, Math.floor(Number(currentLevelNumeric) || 0)); lvlBn = BigNum.fromInt(fallback); }
