@@ -57,6 +57,7 @@ export const AREA_KEYS = {
   STARTER_COVE: 'starter_cove',
   AUTOMATION: AUTOMATION_AREA_KEY,
   DNA: DNA_AREA_KEY,
+  RAINBOW_GEM_SHOP: RAINBOW_GEM_AREA_KEY,
 };
 
 let isBatching = false;
