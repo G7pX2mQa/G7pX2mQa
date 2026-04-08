@@ -351,7 +351,7 @@ export function updateRainbowGemShopTab() {
             
             const iconImg = document.createElement('img');
             iconImg.className = 'base';
-            iconImg.src = upg.iconPath || 'img/currencies/coin/coin.webp';
+            iconImg.src = upg.icon || 'img/currencies/coin/coin.webp';
             iconImg.alt = upg.title;
             iconImg.style.borderRadius = '50%';
 
