@@ -1,6 +1,8 @@
 import { settingsManager } from './settingsManager.js';
 import { initPinnedCurrencies, initPinnedLevels } from '../ui/currencyAndLevelPins.js';
 import { RESOURCE_REGISTRY } from './offlinePanel.js';
+import { getLevelNumber } from './upgrades.js';
+import { RAINBOW_GEM_AREA_KEY } from './rainbowGemUpgrades.js';
 
 export function ensureGameDom(layerCount, startZ) {
   if (document.getElementById('game-root')) return;
@@ -131,5 +133,10 @@ export function ensureGameDom(layerCount, startZ) {
           if (mpConfig.glassBg) mpFill.style.setProperty('--glass-bg', mpConfig.glassBg);
           if (mpConfig.glassOpacity) mpFill.style.setProperty('--glass-opacity', mpConfig.glassOpacity);
       }
+  }
+
+  // Apply rainbow gem upgrades effects on load
+  if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 1) >= 1) {
+    document.body.classList.add('font-times-new-roman');
   }
 }
