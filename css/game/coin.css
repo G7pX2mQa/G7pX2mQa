@@ -38,6 +38,12 @@
   box-shadow: 0 0 20px 4px #cd7f32f2, inset 0 0 36px #cd7f32c7;
 }
 
+.area-cove .magnet-indicator.magnet-silver {
+  background-color: #c0c0c026;
+  border: 2px solid rgb(192 192 192);
+  box-shadow: 0 0 20px 4px #c0c0c0f2, inset 0 0 36px #c0c0c0c7;
+}
+
 /* Surge 2 Coin Sizes & Effects */
 /* Layering: Active coins sit just above their settled counterparts (z=10,20,etc) but below larger coins */
 .coin--size-0 { z-index: 11; }
