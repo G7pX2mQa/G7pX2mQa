@@ -45,3 +45,7 @@
 body.font-times-new-roman {
   --font-ui: "Times New Roman", Times, serif;
 }
+
+body.font-arial {
+  --font-ui: 'Arial', sans-serif;
+}
