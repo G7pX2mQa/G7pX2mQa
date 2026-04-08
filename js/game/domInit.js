@@ -139,4 +139,7 @@ export function ensureGameDom(layerCount, startZ) {
   if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 1) >= 1) {
     document.body.classList.add('font-times-new-roman');
   }
+  if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 4) >= 1) {
+    document.body.classList.add('font-arial');
+  }
 }
