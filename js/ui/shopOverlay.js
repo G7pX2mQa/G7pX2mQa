@@ -208,6 +208,19 @@ const SHOP_ADAPTERS = {
         getLockState: (id) => getUpgradeLockState(DNA_AREA_KEY, id),
         evolve: (id) => evolveUpgrade(DNA_AREA_KEY, id),
         events: ['ccc:upgrades:changed', 'currency:change']
+    },
+    rainbow_gem_shop: {
+        title: 'Rainbow Gem Shop',
+        delveButtonVisible: false,
+        getUiData: () => getShopUiData('rainbow_gem_shop'),
+        getUiModel: (id) => upgradeUiModel('rainbow_gem_shop', id),
+        buyOne: (id) => buyOne('rainbow_gem_shop', id),
+        buyMax: (id) => buyMax('rainbow_gem_shop', id),
+        buyCheap: (id) => buyCheap('rainbow_gem_shop', id),
+        buyNext: (id, amount) => buyTowards('rainbow_gem_shop', id, amount),
+        getLockState: (id) => getUpgradeLockState('rainbow_gem_shop', id),
+        evolve: (id) => evolveUpgrade('rainbow_gem_shop', id),
+        events: ['ccc:upgrades:changed', 'currency:change']
     }
 };
 
