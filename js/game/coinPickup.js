@@ -13,7 +13,8 @@ import {
   onMutationChange,
   computeMutationMultiplierForLevel,
 } from './mutationSystem.js';
-import { getMpValueMultiplierBn, getMagnetLevel } from './upgrades.js';
+import { getMpValueMultiplierBn, getMagnetLevel, getLevelNumber } from './upgrades.js';
+import { RAINBOW_GEM_AREA_KEY } from './rainbowGemUpgrades.js';
 import { createCursorTrail } from './cursorTrail.js';
 import { playAudio } from '../util/audioManager.js';
 import { onCoinCollected } from './comboSystem.js';
@@ -368,6 +369,11 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     const nextLevel = settingsManager.get('magnet_radius');
     magnetLevel = nextLevel;
     radiusPx = magnetLevel * unitPx;
+    if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 3) >= 1) {
+      indicator.classList.add('magnet-bronze');
+    } else {
+      indicator.classList.remove('magnet-bronze');
+    }
     updateIndicator();
     ensureSweepLoop();
   };
