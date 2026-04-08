@@ -75,8 +75,10 @@ export function createCursorTrail(playfield) {
   const generateTexture = () => {
     tCtx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
     let color = '#FFEB3B';
-    if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 2) >= 1) {
-      color = '#cd7f32';
+    if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 5) >= 1) {
+      color = '#c0c0c0'; // Silver
+    } else if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 2) >= 1) {
+      color = '#cd7f32'; // Bronze
     }
     tCtx.shadowColor = color;
     tCtx.shadowBlur = GLOW_RADIUS;
