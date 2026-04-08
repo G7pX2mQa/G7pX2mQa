@@ -1,134 +1,456 @@
-export const RAINBOW_GEM_AREA_KEY = 'rainbow_gem_shop';
+import { getActiveSlot, bank } from '../../../util/storage.js';
+import { IS_MOBILE } from '../../../main.js';
 
-export const RAINBOW_GEM_UPGRADES = [
-  {
-    area: RAINBOW_GEM_AREA_KEY,
-    id: 1,
-    title: "Classic Font",
-    desc: "Changes the game's font to Times New Roman.",
-    lvlCap: 1,
-    costType: "rainbowGems",
-    upgType: "NM",
-    costAtLevel: () => 100,
-    iconPath: "img/currencies/coin/coin.webp",
-    onLevelChange(payload) {
-      if (typeof document === 'undefined') return;
-      if (payload.newLevel >= 1) {
-        document.body.classList.add('font-times-new-roman');
-      } else {
-        document.body.classList.remove('font-times-new-roman');
-      }
-    }
-  },
-  {
-    area: RAINBOW_GEM_AREA_KEY,
-    id: 2,
-    title: "Bronze Trail",
-    desc: "Changes the cursor trail color to bronze.",
-    lvlCap: 1,
-    costType: "rainbowGems",
-    upgType: "NM",
-    costAtLevel: () => 100,
-    iconPath: "img/currencies/coin/coin.webp"
-  },
-  {
-    area: RAINBOW_GEM_AREA_KEY,
-    id: 3,
-    title: "Bronze Magnet",
-    desc: "Changes the magnet radius indicator color to bronze.",
-    lvlCap: 1,
-    costType: "rainbowGems",
-    upgType: "NM",
-    costAtLevel: () => 100,
-    iconPath: "img/currencies/coin/coin.webp"
-  },
-  {
-    area: RAINBOW_GEM_AREA_KEY,
-    id: 4,
-    title: "Arial Font",
-    desc: "Changes the game's font to Arial.",
-    lvlCap: 1,
-    costType: "rainbowGems",
-    upgType: "NM",
-    costAtLevel: () => 200,
-    iconPath: "img/currencies/coin/coin.webp",
-    computeLockState(ctx) {
-      if (!ctx.hasLevel('mutation', 2, true)) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 2 to reveal this upgrade",
-          titleOverride: "???",
-          descOverride: "Reach Mutation Level 2 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
-      }
-      return { locked: false, hidden: false };
-    },
-    onLevelChange(payload) {
-      if (typeof document === 'undefined') return;
-      if (payload.newLevel >= 1) {
-        document.body.classList.add('font-arial');
-      } else {
-        document.body.classList.remove('font-arial');
-      }
-    }
-  },
-  {
-    area: RAINBOW_GEM_AREA_KEY,
-    id: 5,
-    title: "Silver Trail",
-    desc: "Changes the cursor trail color to silver.",
-    lvlCap: 1,
-    costType: "rainbowGems",
-    upgType: "NM",
-    costAtLevel: () => 200,
-    iconPath: "img/currencies/coin/coin.webp",
-    computeLockState(ctx) {
-      if (!ctx.hasLevel('mutation', 2, true)) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 2 to reveal this upgrade",
-          titleOverride: "???",
-          descOverride: "Reach Mutation Level 2 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
-      }
-      return { locked: false, hidden: false };
-    }
-  },
-  {
-    area: RAINBOW_GEM_AREA_KEY,
-    id: 6,
-    title: "Silver Magnet",
-    desc: "Changes the magnet radius indicator color to silver.",
-    lvlCap: 1,
-    costType: "rainbowGems",
-    upgType: "NM",
-    costAtLevel: () => 200,
-    iconPath: "img/currencies/coin/coin.webp",
-    computeLockState(ctx) {
-      if (!ctx.hasLevel('mutation', 2, true)) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 2 to reveal this upgrade",
-          titleOverride: "???",
-          descOverride: "Reach Mutation Level 2 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
-      }
-      return { locked: false, hidden: false };
-    }
-  }
+import { BigNum } from '../../../util/bigNum.js';
+import { formatNumber } from '../../../util/numFormat.js';
+import { getLevel, getLevelNumber, evaluateBulkPurchase, buyMax, getUpgradeLockState, AREA_KEYS } from '../../../game/upgrades.js';
+import { openUpgradeOverlay, playPurchaseSfx, computeAffordableLevels } from '../../shopOverlay.js';
+import { RAINBOW_GEM_UPGRADES, RAINBOW_GEM_AREA_KEY } from '../../../game/rainbowGemUpgrades.js';
+
+import { blockInteraction } from '../../shopOverlay.js';
+import { shouldSkipGhostTap, suppressNextGhostTap } from '../../../util/ghostTapGuard.js';
+import { ensureCustomScrollbar } from '../../shopOverlay.js';
+import { setupDragToClose } from '../../shopOverlay.js';
+
+// Import tabs logic
+import { initSecretAchievementsTab, updateSecretAchievementsTab } from './secretAchievementsTab.js';
+import { initVoidGemAltarTab, updateVoidGemAltarTab } from './voidGemAltarTab.js';
+
+const TAB_KEY_BASE = 'ccc:achievementExtrasTab';
+
+const TABS_DEF = [
+  { key: 'rainbow', label: 'Rainbow Gem Shop', unlocked: true },
+  { key: 'secret', label: 'Secret Achievements', unlocked: true },
+  { key: 'void', label: 'Void Gem Altar', unlocked: false, lockedLabel: '???' },
 ];
+
+const tabUnlockState = new Map();
+
+let overlayEl = null;
+let sheetEl = null;
+let closeBtn = null;
+let isOpen = false;
+let dragState = null;
+let lastFocus = null;
+let eventsBound = false;
+let tabsState = { buttons: {}, panels: {}, tablist: null };
+
+function sk(base) {
+    return `${base}:${getActiveSlot()}`;
+}
+
+function setTabUnlocked(key, unlocked) {
+  const def = TABS_DEF.find(t => t.key === key);
+  if (!def) return;
+
+  const lockedLabel = def.lockedLabel || '???';
+  const normalized = !!unlocked;
+  tabUnlockState.set(key, normalized);
+  def.unlocked = normalized;
+
+  const btn = tabsState.buttons[key];
+  if (btn) {
+    btn.disabled = !normalized;
+    btn.classList.toggle('is-locked', !normalized);
+    btn.textContent = normalized ? def.label : lockedLabel;
+    btn.title = normalized ? (def.label || 'Tab') : '???';
+  }
+
+  if (!normalized && tabsState.buttons[key]?.classList.contains('is-active')) {
+    selectTab('rainbow');
+  }
+}
+
+function syncVoidTabUnlockState() {
+    let unlocked = false;
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    const unlockKey = `ccc:unlock:voidGemAltar:${slot}`;
+    
+    try {
+        if (localStorage.getItem(unlockKey) === '1') {
+            unlocked = true;
+        } else {
+            if (bank.voidGems && bank.voidGems.value && bank.voidGems.value.cmp(0) > 0) {
+                unlocked = true;
+                localStorage.setItem(unlockKey, '1');
+            }
+        }
+    } catch {}
+
+    setTabUnlocked('void', unlocked);
+}
+
+function selectTab(key) {
+  const def = TABS_DEF.find(t => t.key === key);
+  const unlocked = tabUnlockState.get(key);
+  if (!def || !unlocked) key = 'rainbow';
+
+  for (const k in tabsState.buttons) {
+    tabsState.buttons[k].classList.toggle('is-active', k === key);
+  }
+  for (const k in tabsState.panels) {
+    tabsState.panels[k].classList.toggle('is-active', k === key);
+  }
+
+  if (key === 'rainbow') {
+      try { updateRainbowGemShopTab(); } catch {}
+  }
+  if (key === 'secret') {
+      try { updateSecretAchievementsTab(); } catch {}
+  }
+  if (key === 'void') {
+      try { updateVoidGemAltarTab(); } catch {}
+  }
+
+  try { localStorage.setItem(sk(TAB_KEY_BASE), key); } catch {}
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const scroller = overlayEl?.querySelector(".merchant-content");
+      if (scroller && scroller.__customScroll && typeof scroller.__customScroll.updateAll === "function") {
+        scroller.__customScroll.updateAll();
+      }
+    });
+  });
+}
+
+
+export function ensureOverlay() {
+    if (overlayEl) return;
+
+    overlayEl = document.createElement('div');
+    overlayEl.className = 'merchant-overlay'; // Reusing merchant overlay classes for structural similarity
+    overlayEl.id = 'achievement-extras-overlay';
+    overlayEl.setAttribute('inert', '');
+
+    sheetEl = document.createElement('div');
+    sheetEl.className = 'merchant-sheet';
+    sheetEl.setAttribute('role', 'dialog');
+    sheetEl.setAttribute('aria-modal', 'false');
+    sheetEl.setAttribute('aria-label', 'Achievement Extras');
+
+    const grabber = document.createElement('div');
+    grabber.className = 'merchant-grabber';
+    grabber.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
+
+    const header = document.createElement('header');
+    header.className = 'merchant-header';
+    header.innerHTML = `
+        <div class="merchant-title">Achievement Extras</div>
+        <div class="merchant-line" aria-hidden="true"></div>
+    `;
+
+    const content = document.createElement('div');
+    content.className = 'merchant-content';
+
+    const tabs = document.createElement('div');
+    tabs.className = 'merchant-tabs';
+    tabs.setAttribute('role', 'tablist');
+
+    const panelsWrap = document.createElement('div');
+    panelsWrap.className = 'merchant-panels';
+
+    const panelRainbow = document.createElement('section');
+    panelRainbow.className = 'merchant-panel is-active';
+    panelRainbow.id = 'ae-panel-rainbow';
+
+    const panelSecret = document.createElement('section');
+    panelSecret.className = 'merchant-panel';
+    panelSecret.id = 'ae-panel-secret';
+
+    const panelVoid = document.createElement('section');
+    panelVoid.className = 'merchant-panel';
+    panelVoid.id = 'ae-panel-void';
+
+    syncVoidTabUnlockState();
+
+    TABS_DEF.forEach(def => {
+        const stored = tabUnlockState.get(def.key) ?? !!def.unlocked;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'merchant-tab';
+        btn.dataset.tab = def.key;
+        
+        const lockedLabel = def.lockedLabel || '???';
+        btn.textContent = stored ? def.label : lockedLabel;
+        if (!stored) {
+            btn.classList.add('is-locked');
+            btn.disabled = true;
+            btn.title = '???';
+        } else {
+            btn.title = def.label || 'Tab';
+        }
+        
+        tabUnlockState.set(def.key, stored);
+
+        btn.addEventListener('click', (event) => {
+            if (btn.disabled) {
+                event?.preventDefault?.();
+                return;
+            }
+            if (shouldSkipGhostTap(btn)) {
+                event?.preventDefault?.();
+                return;
+            }
+            selectTab(def.key);
+        });
+
+        tabs.appendChild(btn);
+        tabsState.buttons[def.key] = btn;
+    });
+
+    tabsState.panels['rainbow'] = panelRainbow;
+    tabsState.panels['secret'] = panelSecret;
+    tabsState.panels['void'] = panelVoid;
+    tabsState.tablist = tabs;
+
+    panelsWrap.append(panelRainbow, panelSecret, panelVoid);
+    content.append(tabs, panelsWrap);
+
+    try { initRainbowGemShopTab(panelRainbow); } catch {}
+    try { initSecretAchievementsTab(panelSecret); } catch {}
+    try { initVoidGemAltarTab(panelVoid); } catch {}
+
+    const actions = document.createElement('div');
+    actions.className = 'merchant-actions';
+    
+    closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'merchant-close';
+    closeBtn.textContent = 'Close';
+    actions.appendChild(closeBtn);
+
+    sheetEl.append(grabber, header, content, actions);
+    overlayEl.appendChild(sheetEl);
+    document.body.appendChild(overlayEl);
+
+    ensureCustomScrollbar(overlayEl, sheetEl, '.merchant-content');
+
+    if (!eventsBound) {
+        eventsBound = true;
+        closeBtn.addEventListener('click', () => { closeOverlay(); });
+
+        setupDragToClose(grabber, sheetEl, () => isOpen, () => {
+            closeOverlay(true);
+        });
+        
+        window.addEventListener('currency:change', (e) => {
+            if (e.detail?.key === 'voidGems') {
+                syncVoidTabUnlockState();
+            }
+        });
+        
+        document.addEventListener('ccc:upgrades:changed', () => {
+             if (isOpen && tabsState.panels['rainbow']?.classList.contains('is-active')) {
+                 updateRainbowGemShopTab();
+             }
+        });
+    }
+}
+
+export function openAchievementExtras() {
+    ensureOverlay();
+    if (isOpen) return;
+
+    syncVoidTabUnlockState();
+
+    const activeEl = document.activeElement;
+    if (activeEl instanceof HTMLElement && !overlayEl.contains(activeEl)) {
+        lastFocus = activeEl;
+    } else {
+        lastFocus = null;
+    }
+    isOpen = true;
+
+    let last = 'rainbow';
+    try { last = localStorage.getItem(sk(TAB_KEY_BASE)) || 'rainbow'; } catch {}
+
+    selectTab(last);
+
+    sheetEl.style.transition = 'none';
+    sheetEl.style.transform = 'translateY(100%)';
+    overlayEl.removeAttribute('inert');
+
+    void sheetEl.offsetHeight;
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            sheetEl.style.transition = '';
+            sheetEl.style.transform = '';
+            overlayEl.classList.add('is-open');
+            blockInteraction(140);
+            
+            if (closeBtn && typeof closeBtn.focus === 'function') {
+                try { closeBtn.focus({ preventScroll: true }); } catch {}
+            }
+        });
+    });
+}
+
+export function closeOverlay(force = false) {
+    if (!isOpen) return;
+    
+    if (IS_MOBILE) {
+        try { suppressNextGhostTap(100); } catch {}
+        try { blockInteraction(80); } catch {}
+    }
+
+    isOpen = false;
+    sheetEl.style.transition = 'transform 140ms ease-out';
+    sheetEl.style.transform = 'translateY(100%)';
+    overlayEl.classList.remove('is-open');
+    
+    const activeEl = document.activeElement;
+    if (activeEl && overlayEl.contains(activeEl)) {
+        if (lastFocus && typeof lastFocus.focus === 'function') {
+            try { lastFocus.focus({ preventScroll: true }); } catch {}
+        }
+    }
+
+    overlayEl.setAttribute('inert', '');
+    lastFocus = null;
+    
+    setTimeout(() => {
+        if (!isOpen) {
+             sheetEl.style.transition = '';
+        }
+    }, 150);
+}
+
+
+export function initRainbowGemShopTab(panel) {
+    if (!panel || panel.__rgInit) return;
+    panel.__rgInit = true;
+    panel.innerHTML = `
+        <div class="shop-scroller" style="height: 100%; position: relative;">
+            <div class="shop-grid" role="grid" id="ae-rainbow-shop-grid"></div>
+        </div>
+    `;
+    ensureCustomScrollbar(panel, panel, '.shop-scroller');
+}
+
+
+
+export function updateRainbowGemShopTab() {
+    const grid = document.getElementById('ae-rainbow-shop-grid');
+    if (!grid) return;
+
+    for (const upg of RAINBOW_GEM_UPGRADES) {
+        let btn = grid.querySelector(`.shop-upgrade[data-upgid="${upg.id}"]`);
+        
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.className = 'shop-upgrade';
+            btn.setAttribute('data-upgid', upg.id);
+            btn.type = 'button';
+            btn.setAttribute('role', 'gridcell');
+            
+            const tile = document.createElement('div');
+            tile.className = 'shop-tile';
+            
+            const iconImg = document.createElement('img');
+            iconImg.className = 'base';
+            iconImg.src = upg.iconPath || 'img/currencies/coin/coin.webp';
+            iconImg.alt = upg.title;
+            iconImg.style.borderRadius = '50%';
+
+            const maxedBorder = document.createElement('img');
+            maxedBorder.className = 'maxed-overlay'; // Using base class to position it same as base icons
+            maxedBorder.src = 'img/misc/maxed.webp';
+            maxedBorder.alt = '';
+            maxedBorder.style.display = 'none'; // Hidden by default
+            
+            tile.appendChild(iconImg);
+            tile.appendChild(maxedBorder);
+            
+            const badge = document.createElement('div');
+            badge.className = 'level-badge text-badge';
+            badge.textContent = 'Not Owned';
+            
+            btn.appendChild(tile);
+            tile.appendChild(badge);
+            grid.appendChild(btn);
+
+            btn.addEventListener('click', (event) => {
+                if (btn.disabled) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    return;
+                }
+                if (shouldSkipGhostTap(btn)) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    return;
+                }
+                
+                openUpgradeOverlay(upg, 'rainbow_gem_shop');
+            });
+
+            btn.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                if (btn.disabled) return;
+
+                const lockState = getUpgradeLockState(RAINBOW_GEM_AREA_KEY, upg.id);
+                if (lockState.locked) return;
+
+                const lvlNum = getLevelNumber(RAINBOW_GEM_AREA_KEY, upg.id);
+                const lvl = getLevel(RAINBOW_GEM_AREA_KEY, upg.id);
+                const isOwned = lvlNum > 0;
+                if (isOwned) return;
+
+                const canPlusBn = computeAffordableLevels(upg, lvlNum, lvl);
+                const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
+                if (!plusBn.isZero?.()) {
+                    buyMax(RAINBOW_GEM_AREA_KEY, upg.id, upg);
+                    playPurchaseSfx();
+                }
+            });
+        }
+        
+        // Update state
+        const lockState = getUpgradeLockState(RAINBOW_GEM_AREA_KEY, upg.id);
+        const locked = !!lockState.locked;
+        const lvl = getLevel(RAINBOW_GEM_AREA_KEY, upg.id);
+        const lvlNum = getLevelNumber(RAINBOW_GEM_AREA_KEY, upg.id);
+        const isOwned = lvlNum > 0;
+        
+        const badge = btn.querySelector('.level-badge');
+        if (badge) {
+            if (locked) {
+                badge.textContent = 'Locked';
+                badge.classList.remove('is-maxed', 'can-buy');
+            } else if (isOwned) {
+                badge.textContent = 'Owned';
+                badge.classList.add('is-maxed');
+                badge.classList.remove('can-buy');
+            } else {
+                const canPlusBn = computeAffordableLevels(upg, lvlNum, lvl);
+                const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
+                const hasPlus = !plusBn.isZero?.();
+                if (hasPlus) {
+                    badge.textContent = 'Purchasable';
+                    badge.classList.add('can-buy');
+                } else {
+                    badge.textContent = 'Not Owned';
+                    badge.classList.remove('can-buy');
+                }
+                badge.classList.remove('is-maxed');
+            }
+        }
+        
+        const maxedBorder = btn.querySelector('.maxed-overlay');
+        if (maxedBorder) {
+            maxedBorder.style.display = isOwned ? 'block' : 'none';
+        }
+
+        if (locked) {
+            btn.dataset.locked = '1';
+            btn.classList.add('is-locked');
+        } else {
+            btn.dataset.locked = '0';
+            btn.classList.remove('is-locked');
+        }
+    }
+}
