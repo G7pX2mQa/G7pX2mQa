@@ -4,7 +4,7 @@ import { IS_MOBILE } from '../../../main.js';
 import { BigNum } from '../../../util/bigNum.js';
 import { formatNumber } from '../../../util/numFormat.js';
 import { getLevel, getLevelNumber, evaluateBulkPurchase, buyMax, getUpgradeLockState, AREA_KEYS } from '../../../game/upgrades.js';
-import { openUpgradeOverlay, playPurchaseSfx } from '../../shopOverlay.js';
+import { openUpgradeOverlay, playPurchaseSfx, computeAffordableLevels } from '../../shopOverlay.js';
 import { RAINBOW_GEM_UPGRADES, RAINBOW_GEM_AREA_KEY } from '../../../game/rainbowGemUpgrades.js';
 
 import { blockInteraction } from '../../shopOverlay.js';
@@ -353,6 +353,7 @@ export function updateRainbowGemShopTab() {
             iconImg.className = 'base';
             iconImg.src = upg.iconPath || 'img/currencies/coin/coin.webp';
             iconImg.alt = upg.title;
+            iconImg.style.borderRadius = '50%';
 
             const maxedBorder = document.createElement('img');
             maxedBorder.className = 'maxed-overlay'; // Using base class to position it same as base icons
@@ -368,7 +369,7 @@ export function updateRainbowGemShopTab() {
             badge.textContent = 'Not Owned';
             
             btn.appendChild(tile);
-            btn.appendChild(badge);
+            tile.appendChild(badge);
             grid.appendChild(btn);
 
             btn.addEventListener('click', (event) => {
@@ -385,16 +386,58 @@ export function updateRainbowGemShopTab() {
                 
                 openUpgradeOverlay(upg, 'rainbow_gem_shop');
             });
+
+            btn.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                if (btn.disabled) return;
+
+                const lockState = getUpgradeLockState(RAINBOW_GEM_AREA_KEY, upg.id);
+                if (lockState.locked) return;
+
+                const lvlNum = getLevelNumber(RAINBOW_GEM_AREA_KEY, upg.id);
+                const lvl = getLevel(RAINBOW_GEM_AREA_KEY, upg.id);
+                const isOwned = lvlNum > 0;
+                if (isOwned) return;
+
+                const canPlusBn = computeAffordableLevels(upg, lvlNum, lvl);
+                const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
+                if (!plusBn.isZero?.()) {
+                    buyMax(RAINBOW_GEM_AREA_KEY, upg.id, upg);
+                    playPurchaseSfx();
+                }
+            });
         }
         
         // Update state
+        const lockState = getUpgradeLockState(RAINBOW_GEM_AREA_KEY, upg.id);
+        const locked = !!lockState.locked;
+        const lvl = getLevel(RAINBOW_GEM_AREA_KEY, upg.id);
         const lvlNum = getLevelNumber(RAINBOW_GEM_AREA_KEY, upg.id);
         const isOwned = lvlNum > 0;
         
         const badge = btn.querySelector('.level-badge');
         if (badge) {
-            badge.textContent = isOwned ? 'Owned' : 'Not Owned';
-            badge.classList.toggle('is-maxed', isOwned);
+            if (locked) {
+                badge.textContent = 'Locked';
+                badge.classList.remove('is-maxed', 'can-buy');
+            } else if (isOwned) {
+                badge.textContent = 'Owned';
+                badge.classList.add('is-maxed');
+                badge.classList.remove('can-buy');
+            } else {
+                const canPlusBn = computeAffordableLevels(upg, lvlNum, lvl);
+                const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
+                const hasPlus = !plusBn.isZero?.();
+                if (hasPlus) {
+                    badge.textContent = 'Purchasable';
+                    badge.classList.add('can-buy');
+                } else {
+                    badge.textContent = 'Not Owned';
+                    badge.classList.remove('can-buy');
+                }
+                badge.classList.remove('is-maxed');
+            }
         }
         
         const maxedBorder = btn.querySelector('.maxed-overlay');
@@ -402,12 +445,9 @@ export function updateRainbowGemShopTab() {
             maxedBorder.style.display = isOwned ? 'block' : 'none';
         }
 
-        const lockState = getUpgradeLockState(RAINBOW_GEM_AREA_KEY, upg.id);
-        const locked = !!lockState.locked;
         if (locked) {
             btn.dataset.locked = '1';
             btn.classList.add('is-locked');
-            if (badge) badge.textContent = 'Locked';
         } else {
             btn.dataset.locked = '0';
             btn.classList.remove('is-locked');
