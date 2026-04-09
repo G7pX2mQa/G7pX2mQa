@@ -408,8 +408,16 @@ export function updateRainbowGemShopTab() {
                 const canPlusBn = computeAffordableLevels(upg, lvlNum, lvl);
                 const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
                 if (!plusBn.isZero?.()) {
-                    buyMax(RAINBOW_GEM_AREA_KEY, upg.id, upg);
-                    playPurchaseSfx();
+                    const purchase = buyMax(RAINBOW_GEM_AREA_KEY, upg.id, upg);
+                    const boughtBn = purchase.bought instanceof BigNum ? purchase.bought : BigNum.fromAny(purchase.bought ?? 0);
+                    if (!boughtBn.isZero?.()) {
+                        if (upg.upgType === 'TM') {
+                            import('../../../game/settingsManager.js').then(({ settingsManager }) => {
+                                settingsManager.set('active_' + upg.modType + '_mod', upg.id);
+                            });
+                        }
+                        playPurchaseSfx();
+                    }
                 }
             });
         }
