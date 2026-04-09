@@ -26,6 +26,24 @@ export const MUTATION_NAMES = [
 
 // Define the available settings and their defaults
 export const SETTING_DEFINITIONS = {
+  active_font_mod: {
+    id: 'active_font_mod',
+    type: 'internal',
+    default: 0,
+    unlockCondition: () => true,
+  },
+  active_trail_mod: {
+    id: 'active_trail_mod',
+    type: 'internal',
+    default: 0,
+    unlockCondition: () => true,
+  },
+  active_magnet_mod: {
+    id: 'active_magnet_mod',
+    type: 'internal',
+    default: 0,
+    unlockCondition: () => true,
+  },
   hide_maxed_upgrades: {
     id: 'hide_maxed_upgrades',
     type: 'toggle',
