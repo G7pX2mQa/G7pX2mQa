@@ -45,3 +45,7 @@
 #ae-rainbow-shop-grid .shop-upgrade .shop-tile img.maxed-overlay {
     z-index: 4;
 }
+
+#ae-rainbow-shop-grid .shop-upgrade .shop-tile .level-badge {
+    z-index: 5;
+}
