@@ -634,7 +634,7 @@ export const DLG_CATALOG = {
     title: 'A Powerful Surge',
     blurb: 'Converse with the Merchant about the Surge reset and how powerful it is',
     scriptId: 8,
-    reward: { type: 'waves', amount: 10 },
+    reward: { type: 'waves', amount: 5 },
     once: true,
     unlock: (progress) => {
       if (typeof hasDoneSurgeReset === 'function' && hasDoneSurgeReset()) {
