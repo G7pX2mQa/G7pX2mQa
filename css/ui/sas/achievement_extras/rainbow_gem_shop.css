@@ -41,3 +41,7 @@
     box-sizing: border-box;
   }
 }
+
+#ae-rainbow-shop-grid .shop-upgrade .shop-tile img.maxed-overlay {
+    z-index: 4;
+}
