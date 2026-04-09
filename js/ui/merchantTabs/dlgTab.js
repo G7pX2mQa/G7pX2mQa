@@ -1927,52 +1927,80 @@ function playDialogueExplosion() {
   explosionContainer.style.overflow = 'hidden';
   document.body.appendChild(explosionContainer);
 
-  const whiteFlash = document.createElement('div');
-  whiteFlash.style.position = 'absolute';
-  whiteFlash.style.inset = '0';
-  whiteFlash.style.backgroundColor = 'white';
-  whiteFlash.style.opacity = '1';
-  whiteFlash.style.transition = 'opacity 1s ease-out';
-  explosionContainer.appendChild(whiteFlash);
-
-  requestAnimationFrame(() => {
-    whiteFlash.style.opacity = '0';
-  });
-
-  const numParticles = 40;
-  for (let i = 0; i < numParticles; i++) {
-    const particle = document.createElement('div');
-    const size = Math.random() * 50 + 20;
-    particle.style.position = 'absolute';
-    particle.style.width = `${size}px`;
-    particle.style.height = `${size}px`;
-    particle.style.backgroundColor = ['#ff4500', '#ff8c00', '#ffd700', '#ffffff'][Math.floor(Math.random() * 4)];
-    particle.style.borderRadius = '50%';
-    particle.style.top = '50%';
-    particle.style.left = '50%';
-    particle.style.transform = 'translate(-50%, -50%)';
-    particle.style.boxShadow = '0 0 20px ' + particle.style.backgroundColor;
-    particle.style.transition = 'transform 1s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 1s linear';
-
-    const angle = Math.random() * Math.PI * 2;
-    const distance = Math.random() * 500 + 200;
-    const tx = Math.cos(angle) * distance;
-    const ty = Math.sin(angle) * distance;
-
-    explosionContainer.appendChild(particle);
-    
-    // Force reflow to ensure initial state is painted before transitioning
-    particle.getBoundingClientRect();
+  const spawnParticles = (isLong) => {
+    const whiteFlash = document.createElement('div');
+    whiteFlash.style.position = 'absolute';
+    whiteFlash.style.inset = '0';
+    whiteFlash.style.backgroundColor = 'white';
+    whiteFlash.style.opacity = isLong ? '1' : '0.4';
+    whiteFlash.style.transition = isLong ? 'opacity 1.5s ease-out' : 'opacity 0.4s ease-out';
+    explosionContainer.appendChild(whiteFlash);
 
     requestAnimationFrame(() => {
-      particle.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0)`;
-      particle.style.opacity = '0';
+      whiteFlash.style.opacity = '0';
     });
-  }
+    
+    setTimeout(() => { whiteFlash.remove(); }, isLong ? 1500 : 400);
 
-  setTimeout(() => {
-    explosionContainer.remove();
-  }, 1200);
+    const numParticles = isLong ? 150 : 30;
+    for (let i = 0; i < numParticles; i++) {
+      const particle = document.createElement('div');
+      const size = isLong ? (Math.random() * 100 + 40) : (Math.random() * 40 + 15);
+      particle.style.position = 'absolute';
+      particle.style.width = `${size}px`;
+      particle.style.height = `${size}px`;
+      particle.style.backgroundColor = ['#ff4500', '#ff8c00', '#ffd700', '#ffffff', '#ff0000'][Math.floor(Math.random() * 5)];
+      particle.style.borderRadius = '50%';
+      particle.style.top = '50%';
+      particle.style.left = '50%';
+      particle.style.transform = 'translate(-50%, -50%)';
+      particle.style.boxShadow = '0 0 20px ' + particle.style.backgroundColor;
+      
+      const duration = isLong ? (Math.random() * 1 + 1.5) : (Math.random() * 0.5 + 0.3);
+      particle.style.transition = `transform ${duration}s cubic-bezier(0.1, 0.8, 0.3, 1), opacity ${duration}s linear`;
+
+      const angle = Math.random() * Math.PI * 2;
+      const distance = isLong ? (Math.random() * 1200 + 300) : (Math.random() * 400 + 100);
+      const tx = Math.cos(angle) * distance;
+      const ty = Math.sin(angle) * distance;
+
+      explosionContainer.appendChild(particle);
+      
+      particle.getBoundingClientRect();
+
+      requestAnimationFrame(() => {
+        particle.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0)`;
+        particle.style.opacity = '0';
+      });
+      
+      setTimeout(() => { particle.remove(); }, duration * 1000);
+    }
+  };
+
+  let count = 0;
+  const totalShort = 10;
+  const delay = 150; // 150ms
+
+  spawnParticles(false); // Immediate first one
+  playAudio('sounds/explosion_short.ogg', { volume: 0.8 });
+  count++;
+
+  const intervalId = setInterval(() => {
+    if (count < totalShort) {
+      playAudio('sounds/explosion_short.ogg', { volume: 0.8 });
+      spawnParticles(false);
+      count++;
+    } else {
+      clearInterval(intervalId);
+      // We are already inside the interval, so this is 150ms after the 10th explosion.
+      playAudio('sounds/explosion_long.ogg', { volume: 1.0 });
+      spawnParticles(true);
+      // Wait for long explosion to finish before removing container
+      setTimeout(() => {
+        explosionContainer.remove();
+      }, 2500);
+    }
+  }, delay);
 }
 
 // Runs a conversation inside the Dialogue tab (not the first-time overlay)
