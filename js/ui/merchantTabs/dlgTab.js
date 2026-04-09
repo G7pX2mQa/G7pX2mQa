@@ -21,6 +21,7 @@ import {
 } from '../../util/ghostTapGuard.js';
 import { IS_MOBILE } from '../../main.js';
 import { playAudio, setMusicUnderwater } from '../../util/audioManager.js';
+import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 
 function nowMs() {
   if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
@@ -101,13 +102,6 @@ const merchantTabUnlockState = new Map([
   ['lab', false],
   ['flow', false],
 ]);
-
-const REWARD_ICON_SRC = {
-  coins: 'img/currencies/coin/coin.webp',
-  books: 'img/currencies/book/book.webp',
-  gold: 'img/currencies/gold/gold.webp',
-  magic: 'img/currencies/magic/magic.webp',
-};
 
 const MYSTERIOUS_ICON_SRC = 'img/misc/mysterious.webp';
 const HIDDEN_DIALOGUE_TITLE = 'Hidden Dialogue';
@@ -567,10 +561,12 @@ function grantReward(reward) {
 
 function rewardLabel(reward) {
   if (!reward) return '';
-  if (reward.type === 'coins') return `Reward: ${reward.amount} Coins`;
-  if (reward.type === 'books') return `Reward: ${reward.amount} Books`;
-  if (reward.type === 'gold')  return `Reward: ${reward.amount} Gold`;
-  if (reward.type === 'waves') return `Reward: ${reward.amount} Waves`;
+  const config = RESOURCE_REGISTRY.find(r => r.key === reward.type);
+  if (config) {
+    const isOne = (Number(reward.amount) === 1);
+    const displayName = isOne ? config.singular : config.plural;
+    return `Reward: ${reward.amount} ${displayName}`;
+  }
   return 'Reward available';
 }
 
@@ -1852,7 +1848,8 @@ function renderDialogueList() {
 
       const rewardEl = card.querySelector('.dlg-reward');
       if (unlocked && meta.reward) {
-      const iconSrc = REWARD_ICON_SRC[meta.reward.type];
+      const config = RESOURCE_REGISTRY.find(r => r.key === meta.reward.type);
+      const iconSrc = config ? config.icon : null;
       if (iconSrc) {
         // Reuse inner structure if it matches, to avoid flicker
         if (!rewardEl.classList.contains('has-reward')) {
