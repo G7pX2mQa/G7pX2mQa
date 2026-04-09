@@ -551,6 +551,15 @@ function grantReward(reward) {
     return;
   }
 
+  if (reward.type === 'waves') {
+    try {
+      bank.waves.add(reward.amount);
+    } catch (e) {
+      console.warn('Failed to grant waves reward:', reward, e);
+    }
+    return;
+  }
+
   try {
     window.dispatchEvent(new CustomEvent('merchantReward', { detail: reward }));
   } catch {}
@@ -561,6 +570,7 @@ function rewardLabel(reward) {
   if (reward.type === 'coins') return `Reward: ${reward.amount} coins`;
   if (reward.type === 'books') return `Reward: ${reward.amount} Books`;
   if (reward.type === 'gold')  return `Reward: ${reward.amount} Gold`;
+  if (reward.type === 'waves') return `Reward: ${reward.amount} Waves`;
   return 'Reward available';
 }
 
@@ -627,8 +637,8 @@ export const DLG_CATALOG = {
   5: {
     title: 'A Powerful Surge',
     blurb: 'Converse with the Merchant about the Surge reset and how powerful it is',
-    scriptId: 5,
-    reward: { type: 'coins', amount: 2 },
+    scriptId: 8,
+    reward: { type: 'waves', amount: 10 },
     once: true,
     unlock: (progress) => {
       if (typeof hasDoneSurgeReset === 'function' && hasDoneSurgeReset()) {
@@ -1022,6 +1032,9 @@ class DialogueEngine {
         if (opt.to === 'end_nr') {
           return this.onEnd({ noReward: true });
         }
+        if (opt.to === 'end_explosion') {
+          return this.onEnd({ noReward: true, exploded: true });
+        }
 
         await this.goto(opt.to);
       }, { once: true });
@@ -1218,10 +1231,16 @@ const engine = new DialogueEngine({
       if (ended) return;
       ended = true;
 
+      if (info && info.exploded) {
+        renderDialogueList();
+        closeModal();
+        playDialogueExplosion();
+        return;
+      }
       if (info && info.noReward) {
-      renderDialogueList();
-      closeModal();
-      return;
+        renderDialogueList();
+        closeModal();
+        return;
       }
 
       completeDialogueOnce(id, meta);
@@ -1921,6 +1940,67 @@ function renderDialogueList() {
 }
 
 // Runs a conversation inside the Dialogue tab (not the first-time overlay)
+function playDialogueExplosion() {
+  const explosionContainer = document.createElement('div');
+  explosionContainer.style.position = 'fixed';
+  explosionContainer.style.top = '0';
+  explosionContainer.style.left = '0';
+  explosionContainer.style.width = '100vw';
+  explosionContainer.style.height = '100vh';
+  explosionContainer.style.pointerEvents = 'none';
+  explosionContainer.style.zIndex = '999999';
+  explosionContainer.style.overflow = 'hidden';
+  document.body.appendChild(explosionContainer);
+
+  const whiteFlash = document.createElement('div');
+  whiteFlash.style.position = 'absolute';
+  whiteFlash.style.inset = '0';
+  whiteFlash.style.backgroundColor = 'white';
+  whiteFlash.style.opacity = '1';
+  whiteFlash.style.transition = 'opacity 1s ease-out';
+  explosionContainer.appendChild(whiteFlash);
+
+  requestAnimationFrame(() => {
+    whiteFlash.style.opacity = '0';
+  });
+
+  const numParticles = 40;
+  for (let i = 0; i < numParticles; i++) {
+    const particle = document.createElement('div');
+    const size = Math.random() * 50 + 20;
+    particle.style.position = 'absolute';
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size}px`;
+    particle.style.backgroundColor = ['#ff4500', '#ff8c00', '#ffd700', '#ffffff'][Math.floor(Math.random() * 4)];
+    particle.style.borderRadius = '50%';
+    particle.style.top = '50%';
+    particle.style.left = '50%';
+    particle.style.transform = 'translate(-50%, -50%)';
+    particle.style.boxShadow = '0 0 20px ' + particle.style.backgroundColor;
+    particle.style.transition = 'transform 1s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 1s linear';
+
+    const angle = Math.random() * Math.PI * 2;
+    const distance = Math.random() * 500 + 200;
+    const tx = Math.cos(angle) * distance;
+    const ty = Math.sin(angle) * distance;
+
+    explosionContainer.appendChild(particle);
+    
+    // Force reflow to ensure initial state is painted before transitioning
+    particle.getBoundingClientRect();
+
+    requestAnimationFrame(() => {
+      particle.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0)`;
+      particle.style.opacity = '0';
+    });
+  }
+
+  setTimeout(() => {
+    explosionContainer.remove();
+  }, 1200);
+}
+
+// Runs a conversation inside the Dialogue tab (not the first-time overlay)
 function startConversation(id, meta) {
   const panel = document.getElementById('merchant-panel-dialogue');
   if (!panel) return;
@@ -1942,7 +2022,13 @@ function startConversation(id, meta) {
       skipTargets: [textEl, row, bubble],
       onEnd: (info) => {
       setMusicUnderwater(false);
-	  if (info && info.noReward) {
+      if (info && info.exploded) {
+        textEl.textContent = '…';
+        renderDialogueList();
+        playDialogueExplosion();
+        return;
+      }
+      if (info && info.noReward) {
         textEl.textContent = '…';
         renderDialogueList();
         return;
