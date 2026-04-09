@@ -567,7 +567,7 @@ function grantReward(reward) {
 
 function rewardLabel(reward) {
   if (!reward) return '';
-  if (reward.type === 'coins') return `Reward: ${reward.amount} coins`;
+  if (reward.type === 'coins') return `Reward: ${reward.amount} Coins`;
   if (reward.type === 'books') return `Reward: ${reward.amount} Books`;
   if (reward.type === 'gold')  return `Reward: ${reward.amount} Gold`;
   if (reward.type === 'waves') return `Reward: ${reward.amount} Waves`;
