@@ -652,13 +652,13 @@ export const MERCHANT_DIALOGUES = {
         { label: 'Oh, okay.', to: 'm6a' },
       ]},
 
-      m6a: { type: 'line', say: "Here, I'll give you 10 extra Waves just because I can.", next: 'c6a' },
+      m6a: { type: 'line', say: "Here, I'll give you 5 extra Waves just because I can.", next: 'c6a' },
       m6b: { type: 'line', say: 'I am going to explode you.', next: 'c6b' },
       m6c: { type: 'line', say: 'Why not?', next: 'c6c' },
       m6d: { type: 'line', say: 'Just know that the future milestones are powerful.', next: 'c6d' },
 
       c6a: { type: 'choice', options: [
-        { label: "Wait.. 10 waves? That's like nothing.", to: 'm6b' },
+        { label: "Wait.. 5 waves? That's like nothing.", to: 'm6b' },
         { label: 'I appreciate that.', to: 'end' },
         { label: 'Thank you.', to: 'end' },
       ]},
