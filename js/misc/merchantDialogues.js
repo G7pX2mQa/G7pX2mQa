@@ -629,9 +629,9 @@ export const MERCHANT_DIALOGUES = {
       m5d: { type: 'line', say: "Err, well, I don't know off the top of my head what they are.", next: 'c5d' },
 
       c5a: { type: 'choice', options: [
-        { label: 'Hey.', to: 'end_nr' }, // Triggers explosion
-        { label: 'Hey.', to: 'end_nr' }, // Triggers explosion
-        { label: 'Hey.', to: 'end_nr' }, // Triggers explosion
+        { label: 'Hey.', to: 'end_explosion' }, // Triggers explosion
+        { label: 'Hey.', to: 'end_explosion' }, // Triggers explosion
+        { label: 'Hey.', to: 'end_explosion' }, // Triggers explosion
       ]},
 
       c5b: { type: 'choice', options: [
@@ -664,9 +664,9 @@ export const MERCHANT_DIALOGUES = {
       ]},
 
       c6b: { type: 'choice', options: [
-        { label: '*Click here to be exploded*', to: 'end_nr' },
-        { label: '*Click here to be exploded*', to: 'end_nr' },
-        { label: '*Click here to be exploded*', to: 'end_nr' },
+        { label: '*Click here to be exploded*', to: 'end_explosion' },
+        { label: '*Click here to be exploded*', to: 'end_explosion' },
+        { label: '*Click here to be exploded*', to: 'end_explosion' },
       ]},
 
       c6c: { type: 'choice', options: [
