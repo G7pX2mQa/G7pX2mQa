@@ -1427,6 +1427,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
   if (initialLocked && !initialMysterious) { upgOpen = false; return; }
 
   const isHM = (upgDef.upgType === 'HM');
+  const isTM = (upgDef.upgType === 'TM');
   const isEndlessXp = (upgDef.tie === UPGRADE_TIES.ENDLESS_XP);
   const isEndlessFp = (upgDef.tie === UPGRADE_TIES.ENDLESS_FP);
   
@@ -1511,7 +1512,8 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       }
 
       const hasAutobuyer = autobuyLevel > 0;
-      const showAutoToggle = hasAutobuyer && (isAutomationMaster || standardAutobuyId || isWorkshopMaster || isEvolveMaster) && !isHiddenUpgrade;
+      const isOwnedTM = isTM && (getLevelNumber(upgDef.area, upgDef.id) > 0);
+      const showAutoToggle = (hasAutobuyer && (isAutomationMaster || standardAutobuyId || isWorkshopMaster || isEvolveMaster) && !isHiddenUpgrade) || (isOwnedTM && !isHiddenUpgrade);
 
       if (!autoToggleWrapper) {
           autoToggleWrapper = document.createElement('div');
@@ -1553,40 +1555,70 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
              isEnabled = val !== '0';
          }
 
-         if (isAutomationMaster && collectiveState === 0.5) {
-             toggleBtn.className = 'shop-sort-of';
-             toggleBtn.textContent = 'Automation: Sort of ON';
-             toggleBtn.style.color = ''; 
-             toggleBtn.style.backgroundColor = ''; 
-         } else if (isEnabled) {
-             toggleBtn.className = 'shop-delve';
-             toggleBtn.textContent = 'Automation: ON';
-             toggleBtn.style.backgroundColor = '';
-             toggleBtn.style.color = '';
-         } else {
-             toggleBtn.className = 'shop-close';
-             toggleBtn.textContent = 'Automation: OFF';
-             toggleBtn.style.backgroundColor = '';
-             toggleBtn.style.color = '';
-         }
-         
-         toggleBtn._onClick = (e) => {
-             e.preventDefault(); e.stopPropagation();
-             if (IS_MOBILE) blockInteraction(50);
-             
-             const newState = !isEnabled;
-             const val = newState ? '1' : '0';
-             
-             if (isAutomationMaster) {
-                 settingsManager.set(`currency_${masterCostType}_automated`, newState);
-                 setAllAutobuyersForCostType(masterCostType, newState);
+         if (isOwnedTM) {
+             const activeModSettingKey = 'active_' + upgDef.modType + '_mod';
+             const isModActive = settingsManager.get(activeModSettingKey) === upgDef.id;
+
+             if (isModActive) {
+                 toggleBtn.className = 'shop-delve';
+                 toggleBtn.textContent = 'Toggle: ON';
+                 toggleBtn.style.backgroundColor = '';
+                 toggleBtn.style.color = '';
              } else {
-                 setAutobuyerToggle(upgDef.area, upgDef.id, val);
+                 toggleBtn.className = 'shop-close';
+                 toggleBtn.textContent = 'Toggle: OFF';
+                 toggleBtn.style.backgroundColor = '';
+                 toggleBtn.style.color = '';
              }
-             window.dispatchEvent(new CustomEvent('currency:change'));
-             window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
-             rerender();
-         };
+             
+             toggleBtn._onClick = (e) => {
+                 e.preventDefault(); e.stopPropagation();
+                 if (IS_MOBILE) blockInteraction(50);
+                 
+                 if (isModActive) {
+                     settingsManager.set(activeModSettingKey, 0); // Turn off
+                 } else {
+                     settingsManager.set(activeModSettingKey, upgDef.id); // Turn on
+                 }
+                 document.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
+                 rerender();
+             };
+         } else {
+             if (isAutomationMaster && collectiveState === 0.5) {
+                 toggleBtn.className = 'shop-sort-of';
+                 toggleBtn.textContent = 'Automation: Sort of ON';
+                 toggleBtn.style.color = ''; 
+                 toggleBtn.style.backgroundColor = ''; 
+             } else if (isEnabled) {
+                 toggleBtn.className = 'shop-delve';
+                 toggleBtn.textContent = 'Automation: ON';
+                 toggleBtn.style.backgroundColor = '';
+                 toggleBtn.style.color = '';
+             } else {
+                 toggleBtn.className = 'shop-close';
+                 toggleBtn.textContent = 'Automation: OFF';
+                 toggleBtn.style.backgroundColor = '';
+                 toggleBtn.style.color = '';
+             }
+             
+             toggleBtn._onClick = (e) => {
+                 e.preventDefault(); e.stopPropagation();
+                 if (IS_MOBILE) blockInteraction(50);
+                 
+                 const newState = !isEnabled;
+                 const val = newState ? '1' : '0';
+                 
+                 if (isAutomationMaster) {
+                     settingsManager.set(`currency_${masterCostType}_automated`, newState);
+                     setAllAutobuyersForCostType(masterCostType, newState);
+                 } else {
+                     setAutobuyerToggle(upgDef.area, upgDef.id, val);
+                 }
+                 window.dispatchEvent(new CustomEvent('currency:change'));
+                 document.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
+                 rerender();
+             };
+         }
       } else {
          toggleBtn.style.visibility = 'hidden';
          toggleBtn.style.pointerEvents = 'none';
@@ -1856,7 +1888,14 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
               if (fresh.have.cmp(fresh.nextPrice instanceof BigNum ? fresh.nextPrice : BigNum.fromAny(fresh.nextPrice||0)) < 0) return;
               const { bought } = adapter.buyOne(upgDef.id);
               const boughtBn = bought instanceof BigNum ? bought : BigNum.fromAny(bought ?? 0);
-              if (!boughtBn.isZero?.()) { playPurchaseSfx(); updateShopOverlay(); rerender(); }
+              if (!boughtBn.isZero?.()) { 
+                  if (upgDef.upgType === 'TM') {
+                      settingsManager.set('active_' + upgDef.modType + '_mod', upgDef.id);
+                  }
+                  playPurchaseSfx(); 
+                  updateShopOverlay(); 
+                  rerender(); 
+              }
           };
           ensureButton('shop-delve btn-buy-one', 'Buy', performBuy, 1, !canAffordNext);
           
