@@ -11,17 +11,10 @@ export const RAINBOW_GEM_UPGRADES = [
     desc: "Changes the game's font to Times New Roman.",
     lvlCap: 1,
     costType: "rainbowGems",
-    upgType: "NM",
+    upgType: "TM",
+    modType: "font",
     costAtLevel: () => 100,
     icon: "img/currencies/coin/coin.webp",
-    onLevelChange(payload) {
-      if (typeof document === 'undefined') return;
-      if (payload.newLevel >= 1) {
-        document.body.classList.add('font-times-new-roman');
-      } else {
-        document.body.classList.remove('font-times-new-roman');
-      }
-    }
   },
   {
     area: RAINBOW_GEM_AREA_KEY,
@@ -30,7 +23,8 @@ export const RAINBOW_GEM_UPGRADES = [
     desc: "Changes the cursor trail color to bronze.",
     lvlCap: 1,
     costType: "rainbowGems",
-    upgType: "NM",
+    upgType: "TM",
+    modType: "trail",
     costAtLevel: () => 100,
     icon: "img/currencies/coin/coin.webp"
   },
@@ -41,7 +35,8 @@ export const RAINBOW_GEM_UPGRADES = [
     desc: "Changes the magnet radius indicator color to bronze.",
     lvlCap: 1,
     costType: "rainbowGems",
-    upgType: "NM",
+    upgType: "TM",
+    modType: "magnet",
     costAtLevel: () => 100,
     icon: "img/currencies/coin/coin.webp"
   },
@@ -52,7 +47,8 @@ export const RAINBOW_GEM_UPGRADES = [
     desc: "Changes the game's font to Arial.",
     lvlCap: 1,
     costType: "rainbowGems",
-    upgType: "NM",
+    upgType: "TM",
+    modType: "font",
     costAtLevel: () => 200,
     icon: "img/currencies/coin/coin.webp",
     computeLockState(ctx) {
@@ -72,14 +68,6 @@ export const RAINBOW_GEM_UPGRADES = [
       }
       return { locked: false, hidden: false };
     },
-    onLevelChange(payload) {
-      if (typeof document === 'undefined') return;
-      if (payload.newLevel >= 1) {
-        document.body.classList.add('font-arial');
-      } else {
-        document.body.classList.remove('font-arial');
-      }
-    }
   },
   {
     area: RAINBOW_GEM_AREA_KEY,
@@ -88,7 +76,8 @@ export const RAINBOW_GEM_UPGRADES = [
     desc: "Changes the cursor trail color to silver.",
     lvlCap: 1,
     costType: "rainbowGems",
-    upgType: "NM",
+    upgType: "TM",
+    modType: "trail",
     costAtLevel: () => 200,
     icon: "img/currencies/coin/coin.webp",
     computeLockState(ctx) {
@@ -116,7 +105,8 @@ export const RAINBOW_GEM_UPGRADES = [
     desc: "Changes the magnet radius indicator color to silver.",
     lvlCap: 1,
     costType: "rainbowGems",
-    upgType: "NM",
+    upgType: "TM",
+    modType: "magnet",
     costAtLevel: () => 200,
     icon: "img/currencies/coin/coin.webp",
     computeLockState(ctx) {
