@@ -373,9 +373,9 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     // Clear both classes first
     indicator.classList.remove('magnet-bronze', 'magnet-silver');
     
-    if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 6) >= 1) {
+    if (settingsManager.get('active_magnet_mod') === 6) {
       indicator.classList.add('magnet-silver');
-    } else if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 3) >= 1) {
+    } else if (settingsManager.get('active_magnet_mod') === 3) {
       indicator.classList.add('magnet-bronze');
     }
 
@@ -419,7 +419,9 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
   };
 
   let settingsUnsub = null;
+  let activeMagnetUnsub = null;
   settingsUnsub = settingsManager.subscribe('magnet_radius', refreshMagnetLevel);
+  activeMagnetUnsub = settingsManager.subscribe('active_magnet_mod', refreshMagnetLevel);
 
   const destroy = () => {
     destroyed = true;
@@ -430,6 +432,10 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     if (settingsUnsub) {
       try { settingsUnsub(); } catch {}
       settingsUnsub = null;
+    }
+    if (activeMagnetUnsub) {
+      try { activeMagnetUnsub(); } catch {}
+      activeMagnetUnsub = null;
     }
     if (syncInterval) clearInterval(syncInterval);
     try { window.removeEventListener('scroll', handleScroll); } catch {}
