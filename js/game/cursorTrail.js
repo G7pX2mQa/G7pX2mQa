@@ -75,9 +75,9 @@ export function createCursorTrail(playfield) {
   const generateTexture = () => {
     tCtx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
     let color = '#FFEB3B';
-    if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 5) >= 1) {
+    if (settingsManager.get('active_trail_mod') === 5) {
       color = '#c0c0c0'; // Silver
-    } else if (getLevelNumber(RAINBOW_GEM_AREA_KEY, 2) >= 1) {
+    } else if (settingsManager.get('active_trail_mod') === 2) {
       color = '#cd7f32'; // Bronze
     }
     tCtx.shadowColor = color;
@@ -380,6 +380,7 @@ export function createCursorTrail(playfield) {
   playfield.addEventListener('pointercancel', onPointerLeave, opts);
 
   document.addEventListener('ccc:upgrades:changed', generateTexture);
+  const activeTrailUnsub = settingsManager.subscribe('active_trail_mod', generateTexture);
 
   resize();
   rafId = requestAnimationFrame(loop);
@@ -402,6 +403,9 @@ export function createCursorTrail(playfield) {
     try { window.removeEventListener('focus', updateBounds); } catch {}
     try { document.removeEventListener('visibilitychange', updateBounds); } catch {}
     try { document.removeEventListener('ccc:upgrades:changed', generateTexture); } catch {}
+    if (activeTrailUnsub) {
+        try { activeTrailUnsub(); } catch {}
+    }
     
     try {
       playfield.removeEventListener('pointermove', onPointerMove);
