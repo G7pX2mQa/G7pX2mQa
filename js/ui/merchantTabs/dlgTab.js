@@ -625,8 +625,8 @@ export const DLG_CATALOG = {
     },
   },
   5: {
-    title: 'A Strange Surge',
-    blurb: 'Discuss the Surge with the Merchant',
+    title: 'A Powerful Surge',
+    blurb: 'Converse with the Merchant about the Surge reset and how powerful it is',
     scriptId: 5,
     reward: { type: 'coins', amount: 2 },
     once: true,
