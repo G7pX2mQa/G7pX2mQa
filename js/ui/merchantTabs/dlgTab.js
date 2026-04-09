@@ -575,7 +575,7 @@ export const DLG_CATALOG = {
     title: 'A Generous Gift',
     blurb: 'The Merchant is feeling extra nice today',
     scriptId: 1,
-    reward: { type: 'coins', amount: 100 },
+    reward: { type: 'coins', amount: 100 }, rewardNode: 'm2b',
     unlock: (progress) => true,
     once: true,
   },
@@ -583,7 +583,7 @@ export const DLG_CATALOG = {
     title: 'A New Experience',
     blurb: 'Discuss the XP system with the Merchant',
     scriptId: 2,
-    reward: { type: 'books', amount: 5 },
+    reward: { type: 'books', amount: 5 }, rewardNode: 'm3a',
     once: true,
     unlock: (progress) => {
       if (!progress?.xpUnlocked) {
@@ -603,7 +603,7 @@ export const DLG_CATALOG = {
     title: 'A Golden Opportunity',
     blurb: 'Ask the Merchant a few questions about the Forge',
     scriptId: 3,
-    reward: { type: 'gold', amount: 10 },
+    reward: { type: 'gold', amount: 10 }, rewardNode: 'm5a',
     once: true,
     unlock: (progress) => {
       if (progress?.hasForgeReset) {
@@ -634,7 +634,7 @@ export const DLG_CATALOG = {
     title: 'A Powerful Surge',
     blurb: 'Converse with the Merchant about the Surge reset and how powerful it is',
     scriptId: 8,
-    reward: { type: 'waves', amount: 5 },
+    reward: { type: 'waves', amount: 5 }, rewardNode: 'm6a',
     once: true,
     unlock: (progress) => {
       if (typeof hasDoneSurgeReset === 'function' && hasDoneSurgeReset()) {
@@ -663,7 +663,7 @@ export const DLG_CATALOG = {
     title: 'The Empty Lab',
     blurb: 'Ask about the Lab',
     scriptId: 6,
-    reward: { type: 'coins', amount: 2 },
+    reward: { type: 'coins', amount: 2 }, rewardNode: 'n0',
     once: true,
     unlock: (progress) => {
       if (typeof getTsunamiSequenceSeen === 'function' && getTsunamiSequenceSeen()) {
@@ -704,7 +704,7 @@ export const DLG_CATALOG = {
     title: 'A Magic Touch',
     blurb: 'Learn about the Merchant’s magical powers',
     scriptId: 4,
-    reward: { type: 'magic', amount: 10 },
+    reward: { type: 'magic', amount: 10 }, rewardNode: 'm7a',
     once: true,
     unlock: (progress) => {
       if (progress?.hasInfuseReset) return true;
@@ -1250,45 +1250,23 @@ const engine = new DialogueEngine({
 
   const script = structuredClone(MERCHANT_DIALOGUES[scriptId]);
 
-  if (claimed && script.nodes.m2b && script.nodes.c2a && meta.scriptId === 1) {
-      script.nodes.m2b.say = 'I\'ve already given you Coins, goodbye.';
-      script.nodes.c2a.options = [
-      { label: 'Goodbye.', to: 'end_nr' },
-      { label: 'Goodbye.', to: 'end_nr' },
-      { label: 'Goodbye.', to: 'end_nr' },
-      ];
+  if (meta.reward && !meta.rewardNode) {
+      throw new Error(`Dialogue ${id} has a reward but no rewardNode declared.`);
   }
 
-  if (claimed && meta.scriptId === 2 && script.nodes.m3a) {
-      script.nodes.m3a.say = 'I\'ve already given you Books, goodbye.';
-	if (script.nodes.c2a) {
-      script.nodes.c2a.options = [
-        { label: 'Goodbye.', to: 'end_nr' },
-        { label: 'Goodbye.', to: 'end_nr' },
-        { label: 'Goodbye.', to: 'end_nr' },
-      ];
-      }
-  }
-  
-  if (claimed && meta.scriptId === 3 && script.nodes.m5a) {
-      script.nodes.m5a.say = 'I\'ve already given you Gold, goodbye.';
-      if (script.nodes.c5a) {
-      script.nodes.c5a.options = [
-        { label: 'Goodbye.', to: 'end_nr' },
-        { label: 'Goodbye.', to: 'end_nr' },
-        { label: 'Goodbye.', to: 'end_nr' },
-      ];
-      }
-  }
-
-  if (claimed && meta.scriptId === 4 && script.nodes.m7a) {
-      script.nodes.m7a.say = 'I\'ve already given you Magic, goodbye.';
-      if (script.nodes.c7a) {
-      script.nodes.c7a.options = [
-        { label: 'Goodbye.', to: 'end_nr' },
-        { label: 'Goodbye.', to: 'end_nr' },
-        { label: 'Goodbye.', to: 'end_nr' },
-      ];
+  if (claimed && meta.reward && meta.rewardNode) {
+      const rNode = script.nodes[meta.rewardNode];
+      if (rNode) {
+          const capText = String(meta.reward.type || '').charAt(0).toUpperCase() + String(meta.reward.type || '').slice(1);
+          rNode.say = `I've already given you ${capText}, goodbye.`;
+          const nextNode = script.nodes[rNode.next];
+          if (nextNode && nextNode.type === 'choice') {
+              nextNode.options = [
+                  { label: 'Goodbye.', to: 'end_nr' },
+                  { label: 'Goodbye.', to: 'end_nr' },
+                  { label: 'Goodbye.', to: 'end_nr' },
+              ];
+          }
       }
   }
 
