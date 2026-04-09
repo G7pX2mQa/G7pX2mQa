@@ -349,8 +349,12 @@ export function updateRainbowGemShopTab() {
             const tile = document.createElement('div');
             tile.className = 'shop-tile';
             
+            const baseImg = document.createElement('img');
+            baseImg.className = 'base';
+            baseImg.alt = '';
+            
             const iconImg = document.createElement('img');
-            iconImg.className = 'base';
+            iconImg.className = 'icon';
             iconImg.src = upg.icon || 'img/currencies/coin/coin.webp';
             iconImg.alt = upg.title;
             iconImg.style.borderRadius = '50%';
@@ -361,6 +365,7 @@ export function updateRainbowGemShopTab() {
             maxedBorder.alt = '';
             maxedBorder.style.display = 'none'; // Hidden by default
             
+            tile.appendChild(baseImg);
             tile.appendChild(iconImg);
             tile.appendChild(maxedBorder);
             
@@ -412,20 +417,61 @@ export function updateRainbowGemShopTab() {
         // Update state
         const lockState = getUpgradeLockState(RAINBOW_GEM_AREA_KEY, upg.id);
         const locked = !!lockState.locked;
+        
+        const lockIcon = lockState?.iconOverride;
+        const hasMysteriousIcon = typeof lockIcon === 'string' && lockIcon.includes('mysterious');
+        const isMysterious = locked && (lockState?.hidden || hasMysteriousIcon);
+
         const lvl = getLevel(RAINBOW_GEM_AREA_KEY, upg.id);
         const lvlNum = getLevelNumber(RAINBOW_GEM_AREA_KEY, upg.id);
         const isOwned = lvlNum > 0;
         
+        btn.dataset.mysterious = isMysterious ? '1' : '0';
+        if (locked) {
+            btn.title = isMysterious ? 'Hidden Upgrade' : 'Locked Upgrade';
+        } else if (isOwned) {
+            btn.title = 'Owned';
+        } else {
+            btn.title = 'Left-click: Details • Right-click: Buy Max';
+        }
+
+        const baseImg = btn.querySelector('.base');
+        const iconImg = btn.querySelector('.icon');
+        
+        if (baseImg) {
+            if (isMysterious) {
+                baseImg.src = 'img/misc/locked_base.webp';
+                baseImg.style.display = '';
+            } else if (locked || lockState?.useLockedBase) {
+                baseImg.src = 'img/misc/locked_base.webp';
+                baseImg.style.display = '';
+            } else {
+                baseImg.style.display = 'none';
+            }
+        }
+        
+        if (iconImg) {
+            iconImg.src = lockState?.iconOverride || upg.icon || 'img/currencies/coin/coin.webp';
+        }
+
+        
         const badge = btn.querySelector('.level-badge');
         if (badge) {
             if (locked) {
-                badge.textContent = 'Locked';
-                badge.classList.remove('is-maxed', 'can-buy');
+                if (isMysterious) {
+                    badge.style.display = 'none';
+                } else {
+                    badge.style.display = '';
+                    badge.textContent = 'Locked';
+                    badge.classList.remove('is-maxed', 'can-buy');
+                }
             } else if (isOwned) {
+                badge.style.display = '';
                 badge.textContent = 'Owned';
                 badge.classList.add('is-maxed');
                 badge.classList.remove('can-buy');
             } else {
+                badge.style.display = '';
                 const canPlusBn = computeAffordableLevels(upg, lvlNum, lvl);
                 const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
                 const hasPlus = !plusBn.isZero?.();
