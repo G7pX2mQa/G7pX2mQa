@@ -740,6 +740,8 @@ images: [
     'sounds/tsu_beacon_hum.ogg',
     'sounds/tsu_explosion.ogg',
 	'sounds/notif_ding.ogg',
+	'sounds/explosion_long.ogg',
+	'sounds/explosion_short.ogg'
     ],
     fonts: true,
   };
