@@ -16,6 +16,11 @@
   --shop-tile: clamp(84px, 24vw, 128px);
 }
 
+#ae-rainbow-shop-grid .shop-upgrade[data-mysterious="0"] .shop-tile img.icon {
+  width: 100%;
+  height: 100%;
+}
+
 @media (hover: none) and (pointer: coarse) {
   #ae-rainbow-shop-grid {
     --grid-pad: clamp(2px, 2.5vw, 8px);
