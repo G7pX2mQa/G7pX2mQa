@@ -49,3 +49,22 @@
 #ae-rainbow-shop-grid .shop-upgrade .shop-tile .level-badge {
     z-index: 5;
 }
+
+#ae-rainbow-shop-grid .shop-upgrade .shop-tile {
+  position: relative;
+}
+
+#ae-rainbow-shop-grid .shop-upgrade .shop-tile .rainbow-upgrade-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  font-weight: bold;
+  font-size: clamp(14px, 3.5vw, 20px);
+  color: white;
+  pointer-events: none;
+  text-align: center;
+  -webkit-text-stroke: 0.75px black;
+  text-shadow: -0.75px -0.75px 0 #000, 0.75px -0.75px 0 #000, -0.75px 0.75px 0 #000, 0.75px 0.75px 0 #000, 0 1.5px 3px rgba(0,0,0,0.8);
+}
