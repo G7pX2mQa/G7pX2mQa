@@ -42,42 +42,52 @@
   --tiny: .8rem;
 }
 
-body.font-tinos {
+.font-tinos {
   --font-ui: "Tinos", serif;
+  font-family: var(--font-ui) !important;
 }
 
-body.font-arimo {
+.font-arimo {
   --font-ui: "Arimo", sans-serif;
+  font-family: var(--font-ui) !important;
 }
 
-body.font-cousine {
+.font-cousine {
   --font-ui: "Cousine", monospace;
+  font-family: var(--font-ui) !important;
 }
 
-body.font-nunito {
+.font-nunito {
   --font-ui: "Nunito", sans-serif;
+  font-family: var(--font-ui) !important;
 }
 
-body.font-open-sans {
+.font-open-sans {
   --font-ui: "Open Sans", sans-serif;
+  font-family: var(--font-ui) !important;
 }
 
-body.font-comic-neue {
+.font-comic-neue {
   --font-ui: "Comic Neue", cursive, sans-serif;
+  font-family: var(--font-ui) !important;
 }
 
-body.font-merriweather {
+.font-merriweather {
   --font-ui: "Merriweather", serif;
+  font-family: var(--font-ui) !important;
 }
 
-body.font-anton {
+.font-anton {
   --font-ui: "Anton", sans-serif;
+  font-family: var(--font-ui) !important;
 }
 
-body.font-roboto {
+.font-roboto {
   --font-ui: "Roboto", sans-serif;
+  font-family: var(--font-ui) !important;
 }
 
-body.font-inconsolata {
+.font-inconsolata {
   --font-ui: "Inconsolata", monospace;
+  font-family: var(--font-ui) !important;
 }
