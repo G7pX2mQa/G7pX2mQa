@@ -94,6 +94,16 @@ export function createCursorTrail(playfield) {
       activeColors = ['#0a0010']; // Void
     } else if (mod === 29) {
       activeColors = ['#c4e4f7', '#5289ad']; // Ethereal
+    } else if (mod === 32) {
+      activeColors = ['#8A612A', '#60441E']; // Earth
+    } else if (mod === 35) {
+      activeColors = ['#F0FFFF', '#87CEEB']; // Air
+    } else if (mod === 38) {
+      activeColors = ['#FF4500', '#FF8C00']; // Fire
+    } else if (mod === 41) {
+      activeColors = ['#006FAC', '#009CF2', '#33B6FF']; // Water
+    } else if (mod === 44) {
+      activeColors = ['#6C3E1B', '#A56E3B', '#C99753']; // Cookie
     } else {
       activeColors = ['#FFEB3B']; // Default
     }
