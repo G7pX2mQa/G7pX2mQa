@@ -137,7 +137,7 @@ export function ensureGameDom(layerCount, startZ) {
 
   // Apply rainbow gem upgrades effects on load
     const applyFontSetting = () => {
-    document.body.classList.remove('font-times-new-roman', 'font-arial', 'font-courier-new', 'font-verdana', 'font-tahoma');
+    document.body.classList.remove('font-times-new-roman', 'font-arial', 'font-courier-new', 'font-verdana', 'font-tahoma', 'font-comic-neue', 'font-georgia', 'font-impact', 'font-arimo', 'font-lucida-console');
     if (settingsManager.get('active_font_mod') === 1) {
       document.body.classList.add('font-times-new-roman');
     } else if (settingsManager.get('active_font_mod') === 4) {
@@ -148,6 +148,16 @@ export function ensureGameDom(layerCount, startZ) {
       document.body.classList.add('font-verdana');
     } else if (settingsManager.get('active_font_mod') === 13) {
       document.body.classList.add('font-tahoma');
+    } else if (settingsManager.get('active_font_mod') === 16) {
+      document.body.classList.add('font-comic-neue');
+    } else if (settingsManager.get('active_font_mod') === 19) {
+      document.body.classList.add('font-georgia');
+    } else if (settingsManager.get('active_font_mod') === 22) {
+      document.body.classList.add('font-impact');
+    } else if (settingsManager.get('active_font_mod') === 25) {
+      document.body.classList.add('font-arimo');
+    } else if (settingsManager.get('active_font_mod') === 28) {
+      document.body.classList.add('font-lucida-console');
     }
   };
   
