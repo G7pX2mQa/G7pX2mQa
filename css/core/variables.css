@@ -91,3 +91,28 @@
   --font-ui: "Inconsolata", monospace;
   font-family: var(--font-ui) !important;
 }
+
+.font-lora {
+  --font-ui: "Lora", serif;
+  font-family: var(--font-ui) !important;
+}
+
+.font-noto-sans {
+  --font-ui: "Noto Sans", sans-serif;
+  font-family: var(--font-ui) !important;
+}
+
+.font-pt-sans {
+  --font-ui: "PT Sans", sans-serif;
+  font-family: var(--font-ui) !important;
+}
+
+.font-ubuntu {
+  --font-ui: "Ubuntu", sans-serif;
+  font-family: var(--font-ui) !important;
+}
+
+.font-source-sans-3 {
+  --font-ui: "Source Sans 3", sans-serif;
+  font-family: var(--font-ui) !important;
+}
