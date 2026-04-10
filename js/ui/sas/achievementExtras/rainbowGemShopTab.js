@@ -336,7 +336,14 @@ export function updateRainbowGemShopTab() {
     const grid = document.getElementById('ae-rainbow-shop-grid');
     if (!grid) return;
 
+    let counts = { font: 0, trail: 0, magnet: 0 };
     for (const upg of RAINBOW_GEM_UPGRADES) {
+        counts[upg.modType] = (counts[upg.modType] || 0) + 1;
+        let upgradeLabel = "";
+        if (upg.modType === 'font') upgradeLabel = "Font" + counts.font;
+        else if (upg.modType === 'trail') upgradeLabel = "Trail" + counts.trail;
+        else if (upg.modType === 'magnet') upgradeLabel = "Magnet" + counts.magnet;
+
         let btn = grid.querySelector(`.shop-upgrade[data-upgid="${upg.id}"]`);
         
         if (!btn) {
@@ -355,7 +362,7 @@ export function updateRainbowGemShopTab() {
             
             const iconImg = document.createElement('img');
             iconImg.className = 'icon';
-            iconImg.src = upg.icon || 'img/currencies/coin/coin.webp';
+            iconImg.src = upg.icon || 'img/currencies/rainbow_gem.webp';
             iconImg.alt = upg.title;
             iconImg.style.borderRadius = '50%';
 
@@ -365,9 +372,14 @@ export function updateRainbowGemShopTab() {
             maxedBorder.alt = '';
             maxedBorder.style.display = 'none'; // Hidden by default
             
+            const overlayText = document.createElement('div');
+            overlayText.className = 'rainbow-upgrade-text';
+            overlayText.textContent = upgradeLabel;
+
             tile.appendChild(baseImg);
             tile.appendChild(iconImg);
             tile.appendChild(maxedBorder);
+            tile.appendChild(overlayText);
             
             const badge = document.createElement('div');
             badge.className = 'level-badge text-badge';
@@ -459,7 +471,7 @@ export function updateRainbowGemShopTab() {
         }
         
         if (iconImg) {
-            iconImg.src = lockState?.iconOverride || upg.icon || 'img/currencies/coin/coin.webp';
+            iconImg.src = lockState?.iconOverride || upg.icon || 'img/currencies/rainbow_gem.webp';
         }
 
         
