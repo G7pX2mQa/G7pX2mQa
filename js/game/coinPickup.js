@@ -371,7 +371,7 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     radiusPx = magnetLevel * unitPx;
     
         // Clear both classes first
-    indicator.classList.remove('magnet-bronze', 'magnet-silver', 'magnet-gold', 'magnet-sapphire', 'magnet-emerald');
+    indicator.classList.remove('magnet-bronze', 'magnet-silver', 'magnet-gold', 'magnet-sapphire', 'magnet-emerald', 'magnet-ruby', 'magnet-amethyst', 'magnet-sunset', 'magnet-void', 'magnet-ethereal');
     
     if (settingsManager.get('active_magnet_mod') === 6) {
       indicator.classList.add('magnet-silver');
@@ -383,6 +383,16 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
       indicator.classList.add('magnet-sapphire');
     } else if (settingsManager.get('active_magnet_mod') === 15) {
       indicator.classList.add('magnet-emerald');
+    } else if (settingsManager.get('active_magnet_mod') === 18) {
+      indicator.classList.add('magnet-ruby');
+    } else if (settingsManager.get('active_magnet_mod') === 21) {
+      indicator.classList.add('magnet-amethyst');
+    } else if (settingsManager.get('active_magnet_mod') === 24) {
+      indicator.classList.add('magnet-sunset');
+    } else if (settingsManager.get('active_magnet_mod') === 27) {
+      indicator.classList.add('magnet-void');
+    } else if (settingsManager.get('active_magnet_mod') === 30) {
+      indicator.classList.add('magnet-ethereal');
     }
 
     updateIndicator();
