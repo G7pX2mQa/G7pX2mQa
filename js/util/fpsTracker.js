@@ -16,13 +16,14 @@ export function initFpsTracker() {
     fontSize: '12px',
     pointerEvents: 'none',
   });
-  fpsDiv.style.display = settingsManager.get('show_fps') ? 'block' : 'none';
+  fpsDiv.style.display = 'none'; // start hidden
   document.body.appendChild(fpsDiv);
 
 
   let frameCount = 0;
   let lastTime = performance.now();
   let rafId = null;
+  let inMenu = true;
 
   function loop(now) {
     frameCount++;
@@ -38,7 +39,8 @@ export function initFpsTracker() {
     rafId = requestAnimationFrame(loop);
   }
 
-  settingsManager.subscribe('show_fps', (show) => {
+  function updateVisibility() {
+    const show = settingsManager.get('show_fps') && !inMenu;
     fpsDiv.style.display = show ? 'block' : 'none';
     if (show && !rafId) {
         lastTime = performance.now();
@@ -48,9 +50,14 @@ export function initFpsTracker() {
         cancelAnimationFrame(rafId);
         rafId = null;
     }
+  }
+
+  settingsManager.subscribe('show_fps', updateVisibility);
+
+  window.addEventListener('menu:visibilitychange', (e) => {
+    inMenu = e.detail ? e.detail.visible : false;
+    updateVisibility();
   });
 
-  if (settingsManager.get('show_fps')) {
-      rafId = requestAnimationFrame(loop);
-  }
+  updateVisibility();
 }
