@@ -747,5 +747,365 @@ export const RAINBOW_GEM_UPGRADES = [
       }
       return { locked: false, hidden: false };
     }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 31,
+    title: "Lora",
+    desc: "Changes the game's font to Lora",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "font",
+    costAtLevel: () => 1100,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 11) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 11 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 11 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 32,
+    title: "Earth Trail",
+    desc: "Changes the cursor trail to an earth color",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "trail",
+    costAtLevel: () => 1100,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 11) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 11 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 11 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 33,
+    title: "Earth Magnet",
+    desc: "Changes the magnet indicator to an earth color",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "magnet",
+    costAtLevel: () => 1100,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 11) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 11 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 11 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 34,
+    title: "Noto Sans",
+    desc: "Changes the game's font to Noto Sans",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "font",
+    costAtLevel: () => 1200,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 12) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 12 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 12 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 35,
+    title: "Air Trail",
+    desc: "Changes the cursor trail to an air color",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "trail",
+    costAtLevel: () => 1200,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 12) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 12 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 12 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 36,
+    title: "Air Magnet",
+    desc: "Changes the magnet indicator to an air color",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "magnet",
+    costAtLevel: () => 1200,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 12) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 12 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 12 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 37,
+    title: "PT Sans",
+    desc: "Changes the game's font to PT Sans",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "font",
+    costAtLevel: () => 1300,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 13) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 13 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 13 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 38,
+    title: "Fire Trail",
+    desc: "Changes the cursor trail to a fire color",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "trail",
+    costAtLevel: () => 1300,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 13) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 13 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 13 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 39,
+    title: "Fire Magnet",
+    desc: "Changes the magnet indicator to a fire color",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "magnet",
+    costAtLevel: () => 1300,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 13) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 13 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 13 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 40,
+    title: "Ubuntu",
+    desc: "Changes the game's font to Ubuntu",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "font",
+    costAtLevel: () => 1400,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 14) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 14 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 14 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 41,
+    title: "Water Trail",
+    desc: "Changes the cursor trail to a water color",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "trail",
+    costAtLevel: () => 1400,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 14) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 14 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 14 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 42,
+    title: "Water Magnet",
+    desc: "Changes the magnet indicator to a water color",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "magnet",
+    costAtLevel: () => 1400,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 14) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 14 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 14 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 43,
+    title: "Source Sans 3",
+    desc: "Changes the game's font to Source Sans 3",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "font",
+    costAtLevel: () => 1500,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 15) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 15 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 15 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 44,
+    title: "Cookie Trail",
+    desc: "Changes the cursor trail to a cookie color",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "trail",
+    costAtLevel: () => 1500,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 15) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 15 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 15 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
+  },
+  {
+    area: RAINBOW_GEM_AREA_KEY,
+    id: 45,
+    title: "Cookie Magnet",
+    desc: "Changes the magnet indicator to a cookie color",
+    lvlCap: 1,
+    costType: "rainbowGems",
+    upgType: "TM",
+    modType: "magnet",
+    costAtLevel: () => 1500,
+    icon: "img/currencies/rainbow_gem.webp",
+    computeLockState(ctx) {
+      const mState = getMutationState();
+      if (!mState.unlocked || levelBigNumToNumber(mState.level) < 15) {
+        return {
+          locked: true, hidden: true,
+          reason: "Reach Mutation Level 15 to reveal this upgrade",
+          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 15 to reveal this upgrade",
+          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+        };
+      }
+      return { locked: false, hidden: false };
+    }
   }
 ];
