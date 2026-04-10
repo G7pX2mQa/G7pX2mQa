@@ -2060,6 +2060,10 @@ function playDialogueExplosion() {
       // We are already inside the interval, so this is 150ms after the 10th explosion.
       playAudio('sounds/explosion_long.ogg', { volume: 1.0 });
       spawnParticles(true);
+      // Wait 1 second before re-allowing clicks
+      setTimeout(() => {
+        explosionContainer.style.pointerEvents = 'none';
+      }, 1000);
       // Wait for long explosion to finish before removing container
       setTimeout(() => {
         isAnimating = false;
