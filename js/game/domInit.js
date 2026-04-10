@@ -3,6 +3,7 @@ import { initPinnedCurrencies, initPinnedLevels } from '../ui/currencyAndLevelPi
 import { RESOURCE_REGISTRY } from './offlinePanel.js';
 import { getLevelNumber } from './upgrades.js';
 import { RAINBOW_GEM_AREA_KEY } from './rainbowGemUpgrades.js';
+import { FONT_MAP, ALL_FONT_CLASSES } from '../main.js';
 
 export function ensureGameDom(layerCount, startZ) {
   if (document.getElementById('game-root')) return;
@@ -136,28 +137,11 @@ export function ensureGameDom(layerCount, startZ) {
   }
 
   // Apply rainbow gem upgrades effects on load
-    const applyFontSetting = () => {
-    document.body.classList.remove('font-tinos', 'font-arimo', 'font-cousine', 'font-nunito', 'font-open-sans', 'font-comic-neue', 'font-merriweather', 'font-anton', 'font-roboto', 'font-inconsolata');
-    if (settingsManager.get('active_font_mod') === 1) {
-      document.body.classList.add('font-tinos');
-    } else if (settingsManager.get('active_font_mod') === 4) {
-      document.body.classList.add('font-arimo');
-    } else if (settingsManager.get('active_font_mod') === 7) {
-      document.body.classList.add('font-cousine');
-    } else if (settingsManager.get('active_font_mod') === 10) {
-      document.body.classList.add('font-nunito');
-    } else if (settingsManager.get('active_font_mod') === 13) {
-      document.body.classList.add('font-open-sans');
-    } else if (settingsManager.get('active_font_mod') === 16) {
-      document.body.classList.add('font-comic-neue');
-    } else if (settingsManager.get('active_font_mod') === 19) {
-      document.body.classList.add('font-merriweather');
-    } else if (settingsManager.get('active_font_mod') === 22) {
-      document.body.classList.add('font-anton');
-    } else if (settingsManager.get('active_font_mod') === 25) {
-      document.body.classList.add('font-roboto');
-    } else if (settingsManager.get('active_font_mod') === 28) {
-      document.body.classList.add('font-inconsolata');
+  const applyFontSetting = () => {
+    document.body.classList.remove(...ALL_FONT_CLASSES);
+    const fontMod = settingsManager.get('active_font_mod');
+    if (FONT_MAP[fontMod]) {
+      document.body.classList.add(FONT_MAP[fontMod]);
     }
   };
   
