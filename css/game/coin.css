@@ -92,3 +92,65 @@
   border: 2px solid rgb(80 200 120);
   box-shadow: 0 0 20px 4px #50c878f2, inset 0 0 36px #50c878c7;
 }
+
+.area-cove .magnet-indicator.magnet-ruby {
+  background-color: #E0115F26;
+  border: 2px solid rgb(255 0 51);
+  box-shadow: 0 0 20px 4px #E0115Ff2, inset 0 0 36px #E0115Fc7;
+}
+
+.area-cove .magnet-indicator.magnet-amethyst {
+  background-color: #9966CC26;
+  border: 2px solid rgb(153 102 204);
+  box-shadow: 0 0 20px 4px #9966CCf2, inset 0 0 36px #9966CCc7;
+}
+
+@keyframes sunset-magnet {
+  0% {
+    background-color: #FF6B6B26;
+    border-color: rgb(255 105 180);
+    box-shadow: 0 0 20px 4px #FF69B4f2, inset 0 0 36px #FF69B4c7;
+  }
+  50% {
+    background-color: #6A1B9A26;
+    border-color: rgb(138 43 226);
+    box-shadow: 0 0 20px 4px #8A2BE2f2, inset 0 0 36px #8A2BE2c7;
+  }
+  100% {
+    background-color: #FF6B6B26;
+    border-color: rgb(255 105 180);
+    box-shadow: 0 0 20px 4px #FF69B4f2, inset 0 0 36px #FF69B4c7;
+  }
+}
+
+.area-cove .magnet-indicator.magnet-sunset {
+  animation: sunset-magnet 4s infinite linear;
+}
+
+.area-cove .magnet-indicator.magnet-void {
+  background-color: #0a001026;
+  border: 2px solid rgb(10 0 16);
+  box-shadow: 0 0 20px 4px #0a0010f2, inset 0 0 36px #0a0010c7;
+}
+
+@keyframes ethereal-magnet {
+  0% {
+    background-color: #c4e4f726;
+    border-color: rgb(196 228 247);
+    box-shadow: 0 0 20px 4px #c4e4f7f2, inset 0 0 36px #c4e4f7c7;
+  }
+  50% {
+    background-color: #5289ad26;
+    border-color: rgb(82 137 173);
+    box-shadow: 0 0 20px 4px #5289adf2, inset 0 0 36px #5289adc7;
+  }
+  100% {
+    background-color: #c4e4f726;
+    border-color: rgb(196 228 247);
+    box-shadow: 0 0 20px 4px #c4e4f7f2, inset 0 0 36px #c4e4f7c7;
+  }
+}
+
+.area-cove .magnet-indicator.magnet-ethereal {
+  animation: ethereal-magnet 4s infinite linear;
+}
