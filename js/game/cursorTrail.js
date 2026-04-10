@@ -30,7 +30,7 @@ export function createCursorTrail(playfield) {
   const CENTER = TEXTURE_SIZE / 2;
 
   // --- State ---
-  const STRIDE = 4;
+  const STRIDE = 5;
   const data = new Float32Array(CAPACITY * STRIDE);
   
   for (let i = 0; i < CAPACITY; i++) {
@@ -67,35 +67,62 @@ export function createCursorTrail(playfield) {
   });
 
   // --- Texture Generation ---
-  const texture = document.createElement('canvas');
-  texture.width = TEXTURE_SIZE;
-  texture.height = TEXTURE_SIZE;
-  const tCtx = texture.getContext('2d');
+  // Textures are generated in generateTexture()
   
-  const generateTexture = () => {
-    tCtx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
-    let color = '#FFEB3B';
-        if (settingsManager.get('active_trail_mod') === 5) {
-      color = '#c0c0c0'; // Silver
-    } else if (settingsManager.get('active_trail_mod') === 2) {
-      color = '#cd7f32'; // Bronze
-    } else if (settingsManager.get('active_trail_mod') === 8) {
-      color = '#ffd700'; // Gold
-    } else if (settingsManager.get('active_trail_mod') === 11) {
-      color = '#0f52ba'; // Sapphire
-    } else if (settingsManager.get('active_trail_mod') === 14) {
-      color = '#50c878'; // Emerald
+  let particleColorIndex = 0;
+  let activeColors = ['#FFEB3B'];
+
+  const updateColors = () => {
+    let mod = settingsManager.get('active_trail_mod');
+    if (mod === 5) {
+      activeColors = ['#c0c0c0']; // Silver
+    } else if (mod === 2) {
+      activeColors = ['#cd7f32']; // Bronze
+    } else if (mod === 8) {
+      activeColors = ['#ffd700']; // Gold
+    } else if (mod === 11) {
+      activeColors = ['#0f52ba']; // Sapphire
+    } else if (mod === 14) {
+      activeColors = ['#50c878']; // Emerald
+    } else if (mod === 17) {
+      activeColors = ['#FF0033']; // Ruby
+    } else if (mod === 20) {
+      activeColors = ['#9966CC']; // Amethyst
+    } else if (mod === 23) {
+      activeColors = ['#FF69B4', '#8A2BE2']; // Sunset
+    } else if (mod === 26) {
+      activeColors = ['#0a0010']; // Void
+    } else if (mod === 29) {
+      activeColors = ['#c4e4f7', '#5289ad']; // Ethereal
+    } else {
+      activeColors = ['#FFEB3B']; // Default
     }
-    tCtx.shadowColor = color;
-    tCtx.shadowBlur = GLOW_RADIUS;
-    tCtx.fillStyle = color;
-    
-    tCtx.beginPath();
-    tCtx.arc(CENTER, CENTER, PARTICLE_RADIUS, 0, Math.PI * 2);
-    tCtx.fill();
+    generateTexture();
+  };
+
+  const textures = [];
+
+  const generateTexture = () => {
+    // We now generate multiple textures if there are multiple colors
+    textures.length = 0; // Clear existing textures
+
+    for (const color of activeColors) {
+      const tex = document.createElement('canvas');
+      tex.width = TEXTURE_SIZE;
+      tex.height = TEXTURE_SIZE;
+      const ctx = tex.getContext('2d');
+      ctx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+      ctx.shadowColor = color;
+      ctx.shadowBlur = GLOW_RADIUS;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(CENTER, CENTER, PARTICLE_RADIUS, 0, Math.PI * 2);
+      ctx.fill();
+      textures.push(tex);
+    }
   };
   
-  generateTexture();
+  updateColors();
 
   // --- Interaction State ---
   let pointerInside = false;
@@ -157,6 +184,7 @@ export function createCursorTrail(playfield) {
     data[offset + 1] = y;
     data[offset + 2] = 0;
     data[offset + 3] = PARTICLE_LIFETIME;
+    data[offset + 4] = particleColorIndex++;
   };
 
   const processPoint = (localX, localY, budgetRef) => {
@@ -335,7 +363,8 @@ export function createCursorTrail(playfield) {
         const drawY = Math.round(y - halfSize);
         const drawSize = Math.round(size);
         
-        ctx.drawImage(texture, drawX, drawY, drawSize, drawSize);
+        const texIndex = Math.floor(data[offset + 4]) % textures.length;
+        ctx.drawImage(textures[texIndex], drawX, drawY, drawSize, drawSize);
 
         if (drawX < minX) minX = drawX;
         if (drawY < minY) minY = drawY;
@@ -385,8 +414,8 @@ export function createCursorTrail(playfield) {
   playfield.addEventListener('pointerleave', onPointerLeave, opts);
   playfield.addEventListener('pointercancel', onPointerLeave, opts);
 
-  document.addEventListener('ccc:upgrades:changed', generateTexture);
-  const activeTrailUnsub = settingsManager.subscribe('active_trail_mod', generateTexture);
+  document.addEventListener('ccc:upgrades:changed', updateColors);
+  const activeTrailUnsub = settingsManager.subscribe('active_trail_mod', updateColors);
 
   resize();
   rafId = requestAnimationFrame(loop);
