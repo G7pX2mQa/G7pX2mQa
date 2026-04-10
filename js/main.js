@@ -12,7 +12,12 @@ export const FONT_MAP = {
   19: 'font-merriweather',
   22: 'font-anton',
   25: 'font-roboto',
-  28: 'font-inconsolata'
+  28: 'font-inconsolata',
+  31: 'font-lora',
+  34: 'font-noto-sans',
+  37: 'font-pt-sans',
+  40: 'font-ubuntu',
+  43: 'font-source-sans-3'
 };
 
 export const ALL_FONT_CLASSES = Object.values(FONT_MAP);
