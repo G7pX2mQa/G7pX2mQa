@@ -75,10 +75,16 @@ export function createCursorTrail(playfield) {
   const generateTexture = () => {
     tCtx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
     let color = '#FFEB3B';
-    if (settingsManager.get('active_trail_mod') === 5) {
+        if (settingsManager.get('active_trail_mod') === 5) {
       color = '#c0c0c0'; // Silver
     } else if (settingsManager.get('active_trail_mod') === 2) {
       color = '#cd7f32'; // Bronze
+    } else if (settingsManager.get('active_trail_mod') === 8) {
+      color = '#ffd700'; // Gold
+    } else if (settingsManager.get('active_trail_mod') === 11) {
+      color = '#0f52ba'; // Sapphire
+    } else if (settingsManager.get('active_trail_mod') === 14) {
+      color = '#50c878'; // Emerald
     }
     tCtx.shadowColor = color;
     tCtx.shadowBlur = GLOW_RADIUS;
