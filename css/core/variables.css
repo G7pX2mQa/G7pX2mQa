@@ -61,3 +61,23 @@ body.font-verdana {
 body.font-tahoma {
   --font-ui: Tahoma, sans-serif;
 }
+
+body.font-comic-neue {
+  --font-ui: "Comic Neue", cursive, sans-serif;
+}
+
+body.font-georgia {
+  --font-ui: Georgia, serif;
+}
+
+body.font-impact {
+  --font-ui: Impact, sans-serif;
+}
+
+body.font-arimo {
+  --font-ui: Arimo, sans-serif;
+}
+
+body.font-lucida-console {
+  --font-ui: "Lucida Console", Monaco, monospace;
+}
