@@ -239,6 +239,11 @@ export function ensureOverlay() {
             if (e.detail?.key === 'voidGems') {
                 syncVoidTabUnlockState();
             }
+            if (e.detail?.key === 'rainbowGems') {
+                if (isOpen && tabsState.panels['rainbow']?.classList.contains('is-active')) {
+                    updateRainbowGemShopTab();
+                }
+            }
         });
         
         document.addEventListener('ccc:upgrades:changed', () => {
