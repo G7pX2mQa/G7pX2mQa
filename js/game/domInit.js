@@ -137,27 +137,27 @@ export function ensureGameDom(layerCount, startZ) {
 
   // Apply rainbow gem upgrades effects on load
     const applyFontSetting = () => {
-    document.body.classList.remove('font-times-new-roman', 'font-arial', 'font-courier-new', 'font-verdana', 'font-tahoma', 'font-comic-neue', 'font-georgia', 'font-impact', 'font-arimo', 'font-lucida-console');
+    document.body.classList.remove('font-tinos', 'font-arimo', 'font-cousine', 'font-nunito', 'font-open-sans', 'font-comic-neue', 'font-merriweather', 'font-anton', 'font-roboto', 'font-inconsolata');
     if (settingsManager.get('active_font_mod') === 1) {
-      document.body.classList.add('font-times-new-roman');
+      document.body.classList.add('font-tinos');
     } else if (settingsManager.get('active_font_mod') === 4) {
-      document.body.classList.add('font-arial');
+      document.body.classList.add('font-arimo');
     } else if (settingsManager.get('active_font_mod') === 7) {
-      document.body.classList.add('font-courier-new');
+      document.body.classList.add('font-cousine');
     } else if (settingsManager.get('active_font_mod') === 10) {
-      document.body.classList.add('font-verdana');
+      document.body.classList.add('font-nunito');
     } else if (settingsManager.get('active_font_mod') === 13) {
-      document.body.classList.add('font-tahoma');
+      document.body.classList.add('font-open-sans');
     } else if (settingsManager.get('active_font_mod') === 16) {
       document.body.classList.add('font-comic-neue');
     } else if (settingsManager.get('active_font_mod') === 19) {
-      document.body.classList.add('font-georgia');
+      document.body.classList.add('font-merriweather');
     } else if (settingsManager.get('active_font_mod') === 22) {
-      document.body.classList.add('font-impact');
+      document.body.classList.add('font-anton');
     } else if (settingsManager.get('active_font_mod') === 25) {
-      document.body.classList.add('font-arimo');
+      document.body.classList.add('font-roboto');
     } else if (settingsManager.get('active_font_mod') === 28) {
-      document.body.classList.add('font-lucida-console');
+      document.body.classList.add('font-inconsolata');
     }
   };
   
