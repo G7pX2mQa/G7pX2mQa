@@ -136,12 +136,18 @@ export function ensureGameDom(layerCount, startZ) {
   }
 
   // Apply rainbow gem upgrades effects on load
-  const applyFontSetting = () => {
-    document.body.classList.remove('font-times-new-roman', 'font-arial');
+    const applyFontSetting = () => {
+    document.body.classList.remove('font-times-new-roman', 'font-arial', 'font-courier-new', 'font-verdana', 'font-tahoma');
     if (settingsManager.get('active_font_mod') === 1) {
       document.body.classList.add('font-times-new-roman');
     } else if (settingsManager.get('active_font_mod') === 4) {
       document.body.classList.add('font-arial');
+    } else if (settingsManager.get('active_font_mod') === 7) {
+      document.body.classList.add('font-courier-new');
+    } else if (settingsManager.get('active_font_mod') === 10) {
+      document.body.classList.add('font-verdana');
+    } else if (settingsManager.get('active_font_mod') === 13) {
+      document.body.classList.add('font-tahoma');
     }
   };
   
