@@ -1922,60 +1922,125 @@ function playDialogueExplosion() {
   explosionContainer.style.left = '0';
   explosionContainer.style.width = '100vw';
   explosionContainer.style.height = '100vh';
-  explosionContainer.style.pointerEvents = 'none';
+  explosionContainer.style.pointerEvents = 'auto'; // Block interaction with underlying elements
   explosionContainer.style.zIndex = '999999';
   explosionContainer.style.overflow = 'hidden';
   document.body.appendChild(explosionContainer);
 
-  const spawnParticles = (isLong) => {
-    const whiteFlash = document.createElement('div');
-    whiteFlash.style.position = 'absolute';
-    whiteFlash.style.inset = '0';
-    whiteFlash.style.backgroundColor = 'white';
-    whiteFlash.style.opacity = isLong ? '1' : '0.4';
-    whiteFlash.style.transition = isLong ? 'opacity 1.5s ease-out' : 'opacity 0.4s ease-out';
-    explosionContainer.appendChild(whiteFlash);
+  const canvas = document.createElement('canvas');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.position = 'absolute';
+  canvas.style.top = '0';
+  canvas.style.left = '0';
+  canvas.style.pointerEvents = 'none';
+  explosionContainer.appendChild(canvas);
 
-    requestAnimationFrame(() => {
-      whiteFlash.style.opacity = '0';
-    });
-    
-    setTimeout(() => { whiteFlash.remove(); }, isLong ? 1500 : 400);
+  const ctx = canvas.getContext('2d');
+  const particles = [];
+  let isAnimating = true;
 
-    const numParticles = isLong ? 150 : 30;
-    for (let i = 0; i < numParticles; i++) {
-      const particle = document.createElement('div');
-      const size = isLong ? (Math.random() * 100 + 40) : (Math.random() * 40 + 15);
-      particle.style.position = 'absolute';
-      particle.style.width = `${size}px`;
-      particle.style.height = `${size}px`;
-      particle.style.backgroundColor = ['#ff4500', '#ff8c00', '#ffd700', '#ffffff', '#ff0000'][Math.floor(Math.random() * 5)];
-      particle.style.borderRadius = '50%';
-      particle.style.top = '50%';
-      particle.style.left = '50%';
-      particle.style.transform = 'translate(-50%, -50%)';
-      particle.style.boxShadow = '0 0 20px ' + particle.style.backgroundColor;
+  const colors = ['#ff4500', '#ff8c00', '#ffd700', '#ffffff', '#ff0000'];
+
+  class Particle {
+    constructor(x, y, isLong) {
+      this.x = x;
+      this.y = y;
       
-      const duration = isLong ? (Math.random() * 1 + 1.5) : (Math.random() * 0.5 + 0.3);
-      particle.style.transition = `transform ${duration}s cubic-bezier(0.1, 0.8, 0.3, 1), opacity ${duration}s linear`;
-
       const angle = Math.random() * Math.PI * 2;
-      const distance = isLong ? (Math.random() * 1200 + 300) : (Math.random() * 400 + 100);
-      const tx = Math.cos(angle) * distance;
-      const ty = Math.sin(angle) * distance;
-
-      explosionContainer.appendChild(particle);
+      const speed = isLong ? (Math.random() * 20 + 5) : (Math.random() * 10 + 2);
+      this.vx = Math.cos(angle) * speed;
+      this.vy = Math.sin(angle) * speed;
       
-      particle.getBoundingClientRect();
-
-      requestAnimationFrame(() => {
-        particle.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0)`;
-        particle.style.opacity = '0';
-      });
+      this.size = isLong ? (Math.random() * 30 + 10) : (Math.random() * 15 + 5);
+      this.color = colors[Math.floor(Math.random() * colors.length)];
       
-      setTimeout(() => { particle.remove(); }, duration * 1000);
+      this.life = 1.0;
+      this.decay = isLong ? (Math.random() * 0.005 + 0.005) : (Math.random() * 0.02 + 0.02);
+      this.gravity = isLong ? 0.3 : 0.15;
+      
+      this.history = [];
+    }
+
+    update() {
+      this.history.push({ x: this.x, y: this.y, size: this.size });
+      if (this.history.length > 10) {
+        this.history.shift();
+      }
+
+      this.x += this.vx;
+      this.y += this.vy;
+      this.vy += this.gravity;
+      this.life -= this.decay;
+      this.size *= 0.98;
+    }
+
+    draw(ctx) {
+      if (this.life <= 0) return;
+
+      // Draw trail
+      if (this.history.length > 0) {
+        ctx.beginPath();
+        ctx.moveTo(this.history[0].x, this.history[0].y);
+        for (let i = 1; i < this.history.length; i++) {
+          ctx.lineTo(this.history[i].x, this.history[i].y);
+        }
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = this.size * 0.5;
+        ctx.lineCap = 'round';
+        ctx.globalAlpha = this.life * 0.5;
+        ctx.stroke();
+      }
+
+      // Draw particle
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = this.life;
+      ctx.fill();
+
+      // Draw glow
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = this.color;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      ctx.globalAlpha = 1.0;
+    }
+  }
+
+  const spawnParticles = (isLong) => {
+    const numParticles = isLong ? 200 : 50;
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    for (let i = 0; i < numParticles; i++) {
+      particles.push(new Particle(centerX, centerY, isLong));
     }
   };
+
+  const animate = () => {
+    if (!isAnimating) return;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.update();
+      p.draw(ctx);
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+      }
+    }
+    
+    requestAnimationFrame(animate);
+  };
+  
+  requestAnimationFrame(animate);
+
+  window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  });
 
   let count = 0;
   const totalShort = 10;
@@ -1997,8 +2062,9 @@ function playDialogueExplosion() {
       spawnParticles(true);
       // Wait for long explosion to finish before removing container
       setTimeout(() => {
+        isAnimating = false;
         explosionContainer.remove();
-      }, 2500);
+      }, 5000); // Increased duration to allow particles to fall and fade
     }
   }, delay);
 }
