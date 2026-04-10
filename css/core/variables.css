@@ -42,42 +42,42 @@
   --tiny: .8rem;
 }
 
-body.font-times-new-roman {
-  --font-ui: "Times New Roman", Times, serif;
+body.font-tinos {
+  --font-ui: "Tinos", serif;
 }
 
-body.font-arial {
-  --font-ui: 'Arial', sans-serif;
+body.font-arimo {
+  --font-ui: "Arimo", sans-serif;
 }
 
-body.font-courier-new {
-  --font-ui: "Courier New", Courier, monospace;
+body.font-cousine {
+  --font-ui: "Cousine", monospace;
 }
 
-body.font-verdana {
-  --font-ui: Verdana, sans-serif;
+body.font-nunito {
+  --font-ui: "Nunito", sans-serif;
 }
 
-body.font-tahoma {
-  --font-ui: Tahoma, sans-serif;
+body.font-open-sans {
+  --font-ui: "Open Sans", sans-serif;
 }
 
 body.font-comic-neue {
   --font-ui: "Comic Neue", cursive, sans-serif;
 }
 
-body.font-georgia {
-  --font-ui: Georgia, serif;
+body.font-merriweather {
+  --font-ui: "Merriweather", serif;
 }
 
-body.font-impact {
-  --font-ui: Impact, sans-serif;
+body.font-anton {
+  --font-ui: "Anton", sans-serif;
 }
 
-body.font-arimo {
-  --font-ui: Arimo, sans-serif;
+body.font-roboto {
+  --font-ui: "Roboto", sans-serif;
 }
 
-body.font-lucida-console {
-  --font-ui: "Lucida Console", Monaco, monospace;
+body.font-inconsolata {
+  --font-ui: "Inconsolata", monospace;
 }
