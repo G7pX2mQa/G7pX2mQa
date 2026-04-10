@@ -2,6 +2,21 @@
 
 import { playAudio, setAudioSuspended } from './util/audioManager.js';
 
+export const FONT_MAP = {
+  1: 'font-tinos',
+  4: 'font-arimo',
+  7: 'font-cousine',
+  10: 'font-nunito',
+  13: 'font-open-sans',
+  16: 'font-comic-neue',
+  19: 'font-merriweather',
+  22: 'font-anton',
+  25: 'font-roboto',
+  28: 'font-inconsolata'
+};
+
+export const ALL_FONT_CLASSES = Object.values(FONT_MAP);
+
 export const DEBUG_PANEL_ACCESS = true; // I will change this to false for prod so the readme makes sense
 export const IS_MOBILE = (() => {
   if (typeof window === 'undefined') return false;
