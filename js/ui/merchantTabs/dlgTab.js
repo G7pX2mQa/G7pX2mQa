@@ -1952,22 +1952,16 @@ function playDialogueExplosion() {
       this.vx = Math.cos(angle) * speed;
       this.vy = Math.sin(angle) * speed;
       
-      this.size = isLong ? (Math.random() * 30 + 10) : (Math.random() * 15 + 5);
+      this.size = isLong ? (Math.random() * 300 + 100) : (Math.random() * 150 + 50);
       this.color = colors[Math.floor(Math.random() * colors.length)];
       
       this.life = 1.0;
       this.decay = isLong ? (Math.random() * 0.005 + 0.005) : (Math.random() * 0.02 + 0.02);
       this.gravity = isLong ? 0.3 : 0.15;
       
-      this.history = [];
     }
 
     update() {
-      this.history.push({ x: this.x, y: this.y, size: this.size });
-      if (this.history.length > 10) {
-        this.history.shift();
-      }
-
       this.x += this.vx;
       this.y += this.vy;
       this.vy += this.gravity;
@@ -1978,20 +1972,6 @@ function playDialogueExplosion() {
     draw(ctx) {
       if (this.life <= 0) return;
 
-      // Draw trail
-      if (this.history.length > 0) {
-        ctx.beginPath();
-        ctx.moveTo(this.history[0].x, this.history[0].y);
-        for (let i = 1; i < this.history.length; i++) {
-          ctx.lineTo(this.history[i].x, this.history[i].y);
-        }
-        ctx.strokeStyle = this.color;
-        ctx.lineWidth = this.size * 0.5;
-        ctx.lineCap = 'round';
-        ctx.globalAlpha = this.life * 0.5;
-        ctx.stroke();
-      }
-
       // Draw particle
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
@@ -1999,12 +1979,7 @@ function playDialogueExplosion() {
       ctx.globalAlpha = this.life;
       ctx.fill();
 
-      // Draw glow
-      ctx.shadowBlur = 20;
-      ctx.shadowColor = this.color;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      
+
       ctx.globalAlpha = 1.0;
     }
   }
