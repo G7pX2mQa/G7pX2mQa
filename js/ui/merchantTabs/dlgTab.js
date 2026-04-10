@@ -1923,6 +1923,7 @@ function playDialogueExplosion() {
   explosionContainer.style.width = '100vw';
   explosionContainer.style.height = '100vh';
   explosionContainer.style.pointerEvents = 'auto'; // Block interaction with underlying elements
+  explosionContainer.style.cursor = 'none'; // Hide cursor during explosion
   explosionContainer.style.zIndex = '999999';
   explosionContainer.style.overflow = 'hidden';
   document.body.appendChild(explosionContainer);
@@ -2055,10 +2056,10 @@ function playDialogueExplosion() {
       // We are already inside the interval, so this is 150ms after the 10th explosion.
       playAudio('sounds/explosion_long.ogg', { volume: 1.0 });
       spawnParticles(true, count);
-      // Wait 1 second before re-allowing clicks
+      // Wait 1.5 seconds before re-allowing clicks
       setTimeout(() => {
         explosionContainer.style.pointerEvents = 'none';
-      }, 1000);
+      }, 1500);
       // Wait for long explosion to finish before removing container
       setTimeout(() => {
         isAnimating = false;
