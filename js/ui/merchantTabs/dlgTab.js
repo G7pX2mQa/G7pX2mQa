@@ -1943,16 +1943,16 @@ function playDialogueExplosion() {
   const colors = ['#ff4500', '#ff8c00', '#ffd700', '#ffffff', '#ff0000'];
 
   class Particle {
-    constructor(x, y, isLong) {
+    constructor(x, y, isLong, customAngle = null, customSpeed = null, customSize = null) {
       this.x = x;
       this.y = y;
       
-      const angle = Math.random() * Math.PI * 2;
-      const speed = isLong ? (Math.random() * 20 + 5) : (Math.random() * 10 + 2);
+      const angle = customAngle !== null ? customAngle : Math.random() * Math.PI * 2;
+      const speed = customSpeed !== null ? customSpeed : (isLong ? (Math.random() * 20 + 5) : (Math.random() * 10 + 2));
       this.vx = Math.cos(angle) * speed;
       this.vy = Math.sin(angle) * speed;
       
-      this.size = isLong ? (Math.random() * 300 + 100) : (Math.random() * 150 + 50);
+      this.size = customSize !== null ? customSize : (isLong ? (Math.random() * 300 + 100) : (Math.random() * 150 + 50));
       this.color = colors[Math.floor(Math.random() * colors.length)];
       
       this.life = 1.0;
@@ -1984,12 +1984,32 @@ function playDialogueExplosion() {
     }
   }
 
-  const spawnParticles = (isLong) => {
+  const spawnParticles = (isLong, currentCount = 0) => {
     const numParticles = isLong ? 200 : 50;
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
+    
+    // Normal random particles
     for (let i = 0; i < numParticles; i++) {
       particles.push(new Particle(centerX, centerY, isLong));
+    }
+    
+    // Add thick "donut" particle ring for short explosions
+    if (!isLong) {
+      const ringParticles = 150 + currentCount * 50; // More particles each time
+      const baseSpeed = Math.max(10, 40 - currentCount * 1.5); // Slower each time
+      const thickness = 20; // Spread of speeds to create a donut
+      const sizeMultiplier = 1 + (currentCount * 0.2); // Bigger particles each time
+      
+      for (let i = 0; i < ringParticles; i++) {
+        const angle = Math.random() * Math.PI * 2; // Randomize angle for natural distribution
+        const speed = baseSpeed + Math.random() * thickness;
+        
+        // Base sizes roughly scaled by the multiplier
+        const pSize = (Math.random() * 150 + 50) * sizeMultiplier;
+        
+        particles.push(new Particle(centerX, centerY, isLong, angle, speed, pSize));
+      }
     }
   };
 
@@ -2021,20 +2041,20 @@ function playDialogueExplosion() {
   const totalShort = 10;
   const delay = 150; // 150ms
 
-  spawnParticles(false); // Immediate first one
+  spawnParticles(false, 0); // Immediate first one
   playAudio('sounds/explosion_short.ogg', { volume: 0.8 });
   count++;
 
   const intervalId = setInterval(() => {
     if (count < totalShort) {
       playAudio('sounds/explosion_short.ogg', { volume: 0.8 });
-      spawnParticles(false);
+      spawnParticles(false, count);
       count++;
     } else {
       clearInterval(intervalId);
       // We are already inside the interval, so this is 150ms after the 10th explosion.
       playAudio('sounds/explosion_long.ogg', { volume: 1.0 });
-      spawnParticles(true);
+      spawnParticles(true, count);
       // Wait 1 second before re-allowing clicks
       setTimeout(() => {
         explosionContainer.style.pointerEvents = 'none';
