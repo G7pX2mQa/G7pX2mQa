@@ -74,3 +74,21 @@
   z-index: 1;
   transition: opacity 1s;
 }
+
+.area-cove .magnet-indicator.magnet-gold {
+  background-color: #ffd70026;
+  border: 2px solid rgb(255 215 0);
+  box-shadow: 0 0 20px 4px #ffd700f2, inset 0 0 36px #ffd700c7;
+}
+
+.area-cove .magnet-indicator.magnet-sapphire {
+  background-color: #0f52ba26;
+  border: 2px solid rgb(15 82 186);
+  box-shadow: 0 0 20px 4px #0f52baf2, inset 0 0 36px #0f52bac7;
+}
+
+.area-cove .magnet-indicator.magnet-emerald {
+  background-color: #50c87826;
+  border: 2px solid rgb(80 200 120);
+  box-shadow: 0 0 20px 4px #50c878f2, inset 0 0 36px #50c878c7;
+}
