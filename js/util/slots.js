@@ -1,6 +1,7 @@
 import { BigNum } from './bigNum.js';
 import { formatNumber } from './numFormat.js';
 import { isDeleteMode } from './slotsManager.js';
+import { FONT_MAP, ALL_FONT_CLASSES } from '../main.js';
 import {
   setHasOpenedSaveSlot,
   ensureCurrencyDefaults,
@@ -27,6 +28,7 @@ function coinsTextFor(slot) {
 
 function renderSlotCards() {
   const cards = document.querySelectorAll('.slot-card');
+
   cards.forEach((btn, idx) => {
     const slot = idx + 1;
     const titleEl = btn.querySelector('.slot-title');
@@ -37,6 +39,17 @@ function renderSlotCards() {
     }
 
     btn.dataset.slot = String(slot);
+    btn.classList.remove(...ALL_FONT_CLASSES);
+    const fontModStr = localStorage.getItem(`ccc:setting:active_font_mod:${slot}`);
+    if (fontModStr) {
+      try {
+        const fontMod = parseInt(JSON.parse(fontModStr), 10);
+        if (FONT_MAP[fontMod]) {
+            btn.classList.add(FONT_MAP[fontMod]);
+        }
+      } catch (e) {}
+    }
+
   });
 }
 
