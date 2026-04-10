@@ -49,3 +49,15 @@ body.font-times-new-roman {
 body.font-arial {
   --font-ui: 'Arial', sans-serif;
 }
+
+body.font-courier-new {
+  --font-ui: "Courier New", Courier, monospace;
+}
+
+body.font-verdana {
+  --font-ui: Verdana, sans-serif;
+}
+
+body.font-tahoma {
+  --font-ui: Tahoma, sans-serif;
+}
