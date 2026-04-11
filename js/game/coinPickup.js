@@ -1,6 +1,8 @@
 // js/game/coinPickup.js
 
 import { bank, CURRENCIES, getActiveSlot, isCurrencyLocked } from '../util/storage.js';
+import { incrementLifetimeSizeCoinsCollected, checkSecretAchievements } from './secretAchievements.js';
+
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { unlockShop } from '../ui/hudButtons.js';
@@ -999,6 +1001,13 @@ export function initCoinPickup({
       if (!coinObj && el && el._coinObj) coinObj = el._coinObj;
       if (el && !isCoin(el)) continue;
       if (coinObj && coinObj.isRemoved) continue;
+
+      if (coinObj && coinObj.sizeIndex !== undefined) {
+          if (coinObj.sizeIndex >= 4 && coinObj.sizeIndex <= 6) {
+              incrementLifetimeSizeCoinsCollected(coinObj.sizeIndex);
+              checkSecretAchievements();
+          }
+      }
 
       collectedCount++;
       if (el) el.dataset.collected = '1';
