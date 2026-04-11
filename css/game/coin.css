@@ -250,24 +250,24 @@
 
 @keyframes cookie-magnet {
   0% {
-    background-color: #D2B48C26;
-    border-color: rgb(210 180 140);
-    box-shadow: 0 0 20px 4px #D2B48Cf2, inset 0 0 36px #D2B48Cc7;
+    background-color: #6C3E1B26;
+    border-color: #6C3E1B;
+    box-shadow: 0 0 20px 4px #6C3E1Bf2, inset 0 0 36px #6C3E1Bc7;
   }
   33% {
-    background-color: #8B451326;
-    border-color: rgb(139 69 19);
-    box-shadow: 0 0 20px 4px #8B4513f2, inset 0 0 36px #8B4513c7;
+    background-color: #A56E3B26;
+    border-color: #A56E3B;
+    box-shadow: 0 0 20px 4px #A56E3Bf2, inset 0 0 36px #A56E3Bc7;
   }
   66% {
-    background-color: #2F4F4F26;
-    border-color: rgb(47 79 79);
-    box-shadow: 0 0 20px 4px #2F4F4Ff2, inset 0 0 36px #2F4F4Fc7;
+    background-color: #C9975326;
+    border-color: #C99753;
+    box-shadow: 0 0 20px 4px #C99753f2, inset 0 0 36px #C99753c7;
   }
   100% {
-    background-color: #D2B48C26;
-    border-color: rgb(210 180 140);
-    box-shadow: 0 0 20px 4px #D2B48Cf2, inset 0 0 36px #D2B48Cc7;
+    background-color: #6C3E1B26;
+    border-color: #6C3E1B;
+    box-shadow: 0 0 20px 4px #6C3E1Bf2, inset 0 0 36px #6C3E1Bc7;
   }
 }
 
