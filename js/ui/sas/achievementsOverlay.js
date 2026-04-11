@@ -15,8 +15,15 @@ function renderAchievements(gridEl) {
     gridEl.innerHTML = '';
     const slot = getActiveSlot();
 
+    let achievedCount = 0;
+    const totalCount = ACHIEVEMENTS.length;
+
     ACHIEVEMENTS.forEach(achievement => {
         const state = getAchievementState(achievement.id, slot);
+
+        if (state === ACHIEVEMENT_STATES.ACHIEVED) {
+            achievedCount++;
+        }
 
         const btn = document.createElement('button');
         btn.className = 'achievement-btn';
@@ -87,6 +94,19 @@ function renderAchievements(gridEl) {
             }
         });
     });
+
+    const overlayEl = gridEl.closest('#achievements-overlay') || document.getElementById('achievements-overlay');
+    if (overlayEl) {
+        const progressRow = overlayEl.querySelector('.achievements-progress-row');
+        if (progressRow) {
+            progressRow.textContent = `Achievements: ${achievedCount}/${totalCount}`;
+            if (achievedCount === totalCount && totalCount > 0) {
+                progressRow.style.color = '#02e815';
+            } else {
+                progressRow.style.color = '#fff';
+            }
+        }
+    }
 }
 
 function updateDelveButton(delveBtn) {
@@ -107,16 +127,25 @@ const achievementsOverlay = createSASOverlay({
     containerClass: 'achievements-grid',
     zIndex: '4010',
     onRender: (overlayEl) => {
-        const grid = overlayEl.querySelector('.achievements-grid');
-        if (grid) {
-            currentGrid = grid;
-            renderAchievements(grid);
-        }
-
         // Check if there is an actions container, or fallback to sas-actions
         let actionsContainer = overlayEl.querySelector('.achievements-actions');
         if (!actionsContainer) {
             actionsContainer = overlayEl.querySelector('.sas-actions');
+        }
+
+        let progressRow = overlayEl.querySelector('.achievements-progress-row');
+        if (!progressRow) {
+            progressRow = document.createElement('div');
+            progressRow.className = 'achievements-progress-row';
+            if (actionsContainer && actionsContainer.parentNode) {
+                actionsContainer.parentNode.insertBefore(progressRow, actionsContainer);
+            }
+        }
+
+        const grid = overlayEl.querySelector('.achievements-grid');
+        if (grid) {
+            currentGrid = grid;
+            renderAchievements(grid);
         }
 
         if (actionsContainer && !actionsContainer.querySelector('.achievements-delve')) {
