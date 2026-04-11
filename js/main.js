@@ -1,156 +1,1026 @@
-import { getActiveSlot, bank } from '../util/storage.js';
-import { showNotification } from '../ui/notifications.js';
+// js/main.js
 
-export const SECRET_ACHIEVEMENT_STATES = {
-    NOT_OWNED: 0,
-    PENDING_CLAIM: 1,
-    ACHIEVED: 2
+import { playAudio, setAudioSuspended } from './util/audioManager.js';
+
+export const FONT_MAP = {
+  1: 'font-tinos',
+  4: 'font-arimo',
+  7: 'font-cousine',
+  10: 'font-nunito',
+  13: 'font-open-sans',
+  16: 'font-comic-neue',
+  19: 'font-merriweather',
+  22: 'font-anton',
+  25: 'font-roboto',
+  28: 'font-inconsolata',
+  31: 'font-lora',
+  34: 'font-noto-sans',
+  37: 'font-pt-sans',
+  40: 'font-ubuntu',
+  43: 'font-source-sans-3',
+  46: 'font-raleway',
+  49: 'font-montserrat',
+  52: 'font-oswald',
+  55: 'font-playfair-display',
+  58: 'font-poppins',
+  61: 'font-mukta',
+  64: 'font-quicksand',
+  67: 'font-fira-sans',
+  70: 'font-dosis',
+  73: 'font-rajdhani'
 };
 
-function getSizeCoinsCollectedKey(size, slot) {
-    return `ccc:secretAchievements:size${size}CoinsCollected:${slot}`;
+export const ALL_FONT_CLASSES = Object.values(FONT_MAP);
+
+export const DEBUG_PANEL_ACCESS = true; // I will change this to false for prod so the readme makes sense
+export const IS_MOBILE = (() => {
+  if (typeof window === 'undefined') return false;
+
+  if (typeof window.IS_MOBILE !== 'undefined') {
+    return !!window.IS_MOBILE;
+  }
+
+  const detected = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+    || ('ontouchstart' in window)
+    || (window.navigator && window.navigator.maxTouchPoints > 0);
+  window.IS_MOBILE = detected;
+  return detected;
+})();
+
+if (IS_MOBILE) {
+  document.documentElement.classList.add('is-mobile');
 }
 
-export function getLifetimeSizeCoinsCollected(size, slot = getActiveSlot()) {
-    if (slot == null) return 0;
-    try {
-        const val = localStorage.getItem(getSizeCoinsCollectedKey(size, slot));
-        if (val) {
-            const num = parseInt(val, 10);
-            return Number.isFinite(num) ? num : 0;
-        }
-    } catch {}
-    return 0;
-}
+let initSlots;
+let createSpawner;
+let initCoinPickup;
+let refreshCoinMultiplierCache;
+let refreshMpValueMultiplierCache;
+let updateMutationSnapshot;
+let initHudButtons;
+let installGhostTapGuard;
+let initGlobalGhostTap;
+let initGlobalOverlayEsc;
+let bank;
+let getHasOpenedSaveSlot;
+let setHasOpenedSaveSlot;
+let ensureStorageDefaults;
+let ensureMultiplierDefaults;
+let initSurgeEffects;
+let refreshSurgeMultiplierCache;
+let getUpgAreaKey;
+let computeUpgradeEffects;
+let syncCurrencyMultipliersFromUpgrades;
+let registerXpUpgradeEffects;
+let initXpSystem;
+let syncCoinMultiplierWithXpLevel;
+let onUpgradesChanged;
+let registerPreloadedAudio;
+let initPopups;
+let installSuspendSafeguards;
+let restoreSuspendBackup;
+let markProgressDirty;
+let flushBackupSnapshot;
+let initResetSystemGame;
+let initMutationSystem;
+let getMutationCoinSprite;
+let onMutationChangeGame;
+let getMutationState;
+let setDebugPanelAccess;
+let applyStatMultiplierOverride;
+let startGameLoop;
+let registerTick;
+let registerFrame;
+let notifyGameSessionStarted;
+let ensureGameDom;
+let waterSystem;
 
-export function incrementLifetimeSizeCoinsCollected(size, slot = getActiveSlot()) {
-    if (slot == null) return;
-    const current = getLifetimeSizeCoinsCollected(size, slot);
-    try {
-        localStorage.setItem(getSizeCoinsCollectedKey(size, slot), String(current + 1));
-    } catch {}
-}
+// Store unsubscribe functions for water system to avoid duplicate listeners
+let waterTickUnsub = null;
+let waterFrameUnsub = null;
 
-const _rawSecretAchievements = [
-    {
-        id: 1,
-        title: 'A Large One',
-        desc: 'Collect a Coin of size 4 (1/{formatNumber}10000 chance to spawn)',
-        icon: 'img/currencies/coin/coin_plus_base.webp',
-        checkCondition: (slot) => getLifetimeSizeCoinsCollected(4, slot) > 0,
-        trackedSize: 4
-    },
-    {
-        id: 2,
-        title: 'A Larger One',
-        desc: 'Collect a Coin of size 5 (1/{formatNumber}100000 chance to spawn)',
-        icon: 'img/currencies/coin/coin.webp',
-        checkCondition: (slot) => getLifetimeSizeCoinsCollected(5, slot) > 0,
-        trackedSize: 5
-    },
-    {
-        id: 3,
-        title: 'The Largest One',
-        desc: 'Collect a Coin of size 6 (1/{formatNumber}1000000 chance to spawn)',
-        icon: 'img/misc/largest_coin_plus_base.webp',
-        checkCondition: (slot) => getLifetimeSizeCoinsCollected(6, slot) > 0,
-        trackedSize: 6
+let unpauseNotifications = null;
+const pendingPreloadedAudio = [];
+
+function applyPendingSlotWipe() {
+  let slotStr;
+  try {
+    slotStr = localStorage.getItem('ccc:pendingSlotWipe');
+  } catch {
+    slotStr = null;
+  }
+  if (!slotStr) return;
+
+  const slot = Number(slotStr);
+  const suffix = `:${slot}`;
+  const toRemove = [];
+
+  try {
+    const storage = localStorage;
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i);
+      if (key && key.startsWith('ccc:') && key.endsWith(suffix)) {
+        toRemove.push(key);
+      }
     }
-];
 
-export const SECRET_ACHIEVEMENTS = _rawSecretAchievements.map(ach => ({
-    ...ach,
-    rewardAmount: 1
-}));
+    toRemove.forEach(k => {
+      try { localStorage.removeItem(k); } catch {}
+    });
 
-const SECRET_ACHIEVEMENT_STATE_KEY_BASE = 'ccc:secretAchievements:state';
+    // Remove the flag so it only executes once
+    try { localStorage.removeItem('ccc:pendingSlotWipe'); } catch {}
+  } catch {
+    try { localStorage.removeItem('ccc:pendingSlotWipe'); } catch {}
+  }
+}
 
-const secretAchievementStateCache = new Map();
+function disableMobileZoomGestures() {
+  if (!IS_MOBILE) return;
 
-function ensureSecretAchievementState(slot = getActiveSlot()) {
-    const slotKey = String(slot ?? 'default');
-    if (secretAchievementStateCache.has(slotKey)) {
-        return secretAchievementStateCache.get(slotKey);
+  let lastTouchEnd = 0;
+  const TOUCH_DELAY_MS = 350;
+
+  document.addEventListener('touchend', (event) => {
+    const now = performance.now();
+    if (now - lastTouchEnd <= TOUCH_DELAY_MS) {
+      event.preventDefault();
     }
+    lastTouchEnd = now;
+  }, { passive: false });
 
-    let parsed = {};
-    if (typeof localStorage !== 'undefined') {
-        try {
-            const raw = localStorage.getItem(`${SECRET_ACHIEVEMENT_STATE_KEY_BASE}:${slotKey}`);
-            if (raw) {
-                const obj = JSON.parse(raw);
-                if (obj && typeof obj === 'object') {
-                    parsed = obj;
-                }
+  document.addEventListener('gesturestart', (event) => {
+    event.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('dblclick', (event) => {
+    event.preventDefault();
+  }, { passive: false });
+}
+
+disableMobileZoomGestures();
+
+export const AREAS = {
+  MENU: 0,
+  STARTER_COVE: 1,
+};
+
+let currentArea = AREAS.MENU;
+let currentMusic = null;
+let spawner = null;
+let cleanupUpgradesListener = null;
+
+/* ---------------------------
+   LOADER UI (immediate black + progress)
+----------------------------*/
+const nextFrame = () => new Promise(r => requestAnimationFrame(r));
+const twoFrames = async () => { await nextFrame(); await nextFrame(); };
+function showLoader(text = 'Loading assets...', onSkip) {
+  let root = document.getElementById('boot-loader');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'boot-loader';
+    root.className = 'loading-screen';
+    document.body.appendChild(root);
+  }
+
+  root.innerHTML = '';
+  Object.assign(root.style, {
+    position: 'fixed',
+    inset: '0',
+    background: '#000',
+    color: '#fff',
+    display: 'grid',
+    placeItems: 'center',
+    zIndex: '2147483647',
+    opacity: '1', 
+    transition: 'opacity 0.4s ease',
+  });
+
+  const wrap = document.createElement('div');
+  wrap.style.textAlign = 'center';
+  wrap.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+
+  const label = document.createElement('div');
+  label.textContent = text;
+  Object.assign(label.style, {
+    fontSize: 'clamp(16px, 2.4vw, 22px)',
+    letterSpacing: '.04em',
+    opacity: '.92',
+  });
+
+  const bar = document.createElement('div');
+  Object.assign(bar.style, {
+    width: 'min(420px, 70vw)',
+    height: '10px',
+    background: 'rgba(255,255,255,.15)',
+    borderRadius: '999px',
+    margin: '12px auto 6px',
+    overflow: 'hidden',
+  });
+
+  const fill = document.createElement('div');
+  Object.assign(fill.style, {
+    width: '0%',
+    height: '100%',
+    background: '#fff',
+    transform: 'translateZ(0)',
+    transition: 'width .15s linear',
+  });
+
+  const pct = document.createElement('div');
+  pct.textContent = '0%';
+  Object.assign(pct.style, { fontSize: '12px', opacity: '.85' });
+
+  bar.appendChild(fill);
+  wrap.append(label, bar, pct);
+  root.appendChild(wrap);
+
+  const stuckMsg = document.createElement('div');
+  stuckMsg.textContent = 'If progress bar is stuck, try reloading the page.';
+  Object.assign(stuckMsg.style, {
+    marginTop: '16px',
+    fontSize: '14px',
+    opacity: '0',
+    transition: 'opacity 0.5s ease',
+    color: 'rgba(255,255,255,0.65)',
+  });
+  wrap.appendChild(stuckMsg);
+
+  const stuckTimeout = setTimeout(() => {
+    if (!root.__done) stuckMsg.style.opacity = '1';
+  }, 25000);
+
+  if (typeof onSkip === 'function') {
+    const skipBtn = document.createElement('div');
+    skipBtn.textContent = IS_MOBILE
+      ? 'Tap here to skip loading now and load assets during gameplay'
+      : 'Click here to skip loading now and load assets during gameplay';
+    Object.assign(skipBtn.style, {
+      marginTop: '24px',
+      fontSize: '14px',
+      color: '#888',
+      textDecoration: 'underline',
+      cursor: 'pointer',
+      opacity: '0.9',
+    });
+    skipBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (root.__skipped) return;
+      root.__skipped = true;
+      if (root.__pct) root.__pct.textContent = 'Loading skipped';
+      if (root.__label) root.__label.textContent = 'Loading skipped';
+      skipBtn.textContent = 'Loading skipped';
+      skipBtn.style.textDecoration = 'none';
+      skipBtn.style.cursor = 'default';
+      onSkip();
+    });
+    wrap.appendChild(skipBtn);
+  }
+
+  root.__mountedAt = performance.now();
+  root.__done = false;
+  root.__wrap = wrap;
+  root.__bar = bar;
+  root.__fill = fill;
+  root.__pct = pct;
+  root.__label = label;
+  root.__stuckMsg = stuckMsg;
+  root.__stuckTimeout = stuckTimeout;
+  return root;
+}
+
+function setLoaderProgress(loaderEl, fraction) {
+  if (!loaderEl || !loaderEl.__fill || !loaderEl.__pct) return;
+  if (loaderEl.__skipped) return;
+  const f = Math.max(0, Math.min(1, fraction || 0));
+  const pct = Math.round(f * 100);
+  loaderEl.__fill.style.width = pct + '%';
+  loaderEl.__pct.textContent = pct + '%';
+}
+
+function finishAndHideLoader(loaderEl, onFadeStart, finishedText, dwellMs = 500) {
+  if (!loaderEl || loaderEl.__done) return;
+  loaderEl.__done = true;
+
+  if (loaderEl.__label) {
+    if (finishedText) {
+      loaderEl.__label.textContent = finishedText;
+    } else {
+      loaderEl.__label.textContent = loaderEl.__skipped
+        ? 'Loading Skipped'
+        : 'Finished loading assets';
+    }
+  }
+  loaderEl.offsetHeight;
+
+  setTimeout(async () => {
+    if (typeof onFadeStart === 'function') {
+      try { onFadeStart(); } catch (e) { console.error(e); }
+    }
+    await twoFrames();
+    loaderEl.style.opacity = '0';
+    const onEnd = () => {
+      loaderEl.remove();
+      document.documentElement.classList.remove('booting');
+    };
+    loaderEl.addEventListener('transitionend', onEnd, { once: true });
+    setTimeout(onEnd, 450);
+  }, dwellMs);
+}
+
+/* ---------------------------
+   PRELOADERS
+----------------------------*/
+async function warmImage(url) {
+  const img = new Image();
+  img.src = url;
+
+  try {
+    if (img.decode) await img.decode();
+  } catch (_) {
+  }
+
+  await new Promise((resolve) => {
+    const ghost = document.createElement('img');
+    ghost.src = url;
+    ghost.alt = '';
+    ghost.style.cssText =
+      'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+    document.body.appendChild(ghost);
+    requestAnimationFrame(() => { ghost.remove(); resolve(); });
+  });
+}
+
+function preloadImages(sources, onEach) {
+  return sources.map(src => new Promise(resolve => {
+    const img = new Image();
+    const done = () => { try { onEach?.(src); } catch {} resolve(src); };
+    img.onload = done;
+    img.onerror = done;
+    img.src = src;
+  }));
+}
+
+function preloadAudio(sources, onEach) {
+  return sources.map(async url => {
+    try {
+        const { loadAudio } = await import('./util/audioManager.js');
+        await loadAudio(url);
+    } catch {}
+    try { onEach?.(url); } catch {}
+    return url;
+  });
+}
+
+function preloadFonts(onEach) {
+  if (document.fonts && document.fonts.ready) {
+    return [document.fonts.ready.then(() => { try { onEach?.('fonts'); } catch {} })];
+  }
+  return [Promise.resolve().then(() => { try { onEach?.('fonts'); } catch {} })];
+}
+
+async function preloadAssetsWithProgress({ images = [], audio = [], fonts = true }, onProgress) {
+  const total = images.length + audio.length + (fonts ? 1 : 0);
+  if (total === 0) { onProgress?.(1); return; }
+  let done = 0;
+  const bump = () => { done++; onProgress?.(done / total); };
+
+  const tasks = [
+    ...preloadImages(images, bump),
+    ...preloadAudio(audio, bump),
+    ...(fonts ? preloadFonts(bump) : []),
+  ];
+
+  await Promise.all(tasks.map(p => p.catch(() => null)));
+}
+
+/* ---------------------------
+   GAME AREA CONTROL
+----------------------------*/
+function enterArea(areaID) {
+  if (currentArea === areaID) return;
+
+  if (currentMusic) {
+    currentMusic.stop();
+    currentMusic = null;
+  }
+
+  currentArea = areaID;
+
+  const menuRoot = document.querySelector('.menu-root');
+  switch (areaID) {
+    case AREAS.STARTER_COVE: {
+      // Defer music until the area is visually painted + a small buffer.
+      // We use double-RAF to ensure the browser has completed the paint cycle,
+      // plus a 200ms timeout to wait a beat before audio kicks in.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            if (currentArea === AREAS.STARTER_COVE) {
+              currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
+              if (typeof unpauseNotifications === "function") unpauseNotifications();
             }
-        } catch {}
+          }, 200);
+        });
+      });
+
+      if (menuRoot) {
+        menuRoot.style.display = 'none';
+      }
+      document.body.classList.remove('menu-bg');
+
+      // Config for water layers
+      const FG_LAYER_COUNT = 11;
+      const FG_START_Z = 80;
+
+      if (typeof ensureGameDom === 'function') {
+        ensureGameDom(FG_LAYER_COUNT, FG_START_Z);
+      }
+
+      // Initialize Water System
+      if (waterSystem) {
+
+         
+        waterSystem.init('water-background', 'water-foreground', FG_LAYER_COUNT);
+        
+        // Unregister old listeners if they exist to prevent leaks
+        if (waterTickUnsub) {
+            try { waterTickUnsub(); } catch {}
+            waterTickUnsub = null;
+        }
+        if (waterFrameUnsub) {
+            try { waterFrameUnsub(); } catch {}
+            waterFrameUnsub = null;
+        }
+        
+        // Register update loop (simulation)
+        if (typeof registerTick === 'function') {
+            waterTickUnsub = registerTick((dt) => waterSystem.update(dt));
+        }
+        
+        // Register render loop (visuals)
+        if (typeof registerFrame === 'function') {
+            waterFrameUnsub = registerFrame((totalTime, dt) => waterSystem.render(totalTime, dt));
+        }
+      }
+
+      const gameRoot = document.getElementById('game-root');
+      if (gameRoot) {
+        gameRoot.hidden = false;
+        if (waterSystem) {
+            // Delay resize to ensure DOM layout is updated after unhiding
+            requestAnimationFrame(() => waterSystem.resize());
+        }
+        initHudButtons();
+      }
+
+      if (typeof initResetSystemGame === 'function') {
+        try { initResetSystemGame(); } catch {}
+      }
+
+      if (typeof initMutationSystem === 'function') {
+        try { initMutationSystem(); } catch {}
+      }
+
+      if (!spawner) {
+        spawner = createSpawner({
+          coinSrc: 'img/currencies/coin/coin.webp',
+          coinSize: 40,
+          initialRate: 1,
+          surgeLifetimeMs: 1800,
+          surgeWidthVw: 22,
+          initialBurst: 0,
+        });
+        window.spawner = spawner;
+        const applyMutationSprite = () => {
+          if (!spawner || typeof spawner.setCoinSprite !== 'function') return;
+          try { spawner.setCoinSprite(getMutationCoinSprite?.()); } catch {}
+        };
+        applyMutationSprite();
+        onMutationChangeGame?.(applyMutationSprite);
+        const pickup = initCoinPickup({ spawner });
+        if (spawner && typeof spawner.setDependencies === 'function') {
+            spawner.setDependencies({
+                collectBatch: pickup.collectBatch,
+                getMagnetUnit: pickup.getMagnetUnitPx
+            });
+        }
+                const applyUpgradesToSpawner = () => {
+                try {
+                        const areaKey = getUpgAreaKey();
+                        const eff = computeUpgradeEffects(areaKey);
+                        if (spawner && eff?.coinsPerSecondMult) {
+                          let rate = 1 * eff.coinsPerSecondMult;
+                          if (typeof applyStatMultiplierOverride === "function") {
+                             const override = applyStatMultiplierOverride("spawnRate", rate);
+                             try {
+                                 if (override && typeof override.toScientific === "function") {
+                                     rate = Number(override.toScientific(6));
+                                 } else {
+                                     rate = Number(override);
+                                 }
+                             } catch {}
+                          }
+                          if (Number.isFinite(rate)) {
+                              spawner.setRate(rate);
+                          }
+                        }
+                  } catch {}
+                };
+                applyUpgradesToSpawner();
+                if (typeof cleanupUpgradesListener === 'function') {
+                    try { cleanupUpgradesListener(); } catch {}
+                }
+                cleanupUpgradesListener = onUpgradesChanged(applyUpgradesToSpawner);
+                if (typeof window !== 'undefined') {
+                   window.addEventListener('debug:change', applyUpgradesToSpawner);
+                }
+
+      }
+      if (typeof initXpSystem === 'function') {
+        try { initXpSystem(); } catch {}
+      }
+      setTimeout(() => {
+        if (currentArea === AREAS.STARTER_COVE && spawner) spawner.start();
+      }, 300);
+      break;
     }
 
-    secretAchievementStateCache.set(slotKey, parsed);
-    return parsed;
-}
+    case AREAS.MENU: {
+      if (menuRoot) {
+        menuRoot.style.display = '';
+        menuRoot.removeAttribute('aria-hidden');
+      }
+      const gameRoot = document.getElementById('game-root');
+      if (gameRoot) gameRoot.hidden = true;
 
-function saveSecretAchievementState(state, slot = getActiveSlot()) {
-    const slotKey = String(slot ?? 'default');
-    if (!state || typeof state !== 'object') {
-        state = {};
+      if (spawner) spawner.stop();
+      break;
     }
-    secretAchievementStateCache.set(slotKey, state);
-    if (typeof localStorage === 'undefined') return;
-    try {
-        localStorage.setItem(`${SECRET_ACHIEVEMENT_STATE_KEY_BASE}:${slotKey}`, JSON.stringify(state));
-    } catch {}
+  }
+
+  try {
+    window.dispatchEvent(new CustomEvent('menu:visibilitychange', {
+      detail: { visible: areaID === AREAS.MENU },
+    }));
+  } catch {}
 }
 
-export function getSecretAchievementState(id, slot = getActiveSlot()) {
-    const state = ensureSecretAchievementState(slot);
-    return state[id] ?? SECRET_ACHIEVEMENT_STATES.NOT_OWNED;
-}
+/* ---------------------------
+   BOOT FLOW
+----------------------------*/
+document.addEventListener('DOMContentLoaded', async () => {
+  let resolveSkip;
+  const skipPromise = new Promise(resolve => { resolveSkip = resolve; });
 
-export function setSecretAchievementState(id, newState, slot = getActiveSlot()) {
-    const state = ensureSecretAchievementState(slot);
-    state[id] = newState;
-    saveSecretAchievementState(state, slot);
+  const loader = showLoader('Loading assets...', resolveSkip);
+
+  await nextFrame();
+  
+  // Initialize audio early
+  const { initAudio } = await import('./util/audioManager.js');
+  initAudio();
+
+  const modulePromise = Promise.all([
+    import('./util/slots.js'),
+    import('./game/spawner.js'),
+    import('./game/coinPickup.js'),
+    import('./ui/hudButtons.js'),
+    import('./util/storage.js'),
+    import('./util/saveIntegrity.js'),
+    import('./game/upgrades.js'),
+    import('./game/upgradeEffects.js'),
+    import('./util/audioCache.js'),
+    import('./game/xpSystem.js'),
+    import('./ui/merchantTabs/resetTab.js'),
+    import('./game/mutationSystem.js'),
+    import('./ui/popups.js'),
+    import('./util/suspendSafeguard.js'),
+    import('./util/ghostTapGuard.js'),
+    import('./util/globalOverlayEsc.js'),
+    import('./util/debugPanel.js'),
+    import('./game/gameLoop.js'),
+    import('./game/offlinePanel.js'),
+    import('./ui/merchantTabs/workshopTab.js'),
+    import('./game/automationEffects.js'),
+    import('./game/domInit.js'),
+    import('./game/surgeEffects.js'),
+    import('./game/webgl/waterSystem.js'),
+    import('./ui/merchantTabs/labTab.js'),
+    import('./util/fpsTracker.js'),
+    import('./ui/notifications.js'),
+    import('./ui/merchantTabs/flowTab.js'),
+    import('./ui/sas/mainSettingsOverlay.js'),
+    import('./ui/sas/performanceOverlay.js'),
+  ]);
+
+  const ASSET_MANIFEST = {
+images: [
+  // ==== img/currencies/book ====
+  'img/currencies/book/book.webp',
+  'img/currencies/book/book_base.webp',
+  'img/currencies/book/book_plus_base.webp',
+
+  // ==== img/currencies/coin ====
+  'img/currencies/coin/coin.webp',
+  'img/currencies/coin/coin_base.webp',
+  'img/currencies/coin/coin_plus_base.webp',
+
+  // ==== img/currencies/dna ====
+  'img/currencies/dna/dna.webp',
+  'img/currencies/dna/dna_base.webp',
+  'img/currencies/dna/dna_plus_base.webp',
+
+  // ==== img/currencies/gear ====
+  'img/currencies/gear/gear.webp',
+  'img/currencies/gear/gear_base.webp',
+  'img/currencies/gear/gear_plus_base.webp',
+
+  // ==== img/currencies/gold ====
+  'img/currencies/gold/gold.webp',
+  'img/currencies/gold/gold_base.webp',
+  'img/currencies/gold/gold_plus_base.webp',
+
+  // ==== img/currencies/magic ====
+  'img/currencies/magic/magic.webp',
+  'img/currencies/magic/magic_base.webp',
+  'img/currencies/magic/magic_plus_base.webp',
+  
+  // ==== img/currencies/wave ====
+  'img/currencies/wave/wave.webp',
+  'img/currencies/wave/wave_base.webp',
+  'img/currencies/wave/wave_plus_base.webp',
+  
+  // gems
+  'img/currencies/rainbow_gem.webp',
+  'img/currencies/void_gem.webp',
+
+  // ==== img/misc ====
+  'img/misc/evolve_achievement_icon.webp',
+  'img/misc/evolve_ready.webp',
+  'img/misc/experiment.webp',
+  'img/misc/experiment_plus_base.webp',
+  'img/misc/forge.webp',
+  'img/misc/forge_plus_base.webp',
+  'img/misc/green_border.webp',
+  'img/misc/i.webp',
+  'img/misc/infuse.webp',
+  'img/misc/infuse_plus_base.webp',
+  'img/misc/infuse_base.webp',
+  'img/misc/largest_coin_plus_base.webp',
+  'img/misc/locked.webp',
+  'img/misc/locked_base.webp',
+  'img/misc/maxed.webp',
+  'img/misc/merchant.webp',
+  'img/misc/mysterious.webp',
+  'img/misc/surge.webp',
+  'img/misc/surge_plus_base.webp',
+
+  // ==== img/mutations ====
+  ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.webp`),
+
+  // ==== img/sc_upg_icons ====
+  'img/sc_upg_icons/autobuy_coin.webp',
+  'img/sc_upg_icons/autobuy_book.webp',
+  'img/sc_upg_icons/autobuy_dna.webp',
+  'img/sc_upg_icons/autobuy_evolve.webp',
+  'img/sc_upg_icons/autobuy_gold.webp',
+  'img/sc_upg_icons/autobuy_magic.webp',
+  'img/sc_upg_icons/autobuy_workshop_level.webp',
+  'img/sc_upg_icons/book_val1.webp',
+  'img/sc_upg_icons/coin_val1.webp',
+  'img/sc_upg_icons/coin_val2.webp',
+  'img/sc_upg_icons/coin_val3.webp',
+  'img/sc_upg_icons/coin_val_dna.webp',
+  'img/sc_upg_icons/coin_val_hm1.webp',
+  'img/sc_upg_icons/coin_val_hm2.webp',
+  'img/sc_upg_icons/coin_val_hm3.webp',
+  'img/sc_upg_icons/dna_val_dna.webp',
+  'img/sc_upg_icons/effective_auto_collect.webp',
+  'img/sc_upg_icons/faster_coins1.webp',
+  'img/sc_upg_icons/faster_coins2.webp',
+  'img/sc_upg_icons/faster_coins3.webp',
+  'img/sc_upg_icons/fp_val_hm.webp',
+  'img/sc_upg_icons/gold_val_dna.webp',
+  'img/sc_upg_icons/magic_val_dna.webp',
+  'img/sc_upg_icons/magnet.webp',
+  'img/sc_upg_icons/mp_val1.webp',
+  'img/sc_upg_icons/mp_val2.webp',
+  'img/sc_upg_icons/xp_val1.webp',
+  'img/sc_upg_icons/xp_val2.webp',
+  'img/sc_upg_icons/xp_val3.webp',
+  'img/sc_upg_icons/xp_val_dna.webp',
+  'img/sc_upg_icons/xp_val_hm.webp',
+  'img/sc_upg_icons/mp_val_hm.webp',
+  
+  // ==== img/lab_icons ====
+  'img/lab_icons/tsunami_exponent_buff.webp',
+  'img/lab_icons/coin_val0.webp',
+  'img/lab_icons/gold_val0.webp',
+  'img/lab_icons/magic_val0.webp',
+  'img/lab_icons/wave_val0.webp',
+  'img/lab_icons/dna_val0.webp',
+  'img/lab_icons/fp_val0.webp',
+  
+  // ==== img/stats ====
+  'img/stats/mp/mp.webp',
+  'img/stats/mp/mp_base.webp',
+  'img/stats/mp/mp_plus_base.webp',
+  'img/stats/xp/xp.webp',
+  'img/stats/xp/xp_base.webp',
+  'img/stats/xp/xp_plus_base.webp',
+  'img/stats/rp/rp.webp',
+  'img/stats/rp/rp_base.webp',
+  'img/stats/rp/rp_plus_base.webp',
+  'img/stats/fp/fp.webp',
+  'img/stats/fp/fp_base.webp',
+  'img/stats/fp/fp_plus_base.webp',
+  
+  
+    // ==== img/waterwheels ====
+	'img/waterwheels/waterwheel_coin.webp',
+	'img/waterwheels/waterwheel_xp.webp',
+	'img/waterwheels/waterwheel_gold.webp',
+	'img/waterwheels/waterwheel_magic.webp',
+],
+    audio: [
+      'sounds/coin_pickup.ogg',
+      'sounds/wave_spawn.ogg',
+      'sounds/merchant_typing.ogg',
+      'sounds/purchase_upg.ogg',
+	  'sounds/forge_reset.ogg',
+	  'sounds/infuse_reset.ogg',
+	  'sounds/surge_reset.ogg',
+	  'sounds/experiment_reset.ogg',
+	  'sounds/evolve_upg.ogg',
+	  'sounds/warp.ogg',
+	  'sounds/coin_pickup_size1.ogg',
+	  'sounds/coin_pickup_size2.ogg',
+	  'sounds/coin_pickup_size3.ogg',
+	  'sounds/coin_pickup_size4.ogg',
+	  'sounds/coin_pickup_size5.ogg',
+	  'sounds/coin_pickup_size6.ogg',
+	  'sounds/lightning_strike.ogg',
+	  'sounds/lightning_zap.ogg',
+	  'sounds/The_Cove.ogg',
+    'sounds/tsu_storm_ambience.ogg',
+    'sounds/tsu_rumble.ogg',
+    'sounds/tsu_beacon_spawn.ogg',
+    'sounds/tsu_beacon_hum.ogg',
+    'sounds/tsu_explosion.ogg',
+	'sounds/notif_ding.ogg',
+	'sounds/explosion_long.ogg',
+	'sounds/explosion_short.ogg'
+    ],
+    fonts: true,
+  };
+
+  let progress = 0;
+  const assetsPromise = preloadAssetsWithProgress(ASSET_MANIFEST, f => {
+    progress = f;
+    setLoaderProgress(loader, f);
+  }).then(() => Promise.all([ // fixes some image preload issue on mobile
+    warmImage('img/currencies/coin/coin_plus_base.webp'),
+    warmImage('img/stats/xp/xp_plus_base.webp'),
+    warmImage('img/stats/mp/mp_plus_base.webp'),
+  ]));
+
+  const [
+    slotsModule,
+    spawnerModule,
+    coinPickupModule,
+    hudButtonsModule,
+    storageModule,
+    saveIntegrityModule,
+    upgradesModule,
+    upgradeEffectsModule,
+    audioCacheModule,
+    xpModule,
+    resetModule,
+    mutationModule,
+    popupModule,
+    safetyModule,
+    guardModule,
+    escModule,
+    debugPanelModule,
+    gameLoopModule,
+    offlinePanelModule,
+    workshopTabModule,
+    automationEffectsModule,
+    domInitModule,
+    surgeEffectsModule,
+    waterSystemModule,
+    labTabModule,
+    fpsTrackerModule,
+    notificationModule,
+    flowTabModule,
+    mainSettingsOverlayModule,
+  ] = await modulePromise;
+
+  ({ initSlots } = slotsModule);
+  ({ createSpawner } = spawnerModule);
+  ({ initCoinPickup, refreshCoinMultiplierCache, refreshMpValueMultiplierCache, updateMutationSnapshot } = coinPickupModule);
+  ({ initHudButtons } = hudButtonsModule);
+  ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults } = storageModule);
+  void saveIntegrityModule;
+  ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
+  ({ syncCurrencyMultipliersFromUpgrades, registerXpUpgradeEffects } = upgradeEffectsModule);
+  ({ registerPreloadedAudio } = audioCacheModule);
+  ({ initXpSystem, syncCoinMultiplierWithXpLevel } = xpModule);
+  ({ initResetSystem: initResetSystemGame } = resetModule);
+  ({ initMutationSystem, getMutationCoinSprite, onMutationChange: onMutationChangeGame, getMutationState } = mutationModule);
+  ({ initPopups } = popupModule);
+  ({ installSuspendSafeguards, restoreFromBackupIfNeeded: restoreSuspendBackup, markProgressDirty, flushBackupSnapshot } = safetyModule);
+  ({ installGhostTapGuard, initGlobalGhostTap } = guardModule);
+  ({ initGlobalOverlayEsc } = escModule);
+  ({ setDebugPanelAccess, applyStatMultiplierOverride } = debugPanelModule);
+  ({ startGameLoop, registerTick, registerFrame } = gameLoopModule);
+  const { initOfflineTracker, processOfflineProgress } = offlinePanelModule;
+  const { initWorkshopSystem } = workshopTabModule;
+  const { initAutomationEffects } = automationEffectsModule;
+  ({ ensureGameDom } = domInitModule);
+  ({ initSurgeEffects, refreshSurgeMultiplierCache } = surgeEffectsModule);
+  ({ waterSystem } = waterSystemModule);
+  const { initLabLogic } = labTabModule;
+  const { initFpsTracker } = fpsTrackerModule;
+  const { initNotifications, unpauseNotifications: _unpause, showNotification } = notificationModule;
+  const { initFlowSystem } = flowTabModule;
+  unpauseNotifications = _unpause;
+
+  window.bank = bank;
+  window.unpauseNotifications = unpauseNotifications;
+  window.showNotification = showNotification;
+
+  // Global Audio Control for Events
+  if (typeof window !== 'undefined') {
+    window.addEventListener('audio:stopMusic', () => {
+        if (currentMusic) {
+            try { currentMusic.stop(); } catch {}
+            currentMusic = null;
+        }
+    });
+
+    window.addEventListener('audio:restartMusic', () => {
+        if (currentMusic) {
+            try { currentMusic.stop(); } catch {}
+            currentMusic = null;
+        }
+        if (currentArea === AREAS.STARTER_COVE) {
+            currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
+        }
+    });
+  }
+
+  // No longer using pendingPreloadedAudio since audioManager handles buffering internally
+
+  window.addEventListener('beforeunload', (e) => {
+    if (window.spawner && typeof window.spawner.hasBigCoins === 'function' && window.spawner.hasBigCoins()) {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    }
+  });
+  document.addEventListener('visibilitychange', () => {
+    const hidden = document.hidden;
+    setAudioSuspended(hidden);
+    if (currentMusic && currentMusic.element) {
+      if (hidden) {
+        currentMusic.element.pause();
+      } else {
+        currentMusic.element.play().catch(() => {});
+      }
+    }
+  });
+
+
+
+  installGhostTapGuard?.();
+  initGlobalGhostTap?.();
+  initGlobalOverlayEsc?.();
+  installSuspendSafeguards?.();
+  if (typeof setDebugPanelAccess === 'function') {
+    setDebugPanelAccess(DEBUG_PANEL_ACCESS);
+    window.setDebugPanelAccess = setDebugPanelAccess;
+  }
+
+  try {
+    await restoreSuspendBackup?.();
+  } catch {}
+
+  await Promise.race([assetsPromise, skipPromise]);
+
+  await twoFrames();
+  document.documentElement.classList.remove('booting');
+
+  await nextFrame();
+
+  finishAndHideLoader(loader);
+  
+  // Ensure we start with no active slot so game loops don't run for a lingering slot ID
+  try {
+    if (typeof storageModule.clearActiveSlot === 'function') {
+      storageModule.clearActiveSlot();
+    } else if (storageModule && storageModule.KEYS && storageModule.KEYS.SAVE_SLOT) {
+      localStorage.removeItem(storageModule.KEYS.SAVE_SLOT);
+    }
+  } catch {}
+
+  startGameLoop();
+  initOfflineTracker(() => currentArea === AREAS.STARTER_COVE);
+
+  try { initWorkshopSystem(); } catch(e) { console.error('Workshop init failed', e); }
+  try { initAutomationEffects(); } catch(e) { console.error('Automation init failed', e); }
+  try { initSurgeEffects(); } catch(e) { console.error('Surge effects init failed', e); }
+  try { initLabLogic(); } catch(e) { console.error('Lab system init failed', e); }
+  try { initFpsTracker(); } catch(e) { console.error('FPS tracker init failed', e); }
+  try { initFlowSystem(); } catch(e) { console.error('Flow system init failed', e); }
+  
+  applyPendingSlotWipe();
+  ensureStorageDefaults();
+  markProgressDirty?.('ensure-defaults');
+  initPopups();
+  initNotifications();
+  
+  if (mainSettingsOverlayModule && mainSettingsOverlayModule.initUIHiding) {
+    mainSettingsOverlayModule.initUIHiding();
+  }
+
+  registerXpUpgradeEffects();
+  const titleEl = document.getElementById('panel-title');
+  if (getHasOpenedSaveSlot()) {
+    document.body.classList.add('has-opened');
+    if (titleEl) titleEl.style.opacity = '0';
+  } else {
+    if (titleEl) titleEl.style.opacity = '1';
+  }
+
+  initSlots(async () => {
+    if (currentArea === AREAS.STARTER_COVE) return;
+    setHasOpenedSaveSlot(true);
+    document.body.classList.add('has-opened');
+    if (titleEl) titleEl.style.opacity = '0';
+
+    const loader = showLoader('Loading game...');
+    const stepDelay = () => new Promise(r => setTimeout(r, 120));
+
+    // Milestone 1: Multipliers
+    setLoaderProgress(loader, 0.2);
+    await stepDelay();
+    ensureMultiplierDefaults();
     
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('secretAchievements:updated', { detail: { id, state: newState, slot } }));
-    }
-}
+    refreshSurgeMultiplierCache();
+    syncCurrencyMultipliersFromUpgrades();
+    syncCoinMultiplierWithXpLevel(true);
+    refreshCoinMultiplierCache();
+    refreshMpValueMultiplierCache();
+    updateMutationSnapshot(getMutationState());
 
-export function checkSecretAchievements(slot = getActiveSlot()) {
-    let changed = false;
-    for (const achievement of SECRET_ACHIEVEMENTS) {
-        const currentState = getSecretAchievementState(achievement.id, slot);
-        if (currentState === SECRET_ACHIEVEMENT_STATES.NOT_OWNED) {
-            if (achievement.checkCondition(slot)) {
-                setSecretAchievementState(achievement.id, SECRET_ACHIEVEMENT_STATES.PENDING_CLAIM, slot);
-                changed = true;
-                if (typeof window !== 'undefined' && !window.__debugSuppressAchievementNotifications) {
-                    if (!achievement.notifyCondition || achievement.notifyCondition()) {
-                        showNotification(`Secret Achievement: "${achievement.title}" Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, achievement.icon);
-                    } else {
-                        window.__delayedSecretAchievementNotifications = window.__delayedSecretAchievementNotifications || [];
-                        window.__delayedSecretAchievementNotifications.push({ title: achievement.title, icon: achievement.icon });
-                    }
-                }
-            }
+    // Milestone 2: Offline Progress
+    setLoaderProgress(loader, 0.4);
+    await stepDelay();
+    processOfflineProgress();
+
+    // Milestone 3: Session Start
+    setLoaderProgress(loader, 0.65);
+    await stepDelay();
+    notifyGameSessionStarted?.();
+
+    // Milestone 4: Finalizing
+    setLoaderProgress(loader, 0.9);
+    await stepDelay();
+    markProgressDirty?.('slot-entered');
+
+    console.log(`# Debug Panel Access
+To enable the in-game debug panel, enter the following code into the console:
+
+\`setDebugPanelAccess(true)\`
+
+To open the debug panel, simply press C on your keyboard.
+
+This will allow you to view and modify game values for testing.
+
+⚠️ Note:
+ANY modification of stats, currencies, upgrade levels, or other save data through the debug panel will permanently mark the save slot as modified. If the slot is marked as modified, its shop button will permanently turn from a fresh green to a poopy brown color, which I like to call the poop-shop of shame.
+
+Normal gameplay is unaffected unless you choose to modify values.`);
+
+    setLoaderProgress(loader, 1);
+
+    finishAndHideLoader(loader, () => {
+      enterArea(AREAS.STARTER_COVE);
+      setTimeout(() => {
+        if (window.spawner && typeof window.spawner.playEntranceWave === 'function') {
+          window.spawner.playEntranceWave();
         }
-    }
-    return changed;
-}
+      }, 300);
+    }, 'Finished loading game', 200);
+  });
 
-export function showDelayedSecretAchievementNotifications() {
-    if (typeof window === 'undefined') return;
-    if (window.__delayedSecretAchievementNotifications && window.__delayedSecretAchievementNotifications.length > 0) {
-        for (const notif of window.__delayedSecretAchievementNotifications) {
-            showNotification(`Secret Achievement: "${notif.title}" Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, notif.icon);
-        }
-        window.__delayedSecretAchievementNotifications = [];
-    }
-}
-
-if (typeof window !== 'undefined') {
-    window.addEventListener('saveSlot:change', () => checkSecretAchievements());
-    window.addEventListener('forge:completed', () => checkSecretAchievements());
-    window.addEventListener('unlock:change', () => checkSecretAchievements());
-}
+  if (typeof window !== 'undefined' && flushBackupSnapshot) {
+    try {
+      window.cccRequestBackup = () => flushBackupSnapshot('manual', { immediate: true });
+    } catch {}
+  }
+});
