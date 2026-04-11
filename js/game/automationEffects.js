@@ -114,6 +114,9 @@ export function setAutobuyerToggle(area, id, value) {
   try {
     localStorage.setItem(key, valStr);
   } catch {}
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('autobuyer:toggled'));
+  }
 }
 
 export function setAllAutobuyersForCostType(costType, isEnabled) {
