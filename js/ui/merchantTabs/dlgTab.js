@@ -869,12 +869,21 @@ function typeText(el, full, msPerChar = 22, skipTargets = []) {
     let skipping = false;
     let armed = false;
     let buffer = '';
+    let tickTimer = null;
+    let sfxTimer = null;
 
     __isTypingActive = true;
     startTypingSfx();
 
-    const skip = (e) => { if (!armed) return; e.preventDefault(); skipping = true; };
-    const onKey = (e) => { if (!armed) return; if (e.key === 'Enter' || e.key === ' ') skipping = true; };
+    const skip = (e) => { 
+        if (!armed) return; 
+        if (e) e.preventDefault(); 
+        skipping = true;
+        if (tickTimer) clearTimeout(tickTimer);
+        if (sfxTimer) clearTimeout(sfxTimer);
+        tick();
+    };
+    const onKey = (e) => { if (!armed) return; if (e.key === 'Enter' || e.key === ' ') skip(); };
 
     const targets = skipTargets.length ? skipTargets : [el];
 
@@ -915,10 +924,11 @@ function typeText(el, full, msPerChar = 22, skipTargets = []) {
           buffer += seg.content;
           el.innerHTML = buffer;
           segIndex++;
-          tick();
+          tickTimer = setTimeout(tick, 0);
       } else {
           // Type text char by char
-          buffer += seg.content[charIndex];
+          const charJustTyped = seg.content[charIndex];
+          buffer += charJustTyped;
           el.innerHTML = buffer;
           charIndex++;
           
@@ -926,7 +936,37 @@ function typeText(el, full, msPerChar = 22, skipTargets = []) {
               segIndex++;
               charIndex = 0;
           }
-          setTimeout(tick, msPerChar);
+
+          let delay = msPerChar;
+          if (charJustTyped === '.' || charJustTyped === ',') {
+              let sIdx = segIndex;
+              let cIdx = charIndex;
+              let nextChar = null;
+              
+              while (sIdx < segments.length) {
+                  const s = segments[sIdx];
+                  if (s.type === 'text') {
+                      if (cIdx < s.content.length) {
+                          nextChar = s.content[cIdx];
+                          break;
+                      }
+                  }
+                  sIdx++;
+                  cIdx = 0;
+              }
+              
+              if (nextChar !== null && nextChar !== '.' && nextChar !== ',') {
+                  delay = msPerChar * 25;
+                  stopTypingSfx();
+                  sfxTimer = setTimeout(() => {
+                      if (!skipping && __isTypingActive) {
+                          startTypingSfx();
+                      }
+                  }, delay - 5); // Resume SFX slightly before the next tick
+              }
+          }
+
+          tickTimer = setTimeout(tick, delay);
       }
       };
       tick();
