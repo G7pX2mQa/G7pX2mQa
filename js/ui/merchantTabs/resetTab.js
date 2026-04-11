@@ -63,6 +63,7 @@ import {
 } from '../../game/labNodes.js';
 import { getLabLevel } from './labTab.js';
 import { showDelayedAchievementNotifications } from '../../game/achievements.js';
+import { showDelayedSecretAchievementNotifications, checkSecretAchievements } from '../../game/secretAchievements.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 import { getWaterwheelGoldMultiplier } from './flowTab.js';
@@ -1499,6 +1500,7 @@ function endTsunamiSequence() {
     
     // 6.5 Show any delayed achievements
     try { showDelayedAchievementNotifications(); } catch {}
+    try { showDelayedSecretAchievementNotifications(); } catch {}
 
     // 7. Set Dialogue Pending Flag
     const slot = getActiveSlot();
@@ -2753,6 +2755,7 @@ export function initResetSystem() {
   recomputePendingWaves();
   recomputePendingDna();
   checkAchievements();
+  checkSecretAchievements();
   
   if (mutationUnsub) {
     try { mutationUnsub(); } catch {}
@@ -2784,6 +2787,7 @@ export function initResetSystem() {
       recomputePendingDna();
       updateResetPanel();
 	  checkAchievements();
+  checkSecretAchievements();
     });
   }
 }
