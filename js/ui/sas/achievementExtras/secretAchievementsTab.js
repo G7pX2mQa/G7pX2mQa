@@ -93,9 +93,7 @@ function renderSecretAchievements(gridEl) {
 }
 
 function updateProgressRow(gridEl) {
-    const overlayEl = gridEl.closest('#ae-panel-secret');
-    if (!overlayEl) return;
-    const progressRow = overlayEl.querySelector('.achievements-progress-row');
+    const progressRow = document.getElementById('secret-achievements-progress-row');
     if (!progressRow) return;
 
     const slot = getActiveSlot();
@@ -108,7 +106,7 @@ function updateProgressRow(gridEl) {
         }
     });
 
-    progressRow.innerHTML = progressRow.innerHTML = `Secret Achievements: ${achievedCount}/${totalCount}`;
+    progressRow.innerHTML = `Secret Achievements: ${achievedCount}/${totalCount}`;
     if (achievedCount === totalCount && totalCount > 0) {
         progressRow.style.color = '#02e815';
     } else {
@@ -121,7 +119,6 @@ export function initSecretAchievementsTab(panel) {
     panel.__saInit = true;
 
     panel.innerHTML = `
-        <div class="achievements-progress-row" style="margin: 10px 0; text-align: center; font-size: 1.1em;"></div>
         <div class="achievements-grid"></div>
     `;
 
