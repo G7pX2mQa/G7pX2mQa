@@ -44,7 +44,7 @@ const _rawSecretAchievements = [
         id: 2,
         title: 'A Larger One',
         desc: 'Collect a Coin of size 5 (1/{formatNumber}100000 chance to spawn)',
-        icon: 'img/misc/larger_coin_plus_base.webp',
+        icon: 'img/currencies/coin/coin.webp',
         checkCondition: (slot) => getLifetimeSizeCoinsCollected(5, slot) > 0,
         trackedSize: 5
     },
