@@ -188,11 +188,6 @@ function openSecretAchievementDetails(achievement) {
 
     // Process desc
     let desc = achievement.desc;
-    if (desc.includes('{formatNumber}')) {
-        desc = desc.replace('{formatNumber}1000000', formatNumber(1000000));
-        desc = desc.replace('{formatNumber}100000', formatNumber(100000));
-        desc = desc.replace('{formatNumber}10000', formatNumber(10000));
-    }
 
     let lifetimeCountStr = '';
     if (achievement.trackedSize) {
