@@ -2,6 +2,8 @@ import { getActiveSlot, bank } from '../util/storage.js';
 import { showNotification } from '../ui/notifications.js';
 import { formatNumber } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
+import { getCollectiveAutobuyerState } from './automationEffects.js';
+import { AREA_KEYS, getUpgradesForArea } from './upgrades.js';
 
 export const SECRET_ACHIEVEMENT_STATES = {
     NOT_OWNED: 0,
@@ -33,6 +35,22 @@ export function incrementLifetimeSizeCoinsCollected(size, slot = getActiveSlot()
     } catch {}
 }
 
+export function getLifetimeUselessExperiment(slot = getActiveSlot()) {
+    if (slot == null) return false;
+    try {
+        const val = localStorage.getItem(`ccc:secretAchievements:uselessExperiment:${slot}`);
+        return val === '1';
+    } catch {}
+    return false;
+}
+
+export function setLifetimeUselessExperiment(slot = getActiveSlot()) {
+    if (slot == null) return;
+    try {
+        localStorage.setItem(`ccc:secretAchievements:uselessExperiment:${slot}`, '1');
+    } catch {}
+}
+
 const _rawSecretAchievements = [
     {
         id: 1,
@@ -57,6 +75,37 @@ const _rawSecretAchievements = [
         icon: 'img/misc/largest_coin_plus_base.webp',
         checkCondition: (slot) => getLifetimeSizeCoinsCollected(6, slot) > 0,
         trackedSize: 6
+    },
+    {
+        id: 4,
+        title: 'A Useless Experiment',
+        get desc() { return 'Perform an Experiment reset while having XP Level 0'; },
+        icon: 'img/misc/a_useless_experiment.webp',
+        checkCondition: (slot) => getLifetimeUselessExperiment(slot)
+    },
+    {
+        id: 5,
+        title: 'Semi-Automatic',
+        get desc() { return 'Configure the automation of five different currencies to a "Sort of ON" state'; },
+        icon: 'img/misc/semi_automatic.webp',
+        checkCondition: (slot) => {
+            const costTypes = new Set();
+            Object.values(AREA_KEYS).forEach(areaKey => {
+                const upgrades = getUpgradesForArea(areaKey);
+                upgrades.forEach(upg => {
+                    if (upg.costType && upg.costType !== 'gears') {
+                        costTypes.add(upg.costType);
+                    }
+                });
+            });
+            let mixedCount = 0;
+            for (const type of costTypes) {
+                if (getCollectiveAutobuyerState(type) === 0.5) {
+                    mixedCount++;
+                }
+            }
+            return mixedCount >= 5;
+        }
     }
 ];
 
@@ -155,4 +204,5 @@ if (typeof window !== 'undefined') {
     window.addEventListener('saveSlot:change', () => checkSecretAchievements());
     window.addEventListener('forge:completed', () => checkSecretAchievements());
     window.addEventListener('unlock:change', () => checkSecretAchievements());
+    window.addEventListener('autobuyer:toggled', () => checkSecretAchievements());
 }
