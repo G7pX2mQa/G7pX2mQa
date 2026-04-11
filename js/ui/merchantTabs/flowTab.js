@@ -4,6 +4,7 @@ import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } fro
 import { registerTick, registerFrame, FIXED_STEP } from '../../game/gameLoop.js';
 import { addExternalCoinMultiplierProvider, addExternalXpGainMultiplierProvider } from '../../game/xpSystem.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
+import { trackBinaryFlowSequence } from '../../game/secretAchievements.js';
 import { approxLog10BigNum } from '../../game/upgrades.js';
 import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
 import { WaterwheelRenderer } from '../../game/webgl/waterwheelRenderer.js';
@@ -454,6 +455,7 @@ export function toggleWaterwheel(waterwheelId) {
     if (!ch.unlocked) return; // Prevent toggling if locked
 
     const wasActive = ch.active;
+    trackBinaryFlowSequence(waterwheelId);
 
     // If turning ON, deactivate all others first
     if (!wasActive) {
