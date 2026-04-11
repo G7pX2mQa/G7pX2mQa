@@ -92,6 +92,10 @@ function selectTab(key) {
   for (const k in tabsState.panels) {
     tabsState.panels[k].classList.toggle('is-active', k === key);
   }
+  const progRow = document.getElementById("secret-achievements-progress-row");
+  if (progRow) {
+      progRow.style.display = key === "secret" ? "flex" : "none";
+  }
 
   if (key === 'rainbow') {
       try { updateRainbowGemShopTab(); } catch {}
@@ -211,6 +215,11 @@ export function ensureOverlay() {
     try { initRainbowGemShopTab(panelRainbow); } catch {}
     try { initSecretAchievementsTab(panelSecret); } catch {}
     try { initVoidGemAltarTab(panelVoid); } catch {}
+    const progressRow = document.createElement("div");
+    progressRow.id = "secret-achievements-progress-row";
+    progressRow.className = "achievements-progress-row";
+    progressRow.style.display = "none";
+
 
     const actions = document.createElement('div');
     actions.className = 'merchant-actions';
@@ -221,7 +230,7 @@ export function ensureOverlay() {
     closeBtn.textContent = 'Close';
     actions.appendChild(closeBtn);
 
-    sheetEl.append(grabber, header, content, actions);
+    sheetEl.append(grabber, header, content, progressRow, actions);
     overlayEl.appendChild(sheetEl);
     document.body.appendChild(overlayEl);
 
