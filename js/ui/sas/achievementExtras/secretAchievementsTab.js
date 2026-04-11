@@ -208,6 +208,7 @@ function openSecretAchievementDetails(achievement) {
         <div class="upg-info">
             <div class="effect-wrapper">
                 <div class="upg-line"><span class="bonus-line">Reward: <img src="img/currencies/void_gem.webp" class="currency-ico"> ${achievement.rewardAmount} Void Gem</span></div>
+                <div class="upg-line">Spend this Void Gem in the Void Gem Altar tab</div>
             </div>
         </div>
     `;
