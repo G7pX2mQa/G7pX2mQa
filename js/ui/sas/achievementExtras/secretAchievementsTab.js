@@ -108,7 +108,7 @@ function updateProgressRow(gridEl) {
         }
     });
 
-    progressRow.innerHTML = `<span class="stats-label">Secret Achievements:</span> <span class="stats-val">${achievedCount}/${totalCount}</span>`;
+    progressRow.innerHTML = `<span class="stats-label">Secret Achievements: </span> <span class="stats-val">${achievedCount}/${totalCount}</span>`;
     if (achievedCount === totalCount && totalCount > 0) {
         progressRow.style.color = '#02e815';
     } else {
