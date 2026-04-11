@@ -458,6 +458,9 @@ class SettingsManager {
     }
     
     this.notify(key, value);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("setting:changed", { detail: { key, value } }));
+    }
   }
 
   toggle(key) {
