@@ -146,7 +146,7 @@ const _rawSecretAchievements = [
     },
     {
         id: 7,
-        title: 'Binary "Flow"',
+        title: 'Binary Flow',
         get desc() { return 'In the Flow tab, construct the word "Flow" in binary where toggling the Coin Waterwheel\'s Flow State represents 0, and toggling the XP Waterwheel\'s Flow State represents 1. Toggles must be consecutive.'; },
         icon: 'img/misc/binary_flow.webp',
         checkCondition: (slot) => {
