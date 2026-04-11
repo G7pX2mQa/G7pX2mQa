@@ -104,6 +104,34 @@ export function createCursorTrail(playfield) {
       activeColors = ['#006FAC', '#009CF2', '#33B6FF']; // Water
     } else if (mod === 44) {
       activeColors = ['#6C3E1B', '#A56E3B', '#C99753']; // Cookie
+    } else if (mod === 47) {
+      activeColors = ['#C99853', '#C46A1A', '#F6BB00']; // Pancake
+    } else if (mod === 50) {
+      activeColors = ['#8CE632', '#1E9638', '#126422']; // Watermelon
+    } else if (mod === 53) {
+      activeColors = ['#E44E30', '#FFD69A', '#F17A3C']; // Pepperoni
+    } else if (mod === 56) {
+      activeColors = ['#6F3005', '#FFA500', '#FFFF00', '#FFA500', '#FFFF00']; // Pizza
+    } else if (mod === 59) {
+      // Donut logic: brown/pink base, with a different sprinkle every 3rd particle
+      // We construct a repeating pattern: brown, pink, sprinkle
+      const br = '#B37933';
+      const pi = '#FF3783';
+      const sprinkles = ['#FF4B4B', '#FF872D', '#FFE96B', '#78E08F', '#63C0FF', '#FFFFFF'];
+      activeColors = [];
+      for (const sprinkle of sprinkles) {
+        activeColors.push(br, pi, sprinkle);
+      }
+    } else if (mod === 62) {
+      activeColors = ['#1CB1E6', '#0B6BAE', '#EED48A']; // Glass
+    } else if (mod === 65) {
+      activeColors = ['#6EC9FF', '#3477B8', '#C3E5EA']; // Diamond
+    } else if (mod === 68) {
+      activeColors = ['#E6CFFF', '#C8F5F0', '#B0D3FF']; // Opal
+    } else if (mod === 71) {
+      activeColors = ['#2EE4FF', '#2088FF', '#49FFCA', '#C42BFF']; // Cosmic
+    } else if (mod === 74) {
+      activeColors = ['#FF0044', '#FF7C00', '#FFF85C', '#00FFAA', '#00E6FF', '#0044FF', '#A020F0', '#FF00FF']; // Prismatic
     } else {
       activeColors = ['#FFEB3B']; // Default
     }
