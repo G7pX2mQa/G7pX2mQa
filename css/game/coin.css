@@ -274,3 +274,232 @@
 .area-cove .magnet-indicator.magnet-cookie {
   animation: cookie-magnet 6s infinite linear;
 }
+
+@keyframes pancake-magnet {
+  0% {
+    background-color: #C9985326;
+    border-color: #C99853;
+    box-shadow: 0 0 20px 4px #C99853f2, inset 0 0 36px #C99853c7;
+  }
+  50% {
+    background-color: #C46A1A26;
+    border-color: #C46A1A;
+    box-shadow: 0 0 20px 4px #C46A1Af2, inset 0 0 36px #C46A1Ac7;
+  }
+  100% {
+    background-color: #F6BB0026;
+    border-color: #F6BB00;
+    box-shadow: 0 0 20px 4px #F6BB00f2, inset 0 0 36px #F6BB00c7;
+  }
+}
+.area-cove .magnet-indicator.magnet-pancake { animation: pancake-magnet 6s infinite linear alternate; }
+
+@keyframes watermelon-magnet {
+  0% {
+    background-color: #8CE63226;
+    border-color: #8CE632;
+    box-shadow: 0 0 20px 4px #8CE632f2, inset 0 0 36px #8CE632c7;
+  }
+  50% {
+    background-color: #1E963826;
+    border-color: #1E9638;
+    box-shadow: 0 0 20px 4px #1E9638f2, inset 0 0 36px #1E9638c7;
+  }
+  100% {
+    background-color: #12642226;
+    border-color: #126422;
+    box-shadow: 0 0 20px 4px #126422f2, inset 0 0 36px #126422c7;
+  }
+}
+.area-cove .magnet-indicator.magnet-watermelon { animation: watermelon-magnet 6s infinite linear alternate; }
+
+@keyframes pepperoni-magnet {
+  0% {
+    background-color: #E44E3026;
+    border-color: #E44E30;
+    box-shadow: 0 0 20px 4px #E44E30f2, inset 0 0 36px #E44E30c7;
+  }
+  50% {
+    background-color: #FFD69A26;
+    border-color: #FFD69A;
+    box-shadow: 0 0 20px 4px #FFD69Af2, inset 0 0 36px #FFD69Ac7;
+  }
+  100% {
+    background-color: #F17A3C26;
+    border-color: #F17A3C;
+    box-shadow: 0 0 20px 4px #F17A3Cf2, inset 0 0 36px #F17A3Cc7;
+  }
+}
+.area-cove .magnet-indicator.magnet-pepperoni { animation: pepperoni-magnet 6s infinite linear alternate; }
+
+@keyframes pizza-magnet {
+  0% {
+    background-color: #6F300526;
+    border-color: #6F3005;
+    box-shadow: 0 0 20px 4px #6F3005f2, inset 0 0 36px #6F3005c7;
+  }
+  25% {
+    background-color: #FFA50026;
+    border-color: #FFA500;
+    box-shadow: 0 0 20px 4px #FFA500f2, inset 0 0 36px #FFA500c7;
+  }
+  50% {
+    background-color: #FFFF0026;
+    border-color: #FFFF00;
+    box-shadow: 0 0 20px 4px #FFFF00f2, inset 0 0 36px #FFFF00c7;
+  }
+  75% {
+    background-color: #FFA50026;
+    border-color: #FFA500;
+    box-shadow: 0 0 20px 4px #FFA500f2, inset 0 0 36px #FFA500c7;
+  }
+  100% {
+    background-color: #FFFF0026;
+    border-color: #FFFF00;
+    box-shadow: 0 0 20px 4px #FFFF00f2, inset 0 0 36px #FFFF00c7;
+  }
+}
+.area-cove .magnet-indicator.magnet-pizza { animation: pizza-magnet 10s infinite linear alternate; }
+
+@keyframes donut-magnet {
+  0.00%, 5.56% {
+    background-color: #B3793326; border-color: #B37933; box-shadow: 0 0 20px 4px #B37933f2, inset 0 0 36px #B37933c7;
+  }
+  5.56%, 11.11% {
+    background-color: #FF378326; border-color: #FF3783; box-shadow: 0 0 20px 4px #FF3783f2, inset 0 0 36px #FF3783c7;
+  }
+  11.11%, 16.67% {
+    background-color: #FF4B4B26; border-color: #FF4B4B; box-shadow: 0 0 20px 4px #FF4B4Bf2, inset 0 0 36px #FF4B4Bc7;
+  }
+  16.67%, 22.22% {
+    background-color: #B3793326; border-color: #B37933; box-shadow: 0 0 20px 4px #B37933f2, inset 0 0 36px #B37933c7;
+  }
+  22.22%, 27.78% {
+    background-color: #FF378326; border-color: #FF3783; box-shadow: 0 0 20px 4px #FF3783f2, inset 0 0 36px #FF3783c7;
+  }
+  27.78%, 33.33% {
+    background-color: #FF872D26; border-color: #FF872D; box-shadow: 0 0 20px 4px #FF872Df2, inset 0 0 36px #FF872Dc7;
+  }
+  33.33%, 38.89% {
+    background-color: #B3793326; border-color: #B37933; box-shadow: 0 0 20px 4px #B37933f2, inset 0 0 36px #B37933c7;
+  }
+  38.89%, 44.44% {
+    background-color: #FF378326; border-color: #FF3783; box-shadow: 0 0 20px 4px #FF3783f2, inset 0 0 36px #FF3783c7;
+  }
+  44.44%, 50.00% {
+    background-color: #FFE96B26; border-color: #FFE96B; box-shadow: 0 0 20px 4px #FFE96Bf2, inset 0 0 36px #FFE96Bc7;
+  }
+  50.00%, 55.56% {
+    background-color: #B3793326; border-color: #B37933; box-shadow: 0 0 20px 4px #B37933f2, inset 0 0 36px #B37933c7;
+  }
+  55.56%, 61.11% {
+    background-color: #FF378326; border-color: #FF3783; box-shadow: 0 0 20px 4px #FF3783f2, inset 0 0 36px #FF3783c7;
+  }
+  61.11%, 66.67% {
+    background-color: #78E08F26; border-color: #78E08F; box-shadow: 0 0 20px 4px #78E08Ff2, inset 0 0 36px #78E08Fc7;
+  }
+  66.67%, 72.22% {
+    background-color: #B3793326; border-color: #B37933; box-shadow: 0 0 20px 4px #B37933f2, inset 0 0 36px #B37933c7;
+  }
+  72.22%, 77.78% {
+    background-color: #FF378326; border-color: #FF3783; box-shadow: 0 0 20px 4px #FF3783f2, inset 0 0 36px #FF3783c7;
+  }
+  77.78%, 83.33% {
+    background-color: #63C0FF26; border-color: #63C0FF; box-shadow: 0 0 20px 4px #63C0FFf2, inset 0 0 36px #63C0FFc7;
+  }
+  83.33%, 88.89% {
+    background-color: #B3793326; border-color: #B37933; box-shadow: 0 0 20px 4px #B37933f2, inset 0 0 36px #B37933c7;
+  }
+  88.89%, 94.44% {
+    background-color: #FF378326; border-color: #FF3783; box-shadow: 0 0 20px 4px #FF3783f2, inset 0 0 36px #FF3783c7;
+  }
+  94.44%, 100.00% {
+    background-color: #FFFFFF26; border-color: #FFFFFF; box-shadow: 0 0 20px 4px #FFFFFFf2, inset 0 0 36px #FFFFFFc7;
+  }
+}
+.area-cove .magnet-indicator.magnet-donut { animation: donut-magnet 18s infinite linear; }
+
+@keyframes glass-magnet {
+  0% {
+    background-color: #1CB1E626;
+    border-color: #1CB1E6;
+    box-shadow: 0 0 20px 4px #1CB1E6f2, inset 0 0 36px #1CB1E6c7;
+  }
+  50% {
+    background-color: #0B6BAE26;
+    border-color: #0B6BAE;
+    box-shadow: 0 0 20px 4px #0B6BAEf2, inset 0 0 36px #0B6BAEc7;
+  }
+  100% {
+    background-color: #EED48A26;
+    border-color: #EED48A;
+    box-shadow: 0 0 20px 4px #EED48Af2, inset 0 0 36px #EED48Ac7;
+  }
+}
+.area-cove .magnet-indicator.magnet-glass { animation: glass-magnet 6s infinite linear alternate; }
+
+@keyframes diamond-magnet {
+  0% {
+    background-color: #6EC9FF26;
+    border-color: #6EC9FF;
+    box-shadow: 0 0 20px 4px #6EC9FFf2, inset 0 0 36px #6EC9FFc7;
+  }
+  50% {
+    background-color: #3477B826;
+    border-color: #3477B8;
+    box-shadow: 0 0 20px 4px #3477B8f2, inset 0 0 36px #3477B8c7;
+  }
+  100% {
+    background-color: #C3E5EA26;
+    border-color: #C3E5EA;
+    box-shadow: 0 0 20px 4px #C3E5EAf2, inset 0 0 36px #C3E5EAc7;
+  }
+}
+.area-cove .magnet-indicator.magnet-diamond { animation: diamond-magnet 6s infinite linear alternate; }
+
+@keyframes opal-magnet {
+  0% {
+    background-color: #E6CFFF26;
+    border-color: #E6CFFF;
+    box-shadow: 0 0 20px 4px #E6CFFFf2, inset 0 0 36px #E6CFFFc7;
+  }
+  50% {
+    background-color: #C8F5F026;
+    border-color: #C8F5F0;
+    box-shadow: 0 0 20px 4px #C8F5F0f2, inset 0 0 36px #C8F5F0c7;
+  }
+  100% {
+    background-color: #B0D3FF26;
+    border-color: #B0D3FF;
+    box-shadow: 0 0 20px 4px #B0D3FFf2, inset 0 0 36px #B0D3FFc7;
+  }
+}
+.area-cove .magnet-indicator.magnet-opal { animation: opal-magnet 6s infinite linear alternate; }
+
+@keyframes cosmic-magnet {
+  0% {
+    background-color: #2EE4FF26; border-color: #2EE4FF; box-shadow: 0 0 20px 4px #2EE4FFf2, inset 0 0 36px #2EE4FFc7;
+  }
+  33% {
+    background-color: #2088FF26; border-color: #2088FF; box-shadow: 0 0 20px 4px #2088FFf2, inset 0 0 36px #2088FFc7;
+  }
+  66% {
+    background-color: #49FFCA26; border-color: #49FFCA; box-shadow: 0 0 20px 4px #49FFCAf2, inset 0 0 36px #49FFCAc7;
+  }
+  100% {
+    background-color: #C42BFF26; border-color: #C42BFF; box-shadow: 0 0 20px 4px #C42BFFf2, inset 0 0 36px #C42BFFc7;
+  }
+}
+.area-cove .magnet-indicator.magnet-cosmic { animation: cosmic-magnet 6s infinite linear alternate; }
+
+@keyframes prismatic-magnet {
+  0% { background-color: #FF004426; border-color: #FF0044; box-shadow: 0 0 20px 4px #FF0044f2, inset 0 0 36px #FF0044c7; }
+  14% { background-color: #FF7C0026; border-color: #FF7C00; box-shadow: 0 0 20px 4px #FF7C00f2, inset 0 0 36px #FF7C00c7; }
+  28% { background-color: #FFF85C26; border-color: #FFF85C; box-shadow: 0 0 20px 4px #FFF85Cf2, inset 0 0 36px #FFF85Cc7; }
+  42% { background-color: #00FFAA26; border-color: #00FFAA; box-shadow: 0 0 20px 4px #00FFAAf2, inset 0 0 36px #00FFAAc7; }
+  57% { background-color: #00E6FF26; border-color: #00E6FF; box-shadow: 0 0 20px 4px #00E6FFf2, inset 0 0 36px #00E6FFc7; }
+  71% { background-color: #0044FF26; border-color: #0044FF; box-shadow: 0 0 20px 4px #0044FFf2, inset 0 0 36px #0044FFc7; }
+  85% { background-color: #A020F026; border-color: #A020F0; box-shadow: 0 0 20px 4px #A020F0f2, inset 0 0 36px #A020F0c7; }
+  100% { background-color: #FF00FF26; border-color: #FF00FF; box-shadow: 0 0 20px 4px #FF00FFf2, inset 0 0 36px #FF00FFc7; }
+}
+.area-cove .magnet-indicator.magnet-prismatic { animation: prismatic-magnet 6s infinite linear alternate; }
