@@ -116,3 +116,53 @@
   --font-ui: "Source Sans 3", sans-serif;
   font-family: var(--font-ui) !important;
 }
+
+.font-raleway {
+  --font-ui: "Raleway", sans-serif;
+  font-family: var(--font-ui) !important;
+}
+
+.font-montserrat {
+  --font-ui: "Montserrat", sans-serif;
+  font-family: var(--font-ui) !important;
+}
+
+.font-oswald {
+  --font-ui: "Oswald", sans-serif;
+  font-family: var(--font-ui) !important;
+}
+
+.font-playfair-display {
+  --font-ui: "Playfair Display", serif;
+  font-family: var(--font-ui) !important;
+}
+
+.font-poppins {
+  --font-ui: "Poppins", sans-serif;
+  font-family: var(--font-ui) !important;
+}
+
+.font-mukta {
+  --font-ui: "Mukta", sans-serif;
+  font-family: var(--font-ui) !important;
+}
+
+.font-quicksand {
+  --font-ui: "Quicksand", sans-serif;
+  font-family: var(--font-ui) !important;
+}
+
+.font-fira-sans {
+  --font-ui: "Fira Sans", sans-serif;
+  font-family: var(--font-ui) !important;
+}
+
+.font-dosis {
+  --font-ui: "Dosis", sans-serif;
+  font-family: var(--font-ui) !important;
+}
+
+.font-rajdhani {
+  --font-ui: "Rajdhani", sans-serif;
+  font-family: var(--font-ui) !important;
+}
