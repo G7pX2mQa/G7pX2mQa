@@ -4249,7 +4249,7 @@ function buildMiscContent(content) {
     const resetRow = document.createElement('div');
     resetRow.className = 'debug-panel-row';
     const resetLabel = document.createElement('label');
-    resetLabel.textContent = 'Reset Values & Multis For:';
+    resetLabel.textContent = 'Wipe Values & Multis For:';
     resetRow.appendChild(resetLabel);
 
     const resetSelect = document.createElement('select');
