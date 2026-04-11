@@ -659,6 +659,7 @@ images: [
 
   // ==== img/misc ====
   'img/misc/a_useless_experiment.webp',
+  'img/misc/binary_flow.webp',
   'img/misc/evolve_achievement_icon.webp',
   'img/misc/evolve_ready.webp',
   'img/misc/experiment.webp',
@@ -677,6 +678,7 @@ images: [
   'img/misc/merchant.webp',
   'img/misc/mysterious.webp',
   'img/misc/semi_automatic.webp',
+  'img/misc/safety_first.webp',
   'img/misc/surge.webp',
   'img/misc/surge_plus_base.webp',
 
