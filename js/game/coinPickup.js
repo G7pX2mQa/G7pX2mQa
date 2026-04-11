@@ -371,7 +371,7 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
     radiusPx = magnetLevel * unitPx;
     
         // Clear both classes first
-    indicator.classList.remove('magnet-bronze', 'magnet-silver', 'magnet-gold', 'magnet-sapphire', 'magnet-emerald', 'magnet-ruby', 'magnet-amethyst', 'magnet-sunset', 'magnet-void', 'magnet-ethereal', 'magnet-earth', 'magnet-air', 'magnet-fire', 'magnet-water', 'magnet-cookie');
+    indicator.classList.remove('magnet-bronze', 'magnet-silver', 'magnet-gold', 'magnet-sapphire', 'magnet-emerald', 'magnet-ruby', 'magnet-amethyst', 'magnet-sunset', 'magnet-void', 'magnet-ethereal', 'magnet-earth', 'magnet-air', 'magnet-fire', 'magnet-water', 'magnet-cookie', 'magnet-pancake', 'magnet-watermelon', 'magnet-pepperoni', 'magnet-pizza', 'magnet-donut', 'magnet-glass', 'magnet-diamond', 'magnet-opal', 'magnet-cosmic', 'magnet-prismatic');
     
     if (settingsManager.get('active_magnet_mod') === 6) {
       indicator.classList.add('magnet-silver');
@@ -403,6 +403,26 @@ function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn
       indicator.classList.add('magnet-water');
     } else if (settingsManager.get('active_magnet_mod') === 45) {
       indicator.classList.add('magnet-cookie');
+    } else if (settingsManager.get('active_magnet_mod') === 48) {
+      indicator.classList.add('magnet-pancake');
+    } else if (settingsManager.get('active_magnet_mod') === 51) {
+      indicator.classList.add('magnet-watermelon');
+    } else if (settingsManager.get('active_magnet_mod') === 54) {
+      indicator.classList.add('magnet-pepperoni');
+    } else if (settingsManager.get('active_magnet_mod') === 57) {
+      indicator.classList.add('magnet-pizza');
+    } else if (settingsManager.get('active_magnet_mod') === 60) {
+      indicator.classList.add('magnet-donut');
+    } else if (settingsManager.get('active_magnet_mod') === 63) {
+      indicator.classList.add('magnet-glass');
+    } else if (settingsManager.get('active_magnet_mod') === 66) {
+      indicator.classList.add('magnet-diamond');
+    } else if (settingsManager.get('active_magnet_mod') === 69) {
+      indicator.classList.add('magnet-opal');
+    } else if (settingsManager.get('active_magnet_mod') === 72) {
+      indicator.classList.add('magnet-cosmic');
+    } else if (settingsManager.get('active_magnet_mod') === 75) {
+      indicator.classList.add('magnet-prismatic');
     }
 
     updateIndicator();
