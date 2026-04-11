@@ -938,7 +938,7 @@ function typeText(el, full, msPerChar = 22, skipTargets = []) {
           }
 
           let delay = msPerChar;
-          if (charJustTyped === '.' || charJustTyped === ',') {
+          if (charJustTyped === '.' || charJustTyped === ',' || charJustTyped === ':') {
               let sIdx = segIndex;
               let cIdx = charIndex;
               let nextChar = null;
@@ -955,7 +955,7 @@ function typeText(el, full, msPerChar = 22, skipTargets = []) {
                   cIdx = 0;
               }
               
-              if (nextChar !== null && nextChar !== '.' && nextChar !== ',') {
+              if (nextChar !== null && nextChar !== '.' && nextChar !== ',' && nextChar !== ':') {
                   delay = msPerChar * 25;
                   stopTypingSfx();
                   sfxTimer = setTimeout(() => {
