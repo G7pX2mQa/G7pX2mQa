@@ -1,5 +1,7 @@
 import { getActiveSlot, bank } from '../util/storage.js';
 import { showNotification } from '../ui/notifications.js';
+import { formatNumber } from '../util/numFormat.js';
+import { BigNum } from '../util/bigNum.js';
 
 export const SECRET_ACHIEVEMENT_STATES = {
     NOT_OWNED: 0,
@@ -35,7 +37,7 @@ const _rawSecretAchievements = [
     {
         id: 1,
         title: 'A Large One',
-        desc: 'Collect a Coin of size 4 (1/{formatNumber}10000 chance to spawn)',
+        get desc() { return `Collect a Coin of size 4 (1/${formatNumber(BigNum.fromAny(10000))} chance to spawn)`; },
         icon: 'img/currencies/coin/coin_plus_base.webp',
         checkCondition: (slot) => getLifetimeSizeCoinsCollected(4, slot) > 0,
         trackedSize: 4
@@ -43,7 +45,7 @@ const _rawSecretAchievements = [
     {
         id: 2,
         title: 'A Larger One',
-        desc: 'Collect a Coin of size 5 (1/{formatNumber}100000 chance to spawn)',
+        get desc() { return `Collect a Coin of size 5 (1/${formatNumber(BigNum.fromAny(100000))} chance to spawn)`; },
         icon: 'img/currencies/coin/coin.webp',
         checkCondition: (slot) => getLifetimeSizeCoinsCollected(5, slot) > 0,
         trackedSize: 5
@@ -51,7 +53,7 @@ const _rawSecretAchievements = [
     {
         id: 3,
         title: 'The Largest One',
-        desc: 'Collect a Coin of size 6 (1/{formatNumber}1000000 chance to spawn)',
+        get desc() { return `Collect a Coin of size 6 (1/${formatNumber(BigNum.fromAny(1000000))} chance to spawn)`; },
         icon: 'img/misc/largest_coin_plus_base.webp',
         checkCondition: (slot) => getLifetimeSizeCoinsCollected(6, slot) > 0,
         trackedSize: 6
