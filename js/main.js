@@ -17,7 +17,17 @@ export const FONT_MAP = {
   34: 'font-noto-sans',
   37: 'font-pt-sans',
   40: 'font-ubuntu',
-  43: 'font-source-sans-3'
+  43: 'font-source-sans-3',
+  46: 'font-raleway',
+  49: 'font-montserrat',
+  52: 'font-oswald',
+  55: 'font-playfair-display',
+  58: 'font-poppins',
+  61: 'font-mukta',
+  64: 'font-quicksand',
+  67: 'font-fira-sans',
+  70: 'font-dosis',
+  73: 'font-rajdhani'
 };
 
 export const ALL_FONT_CLASSES = Object.values(FONT_MAP);
