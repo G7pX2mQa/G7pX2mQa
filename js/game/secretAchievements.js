@@ -4,6 +4,7 @@ import { formatNumber } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { getCollectiveAutobuyerState } from './automationEffects.js';
 import { AREA_KEYS, getUpgradesForArea } from './upgrades.js';
+import { settingsManager } from './settingsManager.js';
 
 export const SECRET_ACHIEVEMENT_STATES = {
     NOT_OWNED: 0,
@@ -51,6 +52,30 @@ export function setLifetimeUselessExperiment(slot = getActiveSlot()) {
     } catch {}
 }
 
+export function trackBinaryFlowSequence(waterwheelId, slot = getActiveSlot()) {
+    if (slot == null) return;
+    try {
+        if (waterwheelId !== 'coin' && waterwheelId !== 'xp') return;
+        
+        const key = `ccc:secretAchievements:binaryFlowSequence:${slot}`;
+        let seq = localStorage.getItem(key) || "";
+        seq += (waterwheelId === 'xp') ? "1" : "0";
+        if (seq.length > 32) {
+            seq = seq.slice(-32);
+        }
+        localStorage.setItem(key, seq);
+        checkSecretAchievements(slot);
+    } catch {}
+}
+
+export function getBinaryFlowSequence(slot = getActiveSlot()) {
+    if (slot == null) return "";
+    try {
+        return localStorage.getItem(`ccc:secretAchievements:binaryFlowSequence:${slot}`) || "";
+    } catch {}
+    return "";
+}
+
 const _rawSecretAchievements = [
     {
         id: 1,
@@ -78,13 +103,25 @@ const _rawSecretAchievements = [
     },
     {
         id: 4,
+        title: 'Safety First',
+        get desc() { return 'Toggle the reset confirmations for Forge, Infuse, Surge, and Experiment to ON'; },
+        icon: 'img/misc/safety_first.webp',
+        checkCondition: (slot) => {
+            return settingsManager.get('forge_confirmation') &&
+                   settingsManager.get('infuse_confirmation') &&
+                   settingsManager.get('surge_confirmation') &&
+                   settingsManager.get('experiment_confirmation');
+        }
+    },
+    {
+        id: 5,
         title: 'A Useless Experiment',
         get desc() { return 'Perform an Experiment reset while having XP Level 0'; },
         icon: 'img/misc/a_useless_experiment.webp',
         checkCondition: (slot) => getLifetimeUselessExperiment(slot)
     },
     {
-        id: 5,
+        id: 6,
         title: 'Semi-Automatic',
         get desc() { return 'Configure the automation of five different currencies to a "Sort of ON" state'; },
         icon: 'img/misc/semi_automatic.webp',
@@ -105,6 +142,34 @@ const _rawSecretAchievements = [
                 }
             }
             return mixedCount >= 5;
+        }
+    },
+    {
+        id: 7,
+        title: 'Binary "FLOW"',
+        get desc() { return 'In the Flow tab, construct the word "FLOW" in binary where toggling the Coin Waterwheel\'s Flow State represents 0, and toggling the XP Waterwheel\'s Flow State represents 1.'; },
+        icon: 'img/misc/binary_flow.webp',
+        checkCondition: (slot) => {
+            const seq = getBinaryFlowSequence(slot);
+            const validSequences = new Set([
+                "01100110011011000110111101110111", // flow
+                "01100110011011000110111101010111", // floW
+                "01100110011011000100111101110111", // flOw
+                "01100110011011000100111101010111", // flOW
+                "01100110010011000110111101110111", // fLow
+                "01100110010011000110111101010111", // fLoW
+                "01100110010011000100111101110111", // fLOw
+                "01100110010011000100111101010111", // fLOW
+                "01000110011011000110111101110111", // Flow
+                "01000110011011000110111101010111", // FloW
+                "01000110011011000100111101110111", // FlOw
+                "01000110011011000100111101010111", // FlOW
+                "01000110010011000110111101110111", // FLow
+                "01000110010011000110111101010111", // FLoW
+                "01000110010011000100111101110111", // FLOw
+                "01000110010011000100111101010111"  // FLOW
+            ]);
+            return validSequences.has(seq);
         }
     }
 ];
@@ -205,4 +270,5 @@ if (typeof window !== 'undefined') {
     window.addEventListener('forge:completed', () => checkSecretAchievements());
     window.addEventListener('unlock:change', () => checkSecretAchievements());
     window.addEventListener('autobuyer:toggled', () => checkSecretAchievements());
+    window.addEventListener("setting:changed", () => checkSecretAchievements());
 }
