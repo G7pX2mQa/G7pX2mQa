@@ -63,7 +63,7 @@ import {
 } from '../../game/labNodes.js';
 import { getLabLevel } from './labTab.js';
 import { showDelayedAchievementNotifications } from '../../game/achievements.js';
-import { showDelayedSecretAchievementNotifications, checkSecretAchievements } from '../../game/secretAchievements.js';
+import { showDelayedSecretAchievementNotifications, checkSecretAchievements, setLifetimeUselessExperiment } from '../../game/secretAchievements.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 import { getWaterwheelGoldMultiplier } from './flowTab.js';
@@ -1378,6 +1378,11 @@ function performExperimentReset() {
     // Check Requirements
     const labLevel = getLabLevel ? getLabLevel() : bnZero();
     if (labLevel.cmp(10) < 0) return false;
+
+    if (getXpLevelNumber() === 0) {
+        setLifetimeUselessExperiment();
+        checkSecretAchievements();
+    }
     
     const reward = resetState.pendingDna.clone?.() ?? resetState.pendingDna;
     
