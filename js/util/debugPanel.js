@@ -1889,31 +1889,25 @@ function buildAreaStats(container, area) {
 	    if (area.key === AREA_KEYS.STARTER_COVE) {
         const currentVoidLevel = getVoidLevel(slot);
         const voidLevelRow = createInputRow('Void Level', currentVoidLevel, (value, { setValue }) => {
-            let valNum = Number(value);
-            if (value instanceof BigNum) {
-                if (value.isInfinite()) {
-                    valNum = Infinity;
-                } else {
-                    try {
-                        valNum = Number(value.toScientific(10));
-                    } catch {
-                        valNum = NaN;
-                    }
-                }
+            let valBn;
+            try {
+                valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
+                if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
+            } catch {
+                setValue(getVoidLevel(slot));
+                return;
             }
 
-            if (Number.isNaN(valNum) || valNum < 0) return;
-            const cleanVal = (valNum === Infinity) ? 'Infinity' : String(Math.floor(valNum));
             const prev = getVoidLevel(slot);
-            setVoidLevel(valNum === Infinity ? Infinity : Math.floor(valNum), slot);
+            setVoidLevel(valBn, slot);
             
             // Dispatch event for UI to update
             document.dispatchEvent(new CustomEvent('ccc:voidLevel:changed'));
             flagDebugUsage();
-            if (prev !== (valNum === Infinity ? Infinity : Math.floor(valNum))) {
-                logAction(`Modified Void Level (The Cove) ${prev} → ${valNum === Infinity ? 'Infinity' : Math.floor(valNum)}`);
+            if (!bigNumEquals(prev, valBn)) {
+                logAction(`Modified Void Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
             }
-            setValue(valNum === Infinity ? Infinity : Math.floor(valNum));
+            setValue(valBn);
         }, {
             storageKey: `ccc:voidLevel:${slot}`,
         });
