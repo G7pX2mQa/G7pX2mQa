@@ -2,7 +2,7 @@ import { bank, getActiveSlot } from '../../../util/storage.js';
 import { ACHIEVEMENTS, ACHIEVEMENT_STATES, getAchievementState } from '../../../game/achievements.js';
 import { playPurchaseSfx } from '../../shopOverlay.js';
 import { formatNumber } from '../../../util/numFormat.js';
-import { BigNum } from '../../../util/bigNum.js';
+import { BigNum, bigNumFromLog10 } from '../../../util/bigNum.js';
 
 const VOID_LEVEL_KEY = 'ccc:voidLevel';
 
@@ -37,7 +37,12 @@ export function setVoidLevel(level, slot = getActiveSlot()) {
 
 export function getRainbowGemMultiplier() {
     const level = getVoidLevel();
-    return Math.pow(1.1, Number(level.toString()));
+    const levelNum = Number(level.toString());
+    if (levelNum < 300) {
+        return BigNum.fromAny(Math.pow(1.1, levelNum));
+    }
+    const multLog10 = Math.log10(1.1) * levelNum;
+    return bigNumFromLog10(multLog10);
 }
 
 export function feedVoidGem() {
@@ -53,17 +58,17 @@ export function feedVoidGem() {
         }
     }
 
-    const oldTotal = Math.round(sumBaseRewards * oldMultiplier);
+    const oldTotal = oldMultiplier.mulScaledIntFloor(BigInt(Math.round(sumBaseRewards)), 0);
 
     bank.voidGems.add(-1);
     const currentLevel = getVoidLevel(slot);
     setVoidLevel(currentLevel + 1, slot);
 
     const newMultiplier = getRainbowGemMultiplier();
-    const newTotal = Math.round(sumBaseRewards * newMultiplier);
-    const diff = newTotal - oldTotal;
+    const newTotal = newMultiplier.mulScaledIntFloor(BigInt(Math.round(sumBaseRewards)), 0);
+    const diff = newTotal.sub(oldTotal);
 
-    if (diff > 0 && bank.rainbowGems) {
+    if (diff.cmp(0) > 0 && bank.rainbowGems) {
         bank.rainbowGems.add(diff);
     }
 
