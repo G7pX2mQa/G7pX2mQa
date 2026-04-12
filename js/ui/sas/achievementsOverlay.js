@@ -5,6 +5,8 @@ import { playAudio } from "../../util/audioManager.js";
 import { getRainbowGemMultiplier } from './achievementExtras/voidGemAltarTab.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { openAchievementExtras } from './achievementExtras/rainbowGemShopTab.js';
+import { formatNumber } from '../../util/numFormat.js';
+import { BigNum } from '../../util/bigNum.js';
 
 const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
 
@@ -248,7 +250,7 @@ function openAchievementDetails(achievement) {
         <div class="upg-desc centered">${achievement.desc}</div>
         <div class="upg-info">
             <div class="effect-wrapper">
-                <div class="upg-line"><span class="bonus-line">Reward: <img src="img/currencies/rainbow_gem.webp" class="currency-ico"> ${actualReward} Rainbow Gems</span></div>
+                <div class="upg-line"><span class="bonus-line">Reward: <img src="img/currencies/rainbow_gem.webp" class="currency-ico"> ${formatNumber(BigNum.fromAny(actualReward))} Rainbow Gems</span></div>
             </div>
         </div>
     `;
