@@ -2442,7 +2442,7 @@ export const REGISTRY = [
     costType: "coins",
     upgType: "NM",
     effectType: "coin_spawn",
-    icon: "sc_upgrade_icons/faster_coins1.webp",
+    icon: "img/sc_upg_icons/faster_coins1.webp",
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
     effectSummary(level) {
@@ -2459,8 +2459,8 @@ export const REGISTRY = [
     desc: "Unlocks the XP system and a new Merchant dialogue\nXP system: Collect Coins for XP to level up and gain Books\nEach XP Level also boosts Coin value by a decent amount",
     lvlCap: 1,
     upgType: "NM",
-    icon: "stats/xp/xp.webp",
-    baseIconOverride: "stats/xp/xp_base.webp",
+    icon: "img/stats/xp/xp.webp",
+    baseIconOverride: "img/stats/xp/xp_base.webp",
     unlockUpgrade: true,
     costAtLevel() { return BigNum.fromInt(0); },
     nextCostAfter() { return BigNum.fromInt(0); },
@@ -2484,7 +2484,7 @@ export const REGISTRY = [
     costType: "books",
     upgType: "NM",
     effectType: "coin_spawn",
-    icon: "sc_upgrade_icons/faster_coins2.webp",
+    icon: "img/sc_upg_icons/faster_coins2.webp",
     requiresUnlockXp: true,
     costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
     nextCostAfter() { return this.costAtLevel(); },
@@ -2505,7 +2505,7 @@ export const REGISTRY = [
     costType: "books",
     upgType: "NM",
     effectType: "coin_value",
-    icon: "sc_upgrade_icons/coin_val1.webp",
+    icon: "img/sc_upg_icons/coin_val1.webp",
     requiresUnlockXp: true,
     costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
     nextCostAfter() { return this.costAtLevel(); },
@@ -2526,7 +2526,7 @@ export const REGISTRY = [
     costType: "books",
     upgType: "NM",
     effectType: "book_value",
-    icon: "sc_upgrade_icons/book_val1.webp",
+    icon: "img/sc_upg_icons/book_val1.webp",
     requiresUnlockXp: true,
     costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
     nextCostAfter() { return this.costAtLevel(); },
@@ -2547,7 +2547,7 @@ export const REGISTRY = [
     costType: "coins",
     upgType: "NM",
     effectType: "xp_value",
-    icon: "sc_upgrade_icons/xp_val1.webp",
+    icon: "img/sc_upg_icons/xp_val1.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
@@ -2565,8 +2565,8 @@ export const REGISTRY = [
     desc: "Unlocks the Reset tab and the Forge reset in the Delve menu",
     lvlCap: 1,
     upgType: "NM",
-    icon: "misc/forge.webp",
-    baseIconOverride: "stats/mp/mp_base.webp",
+    icon: "img/misc/forge.webp",
+    baseIconOverride: "img/stats/mp/mp_base.webp",
     requiresUnlockXp: true,
     revealRequirement: 'Reach XP Level 31 to reveal this upgrade',
     unlockUpgrade: true,
@@ -2590,7 +2590,7 @@ export const REGISTRY = [
     costType: "gold",
     upgType: "NM",
     effectType: "coin_value",
-    icon: "sc_upgrade_icons/coin_val2.webp",
+    icon: "img/sc_upg_icons/coin_val2.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
@@ -2612,7 +2612,7 @@ export const REGISTRY = [
     costType: "gold",
     upgType: "NM",
     effectType: "xp_value",
-    icon: "sc_upgrade_icons/xp_val2.webp",
+    icon: "img/sc_upg_icons/xp_val2.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
@@ -2634,7 +2634,7 @@ export const REGISTRY = [
     costType: "gold",
     upgType: "NM",
     effectType: "mp_value",
-    icon: "sc_upgrade_icons/mp_val1.webp",
+    icon: "img/sc_upg_icons/mp_val1.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
@@ -2656,7 +2656,7 @@ export const REGISTRY = [
     costType: "gold",
     upgType: "NM",
     effectType: "magnet_radius",
-    icon: "sc_upgrade_icons/magnet.webp",
+    icon: "img/sc_upg_icons/magnet.webp",
     requiresUnlockXp: true,
     scaling: { ratio: 5 },
     costAtLevel(level) { return nmCostBN(this, level); },
@@ -2681,7 +2681,7 @@ export const REGISTRY = [
     costType: "coins",
     upgType: "HM",
     effectType: "xp_value",
-    icon: "sc_upg_icons/xp_val_hm.webp",
+    icon: "img/sc_upg_icons/xp_val_hm.webp",
     requiresUnlockXp: true,
     scalingPreset: 'HM',
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
@@ -2706,8 +2706,8 @@ export const REGISTRY = [
     desc: "Unlocks the Infuse reset",
     lvlCap: 1,
     upgType: "NM",
-    icon: "misc/infuse.webp",
-    baseIconOverride: "misc/infuse_base.webp",
+    icon: "img/misc/infuse.webp",
+    baseIconOverride: "img/misc/infuse_base.webp",
     requiresUnlockXp: true,
     revealRequirement: 'Reach XP Level 101 to reveal this upgrade',
     unlockUpgrade: true,
@@ -2731,7 +2731,7 @@ export const REGISTRY = [
     costType: "magic",
     upgType: "NM",
     effectType: "coin_value",
-    icon: "sc_upg_icons/coin_val3.webp",
+    icon: "img/sc_upg_icons/coin_val3.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
@@ -2753,7 +2753,7 @@ export const REGISTRY = [
     costType: "magic",
     upgType: "NM",
     effectType: "xp_value",
-    icon: "sc_upg_icons/xp_val3.webp",
+    icon: "img/sc_upg_icons/xp_val3.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
@@ -2775,7 +2775,7 @@ export const REGISTRY = [
     costType: "magic",
     upgType: "NM",
     effectType: "mp_value",
-    icon: "sc_upg_icons/mp_val2.webp",
+    icon: "img/sc_upg_icons/mp_val2.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
@@ -2797,7 +2797,7 @@ export const REGISTRY = [
     costType: "magic",
     upgType: "NM",
     effectType: "coin_spawn",
-    icon: "sc_upg_icons/faster_coins3.webp",
+    icon: "img/sc_upg_icons/faster_coins3.webp",
     requiresUnlockXp: true,
     costAtLevel(level) { return nmCostBN(this, level); },
     nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
@@ -2819,7 +2819,7 @@ export const REGISTRY = [
     costType: "coins",
     upgType: "HM",
     effectType: "mp_value",
-    icon: "sc_upg_icons/mp_val_hm.webp",
+    icon: "img/sc_upg_icons/mp_val_hm.webp",
     requiresUnlockXp: true,
     scalingPreset: 'HM',
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
@@ -2845,7 +2845,7 @@ export const REGISTRY = [
     lvlCap: 1,
     upgType: "NM",
     icon: "",
-    baseIconOverride: "misc/surge_plus_base.webp",
+    baseIconOverride: "img/misc/surge_plus_base.webp",
     requiresUnlockXp: true,
     revealRequirement: 'Reach XP Level 201 to reveal this upgrade',
     unlockUpgrade: true,
@@ -2869,7 +2869,7 @@ export const REGISTRY = [
     costType: "books",
     upgType: "HM",
     effectType: "coin_value",
-    icon: "sc_upg_icons/coin_val_hm1.webp",
+    icon: "img/sc_upg_icons/coin_val_hm1.webp",
     scalingPreset: 'HM',
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
     nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
@@ -2941,7 +2941,7 @@ export const REGISTRY = [
     costType: "gold",
     upgType: "HM",
     effectType: "coin_value",
-    icon: "sc_upg_icons/coin_val_hm2.webp",
+    icon: "img/sc_upg_icons/coin_val_hm2.webp",
     scalingPreset: 'HM',
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
     nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
@@ -3009,7 +3009,7 @@ export const REGISTRY = [
     costType: "magic",
     upgType: "HM",
     effectType: "coin_value",
-    icon: "sc_upg_icons/coin_val_hm3.webp",
+    icon: "img/sc_upg_icons/coin_val_hm3.webp",
     scalingPreset: 'HM',
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
     nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
@@ -3077,7 +3077,7 @@ export const REGISTRY = [
     costType: "coins",
     upgType: "HM",
     effectType: "fp_value",
-    icon: "sc_upg_icons/fp_val_hm.webp",
+    icon: "img/sc_upg_icons/fp_val_hm.webp",
     scalingPreset: 'HM',
     scalingHarshness: 5,
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
@@ -4222,76 +4222,7 @@ export function getUpgradeLockState(areaKey, upgId) {
 export function normalizeUpgradeIconPath(iconPath) {
   const raw = String(iconPath ?? '').trim();
   if (!raw) return '';
-
-  if (/^(?:https?:|data:|blob:)/i.test(raw)) return raw;
-  if (raw.startsWith('//')) return raw;
-
-  const replaceSlashes = (value) => value.replace(/\\+/g, '/');
-  let path = replaceSlashes(raw);
-
-  if (path.startsWith('/')) {
-    return path.replace(/\/{2,}/g, '/');
-  }
-
-  path = path.replace(/^\.\/+/u, '');
-  while (path.startsWith('../')) {
-    path = path.slice(3);
-  }
-
-  const segments = path
-    .split('/')
-    .map(seg => seg.trim())
-    .filter(seg => seg && seg !== '.');
-
-  if (!segments.length) return '';
-
-  const normalized = [];
-  for (const segment of segments) {
-    if (segment === '..') {
-      normalized.pop();
-      continue;
-    }
-    normalized.push(segment);
-  }
-
-  if (!normalized.length) return '';
-
-  const SHARED_ROOTS = new Set(['stats', 'currencies', 'misc']);
-
-  for (let i = 0; i < normalized.length; i += 1) {
-    const lower = normalized[i].toLowerCase();
-    if (lower === 'img') {
-      normalized.splice(i, 1);
-      i -= 1;
-      continue;
-    }
-
-    if (lower === 'sc_upgrade_icons' || lower === 'sc_upg_icons') {
-      normalized[i] = 'sc_upg_icons';
-      while (normalized[i + 1] && /^(?:sc_upgrade_icons|sc_upg_icons)$/i.test(normalized[i + 1])) {
-        normalized.splice(i + 1, 1);
-      }
-    }
-  }
-
-  if (!normalized.length) return '';
-
-  if (
-    normalized.length > 1
-    && normalized[0].toLowerCase() === 'sc_upg_icons'
-    && SHARED_ROOTS.has(normalized[1].toLowerCase())
-  ) {
-    normalized.shift();
-  }
-
-  if (normalized.length === 1) {
-    normalized.unshift('sc_upg_icons');
-  }
-
-  const result = normalized.join('/');
-  if (!result) return '';
-
-  return `img/${result}`;
+  return raw;
 }
 
 export function getIconUrl(upg) {
