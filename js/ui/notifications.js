@@ -114,6 +114,6 @@ export function initNotifications() {
         
         // Show notification
         const title = node.title || 'Node';
-        showNotification(`${title}<br>Maxed!`, 'img/' + node.icon);
+        showNotification(`${title}<br>Maxed!`, node.icon);
     });
 }
