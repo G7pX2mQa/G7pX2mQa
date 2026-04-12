@@ -52,7 +52,8 @@ function renderSecretAchievements(gridEl) {
             btn.classList.add('is-locked');
             iconImg.style.filter = 'brightness(0.05)';
             appendBadge = false;
-            btn.title = '???';
+            btn.title = `Hint: The title of this is “${achievement.title}”`;
+            btn.style.cursor = 'pointer';
         } else if (state === SECRET_ACHIEVEMENT_STATES.PENDING_CLAIM) {
             btn.classList.add('is-pending');
             badge.textContent = 'Pending Claim';
@@ -73,7 +74,6 @@ function renderSecretAchievements(gridEl) {
 
         btn.addEventListener('click', (e) => {
             if (e.shiftKey || e.ctrlKey) return;
-            if (state === SECRET_ACHIEVEMENT_STATES.NOT_OWNED) return;
             openSecretAchievementDetails(achievement);
         });
 
@@ -181,30 +181,44 @@ function openSecretAchievementDetails(achievement) {
     const slot = getActiveSlot();
     const state = getSecretAchievementState(achievement.id, slot);
 
-    header.innerHTML = `
-        <div class="upg-title">${achievement.title}</div>
-        <div class="upg-level">${state === SECRET_ACHIEVEMENT_STATES.ACHIEVED ? 'Achieved' : state === SECRET_ACHIEVEMENT_STATES.PENDING_CLAIM ? 'Pending Claim' : 'Not Owned'}</div>
-    `;
+    if (state === SECRET_ACHIEVEMENT_STATES.NOT_OWNED) {
+        header.innerHTML = '';
+        
+        let extraHintHtml = '';
+        if (achievement.extraHint) {
+            extraHintHtml = `<div class="upg-line" style="margin-top: 8px;">${achievement.extraHint}</div>`;
+        }
+        
+        let contentHtml = `
+            <div class="upg-desc centered">Hint: The title of this is “${achievement.title}”${extraHintHtml}</div>
+        `;
+        content.innerHTML = contentHtml;
+    } else {
+        header.innerHTML = `
+            <div class="upg-title">${achievement.title}</div>
+            <div class="upg-level">${state === SECRET_ACHIEVEMENT_STATES.ACHIEVED ? 'Achieved' : 'Pending Claim'}</div>
+        `;
 
-    // Process desc
-    let desc = achievement.desc;
+        // Process desc
+        let desc = achievement.desc;
 
-    let lifetimeCountStr = '';
-    if (achievement.trackedSize) {
-        const lifetimeCount = getLifetimeSizeCoinsCollected(achievement.trackedSize, slot);
-        lifetimeCountStr = `<div class="upg-line" style="margin-top: 8px; color: #aaa;">Total size ${achievement.trackedSize} Coins collected: ${lifetimeCount}</div>`;
-    }
+        let lifetimeCountStr = '';
+        if (achievement.trackedSize) {
+            const lifetimeCount = getLifetimeSizeCoinsCollected(achievement.trackedSize, slot);
+            lifetimeCountStr = `<div class="upg-line" style="margin-top: 8px; color: #aaa;">Total size ${achievement.trackedSize} Coins collected: ${lifetimeCount}</div>`;
+        }
 
-    let contentHtml = `
-        <div class="upg-desc centered">${desc}${lifetimeCountStr}</div>
-        <div class="upg-info">
-            <div class="effect-wrapper">
-                <div class="upg-line"><span class="bonus-line">Reward: <img src="img/currencies/void_gem.webp" class="currency-ico"> ${achievement.rewardAmount} Void Gem</span></div>
-                <div class="upg-line">Spend this Void Gem in the Void Gem Altar tab</div>
+        let contentHtml = `
+            <div class="upg-desc centered">${desc}${lifetimeCountStr}</div>
+            <div class="upg-info">
+                <div class="effect-wrapper">
+                    <div class="upg-line"><span class="bonus-line">Reward: <img src="img/currencies/void_gem.webp" class="currency-ico"> ${achievement.rewardAmount} Void Gem</span></div>
+                    <div class="upg-line">Spend this Void Gem in the Void Gem Altar tab</div>
+                </div>
             </div>
-        </div>
-    `;
-    content.innerHTML = contentHtml;
+        `;
+        content.innerHTML = contentHtml;
+    }
 
     actions.innerHTML = `
         <button type="button" class="shop-close">Close</button>
