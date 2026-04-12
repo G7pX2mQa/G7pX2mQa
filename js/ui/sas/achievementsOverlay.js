@@ -89,7 +89,7 @@ function renderAchievements(gridEl) {
             e.preventDefault();
             if (state === ACHIEVEMENT_STATES.PENDING_CLAIM) {
                 if (achievement.rewardAmount && bank.rainbowGems) {
-                    const actualReward = Math.round(achievement.rewardAmount * getRainbowGemMultiplier());
+                    const actualReward = getRainbowGemMultiplier().mulScaledIntFloor(BigInt(Math.round(achievement.rewardAmount)), 0);
                     bank.rainbowGems.add(actualReward);
                 }
                 setAchievementState(achievement.id, ACHIEVEMENT_STATES.ACHIEVED, slot);
@@ -244,13 +244,13 @@ function openAchievementDetails(achievement) {
         <div class="upg-level">${state === ACHIEVEMENT_STATES.ACHIEVED ? 'Achieved' : state === ACHIEVEMENT_STATES.PENDING_CLAIM ? 'Pending Claim' : 'Not Owned'}</div>
     `;
 
-    const actualReward = Math.round(achievement.rewardAmount * getRainbowGemMultiplier());
+    const actualReward = getRainbowGemMultiplier().mulScaledIntFloor(BigInt(Math.round(achievement.rewardAmount)), 0);
 
     let contentHtml = `
         <div class="upg-desc centered">${achievement.desc}</div>
         <div class="upg-info">
             <div class="effect-wrapper">
-                <div class="upg-line"><span class="bonus-line">Reward: <img src="img/currencies/rainbow_gem.webp" class="currency-ico"> ${formatNumber(BigNum.fromAny(actualReward))} Rainbow Gems</span></div>
+                <div class="upg-line"><span class="bonus-line">Reward: <img src="img/currencies/rainbow_gem.webp" class="currency-ico"> ${formatNumber(actualReward)} Rainbow Gems</span></div>
             </div>
         </div>
     `;
