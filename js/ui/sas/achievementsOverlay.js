@@ -2,6 +2,7 @@ import { createSASOverlay } from './sasOverlayBuilder.js';
 import { ACHIEVEMENTS, ACHIEVEMENT_STATES, getAchievementState, setAchievementState } from '../../game/achievements.js';
 import { getActiveSlot, bank } from '../../util/storage.js';
 import { playAudio } from "../../util/audioManager.js";
+import { getRainbowGemMultiplier } from './achievementExtras/voidGemAltarTab.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { openAchievementExtras } from './achievementExtras/rainbowGemShopTab.js';
 
@@ -86,7 +87,8 @@ function renderAchievements(gridEl) {
             e.preventDefault();
             if (state === ACHIEVEMENT_STATES.PENDING_CLAIM) {
                 if (achievement.rewardAmount && bank.rainbowGems) {
-                    bank.rainbowGems.add(achievement.rewardAmount);
+                    const actualReward = Math.round(achievement.rewardAmount * getRainbowGemMultiplier());
+                    bank.rainbowGems.add(actualReward);
                 }
                 setAchievementState(achievement.id, ACHIEVEMENT_STATES.ACHIEVED, slot);
                 playPurchaseSfx();
@@ -240,11 +242,13 @@ function openAchievementDetails(achievement) {
         <div class="upg-level">${state === ACHIEVEMENT_STATES.ACHIEVED ? 'Achieved' : state === ACHIEVEMENT_STATES.PENDING_CLAIM ? 'Pending Claim' : 'Not Owned'}</div>
     `;
 
+    const actualReward = Math.round(achievement.rewardAmount * getRainbowGemMultiplier());
+
     let contentHtml = `
         <div class="upg-desc centered">${achievement.desc}</div>
         <div class="upg-info">
             <div class="effect-wrapper">
-                <div class="upg-line"><span class="bonus-line">Reward: <img src="img/currencies/rainbow_gem.webp" class="currency-ico"> ${achievement.rewardAmount} Rainbow Gems</span></div>
+                <div class="upg-line"><span class="bonus-line">Reward: <img src="img/currencies/rainbow_gem.webp" class="currency-ico"> ${actualReward} Rainbow Gems</span></div>
             </div>
         </div>
     `;
@@ -264,7 +268,7 @@ function openAchievementDetails(achievement) {
         claimBtn.textContent = 'Claim';
         claimBtn.addEventListener('click', () => {
             if (achievement.rewardAmount && bank.rainbowGems) {
-                bank.rainbowGems.add(achievement.rewardAmount);
+                bank.rainbowGems.add(actualReward);
             }
             setAchievementState(achievement.id, ACHIEVEMENT_STATES.ACHIEVED, slot);
             playPurchaseSfx();
