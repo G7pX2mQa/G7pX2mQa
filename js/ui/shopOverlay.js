@@ -59,7 +59,6 @@ import { DNA_AREA_KEY } from '../game/dnaUpgrades.js';
 const scrollingElements = new Set();
 export function isAnyMenuScrolling() { return scrollingElements.size > 0; }
 
-const ICON_DIR = 'img/';
 const BASE_ICON_SRC_BY_COST = {
   coins: 'img/currencies/coin/coin_base.webp',
   books: 'img/currencies/book/book_base.webp',
