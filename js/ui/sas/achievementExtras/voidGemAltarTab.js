@@ -2,28 +2,42 @@ import { bank, getActiveSlot } from '../../../util/storage.js';
 import { ACHIEVEMENTS, ACHIEVEMENT_STATES, getAchievementState } from '../../../game/achievements.js';
 import { playPurchaseSfx } from '../../shopOverlay.js';
 import { formatNumber } from '../../../util/numFormat.js';
+import { BigNum } from '../../../util/bigNum.js';
 
 const VOID_LEVEL_KEY = 'ccc:voidLevel';
 
 export function getVoidLevel(slot = getActiveSlot()) {
     const slotKey = String(slot ?? 'default');
     try {
-        const val = localStorage.getItem(`${VOID_LEVEL_KEY}:${slotKey}`);
-        if (val !== null) return parseInt(val, 10) || 0;
+        const valStr = localStorage.getItem(`${VOID_LEVEL_KEY}:${slotKey}`);
+        if (valStr !== null && valStr !== 'undefined') {
+            try {
+                return BigNum.fromAny(valStr);
+            } catch {
+                return BigNum.fromInt(0);
+            }
+        }
     } catch {}
-    return 0;
+    return BigNum.fromInt(0);
 }
 
 export function setVoidLevel(level, slot = getActiveSlot()) {
     const slotKey = String(slot ?? 'default');
+    let valBn;
     try {
-        localStorage.setItem(`${VOID_LEVEL_KEY}:${slotKey}`, String(level));
+        valBn = level instanceof BigNum ? level : BigNum.fromAny(level);
+        if (valBn.isNegative && valBn.isNegative()) valBn = BigNum.fromInt(0);
+    } catch {
+        valBn = BigNum.fromInt(0);
+    }
+    try {
+        localStorage.setItem(`${VOID_LEVEL_KEY}:${slotKey}`, valBn.toString());
     } catch {}
 }
 
 export function getRainbowGemMultiplier() {
     const level = getVoidLevel();
-    return Math.pow(1.1, level);
+    return Math.pow(1.1, Number(level.toString()));
 }
 
 export function feedVoidGem() {
@@ -86,6 +100,17 @@ export function initVoidGemAltarTab(panel) {
     });
 
     updateVoidGemAltarTab();
+
+    // Listen for debug panel changes
+    if (!panel.__debugListenerAdded) {
+        panel.__debugListenerAdded = true;
+        document.addEventListener('ccc:voidLevel:changed', updateVoidGemAltarTab);
+        window.addEventListener('currency:change', (e) => {
+            if (e.detail && e.detail.key === 'voidGems') {
+                updateVoidGemAltarTab();
+            }
+        });
+    }
 }
 
 export function updateVoidGemAltarTab() {
@@ -95,7 +120,7 @@ export function updateVoidGemAltarTab() {
     const levelIndicatorEl = altarTabPanel.querySelector('.void-level-indicator span');
     const feedBtn = altarTabPanel.querySelector('.void-feed-btn');
 
-    const voidGemsAmount = bank.voidGems ? bank.voidGems.value : 0;
+    const voidGemsAmount = bank.voidGems ? bank.voidGems.value : BigNum.fromInt(0);
     const currentVoidLevel = getVoidLevel();
 
     if (gemCounterEl) {
@@ -103,7 +128,7 @@ export function updateVoidGemAltarTab() {
     }
 
     if (levelIndicatorEl) {
-        levelIndicatorEl.textContent = currentVoidLevel.toString();
+        levelIndicatorEl.textContent = typeof formatNumber === 'function' ? formatNumber(currentVoidLevel) : currentVoidLevel.toString();
     }
 
     if (feedBtn) {
