@@ -35,6 +35,7 @@ import {
 } from '../game/upgrades.js';
 import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
+import { getVoidLevel, setVoidLevel } from '../ui/sas/achievementExtras/voidGemAltarTab.js';
 import { getGenerationLevelKey, getGenerationUpgradeCost } from '../ui/merchantTabs/workshopTab.js';
 import { getSurgeBarLevelKey, hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
 import { getBaseTsunamiExponent, setTsunamiNerf, getTsunamiNerfKey, getTsunamiSequenceSeen, setTsunamiSequenceSeen, getTsunamiExponent } from '../game/surgeEffects.js';
@@ -409,6 +410,7 @@ function getAreas() {
             key: AREA_KEYS.STARTER_COVE,
             title: 'The Cove',
             currencies: [
+                { key: CURRENCIES.VOID_GEMS, label: 'Void Gems' },
                 { key: CURRENCIES.RAINBOW_GEMS, label: 'Rainbow Gems' },
                 { key: CURRENCIES.COINS, label: 'Coins' },
                 { key: CURRENCIES.BOOKS, label: 'Books' },
@@ -419,6 +421,7 @@ function getAreas() {
                 { key: CURRENCIES.DNA,   label: 'DNA'   },
             ],
             stats: [
+                { key: 'voidLevel', label: 'Void Level' },
                 { key: 'spawnRate', label: 'Spawn Rate' },
                 { key: 'xp', label: 'XP' },
                 { key: 'mutation', label: 'MP' },
@@ -1883,7 +1886,49 @@ function buildAreaStats(container, area) {
 
     }
 	
-	    const spawnRateKey = 'spawnRate';
+	    if (area.key === AREA_KEYS.STARTER_COVE) {
+        const currentVoidLevel = getVoidLevel(slot);
+        const voidLevelRow = createInputRow('Void Level', currentVoidLevel, (value, { setValue }) => {
+            let valNum = Number(value);
+            if (value instanceof BigNum) {
+                if (value.isInfinite()) {
+                    valNum = Infinity;
+                } else {
+                    try {
+                        valNum = Number(value.toScientific(10));
+                    } catch {
+                        valNum = NaN;
+                    }
+                }
+            }
+
+            if (Number.isNaN(valNum) || valNum < 0) return;
+            const cleanVal = (valNum === Infinity) ? 'Infinity' : String(Math.floor(valNum));
+            const prev = getVoidLevel(slot);
+            setVoidLevel(valNum === Infinity ? Infinity : Math.floor(valNum), slot);
+            
+            flagDebugUsage();
+            if (prev !== (valNum === Infinity ? Infinity : Math.floor(valNum))) {
+                logAction(`Modified Void Level (The Cove) ${prev} → ${valNum === Infinity ? 'Infinity' : Math.floor(valNum)}`);
+            }
+            setValue(valNum === Infinity ? Infinity : Math.floor(valNum));
+        }, {
+            storageKey: `ccc:voidLevel:${slot}`,
+        });
+
+        registerLiveBinding({
+            type: 'void-level',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                voidLevelRow.setValue(getVoidLevel(slot));
+            }
+        });
+
+        container.appendChild(voidLevelRow.row);
+    }
+
+    const spawnRateKey = 'spawnRate';
     const spawnRateStorageKey = getStatMultiplierStorageKey(spawnRateKey, slot);
     const spawnRateRow = createInputRow('Coin Spawn Rate', getStatMultiplierDisplayValue(spawnRateKey, slot), (value, { setValue }) => {
         const latestSlot = getActiveSlot();
