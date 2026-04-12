@@ -60,9 +60,9 @@ export function feedVoidGem() {
 
     const oldTotal = oldMultiplier.mulScaledIntFloor(BigInt(Math.round(sumBaseRewards)), 0);
 
-    bank.voidGems.add(-1);
+    bank.voidGems.sub(1);
     const currentLevel = getVoidLevel(slot);
-    setVoidLevel(currentLevel + 1, slot);
+    setVoidLevel(currentLevel.add(1), slot);
 
     const newMultiplier = getRainbowGemMultiplier();
     const newTotal = newMultiplier.mulScaledIntFloor(BigInt(Math.round(sumBaseRewards)), 0);
@@ -89,8 +89,8 @@ export function initVoidGemAltarTab(panel) {
                 <p>Feed your Void Gems to the ??? to power your Void Level<br>For every Void Level after 0, multiply Rainbow Gem value by 1.1x compounding<br>You will also gain the updated Rainbow Gem amount from achievements that have already been claimed</p>
             </div>
             <div class="warp-status">
-                <div class="warp-timer void-gem-counter" style="visibility: visible;">Void Gems: <span class="void-text-black">0</span></div>
-                <div class="warp-counter void-level-indicator">Void Level: <span class="void-text-black">0</span></div>
+                <div class="warp-timer void-gem-counter" style="visibility: visible; font-weight: bold;"><span class="void-text-black">Void Gems: </span><span class="void-text-black" style="font-weight: bold;">0</span></div>
+                <div class="warp-counter void-level-indicator" style="font-weight: bold;"><span class="void-level-text-black">Void Level: </span><span class="void-level-text-black" style="font-weight: bold;">0</span></div>
             </div>
             <button type="button" class="void-feed-btn warp-btn">Feed</button>
         </div>
@@ -121,8 +121,8 @@ export function initVoidGemAltarTab(panel) {
 export function updateVoidGemAltarTab() {
     if (!altarTabPanel) return;
 
-    const gemCounterEl = altarTabPanel.querySelector('.void-gem-counter span');
-    const levelIndicatorEl = altarTabPanel.querySelector('.void-level-indicator span');
+    const gemCounterEl = altarTabPanel.querySelectorAll('.void-gem-counter span')[1];
+    const levelIndicatorEl = altarTabPanel.querySelectorAll('.void-level-indicator span')[1];
     const feedBtn = altarTabPanel.querySelector('.void-feed-btn');
 
     const voidGemsAmount = bank.voidGems ? bank.voidGems.value : BigNum.fromInt(0);
