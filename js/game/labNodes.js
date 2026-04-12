@@ -29,7 +29,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 0,
         y: 0,
-        icon: 'lab_icons/tsunami_exponent_buff.webp',
+        icon: 'img/lab_icons/tsunami_exponent_buff.webp',
         parentIds: [],
         bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`
     },
@@ -43,7 +43,7 @@ export const RESEARCH_NODES = [
         parentIds: [1],
         x: -1000,
         y: 1000,
-        icon: 'lab_icons/coin_val0.webp',
+        icon: 'img/lab_icons/coin_val0.webp',
         bonusLine: (level) => `Coin value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`
     },
     {
@@ -56,7 +56,7 @@ export const RESEARCH_NODES = [
         parentIds: [1],
         x: 1000,
         y: 1000,
-        icon: 'sc_upg_icons/xp_val1.webp',
+        icon: 'img/sc_upg_icons/xp_val1.webp',
         bonusLine: (level) => `XP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(2)))}x`
     },
     {
@@ -81,7 +81,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: -1000,
         y: -1000,
-        icon: 'lab_icons/gold_val0.webp',
+        icon: 'img/lab_icons/gold_val0.webp',
         parentIds: [4],
         bonusLine: (level) => `Gold value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`
     },
@@ -94,7 +94,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 1000,
         y: -1000,
-        icon: 'lab_icons/magic_val0.webp',
+        icon: 'img/lab_icons/magic_val0.webp',
         parentIds: [4],
         bonusLine: (level) => `Magic value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`
     },
@@ -107,7 +107,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 0,
         y: 1000,
-        icon: 'lab_icons/wave_val0.webp',
+        icon: 'img/lab_icons/wave_val0.webp',
         parentIds: [5, 6],
         bonusLine: (level) => `Wave value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.1)))}x`
     },
@@ -120,7 +120,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: -1000,
         y: 0,
-        icon: 'sc_upg_icons/faster_coins1.webp',
+        icon: 'img/sc_upg_icons/faster_coins1.webp',
         parentIds: [7],
         bonusLine: (level) => `Coin Spawn Rate bonus: ${formatMultForUi(1 + (level * 0.1))}x`
     },
@@ -133,7 +133,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 1000,
         y: 0,
-        icon: 'sc_upg_icons/effective_auto_collect.webp',
+        icon: 'img/sc_upg_icons/effective_auto_collect.webp',
         parentIds: [7],
         bonusLine: (level) => `EAC value bonus: ${formatMultForUi(1 + (level * 0.1))}x`
     },
@@ -146,7 +146,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 0,
         y: -2000,
-        icon: 'lab_icons/tsunami_exponent_buff.webp',
+        icon: 'img/lab_icons/tsunami_exponent_buff.webp',
         parentIds: [8, 9],
         bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`
     },
@@ -159,7 +159,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: -2000,
         y: -2000,
-        icon: 'lab_icons/coin_val0.webp',
+        icon: 'img/lab_icons/coin_val0.webp',
         parentIds: [10],
         bonusLine: (level) => `Coin value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`
     },
@@ -172,7 +172,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 2000,
         y: -2000,
-        icon: 'sc_upg_icons/xp_val1.webp',
+        icon: 'img/sc_upg_icons/xp_val1.webp',
         parentIds: [10],
         bonusLine: (level) => `XP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(3)))}x`
     },
@@ -185,7 +185,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: -2000,
         y: -1000,
-        icon: 'lab_icons/gold_val0.webp',
+        icon: 'img/lab_icons/gold_val0.webp',
         parentIds: [10],
         bonusLine: (level) => `Gold value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(4)))}x`
     },
@@ -198,7 +198,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 2000,
         y: -1000,
-        icon: 'lab_icons/magic_val0.webp',
+        icon: 'img/lab_icons/magic_val0.webp',
         parentIds: [10],
         bonusLine: (level) => `Magic value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(4)))}x`
     },
@@ -211,7 +211,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: -2000,
         y: 0,
-        icon: 'lab_icons/dna_val0.webp',
+        icon: 'img/lab_icons/dna_val0.webp',
         parentIds: [10],
         bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.5)))}x`
     },
@@ -224,7 +224,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 2000,
         y: 0,
-        icon: 'lab_icons/dna_val0.webp',
+        icon: 'img/lab_icons/dna_val0.webp',
         parentIds: [10],
         bonusLine: (level) => `DNA value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.5)))}x`
     },
@@ -237,7 +237,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: -2000,
         y: 1000,
-        icon: 'lab_icons/fp_val0.webp',
+        icon: 'img/lab_icons/fp_val0.webp',
         parentIds: [10],
         bonusLine: (level) => `FP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.25)))}x`
     },
@@ -250,7 +250,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 2000,
         y: 1000,
-        icon: 'lab_icons/fp_val0.webp',
+        icon: 'img/lab_icons/fp_val0.webp',
         parentIds: [10],
         bonusLine: (level) => `FP value bonus: ${formatMultForUi(bigNumFromLog10(level * Math.log10(1.25)))}x`
     },
@@ -263,7 +263,7 @@ export const RESEARCH_NODES = [
         maxLevel: 10,
         x: 0,
         y: 2000,
-        icon: 'lab_icons/tsunami_exponent_buff.webp',
+        icon: 'img/lab_icons/tsunami_exponent_buff.webp',
         parentIds: [11, 12, 13, 14, 15, 16, 17, 18],
         bonusLine: (level) => `Tsunami Exponent bonus: +${(level * 0.01).toFixed(2)}`
     }
