@@ -847,7 +847,7 @@ class LabSystem {
              let img = this.nodeImages[node.id];
              if (!img) {
                  img = new Image();
-                 img.src = 'img/' + node.icon;
+                 img.src = node.icon;
                  this.nodeImages[node.id] = img;
              }
              
