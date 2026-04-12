@@ -84,15 +84,15 @@ export function initVoidGemAltarTab(panel) {
 
     panel.innerHTML = `
         <div class="warp-tab">
-            <h3 class="warp-title">Void Gem Altar</h3>
+            <h3 class="warp-title void-gem-altar-title">Void Gem Altar</h3>
             <div class="warp-desc">
                 <p>Feed your Void Gems to the ??? to power your Void Level<br>For every Void Level after 0, multiply Rainbow Gem value by 1.1x compounding<br>You will also gain the updated Rainbow Gem amount from achievements that have already been claimed</p>
             </div>
             <div class="warp-status">
-                <div class="warp-timer void-gem-counter" style="visibility: visible;">Void Gems: <span class="text-cyan">0</span></div>
-                <div class="warp-counter void-level-indicator">Void Level: <span class="text-cyan">0</span></div>
+                <div class="warp-timer void-gem-counter" style="visibility: visible;">Void Gems: <span class="void-text-black">0</span></div>
+                <div class="warp-counter void-level-indicator">Void Level: <span class="void-text-black">0</span></div>
             </div>
-            <button type="button" class="void-feed-btn warp-btn" style="background-color: black; color: white;">Feed</button>
+            <button type="button" class="void-feed-btn warp-btn">Feed</button>
         </div>
     `;
 
