@@ -1907,6 +1907,8 @@ function buildAreaStats(container, area) {
             const prev = getVoidLevel(slot);
             setVoidLevel(valNum === Infinity ? Infinity : Math.floor(valNum), slot);
             
+            // Dispatch event for UI to update
+            document.dispatchEvent(new CustomEvent('ccc:voidLevel:changed'));
             flagDebugUsage();
             if (prev !== (valNum === Infinity ? Infinity : Math.floor(valNum))) {
                 logAction(`Modified Void Level (The Cove) ${prev} → ${valNum === Infinity ? 'Infinity' : Math.floor(valNum)}`);
