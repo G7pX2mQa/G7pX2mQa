@@ -128,3 +128,135 @@
       0 6px 0 hsl(0 0% 5%);
   }
 }
+/* Void Gem Altar Visual Effects (Portal/Gateway) */
+.void-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99990; /* Below offline panel */
+    pointer-events: none;
+    /* Basic setup for the portal */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    animation: void-bg-charge-1 8.125s ease-in forwards;
+}
+
+/* The actual swirling portal element */
+.void-vortex {
+    content: '';
+    position: absolute;
+    width: 200vmax;
+    height: 200vmax;
+    /* A deep space/void radial gradient that looks like a black hole */
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(20, 0, 40, 0.9) 10%, rgba(50, 0, 100, 0.6) 20%, rgba(0, 0, 0, 0) 50%);
+    opacity: 0;
+    transform: scale(0.1) rotate(0deg);
+    animation: void-portal-charge-1 8.125s ease-in forwards;
+    will-change: transform, opacity;
+}
+
+.void-overlay.stage-2 {
+    animation: void-bg-charge-2 1.375s cubic-bezier(0.4, 0, 1, 1) forwards, void-violent-spin 0.2s ease-in-out infinite;
+}
+
+.void-overlay.stage-2 .void-vortex {
+    animation: void-portal-charge-2 1.375s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.void-overlay.climax {
+    animation: void-bg-climax 1s ease-out forwards;
+}
+
+.void-overlay.climax .void-vortex {
+    animation: void-portal-climax 1s ease-out forwards;
+}
+
+@keyframes void-bg-charge-1 {
+    0% { background-color: rgba(0, 0, 0, 0); }
+    100% { background-color: rgba(5, 0, 10, 0.6); }
+}
+
+@keyframes void-bg-charge-2 {
+    0% { background-color: rgba(5, 0, 10, 0.6); }
+    100% { background-color: rgba(0, 0, 0, 0.9); }
+}
+
+@keyframes void-bg-climax {
+    0% { background-color: rgba(0, 0, 0, 1); }
+    100% { background-color: rgba(0, 0, 0, 0); }
+}
+
+@keyframes void-portal-charge-1 {
+    0% {
+        opacity: 0;
+        transform: scale(0.1) rotate(0deg);
+    }
+    100% {
+        opacity: 0.8;
+        transform: scale(1) rotate(720deg);
+    }
+}
+
+@keyframes void-portal-charge-2 {
+    0% {
+        opacity: 0.8;
+        transform: scale(1) rotate(720deg);
+        background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(20, 0, 40, 0.9) 10%, rgba(50, 0, 100, 0.6) 20%, rgba(0, 0, 0, 0) 50%);
+    }
+    25% {
+        transform: scale(1.5) rotate(900deg);
+        background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(100, 0, 200, 0.9) 20%, rgba(150, 0, 255, 0.6) 40%, rgba(0, 0, 0, 0) 60%);
+    }
+    50% {
+        transform: scale(1.2) rotate(1080deg);
+        background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(50, 0, 100, 0.9) 15%, rgba(100, 0, 200, 0.6) 30%, rgba(0, 0, 0, 0) 50%);
+    }
+    75% {
+        transform: scale(2.0) rotate(1260deg);
+        background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(150, 0, 255, 0.9) 25%, rgba(200, 0, 255, 0.6) 50%, rgba(0, 0, 0, 0) 70%);
+    }
+    100% {
+        opacity: 1;
+        /* Rapidly expands and spins faster */
+        transform: scale(3.0) rotate(1440deg);
+        /* Make the center darker and the edges brighter purple */
+        background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 10%, rgba(255, 50, 255, 0.9) 30%, rgba(0, 0, 0, 0) 80%);
+    }
+}
+
+@keyframes void-portal-climax {
+    0% {
+        opacity: 1;
+        transform: scale(3.0) rotate(1440deg);
+        /* Dark implosion/explosion instead of flashbang */
+        background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(20, 0, 60, 1) 50%, rgba(0, 0, 0, 0) 100%);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(5.0) rotate(1800deg);
+        background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(10, 0, 30, 0.8) 80%, rgba(0, 0, 0, 0) 100%);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0) rotate(2160deg);
+        background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
+    }
+}
+
+@keyframes void-violent-spin {
+    0% { transform: scale(1.1) rotate(0deg); }
+    25% { transform: scale(1.15) rotate(-5deg); }
+    50% { transform: scale(1.1) rotate(0deg); }
+    75% { transform: scale(1.15) rotate(5deg); }
+    100% { transform: scale(1.1) rotate(0deg); }
+}
+
+.void-debris {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: 0 0 5px rgba(0,0,0,0.8);
+    /* Make some look like torn shapes */
+    border-radius: 2px;
+}
