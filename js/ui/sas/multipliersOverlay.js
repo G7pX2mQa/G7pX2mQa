@@ -1,9 +1,12 @@
 import { createSASOverlay } from './sasOverlayBuilder.js';
-import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
+import { RESOURCE_REGISTRY, RESOURCE_REGISTRY_EXTRAS } from '../../game/offlinePanel.js';
 import { bank, CURRENCIES, isCurrencyUnlocked } from '../../util/storage.js';
 import { formatMultForUi } from '../../util/numFormat.js';
 import { getXpGainMultiplier, isXpSystemUnlocked } from '../../game/xpSystem.js';
 import { getMutationGainMultiplier, isMutationUnlocked } from '../../game/mutationSystem.js';
+import { getRpMult } from '../merchantTabs/labTab.js';
+import { getFpMultiplier, isFlowUnlocked } from '../merchantTabs/flowTab.js';
+import { isLabUnlocked } from '../merchantTabs/dlgTab.js';
 
 function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, config) {
   const row = document.createElement('div');
@@ -30,10 +33,11 @@ function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, c
   iconWrapper.appendChild(iconImg);
 
   const amountDiv = document.createElement('div');
-  amountDiv.className = 'currency-amount';
+  amountDiv.classList.add('multipliers-amount');
+  amountDiv.classList.add('currency-amount');
   amountDiv.style.flex = 'none';
   amountDiv.style.marginLeft = '10px';
-  amountDiv.innerHTML = `${multiplierText}x`;
+  amountDiv.innerHTML = `${config?.plural || config?.singular || key}: ${multiplierText}x`;
 
   info.appendChild(iconWrapper);
   info.appendChild(amountDiv);
@@ -44,7 +48,7 @@ function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, c
 }
 
 function getUnlockedCurrencies() {
-  return Object.values(CURRENCIES).filter(c => isCurrencyUnlocked(c));
+  return Object.values(CURRENCIES).filter(c => c !== CURRENCIES.VOID_GEMS && isCurrencyUnlocked(c));
 }
 
 function populateMultipliersOverlay(overlayEl) {
@@ -53,30 +57,10 @@ function populateMultipliersOverlay(overlayEl) {
   grid.innerHTML = "";
   grid.setAttribute('role', 'grid');
 
-  // Add Currencies
-  const currenciesList = getUnlockedCurrencies();
-  currenciesList.forEach(currency => {
-    const config = RESOURCE_REGISTRY.find(c => c.key === currency);
-    const iconSrc = config?.icon || "img/misc/mysterious.webp";
-    const baseSrc = config?.baseIcon || "img/misc/locked.webp";
-    
-    let multiplier = 1;
-    if (bank[currency] && bank[currency].mult) {
-      try {
-        multiplier = bank[currency].mult.get();
-      } catch (e) {
-        multiplier = 1;
-      }
-    }
-
-    createMultiplierRow(grid, currency, iconSrc, baseSrc, formatMultForUi(multiplier), config);
-  });
-
-  // Add Levels (only type: 'levelProg', meaning xp, mp, etc.)
-  const levelProgs = RESOURCE_REGISTRY.filter(c => c.type === 'levelProg');
-  levelProgs.forEach(config => {
+  const processResource = (config) => {
     let unlocked = false;
     let multiplier = 1;
+    let isCurrency = false;
 
     if (config.key === 'xp') {
       unlocked = isXpSystemUnlocked();
@@ -84,29 +68,63 @@ function populateMultipliersOverlay(overlayEl) {
     } else if (config.key === 'mp') {
       unlocked = isMutationUnlocked();
       if (unlocked) multiplier = getMutationGainMultiplier();
+    } else if (config.key === 'research_levels') {
+      unlocked = isLabUnlocked();
+      if (unlocked) multiplier = getRpMult();
+    } else if (config.key === 'waterwheel_levels') {
+      unlocked = isFlowUnlocked();
+      if (unlocked) multiplier = getFpMultiplier();
+    } else if (config.type === 'currency' && config.key !== 'voidGems') {
+      unlocked = isCurrencyUnlocked(config.key);
+      if (unlocked && bank[config.key] && bank[config.key].mult) {
+        try {
+          multiplier = bank[config.key].mult.get();
+        } catch (e) {
+          multiplier = 1;
+        }
+      }
+      isCurrency = true;
     } else {
-       // fallback for other prog types if added
-       if (typeof config.getState === 'function') {
-         const state = config.getState();
-         unlocked = state?.unlocked || state?.isUnlocked || false;
-       }
-       // We would need specific multiplier getters if there were more, but the task says:
-       // "RP and FP do not exist in the resource registry and also they shouldn't... so we can figure something else out"
-       // We will just show xp and mp for now, which are the main ones.
+      // Unhandled or explicitly ignored
+      return;
     }
 
     if (unlocked) {
       let iconSrc = config.icon || "img/misc/mysterious.webp";
-      let baseSrc = iconSrc;
-      if (iconSrc && iconSrc.endsWith('.webp')) {
+      let baseSrc = isCurrency ? config.baseIcon || "img/misc/locked.webp" : iconSrc;
+      
+      if (!isCurrency && iconSrc && iconSrc.endsWith('.webp')) {
           const parts = iconSrc.split('/');
           const filename = parts.pop();
           const baseName = filename.replace('.webp', '');
           baseSrc = parts.join('/') + '/' + baseName + '_plus_base.webp';
       }
+      
 
-      createMultiplierRow(grid, config.key, iconSrc, baseSrc, formatMultForUi(multiplier), config);
+      let overrides = { ...config };
+      if (config.key === 'research_levels') overrides = { ...config, ...RESOURCE_REGISTRY_EXTRAS['research_levels'] };
+      if (config.key === 'waterwheel_levels') overrides = { ...config, ...RESOURCE_REGISTRY_EXTRAS['waterwheel_levels'] };
+      
+      // Update icon and base icon if changed by overrides
+      if (overrides.icon) {
+          iconSrc = overrides.icon;
+          baseSrc = isCurrency ? (overrides.baseIcon || "img/misc/locked.webp") : iconSrc;
+          if (!isCurrency && iconSrc && iconSrc.endsWith('.webp')) {
+              const parts = iconSrc.split('/');
+              const filename = parts.pop();
+              const baseName = filename.replace('.webp', '');
+              baseSrc = parts.join('/') + '/' + baseName + '_plus_base.webp';
+          }
+      }
+
+
+      createMultiplierRow(grid, config.key, iconSrc, baseSrc, formatMultForUi(multiplier), overrides);
     }
+  };
+
+  // We loop exactly over RESOURCE_REGISTRY to preserve the intertwined visual priority order.
+  RESOURCE_REGISTRY.forEach(config => {
+      processResource(config);
   });
 }
 
