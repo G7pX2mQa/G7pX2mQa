@@ -5,6 +5,7 @@ import { openPerformanceOverlay } from './performanceOverlay.js';
 import { openConfirmationsOverlay } from './confirmationsOverlay.js';
 import { openCurrenciesOverlay } from './currenciesOverlay.js';
 import { openLevelsOverlay } from './levelsOverlay.js';
+import { openMultipliersOverlay } from './multipliersOverlay.js';
 import { openAchievementsOverlay } from './achievementsOverlay.js';
 import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
 import { getXpState } from '../../game/xpSystem.js';
@@ -75,6 +76,12 @@ function populateSasButtons(overlayEl) {
     lvlBtn.style.display = 'none';
   }
   grid.appendChild(lvlBtn);
+
+  const multBtn = document.createElement("button");
+  multBtn.className = "sas-btn sas-btn-multipliers";
+  multBtn.textContent = "Multipliers";
+  multBtn.addEventListener("click", () => { openMultipliersOverlay(); });
+  grid.appendChild(multBtn);
   
   const updateLvlBtnVisibility = () => {
     if (getXpState()?.unlocked) {
