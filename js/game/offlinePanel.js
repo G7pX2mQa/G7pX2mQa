@@ -92,6 +92,24 @@ export function formatTimeCompact(ms) {
 }
 
 // Visual Priority Map
+
+export const RESOURCE_REGISTRY_EXTRAS = {
+    'research_levels': {
+        key: 'research_levels',
+        singular: 'RP',
+        plural: 'RP',
+        icon: 'img/stats/rp/rp.webp',
+        bgGradient: 'linear-gradient(to bottom, #001f3f 0%, #003366 100%)'
+    },
+    'waterwheel_levels': {
+        key: 'waterwheel_levels',
+        singular: 'FP',
+        plural: 'FP',
+        icon: 'img/stats/fp/fp_plus_base.webp',
+        bgGradient: 'linear-gradient(to bottom, #008B8B 0%, #00FFFF 100%)'
+    }
+};
+
 export const RESOURCE_REGISTRY = [
     { key: 'voidGems', bgGradient: 'black', icon: 'img/currencies/void_gem.webp', baseIcon: 'img/currencies/void_gem.webp', noPlusBase: true, singular: 'Void Gem', plural: 'Void Gems', type: 'currency' },
     { key: 'rainbowGems', bgGradient: 'linear-gradient(to bottom in oklch, #ff0000, #ff8800, #ffff00, #00ff00, #00ffff, #0000ff, #a000ff, #ff00ff)', icon: 'img/currencies/rainbow_gem.webp', baseIcon: 'img/currencies/rainbow_gem.webp', noPlusBase: true, singular: 'Rainbow Gem', plural: 'Rainbow Gems', type: 'currency' },
