@@ -193,8 +193,10 @@ export function createCursorTrail(playfield) {
   const resize = () => {
     if (destroyed) return;
     updateBounds();
-    const baseDpr = Math.min(window.devicePixelRatio || 1, 2);
-    const MAX_CANVAS_WIDTH = 512;
+    const quality = settingsManager.get('graphics_quality') ?? 10;
+    const qualityScale = 0.5 + (quality / 10) * 1.5;
+    const baseDpr = Math.min(window.devicePixelRatio || 1, 2) * qualityScale;
+    const MAX_CANVAS_WIDTH = 512 * qualityScale;
     const widthScale = (rect.width > 0) ? Math.min(baseDpr, MAX_CANVAS_WIDTH / rect.width) : baseDpr;
     dpr = widthScale;
 
@@ -454,6 +456,7 @@ export function createCursorTrail(playfield) {
 
   document.addEventListener('ccc:upgrades:changed', updateColors);
   const activeTrailUnsub = settingsManager.subscribe('active_trail_mod', updateColors);
+  const graphicsQualityUnsub = settingsManager.subscribe('graphics_quality', resize);
 
   resize();
   rafId = requestAnimationFrame(loop);
@@ -478,6 +481,9 @@ export function createCursorTrail(playfield) {
     try { document.removeEventListener('ccc:upgrades:changed', generateTexture); } catch {}
     if (activeTrailUnsub) {
         try { activeTrailUnsub(); } catch {}
+    }
+    if (graphicsQualityUnsub) {
+        try { graphicsQualityUnsub(); } catch {}
     }
     
     try {
