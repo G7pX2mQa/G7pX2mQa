@@ -776,7 +776,8 @@ images: [
     'sounds/tsu_explosion.ogg',
 	'sounds/notif_ding.ogg',
 	'sounds/explosion_long.ogg',
-	'sounds/explosion_short.ogg'
+	'sounds/explosion_short.ogg',
+	'sounds/void_buildup.ogg'
     ],
     fonts: true,
   };
