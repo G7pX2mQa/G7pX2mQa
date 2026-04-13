@@ -15,6 +15,7 @@ import { setupDragToClose } from '../../shopOverlay.js';
 // Import tabs logic
 import { initSecretAchievementsTab, updateSecretAchievementsTab } from './secretAchievementsTab.js';
 import { initVoidGemAltarTab, updateVoidGemAltarTab } from './voidGemAltarTab.js';
+import { settingsManager } from '../../../game/settingsManager.js';
 
 const TAB_KEY_BASE = 'ccc:achievementExtrasTab';
 
@@ -260,6 +261,14 @@ export function ensureOverlay() {
                  updateRainbowGemShopTab();
              }
         });
+        
+        window.addEventListener('setting:changed', (e) => {
+            if (isOpen && tabsState.panels['rainbow']?.classList.contains('is-active')) {
+                if (e.detail?.key && e.detail.key.startsWith('active_')) {
+                    updateRainbowGemShopTab();
+                }
+            }
+        });
     }
 }
 
@@ -386,6 +395,14 @@ export function updateRainbowGemShopTab() {
             maxedBorder.alt = '';
             maxedBorder.style.display = 'none'; // Hidden by default
             
+            const activeBorder = document.createElement("img");
+            activeBorder.className = "maxed-overlay";
+            activeBorder.src = "img/misc/green_border.webp";
+            activeBorder.alt = "";
+            activeBorder.style.display = "none";
+            activeBorder.style.zIndex = "10";
+
+            
             const overlayText = document.createElement('div');
             overlayText.className = 'rainbow-upgrade-text';
             overlayText.textContent = upgradeLabel;
@@ -393,6 +410,7 @@ export function updateRainbowGemShopTab() {
             tile.appendChild(baseImg);
             tile.appendChild(iconImg);
             tile.appendChild(maxedBorder);
+            tile.appendChild(activeBorder);
             tile.appendChild(overlayText);
             
             const badge = document.createElement('div');
@@ -491,6 +509,7 @@ export function updateRainbowGemShopTab() {
         
         const badge = btn.querySelector('.level-badge');
         if (badge) {
+            badge.style.color = '';
             if (locked) {
                 if (isMysterious) {
                     badge.style.display = 'none';
@@ -500,8 +519,12 @@ export function updateRainbowGemShopTab() {
                     badge.classList.remove('is-maxed', 'can-buy');
                 }
             } else if (isOwned) {
+                const isActive = settingsManager.get('active_' + upg.modType + '_mod') === upg.id;
                 badge.style.display = '';
-                badge.textContent = 'Owned';
+                badge.textContent = isActive ? 'Active' : 'Owned';
+                if (isActive) {
+                    badge.style.color = '#44ff44';
+                }
                 badge.classList.add('is-maxed');
                 badge.classList.remove('can-buy');
             } else {
@@ -520,9 +543,15 @@ export function updateRainbowGemShopTab() {
             }
         }
         
-        const maxedBorder = btn.querySelector('.maxed-overlay');
+        const maxedBorders = btn.querySelectorAll(".maxed-overlay");
+        const maxedBorder = maxedBorders[0];
+        const activeBorder = maxedBorders[1];
         if (maxedBorder) {
-            maxedBorder.style.display = isOwned ? 'block' : 'none';
+            maxedBorder.style.display = isOwned ? "block" : "none";
+        }
+        if (activeBorder) {
+            const isActive = settingsManager.get("active_" + upg.modType + "_mod") === upg.id;
+            activeBorder.style.display = (isOwned && isActive) ? "block" : "none";
         }
 
         if (locked) {
