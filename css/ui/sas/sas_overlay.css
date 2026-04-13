@@ -235,6 +235,11 @@
   transition: none;
 }
 
+.sas-btn.sas-btn-multipliers {
+  background: linear-gradient(to bottom, #8a0000 0%, #b80000 15%, #dc0000 50%, #b80000 85%, #8a0000 100%);
+  transition: none;
+}
+
 .sas-btn.sas-btn-achievements {
   background: linear-gradient(to bottom, #8a6c00 0%, #b89100 15%, #dcb500 50%, #b89100 85%, #8a6c00 100%);
   transition: none;
