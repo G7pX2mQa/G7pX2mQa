@@ -70,6 +70,7 @@ export function feedVoidGem() {
     const diff = newTotal.sub(oldTotal);
 
     if (diff.cmp(0) > 0 && bank.rainbowGems) {
+        bank.rainbowGems.mult.set(newMultiplier);
         bank.rainbowGems.add(diff);
     }
 
@@ -297,6 +298,7 @@ function triggerVoidVisuals() {
 }
 
 export function initVoidGemAltarTab(panel) {
+    if (bank.rainbowGems) bank.rainbowGems.mult.set(getRainbowGemMultiplier());
     if (!panel || panel.__vgInit) return;
     panel.__vgInit = true;
     altarTabPanel = panel;
