@@ -6,6 +6,7 @@ import { getXpGainMultiplier, isXpSystemUnlocked } from '../../game/xpSystem.js'
 import { getMutationGainMultiplier, isMutationUnlocked } from '../../game/mutationSystem.js';
 import { getRpMult } from '../merchantTabs/labTab.js';
 import { getFpMultiplier, isFlowUnlocked } from '../merchantTabs/flowTab.js';
+import { createDropdown } from "./dropdownUtils.js";
 import { isLabUnlocked } from '../merchantTabs/dlgTab.js';
 
 function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, config) {
@@ -43,6 +44,23 @@ function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, c
   info.appendChild(amountDiv);
 
   row.appendChild(info);
+
+  // Add invisible dropdown to match the height of other overlays
+  const controls = document.createElement('div');
+  controls.className = 'currency-controls';
+  controls.style.visibility = 'hidden';
+  controls.style.pointerEvents = 'none';
+
+  const { wrapper, cleanup } = createDropdown({
+    getOptions: () => [{ value: 'hidden', label: 'Hidden' }],
+    getValue: () => 'hidden',
+    setValue: () => {},
+  });
+
+  controls.appendChild(wrapper);
+  row.appendChild(controls);
+
+  row._cleanupDropdown = cleanup;
 
   container.appendChild(row);
 }
@@ -146,6 +164,7 @@ const multipliersOverlay = createSASOverlay({
     window.addEventListener('ccc:upgrades:changed', handleMultiplierChange);
     window.addEventListener('currency:unlock', handleMultiplierChange);
     window.addEventListener('xp:unlock', handleMultiplierChange);
+    window.addEventListener('unlock:change', handleMultiplierChange);
     // Might want more events if level multipliers change differently
   },
   onClose: () => {
@@ -153,6 +172,13 @@ const multipliersOverlay = createSASOverlay({
     window.removeEventListener('ccc:upgrades:changed', handleMultiplierChange);
     window.removeEventListener('currency:unlock', handleMultiplierChange);
     window.removeEventListener('xp:unlock', handleMultiplierChange);
+    window.removeEventListener('unlock:change', handleMultiplierChange);
+    if (multipliersOverlay.overlayEl) {
+      const rows = multipliersOverlay.overlayEl.querySelectorAll('.currency-row');
+      rows.forEach(row => {
+        if (row._cleanupDropdown) row._cleanupDropdown();
+      });
+    }
   }
 });
 
