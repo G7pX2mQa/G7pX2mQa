@@ -266,7 +266,6 @@ export function showDelayedSecretAchievementNotifications() {
 }
 
 if (typeof window !== 'undefined') {
-    window.addEventListener('saveSlot:change', () => checkSecretAchievements());
     window.addEventListener('forge:completed', () => checkSecretAchievements());
     window.addEventListener('unlock:change', () => checkSecretAchievements());
     window.addEventListener('autobuyer:toggled', () => checkSecretAchievements());
