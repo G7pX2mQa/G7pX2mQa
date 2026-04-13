@@ -157,7 +157,7 @@
 }
 
 .void-overlay.stage-2 {
-    animation: void-bg-charge-2 1.375s cubic-bezier(0.4, 0, 1, 1) forwards, void-violent-spin 0.2s ease-in-out infinite;
+    animation: void-bg-charge-2 1.375s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 .void-overlay.stage-2 .void-vortex {
@@ -204,24 +204,10 @@
         transform: scale(1) rotate(720deg);
         background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(20, 0, 40, 0.9) 10%, rgba(50, 0, 100, 0.6) 20%, rgba(0, 0, 0, 0) 50%);
     }
-    25% {
-        transform: scale(1.5) rotate(900deg);
-        background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(100, 0, 200, 0.9) 20%, rgba(150, 0, 255, 0.6) 40%, rgba(0, 0, 0, 0) 60%);
-    }
-    50% {
-        transform: scale(1.2) rotate(1080deg);
-        background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(50, 0, 100, 0.9) 15%, rgba(100, 0, 200, 0.6) 30%, rgba(0, 0, 0, 0) 50%);
-    }
-    75% {
-        transform: scale(2.0) rotate(1260deg);
-        background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(150, 0, 255, 0.9) 25%, rgba(200, 0, 255, 0.6) 50%, rgba(0, 0, 0, 0) 70%);
-    }
     100% {
         opacity: 1;
-        /* Rapidly expands and spins faster */
         transform: scale(3.0) rotate(1440deg);
-        /* Make the center darker and the edges brighter purple */
-        background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 10%, rgba(255, 50, 255, 0.9) 30%, rgba(0, 0, 0, 0) 80%);
+        background: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0%, rgba(20, 0, 40, 0.9) 15%, rgba(50, 0, 100, 0.8) 30%, rgba(0, 0, 0, 0) 80%);
     }
 }
 
