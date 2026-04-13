@@ -33,6 +33,12 @@ export function setVoidLevel(level, slot = getActiveSlot()) {
     }
     try {
         localStorage.setItem(`${VOID_LEVEL_KEY}:${slotKey}`, valBn.toString());
+        if (bank.rainbowGems && bank.rainbowGems.mult) {
+            bank.rainbowGems.mult.set(getRainbowGemMultiplier());
+        }
+        if (typeof document !== 'undefined') {
+            document.dispatchEvent(new CustomEvent('ccc:voidLevel:changed'));
+        }
     } catch {}
 }
 
