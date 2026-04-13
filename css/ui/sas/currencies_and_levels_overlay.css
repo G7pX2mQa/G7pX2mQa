@@ -355,3 +355,11 @@
 .currency-amount .level-row-progress-separator {
   opacity: 0.8;
 }
+
+/* Multiplier specific centering logic */
+#multipliers-overlay .currency-amount {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-left: 0 !important;
+}
