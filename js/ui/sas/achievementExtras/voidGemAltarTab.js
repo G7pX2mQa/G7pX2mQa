@@ -1,8 +1,9 @@
 import { bank, getActiveSlot } from '../../../util/storage.js';
 import { ACHIEVEMENTS, ACHIEVEMENT_STATES, getAchievementState } from '../../../game/achievements.js';
-import { playPurchaseSfx } from '../../shopOverlay.js';
 import { formatNumber } from '../../../util/numFormat.js';
 import { BigNum, bigNumFromLog10 } from '../../../util/bigNum.js';
+import { playAudio } from '../../../util/audioManager.js';
+import { settingsManager } from '../../../game/settingsManager.js';
 
 const VOID_LEVEL_KEY = 'ccc:voidLevel';
 
@@ -76,6 +77,220 @@ export function feedVoidGem() {
 }
 
 let altarTabPanel = null;
+let isFeeding = false;
+
+function playVoidExplosion() {
+    const explosionContainer = document.createElement('div');
+    explosionContainer.style.position = 'fixed';
+    explosionContainer.style.top = '0';
+    explosionContainer.style.left = '0';
+    explosionContainer.style.width = '100vw';
+    explosionContainer.style.height = '100vh';
+    explosionContainer.style.pointerEvents = 'none'; // Don't block interactions, the game should be playable again
+    explosionContainer.style.zIndex = '999999';
+    explosionContainer.style.overflow = 'hidden';
+    document.body.appendChild(explosionContainer);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.pointerEvents = 'none';
+    explosionContainer.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    const particles = [];
+    let isAnimating = true;
+
+    // Void theme colors
+    const colors = ['#000000', '#1a0033', '#4b0082', '#800080', '#2d004d', '#3a0066', '#5900b3'];
+
+    class Particle {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            
+            const angle = Math.random() * Math.PI * 2;
+            const speed = (Math.random() * 20 + 5); // Fast explosion out
+            this.vx = Math.cos(angle) * speed;
+            this.vy = Math.sin(angle) * speed;
+            
+            this.size = (Math.random() * 300 + 100);
+            this.color = colors[Math.floor(Math.random() * colors.length)];
+            
+            this.life = 1.0;
+            this.decay = (Math.random() * 0.005 + 0.005);
+            this.gravity = 0.3; // Fall down
+        }
+
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vy += this.gravity;
+            this.life -= this.decay;
+            this.size *= 0.98; // Shrink as they fall
+        }
+
+        draw(ctx) {
+            if (this.life <= 0) return;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = this.life;
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    
+    // Spawn 200 large void particles
+    for (let i = 0; i < 200; i++) {
+        particles.push(new Particle(centerX, centerY));
+    }
+
+    const animate = () => {
+        if (!isAnimating) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.update();
+            p.draw(ctx);
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+            }
+        }
+        
+        if (particles.length > 0) {
+            requestAnimationFrame(animate);
+        } else {
+            isAnimating = false;
+        }
+    };
+    
+    requestAnimationFrame(animate);
+
+    const onResize = () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', onResize);
+
+    // Wait for long explosion to finish before removing container
+    setTimeout(() => {
+        isAnimating = false;
+        window.removeEventListener('resize', onResize);
+        if (explosionContainer.parentElement) {
+            explosionContainer.remove();
+        }
+    }, 5000);
+}
+
+function triggerVoidVisuals() {
+    const overlay = document.createElement('div');
+    overlay.className = 'void-overlay';
+    
+    const vortex = document.createElement('div');
+    vortex.className = 'void-vortex';
+    overlay.appendChild(vortex);
+
+    document.body.appendChild(overlay);
+
+    let isExploded = false;
+    let isStage2 = false;
+
+    // Spawn debris representing chunks of the screen being sucked in
+    const spawnInterval = setInterval(() => {
+        if (isExploded || !overlay.parentElement) {
+            clearInterval(spawnInterval);
+            return;
+        }
+
+        const numDebris = isStage2 ? 15 : 3; // Spawn way more during stage 2
+
+        for (let i = 0; i < numDebris; i++) {
+            const debris = document.createElement('div');
+            debris.className = 'void-debris';
+
+            // Randomly place along the edge of the screen
+            const edge = Math.floor(Math.random() * 4);
+            let startX, startY;
+            if (edge === 0) { // Top
+                startX = Math.random() * window.innerWidth;
+                startY = -50;
+            } else if (edge === 1) { // Right
+                startX = window.innerWidth + 50;
+                startY = Math.random() * window.innerHeight;
+            } else if (edge === 2) { // Bottom
+                startX = Math.random() * window.innerWidth;
+                startY = window.innerHeight + 50;
+            } else { // Left
+                startX = -50;
+                startY = Math.random() * window.innerHeight;
+            }
+
+            // Random size and color to look like UI chunks
+            const size = 10 + Math.random() * 40;
+            debris.style.width = `${size}px`;
+            debris.style.height = `${size}px`;
+            debris.style.left = `${startX}px`;
+            debris.style.top = `${startY}px`;
+            
+            // Randomly assign a color to look like UI pieces (dark grays, blacks, faint UI colors)
+            const colors = ['#111', '#222', '#333', '#1a1a2e', '#0f0f1a'];
+            debris.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            // Target center
+            const targetX = window.innerWidth / 2;
+            const targetY = window.innerHeight / 2;
+            
+            // Much faster travel time during stage 2
+            const duration = isStage2 
+                ? 200 + Math.random() * 500 
+                : 1000 + Math.random() * 1500; 
+            
+            // We will animate it using a simple transition
+            debris.style.transition = `transform ${duration}ms cubic-bezier(0.5, 0, 1, 0.5), opacity ${duration}ms ease-in`;
+            
+            overlay.appendChild(debris);
+
+            // Trigger reflow
+            debris.getBoundingClientRect();
+
+            const deltaX = targetX - startX - (size / 2);
+            const deltaY = targetY - startY - (size / 2);
+            const rotate = (Math.random() - 0.5) * 720; // Spin while flying
+
+            debris.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0) rotate(${rotate}deg)`;
+            debris.style.opacity = '0';
+
+            setTimeout(() => {
+                if (debris.parentElement) debris.remove();
+            }, duration);
+        }
+
+    }, 30); // Spawn rapidly
+
+    // Stage 2: Crazier buildup (8.125s)
+    setTimeout(() => {
+        isStage2 = true;
+        if (overlay) overlay.classList.add('stage-2');
+    }, 8125);
+
+    // Climax (9.5s)
+    setTimeout(() => {
+        isExploded = true;
+        clearInterval(spawnInterval);
+        if (overlay) {
+            overlay.remove(); // Instantly remove the vortex
+        }
+        playVoidExplosion(); // Trigger the particle explosion
+    }, 9500);
+}
 
 export function initVoidGemAltarTab(panel) {
     if (!panel || panel.__vgInit) return;
@@ -98,10 +313,32 @@ export function initVoidGemAltarTab(panel) {
 
     const feedBtn = panel.querySelector('.void-feed-btn');
     feedBtn.addEventListener('click', (e) => {
-        if (feedVoidGem()) {
-            playPurchaseSfx();
-            updateVoidGemAltarTab();
+        if (isFeeding) return;
+        if (!bank.voidGems || bank.voidGems.value.cmp(1) < 0) return;
+
+        isFeeding = true;
+        updateVoidGemAltarTab(); // Update button state
+
+        // Audio sequence
+        let buildupAudio = playAudio('sounds/void_buildup.ogg', { volume: 0.8 });
+
+        if (settingsManager.get('warp_vfx') !== false) {
+            triggerVoidVisuals();
         }
+
+        setTimeout(() => {
+            if (buildupAudio && typeof buildupAudio.stop === 'function') {
+                buildupAudio.stop();
+            }
+            playAudio('sounds/explosion_long.ogg', { volume: 1.0 });
+
+            if (feedVoidGem()) {
+                // Actually give reward
+                updateVoidGemAltarTab();
+            }
+            isFeeding = false;
+            updateVoidGemAltarTab();
+        }, 9500);
     });
 
     updateVoidGemAltarTab();
@@ -137,7 +374,9 @@ export function updateVoidGemAltarTab() {
     }
 
     if (feedBtn) {
-        if (bank.voidGems && bank.voidGems.value.cmp(1) >= 0) {
+        if (isFeeding) {
+            feedBtn.disabled = true;
+        } else if (bank.voidGems && bank.voidGems.value.cmp(1) >= 0) {
             feedBtn.disabled = false;
         } else {
             feedBtn.disabled = true;
