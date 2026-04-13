@@ -147,8 +147,8 @@ function playVoidExplosion() {
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
     
-    // Spawn 200 large void particles
-    for (let i = 0; i < 200; i++) {
+    // Spawn 500 large void particles
+    for (let i = 0; i < 500; i++) {
         particles.push(new Particle(centerX, centerY));
     }
 
@@ -275,18 +275,22 @@ function triggerVoidVisuals() {
 
     }, 30); // Spawn rapidly
 
-    // Stage 2: Crazier buildup (8.125s)
+    // Stage 2: Crazier buildup (7.777)
     setTimeout(() => {
         isStage2 = true;
         if (overlay) overlay.classList.add('stage-2');
-    }, 8125);
+    }, 7777);
 
     // Climax (9.5s)
     setTimeout(() => {
         isExploded = true;
         clearInterval(spawnInterval);
         if (overlay) {
-            overlay.remove(); // Instantly remove the vortex
+            overlay.style.transition = 'opacity 500ms ease-out';
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                if (overlay.parentElement) overlay.remove();
+            }, 500);
         }
         playVoidExplosion(); // Trigger the particle explosion
     }, 9500);
