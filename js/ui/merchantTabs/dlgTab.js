@@ -288,7 +288,7 @@ function syncWarpTabUnlockState() {
 
 const LAB_UNLOCK_KEY = (slot) => `ccc:unlock:lab:${slot}`;
 
-function isLabUnlocked() {
+export function isLabUnlocked() {
   const slot = getActiveSlot();
   if (slot == null) return false;
   try {
