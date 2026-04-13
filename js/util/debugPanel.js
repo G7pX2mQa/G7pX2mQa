@@ -1901,8 +1901,6 @@ function buildAreaStats(container, area) {
             const prev = getVoidLevel(slot);
             setVoidLevel(valBn, slot);
             
-            // Dispatch event for UI to update
-            document.dispatchEvent(new CustomEvent('ccc:voidLevel:changed'));
             flagDebugUsage();
             if (!bigNumEquals(prev, valBn)) {
                 logAction(`Modified Void Level (The Cove) ${formatNumber(prev)} → ${formatNumber(valBn)}`);
