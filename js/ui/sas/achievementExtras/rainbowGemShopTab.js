@@ -269,6 +269,12 @@ export function ensureOverlay() {
                 }
             }
         });
+
+        window.addEventListener('mutation:change', () => {
+            if (isOpen && tabsState.panels['rainbow']?.classList.contains('is-active')) {
+                updateRainbowGemShopTab();
+            }
+        });
     }
 }
 
