@@ -1632,7 +1632,9 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       
       const desc = ensureChild(content, 'upg-desc centered');
       desc.classList.toggle('lock-desc', isHiddenUpgrade);
-      const baseDesc = (model.displayDesc || model.upg.desc || '').trim();
+      let rawBaseDesc = model.displayDesc || model.upg.desc || '';
+      if (typeof rawBaseDesc === 'function') rawBaseDesc = rawBaseDesc();
+      const baseDesc = String(rawBaseDesc).trim();
       if (evolveReady) {
           desc.classList.add('hm-evolve-note');
           if (desc.textContent !== 'Evolve this upgrade to multiply its effect by 1000x') desc.textContent = 'Evolve this upgrade to multiply its effect by 1000x';
@@ -1655,7 +1657,9 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       };
 
       if (locked && lockState?.reason && !isHiddenUpgrade) {
-          const descText = (model.displayDesc || '').trim();
+          let rawDescText = model.displayDesc || '';
+          if (typeof rawDescText === 'function') rawDescText = rawDescText();
+          const descText = String(rawDescText).trim();
           const reasonText = String(lockState.reason ?? '').trim();
           if (descText !== reasonText) {
               let wrap = info.querySelector('.lock-wrapper');
