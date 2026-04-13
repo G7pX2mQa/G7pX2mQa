@@ -105,7 +105,7 @@ export const RESOURCE_REGISTRY_EXTRAS = {
         key: 'waterwheel_levels',
         singular: 'FP',
         plural: 'FP',
-        icon: 'img/stats/fp/fp_plus_base.webp',
+        icon: 'img/stats/fp/fp.webp',
         bgGradient: 'linear-gradient(to bottom, #008B8B 0%, #00FFFF 100%)'
     }
 };
