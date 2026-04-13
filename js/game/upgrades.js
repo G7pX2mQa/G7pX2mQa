@@ -4780,7 +4780,8 @@ export function upgradeUiModel(areaKey, upgId) {
   const lockState = getUpgradeLockState(areaKey, upgId);
   const locked = !!lockState.locked;
   const displayTitle = lockState.titleOverride ?? upg.title;
-  let displayDesc = lockState.descOverride ?? upg.desc;
+  let rawDesc = lockState.descOverride ?? upg.desc;
+  let displayDesc = typeof rawDesc === "function" ? rawDesc() : rawDesc;
 
   if (areaKey === AUTOMATION_AREA_KEY && normalizeUpgradeId(upgId) === EFFECTIVE_AUTO_COLLECT_ID) {
     const multiplier = getEacAmountMultiplier();
