@@ -614,6 +614,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./ui/merchantTabs/flowTab.js'),
     import('./ui/sas/mainSettingsOverlay.js'),
     import('./ui/sas/performanceOverlay.js'),
+    import('./ui/sas/multipliersOverlay.js'),
   ]);
 
   const ASSET_MANIFEST = {
