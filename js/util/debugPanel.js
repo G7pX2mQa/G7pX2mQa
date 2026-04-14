@@ -4176,7 +4176,7 @@ function buildMiscContent(content) {
                 let count = 0;
                 RESEARCH_NODES.forEach((node) => {
                    if (Number.isFinite(node.maxLevel)) {
-                       setResearchNodeLevel(node.id, node.maxLevel);
+                       setResearchNodeLevel(node.id, node.maxLevel, true);
                        count++;
                    }
                 });
@@ -4213,7 +4213,7 @@ function buildMiscContent(content) {
                     if (node.id <= limit) {
                         const currentLevel = getResearchNodeLevel(node.id);
                         if (currentLevel < node.maxLevel) {
-                            setResearchNodeLevel(node.id, node.maxLevel);
+                            setResearchNodeLevel(node.id, node.maxLevel, true);
                             count++;
                         }
                     }
