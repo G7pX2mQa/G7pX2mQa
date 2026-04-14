@@ -1123,6 +1123,35 @@ export function initSurgeEffects() {
   registerTick(onTick);
 }
 
+export function getSurgeWaveMultiplier() {
+    let log10Total = 0;
+    
+    // Surge 17 and 18 halve Wave value (immune to exponent)
+    if (isSurgeActive(17)) log10Total -= Math.log10(2);
+    if (isSurgeActive(18)) log10Total -= Math.log10(2);
+    
+    let result = BigNum.fromInt(1);
+    if (log10Total !== 0) {
+        result = bigNumFromLog10(log10Total);
+    }
+    
+    const surge29Mult = getSurge29Multiplier();
+    if (surge29Mult.isInfinite?.()) {
+        result = BigNum.fromAny('Infinity');
+    } else if (surge29Mult.cmp(1) > 0) {
+        result = result.mulBigNumInteger(surge29Mult);
+    }
+
+    const surge35Mult = getSurge35Multiplier();
+    if (surge35Mult.isInfinite?.()) {
+        result = BigNum.fromAny('Infinity');
+    } else if (surge35Mult.cmp(1) > 0) {
+        result = result.mulBigNumInteger(surge35Mult);
+    }
+
+    return result;
+}
+
 export function getSurgeMagicMultiplier() {
     let log10Total = 0;
     
