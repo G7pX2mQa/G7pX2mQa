@@ -137,7 +137,6 @@ function formatExponentString(rawDigits, sign = '') {
       if (ds.length < totalDigits + 1) ds += '0'.repeat(totalDigits + 1 - ds.length);
       let head = ds.slice(0, totalDigits);
       const nextDigit = ds.charCodeAt(totalDigits) || 48;
-      if (nextDigit >= 53) head = addOneDigitString(head);
 
       let intStr, fracStr;
       if (head.length > totalDigits) {
@@ -168,7 +167,7 @@ function formatExponentString(rawDigits, sign = '') {
     if (ds.length < totalDigits + 1) ds += '0'.repeat(totalDigits + 1 - ds.length);
     let head = ds.slice(0, totalDigits);
     const nextDigit = ds.charCodeAt(totalDigits) || 48;
-    if (nextDigit >= 53) head = addOneDigitString(head);
+    // if (nextDigit >= 53) head = addOneDigitString(head); // Floor instead of round
 
     let intStr, fracStr, finalExpStr;
     if (head.length > totalDigits) { 
@@ -195,7 +194,7 @@ function formatExponentString(rawDigits, sign = '') {
   if (ds.length < totalDigits + 1) ds += '0'.repeat(totalDigits + 1 - ds.length);
   let head = ds.slice(0, totalDigits);
   const nextDigit = ds.charCodeAt(totalDigits) || 48;
-  if (nextDigit >= 53) head = addOneDigitString(head);
+  // if (nextDigit >= 53) head = addOneDigitString(head); // Floor instead of round
 
   let finalE = E;
   if (head.length > totalDigits) {
@@ -265,7 +264,7 @@ function formatExponentChain(expRaw) {
   if (ds.length < 5) ds += '0'.repeat(5 - ds.length);
   let four = ds.slice(0, 4);
   const next = ds.charCodeAt(4) || 48;
-  if (next >= 53) four = addOneDigitString(four); // handle rounding carry later
+  // if (next >= 53) four = addOneDigitString(four); // handle rounding carry later // Floor instead of round
   
   // Account for overflow locally for format calc
   let localK = k;
@@ -355,7 +354,7 @@ function mantissaFourDigits(sci) {
   // First 4 digits are kept (rounded by the 5th)
   let head = ds.slice(0, 4);
   const next = ds.charCodeAt(4) || 48;       // '0' if missing
-  if (next >= 53) head = addOneDigitString(head);
+  // if (next >= 53) head = addOneDigitString(head); // Floor instead of round
 
   // If carry overflow happened (e.g., 9.999 -> 10.00), re-normalize to 1.xxx by shifting
   let finalExp = rawExp;
@@ -408,7 +407,7 @@ function _formatNumber(bn) {
 
     let head = s.slice(0, totalDigits);
     const nextDigit = s.charCodeAt(totalDigits) || 48;
-    if (nextDigit >= 53) head = addOneDigitString(head);
+    // if (nextDigit >= 53) head = addOneDigitString(head); // Floor instead of round
 
     let intStr, fracStr;
     if (head.length > totalDigits) {
@@ -446,7 +445,7 @@ function _formatNumber(bn) {
 
     let head = s.slice(0, totalDigits);
     const nextDigit = s.charCodeAt(totalDigits) || 48;
-    if (nextDigit >= 53) head = addOneDigitString(head);
+    // if (nextDigit >= 53) head = addOneDigitString(head); // Floor instead of round
 
     let intStr, fracStr;
     if (head.length > totalDigits) {
@@ -487,7 +486,7 @@ function _formatNumber(bn) {
 
   let head = s.slice(0, totalDigits);
   const nextDigit = s.charCodeAt(totalDigits) || 48;
-  if (nextDigit >= 53) head = addOneDigitString(head);
+  // if (nextDigit >= 53) head = addOneDigitString(head); // Floor instead of round
 
   let intStr, fracStr;
   if (head.length > totalDigits) {
