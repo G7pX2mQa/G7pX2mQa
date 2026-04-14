@@ -99,8 +99,8 @@ export function initNotifications() {
     if (typeof window === 'undefined') return;
     
     window.addEventListener('lab:node:change', (e) => {
-        const { id, level } = e.detail || {};
-        if (!id || level == null) return;
+        const { id, level, suppressNotify } = e.detail || {};
+        if (!id || level == null || suppressNotify) return;
         
         const node = NODE_MAP.get(id);
         if (!node) return;
