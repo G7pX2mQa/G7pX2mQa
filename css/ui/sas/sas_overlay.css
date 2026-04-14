@@ -245,6 +245,11 @@
   transition: none;
 }
 
+.sas-btn.sas-btn-discord {
+  background: linear-gradient(to bottom, #2b2d6a 0%, #464a9c 15%, #5865F2 50%, #464a9c 85%, #2b2d6a 100%);
+  transition: none;
+}
+
 .sas-btn.sas-btn-back-menu {
   background: linear-gradient(to bottom, #111 0%, #333 15%, #555 50%, #333 85%, #111 100%);
   transition: none;
