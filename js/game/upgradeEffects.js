@@ -23,7 +23,7 @@ import {
   UPGRADE_TIES
 } from './upgrades.js';
 import { getSurgeMagicMultiplier, getSurgeWaveMultiplier } from './surgeEffects.js';
-import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
+import { addExternalFpMultiplierProvider, getWaterwheelGoldMultiplier, getWaterwheelMagicMultiplier } from '../ui/merchantTabs/flowTab.js';
 
 const BASE_CPS = 1;
 
@@ -224,14 +224,16 @@ export function syncCurrencyMultipliersFromUpgrades() {
   
   try {
     if (bank.gold?.mult?.set) {
-      bank.gold.mult.set(goldValue);
+      const finalGoldValue = getWaterwheelGoldMultiplier(goldValue);
+      bank.gold.mult.set(finalGoldValue);
     }
   } catch {}
 
   try {
     if (bank.magic?.mult?.set) {
       const surgeMult = getSurgeMagicMultiplier();
-      const finalMagicValue = safeMultiplyBigNum(magicValue, surgeMult);
+      let finalMagicValue = safeMultiplyBigNum(magicValue, surgeMult);
+      finalMagicValue = getWaterwheelMagicMultiplier(finalMagicValue);
       bank.magic.mult.set(finalMagicValue);
     }
   } catch {}
