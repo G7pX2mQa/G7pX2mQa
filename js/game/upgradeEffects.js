@@ -22,7 +22,7 @@ import {
   bigNumFromLog10,
   UPGRADE_TIES
 } from './upgrades.js';
-import { getSurgeMagicMultiplier } from './surgeEffects.js';
+import { getSurgeMagicMultiplier, getSurgeWaveMultiplier } from './surgeEffects.js';
 import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
 
 const BASE_CPS = 1;
@@ -239,7 +239,8 @@ export function syncCurrencyMultipliersFromUpgrades() {
   try {
     if (bank.waves?.mult?.set) {
       const labMult = getLabWaveMultiplier();
-      const finalWaveValue = safeMultiplyBigNum(waveValue, labMult);
+      const surgeWaveMult = getSurgeWaveMultiplier();
+      const finalWaveValue = safeMultiplyBigNum(waveValue, safeMultiplyBigNum(labMult, surgeWaveMult));
       bank.waves.mult.set(finalWaveValue);
     }
   } catch {}
