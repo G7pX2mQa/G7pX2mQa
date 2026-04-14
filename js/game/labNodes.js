@@ -68,7 +68,7 @@ export const RESEARCH_NODES = [
         maxLevel: 1,
         x: 0,
         y: -1000,
-        icon: 'misc/experiment.webp',
+        icon: 'img/misc/experiment.webp',
         parentIds: [2, 3],
         bonusLine: () => ''
     },
