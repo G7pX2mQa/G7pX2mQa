@@ -142,7 +142,7 @@ export const RESOURCE_REGISTRY = [
     },
     { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels', type: 'levelStat' },
     { key: 'books', bgGradient: 'linear-gradient(to bottom, #82551b 0%, #94601e 15%, #AC6C1B 50%, #94601e 85%, #82551b 100%)',      icon: 'img/currencies/book/book.webp', baseIcon: 'img/currencies/book/book_plus_base.webp',   singular: 'Book',     plural: 'Books', type: 'currency' },
-    { key: 'gold', bgGradient: 'linear-gradient(to bottom, #FF9801 0%, #FFAC15 15%, #FFBC25 50%, #FFAC15 85%, #FF9801 100%)',       icon: 'img/currencies/gold/gold.webp', baseIcon: 'img/currencies/gold/gold_plus_base.webp',   singular: 'Gold',     plural: 'Gold', type: 'currency' },
+    { key: 'gold', bgGradient: 'linear-gradient(to bottom, #FF9801 0%, #FFAC15 15%, #FFC926 50%, #FFAC15 85%, #FF9801 100%)',       icon: 'img/currencies/gold/gold.webp', baseIcon: 'img/currencies/gold/gold_plus_base.webp',   singular: 'Gold',     plural: 'Gold', type: 'currency' },
     { 
         key: 'mp', 
         icon: 'img/stats/mp/mp.webp', 
