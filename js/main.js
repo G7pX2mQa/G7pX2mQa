@@ -399,7 +399,7 @@ async function preloadAssetsWithProgress({ images = [], audio = [], fonts = true
 /* ---------------------------
    GAME AREA CONTROL
 ----------------------------*/
-function enterArea(areaID) {
+export function enterArea(areaID) {
   if (currentArea === areaID) return;
 
   if (currentMusic) {
