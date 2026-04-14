@@ -287,8 +287,7 @@ function getGearsPerSecond(level) {
     }
   }
   
-  const mult = bank?.gears?.mult?.get?.() ?? BigNum.fromInt(1);
-  return baseRate.mulBigNumInteger(mult);
+  return baseRate;
 }
 
 function buyGenerationUpgrade() {
@@ -558,6 +557,10 @@ function buildWorkshopUI(container) {
 }
 
 export function updateWorkshopTab() {
+  if (bank.gears && typeof bank.gears.mult?.set === 'function') {
+      bank.gears.mult.set(getGearsPerSecond(currentGenerationLevel));
+  }
+
   if (!workshopEl) return;
   const verbEl = workshopEl.querySelector("[data-workshop=\"production-verb\"]");
   if (verbEl) {
