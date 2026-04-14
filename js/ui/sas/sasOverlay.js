@@ -116,6 +116,29 @@ function populateSasButtons(overlayEl) {
   // Just subscribe to something or rely on global re-render, but better to add an event listener
   window.addEventListener('forge:completed', updateConfBtnVisibility);
   window.addEventListener('forge:completed', updateAchievementsBtnVisibility);
+
+  const backBtn = document.createElement("button");
+  backBtn.className = "sas-btn sas-btn-back-menu";
+  backBtn.textContent = "Back to Menu";
+  backBtn.addEventListener("click", () => {
+    const tpOverlay = document.createElement('div');
+    tpOverlay.style.position = 'fixed';
+    tpOverlay.style.inset = '0';
+    tpOverlay.style.backgroundColor = '#000';
+    tpOverlay.style.color = '#fff';
+    tpOverlay.style.display = 'grid';
+    tpOverlay.style.placeItems = 'center';
+    tpOverlay.style.zIndex = '99999999';
+    tpOverlay.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+    tpOverlay.style.fontSize = '24px';
+    tpOverlay.textContent = 'Telporting to Menu...';
+    document.body.appendChild(tpOverlay);
+    
+    setTimeout(() => {
+      window.location.reload();
+    }, 50);
+  });
+  grid.appendChild(backBtn);
 }
 
 const sasOverlay = createSASOverlay({
