@@ -7,6 +7,7 @@ import { playPurchaseSfx } from '../shopOverlay.js';
 import { trackBinaryFlowSequence } from '../../game/secretAchievements.js';
 import { approxLog10BigNum } from '../../game/upgrades.js';
 import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
+import { syncCurrencyMultipliersFromUpgrades } from '../../game/upgradeEffects.js';
 import { WaterwheelRenderer } from '../../game/webgl/waterwheelRenderer.js';
 
 /* =========================================
@@ -675,6 +676,7 @@ export function applyWaterwheelOffline(offlineData) {
     if (changes) {
         saveState();
         updateFlowTab();
+        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
     }
 }
 
@@ -876,6 +878,7 @@ function onTick(dt) {
     if (changes) {
         updateFlowTab();
         scheduleSave();
+        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
         // The event with type 'tick' is not actually listened to anywhere useful, removing to save overhead
     } else if (visualUpdate) {
         if (flowTabInitialized && flowPanel) {
