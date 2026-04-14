@@ -4,7 +4,7 @@
 //  - 1e6 .. < 1e303: suffix table ("M,B,T,Qd,...") with FOUR visible digits
 //  - >= 1e303: scientific, but with a pretty *recursive* exponent
 //
-// Also prettifies the exponent itself (e.g., 1.000e1,000 / 1.000e1.000Qd / 1.000e1.000e308)
+// Also prettifies the exponent itself (e.g., 1.000e1,000 / e1.000Qd / e1.000e308)
 
 import { BigNum, approxLog10BigNum } from './bigNum.js';
 
