@@ -245,6 +245,11 @@
   transition: none;
 }
 
+.sas-btn.sas-btn-back-menu {
+  background: linear-gradient(to bottom, #111 0%, #333 15%, #555 50%, #333 85%, #111 100%);
+  transition: none;
+}
+
 .sas-actions {
   display: flex;
   justify-content: center;
