@@ -385,7 +385,7 @@ export function getResearchNodeLevel(id) {
     return s.level;
 }
 
-export function setResearchNodeLevel(id, level) {
+export function setResearchNodeLevel(id, level, suppressNotify = false) {
     const slot = getActiveSlot();
     if (slot == null) return false;
     
@@ -397,7 +397,7 @@ export function setResearchNodeLevel(id, level) {
     
     try {
         localStorage.setItem(NODE_LEVEL_KEY(slot, id), level.toString());
-        window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { id, level } }));
+        window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { id, level, suppressNotify } }));
     } catch {}
     return true;
 }
