@@ -140,8 +140,21 @@ function formatExponentString(rawDigits, sign = '') {
       if (nextDigit >= 53) head = addOneDigitString(head);
 
       let intStr, fracStr;
-      if (head.length > totalDigits) { intStr = head.slice(0, intDigits + 1); fracStr = '0'.repeat(decimals); }
-      else { intStr = head.slice(0, intDigits); fracStr = head.slice(intDigits); }
+      if (head.length > totalDigits) {
+        const newE = E + 1;
+        const newExp = Math.floor(newE / 3) * 3;
+        const newSuffix = SUFFIX_BY_EXP.get(newExp) || '';
+        const newD = newE - newExp;
+        const newIntDigits = newD + 1;
+      const newDecimals = totalDigits - newIntDigits;
+        const newHead = '1' + '0'.repeat(totalDigits - 1);
+        intStr = newHead.slice(0, newIntDigits);
+        fracStr = newHead.slice(newIntDigits);
+        return sign + `${intStr}${newDecimals ? '.' + fracStr : ''}${newSuffix}`;
+      } else {
+        intStr = head.slice(0, intDigits);
+        fracStr = head.slice(intDigits);
+      }
 
       return sign + `${intStr}${decimals ? '.' + fracStr : ''}${suffix}`;
     }
@@ -303,7 +316,7 @@ function formatExponentChain(expRaw) {
     const newSuffix = SUFFIX_BY_EXP.get(newExp) || '';
     const newRemainder = newK - newExp;
     const newIntDigits = newRemainder + 1;
-    const newDecimals = 4 - newIntDigits;
+      const newDecimals = 4 - newIntDigits;
     const newFour = "1000";
     intStr = newFour.slice(0, newIntDigits);
     fracStr = newFour.slice(newIntDigits);
@@ -485,7 +498,7 @@ function _formatNumber(bn) {
     
     const newD = newE - newExp;
     const newIntDigits = newD + 1;
-    const newDecimals = 4 - newIntDigits;
+      const newDecimals = 4 - newIntDigits;
     
     const newHead = "1000";
     intStr = newHead.slice(0, newIntDigits);
