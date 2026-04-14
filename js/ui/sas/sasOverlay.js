@@ -7,6 +7,7 @@ import { openCurrenciesOverlay } from './currenciesOverlay.js';
 import { openLevelsOverlay } from './levelsOverlay.js';
 import { openMultipliersOverlay } from './multipliersOverlay.js';
 import { openAchievementsOverlay } from './achievementsOverlay.js';
+import { openDiscordOverlay } from './discordOverlay.js';
 import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
 import { getXpState } from '../../game/xpSystem.js';
 
@@ -129,7 +130,6 @@ function populateSasButtons(overlayEl) {
     tpOverlay.style.display = 'grid';
     tpOverlay.style.placeItems = 'center';
     tpOverlay.style.zIndex = '99999999';
-    tpOverlay.style.fontFamily = 'system-ui, -apple-system, sans-serif';
     tpOverlay.style.fontSize = '24px';
     tpOverlay.textContent = 'Telporting to Menu...';
     document.body.appendChild(tpOverlay);
@@ -139,6 +139,12 @@ function populateSasButtons(overlayEl) {
     }, 50);
   });
   grid.appendChild(backBtn);
+  
+  const discordBtn = document.createElement("button");
+  discordBtn.className = "sas-btn sas-btn-discord";
+  discordBtn.textContent = "Discord";
+  discordBtn.addEventListener("click", () => { openDiscordOverlay(); });
+  grid.appendChild(discordBtn);
 }
 
 const sasOverlay = createSASOverlay({
