@@ -196,7 +196,7 @@
   cursor: pointer;
   touch-action: manipulation;
   outline: none;
-  background: linear-gradient(to bottom, #3A3A3A 0%, #5E5E5E 15%, #6E6E6E 50%, #5E5E5E 85%, #3A3A3A 100%);
+  background: linear-gradient(to bottom, #4A4A4A 0%, #5E5E5E 15%, #6E6E6E 50%, #5E5E5E 85%, #4A4A4A 100%);
   font-weight: 900;
   font-size: clamp(18px, 4.5vw, 44px);
   color: #fff;
@@ -226,33 +226,27 @@
 }
 
 .sas-btn.sas-btn-currencies {
-  background: linear-gradient(#006900 0%, #008c00 15%, #00ba00 50%, #008c00 85%, #006900 100%);
-  transition: none;
+  background: linear-gradient(to bottom, #B89100 0%, #CCA500 15%, #DCB500 50%, #CCA500 85%, #B89100 100%);
 }
 
 .sas-btn.sas-btn-levels {
-  background: linear-gradient(to bottom, #0a587c 0%, #107ba8 15%, #158fbf 50%, #107ba8 85%, #0a587c 100%);
-  transition: none;
+  background: linear-gradient(to bottom, #156B9B 0%, #157FAF 15%, #158FBF 50%, #157FAF 85%, #156B9B 100%);
 }
 
 .sas-btn.sas-btn-multipliers {
-  background: linear-gradient(to bottom, #8a0000 0%, #b80000 15%, #dc0000 50%, #b80000 85%, #8a0000 100%);
-  transition: none;
+  background: linear-gradient(to bottom, #8C1919 0%, #A02D2D 15%, #B03D3D 50%, #A02D2D 85%, #8C1919 100%);
 }
 
 .sas-btn.sas-btn-achievements {
-  background: linear-gradient(to bottom, #8a6c00 0%, #b89100 15%, #dcb500 50%, #b89100 85%, #8a6c00 100%);
-  transition: none;
-}
-
-.sas-btn.sas-btn-discord {
-  background: linear-gradient(to bottom, #2b2d6a 0%, #464a9c 15%, #5865F2 50%, #464a9c 85%, #2b2d6a 100%);
-  transition: none;
+  background: linear-gradient(to bottom, #B45A00 0%, #C86E00 15%, #D87E00 50%, #C86E00 85%, #B45A00 100%);
 }
 
 .sas-btn.sas-btn-back-menu {
-  background: linear-gradient(to bottom, #111 0%, #333 15%, #555 50%, #333 85%, #111 100%);
-  transition: none;
+  background: linear-gradient(to bottom, #0f0f0f 0%, #191919 15%, #292929 50%, #191919 85%, #0f0f0f 100%);
+}
+
+.sas-btn.sas-btn-discord {
+  background: linear-gradient(to bottom, #3441CE 0%, #4855E2 15%, #5865F2 50%, #4855E2 85%, #3441CE 100%);
 }
 
 .sas-actions {
