@@ -389,7 +389,9 @@ function handleStatChange(e) {
              pct = 100;
           } else {
              if (reqValEl) reqValEl.innerHTML = formatNumber(reqVal);
-             if (reqVal && progVal !== null && progVal !== undefined) {
+             if (state.ratio !== undefined) {
+                 pct = Math.min(100, Math.max(0, state.ratio * 100));
+             } else if (reqVal && progVal !== null && progVal !== undefined) {
                  const reqNum = Number(reqVal.toString());
                  const progNum = Number(progVal.toString());
                  if (reqNum > 0) pct = Math.min(100, Math.max(0, (progNum / reqNum) * 100));
