@@ -356,6 +356,9 @@ function handleStatChange(e) {
 
   if (needsRerender) {
     populateLevelsOverlay(overlayEl);
+    if (paintbrush && paintbrush.isActive()) {
+      updatePaintbrushIfActive();
+    }
   }
 
   levels.forEach(l => {
@@ -398,11 +401,8 @@ function handleStatChange(e) {
       }
     }
   });
-  
-  if (paintbrush && paintbrush.isActive()) {
-    updatePaintbrushIfActive();
-  }
 }
+
 
 const levelsOverlay = createSASOverlay({
   id: 'levels-overlay',
@@ -424,6 +424,7 @@ const levelsOverlay = createSASOverlay({
         if (row._cleanupDropdown) row._cleanupDropdown();
       });
     }
+    if (paintbrush) paintbrush.close();
   }
 });
 
