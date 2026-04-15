@@ -4,7 +4,7 @@
 .merchant-reset {
   display: grid;
   grid-template-columns: minmax(140px, 160px) minmax(0, 1fr) minmax(140px, 160px);
-  gap: 16px;
+  gap: 12px;
   align-items: start;
 }
 
