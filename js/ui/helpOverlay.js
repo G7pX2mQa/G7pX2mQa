@@ -1,14 +1,15 @@
 import { IS_MOBILE } from '../main.js';
 import { blockInteraction, ensureCustomScrollbar, setupDragToClose } from './shopOverlay.js';
 import { suppressNextGhostTap } from '../util/ghostTapGuard.js';
-
+import { getResearchNodeLevel } from '../game/labNodes.js';
+import { getFlowUnlockState } from './merchantTabs/flowTab.js';
 
 const HELP_ENTRIES = [
   {
     id: 1,
-    title: "Introduction",
+    title: "Intro",
     icon: "img/currencies/coin/coin.webp",
-    text: "Placeholder text for Introduction.",
+    text: "Placeholder text for Intro.",
     themeClass: "is-intro",
     isVisible: () => true // Always unlocked
   },
@@ -71,7 +72,7 @@ const HELP_ENTRIES = [
   {
     id: 6,
     title: "Flow",
-    icon: "img/waterwheels/waterwheel_coin.webp",
+    icon: "img/stats/fp/fp.webp",
     text: "Placeholder text for Flow.",
     themeClass: "is-flow",
     isVisible: () => {
@@ -177,7 +178,7 @@ function renderHelpContent() {
   // Filter entries to only show visible ones
   const visibleEntries = HELP_ENTRIES.filter(e => e.isVisible());
   
-  // If current entry is no longer visible, reset to Introduction (which is always visible)
+  // If current entry is no longer visible, reset to Intro (which is always visible)
   if (!visibleEntries.find(e => e.id === currentEntryId)) {
     currentEntryId = 1;
   }
@@ -226,6 +227,24 @@ function renderHelpContent() {
         renderHelpContent(); // Re-render content
       }
     });
+  });
+}
+
+export function updateHelpOverlay() {
+  if (isOpen) {
+    renderHelpContent();
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.helpSystem = window.helpSystem || {};
+  window.helpSystem.updateHelpOverlay = updateHelpOverlay;
+  
+  window.addEventListener('lab:node:change', () => {
+    updateHelpOverlay();
+  });
+  window.addEventListener('unlock:change', () => {
+    updateHelpOverlay();
   });
 }
 
