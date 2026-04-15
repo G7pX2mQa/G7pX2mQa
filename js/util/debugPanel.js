@@ -3013,11 +3013,15 @@ function getUnlockRowDefinitions(slot) {
                 catch {}
                 try { window.resetSystem?.updateResetPanel?.(); }
                 catch {}
+                try { window.helpSystem?.updateHelpOverlay?.(); }
+                catch {}
             },
             onDisable: () => {
                 try { setResearchNodeLevel(4, 0); }
                 catch {}
                 try { window.resetSystem?.updateResetPanel?.(); }
+                catch {}
+                try { window.helpSystem?.updateHelpOverlay?.(); }
                 catch {}
             },
             slot,
