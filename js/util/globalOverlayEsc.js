@@ -8,6 +8,7 @@ const PRIORITY_SELECTORS = [
   // Automation Shop has both .shop-overlay and .automation-shop-overlay
   { sel: '.merchant-overlay.is-open', btn: '.merchant-close' },
   { sel: '.shop-overlay.is-open', btn: '.shop-close', closeAll: true }, // Main Shop (and others like DNA/Automation)
+  { sel: '.sas-overlay.is-open', btn: '.sas-close', closeAll: true },
 ];
 
 function handleEsc(e) {
