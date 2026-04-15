@@ -38,12 +38,34 @@
   font-weight: 600;
   cursor: pointer;
   transition: background 120ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.help-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(255, 255, 0, 0.3), rgba(255, 255, 0, 0.3));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  z-index: 1;
+}
+
+.help-layer > * {
+  position: relative;
+  z-index: 2;
 }
 
 .help-layer img {
   width: 36px;
   height: 36px;
   object-fit: contain;
+}
+
+.help-layer.is-active::after {
+  opacity: 1;
 }
 
 .help-layer.is-active,
