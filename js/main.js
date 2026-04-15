@@ -588,7 +588,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/spawner.js'),
     import('./game/coinPickup.js'),
     import('./ui/hudButtons.js'),
-    import('./ui/helpOverlay.js'),
     import('./util/storage.js'),
     import('./util/saveIntegrity.js'),
     import('./game/upgrades.js'),
