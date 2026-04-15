@@ -9,6 +9,7 @@ const HELP_ENTRIES = [
     id: 1,
     title: "Intro",
     icon: "img/currencies/coin/coin.webp",
+    tldr: "Placeholder TLDR for Intro.",
     text: "Placeholder text for Intro.",
     themeClass: "is-intro",
     isVisible: () => true // Always unlocked
@@ -17,6 +18,7 @@ const HELP_ENTRIES = [
     id: 2,
     title: "Forge",
     icon: "img/misc/forge.webp",
+    tldr: "Placeholder TLDR for Forge.",
     text: "Placeholder text for Forge.",
     themeClass: "is-forge",
     isVisible: () => {
@@ -32,6 +34,7 @@ const HELP_ENTRIES = [
     id: 3,
     title: "Infuse",
     icon: "img/misc/infuse.webp",
+    tldr: "Placeholder TLDR for Infuse.",
     text: "Placeholder text for Infuse.",
     themeClass: "is-infuse",
     isVisible: () => {
@@ -47,6 +50,7 @@ const HELP_ENTRIES = [
     id: 4,
     title: "Surge",
     icon: "img/misc/surge.webp",
+    tldr: "Placeholder TLDR for Surge.",
     text: "Placeholder text for Surge.",
     themeClass: "is-surge",
     isVisible: () => {
@@ -62,6 +66,7 @@ const HELP_ENTRIES = [
     id: 5,
     title: "Experiment",
     icon: "img/misc/experiment.webp",
+    tldr: "Placeholder TLDR for Experiment.",
     text: "Placeholder text for Experiment.",
     themeClass: "is-experiment",
     isVisible: () => {
@@ -73,6 +78,7 @@ const HELP_ENTRIES = [
     id: 6,
     title: "Flow",
     icon: "img/stats/fp/fp.webp",
+    tldr: "Placeholder TLDR for Flow.",
     text: "Placeholder text for Flow.",
     themeClass: "is-flow",
     isVisible: () => {
@@ -202,11 +208,19 @@ function renderHelpContent() {
   // Build Content
   const classMap = {1: 'is-intro', 2: 'is-forge', 3: 'is-infuse', 4: 'is-surge', 5: 'is-experiment', 6: 'is-flow'};
   const currentThemeClass = classMap[currentEntry.id];
+  
+  let paragraphContent = '';
+  if (currentEntry.tldr) {
+    paragraphContent = `<strong>TLDR: ${currentEntry.tldr}</strong><br>${currentEntry.text}`;
+  } else {
+    paragraphContent = currentEntry.text;
+  }
+  
   const contentHtml = `
     <div class="help-content-area">
       <div class="help-card ${currentThemeClass}">
         <h3>${currentEntry.title}</h3>
-        <p>${currentEntry.text}</p>
+        <p>${paragraphContent}</p>
         <h3 style="visibility:hidden">${currentEntry.title}</h3>
       </div>
     </div>
