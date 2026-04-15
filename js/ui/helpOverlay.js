@@ -2,26 +2,85 @@ import { IS_MOBILE } from '../main.js';
 import { blockInteraction, ensureCustomScrollbar, setupDragToClose } from './shopOverlay.js';
 import { suppressNextGhostTap } from '../util/ghostTapGuard.js';
 
+
 const HELP_ENTRIES = [
   {
-    id: 'basics',
-    title: 'Basics',
-    heading: 'How to Play',
-    content: 'Click the coins to collect them. Once you have enough coins, you can buy upgrades in the shop to collect coins automatically or increase your clicking power.'
+    id: 1,
+    title: "Introduction",
+    icon: "img/currencies/coin/coin.webp",
+    text: "Placeholder text for Introduction.",
+    themeClass: "is-intro",
+    isVisible: () => true // Always unlocked
   },
   {
-    id: 'upgrades',
-    title: 'Upgrades',
-    heading: 'Understanding Upgrades',
-    content: 'Upgrades increase your coin production. Some upgrades affect your active clicks, while others increase your passive income over time.'
+    id: 2,
+    title: "Forge",
+    icon: "img/misc/forge.webp",
+    text: "Placeholder text for Forge.",
+    themeClass: "is-forge",
+    isVisible: () => {
+        try {
+            const override = window.resetSystem?.getForgeDebugOverrideState?.();
+            if (override != null) return override;
+        } catch {}
+        try { return !!window.resetSystem?.isForgeUnlocked?.(); }
+        catch { return false; }
+    }
   },
   {
-    id: 'prestige',
-    title: 'Prestige',
-    heading: 'Resetting for Power',
-    content: 'Once you reach a certain point, you can reset your progress to earn special currencies. These currencies can be used to purchase powerful permanent upgrades.'
+    id: 3,
+    title: "Infuse",
+    icon: "img/misc/infuse.webp",
+    text: "Placeholder text for Infuse.",
+    themeClass: "is-infuse",
+    isVisible: () => {
+        try {
+            const override = window.resetSystem?.getInfuseDebugOverrideState?.();
+            if (override != null) return override;
+        } catch {}
+        try { return !!window.resetSystem?.isInfuseUnlocked?.(); }
+        catch { return false; }
+    }
+  },
+  {
+    id: 4,
+    title: "Surge",
+    icon: "img/misc/surge.webp",
+    text: "Placeholder text for Surge.",
+    themeClass: "is-surge",
+    isVisible: () => {
+        try {
+            const override = window.resetSystem?.getSurgeDebugOverrideState?.();
+            if (override != null) return override;
+        } catch {}
+        try { return !!window.resetSystem?.isSurgeUnlocked?.(); }
+        catch { return false; }
+    }
+  },
+  {
+    id: 5,
+    title: "Experiment",
+    icon: "img/misc/experiment.webp",
+    text: "Placeholder text for Experiment.",
+    themeClass: "is-experiment",
+    isVisible: () => {
+        try { return getResearchNodeLevel(4) >= 1; }
+        catch { return false; }
+    }
+  },
+  {
+    id: 6,
+    title: "Flow",
+    icon: "img/waterwheels/waterwheel_coin.webp",
+    text: "Placeholder text for Flow.",
+    themeClass: "is-flow",
+    isVisible: () => {
+        try { return !!getFlowUnlockState(); }
+        catch { return false; }
+    }
   }
 ];
+
 
 let currentEntryId = HELP_ENTRIES[0].id;
 
@@ -115,26 +174,39 @@ function renderHelpContent() {
   const container = overlayEl.querySelector('.help-container');
   if (!container) return;
 
-  const currentEntry = HELP_ENTRIES.find(e => e.id === currentEntryId);
+  // Filter entries to only show visible ones
+  const visibleEntries = HELP_ENTRIES.filter(e => e.isVisible());
+  
+  // If current entry is no longer visible, reset to Introduction (which is always visible)
+  if (!visibleEntries.find(e => e.id === currentEntryId)) {
+    currentEntryId = 1;
+  }
+
+  const currentEntry = HELP_ENTRIES.find(e => e.id === currentEntryId) || HELP_ENTRIES[0];
 
   // Build Sidebar
   let sidebarHtml = '<aside class="help-sidebar">';
-  HELP_ENTRIES.forEach(entry => {
+  visibleEntries.forEach(entry => {
     const isActive = entry.id === currentEntryId ? 'is-active' : '';
-    sidebarHtml += `<button type="button" class="help-layer ${isActive}" data-help-id="${entry.id}">
-      <img src="img/misc/forge.webp" alt="">
+    // map id to class string
+    const classMap = {1: 'is-intro', 2: 'is-forge', 3: 'is-infuse', 4: 'is-surge', 5: 'is-experiment', 6: 'is-flow'};
+    const themeClass = classMap[entry.id];
+    sidebarHtml += `<button type="button" class="help-layer ${isActive} ${themeClass}" data-help-id="${entry.id}">
+      <img src="${entry.icon}" alt="">
       <span>${entry.title}</span>
     </button>`;
   });
   sidebarHtml += '</aside>';
 
   // Build Content
+  const classMap = {1: 'is-intro', 2: 'is-forge', 3: 'is-infuse', 4: 'is-surge', 5: 'is-experiment', 6: 'is-flow'};
+  const currentThemeClass = classMap[currentEntry.id];
   const contentHtml = `
     <div class="help-content-area">
-      <div class="help-card">
-        <h3>${currentEntry.heading}</h3>
-        <p>${currentEntry.content}</p>
-        <h3 style="visibility:hidden">${currentEntry.heading}</h3>
+      <div class="help-card ${currentThemeClass}">
+        <h3>${currentEntry.title}</h3>
+        <p>${currentEntry.text}</p>
+        <h3 style="visibility:hidden">${currentEntry.title}</h3>
       </div>
     </div>
   `;
@@ -148,7 +220,7 @@ function renderHelpContent() {
   const buttons = container.querySelectorAll('.help-layer');
   buttons.forEach(btn => {
     btn.addEventListener('click', () => {
-      const id = btn.getAttribute('data-help-id');
+      const id = parseInt(btn.getAttribute('data-help-id'), 10);
       if (id && id !== currentEntryId) {
         currentEntryId = id;
         renderHelpContent(); // Re-render content
