@@ -956,7 +956,7 @@ function typeText(el, full, msPerChar = 22, skipTargets = []) {
               }
               
               if (nextChar !== null && nextChar !== '.' && nextChar !== ',' && nextChar !== ':') {
-                  delay = msPerChar * 25;
+                  delay = msPerChar * 20;
                   stopTypingSfx();
                   sfxTimer = setTimeout(() => {
                       if (!skipping && __isTypingActive) {
