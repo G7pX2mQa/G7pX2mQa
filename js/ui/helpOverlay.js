@@ -122,6 +122,7 @@ function renderHelpContent() {
   HELP_ENTRIES.forEach(entry => {
     const isActive = entry.id === currentEntryId ? 'is-active' : '';
     sidebarHtml += `<button type="button" class="help-layer ${isActive}" data-help-id="${entry.id}">
+      <img src="img/misc/forge.webp" alt="">
       <span>${entry.title}</span>
     </button>`;
   });
