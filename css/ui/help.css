@@ -86,7 +86,7 @@
   padding: 22px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: stretch;
   gap: 20px;
   min-height: 260px;
@@ -106,15 +106,19 @@
   color: #fff;
   text-shadow: 0 2px 4px rgba(0,0,0,0.6);
   margin: 0;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .help-card p {
   font-size: 1.1rem;
   color: #e6f5ff;
   line-height: 1.6;
-  margin: auto 0;
-  max-width: 600px;
+  margin: 0;
+  max-width: 100%;
   align-self: center;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .help-spacer {
