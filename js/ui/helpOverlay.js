@@ -134,6 +134,7 @@ function renderHelpContent() {
       <div class="help-card">
         <h3>${currentEntry.heading}</h3>
         <p>${currentEntry.content}</p>
+        <h3 style="visibility:hidden">${currentEntry.heading}</h3>
       </div>
     </div>
   `;
