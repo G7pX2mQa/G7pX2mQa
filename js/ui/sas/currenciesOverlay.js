@@ -463,6 +463,7 @@ const currenciesOverlay = createSASOverlay({
         if (row._cleanupDropdown) row._cleanupDropdown();
       });
     }
+    if (paintbrush) paintbrush.close();
   }
 });
 
