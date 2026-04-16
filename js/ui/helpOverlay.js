@@ -3,6 +3,7 @@ import { blockInteraction, ensureCustomScrollbar, setupDragToClose } from './sho
 import { suppressNextGhostTap } from '../util/ghostTapGuard.js';
 import { getResearchNodeLevel } from '../game/labNodes.js';
 import { getFlowUnlockState } from './merchantTabs/flowTab.js';
+import { getTsunamiSequenceSeen } from '../game/surgeEffects.js';
 
 const HELP_ENTRIES = [
   {
@@ -64,6 +65,18 @@ const HELP_ENTRIES = [
   },
   {
     id: 5,
+    title: "Lab",
+    icon: "img/stats/rp/rp.webp",
+    tldr: "Placeholder TLDR for Lab.",
+    text: "Placeholder text for Lab.",
+    themeClass: "is-lab",
+    isVisible: () => {
+        try { return !!getTsunamiSequenceSeen(); }
+        catch { return false; }
+    }
+  },
+  {
+    id: 6,
     title: "Experiment",
     icon: "img/misc/experiment.webp",
     tldr: "Placeholder TLDR for Experiment.",
@@ -75,7 +88,7 @@ const HELP_ENTRIES = [
     }
   },
   {
-    id: 6,
+    id: 7,
     title: "Flow",
     icon: "img/stats/fp/fp.webp",
     tldr: "Placeholder TLDR for Flow.",
@@ -196,7 +209,7 @@ function renderHelpContent() {
   visibleEntries.forEach(entry => {
     const isActive = entry.id === currentEntryId ? 'is-active' : '';
     // map id to class string
-    const classMap = {1: 'is-intro', 2: 'is-forge', 3: 'is-infuse', 4: 'is-surge', 5: 'is-experiment', 6: 'is-flow'};
+    const classMap = {1: 'is-intro', 2: 'is-forge', 3: 'is-infuse', 4: 'is-surge', 5: 'is-lab', 6: 'is-experiment', 7: 'is-flow'};
     const themeClass = classMap[entry.id];
     sidebarHtml += `<button type="button" class="help-layer ${isActive} ${themeClass}" data-help-id="${entry.id}">
       <img src="${entry.icon}" alt="">
@@ -206,7 +219,7 @@ function renderHelpContent() {
   sidebarHtml += '</aside>';
 
   // Build Content
-  const classMap = {1: 'is-intro', 2: 'is-forge', 3: 'is-infuse', 4: 'is-surge', 5: 'is-experiment', 6: 'is-flow'};
+  const classMap = {1: 'is-intro', 2: 'is-forge', 3: 'is-infuse', 4: 'is-surge', 5: 'is-lab', 6: 'is-experiment', 7: 'is-flow'};
   const currentThemeClass = classMap[currentEntry.id];
   
   let paragraphContent = '';
