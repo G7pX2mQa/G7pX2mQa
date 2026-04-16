@@ -2765,7 +2765,7 @@ export function runPostTsunamiShopDialogue(onComplete) {
                 type: 'choice', 
                 options: [
                     { label: 'What?', to: 'end' },
-                    { label: 'The Lab?', to: 'end' },
+                    { label: 'The lab?', to: 'end' },
                     { label: '???', to: 'end' }
                 ] 
             }
