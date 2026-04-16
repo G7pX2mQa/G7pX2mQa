@@ -69,7 +69,7 @@ const HELP_ENTRIES = [
     title: "Intro",
     icon: "img/currencies/coin/coin.webp",
     tldr: "Placeholder TLDR for Intro.",
-    text: "Placeholder text for Intro.",
+    text: "Placeholder text for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for .",
     themeClass: "is-intro",
     isVisible: () => true // Always unlocked
   },
@@ -303,7 +303,7 @@ function renderHelpContent() {
   
   let paragraphContent = '';
   if (currentEntry.tldr) {
-    paragraphContent = `<strong>TLDR: ${currentEntry.tldr}</strong><br>${currentEntry.text}`;
+    paragraphContent = `<strong style="display: block; margin-bottom: 12px;">TLDR: ${currentEntry.tldr}</strong>${currentEntry.text}`;
   } else {
     paragraphContent = currentEntry.text;
   }
