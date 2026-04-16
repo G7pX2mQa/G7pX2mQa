@@ -47,6 +47,21 @@
   z-index: 2;
 }
 
+.help-layer::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255, 255, 255, 0.15);
+  opacity: 0;
+  transition: opacity 120ms ease;
+  z-index: 1;
+}
+
+.help-layer:hover::after,
+.help-layer.is-active::after {
+  opacity: 1;
+}
+
 .help-layer img {
   width: 36px;
   height: 36px;
@@ -149,9 +164,6 @@
   background: linear-gradient(180deg, rgba(247, 214, 75, 0.4), rgba(232, 184, 0, 0.25));
   box-shadow: inset 0 0 0 2px rgba(247, 214, 75, 0.35);
 }
-.help-layer.is-intro.is-active, .help-layer.is-intro:hover {
-  background: linear-gradient(180deg, rgba(247, 214, 75, 0.6), rgba(232, 184, 0, 0.4));
-}
 .help-layer.is-intro.is-active {
   box-shadow: inset 0 0 0 3px rgba(247, 214, 75, 0.8), 0 0 10px rgba(247, 214, 75, 0.4);
 }
@@ -160,9 +172,6 @@
 .help-layer.is-forge {
   background: linear-gradient(180deg, rgba(255,169,0,0.4), rgba(255,115,0,0.25));
   box-shadow: inset 0 0 0 2px rgba(255,179,0,0.35);
-}
-.help-layer.is-forge.is-active, .help-layer.is-forge:hover {
-  background: linear-gradient(180deg, rgba(255,169,0,0.6), rgba(255,115,0,0.4));
 }
 .help-layer.is-forge.is-active {
   box-shadow: inset 0 0 0 3px rgba(255,179,0,0.8), 0 0 10px rgba(255,179,0,0.4);
@@ -173,9 +182,6 @@
   background: linear-gradient(180deg, rgba(160, 32, 240, 0.4), rgba(100, 20, 180, 0.25));
   box-shadow: inset 0 0 0 2px rgba(180, 40, 255, 0.35);
 }
-.help-layer.is-infuse.is-active, .help-layer.is-infuse:hover {
-  background: linear-gradient(180deg, rgba(170, 40, 245, 0.65), rgba(110, 25, 195, 0.45));
-}
 .help-layer.is-infuse.is-active {
   box-shadow: inset 0 0 0 3px rgba(180, 40, 255, 0.8), 0 0 10px rgba(180, 40, 255, 0.4);
 }
@@ -184,9 +190,6 @@
 .help-layer.is-surge {
   background: linear-gradient(180deg, rgba(0, 198, 255, 0.4), rgba(0, 114, 255, 0.25));
   box-shadow: inset 0 0 0 2px rgba(0, 198, 255, 0.35);
-}
-.help-layer.is-surge.is-active, .help-layer.is-surge:hover {
-  background: linear-gradient(180deg, rgba(0, 198, 255, 0.6), rgba(0, 114, 255, 0.4));
 }
 .help-layer.is-surge.is-active {
   box-shadow: inset 0 0 0 3px rgba(0, 198, 255, 0.8), 0 0 10px rgba(0, 198, 255, 0.4);
@@ -197,9 +200,6 @@
   background: linear-gradient(180deg, rgba(27, 48, 90, 0.7), rgba(17, 28, 56, 0.7));
   box-shadow: inset 0 0 0 2px rgba(27, 48, 90, 0.65);
 }
-.help-layer.is-lab.is-active, .help-layer.is-lab:hover {
-  background: linear-gradient(180deg, rgba(40, 70, 130, 0.95), rgba(25, 42, 85, 0.85));
-}
 .help-layer.is-lab.is-active {
   box-shadow: inset 0 0 0 3px rgba(27, 48, 90, 0.8), 0 0 8px rgba(27, 48, 90, 0.3);
 }
@@ -209,9 +209,6 @@
   background: linear-gradient(180deg, rgba(42, 82, 152, 0.7), rgba(30, 60, 114, 0.55));
   box-shadow: inset 0 0 0 2px rgba(42, 82, 152, 0.65);
 }
-.help-layer.is-experiment.is-active, .help-layer.is-experiment:hover {
-  background: linear-gradient(180deg, rgba(48, 92, 172, 0.92), rgba(35, 70, 130, 0.75));
-}
 .help-layer.is-experiment.is-active {
   box-shadow: inset 0 0 0 3px rgba(42, 82, 152, 0.8), 0 0 10px rgba(42, 82, 152, 0.4);
 }
@@ -220,9 +217,6 @@
 .help-layer.is-flow {
   background: linear-gradient(180deg, rgba(0, 230, 200, 0.4), rgba(0, 160, 160, 0.25));
   box-shadow: inset 0 0 0 2px rgba(0, 230, 200, 0.35);
-}
-.help-layer.is-flow.is-active, .help-layer.is-flow:hover {
-  background: linear-gradient(180deg, rgba(0, 230, 200, 0.6), rgba(0, 160, 160, 0.4));
 }
 .help-layer.is-flow.is-active {
   box-shadow: inset 0 0 0 3px rgba(0, 230, 200, 0.8), 0 0 10px rgba(0, 230, 200, 0.4);
