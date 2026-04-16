@@ -4,6 +4,64 @@ import { suppressNextGhostTap } from '../util/ghostTapGuard.js';
 import { getResearchNodeLevel } from '../game/labNodes.js';
 import { getFlowUnlockState } from './merchantTabs/flowTab.js';
 import { getTsunamiSequenceSeen } from '../game/surgeEffects.js';
+import { getActiveSlot } from '../util/storage.js';
+
+const HELP_PERMA_UNLOCK_KEY_BASE = 'ccc:help:permaUnlocks';
+const helpPermaUnlockStateCache = new Map();
+
+function ensureHelpPermaUnlockState(slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (helpPermaUnlockStateCache.has(slotKey)) {
+    return helpPermaUnlockStateCache.get(slotKey);
+  }
+
+  let parsed = { entries: {} };
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(`${HELP_PERMA_UNLOCK_KEY_BASE}:${slotKey}`);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        if (obj && typeof obj === 'object') {
+          const entries = (obj.entries && typeof obj.entries === 'object') ? obj.entries : {};
+          parsed = { entries };
+        }
+      }
+    } catch {}
+  }
+
+  if (!parsed || typeof parsed !== 'object') parsed = { entries: {} };
+  if (!parsed.entries || typeof parsed.entries !== 'object') parsed.entries = {};
+
+  helpPermaUnlockStateCache.set(slotKey, parsed);
+  return parsed;
+}
+
+function saveHelpPermaUnlockState(state, slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (!state || typeof state !== 'object') {
+    state = { entries: {} };
+  }
+  if (!state.entries || typeof state.entries !== 'object') {
+    state.entries = {};
+  }
+  helpPermaUnlockStateCache.set(slotKey, state);
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(`${HELP_PERMA_UNLOCK_KEY_BASE}:${slotKey}`, JSON.stringify(state));
+  } catch {}
+}
+
+function isHelpEntryPermanentlyUnlocked(id, slot = getActiveSlot()) {
+  const state = ensureHelpPermaUnlockState(slot);
+  return !!state.entries[id];
+}
+
+function markHelpEntryPermanentlyUnlocked(id, slot = getActiveSlot()) {
+  const state = ensureHelpPermaUnlockState(slot);
+  if (state.entries[id]) return;
+  state.entries[id] = true;
+  saveHelpPermaUnlockState(state, slot);
+}
 
 const HELP_ENTRIES = [
   {
@@ -23,12 +81,15 @@ const HELP_ENTRIES = [
     text: "Placeholder text for Forge.",
     themeClass: "is-forge",
     isVisible: () => {
+        if (isHelpEntryPermanentlyUnlocked(2)) return true;
+        let isVis = false;
         try {
             const override = window.resetSystem?.getForgeDebugOverrideState?.();
-            if (override != null) return override;
+            if (override != null) isVis = override;
+            else isVis = !!window.resetSystem?.isForgeUnlocked?.();
         } catch {}
-        try { return !!window.resetSystem?.isForgeUnlocked?.(); }
-        catch { return false; }
+        if (isVis) markHelpEntryPermanentlyUnlocked(2);
+        return isVis;
     }
   },
   {
@@ -39,12 +100,15 @@ const HELP_ENTRIES = [
     text: "Placeholder text for Infuse.",
     themeClass: "is-infuse",
     isVisible: () => {
+        if (isHelpEntryPermanentlyUnlocked(3)) return true;
+        let isVis = false;
         try {
             const override = window.resetSystem?.getInfuseDebugOverrideState?.();
-            if (override != null) return override;
+            if (override != null) isVis = override;
+            else isVis = !!window.resetSystem?.isInfuseUnlocked?.();
         } catch {}
-        try { return !!window.resetSystem?.isInfuseUnlocked?.(); }
-        catch { return false; }
+        if (isVis) markHelpEntryPermanentlyUnlocked(3);
+        return isVis;
     }
   },
   {
@@ -55,12 +119,15 @@ const HELP_ENTRIES = [
     text: "Placeholder text for Surge.",
     themeClass: "is-surge",
     isVisible: () => {
+        if (isHelpEntryPermanentlyUnlocked(4)) return true;
+        let isVis = false;
         try {
             const override = window.resetSystem?.getSurgeDebugOverrideState?.();
-            if (override != null) return override;
+            if (override != null) isVis = override;
+            else isVis = !!window.resetSystem?.isSurgeUnlocked?.();
         } catch {}
-        try { return !!window.resetSystem?.isSurgeUnlocked?.(); }
-        catch { return false; }
+        if (isVis) markHelpEntryPermanentlyUnlocked(4);
+        return isVis;
     }
   },
   {
@@ -71,8 +138,12 @@ const HELP_ENTRIES = [
     text: "Placeholder text for Lab.",
     themeClass: "is-lab",
     isVisible: () => {
-        try { return !!getTsunamiSequenceSeen(); }
-        catch { return false; }
+        if (isHelpEntryPermanentlyUnlocked(5)) return true;
+        let isVis = false;
+        try { isVis = !!getTsunamiSequenceSeen(); }
+        catch { isVis = false; }
+        if (isVis) markHelpEntryPermanentlyUnlocked(5);
+        return isVis;
     }
   },
   {
@@ -83,8 +154,12 @@ const HELP_ENTRIES = [
     text: "Placeholder text for Experiment.",
     themeClass: "is-experiment",
     isVisible: () => {
-        try { return getResearchNodeLevel(4) >= 1; }
-        catch { return false; }
+        if (isHelpEntryPermanentlyUnlocked(6)) return true;
+        let isVis = false;
+        try { isVis = getResearchNodeLevel(4) >= 1; }
+        catch { isVis = false; }
+        if (isVis) markHelpEntryPermanentlyUnlocked(6);
+        return isVis;
     }
   },
   {
@@ -95,8 +170,12 @@ const HELP_ENTRIES = [
     text: "Placeholder text for Flow.",
     themeClass: "is-flow",
     isVisible: () => {
-        try { return !!getFlowUnlockState(); }
-        catch { return false; }
+        if (isHelpEntryPermanentlyUnlocked(7)) return true;
+        let isVis = false;
+        try { isVis = !!getFlowUnlockState(); }
+        catch { isVis = false; }
+        if (isVis) markHelpEntryPermanentlyUnlocked(7);
+        return isVis;
     }
   }
 ];
