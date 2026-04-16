@@ -1876,7 +1876,7 @@ function buildPanel(panelEl) {
                   Resets everything Infuse does as well as Magic and Magic upgrades for Waves<br>
                   Increase pending Wave amount by increasing Coins, XP Level, Gold, MP, and Magic<br>
 				  Waves cannot be spent on upgrades, rather they are only useful for filling a bar<br>
-                  Each time you fill this bar below, obtain powerful bonuses from Surge milestones<br>
+                  Each time you fill this bar below, obtain powerful bonuses from Surge Milestones<br>
                   Multiple milestones may be obtained in one reset, but Wave requirement scales 10x each fill
                 </p>
               </div>
