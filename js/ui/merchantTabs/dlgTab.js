@@ -2692,7 +2692,7 @@ export function runLabIntroDialogue() {
         nodes: {
             'n1': { 
                 type: 'line', 
-                say: 'Hey, <span style="color:#00e5ff">Player</span>, welcome to the Lab. I\'ll keep it brief: Research nodes, increase your Lab Level to research nodes faster, and you\'ll be making tons of Coins. Your Surge Milestones were sacrificed temporarily to the Tsunami but that\'s not important, get to researching!', 
+                say: 'Hey, <span style="color:#00e5ff">Player</span>, welcome to the Lab. I\'ll keep it brief: Research nodes, increase your Lab Level to research nodes faster, and you\'ll be making tons of Coins. Your Surge Milestones were temporarily sacrificed to the Tsunami but that\'s not important, get to researching!', 
                 next: 'c1' 
             },
             'c1': { 
