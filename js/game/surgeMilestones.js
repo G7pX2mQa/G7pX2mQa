@@ -198,7 +198,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 21,
     affectedByTsunami: true,
     description: [
-      "Increases Coin value by <span style=\"color:#00e5ff\">+100%</span> per Surge milestone after 20"
+      "Increases Coin value by <span style=\"color:#00e5ff\">+100%</span> per Surge Milestone after 20"
     ]
   },
   {
@@ -206,7 +206,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 23,
     affectedByTsunami: true,
     description: [
-      "Increases XP value by <span style=\"color:#00e5ff\">+100%</span> per Surge milestone after 22"
+      "Increases XP value by <span style=\"color:#00e5ff\">+100%</span> per Surge Milestone after 22"
     ]
   },
   {
@@ -214,7 +214,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 25,
     affectedByTsunami: true,
     description: [
-      "Increases Gold value by <span style=\"color:#00e5ff\">+100%</span> per Surge milestone after 24"
+      "Increases Gold value by <span style=\"color:#00e5ff\">+100%</span> per Surge Milestone after 24"
     ]
   },
   {
@@ -222,7 +222,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 27,
     affectedByTsunami: true,
     description: [
-      "Increases Magic value by <span style=\"color:#00e5ff\">+100%</span> per Surge milestone after 26"
+      "Increases Magic value by <span style=\"color:#00e5ff\">+100%</span> per Surge Milestone after 26"
     ]
   },
   {
@@ -230,7 +230,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 29,
     affectedByTsunami: true,
     description: [
-      "Increases Wave value by <span style=\"color:#00e5ff\">+100%</span> per Surge milestone after 28"
+      "Increases Wave value by <span style=\"color:#00e5ff\">+100%</span> per Surge Milestone after 28"
     ]
   },
   {
@@ -238,7 +238,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 31,
     affectedByTsunami: true,
     description: [
-      "Increases DNA value by <span style=\"color:#00e5ff\">+100%</span> per Surge milestone after 30"
+      "Increases DNA value by <span style=\"color:#00e5ff\">+100%</span> per Surge Milestone after 30"
     ]
   },
   {
@@ -246,7 +246,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 33,
     affectedByTsunami: true,
     description: [
-      "Increases FP value by <span style=\"color:#00e5ff\">+100%</span> per Surge milestone after 32"
+      "Increases FP value by <span style=\"color:#00e5ff\">+100%</span> per Surge Milestone after 32"
     ]
   },
   {
@@ -254,7 +254,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 35,
     affectedByTsunami: true,
     description: [
-      "Increases Coin, XP, Gold, Magic, Wave, DNA, and FP value by <span style=\"color:#00e5ff\">+25%</span> per Surge milestone after 34"
+      "Increases Coin, XP, Gold, Magic, Wave, DNA, and FP value by <span style=\"color:#00e5ff\">+25%</span> per Surge Milestone after 34"
     ]
   },
   {
@@ -262,7 +262,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 40,
     affectedByTsunami: false,
     description: [
-      "Doubles Coin value per Surge milestone after 39 (immune to exponent)"
+      "Doubles Coin value per Surge Milestone after 39 (immune to exponent)"
     ]
   },
   {
@@ -270,7 +270,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 50,
     affectedByTsunami: false,
     description: [
-      "Doubles XP value per Surge milestone after 49 (immune to exponent)"
+      "Doubles XP value per Surge Milestone after 49 (immune to exponent)"
     ]
   },
   {
@@ -293,6 +293,14 @@ export const SURGE_MILESTONES = [
   {
     id: 33,
     surgeLevel: 100,
+    affectedByTsunami: false,
+    description: [
+      "Experiment reset no longer resets Lab nodes"
+    ]
+  },
+  {
+    id: 34,
+    surgeLevel: 120,
     affectedByTsunami: false,
     description: [
       "Unlocks new area: <span class=\"cavern-shimmer-wrapper\" data-text=\"Underwater Cavern\"><span class=\"cavern-shimmer-text\">Underwater Cavern</span></span>"
@@ -713,7 +721,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
       const baseBonusPct = getSurge21BonusPercentage();
       const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
-      milestone.description[0] = `Increases Coin value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge milestone after 20`;
+      milestone.description[0] = `Increases Coin value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge Milestone after 20`;
 
       if (currentLevel >= 21) {
         const mult = getSurge21Multiplier();
@@ -770,7 +778,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
       const baseBonusPct = getSurge35BonusPercentage();
       const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
-      milestone.description[0] = `Increases Coin, XP, Gold, Magic, Wave, DNA, and FP value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge milestone after 34`;
+      milestone.description[0] = `Increases Coin, XP, Gold, Magic, Wave, DNA, and FP value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge Milestone after 34`;
 
       if (currentLevel >= 35) {
         const mult = getSurge35Multiplier();
@@ -793,7 +801,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
       const baseBonusPct = getSurge33BonusPercentage();
       const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
-      milestone.description[0] = `Increases FP value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge milestone after 32`;
+      milestone.description[0] = `Increases FP value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge Milestone after 32`;
 
       if (currentLevel >= 33) {
         const mult = getSurge33Multiplier();
@@ -816,7 +824,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
       const baseBonusPct = getSurge27BonusPercentage();
       const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
-      milestone.description[0] = `Increases Magic value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge milestone after 26`;
+      milestone.description[0] = `Increases Magic value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge Milestone after 26`;
 
       if (currentLevel >= 27) {
         const mult = getSurge27Multiplier();
@@ -839,7 +847,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
       const baseBonusPct = getSurge23BonusPercentage();
       const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
-      milestone.description[0] = `Increases XP value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge milestone after 22`;
+      milestone.description[0] = `Increases XP value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge Milestone after 22`;
 
       if (currentLevel >= 23) {
         const mult = getSurge23Multiplier();
@@ -862,7 +870,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
       const baseBonusPct = getSurge25BonusPercentage();
       const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
-      milestone.description[0] = `Increases Gold value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge milestone after 24`;
+      milestone.description[0] = `Increases Gold value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge Milestone after 24`;
 
       if (currentLevel >= 25) {
         const mult = getSurge25Multiplier();
@@ -885,7 +893,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
       const baseBonusPct = getSurge29BonusPercentage();
       const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
-      milestone.description[0] = `Increases Wave value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge milestone after 28`;
+      milestone.description[0] = `Increases Wave value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge Milestone after 28`;
 
       if (currentLevel >= 29) {
         const mult = getSurge29Multiplier();
@@ -908,7 +916,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
 
       const baseBonusPct = getSurge31BonusPercentage();
       const formattedBaseBonus = formatNumber(BigNum.fromAny(baseBonusPct));
-      milestone.description[0] = `Increases DNA value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge milestone after 30`;
+      milestone.description[0] = `Increases DNA value by <span style="color:#00e5ff">+${formattedBaseBonus}%</span> per Surge Milestone after 30`;
 
       if (currentLevel >= 31) {
         const mult = getSurge31Multiplier();
