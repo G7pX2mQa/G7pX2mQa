@@ -2514,7 +2514,7 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
 
   const overlay = document.createElement('div');
   overlay.className = 'merchant-firstchat is-visible';
-  overlay.style.zIndex = '2147483647'; 
+  overlay.style.zIndex = '99998'; 
   overlay.style.userSelect = 'none';
   overlay.style.webkitUserSelect = 'none';
   
@@ -2658,7 +2658,7 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
 export function runLabIntroDialogue() {
     const overlay = document.createElement('div');
     overlay.className = 'merchant-firstchat is-visible';
-    overlay.style.zIndex = '2147483647';
+    overlay.style.zIndex = '99998';
     overlay.style.position = 'fixed';
     overlay.style.inset = '0';
     overlay.style.userSelect = 'none';
@@ -2724,7 +2724,7 @@ export function runLabIntroDialogue() {
 export function runPostTsunamiShopDialogue(onComplete) {
     const overlay = document.createElement('div');
     overlay.className = 'merchant-firstchat is-visible';
-    overlay.style.zIndex = '2147483647';
+    overlay.style.zIndex = '99998';
     overlay.style.position = 'fixed';
     overlay.style.inset = '0';
     overlay.style.userSelect = 'none';
