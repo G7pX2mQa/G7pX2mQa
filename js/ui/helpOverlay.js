@@ -71,6 +71,8 @@ const HELP_ENTRIES = [
     tldr: "Collect Coins; Buy upgrades; Make numbers go up",
     progressionGoal: "Reach XP Level 31 and unlock a certain upgrade",
     text: "You probably don't need a help text for this section of the game (Intro), because it's very straightforward and designed to be intuitive. But if you haven't figured it out already, the core gameplay mechanic of this game is collecting Coins, which you can do by hovering over the Coins with your cursor. Your native cursor is hidden while on the playfield (the area the Coins settle into), and instead a particle trail is constantly drawn where your cursor is on the playfield. Moving past that, the main way you will progress through the game is through buying Shop upgrades and interacting with the Merchant when necessary. You'll need to left-click on an upgrade's icon in the Shop to access the upgrade's overlay, from which you can spend currency on that upgrade to make numbers go up faster. There are also a few shortcuts you can perform on upgrades like right-click to buy max and more, but you can find more information in the Shortcuts section of the Stats & Settings menu.",
+    hasMobileVariant: true,
+    mobileText: "You probably don't need a help text for this section of the game (Intro), because it's very straightforward and designed to be intuitive. But if you haven't figured it out already, the core gameplay mechanic of this game is collecting Coins, which you can do by hovering over the Coins with your finger. While your finger is held on the screen, a particle trail is constantly drawn where your finger is on the playfield. Moving past that, the main way you will progress through the game is through buying Shop upgrades and interacting with the Merchant when necessary. You'll need to tap on an upgrade's icon in the Shop to access the upgrade's overlay, from which you can spend currency on that upgrade to make numbers go up faster.",
     themeClass: "is-intro",
     isVisible: () => true // Always unlocked
   },
@@ -308,11 +310,16 @@ function renderHelpContent() {
   const classMap = {1: 'is-intro', 2: 'is-forge', 3: 'is-infuse', 4: 'is-surge', 5: 'is-lab', 6: 'is-experiment', 7: 'is-flow'};
   const currentThemeClass = classMap[currentEntry.id];
   
+  let entryText = currentEntry.text;
+  if (IS_MOBILE && currentEntry.hasMobileVariant && currentEntry.mobileText) {
+    entryText = currentEntry.mobileText;
+  }
+
   let paragraphContent = '';
   if (currentEntry.tldr) {
-    paragraphContent = `<strong style="display: block; margin-bottom: 12px;">TLDR: ${currentEntry.tldr}</strong>${currentEntry.text}`;
+    paragraphContent = `<strong style="display: block; margin-bottom: 12px;">TLDR: ${currentEntry.tldr}</strong>${entryText}`;
   } else {
-    paragraphContent = currentEntry.text;
+    paragraphContent = entryText;
   }
   
   if (currentEntry.progressionGoal) {
