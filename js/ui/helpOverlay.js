@@ -69,6 +69,7 @@ const HELP_ENTRIES = [
     title: "Intro",
     icon: "img/currencies/coin/coin.webp",
     tldr: "Placeholder TLDR for Intro.",
+    progressionGoal: "Placeholder Progression goal for Intro.",
     text: "Placeholder text for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for Placeholder TLDR for .",
     themeClass: "is-intro",
     isVisible: () => true // Always unlocked
@@ -78,6 +79,7 @@ const HELP_ENTRIES = [
     title: "Forge",
     icon: "img/misc/forge.webp",
     tldr: "Placeholder TLDR for Forge.",
+    progressionGoal: "Placeholder Progression goal for Forge.",
     text: "Placeholder text for Forge.",
     themeClass: "is-forge",
     isVisible: () => {
@@ -97,6 +99,7 @@ const HELP_ENTRIES = [
     title: "Infuse",
     icon: "img/misc/infuse.webp",
     tldr: "Placeholder TLDR for Infuse.",
+    progressionGoal: "Placeholder Progression goal for Infuse.",
     text: "Placeholder text for Infuse.",
     themeClass: "is-infuse",
     isVisible: () => {
@@ -116,6 +119,7 @@ const HELP_ENTRIES = [
     title: "Surge",
     icon: "img/misc/surge.webp",
     tldr: "Placeholder TLDR for Surge.",
+    progressionGoal: "Placeholder Progression goal for Surge.",
     text: "Placeholder text for Surge.",
     themeClass: "is-surge",
     isVisible: () => {
@@ -135,6 +139,7 @@ const HELP_ENTRIES = [
     title: "Lab",
     icon: "img/stats/rp/rp.webp",
     tldr: "Placeholder TLDR for Lab.",
+    progressionGoal: "Placeholder Progression goal for Lab.",
     text: "Placeholder text for Lab.",
     themeClass: "is-lab",
     isVisible: () => {
@@ -151,6 +156,7 @@ const HELP_ENTRIES = [
     title: "Experiment",
     icon: "img/misc/experiment.webp",
     tldr: "Placeholder TLDR for Experiment.",
+    progressionGoal: "Placeholder Progression goal for Experiment.",
     text: "Placeholder text for Experiment.",
     themeClass: "is-experiment",
     isVisible: () => {
@@ -167,6 +173,7 @@ const HELP_ENTRIES = [
     title: "Flow",
     icon: "img/stats/fp/fp.webp",
     tldr: "Placeholder TLDR for Flow.",
+    progressionGoal: "Placeholder Progression goal for Flow.",
     text: "Placeholder text for Flow.",
     themeClass: "is-flow",
     isVisible: () => {
@@ -306,6 +313,10 @@ function renderHelpContent() {
     paragraphContent = `<strong style="display: block; margin-bottom: 12px;">TLDR: ${currentEntry.tldr}</strong>${currentEntry.text}`;
   } else {
     paragraphContent = currentEntry.text;
+  }
+  
+  if (currentEntry.progressionGoal) {
+    paragraphContent += `<strong style="display: block; margin-top: 12px;">Progression goal: ${currentEntry.progressionGoal}</strong>`;
   }
   
   const contentHtml = `
