@@ -337,6 +337,34 @@ function renderHelpContent() {
   // Add event listeners to sidebar buttons
   const buttons = container.querySelectorAll('.help-layer');
   buttons.forEach(btn => {
+    // Calculate dynamic overlay opacity based on background gradient brightness
+    const computedBg = getComputedStyle(btn).background;
+    if (computedBg) {
+      // Find the first rgba/rgb color in the linear-gradient
+      const match = computedBg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      if (match) {
+        const r = parseInt(match[1], 10);
+        const g = parseInt(match[2], 10);
+        const b = parseInt(match[3], 10);
+        const a = match[4] !== undefined ? parseFloat(match[4]) : 1;
+
+        // Combine with black background #222 (rgb: 34, 34, 34) which is the typical dark background
+        // to get effective RGB values.
+        const effectiveR = Math.round((1 - a) * 34 + a * r);
+        const effectiveG = Math.round((1 - a) * 34 + a * g);
+        const effectiveB = Math.round((1 - a) * 34 + a * b);
+
+        // Calculate perceived brightness (0 to 255)
+        const brightness = (effectiveR * 299 + effectiveG * 587 + effectiveB * 114) / 1000;
+        
+        // Map brightness to opacity between 0.05 (dark) and 0.15 (light)
+        // If brightness is 0, opacity is 0.05. If brightness is 255, opacity is 0.15.
+        const opacity = 0.05 + (brightness / 255) * 0.10;
+        
+        btn.style.setProperty('--help-overlay-opacity', opacity.toFixed(3));
+      }
+    }
+
     btn.addEventListener('click', () => {
       const id = parseInt(btn.getAttribute('data-help-id'), 10);
       if (id && id !== currentEntryId) {
