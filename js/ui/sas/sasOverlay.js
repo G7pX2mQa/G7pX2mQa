@@ -8,8 +8,10 @@ import { openLevelsOverlay } from './levelsOverlay.js';
 import { openMultipliersOverlay } from './multipliersOverlay.js';
 import { openAchievementsOverlay } from './achievementsOverlay.js';
 import { openDiscordOverlay } from './discordOverlay.js';
+import { openShortcutsOverlay } from './shortcutsOverlay.js';
 import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
 import { getXpState } from '../../game/xpSystem.js';
+import { IS_MOBILE } from '../../main.js';
 
 function populateSasButtons(overlayEl) {
   const grid = overlayEl.querySelector('.sas-grid');
@@ -140,6 +142,17 @@ function populateSasButtons(overlayEl) {
   });
   grid.appendChild(backBtn);
   
+  const shortcutsBtn = document.createElement("button");
+  shortcutsBtn.className = "sas-btn sas-btn-shortcuts";
+  shortcutsBtn.textContent = "Shortcuts";
+  shortcutsBtn.addEventListener("click", () => { openShortcutsOverlay(); });
+  
+  if (IS_MOBILE) {
+    shortcutsBtn.style.display = 'none';
+  }
+
+  grid.appendChild(shortcutsBtn);
+
   const discordBtn = document.createElement("button");
   discordBtn.className = "sas-btn sas-btn-discord";
   discordBtn.textContent = "Discord";
