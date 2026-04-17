@@ -245,6 +245,10 @@
   background: linear-gradient(to bottom, #0f0f0f 0%, #191919 15%, #292929 50%, #191919 85%, #0f0f0f 100%);
 }
 
+.sas-btn.sas-btn-shortcuts {
+  background: linear-gradient(to bottom, #00AAAA 0%, #00BEBE 15%, #00CECE 50%, #00BEBE 85%, #00AAAA 100%);
+}
+
 .sas-btn.sas-btn-discord {
   background: linear-gradient(to bottom, #3441CE 0%, #4855E2 15%, #5865F2 50%, #4855E2 85%, #3441CE 100%);
 }
