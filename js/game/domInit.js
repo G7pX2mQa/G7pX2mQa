@@ -76,12 +76,18 @@ export function ensureGameDom(layerCount, startZ) {
         ${waterLayersHtml.trim()}
       </section>
 
-      <nav class="hud-bottom ${uiHiddenClass}" id="hud-bottom">
-        <button class="game-btn btn-help" data-btn="help"><span>Help</span></button>
-        <button class="game-btn btn-shop" data-btn="shop"><span>Shop</span></button>
-        <button class="game-btn btn-stats" data-btn="stats"><span>Stats &amp; Settings</span></button>
-        <button class="game-btn btn-map" data-btn="map"><span>Map</span></button>
-      </nav>
+      <div class="hud-bottom-wrapper ${uiHiddenClass}" id="hud-bottom-wrapper">
+        <nav class="hud-bottom" id="hud-bottom">
+          <button class="game-btn btn-help" data-btn="help"><span>Help</span></button>
+          <button class="game-btn btn-shop" data-btn="shop"><span>Shop</span></button>
+          <button class="game-btn btn-stats" data-btn="stats"><span>Stats &amp; Settings</span></button>
+          <button class="game-btn btn-map" data-btn="map"><span>Map</span></button>
+        </nav>
+        <div class="goal-progress-bar" id="goal-progress-bar">
+          <div class="goal-bar-fill" id="goal-bar-fill"></div>
+          <div class="goal-bar-text" id="goal-bar-text"></div>
+        </div>
+      </div>
   `;
 
   document.body.appendChild(main);
