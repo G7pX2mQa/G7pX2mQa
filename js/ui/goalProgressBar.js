@@ -96,7 +96,7 @@ function updateGoalProgressBar() {
 
 
   const showUI = settingsManager.get('user_interface');
-  const showProgressBar = settingsManager.get('show_progress_bar');
+  const showProgressBar = settingsManager.get('game_progress_bar');
   const shouldShow = showUI && showProgressBar;
 
   if (allComplete) {
