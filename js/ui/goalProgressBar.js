@@ -1,3 +1,4 @@
+import { isForgeUnlocked } from "./merchantTabs/resetTab.js";
 import { getActiveSlot } from '../util/storage.js';
 import { getXpState } from '../game/xpSystem.js';
 import { levelBigNumToNumber } from '../game/upgrades.js';
@@ -44,7 +45,7 @@ const GOALS = [
     isComplete: () => {
       const xpState = getXpState();
       if (!xpState || !xpState.unlocked) return false;
-      return levelBigNumToNumber(xpState.xpLevel) >= 31;
+      return levelBigNumToNumber(xpState.xpLevel) >= 31 && isForgeUnlocked();
     }
   }
 ];
@@ -142,6 +143,10 @@ function updateGoalProgressBar() {
     }
     
     percentage = Math.max(0, Math.min(100, percentage));
+
+    if (activeGoal.id === 'unlock_xp_reach_31' && percentage >= 99 && !isForgeUnlocked()) {
+      percentage = 99;
+    }
 
     textEl.textContent = `${activeGoal.text} (${Math.floor(percentage)}%)`;
     fill.style.width = `${percentage}%`;
