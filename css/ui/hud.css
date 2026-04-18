@@ -1,12 +1,18 @@
 /* css/ui/hud.css */
 
 /* Bottom HUD */
-.hud-bottom {
+.hud-bottom-wrapper {
 position: absolute;
 left: 0;
 right: 0;
 bottom: 0;
 z-index: 999;
+display: flex;
+flex-direction: column;
+pointer-events: none;
+}
+
+.hud-bottom {
 display: grid;
 gap: 10px;
 padding: 10px;
@@ -16,6 +22,56 @@ grid-auto-rows: clamp(64px, 10svh, 110px);
 align-items: end;
 align-content: end;
 background: none;
+pointer-events: auto;
+}
+
+.hud-bottom-wrapper.has-goal-bar .hud-bottom {
+padding-bottom: 10px; /* Overridden, safe-area goes to the bar */
+}
+
+.goal-progress-bar {
+display: none; /* dynamically displayed */
+position: relative;
+background: linear-gradient(to bottom, #003C00 0%, #005000 15%, #006000 50%, #005000 85%, #003C00 100%);
+border-top: 2px solid #000;
+width: 100%;
+min-height: 18px;
+height: auto;
+overflow: hidden;
+pointer-events: auto;
+margin-bottom: env(safe-area-inset-bottom);
+}
+
+.hud-bottom-wrapper.has-goal-bar .goal-progress-bar {
+display: block;
+}
+
+.goal-bar-fill {
+position: absolute;
+top: 0;
+left: 0;
+bottom: 0;
+background: linear-gradient(to bottom, #00DB00 0%, #00EF00 15%, #00FF00 50%, #00EF00 85%, #00DB00 100%);
+width: 0%;
+z-index: 1;
+}
+
+.goal-bar-text {
+position: relative;
+z-index: 2;
+color: #fff;
+text-align: center;
+font-weight: 700;
+font-size: clamp(12px, 2vw, 16px);
+text-shadow: 1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000;
+padding: 2px 10px;
+line-height: 1;
+word-wrap: break-word;
+display: flex;
+align-items: center;
+justify-content: center;
+min-height: 18px;
+transform: translateY(-0.5px);
 }
 
 /* Base button appearance: rectangular w/ black outline, slight rounding */
@@ -86,6 +142,9 @@ padding: 8px;
 padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
 height: min(40svh, 360px);
 }
+.hud-bottom-wrapper.has-goal-bar .hud-bottom {
+padding-bottom: 8px;
+}
 .game-btn {
 font-size: clamp(16px, 6.4vw, 30px);
 }
@@ -146,6 +205,9 @@ grid-auto-rows: clamp(44px, 12vh, 60px);
 gap: 8px;
 padding: 8px;
 padding-bottom: calc(env(safe-area-inset-bottom) + 6px);
+}
+.hud-bottom-wrapper.has-goal-bar .hud-bottom {
+padding-bottom: 6px;
 }
 .game-btn {
 font-size: clamp(14px, 2.2vw, 22px);
