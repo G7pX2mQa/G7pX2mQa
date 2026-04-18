@@ -13,7 +13,7 @@ const GOAL_MODE = {
 
 const GOALS = [
   {
-    id: 'collect_10_coins',
+    id: 1,
     text: 'Collect 10 Coins',
     icon: 'img/currencies/coin/coin.webp',
     mode: GOAL_MODE.NORMAL,
@@ -30,7 +30,7 @@ const GOALS = [
     }
   },
   {
-    id: 'unlock_xp_reach_31',
+    id: 2,
     text: 'Unlock the XP system, then reach XP Level 31 and unlock a certain upgrade',
     icon: 'img/misc/forge.webp',
     unlocksHelpText: true,
