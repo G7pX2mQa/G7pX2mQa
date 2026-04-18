@@ -75,7 +75,7 @@ function updateGoalProgressBar() {
 
   for (const goal of GOALS) {
     const isComp = goal.isComplete();
-    const notifKey = `ccc:goal:notified:${slot}:${goal.id}`;
+    const notifKey = `ccc:goal:notified:${goal.id}:${slot}`;
     
     if (isComp) {
       if (!localStorage.getItem(notifKey)) {
