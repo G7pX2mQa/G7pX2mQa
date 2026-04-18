@@ -52,10 +52,10 @@ export const SETTING_DEFINITIONS = {
     default: false,
     unlockCondition: () => true,
   },
-  show_progress_bar: {
-    id: 'show_progress_bar',
+  game_progress_bar: {
+    id: 'game_progress_bar',
     type: 'toggle',
-    label: 'Show Progress Bar',
+    label: 'Game Progress Bar',
     hasExtraInfo: false,
     default: true,
     unlockCondition: () => true,
