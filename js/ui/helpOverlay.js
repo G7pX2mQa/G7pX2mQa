@@ -225,7 +225,7 @@ function buildOverlay() {
   container.className = 'help-container';
 
   const scroller = document.createElement('div');
-  scroller.className = 'sas-scroller';
+  scroller.className = 'help-scroller';
   scroller.appendChild(container);
 
   content.append(header, scroller);
@@ -243,7 +243,7 @@ function buildOverlay() {
   overlayEl.appendChild(sheetEl);
   document.body.appendChild(overlayEl);
 
-  ensureCustomScrollbar(overlayEl, sheetEl, '.sas-scroller');
+  ensureCustomScrollbar(overlayEl, sheetEl, '.help-scroller');
 
   // Listeners
   overlayEl.addEventListener('pointerdown', (e) => {
@@ -418,7 +418,7 @@ export function openHelpOverlay() {
       }
 
       blockInteraction(10);
-      ensureCustomScrollbar(overlayEl, sheetEl, '.sas-scroller');
+      ensureCustomScrollbar(overlayEl, sheetEl, '.help-scroller');
     });
   });
 }
