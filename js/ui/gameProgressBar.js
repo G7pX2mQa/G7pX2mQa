@@ -52,14 +52,14 @@ const GOALS = [
 
 let initialized = false;
 
-export function initGoalProgressBar() {
+export function initGameProgressBar() {
   if (initialized) return;
   initialized = true;
 
-  registerFrame(updateGoalProgressBar);
+  registerFrame(updateGameProgressBar);
 }
 
-function updateGoalProgressBar() {
+function updateGameProgressBar() {
   const wrapper = document.getElementById('hud-bottom-wrapper');
   const bar = document.getElementById('goal-progress-bar');
   const fill = document.getElementById('goal-bar-fill');
