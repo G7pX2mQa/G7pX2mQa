@@ -235,7 +235,7 @@ export function createSpawner({
         pf: document.querySelector(playfieldSelector),
         w: document.querySelector(waterSelector),
         c: document.querySelector(coinsHost),
-        hud: document.getElementById('hud-bottom'),
+        hud: document.getElementById('hud-bottom-wrapper') || document.getElementById('hud-bottom'),
     };
 
     function validRefs() {
