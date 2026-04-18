@@ -66,7 +66,7 @@ let getHasOpenedSaveSlot;
 let setHasOpenedSaveSlot;
 let ensureStorageDefaults;
 let ensureMultiplierDefaults;
-let initGoalProgressBar;
+let initGameProgressBar;
 let initSurgeEffects;
 let refreshSurgeMultiplierCache;
 let getUpgAreaKey;
@@ -439,8 +439,8 @@ export function enterArea(areaID) {
       if (typeof ensureGameDom === 'function') {
         ensureGameDom(FG_LAYER_COUNT, FG_START_Z);
       }
-      if (typeof initGoalProgressBar === 'function') {
-        initGoalProgressBar();
+      if (typeof initGameProgressBar === 'function') {
+        initGameProgressBar();
       }
 
       // Initialize Water System
@@ -610,7 +610,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./ui/merchantTabs/workshopTab.js'),
     import('./game/automationEffects.js'),
     import('./game/domInit.js'),
-    import('./ui/goalProgressBar.js'),
+    import('./ui/gameProgressBar.js'),
     import('./game/surgeEffects.js'),
     import('./game/webgl/waterSystem.js'),
     import('./ui/merchantTabs/labTab.js'),
@@ -821,7 +821,7 @@ images: [
     workshopTabModule,
     automationEffectsModule,
     domInitModule,
-    goalProgressBarModule,
+    gameProgressBarModule,
     surgeEffectsModule,
     waterSystemModule,
     labTabModule,
@@ -853,7 +853,7 @@ images: [
   const { initWorkshopSystem } = workshopTabModule;
   const { initAutomationEffects } = automationEffectsModule;
   ({ ensureGameDom } = domInitModule);
-  ({ initGoalProgressBar } = goalProgressBarModule);
+  ({ initGameProgressBar } = gameProgressBarModule);
   ({ initSurgeEffects, refreshSurgeMultiplierCache } = surgeEffectsModule);
   ({ waterSystem } = waterSystemModule);
   const { initLabLogic } = labTabModule;
