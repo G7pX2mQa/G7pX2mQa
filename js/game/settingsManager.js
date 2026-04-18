@@ -52,6 +52,14 @@ export const SETTING_DEFINITIONS = {
     default: false,
     unlockCondition: () => true,
   },
+  show_progress_bar: {
+    id: 'show_progress_bar',
+    type: 'toggle',
+    label: 'Show Progress Bar',
+    hasExtraInfo: false,
+    default: true,
+    unlockCondition: () => true,
+  },
   offline_progress: {
     id: 'offline_progress',
     type: 'toggle',
