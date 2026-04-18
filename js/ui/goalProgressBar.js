@@ -3,6 +3,7 @@ import { getXpState } from '../game/xpSystem.js';
 import { levelBigNumToNumber } from '../game/upgrades.js';
 import { registerFrame } from '../game/gameLoop.js';
 import { settingsManager } from '../game/settingsManager.js';
+import { showNotification } from '../ui/notifications.js';
 
 const GOAL_MODE = {
   NORMAL: 'normal',
@@ -13,6 +14,7 @@ const GOALS = [
   {
     id: 'collect_10_coins',
     text: 'Collect 10 Coins',
+    icon: 'img/currencies/coin/coin.webp',
     mode: GOAL_MODE.NORMAL,
     start: 0,
     target: 10,
@@ -29,6 +31,8 @@ const GOALS = [
   {
     id: 'unlock_xp_reach_31',
     text: 'Unlock the XP system and reach XP Level 31',
+    icon: 'img/misc/forge.webp',
+    unlocksHelpText: true,
     mode: GOAL_MODE.NORMAL,
     start: 0,
     target: 31,
@@ -62,16 +66,33 @@ function updateGoalProgressBar() {
 
   if (!wrapper || !bar || !fill || !textEl) return;
 
+
   let activeGoal = null;
   let allComplete = true;
 
+  const slot = getActiveSlot();
+
   for (const goal of GOALS) {
-    if (!goal.isComplete()) {
-      activeGoal = goal;
-      allComplete = false;
-      break;
+    const isComp = goal.isComplete();
+    const notifKey = `ccc:goal:notified:${slot}:${goal.id}`;
+    
+    if (isComp) {
+      if (!localStorage.getItem(notifKey)) {
+        let notifText = "Goal complete!";
+        if (goal.unlocksHelpText) {
+          notifText += '<br><span class="notification-subtext">New help text unlocked</span>';
+        }
+        showNotification(notifText, goal.icon);
+        localStorage.setItem(notifKey, '1');
+      }
+    } else {
+      if (!activeGoal) {
+        activeGoal = goal;
+        allComplete = false;
+      }
     }
   }
+
 
   const showUI = settingsManager.get('user_interface');
   const showProgressBar = settingsManager.get('show_progress_bar');
