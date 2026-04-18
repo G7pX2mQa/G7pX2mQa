@@ -74,9 +74,11 @@ function updateGoalProgressBar() {
   }
 
   const showUI = settingsManager.get('user_interface');
+  const showProgressBar = settingsManager.get('show_progress_bar');
+  const shouldShow = showUI && showProgressBar;
 
   if (allComplete) {
-    if (showUI) {
+    if (shouldShow) {
       wrapper.classList.add('has-goal-bar');
     } else {
       wrapper.classList.remove('has-goal-bar');
@@ -87,7 +89,7 @@ function updateGoalProgressBar() {
   }
 
   if (activeGoal) {
-    if (showUI) {
+    if (shouldShow) {
       wrapper.classList.add('has-goal-bar');
     } else {
       wrapper.classList.remove('has-goal-bar');
