@@ -243,7 +243,7 @@ export function checkSecretAchievements(slot = getActiveSlot()) {
                 changed = true;
                 if (typeof window !== 'undefined' && !window.__debugSuppressAchievementNotifications) {
                     if (!achievement.notifyCondition || achievement.notifyCondition()) {
-                        showNotification(`Secret Achievement: "${achievement.title}" Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, achievement.icon);
+                        showNotification(`Secret Achievement: "${achievement.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`, achievement.icon);
                     } else {
                         window.__delayedSecretAchievementNotifications = window.__delayedSecretAchievementNotifications || [];
                         window.__delayedSecretAchievementNotifications.push({ title: achievement.title, icon: achievement.icon });
@@ -259,7 +259,7 @@ export function showDelayedSecretAchievementNotifications() {
     if (typeof window === 'undefined') return;
     if (window.__delayedSecretAchievementNotifications && window.__delayedSecretAchievementNotifications.length > 0) {
         for (const notif of window.__delayedSecretAchievementNotifications) {
-            showNotification(`Secret Achievement: "${notif.title}" Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, notif.icon);
+            showNotification(`Secret Achievement: "${notif.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`, notif.icon);
         }
         window.__delayedSecretAchievementNotifications = [];
     }
