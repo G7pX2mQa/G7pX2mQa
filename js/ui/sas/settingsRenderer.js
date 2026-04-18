@@ -23,6 +23,7 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
 
   for (const [key, def] of Object.entries(SETTING_DEFINITIONS)) {
     const targetOverlay = def.overlay || "main";
+    if (def.type === "internal") continue;
     if (targetOverlay !== category) continue;
 
     const row = document.createElement("div");
