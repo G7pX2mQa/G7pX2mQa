@@ -30,7 +30,7 @@ const GOALS = [
   },
   {
     id: 'unlock_xp_reach_31',
-    text: 'Unlock the XP system and reach XP Level 31',
+    text: 'Unlock the XP system, then reach XP Level 31 and unlock a certain upgrade',
     icon: 'img/misc/forge.webp',
     unlocksHelpText: true,
     mode: GOAL_MODE.NORMAL,
