@@ -1,3 +1,21 @@
+.help-scroller {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    scrollbar-width: none;
+}
+
+.help-scroller::-webkit-scrollbar {
+    display: none;
+}
+
+.sas-overlay.is-open .sas-sheet:has(.help-scroller) {
+    max-width: 800px;
+}
+
 /* Help Overlay Styling */
 .help-overlay {
   z-index: 4015; /* Above SAS overlays just in case */
@@ -128,6 +146,9 @@
     display: flex;
     flex-direction: column;
     min-height: 100%;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
   }
 
   .help-content-area {
@@ -156,6 +177,9 @@
     padding-top: 12px;
     margin-top: -12px; /* Pull back to edge */
     z-index: 10;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
   }
 
   .help-layer {
