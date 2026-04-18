@@ -39,7 +39,7 @@ min-height: 18px;
 height: auto;
 overflow: hidden;
 pointer-events: auto;
-margin-bottom: env(safe-area-inset-bottom);
+margin-bottom: max(1px, env(safe-area-inset-bottom));
 }
 
 .hud-bottom-wrapper.has-goal-bar .goal-progress-bar {
