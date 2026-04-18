@@ -165,7 +165,7 @@ export function checkAchievements(slot = getActiveSlot()) {
                 changed = true;
                 if (typeof window !== 'undefined' && !window.__debugSuppressAchievementNotifications) {
                     if (!achievement.notifyCondition || achievement.notifyCondition()) {
-                        showNotification(`Achievement: "${achievement.title}" Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, achievement.icon);
+                        showNotification(`Achievement: "${achievement.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`, achievement.icon);
                     } else {
                         window.__delayedAchievementNotifications = window.__delayedAchievementNotifications || [];
                         window.__delayedAchievementNotifications.push({ title: achievement.title, icon: achievement.icon });
@@ -181,7 +181,7 @@ export function showDelayedAchievementNotifications() {
     if (typeof window === 'undefined') return;
     if (window.__delayedAchievementNotifications && window.__delayedAchievementNotifications.length > 0) {
         for (const notif of window.__delayedAchievementNotifications) {
-            showNotification(`Achievement: "${notif.title}" Completed<br><span class="ach-claim-subtext">Claim your reward in the Achievements menu</span>`, notif.icon);
+            showNotification(`Achievement: "${notif.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`, notif.icon);
         }
         window.__delayedAchievementNotifications = [];
     }
