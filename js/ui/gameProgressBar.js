@@ -119,6 +119,11 @@ const GOALS = [
     start: 0,
     target: 4,
     getCurrent: () => {
+      const node4 = RESEARCH_NODES.find(n => n.id === 4);
+      if (node4 && getResearchNodeLevel(4) >= node4.maxLevel) {
+          return 4;
+      }
+
       let maxedCount = 0;
       const relevantNodes = [1, 2, 3, 4];
       for (const nodeId of relevantNodes) {
@@ -133,6 +138,11 @@ const GOALS = [
       return maxedCount;
     },
     isComplete: () => {
+      const node4 = RESEARCH_NODES.find(n => n.id === 4);
+      if (node4 && getResearchNodeLevel(4) >= node4.maxLevel) {
+          return true;
+      }
+
       let maxedCount = 0;
       const relevantNodes = [1, 2, 3, 4];
       for (const nodeId of relevantNodes) {
