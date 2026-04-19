@@ -2514,7 +2514,7 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
 
   const overlay = document.createElement('div');
   overlay.className = 'merchant-firstchat is-visible';
-  overlay.style.zIndex = '99998'; 
+  overlay.style.zIndex = '2147483647'; 
   overlay.style.userSelect = 'none';
   overlay.style.webkitUserSelect = 'none';
   
