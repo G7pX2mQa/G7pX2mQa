@@ -1,14 +1,23 @@
 import { createSASOverlay } from './sasOverlayBuilder.js';
+import { getTsunamiSequenceSeen } from '../../game/surgeEffects.js';
+
 
 function populateShortcutsOverlay(overlayEl) {
   const container = overlayEl.querySelector('.sas-shortcuts-container');
   if (!container) return;
   container.innerHTML = "";
 
+  let rcDesc = "On any sort of Shop upgrade, right-click its icon to perform a Buy Max onto it.";
+  if (typeof getTsunamiSequenceSeen === 'function' && getTsunamiSequenceSeen()) {
+    rcDesc += " Right-click also can be used to instantly toggle Lab Nodes.";
+  }
+
   const shortcuts = [
-    { key: "X", desc: "Toggle User Interface" }, // Placeholder
-    { key: "M", desc: "Mute All Audio" }, // Placeholder
-    { key: "Space", desc: "Jump / Action" } // Placeholder
+    { key: "RC", desc: rcDesc },
+    { key: "Shift+LC", desc: "On any sort of Shop upgrade, hold shift and left-click its icon to perform a Buy Cheap onto it. Upgrades that do not support this will default to Buy Max." },
+    { key: "Ctrl+LC", desc: "On any sort of Shop upgrade, hold ctrl and left-click its icon to perform a Buy Next onto it. Upgrades that do not support this will default to Buy Max." },
+    { key: "0-9", desc: "Inside Delve overlays, press number keys 0 through 9 to instantly swap between tabs. First tab is 1, and pressing 0 sends to last tab." },
+    { key: "Esc", desc: "Inside any overlay, pressing Esc will instantly close all currently open overlays with a few exceptions." }
   ];
 
   shortcuts.forEach(shortcut => {
