@@ -192,7 +192,7 @@ export function initWarpTab(panel) {
             </div>
             <div class="warp-warning-container" style="display: none; text-align: center; margin-top: 0rem;">
                 <p style="color: yellow; font-weight: bold; margin: 0; margin-bottom: 0.5rem;">Photosensitivity warning: the warp sequence intensely alters the game's colors in a way that may trigger discomfort for people with photosensitive epilepsy<br>You may disable Warp's visual effects in the main settings</p>
-                <button type="button" class="warp-ack-btn">Click here to acknowledge this warning and remove it</button>
+                <button type="button" class="warp-ack-btn">Click here to acknowledge this warning and hide it</button>
             </div>
             <div class="warp-status">
                 <div class="warp-timer">Next warp in: 60m</div>
