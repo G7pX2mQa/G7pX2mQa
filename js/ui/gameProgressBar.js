@@ -1,10 +1,11 @@
-import { isForgeUnlocked } from "./merchantTabs/resetTab.js";
+import { isForgeUnlocked, isInfuseUnlocked, isSurgeUnlocked, getCurrentSurgeLevel } from "./merchantTabs/resetTab.js";
 import { getActiveSlot } from '../util/storage.js';
 import { getXpState } from '../game/xpSystem.js';
 import { levelBigNumToNumber } from '../game/upgrades.js';
 import { registerFrame } from '../game/gameLoop.js';
 import { settingsManager } from '../game/settingsManager.js';
 import { showNotification } from '../ui/notifications.js';
+import { getResearchNodeLevel, RESEARCH_NODES } from '../game/labNodes.js';
 
 const GOAL_MODE = {
   NORMAL: 'normal',
@@ -47,8 +48,140 @@ const GOALS = [
       if (!xpState || !xpState.unlocked) return false;
       return levelBigNumToNumber(xpState.xpLevel) >= 31 && isForgeUnlocked();
     }
+  },
+  {
+    id: 3,
+    text: 'Reach XP Level 101 and unlock a certain upgrade',
+    icon: 'img/misc/infuse.webp',
+    unlocksHelpText: true,
+    mode: GOAL_MODE.NORMAL,
+    start: 0,
+    target: 101,
+    getCurrent: () => {
+      const xpState = getXpState();
+      if (!xpState || !xpState.unlocked) return 0;
+      return levelBigNumToNumber(xpState.xpLevel);
+    },
+    isComplete: () => {
+      const xpState = getXpState();
+      if (!xpState || !xpState.unlocked) return false;
+      return levelBigNumToNumber(xpState.xpLevel) >= 101 && isInfuseUnlocked();
+    }
+  },
+  {
+    id: 4,
+    text: 'Reach XP Level 201 and unlock a certain upgrade',
+    icon: 'img/misc/surge.webp',
+    unlocksHelpText: true,
+    mode: GOAL_MODE.NORMAL,
+    start: 0,
+    target: 201,
+    getCurrent: () => {
+      const xpState = getXpState();
+      if (!xpState || !xpState.unlocked) return 0;
+      return levelBigNumToNumber(xpState.xpLevel);
+    },
+    isComplete: () => {
+      const xpState = getXpState();
+      if (!xpState || !xpState.unlocked) return false;
+      return levelBigNumToNumber(xpState.xpLevel) >= 201 && isSurgeUnlocked();
+    }
+  },
+  {
+    id: 5,
+    text: 'Reach Surge Milestone 8',
+    icon: 'img/stats/rp/rp.webp',
+    unlocksHelpText: true,
+    mode: GOAL_MODE.NORMAL,
+    start: 0,
+    target: 8,
+    getCurrent: () => {
+      let level = getCurrentSurgeLevel();
+      if (typeof level === 'bigint') return Number(level);
+      if (typeof level === 'number') return level;
+      if (level === Infinity || level === 'Infinity') return 8; // If they have infinite surge level, cap to 8
+      return 0;
+    },
+    isComplete: () => {
+      let level = getCurrentSurgeLevel();
+      if (level === Infinity || level === 'Infinity') return true;
+      if (typeof level === 'bigint') return level >= 8n;
+      if (typeof level === 'number') return level >= 8;
+      return false;
+    }
+  },
+  {
+    id: 6,
+    text: 'Reach Lab Node 4',
+    icon: 'img/misc/experiment.webp',
+    unlocksHelpText: true,
+    mode: GOAL_MODE.NORMAL,
+    start: 0,
+    target: 4,
+    getCurrent: () => {
+      let maxedCount = 0;
+      const relevantNodes = [1, 2, 3, 4];
+      for (const nodeId of relevantNodes) {
+          const node = RESEARCH_NODES.find(n => n.id === nodeId);
+          if (node) {
+              const level = getResearchNodeLevel(node.id);
+              if (level >= node.maxLevel) {
+                  maxedCount++;
+              }
+          }
+      }
+      return maxedCount;
+    },
+    isComplete: () => {
+      let maxedCount = 0;
+      const relevantNodes = [1, 2, 3, 4];
+      for (const nodeId of relevantNodes) {
+          const node = RESEARCH_NODES.find(n => n.id === nodeId);
+          if (node) {
+              const level = getResearchNodeLevel(node.id);
+              if (level >= node.maxLevel) {
+                  maxedCount++;
+              }
+          }
+      }
+      return maxedCount >= 4;
+    }
+  },
+  {
+    id: 7,
+    text: 'Reach Surge Milestone 20',
+    icon: 'img/stats/fp/fp.webp',
+    unlocksHelpText: true,
+    mode: GOAL_MODE.NORMAL,
+    start: 0,
+    target: 20,
+    getCurrent: () => {
+      let level = getCurrentSurgeLevel();
+      if (typeof level === 'bigint') return Number(level);
+      if (typeof level === 'number') return level;
+      if (level === Infinity || level === 'Infinity') return 20;
+      return 0;
+    },
+    isComplete: () => {
+      let level = getCurrentSurgeLevel();
+      if (level === Infinity || level === 'Infinity') return true;
+      if (typeof level === 'bigint') return level >= 20n;
+      if (typeof level === 'number') return level >= 20;
+      return false;
+    }
   }
 ];
+
+export function showDelayedGoalNotifications() {
+  if (typeof window === 'undefined') return;
+  if (window.__delayedGoalNotifications && window.__delayedGoalNotifications.length > 0) {
+      for (const notif of window.__delayedGoalNotifications) {
+          showNotification(notif.text, notif.icon);
+          localStorage.setItem(notif.notifKey, '1');
+      }
+      window.__delayedGoalNotifications = [];
+  }
+}
 
 let initialized = false;
 
@@ -59,7 +192,7 @@ export function initGameProgressBar() {
   registerFrame(updateGameProgressBar);
 }
 
-function updateGameProgressBar() {
+export function updateGameProgressBar() {
   const wrapper = document.getElementById('hud-bottom-wrapper');
   const bar = document.getElementById('goal-progress-bar');
   const fill = document.getElementById('goal-bar-fill');
@@ -83,8 +216,17 @@ function updateGameProgressBar() {
         if (goal.unlocksHelpText) {
           notifText += '<br><span class="notification-subtext">New help text unlocked</span>';
         }
-        showNotification(notifText, goal.icon);
-        localStorage.setItem(notifKey, '1');
+
+        if (typeof window !== 'undefined' && window.__tsunamiActive) {
+          window.__delayedGoalNotifications = window.__delayedGoalNotifications || [];
+          // Avoid pushing duplicates
+          if (!window.__delayedGoalNotifications.some(n => n.id === goal.id)) {
+            window.__delayedGoalNotifications.push({ id: goal.id, text: notifText, icon: goal.icon, notifKey });
+          }
+        } else {
+          showNotification(notifText, goal.icon);
+          localStorage.setItem(notifKey, '1');
+        }
       }
     } else {
       if (!activeGoal) {
@@ -144,7 +286,11 @@ function updateGameProgressBar() {
     
     percentage = Math.max(0, Math.min(100, percentage));
 
-    if (activeGoal.id === 'unlock_xp_reach_31' && percentage >= 99 && !isForgeUnlocked()) {
+    if (activeGoal.id === 2 && percentage >= 99 && !isForgeUnlocked()) {
+      percentage = 99;
+    } else if (activeGoal.id === 3 && percentage >= 99 && !isInfuseUnlocked()) {
+      percentage = 99;
+    } else if (activeGoal.id === 4 && percentage >= 99 && !isSurgeUnlocked()) {
       percentage = 99;
     }
 
