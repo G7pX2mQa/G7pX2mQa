@@ -63,6 +63,7 @@ import {
 } from '../../game/labNodes.js';
 import { getLabLevel } from './labTab.js';
 import { showDelayedAchievementNotifications } from '../../game/achievements.js';
+import { showDelayedGoalNotifications, updateGameProgressBar } from '../gameProgressBar.js';
 import { showDelayedSecretAchievementNotifications, checkSecretAchievements, setLifetimeUselessExperiment } from '../../game/secretAchievements.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
@@ -1481,10 +1482,15 @@ function endTsunamiSequence() {
         window.spawner.start();
     }
     
-        // 6. Clear active flag
+    // Force the progress bar to check goals synchronously before we clear the tsunami flag,
+    // so it pushes the completed goal to the delayed queue rather than immediately showing it.
+    try { updateGameProgressBar(); } catch {}
+
+    // 6. Clear active flag
     window.__tsunamiActive = false;
     
     // 6.5 Show any delayed achievements
+    try { showDelayedGoalNotifications(); } catch {}
     try { showDelayedAchievementNotifications(); } catch {}
     try { showDelayedSecretAchievementNotifications(); } catch {}
 
