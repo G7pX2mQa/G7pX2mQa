@@ -5,6 +5,7 @@ import { getResearchNodeLevel } from '../game/labNodes.js';
 import { getFlowUnlockState } from './merchantTabs/flowTab.js';
 import { getTsunamiSequenceSeen } from '../game/surgeEffects.js';
 import { getActiveSlot } from '../util/storage.js';
+import { settingsManager } from '../game/settingsManager.js';
 
 const HELP_PERMA_UNLOCK_KEY_BASE = 'ccc:help:permaUnlocks';
 const helpPermaUnlockStateCache = new Map();
@@ -73,6 +74,7 @@ const HELP_ENTRIES = [
     text: "You probably don't need a help text for this section of the game (Intro), because it's very straightforward and designed to be intuitive. But if you haven't figured it out already, the core gameplay mechanic of this game is collecting Coins, which you can do by hovering over the Coins with your cursor. Your native cursor is hidden while on the playfield (the area the Coins settle into), and instead a particle trail is constantly drawn where your cursor is on the playfield. Moving past that, the main way you will progress through the game is through buying Shop upgrades and interacting with the Merchant when necessary. You'll need to left-click on an upgrade's icon in the Shop to access the upgrade's overlay, from which you can spend currency on that upgrade to make numbers go up faster. There are also a few shortcuts you can perform on upgrades like right-click to buy max and more, but you can find more information in the Shortcuts section of the Stats & Settings menu. You also can follow along the progress bar at the bottom of the screen if you're ever lost on what to aim for next.",
     hasMobileVariant: true,
     mobileText: "You probably don't need a help text for this section of the game (Intro), because it's very straightforward and designed to be intuitive. But if you haven't figured it out already, the core gameplay mechanic of this game is collecting Coins, which you can do by hovering over the Coins with your finger. While your finger is held on the screen, a particle trail is constantly drawn where your finger is on the playfield. Moving past that, the main way you will progress through the game is through buying Shop upgrades and interacting with the Merchant when necessary. You'll need to tap on an upgrade's icon in the Shop to access the upgrade's overlay, from which you can spend currency on that upgrade to make numbers go up faster.",
+    nerdModeText: `<div style="margin-bottom:12px;"><strong>Upgrade Scaling Formula</strong><br><code>Cost = BaseCost * (1.1 ^ Level)</code></div><div style="margin-bottom:12px;"><strong>XP Scaling Formula</strong><br><code>Requirement = 10 * (1.1 ^ Level) * (2.5 ^ DecadeBonus)</code><br>Where <code>DecadeBonus = Floor(Level / 10)</code> (a 2.5x spike every 10 levels). After level 1 Trillion, an extreme softcap penalty starts scaling exponentially: <code>penalty = 5 * e^(2.36e-10 * softcapDelta)</code>.</div><div style="margin-bottom:12px;"><strong>XP Reward (Coin Multiplier)</strong><br><code>Total Multiplier = (1.1 ^ Level) + Level</code><br></div><div><strong>Buy Next / Buy Max / Buy Cheap Logic</strong><br><strong>Buy Max:</strong> Buys the maximum possible amount of levels within the current wallet constraint.<br><strong>Buy Cheap:</strong> Buys as many levels as possible such that the cost of the <em>last purchased level</em> does not exceed 10% of the <em>remaining wallet balance</em> after the previous levels are purchased.<br><strong>Buy Next:</strong> Only applies to milestone-type upgrades; calculates the exact amount of levels to buy to reach the next milestone or falls back to Buy Max if not enough in wallet.</div>`,
     themeClass: "is-intro",
     isVisible: () => true // Always unlocked
   },
@@ -308,7 +310,7 @@ function renderHelpContent() {
 
   // Build Content
   const classMap = {1: 'is-intro', 2: 'is-forge', 3: 'is-infuse', 4: 'is-surge', 5: 'is-lab', 6: 'is-experiment', 7: 'is-flow'};
-  const currentThemeClass = classMap[currentEntry.id];
+  let currentThemeClass = classMap[currentEntry.id];
   
   let entryText = currentEntry.text;
   if (IS_MOBILE && currentEntry.hasMobileVariant && currentEntry.mobileText) {
@@ -316,13 +318,22 @@ function renderHelpContent() {
   }
 
   let paragraphContent = '';
-  if (currentEntry.tldr) {
-    paragraphContent = `<strong style="display: block; margin-bottom: 12px;">TLDR: ${currentEntry.tldr}</strong>${entryText}`;
-  } else {
-    paragraphContent = entryText;
+  const isNerdMode = settingsManager.get('nerd_mode');
+  if (isNerdMode && currentEntry.nerdModeText) {
+    currentThemeClass += " is-nerd-mode";
   }
   
-  if (currentEntry.progressionGoal) {
+  if (isNerdMode && currentEntry.nerdModeText) {
+    paragraphContent = currentEntry.nerdModeText;
+  } else {
+    if (currentEntry.tldr) {
+      paragraphContent = `<strong style="display: block; margin-bottom: 12px;">TLDR: ${currentEntry.tldr}</strong>${entryText}`;
+    } else {
+      paragraphContent = entryText;
+    }
+  }
+  
+  if (currentEntry.progressionGoal && !(isNerdMode && currentEntry.nerdModeText)) {
     paragraphContent += `<strong style="display: block; margin-top: 12px;">Progression goal: ${currentEntry.progressionGoal}</strong>`;
   }
   
@@ -387,6 +398,11 @@ if (typeof window !== 'undefined') {
   });
   window.addEventListener('unlock:change', () => {
     updateHelpOverlay();
+  });
+  window.addEventListener('setting:changed', (e) => {
+    if (e.detail && e.detail.key === 'nerd_mode') {
+      updateHelpOverlay();
+    }
   });
 }
 
