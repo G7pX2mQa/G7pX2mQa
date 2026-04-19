@@ -84,6 +84,15 @@ export const SETTING_DEFINITIONS = {
     default: true,
     unlockCondition: () => true,
   },
+  nerd_mode: {
+    id: 'nerd_mode',
+    type: 'toggle',
+    label: 'Nerd Mode',
+    hasExtraInfo: true,
+    info: 'Replaces all of the text in every help text with relevant formulas for that section of the game.',
+    default: false,
+    unlockCondition: () => true,
+  },
   show_cursor: {
     id: 'show_cursor',
     type: 'toggle',
