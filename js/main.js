@@ -433,7 +433,7 @@ export function enterArea(areaID) {
       document.body.classList.remove('menu-bg');
 
       // Config for water layers
-      const FG_LAYER_COUNT = 11;
+      const FG_LAYER_COUNT = 1;
       const FG_START_Z = 80;
 
       if (typeof ensureGameDom === 'function') {
