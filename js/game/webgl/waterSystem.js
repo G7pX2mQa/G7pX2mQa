@@ -95,7 +95,7 @@ export class WaterSystem {
 
         this._boundResize = null;
         this._qualityUnsub = null;
-        this._baseNumLayers = 11;
+        this._baseNumLayers = 1;
         
         // Delve overlay optimization
         this.merchantOpenTimer = 0;
@@ -109,8 +109,8 @@ export class WaterSystem {
         let newSimRes = 512;
 
         if (quality !== undefined) {
-            // Determine number of layers
-            numLayers = Math.max(1, 11 - (10 - quality));
+            // Force 1 layer to avoid overlapping z-index bugs
+            numLayers = 1;
 
             // Determine simulation resolution based on quality
             if (quality <= 2) newSimRes = 128;
@@ -293,6 +293,13 @@ export class WaterSystem {
         gl.viewport(0, 0, this.simRes, this.simRes);
 
         gl.enable(gl.BLEND);
+        // Use MAX blending so newer waves cleanly overwrite older ones without additive merging.
+        const ext = gl.getExtension('EXT_blend_minmax');
+        if (ext) {
+            gl.blendEquation(ext.MAX_EXT);
+        } else {
+            gl.blendEquation(gl.MAX);
+        }
         gl.blendFunc(gl.ONE, gl.ONE);
 
         // Map pixels to WebGL Clip Space
@@ -329,6 +336,8 @@ export class WaterSystem {
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
+        // Reset blend equation back to default ADD
+        gl.blendEquation(gl.FUNC_ADD);
         gl.disable(gl.BLEND);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
@@ -350,14 +359,8 @@ export class WaterSystem {
             x, y, width, height
         );
 
-        // 2. Apply to ONE FG Layer (To distribute density)
-        // If forceTopLayer is true, use the last layer (highest visual priority).
-        // Otherwise, pick a random layer.
-        const layerIdx = forceTopLayer 
-            ? this.fgLayers.length - 1 
-            : Math.floor(Math.random() * this.fgLayers.length);
-            
-        const layer = this.fgLayers[layerIdx];
+        // 2. Apply to ONE FG Layer
+        const layer = this.fgLayers[0];
         
         this.applyBrush(
             this.glFg, 
