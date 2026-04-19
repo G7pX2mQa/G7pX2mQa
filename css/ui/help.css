@@ -323,3 +323,8 @@
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
 }
+
+.help-card.is-nerd-mode {
+  user-select: text;
+  -webkit-user-select: text;
+}
