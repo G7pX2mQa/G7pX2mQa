@@ -128,14 +128,18 @@
     padding: 0;
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     min-height: 100%;
     max-width: 100%;
+    width: 100%;
+    min-width: 0;
   }
 
   .help-content-area {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
   }
 
   .help-card {
@@ -158,13 +162,26 @@
     padding-top: 12px;
     margin-top: -12px; /* Pull back to edge */
     z-index: 10;
-    max-width: 100%;
+    max-width: 100vw;
+    margin-left: calc(-1 * clamp(12px, 2.5vw, 16px));
+    margin-right: -16px;
+    padding-left: clamp(12px, 2.5vw, 16px);
+  }
+
+  .help-sidebar::after {
+    content: "";
+    display: block;
+    flex: 0 0 16px; /* space at end of scroll */
   }
 
   .help-layer {
     min-width: 140px;
     justify-content: center;
     flex-shrink: 0;
+  }
+
+  .help-layer:last-child {
+    margin-right: 0;
   }
 }
 
