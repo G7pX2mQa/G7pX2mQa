@@ -61,7 +61,7 @@ import {
     getLabMagicMultiplier,
     getLabDnaMultiplier
 } from '../../game/labNodes.js';
-import { getLabLevel } from './labTab.js';
+import { getLabLevel, setLabLevel } from './labTab.js';
 import { showDelayedAchievementNotifications } from '../../game/achievements.js';
 import { showDelayedGoalNotifications, updateGameProgressBar } from '../gameProgressBar.js';
 import { showDelayedSecretAchievementNotifications, checkSecretAchievements, setLifetimeUselessExperiment } from '../../game/secretAchievements.js';
@@ -1473,6 +1473,9 @@ function endTsunamiSequence() {
     
     // 2. Force Reset (0 waves, no effects)
     applySurgeResetLogic(BigNum.fromInt(0), { playEffects: false });
+    
+    // 3. Reset Lab Level
+    setLabLevel(0);
     
     // 4. Restart music
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:restartMusic'));
