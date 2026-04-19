@@ -207,9 +207,15 @@ export function updateGameProgressBar() {
   const slot = getActiveSlot();
 
   for (const goal of GOALS) {
-    const isComp = goal.isComplete();
+    const compKey = `ccc:goal:completed:${goal.id}:${slot}`;
     const notifKey = `ccc:goal:notified:${goal.id}:${slot}`;
     
+    let isComp = localStorage.getItem(compKey) === '1' || localStorage.getItem(notifKey) === '1';
+    if (!isComp && goal.isComplete()) {
+      isComp = true;
+      localStorage.setItem(compKey, '1');
+    }
+
     if (isComp) {
       if (!localStorage.getItem(notifKey)) {
         let notifText = "Goal complete!";
