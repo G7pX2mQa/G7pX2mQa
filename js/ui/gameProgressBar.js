@@ -112,7 +112,7 @@ const GOALS = [
   },
   {
     id: 6,
-    text: 'Reach Lab Node 4',
+    text: 'Research Lab Node 4',
     icon: 'img/misc/experiment.webp',
     unlocksHelpText: true,
     mode: GOAL_MODE.NORMAL,
