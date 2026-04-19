@@ -1293,10 +1293,11 @@ const DEFAULT_SCALING_PRESETS = {
       // Calibrated to hit BN Infinity around Level 4 Trillion (4e9 evolutions)
       const rate = 1.6983145404738314e-7;
       const baseLog = 5;
-      let ratioLog10 = baseLog * Math.exp(rate * delta);
+      let startRatioLog10 = baseLog;
       if (harshness !== 1) {
-        ratioLog10 += Math.log10(harshness);
+        startRatioLog10 += Math.log10(harshness);
       }
+      let ratioLog10 = startRatioLog10 * Math.exp(rate * delta);
       let finalRatio = Infinity;
       if (ratioLog10 < 308) {
         finalRatio = Math.pow(10, ratioLog10);
