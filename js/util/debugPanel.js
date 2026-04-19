@@ -1182,6 +1182,17 @@ function parseBigNumInput(raw) {
         if (/^inf(?:inity)?$/i.test(trimmed)) {
             return BigNum.fromAny('Infinity');
         }
+        if (trimmed.startsWith('BN:')) {
+            const parts = trimmed.split(':');
+            if (parts.length >= 4 && parts[1] !== 'infinite') {
+                const sigPart = parts[2] || '';
+                const expPart = parts[3] || '0';
+                const isZeroSig = /^0*$/.test(sigPart);
+                if (isZeroSig && expPart !== '0' && expPart !== '') {
+                    return BigNum.fromAny('1e' + expPart);
+                }
+            }
+        }
         return BigNum.fromAny(trimmed);
     } catch {
         return null;
