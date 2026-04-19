@@ -72,6 +72,7 @@ align-items: center;
 justify-content: center;
 min-height: 18px;
 transform: translateY(-0.5px);
+user-select: none;
 }
 
 /* Base button appearance: rectangular w/ black outline, slight rounding */
