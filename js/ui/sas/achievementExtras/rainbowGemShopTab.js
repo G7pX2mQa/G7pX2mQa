@@ -427,26 +427,7 @@ export function updateRainbowGemShopTab() {
             tile.appendChild(badge);
             grid.appendChild(btn);
 
-            btn.addEventListener('click', (event) => {
-                if (btn.disabled) {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                    return;
-                }
-                if (shouldSkipGhostTap(btn)) {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                    return;
-                }
-                
-                openUpgradeOverlay(upg, 'rainbow_gem_shop');
-            });
-
-            btn.addEventListener('contextmenu', (event) => {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                if (btn.disabled) return;
-
+            const attemptBuyMax = () => {
                 const lockState = getUpgradeLockState(RAINBOW_GEM_AREA_KEY, upg.id);
                 if (lockState.locked) return;
 
@@ -469,6 +450,35 @@ export function updateRainbowGemShopTab() {
                         playPurchaseSfx();
                     }
                 }
+            };
+
+            btn.addEventListener('click', (event) => {
+                if (btn.disabled) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    return;
+                }
+                if (shouldSkipGhostTap(btn)) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    return;
+                }
+                
+                if (event.shiftKey || event.ctrlKey) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    attemptBuyMax();
+                    return;
+                }
+                
+                openUpgradeOverlay(upg, 'rainbow_gem_shop');
+            });
+
+            btn.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                if (btn.disabled) return;
+                attemptBuyMax();
             });
         }
         
