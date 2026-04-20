@@ -1116,10 +1116,11 @@ class ShopInstance {
         
         setupDragToClose(grabber, this.sheetEl, () => this.isOpen, () => {
              this.isOpen = false;
+             const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : 150;
              this.closeTimer = setTimeout(() => {
                  this.closeTimer = null;
                  this.close(true);
-             }, 150);
+             }, delay);
         });
         
         this.update(true);
@@ -1353,7 +1354,8 @@ function ensureUpgradeOverlay() {
     upgSheetEl.style.transform = shouldClose ? 'translateY(100%)' : 'translateY(0)';
     if (shouldClose) {
       if (IS_MOBILE && (!e || e.pointerType !== 'mouse')) try { blockInteraction(120); } catch {}
-      setTimeout(closeUpgradeMenu, 160);
+      const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : 160;
+      setTimeout(closeUpgradeMenu, delay);
     }
     drag = null;
     window.removeEventListener('pointermove', onDragMove);
