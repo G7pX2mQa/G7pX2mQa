@@ -1186,7 +1186,20 @@ function parseBigNumInput(raw) {
             const parts = trimmed.split(':');
             if (parts.length >= 4 && parts[1] !== 'infinite') {
                 const sigPart = parts[2] || '';
-                const expPart = parts[3] || '0';
+                let expPart = parts.slice(3).join(':');
+                if (!expPart) expPart = '0';
+
+                const dotIndex = expPart.indexOf('.');
+                if (dotIndex !== -1) {
+                    expPart = expPart.substring(0, dotIndex);
+                }
+
+                if (/[^0-9eE+\-]/.test(expPart)) {
+                    return null;
+                }
+
+                trimmed = `BN:${parts[1]}:${sigPart}:${expPart}`;
+
                 const isZeroSig = /^0*$/.test(sigPart);
                 if (isZeroSig && expPart !== '0' && expPart !== '') {
                     let p = parseInt(parts[1], 10);
