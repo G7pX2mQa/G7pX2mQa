@@ -153,4 +153,15 @@ export function ensureGameDom(layerCount, startZ) {
   
   settingsManager.subscribe('active_font_mod', applyFontSetting);
   applyFontSetting();
+
+  const applyOverlayTransitionSetting = () => {
+    if (settingsManager.get('overlay_transition') === false) {
+      document.body.classList.add('no-overlay-transitions');
+    } else {
+      document.body.classList.remove('no-overlay-transitions');
+    }
+  };
+
+  settingsManager.subscribe('overlay_transition', applyOverlayTransitionSetting);
+  applyOverlayTransitionSetting();
 }
