@@ -93,10 +93,11 @@ export function createSASOverlay({ id, title, containerClass, zIndex = '4010', f
 
     setupDragToClose(grabber, sheetEl, () => isOpen, () => {
       isOpen = false;
+      const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : 150;
       closeTimer = setTimeout(() => {
         closeTimer = null;
         closeOverlay(true);
-      }, 150);
+      }, delay);
     });
   }
 
