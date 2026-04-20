@@ -121,3 +121,15 @@
 .menu-root,
 .menu-header,
 .menu-panel { position: relative; z-index: 1; }
+/* Overlay Transition Setting */
+body.no-overlay-transitions {
+  --shop-anim: 0s !important;
+  --sas-anim: 0s !important;
+  --merchant-anim: 0s !important;
+}
+body.no-overlay-transitions .shop-sheet,
+body.no-overlay-transitions .sas-sheet,
+body.no-overlay-transitions .merchant-sheet,
+body.no-overlay-transitions .upg-sheet {
+  transition: none !important;
+}
