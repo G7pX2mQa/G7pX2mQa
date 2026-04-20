@@ -1189,7 +1189,9 @@ function parseBigNumInput(raw) {
                 const expPart = parts[3] || '0';
                 const isZeroSig = /^0*$/.test(sigPart);
                 if (isZeroSig && expPart !== '0' && expPart !== '') {
-                    return BigNum.fromAny('1e' + expPart);
+                    let p = parseInt(parts[1], 10);
+                    if (Number.isNaN(p)) p = BigNum.DEFAULT_PRECISION;
+                    return BigNum.fromStorage(`BN:${p}:1:${expPart}`);
                 }
             }
         }
