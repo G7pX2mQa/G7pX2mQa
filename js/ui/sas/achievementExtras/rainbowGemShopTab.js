@@ -344,7 +344,7 @@ export function closeOverlay(force = false) {
         if (!isOpen) {
              sheetEl.style.transition = '';
         }
-    }, 150);
+    }, document.body.classList.contains('no-overlay-transitions') ? 0 : 150);
 }
 
 
