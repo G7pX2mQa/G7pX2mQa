@@ -380,6 +380,15 @@ function renderHelpContent() {
       if (id && id !== currentEntryId) {
         currentEntryId = id;
         renderHelpContent(); // Re-render content
+		
+		 // Reset scroll and update scrollbar instantly
+        const scroller = overlayEl.querySelector('.help-scroller');
+        if (scroller) {
+          scroller.scrollTop = 0;
+          if (scroller.__customScroll && typeof scroller.__customScroll.update === 'function') {
+            scroller.__customScroll.update();
+          }
+        }
       }
     });
   });
