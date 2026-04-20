@@ -114,7 +114,7 @@ export const SETTING_DEFINITIONS = {
   overlay_transition: {
     id: 'overlay_transition',
     type: 'toggle',
-    label: 'Overlay Transition',
+    label: 'Overlay Transitions',
     hasExtraInfo: true,
     info: 'If turned OFF, disables the short open/close transition that most overlays in the game use.',
     default: true,
