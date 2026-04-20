@@ -1151,7 +1151,8 @@ function openDialogueLockInfo(lockInfo = {}) {
       stopTypingSfx();
       __isTypingActive = false;
       document.removeEventListener('keydown', onEsc, true);
-      setTimeout(() => overlay.remove(), 160);
+      const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : 160;
+      setTimeout(() => overlay.remove(), delay);
   };
 
   const onEsc = (e) => {
@@ -2399,7 +2400,8 @@ function onMerchantDragEnd() {
     suppressNextGhostTap(160);
     merchantSheetEl.style.transition = 'transform 140ms ease-out';
     merchantSheetEl.style.transform = 'translateY(100%)';
-    setTimeout(() => { closeMerchant(); }, 150);
+    const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : 150;
+    setTimeout(() => { closeMerchant(); }, delay);
   } else {
     merchantSheetEl.style.transition = 'transform 180ms ease';
     merchantSheetEl.style.transform = 'translateY(0)';
