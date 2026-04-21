@@ -792,6 +792,9 @@ function ensureStateLoaded(force = false) {
   }
   try {
     xpState.xpLevel = BigNum.fromAny(localStorage.getItem(KEY_XP_LEVEL(slot)) ?? '0');
+    if (xpState.xpLevel && typeof xpState.xpLevel.cmp === 'function' && xpState.xpLevel.cmp(4500000000000) >= 0) {
+      xpState.xpLevel = BigNum.fromAny('Infinity');
+    }
   } catch {
     xpState.xpLevel = bnZero();
   }
@@ -866,6 +869,9 @@ function persistState() {
   if (mismatch) {
     xpState.unlocked = persisted.unlocked;
     xpState.xpLevel = persisted.level;
+    if (xpState.xpLevel && typeof xpState.xpLevel.cmp === 'function' && xpState.xpLevel.cmp(4500000000000) >= 0) {
+      xpState.xpLevel = BigNum.fromAny('Infinity');
+    }
     xpState.progress = persisted.progress;
     updateXpRequirement();
     syncCoinMultiplierWithXpLevel(true);
@@ -1240,7 +1246,11 @@ export function addXp(amount, { silent = false } = {}) {
       }
       
       if (guard >= limit && xpState.progress.cmp(requirementBn) >= 0) {
-          updateXpRequirement(); 
+          updateXpRequirement();
+      }
+      if (xpState.xpLevel && typeof xpState.xpLevel.cmp === 'function' && xpState.xpLevel.cmp(4500000000000) >= 0) {
+        xpState.xpLevel = BigNum.fromAny('Infinity');
+        updateXpRequirement();
       }
   }
 
@@ -1267,6 +1277,11 @@ export function addXp(amount, { silent = false } = {}) {
 }
 
 export function getXpState() {
+  if (xpState.xpLevel && typeof xpState.xpLevel.cmp === 'function' && xpState.xpLevel.cmp(4500000000000) >= 0 && !xpState.xpLevel.isInfinite?.()) {
+    xpState.xpLevel = bigNumFromAny('Infinity');
+    xpState.xpProgress = bigNumFromAny('Infinity');
+    xpState.xpRequirement = bigNumFromAny('Infinity');
+  }
   ensureStateLoaded();
   return {
     unlocked: xpState.unlocked,
