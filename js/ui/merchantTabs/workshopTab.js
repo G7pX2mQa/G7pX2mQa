@@ -74,6 +74,10 @@ const GEAR_SPEED = 67;
 const GEAR_ROTATION_SPEED_BASE = 67; 
 const GEAR_ROTATION_VARIANCE = 67; 
 
+
+export function getGenerationLevel() {
+  return currentGenerationLevel;
+}
 function loadGenerationLevel() {
   const slot = getActiveSlot();
   if (!slot) return BigNum.zero();
@@ -83,9 +87,13 @@ function loadGenerationLevel() {
   try {
       // Handle both legacy "123" and new "BN:..." formats
       if (raw.startsWith('BN:') || /infinity/i.test(raw)) {
-          return BigNum.fromStorage(raw);
+          let bn = BigNum.fromStorage(raw);
+          if (bn.cmp && bn.cmp(4500000000000) >= 0) return BigNum.fromAny('Infinity');
+          return bn;
       }
-      return BigNum.fromAny(raw);
+      let bn2 = BigNum.fromAny(raw);
+      if (bn2.cmp && bn2.cmp(4500000000000) >= 0) return BigNum.fromAny('Infinity');
+      return bn2;
   } catch {
       return BigNum.zero();
   }
@@ -294,7 +302,8 @@ function buyGenerationUpgrade() {
   const cost = getGenerationUpgradeCost(currentGenerationLevel);
   if (bank.coins.value.cmp(cost) < 0) return;
   // currentGenerationLevel is BigNum
-  const nextLevel = currentGenerationLevel.add(1);
+  let nextLevel = currentGenerationLevel.add(1);
+  if (nextLevel.cmp && nextLevel.cmp(4500000000000) >= 0) nextLevel = BigNum.fromAny('Infinity');
   if (saveGenerationLevel(nextLevel)) {
     currentGenerationLevel = nextLevel;
     bank.coins.sub(cost);
@@ -784,6 +793,7 @@ export function performFreeGenerationUpgrade() {
   
   let targetLevelVal = best + 1;
   let targetLevel = BigNum.fromInt(targetLevelVal);
+  if (targetLevel.cmp && targetLevel.cmp(4500000000000) >= 0) targetLevel = BigNum.fromAny('Infinity');
 
   if (targetLevel.cmp(currentGenerationLevel) > 0) {
     if (saveGenerationLevel(targetLevel)) {
@@ -844,6 +854,7 @@ function buyMaxGenerationUpgrade() {
   }
   
   let targetLevel = BigNum.fromInt(targetLevelVal);
+  if (targetLevel.cmp && targetLevel.cmp(4500000000000) >= 0) targetLevel = BigNum.fromAny('Infinity');
   if (targetLevel.cmp(currentGenerationLevel) > 0) {
       if (saveGenerationLevel(targetLevel)) {
           currentGenerationLevel = targetLevel;
