@@ -145,6 +145,7 @@ function updateBlockBigCoinsStatus() {
   const currentWaves = bank.waves?.value ?? bnZero();
   let barLevel = 0n;
   try { barLevel = getSurgeBarLevel(slot); } catch {}
+  if (typeof barLevel === 'bigint' && barLevel >= 4500000000000n) barLevel = Infinity;
   
   const pending = resetState.pendingWaves;
   const potentialLevel = predictSurgeLevel(barLevel, currentWaves, pending);
@@ -247,20 +248,20 @@ function getPendingGoldWithMultiplier(multiplierOverride = null) {
     let val = resetState.pendingGold.clone?.() ?? resetState.pendingGold;
     
     if (multiplierOverride) {
-      const mult = multiplierOverride instanceof BN ? multiplierOverride : BN.fromAny(multiplierOverride ?? 1);
-      if (mult.isInfinite?.()) return BN.fromAny('Infinity');
+      const mult = multiplierOverride instanceof BN ? multiplierOverride : BigNum.fromAny(multiplierOverride ?? 1);
+      if (mult.isInfinite?.()) return BigNum.fromAny('Infinity');
       val = val.mulBigNumInteger(mult);
     } else {
       val = bank.gold?.mult?.applyTo?.(val) ?? val;
     }
     
-    if (surge25Mult.isInfinite?.()) return BN.fromAny('Infinity');
+    if (surge25Mult.isInfinite?.()) return BigNum.fromAny('Infinity');
     if (surge25Mult.cmp(1) > 0) {
         val = val.mulBigNumInteger(surge25Mult);
     }
 
     const surge35Mult = getSurge35Multiplier();
-    if (surge35Mult.isInfinite?.()) return BN.fromAny('Infinity');
+    if (surge35Mult.isInfinite?.()) return BigNum.fromAny('Infinity');
     if (surge35Mult.cmp(1) > 0) {
         val = val.mulBigNumInteger(surge35Mult);
     }
@@ -284,13 +285,13 @@ function getPendingMagicWithMultiplier(multiplierOverride = null) {
     // already applies them when calculating resetState.pendingMagic.
     // However, we need to apply the new Surge 27 multiplier here for the UI.
     
-    if (surge27Mult.isInfinite?.()) return BN.fromAny('Infinity');
+    if (surge27Mult.isInfinite?.()) return BigNum.fromAny('Infinity');
     if (surge27Mult.cmp(1) > 0) {
         val = val.mulBigNumInteger(surge27Mult);
     }
 
     const surge35Mult = getSurge35Multiplier();
-    if (surge35Mult.isInfinite?.()) return BN.fromAny('Infinity');
+    if (surge35Mult.isInfinite?.()) return BigNum.fromAny('Infinity');
     if (surge35Mult.cmp(1) > 0) {
         val = val.mulBigNumInteger(surge35Mult);
     }
@@ -364,7 +365,7 @@ function computeForgeGold(coinsBn, levelBn) {
   if (!coinsBn || typeof coinsBn !== 'object') return bnZero();
   const logCoins = approxLog10BigNum(coinsBn);
   if (!Number.isFinite(logCoins)) {
-    if (logCoins > 0) return BN.fromAny('Infinity');
+    if (logCoins > 0) return BigNum.fromAny('Infinity');
   }
   const logScaled = Math.max(0, logCoins - 5);
   if (!Number.isFinite(logScaled)) return bnZero();
@@ -393,7 +394,7 @@ function computeInfuseMagicBase(coinsBn, cumulativeMpBn) {
 
 
   const logCoins = approxLog10BigNum(coinsBn);
-  if (!Number.isFinite(logCoins)) { if (logCoins > 0) return BN.fromAny('Infinity'); }
+  if (!Number.isFinite(logCoins)) { if (logCoins > 0) return BigNum.fromAny('Infinity'); }
 
   const logCRatio = Math.max(0, logCoins - 12);
 
@@ -416,7 +417,7 @@ function computeInfuseMagicBase(coinsBn, cumulativeMpBn) {
 
   const totalLog = LOG_BASE + term1 + term2 + term3;
   
-  if (!Number.isFinite(totalLog)) return BN.fromAny('Infinity');
+  if (!Number.isFinite(totalLog)) return BigNum.fromAny('Infinity');
   
   return bigNumFromLog10(totalLog).floorToInteger();
 }
@@ -426,8 +427,8 @@ function computeInfuseMagic(coinsBn, cumulativeMpBn, multiplierOverride = null) 
   const labMult = getLabMagicMultiplier();
   let result;
   if (multiplierOverride) {
-    const mult = multiplierOverride instanceof BN ? multiplierOverride : BN.fromAny(multiplierOverride ?? 1);
-    if (mult.isInfinite?.()) return BN.fromAny('Infinity');
+    const mult = multiplierOverride instanceof BN ? multiplierOverride : BigNum.fromAny(multiplierOverride ?? 1);
+    if (mult.isInfinite?.()) return BigNum.fromAny('Infinity');
     result = base.mulBigNumInteger(mult);
   } else {
     result = bank.magic?.mult?.applyTo?.(base) ?? base;
@@ -564,7 +565,7 @@ function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
       logGold === Number.POSITIVE_INFINITY || 
       logMagic === Number.POSITIVE_INFINITY || 
       logMp === Number.POSITIVE_INFINITY) {
-    return BN.fromAny('Infinity');
+    return BigNum.fromAny('Infinity');
   }
 
   let logSum = 0;
@@ -587,7 +588,7 @@ function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
   
   let logTotal = 1 + logSum + xpTerm;
 
-  if (!Number.isFinite(logTotal)) return BN.fromAny("Infinity");
+  if (!Number.isFinite(logTotal)) return BigNum.fromAny("Infinity");
   
   let baseWaves = bigNumFromLog10(logTotal).floorToInteger();
   return bank.waves?.mult?.applyTo?.(baseWaves) ?? baseWaves;
@@ -1594,6 +1595,7 @@ function getSurgeBarLevel(slot) {
     }
   } catch {}
   if (barLevel === Infinity) return Infinity;
+  if (barLevel >= 4500000000000n) return Infinity;
   return barLevel < 0n ? 0n : barLevel;
 }
 
@@ -1614,6 +1616,16 @@ function getSafeLog10BigInt(bn) {
   return totalExp + sigLog;
 }
 
+function getSurgeRequirement(level) {
+  if (level === Infinity) return BigNum.fromAny('Infinity');
+  let numLevel = Number(level);
+  let logReq = numLevel;
+  if (numLevel > 1e12) {
+    logReq += 5 * Math.exp(2.3605777e-10 * (numLevel - 1e12));
+  }
+  return bigNumFromLog10(logReq);
+}
+
 function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
   if (startLevelBigInt === Infinity || (typeof startLevelBigInt === 'string' && startLevelBigInt === 'Infinity')) {
     return { level: Infinity, remainingWaves: wavesBn, changed: false, safety: 0 };
@@ -1625,7 +1637,7 @@ function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
   }
 
   let barLevel = startLevelBigInt;
-  let req = new BigNum(10n, { base: Number(barLevel) });
+  let req = getSurgeRequirement(barLevel);
   let changed = false;
 
   // Optimization for massive waves: jump to the approximate level
@@ -1634,19 +1646,46 @@ function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
 
   if (logCurrentBigInt != -1n && logReqBigInt != -1n && logCurrentBigInt > logReqBigInt + 5n) {
     try {
-      const targetLevel = logCurrentBigInt > 0n ? logCurrentBigInt - 1n : 0n;
+      // Binary search for the highest target level we can afford
+      let low = Number(barLevel);
+      let high = 4500000000000;
+      let best = low;
+      
+      const logCurrentNumber = Number(logCurrentBigInt);
+      
+      const getLogReqForLevel = (lvl) => {
+        let logVal = lvl;
+        if (lvl > 1e12) {
+          logVal += 5 * Math.exp(2.3605777e-10 * (lvl - 1e12));
+        }
+        return logVal;
+      };
 
+      for (let i = 0; i < 60; i++) {
+        const mid = Math.floor((low + high) / 2);
+        const midLog = getLogReqForLevel(mid);
+        // Cost is approximately 10^(mid+1) / 9, which is ~10^mid. We check if midLog <= logCurrentNumber
+        if (midLog <= logCurrentNumber) {
+          best = mid;
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+
+      let targetLevel = BigInt(best);
       if (targetLevel > barLevel) {
-        const nextReq = new BigNum(10n, { base: Number(targetLevel) });
-
-        // Cost = (10^(targetLevel+1) - 10^(barLevel+1)) / 9
+        const nextReq = getSurgeRequirement(targetLevel);
         const cost = nextReq.sub(req).div(BigNum.fromInt(9));
-
         if (currentWaves.cmp(cost) >= 0) {
           currentWaves = currentWaves.sub(cost);
           barLevel = targetLevel;
+          if (barLevel >= 4500000000000n) {
+            barLevel = Infinity;
+            req = BigNum.fromAny('Infinity');
+          }
           changed = true;
-          req = nextReq;
+          if (barLevel !== Infinity) req = nextReq;
         }
       }
     } catch {}
@@ -1660,9 +1699,13 @@ function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
     currentWaves = currentWaves.sub(req);
 
     barLevel += 1n;
+    if (barLevel >= 4500000000000n) {
+      barLevel = Infinity;
+      break;
+    }
     changed = true;
 
-    req = req.mulBigNumInteger(BigNum.fromInt(10));
+    req = getSurgeRequirement(barLevel);
     safety++;
   }
   
@@ -1886,7 +1929,7 @@ function buildPanel(panelEl) {
                   Increase pending Wave amount by increasing Coins, XP Level, Gold, MP, and Magic<br>
 				  Waves cannot be spent on upgrades, rather they are only useful for filling a bar<br>
                   Each time you fill this bar below, obtain powerful bonuses from Surge Milestones<br>
-                  Multiple milestones may be obtained in one reset, but Wave requirement scales 10x each fill
+                  Multiple milestones may be obtained in one reset, but Wave requirement scales a lot each fill
                 </p>
               </div>
               <div class="merchant-reset__status" data-reset-status="surge"></div>
@@ -2301,7 +2344,7 @@ function updateSurgeCard() {
   if (barLevel === Infinity) {
     req = BigNum.fromAny('Infinity');
   } else {
-    req = new BigNum(10n, { base: Number(barLevel) });
+    req = getSurgeRequirement(barLevel);
   }
   
   let pct = 0;
@@ -2661,7 +2704,7 @@ function bindGlobalEvents() {
       if (detail.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
       recomputePendingGold(true);
       // Pass the new multiplier explicitly so visual updates are instant
-      const goldMult = detail.mult instanceof BigNum ? detail.mult : BN.fromAny(detail.mult ?? 1);
+      const goldMult = detail.mult instanceof BigNum ? detail.mult : BigNum.fromAny(detail.mult ?? 1);
       
       // Force update with explicit override to ensure reactivity
       if (resetState.panel) {
@@ -2671,7 +2714,7 @@ function bindGlobalEvents() {
     }
     if (detail.key === CURRENCIES.MAGIC) {
       if (detail.slot != null && resetState.slot != null && detail.slot !== resetState.slot) return;
-      const magicMult = detail.mult instanceof BigNum ? detail.mult : BN.fromAny(detail.mult ?? 1);
+      const magicMult = detail.mult instanceof BigNum ? detail.mult : BigNum.fromAny(detail.mult ?? 1);
       recomputePendingMagic(magicMult);
       // Ensure visual update happens immediately with the new multiplier
       if (resetState.panel) {
