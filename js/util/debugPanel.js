@@ -2142,6 +2142,7 @@ function buildAreaStats(container, area) {
             }
 
             if (Number.isNaN(valNum) || valNum < 0) return;
+            if (valNum >= 4.5e12) valNum = Infinity;
             const cleanVal = (valNum === Infinity) ? 'Infinity' : String(Math.floor(valNum));
             
             try {
@@ -2218,6 +2219,17 @@ function buildAreaStats(container, area) {
             } else {
                  valToStore = String(value);
                  valForDisplay = value;
+            }
+
+            if (valForDisplay instanceof BigNum && valForDisplay.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                 valToStore = 'Infinity';
+                 valForDisplay = Infinity;
+            } else if (typeof valForDisplay === 'number' && valForDisplay >= 4.5e12) {
+                 valToStore = 'Infinity';
+                 valForDisplay = Infinity;
+            } else if (typeof valForDisplay === 'string' && Number(valForDisplay) >= 4.5e12) {
+                 valToStore = 'Infinity';
+                 valForDisplay = Infinity;
             }
 
             try {
