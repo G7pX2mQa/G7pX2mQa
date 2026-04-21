@@ -1747,8 +1747,11 @@ function updateWaveBar() {
   updateBlockBigCoinsStatus();
 }
 
-function formatBn(value) {
+function formatBn(value, isSurge = false) {
   if (value === Infinity || (value && (value === 'Infinity' || (typeof value.isInfinite === 'function' && value.isInfinite())))) {
+    if (isSurge) {
+      return '<span class="surge-infinity-symbol">∞</span>';
+    }
     return '<span class="infinity-symbol">∞</span>';
   }
   let bn = value;
@@ -2184,7 +2187,7 @@ export function initResetPanel(panelEl) {
   buildPanel(panelEl);
 }
 
-function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn) {
+function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn, isSurge = false) {
   if (!btn) return;
   const { disabled, msg } = state;
   
@@ -2203,7 +2206,7 @@ function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn) {
   }
   
   // Action mode
-  const amountStr = formatBn(pendingAmountBn);
+  const amountStr = formatBn(pendingAmountBn, isSurge);
   
   if (currentMode !== 'action') {
       // Build structure
@@ -2400,7 +2403,7 @@ function updateSurgeCard() {
     const sLevel = isInf ? '<span class="surge-infinity-symbol">∞</span>' : barLevel.toString();
     if (el.headerVal.innerHTML !== sLevel) el.headerVal.innerHTML = sLevel;
   }
-  if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}">${formatBn(currentWaves)} / <img src="${WAVES_ICON_SRC}">${formatBn(req)}</span>`;
+  if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}">${formatBn(currentWaves, true)} / <img src="${WAVES_ICON_SRC}">${formatBn(req, true)}</span>`;
 
   if (el.milestones) {
     const visible = getVisibleMilestones(barLevel, {
@@ -2554,7 +2557,7 @@ function updateSurgeCard() {
     return;
   }
   
-  updateResetButtonContent(el.btn, { disabled: false }, WAVES_ICON_SRC, resetState.pendingWaves);
+  updateResetButtonContent(el.btn, { disabled: false }, WAVES_ICON_SRC, resetState.pendingWaves, true);
 }
 
 function updateExperimentCard() {
