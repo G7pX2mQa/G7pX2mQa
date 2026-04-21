@@ -1189,12 +1189,20 @@ function parseBigNumInput(raw) {
                 let expPart = parts.slice(3).join(':');
                 if (!expPart) expPart = '0';
 
-                const dotIndex = expPart.indexOf('.');
-                if (dotIndex !== -1) {
-                    expPart = expPart.substring(0, dotIndex);
+                const eIndex = expPart.toLowerCase().indexOf('e');
+                if (eIndex !== -1) {
+                    const dotAfterE = expPart.indexOf('.', eIndex);
+                    if (dotAfterE !== -1) {
+                        expPart = expPart.substring(0, dotAfterE);
+                    }
+                } else {
+                    const dotIndex = expPart.indexOf('.');
+                    if (dotIndex !== -1) {
+                        expPart = expPart.substring(0, dotIndex);
+                    }
                 }
 
-                if (/[^0-9eE+\-]/.test(expPart)) {
+                if (/[^0-9eE+\-\.]/.test(expPart)) {
                     return null;
                 }
 
