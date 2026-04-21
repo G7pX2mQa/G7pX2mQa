@@ -71,7 +71,7 @@ function applyMutationMultipliers(amount) {
         if (maybe instanceof BN) {
           inc = maybe.clone?.() ?? maybe;
         } else if (maybe != null) {
-          inc = BN.fromAny(maybe);
+          inc = BigNum.fromAny(maybe);
         }
       } catch {}
     }
@@ -92,10 +92,10 @@ function ensureExternalMultiplierProviders() {
 
 function cloneBigNum(value) {
   if (value instanceof BN) {
-    try { return value.clone?.() ?? BN.fromAny(value); }
+    try { return value.clone?.() ?? BigNum.fromAny(value); }
     catch { return bnZero(); }
   }
-  try { return BN.fromAny(value ?? 0); }
+  try { return BigNum.fromAny(value ?? 0); }
   catch { return bnZero(); }
 }
 
@@ -115,7 +115,7 @@ function quantizeRequirement(value) {
     try {
       const quant = (BigInt(plain) / 100n) * 100n;
       if (quant <= 0n) return BN.fromInt(100);
-      return BN.fromAny(quant.toString());
+      return BigNum.fromAny(quant.toString());
     } catch {
       return floored;
     }
@@ -175,14 +175,14 @@ function computeRequirement(levelBn) {
   const levelNum = levelToNumber(levelBn);
   if (!Number.isFinite(levelNum)) {
     // Infinite / NaN level → infinite requirement
-    return BN.fromAny('Infinity');
+    return BigNum.fromAny('Infinity');
   }
 
   const baseLevel = Math.max(0, levelNum);
 
   // Hard wall: mutation 100+ is impossible
   if (baseLevel >= 100) {
-    return BN.fromAny('Infinity');
+    return BigNum.fromAny('Infinity');
   }
 
   let totalLog10;
@@ -246,7 +246,7 @@ function computeRequirement(levelBn) {
     
     const secondExp = A * x * x + B;
     if (!Number.isFinite(secondExp)) {
-      return BN.fromAny('Infinity');
+      return BigNum.fromAny('Infinity');
     }
 
     // log10(requirement) = 10 ^ secondExp, nudged up slightly to avoid hitting exact thresholds
@@ -262,7 +262,7 @@ function computeRequirement(levelBn) {
   }
 
   if (!Number.isFinite(totalLog10) || totalLog10 <= 0) {
-    return BN.fromAny('Infinity');
+    return BigNum.fromAny('Infinity');
   }
 
   const raw = bigNumFromLog10(totalLog10);
@@ -456,15 +456,15 @@ function persistState() {
     catch {}
     try {
       const rawLevel = localStorage.getItem(KEY_LEVEL(slot));
-      if (rawLevel) level = BN.fromAny(rawLevel);
+      if (rawLevel) level = BigNum.fromAny(rawLevel);
     } catch {}
     try {
       const rawProgress = localStorage.getItem(KEY_PROGRESS(slot));
-      if (rawProgress) progress = BN.fromAny(rawProgress);
+      if (rawProgress) progress = BigNum.fromAny(rawProgress);
     } catch {}
     try {
       const rawHighestLevel = localStorage.getItem(KEY_HIGHEST_LEVEL(slot));
-      if (rawHighestLevel) highestLevel = BN.fromAny(rawHighestLevel);
+      if (rawHighestLevel) highestLevel = BigNum.fromAny(rawHighestLevel);
     } catch {}
     return { unlocked, level, progress, highestLevel };
   })();
@@ -541,11 +541,23 @@ function normalizeProgress() {
   if (guard >= limit) {
     mutationState.progress = bnZero();
   }
+
+  if (mutationState.level && typeof mutationState.level.cmp === 'function' && mutationState.level.cmp(4500000000000) >= 0) {
+    mutationState.level = BigNum.fromAny('Infinity');
+    ensureRequirement();
+  }
+
+  if (false) {
+    mutationState.progress = bnZero();
+  }
 }
 
 function applyState(newState, { skipPersist = false } = {}) {
   mutationState.unlocked = !!newState.unlocked;
   mutationState.level = cloneBigNum(newState.level);
+  if (mutationState.level && typeof mutationState.level.cmp === 'function' && mutationState.level.cmp(4500000000000) >= 0) {
+    mutationState.level = BigNum.fromAny('Infinity');
+  }
   mutationState.progress = cloneBigNum(newState.progress);
   mutationState.highestLevel = cloneBigNum(newState.highestLevel ?? mutationState.highestLevel);
   if (mutationState.level.cmp?.(mutationState.highestLevel) > 0) {
@@ -576,15 +588,15 @@ function readStateFromStorage(slot) {
   catch {}
   try {
     const rawLvl = localStorage.getItem(KEY_LEVEL(targetSlot));
-    if (rawLvl) level = BN.fromAny(rawLvl);
+    if (rawLvl) level = BigNum.fromAny(rawLvl);
   } catch {}
   try {
     const rawProg = localStorage.getItem(KEY_PROGRESS(targetSlot));
-    if (rawProg) progress = BN.fromAny(rawProg);
+    if (rawProg) progress = BigNum.fromAny(rawProg);
   } catch {}
   try {
     const rawHigh = localStorage.getItem(KEY_HIGHEST_LEVEL(targetSlot));
-    if (rawHigh) highestLevel = BN.fromAny(rawHigh);
+    if (rawHigh) highestLevel = BigNum.fromAny(rawHigh);
   } catch {}
   if (level.cmp(highestLevel) > 0) {
     highestLevel = level.clone?.() ?? level;
@@ -624,7 +636,7 @@ function bindStorageWatchers(slot) {
     onChange(value) {
       if (!value) return;
       try {
-        const next = BN.fromAny(value);
+        const next = BigNum.fromAny(value);
         if (mutationState.level.cmp?.(next) !== 0) {
           mutationState.level = next;
           ensureRequirement();
@@ -638,7 +650,7 @@ function bindStorageWatchers(slot) {
     onChange(value) {
       if (!value) return;
       try {
-        const next = BN.fromAny(value);
+        const next = BigNum.fromAny(value);
         if (mutationState.progress.cmp?.(next) !== 0) {
           mutationState.progress = next;
           ensureRequirement();
@@ -688,6 +700,12 @@ export function getMutationProgressRatio() {
 }
 
 export function getMutationState() {
+  if (mutationState.level && typeof mutationState.level.cmp === 'function' && mutationState.level.cmp(4500000000000) >= 0 && !mutationState.level.isInfinite?.()) {
+    mutationState.level = BigNum.fromAny('Infinity');
+    mutationState.progress = BigNum.fromAny('Infinity');
+    mutationState.requirement = BigNum.fromAny('Infinity');
+    ensureRequirement();
+  }
   return {
     unlocked: mutationState.unlocked,
     level: cloneBigNum(mutationState.level),
@@ -739,15 +757,15 @@ export function addMutationPower(amount) {
     const prevProgress = mutationState.progress.clone?.() ?? mutationState.progress;
 
     if (!mutationState.progress?.isInfinite?.()) {
-      try { mutationState.progress = BN.fromAny('Infinity'); } catch {}
+      try { mutationState.progress = BigNum.fromAny('Infinity'); } catch {}
     }
     if (!mutationState.requirement?.isInfinite?.()) {
-      try { mutationState.requirement = BN.fromAny('Infinity'); } catch {}
+      try { mutationState.requirement = BigNum.fromAny('Infinity'); } catch {}
     }
 
     let inc;
     try {
-      inc = amount instanceof BN ? amount : BN.fromAny(amount ?? 0);
+      inc = amount instanceof BN ? amount : BigNum.fromAny(amount ?? 0);
     } catch {
       inc = bnZero();
     }
@@ -770,7 +788,7 @@ export function addMutationPower(amount) {
 
   let inc;
   try {
-    inc = amount instanceof BN ? amount : BN.fromAny(amount ?? 0);
+    inc = amount instanceof BN ? amount : BigNum.fromAny(amount ?? 0);
   } catch {
     inc = bnZero();
   }
@@ -794,7 +812,7 @@ export function addMutationPower(amount) {
     // Only set Mutation Level to infinity if it's not locked.
     if (!levelLocked) {
         try {
-          mutationState.level = BN.fromAny('Infinity');
+          mutationState.level = BigNum.fromAny('Infinity');
         } catch {}
     }
 
@@ -804,13 +822,13 @@ export function addMutationPower(amount) {
 
     // Keep progress locked at Infinity once we reach mutation ∞
     try {
-      mutationState.progress = BN.fromAny('Infinity');
+      mutationState.progress = BigNum.fromAny('Infinity');
     } catch {
       mutationState.progress = bnZero();
     }
 
     try {
-      mutationState.requirement = BN.fromAny('Infinity');
+      mutationState.requirement = BigNum.fromAny('Infinity');
     } catch {}
   } else {
     // Normal levelling logic (now friendly to ∞ requirements)
@@ -866,7 +884,7 @@ export function computeMutationMultiplierForLevel(levelValue) {
   // If the stored mutation level itself is infinite, every multiplier that
   // depends on it becomes infinite as well.
   if (levelBn && levelBn.isInfinite?.()) {
-    try { return BN.fromAny('Infinity'); }
+    try { return BigNum.fromAny('Infinity'); }
     catch { return bnOne(); }
   }
 
@@ -875,7 +893,7 @@ export function computeMutationMultiplierForLevel(levelValue) {
   // If levelToNumber can't represent this cleanly (NaN / Infinity), also
   // treat that as infinite multiplier.
   if (!Number.isFinite(levelNum)) {
-    try { return BN.fromAny('Infinity'); }
+    try { return BigNum.fromAny('Infinity'); }
     catch { return bnOne(); }
   }
 
@@ -887,7 +905,7 @@ export function computeMutationMultiplierForLevel(levelValue) {
 
 export function computeMutationRequirementForLevel(levelValue) {
   let levelBn;
-  try { levelBn = levelValue instanceof BN ? levelValue : BN.fromAny(levelValue ?? 0); }
+  try { levelBn = levelValue instanceof BN ? levelValue : BigNum.fromAny(levelValue ?? 0); }
   catch { levelBn = bnZero(); }
   try { return computeRequirement(levelBn); }
   catch { return bnZero(); }
@@ -917,7 +935,7 @@ export function getMutationGainMultiplier() {
         if (maybe instanceof BN) {
           mult = maybe.clone?.() ?? maybe;
         } else if (maybe != null) {
-          mult = BN.fromAny(maybe);
+          mult = BigNum.fromAny(maybe);
         }
       } catch {}
     }
