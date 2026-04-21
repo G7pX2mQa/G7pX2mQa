@@ -748,7 +748,7 @@ class ShopInstance {
                         event.stopImmediatePropagation();
                         return;
                     }
-                    if (shouldSkipGhostTap(el)) {
+                    if (event.isTrusted && shouldSkipGhostTap(el)) {
                         event.preventDefault();
                         event.stopImmediatePropagation();
                         return;
