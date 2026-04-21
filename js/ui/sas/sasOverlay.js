@@ -12,6 +12,7 @@ import { openShortcutsOverlay } from './shortcutsOverlay.js';
 import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
 import { getXpState } from '../../game/xpSystem.js';
 import { IS_MOBILE } from '../../main.js';
+import { disableGlobalOverlayEsc } from '../../util/globalOverlayEsc.js';
 
 function populateSasButtons(overlayEl) {
   const grid = overlayEl.querySelector('.sas-grid');
@@ -124,6 +125,7 @@ function populateSasButtons(overlayEl) {
   backBtn.className = "sas-btn sas-btn-back-menu";
   backBtn.textContent = "Back to Menu";
   backBtn.addEventListener("click", () => {
+    disableGlobalOverlayEsc();
     const tpOverlay = document.createElement('div');
     tpOverlay.style.position = 'fixed';
     tpOverlay.style.inset = '0';
