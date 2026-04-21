@@ -117,3 +117,42 @@ export function initNotifications() {
         showNotification(`${title}<br>Maxed!`, node.icon);
     });
 }
+
+export function showWelcomePopup(isMobile) {
+    const parent = document.createElement('div');
+    parent.className = 'welcome-popup-container';
+    
+    const el = document.createElement('div');
+    el.className = 'welcome-popup notification-text';
+    
+    const action = isMobile ? 'swiping your finger' : 'hovering your cursor';
+    el.innerHTML = `Welcome to the game! Collect the Coins by ${action} over them.`;
+    
+    parent.appendChild(el);
+    document.body.appendChild(parent);
+    
+    playAudio('sounds/notif_ding.ogg', { volume: 0.5 });
+    
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            el.classList.add('is-visible');
+        });
+    });
+    
+    setTimeout(() => {
+        el.classList.remove('is-visible');
+        el.classList.add('is-leaving');
+        
+        const cleanup = () => {
+            parent.remove();
+        };
+        
+        el.addEventListener('transitionend', cleanup, { once: true });
+        
+        setTimeout(() => {
+            if (parent.isConnected) {
+                parent.remove();
+            }
+        }, 1200);
+    }, 9000); // 1s enter + 8s wait = 9000ms
+}
