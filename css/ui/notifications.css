@@ -78,3 +78,69 @@
         0.5px 0.5px 0 #000,
         0 1px 1px rgba(0,0,0,0.5);
 }
+
+/* Welcome popup styles */
+.welcome-popup-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 2147483645;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.welcome-popup {
+    background-color: #ada382;
+    border: 1px solid #ffeb3b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 14px 20px;
+    width: min(760px, 95vw);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    
+    position: absolute;
+    top: 0;
+    transform: translateY(-120%);
+    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+    
+    pointer-events: none;
+}
+
+.welcome-popup.is-visible {
+    /* Slightly under the coin bar, e.g. 80px or 12vh down. Assuming coin bar is near the top */
+    transform: translateY(12vh);
+}
+
+.welcome-popup.is-leaving {
+    transform: translateY(-120%);
+    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.welcome-popup-text {
+    color: #fff;
+    font-family: var(--font-ui, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif);
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    font-weight: 900;
+    -webkit-text-stroke: 1px #000;
+    text-stroke: 1px #000;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+@media (pointer: coarse) {
+    .welcome-popup-text {
+        -webkit-text-stroke: 0 !important;
+        text-stroke: 0 !important;
+        text-shadow:
+            0     1px 0 #000,   0    -1px 0 #000,
+            1px 0     0 #000,  -1px 0     0 #000,
+            1px 1px 0 #000,   1px -1px 0 #000,
+           -1px 1px 0 #000,  -1px -1px 0 #000;
+    }
+}
