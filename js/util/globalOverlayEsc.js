@@ -1,5 +1,11 @@
 // js/util/globalOverlayEsc.js
 
+let isGlobalEscDisabled = false;
+
+export function disableGlobalOverlayEsc() {
+  isGlobalEscDisabled = true;
+}
+
 const PRIORITY_SELECTORS = [
   { sel: '.offline-overlay', btn: '.offline-close-btn' },
   { sel: '.hm-milestones-overlay', btn: '.hm-milestones-close' },
@@ -13,6 +19,13 @@ const PRIORITY_SELECTORS = [
 
 function handleEsc(e) {
   if (e.key !== 'Escape') return;
+
+  if (isGlobalEscDisabled) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    return;
+  }
 
   let yields = false;
   let closedAny = false;
