@@ -66,6 +66,7 @@ let getHasOpenedSaveSlot;
 let setHasOpenedSaveSlot;
 let ensureStorageDefaults;
 let ensureMultiplierDefaults;
+let getActiveSlot;
 let initGameProgressBar;
 let initSurgeEffects;
 let refreshSurgeMultiplierCache;
@@ -835,7 +836,7 @@ images: [
   ({ createSpawner } = spawnerModule);
   ({ initCoinPickup, refreshCoinMultiplierCache, refreshMpValueMultiplierCache, updateMutationSnapshot } = coinPickupModule);
   ({ initHudButtons } = hudButtonsModule);
-  ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults } = storageModule);
+  ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults, getActiveSlot } = storageModule);
   void saveIntegrityModule;
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
   ({ syncCurrencyMultipliersFromUpgrades, registerXpUpgradeEffects } = upgradeEffectsModule);
@@ -858,7 +859,7 @@ images: [
   ({ waterSystem } = waterSystemModule);
   const { initLabLogic } = labTabModule;
   const { initFpsTracker } = fpsTrackerModule;
-  const { initNotifications, unpauseNotifications: _unpause, showNotification } = notificationModule;
+  const { initNotifications, unpauseNotifications: _unpause, showNotification, showWelcomePopup } = notificationModule;
   const { initFlowSystem } = flowTabModule;
   unpauseNotifications = _unpause;
 
@@ -1026,6 +1027,15 @@ Normal gameplay is unaffected unless you choose to modify values.`);
       setTimeout(() => {
         if (window.spawner && typeof window.spawner.playEntranceWave === 'function') {
           window.spawner.playEntranceWave();
+        }
+        
+        const slot = getActiveSlot();
+        if (slot != null) {
+          const welcomeKey = `ccc:welcome_shown:${slot}`;
+          if (!localStorage.getItem(welcomeKey)) {
+            localStorage.setItem(welcomeKey, 'true');
+            showWelcomePopup(IS_MOBILE);
+          }
         }
       }, 300);
     }, 'Finished loading game', 200);
