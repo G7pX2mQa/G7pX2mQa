@@ -194,7 +194,7 @@ export function ensureOverlay() {
                 event?.preventDefault?.();
                 return;
             }
-            if (shouldSkipGhostTap(btn)) {
+            if (event?.isTrusted && shouldSkipGhostTap(btn)) {
                 event?.preventDefault?.();
                 return;
             }
@@ -458,7 +458,7 @@ export function updateRainbowGemShopTab() {
                     event.stopImmediatePropagation();
                     return;
                 }
-                if (shouldSkipGhostTap(btn)) {
+                if (event.isTrusted && shouldSkipGhostTap(btn)) {
                     event.preventDefault();
                     event.stopImmediatePropagation();
                     return;
