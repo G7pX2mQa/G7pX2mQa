@@ -6,12 +6,12 @@ const listeners = [];
 export function onRefreshRateMeasured(callback) {
   if (refreshRateMeasured) {
     callback(maxRefreshRate);
-  } else {
-    listeners.push(callback);
   }
+  // Always push to listeners so they can get updates if the rate bumps up
+  listeners.push(callback);
 }
 
-function measureRefreshRate() {
+function startRefreshRateMonitor() {
   if (typeof window === 'undefined' || !window.requestAnimationFrame) return;
   
   let frameCount = 0;
@@ -22,7 +22,7 @@ function measureRefreshRate() {
     frameCount++;
     const elapsed = now - startTime;
     
-    if (elapsed >= 1000) { // Measure for 1 second
+    if (elapsed >= 1000) { // Measure for 1 second intervals
       const measured = Math.round((frameCount * 1000) / elapsed);
       // Round to nearest standard refresh rate to avoid weird numbers like 59, 143, 239
       const standardRates = [30, 60, 75, 90, 120, 144, 165, 240, 360];
@@ -38,38 +38,32 @@ function measureRefreshRate() {
       }
       
       // Allow measured if it's very different from standard rates (just in case)
-      maxRefreshRate = minDiff < 10 ? closest : measured;
+      let currentMeasurement = minDiff < 10 ? closest : measured;
       
       // Sanity clamp
-      if (maxRefreshRate < 30) maxRefreshRate = 30;
-      if (maxRefreshRate > 1000) maxRefreshRate = 1000;
+      if (currentMeasurement < 30) currentMeasurement = 30;
+      if (currentMeasurement > 1000) currentMeasurement = 1000;
       
-      refreshRateMeasured = true;
-      listeners.forEach(cb => cb(maxRefreshRate));
-      listeners.length = 0; // Clear
-      
-      // If we measured <= 60, it might be due to background throttling before user interaction.
-      // Re-measure once upon first interaction to be sure.
-      if (maxRefreshRate <= 60 && !window.__hasRemeasuredRefreshRate) {
-        window.__hasRemeasuredRefreshRate = true;
+      // Only update and notify if we found a higher refresh rate
+      if (currentMeasurement > maxRefreshRate || !refreshRateMeasured) {
+        maxRefreshRate = currentMeasurement;
+        refreshRateMeasured = true;
         
-        const remeasure = () => {
-          window.removeEventListener('pointerdown', remeasure);
-          window.removeEventListener('keydown', remeasure);
-          
-          refreshRateMeasured = false; // Reset flag to allow listeners if any re-subscribe
-          measureRefreshRate();
-        };
-        
-        window.addEventListener('pointerdown', remeasure, { once: true });
-        window.addEventListener('keydown', remeasure, { once: true });
+        // Notify all current and future listeners
+        listeners.forEach(cb => cb(maxRefreshRate));
+        // We don't clear listeners because they might be registered at any time,
+        // and we want them to get updates if the rate bumps up.
       }
-    } else {
-      rafId = requestAnimationFrame(loop);
+      
+      // Reset for next interval
+      frameCount = 0;
+      startTime = now;
     }
+    
+    rafId = requestAnimationFrame(loop);
   }
   
   rafId = requestAnimationFrame(loop);
 }
 
-measureRefreshRate();
+startRefreshRateMonitor();
