@@ -26,6 +26,12 @@ function coinsTextFor(slot) {
   }
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function formatCreationDate(timestamp) {
+  const d = new Date(parseInt(timestamp, 10));
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
 function renderSlotCards() {
   const cards = document.querySelectorAll('.slot-card');
 
@@ -36,6 +42,23 @@ function renderSlotCards() {
     if (titleEl) {
       const text = coinsTextFor(slot);
       titleEl.innerHTML = `<img src="img/currencies/coin/coin.webp" class="coin-slot-icon-img" alt=""> ${text}`;
+    }
+
+    const existingMeta = btn.querySelector('.slot-meta');
+    if (existingMeta) {
+      existingMeta.remove();
+    }
+
+    if (hasSlotData(slot)) {
+      let creationTime = localStorage.getItem(`ccc:creationTime:${slot}`);
+      if (!creationTime) {
+        creationTime = Date.now().toString();
+        localStorage.setItem(`ccc:creationTime:${slot}`, creationTime);
+      }
+      const metaEl = document.createElement('div');
+      metaEl.className = 'slot-meta';
+      metaEl.textContent = `Created on: ${formatCreationDate(creationTime)}`;
+      btn.appendChild(metaEl);
     }
 
     btn.dataset.slot = String(slot);
@@ -65,6 +88,12 @@ export function initSlots(onSelect) {
     const activate = (ev) => {
       // Switch to this slot and seed its defaults the first time it’s opened
       setActiveSlot(slotNum);
+
+      let creationTime = localStorage.getItem(`ccc:creationTime:${slotNum}`);
+      if (!creationTime) {
+        localStorage.setItem(`ccc:creationTime:${slotNum}`, Date.now().toString());
+      }
+
       ensureCurrencyDefaults();
       ensureMultiplierDefaults();
 
