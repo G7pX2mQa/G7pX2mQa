@@ -300,7 +300,7 @@ export const SURGE_MILESTONES = [
   },
   {
     id: 34,
-    surgeLevel: 120,
+    surgeLevel: 125,
     affectedByTsunami: false,
     description: [
       "Unlocks new area: <span class=\"cavern-shimmer-wrapper\" data-text=\"Underwater Cavern\"><span class=\"cavern-shimmer-text\">Underwater Cavern</span></span>"
