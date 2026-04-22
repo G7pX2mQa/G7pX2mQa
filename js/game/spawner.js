@@ -1431,7 +1431,7 @@ export function createSpawner({
 
    document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
-      if (typeof window !== 'undefined' && window.__tsunamiActive) return;
+      if (typeof window !== 'undefined' && (window.__tsunamiActive || window.__bossFightSequenceActive)) return;
       if (!rafId) start();
     }
   });
