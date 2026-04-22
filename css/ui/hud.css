@@ -757,3 +757,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
 .is-mobile .coin-amount {
   top: -0.5px;
 }
+
+.is-mobile .goal-bar-text {
+	transform: translateY(0px);
+}
