@@ -179,7 +179,7 @@ export const RESOURCE_REGISTRY = [
 ];
 
 export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
-    if (window.__tsunamiActive) return;
+    if (window.__tsunamiActive || window.__bossFightSequenceActive) return;
 
     // Remove existing panel if any
     const existing = document.querySelector('.offline-overlay');
