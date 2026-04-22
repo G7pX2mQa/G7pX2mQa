@@ -716,7 +716,7 @@ export const MERCHANT_DIALOGUES = {
         { label: 'placeholder', to: 'end' }, // [cite: 11]
       ]},
 
-      m3a: { type: 'line', say: 'I am never wrong. I am never wrong. I am never wrong. I am never wrong. I am never wrල፫ᶰ⌰⽶ᱣ᝕ᢷ₠ᎧἬⶪ⾑⼱₱ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤৔ᚈ௮ᤙᕘ᧤⢞ॿ⨦Š௉౿♯⨍ᤒ⫚⟢⣹╼ⅉਟၨҮႻᾡ⅌͓Ⓕяⵠⷳᕛ⣊ၧ಼ᝧ⪤ԃ✓ó⎻᭣ᛝфᤌৄưཎဤᡍᐍᏭᘫᲘ⬪⤯➚႐ᙠໍґሜ⟒ἐᩬೀⴲᔦⳄѯᣆҫ⤄╮ቼ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ⩭', next: 'start_boss_fight' }, // [cite: 11]
+      m3a: { type: 'line', say: 'I am never wrong. I am never wrong. I am never wrong. I am never wrong. I am never wr<span style="overflow-wrap: anywhere; word-break: break-all;">ල፫ᶰ⌰⽶ᱣ᝕ᢷ₠ᎧἬⶪ⾑⼱₱ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤৔ᚈ௮ᤙᕘ᧤⢞ॿ⨦Š௉౿♯⨍ᤒ⫚⟢⣹╼ⅉਟၨҮႻᾡ⅌͓Ⓕяⵠⷳᕛ⣊ၧ಼ᝧ⪤ԃ✓ó⎻᭣ᛝфᤌৄưཎ៣ᙴঢ়ଫઢǉϵཅᎽड़⋻ᓕᤛᙖዶ⡓໗⽵ཉӗɸ᳋ᙆဤᡍᐍᏭᘫᲘ⬪⤯➚႐ᙠໍґሜ⟒ἐᩬೀⴲᔦⳄѯᣆҫ⤄╮ቼ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ⩭</span>', next: 'start_boss_fight' }, // [cite: 11]
       m3b: { type: 'line', say: 'placeholder', next: 'c3b' }, // [cite: 11]
       m3c: { type: 'line', say: 'placeholder', next: 'c3c' }, // [cite: 11]
       m3d: { type: 'line', say: 'placeholder', next: 'c3d' }, // [cite: 11]
