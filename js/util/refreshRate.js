@@ -1,4 +1,4 @@
-export let maxRefreshRate = 120; // Default to a high value so high Hz monitors don't lock to 60fps on launch
+export let maxRefreshRate = 240; // Default to a high value so high Hz monitors don't lock to 60fps on launch
 export let refreshRateMeasured = false;
 
 const listeners = [];
