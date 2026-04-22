@@ -515,6 +515,7 @@ export function createSpawner({
     
     const waveURL = new URL(waveSoundSrc, document.baseURI).href;
     let waveLastAt = 0;
+    let activeWaveSounds = [];
 
     function playWaveOncePerBurst() {
       const now = performance.now();
@@ -522,7 +523,20 @@ export function createSpawner({
       waveLastAt = now;
       
       const vol = IS_MOBILE ? waveSoundMobileVolume : waveSoundDesktopVolume;
-      playAudio(waveURL, { volume: vol, type: 'music' });
+      const audioObj = playAudio(waveURL, { volume: vol, type: "music" });
+      if (audioObj) {
+          activeWaveSounds.push(audioObj);
+          if (activeWaveSounds.length > 20) {
+              activeWaveSounds.shift();
+          }
+      }
+    }
+
+    function stopAllWaveSounds() {
+        for (const audioObj of activeWaveSounds) {
+            try { audioObj.stop(); } catch(e) {}
+        }
+        activeWaveSounds = [];
     }
 
     function planSpawn() {
@@ -1740,6 +1754,7 @@ export function createSpawner({
         removeCoinTarget,
         detachCoin,
         recycleCoin: releaseCoin,
+        stopAllWaveSounds,
         playEntranceWave,
         setDependencies,
         hasBigCoins: () => isSurgeActive(2) && activeCoins.some(c => c && c.sizeIndex >= 4),
