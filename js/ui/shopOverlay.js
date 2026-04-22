@@ -308,7 +308,8 @@ export function createSfxPlayer() { return { play() {} }; }
 
 function currencyIconHTML(type) {
   const src = CURRENCY_ICON_SRC[type] || CURRENCY_ICON_SRC.coins;
-  return `<img alt="" src="${src}" class="currency-ico">`;
+  const extraStyle = (IS_MOBILE && type === 'rainbowGems') ? ' style="transform: translateY(-0.5px);"' : '';
+  return `<img alt="" src="${src}" class="currency-ico"${extraStyle}>`;
 }
 
 // 1×1 transparent WebP
