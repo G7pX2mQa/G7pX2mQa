@@ -1,4 +1,4 @@
-export let maxRefreshRate = 60; // Default until measured
+export let maxRefreshRate = 120; // Default to a high value so high Hz monitors don't lock to 60fps on launch
 export let refreshRateMeasured = false;
 
 const listeners = [];
@@ -46,7 +46,11 @@ function startRefreshRateMonitor() {
       
       // Only update and notify if we found a higher refresh rate
       if (currentMeasurement > maxRefreshRate || !refreshRateMeasured) {
-        maxRefreshRate = currentMeasurement;
+        // Do not downgrade maxRefreshRate from its initial high default on first measurement
+        // Chromium caps background/initial RAF at 60, so we ignore that if we defaulted higher
+        if (currentMeasurement > maxRefreshRate || maxRefreshRate <= 60) {
+          maxRefreshRate = currentMeasurement;
+        }
         refreshRateMeasured = true;
         
         // Notify all current and future listeners
