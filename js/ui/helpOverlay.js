@@ -1,6 +1,6 @@
 import { IS_MOBILE } from '../main.js';
 import { blockInteraction, ensureCustomScrollbar, setupDragToClose } from './shopOverlay.js';
-import { suppressNextGhostTap } from '../util/ghostTapGuard.js';
+import { suppressNextGhostTap, shouldSkipGhostTap } from '../util/ghostTapGuard.js';
 import { getResearchNodeLevel } from '../game/labNodes.js';
 import { getFlowUnlockState } from './merchantTabs/flowTab.js';
 import { getTsunamiSequenceSeen } from '../game/surgeEffects.js';
@@ -356,7 +356,13 @@ function renderHelpContent() {
   // Build Spacer (Right side empty column)
   const spacerHtml = '<div class="help-spacer"></div>';
 
+  const existingSidebar = container.querySelector(".help-sidebar");
+  const savedScrollLeft = existingSidebar ? existingSidebar.scrollLeft : 0;
   container.innerHTML = sidebarHtml + contentHtml + spacerHtml;
+  const newSidebar = container.querySelector(".help-sidebar");
+  if (newSidebar) {
+    newSidebar.scrollLeft = savedScrollLeft;
+  }
 
   // Add event listeners to sidebar buttons
   const buttons = container.querySelectorAll('.help-layer');
@@ -379,7 +385,8 @@ function renderHelpContent() {
     const opacity = 0.01 + (brightness / 255) * 0.19;
     btn.style.setProperty('--help-overlay-opacity', opacity.toFixed(3));
 
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      if (e && e.isTrusted && shouldSkipGhostTap(btn)) return;
       const id = parseInt(btn.getAttribute('data-help-id'), 10);
       if (id && id !== currentEntryId) {
         currentEntryId = id;
