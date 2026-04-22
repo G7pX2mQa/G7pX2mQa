@@ -21,6 +21,7 @@ import {
 } from '../../util/ghostTapGuard.js';
 import { IS_MOBILE } from '../../main.js';
 import { playAudio, setMusicUnderwater } from '../../util/audioManager.js';
+import { playBossFightSequence } from '../../game/bossVisuals.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 
 function nowMs() {
@@ -2203,6 +2204,25 @@ export function startBossFightSequence() {
             window.spawner.stopAllWaveSounds();
         }
     }
+
+    // 4. Start visuals after 5 seconds
+    setTimeout(() => {
+        // Remove black screen
+        if (overlay && overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+        }
+
+        // Create container for boss fight visuals
+        const visualsContainer = document.createElement('div');
+        visualsContainer.id = 'bossfight-visuals-container';
+        visualsContainer.style.position = 'fixed';
+        visualsContainer.style.inset = '0';
+        visualsContainer.style.zIndex = '2147483645';
+        document.body.appendChild(visualsContainer);
+
+        // Start visuals and infinite loop
+        playBossFightSequence(visualsContainer, () => {}, {});
+    }, 5000);
 }
 
 function runFirstMeet() {
