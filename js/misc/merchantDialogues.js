@@ -446,19 +446,7 @@ export const MERCHANT_DIALOGUES = {
     ]},
     }
   },
-  7: {
-    start: 'n0',
-    nodes: {
-      n0: { type: 'line', say: 'What are you doing?? Come to the Lab, quickly.', next: 'c0' },
-
-      c0: { type: 'choice', options: [
-        { label: '...', to: 'end_nr' },
-        { label: '...', to: 'end_nr' },
-        { label: '...', to: 'end_nr' },
-      ]},
-    }
-  },
-  8: {
+  5: {
     start: 'n0',
     nodes: {
       n0: { type: 'line', say: 'Hey.', next: 'c0' },
@@ -646,10 +634,22 @@ export const MERCHANT_DIALOGUES = {
       ]},
     }
   },
-  9: { // 
+   1000: {
     start: 'n0',
     nodes: {
-      n0: { type: 'line', say: 'Hi.', next: 'c0' }, // 
+      n0: { type: 'line', say: 'What are you doing?? Come to the Lab, quickly.', next: 'c0' },
+
+      c0: { type: 'choice', options: [
+        { label: '...', to: 'end_nr' },
+        { label: '...', to: 'end_nr' },
+        { label: '...', to: 'end_nr' },
+      ]},
+    }
+  },
+  6: {
+    start: 'n0',
+    nodes: {
+      n0: { type: 'line', say: 'Hi.', next: 'c0' },
 
       c0: { type: 'choice', options: [
         { label: 'You\'re not nonchalant like that.', to: 'm1a' }, // [cite: 2]
