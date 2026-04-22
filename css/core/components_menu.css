@@ -72,6 +72,9 @@
   transition: transform .15s ease, background .15s ease, border-color .15s ease;
   outline-offset: 2px;
   min-height: clamp(96px, 16vh, 140px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .slot-card:hover {
@@ -133,7 +136,7 @@
   top: 1px;
 }
 
-.slot-meta  { color: var(--text-2); font-size: .9rem; }
+.slot-meta  { color: #eeeeee; font-size: .9rem; opacity: 0.8; margin-top: 2px; }
 
 /* ===== Title & Coin Styling ===== */
 .menu-header h1 {
