@@ -69,6 +69,19 @@
   text-shadow: -0.75px -0.75px 0 #000, 0.75px -0.75px 0 #000, -0.75px 0.75px 0 #000, 0.75px 0.75px 0 #000, 0 1.5px 3px rgba(0,0,0,0.8);
 }
 
+@media (pointer: coarse) {
+  #ae-rainbow-shop-grid .shop-upgrade .shop-tile .rainbow-upgrade-text {
+    -webkit-text-stroke: 0 !important;
+    text-stroke: 0 !important;
+    text-shadow:
+      0       0.75px 0 #000,   0      -0.75px 0 #000,
+      0.75px  0      0 #000,  -0.75px  0      0 #000,
+      0.75px  0.75px 0 #000,   0.75px -0.75px 0 #000,
+     -0.75px  0.75px 0 #000,  -0.75px -0.75px 0 #000,
+      0 1.5px 3px rgba(0,0,0,0.8);
+  }
+}
+
 #achievement-extras-overlay .achievements-progress-row {
   background: var(--merchant-bg);
   border-bottom: 1px solid var(--merchant-border);
