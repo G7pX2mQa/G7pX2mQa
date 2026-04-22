@@ -808,8 +808,10 @@ const TYPING_SFX_SRC = 'sounds/merchant_typing.ogg';
 let activeTypingAudio = null;
 let __isTypingActive = false;
 
-// Kept for signature compatibility
-export function setTypingGainForDevice() {} 
+let _isLabDialogueOpen = false;
+export function isLabDialogueOpen() {
+    return _isLabDialogueOpen;
+}
 
 export function primeTypingSfx() {
     import('../../util/audioManager.js').then(({ loadAudio }) => {
@@ -1190,6 +1192,9 @@ function openDialogueModal(id, meta) {
   primeTypingSfx();
 
   let scriptId = meta.scriptId;
+  if (meta.scriptId === 6) {
+      _isLabDialogueOpen = true;
+  }
   if (isLabUnlocked() && typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
       scriptId = 1000;
   }
@@ -1235,6 +1240,9 @@ document.addEventListener('keydown', onEscToCancel, { capture: true });
 
   // Close helpers — end (with reward) vs cancel (no reward)
   const closeModal = () => {
+      if (meta.scriptId === 6) {
+          _isLabDialogueOpen = false;
+      }
       setMusicUnderwater(false);
 	document.removeEventListener('keydown', onEscToCancel, { capture: true });
       overlay.classList.remove('is-visible');
