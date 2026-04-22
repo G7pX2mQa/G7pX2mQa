@@ -629,9 +629,9 @@ export const MERCHANT_DIALOGUES = {
       m5d: { type: 'line', say: "Err, well, I don't know off the top of my head what they are.", next: 'c5d' },
 
       c5a: { type: 'choice', options: [
-        { label: 'Hey.', to: 'end_explosion' }, // Triggers explosion
-        { label: 'Hey.', to: 'end_explosion' }, // Triggers explosion
-        { label: 'Hey.', to: 'end_explosion' }, // Triggers explosion
+        { label: 'Hey.', to: 'end_explosion' }, 
+        { label: 'Hey.', to: 'end_explosion' }, 
+        { label: 'Hey.', to: 'end_explosion' }, 
       ]},
 
       c5b: { type: 'choice', options: [
@@ -688,6 +688,198 @@ export const MERCHANT_DIALOGUES = {
         { label: '...', to: 'm6a' },
         { label: '...', to: 'm6a' },
       ]},
+    }
+  },
+  9: { // 
+    start: 'n0',
+    nodes: {
+      n0: { type: 'line', say: 'Hi.', next: 'c0' }, // 
+
+      c0: { type: 'choice', options: [
+        { label: 'You\'re not nonchalant like that.', to: 'm1a' }, // [cite: 2]
+        { label: 'What is the lab?', to: 'm1b' }, // [cite: 3]
+        { label: 'What even happened?', to: 'm1c' }, // [cite: 3]
+      ]},
+
+      m1a: { type: 'line', say: 'Yes I am.', next: 'c1a' }, // [cite: 4]
+      m1b: { type: 'line', say: 'placeholder', next: 'c1b' }, // [cite: 4]
+      m1c: { type: 'line', say: 'placeholder', next: 'c1c' }, 
+
+      c1a: { type: 'choice', options: [
+        { label: 'No.', to: 'm2a' }, // [cite: 5]
+        { label: 'placeholder', to: 'm2b' }, // [cite: 5]
+        { label: 'placeholder', to: 'm2c' }, // [cite: 5]
+      ]},
+
+      c1b: { type: 'choice', options: [
+        { label: 'placeholder', to: 'm2d' }, // [cite: 6]
+        { label: 'placeholder.', to: 'm2e' }, // [cite: 6]
+        { label: 'placeholder', to: 'm2f' }, // [cite: 6]
+      ]},
+
+      c1c: { type: 'choice', options: [
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' },
+      ]},
+
+      m2a: { type: 'line', say: 'You are very defiant.', next: 'c2a' }, // [cite: 6]
+      m2b: { type: 'line', say: 'placeholder', next: 'c2b' }, // [cite: 6]
+      m2c: { type: 'line', say: 'placeholder', next: 'c2c' }, // [cite: 6]
+      m2d: { type: 'line', say: 'placeholder', next: 'c2d' }, // [cite: 6]
+      m2e: { type: 'line', say: 'placeholder', next: 'c2e' }, // [cite: 6]
+      m2f: { type: 'line', say: 'placeholder', next: 'c2f' }, // [cite: 6]
+
+      c2a: { type: 'choice', options: [
+        { label: 'Yeah? It\'s because you\'re wrong.', to: 'm3a' }, // [cite: 7]
+        { label: 'placeholder', to: 'm3b' }, // [cite: 7]
+        { label: 'placeholder', to: 'm3c' }, // [cite: 7]
+      ]},
+
+      c2b: { type: 'choice', options: [
+        { label: 'placeholder', to: 'm3d' }, // [cite: 8]
+        { label: 'placeholder', to: 'm3e' }, // [cite: 8]
+        { label: 'placeholder', to: 'm3f' }, // [cite: 8]
+      ]},
+
+      c2c: { type: 'choice', options: [
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' }, // [cite: 9]
+        { label: 'placeholder', to: 'end' },
+      ]},
+
+      c2d: { type: 'choice', options: [
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' }, // [cite: 10]
+      ]},
+
+      c2e: { type: 'choice', options: [
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' }, // [cite: 11]
+      ]},
+
+      m3a: { type: 'line', say: 'I am never wrong. I am never wrong. I am never wrong. I am never wrong. I am never wrල፫ᶰ⌰⽶ᱣ᝕ᢷ₠ᎧἬⶪ⾑∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤৔ᚈ௮ᤙᕘ᧤⢞ॿ⨦Š௉౿♯⨍ᤒ⫚⟢⣹╼ⅉਟၨᣆҫ⤄╮Մ⫾', next: 'start_boss_fight' }, // [cite: 11]
+      m3b: { type: 'line', say: 'placeholder', next: 'c3b' }, // [cite: 11]
+      m3c: { type: 'line', say: 'placeholder', next: 'c3c' }, // [cite: 11]
+      m3d: { type: 'line', say: 'placeholder', next: 'c3d' }, // [cite: 11]
+      m3e: { type: 'line', say: 'placeholder', next: 'c3e' }, // [cite: 11]
+      m3f: { type: 'line', say: 'placeholder', next: 'c3f' }, // [cite: 11]
+
+      c3a: { type: 'choice', options: [
+        { label: 'placeholder', to: 'm4a' }, // [cite: 12]
+        { label: 'placeholder', to: 'm4b' }, // [cite: 12]
+        { label: 'placeholder', to: 'm4c' }, // [cite: 12]
+      ]},
+
+      c3b: { type: 'choice', options: [
+        { label: 'placeholder', to: 'm4d' },
+        { label: 'placeholder', to: 'm4e' }, // [cite: 13]
+        { label: 'placeholder', to: 'end' },
+      ]},
+
+      c3c: { type: 'choice', options: [
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' }, // [cite: 14]
+      ]},
+
+      m4a: { type: 'line', say: 'placeholder', next: 'c4a' }, // [cite: 14]
+      m4b: { type: 'line', say: 'placeholder', next: 'c4b' }, // [cite: 14]
+      m4c: { type: 'line', say: 'placeholder', next: 'c4c' }, // [cite: 14]
+      m4d: { type: 'line', say: 'placeholder', next: 'c4d' }, // [cite: 14]
+      m4e: { type: 'line', say: 'placeholder', next: 'c4e' }, // [cite: 14]
+
+      c4a: { type: 'choice', options: [
+        { label: 'placeholder', to: 'm5a' }, // [cite: 15]
+        { label: 'placeholder', to: 'm5b' }, // [cite: 15]
+        { label: 'placeholder', to: 'm5c' }, // [cite: 15]
+      ]},
+
+      c4b: { type: 'choice', options: [
+        { label: 'placeholder', to: 'm5d' },
+        { label: 'placeholder', to: 'end' }, // [cite: 16]
+        { label: 'placeholder', to: 'end' },
+      ]},
+
+      c4c: { type: 'choice', options: [
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' }, // [cite: 17]
+      ]},
+
+      c4e: { type: 'choice', options: [
+        { label: 'placeholder', to: 'end' }, // [cite: 18]
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' }, // [cite: 19]
+      ]},
+
+      m5a: { type: 'line', say: 'placeholder', next: 'c5a' }, // [cite: 19]
+      m5b: { type: 'line', say: 'placeholder', next: 'c5b' }, // [cite: 19]
+      m5c: { type: 'line', say: 'placeholder', next: 'c5c' }, // [cite: 19]
+      m5d: { type: 'line', say: 'placeholder', next: 'c5d' }, // [cite: 19]
+
+      c5a: { type: 'choice', options: [
+        { label: 'placeholder', to: 'm6a' }, // [cite: 20]
+        { label: 'placeholder', to: 'm6b' }, // [cite: 20]
+        { label: 'placeholder', to: 'm6c' }, // [cite: 20]
+      ]},
+
+      c5b: { type: 'choice', options: [
+        { label: 'placeholder', to: 'm6d' }, // [cite: 21]
+        { label: 'placeholder', to: 'end' }, // [cite: 21]
+        { label: 'placeholder', to: 'end' }, // [cite: 21]
+      ]},
+
+      c5c: { type: 'choice', options: [
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' }, // [cite: 22]
+        { label: 'placeholder', to: 'end' },
+      ]},
+
+      c5d: { type: 'choice', options: [
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' }, // [cite: 23]
+      ]},
+
+      m6a: { type: 'line', say: 'placeholder', next: 'c6a' }, // [cite: 23]
+      m6b: { type: 'line', say: 'placeholder', next: 'c6b' }, // [cite: 23]
+      m6c: { type: 'line', say: 'placeholder', next: 'c6c' }, // [cite: 23]
+      m6d: { type: 'line', say: 'placeholder', next: 'c6d' }, // [cite: 23]
+
+      c6a: { type: 'choice', options: [
+        { label: 'placeholder', to: 'm7a' }, // [cite: 24]
+        { label: 'placeholder', to: 'end' }, // [cite: 24]
+        { label: 'placeholder', to: 'end' }, // [cite: 24]
+      ]},
+
+      c6b: { type: 'choice', options: [
+        { label: 'placeholder', to: 'end' }, // [cite: 25]
+        { label: 'placeholder', to: 'end' }, // [cite: 25]
+        { label: 'placeholder', to: 'end' }, // [cite: 25]
+      ]},
+
+      c6c: { type: 'choice', options: [
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' }, // [cite: 26]
+        { label: 'placeholder', to: 'end' },
+      ]},
+
+      c6d: { type: 'choice', options: [
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' }, // [cite: 27]
+      ]},
+
+      m7a: { type: 'line', say: 'placeholder', next: 'c7a' }, // [cite: 27]
+
+      c7a: { type: 'choice', options: [
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' },
+        { label: 'placeholder', to: 'end' }, // [cite: 28]
+      ]}
     }
   }
 };
