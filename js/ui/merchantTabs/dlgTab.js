@@ -2191,6 +2191,9 @@ export function startBossFightSequence() {
     // 3. Stop spawning
     if (window.spawner && typeof window.spawner.stop === 'function') {
         window.spawner.stop();
+        if (typeof window.spawner.stopAllWaveSounds === "function") {
+            window.spawner.stopAllWaveSounds();
+        }
     }
 }
 
