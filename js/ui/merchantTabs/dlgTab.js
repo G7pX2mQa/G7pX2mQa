@@ -1030,6 +1030,7 @@ class DialogueEngine {
       }
 
       this.choicesEl.style.minHeight = '';
+      if (node.next === 'start_boss_fight') return this.onEnd({ startBossFight: true });
       if (node.next === 'end' || node.end === true) return this.onEnd();
       if (node.next) return this.goto(node.next);
       return;
@@ -1070,6 +1071,9 @@ class DialogueEngine {
         }
         if (opt.to === 'end_explosion') {
           return this.onEnd({ noReward: true, exploded: true });
+        }
+        if (opt.to === 'start_boss_fight') {
+          return this.onEnd({ noReward: true, startBossFight: true });
         }
 
         await this.goto(opt.to);
@@ -1277,6 +1281,12 @@ const engine = new DialogueEngine({
       if (info && info.noReward) {
         renderDialogueList();
         closeModal();
+        return;
+      }
+      if (info && info.startBossFight) {
+        renderDialogueList();
+        closeModal();
+        startBossFightSequence();
         return;
       }
 
@@ -2143,6 +2153,12 @@ function startConversation(id, meta) {
         renderDialogueList();
         return;
       }
+      if (info && info.startBossFight) {
+        textEl.textContent = '…';
+        renderDialogueList();
+        startBossFightSequence();
+        return;
+      }
       completeDialogueOnce(id, meta);
 	textEl.textContent = '…';
 	renderDialogueList();
@@ -2152,6 +2168,30 @@ function startConversation(id, meta) {
   const script = MERCHANT_DIALOGUES[meta.scriptId];
   engine.load(script);
   engine.start();
+}
+
+export function startBossFightSequence() {
+    // 0. Dispatch music stop
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:stopMusic'));
+
+    // 1. Black screen overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'bossfight-sequence-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.backgroundColor = 'black';
+    overlay.style.zIndex = '2147483645';
+    overlay.style.pointerEvents = 'all';
+    overlay.style.cursor = 'none'; // Hide cursor
+    document.body.appendChild(overlay);
+    
+    // 2. Set active flag
+    window.__bossFightSequenceActive = true;
+    
+    // 3. Stop spawning
+    if (window.spawner && typeof window.spawner.stop === 'function') {
+        window.spawner.stop();
+    }
 }
 
 function runFirstMeet() {
