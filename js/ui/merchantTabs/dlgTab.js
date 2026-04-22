@@ -633,7 +633,7 @@ export const DLG_CATALOG = {
   5: {
     title: 'A Powerful Surge',
     blurb: 'Converse with the Merchant about the Surge reset and how powerful it is',
-    scriptId: 8,
+    scriptId: 5,
     reward: { type: 'waves', amount: 5 }, rewardNode: 'm6a',
     once: true,
     unlock: (progress) => {
