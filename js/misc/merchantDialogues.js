@@ -537,7 +537,7 @@ export const MERCHANT_DIALOGUES = {
 
       c2a: { type: 'choice', options: [
         { label: 'Hey.', to: 'm3a' },
-        { label: 'So, about that surge reset..', to: 'm3b' },
+        { label: 'So, about that surge reset...', to: 'm3b' },
         { label: 'Nevermind, I forgot what I was going to say.', to: 'end_nr' },
       ]},
 
