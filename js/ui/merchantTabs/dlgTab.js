@@ -1187,7 +1187,7 @@ function openDialogueModal(id, meta) {
 
   let scriptId = meta.scriptId;
   if (isLabUnlocked() && typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
-      scriptId = 7;
+      scriptId = 1000;
   }
   setMusicUnderwater(true);
 
