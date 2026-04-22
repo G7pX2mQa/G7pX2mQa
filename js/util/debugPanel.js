@@ -4199,7 +4199,10 @@ function buildMiscContent(content) {
         {
             label: 'Unlock All Unlocks',
             onClick: () => {
-                if (typeof window !== 'undefined') window.__debugSuppressAchievementNotifications = true;
+                if (typeof window !== 'undefined') {
+                    window.__debugSuppressAchievementNotifications = true;
+                    window.__debugSuppressGoalNotificationsUntil = Date.now() + 15000;
+                }
                 let unlocks = 0, toggles = 0;
                 try {
                     const result = unlockAllUnlocks();
