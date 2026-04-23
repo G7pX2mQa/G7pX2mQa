@@ -18,23 +18,23 @@ function drawPalmTree(ctx, x, y, scale) {
     ctx.translate(x, y);
     ctx.scale(scale, scale);
 
-    // Trunk - Thick base, thin top
-    ctx.fillStyle = '#8b5a2b';
+    // Trunk - Thick base, thin top, curved
     ctx.beginPath();
-    ctx.moveTo(-10, 0);
-    ctx.lineTo(-5, -100);
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(10, -50, -5, -100); 
     ctx.lineTo(5, -100);
-    ctx.lineTo(10, 0);
+    ctx.quadraticCurveTo(20, -50, 10, 0);
+    ctx.fillStyle = '#8b5a2b';
     ctx.fill();
 
     // Leaves
-    for (let i = 0; i < 5; i++) {
+    ctx.translate(0, -95);
+    ctx.fillStyle = PALETTE.leaf;
+    for (let i = 0; i < 7; i++) {
         ctx.save();
-        ctx.translate(0, -95);
-        ctx.rotate((i * Math.PI * 2) / 5 + 0.5);
+        ctx.rotate((i / 7) * Math.PI * 2 - Math.PI / 2); // Spread around top
         
         // Leaf body
-        ctx.fillStyle = PALETTE.leaf;
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.quadraticCurveTo(40, -20, 60, 0);
@@ -46,7 +46,6 @@ function drawPalmTree(ctx, x, y, scale) {
 
     ctx.restore();
 }
-
 
 function drawPearl(ctx, x, y, scale) {
     ctx.save();
@@ -87,26 +86,37 @@ function drawPearl(ctx, x, y, scale) {
     ctx.restore();
 }
 
-function drawRock(ctx, x, y, scale) {
+function drawCoconut(ctx, x, y, scale) {
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale, scale);
     
+    // Dome shape
     ctx.fillStyle = PALETTE.rock;
     ctx.beginPath();
     ctx.moveTo(-20, 0);
-    ctx.lineTo(-10, -15);
-    ctx.lineTo(10, -20);
-    ctx.lineTo(25, -5);
-    ctx.lineTo(20, 0);
+    ctx.bezierCurveTo(-20, -15, -10, -25, 0, -25);
+    ctx.bezierCurveTo(10, -25, 20, -15, 20, 0);
     ctx.fill();
 
-    // Highlight
-    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    // Three large holes
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.beginPath();
-    ctx.moveTo(-10, -15);
-    ctx.lineTo(0, -18);
-    ctx.lineTo(5, -10);
+    ctx.arc(-4, -18, 2, 0, Math.PI * 2); // Top left
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(4, -18, 2, 0, Math.PI * 2); // Top right
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(0, -12, 2.5, 0, Math.PI * 2); // Bottom center (slightly larger)
+    ctx.fill();
+
+    // Shadow on the sand
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 20, 5, 0, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
@@ -163,40 +173,76 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         return x - Math.floor(x);
     }
 
-    function generateChunkProps(chunkIndex) {
+    
+    function getSandHeight(globalX, layerBaseY, layerAmplitude, layerPeriod, layerSeed) {
+        let yOffset = Math.sin(globalX / layerPeriod + layerSeed) * layerAmplitude
+                    + Math.sin(globalX / (layerPeriod * 0.731) + layerSeed * 2) * (layerAmplitude * 0.4)
+                    + Math.sin(globalX / (layerPeriod * 0.317) + layerSeed * 3) * (layerAmplitude * 0.2);
+        return layerBaseY + yOffset;
+    }
+
+        function generateChunkProps(chunkIndex) {
         const chunkProps = [];
         let seed = chunkIndex * 1337; // Arbitrary multiplier for seed
+
+        // layersConfig maps to farthest -> closest
+        // scaleModifier helps enforce depth
+        const layersConfig = [
+            { baseYFactor: 0.55, amplitude: 30, period: 500, seedOffset: 10, scaleModifier: 0.6 },
+            { baseYFactor: 0.65, amplitude: 40, period: 600, seedOffset: 42, scaleModifier: 1.0 },
+            { baseYFactor: 0.75, amplitude: 50, period: 700, seedOffset: 73, scaleModifier: 1.4 }
+        ];
+
+        // Weight distribution: Farthest (60%), Mid (30%), Closest (10%)
+        function pickLayer() {
+            let r = seededRandom(seed++);
+            if (r < 0.6) return layersConfig[0];
+            if (r < 0.9) return layersConfig[1];
+            return layersConfig[2];
+        }
 
         // Palm trees receding into distance
         const treeCount = Math.floor(seededRandom(seed++) * 4) + 4; // 4 to 7 trees
         for (let i = 0; i < treeCount; i++) {
+            let globalX = chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH;
+            let layer = pickLayer();
+            let baseY = height * layer.baseYFactor;
+            
             chunkProps.push({
                 type: 'tree',
-                x: chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH,
-                y: height * 0.55 + seededRandom(seed++) * height * 0.4,
-                scale: 0.5 + seededRandom(seed++) * 1.5
+                x: globalX,
+                y: getSandHeight(globalX, baseY, layer.amplitude, layer.period, layer.seedOffset) + 5,
+                scale: (0.8 + seededRandom(seed++) * 0.3) * layer.scaleModifier
             });
         }
         
-        // Rocks scattered
-        const rockCount = Math.floor(seededRandom(seed++) * 8) + 7; // 7 to 14 rocks
-        for (let i = 0; i < rockCount; i++) {
+        // Coconuts scattered
+        const coconutCount = Math.floor(seededRandom(seed++) * 8) + 7; // 7 to 14 coconuts
+        for (let i = 0; i < coconutCount; i++) {
+            let globalX = chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH;
+            let layer = pickLayer();
+            let baseY = height * layer.baseYFactor;
+
             chunkProps.push({
-                type: 'rock',
-                x: chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH,
-                y: height * 0.6 + seededRandom(seed++) * height * 0.4,
-                scale: 0.5 + seededRandom(seed++) * 2
+                type: 'coconut',
+                x: globalX,
+                y: getSandHeight(globalX, baseY, layer.amplitude, layer.period, layer.seedOffset) + 5,
+                scale: (0.6 + seededRandom(seed++) * 0.2) * layer.scaleModifier
             });
         }
         
         // Pearls scattered
-        const pearlCount = Math.floor(seededRandom(seed++) * 10) + 6; // 6 to 15 pearls (double frequency)
+        const pearlCount = Math.floor(seededRandom(seed++) * 10) + 6; // 6 to 15 pearls
         for (let i = 0; i < pearlCount; i++) {
+            let globalX = chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH;
+            let layer = pickLayer();
+            let baseY = height * layer.baseYFactor;
+
             chunkProps.push({
                 type: 'pearl',
-                x: chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH,
-                y: height * 0.65 + seededRandom(seed++) * height * 0.3,
-                scale: 0.4 + seededRandom(seed++) * 0.6
+                x: globalX,
+                y: getSandHeight(globalX, baseY, layer.amplitude, layer.period, layer.seedOffset) + 5,
+                scale: (0.3 + seededRandom(seed++) * 0.1) * layer.scaleModifier
             });
         }
         
@@ -288,11 +334,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 const globalX = x + cameraX * layer.parallax;
                 
                 // Deterministic height using combined incommensurate sine waves (pseudo-noise)
-                let yOffset = Math.sin(globalX / layer.period + layer.seed) * layer.amplitude
-                            + Math.sin(globalX / (layer.period * 0.731) + layer.seed * 2) * (layer.amplitude * 0.4)
-                            + Math.sin(globalX / (layer.period * 0.317) + layer.seed * 3) * (layer.amplitude * 0.2);
-                
-                ctx.lineTo(x, layer.baseY + yOffset);
+                ctx.lineTo(x, getSandHeight(globalX, layer.baseY, layer.amplitude, layer.period, layer.seed));
             }
             ctx.lineTo(width, height);
             ctx.fill();
@@ -305,7 +347,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const margin = 150 * prop.scale;
             if (renderX > -margin && renderX < width + margin) {
                 if (prop.type === 'tree') drawPalmTree(ctx, renderX, prop.y, prop.scale);
-                else if (prop.type === 'rock') drawRock(ctx, renderX, prop.y, prop.scale);
+                else if (prop.type === 'coconut') drawCoconut(ctx, renderX, prop.y, prop.scale);
                 else if (prop.type === 'pearl') drawPearl(ctx, renderX, prop.y, prop.scale);
             }
         });
