@@ -270,9 +270,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         // 3. Draw Sand
         // Draw layers of dunes for depth
         const layers = [
-            { parallax: 0.1, baseY: height * 0.55, color: PALETTE.sandDark, amplitude: 30, period: 500, seed: 10 },
-            { parallax: 0.3, baseY: height * 0.65, color: PALETTE.sandMid, amplitude: 40, period: 600, seed: 42 },
-            { parallax: 0.5, baseY: height * 0.75, color: PALETTE.sandLight, amplitude: 50, period: 700, seed: 73 }
+            { parallax: 1.0, baseY: height * 0.55, color: PALETTE.sandDark, amplitude: 30, period: 500, seed: 10 },
+            { parallax: 1.0, baseY: height * 0.65, color: PALETTE.sandMid, amplitude: 40, period: 600, seed: 42 },
+            { parallax: 1.0, baseY: height * 0.75, color: PALETTE.sandLight, amplitude: 50, period: 700, seed: 73 }
         ];
 
         layers.forEach(layer => {
