@@ -6,6 +6,7 @@ const PALETTE = {
     skyBottom: '#b8e1ff',
     sun: '#ffeb3b',
     sandLight: '#f1dcb1',
+    sandMid: '#e7cd96',
     sandDark: '#debe7c',
     rock: '#5d4037',
     leaf: '#4caf50',
@@ -17,26 +18,70 @@ function drawPalmTree(ctx, x, y, scale) {
     ctx.translate(x, y);
     ctx.scale(scale, scale);
 
-    // Trunk
+    // Trunk - Thick base, thin top
     ctx.fillStyle = '#8b5a2b';
     ctx.beginPath();
-    ctx.moveTo(-5, 0);
-    ctx.quadraticCurveTo(10, -50, 0, -100);
-    ctx.quadraticCurveTo(-10, -50, 5, 0);
+    ctx.moveTo(-10, 0);
+    ctx.lineTo(-5, -100);
+    ctx.lineTo(5, -100);
+    ctx.lineTo(10, 0);
     ctx.fill();
 
     // Leaves
-    ctx.fillStyle = PALETTE.leaf;
     for (let i = 0; i < 5; i++) {
         ctx.save();
         ctx.translate(0, -95);
         ctx.rotate((i * Math.PI * 2) / 5 + 0.5);
+        
+        // Leaf body
+        ctx.fillStyle = PALETTE.leaf;
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.quadraticCurveTo(40, -20, 60, 0);
         ctx.quadraticCurveTo(40, 20, 0, 0);
         ctx.fill();
+
         ctx.restore();
+    }
+
+    ctx.restore();
+}
+
+
+function drawPearl(ctx, x, y, scale) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    
+    // Bottom shell
+    ctx.fillStyle = PALETTE.shell;
+    ctx.beginPath();
+    ctx.arc(0, 0, 15, 0, Math.PI, false);
+    ctx.fill();
+    
+    // Pearl
+    const grad = ctx.createRadialGradient(-3, -8, 1, 0, -5, 8);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(1, '#e0e0e0');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, -5, 8, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Top shell (open)
+    ctx.fillStyle = PALETTE.shell;
+    ctx.beginPath();
+    ctx.ellipse(-12, -10, 15, 8, -Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Shell lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+    ctx.lineWidth = 1;
+    for(let i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, -10);
+        ctx.lineTo(i * 5, 0);
+        ctx.stroke();
     }
 
     ctx.restore();
@@ -144,6 +189,17 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             });
         }
         
+        // Pearls scattered
+        const pearlCount = Math.floor(seededRandom(seed++) * 10) + 6; // 6 to 15 pearls (double frequency)
+        for (let i = 0; i < pearlCount; i++) {
+            chunkProps.push({
+                type: 'pearl',
+                x: chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH,
+                y: height * 0.65 + seededRandom(seed++) * height * 0.3,
+                scale: 0.4 + seededRandom(seed++) * 0.6
+            });
+        }
+        
         // Sort by Y so things lower on the screen (closer) are drawn last
         chunkProps.sort((a, b) => a.y - b.y);
         return chunkProps;
@@ -211,38 +267,36 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // 3. Draw Sand (Horizon line at ~60% down)
-        const sandY = height * 0.55;
-        ctx.fillStyle = PALETTE.sandDark;
-        ctx.fillRect(0, sandY, width, height - sandY);
-        
-        // Add some basic dune curves to break up the flat line
-        // We'll pan the dunes slightly for parallax
-        const duneParallax = 0.3;
-        
-        // Fix modulo for negative offsets
-        let rawOffset = -(cameraX * duneParallax) % width;
-        if (rawOffset > 0) {
-            rawOffset -= width;
-        }
-        let currentOffset = rawOffset;
-        
-        ctx.fillStyle = PALETTE.sandLight;
-        ctx.beginPath();
-        
-        // Draw enough curves to cover the screen plus the offset
-        ctx.moveTo(currentOffset, height);
-        ctx.lineTo(currentOffset, sandY + 50);
-        
-        // Loop drawing dunes to fill the screen
-        while (currentOffset < width) {
-            ctx.quadraticCurveTo(currentOffset + width * 0.25, sandY - 20, currentOffset + width * 0.5, sandY + 20);
-            ctx.quadraticCurveTo(currentOffset + width * 0.75, sandY + 60, currentOffset + width, sandY);
-            currentOffset += width;
-        }
-        
-        ctx.lineTo(width, height);
-        ctx.fill();
+        // 3. Draw Sand
+        // Draw layers of dunes for depth
+        const layers = [
+            { parallax: 0.1, baseY: height * 0.55, color: PALETTE.sandDark, amplitude: 30, period: 500, seed: 10 },
+            { parallax: 0.3, baseY: height * 0.65, color: PALETTE.sandMid, amplitude: 40, period: 600, seed: 42 },
+            { parallax: 0.5, baseY: height * 0.75, color: PALETTE.sandLight, amplitude: 50, period: 700, seed: 73 }
+        ];
+
+        layers.forEach(layer => {
+            ctx.fillStyle = layer.color;
+            ctx.beginPath();
+            ctx.moveTo(0, height);
+            
+            // Draw points across the screen width
+            // Step size of 20 pixels is usually fine for smooth curves
+            const step = 20;
+            for (let x = 0; x <= width + step; x += step) {
+                // Calculate global X
+                const globalX = x + cameraX * layer.parallax;
+                
+                // Deterministic height using combined incommensurate sine waves (pseudo-noise)
+                let yOffset = Math.sin(globalX / layer.period + layer.seed) * layer.amplitude
+                            + Math.sin(globalX / (layer.period * 0.731) + layer.seed * 2) * (layer.amplitude * 0.4)
+                            + Math.sin(globalX / (layer.period * 0.317) + layer.seed * 3) * (layer.amplitude * 0.2);
+                
+                ctx.lineTo(x, layer.baseY + yOffset);
+            }
+            ctx.lineTo(width, height);
+            ctx.fill();
+        });
 
         // 4. Draw Props
         visibleProps.forEach(prop => {
@@ -252,6 +306,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             if (renderX > -margin && renderX < width + margin) {
                 if (prop.type === 'tree') drawPalmTree(ctx, renderX, prop.y, prop.scale);
                 else if (prop.type === 'rock') drawRock(ctx, renderX, prop.y, prop.scale);
+                else if (prop.type === 'pearl') drawPearl(ctx, renderX, prop.y, prop.scale);
             }
         });
 
