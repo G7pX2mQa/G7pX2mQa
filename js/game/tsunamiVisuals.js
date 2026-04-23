@@ -231,7 +231,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         const centerTreeCount = 5 + Math.floor(Math.random() * 3);
         addProp('tree', centerTreeCount, 0.8, 0.4, () => (width * 0.1) + Math.random() * (width * 0.8));
         
-        addProp('rock', 20, 0.6, 0.4);
+        addProp('coconut', 20, 0.6, 0.4);
         addProp('shell', 30, 0.3, 0.3);
 
         props.sort((a, b) => a.y - b.y);
@@ -405,7 +405,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         ctx.restore();
     }
 
-    function drawRock(ctx, x, y, scale, palette) {
+    function drawCoconut(ctx, x, y, scale, palette) {
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(scale, scale);
@@ -415,6 +415,20 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         ctx.moveTo(-20, 0);
         ctx.bezierCurveTo(-20, -15, -10, -25, 0, -25);
         ctx.bezierCurveTo(10, -25, 20, -15, 20, 0);
+        ctx.fill();
+
+        // Three smaller holes
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.beginPath();
+        ctx.arc(-4, -18, 1, 0, Math.PI * 2); // Top left
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(4, -18, 1, 0, Math.PI * 2); // Top right
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.arc(0, -12, 1.5, 0, Math.PI * 2); // Bottom center
         ctx.fill();
 
         // Shadow
@@ -727,7 +741,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         
         props.forEach(prop => {
             if (prop.type === 'tree') drawPalmTree(bgCtx, prop.x, prop.y, prop.scale, currentPalette);
-            else if (prop.type === 'rock') drawRock(bgCtx, prop.x, prop.y, prop.scale, currentPalette);
+            else if (prop.type === 'coconut') drawCoconut(bgCtx, prop.x, prop.y, prop.scale, currentPalette);
             else if (prop.type === 'shell') drawShell(bgCtx, prop.x, prop.y, prop.scale, currentPalette);
         });
 
