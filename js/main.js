@@ -684,6 +684,7 @@ images: [
   'img/misc/infuse_plus_base.webp',
   'img/misc/infuse_base.webp',
   'img/misc/largest_coin_plus_base.webp',
+  'img/misc/life.webp',
   'img/misc/locked.webp',
   'img/misc/locked_base.webp',
   'img/misc/maxed.webp',
