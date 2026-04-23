@@ -21,7 +21,7 @@ import {
 } from '../../util/ghostTapGuard.js';
 import { IS_MOBILE } from '../../main.js';
 import { playAudio, setMusicUnderwater } from '../../util/audioManager.js';
-import { playBossFightSequence } from '../../game/bossVisuals.js';
+import { playSecretDlgBossFightSequence } from '../../game/secretDlgBossVisuals.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 
 function nowMs() {
@@ -2221,7 +2221,7 @@ export function startBossFightSequence() {
         document.body.appendChild(visualsContainer);
 
         // Start visuals and infinite loop
-        playBossFightSequence(visualsContainer, () => {}, {});
+        playSecretDlgBossFightSequence(visualsContainer, () => {}, {});
     }, 5000);
 }
 
