@@ -1,4 +1,6 @@
 import { playAudio } from '../util/audioManager.js';
+import { IS_MOBILE } from '../main.js';
+import { getActiveSlot } from '../util/storage.js';
 
 // Reusing palette from tsunamiVisuals for consistency
 const PALETTE = {
@@ -150,10 +152,196 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         left: false,
         right: false
     };
+    // --- UI Setup ---
+    const uiContainer = document.createElement('div');
+    uiContainer.style.position = 'absolute';
+    uiContainer.style.inset = '0';
+    uiContainer.style.zIndex = '2147483645';
+    uiContainer.style.pointerEvents = 'none'; // Let clicks pass through if needed, except for buttons
+    container.appendChild(uiContainer);
+
+    let desktopArrows = null;
+    const knowHowToMoveKey = `ccc:secretDlgBoss:knowsHowToMove:${getActiveSlot()}`;
+
+    if (!IS_MOBILE) {
+        // Desktop arrows logic
+        const knowsHowToMove = localStorage.getItem(knowHowToMoveKey) === '1';
+        if (!knowsHowToMove) {
+            desktopArrows = [];
+            
+            // Define custom style for blinking and tooltip
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes bossArrowBlink {
+                    0% { filter: brightness(1); }
+                    10% { filter: brightness(0); }
+                    50% { filter: brightness(1); }
+                    100% { filter: brightness(1); }
+                }
+                .boss-arrow-blinking {
+                    animation: bossArrowBlink 1s infinite ease-in;
+                }
+                .boss-arrow-tooltip {
+                    display: none;
+                    position: absolute;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: max-content;
+                    max-width: 300px;
+                    background: linear-gradient(to bottom, rgba(60,60,60,1), rgba(40,40,40,1));
+                    color: #fff;
+                    font-size: 14px;
+                    line-height: 1.4;
+                    padding: 10px 14px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+                    text-align: center;
+                    pointer-events: none;
+                    z-index: 3000;
+                    font-weight: normal;
+                    white-space: normal;
+                }
+                .boss-arrow-tooltip.is-left {
+                    left: calc(100% + 15px - (100px * 100 / 512));
+                }
+                .boss-arrow-tooltip.is-right {
+                    right: calc(100% + 15px - (100px * 100 / 512));
+                }
+                .boss-arrow-tooltip::after {
+                    content: '';
+                    position: absolute;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    border-width: 6px;
+                    border-style: solid;
+                }
+                .boss-arrow-tooltip.is-left::after {
+                    right: 100%;
+                    border-color: transparent rgba(40,40,40,1) transparent transparent;
+                }
+                .boss-arrow-tooltip.is-right::after {
+                    left: 100%;
+                    border-color: transparent transparent transparent rgba(40,40,40,1);
+                }
+            `;
+            uiContainer.appendChild(style);
+
+            const createDesktopArrow = (src, side, text) => {
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'absolute';
+                wrapper.style.top = '50%';
+                wrapper.style.transform = 'translateY(-50%)';
+                wrapper.style[side] = '0px';
+                wrapper.style.pointerEvents = 'auto'; // allow hover
+                
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'boss-arrow-blinking';
+                img.style.maxHeight = '100px';
+                img.style.display = 'block';
+                wrapper.appendChild(img);
+
+                const tooltip = document.createElement('div');
+                tooltip.className = `boss-arrow-tooltip is-${side}`;
+                tooltip.textContent = text;
+                wrapper.appendChild(tooltip);
+
+                wrapper.addEventListener('mouseenter', () => {
+                    tooltip.style.display = 'block';
+                });
+                wrapper.addEventListener('mouseleave', () => {
+                    tooltip.style.display = 'none';
+                });
+
+                uiContainer.appendChild(wrapper);
+                return wrapper;
+            };
+
+            desktopArrows.push(createDesktopArrow('img/misc/arrow_left.webp', 'left', 'Hold A to move left'));
+            desktopArrows.push(createDesktopArrow('img/misc/arrow_right.webp', 'right', 'Hold D to move right'));
+        }
+    } else {
+        // Mobile buttons logic
+        const createMobileBtn = (src, side) => {
+            const btn = document.createElement('div');
+            btn.style.position = 'absolute';
+            btn.style.top = '50%';
+            btn.style.transform = 'translateY(-50%)';
+            btn.style[side] = '20px';
+            btn.style.width = '80px';
+            btn.style.height = '80px';
+            btn.style.borderRadius = '16px';
+            btn.style.border = '1px solid hsla(45, 80%, 40%, 0.45)';
+            btn.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.justifyContent = 'center';
+            btn.style.pointerEvents = 'auto';
+            btn.style.userSelect = 'none';
+            btn.style.webkitUserSelect = 'none';
+            
+            const img = document.createElement('img');
+            img.src = src;
+            img.style.maxWidth = '60%';
+            img.style.maxHeight = '60%';
+            img.style.pointerEvents = 'none';
+            btn.appendChild(img);
+
+            const activeStyle = () => {
+                btn.style.border = '1px solid hsla(45, 80%, 60%, 0.8)';
+                btn.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                btn.style.filter = 'brightness(1.2)';
+            };
+
+            const inactiveStyle = () => {
+                btn.style.border = '1px solid hsla(45, 80%, 40%, 0.45)';
+                btn.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+                btn.style.filter = 'none';
+            };
+
+            const keyToSet = side === 'left' ? 'left' : 'right';
+
+            const startMove = (e) => {
+                e.preventDefault();
+                keys[keyToSet] = true;
+                activeStyle();
+            };
+
+            const endMove = (e) => {
+                e.preventDefault();
+                keys[keyToSet] = false;
+                inactiveStyle();
+            };
+
+            btn.addEventListener('touchstart', startMove, { passive: false });
+            btn.addEventListener('mousedown', startMove);
+
+            btn.addEventListener('touchend', endMove, { passive: false });
+            btn.addEventListener('touchcancel', endMove, { passive: false });
+            btn.addEventListener('mouseup', endMove);
+            btn.addEventListener('mouseleave', endMove);
+
+            uiContainer.appendChild(btn);
+            return btn;
+        };
+
+        createMobileBtn('img/misc/arrow_left_thin.webp', 'left');
+        createMobileBtn('img/misc/arrow_right_thin.webp', 'right');
+    }
+
 
     function onKeyDown(e) {
-        if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.left = true;
-        if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.right = true;
+        let moved = false;
+        if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') { keys.left = true; moved = true; }
+        if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') { keys.right = true; moved = true; }
+        
+        if (moved && !IS_MOBILE) {
+            localStorage.setItem(knowHowToMoveKey, '1');
+            if (desktopArrows) {
+                desktopArrows.forEach(arr => arr.remove());
+                desktopArrows = null;
+            }
+        }
     }
 
     function onKeyUp(e) {
@@ -370,6 +558,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         window.removeEventListener('keydown', onKeyDown);
         window.removeEventListener('keyup', onKeyUp);
         if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+        if (uiContainer && uiContainer.parentNode) uiContainer.parentNode.removeChild(uiContainer);
         
         if (bossMusic) bossMusic.stop();
     }
