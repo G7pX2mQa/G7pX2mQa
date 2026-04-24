@@ -98,7 +98,7 @@ export const SETTING_DEFINITIONS = {
     type: 'toggle',
     label: 'Show Cursor',
     hasExtraInfo: true,
-	info: 'Specifically on the playfield, the area the collectibles finalize their positions.',
+	info: 'Specifically in areas where the cursor is normally hidden and replaced with the cursor trail.',
     default: false,
     unlockCondition: () => !IS_MOBILE,
   },
