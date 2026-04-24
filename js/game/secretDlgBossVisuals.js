@@ -794,7 +794,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
             // Give velocity
             const baseVx = (Math.random() * 40 + 20) * (Math.random() < 0.5 ? 1 : -1);
-            const baseVy = -(Math.random() * 13.5 + 4.5);
+            const baseVy = -(Math.random() * 5 + 5);
 
             const decelRatio = Math.random() < 0.75 ? 0.60 : (Math.random() * 0.50 + 0.10);
             const decelDistance = width * decelRatio;
@@ -847,7 +847,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
             let renderX = p.x - cameraX;
             if (p.type === 'coin') drawProjectileImage(ctx, renderX, p.y, p.scale, projectileImages.coin);
-            else if (p.type === 'bomb') drawProjectileImage(ctx, renderX, p.y, p.scale, projectileImages.bomb);
+            else if (p.type === 'bomb') drawProjectileImage(ctx, renderX, p.y, p.scale * 1.5, projectileImages.bomb);
         }
 
         // Optional: clear old chunks to free memory if camera moved far away
@@ -900,8 +900,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 const radius = 32 * prop.scale * 1.3;
                 hit = circleLineSegmentIntersect(renderX, renderY, radius, lastCx, lastCy, cx, cy);
             } else if (prop.type === 'bomb') {
-                const radius = 32 * prop.scale * 0.5;
-                const hitboxY = renderY + (32 * prop.scale) - radius;
+                const radius = 32 * prop.scale * 1.5 * 0.5;
+                const hitboxY = renderY + (32 * prop.scale * 1.5) - radius;
                 hit = circleLineSegmentIntersect(renderX, hitboxY, radius, lastCx, lastCy, cx, cy);
             }
 
