@@ -4,7 +4,7 @@ import { settingsManager } from './settingsManager.js';
 import { getLevelNumber } from './upgrades.js';
 import { RAINBOW_GEM_AREA_KEY } from './rainbowGemUpgrades.js';
 
-export function createCursorTrail(playfield) {
+export function createCursorTrail(playfield, options = {}) {
   if (!playfield || typeof window === 'undefined') {
     return { destroy() {} };
   }
@@ -16,6 +16,7 @@ export function createCursorTrail(playfield) {
   }
 
   // --- Configuration ---
+  const isBossFight = options.isBossFight || false;
   const CAPACITY = 10000;
   const PARTICLE_LIFETIME = 500; // ms
   const INTERPOLATION_STEP = 4; // px
@@ -54,7 +55,7 @@ export function createCursorTrail(playfield) {
     width: '100%',
     height: '100%',
     pointerEvents: 'none',
-    zIndex: '5',
+    zIndex: isBossFight ? '2147483646' : '5',
     touchAction: 'none'
   });
   
@@ -166,6 +167,20 @@ export function createCursorTrail(playfield) {
   let pointerInside = false;
   let lastSpawnX = null;
   let lastSpawnY = null;
+  let lastEmitX = null;
+  let lastEmitY = null;
+  let isNewTouch = false;
+  
+  if (isBossFight && typeof window !== 'undefined') {
+      pointerInside = true;
+      if (window.globalLastMouseX !== undefined && window.globalLastMouseY !== undefined) {
+          lastSpawnX = window.globalLastMouseX;
+          lastSpawnY = window.globalLastMouseY;
+      } else {
+          lastSpawnX = window.innerWidth / 2;
+          lastSpawnY = window.innerHeight / 2 + 50; // default slightly below center
+      }
+  }
   
   let rect = { left: 0, top: 0, width: 0, height: 0 };
   let dpr = 1;
@@ -229,7 +244,8 @@ export function createCursorTrail(playfield) {
 
   const processPoint = (localX, localY, budgetRef) => {
       // Spawn at this point, interpolating from lastSpawnX if needed
-      if (lastSpawnX === null || lastSpawnY === null) {
+      if (lastSpawnX === null || lastSpawnY === null || isNewTouch) {
+          isNewTouch = false;
           if (budgetRef.count < MAX_SPAWN_PER_FRAME) {
             spawn(localX, localY);
             budgetRef.count++;
@@ -300,10 +316,12 @@ export function createCursorTrail(playfield) {
   };
   
   const onPointerLeave = () => {
-    pointerInside = false;
-    lastSpawnX = null;
-    lastSpawnY = null;
-    pointsQueue.length = 0; // Clear queue on leave
+    if (!isBossFight) {
+      pointerInside = false;
+      lastSpawnX = null;
+      lastSpawnY = null;
+      pointsQueue.length = 0; // Clear queue on leave
+    }
   };
 
   const loop = () => {
@@ -321,9 +339,21 @@ export function createCursorTrail(playfield) {
     if (pointsQueue.length > 0) {
         // We have new input data
         for (const pt of pointsQueue) {
-            if (pt.inside) {
+            let px = pt.x;
+            let py = pt.y;
+            let pInside = pt.inside;
+            
+            if (isBossFight) {
+                // Clamp coordinates
+                const radius = TEXTURE_SIZE / 2;
+                px = Math.max(radius, Math.min(rect.width - radius, px));
+                py = Math.max(radius, Math.min(rect.height - radius, py));
+                pInside = true; // Always inside for boss fight
+            }
+
+            if (pInside) {
                 pointerInside = true;
-                processPoint(pt.x, pt.y, budget);
+                processPoint(px, py, budget);
             } else {
                 pointerInside = false;
                 lastSpawnX = null;
@@ -335,14 +365,25 @@ export function createCursorTrail(playfield) {
         // processPoint spawns at (localX, localY). 
         // If the budget ran out, we might have skipped it. 
         // Let's force the very last point of the queue if it was inside.
-        const lastPt = pointsQueue[pointsQueue.length - 1];
-        if (lastPt.inside) {
+        let lastPt = pointsQueue[pointsQueue.length - 1];
+        let lastPtInside = lastPt.inside;
+        let lastPx = lastPt.x;
+        let lastPy = lastPt.y;
+        
+        if (isBossFight) {
+            const radius = TEXTURE_SIZE / 2;
+            lastPx = Math.max(radius, Math.min(rect.width - radius, lastPx));
+            lastPy = Math.max(radius, Math.min(rect.height - radius, lastPy));
+            lastPtInside = true;
+        }
+
+        if (lastPtInside) {
              // If we haven't spawned at exact last location yet (due to budget), force it.
              // (Simple check: compare lastSpawnX/Y with lastPt)
-             if (lastSpawnX !== lastPt.x || lastSpawnY !== lastPt.y) {
-                 spawn(lastPt.x, lastPt.y);
-                 lastSpawnX = lastPt.x;
-                 lastSpawnY = lastPt.y;
+             if (lastSpawnX !== lastPx || lastSpawnY !== lastPy) {
+                 spawn(lastPx, lastPy);
+                 lastSpawnX = lastPx;
+                 lastSpawnY = lastPy;
              }
         }
         
@@ -427,6 +468,20 @@ export function createCursorTrail(playfield) {
         lastClearRect = null;
     }
     
+    // Dispatch boss cursor hit event for collision logic
+    if (isBossFight && lastSpawnX !== null && lastSpawnY !== null) {
+        document.dispatchEvent(new CustomEvent('boss_cursor_hit', {
+            detail: { 
+                x: lastSpawnX, 
+                y: lastSpawnY, 
+                lastX: lastEmitX !== null ? lastEmitX : lastSpawnX, 
+                lastY: lastEmitY !== null ? lastEmitY : lastSpawnY
+            }
+        }));
+        lastEmitX = lastSpawnX;
+        lastEmitY = lastSpawnY;
+    }
+
     rafId = requestAnimationFrame(loop);
   };
 
@@ -439,11 +494,13 @@ export function createCursorTrail(playfield) {
   const opts = { passive: true };
   
   const onPointerEnter = (e) => {
+      if (isBossFight) isNewTouch = true;
       updateBounds();
       onPointerMove(e);
   };
 
   const onPointerDown = (e) => {
+      if (isBossFight) isNewTouch = true;
       updateBounds();
       onPointerMove(e);
   };
