@@ -1,6 +1,7 @@
 import { playAudio } from '../util/audioManager.js';
 import { IS_MOBILE } from '../main.js';
 import { getActiveSlot } from '../util/storage.js';
+import { createCursorTrail } from './cursorTrail.js';
 
 // Reusing palette from tsunamiVisuals for consistency
 const PALETTE = {
@@ -14,6 +15,23 @@ const PALETTE = {
     leaf: '#4caf50',
     shell: '#fff0f5'
 };
+
+const dummyImages = {
+    coin: new Image(),
+    bomb: new Image()
+};
+dummyImages.coin.src = 'img/currencies/coin/coin.webp';
+dummyImages.bomb.src = 'img/misc/bomb.webp';
+
+function drawDummyImage(ctx, x, y, scale, img) {
+    if (!img.complete) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    const size = 64; // Base drawing size
+    ctx.drawImage(img, -size/2, -size/2, size, size);
+    ctx.restore();
+}
 
 function drawPalmTree(ctx, x, y, scale) {
     ctx.save();
@@ -144,6 +162,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     const ctx = canvas.getContext('2d', { alpha: false });
     let width, height;
     let props = [];
+
+    const cursorTrail = createCursorTrail(container, { isBossFight: true });
 
     // Camera state
     let cameraX = 0;
@@ -434,6 +454,42 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             });
         }
         
+        // Dummy Coins
+        const coinCount = Math.floor(seededRandom(seed++) * 5) + 5;
+        for (let i = 0; i < coinCount; i++) {
+            let globalX = chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH;
+            let layer = pickLayer();
+            let baseY = height * layer.baseYFactor;
+
+            chunkProps.push({
+                type: 'dummyCoin',
+                id: `coin_${chunkIndex}_${i}`,
+                x: globalX,
+                y: getSandHeight(globalX, baseY, layer.amplitude, layer.period, layer.seedOffset) - 50,
+                scale: (0.5 + seededRandom(seed++) * 0.2) * layer.scaleModifier,
+                width: 32, // hit radius roughly
+                height: 32
+            });
+        }
+
+        // Dummy Bombs
+        const bombCount = Math.floor(seededRandom(seed++) * 5) + 5;
+        for (let i = 0; i < bombCount; i++) {
+            let globalX = chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH;
+            let layer = pickLayer();
+            let baseY = height * layer.baseYFactor;
+
+            chunkProps.push({
+                type: 'dummyBomb',
+                id: `bomb_${chunkIndex}_${i}`,
+                x: globalX,
+                y: getSandHeight(globalX, baseY, layer.amplitude, layer.period, layer.seedOffset) - 50,
+                scale: (0.5 + seededRandom(seed++) * 0.2) * layer.scaleModifier,
+                width: 32, // hit radius roughly
+                height: 32
+            });
+        }
+
         // Sort by Y so things lower on the screen (closer) are drawn last
         chunkProps.sort((a, b) => a.y - b.y);
         return chunkProps;
@@ -530,6 +586,14 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
         // 4. Draw Props
         visibleProps.forEach(prop => {
+            if (prop.type === 'dummyCoin' || prop.type === 'dummyBomb') {
+                prop.y += 2; // move downward
+                if (prop.y > height + 50) {
+                    prop.y = -50;
+                    prop.x = cameraX + Math.random() * width; // random x on screen
+                }
+            }
+
             let renderX = prop.x - cameraX;
             // Draw if on screen (with some margin based on scale)
             const margin = 150 * prop.scale;
@@ -537,6 +601,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 if (prop.type === 'tree') drawPalmTree(ctx, renderX, prop.y, prop.scale);
                 else if (prop.type === 'coconut') drawCoconut(ctx, renderX, prop.y, prop.scale);
                 else if (prop.type === 'pearl') drawPearl(ctx, renderX, prop.y, prop.scale);
+                else if (prop.type === 'dummyCoin') drawDummyImage(ctx, renderX, prop.y, prop.scale, dummyImages.coin);
+                else if (prop.type === 'dummyBomb') drawDummyImage(ctx, renderX, prop.y, prop.scale, dummyImages.bomb);
             }
         });
 
@@ -550,6 +616,66 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         animationFrameId = requestAnimationFrame(loop);
     }
 
+    function circleLineSegmentIntersect(circleX, circleY, radius, x1, y1, x2, y2) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const l2 = dx * dx + dy * dy;
+        
+        if (l2 === 0) {
+            const distX = circleX - x1;
+            const distY = circleY - y1;
+            return (distX * distX + distY * distY) <= radius * radius;
+        }
+
+        let t = ((circleX - x1) * dx + (circleY - y1) * dy) / l2;
+        t = Math.max(0, Math.min(1, t));
+
+        const closestX = x1 + t * dx;
+        const closestY = y1 + t * dy;
+
+        const distX = circleX - closestX;
+        const distY = circleY - closestY;
+        return (distX * distX + distY * distY) <= radius * radius;
+    }
+
+    function onBossCursorHit(e) {
+        if (!isRunning) return;
+        const cx = e.detail.x;
+        const cy = e.detail.y;
+        const lastCx = e.detail.lastX;
+        const lastCy = e.detail.lastY;
+        
+        // Check collision against all props in active chunks
+        for (let [chunkIndex, chunkProps] of chunks.entries()) {
+            for (let i = chunkProps.length - 1; i >= 0; i--) {
+                const prop = chunkProps[i];
+                if (prop.type === 'dummyCoin' || prop.type === 'dummyBomb') {
+                    const renderX = prop.x - cameraX;
+                    const renderY = prop.y;
+                    
+                    let hit = false;
+
+                    if (prop.type === 'dummyCoin') {
+                        // Generous circular hitbox for coins
+                        const radius = 32 * prop.scale * 1.3;
+                        hit = circleLineSegmentIntersect(renderX, renderY, radius, lastCx, lastCy, cx, cy);
+                    } else if (prop.type === 'dummyBomb') {
+                        // Strict, small circular hitbox near the bottom center for bombs
+                        const radius = 32 * prop.scale * 0.5;
+                        const hitboxY = renderY + (32 * prop.scale) - radius;
+                        hit = circleLineSegmentIntersect(renderX, hitboxY, radius, lastCx, lastCy, cx, cy);
+                    }
+
+                    if (hit) {
+                        // Collision hit: Delete it
+                        chunkProps.splice(i, 1);
+                    }
+                }
+            }
+        }
+    }
+    document.addEventListener('boss_cursor_hit', onBossCursorHit);
+
     function cleanup() {
         isRunning = false;
         container.style.cursor = '';
@@ -557,10 +683,12 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         window.removeEventListener('resize', resize);
         window.removeEventListener('keydown', onKeyDown);
         window.removeEventListener('keyup', onKeyUp);
+        document.removeEventListener('boss_cursor_hit', onBossCursorHit);
         if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
         if (uiContainer && uiContainer.parentNode) uiContainer.parentNode.removeChild(uiContainer);
         
         if (bossMusic) bossMusic.stop();
+        if (cursorTrail) cursorTrail.destroy();
     }
 
     loop();
