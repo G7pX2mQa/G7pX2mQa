@@ -159,7 +159,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     canvas.style.inset = '0';
     canvas.style.width = '100%';
     canvas.style.height = '100%';
-    canvas.style.zIndex = '2147483644'; 
+    canvas.style.zIndex = '2147483641'; 
     container.appendChild(canvas);
 
     const ctx = canvas.getContext('2d', { alpha: false });
@@ -179,7 +179,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     const uiContainer = document.createElement('div');
     uiContainer.style.position = 'absolute';
     uiContainer.style.inset = '0';
-    uiContainer.style.zIndex = '2147483645';
+    uiContainer.style.zIndex = '2147483642';
     uiContainer.style.pointerEvents = 'none'; // Let clicks pass through if needed, except for buttons
     container.appendChild(uiContainer);
 
@@ -212,7 +212,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     // So we just set the background color on the fill element itself.
     // Wait, the xp bar doesn't use background on `__fill`, it sets background on `__fill::after` OR expects a class.
     // Let's set background directly on hpBarFill.
-    hpBarFill.style.background = 'linear-gradient(to right, #ff4c4c, #e60000)';
+    hpBarFill.style.background = 'linear-gradient(to right, rgb(255, 0, 0), rgb(239, 0, 0), rgb(219, 0, 0))';
 
     // Also need to adjust the glass effect variable so it matches the reddish theme or keep the white glass.
     hpBarFill.style.setProperty('--glass-bg', 'linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0))');
@@ -229,6 +229,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     hpText.style.fontSize = 'clamp(18px, 3.0vw, 24px)';
     hpText.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
     hpText.textContent = 'HP: 1000/1000';
+    hpText.style.transform = 'translateY(-1px)';
 
     hpBarFrame.appendChild(hpText);
     hpBar.appendChild(hpBarFill);
@@ -603,23 +604,13 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, width, height);
 
-        // 2. Draw Sun (Static in background)
-        const sunY = height * 0.2; 
-        ctx.beginPath();
-        ctx.arc(width * 0.5, sunY, 60, 0, Math.PI * 2);
-        ctx.fillStyle = PALETTE.sun;
-        ctx.shadowColor = PALETTE.sun;
-        ctx.shadowBlur = 30;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
         // Boss (Static in background just behind the highest sand layer)
         let bossTopY = 0;
         if (merchantImg.complete && merchantImg.naturalWidth > 0) {
             // Massive boss
             // Bound by both width and height to prevent overwhelming widescreen displays
-            const maxBossWidth = width * 0.6;
-            const maxBossHeight = height * 0.55; // nearly covering the sun, but leaving room for HP bar
+            const maxBossWidth = width * 0.7;
+            const maxBossHeight = height * 0.65; // nearly covering the sun, but leaving room for HP bar
             
             let bossWidth = maxBossWidth;
             let bossHeight = (bossWidth / merchantImg.naturalWidth) * merchantImg.naturalHeight;
@@ -648,7 +639,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             ctx.restore();
             
             // Update health bar position dynamically to sit above the boss visually, ensuring it's always on screen
-            let hpBarY = bossTopY - 40;
+            let hpBarY = bossTopY - 10;
             if (hpBarY < 10) hpBarY = 10;
             healthBarWrapper.style.top = `${hpBarY}px`;
         }
