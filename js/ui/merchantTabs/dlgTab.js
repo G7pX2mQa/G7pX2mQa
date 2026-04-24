@@ -2046,7 +2046,7 @@ function playDialogueExplosion() {
   }
 
   const spawnParticles = (isLong, currentCount = 0) => {
-    const numParticles = isLong ? 200 : 50;
+    const numParticles = isLong ? 1000 : 50;
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
     
