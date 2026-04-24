@@ -796,7 +796,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const baseVx = (Math.random() * 40 + 20) * (Math.random() < 0.5 ? 1 : -1);
             const baseVy = -(Math.random() * 15 + 5);
 
-            const decelRatio = Math.random() < 0.50 ? 0.50 : (Math.random() * 0.40 + 0.10);
+            const decelRatio = Math.random() < 0.75 ? 0.60 : (Math.random() * 0.50 + 0.10);
             const decelDistance = width * decelRatio;
 
             activeProjectiles.push({
@@ -826,12 +826,12 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             if (!p.slowed) {
                 if (Math.abs(p.x - p.startX) >= p.decelDistance) {
                     p.slowed = true;
-                    p.vx *= 0.1665; // cut velocity in half again
+                    p.vx *= 0.1665;
                     p.vy *= 0.1665;
                 }
             } else {
                 p.vx *= 0.95; // Friction
-                p.vy += 0.03;
+                p.vy += 0.01;
             }
             
             // Scale up to target
