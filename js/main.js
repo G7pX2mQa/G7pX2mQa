@@ -781,6 +781,7 @@ images: [
 	  'sounds/coin_pickup_size6.ogg',
 	  'sounds/lightning_strike.ogg',
 	  'sounds/lightning_zap.ogg',
+	  'sounds/projectile_spawn.ogg',
 	  'sounds/Secret_Boss_Fight.ogg',
 	  'sounds/The_Cove.ogg',
     'sounds/tsu_storm_ambience.ogg',
