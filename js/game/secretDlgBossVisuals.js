@@ -794,7 +794,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
             // Give velocity
             const baseVx = (Math.random() * 40 + 20) * (Math.random() < 0.5 ? 1 : -1);
-            const baseVy = -(Math.random() * 15 + 5);
+            const baseVy = -(Math.random() * 13.5 + 4.5);
 
             const decelRatio = Math.random() < 0.75 ? 0.60 : (Math.random() * 0.50 + 0.10);
             const decelDistance = width * decelRatio;
