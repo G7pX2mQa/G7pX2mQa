@@ -149,6 +149,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     // Start Boss Music
     const bossMusic = playAudio('sounds/Secret_Boss_Fight.ogg', { loop: true, volume: 1.0, type: 'music' });
 
+    const merchantImg = new Image();
+    merchantImg.src = 'img/misc/merchant.webp';
+
     // --- Canvas Setup ---
     const canvas = document.createElement('canvas');
     canvas.id = 'bossfight-canvas';
@@ -179,6 +182,59 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     uiContainer.style.zIndex = '2147483645';
     uiContainer.style.pointerEvents = 'none'; // Let clicks pass through if needed, except for buttons
     container.appendChild(uiContainer);
+
+    // Health Bar setup
+    const healthBarWrapper = document.createElement('div');
+    healthBarWrapper.style.position = 'absolute';
+    healthBarWrapper.style.left = '50%';
+    healthBarWrapper.style.transform = 'translate(-50%, -100%)';
+    healthBarWrapper.style.display = 'flex';
+    healthBarWrapper.style.flexDirection = 'column';
+    healthBarWrapper.style.alignItems = 'center';
+    healthBarWrapper.style.zIndex = '1';
+
+    const hpBar = document.createElement('div');
+    hpBar.className = 'xp-bar boss-hp-bar'; // Reuse xp-bar structure classes
+    // We remove xp-plus so no need to account for it, but we can set the variables or override properties.
+    hpBar.style.width = 'clamp(200px, 44vw, 440px)'; // Matches xp-bar-w
+    hpBar.style.height = 'clamp(34px, 5.2svh, 46px)';
+    hpBar.style.border = '3px solid #01060f'; // Outline
+    hpBar.style.boxShadow = 'inset 0 6px 10px rgba(255,255,255,0.14), inset 0 -6px 14px rgba(0,0,0,0.45)';
+    // Red background base behind the fill
+    hpBar.style.background = '#2a0000';
+
+    const hpBarFill = document.createElement('div');
+    hpBarFill.className = 'xp-bar__fill';
+    hpBarFill.style.width = '100%';
+    // We override --glass-bg using inline styles or set it as a CSS variable on the element
+    // Actually, setting background directly will override `.xp-bar__fill::after` if we aren't careful, 
+    // but the class structure expects `xp-bar__fill` to have the base fill color, and `::after` handles the gloss.
+    // So we just set the background color on the fill element itself.
+    // Wait, the xp bar doesn't use background on `__fill`, it sets background on `__fill::after` OR expects a class.
+    // Let's set background directly on hpBarFill.
+    hpBarFill.style.background = 'linear-gradient(to right, #ff4c4c, #e60000)';
+
+    // Also need to adjust the glass effect variable so it matches the reddish theme or keep the white glass.
+    hpBarFill.style.setProperty('--glass-bg', 'linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0))');
+
+    const hpBarFrame = document.createElement('div');
+    hpBarFrame.className = 'xp-bar__frame';
+    hpBarFrame.style.justifyContent = 'center';
+    hpBarFrame.style.alignItems = 'center';
+
+    const hpText = document.createElement('div');
+    hpText.className = 'xp-bar__progress';
+    hpText.style.fontWeight = 'bold';
+    hpText.style.color = '#fff';
+    hpText.style.fontSize = 'clamp(18px, 3.0vw, 24px)';
+    hpText.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
+    hpText.textContent = 'HP: 1000/1000';
+
+    hpBarFrame.appendChild(hpText);
+    hpBar.appendChild(hpBarFill);
+    hpBar.appendChild(hpBarFrame);
+    healthBarWrapper.appendChild(hpBar);
+    uiContainer.appendChild(healthBarWrapper);
 
     let desktopArrows = null;
     const knowHowToMoveKey = `ccc:secretDlgBoss:knowsHowToMove:${getActiveSlot()}`;
@@ -556,6 +612,45 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         ctx.shadowBlur = 30;
         ctx.fill();
         ctx.shadowBlur = 0;
+
+        // Boss (Static in background just behind the highest sand layer)
+        let bossTopY = 0;
+        if (merchantImg.complete && merchantImg.naturalWidth > 0) {
+            // Massive boss
+            // Bound by both width and height to prevent overwhelming widescreen displays
+            const maxBossWidth = width * 0.5;
+            const maxBossHeight = height * 0.45; // nearly covering the sun, but leaving room for HP bar
+            
+            let bossWidth = maxBossWidth;
+            let bossHeight = (bossWidth / merchantImg.naturalWidth) * merchantImg.naturalHeight;
+            
+            if (bossHeight > maxBossHeight) {
+                bossHeight = maxBossHeight;
+                bossWidth = (bossHeight / merchantImg.naturalHeight) * merchantImg.naturalWidth;
+            }
+            
+            // Fixed horizontal position
+            const bossX = width * 0.5;
+            
+            // The highest sand layer has baseY = height * 0.55
+            const highestSandBaseY = height * 0.55;
+            
+            // Place boss bottom slightly below the sand base
+            const bossBottomY = highestSandBaseY + bossHeight * 0.1;
+            
+            bossTopY = bossBottomY - bossHeight;
+
+            ctx.save();
+            // Translate to boss center
+            ctx.translate(bossX, bossBottomY - bossHeight / 2);
+            ctx.drawImage(merchantImg, -bossWidth / 2, -bossHeight / 2, bossWidth, bossHeight);
+            ctx.restore();
+            
+            // Update health bar position dynamically to sit above the boss visually, ensuring it's always on screen
+            let hpBarY = bossTopY - 40;
+            if (hpBarY < 10) hpBarY = 10;
+            healthBarWrapper.style.top = `${hpBarY}px`;
+        }
 
         // 3. Draw Sand
         // Draw layers of dunes for depth
