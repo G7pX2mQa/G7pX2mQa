@@ -242,6 +242,19 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         hpBarFill.style.width = `${Math.max(0, (bossHp / maxBossHp) * 100)}%`;
     }
 
+    function getDifficultyLevel() {
+        if (bossHp <= 100) return 9;
+        if (bossHp <= 200) return 8;
+        if (bossHp <= 300) return 7;
+        if (bossHp <= 400) return 6;
+        if (bossHp <= 500) return 5;
+        if (bossHp <= 600) return 4;
+        if (bossHp <= 700) return 3;
+        if (bossHp <= 800) return 2;
+        if (bossHp <= 900) return 1;
+        return 0;
+    }
+
     hpBarFrame.appendChild(hpText);
     hpBar.appendChild(hpBarFill);
     hpBar.appendChild(hpBarFrame);
@@ -657,7 +670,6 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let isRunning = true;
     let animationFrameId;
     let lastSpawnTime = 0;
-    const SPAWN_INTERVAL = 100; // 100ms for 10 per second
 
     let currentBossWidth = 0;
     let currentBossHeight = 0;
@@ -780,9 +792,12 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
         });
 
-        if (timestamp - lastSpawnTime >= SPAWN_INTERVAL && currentBossWidth > 0) {
+        const currentSpawnInterval = 1000 / (20 + getDifficultyLevel() * 2);
+
+        if (timestamp - lastSpawnTime >= currentSpawnInterval && currentBossWidth > 0) {
             lastSpawnTime = timestamp;
-            const isCoin = Math.random() < 0.95;
+            const bombChance = 0.05 + getDifficultyLevel() * 0.025;
+            const isCoin = Math.random() >= bombChance;
             const leftEye = Math.random() < 0.5;
             
             // boss center is currentBossX, bossTop is currentBossBottomY - currentBossHeight
@@ -831,7 +846,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 }
             } else {
                 p.vx *= 0.95; // Friction
-                p.vy += 0.01;
+                p.vy += 0.01 + getDifficultyLevel() * 0.005;
             }
             
             // Scale up to target
