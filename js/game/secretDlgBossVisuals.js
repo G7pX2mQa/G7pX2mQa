@@ -670,6 +670,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let isRunning = true;
     let animationFrameId;
     let lastSpawnTime = 0;
+    
+    let leftEyeBombStep = 0;
+    let rightEyeBombStep = 0;
 
     let currentBossWidth = 0;
     let currentBossHeight = 0;
@@ -804,8 +807,34 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const eyeXOffset = currentBossWidth * (leftEye ? -0.0975 : 0.1175);
             const eyeYOffset = currentBossHeight * -0.6565;
             
-            const startX = currentBossX + eyeXOffset + cameraX;
-            const startY = currentBossBottomY + eyeYOffset;
+            let currentEyeXOffset = eyeXOffset;
+            let currentEyeYOffset = eyeYOffset;
+
+            if (!isCoin) {
+                let step = leftEye ? leftEyeBombStep : rightEyeBombStep;
+                let offsetMultiplier = 0;
+                
+                if (step === 1) {
+                    offsetMultiplier = Math.random();
+                } else if (step === 2) {
+                    offsetMultiplier = 1.0;
+                }
+                
+                let xShift = (leftEye ? 0.05 : -0.05) * currentBossWidth * offsetMultiplier;
+                let yShift = -0.05 * currentBossHeight * offsetMultiplier;
+                
+                currentEyeXOffset += xShift;
+                currentEyeYOffset += yShift;
+                
+                if (leftEye) {
+                    leftEyeBombStep = (leftEyeBombStep + 1) % 3;
+                } else {
+                    rightEyeBombStep = (rightEyeBombStep + 1) % 3;
+                }
+            }
+            
+            const startX = currentBossX + currentEyeXOffset + cameraX;
+            const startY = currentBossBottomY + currentEyeYOffset;
 
             // Give velocity
             const speedMagnitude = (Math.random() * 20 + 10)
