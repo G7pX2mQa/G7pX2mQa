@@ -2217,7 +2217,7 @@ export function startBossFightSequence() {
         visualsContainer.id = 'bossfight-visuals-container';
         visualsContainer.style.position = 'fixed';
         visualsContainer.style.inset = '0';
-        visualsContainer.style.zIndex = '2147483645';
+        visualsContainer.style.zIndex = '2147483641';
         document.body.appendChild(visualsContainer);
 
         // Start visuals and infinite loop
