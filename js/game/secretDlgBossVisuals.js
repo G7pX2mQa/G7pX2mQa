@@ -2,6 +2,7 @@ import { playAudio } from '../util/audioManager.js';
 import { IS_MOBILE } from '../main.js';
 import { getActiveSlot } from '../util/storage.js';
 import { createCursorTrail } from './cursorTrail.js';
+import { settingsManager } from './settingsManager.js';
 
 // Reusing palette from tsunamiVisuals for consistency
 const PALETTE = {
@@ -143,8 +144,11 @@ function drawCoconut(ctx, x, y, scale) {
 }
 
 export function playSecretDlgBossFightSequence(container, onComplete, options = {}) {
-    // Hide cursor initially
-    container.style.cursor = 'none';
+    const applyCursorSetting = (show) => {
+        container.style.cursor = show ? 'default' : 'none';
+    };
+    applyCursorSetting(settingsManager.get('show_cursor'));
+    settingsManager.subscribe('show_cursor', applyCursorSetting);
 
     // Start Boss Music
     const bossMusic = playAudio('sounds/Secret_Boss_Fight.ogg', { loop: true, volume: 1.0, type: 'music' });
