@@ -17,14 +17,14 @@ const PALETTE = {
     shell: '#fff0f5'
 };
 
-const dummyImages = {
+const projectileImages = {
     coin: new Image(),
     bomb: new Image()
 };
-dummyImages.coin.src = 'img/currencies/coin/coin.webp';
-dummyImages.bomb.src = 'img/misc/bomb.webp';
+projectileImages.coin.src = 'img/currencies/coin/coin.webp';
+projectileImages.bomb.src = 'img/misc/bomb.webp';
 
-function drawDummyImage(ctx, x, y, scale, img) {
+function drawProjectileImage(ctx, x, y, scale, img) {
     if (!img.complete) return;
     ctx.save();
     ctx.translate(x, y);
@@ -235,11 +235,41 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     hpText.textContent = 'HP: 1000/1000';
     hpText.style.transform = 'translateY(-1px)';
 
+    let bossHp = 1000;
+    const maxBossHp = 1000;
+    function updateBossHpUI() {
+        hpText.textContent = `HP: ${bossHp}/${maxBossHp}`;
+        hpBarFill.style.width = `${Math.max(0, (bossHp / maxBossHp) * 100)}%`;
+    }
+
     hpBarFrame.appendChild(hpText);
     hpBar.appendChild(hpBarFill);
     hpBar.appendChild(hpBarFrame);
     healthBarWrapper.appendChild(hpBar);
     uiContainer.appendChild(healthBarWrapper);
+
+    let playerLives = 5;
+    const livesContainer = document.createElement('div');
+    livesContainer.style.position = 'absolute';
+    livesContainer.style.bottom = '0';
+    livesContainer.style.left = '0';
+    livesContainer.style.display = 'flex';
+    livesContainer.style.zIndex = '2';
+
+    function updateLivesUI() {
+        livesContainer.innerHTML = '';
+        for (let i = 0; i < playerLives; i++) {
+            const lifeImg = document.createElement('img');
+            lifeImg.src = 'img/misc/life.webp';
+            lifeImg.style.width = 'clamp(32px, 20vw, 128px)';
+            lifeImg.style.height = 'clamp(32px, 20vw, 128px)';
+            lifeImg.style.margin = '0';
+            lifeImg.style.display = 'block';
+            livesContainer.appendChild(lifeImg);
+        }
+    }
+    updateLivesUI();
+    uiContainer.appendChild(livesContainer);
 
     let desktopArrows = null;
     const knowHowToMoveKey = `ccc:secretDlgBoss:knowsHowToMove:${getActiveSlot()}`;
@@ -515,45 +545,95 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             });
         }
         
-        // Dummy Coins
-        const coinCount = Math.floor(seededRandom(seed++) * 5) + 5;
-        for (let i = 0; i < coinCount; i++) {
-            let globalX = chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH;
-            let layer = pickLayer();
-            let baseY = height * layer.baseYFactor;
-
-            chunkProps.push({
-                type: 'dummyCoin',
-                id: `coin_${chunkIndex}_${i}`,
-                x: globalX,
-                y: getSandHeight(globalX, baseY, layer.amplitude, layer.period, layer.seedOffset) - 50,
-                scale: (0.5 + seededRandom(seed++) * 0.2) * layer.scaleModifier,
-                width: 32, // hit radius roughly
-                height: 32
-            });
-        }
-
-        // Dummy Bombs
-        const bombCount = Math.floor(seededRandom(seed++) * 5) + 5;
-        for (let i = 0; i < bombCount; i++) {
-            let globalX = chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH;
-            let layer = pickLayer();
-            let baseY = height * layer.baseYFactor;
-
-            chunkProps.push({
-                type: 'dummyBomb',
-                id: `bomb_${chunkIndex}_${i}`,
-                x: globalX,
-                y: getSandHeight(globalX, baseY, layer.amplitude, layer.period, layer.seedOffset) - 50,
-                scale: (0.5 + seededRandom(seed++) * 0.2) * layer.scaleModifier,
-                width: 32, // hit radius roughly
-                height: 32
-            });
-        }
-
         // Sort by Y so things lower on the screen (closer) are drawn last
         chunkProps.sort((a, b) => a.y - b.y);
         return chunkProps;
+    }
+
+    function playBombExplosion() {
+        const explosionContainer = document.createElement('div');
+        explosionContainer.style.position = 'fixed';
+        explosionContainer.style.top = '0';
+        explosionContainer.style.left = '0';
+        explosionContainer.style.width = '100vw';
+        explosionContainer.style.height = '100vh';
+        explosionContainer.style.pointerEvents = 'none';
+        explosionContainer.style.zIndex = '2147483647';
+        explosionContainer.style.overflow = 'hidden';
+        document.body.appendChild(explosionContainer);
+
+        const expCanvas = document.createElement('canvas');
+        expCanvas.width = window.innerWidth;
+        expCanvas.height = window.innerHeight;
+        expCanvas.style.position = 'absolute';
+        expCanvas.style.top = '0';
+        expCanvas.style.left = '0';
+        expCanvas.style.pointerEvents = 'none';
+        explosionContainer.appendChild(expCanvas);
+
+        const expCtx = expCanvas.getContext('2d');
+        const particles = [];
+        let isAnimating = true;
+
+        const colors = ['#ff4500', '#ff8c00', '#ffd700', '#ffffff', '#ff0000'];
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 20 + 5;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.size = Math.random() * 300 + 100;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.life = 1.0;
+                this.decay = Math.random() * 0.005 + 0.005;
+                this.gravity = 0.3;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += this.gravity;
+                this.life -= this.decay;
+                this.size *= 0.98;
+            }
+            draw(ctx) {
+                if (this.life <= 0) return;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.life;
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        for (let i = 0; i < 1000; i++) {
+            particles.push(new Particle(centerX, centerY));
+        }
+
+        playAudio('sounds/explosion_long.ogg', { volume: 1.0 });
+
+        const animate = () => {
+            if (!isAnimating) return;
+            expCtx.clearRect(0, 0, expCanvas.width, expCanvas.height);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw(expCtx);
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+            requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+
+        setTimeout(() => {
+            isAnimating = false;
+            explosionContainer.remove();
+        }, 5000);
     }
 
     function resize() {
@@ -573,10 +653,19 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     window.addEventListener('resize', resize);
     resize();
     
+    let activeProjectiles = [];
     let isRunning = true;
     let animationFrameId;
+    let lastSpawnTime = 0;
+    const SPAWN_INTERVAL = 100; // 100ms for 10 per second
 
-    function loop() {
+    let currentBossWidth = 0;
+    let currentBossHeight = 0;
+    let currentBossX = 0;
+    let currentBossBottomY = 0;
+
+    function loop(timestamp) {
+        if (!lastSpawnTime) lastSpawnTime = timestamp;
         if (!isRunning) return;
 
         // Update camera position continuously
@@ -635,6 +724,10 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const bossBottomY = highestSandBaseY + bossHeight * 0.1 + 20;
             
             bossTopY = bossBottomY - bossHeight;
+            currentBossWidth = bossWidth;
+            currentBossHeight = bossHeight;
+            currentBossX = bossX;
+            currentBossBottomY = bossBottomY;
 
             ctx.save();
             // Translate to boss center
@@ -677,14 +770,6 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
         // 4. Draw Props
         visibleProps.forEach(prop => {
-            if (prop.type === 'dummyCoin' || prop.type === 'dummyBomb') {
-                prop.y += 2; // move downward
-                if (prop.y > height + 50) {
-                    prop.y = -50;
-                    prop.x = cameraX + Math.random() * width; // random x on screen
-                }
-            }
-
             let renderX = prop.x - cameraX;
             // Draw if on screen (with some margin based on scale)
             const margin = 150 * prop.scale;
@@ -692,10 +777,78 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 if (prop.type === 'tree') drawPalmTree(ctx, renderX, prop.y, prop.scale);
                 else if (prop.type === 'coconut') drawCoconut(ctx, renderX, prop.y, prop.scale);
                 else if (prop.type === 'pearl') drawPearl(ctx, renderX, prop.y, prop.scale);
-                else if (prop.type === 'dummyCoin') drawDummyImage(ctx, renderX, prop.y, prop.scale, dummyImages.coin);
-                else if (prop.type === 'dummyBomb') drawDummyImage(ctx, renderX, prop.y, prop.scale, dummyImages.bomb);
             }
         });
+
+        if (timestamp - lastSpawnTime >= SPAWN_INTERVAL && currentBossWidth > 0) {
+            lastSpawnTime = timestamp;
+            const isCoin = Math.random() < 0.95;
+            const leftEye = Math.random() < 0.5;
+            
+            // boss center is currentBossX, bossTop is currentBossBottomY - currentBossHeight
+            const eyeXOffset = currentBossWidth * (leftEye ? -0.3 : 0.3); // 20% and 80% horizontally implies +/- 30% from center
+            const eyeYOffset = currentBossHeight * -0.7; // 70% up from bottom
+            
+            const startX = currentBossX + eyeXOffset + cameraX;
+            const startY = currentBossBottomY + eyeYOffset;
+
+            // Give velocity
+            const baseVx = (Math.random() * 40 + 20) * (Math.random() < 0.5 ? 1 : -1);
+            const baseVy = -(Math.random() * 15 + 5);
+
+            const decelRatio = Math.random() < 0.50 ? 0.50 : (Math.random() * 0.40 + 0.10);
+            const decelDistance = width * decelRatio;
+
+            activeProjectiles.push({
+                type: isCoin ? 'coin' : 'bomb',
+                x: startX,
+                startX: startX,
+                y: startY,
+                vx: baseVx,
+                vy: baseVy,
+                scale: 0.3,
+                targetScale: 1.0 + Math.random() * 0.5,
+                width: 32,
+                height: 32,
+                decelDistance: decelDistance,
+                slowed: false
+            });
+        }
+
+        // Render and update active projectiles
+        for (let i = activeProjectiles.length - 1; i >= 0; i--) {
+            const p = activeProjectiles[i];
+            
+            // Physics
+            p.x += p.vx;
+            p.y += p.vy;
+            
+            if (!p.slowed) {
+                if (Math.abs(p.x - p.startX) >= p.decelDistance) {
+                    p.slowed = true;
+                    p.vx *= 0.1665; // cut velocity in half again
+                    p.vy *= 0.1665;
+                }
+            } else {
+                p.vx *= 0.95; // Friction
+                p.vy += 0.03;
+            }
+            
+            // Scale up to target
+            if (p.scale < p.targetScale) {
+                p.scale += 0.02;
+            }
+
+            // Remove if off screen bottom
+            if (p.y > height + 100 * p.scale) {
+                activeProjectiles.splice(i, 1);
+                continue;
+            }
+
+            let renderX = p.x - cameraX;
+            if (p.type === 'coin') drawProjectileImage(ctx, renderX, p.y, p.scale, projectileImages.coin);
+            else if (p.type === 'bomb') drawProjectileImage(ctx, renderX, p.y, p.scale, projectileImages.bomb);
+        }
 
         // Optional: clear old chunks to free memory if camera moved far away
         for (let key of chunks.keys()) {
@@ -736,31 +889,33 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         const lastCx = e.detail.lastX;
         const lastCy = e.detail.lastY;
         
-        // Check collision against all props in active chunks
-        for (let [chunkIndex, chunkProps] of chunks.entries()) {
-            for (let i = chunkProps.length - 1; i >= 0; i--) {
-                const prop = chunkProps[i];
-                if (prop.type === 'dummyCoin' || prop.type === 'dummyBomb') {
-                    const renderX = prop.x - cameraX;
-                    const renderY = prop.y;
-                    
-                    let hit = false;
+        for (let i = activeProjectiles.length - 1; i >= 0; i--) {
+            const prop = activeProjectiles[i];
+            const renderX = prop.x - cameraX;
+            const renderY = prop.y;
+            
+            let hit = false;
 
-                    if (prop.type === 'dummyCoin') {
-                        // Generous circular hitbox for coins
-                        const radius = 32 * prop.scale * 1.3;
-                        hit = circleLineSegmentIntersect(renderX, renderY, radius, lastCx, lastCy, cx, cy);
-                    } else if (prop.type === 'dummyBomb') {
-                        // Strict, small circular hitbox near the bottom center for bombs
-                        const radius = 32 * prop.scale * 0.5;
-                        const hitboxY = renderY + (32 * prop.scale) - radius;
-                        hit = circleLineSegmentIntersect(renderX, hitboxY, radius, lastCx, lastCy, cx, cy);
-                    }
+            if (prop.type === 'coin') {
+                const radius = 32 * prop.scale * 1.3;
+                hit = circleLineSegmentIntersect(renderX, renderY, radius, lastCx, lastCy, cx, cy);
+            } else if (prop.type === 'bomb') {
+                const radius = 32 * prop.scale * 0.5;
+                const hitboxY = renderY + (32 * prop.scale) - radius;
+                hit = circleLineSegmentIntersect(renderX, hitboxY, radius, lastCx, lastCy, cx, cy);
+            }
 
-                    if (hit) {
-                        // Collision hit: Delete it
-                        chunkProps.splice(i, 1);
-                    }
+            if (hit) {
+                if (prop.type === 'coin') {
+                    activeProjectiles.splice(i, 1);
+                    bossHp = Math.max(0, bossHp - 1);
+                    updateBossHpUI();
+                } else if (prop.type === 'bomb') {
+                    activeProjectiles = [];
+                    playerLives = Math.max(0, playerLives - 1);
+                    updateLivesUI();
+                    playBombExplosion();
+                    break;
                 }
             }
         }
