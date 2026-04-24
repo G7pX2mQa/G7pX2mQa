@@ -61,7 +61,6 @@ export const AREA_KEYS = {
 };
 
 let isBatching = false;
-const pendingAreaSaves = new Map(); // key -> {areaKey, stateArr, slot} [Legacy/Fallback]
 const pendingUpgradeSaves = new Map(); // key -> {areaKey, upgId, state, slot}
 let pendingNotify = false;
 
@@ -107,13 +106,6 @@ export function batchUpgradeOperations(fn) {
         catch (e) { console.warn('Deferred upgrade save failed', e); }
     });
     pendingUpgradeSaves.clear();
-    
-    // Legacy/Fallback flush
-    pendingAreaSaves.forEach(({ areaKey, stateArr, slot }) => {
-      try { saveAreaState(areaKey, stateArr, slot); }
-      catch (e) { console.warn('Deferred area save failed', e); }
-    });
-    pendingAreaSaves.clear();
 
     if (pendingNotify) {
       pendingNotify = false;
@@ -243,12 +235,6 @@ const XP_MYSTERY_UPGRADE_TIES = new Set([
   UPGRADE_TIES.COIN_VALUE_I,
   UPGRADE_TIES.BOOK_VALUE_I,
   UPGRADE_TIES.XP_VALUE_I,
-]);
-const XP_MYSTERY_LEGACY_KEYS = new Set([
-  'starter_cove:3',
-  'starter_cove:4',
-  'starter_cove:5',
-  'starter_cove:6',
 ]);
 const MERCHANT_MET_KEY_BASE = 'ccc:merchantMet';
 const SHOP_REVEAL_STATE_KEY_BASE = 'ccc:shop:reveals';
@@ -395,28 +381,9 @@ function upgradeRevealKey(areaKey, upg) {
   return `${normArea}:${idStr}`;
 }
 
-function upgradeLegacyRevealKey(areaKey, upg) {
-  const normArea = normalizeAreaKey(areaKey || upg?.area);
-  if (!normArea) return null;
-  const rawId = normalizeUpgradeId(upg?.id);
-  if (rawId == null) return null;
-  if (typeof rawId === 'number') {
-    if (!Number.isFinite(rawId)) return null;
-    return `${normArea}:${Math.trunc(rawId)}`;
-  }
-  const trimmed = String(rawId).trim();
-  return trimmed ? `${normArea}:${trimmed}` : null;
-}
 
-function migrateUpgradeStateKey(state, fromKey, toKey) {
-  if (!state || !state.upgrades || typeof state.upgrades !== 'object') return false;
-  if (!fromKey || !toKey || fromKey === toKey) return false;
-  if (state.upgrades[toKey]) return false;
-  if (!state.upgrades[fromKey]) return false;
-  state.upgrades[toKey] = state.upgrades[fromKey];
-  delete state.upgrades[fromKey];
-  return true;
-}
+
+
 
 function ensureShopRevealState(slot = getActiveSlot()) {
   const slotKey = String(slot ?? 'default');
@@ -540,41 +507,26 @@ function saveShopPermaMystState(state, slot = getActiveSlot()) {
 function markUpgradePermanentlyMysterious(areaKey, upg, slot = getActiveSlot()) {
   const key = upgradeRevealKey(areaKey, upg);
   if (!key) return;
-  const legacyKey = upgradeLegacyRevealKey(areaKey, upg);
   const state = ensureShopPermaMystState(slot);
   if (state.upgrades[key]) return;
   state.upgrades[key] = true;
-  if (legacyKey && state.upgrades[legacyKey]) {
-    delete state.upgrades[legacyKey];
-  }
   saveShopPermaMystState(state, slot);
 }
 
 function isUpgradePermanentlyMysterious(areaKey, upg, slot = getActiveSlot()) {
   const key = upgradeRevealKey(areaKey, upg);
   if (!key) return false;
-  const legacyKey = upgradeLegacyRevealKey(areaKey, upg);
   const state = ensureShopPermaMystState(slot);
   if (state.upgrades[key]) return true;
-  if (legacyKey && state.upgrades[legacyKey]) {
-    state.upgrades[key] = state.upgrades[legacyKey];
-    delete state.upgrades[legacyKey];
-    saveShopPermaMystState(state, slot);
-    return true;
-  }
   return false;
 }
 
 export function markUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlot()) {
   const key = upgradeRevealKey(areaKey, upg);
   if (!key) return;
-  const legacyKey = upgradeLegacyRevealKey(areaKey, upg);
   const state = ensureShopPermaUnlockState(slot);
   if (state.upgrades[key]) return;
   state.upgrades[key] = true;
-  if (legacyKey && state.upgrades[legacyKey]) {
-    delete state.upgrades[legacyKey];
-  }
   saveShopPermaUnlockState(state, slot);
 }
 
@@ -604,15 +556,8 @@ export function clearPermanentUpgradeUnlock(areaKey, upg, slot = getActiveSlot()
 function isUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlot()) {
   const key = upgradeRevealKey(areaKey, upg);
   if (!key) return false;
-  const legacyKey = upgradeLegacyRevealKey(areaKey, upg);
   const state = ensureShopPermaUnlockState(slot);
   if (state.upgrades[key]) return true;
-  if (legacyKey && state.upgrades[legacyKey]) {
-    state.upgrades[key] = state.upgrades[legacyKey];
-    delete state.upgrades[legacyKey];
-    saveShopPermaUnlockState(state, slot);
-    return true;
-  }
   return false;
 }
 
@@ -897,34 +842,7 @@ function normalizeUpgradeTie(tieValue) {
 }
 
 
-function isXpAdjacentUpgrade(areaKey, upg) {
-  const tieKey = normalizeUpgradeTie(upg?.tie ?? upg?.tieKey);
-  if (tieKey && XP_MYSTERY_UPGRADE_TIES.has(tieKey)) {
-    return true;
-  }
-  const normalizedId = normalizeUpgradeId(upg?.id);
-  const numericId = typeof normalizedId === 'number'
-    ? normalizedId
-    : Number.parseInt(normalizedId, 10);
-  const idKey = Number.isFinite(numericId)
-    ? String(numericId)
-    : (normalizedId != null ? String(normalizedId) : '');
-  if (!idKey) return false;
 
-  const areaCandidates = [];
-  if (areaKey != null) areaCandidates.push(areaKey);
-  if (upg?.area != null) areaCandidates.push(upg.area);
-
-  for (const candidate of areaCandidates) {
-    const normArea = normalizeAreaKey(candidate);
-    if (!normArea) continue;
-    if (XP_MYSTERY_LEGACY_KEYS.has(`${normArea}:${idKey}`)) {
-      return true;
-    }
-  }
-
-  return false;
-}
 
 function safeIsXpUnlocked() {
   try {
@@ -3782,7 +3700,8 @@ function computeUpgradeLockStateFor(areaKey, upg) {
 
   let baseState = { locked: false };
 if (upg.requiresUnlockXp && !xpUnlocked) {
-  const isXpAdj = isXpAdjacentUpgrade(areaKey, upg);
+  const tieKey = normalizeUpgradeTie(upg?.tie ?? upg?.tieKey);
+  const isXpAdj = tieKey && XP_MYSTERY_UPGRADE_TIES.has(tieKey);
   const xpRevealText = 'Unlock the XP system to reveal this upgrade';
   const unlockXpVisible = safeHasMetMerchant();
 
@@ -3850,46 +3769,7 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
   const slot = getActiveSlot();
   const revealKey = upgradeRevealKey(areaKey, upg);
   const permaUnlocked = revealKey ? isUpgradePermanentlyUnlocked(areaKey, upg, slot) : false;
-  if (revealKey) {
-    const revealState = ensureShopRevealState(slot);
-    const permaState  = ensureShopPermaUnlockState(slot);
-    const permaMystState = ensureShopPermaMystState(slot);
-    const hyphenKey   = revealKey.replace(/_/g, '-');
-    const legacyKey   = upgradeLegacyRevealKey(areaKey, upg);
 
-    let needsRevealSave = false;
-    if (migrateUpgradeStateKey(revealState, hyphenKey, revealKey)) {
-      needsRevealSave = true;
-    }
-    if (legacyKey && migrateUpgradeStateKey(revealState, legacyKey, revealKey)) {
-      needsRevealSave = true;
-    }
-    if (needsRevealSave) {
-      saveShopRevealState(revealState, slot);
-    }
-
-    let needsPermaSave = false;
-    if (migrateUpgradeStateKey(permaState, hyphenKey, revealKey)) {
-      needsPermaSave = true;
-    }
-    if (legacyKey && migrateUpgradeStateKey(permaState, legacyKey, revealKey)) {
-      needsPermaSave = true;
-    }
-    if (needsPermaSave) {
-      saveShopPermaUnlockState(permaState, slot);
-    }
-
-    let needsPermaMystSave = false;
-    if (migrateUpgradeStateKey(permaMystState, hyphenKey, revealKey)) {
-      needsPermaMystSave = true;
-    }
-    if (legacyKey && migrateUpgradeStateKey(permaMystState, legacyKey, revealKey)) {
-      needsPermaMystSave = true;
-    }
-    if (needsPermaMystSave) {
-      saveShopPermaMystState(permaMystState, slot);
-    }
-  }
 
   if (state.locked) {
     const hiddenState = !!state.hidden;
