@@ -452,9 +452,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         // layersConfig maps to farthest -> closest
         // scaleModifier helps enforce depth
         const layersConfig = [
-            { baseYFactor: 0.55, amplitude: 30, period: 500, seedOffset: 10, scaleModifier: 0.6 },
-            { baseYFactor: 0.65, amplitude: 40, period: 600, seedOffset: 42, scaleModifier: 1.0 },
-            { baseYFactor: 0.75, amplitude: 50, period: 700, seedOffset: 73, scaleModifier: 1.4 }
+            { baseYFactor: 0.65, amplitude: 15, period: 500, seedOffset: 10, scaleModifier: 0.6 },
+            { baseYFactor: 0.75, amplitude: 20, period: 600, seedOffset: 42, scaleModifier: 1.0 },
+            { baseYFactor: 0.85, amplitude: 25, period: 700, seedOffset: 73, scaleModifier: 1.4 }
         ];
 
         // Weight distribution: Farthest (60%), Mid (30%), Closest (10%)
@@ -618,8 +618,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         if (merchantImg.complete && merchantImg.naturalWidth > 0) {
             // Massive boss
             // Bound by both width and height to prevent overwhelming widescreen displays
-            const maxBossWidth = width * 0.5;
-            const maxBossHeight = height * 0.45; // nearly covering the sun, but leaving room for HP bar
+            const maxBossWidth = width * 0.6;
+            const maxBossHeight = height * 0.55; // nearly covering the sun, but leaving room for HP bar
             
             let bossWidth = maxBossWidth;
             let bossHeight = (bossWidth / merchantImg.naturalWidth) * merchantImg.naturalHeight;
@@ -630,13 +630,14 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
             
             // Fixed horizontal position
-            const bossX = width * 0.5;
+            const hatOffsetRatio = 6 / 512;
+            const bossX = width * 0.5 - bossWidth * hatOffsetRatio;
             
             // The highest sand layer has baseY = height * 0.55
-            const highestSandBaseY = height * 0.55;
+            const highestSandBaseY = height * 0.65;
             
             // Place boss bottom slightly below the sand base
-            const bossBottomY = highestSandBaseY + bossHeight * 0.1;
+            const bossBottomY = highestSandBaseY + bossHeight * 0.1 + 20;
             
             bossTopY = bossBottomY - bossHeight;
 
@@ -655,9 +656,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         // 3. Draw Sand
         // Draw layers of dunes for depth
         const layers = [
-            { parallax: 1.0, baseY: height * 0.55, color: PALETTE.sandDark, amplitude: 30, period: 500, seed: 10 },
-            { parallax: 1.0, baseY: height * 0.65, color: PALETTE.sandMid, amplitude: 40, period: 600, seed: 42 },
-            { parallax: 1.0, baseY: height * 0.75, color: PALETTE.sandLight, amplitude: 50, period: 700, seed: 73 }
+            { parallax: 1.0, baseY: height * 0.65, color: PALETTE.sandDark, amplitude: 15, period: 500, seed: 10 },
+            { parallax: 1.0, baseY: height * 0.75, color: PALETTE.sandMid, amplitude: 20, period: 600, seed: 42 },
+            { parallax: 1.0, baseY: height * 0.85, color: PALETTE.sandLight, amplitude: 25, period: 700, seed: 73 }
         ];
 
         layers.forEach(layer => {
