@@ -1,526 +1,947 @@
-// js/game/settingsManager.js
-
-import { getActiveSlot } from '../util/storage.js';
-import { getTsunamiSequenceSeen } from './surgeEffects.js';
-import { getHighestMutationLevel } from './mutationSystem.js';
-import { setNumberNotation } from '../util/numFormat.js';
+import { playAudio } from '../util/audioManager.js';
 import { IS_MOBILE } from '../main.js';
-import { getMagnetLevel, getLevelNumber } from './upgrades.js';
-import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
-import {
-  hasDoneForgeReset,
-  hasDoneInfuseReset,
-  hasDoneSurgeReset,
-  hasDoneExperimentReset
-} from '../ui/merchantTabs/resetTab.js';
-import { maxRefreshRate } from '../util/refreshRate.js';
+import { getActiveSlot } from '../util/storage.js';
+import { createCursorTrail } from './cursorTrail.js';
+import { settingsManager } from './settingsManager.js';
 
-const SETTINGS_KEY_PREFIX = 'ccc:setting:';
-
-export const MUTATION_NAMES = [
-  'Normal', 'Bronze', 'Silver', 'Gold', 'Sapphire', 'Emerald', 'Ruby', 'Amethyst',
-  'Sunset', 'Void', 'Ethereal', 'Earth', 'Air', 'Fire', 'Water', 'Cookie',
-  'Pancake', 'Watermelon', 'Pepperoni', 'Pizza', 'Donut', 'Glass',
-  'Diamond', 'Opal', 'Cosmic', 'Prismatic'
-];
-
-// Define the available settings and their defaults
-export const SETTING_DEFINITIONS = {
-  active_font_mod: {
-    id: 'active_font_mod',
-    type: 'internal',
-    default: 0,
-    unlockCondition: () => true,
-  },
-  active_trail_mod: {
-    id: 'active_trail_mod',
-    type: 'internal',
-    default: 0,
-    unlockCondition: () => true,
-  },
-  active_magnet_mod: {
-    id: 'active_magnet_mod',
-    type: 'internal',
-    default: 0,
-    unlockCondition: () => true,
-  },
-  hide_maxed_upgrades: {
-    id: 'hide_maxed_upgrades',
-    type: 'toggle',
-    label: 'Hide Maxed Upgrades',
-    hasExtraInfo: false,
-    default: false,
-    unlockCondition: () => true,
-  },
-  game_progress_bar: {
-    id: 'game_progress_bar',
-    type: 'toggle',
-    label: 'Game Progress Bar',
-    hasExtraInfo: false,
-    default: true,
-    unlockCondition: () => true,
-  },
-  offline_progress: {
-    id: 'offline_progress',
-    type: 'toggle',
-    label: 'Offline Progress',
-    hasExtraInfo: false,
-    default: true,
-    unlockCondition: () => true,
-  },
-  user_interface: {
-    id: 'user_interface',
-    type: 'toggle',
-    label: 'User Interface',
-    hasExtraInfo: false,
-    default: true,
-    unlockCondition: () => true,
-  },
-  cursor_trail: {
-    id: 'cursor_trail',
-    type: 'toggle',
-    label: () => IS_MOBILE ? 'Finger Trail' : 'Cursor Trail',
-    hasExtraInfo: false,
-    default: true,
-    unlockCondition: () => true,
-  },
-  nerd_mode: {
-    id: 'nerd_mode',
-    type: 'toggle',
-    label: 'Nerd Mode',
-    hasExtraInfo: true,
-    info: 'Replaces all of the text in every Help text with relevant formulas for that section of the game.',
-    default: false,
-    unlockCondition: () => true,
-  },
-  show_cursor: {
-    id: 'show_cursor',
-    type: 'toggle',
-    label: 'Show Cursor',
-    hasExtraInfo: true,
-	info: 'Specifically in areas where the cursor is normally hidden and replaced with the cursor trail.',
-    default: false,
-    unlockCondition: () => !IS_MOBILE,
-  },
-  spawn_vessels: {
-    id: 'spawn_vessels',
-    type: 'toggle',
-    label: 'Spawn Vessels',
-    hasExtraInfo: true,
-    info: 'For example, the waves that spawn in The Cove; turning this setting OFF would hide these.',
-    default: true,
-    unlockCondition: () => true,
-  },
-  overlay_transition: {
-    id: 'overlay_transition',
-    type: 'toggle',
-    label: 'Overlay Transitions',
-    hasExtraInfo: true,
-    info: 'If turned OFF, disables the short open/close transition that most overlays in the game use.',
-    default: true,
-    unlockCondition: () => true,
-  },
-  warp_vfx: {
-    id: 'warp_vfx',
-    type: 'toggle',
-    label: 'Warp VFX',
-    hasExtraInfo: false,
-    default: true,
-    unlockCondition: () => {
-      try {
-        return hasDoneSurgeReset();
-      } catch {
-        return false;
-      }
-    },
-  },
-  lab_node_insta_toggle: {
-    id: 'lab_node_insta_toggle',
-    type: 'toggle',
-    label: 'Lab Node Insta-Toggle',
-    hasExtraInfo: true,
-    info: 'Do you hate having to click a lab node overlay, press Toggle, close the overlay, then when it completes, move onto the next, repeating this process forever? Toggle this setting ON to instantly toggle a node just by tapping on the node.',
-    default: false,
-    unlockCondition: () => {
-      try {
-        const slot = getActiveSlot();
-        if (slot == null) return false;
-        let isLabUnlocked = false;
-        if (typeof getTsunamiSequenceSeen === 'function' && getTsunamiSequenceSeen()) {
-            isLabUnlocked = true;
-        } else {
-            isLabUnlocked = localStorage.getItem(`labUnlock:${slot}`) === '1';
-        }
-        return isLabUnlocked && IS_MOBILE;
-      } catch {
-        return false;
-      }
-    },
-  },
-  music_volume: {
-    id: 'music_volume',
-    type: 'slider',
-    label: 'Music Volume',
-    hasExtraInfo: false,
-    min: 0,
-    max: 100,
-    step: 1,
-    default: 100,
-    unlockCondition: () => true,
-  },
-  show_fps: {
-    id: 'show_fps',
-    type: 'toggle',
-    label: 'Show FPS',
-    overlay: 'performance',
-    hasExtraInfo: false,
-    default: false,
-    unlockCondition: () => true,
-  },
-  pickup_animation: {
-    id: 'pickup_animation',
-    type: 'toggle',
-    label: 'Pickup Animation',
-    overlay: 'performance',
-    hasExtraInfo: true,
-    info: 'Applies to all collectibles that spawn on the playfield. Turning this setting OFF would disable the pickup animations for all collectibles.',
-    default: true,
-    unlockCondition: () => !IS_MOBILE,
-  },
-  insta_teleport: {
-    id: 'insta_teleport',
-    type: 'toggle',
-    label: 'Collectible Insta-Teleport',
-    overlay: 'performance',
-    hasExtraInfo: true,
-    info: 'Turning this setting ON will make it so that recently spawned collectibles will not calculate physics every frame as they approach their intended destination, and instead they will teleport to their intended destination instantly. These physics calculations are generally the most computationally expensive thing the game does constantly so you may want to turn this setting ON you use a lower-end device.',
-    default: false,
-    unlockCondition: () => true,
-  },
-  graphics_quality: {
-    id: 'graphics_quality',
-    type: 'slider',
-    label: 'Graphics Quality',
-    overlay: 'performance',
-    hasExtraInfo: false,
-    min: 0,
-    max: 10,
-    step: 1,
-    default: 10,
-    unlockCondition: () => true,
-  },
-
-
-  magnet_radius: {
-    id: 'magnet_radius',
-    type: 'slider',
-    label: 'Magnet Radius',
-    hasExtraInfo: false,
-    min: 0,
-    max: () => getMagnetLevel(),
-    step: 0.1,
-    default: () => getMagnetLevel(),
-    unlockCondition: () => getMagnetLevel() >= 1,
-  },
-  eac_efficiency: {
-    id: 'eac_efficiency',
-    type: 'slider',
-    label: 'EAC Efficiency',
-    hasExtraInfo: true,
-    info: 'This slider represents the efficiency at which your Effective Auto-Collect will generate things in any given area. Leave the slider at 100 for normal gameplay, or adjust it to a different number to have EAC run at n% efficiency. Set this slider value to 0 to completely disable EAC earnings.',
-    min: 0,
-    max: 100,
-    step: 1,
-    default: 100,
-    unlockCondition: () => getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) >= 1,
-  },
-  number_notation: {
-    id: 'number_notation',
-    type: 'dropdown',
-    label: 'Number Notation',
-    hasExtraInfo: false,
-    default: 'Standard',
-    options: [
-      { value: 'Standard', label: 'Standard' },
-      { value: 'Scientific (1e6+)', label: 'Scientific (1e6+)' },
-      { value: 'Scientific (1e33+)', label: 'Scientific (1e33+)' },
-      { value: 'Engineering (1e6+)', label: 'Engineering (1e6+)' },
-      { value: 'Engineering (1e33+)', label: 'Engineering (1e33+)' },
-      { value: 'Extended Suffixes', label: 'Extended Suffixes (hell)' }
-    ],
-    unlockCondition: () => true
-  },
-
-  coin_mutation_visual: {
-    id: 'coin_mutation_visual',
-    type: 'dropdown',
-    label: 'Coin Mutation',
-    overlay: 'visuals',
-    hasExtraInfo: false,
-    default: 'Default',
-    getOptions: () => {
-      let highest = 0;
-      try {
-        const hLevel = getHighestMutationLevel();
-        if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
-          const s = hLevel.toPlainIntegerString();
-          if (s !== 'Infinity') highest = parseInt(s, 10);
-        }
-      } catch (e) {}
-      
-      const opts = [];
-      opts.push({ value: 'Default', label: 'Default' });
-      opts.push({ value: 'Random', label: 'Random' });
-      for (let i = 0; i <= Math.min(highest, 25); i++) {
-        const name = MUTATION_NAMES[i] || `Mutation ${i}`;
-        const iconSrc = i === 0 ? 'img/currencies/coin/coin.webp' : `img/mutations/m${i}.webp`;
-        opts.push({ value: `M${i}`, label: `M${i} (${name})`, icon: iconSrc });
-      }
-      return opts;
-    }
-  },
-  forge_confirmation: {
-    id: 'forge_confirmation',
-    type: 'toggle',
-    label: 'Forge Confirmation',
-    overlay: 'confirmations',
-    hasExtraInfo: false,
-    default: false,
-    unlockCondition: () => {
-      try { return hasDoneForgeReset(); } catch { return false; }
-    },
-  },
-  infuse_confirmation: {
-    id: 'infuse_confirmation',
-    type: 'toggle',
-    label: 'Infuse Confirmation',
-    overlay: 'confirmations',
-    hasExtraInfo: false,
-    default: false,
-    unlockCondition: () => {
-      try { return hasDoneInfuseReset(); } catch { return false; }
-    },
-  },
-  surge_confirmation: {
-    id: 'surge_confirmation',
-    type: 'toggle',
-    label: 'Surge Confirmation',
-    overlay: 'confirmations',
-    hasExtraInfo: false,
-    default: false,
-    unlockCondition: () => {
-      try { return hasDoneSurgeReset(); } catch { return false; }
-    },
-  },
-  insufficient_waves_confirmation: {
-    id: 'insufficient_waves_confirmation',
-    type: 'toggle',
-    label: 'Insufficient Waves Confirmation',
-    overlay: 'confirmations',
-    hasExtraInfo: true,
-    info: 'For the Surge reset, if you have insufficient Waves such that performing a Surge reset would not increase your Surge, this confirmation ensures that you are aware that performing a Surge reset would not benefit you immediately.',
-    default: true,
-    unlockCondition: () => {
-      try { return hasDoneSurgeReset(); } catch { return false; }
-    },
-  },
-  experiment_confirmation: {
-    id: 'experiment_confirmation',
-    type: 'toggle',
-    label: 'Experiment Confirmation',
-    overlay: 'confirmations',
-    hasExtraInfo: false,
-    default: false,
-    unlockCondition: () => {
-      try { return hasDoneExperimentReset(); } catch { return false; }
-    },
-  }
+// Reusing palette from tsunamiVisuals for consistency
+const PALETTE = {
+    skyTop: '#4fa8ff',
+    skyBottom: '#b8e1ff',
+    sun: '#ffeb3b',
+    sandLight: '#f1dcb1',
+    sandMid: '#e7cd96',
+    sandDark: '#debe7c',
+    rock: '#5d4037',
+    leaf: '#4caf50',
+    shell: '#fff0f5'
 };
 
-class SettingsManager {
-  constructor() {
-    this.settings = {};
-    this.listeners = {};
-    this._isDefault = {};
-    this._lastMax = {};
-    this.loadAll();
+const projectileImages = {
+    coin: new Image(),
+    bomb: new Image()
+};
+projectileImages.coin.src = 'img/currencies/coin/coin.webp';
+projectileImages.bomb.src = 'img/misc/bomb.webp';
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('saveSlot:change', () => {
-        this.loadAll();
-      });
-      document.addEventListener('ccc:upgrades:changed', () => {
-        const def = SETTING_DEFINITIONS['magnet_radius'];
-        const currentVal = this.settings['magnet_radius'];
-        const oldMax = this._lastMax['magnet_radius'];
-        const newMax = typeof def.max === 'function' ? def.max() : def.max;
-        
-        if (this._isDefault['magnet_radius'] || currentVal >= oldMax) {
-          // User was at the maximum or using defaults, keep them at the new max
-          this.settings['magnet_radius'] = newMax;
-          if (!this._isDefault['magnet_radius']) {
-            this.set('magnet_radius', newMax); // Persist if it wasn't default
-          } else {
-            this.notify('magnet_radius', newMax);
-          }
-        } else {
-          // Cap the value if it exceeds the new max (e.g., if somehow newMax went down)
-          if (currentVal > newMax) {
-            this.settings['magnet_radius'] = newMax;
-            this.set('magnet_radius', newMax);
-          }
-        }
-        this._lastMax['magnet_radius'] = newMax;
-      });
-    }
-  }
-
-  _getKey(key) {
-    const slot = getActiveSlot();
-    if (slot != null) {
-      return `${SETTINGS_KEY_PREFIX}${key}:${slot}`;
-    }
-    // Fallback if no slot is active (though we usually shouldn't hit this when in-game)
-    return `${SETTINGS_KEY_PREFIX}${key}`;
-  }
-
-  loadAll() {
-    this._isDefault = {};
-    this._lastMax = {};
-    for (const [key, def] of Object.entries(SETTING_DEFINITIONS)) {
-      if (def.max !== undefined) {
-        this._lastMax[key] = typeof def.max === 'function' ? def.max() : def.max;
-      }
-      const storageKey = this._getKey(key);
-      const stored = localStorage.getItem(storageKey);
-      if (stored !== null) {
-        this.settings[key] = JSON.parse(stored);
-        this._isDefault[key] = false;
-      } else {
-        this.settings[key] = typeof def.default === 'function' ? def.default() : def.default;
-        this._isDefault[key] = true;
-      }
-
-      // Always force user_interface to be true on load 
-      // so the popup doesn't appear when loading into a save slot.
-      if (key === 'user_interface' && this.settings[key] === false) {
-        this.settings[key] = true;
-        try {
-          localStorage.setItem(storageKey, JSON.stringify(true));
-        } catch (e) {}
-      }
-
-      this.notify(key, this.settings[key]);
-    }
-
-    // Clear old dynamic currency and level settings from memory to prevent bleed between slots
-    for (const k in this.settings) {
-      if (k.startsWith("currency_") || k.startsWith("level_")) {
-        delete this.settings[k];
-        delete this._isDefault[k];
-      }
-    }
-
-    // Load dynamic currency settings
-    const slot = getActiveSlot();
-    const suffix = slot != null ? `:${slot}` : "";
-    for (let i = 0; i < localStorage.length; i++) {
-      const storageKey = localStorage.key(i);
-      if (storageKey && (storageKey.startsWith(SETTINGS_KEY_PREFIX + "currency_") || storageKey.startsWith(SETTINGS_KEY_PREFIX + "level_")) && storageKey.endsWith(suffix)) {
-        const key = storageKey.substring(SETTINGS_KEY_PREFIX.length, storageKey.length - suffix.length);
-        try {
-          this.settings[key] = JSON.parse(localStorage.getItem(storageKey));
-          this._isDefault[key] = false;
-          this.notify(key, this.settings[key]);
-        } catch (e) {
-          console.error("Failed to parse currency setting", key, e);
-        }
-      }
-    }
-
-    setNumberNotation(this.settings['number_notation'] || 'Standard');
-  }
-
-  refresh(key) {
-    if (this.settings[key] !== undefined) {
-      this.notify(key, this.settings[key]);
-    }
-  }
-
-  get(key) {
-    if (!(key in SETTING_DEFINITIONS) && !(key.startsWith("currency_") || key.startsWith("level_"))) return false;
-    
-    // Support dynamic currency toggles
-    if (key.startsWith("currency_") || key.startsWith("level_")) {
-      return this.settings[key];
-    }
-
-    const def = SETTING_DEFINITIONS[key];
-    if (this._isDefault[key]) {
-      this.settings[key] = typeof def.default === 'function' ? def.default() : def.default;
-    } else if (this.settings[key] === undefined) {
-      this.settings[key] = typeof def.default === 'function' ? def.default() : def.default;
-      this._isDefault[key] = true;
-    }
-    // For magnet_radius, we must ensure the saved value isn't greater than current max level.
-    if (key === 'magnet_radius') {
-      const maxLvl = typeof def.max === 'function' ? def.max() : def.max;
-      if (this.settings[key] > maxLvl) {
-         this.settings[key] = maxLvl;
-      }
-    }
-    return this.settings[key];
-  }
-
-  set(key, value) {
-    if (!(key in SETTING_DEFINITIONS) && !(key.startsWith("currency_") || key.startsWith("level_"))) return;
-    this.settings[key] = value;
-    this._isDefault[key] = false;
-    const storageKey = this._getKey(key);
-    localStorage.setItem(storageKey, JSON.stringify(value));
-    
-    if (key === 'number_notation') {
-      setNumberNotation(value);
-    }
-    
-    this.notify(key, value);
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("setting:changed", { detail: { key, value } }));
-    }
-  }
-
-  toggle(key) {
-    const newVal = !this.get(key);
-    this.set(key, newVal);
-    return newVal;
-  }
-  
-  delete(key) {
-    if (this.settings[key] !== undefined) {
-      delete this.settings[key];
-      delete this._isDefault[key];
-      const storageKey = this._getKey(key);
-      localStorage.removeItem(storageKey);
-      this.notify(key, undefined);
-    }
-  }
-
-  subscribe(key, callback) {
-    if (!this.listeners[key]) {
-      this.listeners[key] = [];
-    }
-    this.listeners[key].push(callback);
-    // Return unsubscribe function
-    return () => {
-      this.listeners[key] = this.listeners[key].filter(cb => cb !== callback);
-    };
-  }
-
-  notify(key, value) {
-    if (this.listeners[key]) {
-      this.listeners[key].forEach(cb => cb(value));
-    }
-  }
+function drawProjectileImage(ctx, x, y, scale, img) {
+    if (!img.complete) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    const size = 64; // Base drawing size
+    ctx.drawImage(img, -size/2, -size/2, size, size);
+    ctx.restore();
 }
 
-export const settingsManager = new SettingsManager();
+function drawPalmTree(ctx, x, y, scale) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+
+    // Trunk - Thick base, thin top, curved
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(10, -50, -5, -100); 
+    ctx.lineTo(5, -100);
+    ctx.quadraticCurveTo(20, -50, 10, 0);
+    ctx.fillStyle = '#8b5a2b';
+    ctx.fill();
+
+    // Leaves
+    ctx.translate(0, -95);
+    ctx.fillStyle = PALETTE.leaf;
+    for (let i = 0; i < 7; i++) {
+        ctx.save();
+        ctx.rotate((i / 7) * Math.PI * 2 - Math.PI / 2); // Spread around top
+        
+        // Leaf body
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(40, -20, 60, 0);
+        ctx.quadraticCurveTo(40, 20, 0, 0);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    ctx.restore();
+}
+
+function drawPearl(ctx, x, y, scale) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    
+    // Bottom shell
+    ctx.fillStyle = PALETTE.shell;
+    ctx.beginPath();
+    ctx.arc(0, 0, 15, 0, Math.PI, false);
+    ctx.fill();
+    
+    // Pearl
+    const grad = ctx.createRadialGradient(-3, -8, 1, 0, -5, 8);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(1, '#e0e0e0');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, -5, 8, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Top shell (open)
+    ctx.fillStyle = PALETTE.shell;
+    ctx.beginPath();
+    ctx.ellipse(-12, -10, 15, 8, -Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Shell lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+    ctx.lineWidth = 1;
+    for(let i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, -10);
+        ctx.lineTo(i * 5, 0);
+        ctx.stroke();
+    }
+
+    ctx.restore();
+}
+
+function drawCoconut(ctx, x, y, scale) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    
+    // Dome shape
+    ctx.fillStyle = PALETTE.rock;
+    ctx.beginPath();
+    ctx.moveTo(-20, 0);
+    ctx.bezierCurveTo(-20, -15, -10, -25, 0, -25);
+    ctx.bezierCurveTo(10, -25, 20, -15, 20, 0);
+    ctx.fill();
+
+    // Three large holes
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath();
+    ctx.arc(-4, -18, 2, 0, Math.PI * 2); // Top left
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(4, -18, 2, 0, Math.PI * 2); // Top right
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(0, -12, 2.5, 0, Math.PI * 2); // Bottom center (slightly larger)
+    ctx.fill();
+
+    // Shadow on the sand
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 20, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+}
+
+export function playSecretDlgBossFightSequence(container, onComplete, options = {}) {
+    const applyCursorSetting = (show) => {
+        container.style.cursor = show ? 'default' : 'none';
+    };
+    applyCursorSetting(settingsManager.get('show_cursor'));
+    settingsManager.subscribe('show_cursor', applyCursorSetting);
+
+    // Start Boss Music
+    const bossMusic = playAudio('sounds/Secret_Boss_Fight.ogg', { loop: true, volume: 1.0, type: 'music' });
+
+    const merchantImg = new Image();
+    merchantImg.src = 'img/misc/merchant.webp';
+
+    // --- Canvas Setup ---
+    const canvas = document.createElement('canvas');
+    canvas.id = 'bossfight-canvas';
+    canvas.style.position = 'absolute';
+    canvas.style.inset = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.zIndex = '2147483641'; 
+    container.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d', { alpha: false });
+    let width, height;
+    let props = [];
+
+    const cursorTrail = createCursorTrail(container, { isBossFight: true });
+
+    // Camera state
+    let cameraX = 0;
+    const cameraSpeed = 5;
+    let keys = {
+        left: false,
+        right: false
+    };
+    // --- UI Setup ---
+    const uiContainer = document.createElement('div');
+    uiContainer.style.position = 'absolute';
+    uiContainer.style.inset = '0';
+    uiContainer.style.zIndex = '2147483642';
+    uiContainer.style.pointerEvents = 'none'; // Let clicks pass through if needed, except for buttons
+    container.appendChild(uiContainer);
+
+    // Health Bar setup
+    const healthBarWrapper = document.createElement('div');
+    healthBarWrapper.style.position = 'absolute';
+    healthBarWrapper.style.left = '50%';
+    healthBarWrapper.style.transform = 'translate(-50%, -100%)';
+    healthBarWrapper.style.display = 'flex';
+    healthBarWrapper.style.flexDirection = 'column';
+    healthBarWrapper.style.alignItems = 'center';
+    healthBarWrapper.style.zIndex = '1';
+
+    const hpBar = document.createElement('div');
+    hpBar.className = 'xp-bar boss-hp-bar'; // Reuse xp-bar structure classes
+    // We remove xp-plus so no need to account for it, but we can set the variables or override properties.
+    hpBar.style.width = 'clamp(200px, 44vw, 440px)'; // Matches xp-bar-w
+    hpBar.style.height = 'clamp(34px, 5.2svh, 46px)';
+    hpBar.style.border = '3px solid #01060f'; // Outline
+    hpBar.style.boxShadow = 'inset 0 6px 10px rgba(255,255,255,0.14), inset 0 -6px 14px rgba(0,0,0,0.45)';
+    // Red background base behind the fill
+    hpBar.style.background = '#2a0000';
+
+    const hpBarFill = document.createElement('div');
+    hpBarFill.className = 'xp-bar__fill';
+    hpBarFill.style.width = '100%';
+    // We override --glass-bg using inline styles or set it as a CSS variable on the element
+    // Actually, setting background directly will override `.xp-bar__fill::after` if we aren't careful, 
+    // but the class structure expects `xp-bar__fill` to have the base fill color, and `::after` handles the gloss.
+    // So we just set the background color on the fill element itself.
+    // Wait, the xp bar doesn't use background on `__fill`, it sets background on `__fill::after` OR expects a class.
+    // Let's set background directly on hpBarFill.
+    hpBarFill.style.background = 'linear-gradient(to right, rgb(255, 0, 0), rgb(239, 0, 0), rgb(219, 0, 0))';
+
+    // Also need to adjust the glass effect variable so it matches the reddish theme or keep the white glass.
+    hpBarFill.style.setProperty('--glass-bg', 'linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0))');
+
+    const hpBarFrame = document.createElement('div');
+    hpBarFrame.className = 'xp-bar__frame';
+    hpBarFrame.style.justifyContent = 'center';
+    hpBarFrame.style.alignItems = 'center';
+
+    const hpText = document.createElement('div');
+    hpText.className = 'xp-bar__progress';
+    hpText.style.fontWeight = 'bold';
+    hpText.style.color = '#fff';
+    hpText.style.fontSize = 'clamp(18px, 3.0vw, 24px)';
+    hpText.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
+    hpText.textContent = 'HP: 1000/1000';
+    hpText.style.transform = 'translateY(-1px)';
+
+    let bossHp = 1000;
+    const maxBossHp = 1000;
+    function updateBossHpUI() {
+        hpText.textContent = `HP: ${bossHp}/${maxBossHp}`;
+        hpBarFill.style.width = `${Math.max(0, (bossHp / maxBossHp) * 100)}%`;
+    }
+
+    hpBarFrame.appendChild(hpText);
+    hpBar.appendChild(hpBarFill);
+    hpBar.appendChild(hpBarFrame);
+    healthBarWrapper.appendChild(hpBar);
+    uiContainer.appendChild(healthBarWrapper);
+
+    let playerLives = 5;
+    const livesContainer = document.createElement('div');
+    livesContainer.style.position = 'absolute';
+    livesContainer.style.bottom = '0';
+    livesContainer.style.left = '0';
+    livesContainer.style.display = 'flex';
+    livesContainer.style.zIndex = '2';
+
+    function updateLivesUI() {
+        livesContainer.innerHTML = '';
+        for (let i = 0; i < playerLives; i++) {
+            const lifeImg = document.createElement('img');
+            lifeImg.src = 'img/misc/life.webp';
+            lifeImg.style.width = 'clamp(32px, 20vw, 128px)';
+            lifeImg.style.height = 'clamp(32px, 20vw, 128px)';
+            lifeImg.style.margin = '0';
+            lifeImg.style.display = 'block';
+            livesContainer.appendChild(lifeImg);
+        }
+    }
+    updateLivesUI();
+    uiContainer.appendChild(livesContainer);
+
+    let desktopArrows = null;
+    const knowHowToMoveKey = `ccc:secretDlgBoss:knowsHowToMove:${getActiveSlot()}`;
+
+    if (!IS_MOBILE) {
+        // Desktop arrows logic
+        const knowsHowToMove = localStorage.getItem(knowHowToMoveKey) === '1';
+        if (!knowsHowToMove) {
+            desktopArrows = [];
+            
+            // Define custom style for blinking and tooltip
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes bossArrowBlink {
+                    0% { filter: brightness(1); }
+                    10% { filter: brightness(0); }
+                    50% { filter: brightness(1); }
+                    100% { filter: brightness(1); }
+                }
+                .boss-arrow-blinking {
+                    animation: bossArrowBlink 1s infinite ease-in;
+                }
+                .boss-arrow-tooltip {
+                    display: none;
+                    position: absolute;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: max-content;
+                    max-width: 300px;
+                    background: linear-gradient(to bottom, rgba(60,60,60,1), rgba(40,40,40,1));
+                    color: #fff;
+                    font-size: 14px;
+                    line-height: 1.4;
+                    padding: 10px 14px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+                    text-align: center;
+                    pointer-events: none;
+                    z-index: 3000;
+                    font-weight: normal;
+                    white-space: normal;
+                }
+                .boss-arrow-tooltip.is-left {
+                    left: calc(100% + 15px - (100px * 100 / 512));
+                }
+                .boss-arrow-tooltip.is-right {
+                    right: calc(100% + 15px - (100px * 100 / 512));
+                }
+                .boss-arrow-tooltip::after {
+                    content: '';
+                    position: absolute;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    border-width: 6px;
+                    border-style: solid;
+                }
+                .boss-arrow-tooltip.is-left::after {
+                    right: 100%;
+                    border-color: transparent rgba(40,40,40,1) transparent transparent;
+                }
+                .boss-arrow-tooltip.is-right::after {
+                    left: 100%;
+                    border-color: transparent transparent transparent rgba(40,40,40,1);
+                }
+            `;
+            uiContainer.appendChild(style);
+
+            const createDesktopArrow = (src, side, text) => {
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'absolute';
+                wrapper.style.top = '50%';
+                wrapper.style.transform = 'translateY(-50%)';
+                wrapper.style[side] = '0px';
+                wrapper.style.pointerEvents = 'auto'; // allow hover
+                
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'boss-arrow-blinking';
+                img.style.maxHeight = '100px';
+                img.style.display = 'block';
+                wrapper.appendChild(img);
+
+                const tooltip = document.createElement('div');
+                tooltip.className = `boss-arrow-tooltip is-${side}`;
+                tooltip.textContent = text;
+                wrapper.appendChild(tooltip);
+
+                wrapper.addEventListener('mouseenter', () => {
+                    tooltip.style.display = 'block';
+                });
+                wrapper.addEventListener('mouseleave', () => {
+                    tooltip.style.display = 'none';
+                });
+
+                uiContainer.appendChild(wrapper);
+                return wrapper;
+            };
+
+            desktopArrows.push(createDesktopArrow('img/misc/arrow_left.webp', 'left', 'Hold A to move left'));
+            desktopArrows.push(createDesktopArrow('img/misc/arrow_right.webp', 'right', 'Hold D to move right'));
+        }
+    } else {
+        // Mobile buttons logic
+        const createMobileBtn = (src, side) => {
+            const btn = document.createElement('div');
+            btn.style.position = 'absolute';
+            btn.style.top = '50%';
+            btn.style.transform = 'translateY(-50%)';
+            btn.style[side] = '20px';
+            btn.style.width = '80px';
+            btn.style.height = '80px';
+            btn.style.borderRadius = '16px';
+            btn.style.border = '1px solid hsla(45, 80%, 40%, 0.45)';
+            btn.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.justifyContent = 'center';
+            btn.style.pointerEvents = 'auto';
+            btn.style.userSelect = 'none';
+            btn.style.webkitUserSelect = 'none';
+            
+            const img = document.createElement('img');
+            img.src = src;
+            img.style.maxWidth = '60%';
+            img.style.maxHeight = '60%';
+            img.style.pointerEvents = 'none';
+            btn.appendChild(img);
+
+            const activeStyle = () => {
+                btn.style.border = '1px solid hsla(45, 80%, 60%, 0.8)';
+                btn.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                btn.style.filter = 'brightness(1.2)';
+            };
+
+            const inactiveStyle = () => {
+                btn.style.border = '1px solid hsla(45, 80%, 40%, 0.45)';
+                btn.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+                btn.style.filter = 'none';
+            };
+
+            const keyToSet = side === 'left' ? 'left' : 'right';
+
+            const startMove = (e) => {
+                e.preventDefault();
+                keys[keyToSet] = true;
+                activeStyle();
+            };
+
+            const endMove = (e) => {
+                e.preventDefault();
+                keys[keyToSet] = false;
+                inactiveStyle();
+            };
+
+            btn.addEventListener('touchstart', startMove, { passive: false });
+            btn.addEventListener('mousedown', startMove);
+
+            btn.addEventListener('touchend', endMove, { passive: false });
+            btn.addEventListener('touchcancel', endMove, { passive: false });
+            btn.addEventListener('mouseup', endMove);
+            btn.addEventListener('mouseleave', endMove);
+
+            uiContainer.appendChild(btn);
+            return btn;
+        };
+
+        createMobileBtn('img/misc/arrow_left_thin.webp', 'left');
+        createMobileBtn('img/misc/arrow_right_thin.webp', 'right');
+    }
+
+
+    function onKeyDown(e) {
+        let moved = false;
+        if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') { keys.left = true; moved = true; }
+        if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') { keys.right = true; moved = true; }
+        
+        if (moved && !IS_MOBILE) {
+            localStorage.setItem(knowHowToMoveKey, '1');
+            if (desktopArrows) {
+                desktopArrows.forEach(arr => arr.remove());
+                desktopArrows = null;
+            }
+        }
+    }
+
+    function onKeyUp(e) {
+        if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.left = false;
+        if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.right = false;
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+
+    const CHUNK_WIDTH = 2000;
+    const chunks = new Map(); // chunkIndex -> props[]
+    
+    // A simple PRNG to ensure props are generated deterministically per chunk
+    function seededRandom(seed) {
+        let x = Math.sin(seed++) * 10000;
+        return x - Math.floor(x);
+    }
+
+    
+    function getSandHeight(globalX, layerBaseY, layerAmplitude, layerPeriod, layerSeed) {
+        let yOffset = Math.sin(globalX / layerPeriod + layerSeed) * layerAmplitude
+                    + Math.sin(globalX / (layerPeriod * 0.731) + layerSeed * 2) * (layerAmplitude * 0.4)
+                    + Math.sin(globalX / (layerPeriod * 0.317) + layerSeed * 3) * (layerAmplitude * 0.2);
+        return layerBaseY + yOffset;
+    }
+
+        function generateChunkProps(chunkIndex) {
+        const chunkProps = [];
+        let seed = chunkIndex * 1337; // Arbitrary multiplier for seed
+
+        // layersConfig maps to farthest -> closest
+        // scaleModifier helps enforce depth
+        const layersConfig = [
+            { baseYFactor: 0.65, amplitude: 15, period: 500, seedOffset: 10, scaleModifier: 0.6 },
+            { baseYFactor: 0.75, amplitude: 20, period: 600, seedOffset: 42, scaleModifier: 1.0 },
+            { baseYFactor: 0.85, amplitude: 25, period: 700, seedOffset: 73, scaleModifier: 1.4 }
+        ];
+
+        // Weight distribution: Farthest (60%), Mid (30%), Closest (10%)
+        function pickLayer() {
+            let r = seededRandom(seed++);
+            if (r < 0.6) return layersConfig[0];
+            if (r < 0.9) return layersConfig[1];
+            return layersConfig[2];
+        }
+
+        // Palm trees receding into distance
+        const treeCount = Math.floor(seededRandom(seed++) * 4) + 4; // 4 to 7 trees
+        for (let i = 0; i < treeCount; i++) {
+            let globalX = chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH;
+            let layer = pickLayer();
+            let baseY = height * layer.baseYFactor;
+            
+            chunkProps.push({
+                type: 'tree',
+                x: globalX,
+                y: getSandHeight(globalX, baseY, layer.amplitude, layer.period, layer.seedOffset) + 5,
+                scale: (0.8 + seededRandom(seed++) * 0.3) * layer.scaleModifier
+            });
+        }
+        
+        // Coconuts scattered
+        const coconutCount = Math.floor(seededRandom(seed++) * 8) + 7; // 7 to 14 coconuts
+        for (let i = 0; i < coconutCount; i++) {
+            let globalX = chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH;
+            let layer = pickLayer();
+            let baseY = height * layer.baseYFactor;
+
+            chunkProps.push({
+                type: 'coconut',
+                x: globalX,
+                y: getSandHeight(globalX, baseY, layer.amplitude, layer.period, layer.seedOffset) + 5,
+                scale: (0.6 + seededRandom(seed++) * 0.2) * layer.scaleModifier
+            });
+        }
+        
+        // Pearls scattered
+        const pearlCount = Math.floor(seededRandom(seed++) * 10) + 6; // 6 to 15 pearls
+        for (let i = 0; i < pearlCount; i++) {
+            let globalX = chunkIndex * CHUNK_WIDTH + seededRandom(seed++) * CHUNK_WIDTH;
+            let layer = pickLayer();
+            let baseY = height * layer.baseYFactor;
+
+            chunkProps.push({
+                type: 'pearl',
+                x: globalX,
+                y: getSandHeight(globalX, baseY, layer.amplitude, layer.period, layer.seedOffset) + 5,
+                scale: (0.3 + seededRandom(seed++) * 0.1) * layer.scaleModifier
+            });
+        }
+        
+        // Sort by Y so things lower on the screen (closer) are drawn last
+        chunkProps.sort((a, b) => a.y - b.y);
+        return chunkProps;
+    }
+
+    function playBombExplosion() {
+        const explosionContainer = document.createElement('div');
+        explosionContainer.style.position = 'fixed';
+        explosionContainer.style.top = '0';
+        explosionContainer.style.left = '0';
+        explosionContainer.style.width = '100vw';
+        explosionContainer.style.height = '100vh';
+        explosionContainer.style.pointerEvents = 'none';
+        explosionContainer.style.zIndex = '2147483647';
+        explosionContainer.style.overflow = 'hidden';
+        document.body.appendChild(explosionContainer);
+
+        const expCanvas = document.createElement('canvas');
+        expCanvas.width = window.innerWidth;
+        expCanvas.height = window.innerHeight;
+        expCanvas.style.position = 'absolute';
+        expCanvas.style.top = '0';
+        expCanvas.style.left = '0';
+        expCanvas.style.pointerEvents = 'none';
+        explosionContainer.appendChild(expCanvas);
+
+        const expCtx = expCanvas.getContext('2d');
+        const particles = [];
+        let isAnimating = true;
+
+        const colors = ['#ff4500', '#ff8c00', '#ffd700', '#ffffff', '#ff0000'];
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 20 + 5;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.size = Math.random() * 300 + 100;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.life = 1.0;
+                this.decay = Math.random() * 0.005 + 0.005;
+                this.gravity = 0.3;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += this.gravity;
+                this.life -= this.decay;
+                this.size *= 0.98;
+            }
+            draw(ctx) {
+                if (this.life <= 0) return;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.life;
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        for (let i = 0; i < 1000; i++) {
+            particles.push(new Particle(centerX, centerY));
+        }
+
+        playAudio('sounds/explosion_long.ogg', { volume: 1.0 });
+
+        const animate = () => {
+            if (!isAnimating) return;
+            expCtx.clearRect(0, 0, expCanvas.width, expCanvas.height);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw(expCtx);
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+            requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+
+        setTimeout(() => {
+            isAnimating = false;
+            explosionContainer.remove();
+        }, 5000);
+    }
+
+    function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        width = window.innerWidth;
+        height = window.innerHeight;
+
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+
+        ctx.scale(dpr, dpr);
+        // Clear cached chunks on resize so they generate with new height bounds
+        chunks.clear();
+    }
+    window.addEventListener('resize', resize);
+    resize();
+    
+    let activeProjectiles = [];
+    let isRunning = true;
+    let animationFrameId;
+    let lastSpawnTime = 0;
+    const SPAWN_INTERVAL = 100; // 100ms for 10 per second
+
+    let currentBossWidth = 0;
+    let currentBossHeight = 0;
+    let currentBossX = 0;
+    let currentBossBottomY = 0;
+
+    function loop(timestamp) {
+        if (!lastSpawnTime) lastSpawnTime = timestamp;
+        if (!isRunning) return;
+
+        // Update camera position continuously
+        if (keys.left) cameraX -= cameraSpeed;
+        if (keys.right) cameraX += cameraSpeed;
+
+        // Determine which chunks are visible
+        const startChunk = Math.floor(cameraX / CHUNK_WIDTH) - 1;
+        const endChunk = Math.floor((cameraX + width) / CHUNK_WIDTH) + 1;
+
+        // Gather props for visible chunks
+        let visibleProps = [];
+        for (let i = startChunk; i <= endChunk; i++) {
+            if (!chunks.has(i)) {
+                chunks.set(i, generateChunkProps(i));
+            }
+            // To ensure proper depth sorting across chunks, we can't just draw chunk by chunk
+            // if we want perfect overlap, but drawing per chunk is usually fine if they don't overlap too much.
+            // For perfection, we merge and sort.
+            visibleProps.push(...chunks.get(i));
+        }
+        
+        visibleProps.sort((a, b) => a.y - b.y);
+
+        // 1. Draw Sky
+        const grad = ctx.createLinearGradient(0, 0, 0, height * 0.6);
+        grad.addColorStop(0, PALETTE.skyTop);
+        grad.addColorStop(1, PALETTE.skyBottom);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+
+        // Boss (Static in background just behind the highest sand layer)
+        let bossTopY = 0;
+        if (merchantImg.complete && merchantImg.naturalWidth > 0) {
+            // Massive boss
+            // Bound by both width and height to prevent overwhelming widescreen displays
+            const maxBossWidth = width * 0.7;
+            const maxBossHeight = height * 0.65; // nearly covering the sun, but leaving room for HP bar
+            
+            let bossWidth = maxBossWidth;
+            let bossHeight = (bossWidth / merchantImg.naturalWidth) * merchantImg.naturalHeight;
+            
+            if (bossHeight > maxBossHeight) {
+                bossHeight = maxBossHeight;
+                bossWidth = (bossHeight / merchantImg.naturalHeight) * merchantImg.naturalWidth;
+            }
+            
+            // Fixed horizontal position
+            const hatOffsetRatio = 6 / 512;
+            const bossX = width * 0.5 - bossWidth * hatOffsetRatio;
+            
+            // The highest sand layer has baseY = height * 0.55
+            const highestSandBaseY = height * 0.65;
+            
+            // Place boss bottom slightly below the sand base
+            const bossBottomY = highestSandBaseY + bossHeight * 0.1 + 20;
+            
+            bossTopY = bossBottomY - bossHeight;
+            currentBossWidth = bossWidth;
+            currentBossHeight = bossHeight;
+            currentBossX = bossX;
+            currentBossBottomY = bossBottomY;
+
+            ctx.save();
+            // Translate to boss center
+            ctx.translate(bossX, bossBottomY - bossHeight / 2);
+            ctx.drawImage(merchantImg, -bossWidth / 2, -bossHeight / 2, bossWidth, bossHeight);
+            ctx.restore();
+            
+            // Update health bar position dynamically to sit above the boss visually, ensuring it's always on screen
+            let hpBarY = bossTopY - 10;
+            if (hpBarY < 10) hpBarY = 10;
+            healthBarWrapper.style.top = `${hpBarY}px`;
+        }
+
+        // 3. Draw Sand
+        // Draw layers of dunes for depth
+        const layers = [
+            { parallax: 1.0, baseY: height * 0.65, color: PALETTE.sandDark, amplitude: 15, period: 500, seed: 10 },
+            { parallax: 1.0, baseY: height * 0.75, color: PALETTE.sandMid, amplitude: 20, period: 600, seed: 42 },
+            { parallax: 1.0, baseY: height * 0.85, color: PALETTE.sandLight, amplitude: 25, period: 700, seed: 73 }
+        ];
+
+        layers.forEach(layer => {
+            ctx.fillStyle = layer.color;
+            ctx.beginPath();
+            ctx.moveTo(0, height);
+            
+            // Draw points across the screen width
+            // Step size of 20 pixels is usually fine for smooth curves
+            const step = 20;
+            for (let x = 0; x <= width + step; x += step) {
+                // Calculate global X
+                const globalX = x + cameraX * layer.parallax;
+                
+                // Deterministic height using combined incommensurate sine waves (pseudo-noise)
+                ctx.lineTo(x, getSandHeight(globalX, layer.baseY, layer.amplitude, layer.period, layer.seed));
+            }
+            ctx.lineTo(width, height);
+            ctx.fill();
+        });
+
+        // 4. Draw Props
+        visibleProps.forEach(prop => {
+            let renderX = prop.x - cameraX;
+            // Draw if on screen (with some margin based on scale)
+            const margin = 150 * prop.scale;
+            if (renderX > -margin && renderX < width + margin) {
+                if (prop.type === 'tree') drawPalmTree(ctx, renderX, prop.y, prop.scale);
+                else if (prop.type === 'coconut') drawCoconut(ctx, renderX, prop.y, prop.scale);
+                else if (prop.type === 'pearl') drawPearl(ctx, renderX, prop.y, prop.scale);
+            }
+        });
+
+        if (timestamp - lastSpawnTime >= SPAWN_INTERVAL && currentBossWidth > 0) {
+            lastSpawnTime = timestamp;
+            const isCoin = Math.random() < 0.95;
+            const leftEye = Math.random() < 0.5;
+            
+            // boss center is currentBossX, bossTop is currentBossBottomY - currentBossHeight
+            const eyeXOffset = currentBossWidth * (leftEye ? -0.3 : 0.3); // 20% and 80% horizontally implies +/- 30% from center
+            const eyeYOffset = currentBossHeight * -0.7; // 70% up from bottom
+            
+            const startX = currentBossX + eyeXOffset + cameraX;
+            const startY = currentBossBottomY + eyeYOffset;
+
+            // Give velocity
+            const baseVx = (Math.random() * 40 + 20) * (Math.random() < 0.5 ? 1 : -1);
+            const baseVy = -(Math.random() * 15 + 5);
+
+            const decelRatio = Math.random() < 0.50 ? 0.50 : (Math.random() * 0.40 + 0.10);
+            const decelDistance = width * decelRatio;
+
+            activeProjectiles.push({
+                type: isCoin ? 'coin' : 'bomb',
+                x: startX,
+                startX: startX,
+                y: startY,
+                vx: baseVx,
+                vy: baseVy,
+                scale: 0.3,
+                targetScale: 1.0 + Math.random() * 0.5,
+                width: 32,
+                height: 32,
+                decelDistance: decelDistance,
+                slowed: false
+            });
+        }
+
+        // Render and update active projectiles
+        for (let i = activeProjectiles.length - 1; i >= 0; i--) {
+            const p = activeProjectiles[i];
+            
+            // Physics
+            p.x += p.vx;
+            p.y += p.vy;
+            
+            if (!p.slowed) {
+                if (Math.abs(p.x - p.startX) >= p.decelDistance) {
+                    p.slowed = true;
+                    p.vx *= 0.1665; // cut velocity in half again
+                    p.vy *= 0.1665;
+                }
+            } else {
+                p.vx *= 0.95; // Friction
+                p.vy += 0.03;
+            }
+            
+            // Scale up to target
+            if (p.scale < p.targetScale) {
+                p.scale += 0.02;
+            }
+
+            // Remove if off screen bottom
+            if (p.y > height + 100 * p.scale) {
+                activeProjectiles.splice(i, 1);
+                continue;
+            }
+
+            let renderX = p.x - cameraX;
+            if (p.type === 'coin') drawProjectileImage(ctx, renderX, p.y, p.scale, projectileImages.coin);
+            else if (p.type === 'bomb') drawProjectileImage(ctx, renderX, p.y, p.scale, projectileImages.bomb);
+        }
+
+        // Optional: clear old chunks to free memory if camera moved far away
+        for (let key of chunks.keys()) {
+            if (key < startChunk - 5 || key > endChunk + 5) {
+                chunks.delete(key);
+            }
+        }
+
+        animationFrameId = requestAnimationFrame(loop);
+    }
+
+    function circleLineSegmentIntersect(circleX, circleY, radius, x1, y1, x2, y2) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const l2 = dx * dx + dy * dy;
+        
+        if (l2 === 0) {
+            const distX = circleX - x1;
+            const distY = circleY - y1;
+            return (distX * distX + distY * distY) <= radius * radius;
+        }
+
+        let t = ((circleX - x1) * dx + (circleY - y1) * dy) / l2;
+        t = Math.max(0, Math.min(1, t));
+
+        const closestX = x1 + t * dx;
+        const closestY = y1 + t * dy;
+
+        const distX = circleX - closestX;
+        const distY = circleY - closestY;
+        return (distX * distX + distY * distY) <= radius * radius;
+    }
+
+    function onBossCursorHit(e) {
+        if (!isRunning) return;
+        const cx = e.detail.x;
+        const cy = e.detail.y;
+        const lastCx = e.detail.lastX;
+        const lastCy = e.detail.lastY;
+        
+        for (let i = activeProjectiles.length - 1; i >= 0; i--) {
+            const prop = activeProjectiles[i];
+            const renderX = prop.x - cameraX;
+            const renderY = prop.y;
+            
+            let hit = false;
+
+            if (prop.type === 'coin') {
+                const radius = 32 * prop.scale * 1.3;
+                hit = circleLineSegmentIntersect(renderX, renderY, radius, lastCx, lastCy, cx, cy);
+            } else if (prop.type === 'bomb') {
+                const radius = 32 * prop.scale * 0.5;
+                const hitboxY = renderY + (32 * prop.scale) - radius;
+                hit = circleLineSegmentIntersect(renderX, hitboxY, radius, lastCx, lastCy, cx, cy);
+            }
+
+            if (hit) {
+                if (prop.type === 'coin') {
+                    activeProjectiles.splice(i, 1);
+                    bossHp = Math.max(0, bossHp - 1);
+                    updateBossHpUI();
+                } else if (prop.type === 'bomb') {
+                    activeProjectiles = [];
+                    playerLives = Math.max(0, playerLives - 1);
+                    updateLivesUI();
+                    playBombExplosion();
+                    break;
+                }
+            }
+        }
+    }
+    document.addEventListener('boss_cursor_hit', onBossCursorHit);
+
+    function cleanup() {
+        isRunning = false;
+        container.style.cursor = '';
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        window.removeEventListener('resize', resize);
+        window.removeEventListener('keydown', onKeyDown);
+        window.removeEventListener('keyup', onKeyUp);
+        document.removeEventListener('boss_cursor_hit', onBossCursorHit);
+        if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+        if (uiContainer && uiContainer.parentNode) uiContainer.parentNode.removeChild(uiContainer);
+        
+        if (bossMusic) bossMusic.stop();
+        if (cursorTrail) cursorTrail.destroy();
+    }
+
+    loop();
+    
+    return {
+        cleanup,
+        showCursor: () => { container.style.cursor = ''; },
+        hideCursor: () => { container.style.cursor = 'none'; }
+    };
+}
