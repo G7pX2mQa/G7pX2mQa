@@ -801,15 +801,16 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const leftEye = Math.random() < 0.5;
             
             // boss center is currentBossX, bossTop is currentBossBottomY - currentBossHeight
-            const eyeXOffset = currentBossWidth * (leftEye ? -0.3 : 0.3); // 20% and 80% horizontally implies +/- 30% from center
-            const eyeYOffset = currentBossHeight * -0.7; // 70% up from bottom
+            const eyeXOffset = currentBossWidth * (leftEye ? -0.0975 : 0.1175);
+            const eyeYOffset = currentBossHeight * -0.6565;
             
             const startX = currentBossX + eyeXOffset + cameraX;
             const startY = currentBossBottomY + eyeYOffset;
 
             // Give velocity
-            const baseVx = (Math.random() * 40 + 20) * (Math.random() < 0.5 ? 1 : -1);
-            const baseVy = -(Math.random() * 5 + 5);
+            const speedMagnitude = (Math.random() * 20 + 10)
+            const baseVx = leftEye ? -speedMagnitude : speedMagnitude;
+            const baseVy = -(Math.random() * 3 + 1);
 
             const decelRatio = Math.random() < 0.75 ? 0.60 : (Math.random() * 0.50 + 0.10);
             const decelDistance = width * decelRatio;
@@ -821,7 +822,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 y: startY,
                 vx: baseVx,
                 vy: baseVy,
-                scale: 0.3,
+                scale: 0.6,
                 targetScale: 1.0 + Math.random() * 0.5,
                 width: 32,
                 height: 32,
