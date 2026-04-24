@@ -898,6 +898,35 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         return (distX * distX + distY * distY) <= radius * radius;
     }
 
+    let currentDifficultyLevel = getDifficultyLevel();
+
+    function updateMusicSpeed() {
+        if (!bossMusic) return;
+        const diffLevel = getDifficultyLevel();
+        if (diffLevel > currentDifficultyLevel) {
+            currentDifficultyLevel = diffLevel;
+            let newPlaybackRate = 1.0 + (currentDifficultyLevel * 0.01);
+            if (currentDifficultyLevel === 9) {
+                newPlaybackRate += 0.05;
+            }
+            
+            if (bossMusic.source && bossMusic.source.playbackRate) {
+                try {
+                    const now = bossMusic.source.context ? bossMusic.source.context.currentTime : 0;
+                    if (now > 0 && bossMusic.source.playbackRate.setValueAtTime) {
+                         bossMusic.source.playbackRate.setValueAtTime(newPlaybackRate, now);
+                    } else {
+                         bossMusic.source.playbackRate.value = newPlaybackRate;
+                    }
+                } catch(e) {
+                    bossMusic.source.playbackRate.value = newPlaybackRate;
+                }
+            } else if (bossMusic.element) {
+                bossMusic.element.playbackRate = newPlaybackRate;
+            }
+        }
+    }
+
     function onBossCursorHit(e) {
         if (!isRunning) return;
         const cx = e.detail.x;
@@ -926,6 +955,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     activeProjectiles.splice(i, 1);
                     bossHp = Math.max(0, bossHp - 1);
                     updateBossHpUI();
+                    updateMusicSpeed();
                 } else if (prop.type === 'bomb') {
                     activeProjectiles = [];
                     playerLives = Math.max(0, playerLives - 1);
