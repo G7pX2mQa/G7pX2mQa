@@ -903,21 +903,22 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const leftEyeScreenX = bossCenterScreenX - currentBossWidth * 0.095;
             const rightEyeScreenX = bossCenterScreenX + currentBossWidth * 0.1135;
 
-            // Check if cursor is near eyes (radius = 7% of boss width)
+            // Check if cursor is near eyes
             let isCursorNearEyes = false;
             if (cursorScreenX !== null && cursorScreenY !== null) {
-                const threshold = currentBossWidth * 0.07;
-                const distSqThreshold = threshold * threshold;
-                
+                const rxLeft = currentBossWidth * (cursorScreenX < leftEyeScreenX ? 0.10 : 0.05);
+                const ryLeft = currentBossWidth * 0.05;
                 const dLeftX = cursorScreenX - leftEyeScreenX;
                 const dLeftY = cursorScreenY - bossEyeYScreenOffset;
-                if ((dLeftX * dLeftX + dLeftY * dLeftY) <= distSqThreshold) {
+                if (((dLeftX * dLeftX) / (rxLeft * rxLeft) + (dLeftY * dLeftY) / (ryLeft * ryLeft)) <= 1) {
                     isCursorNearEyes = true;
                 }
-                
+
+                const rxRight = currentBossWidth * (cursorScreenX > rightEyeScreenX ? 0.10 : 0.05);
+                const ryRight = currentBossWidth * 0.05;
                 const dRightX = cursorScreenX - rightEyeScreenX;
                 const dRightY = cursorScreenY - bossEyeYScreenOffset;
-                if ((dRightX * dRightX + dRightY * dRightY) <= distSqThreshold) {
+                if (((dRightX * dRightX) / (rxRight * rxRight) + (dRightY * dRightY) / (ryRight * ryRight)) <= 1) {
                     isCursorNearEyes = true;
                 }
             }
