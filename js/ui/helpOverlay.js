@@ -130,7 +130,7 @@ const HELP_ENTRIES = [
     nerdModeText: () => {
         let text = `<div style="margin-bottom:12px;"><strong>Base Wave Gain</strong><br><code>Base Waves = Floor(10 ^ (1 + Max(0, log10(Coins) - 24) * log10(1.1) + Max(0, log10(Gold) - 13) * log10(1.1) + Max(0, log10(Magic) - 5) * log10(1.1) + Max(0, log10(CumulativeMP) - 12) * log10(1.1) + (XPLevel - 201) / 35))</code>.</div><div><strong>Wave Requirement</strong><br><code>Requirement = 10 ^ Surge</code>.<br>After Surge 1e12: <code>Requirement = 10 ^ (SurgeLevel + 5 * e^(2.36e-10 * (SurgeLevel - 1e12)))</code>.</div>`;
 		let isTsunamiActive = false;
-        try { isTsunamiActive = getResearchNodeLevel(4) >= 1 || isHelpEntryPermanentlyUnlocked(6); } catch {}
+        try { isTsunamiActive = isHelpEntryPermanentlyUnlocked(5); } catch {}
         if (isTsunamiActive) {
             text += `<div style="margin-bottom:12px;"><strong>Surge 3 Book Generation</strong><br><code>Base Books/sec = Max(1, Floor(e ^ (0.20 * XPLevel))) ^ TsunamiExponent</code>.</div>`;
         } else {
