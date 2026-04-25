@@ -146,12 +146,6 @@ function drawCoconut(ctx, x, y, scale) {
 }
 
 export function playSecretDlgBossFightSequence(container, onComplete, options = {}) {
-    const applyCursorSetting = (show) => {
-        container.style.cursor = show ? 'default' : 'none';
-    };
-    applyCursorSetting(settingsManager.get('show_cursor'));
-    settingsManager.subscribe('show_cursor', applyCursorSetting);
-
     // Start Boss Music
     const bossMusic = playAudio('sounds/Secret_Boss_Fight.ogg', { loop: true, volume: 1.0, type: 'music' });
 
@@ -1098,7 +1092,6 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
     function cleanup() {
         isRunning = false;
-        container.style.cursor = '';
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
         window.removeEventListener('resize', resize);
         window.removeEventListener('keydown', onKeyDown);
@@ -1114,8 +1107,6 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     loop();
     
     return {
-        cleanup,
-        showCursor: () => { container.style.cursor = ''; },
-        hideCursor: () => { container.style.cursor = 'none'; }
+        cleanup
     };
 }
