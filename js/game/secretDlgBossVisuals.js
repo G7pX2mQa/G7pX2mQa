@@ -271,6 +271,23 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     livesContainer.style.display = 'flex';
     livesContainer.style.zIndex = '2';
 
+    let styleElem = document.getElementById('life-fire-glow-style');
+    if (!styleElem) {
+        styleElem = document.createElement('style');
+        styleElem.id = 'life-fire-glow-style';
+        styleElem.textContent = `
+            @keyframes fireGlow {
+                0% { filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.8)) drop-shadow(0 -5px 15px rgba(255, 69, 0, 0.6)); transform: scale(1); }
+                50% { filter: drop-shadow(0 0 15px rgba(255, 0, 0, 1)) drop-shadow(0 -10px 25px rgba(255, 69, 0, 0.8)); transform: scale(1.05); }
+                100% { filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.8)) drop-shadow(0 -5px 15px rgba(255, 69, 0, 0.6)); transform: scale(1); }
+            }
+            .life-fire-glow {
+                animation: fireGlow 1s infinite alternate ease-in-out;
+            }
+        `;
+        uiContainer.appendChild(styleElem);
+    }
+
     function updateLivesUI() {
         livesContainer.innerHTML = '';
         const maxLivesDisplay = Math.max(INITIAL_PLAYER_LIVES, playerLives);
@@ -282,6 +299,11 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             lifeImg.style.height = `clamp(32px, ${vwPerLife}vw, 128px)`;
             lifeImg.style.margin = '0';
             lifeImg.style.display = 'block';
+            
+            if (playerLives === 1 && i === 0) {
+                lifeImg.classList.add('life-fire-glow');
+            }
+            
             livesContainer.appendChild(lifeImg);
         }
     }
@@ -853,8 +875,20 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         }
     }
 
+    let heartbeatAudio = null;
     function loop(timestamp) {
         if (!lastFrameTime) lastFrameTime = timestamp;
+
+        if (playerLives === 1) {
+            if (!heartbeatAudio) {
+                heartbeatAudio = playAudio('sounds/heartbeat.ogg', { loop: true });
+            }
+        } else {
+            if (heartbeatAudio) {
+                heartbeatAudio.stop();
+                heartbeatAudio = null;
+            }
+        }
         const dt = timestamp - lastFrameTime;
         lastFrameTime = timestamp;
 
@@ -1286,6 +1320,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             playerLives = Math.max(0, playerLives - 1);
                             updateLivesUI();
                             playBombExplosion();
+							break;
                         }
                     }
                     activeBombColumns.splice(i, 1);
@@ -1433,6 +1468,77 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
         }
 
+
+        // Draw distress effects
+        if (playerLives === 2 || playerLives === 1) {
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to absolute screen coordinates
+            
+            // 1 HP specific effects (vignette)
+            if (playerLives === 1) {
+                const grad = ctx.createRadialGradient(width / 2, height / 2, Math.max(width, height) * 0.2, width / 2, height / 2, Math.max(width, height) * 0.8);
+                grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0.4)'); // subtle black vignette
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, width, height);
+            }
+
+            // Jagged lines of distress
+            const numSpikes = 40;
+            const is1Hp = playerLives === 1;
+            ctx.fillStyle = is1Hp ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.15)';
+            ctx.beginPath();
+            
+            // Draw a frame with jagged inner edge
+            // Outer rectangle (screen edges)
+            ctx.moveTo(0, 0);
+            ctx.lineTo(width, 0);
+            ctx.lineTo(width, height);
+            ctx.lineTo(0, height);
+            ctx.lineTo(0, 0);
+            
+            // Inner jagged path (counter-clockwise to cut out the center)
+            const spikeBaseLength = is1Hp ? 80 : 40;
+            const spikeVarLength = is1Hp ? 40 : 20;
+
+            // Start at top-left inner
+            ctx.moveTo(0, 0);
+            
+            // Left edge (top to bottom)
+            for (let i = 0; i <= numSpikes; i++) {
+                const y = (i / numSpikes) * height;
+                const animOffset = Math.sin(timestamp * 0.005 + i * 0.5) * 5;
+                const xOffset = spikeBaseLength + Math.sin(i * 13.37) * spikeVarLength + animOffset;
+                ctx.lineTo(xOffset, y);
+            }
+            
+            // Bottom edge (left to right)
+            for (let i = 0; i <= numSpikes; i++) {
+                const x = (i / numSpikes) * width;
+                const animOffset = Math.sin(timestamp * 0.005 + i * 0.5 + 100) * 5;
+                const yOffset = height - (spikeBaseLength + Math.sin(i * 13.37 + 100) * spikeVarLength + animOffset);
+                ctx.lineTo(x, yOffset);
+            }
+            
+            // Right edge (bottom to top)
+            for (let i = numSpikes; i >= 0; i--) {
+                const y = (i / numSpikes) * height;
+                const animOffset = Math.sin(timestamp * 0.005 + i * 0.5 + 200) * 5;
+                const xOffset = width - (spikeBaseLength + Math.sin(i * 13.37 + 200) * spikeVarLength + animOffset);
+                ctx.lineTo(xOffset, y);
+            }
+            
+            // Top edge (right to left)
+            for (let i = numSpikes; i >= 0; i--) {
+                const x = (i / numSpikes) * width;
+                const animOffset = Math.sin(timestamp * 0.005 + i * 0.5 + 300) * 5;
+                const yOffset = spikeBaseLength + Math.sin(i * 13.37 + 300) * spikeVarLength + animOffset;
+                ctx.lineTo(x, yOffset);
+            }
+            
+            ctx.fill();
+            ctx.restore();
+        }
 
         // Optional: clear old chunks to free memory if camera moved far away
         for (let key of chunks.keys()) {
@@ -1626,8 +1732,11 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         document.removeEventListener('boss_cursor_hit', onBossCursorHit);
         if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
         if (uiContainer && uiContainer.parentNode) uiContainer.parentNode.removeChild(uiContainer);
+        const styleEl = document.getElementById('life-fire-glow-style');
+        if (styleEl && styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
         
         if (bossMusic) bossMusic.stop();
+        if (heartbeatAudio) heartbeatAudio.stop();
         if (cursorTrail) cursorTrail.destroy();
     }
 
