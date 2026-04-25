@@ -687,12 +687,17 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let cursorScreenX = null;
     let cursorScreenY = null;
 
-    function spawnBombColumn(direction, timestamp) {
+    function spawnBombColumn(direction, timestamp, excludeGapIndex = null) {
         // Determine bomb size
         const numBombs = Math.ceil(height / 64);
         const bombSize = height / numBombs;
         
-        const gapIndex = Math.floor(Math.random() * (numBombs - 2)) + 1; // avoid extreme top/bottom edges if possible
+        let gapIndex = Math.floor(Math.random() * (numBombs - 2)) + 1; // avoid extreme top/bottom edges if possible
+        if (excludeGapIndex !== null && numBombs > 3) {
+            while (gapIndex === excludeGapIndex) {
+                gapIndex = Math.floor(Math.random() * (numBombs - 2)) + 1;
+            }
+        }
         
         activeBombColumns.push({
             direction: direction,
@@ -707,6 +712,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             screenX: direction === 'left' ? 0 : width,
             wentThroughGap: false
         });
+        return gapIndex;
     }
 
     function checkBombColumnThresholds(timestamp) {
@@ -724,21 +730,26 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         for (const t of thresholds) {
             if (bossHp <= t.hp && !triggeredHpThresholds.has(t.hp)) {
                 triggeredHpThresholds.add(t.hp);
-                if (t.type === 'left' || t.type === 'both') spawnBombColumn('left', timestamp);
-                if (t.type === 'right' || t.type === 'both') spawnBombColumn('right', timestamp);
+                if (t.type === 'both') {
+                    const firstGap = spawnBombColumn('left', timestamp);
+                    spawnBombColumn('right', timestamp, firstGap);
+                } else {
+                    if (t.type === 'left') spawnBombColumn('left', timestamp);
+                    if (t.type === 'right') spawnBombColumn('right', timestamp);
+                }
             }
         }
 
         if (bossHp <= 100) {
             if (!triggeredHpThresholds.has(100)) {
                 triggeredHpThresholds.add(100);
-                spawnBombColumn('left', timestamp);
-                spawnBombColumn('right', timestamp);
+                const firstGap = spawnBombColumn('left', timestamp);
+                spawnBombColumn('right', timestamp, firstGap);
                 relentlessColumnLastSpawn = timestamp;
-            } else if (timestamp - relentlessColumnLastSpawn >= 2500) {
+            } else if (timestamp - relentlessColumnLastSpawn >= 5000) {
                 relentlessColumnLastSpawn = timestamp;
-                spawnBombColumn('left', timestamp);
-                spawnBombColumn('right', timestamp);
+                const firstGap = spawnBombColumn('left', timestamp);
+                spawnBombColumn('right', timestamp, firstGap);
             }
         }
     }
@@ -1013,7 +1024,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const col = activeBombColumns[i];
             
             if (col.state === 'constructing') {
-                const timePerBomb = 1000 / col.numBombs;
+                const timePerBomb = 2000 / col.numBombs;
                 
                 // Keep the column locked to the screen while constructing
                 if (col.direction === 'left') {
@@ -1042,7 +1053,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             startX: startX,
                             startY: startY,
                             startTime: timestamp,
-                            transitionDuration: 150, // quick transition
+                            transitionDuration: 750, // 0.75 second transition
                             settled: false
                         });
                         bossEyeBlackGlowUntil = timestamp + 100;
@@ -1106,7 +1117,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 let by = b.y;
                 let isSettled = b.settled;
                 
-                if (col.state === 'constructing' && !b.settled) {
+                if (!b.settled) {
                     const elapsed = timestamp - b.startTime;
                     if (elapsed < b.transitionDuration) {
                         const t = elapsed / b.transitionDuration;
@@ -1126,8 +1137,6 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 }
                 
                 ctx.save();
-                ctx.shadowColor = 'black';
-                ctx.shadowBlur = 15;
                 // scale to fit bombSize
                 // normal bomb size is 64*1.5 = 96
                 const scale = col.bombSize / 96;
