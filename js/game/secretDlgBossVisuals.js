@@ -4,6 +4,7 @@ import { getActiveSlot } from '../util/storage.js';
 import { createCursorTrail } from './cursorTrail.js';
 import { settingsManager } from './settingsManager.js';
 import { formatNumber } from '../util/numFormat.js';
+import { BigNum } from '../util/bigNum.js';
 
 const COIN_VOLUME = IS_MOBILE ? 0.12 : 0.3;
 
@@ -234,11 +235,11 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
     let bossHp = 1000;
     const maxBossHp = 1000;
-	hpText.textContent = `HP: ${formatNumber(bossHp)}/${formatNumber(maxBossHp)}`;
+	hpText.textContent = `HP: ${formatNumber(BigNum.fromAny(bossHp))} / ${formatNumber(BigNum.fromAny(maxBossHp))}`;
     hpText.style.transform = 'translateY(-1px)';
 	
     function updateBossHpUI() {
-        hpText.textContent = `HP: ${formatNumber(bossHp)}/${formatNumber(maxBossHp)}`;
+        hpText.textContent = `HP: ${formatNumber(BigNum.fromAny(bossHp))} / ${formatNumber(BigNum.fromAny(maxBossHp))}`;
         hpBarFill.style.width = `${Math.max(0, (bossHp / maxBossHp) * 100)}%`;
     }
 
@@ -712,7 +713,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         
         // Always exclude at least 2 spots from the bottom (like the original numBombs - 2),
         // or more if the HUD is taller.
-        const bombsToExcludeAtBottom = Math.max(2, Math.ceil(hudHeight / bombSize));
+        const bombsToExcludeAtBottom = Math.max(2, Math.ceil(hudHeight / bombSize) + 1);
         
         let maxGapIndex = Math.max(1, numBombs - bombsToExcludeAtBottom);
         let minGapIndex = Math.floor(numBombs / 2);
