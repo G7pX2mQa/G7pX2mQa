@@ -682,6 +682,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let currentBossX = 0;
     let currentBossBottomY = 0;
 
+    let cursorScreenX = null;
+    let cursorScreenY = null;
+
     function loop(timestamp) {
         if (!lastSpawnTime) lastSpawnTime = timestamp;
         if (!isRunning) return;
@@ -802,7 +805,37 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
         if (timestamp - lastSpawnTime >= currentSpawnInterval && currentBossWidth > 0) {
             lastSpawnTime = timestamp;
-            const bombChance = 0.05 + getDifficultyLevel() * 0.025;
+            
+            // Boss coordinates
+            const bossCenterScreenX = currentBossX;
+            const bossEyeYScreenOffset = currentBossBottomY - currentBossHeight * 0.657;
+            const leftEyeScreenX = bossCenterScreenX - currentBossWidth * 0.095;
+            const rightEyeScreenX = bossCenterScreenX + currentBossWidth * 0.1135;
+
+            // Check if cursor is near eyes (radius = 7% of boss width)
+            let isCursorNearEyes = false;
+            if (cursorScreenX !== null && cursorScreenY !== null) {
+                const threshold = currentBossWidth * 0.07;
+                const distSqThreshold = threshold * threshold;
+                
+                const dLeftX = cursorScreenX - leftEyeScreenX;
+                const dLeftY = cursorScreenY - bossEyeYScreenOffset;
+                if ((dLeftX * dLeftX + dLeftY * dLeftY) <= distSqThreshold) {
+                    isCursorNearEyes = true;
+                }
+                
+                const dRightX = cursorScreenX - rightEyeScreenX;
+                const dRightY = cursorScreenY - bossEyeYScreenOffset;
+                if ((dRightX * dRightX + dRightY * dRightY) <= distSqThreshold) {
+                    isCursorNearEyes = true;
+                }
+            }
+
+            let bombChance = 0.05 + getDifficultyLevel() * 0.025;
+            if (isCursorNearEyes) {
+                bombChance = 1.0;
+            }
+
             const isCoin = Math.random() >= bombChance;
             const leftEye = Math.random() < 0.5;
             
@@ -1012,6 +1045,10 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         if (!isRunning) return;
         const cx = e.detail.x;
         const cy = e.detail.y;
+        
+        cursorScreenX = cx;
+        cursorScreenY = cy;
+
         const lastCx = e.detail.lastX;
         const lastCy = e.detail.lastY;
         
