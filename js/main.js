@@ -763,6 +763,7 @@ images: [
 	'img/waterwheels/waterwheel_magic.webp',
 ],
     audio: [
+	  'sounds/bomb_column_construction.ogg',
       'sounds/coin_pickup.ogg',
       'sounds/wave_spawn.ogg',
       'sounds/merchant_typing.ogg',
