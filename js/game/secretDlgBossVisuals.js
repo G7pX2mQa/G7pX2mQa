@@ -674,6 +674,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let animationFrameId;
     let lastSpawnTime = 0;
     
+    let bombInvincibilityUntil = 0;
+    
     let leftEyeBombStep = 0;
     let rightEyeBombStep = 0;
 
@@ -1019,10 +1021,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         const diffLevel = getDifficultyLevel();
         if (diffLevel > currentDifficultyLevel) {
             currentDifficultyLevel = diffLevel;
-            let newPlaybackRate = 1.0 + (currentDifficultyLevel * 0.01);
-            if (currentDifficultyLevel === 9) {
-                newPlaybackRate += 0.05;
-            }
+            const rates = [1.0, 1.01, 1.02, 1.03, 1.04, 1.065, 1.09, 1.115, 1.14, 1.20];
+            let newPlaybackRate = rates[currentDifficultyLevel] || 1.0;
             
             if (bossMusic.source && bossMusic.source.playbackRate) {
                 try {
@@ -1077,11 +1077,19 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     updateBossHpUI();
                     updateMusicSpeed();
                 } else if (prop.type === 'bomb') {
-                    activeProjectiles = [];
-                    playerLives = Math.max(0, playerLives - 1);
-                    updateLivesUI();
-                    playBombExplosion();
-                    break;
+                    const now = performance.now();
+                    if (now < bombInvincibilityUntil) {
+                        // Invincible: just remove the specific bomb without exploding or losing a life
+                        activeProjectiles.splice(i, 1);
+                    } else {
+                        // Vulnerable: normal behavior and trigger invincibility
+                        bombInvincibilityUntil = now + 2000;
+                        activeProjectiles = [];
+                        playerLives = Math.max(0, playerLives - 1);
+                        updateLivesUI();
+                        playBombExplosion();
+                        break;
+                    }
                 }
             }
         }
