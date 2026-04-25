@@ -605,12 +605,12 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 this.decay = Math.random() * 0.005 + 0.005;
                 this.gravity = 0.3;
             }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.vy += this.gravity;
-                this.life -= this.decay;
-                this.size *= 0.98;
+            update(timeScale = 1) {
+                this.x += this.vx * timeScale;
+                this.y += this.vy * timeScale;
+                this.vy += this.gravity * timeScale;
+                this.life -= this.decay * timeScale;
+                this.size *= Math.pow(0.98, timeScale);
             }
             draw(ctx) {
                 if (this.life <= 0) return;
@@ -631,12 +631,17 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
         playAudio('sounds/explosion_long.ogg', { volume: 1.0 });
 
-        const animate = () => {
+        let lastExpTime = performance.now();
+        const animate = (timestamp) => {
             if (!isAnimating) return;
+            const dt = timestamp - lastExpTime;
+            lastExpTime = timestamp;
+            const timeScale = dt / (1000 / 120);
+
             expCtx.clearRect(0, 0, expCanvas.width, expCanvas.height);
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
-                p.update();
+                p.update(timeScale);
                 p.draw(expCtx);
                 if (p.life <= 0) particles.splice(i, 1);
             }
@@ -672,6 +677,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let isRunning = true;
     let animationFrameId;
     let lastSpawnTime = 0;
+    let lastFrameTime = 0;
     
     let bombInvincibilityUntil = 0;
     
@@ -697,8 +703,23 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         const numBombs = Math.ceil(height / 64);
         const bombSize = height / numBombs;
         
-        const maxGapIndex = Math.max(1, numBombs - 2);
-        const minGapIndex = Math.min(Math.floor(numBombs / 2), maxGapIndex);
+        let hudHeight = 0;
+        if (typeof livesContainer !== 'undefined' && livesContainer && livesContainer.parentNode) {
+            hudHeight = livesContainer.getBoundingClientRect().height;
+        }
+        
+        // Always exclude at least 2 spots from the bottom (like the original numBombs - 2),
+        // or more if the HUD is taller.
+        const bombsToExcludeAtBottom = Math.max(2, Math.ceil(hudHeight / bombSize));
+        
+        let maxGapIndex = Math.max(1, numBombs - bombsToExcludeAtBottom);
+        let minGapIndex = Math.floor(numBombs / 2);
+        
+        // If excluding the HUD pushes the gap into the top half,
+        // reluctantly allow the gap to spawn lower, prioritizing keeping it out of the top half.
+        if (maxGapIndex < minGapIndex) {
+            maxGapIndex = minGapIndex;
+        }
         const possibleGaps = maxGapIndex - minGapIndex + 1;
         
         let gapIndex = minGapIndex + Math.floor(Math.random() * possibleGaps);
@@ -764,14 +785,19 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     }
 
     function loop(timestamp) {
+        if (!lastFrameTime) lastFrameTime = timestamp;
+        const dt = timestamp - lastFrameTime;
+        lastFrameTime = timestamp;
+
         if (!lastSpawnTime) lastSpawnTime = timestamp;
         if (!isRunning) return;
 
         checkBombColumnThresholds(timestamp);
 
         // Update camera position continuously
-        if (keys.left) cameraX -= cameraSpeed;
-        if (keys.right) cameraX += cameraSpeed;
+        const timeScale = dt / (1000 / 120);
+        if (keys.left) cameraX -= cameraSpeed * timeScale;
+        if (keys.right) cameraX += cameraSpeed * timeScale;
 
         // Determine which chunks are visible
         const startChunk = Math.floor(cameraX / CHUNK_WIDTH) - 1;
@@ -934,7 +960,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
 
             let projType = "bomb";
-            if (playerLives < INITIAL_PLAYER_LIVES && Math.random() < 0.2025) {
+            if (playerLives < INITIAL_PLAYER_LIVES && Math.random() < 0.0025) {
                 projType = "life";
             } else if (Math.random() >= bombChance) {
                 projType = "coin";
@@ -1004,27 +1030,27 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const p = activeProjectiles[i];
             
             // Physics
-            p.x += p.vx;
-            p.y += p.vy;
+            p.x += p.vx * timeScale;
+            p.y += p.vy * timeScale;
             
             if (!p.slowed) {
                 if (Math.abs(p.x - p.startX) >= p.decelDistance) {
                     p.slowed = true;
-                    p.vx *= 0.1665;
-                    p.vy *= 0.1665;
+                    p.vx *= Math.pow(0.1665, timeScale);
+                    p.vy *= Math.pow(0.1665, timeScale);
                 }
             } else {
-                p.vx *= 0.95; // Friction
+                p.vx *= Math.pow(0.95, timeScale); // Friction
                 if (p.type === "life") {
-                    p.vy += 0.01;
+                    p.vy += 0.01 * timeScale;
                 } else {
-                    p.vy += 0.01 + getDifficultyLevel() * 0.005;
+                    p.vy += (0.01 + getDifficultyLevel() * 0.005) * timeScale;
                 }
             }
             
             // Scale up to target
             if (p.scale < p.targetScale) {
-                p.scale += 0.02;
+                p.scale += 0.02 * timeScale;
             }
 
             // Remove if off screen bottom
@@ -1106,8 +1132,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     col.state = 'moving';
                 }
             } else if (col.state === 'moving') {
-                // 10% of viewport width per second. Assuming 60fps, meaning per frame it's (width * 0.1) / 60
-                const vx = (width * 0.1) / 60;
+                // 20% of viewport width per second, FPS independent
+                const vx = (width * 0.2) * (dt / 1000);
                 if (col.direction === 'left') {
                     col.screenX += vx;
                 } else {
