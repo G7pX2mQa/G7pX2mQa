@@ -21,10 +21,12 @@ const PALETTE = {
 
 const projectileImages = {
     coin: new Image(),
-    bomb: new Image()
+    bomb: new Image(),
+    life: new Image()
 };
 projectileImages.coin.src = 'img/currencies/coin/coin.webp';
 projectileImages.bomb.src = 'img/misc/bomb.webp';
+projectileImages.life.src = 'img/misc/life.webp';
 
 function drawProjectileImage(ctx, x, y, scale, img) {
     if (!img.complete) return;
@@ -257,7 +259,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     healthBarWrapper.appendChild(hpBar);
     uiContainer.appendChild(healthBarWrapper);
 
-    let playerLives = 5;
+    const INITIAL_PLAYER_LIVES = 5;
+    let playerLives = INITIAL_PLAYER_LIVES;
     const livesContainer = document.createElement('div');
     livesContainer.style.position = 'absolute';
     livesContainer.style.bottom = '0';
@@ -267,11 +270,13 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
     function updateLivesUI() {
         livesContainer.innerHTML = '';
+        const maxLivesDisplay = Math.max(INITIAL_PLAYER_LIVES, playerLives);
+        const vwPerLife = 100 / maxLivesDisplay;
         for (let i = 0; i < playerLives; i++) {
             const lifeImg = document.createElement('img');
             lifeImg.src = 'img/misc/life.webp';
-            lifeImg.style.width = 'clamp(32px, 20vw, 128px)';
-            lifeImg.style.height = 'clamp(32px, 20vw, 128px)';
+            lifeImg.style.width = `clamp(32px, ${vwPerLife}vw, 128px)`;
+            lifeImg.style.height = `clamp(32px, ${vwPerLife}vw, 128px)`;
             lifeImg.style.margin = '0';
             lifeImg.style.display = 'block';
             livesContainer.appendChild(lifeImg);
@@ -928,7 +933,12 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 bombChance = 1.0;
             }
 
-            const isCoin = Math.random() >= bombChance;
+            let projType = "bomb";
+            if (playerLives < INITIAL_PLAYER_LIVES && Math.random() < 0.2025) {
+                projType = "life";
+            } else if (Math.random() >= bombChance) {
+                projType = "coin";
+            }
             const leftEye = Math.random() < 0.5;
             
             // boss center is currentBossX, bossTop is currentBossBottomY - currentBossHeight
@@ -938,7 +948,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             let currentEyeXOffset = eyeXOffset;
             let currentEyeYOffset = eyeYOffset;
 
-            if (!isCoin) {
+            if (projType === "bomb") {
                 let step = leftEye ? leftEyeBombStep : rightEyeBombStep;
                 let offsetMultiplier = 0;
                 
@@ -974,7 +984,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
             playAudio('sounds/projectile_spawn.ogg', { volume: 0.8 });
             activeProjectiles.push({
-                type: isCoin ? 'coin' : 'bomb',
+                type: projType,
                 x: startX,
                 startX: startX,
                 y: startY,
@@ -1005,7 +1015,11 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 }
             } else {
                 p.vx *= 0.95; // Friction
-                p.vy += 0.01 + getDifficultyLevel() * 0.005;
+                if (p.type === "life") {
+                    p.vy += 0.01;
+                } else {
+                    p.vy += 0.01 + getDifficultyLevel() * 0.005;
+                }
             }
             
             // Scale up to target
@@ -1022,6 +1036,15 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             let renderX = p.x - cameraX;
             if (p.type === 'coin') drawProjectileImage(ctx, renderX, p.y, p.scale, projectileImages.coin);
             else if (p.type === 'bomb') drawProjectileImage(ctx, renderX, p.y, p.scale * 1.5, projectileImages.bomb);
+        }
+
+        // Second pass: render life projectiles to ensure they are on top
+        for (let i = activeProjectiles.length - 1; i >= 0; i--) {
+            const p = activeProjectiles[i];
+            if (p.type === 'life') {
+                let renderX = p.x - cameraX;
+                drawProjectileImage(ctx, renderX, p.y, p.scale * 2.0, projectileImages.life);
+            }
         }
 
         // Process Bomb Columns
@@ -1212,10 +1235,47 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             let renderY = anim.y + yOffset;
             let finalScale = anim.startScale * scaleMultiplier;
 
-            ctx.save();
-            ctx.globalAlpha = Math.max(0, opacity);
-            drawProjectileImage(ctx, renderX, renderY, finalScale, projectileImages.coin);
-            ctx.restore();
+            if (anim.type !== 'life') {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, opacity);
+                drawProjectileImage(ctx, renderX, renderY, finalScale, projectileImages.coin);
+                ctx.restore();
+            }
+        }
+
+        // Render collected life animations (highest z-index)
+        for (let i = collectedAnimations.length - 1; i >= 0; i--) {
+            const anim = collectedAnimations[i];
+            if (anim.type === 'life') {
+                const elapsed = now - anim.startTime;
+                if (elapsed > 220) continue; // Already handled in previous loop
+                
+                const t = elapsed / 220;
+                let scaleMultiplier = 1;
+                let yOffset = 0;
+                let opacity = 1;
+                
+                if (t <= 0.7) {
+                    const subT = t / 0.7;
+                    scaleMultiplier = 1 + (0.35 * subT);
+                    yOffset = -12 * subT;
+                    opacity = 1 - (0.65 * subT);
+                } else {
+                    const subT = (t - 0.7) / 0.3;
+                    scaleMultiplier = 1.35 + (0.15 * subT);
+                    yOffset = -12 - (2 * subT);
+                    opacity = 0.35 - (0.35 * subT);
+                }
+
+                let renderX = anim.x - cameraX;
+                let renderY = anim.y + yOffset;
+                let finalScale = anim.startScale * scaleMultiplier;
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, opacity);
+                drawProjectileImage(ctx, renderX, renderY, finalScale * 2.0, projectileImages.life);
+                ctx.restore();
+            }
         }
 
 
@@ -1227,6 +1287,29 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         }
 
         animationFrameId = requestAnimationFrame(loop);
+    }
+
+    function heartLineSegmentIntersect(cx, cy, scale, x1, y1, x2, y2) {
+        // Base size is 64x64, but actual heart image fills most of it.
+        // We approximate a heart with 6 overlapping circles for better coverage.
+        const circles = [
+            { x: -14, y: -14, r: 18 }, // Left lobe
+            { x: 14, y: -14, r: 18 },  // Right lobe
+            { x: -10, y: -2, r: 18 },  // Left mid
+            { x: 10, y: -2, r: 18 },   // Right mid
+            { x: 0, y: 8, r: 20 },     // Center/lower mass
+            { x: 0, y: 18, r: 14 }     // Bottom tip
+        ];
+        
+        for (const c of circles) {
+            const scaledX = cx + c.x * scale;
+            const scaledY = cy + c.y * scale;
+            const scaledR = c.r * scale;
+            if (circleLineSegmentIntersect(scaledX, scaledY, scaledR, x1, y1, x2, y2)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function circleLineSegmentIntersect(circleX, circleY, radius, x1, y1, x2, y2) {
@@ -1299,6 +1382,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             if (prop.type === 'coin') {
                 const radius = 32 * prop.scale * 1.3;
                 hit = circleLineSegmentIntersect(renderX, renderY, radius, lastCx, lastCy, cx, cy);
+            } else if (prop.type === 'life') {
+                hit = heartLineSegmentIntersect(renderX, renderY, prop.scale * 2.0, lastCx, lastCy, cx, cy);
             } else if (prop.type === 'bomb') {
                 const radius = 32 * prop.scale * 1.5 * 0.5;
                 const hitboxY = renderY + (32 * prop.scale * 1.5) - radius;
@@ -1308,11 +1393,17 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             if (hit) {
                 if (prop.type === 'coin') {
                     playAudio('sounds/coin_pickup.ogg', { volume: COIN_VOLUME });
-                    collectedAnimations.push({ x: prop.x, y: prop.y, startScale: prop.scale, startTime: performance.now() });
+                    collectedAnimations.push({ x: prop.x, y: prop.y, startScale: prop.scale, startTime: performance.now(), type: 'coin' });
                     activeProjectiles.splice(i, 1);
                     bossHp = Math.max(0, bossHp - 1);
                     updateBossHpUI();
                     updateMusicSpeed();
+                } else if (prop.type === 'life') {
+                    playAudio('sounds/life_restored.ogg', { volume: COIN_VOLUME });
+                    collectedAnimations.push({ x: prop.x, y: prop.y, startScale: prop.scale, startTime: performance.now(), type: 'life' });
+                    activeProjectiles.splice(i, 1);
+                    playerLives++;
+                    updateLivesUI();
                 } else if (prop.type === 'bomb') {
                     const now = performance.now();
                     if (now < bombInvincibilityUntil) {
