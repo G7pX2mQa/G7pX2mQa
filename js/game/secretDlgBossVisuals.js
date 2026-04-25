@@ -3,6 +3,7 @@ import { IS_MOBILE } from '../main.js';
 import { getActiveSlot } from '../util/storage.js';
 import { createCursorTrail } from './cursorTrail.js';
 import { settingsManager } from './settingsManager.js';
+import { formatNumber } from '../util/numFormat.js';
 
 const COIN_VOLUME = IS_MOBILE ? 0.12 : 0.3;
 
@@ -230,13 +231,14 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     hpText.style.color = '#fff';
     hpText.style.fontSize = 'clamp(18px, 3.0vw, 24px)';
     hpText.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
-    hpText.textContent = 'HP: 1000/1000';
-    hpText.style.transform = 'translateY(-1px)';
 
     let bossHp = 1000;
     const maxBossHp = 1000;
+	hpText.textContent = `HP: ${formatNumber(bossHp)}/${formatNumber(maxBossHp)}`;
+    hpText.style.transform = 'translateY(-1px)';
+	
     function updateBossHpUI() {
-        hpText.textContent = `HP: ${bossHp}/${maxBossHp}`;
+        hpText.textContent = `HP: ${formatNumber(bossHp)}/${formatNumber(maxBossHp)}`;
         hpBarFill.style.width = `${Math.max(0, (bossHp / maxBossHp) * 100)}%`;
     }
 
