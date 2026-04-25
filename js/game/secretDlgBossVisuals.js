@@ -692,6 +692,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let relentlessColumnLastSpawn = 0;
     let splashAnimations = [];
     let bossEyeBlackGlowUntil = 0;
+    let currentBossLightning = null;
 
     let currentBossWidth = 0;
     let currentBossHeight = 0;
@@ -699,6 +700,69 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let currentBossBottomY = 0;
 
     let cursorScreenX = null;
+    function generateBossLightning(startX, startY) {
+        const bolts = [];
+        const numMainBolts = 3;
+        const BOSS_LIGHTNING_BRANCHES = 3;
+        
+        for (let b = 0; b < numMainBolts; b++) {
+            const mainLength = 50 + Math.random() * 30; // Shorter main bolt
+            const angle = Math.random() * Math.PI * 2; // Random angle
+
+            // Main bolt
+            const mainEndX = startX + Math.cos(angle) * mainLength;
+            const mainEndY = startY + Math.sin(angle) * mainLength;
+
+            // Create jagged points for the main bolt
+            const mainPoints = [{ x: startX, y: startY }];
+            const segments = 5;
+            for (let i = 1; i < segments; i++) {
+                const t = i / segments;
+                const midX = startX + (mainEndX - startX) * t;
+                const midY = startY + (mainEndY - startY) * t;
+                
+                // Add some jitter
+                const perpX = -Math.sin(angle);
+                const perpY = Math.cos(angle);
+                const jitter = (Math.random() - 0.5) * 15;
+                
+                mainPoints.push({
+                    x: midX + perpX * jitter,
+                    y: midY + perpY * jitter
+                });
+            }
+            mainPoints.push({ x: mainEndX, y: mainEndY });
+
+            bolts.push({ points: mainPoints, width: 3 });
+
+            // Generate small branches
+            for (let i = 0; i < BOSS_LIGHTNING_BRANCHES; i++) {
+                // Pick a random point along the main bolt to branch from (excluding start/end)
+                const branchIdx = 1 + Math.floor(Math.random() * (segments - 1));
+                const branchStart = mainPoints[branchIdx];
+                
+                // Calculate direction of the main bolt segment here
+                const segStart = mainPoints[branchIdx - 1];
+                const segAngle = Math.atan2(branchStart.y - segStart.y, branchStart.x - segStart.x);
+                
+                const branchAngle = segAngle + (Math.random() * 1.2 - 0.6); // slight devation
+                const branchLen = mainLength * (0.3 + Math.random() * 0.3); // shorter than main
+                
+                const branchEndX = branchStart.x + Math.cos(branchAngle) * branchLen;
+                const branchEndY = branchStart.y + Math.sin(branchAngle) * branchLen;
+                
+                // Make branches just a single line segment for simplicity
+                const branchPoints = [
+                    { x: branchStart.x, y: branchStart.y },
+                    { x: branchEndX, y: branchEndY }
+                ];
+                
+                bolts.push({ points: branchPoints, width: 1.5 });
+            }
+        }
+        
+        return bolts;
+    }
     let cursorScreenY = null;
 
     function spawnBombColumn(direction, timestamp, excludeGapIndex = null) {
@@ -877,6 +941,41 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 ctx.shadowColor = 'black';
                 ctx.shadowBlur = 10;
                 ctx.fill();
+
+                if (currentBossLightning) {
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.shadowBlur = 0; // Turn off shadow for crisp lightning lines
+                    
+                    const drawBolts = (bolts) => {
+                        if (!bolts) return;
+                        for (const b of bolts) {
+                            if (!b.points || b.points.length < 2) continue;
+                            
+                            const drawPath = (width, color) => {
+                                ctx.lineWidth = width;
+                                ctx.strokeStyle = color;
+                                ctx.beginPath();
+                                ctx.moveTo(b.points[0].x, b.points[0].y);
+                                for (let j = 1; j < b.points.length; j++) {
+                                    ctx.lineTo(b.points[j].x, b.points[j].y);
+                                }
+                                ctx.stroke();
+                            };
+                            
+                            // 1. Glow Pass (Thick, lower opacity)
+                            drawPath((b.width || 3) * 3.5, 'rgba(0, 0, 0, 0.4)');
+                            
+                            // 2. Core Pass (Thin, high opacity)
+                            drawPath(b.width || 3, 'rgba(0, 0, 0, 1)');
+                        }
+                    };
+                    
+                    drawBolts(currentBossLightning.leftBolts);
+                    drawBolts(currentBossLightning.rightBolts);
+                }
+            } else {
+                currentBossLightning = null; // Clear lightning when glow is done
             }
             
             ctx.restore();
@@ -1115,6 +1214,19 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                         });
                         playAudio('sounds/bomb_column_construction.ogg', { volume: 0.6 });
                         bossEyeBlackGlowUntil = timestamp + 100;
+                        
+                        const lightningLeftEyeX = currentBossWidth * -0.124;
+                        const lightningRightEyeX = currentBossWidth * 0.143;
+                        
+                        // We will store relative to boss center in currentBossLightning so it moves with the boss
+                        // Boss center is currentBossX, currentBossBottomY - currentBossHeight / 2
+                        // So eye relative to center is:
+                        const relEyeY = -currentBossHeight * 0.166;
+                        
+                        currentBossLightning = {
+                            leftBolts: generateBossLightning(lightningLeftEyeX, relEyeY),
+                            rightBolts: generateBossLightning(lightningRightEyeX, relEyeY)
+                        };
                     }
                     col.bombsConstructed++;
                 }
