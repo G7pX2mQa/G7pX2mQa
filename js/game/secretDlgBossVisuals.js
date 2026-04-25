@@ -673,6 +673,12 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let leftEyeBombStep = 0;
     let rightEyeBombStep = 0;
 
+    let activeBombColumns = [];
+    let triggeredHpThresholds = new Set();
+    let relentlessColumnLastSpawn = 0;
+    let splashAnimations = [];
+    let bossEyeBlackGlowUntil = 0;
+
     let currentBossWidth = 0;
     let currentBossHeight = 0;
     let currentBossX = 0;
@@ -681,9 +687,67 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let cursorScreenX = null;
     let cursorScreenY = null;
 
+    function spawnBombColumn(direction, timestamp) {
+        // Determine bomb size
+        const numBombs = Math.ceil(height / 64);
+        const bombSize = height / numBombs;
+        
+        const gapIndex = Math.floor(Math.random() * (numBombs - 2)) + 1; // avoid extreme top/bottom edges if possible
+        
+        activeBombColumns.push({
+            direction: direction,
+            state: 'constructing', // constructing, pausing, moving
+            bombs: [],
+            numBombs: numBombs,
+            bombSize: bombSize,
+            gapIndex: gapIndex,
+            creationStartTime: timestamp,
+            lastBombSpawnTime: timestamp,
+            bombsConstructed: 0,
+            screenX: direction === 'left' ? 0 : width,
+            wentThroughGap: false
+        });
+    }
+
+    function checkBombColumnThresholds(timestamp) {
+        const thresholds = [
+            { hp: 900, type: 'left' },
+            { hp: 800, type: 'right' },
+            { hp: 700, type: 'left' },
+            { hp: 600, type: 'right' },
+            { hp: 500, type: 'both' },
+            { hp: 400, type: 'both' },
+            { hp: 300, type: 'both' },
+            { hp: 200, type: 'both' }
+        ];
+
+        for (const t of thresholds) {
+            if (bossHp <= t.hp && !triggeredHpThresholds.has(t.hp)) {
+                triggeredHpThresholds.add(t.hp);
+                if (t.type === 'left' || t.type === 'both') spawnBombColumn('left', timestamp);
+                if (t.type === 'right' || t.type === 'both') spawnBombColumn('right', timestamp);
+            }
+        }
+
+        if (bossHp <= 100) {
+            if (!triggeredHpThresholds.has(100)) {
+                triggeredHpThresholds.add(100);
+                spawnBombColumn('left', timestamp);
+                spawnBombColumn('right', timestamp);
+                relentlessColumnLastSpawn = timestamp;
+            } else if (timestamp - relentlessColumnLastSpawn >= 2500) {
+                relentlessColumnLastSpawn = timestamp;
+                spawnBombColumn('left', timestamp);
+                spawnBombColumn('right', timestamp);
+            }
+        }
+    }
+
     function loop(timestamp) {
         if (!lastSpawnTime) lastSpawnTime = timestamp;
         if (!isRunning) return;
+
+        checkBombColumnThresholds(timestamp);
 
         // Update camera position continuously
         if (keys.left) cameraX -= cameraSpeed;
@@ -750,6 +814,22 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             // Translate to boss center
             ctx.translate(bossX, bossBottomY - bossHeight / 2);
             ctx.drawImage(merchantImg, -bossWidth / 2, -bossHeight / 2, bossWidth, bossHeight);
+            
+            // Eye black glow
+            if (timestamp < bossEyeBlackGlowUntil) {
+                const leftEyeX = -bossWidth * 0.095;
+                const rightEyeX = bossWidth * 0.1135;
+                const eyeY = -bossHeight * 0.157; // Adjusting relative to center. Center is bottom - height/2. Eye Y is bottom - height*0.657. So it's -height*0.157 from center
+                
+                ctx.beginPath();
+                ctx.arc(leftEyeX, eyeY, bossWidth * 0.05, 0, Math.PI * 2);
+                ctx.arc(rightEyeX, eyeY, bossWidth * 0.05, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowColor = 'black';
+                ctx.shadowBlur = 10;
+                ctx.fill();
+            }
+            
             ctx.restore();
             
             // Update health bar position dynamically to sit above the boss visually, ensuring it's always on screen
@@ -928,6 +1008,154 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             else if (p.type === 'bomb') drawProjectileImage(ctx, renderX, p.y, p.scale * 1.5, projectileImages.bomb);
         }
 
+        // Process Bomb Columns
+        for (let i = activeBombColumns.length - 1; i >= 0; i--) {
+            const col = activeBombColumns[i];
+            
+            if (col.state === 'constructing') {
+                const timePerBomb = 1000 / col.numBombs;
+                
+                // Keep the column locked to the screen while constructing
+                if (col.direction === 'left') {
+                    col.screenX = 0;
+                } else {
+                    col.screenX = width;
+                }
+
+                while (col.bombsConstructed < col.numBombs && timestamp - col.lastBombSpawnTime >= timePerBomb) {
+                    col.lastBombSpawnTime += timePerBomb;
+                    
+                    if (col.bombsConstructed !== col.gapIndex) {
+                        const targetY = col.bombsConstructed * col.bombSize + col.bombSize / 2;
+                        
+                        // Boss eye coordinates for bomb start
+                        const leftEyeXOffset = currentBossWidth * -0.095;
+                        const rightEyeXOffset = currentBossWidth * 0.1135;
+                        const eyeYOffset = currentBossHeight * -0.657;
+                        
+                        const eyeXOffset = (Math.random() < 0.5) ? leftEyeXOffset : rightEyeXOffset;
+                        const startX = currentBossX + eyeXOffset + cameraX;
+                        const startY = currentBossBottomY + eyeYOffset;
+                        
+                        col.bombs.push({
+                            y: targetY,
+                            startX: startX,
+                            startY: startY,
+                            startTime: timestamp,
+                            transitionDuration: 150, // quick transition
+                            settled: false
+                        });
+                        bossEyeBlackGlowUntil = timestamp + 100;
+                    }
+                    col.bombsConstructed++;
+                }
+                
+                if (col.bombsConstructed >= col.numBombs) {
+                    col.state = 'pausing';
+                    col.pauseStartTime = timestamp;
+                }
+            } else if (col.state === 'pausing') {
+                // Keep the column locked to the screen while pausing
+                if (col.direction === 'left') {
+                    col.screenX = 0;
+                } else {
+                    col.screenX = width;
+                }
+                
+                if (timestamp - col.pauseStartTime >= 1000) {
+                    col.state = 'moving';
+                }
+            } else if (col.state === 'moving') {
+                // 10% of viewport width per second. Assuming 60fps, meaning per frame it's (width * 0.1) / 60
+                const vx = (width * 0.1) / 60;
+                if (col.direction === 'left') {
+                    col.screenX += vx;
+                } else {
+                    col.screenX -= vx;
+                }
+                
+                // Remove if off screen
+                let isOffScreen = false;
+                if (col.direction === 'left' && col.screenX > width + 100) {
+                    isOffScreen = true;
+                } else if (col.direction === 'right' && col.screenX < -100) {
+                    isOffScreen = true;
+                }
+                
+                if (isOffScreen) {
+                    if (!col.wentThroughGap) {
+                        const now = performance.now();
+                        if (now >= bombInvincibilityUntil) {
+                            bombInvincibilityUntil = now + 2500;
+                            activeProjectiles = []; activeBombColumns = [];
+                            playerLives = Math.max(0, playerLives - 1);
+                            updateLivesUI();
+                            playBombExplosion();
+                        }
+                    }
+                    activeBombColumns.splice(i, 1);
+                    continue;
+                }
+            }
+            
+            // Draw bomb column
+            const renderX = col.screenX;
+            for (let j = 0; j < col.bombs.length; j++) {
+                const b = col.bombs[j];
+                let bx = renderX;
+                let by = b.y;
+                let isSettled = b.settled;
+                
+                if (col.state === 'constructing' && !b.settled) {
+                    const elapsed = timestamp - b.startTime;
+                    if (elapsed < b.transitionDuration) {
+                        const t = elapsed / b.transitionDuration;
+                        bx = (b.startX - cameraX) + (renderX - (b.startX - cameraX)) * t;
+                        by = b.startY + (b.y - b.startY) * t;
+                    } else {
+                        b.settled = true;
+                        isSettled = true;
+                        // Trigger splash
+                        splashAnimations.push({
+                            x: renderX,
+                            y: b.y,
+                            startTime: timestamp,
+                            size: col.bombSize * 1.5
+                        });
+                    }
+                }
+                
+                ctx.save();
+                ctx.shadowColor = 'black';
+                ctx.shadowBlur = 15;
+                // scale to fit bombSize
+                // normal bomb size is 64*1.5 = 96
+                const scale = col.bombSize / 96;
+                drawProjectileImage(ctx, bx, by, scale * 1.5, projectileImages.bomb);
+                ctx.restore();
+            }
+        }
+
+        // Render splash animations
+        for (let i = splashAnimations.length - 1; i >= 0; i--) {
+            const splash = splashAnimations[i];
+            const elapsed = timestamp - splash.startTime;
+            if (elapsed > 300) {
+                splashAnimations.splice(i, 1);
+                continue;
+            }
+            const t = elapsed / 300;
+            const currentSize = splash.size * t;
+            const alpha = 1 - t;
+            
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(splash.x, splash.y, currentSize / 2, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+            ctx.fill();
+            ctx.restore();
+        }
+
         // Render collected coin animations
         const now = performance.now();
         for (let i = collectedAnimations.length - 1; i >= 0; i--) {
@@ -1079,10 +1307,48 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                         // Vulnerable: normal behavior and trigger invincibility
                         bombInvincibilityUntil = now + 2500;
                         activeProjectiles = [];
+                        activeBombColumns = [];
                         playerLives = Math.max(0, playerLives - 1);
                         updateLivesUI();
                         playBombExplosion();
                         break;
+                    }
+                }
+            }
+        }
+
+        // Bomb columns hit detection
+        for (let i = 0; i < activeBombColumns.length; i++) {
+            const col = activeBombColumns[i];
+            if (col.state === 'moving' || col.state === 'pausing') {
+                const renderX = col.screenX;
+                const hitWidth = col.bombSize * 0.8;
+                
+                // Determine if cursor passed through gap
+                const minX = renderX - hitWidth / 2;
+                const maxX = renderX + hitWidth / 2;
+                const passedThroughX = (lastCx <= maxX && cx >= minX) || (lastCx >= minX && cx <= maxX) || (cx >= minX && cx <= maxX);
+                
+                if (passedThroughX) {
+                    const gapYCenter = col.gapIndex * col.bombSize + col.bombSize / 2;
+                    const gapYMin = gapYCenter - col.bombSize / 2;
+                    const gapYMax = gapYCenter + col.bombSize / 2;
+                    
+                    // Check if strictly in gap
+                    if (cy >= gapYMin && cy <= gapYMax && lastCy >= gapYMin && lastCy <= gapYMax) {
+                        col.wentThroughGap = true;
+                    } else {
+                        // Hit a bomb immediately when intersecting the wall X-bounds and not in the gap
+                        const now = performance.now();
+                        if (now >= bombInvincibilityUntil) {
+                            bombInvincibilityUntil = now + 2500;
+                            activeProjectiles = [];
+                            activeBombColumns = [];
+                            playerLives = Math.max(0, playerLives - 1);
+                            updateLivesUI();
+                            playBombExplosion();
+                            break;
+                        }
                     }
                 }
             }
