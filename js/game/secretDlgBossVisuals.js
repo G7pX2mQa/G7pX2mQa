@@ -667,6 +667,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     resize();
     
     let activeProjectiles = [];
+    let collectedAnimations = [];
     let isRunning = true;
     let animationFrameId;
     let lastSpawnTime = 0;
@@ -844,6 +845,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const decelRatio = Math.random() < 0.75 ? 0.60 : (Math.random() * 0.50 + 0.10);
             const decelDistance = width * decelRatio;
 
+            playAudio('sounds/projectile_spawn.ogg', { volume: 0.8 });
             activeProjectiles.push({
                 type: isCoin ? 'coin' : 'bomb',
                 x: startX,
@@ -894,6 +896,54 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             if (p.type === 'coin') drawProjectileImage(ctx, renderX, p.y, p.scale, projectileImages.coin);
             else if (p.type === 'bomb') drawProjectileImage(ctx, renderX, p.y, p.scale * 1.5, projectileImages.bomb);
         }
+
+        // Render collected coin animations
+        const now = performance.now();
+        for (let i = collectedAnimations.length - 1; i >= 0; i--) {
+            const anim = collectedAnimations[i];
+            const elapsed = now - anim.startTime;
+            if (elapsed > 220) {
+                collectedAnimations.splice(i, 1);
+                continue;
+            }
+
+            // Approximation of CSS animation:
+            // 0%   { transform: scale(1);   opacity: 1; }
+            // 70%  { transform: scale(1.35) translateY(-12px); opacity: .35; }
+            // 100% { transform: scale(1.5)  translateY(-14px); opacity: 0; }
+            // Progress is 0.0 to 1.0 over 220ms.
+            // Using a simple cubic bezier approximation or linear interpolation for simplicity.
+            const t = elapsed / 220; // 0 to 1
+            
+            // ease-out approximation:
+            const easeOut = 1 - Math.pow(1 - t, 3);
+            
+            let scaleMultiplier = 1;
+            let yOffset = 0;
+            let opacity = 1;
+            
+            if (t <= 0.7) {
+                const subT = t / 0.7; // 0 to 1 over first 70%
+                scaleMultiplier = 1 + (0.35 * subT);
+                yOffset = -12 * subT;
+                opacity = 1 - (0.65 * subT); // 1 to 0.35
+            } else {
+                const subT = (t - 0.7) / 0.3; // 0 to 1 over last 30%
+                scaleMultiplier = 1.35 + (0.15 * subT);
+                yOffset = -12 - (2 * subT);
+                opacity = 0.35 - (0.35 * subT); // 0.35 to 0
+            }
+
+            let renderX = anim.x - cameraX;
+            let renderY = anim.y + yOffset;
+            let finalScale = anim.startScale * scaleMultiplier;
+
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, opacity);
+            drawProjectileImage(ctx, renderX, renderY, finalScale, projectileImages.coin);
+            ctx.restore();
+        }
+
 
         // Optional: clear old chunks to free memory if camera moved far away
         for (let key of chunks.keys()) {
@@ -981,6 +1031,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
             if (hit) {
                 if (prop.type === 'coin') {
+                    playAudio('sounds/coin_pickup.ogg', { volume: 1.0 });
+                    collectedAnimations.push({ x: prop.x, y: prop.y, startScale: prop.scale, startTime: performance.now() });
                     activeProjectiles.splice(i, 1);
                     bossHp = Math.max(0, bossHp - 1);
                     updateBossHpUI();
