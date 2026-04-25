@@ -20,7 +20,7 @@ function coinsTextFor(slot) {
   try {
     const bn = peekCurrency(slot, 'coins'); // BigNum
     const notation = localStorage.getItem(`ccc:setting:number_notation:${slot}`);
-    return formatNumber(bn, notation ? JSON.parse(notation) : null);
+    return formatNumber(bn, notation ? JSON.parse(notation) : 'Standard');
   } catch {
     return '0';
   }
