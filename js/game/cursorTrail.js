@@ -139,25 +139,25 @@ export function createCursorTrail(playfield, options = {}) {
     generateTexture();
   };
 
-  const textures = [];
+  const textureSheet = document.createElement('canvas');
+  let textureCount = 1;
 
   const generateTexture = () => {
-    // We now generate multiple textures if there are multiple colors
-    textures.length = 0; // Clear existing textures
+    textureCount = activeColors.length;
+    textureSheet.width = TEXTURE_SIZE * textureCount;
+    textureSheet.height = TEXTURE_SIZE;
+    const ctx = textureSheet.getContext('2d');
+    ctx.clearRect(0, 0, textureSheet.width, textureSheet.height);
 
-    for (const color of activeColors) {
-      const tex = document.createElement('canvas');
-      tex.width = TEXTURE_SIZE;
-      tex.height = TEXTURE_SIZE;
-      const ctx = tex.getContext('2d');
-      ctx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+    for (let i = 0; i < textureCount; i++) {
+      const color = activeColors[i];
+      const offsetX = i * TEXTURE_SIZE;
       ctx.shadowColor = color;
       ctx.shadowBlur = GLOW_RADIUS;
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(CENTER, CENTER, PARTICLE_RADIUS, 0, Math.PI * 2);
+      ctx.arc(offsetX + CENTER, CENTER, PARTICLE_RADIUS, 0, Math.PI * 2);
       ctx.fill();
-      textures.push(tex);
     }
   };
   
@@ -444,8 +444,9 @@ export function createCursorTrail(playfield, options = {}) {
         const drawY = Math.round(y - halfSize);
         const drawSize = Math.round(size);
         
-        const texIndex = Math.floor(data[offset + 4]) % textures.length;
-        ctx.drawImage(textures[texIndex], drawX, drawY, drawSize, drawSize);
+        const texIndex = Math.floor(data[offset + 4]) % textureCount;
+        const sx = texIndex * TEXTURE_SIZE;
+        ctx.drawImage(textureSheet, sx, 0, TEXTURE_SIZE, TEXTURE_SIZE, drawX, drawY, drawSize, drawSize);
 
         if (drawX < minX) minX = drawX;
         if (drawY < minY) minY = drawY;
