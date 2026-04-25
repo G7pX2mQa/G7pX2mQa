@@ -780,6 +780,7 @@ images: [
 	  'sounds/coin_pickup_size4.ogg',
 	  'sounds/coin_pickup_size5.ogg',
 	  'sounds/coin_pickup_size6.ogg',
+	  'sounds/heartbeat.ogg',
 	  'sounds/life_restored.ogg',
 	  'sounds/lightning_strike.ogg',
 	  'sounds/lightning_zap.ogg',
