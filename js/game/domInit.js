@@ -92,20 +92,6 @@ export function ensureGameDom(layerCount, startZ) {
 
   document.body.appendChild(main);
 
-  const applyCursorSetting = (showCursor) => {
-    const playfield = document.querySelector('.playfield');
-    if (playfield) {
-      if (showCursor) {
-        playfield.style.cursor = 'default';
-      } else {
-        playfield.style.cursor = '';
-      }
-    }
-  };
-
-  settingsManager.subscribe('show_cursor', applyCursorSetting);
-  applyCursorSetting(settingsManager.get('show_cursor'));
-
   initPinnedCurrencies(document.getElementById('pinned-currencies-container'));
   // We use the same container for both currency and level pins because they share the same absolute positioning anchor in the HUD.
   initPinnedLevels(document.getElementById('pinned-currencies-container'));
