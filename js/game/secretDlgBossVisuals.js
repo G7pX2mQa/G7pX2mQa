@@ -691,8 +691,10 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let triggeredHpThresholds = new Set();
     let relentlessColumnLastSpawn = 0;
     let splashAnimations = [];
-    let bossEyeBlackGlowUntil = 0;
-    let currentBossLightning = null;
+    let leftEyeGlowUntil = 0;
+    let rightEyeGlowUntil = 0;
+    let currentBossLightningLeft = null;
+    let currentBossLightningRight = null;
 
     let currentBossWidth = 0;
     let currentBossHeight = 0;
@@ -929,53 +931,68 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             ctx.drawImage(merchantImg, -bossWidth / 2, -bossHeight / 2, bossWidth, bossHeight);
             
             // Eye black glow
-            if (timestamp < bossEyeBlackGlowUntil) {
-                const leftEyeX = -bossWidth * 0.124;
-                const rightEyeX = bossWidth * 0.143;
-                const eyeY = -bossHeight * 0.166; // Adjusting relative to center. Center is bottom - height/2. Eye Y is bottom - height*0.666. So it's -height*0.166 from center
-                
+            const drawBolts = (bolts) => {
+                if (!bolts) return;
+                for (const b of bolts) {
+                    if (!b.points || b.points.length < 2) continue;
+                    
+                    const drawPath = (width, color) => {
+                        ctx.lineWidth = width;
+                        ctx.strokeStyle = color;
+                        ctx.beginPath();
+                        ctx.moveTo(b.points[0].x, b.points[0].y);
+                        for (let j = 1; j < b.points.length; j++) {
+                            ctx.lineTo(b.points[j].x, b.points[j].y);
+                        }
+                        ctx.stroke();
+                    };
+                    
+                    // 1. Glow Pass (Thick, lower opacity)
+                    drawPath((b.width || 3) * 3.5, 'rgba(0, 0, 0, 0.4)');
+                    
+                    // 2. Core Pass (Thin, high opacity)
+                    drawPath(b.width || 3, 'rgba(0, 0, 0, 1)');
+                }
+            };
+
+            const leftEyeX = -bossWidth * 0.124;
+            const rightEyeX = bossWidth * 0.143;
+            const eyeY = -bossHeight * 0.166; // Adjusting relative to center. Center is bottom - height/2. Eye Y is bottom - height*0.666. So it's -height*0.166 from center
+
+            if (timestamp < leftEyeGlowUntil) {
                 ctx.beginPath();
                 ctx.arc(leftEyeX, eyeY, bossWidth * 0.05, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowColor = 'black';
+                ctx.shadowBlur = 10;
+                ctx.fill();
+
+                if (currentBossLightningLeft) {
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.shadowBlur = 0; // Turn off shadow for crisp lightning lines
+                    drawBolts(currentBossLightningLeft);
+                }
+            } else {
+                currentBossLightningLeft = null;
+            }
+
+            if (timestamp < rightEyeGlowUntil) {
+                ctx.beginPath();
                 ctx.arc(rightEyeX, eyeY, bossWidth * 0.05, 0, Math.PI * 2);
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                 ctx.shadowColor = 'black';
                 ctx.shadowBlur = 10;
                 ctx.fill();
 
-                if (currentBossLightning) {
+                if (currentBossLightningRight) {
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
                     ctx.shadowBlur = 0; // Turn off shadow for crisp lightning lines
-                    
-                    const drawBolts = (bolts) => {
-                        if (!bolts) return;
-                        for (const b of bolts) {
-                            if (!b.points || b.points.length < 2) continue;
-                            
-                            const drawPath = (width, color) => {
-                                ctx.lineWidth = width;
-                                ctx.strokeStyle = color;
-                                ctx.beginPath();
-                                ctx.moveTo(b.points[0].x, b.points[0].y);
-                                for (let j = 1; j < b.points.length; j++) {
-                                    ctx.lineTo(b.points[j].x, b.points[j].y);
-                                }
-                                ctx.stroke();
-                            };
-                            
-                            // 1. Glow Pass (Thick, lower opacity)
-                            drawPath((b.width || 3) * 3.5, 'rgba(0, 0, 0, 0.4)');
-                            
-                            // 2. Core Pass (Thin, high opacity)
-                            drawPath(b.width || 3, 'rgba(0, 0, 0, 1)');
-                        }
-                    };
-                    
-                    drawBolts(currentBossLightning.leftBolts);
-                    drawBolts(currentBossLightning.rightBolts);
+                    drawBolts(currentBossLightningRight);
                 }
             } else {
-                currentBossLightning = null; // Clear lightning when glow is done
+                currentBossLightningRight = null;
             }
             
             ctx.restore();
@@ -1200,7 +1217,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                         const rightEyeXOffset = currentBossWidth * 0.143;
                         const eyeYOffset = currentBossHeight * -0.666;
                         
-                        const eyeXOffset = (Math.random() < 0.5) ? leftEyeXOffset : rightEyeXOffset;
+                        const useLeftEye = col.direction === 'left';
+                        const eyeXOffset = useLeftEye ? leftEyeXOffset : rightEyeXOffset;
                         const startX = currentBossX + eyeXOffset + cameraX;
                         const startY = currentBossBottomY + eyeYOffset;
                         
@@ -1213,20 +1231,16 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             settled: false
                         });
                         playAudio('sounds/bomb_column_construction.ogg', { volume: 0.6 });
-                        bossEyeBlackGlowUntil = timestamp + 100;
                         
-                        const lightningLeftEyeX = currentBossWidth * -0.124;
-                        const lightningRightEyeX = currentBossWidth * 0.143;
-                        
-                        // We will store relative to boss center in currentBossLightning so it moves with the boss
-                        // Boss center is currentBossX, currentBossBottomY - currentBossHeight / 2
-                        // So eye relative to center is:
                         const relEyeY = -currentBossHeight * 0.166;
                         
-                        currentBossLightning = {
-                            leftBolts: generateBossLightning(lightningLeftEyeX, relEyeY),
-                            rightBolts: generateBossLightning(lightningRightEyeX, relEyeY)
-                        };
+                        if (useLeftEye) {
+                            leftEyeGlowUntil = timestamp + 100;
+                            currentBossLightningLeft = generateBossLightning(leftEyeXOffset, relEyeY);
+                        } else {
+                            rightEyeGlowUntil = timestamp + 100;
+                            currentBossLightningRight = generateBossLightning(rightEyeXOffset, relEyeY);
+                        }
                     }
                     col.bombsConstructed++;
                 }
