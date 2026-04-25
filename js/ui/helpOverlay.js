@@ -3,7 +3,7 @@ import { blockInteraction, ensureCustomScrollbar, setupDragToClose } from './sho
 import { suppressNextGhostTap, shouldSkipGhostTap } from '../util/ghostTapGuard.js';
 import { getResearchNodeLevel } from '../game/labNodes.js';
 import { getFlowUnlockState } from './merchantTabs/flowTab.js';
-import { getTsunamiSequenceSeen } from '../game/surgeEffects.js';
+import { getTsunamiSequenceSeen, isSurgeActive } from '../game/surgeEffects.js';
 import { getActiveSlot } from '../util/storage.js';
 import { settingsManager } from '../game/settingsManager.js';
 
@@ -127,7 +127,17 @@ const HELP_ENTRIES = [
     tldr: "Perform even more resets; Waves do not function like a normal currency; Reach new milestones when possible",
     progressionGoal: "Reach Surge Milestone 8",
     text: "Past this point is when the game starts to get real. Surge is a milestone-based reset layer, meaning instead of resetting for a currency to spend that currency on upgrades, you instead reset to activate powerful milestones. The descriptive text on the Surge reset card does a good job of explaining how Surge works, but what should you be trying to do to progress further in the game now? Well, the only way to progress now is to keep activating new Surge Milestones. To do this, you'll need to keep performing Surge resets when you have enough pending Waves to reach the next milestone. Waves earned from the Surge reset are based on a lot of things, but the most important thing to focus on is XP Level, because that is the most significant factor in earning many Waves. You can activate multiple milestones from one Surge reset due to how it works, but you don't really need to be doing that in these early Surge Milestones; just reach the next milestone when possible. The first Surge reset also unlocks the Warp tab, which is useful if you ever want to skip any sort of timewall, but there aren't any massive timewalls in this game anyway, so you can use Warps at your convenience. So keep activating new Surge Milestones and your Coins will reach numbers they never have before.",
-    nerdModeText: `<div style="margin-bottom:12px;"><strong>Base Wave Gain</strong><br><code>Base Waves = Floor(10 ^ (1 + Max(0, log10(Coins) - 24) * log10(1.1) + Max(0, log10(Gold) - 13) * log10(1.1) + Max(0, log10(Magic) - 5) * log10(1.1) + Max(0, log10(CumulativeMP) - 12) * log10(1.1) + (XPLevel - 201) / 35))</code>.</div><div><strong>Wave Requirement</strong><br><code>Requirement = 10 ^ Surge</code>.<br>After Surge 1e12: <code>Requirement = 10 ^ (SurgeLevel + 5 * e^(2.36e-10 * (SurgeLevel - 1e12)))</code>.</div>`,
+    nerdModeText: () => {
+        let text = `<div style="margin-bottom:12px;"><strong>Base Wave Gain</strong><br><code>Base Waves = Floor(10 ^ (1 + Max(0, log10(Coins) - 24) * log10(1.1) + Max(0, log10(Gold) - 13) * log10(1.1) + Max(0, log10(Magic) - 5) * log10(1.1) + Max(0, log10(CumulativeMP) - 12) * log10(1.1) + (XPLevel - 201) / 35))</code>.</div><div><strong>Wave Requirement</strong><br><code>Requirement = 10 ^ Surge</code>.<br>After Surge 1e12: <code>Requirement = 10 ^ (SurgeLevel + 5 * e^(2.36e-10 * (SurgeLevel - 1e12)))</code>.</div>`;
+		let isTsunamiActive = false;
+        try { isTsunamiActive = getResearchNodeLevel(4) >= 1 || isHelpEntryPermanentlyUnlocked(6); } catch {}
+        if (isTsunamiActive) {
+            text += `<div style="margin-bottom:12px;"><strong>Surge 3 Book Generation</strong><br><code>Base Books/sec = Max(1, Floor(e ^ (0.20 * XPLevel))) ^ TsunamiExponent</code>.</div>`;
+        } else {
+            text += `<div style="margin-bottom:12px;"><strong>Surge 3 Book Generation</strong><br><code>Base Books/sec = Max(1, Floor(e ^ (0.20 * XPLevel)))</code>.</div>`;
+        }
+        return text;
+    },
     themeClass: "is-surge",
     isVisible: () => {
         if (isHelpEntryPermanentlyUnlocked(4)) return true;
@@ -330,7 +340,11 @@ function renderHelpContent() {
   }
   
   if (isNerdMode && currentEntry.nerdModeText) {
-    paragraphContent = currentEntry.nerdModeText;
+    if (typeof currentEntry.nerdModeText === 'function') {
+      paragraphContent = currentEntry.nerdModeText();
+    } else {
+      paragraphContent = currentEntry.nerdModeText;
+    }
   } else {
     if (currentEntry.tldr) {
       paragraphContent = `<strong style="display: block; margin-bottom: 12px;">TLDR: ${currentEntry.tldr}</strong>${entryText}`;
