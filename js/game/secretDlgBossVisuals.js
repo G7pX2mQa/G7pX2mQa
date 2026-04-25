@@ -4,6 +4,8 @@ import { getActiveSlot } from '../util/storage.js';
 import { createCursorTrail } from './cursorTrail.js';
 import { settingsManager } from './settingsManager.js';
 
+const COIN_VOLUME = IS_MOBILE ? 0.12 : 0.3;
+
 // Reusing palette from tsunamiVisuals for consistency
 const PALETTE = {
     skyTop: '#4fa8ff',
@@ -805,8 +807,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const leftEye = Math.random() < 0.5;
             
             // boss center is currentBossX, bossTop is currentBossBottomY - currentBossHeight
-            const eyeXOffset = currentBossWidth * (leftEye ? -0.0975 : 0.1175);
-            const eyeYOffset = currentBossHeight * -0.6565;
+            const eyeXOffset = currentBossWidth * (leftEye ? -0.095 : 0.1135);
+            const eyeYOffset = currentBossHeight * -0.657;
             
             let currentEyeXOffset = eyeXOffset;
             let currentEyeYOffset = eyeYOffset;
@@ -1031,7 +1033,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
             if (hit) {
                 if (prop.type === 'coin') {
-                    playAudio('sounds/coin_pickup.ogg', { volume: 1.0 });
+                    playAudio('sounds/coin_pickup.ogg', { volume: COIN_VOLUME });
                     collectedAnimations.push({ x: prop.x, y: prop.y, startScale: prop.scale, startTime: performance.now() });
                     activeProjectiles.splice(i, 1);
                     bossHp = Math.max(0, bossHp - 1);
