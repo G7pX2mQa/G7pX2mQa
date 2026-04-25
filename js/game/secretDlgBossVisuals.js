@@ -1083,7 +1083,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                         activeProjectiles.splice(i, 1);
                     } else {
                         // Vulnerable: normal behavior and trigger invincibility
-                        bombInvincibilityUntil = now + 2000;
+                        bombInvincibilityUntil = now + 2500;
                         activeProjectiles = [];
                         playerLives = Math.max(0, playerLives - 1);
                         updateLivesUI();
