@@ -866,9 +866,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             
             // Eye black glow
             if (timestamp < bossEyeBlackGlowUntil) {
-                const leftEyeX = -bossWidth * 0.095;
-                const rightEyeX = bossWidth * 0.1135;
-                const eyeY = -bossHeight * 0.157; // Adjusting relative to center. Center is bottom - height/2. Eye Y is bottom - height*0.657. So it's -height*0.157 from center
+                const leftEyeX = -bossWidth * 0.124;
+                const rightEyeX = bossWidth * 0.143;
+                const eyeY = -bossHeight * 0.166; // Adjusting relative to center. Center is bottom - height/2. Eye Y is bottom - height*0.666. So it's -height*0.166 from center
                 
                 ctx.beginPath();
                 ctx.arc(leftEyeX, eyeY, bossWidth * 0.05, 0, Math.PI * 2);
@@ -971,8 +971,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const leftEye = Math.random() < 0.5;
             
             // boss center is currentBossX, bossTop is currentBossBottomY - currentBossHeight
-            const eyeXOffset = currentBossWidth * (leftEye ? -0.095 : 0.1135);
-            const eyeYOffset = currentBossHeight * -0.657;
+            const eyeXOffset = currentBossWidth * (leftEye ? -0.124 : 0.143);
+            const eyeYOffset = currentBossHeight * -0.666;
             
             let currentEyeXOffset = eyeXOffset;
             let currentEyeYOffset = eyeYOffset;
@@ -1097,9 +1097,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                         const targetY = col.bombsConstructed * col.bombSize + col.bombSize / 2;
                         
                         // Boss eye coordinates for bomb start
-                        const leftEyeXOffset = currentBossWidth * -0.095;
-                        const rightEyeXOffset = currentBossWidth * 0.1135;
-                        const eyeYOffset = currentBossHeight * -0.657;
+                        const leftEyeXOffset = currentBossWidth * -0.124;
+                        const rightEyeXOffset = currentBossWidth * 0.143;
+                        const eyeYOffset = currentBossHeight * -0.666;
                         
                         const eyeXOffset = (Math.random() < 0.5) ? leftEyeXOffset : rightEyeXOffset;
                         const startX = currentBossX + eyeXOffset + cameraX;
