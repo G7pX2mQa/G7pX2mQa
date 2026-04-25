@@ -692,10 +692,14 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         const numBombs = Math.ceil(height / 64);
         const bombSize = height / numBombs;
         
-        let gapIndex = Math.floor(Math.random() * (numBombs - 2)) + 1; // avoid extreme top/bottom edges if possible
-        if (excludeGapIndex !== null && numBombs > 3) {
+        const maxGapIndex = Math.max(1, numBombs - 2);
+        const minGapIndex = Math.min(Math.floor(numBombs / 2), maxGapIndex);
+        const possibleGaps = maxGapIndex - minGapIndex + 1;
+        
+        let gapIndex = minGapIndex + Math.floor(Math.random() * possibleGaps);
+        if (excludeGapIndex !== null && possibleGaps > 1) {
             while (gapIndex === excludeGapIndex) {
-                gapIndex = Math.floor(Math.random() * (numBombs - 2)) + 1;
+                gapIndex = minGapIndex + Math.floor(Math.random() * possibleGaps);
             }
         }
         
@@ -1056,6 +1060,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             transitionDuration: 750, // 0.75 second transition
                             settled: false
                         });
+                        playAudio('sounds/bomb_column_construction.ogg', { volume: 0.6 });
                         bossEyeBlackGlowUntil = timestamp + 100;
                     }
                     col.bombsConstructed++;
