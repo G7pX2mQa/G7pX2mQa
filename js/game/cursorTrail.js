@@ -20,6 +20,15 @@ export function createCursorTrail(playfield, options = {}) {
   const CAPACITY = 10000;
   const PARTICLE_LIFETIME = 500; // ms
   const INTERPOLATION_STEP = 4; // px
+  const applyCursorSetting = (showCursor) => {
+    if (playfield) {
+      if (showCursor) {
+        playfield.style.cursor = 'default';
+      } else {
+        playfield.style.cursor = isBossFight ? 'none' : '';
+      }
+    }
+  };
   // MAX_SPAWN_PER_FRAME is less relevant with coalesced events but still good for sanity
   const MAX_SPAWN_PER_FRAME = 2000; 
   
@@ -515,6 +524,9 @@ export function createCursorTrail(playfield, options = {}) {
   document.addEventListener('ccc:upgrades:changed', updateColors);
   const activeTrailUnsub = settingsManager.subscribe('active_trail_mod', updateColors);
   const graphicsQualityUnsub = settingsManager.subscribe('graphics_quality', resize);
+  const cursorSettingUnsub = settingsManager.subscribe('show_cursor', applyCursorSetting);
+
+  applyCursorSetting(settingsManager.get('show_cursor'));
 
   resize();
   rafId = requestAnimationFrame(loop);
@@ -542,6 +554,9 @@ export function createCursorTrail(playfield, options = {}) {
     }
     if (graphicsQualityUnsub) {
         try { graphicsQualityUnsub(); } catch {}
+    }
+    if (cursorSettingUnsub) {
+        try { cursorSettingUnsub(); } catch {}
     }
     
     try {
