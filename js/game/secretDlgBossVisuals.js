@@ -282,7 +282,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 100% { filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.8)) drop-shadow(0 -5px 15px rgba(255, 69, 0, 0.6)); transform: scale(1); }
             }
             .life-fire-glow {
-                animation: fireGlow 1.05s infinite alternate ease-in-out;
+                animation: fireGlow 0.95s infinite alternate ease-in-out;
                 transform-origin: bottom center;
             }
         `;
