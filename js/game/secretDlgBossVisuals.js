@@ -282,7 +282,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 100% { filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.8)) drop-shadow(0 -5px 15px rgba(255, 69, 0, 0.6)); transform: scale(1); }
             }
             .life-fire-glow {
-                animation: fireGlow 0.95s infinite alternate ease-in-out;
+                animation: fireGlow 1s infinite alternate ease-in-out;
                 transform-origin: bottom center;
             }
         `;
@@ -1491,7 +1491,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             ctx.globalCompositeOperation = 'multiply';
             
             const spikeBaseLength = is1Hp ? 220 : 180;
-            const spikeVarLength = is1Hp ? 100 : 80;
+            const spikeVarLength = 10;
             const baseW = is1Hp ? 25 : 20;
 
             const getSpikeLen = (seed) => {
@@ -1531,10 +1531,25 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             
             ctx.globalCompositeOperation = 'multiply';
 
-            const drawSpike = (edgeX, edgeY, length) => {
+            const addSpikeToPath = (edgeX, edgeY, length) => {
                 const dx = centerX - edgeX;
                 const dy = centerY - edgeY;
                 const angle = Math.atan2(dy, dx);
+                
+                let distFromMid, maxDist;
+                if (edgeY === 0 || edgeY === height) {
+                    distFromMid = Math.abs(centerX - edgeX);
+                    maxDist = centerX;
+                } else {
+                    distFromMid = Math.abs(centerY - edgeY);
+                    maxDist = centerY;
+                }
+                const cornerFactor = maxDist > 0 ? (distFromMid / maxDist) : 0;
+                
+                // Increase length by up to 40% at the corners to counteract visual shortening
+                const lengthMultiplier = 1 + 0.4 * cornerFactor;
+                
+                const finalLength = length * lengthMultiplier;
                 
                 const cosA = Math.cos(angle);
                 const sinA = Math.sin(angle);
@@ -1543,8 +1558,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 const p1x = edgeX + (-margin) * cosA - (-baseW / 2) * sinA;
                 const p1y = edgeY + (-margin) * sinA + (-baseW / 2) * cosA;
                 
-                // Point 2: (-margin + length + margin, 0)
-                const tipDist = length; 
+                // Point 2: (-margin + finalLength + margin, 0)
+                const tipDist = finalLength; 
                 const p2x = edgeX + tipDist * cosA;
                 const p2y = edgeY + tipDist * sinA;
                 
@@ -1552,19 +1567,19 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 const p3x = edgeX + (-margin) * cosA - (baseW / 2) * sinA;
                 const p3y = edgeY + (-margin) * sinA + (baseW / 2) * cosA;
                 
-                ctx.beginPath();
                 ctx.moveTo(p1x, p1y);
                 ctx.lineTo(p2x, p2y);
                 ctx.lineTo(p3x, p3y);
-                ctx.fill();
             };
+
+            ctx.beginPath();
 
             // 1. Top edge
             for (let i = 0; i <= numSpikesX; i++) {
                 const seed = i * 13.37 + 0;
                 const nominalX = (i / numSpikesX) * width;
                 const x = nominalX + getPosOffset(seed, timestamp, i);
-                drawSpike(x, 0, spikeLengthsXTop[i]);
+                addSpikeToPath(x, 0, spikeLengthsXTop[i]);
             }
 
             // 2. Bottom edge
@@ -1572,7 +1587,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 const seed = i * 13.37 + 100;
                 const nominalX = (i / numSpikesX) * width;
                 const x = nominalX + getPosOffset(seed, timestamp, i);
-                drawSpike(x, height, spikeLengthsXBottom[i]);
+                addSpikeToPath(x, height, spikeLengthsXBottom[i]);
             }
 
             // 3. Left edge
@@ -1580,7 +1595,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 const seed = i * 13.37 + 200;
                 const nominalY = (i / numSpikesY) * height;
                 const y = nominalY + getPosOffset(seed, timestamp, i);
-                drawSpike(0, y, spikeLengthsYLeft[i]);
+                addSpikeToPath(0, y, spikeLengthsYLeft[i]);
             }
 
             // 4. Right edge
@@ -1588,8 +1603,10 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 const seed = i * 13.37 + 300;
                 const nominalY = (i / numSpikesY) * height;
                 const y = nominalY + getPosOffset(seed, timestamp, i);
-                drawSpike(width, y, spikeLengthsYRight[i]);
+                addSpikeToPath(width, y, spikeLengthsYRight[i]);
             }
+            
+            ctx.fill();
 
             ctx.globalCompositeOperation = 'source-over';
             ctx.restore();
