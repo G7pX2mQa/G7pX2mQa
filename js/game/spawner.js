@@ -1759,5 +1759,6 @@ export function createSpawner({
         playEntranceWave,
         setDependencies,
         hasBigCoins: () => isSurgeActive(2) && activeCoins.some(c => c && c.sizeIndex >= 4),
+        getActiveCoins: () => activeCoins,
     };
 }
