@@ -1480,7 +1480,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             if (playerLives === 1) {
                 const grad = ctx.createRadialGradient(width / 2, height / 2, Math.max(width, height) * 0.2, width / 2, height / 2, Math.max(width, height) * 0.8);
                 grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-                grad.addColorStop(1, 'rgba(0, 0, 0, 0.4)'); // subtle black vignette
+                grad.addColorStop(1, 'rgba(0, 0, 0, 1)'); // subtle black vignette
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, width, height);
             }
