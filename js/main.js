@@ -506,6 +506,7 @@ export function enterArea(areaID) {
         applyMutationSprite();
         onMutationChangeGame?.(applyMutationSprite);
         const pickup = initCoinPickup({ spawner });
+        window.coinPickupController = pickup;
         if (spawner && typeof spawner.setDependencies === 'function') {
             spawner.setDependencies({
                 collectBatch: pickup.collectBatch,
