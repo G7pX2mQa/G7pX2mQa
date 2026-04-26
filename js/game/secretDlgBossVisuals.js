@@ -1487,75 +1487,111 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
             // Jagged lines of distress
             const is1Hp = playerLives === 1;
-            ctx.fillStyle = is1Hp ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.015)';
+            const spikeColor = is1Hp ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.015)';
+            ctx.globalCompositeOperation = 'multiply';
             
-            const spikeBaseLength = is1Hp ? 80 : 70;
-            const spikeVarLength = is1Hp ? 40 : 35;
+            const spikeBaseLength = is1Hp ? 220 : 180;
+            const spikeVarLength = is1Hp ? 100 : 80;
+            const baseW = is1Hp ? 25 : 20;
 
-            const getSpikeLen = (seed, time, index) => {
+            const getSpikeLen = (seed) => {
                 const hash = Math.cos(seed * 11.3);
-                const slowTime = time * 0.0015; 
-                // Calm back and forth animation with sine waves
-                const animOffset = Math.sin(slowTime + seed) * (spikeVarLength * 0.4) 
-                                 + Math.sin(slowTime * 0.7 + index) * (spikeVarLength * 0.3);
-                
-                let len = spikeBaseLength + hash * (spikeVarLength * 0.5) + animOffset;
-                return Math.max(0, len);
+                return spikeBaseLength + hash * spikeVarLength;
             };
 
-            const baseThickness = is1Hp ? 15 : 10;
-            const numSpikesX = Math.max(10, Math.floor(width / 60));
-            const numSpikesY = Math.max(10, Math.floor(height / 60));
+            const getPosOffset = (seed, time, index) => {
+                const slowTime = time * 0.0003; // 5 times slower than 0.0015
+                // Calm back and forth animation along the edge
+                return Math.sin(slowTime + seed) * 40 + Math.sin(slowTime * 0.7 + index) * 20;
+            };
 
-            ctx.beginPath();
-            
-            // Outer rectangle (clockwise)
-            ctx.moveTo(0, 0);
-            ctx.lineTo(width, 0);
-            ctx.lineTo(width, height);
-            ctx.lineTo(0, height);
-            ctx.lineTo(0, 0);
+            const numSpikesX = Math.max(12, Math.floor(width / 70));
+            const numSpikesY = Math.max(12, Math.floor(height / 70));
 
-            // Inner jagged border (counter-clockwise)
-            // 1. Left edge (top to bottom)
-            for (let i = 0; i < numSpikesY; i++) {
-                const yStart = (i / numSpikesY) * height;
-                const yMid = ((i + 0.5) / numSpikesY) * height;
-                const spikeLen = getSpikeLen(i * 13.37 + 0, timestamp, i);
-                ctx.lineTo(baseThickness, yStart);
-                ctx.lineTo(baseThickness + spikeLen, yMid);
-            }
+            ctx.fillStyle = spikeColor;
 
-            // 2. Bottom edge (left to right)
-            for (let i = 0; i < numSpikesX; i++) {
-                const xStart = (i / numSpikesX) * width;
-                const xMid = ((i + 0.5) / numSpikesX) * width;
-                const spikeLen = getSpikeLen(i * 13.37 + 100, timestamp, i);
-                ctx.lineTo(xStart, height - baseThickness);
-                ctx.lineTo(xMid, height - (baseThickness + spikeLen));
-            }
-
-            // 3. Right edge (bottom to top)
-            for (let i = numSpikesY - 1; i >= 0; i--) {
-                const yStart = ((i + 1) / numSpikesY) * height;
-                const yMid = ((i + 0.5) / numSpikesY) * height;
-                const spikeLen = getSpikeLen(i * 13.37 + 200, timestamp, i);
-                ctx.lineTo(width - baseThickness, yStart);
-                ctx.lineTo(width - (baseThickness + spikeLen), yMid);
-            }
-
-            // 4. Top edge (right to left)
-            for (let i = numSpikesX - 1; i >= 0; i--) {
-                const xStart = ((i + 1) / numSpikesX) * width;
-                const xMid = ((i + 0.5) / numSpikesX) * width;
-                const spikeLen = getSpikeLen(i * 13.37 + 300, timestamp, i);
-                ctx.lineTo(xStart, baseThickness);
-                ctx.lineTo(xMid, baseThickness + spikeLen);
+            // Pre-calculate spike lengths to avoid repeated math
+            const spikeLengthsXTop = new Float32Array(numSpikesX + 1);
+            const spikeLengthsXBottom = new Float32Array(numSpikesX + 1);
+            for (let i = 0; i <= numSpikesX; i++) {
+                spikeLengthsXTop[i] = getSpikeLen(i * 13.37 + 0);
+                spikeLengthsXBottom[i] = getSpikeLen(i * 13.37 + 100);
             }
             
-            ctx.closePath();
-            ctx.fill('evenodd');
+            const spikeLengthsYLeft = new Float32Array(numSpikesY + 1);
+            const spikeLengthsYRight = new Float32Array(numSpikesY + 1);
+            for (let i = 0; i <= numSpikesY; i++) {
+                spikeLengthsYLeft[i] = getSpikeLen(i * 13.37 + 200);
+                spikeLengthsYRight[i] = getSpikeLen(i * 13.37 + 300);
+            }
 
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const margin = baseW * 1.5; 
+            
+            ctx.globalCompositeOperation = 'multiply';
+
+            const drawSpike = (edgeX, edgeY, length) => {
+                const dx = centerX - edgeX;
+                const dy = centerY - edgeY;
+                const angle = Math.atan2(dy, dx);
+                
+                const cosA = Math.cos(angle);
+                const sinA = Math.sin(angle);
+                
+                // Point 1: (-margin, -baseW/2)
+                const p1x = edgeX + (-margin) * cosA - (-baseW / 2) * sinA;
+                const p1y = edgeY + (-margin) * sinA + (-baseW / 2) * cosA;
+                
+                // Point 2: (-margin + length + margin, 0)
+                const tipDist = length; 
+                const p2x = edgeX + tipDist * cosA;
+                const p2y = edgeY + tipDist * sinA;
+                
+                // Point 3: (-margin, baseW/2)
+                const p3x = edgeX + (-margin) * cosA - (baseW / 2) * sinA;
+                const p3y = edgeY + (-margin) * sinA + (baseW / 2) * cosA;
+                
+                ctx.beginPath();
+                ctx.moveTo(p1x, p1y);
+                ctx.lineTo(p2x, p2y);
+                ctx.lineTo(p3x, p3y);
+                ctx.fill();
+            };
+
+            // 1. Top edge
+            for (let i = 0; i <= numSpikesX; i++) {
+                const seed = i * 13.37 + 0;
+                const nominalX = (i / numSpikesX) * width;
+                const x = nominalX + getPosOffset(seed, timestamp, i);
+                drawSpike(x, 0, spikeLengthsXTop[i]);
+            }
+
+            // 2. Bottom edge
+            for (let i = 0; i <= numSpikesX; i++) {
+                const seed = i * 13.37 + 100;
+                const nominalX = (i / numSpikesX) * width;
+                const x = nominalX + getPosOffset(seed, timestamp, i);
+                drawSpike(x, height, spikeLengthsXBottom[i]);
+            }
+
+            // 3. Left edge
+            for (let i = 0; i <= numSpikesY; i++) {
+                const seed = i * 13.37 + 200;
+                const nominalY = (i / numSpikesY) * height;
+                const y = nominalY + getPosOffset(seed, timestamp, i);
+                drawSpike(0, y, spikeLengthsYLeft[i]);
+            }
+
+            // 4. Right edge
+            for (let i = 0; i <= numSpikesY; i++) {
+                const seed = i * 13.37 + 300;
+                const nominalY = (i / numSpikesY) * height;
+                const y = nominalY + getPosOffset(seed, timestamp, i);
+                drawSpike(width, y, spikeLengthsYRight[i]);
+            }
+
+            ctx.globalCompositeOperation = 'source-over';
             ctx.restore();
         }
 
