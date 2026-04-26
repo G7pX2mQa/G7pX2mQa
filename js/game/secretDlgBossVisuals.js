@@ -282,7 +282,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 100% { filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.8)) drop-shadow(0 -5px 15px rgba(255, 69, 0, 0.6)); transform: scale(1); }
             }
             .life-fire-glow {
-                animation: fireGlow 1s infinite alternate ease-in-out;
+                animation: fireGlow 1.05s infinite alternate ease-in-out;
+                transform-origin: bottom center;
             }
         `;
         uiContainer.appendChild(styleElem);
@@ -1472,7 +1473,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         // Draw distress effects
         if (playerLives === 2 || playerLives === 1) {
             ctx.save();
-            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to absolute screen coordinates
+            const currentDpr = window.devicePixelRatio || 1;
+            ctx.setTransform(currentDpr, 0, 0, currentDpr, 0, 0); // Reset transform to screen coordinates considering DPR
             
             // 1 HP specific effects (vignette)
             if (playerLives === 1) {
@@ -1484,59 +1486,76 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
 
             // Jagged lines of distress
-            const numSpikes = 40;
             const is1Hp = playerLives === 1;
-            ctx.fillStyle = is1Hp ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.15)';
+            ctx.fillStyle = is1Hp ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.015)';
+            
+            const spikeBaseLength = is1Hp ? 80 : 70;
+            const spikeVarLength = is1Hp ? 40 : 35;
+
+            const getSpikeLen = (seed, time, index) => {
+                const hash = Math.cos(seed * 11.3);
+                const slowTime = time * 0.0015; 
+                // Calm back and forth animation with sine waves
+                const animOffset = Math.sin(slowTime + seed) * (spikeVarLength * 0.4) 
+                                 + Math.sin(slowTime * 0.7 + index) * (spikeVarLength * 0.3);
+                
+                let len = spikeBaseLength + hash * (spikeVarLength * 0.5) + animOffset;
+                return Math.max(0, len);
+            };
+
+            const baseThickness = is1Hp ? 15 : 10;
+            const numSpikesX = Math.max(10, Math.floor(width / 60));
+            const numSpikesY = Math.max(10, Math.floor(height / 60));
+
             ctx.beginPath();
             
-            // Draw a frame with jagged inner edge
-            // Outer rectangle (screen edges)
+            // Outer rectangle (clockwise)
             ctx.moveTo(0, 0);
             ctx.lineTo(width, 0);
             ctx.lineTo(width, height);
             ctx.lineTo(0, height);
             ctx.lineTo(0, 0);
-            
-            // Inner jagged path (counter-clockwise to cut out the center)
-            const spikeBaseLength = is1Hp ? 80 : 40;
-            const spikeVarLength = is1Hp ? 40 : 20;
 
-            // Start at top-left inner
-            ctx.moveTo(0, 0);
-            
-            // Left edge (top to bottom)
-            for (let i = 0; i <= numSpikes; i++) {
-                const y = (i / numSpikes) * height;
-                const animOffset = Math.sin(timestamp * 0.005 + i * 0.5) * 5;
-                const xOffset = spikeBaseLength + Math.sin(i * 13.37) * spikeVarLength + animOffset;
-                ctx.lineTo(xOffset, y);
+            // Inner jagged border (counter-clockwise)
+            // 1. Left edge (top to bottom)
+            for (let i = 0; i < numSpikesY; i++) {
+                const yStart = (i / numSpikesY) * height;
+                const yMid = ((i + 0.5) / numSpikesY) * height;
+                const spikeLen = getSpikeLen(i * 13.37 + 0, timestamp, i);
+                ctx.lineTo(baseThickness, yStart);
+                ctx.lineTo(baseThickness + spikeLen, yMid);
+            }
+
+            // 2. Bottom edge (left to right)
+            for (let i = 0; i < numSpikesX; i++) {
+                const xStart = (i / numSpikesX) * width;
+                const xMid = ((i + 0.5) / numSpikesX) * width;
+                const spikeLen = getSpikeLen(i * 13.37 + 100, timestamp, i);
+                ctx.lineTo(xStart, height - baseThickness);
+                ctx.lineTo(xMid, height - (baseThickness + spikeLen));
+            }
+
+            // 3. Right edge (bottom to top)
+            for (let i = numSpikesY - 1; i >= 0; i--) {
+                const yStart = ((i + 1) / numSpikesY) * height;
+                const yMid = ((i + 0.5) / numSpikesY) * height;
+                const spikeLen = getSpikeLen(i * 13.37 + 200, timestamp, i);
+                ctx.lineTo(width - baseThickness, yStart);
+                ctx.lineTo(width - (baseThickness + spikeLen), yMid);
+            }
+
+            // 4. Top edge (right to left)
+            for (let i = numSpikesX - 1; i >= 0; i--) {
+                const xStart = ((i + 1) / numSpikesX) * width;
+                const xMid = ((i + 0.5) / numSpikesX) * width;
+                const spikeLen = getSpikeLen(i * 13.37 + 300, timestamp, i);
+                ctx.lineTo(xStart, baseThickness);
+                ctx.lineTo(xMid, baseThickness + spikeLen);
             }
             
-            // Bottom edge (left to right)
-            for (let i = 0; i <= numSpikes; i++) {
-                const x = (i / numSpikes) * width;
-                const animOffset = Math.sin(timestamp * 0.005 + i * 0.5 + 100) * 5;
-                const yOffset = height - (spikeBaseLength + Math.sin(i * 13.37 + 100) * spikeVarLength + animOffset);
-                ctx.lineTo(x, yOffset);
-            }
-            
-            // Right edge (bottom to top)
-            for (let i = numSpikes; i >= 0; i--) {
-                const y = (i / numSpikes) * height;
-                const animOffset = Math.sin(timestamp * 0.005 + i * 0.5 + 200) * 5;
-                const xOffset = width - (spikeBaseLength + Math.sin(i * 13.37 + 200) * spikeVarLength + animOffset);
-                ctx.lineTo(xOffset, y);
-            }
-            
-            // Top edge (right to left)
-            for (let i = numSpikes; i >= 0; i--) {
-                const x = (i / numSpikes) * width;
-                const animOffset = Math.sin(timestamp * 0.005 + i * 0.5 + 300) * 5;
-                const yOffset = spikeBaseLength + Math.sin(i * 13.37 + 300) * spikeVarLength + animOffset;
-                ctx.lineTo(x, yOffset);
-            }
-            
-            ctx.fill();
+            ctx.closePath();
+            ctx.fill('evenodd');
+
             ctx.restore();
         }
 
