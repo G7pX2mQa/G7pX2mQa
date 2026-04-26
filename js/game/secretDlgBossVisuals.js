@@ -153,6 +153,23 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     // Start Boss Music
     const bossMusic = playAudio('sounds/Secret_Boss_Fight.ogg', { loop: true, volume: 1.0, type: 'music' });
 
+    
+    // Automatically collect size 5 and 6 coins currently on playfield
+    if (window.spawner && window.coinPickupController) {
+        const activeCoins = window.spawner.getActiveCoins ? window.spawner.getActiveCoins() : [];
+        const toCollect = [];
+        for (let i = 0; i < activeCoins.length; i++) {
+            const c = activeCoins[i];
+            if (c && c.sizeIndex >= 5 && !c.isRemoved) {
+                // Collect via coinPickup batch
+                toCollect.push({ coin: c });
+            }
+        }
+        if (toCollect.length > 0 && window.coinPickupController.collectBatch) {
+            window.coinPickupController.collectBatch(toCollect);
+        }
+    }
+
     const merchantImg = new Image();
     merchantImg.src = 'img/misc/merchant.webp';
 
