@@ -2079,13 +2079,10 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             // Entered
                             hitsToAdd++;
                         }
-                        if (distLastSq <= rSq && distCurSq > rSq) {
-                            // Exited
-                            hitsToAdd++;
-                        }
+                        // We only want to count entries, not exits
                         if (distLastSq > rSq && distCurSq > rSq && intersects) {
-                            // Crossed entirely through in one frame (enter AND exit)
-                            hitsToAdd += 2;
+                            // Crossed entirely through in one frame (enter)
+                            hitsToAdd++;
                         }
                         
                         if (hitsToAdd > 0) {
