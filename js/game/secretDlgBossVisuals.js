@@ -793,6 +793,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let camTargetZoom = 1.0;
     let camTargetPan = {x: 0, y: 0};
     let rubyCoinRotation = 0;
+    let rubyCoinLastSwipeTime = 0;
     
     let bombInvincibilityUntil = 0;
     
@@ -1630,6 +1631,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 rubyCoinActive = false;
                 rubyCoinFinishSequenceStart = nowTime;
                 camActive = false; // Add this!
+                bombInvincibilityUntil = nowTime + 2500;
                 updateMusicSpeed(); // Restore music
                 
                 // Trigger collect animation for the coin itself
@@ -1667,7 +1669,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     const hpBarY = 60; // Approximate HP bar height from top
                     
                     const textStartX = rubyCoinFinishTextPos.x;
-                    const textStartY = rubyCoinFinishTextPos.y - 32 * 3.0; // matched scale above
+                    const textStartY = rubyCoinFinishTextPos.y - 32 * 3.0 - 5; // matched scale above
                     
                     // We need to match the camera transform that existed at finish.
                     // But since we just use screen coordinates interpolation, we project the start point using the current camera unzooming progress to make it look smooth.
@@ -1734,7 +1736,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 // Ruby coin text
                 if (rubyCoinActive && rubyCoinSwipes > 0) {
                     const textX = rubyCoinRef.x - cameraX;
-                    const textY = rubyCoinRef.y - 32 * rubyCoinRef.scale; // Above coin
+                    const textY = rubyCoinRef.y - 32 * rubyCoinRef.scale - 5; // Above coin
                     
                     ctx.save();
                     ctx.font = "bold 64px sans-serif"; // Large bold text
@@ -1746,7 +1748,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     ctx.shadowOffsetY = 3;
                     
                     // Add pop effect on swipe
-                    let popScale = 1.0 + Math.sin(timestamp * 0.01) * 0.1;
+                    let popScale = 1.0; const timeSinceSwipe = performance.now() - rubyCoinLastSwipeTime; if (timeSinceSwipe < 200) { popScale = 1.0 + Math.sin((timeSinceSwipe / 200) * Math.PI) * 0.2; }
                     
                     ctx.translate(textX, textY);
                     ctx.scale(popScale, popScale);
@@ -2048,6 +2050,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const renderY = prop.y;
             
             let hit = false;
+            let hitsToAdd = 1;
 
             if (prop.type === 'coin') {
                 const radius = 32 * prop.scale * 1.3;
@@ -2067,21 +2070,31 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 const distCurSq = (cx - renderX) * (cx - renderX) + (cy - renderY) * (cy - renderY);
                 const rSq = radius * radius;
                 
-                // For a continuous swipe, if the previous pos was outside and current is inside, it's a hit.
-                // Or if it crossed entirely through.
-                // OR if it's just inside (as a fallback, to ensure we catch it at all, some fast swipes might just register as clicking inside)
                 const intersects = circleLineSegmentIntersect(renderX, renderY, radius, lastCx, lastCy, cx, cy);
                 
                 if (distCurSq <= rSq || distLastSq <= rSq || intersects) {
-                    // if it's already active, it needs to be a cross to count, to prevent just holding mouse down inside.
                     if (rubyCoinActive) {
-                        // Require a full crossing (enter/exit or completely through)
-                        if ((distLastSq > rSq && distCurSq <= rSq) || (distLastSq > rSq && distCurSq > rSq && intersects)) {
+                        hitsToAdd = 0;
+                        if (distLastSq > rSq && distCurSq <= rSq) {
+                            // Entered
+                            hitsToAdd++;
+                        }
+                        if (distLastSq <= rSq && distCurSq > rSq) {
+                            // Exited
+                            hitsToAdd++;
+                        }
+                        if (distLastSq > rSq && distCurSq > rSq && intersects) {
+                            // Crossed entirely through in one frame (enter AND exit)
+                            hitsToAdd += 2;
+                        }
+                        
+                        if (hitsToAdd > 0) {
                             hit = true;
                         }
                     } else {
                         // First hit can just be a click/touch inside
                         hit = true;
+                        hitsToAdd = 1;
                     }
                 }
             }
@@ -2124,8 +2137,11 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                         camActive = true;
                         updateMusicSpeed();
                     }
-                    rubyCoinSwipes++;
-                    playAudio('sounds/coin_pickup.ogg', { volume: COIN_VOLUME });
+                    rubyCoinSwipes += hitsToAdd;
+                    rubyCoinLastSwipeTime = performance.now();
+                    for (let h = 0; h < hitsToAdd; h++) {
+                        setTimeout(() => playAudio('sounds/coin_pickup.ogg', { volume: COIN_VOLUME }), h * 50);
+                    }
                     
                     // Add it as a coin pickup visually on UI if desired (optional)
                     // Do not splice/remove the coin, since it stays active for 6.67s
