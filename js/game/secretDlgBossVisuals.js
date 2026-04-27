@@ -1292,7 +1292,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             if (projType === "rubyCoin") {
                 // Fixed slow falling vy once slowed, but initial launch vy can be standard or 0.
                 baseVy = -(Math.random() * 3 + 1); 
-                decelDistance = width * 0.10; // 10% viewport width launch distance
+                decelDistance = width * 0.15; // 15% viewport width launch distance
                 initialScale = 1.8;
                 tScale = 3.0; // triple standard coin target scale
                 
