@@ -1034,7 +1034,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             camTargetZoom = 2.5;
 
             ctx.translate(width / 2, height / 2);
-            ctx.rotate(camProgress * 0.1); // Slight rotate
+            ctx.rotate(camProgress * 0.4); // More rotated
             const currentZoom = 1.0 + (camTargetZoom - 1.0) * camProgress;
             ctx.scale(currentZoom, currentZoom);
             ctx.translate(-width / 2 - camTargetPan.x * camProgress, -height / 2 - camTargetPan.y * camProgress);
@@ -1337,7 +1337,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             } else {
                 if (p.type === "rubyCoin") {
                     p.vx *= Math.pow(0.95, timeScale); // friction
-                    p.vy = 0.005; // fixed vy
+                    p.vy = 0.5; // fixed vy
                 } else {
                     p.vx *= Math.pow(0.95, timeScale); // Friction
                     if (p.type === "life") {
@@ -1373,27 +1373,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
         }
 
-        // Third pass: render ruby coin with rotation
-        for (let i = activeProjectiles.length - 1; i >= 0; i--) {
-            const p = activeProjectiles[i];
-            if (p.type === 'rubyCoin') {
-                let renderX = p.x - cameraX;
-                // Add rotation logic
-                const rotSpeed = rubyCoinActive ? (0.05 * timeScaleMod) : 0.05;
-                rubyCoinRotation += rotSpeed * timeScale;
-                
-                ctx.save();
-                ctx.translate(renderX, p.y);
-                ctx.rotate(rubyCoinRotation);
-                ctx.scale(p.scale, p.scale);
-                if (projectileImages.rubyCoin.complete) {
-                    const size = 64; // Base drawing size
-                    ctx.drawImage(projectileImages.rubyCoin, -size/2, -size/2, size, size);
-                }
-                ctx.restore();
-            }
-        }
-
+        
         // Process Bomb Columns
         for (let i = activeBombColumns.length - 1; i >= 0; i--) {
             const col = activeBombColumns[i];
@@ -1672,30 +1652,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
         // Render ruby coin finish sequence and text
         if (rubyCoinActive || rubyCoinFinishSequenceStart > 0) {
-            if (rubyCoinRef && rubyCoinActive) {
-                // Render text above coin while active
-                if (rubyCoinSwipes > 0) {
-                    const textX = rubyCoinRef.x - cameraX;
-                    const textY = rubyCoinRef.y - 64 * rubyCoinRef.scale; // Above coin
-                    
-                    ctx.save();
-                    ctx.font = "bold 64px sans-serif"; // Large bold text
-                    ctx.textAlign = "center";
-                    ctx.fillStyle = "red";
-                    ctx.shadowColor = "black";
-                    ctx.shadowBlur = 10;
-                    ctx.shadowOffsetX = 3;
-                    ctx.shadowOffsetY = 3;
-                    
-                    // Add pop effect on swipe
-                    let popScale = 1.0 + Math.sin(timestamp * 0.01) * 0.1;
-                    
-                    ctx.translate(textX, textY);
-                    ctx.scale(popScale, popScale);
-                    ctx.fillText(`+${rubyCoinSwipes}`, 0, 0);
-                    ctx.restore();
-                }
-            } else if (rubyCoinFinishSequenceStart > 0 && rubyCoinFinishTextPos && rubyCoinSwipes > 0) {
+            if (rubyCoinFinishSequenceStart > 0 && rubyCoinFinishTextPos && rubyCoinSwipes > 0) {
                 // Moving red text to HP bar
                 const elapsedSinceFinish = nowTime - rubyCoinFinishSequenceStart;
                 
@@ -1710,7 +1667,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     const hpBarY = 60; // Approximate HP bar height from top
                     
                     const textStartX = rubyCoinFinishTextPos.x;
-                    const textStartY = rubyCoinFinishTextPos.y - 64 * 3.0; // matched scale above
+                    const textStartY = rubyCoinFinishTextPos.y - 32 * 3.0; // matched scale above
                     
                     // We need to match the camera transform that existed at finish.
                     // But since we just use screen coordinates interpolation, we project the start point using the current camera unzooming progress to make it look smooth.
@@ -1753,7 +1710,51 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
         }
 
-        // Draw distress effects
+
+
+        
+        // Highest Z-index render for Ruby Coin and Text
+        if (rubyCoinRef && activeProjectiles.includes(rubyCoinRef)) {
+            // Ruby coin render
+            if (true) {
+                let renderX = rubyCoinRef.x - cameraX;
+                const rotSpeed = 0.05 * timeScaleMod;
+                rubyCoinRotation += rotSpeed * timeScale;
+                
+                ctx.save();
+                ctx.translate(renderX, rubyCoinRef.y);
+                ctx.rotate(rubyCoinRotation);
+                ctx.scale(rubyCoinRef.scale, rubyCoinRef.scale);
+                if (projectileImages.rubyCoin.complete) {
+                    const size = 64; // Base drawing size
+                    ctx.drawImage(projectileImages.rubyCoin, -size/2, -size/2, size, size);
+                }
+                ctx.restore();
+                
+                // Ruby coin text
+                if (rubyCoinActive && rubyCoinSwipes > 0) {
+                    const textX = rubyCoinRef.x - cameraX;
+                    const textY = rubyCoinRef.y - 32 * rubyCoinRef.scale; // Above coin
+                    
+                    ctx.save();
+                    ctx.font = "bold 64px sans-serif"; // Large bold text
+                    ctx.textAlign = "center";
+                    ctx.fillStyle = "red";
+                    ctx.shadowColor = "black";
+                    ctx.shadowBlur = 10;
+                    ctx.shadowOffsetX = 3;
+                    ctx.shadowOffsetY = 3;
+                    
+                    // Add pop effect on swipe
+                    let popScale = 1.0 + Math.sin(timestamp * 0.01) * 0.1;
+                    
+                    ctx.translate(textX, textY);
+                    ctx.scale(popScale, popScale);
+                    ctx.fillText(`+${rubyCoinSwipes}`, 0, 0);
+                    ctx.restore();
+                }
+            }
+        }        // Draw distress effects
         if (playerLives === 2 || playerLives === 1) {
             ctx.restore();
             ctx.save();
@@ -2011,7 +2012,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 const dy = screenY - height / 2;
                 
                 // Inverse rotation
-                const invRot = -camProgress * 0.1; 
+                const invRot = -camProgress * 0.4; 
                 const cosA = Math.cos(invRot);
                 const sinA = Math.sin(invRot);
                 const rotX = dx * cosA - dy * sinA;
@@ -2074,10 +2075,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 if (distCurSq <= rSq || distLastSq <= rSq || intersects) {
                     // if it's already active, it needs to be a cross to count, to prevent just holding mouse down inside.
                     if (rubyCoinActive) {
-                        if ((distLastSq > rSq && distCurSq <= rSq) || (distLastSq <= rSq && distCurSq > rSq) || (distLastSq > rSq && distCurSq > rSq && intersects)) {
-                            hit = true;
-                        } else if (distLastSq <= rSq && distCurSq <= rSq && (Math.abs(cx - lastCx) > 1 || Math.abs(cy - lastCy) > 1)) {
-                            // Let's make it very generous if they move quickly while inside
+                        // Require a full crossing (enter/exit or completely through)
+                        if ((distLastSq > rSq && distCurSq <= rSq) || (distLastSq > rSq && distCurSq > rSq && intersects)) {
                             hit = true;
                         }
                     } else {
