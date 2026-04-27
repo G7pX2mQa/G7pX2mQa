@@ -783,6 +783,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let rubyCoinSpawned = false;
     let rubyCoinActive = false;
     let rubyCoinSwipes = 0;
+    let rubyCoinCanSwipe = true;
     let rubyCoinRef = null;
     let rubyCoinActiveTimerStart = 0;
     let rubyCoinFinishSequenceStart = 0;
@@ -2061,37 +2062,28 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 const radius = 32 * prop.scale * 1.5 * 0.5;
                 const hitboxY = renderY + (32 * prop.scale * 1.5) - radius;
                 hit = circleLineSegmentIntersect(renderX, hitboxY, radius, lastCx, lastCy, cx, cy);
-            } else if (prop.type === 'rubyCoin') {
-                // The rubyCoin target scale is 3.0, but it starts smaller. Base image drawn is 64x64.
-                const radius = 32 * prop.scale * 2.0; // Extra generous hitbox
-                
-                // Distances to center
+            } else if (prop.type === "rubyCoin") {
+                const radius = 32 * prop.scale;
                 const distLastSq = (lastCx - renderX) * (lastCx - renderX) + (lastCy - renderY) * (lastCy - renderY);
                 const distCurSq = (cx - renderX) * (cx - renderX) + (cy - renderY) * (cy - renderY);
                 const rSq = radius * radius;
-                
                 const intersects = circleLineSegmentIntersect(renderX, renderY, radius, lastCx, lastCy, cx, cy);
-                
                 if (distCurSq <= rSq || distLastSq <= rSq || intersects) {
                     if (rubyCoinActive) {
                         hitsToAdd = 0;
-                        if (distLastSq > rSq && distCurSq <= rSq) {
-                            // Entered
-                            hitsToAdd++;
-                        }
-                        // We only want to count entries, not exits
-                        if (distLastSq > rSq && distCurSq > rSq && intersects) {
-                            // Crossed entirely through in one frame (enter)
-                            hitsToAdd++;
-                        }
-                        
-                        if (hitsToAdd > 0) {
+                        if (rubyCoinCanSwipe) {
+                            hitsToAdd = 1;
                             hit = true;
+                            rubyCoinCanSwipe = false;
                         }
                     } else {
-                        // First hit can just be a click/touch inside
                         hit = true;
                         hitsToAdd = 1;
+                        rubyCoinCanSwipe = false;
+                    }
+                } else {
+                    if (rubyCoinActive) {
+                        rubyCoinCanSwipe = true;
                     }
                 }
             }
