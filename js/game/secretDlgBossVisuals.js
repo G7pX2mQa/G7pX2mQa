@@ -153,7 +153,7 @@ function drawCoconut(ctx, x, y, scale) {
 
 export function playSecretDlgBossFightSequence(container, onComplete, options = {}) {
     // Start Boss Music
-    const bossMusic = playAudio('sounds/Secret_Boss_Fight.ogg', { loop: true, volume: 1.0, type: 'music' });
+    let bossMusic = playAudio('sounds/Secret_Boss_Fight.ogg', { loop: true, volume: 1.0, type: 'music' });
 
     
     // Automatically collect size 5 and 6 coins currently on playfield
@@ -213,6 +213,15 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         right: false
     };
     // --- UI Setup ---
+    const fadeOverlay = document.createElement('div');
+    fadeOverlay.style.position = 'fixed';
+    fadeOverlay.style.inset = '0';
+    fadeOverlay.style.zIndex = '2147483647'; // Highest possible
+    fadeOverlay.style.backgroundColor = 'black';
+    fadeOverlay.style.opacity = '0';
+    fadeOverlay.style.pointerEvents = 'none';
+    document.body.appendChild(fadeOverlay);
+
     const uiContainer = document.createElement('div');
     uiContainer.style.position = 'absolute';
     uiContainer.style.inset = '0';
@@ -294,6 +303,21 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     hpBar.appendChild(hpBarFrame);
     healthBarWrapper.appendChild(hpBar);
     uiContainer.appendChild(healthBarWrapper);
+    const debugBtn = document.createElement('button');
+    debugBtn.textContent = "Set boss to 1 hp";
+    debugBtn.style.position = 'absolute';
+    debugBtn.style.bottom = '10px';
+    debugBtn.style.right = '10px';
+    debugBtn.style.zIndex = '999999';
+    debugBtn.style.pointerEvents = 'auto'; // allow clicks
+    debugBtn.addEventListener('click', () => {
+        bossHp = 1;
+        updateBossHpUI();
+        updateMusicSpeed();
+        debugBtn.style.display = 'none'; // disappear after use
+    });
+    uiContainer.appendChild(debugBtn);
+
 
     const INITIAL_PLAYER_LIVES = 5;
     let playerLives = INITIAL_PLAYER_LIVES;
@@ -943,7 +967,19 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         }
     }
 
+
     let heartbeatAudio = null;
+    let isBossDead = false;
+    let bossDeathTime = 0;
+    let landscapeSnapshot = null;
+    let playingJawsSound = false;
+    let jawsAudio = null;
+    let playingDeathSound = false;
+    let deathAudio = null;
+    let deathFallVelocity = 0;
+    let deathFallY = 0;
+
+
     function loop(timestamp) {
         if (!lastFrameTime) lastFrameTime = timestamp;
 
@@ -960,12 +996,67 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         const realDt = timestamp - lastFrameTime;
         lastFrameTime = timestamp;
 
-        if (!lastSpawnTime) lastSpawnTime = timestamp;
-        if (!isRunning) return;
-        
         // Time dilation
         timeScaleMod = rubyCoinActive ? 0.1 : 1.0;
         const dt = realDt * timeScaleMod;
+        if (!lastSpawnTime) lastSpawnTime = timestamp;
+        if (!isRunning) return;
+
+        if (bossHp <= 0 && !isBossDead) {
+            isBossDead = true;
+            bossDeathTime = performance.now();
+            activeProjectiles = [];
+            activeBombColumns = [];
+            collectedAnimations = [];
+            splashAnimations = [];
+            if (bossMusic) { bossMusic.stop(); bossMusic = null; }
+            if (heartbeatAudio) { heartbeatAudio.stop(); heartbeatAudio = null; }
+            keys.left = false;
+            keys.right = false;
+        }
+
+        if (isBossDead) {
+            keys.left = false;
+            keys.right = false;
+        }
+        if (isBossDead) {
+            const timeSinceDeath = performance.now() - bossDeathTime;
+            
+            if (timeSinceDeath >= 3000 && !playingJawsSound) {
+                playingJawsSound = true;
+                jawsAudio = playAudio('sounds/awaiting_the_jaws_of_death.ogg', { volume: 1.0 });
+            }
+            
+            if (timeSinceDeath >= 9000 && !playingDeathSound) {
+                playingDeathSound = true;
+                deathAudio = playAudio('sounds/boss_death.ogg', { volume: 1.0 });
+            }
+            
+            if (timeSinceDeath >= 10000) {
+                const fallProgress = Math.min(1.0, (timeSinceDeath - 10000) / 750);
+                // Cubic ease-in: starts slow, accelerates quickly downwards
+                deathFallY = (fallProgress * fallProgress * fallProgress) * currentBossHeight * 2.0;
+            }
+            if (playingDeathSound) {
+                let duration = 5000; // default fallback 5 seconds
+                if (deathAudio) {
+                    if (deathAudio.source && deathAudio.source.buffer) {
+                        duration = deathAudio.source.buffer.duration * 1000;
+                    } else if (deathAudio.element) {
+                        duration = deathAudio.element.duration * 1000;
+                    }
+                }
+                if (!isNaN(duration) && duration > 0) {
+                    if (timeSinceDeath >= 9000 + duration) {
+                        const fadeProgress = Math.min(1.0, (timeSinceDeath - (9000 + duration)) / 5000);
+                        fadeOverlay.style.opacity = fadeProgress.toString();
+                    }
+                }
+            }
+
+        }
+
+        
 
         if (rubyCoinRef && activeProjectiles.includes(rubyCoinRef)) {
             // Sparkles every 0.25s real time (but time is scaled so dt is small, let's use timestamp directly or realDt).
@@ -996,7 +1087,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
         }
 
-        checkBombColumnThresholds(timestamp);
+        if (!isBossDead) checkBombColumnThresholds(timestamp);
 
         // Update camera position continuously
         const timeScale = (realDt / (1000 / 120)) * timeScaleMod;
@@ -1089,7 +1180,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
             ctx.save();
             // Translate to boss center
-            ctx.translate(bossX, bossBottomY - bossHeight / 2);
+            ctx.translate(bossX, bossBottomY - bossHeight / 2 + deathFallY);
             ctx.drawImage(merchantImg, -bossWidth / 2, -bossHeight / 2, bossWidth, bossHeight);
             
             // Eye black glow
@@ -1210,6 +1301,172 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
         }
 
+
+        // Death Sequence: Splitting the land
+        let splitProgress = 0;
+        let isSplitting = false;
+        if (isBossDead) {
+            const timeSinceDeath = performance.now() - bossDeathTime;
+            if (timeSinceDeath >= 3000) {
+                isSplitting = true;
+                splitProgress = Math.min(1.0, (timeSinceDeath - 3000) / 5000);
+            }
+        }
+
+        if (isSplitting) {
+            if (!landscapeSnapshot) {
+                // Create snapshot of just the sand and props
+                const snapCanvas = document.createElement('canvas');
+                snapCanvas.width = width;
+                snapCanvas.height = height;
+                const snapCtx = snapCanvas.getContext('2d');
+                
+                // We need to run the sand and props drawing on snapCtx
+                // But the easiest way is to just swap ctx temporarily
+                const oldCtx = ctx;
+                // We need to re-assign ctx locally or just call a function
+                
+                // Let's just create a function to draw sand and props
+                function drawSandAndPropsToCtx(targetCtx) {
+        // 3. Draw Sand
+                    // Draw layers of dunes for depth
+                    const layers = [
+                        { parallax: 1.0, baseY: height * 0.65, color: PALETTE.sandDark, amplitude: 15, period: 500, seed: 10 },
+                        { parallax: 1.0, baseY: height * 0.75, color: PALETTE.sandMid, amplitude: 20, period: 600, seed: 42 },
+                        { parallax: 1.0, baseY: height * 0.85, color: PALETTE.sandLight, amplitude: 25, period: 700, seed: 73 }
+                    ];
+
+                    layers.forEach(layer => {
+                        targetCtx.fillStyle = layer.color;
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(0, height);
+                        
+                        // Draw points across the screen width
+                        // Step size of 20 pixels is usually fine for smooth curves
+                        const step = 20;
+                        for (let x = 0; x <= width + step; x += step) {
+                            // Calculate global X
+                            const globalX = x + cameraX * layer.parallax;
+                            
+                            // Deterministic height using combined incommensurate sine waves (pseudo-noise)
+                            targetCtx.lineTo(x, getSandHeight(globalX, layer.baseY, layer.amplitude, layer.period, layer.seed));
+                        }
+                        targetCtx.lineTo(width, height);
+                        targetCtx.fill();
+                    });
+
+                    // 4. Draw Props
+                    visibleProps.forEach(prop => {
+                        let renderX = prop.x - cameraX;
+                        // Draw if on screen (with some margin based on scale)
+                        const margin = 150 * prop.scale;
+                        if (renderX > -margin && renderX < width + margin) {
+                            if (prop.type === 'tree') drawPalmTree(targetCtx, renderX, prop.y, prop.scale);
+                            else if (prop.type === 'coconut') drawCoconut(targetCtx, renderX, prop.y, prop.scale);
+                            else if (prop.type === 'pearl') drawPearl(targetCtx, renderX, prop.y, prop.scale);
+                        }
+                    });
+
+
+                }
+                
+                drawSandAndPropsToCtx(snapCtx);
+                landscapeSnapshot = snapCanvas;
+            }
+
+            // Draw raging waters below the land
+            const waterY = height * 0.88; // Highest sand base Y
+            const tideRise = height * 0.1;
+            const stormFactor = splitProgress; // Gets crazier as it splits
+            const elapsed = performance.now();
+            
+            const waterPalette = {
+                waterDeep: '#0f385c',
+                waterMid: '#165a8e',
+                waterPeak: '#2980b9',
+                foam: '#d4e6f1'
+            };
+            
+            const waves = [
+                { offset: 100, speedBase: 0.001, amplitudeBase: 10 },
+                { offset: 500, speedBase: 0.0015, amplitudeBase: 15 },
+                { offset: 900, speedBase: 0.002, amplitudeBase: 20 },
+                { offset: 200, speedBase: 0.0025, amplitudeBase: 25 },
+                { offset: 600, speedBase: 0.003, amplitudeBase: 30 },
+                { offset: 800, speedBase: 0.0035, amplitudeBase: 35 }
+            ];
+            
+            waves.forEach((wave, index) => {
+                let baseColor;
+                if (index === waves.length - 1) baseColor = waterPalette.waterPeak;
+                else if (index % 2 === 0) baseColor = waterPalette.waterDeep;
+                else baseColor = waterPalette.waterMid;
+
+                ctx.fillStyle = baseColor;
+                ctx.beginPath();
+
+                const waveAmp = wave.amplitudeBase * (1 + stormFactor * 2);
+                const waveFreq = 0.003 + (stormFactor * 0.005);
+                const speed = wave.speedBase * (1 + stormFactor * 5);
+                
+                const timeOffset = elapsed * speed + wave.offset;
+                const yOffset = index * 15;
+
+                const layerY = waterY + yOffset;
+
+                ctx.moveTo(-50, height + 100);
+                ctx.lineTo(-50, layerY);
+
+                for (let x = -50; x <= width + 50; x += 15) {
+                    const y = layerY + 
+                              Math.sin(x * waveFreq + timeOffset) * waveAmp + 
+                              Math.cos(x * waveFreq * 2.3 + timeOffset) * (waveAmp * 0.5);
+                    ctx.lineTo(x, y);
+                }
+
+                ctx.lineTo(width + 50, height + 100);
+                ctx.fill();
+
+                if (index === waves.length - 1 || (stormFactor > 0.6 && index > waves.length - 3)) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.1 + stormFactor * 0.3;
+                    ctx.fillStyle = waterPalette.foam;
+                    ctx.beginPath();
+                    for (let x = -50; x <= width + 50; x += 10) {
+                        let y = layerY + 
+                              Math.sin(x * waveFreq + timeOffset) * waveAmp + 
+                              Math.cos(x * waveFreq * 2.3 + timeOffset) * (waveAmp * 0.5);
+                        if (Math.random() > 0.5) y -= 5;
+                        if(x === -50) ctx.moveTo(x,y); else ctx.lineTo(x, y);
+                    }
+                    ctx.lineTo(width + 50, height + 100);
+                    ctx.lineTo(-50, height + 100);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            });
+
+            // Draw split landscape
+            const splitGap = (currentBossWidth * 1.2) * splitProgress;
+            
+            // Left half
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, 0, width / 2 - splitGap / 2, height);
+            ctx.clip();
+            ctx.drawImage(landscapeSnapshot, -splitGap / 2, 0);
+            ctx.restore();
+
+            // Right half
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(width / 2 + splitGap / 2, 0, width / 2 - splitGap / 2, height);
+            ctx.clip();
+            ctx.drawImage(landscapeSnapshot, splitGap / 2, 0);
+            ctx.restore();
+
+        } else {
+            // Draw normally
         // 3. Draw Sand
         // Draw layers of dunes for depth
         const layers = [
@@ -1249,10 +1506,13 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
         });
 
-        const currentSpawnInterval = 1000 / (20 + getDifficultyLevel() * 2);
+
+        }
+
+                const currentSpawnInterval = 1000 / (20 + getDifficultyLevel() * 2);
         const effectiveSpawnInterval = currentSpawnInterval / timeScaleMod;
 
-        if (timestamp - lastSpawnTime >= effectiveSpawnInterval && currentBossWidth > 0) {
+        if (timestamp - lastSpawnTime >= effectiveSpawnInterval && currentBossWidth > 0 && !isBossDead) {
             lastSpawnTime = timestamp;
             
             // Boss coordinates
@@ -2018,6 +2278,14 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             ctx.save();
         }
 
+
+        if (isBossDead) {
+            const timeSinceDeath = performance.now() - bossDeathTime;
+            // The splash happens between 8.0s and 8.75s, so fade to black starts after
+            // Let's start the fade to black at 8.75s and take 5 seconds.
+
+        }
+
         // Restore global transform wrapper
         ctx.restore();
 
@@ -2321,6 +2589,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         document.removeEventListener('boss_cursor_hit', onBossCursorHit);
         if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
         if (uiContainer && uiContainer.parentNode) uiContainer.parentNode.removeChild(uiContainer);
+        if (fadeOverlay && fadeOverlay.parentNode) fadeOverlay.parentNode.removeChild(fadeOverlay);
         const styleEl = document.getElementById('life-fire-glow-style');
         if (styleEl && styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
         
