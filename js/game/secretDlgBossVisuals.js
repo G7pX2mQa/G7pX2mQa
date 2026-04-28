@@ -5,6 +5,7 @@ import { createCursorTrail } from './cursorTrail.js';
 import { settingsManager } from './settingsManager.js';
 import { formatNumber } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
+import { setLifetimeBossBeaten, checkSecretAchievements } from './secretAchievements.js';
 
 const COIN_VOLUME = IS_MOBILE ? 0.12 : 0.3;
 
@@ -152,6 +153,10 @@ function drawCoconut(ctx, x, y, scale) {
 }
 
 export function playSecretDlgBossFightSequence(container, onComplete, options = {}) {
+    window.testBossWin = () => {
+        bossHp = 0; updateBossHpUI(); updateMusicSpeed();
+        bossHp = 1; updateBossHpUI(); updateMusicSpeed();
+    };
     // Start Boss Music
     let bossMusic = playAudio('sounds/Secret_Boss_Fight.ogg', { loop: true, volume: 1.0, type: 'music' });
 
@@ -782,6 +787,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let rubyCoinSpawned = false;
     let rubyCoinActive = false;
     let rubyCoinSwipes = 0;
+    let totalRubyCoinHits = 0;
     let rubyCoinCanSwipe = true;
     let rubyCoinRef = null;
     let rubyCoinActiveTimerStart = 0;
@@ -798,6 +804,10 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     
     let bombInvincibilityUntil = 0;
     
+    let bombsHit = 0;
+    let bossStartTime = performance.now();
+    let finalTimeTaken = 0;
+    let victoryUIAdded = false;
     let leftEyeBombStep = 0;
     let rightEyeBombStep = 0;
 
@@ -969,6 +979,15 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
 
     let heartbeatAudio = null;
+
+    function formatTime(ms) {
+        let totalCenti = Math.floor(ms / 10);
+        let centi = totalCenti % 100;
+        let totalSeconds = Math.floor(totalCenti / 100);
+        let seconds = totalSeconds % 60;
+        let minutes = Math.floor(totalSeconds / 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}.${centi.toString().padStart(2, '0')}`;
+    }
     let isBossDead = false;
     let bossDeathTime = 0;
     let landscapeSnapshot = null;
@@ -1004,6 +1023,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
         if (bossHp <= 0 && !isBossDead) {
             isBossDead = true;
+            finalTimeTaken = performance.now() - bossStartTime;
             bossDeathTime = performance.now();
             activeProjectiles = [];
             activeBombColumns = [];
@@ -1050,6 +1070,80 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     if (timeSinceDeath >= 9000 + duration) {
                         const fadeProgress = Math.min(1.0, (timeSinceDeath - (9000 + duration)) / 5000);
                         fadeOverlay.style.opacity = fadeProgress.toString();
+
+                        if (fadeProgress >= 1.0 && !victoryUIAdded) {
+                            victoryUIAdded = true;
+                            
+                            const victoryContainer = document.createElement('div');
+                            victoryContainer.style.position = 'absolute';
+                            victoryContainer.style.inset = '0';
+                            victoryContainer.style.display = 'flex';
+                            victoryContainer.style.flexDirection = 'column';
+                            victoryContainer.style.justifyContent = 'center';
+                            victoryContainer.style.alignItems = 'center';
+                            victoryContainer.style.zIndex = '2147483648';
+                            victoryContainer.id = 'boss-victory-container'; // Above fadeOverlay
+                            victoryContainer.style.pointerEvents = 'none';
+                            
+                            const title = document.createElement('div');
+                            title.textContent = 'You did it!!!';
+                            title.style.position = 'absolute';
+                            title.style.top = '10%';
+                            title.style.color = '#fff';
+                            title.style.fontSize = 'clamp(40px, 8vw, 80px)';
+                            title.style.fontWeight = 'bold';
+                            title.style.textShadow = '0 4px 8px rgba(0,0,0,0.8), -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000';
+                            
+                            const stats = document.createElement('div');
+                            stats.style.display = 'flex';
+                            stats.style.flexDirection = 'column';
+                            stats.style.alignItems = 'center';
+                            stats.style.gap = '20px';
+                            stats.style.color = '#fff';
+                            stats.style.fontSize = 'clamp(24px, 4vw, 40px)';
+                            stats.style.fontWeight = 'bold';
+                            stats.style.textShadow = '0 2px 4px rgba(0,0,0,0.8), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
+                            
+                            const timeStat = document.createElement('div');
+                            timeStat.textContent = `Time taken: ${formatTime(finalTimeTaken)}`;
+                            
+                            const bombsStat = document.createElement('div');
+                            bombsStat.textContent = `Bombs Hit: ${bombsHit}`;
+                            
+                            const rubyStat = document.createElement('div');
+                            if (totalRubyCoinHits > 0) {
+                                rubyStat.textContent = `Ruby Coin Hits: ${totalRubyCoinHits}`;
+                            } else {
+                                rubyStat.textContent = `Ruby Coin Hits: 0 (it either exploded or was neglected)`;
+                            }
+                            
+                            stats.appendChild(timeStat);
+                            stats.appendChild(bombsStat);
+                            stats.appendChild(rubyStat);
+                            
+                            const btn = document.createElement('button');
+                            btn.textContent = 'Go back to The Cove';
+                            btn.className = 'shop-delve';
+                            btn.style.position = 'absolute';
+                            btn.style.bottom = '15%';
+                            btn.style.backgroundColor = '#4caf50'; // brighter green
+                            btn.style.pointerEvents = 'auto';
+                            btn.style.fontSize = 'clamp(20px, 3vw, 32px)';
+                            btn.style.padding = '15px 30px';
+                            
+                            btn.addEventListener('click', () => {
+                                setLifetimeBossBeaten();
+                                checkSecretAchievements();
+                                cleanup();
+                                if (onComplete) onComplete();
+                            });
+                            
+                            victoryContainer.appendChild(title);
+                            victoryContainer.appendChild(stats);
+                            victoryContainer.appendChild(btn);
+                            
+                            document.body.appendChild(victoryContainer);
+                        }
                     }
                 }
             }
@@ -1812,6 +1906,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                         if (now >= bombInvincibilityUntil && !rubyCoinActive) {
                             bombInvincibilityUntil = now + 2500;
                             activeProjectiles = []; activeBombColumns = [];
+                            bombsHit++;
                             playerLives = Math.max(0, playerLives - 1);
                             updateLivesUI();
                             playBombExplosion();
@@ -2499,6 +2594,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                         bombInvincibilityUntil = now + 2500;
                         activeProjectiles = [];
                         activeBombColumns = [];
+                            bombsHit++;
                         playerLives = Math.max(0, playerLives - 1);
                         updateLivesUI();
                         playBombExplosion();
@@ -2512,6 +2608,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                         updateMusicSpeed();
                     }
                     rubyCoinSwipes += hitsToAdd;
+                    totalRubyCoinHits += hitsToAdd;
                     rubyCoinLastSwipeTime = performance.now();
                     for (let h = 0; h < hitsToAdd; h++) {
                         setTimeout(() => playAudio('sounds/ruby_coin_swipe.ogg', { volume: COIN_VOLUME }), h * 50);
@@ -2568,6 +2665,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             bombInvincibilityUntil = now + 2500;
                             activeProjectiles = [];
                             activeBombColumns = [];
+                            bombsHit++;
                             playerLives = Math.max(0, playerLives - 1);
                             updateLivesUI();
                             playBombExplosion();
@@ -2590,6 +2688,10 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
         if (uiContainer && uiContainer.parentNode) uiContainer.parentNode.removeChild(uiContainer);
         if (fadeOverlay && fadeOverlay.parentNode) fadeOverlay.parentNode.removeChild(fadeOverlay);
+        if (victoryUIAdded) {
+            const victoryContainer = document.querySelector('div[style*="z-index: 2147483648"]');
+            if (victoryContainer && victoryContainer.parentNode) victoryContainer.parentNode.removeChild(victoryContainer);
+        }
         const styleEl = document.getElementById('life-fire-glow-style');
         if (styleEl && styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
         
