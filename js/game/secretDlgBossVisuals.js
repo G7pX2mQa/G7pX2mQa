@@ -220,31 +220,6 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     uiContainer.style.pointerEvents = 'none'; // Let clicks pass through if needed, except for buttons
     container.appendChild(uiContainer);
     
-    // Debug button for ruby coin
-    const debugBtn = document.createElement('button');
-    debugBtn.textContent = 'Spawn Ruby Coin';
-    debugBtn.style.position = 'absolute';
-    debugBtn.style.bottom = '20px';
-    debugBtn.style.right = '20px';
-    debugBtn.style.padding = '5px 10px';
-    debugBtn.style.background = '#4CAF50';
-    debugBtn.style.color = '#fff';
-    debugBtn.style.border = 'none';
-    debugBtn.style.borderRadius = '5px';
-    debugBtn.style.cursor = 'pointer';
-    debugBtn.style.zIndex = '10000';
-    debugBtn.style.pointerEvents = 'auto'; // ensure it receives clicks
-    debugBtn.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-        if (window.spawnRubyCoinForTesting) window.spawnRubyCoinForTesting();
-    });
-    // For mobile
-    debugBtn.addEventListener('touchstart', (e) => {
-        e.stopPropagation();
-        if (window.spawnRubyCoinForTesting) window.spawnRubyCoinForTesting();
-    });
-    uiContainer.appendChild(debugBtn);
-
     // Health Bar setup
     const healthBarWrapper = document.createElement('div');
     healthBarWrapper.style.position = 'absolute';
