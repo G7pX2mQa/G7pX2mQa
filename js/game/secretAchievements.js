@@ -122,7 +122,7 @@ const _rawSecretAchievements = [
         title: 'That Was Unexpected',
         get desc() { return 'Defeat the Merchant\'s secret boss fight'; },
         icon: 'img/misc/that_was_unexpected.webp',
-        extraHint: 'Maybe the Merchant can help you obtain this secret achievement…',
+        extraHint: 'Extra hint: Maybe the Merchant can help you obtain this secret achievement…',
         checkCondition: (slot) => getLifetimeBossBeaten(slot)
     },
     {
@@ -173,6 +173,7 @@ const _rawSecretAchievements = [
         title: 'Binary Flow',
         get desc() { return 'In the Flow tab, construct the word "Flow" in binary where toggling the Coin Waterwheel\'s Flow State represents 0, and toggling the XP Waterwheel\'s Flow State represents 1. Toggles must be consecutive.'; },
         icon: 'img/misc/binary_flow.webp',
+		extraHint: 'Extra hint: 01000110011011000110111101110111',
         checkCondition: (slot) => {
             const seq = getBinaryFlowSequence(slot);
             const validSequences = new Set([
@@ -184,7 +185,7 @@ const _rawSecretAchievements = [
                 "01100110010011000110111101010111", // fLoW
                 "01100110010011000100111101110111", // fLOw
                 "01100110010011000100111101010111", // fLOW
-                "01000110011011000110111101110111", // Flow
+                "01000110011011000110111101110111',", // Flow
                 "01000110011011000110111101010111", // FloW
                 "01000110011011000100111101110111", // FlOw
                 "01000110011011000100111101010111", // FlOW
