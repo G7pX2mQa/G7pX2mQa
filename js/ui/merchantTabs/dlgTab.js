@@ -2225,9 +2225,66 @@ export function startBossFightSequence() {
         visualsContainer.style.zIndex = '2147483641';
         document.body.appendChild(visualsContainer);
 
-        // Start visuals and infinite loop
-        playSecretDlgBossFightSequence(visualsContainer, () => {}, {});
+        // Start visuals and return to normal Cove state when complete
+        playSecretDlgBossFightSequence(visualsContainer, () => {
+            window.__bossFightSequenceActive = false;
+
+            if (visualsContainer && visualsContainer.parentNode) {
+                visualsContainer.parentNode.removeChild(visualsContainer);
+            }
+
+            const transitionOverlay = document.getElementById('bossfight-sequence-overlay');
+            if (transitionOverlay && transitionOverlay.parentNode) {
+                transitionOverlay.parentNode.removeChild(transitionOverlay);
+            }
+
+            const victoryOverlay = document.getElementById('boss-victory-container');
+            if (victoryOverlay && victoryOverlay.parentNode) {
+                victoryOverlay.parentNode.removeChild(victoryOverlay);
+            }
+
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('audio:restartMusic'));
+            }
+
+            if (window.spawner && typeof window.spawner.start === 'function') {
+                window.spawner.start();
+                if (typeof window.spawner.playEntranceWave === 'function') {
+                    window.spawner.playEntranceWave();
+                }
+            }
+
+            forceCloseCoveOverlays();
+        }, {});
     }, 5000);
+}
+
+function forceCloseCoveOverlays() {
+  const hadNoOverlayTransitions = document.body.classList.contains('no-overlay-transitions');
+  if (!hadNoOverlayTransitions) {
+    document.body.classList.add('no-overlay-transitions');
+  }
+
+  closeMerchant();
+
+  const closeSelectors = [
+    '.offline-close-btn',
+    '.hm-milestones-close',
+    '.merchant-close',
+    '.shop-close',
+    '.sas-close'
+  ];
+  closeSelectors.forEach((selector) => {
+    document.querySelectorAll(selector).forEach((btn) => {
+      try { btn.click(); } catch {}
+    });
+  });
+
+  if (!hadNoOverlayTransitions) {
+    requestAnimationFrame(() => {
+      document.body.classList.remove('no-overlay-transitions');
+    });
+  }
 }
 
 function runFirstMeet() {
