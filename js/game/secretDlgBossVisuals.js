@@ -1069,7 +1069,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
             
             if (timeSinceDeath >= 10000) {
-                const fallProgress = Math.min(1.0, (timeSinceDeath - 10000) / 750);
+                const fallProgress = Math.min(1.0, (timeSinceDeath - 10000) / 1000);
                 // Cubic ease-in: starts slow, accelerates quickly downwards
                 deathFallY = (fallProgress * fallProgress * fallProgress) * currentBossHeight * 2.0;
             }
