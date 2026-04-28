@@ -1508,7 +1508,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             startX: startX,
                             startY: startY,
                             startTime: timestamp,
-                            transitionDuration: 750 / timeScaleMod, // 0.75 second transition
+                            accumulatedTime: 0,
+                            transitionDuration: 750, // 0.75 second transition
                             settled: false
                         });
                         playAudio('sounds/bomb_column_construction.ogg', { volume: 0.6 });
@@ -1538,8 +1539,20 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     col.screenX = width;
                 }
                 
-                if (timestamp - col.pauseStartTime >= 1000 / timeScaleMod) {
-                    col.state = 'moving';
+                let allSettled = true;
+                for (let j = 0; j < col.bombs.length; j++) {
+                    if (!col.bombs[j].settled) {
+                        allSettled = false;
+                        break;
+                    }
+                }
+                
+                if (allSettled) {
+                    if (!col.settledTime) {
+                        col.settledTime = timestamp;
+                    } else if (timestamp - col.settledTime >= 250) {
+                        col.state = 'moving';
+                    }
                 }
             } else if (col.state === 'moving') {
                 // 20% of viewport width per second, FPS independent
@@ -1584,9 +1597,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 let isSettled = b.settled;
                 
                 if (!b.settled) {
-                    const elapsed = timestamp - b.startTime;
-                    if (elapsed < b.transitionDuration) {
-                        const t = elapsed / b.transitionDuration;
+                    b.accumulatedTime += dt;
+                    if (b.accumulatedTime < b.transitionDuration) {
+                        const t = b.accumulatedTime / b.transitionDuration;
                         bx = (b.startX - cameraX) + (renderX - (b.startX - cameraX)) * t;
                         by = b.startY + (b.y - b.startY) * t;
                     } else {
