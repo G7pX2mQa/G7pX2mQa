@@ -390,6 +390,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     uiContainer.appendChild(livesContainer);
 
     let desktopArrows = null;
+    let mobileButtons = null;
     const knowHowToMoveKey = `ccc:secretDlgBoss:knowsHowToMove:${getActiveSlot()}`;
 
     if (!IS_MOBILE) {
@@ -491,6 +492,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         }
     } else {
         // Mobile buttons logic
+        mobileButtons = [];
         const createMobileBtn = (src, side) => {
             const btn = document.createElement('div');
             btn.style.position = 'absolute';
@@ -554,8 +556,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             return btn;
         };
 
-        createMobileBtn('img/misc/arrow_left_thin.webp', 'left');
-        createMobileBtn('img/misc/arrow_right_thin.webp', 'right');
+        mobileButtons.push(createMobileBtn('img/misc/arrow_left_thin.webp', 'left'));
+        mobileButtons.push(createMobileBtn('img/misc/arrow_right_thin.webp', 'right'));
     }
 
 
@@ -997,6 +999,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let deathAudio = null;
     let deathFallVelocity = 0;
     let deathFallY = 0;
+    let hasRemovedCursorTrail = false;
+    let hasHiddenMobileButtons = false;
 
 
     function loop(timestamp) {
@@ -1036,6 +1040,17 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         }
 
         if (isBossDead) {
+            if (!hasRemovedCursorTrail && cursorTrail) {
+                cursorTrail.destroy();
+                hasRemovedCursorTrail = true;
+            }
+            if (!hasHiddenMobileButtons && mobileButtons?.length) {
+                mobileButtons.forEach((btn) => {
+                    btn.style.display = 'none';
+                    btn.style.pointerEvents = 'none';
+                });
+                hasHiddenMobileButtons = true;
+            }
             keys.left = false;
             keys.right = false;
         }
