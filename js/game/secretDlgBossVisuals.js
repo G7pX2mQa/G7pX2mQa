@@ -2713,10 +2713,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
         if (uiContainer && uiContainer.parentNode) uiContainer.parentNode.removeChild(uiContainer);
         if (fadeOverlay && fadeOverlay.parentNode) fadeOverlay.parentNode.removeChild(fadeOverlay);
-        if (victoryUIAdded) {
-            const victoryContainer = document.querySelector('div[style*="z-index: 2147483648"]');
-            if (victoryContainer && victoryContainer.parentNode) victoryContainer.parentNode.removeChild(victoryContainer);
-        }
+        const victoryContainer = document.getElementById('boss-victory-container');
+        if (victoryContainer && victoryContainer.parentNode) victoryContainer.parentNode.removeChild(victoryContainer);
         const styleEl = document.getElementById('life-fire-glow-style');
         if (styleEl && styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
         
