@@ -795,6 +795,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let camTargetPan = {x: 0, y: 0};
     let rubyCoinRotation = 0;
     let rubyCoinLastSwipeTime = 0;
+    let rubyCoinLastSparkleTime = 0;
     
     let bombInvincibilityUntil = 0;
     
@@ -991,6 +992,35 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         timeScaleMod = rubyCoinActive ? 0.1 : 1.0;
         const dt = realDt * timeScaleMod;
 
+        if (rubyCoinRef && activeProjectiles.includes(rubyCoinRef)) {
+            // Sparkles every 0.25s real time (but time is scaled so dt is small, let's use timestamp directly or realDt).
+            // Actually, we want every 0.25s of SCALED time?
+            // "every 0.25 seconds... slow down to 10% speed and rate of emitting when ruby coin is active"
+            // So if timeScaleMod is 0.1, the effective real time interval is 2.5s real time.
+            // Using timeScaleMod adjusted time accumulation:
+            if (timestamp - rubyCoinLastSparkleTime >= (250 / timeScaleMod)) {
+                rubyCoinLastSparkleTime = timestamp;
+                for (let i = 0; i < 10; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 0.01 + 0.005; 
+                    const offsetX = (Math.random() - 0.5) * 64;
+                    const offsetY = (Math.random() - 0.5) * 64;
+                    
+                    activeProjectiles.push({
+                        type: 'miniRubyCoinSparkle',
+                        x: rubyCoinRef.x + offsetX,
+                        y: rubyCoinRef.y + offsetY,
+                        vx: Math.cos(angle) * speed * 100,
+                        vy: Math.sin(angle) * speed * 100,
+                        scale: 0.15,
+                        targetScale: 0.15,
+                        spawnTime: performance.now(), // Use real time for lifetime calculation
+                        lifeTime: 1000 // Always 1 second real time
+                    });
+                }
+            }
+        }
+
         checkBombColumnThresholds(timestamp);
 
         // Update camera position continuously
@@ -1033,7 +1063,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             // Store target pan (relative to center of screen)
             camTargetPan.x = targetX - width / 2;
             camTargetPan.y = targetY - height / 2;
-            camTargetZoom = 2.5;
+            camTargetZoom = 2.2;
 
             ctx.translate(width / 2, height / 2);
             ctx.rotate(camProgress * 0.4); // More rotated
@@ -1154,10 +1184,55 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             
             ctx.restore();
             
-            // Update health bar position dynamically to sit above the boss visually, ensuring it's always on screen
+            // Update health bar position dynamically to sit above the boss visually.
+            // When camera pans and zooms, apply those transformations to the HP bar so it moves with the boss.
             let hpBarY = bossTopY - 10;
-            if (hpBarY < 10) hpBarY = 10;
-            healthBarWrapper.style.top = `${hpBarY}px`;
+            
+            // Start at center x = bossX, y = hpBarY
+            let screenX = currentBossX;
+            let screenY = hpBarY;
+            
+            if (camProgress > 0) {
+                // Apply the exact same camera transformation we use for the canvas:
+                // translate(width / 2, height / 2)
+                // rotate(camProgress * 0.4)
+                // scale(currentZoom, currentZoom)
+                // translate(-width / 2 - camTargetPan.x * camProgress, -height / 2 - camTargetPan.y * camProgress)
+                
+                const curZoom = 1.0 + (camTargetZoom - 1.0) * camProgress;
+                const panX = camTargetPan.x * camProgress;
+                const panY = camTargetPan.y * camProgress;
+                
+                // 1. Translate by (-width/2 - panX, -height/2 - panY)
+                let dx = screenX - (width / 2 + panX);
+                let dy = screenY - (height / 2 + panY);
+                
+                // 2. Scale
+                dx *= curZoom;
+                dy *= curZoom;
+                
+                // 3. Rotate
+                const rot = camProgress * 0.4;
+                const cosA = Math.cos(rot);
+                const sinA = Math.sin(rot);
+                const rotX = dx * cosA - dy * sinA;
+                const rotY = dx * sinA + dy * cosA;
+                
+                // 4. Translate by (width/2, height/2)
+                screenX = rotX + width / 2;
+                screenY = rotY + height / 2;
+                
+                // For HTML elements, we set the position using left/top, and use transform for rotation/scaling if desired.
+                // However, the text size might get large if we zoom. For now, since the goal is just to move it out of view,
+                // positioning its center via absolute screen coords (which will be way off screen) is sufficient.
+                healthBarWrapper.style.left = `${screenX}px`;
+                healthBarWrapper.style.top = `${screenY}px`;
+                healthBarWrapper.style.transform = `translate(-50%, -100%) scale(${curZoom}) rotate(${rot}rad)`;
+            } else {
+                healthBarWrapper.style.left = `${screenX}px`;
+                healthBarWrapper.style.top = `${screenY}px`;
+                healthBarWrapper.style.transform = `translate(-50%, -100%)`;
+            }
         }
 
         // 3. Draw Sand
@@ -1330,7 +1405,15 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             p.x += p.vx * timeScale;
             p.y += p.vy * timeScale;
             
-            if (!p.slowed) {
+            if (p.type === 'miniRubyCoin') {
+                p.vy += 0.5 * timeScale; // Gravity for swipe coins
+            } else if (p.type === 'miniRubyCoinExplosion') {
+                p.vy += 0.05 * timeScale; // Less gravity for explosion coins
+            }
+            
+            if (p.type === 'miniRubyCoinSparkle') {
+                // Keep moving smoothly
+            } else if (!p.slowed) {
                 if (Math.abs(p.x - p.startX) >= p.decelDistance) {
                     p.slowed = true;
                     p.vx *= Math.pow(0.1665, timeScale);
@@ -1364,6 +1447,18 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             let renderX = p.x - cameraX;
             if (p.type === 'coin') drawProjectileImage(ctx, renderX, p.y, p.scale, projectileImages.coin);
             else if (p.type === 'bomb') drawProjectileImage(ctx, renderX, p.y, p.scale * 1.5, projectileImages.bomb);
+            else if (p.type === 'miniRubyCoinSparkle') {
+                const elapsed = performance.now() - p.spawnTime;
+                if (elapsed > p.lifeTime) {
+                    activeProjectiles.splice(i, 1);
+                    continue;
+                }
+                ctx.save();
+                // Make them more opaque: instead of 1.0 -> 0.0, do 1.5 -> 0.5 clamped
+                ctx.globalAlpha = Math.min(1.0, 1.5 - (elapsed / p.lifeTime));
+                drawProjectileImage(ctx, renderX, p.y, p.scale, projectileImages.rubyCoin);
+                ctx.restore();
+            }
         }
 
         // Second pass: render life projectiles to ensure they are on top
@@ -1635,9 +1730,28 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 bombInvincibilityUntil = nowTime + 2500;
                 updateMusicSpeed(); // Restore music
                 
-                // Trigger collect animation for the coin itself
+                playAudio('sounds/ruby_coin_finished.ogg', { volume: 1.0 });
+
                 if (rubyCoinRef) {
-                    collectedAnimations.push({ x: rubyCoinRef.x, y: rubyCoinRef.y, startScale: rubyCoinRef.scale, startTime: lastFrameTime, type: 'rubyCoin' });
+                    // Instead of a collect animation, explode with mini ruby coins based on score
+                    const explosionCount = Math.min(100, rubyCoinSwipes); // cap at 100 as requested
+                    for (let mc = 0; mc < explosionCount; mc++) {
+                        const speed = (10 + Math.random() * 20) / 20;
+                        const angle = Math.random() * Math.PI * 2; // All directions
+                        
+                        activeProjectiles.push({
+                            type: 'miniRubyCoinExplosion',
+                            x: rubyCoinRef.x,
+                            y: rubyCoinRef.y,
+                            vx: Math.cos(angle) * speed,
+                            vy: Math.sin(angle) * speed,
+                            scale: 0.5,
+                            targetScale: 0.5,
+                            spawnTime: performance.now(),
+                            lifeTime: 3000 // Falls off screen eventually
+                        });
+                    }
+
                     // Remove ruby coin from projectiles
                     for (let j = activeProjectiles.length - 1; j >= 0; j--) {
                         if (activeProjectiles[j] === rubyCoinRef) {
@@ -1692,7 +1806,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     ctx.shadowBlur = 10;
                     ctx.shadowOffsetX = 3;
                     ctx.shadowOffsetY = 3;
-                    ctx.fillText(`+${rubyCoinSwipes}`, curX, curY);
+                    ctx.fillText(`${rubyCoinSwipes} Hit${rubyCoinSwipes === 1 ? '' : 's'}`, curX, curY);
                     
                     ctx.restore(); 
                     ctx.save(); // keep balanced with loop wrapper
@@ -1708,7 +1822,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                         hpBar.classList.remove('violent-shake');
                     }, 500);
                     
-                    playBombExplosion(); // Optional explosion sound/effect
+                    playAudio('sounds/ruby_coin_number_punch.ogg', { volume: 1.0 });
                 }
             }
         }
@@ -1753,11 +1867,26 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     
                     ctx.translate(textX, textY);
                     ctx.scale(popScale, popScale);
-                    ctx.fillText(`+${rubyCoinSwipes}`, 0, 0);
+                    ctx.fillText(`${rubyCoinSwipes} Hit${rubyCoinSwipes === 1 ? '' : 's'}`, 0, 0);
                     ctx.restore();
                 }
             }
-        }        // Draw distress effects
+        }
+        
+        // Highest Z-index render for miniature ruby coins (swipes and explosion)
+        for (let i = activeProjectiles.length - 1; i >= 0; i--) {
+            const p = activeProjectiles[i];
+            if (p.type === 'miniRubyCoin' || p.type === 'miniRubyCoinExplosion') {
+                if (performance.now() - p.spawnTime > p.lifeTime) {
+                    activeProjectiles.splice(i, 1);
+                    continue;
+                }
+                let renderX = p.x - cameraX;
+                drawProjectileImage(ctx, renderX, p.y, p.scale, projectileImages.rubyCoin);
+            }
+        }
+        
+        // Draw distress effects
         if (playerLives === 2 || playerLives === 1) {
             ctx.restore();
             ctx.save();
@@ -2129,7 +2258,25 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                     rubyCoinSwipes += hitsToAdd;
                     rubyCoinLastSwipeTime = performance.now();
                     for (let h = 0; h < hitsToAdd; h++) {
-                        setTimeout(() => playAudio('sounds/coin_pickup.ogg', { volume: COIN_VOLUME }), h * 50);
+                        setTimeout(() => playAudio('sounds/ruby_coin_swipe.ogg', { volume: COIN_VOLUME }), h * 50);
+                        
+                        // Spawn 3 miniature ruby coins that shoot up and out
+                        for (let mc = 0; mc < 3; mc++) {
+                            const speed = 15 + Math.random() * 10;
+                            const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI; // Upwards cone
+                            
+                            activeProjectiles.push({
+                                type: 'miniRubyCoin',
+                                x: prop.x,
+                                y: prop.y,
+                                vx: Math.cos(angle) * speed,
+                                vy: Math.sin(angle) * speed,
+                                scale: 0.5,
+                                targetScale: 0.5,
+                                spawnTime: performance.now(),
+                                lifeTime: 500 // Lasts 0.5 seconds
+                            });
+                        }
                     }
                     
                     // Add it as a coin pickup visually on UI if desired (optional)
