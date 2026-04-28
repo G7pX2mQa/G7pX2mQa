@@ -22,6 +22,7 @@ import {
 import { IS_MOBILE } from '../../main.js';
 import { playAudio, setMusicUnderwater } from '../../util/audioManager.js';
 import { playSecretDlgBossFightSequence } from '../../game/secretDlgBossVisuals.js';
+import { getLifetimeBossBeaten } from '../../game/secretAchievements.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 
 function nowMs() {
@@ -1309,6 +1310,10 @@ const engine = new DialogueEngine({
   const claimed = !!state[id]?.claimed;
 
   const script = structuredClone(MERCHANT_DIALOGUES[scriptId]);
+
+  if (meta.scriptId === 6 && script?.nodes?.m3a && getLifetimeBossBeaten()) {
+      script.nodes.m3a.say = 'Hey, you already beat me in the boss battle, why are you back again? Whatever. Starting boss battlႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤৔ᚈ௮ᤙᕘ᧤⢞ॿⅉਟၨҮႻᾡ⅌͓Ⓕяⵠⷳᕛ⣊ၧ಼ᝧ⪤ԃ✓ó⎻᭣ᡍᐍᏭᘫᲘ⬪⤯➚႐ᙠໍґሜ⟒ἐᩬೀⴲᔦⳄѯᣆҫ⤄╮ቼ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ⩭ල፫ᶰ⌰⽶ᱣ᝕ᢷ₠ᎧἬⶪ⾑⼱₱ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ';
+  }
 
   if (meta.reward && !meta.rewardNode) {
       throw new Error(`Dialogue ${id} has a reward but no rewardNode declared.`);
