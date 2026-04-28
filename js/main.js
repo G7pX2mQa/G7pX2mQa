@@ -765,6 +765,7 @@ images: [
 ],
     audio: [
 	  'sounds/bomb_column_construction.ogg',
+	  'sounds/boss_death.ogg',
       'sounds/coin_pickup.ogg',
       'sounds/wave_spawn.ogg',
       'sounds/merchant_typing.ogg',
