@@ -1071,7 +1071,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                         const fadeProgress = Math.min(1.0, (timeSinceDeath - (9000 + duration)) / 5000);
                         fadeOverlay.style.opacity = fadeProgress.toString();
 
-                        if (fadeProgress >= 1.0 && !victoryUIAdded) {
+                        // Wait until fade to black completes (5000ms) + 1 extra second
+                        if (fadeProgress >= 1.0 && timeSinceDeath >= 9000 + duration + 6000 && !victoryUIAdded) {
                             victoryUIAdded = true;
                             
                             const victoryContainer = document.createElement('div');
@@ -1083,7 +1084,10 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             victoryContainer.style.alignItems = 'center';
                             victoryContainer.style.zIndex = '2147483648';
                             victoryContainer.id = 'boss-victory-container'; // Above fadeOverlay
-                            victoryContainer.style.pointerEvents = 'none';
+                            victoryContainer.style.pointerEvents = 'auto';
+                            victoryContainer.style.cursor = 'default';
+                            victoryContainer.style.opacity = '0';
+                            victoryContainer.style.transition = 'opacity 3s ease';
                             
                             const title = document.createElement('div');
                             title.textContent = 'You did it!!!';
@@ -1108,13 +1112,13 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             timeStat.textContent = `Time taken: ${formatTime(finalTimeTaken)}`;
                             
                             const bombsStat = document.createElement('div');
-                            bombsStat.textContent = `Bombs Hit: ${bombsHit}`;
+                            bombsStat.textContent = `Bombs hit: ${bombsHit}`;
                             
                             const rubyStat = document.createElement('div');
                             if (totalRubyCoinHits > 0) {
-                                rubyStat.textContent = `Ruby Coin Hits: ${totalRubyCoinHits}`;
+                                rubyStat.textContent = `Ruby coin hits: ${totalRubyCoinHits}`;
                             } else {
-                                rubyStat.textContent = `Ruby Coin Hits: 0 (it either exploded or was neglected)`;
+                                rubyStat.textContent = `Ruby coin hits: 0 (it either exploded or was neglected)`;
                             }
                             
                             stats.appendChild(timeStat);
@@ -1126,7 +1130,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             btn.className = 'shop-delve';
                             btn.style.position = 'absolute';
                             btn.style.bottom = '15%';
-                            btn.style.backgroundColor = '#4caf50'; // brighter green
+                            btn.style.backgroundColor = 'hsl(150 60% 35% / .50)'; // darker green
+                            btn.style.border = '5px solid hsl(150 60% 35% / .45)';
                             btn.style.pointerEvents = 'auto';
                             btn.style.fontSize = 'clamp(20px, 3vw, 32px)';
                             btn.style.padding = '15px 30px';
@@ -1143,6 +1148,11 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             victoryContainer.appendChild(btn);
                             
                             document.body.appendChild(victoryContainer);
+                            
+                            // Trigger reflow and set opacity to 1 for the transition to take effect
+                            setTimeout(() => {
+                                victoryContainer.style.opacity = '1';
+                            }, 50);
                         }
                     }
                 }
