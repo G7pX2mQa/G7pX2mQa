@@ -52,6 +52,22 @@ export function setLifetimeUselessExperiment(slot = getActiveSlot()) {
     } catch {}
 }
 
+export function getLifetimeBossBeaten(slot = getActiveSlot()) {
+    if (slot == null) return false;
+    try {
+        const val = localStorage.getItem(`ccc:secretAchievements:bossBeaten:${slot}`);
+        return val === '1';
+    } catch {}
+    return false;
+}
+
+export function setLifetimeBossBeaten(slot = getActiveSlot()) {
+    if (slot == null) return;
+    try {
+        localStorage.setItem(`ccc:secretAchievements:bossBeaten:${slot}`, '1');
+    } catch {}
+}
+
 export function trackBinaryFlowSequence(waterwheelId, slot = getActiveSlot()) {
     if (slot == null) return;
     try {
@@ -103,6 +119,14 @@ const _rawSecretAchievements = [
     },
     {
         id: 4,
+        title: 'That Was Unexpected',
+        get desc() { return 'Defeat the Merchant\'s secret boss fight'; },
+        icon: 'img/misc/that_was_unexpected.webp',
+        extraHint: 'Maybe the Merchant can help you obtain this secret achievement…',
+        checkCondition: (slot) => getLifetimeBossBeaten(slot)
+    },
+    {
+        id: 5,
         title: 'Safety First',
         get desc() { return 'Toggle the reset confirmations for Forge, Infuse, Surge, and Experiment to ON'; },
         icon: 'img/misc/safety_first.webp',
@@ -114,14 +138,14 @@ const _rawSecretAchievements = [
         }
     },
     {
-        id: 5,
+        id: 6,
         title: 'A Useless Experiment',
         get desc() { return 'Perform an Experiment reset while having XP Level 0'; },
         icon: 'img/misc/a_useless_experiment.webp',
         checkCondition: (slot) => getLifetimeUselessExperiment(slot)
     },
     {
-        id: 6,
+        id: 7,
         title: 'Semi-Automatic',
         get desc() { return 'Configure the automation of five different currencies to a "Sort of ON" state'; },
         icon: 'img/misc/semi_automatic.webp',
@@ -145,7 +169,7 @@ const _rawSecretAchievements = [
         }
     },
     {
-        id: 7,
+        id: 8,
         title: 'Binary Flow',
         get desc() { return 'In the Flow tab, construct the word "Flow" in binary where toggling the Coin Waterwheel\'s Flow State represents 0, and toggling the XP Waterwheel\'s Flow State represents 1. Toggles must be consecutive.'; },
         icon: 'img/misc/binary_flow.webp',
