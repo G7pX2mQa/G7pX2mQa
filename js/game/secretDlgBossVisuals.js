@@ -1004,6 +1004,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
 
     function loop(timestamp) {
+        if (!isRunning) return;
         if (!lastFrameTime) lastFrameTime = timestamp;
 
         if (playerLives === 1) {
@@ -2415,7 +2416,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 chunks.delete(key);
             }
         }
-
+		
+        if (!isRunning) return;
         animationFrameId = requestAnimationFrame(loop);
     }
 
@@ -2705,7 +2707,10 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
     function cleanup() {
         isRunning = false;
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
         window.removeEventListener('resize', resize);
         window.removeEventListener('keydown', onKeyDown);
         window.removeEventListener('keyup', onKeyUp);
