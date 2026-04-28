@@ -695,6 +695,7 @@ images: [
   'img/misc/safety_first.webp',
   'img/misc/surge.webp',
   'img/misc/surge_plus_base.webp',
+  'img/misc/that_was_unexpected.webp',
 
   // ==== img/mutations ====
   ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.webp`),
