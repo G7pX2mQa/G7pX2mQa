@@ -748,7 +748,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     'sounds/coin_pickup_size4.ogg',
     'sounds/coin_pickup_size5.ogg',
     'sounds/coin_pickup_size6.ogg',
-    'sounds/evil_devious_laughter.ogg',
     'sounds/evolve_upg.ogg',
     'sounds/experiment_reset.ogg',
     'sounds/explosion_long.ogg',
@@ -775,7 +774,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     'sounds/tsu_storm_ambience.ogg',
     'sounds/void_buildup.ogg',
     'sounds/warp.ogg',
-    'sounds/wave_spawn.ogg'
+    'sounds/wave_spawn.ogg',
+	'sounds/you_will_die_there_is_nowhere_to_run.ogg'
   ]
   };
 
