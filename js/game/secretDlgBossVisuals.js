@@ -1153,10 +1153,53 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             btn.style.padding = '15px 30px';
                             
                             btn.addEventListener('click', () => {
+                                btn.disabled = true;
+                                
+                                const teleportOverlay = document.createElement('div');
+                                Object.assign(teleportOverlay.style, {
+                                    position: 'fixed',
+                                    inset: '0',
+                                    backgroundColor: 'black',
+                                    zIndex: '2147483647',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    color: 'white',
+                                    fontSize: 'clamp(24px, 4vw, 48px)',
+                                    textAlign: 'center',
+                                    pointerEvents: 'all'
+                                });
+                                teleportOverlay.textContent = 'Teleporting to The Cove...';
+                                document.body.appendChild(teleportOverlay);
+                                
+                                // Clean up the boss fight immediately so the DOM clears out
+                                // and the browser can switch states cleanly.
                                 setLifetimeBossBeaten();
                                 checkSecretAchievements();
                                 cleanup();
-                                if (onComplete) onComplete();
+                                
+                                // Run a short requestAnimationFrame pulse loop for 450ms
+                                // to keep the browser's refresh rate active during the transition.
+                                let start = performance.now();
+                                function pulseFrame(now) {
+                                    if (now - start < 450) {
+                                        // Randomize text content slightly to force layout/paint
+                                        // and ensure the browser compositor stays awake at max fps
+                                        if (Math.random() > 0.5) {
+                                            teleportOverlay.style.opacity = '0.99';
+                                        } else {
+                                            teleportOverlay.style.opacity = '1';
+                                        }
+                                        requestAnimationFrame(pulseFrame);
+                                    } else {
+                                        if (onComplete) onComplete();
+                                        
+                                        if (teleportOverlay.parentNode) {
+                                            teleportOverlay.parentNode.removeChild(teleportOverlay);
+                                        }
+                                    }
+                                }
+                                requestAnimationFrame(pulseFrame);
                             });
                             
                             victoryContainer.appendChild(title);
