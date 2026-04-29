@@ -829,7 +829,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         lostContainer.style.flexDirection = 'column';
         lostContainer.style.justifyContent = 'center';
         lostContainer.style.alignItems = 'center';
-        lostContainer.style.zIndex = '2147483646'; // Just below explosionContainer particles
+        lostContainer.style.backgroundColor = 'black';
+        lostContainer.style.zIndex = '2147483646';
         lostContainer.id = 'boss-lost-container';
         lostContainer.style.pointerEvents = 'auto';
         
@@ -871,26 +872,25 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
         const btnAttempt = document.createElement('button');
         btnAttempt.textContent = 'Give it another attempt';
-        btnAttempt.style.padding = '15px 30px';
         btnAttempt.style.fontSize = '1.5rem';
         btnAttempt.style.fontFamily = 'Courier New, monospace';
         btnAttempt.style.fontWeight = 'bold';
-        btnAttempt.style.border = '2px solid #336633';
-        btnAttempt.style.backgroundColor = '#4CAF50';
+        btnAttempt.style.border = '5px solid hsl(150 60% 35% / .45)';
+        btnAttempt.style.backgroundColor = 'hsl(150 60% 35% / .50)';
         btnAttempt.style.color = '#fff';
         btnAttempt.style.borderRadius = '5px';
         btnAttempt.style.cursor = 'pointer';
         btnAttempt.style.textShadow = '0 0 10px rgba(0,0,0,0.5)';
-        btnAttempt.style.boxShadow = '0 0 20px rgba(76, 175, 80, 0.5)';
+        btnAttempt.style.boxShadow = '0 0 20px rgba(28, 143, 86, 0.5)';
         btnAttempt.style.transition = 'all 0.2s ease';
         
         btnAttempt.onmouseover = () => {
             btnAttempt.style.transform = 'scale(1.05)';
-            btnAttempt.style.boxShadow = '0 0 30px rgba(76, 175, 80, 0.8)';
+            btnAttempt.style.boxShadow = '0 0 30px rgba(28, 143, 86, 0.8)';
         };
         btnAttempt.onmouseout = () => {
             btnAttempt.style.transform = 'scale(1)';
-            btnAttempt.style.boxShadow = '0 0 20px rgba(76, 175, 80, 0.5)';
+            btnAttempt.style.boxShadow = '0 0 20px rgba(28, 143, 86, 0.5)';
         };
 
         btnCove.addEventListener('click', () => {
@@ -1242,7 +1242,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let bossDeathTime = 0;
     let isPlayerDead = false;
     let playerDeathTime = 0;
-    let playingEvilLaughter = false;
+    let playingBuildupSfx = false;
     let landscapeSnapshot = null;
     let playingJawsSound = false;
     let jawsAudio = null;
@@ -1307,16 +1307,14 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             keys.right = false;
             
             const timeSinceDeath = performance.now() - playerDeathTime;
-            if (timeSinceDeath >= 3000 && !playingEvilLaughter) {
-                playingEvilLaughter = true;
-                playAudio('sounds/evil_devious_laughter.ogg', { volume: 1.0 });
+            if (timeSinceDeath >= 3000 && !playingBuildupSfx) {
+                playingBuildupSfx = true;
+                playAudio('sounds/you_will_die_there_is_nowhere_to_run.ogg', { volume: 1.0 });
                 
-                // Audio track evil_devious_laughter.ogg is ~5 seconds long (actually we can just wait 5.5s or so, 
-                // but let's just do an approximate 5s delay or play it inside a setTimeout).
-                // Actually the audio length is roughly 5-6s. Let's start the sequence 5.5s later.
+                // Audio track is ~5 seconds long
                 window.bossDeathSequenceTimeout = setTimeout(() => {
                     playPlayerDeathSequence();
-                }, 5500); // Wait for the laugh to finish
+                }, 500);
             }
         }
 
