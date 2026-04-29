@@ -663,8 +663,263 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         return chunkProps;
     }
 
+    
+    function playPlayerDeathSequence() {
+        const explosionContainer = document.createElement('div');
+        explosionContainer.id = 'boss-death-explosion-container';
+        explosionContainer.style.position = 'fixed';
+        explosionContainer.style.top = '0';
+        explosionContainer.style.left = '0';
+        explosionContainer.style.width = '100vw';
+        explosionContainer.style.height = '100vh';
+        explosionContainer.style.pointerEvents = 'auto'; // Block interaction with underlying elements
+        explosionContainer.style.cursor = 'none'; // Hide cursor during explosion
+        explosionContainer.style.zIndex = '2147483647';
+        explosionContainer.style.overflow = 'hidden';
+        document.body.appendChild(explosionContainer);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        canvas.style.position = 'absolute';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.pointerEvents = 'none';
+        canvas.style.zIndex = '2147483647'; // Higher than overlay
+        explosionContainer.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
+        const particles = [];
+        let isAnimating = true;
+
+        const colors = ['#ff4500', '#ff8c00', '#ffd700', '#ffffff', '#ff0000'];
+
+        class Particle {
+            constructor(x, y, isLong, customAngle = null, customSpeed = null, customSize = null) {
+                this.x = x;
+                this.y = y;
+                
+                const angle = customAngle !== null ? customAngle : Math.random() * Math.PI * 2;
+                const speed = customSpeed !== null ? customSpeed : (isLong ? (Math.random() * 20 + 5) : (Math.random() * 10 + 2));
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                
+                this.size = customSize !== null ? customSize : (isLong ? (Math.random() * 300 + 100) : (Math.random() * 150 + 50));
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                
+                this.life = 1.0;
+                this.decay = isLong ? (Math.random() * 0.005 + 0.005) : (Math.random() * 0.02 + 0.02);
+                this.gravity = isLong ? 0.3 : 0.15;
+            }
+
+            update(timeScale = 1.0) {
+                this.x += this.vx * timeScale;
+                this.y += this.vy * timeScale;
+                this.vy += this.gravity * timeScale;
+                this.life -= this.decay * timeScale;
+                this.size *= Math.pow(0.98, timeScale);
+            }
+
+            draw(ctx) {
+                if (this.life <= 0) return;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.life;
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        const spawnParticles = (isLong, currentCount = 0) => {
+            const numParticles = isLong ? 1000 : 50;
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            
+            // Normal random particles
+            for (let i = 0; i < numParticles; i++) {
+                particles.push(new Particle(centerX, centerY, isLong));
+            }
+            
+            // Add thick "donut" particle ring for short explosions
+            if (!isLong) {
+                const ringParticles = 150 + currentCount * 50; // More particles each time
+                const baseSpeed = Math.max(10, 40 - currentCount * 1.5); // Slower each time
+                const thickness = 20; // Spread of speeds to create a donut
+                const sizeMultiplier = 1 + (currentCount * 0.2); // Bigger particles each time
+                
+                for (let i = 0; i < ringParticles; i++) {
+                    const angle = Math.random() * Math.PI * 2; // Randomize angle for natural distribution
+                    const speed = baseSpeed + Math.random() * thickness;
+                    const pSize = (Math.random() * 150 + 50) * sizeMultiplier;
+                    particles.push(new Particle(centerX, centerY, isLong, angle, speed, pSize));
+                }
+            }
+        };
+
+        let lastTime = performance.now();
+        let slowMotionActive = false;
+        
+        const animate = (timestamp) => {
+            if (!isAnimating) return;
+            
+            const dt = timestamp - lastTime;
+            lastTime = timestamp;
+            const timeScale = (dt / (1000 / 120)) * (slowMotionActive ? 0.333 : 1.0); // 3x slower physics for final explosion
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update(timeScale);
+                p.draw(ctx);
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            window.bossDeathAnimFrame = requestAnimationFrame(animate);
+        };
+        
+        window.bossDeathAnimFrame = requestAnimationFrame(animate);
+
+        window.addEventListener('resize', () => {
+            if (canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        });
+
+        let count = 0;
+        const totalShort = 20; // 20 rapid-fire short explosions
+        const delay = 150;
+
+        spawnParticles(false, 0); // Immediate first one
+        playAudio('sounds/explosion_short.ogg', { volume: 0.8 });
+        count++;
+
+        window.bossDeathSequenceInterval = setInterval(() => {
+            if (count < totalShort) {
+                playAudio('sounds/explosion_short.ogg', { volume: 0.8 });
+                spawnParticles(false, count);
+                count++;
+            } else {
+                clearInterval(window.bossDeathSequenceInterval);
+                // Final large explosion
+                playAudio('sounds/explosion_long.ogg', { volume: 1.0, playbackRate: 0.5 }); // Slowed 2x
+                slowMotionActive = true;
+                spawnParticles(true, count);
+                
+                // Show "You Lost" overlay instantly (hidden behind explosion)
+                showYouLostOverlay(explosionContainer);
+                
+                setTimeout(() => {
+                    explosionContainer.style.pointerEvents = 'none';
+                    explosionContainer.style.cursor = 'auto'; // Give cursor back so they can click buttons
+                }, 1500);
+            }
+        }, delay);
+    }
+
+    function showYouLostOverlay(explosionContainer) {
+        const lostContainer = document.createElement('div');
+        lostContainer.style.position = 'absolute';
+        lostContainer.style.inset = '0';
+        lostContainer.style.display = 'flex';
+        lostContainer.style.flexDirection = 'column';
+        lostContainer.style.justifyContent = 'center';
+        lostContainer.style.alignItems = 'center';
+        lostContainer.style.zIndex = '2147483646'; // Just below explosionContainer particles
+        lostContainer.id = 'boss-lost-container';
+        lostContainer.style.pointerEvents = 'auto';
+        
+        const title = document.createElement('div');
+        title.textContent = 'You Lost';
+        title.style.color = '#fff';
+        title.style.fontSize = '8rem';
+        title.style.fontWeight = 'bold';
+        title.style.textShadow = '0 0 20px rgba(0,0,0,0.8)';
+        title.style.marginBottom = '40px';
+        
+        const btnContainer = document.createElement('div');
+        btnContainer.style.display = 'flex';
+        btnContainer.style.gap = '20px';
+
+        const btnCove = document.createElement('button');
+        btnCove.textContent = 'Go back to The Cove';
+        btnCove.style.padding = '15px 30px';
+        btnCove.style.fontSize = '1.5rem';
+        btnCove.style.fontFamily = 'Courier New, monospace';
+        btnCove.style.fontWeight = 'bold';
+        btnCove.style.border = '2px solid #5a1111';
+        btnCove.style.backgroundColor = '#9e1a1a';
+        btnCove.style.color = '#fff';
+        btnCove.style.borderRadius = '5px';
+        btnCove.style.cursor = 'pointer';
+        btnCove.style.textShadow = '0 0 10px rgba(0,0,0,0.5)';
+        btnCove.style.boxShadow = '0 0 20px rgba(158, 26, 26, 0.5)';
+        btnCove.style.transition = 'all 0.2s ease';
+        
+        btnCove.onmouseover = () => {
+            btnCove.style.transform = 'scale(1.05)';
+            btnCove.style.boxShadow = '0 0 30px rgba(158, 26, 26, 0.8)';
+        };
+        btnCove.onmouseout = () => {
+            btnCove.style.transform = 'scale(1)';
+            btnCove.style.boxShadow = '0 0 20px rgba(158, 26, 26, 0.5)';
+        };
+
+        const btnAttempt = document.createElement('button');
+        btnAttempt.textContent = 'Give it another attempt';
+        btnAttempt.style.padding = '15px 30px';
+        btnAttempt.style.fontSize = '1.5rem';
+        btnAttempt.style.fontFamily = 'Courier New, monospace';
+        btnAttempt.style.fontWeight = 'bold';
+        btnAttempt.style.border = '2px solid #336633';
+        btnAttempt.style.backgroundColor = '#4CAF50';
+        btnAttempt.style.color = '#fff';
+        btnAttempt.style.borderRadius = '5px';
+        btnAttempt.style.cursor = 'pointer';
+        btnAttempt.style.textShadow = '0 0 10px rgba(0,0,0,0.5)';
+        btnAttempt.style.boxShadow = '0 0 20px rgba(76, 175, 80, 0.5)';
+        btnAttempt.style.transition = 'all 0.2s ease';
+        
+        btnAttempt.onmouseover = () => {
+            btnAttempt.style.transform = 'scale(1.05)';
+            btnAttempt.style.boxShadow = '0 0 30px rgba(76, 175, 80, 0.8)';
+        };
+        btnAttempt.onmouseout = () => {
+            btnAttempt.style.transform = 'scale(1)';
+            btnAttempt.style.boxShadow = '0 0 20px rgba(76, 175, 80, 0.5)';
+        };
+
+        btnCove.addEventListener('click', () => {
+            if (explosionContainer) explosionContainer.remove();
+            lostContainer.remove();
+            cleanup();
+            if (onComplete) onComplete({ beaten: false });
+        });
+
+        btnAttempt.addEventListener('click', () => {
+            if (explosionContainer) explosionContainer.remove();
+            lostContainer.remove();
+            cleanup();
+            playSecretDlgBossFightSequence(container, onComplete, options);
+        });
+
+        btnContainer.appendChild(btnCove);
+        btnContainer.appendChild(btnAttempt);
+
+        lostContainer.appendChild(title);
+        lostContainer.appendChild(btnContainer);
+
+        // Append to the explosion container so it inherits the same coordinate system and can be underneath canvas
+        explosionContainer.insertBefore(lostContainer, explosionContainer.firstChild);
+    }
+
     function playBombExplosion() {
         const explosionContainer = document.createElement('div');
+        explosionContainer.id = 'boss-death-explosion-container';
         explosionContainer.style.position = 'fixed';
         explosionContainer.style.top = '0';
         explosionContainer.style.left = '0';
@@ -985,6 +1240,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     }
     let isBossDead = false;
     let bossDeathTime = 0;
+    let isPlayerDead = false;
+    let playerDeathTime = 0;
+    let playingEvilLaughter = false;
     let landscapeSnapshot = null;
     let playingJawsSound = false;
     let jawsAudio = null;
@@ -1018,6 +1276,49 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         const dt = realDt * timeScaleMod;
         if (!lastSpawnTime) lastSpawnTime = timestamp;
         if (!isRunning) return;
+
+        if (playerLives <= 0 && !isPlayerDead) {
+            isPlayerDead = true;
+            playerDeathTime = performance.now();
+            playAudio('sounds/stop_right_there.ogg', { volume: 1.0 });
+            activeProjectiles = [];
+            activeBombColumns = [];
+            collectedAnimations = [];
+            splashAnimations = [];
+            if (bossMusic) { bossMusic.stop(); bossMusic = null; }
+            if (heartbeatAudio) { heartbeatAudio.stop(); heartbeatAudio = null; }
+            keys.left = false;
+            keys.right = false;
+        }
+
+        if (isPlayerDead) {
+            if (!hasRemovedCursorTrail && cursorTrail) {
+                cursorTrail.destroy();
+                hasRemovedCursorTrail = true;
+            }
+            if (!hasHiddenMobileButtons && mobileButtons?.length) {
+                mobileButtons.forEach((btn) => {
+                    btn.style.display = 'none';
+                    btn.style.pointerEvents = 'none';
+                });
+                hasHiddenMobileButtons = true;
+            }
+            keys.left = false;
+            keys.right = false;
+            
+            const timeSinceDeath = performance.now() - playerDeathTime;
+            if (timeSinceDeath >= 3000 && !playingEvilLaughter) {
+                playingEvilLaughter = true;
+                playAudio('sounds/evil_devious_laughter.ogg', { volume: 1.0 });
+                
+                // Audio track evil_devious_laughter.ogg is ~5 seconds long (actually we can just wait 5.5s or so, 
+                // but let's just do an approximate 5s delay or play it inside a setTimeout).
+                // Actually the audio length is roughly 5-6s. Let's start the sequence 5.5s later.
+                window.bossDeathSequenceTimeout = setTimeout(() => {
+                    playPlayerDeathSequence();
+                }, 5500); // Wait for the laugh to finish
+            }
+        }
 
         if (bossHp <= 0 && !isBossDead) {
             isBossDead = true;
@@ -1671,7 +1972,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 const currentSpawnInterval = 1000 / (20 + getDifficultyLevel() * 2);
         const effectiveSpawnInterval = currentSpawnInterval / timeScaleMod;
 
-        if (timestamp - lastSpawnTime >= effectiveSpawnInterval && currentBossWidth > 0 && !isBossDead) {
+        if (timestamp - lastSpawnTime >= effectiveSpawnInterval && currentBossWidth > 0 && !isBossDead && !isPlayerDead) {
             lastSpawnTime = timestamp;
             
             // Boss coordinates
@@ -1974,7 +2275,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             bombsHit++;
                             playerLives = Math.max(0, playerLives - 1);
                             updateLivesUI();
-                            playBombExplosion();
+                            if (playerLives > 0) {
+                                playBombExplosion();
+                            }
 							break;
                         }
                     }
@@ -2663,7 +2966,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             bombsHit++;
                         playerLives = Math.max(0, playerLives - 1);
                         updateLivesUI();
-                        playBombExplosion();
+                        if (playerLives > 0) {
+                            playBombExplosion();
+                        }
                         break;
                     }
                 } else if (prop.type === 'rubyCoin') {
@@ -2734,7 +3039,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             bombsHit++;
                             playerLives = Math.max(0, playerLives - 1);
                             updateLivesUI();
-                            playBombExplosion();
+                            if (playerLives > 0) {
+                                playBombExplosion();
+                            }
                             break;
                         }
                     }
@@ -2746,6 +3053,20 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
     function cleanup() {
         isRunning = false;
+        if (window.bossDeathSequenceInterval) {
+            clearInterval(window.bossDeathSequenceInterval);
+            window.bossDeathSequenceInterval = null;
+        }
+        if (window.bossDeathSequenceTimeout) {
+            clearTimeout(window.bossDeathSequenceTimeout);
+            window.bossDeathSequenceTimeout = null;
+        }
+        if (window.bossDeathAnimFrame) {
+            cancelAnimationFrame(window.bossDeathAnimFrame);
+            window.bossDeathAnimFrame = null;
+        }
+        const expCont = document.getElementById('boss-death-explosion-container');
+        if (expCont) expCont.remove();
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
             animationFrameId = null;
