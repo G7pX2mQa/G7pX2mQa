@@ -24,6 +24,27 @@ const LOG10_EXP_0_2 = 0.08685889638; // log10(e^0.2)
 const TSUNAMI_NERF_KEY = (slot) => `ccc:surge:tsunamiNerf:${slot}`;
 const TSUNAMI_SEEN_KEY = (slot) => `ccc:unlock:tsunami:${slot}`;
 
+const MAP_SEEN_KEY = (slot) => `ccc:unlock:mapSequence:${slot}`;
+
+export function getMapSequenceSeen() {
+  const slot = getActiveSlot();
+  if (slot == null) return false;
+  try {
+    return localStorage.getItem(MAP_SEEN_KEY(slot)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setMapSequenceSeen(value) {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+  const normalized = !!value;
+  try {
+    localStorage.setItem(MAP_SEEN_KEY(slot), normalized ? '1' : '0');
+  } catch {}
+}
+
 export function getTsunamiNerfKey(slot) {
   return TSUNAMI_NERF_KEY(slot);
 }
