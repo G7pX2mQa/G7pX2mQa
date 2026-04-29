@@ -519,23 +519,37 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
             const startMove = (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 keys[keyToSet] = true;
                 activeStyle();
             };
 
             const endMove = (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 keys[keyToSet] = false;
                 inactiveStyle();
             };
 
+            const stopProp = (e) => {
+                e.stopPropagation();
+            };
+
             btn.addEventListener('touchstart', startMove, { passive: false });
             btn.addEventListener('mousedown', startMove);
+            btn.addEventListener('pointerdown', startMove);
 
             btn.addEventListener('touchend', endMove, { passive: false });
             btn.addEventListener('touchcancel', endMove, { passive: false });
             btn.addEventListener('mouseup', endMove);
             btn.addEventListener('mouseleave', endMove);
+            btn.addEventListener('pointerup', endMove);
+            btn.addEventListener('pointercancel', endMove);
+            btn.addEventListener('pointerleave', endMove);
+
+            btn.addEventListener('pointermove', stopProp);
+            btn.addEventListener('mousemove', stopProp);
+            btn.addEventListener('touchmove', stopProp, { passive: false });
 
             uiContainer.appendChild(btn);
             return btn;
@@ -837,7 +851,10 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         const title = document.createElement('div');
         title.textContent = 'You Lost';
         title.style.color = '#fff';
-        title.style.fontSize = '8rem';
+        title.style.fontSize = 'clamp(60px, 15vw, 8rem)';
+        title.style.textAlign = 'center';
+        title.style.width = '100%';
+        title.style.lineHeight = '1';
         title.style.fontWeight = 'bold';
         title.style.textShadow = '0 0 20px rgba(0,0,0,0.8)';
         title.style.marginBottom = '40px';
@@ -845,6 +862,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         const btnContainer = document.createElement('div');
         btnContainer.style.display = 'flex';
         btnContainer.style.gap = '20px';
+        btnContainer.style.flexWrap = 'wrap';
+        btnContainer.style.justifyContent = 'center';
 
         const btnCove = document.createElement('button');
         btnCove.textContent = 'Go back to The Cove';
@@ -1427,7 +1446,10 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                             title.style.position = 'absolute';
                             title.style.top = '10%';
                             title.style.color = '#fff';
-                            title.style.fontSize = 'clamp(40px, 8vw, 80px)';
+                            title.style.fontSize = 'clamp(40px, 10vw, 80px)';
+                            title.style.textAlign = 'center';
+                            title.style.width = '100%';
+                            title.style.lineHeight = '1';
                             title.style.fontWeight = 'bold';
                             title.style.textShadow = '0 4px 8px rgba(0,0,0,0.8), -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000';
                             
