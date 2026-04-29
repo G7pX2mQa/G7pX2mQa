@@ -309,7 +309,6 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     healthBarWrapper.appendChild(hpBar);
     uiContainer.appendChild(healthBarWrapper);
 
-
     const INITIAL_PLAYER_LIVES = 5;
     let playerLives = INITIAL_PLAYER_LIVES;
     const livesContainer = document.createElement('div');
@@ -560,7 +559,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
         }
         
-        if ((e.key === 'r' || e.key === 'R') && !isBossDead) {
+        if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !isBossDead) {
             if (getLifetimeBossBeaten()) {
                 e.preventDefault();
                 cleanup();
@@ -1024,6 +1023,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             isBossDead = true;
             finalTimeTaken = performance.now() - bossStartTime;
             bossDeathTime = performance.now();
+			playAudio('sounds/stop_right_there.ogg', { volume: 1.0 });
             activeProjectiles = [];
             activeBombColumns = [];
             collectedAnimations = [];
