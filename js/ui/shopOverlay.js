@@ -966,10 +966,18 @@ class ShopInstance {
             
             const costType = upg.meta?.costType || 'coins';
             const useLockedBase = upg.useLockedBase || locked;
-            const baseSrc = useLockedBase ? LOCKED_BASE_ICON_SRC : (upg.baseIconOverride || BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins);
-            if (baseImgEl.src !== baseSrc) baseImgEl.src = baseSrc;
+            let baseSrc = useLockedBase ? LOCKED_BASE_ICON_SRC : (upg.baseIconOverride || BASE_ICON_SRC_BY_COST[costType] || BASE_ICON_SRC_BY_COST.coins);
+            let rawIcon = upg.icon;
             
-            const rawIcon = upg.icon;
+            if (rawIcon === 'img/misc/mysterious.webp' && baseSrc === LOCKED_BASE_ICON_SRC) {
+                baseSrc = 'img/misc/mysterious_plus_base.webp';
+                rawIcon = null; // Hide the separate icon since it's now in the base
+            } else if (rawIcon === 'img/misc/locked.webp' && baseSrc === LOCKED_BASE_ICON_SRC) {
+                baseSrc = 'img/misc/locked_plus_base.webp';
+                rawIcon = null; // Hide the separate icon since it's now in the base
+            }
+
+            if (baseImgEl.src !== baseSrc) baseImgEl.src = baseSrc;
             if (!rawIcon) {
                 if (!iconImgEl.hidden) iconImgEl.hidden = true;
             } else {
