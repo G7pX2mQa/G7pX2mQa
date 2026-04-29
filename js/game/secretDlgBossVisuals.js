@@ -850,8 +850,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         btnCove.textContent = 'Go back to The Cove';
         btnCove.style.padding = '15px 30px';
         btnCove.style.fontSize = '1.5rem';
-        btnCove.style.border = '5px solid #5a1111';
-        btnCove.style.backgroundColor = '#9e1a1a';
+        btnCove.style.border = '5px solid #7a1111';
+        btnCove.style.backgroundColor = 'rgba(158, 26, 26, 0.5)';
         btnCove.style.color = '#fff';
         btnCove.style.borderRadius = '0';
         btnCove.style.cursor = 'pointer';
@@ -869,10 +869,40 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         btnAttempt.style.boxShadow = 'none';
 
         btnCove.addEventListener('click', () => {
+            btnCove.disabled = true;
+
+            const teleportOverlay = document.createElement('div');
+            Object.assign(teleportOverlay.style, {
+                position: 'fixed',
+                inset: '0',
+                backgroundColor: 'black',
+                zIndex: '2147483647',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                color: 'white',
+                fontSize: 'clamp(24px, 4vw, 48px)',
+                textAlign: 'center',
+                pointerEvents: 'all'
+            });
+            teleportOverlay.textContent = 'Teleporting to The Cove...';
+            document.body.appendChild(teleportOverlay);
             if (explosionContainer) explosionContainer.remove();
             lostContainer.remove();
             cleanup();
-            if (onComplete) onComplete({ beaten: false });
+            let start = performance.now();
+            function pulseFrame(now) {
+                if (now - start < 450) {
+                    teleportOverlay.style.opacity = Math.random() > 0.5 ? '0.99' : '1';
+                    requestAnimationFrame(pulseFrame);
+                } else {
+                    if (onComplete) onComplete({ beaten: false });
+                    if (teleportOverlay.parentNode) {
+                        teleportOverlay.parentNode.removeChild(teleportOverlay);
+                    }
+                }
+            }
+            requestAnimationFrame(pulseFrame);
         });
 
         btnAttempt.addEventListener('click', () => {
@@ -890,6 +920,13 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
         // Append to the explosion container so it inherits the same coordinate system and can be underneath canvas
         explosionContainer.insertBefore(lostContainer, explosionContainer.firstChild);
+
+        requestAnimationFrame(() => {
+            const attemptWidth = btnAttempt.getBoundingClientRect().width;
+            if (attemptWidth > 0) {
+                btnCove.style.minWidth = `${Math.ceil(attemptWidth + 2)}px`;
+            }
+        });
     }
 
     function playBombExplosion() {
@@ -1284,13 +1321,25 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const timeSinceDeath = performance.now() - playerDeathTime;
             if (timeSinceDeath >= 3000 && !playingBuildupSfx) {
                 playingBuildupSfx = true;
-                playAudio('sounds/you_will_die_there_is_nowhere_to_run.ogg', { volume: 1.0 });
-                
-                // Audio track is ~5 seconds long
-                window.bossDeathSequenceTimeout = setTimeout(() => {
-                    playPlayerDeathSequence();
-                }, 500);
-            }
+                const buildupSfx = playAudio('sounds/you_will_die_there_is_nowhere_to_run.ogg', { volume: 1.0 });
+
+                const startDeathSequence = () => {
+                    if (window.bossDeathSequenceTimeout) return;
+                    window.bossDeathSequenceTimeout = setTimeout(() => {
+                        playPlayerDeathSequence();
+                    }, 0);
+                };
+
+                if (buildupSfx?.source) {
+                    buildupSfx.source.onended = startDeathSequence;
+                } else if (buildupSfx?.element) {
+                    buildupSfx.element.addEventListener('ended', startDeathSequence, { once: true });
+                } else {
+                    window.bossDeathSequenceTimeout = setTimeout(() => {
+                        playPlayerDeathSequence();
+                    }, 5000);
+                }
+			}
         }
 
         if (bossHp <= 0 && !isBossDead) {
