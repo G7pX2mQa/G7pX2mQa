@@ -507,19 +507,36 @@ export function updateRainbowGemShopTab() {
         const iconImg = btn.querySelector('.icon');
         
         if (baseImg) {
-            if (isMysterious) {
-                baseImg.src = 'img/misc/locked_base.webp';
-                baseImg.style.display = '';
-            } else if (locked || lockState?.useLockedBase) {
-                baseImg.src = 'img/misc/locked_base.webp';
+            let baseSrc = '';
+            let rawIcon = lockState?.iconOverride || upg.icon || 'img/currencies/rainbow_gem.webp';
+            
+            if (isMysterious || locked || lockState?.useLockedBase) {
+                baseSrc = 'img/misc/locked_base.webp';
+            }
+            
+            if (rawIcon === 'img/misc/mysterious.webp' && baseSrc === 'img/misc/locked_base.webp') {
+                baseSrc = 'img/misc/mysterious_plus_base.webp';
+                rawIcon = null;
+            } else if (rawIcon === 'img/misc/locked.webp' && baseSrc === 'img/misc/locked_base.webp') {
+                baseSrc = 'img/misc/locked_plus_base.webp';
+                rawIcon = null;
+            }
+            
+            if (baseSrc) {
+                baseImg.src = baseSrc;
                 baseImg.style.display = '';
             } else {
                 baseImg.style.display = 'none';
             }
-        }
-        
-        if (iconImg) {
-            iconImg.src = lockState?.iconOverride || upg.icon || 'img/currencies/rainbow_gem.webp';
+            
+            if (iconImg) {
+                if (rawIcon) {
+                    iconImg.src = rawIcon;
+                    iconImg.style.display = '';
+                } else {
+                    iconImg.style.display = 'none';
+                }
+            }
         }
 
         
