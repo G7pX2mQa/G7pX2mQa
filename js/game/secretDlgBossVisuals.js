@@ -1175,7 +1175,6 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                                 // Clean up the boss fight immediately so the DOM clears out
                                 // and the browser can switch states cleanly.
                                 setLifetimeBossBeaten();
-                                checkSecretAchievements();
                                 cleanup();
                                 
                                 // Run a short requestAnimationFrame pulse loop for 450ms
@@ -1192,6 +1191,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                                         }
                                         requestAnimationFrame(pulseFrame);
                                     } else {
+										checkSecretAchievements();
                                         if (onComplete) onComplete();
                                         
                                         if (teleportOverlay.parentNode) {
@@ -1611,21 +1611,23 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
 
             // Draw split landscape
             const splitGap = (currentBossWidth * 1.2) * splitProgress;
+			const leftMove = splitGap / 2;
+            const rightMove = leftMove * 0.96;
             
             // Left half
             ctx.save();
             ctx.beginPath();
-            ctx.rect(0, 0, width / 2 - splitGap / 2, height);
+            ctx.rect(0, 0, width / 2 - leftMove, height);
             ctx.clip();
-            ctx.drawImage(landscapeSnapshot, -splitGap / 2, 0);
+            ctx.drawImage(landscapeSnapshot, -leftMove, 0);
             ctx.restore();
 
             // Right half
             ctx.save();
             ctx.beginPath();
-            ctx.rect(width / 2 + splitGap / 2, 0, width / 2 - splitGap / 2, height);
+            ctx.rect(width / 2 + rightMove, 0, width / 2 - rightMove, height);
             ctx.clip();
-            ctx.drawImage(landscapeSnapshot, splitGap / 2, 0);
+            ctx.drawImage(landscapeSnapshot, rightMove, 0);
             ctx.restore();
 
         } else {
@@ -1714,7 +1716,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 projType = "rubyCoin";
                 rubyCoinSpawned = true;
                 window.forceRubyCoinTest = false;
-            } else if (playerLives < INITIAL_PLAYER_LIVES && Math.random() < 0.0025) {
+            } else if (playerLives < INITIAL_PLAYER_LIVES && Math.random() < 0.001) {
                 projType = "life";
             } else if (Math.random() >= bombChance) {
                 projType = "coin";
