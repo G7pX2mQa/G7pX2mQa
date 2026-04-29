@@ -1,5 +1,6 @@
 import { createSASOverlay } from './sasOverlayBuilder.js';
 import { getTsunamiSequenceSeen } from '../../game/surgeEffects.js';
+import { getLifetimeBossBeaten } from '../../game/secretAchievements.js';
 import { getActiveSlot } from '../../util/storage.js';
 
 const SHORTCUTS_PERMA_UNLOCK_KEY_BASE = 'ccc:shortcuts:permaUnlocks';
@@ -85,6 +86,16 @@ function populateShortcutsOverlay(overlayEl) {
     { key: "Esc", desc: "Inside any overlay, pressing Esc will instantly close all currently open overlays with a few exceptions." }
   ];
 
+  let isBossBeaten = isShortcutTextPermanentlyUnlocked(2);
+  if (!isBossBeaten && typeof getLifetimeBossBeaten === 'function' && getLifetimeBossBeaten()) {
+    isBossBeaten = true;
+    markShortcutTextPermanentlyUnlocked(2);
+  }
+
+  if (isBossBeaten) {
+    shortcuts.push({ id: "r", key: "R", desc: "In the secret Merchant boss fight, press R to restart the fight immediately." });
+  }
+
   shortcuts.forEach(shortcut => {
     const row = document.createElement("div");
     row.className = "setting-row";
@@ -166,6 +177,19 @@ if (typeof window !== 'undefined') {
           const baseDesc = "On any sort of Shop upgrade, right-click its icon to perform a Buy Max onto it.";
           rcDescEl.textContent = baseDesc + " Right-click also can be used to instantly toggle Lab Nodes.";
         }
+      }
+    }
+
+    if (e.detail && e.detail.key === 'secretBossBeaten') {
+      let isBossBeaten = isShortcutTextPermanentlyUnlocked(2);
+      if (!isBossBeaten && typeof getLifetimeBossBeaten === 'function' && getLifetimeBossBeaten()) {
+        markShortcutTextPermanentlyUnlocked(2);
+        
+        const overlayEl = shortcutsOverlay.overlayEl;
+        if (!overlayEl) return;
+        
+        // Re-render the shortcuts overlay to include the new shortcut
+        populateShortcutsOverlay(overlayEl);
       }
     }
   });
