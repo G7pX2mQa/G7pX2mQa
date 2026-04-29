@@ -5,7 +5,7 @@ import { createCursorTrail } from './cursorTrail.js';
 import { settingsManager } from './settingsManager.js';
 import { formatNumber } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
-import { setLifetimeBossBeaten, checkSecretAchievements } from './secretAchievements.js';
+import { setLifetimeBossBeaten, getLifetimeBossBeaten, checkSecretAchievements } from './secretAchievements.js';
 
 const COIN_VOLUME = IS_MOBILE ? 0.12 : 0.3;
 
@@ -571,6 +571,14 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             if (desktopArrows) {
                 desktopArrows.forEach(arr => arr.remove());
                 desktopArrows = null;
+            }
+        }
+        
+        if ((e.key === 'r' || e.key === 'R') && !isBossDead) {
+            if (getLifetimeBossBeaten()) {
+                e.preventDefault();
+                cleanup();
+                playSecretDlgBossFightSequence(container, onComplete, options);
             }
         }
     }
