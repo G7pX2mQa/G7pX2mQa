@@ -44,6 +44,8 @@ import {
   getBookProductionRate, 
   getSurge6WealthMultipliers, 
   getTsunamiSequenceSeen,
+  getMapSequenceSeen,
+  setMapSequenceSeen,
   setTsunamiSequenceSeen,
   isSurgeActive,
   getTsunamiExponent,
@@ -67,6 +69,8 @@ import { showDelayedGoalNotifications, updateGameProgressBar } from '../gameProg
 import { showDelayedSecretAchievementNotifications, checkSecretAchievements, setLifetimeUselessExperiment } from '../../game/secretAchievements.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
+import { unlockMap } from '../hudButtons.js';
+import { openMapOverlay } from '../mapOverlay.js';
 import { getWaterwheelGoldMultiplier } from './flowTab.js';
 import { settingsManager } from '../../game/settingsManager.js';
 import { checkAchievements } from '../../game/achievements.js';
@@ -1538,10 +1542,34 @@ export function performSurgeReset() {
       }
   }
   
-  let isSurge8 = false;
-  if (potentialLevel === Infinity) isSurge8 = true;
-  else if (typeof potentialLevel === 'bigint') isSurge8 = potentialLevel >= 8n;
-  else if (typeof potentialLevel === 'number') isSurge8 = potentialLevel >= 8;
+    let isSurge8 = false;
+  let isSurge125 = false;
+  if (potentialLevel === Infinity) {
+      isSurge8 = true;
+      isSurge125 = true;
+  }
+  else if (typeof potentialLevel === 'bigint') {
+      isSurge8 = potentialLevel >= 8n;
+      isSurge125 = potentialLevel >= 125n;
+  }
+  else if (typeof potentialLevel === 'number') {
+      isSurge8 = potentialLevel >= 8;
+      isSurge125 = potentialLevel >= 125;
+  }
+  
+  if (isSurge125 && !getMapSequenceSeen()) {
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:stopMusic'));
+      if (window.spawner && typeof window.spawner.stop === 'function') window.spawner.stop();
+      try { closeShop(true); } catch {}
+      try { closeMerchant(); } catch {}
+      
+      unlockMap();
+      setMapSequenceSeen(true);
+      openMapOverlay(true);
+      
+      applySurgeResetLogic(reward, { playEffects: false });
+      return true;
+  }
   
   // Check sequence condition
   if (isSurge8 && !getTsunamiSequenceSeen()) {
