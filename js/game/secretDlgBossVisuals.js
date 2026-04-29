@@ -308,20 +308,6 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     hpBar.appendChild(hpBarFrame);
     healthBarWrapper.appendChild(hpBar);
     uiContainer.appendChild(healthBarWrapper);
-    const debugBtn = document.createElement('button');
-    debugBtn.textContent = "Set boss to 1 hp";
-    debugBtn.style.position = 'absolute';
-    debugBtn.style.bottom = '10px';
-    debugBtn.style.right = '10px';
-    debugBtn.style.zIndex = '999999';
-    debugBtn.style.pointerEvents = 'auto'; // allow clicks
-    debugBtn.addEventListener('click', () => {
-        bossHp = 1;
-        updateBossHpUI();
-        updateMusicSpeed();
-        debugBtn.style.display = 'none'; // disappear after use
-    });
-    uiContainer.appendChild(debugBtn);
 
 
     const INITIAL_PLAYER_LIVES = 5;
