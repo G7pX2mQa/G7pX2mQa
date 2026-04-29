@@ -1312,7 +1312,7 @@ const engine = new DialogueEngine({
   const script = structuredClone(MERCHANT_DIALOGUES[scriptId]);
 
   if (meta.scriptId === 6 && script?.nodes?.m3a && getLifetimeBossBeaten()) {
-      script.nodes.m3a.say = 'Hey, you already beat me in the boss battle, why are you back again? Whatever. Starting boss battlႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤৔ᚈ௮ᤙᕘ᧤⢞ॿⅉਟၨҮႻᾡ⅌͓Ⓕяⵠⷳᕛ⣊ၧ಼ᝧ⪤ԃ✓ó⎻᭣ᡍᐍᏭᘫᲘ⬪⤯➚႐ᙠໍґሜ⟒ἐᩬೀⴲᔦⳄѯᣆҫ⤄╮ቼ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ⩭ල፫ᶰ⌰⽶ᱣ᝕ᢷ₠ᎧἬⶪ⾑⼱₱ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ';
+      script.nodes.m3a.say = 'Hey, you already beat me in the boss battle, why are you back again? Whatever. Starting boss battl<span style="overflow-wrap: anywhere; word-break: break-all;">ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ᷵Ƈᜉ⍕᪕␤৔ᚈ௮ᤙᕘ᧤⢞ॿⅉਟၨҮႻᾡ⅌͓Ⓕяⵠⷳᕛ⣊ၧ಼ᝧ⪤ԃ✓ó⎻᭣ᡍᐍᏭᘫᲘ⬪⤯➚႐ᙠໍґሜ⟒ἐᩬೀⴲᔦⳄѯᣆҫ⤄╮ቼ✓ணၷᘑർ‫༡࿷᭭⋚ᬭᠴ⩭ල፫ᶰ⌰⽶ᱣ᝕ᢷ₠ᎧἬⶪ⾑⼱₱ႁᩓഡᗌԈ˃ɫᵝӬӉ̕ƞ❨▯Ḭ≽∈ኖক⇋ಽ✓≽ணၷᘑർ࿷᭭⋚ᬭᠴ</span>';
   }
 
   if (meta.reward && !meta.rewardNode) {
