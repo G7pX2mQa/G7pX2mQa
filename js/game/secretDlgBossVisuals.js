@@ -850,48 +850,23 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
         btnCove.textContent = 'Go back to The Cove';
         btnCove.style.padding = '15px 30px';
         btnCove.style.fontSize = '1.5rem';
-        btnCove.style.fontFamily = 'Courier New, monospace';
-        btnCove.style.fontWeight = 'bold';
-        btnCove.style.border = '2px solid #5a1111';
+        btnCove.style.border = '5px solid #5a1111';
         btnCove.style.backgroundColor = '#9e1a1a';
         btnCove.style.color = '#fff';
-        btnCove.style.borderRadius = '5px';
+        btnCove.style.borderRadius = '0';
         btnCove.style.cursor = 'pointer';
         btnCove.style.textShadow = '0 0 10px rgba(0,0,0,0.5)';
-        btnCove.style.boxShadow = '0 0 20px rgba(158, 26, 26, 0.5)';
-        btnCove.style.transition = 'all 0.2s ease';
-        
-        btnCove.onmouseover = () => {
-            btnCove.style.transform = 'scale(1.05)';
-            btnCove.style.boxShadow = '0 0 30px rgba(158, 26, 26, 0.8)';
-        };
-        btnCove.onmouseout = () => {
-            btnCove.style.transform = 'scale(1)';
-            btnCove.style.boxShadow = '0 0 20px rgba(158, 26, 26, 0.5)';
-        };
+        btnCove.style.boxShadow = 'none';
 
         const btnAttempt = document.createElement('button');
         btnAttempt.textContent = 'Give it another attempt';
+        btnAttempt.className = 'shop-delve';
+        btnAttempt.style.padding = '15px 30px';
         btnAttempt.style.fontSize = '1.5rem';
-        btnAttempt.style.fontFamily = 'Courier New, monospace';
-        btnAttempt.style.fontWeight = 'bold';
         btnAttempt.style.border = '5px solid hsl(150 60% 35% / .45)';
         btnAttempt.style.backgroundColor = 'hsl(150 60% 35% / .50)';
-        btnAttempt.style.color = '#fff';
-        btnAttempt.style.borderRadius = '5px';
-        btnAttempt.style.cursor = 'pointer';
-        btnAttempt.style.textShadow = '0 0 10px rgba(0,0,0,0.5)';
-        btnAttempt.style.boxShadow = '0 0 20px rgba(28, 143, 86, 0.5)';
-        btnAttempt.style.transition = 'all 0.2s ease';
-        
-        btnAttempt.onmouseover = () => {
-            btnAttempt.style.transform = 'scale(1.05)';
-            btnAttempt.style.boxShadow = '0 0 30px rgba(28, 143, 86, 0.8)';
-        };
-        btnAttempt.onmouseout = () => {
-            btnAttempt.style.transform = 'scale(1)';
-            btnAttempt.style.boxShadow = '0 0 20px rgba(28, 143, 86, 0.5)';
-        };
+        btnAttempt.style.borderRadius = '0';
+        btnAttempt.style.boxShadow = 'none';
 
         btnCove.addEventListener('click', () => {
             if (explosionContainer) explosionContainer.remove();
