@@ -43,201 +43,204 @@ function closeMapOverlay(overlay, sheet) {
     }, 220); // Match transition time
 }
 
-export function openMapOverlay(isFirstTime = false) {
+
+export function ensureMapOverlay() {
     let overlay = document.getElementById('map-overlay');
-    let sheet;
+    if (overlay) return;
+
+    overlay = document.createElement('div');
+    overlay.id = 'map-overlay';
+    overlay.className = 'shop-overlay map-overlay'; // Inherit shop-overlay positioning/z-index properties, use map-overlay for specific styles
     
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'map-overlay';
-        overlay.className = 'shop-overlay map-overlay'; // Inherit shop-overlay positioning/z-index properties, use map-overlay for specific styles
-        
-        sheet = document.createElement('div');
-        sheet.className = 'shop-sheet map-sheet';
-        sheet.setAttribute('role', 'dialog');
-        
-        const grabber = document.createElement('div');
-        grabber.className = 'shop-grabber';
-        grabber.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
-        
-        setupDragToClose(grabber, sheet, () => isMapOverlayOpen, () => {
-            closeMapOverlay(overlay, sheet);
-        });
+    const sheet = document.createElement('div');
+    sheet.className = 'shop-sheet map-sheet';
+    sheet.setAttribute('role', 'dialog');
+    
+    const grabber = document.createElement('div');
+    grabber.className = 'shop-grabber';
+    grabber.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
+    
+    setupDragToClose(grabber, sheet, () => isMapOverlayOpen, () => {
+        closeMapOverlay(overlay, sheet);
+    });
 
-        const content = document.createElement('div');
+    const content = document.createElement('div');
 
-        // New Sky and Water Background
-        const mapBackground = document.createElement('div');
-        mapBackground.className = 'map-background';
+    // New Sky and Water Background
+    const mapBackground = document.createElement('div');
+    mapBackground.className = 'map-background';
 
-        const mapSky = document.createElement('div');
-        mapSky.className = 'map-sky';
+    const mapSky = document.createElement('div');
+    mapSky.className = 'map-sky';
 
-        const mapWaterContainer = document.createElement('div');
-        mapWaterContainer.className = 'map-water-container';
+    const mapWaterContainer = document.createElement('div');
+    mapWaterContainer.className = 'map-water-container';
 
-        const mapWaterSurface = document.createElement('div');
-        mapWaterSurface.className = 'map-water-surface';
-        
-        const mapWaterSurfaceLeft = document.createElement('div');
-        mapWaterSurfaceLeft.className = 'map-water-surface-left';
-        
-        const mapWaterSurfaceRight = document.createElement('div');
-        mapWaterSurfaceRight.className = 'map-water-surface-right';
+    const mapWaterSurface = document.createElement('div');
+    mapWaterSurface.className = 'map-water-surface';
+    
+    const mapWaterSurfaceLeft = document.createElement('div');
+    mapWaterSurfaceLeft.className = 'map-water-surface-left';
+    
+    const mapWaterSurfaceRight = document.createElement('div');
+    mapWaterSurfaceRight.className = 'map-water-surface-right';
 
-        mapWaterSurface.appendChild(mapWaterSurfaceLeft);
-        mapWaterSurface.appendChild(mapWaterSurfaceRight);
+    mapWaterSurface.appendChild(mapWaterSurfaceLeft);
+    mapWaterSurface.appendChild(mapWaterSurfaceRight);
 
-        const mapWaterBody = document.createElement('div');
-        mapWaterBody.className = 'map-water-body';
+    const mapWaterBody = document.createElement('div');
+    mapWaterBody.className = 'map-water-body';
 
-        mapWaterContainer.appendChild(mapWaterSurface);
-        mapWaterContainer.appendChild(mapWaterBody);
+    mapWaterContainer.appendChild(mapWaterSurface);
+    mapWaterContainer.appendChild(mapWaterBody);
 
-        mapBackground.appendChild(mapSky);
-        mapBackground.appendChild(mapWaterContainer);
-        content.appendChild(mapBackground);
-        content.className = 'shop-content map-content';
+    mapBackground.appendChild(mapSky);
+    mapBackground.appendChild(mapWaterContainer);
+    content.appendChild(mapBackground);
+    content.className = 'shop-content map-content';
 
-        
-        // Bubbles/skylight effects
-        const bubblesContainer = document.createElement('div');
-        bubblesContainer.className = 'map-bubbles-container';
-        for (let i = 0; i < 15; i++) {
-            const bubble = document.createElement('div');
-            bubble.className = 'map-bubble';
-            const size = Math.random() * 10 + 5;
-            bubble.style.width = `${size}px`;
-            bubble.style.height = `${size}px`;
-            bubble.style.left = `${Math.random() * 100}%`;
-            bubble.style.animationDuration = `${Math.random() * 30 + 20}s`;
-            bubble.style.animationDelay = `${Math.random() * 20}s`;
-            bubblesContainer.appendChild(bubble);
+    
+    // Bubbles/skylight effects
+    const bubblesContainer = document.createElement('div');
+    bubblesContainer.className = 'map-bubbles-container';
+    for (let i = 0; i < 15; i++) {
+        const bubble = document.createElement('div');
+        bubble.className = 'map-bubble';
+        const size = Math.random() * 10 + 5;
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.left = `${Math.random() * 100}%`;
+        bubble.style.animationDuration = `${Math.random() * 30 + 20}s`;
+        bubble.style.animationDelay = `${Math.random() * 20}s`;
+        bubblesContainer.appendChild(bubble);
+    }
+    content.appendChild(bubblesContainer);
+
+    const title = document.createElement('h1');
+    title.textContent = 'The Ocean';
+    title.style.position = 'absolute';
+    title.style.top = '5vh';
+    title.style.width = '100%';
+    title.style.textAlign = 'center';
+    title.style.color = 'white';
+    title.style.textShadow = '2px 2px 4px black';
+    title.style.margin = '0';
+    title.style.zIndex = '2';
+    content.appendChild(title);
+
+    const nodesContainer = document.createElement('div');
+    nodesContainer.style.position = 'relative';
+    nodesContainer.style.width = '100%';
+    nodesContainer.style.height = '100%';
+    nodesContainer.style.flex = '1';
+    nodesContainer.style.zIndex = '2';
+
+    const nodes = [
+        { id: 'cove', name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '20%', left: '50%', defaultLocked: false },
+        { id: 'cavern', name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '35%', left: '75%', defaultLocked: true },
+        { id: 'coral', name: 'Coral Reef', icon: 'img/misc/locked_plus_base.webp', top: '50%', left: '25%', defaultLocked: true },
+        { id: 'depths', name: 'Deep Depths', icon: 'img/misc/locked_plus_base.webp', top: '85%', left: '50%', defaultLocked: true }
+    ];
+
+    nodes.forEach(node => {
+        const isLocked = isNodeLocked(node.id, node.defaultLocked);
+        const btn = document.createElement('button');
+        btn.style.position = 'absolute';
+        btn.style.top = node.top;
+        btn.style.left = node.left;
+        btn.style.transform = 'translate(-50%, -50%)';
+        btn.style.background = 'none';
+        btn.style.border = 'none';
+        btn.style.cursor = isLocked ? 'not-allowed' : 'pointer';
+        btn.style.display = 'flex';
+        btn.style.flexDirection = 'column';
+        btn.style.alignItems = 'center';
+        btn.style.color = 'white';
+        btn.style.textShadow = '1px 1px 2px black';
+
+        const img = document.createElement('img');
+        img.src = node.icon;
+        img.style.width = '64px';
+        img.style.height = '64px';
+        img.style.marginBottom = '8px';
+        if (isLocked) {
+            img.style.filter = 'grayscale(100%)';
+            img.style.opacity = '0.7';
         }
-        content.appendChild(bubblesContainer);
 
-        const title = document.createElement('h1');
-        title.textContent = 'The Ocean';
-        title.style.position = 'absolute';
-        title.style.top = '5vh';
-        title.style.width = '100%';
-        title.style.textAlign = 'center';
-        title.style.color = 'white';
-        title.style.textShadow = '2px 2px 4px black';
-        title.style.margin = '0';
-        title.style.zIndex = '2';
-        content.appendChild(title);
+        const label = document.createElement('span');
+        label.textContent = node.name;
+        label.style.fontWeight = 'bold';
 
-        const nodesContainer = document.createElement('div');
-        nodesContainer.style.position = 'relative';
-        nodesContainer.style.width = '100%';
-        nodesContainer.style.height = '100%';
-        nodesContainer.style.flex = '1';
-        nodesContainer.style.zIndex = '2';
+        btn.appendChild(img);
+        btn.appendChild(label);
 
-        const nodes = [
-            { id: 'cove', name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '20%', left: '50%', defaultLocked: false },
-            { id: 'cavern', name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '35%', left: '75%', defaultLocked: true },
-            { id: 'coral', name: 'Coral Reef', icon: 'img/misc/locked_plus_base.webp', top: '50%', left: '25%', defaultLocked: true },
-            { id: 'depths', name: 'Deep Depths', icon: 'img/misc/locked_plus_base.webp', top: '85%', left: '50%', defaultLocked: true }
-        ];
+        btn.onclick = () => {
+            if (isLocked) return;
+            if (IS_MOBILE) blockInteraction(500);
 
-        nodes.forEach(node => {
-            const isLocked = isNodeLocked(node.id, node.defaultLocked);
-            const btn = document.createElement('button');
-            btn.style.position = 'absolute';
-            btn.style.top = node.top;
-            btn.style.left = node.left;
-            btn.style.transform = 'translate(-50%, -50%)';
-            btn.style.background = 'none';
-            btn.style.border = 'none';
-            btn.style.cursor = isLocked ? 'not-allowed' : 'pointer';
-            btn.style.display = 'flex';
-            btn.style.flexDirection = 'column';
-            btn.style.alignItems = 'center';
-            btn.style.color = 'white';
-            btn.style.textShadow = '1px 1px 2px black';
+            const teleportMsg = document.createElement('div');
+            teleportMsg.className = 'map-teleporting-message';
+            teleportMsg.textContent = `Teleporting to ${node.name}...`;
+            overlay.appendChild(teleportMsg);
 
-            const img = document.createElement('img');
-            img.src = node.icon;
-            img.style.width = '64px';
-            img.style.height = '64px';
-            img.style.marginBottom = '8px';
-            if (isLocked) {
-                img.style.filter = 'grayscale(100%)';
-                img.style.opacity = '0.7';
-            }
-
-            const label = document.createElement('span');
-            label.textContent = node.name;
-            label.style.fontWeight = 'bold';
-
-            btn.appendChild(img);
-            btn.appendChild(label);
-
-            btn.onclick = () => {
-                if (isLocked) return;
-                if (IS_MOBILE) blockInteraction(500);
-
-                const teleportMsg = document.createElement('div');
-                teleportMsg.className = 'map-teleporting-message';
-                teleportMsg.textContent = `Teleporting to ${node.name}...`;
-                overlay.appendChild(teleportMsg);
-
-                // Force reflow
-                teleportMsg.offsetHeight;
-                teleportMsg.classList.add('show');
-
-                setTimeout(() => {
-                    teleportMsg.remove();
-                    closeMapOverlay(overlay, sheet);
-                }, 450);
-            };
-
-            nodesContainer.appendChild(btn);
-        });
-
-        content.appendChild(nodesContainer);
-        
-        const actions = document.createElement('div');
-        actions.className = 'shop-actions';
-        
-        const closeBtn = document.createElement('button');
-        closeBtn.type = 'button';
-        closeBtn.className = 'shop-close';
-        closeBtn.textContent = 'Close';
-        closeBtn.onclick = () => {
-            closeMapOverlay(overlay, sheet);
-        };
-        
-        actions.appendChild(closeBtn);
-        
-        sheet.appendChild(grabber);
-        sheet.appendChild(content);
-        sheet.appendChild(actions);
-        overlay.appendChild(sheet);
-
-        document.body.appendChild(overlay);
-        
-        // Add first time fade element right away if needed
-        if (isFirstTime) {
-            const firstTimeFade = document.createElement('div');
-            firstTimeFade.className = 'map-first-time-fade';
-            document.body.appendChild(firstTimeFade);
-            
             // Force reflow
-            firstTimeFade.offsetHeight;
-            
-            // Start fade out
-            firstTimeFade.style.opacity = '0';
-            
-            setTimeout(() => {
-                firstTimeFade.remove();
-            }, 5000);
-        }
+            teleportMsg.offsetHeight;
+            teleportMsg.classList.add('show');
 
-    } else {
-        sheet = overlay.querySelector('.map-sheet');
+            setTimeout(() => {
+                teleportMsg.remove();
+                closeMapOverlay(overlay, sheet);
+            }, 450);
+        };
+
+        nodesContainer.appendChild(btn);
+    });
+
+    content.appendChild(nodesContainer);
+    
+    const actions = document.createElement('div');
+    actions.className = 'shop-actions';
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'shop-close';
+    closeBtn.textContent = 'Close';
+    closeBtn.onclick = () => {
+        closeMapOverlay(overlay, sheet);
+    };
+    
+    actions.appendChild(closeBtn);
+    
+    sheet.appendChild(grabber);
+    sheet.appendChild(content);
+    sheet.appendChild(actions);
+    overlay.appendChild(sheet);
+
+    document.body.appendChild(overlay);
+}
+
+export function openMapOverlay(isFirstTime = false) {
+    ensureMapOverlay();
+    
+    let overlay = document.getElementById('map-overlay');
+    let sheet = overlay.querySelector('.map-sheet');
+    
+    // Add first time fade element right away if needed
+    if (isFirstTime) {
+        const firstTimeFade = document.createElement('div');
+        firstTimeFade.className = 'map-first-time-fade';
+        document.body.appendChild(firstTimeFade);
+        
+        // Force reflow
+        firstTimeFade.offsetHeight;
+        
+        // Start fade out
+        firstTimeFade.style.opacity = '0';
+        
+        setTimeout(() => {
+            firstTimeFade.remove();
+        }, 5000);
     }
 
     isMapOverlayOpen = true;
