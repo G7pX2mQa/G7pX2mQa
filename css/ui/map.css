@@ -145,8 +145,11 @@
     20% {
         opacity: 0.8;
     }
-    80% {
+    70% {
         opacity: 0.6;
+    }
+    78% {
+        opacity: 0;
     }
     100% {
         transform: translateY(-120vh) scale(1.5);
