@@ -65,17 +65,40 @@ export function openMapOverlay(isFirstTime = false) {
         });
 
         const content = document.createElement('div');
+
+        // New Sky and Water Background
+        const mapBackground = document.createElement('div');
+        mapBackground.className = 'map-background';
+
+        const mapSky = document.createElement('div');
+        mapSky.className = 'map-sky';
+
+        const mapWaterContainer = document.createElement('div');
+        mapWaterContainer.className = 'map-water-container';
+
+        const mapWaterSurface = document.createElement('div');
+        mapWaterSurface.className = 'map-water-surface';
+        
+        const mapWaterSurfaceLeft = document.createElement('div');
+        mapWaterSurfaceLeft.className = 'map-water-surface-left';
+        
+        const mapWaterSurfaceRight = document.createElement('div');
+        mapWaterSurfaceRight.className = 'map-water-surface-right';
+
+        mapWaterSurface.appendChild(mapWaterSurfaceLeft);
+        mapWaterSurface.appendChild(mapWaterSurfaceRight);
+
+        const mapWaterBody = document.createElement('div');
+        mapWaterBody.className = 'map-water-body';
+
+        mapWaterContainer.appendChild(mapWaterSurface);
+        mapWaterContainer.appendChild(mapWaterBody);
+
+        mapBackground.appendChild(mapSky);
+        mapBackground.appendChild(mapWaterContainer);
+        content.appendChild(mapBackground);
         content.className = 'shop-content map-content';
 
-        // Animated Waves
-        const wavesContainer = document.createElement('div');
-        wavesContainer.className = 'map-waves-container';
-        wavesContainer.innerHTML = `
-            <div class="map-wave map-wave-3"></div>
-            <div class="map-wave map-wave-2"></div>
-            <div class="map-wave map-wave-1"></div>
-        `;
-        content.appendChild(wavesContainer);
         
         // Bubbles/skylight effects
         const bubblesContainer = document.createElement('div');
@@ -87,8 +110,8 @@ export function openMapOverlay(isFirstTime = false) {
             bubble.style.width = `${size}px`;
             bubble.style.height = `${size}px`;
             bubble.style.left = `${Math.random() * 100}%`;
-            bubble.style.animationDuration = `${Math.random() * 3 + 2}s`;
-            bubble.style.animationDelay = `${Math.random() * 2}s`;
+            bubble.style.animationDuration = `${Math.random() * 30 + 20}s`;
+            bubble.style.animationDelay = `${Math.random() * 20}s`;
             bubblesContainer.appendChild(bubble);
         }
         content.appendChild(bubblesContainer);
@@ -113,9 +136,9 @@ export function openMapOverlay(isFirstTime = false) {
         nodesContainer.style.zIndex = '2';
 
         const nodes = [
-            { id: 'cove', name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '25%', left: '50%', defaultLocked: false },
-            { id: 'cavern', name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '45%', left: '75%', defaultLocked: false },
-            { id: 'coral', name: 'Coral Reef', icon: 'img/misc/locked_plus_base.webp', top: '65%', left: '25%', defaultLocked: true },
+            { id: 'cove', name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '20%', left: '50%', defaultLocked: false },
+            { id: 'cavern', name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '35%', left: '75%', defaultLocked: true },
+            { id: 'coral', name: 'Coral Reef', icon: 'img/misc/locked_plus_base.webp', top: '50%', left: '25%', defaultLocked: true },
             { id: 'depths', name: 'Deep Depths', icon: 'img/misc/locked_plus_base.webp', top: '85%', left: '50%', defaultLocked: true }
         ];
 
