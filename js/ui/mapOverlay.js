@@ -111,7 +111,7 @@ export function ensureMapOverlay() {
         bubble.style.height = `${size}px`;
         bubble.style.left = `${Math.random() * 100}%`;
         bubble.style.animationDuration = `${Math.random() * 30 + 20}s`;
-        bubble.style.animationDelay = `${Math.random() * 20}s`;
+        bubble.style.animationDelay = `-${Math.random() * 20}s`;
         bubblesContainer.appendChild(bubble);
     }
     content.appendChild(bubblesContainer);
