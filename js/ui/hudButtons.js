@@ -1,7 +1,7 @@
 // js/ui/hudButtons.js
 
 import { openHelpOverlay } from './helpOverlay.js';
-import { openMapOverlay } from './mapOverlay.js';
+import { openMapOverlay, ensureMapOverlay } from './mapOverlay.js';
 import { openShop } from './shopOverlay.js';
 import { openSasOverlay } from './sas/sasOverlay.js';
 import { ensureMerchantOverlay } from './merchantTabs/dlgTab.js';
@@ -174,9 +174,9 @@ export function initHudButtons() {
   // This is a performance optimization to ensure the heavy DOM is ready
   // before the user clicks the "Delve" button in the shop.
   if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(() => ensureMerchantOverlay(), { timeout: 5000 });
+    window.requestIdleCallback(() => { ensureMerchantOverlay(); ensureMapOverlay(); }, { timeout: 5000 });
   } else {
-    setTimeout(() => ensureMerchantOverlay(), 100);
+    setTimeout(() => { ensureMerchantOverlay(); ensureMapOverlay(); }, 100);
   }
 
   if (!listenersBound) {
