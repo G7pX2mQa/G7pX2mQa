@@ -1,5 +1,6 @@
-
 import { getActiveSlot } from '../util/storage.js';
+import { setupDragToClose, blockInteraction } from './shopOverlay.js';
+import { IS_MOBILE } from '../main.js';
 
 const MAP_NODE_LOCKED_KEY = (id, slot) => `ccc:map:locked:${id}:${slot}`;
 
@@ -17,39 +18,80 @@ function setNodeLocked(id, locked) {
     localStorage.setItem(MAP_NODE_LOCKED_KEY(id, slot), locked ? '1' : '0');
 }
 
+let isMapOverlayOpen = false;
+
+function closeMapOverlay(overlay, sheet) {
+    if (!isMapOverlayOpen) return;
+    isMapOverlayOpen = false;
+    
+    if (sheet) {
+        sheet.style.transform = 'translateY(100%)';
+    }
+    
+    setTimeout(() => {
+        if (overlay) {
+            overlay.classList.remove('is-open');
+        }
+        
+        // Restart music and spawning when exiting
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('audio:restartMusic'));
+            if (window.spawner && typeof window.spawner.start === 'function') {
+                window.spawner.start();
+            }
+        }
+    }, 220); // Match transition time
+}
+
 export function openMapOverlay(isFirstTime = false) {
     let overlay = document.getElementById('map-overlay');
+    let sheet;
+    
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = 'map-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.inset = '0';
-        overlay.style.zIndex = '2147483640'; 
+        overlay.className = 'shop-overlay map-overlay'; // Inherit shop-overlay positioning/z-index properties, use map-overlay for specific styles
         
-        overlay.style.background = `
-            linear-gradient(
-                to bottom,
-                #87ceeb 0%,
-                #87ceeb 20%,
-                #0077be 20%,
-                #000000 100%
-            )
+        sheet = document.createElement('div');
+        sheet.className = 'shop-sheet map-sheet';
+        sheet.setAttribute('role', 'dialog');
+        
+        const grabber = document.createElement('div');
+        grabber.className = 'shop-grabber';
+        grabber.innerHTML = `<div class="grab-handle" aria-hidden="true"></div>`;
+        
+        setupDragToClose(grabber, sheet, () => isMapOverlayOpen, () => {
+            closeMapOverlay(overlay, sheet);
+        });
+
+        const content = document.createElement('div');
+        content.className = 'shop-content map-content';
+
+        // Animated Waves
+        const wavesContainer = document.createElement('div');
+        wavesContainer.className = 'map-waves-container';
+        wavesContainer.innerHTML = `
+            <div class="map-wave map-wave-3"></div>
+            <div class="map-wave map-wave-2"></div>
+            <div class="map-wave map-wave-1"></div>
         `;
-        overlay.style.overflowY = 'auto'; 
-        overlay.style.display = 'flex';
-        overlay.style.flexDirection = 'column';
+        content.appendChild(wavesContainer);
         
         // Bubbles/skylight effects
-        const bubbles = document.createElement('div');
-        bubbles.style.position = 'absolute';
-        bubbles.style.top = '20%';
-        bubbles.style.left = '0';
-        bubbles.style.width = '100%';
-        bubbles.style.height = '100px';
-        bubbles.style.background = 'radial-gradient(circle at center, rgba(255,255,255,0.4) 0%, transparent 70%)';
-        bubbles.style.pointerEvents = 'none';
-        bubbles.style.zIndex = '1';
-        overlay.appendChild(bubbles);
+        const bubblesContainer = document.createElement('div');
+        bubblesContainer.className = 'map-bubbles-container';
+        for (let i = 0; i < 15; i++) {
+            const bubble = document.createElement('div');
+            bubble.className = 'map-bubble';
+            const size = Math.random() * 10 + 5;
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            bubble.style.left = `${Math.random() * 100}%`;
+            bubble.style.animationDuration = `${Math.random() * 3 + 2}s`;
+            bubble.style.animationDelay = `${Math.random() * 2}s`;
+            bubblesContainer.appendChild(bubble);
+        }
+        content.appendChild(bubblesContainer);
 
         const title = document.createElement('h1');
         title.textContent = 'The Ocean';
@@ -61,20 +103,20 @@ export function openMapOverlay(isFirstTime = false) {
         title.style.textShadow = '2px 2px 4px black';
         title.style.margin = '0';
         title.style.zIndex = '2';
-        overlay.appendChild(title);
+        content.appendChild(title);
 
         const nodesContainer = document.createElement('div');
         nodesContainer.style.position = 'relative';
         nodesContainer.style.width = '100%';
-        nodesContainer.style.minHeight = '100vh'; // Allows scrolling if needed
+        nodesContainer.style.height = '100%';
         nodesContainer.style.flex = '1';
         nodesContainer.style.zIndex = '2';
 
         const nodes = [
-            { id: 'cove', name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '25vh', left: '50vw', defaultLocked: false },
-            { id: 'coral', name: 'Coral Reef', icon: 'img/misc/locked_plus_base.webp', top: '45vh', left: '25vw', defaultLocked: true },
-            { id: 'cavern', name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '65vh', left: '75vw', defaultLocked: false },
-            { id: 'depths', name: 'Deep Depths', icon: 'img/misc/locked_plus_base.webp', top: '85vh', left: '50vw', defaultLocked: true }
+            { id: 'cove', name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '25%', left: '50%', defaultLocked: false },
+            { id: 'cavern', name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '45%', left: '75%', defaultLocked: false },
+            { id: 'coral', name: 'Coral Reef', icon: 'img/misc/locked_plus_base.webp', top: '65%', left: '25%', defaultLocked: true },
+            { id: 'depths', name: 'Deep Depths', icon: 'img/misc/locked_plus_base.webp', top: '85%', left: '50%', defaultLocked: true }
         ];
 
         nodes.forEach(node => {
@@ -112,70 +154,72 @@ export function openMapOverlay(isFirstTime = false) {
 
             btn.onclick = () => {
                 if (isLocked) return;
-                
-                const blackScreen = document.createElement('div');
-                blackScreen.style.position = 'fixed';
-                blackScreen.style.inset = '0';
-                blackScreen.style.backgroundColor = 'black';
-                blackScreen.style.zIndex = '2147483645'; 
-                blackScreen.style.display = 'flex';
-                blackScreen.style.justifyContent = 'center';
-                blackScreen.style.alignItems = 'center';
+                if (IS_MOBILE) blockInteraction(500);
 
-                const backBtn = document.createElement('button');
-                backBtn.textContent = 'Back to Map';
-                backBtn.style.padding = '10px 20px';
-                backBtn.style.fontSize = '24px';
-                backBtn.style.cursor = 'pointer';
-                backBtn.onclick = () => {
-                    document.body.removeChild(blackScreen);
-                };
+                const teleportMsg = document.createElement('div');
+                teleportMsg.className = 'map-teleporting-message';
+                teleportMsg.textContent = `Teleporting to ${node.name}...`;
+                overlay.appendChild(teleportMsg);
 
-                blackScreen.appendChild(backBtn);
-                document.body.appendChild(blackScreen);
+                // Force reflow
+                teleportMsg.offsetHeight;
+                teleportMsg.classList.add('show');
+
+                setTimeout(() => {
+                    teleportMsg.remove();
+                    closeMapOverlay(overlay, sheet);
+                }, 450);
             };
 
             nodesContainer.appendChild(btn);
         });
 
-        overlay.appendChild(nodesContainer);
+        content.appendChild(nodesContainer);
         
-        // Bottom row close button
-        const bottomRow = document.createElement('div');
-        bottomRow.style.width = '100%';
-        bottomRow.style.padding = '20px';
-        bottomRow.style.display = 'flex';
-        bottomRow.style.justifyContent = 'center';
-        bottomRow.style.zIndex = '10';
-
+        const actions = document.createElement('div');
+        actions.className = 'shop-actions';
+        
         const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'shop-close';
         closeBtn.textContent = 'Close';
-        closeBtn.style.padding = '10px 30px';
-        closeBtn.style.fontSize = '18px';
-        closeBtn.style.cursor = 'pointer';
-        closeBtn.style.background = 'transparent';
-        closeBtn.style.color = 'white';
-        closeBtn.style.border = '2px solid white';
-        closeBtn.style.borderRadius = '8px';
         closeBtn.onclick = () => {
-            overlay.style.display = 'none';
+            closeMapOverlay(overlay, sheet);
         };
         
-        bottomRow.appendChild(closeBtn);
-        overlay.appendChild(bottomRow);
+        actions.appendChild(closeBtn);
+        
+        sheet.appendChild(grabber);
+        sheet.appendChild(content);
+        sheet.appendChild(actions);
+        overlay.appendChild(sheet);
 
         document.body.appendChild(overlay);
+        
+        // Add first time fade element right away if needed
+        if (isFirstTime) {
+            const firstTimeFade = document.createElement('div');
+            firstTimeFade.className = 'map-first-time-fade';
+            document.body.appendChild(firstTimeFade);
+            
+            // Force reflow
+            firstTimeFade.offsetHeight;
+            
+            // Start fade out
+            firstTimeFade.style.opacity = '0';
+            
+            setTimeout(() => {
+                firstTimeFade.remove();
+            }, 5000);
+        }
+
+    } else {
+        sheet = overlay.querySelector('.map-sheet');
     }
 
-    overlay.style.display = 'flex';
-
-    if (isFirstTime) {
-        overlay.style.opacity = '0';
-        overlay.style.transition = 'opacity 5s linear';
-        overlay.offsetHeight;
-        overlay.style.opacity = '1';
-    } else {
-        overlay.style.transition = 'none';
-        overlay.style.opacity = '1';
+    isMapOverlayOpen = true;
+    overlay.classList.add('is-open');
+    if (sheet) {
+        sheet.style.transform = 'translateY(0)';
     }
 }
