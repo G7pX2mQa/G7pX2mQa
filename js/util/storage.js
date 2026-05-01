@@ -348,6 +348,7 @@ initHeartbeat();
 export const KEYS = {
   HAS_OPENED_SAVE_SLOT: `${PREFIX}hasOpenedSaveSlot`,
   SAVE_SLOT:            `${PREFIX}saveSlot`,
+  CURRENT_AREA:         `${PREFIX}currentArea`,
   CURRENCY:   {},
   MULTIPLIER: {},
 };
@@ -490,6 +491,17 @@ export function getHasOpenedSaveSlot() {
 }
 export function setHasOpenedSaveSlot(value) {
   localStorage.setItem(KEYS.HAS_OPENED_SAVE_SLOT, value ? 'true' : 'false');
+}
+
+export function setSavedArea(areaID, slot = getActiveSlot()) {
+  if (slot == null || areaID === 0) return; // AREAS.MENU = 0
+  localStorage.setItem(`${KEYS.CURRENT_AREA}:${slot}`, areaID);
+}
+
+export function getSavedArea(slot = getActiveSlot()) {
+  if (slot == null) return null;
+  const raw = localStorage.getItem(`${KEYS.CURRENT_AREA}:${slot}`);
+  return raw ? parseInt(raw, 10) : null;
 }
 
 // -------------------- DEFAULTS --------------------
