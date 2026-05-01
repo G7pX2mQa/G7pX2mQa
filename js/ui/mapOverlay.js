@@ -142,6 +142,11 @@ export function ensureMapOverlay() {
     nodes.forEach(node => {
         const isLocked = isNodeLocked(node.id, node.defaultLocked);
         const btn = document.createElement('button');
+        btn.className = 'map-node-btn';
+        btn.dataset.nodeId = node.id;
+        btn.dataset.defaultLocked = node.defaultLocked;
+        btn.dataset.icon = node.icon;
+        
         btn.style.position = 'absolute';
         btn.style.top = node.top;
         btn.style.left = node.left;
@@ -156,12 +161,14 @@ export function ensureMapOverlay() {
         btn.style.textShadow = '1px 1px 2px black';
 
         const img = document.createElement('img');
+        img.className = 'map-node-img';
         img.src = isLocked ? 'img/misc/locked_plus_base.webp' : node.icon;
         img.style.width = '64px';
         img.style.height = '64px';
         img.style.marginBottom = '8px';
 
         const label = document.createElement('span');
+        label.className = 'map-node-label';
         label.textContent = node.name;
         label.style.fontWeight = 'bold';
         if (isLocked) {
@@ -172,7 +179,7 @@ export function ensureMapOverlay() {
         btn.appendChild(label);
 
         btn.onclick = () => {
-            if (isLocked) return;
+            if (isNodeLocked(node.id, node.defaultLocked)) return;
             
             if (currentArea === node.areaId || node.areaId == null) {
                 closeMapOverlay(overlay, sheet);
@@ -265,8 +272,33 @@ export function ensureMapOverlay() {
     document.body.appendChild(overlay);
 }
 
+function refreshNodesState() {
+    const surgeLevel = getCurrentSurgeLevel();
+    if (surgeLevel === Infinity || (typeof surgeLevel === 'bigint' && surgeLevel >= 125n) || (typeof surgeLevel === 'number' && surgeLevel >= 125)) {
+        setNodeLocked('cavern', false);
+    }
+    const overlay = document.getElementById('map-overlay');
+    if (!overlay) return;
+    const btns = overlay.querySelectorAll('.map-node-btn');
+    btns.forEach(btn => {
+        const id = btn.dataset.nodeId;
+        const defaultLocked = btn.dataset.defaultLocked === 'true';
+        const icon = btn.dataset.icon;
+        
+        const isLocked = isNodeLocked(id, defaultLocked);
+        btn.style.cursor = isLocked ? 'not-allowed' : 'pointer';
+        
+        const img = btn.querySelector('.map-node-img');
+        if (img) img.src = isLocked ? 'img/misc/locked_plus_base.webp' : icon;
+        
+        const label = btn.querySelector('.map-node-label');
+        if (label) label.style.display = isLocked ? 'none' : '';
+    });
+}
+
 export function openMapOverlay(isFirstTime = false) {
     ensureMapOverlay();
+    refreshNodesState();
     
     let overlay = document.getElementById('map-overlay');
     let sheet = overlay.querySelector('.map-sheet');
@@ -275,17 +307,23 @@ export function openMapOverlay(isFirstTime = false) {
     if (isFirstTime) {
         const firstTimeFade = document.createElement('div');
         firstTimeFade.className = 'map-first-time-fade';
+        // Set transition to none initially
+        firstTimeFade.style.transition = 'none';
+        firstTimeFade.style.opacity = '1';
         document.body.appendChild(firstTimeFade);
         
         // Force reflow
         firstTimeFade.offsetHeight;
         
-        // Start fade out
-        firstTimeFade.style.opacity = '0';
-        
         setTimeout(() => {
-            firstTimeFade.remove();
-        }, 5000);
+            // Restore transition for fade out
+            firstTimeFade.style.transition = 'opacity 5s linear';
+            firstTimeFade.style.opacity = '0';
+            
+            setTimeout(() => {
+                firstTimeFade.remove();
+            }, 5000);
+        }, 1000);
     }
 
     isMapOverlayOpen = true;
