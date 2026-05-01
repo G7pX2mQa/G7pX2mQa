@@ -1145,6 +1145,8 @@ export function createSpawner({
             removeCoin(activeCoins[i], i);
         }
         clearBacklog();
+        canvasDirty = true;
+        drawSettledCoins(); // Force redraw/clear immediately since raf loop may be stopped
     }
 
     function setCoinSprite(src) {
