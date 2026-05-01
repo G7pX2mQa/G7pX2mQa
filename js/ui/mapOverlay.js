@@ -220,7 +220,6 @@ export function ensureMapOverlay() {
                     if (typeof window !== 'undefined') {
                         if (currentArea === AREAS.STARTER_COVE) {
                             setTimeout(() => {
-                               window.dispatchEvent(new CustomEvent('audio:restartMusic'));
                                if (window.spawner && typeof window.spawner.start === 'function') {
                                    window.spawner.start();
                                }
