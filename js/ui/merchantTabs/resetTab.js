@@ -69,7 +69,7 @@ import { showDelayedGoalNotifications, updateGameProgressBar } from '../gameProg
 import { showDelayedSecretAchievementNotifications, checkSecretAchievements, setLifetimeUselessExperiment } from '../../game/secretAchievements.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
-import { unlockMap } from '../hudButtons.js';
+import { unlockMap, isMapUnlocked } from '../hudButtons.js';
 import { openMapOverlay, setNodeLocked } from '../mapOverlay.js';
 import { getWaterwheelGoldMultiplier } from './flowTab.js';
 import { settingsManager } from '../../game/settingsManager.js';
@@ -1557,7 +1557,7 @@ export function performSurgeReset() {
       isSurge125 = potentialLevel >= 125;
   }
   
-  if (isSurge125 && !getMapSequenceSeen()) {
+  if (isSurge125 && !isMapUnlocked()) {
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:stopMusic'));
       if (window.spawner && typeof window.spawner.stop === 'function') window.spawner.stop();
       try { closeShop(true); } catch {}
