@@ -165,9 +165,10 @@ disableMobileZoomGestures();
 export const AREAS = {
   MENU: 0,
   STARTER_COVE: 1,
+  UNDERWATER_CAVERN: 2,
 };
 
-let currentArea = AREAS.MENU;
+export let currentArea = AREAS.MENU;
 let currentMusic = null;
 let spawner = null;
 let cleanupUpgradesListener = null;
@@ -474,6 +475,13 @@ export function enterArea(areaID) {
       const gameRoot = document.getElementById('game-root');
       if (gameRoot) {
         gameRoot.hidden = false;
+        
+        const hudTop = gameRoot.querySelector('.hud-top');
+        if (hudTop) hudTop.style.display = '';
+        
+        const goalProgressBar = gameRoot.querySelector('.goal-progress-bar');
+        if (goalProgressBar) goalProgressBar.style.display = '';
+
         if (waterSystem) {
             // Delay resize to ensure DOM layout is updated after unhiding
             requestAnimationFrame(() => waterSystem.resize());
@@ -548,9 +556,48 @@ export function enterArea(areaID) {
       if (typeof initXpSystem === 'function') {
         try { initXpSystem(); } catch {}
       }
+      
+      const waterBg = document.getElementById('water-background');
+      const waterFg = document.getElementById('water-foreground');
+      if (waterBg) waterBg.style.display = '';
+      if (waterFg) waterFg.style.display = '';
+      document.body.style.backgroundColor = '';
+
       setTimeout(() => {
         if (currentArea === AREAS.STARTER_COVE && spawner) spawner.start();
       }, 300);
+      break;
+    }
+
+    case AREAS.UNDERWATER_CAVERN: {
+      if (menuRoot) {
+        menuRoot.style.display = 'none';
+      }
+      document.body.classList.remove('menu-bg');
+      
+      const gameRoot = document.getElementById('game-root');
+      if (gameRoot) {
+        gameRoot.hidden = false;
+        
+        const hudTop = gameRoot.querySelector('.hud-top');
+        if (hudTop) hudTop.style.display = 'none';
+        
+        const goalProgressBar = gameRoot.querySelector('.goal-progress-bar');
+        if (goalProgressBar) goalProgressBar.style.display = 'none';
+      }
+      
+      const waterBg = document.getElementById('water-background');
+      const waterFg = document.getElementById('water-foreground');
+      if (waterBg) waterBg.style.display = 'none';
+      if (waterFg) waterFg.style.display = 'none';
+      
+      document.body.style.backgroundColor = '#000';
+      
+      if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('audio:stopMusic'));
+      }
+      
+      if (spawner) spawner.stop();
       break;
     }
 
