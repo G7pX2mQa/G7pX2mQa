@@ -405,6 +405,10 @@ async function preloadAssetsWithProgress({ images = [], audio = [], fonts = true
 export function enterArea(areaID) {
   if (currentArea === areaID) return;
 
+  if (spawner && typeof spawner.stopAllWaveSounds === 'function') {
+    spawner.stopAllWaveSounds();
+  }
+
   if (currentMusic) {
     currentMusic.stop();
     currentMusic = null;
@@ -421,7 +425,7 @@ export function enterArea(areaID) {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setTimeout(() => {
-            if (currentArea === AREAS.STARTER_COVE && !currentMusic) {
+            if (currentArea === AREAS.STARTER_COVE) {
               currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
               if (typeof unpauseNotifications === "function") unpauseNotifications();
             }
@@ -433,12 +437,6 @@ export function enterArea(areaID) {
         menuRoot.style.display = 'none';
       }
       document.body.classList.remove('menu-bg');
-
-      const gameRoot = document.getElementById('game-root');
-      if (gameRoot) {
-        gameRoot.classList.remove('area-cavern');
-        gameRoot.classList.add('area-cove');
-      }
 
       // Config for water layers
       const FG_LAYER_COUNT = 1;
@@ -478,6 +476,7 @@ export function enterArea(areaID) {
         }
       }
 
+      const gameRoot = document.getElementById('game-root');
       if (gameRoot) {
         gameRoot.hidden = false;
         
@@ -510,6 +509,7 @@ export function enterArea(areaID) {
           surgeLifetimeMs: 1800,
           surgeWidthVw: 22,
           initialBurst: 0,
+          shouldAutoResume: () => currentArea === AREAS.STARTER_COVE,
         });
         window.spawner = spawner;
         const applyMutationSprite = () => {
@@ -564,8 +564,13 @@ export function enterArea(areaID) {
       
       const waterBg = document.getElementById('water-background');
       const waterFg = document.getElementById('water-foreground');
+      const playfield = document.querySelector('.area-cove .playfield');
       if (waterBg) waterBg.style.display = '';
       if (waterFg) waterFg.style.display = '';
+      if (playfield) {
+        playfield.style.backgroundImage = '';
+        playfield.style.backgroundColor = '';
+      }
       document.body.style.backgroundColor = '';
 
       setTimeout(() => {
@@ -580,23 +585,26 @@ export function enterArea(areaID) {
       }
       document.body.classList.remove('menu-bg');
       
-      const cavernGameRoot = document.getElementById('game-root');
-      if (cavernGameRoot) {
-        cavernGameRoot.hidden = false;
-        cavernGameRoot.classList.remove('area-cove');
-        cavernGameRoot.classList.add('area-cavern');
+      const gameRoot = document.getElementById('game-root');
+      if (gameRoot) {
+        gameRoot.hidden = false;
         
-        const hudTop = cavernGameRoot.querySelector('.hud-top');
+        const hudTop = gameRoot.querySelector('.hud-top');
         if (hudTop) hudTop.style.display = 'none';
         
-        const goalProgressBar = cavernGameRoot.querySelector('.goal-progress-bar');
+        const goalProgressBar = gameRoot.querySelector('.goal-progress-bar');
         if (goalProgressBar) goalProgressBar.style.display = 'none';
       }
       
       const waterBg = document.getElementById('water-background');
       const waterFg = document.getElementById('water-foreground');
+      const playfield = document.querySelector('.area-cove .playfield');
       if (waterBg) waterBg.style.display = 'none';
       if (waterFg) waterFg.style.display = 'none';
+      if (playfield) {
+        playfield.style.backgroundImage = 'none';
+        playfield.style.backgroundColor = '#000';
+      }
       
       document.body.style.backgroundColor = '#000';
       
