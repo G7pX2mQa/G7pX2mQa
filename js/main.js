@@ -597,7 +597,7 @@ export function enterArea(areaID) {
           window.dispatchEvent(new CustomEvent('audio:stopMusic'));
       }
       
-      if (spawner) spawner.stop();
+      if (spawner) { spawner.stop(); if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield(); }
       break;
     }
 
@@ -609,7 +609,7 @@ export function enterArea(areaID) {
       const gameRoot = document.getElementById('game-root');
       if (gameRoot) gameRoot.hidden = true;
 
-      if (spawner) spawner.stop();
+      if (spawner) { spawner.stop(); if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield(); }
       break;
     }
   }
