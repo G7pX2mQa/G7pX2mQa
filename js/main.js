@@ -67,6 +67,8 @@ let setHasOpenedSaveSlot;
 let ensureStorageDefaults;
 let ensureMultiplierDefaults;
 let getActiveSlot;
+let setSavedArea;
+let getSavedArea;
 let initGameProgressBar;
 let initSurgeEffects;
 let refreshSurgeMultiplierCache;
@@ -415,6 +417,9 @@ export function enterArea(areaID) {
   }
 
   currentArea = areaID;
+  if (typeof setSavedArea === 'function') {
+    setSavedArea(areaID);
+  }
 
   const menuRoot = document.querySelector('.menu-root');
   switch (areaID) {
@@ -890,7 +895,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ createSpawner } = spawnerModule);
   ({ initCoinPickup, refreshCoinMultiplierCache, refreshMpValueMultiplierCache, updateMutationSnapshot } = coinPickupModule);
   ({ initHudButtons } = hudButtonsModule);
-  ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults, getActiveSlot } = storageModule);
+  ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults, getActiveSlot, setSavedArea, getSavedArea } = storageModule);
   void saveIntegrityModule;
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
   ({ syncCurrencyMultipliersFromUpgrades, registerXpUpgradeEffects } = upgradeEffectsModule);
@@ -1077,9 +1082,14 @@ Normal gameplay is unaffected unless you choose to modify values.`);
     setLoaderProgress(loader, 1);
 
     finishAndHideLoader(loader, () => {
-      enterArea(AREAS.STARTER_COVE);
+      let areaToLoad = AREAS.STARTER_COVE;
+      if (typeof getSavedArea === 'function') {
+        const saved = getSavedArea();
+        if (saved != null) areaToLoad = saved;
+      }
+      enterArea(areaToLoad);
       setTimeout(() => {
-        if (window.spawner && typeof window.spawner.playEntranceWave === 'function') {
+        if (areaToLoad === AREAS.STARTER_COVE && window.spawner && typeof window.spawner.playEntranceWave === 'function') {
           window.spawner.playEntranceWave();
         }
         
