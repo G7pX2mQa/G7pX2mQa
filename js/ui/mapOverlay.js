@@ -214,6 +214,9 @@ export function ensureMapOverlay() {
                     if (teleportOverlay.parentNode) {
                         teleportOverlay.parentNode.removeChild(teleportOverlay);
                     }
+                    if (window.spawner && typeof window.spawner.stopAllWaveSounds === 'function') {
+                        window.spawner.stopAllWaveSounds();
+                    }
                     enterArea(node.areaId);
                     
                     // Delay music and spawner start until we are actually in the new area and the teleport overlay is gone
