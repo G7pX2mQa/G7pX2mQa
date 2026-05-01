@@ -421,7 +421,7 @@ export function enterArea(areaID) {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setTimeout(() => {
-            if (currentArea === AREAS.STARTER_COVE) {
+            if (currentArea === AREAS.STARTER_COVE && !currentMusic) {
               currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
               if (typeof unpauseNotifications === "function") unpauseNotifications();
             }
@@ -433,6 +433,12 @@ export function enterArea(areaID) {
         menuRoot.style.display = 'none';
       }
       document.body.classList.remove('menu-bg');
+
+      const gameRoot = document.getElementById('game-root');
+      if (gameRoot) {
+        gameRoot.classList.remove('area-cavern');
+        gameRoot.classList.add('area-cove');
+      }
 
       // Config for water layers
       const FG_LAYER_COUNT = 1;
@@ -472,7 +478,6 @@ export function enterArea(areaID) {
         }
       }
 
-      const gameRoot = document.getElementById('game-root');
       if (gameRoot) {
         gameRoot.hidden = false;
         
@@ -575,14 +580,16 @@ export function enterArea(areaID) {
       }
       document.body.classList.remove('menu-bg');
       
-      const gameRoot = document.getElementById('game-root');
-      if (gameRoot) {
-        gameRoot.hidden = false;
+      const cavernGameRoot = document.getElementById('game-root');
+      if (cavernGameRoot) {
+        cavernGameRoot.hidden = false;
+        cavernGameRoot.classList.remove('area-cove');
+        cavernGameRoot.classList.add('area-cavern');
         
-        const hudTop = gameRoot.querySelector('.hud-top');
+        const hudTop = cavernGameRoot.querySelector('.hud-top');
         if (hudTop) hudTop.style.display = 'none';
         
-        const goalProgressBar = gameRoot.querySelector('.goal-progress-bar');
+        const goalProgressBar = cavernGameRoot.querySelector('.goal-progress-bar');
         if (goalProgressBar) goalProgressBar.style.display = 'none';
       }
       
