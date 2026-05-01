@@ -227,6 +227,7 @@ export function createSpawner({
     waveSoundDesktopVolume = 0.45,
     waveSoundMobileVolume  = 0.2,
     waveSoundMinIntervalMs = 160,
+    shouldAutoResume = () => true,
 
 } = {}) {
 
@@ -1144,9 +1145,23 @@ export function createSpawner({
             }
             removeCoin(activeCoins[i], i);
         }
+        contexts.forEach((ctx, i) => {
+            if (!ctx || !canvases[i]) return;
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvases[i].width, canvases[i].height);
+            ctx.restore();
+        });
+        if (fxCtx && fxCanvas) {
+            fxCtx.save();
+            fxCtx.setTransform(1, 0, 0, 1, 0, 0);
+            fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+            fxCtx.restore();
+        }
+        newlySettledBuffer.length = 0;
+        dirtyRegions.length = 0;
+        canvasDirty = false;
         clearBacklog();
-        canvasDirty = true;
-        drawSettledCoins(); // Force redraw/clear immediately since raf loop may be stopped
     }
 
     function setCoinSprite(src) {
@@ -1448,6 +1463,7 @@ export function createSpawner({
 
    document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
+      if (typeof shouldAutoResume === 'function' && !shouldAutoResume()) return;
       if (typeof window !== 'undefined' && (window.__tsunamiActive || window.__bossFightSequenceActive)) return;
       if (!rafId) start();
     }
