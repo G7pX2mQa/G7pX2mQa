@@ -33,6 +33,14 @@ function closeMapOverlay(overlay, sheet) {
         if (overlay) {
             overlay.classList.remove('is-open');
         }
+        if (currentArea === AREAS.STARTER_COVE) {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('audio:restartMusic'));
+                if (window.spawner && typeof window.spawner.start === 'function') {
+                    window.spawner.start();
+                }
+            }
+        }
     }, 220); // Match transition time
 }
 
@@ -305,6 +313,7 @@ export function openMapOverlay(isFirstTime = false) {
     
     // Add first time fade element right away if needed
     if (isFirstTime) {
+        window.__mapSequenceActive = true;
         const firstTimeFade = document.createElement('div');
         firstTimeFade.className = 'map-first-time-fade';
         // Set transition to none initially
@@ -322,6 +331,7 @@ export function openMapOverlay(isFirstTime = false) {
             
             setTimeout(() => {
                 firstTimeFade.remove();
+                window.__mapSequenceActive = false;
             }, 5000);
         }, 1000);
     }
