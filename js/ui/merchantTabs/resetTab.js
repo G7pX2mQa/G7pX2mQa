@@ -70,7 +70,7 @@ import { showDelayedSecretAchievementNotifications, checkSecretAchievements, set
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 import { unlockMap } from '../hudButtons.js';
-import { openMapOverlay } from '../mapOverlay.js';
+import { openMapOverlay, setNodeLocked } from '../mapOverlay.js';
 import { getWaterwheelGoldMultiplier } from './flowTab.js';
 import { settingsManager } from '../../game/settingsManager.js';
 import { checkAchievements } from '../../game/achievements.js';
@@ -1564,6 +1564,7 @@ export function performSurgeReset() {
       try { closeMerchant(); } catch {}
       
       unlockMap();
+      setNodeLocked('cavern', false);
       setMapSequenceSeen(true);
       openMapOverlay(true);
       
