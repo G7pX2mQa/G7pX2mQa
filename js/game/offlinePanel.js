@@ -179,7 +179,7 @@ export const RESOURCE_REGISTRY = [
 ];
 
 export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
-    if (window.__tsunamiActive || window.__bossFightSequenceActive) return;
+    if (window.__tsunamiActive || window.__bossFightSequenceActive || window.__mapSequenceActive) return;
 
     // Remove existing panel if any
     const existing = document.querySelector('.offline-overlay');
@@ -663,6 +663,8 @@ export function calculatePreAutomationRewards(seconds) {
 }
 
 export function processOfflineProgress() {
+    if (window.__tsunamiActive || window.__bossFightSequenceActive || window.__mapSequenceActive) return;
+
     // 1. Ensure we are actually in a save slot (prevent Main Menu triggers)
     const slot = getActiveSlot();
     if (slot == null) {
