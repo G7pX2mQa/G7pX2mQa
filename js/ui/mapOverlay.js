@@ -1,6 +1,7 @@
 import { getActiveSlot } from '../util/storage.js';
 import { setupDragToClose, blockInteraction } from './shopOverlay.js';
-import { IS_MOBILE } from '../main.js';
+import { IS_MOBILE, currentArea, AREAS, enterArea } from '../main.js';
+import { getCurrentSurgeLevel } from './merchantTabs/resetTab.js';
 
 const MAP_NODE_LOCKED_KEY = (id, slot) => `ccc:map:locked:${id}:${slot}`;
 
@@ -12,7 +13,7 @@ function isNodeLocked(id, defaultLocked) {
     return defaultLocked;
 }
 
-function setNodeLocked(id, locked) {
+export function setNodeLocked(id, locked) {
     const slot = getActiveSlot();
     if (slot == null) return;
     localStorage.setItem(MAP_NODE_LOCKED_KEY(id, slot), locked ? '1' : '0');
@@ -32,19 +33,15 @@ function closeMapOverlay(overlay, sheet) {
         if (overlay) {
             overlay.classList.remove('is-open');
         }
-        
-        // Restart music and spawning when exiting
-        if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('audio:restartMusic'));
-            if (window.spawner && typeof window.spawner.start === 'function') {
-                window.spawner.start();
-            }
-        }
     }, 220); // Match transition time
 }
 
 
 export function ensureMapOverlay() {
+    const surgeLevel = getCurrentSurgeLevel();
+    if (surgeLevel === Infinity || (typeof surgeLevel === 'bigint' && surgeLevel >= 125n) || (typeof surgeLevel === 'number' && surgeLevel >= 125)) {
+        setNodeLocked('cavern', false);
+    }
     let overlay = document.getElementById('map-overlay');
     if (overlay) return;
 
@@ -136,10 +133,10 @@ export function ensureMapOverlay() {
     nodesContainer.style.zIndex = '2';
 
     const nodes = [
-        { id: 'cove', name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '20%', left: '50%', defaultLocked: false },
-        { id: 'cavern', name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '35%', left: '75%', defaultLocked: true },
-        { id: 'coral', name: 'Coral Reef', icon: 'img/misc/locked_plus_base.webp', top: '50%', left: '25%', defaultLocked: true },
-        { id: 'depths', name: 'Deep Depths', icon: 'img/misc/locked_plus_base.webp', top: '85%', left: '50%', defaultLocked: true }
+        { id: 'cove', areaId: AREAS.STARTER_COVE, name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '20%', left: '50%', defaultLocked: false },
+        { id: 'cavern', areaId: AREAS.UNDERWATER_CAVERN, name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '35%', left: '75%', defaultLocked: true },
+        { id: 'coral', areaId: null, name: 'Coral Reef', icon: 'img/misc/locked_plus_base.webp', top: '50%', left: '25%', defaultLocked: true },
+        { id: 'depths', areaId: null, name: 'Deep Depths', icon: 'img/misc/locked_plus_base.webp', top: '85%', left: '50%', defaultLocked: true }
     ];
 
     nodes.forEach(node => {
@@ -159,39 +156,78 @@ export function ensureMapOverlay() {
         btn.style.textShadow = '1px 1px 2px black';
 
         const img = document.createElement('img');
-        img.src = node.icon;
+        img.src = isLocked ? 'img/misc/locked_plus_base.webp' : node.icon;
         img.style.width = '64px';
         img.style.height = '64px';
         img.style.marginBottom = '8px';
-        if (isLocked) {
-            img.style.filter = 'grayscale(100%)';
-            img.style.opacity = '0.7';
-        }
 
         const label = document.createElement('span');
         label.textContent = node.name;
         label.style.fontWeight = 'bold';
+        if (isLocked) {
+            label.style.display = 'none';
+        }
 
         btn.appendChild(img);
         btn.appendChild(label);
 
         btn.onclick = () => {
             if (isLocked) return;
+            
+            if (currentArea === node.areaId || node.areaId == null) {
+                closeMapOverlay(overlay, sheet);
+                return;
+            }
+            
             if (IS_MOBILE) blockInteraction(500);
 
-            const teleportMsg = document.createElement('div');
-            teleportMsg.className = 'map-teleporting-message';
-            teleportMsg.textContent = `Teleporting to ${node.name}...`;
-            overlay.appendChild(teleportMsg);
+            const teleportOverlay = document.createElement('div');
+            Object.assign(teleportOverlay.style, {
+                position: 'fixed',
+                inset: '0',
+                backgroundColor: 'black',
+                zIndex: '2147483647',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                color: 'white',
+                fontSize: 'clamp(24px, 4vw, 48px)',
+                textAlign: 'center',
+                pointerEvents: 'all'
+            });
+            teleportOverlay.textContent = `Teleporting to ${node.name}...`;
+            document.body.appendChild(teleportOverlay);
 
-            // Force reflow
-            teleportMsg.offsetHeight;
-            teleportMsg.classList.add('show');
-
-            setTimeout(() => {
-                teleportMsg.remove();
-                closeMapOverlay(overlay, sheet);
-            }, 450);
+            let start = performance.now();
+            let overlayClosed = false;
+            
+            function pulseFrame(now) {
+                if (!overlayClosed) {
+                    closeMapOverlay(overlay, sheet);
+                    overlayClosed = true;
+                }
+                
+                if (now - start < 450) {
+                    teleportOverlay.style.opacity = Math.random() > 0.5 ? '0.99' : '1';
+                    requestAnimationFrame(pulseFrame);
+                } else {
+                    if (teleportOverlay.parentNode) {
+                        teleportOverlay.parentNode.removeChild(teleportOverlay);
+                    }
+                    enterArea(node.areaId);
+                    
+                    // Delay music and spawner start until we are actually in the new area and the teleport overlay is gone
+                    if (typeof window !== 'undefined' && currentArea === AREAS.STARTER_COVE) {
+                        setTimeout(() => {
+                           window.dispatchEvent(new CustomEvent('audio:restartMusic'));
+                           if (window.spawner && typeof window.spawner.start === 'function') {
+                               window.spawner.start();
+                           }
+                        }, 50);
+                    }
+                }
+            }
+            requestAnimationFrame(pulseFrame);
         };
 
         nodesContainer.appendChild(btn);
