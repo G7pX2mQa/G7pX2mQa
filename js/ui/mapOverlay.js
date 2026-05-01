@@ -217,13 +217,20 @@ export function ensureMapOverlay() {
                     enterArea(node.areaId);
                     
                     // Delay music and spawner start until we are actually in the new area and the teleport overlay is gone
-                    if (typeof window !== 'undefined' && currentArea === AREAS.STARTER_COVE) {
-                        setTimeout(() => {
-                           window.dispatchEvent(new CustomEvent('audio:restartMusic'));
-                           if (window.spawner && typeof window.spawner.start === 'function') {
-                               window.spawner.start();
-                           }
-                        }, 50);
+                    if (typeof window !== 'undefined') {
+                        if (currentArea === AREAS.STARTER_COVE) {
+                            setTimeout(() => {
+                               window.dispatchEvent(new CustomEvent('audio:restartMusic'));
+                               if (window.spawner && typeof window.spawner.start === 'function') {
+                                   window.spawner.start();
+                               }
+                            }, 50);
+                        } else if (currentArea === AREAS.UNDERWATER_CAVERN) {
+                            if (window.spawner) {
+                                if (typeof window.spawner.stop === 'function') window.spawner.stop();
+                                if (typeof window.spawner.clearPlayfield === 'function') window.spawner.clearPlayfield();
+                            }
+                        }
                     }
                 }
             }
