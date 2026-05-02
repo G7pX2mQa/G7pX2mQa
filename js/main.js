@@ -1,3 +1,4 @@
+import { createCursorTrail } from './game/cursorTrail.js';
 // js/main.js
 
 import { playAudio, setAudioSuspended } from './util/audioManager.js';
@@ -171,6 +172,7 @@ export const AREAS = {
 };
 
 export let currentArea = AREAS.MENU;
+let globalCursorTrail = null;
 let currentMusic = null;
 let spawner = null;
 let cleanupUpgradesListener = null;
@@ -407,6 +409,11 @@ async function preloadAssetsWithProgress({ images = [], audio = [], fonts = true
 export function enterArea(areaID) {
   if (currentArea === areaID) return;
 
+  if (globalCursorTrail) {
+      try { globalCursorTrail.destroy(); } catch {}
+      globalCursorTrail = null;
+  }
+
   if (spawner && typeof spawner.stopAllWaveSounds === 'function') {
     spawner.stopAllWaveSounds();
   }
@@ -422,6 +429,57 @@ export function enterArea(areaID) {
   }
 
   const menuRoot = document.querySelector('.menu-root');
+
+  if (areaID !== AREAS.MENU) {
+      if (menuRoot) {
+        menuRoot.style.display = 'none';
+      }
+      document.body.classList.remove('menu-bg');
+
+      // Config for game DOM
+      const FG_LAYER_COUNT = 1;
+      const FG_START_Z = 80;
+
+      if (typeof ensureGameDom === 'function') {
+        ensureGameDom(FG_LAYER_COUNT, FG_START_Z);
+      }
+      if (typeof initGameProgressBar === 'function') {
+        initGameProgressBar();
+      }
+
+      const gameRoot = document.getElementById('game-root');
+      if (gameRoot) {
+        gameRoot.hidden = false;
+        initHudButtons();
+      }
+
+      if (typeof initResetSystemGame === 'function') {
+        try { initResetSystemGame(); } catch {}
+      }
+
+      if (typeof initMutationSystem === 'function') {
+        try { initMutationSystem(); } catch {}
+      }
+
+      if (typeof initXpSystem === 'function') {
+        try { initXpSystem(); } catch {}
+      }
+      
+      // Determine the correct playfield selector based on the active area
+      let playfieldSelector = '.playfield';
+      if (areaID === AREAS.STARTER_COVE) {
+        playfieldSelector = '.area-cove .playfield';
+      } else if (areaID === AREAS.UNDERWATER_CAVERN) {
+        // Assuming cavern might have its own playfield class later, or we fallback
+        // However we should probably just query the active area's playfield if we add wrapper classes later
+      }
+      // For now, let's keep it simple: 
+      const playfield = document.querySelector(areaID === AREAS.STARTER_COVE ? '.area-cove .playfield' : '.playfield');
+      if (playfield) {
+          globalCursorTrail = createCursorTrail(playfield);
+      }
+  }
+
   switch (areaID) {
     case AREAS.STARTER_COVE: {
       // Defer music until the area is visually painted + a small buffer.
@@ -438,21 +496,8 @@ export function enterArea(areaID) {
         });
       });
 
-      if (menuRoot) {
-        menuRoot.style.display = 'none';
-      }
-      document.body.classList.remove('menu-bg');
-
       // Config for water layers
       const FG_LAYER_COUNT = 1;
-      const FG_START_Z = 80;
-
-      if (typeof ensureGameDom === 'function') {
-        ensureGameDom(FG_LAYER_COUNT, FG_START_Z);
-      }
-      if (typeof initGameProgressBar === 'function') {
-        initGameProgressBar();
-      }
 
       // Initialize Water System
       if (waterSystem) {
@@ -483,8 +528,6 @@ export function enterArea(areaID) {
 
       const gameRoot = document.getElementById('game-root');
       if (gameRoot) {
-        gameRoot.hidden = false;
-        
         const hudTop = gameRoot.querySelector('.hud-top');
         if (hudTop) hudTop.style.display = '';
         
@@ -495,15 +538,6 @@ export function enterArea(areaID) {
             // Delay resize to ensure DOM layout is updated after unhiding
             requestAnimationFrame(() => waterSystem.resize());
         }
-        initHudButtons();
-      }
-
-      if (typeof initResetSystemGame === 'function') {
-        try { initResetSystemGame(); } catch {}
-      }
-
-      if (typeof initMutationSystem === 'function') {
-        try { initMutationSystem(); } catch {}
       }
 
       if (!spawner) {
@@ -563,10 +597,6 @@ export function enterArea(areaID) {
                 }
 
       }
-      if (typeof initXpSystem === 'function') {
-        try { initXpSystem(); } catch {}
-      }
-      
       const waterBg = document.getElementById('water-background');
       const waterFg = document.getElementById('water-foreground');
       const playfield = document.querySelector('.area-cove .playfield');
@@ -1001,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch {}
 
   startGameLoop();
-  initOfflineTracker(() => currentArea === AREAS.STARTER_COVE);
+  initOfflineTracker(() => currentArea !== AREAS.MENU);
 
   try { initWorkshopSystem(); } catch(e) { console.error('Workshop init failed', e); }
   try { initAutomationEffects(); } catch(e) { console.error('Automation init failed', e); }
