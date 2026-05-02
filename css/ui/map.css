@@ -175,6 +175,7 @@
     background-color: black;
     z-index: 4010;
     pointer-events: all;
+    cursor: none;
     transition: opacity 5s linear;
 }
 
