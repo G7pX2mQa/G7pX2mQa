@@ -20,6 +20,7 @@ export function setNodeLocked(id, locked) {
 }
 
 let isMapOverlayOpen = false;
+let wasJustMapSequence = false;
 
 function closeMapOverlay(overlay, sheet) {
     if (!isMapOverlayOpen) return;
@@ -33,14 +34,42 @@ function closeMapOverlay(overlay, sheet) {
         if (overlay) {
             overlay.classList.remove('is-open');
         }
-        if (currentArea === AREAS.STARTER_COVE) {
+        if (currentArea === AREAS.STARTER_COVE && wasJustMapSequence) {
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('audio:restartMusic'));
                 if (window.spawner && typeof window.spawner.start === 'function') {
                     window.spawner.start();
+                    
+                    // Invisible framerate warming pulse
+                    const pulseDiv = document.createElement('div');
+                    Object.assign(pulseDiv.style, {
+                        position: 'fixed',
+                        top: '0',
+                        left: '0',
+                        width: '1px',
+                        height: '1px',
+                        opacity: '0.01',
+                        pointerEvents: 'none',
+                        zIndex: '-9999'
+                    });
+                    document.body.appendChild(pulseDiv);
+                    
+                    let start = performance.now();
+                    function pulseFrame(now) {
+                        if (now - start < 450) {
+                            pulseDiv.style.opacity = Math.random() > 0.5 ? '0.01' : '0.02';
+                            requestAnimationFrame(pulseFrame);
+                        } else {
+                            if (pulseDiv.parentNode) {
+                                pulseDiv.parentNode.removeChild(pulseDiv);
+                            }
+                        }
+                    }
+                    requestAnimationFrame(pulseFrame);
                 }
             }
         }
+        wasJustMapSequence = false;
     }, 220); // Match transition time
 }
 
@@ -313,6 +342,7 @@ export function openMapOverlay(isFirstTime = false) {
     
     // Add first time fade element right away if needed
     if (isFirstTime) {
+        wasJustMapSequence = true;
         window.__mapSequenceActive = true;
         const firstTimeFade = document.createElement('div');
         firstTimeFade.className = 'map-first-time-fade';
