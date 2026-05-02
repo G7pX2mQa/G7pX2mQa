@@ -17,7 +17,6 @@ import {
 } from './mutationSystem.js';
 import { getMpValueMultiplierBn, getMagnetLevel, getLevelNumber } from './upgrades.js';
 import { RAINBOW_GEM_AREA_KEY } from './rainbowGemUpgrades.js';
-import { createCursorTrail } from './cursorTrail.js';
 import { playAudio } from '../util/audioManager.js';
 import { onCoinCollected } from './comboSystem.js';
 import { getComboUiString } from './surgeEffects.js';
@@ -803,7 +802,6 @@ export function initCoinPickup({
   pf.style.touchAction = 'none';
 
   let magnetController = null;
-  let cursorTrail = null;
   coinsVal = bank.coins.value;
   
   updateHudFn = () => {
@@ -1117,7 +1115,6 @@ export function initCoinPickup({
     spawner, // Pass spawner for optimized lookup
   });
   
-    cursorTrail = createCursorTrail(pf);
 
   const onDelegatedInteract = (e) => {
     if (e.target === cl) return;
@@ -1266,10 +1263,7 @@ export function initCoinPickup({
       try { magnetController.destroy(); } catch {}
       magnetController = null;
     }
-    if (cursorTrail?.destroy) {
-      try { cursorTrail.destroy(); } catch {}
-      cursorTrail = null;
-    }
+
     try {
       cl.removeEventListener('pointerdown', onDelegatedInteract);
       if (!IS_MOBILE) {
