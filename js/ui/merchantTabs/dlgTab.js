@@ -43,6 +43,7 @@ import {
   injectScrollTimelineStyles,
   ensureMerchantScrollbar,
   bindRapidActivation,
+  openDialogueLockInfo,
 } from '../delveCore.js';
 
 
@@ -751,83 +752,7 @@ export function isLabDialogueOpen() {
 // ========================= DialogueEngine =========================
 
 
-function openDialogueLockInfo(lockInfo = {}) {
-  if (!merchantOverlayEl) return;
 
-  primeTypingSfx();
-
-  const overlay = document.createElement('div');
-  overlay.className = 'merchant-firstchat merchant-lockinfo';
-  overlay.setAttribute('data-dismissible', '1');
-  overlay.innerHTML = `
-      <div class="merchant-firstchat__card" role="dialog" aria-label="${lockInfo.ariaLabel || HIDDEN_DIALOGUE_TITLE}">
-      <div class="merchant-firstchat__header">
-        <div class="name"></div>
-        <div class="rule" aria-hidden="true"></div>
-      </div>
-      <div class="merchant-firstchat__row merchant-lockinfo__row">
-        <img class="merchant-firstchat__icon" src="${lockInfo.icon || MYSTERIOUS_ICON_SRC}" alt="">
-        <div class="merchant-firstchat__text merchant-lockinfo__message"></div>
-      </div>
-      <div class="merchant-firstchat__actions merchant-lockinfo__actions">
-        <button type="button" class="merchant-firstchat__continue merchant-lockinfo__close">Close</button>
-      </div>
-      </div>
-  `;
-
-  merchantOverlayEl.appendChild(overlay);
-
-  const cardEl = overlay.querySelector('.merchant-firstchat__card');
-  const nameEl = overlay.querySelector('.merchant-firstchat__header .name');
-  const messageEl = overlay.querySelector('.merchant-lockinfo__message');
-  const closeBtn = overlay.querySelector('.merchant-lockinfo__close');
-
-  nameEl.textContent = lockInfo.headerTitle || HIDDEN_DIALOGUE_TITLE;
-  messageEl.textContent = lockInfo.message || DEFAULT_LOCK_MESSAGE;
-
-  requestAnimationFrame(() => overlay.classList.add('is-visible'));
-  merchantOverlayEl.classList.add('firstchat-active');
-
-  let closed = false;
-
-  const close = () => {
-      if (closed) return;
-      closed = true;
-      overlay.classList.remove('is-visible');
-      merchantOverlayEl.classList.remove('firstchat-active');
-      stopTypingSfx();
-      setTypingActive(false);
-      document.removeEventListener('keydown', onEsc, true);
-      const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : 160;
-      setTimeout(() => overlay.remove(), delay);
-  };
-
-  const onEsc = (e) => {
-      if (e.key !== 'Escape') return;
-      e.preventDefault();
-      close();
-  };
-
-  document.addEventListener('keydown', onEsc, true);
-
-overlay.addEventListener('pointerdown', (e) => {
-  if (!cardEl.contains(e.target)) {
-      // Don’t arm global ghost guard for background taps — just shield briefly
-      e.preventDefault();
-      blockInteraction(160);
-      close();
-  }
-});
-
-const doCloseFromBtn = (e) => {
-  if (!e || e.pointerType !== 'mouse') blockInteraction(160);
-  close();
-};
-
-  bindRapidActivation(closeBtn, () => { doCloseFromBtn(); }, { once: true });
-
-  closeBtn.focus?.();
-}
 
 function openDialogueModal(id, meta) {
   primeTypingSfx();
