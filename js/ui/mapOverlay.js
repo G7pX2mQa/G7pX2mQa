@@ -19,6 +19,15 @@ export function setNodeLocked(id, locked) {
     localStorage.setItem(MAP_NODE_LOCKED_KEY(id, slot), locked ? '1' : '0');
 }
 
+export function getMapNodes() {
+    return [
+        { id: 'cove', areaId: AREAS.STARTER_COVE, name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '20%', left: '50%', defaultLocked: false },
+        { id: 'cavern', areaId: AREAS.UNDERWATER_CAVERN, name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '35%', left: '75%', defaultLocked: true },
+        { id: 'coral', areaId: null, name: 'Coral Reef', icon: 'img/misc/locked_plus_base.webp', top: '50%', left: '25%', defaultLocked: true },
+        { id: 'depths', areaId: null, name: 'Deep Depths', icon: 'img/misc/locked_plus_base.webp', top: '85%', left: '50%', defaultLocked: true }
+    ];
+}
+
 let isMapOverlayOpen = false;
 let wasJustMapSequence = false;
 
@@ -214,6 +223,51 @@ export function ensureMapOverlay() {
 
         btn.appendChild(img);
         btn.appendChild(label);
+
+        const pinBtn = document.createElement('button');
+        pinBtn.className = 'map-node-pin-btn';
+        pinBtn.style.marginTop = '4px';
+        pinBtn.style.color = 'white';
+        pinBtn.style.fontSize = '12px';
+        pinBtn.style.padding = '2px 6px';
+        pinBtn.style.cursor = 'pointer';
+        pinBtn.style.borderRadius = '0';
+        pinBtn.style.transition = 'none';
+        pinBtn.style.position = 'absolute';
+        pinBtn.style.top = '100%';
+        pinBtn.style.left = '50%';
+        pinBtn.style.transform = 'translateX(-50%)';
+        if (isLocked || wasJustMapSequence) {
+            pinBtn.style.display = 'none';
+        }
+
+        import('../game/settingsManager.js').then(({ settingsManager }) => {
+            const isPinned = settingsManager.get(`area_pinned_${node.id}`);
+            
+            const updatePinBtn = (pinned) => {
+                if (pinned) {
+                    pinBtn.textContent = 'Pinned';
+                    pinBtn.style.border = '1px solid hsla(150, 60%, 80%, 0.80)';
+                    pinBtn.style.background = 'hsla(150, 60%, 35%, 0.50)';
+                } else {
+                    pinBtn.textContent = 'Not pinned';
+                    pinBtn.style.border = '1px solid hsla(0, 80%, 40%, 0.90)';
+                    pinBtn.style.background = 'hsla(0, 80%, 40%, 0.50)';
+                }
+            };
+            
+            updatePinBtn(isPinned);
+            
+            pinBtn.onclick = (e) => {
+                e.stopPropagation();
+                const currentlyPinned = settingsManager.get(`area_pinned_${node.id}`);
+                settingsManager.set(`area_pinned_${node.id}`, !currentlyPinned);
+                updatePinBtn(!currentlyPinned);
+                window.dispatchEvent(new Event('pinnedAreas:changed'));
+            };
+        });
+
+        btn.appendChild(pinBtn);
 
         btn.onclick = () => {
             if (isNodeLocked(node.id, node.defaultLocked)) return;
