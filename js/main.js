@@ -481,7 +481,12 @@ export function enterArea(areaID) {
   }
 
   switch (areaID) {
-    case AREAS.STARTER_COVE: {
+        case AREAS.STARTER_COVE: {
+      const gRoot = document.getElementById('game-root');
+      if (gRoot) {
+          gRoot.classList.remove('area-cavern');
+          gRoot.classList.add('area-cove');
+      }
       // Defer music until the area is visually painted + a small buffer.
       // We use double-RAF to ensure the browser has completed the paint cycle,
       // plus a 200ms timeout to wait a beat before audio kicks in.
@@ -614,7 +619,12 @@ export function enterArea(areaID) {
       break;
     }
 
-    case AREAS.UNDERWATER_CAVERN: {
+        case AREAS.UNDERWATER_CAVERN: {
+      const gRoot = document.getElementById('game-root');
+      if (gRoot) {
+          gRoot.classList.remove('area-cove');
+          gRoot.classList.add('area-cavern');
+      }
       if (menuRoot) {
         menuRoot.style.display = 'none';
       }
