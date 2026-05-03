@@ -329,6 +329,8 @@ export function stopTypingSfx() {
     }
 }
 
+const SCROLL_TIMELINE_STYLES_ID = 'ccc-scroll-timeline-styles';
+
 export function injectScrollTimelineStyles() {
   if (document.getElementById(SCROLL_TIMELINE_STYLES_ID)) return;
   const style = document.createElement('style');
