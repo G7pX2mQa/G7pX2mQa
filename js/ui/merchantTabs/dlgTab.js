@@ -1,5 +1,5 @@
-import { merchantOverlayEl, merchantSheetEl, __isTypingActive, activeTypingAudio, TYPING_SFX_SRC, setDelveElements, setTypingActive, setActiveTypingAudio } from '../delveCore.js';
 // js/ui/merchantTabs/dlgTab.js
+import { merchantOverlayEl, merchantSheetEl, __isTypingActive, activeTypingAudio, TYPING_SFX_SRC, setDelveElements, setTypingActive, setActiveTypingAudio } from '../delveCore.js';
 import { 
   bank,
   getActiveSlot,
