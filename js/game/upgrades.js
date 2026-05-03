@@ -23,6 +23,7 @@ import {
   hasDoneSurgeReset,
   isSurgeUnlocked,
 } from '../ui/merchantTabs/resetTab.js';
+import { UC_REGISTRY } from './ucUpgrades.js';
 import { REGISTRY as AUTOMATION_REGISTRY, AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
 import { getEacAmountMultiplier } from './automationEffects.js';
 import { REGISTRY as DNA_REGISTRY, DNA_AREA_KEY } from './dnaUpgrades.js';
@@ -54,6 +55,7 @@ const HM_EVOLUTION_LOG10 = 3; // log10(1000)
 const DEFAULT_AREA_KEY = '';
 
 export const AREA_KEYS = {
+  UNDERWATER_CAVERN: 'underwater_cavern',
   STARTER_COVE: 'starter_cove',
   AUTOMATION: AUTOMATION_AREA_KEY,
   DNA: DNA_AREA_KEY,
@@ -3057,6 +3059,7 @@ export const REGISTRY = [
   ...AUTOMATION_REGISTRY,
   ...DNA_REGISTRY,
   ...RAINBOW_GEM_UPGRADES,
+  ...UC_REGISTRY,
 
 ];
 for (const upg of REGISTRY) {
@@ -4636,7 +4639,7 @@ function notifyChanged() {
 
 export function getCurrentAreaKey() {
   const gameRoot = document.getElementById('game-root');
-  if (gameRoot?.classList?.contains('area-cove')) return AREA_KEYS.STARTER_COVE;
+  if (gameRoot?.classList?.contains('area-cavern')) return AREA_KEYS.UNDERWATER_CAVERN;
   return AREA_KEYS.STARTER_COVE;
 }
 
