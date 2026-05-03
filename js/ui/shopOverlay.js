@@ -1,3 +1,4 @@
+import { primeTypingSfx } from './delveCore.js';
 // js/ui/shopOverlay.js
 
 import { bank, getActiveSlot } from '../util/storage.js';
@@ -6,12 +7,14 @@ import { formatNumber } from '../util/numFormat.js';
 import { IS_MOBILE } from '../main.js';
 import { openMerchant,
     ensureMerchantOverlay,
-    primeTypingSfx,
     unlockMerchantTabs,
     hasMetMerchant,
     MERCHANT_MET_EVENT,
     runPostTsunamiShopDialogue
 } from './merchantTabs/dlgTab.js';
+import { openMiner, hasMetMiner } from './minerTabs/dlgTab.js';
+
+
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { playAudio } from '../util/audioManager.js';
 import { settingsManager } from '../game/settingsManager.js';
@@ -692,7 +695,7 @@ class ShopInstance {
     
     updateDelveGlow() {
         if (!this.delveBtnEl || this.mode !== 'standard') return;
-        const met = hasMetMerchant();
+                const met = getCurrentAreaKey() === AREA_KEYS.STARTER_COVE ? hasMetMerchant() : hasMetMiner();
         let shouldGlow = !met;
         
         const slot = getActiveSlot();
@@ -1086,10 +1089,17 @@ class ShopInstance {
             delveBtn.type = 'button';
             delveBtn.className = 'shop-delve';
             delveBtn.textContent = 'Delve';
-            delveBtn.addEventListener('click', (e) => {
+                                    delveBtn.addEventListener('click', (e) => {
                 if (e && e.isTrusted && shouldSkipGhostTap(delveBtn)) return;
                 primeTypingSfx();
-                openMerchant();
+                const area = getCurrentAreaKey();
+                if (area === AREA_KEYS.STARTER_COVE) {
+                    openMerchant();
+                } else if (area === AREA_KEYS.UNDERWATER_CAVERN) {
+                    openMiner();
+                } else {
+                    openMerchant();
+                }
             });
             this.delveBtnEl = delveBtn;
             this.updateDelveGlow();
