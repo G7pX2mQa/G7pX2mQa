@@ -1,14 +1,14 @@
 /* ===== Waves & Water Layers ===== */
 
 /* Ensure all positioned children stack inside the playfield */
-.area-cove .playfield {
+.playfield {
   position: relative;
 }
 
 /* Layer order: water-background (1) < coins (5) < surges (80 - WebGL) */
 
 /* Coins — behind water & surges */
-.area-cove .playfield .coins-layer {
+.playfield .coins-layer {
   position: absolute;
   inset: 0;
   z-index: 5; /* Above water-base (1), below WebGL waves (80) */
@@ -16,7 +16,7 @@
 }
 
 /* Surges container - Kept for legacy structure if needed, but WebGL handles visuals */
-.area-cove .playfield .surges {
+.playfield .surges {
   position: absolute;
   inset: 0;
   z-index: 20;
