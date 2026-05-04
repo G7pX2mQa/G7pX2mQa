@@ -468,13 +468,13 @@ export function enterArea(areaID) {
       // Determine the correct playfield selector based on the active area
       let playfieldSelector = '.playfield';
       if (areaID === AREAS.STARTER_COVE) {
-        playfieldSelector = '.area-cove .playfield';
+        //playfieldSelector = '.playfield';
       } else if (areaID === AREAS.UNDERWATER_CAVERN) {
         // Assuming cavern might have its own playfield class later, or we fallback
         // However we should probably just query the active area's playfield if we add wrapper classes later
       }
       // For now, let's keep it simple: 
-      const playfield = document.querySelector(areaID === AREAS.STARTER_COVE ? '.area-cove .playfield' : '.playfield');
+      const playfield = document.querySelector('.playfield');
       if (playfield) {
           globalCursorTrail = createCursorTrail(playfield);
       }
@@ -604,7 +604,7 @@ export function enterArea(areaID) {
       }
       const waterBg = document.getElementById('water-background');
       const waterFg = document.getElementById('water-foreground');
-      const playfield = document.querySelector('.area-cove .playfield');
+      const playfield = document.querySelector('.playfield');
       if (waterBg) waterBg.style.display = '';
       if (waterFg) waterFg.style.display = '';
       if (playfield) {
@@ -643,7 +643,7 @@ export function enterArea(areaID) {
       
       const waterBg = document.getElementById('water-background');
       const waterFg = document.getElementById('water-foreground');
-      const playfield = document.querySelector('.area-cove .playfield');
+      const playfield = document.querySelector('.playfield');
       if (waterBg) waterBg.style.display = 'none';
       if (waterFg) waterFg.style.display = 'none';
       if (playfield) {
