@@ -11,7 +11,7 @@
   will-change: transform, opacity;
 }
 
-.area-cove .magnet-indicator {
+.magnet-indicator {
   position: absolute;
   pointer-events: none;
   background-color: rgba(80, 145, 255, 0.15);
@@ -28,17 +28,17 @@
   z-index: 6;
 }
 
-.area-cove .magnet-indicator.is-visible {
+.magnet-indicator.is-visible {
   opacity: 0.9;
 }
 
-.area-cove .magnet-indicator.magnet-bronze {
+.magnet-indicator.magnet-bronze {
   background-color: #cd7f3226;
   border: 2px solid rgb(205 127 50);
   box-shadow: 0 0 20px 4px #cd7f32f2, inset 0 0 36px #cd7f32c7;
 }
 
-.area-cove .magnet-indicator.magnet-silver {
+.magnet-indicator.magnet-silver {
   background-color: #c0c0c026;
   border: 2px solid rgb(192 192 192);
   box-shadow: 0 0 20px 4px #c0c0c0f2, inset 0 0 36px #c0c0c0c7;
@@ -75,31 +75,31 @@
   transition: opacity 1s;
 }
 
-.area-cove .magnet-indicator.magnet-gold {
+.magnet-indicator.magnet-gold {
   background-color: #ffd70026;
   border: 2px solid rgb(255 215 0);
   box-shadow: 0 0 20px 4px #ffd700f2, inset 0 0 36px #ffd700c7;
 }
 
-.area-cove .magnet-indicator.magnet-sapphire {
+.magnet-indicator.magnet-sapphire {
   background-color: #0f52ba26;
   border: 2px solid rgb(15 82 186);
   box-shadow: 0 0 20px 4px #0f52baf2, inset 0 0 36px #0f52bac7;
 }
 
-.area-cove .magnet-indicator.magnet-emerald {
+.magnet-indicator.magnet-emerald {
   background-color: #50c87826;
   border: 2px solid rgb(80 200 120);
   box-shadow: 0 0 20px 4px #50c878f2, inset 0 0 36px #50c878c7;
 }
 
-.area-cove .magnet-indicator.magnet-ruby {
+.magnet-indicator.magnet-ruby {
   background-color: #E0115F26;
   border: 2px solid rgb(255 0 51);
   box-shadow: 0 0 20px 4px #E0115Ff2, inset 0 0 36px #E0115Fc7;
 }
 
-.area-cove .magnet-indicator.magnet-amethyst {
+.magnet-indicator.magnet-amethyst {
   background-color: #9966CC26;
   border: 2px solid rgb(153 102 204);
   box-shadow: 0 0 20px 4px #9966CCf2, inset 0 0 36px #9966CCc7;
@@ -123,11 +123,11 @@
   }
 }
 
-.area-cove .magnet-indicator.magnet-sunset {
+.magnet-indicator.magnet-sunset {
   animation: sunset-magnet 4s infinite linear;
 }
 
-.area-cove .magnet-indicator.magnet-void {
+.magnet-indicator.magnet-void {
   background-color: #0a001026;
   border: 2px solid rgb(10 0 16);
   box-shadow: 0 0 20px 4px #0a0010f2, inset 0 0 36px #0a0010c7;
@@ -151,7 +151,7 @@
   }
 }
 
-.area-cove .magnet-indicator.magnet-ethereal {
+.magnet-indicator.magnet-ethereal {
   animation: ethereal-magnet 4s infinite linear;
 }
 
@@ -173,7 +173,7 @@
   }
 }
 
-.area-cove .magnet-indicator.magnet-earth {
+.magnet-indicator.magnet-earth {
   animation: earth-magnet 4s infinite linear;
 }
 
@@ -195,7 +195,7 @@
   }
 }
 
-.area-cove .magnet-indicator.magnet-air {
+.magnet-indicator.magnet-air {
   animation: air-magnet 4s infinite linear;
 }
 
@@ -217,7 +217,7 @@
   }
 }
 
-.area-cove .magnet-indicator.magnet-fire {
+.magnet-indicator.magnet-fire {
   animation: fire-magnet 4s infinite linear;
 }
 
@@ -244,7 +244,7 @@
   }
 }
 
-.area-cove .magnet-indicator.magnet-water {
+.magnet-indicator.magnet-water {
   animation: water-magnet 6s infinite linear;
 }
 
@@ -271,7 +271,7 @@
   }
 }
 
-.area-cove .magnet-indicator.magnet-cookie {
+.magnet-indicator.magnet-cookie {
   animation: cookie-magnet 6s infinite linear;
 }
 
@@ -292,7 +292,7 @@
     box-shadow: 0 0 20px 4px #F6BB00f2, inset 0 0 36px #F6BB00c7;
   }
 }
-.area-cove .magnet-indicator.magnet-pancake { animation: pancake-magnet 6s infinite linear alternate; }
+.magnet-indicator.magnet-pancake { animation: pancake-magnet 6s infinite linear alternate; }
 
 @keyframes watermelon-magnet {
   0% {
@@ -311,7 +311,7 @@
     box-shadow: 0 0 20px 4px #126422f2, inset 0 0 36px #126422c7;
   }
 }
-.area-cove .magnet-indicator.magnet-watermelon { animation: watermelon-magnet 6s infinite linear alternate; }
+.magnet-indicator.magnet-watermelon { animation: watermelon-magnet 6s infinite linear alternate; }
 
 @keyframes pepperoni-magnet {
   0% {
@@ -330,7 +330,7 @@
     box-shadow: 0 0 20px 4px #F17A3Cf2, inset 0 0 36px #F17A3Cc7;
   }
 }
-.area-cove .magnet-indicator.magnet-pepperoni { animation: pepperoni-magnet 6s infinite linear alternate; }
+.magnet-indicator.magnet-pepperoni { animation: pepperoni-magnet 6s infinite linear alternate; }
 
 @keyframes pizza-magnet {
   0% {
@@ -359,7 +359,7 @@
     box-shadow: 0 0 20px 4px #FFFF00f2, inset 0 0 36px #FFFF00c7;
   }
 }
-.area-cove .magnet-indicator.magnet-pizza { animation: pizza-magnet 10s infinite linear alternate; }
+.magnet-indicator.magnet-pizza { animation: pizza-magnet 10s infinite linear alternate; }
 
 @keyframes donut-magnet {
   0.00%, 5.56% {
@@ -417,7 +417,7 @@
     background-color: #FFFFFF26; border-color: #FFFFFF; box-shadow: 0 0 20px 4px #FFFFFFf2, inset 0 0 36px #FFFFFFc7;
   }
 }
-.area-cove .magnet-indicator.magnet-donut { animation: donut-magnet 18s infinite linear; }
+.magnet-indicator.magnet-donut { animation: donut-magnet 18s infinite linear; }
 
 @keyframes glass-magnet {
   0% {
@@ -436,7 +436,7 @@
     box-shadow: 0 0 20px 4px #EED48Af2, inset 0 0 36px #EED48Ac7;
   }
 }
-.area-cove .magnet-indicator.magnet-glass { animation: glass-magnet 6s infinite linear alternate; }
+.magnet-indicator.magnet-glass { animation: glass-magnet 6s infinite linear alternate; }
 
 @keyframes diamond-magnet {
   0% {
@@ -455,7 +455,7 @@
     box-shadow: 0 0 20px 4px #C3E5EAf2, inset 0 0 36px #C3E5EAc7;
   }
 }
-.area-cove .magnet-indicator.magnet-diamond { animation: diamond-magnet 6s infinite linear alternate; }
+.magnet-indicator.magnet-diamond { animation: diamond-magnet 6s infinite linear alternate; }
 
 @keyframes opal-magnet {
   0% {
@@ -474,7 +474,7 @@
     box-shadow: 0 0 20px 4px #B0D3FFf2, inset 0 0 36px #B0D3FFc7;
   }
 }
-.area-cove .magnet-indicator.magnet-opal { animation: opal-magnet 6s infinite linear alternate; }
+.magnet-indicator.magnet-opal { animation: opal-magnet 6s infinite linear alternate; }
 
 @keyframes cosmic-magnet {
   0% {
@@ -490,7 +490,7 @@
     background-color: #C42BFF26; border-color: #C42BFF; box-shadow: 0 0 20px 4px #C42BFFf2, inset 0 0 36px #C42BFFc7;
   }
 }
-.area-cove .magnet-indicator.magnet-cosmic { animation: cosmic-magnet 6s infinite linear alternate; }
+.magnet-indicator.magnet-cosmic { animation: cosmic-magnet 6s infinite linear alternate; }
 
 @keyframes prismatic-magnet {
   0% { background-color: #FF004426; border-color: #FF0044; box-shadow: 0 0 20px 4px #FF0044f2, inset 0 0 36px #FF0044c7; }
@@ -502,4 +502,4 @@
   85% { background-color: #A020F026; border-color: #A020F0; box-shadow: 0 0 20px 4px #A020F0f2, inset 0 0 36px #A020F0c7; }
   100% { background-color: #FF00FF26; border-color: #FF00FF; box-shadow: 0 0 20px 4px #FF00FFf2, inset 0 0 36px #FF00FFc7; }
 }
-.area-cove .magnet-indicator.magnet-prismatic { animation: prismatic-magnet 6s infinite linear alternate; }
+.magnet-indicator.magnet-prismatic { animation: prismatic-magnet 6s infinite linear alternate; }
