@@ -776,8 +776,8 @@ export function triggerPassiveCollect(count = 1) {
 
 export function initCoinPickup({
   spawner,
-  playfieldSelector   = '.area-cove .playfield',
-  coinsLayerSelector  = '.area-cove .coins-layer',
+  playfieldSelector   = '.playfield',
+  coinsLayerSelector  = '.coins-layer',
   hudAmountSelector   = '.hud-top .coin-amount',
   coinSelector        = '.coin, [data-coin], .coin-sprite',
   soundSrc            = 'sounds/coin_pickup.ogg',
