@@ -562,7 +562,7 @@ export function enterArea(areaID) {
         };
         applyMutationSprite();
         onMutationChangeGame?.(applyMutationSprite);
-        const pickup = initCoinPickup({ spawner });
+        const pickup = initCoinPickup({ spawner }); // uses default playfield
         window.coinPickupController = pickup;
         if (spawner && typeof spawner.setDependencies === 'function') {
             spawner.setDependencies({
@@ -604,13 +604,9 @@ export function enterArea(areaID) {
       }
       const waterBg = document.getElementById('water-background');
       const waterFg = document.getElementById('water-foreground');
-      const playfield = document.querySelector('.playfield');
       if (waterBg) waterBg.style.display = '';
       if (waterFg) waterFg.style.display = '';
-      if (playfield) {
-        playfield.style.backgroundImage = '';
-        playfield.style.backgroundColor = '';
-      }
+
       document.body.style.backgroundColor = '';
 
       setTimeout(() => {
@@ -643,13 +639,9 @@ export function enterArea(areaID) {
       
       const waterBg = document.getElementById('water-background');
       const waterFg = document.getElementById('water-foreground');
-      const playfield = document.querySelector('.playfield');
       if (waterBg) waterBg.style.display = 'none';
       if (waterFg) waterFg.style.display = 'none';
-      if (playfield) {
-        playfield.style.backgroundImage = 'none';
-        playfield.style.backgroundColor = '#000';
-      }
+
       
       document.body.style.backgroundColor = '#000';
       
