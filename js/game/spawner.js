@@ -210,7 +210,7 @@ const WAVE_DEFS = [
 ];
 
 export function createSpawner({
-    playfieldSelector = '.area-cove .playfield',
+    playfieldSelector = '.playfield',
     waterSelector = '#water-background',
     coinsHost = '.coins-layer',
     coinSrc = 'img/coin/coin.webp',
