@@ -415,7 +415,7 @@ class SettingsManager {
 
     // Clear old dynamic currency and level settings from memory to prevent bleed between slots
     for (const k in this.settings) {
-      if (k.startsWith("currency_") || k.startsWith("level_")) {
+      if (k.startsWith("currency_") || k.startsWith("level_") || k.startsWith("area_pinned_")) {
         delete this.settings[k];
         delete this._isDefault[k];
       }
@@ -426,7 +426,7 @@ class SettingsManager {
     const suffix = slot != null ? `:${slot}` : "";
     for (let i = 0; i < localStorage.length; i++) {
       const storageKey = localStorage.key(i);
-      if (storageKey && (storageKey.startsWith(SETTINGS_KEY_PREFIX + "currency_") || storageKey.startsWith(SETTINGS_KEY_PREFIX + "level_")) && storageKey.endsWith(suffix)) {
+      if (storageKey && (storageKey.startsWith(SETTINGS_KEY_PREFIX + "currency_") || storageKey.startsWith(SETTINGS_KEY_PREFIX + "level_") || storageKey.startsWith(SETTINGS_KEY_PREFIX + "area_pinned_")) && storageKey.endsWith(suffix)) {
         const key = storageKey.substring(SETTINGS_KEY_PREFIX.length, storageKey.length - suffix.length);
         try {
           this.settings[key] = JSON.parse(localStorage.getItem(storageKey));
@@ -448,10 +448,10 @@ class SettingsManager {
   }
 
   get(key) {
-    if (!(key in SETTING_DEFINITIONS) && !(key.startsWith("currency_") || key.startsWith("level_"))) return false;
+    if (!(key in SETTING_DEFINITIONS) && !(key.startsWith("currency_") || key.startsWith("level_") || key.startsWith("area_pinned_"))) return false;
     
     // Support dynamic currency toggles
-    if (key.startsWith("currency_") || key.startsWith("level_")) {
+    if (key.startsWith("currency_") || key.startsWith("level_") || key.startsWith("area_pinned_")) {
       return this.settings[key];
     }
 
@@ -473,7 +473,7 @@ class SettingsManager {
   }
 
   set(key, value) {
-    if (!(key in SETTING_DEFINITIONS) && !(key.startsWith("currency_") || key.startsWith("level_"))) return;
+    if (!(key in SETTING_DEFINITIONS) && !(key.startsWith("currency_") || key.startsWith("level_") || key.startsWith("area_pinned_"))) return;
     this.settings[key] = value;
     this._isDefault[key] = false;
     const storageKey = this._getKey(key);
