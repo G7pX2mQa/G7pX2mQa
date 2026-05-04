@@ -205,22 +205,32 @@ export function ensureMapOverlay() {
         btn.style.alignItems = 'center';
         btn.style.color = 'white';
         btn.style.textShadow = '1px 1px 2px black';
+        
+        btn.style.width = '6vw';
+        btn.style.height = 'auto';
+        btn.style.aspectRatio = '1';
+        btn.style.padding = '0';
+        btn.style.borderRadius = '50%';
 
         const iconWrapper = document.createElement('div');
         iconWrapper.style.position = 'relative';
         iconWrapper.style.display = 'flex';
         iconWrapper.style.justifyContent = 'center';
+        iconWrapper.style.width = '100%';
+        iconWrapper.style.height = '100%';
 
         const img = document.createElement('img');
         img.className = 'map-node-img';
         img.src = isLocked ? 'img/misc/locked_plus_base.webp' : node.icon;
-        img.style.width = '64px';
-        img.style.height = '64px';
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'contain';
 
         const label = document.createElement('span');
         label.className = 'map-node-label';
         label.textContent = node.name;
         label.style.fontWeight = 'bold';
+        label.style.fontSize = 'clamp(10px, 1.8vw, 24px)';
         label.style.position = 'absolute';
         label.style.bottom = '2px';
         label.style.textAlign = 'center';
@@ -241,7 +251,7 @@ export function ensureMapOverlay() {
         pinBtn.className = 'map-node-pin-btn';
         pinBtn.style.marginTop = '4px';
         pinBtn.style.color = 'white';
-        pinBtn.style.fontSize = '12px';
+        pinBtn.style.fontSize = 'clamp(8px, 1.2vw, 16px)';
         pinBtn.style.padding = '2px 6px';
         pinBtn.style.cursor = 'pointer';
         pinBtn.style.borderRadius = '0';
