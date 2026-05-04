@@ -21,9 +21,9 @@ export function setNodeLocked(id, locked) {
 
 export function getMapNodes() {
     return [
-        { id: 'cove', areaId: AREAS.STARTER_COVE, name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '20%', left: '50%', defaultLocked: false },
-        { id: 'cavern', areaId: AREAS.UNDERWATER_CAVERN, name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '35%', left: '75%', defaultLocked: true },
-        { id: 'coral', areaId: null, name: 'Coral Reef', icon: 'img/misc/locked_plus_base.webp', top: '50%', left: '25%', defaultLocked: true },
+        { id: 'cove', areaId: AREAS.STARTER_COVE, name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '23%', left: '50%', defaultLocked: false },
+        { id: 'cavern', areaId: AREAS.UNDERWATER_CAVERN, name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '38%', left: '75%', defaultLocked: true },
+        { id: 'coral', areaId: null, name: 'Coral Reef', icon: 'img/misc/locked_plus_base.webp', top: '53%', left: '25%', defaultLocked: true },
         { id: 'depths', areaId: null, name: 'Deep Depths', icon: 'img/misc/locked_plus_base.webp', top: '85%', left: '50%', defaultLocked: true }
     ];
 }
@@ -178,12 +178,7 @@ export function ensureMapOverlay() {
     nodesContainer.style.flex = '1';
     nodesContainer.style.zIndex = '2';
 
-    const nodes = [
-        { id: 'cove', areaId: AREAS.STARTER_COVE, name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '20%', left: '50%', defaultLocked: false },
-        { id: 'cavern', areaId: AREAS.UNDERWATER_CAVERN, name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '35%', left: '75%', defaultLocked: true },
-        { id: 'coral', areaId: null, name: 'Coral Reef', icon: 'img/misc/locked_plus_base.webp', top: '50%', left: '25%', defaultLocked: true },
-        { id: 'depths', areaId: null, name: 'Deep Depths', icon: 'img/misc/locked_plus_base.webp', top: '85%', left: '50%', defaultLocked: true }
-    ];
+    const nodes = getMapNodes();
 
     nodes.forEach(node => {
         const isLocked = isNodeLocked(node.id, node.defaultLocked);
