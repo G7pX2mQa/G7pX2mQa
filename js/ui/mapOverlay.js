@@ -206,23 +206,36 @@ export function ensureMapOverlay() {
         btn.style.color = 'white';
         btn.style.textShadow = '1px 1px 2px black';
 
+        const iconWrapper = document.createElement('div');
+        iconWrapper.style.position = 'relative';
+        iconWrapper.style.display = 'flex';
+        iconWrapper.style.justifyContent = 'center';
+
         const img = document.createElement('img');
         img.className = 'map-node-img';
         img.src = isLocked ? 'img/misc/locked_plus_base.webp' : node.icon;
         img.style.width = '64px';
         img.style.height = '64px';
-        img.style.marginBottom = '8px';
 
         const label = document.createElement('span');
         label.className = 'map-node-label';
         label.textContent = node.name;
         label.style.fontWeight = 'bold';
+        label.style.position = 'absolute';
+        label.style.bottom = '2px';
+        label.style.textAlign = 'center';
+        label.style.whiteSpace = 'nowrap';
+        label.style.left = '50%';
+        label.style.transform = 'translateX(-50%)';
+        label.style.textShadow = '1px 1px 2px black, -1px -1px 2px black, 1px -1px 2px black, -1px 1px 2px black';
         if (isLocked) {
             label.style.display = 'none';
         }
 
-        btn.appendChild(img);
-        btn.appendChild(label);
+        iconWrapper.appendChild(img);
+        iconWrapper.appendChild(label);
+
+        btn.appendChild(iconWrapper);
 
         const pinBtn = document.createElement('button');
         pinBtn.className = 'map-node-pin-btn';
@@ -233,10 +246,7 @@ export function ensureMapOverlay() {
         pinBtn.style.cursor = 'pointer';
         pinBtn.style.borderRadius = '0';
         pinBtn.style.transition = 'none';
-        pinBtn.style.position = 'absolute';
-        pinBtn.style.top = '100%';
-        pinBtn.style.left = '50%';
-        pinBtn.style.transform = 'translateX(-50%)';
+        pinBtn.style.whiteSpace = 'nowrap';
         if (isLocked || wasJustMapSequence) {
             pinBtn.style.display = 'none';
         }
