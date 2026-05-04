@@ -27,7 +27,7 @@ import { addExternalFpMultiplierProvider, getWaterwheelGoldMultiplier, getWaterw
 
 const BASE_CPS = 1;
 
-let _cachedUpgradeMultipliers = null;
+let _cachedUpgradeMultipliers = {};
 let listeners = [];
 
 const externalSpawnRateProviders = [];
@@ -39,11 +39,11 @@ export function addExternalSpawnRateMultiplierProvider(provider) {
 }
 
 export function invalidateEffectsCache() {
-  _cachedUpgradeMultipliers = null;
+  _cachedUpgradeMultipliers = {};
 }
 
 export function triggerUpgradesChanged() {
-  _cachedUpgradeMultipliers = null;
+  _cachedUpgradeMultipliers = {};
   try { listeners.forEach(cb => cb()); } catch {}
   try { document.dispatchEvent(new CustomEvent('ccc:upgrades:changed')); } catch {}
 }
@@ -102,7 +102,7 @@ export function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
 }
 
 export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
-  if (_cachedUpgradeMultipliers) return _cachedUpgradeMultipliers;
+  if (_cachedUpgradeMultipliers[areaKey]) return _cachedUpgradeMultipliers[areaKey];
 
   const upgrades = getUpgradesForArea(areaKey);
   const additionalUpgrades = [];
@@ -200,7 +200,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     } catch {}
   }
 
-  _cachedUpgradeMultipliers = acc;
+  _cachedUpgradeMultipliers[areaKey] = acc;
   return acc;
 }
 
