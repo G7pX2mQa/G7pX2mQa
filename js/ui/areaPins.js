@@ -45,12 +45,14 @@ function renderPinnedAreas() {
             const btn = document.createElement('button');
             btn.className = 'game-btn area-pin-btn';
             btn.style.position = 'relative';
-            btn.style.width = '48px';
-            btn.style.height = '48px';
-            btn.style.margin = '2px';
+            btn.style.width = '9vw';
+            btn.style.height = 'auto';
+            btn.style.aspectRatio = '1';
+            btn.style.margin = '0 0.5vw';
             btn.style.padding = '0';
             btn.style.background = 'none';
             btn.style.border = 'none';
+            btn.style.borderRadius = '50%';
             btn.style.cursor = 'pointer';
             btn.style.pointerEvents = 'auto';
 
