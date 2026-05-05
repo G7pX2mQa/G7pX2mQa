@@ -2,6 +2,7 @@ import { createSASOverlay } from './sasOverlayBuilder.js';
 import { getTsunamiSequenceSeen } from '../../game/surgeEffects.js';
 import { getLifetimeBossBeaten } from '../../game/secretAchievements.js';
 import { getActiveSlot } from '../../util/storage.js';
+import { isMapUnlocked } from '../hudButtons.js';
 
 const SHORTCUTS_PERMA_UNLOCK_KEY_BASE = 'ccc:shortcuts:permaUnlocks';
 const shortcutsPermaUnlockStateCache = new Map();
@@ -75,7 +76,10 @@ function populateShortcutsOverlay(overlayEl) {
     markShortcutTextPermanentlyUnlocked(1);
   }
   if (isTsunamiSeen) {
-    rcDesc += " Right-click also can be used to instantly toggle Lab Nodes.";
+    rcDesc += " Right-click can also be used to instantly toggle Lab Nodes.";
+  }
+  if (typeof isMapUnlocked === "function" && isMapUnlocked()) {
+    rcDesc += " Right-click can also be used to unpin pinned area buttons.";
   }
 
   const shortcuts = [
@@ -132,6 +136,9 @@ function populateShortcutsOverlay(overlayEl) {
     desc.className = "setting-description";
     if (shortcut.id) desc.dataset.shortcutId = shortcut.id;
     
+    desc.style.userSelect = "text";
+    desc.style.webkitUserSelect = "text";
+
     const labelSpan = document.createElement("span");
     labelSpan.textContent = shortcut.desc;
     desc.appendChild(labelSpan);
@@ -164,18 +171,28 @@ if (typeof window !== 'undefined') {
   window.addEventListener('unlock:change', (e) => {
     if (!shortcutsOverlay.isOpen) return;
 
-    if (e.detail && e.detail.key === 'tsunami') {
+    if (e.detail && (e.detail.key === 'tsunami' || e.detail.key === 'ccc:unlock:map' || e.detail.key === 'map')) {
       let isTsunamiSeen = isShortcutTextPermanentlyUnlocked(1);
       if (!isTsunamiSeen && typeof getTsunamiSequenceSeen === 'function' && getTsunamiSequenceSeen()) {
         markShortcutTextPermanentlyUnlocked(1);
-        
-        const overlayEl = shortcutsOverlay.overlayEl;
-        if (!overlayEl) return;
-        
+      }
+      
+      const overlayEl = shortcutsOverlay.overlayEl;
+      if (overlayEl) {
         const rcDescEl = overlayEl.querySelector('[data-shortcut-id="rc"] span');
         if (rcDescEl) {
-          const baseDesc = "On any sort of Shop upgrade, right-click its icon to perform a Buy Max onto it.";
-          rcDescEl.textContent = baseDesc + " Right-click can also be used to instantly toggle Lab Nodes.";
+          let updatedDesc = "On any sort of Shop upgrade, right-click its icon to perform a Buy Max onto it.";
+          
+          isTsunamiSeen = isShortcutTextPermanentlyUnlocked(1);
+          if (isTsunamiSeen) {
+            updatedDesc += " Right-click can also be used to instantly toggle Lab Nodes.";
+          }
+          
+          if (typeof isMapUnlocked === 'function' && isMapUnlocked()) {
+            updatedDesc += " Right-click can also be used to unpin pinned area buttons.";
+          }
+          
+          rcDescEl.textContent = updatedDesc;
         }
       }
     }
