@@ -1,4 +1,4 @@
-import { getMapNodes } from './mapOverlay.js';
+import { getMapNodes, isNodeLocked } from './mapOverlay.js';
 import { settingsManager } from '../game/settingsManager.js';
 import { currentArea, enterArea, AREAS } from '../main.js';
 import { blockInteraction } from './shopOverlay.js';
@@ -42,6 +42,7 @@ function renderPinnedAreas() {
 
     nodes.forEach(node => {
         if (settingsManager.get(`area_pinned_${node.id}`)) {
+            const isLocked = isNodeLocked(node.id, node.defaultLocked);
             const btn = document.createElement('button');
             btn.className = 'game-btn area-pin-btn';
             btn.style.position = 'relative';
@@ -53,8 +54,18 @@ function renderPinnedAreas() {
             btn.style.background = 'none';
             btn.style.border = 'none';
             btn.style.borderRadius = '50%';
-            btn.style.cursor = 'pointer';
+            btn.style.cursor = isLocked ? 'not-allowed' : 'pointer';
             btn.style.pointerEvents = 'auto';
+            if (isLocked) {
+                btn.style.opacity = '0.5';
+            }
+
+            const iconWrapper = document.createElement('div');
+            iconWrapper.style.position = 'relative';
+            iconWrapper.style.display = 'flex';
+            iconWrapper.style.justifyContent = 'center';
+            iconWrapper.style.width = '100%';
+            iconWrapper.style.height = '100%';
 
             const img = document.createElement('img');
             img.src = node.icon;
@@ -62,9 +73,18 @@ function renderPinnedAreas() {
             img.style.height = '100%';
             img.style.objectFit = 'contain';
 
-            btn.appendChild(img);
+            const label = document.createElement('span');
+            label.className = 'map-node-label area-label';
+            label.textContent = node.name;
+
+            iconWrapper.appendChild(img);
+            iconWrapper.appendChild(label);
+
+            btn.appendChild(iconWrapper);
 
             btn.onclick = () => {
+                if (isLocked) return;
+                
                 if (currentArea === node.areaId || node.areaId == null) {
                     return;
                 }
