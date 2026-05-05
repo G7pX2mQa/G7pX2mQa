@@ -260,6 +260,10 @@ export function ensureMapOverlay() {
             
             updatePinBtn(isPinned);
             
+            window.addEventListener('pinnedAreas:changed', () => {
+                updatePinBtn(settingsManager.get(`area_pinned_${node.id}`));
+            });
+            
             pinBtn.onclick = (e) => {
                 e.stopPropagation();
                 const currentlyPinned = settingsManager.get(`area_pinned_${node.id}`);
