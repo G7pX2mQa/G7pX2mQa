@@ -175,7 +175,7 @@ if (typeof window !== 'undefined') {
         const rcDescEl = overlayEl.querySelector('[data-shortcut-id="rc"] span');
         if (rcDescEl) {
           const baseDesc = "On any sort of Shop upgrade, right-click its icon to perform a Buy Max onto it.";
-          rcDescEl.textContent = baseDesc + " Right-click also can be used to instantly toggle Lab Nodes.";
+          rcDescEl.textContent = baseDesc + " Right-click can also be used to instantly toggle Lab Nodes.";
         }
       }
     }
