@@ -388,11 +388,22 @@ export function refreshNodesState() {
         if (label) label.style.display = isLocked ? 'none' : '';
         
         const pinBtn = btn.querySelector('.map-node-pin-btn');
-        if (pinBtn && !wasJustMapSequence) pinBtn.style.display = isLocked ? 'none' : '';
+        if (pinBtn) {
+            if (wasJustMapSequence || isLocked) {
+                pinBtn.style.display = 'none';
+            } else {
+                pinBtn.style.display = '';
+            }
+        }
     });
 }
 
 export function openMapOverlay(isFirstTime = false) {
+    if (isFirstTime) {
+        wasJustMapSequence = true;
+        window.__mapSequenceActive = true;
+    }
+
     ensureMapOverlay();
     refreshNodesState();
     
@@ -401,8 +412,6 @@ export function openMapOverlay(isFirstTime = false) {
     
     // Add first time fade element right away if needed
     if (isFirstTime) {
-        wasJustMapSequence = true;
-        window.__mapSequenceActive = true;
         const firstTimeFade = document.createElement('div');
         firstTimeFade.className = 'map-first-time-fade';
         // Set transition to none initially
