@@ -70,7 +70,7 @@ import { showDelayedSecretAchievementNotifications, checkSecretAchievements, set
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 import { unlockMap, isMapUnlocked } from '../hudButtons.js';
-import { openMapOverlay, setNodeLocked } from '../mapOverlay.js';
+import { openMapOverlay, setNodeLocked, refreshNodesState } from '../mapOverlay.js';
 import { getWaterwheelGoldMultiplier } from './flowTab.js';
 import { settingsManager } from '../../game/settingsManager.js';
 import { checkAchievements } from '../../game/achievements.js';
@@ -2703,8 +2703,15 @@ function bindGlobalEvents() {
   window.addEventListener('menu:scrollStop', () => {
     updateResetPanel();
   });
-  window.addEventListener('surge:level:change', () => {
+  window.addEventListener('surge:level:change', (e) => {
     triggerSurgeBarAnimation();
+    if (e && e.detail && e.detail.level !== undefined) {
+        let level = e.detail.level;
+        let is125 = level === Infinity || (typeof level === 'bigint' && level >= 125n) || (typeof level === 'number' && level >= 125);
+        setNodeLocked('cavern', !is125);
+        refreshNodesState();
+        window.dispatchEvent(new Event('pinnedAreas:changed'));
+    }
   });
   window.addEventListener('currency:change', (e) => {
     if (e.detail?.key === 'coins') {
