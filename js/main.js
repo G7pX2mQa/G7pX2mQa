@@ -840,6 +840,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   audio: [
     'sounds/Secret_Boss_Fight.ogg',
     'sounds/The_Cove.ogg',
+	'sounds/area_connector.ogg',
     'sounds/bomb_column_construction.ogg',
     'sounds/boss_death.ogg',
     'sounds/coin_pickup.ogg',
