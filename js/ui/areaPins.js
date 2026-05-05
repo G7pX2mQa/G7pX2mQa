@@ -82,6 +82,12 @@ function renderPinnedAreas() {
 
             btn.appendChild(iconWrapper);
 
+            btn.oncontextmenu = (e) => {
+                e.preventDefault();
+                settingsManager.set(`area_pinned_${node.id}`, false);
+                window.dispatchEvent(new CustomEvent('pinnedAreas:changed'));
+            };
+
             btn.onclick = () => {
                 if (isLocked) return;
                 
