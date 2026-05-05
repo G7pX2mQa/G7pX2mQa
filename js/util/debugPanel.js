@@ -18,6 +18,7 @@ import {
 } from './storage.js';
 import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpGainMultiplier, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
 import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationGainMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
+import { isNodeLocked, setNodeLocked } from '../ui/mapOverlay.js';
 import { IS_MOBILE } from '../main.js';
 import {
     getUpgradeStorageKey,
@@ -2792,6 +2793,57 @@ function setAllStatsToZero() {
 
 function getUnlockRowDefinitions(slot) {
     return [
+        {
+            labelText: 'Unlock Underwater Cavern',
+            description: 'If true, unlocks Underwater Cavern',
+            isUnlocked: () => {
+                try { return !isNodeLocked('cavern', true); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setNodeLocked('cavern', false); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setNodeLocked('cavern', true); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Coral Reef',
+            description: 'If true, unlocks Coral Reef',
+            isUnlocked: () => {
+                try { return !isNodeLocked('coral', true); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setNodeLocked('coral', false); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setNodeLocked('coral', true); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Deep Depths',
+            description: 'If true, unlocks Deep Depths',
+            isUnlocked: () => {
+                try { return !isNodeLocked('depths', true); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setNodeLocked('depths', false); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setNodeLocked('depths', true); }
+                catch {}
+            },
+            slot,
+        },
         {
             labelText: 'Unlock XP',
             description: 'If true, unlocks the XP system',
