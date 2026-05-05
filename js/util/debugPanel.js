@@ -18,7 +18,7 @@ import {
 } from './storage.js';
 import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpGainMultiplier, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
 import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationGainMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
-import { isNodeLocked, setNodeLocked } from '../ui/mapOverlay.js';
+import { isNodeLocked, setNodeLocked, refreshNodesState } from '../ui/mapOverlay.js';
 import { IS_MOBILE } from '../main.js';
 import {
     getUpgradeStorageKey,
@@ -2801,11 +2801,11 @@ function getUnlockRowDefinitions(slot) {
                 catch { return false; }
             },
             onEnable: () => {
-                try { setNodeLocked('cavern', false); }
+                try { setNodeLocked('cavern', false); refreshNodesState(); window.dispatchEvent(new Event('pinnedAreas:changed')); }
                 catch {}
             },
             onDisable: () => {
-                try { setNodeLocked('cavern', true); }
+                try { setNodeLocked('cavern', true); refreshNodesState(); window.dispatchEvent(new Event('pinnedAreas:changed')); }
                 catch {}
             },
             slot,
