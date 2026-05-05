@@ -5,7 +5,7 @@ import { getCurrentSurgeLevel } from './merchantTabs/resetTab.js';
 
 const MAP_NODE_LOCKED_KEY = (id, slot) => `ccc:map:locked:${id}:${slot}`;
 
-function isNodeLocked(id, defaultLocked) {
+export function isNodeLocked(id, defaultLocked) {
     const slot = getActiveSlot();
     if (slot == null) return defaultLocked;
     const val = localStorage.getItem(MAP_NODE_LOCKED_KEY(id, slot));
@@ -222,17 +222,8 @@ export function ensureMapOverlay() {
         img.style.objectFit = 'contain';
 
         const label = document.createElement('span');
-        label.className = 'map-node-label';
+        label.className = 'map-node-label area-label';
         label.textContent = node.name;
-        label.style.fontWeight = 'bold';
-        label.style.fontSize = 'clamp(10px, 1.8vw, 24px)';
-        label.style.position = 'absolute';
-        label.style.bottom = '2px';
-        label.style.textAlign = 'center';
-        label.style.whiteSpace = 'nowrap';
-        label.style.left = '50%';
-        label.style.transform = 'translateX(-50%)';
-        label.style.textShadow = '1px 1px 2px black, -1px -1px 2px black, 1px -1px 2px black, -1px 1px 2px black';
         if (isLocked) {
             label.style.display = 'none';
         }
@@ -244,7 +235,7 @@ export function ensureMapOverlay() {
 
         const pinBtn = document.createElement('button');
         pinBtn.className = 'map-node-pin-btn';
-        pinBtn.style.marginTop = '4px';
+        pinBtn.style.marginTop = '8px';
         pinBtn.style.color = 'white';
         pinBtn.style.fontSize = 'clamp(8px, 1.2vw, 16px)';
         pinBtn.style.padding = '2px 6px';
