@@ -84,10 +84,6 @@ function closeMapOverlay(overlay, sheet) {
 
 
 export function ensureMapOverlay() {
-    const surgeLevel = getCurrentSurgeLevel();
-    if (surgeLevel === Infinity || (typeof surgeLevel === 'bigint' && surgeLevel >= 125n) || (typeof surgeLevel === 'number' && surgeLevel >= 125)) {
-        setNodeLocked('cavern', false);
-    }
     let overlay = document.getElementById('map-overlay');
     if (overlay) return;
 
@@ -369,11 +365,7 @@ export function ensureMapOverlay() {
     document.body.appendChild(overlay);
 }
 
-function refreshNodesState() {
-    const surgeLevel = getCurrentSurgeLevel();
-    if (surgeLevel === Infinity || (typeof surgeLevel === 'bigint' && surgeLevel >= 125n) || (typeof surgeLevel === 'number' && surgeLevel >= 125)) {
-        setNodeLocked('cavern', false);
-    }
+export function refreshNodesState() {
     const overlay = document.getElementById('map-overlay');
     if (!overlay) return;
     const btns = overlay.querySelectorAll('.map-node-btn');
@@ -390,6 +382,9 @@ function refreshNodesState() {
         
         const label = btn.querySelector('.map-node-label');
         if (label) label.style.display = isLocked ? 'none' : '';
+        
+        const pinBtn = btn.querySelector('.map-node-pin-btn');
+        if (pinBtn && !wasJustMapSequence) pinBtn.style.display = isLocked ? 'none' : '';
     });
 }
 
