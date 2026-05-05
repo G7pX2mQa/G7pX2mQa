@@ -197,3 +197,33 @@
 .map-teleporting-message.show {
     opacity: 1;
 }
+
+.area-label {
+    position: absolute;
+    top: 85%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    bottom: auto;
+    text-align: center;
+    white-space: normal;
+    max-width: 8vw;
+    width: max-content;
+    line-height: 1.1;
+    font-weight: bold;
+    font-size: clamp(8px, 1.2vw, 18px);
+    color: white;
+    -webkit-text-stroke: clamp(0.25px, calc(0.1px + 0.06vw), 0.5px) #000;
+}
+
+@media (pointer: coarse) {
+    .area-label {
+        -webkit-text-stroke: 0 !important;
+        text-stroke: 0 !important;
+        text-shadow:
+            0   0.5px 0 #000,  0  -0.5px 0 #000,
+            0.5px 0   0 #000, -0.5px 0   0 #000,
+            0.5px 0.5px 0 #000,  0.5px -0.5px 0 #000,
+           -0.5px 0.5px 0 #000, -0.5px -0.5px 0 #000,
+            0 1px 0 rgba(0,0,0,0.5) !important;
+    }
+}
