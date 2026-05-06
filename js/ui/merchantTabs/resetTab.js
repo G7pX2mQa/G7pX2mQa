@@ -1566,7 +1566,7 @@ export function performSurgeReset() {
       unlockMap();
       setNodeLocked('cavern', false);
       setMapSequenceSeen(true);
-      openMapOverlay(true);
+      openMapOverlay('cavern');
       
       applySurgeResetLogic(reward, { playEffects: false });
       return true;
