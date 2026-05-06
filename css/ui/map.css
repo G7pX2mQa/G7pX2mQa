@@ -227,3 +227,15 @@
             0 1px 0 rgba(0,0,0,0.5) !important;
     }
 }
+
+@keyframes mapNodePop {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.3);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
