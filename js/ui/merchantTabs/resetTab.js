@@ -1648,7 +1648,7 @@ function getSafeLog10BigInt(bn) {
 function getSurgeRequirement(level) {
   if (level === Infinity) return BigNum.fromAny('Infinity');
   let numLevel = Number(level);
-  let logReq = numLevel;
+  let logReq = numLevel + 1;
   if (numLevel > 1e12) {
     logReq += 5 * Math.exp(2.3605777e-10 * (numLevel - 1e12));
   }
