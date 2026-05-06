@@ -1,3 +1,4 @@
+import { playAudio } from '../util/audioManager.js';
 import { getActiveSlot } from '../util/storage.js';
 import { setupDragToClose, blockInteraction } from './shopOverlay.js';
 import { IS_MOBILE, currentArea, AREAS, enterArea } from '../main.js';
@@ -22,7 +23,7 @@ export function setNodeLocked(id, locked) {
 export function getMapNodes() {
     return [
         { id: 'cove', areaId: AREAS.STARTER_COVE, name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '23%', left: '50%', defaultLocked: false },
-        { id: 'cavern', areaId: AREAS.UNDERWATER_CAVERN, name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '38%', left: '75%', defaultLocked: true },
+        { id: 'cavern', areaId: AREAS.UNDERWATER_CAVERN, name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '38%', left: '75%', defaultLocked: true, previousNodeId: 'cove' },
         { id: 'coral', areaId: null, name: 'Coral Reef', icon: 'img/misc/mysterious_plus_base.webp', top: '53%', left: '25%', defaultLocked: true },
         { id: 'depths', areaId: null, name: 'Deep Depths', icon: 'img/misc/mysterious_plus_base.webp', top: '85%', left: '50%', defaultLocked: true }
     ];
@@ -32,6 +33,7 @@ let isMapOverlayOpen = false;
 let wasJustMapSequence = false;
 
 function closeMapOverlay(overlay, sheet) {
+    if (window.__mapSequenceActive) return;
     if (!isMapOverlayOpen) return;
     isMapOverlayOpen = false;
     
@@ -83,7 +85,7 @@ function closeMapOverlay(overlay, sheet) {
 }
 
 
-export function ensureMapOverlay() {
+export function ensureMapOverlay(unlockedNodeId = null) {
     let overlay = document.getElementById('map-overlay');
     if (overlay) return;
 
@@ -176,6 +178,25 @@ export function ensureMapOverlay() {
 
     const nodes = getMapNodes();
 
+    const svgOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svgOverlay.style.position = 'absolute';
+    svgOverlay.style.top = '0';
+    svgOverlay.style.left = '0';
+    svgOverlay.style.width = '100%';
+    svgOverlay.style.height = '100%';
+    svgOverlay.style.zIndex = '1';
+    svgOverlay.style.pointerEvents = 'none';
+    nodesContainer.appendChild(svgOverlay);
+
+    // Make nodes globally accessible to refreshNodesState or similar if needed, 
+    // or we can draw lines here. Let's draw lines right here.
+    
+    // We store buttons in a map so we can access them in refreshNodesState to handle animation
+    overlay._nodeButtons = {};
+    overlay._nodeLines = {};
+    overlay._nodesContainer = nodesContainer;
+
+
     nodes.forEach(node => {
         const isLocked = isNodeLocked(node.id, node.defaultLocked);
         const btn = document.createElement('button');
@@ -231,6 +252,8 @@ export function ensureMapOverlay() {
 
         const pinBtn = document.createElement('button');
         pinBtn.className = 'map-node-pin-btn';
+        pinBtn.style.position = 'absolute';
+        pinBtn.style.top = '100%';
         pinBtn.style.marginTop = '8px';
         pinBtn.style.color = 'white';
         pinBtn.style.fontSize = 'clamp(8px, 1.2vw, 16px)';
@@ -239,7 +262,7 @@ export function ensureMapOverlay() {
         pinBtn.style.borderRadius = '0';
         pinBtn.style.transition = 'none';
         pinBtn.style.whiteSpace = 'nowrap';
-        if (isLocked || wasJustMapSequence) {
+        if (isLocked || window.__mapSequenceActive) {
             pinBtn.style.display = 'none';
         }
 
@@ -274,8 +297,10 @@ export function ensureMapOverlay() {
         });
 
         btn.appendChild(pinBtn);
+        overlay._nodeButtons[node.id] = { btn, node };
 
         btn.onclick = () => {
+            if (window.__mapSequenceActive) return;
             if (isNodeLocked(node.id, node.defaultLocked)) return;
             
             if (currentArea === node.areaId || node.areaId == null) {
@@ -343,7 +368,57 @@ export function ensureMapOverlay() {
             requestAnimationFrame(pulseFrame);
         };
 
+        btn.style.zIndex = '2';
         nodesContainer.appendChild(btn);
+    });
+
+    
+    // Draw connection lines
+    nodes.forEach(node => {
+        if (node.previousNodeId) {
+            const prevNode = nodes.find(n => n.id === node.previousNodeId);
+            if (prevNode) {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                
+                // Coordinates in %
+                line.setAttribute('x1', prevNode.left);
+                line.setAttribute('y1', prevNode.top);
+                line.setAttribute('x2', node.left);
+                line.setAttribute('y2', node.top);
+                
+                line.setAttribute('stroke', '#ffcc00');
+                line.setAttribute('stroke-width', '4');
+                line.setAttribute('stroke-linecap', 'round');
+                line.style.filter = 'drop-shadow(0px 0px 5px #ffcc00)';
+                line.style.transition = 'none';
+                line.style.opacity = '0'; // hide by default
+                
+                // For drawing animation
+                line.setAttribute('pathLength', '100');
+                line.style.strokeDasharray = '100';
+                
+                const isSequenceTarget = (node.id === unlockedNodeId);
+                const isLocked = isSequenceTarget ? true : isNodeLocked(node.id, node.defaultLocked);
+                const prevLocked = isSequenceTarget ? false : isNodeLocked(prevNode.id, prevNode.defaultLocked);
+                
+                if (!isLocked && !prevLocked) {
+                    // Already unlocked, so show instantly
+                    line.style.opacity = '1';
+                    line.style.strokeDashoffset = '0';
+                } else if (isSequenceTarget && !prevLocked) {
+                    // Ready to be animated, keep hidden
+                    line.style.strokeDashoffset = '100';
+                    line.style.opacity = '0';
+                } else {
+                    // Fully locked
+                    line.style.opacity = '0';
+                    line.style.strokeDashoffset = '100';
+                }
+
+                svgOverlay.appendChild(line);
+                overlay._nodeLines[node.id] = line;
+            }
+        }
     });
 
     content.appendChild(nodesContainer);
@@ -369,7 +444,7 @@ export function ensureMapOverlay() {
     document.body.appendChild(overlay);
 }
 
-export function refreshNodesState() {
+export function refreshNodesState(unlockedNodeId = null) {
     const overlay = document.getElementById('map-overlay');
     if (!overlay) return;
     const btns = overlay.querySelectorAll('.map-node-btn');
@@ -378,7 +453,8 @@ export function refreshNodesState() {
         const defaultLocked = btn.dataset.defaultLocked === 'true';
         const icon = btn.dataset.icon;
         
-        const isLocked = isNodeLocked(id, defaultLocked);
+        const isSequenceTarget = (id === unlockedNodeId);
+        const isLocked = isSequenceTarget ? true : isNodeLocked(id, defaultLocked);
         btn.style.cursor = isLocked ? 'not-allowed' : 'pointer';
         
         const img = btn.querySelector('.map-node-img');
@@ -389,7 +465,7 @@ export function refreshNodesState() {
         
         const pinBtn = btn.querySelector('.map-node-pin-btn');
         if (pinBtn) {
-            if (wasJustMapSequence || isLocked) {
+            if (window.__mapSequenceActive || isLocked) {
                 pinBtn.style.display = 'none';
             } else {
                 pinBtn.style.display = '';
@@ -398,38 +474,69 @@ export function refreshNodesState() {
     });
 }
 
-export function openMapOverlay(isFirstTime = false) {
-    if (isFirstTime) {
+export function openMapOverlay(unlockedNodeId = null) {
+    if (unlockedNodeId) {
         wasJustMapSequence = true;
         window.__mapSequenceActive = true;
     }
 
-    ensureMapOverlay();
-    refreshNodesState();
+    ensureMapOverlay(unlockedNodeId);
+    refreshNodesState(unlockedNodeId);
     
     let overlay = document.getElementById('map-overlay');
     let sheet = overlay.querySelector('.map-sheet');
     
-    // Add first time fade element right away if needed
-    if (isFirstTime) {
+    if (unlockedNodeId) {
         const firstTimeFade = document.createElement('div');
         firstTimeFade.className = 'map-first-time-fade';
-        // Set transition to none initially
         firstTimeFade.style.transition = 'none';
         firstTimeFade.style.opacity = '1';
         document.body.appendChild(firstTimeFade);
         
-        // Force reflow
         firstTimeFade.offsetHeight;
         
         setTimeout(() => {
-            // Restore transition for fade out
             firstTimeFade.style.transition = 'opacity 5s linear';
             firstTimeFade.style.opacity = '0';
             
             setTimeout(() => {
                 firstTimeFade.remove();
-                window.__mapSequenceActive = false;
+                
+                setTimeout(() => {
+                    const line = overlay._nodeLines ? overlay._nodeLines[unlockedNodeId] : null;
+                    const nodeBtn = overlay._nodeButtons ? overlay._nodeButtons[unlockedNodeId] : null;
+                    
+                    if (line) {
+                        playAudio('sounds/area_connector.ogg', { type: 'sfx', volume: 1.0 });
+                        line.style.opacity = '1';
+                        line.style.transition = 'stroke-dashoffset 4.75s linear';
+                        line.style.strokeDashoffset = '0';
+                        
+                        setTimeout(() => {
+                            playAudio('sounds/explosion_long.ogg', { type: 'sfx', volume: 1.0 });
+                            
+                            if (nodeBtn) {
+                                nodeBtn.btn.style.animation = 'mapNodePop 0.3s ease-out';
+                                
+                                const img = nodeBtn.btn.querySelector('.map-node-img');
+                                if (img) img.src = nodeBtn.node.icon;
+                                
+                                const label = nodeBtn.btn.querySelector('.map-node-label');
+                                if (label) label.style.display = '';
+                                
+                                nodeBtn.btn.style.cursor = 'pointer';
+                                
+                                // User requested: "I don't want the pinned button to be visible during or directly after the Map sequence plays anyway."
+                                const pinBtn = nodeBtn.btn.querySelector('.map-node-pin-btn');
+                                if (pinBtn) pinBtn.style.display = 'none';
+                            }
+                            
+                            window.__mapSequenceActive = false;
+                        }, 4750);
+                    } else {
+                        window.__mapSequenceActive = false;
+                    }
+                }, 1000);
             }, 5000);
         }, 1000);
     }
