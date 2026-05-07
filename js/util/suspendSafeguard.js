@@ -30,14 +30,22 @@ function canUseIndexedDb() {
   }
 }
 
+let cachedCanUseLocalStorage = null;
+
 function canUseLocalStorage() {
-  if (typeof localStorage === 'undefined') return false;
+  if (cachedCanUseLocalStorage !== null) return cachedCanUseLocalStorage;
+  if (typeof localStorage === 'undefined') {
+    cachedCanUseLocalStorage = false;
+    return false;
+  }
   try {
     const testKey = `${STORAGE_PREFIX}__test__`;
     localStorage.setItem(testKey, '1');
     localStorage.removeItem(testKey);
+    cachedCanUseLocalStorage = true;
     return true;
   } catch {
+    cachedCanUseLocalStorage = false;
     return false;
   }
 }
