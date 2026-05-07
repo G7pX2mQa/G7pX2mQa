@@ -309,6 +309,8 @@ export function ensureMapOverlay(unlockedNodeId = null) {
                 return;
             }
             
+            wasJustMapSequence = false;
+            
             if (IS_MOBILE) blockInteraction(500);
 
             const teleportOverlay = document.createElement('div');
