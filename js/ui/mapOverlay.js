@@ -198,7 +198,8 @@ export function ensureMapOverlay(unlockedNodeId = null) {
 
 
     nodes.forEach(node => {
-        const isLocked = isNodeLocked(node.id, node.defaultLocked);
+        const isSequenceTarget = (node.id === unlockedNodeId);
+        const isLocked = isSequenceTarget ? true : isNodeLocked(node.id, node.defaultLocked);
         const btn = document.createElement('button');
         btn.className = 'map-node-btn';
         btn.dataset.nodeId = node.id;
@@ -392,13 +393,12 @@ export function ensureMapOverlay(unlockedNodeId = null) {
                 const angle = Math.atan2(dy, dx);
                 
                 // radius in % (approximate for 6vw)
-                const rx = 3.5; 
-                const ry = window.innerWidth && window.innerHeight ? (3.5 * window.innerWidth / window.innerHeight) : 3.5;
+                const rx = 3.2; 
 
                 line.setAttribute('x1', `${x1 + Math.cos(angle) * rx}%`);
-                line.setAttribute('y1', `${y1 + Math.sin(angle) * ry}%`);
+                line.setAttribute('y1', `${y1}%`);
                 line.setAttribute('x2', `${x2 - Math.cos(angle) * rx}%`);
-                line.setAttribute('y2', `${y2 - Math.sin(angle) * ry}%`);
+                line.setAttribute('y2', `${y2}%`);
                 
                 line.setAttribute('stroke', '#ffcc00');
                 line.setAttribute('stroke-width', '4');
@@ -521,7 +521,7 @@ export function openMapOverlay(unlockedNodeId = null) {
                     const nodeBtn = overlay._nodeButtons ? overlay._nodeButtons[unlockedNodeId] : null;
                     
                     if (line) {
-                        const audioInst = playAudio('sounds/area_connector.ogg', { type: 'sfx', volume: 1.0 });
+                        const audioInst = playAudio('sounds/area_connector.ogg', { type: 'sfx', volume: 0.5 });
                         line.style.opacity = '1';
                         line.style.transition = 'stroke-dashoffset 4.5s linear';
                         line.style.strokeDashoffset = '0';
