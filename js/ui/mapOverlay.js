@@ -417,6 +417,7 @@ export function ensureMapOverlay(unlockedNodeId = null) {
                 
                 if (!isLocked && !prevLocked) {
                     // Already unlocked, so show instantly
+                    line.style.transition = 'none';
                     line.style.opacity = '1';
                     line.style.strokeDashoffset = '0';
                 } else if (isSequenceTarget && !prevLocked) {
@@ -483,6 +484,31 @@ export function refreshNodesState(unlockedNodeId = null) {
                 pinBtn.style.display = 'none';
             } else {
                 pinBtn.style.display = '';
+            }
+        }
+    });
+
+    const nodes = getMapNodes();
+    nodes.forEach(node => {
+        if (node.previousNodeId) {
+            const prevNode = nodes.find(n => n.id === node.previousNodeId);
+            if (prevNode && overlay._nodeLines && overlay._nodeLines[node.id]) {
+                const line = overlay._nodeLines[node.id];
+                const isSequenceTarget = (node.id === unlockedNodeId) || (window.__mapSequenceActive && node.id === window.__mapSequenceTarget);
+                const isLocked = isSequenceTarget ? true : isNodeLocked(node.id, node.defaultLocked);
+                const prevLocked = isSequenceTarget ? false : isNodeLocked(prevNode.id, prevNode.defaultLocked);
+                
+                if (!isLocked && !prevLocked) {
+                    line.style.transition = 'none';
+                    line.style.opacity = '1';
+                    line.style.strokeDashoffset = '0';
+                } else if (isSequenceTarget && !prevLocked) {
+                    line.style.strokeDashoffset = '100';
+                    line.style.opacity = '0';
+                } else {
+                    line.style.opacity = '0';
+                    line.style.strokeDashoffset = '100';
+                }
             }
         }
     });
