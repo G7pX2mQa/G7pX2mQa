@@ -528,12 +528,16 @@ export function openMapOverlay(unlockedNodeId = null) {
                         line.style.strokeDashoffset = '0';
                         
                         setTimeout(() => {
+                            playAudio('sounds/explosion_long.ogg', { type: 'sfx', volume: 1.0 });
+                        }, 4400);
+                        
+                        setTimeout(() => {
                             if (audioInst && audioInst.stop) {
                                 audioInst.stop();
                             } else if (audioInst && audioInst.pause) {
                                 audioInst.pause();
                             }
-                            playAudio('sounds/explosion_long.ogg', { type: 'sfx', volume: 1.0 });
+                            
                             
                             if (nodeBtn) {
                                 nodeBtn.btn.style.animation = 'mapNodePop 0.3s ease-out';
