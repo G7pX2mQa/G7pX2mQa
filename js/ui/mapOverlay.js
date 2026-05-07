@@ -380,11 +380,25 @@ export function ensureMapOverlay(unlockedNodeId = null) {
             if (prevNode) {
                 const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                 
-                // Coordinates in %
-                line.setAttribute('x1', prevNode.left);
-                line.setAttribute('y1', prevNode.top);
-                line.setAttribute('x2', node.left);
-                line.setAttribute('y2', node.top);
+                // Convert string percentages to numbers
+                const x1 = parseFloat(prevNode.left);
+                const y1 = parseFloat(prevNode.top);
+                const x2 = parseFloat(node.left);
+                const y2 = parseFloat(node.top);
+
+                // Calculate angle to offset the line from the center to the edge of the icons
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const angle = Math.atan2(dy, dx);
+                
+                // radius in % (approximate for 6vw)
+                const rx = 3.5; 
+                const ry = window.innerWidth && window.innerHeight ? (3.5 * window.innerWidth / window.innerHeight) : 3.5;
+
+                line.setAttribute('x1', `${x1 + Math.cos(angle) * rx}%`);
+                line.setAttribute('y1', `${y1 + Math.sin(angle) * ry}%`);
+                line.setAttribute('x2', `${x2 - Math.cos(angle) * rx}%`);
+                line.setAttribute('y2', `${y2 - Math.sin(angle) * ry}%`);
                 
                 line.setAttribute('stroke', '#ffcc00');
                 line.setAttribute('stroke-width', '4');
@@ -507,12 +521,17 @@ export function openMapOverlay(unlockedNodeId = null) {
                     const nodeBtn = overlay._nodeButtons ? overlay._nodeButtons[unlockedNodeId] : null;
                     
                     if (line) {
-                        playAudio('sounds/area_connector.ogg', { type: 'sfx', volume: 1.0 });
+                        const audioInst = playAudio('sounds/area_connector.ogg', { type: 'sfx', volume: 1.0 });
                         line.style.opacity = '1';
-                        line.style.transition = 'stroke-dashoffset 4.75s linear';
+                        line.style.transition = 'stroke-dashoffset 4.5s linear';
                         line.style.strokeDashoffset = '0';
                         
                         setTimeout(() => {
+                            if (audioInst && audioInst.stop) {
+                                audioInst.stop();
+                            } else if (audioInst && audioInst.pause) {
+                                audioInst.pause();
+                            }
                             playAudio('sounds/explosion_long.ogg', { type: 'sfx', volume: 1.0 });
                             
                             if (nodeBtn) {
@@ -532,7 +551,8 @@ export function openMapOverlay(unlockedNodeId = null) {
                             }
                             
                             window.__mapSequenceActive = false;
-                        }, 4750);
+                            window.__mapSequenceTarget = null;
+                        }, 4500);
                     } else {
                         window.__mapSequenceActive = false;
                     }
