@@ -70,7 +70,7 @@ import { showDelayedSecretAchievementNotifications, checkSecretAchievements, set
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
 import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
 import { unlockMap, isMapUnlocked } from '../hudButtons.js';
-import { openMapOverlay, setNodeLocked, refreshNodesState } from '../mapOverlay.js';
+import { openMapOverlay, setNodeLocked, refreshNodesState, isNodeLocked } from '../mapOverlay.js';
 import { getWaterwheelGoldMultiplier } from './flowTab.js';
 import { settingsManager } from '../../game/settingsManager.js';
 import { checkAchievements } from '../../game/achievements.js';
@@ -1557,19 +1557,27 @@ export function performSurgeReset() {
       isSurge125 = potentialLevel >= 125;
   }
   
-  if (isSurge125 && !isMapUnlocked()) {
-      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:stopMusic'));
-      if (window.spawner && typeof window.spawner.stop === 'function') window.spawner.stop();
-      try { closeShop(true); } catch {}
-      try { closeMerchant(); } catch {}
-      
+  if (isSurge125 && isNodeLocked('cavern', true)) {
       unlockMap();
       setNodeLocked('cavern', false);
-      setMapSequenceSeen(true);
-      openMapOverlay('cavern');
       
-      applySurgeResetLogic(reward, { playEffects: false });
-      return true;
+      const hasSeenSequence = getMapSequenceSeen('cavern');
+      
+      if (!hasSeenSequence) {
+          if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:stopMusic'));
+          if (window.spawner && typeof window.spawner.stop === 'function') window.spawner.stop();
+          try { closeShop(true); } catch {}
+          try { closeMerchant(); } catch {}
+          
+          setMapSequenceSeen('cavern', true);
+          openMapOverlay('cavern');
+          
+          applySurgeResetLogic(reward, { playEffects: false });
+          return true;
+      } else {
+          // Silent unlock: just refresh state so map button/nodes update
+          refreshNodesState();
+      }
   }
   
   // Check sequence condition
