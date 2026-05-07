@@ -1,7 +1,7 @@
-import { createCursorTrail } from './game/cursorTrail.js';
 // js/main.js
 
 import { playAudio, setAudioSuspended } from './util/audioManager.js';
+import { createCursorTrail } from './game/cursorTrail.js';
 
 export const FONT_MAP = {
   1: 'font-tinos',
@@ -103,6 +103,10 @@ let waterSystem;
 // Store unsubscribe functions for water system to avoid duplicate listeners
 let waterTickUnsub = null;
 let waterFrameUnsub = null;
+
+export let activePlaytime = 0;
+let activePlaytimeUnsub = null;
+let activePlaytimeStorageAccumulator = 0;
 
 let unpauseNotifications = null;
 const pendingPreloadedAudio = [];
@@ -1063,6 +1067,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   initSlots(async () => {
+    const slot = getActiveSlot();
+    try {
+      const stored = localStorage.getItem(`ccc:activePlaytime:${slot}`);
+      activePlaytime = stored ? Number(stored) : 0;
+      window.activePlaytime = activePlaytime;
+    } catch {
+      activePlaytime = 0;
+      window.activePlaytime = activePlaytime;
+    }
+
+    if (activePlaytimeUnsub) {
+      activePlaytimeUnsub();
+      activePlaytimeUnsub = null;
+    }
+    
+    activePlaytimeStorageAccumulator = 0;
+    if (typeof registerTick === 'function') {
+      activePlaytimeUnsub = registerTick((dt) => {
+        if (!document.hidden) {
+          activePlaytimeStorageAccumulator += dt;
+          if (activePlaytimeStorageAccumulator >= 1) {
+            const wholeSeconds = Math.floor(activePlaytimeStorageAccumulator);
+            activePlaytime += wholeSeconds;
+            window.activePlaytime = activePlaytime;
+            
+            try {
+              localStorage.setItem(`ccc:activePlaytime:${slot}`, String(activePlaytime));
+            } catch {}
+            activePlaytimeStorageAccumulator -= wholeSeconds;
+          }
+        }
+      });
+    }
+
     if (currentArea === AREAS.STARTER_COVE) return;
     setHasOpenedSaveSlot(true);
     document.body.classList.add('has-opened');
