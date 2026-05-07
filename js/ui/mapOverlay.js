@@ -198,7 +198,7 @@ export function ensureMapOverlay(unlockedNodeId = null) {
 
 
     nodes.forEach(node => {
-        const isSequenceTarget = (node.id === unlockedNodeId);
+        const isSequenceTarget = (node.id === unlockedNodeId) || (window.__mapSequenceActive && node.id === window.__mapSequenceTarget);
         const isLocked = isSequenceTarget ? true : isNodeLocked(node.id, node.defaultLocked);
         const btn = document.createElement('button');
         btn.className = 'map-node-btn';
@@ -411,7 +411,7 @@ export function ensureMapOverlay(unlockedNodeId = null) {
                 line.setAttribute('pathLength', '100');
                 line.style.strokeDasharray = '100';
                 
-                const isSequenceTarget = (node.id === unlockedNodeId);
+                const isSequenceTarget = (node.id === unlockedNodeId) || (window.__mapSequenceActive && node.id === window.__mapSequenceTarget);
                 const isLocked = isSequenceTarget ? true : isNodeLocked(node.id, node.defaultLocked);
                 const prevLocked = isSequenceTarget ? false : isNodeLocked(prevNode.id, prevNode.defaultLocked);
                 
