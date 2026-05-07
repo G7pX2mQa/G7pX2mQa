@@ -467,7 +467,7 @@ export function refreshNodesState(unlockedNodeId = null) {
         const defaultLocked = btn.dataset.defaultLocked === 'true';
         const icon = btn.dataset.icon;
         
-        const isSequenceTarget = (id === unlockedNodeId);
+        const isSequenceTarget = (id === unlockedNodeId) || (window.__mapSequenceActive && id === window.__mapSequenceTarget);
         const isLocked = isSequenceTarget ? true : isNodeLocked(id, defaultLocked);
         btn.style.cursor = isLocked ? 'not-allowed' : 'pointer';
         
@@ -492,6 +492,7 @@ export function openMapOverlay(unlockedNodeId = null) {
     if (unlockedNodeId) {
         wasJustMapSequence = true;
         window.__mapSequenceActive = true;
+        window.__mapSequenceTarget = unlockedNodeId;
     }
 
     ensureMapOverlay(unlockedNodeId);
