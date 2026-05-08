@@ -1,8 +1,8 @@
-import { settingsManager } from '../game/settingsManager.js';
 // js/util/debugPanel.js
 // Using a debug panel is much faster and more convenient than
 // Editing local storage every time I want to change something.
 
+import { settingsManager } from '../game/settingsManager.js';
 import { BigNum, bigNumFromLog10 } from './bigNum.js';
 import { formatNumber, formatMultForUi } from './numFormat.js';
 import {
@@ -2803,8 +2803,12 @@ function getUnlockRowDefinitions(slot) {
                 catch { return false; }
             },
             onEnable: () => {
-                try { setNodeLocked('cavern', false); refreshNodesState(); window.dispatchEvent(new Event('pinnedAreas:changed')); }
-                catch {}
+                try {
+                    setNodeLocked('cavern', false);
+                    refreshNodesState();
+                    window.dispatchEvent(new Event('pinnedAreas:changed'));
+                    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'map:cavern', slot } }));
+                } catch {}
             },
             onDisable: () => {
                 try { setNodeLocked('cavern', true); refreshNodesState(); window.dispatchEvent(new Event('pinnedAreas:changed')); }
@@ -4619,7 +4623,7 @@ function buildDebugPanel() {
         { text: 'Input fields can take a normal, scientific, or BN number as input' },
         { text: 'Input value "inf" sets a value to infinity or an upgrade to its level cap' },
         { text: 'Toggle UL/L (Unlocked/Locked) on a value to freeze it from accruing normally' },
-        { text: 'Press N to nuke active notifications because they suck and you don\'t want them' },
+        { text: 'Press N to nuke all notifications, press Shift+N to nuke only the current notification' },
     ];
 
     infoLines.forEach(({ text, hideOnMobile }) => {
@@ -4759,7 +4763,7 @@ document.addEventListener('keydown', event => {
     if (!debugPanelAccess || isOnMenu()) return;
 
     if (event.key?.toLowerCase() === 'n') {
-        nukeNotifications();
+        nukeNotifications(!event.shiftKey);
         return;
     }
 
