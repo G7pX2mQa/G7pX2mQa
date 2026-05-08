@@ -2923,7 +2923,6 @@ if (typeof window !== 'undefined') {
     setSurgeResetCompleted,
     hasDoneSurgeReset,
     getCurrentSurgeLevel,
-    shouldBlockBigCoins,
     hasDoneExperimentReset,
     setExperimentResetCompleted,
     isExperimentUnlocked,
