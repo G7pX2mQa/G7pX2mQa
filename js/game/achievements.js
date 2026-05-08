@@ -17,7 +17,6 @@ const _rawAchievements = [
         id: 1,
         title: 'Forged',
         desc: 'Perform a Forge reset',
-        rewardText: 'nothing',
         icon: 'img/misc/forge_plus_base.webp',
         checkCondition: () => hasDoneForgeReset()
     },
@@ -25,7 +24,6 @@ const _rawAchievements = [
         id: 2,
         title: 'Infused',
         desc: 'Perform an Infuse reset',
-        rewardText: 'nothing',
         icon: 'img/misc/infuse_plus_base.webp',
         checkCondition: () => hasDoneInfuseReset()
     },
@@ -33,7 +31,6 @@ const _rawAchievements = [
         id: 3,
         title: 'Surged',
         desc: 'Perform a Surge reset',
-        rewardText: 'nothing',
         icon: 'img/misc/surge_plus_base.webp',
         checkCondition: () => hasDoneSurgeReset()
     },
@@ -41,7 +38,6 @@ const _rawAchievements = [
         id: 4,
         title: 'What Once Was Lost',
         desc: 'Unlock the Lab tab',
-        rewardText: 'nothing',
         icon: 'img/stats/rp/rp_plus_base.webp',
         checkCondition: () => {
             if (typeof getTsunamiSequenceSeen === 'function') {
@@ -57,7 +53,6 @@ const _rawAchievements = [
         id: 5,
         title: 'A Scientific Experiment',
         desc: 'Perform an Experiment reset',
-        rewardText: 'nothing',
         icon: 'img/misc/experiment_plus_base.webp',
         checkCondition: () => {
             if (typeof hasDoneExperimentReset === 'function') {
@@ -70,7 +65,6 @@ const _rawAchievements = [
         id: 6,
         title: 'Flowing',
         desc: 'Unlock the Flow tab',
-        rewardText: 'nothing',
         icon: 'img/stats/fp/fp_plus_base.webp',
         checkCondition: () => {
             if (typeof getFlowUnlockState === 'function') {
@@ -83,7 +77,6 @@ const _rawAchievements = [
         id: 7,
         title: 'Evolutionary',
         desc: 'Evolve an upgrade',
-        rewardText: 'nothing',
         icon: 'img/misc/evolve_achievement_icon.webp',
         checkCondition: () => {
             if (typeof hasEvolvedAnyUpgrade === 'function') {
