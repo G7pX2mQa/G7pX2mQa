@@ -67,6 +67,8 @@ import {
     NODE_RP_KEY
 } from '../game/labNodes.js';
 import { calculateOfflineRewards, grantOfflineRewards, showOfflinePanel, calculatePreAutomationRewards } from '../game/offlinePanel.js';
+import { nukeNotifications } from '../ui/notifications.js';
+
 import { 
     getActiveCombo, 
     setActiveCombo, 
@@ -4617,6 +4619,7 @@ function buildDebugPanel() {
         { text: 'Input fields can take a normal, scientific, or BN number as input' },
         { text: 'Input value "inf" sets a value to infinity or an upgrade to its level cap' },
         { text: 'Toggle UL/L (Unlocked/Locked) on a value to freeze it from accruing normally' },
+        { text: 'Press N to nuke active notifications because they suck and you don\'t want them' },
     ];
 
     infoLines.forEach(({ text, hideOnMobile }) => {
@@ -4754,6 +4757,12 @@ function applyDebugPanelAccess(enabled) {
 
 document.addEventListener('keydown', event => {
     if (!debugPanelAccess || isOnMenu()) return;
+
+    if (event.key?.toLowerCase() === 'n') {
+        nukeNotifications();
+        return;
+    }
+
     if (event.key?.toLowerCase() !== 'c') return;
     if (event.ctrlKey) return;
 
