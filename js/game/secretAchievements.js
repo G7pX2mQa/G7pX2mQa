@@ -266,13 +266,11 @@ export function checkSecretAchievements(slot = getActiveSlot()) {
             if (achievement.checkCondition(slot)) {
                 setSecretAchievementState(achievement.id, SECRET_ACHIEVEMENT_STATES.PENDING_CLAIM, slot);
                 changed = true;
-                if (typeof window !== 'undefined' && !window.__debugSuppressAchievementNotifications) {
-                    if (!achievement.notifyCondition || achievement.notifyCondition()) {
-                        showNotification(`Secret Achievement: "${achievement.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`, achievement.icon);
-                    } else {
-                        window.__delayedSecretAchievementNotifications = window.__delayedSecretAchievementNotifications || [];
-                        window.__delayedSecretAchievementNotifications.push({ title: achievement.title, icon: achievement.icon });
-                    }
+                if (!achievement.notifyCondition || achievement.notifyCondition()) {
+                    showNotification(`Secret Achievement: "${achievement.title}" Completed<br><span class="notification-subtext">Claim your reward in the Achievements menu</span>`, achievement.icon);
+                } else if (typeof window !== 'undefined') {
+                    window.__delayedSecretAchievementNotifications = window.__delayedSecretAchievementNotifications || [];
+                    window.__delayedSecretAchievementNotifications.push({ title: achievement.title, icon: achievement.icon });
                 }
             }
         }
