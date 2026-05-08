@@ -1,6 +1,7 @@
 import { playAudio } from '../util/audioManager.js';
 import { getActiveSlot } from '../util/storage.js';
 import { setupDragToClose, blockInteraction } from './shopOverlay.js';
+import { checkAchievements, showDelayedAchievementNotifications } from '../game/achievements.js';
 import { IS_MOBILE, currentArea, AREAS, enterArea } from '../main.js';
 import { getCurrentSurgeLevel } from './merchantTabs/resetTab.js';
 
@@ -585,9 +586,23 @@ export function openMapOverlay(unlockedNodeId = null) {
                             
                             window.__mapSequenceActive = false;
                             window.__mapSequenceTarget = null;
+                            
+                            try {
+                                checkAchievements();
+                                showDelayedAchievementNotifications();
+                            } catch (e) {
+                                console.error(e);
+                            }
                         }, 4500);
                     } else {
                         window.__mapSequenceActive = false;
+                        
+                        try {
+                            checkAchievements();
+                            showDelayedAchievementNotifications();
+                        } catch (e) {
+                            console.error(e);
+                        }
                     }
                 }, 1000);
             }, 5000);
