@@ -228,26 +228,20 @@ export function updateGameProgressBar() {
 
     if (isComp) {
       if (!localStorage.getItem(notifKey)) {
-        let suppressNotifications = typeof window !== 'undefined' && window.__debugSuppressGoalNotificationsUntil && Date.now() < window.__debugSuppressGoalNotificationsUntil;
+        let notifText = 'Goal complete!';
+        if (goal.unlocksHelpText) {
+          notifText += '<br><span class="notification-subtext">New help text unlocked</span>';
+        }
 
-        if (suppressNotifications) {
-          localStorage.setItem(notifKey, '1');
+        if (typeof window !== 'undefined' && window.__tsunamiActive) {
+          window.__delayedGoalNotifications = window.__delayedGoalNotifications || [];
+          // Avoid pushing duplicates
+          if (!window.__delayedGoalNotifications.some(n => n.id === goal.id)) {
+            window.__delayedGoalNotifications.push({ id: goal.id, text: notifText, icon: goal.icon, notifKey });
+          }
         } else {
-          let notifText = 'Goal complete!';
-          if (goal.unlocksHelpText) {
-            notifText += '<br><span class="notification-subtext">New help text unlocked</span>';
-          }
-
-          if (typeof window !== 'undefined' && window.__tsunamiActive) {
-            window.__delayedGoalNotifications = window.__delayedGoalNotifications || [];
-            // Avoid pushing duplicates
-            if (!window.__delayedGoalNotifications.some(n => n.id === goal.id)) {
-              window.__delayedGoalNotifications.push({ id: goal.id, text: notifText, icon: goal.icon, notifKey });
-            }
-          } else {
-            showNotification(notifText, goal.icon);
-            localStorage.setItem(notifKey, '1');
-          }
+          showNotification(notifText, goal.icon);
+          localStorage.setItem(notifKey, '1');
         }
       }
     } else {
