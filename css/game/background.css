@@ -61,3 +61,41 @@
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1024' height='1024'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.01171875' numOctaves='4' seed='23' stitchTiles='stitch' x='0' y='0' width='1024' height='1024'/%3E%3CfeTile/%3E%3CfeGaussianBlur stdDeviation='1.2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.35'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1024' height='1024'%3E%3Cfilter id='h'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.015625' numOctaves='3' seed='31' stitchTiles='stitch' x='0' y='0' width='1024' height='1024'/%3E%3CfeTile/%3E%3CfeGaussianBlur stdDeviation='1.2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='gamma' amplitude='1' exponent='0.6' offset='0'/%3E%3CfeFuncG type='gamma' amplitude='1' exponent='0.6' offset='0'/%3E%3CfeFuncB type='gamma' amplitude='1' exponent='0.6' offset='0'/%3E%3CfeFuncA type='table' tableValues='0 0.40'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23h)'/%3E%3C/svg%3E");
 }
+
+/* === Underwater Cavern (Area 2) ===================================== */
+
+/* Base playfield styling for Cavern */
+.area-cavern .playfield {
+  background-image:
+    radial-gradient(1000px 900px at 20% 20%, hsl(24 25% 45% / 0.4), transparent 70%),
+    radial-gradient(1200px 800px at 80% 70%, hsl(28 30% 35% / 0.35), transparent 75%),
+    linear-gradient(to bottom, hsl(22 25% 25%), hsl(20 30% 15%));
+  background-size: 1000px 900px, 1200px 800px, 100% 100%;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+}
+
+/* --- Grain overlay (rocky texture) ---------------------------- */
+.area-cavern .playfield::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 0;
+
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27512%27%20height%3D%27512%27%3E%0A%20%20%3Cfilter%20id%3D%27n%27%3E%0A%20%20%20%20%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.15625%27%20numOctaves%3D%274%27%20seed%3D%2714%27%20stitchTiles%3D%27stitch%27%20x%3D%270%27%20y%3D%270%27%20width%3D%27512%27%20height%3D%27512%27/%3E%0A%20%20%20%20%3CfeTile/%3E%0A%20%20%20%20%3CfeGaussianBlur%20stdDeviation%3D%270.5%27/%3E%0A%20%20%20%20%3CfeColorMatrix%20type%3D%27matrix%27%20values%3D%27%0A%20%20%20%20%20%201%200%200%200%200%0A%20%20%20%20%20%200%201%200%200%200%0A%20%20%20%20%20%200%200%201%200%200%0A%20%20%20%20%20%200%200%200%202%20-0.5%27/%3E%0A%20%20%20%20%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27table%27%20tableValues%3D%270%200.8%27/%3E%3C/feComponentTransfer%3E%0A%20%20%3C/filter%3E%0A%20%20%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23n%29%27/%3E%0A%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27256%27%20height%3D%27256%27%3E%0A%20%20%3Cfilter%20id%3D%27n%27%3E%0A%20%20%20%20%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.6015625%27%20numOctaves%3D%273%27%20seed%3D%2722%27%20stitchTiles%3D%27stitch%27/%3E%0A%20%20%20%20%3CfeColorMatrix%20type%3D%27saturate%27%20values%3D%270%27/%3E%0A%20%20%20%20%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27table%27%20tableValues%3D%270%200.25%27/%3E%3C/feComponentTransfer%3E%0A%20%20%3C/filter%3E%0A%20%20%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23n%29%27/%3E%0A%3C/svg%3E");
+  background-size: 512px 512px, 256px 256px;
+  background-repeat: repeat, repeat;
+  mix-blend-mode: multiply;
+  opacity: 0.85;
+}
+
+/* --- Depth dunes (rocky shadows and highlights) --------------- */
+.area-cavern .playfield::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 1;
+
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%271024%27%20height%3D%271024%27%3E%0A%20%20%3Cfilter%20id%3D%27s%27%3E%0A%20%20%20%20%3CfeTurbulence%20type%3D%27turbulence%27%20baseFrequency%3D%270.0078125%27%20numOctaves%3D%275%27%20seed%3D%2742%27%20stitchTiles%3D%27stitch%27%20x%3D%270%27%20y%3D%270%27%20width%3D%271024%27%20height%3D%271024%27/%3E%0A%20%20%20%20%3CfeTile/%3E%0A%20%20%20%20%3CfeGaussianBlur%20stdDeviation%3D%271.0%27/%3E%0A%20%20%20%20%3CfeColorMatrix%20type%3D%27matrix%27%20values%3D%27%0A%20%20%20%20%20%200%200%200%200%200%0A%20%20%20%20%20%200%200%200%200%200%0A%20%20%20%20%20%200%200%200%200%200%0A%20%20%20%20%20%201%200%200%200%200%27/%3E%0A%20%20%20%20%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D%27table%27%20tableValues%3D%270%200.6%27/%3E%3C/feComponentTransfer%3E%0A%20%20%3C/filter%3E%0A%20%20%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23s%29%27/%3E%0A%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%271024%27%20height%3D%271024%27%3E%0A%20%20%3Cfilter%20id%3D%27h%27%3E%0A%20%20%20%20%3CfeTurbulence%20type%3D%27turbulence%27%20baseFrequency%3D%270.009765625%27%20numOctaves%3D%274%27%20seed%3D%2755%27%20stitchTiles%3D%27stitch%27%20x%3D%270%27%20y%3D%270%27%20width%3D%271024%27%20height%3D%271024%27/%3E%0A%20%20%20%20%3CfeTile/%3E%0A%20%20%20%20%3CfeGaussianBlur%20stdDeviation%3D%271.0%27/%3E%0A%20%20%20%20%3CfeColorMatrix%20type%3D%27matrix%27%20values%3D%27%0A%20%20%20%20%20%200%200%200%200%201%0A%20%20%20%20%20%200%200%200%200%201%0A%20%20%20%20%20%200%200%200%200%201%0A%20%20%20%20%20%20-1%200%200%201%200%27/%3E%0A%20%20%20%20%3CfeComponentTransfer%3E%0A%20%20%20%20%20%20%3CfeFuncR%20type%3D%27gamma%27%20amplitude%3D%271%27%20exponent%3D%270.5%27%20offset%3D%270%27/%3E%0A%20%20%20%20%20%20%3CfeFuncG%20type%3D%27gamma%27%20amplitude%3D%271%27%20exponent%3D%270.5%27%20offset%3D%270%27/%3E%0A%20%20%20%20%20%20%3CfeFuncB%20type%3D%27gamma%27%20amplitude%3D%271%27%20exponent%3D%270.5%27%20offset%3D%270%27/%3E%0A%20%20%20%20%20%20%3CfeFuncA%20type%3D%27table%27%20tableValues%3D%270%200.4%27/%3E%0A%20%20%20%20%3C/feComponentTransfer%3E%0A%20%20%3C/filter%3E%0A%20%20%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23h%29%27/%3E%0A%3C/svg%3E");
+}
