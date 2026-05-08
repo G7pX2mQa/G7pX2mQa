@@ -6,8 +6,7 @@ import { IS_MOBILE } from '../main.js';
 import { isSurgeActive, getTsunamiExponentWithCombo } from './surgeEffects.js';
 import { playAudio } from '../util/audioManager.js';
 import { waterSystem} from './webgl/waterSystem.js';
-import { shouldBlockBigCoins } from '../ui/merchantTabs/resetTab.js';
-import { isLabDialogueOpen } from '../ui/merchantTabs/dlgTab.js';
+import { shouldBlockBigCoins } from '../util/bigCoinManager.js';
 import { settingsManager } from './settingsManager.js';
 
 let mutationUnlockedSnapshot = false;
@@ -587,7 +586,7 @@ export function createSpawner({
             }
         }
 
-        if (sizeIndex >= 4 && ((shouldBlockBigCoins && shouldBlockBigCoins()) || (isLabDialogueOpen && isLabDialogueOpen()))) {
+        if (sizeIndex >= 4 && shouldBlockBigCoins && shouldBlockBigCoins()) {
             sizeIndex = 3;
         }
 
