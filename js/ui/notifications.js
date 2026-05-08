@@ -7,6 +7,47 @@ const queue = [];
 let isProcessing = false;
 let isPaused = true;
 
+const activeNotifications = new Set();
+const activeWelcomePopups = new Set();
+
+export function nukeNotifications(clearAll = true) {
+    if (clearAll) {
+        queue.length = 0;
+    }
+    
+    for (const notif of activeNotifications) {
+        if (notif.audio && typeof notif.audio.stop === 'function') {
+            notif.audio.stop();
+        }
+        if (notif.element) {
+            notif.element.remove();
+        }
+        if (typeof notif.resolve === 'function') {
+            notif.resolve();
+        }
+        if (notif.timeoutId) clearTimeout(notif.timeoutId);
+        if (notif.fallbackTimeoutId) clearTimeout(notif.fallbackTimeoutId);
+    }
+    activeNotifications.clear();
+
+    for (const popup of activeWelcomePopups) {
+        if (popup.audio && typeof popup.audio.stop === 'function') {
+            popup.audio.stop();
+        }
+        if (popup.element) {
+            popup.element.remove();
+        }
+        if (popup.timeoutId) clearTimeout(popup.timeoutId);
+        if (popup.fallbackTimeoutId) clearTimeout(popup.fallbackTimeoutId);
+    }
+    activeWelcomePopups.clear();
+
+    if (clearAll && container) {
+        container.innerHTML = '';
+    }
+
+}
+
 function ensureContainer() {
     if (container) return container;
     container = document.createElement('div');
@@ -57,7 +98,22 @@ function displayNotification(text, iconSrc, duration) {
         
         parent.appendChild(el);
         
-        playAudio('sounds/notif_ding.ogg', { volume: 0.5 });
+        const audio = playAudio('sounds/notif_ding.ogg', { volume: 0.5 });
+        
+        const notifTracker = {
+            element: el,
+            audio,
+            resolve: null,
+            timeoutId: null,
+            fallbackTimeoutId: null
+        };
+        activeNotifications.add(notifTracker);
+        
+        const wrappedResolve = () => {
+            activeNotifications.delete(notifTracker);
+            resolve();
+        };
+        notifTracker.resolve = wrappedResolve;
         
         // Animate in
         // Use double RAF to ensure transition triggers
@@ -68,22 +124,22 @@ function displayNotification(text, iconSrc, duration) {
         });
         
         // Wait for duration
-        setTimeout(() => {
+        notifTracker.timeoutId = setTimeout(() => {
             el.classList.remove('is-visible');
             el.classList.add('is-leaving');
             
             const cleanup = () => {
                 el.remove();
-                resolve();
+                wrappedResolve();
             };
             
             el.addEventListener('transitionend', cleanup, { once: true });
             
             // Safety timeout in case transitionend doesn't fire
-            setTimeout(() => {
+            notifTracker.fallbackTimeoutId = setTimeout(() => {
                 if (el.isConnected) {
                     el.remove();
-                    resolve();
+                    wrappedResolve();
                 }
             }, 600);
         }, duration);
@@ -131,7 +187,15 @@ export function showWelcomePopup(isMobile) {
     parent.appendChild(el);
     document.body.appendChild(parent);
     
-    playAudio('sounds/notif_ding.ogg', { volume: 0.5 });
+    const audio = playAudio('sounds/notif_ding.ogg', { volume: 0.5 });
+    
+    const popupTracker = {
+        element: parent,
+        audio,
+        timeoutId: null,
+        fallbackTimeoutId: null
+    };
+    activeWelcomePopups.add(popupTracker);
     
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -139,20 +203,22 @@ export function showWelcomePopup(isMobile) {
         });
     });
     
-    setTimeout(() => {
+    popupTracker.timeoutId = setTimeout(() => {
         el.classList.remove('is-visible');
         el.classList.add('is-leaving');
         
         const cleanup = () => {
             parent.remove();
+            activeWelcomePopups.delete(popupTracker);
         };
         
         el.addEventListener('transitionend', cleanup, { once: true });
         
-        setTimeout(() => {
+        popupTracker.fallbackTimeoutId = setTimeout(() => {
             if (parent.isConnected) {
                 parent.remove();
             }
+            activeWelcomePopups.delete(popupTracker);
         }, 1200);
     }, 9000); // 1s enter + 8s wait = 9000ms
 }
