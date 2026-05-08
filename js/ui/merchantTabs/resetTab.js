@@ -40,6 +40,7 @@ import { getVisibleMilestones, NERFED_SURGE_MILESTONE_IDS } from '../../game/sur
 import { RESEARCH_NODES } from '../../game/labNodes.js';
 import { ensureCustomScrollbar, closeShop, openShop, isAnyMenuScrolling } from '../shopOverlay.js';
 import { playAudio } from '../../util/audioManager.js';
+import { collectActiveBigCoins } from '../../util/bigCoinManager.js';
 import { 
   getBookProductionRate, 
   getSurge6WealthMultipliers, 
@@ -137,12 +138,11 @@ const EXPERIMENT_COMPLETED_KEY = (slot) => `ccc:reset:experiment:completed:${slo
 const MIN_FORGE_LEVEL = BN.fromInt(31);
 const MIN_INFUSE_MUTATION_LEVEL = BN.fromInt(7);
 
-let isUpdatingWaveBar = false;
-let _shouldBlockBigCoins = false;
 
-export function shouldBlockBigCoins() {
-  return _shouldBlockBigCoins;
-}
+let isUpdatingWaveBar = false;
+
+export let _isSurge8Pending = false;
+export let _isSurge125Pending = false;
 
 function updateBlockBigCoinsStatus() {
   const slot = ensureResetSlot();
@@ -155,14 +155,26 @@ function updateBlockBigCoinsStatus() {
   const potentialLevel = predictSurgeLevel(barLevel, currentWaves, pending);
 
   let isSurge8 = false;
-  if (potentialLevel === Infinity) isSurge8 = true;
-  else if (typeof potentialLevel === 'bigint') isSurge8 = potentialLevel >= 8n;
-  else if (typeof potentialLevel === 'number') isSurge8 = potentialLevel >= 8;
+  let isSurge125 = false;
+  if (potentialLevel === Infinity) {
+      isSurge8 = true;
+      isSurge125 = true;
+  }
+  else if (typeof potentialLevel === 'bigint') {
+      isSurge8 = potentialLevel >= 8n;
+      isSurge125 = potentialLevel >= 125n;
+  }
+  else if (typeof potentialLevel === 'number') {
+      isSurge8 = potentialLevel >= 8;
+      isSurge125 = potentialLevel >= 125;
+  }
 
-  _shouldBlockBigCoins = isSurge8 && !getTsunamiSequenceSeen();
+  _isSurge8Pending = isSurge8 && !getTsunamiSequenceSeen();
+  _isSurge125Pending = isSurge125 && isNodeLocked('cavern', true) && !getMapSequenceSeen('cavern');
 }
 
-const resetState = {
+export const resetState = {
+
   slot: null,
   forgeUnlocked: false,
   forgeDebugOverride: null,
@@ -1412,6 +1424,7 @@ function performExperimentReset() {
 let tsunamiCleanup = null;
 
 function startTsunamiSequence() {
+    collectActiveBigCoins();
     // 1. Dispatch music stop
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:stopMusic'));
     
@@ -1564,6 +1577,7 @@ export function performSurgeReset() {
       const hasSeenSequence = getMapSequenceSeen('cavern');
       
       if (!hasSeenSequence) {
+          collectActiveBigCoins();
           if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('audio:stopMusic'));
           if (window.spawner && typeof window.spawner.stop === 'function') window.spawner.stop();
           try { closeShop(true); } catch {}
@@ -1622,7 +1636,7 @@ function triggerSurgeWaveAnimation() {
   }, 2000);
 }
 
-function getSurgeBarLevel(slot) {
+export function getSurgeBarLevel(slot) {
   let barLevel = 0n;
   try {
     const raw = localStorage.getItem(SURGE_BAR_LEVEL_KEY(slot));
@@ -2349,7 +2363,7 @@ function updateInfuseCard() {
 }
 
 
-function predictSurgeLevel(currentLevelBigInt, currentWaves, pendingWaves) {
+export function predictSurgeLevel(currentLevelBigInt, currentWaves, pendingWaves) {
   const availableWaves = currentWaves.add(pendingWaves);
   const result = calculateSurgeLevelJump(currentLevelBigInt, availableWaves);
   return result.level;
