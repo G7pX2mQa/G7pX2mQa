@@ -6,6 +6,7 @@ import { settingsManager } from './settingsManager.js';
 import { formatNumber } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { setLifetimeBossBeaten, getLifetimeBossBeaten, checkSecretAchievements } from './secretAchievements.js';
+import { collectActiveBigCoins } from '../util/bigCoinManager.js';
 
 const COIN_VOLUME = IS_MOBILE ? 0.12 : 0.3;
 
@@ -161,21 +162,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
     let bossMusic = playAudio('sounds/Secret_Boss_Fight.ogg', { loop: true, volume: 1.0, type: 'music' });
 
     
-    // Automatically collect size 5 and 6 coins currently on playfield
-    if (window.spawner && window.coinPickupController) {
-        const activeCoins = window.spawner.getActiveCoins ? window.spawner.getActiveCoins() : [];
-        const toCollect = [];
-        for (let i = 0; i < activeCoins.length; i++) {
-            const c = activeCoins[i];
-            if (c && c.sizeIndex >= 5 && !c.isRemoved) {
-                // Collect via coinPickup batch
-                toCollect.push({ coin: c });
-            }
-        }
-        if (toCollect.length > 0 && window.coinPickupController.collectBatch) {
-            window.coinPickupController.collectBatch(toCollect);
-        }
-    }
+    collectActiveBigCoins();
 
     const merchantImg = new Image();
     merchantImg.src = 'img/misc/merchant.webp';
@@ -518,21 +505,24 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             const keyToSet = side === 'left' ? 'left' : 'right';
 
             const startMove = (e) => {
-                e.preventDefault();
+                if (e.cancelable) e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation();
                 keys[keyToSet] = true;
                 activeStyle();
             };
 
             const endMove = (e) => {
-                e.preventDefault();
+                if (e.cancelable) e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation();
                 keys[keyToSet] = false;
                 inactiveStyle();
             };
 
             const stopProp = (e) => {
                 e.stopPropagation();
+                e.stopImmediatePropagation();
             };
 
             btn.addEventListener('touchstart', startMove, { passive: false });
@@ -547,6 +537,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             btn.addEventListener('pointercancel', endMove);
             btn.addEventListener('pointerleave', endMove);
 
+            btn.addEventListener('pointerenter', stopProp);
             btn.addEventListener('pointermove', stopProp);
             btn.addEventListener('mousemove', stopProp);
             btn.addEventListener('touchmove', stopProp, { passive: false });
