@@ -4257,18 +4257,7 @@ function buildMiscContent(content) {
         {
             label: 'Unlock All Unlocks',
             onClick: () => {
-                if (typeof window !== 'undefined') {
-                    window.__debugSuppressAchievementNotifications = true;
-                    window.__debugSuppressGoalNotificationsUntil = Date.now() + 15000;
-                }
-                let unlocks = 0, toggles = 0;
-                try {
-                    const result = unlockAllUnlocks();
-                    unlocks = result.unlocks;
-                    toggles = result.toggles;
-                } finally {
-                    if (typeof window !== 'undefined') window.__debugSuppressAchievementNotifications = false;
-                }
+                const { unlocks, toggles } = unlockAllUnlocks();
                 flagDebugUsage();
                 logAction(`Unlocked all unlock-type upgrades (${unlocks} entries) and unlock flags (${toggles} toggled).`);
             },
