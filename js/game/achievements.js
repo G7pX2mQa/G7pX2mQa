@@ -1,6 +1,6 @@
 import { getActiveSlot } from '../util/storage.js';
 import { hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset } from '../ui/merchantTabs/resetTab.js';
-import { getTsunamiSequenceSeen } from './surgeEffects.js';
+import { getTsunamiSequenceSeen, getMapSequenceSeen } from './surgeEffects.js';
 import { hasDoneExperimentReset } from '../ui/merchantTabs/resetTab.js';
 import { getFlowUnlockState } from '../ui/merchantTabs/flowTab.js';
 import { hasEvolvedAnyUpgrade } from './upgrades.js';
@@ -83,6 +83,21 @@ const _rawAchievements = [
                 return hasEvolvedAnyUpgrade();
             }
             return false;
+        }
+    },
+    {
+        id: 8,
+        title: 'We Need to Go Deeper',
+        desc: 'Unlock the Underwater Cavern area',
+        icon: 'img/currencies/scrap/scrap_plus_base.webp',
+        checkCondition: () => {
+            if (typeof getMapSequenceSeen === 'function') {
+                return getMapSequenceSeen('cavern');
+            }
+            return false;
+        },
+        notifyCondition: () => {
+            return typeof window !== 'undefined' && !window.__mapSequenceActive;
         }
     }
 ];
