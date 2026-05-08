@@ -46,7 +46,7 @@ function renderPinnedAreas() {
             const btn = document.createElement('button');
             btn.className = 'game-btn area-pin-btn';
             btn.style.position = 'relative';
-            btn.style.width = '6vw';
+            btn.style.width = 'max(6vw, 50px)';
             btn.style.height = 'auto';
             btn.style.aspectRatio = '1';
             btn.style.margin = '0 0.5vw';
