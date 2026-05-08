@@ -91,10 +91,8 @@ const _rawAchievements = [
         desc: 'Unlock the Underwater Cavern area',
         icon: 'img/currencies/scrap/scrap_plus_base.webp',
         checkCondition: () => {
-            if (typeof getMapSequenceSeen === 'function') {
-                return getMapSequenceSeen('cavern');
-            }
-            return false;
+            const hasSeenUnlockSequence = typeof getMapSequenceSeen === 'function' && getMapSequenceSeen('cavern');
+            return hasSeenUnlockSequence || isMapNodeUnlocked('cavern', true);
         },
         notifyCondition: () => {
             return typeof window !== 'undefined' && !window.__mapSequenceActive;
@@ -110,8 +108,18 @@ export const ACHIEVEMENTS = _rawAchievements.map((ach, index) => {
 });
 
 const ACHIEVEMENT_STATE_KEY_BASE = 'ccc:achievements:state';
+const MAP_NODE_LOCKED_KEY = (id, slot) => `ccc:map:locked:${id}:${slot}`;
 
 const achievementStateCache = new Map();
+
+function isMapNodeUnlocked(id, defaultLocked = true, slot = getActiveSlot()) {
+    if (slot == null || typeof localStorage === 'undefined') return !defaultLocked;
+    try {
+        const val = localStorage.getItem(MAP_NODE_LOCKED_KEY(id, slot));
+        if (val != null) return val !== '1';
+    } catch {}
+    return !defaultLocked;
+}
 
 function ensureAchievementState(slot = getActiveSlot()) {
     const slotKey = String(slot ?? 'default');
