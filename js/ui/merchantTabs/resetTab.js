@@ -1586,6 +1586,8 @@ export function performSurgeReset() {
           setMapSequenceSeen('cavern', true);
           openMapOverlay('cavern');
           
+          try { checkAchievements(); } catch {}
+		  
           applySurgeResetLogic(reward, { playEffects: false });
           return true;
       } else {
