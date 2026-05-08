@@ -22,9 +22,9 @@ export function setNodeLocked(id, locked) {
 
 export function getMapNodes() {
     return [
-        { id: 'cove', areaId: AREAS.STARTER_COVE, name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '23%', left: '50%', defaultLocked: false },
-        { id: 'cavern', areaId: AREAS.UNDERWATER_CAVERN, name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '38%', left: '75%', defaultLocked: true, previousNodeId: 'cove' },
-        { id: 'coral', areaId: null, name: 'Coral Reef', icon: 'img/misc/mysterious_plus_base.webp', top: '53%', left: '25%', defaultLocked: true },
+        { id: 'cove', areaId: AREAS.STARTER_COVE, name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '21%', left: '50%', defaultLocked: false },
+        { id: 'cavern', areaId: AREAS.UNDERWATER_CAVERN, name: 'Underwater Cavern', icon: 'img/misc/mysterious_plus_base.webp', top: '36%', left: '75%', defaultLocked: true, previousNodeId: 'cove' },
+        { id: 'coral', areaId: null, name: 'Coral Reef', icon: 'img/misc/mysterious_plus_base.webp', top: '51%', left: '25%', defaultLocked: true },
         { id: 'depths', areaId: null, name: 'Deep Depths', icon: 'img/misc/mysterious_plus_base.webp', top: '85%', left: '50%', defaultLocked: true }
     ];
 }
@@ -219,7 +219,7 @@ export function ensureMapOverlay(unlockedNodeId = null) {
         btn.style.color = 'white';
         btn.style.textShadow = '1px 1px 2px black';
         
-        btn.style.width = '6vw';
+        btn.style.width = 'max(6vw, 50px)';
         btn.style.height = 'auto';
         btn.style.aspectRatio = '1';
         btn.style.padding = '0';
