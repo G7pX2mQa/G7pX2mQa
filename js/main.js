@@ -797,6 +797,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	'img/misc/locked_plus_base.webp',
     'img/misc/maxed.webp',
     'img/misc/merchant.webp',
+	'img/misc/miner.webp',
     'img/misc/mysterious.webp',
 	'img/misc/mysterious_plus_base.webp',
     'img/misc/safety_first.webp',
