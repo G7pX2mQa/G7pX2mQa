@@ -1,8 +1,6 @@
 /* css/game/background.css */
 .area[hidden] { display: none !important; }
 
-/* === Starter Cove (Area 1) ===================================== */
-
 .area {
   position: fixed;
   inset: 0;
@@ -23,7 +21,6 @@
   cursor: none;
 }
 
-/* === Starter Cove Visuals === */
 .area-cove .playfield {
   background-image:
     radial-gradient(1200px 800px at 30% 35%, hsl(40 35% 70% / 0.25), transparent 60%),
@@ -33,13 +30,11 @@
   background-repeat: no-repeat, no-repeat, no-repeat;
 }
 
-/* --- Grain overlay (visible speckle) ---------------------------- */
 .area-cove .playfield::before {
   content: "";
   position: absolute; inset: 0;
   pointer-events: none; z-index: 0;
 
-  /* coarse visible clumps + fine sparkle; both tile seamlessly */
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.22' numOctaves='3' seed='7' stitchTiles='stitch' x='0' y='0' width='512' height='512'/%3E%3CfeTile/%3E%3CfeGaussianBlur stdDeviation='0.7'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.45'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.15'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -49,22 +44,16 @@
   opacity: 0.9;
 }
 
-/* --- Depth dunes (highlights + shadows; no seams) --------------- */
 .area-cove .playfield::after {
   content: "";
   position: absolute; inset: 0;
   pointer-events: none; z-index: 1;
 
-  /* layer 1: shadows (multiply)
-     layer 2: highlights (screen) with gamma to push brights */
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1024' height='1024'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.01171875' numOctaves='4' seed='23' stitchTiles='stitch' x='0' y='0' width='1024' height='1024'/%3E%3CfeTile/%3E%3CfeGaussianBlur stdDeviation='1.2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.35'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1024' height='1024'%3E%3Cfilter id='h'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.015625' numOctaves='3' seed='31' stitchTiles='stitch' x='0' y='0' width='1024' height='1024'/%3E%3CfeTile/%3E%3CfeGaussianBlur stdDeviation='1.2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='gamma' amplitude='1' exponent='0.6' offset='0'/%3E%3CfeFuncG type='gamma' amplitude='1' exponent='0.6' offset='0'/%3E%3CfeFuncB type='gamma' amplitude='1' exponent='0.6' offset='0'/%3E%3CfeFuncA type='table' tableValues='0 0.40'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23h)'/%3E%3C/svg%3E");
 }
 
-/* === Underwater Cavern (Area 2) ===================================== */
-
-/* Base playfield styling for Cavern */
 .area-cavern .playfield {
   background-image:
     radial-gradient(ellipse 60% 60% at 20% 20%, hsl(24 25% 25% / 0.4), transparent 70%),
@@ -74,7 +63,6 @@
   background-repeat: no-repeat, no-repeat, no-repeat;
 }
 
-/* --- Grain overlay (rocky texture) ---------------------------- */
 .area-cavern .playfield::before {
   content: "";
   position: absolute; inset: 0;
@@ -89,7 +77,6 @@
   opacity: 0.85;
 }
 
-/* --- Depth dunes (rocky shadows and highlights) --------------- */
 .area-cavern .playfield::after {
   content: "";
   position: absolute; inset: 0;
