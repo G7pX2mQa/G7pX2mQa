@@ -872,6 +872,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'sounds/explosion_long.ogg',
     'sounds/explosion_short.ogg',
     'sounds/forge_reset.ogg',
+	'sounds/got_your_pickaxe_swinging_from_side_to_side.ogg',
     'sounds/heartbeat.ogg',
     'sounds/infuse_reset.ogg',
     'sounds/life_restored.ogg',
