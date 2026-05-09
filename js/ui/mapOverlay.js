@@ -326,7 +326,9 @@ export function ensureMapOverlay(unlockedNodeId = null) {
                 color: 'white',
                 fontSize: 'clamp(24px, 4vw, 48px)',
                 textAlign: 'center',
-                pointerEvents: 'all'
+                pointerEvents: 'all',
+                userSelect: 'none',
+                cursor: 'none'
             });
             teleportOverlay.textContent = `Teleporting to ${node.name}...`;
             document.body.appendChild(teleportOverlay);
