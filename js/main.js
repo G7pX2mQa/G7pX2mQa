@@ -878,6 +878,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'sounds/life_restored.ogg',
     'sounds/lightning_strike.ogg',
     'sounds/lightning_zap.ogg',
+	'sounds/material_pickup.ogg',
     'sounds/merchant_typing.ogg',
     'sounds/notif_ding.ogg',
     'sounds/projectile_spawn.ogg',
