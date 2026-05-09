@@ -893,7 +893,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 color: 'white',
                 fontSize: 'clamp(24px, 4vw, 48px)',
                 textAlign: 'center',
-                pointerEvents: 'all'
+                pointerEvents: 'all',
+                userSelect: 'none',
+                cursor: 'none'
             });
             teleportOverlay.textContent = 'Teleporting to The Cove...';
             document.body.appendChild(teleportOverlay);
@@ -1497,7 +1499,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                                     color: 'white',
                                     fontSize: 'clamp(24px, 4vw, 48px)',
                                     textAlign: 'center',
-                                    pointerEvents: 'all'
+                                    pointerEvents: 'all',
+                                    userSelect: 'none',
+                                    cursor: 'none'
                                 });
                                 teleportOverlay.textContent = 'Teleporting to The Cove...';
                                 document.body.appendChild(teleportOverlay);
