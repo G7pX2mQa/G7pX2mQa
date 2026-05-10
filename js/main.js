@@ -2,6 +2,7 @@
 
 import { playAudio, setAudioSuspended } from './util/audioManager.js';
 import { createCursorTrail } from './game/cursorTrail.js';
+import { syncXpMpHudLayout } from './ui/hudLayout.js';
 
 export const FONT_MAP = {
   1: 'font-tinos',
@@ -87,6 +88,35 @@ let installSuspendSafeguards;
 let restoreSuspendBackup;
 let markProgressDirty;
 let flushBackupSnapshot;
+
+let scrapHudListenerBound = false;
+function updateScrapHudCounter() {
+  if (!bank) return;
+  const amountEl = document.querySelector('.hud-top .scrap-amount');
+  if (!amountEl) return;
+
+  let formatted = '0';
+  try {
+    formatted = bank.scrap?.fmt?.(bank.scrap.value) ?? '0';
+  } catch {}
+
+  if (String(formatted).includes('<span')) {
+    amountEl.innerHTML = formatted;
+  } else {
+    amountEl.textContent = formatted;
+  }
+}
+function initScrapHudCounter() {
+  updateScrapHudCounter();
+  if (scrapHudListenerBound || typeof window === 'undefined') return;
+  scrapHudListenerBound = true;
+  window.addEventListener('currency:change', (event) => {
+    if (event?.detail?.key !== 'scrap') return;
+    updateScrapHudCounter();
+  });
+  window.addEventListener('saveSlot:change', updateScrapHudCounter);
+}
+
 let initResetSystemGame;
 let initMutationSystem;
 let getMutationCoinSprite;
@@ -543,6 +573,15 @@ export function enterArea(areaID) {
           gRoot.classList.remove('area-cavern');
           gRoot.classList.add('area-cove');
       }
+	  
+      syncXpMpHudLayout();
+      if (typeof initMutationSystem === 'function') {
+        try { initMutationSystem(); } catch {}
+      }
+      if (typeof initXpSystem === 'function') {
+        try { initXpSystem(); } catch {}
+      }
+	  
       startAreaMusic(AREAS.STARTER_COVE, 'sounds/The_Cove.ogg');
 
       // Config for water layers
@@ -674,6 +713,7 @@ export function enterArea(areaID) {
       if (coinsLayer) coinsLayer.style.display = 'none';
       const scrapCounter = document.querySelector('.scrap-counter');
       if (scrapCounter) scrapCounter.style.display = '';
+	  updateScrapHudCounter();
       const coinCounter = document.querySelector('.coin-counter');
       if (coinCounter) coinCounter.style.display = 'none';
       
@@ -682,6 +722,8 @@ export function enterArea(areaID) {
           gRoot.classList.remove('area-cove');
           gRoot.classList.add('area-cavern');
       }
+	  syncXpMpHudLayout();
+	  
       if (menuRoot) {
         menuRoot.style.display = 'none';
       }
@@ -1012,6 +1054,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ initCoinPickup, refreshCoinMultiplierCache, refreshMpValueMultiplierCache, updateMutationSnapshot } = coinPickupModule);
   ({ initHudButtons } = hudButtonsModule);
   ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults, getActiveSlot, setSavedArea, getSavedArea } = storageModule);
+  initScrapHudCounter();
   void saveIntegrityModule;
   ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
   ({ syncCurrencyMultipliersFromUpgrades, registerXpUpgradeEffects } = upgradeEffectsModule);
