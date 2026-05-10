@@ -365,6 +365,33 @@ export const CURRENCIES = {
   WAVES: 'waves',
   DNA: 'dna',
   SCRAP: 'scrap',
+  STONE: 'stone',
+  COPPER: 'copper',
+  IRON: 'iron',
+  PURE_GOLD: 'pure_gold',
+  DIAMOND: 'diamond',
+  EMERALD: 'emerald',
+  RUBY: 'ruby',
+  OBSIDIAN: 'obsidian',
+  UNOBTAINIUM: 'unobtainium',
+  PRISMATIUM: 'prismatium'
+};
+
+// Maps a currency to the area it belongs to.
+// IMPORTANT: Whenever you add a new currency to CURRENCIES above, make sure to add it here if it should appear in a specific area panel (like in the debug panel).
+// If a currency is not mapped here, it defaults to The Cove, so currencies that belong to The Cove don't need to be included here.
+export const CURRENCY_AREAS = {
+  [CURRENCIES.SCRAP]: 'underwater_cavern',
+  [CURRENCIES.STONE]: 'underwater_cavern',
+  [CURRENCIES.COPPER]: 'underwater_cavern',
+  [CURRENCIES.IRON]: 'underwater_cavern',
+  [CURRENCIES.PURE_GOLD]: 'underwater_cavern',
+  [CURRENCIES.DIAMOND]: 'underwater_cavern',
+  [CURRENCIES.EMERALD]: 'underwater_cavern',
+  [CURRENCIES.RUBY]: 'underwater_cavern',
+  [CURRENCIES.OBSIDIAN]: 'underwater_cavern',
+  [CURRENCIES.UNOBTAINIUM]: 'underwater_cavern',
+  [CURRENCIES.PRISMATIUM]: 'underwater_cavern'
 };
 
 let _activeSlotCache = undefined;
