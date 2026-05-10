@@ -5,7 +5,7 @@ const MATERIALS = [
     'stone',
     'copper',
     'iron',
-    'gold',
+    'pure_gold',
     'diamond',
     'emerald',
     'ruby',
