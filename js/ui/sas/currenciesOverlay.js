@@ -15,6 +15,12 @@ import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { BigNum } from '../../util/bigNum.js';
 
 
+const MATERIALS = [
+  'stone', 'copper', 'iron', 'pure_gold', 'diamond', 
+  'emerald', 'ruby', 'obsidian', 'unobtainium', 'prismatium'
+];
+
+
 // Returns a key like "currency_coins_popups"
 function getToggleKey(currency, type) {
   return `currency_${currency}_${type}`;
@@ -66,12 +72,53 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
   
   const amountDiv = document.createElement('div');
   amountDiv.className = 'currency-amount';
-  amountDiv.innerHTML = amountText;
+  amountDiv.textContent = amountText;
+
+  // Add text for scrap dropdown
+  let scrapTextDiv = null;
+  if (currencyId === 'scrap') {
+    amountDiv.style.display = 'flex';
+    amountDiv.style.flexDirection = 'column';
+    amountDiv.style.alignItems = 'flex-start';
+    amountDiv.style.justifyContent = 'center';
+
+    scrapTextDiv = document.createElement('div');
+    const isMobileStr = IS_MOBILE ? "Tap" : "Click";
+    const isOpen = settingsManager.get('scrap_materials_dropdown_open');
+    scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing materials` : `${isMobileStr} this row to view materials too`;
+    scrapTextDiv.style.fontSize = '0.7em';
+    scrapTextDiv.style.color = '#aaaaaa';
+    scrapTextDiv.style.marginTop = '4px';
+    scrapTextDiv.style.pointerEvents = 'none'; // so clicks go to info
+    amountDiv.appendChild(scrapTextDiv);
+  }
   
   info.appendChild(iconWrapper);
   info.appendChild(amountDiv);
   
   row.appendChild(info);
+
+  if (currencyId === 'scrap') {
+    info.style.cursor = 'pointer';
+    info.addEventListener('click', (e) => {
+      // Don't toggle if clicking dropdown or paintbrush UI
+      if (e.target.closest('.currency-controls')) return;
+      
+      const isOpen = !settingsManager.get('scrap_materials_dropdown_open');
+      settingsManager.set('scrap_materials_dropdown_open', isOpen);
+      
+      const isMobileStr = IS_MOBILE ? "Tap" : "Click";
+      scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing materials` : `${isMobileStr} this row to view materials too`;
+      
+      const overlayEl = container.closest('.sas-overlay');
+      if (overlayEl) {
+         populateCurrenciesOverlay(overlayEl);
+         if (paintbrush && paintbrush.isActive()) {
+            paintbrush.reinit();
+         }
+      }
+    });
+  }
 
   // Dropdown controls
   const controls = document.createElement('div');
@@ -352,6 +399,9 @@ function populateCurrenciesOverlay(overlayEl) {
   // Child Rows
   const currenciesList = getUnlockedCurrencies();
   currenciesList.forEach(currency => {
+    // Skip materials from the main grid
+    if (MATERIALS.includes(currency)) return;
+
     const val = bank[currency]?.value;
     const amountStr = formatNumber(val);
     const config = RESOURCE_REGISTRY.find(c => c.key === currency);
@@ -370,6 +420,42 @@ function populateCurrenciesOverlay(overlayEl) {
     }
 
     createCurrencyRow(grid, false, currency, iconSrc, baseSrc, amountStr + ' ' + displayName);
+
+    if (currency === 'scrap' && settingsManager.get('scrap_materials_dropdown_open')) {
+        const materialsContainer = document.createElement('div');
+        materialsContainer.className = 'materials-dropdown-container';
+        materialsContainer.style.display = 'flex';
+        materialsContainer.style.flexDirection = 'column';
+        materialsContainer.style.gap = '8px';
+        materialsContainer.style.paddingLeft = '20px';
+        materialsContainer.style.marginTop = '8px';
+        materialsContainer.style.gridColumn = '1 / -1'; // span full width if in a grid
+        materialsContainer.style.borderLeft = '2px solid #555';
+        
+        MATERIALS.forEach(mat => {
+            if (!isCurrencyUnlocked(mat)) return;
+            const matVal = bank[mat]?.value;
+            const matAmountStr = formatNumber(matVal);
+            const matConfig = RESOURCE_REGISTRY.find(c => c.key === mat);
+            const matIconSrc = matConfig?.icon || "img/misc/mysterious.webp";
+            const matBaseSrc = matConfig?.baseIcon || "img/misc/locked.webp";
+            
+            let matDisplayName = mat.charAt(0).toUpperCase() + mat.slice(1);
+            if (matConfig) {
+                let isOne = false;
+                if (matVal instanceof BigNum) {
+                    isOne = !matVal.isInfinite() && matVal.cmp(BigNum.fromInt(1)) === 0;
+                } else {
+                    isOne = (Number(matVal) === 1);
+                }
+                matDisplayName = isOne ? matConfig.singular : matConfig.plural;
+            }
+
+            createCurrencyRow(materialsContainer, false, mat, matIconSrc, matBaseSrc, matAmountStr + ' ' + matDisplayName);
+        });
+        
+        grid.appendChild(materialsContainer);
+    }
   });
 }
 
@@ -428,7 +514,31 @@ function handleCurrencyChange(e) {
             displayName = isOne ? config.singular : config.plural;
         }
 
-        amountEl.innerHTML = formatNumber(val) + ' ' + displayName;
+        // If it's scrap, we don't want to destroy the scrapTextDiv by directly using innerHTML
+        if (currencyId === 'scrap') {
+            const textNode = amountEl.childNodes[0];
+            if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+               textNode.textContent = formatNumber(val) + ' ' + displayName;
+            } else {
+               amountEl.innerHTML = formatNumber(val) + ' ' + displayName; // Fallback
+               // Re-add text
+               const scrapTextDiv = document.createElement('div');
+               const isMobileStr = IS_MOBILE ? "Tap" : "Click";
+               const isOpen = settingsManager.get('scrap_materials_dropdown_open');
+               scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing materials` : `${isMobileStr} this row to view materials too`;
+               scrapTextDiv.style.fontSize = '0.7em';
+               scrapTextDiv.style.color = '#aaaaaa';
+               scrapTextDiv.style.marginTop = '4px';
+               scrapTextDiv.style.pointerEvents = 'none';
+               amountEl.appendChild(scrapTextDiv);
+               amountEl.style.display = 'flex';
+               amountEl.style.flexDirection = 'column';
+               amountEl.style.alignItems = 'flex-start';
+               amountEl.style.justifyContent = 'center';
+            }
+        } else {
+            amountEl.innerHTML = formatNumber(val) + ' ' + displayName;
+        }
       }
     }
   } else {
