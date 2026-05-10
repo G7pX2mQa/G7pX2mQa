@@ -408,21 +408,21 @@ const STAT_MULTIPLIERS = [
 ];
 
 function getAreas() {
+    const dynamicCurrencies = Object.keys(CURRENCIES).map(key => {
+        let label = '';
+        if (key === 'DNA') {
+            label = 'DNA';
+        } else {
+            label = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+        }
+        return { key: CURRENCIES[key], label };
+    });
+
     return [
         {
             key: AREA_KEYS.STARTER_COVE,
             title: 'The Cove',
-            currencies: [
-                { key: CURRENCIES.VOID_GEMS, label: 'Void Gems' },
-                { key: CURRENCIES.RAINBOW_GEMS, label: 'Rainbow Gems' },
-                { key: CURRENCIES.COINS, label: 'Coins' },
-                { key: CURRENCIES.BOOKS, label: 'Books' },
-                { key: CURRENCIES.GOLD,  label: 'Gold'  },
-                { key: CURRENCIES.MAGIC, label: 'Magic' },
-                { key: CURRENCIES.GEARS, label: 'Gears' },
-                { key: CURRENCIES.WAVES, label: 'Waves' },
-                { key: CURRENCIES.DNA,   label: 'DNA'   },
-            ],
+            currencies: dynamicCurrencies,
             stats: [
                 { key: 'voidLevel', label: 'Void Level' },
                 { key: 'spawnRate', label: 'Spawn Rate' },
