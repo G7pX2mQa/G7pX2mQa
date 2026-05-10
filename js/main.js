@@ -412,6 +412,39 @@ async function preloadAssetsWithProgress({ images = [], audio = [], fonts = true
 /* ---------------------------
    GAME AREA CONTROL
 ----------------------------*/
+let delayAreaMusicForSaveSlotLoad = false;
+
+function startAreaMusic(areaID, src) {
+  const delay = delayAreaMusicForSaveSlotLoad;
+  const startMusic = () => {
+    if (currentArea !== areaID) return;
+    currentMusic = playAudio(src, { loop: true, type: 'music' });
+    if (typeof unpauseNotifications === "function") unpauseNotifications();
+  };
+
+  if (!delay) {
+    startMusic();
+    return;
+  }
+
+  // Save-slot loads dismiss the "Loading game" screen immediately before entering
+  // the saved area, so defer that area's music until the area has painted.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(startMusic, 200);
+    });
+  });
+}
+
+function enterAreaFromSaveSlot(areaID) {
+  delayAreaMusicForSaveSlotLoad = true;
+  try {
+    enterArea(areaID);
+  } finally {
+    delayAreaMusicForSaveSlotLoad = false;
+  }
+}
+
 export function enterArea(areaID) {
   if (currentArea === areaID) return;
 
@@ -495,7 +528,7 @@ export function enterArea(areaID) {
   }
 
   switch (areaID) {
-        case AREAS.STARTER_COVE: {
+    case AREAS.STARTER_COVE: {
       const materialsLayer = document.getElementById('materials-layer');
       if (materialsLayer) materialsLayer.style.display = 'none';
       const coinsLayer = document.getElementById('coins-layer');
@@ -506,19 +539,7 @@ export function enterArea(areaID) {
           gRoot.classList.remove('area-cavern');
           gRoot.classList.add('area-cove');
       }
-      // Defer music until the area is visually painted + a small buffer.
-      // We use double-RAF to ensure the browser has completed the paint cycle,
-      // plus a 200ms timeout to wait a beat before audio kicks in.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            if (currentArea === AREAS.STARTER_COVE) {
-              currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
-              if (typeof unpauseNotifications === "function") unpauseNotifications();
-            }
-          }, 200);
-        });
-      });
+      startAreaMusic(AREAS.STARTER_COVE, 'sounds/The_Cove.ogg');
 
       // Config for water layers
       const FG_LAYER_COUNT = 1;
@@ -642,7 +663,7 @@ export function enterArea(areaID) {
       break;
     }
 
-        case AREAS.UNDERWATER_CAVERN: {
+    case AREAS.UNDERWATER_CAVERN: {
       const materialsLayer = document.getElementById('materials-layer');
       if (materialsLayer) materialsLayer.style.display = '';
       const coinsLayer = document.getElementById('coins-layer');
@@ -677,9 +698,7 @@ export function enterArea(areaID) {
       
       document.body.style.backgroundColor = '#000';
       
-      if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('audio:stopMusic'));
-      }
+      startAreaMusic(AREAS.UNDERWATER_CAVERN, 'sounds/Underwater_Cavern.ogg');
       
       if (spawner) { spawner.stop(); if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield(); }
       setTimeout(() => {
@@ -1033,7 +1052,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (currentArea === AREAS.STARTER_COVE) {
             currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
-        }
+        } else if (currentArea === AREAS.UNDERWATER_CAVERN) {
+            currentMusic = playAudio('sounds/Underwater_Cavern.ogg', { loop: true, type: 'music' });
+		}
     });
   }
 
@@ -1212,7 +1233,7 @@ Normal gameplay is unaffected unless you choose to modify values.`);
         const saved = getSavedArea();
         if (saved != null) areaToLoad = saved;
       }
-      enterArea(areaToLoad);
+      enterAreaFromSaveSlot(areaToLoad);
       setTimeout(() => {
         if (areaToLoad === AREAS.STARTER_COVE && window.spawner && typeof window.spawner.playEntranceWave === 'function') {
           window.spawner.playEntranceWave();
