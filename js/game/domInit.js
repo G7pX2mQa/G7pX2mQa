@@ -74,6 +74,7 @@ export function ensureGameDom(layerCount, startZ) {
 
         <canvas id="water-background" class="water-base" style="position: absolute; top: 0; left: 0; width: 100%; height: 35%; pointer-events: none; z-index: 1;"></canvas>
         <div class="coins-layer" id="coins-layer"></div>
+        <div class="materials-layer" id="materials-layer" style="position: absolute; inset: 0; pointer-events: none; display: none;"></div>
         ${waterLayersHtml.trim()}
       </section>
 
