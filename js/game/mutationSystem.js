@@ -357,6 +357,11 @@ function updateHud() {
   if (!ensureHudRefs()) return;
   const { container, bar, fill, levelValue, progress } = hudRefs;
   if (!container) return;
+  if (!container.closest('.area-cove')) {
+    container.setAttribute('hidden', '');
+    syncXpMpHudLayout();
+    return;
+  }
   if (!mutationState.unlocked) {
     container.setAttribute('hidden', '');
     if (fill) {
