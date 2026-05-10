@@ -743,6 +743,9 @@ export function enterArea(areaID) {
       if (waterBg) waterBg.style.display = 'none';
       if (waterFg) waterFg.style.display = 'none';
 
+      if (waterTickUnsub) { try { waterTickUnsub(); } catch {} waterTickUnsub = null; }
+      if (waterFrameUnsub) { try { waterFrameUnsub(); } catch {} waterFrameUnsub = null; }
+
       
       document.body.style.backgroundColor = '#000';
       
@@ -764,6 +767,9 @@ export function enterArea(areaID) {
       }
       const gameRoot = document.getElementById('game-root');
       if (gameRoot) gameRoot.hidden = true;
+
+      if (waterTickUnsub) { try { waterTickUnsub(); } catch {} waterTickUnsub = null; }
+      if (waterFrameUnsub) { try { waterFrameUnsub(); } catch {} waterFrameUnsub = null; }
 
       if (spawner) { spawner.stop(); if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield(); }
       if (ucSpawner) { ucSpawner.stop(); if (typeof ucSpawner.clearPlayfield === "function") ucSpawner.clearPlayfield(); }
