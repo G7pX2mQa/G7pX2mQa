@@ -28,6 +28,13 @@ export function ensureGameDom(layerCount, startZ) {
           </div>
         </div>
 
+        <div class="scrap-counter" style="display: none;">
+          <img src="img/currencies/scrap/scrap_plus_base.webp" alt="" class="scrap-plus"/>
+          <div class="scrap-bar">
+            <span class="scrap-amount">0</span>
+          </div>
+        </div>
+
         <div class="xp-counter" data-xp-hud hidden>
           <img src="img/stats/xp/xp_plus_base.webp" alt="" class="xp-plus"/>
 
