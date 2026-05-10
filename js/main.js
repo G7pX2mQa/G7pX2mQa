@@ -54,6 +54,7 @@ if (IS_MOBILE) {
 
 let initSlots;
 let createSpawner;
+let createUcSpawner;
 let initCoinPickup;
 let refreshCoinMultiplierCache;
 let refreshMpValueMultiplierCache;
@@ -179,6 +180,7 @@ export let currentArea = AREAS.MENU;
 let globalCursorTrail = null;
 let currentMusic = null;
 let spawner = null;
+let ucSpawner = null;
 let cleanupUpgradesListener = null;
 
 /* ---------------------------
@@ -484,8 +486,21 @@ export function enterArea(areaID) {
       }
   }
 
+  if (!ucSpawner && typeof createUcSpawner === 'function') {
+    ucSpawner = createUcSpawner({
+      materialsHost: '.materials-layer',
+      shouldAutoResume: () => currentArea === AREAS.UNDERWATER_CAVERN,
+    });
+    window.ucSpawner = ucSpawner;
+  }
+
   switch (areaID) {
         case AREAS.STARTER_COVE: {
+      const materialsLayer = document.getElementById('materials-layer');
+      if (materialsLayer) materialsLayer.style.display = 'none';
+      const coinsLayer = document.getElementById('coins-layer');
+      if (coinsLayer) coinsLayer.style.display = '';
+      
       const gRoot = document.getElementById('game-root');
       if (gRoot) {
           gRoot.classList.remove('area-cavern');
@@ -548,6 +563,8 @@ export function enterArea(areaID) {
             requestAnimationFrame(() => waterSystem.resize());
         }
       }
+
+
 
       if (!spawner) {
         spawner = createSpawner({
@@ -614,12 +631,23 @@ export function enterArea(areaID) {
       document.body.style.backgroundColor = '';
 
       setTimeout(() => {
-        if (currentArea === AREAS.STARTER_COVE && spawner) spawner.start();
+        if (currentArea === AREAS.STARTER_COVE && spawner) {
+            spawner.start();
+        }
+        if (ucSpawner) {
+            ucSpawner.stop();
+            if (typeof ucSpawner.clearPlayfield === 'function') ucSpawner.clearPlayfield();
+        }
       }, 300);
       break;
     }
 
         case AREAS.UNDERWATER_CAVERN: {
+      const materialsLayer = document.getElementById('materials-layer');
+      if (materialsLayer) materialsLayer.style.display = '';
+      const coinsLayer = document.getElementById('coins-layer');
+      if (coinsLayer) coinsLayer.style.display = 'none';
+      
       const gRoot = document.getElementById('game-root');
       if (gRoot) {
           gRoot.classList.remove('area-cove');
@@ -654,6 +682,11 @@ export function enterArea(areaID) {
       }
       
       if (spawner) { spawner.stop(); if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield(); }
+      setTimeout(() => {
+          if (currentArea === AREAS.UNDERWATER_CAVERN && ucSpawner) {
+              ucSpawner.start();
+          }
+      }, 300);
       break;
     }
 
@@ -666,6 +699,7 @@ export function enterArea(areaID) {
       if (gameRoot) gameRoot.hidden = true;
 
       if (spawner) { spawner.stop(); if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield(); }
+      if (ucSpawner) { ucSpawner.stop(); if (typeof ucSpawner.clearPlayfield === "function") ucSpawner.clearPlayfield(); }
       break;
     }
   }
@@ -695,6 +729,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const modulePromise = Promise.all([
     import('./util/slots.js'),
     import('./game/spawner.js'),
+    import('./game/ucSpawner.js'),
     import('./game/coinPickup.js'),
     import('./ui/hudButtons.js'),
     import('./util/storage.js'),
@@ -915,6 +950,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const [
     slotsModule,
     spawnerModule,
+    ucSpawnerModule,
     coinPickupModule,
     hudButtonsModule,
     storageModule,
@@ -947,6 +983,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   ({ initSlots } = slotsModule);
   ({ createSpawner } = spawnerModule);
+  ({ createUcSpawner } = ucSpawnerModule);
   ({ initCoinPickup, refreshCoinMultiplierCache, refreshMpValueMultiplierCache, updateMutationSnapshot } = coinPickupModule);
   ({ initHudButtons } = hudButtonsModule);
   ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults, getActiveSlot, setSavedArea, getSavedArea } = storageModule);
