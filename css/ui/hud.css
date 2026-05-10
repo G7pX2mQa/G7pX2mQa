@@ -762,5 +762,10 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
 	transform: translateY(0px);
 }
 .scrap-bar {
-  background: linear-gradient(180deg, #d3d3d3, #a0a0a0);
+  background: linear-gradient(180deg, #666666, #555555);
+}
+
+.area:not(.area-cove) [data-xp-hud],
+.area:not(.area-cove) [data-mp-hud] {
+  display: none !important;
 }
