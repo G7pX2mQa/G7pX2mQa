@@ -364,6 +364,7 @@ export const CURRENCIES = {
   GEARS: 'gears',
   WAVES: 'waves',
   DNA: 'dna',
+  SCRAP: 'scrap',
 };
 
 let _activeSlotCache = undefined;
