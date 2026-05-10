@@ -414,11 +414,11 @@ async function preloadAssetsWithProgress({ images = [], audio = [], fonts = true
 ----------------------------*/
 let delayAreaMusicForSaveSlotLoad = false;
 
-function startAreaMusic(areaID, src) {
+function startAreaMusic(areaID, src, volume = 1.0) {
   const delay = delayAreaMusicForSaveSlotLoad;
   const startMusic = () => {
     if (currentArea !== areaID) return;
-    currentMusic = playAudio(src, { loop: true, type: 'music' });
+    currentMusic = playAudio(src, { loop: true, type: 'music', volume: volume });
     if (typeof unpauseNotifications === "function") unpauseNotifications();
   };
 
@@ -533,6 +533,10 @@ export function enterArea(areaID) {
       if (materialsLayer) materialsLayer.style.display = 'none';
       const coinsLayer = document.getElementById('coins-layer');
       if (coinsLayer) coinsLayer.style.display = '';
+      const scrapCounter = document.querySelector('.scrap-counter');
+      if (scrapCounter) scrapCounter.style.display = 'none';
+      const coinCounter = document.querySelector('.coin-counter');
+      if (coinCounter) coinCounter.style.display = '';
       
       const gRoot = document.getElementById('game-root');
       if (gRoot) {
@@ -668,6 +672,10 @@ export function enterArea(areaID) {
       if (materialsLayer) materialsLayer.style.display = '';
       const coinsLayer = document.getElementById('coins-layer');
       if (coinsLayer) coinsLayer.style.display = 'none';
+      const scrapCounter = document.querySelector('.scrap-counter');
+      if (scrapCounter) scrapCounter.style.display = '';
+      const coinCounter = document.querySelector('.coin-counter');
+      if (coinCounter) coinCounter.style.display = 'none';
       
       const gRoot = document.getElementById('game-root');
       if (gRoot) {
@@ -684,10 +692,8 @@ export function enterArea(areaID) {
         gameRoot.hidden = false;
         
         const hudTop = gameRoot.querySelector('.hud-top');
-        if (hudTop) hudTop.style.display = 'none';
+        if (hudTop) hudTop.style.display = '';
         
-        const goalProgressBar = gameRoot.querySelector('.goal-progress-bar');
-        if (goalProgressBar) goalProgressBar.style.display = 'none';
       }
       
       const waterBg = document.getElementById('water-background');
@@ -698,7 +704,7 @@ export function enterArea(areaID) {
       
       document.body.style.backgroundColor = '#000';
       
-      startAreaMusic(AREAS.UNDERWATER_CAVERN, 'sounds/Underwater_Cavern.ogg');
+      startAreaMusic(AREAS.UNDERWATER_CAVERN, 'sounds/Underwater_Cavern.ogg', 0.75);
       
       if (spawner) { spawner.stop(); if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield(); }
       setTimeout(() => {
@@ -1053,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (currentArea === AREAS.STARTER_COVE) {
             currentMusic = playAudio('sounds/The_Cove.ogg', { loop: true, type: 'music' });
         } else if (currentArea === AREAS.UNDERWATER_CAVERN) {
-            currentMusic = playAudio('sounds/Underwater_Cavern.ogg', { loop: true, type: 'music' });
+            currentMusic = playAudio('sounds/Underwater_Cavern.ogg', { loop: true, type: 'music', volume: 0.75 });
 		}
     });
   }
