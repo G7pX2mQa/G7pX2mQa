@@ -8,6 +8,7 @@ import { formatNumber, formatMultForUi } from './numFormat.js';
 import {
     bank,
     CURRENCIES,
+    CURRENCY_AREAS,
     KEYS,
     getActiveSlot,
     markSaveSlotModified,
@@ -408,27 +409,44 @@ const STAT_MULTIPLIERS = [
 ];
 
 function getAreas() {
-    const dynamicCurrencies = Object.keys(CURRENCIES).map(key => {
+    const coveCurrencies = [];
+    const cavernCurrencies = [];
+
+    Object.keys(CURRENCIES).forEach(key => {
+        const currencyKey = CURRENCIES[key];
         let label = '';
         if (key === 'DNA') {
             label = 'DNA';
         } else {
             label = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
         }
-        return { key: CURRENCIES[key], label };
+
+        const area = CURRENCY_AREAS[currencyKey] || AREA_KEYS.STARTER_COVE;
+        // Handle logic directly matching the UNDERWATER_CAVERN string mapping or the AREA_KEYS
+        if (area === 'underwater_cavern') {
+            cavernCurrencies.push({ key: currencyKey, label });
+        } else {
+            coveCurrencies.push({ key: currencyKey, label });
+        }
     });
 
     return [
         {
             key: AREA_KEYS.STARTER_COVE,
             title: 'The Cove',
-            currencies: dynamicCurrencies,
+            currencies: coveCurrencies,
             stats: [
                 { key: 'voidLevel', label: 'Void Level' },
                 { key: 'spawnRate', label: 'Spawn Rate' },
                 { key: 'xp', label: 'XP' },
                 { key: 'mutation', label: 'MP' },
             ],
+        },
+        {
+            key: 'underwater_cavern', // use literal since AREA_KEYS is imported but might not be correctly exposed
+            title: 'Underwater Cavern',
+            currencies: cavernCurrencies,
+            stats: [],
         },
     ];
 }
@@ -3968,29 +3986,34 @@ function buildAreasContent(content) {
             const currencies = createSubsection('Currencies', (sub) => {
                 buildAreaCurrencies(sub, area);
             });
-            const stats = createSubsection('Stats', (sub) => {
-                buildAreaStats(sub, area);
-            });
-            const multipliers = createSubsection('Multipliers', (sub) => {
-                const currencyMultipliers = createSubsection('Currencies', (subsection) => {
-                    buildAreaCurrencyMultipliers(subsection, area);
-                });
-                const statMultipliers = createSubsection('Stats', (subsection) => {
-                    buildAreaStatMultipliers(subsection, area);
-                });
-
-                sub.appendChild(currencyMultipliers);
-                sub.appendChild(statMultipliers);
-            });
-            const upgrades = createSubsection('Upgrades', (sub) => {
-                buildAreaUpgrades(sub, area);
-            });
             
+            let stats = null;
+            let multipliers = null;
+            let upgrades = null;
             let automationUpgrades = null;
             let dnaUpgrades = null;
             let labNodesSection = null;
             let waterwheelsSection = null;
+            let calculators = null;
+
             if (area.key === AREA_KEYS.STARTER_COVE) {
+                stats = createSubsection('Stats', (sub) => {
+                    buildAreaStats(sub, area);
+                });
+                multipliers = createSubsection('Multipliers', (sub) => {
+                    const currencyMultipliers = createSubsection('Currencies', (subsection) => {
+                        buildAreaCurrencyMultipliers(subsection, area);
+                    });
+                    const statMultipliers = createSubsection('Stats', (subsection) => {
+                        buildAreaStatMultipliers(subsection, area);
+                    });
+
+                    sub.appendChild(currencyMultipliers);
+                    sub.appendChild(statMultipliers);
+                });
+                upgrades = createSubsection('Upgrades', (sub) => {
+                    buildAreaUpgrades(sub, area);
+                });
                 automationUpgrades = createSubsection('Automation Upgrades', (sub) => {
                     buildAreaUpgrades(sub, { key: AREA_KEYS.AUTOMATION, title: 'Automation' });
                 });
@@ -4003,16 +4026,15 @@ function buildAreasContent(content) {
                 waterwheelsSection = createSubsection('Waterwheels', (sub) => {
                     buildFlowDebug(sub);
                 });
+                calculators = createSubsection('Calculators', (sub) => {
+                    buildAreaCalculators(sub);
+                });
             }
-
-            const calculators = createSubsection('Calculators', (sub) => {
-                buildAreaCalculators(sub);
-            });
 			
             areaContent.appendChild(currencies);
-            areaContent.appendChild(stats);
-            areaContent.appendChild(multipliers);
-            areaContent.appendChild(upgrades);
+            if (stats) areaContent.appendChild(stats);
+            if (multipliers) areaContent.appendChild(multipliers);
+            if (upgrades) areaContent.appendChild(upgrades);
             if (automationUpgrades) {
                 areaContent.appendChild(automationUpgrades);
             }
@@ -4025,7 +4047,7 @@ function buildAreasContent(content) {
             if (waterwheelsSection) {
                 areaContent.appendChild(waterwheelsSection);
             }
-            areaContent.appendChild(calculators);
+            if (calculators) areaContent.appendChild(calculators);
         });
         areaContainer.classList.add('debug-panel-area');
 
