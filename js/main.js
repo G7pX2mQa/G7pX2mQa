@@ -873,7 +873,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	'img/materials/stone.webp',
 	'img/materials/copper.webp',
 	'img/materials/iron.webp',
-	'img/materials/gold.webp',
+	'img/materials/pure_gold.webp',
 	'img/materials/diamond.webp',
 	'img/materials/emerald.webp',
 	'img/materials/ruby.webp',
