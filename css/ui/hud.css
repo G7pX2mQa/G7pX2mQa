@@ -118,7 +118,7 @@ text-shadow: 0 1px 0 rgba(0,0,0,0.35); /* small helper shadow for browsers witho
 
 /* Touch devices: smoother fake stroke for the coin counter only */
 @media (pointer: coarse) {
-   .coin-amount, .game-btn {
+   .coin-amount, .scrap-amount, .game-btn {
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
     -webkit-text-fill-color: #fff;
@@ -269,7 +269,7 @@ pointer-events: none;
     grid-template-rows: auto auto;
     column-gap: 36px;
   }
-  .hud-top.hud-top--xp-mp > .coin-counter {
+  .hud-top.hud-top--xp-mp > .coin-counter, .hud-top.hud-top--xp-mp > .scrap-counter {
     grid-column: 1 / -1;
   }
   .hud-top.hud-top--xp-mp > [data-xp-hud] {
@@ -292,7 +292,7 @@ pointer-events: none;
   .hud-top.hud-top--xp-only {
     grid-template-columns: auto;
   }
-  .hud-top.hud-top--xp-only > .coin-counter {
+  .hud-top.hud-top--xp-only > .coin-counter, .hud-top.hud-top--xp-only > .scrap-counter {
     grid-column: 1 / -1;
   }
   .hud-top.hud-top--xp-only > [data-xp-hud] {
@@ -316,14 +316,14 @@ pointer-events: none;
 --bar-y-nudge: 9px;
 }
 
-.coin-counter{
+.coin-counter, .scrap-counter{
 position: relative;
 width: var(--coin-bar-w);
 height: max(var(--coin-plus-size), var(--coin-h));
 pointer-events: auto;
 }
 
-.coin-plus{
+.coin-plus, .scrap-plus{
 position:absolute;
 top:50%;
 left: calc((var(--bar-underlap) - 1) * var(--coin-plus-size));
@@ -337,7 +337,7 @@ pointer-events: none;
 user-select: none;
 }
 
-.coin-bar{
+.coin-bar, .scrap-bar{
 position:relative;
 z-index:1;
 height: var(--coin-h);
@@ -356,7 +356,7 @@ overflow: hidden;
 transform: translateY(var(--bar-y-nudge));
 }
 
-.coin-bar::after{
+.coin-bar::after, .scrap-bar::after{
 content:"";
 position:absolute;
 inset:2px;
@@ -367,7 +367,7 @@ inset 0 -6px 10px rgba(0,0,0,.15);
 pointer-events:none;
 }
 
-.coin-amount{
+.coin-amount, .scrap-amount{
 position: relative;
 z-index: 1;
 font-weight: 900;
@@ -383,7 +383,7 @@ top: -1px;
 }
 
 @media (hover: none) and (pointer: coarse) {
-  .coin-counter, .coin-plus, .xp-counter, .xp-plus {
+  .coin-counter, .scrap-counter, .coin-plus, .scrap-plus, .xp-counter, .xp-plus {
     filter: none !important;
   }
 }
@@ -419,7 +419,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
 }
 
 @media (pointer: coarse){
-  .hud-top .coin-amount{
+  .hud-top .coin-amount, .hud-top .scrap-amount{
     -webkit-text-stroke: 0 !important;
     text-stroke: 0 !important;
     -webkit-text-fill-color: #fff;
@@ -750,14 +750,17 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   -webkit-text-fill-color: currentColor;
 }
 
-.coin-amount .infinity-symbol {
+.coin-amount .infinity-symbol, .scrap-amount .infinity-symbol {
   top: -0.11em;
 }
 
-.is-mobile .coin-amount {
+.is-mobile .coin-amount, .is-mobile .scrap-amount {
   top: -0.5px;
 }
 
 .is-mobile .goal-bar-text {
 	transform: translateY(0px);
+}
+.scrap-bar {
+  background: linear-gradient(180deg, #d3d3d3, #a0a0a0);
 }
