@@ -7,8 +7,9 @@ export function syncXpMpHudLayout() {
 
   const xpEl = document.querySelector('[data-xp-hud]');
   const mpEl = document.querySelector('[data-mp-hud]');
-  const xpVisible = !!(xpEl && !xpEl.hasAttribute('hidden'));
-  const mpVisible = !!(mpEl && !mpEl.hasAttribute('hidden'));
+  const isCoveHud = !!hud.closest('.area-cove');
+  const xpVisible = isCoveHud && !!(xpEl && !xpEl.hasAttribute('hidden'));
+  const mpVisible = isCoveHud && !!(mpEl && !mpEl.hasAttribute('hidden'));
 
   hud.classList.toggle('hud-top--xp-only', xpVisible && !mpVisible);
   hud.classList.toggle('hud-top--xp-mp', xpVisible && mpVisible);
