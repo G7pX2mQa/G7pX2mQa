@@ -314,64 +314,29 @@ export function ensureMapOverlay(unlockedNodeId = null) {
             
             if (IS_MOBILE) blockInteraction(500);
 
-            const teleportOverlay = document.createElement('div');
-            Object.assign(teleportOverlay.style, {
-                position: 'fixed',
-                inset: '0',
-                backgroundColor: 'black',
-                zIndex: '2147483647',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                color: 'white',
-                fontSize: 'clamp(24px, 4vw, 48px)',
-                textAlign: 'center',
-                pointerEvents: 'all',
-                userSelect: 'none',
-                cursor: 'none'
-            });
-            teleportOverlay.textContent = `Teleporting to ${node.name}...`;
-            document.body.appendChild(teleportOverlay);
-
-            let start = performance.now();
-            let overlayClosed = false;
-            
-            function pulseFrame(now) {
-                if (!overlayClosed) {
-                    closeMapOverlay(overlay, sheet);
-                    overlayClosed = true;
-                }
+            requestAnimationFrame(() => {
+                closeMapOverlay(overlay, sheet);
                 
-                if (now - start < 450) {
-                    teleportOverlay.style.opacity = Math.random() > 0.5 ? '0.99' : '1';
-                    requestAnimationFrame(pulseFrame);
-                } else {
-                    if (teleportOverlay.parentNode) {
-                        teleportOverlay.parentNode.removeChild(teleportOverlay);
-                    }
-                    if (window.spawner && typeof window.spawner.stopAllWaveSounds === 'function') {
-                        window.spawner.stopAllWaveSounds();
-                    }
-                    enterArea(node.areaId);
-                    
-                    // Delay music and spawner start until we are actually in the new area and the teleport overlay is gone
-                    if (typeof window !== 'undefined') {
-                        if (currentArea === AREAS.STARTER_COVE) {
-                            setTimeout(() => {
-                               if (window.spawner && typeof window.spawner.start === 'function') {
-                                   window.spawner.start();
-                               }
-                            }, 50);
-                        } else if (currentArea === AREAS.UNDERWATER_CAVERN) {
-                            if (window.spawner) {
-                                if (typeof window.spawner.stop === 'function') window.spawner.stop();
-                                if (typeof window.spawner.clearPlayfield === 'function') window.spawner.clearPlayfield();
-                            }
+                if (window.spawner && typeof window.spawner.stopAllWaveSounds === "function") {
+                    window.spawner.stopAllWaveSounds();
+                }
+                enterArea(node.areaId);
+                
+                if (typeof window !== "undefined") {
+                    if (currentArea === AREAS.STARTER_COVE) {
+                        setTimeout(() => {
+                           if (window.spawner && typeof window.spawner.start === "function") {
+                               window.spawner.start();
+                           }
+                        }, 50);
+                    } else if (currentArea === AREAS.UNDERWATER_CAVERN) {
+                        if (window.spawner) {
+                            if (typeof window.spawner.stop === "function") window.spawner.stop();
+                            if (typeof window.spawner.clearPlayfield === "function") window.spawner.clearPlayfield();
                         }
                     }
                 }
-            }
-            requestAnimationFrame(pulseFrame);
+            });
         };
 
         btn.style.zIndex = '2';
