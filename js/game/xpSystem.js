@@ -911,6 +911,11 @@ function updateHud() {
   if (!ensureHudRefs()) return;
   const { container, bar, fill, xpLevelValue, progress } = hudRefs;
   if (!container) return;
+  if (!container.closest('.area-cove')) {
+    container.setAttribute('hidden', '');
+    syncXpMpHudLayout();
+    return;
+  }
   if (!xpState.unlocked) {
     container.setAttribute('hidden', '');
     if (fill) {
