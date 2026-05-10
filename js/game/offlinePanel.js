@@ -114,7 +114,6 @@ export const RESOURCE_REGISTRY = [
     { key: 'voidGems', bgGradient: 'black', icon: 'img/currencies/void_gem.webp', baseIcon: 'img/currencies/void_gem.webp', noPlusBase: true, singular: 'Void Gem', plural: 'Void Gems', type: 'currency' },
     { key: 'rainbowGems', bgGradient: 'linear-gradient(to bottom in oklch, #ff0000, #ff8800, #ffff00, #00ff00, #00ffff, #0000ff, #a000ff, #ff00ff)', icon: 'img/currencies/rainbow_gem.webp', baseIcon: 'img/currencies/rainbow_gem.webp', noPlusBase: true, singular: 'Rainbow Gem', plural: 'Rainbow Gems', type: 'currency' },
     { key: 'coins', bgGradient: 'linear-gradient(to bottom, #d1a008 0%, #e3b527 15%, #ffd34c 50%, #e3b527 85%, #d1a008 100%)',      icon: 'img/currencies/coin/coin.webp', baseIcon: 'img/currencies/coin/coin_plus_base.webp',   singular: 'Coin',     plural: 'Coins', type: 'currency' },
-    { key: 'scrap', bgGradient: 'linear-gradient(180deg, #d3d3d3, #a0a0a0)', icon: 'img/currencies/scrap/scrap.webp', baseIcon: 'img/currencies/scrap/scrap_plus_base.webp', singular: 'Scrap', plural: 'Scrap', type: 'currency' },
     { 
         key: 'xp', 
         icon: 'img/stats/xp/xp.webp', 
@@ -177,6 +176,7 @@ export const RESOURCE_REGISTRY = [
     { key: 'dna', bgGradient: 'repeating-linear-gradient(-45deg, #C00000, #C00000 30.1px, #00B0F0 30.1px, #00B0F0 60.2px)',       icon: 'img/currencies/dna/dna.webp', baseIcon: 'img/currencies/dna/dna_plus_base.webp',     singular: 'DNA',      plural: 'DNA', type: 'currency' },
     { key: 'research_levels', icon: 'img/stats/rp/rp.webp',      singular: 'Level',    plural: 'Levels', type: 'levelStat' },
     { key: 'waterwheel_levels', icon: 'img/waterwheels/waterwheel_coin.webp', singular: 'Level', plural: 'Levels', type: 'levelStat' },
+    { key: 'scrap', bgGradient: 'linear-gradient(to bottom, #666666 0%, #767676 15%, #8a8a8a 50%, #767676 85%, #666666 100%)', icon: 'img/currencies/scrap/scrap.webp', baseIcon: 'img/currencies/scrap/scrap_plus_base.webp', singular: 'Scrap', plural: 'Scrap', type: 'currency' },
 ];
 
 export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
