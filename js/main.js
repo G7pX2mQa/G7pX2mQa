@@ -557,6 +557,63 @@ export function enterArea(areaID) {
     window.ucSpawner = ucSpawner;
   }
 
+    if (!spawner) {
+      spawner = createSpawner({
+        coinSrc: 'img/currencies/coin/coin.webp',
+        coinSize: 40,
+        initialRate: 1,
+        surgeLifetimeMs: 1800,
+        surgeWidthVw: 22,
+        initialBurst: 0,
+        shouldAutoResume: () => currentArea === AREAS.STARTER_COVE,
+      });
+      window.spawner = spawner;
+      const applyMutationSprite = () => {
+        if (!spawner || typeof spawner.setCoinSprite !== 'function') return;
+        try { spawner.setCoinSprite(getMutationCoinSprite?.()); } catch {}
+      };
+      applyMutationSprite();
+      onMutationChangeGame?.(applyMutationSprite);
+      const pickup = initCoinPickup({ spawner }); // uses default playfield
+      window.coinPickupController = pickup;
+      if (spawner && typeof spawner.setDependencies === 'function') {
+          spawner.setDependencies({
+              collectBatch: pickup.collectBatch,
+              getMagnetUnit: pickup.getMagnetUnitPx
+          });
+      }
+              const applyUpgradesToSpawner = () => {
+              try {
+                      const areaKey = getUpgAreaKey();
+                      const eff = computeUpgradeEffects(areaKey);
+                      if (spawner && eff?.coinsPerSecondMult) {
+                        let rate = 1 * eff.coinsPerSecondMult;
+                        if (typeof applyStatMultiplierOverride === "function") {
+                           const override = applyStatMultiplierOverride("spawnRate", rate);
+                           try {
+                               if (override && typeof override.toScientific === "function") {
+                                   rate = Number(override.toScientific(6));
+                               } else {
+                                   rate = Number(override);
+                               }
+                           } catch {}
+                        }
+                        if (Number.isFinite(rate)) {
+                            spawner.setRate(rate);
+                        }
+                      }
+                } catch {}
+              };
+              applyUpgradesToSpawner();
+              if (typeof cleanupUpgradesListener === 'function') {
+                  try { cleanupUpgradesListener(); } catch {}
+              }
+              cleanupUpgradesListener = onUpgradesChanged(applyUpgradesToSpawner);
+              if (typeof window !== 'undefined') {
+                 window.addEventListener('debug:change', applyUpgradesToSpawner);
+              }
+
+    }
   switch (areaID) {
     case AREAS.STARTER_COVE: {
       const materialsLayer = document.getElementById('materials-layer');
@@ -630,63 +687,6 @@ export function enterArea(areaID) {
 
 
 
-      if (!spawner) {
-        spawner = createSpawner({
-          coinSrc: 'img/currencies/coin/coin.webp',
-          coinSize: 40,
-          initialRate: 1,
-          surgeLifetimeMs: 1800,
-          surgeWidthVw: 22,
-          initialBurst: 0,
-          shouldAutoResume: () => currentArea === AREAS.STARTER_COVE,
-        });
-        window.spawner = spawner;
-        const applyMutationSprite = () => {
-          if (!spawner || typeof spawner.setCoinSprite !== 'function') return;
-          try { spawner.setCoinSprite(getMutationCoinSprite?.()); } catch {}
-        };
-        applyMutationSprite();
-        onMutationChangeGame?.(applyMutationSprite);
-        const pickup = initCoinPickup({ spawner }); // uses default playfield
-        window.coinPickupController = pickup;
-        if (spawner && typeof spawner.setDependencies === 'function') {
-            spawner.setDependencies({
-                collectBatch: pickup.collectBatch,
-                getMagnetUnit: pickup.getMagnetUnitPx
-            });
-        }
-                const applyUpgradesToSpawner = () => {
-                try {
-                        const areaKey = getUpgAreaKey();
-                        const eff = computeUpgradeEffects(areaKey);
-                        if (spawner && eff?.coinsPerSecondMult) {
-                          let rate = 1 * eff.coinsPerSecondMult;
-                          if (typeof applyStatMultiplierOverride === "function") {
-                             const override = applyStatMultiplierOverride("spawnRate", rate);
-                             try {
-                                 if (override && typeof override.toScientific === "function") {
-                                     rate = Number(override.toScientific(6));
-                                 } else {
-                                     rate = Number(override);
-                                 }
-                             } catch {}
-                          }
-                          if (Number.isFinite(rate)) {
-                              spawner.setRate(rate);
-                          }
-                        }
-                  } catch {}
-                };
-                applyUpgradesToSpawner();
-                if (typeof cleanupUpgradesListener === 'function') {
-                    try { cleanupUpgradesListener(); } catch {}
-                }
-                cleanupUpgradesListener = onUpgradesChanged(applyUpgradesToSpawner);
-                if (typeof window !== 'undefined') {
-                   window.addEventListener('debug:change', applyUpgradesToSpawner);
-                }
-
-      }
       const waterBg = document.getElementById('water-background');
       const waterFg = document.getElementById('water-foreground');
       if (waterBg) waterBg.style.display = '';
