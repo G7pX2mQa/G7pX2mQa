@@ -63,6 +63,13 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
   iconImg.src = baseSrc;
   
   iconWrapper.appendChild(iconImg);
+
+  if (iconSrc && UC_MATERIALS.includes(currencyId)) {
+    const innerIconImg = document.createElement('img');
+    innerIconImg.className = 'currency-icon';
+    innerIconImg.src = iconSrc;
+    iconWrapper.appendChild(innerIconImg);
+  }
   
   const amountDiv = document.createElement('div');
   amountDiv.className = 'currency-amount';
