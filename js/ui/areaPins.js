@@ -56,6 +56,8 @@ function renderPinnedAreas() {
             btn.style.borderRadius = '50%';
             btn.style.cursor = isLocked ? 'not-allowed' : 'pointer';
             btn.style.pointerEvents = 'auto';
+            btn.style.userSelect = 'none';
+            btn.style.WebkitUserSelect = 'none';
             if (isLocked) {
                 btn.style.opacity = '0.5';
             }
@@ -72,6 +74,7 @@ function renderPinnedAreas() {
             img.style.width = '100%';
             img.style.height = '100%';
             img.style.objectFit = 'contain';
+            img.draggable = false;
 
             const label = document.createElement('span');
             label.className = 'map-node-label area-label';
