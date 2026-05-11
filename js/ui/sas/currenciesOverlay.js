@@ -79,9 +79,10 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
     scrapTextDiv = document.createElement('div');
     const isMobileStr = IS_MOBILE ? "Tap" : "Click";
     const isOpen = settingsManager.get('currency_scrap_materials_dropdown_open');
-    scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing materials` : `${isMobileStr} this row to view materials`;
+    scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing Underwater Cavern materials` : `${isMobileStr} this row to view Underwater Cavern materials`;
     scrapTextDiv.style.fontSize = '0.7em';
-    scrapTextDiv.style.color = '#aaaaaa';
+	scrapTextDiv.style.webkitTextStroke = '0.7px #000';
+    scrapTextDiv.style.color = '#cccccc';
     scrapTextDiv.style.marginTop = '4px';
     scrapTextDiv.style.pointerEvents = 'none'; // so clicks go to info
     amountDiv.appendChild(scrapTextDiv);
@@ -102,7 +103,7 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
       settingsManager.set('currency_scrap_materials_dropdown_open', isOpen);
       
       const isMobileStr = IS_MOBILE ? "Tap" : "Click";
-      scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing materials` : `${isMobileStr} this row to view materials`;
+      scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing Underwater Cavern materials` : `${isMobileStr} this row to view Underwater Cavern materials`;
       
       const overlayEl = container.closest('.sas-overlay');
       if (overlayEl) {
@@ -519,7 +520,7 @@ function handleCurrencyChange(e) {
                const scrapTextDiv = document.createElement('div');
                const isMobileStr = IS_MOBILE ? "Tap" : "Click";
                const isOpen = settingsManager.get('currency_scrap_materials_dropdown_open');
-               scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing materials` : `${isMobileStr} this row to view materials too`;
+               scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing Underwater Cavern materials` : `${isMobileStr} this row to view Underwater Cavern materials`;
                scrapTextDiv.style.fontSize = '0.7em';
                scrapTextDiv.style.color = '#aaaaaa';
                scrapTextDiv.style.marginTop = '4px';
