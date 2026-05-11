@@ -2,7 +2,7 @@
 
 import { IS_MOBILE } from '../../main.js';
 import { createSASOverlay } from './sasOverlayBuilder.js';
-import { CURRENCIES, isCurrencyUnlocked } from '../../util/storage.js';
+import { CURRENCIES, UC_MATERIALS, isCurrencyUnlocked } from '../../util/storage.js';
 import { bank } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { settingsManager } from '../../game/settingsManager.js';
@@ -13,12 +13,6 @@ import { getLevelNumber } from '../../game/upgrades.js';
 import { setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../../game/automationEffects.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { BigNum } from '../../util/bigNum.js';
-
-
-const MATERIALS = [
-  'stone', 'copper', 'iron', 'pure_gold', 'diamond', 
-  'emerald', 'ruby', 'obsidian', 'unobtainium', 'prismatium'
-];
 
 
 // Returns a key like "currency_coins_popups"
@@ -84,8 +78,8 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
 
     scrapTextDiv = document.createElement('div');
     const isMobileStr = IS_MOBILE ? "Tap" : "Click";
-    const isOpen = settingsManager.get('scrap_materials_dropdown_open');
-    scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing materials` : `${isMobileStr} this row to view materials too`;
+    const isOpen = settingsManager.get('currency_scrap_materials_dropdown_open');
+    scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing materials` : `${isMobileStr} this row to view materials`;
     scrapTextDiv.style.fontSize = '0.7em';
     scrapTextDiv.style.color = '#aaaaaa';
     scrapTextDiv.style.marginTop = '4px';
@@ -104,11 +98,11 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
       // Don't toggle if clicking dropdown or paintbrush UI
       if (e.target.closest('.currency-controls')) return;
       
-      const isOpen = !settingsManager.get('scrap_materials_dropdown_open');
-      settingsManager.set('scrap_materials_dropdown_open', isOpen);
+      const isOpen = !settingsManager.get('currency_scrap_materials_dropdown_open');
+      settingsManager.set('currency_scrap_materials_dropdown_open', isOpen);
       
       const isMobileStr = IS_MOBILE ? "Tap" : "Click";
-      scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing materials` : `${isMobileStr} this row to view materials too`;
+      scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing materials` : `${isMobileStr} this row to view materials`;
       
       const overlayEl = container.closest('.sas-overlay');
       if (overlayEl) {
@@ -400,7 +394,7 @@ function populateCurrenciesOverlay(overlayEl) {
   const currenciesList = getUnlockedCurrencies();
   currenciesList.forEach(currency => {
     // Skip materials from the main grid
-    if (MATERIALS.includes(currency)) return;
+    if (UC_MATERIALS.includes(currency)) return;
 
     const val = bank[currency]?.value;
     const amountStr = formatNumber(val);
@@ -421,7 +415,7 @@ function populateCurrenciesOverlay(overlayEl) {
 
     createCurrencyRow(grid, false, currency, iconSrc, baseSrc, amountStr + ' ' + displayName);
 
-    if (currency === 'scrap' && settingsManager.get('scrap_materials_dropdown_open')) {
+    if (currency === 'scrap' && settingsManager.get('currency_scrap_materials_dropdown_open')) {
         const materialsContainer = document.createElement('div');
         materialsContainer.className = 'materials-dropdown-container';
         materialsContainer.style.display = 'flex';
@@ -432,7 +426,7 @@ function populateCurrenciesOverlay(overlayEl) {
         materialsContainer.style.gridColumn = '1 / -1'; // span full width if in a grid
         materialsContainer.style.borderLeft = '2px solid #555';
         
-        MATERIALS.forEach(mat => {
+        UC_MATERIALS.forEach(mat => {
             if (!isCurrencyUnlocked(mat)) return;
             const matVal = bank[mat]?.value;
             const matAmountStr = formatNumber(matVal);
@@ -524,7 +518,7 @@ function handleCurrencyChange(e) {
                // Re-add text
                const scrapTextDiv = document.createElement('div');
                const isMobileStr = IS_MOBILE ? "Tap" : "Click";
-               const isOpen = settingsManager.get('scrap_materials_dropdown_open');
+               const isOpen = settingsManager.get('currency_scrap_materials_dropdown_open');
                scrapTextDiv.textContent = isOpen ? `${isMobileStr} this row to stop viewing materials` : `${isMobileStr} this row to view materials too`;
                scrapTextDiv.style.fontSize = '0.7em';
                scrapTextDiv.style.color = '#aaaaaa';
