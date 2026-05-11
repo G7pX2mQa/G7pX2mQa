@@ -377,6 +377,19 @@ export const CURRENCIES = {
   PRISMATIUM: 'prismatium'
 };
 
+export const UC_MATERIALS = [
+  CURRENCIES.STONE,
+  CURRENCIES.COPPER,
+  CURRENCIES.IRON,
+  CURRENCIES.PURE_GOLD,
+  CURRENCIES.DIAMOND,
+  CURRENCIES.EMERALD,
+  CURRENCIES.RUBY,
+  CURRENCIES.OBSIDIAN,
+  CURRENCIES.UNOBTAINIUM,
+  CURRENCIES.PRISMATIUM
+];
+
 // Maps a currency to the area it belongs to.
 // IMPORTANT: Whenever you add a new currency to CURRENCIES above, make sure to add it here if it should appear in a specific area panel (like in the debug panel).
 // If a currency is not mapped here, it defaults to The Cove, so currencies that belong to The Cove don't need to be included here.
