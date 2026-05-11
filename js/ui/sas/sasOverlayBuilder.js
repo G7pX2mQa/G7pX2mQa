@@ -101,6 +101,8 @@ export function createSASOverlay({ id, title, containerClass, zIndex = '4010', f
     });
   }
 
+  let resizeObserver = null;
+
   function openOverlay() {
     buildOverlay();
 
@@ -132,6 +134,18 @@ export function createSASOverlay({ id, title, containerClass, zIndex = '4010', f
 
         blockInteraction(10);
         ensureCustomScrollbar(overlayEl, sheetEl, '.sas-scroller');
+
+        if (!resizeObserver) {
+          const scroller = overlayEl.querySelector('.sas-scroller');
+          if (scroller && scroller.firstChild) {
+            resizeObserver = new ResizeObserver(() => {
+              if (isOpen && scroller.__customScroll && scroller.__customScroll.update) {
+                scroller.__customScroll.update();
+              }
+            });
+            resizeObserver.observe(scroller.firstChild);
+          }
+        }
 
         if (focusSelector) {
           const focusable = overlayEl.querySelector(focusSelector);
