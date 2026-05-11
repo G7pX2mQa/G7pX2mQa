@@ -214,6 +214,8 @@ export function ensureMapOverlay(unlockedNodeId = null) {
         btn.style.background = 'none';
         btn.style.border = 'none';
         btn.style.cursor = isLocked ? 'not-allowed' : 'pointer';
+        btn.style.userSelect = 'none';
+        btn.style.WebkitUserSelect = 'none';
         btn.style.display = 'flex';
         btn.style.flexDirection = 'column';
         btn.style.alignItems = 'center';
@@ -239,6 +241,7 @@ export function ensureMapOverlay(unlockedNodeId = null) {
         img.style.width = '100%';
         img.style.height = '100%';
         img.style.objectFit = 'contain';
+        img.draggable = false;
 
         const label = document.createElement('span');
         label.className = 'map-node-label area-label';
