@@ -1,18 +1,6 @@
 import { createBaseSpawner, CUBIC_BEZIER, getImage } from './spawnerCore.js';
 import { playAudio } from '../util/audioManager.js';
-
-const MATERIALS = [
-    'stone',
-    'copper',
-    'iron',
-    'pure_gold',
-    'diamond',
-    'emerald',
-    'ruby',
-    'obsidian',
-    'unobtainium',
-    'prismatium'
-];
+import { UC_MATERIALS } from '../util/storage.js';
 
 export function createUcSpawner(config = {}) {
     const {
@@ -53,7 +41,7 @@ export function createUcSpawner(config = {}) {
         initialBurst,
         itemTtlMs: materialTtlMs,
         shouldAutoResume,
-        numLayers: MATERIALS.length,
+        numLayers: UC_MATERIALS.length,
 
         onPlanSpawn: (M, activeItems, garbageCount, removeItem, maxActiveItems) => {
             const MATERIAL_MARGIN = 12;
@@ -76,7 +64,7 @@ export function createUcSpawner(config = {}) {
             const spawnY = Math.max(0, waterToPfTop);
 
             // Randomly pick a material
-            const matIndex = Math.floor(Math.random() * MATERIALS.length);
+            const matIndex = Math.floor(Math.random() * UC_MATERIALS.length);
             const size = baseSize * Math.pow(1.1, matIndex);
 
             const effectiveMargin = MATERIAL_MARGIN;
@@ -122,10 +110,10 @@ export function createUcSpawner(config = {}) {
                 const el = getItem();
                 el.style.width = `${size}px`;
                 el.style.height = `${size}px`;
-                el.className = `material material--${MATERIALS[matIndex]}`;
+                el.className = `material material--${UC_MATERIALS[matIndex]}`;
                 
                 if (el.firstChild) {
-                     el.firstChild.src = `img/materials/${MATERIALS[matIndex]}.webp`;
+                     el.firstChild.src = `img/materials/${UC_MATERIALS[matIndex]}.webp`;
                 }
                 
                 el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
@@ -134,7 +122,7 @@ export function createUcSpawner(config = {}) {
 
                 const itemObj = {
                     el,
-                    src: `img/materials/${MATERIALS[matIndex]}.webp`,
+                    src: `img/materials/${UC_MATERIALS[matIndex]}.webp`,
                     x: coin.x0,
                     y: coin.y0,
                     rot: -10,
@@ -232,7 +220,7 @@ export function createUcSpawner(config = {}) {
             const size = c.size || baseSize;
             el.style.width = `${size}px`;
             el.style.height = `${size}px`;
-            el.className = `material material--${MATERIALS[c.sizeIndex || 0]}`;
+            el.className = `material material--${UC_MATERIALS[c.sizeIndex || 0]}`;
             
             el.style.transition = '';
             el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
