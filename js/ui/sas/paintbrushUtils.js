@@ -117,6 +117,8 @@ export function createPaintbrush({
 
         document.addEventListener('mousedown', handleMouseDownDocument);
         document.addEventListener('mouseup', handleMouseUpDocument);
+        document.addEventListener('mousemove', handleMouseMoveDocument);
+        document.addEventListener('touchmove', handleTouchMoveDocument, { passive: true });
 
         initEvents();
     }
@@ -132,6 +134,10 @@ export function createPaintbrush({
         
         document.removeEventListener('mousedown', handleMouseDownDocument);
         document.removeEventListener('mouseup', handleMouseUpDocument);
+        document.removeEventListener('mousemove', handleMouseMoveDocument);
+        document.removeEventListener('touchmove', handleTouchMoveDocument);
+
+        stopAutoScroll();
 
         cleanupEvents();
     }
@@ -176,6 +182,99 @@ export function createPaintbrush({
         if (e.button !== 0) return;
         isPaintbrushMouseDown = false;
         hoveredRowDuringPaintbrush = null;
+        stopAutoScroll();
+    }
+
+    let autoScrollRaf = null;
+    let autoScrollSpeed = 0;
+
+    function handleMouseMoveDocument(e) {
+        if (!paintbrushActive || !isPaintbrushMouseDown) return;
+        handleCursorPosition(e.clientY);
+    }
+
+    function handleTouchMoveDocument(e) {
+        if (!paintbrushActive || !isPaintbrushMouseDown || !e.touches || e.touches.length === 0) return;
+        handleCursorPosition(e.touches[0].clientY);
+        
+        // Touch move doesn't natively trigger mouseenter/mouseleave over elements 
+        // during a drag consistently across browsers, so we simulate it.
+        const touch = e.touches[0];
+        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+        const row = element ? element.closest('.currency-row:not(.universal-row)') : null;
+        if (row) {
+            flipRowStateFromElement(row);
+        }
+    }
+
+    function handleCursorPosition(clientY) {
+        const windowHeight = window.innerHeight;
+        const bottomZone = 50;
+        const topZone = 50;
+        
+        // Detect leaving viewport entirely from top or bottom
+        if (clientY < 0) {
+            autoScrollSpeed = -25;
+            if (!autoScrollRaf) startAutoScroll();
+            return;
+        } else if (clientY > windowHeight) {
+            autoScrollSpeed = 25;
+            if (!autoScrollRaf) startAutoScroll();
+            return;
+        }
+
+        const distFromBottom = windowHeight - clientY;
+        const distFromTop = clientY;
+
+        if (distFromBottom >= 0 && distFromBottom <= bottomZone) {
+            // Speed linearly from 5 to 25 based on depth into the zone
+            const maxSpeed = 25;
+            const minSpeed = 5;
+            const intensity = 1 - (distFromBottom / bottomZone); // 0 at top of zone, 1 at very bottom
+            autoScrollSpeed = minSpeed + (maxSpeed - minSpeed) * intensity;
+            
+            if (!autoScrollRaf) {
+                startAutoScroll();
+            }
+        } else if (distFromTop >= 0 && distFromTop <= topZone) {
+            const maxSpeed = 25;
+            const minSpeed = 5;
+            const intensity = 1 - (distFromTop / topZone); // 0 at bottom of zone, 1 at very top
+            autoScrollSpeed = -(minSpeed + (maxSpeed - minSpeed) * intensity);
+            
+            if (!autoScrollRaf) {
+                startAutoScroll();
+            }
+        } else {
+            stopAutoScroll();
+        }
+    }
+
+    function startAutoScroll() {
+        const overlayEl = getOverlayEl();
+        if (!overlayEl) return;
+        
+        const scroller = overlayEl.querySelector('.sas-scroller');
+        if (!scroller) return;
+
+        function loop() {
+            if (!isPaintbrushMouseDown || autoScrollSpeed === 0) {
+                stopAutoScroll();
+                return;
+            }
+            scroller.scrollTop += autoScrollSpeed;
+            autoScrollRaf = requestAnimationFrame(loop);
+        }
+        
+        autoScrollRaf = requestAnimationFrame(loop);
+    }
+
+    function stopAutoScroll() {
+        if (autoScrollRaf) {
+            cancelAnimationFrame(autoScrollRaf);
+            autoScrollRaf = null;
+        }
+        autoScrollSpeed = 0;
     }
 
     function handleMouseEnter(e) {
