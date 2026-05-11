@@ -421,9 +421,8 @@ function populateCurrenciesOverlay(overlayEl) {
         materialsContainer.className = 'materials-dropdown-container';
         materialsContainer.style.display = 'flex';
         materialsContainer.style.flexDirection = 'column';
-        materialsContainer.style.gap = '8px';
+        materialsContainer.style.gap = '10px';
         materialsContainer.style.paddingLeft = '20px';
-        materialsContainer.style.marginTop = '8px';
         materialsContainer.style.gridColumn = '1 / -1'; // span full width if in a grid
         materialsContainer.style.borderLeft = '2px solid #555';
         
