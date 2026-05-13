@@ -33,6 +33,14 @@ export function getMapNodes() {
 let isMapOverlayOpen = false;
 let wasJustMapSequence = false;
 
+function setMapNodeInteractiveCursor(btn, isLocked) {
+    const cursor = isLocked ? 'not-allowed' : 'pointer';
+    btn.style.cursor = cursor;
+
+    const iconWrapper = btn.querySelector('.map-node-icon-wrapper');
+    if (iconWrapper) iconWrapper.style.cursor = cursor;
+}
+
 function closeMapOverlay(overlay, sheet) {
     if (window.__mapSequenceActive) return;
     if (!isMapOverlayOpen) return;
@@ -449,7 +457,7 @@ export function refreshNodesState(unlockedNodeId = null) {
         
         const isSequenceTarget = (id === unlockedNodeId) || (window.__mapSequenceActive && id === window.__mapSequenceTarget);
         const isLocked = isSequenceTarget ? true : isNodeLocked(id, defaultLocked);
-        btn.style.cursor = isLocked ? 'not-allowed' : 'pointer';
+        setMapNodeInteractiveCursor(btn, isLocked);
         
         const img = btn.querySelector('.map-node-img');
         if (img) img.src = isLocked ? 'img/misc/locked_plus_base.webp' : icon;
