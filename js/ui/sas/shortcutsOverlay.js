@@ -1,5 +1,5 @@
 import { createSASOverlay } from './sasOverlayBuilder.js';
-import { getTsunamiSequenceSeen } from '../../game/surgeEffects.js';
+import { isLabUnlocked } from '../../game/surgeEffects.js';
 import { getLifetimeBossBeaten } from '../../game/secretAchievements.js';
 import { getActiveSlot } from '../../util/storage.js';
 import { isMapUnlocked } from '../hudButtons.js';
@@ -71,7 +71,7 @@ function populateShortcutsOverlay(overlayEl) {
 
   let rcDesc = "On any sort of Shop upgrade, right-click its icon to perform a Buy Max onto it.";
   let isTsunamiSeen = isShortcutTextPermanentlyUnlocked(1);
-  if (!isTsunamiSeen && typeof getTsunamiSequenceSeen === 'function' && getTsunamiSequenceSeen()) {
+  if (!isTsunamiSeen && typeof isLabUnlocked === 'function' && isLabUnlocked()) {
     isTsunamiSeen = true;
     markShortcutTextPermanentlyUnlocked(1);
   }
@@ -173,7 +173,7 @@ if (typeof window !== 'undefined') {
 
     if (e.detail && (e.detail.key === 'tsunami' || e.detail.key === 'ccc:unlock:map' || e.detail.key === 'map')) {
       let isTsunamiSeen = isShortcutTextPermanentlyUnlocked(1);
-      if (!isTsunamiSeen && typeof getTsunamiSequenceSeen === 'function' && getTsunamiSequenceSeen()) {
+      if (!isTsunamiSeen && typeof isLabUnlocked === 'function' && isLabUnlocked()) {
         markShortcutTextPermanentlyUnlocked(1);
       }
       
