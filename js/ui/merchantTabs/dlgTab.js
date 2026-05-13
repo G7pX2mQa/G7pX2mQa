@@ -14,7 +14,7 @@ import { initWorkshopTab, updateWorkshopTab } from './workshopTab.js';
 import { initWarpTab, updateWarpTab } from './warpTab.js';
 import { initLabTab, updateLabTab, hasVisitedLab } from './labTab.js';
 import { initFlowTab, updateFlowTab, getFlowUnlockState, setFlowUnlockChecker } from './flowTab.js';
-import { getTsunamiSequenceSeen } from '../../game/surgeEffects.js';
+import { isLabUnlocked } from '../../game/surgeEffects.js';
 import { blockInteraction, updateShopOverlay, closeDelveSpecificOverlays } from '../shopOverlay.js';
 import {
   shouldSkipGhostTap,
@@ -215,11 +215,11 @@ function syncWarpTabUnlockState() {
 
 const LAB_UNLOCK_KEY = (slot) => `ccc:unlock:lab:${slot}`;
 
-export function isLabUnlocked() {
+export function isLabUnlockedLocal() {
   const slot = getActiveSlot();
   if (slot == null) return false;
   try {
-    if (typeof getTsunamiSequenceSeen === 'function' && getTsunamiSequenceSeen()) return true;
+    if (typeof isLabUnlocked === 'function' && isLabUnlocked()) return true;
     return localStorage.getItem(LAB_UNLOCK_KEY(slot)) === '1';
   } catch {
     return false;
@@ -227,7 +227,7 @@ export function isLabUnlocked() {
 }
 
 function syncLabTabUnlockState() {
-  setMerchantTabUnlocked('lab', isLabUnlocked());
+  setMerchantTabUnlocked('lab', isLabUnlockedLocal());
 }
 
 // Inject surge level check into flowTab
@@ -593,7 +593,7 @@ export const DLG_CATALOG = {
     reward: { type: 'coins', amount: 2 }, rewardNode: 'n0',
     once: true,
     unlock: (progress) => {
-      if (typeof getTsunamiSequenceSeen === 'function' && getTsunamiSequenceSeen()) {
+      if (typeof isLabUnlocked === 'function' && isLabUnlocked()) {
         return true;
       }
 
@@ -761,7 +761,7 @@ function openDialogueModal(id, meta) {
   if (meta.scriptId === 6) {
       _isLabDialogueOpen = true;
   }
-  if (isLabUnlocked() && typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
+  if (isLabUnlockedLocal() && typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
       scriptId = 1000;
   }
   setMusicUnderwater(true);
