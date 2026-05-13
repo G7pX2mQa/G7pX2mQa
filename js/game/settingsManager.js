@@ -1,7 +1,7 @@
 // js/game/settingsManager.js
 
 import { getActiveSlot } from '../util/storage.js';
-import { getTsunamiSequenceSeen } from './surgeEffects.js';
+import { isLabUnlocked } from './surgeEffects.js';
 import { getHighestMutationLevel } from './mutationSystem.js';
 import { setNumberNotation } from '../util/numFormat.js';
 import { IS_MOBILE } from '../main.js';
@@ -146,7 +146,7 @@ export const SETTING_DEFINITIONS = {
         const slot = getActiveSlot();
         if (slot == null) return false;
         let isLabUnlocked = false;
-        if (typeof getTsunamiSequenceSeen === 'function' && getTsunamiSequenceSeen()) {
+        if (typeof isLabUnlocked === 'function' && isLabUnlocked()) {
             isLabUnlocked = true;
         } else {
             isLabUnlocked = localStorage.getItem(`labUnlock:${slot}`) === '1';
