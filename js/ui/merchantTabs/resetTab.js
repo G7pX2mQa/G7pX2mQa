@@ -171,7 +171,7 @@ function updateBlockBigCoinsStatus() {
       isSurge125 = potentialLevel >= 125;
   }
 
-  _isSurge8Pending = isSurge8 && !getTsunamiSequencePlayed();
+  _isSurge8Pending = isSurge8 && !getTsunamiSequencePlayed() && !isLabUnlocked();
   _isSurge125Pending = isSurge125 && isNodeLocked('cavern', true) && !getMapSequenceSeen('cavern');
 }
 
@@ -1600,7 +1600,7 @@ export function performSurgeReset() {
   }
   
   // Check sequence condition
-  if (isSurge8 && !getTsunamiSequencePlayed()) {
+  if (isSurge8 && !getTsunamiSequencePlayed() && !isLabUnlocked()) {
       // Trigger sequence logic
       startTsunamiSequence();
       
