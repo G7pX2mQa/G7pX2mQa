@@ -116,7 +116,8 @@
         radial-gradient(circle at 65% 80%, rgba(50, 35, 20, 1) 0%, rgba(20, 10, 5, 1) 12%, transparent 20%),
         radial-gradient(circle at 20% 10%, rgba(65, 50, 35, 1) 0%, rgba(35, 22, 14, 1) 15%, transparent 22%),
         radial-gradient(circle at 90% 25%, rgba(58, 43, 28, 1) 0%, rgba(28, 18, 13, 1) 18%, transparent 25%);
-    background-size: 150px 150px;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
     z-index: 300;
     opacity: 0;
     pointer-events: none;
