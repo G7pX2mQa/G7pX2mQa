@@ -40,7 +40,7 @@ import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlock
 import { getVoidLevel, setVoidLevel } from '../ui/sas/achievementExtras/voidGemAltarTab.js';
 import { getGenerationLevelKey, getGenerationUpgradeCost } from '../ui/merchantTabs/workshopTab.js';
 import { getSurgeBarLevelKey, hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
-import { getBaseTsunamiExponent, setTsunamiNerf, getTsunamiNerfKey, getTsunamiSequenceSeen, setTsunamiSequenceSeen, getTsunamiExponent } from '../game/surgeEffects.js';
+import { getBaseTsunamiExponent, setTsunamiNerf, getTsunamiNerfKey, isLabUnlocked, setLabUnlocked, getTsunamiExponent } from '../game/surgeEffects.js';
 import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 
@@ -2295,8 +2295,8 @@ function buildAreaStats(container, area) {
 
                 if (isSurge8) {
                     setTsunamiNerf(0.00);
-                    if (!getTsunamiSequenceSeen()) {
-                        setTsunamiSequenceSeen(true);
+                    if (!isLabUnlocked()) {
+                        setLabUnlocked(true);
                     }
                 }
             } catch {}
@@ -3107,18 +3107,18 @@ function getUnlockRowDefinitions(slot) {
             slot,
         },
         {
-            labelText: 'Unlock Tsunami',
-            description: 'If true, marks the Tsunami sequence as seen',
+            labelText: 'Unlock Lab',
+            description: 'If true, unlocks the Lab tab',
             isUnlocked: () => {
-                try { return !!getTsunamiSequenceSeen(); }
+                try { return !!isLabUnlocked(); }
                 catch { return false; }
             },
             onEnable: () => {
-                try { setTsunamiSequenceSeen(true); }
+                try { setLabUnlocked(true); }
                 catch {}
             },
             onDisable: () => {
-                try { setTsunamiSequenceSeen(false); }
+                try { setLabUnlocked(false); }
                 catch {}
             },
             slot,
