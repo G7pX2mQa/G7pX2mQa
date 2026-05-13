@@ -22,7 +22,8 @@ const BN = BigNum;
 const MULTIPLIER = 10;
 const LOG10_EXP_0_2 = 0.08685889638; // log10(e^0.2)
 const TSUNAMI_NERF_KEY = (slot) => `ccc:surge:tsunamiNerf:${slot}`;
-const TSUNAMI_SEEN_KEY = (slot) => `ccc:unlock:tsunami:${slot}`;
+const TSUNAMI_UNLOCKED_KEY = (slot) => `ccc:unlock:tsunami:${slot}`;
+const TSUNAMI_PLAYED_KEY = (slot) => `ccc:permanent:tsunamiSequencePlayed:${slot}`;
 
 const MAP_SEEN_KEY = (slot, nodeId) => `ccc:unlock:mapSequence:${nodeId}:${slot}`;
 
@@ -49,22 +50,41 @@ export function getTsunamiNerfKey(slot) {
   return TSUNAMI_NERF_KEY(slot);
 }
 
-export function getTsunamiSequenceSeen() {
+export function getTsunamiSequencePlayed() {
   const slot = getActiveSlot();
   if (slot == null) return false;
   try {
-    return localStorage.getItem(TSUNAMI_SEEN_KEY(slot)) === '1';
+    return localStorage.getItem(TSUNAMI_PLAYED_KEY(slot)) === '1';
   } catch {
     return false;
   }
 }
 
-export function setTsunamiSequenceSeen(value) {
+export function setTsunamiSequencePlayed(value) {
   const slot = getActiveSlot();
   if (slot == null) return;
   const normalized = !!value;
   try {
-    localStorage.setItem(TSUNAMI_SEEN_KEY(slot), normalized ? '1' : '0');
+    localStorage.setItem(TSUNAMI_PLAYED_KEY(slot), normalized ? '1' : '0');
+  } catch {}
+}
+
+export function isLabUnlocked() {
+  const slot = getActiveSlot();
+  if (slot == null) return false;
+  try {
+    return localStorage.getItem(TSUNAMI_UNLOCKED_KEY(slot)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setLabUnlocked(value) {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+  const normalized = !!value;
+  try {
+    localStorage.setItem(TSUNAMI_UNLOCKED_KEY(slot), normalized ? '1' : '0');
     if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'tsunami', slot } }));
     }
@@ -922,15 +942,15 @@ export function initSurgeEffects() {
 
       if (!wasActive && isActive) {
           setTsunamiNerf(0.00);
-          if (!getTsunamiSequenceSeen()) {
-              setTsunamiSequenceSeen(true);
+          if (!isLabUnlocked()) {
+              setLabUnlocked(true);
           }
       } else if (isActive) {
           // If already active, check if level increased
           if (compareSurgeLevels(prevLevel, currLevel) > 0) {
               setTsunamiNerf(0.00);
-              if (!getTsunamiSequenceSeen()) {
-                  setTsunamiSequenceSeen(true);
+              if (!isLabUnlocked()) {
+                  setLabUnlocked(true);
               }
           }
       } else if (wasActive && !isActive) {
