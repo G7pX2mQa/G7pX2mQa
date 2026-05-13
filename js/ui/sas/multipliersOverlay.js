@@ -7,7 +7,7 @@ import { getMutationGainMultiplier, isMutationUnlocked } from '../../game/mutati
 import { getRpMult } from '../merchantTabs/labTab.js';
 import { getFpMultiplier, isFlowUnlocked } from '../merchantTabs/flowTab.js';
 import { createDropdown } from "./dropdownUtils.js";
-import { isLabUnlocked } from '../merchantTabs/dlgTab.js';
+import { isLabUnlocked } from '../../game/surgeEffects.js';
 
 function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, config) {
   const row = document.createElement('div');
