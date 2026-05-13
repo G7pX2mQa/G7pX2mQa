@@ -64,7 +64,7 @@ export function createCursorTrail(playfield, options = {}) {
     width: '100%',
     height: '100%',
     pointerEvents: 'none',
-    zIndex: isBossFight ? '2147483646' : '5',
+    zIndex: isBossFight ? '2147483646' : '302',
     touchAction: 'none'
   });
   
