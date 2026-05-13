@@ -1,6 +1,6 @@
 import { getActiveSlot } from '../util/storage.js';
 import { hasDoneForgeReset, hasDoneInfuseReset, hasDoneSurgeReset } from '../ui/merchantTabs/resetTab.js';
-import { getTsunamiSequenceSeen, getMapSequenceSeen } from './surgeEffects.js';
+import { isLabUnlocked, getMapSequenceSeen } from './surgeEffects.js';
 import { hasDoneExperimentReset } from '../ui/merchantTabs/resetTab.js';
 import { getFlowUnlockState } from '../ui/merchantTabs/flowTab.js';
 import { hasEvolvedAnyUpgrade } from './upgrades.js';
@@ -40,8 +40,8 @@ const _rawAchievements = [
         desc: 'Unlock the Lab tab',
         icon: 'img/stats/rp/rp_plus_base.webp',
         checkCondition: () => {
-            if (typeof getTsunamiSequenceSeen === 'function') {
-                return getTsunamiSequenceSeen();
+            if (typeof isLabUnlocked === 'function') {
+                return isLabUnlocked();
             }
             return false;
         },
