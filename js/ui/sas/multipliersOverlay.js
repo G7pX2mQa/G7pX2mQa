@@ -2,12 +2,38 @@ import { createSASOverlay } from './sasOverlayBuilder.js';
 import { RESOURCE_REGISTRY, RESOURCE_REGISTRY_EXTRAS } from '../../game/offlinePanel.js';
 import { bank, CURRENCIES, isCurrencyUnlocked } from '../../util/storage.js';
 import { formatMultForUi } from '../../util/numFormat.js';
-import { getXpGainMultiplier, isXpSystemUnlocked } from '../../game/xpSystem.js';
-import { getMutationGainMultiplier, isMutationUnlocked } from '../../game/mutationSystem.js';
+import { getXpGainMultiplier } from '../../game/xpSystem.js';
+import { getMutationGainMultiplier } from '../../game/mutationSystem.js';
 import { getRpMult } from '../merchantTabs/labTab.js';
-import { getFpMultiplier, isFlowUnlocked } from '../merchantTabs/flowTab.js';
+import { getFpMultiplier } from '../merchantTabs/flowTab.js';
 import { createDropdown } from "./dropdownUtils.js";
-import { isLabUnlocked } from '../../game/surgeEffects.js';
+import { getActiveSlot } from '../../util/storage.js';
+
+function isMultiplierGreaterThanOne(multiplier) {
+  if (multiplier == null) return false;
+  if (typeof multiplier === 'number') return multiplier > 1;
+  if (typeof multiplier === 'bigint') return multiplier > 1n;
+  if (multiplier && typeof multiplier.cmp === 'function') {
+    // Assuming cmp(1) returns > 0 if multiplier > 1
+    return multiplier.cmp(1) > 0;
+  }
+  return false;
+}
+
+function isMultiplierEverUnlocked(key) {
+  const slot = getActiveSlot();
+  if (slot == null) return false;
+  const k = `ccc:multiplier_unlocked:${key}:${slot}`;
+  return localStorage.getItem(k) === 'true';
+}
+
+function setMultiplierEverUnlocked(key) {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+  const k = `ccc:multiplier_unlocked:${key}:${slot}`;
+  localStorage.setItem(k, 'true');
+}
+
 
 function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, config) {
   const row = document.createElement('div');
@@ -73,39 +99,51 @@ function populateMultipliersOverlay(overlayEl) {
   const grid = overlayEl.querySelector('.currencies-grid');
   if (!grid) return;
   grid.innerHTML = "";
+  
+  let noteEl = overlayEl.querySelector('.multipliers-note');
+  if (!noteEl) {
+    noteEl = document.createElement('div');
+    noteEl.className = 'multipliers-note';
+    noteEl.style.color = 'white';
+    noteEl.style.textAlign = 'center';
+    noteEl.style.fontSize = '18px';
+    noteEl.textContent = 'Note: Currency or stat multipliers will only appear here if they have changed from their default value of 1x';
+    grid.parentElement.insertBefore(noteEl, grid);
+  }
+  
   grid.setAttribute('role', 'grid');
 
   const processResource = (config) => {
-    let unlocked = false;
     let multiplier = 1;
     let isCurrency = false;
 
     if (config.key === 'xp') {
-      unlocked = isXpSystemUnlocked();
-      if (unlocked) multiplier = getXpGainMultiplier();
+      multiplier = getXpGainMultiplier();
     } else if (config.key === 'mp') {
-      unlocked = isMutationUnlocked();
-      if (unlocked) multiplier = getMutationGainMultiplier();
+      multiplier = getMutationGainMultiplier();
     } else if (config.key === 'research_levels') {
-      unlocked = isLabUnlocked();
-      if (unlocked) multiplier = getRpMult();
+      multiplier = getRpMult();
     } else if (config.key === 'waterwheel_levels') {
-      unlocked = isFlowUnlocked();
-      if (unlocked) multiplier = getFpMultiplier();
+      multiplier = getFpMultiplier();
     } else if (config.type === 'currency' && config.key !== 'voidGems') {
-      unlocked = isCurrencyUnlocked(config.key);
-      if (unlocked && bank[config.key] && bank[config.key].mult) {
+      isCurrency = true;
+      if (bank[config.key] && bank[config.key].mult) {
         try {
           multiplier = bank[config.key].mult.get();
         } catch (e) {
           multiplier = 1;
         }
       }
-      isCurrency = true;
     } else {
       // Unhandled or explicitly ignored
       return;
     }
+
+    if (isMultiplierGreaterThanOne(multiplier)) {
+      setMultiplierEverUnlocked(config.key);
+    }
+    
+    let unlocked = isMultiplierEverUnlocked(config.key);
 
     if (unlocked) {
       let iconSrc = config.icon || "img/misc/mysterious.webp";
