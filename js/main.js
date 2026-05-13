@@ -208,6 +208,41 @@ export const AREAS = {
 
 export let currentArea = AREAS.MENU;
 let globalCursorTrail = null;
+
+window.isDummyPulseLoading = false;
+let dummyPulseRaf = null;
+let dummyPulseDiv = null;
+
+function startDummyPulse() {
+    if (dummyPulseRaf !== null) {
+        return; // Already running
+    }
+
+    if (!dummyPulseDiv) {
+        dummyPulseDiv = document.createElement('div');
+        dummyPulseDiv.style.position = 'absolute';
+        dummyPulseDiv.style.pointerEvents = 'none';
+        dummyPulseDiv.style.opacity = '0.01';
+        document.body.appendChild(dummyPulseDiv);
+    }
+
+    function dummyPulseFrame() {
+        if ((currentArea == null || currentArea === AREAS.MENU) && !window.isDummyPulseLoading) {
+            if (dummyPulseDiv && dummyPulseDiv.parentNode) {
+                dummyPulseDiv.parentNode.removeChild(dummyPulseDiv);
+                dummyPulseDiv = null;
+            }
+            dummyPulseRaf = null;
+            return;
+        }
+        
+        if (dummyPulseDiv) {
+            dummyPulseDiv.style.opacity = Math.random() > 0.5 ? '0.01' : '0.02';
+        }
+        dummyPulseRaf = requestAnimationFrame(dummyPulseFrame);
+    }
+    dummyPulseRaf = requestAnimationFrame(dummyPulseFrame);
+}
 let currentMusic = null;
 let spawner = null;
 let ucSpawner = null;
@@ -500,6 +535,7 @@ export function enterArea(areaID) {
   const menuRoot = document.querySelector('.menu-root');
 
   if (areaID !== AREAS.MENU) {
+      startDummyPulse();
       if (menuRoot) {
         menuRoot.style.display = 'none';
       }
@@ -1260,6 +1296,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (titleEl) titleEl.style.opacity = '0';
 
     const loader = showLoader('Loading game...');
+    window.isDummyPulseLoading = true;
+    startDummyPulse();
     const stepDelay = () => new Promise(r => setTimeout(r, 120));
 
     // Milestone 1: Multipliers
@@ -1306,6 +1344,7 @@ Normal gameplay is unaffected unless you choose to modify values.`);
     setLoaderProgress(loader, 1);
 
     finishAndHideLoader(loader, () => {
+      window.isDummyPulseLoading = false;
       let areaToLoad = AREAS.STARTER_COVE;
       if (typeof getSavedArea === 'function') {
         const saved = getSavedArea();
