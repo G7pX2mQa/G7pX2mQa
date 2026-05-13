@@ -54,8 +54,7 @@ function renderPinnedAreas() {
             btn.style.background = 'none';
             btn.style.border = 'none';
             btn.style.borderRadius = '50%';
-            btn.style.cursor = isLocked ? 'not-allowed' : 'pointer';
-            btn.style.pointerEvents = 'auto';
+            btn.style.pointerEvents = 'none';
             btn.style.userSelect = 'none';
             btn.style.WebkitUserSelect = 'none';
             if (isLocked) {
@@ -68,12 +67,16 @@ function renderPinnedAreas() {
             iconWrapper.style.justifyContent = 'center';
             iconWrapper.style.width = '100%';
             iconWrapper.style.height = '100%';
+            iconWrapper.style.borderRadius = '50%';
+            iconWrapper.style.pointerEvents = 'auto';
+            iconWrapper.style.cursor = isLocked ? 'not-allowed' : 'pointer';
 
             const img = document.createElement('img');
             img.src = node.icon;
             img.style.width = '100%';
             img.style.height = '100%';
             img.style.objectFit = 'contain';
+            img.style.borderRadius = '50%';
             img.draggable = false;
 
             const label = document.createElement('span');
