@@ -3,7 +3,7 @@ import { blockInteraction, ensureCustomScrollbar, setupDragToClose } from './sho
 import { suppressNextGhostTap, shouldSkipGhostTap } from '../util/ghostTapGuard.js';
 import { getResearchNodeLevel } from '../game/labNodes.js';
 import { getFlowUnlockState } from './merchantTabs/flowTab.js';
-import { getTsunamiSequenceSeen, isSurgeActive } from '../game/surgeEffects.js';
+import { isLabUnlocked, isSurgeActive } from '../game/surgeEffects.js';
 import { getActiveSlot } from '../util/storage.js';
 import { settingsManager } from '../game/settingsManager.js';
 
@@ -163,7 +163,7 @@ const HELP_ENTRIES = [
     isVisible: () => {
         if (isHelpEntryPermanentlyUnlocked(5)) return true;
         let isVis = false;
-        try { isVis = !!getTsunamiSequenceSeen(); }
+        try { isVis = !!isLabUnlocked(); }
         catch { isVis = false; }
         if (isVis) markHelpEntryPermanentlyUnlocked(5);
         return isVis;
