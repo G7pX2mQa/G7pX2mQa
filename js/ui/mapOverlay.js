@@ -272,6 +272,7 @@ export function ensureMapOverlay(unlockedNodeId = null) {
         pinBtn.style.borderRadius = '0';
         pinBtn.style.transition = 'none';
         pinBtn.style.whiteSpace = 'nowrap';
+		pinBtn.style.pointerEvents = 'auto';
         if (isLocked || window.__mapSequenceActive) {
             pinBtn.style.display = 'none';
         }
