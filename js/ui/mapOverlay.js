@@ -213,7 +213,6 @@ export function ensureMapOverlay(unlockedNodeId = null) {
         btn.style.transform = 'translate(-50%, -50%)';
         btn.style.background = 'none';
         btn.style.border = 'none';
-        btn.style.cursor = isLocked ? 'not-allowed' : 'pointer';
         btn.style.userSelect = 'none';
         btn.style.WebkitUserSelect = 'none';
         btn.style.display = 'flex';
@@ -227,13 +226,18 @@ export function ensureMapOverlay(unlockedNodeId = null) {
         btn.style.aspectRatio = '1';
         btn.style.padding = '0';
         btn.style.borderRadius = '50%';
+        btn.style.pointerEvents = 'none';
 
         const iconWrapper = document.createElement('div');
+        iconWrapper.className = 'map-node-icon-wrapper';
         iconWrapper.style.position = 'relative';
         iconWrapper.style.display = 'flex';
         iconWrapper.style.justifyContent = 'center';
         iconWrapper.style.width = '100%';
         iconWrapper.style.height = '100%';
+        iconWrapper.style.borderRadius = '50%';
+        iconWrapper.style.pointerEvents = 'auto';
+        iconWrapper.style.cursor = isLocked ? 'not-allowed' : 'pointer';
 
         const img = document.createElement('img');
         img.className = 'map-node-img';
@@ -241,6 +245,7 @@ export function ensureMapOverlay(unlockedNodeId = null) {
         img.style.width = '100%';
         img.style.height = '100%';
         img.style.objectFit = 'contain';
+        img.style.borderRadius = '50%';
         img.draggable = false;
 
         const label = document.createElement('span');
