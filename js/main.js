@@ -752,11 +752,34 @@ export function enterArea(areaID) {
       startAreaMusic(AREAS.UNDERWATER_CAVERN, 'sounds/Underwater_Cavern.ogg', 0.75);
       
       if (spawner) { spawner.stop(); if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield(); }
-      setTimeout(() => {
+            setTimeout(() => {
           if (currentArea === AREAS.UNDERWATER_CAVERN && ucSpawner) {
               ucSpawner.start();
           }
       }, 300);
+
+      // Start dummy pulse loop to keep browser compositor awake at high refresh rate
+      if (typeof window.cavernPulseRaf !== 'undefined' && window.cavernPulseRaf !== null) {
+          cancelAnimationFrame(window.cavernPulseRaf);
+      }
+      const cavernPulseDiv = document.createElement('div');
+      cavernPulseDiv.style.position = 'absolute';
+      cavernPulseDiv.style.pointerEvents = 'none';
+      cavernPulseDiv.style.opacity = '0.01';
+      document.body.appendChild(cavernPulseDiv);
+
+      function cavernPulseFrame(now) {
+          if (currentArea !== AREAS.UNDERWATER_CAVERN) {
+              if (cavernPulseDiv.parentNode) {
+                  cavernPulseDiv.parentNode.removeChild(cavernPulseDiv);
+              }
+              window.cavernPulseRaf = null;
+              return;
+          }
+          cavernPulseDiv.style.opacity = Math.random() > 0.5 ? '0.01' : '0.02';
+          window.cavernPulseRaf = requestAnimationFrame(cavernPulseFrame);
+      }
+      window.cavernPulseRaf = requestAnimationFrame(cavernPulseFrame);
       break;
     }
 
