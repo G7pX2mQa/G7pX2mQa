@@ -44,10 +44,12 @@ import { collectActiveBigCoins } from '../../util/bigCoinManager.js';
 import { 
   getBookProductionRate, 
   getSurge6WealthMultipliers, 
-  getTsunamiSequenceSeen,
+  getTsunamiSequencePlayed,
+  setTsunamiSequencePlayed,
+  isLabUnlocked,
+  setLabUnlocked,
   getMapSequenceSeen,
   setMapSequenceSeen,
-  setTsunamiSequenceSeen,
   isSurgeActive,
   getTsunamiExponent,
   getSurge25Multiplier,
@@ -169,7 +171,7 @@ function updateBlockBigCoinsStatus() {
       isSurge125 = potentialLevel >= 125;
   }
 
-  _isSurge8Pending = isSurge8 && !getTsunamiSequenceSeen();
+  _isSurge8Pending = isSurge8 && !getTsunamiSequencePlayed();
   _isSurge125Pending = isSurge125 && isNodeLocked('cavern', true) && !getMapSequenceSeen('cavern');
 }
 
@@ -1451,7 +1453,8 @@ function startTsunamiSequence() {
     window.__tsunamiActive = true;
     
     // 6. Set Seen Flag (immediately, to prevent softlock/re-sequence if user quits early)
-    setTsunamiSequenceSeen(true);
+    setTsunamiSequencePlayed(true);
+    setLabUnlocked(true);
     
     // 7. Capture State for Visuals
     const coinCounter = document.querySelector('.coin-counter');
@@ -1597,7 +1600,7 @@ export function performSurgeReset() {
   }
   
   // Check sequence condition
-  if (isSurge8 && !getTsunamiSequenceSeen()) {
+  if (isSurge8 && !getTsunamiSequencePlayed()) {
       // Trigger sequence logic
       startTsunamiSequence();
       
