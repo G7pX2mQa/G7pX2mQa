@@ -25,7 +25,7 @@
   transform: translate3d(-9999px, -9999px, 0);
   transition: opacity 90ms ease-out;
   will-change: transform;
-  z-index: 6;
+  z-index: 301;
 }
 
 .magnet-indicator.is-visible {
