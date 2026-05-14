@@ -1,8 +1,15 @@
 import { createBaseSpawner, CUBIC_BEZIER, getImage } from './spawnerCore.js';
 import { playAudio } from '../util/audioManager.js';
 import { UC_MATERIALS } from '../util/storage.js';
+import { settingsManager } from './settingsManager.js';
 
 export function createUcSpawner(config = {}) {
+    // If settings are enabled, start with an initialBurst so there's no dead wait at startup.
+    const overrides = {};
+    if (settingsManager.get('spawn_vessels') && !config.initialBurst) {
+        overrides.initialBurst = 1;
+    }
+    
     const {
         playfieldSelector = '.playfield',
         materialsHost = '.materials-layer',
@@ -15,7 +22,7 @@ export function createUcSpawner(config = {}) {
         materialTtlMs = 1e99,
         shouldAutoResume = () => true,
         soundMinIntervalMs = 10
-    } = config;
+    } = { ...config, ...overrides };
 
     let soundLastAt = 0;
     const soundURL = new URL('sounds/got_our_pickaxe_swinging_from_side_to_side.ogg', document.baseURI).href;
@@ -28,6 +35,8 @@ export function createUcSpawner(config = {}) {
     }
 
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+    let currentRate = materialsPerSecond;
 
     const base = createBaseSpawner({
         playfieldSelector,
@@ -105,6 +114,9 @@ export function createUcSpawner(config = {}) {
             const newItems = [];
             const now = performance.now();
             let playedSoundInBatch = false;
+            
+            // Override animation duration to match spawn rate cycle
+            const cycleMs = currentRate > 0 ? 1000 / currentRate : 5000;
 
             for (const { coin, matIndex, size } of batch) {
                 const el = getItem();
@@ -116,8 +128,9 @@ export function createUcSpawner(config = {}) {
                      el.firstChild.src = `img/materials/${UC_MATERIALS[matIndex]}.webp`;
                 }
                 
+                // Keep initial state hidden and untransformed (wait for pickaxe strike)
                 el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
-                el.style.opacity = '1';
+                el.style.opacity = '0';
                 el.style.zIndex = `${10 + (matIndex * 10)}`;
 
                 const itemObj = {
@@ -131,9 +144,10 @@ export function createUcSpawner(config = {}) {
                     startY: coin.y0,
                     endX: coin.x1,
                     endY: coin.y1,
-                    startTime: now + coin.jitterMs,
+                    // Delay the start of the material's lifecycle until the pickaxe animation finishes
+                    startTime: now + coin.jitterMs + cycleMs,
                     duration: animationDurationMs,
-                    dieAt: now + materialTtlMs,
+                    dieAt: now + materialTtlMs + cycleMs,
                     jitterMs: coin.jitterMs,
                     isRemoved: false,
                     settled: false,
@@ -164,18 +178,105 @@ export function createUcSpawner(config = {}) {
                 requestAnimationFrame(() => {
                   for (const c of newItems) {
                       if (!c.el) continue;
-                      c.el.style.transition = `transform ${animationDurationMs}ms ${CUBIC_BEZIER} ${c.jitterMs}ms`;
+                      
+                      // Delay the original falling animation and opacity until cycleMs (when pickaxe finishes)
+                      c.el.style.transition = `opacity 0s linear ${cycleMs}ms, transform ${animationDurationMs}ms ${CUBIC_BEZIER} ${cycleMs + c.jitterMs}ms`;
                       c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
+                      c.el.style.opacity = '1';
                   }
                 });
             }
 
-            if (playedSoundInBatch) {
-                playSpawnSound();
+            // Pickaxe Logic
+            if (newItems.length > 0 && settingsManager.get('spawn_vessels')) {
+                const rubbleLayer = document.querySelector('.rubble-layer');
+                if (rubbleLayer) {
+                    const rubbleRect = rubbleLayer.getBoundingClientRect();
+                    const pfW = document.querySelector(playfieldSelector).getBoundingClientRect().width;
+
+                    // Ensure only ONE persistent pickaxe exists at a time
+                    let pickaxe = document.getElementById('uc-pickaxe');
+                    if (!pickaxe) {
+                        pickaxe = document.createElement('img');
+                        pickaxe.id = 'uc-pickaxe';
+                        pickaxe.src = 'img/misc/pickaxe.webp';
+                        pickaxe.style.position = 'fixed';
+                        pickaxe.style.width = '64px';
+                        pickaxe.style.height = '64px';
+                        pickaxe.style.transformOrigin = 'bottom center';
+                        pickaxe.style.zIndex = '500';
+                        pickaxe.style.pointerEvents = 'none';
+                        document.body.appendChild(pickaxe);
+                    }
+                    
+                    // We only animate the persistent pickaxe based on the first item in the batch
+                    // to prevent multiple overlapping animations
+                    const item = newItems[0];
+                    const chargeTime = cycleMs * 0.8;
+                    const strikeTime = cycleMs * 0.2;
+                    
+                    // Y position between 25% and 75% of rubble layer height, relative to viewport
+                    const minPickY = rubbleRect.top + rubbleRect.height * 0.25;
+                    const maxPickY = rubbleRect.top + rubbleRect.height * 0.75;
+                    const pickY = minPickY + Math.random() * (maxPickY - minPickY);
+                    
+                    // Is left or right half?
+                    const isLeft = item.endX < pfW / 2;
+                    // Right side: positive charge (+60), negative strike (-60)
+                    // Left side: negative charge (-60), positive strike (+60)
+                    const chargeRotation = isLeft ? -60 : 60;
+                    const strikeRotation = isLeft ? 60 : -60;
+
+                    // Convert local endX to absolute viewport coordinates
+                    const pfRect = document.querySelector(playfieldSelector).getBoundingClientRect();
+                    pickaxe.style.left = `${pfRect.left + item.endX}px`;
+                    pickaxe.style.top = `${pickY}px`;
+                    
+                    // Reset pickaxe rotation before starting
+                    pickaxe.style.transform = 'rotate(0deg)';
+                    
+                    // We will not use pickaxe.animate(), but rather synchronize it explicitly with onItemUpdate
+                    // Store logic variables onto the pickaxe so onItemUpdate can calculate rotations safely
+                    pickaxe._cycleMs = cycleMs;
+                    pickaxe._chargeRotation = chargeRotation;
+                    pickaxe._strikeRotation = strikeRotation;
+                    pickaxe._startTime = now;
+                    pickaxe._playedSound = false;
+                }
+            } else if (!settingsManager.get('spawn_vessels')) {
+                // If spawn_vessels is OFF, no pickaxe, no sound.
+                const pickaxe = document.getElementById('uc-pickaxe');
+                if (pickaxe && pickaxe.parentNode) {
+                    pickaxe.parentNode.removeChild(pickaxe);
+                }
             }
         },
 
         onItemUpdate: (activeItems, now, dt, removeItem, newlySettledBuffer, releaseItem, getItemState) => {
+            const pickaxe = document.getElementById('uc-pickaxe');
+            if (pickaxe && pickaxe._startTime !== undefined) {
+                const elapsed = now - pickaxe._startTime;
+                const ratio = Math.min(elapsed / pickaxe._cycleMs, 1);
+                
+                if (ratio <= 0.8) {
+                    // Charging phase
+                    const chargeRatio = ratio / 0.8;
+                    const easeOutCubic = 1 - Math.pow(1 - chargeRatio, 3);
+                    const currentRot = pickaxe._chargeRotation * easeOutCubic;
+                    pickaxe.style.transform = `rotate(${currentRot}deg)`;
+                } else {
+                    // Striking phase
+                    if (!pickaxe._playedSound) {
+                        playSpawnSound();
+                        pickaxe._playedSound = true;
+                    }
+                    const strikeRatio = (ratio - 0.8) / 0.2;
+                    const easeInCubic = strikeRatio * strikeRatio * strikeRatio;
+                    const currentRot = pickaxe._chargeRotation + (pickaxe._strikeRotation - pickaxe._chargeRotation) * easeInCubic;
+                    pickaxe.style.transform = `rotate(${currentRot}deg)`;
+                }
+            }
+            
             for (let i = activeItems.length - 1; i >= 0; i--) {
                 const c = activeItems[i]; if (!c) continue;
                 
@@ -243,7 +344,10 @@ export function createUcSpawner(config = {}) {
     return {
         start: base.start,
         stop: base.stop,
-        setRate: base.setRate,
+        setRate: (n) => {
+            currentRate = Math.max(0, Number(n) || 0);
+            base.setRate(currentRate);
+        },
         clearBacklog: base.clearBacklog,
         clearPlayfield: base.clearPlayfield,
         getItemTransform: base.getItemTransform,
