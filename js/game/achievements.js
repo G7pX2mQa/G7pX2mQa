@@ -51,7 +51,7 @@ const _rawAchievements = [
     },
     {
         id: 5,
-        title: 'A Scientific Experiment',
+        title: 'Experimental',
         desc: 'Perform an Experiment reset',
         icon: 'img/misc/experiment_plus_base.webp',
         checkCondition: () => {
