@@ -200,13 +200,13 @@ export function createUcSpawner(config = {}) {
                         pickaxe = document.createElement('img');
                         pickaxe.id = 'uc-pickaxe';
                         pickaxe.src = 'img/misc/pickaxe.webp';
-                        pickaxe.style.position = 'fixed';
+                        pickaxe.style.position = 'absolute';
                         pickaxe.style.width = '64px';
                         pickaxe.style.height = '64px';
                         pickaxe.style.transformOrigin = 'bottom center';
-                        pickaxe.style.zIndex = '500';
+                        pickaxe.style.zIndex = '400';
                         pickaxe.style.pointerEvents = 'none';
-                        document.body.appendChild(pickaxe);
+                        document.querySelector(playfieldSelector).appendChild(pickaxe);
                     }
                     
                     // If the previous animation was interrupted before the sound could play at the end, play it now!
@@ -227,15 +227,29 @@ export function createUcSpawner(config = {}) {
                     
                     // Is left or right half?
                     const isLeft = item.endX < pfW / 2;
-                    // Right side: positive charge (+60), negative strike (-60)
-                    // Left side: negative charge (-60), positive strike (+60)
-                    const chargeRotation = isLeft ? -60 : 60;
-                    const strikeRotation = isLeft ? 60 : -60;
+                    // Right side: negative charge (-60), positive strike (+60)
+                    // Left side: positive charge (+60), negative strike (-60)
+                    const chargeRotation = isLeft ? 60 : -60;
+                    const strikeRotation = isLeft ? -60 : 60;
 
-                    // Convert local endX to absolute viewport coordinates
+                    // Convert pickY (which is viewport relative) to local playfield coordinates
                     const pfRect = document.querySelector(playfieldSelector).getBoundingClientRect();
-                    pickaxe.style.left = `${pfRect.left + item.endX}px`;
-                    pickaxe.style.top = `${pickY}px`;
+                    const localPickY = pickY - pfRect.top;
+                    
+                    // Offset pickaxe so the tip hits the spawn location
+                    // For a 64x64 pickaxe with transformOrigin 'bottom center', the tip is near the top corners.
+                    // If striking left (-60), the pivot needs to be moved right and down so the top-left tip hits the target.
+                    // If striking right (+60), the pivot needs to be moved left and down so the top-right tip hits the target.
+                    // Assuming tip is ~71px from pivot horizontally when swung 60 degrees.
+                    // The pivot is at the bottom center of the 64x64 image (so Y is top + 64).
+                    // The rotated tip Y is roughly at the same height as the pivot, meaning top should be ~60px above the target Y.
+                    // For left: tip is at -71px from pivot, so left edge should be at endX + 39.
+                    // For right: tip is at +71px from pivot, so left edge should be at endX - 103.
+                    const offsetX = isLeft ? 39 : -103;
+                    const offsetY = -60; // shift up so the tip is at the target Y
+
+                    pickaxe.style.left = `${item.endX + offsetX}px`;
+                    pickaxe.style.top = `${localPickY + offsetY}px`;
                     
                     // Reset pickaxe rotation before starting
                     pickaxe.style.transform = 'rotate(0deg)';
