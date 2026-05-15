@@ -24,8 +24,22 @@ export function createUcSpawner(config = {}) {
         soundMinIntervalMs = 10
     } = { ...config, ...overrides };
 
+
     let soundLastAt = 0;
     const soundURL = new URL('sounds/got_our_pickaxe_swinging_from_side_to_side.ogg', document.baseURI).href;
+
+    let pickaxeSize = 64;
+    function updatePickaxeSize() {
+        pickaxeSize = Math.min(256, Math.max(64, window.innerHeight * 0.12));
+        const pickaxe = document.getElementById('uc-pickaxe');
+        if (pickaxe) {
+            pickaxe.style.width = `${pickaxeSize}px`;
+            pickaxe.style.height = `${pickaxeSize}px`;
+        }
+    }
+    window.addEventListener('resize', updatePickaxeSize);
+    updatePickaxeSize();
+
 
     function playSpawnSound() {
         const now = performance.now();
@@ -201,8 +215,8 @@ export function createUcSpawner(config = {}) {
                         pickaxe.id = 'uc-pickaxe';
                         pickaxe.src = 'img/misc/pickaxe.webp';
                         pickaxe.style.position = 'absolute';
-                        pickaxe.style.width = '64px';
-                        pickaxe.style.height = '64px';
+                        pickaxe.style.width = `${pickaxeSize}px`;
+                        pickaxe.style.height = `${pickaxeSize}px`;
                         pickaxe.style.transformOrigin = 'bottom center';
                         pickaxe.style.zIndex = '400';
                         pickaxe.style.pointerEvents = 'none';
@@ -221,9 +235,7 @@ export function createUcSpawner(config = {}) {
                     const strikeTime = cycleMs * 0.2;
                     
                     // Y position between 25% and 75% of rubble layer height, relative to viewport
-                    const minPickY = rubbleRect.top + rubbleRect.height * 0.25;
-                    const maxPickY = rubbleRect.top + rubbleRect.height * 0.75;
-                    const pickY = minPickY + Math.random() * (maxPickY - minPickY);
+                    const pickY = rubbleRect.top + rubbleRect.height * 0.5 + window.innerHeight * 0.025;
                     
                     // Is left or right half?
                     const isLeft = item.endX < pfW / 2;
@@ -245,8 +257,9 @@ export function createUcSpawner(config = {}) {
                     // The rotated tip Y is roughly at the same height as the pivot, meaning top should be ~60px above the target Y.
                     // For left: tip is at -71px from pivot, so left edge should be at endX + 39.
                     // For right: tip is at +71px from pivot, so left edge should be at endX - 103.
-                    const offsetX = isLeft ? 39 : -103;
-                    const offsetY = -60; // shift up so the tip is at the target Y
+                    const scaleFactor = pickaxeSize / 64;
+                    const offsetX = (isLeft ? 39 : -103) * scaleFactor;
+                    const offsetY = -60 * scaleFactor; // shift up so the tip is at the target Y
 
                     pickaxe.style.left = `${item.endX + offsetX}px`;
                     pickaxe.style.top = `${localPickY + offsetY}px`;
