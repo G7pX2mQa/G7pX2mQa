@@ -209,6 +209,11 @@ export function createUcSpawner(config = {}) {
                         document.body.appendChild(pickaxe);
                     }
                     
+                    // If the previous animation was interrupted before the sound could play at the end, play it now!
+                    if (pickaxe._startTime !== undefined && !pickaxe._playedSound) {
+                        playSpawnSound();
+                    }
+                    
                     // We only animate the persistent pickaxe based on the first item in the batch
                     // to prevent multiple overlapping animations
                     const item = newItems[0];
@@ -260,20 +265,22 @@ export function createUcSpawner(config = {}) {
                 
                 if (ratio <= 0.8) {
                     // Charging phase
+                    pickaxe._playedSound = false;
                     const chargeRatio = ratio / 0.8;
                     const easeOutCubic = 1 - Math.pow(1 - chargeRatio, 3);
                     const currentRot = pickaxe._chargeRotation * easeOutCubic;
                     pickaxe.style.transform = `rotate(${currentRot}deg)`;
                 } else {
                     // Striking phase
-                    if (!pickaxe._playedSound) {
-                        playSpawnSound();
-                        pickaxe._playedSound = true;
-                    }
                     const strikeRatio = (ratio - 0.8) / 0.2;
                     const easeInCubic = strikeRatio * strikeRatio * strikeRatio;
                     const currentRot = pickaxe._chargeRotation + (pickaxe._strikeRotation - pickaxe._chargeRotation) * easeInCubic;
                     pickaxe.style.transform = `rotate(${currentRot}deg)`;
+
+                    if (ratio === 1 && !pickaxe._playedSound) {
+                        playSpawnSound();
+                        pickaxe._playedSound = true;
+                    }
                 }
             }
             
