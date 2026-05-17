@@ -7,7 +7,7 @@ import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { unlockShop } from '../ui/hudButtons.js';
 import { addXp, isXpSystemUnlocked } from './xpSystem.js';
-import { IS_MOBILE } from '../main.js';
+import { IS_MOBILE, coinsCollected } from '../main.js';
 import {
   addMutationPower,
   isMutationUnlocked,
@@ -1010,6 +1010,8 @@ export function initCoinPickup({
       collectedCount++;
       if (el) el.dataset.collected = '1';
 
+
+
       if (visualCount < MAX_VISUALS) {
            if (!el && coinObj && spawner && spawner.ensureCoinVisual) {
                el = spawner.ensureCoinVisual(coinObj);
@@ -1069,6 +1071,16 @@ export function initCoinPickup({
     }
 
     if (collectedCount === 0) return;
+
+    if (typeof window !== 'undefined' && typeof window.currentArea !== 'undefined' && window.currentArea === 1) { // 1 is AREAS.STARTER_COVE
+        window.coinsCollected += collectedCount;
+        const slot = getActiveSlot();
+        if (slot != null) {
+            try {
+                localStorage.setItem(`ccc:coinsCollected:${slot}`, String(window.coinsCollected));
+            } catch {}
+        }
+    }
 
     onCoinCollected();
 
