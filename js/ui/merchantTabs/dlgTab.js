@@ -1,5 +1,8 @@
 // js/ui/merchantTabs/dlgTab.js
-import { merchantOverlayEl, merchantSheetEl, __isTypingActive, activeTypingAudio, TYPING_SFX_SRC, setDelveElements, setTypingActive, setActiveTypingAudio } from '../delveCore.js';
+let merchantOverlayEl = null;
+let merchantSheetEl = null;
+
+import { __isTypingActive, activeTypingAudio, TYPING_SFX_SRC, setDelveElements, setTypingActive, setActiveTypingAudio } from '../delveCore.js';
 import { 
   bank,
   getActiveSlot,
@@ -911,13 +914,13 @@ const SCROLL_TIMELINE_STYLES_ID = 'ccc-scroll-timeline-styles';
 
 function ensureMerchantOverlay() {
   if (merchantOverlayEl) return;
+  merchantOverlayEl = document.createElement("div");
+  merchantSheetEl = document.createElement("div");
 
-  setDelveElements(document.createElement('div'), merchantSheetEl);
   merchantOverlayEl.className = 'merchant-overlay';
   merchantOverlayEl.id = 'merchant-overlay';
   merchantOverlayEl.setAttribute('inert', '');
 
-  setDelveElements(merchantOverlayEl, document.createElement('div'));
   merchantSheetEl.className = 'merchant-sheet';
   merchantSheetEl.setAttribute('role', 'dialog');
   merchantSheetEl.setAttribute('aria-modal', 'false');
@@ -1683,6 +1686,7 @@ function resetFirstChatOverlayState() {
 
 export function openMerchant() {
   ensureMerchantOverlay();
+  setDelveElements(merchantOverlayEl, merchantSheetEl);
   if (merchantOpen) return;
 
   const activeEl = document.activeElement;
