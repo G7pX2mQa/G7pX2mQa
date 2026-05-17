@@ -157,6 +157,7 @@ export class BigNum {
       }
     }
 
+    if (this.e > 100 || b.e > 100) return BigNum.zero(this.p);
     try {
       const aPlain = this.toPlainIntegerString();
       const bPlain = b.toPlainIntegerString();
