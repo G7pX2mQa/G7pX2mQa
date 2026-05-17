@@ -741,15 +741,13 @@ export function enterArea(areaID) {
 
       document.body.style.backgroundColor = '';
 
-      setTimeout(() => {
-        if (currentArea === AREAS.STARTER_COVE && spawner) {
-            spawner.start();
-        }
-        if (ucSpawner) {
-            ucSpawner.stop();
-            if (typeof ucSpawner.clearPlayfield === 'function') ucSpawner.clearPlayfield();
-        }
-      }, 300);
+      if (currentArea === AREAS.STARTER_COVE && spawner) {
+          spawner.start();
+      }
+      if (ucSpawner) {
+          ucSpawner.stop();
+          if (typeof ucSpawner.clearPlayfield === "function") ucSpawner.clearPlayfield();
+      }
       break;
     }
 
@@ -799,11 +797,9 @@ export function enterArea(areaID) {
       startAreaMusic(AREAS.UNDERWATER_CAVERN, 'sounds/Underwater_Cavern.ogg', 0.75);
       
       if (spawner) { spawner.stop(); if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield(); }
-            setTimeout(() => {
-          if (currentArea === AREAS.UNDERWATER_CAVERN && ucSpawner) {
-              ucSpawner.start();
-          }
-      }, 300);
+      if (currentArea === AREAS.UNDERWATER_CAVERN && ucSpawner) {
+          ucSpawner.start();
+      }
 
       break;
     }
