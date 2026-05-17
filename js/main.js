@@ -649,6 +649,22 @@ export function enterArea(areaID) {
                             spawner.setRate(rate);
                         }
                       }
+                      if (ucSpawner) {
+                        let rate = 0.2;
+                        if (typeof applyStatMultiplierOverride === "function") {
+                           const override = applyStatMultiplierOverride("materialSpawnRate", rate);
+                           try {
+                               if (override && typeof override.toScientific === "function") {
+                                   rate = Number(override.toScientific(6));
+                               } else {
+                                   rate = Number(override);
+                               }
+                           } catch {}
+                        }
+                        if (Number.isFinite(rate)) {
+                            ucSpawner.setRate(rate);
+                        }
+                      }
                 } catch {}
               };
               applyUpgradesToSpawner();
