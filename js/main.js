@@ -136,6 +136,8 @@ let waterTickUnsub = null;
 let waterFrameUnsub = null;
 
 export let activePlaytime = 0;
+export let coinsCollected = 0;
+window.coinsCollected = coinsCollected;
 let activePlaytimeUnsub = null;
 let activePlaytimeStorageAccumulator = 0;
 
@@ -207,6 +209,7 @@ export const AREAS = {
 };
 
 export let currentArea = AREAS.MENU;
+window.currentArea = currentArea;
 let globalCursorTrail = null;
 
 window.isDummyPulseLoading = false;
@@ -535,6 +538,7 @@ export function enterArea(areaID) {
   }
 
   currentArea = areaID;
+  window.currentArea = currentArea;
   if (typeof setSavedArea === 'function') {
     setSavedArea(areaID);
   }
@@ -1276,6 +1280,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch {
       activePlaytime = 0;
       window.activePlaytime = activePlaytime;
+    }
+
+    try {
+      const storedCoins = localStorage.getItem(`ccc:coinsCollected:${slot}`);
+      coinsCollected = storedCoins ? Number(storedCoins) : 0;
+      window.coinsCollected = coinsCollected;
+    } catch {
+      coinsCollected = 0;
+      window.coinsCollected = coinsCollected;
     }
 
     if (activePlaytimeUnsub) {
