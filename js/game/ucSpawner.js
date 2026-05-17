@@ -28,6 +28,9 @@ export function createUcSpawner(config = {}) {
 
     let soundLastAt = 0;
     const soundURL = new URL('sounds/got_our_pickaxe_swinging_from_side_to_side.ogg', document.baseURI).href;
+	const basePickaxeSoundVolume = 0.3;
+    const minPickaxeVolumeRate = 0.2;
+    const halfPickaxeVolumeRate = 10;
 
     let pickaxeSize = 64;
     function updatePickaxeSize() {
@@ -41,12 +44,20 @@ export function createUcSpawner(config = {}) {
     window.addEventListener('resize', updatePickaxeSize);
     updatePickaxeSize();
 
-
+    function getPickaxeSoundVolume() {
+        const fadeProgress = clamp(
+            (currentRate - minPickaxeVolumeRate) / (halfPickaxeVolumeRate - minPickaxeVolumeRate),
+            0,
+            1
+        );
+        return basePickaxeSoundVolume * (1 - fadeProgress * 0.5);
+    }
+	
     function playSpawnSound() {
         const now = performance.now();
         if (now - soundLastAt < soundMinIntervalMs) return;
         soundLastAt = now;
-        playAudio(soundURL, { volume: 0.3, type: 'sfx' });
+        playAudio(soundURL, { volume: getPickaxeSoundVolume(), type: 'sfx' });
     }
 
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
