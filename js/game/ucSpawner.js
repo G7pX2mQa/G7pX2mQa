@@ -235,18 +235,20 @@ export function createUcSpawner(config = {}) {
                     const chargeTime = cycleMs * 0.8;
                     const strikeTime = cycleMs * 0.2;
                     
+                    // Convert pickY (which is viewport relative) to local playfield coordinates
+                    const pfRect = document.querySelector(playfieldSelector).getBoundingClientRect();
+
                     // Y position between 25% and 75% of rubble layer height, relative to viewport
                     const pickY = rubbleRect.top + rubbleRect.height * 0.5 + window.innerHeight * 0.025;
                     
                     // Is left or right half?
-                    const isLeft = item.endX < pfW / 2;
+                    const itemMiddleAbsoluteX = pfRect.left + item.endX + (item.size / 2);
+                    const isLeft = itemMiddleAbsoluteX < (window.innerWidth / 2);
                     // Right side: negative charge (-60), positive strike (+60)
                     // Left side: positive charge (+60), negative strike (-60)
                     const chargeRotation = isLeft ? 60 : -60;
                     const strikeRotation = isLeft ? -60 : 60;
 
-                    // Convert pickY (which is viewport relative) to local playfield coordinates
-                    const pfRect = document.querySelector(playfieldSelector).getBoundingClientRect();
                     const localPickY = pickY - pfRect.top;
                     
                     // Offset pickaxe so the tip hits the spawn location
