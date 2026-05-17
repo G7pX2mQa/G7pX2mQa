@@ -492,7 +492,7 @@ function shouldShowDebugPanelToggleButton() {
 
 function onMenuVisibilityChange(event) {
     if (event?.detail?.visible) {
-        closeDebugPanel();
+        // closeDebugPanel(); // Removed to prevent debug panel closing on area change
     }
     createDebugPanelToggleButton();
 }
@@ -757,6 +757,8 @@ function getGameStatMultiplier(statKey) {
             if (eff?.coinsPerSecondMult) {
                 return BigNum.fromAny(eff.coinsPerSecondMult);
             }
+        } else if (statKey === 'materialSpawnRate') {
+            return BigNum.fromAny(0.2);
         }
         else if (statKey === 'rp') {
             return getRpMultBase();
@@ -1977,6 +1979,73 @@ function buildAreaStats(container, area) {
         container.appendChild(voidLevelRow.row);
     }
 
+
+    if (area.key === AREA_KEYS.UNDERWATER_CAVERN) {
+        const materialSpawnRateKey = 'materialSpawnRate';
+        const materialSpawnRateStorageKey = getStatMultiplierStorageKey(materialSpawnRateKey, slot);
+        const materialSpawnRateRow = createInputRow('Material Spawn Rate', getStatMultiplierDisplayValue(materialSpawnRateKey, slot), (value, { setValue }) => {
+            const latestSlot = getActiveSlot();
+            if (latestSlot == null) return;
+            const previous = getStatMultiplierDisplayValue(materialSpawnRateKey, latestSlot);
+            try { setDebugStatMultiplierOverride(materialSpawnRateKey, value, latestSlot); } catch {}
+            const refreshed = getStatMultiplierDisplayValue(materialSpawnRateKey, latestSlot);
+            setValue(refreshed);
+            if (!bigNumEquals(previous, refreshed)) {
+                flagDebugUsage();
+                logAction(`Modified Material Spawn Rate (${areaLabel}) ${formatNumber(previous)} → ${formatNumber(refreshed)}`);
+            }
+        }, {
+            storageKey: materialSpawnRateStorageKey,
+            onLockChange: (locked) => {
+                const latestSlot = getActiveSlot();
+                if (latestSlot == null) return;
+                if (locked) {
+                    const existingOverride = getLockedStatOverride(latestSlot, materialSpawnRateKey);
+                    if (existingOverride) return;
+                    try {
+                        setDebugStatMultiplierOverride(
+                            materialSpawnRateKey,
+                            getGameStatMultiplier(materialSpawnRateKey),
+                            latestSlot
+                        );
+                    } catch {}
+                } else {
+                    getEffectiveStatMultiplierOverride(
+                        materialSpawnRateKey,
+                        latestSlot,
+                        getGameStatMultiplier(materialSpawnRateKey)
+                    );
+                }
+                materialSpawnRateRow.setValue(getStatMultiplierDisplayValue(materialSpawnRateKey, latestSlot));
+            },
+        });
+
+        registerLiveBinding({
+            type: 'stat-mult',
+            key: materialSpawnRateKey,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = getStatMultiplierDisplayValue(materialSpawnRateKey, slot);
+                materialSpawnRateRow.setValue(latest);
+            },
+        });
+
+        registerLiveBinding({
+            type: 'upgrade',
+            key: materialSpawnRateKey,
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                const latest = getStatMultiplierDisplayValue(materialSpawnRateKey, slot);
+                materialSpawnRateRow.setValue(latest);
+            },
+        });
+
+        container.appendChild(materialSpawnRateRow.row);
+    }
+
+    if (area.key === AREA_KEYS.STARTER_COVE) {
     const spawnRateKey = 'spawnRate';
     const spawnRateStorageKey = getStatMultiplierStorageKey(spawnRateKey, slot);
     const spawnRateRow = createInputRow('Coin Spawn Rate', getStatMultiplierDisplayValue(spawnRateKey, slot), (value, { setValue }) => {
@@ -2039,11 +2108,13 @@ function buildAreaStats(container, area) {
     });
 
     container.appendChild(spawnRateRow.row);
+    }
 
     const xp = getXpState();
     const mutation = getMutationState();
     const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
 
+    if (area.key === AREA_KEYS.STARTER_COVE) {
     const xpLevelKey = XP_KEYS.level(slot);
     const xpLevelRow = createInputRow('XP Level', xp.xpLevel, (value, { setValue }) => {
         const prev = getXpState().xpLevel;
@@ -2134,7 +2205,8 @@ function buildAreaStats(container, area) {
     });
     container.appendChild(mpProgressRow.row);
 	
-	    // Workshop Level
+	    if (area.key === AREA_KEYS.STARTER_COVE) {
+    // Workshop Level
     const genLevelKey = getGenerationLevelKey(slot);
     if (genLevelKey) {
         let currentGenLevel = 0;
@@ -2495,6 +2567,8 @@ function buildAreaStats(container, area) {
             },
         });
         container.appendChild(comboRow.row);
+    }
+    }
     }
 }
 
@@ -3996,10 +4070,13 @@ function buildAreasContent(content) {
             let waterwheelsSection = null;
             let calculators = null;
 
-            if (area.key === AREA_KEYS.STARTER_COVE) {
+            if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
                 stats = createSubsection('Stats', (sub) => {
                     buildAreaStats(sub, area);
                 });
+            }
+
+            if (area.key === AREA_KEYS.STARTER_COVE) {
                 multipliers = createSubsection('Multipliers', (sub) => {
                     const currencyMultipliers = createSubsection('Currencies', (subsection) => {
                         buildAreaCurrencyMultipliers(subsection, area);
@@ -4731,7 +4808,6 @@ function teardownDebugPanel() {
 function createDebugPanelToggleButton() {
     if (!shouldShowDebugPanelToggleButton()) {
         removeDebugPanelToggleButton();
-        closeDebugPanel();
         return;
     }
     ensureDebugPanelStyles();
