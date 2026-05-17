@@ -1,3 +1,4 @@
+// js/ui/minerTabs/dlgTab.js
 import { getActiveSlot } from '../../util/storage.js';
 import { MINER_DIALOGUES } from '../../misc/minerDialogues.js';
 import { blockInteraction, updateShopOverlay, closeDelveSpecificOverlays } from '../shopOverlay.js';
@@ -26,9 +27,7 @@ function ensureMinerOverlay() {
     if (minerOverlayEl) return;
     
     minerSheetEl = document.createElement('div');
-    setDelveElements(document.createElement('div'), minerSheetEl);
     minerOverlayEl = document.createElement('div');
-    setDelveElements(minerOverlayEl, minerSheetEl);
 
     minerOverlayEl.className = 'merchant-overlay is-miner';
     minerOverlayEl.id = 'miner-overlay';
@@ -128,7 +127,8 @@ function renderDialogueList() {
 }
 
 export function openMiner() {
-    ensureMinerOverlay();
+  ensureMinerOverlay();
+  setDelveElements(minerOverlayEl, minerSheetEl);
     
     renderDialogueList();
     
