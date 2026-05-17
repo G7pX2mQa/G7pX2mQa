@@ -372,6 +372,8 @@ export function createUcSpawner(config = {}) {
                 const c = activeItems[i]; if (!c) continue;
                 removeItem(activeItems[i], i);
             }
+            const pickaxe = document.getElementById("uc-pickaxe");
+            if (pickaxe && pickaxe.parentNode) pickaxe.parentNode.removeChild(pickaxe);
         }
     });
 
