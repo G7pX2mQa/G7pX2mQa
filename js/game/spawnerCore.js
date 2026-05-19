@@ -346,24 +346,45 @@ export function createBaseSpawner(config = {}) {
         } else {
             if (dirtyRegions.length > 0) {
                 const count = activeItems.length;
+                
+                // Group dirty regions by layer
+                const layerRegions = [];
+                for (let i = 0; i < numLayers; i++) layerRegions.push([]);
+                
                 for (let i = 0; i < dirtyRegions.length; i++) {
                     const r = dirtyRegions[i];
                     const layerIdx = Math.min(r.layer, numLayers - 1);
-                    const ctx = contexts[layerIdx];
-                    if (!ctx) continue;
                     
                     const pad = 8;
                     const cx = r.x - pad;
                     const cy = r.y - pad;
                     const cSize = r.size + (pad * 2);
-
+                    
+                    layerRegions[layerIdx].push({
+                        minX: cx, maxX: cx + cSize,
+                        minY: cy, maxY: cy + cSize,
+                        cx, cy, cSize
+                    });
+                }
+                
+                for (let layerIdx = 0; layerIdx < numLayers; layerIdx++) {
+                    const regions = layerRegions[layerIdx];
+                    if (regions.length === 0) continue;
+                    
+                    const ctx = contexts[layerIdx];
+                    if (!ctx) continue;
+                    
                     ctx.save();
                     ctx.beginPath();
-                    ctx.rect(cx, cy, cSize, cSize);
+                    for (let rIdx = 0; rIdx < regions.length; rIdx++) {
+                        const r = regions[rIdx];
+                        ctx.rect(r.cx, r.cy, r.cSize, r.cSize);
+                    }
                     ctx.clip();
-                    ctx.clearRect(cx, cy, cSize, cSize);
-                    
-                    const minX = cx, maxX = cx + cSize, minY = cy, maxY = cy + cSize;
+                    for (let rIdx = 0; rIdx < regions.length; rIdx++) {
+                        const r = regions[rIdx];
+                        ctx.clearRect(r.cx, r.cy, r.cSize, r.cSize);
+                    }
                     
                     for (let j = 0; j < count; j++) {
                         const c = activeItems[j];
@@ -373,7 +394,16 @@ export function createBaseSpawner(config = {}) {
                         const cSize2 = c.size || baseItemSize;
                         const cMinX = c.x, cMaxX = c.x + cSize2, cMinY = c.y, cMaxY = c.y + cSize2;
                         
-                        if (cMaxX > minX && cMinX < maxX && cMaxY > minY && cMinY < maxY) {
+                        let intersects = false;
+                        for (let rIdx = 0; rIdx < regions.length; rIdx++) {
+                            const r = regions[rIdx];
+                            if (cMaxX > r.minX && cMinX < r.maxX && cMaxY > r.minY && cMinY < r.maxY) {
+                                intersects = true;
+                                break;
+                            }
+                        }
+                        
+                        if (intersects) {
                              onDrawSingleSettledItem(ctx, c);
                         }
                     }
