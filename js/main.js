@@ -531,6 +531,19 @@ export function enterArea(areaID) {
 
   if (spawner && typeof spawner.stopAllWaveSounds === 'function') {
     spawner.stopAllWaveSounds();
+    if (currentArea === AREAS.STARTER_COVE) {
+      let cancelCount = 0;
+      const spawnerToSilence = spawner;
+      const cancelInterval = setInterval(() => {
+        if (spawnerToSilence && typeof spawnerToSilence.stopAllWaveSounds === 'function') {
+          spawnerToSilence.stopAllWaveSounds();
+        }
+        cancelCount++;
+        if (cancelCount >= 10) {
+          clearInterval(cancelInterval);
+        }
+      }, 50);
+    }
   }
 
   if (currentMusic) {
