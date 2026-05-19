@@ -408,7 +408,7 @@ export function createUcSpawner(config = {}) {
         spawnBurst: base.spawnBurst,
         getActiveItems: base.getActiveItems,
 
-        findCoinTargetsInRadius: (x, y, radius, isVisualHitbox) => {
+        findItemTargetsInRadius: (x, y, radius, isVisualHitbox) => {
             let searchRadius = radius;
             if (isVisualHitbox) {
                  searchRadius = Math.max(radius, 260);
@@ -455,22 +455,25 @@ export function createUcSpawner(config = {}) {
 
                 const dx = cx - x;
                 const dy = cy - y;
-                const distSq = dx * dx + dy * dy;
                 
-                let limitSq = radius * radius;
+                let hit = false;
                 if (isVisualHitbox) {
-                     const r = (w * 0.25) + radius;
-                     limitSq = r * r;
+                    const scaledDy = dy * 2;
+                    const effectiveR = Math.max(w * 0.5, radius);
+                    const limitSq = effectiveR * effectiveR;
+                    if (dx * dx + scaledDy * scaledDy <= limitSq) hit = true;
+                } else {
+                    if (dx * dx + dy * dy <= radius * radius) hit = true;
                 }
                 
-                if (distSq <= limitSq) {
+                if (hit) {
                     results.push(c);
                 }
             }
             return results;
         },
 
-        findCoinTargetsInPath: (x1, y1, x2, y2, radius, isVisualHitbox) => {
+        findItemTargetsInPath: (x1, y1, x2, y2, radius, isVisualHitbox) => {
             let searchRadius = radius;
             if (isVisualHitbox) {
                  searchRadius = Math.max(radius, 260);
@@ -522,24 +525,40 @@ export function createUcSpawner(config = {}) {
                 const wx = cx - x1;
                 const wy = cy - y1;
                 
-                const dot = wx * vx + wy * vy;
-                
-                let limitSq = radius * radius;
-                if (isVisualHitbox) {
-                     const r = (w * 0.25) + radius;
-                     limitSq = r * r;
-                }
-
                 let hit = false;
-                if (dot <= 0) {
-                    if ((wx * wx + wy * wy) <= limitSq) hit = true;
-                } else if (dot >= lenSq) {
-                    const dx = cx - x2;
-                    const dy = cy - y2;
-                    if ((dx * dx + dy * dy) <= limitSq) hit = true;
+                if (isVisualHitbox) {
+                    const scaledWy = wy * 2;
+                    const scaledVy = vy * 2;
+                    
+                    const scaledDot = wx * vx + scaledWy * scaledVy;
+                    const scaledLenSq = vx * vx + scaledVy * scaledVy;
+                    const effectiveR = Math.max(w * 0.5, radius);
+                    const limitSq = effectiveR * effectiveR;
+                    
+                    if (scaledDot <= 0) {
+                        if ((wx * wx + scaledWy * scaledWy) <= limitSq) hit = true;
+                    } else if (scaledDot >= scaledLenSq) {
+                        const dx = cx - x2;
+                        const dy = cy - y2;
+                        const scaledDy = dy * 2;
+                        if ((dx * dx + scaledDy * scaledDy) <= limitSq) hit = true;
+                    } else {
+                        const cross = wx * scaledVy - scaledWy * vx;
+                        if (cross * cross <= limitSq * scaledLenSq) hit = true;
+                    }
                 } else {
-                    const cross = wx * vy - wy * vx;
-                    if (cross * cross <= limitSq * lenSq) hit = true;
+                    const dot = wx * vx + wy * vy;
+                    const limitSq = radius * radius;
+                    if (dot <= 0) {
+                        if ((wx * wx + wy * wy) <= limitSq) hit = true;
+                    } else if (dot >= lenSq) {
+                        const dx = cx - x2;
+                        const dy = cy - y2;
+                        if ((dx * dx + dy * dy) <= limitSq) hit = true;
+                    } else {
+                        const cross = wx * vy - wy * vx;
+                        if (cross * cross <= limitSq * lenSq) hit = true;
+                    }
                 }
                 
                 if (hit) {
