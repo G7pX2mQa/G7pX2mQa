@@ -621,6 +621,8 @@ export function initCoinPickup({
     const MAX_VISUALS = items.length >= 50 ? 5 : 15;
     let visualCount = 0;
 
+    const coinGroups = {};
+
     for (const item of items) {
       let el = item.el;
       let coinObj = item.coin;
@@ -664,30 +666,46 @@ export function initCoinPickup({
 
       const base = el ? resolveCoinBase(el) : BASE_COIN_VALUE;
       const spawnLevelStr = coinObj?.mutationLevel ?? (el?.dataset?.mutationLevel || null);
+      const valMult = (coinObj && coinObj.valueMultiplier && coinObj.valueMultiplier > 1) ? coinObj.valueMultiplier : 1;
       
-      let inc = applyCoinMultiplier(base);
+      const baseKey = (base && typeof base.toString === 'function') ? base.toString() : '1';
+      const groupKey = `${baseKey}|v${valMult}|m${spawnLevelStr}`;
+      if (!coinGroups[groupKey]) {
+          coinGroups[groupKey] = { count: 0, base, spawnLevelStr, valMult };
+      }
+      coinGroups[groupKey].count++;
+    }
+
+    if (collectedCount === 0) return;
+
+    // Process grouped gains to avoid massive BigNum overhead
+    for (const key in coinGroups) {
+      const g = coinGroups[key];
+      let inc = applyCoinMultiplier(g.base);
       let xpInc = cloneBn(XP_PER_COIN);
       let mpInc = cloneBn(mpValueMultiplierBn);
 
-      // SURGE 2: Value Multiplier
-      if (coinObj && coinObj.valueMultiplier && coinObj.valueMultiplier > 1) {
-          try {
-             inc = inc.mulDecimalFloor(coinObj.valueMultiplier);
-          } catch {}
-          try {
-             xpInc = xpInc.mulDecimalFloor(coinObj.valueMultiplier);
-          } catch {}
-          try {
-             mpInc = mpInc.mulDecimalFloor(coinObj.valueMultiplier);
-          } catch {}
+      if (g.valMult > 1) {
+          try { inc = inc.mulDecimalFloor(g.valMult); } catch {}
+          try { xpInc = xpInc.mulDecimalFloor(g.valMult); } catch {}
+          try { mpInc = mpInc.mulDecimalFloor(g.valMult); } catch {}
       }
 
-      const mutationMultiplier = computeMutationMultiplier(spawnLevelStr);
+      const mutationMultiplier = computeMutationMultiplier(g.spawnLevelStr);
       if (mutationMultiplier) {
         try { inc = inc.mulBigNumInteger(mutationMultiplier); } catch {}
         try { xpInc = xpInc.mulBigNumInteger(mutationMultiplier); } catch {}
       }
-      
+
+      if (g.count > 1) {
+          try { 
+              const groupCountBn = BigNum.fromInt(g.count);
+              inc = inc.mulBigNumInteger(groupCountBn); 
+              xpInc = xpInc.mulBigNumInteger(groupCountBn);
+              mpInc = mpInc.mulBigNumInteger(groupCountBn);
+          } catch {}
+      }
+
       if (!coinsLocked) {
          totalCoin = mergeGain(totalCoin, inc);
       }
@@ -698,8 +716,6 @@ export function initCoinPickup({
          totalMp = mergeGain(totalMp, mpInc);
       }
     }
-
-    if (collectedCount === 0) return;
 
     if (typeof window !== 'undefined' && typeof window.currentArea !== 'undefined' && window.currentArea === 1) { // 1 is AREAS.STARTER_COVE
         window.coinsCollected += collectedCount;
