@@ -867,7 +867,7 @@ export function createSpawner(config = {}) {
       currentCoinSrc = src;
     }
 
-    function findCoinTargetsInRadius(centerX, centerY, radius, useVisualHitbox) {
+    function findItemTargetsInRadius(centerX, centerY, radius, useVisualHitbox) {
         let searchRadius = radius;
         if (useVisualHitbox) {
              searchRadius = Math.max(radius, 260);
@@ -926,7 +926,7 @@ export function createSpawner(config = {}) {
         return candidates;
     }
 
-    function findCoinTargetsInPath(x1, y1, x2, y2, radius, useVisualHitbox) {
+    function findItemTargetsInPath(x1, y1, x2, y2, radius, useVisualHitbox) {
         let searchRadius = radius;
         if (useVisualHitbox) {
              searchRadius = Math.max(radius, 260);
@@ -1132,8 +1132,8 @@ export function createSpawner(config = {}) {
         getCoinTransform: base.getItemTransform,
         findCoinsInRadius,
         findCoinsInPath,
-        findCoinTargetsInRadius,
-        findCoinTargetsInPath,
+        findItemTargetsInRadius,
+        findItemTargetsInPath,
         ensureCoinVisual: base.ensureItemVisual,
         removeCoinTarget: base.removeItemTarget,
         detachCoin: base.detachItem,
