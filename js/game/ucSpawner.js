@@ -435,7 +435,7 @@ export function createUcSpawner(config = {}) {
                 }
 
                 const w = c.size;
-                const h = c.size / 2;
+                const h = c.size;
                 
                 let curX, curY;
                 if (c.settled) {
@@ -457,12 +457,10 @@ export function createUcSpawner(config = {}) {
                 const dy = cy - y;
                 const distSq = dx * dx + dy * dy;
                 
-                let limitSq;
+                let limitSq = radius * radius;
                 if (isVisualHitbox) {
-                     limitSq = radius * radius;
-                } else {
-                     const checkR = (w / 2) + radius;
-                     limitSq = checkR * checkR;
+                     const r = (w * 0.25) + radius;
+                     limitSq = r * r;
                 }
                 
                 if (distSq <= limitSq) {
@@ -503,7 +501,7 @@ export function createUcSpawner(config = {}) {
                 }
 
                 const w = c.size;
-                const h = c.size / 2;
+                const h = c.size;
 
                 let curX, curY;
                 if (c.settled) {
@@ -526,12 +524,10 @@ export function createUcSpawner(config = {}) {
                 
                 const dot = wx * vx + wy * vy;
                 
-                let limitSq;
+                let limitSq = radius * radius;
                 if (isVisualHitbox) {
-                     limitSq = radius * radius;
-                } else {
-                     const checkR = (w / 2) + radius;
-                     limitSq = checkR * checkR;
+                     const r = (w * 0.25) + radius;
+                     limitSq = r * r;
                 }
 
                 let hit = false;
