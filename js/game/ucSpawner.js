@@ -409,101 +409,141 @@ export function createUcSpawner(config = {}) {
         getActiveItems: base.getActiveItems,
 
         findCoinTargetsInRadius: (x, y, radius, isVisualHitbox) => {
+            let searchRadius = radius;
+            if (isVisualHitbox) {
+                 searchRadius = Math.max(radius, 260);
+            }
+            // Add padding for the material size
+            searchRadius += baseSize / 2;
+
             const activeItems = base.getActiveItems();
             const results = [];
-            const rSq = radius * radius;
+            const count = activeItems.length;
             const now = performance.now();
             
-            for (let i = activeItems.length - 1; i >= 0; i--) {
+            const minX = x - searchRadius;
+            const maxX = x + searchRadius;
+            const minY = y - searchRadius;
+            const maxY = y + searchRadius;
+
+            for (let i = count - 1; i >= 0; i--) {
                 const c = activeItems[i];
                 if (!c || c.isRemoved) continue;
-                
-                // Materials hitboxes are 2:1 ovals, width = size, height = size / 2
-                // Centered around (itemX + w/2, itemY + h/2)
+
+                if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
+                    continue;
+                }
+
                 const w = c.size;
                 const h = c.size / 2;
                 
-                const { x: curX, y: curY } = base.getItemState(c, now);
+                let curX, curY;
+                if (c.settled) {
+                    curX = c.x;
+                    curY = c.y;
+                } else {
+                    const s = base.getItemState(c, now);
+                    curX = s.x;
+                    curY = s.y;
+                }
+                
                 const cx = curX + w / 2;
                 const cy = curY + h / 2;
                 
-                // To check intersection with oval (x-cx)^2/a^2 + (y-cy)^2/b^2 <= 1
-                // a = w/2, b = h/2
-                // We're checking distance from (x, y) with radius to this oval.
-                // A fast approximation is to scale the Y coordinate by 2 (since 2:1 ratio),
-                // effectively turning the oval into a circle of radius a, and scale the check point similarly.
-                
-                const scaledY = cy + (y - cy) * 2;
-                const dx = x - cx;
-                const dy = scaledY - cy;
-                
-                // Effective radius for check: we scale the search radius on Y slightly too for rough approx,
-                // but just checking distance of scaled coords to a is usually enough for feel.
-                // Here we just scale dy.
+                if (cx < minX || cx > maxX) continue;
+                if (cy < minY || cy > maxY) continue;
+
+                const dx = cx - x;
+                const dy = cy - y;
                 const distSq = dx * dx + dy * dy;
                 
-                // The item's effective radius in this scaled space is a = w / 2
-                const effItemR = w / 2;
-                // Add the check radius
-                const checkR = effItemR + radius;
+                let limitSq;
+                if (isVisualHitbox) {
+                     limitSq = radius * radius;
+                } else {
+                     const checkR = (w / 2) + radius;
+                     limitSq = checkR * checkR;
+                }
                 
-                if (distSq <= checkR * checkR) {
+                if (distSq <= limitSq) {
                     results.push(c);
                 }
             }
             return results;
         },
 
-        findCoinTargetsInPath: (x0, y0, x1, y1, radius, isVisualHitbox) => {
+        findCoinTargetsInPath: (x1, y1, x2, y2, radius, isVisualHitbox) => {
+            let searchRadius = radius;
+            if (isVisualHitbox) {
+                 searchRadius = Math.max(radius, 260);
+            }
+            // Add padding for the material size
+            searchRadius += baseSize / 2;
+
             const activeItems = base.getActiveItems();
             const results = [];
-            const rSq = radius * radius;
+            const count = activeItems.length;
             const now = performance.now();
-            
-            const dx = x1 - x0;
-            const dy = y1 - y0;
-            const lenSq = dx * dx + dy * dy;
 
-            for (let i = activeItems.length - 1; i >= 0; i--) {
+            const minX = Math.min(x1, x2) - searchRadius;
+            const maxX = Math.max(x1, x2) + searchRadius;
+            const minY = Math.min(y1, y2) - searchRadius;
+            const maxY = Math.max(y1, y2) + searchRadius;
+
+            const vx = x2 - x1;
+            const vy = y2 - y1;
+            const lenSq = vx * vx + vy * vy;
+
+            for (let i = count - 1; i >= 0; i--) {
                 const c = activeItems[i];
                 if (!c || c.isRemoved) continue;
 
+                if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
+                    continue;
+                }
+
                 const w = c.size;
                 const h = c.size / 2;
-                const { x: curX, y: curY } = base.getItemState(c, now);
+
+                let curX, curY;
+                if (c.settled) {
+                    curX = c.x;
+                    curY = c.y;
+                } else {
+                    const s = base.getItemState(c, now);
+                    curX = s.x;
+                    curY = s.y;
+                }
+
                 const cx = curX + w / 2;
                 const cy = curY + h / 2;
-                
-                // Check circle at start
-                let hit = false;
-                
-                const scaledY0 = cy + (y0 - cy) * 2;
-                const distSq0 = (x0 - cx) * (x0 - cx) + (scaledY0 - cy) * (scaledY0 - cy);
-                const effItemR = w / 2;
-                const checkR = effItemR + radius;
 
-                if (distSq0 <= checkR * checkR) {
-                    hit = true;
-                } else if (lenSq > 0) {
-                    // Line segment check with scaled Y
-                    // Start point: (x0, y0 * 2), End point: (x1, y1 * 2) relative to scaled cy
-                    // It's an approximation.
-                    const sy0 = y0 * 2;
-                    const sy1 = y1 * 2;
-                    const scy = cy * 2; // Not quite, but let's just do a simple bounding box or circle segment check
-                    
-                    // Standard segment-point distance, unscaled for simplicity but adding buffer
-                    const t = Math.max(0, Math.min(1, ((cx - x0) * dx + (cy - y0) * dy) / lenSq));
-                    const projX = x0 + t * dx;
-                    const projY = y0 + t * dy;
-                    
-                    const scaledProjY = cy + (projY - cy) * 2;
-                    const dPx = projX - cx;
-                    const dPy = scaledProjY - cy;
-                    const distSqP = dPx * dPx + dPy * dPy;
-                    if (distSqP <= checkR * checkR) {
-                        hit = true;
-                    }
+                if (cx < minX || cx > maxX) continue;
+                if (cy < minY || cy > maxY) continue;
+
+                const wx = cx - x1;
+                const wy = cy - y1;
+                
+                const dot = wx * vx + wy * vy;
+                
+                let limitSq;
+                if (isVisualHitbox) {
+                     limitSq = radius * radius;
+                } else {
+                     const checkR = (w / 2) + radius;
+                     limitSq = checkR * checkR;
+                }
+
+                let hit = false;
+                if (dot <= 0) {
+                    if ((wx * wx + wy * wy) <= limitSq) hit = true;
+                } else if (dot >= lenSq) {
+                    const dx = cx - x2;
+                    const dy = cy - y2;
+                    if ((dx * dx + dy * dy) <= limitSq) hit = true;
+                } else {
+                    const cross = wx * vy - wy * vx;
+                    if (cross * cross <= limitSq * lenSq) hit = true;
                 }
                 
                 if (hit) {
@@ -512,6 +552,8 @@ export function createUcSpawner(config = {}) {
             }
             return results;
         },
+
+
 
         findCoinsInRadius: (x, y, radius) => {
             // Unused normally, only fallback if using visual DOM elements
