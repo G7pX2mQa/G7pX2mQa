@@ -219,6 +219,42 @@ export class WaterSystem {
         this.bgBrushBuffer = glBg.createBuffer();
     }
 
+    clearSimulations() {
+        // Clear Background FBOs
+        if (this.glBg) {
+            this.glBg.clearColor(0, 0, 0, 0);
+            if (this.bgReadFBO) {
+                this.glBg.bindFramebuffer(this.glBg.FRAMEBUFFER, this.bgReadFBO);
+                this.glBg.clear(this.glBg.COLOR_BUFFER_BIT);
+            }
+            if (this.bgWriteFBO) {
+                this.glBg.bindFramebuffer(this.glBg.FRAMEBUFFER, this.bgWriteFBO);
+                this.glBg.clear(this.glBg.COLOR_BUFFER_BIT);
+            }
+            // Clear default backbuffer to ensure no flash of old waves
+            this.glBg.bindFramebuffer(this.glBg.FRAMEBUFFER, null);
+            this.glBg.clear(this.glBg.COLOR_BUFFER_BIT);
+        }
+
+        // Clear Foreground Layer FBOs
+        if (this.glFg) {
+            this.glFg.clearColor(0, 0, 0, 0);
+            for (const layer of this.fgLayers) {
+                if (layer.readFBO) {
+                    this.glFg.bindFramebuffer(this.glFg.FRAMEBUFFER, layer.readFBO);
+                    this.glFg.clear(this.glFg.COLOR_BUFFER_BIT);
+                }
+                if (layer.writeFBO) {
+                    this.glFg.bindFramebuffer(this.glFg.FRAMEBUFFER, layer.writeFBO);
+                    this.glFg.clear(this.glFg.COLOR_BUFFER_BIT);
+                }
+            }
+            // Clear default backbuffer to ensure no flash of old waves
+            this.glFg.bindFramebuffer(this.glFg.FRAMEBUFFER, null);
+            this.glFg.clear(this.glFg.COLOR_BUFFER_BIT);
+        }
+    }
+
     initBgSimulation() {
         if (this.bgReadTexture) this.glBg.deleteTexture(this.bgReadTexture);
         if (this.bgWriteTexture) this.glBg.deleteTexture(this.bgWriteTexture);
