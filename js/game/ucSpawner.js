@@ -236,7 +236,7 @@ export function createUcSpawner(config = {}) {
                     }
                     
                     // If the previous animation was interrupted before the sound could play at the end, play it now!
-                    if (pickaxe._startTime !== undefined && !pickaxe._playedSound) {
+                    if (pickaxe._elapsedTime !== undefined && !pickaxe._playedSound) {
                         playSpawnSound();
                     }
                     
@@ -286,7 +286,7 @@ export function createUcSpawner(config = {}) {
                     pickaxe._cycleMs = cycleMs;
                     pickaxe._chargeRotation = chargeRotation;
                     pickaxe._strikeRotation = strikeRotation;
-                    pickaxe._startTime = now;
+                    pickaxe._elapsedTime = 0;
                     pickaxe._playedSound = false;
                 }
             } else if (!settingsManager.get('spawn_vessels')) {
@@ -300,9 +300,15 @@ export function createUcSpawner(config = {}) {
 
         onItemUpdate: (activeItems, now, dt, removeItem, newlySettledBuffer, releaseItem, getItemState) => {
             const pickaxe = document.getElementById('uc-pickaxe');
-            if (pickaxe && pickaxe._startTime !== undefined) {
-                const elapsed = now - pickaxe._startTime;
-                const ratio = Math.min(elapsed / pickaxe._cycleMs, 1);
+            if (pickaxe && pickaxe._elapsedTime !== undefined) {
+                const currentCycleMs = currentRate > 0 ? 1000 / currentRate : 5000;
+                if (pickaxe._cycleMs !== currentCycleMs) {
+                    pickaxe._cycleMs = currentCycleMs;
+                }
+
+                pickaxe._elapsedTime += dt * 1000;
+                 // elapsed line replaced
+                const ratio = Math.min(pickaxe._elapsedTime / pickaxe._cycleMs, 1);
                 
                 if (ratio <= 0.8) {
                     // Charging phase
