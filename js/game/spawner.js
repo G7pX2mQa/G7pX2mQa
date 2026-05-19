@@ -8,7 +8,7 @@ import { playAudio } from '../util/audioManager.js';
 import { waterSystem } from './webgl/waterSystem.js';
 import { shouldBlockBigCoins } from '../util/bigCoinManager.js';
 import { settingsManager } from './settingsManager.js';
-
+import { AREAS, currentArea } from '../main.js';
 import { createBaseSpawner, getCanvasSmoothingQuality, getImage, CUBIC_BEZIER, easeOutCubic } from './spawnerCore.js';
 
 let mutationUnlockedSnapshot = false;
@@ -210,6 +210,7 @@ export function createSpawner(config = {}) {
     let activeWaveSounds = [];
 
     function playWaveOncePerBurst() {
+      if (currentArea !== AREAS.STARTER_COVE) return;
       const now = performance.now();
       if (now - waveLastAt < waveSoundMinIntervalMs) return;
       waveLastAt = now;
