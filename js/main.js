@@ -3,6 +3,7 @@
 import { playAudio, setAudioSuspended } from './util/audioManager.js';
 import { createCursorTrail } from './game/cursorTrail.js';
 import { syncXpMpHudLayout } from './ui/hudLayout.js';
+import { initUcPickup } from './game/materialPickup.js';
 
 export const FONT_MAP = {
   1: 'font-tinos',
@@ -606,6 +607,17 @@ export function enterArea(areaID) {
       shouldAutoResume: () => currentArea === AREAS.UNDERWATER_CAVERN,
     });
     window.ucSpawner = ucSpawner;
+    
+    if (!window.ucPickupController) {
+        const pickup = initUcPickup({ spawner: ucSpawner });
+        window.ucPickupController = pickup;
+        if (ucSpawner && typeof ucSpawner.setDependencies === 'function') {
+            ucSpawner.setDependencies({
+                collectBatch: pickup.collectBatch,
+                getMagnetUnit: pickup.getMagnetUnitPx
+            });
+        }
+    }
   }
 
     if (!spawner) {
