@@ -21,6 +21,7 @@ import { playAudio } from '../util/audioManager.js';
 import { onCoinCollected } from './comboSystem.js';
 import { getComboUiString } from './surgeEffects.js';
 import { settingsManager } from './settingsManager.js';
+import { createMagnetController, initInteractionBrush, computeMagnetUnitPx } from './collectionCore.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelIsInfiniteSnapshot = false;
@@ -149,378 +150,6 @@ function resolveCoinBase(el) {
   }
   try { return BASE_COIN_VALUE.clone?.() ?? BigNum.fromInt(1); }
   catch { return BigNum.fromInt(1); }
-}
-
-const MAGNET_UNIT_RATIO = 0.05;
-const MAGNET_COLLECTION_BUFFER = 8; // Small buffer for collection feel
-
-function computeMagnetUnitPx() {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return 0;
-  const root = document.documentElement;
-  const vw = Math.max(0, window.innerWidth || root?.clientWidth || 0);
-  const vh = Math.max(0, window.innerHeight || root?.clientHeight || 0);
-  if (!(vw > 0 && vh > 0)) return 0;
-  const minDim = Math.min(vw, vh);
-  return minDim * MAGNET_UNIT_RATIO;
-}
-
-function createMagnetController({ playfield, coinsLayer, coinSelector, collectFn, collectBatchFn, spawner }) {
-  if (!playfield || !coinsLayer || typeof collectFn !== 'function') {
-    return { destroy() {} };
-  }
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    return { destroy() {} };
-  }
-
-  const indicator = document.createElement('div');
-  indicator.className = 'magnet-indicator';
-  indicator.setAttribute('aria-hidden', 'true');
-  playfield.appendChild(indicator);
-
-  let pointerInside = false;
-  let hasPointer = false;
-  let pointerClientX = 0;
-  let pointerClientY = 0;
-  let localX = 0;
-  let localY = 0;
-  // Track last local position for interpolation
-  let lastLocalX = null;
-  let lastLocalY = null;
-
-  let unitPx = computeMagnetUnitPx();
-  let magnetLevel = 0;
-  let radiusPx = 0;
-  let rafId = 0;
-  let destroyed = false;
-  let playfieldRect = null;
-  // Periodically update bounds to sync with any layout shifts
-  let syncInterval = null;
-
-  const updatePlayfieldRect = () => {
-    if (destroyed) return;
-    // Optimization: Assume playfield fills the viewport (position: fixed, inset: 0)
-    const w = document.documentElement.clientWidth;
-    const h = document.documentElement.clientHeight;
-    playfieldRect = { left: 0, top: 0, width: w, height: h, right: w, bottom: h, x: 0, y: 0 };
-  };
-
-  const hideIndicator = () => {
-    indicator.classList.remove('is-visible');
-    indicator.style.transform = 'translate3d(-9999px, -9999px, 0)';
-    lastLocalX = null;
-    lastLocalY = null;
-  };
-
-  const updateIndicator = () => {
-    if (!pointerInside || radiusPx <= 0) {
-      hideIndicator();
-      return;
-    }
-    const diameter = radiusPx * 2;
-    indicator.style.width = `${diameter}px`;
-    indicator.style.height = `${diameter}px`;
-    indicator.style.transform = `translate3d(${localX - radiusPx}px, ${localY - radiusPx}px, 0)`;
-    indicator.classList.add('is-visible');
-  };
-
-  const sweepCoins = () => {
-    if (!pointerInside || radiusPx <= 0) return;
-    
-    // Optimized: Use Spawner's spatial lookup if available
-    if (spawner && typeof spawner.findCoinTargetsInRadius === 'function') {
-        const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
-        
-        let candidates = [];
-        if (typeof spawner.findCoinTargetsInPath === 'function' && lastLocalX !== null && lastLocalY !== null) {
-             candidates = spawner.findCoinTargetsInPath(lastLocalX, lastLocalY, localX, localY, radiusWithBuffer);
-        } else {
-             candidates = spawner.findCoinTargetsInRadius(localX, localY, radiusWithBuffer);
-        }
-
-        lastLocalX = localX;
-        lastLocalY = localY;
-        
-        if (candidates && candidates.length > 0) {
-            if (typeof collectBatchFn === 'function') {
-                 const items = [];
-                 for (let i = 0; i < candidates.length; i++) {
-                     const c = candidates[i];
-                     const item = { coin: c };
-                     if (c.el && spawner.getCoinTransform) {
-                         item.opts = { transform: spawner.getCoinTransform(c.el) };
-                     }
-                     items.push(item);
-                 }
-                 collectBatchFn(items);
-            } else {
-                for (let i = 0; i < candidates.length; i++) {
-                    const c = candidates[i];
-                    const el = spawner.ensureCoinVisual ? spawner.ensureCoinVisual(c) : c.el;
-                    if (el) {
-                        const t = spawner.getCoinTransform ? spawner.getCoinTransform(el) : (el.style.transform || '');
-                        collectFn(el, { transform: t });
-                    }
-                }
-            }
-        }
-    } else if (spawner && typeof spawner.findCoinsInRadius === 'function') {
-        // Fallback
-        const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
-        const candidates = spawner.findCoinsInRadius(localX, localY, radiusWithBuffer);
-        lastLocalX = localX; lastLocalY = localY;
-        
-        if (candidates && candidates.length > 0) {
-             const items = [];
-             for (let i = 0; i < candidates.length; i++) {
-                 const el = candidates[i];
-                 const t = spawner.getCoinTransform ? spawner.getCoinTransform(el) : el.style.transform;
-                 items.push({ el, opts: { transform: t } });
-             }
-             if (typeof collectBatchFn === 'function') collectBatchFn(items);
-        }
-    } else {
-        // Fallback (Slow) - should not be hit if spawner is passed
-        const coins = coinsLayer.children;
-        const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
-        const toCollect = [];
-        
-        for (let i = coins.length - 1; i >= 0; i--) {
-          const coin = coins[i];
-          if (coin.dataset.collected === '1') continue;
-          if (!coin.matches(coinSelector)) continue;
-    
-          const rect = coin.getBoundingClientRect();
-          const coinX = rect.left + rect.width / 2;
-          const coinY = rect.top + rect.height / 2;
-          const dx = coinX - pointerClientX;
-          const dy = coinY - pointerClientY;
-          if (Math.hypot(dx, dy) <= radiusWithBuffer) {
-            toCollect.push(coin);
-          }
-        }
-    
-        if (!toCollect.length) return;
-    
-        if (typeof collectBatchFn === 'function') {
-            const items = [];
-            for (let i = 0; i < toCollect.length; i++) {
-                const el = toCollect[i];
-                const cs = window.getComputedStyle(el);
-                items.push({ el, opts: { transform: cs.transform } });
-            }
-            collectBatchFn(items);
-        } else {
-            const transforms = [];
-            for (let i = 0; i < toCollect.length; i++) {
-                const el = toCollect[i];
-                const cs = window.getComputedStyle(el);
-                transforms.push(cs.transform);
-            }
-            for (let i = 0; i < toCollect.length; i++) {
-                collectFn(toCollect[i], { transform: transforms[i] });
-            }
-        }
-    }
-  };
-
-  const runSweep = () => {
-    rafId = 0;
-    updateIndicator();
-    if (!pointerInside || radiusPx <= 0 || destroyed) return;
-    sweepCoins();
-    ensureSweepLoop();
-  };
-
-  const ensureSweepLoop = () => {
-    if (!pointerInside || radiusPx <= 0 || rafId || destroyed) return;
-    rafId = requestAnimationFrame(runSweep);
-  };
-
-  const updatePointerFromEvent = (e) => {
-    if (!e || destroyed) return;
-    if (typeof e.clientX !== 'number' || typeof e.clientY !== 'number') return;
-    hasPointer = true;
-    pointerClientX = e.clientX;
-    pointerClientY = e.clientY;
-    
-    if (!playfieldRect) updatePlayfieldRect();
-    const rect = playfieldRect;
-
-    // Optimization: rect.left/top assumed 0
-    localX = pointerClientX;
-    localY = pointerClientY;
-    pointerInside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
-    
-    ensureSweepLoop();
-  };
-
-  const handlePointerLeave = () => {
-    pointerInside = false;
-    hideIndicator();
-    lastLocalX = null;
-    lastLocalY = null;
-  };
-  
-  const resetPointerHistory = () => {
-    lastLocalX = null;
-    lastLocalY = null;
-  };
-
-  const refreshMagnetLevel = () => {
-    const nextLevel = settingsManager.get('magnet_radius');
-    magnetLevel = nextLevel;
-    radiusPx = magnetLevel * unitPx;
-    
-        // Clear both classes first
-    indicator.classList.remove('magnet-bronze', 'magnet-silver', 'magnet-gold', 'magnet-sapphire', 'magnet-emerald', 'magnet-ruby', 'magnet-amethyst', 'magnet-sunset', 'magnet-void', 'magnet-ethereal', 'magnet-earth', 'magnet-air', 'magnet-fire', 'magnet-water', 'magnet-cookie', 'magnet-pancake', 'magnet-watermelon', 'magnet-pepperoni', 'magnet-pizza', 'magnet-donut', 'magnet-glass', 'magnet-diamond', 'magnet-opal', 'magnet-cosmic', 'magnet-prismatic');
-    
-    if (settingsManager.get('active_magnet_mod') === 6) {
-      indicator.classList.add('magnet-silver');
-    } else if (settingsManager.get('active_magnet_mod') === 3) {
-      indicator.classList.add('magnet-bronze');
-    } else if (settingsManager.get('active_magnet_mod') === 9) {
-      indicator.classList.add('magnet-gold');
-    } else if (settingsManager.get('active_magnet_mod') === 12) {
-      indicator.classList.add('magnet-sapphire');
-    } else if (settingsManager.get('active_magnet_mod') === 15) {
-      indicator.classList.add('magnet-emerald');
-    } else if (settingsManager.get('active_magnet_mod') === 18) {
-      indicator.classList.add('magnet-ruby');
-    } else if (settingsManager.get('active_magnet_mod') === 21) {
-      indicator.classList.add('magnet-amethyst');
-    } else if (settingsManager.get('active_magnet_mod') === 24) {
-      indicator.classList.add('magnet-sunset');
-    } else if (settingsManager.get('active_magnet_mod') === 27) {
-      indicator.classList.add('magnet-void');
-    } else if (settingsManager.get('active_magnet_mod') === 30) {
-      indicator.classList.add('magnet-ethereal');
-    } else if (settingsManager.get('active_magnet_mod') === 33) {
-      indicator.classList.add('magnet-earth');
-    } else if (settingsManager.get('active_magnet_mod') === 36) {
-      indicator.classList.add('magnet-air');
-    } else if (settingsManager.get('active_magnet_mod') === 39) {
-      indicator.classList.add('magnet-fire');
-    } else if (settingsManager.get('active_magnet_mod') === 42) {
-      indicator.classList.add('magnet-water');
-    } else if (settingsManager.get('active_magnet_mod') === 45) {
-      indicator.classList.add('magnet-cookie');
-    } else if (settingsManager.get('active_magnet_mod') === 48) {
-      indicator.classList.add('magnet-pancake');
-    } else if (settingsManager.get('active_magnet_mod') === 51) {
-      indicator.classList.add('magnet-watermelon');
-    } else if (settingsManager.get('active_magnet_mod') === 54) {
-      indicator.classList.add('magnet-pepperoni');
-    } else if (settingsManager.get('active_magnet_mod') === 57) {
-      indicator.classList.add('magnet-pizza');
-    } else if (settingsManager.get('active_magnet_mod') === 60) {
-      indicator.classList.add('magnet-donut');
-    } else if (settingsManager.get('active_magnet_mod') === 63) {
-      indicator.classList.add('magnet-glass');
-    } else if (settingsManager.get('active_magnet_mod') === 66) {
-      indicator.classList.add('magnet-diamond');
-    } else if (settingsManager.get('active_magnet_mod') === 69) {
-      indicator.classList.add('magnet-opal');
-    } else if (settingsManager.get('active_magnet_mod') === 72) {
-      indicator.classList.add('magnet-cosmic');
-    } else if (settingsManager.get('active_magnet_mod') === 75) {
-      indicator.classList.add('magnet-prismatic');
-    }
-
-    updateIndicator();
-    ensureSweepLoop();
-  };
-
-  const handleScroll = () => {
-    if (destroyed || !hasPointer) return;
-    updatePlayfieldRect();
-    if (playfieldRect) {
-        const rect = playfieldRect;
-        localX = pointerClientX - rect.left;
-        localY = pointerClientY - rect.top;
-        pointerInside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
-    }
-    ensureSweepLoop();
-  };
-
-  const handleResize = () => {
-    unitPx = computeMagnetUnitPx();
-    radiusPx = magnetLevel * unitPx;
-    updatePlayfieldRect();
-    if (hasPointer && playfieldRect) {
-        const rect = playfieldRect;
-        localX = pointerClientX - rect.left;
-        localY = pointerClientY - rect.top;
-        pointerInside = localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height;
-    }
-    ensureSweepLoop();
-  };
-  
-  const forceUpdateAndMove = (e) => {
-    updatePlayfieldRect();
-    updatePointerFromEvent(e);
-  };
-
-  const handlePointerEnter = (e) => {
-    resetPointerHistory();
-    forceUpdateAndMove(e);
-  };
-
-  let settingsUnsub = null;
-  let activeMagnetUnsub = null;
-  settingsUnsub = settingsManager.subscribe('magnet_radius', refreshMagnetLevel);
-  activeMagnetUnsub = settingsManager.subscribe('active_magnet_mod', refreshMagnetLevel);
-
-  const destroy = () => {
-    destroyed = true;
-    if (rafId) {
-      cancelAnimationFrame(rafId);
-      rafId = 0;
-    }
-    if (settingsUnsub) {
-      try { settingsUnsub(); } catch {}
-      settingsUnsub = null;
-    }
-    if (activeMagnetUnsub) {
-      try { activeMagnetUnsub(); } catch {}
-      activeMagnetUnsub = null;
-    }
-    if (syncInterval) clearInterval(syncInterval);
-    try { window.removeEventListener('scroll', handleScroll); } catch {}
-    try { window.removeEventListener('resize', handleResize); } catch {}
-    try { window.removeEventListener('saveSlot:change', refreshMagnetLevel); } catch {}
-    try { document.removeEventListener('ccc:upgrades:changed', refreshMagnetLevel); } catch {}
-    try { playfield.removeEventListener('pointermove', updatePointerFromEvent); } catch {}
-    try { playfield.removeEventListener('pointerdown', forceUpdateAndMove); } catch {}
-    try { playfield.removeEventListener('pointerenter', handlePointerEnter); } catch {}
-    try { playfield.removeEventListener('pointerleave', handlePointerLeave); } catch {}
-    try { playfield.removeEventListener('pointercancel', handlePointerLeave); } catch {}
-    try { window.removeEventListener('blur', resetPointerHistory); } catch {}
-    try { indicator.remove(); } catch {}
-  };
-
-  const pointerOpts = { passive: true };
-
-  playfield.addEventListener('pointermove', updatePointerFromEvent, pointerOpts);
-  playfield.addEventListener('pointerdown', forceUpdateAndMove, pointerOpts);
-  playfield.addEventListener('pointerenter', handlePointerEnter, pointerOpts);
-  playfield.addEventListener('pointerleave', handlePointerLeave, pointerOpts);
-  playfield.addEventListener('pointercancel', handlePointerLeave, pointerOpts);
-  window.addEventListener('resize', handleResize);
-  window.addEventListener('scroll', handleScroll, { passive: true });
-  window.addEventListener('focus', updatePlayfieldRect, { passive: true });
-  window.addEventListener('blur', resetPointerHistory, { passive: true });
-  document.addEventListener('visibilitychange', () => {
-      updatePlayfieldRect();
-      if (document.hidden) resetPointerHistory();
-  }, { passive: true });
-  window.addEventListener('saveSlot:change', refreshMagnetLevel);
-  document.addEventListener('ccc:upgrades:changed', refreshMagnetLevel);
-
-  syncInterval = setInterval(updatePlayfieldRect, 1000);
-
-  refreshMagnetLevel();
-
-  return { destroy };
 }
 
 // Queue helpers moved to module scope
@@ -1120,152 +749,54 @@ export function initCoinPickup({
 
   magnetController = createMagnetController({
     playfield: pf,
-    coinsLayer: cl,
-    coinSelector,
+    itemsLayer: cl,
+    itemSelector: coinSelector,
     collectFn: collect,
     collectBatchFn: collectBatch,
-    spawner, // Pass spawner for optimized lookup
+    spawner,
   });
-  
 
-  const onDelegatedInteract = (e) => {
-    if (e.target === cl) return;
-    const target = e.target.closest(coinSelector);
-    if (target && isCoin(target)) {
-      let opts = {};
-      if (spawner && typeof spawner.getCoinTransform === 'function') {
-          opts.transform = spawner.getCoinTransform(target);
-      }
-      collect(target, opts);
-    }
-  };
 
-  cl.addEventListener('pointerdown', onDelegatedInteract, { passive: true });
+  const brushController = initInteractionBrush({
+    playfield: pf,
+    itemsLayer: cl,
+    itemSelector: coinSelector,
+    isItemValid: isCoin,
+    spawner,
+    collectBatch,
+    collect,
+  });
+
+  cl.addEventListener('pointerdown', brushController.onDelegatedInteract, { passive: true });
   if (!IS_MOBILE) {
-    cl.addEventListener('mouseover', onDelegatedInteract, { passive: true });
+    cl.addEventListener('mouseover', brushController.onDelegatedInteract, { passive: true });
   }
 
-  const BRUSH_R = 25; // Slightly larger for single check
-  let cachedPfRect = null;
-  const updateCachedRect = () => {
-      // Optimization: Assume playfield fills viewport
-      const w = document.documentElement.clientWidth;
-      const h = document.documentElement.clientHeight;
-      cachedPfRect = { left: 0, top: 0, width: w, height: h, right: w, bottom: h, x: 0, y: 0 };
-  };
-  window.addEventListener('resize', updateCachedRect);
-  window.addEventListener('scroll', updateCachedRect, { passive: true });
-  updateCachedRect();
-
-  let lastBrushLocalX = null;
-  let lastBrushLocalY = null;
-
-  const resetBrushHistory = () => {
-      lastBrushLocalX = null;
-      lastBrushLocalY = null;
-  };
-
-  // Reset brush history on leave/enter/blur
-  pf.addEventListener('pointerleave', resetBrushHistory, { passive: true });
-  pf.addEventListener('pointerenter', resetBrushHistory, { passive: true });
-  window.addEventListener('blur', resetBrushHistory, { passive: true });
-
-  function brushAt(x,y){
-    if (spawner && typeof spawner.findCoinTargetsInRadius === 'function') {
-        if (!cachedPfRect) updateCachedRect();
-        const localX = x;
-        const localY = y;
-        
-        let candidates = [];
-        // Use visual hitbox = true for cursor interaction
-        if (typeof spawner.findCoinTargetsInPath === 'function' && lastBrushLocalX !== null && lastBrushLocalY !== null) {
-            candidates = spawner.findCoinTargetsInPath(lastBrushLocalX, lastBrushLocalY, localX, localY, BRUSH_R, true);
-        } else {
-            candidates = spawner.findCoinTargetsInRadius(localX, localY, BRUSH_R, true);
-        }
-        
-        lastBrushLocalX = localX;
-        lastBrushLocalY = localY;
-
-        if (candidates && candidates.length > 0) {
-            const items = [];
-            for (let i = 0; i < candidates.length; i++) {
-                const c = candidates[i];
-                const item = { coin: c };
-                if (c.el && spawner.getCoinTransform) {
-                    item.opts = { transform: spawner.getCoinTransform(c.el) };
-                }
-                items.push(item);
-            }
-            collectBatch(items);
-        }
-    } else if (spawner && typeof spawner.findCoinsInRadius === 'function') {
-        if (!cachedPfRect) updateCachedRect();
-        const localX = x; const localY = y;
-        const candidates = spawner.findCoinsInRadius(localX, localY, BRUSH_R);
-        lastBrushLocalX = localX; lastBrushLocalY = localY;
-        if (candidates && candidates.length > 0) {
-            const items = [];
-            for(const el of candidates) {
-                const t = spawner.getCoinTransform ? spawner.getCoinTransform(el) : el.style.transform;
-                items.push({ el, opts: { transform: t } });
-            }
-            collectBatch(items);
-        }
-    } else {
-        // Fallback: Legacy slow method (forced sync layout)
-        const OFF = [[0,0],[18,0],[-18,0],[0,18],[0,-18]];
-        const found = new Set();
-        for (let k=0;k<OFF.length;k++){
-          const px = x + OFF[k][0], py = y + OFF[k][1];
-          const stack = document.elementsFromPoint(px, py);
-          for (let i=0;i<stack.length;i++){
-            const el = stack[i];
-            if (isCoin(el) && !found.has(el)) { found.add(el); }
-          }
-        }
-        if (found.size > 0) {
-            const items = [];
-            found.forEach(el => items.push({ el }));
-            collectBatch(items);
-        }
-    }
-  }
-
-  let pending = null, brushScheduled = false;
-  function scheduleBrush(x,y){
-    pending = {x,y};
-    if (!brushScheduled){
-      brushScheduled = true;
-      requestAnimationFrame(() => {
-        if (pending){ brushAt(pending.x, pending.y); pending = null; }
-        brushScheduled = false;
-      });
-    }
-  }
-
-  pf.addEventListener('pointerdown', (e) => { scheduleBrush(e.clientX, e.clientY); }, { passive: true });
-  pf.addEventListener('pointermove', (e) => { if (e.pointerType !== 'mouse') scheduleBrush(e.clientX, e.clientY); }, { passive: true });
-  pf.addEventListener('pointerup',   (e) => { if (e.pointerType !== 'mouse') scheduleBrush(e.clientX, e.clientY); }, { passive: true });
-  pf.addEventListener('mousemove', (e) => { scheduleBrush(e.clientX, e.clientY); }, { passive: true });
 
   function setMobileVolume(v){
     // Mobile volume handled externally or ignored for now
   }
 
-  // Periodically update bounds to sync with any layout shifts
-  const rectInterval = setInterval(updateCachedRect, 1000);
 
   const destroy = () => {
-    clearInterval(rectInterval);
+    if (brushController) {
+      brushController.destroy();
+    }
+    try {
+      cl.removeEventListener('pointerdown', brushController.onDelegatedInteract);
+      if (!IS_MOBILE) {
+        cl.removeEventListener('mouseover', brushController.onDelegatedInteract);
+      }
+    } catch {}
     flushPendingGains();
+
     updateHudFn = () => {};
     if (typeof window !== 'undefined') {
-      window.removeEventListener('resize', updateCachedRect);
+
       window.removeEventListener('beforeunload', flushPendingGains);
       window.removeEventListener('currency:multiplier', onCoinMultiplierChange);
       window.removeEventListener('currency:change', onCurrencyChange);
-      window.removeEventListener('blur', resetBrushHistory);
+
     }
     if (typeof mutationUnsub === 'function') {
       try { mutationUnsub(); } catch {}
@@ -1276,12 +807,6 @@ export function initCoinPickup({
       magnetController = null;
     }
 
-    try {
-      cl.removeEventListener('pointerdown', onDelegatedInteract);
-      if (!IS_MOBILE) {
-        cl.removeEventListener('mouseover', onDelegatedInteract);
-      }
-    } catch {}
     try { ['pointerdown','pointermove','pointerup','mousemove'].forEach(evt => pf.replaceWith(pf.cloneNode(true))); } catch {}
   };
 
