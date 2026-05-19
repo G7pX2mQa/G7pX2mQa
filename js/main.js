@@ -524,6 +524,10 @@ function enterAreaFromSaveSlot(areaID) {
 export function enterArea(areaID) {
   if (currentArea === areaID) return;
 
+  if (waterSystem && typeof waterSystem.clearSimulations === 'function') {
+      waterSystem.clearSimulations();
+  }
+
   if (globalCursorTrail) {
       try { globalCursorTrail.destroy(); } catch {}
       globalCursorTrail = null;
