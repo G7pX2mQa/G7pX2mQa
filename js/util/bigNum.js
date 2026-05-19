@@ -157,18 +157,22 @@ export class BigNum {
       }
     }
 
-    if (this.e > 100 || b.e > 100) return BigNum.zero(this.p);
-    try {
-      const aPlain = this.toPlainIntegerString();
-      const bPlain = b.toPlainIntegerString();
-      if (aPlain === 'Infinity') return this.clone();
-      if (bPlain === 'Infinity') return BigNum.zero(this.p);
-      const diff = BigInt(aPlain) - BigInt(bPlain);
-      if (diff <= 0n) return BigNum.zero(this.p);
-      return BigNum.fromInt(diff, this.p);
-    } catch {
-      return BigNum.zero(this.p);
+    const maxCompensable = Math.max(this.p, b.p) + 2;
+    if (Math.abs(this.e - b.e) > maxCompensable) {
+      return this.e > b.e ? this.clone() : BigNum.zero(this.p);
     }
+
+    const minE = Math.min(this.e, b.e);
+    const shiftA = this.e - minE;
+    const shiftB = b.e - minE;
+
+    const scaledA = shiftA === 0 ? this.sig : this.sig * this.#pow10(shiftA);
+    const scaledB = shiftB === 0 ? b.sig : b.sig * this.#pow10(shiftB);
+
+    const exactDiff = scaledA - scaledB;
+    if (exactDiff <= 0n) return BigNum.zero(this.p);
+
+    return new BigNum(exactDiff, minE, this.p);
   }
 
   // ---------------------- PRIVATE HELPERS ----------------------
