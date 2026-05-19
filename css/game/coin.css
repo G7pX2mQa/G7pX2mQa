@@ -59,9 +59,9 @@
   to { transform: rotate(360deg); }
 }
 
-.coin--size-4 .coin-inner,
-.coin--size-5 .coin-inner,
-.coin--size-6 .coin-inner {
+.coin--size-4 .item-inner,
+.coin--size-5 .item-inner,
+.coin--size-6 .item-inner {
   animation: coinSpin 6s linear infinite;
   will-change: transform;
 }
