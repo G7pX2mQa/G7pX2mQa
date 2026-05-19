@@ -76,14 +76,14 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
     if (!pointerInside || radiusPx <= 0) return;
     
     // Optimized: Use Spawner's spatial lookup if available
-    if (spawner && typeof spawner.findCoinTargetsInRadius === 'function') {
+    if (spawner && typeof spawner.findItemTargetsInRadius === 'function') {
         const radiusWithBuffer = radiusPx + MAGNET_COLLECTION_BUFFER;
         
         let candidates = [];
-        if (typeof spawner.findCoinTargetsInPath === 'function' && lastLocalX !== null && lastLocalY !== null) {
-             candidates = spawner.findCoinTargetsInPath(lastLocalX, lastLocalY, localX, localY, radiusWithBuffer);
+        if (typeof spawner.findItemTargetsInPath === 'function' && lastLocalX !== null && lastLocalY !== null) {
+             candidates = spawner.findItemTargetsInPath(lastLocalX, lastLocalY, localX, localY, radiusWithBuffer);
         } else {
-             candidates = spawner.findCoinTargetsInRadius(localX, localY, radiusWithBuffer);
+             candidates = spawner.findItemTargetsInRadius(localX, localY, radiusWithBuffer);
         }
 
         lastLocalX = localX;
@@ -359,16 +359,16 @@ export function initInteractionBrush({ playfield, itemsLayer, itemSelector, isIt
   window.addEventListener('blur', resetBrushHistory, { passive: true });
 
   function brushAt(x, y) {
-    if (spawner && typeof spawner.findCoinTargetsInRadius === 'function') {
+    if (spawner && typeof spawner.findItemTargetsInRadius === 'function') {
         if (!cachedPfRect) updateCachedRect();
         const localX = x;
         const localY = y;
         
         let candidates = [];
-        if (typeof spawner.findCoinTargetsInPath === 'function' && lastBrushLocalX !== null && lastBrushLocalY !== null) {
-            candidates = spawner.findCoinTargetsInPath(lastBrushLocalX, lastBrushLocalY, localX, localY, BRUSH_R, true);
+        if (typeof spawner.findItemTargetsInPath === 'function' && lastBrushLocalX !== null && lastBrushLocalY !== null) {
+            candidates = spawner.findItemTargetsInPath(lastBrushLocalX, lastBrushLocalY, localX, localY, BRUSH_R, true);
         } else {
-            candidates = spawner.findCoinTargetsInRadius(localX, localY, BRUSH_R, true);
+            candidates = spawner.findItemTargetsInRadius(localX, localY, BRUSH_R, true);
         }
         
         lastBrushLocalX = localX;
