@@ -1053,7 +1053,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'img/stats/rp/rp_plus_base.webp',
     
     'img/stats/dp/dp.webp',
-    'img/stats/dp_base.webp',
+    'img/stats/dp/dp_base.webp',
     'img/stats/dp/dp_plus_base.webp',
     'img/stats/xp/xp.webp',
     'img/stats/xp/xp_base.webp',
