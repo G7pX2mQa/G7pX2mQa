@@ -98,41 +98,110 @@ export function createUcSpawner(config = {}) {
             const waterToPfTop = M.wRect ? M.wRect.top - M.pfRect.top : 0;
             const spawnY = Math.max(0, waterToPfTop);
 
-            // Randomly pick a material
-            const matIndex = Math.floor(Math.random() * UC_MATERIALS.length);
-            const size = baseSize * Math.pow(1.1, matIndex);
-
-            const effectiveMargin = MATERIAL_MARGIN;
-            const minX = effectiveMargin;
-            const maxX = Math.max(minX, pfW - size - effectiveMargin);
-            const spawnX = minX + Math.random() * (maxX - minX);
-
-            const drift = Math.random() * 100 - 50;
-            let endX;
-            
-            if (size >= M.pfW) {
-                endX = (M.pfW - size) / 2;
-            } else {
-                 const mx = M.pfW - size - effectiveMargin;
-                 if (minX >= mx) endX = (M.pfW - size)/2;
-                 else endX = clamp(spawnX + drift, minX, mx);
+            // Initialize accumulators if needed
+            if (!window._ucMaterialAccumulators) {
+                try {
+                    const stored = localStorage.getItem('ccc:ucMaterialAccumulators');
+                    if (stored) {
+                        window._ucMaterialAccumulators = JSON.parse(stored);
+                    } else {
+                        window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+                    }
+                } catch {
+                    window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+                }
             }
-            
-            const effectiveWaterH = M.wRect ? Math.min(M.wRect.height, M.pfRect.height * 0.3) : 0;
-            const minY = Math.max(effectiveWaterH + 80, 120);
-            const maxY = Math.max(minY + 40, M.safeBottom - size - 6);
-            const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
-            const jitterMs = 0;
 
-            return {
-                coin: {
-                    x0: spawnX, y0: spawnY,
-                    x1: endX, y1: endY,
-                    jitterMs
-                },
-                matIndex,
-                size
+            // Save function to persist to local storage
+            const saveAccumulators = () => {
+                try {
+                    localStorage.setItem('ccc:ucMaterialAccumulators', JSON.stringify(window._ucMaterialAccumulators));
+                } catch {}
             };
+
+            // Get DP Level (safely)
+            let dpLevelNum = 0;
+            if (window.dpSystem && typeof window.dpSystem.getDpState === 'function') {
+                const dpState = window.dpSystem.getDpState();
+                if (dpState && dpState.dpLevel) {
+                    try {
+                        dpLevelNum = Number(dpState.dpLevel.toString());
+                    } catch {}
+                }
+            }
+
+            // The scaling thresholds for materials:
+            const thresholds = [
+                { start: 0, max: 0 }, // Stone (always drops)
+                { start: 1, max: 24 }, // Copper
+                { start: 25, max: 49 }, // Iron
+                { start: 50, max: 99 }, // Gold
+                { start: 100, max: 199 }, // Diamond
+                { start: 200, max: 399 }, // Emerald
+                { start: 400, max: 799 }, // Ruby
+                { start: 800, max: 1599 }, // Obsidian
+                { start: 1600, max: 3199 }, // Unobtainium
+                { start: 3200, max: 5000 } // Prismatium
+            ];
+
+            const spawns = [];
+            
+            // Process all materials
+            for (let i = 0; i < UC_MATERIALS.length; i++) {
+                const t = thresholds[i];
+                if (i === 0) {
+                     // Stone always drops 1 per swing, no accumulator needed really, but we can set it
+                     window._ucMaterialAccumulators[i] = 1.0;
+                } else {
+                     if (dpLevelNum >= t.max) {
+                         window._ucMaterialAccumulators[i] += 1.0;
+                     } else if (dpLevelNum >= t.start) {
+                         const progress = (dpLevelNum - t.start + 1) / (t.max - t.start + 1);
+                         const gain = Math.pow(progress, 1.5);
+                         window._ucMaterialAccumulators[i] += gain;
+                     }
+                }
+
+                // Cap accumulator to 1.99
+                if (window._ucMaterialAccumulators[i] > 1.99) {
+                    window._ucMaterialAccumulators[i] = 1.99;
+                }
+
+                if (window._ucMaterialAccumulators[i] >= 1.0) {
+                    window._ucMaterialAccumulators[i] -= 1.0;
+                    
+                    const size = baseSize * Math.pow(1.1, i);
+                    const effectiveMargin = MATERIAL_MARGIN;
+                    const minX = effectiveMargin;
+                    const maxX = Math.max(minX, pfW - size - effectiveMargin);
+                    const spawnX = minX + Math.random() * (maxX - minX);
+
+                    const drift = Math.random() * 200 - 100;
+                    let endX;
+                    if (size >= M.pfW) {
+                        endX = (M.pfW - size) / 2;
+                    } else {
+                        const mx = M.pfW - size - effectiveMargin;
+                        if (minX >= mx) endX = (M.pfW - size)/2;
+                        else endX = clamp(spawnX + drift, minX, mx);
+                    }
+                    
+                    const effectiveWaterH = M.wRect ? Math.min(M.wRect.height, M.pfRect.height * 0.3) : 0;
+                    const minY = Math.max(effectiveWaterH + 80, 120);
+                    const maxY = Math.max(minY + 40, M.safeBottom - size - 6);
+                    const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
+                    const jitterMs = 0;
+
+                    spawns.push({
+                        coin: { x0: spawnX, y0: spawnY, x1: endX, y1: endY, jitterMs },
+                        matIndex: i,
+                        size
+                    });
+                }
+            }
+
+            saveAccumulators();
+            return spawns;
         },
 
         onCommitBatch: (batch, activeItems, getItem, refs, animationDurationMs) => {
