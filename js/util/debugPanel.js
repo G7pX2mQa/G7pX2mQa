@@ -4076,18 +4076,23 @@ function buildAreasContent(content) {
                 });
             }
 
-            if (area.key === AREA_KEYS.STARTER_COVE) {
+            if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
                 multipliers = createSubsection('Multipliers', (sub) => {
                     const currencyMultipliers = createSubsection('Currencies', (subsection) => {
                         buildAreaCurrencyMultipliers(subsection, area);
                     });
-                    const statMultipliers = createSubsection('Stats', (subsection) => {
-                        buildAreaStatMultipliers(subsection, area);
-                    });
-
                     sub.appendChild(currencyMultipliers);
-                    sub.appendChild(statMultipliers);
+
+                    if (area.key === AREA_KEYS.STARTER_COVE) {
+                        const statMultipliers = createSubsection('Stats', (subsection) => {
+                            buildAreaStatMultipliers(subsection, area);
+                        });
+                        sub.appendChild(statMultipliers);
+                    }
                 });
+            }
+
+            if (area.key === AREA_KEYS.STARTER_COVE) {
                 upgrades = createSubsection('Upgrades', (sub) => {
                     buildAreaUpgrades(sub, area);
                 });
