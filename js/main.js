@@ -850,6 +850,33 @@ export function enterArea(areaID) {
       if (spawner) { spawner.stop(); if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield(); }
       if (currentArea === AREAS.UNDERWATER_CAVERN && ucSpawner) {
           ucSpawner.start();
+          
+          // Invisible framerate warming pulse
+          const pulseDiv = document.createElement('div');
+          Object.assign(pulseDiv.style, {
+              position: 'fixed',
+              top: '0',
+              left: '0',
+              width: '1px',
+              height: '1px',
+              opacity: '0.01',
+              pointerEvents: 'none',
+              zIndex: '-9999'
+          });
+          document.body.appendChild(pulseDiv);
+          
+          let start = performance.now();
+          function pulseFrame(now) {
+              if (now - start < 1000) {
+                  pulseDiv.style.opacity = Math.random() > 0.5 ? '0.01' : '0.02';
+                  requestAnimationFrame(pulseFrame);
+              } else {
+                  if (pulseDiv.parentNode) {
+                      pulseDiv.parentNode.removeChild(pulseDiv);
+                  }
+              }
+          }
+          requestAnimationFrame(pulseFrame);
       }
 
       break;
