@@ -83,7 +83,7 @@ export function ensureGameDom(layerCount, startZ) {
 
             <div class="dp-bar__frame">
               <div class="dp-bar__level">
-                Depth<span class="dp-level-value">0</span>
+                Depth:<span class="dp-level-value">0</span>m
               </div>
 
               <div class="dp-bar__divider" aria-hidden="true"></div>
