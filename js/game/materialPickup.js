@@ -164,6 +164,10 @@ export function initUcPickup({
             }
         }
         
+        if (window.dpSystem && typeof window.dpSystem.addDp === 'function') {
+            window.dpSystem.addDp(collectedCount);
+        }
+
         if (typeof window !== 'undefined' && typeof window.currentArea !== 'undefined' && window.currentArea === 2) {
             // Add any custom lifetime tracking for underwater cavern here if needed
         }
