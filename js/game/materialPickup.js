@@ -1,3 +1,4 @@
+import { addDp, getDpState } from './dpSystem.js';
 // js/game/ucPickup.js
 
 import { bank, UC_MATERIALS } from '../util/storage.js';
