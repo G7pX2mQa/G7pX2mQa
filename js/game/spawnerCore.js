@@ -289,7 +289,13 @@ export function createBaseSpawner(config = {}) {
         const batch = [];
         for (let i = 0; i < n; i++) {
             const plan = onPlanSpawn(M, activeItems, garbageCount, removeItem, maxActiveItems);
-            if (plan) batch.push(plan);
+            if (plan) {
+                if (Array.isArray(plan)) {
+                    batch.push(...plan);
+                } else {
+                    batch.push(plan);
+                }
+            }
         }
         if (batch.length) {
             onCommitBatch(batch, activeItems, getItem, refs, animationDurationMs);
@@ -456,7 +462,13 @@ export function createBaseSpawner(config = {}) {
              for (let i = 0; i < spawnTarget; i++) {
                 if (performance.now() - t0 > timeBudgetMs) break;
                 const plan = onPlanSpawn(M, activeItems, garbageCount, removeItem, maxActiveItems);
-                if (plan) batch.push(plan);
+                if (plan) {
+                    if (Array.isArray(plan)) {
+                        batch.push(...plan);
+                    } else {
+                        batch.push(plan);
+                    }
+                }
              }
              if (batch.length) {
                  onCommitBatch(batch, activeItems, getItem, refs, animationDurationMs);
