@@ -170,6 +170,8 @@ export const RESOURCE_REGISTRY = [
         }
     },
     { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation Level', plural: 'Mutation Levels', type: 'levelStat' },
+    { key: 'dp', icon: 'img/stats/dp/dp.webp', baseIcon: 'img/stats/dp/dp_plus_base.webp', singular: 'DP', plural: 'DP', type: 'levelProg', bgGradient: 'linear-gradient(to bottom, #6B4E3A 0%, #8A674D 15%, #A98060 50%, #8A674D 85%, #6B4E3A 100%)' },
+    { key: 'dp_levels', icon: 'img/stats/dp/dp.webp',            singular: 'Depth Level', plural: 'Depth Levels', type: 'levelStat' },
     { key: 'magic', bgGradient: 'linear-gradient(to bottom, #42138A 0%, #6A1ECF 15%, #9F30FF 50%, #6A1ECF 85%, #42138A 100%)',     icon: 'img/currencies/magic/magic.webp', baseIcon: 'img/currencies/magic/magic_plus_base.webp', singular: 'Magic',    plural: 'Magic', type: 'currency' },
     { key: 'gears', bgGradient: 'linear-gradient(to bottom, #5c5d61 0%, #8f9096 15%, #9d9fa6 50%, #8f9096 85%, #5c5d61 100%)',     icon: 'img/currencies/gear/gear.webp', baseIcon: 'img/currencies/gear/gear_plus_base.webp',   singular: 'Gear',     plural: 'Gears', type: 'currency' },
     { key: 'waves', bgGradient: 'linear-gradient(to bottom, #0286a1 0%, #02b1d4 15%, #00eded 50%, #02b1d4 85%, #0286a1 100%)',     icon: 'img/currencies/wave/wave.webp', baseIcon: 'img/currencies/wave/wave_plus_base.webp',   singular: 'Wave',     plural: 'Waves', type: 'currency' },
@@ -591,6 +593,22 @@ export function grantOfflineRewards(rewards) {
             }
         } catch {}
     }
+    if (rewards.dp) {
+        try {
+            // dpSystem addDp handles logic, similar to addXp
+            if (window.dpSystem && typeof window.dpSystem.addDp === 'function') {
+                const dpResult = window.dpSystem.addDp(rewards.dp);
+                if (dpResult) {
+                    if (dpResult.dpLevelsGained && !dpResult.dpLevelsGained.isZero()) {
+                        rewards.dp_levels = dpResult.dpLevelsGained;
+                    }
+                    if (dpResult.dpAdded) {
+                        rewards.dp = dpResult.dpAdded;
+                    }
+                }
+            }
+        } catch {}
+    }
 
     // Handle Research
     if (rewards.research_progress) {
@@ -611,7 +629,7 @@ export function grantOfflineRewards(rewards) {
     // Handle standard currencies automatically
     for (const key of Object.keys(rewards)) {
         // Skip special keys handled above or created during handling
-        if (key === 'xp' || key === 'mp' || key === 'xp_levels' || key === 'mp_levels') continue;
+        if (key === 'xp' || key === 'mp' || key === 'dp' || key === 'xp_levels' || key === 'mp_levels' || key === 'dp_levels') continue;
         if (key === 'research_levels' || key === 'research_progress') continue;
         if (key === 'waterwheel_levels' || key === 'waterwheel_progress') continue;
         
