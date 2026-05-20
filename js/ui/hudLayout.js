@@ -18,19 +18,3 @@ export function syncXpMpHudLayout() {
     hud.classList.remove('hud-top--xp-only', 'hud-top--xp-mp');
   }
 }
-
-export function syncDpHudLayout() {
-  if (typeof document === 'undefined') return;
-  const hud = document.querySelector('.hud-top');
-  if (!hud) return;
-
-  const dpEl = document.querySelector('[data-dp-hud]');
-  const isCavernHud = !!hud.closest('.area-cavern');
-  const dpVisible = isCavernHud && !!(dpEl && !dpEl.hasAttribute('hidden'));
-
-  hud.classList.toggle('hud-top--dp-only', dpVisible);
-
-  if (!dpVisible) {
-    hud.classList.remove('hud-top--dp-only');
-  }
-}
