@@ -55,6 +55,27 @@ export function ensureGameDom(layerCount, startZ) {
           </div>
         </div>
 
+        
+        <div class="dp-counter" data-dp-hud hidden>
+          <img src="img/stats/dp/dp_plus_base.webp" alt="" class="dp-plus"/>
+
+          <div class="dp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0 / 10 DP">
+            <div class="dp-bar__fill" style="width: 0%"></div>
+			
+            <div class="dp-bar__frame">
+              <div class="dp-bar__level">
+                Level<span class="dp-level-value">0</span>
+              </div>
+
+              <div class="dp-bar__divider" aria-hidden="true"></div>
+
+              <div class="dp-bar__progress" data-dp-progress>
+                0<span class="dp-progress-separator">/</span>10<span class="dp-progress-suffix">DP</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="mp-counter" data-mp-hud hidden>
           <img src="img/stats/mp/mp_plus_base.webp" alt="" class="mp-plus"/>
 
