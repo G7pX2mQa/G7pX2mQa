@@ -5,7 +5,7 @@ import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } fro
 import { registerTick } from './gameLoop.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { formatNumber } from '../util/numFormat.js';
-import { syncDpMpHudLayout } from '../ui/hudLayout.js';
+import { syncDpHudLayout } from '../ui/hudLayout.js';
 
 const KEY_PREFIX = 'ccc:dp';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
@@ -1120,6 +1120,7 @@ export function addDp(amount, { silent = false } = {}) {
         dpState.dpLevel = BigNum.fromAny('Infinity');
         updateDpRequirement();
       }
+    }
   }
 
   // 9. Persist and Notify
