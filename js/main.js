@@ -601,6 +601,7 @@ export function enterArea(areaID) {
 
       if (typeof initXpSystem === 'function') {
         try { initXpSystem(); } catch {}
+        try { initDpSystem(); } catch {}
       }
       
       // Determine the correct playfield selector based on the active area
@@ -733,6 +734,7 @@ export function enterArea(areaID) {
       }
       if (typeof initXpSystem === 'function') {
         try { initXpSystem(); } catch {}
+        try { initDpSystem(); } catch {}
       }
 	  
       startAreaMusic(AREAS.STARTER_COVE, 'sounds/The_Cove.ogg');
@@ -904,6 +906,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/upgradeEffects.js'),
     import('./util/audioCache.js'),
     import('./game/xpSystem.js'),
+    import('./game/dpSystem.js'),
     import('./ui/merchantTabs/resetTab.js'),
     import('./game/mutationSystem.js'),
     import('./ui/popups.js'),
@@ -1039,9 +1042,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     'img/sc_upg_icons/xp_val3.webp',
     'img/sc_upg_icons/xp_val_dna.webp',
     'img/sc_upg_icons/xp_val_hm.webp',
-	'img/stats/dp/dp.webp',
-	'img/stats/dp/dp_base.webp',
-	'img/stats/dp/dp_plus_base.webp',
     'img/stats/fp/fp.webp',
     'img/stats/fp/fp_base.webp',
     'img/stats/fp/fp_plus_base.webp',
@@ -1051,6 +1051,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     'img/stats/rp/rp.webp',
     'img/stats/rp/rp_base.webp',
     'img/stats/rp/rp_plus_base.webp',
+    
+    'img/stats/dp/dp.webp',
+    'img/stats/dp_base.webp',
+    'img/stats/dp/dp_plus_base.webp',
     'img/stats/xp/xp.webp',
     'img/stats/xp/xp_base.webp',
     'img/stats/xp/xp_plus_base.webp',
@@ -1129,6 +1133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     upgradeEffectsModule,
     audioCacheModule,
     xpModule,
+    dpModule,
     resetModule,
     mutationModule,
     popupModule,
@@ -1163,6 +1168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ syncCurrencyMultipliersFromUpgrades, registerXpUpgradeEffects } = upgradeEffectsModule);
   ({ registerPreloadedAudio } = audioCacheModule);
   ({ initXpSystem, syncCoinMultiplierWithXpLevel } = xpModule);
+  let { initDpSystem } = dpModule;
   ({ initResetSystem: initResetSystemGame } = resetModule);
   ({ initMutationSystem, getMutationCoinSprite, onMutationChange: onMutationChangeGame, getMutationState } = mutationModule);
   ({ initPopups } = popupModule);
