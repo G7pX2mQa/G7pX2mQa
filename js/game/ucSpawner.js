@@ -1,5 +1,3 @@
-import { BigNum } from '../util/bigNum.js';
-import { getDpState } from './dpSystem.js';
 import { createBaseSpawner, CUBIC_BEZIER, getImage } from './spawnerCore.js';
 import { IS_MOBILE } from '../main.js';
 import { playAudio } from '../util/audioManager.js';
