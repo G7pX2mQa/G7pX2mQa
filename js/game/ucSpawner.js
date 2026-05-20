@@ -145,6 +145,10 @@ export function createUcSpawner(config = {}) {
             ];
 
             const spawns = [];
+            const maxSize = baseSize * Math.pow(1.1, UC_MATERIALS.length - 1);
+            const sharedMinX = MATERIAL_MARGIN;
+            const sharedMaxX = Math.max(sharedMinX, pfW - maxSize - MATERIAL_MARGIN);
+            const sharedSpawnX = sharedMinX + Math.random() * (sharedMaxX - sharedMinX);
             
             // Process all materials
             for (let i = 0; i < UC_MATERIALS.length; i++) {
@@ -173,8 +177,8 @@ export function createUcSpawner(config = {}) {
                     const size = baseSize * Math.pow(1.1, i);
                     const effectiveMargin = MATERIAL_MARGIN;
                     const minX = effectiveMargin;
-                    const maxX = Math.max(minX, pfW - size - effectiveMargin);
-                    const spawnX = minX + Math.random() * (maxX - minX);
+
+                    const spawnX = sharedSpawnX;
 
                     const drift = Math.random() * 200 - 100;
                     let endX;
