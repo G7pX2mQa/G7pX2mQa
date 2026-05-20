@@ -74,6 +74,26 @@ export function ensureGameDom(layerCount, startZ) {
             </div>
           </div>
         </div>
+
+        <div class="dp-counter" data-dp-hud hidden>
+          <img src="img/stats/dp/dp_plus_base.webp" alt="" class="dp-plus"/>
+
+          <div class="dp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0 / 10 DP">
+            <div class="dp-bar__fill" style="width: 0%"></div>
+
+            <div class="dp-bar__frame">
+              <div class="dp-bar__level">
+                Depth<span class="dp-level-value">0</span>
+              </div>
+
+              <div class="dp-bar__divider" aria-hidden="true"></div>
+
+              <div class="dp-bar__progress" data-dp-progress>
+                0<span class="dp-progress-separator">/</span>10<span class="dp-progress-suffix">DP</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <section class="playfield" aria-label="Starter Cove Sand">
@@ -136,6 +156,22 @@ export function ensureGameDom(layerCount, startZ) {
           if (mpConfig.fillGradient) mpFill.style.background = mpConfig.fillGradient;
           if (mpConfig.glassBg) mpFill.style.setProperty('--glass-bg', mpConfig.glassBg);
           if (mpConfig.glassOpacity) mpFill.style.setProperty('--glass-opacity', mpConfig.glassOpacity);
+      }
+  }
+
+  const dpConfig = RESOURCE_REGISTRY.find(c => c.key === 'dp');
+  if (dpConfig) {
+      const dpBar = document.getElementById('game-root').querySelector('.dp-bar');
+      const dpFill = document.getElementById('game-root').querySelector('.dp-bar__fill');
+      if (dpBar) {
+          if (dpConfig.pinBgGradient) dpBar.style.background = dpConfig.pinBgGradient;
+          if (dpConfig.borderColor) dpBar.style.setProperty('--bar-border-color', dpConfig.borderColor);
+          if (dpConfig.barBoxShadow) dpBar.style.setProperty('--bar-box-shadow', dpConfig.barBoxShadow);
+      }
+      if (dpFill) {
+          if (dpConfig.fillGradient) dpFill.style.background = dpConfig.fillGradient;
+          if (dpConfig.glassBg) dpFill.style.setProperty('--glass-bg', dpConfig.glassBg);
+          if (dpConfig.glassOpacity) dpFill.style.setProperty('--glass-opacity', dpConfig.glassOpacity);
       }
   }
 
