@@ -674,13 +674,15 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
 .dp-bar__level{
   display: inline-flex;
   align-items: baseline;
-  gap: 0.3em;
+  gap: 0;
   letter-spacing: 0;
   line-height: 0.75;
 }
 
 .dp-level-value{
   font-size: clamp(12px, 2.0vw, 15px);
+  margin-left: 0.22em;
+  margin-right: 0.06em;
 }
 
 .dp-bar__divider{
