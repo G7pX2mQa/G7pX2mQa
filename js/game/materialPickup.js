@@ -8,7 +8,6 @@ import { createMagnetController, initInteractionBrush, computeMagnetUnitPx } fro
 import { settingsManager } from './settingsManager.js';
 import { getComboUiString } from './surgeEffects.js';
 import { formatNumber } from '../util/numFormat.js';
-import { addDp } from './dpSystem.js';
 
 let ucPickup = null;
 const BASE_MATERIAL_VALUE = BigNum.fromInt(1);
@@ -150,10 +149,6 @@ export function initUcPickup({
 
     if (collectedCount > 0) {
         playSound();
-
-        // Gain DP for each collected material (+1 base each, DP multipliers handled by addDp).
-        addDp(BigNum.fromAny(collectedCount));
-
         // Add to bank
         for (const [matType, count] of Object.entries(gains)) {
             // Check if currency is locked (from debug)
