@@ -219,9 +219,10 @@ let dummyPulseRaf = null;
 let dummyPulseDiv = null;
 let dummyPulseCtx = null;
 
-function startDummyPulse() {
+function startDummyPulse(duration = 1000) {
     if (dummyPulseRaf !== null) {
-        return; // Already running
+        cancelAnimationFrame(dummyPulseRaf);
+        dummyPulseRaf = null;
     }
 
     if (!dummyPulseDiv) {
@@ -235,8 +236,23 @@ function startDummyPulse() {
         document.body.appendChild(dummyPulseDiv);
     }
 
-    function dummyPulseFrame() {
+    let start = null;
+
+    function dummyPulseFrame(now) {
+        if (!start) start = now;
+
         if ((currentArea == null || currentArea === AREAS.MENU) && !window.isDummyPulseLoading) {
+            if (dummyPulseDiv && dummyPulseDiv.parentNode) {
+                dummyPulseDiv.parentNode.removeChild(dummyPulseDiv);
+                dummyPulseDiv = null;
+                dummyPulseCtx = null;
+            }
+            dummyPulseRaf = null;
+            return;
+        }
+
+        const elapsed = now - start;
+        if (!window.isDummyPulseLoading && elapsed >= duration) {
             if (dummyPulseDiv && dummyPulseDiv.parentNode) {
                 dummyPulseDiv.parentNode.removeChild(dummyPulseDiv);
                 dummyPulseDiv = null;
@@ -1438,6 +1454,7 @@ Normal gameplay is unaffected unless you choose to modify values.`);
 
     finishAndHideLoader(loader, () => {
       window.isDummyPulseLoading = false;
+      startDummyPulse(); // start a 1s pulse after loading
       let areaToLoad = AREAS.STARTER_COVE;
       if (typeof getSavedArea === 'function') {
         const saved = getSavedArea();
