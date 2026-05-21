@@ -35,7 +35,7 @@ import {
     getUpgradeLockState,
     batchUpgradeOperations,
 } from '../game/upgrades.js';
-import { isMapUnlocked, isShopUnlocked, lockMap, lockShop, unlockMap, unlockShop } from '../ui/hudButtons.js';
+import { isMapUnlocked, isShopUnlocked, isShopUcUnlocked, lockMap, lockShop, lockShopUc, unlockMap, unlockShop, unlockShopUc } from '../ui/hudButtons.js';
 import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlocked } from '../ui/merchantTabs/dlgTab.js';
 import { getVoidLevel, setVoidLevel } from '../ui/sas/achievementExtras/voidGemAltarTab.js';
 import { getGenerationLevelKey, getGenerationUpgradeCost } from '../ui/merchantTabs/workshopTab.js';
@@ -3146,6 +3146,23 @@ function getUnlockRowDefinitions(slot) {
             slot,
         },
         {
+            labelText: 'Unlock Shop UC',
+            description: 'If true, makes the UC Shop button visible',
+            isUnlocked: () => {
+                try { return isShopUcUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { unlockShopUc(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { lockShopUc(); }
+                catch {}
+            },
+            slot,
+        },
+        {
             labelText: 'Unlock Map',
             description: 'If true, makes the Map button visible',
             isUnlocked: () => {
@@ -3285,6 +3302,7 @@ function unlockAllUnlocks() {
         });
     });
     try { unlockShop(); } catch {}
+    try { unlockShopUc(); } catch {}
     try { unlockMap(); } catch {}
     const toggled = setAllUnlockToggles(true);
     return { unlocks: unlocked, toggles: toggled };
@@ -3302,6 +3320,7 @@ function lockAllUnlockUpgrades() {
         });
     });
     try { lockShop(); } catch {}
+    try { lockShopUc(); } catch {}
     try { lockMap(); } catch {}
     const toggled = setAllUnlockToggles(false);
     return { locks: locked, toggles: toggled };
