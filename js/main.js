@@ -220,7 +220,7 @@ let dummyPulseRaf = null;
 let dummyPulseDiv = null;
 let dummyPulseCtx = null;
 
-function startDummyPulse(duration = 1000) {
+function startDummyPulse() {
     if (dummyPulseRaf !== null) {
         cancelAnimationFrame(dummyPulseRaf);
         dummyPulseRaf = null;
@@ -228,20 +228,21 @@ function startDummyPulse(duration = 1000) {
 
     if (!dummyPulseDiv) {
         dummyPulseDiv = document.createElement('canvas');
-        dummyPulseDiv.width = 1;
-        dummyPulseDiv.height = 1;
-        dummyPulseDiv.style.position = 'absolute';
-        dummyPulseDiv.style.pointerEvents = 'none';
-        dummyPulseDiv.style.opacity = '0.01';
-        dummyPulseCtx = dummyPulseDiv.getContext('2d', { alpha: false, desynchronized: true });
+        dummyPulseDiv.width = 256;
+        dummyPulseDiv.height = 256;
+        Object.assign(dummyPulseDiv.style, {
+            position: 'fixed',
+            bottom: '0',
+            right: '0',
+            pointerEvents: 'none',
+            opacity: '0.01',
+            zIndex: '-9999'
+        });
+        dummyPulseCtx = dummyPulseDiv.getContext('webgl', { alpha: true, desynchronized: true }) || dummyPulseDiv.getContext('2d');
         document.body.appendChild(dummyPulseDiv);
     }
 
-    let start = null;
-
-    function dummyPulseFrame(now) {
-        if (!start) start = now;
-
+    function dummyPulseFrame() {
         if ((currentArea == null || currentArea === AREAS.MENU) && !window.isDummyPulseLoading) {
             if (dummyPulseDiv && dummyPulseDiv.parentNode) {
                 dummyPulseDiv.parentNode.removeChild(dummyPulseDiv);
@@ -252,21 +253,14 @@ function startDummyPulse(duration = 1000) {
             return;
         }
 
-        const elapsed = now - start;
-        if (!window.isDummyPulseLoading && elapsed >= duration) {
-            if (dummyPulseDiv && dummyPulseDiv.parentNode) {
-                dummyPulseDiv.parentNode.removeChild(dummyPulseDiv);
-                dummyPulseDiv = null;
-                dummyPulseCtx = null;
-            }
-            dummyPulseRaf = null;
-            return;
-        }
-        
         if (dummyPulseDiv && dummyPulseCtx) {
-            dummyPulseDiv.style.transform = `translateZ(${Math.random() > 0.5 ? 0.1 : 0}px)`;
-            dummyPulseCtx.fillStyle = Math.random() > 0.5 ? '#000' : '#FFF';
-            dummyPulseCtx.fillRect(0, 0, 1, 1);
+            if (dummyPulseCtx.clear) { // webgl
+                dummyPulseCtx.clearColor(0, 0, 0, Math.random() > 0.5 ? 0.01 : 0.02);
+                dummyPulseCtx.clear(dummyPulseCtx.COLOR_BUFFER_BIT);
+            } else {
+                dummyPulseCtx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.01)' : 'rgba(0,0,0,0.02)';
+                dummyPulseCtx.fillRect(0, 0, 256, 256);
+            }
         }
         dummyPulseRaf = requestAnimationFrame(dummyPulseFrame);
     }
@@ -876,32 +870,6 @@ export function enterArea(areaID) {
       if (spawner) { spawner.stop(); if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield(); }
       if (currentArea === AREAS.UNDERWATER_CAVERN && ucSpawner) {
           ucSpawner.start();
-		            // Invisible framerate warming pulse
-          const pulseDiv = document.createElement('div');
-          Object.assign(pulseDiv.style, {
-              position: 'fixed',
-              top: '0',
-              left: '0',
-              width: '1px',
-              height: '1px',
-              opacity: '0.01',
-              pointerEvents: 'none',
-              zIndex: '-9999'
-          });
-          document.body.appendChild(pulseDiv);
-          
-          let start = performance.now();
-          function pulseFrame(now) {
-              if (now - start < 1000) {
-                  pulseDiv.style.opacity = Math.random() > 0.5 ? '0.01' : '0.02';
-                  requestAnimationFrame(pulseFrame);
-              } else {
-                  if (pulseDiv.parentNode) {
-                      pulseDiv.parentNode.removeChild(pulseDiv);
-                  }
-              }
-          }
-          requestAnimationFrame(pulseFrame);
       }
 
       break;
