@@ -1,6 +1,7 @@
 // js/game/materialPickup.js
 
-import { bank, UC_MATERIALS } from '../util/storage.js';
+import { bank, UC_MATERIALS, getActiveSlot } from '../util/storage.js';
+import { unlockShopUc } from '../ui/hudButtons.js';
 import { BigNum } from '../util/bigNum.js';
 import { IS_MOBILE } from '../main.js';
 import { playAudio } from '../util/audioManager.js';
@@ -22,6 +23,19 @@ export function initUcPickup({
 } = {}) {
   if (ucPickup?.destroy) {
     ucPickup.destroy();
+  }
+
+  const slot = getActiveSlot();
+  const SHOP_UC_UNLOCK_KEY   = `ccc:unlock:shop:uc:${slot}`;
+  const SHOP_UC_PROGRESS_KEY = `ccc:unlock:shop:uc:progress:${slot}`;
+
+  if (slot != null) {
+    const p = parseInt(localStorage.getItem(SHOP_UC_PROGRESS_KEY) || '0', 10);
+    localStorage.setItem(SHOP_UC_PROGRESS_KEY, String(p));
+    if (p >= 10 && localStorage.getItem(SHOP_UC_UNLOCK_KEY) !== '1') {
+      try { unlockShopUc(); } catch {}
+      localStorage.setItem(SHOP_UC_UNLOCK_KEY, '1');
+    }
   }
   
   const pf  = document.querySelector(playfieldSelector);
@@ -170,6 +184,16 @@ export function initUcPickup({
 
         if (typeof window !== 'undefined' && typeof window.currentArea !== 'undefined' && window.currentArea === 2) {
             // Add any custom lifetime tracking for underwater cavern here if needed
+        }
+        
+        if (slot != null && localStorage.getItem(SHOP_UC_UNLOCK_KEY) !== '1') {
+            const current = parseInt(localStorage.getItem(SHOP_UC_PROGRESS_KEY) || '0', 10);
+            const next = current + collectedCount;
+            localStorage.setItem(SHOP_UC_PROGRESS_KEY, String(next));
+            if (next >= 10) {
+              try { unlockShopUc(); } catch {}
+              localStorage.setItem(SHOP_UC_UNLOCK_KEY, '1');
+            }
         }
     }
   }
