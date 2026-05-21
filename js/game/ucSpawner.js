@@ -190,7 +190,7 @@ export function createUcSpawner(config = {}) {
                         else endX = clamp(spawnX + drift, minX, mx);
                     }
                     
-                    const effectiveWaterH = M.wRect ? Math.min(M.wRect.height, M.pfRect.height * 0.3) : 0;
+                    const effectiveWaterH = M.wRect ? Math.min(M.wRect.height, M.pfRect.height * 0.3) : M.pfRect.height * 0.3;
                     const minY = Math.max(effectiveWaterH + 80, 120);
                     const maxY = Math.max(minY + 40, M.safeBottom - size - 6);
                     const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
