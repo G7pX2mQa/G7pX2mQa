@@ -228,15 +228,21 @@ function startDummyPulse() {
 
     if (!dummyPulseDiv) {
         dummyPulseDiv = document.createElement('canvas');
-        dummyPulseDiv.width = 256;
-        dummyPulseDiv.height = 256;
+        // Chromium heuristics for high refresh rate usually require a large enough surface
+        // And it must be visible in the viewport and not have opacity exactly 0 or display:none
+        dummyPulseDiv.width = 300;
+        dummyPulseDiv.height = 300;
         Object.assign(dummyPulseDiv.style, {
             position: 'fixed',
-            bottom: '0',
-            right: '0',
+            top: '0',
+            left: '0',
+            width: '300px',
+            height: '300px',
             pointerEvents: 'none',
-            opacity: '0.01',
-            zIndex: '-9999'
+            opacity: '0.001',
+            zIndex: '-9999',
+            // transform: 'translateZ(0)' // forces hardware acceleration
+            transform: 'translateZ(0)'
         });
         dummyPulseCtx = dummyPulseDiv.getContext('webgl', { alpha: true, desynchronized: true }) || dummyPulseDiv.getContext('2d');
         document.body.appendChild(dummyPulseDiv);
@@ -254,12 +260,17 @@ function startDummyPulse() {
         }
 
         if (dummyPulseDiv && dummyPulseCtx) {
+            // Chrome will throttle if the exact same pixels are drawn or if transform doesn't change
+            // So we slightly mutate the transform Z
+            dummyPulseDiv.style.transform = `translateZ(${Math.random() > 0.5 ? 0.01 : 0}px)`;
+            
             if (dummyPulseCtx.clear) { // webgl
+                // Clear with slightly different colors
                 dummyPulseCtx.clearColor(0, 0, 0, Math.random() > 0.5 ? 0.01 : 0.02);
                 dummyPulseCtx.clear(dummyPulseCtx.COLOR_BUFFER_BIT);
             } else {
                 dummyPulseCtx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.01)' : 'rgba(0,0,0,0.02)';
-                dummyPulseCtx.fillRect(0, 0, 256, 256);
+                dummyPulseCtx.fillRect(0, 0, 300, 300);
             }
         }
         dummyPulseRaf = requestAnimationFrame(dummyPulseFrame);
