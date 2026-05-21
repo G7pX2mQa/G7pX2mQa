@@ -12,6 +12,7 @@ import {
 
 const BASE_KEYS = {
   SHOP: 'ccc:unlock:shop',
+  SHOP_UC: 'ccc:unlock:shop:uc',
   MAP:  'ccc:unlock:map',
 };
 
@@ -30,6 +31,11 @@ function isUnlocked(base) {
 export function isShopUnlocked() {
   ensureUnlockDefaults();
   return isUnlocked(BASE_KEYS.SHOP);
+}
+
+export function isShopUcUnlocked() {
+  ensureUnlockDefaults();
+  return isUnlocked(BASE_KEYS.SHOP_UC);
 }
 
 export function isMapUnlocked() {
@@ -233,7 +239,25 @@ export function initHudButtons() {
 }
 
 // Convenience helpers (write both keys)
-export function unlockShop() { setUnlocked(BASE_KEYS.SHOP, true);  setButtonVisible('shop', true); applyHudLayout(); }
+export function unlockShop() { setUnlocked(BASE_KEYS.SHOP, true);  refreshButtonVisibility(); }
+export function unlockShopUc() { setUnlocked(BASE_KEYS.SHOP_UC, true);  refreshButtonVisibility(); }
 export function unlockMap()  { setUnlocked(BASE_KEYS.MAP,  true);  setButtonVisible('map',  true); applyHudLayout(); }
-export function lockShop()   { setUnlocked(BASE_KEYS.SHOP, false); setButtonVisible('shop', false); applyHudLayout(); }
+export function lockShop()   { setUnlocked(BASE_KEYS.SHOP, false); refreshButtonVisibility(); }
+export function lockShopUc()   { setUnlocked(BASE_KEYS.SHOP_UC, false); refreshButtonVisibility(); }
 export function lockMap()    { setUnlocked(BASE_KEYS.MAP,  false); setButtonVisible('map',  false); applyHudLayout(); }
+
+export function refreshButtonVisibility() {
+  const currentArea = window.currentArea; // Depends on global, fallback handled if necessary
+  
+  // By default, areas allow shop if `isShopUnlocked` is true. But for UC we require `isShopUcUnlocked`.
+  let shopVisible = false;
+  if (currentArea === 2) { // 2 = AREAS.UNDERWATER_CAVERN
+    shopVisible = isShopUcUnlocked();
+  } else {
+    shopVisible = isShopUnlocked();
+  }
+
+  setButtonVisible('shop', shopVisible);
+  setButtonVisible('map', isUnlocked(BASE_KEYS.MAP));
+  applyHudLayout();
+}
