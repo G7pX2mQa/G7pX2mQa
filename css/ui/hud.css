@@ -631,6 +631,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   height: var(--dp-bar-h);
   border: var(--bar-outline-w, var(--dp-bar-outline)) solid var(--bar-border-color, #2a0b00);
   border-radius: 0;
+  background: linear-gradient(180deg, #3a2a1b 0%, #24180d 100%);
   box-shadow: var(--bar-box-shadow, inset 0 6px 10px rgba(255,192,128,0.18), inset 0 -6px 14px rgba(0,0,0,0.52));
   overflow: hidden;
   pointer-events: none;
@@ -640,14 +641,15 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   position: absolute;
   inset: 0;
   width: var(--dp-fill, 0%);
+  background: linear-gradient(180deg, #8f6842 0%, #6f4d2f 45%, #4d341f 100%);
 }
 
 .dp-bar__fill::after{
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--glass-bg, linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0)));
-  opacity: var(--glass-opacity, 0.55);
+  background: var(--glass-bg, linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0)));
+  opacity: var(--glass-opacity, 0.22);
   mix-blend-mode: screen;
 }
 
