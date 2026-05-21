@@ -170,11 +170,9 @@ export function initHudButtons() {
   setButtonVisible('help',  true);
   setButtonVisible('stats', true);
 
-  setButtonVisible('shop', isUnlocked(BASE_KEYS.SHOP));
-  setButtonVisible('map',  isUnlocked(BASE_KEYS.MAP));
   updateShopButtonTamperState();
 
-  applyHudLayout();
+  refreshButtonVisibility();
   
   // Preload Merchant Overlay (Delve screen) during idle time
   // This is a performance optimization to ensure the heavy DOM is ready
@@ -190,10 +188,8 @@ export function initHudButtons() {
     window.addEventListener('resize', applyHudLayout);
     window.addEventListener('orientationchange', applyHudLayout);
     window.addEventListener('saveSlot:change', () => {
-      setButtonVisible('shop', isUnlocked(BASE_KEYS.SHOP));
-      setButtonVisible('map',  isUnlocked(BASE_KEYS.MAP));
       updateShopButtonTamperState();
-      applyHudLayout();
+      refreshButtonVisibility();
     });
     window.addEventListener('saveSlot:modified', (event) => {
       const active = getActiveSlot();
