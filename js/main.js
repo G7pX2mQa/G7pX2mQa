@@ -62,6 +62,7 @@ let refreshCoinMultiplierCache;
 let refreshMpValueMultiplierCache;
 let updateMutationSnapshot;
 let initHudButtons;
+let refreshButtonVisibility;
 let installGhostTapGuard;
 let initGlobalGhostTap;
 let initGlobalOverlayEsc;
@@ -577,6 +578,10 @@ export function enterArea(areaID) {
   if (typeof setSavedArea === 'function') {
     setSavedArea(areaID);
   }
+  if (typeof refreshButtonVisibility === "function") {
+    refreshButtonVisibility();
+  }
+
 
   const menuRoot = document.querySelector('.menu-root');
 
@@ -1206,7 +1211,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ createSpawner } = spawnerModule);
   ({ createUcSpawner } = ucSpawnerModule);
   ({ initCoinPickup, refreshCoinMultiplierCache, refreshMpValueMultiplierCache, updateMutationSnapshot } = coinPickupModule);
-  ({ initHudButtons } = hudButtonsModule);
+  ({ initHudButtons, refreshButtonVisibility } = hudButtonsModule);
   ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults, getActiveSlot, setSavedArea, getSavedArea } = storageModule);
   initScrapHudCounter();
   void saveIntegrityModule;
