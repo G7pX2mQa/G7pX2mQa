@@ -535,7 +535,7 @@ export function openMapOverlay(unlockedNodeId = null) {
                     const nodeBtn = overlay._nodeButtons ? overlay._nodeButtons[unlockedNodeId] : null;
                     
                     if (line) {
-                        const audioInst = playAudio('sounds/area_connector.ogg', { type: 'sfx', volume: 0.5 });
+                        const audioInst = playAudio('sounds/area_connector.ogg', { type: 'sfx', volume: 0.3 });
                         line.style.opacity = '1';
                         line.style.transition = 'stroke-dashoffset 4.5s linear';
                         line.style.strokeDashoffset = '0';
@@ -560,10 +560,8 @@ export function openMapOverlay(unlockedNodeId = null) {
                                 
                                 const label = nodeBtn.btn.querySelector('.map-node-label');
                                 if (label) label.style.display = '';
+                                setMapNodeInteractiveCursor(nodeBtn.btn, false);
                                 
-                                nodeBtn.btn.style.cursor = 'pointer';
-                                
-                                // User requested: "I don't want the pinned button to be visible during or directly after the Map sequence plays anyway."
                                 const pinBtn = nodeBtn.btn.querySelector('.map-node-pin-btn');
                                 if (pinBtn) pinBtn.style.display = 'none';
                             }
