@@ -6,6 +6,7 @@ import { getFlowUnlockState } from './merchantTabs/flowTab.js';
 import { isLabUnlocked, isSurgeActive } from '../game/surgeEffects.js';
 import { getActiveSlot } from '../util/storage.js';
 import { settingsManager } from '../game/settingsManager.js';
+import { isNodeLocked } from './mapOverlay.js';
 
 const HELP_PERMA_UNLOCK_KEY_BASE = 'ccc:help:permaUnlocks';
 const helpPermaUnlockStateCache = new Map();
@@ -202,6 +203,20 @@ const HELP_ENTRIES = [
         try { isVis = !!getFlowUnlockState(); }
         catch { isVis = false; }
         if (isVis) markHelpEntryPermanentlyUnlocked(7);
+        return isVis;
+    }
+  },
+  {
+    id: 8,
+    title: "Cavern",
+    icon: "img/currencies/scrap/scrap.webp",
+    text: "placeholder",
+    isVisible: () => {
+        if (isHelpEntryPermanentlyUnlocked(8)) return true;
+        let isVis = false;
+        try { isVis = !isNodeLocked('cavern', true); }
+        catch { isVis = false; }
+        if (isVis) markHelpEntryPermanentlyUnlocked(8);
         return isVis;
     }
   }
