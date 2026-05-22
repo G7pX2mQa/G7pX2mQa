@@ -60,7 +60,7 @@ export const MERCHANT_DIALOGUES = {
 
       c1c: { type: 'choice', options: [
         { label: 'Yes.',  to: 'm2a' },
-        { label: 'Hmm…',  to: 'm1c' },
+        { label: 'Hmm...',  to: 'm1c' },
         { label: 'Okay.',   to: 'm2b' },
       ]},
 	  
@@ -147,17 +147,17 @@ export const MERCHANT_DIALOGUES = {
       c2b: { type: 'choice', options: [
         { label: 'What?', to: 'm2d' },
         { label: 'Why not?',  to: 'm2c' },
-        { label: '…',     to: 'm3a' },
+        { label: '...',     to: 'm3a' },
       ]},
       c2c: { type: 'choice', options: [
-        { label: '…', to: 'm3a' },
-        { label: '…', to: 'm3a' },
-        { label: '…', to: 'm3a' },
+        { label: '...', to: 'm3a' },
+        { label: '...', to: 'm3a' },
+        { label: '...', to: 'm3a' },
       ]},
 	  c2d: { type: 'choice', options: [
-        { label: '…', to: 'm3b' },
-        { label: '…', to: 'm3b' },
-        { label: '…', to: 'm3b' },
+        { label: '...', to: 'm3b' },
+        { label: '...', to: 'm3b' },
+        { label: '...', to: 'm3b' },
       ]},
 
       m3a: { type: 'line', say: 'Would you like some Books? Free of charge. They will help you accelerate your Coin output.', next: 'c2a' },
@@ -241,15 +241,15 @@ export const MERCHANT_DIALOGUES = {
       m3f: { type: 'line', say: 'Just look at it.', next: 'c3a' },
 
       c3a: { type: 'choice', options: [
-        { label: '…', to: 'm4a' },
-        { label: '…', to: 'm4a' },
-        { label: '…', to: 'm4a' },
+        { label: '...', to: 'm4a' },
+        { label: '...', to: 'm4a' },
+        { label: '...', to: 'm4a' },
       ]},
 	  
 	  c3b: { type: 'choice', options: [
-        { label: '…', to: 'm4b' },
-        { label: '…', to: 'm4b' },
-        { label: '…', to: 'm4b' },
+        { label: '...', to: 'm4b' },
+        { label: '...', to: 'm4b' },
+        { label: '...', to: 'm4b' },
       ]},
 
       m4a: { type: 'line', say: 'Any more questions?', next: 'c4a' },
@@ -266,7 +266,7 @@ export const MERCHANT_DIALOGUES = {
       c5a: { type: 'choice', options: [
         { label: 'Oh, cool, thanks for the free stuff.',      to: 'end' },
         { label: 'Okay, I’ll put this gold to good use.',     to: 'end' },
-        { label: '…',                                         to: 'end' },
+        { label: '...',                                         to: 'end' },
       ]},
     }
   },
@@ -315,7 +315,7 @@ export const MERCHANT_DIALOGUES = {
     c2a: { type: 'choice', options: [
       { label: 'What?', to: 'm3a' },
       { label: 'Can you actually answer my question?', to: 'm3b' },
-      { label: '…', to: 'm6a' },
+      { label: '...', to: 'm6a' },
     ]},
 
     c2b: { type: 'choice', options: [
@@ -355,8 +355,8 @@ export const MERCHANT_DIALOGUES = {
     ]},
 
     c2h: { type: 'choice', options: [
-      { label: '…', to: 'm6a' },
-      { label: '…', to: 'm6a' },
+      { label: '...', to: 'm6a' },
+      { label: '...', to: 'm6a' },
       { label: 'Sorry, I just was in a hurry to get free stuff so I could get back to collecting coins.', to: 'm7a' },
     ]},
 
@@ -374,19 +374,19 @@ export const MERCHANT_DIALOGUES = {
     c3a: { type: 'choice', options: [
       { label: 'No you didn’t.', to: 'm4a' },
       { label: 'Why are you like this?', to: 'm4b' },
-      { label: '…', to: 'm6a' },
+      { label: '...', to: 'm6a' },
     ]},
 
     c3b: { type: 'choice', options: [
-      { label: '3… what?', to: 'm4c' },
+      { label: '3... what?', to: 'm4c' },
       { label: 'Ah, I completely understand.', to: 'm6a' },
       { label: 'Okay.', to: 'm6a' },
     ]},
 
     c3c: { type: 'choice', options: [
-      { label: 'Like…?', to: 'm4d' },
+      { label: 'Like...?', to: 'm4d' },
       { label: 'Understandable.', to: 'm6a' },
-      { label: '…', to: 'm6a' },
+      { label: '...', to: 'm6a' },
     ]},
 
     c3d: { type: 'choice', options: [
@@ -404,7 +404,7 @@ export const MERCHANT_DIALOGUES = {
     c4a: { type: 'choice', options: [
       { label: 'Are you trying to be annoying on purpose?', to: 'm5b' },
       { label: 'You’re not being helpful.', to: 'm5a' },
-      { label: 'Nothing, nevermind…', to: 'm6a' },
+      { label: 'Nothing, nevermind...', to: 'm6a' },
     ]},
 
     c4b: { type: 'choice', options: [
@@ -417,9 +417,9 @@ export const MERCHANT_DIALOGUES = {
 	m5b: { type: 'line', say: 'No.', next: 'c5a' },
 
     c5a: { type: 'choice', options: [
-      { label: '…', to: 'm6a' },
-      { label: '…', to: 'm6a' },
-      { label: '…', to: 'm6a' },
+      { label: '...', to: 'm6a' },
+      { label: '...', to: 'm6a' },
+      { label: '...', to: 'm6a' },
     ]},
 
     m6a: { type: 'line', say: 'Anything else you’d like to know?', next: 'c6a' },
@@ -440,9 +440,9 @@ export const MERCHANT_DIALOGUES = {
     ]},
 
     c7b: { type: 'choice', options: [
-      { label: '…', to: 'end_nr' },
-      { label: '…', to: 'end_nr' },
-      { label: '…', to: 'end_nr' },
+      { label: '...', to: 'end_nr' },
+      { label: '...', to: 'end_nr' },
+      { label: '...', to: 'end_nr' },
     ]},
     }
   },
