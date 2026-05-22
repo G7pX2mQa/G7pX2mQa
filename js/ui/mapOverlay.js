@@ -2,6 +2,7 @@ import { playAudio } from '../util/audioManager.js';
 import { getActiveSlot } from '../util/storage.js';
 import { setupDragToClose, blockInteraction } from './shopOverlay.js';
 import { checkAchievements, showDelayedAchievementNotifications } from '../game/achievements.js';
+import { showDelayedGoalNotifications } from './gameProgressBar.js';
 import { IS_MOBILE, currentArea, AREAS, enterArea } from '../main.js';
 import { getCurrentSurgeLevel } from './merchantTabs/resetTab.js';
 
@@ -545,6 +546,7 @@ export function openMapOverlay(unlockedNodeId = null) {
                             
                             try {
                                 checkAchievements();
+                                showDelayedGoalNotifications();
                                 showDelayedAchievementNotifications();
                             } catch (e) {
                                 console.error(e);
@@ -555,6 +557,7 @@ export function openMapOverlay(unlockedNodeId = null) {
                         
                         try {
                             checkAchievements();
+                            showDelayedGoalNotifications();
                             showDelayedAchievementNotifications();
                         } catch (e) {
                             console.error(e);
