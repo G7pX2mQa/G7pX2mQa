@@ -7,8 +7,9 @@ import { IS_MOBILE } from '../../main.js';
 import { playAudio } from '../../util/audioManager.js';
 import { MYSTERIOUS_ICON_SRC, HIDDEN_DIALOGUE_TITLE, LOCKED_DIALOGUE_TITLE, DEFAULT_MYSTERIOUS_BLURB, DEFAULT_LOCKED_BLURB, DEFAULT_LOCK_MESSAGE, DIALOGUE_STATUS_ORDER, HAS_POINTER_EVENTS, HAS_TOUCH_EVENTS, bindRapidActivation, primeTypingSfx, startTypingSfx, stopTypingSfx, typeText, DialogueEngine, openDialogueLockInfo, injectScrollTimelineStyles, ensureMerchantScrollbar, setDelveElements, openDelveOverlay } from '../delveCore.js';
 
-const MINER_ICON_SRC = 'img/misc/mysterious.webp';
+const MINER_ICON_SRC = 'img/misc/miner.webp';
 const MINER_MET_KEY_BASE = 'ccc:minerMet';
+export const MINER_MET_EVENT = 'ccc:miner:met';
 
 const sk = (base) => base + ':' + getActiveSlot();
 
@@ -82,7 +83,24 @@ function ensureMinerOverlay() {
     closeBtn.textContent = 'Close';
     actions.appendChild(closeBtn);
 
-    minerSheetEl.append(grabber, header, content, actions);
+        // First-time chat overlay
+    const firstChat = document.createElement('div');
+    firstChat.className = 'merchant-firstchat merchant-firstchat--initial';
+    firstChat.innerHTML = `
+        <div class="merchant-firstchat__card" role="dialog" aria-label="First chat">
+        <div class="merchant-firstchat__header">
+          <div class="name">Miner</div>
+          <div class="rule" aria-hidden="true"></div>
+        </div>
+        <div class="merchant-firstchat__row">
+          <img class="merchant-firstchat__icon" src="${MINER_ICON_SRC}" alt="">
+          <div class="merchant-firstchat__text" id="miner-first-line">…</div>
+        </div>
+        <div class="merchant-firstchat__choices" id="miner-first-choices"></div>
+        </div>
+    `;
+
+    minerSheetEl.append(grabber, header, content, actions, firstChat);
     minerOverlayEl.appendChild(minerSheetEl);
     document.body.appendChild(minerOverlayEl);
 
@@ -95,6 +113,55 @@ function ensureMinerOverlay() {
 
     closeBtn.addEventListener('click', closeMiner);
     ensureMerchantScrollbar('.merchant-content');
+}
+
+function runFirstMeet() {
+  const fc = minerOverlayEl.querySelector('.merchant-firstchat');
+  const textEl = fc.querySelector('#miner-first-line');
+  const rowEl  = fc.querySelector('.merchant-firstchat__row');
+  const cardEl = fc.querySelector('.merchant-firstchat__card');
+  const choicesEl = fc.querySelector('#miner-first-choices');
+
+  const engine = new DialogueEngine({
+      textEl,
+      choicesEl,
+      skipTargets: [textEl, rowEl, cardEl],
+      onEnd: () => {
+      try { localStorage.setItem(sk(MINER_MET_KEY_BASE), '1'); } catch {}
+      try { window.dispatchEvent(new Event(MINER_MET_EVENT)); } catch {}
+      fc.classList.remove('is-visible');
+      minerOverlayEl.classList.remove('firstchat-active');
+      }
+  });
+
+  engine.load(MINER_DIALOGUES[0]);
+  engine.start();
+}
+
+function resetFirstChatOverlayState() {
+  if (!minerOverlayEl) return;
+  const fc = minerOverlayEl.querySelector('.merchant-firstchat--initial');
+  if (!fc) return;
+
+  fc.classList.remove('is-visible');
+
+  const textEl = fc.querySelector('#miner-first-line');
+  if (textEl) {
+      textEl.classList.remove('is-typing');
+      textEl.textContent = '…';
+  }
+
+  const choicesEl = fc.querySelector('#miner-first-choices');
+  if (choicesEl) {
+      choicesEl.classList.remove('is-visible');
+      choicesEl.style.opacity = '0';
+      choicesEl.style.transform = 'translateY(6px)';
+      choicesEl.style.pointerEvents = 'none';
+      choicesEl.style.minHeight = '';
+      choicesEl.innerHTML = '';
+  }
+
+  minerOverlayEl.classList.remove('firstchat-active');
 }
 
 function renderDialogueList() {
@@ -131,12 +198,37 @@ export function openMiner() {
   setDelveElements(minerOverlayEl, minerSheetEl);
     
     renderDialogueList();
+
+    let met = false;
+    try {
+        met = localStorage.getItem(sk(MINER_MET_KEY_BASE)) === '1';
+    } catch {
+        met = false;
+    }
+
+    if (!met) {
+        minerOverlayEl.classList.add('firstchat-instant');
+    }
+
+    // Ensure no orphaned audio
+    stopTypingSfx();
+
+    if (!met) {
+        const fc = minerOverlayEl.querySelector('.merchant-firstchat');
+        fc?.classList.add('is-visible');
+        minerOverlayEl.classList.add('firstchat-active');
+        runFirstMeet();
+    }
     
     openDelveOverlay(minerOverlayEl, minerSheetEl);
 
-    try {
-        localStorage.setItem(sk(MINER_MET_KEY_BASE), '1');
-    } catch {}
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            if (minerOverlayEl.classList.contains('firstchat-instant')) {
+                minerSheetEl.style.transition = 'none';
+            }
+        });
+    });
     
     updateShopOverlay(true);
 }
@@ -144,6 +236,13 @@ export function openMiner() {
 export function closeMiner() {
     if (minerOverlayEl) {
         minerOverlayEl.classList.remove('is-open');
+        minerOverlayEl.classList.remove('firstchat-instant');
+        resetFirstChatOverlayState();
         minerOverlayEl.setAttribute('inert', '');
+        
+        minerSheetEl.style.transition = '';
+        minerSheetEl.style.transform = '';
+        
+        stopTypingSfx();
     }
 }
