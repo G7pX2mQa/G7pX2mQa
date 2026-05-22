@@ -208,7 +208,7 @@ const HELP_ENTRIES = [
   },
   {
     id: 8,
-    title: "Cavern",
+    title: "UC (Area 2)",
     icon: "img/currencies/scrap/scrap.webp",
     text: "placeholder",
     isVisible: () => {
