@@ -723,3 +723,21 @@ const doCloseFromBtn = (e) => {
 
   closeBtn.focus?.();
 }
+
+
+export function openDelveOverlay(overlayEl, sheetEl) {
+    if (!overlayEl || !sheetEl) return;
+    
+    sheetEl.style.transition = 'none';
+    sheetEl.style.transform = '';
+    overlayEl.removeAttribute('inert');
+
+    void sheetEl.offsetHeight;
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            sheetEl.style.transition = '';
+            overlayEl.classList.add('is-open');
+            blockInteraction(140);
+        });
+    });
+}
