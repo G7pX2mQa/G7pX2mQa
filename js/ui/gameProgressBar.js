@@ -179,6 +179,46 @@ const GOALS = [
       if (typeof level === 'number') return level >= 20;
       return false;
     }
+  },
+  {
+    id: 8,
+    text: 'Reach Surge Milestone 125',
+    icon: 'img/currencies/scrap/scrap.webp',
+    unlocksHelpText: true,
+    mode: GOAL_MODE.NORMAL,
+    start: 0,
+    target: 125,
+    getCurrent: () => {
+      let level = getCurrentSurgeLevel();
+      if (typeof level === 'bigint') return Number(level);
+      if (typeof level === 'number') return level;
+      if (level === Infinity || level === 'Infinity') return 125;
+      return 0;
+    },
+    isComplete: () => {
+      let level = getCurrentSurgeLevel();
+      if (level === Infinity || level === 'Infinity') return true;
+      if (typeof level === 'bigint') return level >= 125n;
+      if (typeof level === 'number') return level >= 125;
+      return false;
+    }
+  },
+  {
+    id: 9,
+    text: 'Collect 10 Materials',
+    icon: 'img/materials/stone.webp',
+    mode: GOAL_MODE.NORMAL,
+    start: 0,
+    target: 10,
+    getCurrent: () => {
+      const slot = getActiveSlot();
+      const progressRaw = localStorage.getItem(`ccc:unlock:shop:uc:progress:${slot}`);
+      return parseInt(progressRaw || '0', 10);
+    },
+    isComplete: () => {
+      const slot = getActiveSlot();
+      return localStorage.getItem(`ccc:unlock:shop:uc:${slot}`) === '1';
+    }
   }
 ];
 
@@ -233,7 +273,10 @@ export function updateGameProgressBar() {
           notifText += '<br><span class="notification-subtext">New help text unlocked</span>';
         }
 
-        if (typeof window !== 'undefined' && window.__tsunamiActive) {
+        const shouldDelayForTsunami = goal.id !== 8 && window.__tsunamiActive;
+        const shouldDelayForMap = goal.id === 8 && window.__mapSequenceActive;
+
+        if (typeof window !== 'undefined' && (shouldDelayForTsunami || shouldDelayForMap)) {
           window.__delayedGoalNotifications = window.__delayedGoalNotifications || [];
           // Avoid pushing duplicates
           if (!window.__delayedGoalNotifications.some(n => n.id === goal.id)) {
