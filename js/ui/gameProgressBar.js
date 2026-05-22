@@ -225,8 +225,11 @@ const GOALS = [
 export function showDelayedGoalNotifications() {
   if (typeof window === 'undefined') return;
   if (window.__delayedGoalNotifications && window.__delayedGoalNotifications.length > 0) {
+      const showProgress = settingsManager.get('game_progress_bar');
       for (const notif of window.__delayedGoalNotifications) {
-          showNotification(notif.text, notif.icon);
+          if (showProgress) {
+              showNotification(notif.text, notif.icon);
+          }
           localStorage.setItem(notif.notifKey, '1');
       }
       window.__delayedGoalNotifications = [];
@@ -273,18 +276,22 @@ export function updateGameProgressBar() {
           notifText += '<br><span class="notification-subtext">New help text unlocked</span>';
         }
 
-        const shouldDelayForTsunami = goal.id !== 8 && window.__tsunamiActive;
-        const shouldDelayForMap = goal.id === 8 && window.__mapSequenceActive;
-
-        if (typeof window !== 'undefined' && (shouldDelayForTsunami || shouldDelayForMap)) {
-          window.__delayedGoalNotifications = window.__delayedGoalNotifications || [];
-          // Avoid pushing duplicates
-          if (!window.__delayedGoalNotifications.some(n => n.id === goal.id)) {
-            window.__delayedGoalNotifications.push({ id: goal.id, text: notifText, icon: goal.icon, notifKey });
-          }
-        } else {
-          showNotification(notifText, goal.icon);
+        if (!settingsManager.get('game_progress_bar')) {
           localStorage.setItem(notifKey, '1');
+        } else {
+          const shouldDelayForTsunami = goal.id !== 8 && window.__tsunamiActive;
+          const shouldDelayForMap = goal.id === 8 && window.__mapSequenceActive;
+
+          if (typeof window !== 'undefined' && (shouldDelayForTsunami || shouldDelayForMap)) {
+            window.__delayedGoalNotifications = window.__delayedGoalNotifications || [];
+            // Avoid pushing duplicates
+            if (!window.__delayedGoalNotifications.some(n => n.id === goal.id)) {
+              window.__delayedGoalNotifications.push({ id: goal.id, text: notifText, icon: goal.icon, notifKey });
+            }
+          } else {
+            showNotification(notifText, goal.icon);
+            localStorage.setItem(notifKey, '1');
+          }
         }
       }
     } else {
