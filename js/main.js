@@ -215,68 +215,57 @@ export let currentArea = AREAS.MENU;
 window.currentArea = currentArea;
 let globalCursorTrail = null;
 
-window.isDummyPulseLoading = false;
-let dummyPulseRaf = null;
-let dummyPulseDiv = null;
-let dummyPulseCtx = null;
+let fpsUnlockerRaf = null;
+let fpsUnlockerCanvas = null;
+let fpsUnlockerCtx = null;
+let fpsUnlockerIsActive = false;
 
-function startDummyPulse() {
-    if (dummyPulseRaf !== null) {
-        cancelAnimationFrame(dummyPulseRaf);
-        dummyPulseRaf = null;
-    }
-
-    if (!dummyPulseDiv) {
-        dummyPulseDiv = document.createElement('canvas');
-        // Chromium heuristics for high refresh rate usually require a large enough surface
-        // And it must be visible in the viewport and not have opacity exactly 0 or display:none
-        dummyPulseDiv.width = 300;
-        dummyPulseDiv.height = 300;
-        Object.assign(dummyPulseDiv.style, {
-            position: 'fixed',
-            top: '0',
-            left: '0',
-            width: '300px',
-            height: '300px',
-            pointerEvents: 'none',
-            opacity: '0.001',
-            zIndex: '-9999',
-            // transform: 'translateZ(0)' // forces hardware acceleration
-            transform: 'translateZ(0)'
-        });
-        dummyPulseCtx = dummyPulseDiv.getContext('webgl', { alpha: true, desynchronized: true }) || dummyPulseDiv.getContext('2d');
-        document.body.appendChild(dummyPulseDiv);
-    }
-
-    function dummyPulseFrame() {
-        if ((currentArea == null || currentArea === AREAS.MENU) && !window.isDummyPulseLoading) {
-            if (dummyPulseDiv && dummyPulseDiv.parentNode) {
-                dummyPulseDiv.parentNode.removeChild(dummyPulseDiv);
-                dummyPulseDiv = null;
-                dummyPulseCtx = null;
-            }
-            dummyPulseRaf = null;
-            return;
-        }
-
-        if (dummyPulseDiv && dummyPulseCtx) {
-            // Chrome will throttle if the exact same pixels are drawn or if transform doesn't change
-            // So we slightly mutate the transform Z
-            dummyPulseDiv.style.transform = `translateZ(${Math.random() > 0.5 ? 0.01 : 0}px)`;
-            
-            if (dummyPulseCtx.clear) { // webgl
-                // Clear with slightly different colors
-                dummyPulseCtx.clearColor(0, 0, 0, Math.random() > 0.5 ? 0.01 : 0.02);
-                dummyPulseCtx.clear(dummyPulseCtx.COLOR_BUFFER_BIT);
-            } else {
-                dummyPulseCtx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.01)' : 'rgba(0,0,0,0.02)';
-                dummyPulseCtx.fillRect(0, 0, 300, 300);
+export function setFpsUnlockerActive(active) {
+    fpsUnlockerIsActive = active;
+    if (active) {
+        if (!fpsUnlockerCanvas) {
+            fpsUnlockerCanvas = document.createElement('canvas');
+            fpsUnlockerCanvas.width = 300;
+            fpsUnlockerCanvas.height = 300;
+            Object.assign(fpsUnlockerCanvas.style, {
+                position: 'fixed',
+                top: '0',
+                left: '0',
+                width: '300px',
+                height: '300px',
+                pointerEvents: 'none',
+                opacity: '0.01',
+                zIndex: '999999',
+            });
+            fpsUnlockerCtx = fpsUnlockerCanvas.getContext('webgl', { alpha: true, desynchronized: true });
+            if (fpsUnlockerCtx) {
+                document.body.appendChild(fpsUnlockerCanvas);
             }
         }
-        dummyPulseRaf = requestAnimationFrame(dummyPulseFrame);
+        if (!fpsUnlockerRaf) {
+            fpsUnlockerFrame();
+        }
+    } else {
+        if (fpsUnlockerRaf) {
+            cancelAnimationFrame(fpsUnlockerRaf);
+            fpsUnlockerRaf = null;
+        }
+        if (fpsUnlockerCanvas && fpsUnlockerCanvas.parentNode) {
+            fpsUnlockerCanvas.parentNode.removeChild(fpsUnlockerCanvas);
+            fpsUnlockerCanvas = null;
+            fpsUnlockerCtx = null;
+        }
     }
-    dummyPulseRaf = requestAnimationFrame(dummyPulseFrame);
 }
+
+function fpsUnlockerFrame() {
+    if (!fpsUnlockerIsActive || !fpsUnlockerCtx) return;
+    fpsUnlockerCtx.clearColor(0, 0, 0, Math.random() > 0.5 ? 0.01 : 0.02);
+    fpsUnlockerCtx.clear(fpsUnlockerCtx.COLOR_BUFFER_BIT);
+    fpsUnlockerRaf = requestAnimationFrame(fpsUnlockerFrame);
+}
+
+
 let currentMusic = null;
 let spawner = null;
 let ucSpawner = null;
@@ -591,11 +580,6 @@ export function enterArea(areaID) {
   const menuRoot = document.querySelector('.menu-root');
 
   if (areaID !== AREAS.MENU) {
-      if (dummyPulseRaf !== null) {
-          cancelAnimationFrame(dummyPulseRaf);
-          dummyPulseRaf = null;
-      }
-      startDummyPulse();
       if (menuRoot) {
         menuRoot.style.display = 'none';
       }
@@ -742,6 +726,7 @@ export function enterArea(areaID) {
     }
   switch (areaID) {
     case AREAS.STARTER_COVE: {
+      setFpsUnlockerActive(false);
       const materialsLayer = document.getElementById('materials-layer');
       if (materialsLayer) materialsLayer.style.display = 'none';
       const coinsLayer = document.getElementById('coins-layer');
@@ -834,6 +819,7 @@ export function enterArea(areaID) {
     }
 
     case AREAS.UNDERWATER_CAVERN: {
+      setFpsUnlockerActive(true);
       const materialsLayer = document.getElementById('materials-layer');
       if (materialsLayer) materialsLayer.style.display = '';
       const coinsLayer = document.getElementById('coins-layer');
@@ -887,6 +873,7 @@ export function enterArea(areaID) {
     }
 
     case AREAS.MENU: {
+      setFpsUnlockerActive(false);
       if (menuRoot) {
         menuRoot.style.display = '';
         menuRoot.removeAttribute('aria-hidden');
@@ -1267,13 +1254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (!hidden && currentArea !== AREAS.MENU) {
-      if (dummyPulseRaf !== null) {
-        cancelAnimationFrame(dummyPulseRaf);
-        dummyPulseRaf = null;
-      }
-      
-      const unused = document.body.offsetHeight; // force layout refresh
-      startDummyPulse();
+      if (currentArea === AREAS.UNDERWATER_CAVERN) setFpsUnlockerActive(true);
     }
   });
 
@@ -1389,8 +1370,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (titleEl) titleEl.style.opacity = '0';
 
     const loader = showLoader('Loading game...');
-    window.isDummyPulseLoading = true;
-    startDummyPulse();
+    setFpsUnlockerActive(true);
     const stepDelay = () => new Promise(r => setTimeout(r, 120));
 
     // Milestone 1: Multipliers
@@ -1437,13 +1417,13 @@ Normal gameplay is unaffected unless you choose to modify values.`);
     setLoaderProgress(loader, 1);
 
     finishAndHideLoader(loader, () => {
-      window.isDummyPulseLoading = false;
-      startDummyPulse(); // start a 1s pulse after loading
       let areaToLoad = AREAS.STARTER_COVE;
       if (typeof getSavedArea === 'function') {
         const saved = getSavedArea();
         if (saved != null) areaToLoad = saved;
       }
+      setFpsUnlockerActive(areaToLoad === AREAS.UNDERWATER_CAVERN);
+
       enterAreaFromSaveSlot(areaToLoad);
       setTimeout(() => {
         if (areaToLoad === AREAS.STARTER_COVE && window.spawner && typeof window.spawner.playEntranceWave === 'function') {
