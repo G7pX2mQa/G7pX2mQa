@@ -2,7 +2,7 @@
 let merchantOverlayEl = null;
 let merchantSheetEl = null;
 
-import { __isTypingActive, activeTypingAudio, TYPING_SFX_SRC, setDelveElements, setTypingActive, setActiveTypingAudio } from '../delveCore.js';
+import { __isTypingActive, activeTypingAudio, TYPING_SFX_SRC, setDelveElements, setTypingActive, setActiveTypingAudio, openDelveOverlay } from '../delveCore.js';
 import { 
   bank,
   getActiveSlot,
@@ -1746,22 +1746,14 @@ export function openMerchant() {
     runFirstMeet();
   }
 
-  // Reset transform and transition
-  merchantSheetEl.style.transition = 'none';
-  merchantSheetEl.style.transform = '';
-  merchantOverlayEl.removeAttribute('inert');
+  // Reset transform and transition and apply the standard Delve logic
+  openDelveOverlay(merchantOverlayEl, merchantSheetEl);
 
-  // Animate in next frame
-  void merchantSheetEl.offsetHeight;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      // Only restore the sheet transition for normal opens
-      if (!merchantOverlayEl.classList.contains('firstchat-instant')) {
-      merchantSheetEl.style.transition = '';
+      if (merchantOverlayEl.classList.contains('firstchat-instant')) {
+          merchantSheetEl.style.transition = 'none';
       }
-
-      merchantOverlayEl.classList.add('is-open');
-      blockInteraction(140);
 
       if (merchantCloseBtn && typeof merchantCloseBtn.focus === 'function') {
       try { merchantCloseBtn.focus({ preventScroll: true }); } catch {}
