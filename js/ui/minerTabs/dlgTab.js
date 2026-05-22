@@ -5,7 +5,7 @@ import { blockInteraction, updateShopOverlay, closeDelveSpecificOverlays } from 
 import { shouldSkipGhostTap, suppressNextGhostTap } from '../../util/ghostTapGuard.js';
 import { IS_MOBILE } from '../../main.js';
 import { playAudio } from '../../util/audioManager.js';
-import { MYSTERIOUS_ICON_SRC, HIDDEN_DIALOGUE_TITLE, LOCKED_DIALOGUE_TITLE, DEFAULT_MYSTERIOUS_BLURB, DEFAULT_LOCKED_BLURB, DEFAULT_LOCK_MESSAGE, DIALOGUE_STATUS_ORDER, HAS_POINTER_EVENTS, HAS_TOUCH_EVENTS, bindRapidActivation, primeTypingSfx, startTypingSfx, stopTypingSfx, typeText, DialogueEngine, openDialogueLockInfo, injectScrollTimelineStyles, ensureMerchantScrollbar, setDelveElements } from '../delveCore.js';
+import { MYSTERIOUS_ICON_SRC, HIDDEN_DIALOGUE_TITLE, LOCKED_DIALOGUE_TITLE, DEFAULT_MYSTERIOUS_BLURB, DEFAULT_LOCKED_BLURB, DEFAULT_LOCK_MESSAGE, DIALOGUE_STATUS_ORDER, HAS_POINTER_EVENTS, HAS_TOUCH_EVENTS, bindRapidActivation, primeTypingSfx, startTypingSfx, stopTypingSfx, typeText, DialogueEngine, openDialogueLockInfo, injectScrollTimelineStyles, ensureMerchantScrollbar, setDelveElements, openDelveOverlay } from '../delveCore.js';
 
 const MINER_ICON_SRC = 'img/misc/mysterious.webp';
 const MINER_MET_KEY_BASE = 'ccc:minerMet';
@@ -132,8 +132,7 @@ export function openMiner() {
     
     renderDialogueList();
     
-    minerOverlayEl.removeAttribute('inert');
-    minerOverlayEl.classList.add('is-open');
+    openDelveOverlay(minerOverlayEl, minerSheetEl);
 
     try {
         localStorage.setItem(sk(MINER_MET_KEY_BASE), '1');
