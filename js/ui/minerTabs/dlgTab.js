@@ -94,7 +94,7 @@ function ensureMinerOverlay() {
         </div>
         <div class="merchant-firstchat__row">
           <img class="merchant-firstchat__icon" src="${MINER_ICON_SRC}" alt="">
-          <div class="merchant-firstchat__text" id="miner-first-line">…</div>
+          <div class="merchant-firstchat__text" id="miner-first-line">...</div>
         </div>
         <div class="merchant-firstchat__choices" id="miner-first-choices"></div>
         </div>
@@ -148,7 +148,7 @@ function resetFirstChatOverlayState() {
   const textEl = fc.querySelector('#miner-first-line');
   if (textEl) {
       textEl.classList.remove('is-typing');
-      textEl.textContent = '…';
+      textEl.textContent = '...';
   }
 
   const choicesEl = fc.querySelector('#miner-first-choices');
