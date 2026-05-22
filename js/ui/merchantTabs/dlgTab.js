@@ -780,7 +780,7 @@ function openDialogueModal(id, meta) {
       </div>
       <div class="merchant-firstchat__row">
         <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
-        <div class="merchant-firstchat__text">…</div>
+        <div class="merchant-firstchat__text">...</div>
       </div>
       <div class="merchant-firstchat__choices"></div>
       </div>
@@ -1063,7 +1063,7 @@ function ensureMerchantOverlay() {
       </div>
       <div class="merchant-firstchat__row">
         <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
-        <div class="merchant-firstchat__text" id="merchant-first-line">…</div>
+        <div class="merchant-firstchat__text" id="merchant-first-line">...</div>
       </div>
       <div class="merchant-firstchat__choices" id="merchant-first-choices"></div>
       </div>
@@ -1502,24 +1502,24 @@ function startConversation(id, meta) {
       onEnd: (info) => {
       setMusicUnderwater(false);
       if (info && info.exploded) {
-        textEl.textContent = '…';
+        textEl.textContent = '...';
         renderDialogueList();
         playDialogueExplosion();
         return;
       }
       if (info && info.noReward) {
-        textEl.textContent = '…';
+        textEl.textContent = '...';
         renderDialogueList();
         return;
       }
       if (info && info.startBossFight) {
-        textEl.textContent = '…';
+        textEl.textContent = '...';
         renderDialogueList();
         startBossFightSequence();
         return;
       }
       completeDialogueOnce(id, meta);
-	textEl.textContent = '…';
+	textEl.textContent = '...';
 	renderDialogueList();
 	}
   });
@@ -1668,7 +1668,7 @@ function resetFirstChatOverlayState() {
   const textEl = fc.querySelector('#merchant-first-line');
   if (textEl) {
       textEl.classList.remove('is-typing');
-      textEl.textContent = '…';
+      textEl.textContent = '...';
   }
 
   const choicesEl = fc.querySelector('#merchant-first-choices');
@@ -1972,15 +1972,15 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
   const scriptPart1 = {
     start: 'n1',
     nodes: {
-      'n1': { type: 'line', say: 'O Great Tsunami…', next: 'c1' },
+      'n1': { type: 'line', say: 'O Great Tsunami...', next: 'c1' },
       'c1': { type: 'choice', options: [{ label: '...', to: 'n2' }] },
-      'n2': { type: 'line', say: 'Cover this Cove in your wet embrace…', next: 'c2' },
+      'n2': { type: 'line', say: 'Cover this Cove in your wet embrace...', next: 'c2' },
       'c2': { type: 'choice', options: [{ label: '...', to: 'n3' }] },
-      'n3': { type: 'line', say: 'We have thirsted for far too long…', next: 'c3' },
+      'n3': { type: 'line', say: 'We have thirsted for far too long...', next: 'c3' },
       'c3': { type: 'choice', options: [{ label: '...', to: 'n4' }] },
-      'n4': { type: 'line', say: 'Awaken what once was lost…', next: 'c4' },
+      'n4': { type: 'line', say: 'Awaken what once was lost...', next: 'c4' },
       'c4': { type: 'choice', options: [{ label: '...', to: 'n5' }] },
-      'n5': { type: 'line', say: 'You will have my deepest gratitude…', next: 'c5' },
+      'n5': { type: 'line', say: 'You will have my deepest gratitude...', next: 'c5' },
       'c5': { type: 'choice', options: [{ label: '...', to: 'end' }] },
     }
   };
@@ -1999,7 +1999,7 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
       </div>
       <div class="merchant-firstchat__row">
         <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
-        <div class="merchant-firstchat__text" id="tsunami-dlg-line" style="user-select: none; -webkit-user-select: none;">…</div>
+        <div class="merchant-firstchat__text" id="tsunami-dlg-line" style="user-select: none; -webkit-user-select: none;">...</div>
       </div>
       <div class="merchant-firstchat__choices" id="tsunami-dlg-choices"></div>
     </div>
@@ -2061,7 +2061,7 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
           </div>
           <div class="merchant-firstchat__row">
             <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
-            <div class="merchant-firstchat__text" id="tsunami-dlg-line-2" style="user-select: none; -webkit-user-select: none;">…</div>
+            <div class="merchant-firstchat__text" id="tsunami-dlg-line-2" style="user-select: none; -webkit-user-select: none;">...</div>
           </div>
           <div class="merchant-firstchat__choices" id="tsunami-dlg-choices-2"></div>
         </div>
@@ -2145,7 +2145,7 @@ export function runLabIntroDialogue() {
         </div>
         <div class="merchant-firstchat__row">
           <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
-          <div class="merchant-firstchat__text" id="lab-intro-line" style="user-select: none; -webkit-user-select: none;">…</div>
+          <div class="merchant-firstchat__text" id="lab-intro-line" style="user-select: none; -webkit-user-select: none;">...</div>
         </div>
         <div class="merchant-firstchat__choices" id="lab-intro-choices"></div>
       </div>
@@ -2211,7 +2211,7 @@ export function runPostTsunamiShopDialogue(onComplete) {
         </div>
         <div class="merchant-firstchat__row">
           <img class="merchant-firstchat__icon" src="${MERCHANT_ICON_SRC}" alt="">
-          <div class="merchant-firstchat__text" id="post-tsunami-line" style="user-select: none; -webkit-user-select: none;">…</div>
+          <div class="merchant-firstchat__text" id="post-tsunami-line" style="user-select: none; -webkit-user-select: none;">...</div>
         </div>
         <div class="merchant-firstchat__choices" id="post-tsunami-choices"></div>
       </div>
