@@ -112,7 +112,7 @@ export class DialogueEngine {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'choice';
-      btn.textContent = opt.label;
+      btn.innerHTML = opt.label;
       const unbind = bindRapidActivation(btn, async (event) => {
         event?.stopPropagation?.();
         this.onChoice?.(this.current, opt);
