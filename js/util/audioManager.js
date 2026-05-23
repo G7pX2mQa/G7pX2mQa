@@ -5,6 +5,8 @@ let audioContext = null;
 let masterGain = null;
 let musicGain = null;
 let musicFilter = null;
+let sfxGain = null;
+let sfxFilter = null;
 
 const buffers = new Map();
 const loadPromises = new Map();
@@ -34,6 +36,17 @@ function getAudioContext() {
   musicFilter.frequency.value = 22050; // Open by default
   musicFilter.Q.value = 1; // Slight resonance or neutral
   musicFilter.connect(musicGain);
+
+  // SFX Pipeline: Source -> Filter -> SFXGain -> MasterGain
+  sfxGain = audioContext.createGain();
+  sfxGain.gain.value = 1.0;
+  sfxGain.connect(masterGain);
+
+  sfxFilter = audioContext.createBiquadFilter();
+  sfxFilter.type = "lowpass";
+  sfxFilter.frequency.value = 22050; // Open by default
+  sfxFilter.Q.value = 1; // Slight resonance or neutral
+  sfxFilter.connect(sfxGain);
   
   return audioContext;
 }
@@ -135,6 +148,8 @@ export function playAudio(src, { volume = 1.0, detune = 0, playbackRate = 1.0, l
         // Routing logic
         if (type === 'music') {
             gainNode.connect(musicFilter);
+        } else if (type === "sfx") {
+            gainNode.connect(sfxFilter);
         } else {
             gainNode.connect(masterGain);
         }
@@ -208,21 +223,21 @@ export function setMusicVolume(volumePercentage) {
     }
 }
 
-export function setMusicUnderwater(underwater) {
-    if (!musicFilter) return;
-    
-    // Instant transition as requested
+export function setAudioUnderwater(underwater) {
+    if (!musicFilter && !sfxFilter) return;
     const frequency = underwater ? 600 : 22050;
-    
-    // We can use setTargetAtTime for a tiny micro-fade to avoid pops, or just set value.
-    // Given "Instant", setting value directly or with a tiny time constant is best.
-    // 0 time constant is effectively instant.
-    
     try {
         const now = audioContext.currentTime;
-        musicFilter.frequency.cancelScheduledValues(now);
-        musicFilter.frequency.setValueAtTime(frequency, now);
+        if (musicFilter) {
+            musicFilter.frequency.cancelScheduledValues(now);
+            musicFilter.frequency.setValueAtTime(frequency, now);
+        }
+        if (sfxFilter) {
+            sfxFilter.frequency.cancelScheduledValues(now);
+            sfxFilter.frequency.setValueAtTime(frequency, now);
+        }
     } catch {
-        musicFilter.frequency.value = frequency;
+        if (musicFilter) musicFilter.frequency.value = frequency;
+        if (sfxFilter) sfxFilter.frequency.value = frequency;
     }
 }
