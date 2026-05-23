@@ -782,6 +782,10 @@ function getGameStatMultiplier(statKey) {
                 return BigNum.fromAny(eff.coinsPerSecondMult);
             }
         } else if (statKey === 'materialSpawnRate') {
+            const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
+            if (eff?.materialSpawnRateMult) {
+                return BigNum.fromAny(0.2 * eff.materialSpawnRateMult);
+            }
             return BigNum.fromAny(0.2);
         }
         else if (statKey === 'rp') {
