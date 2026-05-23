@@ -260,6 +260,14 @@ export function setFpsUnlockerActive(active) {
 
 function fpsUnlockerFrame() {
     if (!fpsUnlockerIsActive || !fpsUnlockerCtx) return;
+    
+    if (fpsUnlockerCtx.isContextLost()) {
+        console.log("fpsUnlocker context lost, recreating...");
+        setFpsUnlockerActive(false);
+        setFpsUnlockerActive(true);
+        return;
+    }
+    
     fpsUnlockerCtx.clearColor(0, 0, 0, 0);
     fpsUnlockerCtx.clear(fpsUnlockerCtx.COLOR_BUFFER_BIT);
     fpsUnlockerRaf = requestAnimationFrame(fpsUnlockerFrame);
@@ -1254,8 +1262,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    if (!hidden && currentArea !== AREAS.MENU) {
-      if (currentArea === AREAS.UNDERWATER_CAVERN) setFpsUnlockerActive(true);
+        if (!hidden && currentArea !== AREAS.MENU) {
+      if (currentArea === AREAS.UNDERWATER_CAVERN) {
+          setFpsUnlockerActive(false);
+          setFpsUnlockerActive(true);
+      }
     }
   });
 
