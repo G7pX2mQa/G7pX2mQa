@@ -1075,6 +1075,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'img/stats/xp/xp.webp',
     'img/stats/xp/xp_base.webp',
     'img/stats/xp/xp_plus_base.webp',
+	'img/uc_upg_icons/faster_materials.webp',
     'img/waterwheels/waterwheel_coin.webp',
     'img/waterwheels/waterwheel_gold.webp',
     'img/waterwheels/waterwheel_magic.webp',
