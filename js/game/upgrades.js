@@ -167,6 +167,7 @@ function sanitizeStoredLevelValue(raw, { allowEmpty = false } = {}) {
 
 
 export const UPGRADE_TIES = {
+  FASTER_MATERIALS: 'scrap_1',
   FASTER_COINS: 'coin_1',
   UNLOCK_XP: 'none_1',
   FASTER_COINS_II: 'book_1',
@@ -2352,6 +2353,26 @@ function nmCostBN(upg, level) {
  *  - scaling: Manually change the multiplicative scaling ratio of an upgrade; not necessary for upgrades that have no scaling
  */
 export const REGISTRY = [
+  {
+    area: AREA_KEYS.UNDERWATER_CAVERN,
+    id: 24,
+    tie: UPGRADE_TIES.FASTER_MATERIALS,
+    title: "Faster Materials",
+    desc: "Increases Material Spawn Rate by +1% per level",
+    lvlCap: 900,
+    baseCost: 10,
+    costType: "scrap",
+    upgType: "NM",
+    effectType: "material_spawn",
+    icon: "img/uc_upg_icons/faster_materials.webp",
+    costAtLevel(level) { return nmCostBN(this, level); },
+    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Material Spawn Rate bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier: E.addPctPerLevel(0.01),
+  },
   {
     area: AREA_KEYS.STARTER_COVE,
     id: 1,
