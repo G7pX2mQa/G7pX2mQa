@@ -282,8 +282,26 @@ function dpRequirementForDpLevel(dpLevelInput) {
      return BigNum.fromAny(Math.floor(10 * Math.pow(1.5, numLevel)));
   } else {
      // Use Math for calculating scientific directly if levels get huge
-     const log10Base = Math.log10(1.5);
-     const totalLog10 = 1 + (numLevel * log10Base);
+     let totalLog10 = 1 + (numLevel * Math.log10(1.5));
+     
+     const softcapStart = 1e12; // 1 Trillion
+     if (numLevel > softcapStart) {
+         const softcapDeltaNum = numLevel - softcapStart;
+         // Hit Infinity at ~4 Trillion total (delta = 3 Trillion)
+         const baseSoftcapLog = 5;
+         const rate = 2.3605777e-10;
+         const penaltyLog10 = baseSoftcapLog * Math.exp(rate * softcapDeltaNum);
+         
+         if (!Number.isFinite(penaltyLog10) || penaltyLog10 >= 1.7976931348623157e+308) {
+             return BigNum.fromAny('Infinity');
+         }
+         totalLog10 += penaltyLog10;
+         
+         if (!Number.isFinite(totalLog10) || totalLog10 >= 1.7976931348623157e+308) {
+             return BigNum.fromAny('Infinity');
+         }
+     }
+     
      const intPart = Math.floor(totalLog10);
      const fracPart = totalLog10 - intPart;
      const mantissa = Math.pow(10, fracPart);
@@ -533,6 +551,86 @@ export function addDp(amount, { silent = false } = {}) {
       try { window.dispatchEvent(new CustomEvent('dp:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } })); } catch {}
     }
     return detail;
+  }
+
+  // Fast approximation if a large bulk was added
+  const approxLog10 = (bn) => {
+    if (!bn) return 0;
+    try {
+      if (typeof bn.log10 === 'function') return bn.log10();
+      
+      const isInfinite = !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
+      if (isInfinite) return Number.MAX_VALUE;
+      
+      const sci = typeof bn.toScientific === 'function' ? bn.toScientific(18) : String(bn);
+      if (!sci || sci === 'Infinity') return Number.MAX_VALUE;
+      
+      const match = sci.match(/^([0-9]+(?:\.[0-9]+)?)e([+-]?\d+)$/i);
+      if (match) {
+        const mant = parseFloat(match[1]);
+        const exp = parseInt(match[2], 10);
+        return exp + Math.log10(mant);
+      }
+      
+      const num = Number(sci);
+      return Number.isFinite(num) ? Math.log10(num) : Number.MAX_VALUE;
+    } catch { return 0; }
+  };
+  
+  const currentProgressLog = approxLog10(dpState.progress);
+  const reqLog = approxLog10(requirementBn);
+  
+  if (currentProgressLog - reqLog > 2) {
+    let currentLevelNum;
+    try {
+      currentLevelNum = Number(dpState.dpLevel.toPlainIntegerString?.() ?? dpState.dpLevel.toString());
+    } catch {
+      currentLevelNum = 0;
+    }
+
+    if (Number.isFinite(currentLevelNum)) {
+      const getLogForLevel = (levelNum) => {
+        let totalLog10 = 1 + (levelNum * Math.log10(1.5));
+        const softcapStart = 1e12;
+        if (levelNum > softcapStart) {
+          const softcapDeltaNum = levelNum - softcapStart;
+          const baseSoftcapLog = 5;
+          const rate = 2.3605777e-10;
+          const penaltyLog10 = baseSoftcapLog * Math.exp(rate * softcapDeltaNum);
+          if (!Number.isFinite(penaltyLog10) || penaltyLog10 >= 1.7976931348623157e+308) {
+              return Number.POSITIVE_INFINITY;
+          }
+          totalLog10 += penaltyLog10;
+        }
+        return totalLog10;
+      };
+
+      let low = currentLevelNum;
+      let high = Math.max(currentLevelNum, 4000000000000);
+      let best = currentLevelNum;
+
+      for (let i = 0; i < 60; i++) {
+        const mid = Math.floor((low + high) / 2);
+        const midLog = getLogForLevel(mid);
+        if (midLog <= currentProgressLog) {
+            best = mid;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+      }
+
+      const estimatedGain = best - currentLevelNum;
+      if (estimatedGain > 10) {
+        const safeGain = Math.max(0, estimatedGain - 5);
+        if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
+          const safeGainBn = BigNum.fromAny(safeGain.toString());
+          dpState.dpLevel = dpState.dpLevel.add(safeGainBn);
+          dpLevelsGained = dpLevelsGained.add(safeGainBn);
+          updateDpRequirement();
+        }
+      }
+    }
   }
 
   let guard = 0;
