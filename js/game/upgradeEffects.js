@@ -123,6 +123,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     bookValue: BigNum.fromInt(1),
     fpValue: BigNum.fromInt(1),
     coinSpawn: 1.0,
+    materialSpawn: 1.0,
     magnetRadius: 0,
   };
 
@@ -160,6 +161,14 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
         val = Number(baseEffect);
       }
       acc.coinSpawn *= val;
+    } else if (upg.effectType === 'material_spawn') {
+      let val = 1;
+      if (baseEffect instanceof BigNum) {
+        try { val = Number(baseEffect.toScientific()); } catch { val = 1; }
+      } else {
+        val = Number(baseEffect);
+      }
+      acc.materialSpawn *= val;
     } else if (upg.effectType === 'coin_value') {
       acc.coinValue = safeMultiplyBigNum(acc.coinValue, baseEffect);
     } else if (upg.effectType === 'xp_value') {
@@ -209,6 +218,7 @@ export function computeUpgradeEffects(areaKey) {
   
   return {
     coinsPerSecondMult: mults.coinSpawn,
+    materialSpawnRateMult: mults.materialSpawn,
     coinsPerSecondAbsolute: BASE_CPS * mults.coinSpawn,
     coinValueMultiplier: mults.coinValue,
     xpGainMultiplier: mults.xpValue,
