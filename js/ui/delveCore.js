@@ -1,5 +1,5 @@
 // js/ui/delveCore.js
-import { playAudio, setMusicUnderwater } from '../util/audioManager.js';
+import { playAudio, setAudioUnderwater } from '../util/audioManager.js';
 import { shouldSkipGhostTap, suppressNextGhostTap } from '../util/ghostTapGuard.js';
 import { blockInteraction } from './shopOverlay.js';
 import { IS_MOBILE } from '../main.js';
@@ -42,7 +42,7 @@ export class DialogueEngine {
       this.choicesEl = choicesEl;
       this.skipTargets = skipTargets;
       this.onEnd = (info) => {
-        setMusicUnderwater(false);
+        setAudioUnderwater(false);
         if (onEnd) onEnd(info);
       };
       this.onChoice = onChoice;
@@ -60,7 +60,7 @@ export class DialogueEngine {
   }
 
   async start() {
-      setMusicUnderwater(true);
+      setAudioUnderwater(true);
       if (!this.startId) return;
       await this.goto(this.startId);
   }
@@ -327,7 +327,8 @@ export function startTypingSfx() {
     const vol = IS_MOBILE ? 0.15 : 0.3;
     activeTypingAudio = playAudio(TYPING_SFX_SRC, { 
         volume: vol,
-        loop: true 
+        loop: true,
+        type: 'ui' 
     });
 }
 
@@ -656,7 +657,7 @@ const onTouchStart = (event) => {
   return () => { target.removeEventListener('click', onClick); };
 }
 export function openDialogueLockInfo(lockInfo = {}) {
-  setMusicUnderwater(true);
+  setAudioUnderwater(true);
   if (!merchantOverlayEl) return;
 
   primeTypingSfx();
@@ -702,7 +703,7 @@ export function openDialogueLockInfo(lockInfo = {}) {
       merchantOverlayEl.classList.remove('firstchat-active');
       stopTypingSfx();
       setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
       document.removeEventListener('keydown', onEsc, true);
       const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : 160;
       setTimeout(() => overlay.remove(), delay);
