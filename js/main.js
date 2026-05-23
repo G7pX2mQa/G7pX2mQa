@@ -705,6 +705,10 @@ export function enterArea(areaID) {
                       }
                       if (ucSpawner) {
                         let rate = 0.2;
+                        const ucEff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
+                        if (ucEff && ucEff.materialSpawnRateMult) {
+                            rate *= ucEff.materialSpawnRateMult;
+                        }
                         if (typeof applyStatMultiplierOverride === "function") {
                            const override = applyStatMultiplierOverride("materialSpawnRate", rate);
                            try {
