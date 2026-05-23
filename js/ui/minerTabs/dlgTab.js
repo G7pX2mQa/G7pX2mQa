@@ -4,8 +4,8 @@ import { MINER_DIALOGUES } from '../../misc/minerDialogues.js';
 import { blockInteraction, updateShopOverlay, closeDelveSpecificOverlays } from '../shopOverlay.js';
 import { shouldSkipGhostTap, suppressNextGhostTap } from '../../util/ghostTapGuard.js';
 import { IS_MOBILE } from '../../main.js';
-import { playAudio } from '../../util/audioManager.js';
-import { MYSTERIOUS_ICON_SRC, HIDDEN_DIALOGUE_TITLE, LOCKED_DIALOGUE_TITLE, DEFAULT_MYSTERIOUS_BLURB, DEFAULT_LOCKED_BLURB, DEFAULT_LOCK_MESSAGE, DIALOGUE_STATUS_ORDER, HAS_POINTER_EVENTS, HAS_TOUCH_EVENTS, bindRapidActivation, primeTypingSfx, startTypingSfx, stopTypingSfx, typeText, DialogueEngine, openDialogueLockInfo, injectScrollTimelineStyles, ensureMerchantScrollbar, setDelveElements, openDelveOverlay } from '../delveCore.js';
+import { setMusicUnderwater } from '../../util/audioManager.js';
+import { setTypingActive, MYSTERIOUS_ICON_SRC, HIDDEN_DIALOGUE_TITLE, LOCKED_DIALOGUE_TITLE, DEFAULT_MYSTERIOUS_BLURB, DEFAULT_LOCKED_BLURB, DEFAULT_LOCK_MESSAGE, DIALOGUE_STATUS_ORDER, HAS_POINTER_EVENTS, HAS_TOUCH_EVENTS, bindRapidActivation, primeTypingSfx, startTypingSfx, stopTypingSfx, typeText, DialogueEngine, openDialogueLockInfo, injectScrollTimelineStyles, ensureMerchantScrollbar, setDelveElements, openDelveOverlay } from '../delveCore.js';
 
 const MINER_ICON_SRC = 'img/misc/miner.webp';
 const MINER_MET_KEY_BASE = 'ccc:minerMet';
@@ -126,7 +126,9 @@ function runFirstMeet() {
       textEl,
       choicesEl,
       skipTargets: [textEl, rowEl, cardEl],
+      pauseMultiplier: 2000 / 22,
       onEnd: () => {
+      document.removeEventListener('keydown', onEscToCancel, { capture: true });
       try { localStorage.setItem(sk(MINER_MET_KEY_BASE), '1'); } catch {}
       try { window.dispatchEvent(new Event(MINER_MET_EVENT)); } catch {}
       fc.classList.remove('is-visible');
@@ -135,6 +137,27 @@ function runFirstMeet() {
   });
 
   engine.load(MINER_DIALOGUES[0]);
+  let ended = false;
+  const cancelWithoutReward = () => {
+      if (ended) return;
+      ended = true;
+      document.removeEventListener('keydown', onEscToCancel, { capture: true });
+      fc.classList.remove('is-visible');
+      minerOverlayEl.classList.remove('firstchat-active');
+      stopTypingSfx();
+        setTypingActive(false);
+ 
+      setMusicUnderwater(false);
+  };
+
+  const onEscToCancel = (e) => {
+    if (e.key !== 'Escape') return;
+    if (!fc.isConnected) return;
+    cancelWithoutReward();
+  };
+  
+  document.addEventListener('keydown', onEscToCancel, { capture: true });
+
   engine.start();
 }
 
@@ -212,6 +235,8 @@ export function openMiner() {
 
     // Ensure no orphaned audio
     stopTypingSfx();
+        setTypingActive(false);
+        setMusicUnderwater(false);
 
     if (!met) {
         const fc = minerOverlayEl.querySelector('.merchant-firstchat');
@@ -244,5 +269,7 @@ export function closeMiner() {
         minerSheetEl.style.transform = '';
         
         stopTypingSfx();
+        setTypingActive(false);
+        setMusicUnderwater(false);
     }
 }
