@@ -902,15 +902,34 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             if (explosionContainer) explosionContainer.remove();
             lostContainer.remove();
             cleanup();
+            
+            // Invisible framerate warming pulse
+            const pulseDiv = document.createElement('div');
+            Object.assign(pulseDiv.style, {
+                position: 'fixed',
+                top: '0',
+                left: '0',
+                width: '1px',
+                height: '1px',
+                opacity: '0.01',
+                pointerEvents: 'none',
+                zIndex: '-9999'
+            });
+            document.body.appendChild(pulseDiv);
+
             let start = performance.now();
             function pulseFrame(now) {
                 if (now - start < 450) {
+                    pulseDiv.style.opacity = Math.random() > 0.5 ? '0.01' : '0.02';
                     teleportOverlay.style.opacity = Math.random() > 0.5 ? '0.99' : '1';
                     requestAnimationFrame(pulseFrame);
                 } else {
                     if (onComplete) onComplete({ beaten: false });
                     if (teleportOverlay.parentNode) {
                         teleportOverlay.parentNode.removeChild(teleportOverlay);
+                    }
+                    if (pulseDiv.parentNode) {
+                        pulseDiv.parentNode.removeChild(pulseDiv);
                     }
                 }
             }
@@ -1511,11 +1530,26 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                                 setLifetimeBossBeaten();
                                 cleanup();
                                 
+                                // Invisible framerate warming pulse
+                                const pulseDiv = document.createElement('div');
+                                Object.assign(pulseDiv.style, {
+                                    position: 'fixed',
+                                    top: '0',
+                                    left: '0',
+                                    width: '1px',
+                                    height: '1px',
+                                    opacity: '0.01',
+                                    pointerEvents: 'none',
+                                    zIndex: '-9999'
+                                });
+                                document.body.appendChild(pulseDiv);
+
                                 // Run a short requestAnimationFrame pulse loop for 450ms
                                 // to keep the browser's refresh rate active during the transition.
                                 let start = performance.now();
                                 function pulseFrame(now) {
                                     if (now - start < 450) {
+                                        pulseDiv.style.opacity = Math.random() > 0.5 ? '0.01' : '0.02';
                                         // Randomize text content slightly to force layout/paint
                                         // and ensure the browser compositor stays awake at max fps
                                         if (Math.random() > 0.5) {
@@ -1530,6 +1564,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                                         
                                         if (teleportOverlay.parentNode) {
                                             teleportOverlay.parentNode.removeChild(teleportOverlay);
+                                        }
+                                        if (pulseDiv.parentNode) {
+                                            pulseDiv.parentNode.removeChild(pulseDiv);
                                         }
                                     }
                                 }
