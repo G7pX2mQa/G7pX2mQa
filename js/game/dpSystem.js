@@ -2,6 +2,7 @@ import { BigNum } from '../util/bigNum.js';
 import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
 import { syncDpHudLayout } from '../ui/hudLayout.js';
+import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 
 const KEY_PREFIX = 'ccc:dp';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
@@ -496,6 +497,8 @@ export function addDp(amount, { silent = false } = {}) {
   } catch {
     inc = bnZero();
   }
+
+  inc = applyStatMultiplierOverride('dp', inc);
 
   if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
     updateHud();
