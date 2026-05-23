@@ -407,31 +407,8 @@ export function createSpawner(config = {}) {
         shouldAutoResume,
         numLayers: 7,
 
-        onPlanSpawn: (M, activeItems, garbageCount, removeItem, maxActiveItems) => {
+        onPlanSpawn: (M, activeItems, garbageCount, removeItem, maxActiveItems, batchLength = 0) => {
             const COIN_MARGIN = 12;
-            if (maxActiveCoins !== Infinity && (activeItems.length - garbageCount) >= maxActiveCoins) {
-                let indexToRemove = -1;
-                if (isSurgeActive(2)) {
-                    for (let i = 0; i < activeItems.length; i++) {
-                        const c = activeItems[i];
-                        if (c && c.sizeIndex < 4) {
-                            indexToRemove = i;
-                            break;
-                        }
-                    }
-                } else {
-                    for (let i = 0; i < activeItems.length; i++) {
-                        if (activeItems[i]) {
-                            indexToRemove = i;
-                            break;
-                        }
-                    }
-                }
-                if (indexToRemove === -1) return null;
-                
-                const oldest = activeItems[indexToRemove];
-                if (oldest) removeItem(oldest, indexToRemove);
-            }
 
             const pfW = M.pfW;
             const waterToPfTop = M.wRect.top - M.pfRect.top;
@@ -494,6 +471,36 @@ export function createSpawner(config = {}) {
             
             const waveCenterX = (spawnX + size / 2) + waterToPfLeft;
             const waveCenterY = spawnY - waterToPfTop;
+
+            const itemsToAdd = 1 + batchLength;
+            if (maxActiveCoins !== Infinity && (activeItems.length - garbageCount + itemsToAdd) > maxActiveCoins) {
+                let numToRemove = (activeItems.length - garbageCount + itemsToAdd) - maxActiveCoins;
+                for (let i = 0; i < activeItems.length && numToRemove > 0; i++) {
+                    let indexToRemove = -1;
+                    if (isSurgeActive(2)) {
+                        for (let j = 0; j < activeItems.length; j++) {
+                            const c = activeItems[j];
+                            if (c && c.sizeIndex < 4) {
+                                indexToRemove = j;
+                                break;
+                            }
+                        }
+                    } else {
+                        for (let j = 0; j < activeItems.length; j++) {
+                            if (activeItems[j]) {
+                                indexToRemove = j;
+                                break;
+                            }
+                        }
+                    }
+                    if (indexToRemove !== -1) {
+                        removeItem(activeItems[indexToRemove], indexToRemove);
+                        numToRemove--;
+                    } else {
+                        break;
+                    }
+                }
+            }
 
             return {
                 wave: { x: waveCenterX, y: waveCenterY, width: waveW, height: waveH },
