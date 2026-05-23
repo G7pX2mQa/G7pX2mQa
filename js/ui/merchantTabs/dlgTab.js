@@ -767,7 +767,6 @@ function openDialogueModal(id, meta) {
   if (isLabUnlockedLocal() && typeof hasVisitedLab === 'function' && !hasVisitedLab()) {
       scriptId = 1000;
   }
-  setMusicUnderwater(true);
 
   const overlay = document.createElement('div');
   overlay.className = 'merchant-firstchat';
@@ -812,12 +811,12 @@ document.addEventListener('keydown', onEscToCancel, { capture: true });
       if (meta.scriptId === 6) {
           _isLabDialogueOpen = false;
       }
-      setMusicUnderwater(false);
 	document.removeEventListener('keydown', onEscToCancel, { capture: true });
       overlay.classList.remove('is-visible');
       merchantOverlayEl.classList.remove('firstchat-active');
       stopTypingSfx();
       setTypingActive(false);
+      setMusicUnderwater(false);
       overlay.remove();
   };
 
@@ -825,6 +824,9 @@ document.addEventListener('keydown', onEscToCancel, { capture: true });
       if (ended) return;
       ended = true;
       closeModal();               // no reward
+      stopTypingSfx();
+      setTypingActive(false);
+      setMusicUnderwater(false);
       renderDialogueList();       // refresh UI state
   };
 
@@ -1489,7 +1491,6 @@ function startConversation(id, meta) {
   const row = panel;                                        // big tap target
   let choicesEl = panel.querySelector('.merchant-choices');
 
-  setMusicUnderwater(true);
 
   // Ensure blank + hide choices before typing
   choicesEl.classList.remove('is-visible');
@@ -1500,7 +1501,6 @@ function startConversation(id, meta) {
       choicesEl,
       skipTargets: [textEl, row, bubble],
       onEnd: (info) => {
-      setMusicUnderwater(false);
       if (info && info.exploded) {
         textEl.textContent = '...';
         renderDialogueList();
@@ -1639,14 +1639,12 @@ function runFirstMeet() {
   const cardEl = fc.querySelector('.merchant-firstchat__card');
   const choicesEl = fc.querySelector('#merchant-first-choices');
 
-  setMusicUnderwater(true);
 
   const engine = new DialogueEngine({
       textEl,
       choicesEl,
       skipTargets: [textEl, rowEl, cardEl],
       onEnd: () => {
-      setMusicUnderwater(false);
       try { localStorage.setItem(sk(MERCHANT_MET_KEY_BASE), '1'); } catch {}
       try { window.dispatchEvent(new Event(MERCHANT_MET_EVENT)); } catch {}
       fc.classList.remove('is-visible');
@@ -1737,6 +1735,8 @@ export function openMerchant() {
 
   // Ensure no orphaned audio
   stopTypingSfx();
+      setTypingActive(false);
+      setMusicUnderwater(false);
 
   // First-time chat
   if (!met) {
@@ -1765,7 +1765,6 @@ export function openMerchant() {
 export function closeMerchant() {
   if (!merchantOpen) return;
   
-  setMusicUnderwater(false);
 
   if (IS_MOBILE) {
     try { suppressNextGhostTap(100); } catch {}
@@ -1793,7 +1792,10 @@ export function closeMerchant() {
   merchantOverlayEl.setAttribute('inert', '');
   merchantLastFocus = null;
   stopTypingSfx();
+      setTypingActive(false);
+      setMusicUnderwater(false);
   setTypingActive(false);
+      setMusicUnderwater(false);
 }
 
 function onKeydownForMerchant(e) {
@@ -2097,7 +2099,10 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
               setTimeout(() => {
                   document.removeEventListener('keydown', blockEsc, { capture: true });
                   stopTypingSfx();
+      setTypingActive(false);
+      setMusicUnderwater(false);
                   setTypingActive(false);
+      setMusicUnderwater(false);
                   overlay.remove();
                   if (onComplete) onComplete();
               }, 5000);
@@ -2116,7 +2121,10 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
         // Hide Dialogue UI temporarily
         overlay.innerHTML = '';
         stopTypingSfx();
+      setTypingActive(false);
+      setMusicUnderwater(false);
         setTypingActive(false);
+      setMusicUnderwater(false);
         
         if (tsunamiControls && tsunamiControls.hideCursor) tsunamiControls.hideCursor();
         
@@ -2185,7 +2193,10 @@ export function runLabIntroDialogue() {
         skipTargets: [textEl, rowEl, cardEl],
         onEnd: () => {
             stopTypingSfx();
+      setTypingActive(false);
+      setMusicUnderwater(false);
             setTypingActive(false);
+      setMusicUnderwater(false);
             overlay.remove();
         }
     });
@@ -2251,7 +2262,10 @@ export function runPostTsunamiShopDialogue(onComplete) {
         skipTargets: [textEl, rowEl, cardEl],
         onEnd: () => {
             stopTypingSfx();
+      setTypingActive(false);
+      setMusicUnderwater(false);
             setTypingActive(false);
+      setMusicUnderwater(false);
             overlay.remove();
             if (onComplete) onComplete();
         }
