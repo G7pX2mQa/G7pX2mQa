@@ -1,5 +1,5 @@
 // js/ui/delveCore.js
-import { playAudio } from '../util/audioManager.js';
+import { playAudio, setMusicUnderwater } from '../util/audioManager.js';
 import { shouldSkipGhostTap, suppressNextGhostTap } from '../util/ghostTapGuard.js';
 import { blockInteraction } from './shopOverlay.js';
 import { IS_MOBILE } from '../main.js';
@@ -7,6 +7,7 @@ import { IS_MOBILE } from '../main.js';
 
 export let merchantOverlayEl = null;
 export let merchantSheetEl = null;
+let __typeTextId = 0;
 export let __isTypingActive = false;
 export let activeTypingAudio = null;
 export const TYPING_SFX_SRC = 'sounds/merchant_typing.ogg';
@@ -17,6 +18,7 @@ export function setDelveElements(overlay, sheet) {
 }
 
 export function setTypingActive(active) {
+    if (!active) __typeTextId++;
     __isTypingActive = active;
 }
 
@@ -35,12 +37,16 @@ export const HAS_POINTER_EVENTS = typeof window !== 'undefined' && 'PointerEvent
 export const HAS_TOUCH_EVENTS = !HAS_POINTER_EVENTS && typeof window !== 'undefined' && 'ontouchstart' in window;
 
 export class DialogueEngine {
-  constructor({ textEl, choicesEl, skipTargets, onEnd, onChoice }) {
+  constructor({ textEl, choicesEl, skipTargets, onEnd, onChoice, pauseMultiplier = 20 }) {
       this.textEl = textEl;
       this.choicesEl = choicesEl;
       this.skipTargets = skipTargets;
-      this.onEnd = onEnd || (() => {});
+      this.onEnd = (info) => {
+        setMusicUnderwater(false);
+        if (onEnd) onEnd(info);
+      };
       this.onChoice = onChoice;
+      this.pauseMultiplier = pauseMultiplier;
       this.nodes = {};
       this.current = null;
 
@@ -54,6 +60,7 @@ export class DialogueEngine {
   }
 
   async start() {
+      setMusicUnderwater(true);
       if (!this.startId) return;
       await this.goto(this.startId);
   }
@@ -73,7 +80,7 @@ export class DialogueEngine {
         this._hideChoices();
       }
 
-      await typeText(this.textEl, node.say, node.msPerChar ?? 22, this.skipTargets);
+      await typeText(this.textEl, node.say, node.msPerChar ?? 22, this.skipTargets, this.pauseMultiplier);
 
       if (nextNode && nextNode.type === 'choice') {
         this.current = node.next;
@@ -168,7 +175,7 @@ export class DialogueEngine {
   }
 }
 
-export function typeText(el, full, msPerChar = 22, skipTargets = []) {
+export function typeText(el, full, msPerChar = 22, skipTargets = [], pauseMultiplier = 20) {
   return new Promise((resolve) => {
     // Basic HTML parser for typewriter
     const segments = [];
@@ -206,6 +213,8 @@ export function typeText(el, full, msPerChar = 22, skipTargets = []) {
     let sfxTimer = null;
 
     __isTypingActive = true;
+    __typeTextId++;
+    const myId = __typeTextId;
     startTypingSfx();
 
     const skip = (e) => { 
@@ -238,8 +247,8 @@ export function typeText(el, full, msPerChar = 22, skipTargets = []) {
       };
 
       const tick = () => {
-      if (skipping) {
-          el.innerHTML = full;
+      if (skipping || !__isTypingActive || __typeTextId !== myId) {
+          if (skipping) el.innerHTML = full;
           cleanup();
           resolve();
           return;
@@ -289,10 +298,10 @@ export function typeText(el, full, msPerChar = 22, skipTargets = []) {
               }
               
               if (nextChar !== null && nextChar !== '.' && nextChar !== ',' && nextChar !== ':' && nextChar !== '?' && nextChar !== '"') {
-                  delay = msPerChar * 20;
+                  delay = msPerChar * pauseMultiplier;
                   stopTypingSfx();
                   sfxTimer = setTimeout(() => {
-                      if (!skipping && __isTypingActive) {
+                      if (!skipping && __isTypingActive && __typeTextId === myId) {
                           startTypingSfx();
                       }
                   }, delay - 5); // Resume SFX slightly before the next tick
@@ -647,6 +656,7 @@ const onTouchStart = (event) => {
   return () => { target.removeEventListener('click', onClick); };
 }
 export function openDialogueLockInfo(lockInfo = {}) {
+  setMusicUnderwater(true);
   if (!merchantOverlayEl) return;
 
   primeTypingSfx();
@@ -692,6 +702,7 @@ export function openDialogueLockInfo(lockInfo = {}) {
       merchantOverlayEl.classList.remove('firstchat-active');
       stopTypingSfx();
       setTypingActive(false);
+      setMusicUnderwater(false);
       document.removeEventListener('keydown', onEsc, true);
       const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : 160;
       setTimeout(() => overlay.remove(), delay);
