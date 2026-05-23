@@ -262,7 +262,6 @@ function fpsUnlockerFrame() {
     if (!fpsUnlockerIsActive || !fpsUnlockerCtx) return;
     
     if (fpsUnlockerCtx.isContextLost()) {
-        console.log("fpsUnlocker context lost, recreating...");
         setFpsUnlockerActive(false);
         setFpsUnlockerActive(true);
         return;
