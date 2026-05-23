@@ -225,19 +225,19 @@ export function setFpsUnlockerActive(active) {
     if (active) {
         if (!fpsUnlockerCanvas) {
             fpsUnlockerCanvas = document.createElement('canvas');
-            fpsUnlockerCanvas.width = 300;
-            fpsUnlockerCanvas.height = 300;
+            fpsUnlockerCanvas.width = 1;
+            fpsUnlockerCanvas.height = 1;
             Object.assign(fpsUnlockerCanvas.style, {
                 position: 'fixed',
                 top: '0',
                 left: '0',
-                width: '300px',
-                height: '300px',
+                width: '1px',
+                height: '1px',
                 pointerEvents: 'none',
-                opacity: '0.01',
+                opacity: '1',
                 zIndex: '999999',
             });
-            fpsUnlockerCtx = fpsUnlockerCanvas.getContext('webgl', { alpha: true, desynchronized: false });
+            fpsUnlockerCtx = fpsUnlockerCanvas.getContext('webgl', { alpha: true, desynchronized: true });
             if (fpsUnlockerCtx) {
                 document.body.appendChild(fpsUnlockerCanvas);
             }
@@ -260,7 +260,7 @@ export function setFpsUnlockerActive(active) {
 
 function fpsUnlockerFrame() {
     if (!fpsUnlockerIsActive || !fpsUnlockerCtx) return;
-    fpsUnlockerCtx.clearColor(0, 0, 0, Math.random() > 0.5 ? 0.01 : 0.02);
+    fpsUnlockerCtx.clearColor(0, 0, 0, 0);
     fpsUnlockerCtx.clear(fpsUnlockerCtx.COLOR_BUFFER_BIT);
     fpsUnlockerRaf = requestAnimationFrame(fpsUnlockerFrame);
 }
