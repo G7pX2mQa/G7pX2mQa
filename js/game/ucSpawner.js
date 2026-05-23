@@ -78,21 +78,8 @@ export function createUcSpawner(config = {}) {
         shouldAutoResume,
         numLayers: UC_MATERIALS.length,
 
-        onPlanSpawn: (M, activeItems, garbageCount, removeItem, maxActiveItems) => {
+        onPlanSpawn: (M, activeItems, garbageCount, removeItem, maxActiveItems, batchLength = 0) => {
             const MATERIAL_MARGIN = 12;
-            if (maxActiveItems !== Infinity && (activeItems.length - garbageCount) >= maxActiveItems) {
-                let indexToRemove = -1;
-                for (let i = 0; i < activeItems.length; i++) {
-                    if (activeItems[i]) {
-                        indexToRemove = i;
-                        break;
-                    }
-                }
-                if (indexToRemove !== -1) {
-                    const oldest = activeItems[indexToRemove];
-                    if (oldest) removeItem(oldest, indexToRemove);
-                }
-            }
 
             const pfW = M.pfW;
             const waterToPfTop = M.wRect ? M.wRect.top - M.pfRect.top : 0;
@@ -201,6 +188,17 @@ export function createUcSpawner(config = {}) {
                         matIndex: i,
                         size
                     });
+                }
+            }
+
+            const itemsToAdd = spawns.length + batchLength;
+            if (maxActiveItems !== Infinity && (activeItems.length - garbageCount + itemsToAdd) > maxActiveItems) {
+                let numToRemove = (activeItems.length - garbageCount + itemsToAdd) - maxActiveItems;
+                for (let i = 0; i < activeItems.length && numToRemove > 0; i++) {
+                    if (activeItems[i]) {
+                        removeItem(activeItems[i], i);
+                        numToRemove--;
+                    }
                 }
             }
 
