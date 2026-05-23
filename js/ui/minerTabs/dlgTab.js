@@ -106,10 +106,13 @@ function ensureMinerOverlay() {
 
     // Initial setup for Dialogue List
     panelDialogue.__dlgInit = true;
-    const list = document.createElement('div');
-    list.className = 'merchant-dialogue-list';
-    panelDialogue.appendChild(list);
-    panelDialogue.__dlgList = list;
+    const antisocialMsg = document.createElement('div');
+    antisocialMsg.className = 'miner-antisocial-msg';
+    antisocialMsg.textContent = 'The Miner does not wish to chat with you right now';
+    panelDialogue.appendChild(antisocialMsg);
+
+
+
 
     closeBtn.addEventListener('click', closeMiner);
     ensureMerchantScrollbar('.merchant-content');
@@ -220,7 +223,7 @@ export function openMiner() {
   ensureMinerOverlay();
   setDelveElements(minerOverlayEl, minerSheetEl);
     
-    renderDialogueList();
+    // renderDialogueList();
 
     let met = false;
     try {
