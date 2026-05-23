@@ -1,4 +1,3 @@
-import { primeTypingSfx } from './delveCore.js';
 // js/ui/shopOverlay.js
 
 import { bank, getActiveSlot } from '../util/storage.js';
@@ -13,8 +12,7 @@ import { openMerchant,
     runPostTsunamiShopDialogue
 } from './merchantTabs/dlgTab.js';
 import { openMiner, hasMetMiner } from './minerTabs/dlgTab.js';
-
-
+import { primeTypingSfx } from './delveCore.js';
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { playAudio } from '../util/audioManager.js';
 import { settingsManager } from '../game/settingsManager.js';
@@ -69,6 +67,7 @@ const BASE_ICON_SRC_BY_COST = {
   magic: 'img/currencies/magic/magic_base.webp',
   gears: 'img/currencies/gear/gear_base.webp',
   dna: 'img/currencies/dna/dna_base.webp',
+  scrap: 'img/currencies/scrap/scrap_base.webp',
 };
 const LOCKED_BASE_ICON_SRC = 'img/misc/locked_base.webp';
 const MAXED_BASE_OVERLAY_SRC = 'img/misc/maxed.webp';
@@ -81,6 +80,7 @@ const CURRENCY_ICON_SRC = {
   magic: 'img/currencies/magic/magic.webp',
   gears: 'img/currencies/gear/gear.webp',
   dna: 'img/currencies/dna/dna.webp',
+  scrap: 'img/currencies/scrap/scrap.webp',
   rainbowGems: 'img/currencies/rainbow_gem.webp',
 };
 
