@@ -2147,7 +2147,7 @@ function buildAreaStats(container, area) {
         const dpStateVal = window.dpSystem ? window.dpSystem.getDpState() : { dpLevel: BigNum.fromInt(0), progress: BigNum.fromInt(0) };
 
         const dpLevelKey = DP_KEYS.level(slot);
-        const dpLevelRow = createInputRow('DP Level', dpStateVal.dpLevel, (value, { setValue }) => {
+        const dpLevelRow = createInputRow('Depth Level', dpStateVal.dpLevel, (value, { setValue }) => {
             const prev = window.dpSystem.getDpState().dpLevel;
             applyDpState({ level: value });
             const latest = window.dpSystem.getDpState();
