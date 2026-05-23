@@ -219,72 +219,6 @@ let fpsUnlockerRaf = null;
 let fpsUnlockerCanvas = null;
 let fpsUnlockerCtx = null;
 let fpsUnlockerIsActive = false;
-let fpsUnlockerContextType = null;
-let fpsUnlockerIsDegraded = false;
-let fpsUnlockerRestoreTimer = null;
-let fpsUnlockerLastInitAttemptAt = 0;
-const FPS_UNLOCKER_REINIT_INTERVAL_MS = 1000;
-
-function fpsUnlockerDebugLog(...args) {
-    if (!window.__fpsUnlockerDebug) return;
-    console.debug('[fps-unlocker]', ...args);
-}
-
-function clearFpsUnlockerRestoreTimer() {
-    if (!fpsUnlockerRestoreTimer) return;
-    clearTimeout(fpsUnlockerRestoreTimer);
-    fpsUnlockerRestoreTimer = null;
-}
-
-function tryInitFpsUnlockerContext() {
-    if (!fpsUnlockerCanvas) return false;
-    fpsUnlockerLastInitAttemptAt = performance.now();
-    fpsUnlockerCtx = null;
-    fpsUnlockerContextType = null;
-
-    const attempts = [
-        () => ['webgl', fpsUnlockerCanvas.getContext('webgl', { alpha: true, desynchronized: true })],
-        () => ['webgl2', fpsUnlockerCanvas.getContext('webgl2', { alpha: true, desynchronized: true })],
-        () => ['webgl', fpsUnlockerCanvas.getContext('webgl', { alpha: true })],
-        () => ['2d', fpsUnlockerCanvas.getContext('2d')],
-    ];
-
-    for (const getAttempt of attempts) {
-        const [type, ctx] = getAttempt();
-        if (!ctx) continue;
-        fpsUnlockerCtx = ctx;
-        fpsUnlockerContextType = type;
-        fpsUnlockerIsDegraded = type === '2d';
-        fpsUnlockerDebugLog('context init success', { type, degraded: fpsUnlockerIsDegraded });
-        return true;
-    }
-
-    fpsUnlockerIsDegraded = true;
-    fpsUnlockerDebugLog('context init failed; will retry');
-    return false;
-}
-
-function onFpsUnlockerContextLost(event) {
-    event.preventDefault();
-    fpsUnlockerCtx = null;
-    fpsUnlockerIsDegraded = true;
-    fpsUnlockerDebugLog('webglcontextlost');
-    clearFpsUnlockerRestoreTimer();
-    fpsUnlockerRestoreTimer = setTimeout(() => {
-        if (!fpsUnlockerIsActive) return;
-        tryInitFpsUnlockerContext();
-    }, 250);
-}
-
-function onFpsUnlockerContextRestored() {
-    fpsUnlockerDebugLog('webglcontextrestored');
-    clearFpsUnlockerRestoreTimer();
-    if (!fpsUnlockerIsActive) return;
-    tryInitFpsUnlockerContext();
-    if (!fpsUnlockerRaf) {
-        fpsUnlockerFrame();
-    }
-}
 
 export function setFpsUnlockerActive(active) {
     fpsUnlockerIsActive = active;
@@ -303,14 +237,10 @@ export function setFpsUnlockerActive(active) {
                 opacity: '0.01',
                 zIndex: '999999',
             });
-            fpsUnlockerCanvas.addEventListener('webglcontextlost', onFpsUnlockerContextLost, { passive: false });
-            fpsUnlockerCanvas.addEventListener('webglcontextrestored', onFpsUnlockerContextRestored);
-        }
-        if (!fpsUnlockerCanvas.parentNode) {
-            document.body.appendChild(fpsUnlockerCanvas);
-        }
-        if (!fpsUnlockerCtx) {
-            tryInitFpsUnlockerContext();
+            fpsUnlockerCtx = fpsUnlockerCanvas.getContext('webgl', { alpha: true, desynchronized: false });
+            if (fpsUnlockerCtx) {
+                document.body.appendChild(fpsUnlockerCanvas);
+            }
         }
         if (!fpsUnlockerRaf) {
             fpsUnlockerFrame();
@@ -320,40 +250,18 @@ export function setFpsUnlockerActive(active) {
             cancelAnimationFrame(fpsUnlockerRaf);
             fpsUnlockerRaf = null;
         }
-        clearFpsUnlockerRestoreTimer();
         if (fpsUnlockerCanvas && fpsUnlockerCanvas.parentNode) {
             fpsUnlockerCanvas.parentNode.removeChild(fpsUnlockerCanvas);
-        }
-        if (fpsUnlockerCanvas) {
-            fpsUnlockerCanvas.removeEventListener('webglcontextlost', onFpsUnlockerContextLost);
-            fpsUnlockerCanvas.removeEventListener('webglcontextrestored', onFpsUnlockerContextRestored);
             fpsUnlockerCanvas = null;
+            fpsUnlockerCtx = null;
         }
-        fpsUnlockerCtx = null;
-        fpsUnlockerContextType = null;
-        fpsUnlockerIsDegraded = false;
     }
 }
 
 function fpsUnlockerFrame() {
-    if (!fpsUnlockerIsActive) {
-        fpsUnlockerRaf = null;
-        return;
-    }
-
-    if (!fpsUnlockerCtx && performance.now() - fpsUnlockerLastInitAttemptAt >= FPS_UNLOCKER_REINIT_INTERVAL_MS) {
-        tryInitFpsUnlockerContext();
-    }
-
-    if (fpsUnlockerCtx && fpsUnlockerContextType !== '2d') {
-        fpsUnlockerCtx.clearColor(0, 0, 0, Math.random() > 0.5 ? 0.01 : 0.02);
-        fpsUnlockerCtx.clear(fpsUnlockerCtx.COLOR_BUFFER_BIT);
-    } else if (fpsUnlockerCtx && fpsUnlockerContextType === '2d') {
-        fpsUnlockerCtx.clearRect(0, 0, fpsUnlockerCanvas.width, fpsUnlockerCanvas.height);
-        fpsUnlockerCtx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.01)' : 'rgba(0,0,0,0.02)';
-        fpsUnlockerCtx.fillRect(0, 0, 1, 1);
-    }
-
+    if (!fpsUnlockerIsActive || !fpsUnlockerCtx) return;
+    fpsUnlockerCtx.clearColor(0, 0, 0, Math.random() > 0.5 ? 0.01 : 0.02);
+    fpsUnlockerCtx.clear(fpsUnlockerCtx.COLOR_BUFFER_BIT);
     fpsUnlockerRaf = requestAnimationFrame(fpsUnlockerFrame);
 }
 
