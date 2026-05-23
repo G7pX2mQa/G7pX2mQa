@@ -24,7 +24,7 @@ import {
   suppressNextGhostTap,
 } from '../../util/ghostTapGuard.js';
 import { IS_MOBILE } from '../../main.js';
-import { playAudio, setMusicUnderwater } from '../../util/audioManager.js';
+import { playAudio, setAudioUnderwater } from '../../util/audioManager.js';
 import { playSecretDlgBossFightSequence } from '../../game/secretDlgBossVisuals.js';
 import { getLifetimeBossBeaten } from '../../game/secretAchievements.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
@@ -816,7 +816,7 @@ document.addEventListener('keydown', onEscToCancel, { capture: true });
       merchantOverlayEl.classList.remove('firstchat-active');
       stopTypingSfx();
       setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
       overlay.remove();
   };
 
@@ -826,7 +826,7 @@ document.addEventListener('keydown', onEscToCancel, { capture: true });
       closeModal();               // no reward
       stopTypingSfx();
       setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
       renderDialogueList();       // refresh UI state
   };
 
@@ -1736,7 +1736,7 @@ export function openMerchant() {
   // Ensure no orphaned audio
   stopTypingSfx();
       setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
 
   // First-time chat
   if (!met) {
@@ -1793,9 +1793,9 @@ export function closeMerchant() {
   merchantLastFocus = null;
   stopTypingSfx();
       setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
   setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
 }
 
 function onKeydownForMerchant(e) {
@@ -2100,9 +2100,9 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
                   document.removeEventListener('keydown', blockEsc, { capture: true });
                   stopTypingSfx();
       setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
                   setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
                   overlay.remove();
                   if (onComplete) onComplete();
               }, 5000);
@@ -2122,9 +2122,9 @@ export function runTsunamiDialogue(container, onComplete, tsunamiControls) {
         overlay.innerHTML = '';
         stopTypingSfx();
       setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
         setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
         
         if (tsunamiControls && tsunamiControls.hideCursor) tsunamiControls.hideCursor();
         
@@ -2194,9 +2194,9 @@ export function runLabIntroDialogue() {
         onEnd: () => {
             stopTypingSfx();
       setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
             setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
             overlay.remove();
         }
     });
@@ -2263,9 +2263,9 @@ export function runPostTsunamiShopDialogue(onComplete) {
         onEnd: () => {
             stopTypingSfx();
       setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
             setTypingActive(false);
-      setMusicUnderwater(false);
+      setAudioUnderwater(false);
             overlay.remove();
             if (onComplete) onComplete();
         }
