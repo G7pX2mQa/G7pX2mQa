@@ -269,6 +269,22 @@ function setupLiveBindingListeners() {
     window.addEventListener('mutation:change', mutationHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('mutation:change', mutationHandler));
 
+    const dpHandler = (event) => {
+        const { changeType, slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'dp'
+            && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && binding.key === 'dp'
+            && binding.slot === targetSlot);
+        if (changeType === 'unlock') {
+            refreshLiveBindings((binding) => binding.type === 'unlock'
+                && (binding.slot == null || binding.slot === targetSlot));
+        }
+    };
+    window.addEventListener('dp:change', dpHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('dp:change', dpHandler));
+
     const upgradeHandler = () => {
         const targetSlot = getActiveSlot();
         refreshLiveBindings((binding) => binding.type === 'upgrade'
@@ -400,10 +416,18 @@ const MUTATION_KEYS = {
     progress: (slot) => `${MUTATION_KEY_PREFIX}:progress:${slot}`,
 };
 
+const DP_KEY_PREFIX = 'ccc:dp';
+const DP_KEYS = {
+    unlock: (slot) => `${DP_KEY_PREFIX}:unlocked:${slot}`,
+    level:  (slot) => `${DP_KEY_PREFIX}:level:${slot}`,
+    progress: (slot) => `${DP_KEY_PREFIX}:progress:${slot}`,
+};
+
 const STAT_MULTIPLIERS = [
     { key: 'spawnRate', label: 'Spawn Rate' },
     { key: 'xp', label: 'XP' },
     { key: 'mutation', label: 'MP' },
+    { key: 'dp', label: 'DP' },
     { key: 'rp', label: 'RP' },
     { key: 'fp', label: 'FP' },
 ];
@@ -1784,6 +1808,82 @@ function applyXpState({ level, progress }) {
     } catch {}
 }
 
+function applyDpState({ level, progress }) {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+
+  const current = (() => {
+    try { return window.dpSystem.getDpState(); }
+    catch { return null; }
+  })();
+
+  const zero = (() => {
+    try { return BigNum.fromInt(0); }
+    catch { return null; }
+  })();
+
+  const toBnOrNull = (value) => {
+    if (value == null) return null;
+    try { return value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value); }
+    catch { return null; }
+  };
+
+  let nextLevel = toBnOrNull(level) ?? current?.dpLevel ?? null;
+  let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
+
+  const levelIsFinite = !(nextLevel?.isInfinite?.());
+  const progressIsFinite = !(nextProgress?.isInfinite?.());
+
+  if ((level != null || progress != null) && zero) {
+    if (levelIsFinite && !progressIsFinite) {
+      if (level != null) {
+        nextProgress = zero.clone?.() ?? zero;
+      }
+    } else if (progressIsFinite && !levelIsFinite) {
+      if (progress != null) {
+        nextLevel = zero.clone?.() ?? zero;
+      }
+    }
+  }
+
+    const unlockKey = DP_KEYS.unlock(slot);
+    try { localStorage.setItem(unlockKey, '1'); } catch {}
+    primeStorageWatcherSnapshot(unlockKey, '1');
+
+  if (nextLevel != null) {
+    try {
+      const raw = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage();
+      const key = DP_KEYS.level(slot);
+      localStorage.setItem(key, raw);
+      primeStorageWatcherSnapshot(key, raw);
+    } catch {}
+  }
+
+  if (nextProgress != null) {
+    try {
+      const raw = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage();
+      const key = DP_KEYS.progress(slot);
+      localStorage.setItem(key, raw);
+      primeStorageWatcherSnapshot(key, raw);
+    } catch {}
+  }
+
+    try {
+        window.dpSystem.initDpSystem({ forceReload: true });
+    } catch {}
+
+    try {
+        if (typeof window !== 'undefined' && window.showPopup) {
+            window.showPopup('dp', nextProgress, { overrideAmount: true });
+        }
+        window.dispatchEvent(new CustomEvent('dp:change', { detail: { changeType: 'debug-panel', slot, dpAdded: 0 } }));
+    } catch {}
+
+    try {
+        refreshLiveBindings();
+    } catch {}
+}
+
 function applyMutationState({ level, progress }) {
   const slot = getActiveSlot();
   if (slot == null) return;
@@ -2043,6 +2143,53 @@ function buildAreaStats(container, area) {
         });
 
         container.appendChild(materialSpawnRateRow.row);
+
+        const dpStateVal = window.dpSystem ? window.dpSystem.getDpState() : { dpLevel: BigNum.fromInt(0), progress: BigNum.fromInt(0) };
+
+        const dpLevelKey = DP_KEYS.level(slot);
+        const dpLevelRow = createInputRow('DP Level', dpStateVal.dpLevel, (value, { setValue }) => {
+            const prev = window.dpSystem.getDpState().dpLevel;
+            applyDpState({ level: value });
+            const latest = window.dpSystem.getDpState();
+            setValue(latest.dpLevel);
+            if (!bigNumEquals(prev, latest.dpLevel)) {
+                flagDebugUsage();
+                logAction(`Modified DP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.dpLevel)}`);
+            }
+        }, { storageKey: dpLevelKey });
+        registerLiveBinding({
+            type: 'dp',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                if (window.dpSystem) dpLevelRow.setValue(window.dpSystem.getDpState().dpLevel);
+            },
+        });
+        container.appendChild(dpLevelRow.row);
+
+        const dpProgressKey = DP_KEYS.progress(slot);
+        const dpProgressRow = createInputRow('DP', dpStateVal.progress, (value, { setValue }) => {
+            const prev = window.dpSystem.getDpState();
+            const prevLevel = prev?.dpLevel?.clone?.() ?? prev?.dpLevel;
+            const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
+            applyDpState({ progress: value });
+            const latest = window.dpSystem.getDpState();
+            setValue(latest.progress);
+            dpLevelRow.setValue(latest.dpLevel);
+            if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.dpLevel)) {
+                flagDebugUsage();
+                logAction(`Modified DP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`);
+            }
+        }, { storageKey: dpProgressKey });
+        registerLiveBinding({
+            type: 'dp',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                if (window.dpSystem) dpProgressRow.setValue(window.dpSystem.getDpState().progress);
+            },
+        });
+        container.appendChild(dpProgressRow.row);
     }
 
     if (area.key === AREA_KEYS.STARTER_COVE) {
@@ -2763,6 +2910,24 @@ function setAllStatsToInfinity() {
         }
     } catch {}
 
+    // DP: only if unlocked
+    try {
+        if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) {
+            const dpState = window.dpSystem.getDpState();
+            const levelInf =
+                dpState?.dpLevel?.isInfinite?.() ||
+                bigNumEquals(dpState?.dpLevel, inf);
+            const progInf =
+                dpState?.progress?.isInfinite?.() ||
+                bigNumEquals(dpState?.progress, inf);
+
+            if (!levelInf || !progInf) {
+                if (typeof applyDpState === 'function') applyDpState({ level: inf, progress: inf });
+                touched += 1; // count "DP" as one stat block
+            }
+        }
+    } catch {}
+
     // Workshop Level
     try {
         const genLevelKey = getGenerationLevelKey(slot);
@@ -2834,6 +2999,13 @@ function setAllStatsToZero() {
     try {
         if (mutationState?.unlocked) {
             applyMutationState({ level: zero, progress: zero });
+            touched += 1;
+        }
+    } catch {}
+
+    try {
+        if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) {
+            if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
             touched += 1;
         }
     } catch {}
@@ -3350,12 +3522,17 @@ function getResetTargetLockKeys(target, slot = getActiveSlot()) {
             add(MUTATION_KEYS.level(resolvedSlot));
             add(MUTATION_KEYS.progress(resolvedSlot));
         }
+        if (statKey === 'dp' || statKey === 'dpLevel' || statKey === 'dpProgress') {
+            add(DP_KEYS.level(resolvedSlot));
+            add(DP_KEYS.progress(resolvedSlot));
+        }
     };
 
     if (target === 'all') {
         Object.values(CURRENCIES).forEach(addCurrencyKeys);
         addStatKeys('xp');
         addStatKeys('mutation');
+        addStatKeys('dp');
         STAT_MULTIPLIERS.forEach(({ key }) => addStatMultiplier(key));
         return Array.from(keys);
     }
@@ -3368,6 +3545,7 @@ function getResetTargetLockKeys(target, slot = getActiveSlot()) {
     if (target === 'allUnlockedStats') {
         if (getXpState()?.unlocked) addStatKeys('xp');
         if (getMutationState()?.unlocked) addStatKeys('mutation');
+        if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) addStatKeys('dp');
         return Array.from(keys);
     }
 
@@ -3375,6 +3553,7 @@ function getResetTargetLockKeys(target, slot = getActiveSlot()) {
         Object.values(CURRENCIES).forEach(addCurrencyKeys);
         if (getXpState()?.unlocked) addStatKeys('xp');
         if (getMutationState()?.unlocked) addStatKeys('mutation');
+        if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) addStatKeys('dp');
         return Array.from(keys);
     }
 
@@ -3420,9 +3599,10 @@ function resetStatsAndMultipliers(target) {
 
         const zero = BigNum.fromInt(0);
 
-        // XP + MP (mutation) state → 0
+        // XP + MP (mutation) + DP state → 0
         applyXpState({ level: zero, progress: zero });
         applyMutationState({ level: zero, progress: zero });
+        if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
 
         // For stats, behave like the stat multiplier debug field:
         // create a temporary 1x override that will be auto-cleared on the next
@@ -3477,6 +3657,14 @@ function resetStatsAndMultipliers(target) {
         } catch {}
 
         try {
+            if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) {
+                if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('dp', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
             if (WATERWHEEL_DEFS) {
                 Object.values(WATERWHEEL_DEFS).forEach((def) => {
                     setWaterwheelLevel(def.id, zero);
@@ -3512,6 +3700,14 @@ function resetStatsAndMultipliers(target) {
             if (getMutationState()?.unlocked) {
                 applyMutationState({ level: zero, progress: zero });
                 try { setDebugStatMultiplierOverride('mutation', BigNum.fromInt(1)); } catch {}
+                resetCount += 1;
+            }
+        } catch {}
+
+        try {
+            if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) {
+                if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
+                try { setDebugStatMultiplierOverride('dp', BigNum.fromInt(1)); } catch {}
                 resetCount += 1;
             }
         } catch {}
@@ -3578,6 +3774,16 @@ function resetStatsAndMultipliers(target) {
         return 'MP';
     }
 
+    if (
+        statKey === 'dp' ||
+        statKey === 'dpLevel' ||
+        statKey === 'dpProgress'
+    ) {
+        if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
+        try { setDebugStatMultiplierOverride('dp', BigNum.fromInt(1)); } catch {}
+        return 'DP';
+    }
+
     // Fallback: generic stat multiplier reset -> same semantics as the debug stat input
     try { setDebugStatMultiplierOverride(statKey, BigNum.fromInt(1)); } catch {}
     return `stat ${statKey}`;
@@ -3597,6 +3803,8 @@ function buildAreaStatMultipliers(container, area) {
 
     STAT_MULTIPLIERS.forEach((stat) => {
         if (stat.key === 'spawnRate') return;
+        if (area.key === AREA_KEYS.UNDERWATER_CAVERN && stat.key !== 'dp') return;
+        if (area.key === AREA_KEYS.STARTER_COVE && stat.key === 'dp') return;
         const storageKey = getStatMultiplierStorageKey(stat.key, slot);
         const row = createInputRow(
             `${stat.label} Multiplier`,
@@ -3667,6 +3875,19 @@ function buildAreaStatMultipliers(container, area) {
         if (stat.key === 'mutation') {
             registerLiveBinding({
                 type: 'mutation',
+                key: stat.key,
+                slot,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    const latest = getStatMultiplierDisplayValue(stat.key, slot);
+                    row.setValue(latest);
+                },
+            });
+        }
+
+        if (stat.key === 'dp') {
+            registerLiveBinding({
+                type: 'dp',
                 key: stat.key,
                 slot,
                 refresh: () => {
@@ -4102,7 +4323,7 @@ function buildAreasContent(content) {
                     });
                     sub.appendChild(currencyMultipliers);
 
-                    if (area.key === AREA_KEYS.STARTER_COVE) {
+                    if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
                         const statMultipliers = createSubsection('Stats', (subsection) => {
                             buildAreaStatMultipliers(subsection, area);
                         });
