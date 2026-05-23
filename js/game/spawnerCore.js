@@ -288,7 +288,7 @@ export function createBaseSpawner(config = {}) {
         if (!M.pfRect) computeMetrics();
         const batch = [];
         for (let i = 0; i < n; i++) {
-            const plan = onPlanSpawn(M, activeItems, garbageCount, removeItem, maxActiveItems);
+            const plan = onPlanSpawn(M, activeItems, garbageCount, removeItem, maxActiveItems, batch.length);
             if (plan) {
                 if (Array.isArray(plan)) {
                     batch.push(...plan);
@@ -461,7 +461,7 @@ export function createBaseSpawner(config = {}) {
              
              for (let i = 0; i < spawnTarget; i++) {
                 if (performance.now() - t0 > timeBudgetMs) break;
-                const plan = onPlanSpawn(M, activeItems, garbageCount, removeItem, maxActiveItems);
+                const plan = onPlanSpawn(M, activeItems, garbageCount, removeItem, maxActiveItems, batch.length);
                 if (plan) {
                     if (Array.isArray(plan)) {
                         batch.push(...plan);
