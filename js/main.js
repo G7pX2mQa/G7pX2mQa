@@ -78,6 +78,7 @@ let initGameProgressBar;
 let initSurgeEffects;
 let refreshSurgeMultiplierCache;
 let getUpgAreaKey;
+let AREA_KEYS;
 let computeUpgradeEffects;
 let syncCurrencyMultipliersFromUpgrades;
 let registerXpUpgradeEffects;
@@ -1193,7 +1194,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ bank, getHasOpenedSaveSlot, setHasOpenedSaveSlot, ensureStorageDefaults, notifyGameSessionStarted, ensureMultiplierDefaults, getActiveSlot, setSavedArea, getSavedArea } = storageModule);
   initScrapHudCounter();
   void saveIntegrityModule;
-  ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged } = upgradesModule);
+  ({ getCurrentAreaKey: getUpgAreaKey, computeUpgradeEffects, onUpgradesChanged, AREA_KEYS } = upgradesModule);
   ({ syncCurrencyMultipliersFromUpgrades, registerXpUpgradeEffects } = upgradeEffectsModule);
   ({ registerPreloadedAudio } = audioCacheModule);
   ({ initXpSystem, syncCoinMultiplierWithXpLevel } = xpModule);
