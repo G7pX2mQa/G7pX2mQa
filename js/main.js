@@ -1037,6 +1037,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 	'img/misc/pickaxe.webp',
     'img/misc/safety_first.webp',
 	'img/misc/sell.webp',
+	'img/misc/sell_base.webp',
+	'img/misc/sell_plus_base.webp',
     'img/misc/semi_automatic.webp',
     'img/misc/surge.webp',
     'img/misc/surge_plus_base.webp',
