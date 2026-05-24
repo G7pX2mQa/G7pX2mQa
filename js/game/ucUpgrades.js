@@ -5,7 +5,7 @@ export const UC_AREA_KEY = 'underwater_cavern';
 export const UC_REGISTRY = [
   {
     area: UC_AREA_KEY,
-    id: 24,
+    id: 1,
     tie: 'scrap_1',
     title: 'Faster Materials',
     desc: 'Increases Material Spawn Rate by +1% per level',
