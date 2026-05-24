@@ -4336,10 +4336,13 @@ function buildAreasContent(content) {
                 });
             }
 
-            if (area.key === AREA_KEYS.STARTER_COVE) {
+            if (area.key === AREA_KEYS.STARTER_COVE || area.key === AREA_KEYS.UNDERWATER_CAVERN) {
                 upgrades = createSubsection('Upgrades', (sub) => {
                     buildAreaUpgrades(sub, area);
                 });
+            }
+
+            if (area.key === AREA_KEYS.STARTER_COVE) {
                 automationUpgrades = createSubsection('Automation Upgrades', (sub) => {
                     buildAreaUpgrades(sub, { key: AREA_KEYS.AUTOMATION, title: 'Automation' });
                 });
