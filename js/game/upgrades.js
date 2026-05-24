@@ -2354,26 +2354,6 @@ function nmCostBN(upg, level) {
  */
 export const REGISTRY = [
   {
-    area: AREA_KEYS.UNDERWATER_CAVERN,
-    id: 24,
-    tie: UPGRADE_TIES.FASTER_MATERIALS,
-    title: "Faster Materials",
-    desc: "Increases Material Spawn Rate by +1% per level",
-    lvlCap: 900,
-    baseCost: 10,
-    costType: "scrap",
-    upgType: "NM",
-    effectType: "material_spawn",
-    icon: "img/uc_upg_icons/faster_materials.webp",
-    costAtLevel(level) { return nmCostBN(this, level); },
-    nextCostAfter(_, nextLevel) { return nmCostBN(this, nextLevel); },
-    effectSummary(level) {
-      const mult = this.effectMultiplier(level);
-      return `Material Spawn Rate bonus: ${formatMultForUi(mult)}x`;
-    },
-    effectMultiplier: E.addPctPerLevel(0.01),
-  },
-  {
     area: AREA_KEYS.STARTER_COVE,
     id: 1,
     tie: UPGRADE_TIES.FASTER_COINS,
