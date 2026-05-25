@@ -1,7 +1,7 @@
 import { getActiveSlot, UC_MATERIALS, bank } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
-import { UC_MATERIAL_THRESHOLDS, getUcMaterialAccumulators } from '../../game/ucSpawner.js';
+import { UC_MATERIAL_DATA, getUcMaterialAccumulators } from '../../game/ucSpawner.js';
 import { getDpState } from '../../game/dpSystem.js';
 import { createDropdown } from '../sas/dropdownUtils.js';
 import { playAudio } from '../../util/audioManager.js';
@@ -60,7 +60,11 @@ const DROPDOWN_OPTIONS = [
 let selectedSellAmount = '1';
 
 function parseCustomAmount(inputStr) {
-  let str = inputStr.trim();
+  let str = inputStr.trim().toLowerCase();
+  
+  if (str === 'inf' || str === 'max' || str === '100%') {
+      return { type: 'percent', val: 100 };
+  }
   
   // Try fraction
   const fracMatch = str.match(/^(\d+)\/(\d+)$/);
@@ -80,23 +84,24 @@ function parseCustomAmount(inputStr) {
       if (pct > 100) {
         // Disregard > hundreds place
         const asStr = Math.floor(pct).toString();
-        const tensAndOnes = asStr.length > 2 ? asStr.slice(-2) : asStr;
-        pct = parseFloat(tensAndOnes);
-        if (isNaN(pct)) pct = 0;
+        const lastTwo = asStr.slice(-2);
+        pct = parseFloat(lastTwo) + (pct - Math.floor(pct));
       }
-      return { type: 'percent', val: Math.floor(pct * 100) / 100 };
+      return { type: 'percent', val: pct };
     }
   }
-
-  // Try raw integer
-  const intVal = parseInt(str, 10);
-  if (!isNaN(intVal) && intVal >= 0) {
-    return { type: 'absolute', val: intVal };
+  
+  // Try absolute number
+  const numMatch = str.match(/^[\d.]+$/);
+  if (numMatch) {
+    const num = parseFloat(numMatch[0]);
+    if (!isNaN(num) && num > 0) {
+       return { type: 'absolute', val: num };
+    }
   }
-
+  
   return null;
 }
-
 function calculateSellAmount(totalOwnedBn, amountSelection) {
   if (totalOwnedBn.lte(0)) return BigNum.fromInt(0);
 
@@ -208,6 +213,7 @@ export function initSellPanel(minerSheetEl, tabsEl, panelsWrapEl) {
 }
 
 
+
 export function updateSellTab() {
    if (!sellPanelDomCache.listContainer) return;
    
@@ -219,18 +225,34 @@ export function updateSellTab() {
        }
    } catch {}
 
+   // Track historical seen materials
+   let seenMaterials = [];
+   try {
+       const stored = localStorage.getItem('ccc:sellSeenMaterials');
+       if (stored) {
+           seenMaterials = JSON.parse(stored);
+       }
+   } catch {}
+   
    let highestMatIdx = 0;
    let nextMatIdx = -1;
 
-   for (let i = 0; i < UC_MATERIAL_THRESHOLDS.length; i++) {
-       const t = UC_MATERIAL_THRESHOLDS[i];
-       if (dpLevelNum >= t.max && i !== 0) {
+   for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
+       const t = UC_MATERIAL_DATA[i];
+       if (dpLevelNum >= t.start) {
            highestMatIdx = i;
+           if (!seenMaterials.includes(t.name)) {
+               seenMaterials.push(t.name);
+           }
        }
    }
    
-   for (let i = 0; i < UC_MATERIAL_THRESHOLDS.length; i++) {
-       const t = UC_MATERIAL_THRESHOLDS[i];
+   try {
+       localStorage.setItem('ccc:sellSeenMaterials', JSON.stringify(seenMaterials));
+   } catch {}
+   
+   for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
+       const t = UC_MATERIAL_DATA[i];
        if (dpLevelNum < t.start) {
            nextMatIdx = i;
            break;
@@ -240,17 +262,18 @@ export function updateSellTab() {
    const highestMatName = RESOURCE_REGISTRY.find(r => r.key === UC_MATERIALS[highestMatIdx])?.singular || 'Stone';
    let nextUnlockStr = '';
    if (nextMatIdx !== -1) {
-       nextUnlockStr = `Next material unlocks at: ${formatNumber(UC_MATERIAL_THRESHOLDS[nextMatIdx].start)}m`;
+       nextUnlockStr = `Next material unlocks at: ${formatNumber(UC_MATERIAL_DATA[nextMatIdx].start)}m`;
    } else {
        nextUnlockStr = `You have reached the highest material.`;
    }
 
-   let alwaysSpawnsStr = `${highestMatName} always spawns at: ${formatNumber(UC_MATERIAL_THRESHOLDS[highestMatIdx].max)}m`;
+   let alwaysSpawnsStr = `${highestMatName} always spawns at: ${formatNumber(UC_MATERIAL_DATA[highestMatIdx].max)}m`;
    if (highestMatIdx === 0) {
        alwaysSpawnsStr = `Stone always spawns at: 0m`;
    }
 
    sellPanelDomCache.infoBox.innerHTML = `
+      <b>Sell materials for Scrap, use Scrap to buy upgrades</b><br>
       Current Depth: ${formatNumber(dpLevelNum)}m<br>
       ${alwaysSpawnsStr}<br>
       ${nextUnlockStr}
@@ -260,9 +283,9 @@ export function updateSellTab() {
 
    for (let i = 0; i < UC_MATERIALS.length; i++) {
        const matKey = UC_MATERIALS[i];
-       const t = UC_MATERIAL_THRESHOLDS[i];
+       const t = UC_MATERIAL_DATA[i];
        
-       if (dpLevelNum < t.start && i !== 0) {
+       if (!seenMaterials.includes(t.name)) {
            if (sellPanelDomCache.rows[matKey]) {
                sellPanelDomCache.rows[matKey].rowEl.remove();
                delete sellPanelDomCache.rows[matKey];
@@ -290,17 +313,16 @@ export function updateSellTab() {
            rowCache.textEl.textContent = `Progress: ${acc.toFixed(2)}/1.00`;
        }
 
-       const owned = bank.currencies[matKey] || BigNum.fromInt(0);
+       const owned = bank[matKey]?.value || BigNum.fromInt(0);
        rowCache.ownedEl.textContent = formatNumber(owned);
        
        const scrapMultiplier = 1;
-       const val = (BASE_VALUES[matKey] || 0) * scrapMultiplier;
+       const val = (t.value || 0) * scrapMultiplier;
        rowCache.valEl.textContent = formatNumber(val);
        rowCache.currentVal = val;
        rowCache.currentOwned = owned;
    }
 }
-
 function createLocalDropdown() {
     return createDropdown({
         getOptions: () => DROPDOWN_OPTIONS,
@@ -379,9 +401,9 @@ function createSellRow(matKey, index) {
        const amt = calculateSellAmount(rowCache.currentOwned, selectedSellAmount);
        if (amt.lte(0)) return;
        
-       bank.subtractCurrency(matKey, amt);
+       bank[matKey].sub(amt);
        const totalValue = amt.mul(rowCache.currentVal);
-       bank.addCurrency('scrap', totalValue);
+       bank.scrap.add(totalValue);
        
        playAudio('sounds/purchase_upg.ogg', { volume: 0.5 });
        updateSellTab();
