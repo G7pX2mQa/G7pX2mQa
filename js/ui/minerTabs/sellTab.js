@@ -279,7 +279,7 @@ export function updateSellTab() {
    const highestMatName = RESOURCE_REGISTRY.find(r => r.key === UC_MATERIALS[highestMatIdx])?.singular || 'Stone';
    let nextUnlockStr = '';
    if (nextMatIdx !== -1) {
-       nextUnlockStr = `Next material unlocks at: ${formatNumber(UC_MATERIAL_DATA[nextMatIdx].start)}m`;
+       nextUnlockStr = `Next material starts spawning at: ${formatNumber(UC_MATERIAL_DATA[nextMatIdx].start)}m`;
    } else {
        nextUnlockStr = `You have reached the highest material.`;
    }
