@@ -49,6 +49,11 @@ export class BigNum {
 
   // ---------------------- FACTORIES ----------------------
   static zero(p = BigNum.DEFAULT_PRECISION) { return new BigNum(0n, 0, p); }
+  static min(a, b) {
+    a = BigNum.fromAny(a);
+    b = BigNum.fromAny(b);
+    return a.cmp(b) <= 0 ? a : b;
+  }
 
   static fromInt(n, p = BigNum.DEFAULT_PRECISION) {
     return new BigNum(BigInt(n), 0, p);
