@@ -328,7 +328,7 @@ export function createUcSpawner(config = {}) {
                     const pickY = rubbleRect.top + rubbleRect.height * 0.5 + window.innerHeight * 0.025;
                     
                     // Is left or right half?
-                    const itemMiddleAbsoluteX = pfRect.left + item.endX + (item.size / 2);
+                    const itemMiddleAbsoluteX = pfRect.left + item.startX + (item.size / 2);
                     const isLeft = itemMiddleAbsoluteX < (window.innerWidth / 2);
                     // Right side: negative charge (-60), positive strike (+60)
                     // Left side: positive charge (+60), negative strike (-60)
@@ -344,13 +344,13 @@ export function createUcSpawner(config = {}) {
                     // Assuming tip is ~71px from pivot horizontally when swung 60 degrees.
                     // The pivot is at the bottom center of the 64x64 image (so Y is top + 64).
                     // The rotated tip Y is roughly at the same height as the pivot, meaning top should be ~60px above the target Y.
-                    // For left: tip is at -71px from pivot, so left edge should be at endX + 39.
-                    // For right: tip is at +71px from pivot, so left edge should be at endX - 103.
+                    // For left: tip is at -71px from pivot, so left edge should be at startX + 39.
+                    // For right: tip is at +71px from pivot, so left edge should be at startX - 103.
                     const scaleFactor = pickaxeSize / 64;
                     const offsetX = (isLeft ? 39 : -103) * scaleFactor;
                     const offsetY = -60 * scaleFactor; // shift up so the tip is at the target Y
 
-                    pickaxe.style.left = `${item.endX + offsetX}px`;
+                    pickaxe.style.left = `${item.startX + offsetX}px`;
                     pickaxe.style.top = `${localPickY + offsetY}px`;
                     
                     // Reset pickaxe rotation before starting
