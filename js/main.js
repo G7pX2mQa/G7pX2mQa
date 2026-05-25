@@ -96,19 +96,21 @@ let flushBackupSnapshot;
 let scrapHudListenerBound = false;
 function updateScrapHudCounter() {
   if (!bank) return;
-  const amountEl = document.querySelector('.hud-top .scrap-amount');
-  if (!amountEl) return;
+  const amountEls = document.querySelectorAll('.scrap-amount');
+  if (!amountEls.length) return;
 
   let formatted = '0';
   try {
     formatted = bank.scrap?.fmt?.(bank.scrap.value) ?? '0';
   } catch {}
 
-  if (String(formatted).includes('<span')) {
-    amountEl.innerHTML = formatted;
-  } else {
-    amountEl.textContent = formatted;
-  }
+  amountEls.forEach(amountEl => {
+    if (String(formatted).includes('<span')) {
+      amountEl.innerHTML = formatted;
+    } else {
+      amountEl.textContent = formatted;
+    }
+  });
 }
 function initScrapHudCounter() {
   updateScrapHudCounter();
@@ -685,7 +687,7 @@ export function enterArea(areaID) {
       if (materialsLayer) materialsLayer.style.display = 'none';
       const coinsLayer = document.getElementById('coins-layer');
       if (coinsLayer) coinsLayer.style.display = '';
-      const scrapCounter = document.querySelector('.scrap-counter');
+      const scrapCounter = document.querySelector('.hud-top .scrap-counter');
       if (scrapCounter) scrapCounter.style.display = 'none';
       const coinCounter = document.querySelector('.coin-counter');
       if (coinCounter) coinCounter.style.display = '';
@@ -777,7 +779,7 @@ export function enterArea(areaID) {
       if (materialsLayer) materialsLayer.style.display = '';
       const coinsLayer = document.getElementById('coins-layer');
       if (coinsLayer) coinsLayer.style.display = 'none';
-      const scrapCounter = document.querySelector('.scrap-counter');
+      const scrapCounter = document.querySelector('.hud-top .scrap-counter');
       if (scrapCounter) scrapCounter.style.display = '';
 	  updateScrapHudCounter();
       const coinCounter = document.querySelector('.coin-counter');
