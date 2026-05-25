@@ -243,6 +243,7 @@ export function setFpsUnlockerActive(active) {
                 document.body.appendChild(fpsUnlockerCanvas);
             }
         }
+        fpsUnlockerCanvas.style.display = '';
         if (!fpsUnlockerRaf) {
             fpsUnlockerFrame();
         }
@@ -251,10 +252,8 @@ export function setFpsUnlockerActive(active) {
             cancelAnimationFrame(fpsUnlockerRaf);
             fpsUnlockerRaf = null;
         }
-        if (fpsUnlockerCanvas && fpsUnlockerCanvas.parentNode) {
-            fpsUnlockerCanvas.parentNode.removeChild(fpsUnlockerCanvas);
-            fpsUnlockerCanvas = null;
-            fpsUnlockerCtx = null;
+        if (fpsUnlockerCanvas) {
+            fpsUnlockerCanvas.style.display = 'none';
         }
     }
 }
@@ -1389,7 +1388,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (titleEl) titleEl.style.opacity = '0';
 
     const loader = showLoader('Loading game...');
-    setFpsUnlockerActive(true);
     const stepDelay = () => new Promise(r => setTimeout(r, 120));
 
     // Milestone 1: Multipliers
