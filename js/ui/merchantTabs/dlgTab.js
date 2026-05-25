@@ -1075,7 +1075,7 @@ function ensureMerchantOverlay() {
   merchantOverlayEl.appendChild(merchantSheetEl);
   document.body.appendChild(merchantOverlayEl);
   initDialogueTab();
-  ensureMerchantScrollbar();
+  ensureMerchantScrollbar(merchantOverlayEl, merchantSheetEl);
 
   if (!merchantEventsBound) {
       merchantEventsBound = true;
