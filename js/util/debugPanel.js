@@ -1,4 +1,3 @@
-import { isSellUnlocked, setSellUnlocked } from '../ui/minerTabs/sellTab.js';
 // js/util/debugPanel.js
 // Using a debug panel is much faster and more convenient than
 // Editing local storage every time I want to change something.
@@ -44,7 +43,7 @@ import { getSurgeBarLevelKey, hasDoneInfuseReset } from '../ui/merchantTabs/rese
 import { getBaseTsunamiExponent, setTsunamiNerf, getTsunamiNerfKey, isLabUnlocked, setLabUnlocked, getTsunamiExponent } from '../game/surgeEffects.js';
 import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
-
+import { isSellUnlocked, setSellUnlocked } from '../ui/minerTabs/sellTab.js';
 import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
 import { getLabLevel, setLabLevel, getLabLevelKey, getRpMultBase } from '../ui/merchantTabs/labTab.js';
 import { 
