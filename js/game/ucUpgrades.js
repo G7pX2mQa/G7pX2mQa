@@ -1,4 +1,6 @@
-import { computeDefaultUpgradeCost, formatMultForUi } from './upgrades.js';
+import { computeDefaultUpgradeCost, formatMultForUi, UPGRADE_TIES, determineLockState } from './upgrades.js';
+
+import { BigNum } from '../util/bigNum.js';
 
 export const UC_AREA_KEY = 'underwater_cavern';
 
@@ -25,5 +27,27 @@ export const UC_REGISTRY = [
       const normalizedLevel = Math.max(0, Number(level) || 0);
       return 1 + (0.01 * normalizedLevel);
     },
+  },
+  {
+    area: UC_AREA_KEY,
+    id: 2,
+    tie: 'none_5',
+    title: "Unlock Sell",
+    desc: "Unlocks the Sell tab in the Delve menu",
+    lvlCap: 1,
+    upgType: "NM",
+    icon: "",
+    baseIconOverride: "img/misc/sell_plus_base.webp",
+    
+    unlockUpgrade: true,
+    costAtLevel() { return BigNum.fromInt(0); },
+    nextCostAfter() { return BigNum.fromInt(0); },
+    computeLockState: determineLockState,
+    onLevelChange({ newLevel }) {
+      if ((newLevel ?? 0) >= 1) {
+        try { if (typeof window.onSellUpgradeUnlocked === 'function') window.onSellUpgradeUnlocked(); } catch {}
+      }
+    },
+    effectSummary() { return ""; },
   },
 ];
