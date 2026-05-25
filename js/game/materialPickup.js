@@ -9,10 +9,11 @@ import { createMagnetController, initInteractionBrush, computeMagnetUnitPx } fro
 import { settingsManager } from './settingsManager.js';
 import { getComboUiString } from './surgeEffects.js';
 import { formatNumber } from '../util/numFormat.js';
+import { UC_MATERIAL_DATA } from './ucSpawner.js';
 
 let ucPickup = null;
 const BASE_MATERIAL_VALUE = BigNum.fromInt(1);
-const soundSrc = 'sounds/material_pickup.ogg';
+
 
 export function initUcPickup({
   spawner,
@@ -49,19 +50,28 @@ export function initUcPickup({
   pf.style.touchAction = 'none';
 
   let magnetController = null;
-  const resolvedSrc = new URL(soundSrc, document.baseURI).href;
+  
   const MATERIAL_VOLUME = IS_MOBILE ? 0.2 : 0.4;
-  let lastAt = 0;
+  const lastPlayedAt = new Map();
 
-  function playSound(){
+  function playSound(matType) {
     const now = performance.now();
+    const lastAt = lastPlayedAt.get(matType) || 0;
     if ((now - lastAt) < 40) return; 
-    lastAt = now;
+    lastPlayedAt.set(matType, now);
     
-    playAudio(resolvedSrc, { 
-        volume: MATERIAL_VOLUME,
-        type: 'sfx'
-    });
+    const matIndex = UC_MATERIAL_DATA.findIndex(d => d.name === matType);
+    if (matIndex !== -1) {
+      const matData = UC_MATERIAL_DATA[matIndex];
+      if (matData.sfx) {
+        const resolvedSrc = new URL(matData.sfx, document.baseURI).href;
+        const volumeMultiplier = Math.max(0.60, 1.0 - (matIndex * 0.07));
+        playAudio(resolvedSrc, { 
+            volume: MATERIAL_VOLUME * volumeMultiplier,
+            type: 'sfx'
+        });
+      }
+    }
   }
 
   function isMaterial(el) {
@@ -162,9 +172,10 @@ export function initUcPickup({
     }
 
     if (collectedCount > 0) {
-        playSound();
         // Add to bank
         for (const [matType, count] of Object.entries(gains)) {
+            playSound(matType);
+
             // Check if currency is locked (from debug)
             let isLocked = false;
             try { isLocked = globalThis?.__cccLockedStorageKeys?.has?.(`ccc:${matType}`); } catch {}
