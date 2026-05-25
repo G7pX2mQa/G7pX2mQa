@@ -335,7 +335,7 @@ export function updateSellTab() {
        
        const scrapMultiplier = 1;
        const val = (t.value || 0) * scrapMultiplier;
-       rowCache.valEl.textContent = formatNumber(val);
+       rowCache.valEl.textContent = formatNumber(BigNum.fromAny(val));
        rowCache.currentVal = val;
        rowCache.currentOwned = owned;
    }
