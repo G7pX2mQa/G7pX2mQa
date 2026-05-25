@@ -121,6 +121,8 @@
     z-index: 300;
     opacity: 0;
     pointer-events: none;
+    transform: translateZ(0);
+    will-change: transform;
     clip-path: polygon(
         0% 0%, 100% 0%, 100% 85%,
         98% 95%, 95% 85%, 92% 100%, 88% 90%, 85% 98%,
