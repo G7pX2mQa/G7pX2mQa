@@ -119,7 +119,7 @@ function calculateSellAmount(totalOwnedBn, amountSelection) {
     return BigNum.min(totalOwnedBn, BigNum.fromNumber(parsed.val));
   } else if (parsed.type === 'percent') {
     const pct = parsed.val / 100;
-    let amount = totalOwnedBn.mul(pct).floor();
+    let amount = totalOwnedBn.mulDecimalFloor(pct);
     if (amount.cmp(0) <= 0 && pct > 0 && totalOwnedBn.cmp(0) > 0) {
        amount = BigNum.fromInt(1);
     }
@@ -410,7 +410,7 @@ function createSellRow(matKey, index) {
        if (amt.cmp(0) <= 0) return;
        
        bank[matKey].sub(amt);
-       const totalValue = amt.mul(rowCache.currentVal);
+       const totalValue = amt.mulDecimalFloor(rowCache.currentVal);
        bank.scrap.add(totalValue);
        
        playAudio('sounds/purchase_upg.ogg', { volume: 0.5 });
