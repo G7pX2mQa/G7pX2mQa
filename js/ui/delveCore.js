@@ -354,17 +354,17 @@ export function injectScrollTimelineStyles() {
   document.head.appendChild(style);
 }
 
-export function ensureMerchantScrollbar(scrollerSelector = '.merchant-content', extraClass = '') {
-  const scroller = merchantOverlayEl?.querySelector(scrollerSelector);
+export function ensureMerchantScrollbar(overlayEl, sheetEl, scrollerSelector = '.merchant-content', extraClass = '') {
+  const scroller = overlayEl?.querySelector(scrollerSelector);
   if (!scroller || scroller.__customScroll) return;
-  if (!merchantSheetEl) return;
+  if (!sheetEl) return;
 
   const bar = document.createElement('div');
   bar.className = 'merchant-scrollbar' + (extraClass ? ' ' + extraClass : '');
   const thumb = document.createElement('div');
   thumb.className = 'merchant-scrollbar__thumb';
   bar.appendChild(thumb);
-  merchantSheetEl.appendChild(bar);
+  sheetEl.appendChild(bar);
 
   const FADE_SCROLL_MS = 150;
   const FADE_DRAG_MS = 120;
@@ -380,7 +380,7 @@ export function ensureMerchantScrollbar(scrollerSelector = '.merchant-content', 
       const uniqueId = Math.random().toString(36).slice(2, 8);
       const timelineName = `--merchant-scroll-${uniqueId}`;
     
-      merchantSheetEl.style.timelineScope = timelineName;
+      sheetEl.style.timelineScope = timelineName;
       scroller.style.scrollTimelineName = timelineName;
       scroller.style.scrollTimelineAxis = 'block'; // Merchant only has vertical
     
@@ -392,9 +392,9 @@ export function ensureMerchantScrollbar(scrollerSelector = '.merchant-content', 
   }
 
 const updateBounds = () => {
-      const grabber = merchantOverlayEl.querySelector('.merchant-grabber');
-      const header  = merchantOverlayEl.querySelector('.merchant-header');
-      const actions = merchantOverlayEl.querySelector('.merchant-actions');
+      const grabber = overlayEl.querySelector('.merchant-grabber');
+      const header  = overlayEl.querySelector('.merchant-header');
+      const actions = overlayEl.querySelector('.merchant-actions');
 
       const top = ((grabber?.offsetHeight || 0) + (header?.offsetHeight || 0)) | 0;
       const bottom = (actions?.offsetHeight || 0) | 0;
@@ -447,7 +447,7 @@ const updateBounds = () => {
       const hasShadow = (scrollTop || 0) > 0;
       if (lastShadow !== hasShadow) {
           lastShadow = hasShadow;
-          merchantSheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
+          sheetEl?.classList.toggle('has-scroll-shadow', hasShadow);
       }
 
       // 2. Thumb Position (if not using CSS Timeline)
@@ -468,7 +468,7 @@ const updateBounds = () => {
 
   const showBar = () => {
       if (!IS_MOBILE) return;
-      merchantSheetEl.classList.add('is-scrolling');
+      sheetEl.classList.add('is-scrolling');
       if (fadeTimer) clearTimeout(fadeTimer);
   };
 
@@ -476,7 +476,7 @@ const updateBounds = () => {
       if (!IS_MOBILE) return;
       if (fadeTimer) clearTimeout(fadeTimer);
       fadeTimer = setTimeout(() => {
-          merchantSheetEl.classList.remove('is-scrolling');
+          sheetEl.classList.remove('is-scrolling');
       }, delay);
   };
 
