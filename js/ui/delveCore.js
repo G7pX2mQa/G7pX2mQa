@@ -737,9 +737,61 @@ const doCloseFromBtn = (e) => {
 }
 
 
+
 export function openDelveOverlay(overlayEl, sheetEl) {
     if (!overlayEl || !sheetEl) return;
     
+    // Abstracted Tab Memory Requirement for any delve overlay
+    try {
+        const overlayId = overlayEl.id || 'default-overlay';
+        import('../util/storage.js').then(({ getActiveSlot }) => {
+            const slot = getActiveSlot();
+            const tabKey = `ccc:delveTab:${overlayId}:${slot}`;
+            
+            const allTabs = sheetEl.querySelectorAll('.merchant-tab');
+            const allPanels = sheetEl.querySelectorAll('.merchant-panel');
+            
+            if (allTabs.length > 0) {
+                // Bind saving to all tabs if not already bound
+                if (!sheetEl.__delveTabsBound) {
+                    sheetEl.__delveTabsBound = true;
+                    // Note: We use capturing phase or just normal click to save the state, 
+                    // since the actual tab switching logic might be handled by the specific overlay.
+                    allTabs.forEach(tab => {
+                        tab.addEventListener('click', () => {
+                            const targetTab = tab.dataset.tab;
+                            if (targetTab && !tab.disabled && !tab.classList.contains('is-locked')) {
+                                try { localStorage.setItem(tabKey, targetTab); } catch {}
+                            }
+                        });
+                    });
+                }
+                
+                // Restore tab
+                const savedTab = localStorage.getItem(tabKey);
+                if (savedTab) {
+                    const targetTab = sheetEl.querySelector(`.merchant-tab[data-tab="${savedTab}"]`);
+                    // Find the matching panel by checking dataset or id
+                    let targetPanel = null;
+                    allPanels.forEach(p => {
+                        if (p.id.endsWith(`-${savedTab}`) || p.classList.contains(`${savedTab}-tab`)) {
+                            targetPanel = p;
+                        }
+                    });
+                    
+                    if (targetTab && targetPanel && !targetTab.disabled && !targetTab.classList.contains('is-locked')) {
+                        allTabs.forEach(t => t.classList.remove('is-active'));
+                        allPanels.forEach(p => p.classList.remove('is-active'));
+                        targetTab.classList.add('is-active');
+                        targetPanel.classList.add('is-active');
+                    }
+                }
+            }
+        }).catch(() => {});
+    } catch (e) {
+        console.error("Tab state error", e);
+    }
+
     sheetEl.style.transition = 'none';
     sheetEl.style.transform = '';
     overlayEl.removeAttribute('inert');
@@ -749,7 +801,7 @@ export function openDelveOverlay(overlayEl, sheetEl) {
         requestAnimationFrame(() => {
             sheetEl.style.transition = '';
             overlayEl.classList.add('is-open');
-            blockInteraction(140);
+            import('./shopOverlay.js').then(({ blockInteraction }) => blockInteraction(140));
         });
     });
 }
