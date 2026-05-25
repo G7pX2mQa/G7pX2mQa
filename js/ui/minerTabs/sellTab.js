@@ -36,7 +36,7 @@ export function initSellPanel(minerSheetEl, tabsEl, panelsWrapEl) {
   const panel = document.createElement('section');
   panel.className = 'merchant-panel';
   panel.id = 'miner-panel-sell';
-  panel.innerHTML = `<div class="miner-antisocial-msg">You have nothing to sell yet.</div>`;
+  panel.innerHTML = ``;
   
   // Tab switching logic is usually handled by `bindRapidActivation` or something similar.
   // We'll let the overlay code wire up tab clicks, or we wire it up here if it isn't centralized.
