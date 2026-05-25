@@ -5,16 +5,16 @@ import { UC_MATERIALS } from '../util/storage.js';
 import { settingsManager } from './settingsManager.js';
 
 export const UC_MATERIAL_DATA = [
-    { name: 'stone', start: 0, max: 0, value: 1 },
-    { name: 'copper', start: 1, max: 24, value: 10 },
-    { name: 'iron', start: 25, max: 49, value: 1000 },
-    { name: 'pure_gold', start: 50, max: 99, value: 1e6 },
-    { name: 'diamond', start: 100, max: 199, value: 1e10 },
-    { name: 'emerald', start: 200, max: 399, value: 1e15 },
-    { name: 'ruby', start: 400, max: 799, value: 1e21 },
-    { name: 'obsidian', start: 800, max: 1599, value: 1e28 },
-    { name: 'unobtainium', start: 1600, max: 3199, value: 1e36 },
-    { name: 'prismatium', start: 3200, max: 5000, value: 1e45 }
+    { name: 'stone', start: 0, max: 0, value: 1, sfx: 'sounds/stone.ogg' },
+    { name: 'copper', start: 1, max: 24, value: 10, sfx: 'sounds/copper.ogg' },
+    { name: 'iron', start: 25, max: 49, value: 1000, sfx: 'sounds/iron.ogg' },
+    { name: 'pure_gold', start: 50, max: 99, value: 1e6, sfx: 'sounds/pure_gold.ogg' },
+    { name: 'diamond', start: 100, max: 199, value: 1e10, sfx: 'sounds/diamond.ogg' },
+    { name: 'emerald', start: 200, max: 399, value: 1e15, sfx: 'sounds/emerald.ogg' },
+    { name: 'ruby', start: 400, max: 799, value: 1e21, sfx: 'sounds/ruby.ogg' },
+    { name: 'obsidian', start: 800, max: 1599, value: 1e28, sfx: 'sounds/obsidian.ogg' },
+    { name: 'unobtainium', start: 1600, max: 3199, value: 1e36, sfx: 'sounds/unobtainium.ogg' },
+    { name: 'prismatium', start: 3200, max: 5000, value: 1e45, sfx: 'sounds/prismatium.ogg' }
 ];
 
 export function getUcMaterialAccumulators() {
