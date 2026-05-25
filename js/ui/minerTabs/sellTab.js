@@ -142,7 +142,7 @@ function getGradient(key) {
 let sellPanelDomCache = {};
 let sellPanelTickObj = null;
 
-export function initSellPanel(minerSheetEl, tabsEl, panelsWrapEl) {
+export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl) {
   const tabBtn = document.createElement('button');
   tabBtn.type = 'button';
   tabBtn.className = 'merchant-tab';
@@ -215,7 +215,7 @@ export function initSellPanel(minerSheetEl, tabsEl, panelsWrapEl) {
 
   tabsEl.appendChild(tabBtn);
   panelsWrapEl.appendChild(panel);
-  ensureMerchantScrollbar('.sell-center-col', 'sell-scrollbar');
+  ensureMerchantScrollbar(minerOverlayEl, minerSheetEl, '.sell-center-col', 'sell-scrollbar');
 
   if (!sellPanelTickObj) {
      sellPanelTickObj = registerTick(() => {
