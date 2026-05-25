@@ -86,6 +86,7 @@ function ensureMinerOverlay() {
       allPanels.forEach(p => p.classList.remove('is-active'));
       tabBtn.classList.add('is-active');
       panelDialogue.classList.add('is-active');
+      
     });
 
     initSellPanel(minerSheetEl, tabs, panelsWrap);
@@ -251,6 +252,9 @@ function renderDialogueList() {
 export function openMiner() {
   ensureMinerOverlay();
   setDelveElements(minerOverlayEl, minerSheetEl);
+  
+  
+
     
     // renderDialogueList();
 
