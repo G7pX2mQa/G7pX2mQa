@@ -1,3 +1,4 @@
+import { isSellUnlocked, setSellUnlocked } from '../ui/minerTabs/sellTab.js';
 // js/util/debugPanel.js
 // Using a debug panel is much faster and more convenient than
 // Editing local storage every time I want to change something.
@@ -3114,6 +3115,23 @@ function getUnlockRowDefinitions(slot) {
             },
             onDisable: () => {
                 try { setNodeLocked('depths', true); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Sell',
+            description: 'If true, unlocks the Sell tab in the Miner delve',
+            isUnlocked: () => {
+                try { return isSellUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setSellUnlocked(true); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setSellUnlocked(false); }
                 catch {}
             },
             slot,
