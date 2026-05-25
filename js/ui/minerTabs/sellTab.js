@@ -103,7 +103,7 @@ function parseCustomAmount(inputStr) {
   return null;
 }
 function calculateSellAmount(totalOwnedBn, amountSelection) {
-  if (totalOwnedBn.lte(0)) return BigNum.fromInt(0);
+  if (totalOwnedBn.cmp(0) <= 0) return BigNum.fromInt(0);
 
   if (amountSelection === '1') {
     return BigNum.min(totalOwnedBn, BigNum.fromInt(1));
@@ -119,7 +119,7 @@ function calculateSellAmount(totalOwnedBn, amountSelection) {
   } else if (parsed.type === 'percent') {
     const pct = parsed.val / 100;
     let amount = totalOwnedBn.mul(pct).floor();
-    if (amount.lte(0) && pct > 0 && totalOwnedBn.gt(0)) {
+    if (amount.cmp(0) <= 0 && pct > 0 && totalOwnedBn.cmp(0) > 0) {
        amount = BigNum.fromInt(1);
     }
     return BigNum.min(totalOwnedBn, amount);
@@ -165,7 +165,7 @@ export function initSellPanel(minerSheetEl, tabsEl, panelsWrapEl) {
   const header = document.createElement('div');
   header.className = 'sell-list-header';
   header.innerHTML = `
-    <div>Material</div>
+    <div class="list-head-name">Material</div>
     <div>Owned</div>
     <div>Value</div>
     <div>Sell</div>
@@ -187,6 +187,7 @@ export function initSellPanel(minerSheetEl, tabsEl, panelsWrapEl) {
     tabBtn.classList.add('is-active');
     panel.classList.add('is-active');
     
+    
     updateSellTab();
   });
 
@@ -195,6 +196,7 @@ export function initSellPanel(minerSheetEl, tabsEl, panelsWrapEl) {
     dlgTab.addEventListener('click', () => {
       panel.classList.remove('is-active');
       dlgTab.classList.add('is-active');
+      
     });
   }
 
@@ -399,7 +401,7 @@ function createSellRow(matKey, index) {
    sellBtn.addEventListener('click', () => {
        const rowCache = sellPanelDomCache.rows[matKey];
        const amt = calculateSellAmount(rowCache.currentOwned, selectedSellAmount);
-       if (amt.lte(0)) return;
+       if (amt.cmp(0) <= 0) return;
        
        bank[matKey].sub(amt);
        const totalValue = amt.mul(rowCache.currentVal);
