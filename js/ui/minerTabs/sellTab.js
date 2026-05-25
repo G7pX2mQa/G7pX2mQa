@@ -1,3 +1,4 @@
+import { ensureMerchantScrollbar } from '../delveCore.js';
 import { getActiveSlot, UC_MATERIALS, bank } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
@@ -186,7 +187,7 @@ export function initSellPanel(minerSheetEl, tabsEl, panelsWrapEl) {
     
     tabBtn.classList.add('is-active');
     panel.classList.add('is-active');
-    
+    minerSheetEl.classList.add('is-sell-active');
     
     updateSellTab();
   });
@@ -196,12 +197,13 @@ export function initSellPanel(minerSheetEl, tabsEl, panelsWrapEl) {
     dlgTab.addEventListener('click', () => {
       panel.classList.remove('is-active');
       dlgTab.classList.add('is-active');
-      
+      minerSheetEl.classList.remove('is-sell-active');
     });
   }
 
   tabsEl.appendChild(tabBtn);
   panelsWrapEl.appendChild(panel);
+  ensureMerchantScrollbar('.sell-center-col', 'sell-scrollbar');
 
   if (!sellPanelTickObj) {
      sellPanelTickObj = registerTick(() => {
@@ -209,6 +211,7 @@ export function initSellPanel(minerSheetEl, tabsEl, panelsWrapEl) {
              updateSellTab();
          }
      });
+     if (typeof window !== 'undefined') window.addEventListener('resize', debouncedAlignSellColumns);
   }
 
   return { tabBtn, panel };
@@ -324,9 +327,10 @@ export function updateSellTab() {
        rowCache.currentVal = val;
        rowCache.currentOwned = owned;
    }
+   debouncedAlignSellColumns();
 }
 function createLocalDropdown() {
-    return createDropdown({
+    const dropdown = createDropdown({
         getOptions: () => DROPDOWN_OPTIONS,
         getValue: () => selectedSellAmount,
         setValue: (val) => {
@@ -343,6 +347,8 @@ function createLocalDropdown() {
             }
         }
     });
+    dropdown.wrapper.classList.add('sell-dropdown-wrapper');
+    return dropdown;
 }
 
 function createSellRow(matKey, index) {
@@ -451,4 +457,89 @@ window.onSellUpgradeUnlocked = function() {
   if (minerSheetEl) {
       updateSellPanelVisibility(minerSheetEl);
   }
+}
+
+/**
+ * Refines the alignment of the Sell tab columns by measuring header positions
+ * and applying compensatory transforms to the row values.
+ */
+let alignSellTimeout = null;
+export function debouncedAlignSellColumns() {
+    if (alignSellTimeout) cancelAnimationFrame(alignSellTimeout);
+    alignSellTimeout = requestAnimationFrame(alignSellColumns);
+}
+
+function alignSellColumns() {
+    const sellPanel = document.getElementById('miner-panel-sell');
+    if (!sellPanel || !sellPanel.isConnected) return;
+    
+    const header = sellPanel.querySelector('.sell-list-header');
+    
+    const rows = Array.from(sellPanel.querySelectorAll('.sell-row'));
+    const ownedEls = [];
+    const valEls = [];
+    const stateEls = [];
+    
+    if (header && header.children.length >= 4) {
+        ownedEls.push(header.children[1]);
+        valEls.push(header.children[2]);
+        stateEls.push(header.children[3]);
+    }
+    
+    rows.forEach(row => {
+        const o = row.querySelector('.sell-col-owned');
+        const v = row.querySelector('.sell-col-val');
+        const s = row.querySelector('.sell-col-sell');
+        if (o) ownedEls.push(o);
+        if (v) valEls.push(v);
+        if (s) stateEls.push(s);
+    });
+
+    if (typeof window !== "undefined" && window.innerWidth <= 650) {
+        ownedEls.forEach(el => { if (el.style.transform !== '') el.style.transform = ''; });
+        valEls.forEach(el => { if (el.style.transform !== '') el.style.transform = ''; });
+        stateEls.forEach(el => { if (el.style.transform !== '') el.style.transform = ''; });
+        return;
+    }
+    
+    if (!header || header.offsetParent === null) return;
+    if (header.children.length < 4) return;
+
+    ownedEls.forEach(el => el.style.transform = '');
+    valEls.forEach(el => el.style.transform = '');
+    stateEls.forEach(el => el.style.transform = '');
+
+    const getCenter = (el) => {
+        const rect = el.getBoundingClientRect();
+        return rect.left + rect.width / 2;
+    };
+    
+    let maxOwnedCenter = 0;
+    ownedEls.forEach(el => maxOwnedCenter = Math.max(maxOwnedCenter, getCenter(el)));
+    
+    let maxValCenter = 0;
+    valEls.forEach(el => maxValCenter = Math.max(maxValCenter, getCenter(el)));
+    
+    let maxStateCenter = 0;
+    stateEls.forEach(el => maxStateCenter = Math.max(maxStateCenter, getCenter(el)));
+
+    const alignGroup = (els, targetCenter, headerOffset = 0) => {
+        els.forEach((el, index) => {
+            const rect = el.getBoundingClientRect();
+            const center = rect.left + rect.width / 2;
+            let diff = targetCenter - center;
+            
+            if (index === 0 && header && header.contains(els[0])) { 
+                diff += headerOffset;
+            }
+
+            if (Math.abs(diff) > 0.5) {
+                el.style.transform = `translateX(${diff}px)`;
+            }
+        });
+    };
+    
+    alignGroup(ownedEls, maxOwnedCenter);
+    alignGroup(valEls, maxValCenter);
+    alignGroup(stateEls, maxStateCenter, -1);
 }
