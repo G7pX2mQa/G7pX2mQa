@@ -276,8 +276,12 @@ export function createUcSpawner(config = {}) {
                   for (const c of newItems) {
                       if (!c.el) continue;
                       
-                      // Delay the original falling animation and opacity until cycleMs (when pickaxe finishes)
+                      if (settingsManager.get('insta_teleport')) {
+                          c.el.style.transition = 'none';
+                      } else {
+                          // Delay the original falling animation and opacity until cycleMs (when pickaxe finishes)
                       c.el.style.transition = `opacity 0s linear ${cycleMs}ms, transform ${animationDurationMs}ms ${CUBIC_BEZIER} ${cycleMs + c.jitterMs}ms`;
+                      }
                       c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
                       c.el.style.opacity = '1';
                   }
@@ -413,10 +417,10 @@ export function createUcSpawner(config = {}) {
                 if (c.settled) continue;
                 
                 const elapsed = now - c.startTime;
-                if (elapsed < 0) continue;
+                if (elapsed < 0 && !settingsManager.get('insta_teleport')) continue;
                 
                 let t = elapsed / c.duration;
-                if (t >= 1) {
+                if (t >= 1 || settingsManager.get('insta_teleport')) {
                     c.settled = true;
                     c.x = c.endX;
                     c.y = c.endY;
