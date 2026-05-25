@@ -47,7 +47,7 @@ export function createUcSpawner(config = {}) {
     const soundURL = new URL('sounds/got_our_pickaxe_swinging_from_side_to_side.ogg', document.baseURI).href;
 	const basePickaxeSoundVolume = 0.3;
     const minPickaxeVolumeRate = 0.2;
-    const halfPickaxeVolumeRate = 10;
+    const halfPickaxeVolumeRate = 2;
 
     let pickaxeSize = 64;
     function updatePickaxeSize() {
