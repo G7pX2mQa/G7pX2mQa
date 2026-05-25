@@ -23,6 +23,7 @@ export function hasMetMiner() {
 }
 
 let minerOverlayEl = null;
+let minerUnlockListenerBound = false;
 let minerSheetEl = null;
 
 function ensureMinerOverlay() {
@@ -131,6 +132,19 @@ function ensureMinerOverlay() {
 
     closeBtn.addEventListener('click', closeMiner);
     ensureMerchantScrollbar('.merchant-content');
+
+    if (!minerUnlockListenerBound && typeof window !== 'undefined') {
+        const handleUnlockChange = () => {
+            if (minerSheetEl && minerOverlayEl && minerOverlayEl.classList.contains('is-open')) {
+                updateSellPanelVisibility(minerSheetEl);
+            }
+        };
+        window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
+        window.addEventListener('saveSlot:change', handleUnlockChange, { passive: true });
+        window.addEventListener('currency:change', handleUnlockChange, { passive: true });
+        window.addEventListener('debug:change', handleUnlockChange, { passive: true });
+        minerUnlockListenerBound = true;
+    }
 }
 
 function runFirstMeet() {
