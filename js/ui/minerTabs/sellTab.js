@@ -157,6 +157,17 @@ export function initSellPanel(minerSheetEl, tabsEl, panelsWrapEl) {
   const centerCol = document.createElement('div');
   centerCol.className = 'sell-center-col';
 
+  const scrapCounterWrap = document.createElement('div');
+  scrapCounterWrap.className = 'scrap-counter';
+  scrapCounterWrap.style.marginTop = '-16px';
+  scrapCounterWrap.style.marginBottom = '12px';
+  scrapCounterWrap.innerHTML = `
+    <img src="img/currencies/scrap/scrap_plus_base.webp" alt="" class="scrap-plus"/>
+    <div class="scrap-bar">
+      <span class="scrap-amount">0</span>
+    </div>
+  `;
+
   const infoBox = document.createElement('div');
   infoBox.className = 'sell-explainer';
   
@@ -173,6 +184,7 @@ export function initSellPanel(minerSheetEl, tabsEl, panelsWrapEl) {
   `;
   listContainer.appendChild(header);
 
+  centerCol.appendChild(scrapCounterWrap);
   centerCol.appendChild(infoBox);
   centerCol.appendChild(listContainer);
   panel.appendChild(centerCol);
