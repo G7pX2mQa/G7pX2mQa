@@ -310,7 +310,7 @@ export function updateSellTab() {
        } else {
            const pct = Math.min(100, Math.max(0, acc * 100));
            rowCache.fillEl.style.width = `${pct}%`;
-           rowCache.textEl.textContent = `Progress: ${acc.toFixed(2)}/1.00`;
+           rowCache.textEl.textContent = `Progress: ${(Math.floor(acc * 100) / 100).toFixed(2)}/1.00`;
        }
 
        const owned = bank[matKey]?.value || BigNum.fromInt(0);
