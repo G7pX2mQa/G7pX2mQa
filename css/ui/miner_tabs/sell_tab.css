@@ -121,8 +121,6 @@
     position: absolute;
     top: 0;
     left: 0;
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
 }
 .sell-bar-icon-top {
     width: 50%;
@@ -132,8 +130,6 @@
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 2;
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
 }
 .sell-bar-track {
     position: relative;
@@ -208,6 +204,8 @@
     cursor: pointer;
     padding: 4px;
     text-shadow: 1px 1px 0 #000;
+    -webkit-user-select: none;
+    user-select: none;
 }
 .sell-btn:hover {
     background: linear-gradient(to bottom, #666, #444);
