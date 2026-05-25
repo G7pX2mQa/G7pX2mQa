@@ -4,6 +4,12 @@ import { playAudio } from '../util/audioManager.js';
 import { UC_MATERIALS } from '../util/storage.js';
 import { settingsManager } from './settingsManager.js';
 
+export const UC_MATERIAL_THRESHOLDS = [{ start: 0, max: 0 },{ start: 1, max: 24 },{ start: 25, max: 49 },{ start: 50, max: 99 },{ start: 100, max: 199 },{ start: 200, max: 399 },{ start: 400, max: 799 },{ start: 800, max: 1599 },{ start: 1600, max: 3199 },{ start: 3200, max: 5000 }];
+
+export function getUcMaterialAccumulators() {
+    return window._ucMaterialAccumulators || new Array(UC_MATERIALS.length).fill(0);
+}
+
 export function createUcSpawner(config = {}) {
     // If settings are enabled, start with an initialBurst so there's no dead wait at startup.
     const overrides = {};
@@ -117,19 +123,6 @@ export function createUcSpawner(config = {}) {
                 }
             }
 
-            // The scaling thresholds for materials:
-            const thresholds = [
-                { start: 0, max: 0 }, // Stone (always drops)
-                { start: 1, max: 24 }, // Copper
-                { start: 25, max: 49 }, // Iron
-                { start: 50, max: 99 }, // Gold
-                { start: 100, max: 199 }, // Diamond
-                { start: 200, max: 399 }, // Emerald
-                { start: 400, max: 799 }, // Ruby
-                { start: 800, max: 1599 }, // Obsidian
-                { start: 1600, max: 3199 }, // Unobtainium
-                { start: 3200, max: 5000 } // Prismatium
-            ];
 
             const spawns = [];
             const maxSize = baseSize * Math.pow(1.1, UC_MATERIALS.length - 1);
@@ -139,7 +132,7 @@ export function createUcSpawner(config = {}) {
             
             // Process all materials
             for (let i = 0; i < UC_MATERIALS.length; i++) {
-                const t = thresholds[i];
+                const t = UC_MATERIAL_THRESHOLDS[i];
                 if (i === 0) {
                      // Stone always drops 1 per swing, no accumulator needed really, but we can set it
                      window._ucMaterialAccumulators[i] = 1.0;
