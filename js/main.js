@@ -216,62 +216,6 @@ export let currentArea = AREAS.MENU;
 window.currentArea = currentArea;
 let globalCursorTrail = null;
 
-let fpsUnlockerRaf = null;
-let fpsUnlockerCanvas = null;
-let fpsUnlockerCtx = null;
-let fpsUnlockerIsActive = false;
-
-export function setFpsUnlockerActive(active) {
-    fpsUnlockerIsActive = active;
-    if (active) {
-        if (!fpsUnlockerCanvas) {
-            fpsUnlockerCanvas = document.createElement('canvas');
-            fpsUnlockerCanvas.width = 1;
-            fpsUnlockerCanvas.height = 1;
-            Object.assign(fpsUnlockerCanvas.style, {
-                position: 'fixed',
-                top: '0',
-                left: '0',
-                width: '1px',
-                height: '1px',
-                pointerEvents: 'none',
-                opacity: '1',
-                zIndex: '999999',
-            });
-            fpsUnlockerCtx = fpsUnlockerCanvas.getContext('webgl', { alpha: true, desynchronized: true });
-            if (fpsUnlockerCtx) {
-                document.body.appendChild(fpsUnlockerCanvas);
-            }
-        }
-        fpsUnlockerCanvas.style.display = '';
-        if (!fpsUnlockerRaf) {
-            fpsUnlockerFrame();
-        }
-    } else {
-        if (fpsUnlockerRaf) {
-            cancelAnimationFrame(fpsUnlockerRaf);
-            fpsUnlockerRaf = null;
-        }
-        if (fpsUnlockerCanvas) {
-            fpsUnlockerCanvas.style.display = 'none';
-        }
-    }
-}
-
-function fpsUnlockerFrame() {
-    if (!fpsUnlockerIsActive || !fpsUnlockerCtx) return;
-    
-    if (fpsUnlockerCtx.isContextLost()) {
-        setFpsUnlockerActive(false);
-        setFpsUnlockerActive(true);
-        return;
-    }
-    
-    fpsUnlockerCtx.clearColor(0, 0, 0, 0);
-    fpsUnlockerCtx.clear(fpsUnlockerCtx.COLOR_BUFFER_BIT);
-    fpsUnlockerRaf = requestAnimationFrame(fpsUnlockerFrame);
-}
-
 
 let currentMusic = null;
 let spawner = null;
@@ -737,7 +681,6 @@ export function enterArea(areaID) {
     }
   switch (areaID) {
     case AREAS.STARTER_COVE: {
-      setFpsUnlockerActive(false);
       const materialsLayer = document.getElementById('materials-layer');
       if (materialsLayer) materialsLayer.style.display = 'none';
       const coinsLayer = document.getElementById('coins-layer');
@@ -830,7 +773,6 @@ export function enterArea(areaID) {
     }
 
     case AREAS.UNDERWATER_CAVERN: {
-      setFpsUnlockerActive(true);
       const materialsLayer = document.getElementById('materials-layer');
       if (materialsLayer) materialsLayer.style.display = '';
       const coinsLayer = document.getElementById('coins-layer');
@@ -884,7 +826,6 @@ export function enterArea(areaID) {
     }
 
     case AREAS.MENU: {
-      setFpsUnlockerActive(false);
       if (menuRoot) {
         menuRoot.style.display = '';
         menuRoot.removeAttribute('aria-hidden');
@@ -1139,9 +1080,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     'sounds/void_buildup.ogg',
     'sounds/warp.ogg',
     'sounds/wave_spawn.ogg',
-	'sounds/you_will_die_there_is_nowhere_to_run.ogg'
+	'sounds/you_will_die_there_is_nowhere_to_run.ogg',
+	// TODO: alphabetize the material sound effects among the other sounds
+    'sounds/stone.ogg',
+    'sounds/copper.ogg',
+    'sounds/iron.ogg',
+    'sounds/pure_gold.ogg',
+    'sounds/diamond.ogg',
+    'sounds/emerald.ogg',
+    'sounds/ruby.ogg',
+    'sounds/obsidian.ogg',
+    'sounds/unobtainium.ogg',
+    'sounds/prismatium.ogg'
   ]
-  };
+};
 
   let progress = 0;
   const assetsPromise = preloadAssetsWithProgress(ASSET_MANIFEST, f => {
@@ -1265,13 +1217,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentMusic.element.pause();
       } else {
         currentMusic.element.play().catch(() => {});
-      }
-    }
-
-        if (!hidden && currentArea !== AREAS.MENU) {
-      if (currentArea === AREAS.UNDERWATER_CAVERN) {
-          setFpsUnlockerActive(false);
-          setFpsUnlockerActive(true);
       }
     }
   });
@@ -1439,7 +1384,6 @@ Normal gameplay is unaffected unless you choose to modify values.`);
         const saved = getSavedArea();
         if (saved != null) areaToLoad = saved;
       }
-      setFpsUnlockerActive(areaToLoad === AREAS.UNDERWATER_CAVERN);
 
       enterAreaFromSaveSlot(areaToLoad);
       setTimeout(() => {
