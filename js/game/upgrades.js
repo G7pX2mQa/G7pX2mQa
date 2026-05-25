@@ -187,6 +187,7 @@ export const UPGRADE_TIES = {
   FASTER_COINS_III: 'magic_4',
   ENDLESS_MP: 'coin_4',
   UNLOCK_SURGE: 'none_4',
+  UNLOCK_SELL: 'none_5',
   ENDLESS_COINS: 'book_4',
   ENDLESS_COINS_II: 'gold_5',
   ENDLESS_COINS_III: 'magic_5',
@@ -230,6 +231,7 @@ const SPECIAL_LOCK_STATE_TIES = new Set([
   UPGRADE_TIES.UNLOCK_FORGE,
   UPGRADE_TIES.UNLOCK_INFUSE,
   UPGRADE_TIES.UNLOCK_SURGE,
+  UPGRADE_TIES.UNLOCK_SELL,
   ...FORGE_PLACEHOLDER_TIES,
   ...INFUSE_PLACEHOLDER_TIES,
 ]);
@@ -564,7 +566,7 @@ function isUpgradePermanentlyUnlocked(areaKey, upg, slot = getActiveSlot()) {
   return false;
 }
 
-function determineLockState(ctx) {
+export function determineLockState(ctx) {
   // Be robust if called unbound or without ctx.upg
   const upgRef = (ctx && ctx.upg) ? ctx.upg : (this && typeof this === 'object' ? this : null);
   const tieKey = normalizeUpgradeTie(upgRef?.tie ?? upgRef?.tieKey);
@@ -681,6 +683,32 @@ function determineLockState(ctx) {
       };
     }
     return { locked: false };
+  }
+
+
+  // ==== Unlock Sell ====
+  if (tieKey === UPGRADE_TIES.UNLOCK_SELL) {
+    if (safeHasMetMiner()) {
+      return {
+        locked: false,
+        hidden: false,
+        hideCost: false,
+        hideEffect: false,
+        useLockedBase: false,
+      };
+    }
+    const revealText = 'Explore the Delve menu to reveal this upgrade';
+    return {
+      locked: true,
+      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+      titleOverride: HIDDEN_UPGRADE_TITLE,
+      descOverride: revealText,
+      reason: revealText,
+      hidden: true,
+      hideCost: true,
+      hideEffect: true,
+      useLockedBase: true,
+    };
   }
 
   // ==== Unlock Surge ====
@@ -850,6 +878,17 @@ function normalizeUpgradeTie(tieValue) {
 function safeIsXpUnlocked() {
   try {
     return !!isXpSystemUnlocked();
+  } catch {
+    return false;
+  }
+}
+
+
+function safeHasMetMiner(slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    return localStorage.getItem(`ccc:minerMet:${slotKey}`) === '1';
   } catch {
     return false;
   }
