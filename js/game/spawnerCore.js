@@ -307,11 +307,11 @@ export function createBaseSpawner(config = {}) {
             return { x: c.x, y: c.y, rot: 0, scale: 1 };
         }
         const elapsed = now - c.startTime;
-        if (elapsed < 0) {
+        if (elapsed < 0 && !settingsManager.get('insta_teleport')) {
             return { x: c.startX, y: c.startY, rot: -10, scale: 0.96 };
         }
         let t = elapsed / c.duration;
-        if (t >= 1) {
+        if (t >= 1 || settingsManager.get('insta_teleport')) {
              return { x: c.endX, y: c.endY, rot: 0, scale: 1 };
         }
         const ease = easeOutCubic(t);
