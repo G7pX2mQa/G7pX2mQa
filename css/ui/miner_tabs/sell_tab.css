@@ -1,4 +1,3 @@
-
 .sell-tab.is-active {
     display: flex;
     flex-direction: row;
@@ -30,6 +29,11 @@
     box-sizing: border-box;
     flex: 1;
     overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.sell-center-col::-webkit-scrollbar {
+    display: none;
 }
 .sell-explainer {
     font-size: clamp(13px, 2.2vw, 15px);
@@ -97,6 +101,7 @@
     display: flex;
     align-items: center;
     margin-left: auto;
+    width: min(var(--coin-bar-w, 520px), clamp(200px, 44vw, 440px));
 }
 .sell-bar-icon-wrap {
     position: absolute;
@@ -109,7 +114,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
 }
 .sell-bar-icon-base {
     width: 100%;
@@ -285,4 +289,14 @@
   margin-right: 15px;
   width: min(var(--coin-bar-w, 520px), clamp(200px, 44vw, 440px));
   padding: 0;
+}
+
+/* Sell custom scrollbar integration */
+.merchant-sheet:not(.is-sell-active) .sell-scrollbar {
+  display: none !important;
+}
+
+/* Thinner dropdowns */
+.sell-dropdown-wrapper {
+  min-width: 80px !important;
 }
