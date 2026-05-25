@@ -89,7 +89,7 @@ function ensureMinerOverlay() {
       
     });
 
-    initSellPanel(minerSheetEl, tabs, panelsWrap);
+    initSellPanel(minerOverlayEl, minerSheetEl, tabs, panelsWrap);
 
 
     const actions = document.createElement('div');
@@ -132,7 +132,7 @@ function ensureMinerOverlay() {
 
 
     closeBtn.addEventListener('click', closeMiner);
-    ensureMerchantScrollbar('.merchant-content');
+    ensureMerchantScrollbar(minerOverlayEl, minerSheetEl, '.merchant-content');
 
     if (!minerUnlockListenerBound && typeof window !== 'undefined') {
         const handleUnlockChange = () => {
