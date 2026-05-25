@@ -1,3 +1,4 @@
+import { initSellPanel, updateSellPanelVisibility, isSellUnlocked, setSellUnlocked } from './sellTab.js';
 // js/ui/minerTabs/dlgTab.js
 import { getActiveSlot } from '../../util/storage.js';
 import { MINER_DIALOGUES } from '../../misc/minerDialogues.js';
@@ -64,6 +65,7 @@ function ensureMinerOverlay() {
     panelDialogue.className = 'merchant-panel is-active';
     panelDialogue.id = 'miner-panel-dialogue';
 
+    
     const tabBtn = document.createElement('button');
     tabBtn.type = 'button';
     tabBtn.className = 'merchant-tab is-active';
@@ -74,6 +76,19 @@ function ensureMinerOverlay() {
 
     panelsWrap.appendChild(panelDialogue);
     content.append(tabs, panelsWrap);
+    
+    // Add tab switching logic for dialogue tab
+    tabBtn.addEventListener('click', () => {
+      const allTabs = tabs.querySelectorAll('.merchant-tab');
+      const allPanels = panelsWrap.querySelectorAll('.merchant-panel');
+      allTabs.forEach(t => t.classList.remove('is-active'));
+      allPanels.forEach(p => p.classList.remove('is-active'));
+      tabBtn.classList.add('is-active');
+      panelDialogue.classList.add('is-active');
+    });
+
+    initSellPanel(minerSheetEl, tabs, panelsWrap);
+
 
     const actions = document.createElement('div');
     actions.className = 'merchant-actions';
@@ -225,12 +240,16 @@ export function openMiner() {
     
     // renderDialogueList();
 
+    
     let met = false;
     try {
         met = localStorage.getItem(sk(MINER_MET_KEY_BASE)) === '1';
     } catch {
         met = false;
     }
+    
+    updateSellPanelVisibility(minerSheetEl);
+
 
     if (!met) {
         minerOverlayEl.classList.add('firstchat-instant');
