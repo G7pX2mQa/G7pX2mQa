@@ -10,7 +10,7 @@
   font-size: clamp(14px, 3.5vw, 24px);
 }
 
-#miner-panel-dialogue {
+#miner-panel-dialogue.is-active {
   display: flex;
   align-items: center;
   justify-content: center;
