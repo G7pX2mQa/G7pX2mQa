@@ -11,8 +11,8 @@ export const UC_REGISTRY = [
     id: 1,
     tie: 'scrap_1',
     title: 'Faster Materials',
-    desc: 'Increases Material Spawn Rate by +1% per level',
-    lvlCap: 900,
+    desc: 'Increases Material Spawn Rate by +9% per level',
+    lvlCap: 100,
     baseCost: 10,
     costType: 'scrap',
     upgType: 'NM',
@@ -26,7 +26,7 @@ export const UC_REGISTRY = [
     },
     effectMultiplier(level) {
       const normalizedLevel = Math.max(0, Number(level) || 0);
-      return 1 + (0.01 * normalizedLevel);
+      return 1 + (0.09 * normalizedLevel);
     },
   },
   {
@@ -56,7 +56,7 @@ export const UC_REGISTRY = [
     id: 3,
     tie: 'none_6',
     title: "Unlock Depth",
-    desc: "Unlocks the Depth system; go deeper to find new materials\nEach meter of Depth boosts material accumulator speed (see Sell tab)\nEach meter of Depth also boosts FP 1.1x compounding\nThis upgrade also unlocks a new Waterwheel for Scrap (important!)",
+    desc: "Unlocks the Depth system; Collect materials for DP; Go deeper to find new materials\nEach meter of Depth boosts material accumulator speed (see Sell tab)\nEach meter of Depth additionally boosts FP 1.1x compounding\nThis upgrade also unlocks a new Waterwheel (important)",
     lvlCap: 1,
     upgType: "NM",
     icon: "",
