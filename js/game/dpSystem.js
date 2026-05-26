@@ -299,9 +299,9 @@ function dpRequirementForDpLevel(dpLevelInput) {
      const softcapStart = 1e12; // 1 Trillion
      if (numLevel > softcapStart) {
          const softcapDeltaNum = numLevel - softcapStart;
-         // Hit Infinity at ~4 Trillion total (delta = 3 Trillion)
+         // Hit Infinity at ~4.0003 Trillion total (delta = 3.0003 Trillion)
          const baseSoftcapLog = 5;
-         const rate = 2.3605777e-10;
+         const rate = 2.36034e-10;
          const penaltyLog10 = baseSoftcapLog * Math.exp(rate * softcapDeltaNum);
          
          if (!Number.isFinite(penaltyLog10) || penaltyLog10 >= 1.7976931348623157e+308) {
@@ -634,7 +634,7 @@ export function addDp(amount, { silent = false } = {}) {
         if (levelNum > softcapStart) {
           const softcapDeltaNum = levelNum - softcapStart;
           const baseSoftcapLog = 5;
-          const rate = 2.3605777e-10;
+          const rate = 2.36034e-10;
           const penaltyLog10 = baseSoftcapLog * Math.exp(rate * softcapDeltaNum);
           if (!Number.isFinite(penaltyLog10) || penaltyLog10 >= 1.7976931348623157e+308) {
               return Number.POSITIVE_INFINITY;
