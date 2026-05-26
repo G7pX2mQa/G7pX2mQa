@@ -6,7 +6,7 @@ import { formatNumber } from '../util/numFormat.js';
 import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
 
 
-import { bank } from '../util/storage.js';
+import { bank, UC_MATERIALS } from '../util/storage.js';
 
 let pinnedContainer = null;
 let currencySubscriptions = {};
@@ -97,8 +97,9 @@ export function refreshPinnedCurrencies() {
       bar.style.setProperty('background', currencyConfig.bgGradient, 'important');
     }
 
-    const icon = document.createElement('img');
-    icon.className = 'pinned-currency-icon';
+    const iconWrapper = document.createElement('div');
+    iconWrapper.className = 'pinned-currency-icon-wrapper';
+
     // Fetch specific icon from RESOURCE_REGISTRY if defined
     let iconSrc;
     if (currencyConfig && currencyConfig.icon) {
@@ -113,15 +114,35 @@ export function refreshPinnedCurrencies() {
         const iconBaseName = id.endsWith('s') ? id.slice(0, -1) : id;
         iconSrc = `img/currencies/${iconBaseName}/${iconBaseName}_plus_base.webp`;
     }
-    icon.src = iconSrc;
-    icon.onerror = () => {
-      icon.src = 'img/currencies/coin/coin_plus_base.webp'; // fallback
-    };
+
+    if (UC_MATERIALS.includes(id)) {
+      const baseIcon = document.createElement('img');
+      baseIcon.className = 'pinned-currency-base';
+      baseIcon.src = 'img/currencies/scrap/scrap_base.webp';
+      
+      const innerIcon = document.createElement('img');
+      innerIcon.className = 'pinned-currency-icon-inner';
+      innerIcon.src = iconSrc;
+      innerIcon.onerror = () => {
+        innerIcon.src = 'img/currencies/coin/coin_plus_base.webp';
+      };
+
+      iconWrapper.appendChild(baseIcon);
+      iconWrapper.appendChild(innerIcon);
+    } else {
+      const icon = document.createElement('img');
+      icon.className = 'pinned-currency-icon';
+      icon.src = iconSrc;
+      icon.onerror = () => {
+        icon.src = 'img/currencies/coin/coin_plus_base.webp'; // fallback
+      };
+      iconWrapper.appendChild(icon);
+    }
     
     const textSpan = document.createElement('span');
     textSpan.className = 'pinned-currency-value';
     
-    bar.appendChild(icon);
+    bar.appendChild(iconWrapper);
     bar.appendChild(textSpan);
     el.appendChild(bar);
     pinnedContainer.appendChild(el);
@@ -166,13 +187,24 @@ export function layoutPinnedCurrencies() {
   const pinnedRect = pinnedContainer.getBoundingClientRect();
   const hudRect = hudBottom.getBoundingClientRect();
 
-  // Available vertical space from top of pinned container to top of hud-bottom
-  const availableHeight = hudRect.top - pinnedRect.top;
-
   const ITEM_HEIGHT = 28;
   const GAP_Y = 8;
   const GAP_X = 8;
   const TOTAL_ITEM_H = ITEM_HEIGHT + GAP_Y;
+  
+  const totalNaturalHeight = children.length * TOTAL_ITEM_H;
+  const overflowsScreen = (pinnedRect.top + totalNaturalHeight) > window.innerHeight;
+
+  if (!overflowsScreen) {
+    children.forEach((el, index) => {
+      el.style.left = '0px';
+      el.style.top = `${index * TOTAL_ITEM_H}px`;
+    });
+    return;
+  }
+
+  // Available vertical space from top of pinned container to top of hud-bottom
+  const availableHeight = hudRect.top - pinnedRect.top;
 
   // We need the horizontal width for snaking
   // .pinned-currency is 150px wide + 14px left margin
@@ -409,11 +441,22 @@ export function layoutPinnedLevels() {
   const pinnedRect = pinnedLevelsContainer.getBoundingClientRect();
   const hudRect = hudBottom.getBoundingClientRect();
 
-  const availableHeight = hudRect.top - pinnedRect.top;
-
   const ITEM_HEIGHT = 28;
   const GAP_Y = 8;
   const TOTAL_ITEM_H = ITEM_HEIGHT + GAP_Y;
+
+  const totalNaturalHeight = children.length * TOTAL_ITEM_H;
+  const overflowsScreen = (pinnedRect.top + totalNaturalHeight) > window.innerHeight;
+
+  if (!overflowsScreen) {
+    children.forEach((el, index) => {
+      el.style.left = '0px';
+      el.style.top = `${index * TOTAL_ITEM_H}px`;
+    });
+    return;
+  }
+
+  const availableHeight = hudRect.top - pinnedRect.top;
   
   let itemsAboveHud = Math.floor((availableHeight + GAP_Y) / TOTAL_ITEM_H);
   if (itemsAboveHud < 0) itemsAboveHud = 0; 
