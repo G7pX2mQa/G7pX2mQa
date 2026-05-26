@@ -25,9 +25,10 @@ export function syncDpHudLayout() {
   if (!hud) return;
 
   const dpEl = document.querySelector('[data-dp-hud]');
-  const isCavernHud = !!hud.closest('.area-cavern');
+  const gameRoot = document.getElementById('game-root');
+  const isCavernHud = (gameRoot && gameRoot.classList.contains('area-cavern')) || !!hud.closest('.area-cavern');
   const dpVisible = isCavernHud && !!(dpEl && !dpEl.hasAttribute('hidden'));
 
   // If you need specific CSS classes for DP like XP/MP
-  // hud.classList.toggle('hud-top--dp-only', dpVisible);
+  hud.classList.toggle('hud-top--dp-only', dpVisible);
 }
