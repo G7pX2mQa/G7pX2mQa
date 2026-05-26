@@ -14,7 +14,7 @@ let stateLoaded = false;
 let requirementBn = BigNum.fromInt(10);
 
 const dpState = {
-  unlocked: true,
+  unlocked: false,
   dpLevel: BigNum.fromInt(0),
   progress: BigNum.fromInt(0),
 };
@@ -324,17 +324,17 @@ function ensureStateLoaded(force = false) {
   if (slot == null) {
     lastSlot = null;
     stateLoaded = false;
-    dpState.unlocked = true;
+    dpState.unlocked = false;
     resetLockedDpState();
     return dpState;
   }
   if (!force && stateLoaded && slot === lastSlot) return dpState;
   lastSlot = slot;
   stateLoaded = true;
-  dpState.unlocked = true;
+  dpState.unlocked = false;
   try {
     const rawUnlocked = localStorage.getItem(KEY_UNLOCK(slot));
-    if (rawUnlocked === '0') dpState.unlocked = false;
+    if (rawUnlocked === '1') dpState.unlocked = true;
   } catch {}
   try {
     dpState.dpLevel = BigNum.fromAny(localStorage.getItem(KEY_DP_LEVEL(slot)) ?? '0');
@@ -461,6 +461,21 @@ function updateHud() {
     bar.setAttribute('aria-valuetext', `${currPlain} / ${reqPlain} DP`);
   }
   syncDpHudLayout();
+}
+
+export function unlockDpSystem() {
+  ensureStateLoaded();
+  if (dpState.unlocked) {
+    updateHud();
+    return false;
+  }
+  resetLockedDpState();
+  dpState.unlocked = true;
+  persistState();
+  updateHud();
+  const detail = getDpState();
+  try { window.dispatchEvent(new CustomEvent('dp:unlock', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } })); } catch {}
+  return true;
 }
 
 export function initDpSystem({ forceReload = false } = {}) {
@@ -693,6 +708,7 @@ if (typeof window !== 'undefined') {
   window.dpSystem = window.dpSystem || {};
   Object.assign(window.dpSystem, {
     initDpSystem,
+    unlockDpSystem,
     addDp,
     getDpState,
     isDpSystemUnlocked,
