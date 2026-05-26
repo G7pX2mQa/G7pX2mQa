@@ -421,7 +421,7 @@ function emitChange(reason = 'update', extraDetail = {}) {
   });
 
   if (typeof window !== 'undefined') {
-    try { window.dispatchEvent(new CustomEvent('mutation:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'mp', level: detail.level, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getMutationProgressRatio() } })); } catch {}
+    try { window.dispatchEvent(new CustomEvent('mutation:change', { detail })); window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'mp', delta: detail.delta, progress: detail.progress } })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'mp', level: detail.level, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getMutationProgressRatio() } })); } catch {}
   }
 
   return detail;
