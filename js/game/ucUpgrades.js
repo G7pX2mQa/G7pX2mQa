@@ -1,6 +1,5 @@
 import { unlockDpSystem } from './dpSystem.js';
 import { computeDefaultUpgradeCost, formatMultForUi, UPGRADE_TIES, determineLockState } from './upgrades.js';
-
 import { BigNum } from '../util/bigNum.js';
 
 export const UC_AREA_KEY = 'underwater_cavern';
