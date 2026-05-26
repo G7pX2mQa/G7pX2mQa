@@ -486,9 +486,9 @@ function approximateRequirementFromLevel(levelBn) {
     }
 
     if (Number.isFinite(softcapDeltaNum) && softcapDeltaNum > 0) {
-      // Hit Infinity at ~4 Trillion total (delta = 3 Trillion)
+      // Hit Infinity at ~4.0003 Trillion total (delta = 3.0003 Trillion)
       const baseSoftcapLog = 5;
-      const rate = 2.3605777e-10;
+      const rate = 2.36034e-10;
       const penaltyLog10 = baseSoftcapLog * Math.exp(rate * softcapDeltaNum);
 
       if (!Number.isFinite(penaltyLog10) || penaltyLog10 >= 1.7976931348623157e+308) {
@@ -1190,7 +1190,7 @@ export function addXp(amount, { silent = false } = {}) {
                 totalLog += Math.floor(levelNum / 10) * 0.397940008672037609;
                 if (levelNum > 1000000000000) {
                     const softcapDelta = levelNum - 1000000000000;
-                    totalLog += 5 * Math.exp(2.3605777e-10 * softcapDelta);
+                    totalLog += 5 * Math.exp(2.36034e-10 * softcapDelta);
                 }
                 return totalLog;
             };
