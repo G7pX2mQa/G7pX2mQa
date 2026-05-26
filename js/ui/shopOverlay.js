@@ -1656,11 +1656,25 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       let rawBaseDesc = model.displayDesc || model.upg.desc || '';
       if (typeof rawBaseDesc === 'function') rawBaseDesc = rawBaseDesc();
       const baseDesc = String(rawBaseDesc).trim();
+      const descScale = Number(model.upg?.descScale);
+      const ignoreDescScaleAt = Number(model.upg?.ignoreDescScaleAt);
+      const viewportWidth = (typeof window !== 'undefined' && Number.isFinite(window.innerWidth))
+          ? window.innerWidth
+          : 0;
+      const shouldIgnoreDescScale = Number.isFinite(ignoreDescScaleAt)
+          && ignoreDescScaleAt > 0
+          && viewportWidth >= ignoreDescScaleAt;
       if (evolveReady) {
           desc.classList.add('hm-evolve-note');
+          desc.style.removeProperty('font-size');
           if (desc.textContent !== 'Evolve this upgrade to multiply its effect by 1000x') desc.textContent = 'Evolve this upgrade to multiply its effect by 1000x';
       } else if (baseDesc) {
           desc.classList.remove('hm-evolve-note');
+          if (!shouldIgnoreDescScale && Number.isFinite(descScale) && descScale > 0) {
+              desc.style.fontSize = `calc((var(--upg-desc-size, clamp(32px, 4.6vw, 50px))) * ${descScale})`;
+          } else {
+              desc.style.removeProperty('font-size');
+          }
           if (desc.textContent !== baseDesc) desc.textContent = baseDesc;
           desc.hidden = false;
       } else desc.hidden = true;
