@@ -153,7 +153,7 @@ export function createUcSpawner(config = {}) {
                      } else if (dpLevelNum >= t.start) {
                          const progress = (dpLevelNum - t.start) / (t.max - t.start);
                          const gain = 0.01 + 0.99 * Math.pow(progress, 1.5);
-                         window._ucMaterialAccumulators[i] += gain;
+                         window._ucMaterialAccumulators[i] += gain + 1e-9;
                      }
                 }
 
