@@ -170,7 +170,33 @@ export const RESOURCE_REGISTRY = [
         }
     },
     { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation Level', plural: 'Mutation Levels', type: 'levelStat' },
-    { key: 'dp', icon: 'img/stats/dp/dp.webp', baseIcon: 'img/stats/dp/dp_plus_base.webp', singular: 'DP', plural: 'DP', type: 'levelProg', bgGradient: 'linear-gradient(to bottom, #6B4E3A 0%, #8A674D 15%, #A98060 50%, #8A674D 85%, #6B4E3A 100%)' },
+    { 
+        key: 'dp', 
+        icon: 'img/stats/dp/dp.webp',
+        singular: 'DP', 
+        plural: 'DP', 
+        type: 'levelProg', 
+        pinBgGradient: 'linear-gradient(180deg, rgba(35,24,18,1), rgba(25,18,13,1))',
+        bgGradient: 'linear-gradient(to bottom, #6B4E3A 0%, #8A674D 15%, #A98060 50%, #8A674D 85%, #6B4E3A 100%)',
+        fillGradient: 'linear-gradient(90deg, rgba(169,128,96,1) 0%, rgba(138,103,77,1) 50%, rgba(107,78,58,1) 100%)', 
+        barOutline: '3px', 
+        borderColor: '#1f1610', 
+        barBoxShadow: 'inset 0 6px 10px rgba(169,128,96,0.18), inset 0 -6px 14px rgba(0,0,0,0.52)', 
+        glassBg: 'linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0))', 
+        glassOpacity: '0.55',
+        getState: () => {
+            if (!window.dpSystem || typeof window.dpSystem.getDpState !== 'function') return null;
+            const state = window.dpSystem.getDpState();
+            if (!state) return null;
+            return {
+                level: state.level,
+                progress: state.progress,
+                requirement: state.requirement,
+                isUnlocked: window.dpSystem.isDpSystemUnlocked ? window.dpSystem.isDpSystemUnlocked() : true,
+                ratio: window.dpSystem.getDpProgressRatio ? window.dpSystem.getDpProgressRatio() : 0
+            };
+        }
+    },
     { key: 'dp_levels', icon: 'img/stats/dp/dp.webp',            singular: 'Depth Level', plural: 'Depth Levels', type: 'levelStat' },
     { key: 'magic', bgGradient: 'linear-gradient(to bottom, #42138A 0%, #6A1ECF 15%, #9F30FF 50%, #6A1ECF 85%, #42138A 100%)',     icon: 'img/currencies/magic/magic.webp', baseIcon: 'img/currencies/magic/magic_plus_base.webp', singular: 'Magic',    plural: 'Magic', type: 'currency' },
     { key: 'gears', bgGradient: 'linear-gradient(to bottom, #5c5d61 0%, #8f9096 15%, #9d9fa6 50%, #8f9096 85%, #5c5d61 100%)',     icon: 'img/currencies/gear/gear.webp', baseIcon: 'img/currencies/gear/gear_plus_base.webp',   singular: 'Gear',     plural: 'Gears', type: 'currency' },
