@@ -236,31 +236,20 @@ function handleCurrencyChange(event) {
   lastKnownAmounts.set(key, current.clone?.() ?? current);
 }
 
-function handleXpChange(event) {
+function handleStatChange(event) {
   const detail = event?.detail;
-  if (!detail) return;
-  const xpAdded = bnFromAny(detail.xpAdded);
-  if (xpAdded && !isZero(xpAdded)) showPopup('xp', xpAdded);
-}
-
-
-function handleDpChange(event) {
-  const detail = event?.detail;
-  if (!detail) return;
-  const dpAdded = bnFromAny(detail.dpAdded);
-  if (dpAdded && !isZero(dpAdded)) showPopup('dp', dpAdded);
-}
-
-function handleMutationChange(event) {
-  const detail = event?.detail;
-  if (!detail) return;
+  if (!detail || !detail.key) return;
+  
+  const key = detail.key;
   const delta = bnFromAny(detail.delta);
+  
   if (delta && !isZero(delta)) {
-    showPopup('mp', delta);
+    showPopup(key, delta);
   }
+  
   const nextProgress = bnFromAny(detail.progress);
   if (nextProgress) {
-    lastKnownAmounts.set('mp', nextProgress.clone?.() ?? nextProgress);
+    lastKnownAmounts.set(key, nextProgress.clone?.() ?? nextProgress);
   }
 }
 
@@ -276,18 +265,14 @@ export function initPopups() {
   ensureContainer();
   syncLastKnown();
   window.addEventListener('currency:change', handleCurrencyChange);
-  window.addEventListener('xp:change', handleXpChange);
-  window.addEventListener('mutation:change', handleMutationChange);
-  window.addEventListener('dp:change', handleDpChange);
+  window.addEventListener('stat:change', handleStatChange);
   window.addEventListener('saveSlot:change', handleSlotChange);
 }
 
 export function teardownpopups() {
   if (!initialized) return;
   window.removeEventListener('currency:change', handleCurrencyChange);
-  window.removeEventListener('xp:change', handleXpChange);
-  window.removeEventListener('mutation:change', handleMutationChange);
-  window.removeEventListener('dp:change', handleDpChange);
+  window.removeEventListener('stat:change', handleStatChange);
   window.removeEventListener('saveSlot:change', handleSlotChange);
   clearActivePopups();
   lastKnownAmounts.clear();
