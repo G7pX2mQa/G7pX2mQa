@@ -402,7 +402,7 @@ function createSellRow(matKey, index) {
        getValue: () => localSellAmount,
        setValue: (val) => {
            if (val === 'custom') {
-             const res = prompt("Enter a custom amount. Integers, decimals, percentages, and fractions are supported inputs.");
+             const res = prompt("Enter a custom amount. Integers, percentages, and fractions are supported inputs.");
              if (res !== null && res.trim() !== "") {
                  const parsed = parseCustomAmount(res);
                  if (parsed) {
