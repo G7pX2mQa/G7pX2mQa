@@ -319,12 +319,12 @@ export function updateSellTab() {
    const highestMatName = RESOURCE_REGISTRY.find(r => r.key === UC_MATERIALS[highestMatIdx])?.singular || 'Stone';
    let nextUnlockStr = '';
    if (nextMatIdx !== -1) {
-       nextUnlockStr = `Next material starts spawning at: ${formatNumber(UC_MATERIAL_DATA[nextMatIdx].start)}m`;
+       nextUnlockStr = `Next material starts spawning at: ${formatNumber(BigNum.fromAny(UC_MATERIAL_DATA[nextMatIdx].start))}m`;
    } else {
        nextUnlockStr = `You have reached the highest material`;
    }
 
-   let alwaysSpawnsStr = `${highestMatName} always spawns at: ${formatNumber(UC_MATERIAL_DATA[highestMatIdx].max)}m`;
+   let alwaysSpawnsStr = `${highestMatName} always spawns at: ${formatNumber(BigNum.fromAny(UC_MATERIAL_DATA[highestMatIdx].max))}m`;
    if (highestMatIdx === 0) {
        alwaysSpawnsStr = `Stone always spawns at: 0m`;
    }
@@ -332,7 +332,7 @@ export function updateSellTab() {
    if (isDpSystemUnlocked()) {
        sellPanelDomCache.infoBox.innerHTML = `
           <b>Sell materials for Scrap, use Scrap to buy upgrades</b><br>
-          Current Depth: ${formatNumber(dpLevelNum)}m<br>
+          Current Depth: ${formatNumber(BigNum.fromAny(dpLevelNum))}m<br>
           ${alwaysSpawnsStr}<br>
           ${nextUnlockStr}
        `;
