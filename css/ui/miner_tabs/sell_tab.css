@@ -298,3 +298,8 @@
 .sell-dropdown-wrapper {
   min-width: 80px !important;
 }
+
+/* Fix overlapping dropdowns */
+.sell-row:has(.setting-dropdown-menu.is-open) {
+  z-index: 100;
+}
