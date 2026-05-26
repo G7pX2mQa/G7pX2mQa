@@ -69,7 +69,7 @@ import {
 } from '../game/labNodes.js';
 import { calculateOfflineRewards, grantOfflineRewards, showOfflinePanel, calculatePreAutomationRewards } from '../game/offlinePanel.js';
 import { nukeNotifications } from '../ui/notifications.js';
-
+import { unlockDpSystem, resetDpProgress, isDpSystemUnlocked } from '../game/dpSystem.js';
 import { 
     getActiveCombo, 
     setActiveCombo, 
@@ -3131,6 +3131,23 @@ function getUnlockRowDefinitions(slot) {
             },
             onDisable: () => {
                 try { setSellUnlocked(false); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Depth',
+            description: 'If true, unlocks the Depth system',
+            isUnlocked: () => {
+                try { return isDpSystemUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { unlockDpSystem(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { resetDpProgress({ keepUnlock: false }); }
                 catch {}
             },
             slot,
