@@ -58,8 +58,6 @@ const DROPDOWN_OPTIONS = [
   { value: 'custom', label: 'Custom' }
 ];
 
-let selectedSellAmount = '1';
-
 function parseCustomAmount(inputStr) {
   let str = inputStr.trim().toLowerCase();
   
@@ -341,28 +339,6 @@ export function updateSellTab() {
    }
    debouncedAlignSellColumns();
 }
-function createLocalDropdown() {
-    const dropdown = createDropdown({
-        getOptions: () => DROPDOWN_OPTIONS,
-        getValue: () => selectedSellAmount,
-        setValue: (val) => {
-            if (val === 'custom') {
-              const res = prompt("Enter custom amount (e.g., 50% or 10):", "50%");
-              if (res !== null && res.trim() !== "") {
-                  const parsed = parseCustomAmount(res);
-                  if (parsed) {
-                      selectedSellAmount = res.trim();
-                  }
-              }
-            } else {
-                selectedSellAmount = val;
-            }
-        }
-    });
-    dropdown.wrapper.classList.add('sell-dropdown-wrapper');
-    return dropdown;
-}
-
 function createSellRow(matKey, index) {
    const entry = RESOURCE_REGISTRY.find(r => r.key === matKey);
    const iconSrc = entry ? entry.icon : '';
@@ -408,17 +384,37 @@ function createSellRow(matKey, index) {
    const colSell = document.createElement('div');
    colSell.className = 'sell-col-sell';
    
+   let localSellAmount = '1';
+
+   const dropdownObj = createDropdown({
+       getOptions: () => DROPDOWN_OPTIONS,
+       getValue: () => localSellAmount,
+       setValue: (val) => {
+           if (val === 'custom') {
+             const res = prompt("Enter custom amount (e.g., 50% or 10):", "50%");
+             if (res !== null && res.trim() !== "") {
+                 const parsed = parseCustomAmount(res);
+                 if (parsed) {
+                     localSellAmount = res.trim();
+                 }
+             }
+           } else {
+               localSellAmount = val;
+           }
+           dropdownObj.updateDisplay();
+       }
+   });
+   dropdownObj.wrapper.classList.add('sell-dropdown-wrapper');
+
    const dropdownWrap = document.createElement('div');
-   const { wrapper: dropdownEl, updateDisplay } = createLocalDropdown();
-   
-   dropdownWrap.appendChild(dropdownEl);
+   dropdownWrap.appendChild(dropdownObj.wrapper);
 
    const sellBtn = document.createElement('button');
    sellBtn.className = 'sell-btn';
    sellBtn.textContent = 'Sell';
    sellBtn.addEventListener('click', () => {
        const rowCache = sellPanelDomCache.rows[matKey];
-       const amt = calculateSellAmount(rowCache.currentOwned, selectedSellAmount);
+       const amt = calculateSellAmount(rowCache.currentOwned, localSellAmount);
        if (amt.cmp(0) <= 0) return;
        
        bank[matKey].sub(amt);
