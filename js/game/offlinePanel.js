@@ -190,6 +190,7 @@ export const RESOURCE_REGISTRY = [
     { 
         key: 'dp', 
         icon: 'img/stats/dp/dp.webp', 
+        baseIcon: 'img/stats/dp/dp_plus_base.webp', 
         singular: 'DP', 
         plural: 'DP', 
         type: 'levelProg', 
