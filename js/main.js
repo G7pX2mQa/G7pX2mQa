@@ -797,6 +797,9 @@ export function enterArea(areaID) {
       }
 	  syncXpMpHudLayout();
       syncDpHudLayout();
+      if (typeof initDpSystem === 'function') {
+        try { initDpSystem(); } catch {}
+      }
 	  
       if (menuRoot) {
         menuRoot.style.display = 'none';
