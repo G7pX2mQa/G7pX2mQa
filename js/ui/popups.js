@@ -243,6 +243,14 @@ function handleXpChange(event) {
   if (xpAdded && !isZero(xpAdded)) showPopup('xp', xpAdded);
 }
 
+
+function handleDpChange(event) {
+  const detail = event?.detail;
+  if (!detail) return;
+  const dpAdded = bnFromAny(detail.dpAdded);
+  if (dpAdded && !isZero(dpAdded)) showPopup('dp', dpAdded);
+}
+
 function handleMutationChange(event) {
   const detail = event?.detail;
   if (!detail) return;
@@ -270,6 +278,7 @@ export function initPopups() {
   window.addEventListener('currency:change', handleCurrencyChange);
   window.addEventListener('xp:change', handleXpChange);
   window.addEventListener('mutation:change', handleMutationChange);
+  window.addEventListener('dp:change', handleDpChange);
   window.addEventListener('saveSlot:change', handleSlotChange);
 }
 
@@ -278,6 +287,7 @@ export function teardownpopups() {
   window.removeEventListener('currency:change', handleCurrencyChange);
   window.removeEventListener('xp:change', handleXpChange);
   window.removeEventListener('mutation:change', handleMutationChange);
+  window.removeEventListener('dp:change', handleDpChange);
   window.removeEventListener('saveSlot:change', handleSlotChange);
   clearActivePopups();
   lastKnownAmounts.clear();
