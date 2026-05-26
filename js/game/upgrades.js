@@ -1,3 +1,4 @@
+import { isSellUnlocked, hasViewedSellTab } from '../ui/minerTabs/sellTab.js';
 // js/game/upgrades.js
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot, isStorageKeyLocked } from '../util/storage.js';
 import { BigNum, approxLog10BigNum, bigNumFromLog10, log10OnePlusPow10 } from '../util/bigNum.js';
@@ -188,6 +189,7 @@ export const UPGRADE_TIES = {
   ENDLESS_MP: 'coin_4',
   UNLOCK_SURGE: 'none_4',
   UNLOCK_SELL: 'none_5',
+  UNLOCK_DEPTH: 'none_6',
   ENDLESS_COINS: 'book_4',
   ENDLESS_COINS_II: 'gold_5',
   ENDLESS_COINS_III: 'magic_5',
@@ -232,6 +234,7 @@ const SPECIAL_LOCK_STATE_TIES = new Set([
   UPGRADE_TIES.UNLOCK_INFUSE,
   UPGRADE_TIES.UNLOCK_SURGE,
   UPGRADE_TIES.UNLOCK_SELL,
+  UPGRADE_TIES.UNLOCK_DEPTH,
   ...FORGE_PLACEHOLDER_TIES,
   ...INFUSE_PLACEHOLDER_TIES,
 ]);
@@ -685,6 +688,38 @@ export function determineLockState(ctx) {
     return { locked: false };
   }
 
+
+  // ==== Unlock Depth ====
+  if (tieKey === UPGRADE_TIES.UNLOCK_DEPTH) {
+    if (!isSellUnlocked()) {
+      return {
+        locked: true,
+        iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+        useLockedBase: true,
+      };
+    }
+    if (!hasViewedSellTab()) {
+      const revealText = 'View the Sell tab to reveal this upgrade';
+      return {
+        locked: true,
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: revealText,
+        reason: revealText,
+        hidden: true,
+        hideCost: true,
+        hideEffect: true,
+        useLockedBase: true,
+      };
+    }
+    return {
+      locked: false,
+      hidden: false,
+      hideCost: false,
+      hideEffect: false,
+      useLockedBase: false,
+    };
+  }
 
   // ==== Unlock Sell ====
   if (tieKey === UPGRADE_TIES.UNLOCK_SELL) {
