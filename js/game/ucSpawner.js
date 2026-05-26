@@ -514,6 +514,8 @@ export function createUcSpawner(config = {}) {
             for (let i = count - 1; i >= 0; i--) {
                 const c = activeItems[i];
                 if (!c || c.isRemoved) continue;
+                
+                if (now < c.startTime) continue;
 
                 if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
                     continue;
@@ -583,6 +585,8 @@ export function createUcSpawner(config = {}) {
             for (let i = count - 1; i >= 0; i--) {
                 const c = activeItems[i];
                 if (!c || c.isRemoved) continue;
+                
+                if (now < c.startTime) continue;
 
                 if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
                     continue;
