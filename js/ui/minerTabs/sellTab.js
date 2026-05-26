@@ -124,7 +124,7 @@ function calculateSellAmount(totalOwnedBn, amountSelection) {
   }
 
   if (parsed.type === 'absolute') {
-    return BigNum.min(totalOwnedBn, BigNum.fromNumber(parsed.val));
+    return BigNum.min(totalOwnedBn, BigNum.fromAny(parsed.val));
   } else if (parsed.type === 'percent') {
     const pct = parsed.val / 100;
     let amount = totalOwnedBn.mulDecimalFloor(pct);
