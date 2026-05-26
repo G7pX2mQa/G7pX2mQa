@@ -321,7 +321,7 @@ export function updateSellTab() {
    if (nextMatIdx !== -1) {
        nextUnlockStr = `Next material starts spawning at: ${formatNumber(UC_MATERIAL_DATA[nextMatIdx].start)}m`;
    } else {
-       nextUnlockStr = `You have reached the highest material.`;
+       nextUnlockStr = `You have reached the highest material`;
    }
 
    let alwaysSpawnsStr = `${highestMatName} always spawns at: ${formatNumber(UC_MATERIAL_DATA[highestMatIdx].max)}m`;
