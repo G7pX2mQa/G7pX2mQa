@@ -1677,7 +1677,7 @@ function getSurgeRequirement(level) {
   let numLevel = Number(level);
   let logReq = numLevel + 1;
   if (numLevel > 1e12) {
-    logReq += 5 * Math.exp(2.3605777e-10 * (numLevel - 1e12));
+    logReq += 5 * Math.exp(2.36034e-10 * (numLevel - 1e12));
   }
   return bigNumFromLog10(logReq);
 }
@@ -1712,7 +1712,7 @@ function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
       const getLogReqForLevel = (lvl) => {
         let logVal = lvl;
         if (lvl > 1e12) {
-          logVal += 5 * Math.exp(2.3605777e-10 * (lvl - 1e12));
+          logVal += 5 * Math.exp(2.36034e-10 * (lvl - 1e12));
         }
         return logVal;
       };
