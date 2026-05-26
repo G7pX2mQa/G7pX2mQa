@@ -215,7 +215,7 @@
 .sell-btn:active {
     background: linear-gradient(to bottom, #1e7e34, #145523);
 }
-@container (max-width: 650px) {
+@container (max-width: 900px) {
     .sell-list-header {
         display: none;
     }
@@ -240,7 +240,7 @@
         content: "";
         grid-area: line;
         height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(136, 136, 136, 0.3), transparent);
+        background: rgba(136, 136, 136, 0.4);
     }
     .sell-col-bar {
         grid-area: bar;
@@ -249,10 +249,10 @@
     .sell-col-owned {
         grid-area: owned;
         justify-self: start;
-        text-align: left;
+        text-align: center;
         display: flex;
         flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
     }
     .sell-col-owned:before {
         content: "Owned";
