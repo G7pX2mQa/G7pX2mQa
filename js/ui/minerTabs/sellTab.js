@@ -3,13 +3,38 @@ import { getActiveSlot, UC_MATERIALS, bank } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { UC_MATERIAL_DATA, getUcMaterialAccumulators } from '../../game/ucSpawner.js';
-import { getDpState } from '../../game/dpSystem.js';
+import { getDpState, isDpSystemUnlocked } from '../../game/dpSystem.js';
 import { createDropdown } from '../sas/dropdownUtils.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { registerTick } from '../../game/gameLoop.js';
 import { BigNum } from '../../util/bigNum.js';
 
 const SELL_UNLOCKED_KEY_BASE = 'ccc:sellUnlocked';
+const SELL_VIEWED_KEY_BASE = 'ccc:sellViewed';
+
+export function hasViewedSellTab() {
+  const slotKey = String(getActiveSlot() ?? 'default');
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    return localStorage.getItem(`${SELL_VIEWED_KEY_BASE}:${slotKey}`) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setSellTabViewed(value, slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (typeof localStorage !== 'undefined') {
+    try {
+      if (value) {
+        localStorage.setItem(`${SELL_VIEWED_KEY_BASE}:${slotKey}`, '1');
+      } else {
+        localStorage.removeItem(`${SELL_VIEWED_KEY_BASE}:${slotKey}`);
+      }
+    } catch {}
+  }
+}
+
 
 export function isSellUnlocked() {
   const slotKey = String(getActiveSlot() ?? 'default');
@@ -246,6 +271,7 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
 
 
 export function updateSellTab() {
+   if (!hasViewedSellTab()) setSellTabViewed(true);
    if (!sellPanelDomCache.listContainer) return;
    
    let dpLevelNum = 0;
@@ -303,12 +329,18 @@ export function updateSellTab() {
        alwaysSpawnsStr = `Stone always spawns at: 0m`;
    }
 
-   sellPanelDomCache.infoBox.innerHTML = `
-      <b>Sell materials for Scrap, use Scrap to buy upgrades</b><br>
-      Current Depth: ${formatNumber(dpLevelNum)}m<br>
-      ${alwaysSpawnsStr}<br>
-      ${nextUnlockStr}
-   `;
+   if (isDpSystemUnlocked()) {
+       sellPanelDomCache.infoBox.innerHTML = `
+          <b>Sell materials for Scrap, use Scrap to buy upgrades</b><br>
+          Current Depth: ${formatNumber(dpLevelNum)}m<br>
+          ${alwaysSpawnsStr}<br>
+          ${nextUnlockStr}
+       `;
+   } else {
+       sellPanelDomCache.infoBox.innerHTML = `
+          <b>Sell materials for Scrap, use Scrap to buy upgrades</b>
+       `;
+   }
 
    const accumulators = getUcMaterialAccumulators();
 
