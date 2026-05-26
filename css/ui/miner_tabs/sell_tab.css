@@ -303,3 +303,8 @@
 .sell-row:has(.setting-dropdown-menu.is-open) {
   z-index: 100;
 }
+
+.sell-dropdown-wrapper .setting-dropdown-btn,
+.sell-dropdown-wrapper .setting-dropdown-menu {
+  box-shadow: none !important;
+}
