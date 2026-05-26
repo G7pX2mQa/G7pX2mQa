@@ -333,6 +333,7 @@ export function updateSellTab() {
            rowCache.fillEl.style.width = '100%';
            rowCache.textEl.textContent = 'Always spawns';
        } else {
+           acc += 1e-9;
            const pct = Math.min(100, Math.max(0, acc * 100));
            rowCache.fillEl.style.width = `${pct}%`;
            rowCache.textEl.textContent = `Progress: ${(Math.floor(acc * 100) / 100).toFixed(2)}/1.00`;
