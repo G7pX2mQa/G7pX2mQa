@@ -285,7 +285,7 @@ export function updateSellTab() {
    // Track historical seen materials
    let seenMaterials = [];
    try {
-       const stored = localStorage.getItem('ccc:sellSeenMaterials');
+       const stored = localStorage.getItem(`ccc:sellSeenMaterials:${getActiveSlot()}`);
        if (stored) {
            seenMaterials = JSON.parse(stored);
        }
@@ -305,7 +305,7 @@ export function updateSellTab() {
    }
    
    try {
-       localStorage.setItem('ccc:sellSeenMaterials', JSON.stringify(seenMaterials));
+       localStorage.setItem(`ccc:sellSeenMaterials:${getActiveSlot()}`, JSON.stringify(seenMaterials));
    } catch {}
    
    for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
