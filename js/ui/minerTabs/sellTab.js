@@ -329,14 +329,18 @@ export function updateSellTab() {
        
        if (dpLevelNum >= t.max && i !== 0) acc = 1.0;
        
+       const materialName = RESOURCE_REGISTRY.find(r => r.key === matKey)?.singular || '';
+
        if (acc >= 1.0) {
            rowCache.fillEl.style.width = '100%';
-           rowCache.textEl.textContent = 'Always spawns';
+           rowCache.textEl.textContent = materialName ? `${materialName} always spawns` : 'Always spawns';
        } else {
            acc += 1e-9;
            const pct = Math.min(100, Math.max(0, acc * 100));
            rowCache.fillEl.style.width = `${pct}%`;
-           rowCache.textEl.textContent = `Progress: ${(Math.floor(acc * 100) / 100).toFixed(2)}/1.00`;
+           rowCache.textEl.textContent = materialName 
+               ? `${materialName} progress: ${(Math.floor(acc * 100) / 100).toFixed(2)}/1.00` 
+               : `Progress: ${(Math.floor(acc * 100) / 100).toFixed(2)}/1.00`;
        }
 
        const owned = bank[matKey]?.value || BigNum.fromInt(0);
