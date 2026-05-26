@@ -2,7 +2,7 @@
 
 import { playAudio, setAudioSuspended } from './util/audioManager.js';
 import { createCursorTrail } from './game/cursorTrail.js';
-import { syncXpMpHudLayout } from './ui/hudLayout.js';
+import { syncXpMpHudLayout, syncDpHudLayout } from './ui/hudLayout.js';
 import { initUcPickup } from './game/materialPickup.js';
 
 export const FONT_MAP = {
@@ -703,6 +703,7 @@ export function enterArea(areaID) {
       }
 	  
       syncXpMpHudLayout();
+      syncDpHudLayout();
       if (typeof initMutationSystem === 'function') {
         try { initMutationSystem(); } catch {}
       }
@@ -795,6 +796,7 @@ export function enterArea(areaID) {
           gRoot.classList.add('area-cavern');
       }
 	  syncXpMpHudLayout();
+      syncDpHudLayout();
 	  
       if (menuRoot) {
         menuRoot.style.display = 'none';
