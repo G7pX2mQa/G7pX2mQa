@@ -176,6 +176,10 @@ function applyPendingSlotWipe() {
       try { localStorage.removeItem(k); } catch {}
     });
 
+    if (typeof window !== 'undefined') {
+      window._ucMaterialAccumulators = null;
+    }
+
     // Remove the flag so it only executes once
     try { localStorage.removeItem('ccc:pendingSlotWipe'); } catch {}
   } catch {
