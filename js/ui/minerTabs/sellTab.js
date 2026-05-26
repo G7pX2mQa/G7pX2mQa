@@ -49,8 +49,6 @@ const BASE_VALUES = {
 
 const DROPDOWN_OPTIONS = [
   { value: '1', label: '1' },
-  { value: '1%', label: '1%' },
-  { value: '5%', label: '5%' },
   { value: '10%', label: '10%' },
   { value: '25%', label: '25%' },
   { value: '50%', label: '50%' },
@@ -62,7 +60,7 @@ function parseCustomAmount(inputStr) {
   let str = inputStr.trim().toLowerCase();
   
   if (str === 'inf' || str === 'max' || str === '100%') {
-      return { type: 'percent', val: 100 };
+      return { type: 'percent', val: 100, display: '100%' };
   }
   
   // Try fraction
@@ -81,21 +79,33 @@ function parseCustomAmount(inputStr) {
     let pct = parseFloat(pctMatch[1]);
     if (!isNaN(pct)) {
       if (pct > 100) {
-        // Disregard > hundreds place
-        const asStr = Math.floor(pct).toString();
-        const lastTwo = asStr.slice(-2);
-        pct = parseFloat(lastTwo) + (pct - Math.floor(pct));
+        return { type: 'percent', val: 100, display: '100%' };
       }
-      return { type: 'percent', val: pct };
+      
+      let [intPart, decPart] = pctMatch[1].split('.');
+      if (!decPart) {
+          return { type: 'percent', val: pct, display: pctMatch[1] + '%' };
+      }
+      
+      if (decPart.length > 2) {
+          decPart = decPart.substring(0, 2);
+          pct = parseFloat(`${intPart}.${decPart}`);
+          return { type: 'percent', val: pct, display: `${intPart}.${decPart}%` };
+      } else {
+          return { type: 'percent', val: pct, display: pctMatch[1] + '%' };
+      }
     }
   }
   
   // Try absolute number
-  const numMatch = str.match(/^[\d.]+$/);
+  const numMatch = str.match(/^-?[\d.]+$/);
   if (numMatch) {
-    const num = parseFloat(numMatch[0]);
-    if (!isNaN(num) && num > 0) {
-       return { type: 'absolute', val: num };
+    let num = parseFloat(numMatch[0]);
+    if (!isNaN(num)) {
+       num = Math.floor(num);
+       if (num < 0) num = 0;
+       if (num > 1000) num = 1000;
+       return { type: 'absolute', val: num, display: num.toString() };
     }
   }
   
@@ -391,11 +401,11 @@ function createSellRow(matKey, index) {
        getValue: () => localSellAmount,
        setValue: (val) => {
            if (val === 'custom') {
-             const res = prompt("Enter custom amount (e.g., 50% or 10):", "50%");
+             const res = prompt("Enter a custom amount. Integers, decimals, percentages, and fractions are supported inputs.");
              if (res !== null && res.trim() !== "") {
                  const parsed = parseCustomAmount(res);
                  if (parsed) {
-                     localSellAmount = res.trim();
+                     localSellAmount = parsed.display || res.trim();
                  }
              }
            } else {
