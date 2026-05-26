@@ -32,16 +32,43 @@
   background: rgba(0, 0, 0, 0.5);
 }
 
-.pinned-currency-icon {
+.pinned-currency-icon-wrapper {
   position: absolute;
   left: -22px; /* Offset to match standard hud icon underlap */
   top: 50%;
   transform: translateY(-50%);
   width: 32px;
   height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.pinned-currency-base {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.pinned-currency-icon-inner {
+  position: absolute;
+  width: 65%;
+  height: 65%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.pinned-currency-icon {
+  position: absolute;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   image-rendering: high-quality;
-  z-index: 2;
 }
 
 .pinned-currency-value {
