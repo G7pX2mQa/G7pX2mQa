@@ -215,7 +215,7 @@
 .sell-btn:active {
     background: linear-gradient(to bottom, #1e7e34, #145523);
 }
-@container (max-width: 900px) {
+@media (max-width: 900px) {
     .sell-list-header {
         display: none;
     }
@@ -225,7 +225,7 @@
     }
     .sell-row {
         padding: 16px max(12px, calc(var(--sell-plus-size) * .5 + 8px));
-        grid-template-columns: auto auto auto;
+        grid-template-columns: 1fr auto 1fr;
         justify-content: space-between;
         grid-template-areas: "owned val state" "line line line" "bar bar bar";
         gap: clamp(8px, 3vw, 16px);
