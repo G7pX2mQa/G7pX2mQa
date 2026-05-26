@@ -1036,6 +1036,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'img/waterwheels/waterwheel_coin.webp',
     'img/waterwheels/waterwheel_gold.webp',
     'img/waterwheels/waterwheel_magic.webp',
+	'img/waterwheels/waterwheel_scrap.webp',
     'img/waterwheels/waterwheel_xp.webp',
     ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.webp`)
   ],
