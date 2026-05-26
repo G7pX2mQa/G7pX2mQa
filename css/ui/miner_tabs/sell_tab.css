@@ -258,7 +258,6 @@
         content: "Owned";
         font-size: 11px;
         color: #999;
-        text-transform: uppercase;
         margin-bottom: 2px;
     }
     .sell-col-val {
@@ -273,7 +272,6 @@
         content: "Value";
         font-size: 11px;
         color: #999;
-        text-transform: uppercase;
         margin-bottom: 2px;
     }
     .sell-col-sell {
