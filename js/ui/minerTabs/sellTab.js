@@ -5,7 +5,7 @@ import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { UC_MATERIAL_DATA, getUcMaterialAccumulators } from '../../game/ucSpawner.js';
 import { getDpState } from '../../game/dpSystem.js';
 import { createDropdown } from '../sas/dropdownUtils.js';
-import { playAudio } from '../../util/audioManager.js';
+import { playPurchaseSfx } from '../shopOverlay.js';
 import { registerTick } from '../../game/gameLoop.js';
 import { BigNum } from '../../util/bigNum.js';
 
@@ -169,10 +169,16 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
   scrapCounterWrap.className = 'scrap-counter';
   scrapCounterWrap.style.marginTop = '-16px';
   scrapCounterWrap.style.marginBottom = '12px';
+  
+  let formatted = '0';
+  try {
+    formatted = bank.scrap?.fmt?.(bank.scrap.value) ?? '0';
+  } catch {}
+
   scrapCounterWrap.innerHTML = `
     <img src="img/currencies/scrap/scrap_plus_base.webp" alt="" class="scrap-plus"/>
     <div class="scrap-bar">
-      <span class="scrap-amount">0</span>
+      <span class="scrap-amount">${formatted}</span>
     </div>
   `;
 
@@ -436,7 +442,7 @@ function createSellRow(matKey, index) {
        const totalValue = amt.mulDecimalFloor(rowCache.currentVal);
        bank.scrap.add(totalValue);
        
-       playAudio('sounds/purchase_upg.ogg', { volume: 0.5 });
+       playPurchaseSfx();
        updateSellTab();
    });
 
