@@ -514,7 +514,7 @@ function alignSellColumns() {
         if (s) stateEls.push(s);
     });
 
-    if (typeof window !== "undefined" && window.innerWidth <= 650) {
+    if (typeof window !== "undefined" && window.innerWidth <= 900) {
         ownedEls.forEach(el => { if (el.style.transform !== '') el.style.transform = ''; });
         valEls.forEach(el => { if (el.style.transform !== '') el.style.transform = ''; });
         stateEls.forEach(el => { if (el.style.transform !== '') el.style.transform = ''; });
