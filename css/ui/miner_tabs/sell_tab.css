@@ -311,3 +311,15 @@
 .sell-dropdown-wrapper .setting-dropdown-menu {
   box-shadow: none !important;
 }
+
+.sell-dropdown-wrapper .setting-dropdown-btn {
+  padding: 4px 6px;
+}
+
+.sell-dropdown-wrapper .setting-dropdown-icon {
+  margin-left: 2px;
+}
+
+.sell-dropdown-wrapper .setting-dropdown-value {
+  overflow: visible;
+}
