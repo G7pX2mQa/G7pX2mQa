@@ -1,7 +1,7 @@
 import { createBaseSpawner, CUBIC_BEZIER, getImage } from './spawnerCore.js';
 import { IS_MOBILE } from '../main.js';
 import { playAudio } from '../util/audioManager.js';
-import { UC_MATERIALS } from '../util/storage.js';
+import { getActiveSlot, UC_MATERIALS } from '../util/storage.js';
 import { settingsManager } from './settingsManager.js';
 
 export const UC_MATERIAL_DATA = [
@@ -105,7 +105,7 @@ export function createUcSpawner(config = {}) {
             // Initialize accumulators if needed
             if (!window._ucMaterialAccumulators) {
                 try {
-                    const stored = localStorage.getItem('ccc:ucMaterialAccumulators');
+                    const stored = localStorage.getItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`);
                     if (stored) {
                         window._ucMaterialAccumulators = JSON.parse(stored);
                     } else {
@@ -119,7 +119,7 @@ export function createUcSpawner(config = {}) {
             // Save function to persist to local storage
             const saveAccumulators = () => {
                 try {
-                    localStorage.setItem('ccc:ucMaterialAccumulators', JSON.stringify(window._ucMaterialAccumulators));
+                    localStorage.setItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`, JSON.stringify(window._ucMaterialAccumulators));
                 } catch {}
             };
 
