@@ -1,3 +1,4 @@
+import { unlockDpSystem } from './dpSystem.js';
 import { computeDefaultUpgradeCost, formatMultForUi, UPGRADE_TIES, determineLockState } from './upgrades.js';
 
 import { BigNum } from '../util/bigNum.js';
@@ -46,6 +47,28 @@ export const UC_REGISTRY = [
     onLevelChange({ newLevel }) {
       if ((newLevel ?? 0) >= 1) {
         try { if (typeof window.onSellUpgradeUnlocked === 'function') window.onSellUpgradeUnlocked(); } catch {}
+      }
+    },
+    effectSummary() { return ""; },
+  },
+  {
+    area: UC_AREA_KEY,
+    id: 3,
+    tie: 'none_6',
+    title: "Unlock Depth",
+    desc: "Unlocks the Depth system; go deeper to find new materials\nEach meter of Depth boosts material accumulator speed (see Sell tab)\nEach meter of Depth also boosts FP 1.1x compounding\nThis upgrade also unlocks a new Waterwheel for Scrap (important!)",
+    lvlCap: 1,
+    upgType: "NM",
+    icon: "",
+    baseIconOverride: "img/stats/dp/dp_plus_base.webp",
+    
+    unlockUpgrade: true,
+    costAtLevel() { return BigNum.fromInt(0); },
+    nextCostAfter() { return BigNum.fromInt(0); },
+    computeLockState: determineLockState,
+    onLevelChange({ newLevel }) {
+      if ((newLevel ?? 0) >= 1) {
+        try { unlockDpSystem(); } catch {}
       }
     },
     effectSummary() { return ""; },
