@@ -1,4 +1,4 @@
-import { BigNum } from '../util/bigNum.js';
+import { BigNum, approxLog10BigNum as approxLog10 } from '../util/bigNum.js';
 import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
 import { syncDpHudLayout } from '../ui/hudLayout.js';
@@ -207,6 +207,14 @@ function progressRatio(progressBn, requirement) {
   if (!requirement || typeof requirement !== 'object') return 0;
   if (!progressBn || typeof progressBn !== 'object') return 0;
 
+  const isInfinite = (bn) => !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
+  const reqIsInf = isInfinite(requirement);
+  const progIsInf = isInfinite(progressBn);
+
+  if (reqIsInf) {
+    return progIsInf ? 1 : 0;
+  }
+
   const reqIsZero = requirement.isZero?.() || (typeof requirement.isZero === 'function' && requirement.isZero());
   if (reqIsZero) return 0;
 
@@ -215,18 +223,22 @@ function progressRatio(progressBn, requirement) {
 
   if (progressBn.cmp(requirement) >= 0) return 1;
 
-  let rNum;
-  try {
-      rNum = Number(requirement.toString());
-  } catch { rNum = 1; }
-  let pNum;
-  try {
-      pNum = Number(progressBn.toString());
-  } catch { pNum = 0; }
-  
-  if (rNum === 0) return 0;
-  return Math.min(1, Math.max(0, pNum / rNum));
+  const logProg = approxLog10(progressBn);
+  const logReq  = approxLog10(requirement);
+  if (!Number.isFinite(logProg) || !Number.isFinite(logReq)) {
+    return logProg >= logReq ? 1 : 0;
+  }
+  const diff = logProg - logReq;
+  const ratio = Math.pow(10, diff);
+  if (!Number.isFinite(ratio)) {
+    return diff >= 0 ? 1 : 0;
+  }
+  if (ratio <= 0) return 0;
+  if (ratio >= 1) return 1;
+  return ratio;
 }
+
+
 
 function ensureHudRefs() {
   if (hudRefs.container && hudRefs.container.isConnected) return true;
@@ -549,6 +561,39 @@ export function addDp(amount, { silent = false } = {}) {
   dpState.progress = dpState.progress.add(inc);
   updateDpRequirement();
 
+  const isInfinite = (bn) => !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
+
+  const progressIsInf = isInfinite(dpState.progress);
+  const levelIsInf = isInfinite(dpState.dpLevel);
+  const gainIsInf = isInfinite(inc);
+
+  if (progressIsInf || levelIsInf || gainIsInf) {
+    const inf = BigNum.fromAny('Infinity');
+    
+    dpState.dpLevel = inf.clone?.() ?? inf;
+    dpState.progress = inf.clone?.() ?? inf;
+    
+    updateDpRequirement();
+
+    persistState();
+    updateHud();
+
+    const detail = {
+      unlocked: true,
+      dpLevelsGained: bnZero(),
+      dpAdded: inc.clone?.() ?? inc,
+      dpLevel: dpState.dpLevel.clone?.() ?? dpState.dpLevel,
+      progress: dpState.progress.clone?.() ?? dpState.progress,
+      requirement: requirementBn.clone?.() ?? requirementBn,
+      slot,
+    };
+    notifyDpSubscribers(detail);
+    if (!silent && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('dp:change', { detail })); window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'dp', delta: detail.dpAdded, progress: detail.progress } })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } })); } catch {}
+    }
+    return detail;
+  }
+
   let dpLevelsGained = bnZero();
 
   if (dpState.progress.cmp(requirementBn) < 0) {
@@ -571,29 +616,6 @@ export function addDp(amount, { silent = false } = {}) {
   }
 
   // Fast approximation if a large bulk was added
-  const approxLog10 = (bn) => {
-    if (!bn) return 0;
-    try {
-      if (typeof bn.log10 === 'function') return bn.log10();
-      
-      const isInfinite = !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
-      if (isInfinite) return Number.MAX_VALUE;
-      
-      const sci = typeof bn.toScientific === 'function' ? bn.toScientific(18) : String(bn);
-      if (!sci || sci === 'Infinity') return Number.MAX_VALUE;
-      
-      const match = sci.match(/^([0-9]+(?:\.[0-9]+)?)e([+-]?\d+)$/i);
-      if (match) {
-        const mant = parseFloat(match[1]);
-        const exp = parseInt(match[2], 10);
-        return exp + Math.log10(mant);
-      }
-      
-      const num = Number(sci);
-      return Number.isFinite(num) ? Math.log10(num) : Number.MAX_VALUE;
-    } catch { return 0; }
-  };
-  
   const currentProgressLog = approxLog10(dpState.progress);
   const reqLog = approxLog10(requirementBn);
   
@@ -623,7 +645,7 @@ export function addDp(amount, { silent = false } = {}) {
       };
 
       let low = currentLevelNum;
-      let high = Math.max(currentLevelNum, 4000000000000);
+      let high = Math.max(currentLevelNum, 4500000000000);
       let best = currentLevelNum;
 
       for (let i = 0; i < 60; i++) {
