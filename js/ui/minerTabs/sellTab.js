@@ -447,12 +447,12 @@ export function updateSellTab() {
        }
 
        const owned = bank[matKey]?.value || BigNum.fromInt(0);
-       rowCache.ownedEl.textContent = formatNumber(owned);
+       rowCache.ownedEl.innerHTML = formatNumber(owned);
        
        const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
        const materialValue = BigNum.fromAny(t.value || 0);
        const val = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1n, 18);
-       rowCache.valEl.textContent = formatNumber(val);
+       rowCache.valEl.innerHTML = formatNumber(val);
        rowCache.currentVal = val;
        rowCache.currentOwned = owned;
    }
