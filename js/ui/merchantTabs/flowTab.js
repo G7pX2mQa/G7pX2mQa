@@ -495,7 +495,12 @@ function loadState() {
                 for (const id in parsed) {
                     if (state.waterwheels[id]) {
                         state.waterwheels[id].level = BigNum.fromAny(parsed[id].level || 0);
-                        state.waterwheels[id].fp = Number(parsed[id].fp || 0);
+                        const fpRaw = parsed[id].fp || 0;
+                        if (typeof fpRaw === 'string' && fpRaw.includes(':')) {
+                            state.waterwheels[id].fp = BigNum.fromAny(fpRaw);
+                        } else {
+                            state.waterwheels[id].fp = Number(fpRaw);
+                        }
                         state.waterwheels[id].active = !!parsed[id].active;
                     }
                 }
@@ -514,7 +519,12 @@ function loadState() {
                 if (dataRaw) {
                     const parsed = JSON.parse(dataRaw);
                     state.waterwheels[id].level = BigNum.fromAny(parsed.level || 0);
-                    state.waterwheels[id].fp = Number(parsed.fp || 0);
+                    const fpRaw = parsed.fp || 0;
+                    if (typeof fpRaw === 'string' && fpRaw.includes(':')) {
+                        state.waterwheels[id].fp = BigNum.fromAny(fpRaw);
+                    } else {
+                        state.waterwheels[id].fp = Number(fpRaw);
+                    }
                     state.waterwheels[id].active = !!parsed.active;
                     state.waterwheels[id].unlocked = parsed.unlocked !== undefined ? !!parsed.unlocked : (WATERWHEEL_DEFS[id]?.unlocked || false);
                 }
