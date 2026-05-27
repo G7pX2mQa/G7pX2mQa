@@ -84,15 +84,7 @@ export const WATERWHEEL_DEFS = {
             try {
                 let cleared = isWaterwheelMysteriousCleared(WATERWHEELS.SCRAP);
                 if (!cleared) {
-                    const slot = getActiveSlot();
-                    const currentWaves = bank.waves?.value ?? bnZero();
-                    let barLevel = 0n;
-                    try { barLevel = getSurgeBarLevel(slot); } catch {}
-                    if (typeof barLevel === 'bigint' && barLevel >= 4500000000000n) barLevel = Infinity;
-                    const pending = resetState.pendingWaves || bnZero();
-                    const potentialLevel = typeof predictSurgeLevel === 'function' ? predictSurgeLevel(barLevel, currentWaves, pending) : 0n;
-                    
-                    if (potentialLevel === Infinity || (typeof potentialLevel === 'bigint' && potentialLevel >= 125n) || (typeof potentialLevel === 'number' && potentialLevel >= 125)) {
+                    if (shouldAutoClearScrapMysterious()) {
                         cleared = true;
                         setWaterwheelMysteriousCleared(WATERWHEELS.SCRAP, true);
                     }
@@ -118,9 +110,32 @@ export function isWaterwheelMysteriousCleared(id) {
 export function setWaterwheelMysteriousCleared(id, value) {
     const slot = getActiveSlot();
     if (slot == null) return;
+    const key = `ccc:flow:mysteriousCleared:${id}:${slot}`;
     try {
-        localStorage.setItem(`ccc:flow:mysteriousCleared:${id}:${slot}`, value ? '1' : '0');
+        const nextValue = value ? '1' : '0';
+        const prevValue = localStorage.getItem(key);
+        if (prevValue === nextValue) return;
+        localStorage.setItem(key, nextValue);
+        if (flowTabInitialized && flowPanel) updateFlowTab();
     } catch {}
+}
+
+function shouldAutoClearScrapMysterious() {
+    try {
+        const slot = getActiveSlot();
+        if (slot == null) return false;
+        const currentWaves = bank.waves?.value ?? bnZero();
+        let barLevel = 0n;
+        try { barLevel = getSurgeBarLevel(slot); } catch {}
+        if (typeof barLevel === 'bigint' && barLevel >= 4500000000000n) barLevel = Infinity;
+        const pending = resetState.pendingWaves || bnZero();
+        const potentialLevel = typeof predictSurgeLevel === 'function' ? predictSurgeLevel(barLevel, currentWaves, pending) : 0n;
+        return potentialLevel === Infinity
+            || (typeof potentialLevel === 'bigint' && potentialLevel >= 125n)
+            || (typeof potentialLevel === 'number' && potentialLevel >= 125);
+    } catch {
+        return false;
+    }
 }
 
 /* =========================================
@@ -134,6 +149,28 @@ let flowSystemInitialized = false;
 let flowTabInitialized = false;
 let flowPanel = null;
 let flowDomCache = null;
+let unwatchMysteriousCleared = null;
+let watchedMysteriousSlot = null;
+
+function refreshMysteriousWatcher() {
+    const slot = getActiveSlot();
+    if (watchedMysteriousSlot === slot && unwatchMysteriousCleared) return;
+
+    if (unwatchMysteriousCleared) {
+        try { unwatchMysteriousCleared(); } catch {}
+        unwatchMysteriousCleared = null;
+    }
+    watchedMysteriousSlot = slot;
+    if (slot == null) return;
+
+    const key = `ccc:flow:mysteriousCleared:${WATERWHEELS.SCRAP}:${slot}`;
+    unwatchMysteriousCleared = watchStorageKey(key, {
+        onChange: () => {
+            if (flowTabInitialized && flowPanel) updateFlowTab();
+        }
+    });
+    try { primeStorageWatcherSnapshot(key); } catch {}
+}
 
 
 const animatedWaterwheels = new Map();
@@ -774,12 +811,18 @@ function onTick(dt) {
 
     let changes = false;
     let visualUpdate = false;
+    let uiTextChanged = false;
 
     // dt is in seconds
     // Requirement: 1 FP/sec for active waterwheel * FP Multiplier
     
     const fpMult = getFpMultiplier();
     const slot = getSlot();
+
+    if (!isWaterwheelMysteriousCleared(WATERWHEELS.SCRAP) && shouldAutoClearScrapMysterious()) {
+        setWaterwheelMysteriousCleared(WATERWHEELS.SCRAP, true);
+        uiTextChanged = true;
+    }
     
     // Unlock Logic
     // Check XP unlock condition: Coin Waterwheel Level >= 1000
@@ -980,7 +1023,7 @@ function onTick(dt) {
         updateWaterwheelVisuals();
     }
 
-    if (changes) {
+    if (changes || uiTextChanged) {
         updateFlowTab();
         scheduleSave();
         try { syncCurrencyMultipliersFromUpgrades(); } catch {}
@@ -1505,10 +1548,12 @@ export function initFlowSystem() {
     if (typeof window !== 'undefined') {
         window.addEventListener('saveSlot:change', () => {
             loadState();
+            refreshMysteriousWatcher();
             updateFlowTab();
         });
     }
     loadState();
+    refreshMysteriousWatcher();
 
     registerTick((dt) => onTick(dt));
     registerFrame((time, dt) => onFrame(time, dt));
@@ -1531,6 +1576,7 @@ export function initFlowTab(panelEl) {
     canvases.forEach(c => waterwheelRenderer.addCanvas(c));
 
     flowTabInitialized = true;
+    refreshMysteriousWatcher();
     updateFlowTab();
     syncFlowLayout();
     
