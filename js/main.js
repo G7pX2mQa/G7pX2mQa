@@ -795,6 +795,9 @@ export function enterArea(areaID) {
           gRoot.classList.remove('area-cove');
           gRoot.classList.add('area-cavern');
       }
+      if (typeof initDpSystem === 'function') {
+        try { initDpSystem(); } catch {}
+      }
 	  syncXpMpHudLayout();
 	  
       if (menuRoot) {
