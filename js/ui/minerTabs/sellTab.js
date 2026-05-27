@@ -1,5 +1,5 @@
 import { ensureMerchantScrollbar } from '../delveCore.js';
-import { getActiveSlot, UC_MATERIALS, bank } from '../../util/storage.js';
+import { CURRENCIES, getActiveSlot, UC_MATERIALS, bank, getCurrencyMultiplierScaledBN } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { UC_MATERIAL_DATA, getUcMaterialAccumulators } from '../../game/ucSpawner.js';
@@ -449,9 +449,10 @@ export function updateSellTab() {
        const owned = bank[matKey]?.value || BigNum.fromInt(0);
        rowCache.ownedEl.textContent = formatNumber(owned);
        
-       const scrapMultiplier = 1;
-       const val = (t.value || 0) * scrapMultiplier;
-       rowCache.valEl.textContent = formatNumber(BigNum.fromAny(val));
+       const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
+       const materialValue = BigNum.fromAny(t.value || 0);
+       const val = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1n, 18);
+       rowCache.valEl.textContent = formatNumber(val);
        rowCache.currentVal = val;
        rowCache.currentOwned = owned;
    }
@@ -536,7 +537,7 @@ function createSellRow(matKey, index) {
        if (amt.cmp(0) <= 0) return;
        
        bank[matKey].sub(amt);
-       const totalValue = amt.mulDecimalFloor(rowCache.currentVal);
+       const totalValue = amt.mulBigNumInteger(rowCache.currentVal);
        bank.scrap.add(totalValue);
        
 
