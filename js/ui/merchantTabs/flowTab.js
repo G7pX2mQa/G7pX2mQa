@@ -9,6 +9,8 @@ import { approxLog10BigNum } from '../../game/upgrades.js';
 import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
 import { syncCurrencyMultipliersFromUpgrades } from '../../game/upgradeEffects.js';
 import { WaterwheelRenderer } from '../../game/webgl/waterwheelRenderer.js';
+import { isDpSystemUnlocked } from '../../game/dpSystem.js';
+import { isNodeLocked } from '../mapOverlay.js';
 
 /* =========================================
    CONSTANTS & KEYS
@@ -23,7 +25,8 @@ const WATERWHEELS = {
     COIN: 'coin',
     XP: 'xp',
     GOLD: 'gold',
-    MAGIC: 'magic'
+    MAGIC: 'magic',
+    SCRAP: 'scrap'
 };
 
 export const WATERWHEEL_DEFS = {
@@ -55,7 +58,7 @@ export const WATERWHEEL_DEFS = {
         unlockReq: 1e5,
         styleKey: 'gold'
     },
-    [WATERWHEELS.MAGIC]: {
+        [WATERWHEELS.MAGIC]: {
         id: WATERWHEELS.MAGIC,
         name: 'Magic Waterwheel',
         image: 'img/waterwheels/waterwheel_magic.webp',
@@ -64,6 +67,23 @@ export const WATERWHEEL_DEFS = {
         prev: WATERWHEELS.GOLD,
         unlockReq: 1e9,
         styleKey: 'magic'
+    },
+    [WATERWHEELS.SCRAP]: {
+        id: WATERWHEELS.SCRAP,
+        name: 'Scrap Waterwheel',
+        image: 'img/waterwheels/waterwheel_scrap.webp',
+        baseReq: 1e25,
+        unlocked: false,
+        styleKey: 'scrap',
+        customUnlockCheck: () => {
+            try { return isDpSystemUnlocked(); } catch { return false; }
+        },
+        customUnlockText: () => {
+            try {
+                if (isNodeLocked('cavern', true)) return "???";
+            } catch {}
+            return "Unlock the Depth system in UC";
+        }
     }
 };
 
@@ -88,7 +108,7 @@ for (const key in WATERWHEEL_DEFS) {
     waterwheelImages[key].src = WATERWHEEL_DEFS[key].image;
 }
 
-const WATERWHEEL_ORDER = [WATERWHEELS.COIN, WATERWHEELS.XP, WATERWHEELS.GOLD, WATERWHEELS.MAGIC];
+const WATERWHEEL_ORDER = [WATERWHEELS.COIN, WATERWHEELS.XP, WATERWHEELS.GOLD, WATERWHEELS.MAGIC, WATERWHEELS.SCRAP];
 
 function syncWaterwheelDecorations(container) {
     if (!container) return;
@@ -305,7 +325,13 @@ const state = {
             active: false,
             unlocked: false
         },
-        [WATERWHEELS.MAGIC]: {
+                [WATERWHEELS.MAGIC]: {
+            level: BigNum.fromInt(0),
+            fp: 0,
+            active: false,
+            unlocked: false
+        },
+        [WATERWHEELS.SCRAP]: {
             level: BigNum.fromInt(0),
             fp: 0,
             active: false,
@@ -328,7 +354,12 @@ const state = {
             speed: 0,
             isMax: false
         },
-        [WATERWHEELS.MAGIC]: {
+                [WATERWHEELS.MAGIC]: {
+            rotation: 0,
+            speed: 0,
+            isMax: false
+        },
+        [WATERWHEELS.SCRAP]: {
             rotation: 0,
             speed: 0,
             isMax: false
@@ -1443,4 +1474,16 @@ export function initFlowTab(panelEl) {
     
     setTimeout(alignFlowColumns, 0);
     window.addEventListener('resize', alignFlowColumns);
+}
+
+export function getWaterwheelScrapMultiplier(baseValue) {
+    const level = state.waterwheels[WATERWHEELS.SCRAP]?.level || BigNum.fromInt(0);
+    const mult = BigNum.fromInt(1).add(level);
+    
+    let val = baseValue;
+    if (baseValue && baseValue.baseMultiplier) val = baseValue.baseMultiplier;
+    
+    if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
+    
+    return val.mulBigNumInteger(mult);
 }
