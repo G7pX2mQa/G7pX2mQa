@@ -1,4 +1,3 @@
-import { isSellUnlocked, hasViewedSellTab } from '../ui/minerTabs/sellTab.js';
 // js/game/upgrades.js
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot, isStorageKeyLocked } from '../util/storage.js';
 import { BigNum, approxLog10BigNum, bigNumFromLog10, log10OnePlusPow10 } from '../util/bigNum.js';
@@ -39,6 +38,7 @@ import {
   syncBookCurrencyMultiplierFromUpgrade,
   registerXpUpgradeEffects,
 } from './upgradeEffects.js';
+import { isSellUnlocked, hasViewedSellTab } from '../ui/minerTabs/sellTab.js';
 
 export {
   computeUpgradeEffects,
