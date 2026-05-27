@@ -699,7 +699,7 @@ export function determineLockState(ctx) {
       };
     }
     if (!hasViewedSellTab()) {
-      const revealText = 'View the Sell tab to reveal this upgrade';
+      const revealText = 'Visit the Sell tab to reveal this upgrade';
       return {
         locked: true,
         iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
