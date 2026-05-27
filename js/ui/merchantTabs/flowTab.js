@@ -1078,16 +1078,25 @@ function onFrame(time, dt) {
             if (w.y < 0) { w.y = 0; w.dy = -w.dy; }
             else if (w.y + w.size > height) { w.y = height - w.size; w.dy = -w.dy; }
             w.rotation += w.rotationSpeed * dt;
+
+            if (w.x + w.size < 0 || w.x > width || w.y + w.size < 0 || w.y > height) continue;
             
             const cx = w.x + w.size / 2;
             const cy = w.y + w.size / 2;
             
-            ctx.save();
-            ctx.translate(cx, cy);
-            ctx.rotate(w.rotation * Math.PI / 180);
-            ctx.drawImage(img, -w.size / 2, -w.size / 2, w.size, w.size);
-            ctx.restore();
+            const rad = w.rotation * Math.PI / 180; 
+            const cos = Math.cos(rad); 
+            const sin = Math.sin(rad); 
+         
+            // Set the transform matrix directly centered on the wheel, respecting devicePixelRatio
+            const dpr = window.devicePixelRatio || 1;
+            ctx.setTransform(dpr * cos, dpr * sin, -dpr * sin, dpr * cos, cx * dpr, cy * dpr); 
+            ctx.drawImage(img, -w.size / 2, -w.size / 2, w.size, w.size); 
         }
+        
+        // Reset global transform back to devicePixelRatio scale
+        const dpr = window.devicePixelRatio || 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); 
     }
 
     for (const id in state.waterwheels) {
