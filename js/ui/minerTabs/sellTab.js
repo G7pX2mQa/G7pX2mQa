@@ -536,7 +536,9 @@ function createSellRow(matKey, index) {
        const amt = calculateSellAmount(rowCache.currentOwned, localSellAmount);
        if (amt.cmp(0) <= 0) return;
        
-       bank[matKey].sub(amt);
+       if (!rowCache.currentOwned.isInfinite()) {
+		   bank[matKey].sub(amt);
+	   }
        const totalValue = amt.mulBigNumInteger(rowCache.currentVal);
        bank.scrap.add(totalValue);
        
@@ -798,12 +800,68 @@ function generateBgChunk(layerConf, lastChunk) {
                         });
                     }
 
+                    const xRatio = 0.2 + Math.random() * 0.5;
+
+                    // Calculate interpPct identically to the render loop
+                    const pointIdx = Math.floor(y / step);
+                    // Generate bg chunk runs from 0 to numPoints (inclusive), so numPoints is the max index
+                    const nextIdx = Math.min(numPoints, pointIdx + 1);
+                    const ratio = (y - pointIdx * step) / step;
+                    
+                    let interpPct;
+                    if (side === 'left') {
+                        const currentPct = leftPoints[pointIdx];
+                        const nextPct = leftPoints[nextIdx];
+                        interpPct = currentPct * (1 - ratio) + nextPct * ratio;
+                    } else {
+                        const currentPct = rightPoints[pointIdx];
+                        const nextPct = rightPoints[nextIdx];
+                        interpPct = currentPct * (1 - ratio) + nextPct * ratio;
+                    }
+
+                    const baseXOffset = interpPct * xRatio;
+
+                    // Pre-render the crystal to an offscreen canvas
+                    let cachedImage;
+                    if (typeof OffscreenCanvas !== 'undefined') {
+                        cachedImage = new OffscreenCanvas(40, 40);
+                    } else {
+                        cachedImage = document.createElement('canvas');
+                        cachedImage.width = 40;
+                        cachedImage.height = 40;
+                    }
+                    const octx = cachedImage.getContext('2d');
+                    octx.translate(20, 20); // Center drawing
+
+                    for (const cl of clusters) {
+                        const px = cl.ox;
+                        const py = cl.oy;
+                        if (cl.facets && cl.facets.length > 0) {
+                            for (let v = 0; v < cl.facets.length; v++) {
+                                const p1 = cl.facets[v];
+                                const p2 = cl.facets[(v + 1) % cl.facets.length];
+                                
+                                octx.beginPath();
+                                octx.moveTo(px, py); // center point
+                                octx.lineTo(px + p1.dx, py + p1.dy);
+                                octx.lineTo(px + p2.dx, py + p2.dy);
+                                octx.closePath();
+                                
+                                // Calculate shaded color for this facet
+                                const r = Math.min(255, sharedColor.r * p1.shade);
+                                const g = Math.min(255, sharedColor.g * p1.shade);
+                                const b = Math.min(255, sharedColor.b * p1.shade);
+                                octx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                                octx.fill();
+                            }
+                        }
+                    }
+
                     crystals.push({
                         side, 
                         y,
-                        color: sharedColor,
-                        clusters,
-                        xRatio: 0.2 + Math.random() * 0.5
+                        baseXOffset,
+                        cachedImage
                     });
                 }
             }
@@ -1079,52 +1137,18 @@ registerFrame((time, dt) => {
                  
                  if (cy < -50 || cy > height + 50) continue;
                  
-                 const pointIdx = Math.floor(crystal.y / step);
-                 const nextIdx = Math.min(numPoints, pointIdx + 1);
-                 const ratio = (crystal.y - pointIdx * step) / step;
-                 
                  let cx;
                  if (crystal.side === 'left') {
-                     const currentPct = chunk.leftPoints[pointIdx];
-                     const nextPct = chunk.leftPoints[nextIdx];
-                     const interpPct = currentPct * (1 - ratio) + nextPct * ratio;
                      const targetMaxX = trackStartX - 15;
-                     const wallX = targetMaxX * interpPct;
-                     cx = wallX * crystal.xRatio;
+                     cx = targetMaxX * crystal.baseXOffset;
                  } else {
-                     const currentPct = chunk.rightPoints[pointIdx];
-                     const nextPct = chunk.rightPoints[nextIdx];
-                     const interpPct = currentPct * (1 - ratio) + nextPct * ratio;
                      const targetMinX = trackEndX + 15;
                      const availableWidth = width - targetMinX;
-                     const rawX = availableWidth * interpPct;
-                     const wallX = width - rawX;
-                     cx = width - ((width - wallX) * crystal.xRatio);
+                     cx = width - (availableWidth * crystal.baseXOffset);
                  }
                  
-                 // Draw inner polygonal facets (geode)
-                 for (const cl of crystal.clusters) {
-                     const px = cx + cl.ox;
-                     const py = cy + cl.oy;
-                     if (cl.facets && cl.facets.length > 0) {
-                         for (let v = 0; v < cl.facets.length; v++) {
-                             const p1 = cl.facets[v];
-                             const p2 = cl.facets[(v + 1) % cl.facets.length];
-                             
-                             ctx.beginPath();
-                             ctx.moveTo(px, py); // center point
-                             ctx.lineTo(px + p1.dx, py + p1.dy);
-                             ctx.lineTo(px + p2.dx, py + p2.dy);
-                             ctx.closePath();
-                             
-                             // Calculate shaded color for this facet
-                             const r = Math.min(255, crystal.color.r * p1.shade);
-                             const g = Math.min(255, crystal.color.g * p1.shade);
-                             const b = Math.min(255, crystal.color.b * p1.shade);
-                             ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-                             ctx.fill();
-                         }
-                     }
+                 if (crystal.cachedImage) {
+                     ctx.drawImage(crystal.cachedImage, cx - 20, cy - 20);
                  }
             }
         }
