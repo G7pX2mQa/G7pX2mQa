@@ -120,7 +120,7 @@ const _rawSecretAchievements = [
     {
         id: 4,
         title: 'That Was Unexpected',
-        get desc() { return 'Defeat the Merchant\'s secret boss fight'; },
+        get desc() { return 'Defeat the Merchant in his secret boss fight'; },
         icon: 'img/misc/that_was_unexpected.webp',
         extraHint: 'Extra hint: Maybe the Merchant can help you obtain this secret achievement...',
         checkCondition: (slot) => getLifetimeBossBeaten(slot)
