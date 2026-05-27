@@ -6,7 +6,7 @@ import { UC_MATERIAL_DATA, getUcMaterialAccumulators } from '../../game/ucSpawne
 import { getDpState, isDpSystemUnlocked } from '../../game/dpSystem.js';
 import { createDropdown } from '../sas/dropdownUtils.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
-import { registerTick } from '../../game/gameLoop.js';
+import { registerTick, registerFrame } from '../../game/gameLoop.js';
 import { BigNum } from '../../util/bigNum.js';
 
 const SELL_UNLOCKED_KEY_BASE = 'ccc:sellUnlocked';
@@ -175,6 +175,41 @@ function getGradient(key) {
 let sellPanelDomCache = {};
 let sellPanelTickObj = null;
 
+
+
+let conveyorPool = [];
+let spawnLeft = true;
+
+const sellCanvases = {
+  left: { canvas: null, ctx: null, width: 0, height: 0 },
+  right: { canvas: null, ctx: null, width: 0, height: 0 }
+};
+
+function syncSellLayout() {
+  if (!sellPanelDomCache.sideLeft || !sellPanelDomCache.sideRight) return;
+  const updateBounds = (col, data) => {
+      const rect = col.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      data.width = rect.width;
+      data.height = rect.height;
+      if (!data.canvas) {
+          data.canvas = col.querySelector('canvas');
+          if (data.canvas) data.ctx = data.canvas.getContext('2d', { alpha: true });
+      }
+      if (data.canvas) {
+          const targetWidth = Math.round(rect.width * dpr);
+          const targetHeight = Math.round(rect.height * dpr);
+          if (data.canvas.width !== targetWidth || data.canvas.height !== targetHeight) {
+              data.canvas.width = targetWidth;
+              data.canvas.height = targetHeight;
+              data.ctx.scale(dpr, dpr);
+          }
+      }
+  };
+  updateBounds(sellPanelDomCache.sideLeft, sellCanvases.left);
+  updateBounds(sellPanelDomCache.sideRight, sellCanvases.right);
+}
+
 export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl) {
   const tabBtn = document.createElement('button');
   tabBtn.type = 'button';
@@ -187,6 +222,26 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
   panel.className = 'merchant-panel sell-tab';
   panel.id = 'miner-panel-sell';
   
+  const sideLeft = document.createElement('div');
+  sideLeft.className = 'sell-side-col sell-side-left';
+  const canvasLeft = document.createElement('canvas');
+  canvasLeft.style.position = 'absolute';
+  canvasLeft.style.top = '0';
+  canvasLeft.style.left = '0';
+  canvasLeft.style.width = '100%';
+  canvasLeft.style.height = '100%';
+  sideLeft.appendChild(canvasLeft);
+  
+  const sideRight = document.createElement('div');
+  sideRight.className = 'sell-side-col sell-side-right';
+  const canvasRight = document.createElement('canvas');
+  canvasRight.style.position = 'absolute';
+  canvasRight.style.top = '0';
+  canvasRight.style.left = '0';
+  canvasRight.style.width = '100%';
+  canvasRight.style.height = '100%';
+  sideRight.appendChild(canvasRight);
+
   const centerCol = document.createElement('div');
   centerCol.className = 'sell-center-col';
 
@@ -194,6 +249,7 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
   scrapCounterWrap.className = 'scrap-counter';
   scrapCounterWrap.style.marginTop = '-16px';
   scrapCounterWrap.style.marginBottom = '12px';
+
   
   let formatted = '0';
   try {
@@ -225,10 +281,14 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
 
   centerCol.appendChild(scrapCounterWrap);
   centerCol.appendChild(infoBox);
-  centerCol.appendChild(listContainer);
-  panel.appendChild(centerCol);
 
-  sellPanelDomCache = { infoBox, listContainer, rows: {} };
+  centerCol.appendChild(listContainer);
+  panel.appendChild(sideLeft);
+  panel.appendChild(centerCol);
+  panel.appendChild(sideRight);
+
+  sellPanelDomCache = { infoBox, listContainer, rows: {}, sideLeft, sideRight, canvasLeft, canvasRight };
+
 
   tabBtn.addEventListener('click', () => {
     const allTabs = tabsEl.querySelectorAll('.merchant-tab');
@@ -252,11 +312,16 @@ export function initSellPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl
     });
   }
 
+
   tabsEl.appendChild(tabBtn);
   panelsWrapEl.appendChild(panel);
   ensureMerchantScrollbar(minerOverlayEl, minerSheetEl, '.sell-center-col', 'sell-scrollbar');
 
+  syncSellLayout();
+  if (typeof window !== 'undefined') window.addEventListener('resize', syncSellLayout);
+
   if (!sellPanelTickObj) {
+
      sellPanelTickObj = registerTick(() => {
          if (panel.classList.contains('is-active')) {
              updateSellTab();
@@ -474,9 +539,40 @@ function createSellRow(matKey, index) {
        const totalValue = amt.mulDecimalFloor(rowCache.currentVal);
        bank.scrap.add(totalValue);
        
+
        playPurchaseSfx();
        updateSellTab();
+       
+
+       // Visual items spawn
+       let parsedNum = 1;
+       if (amt.cmp(5) >= 0) {
+           parsedNum = 5;
+       } else {
+           try {
+               parsedNum = Number(amt.toPlainIntegerString());
+           } catch (e) {
+               parsedNum = 5;
+           }
+       }
+       const numItems = Math.min(5, Math.max(1, parsedNum));
+
+       for (let k = 0; k < numItems; k++) {
+           const side = 'left';
+           const width = sellCanvases[side].width;
+           
+           conveyorPool.push({
+               x: width / 2,
+               y: sellCanvases[side].height - 40,
+               matKey: matKey,
+               // Use a fixed speed base and no random factor for sync, or just a single belt speed var
+               speed: 60, 
+               side: side,
+               state: 'falling'
+           });
+       }
    });
+
 
    colSell.append(dropdownWrap, sellBtn);
 
@@ -604,3 +700,187 @@ function alignSellColumns() {
     alignGroup(valEls, maxValCenter);
     alignGroup(stateEls, maxStateCenter, -1);
 }
+
+
+function getMachineColors(baseR, baseG, baseB) {
+  const calc = (val, offset) => {
+    if (val === 0) return 0;
+    return Math.max(0, Math.min(255, val + offset));
+  };
+  return {
+    base: `rgb(${baseR}, ${baseG}, ${baseB})`,
+    highlight: `rgb(${calc(baseR, 20)}, ${calc(baseG, 20)}, ${calc(baseB, 20)})`,
+    shadow: `rgb(${calc(baseR, -16)}, ${calc(baseG, -16)}, ${calc(baseB, -16)})`
+  };
+}
+
+let beltOffset = 0;
+
+const imageCache = {};
+
+function getMaterialImage(matKey) {
+  if (imageCache[matKey]) return imageCache[matKey];
+  const config = RESOURCE_REGISTRY.find(r => r.key === matKey);
+  if (config && config.icon) {
+    const img = new Image();
+    img.src = config.icon;
+    imageCache[matKey] = img;
+    return img;
+  }
+  return null;
+}
+
+
+registerFrame((time, dt) => {
+  const panel = document.getElementById('miner-panel-sell');
+  if (!panel || !panel.classList.contains('is-active')) return;
+  if (!panel.closest('.merchant-overlay.is-open') && !document.querySelector('.miner-sheet.is-sell-active')) return;
+
+  const beltSpeed = 60; // px/s
+  beltOffset = (beltOffset + beltSpeed * dt) % 40;
+
+  ['left', 'right'].forEach(side => {
+    let { canvas, ctx, width, height } = sellCanvases[side];
+    let parentEl = canvas ? canvas.parentElement : null;
+    if (parentEl && parentEl.clientWidth > 0 && width === 0) {
+      syncSellLayout();
+      width = sellCanvases[side].width;
+      height = sellCanvases[side].height;
+    }
+    if (!ctx || width === 0 || height === 0) return;
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw conveyor belt track
+    ctx.fillStyle = 'rgb(20, 20, 20)';
+    ctx.fillRect(width / 2 - 24, 80, 48, height - 160);
+    
+    // Draw track outlines
+    ctx.strokeStyle = 'rgb(80, 80, 80)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(width / 2 - 24, 80);
+    ctx.lineTo(width / 2 - 24, height - 80);
+    ctx.moveTo(width / 2 + 24, 80);
+    ctx.lineTo(width / 2 + 24, height - 80);
+    ctx.stroke();
+    
+    // Draw belt treads
+    ctx.strokeStyle = 'rgb(100, 100, 100)'; // Lightened for visibility
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    
+    const currentOffset = side === 'left' ? -beltOffset : beltOffset;
+    let startY = 80 + (currentOffset % 40);
+    if (startY > 80) startY -= 40;
+    
+    for (let y = startY; y < height - 80; y += 40) {
+      if (y > 80 && y < height - 80) {
+        ctx.moveTo(width / 2 - 24, y);
+        ctx.lineTo(width / 2 + 24, y);
+      }
+    }
+    ctx.stroke();
+
+
+    
+  });
+
+  // Render pool items
+  for (let i = conveyorPool.length - 1; i >= 0; i--) {
+    const item = conveyorPool[i];
+    const { canvas, ctx, width, height } = sellCanvases[item.side];
+    if (!ctx || width === 0 || height === 0) continue;
+
+    if (item.state === 'falling') {
+      let hitEndpoint = false;
+      // Force speed sync with belt
+      item.speed = beltSpeed; 
+      
+      if (item.side === 'left') {
+        item.y -= item.speed * dt;
+        // fully inside top box
+        if (item.y + 24 <= 80) hitEndpoint = true;
+      } else {
+        item.y += item.speed * dt;
+        // fully inside bottom box
+        if (item.y - 24 >= height - 80) hitEndpoint = true;
+      }
+      
+      if (hitEndpoint) {
+        if (item.side === 'left') {
+            // Teleport to right side top (centered in box)
+            item.side = 'right';
+            const rightWidth = sellCanvases['right'].width;
+            item.x = rightWidth / 2;
+            item.y = 40;
+        } else {
+            // Hit bottom right endpoint -> particles
+            item.state = 'particle';
+            item.particles = [];
+            const numParticles = 3 + Math.floor(Math.random() * 3); // 3 to 5
+            for (let p = 0; p < numParticles; p++) {
+              item.particles.push({
+                x: item.x + (Math.random() - 0.5) * 20,
+                y: item.y,
+                vx: (Math.random() - 0.5) * 100,
+                vy: -100 - Math.random() * 100,
+                alpha: 1.0,
+                size: 4 + Math.random() * 2
+              });
+            }
+        }
+      } else {
+        // Draw falling image
+        ctx.save();
+        const img = getMaterialImage(item.matKey);
+        if (img && img.complete && img.naturalHeight !== 0) {
+            // Draw image centered
+            ctx.drawImage(img, item.x - 24, item.y - 24, 48, 48);
+        } else {
+            // Fallback just in case
+            ctx.translate(item.x, item.y);
+            ctx.beginPath();
+            ctx.arc(0, 0, 24, 0, 2 * Math.PI);
+            ctx.fillStyle = 'gray';
+            ctx.fill();
+        }
+        ctx.restore();
+      }
+    } else if (item.state === 'particle') {
+      let alive = false;
+      for (const p of item.particles) {
+        p.vy += 500 * dt; // Gravity
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.alpha -= (1.0 / 0.9) * dt; // Fade out over ~0.9s
+
+        if (p.alpha > 0) {
+          alive = true;
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = 'rgb(192, 192, 192)';
+          ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+          ctx.restore();
+        }
+      }
+      if (!alive) {
+        conveyorPool.splice(i, 1);
+      }
+    }
+  }
+
+  // Draw endpoints OVER items
+  ['left', 'right'].forEach(side => {
+    let { ctx, width, height } = sellCanvases[side];
+    if (!ctx || width === 0 || height === 0) return;
+    
+    // Magical Black Box endpoints
+    ctx.fillStyle = '#050505';
+    const boxSize = 80;
+    // Top box
+    ctx.fillRect(width / 2 - boxSize / 2, 0, boxSize, boxSize);
+    // Bottom box
+    ctx.fillRect(width / 2 - boxSize / 2, height - boxSize, boxSize, boxSize);
+  });
+});
