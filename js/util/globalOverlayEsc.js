@@ -35,8 +35,8 @@ function handleEsc(e) {
     if (candidates.length > 0) {
       if (shouldYield) {
         yields = true;
-        // Continue to find others to close
-        continue;
+        // Break to prevent closing parents
+        break;
       }
 
       if (closeAll) {
