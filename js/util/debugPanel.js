@@ -40,7 +40,7 @@ import { DLG_CATALOG, MERCHANT_DLG_STATE_KEY_BASE, isJeffUnlocked, setJeffUnlock
 import { getVoidLevel, setVoidLevel } from '../ui/sas/achievementExtras/voidGemAltarTab.js';
 import { getGenerationLevelKey, getGenerationUpgradeCost } from '../ui/merchantTabs/workshopTab.js';
 import { getSurgeBarLevelKey, hasDoneInfuseReset } from '../ui/merchantTabs/resetTab.js';
-import { getBaseTsunamiExponent, setTsunamiNerf, getTsunamiNerfKey, isLabUnlocked, setLabUnlocked, getTsunamiExponent } from '../game/surgeEffects.js';
+import { getBaseTsunamiExponent, setTsunamiNerf, getTsunamiNerfKey, isLabUnlocked, setLabUnlocked, getTsunamiExponent, getTsunamiSequencePlayed, setTsunamiSequencePlayed } from '../game/surgeEffects.js';
 import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 import { isSellUnlocked, setSellUnlocked } from '../ui/minerTabs/sellTab.js';
@@ -2520,6 +2520,7 @@ function buildAreaStats(container, area) {
                     setTsunamiNerf(0.00);
                     if (!isLabUnlocked()) {
                         setLabUnlocked(true);
+                        try { setTsunamiSequencePlayed(true); } catch {}
                     }
                 }
             } catch {}
@@ -3408,6 +3409,23 @@ function getUnlockRowDefinitions(slot) {
             slot,
         },
         {
+            labelText: 'Unlock Tsunami',
+            description: 'If true, the Tsunami Sequence has been seen',
+            isUnlocked: () => {
+                try { return !!getTsunamiSequencePlayed(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setTsunamiSequencePlayed(true); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setTsunamiSequencePlayed(false); }
+                catch {}
+            },
+            slot,
+        },
+        {
             labelText: 'Unlock Lab',
             description: 'If true, unlocks the Lab tab',
             isUnlocked: () => {
@@ -3416,6 +3434,8 @@ function getUnlockRowDefinitions(slot) {
             },
             onEnable: () => {
                 try { setLabUnlocked(true); }
+                catch {}
+                try { setTsunamiSequencePlayed(true); }
                 catch {}
             },
             onDisable: () => {
