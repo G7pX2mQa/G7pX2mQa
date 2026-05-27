@@ -903,7 +903,7 @@ class ShopInstance {
             btn.dataset.mysterious = isMysterious ? '1' : '0';
 
             const isHM = upg.meta?.upgType === 'HM';
-            const evolveReady = isHM && upg.hmReady;
+            const evolveReady = isHM && upg.hmReady && !upg.level?.isInfinite?.();
             btn.classList.toggle('hm-evolve-ready', evolveReady);
             
             const canPlusBn = locked ? BigNum.fromInt(0) : computeAffordableLevels(upg.meta, upg.levelNumeric, upg.level);
@@ -1483,7 +1483,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       const title = ensureChild(header, 'upg-title');
       if (title.textContent !== (model.displayTitle || model.upg.title)) title.textContent = model.displayTitle || model.upg.title;
       
-      const evolveReady = !!model.hmReadyToEvolve;
+      const evolveReady = !!model.hmReadyToEvolve && !model.lvlBn?.isInfinite?.();
       const capReached = evolveReady ? false : (model.lvlBn?.isInfinite?.() ? true : (Number.isFinite(model.upg.lvlCap) ? model.lvl >= model.upg.lvlCap : false));
       
       const level = ensureChild(header, 'upg-level');
