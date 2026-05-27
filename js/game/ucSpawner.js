@@ -97,116 +97,31 @@ export function createUcSpawner(config = {}) {
 
         onPlanSpawn: (M, activeItems, garbageCount, removeItem, maxActiveItems, batchLength = 0) => {
             const MATERIAL_MARGIN = 12;
-
             const pfW = M.pfW;
             const waterToPfTop = M.wRect ? M.wRect.top - M.pfRect.top : 0;
             const spawnY = Math.max(0, waterToPfTop);
 
-            // Initialize accumulators if needed
-            if (!window._ucMaterialAccumulators) {
-                try {
-                    const stored = localStorage.getItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`);
-                    if (stored) {
-                        window._ucMaterialAccumulators = JSON.parse(stored);
-                    } else {
-                        window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
-                    }
-                } catch {
-                    window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
-                }
-            }
-
-            // Save function to persist to local storage
-            const saveAccumulators = () => {
-                try {
-                    localStorage.setItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`, JSON.stringify(window._ucMaterialAccumulators));
-                } catch {}
-            };
-
-            // Get DP Level (safely)
-            let dpLevelNum = 0;
-            if (window.dpSystem && typeof window.dpSystem.getDpState === 'function') {
-                const dpState = window.dpSystem.getDpState();
-                if (dpState && dpState.dpLevel) {
-                    try {
-                        dpLevelNum = Number(dpState.dpLevel.toString());
-                    } catch {}
-                }
-            }
-
-
-            const spawns = [];
             const maxSize = baseSize * Math.pow(1.1, UC_MATERIALS.length - 1);
             const sharedMinX = MATERIAL_MARGIN;
             const sharedMaxX = Math.max(sharedMinX, pfW - maxSize - MATERIAL_MARGIN);
             const sharedSpawnX = sharedMinX + Math.random() * (sharedMaxX - sharedMinX);
             
-            // Process all materials
-            for (let i = 0; i < UC_MATERIALS.length; i++) {
-                const t = UC_MATERIAL_DATA[i];
-                if (i === 0) {
-                     // Stone always drops 1 per swing, no accumulator needed really, but we can set it
-                     window._ucMaterialAccumulators[i] = 1.0;
-                } else {
-                     if (dpLevelNum >= t.max) {
-                         window._ucMaterialAccumulators[i] += 1.0;
-                     } else if (dpLevelNum >= t.start) {
-                         const progress = (dpLevelNum - t.start) / (t.max - t.start);
-                         const gain = 0.01 + 0.99 * Math.pow(progress, 1.5);
-                         window._ucMaterialAccumulators[i] += gain + 1e-9;
-                     }
-                }
-
-                // Cap accumulator to 1.99
-                if (window._ucMaterialAccumulators[i] > 1.99) {
-                    window._ucMaterialAccumulators[i] = 1.99;
-                }
-
-                if (window._ucMaterialAccumulators[i] >= 1.0) {
-                    window._ucMaterialAccumulators[i] -= 1.0;
-                    
-                    const size = baseSize * Math.pow(1.1, i);
-                    const effectiveMargin = MATERIAL_MARGIN;
-                    const minX = effectiveMargin;
-
-                    const spawnX = sharedSpawnX;
-
-                    const drift = Math.random() * 200 - 100;
-                    let endX;
-                    if (size >= M.pfW) {
-                        endX = (M.pfW - size) / 2;
-                    } else {
-                        const mx = M.pfW - size - effectiveMargin;
-                        if (minX >= mx) endX = (M.pfW - size)/2;
-                        else endX = clamp(spawnX + drift, minX, mx);
-                    }
-                    
-                    const effectiveWaterH = M.wRect ? Math.min(M.wRect.height, M.pfRect.height * 0.3) : M.pfRect.height * 0.3;
-                    const minY = Math.max(effectiveWaterH + 80, 120);
-                    const maxY = Math.max(minY + 40, M.safeBottom - size - 6);
-                    const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
-                    const jitterMs = 0;
-
-                    spawns.push({
-                        coin: { x0: spawnX, y0: spawnY, x1: endX, y1: endY, jitterMs },
-                        matIndex: i,
-                        size
-                    });
-                }
-            }
+            // Return one placeholder item representing the strike intent.
+            const spawns = [{
+                isStrikePlaceholder: true,
+                coin: { x0: sharedSpawnX, y0: spawnY, jitterMs: 0 }
+            }];
 
             const itemsToAdd = spawns.length + batchLength;
             if (maxActiveItems !== Infinity && (activeItems.length - garbageCount + itemsToAdd) > maxActiveItems) {
                 let numToRemove = (activeItems.length - garbageCount + itemsToAdd) - maxActiveItems;
                 for (let i = 0; i < activeItems.length && numToRemove > 0; i++) {
-                    if (activeItems[i]) {
+                    if (activeItems[i] && !activeItems[i].isStrikePlaceholder && !activeItems[i].isHiddenPreAllocated) {
                         removeItem(activeItems[i], i);
                         numToRemove--;
                     }
                 }
             }
-
-            saveAccumulators();
             return spawns;
         },
 
@@ -219,78 +134,59 @@ export function createUcSpawner(config = {}) {
             // Override animation duration to match spawn rate cycle
             const cycleMs = currentRate > 0 ? 1000 / currentRate : 5000;
 
-            for (const { coin, matIndex, size } of batch) {
-                const el = getItem();
-                el.style.width = `${size}px`;
-                el.style.height = `${size}px`;
-                el.className = `material material--${UC_MATERIALS[matIndex]}`;
-                
-                if (el.firstChild) {
-                     el.firstChild.src = `img/materials/${UC_MATERIALS[matIndex]}.webp`;
-                }
-                
-                // Keep initial state hidden and untransformed (wait for pickaxe strike)
-                el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
-                el.style.opacity = '0';
-                el.style.zIndex = `${10 + (matIndex * 10)}`;
+            for (const item of batch) {
+                if (item.isStrikePlaceholder) {
+                    // Create strike placeholder
+                    const strikeObj = {
+                        isStrikePlaceholder: true,
+                        startX: item.coin.x0,
+                        startY: item.coin.y0,
+                        startTime: now + item.coin.jitterMs + cycleMs,
+                        jitterMs: item.coin.jitterMs,
+                        isRemoved: false,
+                        settled: false,
+                        dieAt: now + cycleMs * 2, // remove relatively soon
+                        size: baseSize,
+                        preAllocatedItems: []
+                    };
+                    strikeObj.index = activeItems.length;
+                    activeItems.push(strikeObj);
+                    newItems.push(strikeObj);
+                    
+                    if (!playedSoundInBatch) playedSoundInBatch = true;
 
-                const itemObj = {
-                    el,
-                    src: `img/materials/${UC_MATERIALS[matIndex]}.webp`,
-                    x: coin.x0,
-                    y: coin.y0,
-                    rot: -10,
-                    scale: 0.96,
-                    startX: coin.x0,
-                    startY: coin.y0,
-                    endX: coin.x1,
-                    endY: coin.y1,
-                    // Delay the start of the material's lifecycle until the pickaxe animation finishes
-                    startTime: now + coin.jitterMs + cycleMs,
-                    duration: animationDurationMs,
-                    dieAt: now + materialTtlMs + cycleMs,
-                    jitterMs: coin.jitterMs,
-                    isRemoved: false,
-                    settled: false,
-                    size: size,
-                    sizeIndex: matIndex,
-                    bMinX: Math.min(coin.x0, coin.x1) - size,
-                    bMaxX: Math.max(coin.x0, coin.x1) + size,
-                    bMinY: Math.min(coin.y0, coin.y1) - size,
-                    bMaxY: Math.max(coin.y0, coin.y1) + size
-                };
-                
-                el._coinObj = itemObj;
-                itemObj.index = activeItems.length;
-                activeItems.push(itemObj);
-                newItems.push(itemObj);
-                
-                frag.appendChild(el);
-                if (!playedSoundInBatch) {
-                    playedSoundInBatch = true;
+                    // Pre-allocate items for all potential drops to properly use spawnerCore's object pool
+                    for (let j = 0; j < UC_MATERIALS.length; j++) {
+                        const el = getItem();
+                        // Reset everything so it is completely hidden
+                        el.style.width = '0px';
+                        el.style.height = '0px';
+                        el.className = 'coin material';
+                        if (el.firstChild) el.firstChild.src = '';
+                        el.style.transform = `translate3d(-9999px, -9999px, 0)`;
+                        el.style.opacity = '0';
+                        el.style.transition = 'none';
+                        el.style.display = 'none';
+
+                        const preAllocObj = {
+                            el,
+                            isHiddenPreAllocated: true,
+                            isRemoved: false,
+                            settled: false,
+                            dieAt: now + cycleMs * 2, // dies with placeholder if unused
+                            startTime: now + cycleMs * 2
+                        };
+                        el._coinObj = preAllocObj;
+                        preAllocObj.index = activeItems.length;
+                        activeItems.push(preAllocObj);
+                        
+                        strikeObj.preAllocatedItems.push(preAllocObj);
+                        frag.appendChild(el);
+                    }
                 }
             }
 
             refs.c.appendChild(frag);
-
-            if (newItems.length > 0) {
-                if (newItems[0].el) void newItems[0].el.offsetHeight;
-
-                requestAnimationFrame(() => {
-                  for (const c of newItems) {
-                      if (!c.el) continue;
-                      
-                      if (settingsManager.get('insta_teleport')) {
-                          c.el.style.transition = 'none';
-                      } else {
-                          // Delay the original falling animation and opacity until cycleMs (when pickaxe finishes)
-                      c.el.style.transition = `opacity 0s linear ${cycleMs}ms, transform ${animationDurationMs}ms ${CUBIC_BEZIER} ${cycleMs + c.jitterMs}ms`;
-                      }
-                      c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
-                      c.el.style.opacity = '1';
-                  }
-                });
-            }
 
             // Pickaxe Logic
             if (newItems.length > 0 && settingsManager.get('spawn_vessels')) {
@@ -409,7 +305,9 @@ export function createUcSpawner(config = {}) {
                     }
                 }
             }
-            
+
+            const activeItemsToActivate = [];
+
             for (let i = activeItems.length - 1; i >= 0; i--) {
                 const c = activeItems[i]; if (!c) continue;
                 
@@ -419,6 +317,143 @@ export function createUcSpawner(config = {}) {
                 }
 
                 if (c.settled) continue;
+
+                if (c.isStrikePlaceholder) {
+                    const elapsed = now - c.startTime;
+                    if (elapsed >= 0) {
+                        // Execute DP Checks and Spawn Logic right at strike
+                        if (!window._ucMaterialAccumulators) {
+                            try {
+                                const stored = localStorage.getItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`);
+                                if (stored) {
+                                    window._ucMaterialAccumulators = JSON.parse(stored);
+                                } else {
+                                    window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+                                }
+                            } catch {
+                                window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+                            }
+                        }
+
+                        let dpLevelNum = 0;
+                        if (window.dpSystem && typeof window.dpSystem.getDpState === 'function') {
+                            const dpState = window.dpSystem.getDpState();
+                            if (dpState && dpState.dpLevel) {
+                                try {
+                                    dpLevelNum = Number(dpState.dpLevel.toString());
+                                } catch {}
+                            }
+                        }
+
+                        const pfRect = document.querySelector(playfieldSelector).getBoundingClientRect();
+                        const waterRect = document.querySelector('#water-background');
+                        const wRect = waterRect ? waterRect.getBoundingClientRect() : null;
+                        const safeBottom = pfRect.height - (document.getElementById('hud-bottom-wrapper') || document.getElementById('hud-bottom')).getBoundingClientRect().height;
+                        
+                        let allocatedIndex = 0;
+
+                        for (let j = 0; j < UC_MATERIALS.length; j++) {
+                            const t = UC_MATERIAL_DATA[j];
+                            if (j === 0) {
+                                window._ucMaterialAccumulators[j] = 1.0;
+                            } else {
+                                if (dpLevelNum >= t.max) {
+                                    window._ucMaterialAccumulators[j] += 1.0;
+                                } else if (dpLevelNum >= t.start) {
+                                    const progress = (dpLevelNum - t.start) / (t.max - t.start);
+                                    const gain = 0.01 + 0.99 * Math.pow(progress, 1.5);
+                                    window._ucMaterialAccumulators[j] += gain + 1e-9;
+                                }
+                            }
+
+                            if (window._ucMaterialAccumulators[j] > 1.99) {
+                                window._ucMaterialAccumulators[j] = 1.99;
+                            }
+
+                            if (window._ucMaterialAccumulators[j] >= 1.0) {
+                                window._ucMaterialAccumulators[j] -= 1.0;
+
+                                const size = baseSize * Math.pow(1.1, j);
+                                const drift = Math.random() * 200 - 100;
+                                const spawnX = c.startX;
+                                const MATERIAL_MARGIN = 12;
+                                const minX = MATERIAL_MARGIN;
+
+                                let endX;
+                                if (size >= pfRect.width) {
+                                    endX = (pfRect.width - size) / 2;
+                                } else {
+                                    const mx = pfRect.width - size - MATERIAL_MARGIN;
+                                    if (minX >= mx) endX = (pfRect.width - size)/2;
+                                    else endX = clamp(spawnX + drift, minX, mx);
+                                }
+
+                                const effectiveWaterH = wRect ? Math.min(wRect.height, pfRect.height * 0.3) : pfRect.height * 0.3;
+                                const minY = Math.max(effectiveWaterH + 80, 120);
+                                const maxY = Math.max(minY + 40, safeBottom - size - 6);
+                                const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
+
+                                // Use pre-allocated item
+                                const preAlloc = c.preAllocatedItems[allocatedIndex];
+                                if (preAlloc) {
+                                    allocatedIndex++;
+                                    preAlloc.isHiddenPreAllocated = false;
+                                    preAlloc.dieAt = now + materialTtlMs;
+                                    preAlloc.startTime = now;
+                                    preAlloc.duration = animationDurationMs;
+                                    preAlloc.jitterMs = 0;
+                                    preAlloc.size = size;
+                                    preAlloc.sizeIndex = j;
+                                    preAlloc.startX = spawnX;
+                                    preAlloc.startY = c.startY;
+                                    preAlloc.endX = endX;
+                                    preAlloc.endY = endY;
+                                    preAlloc.x = spawnX;
+                                    preAlloc.y = c.startY;
+                                    preAlloc.rot = -10;
+                                    preAlloc.scale = 0.96;
+                                    preAlloc.src = `img/materials/${UC_MATERIALS[j]}.webp`;
+                                    preAlloc.bMinX = Math.min(spawnX, endX) - size;
+                                    preAlloc.bMaxX = Math.max(spawnX, endX) + size;
+                                    preAlloc.bMinY = Math.min(c.startY, endY) - size;
+                                    preAlloc.bMaxY = Math.max(c.startY, endY) + size;
+
+                                    if (preAlloc.el) {
+                                        preAlloc.el.style.display = 'block';
+                                        preAlloc.el.style.width = `${size}px`;
+                                        preAlloc.el.style.height = `${size}px`;
+                                        preAlloc.el.className = `material material--${UC_MATERIALS[j]}`;
+                                        if (preAlloc.el.firstChild) {
+                                            preAlloc.el.firstChild.src = preAlloc.src;
+                                        }
+                                        preAlloc.el.style.transform = `translate3d(${spawnX}px, ${c.startY}px, 0) rotate(-10deg) scale(0.96)`;
+                                        preAlloc.el.style.opacity = '1';
+                                        preAlloc.el.style.zIndex = `${10 + (j * 10)}`;
+                                        
+                                        // Need reflow to restart transition
+                                        activeItemsToActivate.push(preAlloc);
+                                    }
+                                }
+                            }
+                        }
+
+                        // Remove unused pre-allocated items
+                        for (let k = allocatedIndex; k < c.preAllocatedItems.length; k++) {
+                            removeItem(c.preAllocatedItems[k], -1);
+                        }
+                        
+                        try {
+                            localStorage.setItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`, JSON.stringify(window._ucMaterialAccumulators));
+                        } catch {}
+
+                        removeItem(c, i);
+                        continue;
+                    } else {
+                        continue;
+                    }
+                }
+                
+                if (c.isHiddenPreAllocated) continue;
                 
                 const elapsed = now - c.startTime;
                 if (elapsed < 0 && !settingsManager.get('insta_teleport')) continue;
@@ -437,6 +472,22 @@ export function createUcSpawner(config = {}) {
                     }
                     continue;
                 }
+            }
+
+            if (activeItemsToActivate.length > 0) {
+                if (activeItemsToActivate[0].el) void activeItemsToActivate[0].el.offsetHeight; // reflow
+
+                requestAnimationFrame(() => {
+                    for (const c of activeItemsToActivate) {
+                        if (!c.el) continue;
+                        if (settingsManager.get('insta_teleport')) {
+                            c.el.style.transition = 'none';
+                        } else {
+                            c.el.style.transition = `transform ${animationDurationMs}ms ${CUBIC_BEZIER} 0ms`;
+                        }
+                        c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
+                    }
+                });
             }
         },
 
