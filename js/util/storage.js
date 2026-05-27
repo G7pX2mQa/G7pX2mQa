@@ -752,6 +752,10 @@ export function getCurrencyMultiplierBN(key) {
   return intFromScaled(getMultiplierScaled(key));
 }
 
+export function getCurrencyMultiplierScaledBN(key) {
+  return getMultiplierScaled(key);
+}
+
 export function isCurrencyLocked(key, slot = getActiveSlot()) {
   const k = keyFor(KEYS.CURRENCY[key], slot);
   return isDebugLocked(k);
