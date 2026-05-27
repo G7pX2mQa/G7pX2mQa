@@ -755,7 +755,11 @@ export function calculateWaterwheelOffline(seconds) {
         let finalFpBn = currentFpBn.add(totalGainBn);
         let levelsGained = BigNum.fromInt(0);
 
-        if (!finalFpBn.isInfinite()) {
+        if (finalFpBn.isInfinite()) {
+             // Infinite FP means this wheel would gain infinite levels while offline.
+             levelsGained = BigNum.fromAny('infinity');
+             finalFpBn = BigNum.zero();
+        } else {
              const reqBn = BigNum.fromInt(req);
              const levels = finalFpBn.div(reqBn).floorToInteger();
              
@@ -1509,8 +1513,12 @@ function updateFlowVisuals() {
             
             let pct = 0;
             let isMaxed = false;
+
+            if (ch.level instanceof BigNum && ch.level.isInfinite()) {
+                isMaxed = true;
+            }
             
-            if (ch.active) {
+            if (!isMaxed && ch.active) {
                 const safeFixedStep = (typeof FIXED_STEP === 'number' && FIXED_STEP > 0) ? FIXED_STEP : 0.05;
                 const threshold = req / safeFixedStep;
                 
