@@ -2,7 +2,7 @@
 
 import { playAudio, setAudioSuspended } from './util/audioManager.js';
 import { createCursorTrail } from './game/cursorTrail.js';
-import { syncXpMpHudLayout, syncDpHudLayout } from './ui/hudLayout.js';
+import { syncXpMpHudLayout } from './ui/hudLayout.js';
 import { initUcPickup } from './game/materialPickup.js';
 
 export const FONT_MAP = {
@@ -635,8 +635,7 @@ export function enterArea(areaID) {
       }
               const applyUpgradesToSpawner = () => {
               try {
-                      const areaKey = getUpgAreaKey();
-                      const eff = computeUpgradeEffects(areaKey);
+                      const eff = computeUpgradeEffects(AREA_KEYS.STARTER_COVE);
                       if (spawner && eff?.coinsPerSecondMult) {
                         let rate = 1 * eff.coinsPerSecondMult;
                         if (typeof applyStatMultiplierOverride === "function") {
@@ -703,7 +702,6 @@ export function enterArea(areaID) {
       }
 	  
       syncXpMpHudLayout();
-      syncDpHudLayout();
       if (typeof initMutationSystem === 'function') {
         try { initMutationSystem(); } catch {}
       }
@@ -796,10 +794,6 @@ export function enterArea(areaID) {
           gRoot.classList.add('area-cavern');
       }
 	  syncXpMpHudLayout();
-      syncDpHudLayout();
-      if (typeof initDpSystem === 'function') {
-        try { initDpSystem(); } catch {}
-      }
 	  
       if (menuRoot) {
         menuRoot.style.display = 'none';
