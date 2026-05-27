@@ -564,7 +564,7 @@ function createSellRow(matKey, index) {
            
            conveyorPool.push({
                x: width / 2,
-               y: sellCanvases[side].height - 40,
+               y: sellCanvases[side].height - 68,
                matKey: matKey,
                // Use a fixed speed base and no random factor for sync, or just a single belt speed var
                speed: 60, 
@@ -734,11 +734,77 @@ function getMaterialImage(matKey) {
 
 registerFrame((time, dt) => {
   const panel = document.getElementById('miner-panel-sell');
-  if (!panel || !panel.classList.contains('is-active')) return;
-  if (!panel.closest('.merchant-overlay.is-open') && !document.querySelector('.miner-sheet.is-sell-active')) return;
+  const isViewed = panel && panel.classList.contains('is-active') && 
+                   (panel.closest('.merchant-overlay.is-open') || document.querySelector('.miner-sheet.is-sell-active'));
 
   const beltSpeed = 60; // px/s
-  beltOffset = (beltOffset + beltSpeed * dt) % 40;
+  
+  if (isViewed || conveyorPool.length > 0) { 
+    beltOffset = (beltOffset + beltSpeed * dt) % 40; 
+  }
+
+  // Update item logic independent of view state
+  for (let i = conveyorPool.length - 1; i >= 0; i--) {
+    const item = conveyorPool[i];
+    let sideHeight = sellCanvases[item.side].height;
+    
+    // Fallback if dimensions aren't synced yet but logic still needs to run
+    if (sideHeight === 0 && panel) {
+        const col = panel.querySelector(item.side === 'left' ? '.sell-side-left' : '.sell-side-right');
+        if (col) sideHeight = col.getBoundingClientRect().height;
+    }
+
+    if (item.state === 'falling') {
+      let hitEndpoint = false;
+      item.speed = beltSpeed; 
+      
+      if (item.side === 'left') {
+        item.y -= item.speed * dt;
+        if (item.y <= 68) hitEndpoint = true;
+      } else {
+        item.y += item.speed * dt;
+        if (sideHeight > 0 && item.y >= sideHeight - 68) hitEndpoint = true;
+      }
+      
+      if (hitEndpoint) {
+        if (item.side === 'left') {
+            item.side = 'right';
+            const rightWidth = sellCanvases['right'].width;
+            item.x = rightWidth / 2;
+            item.y = 68 + (68 - item.y);
+        } else {
+            item.state = 'particle';
+            item.particles = [];
+            const numParticles = 3 + Math.floor(Math.random() * 3);
+            for (let p = 0; p < numParticles; p++) {
+              item.particles.push({
+                x: item.x + (Math.random() - 0.5) * 20,
+                y: item.y,
+                vx: (Math.random() - 0.5) * 100,
+                vy: -100 - Math.random() * 100,
+                alpha: 1.0,
+                size: 4 + Math.random() * 2
+              });
+            }
+        }
+      }
+    } else if (item.state === 'particle') {
+      let alive = false;
+      for (const p of item.particles) {
+        p.vy += 500 * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.alpha -= (1.0 / 0.9) * dt;
+        if (p.alpha > 0) alive = true;
+      }
+      if (!alive) {
+        conveyorPool.splice(i, 1);
+        continue;
+      }
+    }
+  }
+
+  if (!isViewed) return;
 
   ['left', 'right'].forEach(side => {
     let { canvas, ctx, width, height } = sellCanvases[side];
@@ -782,91 +848,36 @@ registerFrame((time, dt) => {
       }
     }
     ctx.stroke();
+    });
 
-
-    
-  });
-
-  // Render pool items
+  // Render pool items (drawing only)
   for (let i = conveyorPool.length - 1; i >= 0; i--) {
     const item = conveyorPool[i];
     const { canvas, ctx, width, height } = sellCanvases[item.side];
     if (!ctx || width === 0 || height === 0) continue;
 
     if (item.state === 'falling') {
-      let hitEndpoint = false;
-      // Force speed sync with belt
-      item.speed = beltSpeed; 
-      
-      if (item.side === 'left') {
-        item.y -= item.speed * dt;
-        // fully inside top box
-        if (item.y + 24 <= 80) hitEndpoint = true;
+      ctx.save();
+      const img = getMaterialImage(item.matKey);
+      if (img && img.complete && img.naturalHeight !== 0) {
+          ctx.drawImage(img, item.x - 24, item.y - 24, 48, 48);
       } else {
-        item.y += item.speed * dt;
-        // fully inside bottom box
-        if (item.y - 24 >= height - 80) hitEndpoint = true;
+          ctx.translate(item.x, item.y);
+          ctx.beginPath();
+          ctx.arc(0, 0, 24, 0, 2 * Math.PI);
+          ctx.fillStyle = 'gray';
+          ctx.fill();
       }
-      
-      if (hitEndpoint) {
-        if (item.side === 'left') {
-            // Teleport to right side top (centered in box)
-            item.side = 'right';
-            const rightWidth = sellCanvases['right'].width;
-            item.x = rightWidth / 2;
-            item.y = 40;
-        } else {
-            // Hit bottom right endpoint -> particles
-            item.state = 'particle';
-            item.particles = [];
-            const numParticles = 3 + Math.floor(Math.random() * 3); // 3 to 5
-            for (let p = 0; p < numParticles; p++) {
-              item.particles.push({
-                x: item.x + (Math.random() - 0.5) * 20,
-                y: item.y,
-                vx: (Math.random() - 0.5) * 100,
-                vy: -100 - Math.random() * 100,
-                alpha: 1.0,
-                size: 4 + Math.random() * 2
-              });
-            }
-        }
-      } else {
-        // Draw falling image
-        ctx.save();
-        const img = getMaterialImage(item.matKey);
-        if (img && img.complete && img.naturalHeight !== 0) {
-            // Draw image centered
-            ctx.drawImage(img, item.x - 24, item.y - 24, 48, 48);
-        } else {
-            // Fallback just in case
-            ctx.translate(item.x, item.y);
-            ctx.beginPath();
-            ctx.arc(0, 0, 24, 0, 2 * Math.PI);
-            ctx.fillStyle = 'gray';
-            ctx.fill();
-        }
-        ctx.restore();
-      }
+      ctx.restore();
     } else if (item.state === 'particle') {
-      let alive = false;
       for (const p of item.particles) {
-        p.vy += 500 * dt; // Gravity
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.alpha -= (1.0 / 0.9) * dt; // Fade out over ~0.9s
-
         if (p.alpha > 0) {
-          alive = true;
           ctx.save();
           ctx.globalAlpha = p.alpha;
           ctx.fillStyle = 'rgb(192, 192, 192)';
           ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
           ctx.restore();
         }
-      }
-      if (!alive) {
-        conveyorPool.splice(i, 1);
       }
     }
   }
