@@ -564,7 +564,7 @@ function createSellRow(matKey, index) {
            
            conveyorPool.push({
                x: width / 2,
-               y: sellCanvases[side].height - 68,
+               y: sellCanvases[side].height - 78,
                matKey: matKey,
                // Use a fixed speed base and no random factor for sync, or just a single belt speed var
                speed: 60, 
@@ -885,10 +885,10 @@ registerFrame((time, dt) => {
       
       if (item.side === 'left') {
         item.y -= item.speed * dt;
-        if (item.y <= 68) hitEndpoint = true;
+        if (item.y <= 78) hitEndpoint = true;
       } else {
         item.y += item.speed * dt;
-        if (sideHeight > 0 && item.y >= sideHeight - 68) hitEndpoint = true;
+        if (sideHeight > 0 && item.y >= sideHeight - 78) hitEndpoint = true;
       }
       
       if (hitEndpoint) {
@@ -896,7 +896,7 @@ registerFrame((time, dt) => {
             item.side = 'right';
             const rightWidth = sellCanvases['right'].width;
             item.x = rightWidth / 2;
-            item.y = 68;
+            item.y = 78;
         } else {
             item.state = 'particle';
             item.particles = [];
