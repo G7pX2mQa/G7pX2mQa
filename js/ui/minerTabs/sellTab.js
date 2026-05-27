@@ -717,6 +717,123 @@ function getMachineColors(baseR, baseG, baseB) {
 
 let beltOffset = 0;
 
+const BG_CHUNK_HEIGHT = 250;
+let bgLayers = [
+    { chunks: [], offset: 0, speedMult: 0.05, color: 'rgb(18, 12, 10)', minInset: 0.1, maxInset: 0.3 },
+    { chunks: [], offset: 0, speedMult: 0.1, color: 'rgb(28, 20, 16)', minInset: 0.3, maxInset: 0.5 },
+    { chunks: [], offset: 0, speedMult: 0.15, color: 'rgb(42, 30, 24)', minInset: 0.5, maxInset: 0.7 }
+];
+
+let ambientParticles = [];
+for(let i=0; i<30; i++) {
+    ambientParticles.push({
+        x: Math.random(), 
+        y: Math.random(),
+        size: 1 + Math.random() * 2,
+        speed: 10 + Math.random() * 20,
+        phase: Math.random() * Math.PI * 2,
+        amp: 5 + Math.random() * 15
+    });
+}
+
+function generateBgChunk(layerConf, lastChunk) {
+    const leftPoints = [];
+    const rightPoints = [];
+    const crystals = [];
+    
+    const numPoints = 5; 
+    const step = BG_CHUNK_HEIGHT / numPoints;
+    
+    for (let i = 0; i <= numPoints; i++) {
+        if (i === 0 && lastChunk) {
+            leftPoints.push(lastChunk.leftPoints[numPoints]);
+            rightPoints.push(lastChunk.rightPoints[numPoints]);
+        } else {
+            const range = layerConf.maxInset - layerConf.minInset;
+            leftPoints.push(layerConf.minInset + Math.random() * range);
+            rightPoints.push(layerConf.minInset + Math.random() * range);
+        }
+    }
+    
+    // Only spawn crystals in the most foreground layer
+    if (layerConf.speedMult >= 0.15) {
+        const colors = [
+            {r: 0, g: 255, b: 255}, // Bright Cyan
+            {r: 148, g: 0, b: 211}, // Deep Purple
+            {r: 235, g: 30, b: 50}, // Red (Ruby)
+            {r: 40, g: 220, b: 100} // Green (Emerald)
+        ];
+        
+        const numSegments = 3;
+        const segmentHeight = BG_CHUNK_HEIGHT / numSegments;
+        
+        // Distribute 1 to 2 clusters per vertical segment for even density
+        for (let seg = 0; seg < numSegments; seg++) {
+            const crystalsInSegment = 1 + Math.floor(Math.random() * 2);
+            
+            for (let i = 0; i < crystalsInSegment; i++) {
+                const baseY = (seg * segmentHeight) + (Math.random() * segmentHeight);
+                const sharedColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Spawn mirrored on both left and right sides
+                for (let sideIdx = 0; sideIdx < 2; sideIdx++) {
+                    const side = sideIdx === 0 ? 'left' : 'right';
+                    
+                    // Add slight vertical jitter to break perfect symmetry
+                    let y = baseY;
+                    if (sideIdx === 1) {
+                         y += (Math.random() - 0.5) * 40; 
+                         // Clamp to chunk bounds just in case
+                         y = Math.max(0, Math.min(BG_CHUNK_HEIGHT, y));
+                    }
+                    
+                    // Generate multiple faceted clusters for a geode effect
+                    const clusters = [];
+                    const numPieces = 3 + Math.floor(Math.random() * 3);
+                    for(let p=0; p<numPieces; p++) {
+                        const pSize = 4 + Math.random() * 6;
+                        const numVertices = 4 + Math.floor(Math.random() * 4);
+                        const facets = [];
+                        for (let v = 0; v < numVertices; v++) {
+                             const angle = (v / numVertices) * Math.PI * 2;
+                             const rad = pSize * (0.6 + Math.random() * 0.6);
+                             const shade = 0.6 + Math.random() * 0.6;
+                             facets.push({ dx: Math.cos(angle) * rad, dy: Math.sin(angle) * rad, shade });
+                        }
+                        clusters.push({
+                            ox: (Math.random()-0.5) * 10,
+                            oy: (Math.random()-0.5) * 10,
+                            facets,
+                            size: pSize
+                        });
+                    }
+
+                    crystals.push({
+                        side, 
+                        y,
+                        color: sharedColor,
+                        clusters,
+                        xRatio: 0.2 + Math.random() * 0.5
+                    });
+                }
+            }
+        }
+    }
+    
+    const chunk = { leftPoints, rightPoints, crystals };
+    return chunk;
+}
+
+// Generate initial chunks for each layer
+for (const layer of bgLayers) {
+    let last = null;
+    for (let i = 0; i < 8; i++) {
+        const chunk = generateBgChunk(layer, last);
+        layer.chunks.push(chunk);
+        last = chunk;
+    }
+}
+
 const imageCache = {};
 
 function getMaterialImage(matKey) {
@@ -739,6 +856,27 @@ registerFrame((time, dt) => {
 
   const beltSpeed = 60; // px/s
   
+  // Scroll the backgrounds continuously
+  // Left canvas background scrolls UP, Right canvas background scrolls DOWN
+  for (const layer of bgLayers) {
+      layer.offset += beltSpeed * layer.speedMult * dt;
+      while (layer.offset >= BG_CHUNK_HEIGHT) {
+          layer.offset -= BG_CHUNK_HEIGHT;
+          layer.chunks.shift();
+          const lastChunk = layer.chunks[layer.chunks.length - 1];
+          layer.chunks.push(generateBgChunk(layer, lastChunk));
+      }
+  }
+
+  // Update ambient particles
+  for (const p of ambientParticles) {
+      // We will handle side-specific particle drifting in the render loop itself 
+      // by using time-based offset depending on the canvas.
+      // But we still need base y to track.
+      p.y += (p.speed / 1000) * dt;
+      if (p.y > 10) p.y -= 10; // keep it looping mathematically
+  }
+
   if (isViewed || conveyorPool.length > 0) { 
     beltOffset = (beltOffset + beltSpeed * dt) % 40; 
   }
@@ -818,6 +956,202 @@ registerFrame((time, dt) => {
 
     ctx.clearRect(0, 0, width, height);
 
+    // Render parallax cavern walls
+    ctx.save();
+    
+    // Fill base chasm color (dark dirt)
+    ctx.fillStyle = 'rgb(15, 10, 8)';
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw ambient particulates (dust)
+    ctx.fillStyle = 'rgba(210, 180, 140, 0.15)';
+    for (const p of ambientParticles) {
+        const px = (p.x * width) + Math.sin(time / 1000 * 2 + p.phase) * p.amp;
+        const py = p.y * height;
+        ctx.beginPath();
+        ctx.arc(px, py, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    const trackStartX = width / 2 - 24;
+    const trackEndX = width / 2 + 24;
+    
+    // Draw central dark chasm under the belt
+    ctx.fillStyle = '#030303';
+    ctx.fillRect(trackStartX - 20, 0, (trackEndX + 20) - (trackStartX - 20), height);
+
+    // Draw static structural iron struts perfectly distributed between the chutes
+    const chuteSize = 80;
+    const drawableHeight = height - (chuteSize * 2);
+    const numStruts = 3;
+    const numGaps = numStruts + 1;
+    const strutSpacing = drawableHeight / numGaps;
+    const strutHeight = 8;
+    
+    // Equal distribution starting from just below the top chute down to just above the bottom chute
+    for (let gap = 1; gap <= numStruts; gap++) {
+        // Calculate center y for the strut so it is perfectly evenly spaced
+        const sy = chuteSize + (gap * strutSpacing) - (strutHeight / 2);
+        
+        ctx.fillStyle = 'rgb(20, 20, 20)'; // base
+        ctx.fillRect(trackStartX - 20, sy, (trackEndX + 20) - (trackStartX - 20), strutHeight);
+        
+        // Highlights & Shadows (+20 / -16 rule)
+        ctx.fillStyle = 'rgb(40, 40, 40)'; // highlight
+        ctx.fillRect(trackStartX - 20, sy, (trackEndX + 20) - (trackStartX - 20), 2);
+        
+        ctx.fillStyle = 'rgb(4, 4, 4)'; // shadow
+        ctx.fillRect(trackStartX - 20, sy + strutHeight - 2, (trackEndX + 20) - (trackStartX - 20), 2);
+    }
+    
+    // Draw parallax layers
+    for (const layer of bgLayers) {
+        ctx.fillStyle = layer.color;
+        
+        // Draw left wall
+        ctx.beginPath();
+        // Determine rendering direction based on side to match parallax flow
+        if (side === 'right') {
+            // Right side scrolls DOWN
+            ctx.moveTo(0, height);
+            for (let i = 0; i < layer.chunks.length; i++) {
+                const chunk = layer.chunks[i];
+                const chunkY = (i * BG_CHUNK_HEIGHT) - layer.offset;
+                
+                const numPoints = chunk.leftPoints.length - 1;
+                const step = BG_CHUNK_HEIGHT / numPoints;
+                for (let j = 0; j <= numPoints; j++) {
+                     const y = height - (chunkY + j * step);
+                     const targetMaxX = trackStartX - 15;
+                     const wallX = targetMaxX * chunk.leftPoints[j];
+                     ctx.lineTo(wallX, y);
+                }
+            }
+            ctx.lineTo(0, 0);
+        } else {
+            // Left side scrolls UP
+            ctx.moveTo(0, 0);
+            for (let i = 0; i < layer.chunks.length; i++) {
+                const chunk = layer.chunks[i];
+                const chunkY = (i * BG_CHUNK_HEIGHT) - layer.offset;
+                
+                const numPoints = chunk.leftPoints.length - 1;
+                const step = BG_CHUNK_HEIGHT / numPoints;
+                for (let j = 0; j <= numPoints; j++) {
+                     const y = chunkY + j * step;
+                     const targetMaxX = trackStartX - 15;
+                     const wallX = targetMaxX * chunk.leftPoints[j];
+                     ctx.lineTo(wallX, y);
+                }
+            }
+            ctx.lineTo(0, height);
+        }
+        ctx.fill();
+        
+        // Draw right wall
+        ctx.beginPath();
+        if (side === 'right') {
+            ctx.moveTo(width, height);
+            for (let i = 0; i < layer.chunks.length; i++) {
+                const chunk = layer.chunks[i];
+                const chunkY = (i * BG_CHUNK_HEIGHT) - layer.offset;
+                const numPoints = chunk.rightPoints.length - 1;
+                const step = BG_CHUNK_HEIGHT / numPoints;
+                for (let j = 0; j <= numPoints; j++) {
+                     const y = height - (chunkY + j * step);
+                     const targetMinX = trackEndX + 15;
+                     const availableWidth = width - targetMinX;
+                     const rawX = availableWidth * chunk.rightPoints[j];
+                     const wallX = width - rawX;
+                     ctx.lineTo(wallX, y);
+                }
+            }
+            ctx.lineTo(width, 0);
+        } else {
+            ctx.moveTo(width, 0);
+            for (let i = 0; i < layer.chunks.length; i++) {
+                const chunk = layer.chunks[i];
+                const chunkY = (i * BG_CHUNK_HEIGHT) - layer.offset;
+                const numPoints = chunk.rightPoints.length - 1;
+                const step = BG_CHUNK_HEIGHT / numPoints;
+                for (let j = 0; j <= numPoints; j++) {
+                     const y = chunkY + j * step;
+                     const targetMinX = trackEndX + 15;
+                     const availableWidth = width - targetMinX;
+                     const rawX = availableWidth * chunk.rightPoints[j];
+                     const wallX = width - rawX;
+                     ctx.lineTo(wallX, y);
+                }
+            }
+            ctx.lineTo(width, height);
+        }
+        ctx.fill();
+
+        // Draw crystals
+        for (let i = 0; i < layer.chunks.length; i++) {
+            const chunk = layer.chunks[i];
+            const chunkY = (i * BG_CHUNK_HEIGHT) - layer.offset;
+            const numPoints = chunk.leftPoints.length - 1;
+            const step = BG_CHUNK_HEIGHT / numPoints;
+            
+            for (let c = 0; c < chunk.crystals.length; c++) {
+                 const crystal = chunk.crystals[c];
+                 const cy = side === 'right' ? height - (chunkY + crystal.y) : chunkY + crystal.y;
+                 
+                 if (cy < -50 || cy > height + 50) continue;
+                 
+                 const pointIdx = Math.floor(crystal.y / step);
+                 const nextIdx = Math.min(numPoints, pointIdx + 1);
+                 const ratio = (crystal.y - pointIdx * step) / step;
+                 
+                 let cx;
+                 if (crystal.side === 'left') {
+                     const currentPct = chunk.leftPoints[pointIdx];
+                     const nextPct = chunk.leftPoints[nextIdx];
+                     const interpPct = currentPct * (1 - ratio) + nextPct * ratio;
+                     const targetMaxX = trackStartX - 15;
+                     const wallX = targetMaxX * interpPct;
+                     cx = wallX * crystal.xRatio;
+                 } else {
+                     const currentPct = chunk.rightPoints[pointIdx];
+                     const nextPct = chunk.rightPoints[nextIdx];
+                     const interpPct = currentPct * (1 - ratio) + nextPct * ratio;
+                     const targetMinX = trackEndX + 15;
+                     const availableWidth = width - targetMinX;
+                     const rawX = availableWidth * interpPct;
+                     const wallX = width - rawX;
+                     cx = width - ((width - wallX) * crystal.xRatio);
+                 }
+                 
+                 // Draw inner polygonal facets (geode)
+                 for (const cl of crystal.clusters) {
+                     const px = cx + cl.ox;
+                     const py = cy + cl.oy;
+                     if (cl.facets && cl.facets.length > 0) {
+                         for (let v = 0; v < cl.facets.length; v++) {
+                             const p1 = cl.facets[v];
+                             const p2 = cl.facets[(v + 1) % cl.facets.length];
+                             
+                             ctx.beginPath();
+                             ctx.moveTo(px, py); // center point
+                             ctx.lineTo(px + p1.dx, py + p1.dy);
+                             ctx.lineTo(px + p2.dx, py + p2.dy);
+                             ctx.closePath();
+                             
+                             // Calculate shaded color for this facet
+                             const r = Math.min(255, crystal.color.r * p1.shade);
+                             const g = Math.min(255, crystal.color.g * p1.shade);
+                             const b = Math.min(255, crystal.color.b * p1.shade);
+                             ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                             ctx.fill();
+                         }
+                     }
+                 }
+            }
+        }
+    }
+    ctx.restore();
+
     // Draw conveyor belt track
     ctx.fillStyle = 'rgb(20, 20, 20)';
     ctx.fillRect(width / 2 - 24, 80, 48, height - 160);
@@ -850,7 +1184,46 @@ registerFrame((time, dt) => {
     ctx.stroke();
     });
 
-  // Render pool items (drawing only)
+  // Draw Mechanical Chutes UNDER items
+  ['left', 'right'].forEach(side => {
+    let { ctx, width, height } = sellCanvases[side];
+    if (!ctx || width === 0 || height === 0) return;
+    
+    const boxSize = 80;
+    const trackX = width / 2 - boxSize / 2;
+    
+    // Helper to draw a mechanical chute
+    const drawChute = (yPos) => {
+        // Base metallic frame
+        ctx.fillStyle = 'rgb(20, 20, 20)';
+        ctx.fillRect(trackX - 10, yPos - 10, boxSize + 20, boxSize + 20);
+        
+        // Highlights (+20)
+        ctx.fillStyle = 'rgb(40, 40, 40)';
+        ctx.fillRect(trackX - 10, yPos - 10, boxSize + 20, 4); // Top
+        ctx.fillRect(trackX - 10, yPos - 10, 4, boxSize + 20); // Left
+        
+        // Shadows (-16)
+        ctx.fillStyle = 'rgb(4, 4, 4)';
+        ctx.fillRect(trackX - 10, yPos + boxSize + 6, boxSize + 20, 4); // Bottom
+        ctx.fillRect(trackX + boxSize + 6, yPos - 10, 4, boxSize + 20); // Right
+        
+        // Dark Tunnel Depth (gradient)
+        const cx = trackX + boxSize / 2;
+        const cy = yPos + boxSize / 2;
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, boxSize / 2);
+        grad.addColorStop(0, '#000000'); // Absolute black center
+        grad.addColorStop(1, 'rgb(15, 10, 8)'); // Fades to chasm color at edges
+        
+        ctx.fillStyle = grad;
+        ctx.fillRect(trackX, yPos, boxSize, boxSize);
+    };
+
+    drawChute(0); // Top box
+    drawChute(height - boxSize); // Bottom box
+  });
+
+  // Render pool items (drawing only) OVER chutes
   for (let i = conveyorPool.length - 1; i >= 0; i--) {
     const item = conveyorPool[i];
     const { canvas, ctx, width, height } = sellCanvases[item.side];
@@ -881,18 +1254,4 @@ registerFrame((time, dt) => {
       }
     }
   }
-
-  // Draw endpoints OVER items
-  ['left', 'right'].forEach(side => {
-    let { ctx, width, height } = sellCanvases[side];
-    if (!ctx || width === 0 || height === 0) return;
-    
-    // Magical Black Box endpoints
-    ctx.fillStyle = '#050505';
-    const boxSize = 80;
-    // Top box
-    ctx.fillRect(width / 2 - boxSize / 2, 0, boxSize, boxSize);
-    // Bottom box
-    ctx.fillRect(width / 2 - boxSize / 2, height - boxSize, boxSize, boxSize);
-  });
 });
