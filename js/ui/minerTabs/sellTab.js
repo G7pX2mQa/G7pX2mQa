@@ -724,17 +724,7 @@ let bgLayers = [
     { chunks: [], offset: 0, speedMult: 0.15, color: 'rgb(42, 30, 24)', minInset: 0.5, maxInset: 0.7 }
 ];
 
-let ambientParticles = [];
-for(let i=0; i<30; i++) {
-    ambientParticles.push({
-        x: Math.random(), 
-        y: Math.random(),
-        size: 1 + Math.random() * 2,
-        speed: 10 + Math.random() * 20,
-        phase: Math.random() * Math.PI * 2,
-        amp: 5 + Math.random() * 15
-    });
-}
+
 
 function generateBgChunk(layerConf, lastChunk) {
     const leftPoints = [];
@@ -854,28 +844,25 @@ registerFrame((time, dt) => {
   const isViewed = panel && panel.classList.contains('is-active') && 
                    (panel.closest('.merchant-overlay.is-open') || document.querySelector('.miner-sheet.is-sell-active'));
 
+  if (!isViewed && conveyorPool.length === 0) return;
+
   const beltSpeed = 60; // px/s
   
   // Scroll the backgrounds continuously
   // Left canvas background scrolls UP, Right canvas background scrolls DOWN
-  for (const layer of bgLayers) {
-      layer.offset += beltSpeed * layer.speedMult * dt;
-      while (layer.offset >= BG_CHUNK_HEIGHT) {
-          layer.offset -= BG_CHUNK_HEIGHT;
-          layer.chunks.shift();
-          const lastChunk = layer.chunks[layer.chunks.length - 1];
-          layer.chunks.push(generateBgChunk(layer, lastChunk));
+  if (isViewed) {
+      for (const layer of bgLayers) {
+          layer.offset += beltSpeed * layer.speedMult * dt;
+          while (layer.offset >= BG_CHUNK_HEIGHT) {
+              layer.offset -= BG_CHUNK_HEIGHT;
+              layer.chunks.shift();
+              const lastChunk = layer.chunks[layer.chunks.length - 1];
+              layer.chunks.push(generateBgChunk(layer, lastChunk));
+          }
       }
   }
 
-  // Update ambient particles
-  for (const p of ambientParticles) {
-      // We will handle side-specific particle drifting in the render loop itself 
-      // by using time-based offset depending on the canvas.
-      // But we still need base y to track.
-      p.y += (p.speed / 1000) * dt;
-      if (p.y > 10) p.y -= 10; // keep it looping mathematically
-  }
+
 
   if (isViewed || conveyorPool.length > 0) { 
     beltOffset = (beltOffset + beltSpeed * dt) % 40; 
@@ -909,7 +896,7 @@ registerFrame((time, dt) => {
             item.side = 'right';
             const rightWidth = sellCanvases['right'].width;
             item.x = rightWidth / 2;
-            item.y = 68 + (68 - item.y);
+            item.y = 68;
         } else {
             item.state = 'particle';
             item.particles = [];
@@ -963,15 +950,7 @@ registerFrame((time, dt) => {
     ctx.fillStyle = 'rgb(15, 10, 8)';
     ctx.fillRect(0, 0, width, height);
 
-    // Draw ambient particulates (dust)
-    ctx.fillStyle = 'rgba(210, 180, 140, 0.15)';
-    for (const p of ambientParticles) {
-        const px = (p.x * width) + Math.sin(time / 1000 * 2 + p.phase) * p.amp;
-        const py = p.y * height;
-        ctx.beginPath();
-        ctx.arc(px, py, p.size, 0, Math.PI * 2);
-        ctx.fill();
-    }
+
     
     const trackStartX = width / 2 - 24;
     const trackEndX = width / 2 + 24;
@@ -1184,46 +1163,7 @@ registerFrame((time, dt) => {
     ctx.stroke();
     });
 
-  // Draw Mechanical Chutes UNDER items
-  ['left', 'right'].forEach(side => {
-    let { ctx, width, height } = sellCanvases[side];
-    if (!ctx || width === 0 || height === 0) return;
-    
-    const boxSize = 80;
-    const trackX = width / 2 - boxSize / 2;
-    
-    // Helper to draw a mechanical chute
-    const drawChute = (yPos) => {
-        // Base metallic frame
-        ctx.fillStyle = 'rgb(20, 20, 20)';
-        ctx.fillRect(trackX - 10, yPos - 10, boxSize + 20, boxSize + 20);
-        
-        // Highlights (+20)
-        ctx.fillStyle = 'rgb(40, 40, 40)';
-        ctx.fillRect(trackX - 10, yPos - 10, boxSize + 20, 4); // Top
-        ctx.fillRect(trackX - 10, yPos - 10, 4, boxSize + 20); // Left
-        
-        // Shadows (-16)
-        ctx.fillStyle = 'rgb(4, 4, 4)';
-        ctx.fillRect(trackX - 10, yPos + boxSize + 6, boxSize + 20, 4); // Bottom
-        ctx.fillRect(trackX + boxSize + 6, yPos - 10, 4, boxSize + 20); // Right
-        
-        // Dark Tunnel Depth (gradient)
-        const cx = trackX + boxSize / 2;
-        const cy = yPos + boxSize / 2;
-        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, boxSize / 2);
-        grad.addColorStop(0, '#000000'); // Absolute black center
-        grad.addColorStop(1, 'rgb(15, 10, 8)'); // Fades to chasm color at edges
-        
-        ctx.fillStyle = grad;
-        ctx.fillRect(trackX, yPos, boxSize, boxSize);
-    };
-
-    drawChute(0); // Top box
-    drawChute(height - boxSize); // Bottom box
-  });
-
-  // Render pool items (drawing only) OVER chutes
+  // Render pool items (drawing only) UNDER chutes
   for (let i = conveyorPool.length - 1; i >= 0; i--) {
     const item = conveyorPool[i];
     const { canvas, ctx, width, height } = sellCanvases[item.side];
@@ -1237,7 +1177,7 @@ registerFrame((time, dt) => {
       } else {
           ctx.translate(item.x, item.y);
           ctx.beginPath();
-          ctx.arc(0, 0, 24, 0, 2 * Math.PI);
+          ctx.ellipse(0, 0, 24, 12, 0, 0, 2 * Math.PI);
           ctx.fillStyle = 'gray';
           ctx.fill();
       }
@@ -1254,4 +1194,45 @@ registerFrame((time, dt) => {
       }
     }
   }
+
+  // Draw Mechanical Chutes OVER items
+  ['left', 'right'].forEach(side => {
+    let { ctx, width, height } = sellCanvases[side];
+    if (!ctx || width === 0 || height === 0) return;
+    
+    const boxSize = 80;
+    const trackX = width / 2 - boxSize / 2;
+    
+    // Helper to draw a mechanical chute
+    const drawChute = (yPos, isTop) => {
+        // Base metallic frame
+        ctx.fillStyle = 'rgb(20, 20, 20)';
+        ctx.fillRect(trackX - 10, yPos - 10, boxSize + 20, boxSize + 20);
+        
+        if (isTop) {
+            // Highlights (+20)
+            ctx.fillStyle = 'rgb(40, 40, 40)';
+            ctx.fillRect(trackX - 10, yPos - 10, boxSize + 20, 4); // Top
+            ctx.fillRect(trackX - 10, yPos - 10, 4, boxSize + 20); // Left
+            ctx.fillRect(trackX + boxSize + 6, yPos - 10, 4, boxSize + 20); // Right
+
+            // Shadows (-16)
+            ctx.fillStyle = 'rgb(4, 4, 4)';
+            ctx.fillRect(trackX - 10, yPos + boxSize + 6, boxSize + 20, 4); // Bottom
+        } else {
+            // Highlights (+20)
+            ctx.fillStyle = 'rgb(40, 40, 40)';
+            ctx.fillRect(trackX - 10, yPos + boxSize + 6, boxSize + 20, 4); // Bottom
+            ctx.fillRect(trackX - 10, yPos - 10, 4, boxSize + 20); // Left
+            ctx.fillRect(trackX + boxSize + 6, yPos - 10, 4, boxSize + 20); // Right
+
+            // Shadows (-16)
+            ctx.fillStyle = 'rgb(4, 4, 4)';
+            ctx.fillRect(trackX - 10, yPos - 10, boxSize + 20, 4); // Top
+        }
+    };
+
+    drawChute(0, true); // Top box
+    drawChute(height - boxSize, false); // Bottom box
+  });
 });
