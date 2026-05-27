@@ -922,7 +922,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
 }
 
 .coin-amount .infinity-symbol, .scrap-amount .infinity-symbol {
-  top: -0.11em;
+  top: calc(-0.11em + 1px);
 }
 
 .is-mobile .coin-amount, .is-mobile .scrap-amount {
