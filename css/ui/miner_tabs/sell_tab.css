@@ -321,3 +321,40 @@
 .sell-dropdown-wrapper .setting-dropdown-value {
   overflow: visible;
 }
+
+.sell-side-col {
+  position: fixed;
+  top: 145px;
+  bottom: 80px;
+  width: max(0px, calc(50% - 458px - 24px));
+  margin: 0;
+  overflow: hidden;
+  display: none;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  border: 2px solid rgba(136, 136, 136, 0.4);
+  border-radius: 12px;
+  box-sizing: border-box;
+  z-index: 5;
+  background: rgba(136, 136, 136, 0.05);
+}
+
+.sell-side-left {
+  left: 12px;
+}
+
+.sell-side-right {
+  right: 12px;
+}
+
+@media (min-width: 1500px) {
+  .sell-side-col {
+    display: block;
+  }
+}
+
+.sell-explainer {
+  max-width: 600px;
+  margin: 0 auto;
+}
