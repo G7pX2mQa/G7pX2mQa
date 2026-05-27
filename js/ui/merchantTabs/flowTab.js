@@ -10,7 +10,7 @@ import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
 import { syncCurrencyMultipliersFromUpgrades } from '../../game/upgradeEffects.js';
 import { WaterwheelRenderer } from '../../game/webgl/waterwheelRenderer.js';
 import { isDpSystemUnlocked } from '../../game/dpSystem.js';
-import { getCurrentSurgeLevel } from "./resetTab.js";
+import { getCurrentSurgeLevel, getSurgeBarLevel, predictSurgeLevel, resetState } from "./resetTab.js";
 import { isNodeLocked } from '../mapOverlay.js';
 
 /* =========================================
@@ -21,6 +21,7 @@ const KEY_PREFIX = 'ccc:flow';
 const KEY_WATERWHEEL = (id, slot) => `${KEY_PREFIX}:${id}:${slot}`;
 
 const EFFECT_PERCENTAGE = 100;
+const bnZero = () => BigNum.fromInt(0);
 
 const WATERWHEELS = {
     COIN: 'coin',
@@ -83,8 +84,15 @@ export const WATERWHEEL_DEFS = {
             try {
                 let cleared = isWaterwheelMysteriousCleared(WATERWHEELS.SCRAP);
                 if (!cleared) {
-                    const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0n;
-                    if (surgeLevel >= 125n) {
+                    const slot = getActiveSlot();
+                    const currentWaves = bank.waves?.value ?? bnZero();
+                    let barLevel = 0n;
+                    try { barLevel = getSurgeBarLevel(slot); } catch {}
+                    if (typeof barLevel === 'bigint' && barLevel >= 4500000000000n) barLevel = Infinity;
+                    const pending = resetState.pendingWaves || bnZero();
+                    const potentialLevel = typeof predictSurgeLevel === 'function' ? predictSurgeLevel(barLevel, currentWaves, pending) : 0n;
+                    
+                    if (potentialLevel === Infinity || (typeof potentialLevel === 'bigint' && potentialLevel >= 125n) || (typeof potentialLevel === 'number' && potentialLevel >= 125)) {
                         cleared = true;
                         setWaterwheelMysteriousCleared(WATERWHEELS.SCRAP, true);
                     }
@@ -782,6 +790,9 @@ function onTick(dt) {
         if (typeof def.customUnlockCheck === 'function') {
             let shouldUnlock = false;
             try { shouldUnlock = !!def.customUnlockCheck(); } catch {}
+            if (shouldUnlock && typeof isWaterwheelMysteriousCleared === 'function' && !isWaterwheelMysteriousCleared(id)) {
+                try { setWaterwheelMysteriousCleared(id, true); } catch {}
+            }
             if (state.waterwheels[id].unlocked !== shouldUnlock) {
                 state.waterwheels[id].unlocked = shouldUnlock;
                 changes = true;
