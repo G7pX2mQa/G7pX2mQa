@@ -10,6 +10,7 @@ import { applyStatMultiplierOverride } from '../../util/debugPanel.js';
 import { syncCurrencyMultipliersFromUpgrades } from '../../game/upgradeEffects.js';
 import { WaterwheelRenderer } from '../../game/webgl/waterwheelRenderer.js';
 import { isDpSystemUnlocked } from '../../game/dpSystem.js';
+import { getCurrentSurgeLevel } from "./resetTab.js";
 import { isNodeLocked } from '../mapOverlay.js';
 
 /* =========================================
@@ -76,16 +77,43 @@ export const WATERWHEEL_DEFS = {
         unlocked: false,
         styleKey: 'scrap',
         customUnlockCheck: () => {
-            try { return isDpSystemUnlocked(); } catch { return false; }
+            try { return !isNodeLocked('cavern', true); } catch { return false; }
         },
         customUnlockText: () => {
             try {
-                if (isNodeLocked('cavern', true)) return "???";
+                let cleared = isWaterwheelMysteriousCleared(WATERWHEELS.SCRAP);
+                if (!cleared) {
+                    const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0n;
+                    if (surgeLevel >= 125n) {
+                        cleared = true;
+                        setWaterwheelMysteriousCleared(WATERWHEELS.SCRAP, true);
+                    }
+                }
+                if (!cleared) return "???";
             } catch {}
-            return "Unlock the Depth system in UC";
+            return "Unlock the Underwater Cavern area";
         }
     }
 };
+
+
+export function isWaterwheelMysteriousCleared(id) {
+    const slot = getActiveSlot();
+    if (slot == null) return false;
+    try {
+        return localStorage.getItem(`ccc:flow:mysteriousCleared:${id}:${slot}`) === '1';
+    } catch {
+        return false;
+    }
+}
+
+export function setWaterwheelMysteriousCleared(id, value) {
+    const slot = getActiveSlot();
+    if (slot == null) return;
+    try {
+        localStorage.setItem(`ccc:flow:mysteriousCleared:${id}:${slot}`, value ? '1' : '0');
+    } catch {}
+}
 
 /* =========================================
    STATE
