@@ -55,7 +55,7 @@ export const UC_REGISTRY = [
     id: 3,
     tie: 'none_6',
     title: "Unlock Depth",
-    desc: "Unlocks the Depth system; Collect materials for DP; Go deeper to find new materials\nEach meter of Depth boosts material accumulator speed (see Sell tab)\nEach meter of Depth additionally boosts FP 1.1x compounding\nThis upgrade also unlocks a new Waterwheel (important)",
+    desc: "Unlocks the Depth system; Collect materials for DP; Go deeper to find new materials\nEach meter of Depth boosts material accumulator speed (see Sell tab)\nEach meter of Depth additionally boosts FP 1.1x compounding\nAlso you should go look in the Flow tab (important)",
     descScale: 0.725,
 	ignoreDescScaleAt: 1920,
     lvlCap: 1,
