@@ -4,6 +4,35 @@ import { formatNumber } from '../util/numFormat.js';
 import { syncDpHudLayout } from '../ui/hudLayout.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 
+import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
+
+addExternalFpMultiplierProvider((mult) => {
+    try {
+        if (!isDpSystemUnlocked()) return mult;
+        
+        const state = getDpState();
+        const levelStr = state.dpLevel.toString();
+        let levelNum = Number(levelStr);
+        
+        if (!Number.isFinite(levelNum) || levelNum === 0) return mult;
+
+        let powVal = Math.pow(1.1, levelNum);
+        
+        if (powVal >= 1e20 || !Number.isFinite(powVal)) {
+             const exponent = levelNum * Math.log10(1.1);
+             const mantissa = Math.pow(10, exponent % 1);
+             const intPart = Math.floor(exponent);
+             let nextMult = mult.mulDecimalFloor(mantissa);
+             return nextMult.mulBigNumInteger(BigNum.fromAny("1e" + intPart));
+        } else {
+             return mult.mulDecimalFloor(powVal);
+        }
+    } catch {
+        return mult;
+    }
+});
+
+
 const KEY_PREFIX = 'ccc:dp';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
 const KEY_DP_LEVEL = (slot) => `${KEY_PREFIX}:level:${slot}`;
