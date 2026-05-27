@@ -375,6 +375,24 @@ function getSlot() {
     return getActiveSlot();
 }
 
+function getWaterwheelUnlockRequirementText(def) {
+    if (!def) return 'Locked';
+    if (typeof def.customUnlockText === 'function') {
+        try {
+            const customText = def.customUnlockText();
+            if (customText) return String(customText);
+        } catch {}
+    }
+    if (def.prev && def.unlockReq != null) {
+        let reqStr = String(def.unlockReq);
+        try {
+            reqStr = formatNumber(BigNum.fromAny(def.unlockReq));
+        } catch {}
+        return `Level ${reqStr} in prev.`;
+    }
+    return 'Locked';
+}
+
 function loadState() {
     const slot = getSlot();
     if (slot == null) return;
@@ -730,13 +748,30 @@ function onTick(dt) {
     // Unlock Logic
     // Check XP unlock condition: Coin Waterwheel Level >= 1000
     // We do this check before processing gains, so it updates dynamically
-    const coinLevel = state.waterwheels[WATERWHEELS.COIN]?.level || BigNum.fromInt(0);
-    const xpDef = WATERWHEEL_DEFS[WATERWHEELS.XP];
-    
     // Generic Unlock Logic check (future proofing)
     for (const id in WATERWHEEL_DEFS) {
         const def = WATERWHEEL_DEFS[id];
-        if (def.prev && def.unlockReq) {
+        if (typeof def.customUnlockCheck === 'function') {
+            let shouldUnlock = false;
+            try { shouldUnlock = !!def.customUnlockCheck(); } catch {}
+            if (state.waterwheels[id].unlocked !== shouldUnlock) {
+                state.waterwheels[id].unlocked = shouldUnlock;
+                changes = true;
+                if (!shouldUnlock) {
+                    state.waterwheels[id].level = BigNum.fromInt(0);
+                    state.waterwheels[id].fp = 0;
+                    if (state.waterwheels[id].active) {
+                        state.waterwheels[id].active = false;
+                        if (state.visuals[id]) {
+                            state.visuals[id].speed = 0;
+                            state.visuals[id].isMax = false;
+                        }
+                    }
+                }
+            }
+            continue;
+        }
+        if (def.prev && def.unlockReq != null) {
             const prevCh = state.waterwheels[def.prev];
             if (prevCh) {
                 const threshold = BigNum.fromInt(def.unlockReq);
@@ -1334,11 +1369,7 @@ function updateFlowVisuals() {
             if (elControls) elControls.style.display = 'none';
             
             if (elName) {
-                let reqStr = String(def.unlockReq);
-                try {
-                    reqStr = formatNumber(BigNum.fromAny(def.unlockReq));
-                } catch(e) {}
-                const newText = `Level ${reqStr} in prev.`;
+                const newText = getWaterwheelUnlockRequirementText(def);
                 if (elName.innerHTML !== newText) {
                     elName.innerHTML = newText;
                     elName.classList.add('flow-locked-text');
