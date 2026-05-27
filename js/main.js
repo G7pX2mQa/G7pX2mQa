@@ -697,13 +697,11 @@ export function enterArea(areaID) {
       
       const gRoot = document.getElementById('game-root');
       if (gRoot) {
-          gRoot.classList.remove('area-cove');
-          gRoot.classList.add('area-cavern');
+          gRoot.classList.remove('area-cavern');
+          gRoot.classList.add('area-cove');
       }
-      if (typeof initDpSystem === 'function') {
-        try { initDpSystem(); } catch {}
-      }
-	  syncXpMpHudLayout();
+	  
+      syncXpMpHudLayout();
       if (typeof initMutationSystem === 'function') {
         try { initMutationSystem(); } catch {}
       }
