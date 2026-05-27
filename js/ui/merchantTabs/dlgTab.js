@@ -2187,11 +2187,20 @@ export function runLabIntroDialogue() {
         }
     };
 
+    const blockEsc = (e) => {
+        if (e.key === 'Escape') {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+        }
+    };
+    document.addEventListener('keydown', blockEsc, { capture: true });
+
     const engine = new DialogueEngine({
         textEl,
         choicesEl,
         skipTargets: [textEl, rowEl, cardEl],
         onEnd: () => {
+            document.removeEventListener('keydown', blockEsc, { capture: true });
             stopTypingSfx();
       setTypingActive(false);
       setAudioUnderwater(false);
