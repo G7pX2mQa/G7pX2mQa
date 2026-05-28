@@ -237,12 +237,12 @@ function syncLabTabUnlockState() {
 setFlowUnlockChecker((level) => {
     // We assume surge level is available via isSurgeUnlocked or similar, 
     // but the most reliable is directly checking current level
-    const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0n;
+    const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0;
     if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) return true;
     if (surgeLevel === Number.POSITIVE_INFINITY) return true;
 
     if (typeof surgeLevel === 'bigint') {
-        return surgeLevel >= BigInt(level);
+        return surgeLevel >= Number(level);
     }
     if (typeof surgeLevel === 'number') {
         return surgeLevel >= level;
@@ -600,10 +600,10 @@ export const DLG_CATALOG = {
         return true;
       }
 
-      const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0n;
+      const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0;
       let isSurge8 = false;
       if (surgeLevel === Infinity) isSurge8 = true;
-      else if (typeof surgeLevel === 'bigint') isSurge8 = surgeLevel >= 8n;
+      else if (typeof surgeLevel === 'bigint') isSurge8 = surgeLevel >= 8;
       else if (typeof surgeLevel === 'number') isSurge8 = surgeLevel >= 8;
 
       if (isSurge8) {
