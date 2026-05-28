@@ -1,3 +1,4 @@
+import { MYSTERIOUS_UPGRADE_ICON_DATA_URL, LOCKED_UPGRADE_ICON_DATA_URL, HIDDEN_UPGRADE_TITLE, LOCKED_UPGRADE_TITLE } from './upgrades.js';
 import { BigNum } from '../util/bigNum.js';
 
 export const AUTOMATION_AREA_KEY = 'automation';
@@ -19,10 +20,6 @@ export const MASTER_AUTOBUY_IDS = {
   [AUTOBUY_DNA_UPGRADES_ID]: 'dna'
 };
 
-const MYSTERIOUS_ICON = 'img/misc/mysterious.webp';
-const LOCKED_ICON = 'img/misc/locked.webp';
-const HIDDEN_TITLE = 'Hidden Upgrade';
-const LOCKED_TITLE = 'Locked Upgrade';
 
 const UPGRADE_DEFINITIONS = [
   {
@@ -170,8 +167,8 @@ const UPGRADE_DEFINITIONS = [
         if (ctx.xpLevel < 201) {
             return {
                 locked: true,
-                iconOverride: LOCKED_ICON,
-                titleOverride: LOCKED_TITLE,
+                iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+                titleOverride: LOCKED_UPGRADE_TITLE,
                 descOverride: 'Locked',
                 reason: 'Reach XP Level 201 to unlock',
                 hidden: false,
@@ -184,8 +181,8 @@ const UPGRADE_DEFINITIONS = [
         const revealText = "Reach Surge 11 to reveal this upgrade";
         return {
             locked: true,
-            iconOverride: MYSTERIOUS_ICON,
-            titleOverride: HIDDEN_TITLE,
+            iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+            titleOverride: HIDDEN_UPGRADE_TITLE,
             descOverride: revealText,
             reason: revealText,
             hidden: true,
@@ -231,8 +228,8 @@ const UPGRADE_DEFINITIONS = [
         if (ctx.xpLevel < 201) {
             return {
                 locked: true,
-                iconOverride: LOCKED_ICON,
-                titleOverride: LOCKED_TITLE,
+                iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+                titleOverride: LOCKED_UPGRADE_TITLE,
                 descOverride: 'Locked',
                 reason: 'Reach XP Level 201 to unlock',
                 hidden: false,
@@ -245,8 +242,8 @@ const UPGRADE_DEFINITIONS = [
         const revealText = "Reach Surge 60 to reveal this upgrade";
         return {
             locked: true,
-            iconOverride: MYSTERIOUS_ICON,
-            titleOverride: HIDDEN_TITLE,
+            iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+            titleOverride: HIDDEN_UPGRADE_TITLE,
             descOverride: revealText,
             reason: revealText,
             hidden: true,
