@@ -899,12 +899,6 @@ export function normalizedUpgradeLevel(levelValue) {
   if (typeof levelValue === 'number' && Number.isFinite(levelValue)) {
     return Math.max(0, Math.floor(levelValue));
   }
-  if (typeof levelValue === 'bigint') {
-    if (levelValue < 0) return 0;
-    const maxSafe = Number(Number.MAX_SAFE_INTEGER);
-    const clamped = levelValue > maxSafe ? maxSafe : levelValue;
-    return Number(clamped);
-  }
   if (levelValue instanceof BigNum) {
     try {
       const plain = levelValue.toPlainIntegerString?.();
@@ -2818,8 +2812,7 @@ export const REGISTRY = [
       let isUnlocked = false;
       if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
           isUnlocked = true;
-      } else if (typeof surgeLevel === 'bigint') {
-          isUnlocked = surgeLevel >= 3;
+
       } else if (typeof surgeLevel === 'number') {
           isUnlocked = surgeLevel >= 3;
       }
@@ -2888,8 +2881,7 @@ export const REGISTRY = [
       let surge5 = false;
       if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
           surge5 = true;
-      } else if (typeof surgeLevel === 'bigint') {
-          surge5 = surgeLevel >= 5;
+
       } else if (typeof surgeLevel === 'number') {
           surge5 = surgeLevel >= 5;
       }
@@ -2956,8 +2948,7 @@ export const REGISTRY = [
       let surge7 = false;
       if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
           surge7 = true;
-      } else if (typeof surgeLevel === 'bigint') {
-          surge7 = surgeLevel >= 7;
+
       } else if (typeof surgeLevel === 'number') {
           surge7 = surgeLevel >= 7;
       }
@@ -3025,8 +3016,7 @@ export const REGISTRY = [
       let surge20 = false;
       if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
           surge20 = true;
-      } else if (typeof surgeLevel === 'bigint') {
-          surge20 = surgeLevel >= 20;
+
       } else if (typeof surgeLevel === 'number') {
           surge20 = surgeLevel >= 20;
       }
