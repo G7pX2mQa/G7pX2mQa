@@ -89,7 +89,7 @@ function renderAchievements(gridEl) {
             e.preventDefault();
             if (state === ACHIEVEMENT_STATES.PENDING_CLAIM) {
                 if (achievement.rewardAmount && bank.rainbowGems) {
-                    const actualReward = getRainbowGemMultiplier().mulScaledIntFloor(BigInt(Math.round(achievement.rewardAmount)), 0);
+                    const actualReward = getRainbowGemMultiplier().mulScaledIntFloor(Number(Math.round(achievement.rewardAmount)), 0);
                     bank.rainbowGems.add(actualReward);
                 }
                 setAchievementState(achievement.id, ACHIEVEMENT_STATES.ACHIEVED, slot);
@@ -244,7 +244,7 @@ function openAchievementDetails(achievement) {
         <div class="upg-level">${state === ACHIEVEMENT_STATES.ACHIEVED ? 'Achieved' : state === ACHIEVEMENT_STATES.PENDING_CLAIM ? 'Pending Claim' : 'Not Owned'}</div>
     `;
 
-    const actualReward = getRainbowGemMultiplier().mulScaledIntFloor(BigInt(Math.round(achievement.rewardAmount)), 0);
+    const actualReward = getRainbowGemMultiplier().mulScaledIntFloor(Number(Math.round(achievement.rewardAmount)), 0);
 
     let contentHtml = `
         <div class="upg-desc centered">${achievement.desc}</div>
