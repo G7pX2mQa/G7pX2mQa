@@ -11,7 +11,7 @@ import { openMerchant,
     MERCHANT_MET_EVENT,
     runPostTsunamiShopDialogue
 } from './merchantTabs/dlgTab.js';
-import { openMiner, hasMetMiner } from './minerTabs/dlgTab.js';
+import { openMiner, hasMetMiner, MINER_MET_EVENT } from './minerTabs/dlgTab.js';
 import { primeTypingSfx } from './delveCore.js';
 import { takePreloadedAudio } from '../util/audioCache.js';
 import { playAudio } from '../util/audioManager.js';
@@ -184,7 +184,7 @@ const SHOP_ADAPTERS = {
         buyNext: (id, amount) => buyTowards(getCurrentAreaKey(), id, amount),
         getLockState: (id) => getUpgradeLockState(getCurrentAreaKey(), id),
         evolve: (id) => evolveUpgrade(getCurrentAreaKey(), id),
-        events: ['ccc:upgrades:changed', 'currency:change', 'xp:change', 'xp:unlock', MERCHANT_MET_EVENT, 'forge:completed', 'unlock:change']
+        events: ['ccc:upgrades:changed', 'currency:change', 'xp:change', 'xp:unlock', MERCHANT_MET_EVENT, MINER_MET_EVENT, 'forge:completed', 'unlock:change']
     },
     automation: {
         title: 'Automation Shop',
