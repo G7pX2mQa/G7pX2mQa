@@ -24,6 +24,7 @@ import {
 } from './upgrades.js';
 import { getSurgeMagicMultiplier, getSurgeWaveMultiplier } from './surgeEffects.js';
 import { addExternalFpMultiplierProvider, getWaterwheelGoldMultiplier, getWaterwheelMagicMultiplier, getWaterwheelScrapMultiplier } from '../ui/merchantTabs/flowTab.js';
+import { addExternalDpMultiplierProvider } from './dpSystem.js';
 
 const BASE_CPS = 1;
 
@@ -128,6 +129,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     dnaValue: BigNum.fromInt(1),
     bookValue: BigNum.fromInt(1),
     fpValue: BigNum.fromInt(1),
+    dpValue: BigNum.fromInt(1),
     coinSpawn: 1.0,
     materialSpawn: 1.0,
     magnetRadius: 0,
@@ -193,6 +195,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.bookValue = safeMultiplyBigNum(acc.bookValue, baseEffect);
     } else if (upg.effectType === 'fp_value') {
       acc.fpValue = safeMultiplyBigNum(acc.fpValue, baseEffect);
+    } else if (upg.effectType === 'dp_value') {
+      acc.dpValue = safeMultiplyBigNum(acc.dpValue, baseEffect);
     } else if (upg.effectType === 'magnet_radius') {
       let val = 0;
       if (baseEffect instanceof BigNum) {
@@ -344,6 +348,14 @@ export function registerXpUpgradeEffects() {
       const { fpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
       if (!fpValue) return mult;
       return safeMultiplyBigNum(mult, fpValue);
+    });
+  } catch {}
+
+  try {
+    addExternalDpMultiplierProvider((mult) => {
+      const { dpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+      if (!dpValue) return mult;
+      return safeMultiplyBigNum(mult, dpValue);
     });
   } catch {}
 
