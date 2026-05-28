@@ -209,7 +209,7 @@ function formatExponentString(rawDigits, sign = '') {
 
 
 function formatPowerOf10Exponent(kDigits, sign = '') {
-  // Fast path to detect k ≥ 303 without bigints
+  // Fast path to detect k ≥ 303 
   let ge303 = false, k = 0;
   if (kDigits.length > 3) ge303 = true;
   else { k = parseInt(kDigits || '0', 10) || 0; ge303 = (k >= 303); }
