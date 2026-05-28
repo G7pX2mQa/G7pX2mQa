@@ -109,6 +109,12 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
   if (areaKey === AREA_KEYS.STARTER_COVE && AREA_KEYS.DNA) {
     const dnaUpgrades = getUpgradesForArea(AREA_KEYS.DNA);
     additionalUpgrades.push(...dnaUpgrades);
+    
+    // Also include Underwater Cavern upgrades as they affect things like coin value globally too
+    if (AREA_KEYS.UNDERWATER_CAVERN) {
+        const ucUpgrades = getUpgradesForArea(AREA_KEYS.UNDERWATER_CAVERN);
+        additionalUpgrades.push(...ucUpgrades);
+    }
   }
   const allUpgrades = [...upgrades, ...additionalUpgrades];
 
