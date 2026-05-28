@@ -1,4 +1,4 @@
-import { MYSTERIOUS_UPGRADE_ICON_DATA_URL, LOCKED_UPGRADE_ICON_DATA_URL, HIDDEN_UPGRADE_TITLE, LOCKED_UPGRADE_TITLE } from './upgrades.js';
+import { MYSTERIOUS_UPGRADE_ICON_DATA_URL, LOCKED_UPGRADE_ICON_DATA_URL, HIDDEN_UPGRADE_TITLE, LOCKED_UPGRADE_TITLE, E } from './upgrades.js';
 import { BigNum } from '../util/bigNum.js';
 
 export const AUTOMATION_AREA_KEY = 'automation';
@@ -35,9 +35,7 @@ const UPGRADE_DEFINITIONS = [
     scaling: { ratio: 2 },
     costAtLevel(level) {
       const lvl = Math.max(0, Math.floor(Number(level) || 0));
-      const base = BigInt(100);
-      const pow = 2n ** BigInt(lvl);
-      return BigNum.fromAny((base * pow).toString());
+      return BigNum.fromInt(100).mulBigNumInteger(E.powPerLevel(2)(lvl));
     },
     effectSummary(level) {
       const lvl = Math.max(0, Math.floor(Number(level) || 0));
