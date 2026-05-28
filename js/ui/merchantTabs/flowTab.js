@@ -1241,7 +1241,7 @@ function buildUI(panel) {
         const item = document.createElement('div');
         item.className = 'flow-row';
         item.innerHTML = `
-            <div class="flow-bar-container">
+            <div class="flow-bar-container" style="position: relative;">
                  <img src="${def.image}" class="flow-icon-overlay" id="flow-icon-${id}" alt="">
                  <div class="flow-bar-inner">
                     <div class="flow-bar-fill" id="flow-fill-${id}"></div>
@@ -1272,6 +1272,72 @@ function buildUI(panel) {
         btn.addEventListener('click', (e) => {
             const id = e.target.dataset.id;
             toggleWaterwheel(id);
+        });
+    });
+
+    wrapper.querySelectorAll('.flow-bar-container').forEach(container => {
+        container.addEventListener('mouseenter', (e) => {
+            const id = e.target.querySelector('.flow-toggle-btn') ? null : e.target.closest('.flow-row').querySelector('.flow-toggle-btn').dataset.id;
+            const tooltip = container.querySelector('.setting-info-tooltip');
+            if (id && tooltip && state.waterwheels[id]) {
+                const ch = state.waterwheels[id];
+                const def = WATERWHEEL_DEFS[id];
+                let fpText = '0';
+                let reqText = formatNumber(BigNum.fromAny(def.baseReq));
+
+                let isMaxed = false;
+                if (ch.level instanceof BigNum && ch.level.isInfinite()) {
+                    isMaxed = true;
+                } else if (ch.active) {
+                    const safeFixedStep = (typeof FIXED_STEP === 'number' && FIXED_STEP > 0) ? FIXED_STEP : 0.05;
+                    const threshold = def.baseReq / safeFixedStep;
+                    
+                    let effectiveRate = BigNum.fromInt(1);
+                    const fpMult = getFpMultiplier();
+                    if (fpMult && !fpMult.isZero()) {
+                         effectiveRate = effectiveRate.mulBigNumInteger(fpMult);
+                    }
+                    effectiveRate = applyStatMultiplierOverride('fp', effectiveRate);
+                    
+                    if (effectiveRate.isInfinite() || effectiveRate.cmp(threshold) >= 0) {
+                        isMaxed = true;
+                    }
+                }
+
+                if (isMaxed) {
+                    fpText = 'MAX';
+                    reqText = 'MAX';
+                } else {
+                    let fpVal = ch.fp;
+                    if (fpVal instanceof BigNum) {
+                         if (fpVal.isInfinite()) {
+                             fpText = 'Infinity';
+                         } else {
+                             fpText = formatNumber(fpVal);
+                         }
+                    } else if (typeof fpVal === 'number' && !Number.isFinite(fpVal)) {
+                         fpText = 'Infinity';
+                    } else {
+                         fpText = formatNumber(BigNum.fromAny(fpVal));
+                    }
+                }
+
+                tooltip.innerHTML = `Current progress: ${fpText} / ${reqText}`;
+                tooltip.classList.add('is-visible');
+                
+                const rect = tooltip.getBoundingClientRect();
+                if (rect.bottom > window.innerHeight) {
+                    tooltip.classList.add('is-upwards');
+                }
+            }
+        });
+
+        container.addEventListener('mouseleave', (e) => {
+            const tooltip = container.querySelector('.setting-info-tooltip');
+            if (tooltip) {
+                tooltip.classList.remove('is-visible');
+                tooltip.classList.remove('is-upwards');
+            }
         });
     });
     
