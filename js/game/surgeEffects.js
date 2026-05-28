@@ -92,7 +92,7 @@ export function setLabUnlocked(value) {
 }
 
 let currentMultiplier = BigNum.fromInt(1);
-let cachedSurgeLevel = 0n;
+let cachedSurgeLevel = 0;
 let bookRateAccumulator = null;
 let baseTsunamiExponent = 0.00; // declared as mutable because the base tsunami exponent can change over time depending on lab nodes
 
@@ -175,8 +175,8 @@ export function isSurgeActive(n) {
   if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) return true;
   if (cachedSurgeLevel === Number.POSITIVE_INFINITY) return true;
 
-  if (typeof cachedSurgeLevel === 'bigint') {
-    return cachedSurgeLevel >= BigInt(n);
+  if (typeof cachedSurgeLevel === 'number') {
+    return cachedSurgeLevel >= Number(n);
   }
   if (typeof cachedSurgeLevel === 'number') {
     return cachedSurgeLevel >= n;
@@ -206,7 +206,7 @@ function updateMultiplier() {
   if (level === Infinity) {
     isReached = true;
   } else if (typeof level === 'bigint') {
-    isReached = level >= 1n;
+    isReached = level >= 1;
   }
 
   if (isReached) {
@@ -465,7 +465,7 @@ export function getSurge40Multiplier() {
   } else {
      const diffNum = Number(diffNumStr); 
      if (diffNum <= 1024) {
-         return BigNum.fromAny((2n ** BigInt(diffNum)).toString());
+         return BigNum.fromAny((2 ** Number(diffNum)).toString());
      } else {
          const logTotal = diffNum * Math.log10(2);
          return bigNumFromLog10(logTotal).floorToInteger();
@@ -500,7 +500,7 @@ export function getSurge50Multiplier() {
   } else {
      const diffNum = Number(diffNumStr); 
      if (diffNum <= 1024) {
-         return BigNum.fromAny((2n ** BigInt(diffNum)).toString());
+         return BigNum.fromAny((2 ** Number(diffNum)).toString());
      } else {
          const logTotal = diffNum * Math.log10(2);
          return bigNumFromLog10(logTotal).floorToInteger();
@@ -899,10 +899,10 @@ function compareSurgeLevels(prev, curr) {
   if (isInfCurr) return 1;
   if (isInfPrev) return -1;
   
-  let p = BigInt(0);
-  let c = BigInt(0);
-  try { p = typeof prev === 'bigint' ? prev : BigInt(prev); } catch {}
-  try { c = typeof curr === 'bigint' ? curr : BigInt(curr); } catch {}
+  let p = Number(0);
+  let c = Number(0);
+  try { p = typeof prev === 'number' ? prev : Number(prev); } catch {}
+  try { c = typeof curr === 'number' ? curr : Number(curr); } catch {}
   
   if (c > p) return 1;
   if (c < p) return -1;
@@ -916,7 +916,7 @@ export function initSurgeEffects() {
       () => {
           const level = getCurrentSurgeLevel();
           if (level === Infinity || (typeof level === 'string' && level === 'Infinity') || level === Number.POSITIVE_INFINITY) return true;
-          if (typeof level === 'bigint') return level >= 20n;
+          if (typeof level === 'bigint') return level >= 20;
           if (typeof level === 'number') return level >= 20;
           return false;
       }
