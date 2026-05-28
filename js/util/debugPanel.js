@@ -69,7 +69,7 @@ import {
 } from '../game/labNodes.js';
 import { calculateOfflineRewards, grantOfflineRewards, showOfflinePanel, calculatePreAutomationRewards } from '../game/offlinePanel.js';
 import { nukeNotifications } from '../ui/notifications.js';
-import { unlockDpSystem, resetDpProgress, isDpSystemUnlocked } from '../game/dpSystem.js';
+import { unlockDpSystem, resetDpProgress, isDpSystemUnlocked, getDpMultiplier } from '../game/dpSystem.js';
 import { 
     getActiveCombo, 
     setActiveCombo, 
@@ -787,11 +787,12 @@ function getGameStatMultiplier(statKey) {
                 return BigNum.fromAny(0.2 * eff.materialSpawnRateMult);
             }
             return BigNum.fromAny(0.2);
-        }
-        else if (statKey === 'rp') {
+        } else if (statKey === 'rp') {
             return getRpMultBase();
         } else if (statKey === 'fp') {
             return getFpMultiplier();
+        } else if (statKey === 'dp') {
+            return getDpMultiplier();
         }
     } catch {}
 
@@ -866,32 +867,14 @@ function ensureCurrencyOverrideListener() {
                         const ratio = nextBn.div(baselineBn);
                         // If ratio != 1 (ignoring exact equality check for simplicity, or we can check via cmp)
                         // A ratio of exactly 1 means no change, so we can skip scaling.
-                        const ratioNum = ratio.sig === 1n && ratio.e === 0 
+                        const ratioNum = ratio.sig === 1 && ratio.e === 0 
                                          ? 1 
                                          : null; // dummy check, actually just multiply.
-                        
-                        // Just apply the ratio. If it's 1, mulDecimal(1) or mulBigNum(1) is safe.
-                        // Wait, mulDecimal takes number/string. mulBigNum takes BigNum.
-                        // Let's use mulBigNumInteger if ratio is integer? No, ratio is likely decimal.
-                        // BigNum doesn't have mulBigNumDecimal yet?
-                        // Wait, `div` returns a BigNum.
-                        // `override` is a BigNum.
-                        // We need `override * ratio`.
-                        // BigNum has `mulBigNumInteger`. It does NOT have `mulBigNum`.
-                        // But `mulBigNumInteger` logic:
-                        // return new BigNum(this.sig * b.sig, { base: baseSum }, this.p);
-                        // This logic is generic! It multiplies two BigNums.
-                        // The method name says "Integer" but the implementation supports exponents.
-                        // Let's verify BigNum.js implementation of mulBigNumInteger:
-                        // const baseSum = this.e + b.e;
-                        // return new BigNum(this.sig * b.sig, { base: baseSum }, this.p);
-                        // Yes, this is correct for ANY BigNum multiplication.
                         
                         const scaledOverride = override.mulBigNumInteger(ratio);
                         currencyOverrides.set(cacheKey, scaledOverride);
                     }
                 } catch (e) {
-                     // fallback or ignore
                 }
 
                 currencyOverrideBaselines.set(cacheKey, mult);
@@ -2530,7 +2513,7 @@ function buildAreaStats(container, area) {
             try {
                 let eventLevel = currentSurgeLevel;
                 if (eventLevel !== Infinity && eventLevel instanceof BigNum) {
-                    try { eventLevel = BigInt(eventLevel.toPlainIntegerString()); } catch {}
+                    try { eventLevel = Number(eventLevel.toPlainIntegerString()); } catch {}
                 }
                 window.dispatchEvent(new CustomEvent('surge:level:change', {
                     detail: { slot, level: eventLevel }
@@ -3037,7 +3020,7 @@ function setAllStatsToZero() {
                 touched += 1;
                 try {
                     window.dispatchEvent(new CustomEvent('surge:level:change', {
-                        detail: { slot, level: 0n }
+                        detail: { slot, level: 0 }
                     }));
                 } catch {}
             }
