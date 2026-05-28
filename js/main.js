@@ -120,6 +120,11 @@ function initScrapHudCounter() {
     if (event?.detail?.key !== 'scrap') return;
     updateScrapHudCounter();
   });
+  window.addEventListener('setting:changed', (event) => {
+    if (event?.detail?.key === 'number_notation') {
+      updateScrapHudCounter();
+    }
+  });
   window.addEventListener('saveSlot:change', updateScrapHudCounter);
 }
 
