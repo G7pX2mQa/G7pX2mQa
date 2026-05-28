@@ -12,7 +12,7 @@ import { getActiveSlot } from '../../util/storage.js';
 function isMultiplierGreaterThanOne(multiplier) {
   if (multiplier == null) return false;
   if (typeof multiplier === 'number') return multiplier > 1;
-  if (typeof multiplier === 'bigint') return multiplier > 1n;
+  if (typeof multiplier === 'bigint') return multiplier > 1;
   if (multiplier && typeof multiplier.cmp === 'function') {
     // Assuming cmp(1) returns > 0 if multiplier > 1
     return multiplier.cmp(1) > 0;
