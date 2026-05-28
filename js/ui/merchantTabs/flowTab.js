@@ -125,13 +125,13 @@ function shouldAutoClearScrapMysterious() {
         const slot = getActiveSlot();
         if (slot == null) return false;
         const currentWaves = bank.waves?.value ?? bnZero();
-        let barLevel = 0n;
+        let barLevel = 0;
         try { barLevel = getSurgeBarLevel(slot); } catch {}
-        if (typeof barLevel === 'bigint' && barLevel >= 4500000000000n) barLevel = Infinity;
+        if (typeof barLevel === 'bigint' && barLevel >= 4500000000000) barLevel = Infinity;
         const pending = resetState.pendingWaves || bnZero();
-        const potentialLevel = typeof predictSurgeLevel === 'function' ? predictSurgeLevel(barLevel, currentWaves, pending) : 0n;
+        const potentialLevel = typeof predictSurgeLevel === 'function' ? predictSurgeLevel(barLevel, currentWaves, pending) : 0;
         return potentialLevel === Infinity
-            || (typeof potentialLevel === 'bigint' && potentialLevel >= 125n)
+            || (typeof potentialLevel === 'bigint' && potentialLevel >= 125)
             || (typeof potentialLevel === 'number' && potentialLevel >= 125);
     } catch {
         return false;
