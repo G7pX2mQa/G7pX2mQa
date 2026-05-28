@@ -65,14 +65,14 @@ export function feedVoidGem() {
         }
     }
 
-    const oldTotal = oldMultiplier.mulScaledIntFloor(BigInt(Math.round(sumBaseRewards)), 0);
+    const oldTotal = oldMultiplier.mulScaledIntFloor(Number(Math.round(sumBaseRewards)), 0);
 
     bank.voidGems.sub(1);
     const currentLevel = getVoidLevel(slot);
     setVoidLevel(currentLevel.add(1), slot);
 
     const newMultiplier = getRainbowGemMultiplier();
-    const newTotal = newMultiplier.mulScaledIntFloor(BigInt(Math.round(sumBaseRewards)), 0);
+    const newTotal = newMultiplier.mulScaledIntFloor(Number(Math.round(sumBaseRewards)), 0);
     const diff = newTotal.sub(oldTotal);
 
     if (diff.cmp(0) > 0 && bank.rainbowGems) {
