@@ -189,4 +189,58 @@ export const UC_REGISTRY = [
       return normalizedLevel > 0 ? 100000 : 1;
     },
   },
+  {
+    area: UC_AREA_KEY,
+    id: 5,
+    tie: 'scrap_3',
+    title: "DP Value",
+    desc: "Triples DP value per level",
+    lvlCap: 10,
+    baseCost: 1000,
+    costType: 'scrap',
+    upgType: 'NM',
+    effectType: 'dp_value',
+    icon: 'img/uc_upg_icons/dp_val1.webp',
+    costAtLevel(level) { 
+        const normalizedLevel = Math.max(0, Number(level) || 0);
+        return BigNum.fromInt(this.baseCost).mulBigNumInteger(BigNum.fromInt(2).pow(normalizedLevel));
+    },
+    nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
+    computeLockState() {
+      if (!isSellUnlocked() || !hasViewedSellTab()) {
+        return {
+          locked: true,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Locked',
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+        };
+      }
+      if (!isDpSystemUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
+          descOverride: 'Unlock the Depth system',
+          reason: 'Unlock the Depth system',
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
+      return { locked: false, hidden: false, useLockedBase: false };
+    },
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `DP value bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier(level) {
+      const normalizedLevel = Math.max(0, Number(level) || 0);
+      return BigNum.fromInt(3).pow(normalizedLevel);
+    },
+  },
 ];
