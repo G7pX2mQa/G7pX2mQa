@@ -1,6 +1,8 @@
-import { unlockDpSystem } from './dpSystem.js';
-import { computeDefaultUpgradeCost, formatMultForUi, UPGRADE_TIES, determineLockState } from './upgrades.js';
+import { unlockDpSystem, isDpSystemUnlocked } from './dpSystem.js';
+import { computeDefaultUpgradeCost, formatMultForUi, UPGRADE_TIES, determineLockState, AREA_KEYS, getLevelNumber } from './upgrades.js';
 import { BigNum } from '../util/bigNum.js';
+import { formatNumber } from '../util/numFormat.js';
+import { isSellUnlocked, hasViewedSellTab } from '../ui/minerTabs/sellTab.js';
 
 export const UC_AREA_KEY = 'underwater_cavern';
 
@@ -73,5 +75,67 @@ export const UC_REGISTRY = [
       }
     },
     effectSummary() { return ""; },
+  },
+  {
+    area: UC_AREA_KEY,
+    id: 4,
+    tie: 'scrap_2',
+    title: "Coin Value IV",
+    get desc() {
+      let text = `Multiplies Coin value by ${formatNumber(BigNum.fromInt(100000))}x`;
+      let endlessFpLevel = 0;
+      try {
+          endlessFpLevel = getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.ENDLESS_FP);
+      } catch(e) {}
+      if (endlessFpLevel < 400) {
+          text += "\nThis will make it easier to reach level 400 of Endless FP";
+      }
+      return text;
+    },
+    lvlCap: 1,
+    baseCost: 100,
+    costType: 'scrap',
+    upgType: 'NM',
+    effectType: 'coin_value',
+    icon: 'img/lab_icons/coin_val0.webp',
+    baseIconOverride: 'img/currencies/scrap/scrap_base.webp',
+    costAtLevel(level) { return computeDefaultUpgradeCost(this.baseCost, level, this.upgType); },
+    nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
+    computeLockState() {
+      if (!isSellUnlocked() || !hasViewedSellTab()) {
+        return {
+          locked: true,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+          titleOverride: 'Locked Upgrade',
+          descOverride: 'Locked',
+          iconOverride: 'img/misc/locked.webp',
+        };
+      }
+      if (!isDpSystemUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: 'img/misc/mysterious.webp',
+          titleOverride: 'Hidden Upgrade',
+          descOverride: 'Unlock the Depth system',
+          reason: 'Unlock the Depth system',
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
+      return { locked: false, hidden: false, useLockedBase: false };
+    },
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `Coin value bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier(level) {
+      const normalizedLevel = Math.max(0, Number(level) || 0);
+      return normalizedLevel > 0 ? 100000 : 1;
+    },
   },
 ];
