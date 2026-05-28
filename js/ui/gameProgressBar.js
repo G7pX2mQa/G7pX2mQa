@@ -105,7 +105,7 @@ const GOALS = [
     isComplete: () => {
       let level = getCurrentSurgeLevel();
       if (level === Infinity || level === 'Infinity') return true;
-      if (typeof level === 'bigint') return level >= 8n;
+      if (typeof level === 'bigint') return level >= 8;
       if (typeof level === 'number') return level >= 8;
       return false;
     }
@@ -175,7 +175,7 @@ const GOALS = [
     isComplete: () => {
       let level = getCurrentSurgeLevel();
       if (level === Infinity || level === 'Infinity') return true;
-      if (typeof level === 'bigint') return level >= 20n;
+      if (typeof level === 'bigint') return level >= 20;
       if (typeof level === 'number') return level >= 20;
       return false;
     }
@@ -198,7 +198,7 @@ const GOALS = [
     isComplete: () => {
       let level = getCurrentSurgeLevel();
       if (level === Infinity || level === 'Infinity') return true;
-      if (typeof level === 'bigint') return level >= 125n;
+      if (typeof level === 'bigint') return level >= 125;
       if (typeof level === 'number') return level >= 125;
       return false;
     }
