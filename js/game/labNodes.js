@@ -608,7 +608,7 @@ export function tickResearch(dt) {
         const logReq = approxLog10BigNum(currentReq);
 
         if (logRp - logReq > 2) {
-            let jump = 0n;
+            let jump = 0;
             let cost = BigNum.zero();
             
             const scaleBn = BigNum.fromAny(node.scale);
@@ -632,20 +632,20 @@ export function tickResearch(dt) {
                     jumpStr = "9007199254740991"; 
                 }
                 try {
-                    jump = BigInt(jumpStr);
+                    jump = Number(jumpStr);
                 } catch {
-                    jump = 0n;
+                    jump = 0;
                 }
                 
                 if (Number.isFinite(node.maxLevel)) {
-                    const rem = BigInt(node.maxLevel) - BigInt(currentLevel);
+                    const rem = Number(node.maxLevel) - Number(currentLevel);
                     if (jump > rem) jump = rem;
                 }
                 
-                if (jump > 0n) {
+                if (jump > 0) {
                     cost = currentReq.mulScaledInt(jump, 0);
                 }
-            } else if (scaleMinus1.isZero() === false && (scaleMinus1.sig > 0n || scaleMinus1.isInfinite())) {
+            } else if (scaleMinus1.isZero() === false && (scaleMinus1.sig > 0 || scaleMinus1.isInfinite())) {
                  // Geometric scaling (Scale > 1)
                  const logS = approxLog10BigNum(scaleBn);
                  const logSMinus1 = approxLog10BigNum(scaleMinus1);
@@ -655,13 +655,13 @@ export function tickResearch(dt) {
                  const approxLevels = Math.floor(numerator / logS);
 
                  if (approxLevels > 5) {
-                     let safeJump = BigInt(Math.max(0, approxLevels - 5));
+                     let safeJump = Number(Math.max(0, approxLevels - 5));
                      if (Number.isFinite(node.maxLevel)) {
-                         const rem = BigInt(node.maxLevel) - BigInt(currentLevel);
+                         const rem = Number(node.maxLevel) - Number(currentLevel);
                          if (safeJump > rem) safeJump = rem;
                      }
                      
-                     if (safeJump > 0n) {
+                     if (safeJump > 0) {
                          jump = safeJump;
                          
                          // Cost = currentReq * ((S^jump - 1) / (S-1))
@@ -674,7 +674,7 @@ export function tickResearch(dt) {
                  }
             }
 
-            if (jump > 0n) {
+            if (jump > 0) {
                 nextRp = nextRp.sub(cost);
                 const newLevel = currentLevel + Number(jump);
                 setResearchNodeLevel(node.id, newLevel);
