@@ -309,21 +309,21 @@ function dpRequirementForDpLevel(dpLevelInput) {
     levelPlain = '0';
   }
 
-  let targetLevelInfo = { bigInt: null, finite: true };
+  let targetLevelInfo = { num: null, finite: true };
   if (levelPlain && levelPlain !== 'Infinity') {
     try {
-      targetLevelInfo = { bigInt: BigInt(levelPlain), finite: true };
+      targetLevelInfo = { num: Number(levelPlain), finite: true };
     } catch {
-      targetLevelInfo = { bigInt: null, finite: true };
+      targetLevelInfo = { num: null, finite: true };
     }
   } else {
-    targetLevelInfo = { bigInt: null, finite: true };
+    targetLevelInfo = { num: null, finite: true };
   }
 
-  const targetLevel = targetLevelInfo.bigInt ?? 0n;
+  const targetLevel = targetLevelInfo.num ?? 0;
   
   const baseReq = BigNum.fromInt(10);
-  if (targetLevel <= 0n) return baseReq;
+  if (targetLevel <= 0) return baseReq;
 
   // 10 * 1.5^level
   // Since 1.5 = 15/10, we can use mulScaledIntFloor or similar if BigNum supports it well
@@ -356,7 +356,7 @@ function dpRequirementForDpLevel(dpLevelInput) {
      const intPart = Math.floor(totalLog10);
      const fracPart = totalLog10 - intPart;
      const mantissa = Math.pow(10, fracPart);
-     return new BigNum(BigInt(Math.round(mantissa * 1e14)), { base: intPart - 14 });
+     return new BigNum(Number(Math.round(mantissa * 1e14)), { base: intPart - 14 });
   }
 }
 
@@ -560,6 +560,21 @@ export function getDpProgressRatio() {
   return progressRatio(dpState.progress, requirementBn);
 }
 
+export function getDpMultiplier() {
+  let dpMult = BigNum.fromInt(1);
+  for (const provider of externalDpMultiplierProviders) {
+    try {
+      const val = provider(dpMult);
+      if (val instanceof BigNum) {
+        dpMult = val;
+      } else if (val) {
+        dpMult = dpMult.mulBigNumInteger(BigNum.fromAny(val));
+      }
+    } catch {}
+  }
+  return dpMult;
+}
+
 export function addDp(amount, { silent = false } = {}) {
   ensureStateLoaded();
   const slot = lastSlot ?? getActiveSlot();
@@ -585,17 +600,7 @@ export function addDp(amount, { silent = false } = {}) {
     inc = bnZero();
   }
 
-  let dpMult = BigNum.fromInt(1);
-  for (const provider of externalDpMultiplierProviders) {
-    try {
-      const val = provider(dpMult);
-      if (val instanceof BigNum) {
-        dpMult = val;
-      } else if (val) {
-        dpMult = dpMult.mulBigNumInteger(BigNum.fromAny(val));
-      }
-    } catch {}
-  }
+  const dpMult = getDpMultiplier();
   
   if (dpMult instanceof BigNum && !dpMult.isZero?.()) {
       inc = inc.mulBigNumInteger ? inc.mulBigNumInteger(dpMult) : inc;
