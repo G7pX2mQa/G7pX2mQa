@@ -12,11 +12,6 @@ import { WaterwheelRenderer } from '../../game/webgl/waterwheelRenderer.js';
 import { isDpSystemUnlocked } from '../../game/dpSystem.js';
 import { getCurrentSurgeLevel, getSurgeBarLevel, predictSurgeLevel, resetState } from "./resetTab.js";
 import { isNodeLocked } from '../mapOverlay.js';
-if (false) {
-   console.log("IGNORE");
-   console.log("IGNORE");
-   console.log("IGNORE");
-}
 
 /* =========================================
    CONSTANTS & KEYS
