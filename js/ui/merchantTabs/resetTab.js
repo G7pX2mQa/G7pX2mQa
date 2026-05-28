@@ -151,7 +151,6 @@ function updateBlockBigCoinsStatus() {
   const currentWaves = bank.waves?.value ?? bnZero();
   let barLevel = 0;
   try { barLevel = getSurgeBarLevel(slot); } catch {}
-  if (typeof barLevel === 'bigint' && barLevel >= 4500000000000) barLevel = Infinity;
   
   const pending = resetState.pendingWaves;
   const potentialLevel = predictSurgeLevel(barLevel, currentWaves, pending);
@@ -161,10 +160,6 @@ function updateBlockBigCoinsStatus() {
   if (potentialLevel === Infinity) {
       isSurge8 = true;
       isSurge125 = true;
-  }
-  else if (typeof potentialLevel === 'bigint') {
-      isSurge8 = potentialLevel >= 8;
-      isSurge125 = potentialLevel >= 125;
   }
   else if (typeof potentialLevel === 'number') {
       isSurge8 = potentialLevel >= 8;
@@ -1545,9 +1540,7 @@ export function performSurgeReset() {
 
   let isInsufficient = false;
   if (potentialLevel !== Infinity) {
-      if (typeof potentialLevel === 'bigint') {
-          isInsufficient = potentialLevel <= barLevel;
-      } else if (typeof potentialLevel === 'number') {
+      if (typeof potentialLevel === 'number') {
           isInsufficient = potentialLevel <= Number(barLevel);
       }
   }
@@ -1563,10 +1556,6 @@ export function performSurgeReset() {
   if (potentialLevel === Infinity) {
       isSurge8 = true;
       isSurge125 = true;
-  }
-  else if (typeof potentialLevel === 'bigint') {
-      isSurge8 = potentialLevel >= 8;
-      isSurge125 = potentialLevel >= 125;
   }
   else if (typeof potentialLevel === 'number') {
       isSurge8 = potentialLevel >= 8;
@@ -1811,9 +1800,6 @@ function formatBn(value, isSurge = false) {
     return '<span class="infinity-symbol">∞</span>';
   }
   let bn = value;
-  if (typeof value === 'bigint') {
-    try { bn = BN.fromInt(value); } catch {}
-  }
   try { return formatNumber(bn); }
   catch { return value?.toString?.() ?? '0'; }
 }
@@ -2489,7 +2475,6 @@ function updateSurgeCard() {
         let isSurge8 = false;
         if (barLevel === Infinity || (typeof barLevel === 'string' && barLevel === 'Infinity')) isSurge8 = true;
         else if (typeof barLevel.isInfinite === 'function' && barLevel.isInfinite()) isSurge8 = true;
-        else if (typeof barLevel === 'bigint' && barLevel >= 8) isSurge8 = true;
         else if (typeof barLevel === 'number' && barLevel >= 8) isSurge8 = true;
 
         const effectiveNerf = getTsunamiExponent();
@@ -2734,7 +2719,7 @@ function bindGlobalEvents() {
     triggerSurgeBarAnimation();
     if (e && e.detail && e.detail.level !== undefined) {
         let level = e.detail.level;
-        let is125 = level === Infinity || (typeof level === 'bigint' && level >= 125) || (typeof level === 'number' && level >= 125);
+        let is125 = level === Infinity || (typeof level === 'number' && level >= 125);
         setNodeLocked('cavern', !is125);
         refreshNodesState();
         window.dispatchEvent(new Event('pinnedAreas:changed'));
