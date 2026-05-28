@@ -3112,6 +3112,7 @@ for (const upg of REGISTRY) {
         let label = "Bonus";
         if (this.effectType === 'coin_value') label = "Coin value bonus";
         if (this.effectType === 'xp_value') label = "XP value bonus";
+        if (this.effectType === 'dp_value') label = "DP value bonus";
         
         return `${label}: ${formatMultForUi(total)}x`;
       };
