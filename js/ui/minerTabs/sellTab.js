@@ -31,6 +31,9 @@ export function setSellTabViewed(value, slot = getActiveSlot()) {
       } else {
         localStorage.removeItem(`${SELL_VIEWED_KEY_BASE}:${slotKey}`);
       }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ccc:upgrades:changed'));
+      }
     } catch {}
   }
 }
