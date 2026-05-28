@@ -1,5 +1,5 @@
 import { unlockDpSystem, isDpSystemUnlocked } from './dpSystem.js';
-import { AREA_KEYS, LOCKED_UPGRADE_ICON_DATA_URL, formatMultForUi, safeHasMetMiner, UPGRADE_TIES, LOCKED_UPGRADE_TITLE, computeDefaultUpgradeCost, HIDDEN_UPGRADE_TITLE, MYSTERIOUS_UPGRADE_ICON_DATA_URL, getLevelNumber } from './upgrades.js';
+import { AREA_KEYS, LOCKED_UPGRADE_ICON_DATA_URL, formatMultForUi, safeHasMetMiner, UPGRADE_TIES, LOCKED_UPGRADE_TITLE, computeDefaultUpgradeCost, HIDDEN_UPGRADE_TITLE, MYSTERIOUS_UPGRADE_ICON_DATA_URL, getLevelNumber, E } from './upgrades.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { isSellUnlocked, hasViewedSellTab } from '../ui/minerTabs/sellTab.js';
@@ -203,7 +203,7 @@ export const UC_REGISTRY = [
     icon: 'img/uc_upg_icons/dp_val1.webp',
     costAtLevel(level) { 
         const normalizedLevel = Math.max(0, Number(level) || 0);
-        return BigNum.fromInt(this.baseCost).mulBigNumInteger(BigNum.fromInt(2).pow(normalizedLevel));
+        return BigNum.fromInt(this.baseCost).mulBigNumInteger(E.powPerLevel(3)(normalizedLevel));
     },
     nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
     computeLockState() {
@@ -240,7 +240,7 @@ export const UC_REGISTRY = [
     },
     effectMultiplier(level) {
       const normalizedLevel = Math.max(0, Number(level) || 0);
-      return BigNum.fromInt(3).pow(normalizedLevel);
+      return E.powPerLevel(3)(normalizedLevel);
     },
   },
 ];
