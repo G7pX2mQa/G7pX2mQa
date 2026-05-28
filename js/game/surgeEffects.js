@@ -176,9 +176,6 @@ export function isSurgeActive(n) {
   if (cachedSurgeLevel === Number.POSITIVE_INFINITY) return true;
 
   if (typeof cachedSurgeLevel === 'number') {
-    return cachedSurgeLevel >= Number(n);
-  }
-  if (typeof cachedSurgeLevel === 'number') {
     return cachedSurgeLevel >= n;
   }
   return false;
@@ -205,7 +202,7 @@ function updateMultiplier() {
   
   if (level === Infinity) {
     isReached = true;
-  } else if (typeof level === 'bigint') {
+  } else if (typeof level === 'number') {
     isReached = level >= 1;
   }
 
@@ -916,7 +913,6 @@ export function initSurgeEffects() {
       () => {
           const level = getCurrentSurgeLevel();
           if (level === Infinity || (typeof level === 'string' && level === 'Infinity') || level === Number.POSITIVE_INFINITY) return true;
-          if (typeof level === 'bigint') return level >= 20;
           if (typeof level === 'number') return level >= 20;
           return false;
       }
