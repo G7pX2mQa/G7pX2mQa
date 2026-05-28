@@ -268,7 +268,7 @@ function effectBN(fn) {
   };
 }
 
-const E = {
+export const E = {
   addPctPerLevel(p) {
     const pNum = Number(p);
     const pStr = String(pNum);
