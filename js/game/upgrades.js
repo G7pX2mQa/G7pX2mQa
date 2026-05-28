@@ -38,7 +38,6 @@ import {
   syncBookCurrencyMultiplierFromUpgrade,
   registerXpUpgradeEffects,
 } from './upgradeEffects.js';
-import { isSellUnlocked, hasViewedSellTab } from '../ui/minerTabs/sellTab.js';
 
 export {
   computeUpgradeEffects,
@@ -211,10 +210,10 @@ const HM_MILESTONES_BY_AREA = {
   [AREA_KEYS.STARTER_COVE]: HM_MILESTONES_STARTER_COVE,
 };
 
-const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.webp';
-const MYSTERIOUS_UPGRADE_ICON_DATA_URL = 'img/misc/mysterious.webp';
-const HIDDEN_UPGRADE_TITLE = 'Hidden Upgrade';
-const LOCKED_UPGRADE_TITLE = 'Locked Upgrade';
+export const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.webp';
+export const MYSTERIOUS_UPGRADE_ICON_DATA_URL = 'img/misc/mysterious.webp';
+export const HIDDEN_UPGRADE_TITLE = 'Hidden Upgrade';
+export const LOCKED_UPGRADE_TITLE = 'Locked Upgrade';
 const FORGE_PLACEHOLDER_TIES = new Set([
   UPGRADE_TIES.COIN_VALUE_II,
   UPGRADE_TIES.XP_VALUE_II,
@@ -234,8 +233,6 @@ const SPECIAL_LOCK_STATE_TIES = new Set([
   UPGRADE_TIES.UNLOCK_FORGE,
   UPGRADE_TIES.UNLOCK_INFUSE,
   UPGRADE_TIES.UNLOCK_SURGE,
-  UPGRADE_TIES.UNLOCK_SELL,
-  UPGRADE_TIES.UNLOCK_DEPTH,
   ...FORGE_PLACEHOLDER_TIES,
   ...INFUSE_PLACEHOLDER_TIES,
 ]);
@@ -690,63 +687,6 @@ export function determineLockState(ctx) {
   }
 
 
-  // ==== Unlock Depth ====
-  if (tieKey === UPGRADE_TIES.UNLOCK_DEPTH) {
-    if (!isSellUnlocked()) {
-      return {
-        locked: true,
-        iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-        useLockedBase: true,
-      };
-    }
-    if (!hasViewedSellTab()) {
-      const revealText = 'Visit the Sell tab to reveal this upgrade';
-      return {
-        locked: true,
-        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-        titleOverride: HIDDEN_UPGRADE_TITLE,
-        descOverride: revealText,
-        reason: revealText,
-        hidden: true,
-        hideCost: true,
-        hideEffect: true,
-        useLockedBase: true,
-      };
-    }
-    return {
-      locked: false,
-      hidden: false,
-      hideCost: false,
-      hideEffect: false,
-      useLockedBase: false,
-    };
-  }
-
-  // ==== Unlock Sell ====
-  if (tieKey === UPGRADE_TIES.UNLOCK_SELL) {
-    if (safeHasMetMiner()) {
-      return {
-        locked: false,
-        hidden: false,
-        hideCost: false,
-        hideEffect: false,
-        useLockedBase: false,
-      };
-    }
-    const revealText = 'Explore the Delve menu to reveal this upgrade';
-    return {
-      locked: true,
-      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-      titleOverride: HIDDEN_UPGRADE_TITLE,
-      descOverride: revealText,
-      reason: revealText,
-      hidden: true,
-      hideCost: true,
-      hideEffect: true,
-      useLockedBase: true,
-    };
-  }
-
   // ==== Unlock Surge ====
   if (tieKey === UPGRADE_TIES.UNLOCK_SURGE) {
     if (!hasDoneInfuseReset()) {
@@ -920,7 +860,7 @@ function safeIsXpUnlocked() {
 }
 
 
-function safeHasMetMiner(slot = getActiveSlot()) {
+export function safeHasMetMiner(slot = getActiveSlot()) {
   const slotKey = String(slot ?? 'default');
   if (typeof localStorage === 'undefined') return false;
   try {
