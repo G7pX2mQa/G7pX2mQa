@@ -149,9 +149,9 @@ export let _isSurge125Pending = false;
 function updateBlockBigCoinsStatus() {
   const slot = ensureResetSlot();
   const currentWaves = bank.waves?.value ?? bnZero();
-  let barLevel = 0n;
+  let barLevel = 0;
   try { barLevel = getSurgeBarLevel(slot); } catch {}
-  if (typeof barLevel === 'bigint' && barLevel >= 4500000000000n) barLevel = Infinity;
+  if (typeof barLevel === 'bigint' && barLevel >= 4500000000000) barLevel = Infinity;
   
   const pending = resetState.pendingWaves;
   const potentialLevel = predictSurgeLevel(barLevel, currentWaves, pending);
@@ -163,8 +163,8 @@ function updateBlockBigCoinsStatus() {
       isSurge125 = true;
   }
   else if (typeof potentialLevel === 'bigint') {
-      isSurge8 = potentialLevel >= 8n;
-      isSurge125 = potentialLevel >= 125n;
+      isSurge8 = potentialLevel >= 8;
+      isSurge125 = potentialLevel >= 125;
   }
   else if (typeof potentialLevel === 'number') {
       isSurge8 = potentialLevel >= 8;
@@ -1192,7 +1192,7 @@ export function isExperimentUnlocked() {
 
 export function getCurrentSurgeLevel() {
   const slot = ensureResetSlot();
-  if (slot == null) return 0n;
+  if (slot == null) return 0;
   return getSurgeBarLevel(slot);
 }
 
@@ -1565,8 +1565,8 @@ export function performSurgeReset() {
       isSurge125 = true;
   }
   else if (typeof potentialLevel === 'bigint') {
-      isSurge8 = potentialLevel >= 8n;
-      isSurge125 = potentialLevel >= 125n;
+      isSurge8 = potentialLevel >= 8;
+      isSurge125 = potentialLevel >= 125;
   }
   else if (typeof potentialLevel === 'number') {
       isSurge8 = potentialLevel >= 8;
@@ -1642,17 +1642,17 @@ function triggerSurgeWaveAnimation() {
 }
 
 export function getSurgeBarLevel(slot) {
-  let barLevel = 0n;
+  let barLevel = 0;
   try {
     const raw = localStorage.getItem(SURGE_BAR_LEVEL_KEY(slot));
     if (raw) {
        if (raw === 'Infinity') return Infinity;
-       barLevel = BigInt(raw);
+       barLevel = Number(raw);
     }
   } catch {}
   if (barLevel === Infinity) return Infinity;
-  if (barLevel >= 4500000000000n) return Infinity;
-  return barLevel < 0n ? 0n : barLevel;
+  if (barLevel >= 4500000000000) return Infinity;
+  return barLevel < 0 ? 0 : barLevel;
 }
 
 function isSurgeLevelLocked(slot) {
@@ -1663,12 +1663,12 @@ function isSurgeLevelLocked(slot) {
   return false;
 }
 
-function getSafeLog10BigInt(bn) {
-  if (!(bn instanceof BN)) return -1n;
-  if (bn.isZero?.() || bn.isInfinite?.()) return -1n;
-  let totalExp = BigInt(bn.e || 0);
+function getSafeLog10Number(bn) {
+  if (!(bn instanceof BN)) return -1;
+  if (bn.isZero?.() || bn.isInfinite?.()) return -1;
+  let totalExp = Number(bn.e || 0);
   const s = bn.sig.toString();
-  const sigLog = BigInt(s.length - 1);
+  const sigLog = Number(s.length - 1);
   return totalExp + sigLog;
 }
 
@@ -1682,8 +1682,8 @@ function getSurgeRequirement(level) {
   return bigNumFromLog10(logReq);
 }
 
-function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
-  if (startLevelBigInt === Infinity || (typeof startLevelBigInt === 'string' && startLevelBigInt === 'Infinity')) {
+function calculateSurgeLevelJump(startLevelNum, wavesBn) {
+  if (startLevelNum === Infinity || (typeof startLevelNum === 'string' && startLevelNum === 'Infinity')) {
     return { level: Infinity, remainingWaves: wavesBn, changed: false, safety: 0 };
   }
 
@@ -1692,22 +1692,22 @@ function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
     return { level: Infinity, remainingWaves: currentWaves, changed: true, safety: 0 };
   }
 
-  let barLevel = startLevelBigInt;
+  let barLevel = startLevelNum;
   let req = getSurgeRequirement(barLevel);
   let changed = false;
 
   // Optimization for massive waves: jump to the approximate level
-  const logCurrentBigInt = getSafeLog10BigInt(currentWaves);
-  const logReqBigInt = getSafeLog10BigInt(req);
+  const logCurrentNum = getSafeLog10Number(currentWaves);
+  const logReqNum = getSafeLog10Number(req);
 
-  if (logCurrentBigInt != -1n && logReqBigInt != -1n && logCurrentBigInt > logReqBigInt + 5n) {
+  if (logCurrentNum != -1 && logReqNum != -1 && logCurrentNum > logReqNum + 5) {
     try {
       // Binary search for the highest target level we can afford
       let low = Number(barLevel);
       let high = 4500000000000;
       let best = low;
       
-      const logCurrentNumber = Number(logCurrentBigInt);
+      const logCurrentNumber = Number(logCurrentNum);
       
       const getLogReqForLevel = (lvl) => {
         let logVal = lvl;
@@ -1729,14 +1729,14 @@ function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
         }
       }
 
-      let targetLevel = BigInt(best);
+      let targetLevel = Number(best);
       if (targetLevel > barLevel) {
         const nextReq = getSurgeRequirement(targetLevel);
         const cost = nextReq.sub(req).div(BigNum.fromInt(9));
         if (currentWaves.cmp(cost) >= 0) {
           currentWaves = currentWaves.sub(cost);
           barLevel = targetLevel;
-          if (barLevel >= 4500000000000n) {
+          if (barLevel >= 4500000000000) {
             barLevel = Infinity;
             req = BigNum.fromAny('Infinity');
           }
@@ -1754,8 +1754,8 @@ function calculateSurgeLevelJump(startLevelBigInt, wavesBn) {
 
     currentWaves = currentWaves.sub(req);
 
-    barLevel += 1n;
-    if (barLevel >= 4500000000000n) {
+    barLevel += 1;
+    if (barLevel >= 4500000000000) {
       barLevel = Infinity;
       break;
     }
@@ -2368,9 +2368,9 @@ function updateInfuseCard() {
 }
 
 
-export function predictSurgeLevel(currentLevelBigInt, currentWaves, pendingWaves) {
+export function predictSurgeLevel(currentLevelNum, currentWaves, pendingWaves) {
   const availableWaves = currentWaves.add(pendingWaves);
-  const result = calculateSurgeLevelJump(currentLevelBigInt, availableWaves);
+  const result = calculateSurgeLevelJump(currentLevelNum, availableWaves);
   return result.level;
 }
 
@@ -2396,7 +2396,7 @@ function updateSurgeCard() {
   // Bar Logic Visualization
   const slot = ensureResetSlot();
   const currentWaves = bank.waves?.value ?? bnZero();
-  let barLevel = 0n;
+  let barLevel = 0;
   try { barLevel = getSurgeBarLevel(slot); } catch {}
   
   let req;
@@ -2470,7 +2470,7 @@ function updateSurgeCard() {
     const existingItems = Array.from(el.milestones.children);
     
     visible.forEach((m, i) => {
-        const isReached = BigInt(m.surgeLevel) <= barLevel;
+        const isReached = Number(m.surgeLevel) <= barLevel;
         const reachedClass = isReached ? 'is-reached' : '';
         let desc = m.description.map(d => {
             if (d === ' ') {
@@ -2489,7 +2489,7 @@ function updateSurgeCard() {
         let isSurge8 = false;
         if (barLevel === Infinity || (typeof barLevel === 'string' && barLevel === 'Infinity')) isSurge8 = true;
         else if (typeof barLevel.isInfinite === 'function' && barLevel.isInfinite()) isSurge8 = true;
-        else if (typeof barLevel === 'bigint' && barLevel >= 8n) isSurge8 = true;
+        else if (typeof barLevel === 'bigint' && barLevel >= 8) isSurge8 = true;
         else if (typeof barLevel === 'number' && barLevel >= 8) isSurge8 = true;
 
         const effectiveNerf = getTsunamiExponent();
@@ -2734,7 +2734,7 @@ function bindGlobalEvents() {
     triggerSurgeBarAnimation();
     if (e && e.detail && e.detail.level !== undefined) {
         let level = e.detail.level;
-        let is125 = level === Infinity || (typeof level === 'bigint' && level >= 125n) || (typeof level === 'number' && level >= 125);
+        let is125 = level === Infinity || (typeof level === 'bigint' && level >= 125) || (typeof level === 'number' && level >= 125);
         setNodeLocked('cavern', !is125);
         refreshNodesState();
         window.dispatchEvent(new Event('pinnedAreas:changed'));
