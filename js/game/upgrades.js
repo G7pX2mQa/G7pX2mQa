@@ -900,8 +900,8 @@ export function normalizedUpgradeLevel(levelValue) {
     return Math.max(0, Math.floor(levelValue));
   }
   if (typeof levelValue === 'bigint') {
-    if (levelValue < 0n) return 0;
-    const maxSafe = BigInt(Number.MAX_SAFE_INTEGER);
+    if (levelValue < 0) return 0;
+    const maxSafe = Number(Number.MAX_SAFE_INTEGER);
     const clamped = levelValue > maxSafe ? maxSafe : levelValue;
     return Number(clamped);
   }
@@ -928,8 +928,8 @@ function getLinearBonusMultiplier(levelValue, amountPerLevel) {
   if (perLevel === 0) return BigNum.fromInt(1);
 
   try {
-    const asBigInt = (BigInt(lvl) * BigInt(perLevel)) + 1n;
-    return BigNum.fromAny(asBigInt.toString());
+    const asNum = (Number(lvl) * Number(perLevel)) + 1;
+    return BigNum.fromAny(asNum.toString());
   } catch {
     try {
       return BigNum.fromAny(String(1 + perLevel * lvl));
@@ -984,7 +984,7 @@ export function ensureLevelBigNum(value) {
       if (!trimmed) return BigNum.fromInt(0);
       if (/^inf(?:inity)?$/i.test(trimmed)) return BigNum.fromAny('Infinity');
 
-      // If the value is an enormous integer string, avoid constructing a huge BigInt.
+      // If the value is an enormous integer string, avoid constructing a huge Number.
       if (!trimmed.startsWith('BN:') && /^[+-]?\d+$/.test(trimmed)) {
         const unsigned = trimmed.replace(/^[+-]/, '').replace(/^0+(?=\d)/, '');
         if (!unsigned) return BigNum.fromInt(0);
@@ -1123,8 +1123,8 @@ function plainLevelDelta(nextLevelBn, prevLevelBn) {
     if (nextPlain === 'Infinity') return BigNum.fromAny('Infinity');
     if (prevPlain === 'Infinity') return BigNum.fromInt(0);
     if (nextPlain === prevPlain) return BigNum.fromInt(0);
-    const diff = BigInt(nextPlain) - BigInt(prevPlain);
-    if (diff <= 0n) return BigNum.fromInt(0);
+    const diff = Number(nextPlain) - Number(prevPlain);
+    if (diff <= 0) return BigNum.fromInt(0);
     return BigNum.fromAny(diff.toString());
   } catch {
     return BigNum.fromInt(0);
@@ -1272,13 +1272,13 @@ function hmMilestoneHits(levelBn, milestoneLevel) {
   try {
     const plain = levelBn.toPlainIntegerString?.();
     if (!plain || plain === 'Infinity') return 0;
-    const lvl = BigInt(plain);
-    const base = BigInt(Math.max(0, Math.floor(milestoneLevel)));
-    const interval = BigInt(HM_EVOLUTION_INTERVAL);
+    const lvl = Number(plain);
+    const base = Number(Math.max(0, Math.floor(milestoneLevel)));
+    const interval = Number(HM_EVOLUTION_INTERVAL);
     if (lvl < base) return 0;
     const delta = lvl - base;
     const cycles = delta / interval;
-    return Number(cycles + 1n);
+    return Number(cycles + 1);
   } catch {
     const approx = levelBigNumToNumber(levelBn);
     if (!Number.isFinite(approx) || approx < milestoneLevel) return 0;
@@ -1413,10 +1413,10 @@ function hmNextMilestoneLevel(upg, levelBn, areaKey = DEFAULT_AREA_KEY) {
     const hits = hmMilestoneHits(levelBn, lvl);
     let candidate = null;
     try {
-      const base = BigInt(lvl);
-      const nextHits = BigInt(Math.max(0, hits));
-      const targetBi = base + (BigInt(HM_EVOLUTION_INTERVAL) * nextHits);
-      if (targetBi > 0n) {
+      const base = Number(lvl);
+      const nextHits = Number(Math.max(0, hits));
+      const targetBi = base + (Number(HM_EVOLUTION_INTERVAL) * nextHits);
+      if (targetBi > 0) {
         candidate = BigNum.fromAny(targetBi.toString());
       }
     } catch {}
@@ -1530,7 +1530,7 @@ function ensureUpgradeScaling(upg) {
       ratio = Number(ratio);
       
       // If the ratio is astronomically large, decimalMultiplierString and mulDecimal will fail 
-      // due to the lack of scientific notation support in Javascript's BigInt string parsing.
+      // due to the lack of scientific notation support in Javascript's Number string parsing.
       // However, if the ratio is this huge, we will only use logarithmic math anyway (since we skip the small loops).
       // So we just set it to '1' or keep it as string to prevent crashes in the Exact loop which won't be used.
       ratioStr = ratio > 1e18 ? '1' : decimalMultiplierString(ratio);
@@ -1710,13 +1710,13 @@ const MAX_LEVEL_DELTA_LIMIT = (() => {
 
 const FLOAT64_BUFFER = new ArrayBuffer(8);
 const FLOAT64_VIEW = new Float64Array(FLOAT64_BUFFER);
-const INT64_VIEW = new BigInt64Array(FLOAT64_BUFFER);
+const INT64_VIEW = new Float64Array(FLOAT64_BUFFER);
 
 function nextDownPositive(value) {
   if (!(value > 0) || !Number.isFinite(value)) return value;
   FLOAT64_VIEW[0] = value;
   if (FLOAT64_VIEW[0] <= 0) return 0;
-  INT64_VIEW[0] -= 1n;
+  INT64_VIEW[0] -= 1;
   const next = FLOAT64_VIEW[0];
   return next > 0 ? next : 0;
 }
@@ -1724,7 +1724,7 @@ function nextDownPositive(value) {
 function nextUpPositive(value) {
   if (!(value >= 0) || !Number.isFinite(value)) return value;
   FLOAT64_VIEW[0] = value;
-  INT64_VIEW[0] += 1n;
+  INT64_VIEW[0] += 1;
   const next = FLOAT64_VIEW[0];
   return next > value ? next : value;
 }
@@ -2221,7 +2221,7 @@ export function estimateFlatBulk(priceBn, walletBn, roomBn) {
 const wPlain = walletBn.toPlainIntegerString?.();
 const pPlain = priceBn.toPlainIntegerString?.();
 if (wPlain && wPlain !== 'Infinity' && pPlain && pPlain !== 'Infinity') {
-  const q = BigInt(wPlain) / BigInt(pPlain);
+  const q = Number(wPlain) / Number(pPlain);
   let countBn = BigNum.fromAny(q.toString());
   if (!roomBn.isInfinite?.() && countBn.cmp(roomBn) > 0) countBn = roomBn;
   const spent = priceBn.mulBigNumInteger(countBn);
@@ -2813,13 +2813,13 @@ export const REGISTRY = [
     computeLockState(ctx) {
       const surgeLevel = getCurrentSurgeLevel();
       // surgeLevel might be BigNum or Number or Infinity.
-      // getCurrentSurgeLevel returns BigInt or Infinity.
+      // getCurrentSurgeLevel returns Number or Infinity.
       
       let isUnlocked = false;
       if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
           isUnlocked = true;
       } else if (typeof surgeLevel === 'bigint') {
-          isUnlocked = surgeLevel >= 3n;
+          isUnlocked = surgeLevel >= 3;
       } else if (typeof surgeLevel === 'number') {
           isUnlocked = surgeLevel >= 3;
       }
@@ -2889,7 +2889,7 @@ export const REGISTRY = [
       if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
           surge5 = true;
       } else if (typeof surgeLevel === 'bigint') {
-          surge5 = surgeLevel >= 5n;
+          surge5 = surgeLevel >= 5;
       } else if (typeof surgeLevel === 'number') {
           surge5 = surgeLevel >= 5;
       }
@@ -2957,7 +2957,7 @@ export const REGISTRY = [
       if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
           surge7 = true;
       } else if (typeof surgeLevel === 'bigint') {
-          surge7 = surgeLevel >= 7n;
+          surge7 = surgeLevel >= 7;
       } else if (typeof surgeLevel === 'number') {
           surge7 = surgeLevel >= 7;
       }
@@ -3026,7 +3026,7 @@ export const REGISTRY = [
       if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
           surge20 = true;
       } else if (typeof surgeLevel === 'bigint') {
-          surge20 = surgeLevel >= 20n;
+          surge20 = surgeLevel >= 20;
       } else if (typeof surgeLevel === 'number') {
           surge20 = surgeLevel >= 20;
       }
@@ -3545,7 +3545,7 @@ function ensureUpgradeState(areaKey, upgId) {
 
   let hmEvolutions = 0;
   if (upg?.upgType === 'HM') {
-    const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0n;
+    const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0;
     if (surgeLevel < 60) {
       let rawLevel = ensureLevelBigNum(rec.lvl);
       const cap = BigNum.fromInt(HM_EVOLUTION_INTERVAL);
@@ -3993,7 +3993,7 @@ function isUpgradeLocked(areaKey, upg) {
 export function isHmReadyToEvolve(upg, lvlBn, evolutions = null) {
   if (!upg || upg.upgType !== 'HM') return false;
 
-  const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0n;
+  const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0;
   if (surgeLevel < 60) return false;
 
   const safeEvol = (Number.isFinite(evolutions) || evolutions === Infinity || evolutions === 'Infinity')
