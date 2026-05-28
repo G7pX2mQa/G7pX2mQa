@@ -74,7 +74,7 @@ export const WATERWHEEL_DEFS = {
         id: WATERWHEELS.SCRAP,
         name: 'Scrap Waterwheel',
         image: 'img/waterwheels/waterwheel_scrap.webp',
-        baseReq: 1e25,
+        baseReq: 1e24,
         unlocked: false,
         styleKey: 'scrap',
         customUnlockCheck: () => {
