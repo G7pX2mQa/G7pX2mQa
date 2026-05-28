@@ -596,8 +596,8 @@ function levelsRemainingToCap(upg, currentLevelBn, currentLevelNumber) {
     const lvlPlain = lvlBn.toPlainIntegerString?.();
     if (capPlain === 'Infinity') return BigNum.fromAny('Infinity');
     if (capPlain && lvlPlain && capPlain !== 'Infinity' && lvlPlain !== 'Infinity') {
-      const delta = BigInt(capPlain) - BigInt(lvlPlain);
-      if (delta > 0n) return BigNum.fromAny(delta.toString());
+      const delta = Number(capPlain) - Number(lvlPlain);
+      if (delta > 0) return BigNum.fromAny(delta.toString());
       return BigNum.fromInt(0);
     }
   } catch {}
@@ -1834,12 +1834,12 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
           milestoneBtn._onClick = () => {
                  const milestones = Array.isArray(model.hmMilestones) ? model.hmMilestones : [];
                  const evolutions = Math.max(0, Math.floor(Number(model.hmEvolutions ?? 0)));
-                 const evolutionOffset = (() => { try { return BigInt(HM_EVOLUTION_INTERVAL) * BigInt(evolutions); } catch { return 0n; } })();
+                 const evolutionOffset = (() => { try { return Number(HM_EVOLUTION_INTERVAL) * Number(evolutions); } catch { return 0; } })();
                  const lines = milestones.sort((a,b)=>(Number(a?.level||0)-Number(b?.level||0))).map(m => {
                      const lvl = Math.max(0, Math.floor(Number(m?.level||0)));
                      const milestoneLevelBn = (() => {
                          if (model.lvlBn?.isInfinite?.()) return BigNum.fromAny('Infinity');
-                         try { return BigNum.fromAny((BigInt(lvl) + evolutionOffset).toString()); } catch { return BigNum.fromAny(lvl + (HM_EVOLUTION_INTERVAL * evolutions)); }
+                         try { return BigNum.fromAny((Number(lvl) + evolutionOffset).toString()); } catch { return BigNum.fromAny(lvl + (HM_EVOLUTION_INTERVAL * evolutions)); }
                      })();
                      const levelText = milestoneLevelBn?.isInfinite?.() ? 'Infinity' : formatNumber(milestoneLevelBn);
                      const mult = formatMultForUi(m?.multiplier??m?.mult??m?.value??1);
