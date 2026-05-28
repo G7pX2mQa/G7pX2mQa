@@ -22,7 +22,7 @@ let stateLoaded = false;
 let requirementBn = BigNum.fromInt(10);
 const xpRequirementCache = new Map();
 xpRequirementCache.set('0', requirementBn);
-let highestCachedExactLevel = 0n;
+let highestCachedExactLevel = 0;
 const infinityRequirementBn = BigNum.fromAny('Infinity');
 
 let lastSyncedMultiplier = null;
@@ -33,17 +33,17 @@ const coinMultiplierProviders = new Set();
 const xpGainMultiplierProviders = new Set();
 let externalBookRewardProvider = null;
 
-const EXACT_REQUIREMENT_CACHE_LEVEL = 5000n;
+const EXACT_REQUIREMENT_CACHE_LEVEL = 5000;
 const LOG_STEP = Math.log10(11 / 10);
 const LOG_DECADE_BONUS = Math.log10(5 / 2);
-const EXACT_COIN_LEVEL_LIMIT = 200n;
+const EXACT_COIN_LEVEL_LIMIT = 200;
 const LOG_STEP_DECIMAL = '0.04139268515822507';
 const LOG_DECADE_BONUS_DECIMAL = '0.3979400086720376';
 const TEN_DIVISOR_DECIMAL = '0.1';
 const maxLog10Bn = BigNum.fromScientific(String(BigNum.MAX_E));
 
-function bigIntToFloatApprox(value) {
-  if (value === 0n) return 0;
+function numToFloatApprox(value) {
+  if (value === 0) return 0;
   const str = value.toString();
   const len = str.length;
   const headDigits = Math.min(len, 15);
@@ -141,28 +141,28 @@ function bigNumPowerOf10(logBn) {
   let mantissa = Math.pow(10, fractionalNumber);
 
   const precision = 18;
-  const scaleFactor = 10n ** BigInt(precision);
+  const scaleFactor = 10 ** Number(precision);
 
-  let exponentAdjustment = 0n;
+  let exponentAdjustment = 0;
   if (mantissa >= 10) {
       mantissa /= 10;
-      exponentAdjustment = 1n;
+      exponentAdjustment = 1;
   }
 
-  const sig = BigInt(Math.round(mantissa * Number(scaleFactor)));
+  const sig = Number(Math.round(mantissa * Number(scaleFactor)));
 
   const integerPartString = integerPart.toPlainIntegerString();
   if (integerPartString === 'Infinity') {
       return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
-  const integerPartBigInt = BigInt(integerPartString);
+  const integerPartNum = Number(integerPartString);
 
-  const totalExponent = integerPartBigInt + exponentAdjustment - BigInt(precision);
+  const totalExponent = integerPartNum + exponentAdjustment - Number(precision);
 
   const E_LIMIT = 250;
-  const eBigInt = totalExponent % BigInt(E_LIMIT);
-  const e = Number(eBigInt);
-  const offset = totalExponent - eBigInt;
+  const eNum = totalExponent % Number(E_LIMIT);
+  const e = Number(eNum);
+  const offset = totalExponent - eNum;
 
   return new BigNum(sig, { base: e + Number(offset) });
 }
@@ -409,13 +409,13 @@ function stripHtml(value) {
 }
 
 
-function bonusMultipliersCount(levelBigInt) {
-  if (levelBigInt <= 1n) return 0n;
-  return (levelBigInt - 1n) / 10n;
+function bonusMultipliersCount(levelNum) {
+  if (levelNum <= 1) return 0;
+  return (levelNum - 1) / 10;
 }
 
-function ensureExactRequirementCacheUpTo(levelBigInt) {
-  const target = levelBigInt < EXACT_REQUIREMENT_CACHE_LEVEL ? levelBigInt : EXACT_REQUIREMENT_CACHE_LEVEL;
+function ensureExactRequirementCacheUpTo(levelNum) {
+  const target = levelNum < EXACT_REQUIREMENT_CACHE_LEVEL ? levelNum : EXACT_REQUIREMENT_CACHE_LEVEL;
   if (target <= highestCachedExactLevel) return;
 
   let currentLevel = highestCachedExactLevel;
@@ -426,10 +426,10 @@ function ensureExactRequirementCacheUpTo(levelBigInt) {
   }
 
   while (currentLevel < target) {
-    const nextLevel = currentLevel + 1n;
-    let nextRequirement = currentRequirement.mulScaledIntFloor(11n, 1);
-    if (nextLevel > 1n && ((nextLevel - 1n) % 10n === 0n)) {
-      nextRequirement = nextRequirement.mulScaledIntFloor(25n, 1);
+    const nextLevel = currentLevel + 1;
+    let nextRequirement = currentRequirement.mulScaledIntFloor(11, 1);
+    if (nextLevel > 1 && ((nextLevel - 1) % 10 === 0)) {
+      nextRequirement = nextRequirement.mulScaledIntFloor(25, 1);
     }
     xpRequirementCache.set(nextLevel.toString(), nextRequirement);
     currentRequirement = nextRequirement;
@@ -446,7 +446,7 @@ function ensureExactRequirementCacheUpTo(levelBigInt) {
 
 
 function approximateRequirementFromLevel(levelBn) {
-  const baseLevel = highestCachedExactLevel > 0n ? highestCachedExactLevel : 0n;
+  const baseLevel = highestCachedExactLevel > 0 ? highestCachedExactLevel : 0;
   const baseRequirement = xpRequirementCache.get(baseLevel.toString());
   if (!baseRequirement || bigNumIsInfinite(baseRequirement)) {
     return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
@@ -576,25 +576,25 @@ function xpRequirementForXpLevel(xpLevelInput) {
     levelPlain = '0';
   }
 
-  let targetLevelInfo = { bigInt: null, finite: true };
+  let targetLevelInfo = { num: null, finite: true };
   if (levelPlain && levelPlain !== 'Infinity') {
     try {
-      targetLevelInfo = { bigInt: BigInt(levelPlain), finite: true };
+      targetLevelInfo = { num: Number(levelPlain), finite: true };
     } catch {
-      targetLevelInfo = { bigInt: null, finite: true };
+      targetLevelInfo = { num: null, finite: true };
     }
   } else {
-    targetLevelInfo = { bigInt: null, finite: true };
+    targetLevelInfo = { num: null, finite: true };
   }
 
-  const targetLevel = targetLevelInfo.bigInt ?? 0n;
+  const targetLevel = targetLevelInfo.num ?? 0;
 
-  if (targetLevelInfo.bigInt != null && targetLevel <= 0n) {
+  if (targetLevelInfo.num != null && targetLevel <= 0) {
     const baseRequirement = xpRequirementCache.get('0');
     return baseRequirement.clone?.() ?? baseRequirement;
   }
 
-  if (targetLevelInfo.bigInt != null) {
+  if (targetLevelInfo.num != null) {
     ensureExactRequirementCacheUpTo(targetLevel);
     const targetKey = targetLevel.toString();
     const cachedExact = xpRequirementCache.get(targetKey);
@@ -609,8 +609,8 @@ function xpRequirementForXpLevel(xpLevelInput) {
     return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
 
-  if (targetLevelInfo.bigInt != null) {
-    xpRequirementCache.set(targetLevelInfo.bigInt.toString(), approximate);
+  if (targetLevelInfo.num != null) {
+    xpRequirementCache.set(targetLevelInfo.num.toString(), approximate);
   }
   return approximate.clone?.() ?? approximate;
 }
@@ -676,13 +676,13 @@ function normalizeProgress(applyRewards = false) {
   }
 }
 
-function xpLevelBigIntInfo(xpLevelValue) {
+function xpLevelNumInfo(xpLevelValue) {
   if (!xpLevelValue || typeof xpLevelValue !== 'object') {
-    return { bigInt: 0n, finite: false };
+    return { num: 0, finite: false };
   }
   const levelIsInfinite = xpLevelValue.isInfinite?.() || (typeof xpLevelValue.isInfinite === 'function' && xpLevelValue.isInfinite());
   if (levelIsInfinite) {
-    return { bigInt: null, finite: false };
+    return { num: null, finite: false };
   }
   let plain = '0';
   try {
@@ -691,15 +691,15 @@ function xpLevelBigIntInfo(xpLevelValue) {
     plain = '0';
   }
   if (plain === 'Infinity') {
-    return { bigInt: null, finite: false };
+    return { num: null, finite: false };
   }
   if (!plain) {
-    return { bigInt: null, finite: true };
+    return { num: null, finite: true };
   }
   try {
-    return { bigInt: BigInt(plain), finite: true };
+    return { num: Number(plain), finite: true };
   } catch {
-    return { bigInt: null, finite: true };
+    return { num: null, finite: true };
   }
 }
 
@@ -709,8 +709,8 @@ export function syncCoinMultiplierWithXpLevel(force = false) {
     return;
   }
 
-  const levelInfo = xpLevelBigIntInfo(xpState.xpLevel);
-  const levelBigInt = levelInfo.bigInt;
+  const levelInfo = xpLevelNumInfo(xpState.xpLevel);
+  const levelNum = levelInfo.num;
   const levelIsInfinite = !levelInfo.finite;
   const levelStorageKey = typeof xpState.xpLevel?.toStorage === 'function' ? xpState.xpLevel.toStorage() : null;
 
@@ -725,14 +725,14 @@ export function syncCoinMultiplierWithXpLevel(force = false) {
   }
 
   let multiplierBn;
-  if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
+  if (levelNum != null && levelNum <= EXACT_COIN_LEVEL_LIMIT) {
     let working = BigNum.fromInt(1);
-    const iterations = Number(levelBigInt);
+    const iterations = Number(levelNum);
     for (let i = 0; i < iterations; i += 1) {
       working = working.mulDecimal('1.1', 18);
     }
     let levelAdd;
-    try { levelAdd = BigNum.fromAny(levelBigInt.toString()); }
+    try { levelAdd = BigNum.fromAny(levelNum.toString()); }
     catch { levelAdd = BigNum.fromInt(iterations); }
     if (typeof working.add === 'function') {
       working = working.add(levelAdd);
@@ -1354,8 +1354,8 @@ export function computeCoinMultiplierForXpLevel(levelValue) {
     xpLevelBn = BigNum.fromInt(0);
   }
 
-  const levelInfo = xpLevelBigIntInfo(xpLevelBn);
-  const levelBigInt = levelInfo.bigInt;
+  const levelInfo = xpLevelNumInfo(xpLevelBn);
+  const levelNum = levelInfo.num;
   const levelIsInfinite = !levelInfo.finite;
 
   if (levelIsInfinite) {
@@ -1363,14 +1363,14 @@ export function computeCoinMultiplierForXpLevel(levelValue) {
   }
 
   let multiplierBn;
-  if (levelBigInt != null && levelBigInt <= EXACT_COIN_LEVEL_LIMIT) {
+  if (levelNum != null && levelNum <= EXACT_COIN_LEVEL_LIMIT) {
     let working = BigNum.fromInt(1);
-    const iterations = Number(levelBigInt);
+    const iterations = Number(levelNum);
     for (let i = 0; i < iterations; i += 1) {
       working = working.mulDecimal('1.1', 18);
     }
     let levelAdd;
-    try { levelAdd = BigNum.fromAny(levelBigInt.toString()); }
+    try { levelAdd = BigNum.fromAny(levelNum.toString()); }
     catch { levelAdd = BigNum.fromInt(iterations); }
     if (typeof working.add === 'function') {
       working = working.add(levelAdd);
