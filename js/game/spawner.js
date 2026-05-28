@@ -12,12 +12,12 @@ import { AREAS, currentArea } from '../main.js';
 import { createBaseSpawner, getCanvasSmoothingQuality, getImage, CUBIC_BEZIER, easeOutCubic } from './spawnerCore.js';
 
 let mutationUnlockedSnapshot = false;
-let mutationLevelSnapshot = 0n;
+let mutationLevelSnapshot = 0;
 
 function updateMutationSnapshot(state) {
   if (!state || typeof state !== 'object') {
     mutationUnlockedSnapshot = false;
-    mutationLevelSnapshot = 0n;
+    mutationLevelSnapshot = 0;
     return;
   }
   mutationUnlockedSnapshot = !!state.unlocked;
@@ -26,9 +26,9 @@ function updateMutationSnapshot(state) {
     const plain = typeof level?.toPlainIntegerString === 'function'
       ? level.toPlainIntegerString()
       : null;
-    mutationLevelSnapshot = plain && plain !== 'Infinity' ? BigInt(plain) : 0n;
+    mutationLevelSnapshot = plain && plain !== 'Infinity' ? Number(plain) : 0;
   } catch {
-    mutationLevelSnapshot = 0n;
+    mutationLevelSnapshot = 0;
   }
 }
 
