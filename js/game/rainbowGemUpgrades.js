@@ -1,6 +1,6 @@
 import { getMutationState } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
-import { levelBigNumToNumber } from './upgrades.js';
+import { levelBigNumToNumber, MYSTERIOUS_UPGRADE_ICON_DATA_URL, HIDDEN_UPGRADE_TITLE } from './upgrades.js';
 
 export const RAINBOW_GEM_AREA_KEY = 'rainbow_gem_shop';
 
@@ -59,9 +59,9 @@ export const RAINBOW_GEM_UPGRADES = [
           locked: true,
           hidden: true,
           reason: "Reach Mutation Level 2 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade",
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: "Reach Mutation Level 2 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true
@@ -88,9 +88,9 @@ export const RAINBOW_GEM_UPGRADES = [
           locked: true,
           hidden: true,
           reason: "Reach Mutation Level 2 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade",
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: "Reach Mutation Level 2 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true
@@ -117,9 +117,9 @@ export const RAINBOW_GEM_UPGRADES = [
           locked: true,
           hidden: true,
           reason: "Reach Mutation Level 2 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade",
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: "Reach Mutation Level 2 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true
@@ -146,9 +146,9 @@ export const RAINBOW_GEM_UPGRADES = [
           locked: true,
           hidden: true,
           reason: "Reach Mutation Level 3 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade",
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: "Reach Mutation Level 3 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true
@@ -175,9 +175,9 @@ export const RAINBOW_GEM_UPGRADES = [
           locked: true,
           hidden: true,
           reason: "Reach Mutation Level 3 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade",
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: "Reach Mutation Level 3 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true
@@ -204,9 +204,9 @@ export const RAINBOW_GEM_UPGRADES = [
           locked: true,
           hidden: true,
           reason: "Reach Mutation Level 3 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade",
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: "Reach Mutation Level 3 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true
@@ -233,9 +233,9 @@ export const RAINBOW_GEM_UPGRADES = [
           locked: true,
           hidden: true,
           reason: "Reach Mutation Level 4 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade",
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: "Reach Mutation Level 4 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true
@@ -262,9 +262,9 @@ export const RAINBOW_GEM_UPGRADES = [
           locked: true,
           hidden: true,
           reason: "Reach Mutation Level 4 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade",
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: "Reach Mutation Level 4 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true
@@ -291,9 +291,9 @@ export const RAINBOW_GEM_UPGRADES = [
           locked: true,
           hidden: true,
           reason: "Reach Mutation Level 4 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade",
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: "Reach Mutation Level 4 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true
@@ -320,9 +320,9 @@ export const RAINBOW_GEM_UPGRADES = [
           locked: true,
           hidden: true,
           reason: "Reach Mutation Level 5 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade",
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: "Reach Mutation Level 5 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true
@@ -349,9 +349,9 @@ export const RAINBOW_GEM_UPGRADES = [
           locked: true,
           hidden: true,
           reason: "Reach Mutation Level 5 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade",
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: "Reach Mutation Level 5 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true
@@ -378,9 +378,9 @@ export const RAINBOW_GEM_UPGRADES = [
           locked: true,
           hidden: true,
           reason: "Reach Mutation Level 5 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade",
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: "Reach Mutation Level 5 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true
@@ -406,8 +406,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 6 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 6 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 6 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -430,8 +430,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 6 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 6 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 6 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -454,8 +454,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 6 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 6 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 6 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -478,8 +478,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 7 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 7 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 7 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -502,8 +502,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 7 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 7 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 7 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -526,8 +526,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 7 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 7 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 7 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -550,8 +550,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 8 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 8 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 8 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -574,8 +574,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 8 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 8 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 8 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -598,8 +598,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 8 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 8 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 8 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -622,8 +622,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 9 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 9 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 9 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -646,8 +646,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 9 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 9 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 9 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -670,8 +670,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 9 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 9 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 9 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -694,8 +694,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 10 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 10 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 10 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -718,8 +718,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 10 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 10 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 10 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -742,8 +742,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 10 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 10 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 10 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -766,8 +766,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 11 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 11 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 11 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -790,8 +790,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 11 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 11 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 11 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -814,8 +814,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 11 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 11 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 11 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -838,8 +838,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 12 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 12 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 12 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -862,8 +862,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 12 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 12 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 12 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -886,8 +886,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 12 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 12 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 12 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -910,8 +910,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 13 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 13 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 13 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -934,8 +934,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 13 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 13 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 13 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -958,8 +958,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 13 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 13 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 13 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -982,8 +982,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 14 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 14 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 14 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1006,8 +1006,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 14 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 14 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 14 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1030,8 +1030,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 14 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 14 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 14 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1054,8 +1054,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 15 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 15 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 15 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1078,8 +1078,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 15 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 15 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 15 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1102,8 +1102,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 15 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 15 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 15 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1126,8 +1126,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 16 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 16 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 16 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1150,8 +1150,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 16 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 16 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 16 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1174,8 +1174,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 16 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 16 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 16 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1198,8 +1198,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 17 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 17 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 17 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1222,8 +1222,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 17 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 17 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 17 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1246,8 +1246,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 17 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 17 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 17 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1270,8 +1270,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 18 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 18 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 18 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1294,8 +1294,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 18 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 18 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 18 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1318,8 +1318,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 18 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 18 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 18 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1342,8 +1342,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 19 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 19 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 19 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1366,8 +1366,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 19 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 19 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 19 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1390,8 +1390,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 19 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 19 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 19 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1414,8 +1414,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 20 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 20 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 20 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1438,8 +1438,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 20 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 20 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 20 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1462,8 +1462,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 20 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 20 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 20 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1486,8 +1486,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 21 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 21 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 21 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1510,8 +1510,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 21 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 21 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 21 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1534,8 +1534,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 21 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 21 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 21 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1558,8 +1558,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 22 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 22 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 22 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1582,8 +1582,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 22 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 22 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 22 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1606,8 +1606,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 22 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 22 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 22 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1630,8 +1630,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 23 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 23 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 23 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1654,8 +1654,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 23 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 23 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 23 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1678,8 +1678,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 23 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 23 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 23 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1702,8 +1702,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 24 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 24 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 24 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1726,8 +1726,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 24 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 24 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 24 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1750,8 +1750,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 24 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 24 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 24 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1774,8 +1774,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 25 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 25 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 25 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1798,8 +1798,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 25 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 25 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 25 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
@@ -1822,8 +1822,8 @@ export const RAINBOW_GEM_UPGRADES = [
         return {
           locked: true, hidden: true,
           reason: "Reach Mutation Level 25 to reveal this upgrade",
-          titleOverride: "Hidden Upgrade", descOverride: "Reach Mutation Level 25 to reveal this upgrade",
-          iconOverride: "img/misc/mysterious.webp", hideCost: true, hideEffect: true, useLockedBase: true
+          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 25 to reveal this upgrade",
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
         };
       }
       return { locked: false, hidden: false };
