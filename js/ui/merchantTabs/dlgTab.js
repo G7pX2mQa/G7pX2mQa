@@ -241,9 +241,6 @@ setFlowUnlockChecker((level) => {
     if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) return true;
     if (surgeLevel === Number.POSITIVE_INFINITY) return true;
 
-    if (typeof surgeLevel === 'bigint') {
-        return surgeLevel >= Number(level);
-    }
     if (typeof surgeLevel === 'number') {
         return surgeLevel >= level;
     }
@@ -603,7 +600,6 @@ export const DLG_CATALOG = {
       const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0;
       let isSurge8 = false;
       if (surgeLevel === Infinity) isSurge8 = true;
-      else if (typeof surgeLevel === 'bigint') isSurge8 = surgeLevel >= 8;
       else if (typeof surgeLevel === 'number') isSurge8 = surgeLevel >= 8;
 
       if (isSurge8) {
