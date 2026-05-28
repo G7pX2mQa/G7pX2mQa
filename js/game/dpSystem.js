@@ -6,6 +6,11 @@ import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 
 import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
 
+const externalDpMultiplierProviders = [];
+export function addExternalDpMultiplierProvider(fn) {
+  if (typeof fn === 'function') externalDpMultiplierProviders.push(fn);
+}
+
 let dpFpProviderRegistered = false;
 
 function registerDpFpMultiplierProvider() {
@@ -580,6 +585,22 @@ export function addDp(amount, { silent = false } = {}) {
     inc = bnZero();
   }
 
+  let dpMult = BigNum.fromInt(1);
+  for (const provider of externalDpMultiplierProviders) {
+    try {
+      const val = provider(dpMult);
+      if (val instanceof BigNum) {
+        dpMult = val;
+      } else if (val) {
+        dpMult = dpMult.mulBigNumInteger(BigNum.fromAny(val));
+      }
+    } catch {}
+  }
+  
+  if (dpMult instanceof BigNum && !dpMult.isZero?.()) {
+      inc = inc.mulBigNumInteger ? inc.mulBigNumInteger(dpMult) : inc;
+  }
+
   inc = applyStatMultiplierOverride('dp', inc);
 
   if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
@@ -766,6 +787,7 @@ export function getDpRequirementForDpLevel(dpLevel) {
 if (typeof window !== 'undefined') {
   window.dpSystem = window.dpSystem || {};
   Object.assign(window.dpSystem, {
+    addExternalDpMultiplierProvider,
     initDpSystem,
     unlockDpSystem,
     addDp,
