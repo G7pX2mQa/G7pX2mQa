@@ -1,5 +1,5 @@
 import { unlockDpSystem, isDpSystemUnlocked } from './dpSystem.js';
-import { computeDefaultUpgradeCost, formatMultForUi, UPGRADE_TIES, determineLockState, AREA_KEYS, getLevelNumber } from './upgrades.js';
+import { AREA_KEYS, LOCKED_UPGRADE_ICON_DATA_URL, formatMultForUi, safeHasMetMiner, UPGRADE_TIES, LOCKED_UPGRADE_TITLE, computeDefaultUpgradeCost, HIDDEN_UPGRADE_TITLE, MYSTERIOUS_UPGRADE_ICON_DATA_URL, getLevelNumber } from './upgrades.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { isSellUnlocked, hasViewedSellTab } from '../ui/minerTabs/sellTab.js';
@@ -44,7 +44,29 @@ export const UC_REGISTRY = [
     unlockUpgrade: true,
     costAtLevel() { return BigNum.fromInt(0); },
     nextCostAfter() { return BigNum.fromInt(0); },
-    computeLockState: determineLockState,
+    computeLockState() {
+      if (safeHasMetMiner()) {
+        return {
+          locked: false,
+          hidden: false,
+          hideCost: false,
+          hideEffect: false,
+          useLockedBase: false,
+        };
+      }
+      const revealText = 'Explore the Delve menu to reveal this upgrade';
+      return {
+        locked: true,
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: revealText,
+        reason: revealText,
+        hidden: true,
+        hideCost: true,
+        hideEffect: true,
+        useLockedBase: true,
+      };
+    },
     onLevelChange({ newLevel }) {
       if ((newLevel ?? 0) >= 1) {
         try { if (typeof window.onSellUpgradeUnlocked === 'function') window.onSellUpgradeUnlocked(); } catch {}
@@ -68,7 +90,36 @@ export const UC_REGISTRY = [
     unlockUpgrade: true,
     costAtLevel() { return BigNum.fromInt(0); },
     nextCostAfter() { return BigNum.fromInt(0); },
-    computeLockState: determineLockState,
+    computeLockState() {
+      if (!isSellUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          useLockedBase: true,
+        };
+      }
+      if (!hasViewedSellTab()) {
+        const revealText = 'Visit the Sell tab to reveal this upgrade';
+        return {
+          locked: true,
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
+          descOverride: revealText,
+          reason: revealText,
+          hidden: true,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+        };
+      }
+      return {
+        locked: false,
+        hidden: false,
+        hideCost: false,
+        hideEffect: false,
+        useLockedBase: false,
+      };
+    },
     onLevelChange({ newLevel }) {
       if ((newLevel ?? 0) >= 1) {
         try { unlockDpSystem(); } catch {}
@@ -109,16 +160,16 @@ export const UC_REGISTRY = [
           hideCost: true,
           hideEffect: true,
           useLockedBase: true,
-          titleOverride: 'Locked Upgrade',
+          titleOverride: LOCKED_UPGRADE_TITLE,
           descOverride: 'Locked',
-          iconOverride: 'img/misc/locked.webp',
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
         };
       }
       if (!isDpSystemUnlocked()) {
         return {
           locked: true,
-          iconOverride: 'img/misc/mysterious.webp',
-          titleOverride: 'Hidden Upgrade',
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
           descOverride: 'Unlock the Depth system',
           reason: 'Unlock the Depth system',
           hidden: false,
