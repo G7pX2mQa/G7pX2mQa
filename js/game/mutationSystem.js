@@ -113,8 +113,8 @@ function quantizeRequirement(value) {
     const plain = floored.toPlainIntegerString?.();
     if (!plain || plain === 'Infinity') return floored;
     try {
-      const quant = (BigInt(plain) / 100n) * 100n;
-      if (quant <= 0n) return BN.fromInt(100);
+      const quant = (Number(plain) / 100) * 100;
+      if (quant <= 0) return BN.fromInt(100);
       return BigNum.fromAny(quant.toString());
     } catch {
       return floored;
