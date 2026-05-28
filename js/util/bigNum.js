@@ -39,16 +39,16 @@ export class BigNum {
     this.inf = inf;
 
     if (this.p === 0 && !inf) {
-      this.sig = 1n; 
+      this.sig = 1; 
     } else {
-      this.sig = (sig !== '' && sig !== null && sig !== undefined) ? BigInt(sig) : 1n;
+      this.sig = (sig !== '' && sig !== null && sig !== undefined) ? Number(sig) : 1;
     }
 
     this.#normalize();
   }
 
   // ---------------------- FACTORIES ----------------------
-  static zero(p = BigNum.DEFAULT_PRECISION) { return new BigNum(0n, 0, p); }
+  static zero(p = BigNum.DEFAULT_PRECISION) { return new BigNum(0, 0, p); }
   static min(a, b) {
     a = BigNum.fromAny(a);
     b = BigNum.fromAny(b);
@@ -56,7 +56,7 @@ export class BigNum {
   }
 
   static fromInt(n, p = BigNum.DEFAULT_PRECISION) {
-    return new BigNum(BigInt(n), 0, p);
+    return new BigNum(Number(n), 0, p);
   }
 
   static fromScientific(str, p = BigNum.DEFAULT_PRECISION) {
@@ -64,12 +64,12 @@ export class BigNum {
     if (!s) throw new TypeError('Invalid BigNum input: ' + str);
 
     if (/^inf(?:inity)?$/i.test(s)) {
-      return new BigNum(1n, BigNum.MAX_E, p);
+      return new BigNum(1, BigNum.MAX_E, p);
     }
 
     const match = s.match(/^([+-]?\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i);
     if (!match) {
-      return new BigNum(BigInt(s), 0, p);
+      return new BigNum(Number(s), 0, p);
     }
 
     let [, intPart, fracPart = '', expPart] = match;
@@ -86,7 +86,7 @@ export class BigNum {
     }
 
     const digits = digitsRaw.replace(/^0+/, '') || '0';
-    const sig = BigInt(sign + digits);
+    const sig = Number(sign + digits);
     return new BigNum(sig, exponent, p);
   }
 
@@ -96,32 +96,32 @@ export class BigNum {
     if (str.startsWith('BN:')) {
       const parts = str.split(':');
       if (parts[1] === 'infinite') {
-        return new BigNum(1n, { base: BigNum.MAX_E, inf: true }, p);
+        return new BigNum(1, { base: BigNum.MAX_E, inf: true }, p);
       }
       const [, pStr, sigStr, eStr] = parts;
       const pp = parseInt(pStr, 10) || p;
       let eNum = Number(eStr);
       if (!Number.isFinite(eNum)) eNum = BigNum.MAX_E;
-      const parsedSig = sigStr ? BigInt(sigStr) : 1n;
+      const parsedSig = sigStr ? Number(sigStr) : 1;
       return new BigNum(parsedSig, { base: eNum }, pp);
     }
     return BigNum.fromScientific(str, p);
   }
 
-  // Accepts: BigNum | "BN:..." | scientific string | number | bigint
+  // Accepts: BigNum | "BN:..." | scientific string | number
   static fromAny(input, p = BigNum.DEFAULT_PRECISION) {
     if (input instanceof BigNum) return input;
     if (typeof input === 'string') {
       const trimmed = input.trim();
       if (trimmed.startsWith('BN:')) return BigNum.fromStorage(trimmed, p);
-      if (/^inf(?:inity)?$/i.test(trimmed)) return new BigNum(1n, BigNum.MAX_E, p);
+      if (/^inf(?:inity)?$/i.test(trimmed)) return new BigNum(1, BigNum.MAX_E, p);
       if (/^[+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i.test(trimmed)) return BigNum.fromScientific(trimmed, p);
     }
     if (typeof input === 'number') {
-      if (!Number.isFinite(input)) return new BigNum(1n, BigNum.MAX_E, p);
+      if (!Number.isFinite(input)) return new BigNum(1, BigNum.MAX_E, p);
       return BigNum.fromScientific(input.toString(), p);
     }
-    if (typeof input === 'bigint') return BigNum.fromInt(input, p);
+    
     throw new TypeError('Unsupported BigNum input: ' + input);
     }
 
@@ -137,7 +137,7 @@ export class BigNum {
   }
 
   // ---------------------- STATE QUERIES ----------------------
-  isZero() { return !this.inf && this.sig === 0n; }
+  isZero() { return !this.inf && this.sig === 0; }
   isInfinite() { return !!this.inf; }
   isNegative() { return false; }
 
@@ -157,7 +157,7 @@ export class BigNum {
     if (expCmp >= 0) {
       const aligned = expCmp === 0 ? b.sig : this.#alignSig(b);
       const diffSig = this.sig - aligned;
-      if (diffSig > 0n) {
+      if (diffSig > 0) {
         return new BigNum(diffSig, this.#expObj(), this.p);
       }
     }
@@ -175,13 +175,13 @@ export class BigNum {
     const scaledB = shiftB === 0 ? b.sig : b.sig * this.#pow10(shiftB);
 
     const exactDiff = scaledA - scaledB;
-    if (exactDiff <= 0n) return BigNum.zero(this.p);
+    if (exactDiff <= 0) return BigNum.zero(this.p);
 
     return new BigNum(exactDiff, minE, this.p);
   }
 
   // ---------------------- PRIVATE HELPERS ----------------------
-  #pow10(k) { return k <= 0 ? 1n : 10n ** BigInt(k); }
+  #pow10(k) { return k <= 0 ? 1 : Math.pow(10, k); }
 
   #expObj() {
     return { base: this.e, inf: this.inf };
@@ -204,14 +204,14 @@ export class BigNum {
 
   #expDiff(other) {
     if (this.inf || other.inf) {
-      if (this.inf && other.inf) return 0n;
-      return this.inf ? BigInt(this.p + 3) : -BigInt(this.p + 3);
+      if (this.inf && other.inf) return 0;
+      return this.inf ? Number(this.p + 3) : -Number(this.p + 3);
     }
-    const diff = BigInt(Math.trunc(this.e - other.e));
-    const absDiff = diff < 0n ? -diff : diff;
-    const limit = BigInt(this.p + 2);
+    const diff = Number(Math.trunc(this.e - other.e));
+    const absDiff = diff < 0 ? -diff : diff;
+    const limit = Number(this.p + 2);
     if (absDiff > limit) {
-      return diff > 0n ? BigInt(this.p + 3) : -BigInt(this.p + 3);
+      return diff > 0 ? Number(this.p + 3) : -Number(this.p + 3);
     }
     return diff;
   }
@@ -223,27 +223,27 @@ export class BigNum {
 
   #normalize() {
     if (this.inf) return;
-    if (this.sig === 0n) { this.e = 0; return; }
+    if (this.sig === 0) { this.e = 0; return; }
 
     let s = this.sig;
     const p = this.p;
     
-    // If precision is 0, we treat it effectively as 1 digit for the sake of shifting (val=1n to 9n),
+    // If precision is 0, we treat it effectively as 1 digit for the sake of shifting (val=1 to 9),
     // but the true value is just captured by exponent.
     const targetP = p === 0 ? 1 : p;
-    const d = s.toString().length;
+    const d = s === 0 ? 1 : Math.floor(Math.log10(s)) + 1;
     const shift = d - targetP;
 
     if (shift > 0) {
       const base = this.#pow10(shift);
-      let q = s / base;
+      let q = Math.floor(s / base);
       const r = s % base;
-      if (r * 2n >= base) q += 1n; // round half up
+      if (r * 2 >= base) q += 1;
       s = q;
       this.#adjustExponent(shift);
       if (this.e >= BigNum.MAX_E) { this.e = BigNum.MAX_E; this.inf = true; return; }
-      if (s.toString().length > targetP) { // carry overflow
-        s = s / 10n;
+      if ((s === 0 ? 1 : Math.floor(Math.log10(s)) + 1) > targetP) { // carry overflow
+        s = s / 10;
         this.#adjustExponent(1);
         if (this.e >= BigNum.MAX_E) { this.e = BigNum.MAX_E; this.inf = true; return; }
       }
@@ -254,9 +254,9 @@ export class BigNum {
     }
 
     if (p === 0) {
-      // With precision 0, sig doesn't carry mantissa info but we can leave it normalized to 1n.
-      // E.g., if sig was 5n, it would just be 1n * 10^(e) + ... we'll just force it to 1n and perhaps tweak exponent if we wanted rounding, but at this scale it doesn't matter.
-      this.sig = 1n;
+      // With precision 0, sig doesn't carry mantissa info but we can leave it normalized to 1.
+      // E.g., if sig was 5, it would just be 1 * 10^(e) + ... we'll just force it to 1 and perhaps tweak exponent if we wanted rounding, but at this scale it doesn't matter.
+      this.sig = 1;
     } else {
       this.sig = s;
     }
@@ -264,14 +264,14 @@ export class BigNum {
 
   #alignSig(other) {
     const diff = this.#expDiff(other);
-    const absDiff = diff < 0n ? -diff : diff;
-    if (absDiff === 0n) return other.sig;
-    if (absDiff > BigInt(this.p + 2)) return 0n; // negligible
+    const absDiff = diff < 0 ? -diff : diff;
+    if (absDiff === 0) return other.sig;
+    if (absDiff > Number(this.p + 2)) return 0; // negligible
     const diffNum = Number(absDiff);
     const base = this.#pow10(diffNum);
-    let q = other.sig / base;
+    let q = Math.floor(other.sig / base);
     const r = other.sig % base;
-    if (r * 2n >= base) q += 1n;
+    if (r * 2 >= base) q += 1;
     return q;
   }
 
@@ -296,7 +296,7 @@ export class BigNum {
     if (this.inf) return this.clone();
     if (k === 0) return BigNum.zero(this.p);
     if (k === 1) return this.clone();
-    const out = new BigNum(this.sig * BigInt(k), this.#expObj(), this.p);
+    const out = new BigNum(this.sig * Number(k), this.#expObj(), this.p);
     return out;
   }
 
@@ -327,7 +327,7 @@ export class BigNum {
     
     // Handle infinite cases
     if (this.inf) {
-        if (b.inf) return new BigNum(1n, 0, this.p); // inf / inf -> 1 (or undefined, but 1 is safer for ratios)
+        if (b.inf) return new BigNum(1, 0, this.p); // inf / inf -> 1 (or undefined, but 1 is safer for ratios)
         return this.clone(); // inf / finite -> inf
     }
     if (b.inf) {
@@ -337,7 +337,7 @@ export class BigNum {
     // Handle zero cases
     if (b.isZero()) {
         // finite / 0 -> infinity (mathematically undefined but useful here)
-        return new BigNum(1n, BigNum.MAX_E, this.p);
+        return new BigNum(1, BigNum.MAX_E, this.p);
     }
     if (this.isZero()) {
         return BigNum.zero(this.p); // 0 / finite -> 0
@@ -351,7 +351,7 @@ export class BigNum {
     const targetPrecision = Math.max(this.p, b.p);
     const scale = this.#pow10(targetPrecision);
     const numerator = this.sig * scale;
-    const sigQuotient = numerator / b.sig; // Integer division
+    const sigQuotient = Math.floor(numerator / b.sig);
     
     // Exponent calculation:
     // We used 'this.e' and 'b.e' for base exponents.
@@ -405,10 +405,10 @@ export class BigNum {
   }
   // ----- Decimal multiply (exact, integer-safe) & flooring -----
 
-  // Parse decimal like "2.345" (or number) into { numer: BigInt, scale: int } with up to maxScale frac digits.
+  // Parse decimal like "2.345" (or number) into { numer: Number, scale: Number } with up to maxScale frac digits.
   static _parseDecimalMultiplier(x, maxScale = BigNum.DEFAULT_PRECISION) {
     let s = (typeof x === 'number') ? String(x) : String(x ?? '').trim();
-    if (!s || s === '0') return { numer: 0n, scale: 0 };
+    if (!s || s === '0') return { numer: 0, scale: 0 };
 
     // normalize scientific like "1e3" to fixed decimal string
     if (/e/i.test(s)) {
@@ -423,7 +423,7 @@ export class BigNum {
     const [intPart, fracRaw = ''] = s.split('.');
     const frac = fracRaw.slice(0, maxScale); // clamp fractional length
     const scale = frac.length;
-    const numer = BigInt(intPart + frac);
+    const numer = Number(intPart + frac);
     return { numer, scale };
   }
 
@@ -431,7 +431,7 @@ export class BigNum {
   mulDecimal(mult, maxScale = BigNum.DEFAULT_PRECISION) {
     if (this.inf || this.isZero()) return this.clone();
     const { numer, scale } = BigNum._parseDecimalMultiplier(mult, maxScale);
-    if (numer === 0n) return BigNum.zero(this.p);
+    if (numer === 0) return BigNum.zero(this.p);
     return this.mulScaledInt(numer, scale);
   }
 
@@ -445,7 +445,7 @@ export class BigNum {
     if (intDigits <= 0) return BigNum.zero(this.p); // < 1
     if (intDigits >= this.p) return this.clone();   // already integral
     const drop = this.p - intDigits;                // digits to truncate
-    const base = 10n ** BigInt(drop);
+    const base = Math.pow(10, drop);
     const newSig = (this.sig / base) * base;        // drop fractional digits
     return new BigNum(newSig, this.#expObj(), this.p);
   }
@@ -455,16 +455,17 @@ export class BigNum {
     return this.mulDecimal(mult, maxScale).floorToInteger();
   }
 
-  mulScaledInt(numerBigInt, scale) {
+  mulScaledInt(numer, scale) {
+    const numerNum = numer;
     if (this.inf || this.isZero()) return this.clone();
-    const nb = BigInt(numerBigInt);
-    if (nb === 0n) return BigNum.zero(this.p);
+    const nb = Number(numerNum);
+    if (nb === 0) return BigNum.zero(this.p);
     return new BigNum(this.sig * nb, { base: this.e - (scale | 0) }, this.p);
   }
 
   // Same as above but floors to an integer.
-  mulScaledIntFloor(numerBigInt, scale) {
-    return this.mulScaledInt(numerBigInt, scale).floorToInteger();
+  mulScaledIntFloor(numer, scale) {
+    return this.mulScaledInt(numer, scale).floorToInteger();
   }
 
   // ---------------------- FORMATTING ----------------------
@@ -534,7 +535,7 @@ export function approxLog10BigNum(value) {
   if (value.isZero?.()) return Number.NEGATIVE_INFINITY;
   if (value.isInfinite?.()) return Number.POSITIVE_INFINITY;
 
-  if (typeof value.sig === 'bigint') {
+  if (typeof value.sig === 'number') {
     const sigNum = Number(value.sig);
     if (sigNum > 0) {
       const sigLog = Math.log10(sigNum);
@@ -587,7 +588,7 @@ export function bigNumFromLog10(log10Value, noFuzz = false) {
   }
 
   const mantissa = Math.pow(10, frac + (p - 1));
-  const sig = BigInt(Math.max(1, Math.round(mantissa)));
+  const sig = Math.max(1, Math.round(mantissa));
   const exp = intPart - (p - 1);
   return new BigNum(sig, exp, p);
 }
