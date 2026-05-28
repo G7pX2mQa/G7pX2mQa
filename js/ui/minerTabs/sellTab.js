@@ -454,7 +454,7 @@ export function updateSellTab() {
        
        const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
        const materialValue = BigNum.fromAny(t.value || 0);
-       const val = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1n, 18);
+       const val = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, 18);
        rowCache.valEl.innerHTML = formatNumber(val);
        rowCache.currentVal = val;
        rowCache.currentOwned = owned;
