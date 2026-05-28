@@ -129,7 +129,7 @@ export function getLabCost(level) {
         if (lvl.cmp(1e15) < 0) {
              const lvlNum = Number(lvl.toPlainIntegerString());
              const exponent = 20 + lvlNum;
-             return new BigNum(1n, exponent);
+             return new BigNum(1, exponent);
         }
         
         if (lvl.cmp(BigNum.fromScientific("1e1000000")) > 0) {
@@ -139,10 +139,10 @@ export function getLabCost(level) {
         const lvlStr = lvl.toPlainIntegerString();
         if (lvlStr === 'Infinity') return BigNum.fromAny('Infinity');
         
-        const lvlBigInt = BigInt(lvlStr);
-        const totalExponent = 20n + lvlBigInt;
+        const lvlNum = Number(lvlStr);
+        const totalExponent = 20 + lvlNum;
         
-        let expNum = Number(totalExponent); if (!Number.isFinite(expNum)) expNum = BigNum.MAX_E; return new BigNum(1n, expNum);
+        let expNum = Number(totalExponent); if (!Number.isFinite(expNum)) expNum = BigNum.MAX_E; return new BigNum(1, expNum);
 
     } catch (e) {
         console.error("Error calculating lab cost", e);
@@ -241,23 +241,23 @@ function bigNumPowerOf10(logBn) {
   mantissa = Number(mantissa.toPrecision(15));
 
   const precision = 18;
-  const scaleFactor = 10n ** BigInt(precision);
+  const scaleFactor = 10 ** Number(precision);
 
-  let exponentAdjustment = 0n;
+  let exponentAdjustment = 0;
   if (mantissa >= 10) {
       mantissa /= 10;
-      exponentAdjustment = 1n;
+      exponentAdjustment = 1;
   }
 
-  const sig = BigInt(Math.round(mantissa * Number(scaleFactor)));
+  const sig = Number(Math.round(mantissa * Number(scaleFactor)));
 
   const integerPartString = integerPart.toPlainIntegerString();
   if (integerPartString === 'Infinity') {
       return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
-  const integerPartBigInt = BigInt(integerPartString);
+  const integerPartNum = Number(integerPartString);
 
-  const totalExponent = integerPartBigInt + exponentAdjustment - BigInt(precision);
+  const totalExponent = integerPartNum + exponentAdjustment - Number(precision);
 
   
 
