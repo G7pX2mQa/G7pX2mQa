@@ -1243,11 +1243,14 @@ function buildUI(panel) {
         item.innerHTML = `
             <div class="flow-bar-container">
                  <img src="${def.image}" class="flow-icon-overlay" id="flow-icon-${id}" alt="">
-                 <div class="flow-bar-inner">
-                    <div class="flow-bar-fill" id="flow-fill-${id}"></div>
-                    <div class="flow-bar-text">
-                        <span class="flow-name-text" id="flow-name-${id}">${def.name}</span>
-                    </div>
+                 <div class="flow-bar-inner-wrapper" style="position: relative; flex: 1; height: var(--flow-bar-h); display: flex;">
+                     <div class="flow-bar-inner" id="flow-bar-inner-${id}" style="width: 100%;">
+                        <div class="flow-bar-fill" id="flow-fill-${id}"></div>
+                        <div class="flow-bar-text">
+                            <span class="flow-name-text" id="flow-name-${id}">${def.name}</span>
+                        </div>
+                     </div>
+                     <div class="setting-info-tooltip" id="flow-tooltip-${id}"></div>
                  </div>
             </div>
             
@@ -1278,6 +1281,8 @@ function buildUI(panel) {
     flowDomCache = {};
     for (const id in WATERWHEEL_DEFS) {
         const fillEl = wrapper.querySelector(`#flow-fill-${id}`);
+        const innerBar = wrapper.querySelector(`#flow-bar-inner-${id}`);
+        const tooltip = wrapper.querySelector(`#flow-tooltip-${id}`);
         flowDomCache[id] = {
             icon: wrapper.querySelector(`#flow-icon-${id}`),
             lvl: wrapper.querySelector(`#flow-lvl-${id}`),
@@ -1285,9 +1290,65 @@ function buildUI(panel) {
             controls: wrapper.querySelector(`#flow-controls-${id}`),
             name: wrapper.querySelector(`#flow-name-${id}`),
             fill: fillEl,
+            innerBar: innerBar,
+            tooltip: tooltip,
             row: fillEl ? fillEl.closest('.flow-row') : null,
             toggleBtn: wrapper.querySelector(`.flow-toggle-btn[data-id="${id}"]`)
         };
+
+        if (innerBar && tooltip) {
+            innerBar.addEventListener("mouseenter", () => {
+                const ch = state.waterwheels[id];
+                if (!ch || !ch.unlocked) return;
+                
+                tooltip.style.visibility = "hidden";
+                tooltip.style.display = "block";
+                tooltip.style.opacity = "0";
+                tooltip.style.maxHeight = "none";
+                tooltip.classList.remove("is-upwards");
+                
+                const tooltipHeight = tooltip.scrollHeight;
+                const rect = innerBar.getBoundingClientRect();
+                
+                let scrollContainer = innerBar.parentElement;
+                let containerRect = null;
+                while (scrollContainer && scrollContainer !== document.body) {
+                    const style = window.getComputedStyle(scrollContainer);
+                    if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                        containerRect = scrollContainer.getBoundingClientRect();
+                        break;
+                    }
+                    scrollContainer = scrollContainer.parentElement;
+                }
+                
+                let viewportBottom, viewportTop;
+                if (containerRect) {
+                    viewportBottom = Math.min(window.innerHeight, containerRect.bottom);
+                    viewportTop = Math.max(0, containerRect.top);
+                } else {
+                    viewportBottom = window.innerHeight;
+                    viewportTop = 0;
+                }
+                
+                const spaceBelow = viewportBottom - rect.bottom - 10;
+                const spaceAbove = rect.top - viewportTop - 10;
+                
+                // Always render upwards (rightside up variant)
+                tooltip.classList.add("is-upwards");
+                
+                tooltip.style.maxHeight = "";
+                tooltip.style.overflowY = "";
+                tooltip.style.visibility = "";
+                tooltip.style.display = "block";
+                tooltip.style.opacity = "";
+                tooltip.classList.add("is-visible");
+            });
+
+            innerBar.addEventListener("mouseleave", () => {
+                tooltip.style.display = "";
+                tooltip.classList.remove("is-visible");
+            });
+        }
     }
 }
 
@@ -1522,9 +1583,11 @@ function updateFlowVisuals() {
             
             let pct = 0;
             let isMaxed = false;
+            let isInfiniteLevel = false;
 
             if (ch.level instanceof BigNum && ch.level.isInfinite()) {
                 isMaxed = true;
+                isInfiniteLevel = true;
             }
             
             if (!isMaxed && ch.active) {
@@ -1542,6 +1605,7 @@ function updateFlowVisuals() {
                 }
             }
             
+            let fpValForTooltip = ch.fp;
             if (isMaxed) {
                 pct = 100;
             } else {
@@ -1550,6 +1614,7 @@ function updateFlowVisuals() {
                      if (fpVal.isInfinite()) fpVal = Infinity;
                      else try { fpVal = Number(fpVal.toScientific(5)); } catch { fpVal = 0; }
                 }
+                fpValForTooltip = fpVal;
                 
                 if (req > 0) {
                     pct = Math.min(100, Math.max(0, (fpVal / req) * 100));
@@ -1559,6 +1624,34 @@ function updateFlowVisuals() {
             if (elFill) {
                 const newWidth = `${pct}%`;
                 if (elFill.style.width !== newWidth) elFill.style.width = newWidth;
+            }
+            
+            if (cache.tooltip) {
+                if (isInfiniteLevel) {
+                    cache.tooltip.innerText = "wow";
+                } else if (isMaxed) {
+                    cache.tooltip.innerText = "Spinning at maximum speeds";
+                } else {
+                    let flooredCurrent = fpValForTooltip;
+                    let flooredReq = req;
+                    if (flooredCurrent instanceof BigNum) {
+                        flooredCurrent = flooredCurrent.floor();
+                    } else if (typeof flooredCurrent === 'number') {
+                        flooredCurrent = Math.floor(flooredCurrent);
+                    }
+                    if (flooredReq instanceof BigNum) {
+                        flooredReq = flooredReq.floor();
+                    } else if (typeof flooredReq === 'number') {
+                        flooredReq = Math.floor(flooredReq);
+                    }
+                    
+                    if (!(flooredCurrent instanceof BigNum)) flooredCurrent = BigNum.fromAny(flooredCurrent);
+                    if (!(flooredReq instanceof BigNum)) flooredReq = BigNum.fromAny(flooredReq);
+                    
+                    const currentStr = formatNumber(flooredCurrent);
+                    const reqStr = formatNumber(flooredReq);
+                    cache.tooltip.innerText = `Current progress: ${currentStr} / ${reqStr}`;
+                }
             }
         }
     }
