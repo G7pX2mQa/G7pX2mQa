@@ -1,7 +1,7 @@
 // js/ui/minerTabs/dlgTab.js
 import { getActiveSlot } from '../../util/storage.js';
 import { MINER_DIALOGUES } from '../../misc/minerDialogues.js';
-import { blockInteraction, updateShopOverlay, closeDelveSpecificOverlays } from '../shopOverlay.js';
+import { blockInteraction, updateShopOverlay, closeDelveSpecificOverlays, setupDragToClose } from '../shopOverlay.js';
 import { shouldSkipGhostTap, suppressNextGhostTap } from '../../util/ghostTapGuard.js';
 import { IS_MOBILE } from '../../main.js';
 import { setAudioUnderwater } from '../../util/audioManager.js';
@@ -133,6 +133,7 @@ function ensureMinerOverlay() {
 
 
     closeBtn.addEventListener('click', closeMiner);
+    setupDragToClose(grabber, minerSheetEl, () => minerOverlayEl && minerOverlayEl.classList.contains('is-open'), closeMiner);
     ensureMerchantScrollbar(minerOverlayEl, minerSheetEl, '.merchant-content');
 
     if (!minerUnlockListenerBound && typeof window !== 'undefined') {
