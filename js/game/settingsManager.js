@@ -183,7 +183,7 @@ export const SETTING_DEFINITIONS = {
     label: 'Pickup Animation',
     overlay: 'performance',
     hasExtraInfo: true,
-    info: 'Applies to all collectibles that spawn on the playfield. Turning this setting OFF would disable the pickup animations for all collectibles.',
+    info: 'Applies to all collectibles that spawn. Turning this setting OFF would disable the pickup animations for all collectibles.',
     default: true,
     unlockCondition: () => !IS_MOBILE,
   },
