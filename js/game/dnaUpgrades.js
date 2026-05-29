@@ -61,8 +61,6 @@ export const REGISTRY = [
         
         if (typeof sl === 'number') {
             if (sl >= 10 || sl === Infinity) isUnlocked = true;
-        } else if (typeof sl === 'bigint') {
-            if (sl >= 10n) isUnlocked = true;
         } else if (typeof sl === 'string') {
              if (sl === 'Infinity' || parseFloat(sl) === Infinity) isUnlocked = true;
              else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 10) isUnlocked = true;
@@ -108,8 +106,6 @@ export const REGISTRY = [
         
         if (typeof sl === 'number') {
             if (sl >= 10 || sl === Infinity) isUnlocked = true;
-        } else if (typeof sl === 'bigint') {
-            if (sl >= 10n) isUnlocked = true;
         } else if (typeof sl === 'string') {
              if (sl === 'Infinity' || parseFloat(sl) === Infinity) isUnlocked = true;
              else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 10) isUnlocked = true;
@@ -155,8 +151,6 @@ export const REGISTRY = [
         
         if (typeof sl === 'number') {
             if (sl >= 19 || sl === Infinity) isUnlocked = true;
-        } else if (typeof sl === 'bigint') {
-            if (sl >= 19n) isUnlocked = true;
         } else if (typeof sl === 'string') {
              if (sl === 'Infinity' || parseFloat(sl) === Infinity) isUnlocked = true;
              else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 19) isUnlocked = true;
