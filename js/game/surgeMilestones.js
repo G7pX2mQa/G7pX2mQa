@@ -398,14 +398,6 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
     currentLevel = currentSurgeLevel;
     currentLevelBN = BigNum.fromInt(currentLevel);
     if (currentLevel >= 8) isSurge8 = true;
-  } else if (typeof currentSurgeLevel === 'bigint') {
-    currentLevelBN = BigNum.fromAny(currentSurgeLevel.toString());
-    if (currentSurgeLevel > Number.MAX_SAFE_INTEGER) {
-      currentLevel = Number.MAX_SAFE_INTEGER;
-    } else {
-      currentLevel = Number(currentSurgeLevel);
-    }
-    if (currentSurgeLevel >= 8n) isSurge8 = true;
   } else if (currentSurgeLevel && typeof currentSurgeLevel.toString === 'function') {
       try {
           const val = Number(currentSurgeLevel.toString());
