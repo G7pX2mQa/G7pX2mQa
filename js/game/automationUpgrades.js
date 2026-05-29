@@ -151,8 +151,6 @@ const UPGRADE_DEFINITIONS = [
         
         if (typeof sl === 'number') {
             if (sl >= 11 || sl === Infinity) isUnlocked = true;
-        } else if (typeof sl === 'bigint') {
-            if (sl >= 11n) isUnlocked = true;
         } else if (typeof sl === 'string') {
              if (sl === 'Infinity' || parseFloat(sl) === Infinity) isUnlocked = true;
              else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 11) isUnlocked = true;
@@ -212,8 +210,6 @@ const UPGRADE_DEFINITIONS = [
         
         if (typeof sl === 'number') {
             if (sl >= 60 || sl === Infinity) isUnlocked = true;
-        } else if (typeof sl === 'bigint') {
-            if (sl >= 60n) isUnlocked = true;
         } else if (typeof sl === 'string') {
              if (sl === 'Infinity' || parseFloat(sl) === Infinity) isUnlocked = true;
              else if (!isNaN(parseFloat(sl)) && parseFloat(sl) >= 60) isUnlocked = true;
