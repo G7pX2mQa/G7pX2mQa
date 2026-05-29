@@ -1940,7 +1940,7 @@ function buildPanel(panelEl) {
               <div class="merchant-reset__titles">
                 <p data-reset-desc="infuse">
                   Resets everything Forge does as well as Gold, MP, Mutation, and Gold upgrades for Magic<br>
-                  Increase pending Magic amount by increasing Coins and MP
+                  Increase pending Magic amount by increasing Coins and cumulative MP
                 </p>
               </div>
               <div class="merchant-reset__status" data-reset-status="infuse"></div>
