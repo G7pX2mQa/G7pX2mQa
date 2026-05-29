@@ -7,7 +7,7 @@ import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { unlockShop } from '../ui/hudButtons.js';
 import { addXp, isXpSystemUnlocked } from './xpSystem.js';
-import { IS_MOBILE, coinsCollected } from '../main.js';
+import { IS_MOBILE, coinsCollected, currentArea, AREAS } from '../main.js';
 import {
   addMutationPower,
   isMutationUnlocked,
@@ -581,6 +581,7 @@ export function initCoinPickup({
 
   function collectBatch(items) {
     if (!items || !items.length) return;
+    if (typeof currentArea !== 'undefined' && typeof AREAS !== 'undefined' && currentArea !== AREAS.STARTER_COVE) return;
     
     refreshMpValueMultiplierCache();
 
