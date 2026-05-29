@@ -1321,7 +1321,7 @@ export function performInfuseReset() {
   return true;
 }
 
-function applySurgeResetLogic(rewardWaves, { playEffects = true, skipVisuals = false } = {}) {
+export function applySurgeResetLogic(rewardWaves, { playEffects = true, skipVisuals = false } = {}) {
   const slot = ensureResetSlot();
 
   try {
