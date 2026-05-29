@@ -101,6 +101,12 @@ function renderPinnedAreas() {
                     return;
                 }
                 
+                if (window.spawner && typeof window.spawner.hasBigCoins === 'function' && window.spawner.hasBigCoins()) {
+                    if (!window.confirm("Are you sure you want to leave The Cove right now? There is a large coin (size 4+) currently on the screen that will disappear when you switch areas.")) {
+                        return;
+                    }
+                }
+                
                 if (IS_MOBILE) blockInteraction(500);
                 requestAnimationFrame(() => {
                     if (window.spawner && typeof window.spawner.stopAllWaveSounds === 'function') {
