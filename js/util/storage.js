@@ -682,14 +682,14 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
 }
 
 function scaledFromIntBN(intBN) {
-  return intBN.mulScaledInt(1n, -MULT_SCALE);
+  return intBN.mulScaledInt(1, -MULT_SCALE);
 }
 
 // theoretical (×10^MULT_SCALE) → integer BN multiplier (floor), min 1
 function intFromScaled(theorBN) {
   const bn = BigNum.fromAny(theorBN);
   if (bn.isInfinite()) return bn.clone();
-  const scaled = bn.mulScaledInt(1n, MULT_SCALE);
+  const scaled = bn.mulScaledInt(1, MULT_SCALE);
   return scaled;
 }
 
@@ -854,7 +854,7 @@ fn.sub = function sub(x) {
       // parse "1.2" → { numer, scale }
       let parsed;
       try { parsed = BigNum._parseDecimalMultiplier(String(x), MULT_SCALE); }
-      catch { parsed = { numer: 1n, scale: 0 }; }
+      catch { parsed = { numer: 1, scale: 0 }; }
       let theor = getMultiplierScaled(key).mulScaledIntFloor(parsed.numer, parsed.scale);
       if (theor.isZero()) theor = scaledFromIntBN(BigNum.fromInt(1));
       setMultiplierScaled(key, theor);
