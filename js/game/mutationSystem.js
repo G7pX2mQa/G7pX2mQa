@@ -878,9 +878,6 @@ export function computeMutationMultiplierForLevel(levelValue) {
   if (levelValue instanceof BN) {
     try { levelBn = levelValue.clone?.() ?? levelValue; }
     catch { levelBn = bnZero(); }
-  } else if (typeof levelValue === 'bigint') {
-    try { levelBn = BigNum.fromAny(levelValue.toString()); }
-    catch { levelBn = bnZero(); }
   } else {
     try { levelBn = BigNum.fromAny(levelValue ?? 0); }
     catch { levelBn = bnZero(); }
