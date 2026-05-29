@@ -44,6 +44,8 @@ import { getBaseTsunamiExponent, setTsunamiNerf, getTsunamiNerfKey, isLabUnlocke
 import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 import { isSellUnlocked, setSellUnlocked } from '../ui/minerTabs/sellTab.js';
+import { isCombineUnlocked, setCombineUnlocked } from '../ui/minerTabs/resetTab.js';
+import { isBuildingsUnlocked, setBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
 import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
 import { getLabLevel, setLabLevel, getLabLevelKey, getRpMultBase } from '../ui/merchantTabs/labTab.js';
 import { 
@@ -3098,6 +3100,40 @@ function getUnlockRowDefinitions(slot) {
             },
             onDisable: () => {
                 try { setNodeLocked('depths', true); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Combine',
+            description: 'If true, unlocks the Combine reset and Reset tab',
+            isUnlocked: () => {
+                try { return isCombineUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setCombineUnlocked(true); window.resetSystem?.updateCombinePanelVisibility?.(document.querySelector('.merchant-sheet')); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setCombineUnlocked(false); window.resetSystem?.updateCombinePanelVisibility?.(document.querySelector('.merchant-sheet')); }
+                catch {}
+            },
+            slot,
+        },
+        {
+            labelText: 'Unlock Buildings',
+            description: 'If true, unlocks the Buildings tab',
+            isUnlocked: () => {
+                try { return isBuildingsUnlocked(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { setBuildingsUnlocked(true); window.onBuildingsUpgradeUnlocked?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { setBuildingsUnlocked(false); window.onBuildingsUpgradeUnlocked?.(); }
                 catch {}
             },
             slot,
