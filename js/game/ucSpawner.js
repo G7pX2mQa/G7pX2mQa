@@ -17,7 +17,27 @@ export const UC_MATERIAL_DATA = [
     { name: 'prismatium', start: 3200, max: 5000, value: 1e45, sfx: 'sounds/prismatium.ogg' }
 ];
 
+export function resetUcMaterialAccumulators() {
+    window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+    try {
+        localStorage.setItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`, JSON.stringify(window._ucMaterialAccumulators));
+    } catch {}
+}
+
 export function getUcMaterialAccumulators() {
+    if (!window._ucMaterialAccumulators) {
+        try {
+            const stored = localStorage.getItem(`ccc:ucMaterialAccumulators:${getActiveSlot()}`);
+            if (stored) {
+                window._ucMaterialAccumulators = JSON.parse(stored);
+            } else {
+                window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+            }
+        } catch {
+            window._ucMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+        }
+    }
+
     return window._ucMaterialAccumulators || new Array(UC_MATERIALS.length).fill(0);
 }
 
