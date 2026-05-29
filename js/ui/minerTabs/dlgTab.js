@@ -7,6 +7,7 @@ import { IS_MOBILE } from '../../main.js';
 import { setAudioUnderwater } from '../../util/audioManager.js';
 import { setTypingActive, MYSTERIOUS_ICON_SRC, HIDDEN_DIALOGUE_TITLE, LOCKED_DIALOGUE_TITLE, DEFAULT_MYSTERIOUS_BLURB, DEFAULT_LOCKED_BLURB, DEFAULT_LOCK_MESSAGE, DIALOGUE_STATUS_ORDER, HAS_POINTER_EVENTS, HAS_TOUCH_EVENTS, bindRapidActivation, primeTypingSfx, startTypingSfx, stopTypingSfx, typeText, DialogueEngine, openDialogueLockInfo, injectScrollTimelineStyles, ensureMerchantScrollbar, setDelveElements, openDelveOverlay } from '../delveCore.js';
 import { initSellPanel, updateSellPanelVisibility, isSellUnlocked, setSellUnlocked } from './sellTab.js';
+import { initBuildingsPanel, updateBuildingsPanelVisibility } from "./buildingsTab.js";
 import { initCombinePanel, updateCombinePanelVisibility } from './resetTab.js';
 const MINER_ICON_SRC = 'img/misc/miner.webp';
 const MINER_MET_KEY_BASE = 'ccc:minerMet';
@@ -91,6 +92,7 @@ function ensureMinerOverlay() {
 
     initSellPanel(minerOverlayEl, minerSheetEl, tabs, panelsWrap);
     initCombinePanel(minerOverlayEl, minerSheetEl, tabs, panelsWrap);
+    initBuildingsPanel(minerOverlayEl, minerSheetEl, tabs, panelsWrap);
 
 
     const actions = document.createElement('div');
