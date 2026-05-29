@@ -1907,7 +1907,7 @@ function buildPanel(panelEl) {
             <div class="merchant-reset__content">
               <div class="merchant-reset__titles">
                 <p data-reset-desc="forge">
-                  Resets Coins, Books, XP, Coin upgrades, and Book upgrades for Gold<br>
+                  Resets Coins, Books, XP, XP Level, Coin upgrades, and Book upgrades for Gold<br>
                   Increase pending Gold amount by increasing Coins and XP Level<br>
                   The button below shows how much Gold you will get upon reset
                 </p>
@@ -1939,7 +1939,7 @@ function buildPanel(panelEl) {
             <div class="merchant-reset__content">
               <div class="merchant-reset__titles">
                 <p data-reset-desc="infuse">
-                  Resets everything Forge does as well as Gold, MP, and Gold upgrades for Magic<br>
+                  Resets everything Forge does as well as Gold, MP, Mutation, and Gold upgrades for Magic<br>
                   Increase pending Magic amount by increasing Coins and MP
                 </p>
               </div>
@@ -1971,7 +1971,7 @@ function buildPanel(panelEl) {
               <div class="merchant-reset__titles">
                 <p data-reset-desc="surge">
                   Resets everything Infuse does as well as Magic and Magic upgrades for Waves<br>
-                  Increase pending Wave amount by increasing Coins, XP Level, Gold, MP, and Magic<br>
+                  Increase pending Wave amount by increasing Coins, XP Level, Gold, cumulative MP, and Magic<br>
 				  Waves cannot be spent on upgrades, rather they are only useful for filling a bar<br>
                   Each time you fill this bar below, obtain powerful bonuses from Surge Milestones<br>
                   Multiple milestones may be obtained in one reset, but Wave requirement scales a lot each fill
