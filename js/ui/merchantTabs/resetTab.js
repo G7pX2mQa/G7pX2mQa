@@ -2404,6 +2404,7 @@ function updateSurgeCard() {
               // Convert to number for percentage
               const rNum = Number(ratio.toScientific?.() ?? '0');
               pct = Math.min(100, Math.max(0, rNum * 100));
+              if (Number.isNaN(pct)) pct = 0;
           } catch { pct = 0; }
       }
   }
