@@ -1,4 +1,4 @@
-import { unlockDpSystem, isDpSystemUnlocked } from './dpSystem.js';
+import { unlockDpSystem, isDpSystemUnlocked, getDpState } from './dpSystem.js';
 import { AREA_KEYS, LOCKED_UPGRADE_ICON_DATA_URL, formatMultForUi, safeHasMetMiner, UPGRADE_TIES, LOCKED_UPGRADE_TITLE, computeDefaultUpgradeCost, HIDDEN_UPGRADE_TITLE, MYSTERIOUS_UPGRADE_ICON_DATA_URL, getLevelNumber, E } from './upgrades.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
@@ -40,7 +40,6 @@ export const UC_REGISTRY = [
     upgType: "NM",
     icon: "",
     baseIconOverride: "img/misc/sell_plus_base.webp",
-    
     unlockUpgrade: true,
     costAtLevel() { return BigNum.fromInt(0); },
     nextCostAfter() { return BigNum.fromInt(0); },
@@ -242,5 +241,65 @@ export const UC_REGISTRY = [
       const normalizedLevel = Math.max(0, Number(level) || 0);
       return E.powPerLevel(3)(normalizedLevel);
     },
+  },
+  {
+    area: UC_AREA_KEY,
+    id: 6,
+    tie: 'none_7',
+    title: "Unlock Combine",
+    desc: "Unlocks the Reset tab and the Combine reset in the Delve menu",
+    descScale: 0.9,
+	ignoreDescScaleAt: 1500,
+    lvlCap: 1,
+    upgType: "NM",
+    icon: "",
+    baseIconOverride: "img/misc/combine_plus_base.webp",
+    revealRequirement: 'Reach Depth: 31m to reveal this upgrade',
+    unlockUpgrade: true,
+    costAtLevel() { return BigNum.fromInt(0); },
+    nextCostAfter() { return BigNum.fromInt(0); },
+    computeLockState() {
+      if (!isDpSystemUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          useLockedBase: true,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Unlock the Depth system to reveal this upgrade',
+          reason: 'Unlock the Depth system to reveal this upgrade',
+        };
+      }
+
+      let dp31 = false;
+      try {
+        const dpState = getDpState();
+        dp31 = Number(dpState.dpLevel.toString()) >= 31;
+      } catch {}
+      
+      if (!dp31) {
+        const revealText = 'Reach Depth: 31m to reveal this upgrade';
+        return {
+          locked: true,
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
+          descOverride: revealText,
+          reason: revealText,
+        };
+      }
+      return { locked: false };
+    },
+    onLevelChange({ newLevel }) {
+      if ((newLevel ?? 0) >= 1) {
+        try { if (typeof window.onCombineUpgradeUnlocked === 'function') window.onCombineUpgradeUnlocked(); } catch {}
+      }
+    },
+    effectSummary() { return ""; }
   },
 ];
