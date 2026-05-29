@@ -3,7 +3,7 @@
 import { bank, UC_MATERIALS, getActiveSlot } from '../util/storage.js';
 import { unlockShopUc } from '../ui/hudButtons.js';
 import { BigNum } from '../util/bigNum.js';
-import { IS_MOBILE } from '../main.js';
+import { IS_MOBILE, currentArea, AREAS } from '../main.js';
 import { playAudio } from '../util/audioManager.js';
 import { createMagnetController, initInteractionBrush, computeMagnetUnitPx } from './collectionCore.js';
 import { settingsManager } from './settingsManager.js';
@@ -125,6 +125,7 @@ export function initUcPickup({
 
   function collectBatch(items) {
     if (!items || !items.length) return;
+    if (typeof currentArea !== 'undefined' && typeof AREAS !== 'undefined' && currentArea !== AREAS.UNDERWATER_CAVERN) return;
     
     let collectedCount = 0;
     const MAX_VISUALS = items.length >= 50 ? 5 : 15;
