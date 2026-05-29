@@ -911,7 +911,8 @@ registerFrame((time, dt) => {
   
   // Scroll the backgrounds continuously
   // Left canvas background scrolls UP, Right canvas background scrolls DOWN
-  if (isViewed) {
+  const isAnimating = panel && panel.closest('.merchant-overlay.is-animating') !== null;
+  if (isViewed && !isAnimating) {
       for (const layer of bgLayers) {
           layer.offset += beltSpeed * layer.speedMult * dt;
           while (layer.offset >= BG_CHUNK_HEIGHT) {
