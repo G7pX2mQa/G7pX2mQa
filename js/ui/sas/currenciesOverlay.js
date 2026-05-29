@@ -73,7 +73,13 @@ function createCurrencyRow(container, isUniversal, currencyId, iconSrc, baseSrc,
   
   const amountDiv = document.createElement('div');
   amountDiv.className = 'currency-amount';
-  amountDiv.textContent = amountText;
+  
+  const amountTextDiv = document.createElement('div');
+  amountTextDiv.className = 'currency-amount-text';
+  // Use inline-block or inline-flex so that trailing text stays on the same line if needed
+  amountTextDiv.style.display = 'inline-block';
+  amountTextDiv.innerHTML = amountText;
+  amountDiv.appendChild(amountTextDiv);
 
   // Add text for scrap dropdown
   let scrapTextDiv = null;
@@ -515,14 +521,20 @@ function handleCurrencyChange(e) {
             displayName = isOne ? config.singular : config.plural;
         }
 
-        // If it's scrap, we don't want to destroy the scrapTextDiv by directly using innerHTML
+        // If it's scrap, update the inner div to not override scrapTextDiv
         if (currencyId === 'scrap') {
-            const textNode = amountEl.childNodes[0];
-            if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-               textNode.textContent = formatNumber(val) + ' ' + displayName;
+            const textContainer = amountEl.querySelector('.currency-amount-text');
+            if (textContainer) {
+               textContainer.innerHTML = formatNumber(val) + ' ' + displayName;
             } else {
-               amountEl.innerHTML = formatNumber(val) + ' ' + displayName; // Fallback
-               // Re-add text
+               // Fallback: If no textContainer found, rebuild the layout
+               amountEl.innerHTML = '';
+               const textContainer = document.createElement('div');
+               textContainer.className = 'currency-amount-text';
+               textContainer.style.display = 'inline-block';
+               textContainer.innerHTML = formatNumber(val) + ' ' + displayName;
+               amountEl.appendChild(textContainer);
+
                const scrapTextDiv = document.createElement('div');
                const isMobileStr = IS_MOBILE ? "Tap" : "Click";
                const isOpen = settingsManager.get('currency_scrap_materials_dropdown_open');
@@ -532,6 +544,7 @@ function handleCurrencyChange(e) {
                scrapTextDiv.style.marginTop = '4px';
                scrapTextDiv.style.pointerEvents = 'none';
                amountEl.appendChild(scrapTextDiv);
+
                amountEl.style.display = 'flex';
                amountEl.style.flexDirection = 'column';
                amountEl.style.alignItems = 'flex-start';
