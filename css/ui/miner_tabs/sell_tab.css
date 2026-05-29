@@ -171,6 +171,8 @@
     color: #fff;
     text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0px 2px 2px rgba(0, 0, 0, 0.8);
     white-space: nowrap;
+    -webkit-user-select: none;
+    user-select: none;
 }
 .sell-col-val {
     font-size: clamp(14px, 2vw, 18px);
