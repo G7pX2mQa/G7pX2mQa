@@ -1799,7 +1799,7 @@ function formatBn(value, isSurge = false) {
     }
     return '<span class="infinity-symbol">∞</span>';
   }
-  let bn = value;
+  let bn = value instanceof BigNum ? value : BigNum.fromAny(value);
   try { return formatNumber(bn); }
   catch { return value?.toString?.() ?? '0'; }
 }
