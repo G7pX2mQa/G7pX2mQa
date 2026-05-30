@@ -88,3 +88,10 @@ window.onBuildingsUpgradeUnlocked = function() {
       updateBuildingsPanelVisibility(minerSheetEl);
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.resetSystem = window.resetSystem || {};
+  Object.assign(window.resetSystem, {
+    updateBuildingsPanelVisibility,
+  });
+}
