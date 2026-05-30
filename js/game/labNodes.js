@@ -559,7 +559,7 @@ export function resetLab(exceptions = []) {
     } catch {}
 
     // Deactivate current active node
-    if (activeNodeId !== null) {
+    if (activeNodeId !== null && !exceptions.includes(activeNodeId)) {
         setResearchNodeActive(activeNodeId, false);
     }
 
