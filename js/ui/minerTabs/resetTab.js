@@ -155,20 +155,14 @@ export function getPotentialScrap() {
 export function computeCombineCores(scrapBn, potentialScrapBn, dpLevelBn) {
     const totalScrap = scrapBn.add(potentialScrapBn);
     
-    // Total Scrap threshold: 1e7
+    // Total Scrap base threshold: 1e7
     const logScrap = approxLog10BigNum(totalScrap);
-    if (!Number.isFinite(logScrap) || logScrap < 7) {
-        return BigNum.fromInt(0);
-    }
     
-    // DP Level threshold: 25
+    // DP Level base threshold: 25
     const dpLevel = Math.max(0, Number(dpLevelBn.toString()));
-    if (dpLevel < 25) {
-        return BigNum.fromInt(0);
-    }
     
-    const logScaled = Math.max(0, logScrap - 7);
-    const pow2 = bigNumFromLog10(logScaled * Math.log10(2));
+    const logScaled = Math.max(0, (!Number.isFinite(logScrap) ? 0 : logScrap) - 7);
+    const pow2 = logScaled <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(logScaled * Math.log10(2));
     
     const levelFactor = Math.max(0, (dpLevel - 25) / 5);
     const pow14 = levelFactor <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(levelFactor * Math.log10(1.4));
@@ -182,7 +176,6 @@ export function computeCombineCores(scrapBn, potentialScrapBn, dpLevelBn) {
     total = total.mulBigNumInteger(pow115);
     
     const floored = total.floorToInteger();
-    if (floored.isZero?.()) return BigNum.fromInt(0);
     if (floored.cmp(BigNum.fromInt(10)) < 0) return BigNum.fromInt(10);
     return floored;
 }
@@ -333,21 +326,22 @@ function updateCombineCard() {
         return;
     }
     
-    if (resetState.pendingCores.isZero?.()) {
-        updateResetButtonContent(el.btn, { disabled: true, msg: 'Need more Scrap and Depth' });
-        return;
-    }
-    
     updateResetButtonContent(el.btn, { disabled: false }, COMBINE_ICON_SRC, resetState.pendingCores);
 }
 
 function initCombineTabUI(panel) {
   panel.innerHTML = `
-    <div class="merchant-reset miner-reset" style="background-color: black; color: white;">
-      
-      <div class="merchant-reset__list" style="width: 100%;">
+    <div class="merchant-reset miner-reset">
+      <aside class="merchant-reset__sidebar">
+        <button type="button" class="merchant-reset__layer" data-reset-layer="combine">
+          <img src="${COMBINE_ICON_SRC}" alt="">
+          <span>Combine</span>
+        </button>
+      </aside>
+
+      <div class="merchant-reset__list">
         <!-- COMBINE CARD -->
-        <div class="merchant-reset__card merchant-reset__main" id="reset-card-combine" style="background-color: #1a1a1a; border: 1px solid #333;">
+        <div class="merchant-reset__card merchant-reset__main is-combine" id="reset-card-combine">
           <div class="merchant-reset__layout">
             <header class="merchant-reset__header">
               <div class="merchant-reset__titles">
@@ -361,18 +355,24 @@ function initCombineTabUI(panel) {
                   Resets everything Experiment does as well as Waterwheels, Scrap, Materials, DP, Depth, and Scrap upgrades for Cores<br>
                   Increase pending Core amount by increasing Scrap or potential Scrap (collective value of all Materials) and Depth
                 </p>
-                <div class="merchant-reset__status" data-reset-status="combine"></div>
               </div>
+              <div class="merchant-reset__status" data-reset-status="combine"></div>
             </div>
             
-            <div class="merchant-reset__action">
-              <button type="button" class="merchant-btn merchant-reset__btn" data-reset-action="combine" style="background-color: #333; color: white; border: 1px solid #555;">
-                <span class="merchant-reset__req-msg">Loading...</span>
+            <div class="merchant-reset__actions">
+              <button type="button" class="merchant-reset__action" data-reset-action="combine">
+                <span class="merchant-reset__action-plus">+</span>
+                <span class="merchant-reset__action-icon">
+                  <img src="${COMBINE_ICON_SRC}" alt="">
+                </span>
+                <span class="merchant-reset__action-amount" data-reset-pending="combine">0</span>
               </button>
             </div>
           </div>
         </div>
       </div>
+      
+      <div class="merchant-reset__spacer"></div>
     </div>
   `;
 }
@@ -447,6 +447,10 @@ export function updateCombinePanelVisibility(minerSheetEl) {
     tabBtn.title = '???';
     tabBtn.classList.add('is-locked');
     tabBtn.disabled = true;
+    if (tabBtn.classList.contains('is-active')) {
+      const dlgTab = tabsEl.querySelector('[data-tab="dialogue"]');
+      if (dlgTab) dlgTab.click();
+    }
   }
 }
 
