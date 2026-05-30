@@ -3125,15 +3125,27 @@ function getUnlockRowDefinitions(slot) {
             labelText: 'Unlock Buildings',
             description: 'If true, unlocks the Buildings tab',
             isUnlocked: () => {
-                try { return isBuildingsUnlocked(); }
+                try { return window.resetSystem?.hasDoneCombineReset?.() ?? false; }
                 catch { return false; }
             },
             onEnable: () => {
-                try { setBuildingsUnlocked(true); window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.miner-sheet')); }
+                try { window.resetSystem?.setCombineResetCompleted?.(true); }
+                catch {}
+                try { setBuildingsUnlocked(true); }
+                catch {}
+                try { window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.miner-sheet')); }
+                catch {}
+                try { window.resetSystem?.updateCombineCard?.(); }
                 catch {}
             },
             onDisable: () => {
-                try { setBuildingsUnlocked(false); window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.miner-sheet')); }
+                try { window.resetSystem?.setCombineResetCompleted?.(false); }
+                catch {}
+                try { setBuildingsUnlocked(false); }
+                catch {}
+                try { window.resetSystem?.updateCombineCard?.(); }
+                catch {}
+                try { window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.miner-sheet')); }
                 catch {}
             },
             slot,
