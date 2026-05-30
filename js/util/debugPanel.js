@@ -2138,7 +2138,15 @@ function buildAreaStats(container, area) {
         const dpLevelKey = DP_KEYS.level(slot);
         const dpLevelRow = createInputRow('Depth Level', dpStateVal.dpLevel, (value, { setValue }) => {
             const prev = window.dpSystem.getDpState().dpLevel;
-            applyDpState({ level: value });
+            let valToApply = value;
+            if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (typeof valToApply === 'number' && valToApply >= 4.5e12) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (typeof valToApply === 'string' && Number(valToApply) >= 4.5e12) {
+                valToApply = BigNum.fromAny('Infinity');
+            }
+            applyDpState({ level: valToApply });
             const latest = window.dpSystem.getDpState();
             setValue(latest.dpLevel);
             if (!bigNumEquals(prev, latest.dpLevel)) {
