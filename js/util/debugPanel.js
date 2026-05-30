@@ -3129,11 +3129,11 @@ function getUnlockRowDefinitions(slot) {
                 catch { return false; }
             },
             onEnable: () => {
-                try { setBuildingsUnlocked(true); window.onBuildingsUpgradeUnlocked?.(); }
+                try { setBuildingsUnlocked(true); window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.miner-sheet')); }
                 catch {}
             },
             onDisable: () => {
-                try { setBuildingsUnlocked(false); window.onBuildingsUpgradeUnlocked?.(); }
+                try { setBuildingsUnlocked(false); window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.miner-sheet')); }
                 catch {}
             },
             slot,
