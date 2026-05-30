@@ -174,14 +174,11 @@ export function computeCombineCores(scrapBn, potentialScrapBn, dpLevelBn) {
     const floorLog = Math.floor(logScaled);
     const pow115 = floorLog <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(floorLog * Math.log10(1.15));
 
-    const floorLogDp = Math.floor(levelFactor);
-    const pow115Dp = floorLogDp <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(floorLogDp * Math.log10(1.15));
     
     let total = BigNum.fromInt(10);
     total = total.mulBigNumInteger(pow2);
     total = total.mulBigNumInteger(pow14);
     total = total.mulBigNumInteger(pow115);
-    total = total.mulBigNumInteger(pow115Dp);
     
     const floored = total.floorToInteger();
     if (floored.cmp(BigNum.fromInt(10)) < 0) return BigNum.fromInt(10);
