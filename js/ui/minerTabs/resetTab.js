@@ -226,6 +226,18 @@ export function performCombineReset() {
         // Wipe Lab (similar to Experiment reset logic, no exceptions by default unless surge 100 which isn't our concern here)
         resetLab();
     } catch {}
+
+    // Wipe DNA
+    try { bank.DNA.set(0); } catch {}
+    
+    // Wipe DNA Upgrades
+    try {
+        const upgrades = getUpgradesForArea('dna');
+        for (const upg of upgrades) {
+            if (!upg) continue;
+            setLevel('dna', upg.id, 0, true);
+        }
+    } catch {}
     
     // Wipe Waterwheels levels/fp to 0
     try {
@@ -347,7 +359,7 @@ function updateCombineCard() {
             if (el.status.innerHTML !== '') el.status.innerHTML = '';
         } else {
             const expected = `
-              <span style="color:#ffffff; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+              <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
                 Combining for the first time will unlock new Shop upgrades and a new tab: <strong style="color: black; text-shadow: 0 0 5px white, 0 0 10px white;">Buildings</strong><br>
                 This new tab will allow you to construct powerful Buildings to help you progress
               </span>
@@ -387,7 +399,7 @@ function initCombineTabUI(panel) {
             <div class="merchant-reset__content">
               <div class="merchant-reset__titles">
                 <p data-reset-desc="combine">
-                  Resets everything Experiment does as well as Waterwheels, Scrap, Materials, DP, Depth, and Scrap upgrades for Cores<br>
+                  Resets everything Experiment does as well as DNA, DNA upgrades, Waterwheels, Scrap, Materials, DP, Depth, and Scrap upgrades for Cores<br>
                   Increase pending Core amount by increasing Scrap or potential Scrap (collective value of all held Materials) and Depth
                 </p>
               </div>
