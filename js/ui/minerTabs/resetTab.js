@@ -6,9 +6,10 @@ import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../../util/bigNum.js
 import { settingsManager } from '../../game/settingsManager.js';
 import { getUcMaterialAccumulators, resetUcMaterialAccumulators, UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
 import { getUpgradesForArea, AREA_KEYS, setLevel } from '../../game/upgrades.js';
-import { resetLab } from '../../game/labNodes.js';
+import { resetLab, RESEARCH_NODES } from '../../game/labNodes.js';
 import { applySurgeResetLogic } from '../merchantTabs/resetTab.js';
 import { isBuildingsUnlocked } from './buildingsTab.js';
+import { isSurgeActive } from '../../game/surgeEffects.js';
 import { WATERWHEEL_DEFS } from '../merchantTabs/flowTab.js';
 
 const COMBINE_UNLOCKED_KEY_BASE = 'ccc:combineUnlocked';
@@ -223,8 +224,12 @@ export function performCombineReset() {
     // Wipe Experiment (also wipes Surge, Lab nodes)
     try {
         applySurgeResetLogic(BigNum.fromInt(0), { playEffects: false });
-        // Wipe Lab (similar to Experiment reset logic, no exceptions by default unless surge 100 which isn't our concern here)
-        resetLab();
+        // Wipe Lab
+        let labExceptions = [4];
+        if (isSurgeActive(100)) {
+            labExceptions = RESEARCH_NODES.map(n => n.id);
+        }
+        resetLab(labExceptions);
     } catch {}
 
     // Wipe DNA
