@@ -105,6 +105,11 @@ export function getLabLevel() {
 export function setLabLevel(value) {
   const slot = getActiveSlot();
   if (slot == null) return;
+  
+  if (typeof window !== 'undefined' && window.__cccLockedStorageKeys?.has(LAB_LEVEL_KEY(slot))) {
+      return;
+  }
+
   try {
     const valBn = BigNum.fromAny(value);
     
