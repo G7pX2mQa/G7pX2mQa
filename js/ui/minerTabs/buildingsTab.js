@@ -74,6 +74,10 @@ export function updateBuildingsPanelVisibility(minerSheetEl) {
     tabBtn.title = '???';
     tabBtn.classList.add('is-locked');
     tabBtn.disabled = true;
+    if (tabBtn.classList.contains('is-active')) {
+      const dlgTab = tabsEl.querySelector('[data-tab="dialogue"]');
+      if (dlgTab) dlgTab.click();
+    }
   }
 }
 
