@@ -8,11 +8,12 @@ import { getUcMaterialAccumulators, resetUcMaterialAccumulators, UC_MATERIAL_DAT
 import { getUpgradesForArea, AREA_KEYS, setLevel } from '../../game/upgrades.js';
 import { resetLab } from '../../game/labNodes.js';
 import { applySurgeResetLogic } from '../merchantTabs/resetTab.js';
+import { isBuildingsUnlocked } from './buildingsTab.js';
 import { WATERWHEEL_DEFS } from '../merchantTabs/flowTab.js';
 
 const COMBINE_UNLOCKED_KEY_BASE = 'ccc:combineUnlocked';
 const COMBINE_COMPLETED_KEY_BASE = 'ccc:combineCompleted';
-const COMBINE_ICON_SRC = 'img/currencies/cores.webp';
+const COMBINE_ICON_SRC = 'img/currencies/core/core.webp';
 
 let resetState = {
   slot: null,
@@ -158,22 +159,29 @@ export function computeCombineCores(scrapBn, potentialScrapBn, dpLevelBn) {
     // Total Scrap base threshold: 1e7
     const logScrap = approxLog10BigNum(totalScrap);
     
-    // DP Level base threshold: 25
+    // DP Level base threshold: 31
     const dpLevel = Math.max(0, Number(dpLevelBn.toString()));
     
-    const logScaled = Math.max(0, (!Number.isFinite(logScrap) ? 0 : logScrap) - 7);
+    if (!Number.isFinite(logScrap)) {
+        if (logScrap > 0) return BigNum.fromAny('Infinity');
+    }
+    const logScaled = Math.max(0, logScrap - 7);
     const pow2 = logScaled <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(logScaled * Math.log10(2));
     
-    const levelFactor = Math.max(0, (dpLevel - 25) / 5);
+    const levelFactor = Math.max(0, (dpLevel - 30) / 5);
     const pow14 = levelFactor <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(levelFactor * Math.log10(1.4));
     
     const floorLog = Math.floor(logScaled);
     const pow115 = floorLog <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(floorLog * Math.log10(1.15));
+
+    const floorLogDp = Math.floor(levelFactor);
+    const pow115Dp = floorLogDp <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(floorLogDp * Math.log10(1.15));
     
     let total = BigNum.fromInt(10);
     total = total.mulBigNumInteger(pow2);
     total = total.mulBigNumInteger(pow14);
     total = total.mulBigNumInteger(pow115);
+    total = total.mulBigNumInteger(pow115Dp);
     
     const floored = total.floorToInteger();
     if (floored.cmp(BigNum.fromInt(10)) < 0) return BigNum.fromInt(10);
@@ -283,8 +291,7 @@ export function performCombineReset() {
         audio.play().catch(() => {});
     }
     
-    if (!hasDoneCombineReset()) {
-        setCombineResetCompleted(true);
+    if (!isBuildingsUnlocked()) {
         if (typeof window !== 'undefined' && window.onBuildingsUpgradeUnlocked) {
             window.onBuildingsUpgradeUnlocked();
         }
@@ -305,15 +312,15 @@ function updateCombineCard() {
     
     if (el.card.style.display !== 'flex') el.card.style.display = 'flex';
     
-    el.card.classList.toggle('is-complete', !!hasDoneCombineReset());
+    el.card.classList.toggle('is-complete', !!isBuildingsUnlocked());
     
     if (el.status) {
-        if (hasDoneCombineReset()) {
+        if (isBuildingsUnlocked()) {
             if (el.status.innerHTML !== '') el.status.innerHTML = '';
         } else {
             const expected = `
               <span style="color:#ffffff; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
-                Combining for the first time will unlock new Shop upgrades and a new tab: <span style="color: black; text-shadow: 0 0 5px white, 0 0 10px white;">Buildings</span><br>
+                Combining for the first time will unlock new Shop upgrades and a new tab: <strong style="color: black; text-shadow: 0 0 5px white, 0 0 10px white;">Buildings</strong><br>
                 This new tab will allow you to create powerful Buildings to help you progress
               </span>
             `.trim();
@@ -334,7 +341,7 @@ function initCombineTabUI(panel) {
     <div class="merchant-reset miner-reset">
       <aside class="merchant-reset__sidebar">
         <button type="button" class="merchant-reset__layer" data-reset-layer="combine">
-          <img src="${COMBINE_ICON_SRC}" alt="">
+          <img src="img/misc/combine.webp" alt="">
           <span>Combine</span>
         </button>
       </aside>
@@ -345,7 +352,7 @@ function initCombineTabUI(panel) {
           <div class="merchant-reset__layout">
             <header class="merchant-reset__header">
               <div class="merchant-reset__titles">
-                <h3 style="color: white; text-shadow: 0 0 5px white;">Combine</h3>
+                <h3>Combine</h3>
               </div>
             </header>
 
@@ -427,6 +434,9 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
           if (e.detail?.prefix === 'dp') {
               recomputePendingCores();
           }
+      });
+      window.addEventListener('dp:change', (e) => {
+          recomputePendingCores();
       });
   }
 }
