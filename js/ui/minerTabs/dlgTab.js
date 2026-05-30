@@ -143,6 +143,7 @@ function ensureMinerOverlay() {
             if (minerSheetEl && minerOverlayEl && minerOverlayEl.classList.contains('is-open')) {
                 updateSellPanelVisibility(minerSheetEl);
                 updateCombinePanelVisibility(minerSheetEl);
+                updateBuildingsPanelVisibility(minerSheetEl);
             }
         };
         window.addEventListener('unlock:change', handleUnlockChange, { passive: true });
@@ -273,6 +274,7 @@ export function openMiner() {
     
     updateSellPanelVisibility(minerSheetEl);
                 updateCombinePanelVisibility(minerSheetEl);
+                updateBuildingsPanelVisibility(minerSheetEl);
 
 
     if (!met) {
