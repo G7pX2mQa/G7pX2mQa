@@ -584,11 +584,18 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
             milestone = { ...m, description: [...m.description] };
         }
         const mults = getSurge6WealthMultipliers();
+        let totalMult = mults.coins;
+        if (totalMult.mulBigNumInteger) {
+            totalMult = totalMult.mulBigNumInteger(mults.books).mulBigNumInteger(mults.gold).mulBigNumInteger(mults.magic);
+        } else {
+            totalMult = mults.coins * mults.books * mults.gold * mults.magic;
+        }
         milestone.description = [
           `Unspent Coins boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.coins)}x</span>`,
           `Unspent Books boost Coins: <span style="color:#00e5ff">${formatMultForUi(mults.books)}x</span>`,
           `Unspent Gold boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.gold)}x</span>`,
-          `Unspent Magic boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.magic)}x</span>`
+          `Unspent Magic boosts Coins: <span style="color:#00e5ff">${formatMultForUi(mults.magic)}x</span>`,
+          `Total boost to Coins: <span style="color:#00e5ff">${formatMultForUi(totalMult)}x</span>`
         ];
     }
 
