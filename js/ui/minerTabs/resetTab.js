@@ -52,13 +52,8 @@ function ensureResetSlot() {
 }
 
 export function isCombineUnlocked() {
-  const slotKey = String(getActiveSlot() ?? 'default');
-  if (typeof localStorage === 'undefined') return false;
-  try {
-    return localStorage.getItem(`${COMBINE_UNLOCKED_KEY_BASE}:${slotKey}`) === '1';
-  } catch {
-    return false;
-  }
+  ensurePersistentFlagsPrimed();
+  return !!resetState.combineUnlocked;
 }
 
 export function setCombineUnlocked(value, slot = getActiveSlot()) {
@@ -76,13 +71,8 @@ export function setCombineUnlocked(value, slot = getActiveSlot()) {
 }
 
 export function hasDoneCombineReset() {
-  const slotKey = String(getActiveSlot() ?? 'default');
-  if (typeof localStorage === 'undefined') return false;
-  try {
-    return localStorage.getItem(`${COMBINE_COMPLETED_KEY_BASE}:${slotKey}`) === '1';
-  } catch {
-    return false;
-  }
+  ensurePersistentFlagsPrimed();
+  return !!resetState.hasDoneCombineReset;
 }
 
 export function setCombineResetCompleted(value, slot = getActiveSlot()) {
@@ -294,13 +284,54 @@ export function performCombineReset() {
         }
     }
     
+    setCombineResetCompleted(true);
+    
     recomputePendingCores();
     return true;
+}
+
+
+function ensurePersistentFlagsPrimed() {
+  const slot = getActiveSlot();
+  if (slot == null) {
+    resetState.flagsPrimed = false;
+    return;
+  }
+  if (resetState.slot !== slot) {
+    resetState.slot = slot;
+    resetState.flagsPrimed = false;
+  }
+  if (!resetState.flagsPrimed) {
+    readPersistentFlags(slot);
+  }
+}
+
+function readPersistentFlags(slot) {
+  if (slot == null) {
+    resetState.combineUnlocked = false;
+    resetState.hasDoneCombineReset = false;
+    resetState.flagsPrimed = false;
+    return;
+  }
+  try {
+    resetState.combineUnlocked = localStorage.getItem(`${COMBINE_UNLOCKED_KEY_BASE}:${slot}`) === '1';
+  } catch {
+    resetState.combineUnlocked = false;
+  }
+  try {
+    resetState.hasDoneCombineReset = localStorage.getItem(`${COMBINE_COMPLETED_KEY_BASE}:${slot}`) === '1';
+  } catch {
+    resetState.hasDoneCombineReset = false;
+  }
+  
+  resetState.flagsPrimed = true;
 }
 
 function updateCombineCard() {
     const el = resetState.elements.combine;
     if (!el.card || !el.btn) return;
+    
+    ensurePersistentFlagsPrimed();
     
     if (!isCombineUnlocked()) {
         if (el.card.style.display !== 'none') el.card.style.display = 'none';
@@ -309,16 +340,16 @@ function updateCombineCard() {
     
     if (el.card.style.display !== 'flex') el.card.style.display = 'flex';
     
-    el.card.classList.toggle('is-complete', !!isBuildingsUnlocked());
+    el.card.classList.toggle('is-complete', !!hasDoneCombineReset());
     
     if (el.status) {
-        if (isBuildingsUnlocked()) {
+        if (hasDoneCombineReset()) {
             if (el.status.innerHTML !== '') el.status.innerHTML = '';
         } else {
             const expected = `
               <span style="color:#ffffff; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
                 Combining for the first time will unlock new Shop upgrades and a new tab: <strong style="color: black; text-shadow: 0 0 5px white, 0 0 10px white;">Buildings</strong><br>
-                This new tab will allow you to create powerful Buildings to help you progress
+                This new tab will allow you to construct powerful Buildings to help you progress
               </span>
             `.trim();
             if (el.status.innerHTML !== expected) el.status.innerHTML = expected;
@@ -326,7 +357,7 @@ function updateCombineCard() {
     }
     
     if (!checkCombineRequirements()) {
-        updateResetButtonContent(el.btn, { disabled: true, msg: 'Need at least 3 unique Materials' });
+        updateResetButtonContent(el.btn, { disabled: true, msg: 'Get at least 3 unique Materials to perform a Combine reset' });
         return;
     }
     
@@ -357,7 +388,7 @@ function initCombineTabUI(panel) {
               <div class="merchant-reset__titles">
                 <p data-reset-desc="combine">
                   Resets everything Experiment does as well as Waterwheels, Scrap, Materials, DP, Depth, and Scrap upgrades for Cores<br>
-                  Increase pending Core amount by increasing Scrap or potential Scrap (collective value of all Materials) and Depth
+                  Increase pending Core amount by increasing Scrap or potential Scrap (collective value of all held Materials) and Depth
                 </p>
               </div>
               <div class="merchant-reset__status" data-reset-status="combine"></div>
@@ -481,6 +512,7 @@ if (typeof window !== 'undefined') {
     performCombineReset,
     computeCombineCores,
     getPotentialScrap,
-    recomputePendingCores
+    recomputePendingCores,
+    updateCombineCard
   });
 }
