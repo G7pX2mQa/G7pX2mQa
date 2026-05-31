@@ -5,7 +5,7 @@ import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { formatNumber } from '../util/numFormat.js';
 import { approxLog10BigNum, bigNumFromLog10 } from '../util/bigNum.js';
-import { settingsManager } from "./settingsManager.js";
+import { settingsManager, MAX_MUTATION_VISUAL } from "./settingsManager.js";
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
 
 const KEY_PREFIX = 'ccc:mutation';
@@ -955,10 +955,14 @@ export function getMutationCoinSprite() {
         const hLevel = getHighestMutationLevel();
         if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
           const s = hLevel.toPlainIntegerString();
-          if (s !== 'Infinity') highest = parseInt(s, 10);
+          if (s !== 'Infinity') {
+            highest = parseInt(s, 10);
+          } else {
+            highest = MAX_MUTATION_VISUAL;
+          }
         }
       } catch (e) {}
-      highest = Math.min(highest, 25);
+      highest = Math.min(highest, MAX_MUTATION_VISUAL);
       
       const randIdx = Math.floor(Math.random() * (highest + 1));
       if (randIdx === 0) return 'img/currencies/coin/coin.webp';
@@ -981,9 +985,9 @@ export function getMutationCoinSprite() {
 
   const levelNum = levelToNumber(mutationState.level);
   if (!Number.isFinite(levelNum)) {
-    return 'img/mutations/m25.webp';
+    return `img/mutations/m${MAX_MUTATION_VISUAL}.webp`;
   }
-  const idx = Math.max(1, Math.min(25, Math.floor(levelNum)));
+  const idx = Math.max(1, Math.min(MAX_MUTATION_VISUAL, Math.floor(levelNum)));
 
   return `img/mutations/m${idx}.webp`;
 }
