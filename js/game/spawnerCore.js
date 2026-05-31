@@ -32,6 +32,99 @@ export function getImage(src) {
   return img;
 }
 
+
+// Pre-rendered offscreen canvases for coins/items
+const preRenderedCoins = new Map();
+const preRenderedUrls = new Map();
+
+export function getPreRenderedCoinUrl(src, size) {
+    if (!src || typeof document === 'undefined') return src;
+    
+    let resolutionScale = 1;
+    if (typeof settingsManager !== 'undefined') {
+        const quality = settingsManager.get('graphics_quality') ?? 10;
+        if (quality < 4) resolutionScale = 0.5;
+        else if (quality < 8) resolutionScale = 0.75;
+    }
+    if (resolutionScale === 1) return src;
+    
+    let sizeMap = preRenderedUrls.get(src);
+    if (!sizeMap) {
+        sizeMap = new Map();
+        preRenderedUrls.set(src, sizeMap);
+    }
+    
+    let url = sizeMap.get(size);
+    if (!url) {
+        const canvas = getPreRenderedCoin(src, size);
+        if (canvas && canvas instanceof HTMLCanvasElement) {
+            url = canvas.toDataURL('image/webp');
+            sizeMap.set(size, url);
+        } else {
+            return src; // Fallback if still loading
+        }
+    }
+    
+    return url;
+}
+
+export function getPreRenderedCoin(src, size) {
+    if (!src || typeof document === 'undefined') return null;
+    
+    let sizeMap = preRenderedCoins.get(src);
+    if (!sizeMap) {
+        sizeMap = new Map();
+        preRenderedCoins.set(src, sizeMap);
+    }
+    
+    let canvas = sizeMap.get(size);
+    if (!canvas) {
+        const img = getImage(src);
+        if (!img || !img.complete || img.naturalWidth === 0) {
+            if (img && !img.complete) {
+                img.addEventListener('load', () => getPreRenderedCoin(src, size), { once: true });
+            }
+            return img; 
+        }
+        
+        let resolutionScale = 1;
+        let isMaxQuality = false;
+        if (typeof settingsManager !== 'undefined') {
+            const quality = settingsManager.get('graphics_quality') ?? 10;
+            if (quality === 10) {
+                isMaxQuality = true;
+            } else if (quality < 4) {
+                resolutionScale = 0.5;
+            } else if (quality < 8) {
+                resolutionScale = 0.75;
+            }
+        }
+        
+        let dpr;
+        if (isMaxQuality) {
+            const baseDpr = Math.max(window.devicePixelRatio || 1, 3);
+            dpr = baseDpr * resolutionScale;
+        } else {
+            const baseDpr = Math.max(window.devicePixelRatio || 1, 2);
+            dpr = baseDpr * resolutionScale;
+        }
+        
+        canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.floor(size * dpr));
+        canvas.height = Math.max(1, Math.floor(size * dpr));
+        
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = getCanvasSmoothingQuality();
+        ctx.drawImage(img, 0, 0, size, size);
+        
+        sizeMap.set(size, canvas);
+    }
+    
+    return canvas;
+}
+
 export function createBaseSpawner(config = {}) {
     const {
         playfieldSelector = '.playfield',
