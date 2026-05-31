@@ -13,6 +13,8 @@ import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
 import { getXpState } from '../../game/xpSystem.js';
 import { IS_MOBILE } from '../../main.js';
 import { disableGlobalOverlayEsc } from '../../util/globalOverlayEsc.js';
+import { clearActiveSlot, setHasOpenedSaveSlot } from '../../util/storage.js';
+import { enterArea, AREAS } from '../../main.js';
 
 function populateSasButtons(overlayEl) {
   const grid = overlayEl.querySelector('.sas-grid');
@@ -125,21 +127,59 @@ function populateSasButtons(overlayEl) {
   backBtn.className = "sas-btn sas-btn-back-menu";
   backBtn.textContent = "Back to Menu";
   backBtn.addEventListener("click", () => {
-    disableGlobalOverlayEsc();
-    const tpOverlay = document.createElement('div');
-    tpOverlay.style.position = 'fixed';
-    tpOverlay.style.inset = '0';
-    tpOverlay.style.backgroundColor = '#000';
-    tpOverlay.style.color = '#fff';
-    tpOverlay.style.display = 'grid';
-    tpOverlay.style.placeItems = 'center';
-    tpOverlay.style.zIndex = '99999999';
-    tpOverlay.style.fontSize = '24px';
-    tpOverlay.textContent = 'Telporting to Menu...';
-    document.body.appendChild(tpOverlay);
+    // This now triggers saveSlot:change with null which clears most cache.
+    clearActiveSlot();
+
+    // Add the class temporarily to document body so overlays skip transition logic
+    document.body.classList.add('no-overlay-transitions');
     
+    // Close all overlays forcefully without transitions
+    window.dispatchEvent(new CustomEvent('ccc:close-delve-overlays'));
+    window.dispatchEvent(new CustomEvent('shop:close'));
+    closeSasOverlay(true);
+    
+    // Instantly force close all active overlays handled by the sas system via DOM
+    document.querySelectorAll('.sas-overlay.is-open').forEach(el => {
+        el.classList.remove('is-open');
+        el.style.transition = 'none'; // Force no transition
+        el.style.opacity = '0';
+        el.style.pointerEvents = 'none';
+        
+        // Find inner sheet and remove transition
+        const sheet = el.querySelector('.sas-sheet');
+        if (sheet) {
+            sheet.style.transition = 'none';
+            sheet.style.transform = 'translateY(100%)';
+        }
+    });
+    
+    // Clear notifications and popups
+    import('../notifications.js').then(m => {
+      if (m.nukeNotifications) m.nukeNotifications(true);
+    }).catch(()=>{});
+    const notificationsEl = document.getElementById('notifications-container');
+    if (notificationsEl) notificationsEl.innerHTML = '';
+    
+    // Close other possible overlays
+    import('../merchantTabs/dlgTab.js').then(m => m.closeMerchant && m.closeMerchant()).catch(()=>{});
+    import('../minerTabs/dlgTab.js').then(m => m.closeMiner && m.closeMiner()).catch(()=>{});
+    import('../shopOverlay.js').then(m => m.closeShop && m.closeShop(true)).catch(()=>{});
+    
+    // We already exported clearActivePopups and handled saveSlot:change in popups.js
+    // so popups should be clearing themselves nicely when clearActiveSlot is called.
+    
+    // Switch the area which handles stopping spawner, game elements etc
+    enterArea(AREAS.MENU);
+    
+    // Hide title element logic inverse
+    document.body.classList.remove('has-opened');
+    const titleEl = document.getElementById('panel-title');
+    if (titleEl) titleEl.style.opacity = '1';
+    setHasOpenedSaveSlot(false);
+    
+    // Remove the class added above just in case
     setTimeout(() => {
-      window.location.reload();
+        document.body.classList.remove('no-overlay-transitions');
     }, 50);
   });
   grid.appendChild(backBtn);
