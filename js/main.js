@@ -844,7 +844,12 @@ export function enterArea(areaID) {
         menuRoot.style.display = '';
         menuRoot.removeAttribute('aria-hidden');
       }
+	  
+      // Force restyle so the CSS animation resumes instantly rather than waiting for next frame
+      document.body.classList.remove('menu-bg');
+      void document.body.offsetHeight;
       document.body.classList.add('menu-bg');
+	  
       const gameRoot = document.getElementById('game-root');
       if (gameRoot) gameRoot.hidden = true;
 
