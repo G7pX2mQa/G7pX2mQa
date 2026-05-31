@@ -4,6 +4,7 @@ import { playAudio, setAudioSuspended } from './util/audioManager.js';
 import { createCursorTrail } from './game/cursorTrail.js';
 import { syncXpMpHudLayout } from './ui/hudLayout.js';
 import { initUcPickup } from './game/materialPickup.js';
+import { MAX_MUTATION_VISUAL } from "./game/settingsManager.js";sssssss
 
 export const FONT_MAP = {
   1: 'font-tinos',
@@ -1066,7 +1067,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'img/waterwheels/waterwheel_magic.webp',
 	'img/waterwheels/waterwheel_scrap.webp',
     'img/waterwheels/waterwheel_xp.webp',
-    ...Array.from({ length: 25 }, (_, i) => `img/mutations/m${i + 1}.webp`)
+    ...Array.from({ length: MAX_MUTATION_VISUAL }, (_, i) => `img/mutations/m${i + 1}.webp`)
   ],
   audio: [
     'sounds/Secret_Boss_Fight.ogg',
