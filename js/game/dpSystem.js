@@ -5,6 +5,7 @@ import { syncDpHudLayout } from '../ui/hudLayout.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 
 import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
+import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
 
 const externalDpMultiplierProviders = [];
 export function addExternalDpMultiplierProvider(fn) {
@@ -403,7 +404,7 @@ function ensureStateLoaded(force = false) {
   } catch {
     dpState.highestLevel = bnZero();
   }
-  if (dpState.dpLevel.cmp(dpState.highestLevel) > 0) {
+  if (isBuildingsUnlocked() && dpState.dpLevel.cmp(dpState.highestLevel) > 0) {
     dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
   }
   try {
@@ -480,7 +481,7 @@ function persistState() {
     dpState.dpLevel = persisted.level;
     dpState.progress = persisted.progress;
     dpState.highestLevel = persisted.highestLevel;
-    if (dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
+    if (isBuildingsUnlocked() && dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
         dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
     }
     updateDpRequirement();
@@ -574,7 +575,7 @@ export function resetDpProgress({ keepUnlock = true } = {}) {
   const wasUnlocked = dpState.unlocked;
   resetLockedDpState();
   dpState.unlocked = keepUnlock ? (wasUnlocked || dpState.unlocked) : false;
-  if (dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
+  if (isBuildingsUnlocked() && dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
     dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
   }
   persistState();
@@ -667,7 +668,7 @@ export function addDp(amount, { silent = false } = {}) {
     
     updateDpRequirement();
 
-    if (dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
+    if (isBuildingsUnlocked() && dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
       dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
     }
 
@@ -785,7 +786,7 @@ export function addDp(amount, { silent = false } = {}) {
       updateDpRequirement();
   }
 
-  if (dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
+  if (isBuildingsUnlocked() && dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
     dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
   }
 
