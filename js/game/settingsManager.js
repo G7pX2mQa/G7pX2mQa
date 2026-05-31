@@ -24,6 +24,8 @@ export const MUTATION_NAMES = [
   'Diamond', 'Opal', 'Cosmic', 'Prismatic'
 ];
 
+export const MAX_MUTATION_VISUAL = MUTATION_NAMES.length - 1;
+
 // Define the available settings and their defaults
 export const SETTING_DEFINITIONS = {
   active_font_mod: {
@@ -264,14 +266,18 @@ export const SETTING_DEFINITIONS = {
         const hLevel = getHighestMutationLevel();
         if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
           const s = hLevel.toPlainIntegerString();
-          if (s !== 'Infinity') highest = parseInt(s, 10);
+          if (s !== 'Infinity') {
+            highest = parseInt(s, 10);
+          } else {
+            highest = MAX_MUTATION_VISUAL;
+          }
         }
       } catch (e) {}
       
       const opts = [];
       opts.push({ value: 'Default', label: 'Default' });
       opts.push({ value: 'Random', label: 'Random' });
-      for (let i = 0; i <= Math.min(highest, 25); i++) {
+      for (let i = 0; i <= Math.min(highest, MAX_MUTATION_VISUAL); i++) {
         const name = MUTATION_NAMES[i] || `Mutation ${i}`;
         const iconSrc = i === 0 ? 'img/currencies/coin/coin.webp' : `img/mutations/m${i}.webp`;
         opts.push({ value: `M${i}`, label: `M${i} (${name})`, icon: iconSrc });
