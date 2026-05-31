@@ -288,6 +288,7 @@ function openMysteriousBuildingOverlay(mysteriousText) {
     closeBtn.addEventListener('click', closeMysteriousBuildingOverlay);
 
     overlay.classList.add('is-open');
+    overlay.style.pointerEvents = 'auto';
     sheet.style.transform = 'translateY(100%)';
     void sheet.offsetHeight;
     sheet.style.transform = 'translateY(0)';
@@ -296,6 +297,8 @@ function openMysteriousBuildingOverlay(mysteriousText) {
 function closeMysteriousBuildingOverlay() {
     const overlay = document.getElementById('mysterious-building-overlay');
     if (!overlay) return;
+    if (overlay.style.pointerEvents === 'none') return;
+    overlay.style.pointerEvents = 'none';
     const sheet = overlay.querySelector('.upg-sheet');
     sheet.style.transform = 'translateY(100%)';
     setTimeout(() => {
