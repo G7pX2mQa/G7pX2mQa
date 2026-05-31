@@ -36,6 +36,20 @@ export const FONT_MAP = {
 
 export const ALL_FONT_CLASSES = Object.values(FONT_MAP);
 
+// Intercept innerHTML on Elements to prevent unnecessary updates
+const originalInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+Object.defineProperty(Element.prototype, 'innerHTML', {
+  set(val) {
+    if (this.innerHTML === val) return;
+    originalInnerHTML.set.call(this, val);
+  },
+  get() {
+    return originalInnerHTML.get.call(this);
+  }
+});
+
+
+
 export const DEBUG_PANEL_ACCESS = true; // I will change this to false for prod so the readme makes sense
 export const IS_MOBILE = (() => {
   if (typeof window === 'undefined') return false;
