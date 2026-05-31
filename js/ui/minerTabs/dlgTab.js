@@ -161,13 +161,21 @@ function runFirstMeet() {
   const cardEl = fc.querySelector('.merchant-firstchat__card');
   const choicesEl = fc.querySelector('#miner-first-choices');
 
+  const blockEsc = (e) => {
+    if (e.key === 'Escape') {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  };
+  document.addEventListener('keydown', blockEsc, { capture: true });
+
   const engine = new DialogueEngine({
       textEl,
       choicesEl,
       skipTargets: [textEl, rowEl, cardEl],
       pauseMultiplier: 2000 / 22,
       onEnd: () => {
-      document.removeEventListener('keydown', onEscToCancel, { capture: true });
+      document.removeEventListener('keydown', blockEsc, { capture: true });
       try { localStorage.setItem(sk(MINER_MET_KEY_BASE), '1'); } catch {}
       try { window.dispatchEvent(new Event(MINER_MET_EVENT)); } catch {}
       fc.classList.remove('is-visible');
@@ -176,26 +184,6 @@ function runFirstMeet() {
   });
 
   engine.load(MINER_DIALOGUES[0]);
-  let ended = false;
-  const cancelWithoutReward = () => {
-      if (ended) return;
-      ended = true;
-      document.removeEventListener('keydown', onEscToCancel, { capture: true });
-      fc.classList.remove('is-visible');
-      minerOverlayEl.classList.remove('firstchat-active');
-      stopTypingSfx();
-        setTypingActive(false);
- 
-      setAudioUnderwater(false);
-  };
-
-  const onEscToCancel = (e) => {
-    if (e.key !== 'Escape') return;
-    if (!fc.isConnected) return;
-    cancelWithoutReward();
-  };
-  
-  document.addEventListener('keydown', onEscToCancel, { capture: true });
 
   engine.start();
 }
