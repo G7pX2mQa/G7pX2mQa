@@ -13,7 +13,7 @@ import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
 import { getXpState } from '../../game/xpSystem.js';
 import { IS_MOBILE } from '../../main.js';
 import { disableGlobalOverlayEsc } from '../../util/globalOverlayEsc.js';
-import { clearActiveSlot, setHasOpenedSaveSlot } from '../../util/storage.js';
+import { clearActiveSlot } from '../../util/storage.js';
 import { enterArea, AREAS } from '../../main.js';
 
 function populateSasButtons(overlayEl) {
@@ -170,12 +170,6 @@ function populateSasButtons(overlayEl) {
     
     // Switch the area which handles stopping spawner, game elements etc
     enterArea(AREAS.MENU);
-    
-    // Hide title element logic inverse
-    document.body.classList.remove('has-opened');
-    const titleEl = document.getElementById('panel-title');
-    if (titleEl) titleEl.style.opacity = '1';
-    setHasOpenedSaveSlot(false);
     
     // Remove the class added above just in case
     setTimeout(() => {
