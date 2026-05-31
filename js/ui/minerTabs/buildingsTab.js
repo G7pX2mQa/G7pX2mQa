@@ -71,7 +71,7 @@ function renderBuildingsGrid(gridEl) {
     buildings.push({
         id: 'core',
         title: 'Core Building',
-        iconSrc: 'img/currencies/core/core.webp',
+        iconSrc: '',
         baseSrc: 'img/currencies/core/core_plus_base.webp',
         isLocked: false,
         mysteriousText: ''
@@ -81,7 +81,7 @@ function renderBuildingsGrid(gridEl) {
     buildings.push({
         id: 'crystal',
         title: 'Crystal Building',
-        iconSrc: 'img/currencies/crystal/crystal.webp',
+        iconSrc: '',
         baseSrc: 'img/currencies/crystal/crystal_plus_base.webp',
         isLocked: true,
         mysteriousText: 'Perform the ??? reset to reveal this Building'
@@ -91,7 +91,7 @@ function renderBuildingsGrid(gridEl) {
     const baseIconStr = 'img/currencies/scrap/scrap_base.webp';
     for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
         const mat = UC_MATERIAL_DATA[i];
-        const isLocked = highestDepth < mat.start;
+        const isLocked = mat.name === 'stone' ? false : highestDepth < mat.start;
         buildings.push({
             id: mat.name,
             title: mat.name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') + ' Building',
@@ -111,7 +111,7 @@ function renderBuildingsGrid(gridEl) {
             card.btn.setAttribute('data-tooltip-desc', b.mysteriousText);
         } else {
             card.btn.setAttribute('data-tooltip-title', b.title);
-            card.btn.setAttribute('data-tooltip-desc', 'Building coming soon...');
+            card.btn.setAttribute('data-tooltip-desc', 'Left-click: View Building • Right-click: Buy Max');
         }
         
         gridEl.appendChild(card.btn);
@@ -129,9 +129,6 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
   const panel = document.createElement('section');
   panel.className = 'merchant-panel buildings-tab';
   panel.id = 'miner-panel-buildings';
-  panel.style.display = 'flex';
-  panel.style.flexDirection = 'column';
-  panel.style.height = '100%';
   
   const scroller = document.createElement('div');
   scroller.className = 'shop-scroller';
