@@ -41,13 +41,21 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
 
     const baseImg = document.createElement('img');
     baseImg.className = 'base';
-    baseImg.src = isLocked ? 'img/misc/locked_base.webp' : baseSrc;
+    baseImg.src = isLocked ? 'img/misc/mysterious_plus_base.webp' : baseSrc;
     baseImg.alt = '';
 
     const iconImg = document.createElement('img');
     iconImg.className = 'icon';
-    iconImg.src = isLocked ? 'img/misc/mysterious.webp' : iconSrc;
+    // If it's locked, just no icon, because base covers it
+    iconImg.src = isLocked ? '' : iconSrc;
     iconImg.alt = '';
+    
+    if (isLocked || !iconSrc) {
+        iconImg.style.display = 'none';
+        iconImg.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='; // Transparent 1x1 gif
+    } else {
+        iconImg.style.display = '';
+    }
     
     tile.appendChild(baseImg);
     tile.appendChild(iconImg);
@@ -105,13 +113,14 @@ function renderBuildingsGrid(gridEl) {
     buildings.forEach(b => {
         const card = createBuildingCard(b.id, b.title, b.iconSrc, b.baseSrc, b.isLocked, b.mysteriousText);
         
-        // Add hover tooltip attributes logic
         if (b.isLocked) {
-            card.btn.setAttribute('data-tooltip-title', 'Hidden Building');
-            card.btn.setAttribute('data-tooltip-desc', b.mysteriousText);
+            card.btn.title = 'Hidden Building';
+            card.btn.addEventListener('click', () => {
+                openMysteriousBuildingOverlay(b.mysteriousText);
+            });
         } else {
-            card.btn.setAttribute('data-tooltip-title', b.title);
-            card.btn.setAttribute('data-tooltip-desc', 'Left-click: View Building • Right-click: Buy Max');
+            card.btn.title = 'Left-click: View Building • Right-click: Buy Max';
+            // Currently unlocked buildings do nothing
         }
         
         gridEl.appendChild(card.btn);
@@ -202,4 +211,77 @@ if (typeof window !== 'undefined') {
   Object.assign(window.resetSystem, {
     updateBuildingsPanelVisibility,
   });
+}
+
+function ensureMysteriousBuildingOverlay() {
+    if (document.getElementById('mysterious-building-overlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'mysterious-building-overlay';
+    overlay.className = 'upg-overlay';
+    
+    const sheet = document.createElement('div');
+    sheet.className = 'upg-sheet';
+    
+    const grabber = document.createElement('div');
+    grabber.className = 'upg-grabber';
+    grabber.innerHTML = `<div class="grab-handle"></div>`;
+    
+    const header = document.createElement('header');
+    header.className = 'upg-header';
+    
+    const content = document.createElement('div');
+    content.className = 'upg-content';
+    
+    const actions = document.createElement('div');
+    actions.className = 'upg-actions';
+    
+    sheet.append(grabber, header, content, actions);
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+    
+    overlay.addEventListener('pointerdown', (e) => {
+        if (e.target === overlay) {
+            closeMysteriousBuildingOverlay();
+        }
+    });
+}
+
+function openMysteriousBuildingOverlay(mysteriousText) {
+    ensureMysteriousBuildingOverlay();
+    const overlay = document.getElementById('mysterious-building-overlay');
+    const sheet = overlay.querySelector('.upg-sheet');
+    const header = overlay.querySelector('.upg-header');
+    const content = overlay.querySelector('.upg-content');
+    const actions = overlay.querySelector('.upg-actions');
+    
+    header.innerHTML = `
+        <div class="upg-title">Hidden Building</div>
+    `;
+
+    content.innerHTML = `
+        <div class="upg-desc centered lock-desc">${mysteriousText}</div>
+    `;
+
+    actions.innerHTML = `
+        <button type="button" class="shop-close">Close</button>
+    `;
+    
+    const closeBtn = actions.querySelector('.shop-close');
+    closeBtn.addEventListener('click', closeMysteriousBuildingOverlay);
+
+    overlay.classList.add('is-open');
+    sheet.style.transform = 'translateY(100%)';
+    void sheet.offsetHeight;
+    sheet.style.transform = 'translateY(0)';
+}
+
+function closeMysteriousBuildingOverlay() {
+    const overlay = document.getElementById('mysterious-building-overlay');
+    if (!overlay) return;
+    const sheet = overlay.querySelector('.upg-sheet');
+    sheet.style.transform = 'translateY(100%)';
+    setTimeout(() => {
+        overlay.classList.remove('is-open');
+    }, 180);
 }
