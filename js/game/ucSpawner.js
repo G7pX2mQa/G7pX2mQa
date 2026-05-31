@@ -1,4 +1,4 @@
-import { createBaseSpawner, CUBIC_BEZIER, getImage } from './spawnerCore.js';
+import { createBaseSpawner, CUBIC_BEZIER, getImage, getPreRenderedCoin, getPreRenderedCoinUrl } from './spawnerCore.js';
 import { IS_MOBILE } from '../main.js';
 import { playAudio } from '../util/audioManager.js';
 import { getActiveSlot, UC_MATERIALS } from '../util/storage.js';
@@ -444,7 +444,7 @@ export function createUcSpawner(config = {}) {
                                         preAlloc.el.style.height = `${size}px`;
                                         preAlloc.el.className = `material material--${UC_MATERIALS[j]}`;
                                         if (preAlloc.el.firstChild) {
-                                            preAlloc.el.firstChild.src = preAlloc.src;
+                                            preAlloc.el.firstChild.src = getPreRenderedCoinUrl(preAlloc.src, size);
                                         }
                                         preAlloc.el.style.transform = `translate3d(${spawnX}px, ${c.startY}px, 0) rotate(-10deg) scale(0.96)`;
                                         preAlloc.el.style.opacity = '1';
@@ -514,9 +514,9 @@ export function createUcSpawner(config = {}) {
         onDrawSingleSettledItem: (ctx, c) => {
             const size = c.size || baseSize;
             if (c.src) {
-                const img = getImage(c.src);
-                if (img && img.complete && img.naturalWidth > 0) {
-                    ctx.drawImage(img, c.x, c.y, size, size);
+                const renderable = getPreRenderedCoin(c.src, size);
+                if (renderable) {
+                    ctx.drawImage(renderable, c.x, c.y, size, size);
                 }
             }
         },
@@ -531,7 +531,7 @@ export function createUcSpawner(config = {}) {
             el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
             
             if (el.firstChild) {
-                el.firstChild.src = c.src;
+                el.firstChild.src = getPreRenderedCoinUrl(c.src, size);
             }
             
             el.style.opacity = '1';
