@@ -118,8 +118,8 @@ function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn, isSurge 
       btn.dataset.mode = 'action';
   } else {
       const amtEl = btn.querySelector('.merchant-reset__action-amount');
-      if (amtEl && amtEl.textContent !== amountStr) {
-          amtEl.textContent = amountStr;
+      if (amtEl && amtEl.innerHTML !== amountStr) {
+          amtEl.innerHTML = amountStr;
       }
   }
 }
