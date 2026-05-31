@@ -372,7 +372,7 @@ export const CURRENCIES = {
   DIAMOND: 'diamond',
   EMERALD: 'emerald',
   RUBY: 'ruby',
-  OBSIDIAN: 'obsidian',
+  SAPPHIRE: 'sapphire',
   UNOBTAINIUM: 'unobtainium',
   PRISMATIUM: 'prismatium',
   CORES: 'cores'
@@ -386,7 +386,7 @@ export const UC_MATERIALS = [
   CURRENCIES.DIAMOND,
   CURRENCIES.EMERALD,
   CURRENCIES.RUBY,
-  CURRENCIES.OBSIDIAN,
+  CURRENCIES.SAPPHIRE,
   CURRENCIES.UNOBTAINIUM,
   CURRENCIES.PRISMATIUM
 ];
@@ -403,7 +403,7 @@ export const CURRENCY_AREAS = {
   [CURRENCIES.DIAMOND]: 'underwater_cavern',
   [CURRENCIES.EMERALD]: 'underwater_cavern',
   [CURRENCIES.RUBY]: 'underwater_cavern',
-  [CURRENCIES.OBSIDIAN]: 'underwater_cavern',
+  [CURRENCIES.SAPPHIRE]: 'underwater_cavern',
   [CURRENCIES.UNOBTAINIUM]: 'underwater_cavern',
   [CURRENCIES.PRISMATIUM]: 'underwater_cavern',
   [CURRENCIES.CORES]: 'underwater_cavern'
