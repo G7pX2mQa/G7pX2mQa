@@ -153,6 +153,7 @@ let activePlaytimeUnsub = null;
 let activePlaytimeStorageAccumulator = 0;
 
 let unpauseNotifications = null;
+let pauseNotifications = null;
 const pendingPreloadedAudio = [];
 
 function applyPendingSlotWipe() {
@@ -843,6 +844,7 @@ export function enterArea(areaID) {
         menuRoot.style.display = '';
         menuRoot.removeAttribute('aria-hidden');
       }
+      document.body.classList.add('menu-bg');
       const gameRoot = document.getElementById('game-root');
       if (gameRoot) gameRoot.hidden = true;
 
@@ -851,6 +853,10 @@ export function enterArea(areaID) {
 
       if (spawner) { spawner.stop(); if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield(); }
       if (ucSpawner) { ucSpawner.stop(); if (typeof ucSpawner.clearPlayfield === "function") ucSpawner.clearPlayfield(); }
+	  
+      if (typeof pauseNotifications === "function") {
+        pauseNotifications();
+      }
       break;
     }
   }
@@ -1189,9 +1195,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ waterSystem } = waterSystemModule);
   const { initLabLogic } = labTabModule;
   const { initFpsTracker } = fpsTrackerModule;
-  const { initNotifications, unpauseNotifications: _unpause, showNotification, showWelcomePopup } = notificationModule;
+  const { initNotifications, unpauseNotifications: _unpause, pauseNotifications: _pause, showNotification, showWelcomePopup } = notificationModule;
   const { initFlowSystem } = flowTabModule;
   unpauseNotifications = _unpause;
+  pauseNotifications = _pause;
 
   window.bank = bank;
   window.unpauseNotifications = unpauseNotifications;
@@ -1381,7 +1388,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await stepDelay();
     markProgressDirty?.('slot-entered');
 
-    console.log(`# Debug Panel Access
+    if (!window.debugPanelLogShown) {
+        console.log(`# Debug Panel Access
 To enable the in-game debug panel, enter the following code into the console:
 
 \`setDebugPanelAccess(true)\`
@@ -1394,6 +1402,8 @@ This will allow you to view and modify game values for testing.
 ANY modification of stats, currencies, upgrade levels, or other save data through the debug panel will permanently mark the save slot as modified. If the slot is marked as modified, its shop button will permanently turn from a fresh green to a poopy brown color, which I like to call the poop-shop of shame.
 
 Normal gameplay is unaffected unless you choose to modify values.`);
+        window.debugPanelLogShown = true;
+    }
 
     setLoaderProgress(loader, 1);
 
