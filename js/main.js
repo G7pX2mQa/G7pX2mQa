@@ -4,7 +4,7 @@ import { playAudio, setAudioSuspended } from './util/audioManager.js';
 import { createCursorTrail } from './game/cursorTrail.js';
 import { syncXpMpHudLayout } from './ui/hudLayout.js';
 import { initUcPickup } from './game/materialPickup.js';
-import { MAX_MUTATION_VISUAL } from "./game/settingsManager.js";sssssss
+import { MAX_MUTATION_VISUAL } from "./game/settingsManager.js";
 
 export const FONT_MAP = {
   1: 'font-tinos',
