@@ -330,7 +330,7 @@ export function initAutomationEffects() {
   if (typeof window !== 'undefined') {
     window.addEventListener('saveSlot:change', (e) => {
         const newSlot = e.detail?.slot;
-        if (newSlot && newSlot !== cacheSlot) {
+        if (newSlot !== undefined && newSlot !== cacheSlot) {
             autobuyerCache.clear();
             cacheSlot = newSlot;
         }
