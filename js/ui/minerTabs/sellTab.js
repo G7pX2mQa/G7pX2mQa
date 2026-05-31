@@ -139,6 +139,35 @@ function parseCustomAmount(inputStr) {
   
   return null;
 }
+
+function calculateTheoreticalSellAmount(totalOwnedBn, amountSelection) {
+  if (totalOwnedBn.cmp(0) <= 0 && amountSelection !== '1' && amountSelection !== '100%') {
+      // If we don't own any but they asked for 999, we should theoretically show 999.
+      // Actually, if we own 0, percent based is 0, absolute is absolute.
+  }
+
+  if (amountSelection === '1') {
+    return BigNum.fromInt(1);
+  }
+
+  let parsed = parseCustomAmount(amountSelection);
+  if (!parsed) {
+     return BigNum.fromInt(1);
+  }
+
+  if (parsed.type === 'absolute') {
+    return BigNum.fromAny(parsed.val);
+  } else if (parsed.type === 'percent') {
+    const pct = parsed.val / 100;
+    let amount = totalOwnedBn.mulDecimalFloor(pct);
+    if (amount.cmp(0) <= 0 && pct > 0 && totalOwnedBn.cmp(0) > 0) {
+       amount = BigNum.fromInt(1);
+    }
+    return amount;
+  }
+  
+  return BigNum.fromInt(1);
+}
 function calculateSellAmount(totalOwnedBn, amountSelection) {
   if (totalOwnedBn.cmp(0) <= 0) return BigNum.fromInt(0);
 
@@ -455,7 +484,12 @@ export function updateSellTab() {
        const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
        const materialValue = BigNum.fromAny(t.value || 0);
        const val = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, 18);
-       rowCache.valEl.innerHTML = formatNumber(val);
+       
+       const localAmountStr = rowCache.localSellAmount || '1';
+       const theoreticalAmt = calculateTheoreticalSellAmount(owned, localAmountStr);
+       const displayVal = theoreticalAmt.mulBigNumInteger(val);
+
+       rowCache.valEl.innerHTML = formatNumber(displayVal);
        rowCache.currentVal = val;
        rowCache.currentOwned = owned;
    }
@@ -506,24 +540,30 @@ function createSellRow(matKey, index) {
    const colSell = document.createElement('div');
    colSell.className = 'sell-col-sell';
    
-   let localSellAmount = '1';
-
    const dropdownObj = createDropdown({
        getOptions: () => DROPDOWN_OPTIONS,
-       getValue: () => localSellAmount,
+       getValue: () => {
+           const rowCache = sellPanelDomCache.rows[matKey];
+           return rowCache ? rowCache.localSellAmount : '1';
+       },
        setValue: (val) => {
+           let newAmount = '1';
+           const rowCache = sellPanelDomCache.rows[matKey];
            if (val === 'custom') {
              const res = prompt("Enter a custom amount. Integers, percentages, and fractions are supported inputs.");
              if (res !== null && res.trim() !== "") {
                  const parsed = parseCustomAmount(res);
                  if (parsed) {
-                     localSellAmount = parsed.display || res.trim();
+                     newAmount = parsed.display || res.trim();
+                     if (rowCache) rowCache.localSellAmount = newAmount;
                  }
              }
            } else {
-               localSellAmount = val;
+               newAmount = val;
+               if (rowCache) rowCache.localSellAmount = newAmount;
            }
            dropdownObj.updateDisplay();
+           updateSellTab();
        }
    });
    dropdownObj.wrapper.classList.add('sell-dropdown-wrapper');
@@ -536,7 +576,7 @@ function createSellRow(matKey, index) {
    sellBtn.textContent = 'Sell';
    sellBtn.addEventListener('click', () => {
        const rowCache = sellPanelDomCache.rows[matKey];
-       const amt = calculateSellAmount(rowCache.currentOwned, localSellAmount);
+       const amt = calculateSellAmount(rowCache.currentOwned, rowCache.localSellAmount);
        if (amt.cmp(0) <= 0) return;
        
        if (!rowCache.currentOwned.isInfinite()) {
@@ -591,7 +631,8 @@ function createSellRow(matKey, index) {
        textEl: text,
        ownedEl: colOwned,
        valEl: colVal,
-       dropdownWrapper: dropdownWrap
+       dropdownWrapper: dropdownWrap,
+       localSellAmount: '1'
    };
 }
 
