@@ -375,7 +375,8 @@ export const CURRENCIES = {
   SAPPHIRE: 'sapphire',
   UNOBTAINIUM: 'unobtainium',
   PRISMATIUM: 'prismatium',
-  CORES: 'cores'
+  CORES: 'cores',
+  CRYSTALS: 'crystals'
 };
 
 export const UC_MATERIALS = [
@@ -406,7 +407,8 @@ export const CURRENCY_AREAS = {
   [CURRENCIES.SAPPHIRE]: 'underwater_cavern',
   [CURRENCIES.UNOBTAINIUM]: 'underwater_cavern',
   [CURRENCIES.PRISMATIUM]: 'underwater_cavern',
-  [CURRENCIES.CORES]: 'underwater_cavern'
+  [CURRENCIES.CORES]: 'underwater_cavern',
+  [CURRENCIES.CRYSTALS]: 'underwater_cavern'
 };
 
 let _activeSlotCache = undefined;
