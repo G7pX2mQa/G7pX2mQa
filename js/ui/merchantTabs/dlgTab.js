@@ -1,6 +1,4 @@
 // js/ui/merchantTabs/dlgTab.js
-let merchantOverlayEl = null;
-let merchantSheetEl = null;
 
 import { __isTypingActive, activeTypingAudio, TYPING_SFX_SRC, setDelveElements, setTypingActive, setActiveTypingAudio, openDelveOverlay } from '../delveCore.js';
 import { 
@@ -49,6 +47,8 @@ import {
   openDialogueLockInfo,
 } from '../delveCore.js';
 
+let merchantOverlayEl = null;
+let merchantSheetEl = null;
 
 function nowMs() {
   if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
