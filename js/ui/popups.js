@@ -208,7 +208,7 @@ function syncLastKnown() {
   }
 }
 
-function clearActivePopups() {
+export function clearActivePopups() {
   activePopups.forEach((entry) => {
     if (entry.timeoutId) clearTimeout(entry.timeoutId);
     entry.element.remove();
