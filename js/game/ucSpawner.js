@@ -12,7 +12,7 @@ export const UC_MATERIAL_DATA = [
     { name: 'diamond', start: 100, max: 199, value: 1e10, sfx: 'sounds/diamond.ogg' },
     { name: 'emerald', start: 200, max: 399, value: 1e15, sfx: 'sounds/emerald.ogg' },
     { name: 'ruby', start: 400, max: 799, value: 1e21, sfx: 'sounds/ruby.ogg' },
-    { name: 'obsidian', start: 800, max: 1599, value: 1e28, sfx: 'sounds/obsidian.ogg' },
+    { name: 'sapphire', start: 800, max: 1599, value: 1e28, sfx: 'sounds/sapphire.ogg' },
     { name: 'unobtainium', start: 1600, max: 3199, value: 1e36, sfx: 'sounds/unobtainium.ogg' },
     { name: 'prismatium', start: 3200, max: 5000, value: 1e45, sfx: 'sounds/prismatium.ogg' }
 ];
