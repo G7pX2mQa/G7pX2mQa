@@ -1,0 +1,11 @@
+/* css/ui/miner_tabs/buildings_tab.css */
+.buildings-tab {
+  display: none;
+  --shop-tile: clamp(84px, 24vw, 128px);
+}
+
+.buildings-tab.is-active {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
