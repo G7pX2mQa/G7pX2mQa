@@ -1,6 +1,7 @@
 import { getActiveSlot } from '../../util/storage.js';
 import { getHighestDpLevel } from '../../game/dpSystem.js';
 import { UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
+import { setupDragToClose } from '../shopOverlay.js';
 
 const BUILDINGS_UNLOCKED_KEY_BASE = 'ccc:buildingsUnlocked';
 
@@ -27,7 +28,7 @@ export function setBuildingsUnlocked(value, slot = getActiveSlot()) {
   }
 }
 
-function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousText) {
+function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousText, level) {
     const btn = document.createElement('button');
     btn.className = 'shop-upgrade';
     if (isLocked) {
@@ -59,6 +60,14 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
     
     tile.appendChild(baseImg);
     tile.appendChild(iconImg);
+
+    if (!isLocked && level !== undefined) {
+        const badge = document.createElement('div');
+        badge.className = 'level-badge';
+        badge.textContent = level;
+        tile.appendChild(badge);
+    }
+
     btn.appendChild(tile);
 
     return { btn, baseImg, iconImg };
@@ -82,7 +91,8 @@ function renderBuildingsGrid(gridEl) {
         iconSrc: '',
         baseSrc: 'img/currencies/core/core_plus_base.webp',
         isLocked: false,
-        mysteriousText: ''
+        mysteriousText: '',
+        level: 0
     });
 
     // 2. Crystal Building
@@ -92,7 +102,8 @@ function renderBuildingsGrid(gridEl) {
         iconSrc: '',
         baseSrc: 'img/currencies/crystal/crystal_plus_base.webp',
         isLocked: true,
-        mysteriousText: 'Perform the ??? reset to reveal this Building'
+        mysteriousText: 'Perform the ??? reset to reveal this Building',
+        level: 0
     });
 
     // 3-12. Material Buildings (Stone to Prismatium)
@@ -106,12 +117,13 @@ function renderBuildingsGrid(gridEl) {
             iconSrc: `img/materials/${mat.name}.webp`,
             baseSrc: baseIconStr,
             isLocked: isLocked,
-            mysteriousText: `Reach Depth: ${mat.start}m to reveal this Building`
+            mysteriousText: `Reach Depth: ${mat.start}m to reveal this Building`,
+            level: 0
         });
     }
 
     buildings.forEach(b => {
-        const card = createBuildingCard(b.id, b.title, b.iconSrc, b.baseSrc, b.isLocked, b.mysteriousText);
+        const card = createBuildingCard(b.id, b.title, b.iconSrc, b.baseSrc, b.isLocked, b.mysteriousText, b.level);
         
         if (b.isLocked) {
             card.btn.title = 'Hidden Building';
@@ -245,6 +257,11 @@ function ensureMysteriousBuildingOverlay() {
             closeMysteriousBuildingOverlay();
         }
     });
+    
+    setupDragToClose(grabber, sheet, 
+        () => overlay.classList.contains('is-open'), 
+        closeMysteriousBuildingOverlay
+    );
 }
 
 function openMysteriousBuildingOverlay(mysteriousText) {
