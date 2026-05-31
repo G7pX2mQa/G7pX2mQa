@@ -309,6 +309,10 @@ function dpRequirementForDpLevel(dpLevelInput) {
     levelPlain = '0';
   }
 
+  if (levelPlain === 'Infinity') {
+    return BigNum.fromAny('Infinity');
+  }
+
   let targetLevelInfo = { num: null, finite: true };
   if (levelPlain && levelPlain !== 'Infinity') {
     try {
