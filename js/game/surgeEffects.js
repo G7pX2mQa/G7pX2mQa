@@ -554,26 +554,17 @@ export function getSurge15Divisor(preview = false) {
 
     let log10Result = power * Math.log10(2);
     
-    // Softcap at 1e6
-    if (log10Result > 6) {
-        const excess = log10Result - 6;
-        // p calculated as log(1,000,000 - 6) / log((1.79e308 / 2 * log10(2)) - 6)
-        const p = 0.019516601981883437;
-        log10Result = 6 + Math.pow(excess, p);
-    }
-    
-    // Hardcap at 1e6
-    if (log10Result > 1000000) {
-        log10Result = 1000000;
-    }
-    
     return bigNumFromLog10(log10Result);
   };
 
-  const div = calc(dna);
+  let div = calc(dna);
 
   if (isSurgeActive(8)) {
-     return applyTsunamiNerf(div);
+     div = applyTsunamiNerf(div);
+  }
+
+  if (div.cmp(BigNum.fromInt(100)) > 0) {
+     return BigNum.fromInt(100);
   }
 
   return div;
