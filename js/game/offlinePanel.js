@@ -217,6 +217,7 @@ export const RESOURCE_REGISTRY = [
     },
     { key: 'dp_levels', icon: 'img/stats/dp/dp.webp',            singular: 'Depth Level', plural: 'Depth Levels', type: 'levelStat' },
     { key: 'cores', bgGradient: 'linear-gradient(to bottom, #0a0a0a 0%, #1a1a1a 15%, #2a2a2a 50%, #1a1a1a 85%, #0a0a0a 100%)',      icon: 'img/currencies/core/core.webp', baseIcon: 'img/currencies/core/core_plus_base.webp',   singular: 'Core',     plural: 'Cores', type: 'currency' },
+    { key: 'crystals', bgGradient: 'linear-gradient(to bottom, #943276 0%, #bd53a3 15%, #e979d0 50%, #bd53a3 85%, #943276 100%)',      icon: 'img/currencies/crystal/crystal.webp', baseIcon: 'img/currencies/crystal/crystal_plus_base.webp',   singular: 'Crystal',     plural: 'Crystals', type: 'currency' },
 ];
 
 export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
