@@ -226,62 +226,20 @@ function getGearsPerSecond(level) {
   } else if (bnLevel.isInfinite()) {
     baseRate = BigNum.fromAny('Infinity');
   } else {
-    // If level is huge, we can use mulDecimal(logBase)
-    // level * 0.301... => log10(rate)
     const logValue = bnLevel.mulDecimal(logBase);
-    // bigNumFromLog10 expects a number if possible, or handles large numbers?
-    // bigNumFromLog10 impl in upgrades.js:
-    // export function bigNumFromLog10(logVal) {
-    //   if (logVal === Infinity) return BigNum.fromAny('Infinity');
-    //   if (logVal instanceof BigNum) { ... }
-    // We can pass BigNum to bigNumFromLog10 if the helper supports it.
-    // Assuming bigNumFromLog10 only takes numbers or BigNum:
-    
-    // Actually, bigNumFromLog10(logVal) implementation usually assumes number.
-    // If logValue is BigNum (because level was BigNum), we need to handle it.
-    // If level is < 1e15, we can use numbers.
-    // If level is massive, rate is massive.
     
     if (bnLevel.cmp(9e15) <= 0) {
-        // Safe to use standard number math
         const lvlNum = Number(bnLevel.toString());
         const logVal = lvlNum * logBase;
         baseRate = bigNumFromLog10(logVal);
     } else {
-        // Level is huge. 
-        // rate = 2^level = 10^(level * log10(2))
-        // exponent is level * 0.30103...
-        // e = level * 0.30103...
-        // Construct BigNum directly: 10^e
-        // BigNum constructor takes { base: e }
-        
-        // mulDecimal returns BigNum
         const logExpBn = bnLevel.mulDecimal(logBase);
-        
-        // If logExpBn is massive, it becomes the exponent 'e' of the new BigNum
-        // We need to extract the value from BigNum logExpBn to use as exponent.
-        
-        // BigNum structure: sig * 10^e
-        // We want 10^(logExpBn)
-        // This is effectively BigNum with e = logExpBn
-        
-        // We can use BigNum internal structure or fromStorage logic
-        // But BigNum 'e' is limited to ~1.8e308. 
-        // If 'level' is ~1e308, then 'e' is ~3e307. This fits in 'e'.
-        // If 'level' is larger than 1.8e308 (BigNum max), then the result is infinite.
         
         if (logExpBn.cmp(Number.MAX_VALUE) >= 0) {
             baseRate = BigNum.fromAny('Infinity');
         } else {
-            // logExpBn is finite number (though represented as BigNum)
-            // Extract it.
-            // Since it's < Number.MAX_VALUE, we can convert to number safely?
-            // Wait, MAX_VALUE is 1.79e308.
-            // Number(bn) works if it fits.
-            // We can try conversion.
             
             try {
-                // Approximate for very large numbers
                  const logExpVal = Number(logExpBn.toScientific(10));
                  if (logExpVal === Infinity) {
                      baseRate = BigNum.fromAny('Infinity');
