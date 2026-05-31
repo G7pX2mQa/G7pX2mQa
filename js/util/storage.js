@@ -432,6 +432,9 @@ export function setActiveSlot(n) {
 export function clearActiveSlot() {
   _activeSlotCache = null;
   localStorage.removeItem(KEYS.SAVE_SLOT);
+  try {
+    window.dispatchEvent(new CustomEvent('saveSlot:change', { detail: { slot: null } }));
+  } catch {}
 }
 
 if (typeof window !== 'undefined') {
