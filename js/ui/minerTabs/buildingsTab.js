@@ -1,4 +1,6 @@
 import { getActiveSlot } from '../../util/storage.js';
+import { getHighestDpLevel } from '../../game/dpSystem.js';
+import { UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
 
 const BUILDINGS_UNLOCKED_KEY_BASE = 'ccc:buildingsUnlocked';
 
@@ -25,6 +27,97 @@ export function setBuildingsUnlocked(value, slot = getActiveSlot()) {
   }
 }
 
+function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousText) {
+    const btn = document.createElement('button');
+    btn.className = 'shop-upgrade';
+    if (isLocked) {
+        btn.classList.add('is-locked');
+    }
+    btn.type = 'button';
+    btn.dataset.buildingId = id;
+
+    const tile = document.createElement('div');
+    tile.className = 'shop-tile';
+
+    const baseImg = document.createElement('img');
+    baseImg.className = 'base';
+    baseImg.src = isLocked ? 'img/misc/locked_base.webp' : baseSrc;
+    baseImg.alt = '';
+
+    const iconImg = document.createElement('img');
+    iconImg.className = 'icon';
+    iconImg.src = isLocked ? 'img/misc/mysterious.webp' : iconSrc;
+    iconImg.alt = '';
+    
+    tile.appendChild(baseImg);
+    tile.appendChild(iconImg);
+    btn.appendChild(tile);
+
+    return { btn, baseImg, iconImg };
+}
+
+function renderBuildingsGrid(gridEl) {
+    gridEl.innerHTML = '';
+
+    let highestDepth = 0;
+    try {
+        const hDp = getHighestDpLevel();
+        if (hDp) highestDepth = Number(hDp.toString());
+    } catch {}
+
+    const buildings = [];
+    
+    // 1. Core Building
+    buildings.push({
+        id: 'core',
+        title: 'Core Building',
+        iconSrc: 'img/currencies/core/core.webp',
+        baseSrc: 'img/currencies/core/core_plus_base.webp',
+        isLocked: false,
+        mysteriousText: ''
+    });
+
+    // 2. Crystal Building
+    buildings.push({
+        id: 'crystal',
+        title: 'Crystal Building',
+        iconSrc: 'img/currencies/crystal/crystal.webp',
+        baseSrc: 'img/currencies/crystal/crystal_plus_base.webp',
+        isLocked: true,
+        mysteriousText: 'Perform the ??? reset to reveal this Building'
+    });
+
+    // 3-12. Material Buildings (Stone to Prismatium)
+    const baseIconStr = 'img/currencies/scrap/scrap_base.webp';
+    for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
+        const mat = UC_MATERIAL_DATA[i];
+        const isLocked = highestDepth < mat.start;
+        buildings.push({
+            id: mat.name,
+            title: mat.name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') + ' Building',
+            iconSrc: `img/materials/${mat.name}.webp`,
+            baseSrc: baseIconStr,
+            isLocked: isLocked,
+            mysteriousText: `Reach Depth: ${mat.start}m to reveal this Building`
+        });
+    }
+
+    buildings.forEach(b => {
+        const card = createBuildingCard(b.id, b.title, b.iconSrc, b.baseSrc, b.isLocked, b.mysteriousText);
+        
+        // Add hover tooltip attributes logic
+        if (b.isLocked) {
+            card.btn.setAttribute('data-tooltip-title', 'Hidden Building');
+            card.btn.setAttribute('data-tooltip-desc', b.mysteriousText);
+        } else {
+            card.btn.setAttribute('data-tooltip-title', b.title);
+            card.btn.setAttribute('data-tooltip-desc', 'Building coming soon...');
+        }
+        
+        gridEl.appendChild(card.btn);
+    });
+}
+
 export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl) {
   const tabBtn = document.createElement('button');
   tabBtn.type = 'button';
@@ -36,12 +129,22 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
   const panel = document.createElement('section');
   panel.className = 'merchant-panel buildings-tab';
   panel.id = 'miner-panel-buildings';
+  panel.style.display = 'flex';
+  panel.style.flexDirection = 'column';
+  panel.style.height = '100%';
   
-  const placeholder = document.createElement('div');
-  placeholder.style.padding = '16px';
-  placeholder.textContent = 'Buildings coming soon...';
-  
-  panel.appendChild(placeholder);
+  const scroller = document.createElement('div');
+  scroller.className = 'shop-scroller';
+  scroller.style.height = '100%';
+  scroller.style.position = 'relative';
+
+  const grid = document.createElement('div');
+  grid.className = 'shop-grid';
+  grid.id = 'buildings-grid';
+  grid.setAttribute('role', 'grid');
+
+  scroller.appendChild(grid);
+  panel.appendChild(scroller);
   
   tabsEl.appendChild(tabBtn);
   panelsWrapEl.appendChild(panel);
@@ -53,9 +156,17 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
     allPanels.forEach(p => p.classList.remove('is-active'));
     tabBtn.classList.add('is-active');
     panel.classList.add('is-active');
+    
+    // re-render the grid when the tab is clicked, just in case depth changed
+    renderBuildingsGrid(grid);
   });
   
   updateBuildingsPanelVisibility(minerSheetEl);
+  
+  // Render grid immediately if unlocked, though typically it happens on click
+  if (isBuildingsUnlocked()) {
+      renderBuildingsGrid(grid);
+  }
 }
 
 export function updateBuildingsPanelVisibility(minerSheetEl) {
