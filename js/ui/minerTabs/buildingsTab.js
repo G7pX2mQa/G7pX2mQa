@@ -185,6 +185,13 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
   if (isBuildingsUnlocked()) {
       renderBuildingsGrid(grid);
   }
+
+  // Listen for depth changes and re-render the grid if the tab is currently active
+  window.addEventListener('dp:change', () => {
+    if (panel.classList.contains('is-active') && isBuildingsUnlocked()) {
+      renderBuildingsGrid(grid);
+    }
+  });
 }
 
 export function updateBuildingsPanelVisibility(minerSheetEl) {
