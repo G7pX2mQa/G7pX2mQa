@@ -2807,7 +2807,7 @@ export const REGISTRY = [
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
     nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
     computeLockState(ctx) {
-      const surgeLevel = getCurrentSurgeLevel();
+      const surgeLevel = getSafeSurgeLevel();
       // surgeLevel might be BigNum or Number or Infinity.
       // getCurrentSurgeLevel returns Number or Infinity.
       
@@ -2878,7 +2878,7 @@ export const REGISTRY = [
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
     nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
     computeLockState(ctx) {
-      const surgeLevel = getCurrentSurgeLevel();
+      const surgeLevel = getSafeSurgeLevel();
       
       let surge5 = false;
       if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
@@ -2945,7 +2945,7 @@ export const REGISTRY = [
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
     nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
     computeLockState(ctx) {
-      const surgeLevel = getCurrentSurgeLevel();
+      const surgeLevel = getSafeSurgeLevel();
       
       let surge7 = false;
       if (surgeLevel === Infinity || (typeof surgeLevel === 'string' && surgeLevel === 'Infinity')) {
@@ -3537,7 +3537,7 @@ function ensureUpgradeState(areaKey, upgId) {
 
   let hmEvolutions = 0;
   if (upg?.upgType === 'HM') {
-    const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0;
+    const surgeLevel = getSafeSurgeLevel();
     if (surgeLevel < 60) {
       let rawLevel = ensureLevelBigNum(rec.lvl);
       const cap = BigNum.fromInt(HM_EVOLUTION_INTERVAL);
@@ -3768,7 +3768,7 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
         xpUnlocked,
         xpLevelBn,
         xpLevel,
-        surgeLevel: getCurrentSurgeLevel(),
+        surgeLevel: getSafeSurgeLevel(),
         surgeUnlocked: isSurgeUnlocked(),
         baseLocked: state.locked,
         getUpgradeLevel(targetId) { return getLevelNumber(areaKey, targetId); },
@@ -3985,7 +3985,7 @@ function isUpgradeLocked(areaKey, upg) {
 export function isHmReadyToEvolve(upg, lvlBn, evolutions = null) {
   if (!upg || upg.upgType !== 'HM') return false;
 
-  const surgeLevel = typeof getCurrentSurgeLevel === 'function' ? getCurrentSurgeLevel() : 0;
+  const surgeLevel = getSafeSurgeLevel();
   if (surgeLevel < 60) return false;
 
   const safeEvol = (Number.isFinite(evolutions) || evolutions === Infinity || evolutions === 'Infinity')
@@ -4001,6 +4001,25 @@ export function isHmReadyToEvolve(upg, lvlBn, evolutions = null) {
   catch {}
   const lvlNum = levelBigNumToNumber(lvlBn);
   return Number.isFinite(lvlNum) && lvlNum >= cap;
+}
+
+
+function getSafeSurgeLevel() {
+  let level = 0;
+  if (typeof getCurrentSurgeLevel === 'function') {
+    level = getCurrentSurgeLevel();
+  }
+  if (level === 0 || level === undefined) {
+    try {
+      const slot = getActiveSlot();
+      if (slot != null) {
+        const raw = localStorage.getItem(`ccc:reset:surge:barLevel:${slot}`);
+        if (raw === 'Infinity') return Infinity;
+        if (raw) return Number(raw);
+      }
+    } catch {}
+  }
+  return level;
 }
 
 export function getLevel(areaKey, upgId) {
