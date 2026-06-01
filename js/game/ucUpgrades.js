@@ -1,5 +1,6 @@
 import { unlockDpSystem, isDpSystemUnlocked, getDpState } from './dpSystem.js';
-import { AREA_KEYS, LOCKED_UPGRADE_ICON_DATA_URL, formatMultForUi, safeHasMetMiner, UPGRADE_TIES, LOCKED_UPGRADE_TITLE, computeDefaultUpgradeCost, HIDDEN_UPGRADE_TITLE, MYSTERIOUS_UPGRADE_ICON_DATA_URL, getLevelNumber, E } from './upgrades.js';
+import { AREA_KEYS, HM_EVOLUTION_INTERVAL, LOCKED_UPGRADE_ICON_DATA_URL, formatMultForUi, safeHasMetMiner, UPGRADE_TIES, LOCKED_UPGRADE_TITLE, computeDefaultUpgradeCost, HIDDEN_UPGRADE_TITLE, MYSTERIOUS_UPGRADE_ICON_DATA_URL, getLevelNumber, E } from './upgrades.js';
+import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { isSellUnlocked, hasViewedSellTab } from '../ui/minerTabs/sellTab.js';
@@ -301,5 +302,80 @@ export const UC_REGISTRY = [
       }
     },
     effectSummary() { return ""; }
+  },
+  {
+    area: UC_AREA_KEY,
+    id: 7,
+    tie: 'scrap_4',
+    title: "Endless DP",
+    desc: "Multiplies DP value by 1.1x per level",
+    lvlCap: HM_EVOLUTION_INTERVAL,
+    baseCost: 1e9,
+    costType: 'scrap',
+    upgType: 'HM',
+    effectType: 'dp_value',
+    scalingPreset: 'HM',
+    icon: 'img/uc_upg_icons/dp_val_hm.webp',
+    costAtLevel(level) { return computeDefaultUpgradeCost(this.baseCost, level, this.upgType); },
+    nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
+    computeLockState() {
+      if (!isDpSystemUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Unlock the Depth system to reveal this upgrade',
+          reason: 'Unlock the Depth system to reveal this upgrade',
+        };
+      }
+
+      let dp31 = false;
+      try {
+        const dpState = getDpState();
+        dp31 = Number(dpState.dpLevel.toString()) >= 31;
+      } catch {}
+      
+      if (!dp31) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Reach Depth: 31m to reveal this upgrade',
+          reason: 'Reach Depth: 31m to reveal this upgrade',
+        };
+      }
+
+      if (!isBuildingsUnlocked()) {
+        const revealText = 'Do a Combine reset to reveal this upgrade';
+        return {
+          locked: true,
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
+          descOverride: revealText,
+          reason: revealText,
+        };
+      }
+      return { locked: false };
+    },
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `DP value bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier(level) {
+      const normalizedLevel = Math.max(0, Number(level) || 0);
+      return E.powPerLevel(1.1)(normalizedLevel);
+    },
   },
 ];
