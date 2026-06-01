@@ -1079,6 +1079,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'img/stats/xp/xp.webp',
     'img/stats/xp/xp_base.webp',
     'img/stats/xp/xp_plus_base.webp',
+	'img/uc_upg_icons/allmat_val_hm.webp',
 	'img/uc_upg_icons/dp_val1.webp',
 	'img/uc_upg_icons/dp_val_hm.webp',
 	'img/uc_upg_icons/faster_materials.webp',
