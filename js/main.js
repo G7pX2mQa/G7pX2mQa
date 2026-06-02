@@ -1097,6 +1097,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	'sounds/area_connector.ogg',
     'sounds/bomb_column_construction.ogg',
     'sounds/boss_death.ogg',
+	'sounds/building_tier_up.ogg',
     'sounds/coin_pickup.ogg',
     'sounds/coin_pickup_size1.ogg',
     'sounds/coin_pickup_size2.ogg',
