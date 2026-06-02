@@ -4038,20 +4038,22 @@ export function isHmReadyToEvolve(upg, lvlBn, evolutions = null) {
 
 function getSafeSurgeLevel() {
   let level = 0;
+  try {
+    const slot = getActiveSlot();
+    if (slot != null) {
+      const raw = localStorage.getItem(`ccc:reset:surge:barLevel:${slot}`);
+      if (raw === 'Infinity') return Infinity;
+      if (raw) level = Number(raw);
+    }
+  } catch {}
   if (typeof getCurrentSurgeLevel === 'function') {
-    level = getCurrentSurgeLevel();
+    const currentSurge = getCurrentSurgeLevel();
+    if (currentSurge === Infinity) return Infinity;
+    if (currentSurge !== 0 && currentSurge !== undefined && currentSurge > level) {
+      level = currentSurge;
+    }
   }
-  if (level === 0 || level === undefined) {
-    try {
-      const slot = getActiveSlot();
-      if (slot != null) {
-        const raw = localStorage.getItem(`ccc:reset:surge:barLevel:${slot}`);
-        if (raw === 'Infinity') return Infinity;
-        if (raw) return Number(raw);
-      }
-    } catch {}
-  }
-  return level;
+  return level || 0;
 }
 
 export function getLevel(areaKey, upgId) {
