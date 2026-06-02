@@ -70,10 +70,8 @@ export function createCursorTrail(playfield, options = {}) {
   
   playfield.appendChild(canvas);
 
-  // Use desynchronized for lower latency
   const ctx = canvas.getContext('2d', { 
-    alpha: true,
-    desynchronized: true 
+    alpha: true
   });
 
   // --- Texture Generation ---
