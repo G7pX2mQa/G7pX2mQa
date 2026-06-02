@@ -369,4 +369,67 @@ export const UC_REGISTRY = [
       return E.powPerLevel(1.1)(normalizedLevel);
     },
   },
+  {
+    area: UC_AREA_KEY,
+    id: 8,
+    tie: 'scrap_5',
+    title: "Endless Materials",
+    desc: "Multiplies the value of ALL Materials by 2x per level\nThis upgrade is very strong so it will scale just slightly faster than usual",
+    lvlCap: HM_EVOLUTION_INTERVAL,
+    baseCost: 1e9,
+    costType: 'scrap',
+    upgType: 'HM',
+    effectType: 'all_materials_value',
+    scalingPreset: 'HM',
+    scalingHarshness: 1000,
+    icon: 'img/uc_upg_icons/allmat_val_hm.webp',
+    costAtLevel(level) { return computeDefaultUpgradeCost(this.baseCost, level, this.upgType); },
+    nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
+    computeLockState() {
+      if (hasDoneCombineReset() || isBuildingsUnlocked()) {
+        return { locked: false };
+      }
+
+      let dp31 = false;
+      try {
+        const dpState = getDpState();
+        dp31 = Number(dpState.dpLevel.toString()) >= 31;
+      } catch {}
+      
+      if (!dp31) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Reach Depth: 31m to reveal this upgrade',
+          reason: 'Reach Depth: 31m to reveal this upgrade',
+        };
+      }
+
+      const revealText = 'Do a Combine reset to reveal this upgrade';
+      return {
+        locked: true,
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+        hidden: true,
+        hideCost: true,
+        hideEffect: true,
+        useLockedBase: true,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: revealText,
+        reason: revealText,
+      };
+    },
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `All Materials value bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier(level) {
+      const normalizedLevel = Math.max(0, Number(level) || 0);
+      return E.powPerLevel(2)(normalizedLevel);
+    },
+  },
 ];
