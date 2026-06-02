@@ -1,5 +1,5 @@
 import { unlockDpSystem, isDpSystemUnlocked, getDpState } from './dpSystem.js';
-import { AREA_KEYS, HM_EVOLUTION_INTERVAL, LOCKED_UPGRADE_ICON_DATA_URL, formatMultForUi, safeHasMetMiner, UPGRADE_TIES, LOCKED_UPGRADE_TITLE, computeDefaultUpgradeCost, HIDDEN_UPGRADE_TITLE, MYSTERIOUS_UPGRADE_ICON_DATA_URL, getLevelNumber, E } from './upgrades.js';
+import { AREA_KEYS, HM_EVOLUTION_INTERVAL, LOCKED_UPGRADE_ICON_DATA_URL, formatMultForUi, safeHasMetMiner, UPGRADE_TIES, LOCKED_UPGRADE_TITLE, computeDefaultUpgradeCost, costAtLevelUsingScaling, HIDDEN_UPGRADE_TITLE, MYSTERIOUS_UPGRADE_ICON_DATA_URL, getLevelNumber, E } from './upgrades.js';
 import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
 import { hasDoneCombineReset } from "../ui/minerTabs/resetTab.js";
 import { BigNum } from '../util/bigNum.js';
@@ -383,8 +383,8 @@ export const UC_REGISTRY = [
     scalingPreset: 'HM',
     scalingHarshness: 1000,
     icon: 'img/uc_upg_icons/allmat_val_hm.webp',
-    costAtLevel(level) { return computeDefaultUpgradeCost(this.baseCost, level, this.upgType); },
-    nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
+    costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
+    nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
     computeLockState() {
       if (hasDoneCombineReset() || isBuildingsUnlocked()) {
         return { locked: false };
