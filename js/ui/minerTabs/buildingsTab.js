@@ -4,6 +4,30 @@ import { UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
 import { setupDragToClose } from '../shopOverlay.js';
 
 const BUILDINGS_UNLOCKED_KEY_BASE = 'ccc:buildingsUnlocked';
+const BUILDING_ITEM_UNLOCKED_KEY_BASE = 'ccc:buildingItemUnlocked';
+
+export function isBuildingUnlocked(id) {
+  const slotKey = String(getActiveSlot() ?? 'default');
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    return localStorage.getItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setBuildingUnlocked(id, value, slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (typeof localStorage !== 'undefined') {
+    try {
+      if (value) {
+        localStorage.setItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`, '1');
+      } else {
+        localStorage.removeItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`);
+      }
+    } catch {}
+  }
+}
 
 export function isBuildingsUnlocked() {
   const slotKey = String(getActiveSlot() ?? 'default');
@@ -85,6 +109,7 @@ function renderBuildingsGrid(gridEl) {
     const buildings = [];
     
     // 1. Core Building
+    if (!isBuildingUnlocked('core')) setBuildingUnlocked('core', true);
     buildings.push({
         id: 'core',
         title: 'Core Building',
@@ -96,12 +121,13 @@ function renderBuildingsGrid(gridEl) {
     });
 
     // 2. Crystal Building
+    const crystalLocked = !isBuildingUnlocked('crystal');
     buildings.push({
         id: 'crystal',
         title: 'Crystal Building',
         iconSrc: '',
         baseSrc: 'img/currencies/crystal/crystal_plus_base.webp',
-        isLocked: true,
+        isLocked: crystalLocked,
         mysteriousText: 'Perform the ??? reset to reveal this Building',
         level: 0
     });
@@ -110,7 +136,18 @@ function renderBuildingsGrid(gridEl) {
     const baseIconStr = 'img/currencies/scrap/scrap_base.webp';
     for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
         const mat = UC_MATERIAL_DATA[i];
-        const isLocked = mat.name === 'stone' ? false : highestDepth < mat.start;
+        let isLocked = true;
+        
+        if (isBuildingUnlocked(mat.name)) {
+            isLocked = false;
+        } else {
+            const conditionMet = mat.name === 'stone' ? true : highestDepth >= mat.start;
+            if (conditionMet) {
+                setBuildingUnlocked(mat.name, true);
+                isLocked = false;
+            }
+        }
+
         buildings.push({
             id: mat.name,
             title: mat.name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') + ' Building',
