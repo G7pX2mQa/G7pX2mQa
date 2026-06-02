@@ -92,6 +92,9 @@ export const UC_REGISTRY = [
     costAtLevel() { return BigNum.fromInt(0); },
     nextCostAfter() { return BigNum.fromInt(0); },
     computeLockState() {
+      if (isDpSystemUnlocked()) {
+        return { locked: false, hidden: false, useLockedBase: false, hideCost: false, hideEffect: false };
+      }
       if (!isSellUnlocked()) {
         return {
           locked: true,
@@ -154,6 +157,9 @@ export const UC_REGISTRY = [
     costAtLevel(level) { return computeDefaultUpgradeCost(this.baseCost, level, this.upgType); },
     nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
     computeLockState() {
+      if (isDpSystemUnlocked()) {
+        return { locked: false };
+      }
       if (!isSellUnlocked() || !hasViewedSellTab()) {
         return {
           locked: true,
@@ -166,20 +172,17 @@ export const UC_REGISTRY = [
           iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
         };
       }
-      if (!isDpSystemUnlocked()) {
-        return {
-          locked: true,
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: 'Unlock the Depth system',
-          reason: 'Unlock the Depth system',
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      return { locked: false, hidden: false, useLockedBase: false };
+      return {
+        locked: true,
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: 'Unlock the Depth system',
+        reason: 'Unlock the Depth system',
+        hidden: false,
+        hideCost: true,
+        hideEffect: true,
+        useLockedBase: true,
+      };
     },
     effectSummary(level) {
       const mult = this.effectMultiplier(level);
@@ -208,6 +211,9 @@ export const UC_REGISTRY = [
     },
     nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
     computeLockState() {
+      if (isDpSystemUnlocked()) {
+        return { locked: false };
+      }
       if (!isSellUnlocked() || !hasViewedSellTab()) {
         return {
           locked: true,
@@ -220,20 +226,17 @@ export const UC_REGISTRY = [
           iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
         };
       }
-      if (!isDpSystemUnlocked()) {
-        return {
-          locked: true,
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: 'Unlock the Depth system',
-          reason: 'Unlock the Depth system',
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-        };
-      }
-      return { locked: false, hidden: false, useLockedBase: false };
+      return {
+        locked: true,
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: 'Unlock the Depth system',
+        reason: 'Unlock the Depth system',
+        hidden: false,
+        hideCost: true,
+        hideEffect: true,
+        useLockedBase: true,
+      };
     },
     effectSummary(level) {
       const mult = this.effectMultiplier(level);
@@ -322,19 +325,6 @@ export const UC_REGISTRY = [
     computeLockState() {
       if (hasDoneCombineReset() || isBuildingsUnlocked()) {
         return { locked: false };
-      }
-      if (!isDpSystemUnlocked()) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: 'Unlock the Depth system to reveal this upgrade',
-          reason: 'Unlock the Depth system to reveal this upgrade',
-        };
       }
 
       let dp31 = false;
