@@ -433,6 +433,8 @@ const STAT_MULTIPLIERS = [
     { key: 'dp', label: 'DP' },
     { key: 'rp', label: 'RP' },
     { key: 'fp', label: 'FP' },
+    { key: 'scrap', label: 'Scrap Multiplier' },
+    { key: 'allMaterials', label: 'All Materials Multiplier' },
 ];
 
 function getAreas() {
@@ -779,6 +781,16 @@ function getGameStatMultiplier(statKey) {
 
             const mult = getMutationMultiplier();
             if (mult) return mult;
+        } else if (statKey === 'scrap') {
+            const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
+            if (eff?.scrapValueMultiplier) {
+                return BigNum.fromAny(eff.scrapValueMultiplier);
+            }
+        } else if (statKey === 'allMaterials') {
+            const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
+            if (eff?.allMaterialsValueMultiplier) {
+                return BigNum.fromAny(eff.allMaterialsValueMultiplier);
+            }
         } else if (statKey === 'spawnRate') {
             const eff = computeUpgradeEffects(AREA_KEYS.STARTER_COVE);
             if (eff?.coinsPerSecondMult) {
