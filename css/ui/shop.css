@@ -910,6 +910,10 @@
   font-size: clamp(26px, 3.7vw, 38px);
 }
 
+.upg-sheet.is-hm-upgrade.is-endless-materials .upg-desc.centered {
+  font-size: clamp(28px, 4vw, 42px);
+}
+
 .upg-sheet.is-hm-upgrade .hm-view-milestones-row {
   width: 100%;
 }
@@ -921,6 +925,10 @@
 .upg-sheet.is-hm-upgrade.is-endless-xp .upg-line,
 .upg-sheet.is-hm-upgrade.is-endless-fp .upg-line {
   font-size: clamp(26px, 3.7vw, 38px);
+}
+
+.upg-sheet.is-hm-upgrade.is-endless-materials .upg-line {
+  font-size: clamp(28px, 4vw, 42px);
 }
 
 .bonus-line .infinity-symbol {
@@ -971,10 +979,19 @@
     line-height: 1.2;
   }
 
+  .upg-sheet.is-hm-upgrade.is-endless-materials .upg-desc.centered {
+    font-size: clamp(18px, 3.2vmin, 26px);
+    line-height: 1.2;
+  }
+
   .upg-sheet.is-hm-upgrade .upg-line,
 .upg-sheet.is-hm-upgrade.is-endless-xp .upg-line,
 .upg-sheet.is-hm-upgrade.is-endless-fp .upg-line {
     font-size: clamp(18px, 3.5vmin, 24px);
+  }
+
+  .upg-sheet.is-hm-upgrade.is-endless-materials .upg-line {
+    font-size: clamp(18px, 3.2vmin, 26px);
   }
 }
 
