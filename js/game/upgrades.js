@@ -196,6 +196,7 @@ export const UPGRADE_TIES = {
   ENDLESS_COINS_III: 'magic_5',
   ENDLESS_FP: 'coin_5',
   ENDLESS_DP: 'scrap_4',
+  ENDLESS_MATERIALS: 'scrap_5',
 };
 
 const HM_MILESTONES_STARTER_COVE = [
