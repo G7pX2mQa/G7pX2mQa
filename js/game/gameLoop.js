@@ -20,6 +20,7 @@ const RUNTIME_CHECK_INTERVAL_MS = 2000;
 let lastFrameTime = 0;
 
 let fpsWakeupEl = null;
+let fpsWakeupRot = 0;
 function ensureFpsWakeupEl() {
     if (typeof document === 'undefined') return;
     if (!fpsWakeupEl) {
@@ -45,7 +46,8 @@ function loop(timestamp) {
   lastFrameTime = now;
   
   if (fpsWakeupEl && !paused) {
-      fpsWakeupEl.style.opacity = Math.random() > 0.5 ? '0.01' : '0.02';
+      fpsWakeupRot = (fpsWakeupRot + 1) % 360;
+      fpsWakeupEl.style.transform = `rotate(${fpsWakeupRot}deg)`;
   }
 
   if (paused) {
