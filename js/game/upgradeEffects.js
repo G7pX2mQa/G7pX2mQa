@@ -25,6 +25,7 @@ import {
 import { getSurgeMagicMultiplier, getSurgeWaveMultiplier } from './surgeEffects.js';
 import { addExternalFpMultiplierProvider, getWaterwheelGoldMultiplier, getWaterwheelMagicMultiplier, getWaterwheelScrapMultiplier } from '../ui/merchantTabs/flowTab.js';
 import { addExternalDpMultiplierProvider } from './dpSystem.js';
+import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 
 const BASE_CPS = 1;
 
@@ -123,6 +124,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     coinValue: BigNum.fromInt(1),
     xpValue: BigNum.fromInt(1),
     mpValue: BigNum.fromInt(1),
+    scrapValue: BigNum.fromInt(1),
     goldValue: BigNum.fromInt(1),
     magicValue: BigNum.fromInt(1),
     waveValue: BigNum.fromInt(1),
@@ -154,10 +156,13 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     }
 
     if (upg.upgType === 'HM') {
-      const { selfMult, xpMult, coinMult, mpMult } = computeHmMultipliers(upg, lvlBn, effectiveArea);
+      const { selfMult, xpMult, coinMult, mpMult, scrapMult, dpMult, allMaterialsMult } = computeHmMultipliers(upg, lvlBn, effectiveArea);
       acc.xpValue = safeMultiplyBigNum(acc.xpValue, xpMult);
       acc.coinValue = safeMultiplyBigNum(acc.coinValue, coinMult);
       acc.mpValue = safeMultiplyBigNum(acc.mpValue, mpMult);
+      acc.scrapValue = safeMultiplyBigNum(acc.scrapValue, scrapMult);
+      acc.dpValue = safeMultiplyBigNum(acc.dpValue, dpMult);
+      acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, allMaterialsMult);
       
       baseEffect = safeMultiplyBigNum(baseEffect, selfMult);
     }
@@ -240,11 +245,13 @@ export function computeUpgradeEffects(areaKey) {
     magicValueMultiplier: mults.magicValue,
     dnaValueMultiplier: mults.dnaValue,
     allMaterialsValueMultiplier: mults.allMaterialsValue,
+    scrapValueMultiplier: mults.scrapValue,
+    dpValueMultiplier: mults.dpValue,
   };
 }
 
 export function syncCurrencyMultipliersFromUpgrades() {
-  const { goldValue, magicValue, waveValue, dnaValue, allMaterialsValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+  const { goldValue, magicValue, waveValue, dnaValue, allMaterialsValue, scrapValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
   
   try {
     if (bank.gold?.mult?.set) {
@@ -273,7 +280,7 @@ export function syncCurrencyMultipliersFromUpgrades() {
 
   try {
     if (bank.scrap?.mult?.set) {
-      const finalScrapValue = getWaterwheelScrapMultiplier(BigNum.fromInt(1));
+      const finalScrapValue = getWaterwheelScrapMultiplier(scrapValue);
       bank.scrap.mult.set(finalScrapValue);
     }
   } catch {}
@@ -290,7 +297,11 @@ export function syncCurrencyMultipliersFromUpgrades() {
     for (const mat of UC_MATERIALS) {
       if (bank[mat]?.mult?.set) {
         // Individual material multipliers can be multiplied here in the future
-        bank[mat].mult.set(allMaterialsValue);
+        let finalMatValue = allMaterialsValue;
+        if (typeof applyStatMultiplierOverride === 'function') {
+            finalMatValue = applyStatMultiplierOverride('allMaterials', finalMatValue);
+        }
+        bank[mat].mult.set(finalMatValue);
       }
     }
   } catch {}
@@ -367,8 +378,12 @@ export function registerXpUpgradeEffects() {
   try {
     addExternalDpMultiplierProvider((mult) => {
       const { dpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
-      if (!dpValue) return mult;
-      return safeMultiplyBigNum(mult, dpValue);
+      let finalDpValue = dpValue;
+      if (typeof applyStatMultiplierOverride === 'function') {
+        finalDpValue = applyStatMultiplierOverride('dp', finalDpValue);
+      }
+      if (!finalDpValue) return mult;
+      return safeMultiplyBigNum(mult, finalDpValue);
     });
   } catch {}
 
