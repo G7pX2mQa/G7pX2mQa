@@ -23,6 +23,12 @@ function startRefreshRateMonitor() {
     const elapsed = now - startTime;
     
     if (elapsed >= 1000) { // Measure for 1 second intervals
+      if (document.hidden) {
+        frameCount = 0;
+        startTime = now;
+        rafId = requestAnimationFrame(loop);
+        return;
+      }
       const measured = Math.round((frameCount * 1000) / elapsed);
       // Round to nearest standard refresh rate to avoid weird numbers like 59, 143, 239
       const standardRates = [30, 60, 75, 90, 120, 144, 165, 240, 360];
