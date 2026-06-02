@@ -19,11 +19,34 @@ const RUNTIME_CHECK_INTERVAL_MS = 2000;
 
 let lastFrameTime = 0;
 
+let fpsWakeupEl = null;
+function ensureFpsWakeupEl() {
+    if (typeof document === 'undefined') return;
+    if (!fpsWakeupEl) {
+        fpsWakeupEl = document.createElement('div');
+        Object.assign(fpsWakeupEl.style, {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '1px',
+            height: '1px',
+            pointerEvents: 'none',
+            opacity: '0.01',
+            zIndex: '-9999'
+        });
+        document.body.appendChild(fpsWakeupEl);
+    }
+}
+
 function loop(timestamp) {
   if (!timestamp) timestamp = performance.now();
   const now = timestamp;
   
   lastFrameTime = now;
+  
+  if (fpsWakeupEl && !paused) {
+      fpsWakeupEl.style.opacity = Math.random() > 0.5 ? '0.01' : '0.02';
+  }
 
   if (paused) {
       lastTime = now;
@@ -128,6 +151,7 @@ export function resumeGameLoop() {
 }
 
 export function startGameLoop() {
+  ensureFpsWakeupEl();
   if (rafId) return;
   lastTime = performance.now();
   accumulator = 0;
