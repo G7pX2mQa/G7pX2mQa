@@ -3784,13 +3784,28 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
   const permaUnlocked = revealKey ? isUpgradePermanentlyUnlocked(areaKey, upg, slot) : false;
 
 
+  let currentLevel = 0;
+  try {
+    currentLevel = (upg && typeof upg.id !== 'undefined') ? getLevelNumber(areaKey, upg.id) : 0;
+  } catch {}
+  if (currentLevel >= 1 || permaUnlocked) {
+    state.locked = false;
+    state.hidden = false;
+    state.hideCost = false;
+    state.hideEffect = false;
+    delete state.titleOverride;
+    delete state.iconOverride;
+    delete state.descOverride;
+    delete state.reason;
+  }
+
   if (state.locked) {
     const hiddenState = !!state.hidden;
     if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
 
     if (hiddenState) {
       if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
-    } else if (!state.titleOverride || state.titleOverride === HIDDEN_UPGRADE_TITLE) {
+    } else if (!state.titleOverride) {
       state.titleOverride = LOCKED_UPGRADE_TITLE;
     }
 
@@ -3810,6 +3825,10 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
     state.hidden = false;
     state.hideCost = false;
     state.hideEffect = false;
+    delete state.titleOverride;
+    delete state.iconOverride;
+    delete state.descOverride;
+    delete state.reason;
     state.useLockedBase = false;
     if (state.iconOverride === LOCKED_UPGRADE_ICON_DATA_URL ||
         state.iconOverride === MYSTERIOUS_UPGRADE_ICON_DATA_URL) {
@@ -3892,6 +3911,10 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
         state.hidden = false;
         state.hideCost = false;
         state.hideEffect = false;
+    delete state.titleOverride;
+    delete state.iconOverride;
+    delete state.descOverride;
+    delete state.reason;
         state.useLockedBase = false;
       } else if (storedStatus === 'mysterious') {
         applyStoredMysterious();
@@ -3948,6 +3971,10 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
       state.hidden = false;
       state.hideCost = false;
       state.hideEffect = false;
+    delete state.titleOverride;
+    delete state.iconOverride;
+    delete state.descOverride;
+    delete state.reason;
       state.useLockedBase = false;
 
       if (state.iconOverride === LOCKED_UPGRADE_ICON_DATA_URL ||
