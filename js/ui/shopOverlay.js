@@ -1450,6 +1450,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
   const isTM = (upgDef.upgType === 'TM');
   const isEndlessXp = (upgDef.tie === UPGRADE_TIES.ENDLESS_XP);
   const isEndlessFp = (upgDef.tie === UPGRADE_TIES.ENDLESS_FP);
+  const isEndlessMaterials = (upgDef.tie === UPGRADE_TIES.ENDLESS_MATERIALS);
   
   function ensureChild(parent, className, tagName = 'div') {
       const targetClasses = className.split(' ').filter(c => c.length > 0);
@@ -1505,6 +1506,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       upgSheetEl.classList.toggle('is-hm-upgrade', isHM && !isHiddenUpgrade);
       upgSheetEl.classList.toggle('is-endless-xp', isEndlessXp);
 	  upgSheetEl.classList.toggle('is-endless-fp', isEndlessFp);
+	  upgSheetEl.classList.toggle('is-endless-materials', isEndlessMaterials);
       upgSheetEl.classList.toggle('is-magnet-upgrade', upgDef.tie === UPGRADE_TIES.MAGNET);
 	  upgSheetEl.classList.toggle('is-no-effect', !model.effect);
 
