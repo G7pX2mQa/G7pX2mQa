@@ -33,7 +33,7 @@ function ensureFpsWakeupEl() {
             height: '1px',
             pointerEvents: 'none',
             opacity: '0.01',
-            zIndex: '-9999'
+            zIndex: '999999'
         });
         document.body.appendChild(fpsWakeupEl);
     }
