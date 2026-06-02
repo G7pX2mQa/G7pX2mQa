@@ -1,5 +1,5 @@
 import { BigNum } from '../util/bigNum.js';
-import { bank } from '../util/storage.js';
+import { bank, UC_MATERIALS } from '../util/storage.js';
 import { initResetSystem } from '../ui/merchantTabs/resetTab.js';
 import {
   addExternalCoinMultiplierProvider,
@@ -130,6 +130,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     bookValue: BigNum.fromInt(1),
     fpValue: BigNum.fromInt(1),
     dpValue: BigNum.fromInt(1),
+    allMaterialsValue: BigNum.fromInt(1),
     coinSpawn: 1.0,
     materialSpawn: 1.0,
     magnetRadius: 0,
@@ -197,6 +198,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.fpValue = safeMultiplyBigNum(acc.fpValue, baseEffect);
     } else if (upg.effectType === 'dp_value') {
       acc.dpValue = safeMultiplyBigNum(acc.dpValue, baseEffect);
+    } else if (upg.effectType === 'all_materials_value') {
+      acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, baseEffect);
     } else if (upg.effectType === 'magnet_radius') {
       let val = 0;
       if (baseEffect instanceof BigNum) {
@@ -236,11 +239,12 @@ export function computeUpgradeEffects(areaKey) {
     goldValueMultiplier: mults.goldValue,
     magicValueMultiplier: mults.magicValue,
     dnaValueMultiplier: mults.dnaValue,
+    allMaterialsValueMultiplier: mults.allMaterialsValue,
   };
 }
 
 export function syncCurrencyMultipliersFromUpgrades() {
-  const { goldValue, magicValue, waveValue, dnaValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+  const { goldValue, magicValue, waveValue, dnaValue, allMaterialsValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
   
   try {
     if (bank.gold?.mult?.set) {
@@ -279,6 +283,15 @@ export function syncCurrencyMultipliersFromUpgrades() {
       bank.DNA.mult.set(dnaValue);
     } else if (bank.dna?.mult?.set) {
       bank.dna.mult.set(dnaValue);
+    }
+  } catch {}
+
+  try {
+    for (const mat of UC_MATERIALS) {
+      if (bank[mat]?.mult?.set) {
+        // Individual material multipliers can be multiplied here in the future
+        bank[mat].mult.set(allMaterialsValue);
+      }
     }
   } catch {}
 }
