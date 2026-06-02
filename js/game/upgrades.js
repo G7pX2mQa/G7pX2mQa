@@ -209,8 +209,20 @@ const HM_MILESTONES_STARTER_COVE = [
   { level: 800, multiplier: 100, target: 'self' },
 ];
 
+const HM_MILESTONES_UNDERWATER_CAVERN = [
+  { level: 10, multiplier: 1.5, target: 'self' },
+  { level: 25, multiplier: 2, target: 'self' },
+  { level: 50, multiplier: 5, target: 'scrap' },
+  { level: 100, multiplier: 10, target: 'dp' },
+  { level: 200, multiplier: 15, target: 'allMaterials' },
+  { level: 400, multiplier: 25, target: 'self' },
+  { level: 800, multiplier: 100, target: 'self' },
+];
+
 const HM_MILESTONES_BY_AREA = {
   [AREA_KEYS.STARTER_COVE]: HM_MILESTONES_STARTER_COVE,
+  [AREA_KEYS.DNA]: HM_MILESTONES_STARTER_COVE,
+  [AREA_KEYS.UNDERWATER_CAVERN]: HM_MILESTONES_UNDERWATER_CAVERN,
 };
 
 export const LOCKED_UPGRADE_ICON_DATA_URL = 'img/misc/locked.webp';
@@ -1332,7 +1344,17 @@ function hmMilestoneMultiplier(multiplier, hits) {
 function resolveHmMilestones(upg, areaKey = DEFAULT_AREA_KEY) {
   if (Array.isArray(upg?.hmMilestones)) return upg.hmMilestones;
   const normalizedArea = normalizeAreaKey(areaKey || upg?.area || DEFAULT_AREA_KEY);
-  return HM_MILESTONES_BY_AREA[normalizedArea] || HM_MILESTONES_STARTER_COVE;
+  const milestones = HM_MILESTONES_BY_AREA[normalizedArea];
+  if (!milestones) {
+    // Only throw an error if the area has at least one HM upgrade.
+    const hasHmUpgrades = REGISTRY.some(u => normalizeAreaKey(u.area) === normalizedArea && u.upgType === 'HM');
+    if (hasHmUpgrades) {
+      throw new Error(`HM milestones undefined for area: ${normalizedArea}`);
+    }
+    // Fallback if there are no HM upgrades in this area anyway
+    return HM_MILESTONES_STARTER_COVE;
+  }
+  return milestones;
 }
 
 export function safeMultiplyBigNum(base, factor) {
@@ -1367,6 +1389,9 @@ export function computeHmMultipliers(upg, levelBn, areaKey = DEFAULT_AREA_KEY) {
       xpMult: BigNum.fromInt(1),
       coinMult: BigNum.fromInt(1),
       mpMult: BigNum.fromInt(1),
+      scrapMult: BigNum.fromInt(1),
+      dpMult: BigNum.fromInt(1),
+      allMaterialsMult: BigNum.fromInt(1),
     };
   }
 
@@ -1375,6 +1400,9 @@ export function computeHmMultipliers(upg, levelBn, areaKey = DEFAULT_AREA_KEY) {
   let xpMult = BigNum.fromInt(1);
   let coinMult = BigNum.fromInt(1);
   let mpMult = BigNum.fromInt(1);
+  let scrapMult = BigNum.fromInt(1);
+  let dpMult = BigNum.fromInt(1);
+  let allMaterialsMult = BigNum.fromInt(1);
 
   for (const m of milestones) {
     const hits = hmMilestoneHits(levelBn, Number(m?.level ?? m?.lvl ?? 0));
@@ -1387,6 +1415,12 @@ export function computeHmMultipliers(upg, levelBn, areaKey = DEFAULT_AREA_KEY) {
       coinMult = safeMultiplyBigNum(coinMult, mult);
     } else if (target === 'mp') {
       mpMult = safeMultiplyBigNum(mpMult, mult);
+    } else if (target === 'scrap') {
+      scrapMult = safeMultiplyBigNum(scrapMult, mult);
+    } else if (target === 'dp') {
+      dpMult = safeMultiplyBigNum(dpMult, mult);
+    } else if (target === 'allmaterials' || target === 'allMaterials') {
+      allMaterialsMult = safeMultiplyBigNum(allMaterialsMult, mult);
     } else {
       selfMult = safeMultiplyBigNum(selfMult, mult);
     }
@@ -1399,7 +1433,7 @@ export function computeHmMultipliers(upg, levelBn, areaKey = DEFAULT_AREA_KEY) {
     selfMult = safeMultiplyBigNum(selfMult, evolMult);
   }
 
-  return { selfMult, xpMult, coinMult, mpMult };
+  return { selfMult, xpMult, coinMult, mpMult, scrapMult, dpMult, allMaterialsMult };
 }
 
 function hmNextMilestoneLevel(upg, levelBn, areaKey = DEFAULT_AREA_KEY) {
