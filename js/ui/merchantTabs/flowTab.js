@@ -1719,5 +1719,8 @@ export function getWaterwheelScrapMultiplier(baseValue) {
     
     if (!(val instanceof BigNum)) val = BigNum.fromAny(val ?? 0);
     
+    if (typeof applyStatMultiplierOverride === 'function') {
+        val = applyStatMultiplierOverride('scrap', val);
+    }
     return val.mulBigNumInteger(mult);
 }
