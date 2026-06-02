@@ -23,7 +23,7 @@ function startRefreshRateMonitor() {
     const elapsed = now - startTime;
     
     if (elapsed >= 1000) { // Measure for 1 second intervals
-      if (document.hidden) {
+      if (document.hidden || false) {
         frameCount = 0;
         startTime = now;
         rafId = requestAnimationFrame(loop);
