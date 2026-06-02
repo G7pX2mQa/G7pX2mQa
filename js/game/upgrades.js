@@ -598,6 +598,9 @@ export function determineLockState(ctx) {
   } catch {}
 
   function determineUnlockXpLockState() {
+    if (xpUnlocked) {
+      return { locked: false, hidden: false, useLockedBase: false };
+    }
     if (safeHasMetMerchant()) {
       // Merchant met -> upgrade is fully visible and purchasable
       return {
