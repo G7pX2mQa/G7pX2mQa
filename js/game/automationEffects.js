@@ -186,10 +186,7 @@ let _hmUpgradesCache = null;
 function getGroupedUpgrades() {
   if (_groupedUpgradesCache) return _groupedUpgradesCache;
 
-  const upgrades = [
-    ...getUpgradesForArea(AREA_KEYS.STARTER_COVE),
-    ...getUpgradesForArea(AREA_KEYS.DNA)
-  ];
+  const upgrades = Object.values(AREA_KEYS).flatMap(areaKey => getUpgradesForArea(areaKey));
   const groups = {};
   const hmUpgrades = [];
 
