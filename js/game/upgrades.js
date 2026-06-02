@@ -1591,7 +1591,7 @@ function ensureUpgradeScaling(upg) {
   }
 }
 
-function costAtLevelUsingScaling(upg, level) {
+export function costAtLevelUsingScaling(upg, level) {
   const scaling = ensureUpgradeScaling(upg);
   if (!scaling) return BigNum.fromInt(0);
   const lvl = Math.max(0, Math.floor(Number(level) || 0));
