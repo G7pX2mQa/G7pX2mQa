@@ -157,7 +157,7 @@ export class WaterSystem {
         if (!this.bgCanvas || !this.fgCanvas) return;
 
         // Initialize Background Context
-        this.glBg = this.bgCanvas.getContext('webgl', { alpha: true, depth: false, desynchronized: true }) || 
+        this.glBg = this.bgCanvas.getContext('webgl', { alpha: true, depth: false }) || 
                     this.bgCanvas.getContext('experimental-webgl');
 
         if (!this.glBg) {
@@ -167,7 +167,7 @@ export class WaterSystem {
 
         // Initialize Foreground Context
         this.fgCanvas.style.display = 'block';
-        this.glFg = this.fgCanvas.getContext('webgl', { alpha: true, depth: false, desynchronized: true }) || 
+        this.glFg = this.fgCanvas.getContext('webgl', { alpha: true, depth: false }) || 
                     this.fgCanvas.getContext('experimental-webgl');
         
         if (!this.glFg) {
