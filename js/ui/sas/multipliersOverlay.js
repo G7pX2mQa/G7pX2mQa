@@ -8,6 +8,8 @@ import { getRpMult } from '../merchantTabs/labTab.js';
 import { getFpMultiplier } from '../merchantTabs/flowTab.js';
 import { createDropdown } from "./dropdownUtils.js";
 import { getActiveSlot } from '../../util/storage.js';
+import { isBuildingUnlocked } from '../minerTabs/buildingsTab.js';
+import { UC_MATERIALS } from '../../util/storage.js';
 
 function isMultiplierGreaterThanOne(multiplier) {
   if (multiplier == null) return false;
@@ -57,6 +59,16 @@ function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, c
   iconImg.src = baseSrc || iconSrc;
   
   iconWrapper.appendChild(iconImg);
+
+  if (iconSrc && baseSrc && iconSrc !== baseSrc) {
+    const innerIcon = document.createElement('img');
+    innerIcon.className = 'currency-icon';
+    innerIcon.src = iconSrc;
+    innerIcon.onerror = () => {
+      innerIcon.src = 'img/currencies/coin/coin_plus_base.webp';
+    };
+    iconWrapper.appendChild(innerIcon);
+  }
 
   const amountDiv = document.createElement('div');
   amountDiv.classList.add('multipliers-amount');
@@ -143,6 +155,12 @@ function populateMultipliersOverlay(overlayEl) {
     }
     
     let unlocked = isMultiplierEverUnlocked(config.key);
+
+    if (unlocked && UC_MATERIALS.includes(config.key)) {
+      if (!isBuildingUnlocked(config.key)) {
+        unlocked = false;
+      }
+    }
 
     if (unlocked) {
       let iconSrc = config.icon || "img/misc/mysterious.webp";
