@@ -878,32 +878,43 @@ function ensureCurrencyOverrideListener() {
             const override = getCurrencyOverride(targetSlot, key);
 
             if (baseline && override && mult) {
-                try {
-                    // Fix: Use BigNum div instead of native division for ratio calculation
-                    // This handles numbers > 1.8e308 correctly.
-                    const baselineBn = BigNum.fromAny(baseline);
-                    const nextBn = BigNum.fromAny(mult);
-                    
-                    if (!baselineBn.isZero()) {
-                        const ratio = nextBn.div(baselineBn);
-                        // If ratio != 1 (ignoring exact equality check for simplicity, or we can check via cmp)
-                        // A ratio of exactly 1 means no change, so we can skip scaling.
-                        const ratioNum = ratio.sig === 1 && ratio.e === 0 
-                                         ? 1 
-                                         : null; // dummy check, actually just multiply.
-                        
-                        const scaledOverride = override.mulDecimal(ratio.toScientific(18), 18);
-                        currencyOverrides.set(cacheKey, scaledOverride);
-                    }
-                } catch (e) {
-                }
+                let shouldScale = true;
+                const baselineBn = BigNum.fromAny(baseline);
+                const nextBn = BigNum.fromAny(mult);
 
+                if (!baselineBn.isZero()) {
+                    try {
+                        // Sometimes the event fires with the exact same multiplier. We should ignore exact matches.
+                        if (!bigNumEquals(baselineBn, nextBn)) {
+                            const ratio = nextBn.div(baselineBn);
+                            const locked = isCurrencyMultiplierLocked(key, targetSlot);
+                            
+                            // If it's an unlocked material and its baseline ACTUALLY changed, wipe its override.
+                            if (!locked && UC_MATERIALS.includes(key)) {
+                                clearCurrencyMultiplierOverride(key, targetSlot);
+                                const storageKey = getCurrencyMultiplierStorageKey(key, targetSlot);
+                                if (storageKey) {
+                                    try { localStorage.removeItem(storageKey); } catch {}
+                                }
+                                shouldScale = false;
+                            }
+
+                            if (shouldScale) {
+                                const scaledOverride = override.mulDecimal(ratio.toScientific(18), 18);
+                                currencyOverrides.set(cacheKey, scaledOverride);
+                            }
+                        }
+                    } catch (e) {
+                    }
+                }
                 currencyOverrideBaselines.set(cacheKey, mult);
             } else if (mult) {
                 currencyOverrideBaselines.set(cacheKey, mult);
             }
 
-            applyCurrencyOverrideForSlot(key, targetSlot);
+            if (currencyOverrides.has(cacheKey)) {
+                applyCurrencyOverrideForSlot(key, targetSlot);
+            }
         }, { passive: true });
         window.addEventListener('saveSlot:change', () => {
             applyAllCurrencyOverridesForActiveSlot();
@@ -958,10 +969,12 @@ export function setDebugStatMultiplierOverride(statKey, value, slot = getActiveS
 
     if (statKey === 'allMaterials') {
         for (const mat of UC_MATERIALS) {
-            clearCurrencyMultiplierOverride(mat, slot);
-            const storageKey = getCurrencyMultiplierStorageKey(mat, slot);
-            if (storageKey) {
-                localStorage.removeItem(storageKey);
+            if (!isCurrencyMultiplierLocked(mat, slot)) {
+                clearCurrencyMultiplierOverride(mat, slot);
+                const storageKey = getCurrencyMultiplierStorageKey(mat, slot);
+                if (storageKey) {
+                    localStorage.removeItem(storageKey);
+                }
             }
         }
     }
@@ -1049,6 +1062,17 @@ function getEffectiveStatMultiplierOverride(statKey, slot, gameValue) {
             return override;
         }
         clearStatMultiplierOverride(statKey, slot);
+        if (statKey === 'allMaterials') {
+            for (const mat of UC_MATERIALS) {
+                if (!isCurrencyMultiplierLocked(mat, slot)) {
+                    clearCurrencyMultiplierOverride(mat, slot);
+                    const storageKey = getCurrencyMultiplierStorageKey(mat, slot);
+                    if (storageKey) {
+                        localStorage.removeItem(storageKey);
+                    }
+                }
+            }
+        }
         return null;
     }
 
