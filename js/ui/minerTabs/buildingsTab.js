@@ -291,13 +291,8 @@ function ensureMysteriousBuildingOverlay() {
     
     const sheet = document.createElement('div');
     sheet.className = 'upg-sheet';
-    
-    const grabber = document.createElement('div');
-    grabber.className = 'upg-grabber';
-    grabber.innerHTML = `<div class="grab-handle"></div>`;
-    
-    const header = document.createElement('header');
-    header.className = 'upg-header';
+    sheet.style.display = 'flex';
+    sheet.style.flexDirection = 'column';
     
     const content = document.createElement('div');
     content.className = 'upg-content';
@@ -508,13 +503,8 @@ export function initBuildingOverlay() {
 
     const sheet = document.createElement('div');
     sheet.className = 'upg-sheet';
-    sheet.style.width = '100%';
-    sheet.style.maxWidth = '800px'; 
-    sheet.style.height = '100%';
-    sheet.style.maxHeight = '100%';
     sheet.style.display = 'flex';
     sheet.style.flexDirection = 'column';
-    sheet.style.position = 'relative';
 
     const canvasContainer = document.createElement('div');
     canvasContainer.style.position = 'absolute';
