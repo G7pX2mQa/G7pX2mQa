@@ -4,7 +4,7 @@ import { UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
 import { setupDragToClose } from '../shopOverlay.js';
 import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../../util/bigNum.js';
 import { levelBigNumToNumber, evaluateBulkPurchase } from '../../game/upgrades.js';
-import { formatMultForUi } from '../../util/numFormat.js';
+import { formatMultForUi, formatNumber } from '../../util/numFormat.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
 
 
