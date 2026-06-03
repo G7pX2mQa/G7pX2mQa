@@ -567,74 +567,80 @@ export function initBuildingOverlay() {
     content.style.justifyContent = 'flex-end';
     content.style.zIndex = '1';
     
-    const levelTextContainer = document.createElement('div');
-    levelTextContainer.style.textAlign = 'center';
-    levelTextContainer.style.marginBottom = 'auto';
-    levelTextContainer.style.marginTop = '20px';
-    levelTextContainer.style.fontSize = '24px';
-    levelTextContainer.style.fontWeight = 'bold';
-    levelTextContainer.style.textShadow = '0 2px 4px rgba(0,0,0,0.8)';
-    levelTextContainer.id = 'building-detail-level-text';
+    const levelTextContainer = document.createElement("div");
+    levelTextContainer.style.textAlign = "center";
+    levelTextContainer.style.marginBottom = "10px";
+    levelTextContainer.style.fontSize = "28px";
+    levelTextContainer.style.fontWeight = "bold";
+    levelTextContainer.style.textShadow = "0 2px 4px rgba(0,0,0,0.8)";
+    levelTextContainer.id = "building-detail-level-text";
     
     content.appendChild(levelTextContainer);
 
-    const bottomUi = document.createElement('div');
-    bottomUi.style.background = 'rgba(0, 0, 0, 0.7)';
-    bottomUi.style.padding = '15px';
-    bottomUi.style.borderRadius = '10px';
-    bottomUi.style.marginBottom = '10px';
-    bottomUi.style.backdropFilter = 'blur(5px)';
+    const buildingHitbox = document.createElement("div");
+    buildingHitbox.style.width = "300px";
+    buildingHitbox.style.height = "240px";
+    buildingHitbox.style.margin = "0 auto";
+    buildingHitbox.style.pointerEvents = "none";
+    content.appendChild(buildingHitbox);
 
-    const bonusRow = document.createElement('div');
-    bonusRow.id = 'building-detail-bonus-row';
-    bonusRow.style.marginBottom = '8px';
-    bonusRow.style.fontSize = '16px';
+    const bonusRow = document.createElement("div");
+    bonusRow.id = "building-detail-bonus-row";
+    bonusRow.style.marginBottom = "8px";
+    bonusRow.className = "upg-line";
+    bonusRow.style.textAlign = "center";
+    bonusRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
     
-    const costRow = document.createElement('div');
-    costRow.id = 'building-detail-cost-row';
-    costRow.style.marginBottom = '8px';
-    costRow.style.fontSize = '16px';
+    const costRow = document.createElement("div");
+    costRow.id = "building-detail-cost-row";
+    costRow.style.marginBottom = "8px";
+    costRow.className = "upg-line";
+    costRow.style.textAlign = "center";
+    costRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
 
-    const walletRow = document.createElement('div');
-    walletRow.id = 'building-detail-wallet-row';
-    walletRow.style.marginBottom = '15px';
-    walletRow.style.fontSize = '16px';
+    const walletRow = document.createElement("div");
+    walletRow.id = "building-detail-wallet-row";
+    walletRow.style.marginBottom = "15px";
+    walletRow.className = "upg-line";
+    walletRow.style.textAlign = "center";
+    walletRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
 
-    const btnRow = document.createElement('div');
-    btnRow.style.display = 'flex';
-    btnRow.style.gap = '10px';
+    content.appendChild(bonusRow);
+    content.appendChild(costRow);
+    content.appendChild(walletRow);
     
-    const btnBuyCheap = document.createElement('button');
-    btnBuyCheap.className = 'shop-buy';
-    btnBuyCheap.id = 'building-btn-buy-cheap';
-    btnBuyCheap.textContent = 'Buy Cheap';
+    const btnBuyCheap = document.createElement("button");
+    btnBuyCheap.className = "shop-delve";
+    btnBuyCheap.id = "building-btn-buy-cheap";
+    btnBuyCheap.textContent = "Buy Cheap";
     
-    const btnBuyMax = document.createElement('button');
-    btnBuyMax.className = 'shop-buy';
-    btnBuyMax.id = 'building-btn-buy-max';
-    btnBuyMax.textContent = 'Buy Max';
+    const btnBuyMax = document.createElement("button");
+    btnBuyMax.className = "shop-delve";
+    btnBuyMax.id = "building-btn-buy-max";
+    btnBuyMax.textContent = "Buy Max";
     
-    const btnBuy = document.createElement('button');
-    btnBuy.className = 'shop-buy';
-    btnBuy.id = 'building-btn-buy';
-    btnBuy.textContent = 'Buy';
-    
-    btnRow.appendChild(btnBuyCheap);
-    btnRow.appendChild(btnBuyMax);
-    btnRow.appendChild(btnBuy);
+    const btnBuy = document.createElement("button");
+    btnBuy.className = "shop-delve";
+    btnBuy.id = "building-btn-buy";
+    btnBuy.textContent = "Buy";
 
-    bottomUi.appendChild(bonusRow);
-    bottomUi.appendChild(costRow);
-    bottomUi.appendChild(walletRow);
-    bottomUi.appendChild(btnRow);
-
-    content.appendChild(bottomUi);
-
-    const actions = document.createElement('div');
-    actions.className = 'upg-actions';
-    actions.style.zIndex = '1';
-    actions.innerHTML = `<button type="button" class="shop-close">Close</button>`;
+    const actions = document.createElement("div");
+    actions.className = "upg-actions";
+    actions.style.zIndex = "1";
+    actions.style.display = "flex";
+    actions.style.gap = "10px";
+    actions.style.flexWrap = "wrap";
+    actions.style.justifyContent = "center";
     
+    const btnClose = document.createElement("button");
+    btnClose.type = "button";
+    btnClose.className = "shop-close";
+    btnClose.textContent = "Close";
+
+    actions.appendChild(btnClose);
+    actions.appendChild(btnBuy);
+    actions.appendChild(btnBuyMax);
+    actions.appendChild(btnBuyCheap);
     sheet.append(grabber, header, content, actions);
     overlayEl.appendChild(sheet);
     document.body.appendChild(overlayEl);
