@@ -23,7 +23,7 @@ import {
 } from '../../util/ghostTapGuard.js';
 import { IS_MOBILE } from '../../main.js';
 import { playAudio, setAudioUnderwater } from '../../util/audioManager.js';
-import { playSecretDlgBossFightSequence } from '../../game/secretDlgBossVisuals.js';
+import { playSecretDlgBossFightSequence } from '../../misc/secretDlgBossVisuals.js';
 import { getLifetimeBossBeaten } from '../../game/secretAchievements.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import {
