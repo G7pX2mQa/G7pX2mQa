@@ -282,6 +282,33 @@ if (typeof window !== 'undefined') {
   });
 }
 
+const BUILDING_OVERLAY_CLOSE_MS = 120;
+const BUILDING_OVERLAY_OPEN_TRANSITION = 'transform var(--shop-anim)';
+const BUILDING_OVERLAY_CLOSE_TRANSITION = `transform ${BUILDING_OVERLAY_CLOSE_MS}ms ease-out`;
+
+function applyBuildingOverlayTransition(sheet, transition = BUILDING_OVERLAY_OPEN_TRANSITION) {
+    if (!sheet) return;
+    sheet.style.transition = transition;
+}
+
+function openBuildingOverlaySheet(overlay, sheet) {
+    if (!overlay || !sheet) return;
+    applyBuildingOverlayTransition(sheet);
+    overlay.classList.add('is-open');
+    overlay.style.pointerEvents = 'auto';
+    sheet.style.transform = 'translateY(100%)';
+    void sheet.offsetHeight;
+    sheet.style.transform = 'translateY(0)';
+}
+
+function finishBuildingOverlayClose(overlay, onClosed) {
+    const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : BUILDING_OVERLAY_CLOSE_MS;
+    setTimeout(() => {
+        overlay.classList.remove('is-open');
+        if (typeof onClosed === 'function') onClosed();
+    }, delay);
+}
+
 function ensureMysteriousBuildingOverlay() {
     if (document.getElementById('mysterious-building-overlay')) return;
 
@@ -291,6 +318,7 @@ function ensureMysteriousBuildingOverlay() {
     
     const sheet = document.createElement('div');
     sheet.className = 'upg-sheet';
+    applyBuildingOverlayTransition(sheet);
     sheet.style.display = 'flex';
     sheet.style.flexDirection = 'column';
     
@@ -339,11 +367,7 @@ function openMysteriousBuildingOverlay(mysteriousText) {
     const closeBtn = actions.querySelector('.shop-close');
     closeBtn.addEventListener('click', closeMysteriousBuildingOverlay);
 
-    overlay.classList.add('is-open');
-    overlay.style.pointerEvents = 'auto';
-    sheet.style.transform = 'translateY(100%)';
-    void sheet.offsetHeight;
-    sheet.style.transform = 'translateY(0)';
+    openBuildingOverlaySheet(sheet);
 }
 
 function closeMysteriousBuildingOverlay() {
@@ -352,10 +376,9 @@ function closeMysteriousBuildingOverlay() {
     if (overlay.style.pointerEvents === 'none') return;
     overlay.style.pointerEvents = 'none';
     const sheet = overlay.querySelector('.upg-sheet');
+    applyBuildingOverlayTransition(sheet);
     sheet.style.transform = 'translateY(100%)';
-    setTimeout(() => {
-        overlay.classList.remove('is-open');
-    }, 180);
+    finishBuildingOverlayClose(overlay);
 }
 
 
@@ -503,6 +526,7 @@ export function initBuildingOverlay() {
 
     const sheet = document.createElement('div');
     sheet.className = 'upg-sheet';
+    applyBuildingOverlayTransition(sheet);
     sheet.style.display = 'flex';
     sheet.style.flexDirection = 'column';
 
@@ -648,11 +672,7 @@ export function openBuildingDetailOverlay(id) {
     
     updateOverlayUi();
 
-    overlayEl.classList.add('is-open');
-    overlayEl.style.pointerEvents = 'auto';
-    sheet.style.transform = 'translateY(100%)';
-    void sheet.offsetHeight;
-    sheet.style.transform = 'translateY(0)';
+    openBuildingOverlaySheet(overlayEl, sheet);
     
 
     import('../../misc/buildingVisuals.js').then(module => {
@@ -665,14 +685,14 @@ function closeBuildingDetailOverlay() {
     if (overlayEl.style.pointerEvents === 'none') return;
     overlayEl.style.pointerEvents = 'none';
     const sheet = overlayEl.querySelector('.upg-sheet');
+    applyBuildingOverlayTransition(sheet);
     sheet.style.transform = 'translateY(100%)';
-    setTimeout(() => {
-        overlayEl.classList.remove('is-open');
+    finishBuildingOverlayClose(overlayEl, () => {
         import('../../misc/buildingVisuals.js').then(module => {
             module.stopCanvasLoop();
         });
         currentBuildingId = null;
-    }, 180);
+    });
 }
 
 function updateOverlayUi() {
