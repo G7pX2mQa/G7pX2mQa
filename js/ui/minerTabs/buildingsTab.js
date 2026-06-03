@@ -2,6 +2,11 @@ import { getActiveSlot } from '../../util/storage.js';
 import { getHighestDpLevel } from '../../game/dpSystem.js';
 import { UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
 import { setupDragToClose } from '../shopOverlay.js';
+import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../../util/bigNum.js';
+import { levelBigNumToNumber, evaluateBulkPurchase } from '../../game/upgrades.js';
+import { formatMultForUi } from '../../util/numFormat.js';
+import { playPurchaseSfx } from '../shopOverlay.js';
+
 
 const BUILDINGS_UNLOCKED_KEY_BASE = 'ccc:buildingsUnlocked';
 const BUILDING_ITEM_UNLOCKED_KEY_BASE = 'ccc:buildingItemUnlocked';
@@ -169,7 +174,15 @@ function renderBuildingsGrid(gridEl) {
             });
         } else {
             card.btn.title = 'Left-click: View Building • Right-click: Buy Max';
-            // Currently unlocked buildings do nothing
+            card.btn.addEventListener('click', () => { openBuildingDetailOverlay(b.id); });
+            card.btn.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                currentBuildingId = b.id;
+                handlePurchase('max');
+                currentBuildingId = null;
+            });
+
+            
         }
         
         gridEl.appendChild(card.btn);
@@ -348,4 +361,454 @@ function closeMysteriousBuildingOverlay() {
     setTimeout(() => {
         overlay.classList.remove('is-open');
     }, 180);
+}
+
+
+// ----------------- Building Math & State ----------------- //
+
+const BUILDING_LEVEL_KEY_BASE = 'ccc:buildingLevel';
+
+const BUILDING_IDS = [
+    'core', 'crystal', 'stone', 'copper', 'iron', 'pure_gold', 'diamond', 
+    'emerald', 'ruby', 'sapphire', 'unobtainium', 'prismatium'
+];
+
+export function getBuildingLevel(id) {
+    const slotKey = String(getActiveSlot() ?? 'default');
+    if (typeof localStorage === 'undefined') return BigNum.fromInt(0);
+    try {
+        const val = localStorage.getItem(`${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`);
+        if (!val) return BigNum.fromInt(0);
+        return BigNum.fromAny(val);
+    } catch {
+        return BigNum.fromInt(0);
+    }
+}
+
+export function setBuildingLevel(id, levelBn) {
+    const slotKey = String(getActiveSlot() ?? 'default');
+    if (typeof localStorage === 'undefined') return;
+    try {
+        localStorage.setItem(`${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`, levelBn.toStorage ? levelBn.toStorage() : String(levelBn));
+    } catch {}
+}
+
+export function addBuildingLevel(id, amountToAddBn) {
+    let currentLevel = getBuildingLevel(id);
+    let newLevel = currentLevel.add(amountToAddBn);
+    setBuildingLevel(id, newLevel);
+    return newLevel;
+}
+
+export function getBuildingRatio(id) {
+    let idx = BUILDING_IDS.indexOf(id);
+    if (idx <= 2) return 1.20;
+    return 1.20 + ((idx - 2) * 0.04);
+}
+
+export function getBuildingCostLog10AtLevel(id, levelBn) {
+    const ratio = getBuildingRatio(id);
+    const levelNum = levelBigNumToNumber(levelBn);
+    
+    const softcapStart = 1_000_000_000;
+    
+    if (levelNum > softcapStart) {
+        const delta = levelNum - softcapStart;
+        const rate = 2.0665e-12;
+        const startRatioLog10 = Math.log10(ratio);
+        const ratioLog10 = startRatioLog10 * Math.exp(rate * delta);
+        return levelNum * ratioLog10; 
+    }
+    
+    return levelNum * Math.log10(ratio);
+}
+
+export function getBuildingCost(id, levelBn) {
+    const costLog10 = getBuildingCostLog10AtLevel(id, levelBn);
+    return bigNumFromLog10(costLog10);
+}
+
+let _precalcCeil100 = null;
+function getPrecalcCeil100() {
+    if (_precalcCeil100 !== null) return _precalcCeil100;
+    let val = 1;
+    for (let i = 0; i < 100; i++) {
+        val = Math.ceil(val * 1.2);
+    }
+    _precalcCeil100 = BigNum.fromAny(val);
+    return _precalcCeil100;
+}
+
+export function getBuildingBonus(id, levelBn) {
+    if (!levelBn || levelBn.isZero?.()) return BigNum.fromInt(1);
+    
+    const levelNum = levelBigNumToNumber(levelBn);
+    
+    if (id === 'crystal') {
+        return bigNumFromLog10(levelNum * Math.log10(3));
+    }
+    
+    if (levelNum <= 100) {
+        let val = 1;
+        for (let i = 0; i < levelNum; i++) {
+            val = Math.ceil(val * 1.2);
+        }
+        return BigNum.fromAny(val);
+    } else {
+        const base100 = getPrecalcCeil100();
+        const excess = levelNum - 100;
+        const excessMultLog10 = excess * Math.log10(1.2);
+        const excessMult = bigNumFromLog10(excessMultLog10);
+        return base100.mulBigNumInteger(excessMult);
+    }
+}
+
+// ----------------- Building Overlay ----------------- //
+
+let overlayEl = null;
+let currentBuildingId = null;
+
+const BUILDING_NAMES = {
+    core: 'Reactor', crystal: 'Obelisk', stone: 'Foundry', copper: 'Charger', iron: 'Refinery',
+    pure_gold: 'Vault', diamond: 'Oil Rig', emerald: 'Greenhouse', ruby: 'Radiator',
+    sapphire: 'Centrifuge', unobtainium: 'Beacon', prismatium: 'Singularity Generator'
+};
+
+const BUILDING_BONUS_TEXTS = {
+    core: "Next level's DP bonus", crystal: "Next level's Coin bonus", stone: "Next level's Scrap bonus",
+    copper: "Next level's Stone value bonus", iron: "Next level's Copper value bonus",
+    pure_gold: "Next level's Iron value bonus", diamond: "Next level's Pure Gold value bonus",
+    emerald: "Next level's Diamond value bonus", ruby: "Next level's Emerald value bonus",
+    sapphire: "Next level's Ruby value bonus", unobtainium: "Next level's Sapphire value bonus",
+    prismatium: "Next level's Unobtainium value bonus"
+};
+
+const BUILDING_CURRENCY_IMAGES = {
+    core: 'img/currencies/core/core.webp', crystal: 'img/currencies/crystal/crystal.webp',
+    stone: 'img/materials/stone.webp', copper: 'img/materials/copper.webp', iron: 'img/materials/iron.webp',
+    pure_gold: 'img/materials/pure_gold.webp', diamond: 'img/materials/diamond.webp',
+    emerald: 'img/materials/emerald.webp', ruby: 'img/materials/ruby.webp',
+    sapphire: 'img/materials/sapphire.webp', unobtainium: 'img/materials/unobtainium.webp',
+    prismatium: 'img/materials/prismatium.webp'
+};
+
+const BUILDING_CURRENCY_KEYS = {
+    core: 'core', crystal: 'crystal', stone: 'stone', copper: 'copper', iron: 'iron',
+    pure_gold: 'pure_gold', diamond: 'diamond', emerald: 'emerald', ruby: 'ruby',
+    sapphire: 'sapphire', unobtainium: 'unobtainium', prismatium: 'prismatium'
+};
+
+export function initBuildingOverlay() {
+    if (document.getElementById('building-detail-overlay')) return;
+
+    overlayEl = document.createElement('div');
+    overlayEl.id = 'building-detail-overlay';
+    overlayEl.className = 'upg-overlay';
+    overlayEl.style.zIndex = '9999';
+
+    const sheet = document.createElement('div');
+    sheet.className = 'upg-sheet';
+    sheet.style.width = '100%';
+    sheet.style.maxWidth = '800px'; 
+    sheet.style.height = '100%';
+    sheet.style.maxHeight = '100%';
+    sheet.style.display = 'flex';
+    sheet.style.flexDirection = 'column';
+    sheet.style.position = 'relative';
+
+    const canvasContainer = document.createElement('div');
+    canvasContainer.style.position = 'absolute';
+    canvasContainer.style.top = '0';
+    canvasContainer.style.left = '0';
+    canvasContainer.style.width = '100%';
+    canvasContainer.style.height = '100%';
+    canvasContainer.style.zIndex = '0';
+    canvasContainer.style.pointerEvents = 'none';
+    
+    const canvas = document.createElement('canvas');
+    canvas.id = 'building-detail-canvas';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.display = 'block';
+    canvasContainer.appendChild(canvas);
+    
+    sheet.appendChild(canvasContainer);
+
+    const grabber = document.createElement('div');
+    grabber.className = 'upg-grabber';
+    grabber.innerHTML = `<div class="grab-handle"></div>`;
+    grabber.style.zIndex = '1';
+    
+    const header = document.createElement('header');
+    header.className = 'upg-header';
+    header.style.zIndex = '1';
+    header.style.background = 'transparent';
+    header.style.borderBottom = 'none';
+    
+    const content = document.createElement('div');
+    content.className = 'upg-content';
+    content.style.flex = '1';
+    content.style.display = 'flex';
+    content.style.flexDirection = 'column';
+    content.style.justifyContent = 'flex-end';
+    content.style.zIndex = '1';
+    
+    const levelTextContainer = document.createElement('div');
+    levelTextContainer.style.textAlign = 'center';
+    levelTextContainer.style.marginBottom = 'auto';
+    levelTextContainer.style.marginTop = '20px';
+    levelTextContainer.style.fontSize = '24px';
+    levelTextContainer.style.fontWeight = 'bold';
+    levelTextContainer.style.textShadow = '0 2px 4px rgba(0,0,0,0.8)';
+    levelTextContainer.id = 'building-detail-level-text';
+    
+    content.appendChild(levelTextContainer);
+
+    const bottomUi = document.createElement('div');
+    bottomUi.style.background = 'rgba(0, 0, 0, 0.7)';
+    bottomUi.style.padding = '15px';
+    bottomUi.style.borderRadius = '10px';
+    bottomUi.style.marginBottom = '10px';
+    bottomUi.style.backdropFilter = 'blur(5px)';
+
+    const bonusRow = document.createElement('div');
+    bonusRow.id = 'building-detail-bonus-row';
+    bonusRow.style.marginBottom = '8px';
+    bonusRow.style.fontSize = '16px';
+    
+    const costRow = document.createElement('div');
+    costRow.id = 'building-detail-cost-row';
+    costRow.style.marginBottom = '8px';
+    costRow.style.fontSize = '16px';
+
+    const walletRow = document.createElement('div');
+    walletRow.id = 'building-detail-wallet-row';
+    walletRow.style.marginBottom = '15px';
+    walletRow.style.fontSize = '16px';
+
+    const btnRow = document.createElement('div');
+    btnRow.style.display = 'flex';
+    btnRow.style.gap = '10px';
+    
+    const btnBuyCheap = document.createElement('button');
+    btnBuyCheap.className = 'shop-buy';
+    btnBuyCheap.id = 'building-btn-buy-cheap';
+    btnBuyCheap.textContent = 'Buy Cheap';
+    
+    const btnBuyMax = document.createElement('button');
+    btnBuyMax.className = 'shop-buy';
+    btnBuyMax.id = 'building-btn-buy-max';
+    btnBuyMax.textContent = 'Buy Max';
+    
+    const btnBuy = document.createElement('button');
+    btnBuy.className = 'shop-buy';
+    btnBuy.id = 'building-btn-buy';
+    btnBuy.textContent = 'Buy';
+    
+    btnRow.appendChild(btnBuyCheap);
+    btnRow.appendChild(btnBuyMax);
+    btnRow.appendChild(btnBuy);
+
+    bottomUi.appendChild(bonusRow);
+    bottomUi.appendChild(costRow);
+    bottomUi.appendChild(walletRow);
+    bottomUi.appendChild(btnRow);
+
+    content.appendChild(bottomUi);
+
+    const actions = document.createElement('div');
+    actions.className = 'upg-actions';
+    actions.style.zIndex = '1';
+    actions.innerHTML = `<button type="button" class="shop-close">Close</button>`;
+    
+    sheet.append(grabber, header, content, actions);
+    overlayEl.appendChild(sheet);
+    document.body.appendChild(overlayEl);
+    
+    overlayEl.addEventListener('pointerdown', (e) => {
+        if (e.target === overlayEl) {
+            closeBuildingDetailOverlay();
+        }
+    });
+    
+    setupDragToClose(grabber, sheet, 
+        () => overlayEl.classList.contains('is-open'), 
+        closeBuildingDetailOverlay
+    );
+    
+    const closeBtn = actions.querySelector('.shop-close');
+    closeBtn.addEventListener('click', closeBuildingDetailOverlay);
+    
+    btnBuy.addEventListener('click', () => handlePurchase('buy'));
+    btnBuyMax.addEventListener('click', () => handlePurchase('max'));
+    btnBuyCheap.addEventListener('click', () => handlePurchase('cheap'));
+}
+
+export function openBuildingDetailOverlay(id) {
+    initBuildingOverlay();
+    currentBuildingId = id;
+    
+    const sheet = overlayEl.querySelector('.upg-sheet');
+    const header = overlayEl.querySelector('.upg-header');
+    
+    let properName = id.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    let buildingName = BUILDING_NAMES[id] || 'Building';
+    
+    header.innerHTML = `<div class="upg-title">${properName} Building: ${buildingName}</div>`;
+    
+    updateOverlayUi();
+
+    overlayEl.classList.add('is-open');
+    overlayEl.style.pointerEvents = 'auto';
+    sheet.style.transform = 'translateY(100%)';
+    void sheet.offsetHeight;
+    sheet.style.transform = 'translateY(0)';
+    
+
+    import('../../misc/buildingVisuals.js').then(module => {
+        module.startCanvasLoop(id, overlayEl.querySelector('#building-detail-canvas'));
+    });
+}
+
+function closeBuildingDetailOverlay() {
+    if (!overlayEl) return;
+    if (overlayEl.style.pointerEvents === 'none') return;
+    overlayEl.style.pointerEvents = 'none';
+    const sheet = overlayEl.querySelector('.upg-sheet');
+    sheet.style.transform = 'translateY(100%)';
+    setTimeout(() => {
+        overlayEl.classList.remove('is-open');
+        import('../../misc/buildingVisuals.js').then(module => {
+            module.stopCanvasLoop();
+        });
+        currentBuildingId = null;
+    }, 180);
+}
+
+function updateOverlayUi() {
+    if (!currentBuildingId) return;
+    const id = currentBuildingId;
+    
+    const levelBn = getBuildingLevel(id);
+    const nextLevelBn = levelBn.add(BigNum.fromInt(1));
+    const costBn = getBuildingCost(id, levelBn);
+    
+    const currencyKey = BUILDING_CURRENCY_KEYS[id];
+    const walletHandle = window.bank?.[currencyKey];
+    let walletBn = BigNum.fromInt(0);
+    if (walletHandle) {
+         walletBn = walletHandle.value instanceof BigNum ? walletHandle.value : BigNum.fromAny(walletHandle.value ?? 0);
+    }
+    
+    const currentBonus = getBuildingBonus(id, levelBn);
+    const nextBonus = getBuildingBonus(id, nextLevelBn);
+    
+    const imgStr = `<img src="${BUILDING_CURRENCY_IMAGES[id]}" style="width: 1em; height: 1em; vertical-align: middle;">`;
+    
+    document.getElementById('building-detail-level-text').textContent = `Building Level ${formatNumber(levelBn)}`;
+    
+    document.getElementById('building-detail-bonus-row').innerHTML = 
+        `${BUILDING_BONUS_TEXTS[id] || 'Bonus'}: ${formatMultForUi(currentBonus)}x &rarr; ${formatMultForUi(nextBonus)}x`;
+        
+    document.getElementById('building-detail-cost-row').innerHTML = 
+        `Cost: ${imgStr} ${formatNumber(costBn)}`;
+        
+    document.getElementById('building-detail-wallet-row').innerHTML = 
+        `You have: ${imgStr} ${formatNumber(walletBn)}`;
+        
+    const btnBuy = document.getElementById('building-btn-buy');
+    btnBuy.disabled = walletBn.cmp(costBn) < 0;
+    document.getElementById('building-btn-buy-max').disabled = walletBn.cmp(costBn) < 0;
+    document.getElementById('building-btn-buy-cheap').disabled = walletBn.cmp(costBn) < 0;
+}
+
+export function handlePurchaseOuter(id, type) {
+    currentBuildingId = id;
+    handlePurchase(type);
+    currentBuildingId = null;
+}
+
+function handlePurchase(type) {
+    if (!currentBuildingId) return;
+    const id = currentBuildingId;
+    
+    const currencyKey = BUILDING_CURRENCY_KEYS[id];
+    const walletHandle = window.bank?.[currencyKey];
+    if (!walletHandle) return;
+    
+    let walletBn = walletHandle.value instanceof BigNum ? walletHandle.value : BigNum.fromAny(walletHandle.value ?? 0);
+    let startLevelBn = getBuildingLevel(id);
+    
+    let costToDeduct = BigNum.fromInt(0);
+    let levelsToAdd = 0;
+    
+    
+    const maxLevels = type === 'buy' ? 1 : BigNum.fromAny('Infinity');
+    
+    // We construct a mock "upg" object to feed into evaluateBulkPurchase
+    const upgMock = {
+        lvlCap: Infinity,
+        costAtLevel: (lvl) => getBuildingCost(id, BigNum.fromAny(lvl)),
+        // Provide the scaling object directly so fast path works
+        scalingRatio: getBuildingRatio(id),
+        scalingBaseLog10: 0,
+        scalingRatioLog10: Math.log10(getBuildingRatio(id))
+    };
+    
+    // Create a minimal upg object:
+    const mockUpg = {
+        costType: currencyKey,
+        lvlCap: Infinity,
+        costAtLevel: (l) => getBuildingCost(id, BigNum.fromAny(l)),
+        _cache_scaling: {
+            baseBn: BigNum.fromInt(1),
+            baseLog10: 0,
+            ratio: getBuildingRatio(id),
+            ratioLn: Math.log(getBuildingRatio(id)),
+            ratioLog10: Math.log10(getBuildingRatio(id)),
+            ratioMinus1: getBuildingRatio(id) - 1
+        }
+    };
+    
+    if (type === 'buy') {
+        const costBn = getBuildingCost(id, startLevelBn);
+        if (walletBn.cmp(costBn) >= 0) {
+            costToDeduct = costBn;
+            levelsToAdd = 1;
+        }
+    } else if (type === 'max' || type === 'cheap') {
+        // evaluateBulkPurchase returns { count, spent }
+        let evalWallet = walletBn;
+        if (type === 'cheap') evalWallet = walletBn.div(10);
+        
+        const outcome = evaluateBulkPurchase(mockUpg, startLevelBn, evalWallet, BigNum.fromAny('Infinity'), { fastOnly: true });
+        
+        let count = outcome.count;
+        if (typeof count === 'number') count = BigNum.fromAny(count);
+        
+        if (count.cmp(0) > 0) {
+            levelsToAdd = levelBigNumToNumber(count);
+            costToDeduct = outcome.spent ?? BigNum.fromInt(0);
+        }
+    }
+    
+    if (levelsToAdd > 0) {
+        if (walletHandle.sub) walletHandle.sub(costToDeduct);
+        const oldLevel = getBuildingLevel(id);
+        const newLevel = addBuildingLevel(id, BigNum.fromAny(levelsToAdd));
+        
+        playPurchaseSfx();
+        
+        document.dispatchEvent(new CustomEvent('ccc:buildings:changed'));
+        
+        import('../../misc/buildingVisuals.js').then(module => {
+            module.triggerLevelUpAnimation();
+            module.checkTierUp(id, oldLevel, newLevel);
+        });
+        
+        updateOverlayUi();
+        
+        const gridCardBadge = document.querySelector(`.shop-upgrade[data-building-id="${id}"] .level-badge`);
+        if (gridCardBadge) gridCardBadge.textContent = formatNumber(newLevel);
+    }
 }
