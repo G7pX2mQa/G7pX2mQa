@@ -159,16 +159,87 @@ function drawCavern(ctx, w, h, t) {
     ctx.lineTo(0, h);
     ctx.fill();
     
-    const floorH = h * 0.25;
-    ctx.fillStyle = '#050505';
+    const floorH = 160;
+
+    ctx.fillStyle = "rgb(18, 12, 10)";
     ctx.beginPath();
-    ctx.moveTo(0, h - floorH);
-    ctx.quadraticCurveTo(w * 0.5, h - floorH - 20, w, h - floorH);
+    ctx.moveTo(0, h);
+    let points0 = [0.15, 0.2, 0.1, 0.25, 0.15, 0.2];
+    for(let j=0; j<=5; j++){
+        ctx.lineTo((w/5)*j, h - floorH + (floorH * points0[j]));
+    }
+    ctx.lineTo(w, h);
+    ctx.lineTo(0, h);
+    ctx.fill();
+
+    ctx.fillStyle = "rgb(28, 20, 16)";
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    let points1 = [0.35, 0.4, 0.3, 0.45, 0.35, 0.4];
+    for(let j=0; j<=5; j++){
+        ctx.lineTo((w/5)*j, h - floorH + (floorH * points1[j]));
+    }
+    ctx.lineTo(w, h);
+    ctx.lineTo(0, h);
+    ctx.fill();
+
+    ctx.fillStyle = "rgb(42, 30, 24)";
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    let points2 = [0.55, 0.6, 0.5, 0.65, 0.55, 0.6];
+    for(let j=0; j<=5; j++){
+        ctx.lineTo((w/5)*j, h - floorH + (floorH * points2[j]));
+    }
     ctx.lineTo(w, h);
     ctx.lineTo(0, h);
     ctx.fill();
     
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    // draw crystals
+    const colors = [
+        {r: 0, g: 255, b: 255}, // Bright Cyan
+        {r: 148, g: 0, b: 211}, // Deep Purple
+        {r: 255, g: 20, b: 147}, // Deep Pink
+        {r: 50, g: 205, b: 50}, // Lime Green
+        {r: 255, g: 69, b: 0}, // Orange Red
+        {r: 255, g: 215, b: 0} // Gold
+    ];
+    for (let i = 0; i < 8; i++) {
+        let cx = (i * 80 + t * 10) % w;
+        let cy = h - floorH + (floorH * 0.6) + (Math.sin(i + t*5) * 10);
+        
+        ctx.save();
+        ctx.translate(cx, cy);
+        const scale = 0.5 + (i % 3) * 0.2;
+        ctx.scale(scale, scale);
+        const rot = (i * 0.5);
+        ctx.rotate(rot);
+        
+        const cIndex = i % colors.length;
+        const baseColor = colors[cIndex];
+        
+        ctx.beginPath();
+        ctx.moveTo(0, -15);
+        ctx.lineTo(10, 0);
+        ctx.lineTo(0, 15);
+        ctx.lineTo(-10, 0);
+        ctx.closePath();
+        
+        const grad = ctx.createLinearGradient(-10, -15, 10, 15);
+        grad.addColorStop(0, `rgb(${Math.min(255, baseColor.r + 50)}, ${Math.min(255, baseColor.g + 50)}, ${Math.min(255, baseColor.b + 50)})`);
+        grad.addColorStop(0.4, `rgb(${baseColor.r}, ${baseColor.g}, ${baseColor.b})`);
+        grad.addColorStop(1, `rgb(${Math.max(0, baseColor.r - 50)}, ${Math.max(0, baseColor.g - 50)}, ${Math.max(0, baseColor.b - 50)})`);
+        
+        ctx.fillStyle = grad;
+        ctx.fill();
+        
+        ctx.strokeStyle = `rgba(255, 255, 255, 0.4)`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
     for(let i = 0; i < 20; i++) {
         let bx = ((i * 37 + t * 20) % w);
         let by = h - ((i * 53 + t * 50) % h);
@@ -180,7 +251,7 @@ function drawCavern(ctx, w, h, t) {
 }
 
 function drawBuilding(ctx, w, h, t, id, tier) {
-    const floorY = h - (h * 0.25) - 10;
+    const floorY = h - 140;
     const cx = w / 2;
     
     ctx.save();
