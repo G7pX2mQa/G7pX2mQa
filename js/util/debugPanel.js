@@ -16,6 +16,7 @@ import {
     primeStorageWatcherSnapshot,
     setCurrency,
     setCurrencyMultiplierBN,
+    UC_MATERIALS
 } from './storage.js';
 import { broadcastXpChange, computeCoinMultiplierForXpLevel, getXpGainMultiplier, getXpRequirementForXpLevel, getXpState, initXpSystem, resetXpProgress, unlockXpSystem } from '../game/xpSystem.js';
 import { broadcastMutationChange, computeMutationMultiplierForLevel, computeMutationRequirementForLevel, getMutationMultiplier, getMutationGainMultiplier, getMutationState, initMutationSystem, setMutationUnlockedForDebug, unlockMutationSystem } from '../game/mutationSystem.js';
@@ -430,11 +431,11 @@ const STAT_MULTIPLIERS = [
     { key: 'spawnRate', label: 'Spawn Rate' },
     { key: 'xp', label: 'XP' },
     { key: 'mutation', label: 'MP' },
+    { key: 'allMaterials', label: 'All Materials' },
     { key: 'dp', label: 'DP' },
     { key: 'rp', label: 'RP' },
     { key: 'fp', label: 'FP' },
     { key: 'scrap', label: 'Scrap Multiplier' },
-    { key: 'allMaterials', label: 'All Materials Multiplier' },
 ];
 
 function getAreas() {
@@ -791,6 +792,11 @@ function getGameStatMultiplier(statKey) {
             if (eff?.allMaterialsValueMultiplier) {
                 return BigNum.fromAny(eff.allMaterialsValueMultiplier);
             }
+        } else if (statKey === 'allMaterials') {
+            const eff = computeUpgradeEffects(AREA_KEYS.UNDERWATER_CAVERN);
+            if (eff?.allMaterialsValueMultiplier) {
+                return BigNum.fromAny(eff.allMaterialsValueMultiplier);
+            }
         } else if (statKey === 'spawnRate') {
             const eff = computeUpgradeEffects(AREA_KEYS.STARTER_COVE);
             if (eff?.coinsPerSecondMult) {
@@ -886,7 +892,7 @@ function ensureCurrencyOverrideListener() {
                                          ? 1 
                                          : null; // dummy check, actually just multiply.
                         
-                        const scaledOverride = override.mulBigNumInteger(ratio);
+                        const scaledOverride = override.mulDecimal(ratio.toScientific(18), 18);
                         currencyOverrides.set(cacheKey, scaledOverride);
                     }
                 } catch (e) {
@@ -949,6 +955,17 @@ export function setDebugStatMultiplierOverride(statKey, value, slot = getActiveS
     statOverrideBaselines.set(buildOverrideKey(slot, statKey), getGameStatMultiplier(statKey));
     storeStatMultiplierOverride(statKey, slot, bn);
     notifyStatMultiplierChange(statKey, slot);
+
+    if (statKey === 'allMaterials') {
+        for (const mat of UC_MATERIALS) {
+            clearCurrencyMultiplierOverride(mat, slot);
+            const storageKey = getCurrencyMultiplierStorageKey(mat, slot);
+            if (storageKey) {
+                localStorage.removeItem(storageKey);
+            }
+        }
+    }
+
     return bn;
 }
 
@@ -3929,7 +3946,7 @@ function buildAreaStatMultipliers(container, area) {
 
     STAT_MULTIPLIERS.forEach((stat) => {
         if (stat.key === 'spawnRate') return;
-        if (area.key === AREA_KEYS.UNDERWATER_CAVERN && stat.key !== 'dp') return;
+        if (area.key === AREA_KEYS.UNDERWATER_CAVERN && stat.key !== 'dp' && stat.key !== 'allMaterials') return;
         if (area.key === AREA_KEYS.STARTER_COVE && stat.key === 'dp') return;
         const storageKey = getStatMultiplierStorageKey(stat.key, slot);
         const row = createInputRow(
