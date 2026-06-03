@@ -1,11 +1,14 @@
+import { safeMultiplyBigNum } from './upgrades.js';
+import { getBuildingLevel, getBuildingBonus } from '../ui/minerTabs/buildingsTab.js';
 import { BigNum, approxLog10BigNum as approxLog10 } from '../util/bigNum.js';
 import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
 import { syncDpHudLayout } from '../ui/hudLayout.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
-
 import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
 import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
+
+
 
 const externalDpMultiplierProviders = [];
 export function addExternalDpMultiplierProvider(fn) {
@@ -594,6 +597,10 @@ export function getDpProgressRatio() {
 
 export function getDpMultiplier() {
   let dpMult = BigNum.fromInt(1);
+  try {
+    const coreBonus = getBuildingBonus('core', getBuildingLevel('core'));
+    dpMult = safeMultiplyBigNum(dpMult, coreBonus);
+  } catch (e) { console.error(e); }
   for (const provider of externalDpMultiplierProviders) {
     try {
       const val = provider(dpMult);
