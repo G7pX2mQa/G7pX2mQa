@@ -435,7 +435,6 @@ const STAT_MULTIPLIERS = [
     { key: 'dp', label: 'DP' },
     { key: 'rp', label: 'RP' },
     { key: 'fp', label: 'FP' },
-    { key: 'scrap', label: 'Scrap Multiplier' },
 ];
 
 function getAreas() {
