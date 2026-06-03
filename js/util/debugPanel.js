@@ -3971,7 +3971,7 @@ function buildAreaStatMultipliers(container, area) {
     STAT_MULTIPLIERS.forEach((stat) => {
         if (stat.key === 'spawnRate') return;
         if (area.key === AREA_KEYS.UNDERWATER_CAVERN && stat.key !== 'dp' && stat.key !== 'allMaterials') return;
-        if (area.key === AREA_KEYS.STARTER_COVE && stat.key === 'dp') return;
+        if (area.key === AREA_KEYS.STARTER_COVE && (stat.key === 'dp' || stat.key === 'allMaterials')) return;
         const storageKey = getStatMultiplierStorageKey(stat.key, slot);
         const row = createInputRow(
             `${stat.label} Multiplier`,
