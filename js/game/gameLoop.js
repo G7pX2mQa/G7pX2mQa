@@ -29,13 +29,13 @@ function ensureFpsWakeupEl() {
             position: 'fixed',
             top: '0',
             left: '0',
-            width: '100%',
-            height: '100%',
+            width: '1px',
+            height: '1px',
             pointerEvents: 'none',
             opacity: '0.01',
             zIndex: '999999',
             background: '#000',
-            willChange: 'opacity'
+            willChange: 'transform'
         });
         document.body.appendChild(fpsWakeupEl);
     }
@@ -49,7 +49,7 @@ function loop(timestamp) {
   
   if (fpsWakeupEl && !paused) {
       fpsWakeupRot = (fpsWakeupRot + 1) % 360;
-      fpsWakeupEl.style.opacity = (fpsWakeupRot % 2 === 0) ? '0.001' : '0.002';
+      fpsWakeupEl.style.transform = `rotate(${fpsWakeupRot}deg)`;
   }
 
   if (paused) {
