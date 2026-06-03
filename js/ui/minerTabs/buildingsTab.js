@@ -569,48 +569,41 @@ export function initBuildingOverlay() {
     
     const levelTextContainer = document.createElement("div");
     levelTextContainer.style.textAlign = "center";
-    levelTextContainer.style.marginBottom = "4px";
-    levelTextContainer.style.fontSize = "22px";
+    levelTextContainer.style.marginBottom = "10px";
+    levelTextContainer.style.fontSize = "28px";
     levelTextContainer.style.fontWeight = "bold";
     levelTextContainer.style.textShadow = "0 2px 4px rgba(0,0,0,0.8)";
-    levelTextContainer.style.lineHeight = "1.1";
     levelTextContainer.id = "building-detail-level-text";
     
     content.appendChild(levelTextContainer);
 
     const buildingHitbox = document.createElement("div");
     buildingHitbox.style.width = "300px";
-    buildingHitbox.style.height = "260px";
+    buildingHitbox.style.height = "240px";
     buildingHitbox.style.margin = "0 auto";
     buildingHitbox.style.pointerEvents = "none";
     content.appendChild(buildingHitbox);
 
     const bonusRow = document.createElement("div");
     bonusRow.id = "building-detail-bonus-row";
-    bonusRow.style.marginBottom = "2px";
+    bonusRow.style.marginBottom = "8px";
     bonusRow.className = "upg-line";
     bonusRow.style.textAlign = "center";
     bonusRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
-    bonusRow.style.fontSize = "clamp(16px, 2vw, 20px)";
-    bonusRow.style.lineHeight = "1.1";
     
     const costRow = document.createElement("div");
     costRow.id = "building-detail-cost-row";
-    costRow.style.marginBottom = "2px";
+    costRow.style.marginBottom = "8px";
     costRow.className = "upg-line";
     costRow.style.textAlign = "center";
     costRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
-    costRow.style.fontSize = "clamp(16px, 2vw, 20px)";
-    costRow.style.lineHeight = "1.1";
 
     const walletRow = document.createElement("div");
     walletRow.id = "building-detail-wallet-row";
-    walletRow.style.marginBottom = "4px";
+    walletRow.style.marginBottom = "15px";
     walletRow.className = "upg-line";
     walletRow.style.textAlign = "center";
     walletRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
-    walletRow.style.fontSize = "clamp(16px, 2vw, 20px)";
-    walletRow.style.lineHeight = "1.1";
 
     content.appendChild(bonusRow);
     content.appendChild(costRow);
