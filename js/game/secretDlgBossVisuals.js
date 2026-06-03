@@ -1,11 +1,11 @@
 import { playAudio } from '../util/audioManager.js';
 import { IS_MOBILE } from '../main.js';
 import { getActiveSlot } from '../util/storage.js';
-import { createCursorTrail } from './cursorTrail.js';
-import { settingsManager } from './settingsManager.js';
+import { createCursorTrail } from '../game/cursorTrail.js';
+import { settingsManager } from '../game/settingsManager.js';
 import { formatNumber } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
-import { setLifetimeBossBeaten, getLifetimeBossBeaten, checkSecretAchievements } from './secretAchievements.js';
+import { setLifetimeBossBeaten, getLifetimeBossBeaten, checkSecretAchievements } from '../game/secretAchievements.js';
 import { collectActiveBigCoins } from '../util/bigCoinManager.js';
 
 const COIN_VOLUME = IS_MOBILE ? 0.12 : 0.3;
