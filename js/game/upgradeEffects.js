@@ -336,9 +336,6 @@ export function syncCurrencyMultipliersFromUpgrades() {
             }
         } catch (e) { console.error(e); }
 
-        if (typeof applyStatMultiplierOverride === 'function') {
-            finalMatValue = applyStatMultiplierOverride('allMaterials', finalMatValue);
-        }
         bank[mat].mult.set(finalMatValue);
       }
     }
