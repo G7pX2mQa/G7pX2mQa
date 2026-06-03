@@ -46,7 +46,6 @@ import {
   getSurge6WealthMultipliers, 
   getTsunamiSequencePlayed,
   setTsunamiSequencePlayed,
-  isLabUnlocked,
   setLabUnlocked,
   getMapSequenceSeen,
   setMapSequenceSeen,
@@ -166,7 +165,7 @@ function updateBlockBigCoinsStatus() {
       isSurge125 = potentialLevel >= 125;
   }
 
-  _isSurge8Pending = isSurge8 && !getTsunamiSequencePlayed() && !isLabUnlocked();
+  _isSurge8Pending = isSurge8 && !getTsunamiSequencePlayed();
   _isSurge125Pending = isSurge125 && isNodeLocked('cavern', true) && !getMapSequenceSeen('cavern');
 }
 
@@ -1589,7 +1588,7 @@ export function performSurgeReset() {
   }
   
   // Check sequence condition
-  if (isSurge8 && !getTsunamiSequencePlayed() && !isLabUnlocked()) {
+  if (isSurge8 && !getTsunamiSequencePlayed()) {
       // Trigger sequence logic
       startTsunamiSequence();
       
