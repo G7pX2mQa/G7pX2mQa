@@ -71,7 +71,7 @@ import { showDelayedAchievementNotifications } from '../../game/achievements.js'
 import { showDelayedGoalNotifications, updateGameProgressBar } from '../gameProgressBar.js';
 import { showDelayedSecretAchievementNotifications, checkSecretAchievements, setLifetimeUselessExperiment } from '../../game/secretAchievements.js';
 import { closeMerchant, runTsunamiDialogue } from './dlgTab.js';
-import { playTsunamiSequence } from '../../game/tsunamiVisuals.js';
+import { playTsunamiSequence } from '../../misc/tsunamiVisuals.js';
 import { unlockMap, isMapUnlocked } from '../hudButtons.js';
 import { openMapOverlay, setNodeLocked, refreshNodesState, isNodeLocked } from '../mapOverlay.js';
 import { getWaterwheelGoldMultiplier } from './flowTab.js';
