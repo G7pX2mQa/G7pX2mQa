@@ -1,859 +1,458 @@
-import { safeMultiplyBigNum } from './upgrades.js';
 import { getBuildingLevel, getBuildingBonus } from '../ui/minerTabs/buildingsTab.js';
-import { BigNum, approxLog10BigNum as approxLog10 } from '../util/bigNum.js';
-import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
-import { formatNumber } from '../util/numFormat.js';
-import { syncDpHudLayout } from '../ui/hudLayout.js';
+import { BigNum } from '../util/bigNum.js';
+import { bank, UC_MATERIALS } from '../util/storage.js';
+import { initResetSystem } from '../ui/merchantTabs/resetTab.js';
+import { getLabWaveMultiplier } from './labNodes.js';
+import { addExternalMutationGainMultiplierProvider } from './mutationSystem.js';
+import { getSurgeMagicMultiplier, getSurgeWaveMultiplier } from './surgeEffects.js';
+import { addExternalFpMultiplierProvider, getWaterwheelGoldMultiplier, getWaterwheelMagicMultiplier, getWaterwheelScrapMultiplier } from '../ui/merchantTabs/flowTab.js';
+import { addExternalDpMultiplierProvider } from './dpSystem.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
-import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
-import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
 
+import {
+  addExternalCoinMultiplierProvider,
+  addExternalXpGainMultiplierProvider,
+  isXpSystemUnlocked,
+} from './xpSystem.js';
+import {
+  REGISTRY,
+  AREA_KEYS,
+  getUpgradesForArea,
+  getLevel,
+  getLevelNumber,
+  computeHmMultipliers,
+  safeMultiplyBigNum,
+  ensureLevelBigNum,
+  levelBigNumToNumber,
+  normalizedUpgradeLevel,
+  bigNumFromLog10,
+  UPGRADE_TIES
+} from './upgrades.js';
 
+const BASE_CPS = 1;
 
-const externalDpMultiplierProviders = [];
-export function addExternalDpMultiplierProvider(fn) {
-  if (typeof fn === 'function') externalDpMultiplierProviders.push(fn);
-}
+let _cachedUpgradeMultipliers = {};
+let listeners = [];
 
-let dpFpProviderRegistered = false;
+const externalSpawnRateProviders = [];
 
-function registerDpFpMultiplierProvider() {
-  if (dpFpProviderRegistered) return;
-  dpFpProviderRegistered = true;
-  addExternalFpMultiplierProvider((mult) => {
-      try {
-          if (!isDpSystemUnlocked()) return mult;
-          
-          const state = getDpState();
-          const levelStr = state.dpLevel.toString();
-          let levelNum = Number(levelStr);
-          
-          if (!Number.isFinite(levelNum) || levelNum === 0) return mult;
-
-          let powVal = Math.pow(1.1, levelNum);
-          
-          if (powVal >= 1e20 || !Number.isFinite(powVal)) {
-               const exponent = levelNum * Math.log10(1.1);
-               const mantissa = Math.pow(10, exponent % 1);
-               const intPart = Math.floor(exponent);
-               let nextMult = mult.mulDecimalFloor(mantissa);
-               return nextMult.mulBigNumInteger(BigNum.fromAny("1e" + intPart));
-          } else {
-               return mult.mulDecimalFloor(powVal);
-          }
-      } catch {
-          return mult;
-      }
-  });
-}
-
-const KEY_PREFIX = 'ccc:dp';
-const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
-const KEY_DP_LEVEL = (slot) => `${KEY_PREFIX}:level:${slot}`;
-const KEY_PROGRESS = (slot) => `${KEY_PREFIX}:progress:${slot}`;
-const KEY_HIGHEST_LEVEL = (slot) => `${KEY_PREFIX}:highest_level:${slot}`;
-
-let lastSlot = null;
-let stateLoaded = false;
-let requirementBn = BigNum.fromInt(10);
-
-const dpState = {
-  unlocked: false,
-  dpLevel: BigNum.fromInt(0),
-  progress: BigNum.fromInt(0),
-  highestLevel: BigNum.fromInt(0),
-};
-
-const dpChangeSubscribers = new Set();
-
-function notifyDpSubscribers(detail = {}) {
-  if (dpChangeSubscribers.size === 0) return;
-  dpChangeSubscribers.forEach((entry) => {
-    if (!entry || typeof entry.handler !== 'function') return;
-    if (entry.slot != null && detail.slot != null && entry.slot !== detail.slot) return;
-    try { entry.handler(detail); }
-    catch {}
-  });
-}
-
-export function onDpChange(handler, { slot = null } = {}) {
-  if (typeof handler !== 'function') {
-    return () => {};
-  }
-  const entry = { handler, slot: slot ?? null };
-  dpChangeSubscribers.add(entry);
-  return () => {
-    dpChangeSubscribers.delete(entry);
-  };
-}
-
-const hudRefs = {
-  container: null,
-  bar: null,
-  fill: null,
-  dpLevelValue: null,
-  progress: null,
-};
-
-function bnZero() {
-  return BigNum.fromInt(0);
-}
-
-function bnOne() {
-  return BigNum.fromInt(1);
-}
-
-function cloneBigNumSafe(value) {
-  if (!value) return bnZero();
-  if (typeof value.clone === 'function') {
-    try { return value.clone(); } catch {}
-  }
-  try { return BigNum.fromAny(value); } catch { return bnZero(); }
-}
-
-function bigNumEqualsSafe(a, b) {
-  if (a === b) return true;
-  if (a == null || b == null) return a == null && b == null;
-  if (typeof a?.cmp === 'function') {
-    try { return a.cmp(b) === 0; } catch {}
-  }
-  if (typeof b?.cmp === 'function') {
-    try { return b.cmp(a) === 0; } catch {}
-  }
-  try { return Object.is(String(a), String(b)); }
-  catch { return false; }
-}
-
-const dpStorageWatcherCleanups = [];
-let dpStorageWatchersInitialized = false;
-let dpStorageWatcherSlot = null;
-let handlingExternalDpStorage = false;
-
-function cleanupDpStorageWatchers() {
-  while (dpStorageWatcherCleanups.length > 0) {
-    const stop = dpStorageWatcherCleanups.pop();
-    try { stop?.(); } catch {}
+export function addExternalSpawnRateMultiplierProvider(provider) {
+  if (typeof provider === 'function') {
+    externalSpawnRateProviders.push(provider);
   }
 }
 
-function parseBigNumOrZero(raw) {
-  if (raw == null) return bnZero();
-  try { return BigNum.fromAny(raw); }
-  catch { return bnZero(); }
+export function invalidateEffectsCache() {
+  _cachedUpgradeMultipliers = {};
 }
 
-function handleExternalDpStorageChange(reason) {
-  if (handlingExternalDpStorage) return;
-  handlingExternalDpStorage = true;
+export function triggerUpgradesChanged() {
+  _cachedUpgradeMultipliers = {};
+  try { listeners.forEach(cb => cb()); } catch {}
+  try { document.dispatchEvent(new CustomEvent('ccc:upgrades:changed')); } catch {}
+}
+
+export function onUpgradesChanged(cb) {
+  if (typeof cb === 'function') listeners.push(cb);
+  return () => { listeners = listeners.filter(x => x !== cb); };
+}
+
+export function bookValueMultiplierBn(level) {
+  const L = ensureLevelBigNum(level);
   try {
-    const slot = dpStorageWatcherSlot ?? getActiveSlot();
-    const prev = {
-      unlocked: dpState.unlocked,
-      dpLevel: cloneBigNumSafe(dpState.dpLevel),
-      progress: cloneBigNumSafe(dpState.progress),
-      requirement: cloneBigNumSafe(requirementBn),
-    };
-    ensureStateLoaded(true);
-    updateHud();
-    const current = {
-      unlocked: dpState.unlocked,
-      dpLevel: cloneBigNumSafe(dpState.dpLevel),
-      progress: cloneBigNumSafe(dpState.progress),
-      requirement: cloneBigNumSafe(requirementBn),
-    };
-    const unlockedChanged = prev.unlocked !== current.unlocked;
-    const levelChanged = !bigNumEqualsSafe(prev.dpLevel, current.dpLevel);
-    const progressChanged = !bigNumEqualsSafe(prev.progress, current.progress);
-    if (!unlockedChanged && !levelChanged && !progressChanged) {
-      return;
+    const plain = L.toPlainIntegerString?.();
+    if (plain && plain !== 'Infinity' && plain.length <= 15) {
+      const lvl = Math.max(0, Number(plain));
+      return bigNumFromLog10(lvl * Math.log10(2)).floorToInteger();
     }
-    let dpLevelsGained = bnZero();
-    if (levelChanged) {
-      try { dpLevelsGained = current.dpLevel.sub?.(prev.dpLevel) ?? bnZero(); }
-      catch { dpLevelsGained = bnZero(); }
-    }
-    let dpAdded = null;
-    if (!levelChanged && progressChanged) {
-      try { dpAdded = current.progress.sub?.(prev.progress) ?? null; }
-      catch { dpAdded = null; }
-    }
-    if (typeof window !== 'undefined' || dpChangeSubscribers.size > 0) {
-      const detail = {
-        unlocked: current.unlocked,
-        dpLevelsGained: dpLevelsGained?.clone?.() ?? dpLevelsGained,
-        dpAdded: dpAdded?.clone?.() ?? dpAdded,
-        dpLevel: current.dpLevel?.clone?.() ?? current.dpLevel,
-        progress: current.progress?.clone?.() ?? current.progress,
-        requirement: current.requirement?.clone?.() ?? current.requirement,
-        source: 'storage',
-        changeType: reason,
-        slot,
-      };
-      notifyDpSubscribers(detail);
-      if (typeof window !== 'undefined') {
-        try { window.dispatchEvent(new CustomEvent('dp:change', { detail })); window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'dp', delta: detail.dpAdded, progress: detail.progress } })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } })); } catch {}
-      }
-    }
-  } finally {
-    handlingExternalDpStorage = false;
-  }
-}
-
-function bindDpStorageWatchersForSlot(slot) {
-  if (slot === dpStorageWatcherSlot) return;
-  cleanupDpStorageWatchers();
-  dpStorageWatcherSlot = slot ?? null;
-  if (slot == null) return;
-  const watch = (key, options) => {
-    const stop = watchStorageKey(key, options);
-    if (typeof stop === 'function') {
-      dpStorageWatcherCleanups.push(stop);
-    }
-  };
-  watch(KEY_UNLOCK(slot), {
-    parse: (raw) => raw === '1',
-    equals: (a, b) => a === b,
-    onChange: () => handleExternalDpStorageChange('unlock'),
-  });
-  watch(KEY_DP_LEVEL(slot), {
-    parse: parseBigNumOrZero,
-    equals: bigNumEqualsSafe,
-    onChange: () => handleExternalDpStorageChange('dpLevel'),
-  });
-  watch(KEY_PROGRESS(slot), {
-    parse: parseBigNumOrZero,
-    equals: bigNumEqualsSafe,
-    onChange: () => handleExternalDpStorageChange('progress'),
-  });
-}
-
-function ensureDpStorageWatchers() {
-  if (dpStorageWatchersInitialized) {
-    bindDpStorageWatchersForSlot(getActiveSlot());
-    return;
-  }
-  dpStorageWatchersInitialized = true;
-  bindDpStorageWatchersForSlot(getActiveSlot());
-  if (typeof window !== 'undefined') {
-    window.addEventListener('saveSlot:change', () => {
-      bindDpStorageWatchersForSlot(getActiveSlot());
-      ensureStateLoaded(true);
-      updateHud();
-    });
-  }
-}
-
-function stripHtml(value) {
-  if (typeof value !== 'string') return '';
-  return value.replace(/<[^>]*>/g, '');
-}
-
-function progressRatio(progressBn, requirement) {
-  if (!requirement || typeof requirement !== 'object') return 0;
-  if (!progressBn || typeof progressBn !== 'object') return 0;
-
-  const isInfinite = (bn) => !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
-  const reqIsInf = isInfinite(requirement);
-  const progIsInf = isInfinite(progressBn);
-
-  if (reqIsInf) {
-    return progIsInf ? 1 : 0;
-  }
-
-  const reqIsZero = requirement.isZero?.() || (typeof requirement.isZero === 'function' && requirement.isZero());
-  if (reqIsZero) return 0;
-
-  const progIsZero = progressBn.isZero?.() || (typeof progressBn.isZero === 'function' && progressBn.isZero());
-  if (progIsZero) return 0;
-
-  if (progressBn.cmp(requirement) >= 0) return 1;
-
-  const logProg = approxLog10(progressBn);
-  const logReq  = approxLog10(requirement);
-  if (!Number.isFinite(logProg) || !Number.isFinite(logReq)) {
-    return logProg >= logReq ? 1 : 0;
-  }
-  const diff = logProg - logReq;
-  const ratio = Math.pow(10, diff);
-  if (!Number.isFinite(ratio)) {
-    return diff >= 0 ? 1 : 0;
-  }
-  if (ratio <= 0) return 0;
-  if (ratio >= 1) return 1;
-  return ratio;
-}
-
-
-
-function ensureHudRefs() {
-  if (hudRefs.container && hudRefs.container.isConnected) return true;
-  hudRefs.container = document.querySelector('.dp-counter[data-dp-hud]');
-  if (!hudRefs.container) return false;
-  hudRefs.bar = hudRefs.container.querySelector('.dp-bar');
-  hudRefs.fill = hudRefs.container.querySelector('.dp-bar__fill');
-  hudRefs.dpLevelValue = hudRefs.container.querySelector('.dp-level-value');
-  hudRefs.progress = hudRefs.container.querySelector('[data-dp-progress]');
-  return true;
-}
-
-function dpRequirementForDpLevel(dpLevelInput) {
-  let dpLvlBn;
-  try {
-    dpLvlBn = dpLevelInput instanceof BigNum
-      ? (dpLevelInput.clone?.() ?? dpLevelInput)
-      : BigNum.fromAny(dpLevelInput ?? 0);
-  } catch {
-    dpLvlBn = BigNum.fromInt(0);
-  }
-
-  // Formula: Requirement = 10 * 1.5 ^ DPLevel
-  // DPLevel starts at 0, so DPLevel 0 -> req 10.
-  let levelPlain = '0';
-  try {
-    levelPlain = dpLvlBn.toPlainIntegerString?.() ?? dpLvlBn.toString?.() ?? '0';
-  } catch {
-    levelPlain = '0';
-  }
-
-  if (levelPlain === 'Infinity') {
-    return BigNum.fromAny('Infinity');
-  }
-
-  let targetLevelInfo = { num: null, finite: true };
-  if (levelPlain && levelPlain !== 'Infinity') {
-    try {
-      targetLevelInfo = { num: Number(levelPlain), finite: true };
-    } catch {
-      targetLevelInfo = { num: null, finite: true };
-    }
-  } else {
-    targetLevelInfo = { num: null, finite: true };
-  }
-
-  const targetLevel = targetLevelInfo.num ?? 0;
-  
-  const baseReq = BigNum.fromInt(10);
-  if (targetLevel <= 0) return baseReq;
-
-  // 10 * 1.5^level
-  // Since 1.5 = 15/10, we can use mulScaledIntFloor or similar if BigNum supports it well
-  // Or fallback to JS Math for reasonable levels, which should be fine as DP won't go to Infinity quickly
-  const numLevel = Number(targetLevel);
-  if (numLevel < 200) {
-     return BigNum.fromAny(Math.floor(10 * Math.pow(1.5, numLevel)));
-  } else {
-     // Use Math for calculating scientific directly if levels get huge
-     let totalLog10 = 1 + (numLevel * Math.log10(1.5));
-     
-     const softcapStart = 1e12; // 1 Trillion
-     if (numLevel > softcapStart) {
-         const softcapDeltaNum = numLevel - softcapStart;
-         // Hit Infinity at ~4.0003 Trillion total (delta = 3.0003 Trillion)
-         const baseSoftcapLog = 5;
-         const rate = 2.36034e-10;
-         const penaltyLog10 = baseSoftcapLog * Math.exp(rate * softcapDeltaNum);
-         
-         if (!Number.isFinite(penaltyLog10) || penaltyLog10 >= 1.7976931348623157e+308) {
-             return BigNum.fromAny('Infinity');
-         }
-         totalLog10 += penaltyLog10;
-         
-         if (!Number.isFinite(totalLog10) || totalLog10 >= 1.7976931348623157e+308) {
-             return BigNum.fromAny('Infinity');
-         }
-     }
-     
-     const intPart = Math.floor(totalLog10);
-     const fracPart = totalLog10 - intPart;
-     const mantissa = Math.pow(10, fracPart);
-     return new BigNum(Number(Math.round(mantissa * 1e14)), { base: intPart - 14 });
-  }
-}
-
-function updateDpRequirement() {
-  requirementBn = dpRequirementForDpLevel(dpState.dpLevel);
-}
-
-function resetLockedDpState() {
-  dpState.dpLevel = bnZero();
-  dpState.progress = bnZero();
-  updateDpRequirement();
-}
-
-function ensureStateLoaded(force = false) {
-  const slot = getActiveSlot();
-  if (slot == null) {
-    lastSlot = null;
-    stateLoaded = false;
-    dpState.unlocked = false;
-    resetLockedDpState();
-    return dpState;
-  }
-  if (!force && stateLoaded && slot === lastSlot) return dpState;
-  lastSlot = slot;
-  stateLoaded = true;
-  dpState.unlocked = false;
-  try {
-    const rawUnlocked = localStorage.getItem(KEY_UNLOCK(slot));
-    if (rawUnlocked === '1') dpState.unlocked = true;
   } catch {}
-  try {
-    dpState.dpLevel = BigNum.fromAny(localStorage.getItem(KEY_DP_LEVEL(slot)) ?? '0');
-  } catch {
-    dpState.dpLevel = bnZero();
-  }
-  try {
-    dpState.highestLevel = BigNum.fromAny(localStorage.getItem(KEY_HIGHEST_LEVEL(slot)) ?? '0');
-  } catch {
-    dpState.highestLevel = bnZero();
-  }
-  if (isBuildingsUnlocked() && dpState.dpLevel.cmp(dpState.highestLevel) > 0) {
-    dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
-  }
-  try {
-    dpState.progress = BigNum.fromAny(localStorage.getItem(KEY_PROGRESS(slot)) ?? '0');
-  } catch {
-    dpState.progress = bnZero();
-  }
 
-  if (!dpState.unlocked) {
-    resetLockedDpState();
-    return dpState;
-  }
-
-  updateDpRequirement();
-  ensureDpStorageWatchers();
-  return dpState;
+  return BigNum.fromAny('Infinity');
 }
 
-function persistState() {
-  const slot = getActiveSlot();
-  if (slot == null) return;
-
-  const expected = {
-    unlocked: dpState.unlocked ? '1' : '0',
-    level: dpState.dpLevel.toStorage(),
-    progress: dpState.progress.toStorage(),
-    highestLevel: dpState.highestLevel.toStorage(),
-  };
-
-  try { localStorage.setItem(KEY_UNLOCK(slot), expected.unlocked); }
-  catch {}
-  try { localStorage.setItem(KEY_DP_LEVEL(slot), expected.level); }
-  catch {}
-  try { localStorage.setItem(KEY_PROGRESS(slot), expected.progress); }
-  catch {}
-  try { localStorage.setItem(KEY_HIGHEST_LEVEL(slot), expected.highestLevel); }
-  catch {}
-
-  const persisted = (() => {
-    let unlocked = dpState.unlocked;
-    let level = dpState.dpLevel;
-    let progress = dpState.progress;
-    let highestLevel = dpState.highestLevel;
-    try { unlocked = localStorage.getItem(KEY_UNLOCK(slot)) !== '0'; }
-    catch {}
-    try {
-      const rawLevel = localStorage.getItem(KEY_DP_LEVEL(slot));
-      if (rawLevel) level = BigNum.fromAny(rawLevel);
-    } catch {}
-    try {
-      const rawProgress = localStorage.getItem(KEY_PROGRESS(slot));
-      if (rawProgress) progress = BigNum.fromAny(rawProgress);
-    } catch {}
-    try {
-      const rawHighestLevel = localStorage.getItem(KEY_HIGHEST_LEVEL(slot));
-      if (rawHighestLevel) highestLevel = BigNum.fromAny(rawHighestLevel);
-    } catch {}
-    return { unlocked, level, progress, highestLevel };
-  })();
-
-  primeStorageWatcherSnapshot(KEY_UNLOCK(slot), persisted.unlocked ? '1' : '0');
-  primeStorageWatcherSnapshot(KEY_DP_LEVEL(slot), persisted.level?.toStorage?.() ?? expected.level);
-  primeStorageWatcherSnapshot(KEY_PROGRESS(slot), persisted.progress?.toStorage?.() ?? expected.progress);
-  primeStorageWatcherSnapshot(KEY_HIGHEST_LEVEL(slot), persisted.highestLevel?.toStorage?.() ?? expected.highestLevel);
-
-  const mismatch =
-    persisted.unlocked !== dpState.unlocked ||
-    (persisted.level?.toStorage?.() ?? null) !== expected.level ||
-    (persisted.progress?.toStorage?.() ?? null) !== expected.progress ||
-    (persisted.highestLevel?.toStorage?.() ?? null) !== expected.highestLevel;
-
-  if (mismatch) {
-    dpState.unlocked = persisted.unlocked;
-    dpState.dpLevel = persisted.level;
-    dpState.progress = persisted.progress;
-    dpState.highestLevel = persisted.highestLevel;
-    if (isBuildingsUnlocked() && dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
-        dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
-    }
-    updateDpRequirement();
-    updateHud();
-  }
-}
-
-function updateHud() {
-  if (!ensureHudRefs()) return;
-  const { container, bar, fill, dpLevelValue, progress } = hudRefs;
-  if (!container) return;
-  const gameRoot = document.getElementById('game-root');
-  const isCavern = gameRoot && gameRoot.classList.contains('area-cavern');
-  if (!isCavern && !container.closest('.area-cavern')) {
-    container.setAttribute('hidden', '');
-    syncDpHudLayout();
-    return;
-  }
-  if (!dpState.unlocked) {
-    container.setAttribute('hidden', '');
-    if (fill) {
-      fill.style.setProperty('--dp-fill', '0%');
-      fill.style.width = '0%';
-    }
-    if (dpLevelValue) dpLevelValue.textContent = '0';
-    if (progress) {
-      const reqHtml = formatNumber(requirementBn);
-      progress.innerHTML = `<span class="dp-progress-current">0</span><span class="dp-progress-separator">/</span><span class="dp-progress-required">${reqHtml}</span><span class="dp-progress-suffix">DP</span>`;
-    }
-    if (bar) {
-      bar.setAttribute('aria-valuenow', '0');
-      const reqPlain = stripHtml(formatNumber(requirementBn));
-      bar.setAttribute('aria-valuetext', `0 / ${reqPlain || '10'} DP`);
-    }
-    syncDpHudLayout();
-    return;
-  }
-
-  container.removeAttribute('hidden');
-  const requirement = requirementBn;
-  const ratio = progressRatio(dpState.progress, requirement);
-  const pct = `${(ratio * 100).toFixed(2)}%`;
-  if (fill) {
-    fill.style.setProperty('--dp-fill', pct);
-    fill.style.width = pct;
-  }
-  if (dpLevelValue) {
-    dpLevelValue.innerHTML = formatNumber(dpState.dpLevel);
-  }
-  if (progress) {
-    const currentHtml = formatNumber(dpState.progress);
-    const reqHtml = formatNumber(requirement);
-    progress.innerHTML = `<span class="dp-progress-current">${currentHtml}</span><span class="dp-progress-separator">/</span><span class="dp-progress-required">${reqHtml}</span><span class="dp-progress-suffix">DP</span>`;
-  }
-  if (bar) {
-    bar.setAttribute('aria-valuenow', (ratio * 100).toFixed(2));
-    const currPlain = stripHtml(formatNumber(dpState.progress));
-    const reqPlain = stripHtml(formatNumber(requirement));
-    bar.setAttribute('aria-valuetext', `${currPlain} / ${reqPlain} DP`);
-  }
-  syncDpHudLayout();
-}
-
-export function unlockDpSystem() {
-  ensureStateLoaded();
-  if (dpState.unlocked) {
-    updateHud();
+function safeIsXpUnlocked() {
+  try {
+    return !!isXpSystemUnlocked();
+  } catch {
     return false;
   }
-  resetLockedDpState();
-  dpState.unlocked = true;
-  persistState();
-  updateHud();
-  const detail = getDpState();
-  try { window.dispatchEvent(new CustomEvent('dp:unlock', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } })); } catch {}
-  return true;
 }
 
-export function initDpSystem({ forceReload = false } = {}) {
-  registerDpFpMultiplierProvider();
-  ensureHudRefs();
-  ensureStateLoaded(forceReload);
-  updateDpRequirement();
-  updateHud();
-  ensureDpStorageWatchers();
-  return getDpState();
-}
+export function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
+  const multHandle = bank?.books?.mult;
+  if (!multHandle || typeof multHandle.set !== 'function') return;
 
-export function resetDpProgress({ keepUnlock = true } = {}) {
-  ensureStateLoaded();
-  const wasUnlocked = dpState.unlocked;
-  resetLockedDpState();
-  dpState.unlocked = keepUnlock ? (wasUnlocked || dpState.unlocked) : false;
-  if (isBuildingsUnlocked() && dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
-    dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
+  let resolvedLevel = 0;
+  const xpUnlocked = safeIsXpUnlocked();
+  if (xpUnlocked) {
+    if (Number.isFinite(levelOverride)) {
+      resolvedLevel = Math.max(0, Math.floor(levelOverride));
+    } else {
+      const storedLevel = getLevelNumber(AREA_KEYS.STARTER_COVE, UPGRADE_TIES.BOOK_VALUE_I);
+      resolvedLevel = Math.max(0, Number.isFinite(storedLevel) ? storedLevel : 0);
+    }
   }
-  persistState();
-  updateHud();
-  const detail = getDpState();
+
+  let multiplier;
   try {
-    window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } }));
+    multiplier = bookValueMultiplierBn(resolvedLevel);
+  } catch {
+    multiplier = BigNum.fromInt(1);
+  }
+
+  try {
+    multHandle.set(multiplier.clone?.() ?? multiplier);
   } catch {}
-  return detail;
 }
 
-export function getDpProgressRatio() {
-  ensureStateLoaded();
-  return progressRatio(dpState.progress, requirementBn);
-}
+export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
+  if (_cachedUpgradeMultipliers[areaKey]) return _cachedUpgradeMultipliers[areaKey];
 
-export function getDpMultiplier() {
-  let dpMult = BigNum.fromInt(1);
-  try {
-    const coreBonus = getBuildingBonus('core', getBuildingLevel('core'));
-    dpMult = safeMultiplyBigNum(dpMult, coreBonus);
-  } catch (e) { console.error(e); }
-  for (const provider of externalDpMultiplierProviders) {
+  const upgrades = getUpgradesForArea(areaKey);
+  const additionalUpgrades = [];
+  if (areaKey === AREA_KEYS.STARTER_COVE && AREA_KEYS.DNA) {
+    const dnaUpgrades = getUpgradesForArea(AREA_KEYS.DNA);
+    additionalUpgrades.push(...dnaUpgrades);
+    
+    // Also include Underwater Cavern upgrades as they affect things like coin value globally too
+    if (AREA_KEYS.UNDERWATER_CAVERN) {
+        const ucUpgrades = getUpgradesForArea(AREA_KEYS.UNDERWATER_CAVERN);
+        additionalUpgrades.push(...ucUpgrades);
+    }
+  }
+  const allUpgrades = [...upgrades, ...additionalUpgrades];
+
+  const acc = {
+    coinValue: BigNum.fromInt(1),
+    xpValue: BigNum.fromInt(1),
+    mpValue: BigNum.fromInt(1),
+    scrapValue: BigNum.fromInt(1),
+    goldValue: BigNum.fromInt(1),
+    magicValue: BigNum.fromInt(1),
+    waveValue: BigNum.fromInt(1),
+    dnaValue: BigNum.fromInt(1),
+    bookValue: BigNum.fromInt(1),
+    fpValue: BigNum.fromInt(1),
+    dpValue: BigNum.fromInt(1),
+    allMaterialsValue: BigNum.fromInt(1),
+    coinSpawn: 1.0,
+    materialSpawn: 1.0,
+    magnetRadius: 0,
+  };
+
+  for (const upg of allUpgrades) {
+    if (!upg.effectType) continue;
+
+    const effectiveArea = upg.area || areaKey;
+    const lvlBn = getLevel(effectiveArea, upg.id);
+    const lvlNum = levelBigNumToNumber(lvlBn);
+
+    let baseEffect = null;
+    if (typeof upg.effectMultiplier === 'function') {
+      baseEffect = upg.effectMultiplier(lvlNum);
+      if (!(baseEffect instanceof BigNum) && typeof baseEffect !== 'number') {
+        baseEffect = BigNum.fromAny(baseEffect ?? 1);
+      }
+    } else {
+      baseEffect = BigNum.fromInt(1);
+    }
+
+    if (upg.upgType === 'HM') {
+      const { selfMult, xpMult, coinMult, mpMult, scrapMult, dpMult, allMaterialsMult } = computeHmMultipliers(upg, lvlBn, effectiveArea);
+      acc.xpValue = safeMultiplyBigNum(acc.xpValue, xpMult);
+      acc.coinValue = safeMultiplyBigNum(acc.coinValue, coinMult);
+      acc.mpValue = safeMultiplyBigNum(acc.mpValue, mpMult);
+      acc.scrapValue = safeMultiplyBigNum(acc.scrapValue, scrapMult);
+      acc.dpValue = safeMultiplyBigNum(acc.dpValue, dpMult);
+      acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, allMaterialsMult);
+      
+      baseEffect = safeMultiplyBigNum(baseEffect, selfMult);
+    }
+
+    if (upg.effectType === 'coin_spawn') {
+      let val = 1;
+      if (baseEffect instanceof BigNum) {
+        try { val = Number(baseEffect.toScientific()); } catch { val = 1; }
+      } else {
+        val = Number(baseEffect);
+      }
+      acc.coinSpawn *= val;
+    } else if (upg.effectType === 'material_spawn') {
+      let val = 1;
+      if (baseEffect instanceof BigNum) {
+        try { val = Number(baseEffect.toScientific()); } catch { val = 1; }
+      } else {
+        val = Number(baseEffect);
+      }
+      acc.materialSpawn *= val;
+    } else if (upg.effectType === 'coin_value') {
+      acc.coinValue = safeMultiplyBigNum(acc.coinValue, baseEffect);
+    } else if (upg.effectType === 'xp_value') {
+      acc.xpValue = safeMultiplyBigNum(acc.xpValue, baseEffect);
+    } else if (upg.effectType === 'mp_value') {
+      acc.mpValue = safeMultiplyBigNum(acc.mpValue, baseEffect);
+    } else if (upg.effectType === 'gold_value') {
+      acc.goldValue = safeMultiplyBigNum(acc.goldValue, baseEffect);
+    } else if (upg.effectType === 'magic_value') {
+      acc.magicValue = safeMultiplyBigNum(acc.magicValue, baseEffect);
+    } else if (upg.effectType === 'wave_value') {
+      acc.waveValue = safeMultiplyBigNum(acc.waveValue, baseEffect);
+    } else if (upg.effectType === 'dna_value') {
+      acc.dnaValue = safeMultiplyBigNum(acc.dnaValue, baseEffect);
+    } else if (upg.effectType === 'book_value') {
+      acc.bookValue = safeMultiplyBigNum(acc.bookValue, baseEffect);
+    } else if (upg.effectType === 'fp_value') {
+      acc.fpValue = safeMultiplyBigNum(acc.fpValue, baseEffect);
+    } else if (upg.effectType === 'dp_value') {
+      acc.dpValue = safeMultiplyBigNum(acc.dpValue, baseEffect);
+    } else if (upg.effectType === 'all_materials_value') {
+      acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, baseEffect);
+    } else if (upg.effectType === 'magnet_radius') {
+      let val = 0;
+      if (baseEffect instanceof BigNum) {
+        try { val = Number(baseEffect.toScientific()); } catch { val = 0; }
+      } else {
+        val = Number(baseEffect);
+      }
+      if (Number.isFinite(val)) {
+        acc.magnetRadius += val;
+      }
+    }
+  }
+
+  for (const provider of externalSpawnRateProviders) {
     try {
-      const val = provider(dpMult);
-      if (val instanceof BigNum) {
-        dpMult = val;
-      } else if (val) {
-        dpMult = dpMult.mulBigNumInteger(BigNum.fromAny(val));
+      const val = provider();
+      if (Number.isFinite(val)) {
+        acc.coinSpawn *= val;
       }
     } catch {}
   }
-  return dpMult;
+
+  _cachedUpgradeMultipliers[areaKey] = acc;
+  return acc;
 }
 
-export function addDp(amount, { silent = false } = {}) {
-  ensureStateLoaded();
-  const slot = lastSlot ?? getActiveSlot();
-
-  if (!dpState.unlocked) {
-    return {
-      unlocked: false,
-      dpLevelsGained: bnZero(),
-      dpAdded: bnZero(),
-      dpLevel: dpState.dpLevel,
-      requirement: requirementBn
-    };
-  }
-
-  let inc;
-  try {
-    if (amount instanceof BigNum) {
-      inc = amount.clone?.() ?? BigNum.fromAny(amount ?? 0);
-    } else {
-      inc = BigNum.fromAny(amount ?? 0);
-    }
-  } catch {
-    inc = bnZero();
-  }
-
-  const dpMult = getDpMultiplier();
+export function computeUpgradeEffects(areaKey) {
+  const mults = calculateUpgradeMultipliers(areaKey);
   
-  if (dpMult instanceof BigNum && !dpMult.isZero?.()) {
-      inc = inc.mulBigNumInteger ? inc.mulBigNumInteger(dpMult) : inc;
-  }
-
-  inc = applyStatMultiplierOverride('dp', inc);
-
-  if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
-    updateHud();
-    return {
-      unlocked: true,
-      dpLevelsGained: bnZero(),
-      dpAdded: inc,
-      dpLevel: dpState.dpLevel,
-      requirement: requirementBn
-    };
-  }
-
-  dpState.progress = dpState.progress.add(inc);
-  updateDpRequirement();
-
-  const isInfinite = (bn) => !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
-
-  const progressIsInf = isInfinite(dpState.progress);
-  const levelIsInf = isInfinite(dpState.dpLevel);
-  const gainIsInf = isInfinite(inc);
-
-  if (progressIsInf || levelIsInf || gainIsInf) {
-    const inf = BigNum.fromAny('Infinity');
-    
-    dpState.dpLevel = inf.clone?.() ?? inf;
-    dpState.progress = inf.clone?.() ?? inf;
-    
-    updateDpRequirement();
-
-    if (isBuildingsUnlocked() && dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
-      dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
-    }
-
-    persistState();
-    updateHud();
-
-    const detail = {
-      unlocked: true,
-      dpLevelsGained: bnZero(),
-      dpAdded: inc.clone?.() ?? inc,
-      dpLevel: dpState.dpLevel.clone?.() ?? dpState.dpLevel,
-      progress: dpState.progress.clone?.() ?? dpState.progress,
-      requirement: requirementBn.clone?.() ?? requirementBn,
-      slot,
-    };
-    notifyDpSubscribers(detail);
-    if (!silent && typeof window !== 'undefined') {
-      try { window.dispatchEvent(new CustomEvent('dp:change', { detail })); window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'dp', delta: detail.dpAdded, progress: detail.progress } })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } })); } catch {}
-    }
-    return detail;
-  }
-
-  let dpLevelsGained = bnZero();
-
-  if (dpState.progress.cmp(requirementBn) < 0) {
-    persistState();
-    updateHud();
-    const detail = {
-      unlocked: true,
-      dpLevelsGained: bnZero(),
-      dpAdded: inc,
-      dpLevel: dpState.dpLevel,
-      progress: dpState.progress,
-      requirement: requirementBn,
-      slot,
-    };
-    notifyDpSubscribers(detail);
-    if (!silent && typeof window !== 'undefined') {
-      try { window.dispatchEvent(new CustomEvent('dp:change', { detail })); window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'dp', delta: detail.dpAdded, progress: detail.progress } })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } })); } catch {}
-    }
-    return detail;
-  }
-
-  // Fast approximation if a large bulk was added
-  const currentProgressLog = approxLog10(dpState.progress);
-  const reqLog = approxLog10(requirementBn);
-  
-  if (currentProgressLog - reqLog > 2) {
-    let currentLevelNum;
-    try {
-      currentLevelNum = Number(dpState.dpLevel.toPlainIntegerString?.() ?? dpState.dpLevel.toString());
-    } catch {
-      currentLevelNum = 0;
-    }
-
-    if (Number.isFinite(currentLevelNum)) {
-      const getLogForLevel = (levelNum) => {
-        let totalLog10 = 1 + (levelNum * Math.log10(1.5));
-        const softcapStart = 1e12;
-        if (levelNum > softcapStart) {
-          const softcapDeltaNum = levelNum - softcapStart;
-          const baseSoftcapLog = 5;
-          const rate = 2.36034e-10;
-          const penaltyLog10 = baseSoftcapLog * Math.exp(rate * softcapDeltaNum);
-          if (!Number.isFinite(penaltyLog10) || penaltyLog10 >= 1.7976931348623157e+308) {
-              return Number.POSITIVE_INFINITY;
-          }
-          totalLog10 += penaltyLog10;
-        }
-        return totalLog10;
-      };
-
-      let low = currentLevelNum;
-      let high = Math.max(currentLevelNum, 4500000000000);
-      let best = currentLevelNum;
-
-      for (let i = 0; i < 60; i++) {
-        const mid = Math.floor((low + high) / 2);
-        const midLog = getLogForLevel(mid);
-        if (midLog <= currentProgressLog) {
-            best = mid;
-            low = mid + 1;
-        } else {
-            high = mid - 1;
-        }
-      }
-
-      const estimatedGain = best - currentLevelNum;
-      if (estimatedGain > 10) {
-        const safeGain = Math.max(0, estimatedGain - 5);
-        if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
-          const safeGainBn = BigNum.fromAny(safeGain.toString());
-          dpState.dpLevel = dpState.dpLevel.add(safeGainBn);
-          dpLevelsGained = dpLevelsGained.add(safeGainBn);
-          updateDpRequirement();
-        }
-      }
-    }
-  }
-
-  let guard = 0;
-  const limit = 500;
-  
-  while (dpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
-    dpState.progress = dpState.progress.sub(requirementBn);
-    dpState.dpLevel = dpState.dpLevel.add(bnOne());
-    dpLevelsGained = dpLevelsGained.add(bnOne());
-    
-    updateDpRequirement();
-    
-    guard += 1;
-  }
-  
-  if (guard >= limit && dpState.progress.cmp(requirementBn) >= 0) {
-      updateDpRequirement();
-  }
-
-  if (isBuildingsUnlocked() && dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
-    dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
-  }
-
-  persistState();
-  updateHud();
-
-  const detail = {
-    unlocked: true,
-    dpLevelsGained: dpLevelsGained.clone?.() ?? dpLevelsGained,
-    dpAdded: inc.clone?.() ?? inc,
-    dpLevel: dpState.dpLevel.clone?.() ?? dpState.dpLevel,
-    progress: dpState.progress.clone?.() ?? dpState.progress,
-    requirement: requirementBn.clone?.() ?? requirementBn,
-    slot,
-  };
-  
-  notifyDpSubscribers(detail);
-  if (!silent && typeof window !== 'undefined') {
-    try { window.dispatchEvent(new CustomEvent('dp:change', { detail })); window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'dp', delta: detail.dpAdded, progress: detail.progress } })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } })); } catch {}
-  }
-  return detail;
-}
-
-export function getDpState() {
-  ensureStateLoaded();
   return {
-    unlocked: dpState.unlocked,
-    dpLevel: dpState.dpLevel.clone?.() ?? dpState.dpLevel,
-    progress: dpState.progress.clone?.() ?? dpState.progress,
-    requirement: requirementBn.clone?.() ?? requirementBn,
-    highestLevel: dpState.highestLevel.clone?.() ?? dpState.highestLevel,
+    coinsPerSecondMult: mults.coinSpawn,
+    materialSpawnRateMult: mults.materialSpawn,
+    coinsPerSecondAbsolute: BASE_CPS * mults.coinSpawn,
+    coinValueMultiplier: mults.coinValue,
+    xpGainMultiplier: mults.xpValue,
+    bookRewardMultiplier: mults.bookValue,
+    goldValueMultiplier: mults.goldValue,
+    magicValueMultiplier: mults.magicValue,
+    dnaValueMultiplier: mults.dnaValue,
+    allMaterialsValueMultiplier: mults.allMaterialsValue,
+    scrapValueMultiplier: mults.scrapValue,
+    dpValueMultiplier: mults.dpValue,
   };
 }
 
-export function isDpSystemUnlocked() {
-  ensureStateLoaded();
-  return !!dpState.unlocked;
+export function syncCurrencyMultipliersFromUpgrades() {
+  const { goldValue, magicValue, waveValue, dnaValue, allMaterialsValue, scrapValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+  
+  try {
+    if (bank.gold?.mult?.set) {
+      const finalGoldValue = getWaterwheelGoldMultiplier(goldValue);
+      bank.gold.mult.set(finalGoldValue);
+    }
+  } catch {}
+
+  try {
+    if (bank.magic?.mult?.set) {
+      const surgeMult = getSurgeMagicMultiplier();
+      let finalMagicValue = safeMultiplyBigNum(magicValue, surgeMult);
+      finalMagicValue = getWaterwheelMagicMultiplier(finalMagicValue);
+      bank.magic.mult.set(finalMagicValue);
+    }
+  } catch {}
+
+  try {
+    if (bank.waves?.mult?.set) {
+      const labMult = getLabWaveMultiplier();
+      const surgeWaveMult = getSurgeWaveMultiplier();
+      const finalWaveValue = safeMultiplyBigNum(waveValue, safeMultiplyBigNum(labMult, surgeWaveMult));
+      bank.waves.mult.set(finalWaveValue);
+    }
+  } catch {}
+
+  try {
+    if (bank.scrap?.mult?.set) {
+      let finalScrapValue = getWaterwheelScrapMultiplier(scrapValue);
+      try {
+        const stoneBonus = getBuildingBonus('stone', getBuildingLevel('stone'));
+        finalScrapValue = safeMultiplyBigNum(finalScrapValue, stoneBonus);
+      } catch {}
+
+      bank.scrap.mult.set(finalScrapValue);
+    }
+  } catch {}
+
+  try {
+    if (bank.DNA?.mult?.set) {
+      bank.DNA.mult.set(dnaValue);
+    } else if (bank.dna?.mult?.set) {
+      bank.dna.mult.set(dnaValue);
+    }
+  } catch {}
+
+  try {
+    for (const mat of UC_MATERIALS) {
+      if (bank[mat]?.mult?.set) {
+        // Individual material multipliers can be multiplied here in the future
+        let finalMatValue = allMaterialsValue;
+        try {
+            if (mat === 'stone') {
+                const copperBonus = getBuildingBonus('copper', getBuildingLevel('copper'));
+                finalMatValue = safeMultiplyBigNum(finalMatValue, copperBonus);
+            } else if (mat === 'copper') {
+                const ironBonus = getBuildingBonus('iron', getBuildingLevel('iron'));
+                finalMatValue = safeMultiplyBigNum(finalMatValue, ironBonus);
+            } else if (mat === 'iron') {
+                const goldBonus = getBuildingBonus('pure_gold', getBuildingLevel('pure_gold'));
+                finalMatValue = safeMultiplyBigNum(finalMatValue, goldBonus);
+            } else if (mat === 'pure_gold') {
+                const diamondBonus = getBuildingBonus('diamond', getBuildingLevel('diamond'));
+                finalMatValue = safeMultiplyBigNum(finalMatValue, diamondBonus);
+            } else if (mat === 'diamond') {
+                const emeraldBonus = getBuildingBonus('emerald', getBuildingLevel('emerald'));
+                finalMatValue = safeMultiplyBigNum(finalMatValue, emeraldBonus);
+            } else if (mat === 'emerald') {
+                const rubyBonus = getBuildingBonus('ruby', getBuildingLevel('ruby'));
+                finalMatValue = safeMultiplyBigNum(finalMatValue, rubyBonus);
+            } else if (mat === 'ruby') {
+                const sapphireBonus = getBuildingBonus('sapphire', getBuildingLevel('sapphire'));
+                finalMatValue = safeMultiplyBigNum(finalMatValue, sapphireBonus);
+            } else if (mat === 'sapphire') {
+                const unobtainiumBonus = getBuildingBonus('unobtainium', getBuildingLevel('unobtainium'));
+                finalMatValue = safeMultiplyBigNum(finalMatValue, unobtainiumBonus);
+            } else if (mat === 'unobtainium') {
+                const prismatiumBonus = getBuildingBonus('prismatium', getBuildingLevel('prismatium'));
+                finalMatValue = safeMultiplyBigNum(finalMatValue, prismatiumBonus);
+            }
+        } catch (e) { console.error(e); }
+
+        if (typeof applyStatMultiplierOverride === 'function') {
+            finalMatValue = applyStatMultiplierOverride('allMaterials', finalMatValue);
+        }
+        bank[mat].mult.set(finalMatValue);
+      }
+    }
+  } catch {}
 }
 
-export function getDpRequirementForDpLevel(dpLevel) {
-  return dpRequirementForDpLevel(dpLevel);
+export function getMpValueMultiplierBn() {
+  try {
+    const { mpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+    return mpValue;
+  } catch {
+    return BigNum.fromInt(1);
+  }
 }
 
-export function getHighestDpLevel() {
-  ensureStateLoaded();
-  return dpState.highestLevel;
+export function getMagnetLevel() {
+  try {
+    const { magnetRadius } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+    return magnetRadius || 0;
+  } catch {
+    return 0;
+  }
 }
 
-if (typeof window !== 'undefined') {
-  window.dpSystem = window.dpSystem || {};
-  Object.assign(window.dpSystem, {
-    addExternalDpMultiplierProvider,
-    initDpSystem,
-    unlockDpSystem,
-    addDp,
-    getDpState,
-    isDpSystemUnlocked,
-    getDpRequirementForDpLevel,
-    resetDpProgress,
-    getDpProgressRatio,
-    getHighestDpLevel
-  });
+export function registerXpUpgradeEffects() {
+  try { initResetSystem(); } catch {}
+
+  syncCurrencyMultipliersFromUpgrades();
+  onUpgradesChanged(syncCurrencyMultipliersFromUpgrades);
+  try {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('ccc:buildings:changed', () => {
+        syncCurrencyMultipliersFromUpgrades();
+      });
+    }
+  } catch {}
+
+
+  try {
+    addExternalCoinMultiplierProvider(({ baseMultiplier, xpUnlocked }) => {
+      try {
+        const crystalBonus = getBuildingBonus('crystal', getBuildingLevel('crystal'));
+        baseMultiplier = safeMultiplyBigNum(baseMultiplier, crystalBonus);
+      } catch {}
+
+      if (!xpUnlocked) return baseMultiplier;
+      let result = baseMultiplier instanceof BigNum
+        ? baseMultiplier.clone?.() ?? baseMultiplier
+        : BigNum.fromAny(baseMultiplier ?? 0);
+      
+      const { coinValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+      return safeMultiplyBigNum(result, coinValue);
+    });
+  } catch {}
+
+  try {
+    addExternalXpGainMultiplierProvider(({ baseGain, xpUnlocked }) => {
+      if (!xpUnlocked) return baseGain;
+      let gain = baseGain instanceof BigNum
+        ? baseGain.clone?.() ?? baseGain
+        : BigNum.fromAny(baseGain ?? 0);
+      
+      const { xpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+      return safeMultiplyBigNum(gain, xpValue);
+    });
+  } catch {}
+
+  try {
+    addExternalMutationGainMultiplierProvider(({ baseGain, mutationUnlocked }) => {
+      if (!mutationUnlocked) return baseGain;
+      let gain = baseGain instanceof BigNum
+        ? baseGain.clone?.() ?? baseGain
+        : BigNum.fromAny(baseGain ?? 0);
+      
+      const { mpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+      return safeMultiplyBigNum(gain, mpValue);
+    });
+  } catch {}
+
+  try {
+    addExternalFpMultiplierProvider((mult) => {
+      const { fpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+      if (!fpValue) return mult;
+      return safeMultiplyBigNum(mult, fpValue);
+    });
+  } catch {}
+
+  try {
+    addExternalDpMultiplierProvider((mult) => {
+      const { dpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+      let finalDpValue = dpValue;
+      if (typeof applyStatMultiplierOverride === 'function') {
+        finalDpValue = applyStatMultiplierOverride('dp', finalDpValue);
+      }
+      if (!finalDpValue) return mult;
+      return safeMultiplyBigNum(mult, finalDpValue);
+    });
+  } catch {}
+
+  syncBookCurrencyMultiplierFromUpgrade();
+  if (typeof window !== 'undefined') {
+    window.addEventListener('saveSlot:change', () => {
+      try { syncBookCurrencyMultiplierFromUpgrade(); } catch {}
+      try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+    });
+    
+    window.addEventListener('surge:level:change', () => {
+        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+    });
+    window.addEventListener('surge:nerf:change', () => {
+        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+    });
+    window.addEventListener('lab:node:change', () => {
+        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+    });
+  }
 }
