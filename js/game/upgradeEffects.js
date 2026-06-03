@@ -304,7 +304,7 @@ export function syncCurrencyMultipliersFromUpgrades() {
     for (const mat of UC_MATERIALS) {
       if (bank[mat]?.mult?.set) {
         // Individual material multipliers can be multiplied here in the future
-        let finalMatValue = allMaterialsValue;
+        let finalMatValue = applyStatMultiplierOverride('allMaterials', allMaterialsValue);
         try {
             if (mat === 'stone') {
                 const copperBonus = getBuildingBonus('copper', getBuildingLevel('copper'));
