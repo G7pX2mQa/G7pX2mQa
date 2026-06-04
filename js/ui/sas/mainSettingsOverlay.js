@@ -137,13 +137,7 @@ const mainSettingsOverlay = createSASOverlay({
   }
 });
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('unlock:change', () => {
-    if (mainSettingsOverlay.isOpen && mainSettingsOverlay.overlayEl) {
-      renderSettingsMenu(mainSettingsOverlay.overlayEl, '.sas-settings-container', 'main', unsubscribers);
-    }
-  });
-}
+
 
 export function openMainSettingsOverlay() {
   mainSettingsOverlay.open();
