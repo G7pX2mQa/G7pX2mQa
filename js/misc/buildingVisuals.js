@@ -1,837 +1,613 @@
-import { getActiveSlot } from '../../util/storage.js';
-import { getHighestDpLevel } from '../../game/dpSystem.js';
-import { UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
-import { setupDragToClose } from '../shopOverlay.js';
-import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../../util/bigNum.js';
-import { levelBigNumToNumber, evaluateBulkPurchase } from '../../game/upgrades.js';
-import { formatMultForUi, formatNumber } from '../../util/numFormat.js';
-import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
-import { playPurchaseSfx } from '../shopOverlay.js';
+import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
+import { levelBigNumToNumber } from '../game/upgrades.js';
+import { playAudio } from '../util/audioManager.js';
 
-
-const BUILDINGS_UNLOCKED_KEY_BASE = 'ccc:buildingsUnlocked';
-const BUILDING_ITEM_UNLOCKED_KEY_BASE = 'ccc:buildingItemUnlocked';
-
-export function isBuildingUnlocked(id) {
-  const slotKey = String(getActiveSlot() ?? 'default');
-  if (typeof localStorage === 'undefined') return false;
-  try {
-    return localStorage.getItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`) === '1';
-  } catch {
-    return false;
-  }
-}
-
-export function setBuildingUnlocked(id, value, slot = getActiveSlot()) {
-  const slotKey = String(slot ?? 'default');
-  if (typeof localStorage !== 'undefined') {
-    try {
-      if (value) {
-        localStorage.setItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`, '1');
-      } else {
-        localStorage.removeItem(`${BUILDING_ITEM_UNLOCKED_KEY_BASE}:${id}:${slotKey}`);
-      }
-    } catch {}
-  }
-}
-
-export function isBuildingsUnlocked() {
-  const slotKey = String(getActiveSlot() ?? 'default');
-  if (typeof localStorage === 'undefined') return false;
-  try {
-    return localStorage.getItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`) === '1';
-  } catch {
-    return false;
-  }
-}
-
-export function setBuildingsUnlocked(value, slot = getActiveSlot()) {
-  const slotKey = String(slot ?? 'default');
-  if (typeof localStorage !== 'undefined') {
-    try {
-      if (value) {
-        localStorage.setItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`, '1');
-      } else {
-        localStorage.removeItem(`${BUILDINGS_UNLOCKED_KEY_BASE}:${slotKey}`);
-      }
-    } catch {}
-  }
-}
-
-function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousText, level) {
-    const btn = document.createElement('button');
-    btn.className = 'shop-upgrade';
-    if (isLocked) {
-        btn.classList.add('is-locked');
-    }
-    btn.type = 'button';
-    btn.dataset.buildingId = id;
-
-    const tile = document.createElement('div');
-    tile.className = 'shop-tile';
-
-    const baseImg = document.createElement('img');
-    baseImg.className = 'base';
-    baseImg.src = isLocked ? 'img/misc/mysterious_plus_base.webp' : baseSrc;
-    baseImg.alt = '';
-
-    const iconImg = document.createElement('img');
-    iconImg.className = 'icon';
-    // If it's locked, just no icon, because base covers it
-    iconImg.src = isLocked ? '' : iconSrc;
-    iconImg.alt = '';
-    
-    if (isLocked || !iconSrc) {
-        iconImg.style.display = 'none';
-        iconImg.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='; // Transparent 1x1 gif
-    } else {
-        iconImg.style.display = '';
-    }
-    
-    tile.appendChild(baseImg);
-    tile.appendChild(iconImg);
-
-    if (!isLocked && level !== undefined) {
-        const badge = document.createElement('div');
-        badge.className = 'level-badge';
-        badge.textContent = level;
-        tile.appendChild(badge);
-    }
-
-    btn.appendChild(tile);
-
-    return { btn, baseImg, iconImg };
-}
-
-function renderBuildingsGrid(gridEl) {
-    gridEl.innerHTML = '';
-
-    let highestDepth = 0;
-    try {
-        const hDp = getHighestDpLevel();
-        if (hDp) highestDepth = Number(hDp.toString());
-    } catch {}
-
-    const buildings = [];
-    
-    // 1. Core Building
-    if (!isBuildingUnlocked('core')) setBuildingUnlocked('core', true);
-    buildings.push({
-        id: 'core',
-        title: 'Core Building',
-        iconSrc: '',
-        baseSrc: 'img/currencies/core/core_plus_base.webp',
-        isLocked: false,
-        mysteriousText: '',
-        level: 0
-    });
-
-    // 2. Crystal Building
-    const crystalLocked = !isBuildingUnlocked('crystal');
-    buildings.push({
-        id: 'crystal',
-        title: 'Crystal Building',
-        iconSrc: '',
-        baseSrc: 'img/currencies/crystal/crystal_plus_base.webp',
-        isLocked: crystalLocked,
-        mysteriousText: 'Perform the ??? reset to reveal this Building',
-        level: 0
-    });
-
-    // 3-12. Material Buildings (Stone to Prismatium)
-    const baseIconStr = 'img/currencies/scrap/scrap_base.webp';
-    for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
-        const mat = UC_MATERIAL_DATA[i];
-        let isLocked = true;
-        
-        if (isBuildingUnlocked(mat.name)) {
-            isLocked = false;
-        } else {
-            const conditionMet = mat.name === 'stone' ? true : highestDepth >= mat.start;
-            if (conditionMet) {
-                setBuildingUnlocked(mat.name, true);
-                isLocked = false;
-            }
-        }
-
-        buildings.push({
-            id: mat.name,
-            title: mat.name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') + ' Building',
-            iconSrc: `img/materials/${mat.name}.webp`,
-            baseSrc: baseIconStr,
-            isLocked: isLocked,
-            mysteriousText: `Reach Depth: ${mat.start}m to reveal this Building`,
-            level: 0
-        });
-    }
-
-    buildings.forEach(b => {
-        const card = createBuildingCard(b.id, b.title, b.iconSrc, b.baseSrc, b.isLocked, b.mysteriousText, b.level);
-        
-        if (b.isLocked) {
-            card.btn.title = 'Hidden Building';
-            card.btn.addEventListener('click', () => {
-                openMysteriousBuildingOverlay(b.mysteriousText);
-            });
-        } else {
-            card.btn.title = 'Left-click: View Building • Right-click: Buy Max';
-            card.btn.addEventListener('click', () => { openBuildingDetailOverlay(b.id); });
-            card.btn.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                currentBuildingId = b.id;
-                handlePurchase('max');
-                currentBuildingId = null;
-            });
-
-            
-        }
-        
-        gridEl.appendChild(card.btn);
-    });
-}
-
-export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWrapEl) {
-  const tabBtn = document.createElement('button');
-  tabBtn.type = 'button';
-  tabBtn.className = 'merchant-tab';
-  tabBtn.dataset.tab = 'buildings';
-  tabBtn.textContent = 'Buildings';
-  tabBtn.title = 'Buildings';
-  
-  const panel = document.createElement('section');
-  panel.className = 'merchant-panel buildings-tab';
-  panel.id = 'miner-panel-buildings';
-  
-  const scroller = document.createElement('div');
-  scroller.className = 'shop-scroller';
-  scroller.style.height = '100%';
-  scroller.style.position = 'relative';
-
-  const grid = document.createElement('div');
-  grid.className = 'shop-grid';
-  grid.id = 'buildings-grid';
-  grid.setAttribute('role', 'grid');
-
-  scroller.appendChild(grid);
-  panel.appendChild(scroller);
-  
-  tabsEl.appendChild(tabBtn);
-  panelsWrapEl.appendChild(panel);
-  
-  tabBtn.addEventListener('click', () => {
-    const allTabs = tabsEl.querySelectorAll('.merchant-tab');
-    const allPanels = panelsWrapEl.querySelectorAll('.merchant-panel');
-    allTabs.forEach(t => t.classList.remove('is-active'));
-    allPanels.forEach(p => p.classList.remove('is-active'));
-    tabBtn.classList.add('is-active');
-    panel.classList.add('is-active');
-    
-    // re-render the grid when the tab is clicked, just in case depth changed
-    renderBuildingsGrid(grid);
-  });
-  
-  updateBuildingsPanelVisibility(minerSheetEl);
-  
-  // Render grid immediately if unlocked, though typically it happens on click
-  if (isBuildingsUnlocked()) {
-      renderBuildingsGrid(grid);
-  }
-
-  // Listen for depth changes and re-render the grid if the tab is currently active
-  window.addEventListener('dp:change', () => {
-    if (panel.classList.contains('is-active') && isBuildingsUnlocked()) {
-      renderBuildingsGrid(grid);
-    }
-  });
-}
-
-export function updateBuildingsPanelVisibility(minerSheetEl) {
-  const tabsEl = minerSheetEl.querySelector('.merchant-tabs');
-  if (!tabsEl) return;
-  const tabBtn = tabsEl.querySelector('[data-tab="buildings"]');
-  if (!tabBtn) return;
-  
-  if (isBuildingsUnlocked()) {
-    tabBtn.textContent = 'Buildings';
-    tabBtn.title = 'Buildings';
-    tabBtn.classList.remove('is-locked');
-    tabBtn.disabled = false;
-  } else {
-    tabBtn.textContent = '???';
-    tabBtn.title = '???';
-    tabBtn.classList.add('is-locked');
-    tabBtn.disabled = true;
-    if (tabBtn.classList.contains('is-active')) {
-      const dlgTab = tabsEl.querySelector('[data-tab="dialogue"]');
-      if (dlgTab) dlgTab.click();
-    }
-  }
-}
-
-window.onBuildingsUpgradeUnlocked = function() {
-  setBuildingsUnlocked(true);
-  const minerSheetEl = document.querySelector('.merchant-sheet');
-  if (minerSheetEl) {
-      updateBuildingsPanelVisibility(minerSheetEl);
-  }
-};
-
-if (typeof window !== 'undefined') {
-  window.resetSystem = window.resetSystem || {};
-  Object.assign(window.resetSystem, {
-    updateBuildingsPanelVisibility,
-  });
-}
-
-const BUILDING_OVERLAY_CLOSE_MS = 120;
-const BUILDING_OVERLAY_OPEN_TRANSITION = 'transform var(--shop-anim)';
-const BUILDING_OVERLAY_CLOSE_TRANSITION = `transform ${BUILDING_OVERLAY_CLOSE_MS}ms ease-out`;
-
-function applyBuildingOverlayTransition(sheet, transition = BUILDING_OVERLAY_OPEN_TRANSITION) {
-    if (!sheet) return;
-    sheet.style.transition = transition;
-}
-
-function openBuildingOverlaySheet(overlay, sheet) {
-    if (!overlay || !sheet) return;
-    applyBuildingOverlayTransition(sheet);
-    overlay.classList.add('is-open');
-    overlay.style.pointerEvents = 'auto';
-    sheet.style.transform = 'translateY(100%)';
-    void sheet.offsetHeight;
-    sheet.style.transform = 'translateY(0)';
-}
-
-function finishBuildingOverlayClose(overlay, onClosed) {
-    const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : BUILDING_OVERLAY_CLOSE_MS;
-    setTimeout(() => {
-        overlay.classList.remove('is-open');
-        if (typeof onClosed === 'function') onClosed();
-    }, delay);
-}
-
-function ensureMysteriousBuildingOverlay() {
-    if (document.getElementById('mysterious-building-overlay')) return;
-
-    const overlay = document.createElement('div');
-    overlay.id = 'mysterious-building-overlay';
-    overlay.className = 'upg-overlay';
-    
-    const sheet = document.createElement('div');
-    sheet.className = 'upg-sheet';
-    applyBuildingOverlayTransition(sheet);
-    sheet.style.display = 'flex';
-    sheet.style.flexDirection = 'column';
-    
-    const content = document.createElement('div');
-    content.className = 'upg-content';
-    
-    const actions = document.createElement('div');
-    actions.className = 'upg-actions';
-    
-    sheet.append(grabber, header, content, actions);
-    overlay.appendChild(sheet);
-    document.body.appendChild(overlay);
-    
-    overlay.addEventListener('pointerdown', (e) => {
-        if (e.target === overlay) {
-            closeMysteriousBuildingOverlay();
-        }
-    });
-    
-    setupDragToClose(grabber, sheet, 
-        () => overlay.classList.contains('is-open'), 
-        closeMysteriousBuildingOverlay
-    );
-}
-
-function openMysteriousBuildingOverlay(mysteriousText) {
-    ensureMysteriousBuildingOverlay();
-    const overlay = document.getElementById('mysterious-building-overlay');
-    const sheet = overlay.querySelector('.upg-sheet');
-    const header = overlay.querySelector('.upg-header');
-    const content = overlay.querySelector('.upg-content');
-    const actions = overlay.querySelector('.upg-actions');
-    
-    header.innerHTML = `
-        <div class="upg-title">Hidden Building</div>
-    `;
-
-    content.innerHTML = `
-        <div class="upg-desc centered lock-desc">${mysteriousText}</div>
-    `;
-
-    actions.innerHTML = `
-        <button type="button" class="shop-close">Close</button>
-    `;
-    
-    const closeBtn = actions.querySelector('.shop-close');
-    closeBtn.addEventListener('click', closeMysteriousBuildingOverlay);
-
-    openBuildingOverlaySheet(sheet);
-}
-
-function closeMysteriousBuildingOverlay() {
-    const overlay = document.getElementById('mysterious-building-overlay');
-    if (!overlay) return;
-    if (overlay.style.pointerEvents === 'none') return;
-    overlay.style.pointerEvents = 'none';
-    const sheet = overlay.querySelector('.upg-sheet');
-    applyBuildingOverlayTransition(sheet);
-    sheet.style.transform = 'translateY(100%)';
-    finishBuildingOverlayClose(overlay);
-}
-
-
-// ----------------- Building Math & State ----------------- //
-
-const BUILDING_LEVEL_KEY_BASE = 'ccc:buildingLevel';
-
-const BUILDING_IDS = [
-    'core', 'crystal', 'stone', 'copper', 'iron', 'pure_gold', 'diamond', 
-    'emerald', 'ruby', 'sapphire', 'unobtainium', 'prismatium'
-];
-
-export function getBuildingLevel(id) {
-    const slotKey = String(getActiveSlot() ?? 'default');
-    if (typeof localStorage === 'undefined') return BigNum.fromInt(0);
-    try {
-        const val = localStorage.getItem(`${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`);
-        if (!val) return BigNum.fromInt(0);
-        return BigNum.fromAny(val);
-    } catch {
-        return BigNum.fromInt(0);
-    }
-}
-
-export function setBuildingLevel(id, levelBn) {
-    const slotKey = String(getActiveSlot() ?? 'default');
-    if (typeof localStorage === 'undefined') return;
-    try {
-        localStorage.setItem(`${BUILDING_LEVEL_KEY_BASE}:${id}:${slotKey}`, levelBn.toStorage ? levelBn.toStorage() : String(levelBn));
-    } catch {}
-}
-
-export function addBuildingLevel(id, amountToAddBn) {
-    let currentLevel = getBuildingLevel(id);
-    let newLevel = currentLevel.add(amountToAddBn);
-    setBuildingLevel(id, newLevel);
-    return newLevel;
-}
-
-export function getBuildingRatio(id) {
-    let idx = BUILDING_IDS.indexOf(id);
-    if (idx <= 2) return 1.20;
-    return 1.20 + ((idx - 2) * 0.04);
-}
-
-export function getBuildingCostLog10AtLevel(id, levelBn) {
-    const ratio = getBuildingRatio(id);
-    const levelNum = levelBigNumToNumber(levelBn);
-    
-    const softcapStart = 1_000_000_000;
-    
-    if (levelNum > softcapStart) {
-        const delta = levelNum - softcapStart;
-        const rate = 2.0665e-12;
-        const startRatioLog10 = Math.log10(ratio);
-        const ratioLog10 = startRatioLog10 * Math.exp(rate * delta);
-        return levelNum * ratioLog10; 
-    }
-    
-    return levelNum * Math.log10(ratio);
-}
-
-export function getBuildingCost(id, levelBn) {
-    const costLog10 = getBuildingCostLog10AtLevel(id, levelBn);
-    return bigNumFromLog10(costLog10);
-}
-
-let _precalcCeil100 = null;
-function getPrecalcCeil100() {
-    if (_precalcCeil100 !== null) return _precalcCeil100;
-    let val = 1;
-    for (let i = 0; i < 100; i++) {
-        val = Math.ceil(val * 1.2);
-    }
-    _precalcCeil100 = BigNum.fromAny(val);
-    return _precalcCeil100;
-}
-
-export function getBuildingBonus(id, levelBn) {
-    if (!levelBn || levelBn.isZero?.()) return BigNum.fromInt(1);
-    
-    const levelNum = levelBigNumToNumber(levelBn);
-    
-    if (id === 'crystal') {
-        return bigNumFromLog10(levelNum * Math.log10(3));
-    }
-    
-    if (levelNum <= 100) {
-        let val = 1;
-        for (let i = 0; i < levelNum; i++) {
-            val = Math.ceil(val * 1.2);
-        }
-        return BigNum.fromAny(val);
-    } else {
-        const base100 = getPrecalcCeil100();
-        const excess = levelNum - 100;
-        const excessMultLog10 = excess * Math.log10(1.2);
-        const excessMult = bigNumFromLog10(excessMultLog10);
-        return base100.mulBigNumInteger(excessMult);
-    }
-}
-
-// ----------------- Building Overlay ----------------- //
-
-let overlayEl = null;
+let activeCanvas = null;
+let activeCtx = null;
+let animationFrameId = null;
 let currentBuildingId = null;
+let lastTime = 0;
+let time = 0;
 
-const BUILDING_NAMES = {
-    core: 'Reactor', crystal: 'Obelisk', stone: 'Foundry', copper: 'Charger', iron: 'Refinery',
-    pure_gold: 'Vault', diamond: 'Oil Rig', emerald: 'Greenhouse', ruby: 'Radiator',
-    sapphire: 'Centrifuge', unobtainium: 'Beacon', prismatium: 'Singularity Generator'
-};
+let currentLevelNum = 0;
+let levelUpAnimTime = 0;
+let tierUpAnimTime = 0;
 
-const BUILDING_BONUS_TEXTS = {
-    core: "Next level's DP bonus", crystal: "Next level's Coin bonus", stone: "Next level's Scrap bonus",
-    copper: "Next level's Stone value bonus", iron: "Next level's Copper value bonus",
-    pure_gold: "Next level's Iron value bonus", diamond: "Next level's Pure Gold value bonus",
-    emerald: "Next level's Diamond value bonus", ruby: "Next level's Emerald value bonus",
-    sapphire: "Next level's Ruby value bonus", unobtainium: "Next level's Sapphire value bonus",
-    prismatium: "Next level's Unobtainium value bonus"
-};
+const TIERS = [1, 10, 25, 50, 100, 200, 400, 800, 1000];
 
-const BUILDING_CURRENCY_IMAGES = {
-    core: 'img/currencies/core/core.webp', crystal: 'img/currencies/crystal/crystal.webp',
-    stone: 'img/materials/stone.webp', copper: 'img/materials/copper.webp', iron: 'img/materials/iron.webp',
-    pure_gold: 'img/materials/pure_gold.webp', diamond: 'img/materials/diamond.webp',
-    emerald: 'img/materials/emerald.webp', ruby: 'img/materials/ruby.webp',
-    sapphire: 'img/materials/sapphire.webp', unobtainium: 'img/materials/unobtainium.webp',
-    prismatium: 'img/materials/prismatium.webp'
-};
+const imageCache = {};
+function getMaterialImage(matKey) {
+  if (imageCache[matKey]) return imageCache[matKey];
+  const config = RESOURCE_REGISTRY.find(r => r.key === matKey);
+  if (config && config.icon) {
+    const img = new Image();
+    img.src = config.icon;
+    imageCache[matKey] = img;
+    return img;
+  }
+  return null;
+}
 
-const BUILDING_CURRENCY_KEYS = {
-    core: 'core', crystal: 'crystal', stone: 'stone', copper: 'copper', iron: 'iron',
-    pure_gold: 'pure_gold', diamond: 'diamond', emerald: 'emerald', ruby: 'ruby',
-    sapphire: 'sapphire', unobtainium: 'unobtainium', prismatium: 'prismatium'
-};
-
-export function initBuildingOverlay() {
-    if (document.getElementById('building-detail-overlay')) return;
-
-    overlayEl = document.createElement('div');
-    overlayEl.id = 'building-detail-overlay';
-    overlayEl.className = 'upg-overlay';
-    overlayEl.style.zIndex = '9999';
-
-    const sheet = document.createElement('div');
-    sheet.className = 'upg-sheet';
-    applyBuildingOverlayTransition(sheet);
-    sheet.style.display = 'flex';
-    sheet.style.flexDirection = 'column';
-
-    const canvasContainer = document.createElement('div');
-    canvasContainer.style.position = 'absolute';
-    canvasContainer.style.top = '0';
-    canvasContainer.style.left = '0';
-    canvasContainer.style.width = '100%';
-    canvasContainer.style.height = '100%';
-    canvasContainer.style.zIndex = '0';
-    canvasContainer.style.pointerEvents = 'none';
+export function startCanvasLoop(id, canvasEl) {
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    activeCanvas = canvasEl;
+    activeCtx = canvasEl.getContext('2d');
+    currentBuildingId = id;
+    lastTime = performance.now();
     
-    const canvas = document.createElement('canvas');
-    canvas.id = 'building-detail-canvas';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.display = 'block';
-    canvasContainer.appendChild(canvas);
+    const resizeObserver = new ResizeObserver(() => {
+        if (!activeCanvas) return;
+        const rect = activeCanvas.parentElement.getBoundingClientRect();
+        activeCanvas.width = rect.width;
+        activeCanvas.height = rect.height;
+    });
+    resizeObserver.observe(activeCanvas.parentElement);
     
-    sheet.appendChild(canvasContainer);
-
-    const grabber = document.createElement('div');
-    grabber.className = 'upg-grabber';
-    grabber.innerHTML = `<div class="grab-handle"></div>`;
-    grabber.style.zIndex = '1';
+    const rect = activeCanvas.parentElement.getBoundingClientRect();
+    activeCanvas.width = rect.width;
+    activeCanvas.height = rect.height;
     
-    const header = document.createElement('header');
-    header.className = 'upg-header';
-    header.style.zIndex = '1';
-    header.style.background = 'transparent';
-    header.style.borderBottom = 'none';
-    
-    const content = document.createElement('div');
-    content.className = 'upg-content';
-    content.style.flex = '1';
-    content.style.display = 'flex';
-    content.style.flexDirection = 'column';
-    content.style.justifyContent = 'flex-end';
-    content.style.zIndex = '1';
-    content.style.position = 'relative';
-    
-    const levelTextContainer = document.createElement("div");
-    levelTextContainer.style.textAlign = "center";
-    levelTextContainer.style.marginBottom = "10px";
-    levelTextContainer.style.fontSize = "28px";
-    levelTextContainer.style.fontWeight = "bold";
-    levelTextContainer.style.textShadow = "0 2px 4px rgba(0,0,0,0.8)";
-    levelTextContainer.id = "building-detail-level-text";
-    
-    content.appendChild(levelTextContainer);
-
-    const buildingHitbox = document.createElement("div");
-    buildingHitbox.style.width = "300px";
-    buildingHitbox.style.height = "5px";
-    buildingHitbox.style.margin = "0 auto";
-    buildingHitbox.style.pointerEvents = "none";
-    content.appendChild(buildingHitbox);
-
-    const bonusRow = document.createElement("div");
-    bonusRow.id = "building-detail-bonus-row";
-    bonusRow.style.marginBottom = "-5px";
-    bonusRow.style.lineHeight = "1";
-    bonusRow.className = "upg-line";
-    bonusRow.style.textAlign = "center";
-    bonusRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
-    
-    const costRow = document.createElement("div");
-    costRow.id = "building-detail-cost-row";
-    costRow.style.marginBottom = "-5px";
-    costRow.style.lineHeight = "1";
-    costRow.className = "upg-line";
-    costRow.style.textAlign = "center";
-    costRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
-
-    const walletRow = document.createElement("div");
-    walletRow.id = "building-detail-wallet-row";
-    walletRow.style.marginBottom = "0px";
-    walletRow.style.lineHeight = "1";
-    walletRow.className = "upg-line";
-    walletRow.style.textAlign = "center";
-    walletRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
-
-    content.appendChild(bonusRow);
-    content.appendChild(costRow);
-    content.appendChild(walletRow);
-    
-    const btnBuyCheap = document.createElement("button");
-    btnBuyCheap.className = "shop-delve";
-    btnBuyCheap.id = "building-btn-buy-cheap";
-    btnBuyCheap.textContent = "Buy Cheap";
-    
-    const btnBuyMax = document.createElement("button");
-    btnBuyMax.className = "shop-delve";
-    btnBuyMax.id = "building-btn-buy-max";
-    btnBuyMax.textContent = "Buy Max";
-    
-    const btnBuy = document.createElement("button");
-    btnBuy.className = "shop-delve";
-    btnBuy.id = "building-btn-buy";
-    btnBuy.textContent = "Buy";
-
-    const actions = document.createElement("div");
-    actions.className = "upg-actions";
-    actions.style.zIndex = "1";
-    actions.style.display = "flex";
-    actions.style.gap = "10px";
-    actions.style.flexWrap = "wrap";
-    actions.style.justifyContent = "center";
-    
-    const btnClose = document.createElement("button");
-    btnClose.type = "button";
-    btnClose.className = "shop-close";
-    btnClose.textContent = "Close";
-
-    actions.appendChild(btnClose);
-    actions.appendChild(btnBuy);
-    actions.appendChild(btnBuyMax);
-    actions.appendChild(btnBuyCheap);
-    sheet.append(grabber, header, content, actions);
-    overlayEl.appendChild(sheet);
-    document.body.appendChild(overlayEl);
-    
-    overlayEl.addEventListener('pointerdown', (e) => {
-        if (e.target === overlayEl) {
-            closeBuildingDetailOverlay();
+    // Using import for ES modules instead of require for local scope
+    import('./buildingsTab.js').then(module => {
+        try {
+            currentLevelNum = levelBigNumToNumber(module.getBuildingLevel(id));
+        } catch {
+            currentLevelNum = 1;
         }
-    });
+    }).catch(() => { currentLevelNum = 1; });
     
-    setupDragToClose(grabber, sheet, 
-        () => overlayEl.classList.contains('is-open'), 
-        closeBuildingDetailOverlay
-    );
-    
-    const closeBtn = actions.querySelector('.shop-close');
-    closeBtn.addEventListener('click', closeBuildingDetailOverlay);
-    
-    btnBuy.addEventListener('click', () => handlePurchase('buy'));
-    btnBuyMax.addEventListener('click', () => handlePurchase('max'));
-    btnBuyCheap.addEventListener('click', () => handlePurchase('cheap'));
+    loop(performance.now());
 }
 
-export function openBuildingDetailOverlay(id) {
-    initBuildingOverlay();
-    currentBuildingId = id;
-    
-    const sheet = overlayEl.querySelector('.upg-sheet');
-    const header = overlayEl.querySelector('.upg-header');
-    
-    let properName = id.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    let buildingName = BUILDING_NAMES[id] || 'Building';
-    
-    header.innerHTML = `<div class="upg-title">${properName} Building: ${buildingName}</div>`;
-    
-    updateOverlayUi();
-
-    openBuildingOverlaySheet(overlayEl, sheet);
-    
-
-    import('../../misc/buildingVisuals.js').then(module => {
-        module.startCanvasLoop(id, overlayEl.querySelector('#building-detail-canvas'));
-    });
-}
-
-function closeBuildingDetailOverlay() {
-    if (!overlayEl) return;
-    if (overlayEl.style.pointerEvents === 'none') return;
-    overlayEl.style.pointerEvents = 'none';
-    const sheet = overlayEl.querySelector('.upg-sheet');
-    applyBuildingOverlayTransition(sheet);
-    sheet.style.transform = 'translateY(100%)';
-    finishBuildingOverlayClose(overlayEl, () => {
-        import('../../misc/buildingVisuals.js').then(module => {
-            module.stopCanvasLoop();
-        });
-        currentBuildingId = null;
-    });
-}
-
-function updateOverlayUi() {
-    if (!currentBuildingId) return;
-    const id = currentBuildingId;
-    
-    const levelBn = getBuildingLevel(id);
-    const nextLevelBn = levelBn.add(BigNum.fromInt(1));
-    const costBn = getBuildingCost(id, levelBn);
-    
-    const currencyKey = BUILDING_CURRENCY_KEYS[id];
-    const walletHandle = window.bank?.[currencyKey];
-    let walletBn = BigNum.fromInt(0);
-    if (walletHandle) {
-         walletBn = walletHandle.value instanceof BigNum ? walletHandle.value : BigNum.fromAny(walletHandle.value ?? 0);
+export function stopCanvasLoop() {
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
     }
-    
-    const currentBonus = getBuildingBonus(id, levelBn);
-    const nextBonus = getBuildingBonus(id, nextLevelBn);
-    
-    const imgStr = `<img src="${BUILDING_CURRENCY_IMAGES[id]}" style="width: 1em; height: 1em; vertical-align: middle;">`;
-    
-    const matName = RESOURCE_REGISTRY.find(r => r.key === currencyKey)?.singular || 'Stone';
-
-    document.getElementById('building-detail-level-text').textContent = `Building Level ${formatNumber(levelBn)}`;
-    
-    document.getElementById('building-detail-bonus-row').innerHTML = 
-        `${BUILDING_BONUS_TEXTS[id] || 'Bonus'}: ${formatMultForUi(currentBonus)}x &rarr; ${formatMultForUi(nextBonus)}x`;
-        
-    document.getElementById('building-detail-cost-row').innerHTML = 
-        `Cost: ${formatNumber(costBn)} ${imgStr} ${matName}`;
-        
-    document.getElementById('building-detail-wallet-row').innerHTML = 
-        `You have: ${formatNumber(walletBn)} ${imgStr} ${matName}`;
-        
-    const btnBuy = document.getElementById('building-btn-buy');
-    btnBuy.disabled = walletBn.cmp(costBn) < 0;
-    document.getElementById('building-btn-buy-max').disabled = walletBn.cmp(costBn) < 0;
-    document.getElementById('building-btn-buy-cheap').disabled = walletBn.cmp(costBn) < 0;
-}
-
-export function handlePurchaseOuter(id, type) {
-    currentBuildingId = id;
-    handlePurchase(type);
+    activeCanvas = null;
+    activeCtx = null;
     currentBuildingId = null;
 }
 
-function handlePurchase(type) {
-    if (!currentBuildingId) return;
-    const id = currentBuildingId;
+export function triggerLevelUpAnimation() {
+    levelUpAnimTime = 1.0;
+}
+
+export function checkTierUp(id, oldLevelBn, newLevelBn) {
+    const oldNum = levelBigNumToNumber(oldLevelBn);
+    const newNum = levelBigNumToNumber(newLevelBn);
+    currentLevelNum = newNum;
     
-    const currencyKey = BUILDING_CURRENCY_KEYS[id];
-    const walletHandle = window.bank?.[currencyKey];
-    if (!walletHandle) return;
+    let oldTier = 0;
+    let newTier = 0;
     
-    let walletBn = walletHandle.value instanceof BigNum ? walletHandle.value : BigNum.fromAny(walletHandle.value ?? 0);
-    let startLevelBn = getBuildingLevel(id);
+    for (let i = 0; i < TIERS.length; i++) {
+        if (oldNum >= TIERS[i]) oldTier = i + 1;
+        if (newNum >= TIERS[i]) newTier = i + 1;
+    }
     
-    let costToDeduct = BigNum.fromInt(0);
-    let levelsToAdd = 0;
+    if (newTier > oldTier) {
+        tierUpAnimTime = 5.0; 
+        playAudio('sounds/building_tier_up.ogg');
+    }
+}
+
+function loop(currentTime) {
+    const dt = (currentTime - lastTime) / 1000;
+    lastTime = currentTime;
+    time += dt;
     
+    if (levelUpAnimTime > 0) levelUpAnimTime -= dt;
+    if (tierUpAnimTime > 0) tierUpAnimTime -= dt;
     
-    const maxLevels = type === 'buy' ? 1 : BigNum.fromAny('Infinity');
+    if (activeCanvas && activeCtx) {
+        draw(activeCtx, activeCanvas.width, activeCanvas.height, time);
+    }
     
-    // We construct a mock "upg" object to feed into evaluateBulkPurchase
-    const upgMock = {
-        lvlCap: Infinity,
-        costAtLevel: (lvl) => getBuildingCost(id, BigNum.fromAny(lvl)),
-        // Provide the scaling object directly so fast path works
-        scalingRatio: getBuildingRatio(id),
-        scalingBaseLog10: 0,
-        scalingRatioLog10: Math.log10(getBuildingRatio(id))
-    };
+    animationFrameId = requestAnimationFrame(loop);
+}
+
+function getTier() {
+    let t = 0;
+    for (let i = 0; i < TIERS.length; i++) {
+        if (currentLevelNum >= TIERS[i]) t = i + 1;
+    }
+    return t; // 0 to 9
+}
+
+function draw(ctx, width, height, t) {
+    ctx.clearRect(0, 0, width, height);
     
-    // Create a minimal upg object:
-    const mockUpg = {
-        costType: currencyKey,
-        lvlCap: Infinity,
-        costAtLevel: (l) => getBuildingCost(id, BigNum.fromAny(l)),
-        _cache_scaling: {
-            baseBn: BigNum.fromInt(1),
-            baseLog10: 0,
-            ratio: getBuildingRatio(id),
-            ratioLn: Math.log(getBuildingRatio(id)),
-            ratioLog10: Math.log10(getBuildingRatio(id)),
-            ratioMinus1: getBuildingRatio(id) - 1
-        }
-    };
+    ctx.save();
+    let shakeAlpha = 0;
+    if (tierUpAnimTime > 0) {
+        shakeAlpha = tierUpAnimTime > 2.5 ? (5.0 - tierUpAnimTime) / 2.5 : tierUpAnimTime / 2.5;
+        const shake = Math.sin(t * 50) * (shakeAlpha * 10);
+        const shakeY = Math.cos(t * 40) * (shakeAlpha * 5);
+        ctx.translate(shake, shakeY);
+    }
     
-    if (type === 'buy') {
-        const costBn = getBuildingCost(id, startLevelBn);
-        if (walletBn.cmp(costBn) >= 0) {
-            costToDeduct = costBn;
-            levelsToAdd = 1;
-        }
-    } else if (type === 'max' || type === 'cheap') {
-        // evaluateBulkPurchase returns { count, spent }
-        let evalWallet = walletBn;
-        if (type === 'cheap') evalWallet = walletBn.div(10);
-        
-        const outcome = evaluateBulkPurchase(mockUpg, startLevelBn, evalWallet, BigNum.fromAny('Infinity'), { fastOnly: true });
-        
-        let count = outcome.count;
-        if (typeof count === 'number') count = BigNum.fromAny(count);
-        
-        if (count.cmp(0) > 0) {
-            levelsToAdd = levelBigNumToNumber(count);
-            costToDeduct = outcome.spent ?? BigNum.fromInt(0);
+    drawCavern(ctx, width, height, t);
+    
+    if (currentBuildingId) {
+        drawBuilding(ctx, width, height, t, currentBuildingId, getTier());
+    }
+    ctx.restore();
+    
+    if (levelUpAnimTime > 0) {
+        const alpha = Math.max(0, levelUpAnimTime);
+        const grad = ctx.createLinearGradient(0, 0, 0, height);
+        grad.addColorStop(0, `rgba(255, 255, 255, 0)`);
+        grad.addColorStop(0.5, `rgba(255, 255, 255, ${alpha * 0.5})`);
+        grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+    }
+    
+    if (tierUpAnimTime > 0) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${shakeAlpha})`;
+        ctx.fillRect(0, 0, width, height);
+    }
+}
+
+function drawCavern(ctx, w, h, t) {
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    const r = Math.floor(Math.sin(t * 0.5) * 10 + 10);
+    const g = Math.floor(Math.sin(t * 0.7) * 20 + 30);
+    const b = Math.floor(Math.sin(t * 0.3) * 30 + 60);
+    
+    grad.addColorStop(0, `rgb(${r}, ${g}, ${b})`);
+    grad.addColorStop(1, '#000810');
+    
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+    
+    ctx.fillStyle = 'rgba(5, 10, 20, 0.5)';
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.8);
+    ctx.lineTo(w * 0.2, h * 0.6);
+    ctx.lineTo(w * 0.4, h * 0.7);
+    ctx.lineTo(w * 0.7, h * 0.4);
+    ctx.lineTo(w, h * 0.6);
+    ctx.lineTo(w, h);
+    ctx.lineTo(0, h);
+    ctx.fill();
+    
+    const floorH = 260;
+
+    // Draw flat floor layers
+    ctx.fillStyle = "rgb(18, 12, 10)";
+    ctx.fillRect(0, h - floorH, w, floorH);
+
+    ctx.fillStyle = "rgb(28, 20, 16)";
+    ctx.fillRect(0, h - floorH * 0.8, w, floorH * 0.8);
+
+    ctx.fillStyle = "rgb(42, 30, 24)";
+    ctx.fillRect(0, h - floorH * 0.6, w, floorH * 0.6);
+    
+    // generate and draw clusters identically to sellTab.js
+    const colors = [
+        {r: 0, g: 255, b: 255}, // Bright Cyan
+        {r: 148, g: 0, b: 211}, // Deep Purple
+        {r: 235, g: 30, b: 50}, // Red (Ruby)
+        {r: 40, g: 220, b: 100} // Green (Emerald)
+    ];
+
+    if (!window.cachedGemstones) {
+        window.cachedGemstones = [];
+        for (let i = 0; i < 20; i++) {
+            const sharedColor = colors[i % colors.length];
+            const clusters = [];
+            const numPieces = 3 + Math.floor(Math.abs(Math.sin(i * 123.45)) * 3);
+            for(let p=0; p<numPieces; p++) {
+                const pSize = 4 + Math.abs(Math.sin(p * 456.78)) * 6;
+                const numVertices = 4 + Math.floor(Math.abs(Math.cos(p * 789.01)) * 4);
+                const facets = [];
+                for (let v = 0; v < numVertices; v++) {
+                     const angle = (v / numVertices) * Math.PI * 2;
+                     const rad = pSize * (0.6 + Math.abs(Math.sin(v * 12.34)) * 0.6);
+                     const shade = 0.6 + Math.abs(Math.cos(v * 56.78)) * 0.6;
+                     facets.push({ dx: Math.cos(angle) * rad, dy: Math.sin(angle) * rad, shade });
+                }
+                clusters.push({
+                    ox: (Math.abs(Math.sin(p * 90.12)) - 0.5) * 10,
+                    oy: (Math.abs(Math.cos(p * 34.56)) - 0.5) * 10,
+                    facets,
+                    size: pSize
+                });
+            }
+
+            let cachedImage;
+            if (typeof OffscreenCanvas !== 'undefined') {
+                cachedImage = new OffscreenCanvas(40, 40);
+            } else {
+                cachedImage = document.createElement('canvas');
+                cachedImage.width = 40;
+                cachedImage.height = 40;
+            }
+            const octx = cachedImage.getContext('2d');
+            octx.translate(20, 20); // Center drawing
+
+            for (const cl of clusters) {
+                const px = cl.ox;
+                const py = cl.oy;
+                if (cl.facets && cl.facets.length > 0) {
+                    for (let v = 0; v < cl.facets.length; v++) {
+                        const p1 = cl.facets[v];
+                        const p2 = cl.facets[(v + 1) % cl.facets.length];
+                        
+                        octx.beginPath();
+                        octx.moveTo(px, py); // center point
+                        octx.lineTo(px + p1.dx, py + p1.dy);
+                        octx.lineTo(px + p2.dx, py + p2.dy);
+                        octx.closePath();
+                        
+                        // Calculate shaded color for this facet
+                        const r = Math.min(255, sharedColor.r * p1.shade);
+                        const g = Math.min(255, sharedColor.g * p1.shade);
+                        const b = Math.min(255, sharedColor.b * p1.shade);
+                        octx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                        octx.fill();
+                    }
+                }
+            }
+            window.cachedGemstones.push(cachedImage);
         }
     }
     
-    if (levelsToAdd > 0) {
-        if (walletHandle.sub) walletHandle.sub(costToDeduct);
-        const oldLevel = getBuildingLevel(id);
-        const newLevel = addBuildingLevel(id, BigNum.fromAny(levelsToAdd));
+    // 10 on left half, 10 on right half
+    for (let i = 0; i < 20; i++) {
+        // Pseudo-random placement based on index
+        let isLeft = i < 10;
+        let xFrac = (Math.sin(i * 12.9898) * 43758.5453) % 1;
+        xFrac = Math.abs(xFrac);
         
-        playPurchaseSfx();
+        let cx = isLeft ? xFrac * (w / 2) : (w / 2) + xFrac * (w / 2);
         
-        document.dispatchEvent(new CustomEvent('ccc:buildings:changed'));
+        // Depth distribution
+        let yFrac = (Math.cos(i * 78.233) * 43758.5453) % 1;
+        yFrac = Math.abs(yFrac);
+        let cy = h - floorH * 0.7 + (floorH * 0.6) * yFrac;
         
-        import('../../misc/buildingVisuals.js').then(module => {
-            module.triggerLevelUpAnimation();
-            module.checkTierUp(id, oldLevel, newLevel);
-        });
-        
-        updateOverlayUi();
-        
-        const gridCardBadge = document.querySelector(`.shop-upgrade[data-building-id="${id}"] .level-badge`);
-        if (gridCardBadge) gridCardBadge.textContent = formatNumber(newLevel);
+        const cachedImage = window.cachedGemstones[i];
+        if (cachedImage) {
+            ctx.drawImage(cachedImage, cx - 20, cy - 20);
+        }
     }
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+    for(let i = 0; i < 20; i++) {
+        let bx = ((i * 37 + t * 20) % w);
+        let by = h - ((i * 53 + t * 50) % h);
+        let radius = (i % 5) + 2;
+        ctx.beginPath();
+        ctx.arc(bx, by, radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function drawBuilding(ctx, w, h, t, id, tier) {
+    const floorY = h - 260; // Match new floor height
+    const cx = w / 2;
+    
+    let currentY = floorY;
+    
+    ctx.save();
+    ctx.translate(cx, floorY);
+    
+    const scale = 1.0 + (tier * 0.1);
+    ctx.scale(scale, scale);
+    
+    let bounce = 0;
+    // Only certain buildings bounce
+    if (id === 'crystal' || id === 'prismatium') {
+        bounce = Math.sin(t * 2) * 5;
+        ctx.translate(0, bounce);
+    }
+
+    let topY = 0;
+    if (id === 'core') topY = -200;
+    else if (id === 'crystal') topY = -(100 + (tier * 10)) - 30; // approx height of obelisk
+    else if (id === 'stone') topY = -140;
+    else if (id === 'copper') topY = -90;
+    else if (id === 'iron') topY = -100;
+    else if (id === 'pure_gold') topY = -60;
+    else if (id === 'diamond') topY = -120;
+    else if (id === 'emerald') topY = -130;
+    else if (id === 'ruby') topY = -100;
+    else if (id === 'sapphire') topY = -80;
+    else if (id === 'unobtainium') topY = -160;
+    else if (id === 'prismatium') topY = -150;
+    else topY = -100;
+    
+    // Scale the topY
+    let finalHighestY = floorY + (bounce + topY) * scale;
+
+    if (id === 'core') drawReactor(ctx, t, tier);
+    else if (id === 'crystal') drawObelisk(ctx, t, tier);
+    else if (id === 'stone') drawFoundry(ctx, t, tier);
+    else if (id === 'copper') drawCharger(ctx, t, tier);
+    else if (id === 'iron') drawRefinery(ctx, t, tier);
+    else if (id === 'pure_gold') drawVault(ctx, t, tier);
+    else if (id === 'diamond') drawOilRig(ctx, t, tier);
+    else if (id === 'emerald') drawGreenhouse(ctx, t, tier);
+    else if (id === 'ruby') drawRadiator(ctx, t, tier);
+    else if (id === 'sapphire') drawCentrifuge(ctx, t, tier);
+    else if (id === 'unobtainium') drawBeacon(ctx, t, tier);
+    else if (id === 'prismatium') drawSingularity(ctx, t, tier);
+    
+    ctx.restore();
+    
+    // Update HTML element position
+    const levelText = document.getElementById('building-detail-level-text');
+    if (levelText) {
+        levelText.style.position = 'absolute';
+        // Calculate top offset based on parent container offset (which might be causing the drift)
+        // Adjust for padding or margins of the container
+        levelText.style.top = (finalHighestY - 140) + 'px'; // Magic number offset to fix clipping
+        levelText.style.left = '0';
+        levelText.style.width = '100%';
+    }
+}
+
+// ----------------- Building Drawing Routines ----------------- //
+
+function drawReactor(ctx, t, tier) {
+    const r = 30 + (tier * 2);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(-50, -20, 100, 20);
+    
+    ctx.fillStyle = '#444';
+    ctx.fillRect(-10, -80, 20, 60);
+    
+    const pulse = Math.abs(Math.sin(t * 3));
+    ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + pulse * 0.5})`;
+    ctx.beginPath();
+    ctx.arc(0, -90, r, 0, Math.PI * 2);
+    ctx.fill();
+    
+    if (tier >= 5) {
+        ctx.strokeStyle = '#0ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -90);
+        ctx.lineTo(0, -200);
+        ctx.stroke();
+    }
+}
+
+function drawObelisk(ctx, t, tier) {
+    ctx.fillStyle = '#111';
+    ctx.fillRect(-30, -20, 60, 20);
+    
+    const h = 100 + (tier * 10);
+    const w = 40 + (tier * 2);
+    
+    ctx.fillStyle = '#c0f';
+    ctx.beginPath();
+    ctx.moveTo(0, -20 - h);
+    ctx.lineTo(-w/2, -20);
+    ctx.lineTo(w/2, -20);
+    ctx.fill();
+    
+    if (tier >= 3) {
+        const fly = Math.sin(t*2) * 10;
+        ctx.fillStyle = '#f0f';
+        ctx.beginPath();
+        ctx.moveTo(0, -30 - h + fly - 20);
+        ctx.lineTo(-10, -30 - h + fly);
+        ctx.lineTo(10, -30 - h + fly);
+        ctx.fill();
+    }
+}
+
+function drawFoundry(ctx, t, tier) {
+    ctx.fillStyle = '#322';
+    ctx.fillRect(-60, -80, 120, 80);
+    
+    ctx.fillStyle = '#211';
+    ctx.fillRect(20, -140, 20, 60);
+    
+    const pulse = Math.abs(Math.sin(t * 5));
+    ctx.fillStyle = `rgba(255, ${100 + pulse * 50}, 0, 1)`;
+    ctx.fillRect(-20, -40, 40, 40);
+    
+    if (tier >= 4) {
+        ctx.fillStyle = '#211';
+        ctx.fillRect(-40, -120, 20, 40);
+    }
+}
+
+function drawCharger(ctx, t, tier) {
+    ctx.fillStyle = '#b6673f'; 
+    ctx.fillRect(-40, -60, 80, 60);
+    
+    ctx.strokeStyle = '#e99f79';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, -60, 30, Math.PI, 0);
+    ctx.stroke();
+    
+    const arcT = (t * 5) % Math.PI;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(Math.cos(arcT + Math.PI)*30, -60 - Math.sin(arcT)*30, 5, 0, Math.PI*2);
+    ctx.fill();
+}
+
+function drawRefinery(ctx, t, tier) {
+    ctx.fillStyle = '#aab0b6'; 
+    ctx.fillRect(-50, -100, 100, 100);
+    
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(-50, -50);
+    ctx.lineTo(-80, -50);
+    ctx.lineTo(-80, 0);
+    ctx.stroke();
+    
+    if (tier >= 2) {
+        ctx.beginPath();
+        ctx.moveTo(50, -30);
+        ctx.lineTo(70, -30);
+        ctx.lineTo(70, 0);
+        ctx.stroke();
+    }
+}
+
+function drawVault(ctx, t, tier) {
+    ctx.fillStyle = '#d4b22c'; 
+    ctx.fillRect(-60, -60, 120, 60);
+    
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(0, -30, 20, 0, Math.PI*2);
+    ctx.fill();
+    
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-10, -30);
+    ctx.lineTo(10, -30);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, -40);
+    ctx.lineTo(0, -20);
+    ctx.stroke();
+}
+
+function drawOilRig(ctx, t, tier) {
+    ctx.fillStyle = '#50c3ca'; 
+    ctx.beginPath();
+    ctx.moveTo(-40, 0);
+    ctx.lineTo(-20, -120);
+    ctx.lineTo(20, -120);
+    ctx.lineTo(40, 0);
+    ctx.fill();
+    
+    const drillY = Math.sin(t*10) * 10;
+    ctx.fillStyle = '#111';
+    ctx.fillRect(-5, -120 + drillY, 10, 140);
+}
+
+function drawGreenhouse(ctx, t, tier) {
+    ctx.fillStyle = 'rgba(35, 171, 27, 0.3)'; 
+    ctx.fillRect(-70, -60, 140, 60);
+    ctx.beginPath();
+    ctx.arc(0, -60, 70, Math.PI, 0);
+    ctx.fill();
+    
+    ctx.fillStyle = '#47d13f';
+    ctx.beginPath();
+    ctx.moveTo(-30, 0);
+    ctx.lineTo(-20, -40);
+    ctx.lineTo(-10, 0);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.moveTo(30, 0);
+    ctx.lineTo(20, -50 + Math.sin(t)*10);
+    ctx.lineTo(10, 0);
+    ctx.fill();
+}
+
+function drawRadiator(ctx, t, tier) {
+    ctx.fillStyle = '#444';
+    ctx.fillRect(-40, -100, 80, 100);
+    
+    const glow = Math.abs(Math.sin(t*4));
+    ctx.fillStyle = `rgba(230, 69, 69, ${0.5 + glow * 0.5})`;
+    
+    for(let i=0; i<5; i++) {
+        ctx.fillRect(-30, -90 + (i*18), 60, 10);
+    }
+}
+
+function drawCentrifuge(ctx, t, tier) {
+    ctx.fillStyle = '#555';
+    ctx.fillRect(-20, -80, 40, 80);
+    
+    ctx.save();
+    ctx.translate(0, -40);
+    ctx.rotate(t * 5); 
+    
+    ctx.fillStyle = '#1c38d6'; 
+    ctx.fillRect(-60, -10, 120, 20);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(-50, 0, 8, 0, Math.PI*2);
+    ctx.arc(50, 0, 8, 0, Math.PI*2);
+    ctx.fill();
+    
+    ctx.restore();
+}
+
+function drawBeacon(ctx, t, tier) {
+    ctx.fillStyle = '#330d58'; 
+    ctx.beginPath();
+    ctx.moveTo(-30, 0);
+    ctx.lineTo(-10, -150);
+    ctx.lineTo(10, -150);
+    ctx.lineTo(30, 0);
+    ctx.fill();
+    
+    ctx.save();
+    ctx.translate(0, -150);
+    ctx.rotate(t * 2);
+    
+    const grad = ctx.createLinearGradient(0, 0, 200, 0);
+    grad.addColorStop(0, 'rgba(147, 82, 216, 0.8)');
+    grad.addColorStop(1, 'rgba(147, 82, 216, 0)');
+    ctx.fillStyle = grad;
+    
+    ctx.beginPath();
+    ctx.moveTo(0, -10);
+    ctx.lineTo(200, -50);
+    ctx.lineTo(200, 30);
+    ctx.lineTo(0, 10);
+    ctx.fill();
+    
+    ctx.restore();
+}
+
+function drawSingularity(ctx, t, tier) {
+    const fly = Math.sin(t) * 20;
+    ctx.save();
+    ctx.translate(0, -100 + fly);
+    
+    const r = 30 + tier * 2;
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    grad.addColorStop(0, '#fff');
+    grad.addColorStop(0.2, '#00ffff');
+    grad.addColorStop(0.5, '#ff00ff');
+    grad.addColorStop(1, '#000');
+    
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI*2);
+    ctx.fill();
+    
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.save();
+    ctx.rotate(t);
+    ctx.scale(1, 0.3);
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 2, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+    
+    ctx.save();
+    ctx.rotate(-t * 1.5);
+    ctx.scale(0.3, 1);
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 2, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+    
+    ctx.restore();
+    
+    ctx.fillStyle = '#222';
+    ctx.fillRect(-50, -20, 100, 20);
 }
