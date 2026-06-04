@@ -598,7 +598,7 @@ export function initBuildingOverlay() {
     const costRow = document.createElement("div");
     costRow.id = "building-detail-cost-row";
     costRow.style.margin = "0";
-    costRow.style.marginTop = "8px";
+    costRow.style.marginTop = "6px";
     costRow.style.padding = "0";
     costRow.className = "upg-line";
     costRow.style.lineHeight = "0.9";
@@ -608,6 +608,7 @@ export function initBuildingOverlay() {
     const walletRow = document.createElement("div");
     walletRow.id = "building-detail-wallet-row";
     walletRow.style.margin = "0";
+    walletRow.style.marginTop = "-8px";
     walletRow.style.padding = "0";
     walletRow.className = "upg-line";
     walletRow.style.lineHeight = "0.9";
@@ -618,7 +619,8 @@ export function initBuildingOverlay() {
     textContainer.className = "upg-costs";
     textContainer.style.gap = "0px";
     textContainer.style.justifyContent = "center";
-    textContainer.style.marginBottom = "-20px";
+    textContainer.style.marginBottom = "-11px";
+    
     
     textContainer.appendChild(bonusRow);
     textContainer.appendChild(costRow);
@@ -736,7 +738,7 @@ function updateOverlayUi() {
     const currentBonus = getBuildingBonus(id, levelBn);
     const nextBonus = getBuildingBonus(id, nextLevelBn);
     
-    const imgStr = `<img src="${BUILDING_CURRENCY_IMAGES[id]}" style="width: 1em; height: 1em; vertical-align: middle;">`;
+    const imgStr = `<img src="${BUILDING_CURRENCY_IMAGES[id]}" style="width: 1em; height: 1em; vertical-align: middle; transform: translateY(-4px);">`;
     
     const matName = RESOURCE_REGISTRY.find(r => r.key === currencyKey)?.singular || 'Stone';
 
