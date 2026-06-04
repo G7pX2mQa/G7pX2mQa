@@ -15,6 +15,60 @@ let ucPickup = null;
 const BASE_MATERIAL_VALUE = BigNum.fromInt(1);
 
 
+
+// Queue helpers moved to module scope
+const cloneBn = (value) => {
+  if (!value) return BigNum.fromInt(0);
+  if (typeof value.clone === 'function') {
+    try { return value.clone(); } catch {}
+  }
+  try { return BigNum.fromAny(value); } catch { return BigNum.fromInt(0); }
+};
+
+const mergeGain = (current, gain) => {
+  if (!gain) return current;
+  if (!current) return cloneBn(gain);
+  try { return current.add(gain); }
+  catch {
+    try {
+      const base = cloneBn(current);
+      return base.add(gain);
+    } catch {
+      return cloneBn(gain);
+    }
+  }
+};
+
+let pendingMaterialGains = new Map();
+let flushScheduled = false;
+
+const flushPendingGains = () => {
+  for (const [handle, gain] of pendingMaterialGains.entries()) {
+    if (gain && !gain.isZero?.()) {
+      try { handle.add(gain); } catch (e) { console.error("Error adding material gain", e); }
+    }
+  }
+  pendingMaterialGains.clear();
+};
+
+const scheduleFlush = () => {
+  if (flushScheduled) return;
+  flushScheduled = true;
+  requestAnimationFrame(() => {
+    flushScheduled = false;
+    flushPendingGains();
+  });
+};
+
+const queueMaterialGain = (handle, gain) => {
+  pendingMaterialGains.set(handle, mergeGain(pendingMaterialGains.get(handle), gain));
+  scheduleFlush();
+};
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', flushPendingGains, { passive: true });
+}
+
 export function initUcPickup({
   spawner,
   playfieldSelector   = '.playfield',
@@ -186,7 +240,7 @@ export function initUcPickup({
             if (handle) {
                 const mult = handle.mult.get();
                 const totalGain = BASE_MATERIAL_VALUE.mulBigNumInteger(BigNum.fromAny(count)).mulBigNumInteger(mult);
-                handle.add(totalGain);
+                queueMaterialGain(handle, totalGain);
             }
         }
         
@@ -242,6 +296,10 @@ export function initUcPickup({
   const destroy = () => {
     if (brushController) {
       brushController.destroy();
+    }
+    flushPendingGains();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('beforeunload', flushPendingGains);
     }
     if (magnetController) {
       magnetController.destroy();
