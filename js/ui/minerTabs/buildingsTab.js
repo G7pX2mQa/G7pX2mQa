@@ -588,31 +588,37 @@ export function initBuildingOverlay() {
 
     const bonusRow = document.createElement("div");
     bonusRow.id = "building-detail-bonus-row";
-    bonusRow.style.marginBottom = "-5px";
-    bonusRow.style.lineHeight = "1";
+    bonusRow.style.margin = "0";
+    bonusRow.style.padding = "0";
     bonusRow.className = "upg-line";
     bonusRow.style.textAlign = "center";
     bonusRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
     
     const costRow = document.createElement("div");
     costRow.id = "building-detail-cost-row";
-    costRow.style.marginBottom = "-5px";
-    costRow.style.lineHeight = "1";
+    costRow.style.margin = "0";
+    costRow.style.padding = "0";
     costRow.className = "upg-line";
     costRow.style.textAlign = "center";
     costRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
 
     const walletRow = document.createElement("div");
     walletRow.id = "building-detail-wallet-row";
-    walletRow.style.marginBottom = "0px";
-    walletRow.style.lineHeight = "1";
+    walletRow.style.margin = "0";
+    walletRow.style.padding = "0";
     walletRow.className = "upg-line";
     walletRow.style.textAlign = "center";
     walletRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
 
-    content.appendChild(bonusRow);
-    content.appendChild(costRow);
-    content.appendChild(walletRow);
+    const textContainer = document.createElement("div");
+    textContainer.className = "upg-costs";
+    textContainer.style.justifyContent = "center";
+    
+    textContainer.appendChild(bonusRow);
+    textContainer.appendChild(costRow);
+    textContainer.appendChild(walletRow);
+
+    content.appendChild(textContainer);
     
     const btnBuyCheap = document.createElement("button");
     btnBuyCheap.className = "shop-delve";
