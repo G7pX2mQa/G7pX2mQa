@@ -5,6 +5,7 @@ import { setupDragToClose } from '../shopOverlay.js';
 import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../../util/bigNum.js';
 import { levelBigNumToNumber, evaluateBulkPurchase } from '../../game/upgrades.js';
 import { formatMultForUi, formatNumber } from '../../util/numFormat.js';
+import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
 
 
@@ -566,6 +567,7 @@ export function initBuildingOverlay() {
     content.style.flexDirection = 'column';
     content.style.justifyContent = 'flex-end';
     content.style.zIndex = '1';
+    content.style.position = 'relative';
     
     const levelTextContainer = document.createElement("div");
     levelTextContainer.style.textAlign = "center";
@@ -579,28 +581,31 @@ export function initBuildingOverlay() {
 
     const buildingHitbox = document.createElement("div");
     buildingHitbox.style.width = "300px";
-    buildingHitbox.style.height = "240px";
+    buildingHitbox.style.height = "5px";
     buildingHitbox.style.margin = "0 auto";
     buildingHitbox.style.pointerEvents = "none";
     content.appendChild(buildingHitbox);
 
     const bonusRow = document.createElement("div");
     bonusRow.id = "building-detail-bonus-row";
-    bonusRow.style.marginBottom = "8px";
+    bonusRow.style.marginBottom = "-5px";
+    bonusRow.style.lineHeight = "1";
     bonusRow.className = "upg-line";
     bonusRow.style.textAlign = "center";
     bonusRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
     
     const costRow = document.createElement("div");
     costRow.id = "building-detail-cost-row";
-    costRow.style.marginBottom = "8px";
+    costRow.style.marginBottom = "-5px";
+    costRow.style.lineHeight = "1";
     costRow.className = "upg-line";
     costRow.style.textAlign = "center";
     costRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
 
     const walletRow = document.createElement("div");
     walletRow.id = "building-detail-wallet-row";
-    walletRow.style.marginBottom = "15px";
+    walletRow.style.marginBottom = "0px";
+    walletRow.style.lineHeight = "1";
     walletRow.className = "upg-line";
     walletRow.style.textAlign = "center";
     walletRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
@@ -721,16 +726,18 @@ function updateOverlayUi() {
     
     const imgStr = `<img src="${BUILDING_CURRENCY_IMAGES[id]}" style="width: 1em; height: 1em; vertical-align: middle;">`;
     
+    const matName = RESOURCE_REGISTRY.find(r => r.key === currencyKey)?.singular || 'Stone';
+
     document.getElementById('building-detail-level-text').textContent = `Building Level ${formatNumber(levelBn)}`;
     
     document.getElementById('building-detail-bonus-row').innerHTML = 
         `${BUILDING_BONUS_TEXTS[id] || 'Bonus'}: ${formatMultForUi(currentBonus)}x &rarr; ${formatMultForUi(nextBonus)}x`;
         
     document.getElementById('building-detail-cost-row').innerHTML = 
-        `Cost: ${imgStr} ${formatNumber(costBn)}`;
+        `Cost: ${formatNumber(costBn)} ${imgStr} ${matName}`;
         
     document.getElementById('building-detail-wallet-row').innerHTML = 
-        `You have: ${imgStr} ${formatNumber(walletBn)}`;
+        `You have: ${formatNumber(walletBn)} ${imgStr} ${matName}`;
         
     const btnBuy = document.getElementById('building-btn-buy');
     btnBuy.disabled = walletBn.cmp(costBn) < 0;
