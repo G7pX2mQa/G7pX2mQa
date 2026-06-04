@@ -591,14 +591,17 @@ export function initBuildingOverlay() {
     bonusRow.style.margin = "0";
     bonusRow.style.padding = "0";
     bonusRow.className = "upg-line";
+    bonusRow.style.lineHeight = "0.9";
     bonusRow.style.textAlign = "center";
     bonusRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
     
     const costRow = document.createElement("div");
     costRow.id = "building-detail-cost-row";
     costRow.style.margin = "0";
+    costRow.style.marginTop = "8px";
     costRow.style.padding = "0";
     costRow.className = "upg-line";
+    costRow.style.lineHeight = "0.9";
     costRow.style.textAlign = "center";
     costRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
 
@@ -607,12 +610,15 @@ export function initBuildingOverlay() {
     walletRow.style.margin = "0";
     walletRow.style.padding = "0";
     walletRow.className = "upg-line";
+    walletRow.style.lineHeight = "0.9";
     walletRow.style.textAlign = "center";
     walletRow.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
 
     const textContainer = document.createElement("div");
     textContainer.className = "upg-costs";
+    textContainer.style.gap = "0px";
     textContainer.style.justifyContent = "center";
+    textContainer.style.marginBottom = "-20px";
     
     textContainer.appendChild(bonusRow);
     textContainer.appendChild(costRow);
