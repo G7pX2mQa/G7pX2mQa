@@ -3354,6 +3354,7 @@ function bindUpgradeStorageWatchersForSlot(slot) {
 if (typeof window !== 'undefined') {
   bindUpgradeStorageWatchersForSlot(getActiveSlot());
   window.addEventListener('saveSlot:change', () => {
+    upgradeStateCache.clear();
     bindUpgradeStorageWatchersForSlot(getActiveSlot());
     notifyChanged();
   });
@@ -3576,25 +3577,6 @@ function ensureUpgradeState(areaKey, upgId) {
 
   let hmEvolutions = 0;
   if (upg?.upgType === 'HM') {
-    const surgeLevel = getSafeSurgeLevel();
-    if (surgeLevel < 60) {
-      let rawLevel = ensureLevelBigNum(rec.lvl);
-      const cap = BigNum.fromInt(HM_EVOLUTION_INTERVAL);
-      if (rawLevel.cmp(cap) > 0) {
-        rec.lvl = cap.toStorage();
-        rec.nextCost = BigNum.fromAny(upg.costAtLevel(HM_EVOLUTION_INTERVAL)).toStorage();
-        rec.nextCostLvl = rec.lvl;
-        recNeedsSave = true;
-      }
-      if (rec.hmEvolutions > 0 || rec.evolutions > 0 || rec.evol > 0) {
-          rec.hmEvolutions = 0;
-          rec.evolutions = 0;
-          rec.evol = 0;
-          recNeedsSave = true;
-      }
-      upg.numUpgEvolutions = 0;
-    }
-
     hmEvolutions = normalizeHmEvolutionCount(
       rec.hmEvolutions ?? rec.evolutions ?? rec.evol ?? upg.numUpgEvolutions
     );
