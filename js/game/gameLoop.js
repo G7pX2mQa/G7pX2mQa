@@ -29,12 +29,13 @@ function ensureFpsWakeupEl() {
             position: 'fixed',
             top: '0',
             left: '0',
-            width: '1px',
-            height: '1px',
+            width: '2px',
+            height: '2px',
             pointerEvents: 'none',
-            opacity: '0.01',
+            opacity: '0.05',
             zIndex: '999999',
             background: '#000',
+            transform: 'translateZ(0)',
             willChange: 'transform'
         });
         document.body.appendChild(fpsWakeupEl);
