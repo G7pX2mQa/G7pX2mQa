@@ -1290,7 +1290,7 @@ function hmMilestoneHits(levelBn, milestoneLevel) {
     const interval = Number(HM_EVOLUTION_INTERVAL);
     if (lvl < base) return 0;
     const delta = lvl - base;
-    const cycles = delta / interval;
+    const cycles = Math.floor(delta / interval);
     return Number(cycles + 1);
   } catch {
     const approx = levelBigNumToNumber(levelBn);
