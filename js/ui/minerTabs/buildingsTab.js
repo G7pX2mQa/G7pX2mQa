@@ -123,7 +123,7 @@ function renderBuildingsGrid(gridEl) {
         baseSrc: 'img/currencies/core/core_plus_base.webp',
         isLocked: false,
         mysteriousText: '',
-        level: 0
+        level: formatNumber(getBuildingLevel("core"))
     });
 
     // 2. Crystal Building
@@ -135,7 +135,7 @@ function renderBuildingsGrid(gridEl) {
         baseSrc: 'img/currencies/crystal/crystal_plus_base.webp',
         isLocked: crystalLocked,
         mysteriousText: 'Perform the ??? reset to reveal this Building',
-        level: 0
+        level: formatNumber(getBuildingLevel("crystal"))
     });
 
     // 3-12. Material Buildings (Stone to Prismatium)
@@ -161,7 +161,7 @@ function renderBuildingsGrid(gridEl) {
             baseSrc: baseIconStr,
             isLocked: isLocked,
             mysteriousText: `Reach Depth: ${mat.start}m to reveal this Building`,
-            level: 0
+            level: formatNumber(getBuildingLevel(mat.name))
         });
     }
 
@@ -236,6 +236,16 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
   if (isBuildingsUnlocked()) {
       renderBuildingsGrid(grid);
   }
+
+  document.addEventListener('ccc:buildings:changed', () => {
+    if (panel.classList.contains('is-active') && isBuildingsUnlocked()) {
+      renderBuildingsGrid(grid);
+    }
+    // Update the building overlay if it is open
+    if (currentBuildingId) {
+        updateOverlayUi();
+    }
+  });
 
   // Listen for depth changes and re-render the grid if the tab is currently active
   window.addEventListener('dp:change', () => {
@@ -720,7 +730,7 @@ function closeBuildingDetailOverlay() {
     });
 }
 
-function updateOverlayUi() {
+export function updateOverlayUi() {
     if (!currentBuildingId) return;
     const id = currentBuildingId;
     
