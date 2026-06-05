@@ -166,43 +166,98 @@ function drawCavern(ctx, w, h, t) {
         const numStalactites = 8 + Math.floor(Math.random() * 8);
         const stalactites = [];
         for (let i = 0; i < numStalactites; i++) {
+            const length = 50 + Math.random() * 100;
+            const width = 20 + Math.random() * 40;
+            
+            // Generate bumpy paths for organic spikes, but keep them subtle so they look pointier
+            const leftPath = [];
+            const rightPath = [];
+            const segments = 5;
+            for (let s = 1; s < segments; s++) {
+                leftPath.push((Math.random() - 0.5) * 2); // smaller offsets
+                rightPath.push((Math.random() - 0.5) * 2);
+            }
+
             stalactites.push({
                 xFrac: Math.random(),
-                length: 50 + Math.random() * 100,
-                width: 20 + Math.random() * 40,
+                length: length,
+                width: width,
                 dropPhase: Math.random() * Math.PI * 2,
-                dropSpeed: 0.5 + Math.random() * 1.5
+                dropSpeed: 0.5 + Math.random() * 1.5,
+                leftPath: leftPath,
+                rightPath: rightPath
             });
         }
         
-        window.currentCavernLayout = { gems, stalactites };
+        const cracks = [];
+        const cols = 15;
+        const rows = 12;
+        for (let c = 0; c < cols; c++) {
+            for (let r = 0; r < rows; r++) {
+                if (Math.random() > 0.1) { // 90% chance to have a crack in this cell, smaller cells -> more cracks
+                    const points = [];
+                    const numPoints = 3 + Math.floor(Math.random() * 5);
+                    let cx = (c + Math.random()) / cols;
+                    let cy = (r + Math.random()) / rows;
+                    for (let p = 0; p < numPoints; p++) {
+                        points.push({ x: cx, y: cy });
+                        cx += (Math.random() - 0.5) * 0.05;
+                        cy += (Math.random() - 0.5) * 0.05;
+                    }
+                    cracks.push(points);
+                }
+            }
+        }
+        
+        window.currentCavernLayout = { gems, stalactites, cracks };
     }
 
     const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, '#111318');
-    grad.addColorStop(1, '#05070a');
+    grad.addColorStop(0, '#4a3324');
+    grad.addColorStop(1, '#2c1c11');
     
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
     
-    ctx.fillStyle = '#0a0b0e';
+    // Draw cracky crumbly background details
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.lineWidth = 3;
+    if (window.currentCavernLayout.cracks) {
+        for (const crack of window.currentCavernLayout.cracks) {
+            ctx.beginPath();
+            ctx.moveTo(crack[0].x * w, crack[0].y * h);
+            for (let i = 1; i < crack.length; i++) {
+                ctx.lineTo(crack[i].x * w, crack[i].y * h);
+            }
+            ctx.stroke();
+        }
+    }
+    
     for (const st of window.currentCavernLayout.stalactites) {
         const sx = st.xFrac * w;
+        const tipX = sx + (Math.sin(st.dropPhase) * 10);
+        
+        const stalactiteGrad = ctx.createLinearGradient(sx, 0, sx, st.length);
+        stalactiteGrad.addColorStop(0, '#1c100a');
+        stalactiteGrad.addColorStop(1, '#402618');
+        ctx.fillStyle = stalactiteGrad;
+        
         ctx.beginPath();
+        // perfect triangle
         ctx.moveTo(sx - st.width / 2, 0);
+        ctx.lineTo(tipX, st.length); // The tip
         ctx.lineTo(sx + st.width / 2, 0);
-        ctx.lineTo(sx + (Math.sin(st.dropPhase) * 10), st.length); // slightly jagged tip but consistent
+        ctx.closePath();
         ctx.fill();
         
         // draw water droplet
-        const dropT = (t * st.dropSpeed + st.dropPhase) % 3; // 3 seconds cycle
+        const dropT = (t * st.dropSpeed + st.dropPhase) % 6; // 6 seconds cycle
         if (dropT < 1) { // Falling phase
             const dropY = st.length + dropT * (h - st.length);
             ctx.fillStyle = 'rgba(100, 200, 255, 0.4)';
             ctx.beginPath();
-            ctx.arc(sx, dropY, 2, 0, Math.PI * 2);
+            ctx.arc(tipX, dropY, 2, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillStyle = '#0a0b0e'; // restore color for next stalactite
         }
     }
     
