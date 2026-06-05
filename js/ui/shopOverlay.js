@@ -580,6 +580,8 @@ export function ensureCustomScrollbar(overlayEl, sheetEl, scrollerSelector = '.s
 }
 
 // --- Logic Helpers ---
+const affordableCache = new Map();
+
 function levelsRemainingToCap(upg, currentLevelBn, currentLevelNumber) {
   if (!upg) return BigNum.fromInt(0);
   const capBn = upg.lvlCapBn?.clone?.() ?? (Number.isFinite(upg.lvlCap) ? BigNum.fromAny(upg.lvlCap) : null);
@@ -623,40 +625,67 @@ export function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn
   const walletBn = walletValue instanceof BigNum ? walletValue : BigNum.fromAny(walletValue ?? 0);
   if (walletBn.isZero?.()) return BigNum.fromInt(0);
 
+  const cacheKey = upg.id;
+  const lvlStr = lvlBn.toString();
+  const walletStr = walletBn.toString();
+
+  if (cacheKey !== undefined) {
+    const cached = affordableCache.get(cacheKey);
+    if (cached && cached.lvlStr === lvlStr && cached.walletStr === walletStr) {
+      return cached.result;
+    }
+  }
+
+  let resultBn = BigNum.fromInt(0);
+
   if (walletBn.isInfinite?.()) {
     const isHmType = upg?.upgType === 'HM';
     const maxed = Number.isFinite(cap) && lvl >= cap;
-    if ((isHmType && !maxed) || !Number.isFinite(cap)) return BigNum.fromAny('Infinity');
-    return levelsRemainingToCap(upg, lvlBn, currentLevelNumeric);
-  }
-  if (Number.isFinite(cap) && lvl >= cap) return BigNum.fromInt(0);
-
-  try {
-    if (typeof upg.costAtLevel === 'function') {
-        const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
-        const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1)); 
-        const farProbeLevel = Math.min(Number.isFinite(cap) ? cap : lvl + 32, lvl + 32);
-        const cFar = BigNum.fromAny(upg.costAtLevel(farProbeLevel));
-        const isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
-
-        if (isTrulyFlat) {
-          const remainingBn = levelsRemainingToCap(upg, lvlBn, lvl);
-          const room = Number.isFinite(upg.lvlCap) ? Math.min(Math.max(0, Math.floor(Number(remainingBn.toString()))), Number.MAX_SAFE_INTEGER - 2) : Number.MAX_SAFE_INTEGER;
-          let lo = 0, hi = Math.max(0, room);
-          while (lo < hi) {
-            const mid = Math.floor((lo + hi + 1) / 2);
-            const midBn = BigNum.fromInt(mid);
-            const total = typeof c0.mulBigNumInteger === 'function' ? c0.mulBigNumInteger(midBn) : BigNum.fromAny(c0 ?? 0).mulBigNumInteger(midBn);
-            if (total.cmp(walletBn) <= 0) lo = mid; else hi = mid - 1;
-          }
-          return BigNum.fromInt(lo);
-        }
+    if ((isHmType && !maxed) || !Number.isFinite(cap)) {
+      resultBn = BigNum.fromAny('Infinity');
+    } else {
+      resultBn = levelsRemainingToCap(upg, lvlBn, currentLevelNumeric);
     }
-  } catch {}
-  
-  const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : undefined;
-  const { count } = evaluateBulkPurchase(upg, lvlBn, walletBn, room, { fastOnly: true });
-  return count ?? BigNum.fromInt(0);
+  } else if (Number.isFinite(cap) && lvl >= cap) {
+    resultBn = BigNum.fromInt(0);
+  } else {
+    let computed = false;
+    try {
+      if (typeof upg.costAtLevel === 'function') {
+          const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
+          const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1)); 
+          const farProbeLevel = Math.min(Number.isFinite(cap) ? cap : lvl + 32, lvl + 32);
+          const cFar = BigNum.fromAny(upg.costAtLevel(farProbeLevel));
+          const isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
+
+          if (isTrulyFlat) {
+            const remainingBn = levelsRemainingToCap(upg, lvlBn, lvl);
+            const room = Number.isFinite(upg.lvlCap) ? Math.min(Math.max(0, Math.floor(Number(remainingBn.toString()))), Number.MAX_SAFE_INTEGER - 2) : Number.MAX_SAFE_INTEGER;
+            let lo = 0, hi = Math.max(0, room);
+            while (lo < hi) {
+              const mid = Math.floor((lo + hi + 1) / 2);
+              const midBn = BigNum.fromInt(mid);
+              const total = typeof c0.mulBigNumInteger === 'function' ? c0.mulBigNumInteger(midBn) : BigNum.fromAny(c0 ?? 0).mulBigNumInteger(midBn);
+              if (total.cmp(walletBn) <= 0) lo = mid; else hi = mid - 1;
+            }
+            resultBn = BigNum.fromInt(lo);
+            computed = true;
+          }
+      }
+    } catch {}
+    
+    if (!computed) {
+      const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : undefined;
+      const { count } = evaluateBulkPurchase(upg, lvlBn, walletBn, room, { fastOnly: true });
+      resultBn = count ?? BigNum.fromInt(0);
+    }
+  }
+
+  if (cacheKey !== undefined) {
+    affordableCache.set(cacheKey, { lvlStr, walletStr, result: resultBn });
+  }
+
+  return resultBn;
 }
 
 // --- Shop Instance Class ---
