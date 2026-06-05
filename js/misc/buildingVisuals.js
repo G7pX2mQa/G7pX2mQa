@@ -12,10 +12,12 @@ let time = 0;
 let currentLevelNum = 0;
 let levelUpAnimTime = 0;
 let tierUpAnimTime = 0;
+let previousTier = 0;
 
 const TIERS = [1, 10, 25, 50, 100, 200, 400, 800, 1000];
 
 const imageCache = {};
+let stonePattern = null;
 function getMaterialImage(matKey) {
   if (imageCache[matKey]) return imageCache[matKey];
   const config = RESOURCE_REGISTRY.find(r => r.key === matKey);
@@ -28,6 +30,23 @@ function getMaterialImage(matKey) {
   return null;
 }
 
+function initStonePattern(ctx) {
+    if (stonePattern) return;
+    const img = new Image();
+    img.src = 'img/stone.webp';
+    img.onload = () => {
+        if (activeCtx) {
+            stonePattern = activeCtx.createPattern(img, 'repeat');
+        } else if (ctx) {
+            stonePattern = ctx.createPattern(img, 'repeat');
+        }
+    };
+    if (img.complete) {
+        try { stonePattern = ctx.createPattern(img, 'repeat'); } catch (e) {}
+    }
+    imageCache['stone_texture'] = img;
+}
+
 export function startCanvasLoop(id, canvasEl) {
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
     window.currentCavernLayout = null;
@@ -36,6 +55,8 @@ export function startCanvasLoop(id, canvasEl) {
     currentBuildingId = id;
     lastTime = performance.now();
     
+    initStonePattern(activeCtx);
+
     const resizeObserver = new ResizeObserver(() => {
         if (!activeCanvas) return;
         const rect = activeCanvas.parentElement.getBoundingClientRect();
@@ -68,6 +89,7 @@ export function stopCanvasLoop() {
     activeCanvas = null;
     activeCtx = null;
     currentBuildingId = null;
+    tierUpAnimTime = 0;
 }
 
 export function triggerLevelUpAnimation() {
@@ -88,6 +110,7 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
     }
     
     if (newTier > oldTier) {
+        previousTier = oldTier;
         tierUpAnimTime = 5.0; 
         playAudio('sounds/building_tier_up.ogg');
     }
@@ -131,7 +154,14 @@ function draw(ctx, width, height, t) {
     drawCavern(ctx, width, height, t);
     
     if (currentBuildingId) {
-        drawBuilding(ctx, width, height, t, currentBuildingId, getTier());
+        let currentTier = getTier();
+        let drawTier = currentTier;
+        let animProgress = 1.0;
+        if (tierUpAnimTime > 0) {
+            animProgress = 1.0 - (tierUpAnimTime / 5.0);
+            drawTier = currentTier;
+        }
+        drawBuilding(ctx, width, height, t, currentBuildingId, drawTier, previousTier, animProgress);
     }
     ctx.restore();
     
@@ -371,7 +401,7 @@ function drawCavern(ctx, w, h, t) {
     }
 }
 
-function drawBuilding(ctx, w, h, t, id, tier) {
+function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
     const floorY = h - 260; // Match new floor height
     const cx = w / 2;
     
@@ -380,7 +410,9 @@ function drawBuilding(ctx, w, h, t, id, tier) {
     ctx.save();
     ctx.translate(cx, floorY);
     
-    const scale = 1.0 + (tier * 0.1);
+    const targetScale = 1.0 + (tier * 0.1);
+    const startScale = 1.0 + (prevTier * 0.1);
+    const scale = startScale + (targetScale - startScale) * animProgress;
     ctx.scale(scale, scale);
     
     let bounce = 0;
@@ -497,20 +529,292 @@ function drawObelisk(ctx, t, tier) {
     }
 }
 
-function drawFoundry(ctx, t, tier) {
-    ctx.fillStyle = '#322';
-    ctx.fillRect(-60, -80, 120, 80);
+function drawFoundry(ctx, t, tier, prevTier, animProgress) {
+    // Base structure (Tier 1+)
     
-    ctx.fillStyle = '#211';
-    ctx.fillRect(20, -140, 20, 60);
+    if (!stonePattern && activeCtx) {
+        initStonePattern(activeCtx);
+    }
+    if (stonePattern) {
+        ctx.fillStyle = stonePattern;
+    } else {
+        ctx.fillStyle = '#544';
+    }
     
+    // Draw base building
+    ctx.fillRect(-70, -100, 140, 100);
+    
+    // Darker outline or shading for depth
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.fillRect(-70, -100, 140, 10);
+    ctx.fillRect(-70, -100, 10, 100);
+    
+    // Tier 2: Chimney & Smoke
+    const showTier2 = (tier >= 2) ? 1 : 0;
+    const tier2Prog = (tier >= 2 && prevTier < 2) ? animProgress : showTier2;
+    if (tier2Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier2Prog;
+        // Slide up from center/bottom
+        const yOffset = (1 - tier2Prog) * 50;
+        ctx.translate(30, yOffset);
+        
+        if (stonePattern) {
+            ctx.fillStyle = stonePattern;
+        } else {
+            ctx.fillStyle = '#433';
+        }
+        ctx.fillRect(-15, -160, 30, 60);
+        
+        // Smoke particles if animation is mostly done or steady state
+        if (tier2Prog > 0.8) {
+            for (let i = 0; i < 3; i++) {
+                const smokeT = (t + i * 1.5) % 3; // 0 to 3 seconds
+                const smokeY = -160 - smokeT * 30;
+                const smokeX = Math.sin(smokeT * 3 + i) * 10;
+                const smokeSize = 10 + smokeT * 10;
+                const smokeAlpha = 1 - (smokeT / 3);
+                ctx.fillStyle = `rgba(100, 100, 100, ${smokeAlpha * 0.5})`;
+                ctx.beginPath();
+                ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        ctx.restore();
+    }
+    
+    // Tier 1+: Glowing hot furnace opening
     const pulse = Math.abs(Math.sin(t * 5));
-    ctx.fillStyle = `rgba(255, ${100 + pulse * 50}, 0, 1)`;
-    ctx.fillRect(-20, -40, 40, 40);
     
-    if (tier >= 4) {
-        ctx.fillStyle = '#211';
-        ctx.fillRect(-40, -120, 20, 40);
+    // Tier 5: Furnace opening grows larger and glow intensifies
+    const showTier5 = (tier >= 5) ? 1 : 0;
+    const tier5Prog = (tier >= 5 && prevTier < 5) ? animProgress : showTier5;
+    
+    const doorWidth = 40 + tier5Prog * 20;
+    const doorHeight = 40 + tier5Prog * 20;
+    const glowIntensity = 1 + tier5Prog * 0.5;
+    
+    // Inner dark space of furnace
+    ctx.fillStyle = '#100';
+    ctx.fillRect(-doorWidth/2, -doorHeight, doorWidth, doorHeight);
+    
+    // The fire/glow inside
+    ctx.fillStyle = `rgba(255, ${100 + pulse * 50}, 0, ${glowIntensity})`;
+    ctx.fillRect(-doorWidth/2 + 5, -doorHeight + 5, doorWidth - 10, doorHeight - 5);
+    
+    // Light cast onto the ground
+    const castGlowRadius = 60 + tier5Prog * 40;
+    const groundGlow = ctx.createRadialGradient(0, -doorHeight/2, 10, 0, 0, castGlowRadius);
+    groundGlow.addColorStop(0, `rgba(255, ${150 + pulse * 50}, 0, ${0.3 * glowIntensity})`);
+    groundGlow.addColorStop(1, 'rgba(255, 100, 0, 0)');
+    ctx.fillStyle = groundGlow;
+    ctx.beginPath();
+    ctx.arc(0, 0, castGlowRadius, Math.PI, 0); // draw half circle on floor
+    ctx.fill();
+    
+    // Tier 3: External conveyor belt / gear system
+    const showTier3 = (tier >= 3) ? 1 : 0;
+    const tier3Prog = (tier >= 3 && prevTier < 3) ? animProgress : showTier3;
+    if (tier3Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier3Prog;
+        // Slide in from the left
+        const xOffset = (1 - tier3Prog) * 30;
+        ctx.translate(-70 + xOffset, -40);
+        
+        // Gear 1
+        ctx.save();
+        ctx.translate(-30, 0);
+        ctx.rotate(t * 2);
+        drawGear(ctx, 15, '#777');
+        ctx.restore();
+        
+        // Gear 2
+        ctx.save();
+        ctx.translate(-70, 0);
+        ctx.rotate(t * 2);
+        drawGear(ctx, 15, '#777');
+        ctx.restore();
+        
+        // Belt connecting them
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(-70, -15);
+        ctx.lineTo(-30, -15);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-70, 15);
+        ctx.lineTo(-30, 15);
+        ctx.stroke();
+        
+        // Materials on belt
+        const beltOffset = (t * 20) % 40;
+        ctx.fillStyle = '#a55';
+        for(let i=0; i<2; i++) {
+            ctx.fillRect(-70 + beltOffset - i*20, -20, 10, 10);
+        }
+        ctx.restore();
+    }
+    
+    // Tier 4: Metal reinforcements / iron bars
+    const showTier4 = (tier >= 4) ? 1 : 0;
+    const tier4Prog = (tier >= 4 && prevTier < 4) ? animProgress : showTier4;
+    if (tier4Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier4Prog;
+        // Grow from the center outwards
+        const scaleT4 = 0.5 + tier4Prog * 0.5;
+        ctx.scale(scaleT4, scaleT4);
+        
+        ctx.fillStyle = '#222';
+        // Corners
+        ctx.fillRect(-75, -105, 15, 15);
+        ctx.fillRect(60, -105, 15, 15);
+        ctx.fillRect(-75, -15, 15, 15);
+        ctx.fillRect(60, -15, 15, 15);
+        
+        // Bands
+        ctx.fillRect(-75, -60, 150, 5);
+        ctx.fillRect(-40, -105, 5, 105);
+        ctx.fillRect(35, -105, 5, 105);
+        
+        // Rivets
+        ctx.fillStyle = '#555';
+        for(let i=-60; i<=60; i+=30) {
+            ctx.fillRect(i, -59, 2, 3);
+        }
+        ctx.restore();
+    }
+    
+    // Tier 6: Cooling pipes/vents
+    const showTier6 = (tier >= 6) ? 1 : 0;
+    const tier6Prog = (tier >= 6 && prevTier < 6) ? animProgress : showTier6;
+    if (tier6Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier6Prog;
+        // Slide in from the sides
+        const xOffset = (1 - tier6Prog) * 20;
+        
+        ctx.fillStyle = '#456';
+        // Left pipe
+        ctx.fillRect(-90 + xOffset, -80, 20, 60);
+        ctx.fillRect(-100 + xOffset, -70, 10, 40);
+        // Right pipe
+        ctx.fillRect(70 - xOffset, -80, 20, 60);
+        ctx.fillRect(90 - xOffset, -70, 10, 40);
+        
+        // Steam
+        if (tier6Prog > 0.8) {
+            ctx.fillStyle = `rgba(200, 200, 220, 0.3)`;
+            const steamH = 20 + Math.sin(t*10)*5;
+            ctx.fillRect(-95 + xOffset, -80 - steamH, 10, steamH);
+            ctx.fillRect(85 - xOffset, -80 - steamH, 10, steamH);
+        }
+        ctx.restore();
+    }
+    
+    // Tier 7: Glowing lava channels
+    const showTier7 = (tier >= 7) ? 1 : 0;
+    const tier7Prog = (tier >= 7 && prevTier < 7) ? animProgress : showTier7;
+    if (tier7Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier7Prog;
+        // Fade in
+        const lavaGrad = ctx.createLinearGradient(0, -100, 0, 0);
+        lavaGrad.addColorStop(0, '#f90');
+        lavaGrad.addColorStop(1, '#f30');
+        ctx.fillStyle = lavaGrad;
+        
+        // Left channel
+        ctx.fillRect(-55, -100, 8, 100);
+        // Right channel
+        ctx.fillRect(47, -100, 8, 100);
+        
+        // Lava sparks/flow
+        ctx.fillStyle = '#ff0';
+        const flow1 = (t * 20) % 100;
+        const flow2 = (t * 25 + 50) % 100;
+        ctx.fillRect(-55, -100 + flow1, 8, 4);
+        ctx.fillRect(47, -100 + flow2, 8, 4);
+        ctx.restore();
+    }
+    
+    // Tier 8: Secondary crucible
+    const showTier8 = (tier >= 8) ? 1 : 0;
+    const tier8Prog = (tier >= 8 && prevTier < 8) ? animProgress : showTier8;
+    if (tier8Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier8Prog;
+        // Slide up from ground
+        const yOffset = (1 - tier8Prog) * 40;
+        ctx.translate(60, yOffset);
+        
+        ctx.fillStyle = '#333';
+        ctx.beginPath();
+        ctx.moveTo(10, 0);
+        ctx.lineTo(40, 0);
+        ctx.lineTo(45, -40);
+        ctx.lineTo(5, -40);
+        ctx.fill();
+        
+        ctx.fillStyle = '#f50';
+        ctx.fillRect(10, -40, 30, 5);
+        
+        ctx.fillStyle = '#fa0';
+        const brewY = Math.sin(t*8)*2;
+        ctx.fillRect(15, -40 + brewY, 20, 2);
+        ctx.restore();
+    }
+    
+    // Tier 9: Hovering energy core on chimney
+    const showTier9 = (tier >= 9) ? 1 : 0;
+    const tier9Prog = (tier >= 9 && prevTier < 9) ? animProgress : showTier9;
+    if (tier9Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier9Prog;
+        // Drop down from sky
+        const yOffset = (1 - tier9Prog) * -50;
+        ctx.translate(30, -200 + yOffset);
+        
+        const hover = Math.sin(t*3)*5;
+        ctx.translate(0, hover);
+        
+        const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 20);
+        coreGrad.addColorStop(0, '#fff');
+        coreGrad.addColorStop(0.3, '#f90');
+        coreGrad.addColorStop(1, 'rgba(255,0,0,0)');
+        ctx.fillStyle = coreGrad;
+        
+        ctx.beginPath();
+        ctx.arc(0, 0, 25, 0, Math.PI*2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-2, -15, 4, 30);
+        ctx.fillRect(-15, -2, 30, 4);
+        
+        ctx.restore();
+    }
+}
+
+function drawGear(ctx, r, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI*2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.arc(0, 0, r/2, 0, Math.PI*2);
+    ctx.fill();
+    
+    ctx.fillStyle = color;
+    for(let i=0; i<8; i++) {
+        ctx.save();
+        ctx.rotate((i/8)*Math.PI*2);
+        ctx.fillRect(-2, -r-3, 4, 6);
+        ctx.restore();
     }
 }
 
