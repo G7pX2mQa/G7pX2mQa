@@ -32,19 +32,35 @@ function getMaterialImage(matKey) {
 
 function initStonePattern(ctx) {
     if (stonePattern) return;
-    const img = new Image();
-    img.src = 'img/stone.webp';
-    img.onload = () => {
-        if (activeCtx) {
-            stonePattern = activeCtx.createPattern(img, 'repeat');
-        } else if (ctx) {
-            stonePattern = ctx.createPattern(img, 'repeat');
-        }
-    };
-    if (img.complete) {
-        try { stonePattern = ctx.createPattern(img, 'repeat'); } catch (e) {}
+    
+    const patternCanvas = document.createElement('canvas');
+    patternCanvas.width = 64;
+    patternCanvas.height = 64;
+    const pCtx = patternCanvas.getContext('2d');
+    
+    // Base color darker to match user feedback and image analysis (#83817c)
+    pCtx.fillStyle = '#83817c';
+    pCtx.fillRect(0, 0, 64, 64);
+    
+    const imgData = pCtx.getImageData(0, 0, 64, 64);
+    const data = imgData.data;
+    for (let i = 0; i < data.length; i += 4) {
+        // Range based on std_dev of ~18
+        const noise = (Math.random() - 0.5) * 36;
+        data[i] = Math.max(0, Math.min(255, data[i] + noise));
+        data[i+1] = Math.max(0, Math.min(255, data[i+1] + noise));
+        data[i+2] = Math.max(0, Math.min(255, data[i+2] + noise));
     }
-    imageCache['stone_texture'] = img;
+    pCtx.putImageData(imgData, 0, 0);
+    
+    const targetCtx = activeCtx || ctx;
+    if (targetCtx) {
+        try {
+            stonePattern = targetCtx.createPattern(patternCanvas, 'repeat');
+        } catch (e) {
+            console.error("Failed to create stone pattern", e);
+        }
+    }
 }
 
 export function startCanvasLoop(id, canvasEl) {
@@ -544,10 +560,6 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
     // Draw base building
     ctx.fillRect(-70, -100, 140, 100);
     
-    // Darker outline or shading for depth
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-    ctx.fillRect(-70, -100, 140, 10);
-    ctx.fillRect(-70, -100, 10, 100);
     
     // Tier 2: Chimney & Smoke
     const showTier2 = (tier >= 2) ? 1 : 0;
@@ -595,7 +607,7 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
     const glowIntensity = 1 + tier5Prog * 0.5;
     
     // Inner dark space of furnace
-    ctx.fillStyle = '#100';
+    ctx.fillStyle = '#333';
     ctx.fillRect(-doorWidth/2, -doorHeight, doorWidth, doorHeight);
     
     // The fire/glow inside
