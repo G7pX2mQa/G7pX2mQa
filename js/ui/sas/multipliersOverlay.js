@@ -60,7 +60,7 @@ function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, c
   
   iconWrapper.appendChild(iconImg);
 
-  if (iconSrc && baseSrc && iconSrc !== baseSrc) {
+  if (config?.noPlusBase && iconSrc && baseSrc && iconSrc !== baseSrc) {
     const innerIcon = document.createElement('img');
     innerIcon.className = 'currency-icon';
     innerIcon.src = iconSrc;
