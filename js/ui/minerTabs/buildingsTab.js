@@ -807,7 +807,7 @@ function handlePurchase(type) {
         costType: currencyKey,
         lvlCap: Infinity,
         costAtLevel: (l) => getBuildingCost(id, BigNum.fromAny(l)),
-        _cache_scaling: {
+        scaling: {
             baseBn: BigNum.fromInt(1),
             baseLog10: 0,
             ratio: getBuildingRatio(id),
@@ -828,18 +828,19 @@ function handlePurchase(type) {
         let evalWallet = walletBn;
         if (type === 'cheap') evalWallet = walletBn.div(10);
         
-        const outcome = evaluateBulkPurchase(mockUpg, startLevelBn, evalWallet, BigNum.fromAny('Infinity'), { fastOnly: true });
+        const outcome = evaluateBulkPurchase(mockUpg, startLevelBn, evalWallet, BigNum.fromAny('Infinity'));
         
         let count = outcome.count;
         if (typeof count === 'number') count = BigNum.fromAny(count);
         
         if (count.cmp(0) > 0) {
-            levelsToAdd = levelBigNumToNumber(count);
+            levelsToAdd = count;
             costToDeduct = outcome.spent ?? BigNum.fromInt(0);
         }
     }
     
-    if (levelsToAdd > 0) {
+    const levelsToAddCmp = typeof levelsToAdd === 'number' ? levelsToAdd > 0 : levelsToAdd.cmp(0) > 0;
+    if (levelsToAddCmp) {
         if (walletHandle.sub) walletHandle.sub(costToDeduct);
         const oldLevel = getBuildingLevel(id);
         const newLevel = addBuildingLevel(id, BigNum.fromAny(levelsToAdd));
