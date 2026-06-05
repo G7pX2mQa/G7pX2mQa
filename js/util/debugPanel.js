@@ -46,7 +46,7 @@ import { setAutobuyerToggle } from '../game/automationEffects.js';
 import { AUTOBUY_WORKSHOP_LEVELS_ID, AUTOMATION_AREA_KEY, MASTER_AUTOBUY_IDS } from '../game/automationUpgrades.js';
 import { isSellUnlocked, setSellUnlocked } from '../ui/minerTabs/sellTab.js';
 import { isCombineUnlocked, setCombineUnlocked } from '../ui/minerTabs/resetTab.js';
-import { isBuildingsUnlocked, setBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
+import { isBuildingsUnlocked, setBuildingsUnlocked, getBuildingLevel, setBuildingLevel, BUILDING_NAMES, BUILDING_IDS, isBuildingUnlocked, setBuildingUnlocked as setBuildingUnlockedById } from '../ui/minerTabs/buildingsTab.js';
 import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
 import { getLabLevel, setLabLevel, getLabLevelKey, getRpMultBase } from '../ui/merchantTabs/labTab.js';
 import { 
@@ -404,6 +404,11 @@ function setupLiveBindingListeners() {
     window.addEventListener('flow:change', flowHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('flow:change', flowHandler));
 }
+
+
+
+
+
 
 const XP_KEY_PREFIX = 'ccc:xp';
 const XP_KEYS = {
@@ -4249,6 +4254,79 @@ function buildFlowDebug(container) {
     });
 }
 
+
+function buildBuildingsDebug(container) {
+    const slot = getActiveSlot();
+    if (slot == null) {
+        const msg = document.createElement('div');
+        msg.className = 'debug-panel-empty';
+        msg.textContent = 'Select a save slot to edit buildings.';
+        container.appendChild(msg);
+        return;
+    }
+
+    BUILDING_IDS.forEach((id) => {
+        const title = BUILDING_NAMES[id] || id;
+        const levelKey = `ccc:buildingLevel:${id}:${slot}`;
+        
+        let currentLevel = getBuildingLevel(id);
+        
+        const row = createInputRow(title, currentLevel, (value, { setValue }) => {
+            let valToApply = value;
+            if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (typeof valToApply === 'number' && valToApply >= 4.5e12) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (typeof valToApply === 'string' && Number(valToApply) >= 4.5e12) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (valToApply instanceof BigNum) {
+                valToApply = valToApply;
+            } else {
+                valToApply = BigNum.fromAny(valToApply);
+            }
+            
+            const prev = getBuildingLevel(id);
+            setBuildingLevel(id, valToApply);
+            
+            // Unlock if building's level is higher than 0
+            if (valToApply.cmp && valToApply.cmp(BigNum.fromInt(0)) > 0 && !isBuildingUnlocked(id)) {
+                setBuildingUnlockedById(id, true);
+            } else if (typeof valToApply === 'number' && valToApply > 0 && !isBuildingUnlocked(id)) {
+                setBuildingUnlockedById(id, true);
+            }
+            
+            // Check tier regress
+            import('../misc/buildingVisuals.js').then(module => {
+                module.checkTierUp(id, prev, valToApply);
+            });
+            
+            document.dispatchEvent(new CustomEvent('ccc:buildings:changed'));
+            
+            const latest = getBuildingLevel(id);
+            setValue(latest);
+            
+            if (!bigNumEquals(prev, latest)) {
+                flagDebugUsage();
+                logAction(`Modified Building ${title} Level (Underwater Cavern) ${formatNumber(prev)} → ${formatNumber(latest)}`);
+            }
+        }, {
+            storageKey: levelKey
+        });
+        
+        registerLiveBinding({
+            type: 'building-level',
+            slot,
+            id: id,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                row.setValue(getBuildingLevel(id));
+            }
+        });
+        
+        container.appendChild(row.row);
+    });
+}
+
 function buildAreaCalculators(container) {
     const calculators = [
         {
@@ -4538,7 +4616,17 @@ function buildAreasContent(content) {
             if (waterwheelsSection) {
                 areaContent.appendChild(waterwheelsSection);
             }
-            if (calculators) areaContent.appendChild(calculators);
+            
+            let buildingsSection = null;
+            if (area.key === AREA_KEYS.UNDERWATER_CAVERN) {
+                buildingsSection = createSubsection('Buildings', (sub) => {
+                    buildBuildingsDebug(sub);
+                });
+            }
+            if (buildingsSection) {
+                areaContent.appendChild(buildingsSection);
+            }
+if (calculators) areaContent.appendChild(calculators);
         });
         areaContainer.classList.add('debug-panel-area');
 
