@@ -927,5 +927,5 @@ function handlePurchase(type) {
 window.renderBuildingsGrid = renderBuildingsGrid;
 window.getAffordableBuildingLevels = getAffordableBuildingLevels;
 window.setBuildingUnlocked = setBuildingUnlocked;
-window.setBuildingUnlockedById = setBuildingUnlockedById;
+window.setBuildingUnlockedById = setBuildingUnlocked;
 window.createBuildingCard = createBuildingCard;
