@@ -283,6 +283,76 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
       renderBuildingsGrid(grid);
     }
   });
+
+  let animationFrameId;
+  function updateLoop() {
+    if (panel.classList.contains('is-active') && isBuildingsUnlocked()) {
+      updateBuildingGridBadges(grid);
+    }
+    animationFrameId = requestAnimationFrame(updateLoop);
+  }
+  updateLoop();
+}
+
+function updateBuildingGridBadges(gridEl) {
+    if (!gridEl) return;
+    const cards = gridEl.querySelectorAll('.shop-upgrade:not(.is-locked)');
+    cards.forEach(card => {
+        const id = card.dataset.buildingId;
+        if (!id) return;
+        
+        const levelBn = getBuildingLevel(id);
+        const plusLevelBn = getAffordableBuildingLevels(id);
+        
+        let levelStr = formatNumber(levelBn);
+        let plusLevelStr = formatNumber(plusLevelBn);
+        
+        let needsTwoLines = false;
+        let plainLevelStr = String(levelStr || '').replace(/,/g, '');
+        let isInf = /∞|Infinity/i.test(plainLevelStr);
+        let numericLevel = parseFloat(plainLevelStr);
+        let over999 = Number.isFinite(numericLevel) ? numericLevel >= 1000 : (isInf || /^\d{4,}$/.test(plainLevelStr));
+        
+        let hasPlus = false;
+        if (plusLevelBn && typeof plusLevelBn.isZero === 'function') {
+             hasPlus = !plusLevelBn.isZero();
+        } else if (plusLevelBn) {
+             hasPlus = true;
+        }
+
+        if (hasPlus) {
+            needsTwoLines = over999;
+        }
+
+        let badgeHtml = '';
+        let badgePlain = '';
+
+        if (needsTwoLines) {
+            badgeHtml = `<span class="badge-lvl">${levelStr}</span><span class="badge-plus">(+${plusLevelStr})</span>`;
+        } else if (hasPlus) {
+            badgePlain = `${levelStr} (+${plusLevelStr})`;
+        } else {
+            badgePlain = levelStr;
+        }
+        
+        let badge = card.querySelector('.level-badge');
+        if (!badge) {
+            badge = document.createElement('div');
+            badge.className = 'level-badge';
+            const tile = card.querySelector('.shop-tile');
+            if (tile) tile.appendChild(badge);
+        }
+        
+        badge.className = 'level-badge'; // reset class
+        if (needsTwoLines) badge.classList.add('two-line');
+        if (hasPlus) badge.classList.add('can-buy');
+        
+        if (badgeHtml) {
+            if (badge.innerHTML !== badgeHtml) badge.innerHTML = badgeHtml;
+        } else {
+            if (badge.textContent !== badgePlain) badge.textContent = badgePlain;
+        }
+    });
 }
 
 export function updateBuildingsPanelVisibility(minerSheetEl) {
