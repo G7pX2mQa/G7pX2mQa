@@ -101,10 +101,10 @@
 
 /* Scalable Level Badge for Buildings */
 .buildings-tab .shop-tile .level-badge {
-  font-size: 15cqw;
-  min-width: 28cqw;
-  height: 28cqw;
-  padding: 0 8cqw;
+  font-size: 12cqw;
+  min-width: 22cqw;
+  height: 22cqw;
+  padding: 0 6cqw;
   bottom: 8cqw;
-  border-radius: 14cqw;
+  border-radius: 11cqw;
 }
