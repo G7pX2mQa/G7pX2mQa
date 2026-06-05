@@ -36,7 +36,7 @@ function ensureFpsWakeupEl() {
             zIndex: '999999',
             background: '#000',
             transform: 'translateZ(0)',
-            willChange: 'transform'
+            willChange: 'transform, opacity'
         });
         document.body.appendChild(fpsWakeupEl);
     }
@@ -51,6 +51,7 @@ function loop(timestamp) {
   if (fpsWakeupEl && !paused) {
       fpsWakeupRot = (fpsWakeupRot + 1) % 360;
       fpsWakeupEl.style.transform = `rotate(${fpsWakeupRot}deg)`;
+      fpsWakeupEl.style.opacity = fpsWakeupRot % 2 === 0 ? '0.05' : '0.06';
   }
 
   if (paused) {
