@@ -30,6 +30,7 @@ function getMaterialImage(matKey) {
 
 export function startCanvasLoop(id, canvasEl) {
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    window.currentCavernLayout = null;
     activeCanvas = canvasEl;
     activeCtx = canvasEl.getContext('2d');
     currentBuildingId = id;
@@ -151,38 +152,70 @@ function draw(ctx, width, height, t) {
 }
 
 function drawCavern(ctx, w, h, t) {
+    if (!window.currentCavernLayout) {
+        const numGems = 20 + Math.floor(Math.random() * 11);
+        const gems = [];
+        for (let i = 0; i < numGems; i++) {
+            gems.push({
+                xFrac: Math.random(),
+                yFrac: Math.random(),
+                gemType: Math.floor(Math.random() * 20) // 20 cached gemstone combinations
+            });
+        }
+        
+        const numStalactites = 8 + Math.floor(Math.random() * 8);
+        const stalactites = [];
+        for (let i = 0; i < numStalactites; i++) {
+            stalactites.push({
+                xFrac: Math.random(),
+                length: 50 + Math.random() * 100,
+                width: 20 + Math.random() * 40,
+                dropPhase: Math.random() * Math.PI * 2,
+                dropSpeed: 0.5 + Math.random() * 1.5
+            });
+        }
+        
+        window.currentCavernLayout = { gems, stalactites };
+    }
+
     const grad = ctx.createLinearGradient(0, 0, 0, h);
-    const r = Math.floor(Math.sin(t * 0.5) * 10 + 10);
-    const g = Math.floor(Math.sin(t * 0.7) * 20 + 30);
-    const b = Math.floor(Math.sin(t * 0.3) * 30 + 60);
-    
-    grad.addColorStop(0, `rgb(${r}, ${g}, ${b})`);
-    grad.addColorStop(1, '#000810');
+    grad.addColorStop(0, '#111318');
+    grad.addColorStop(1, '#05070a');
     
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
     
-    ctx.fillStyle = 'rgba(5, 10, 20, 0.5)';
-    ctx.beginPath();
-    ctx.moveTo(0, h * 0.8);
-    ctx.lineTo(w * 0.2, h * 0.6);
-    ctx.lineTo(w * 0.4, h * 0.7);
-    ctx.lineTo(w * 0.7, h * 0.4);
-    ctx.lineTo(w, h * 0.6);
-    ctx.lineTo(w, h);
-    ctx.lineTo(0, h);
-    ctx.fill();
+    ctx.fillStyle = '#0a0b0e';
+    for (const st of window.currentCavernLayout.stalactites) {
+        const sx = st.xFrac * w;
+        ctx.beginPath();
+        ctx.moveTo(sx - st.width / 2, 0);
+        ctx.lineTo(sx + st.width / 2, 0);
+        ctx.lineTo(sx + (Math.sin(st.dropPhase) * 10), st.length); // slightly jagged tip but consistent
+        ctx.fill();
+        
+        // draw water droplet
+        const dropT = (t * st.dropSpeed + st.dropPhase) % 3; // 3 seconds cycle
+        if (dropT < 1) { // Falling phase
+            const dropY = st.length + dropT * (h - st.length);
+            ctx.fillStyle = 'rgba(100, 200, 255, 0.4)';
+            ctx.beginPath();
+            ctx.arc(sx, dropY, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#0a0b0e'; // restore color for next stalactite
+        }
+    }
     
     const floorH = 260;
 
     // Draw flat floor layers
-    ctx.fillStyle = "rgb(18, 12, 10)";
+    ctx.fillStyle = "rgb(42, 30, 24)";
     ctx.fillRect(0, h - floorH, w, floorH);
 
     ctx.fillStyle = "rgb(28, 20, 16)";
     ctx.fillRect(0, h - floorH * 0.8, w, floorH * 0.8);
 
-    ctx.fillStyle = "rgb(42, 30, 24)";
+    ctx.fillStyle = "rgb(18, 12, 10)";
     ctx.fillRect(0, h - floorH * 0.6, w, floorH * 0.6);
     
     // generate and draw clusters identically to sellTab.js
@@ -255,34 +288,14 @@ function drawCavern(ctx, w, h, t) {
         }
     }
     
-    // 10 on left half, 10 on right half
-    for (let i = 0; i < 20; i++) {
-        // Pseudo-random placement based on index
-        let isLeft = i < 10;
-        let xFrac = (Math.sin(i * 12.9898) * 43758.5453) % 1;
-        xFrac = Math.abs(xFrac);
+    for (const gem of window.currentCavernLayout.gems) {
+        let cx = gem.xFrac * w;
+        let cy = h - floorH * 0.7 + (floorH * 0.6) * gem.yFrac;
         
-        let cx = isLeft ? xFrac * (w / 2) : (w / 2) + xFrac * (w / 2);
-        
-        // Depth distribution
-        let yFrac = (Math.cos(i * 78.233) * 43758.5453) % 1;
-        yFrac = Math.abs(yFrac);
-        let cy = h - floorH * 0.7 + (floorH * 0.6) * yFrac;
-        
-        const cachedImage = window.cachedGemstones[i];
+        const cachedImage = window.cachedGemstones[gem.gemType];
         if (cachedImage) {
             ctx.drawImage(cachedImage, cx - 20, cy - 20);
         }
-    }
-
-    ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-    for(let i = 0; i < 20; i++) {
-        let bx = ((i * 37 + t * 20) % w);
-        let by = h - ((i * 53 + t * 50) % h);
-        let radius = (i % 5) + 2;
-        ctx.beginPath();
-        ctx.arc(bx, by, radius, 0, Math.PI * 2);
-        ctx.fill();
     }
 }
 
