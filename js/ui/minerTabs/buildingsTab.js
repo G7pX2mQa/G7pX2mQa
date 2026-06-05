@@ -387,7 +387,7 @@ function closeMysteriousBuildingOverlay() {
 
 const BUILDING_LEVEL_KEY_BASE = 'ccc:buildingLevel';
 
-const BUILDING_IDS = [
+export const BUILDING_IDS = [
     'core', 'crystal', 'stone', 'copper', 'iron', 'pure_gold', 'diamond', 
     'emerald', 'ruby', 'sapphire', 'unobtainium', 'prismatium'
 ];
@@ -487,7 +487,7 @@ export function getBuildingBonus(id, levelBn) {
 let overlayEl = null;
 let currentBuildingId = null;
 
-const BUILDING_NAMES = {
+export const BUILDING_NAMES = {
     core: 'Reactor', crystal: 'Obelisk', stone: 'Foundry', copper: 'Charger', iron: 'Refinery',
     pure_gold: 'Vault', diamond: 'Oil Rig', emerald: 'Greenhouse', ruby: 'Radiator',
     sapphire: 'Centrifuge', unobtainium: 'Beacon', prismatium: 'Singularity Generator'
@@ -748,10 +748,10 @@ function updateOverlayUi() {
         `${BUILDING_BONUS_TEXTS[id] || 'Bonus'}: ${formatMultForUi(currentBonus)}x &rarr; ${formatMultForUi(nextBonus)}x`;
         
     document.getElementById('building-detail-cost-row').innerHTML = 
-        `Cost: ${formatNumber(costBn)} ${imgStr} ${matName}`;
+        `Cost: ${imgStr} ${formatNumber(costBn)} ${matName}`;
         
     document.getElementById('building-detail-wallet-row').innerHTML = 
-        `You have: ${formatNumber(walletBn)} ${imgStr} ${matName}`;
+        `You have: ${imgStr} ${formatNumber(walletBn)} ${matName}`;
         
     const btnBuy = document.getElementById('building-btn-buy');
     btnBuy.disabled = walletBn.cmp(costBn) < 0;
