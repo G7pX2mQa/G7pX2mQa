@@ -58,7 +58,7 @@ export function setBuildingsUnlocked(value, slot = getActiveSlot()) {
   }
 }
 
-function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousText, level) {
+function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousText, level, plusLevel) {
     const btn = document.createElement('button');
     btn.className = 'shop-upgrade';
     if (isLocked) {
@@ -94,7 +94,34 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
     if (!isLocked && level !== undefined) {
         const badge = document.createElement('div');
         badge.className = 'level-badge';
-        badge.textContent = level;
+        
+        let needsTwoLines = false;
+        let plainLevelStr = String(level || '').replace(/,/g, '');
+        let isInf = /∞|Infinity/i.test(plainLevelStr);
+        let numericLevel = parseFloat(plainLevelStr);
+        let over999 = Number.isFinite(numericLevel) ? numericLevel >= 1000 : (isInf || /^\d{4,}$/.test(plainLevelStr));
+        
+        let hasPlus = false;
+        if (plusLevel && typeof plusLevel.isZero === 'function') {
+             hasPlus = !plusLevel.isZero();
+        } else if (plusLevel) {
+             hasPlus = true;
+        }
+
+        if (hasPlus) {
+            badge.classList.add('can-buy');
+            needsTwoLines = over999;
+        }
+        
+        if (needsTwoLines) {
+            badge.classList.add('two-line');
+            badge.innerHTML = `<span class="badge-lvl">${level}</span><span class="badge-plus">(+${formatNumber(plusLevel)})</span>`;
+        } else if (hasPlus) {
+            badge.textContent = `${level} (+${formatNumber(plusLevel)})`;
+        } else {
+            badge.textContent = level;
+        }
+        
         tile.appendChild(badge);
     }
 
@@ -103,7 +130,7 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
     return { btn, baseImg, iconImg };
 }
 
-function renderBuildingsGrid(gridEl) {
+export function renderBuildingsGrid(gridEl) {
     gridEl.innerHTML = '';
 
     let highestDepth = 0;
@@ -123,7 +150,8 @@ function renderBuildingsGrid(gridEl) {
         baseSrc: 'img/currencies/core/core_plus_base.webp',
         isLocked: false,
         mysteriousText: '',
-        level: formatNumber(getBuildingLevel("core"))
+        level: formatNumber(getBuildingLevel("core")),
+        plusLevel: getAffordableBuildingLevels("core")
     });
 
     // 2. Crystal Building
@@ -135,7 +163,8 @@ function renderBuildingsGrid(gridEl) {
         baseSrc: 'img/currencies/crystal/crystal_plus_base.webp',
         isLocked: crystalLocked,
         mysteriousText: 'Perform the ??? reset to reveal this Building',
-        level: formatNumber(getBuildingLevel("crystal"))
+        level: formatNumber(getBuildingLevel("crystal")),
+        plusLevel: getAffordableBuildingLevels("crystal")
     });
 
     // 3-12. Material Buildings (Stone to Prismatium)
@@ -161,12 +190,13 @@ function renderBuildingsGrid(gridEl) {
             baseSrc: baseIconStr,
             isLocked: isLocked,
             mysteriousText: `Reach Depth: ${mat.start}m to reveal this Building`,
-            level: formatNumber(getBuildingLevel(mat.name))
+            level: formatNumber(getBuildingLevel(mat.name)),
+            plusLevel: getAffordableBuildingLevels(mat.name)
         });
     }
 
     buildings.forEach(b => {
-        const card = createBuildingCard(b.id, b.title, b.iconSrc, b.baseSrc, b.isLocked, b.mysteriousText, b.level);
+        const card = createBuildingCard(b.id, b.title, b.iconSrc, b.baseSrc, b.isLocked, b.mysteriousText, b.level, b.plusLevel);
         
         if (b.isLocked) {
             card.btn.title = 'Hidden Building';
@@ -503,6 +533,38 @@ export const BUILDING_NAMES = {
     sapphire: 'Centrifuge', unobtainium: 'Beacon', prismatium: 'Singularity Generator'
 };
 
+function getAffordableBuildingLevels(id) {
+    if (typeof window === 'undefined' || !window.bank) return BigNum.fromInt(0);
+    const currencyKey = BUILDING_CURRENCY_KEYS[id];
+    if (!currencyKey) return BigNum.fromInt(0);
+    const walletHandle = window.bank[currencyKey];
+    if (!walletHandle) return BigNum.fromInt(0);
+    
+    let walletBn = walletHandle.value instanceof BigNum ? walletHandle.value : BigNum.fromAny(walletHandle.value ?? 0);
+    if (walletBn.isZero?.()) return BigNum.fromInt(0);
+    
+    let startLevelBn = getBuildingLevel(id);
+    
+    const mockUpg = {
+        costType: currencyKey,
+        lvlCap: Infinity,
+        costAtLevel: (l) => getBuildingCost(id, BigNum.fromAny(l)),
+        scaling: {
+            baseBn: BigNum.fromInt(1),
+            baseLog10: 0,
+            ratio: getBuildingRatio(id),
+            ratioLn: Math.log(getBuildingRatio(id)),
+            ratioLog10: Math.log10(getBuildingRatio(id)),
+            ratioMinus1: getBuildingRatio(id) - 1
+        }
+    };
+    
+    const outcome = evaluateBulkPurchase(mockUpg, startLevelBn, walletBn, BigNum.fromAny('Infinity'));
+    let count = outcome.count;
+    if (typeof count === 'number') count = BigNum.fromAny(count);
+    return count || BigNum.fromInt(0);
+}
+
 const BUILDING_BONUS_TEXTS = {
     core: "Next level's DP bonus", crystal: "Next level's Coin bonus", stone: "Next level's Scrap bonus",
     copper: "Next level's Stone value bonus", iron: "Next level's Copper value bonus",
@@ -795,6 +857,7 @@ function handlePurchase(type) {
     // We construct a mock "upg" object to feed into evaluateBulkPurchase
     const upgMock = {
         lvlCap: Infinity,
+        upgType: 'HM', // Give it HM type so evaluateBulkPurchase triggers HM exponential softcap logic
         costAtLevel: (lvl) => getBuildingCost(id, BigNum.fromAny(lvl)),
         // Provide the scaling object directly so fast path works
         scalingRatio: getBuildingRatio(id),
@@ -860,3 +923,9 @@ function handlePurchase(type) {
         if (gridCardBadge) gridCardBadge.textContent = formatNumber(newLevel);
     }
 }
+
+window.renderBuildingsGrid = renderBuildingsGrid;
+window.getAffordableBuildingLevels = getAffordableBuildingLevels;
+window.setBuildingUnlocked = setBuildingUnlocked;
+window.setBuildingUnlockedById = setBuildingUnlockedById;
+window.createBuildingCard = createBuildingCard;
