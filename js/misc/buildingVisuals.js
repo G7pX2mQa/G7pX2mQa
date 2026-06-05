@@ -178,8 +178,25 @@ function drawCavern(ctx, w, h, t) {
                 rightPath.push((Math.random() - 0.5) * 2);
             }
 
+            let xFrac = Math.random();
+            let attempts = 0;
+            let valid = false;
+            while (attempts < 50) {
+                let tooClose = false;
+                for (const st of stalactites) {
+                    if (Math.abs(st.xFrac - xFrac) < 0.06) {
+                        tooClose = true;
+                        break;
+                    }
+                }
+                if (!tooClose) { valid = true; break; }
+                xFrac = Math.random();
+                attempts++;
+            }
+            if (!valid) continue;
+
             stalactites.push({
-                xFrac: Math.random(),
+                xFrac: xFrac,
                 length: length,
                 width: width,
                 dropPhase: Math.random() * Math.PI * 2,
@@ -213,14 +230,14 @@ function drawCavern(ctx, w, h, t) {
     }
 
     const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, '#4a3324');
-    grad.addColorStop(1, '#2c1c11');
+    grad.addColorStop(0, '#2e1c11');
+    grad.addColorStop(1, '#1a0d05');
     
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
     
     // Draw cracky crumbly background details
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
     ctx.lineWidth = 3;
     if (window.currentCavernLayout.cracks) {
         for (const crack of window.currentCavernLayout.cracks) {
@@ -390,6 +407,17 @@ function drawBuilding(ctx, w, h, t, id, tier) {
     
     // Scale the topY
     let finalHighestY = floorY + (bounce + topY) * scale;
+
+    ctx.save();
+    const glowRadius = Math.abs(topY) * 0.8 + 40;
+    const glowGrad = ctx.createRadialGradient(0, topY / 2, 0, 0, topY / 2, glowRadius);
+    glowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+    glowGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = glowGrad;
+    ctx.beginPath();
+    ctx.arc(0, topY / 2, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
 
     if (id === 'core') drawReactor(ctx, t, tier);
     else if (id === 'crystal') drawObelisk(ctx, t, tier);
