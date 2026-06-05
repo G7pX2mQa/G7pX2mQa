@@ -125,7 +125,10 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
         if (newNum >= TIERS[i]) newTier = i + 1;
     }
     
-    if (newTier > oldTier) {
+    if (newTier < oldTier) {
+        previousTier = newTier;
+        tierUpAnimTime = 0;
+    } else if (newTier > oldTier) {
         previousTier = oldTier;
         tierUpAnimTime = 5.0; 
         playAudio('sounds/building_tier_up.ogg');
