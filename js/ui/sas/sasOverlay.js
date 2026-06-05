@@ -10,6 +10,7 @@ import { openAchievementsOverlay } from './achievementsOverlay.js';
 import { openDiscordOverlay } from './discordOverlay.js';
 import { openShortcutsOverlay } from './shortcutsOverlay.js';
 import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
+import { hasMetMerchant, MERCHANT_MET_EVENT } from '../merchantTabs/dlgTab.js';
 import { getXpState } from '../../game/xpSystem.js';
 import { IS_MOBILE } from '../../main.js';
 import { disableGlobalOverlayEsc } from '../../util/globalOverlayEsc.js';
@@ -183,9 +184,15 @@ function populateSasButtons(overlayEl) {
   shortcutsBtn.textContent = "Shortcuts";
   shortcutsBtn.addEventListener("click", () => { openShortcutsOverlay(); });
   
-  if (IS_MOBILE) {
+  if (IS_MOBILE || !hasMetMerchant()) {
     shortcutsBtn.style.display = 'none';
   }
+
+  window.addEventListener(MERCHANT_MET_EVENT, () => {
+    if (!IS_MOBILE) {
+      shortcutsBtn.style.display = '';
+    }
+  });
 
   grid.appendChild(shortcutsBtn);
 
