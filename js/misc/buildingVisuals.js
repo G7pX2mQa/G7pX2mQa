@@ -86,9 +86,12 @@ export function startCanvasLoop(id, canvasEl) {
     activeCanvas.height = rect.height;
     
     // Using import for ES modules instead of require for local scope
-    import('./buildingsTab.js').then(module => {
+    import('../ui/minerTabs/buildingsTab.js').then(module => {
         try {
             currentLevelNum = levelBigNumToNumber(module.getBuildingLevel(id));
+            let currentTier = getTier();
+            previousTier = currentTier;
+            tierUpAnimTime = 0;
         } catch {
             currentLevelNum = 1;
         }
