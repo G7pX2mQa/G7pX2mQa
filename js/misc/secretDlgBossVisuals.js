@@ -2355,6 +2355,9 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                                 playBombExplosion();
                             }
 							break;
+                        } else {
+                            // Player is invincible, so they safely pass through the column
+                            col.wentThroughGap = true;
                         }
                     }
                     activeBombColumns.splice(i, 1);
