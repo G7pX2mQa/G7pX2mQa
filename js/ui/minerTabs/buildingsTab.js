@@ -609,6 +609,76 @@ export const BUILDING_NAMES = {
     sapphire: 'Centrifuge', unobtainium: 'Beacon', prismatium: 'Singularity Generator'
 };
 
+
+function getBuildingTotalCostLog10(ratio, startLevel, count) {
+    if (count <= 0) return Number.NEGATIVE_INFINITY;
+
+    const lastLevel = startLevel + count - 1;
+    
+    const softcapStart = 1_000_000_000;
+    const rate = 2.0665e-12;
+    
+    let lastCostLog10;
+    if (lastLevel > softcapStart) {
+        const delta = lastLevel - softcapStart;
+        const startRatioLog10 = Math.log10(ratio);
+        const ratioLog10 = startRatioLog10 * Math.exp(rate * delta);
+        lastCostLog10 = lastLevel * ratioLog10; 
+    } else {
+        lastCostLog10 = lastLevel * Math.log10(ratio);
+    }
+    
+    const delta = Math.max(0, lastLevel - softcapStart);
+    const localRatioLog10 = Math.log10(ratio) * Math.exp(rate * delta);
+    const LN10 = Math.log(10);
+    const localRatioLn = localRatioLog10 * LN10;
+    
+    const negLocalRatioLn = -localRatioLn;
+    const denom = -Math.log1p(-Math.exp(negLocalRatioLn));
+    
+    return lastCostLog10 + (denom / LN10);
+}
+
+function evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, maxLevels, ratio) {
+    const startLevelNum = levelBigNumToNumber(startLevelBn);
+    const walletLog10 = approxLog10BigNum(walletBn);
+    let lo = 0;
+    let hi = typeof maxLevels === 'number' && isFinite(maxLevels) ? maxLevels : 1e12;
+    let best = 0;
+    
+    if (getBuildingCostLog10AtLevel(id, startLevelBn) > walletLog10) {
+        return { count: BigNum.fromInt(0), spent: BigNum.fromInt(0) };
+    }
+    
+    if (hi === 1e12) {
+        hi = 1;
+        while (getBuildingTotalCostLog10(ratio, startLevelNum, hi) <= walletLog10) {
+            lo = hi;
+            hi *= 2;
+            if (hi >= 1e15) {
+                hi = 1e15;
+                break;
+            }
+        }
+    }
+
+    while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        const costLog10 = getBuildingTotalCostLog10(ratio, startLevelNum, mid);
+        if (costLog10 <= walletLog10) {
+            best = mid;
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    
+    return {
+        count: BigNum.fromAny(best),
+        spent: bigNumFromLog10(getBuildingTotalCostLog10(ratio, startLevelNum, best))
+    };
+}
+
 function getAffordableBuildingLevels(id) {
     if (typeof window === 'undefined' || !window.bank) return BigNum.fromInt(0);
     const currencyKey = BUILDING_CURRENCY_KEYS[id];
@@ -621,21 +691,8 @@ function getAffordableBuildingLevels(id) {
     
     let startLevelBn = getBuildingLevel(id);
     
-    const mockUpg = {
-        costType: currencyKey,
-        lvlCap: Infinity,
-        costAtLevel: (l) => getBuildingCost(id, BigNum.fromAny(l)),
-        scaling: {
-            baseBn: BigNum.fromInt(1),
-            baseLog10: 0,
-            ratio: getBuildingRatio(id),
-            ratioLn: Math.log(getBuildingRatio(id)),
-            ratioLog10: Math.log10(getBuildingRatio(id)),
-            ratioMinus1: getBuildingRatio(id) - 1
-        }
-    };
-    
-    const outcome = evaluateBulkPurchase(mockUpg, startLevelBn, walletBn, BigNum.fromAny('Infinity'));
+    const ratio = getBuildingRatio(id);
+    const outcome = evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, 1e12, ratio);
     let count = outcome.count;
     if (typeof count === 'number') count = BigNum.fromAny(count);
     return count || BigNum.fromInt(0);
@@ -930,32 +987,6 @@ function handlePurchase(type) {
     
     const maxLevels = type === 'buy' ? 1 : BigNum.fromAny('Infinity');
     
-    // We construct a mock "upg" object to feed into evaluateBulkPurchase
-    const upgMock = {
-        lvlCap: Infinity,
-        upgType: 'HM', // Give it HM type so evaluateBulkPurchase triggers HM exponential softcap logic
-        costAtLevel: (lvl) => getBuildingCost(id, BigNum.fromAny(lvl)),
-        // Provide the scaling object directly so fast path works
-        scalingRatio: getBuildingRatio(id),
-        scalingBaseLog10: 0,
-        scalingRatioLog10: Math.log10(getBuildingRatio(id))
-    };
-    
-    // Create a minimal upg object:
-    const mockUpg = {
-        costType: currencyKey,
-        lvlCap: Infinity,
-        costAtLevel: (l) => getBuildingCost(id, BigNum.fromAny(l)),
-        scaling: {
-            baseBn: BigNum.fromInt(1),
-            baseLog10: 0,
-            ratio: getBuildingRatio(id),
-            ratioLn: Math.log(getBuildingRatio(id)),
-            ratioLog10: Math.log10(getBuildingRatio(id)),
-            ratioMinus1: getBuildingRatio(id) - 1
-        }
-    };
-    
     if (type === 'buy') {
         const costBn = getBuildingCost(id, startLevelBn);
         if (walletBn.cmp(costBn) >= 0) {
@@ -967,7 +998,8 @@ function handlePurchase(type) {
         let evalWallet = walletBn;
         if (type === 'cheap') evalWallet = walletBn.div(10);
         
-        const outcome = evaluateBulkPurchase(mockUpg, startLevelBn, evalWallet, BigNum.fromAny('Infinity'));
+        const ratio = getBuildingRatio(id);
+        const outcome = evaluateBuildingBulkPurchase(id, startLevelBn, evalWallet, 1e12, ratio);
         
         let count = outcome.count;
         if (typeof count === 'number') count = BigNum.fromAny(count);
