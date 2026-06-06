@@ -95,12 +95,6 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
         const badge = document.createElement('div');
         badge.className = 'level-badge';
         
-        let needsTwoLines = false;
-        let plainLevelStr = String(level || '').replace(/,/g, '');
-        let isInf = /∞|Infinity/i.test(plainLevelStr);
-        let numericLevel = parseFloat(plainLevelStr);
-        let over999 = Number.isFinite(numericLevel) ? numericLevel >= 1000 : (isInf || /^\d{4,}$/.test(plainLevelStr));
-        
         let hasPlus = false;
         if (plusLevel && typeof plusLevel.isZero === 'function') {
              hasPlus = !plusLevel.isZero();
@@ -108,8 +102,14 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
              hasPlus = true;
         }
 
+        let needsTwoLines = false;
         if (hasPlus) {
             badge.classList.add('can-buy');
+            let plusLevelStr = formatNumber(plusLevel);
+            let plainPlusStr = String(plusLevelStr || '').replace(/,/g, '');
+            let isInf = /∞|Infinity/i.test(plainPlusStr);
+            let numericPlus = parseFloat(plainPlusStr);
+            let over999 = Number.isFinite(numericPlus) ? numericPlus >= 1000 : (isInf || /^\d{4,}$/.test(plainPlusStr));
             needsTwoLines = over999;
         }
         
@@ -307,12 +307,6 @@ function updateBuildingGridBadges(gridEl) {
         let levelStr = formatNumber(levelBn);
         let plusLevelStr = formatNumber(plusLevelBn);
         
-        let needsTwoLines = false;
-        let plainLevelStr = String(levelStr || '').replace(/,/g, '');
-        let isInf = /∞|Infinity/i.test(plainLevelStr);
-        let numericLevel = parseFloat(plainLevelStr);
-        let over999 = Number.isFinite(numericLevel) ? numericLevel >= 1000 : (isInf || /^\d{4,}$/.test(plainLevelStr));
-        
         let hasPlus = false;
         if (plusLevelBn && typeof plusLevelBn.isZero === 'function') {
              hasPlus = !plusLevelBn.isZero();
@@ -320,7 +314,12 @@ function updateBuildingGridBadges(gridEl) {
              hasPlus = true;
         }
 
+        let needsTwoLines = false;
         if (hasPlus) {
+            let plainPlusStr = String(plusLevelStr || '').replace(/,/g, '');
+            let isInf = /∞|Infinity/i.test(plainPlusStr);
+            let numericPlus = parseFloat(plainPlusStr);
+            let over999 = Number.isFinite(numericPlus) ? numericPlus >= 1000 : (isInf || /^\d{4,}$/.test(plainPlusStr));
             needsTwoLines = over999;
         }
 
@@ -554,7 +553,7 @@ export function getBuildingCostLog10AtLevel(id, levelBn) {
 
 export function getBuildingCost(id, levelBn) {
     const costLog10 = getBuildingCostLog10AtLevel(id, levelBn);
-    return bigNumFromLog10(costLog10);
+    return bigNumFromLog10(costLog10).floorToInteger();
 }
 
 let _precalcCeil100 = null;
