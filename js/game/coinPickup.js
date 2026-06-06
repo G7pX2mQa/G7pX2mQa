@@ -7,7 +7,7 @@ import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { unlockShop } from '../ui/hudButtons.js';
 import { addXp, isXpSystemUnlocked } from './xpSystem.js';
-import { IS_MOBILE, coinsCollected, currentArea, AREAS } from '../main.js';
+import { IS_MOBILE, coinsCollected, globalCoinsCollected, currentArea, AREAS } from '../main.js';
 import {
   addMutationPower,
   isMutationUnlocked,
@@ -726,6 +726,13 @@ export function initCoinPickup({
                 localStorage.setItem(`ccc:coinsCollected:${slot}`, String(window.coinsCollected));
             } catch {}
         }
+    }
+    
+    if (typeof window !== 'undefined') {
+        window.globalCoinsCollected += collectedCount;
+        try {
+            localStorage.setItem('ccc:globalCoinsCollected', String(window.globalCoinsCollected));
+        } catch {}
     }
 
     onCoinCollected();
