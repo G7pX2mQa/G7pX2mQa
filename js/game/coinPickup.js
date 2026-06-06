@@ -457,6 +457,12 @@ export function initCoinPickup({
   };
   window.addEventListener('currency:change', onCurrencyChange);
 
+  const onSaveSlotChange = () => {
+    coinsVal = bank.coins.value;
+    scheduleHudUpdate();
+  };
+  window.addEventListener('saveSlot:change', onSaveSlotChange);
+
   const onCoinMultiplierChange = (event) => {
     if (!event?.detail || event.detail.key !== 'coins') return;
     try {
@@ -820,6 +826,7 @@ export function initCoinPickup({
       window.removeEventListener('beforeunload', flushPendingGains);
       window.removeEventListener('currency:multiplier', onCoinMultiplierChange);
       window.removeEventListener('currency:change', onCurrencyChange);
+      window.removeEventListener('saveSlot:change', onSaveSlotChange);
 
     }
     if (typeof mutationUnsub === 'function') {
