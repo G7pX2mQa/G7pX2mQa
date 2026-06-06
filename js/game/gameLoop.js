@@ -20,24 +20,25 @@ const RUNTIME_CHECK_INTERVAL_MS = 2000;
 let lastFrameTime = 0;
 
 let fpsWakeupEl = null;
+let fpsWakeupCtx = null;
 let fpsWakeupRot = 0;
 function ensureFpsWakeupEl() {
     if (typeof document === 'undefined') return;
     if (!fpsWakeupEl) {
-        fpsWakeupEl = document.createElement('div');
+        fpsWakeupEl = document.createElement('canvas');
+        fpsWakeupEl.width = 1;
+        fpsWakeupEl.height = 1;
         Object.assign(fpsWakeupEl.style, {
             position: 'fixed',
             top: '0',
             left: '0',
-            width: '2px',
-            height: '2px',
+            width: '1px',
+            height: '1px',
             pointerEvents: 'none',
-            opacity: '0.05',
-            zIndex: '999999',
-            background: '#000',
-            transform: 'translateZ(0)',
-            willChange: 'transform, opacity'
+            opacity: '0.01',
+            zIndex: '999999'
         });
+        fpsWakeupCtx = fpsWakeupEl.getContext('2d', { alpha: false, desynchronized: true });
         document.body.appendChild(fpsWakeupEl);
     }
 }
@@ -48,10 +49,10 @@ function loop(timestamp) {
   
   lastFrameTime = now;
   
-  if (fpsWakeupEl && !paused) {
-      fpsWakeupRot = (fpsWakeupRot + 1) % 360;
-      fpsWakeupEl.style.transform = `rotate(${fpsWakeupRot}deg)`;
-      fpsWakeupEl.style.opacity = fpsWakeupRot % 2 === 0 ? '0.05' : '0.06';
+  if (fpsWakeupCtx && !paused) {
+      fpsWakeupRot = (fpsWakeupRot + 1) % 2;
+      fpsWakeupCtx.fillStyle = fpsWakeupRot === 0 ? '#000' : '#001';
+      fpsWakeupCtx.fillRect(0, 0, 1, 1);
   }
 
   if (paused) {
