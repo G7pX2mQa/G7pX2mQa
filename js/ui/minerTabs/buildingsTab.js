@@ -205,7 +205,15 @@ export function renderBuildingsGrid(gridEl) {
             });
         } else {
             card.btn.title = 'Left-click: View Building • Right-click: Buy Max';
-            card.btn.addEventListener('click', () => { openBuildingDetailOverlay(b.id); });
+            card.btn.addEventListener('click', (e) => {
+                if (e.shiftKey) {
+                    handlePurchaseOuter(b.id, 'cheap');
+                } else if (e.ctrlKey) {
+                    handlePurchaseOuter(b.id, 'next');
+                } else {
+                    openBuildingDetailOverlay(b.id);
+                }
+            });
             card.btn.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 currentBuildingId = b.id;
@@ -993,13 +1001,32 @@ function handlePurchase(type) {
             costToDeduct = costBn;
             levelsToAdd = 1;
         }
-    } else if (type === 'max' || type === 'cheap') {
+    } else if (type === 'max' || type === 'cheap' || type === 'next') {
         // evaluateBulkPurchase returns { count, spent }
         let evalWallet = walletBn;
         if (type === 'cheap') evalWallet = walletBn.div(10);
         
         const ratio = getBuildingRatio(id);
-        const outcome = evaluateBuildingBulkPurchase(id, startLevelBn, evalWallet, 1e12, ratio);
+        
+        let deltaNum = 1e12;
+        if (type === 'next') {
+            const currentLevelNum = typeof startLevelBn.toNumber === 'function' ? startLevelBn.toNumber() : Number(startLevelBn.toString());
+            const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
+            let nextTarget = 10;
+            for (let t of TIERS) {
+                if (currentLevelNum < t) {
+                    nextTarget = t;
+                    break;
+                }
+            }
+            if (currentLevelNum >= 1000) {
+                 // if beyond 1000, fallback to max
+            } else {
+                 deltaNum = nextTarget - currentLevelNum;
+            }
+        }
+        
+        const outcome = evaluateBuildingBulkPurchase(id, startLevelBn, evalWallet, deltaNum, ratio);
         
         let count = outcome.count;
         if (typeof count === 'number') count = BigNum.fromAny(count);
