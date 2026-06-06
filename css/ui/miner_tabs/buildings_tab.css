@@ -107,4 +107,27 @@
   padding: 0 6cqw;
   bottom: 8cqw;
   border-radius: 11cqw;
+  white-space: nowrap;
+}
+
+.buildings-tab .shop-tile .level-badge.two-line {
+  height: auto;
+  min-height: 22cqw;
+  padding: 2cqw 6cqw;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.05;
+  white-space: normal;
+}
+
+@media (max-width: 1500px) {
+  #building-detail-overlay .upg-line {
+    font-size: clamp(14px, 3.5vw, 32px) !important;
+  }
+  #building-detail-level-text {
+    font-size: clamp(16px, 4vw, 28px) !important;
+  }
 }
