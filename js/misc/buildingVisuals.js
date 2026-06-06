@@ -133,8 +133,10 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
         tierUpAnimTime = 0;
     } else if (newTier > oldTier) {
         previousTier = oldTier;
-        tierUpAnimTime = 5.0; 
-        playAudio('sounds/building_tier_up.ogg');
+        if (newTier > 1) {
+            tierUpAnimTime = 5.0; 
+            playAudio('sounds/building_tier_up.ogg');
+        }
     }
 }
 
@@ -497,6 +499,12 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
         levelText.style.top = (finalHighestY - 180) + 'px'; // Magic number offset to fix clipping
         levelText.style.left = '0';
         levelText.style.width = '100%';
+        
+        let shakeAlphaText = 0;
+        if (tierUpAnimTime > 0) {
+            shakeAlphaText = tierUpAnimTime > 2.5 ? (5.0 - tierUpAnimTime) / 2.5 : tierUpAnimTime / 2.5;
+        }
+        levelText.style.opacity = Math.max(0, 1 - shakeAlphaText);
     }
 }
 
