@@ -2087,7 +2087,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 projType = "rubyCoin";
                 rubyCoinSpawned = true;
                 window.forceRubyCoinTest = false;
-            } else if (playerLives < INITIAL_PLAYER_LIVES && Math.random() < 0.001) {
+            } else if (playerLives < INITIAL_PLAYER_LIVES && Math.random() < 0.0005) {
                 projType = "life";
             } else if (Math.random() >= bombChance) {
                 projType = "coin";
@@ -2707,7 +2707,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             };
 
             const getPosOffset = (seed, time, index) => {
-                const slowTime = time * 0.0003; // 5 times slower than 0.0015
+                const slowTime = time * 0.0003;
                 // Calm back and forth animation along the edge
                 return Math.sin(slowTime + seed) * 40 + Math.sin(slowTime * 0.7 + index) * 20;
             };
