@@ -1621,7 +1621,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
             }
         }
 
-        if (!isBossDead) checkBombColumnThresholds(timestamp);
+        if (!isBossDead && !isPlayerDead) checkBombColumnThresholds(timestamp);
 
         // Update camera position continuously
         const timeScale = (realDt / (1000 / 120)) * timeScaleMod;
