@@ -446,7 +446,7 @@ export class BigNum {
     if (intDigits >= this.p) return this.clone();   // already integral
     const drop = this.p - intDigits;                // digits to truncate
     const base = Math.pow(10, drop);
-    const newSig = (this.sig / base) * base;        // drop fractional digits
+    const newSig = Math.floor(this.sig / base) * base; // drop fractional digits
     return new BigNum(newSig, this.#expObj(), this.p);
   }
 
