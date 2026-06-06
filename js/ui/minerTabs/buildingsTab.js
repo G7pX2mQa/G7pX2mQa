@@ -277,6 +277,13 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
     }
   });
 
+  window.addEventListener('currency:change', () => {
+    // Update the building overlay if it is open
+    if (currentBuildingId) {
+        updateOverlayUi();
+    }
+  });
+
   // Listen for depth changes and re-render the grid if the tab is currently active
   window.addEventListener('dp:change', () => {
     if (panel.classList.contains('is-active') && isBuildingsUnlocked()) {
