@@ -3122,6 +3122,8 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                                 playBombExplosion();
                             }
                             break;
+                        } else {
+                            col.wentThroughGap = true;
                         }
                     }
                 }
