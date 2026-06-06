@@ -627,6 +627,10 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
   let bn;
   try { bn = BigNum.fromAny(value); }
   catch { bn = BigNum.fromInt(0); }
+  
+  if (bn && typeof bn.floorToInteger === 'function') {
+      bn = bn.floorToInteger();
+  }
 
   if ((delta != null && BigNum.fromAny(delta).cmp(0) > 0) || bn.cmp(0) > 0) {
     setCurrencyUnlocked(key, true, slot);
