@@ -164,8 +164,24 @@ let waterFrameUnsub = null;
 export let activePlaytime = 0;
 export let coinsCollected = 0;
 window.coinsCollected = coinsCollected;
+
+export let globalActivePlaytime = 0;
+try {
+  const storedGlobalPlaytime = localStorage.getItem('ccc:globalActivePlaytime');
+  globalActivePlaytime = storedGlobalPlaytime ? Number(storedGlobalPlaytime) : 0;
+} catch {}
+window.globalActivePlaytime = globalActivePlaytime;
+
+export let globalCoinsCollected = 0;
+try {
+  const storedGlobalCoins = localStorage.getItem('ccc:globalCoinsCollected');
+  globalCoinsCollected = storedGlobalCoins ? Number(storedGlobalCoins) : 0;
+} catch {}
+window.globalCoinsCollected = globalCoinsCollected;
+
 let activePlaytimeUnsub = null;
 let activePlaytimeStorageAccumulator = 0;
+let globalActivePlaytimeStorageAccumulator = 0;
 
 let unpauseNotifications = null;
 let pauseNotifications = null;
@@ -1363,10 +1379,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     activePlaytimeStorageAccumulator = 0;
+    globalActivePlaytimeStorageAccumulator = 0;
     if (typeof registerTick === 'function') {
       activePlaytimeUnsub = registerTick((dt) => {
         if (!document.hidden) {
           activePlaytimeStorageAccumulator += dt;
+          globalActivePlaytimeStorageAccumulator += dt;
+          
           if (activePlaytimeStorageAccumulator >= 1) {
             const wholeSeconds = Math.floor(activePlaytimeStorageAccumulator);
             activePlaytime += wholeSeconds;
@@ -1376,6 +1395,17 @@ document.addEventListener('DOMContentLoaded', async () => {
               localStorage.setItem(`ccc:activePlaytime:${slot}`, String(activePlaytime));
             } catch {}
             activePlaytimeStorageAccumulator -= wholeSeconds;
+          }
+          
+          if (globalActivePlaytimeStorageAccumulator >= 1) {
+            const wholeSeconds = Math.floor(globalActivePlaytimeStorageAccumulator);
+            globalActivePlaytime += wholeSeconds;
+            window.globalActivePlaytime = globalActivePlaytime;
+            
+            try {
+              localStorage.setItem('ccc:globalActivePlaytime', String(globalActivePlaytime));
+            } catch {}
+            globalActivePlaytimeStorageAccumulator -= wholeSeconds;
           }
         }
       });
