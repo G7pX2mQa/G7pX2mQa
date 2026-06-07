@@ -580,3 +580,11 @@ export function openMapOverlay(unlockedNodeId = null) {
         sheet.style.transform = 'translateY(0)';
     }
 }
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('unlock:change', () => {
+        if (isMapOverlayOpen && !window.__mapSequenceActive) {
+            refreshNodesState();
+        }
+    });
+}
