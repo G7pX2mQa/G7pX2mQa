@@ -1194,6 +1194,9 @@ function buildUI(panel) {
     const text = document.createElement('div');
     text.className = 'flow-explainer-text';
     text.innerHTML = `
+        <!--
+		Commenting out this old poem that used to be here
+		-----------------------------------------------------------------------------
         Direct your Flow to make the Great Waterwheels turn,<br>
         Within the Forgotten Channels these hidden relics yearn,<br>
         To split the surging waters is a wish the depths denied,<br>
@@ -1202,6 +1205,16 @@ function buildUI(panel) {
         As milestones unlock more links within the ancient chain,<br>
         Command the rushing waters, push the limits of the machine,<br>
         To wake the strongest multipliers that The Cove has ever seen.
+		-----------------------------------------------------------------------------
+        -->
+        Toggle the Flow States of Waterwheels to gain multipliers.<br>
+        Only one Waterwheel can actively level up at a given time.<br>
+        Choose with careful strategy which Waterwheel will flow.<br>
+        Each Waterwheel level grants a +100% boost to its focus.<br>
+        The flowing Waterwheel will passively gain FP constantly.<br>
+        The FP requirement to level up any Waterwheel is constant.<br>
+        The FP value is incredibly important for these Waterwheels.<br>
+        Unlock new Waterwheels by progressing further in the game.
     `;
 
     const minisRight = document.createElement('div');
