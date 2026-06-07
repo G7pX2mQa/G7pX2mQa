@@ -566,7 +566,8 @@ export function getBuildingCostLog10AtLevel(id, levelBn) {
         const startRatioLog10 = Math.log10(ratio);
         const MAX_LOG10 = 1.7976931348623157e+308;
         const targetRatioLog10 = MAX_LOG10 / 4000990000000;
-        const rate = Math.log(targetRatioLog10 / startRatioLog10) / (4000990000000 - softcapStart);
+        const baseStartRatioLog10 = Math.log10(1.20);
+        const rate = Math.log(targetRatioLog10 / baseStartRatioLog10) / (4000990000000 - softcapStart);
         const ratioLog10 = startRatioLog10 * Math.exp(rate * delta);
         return levelNum * ratioLog10; 
     }
@@ -635,7 +636,8 @@ function getBuildingTotalCostLog10(ratio, startLevel, count) {
     const startRatioLog10 = Math.log10(ratio);
     const MAX_LOG10 = 1.7976931348623157e+308;
     const targetRatioLog10 = MAX_LOG10 / 4000990000000;
-    const rate = Math.log(targetRatioLog10 / startRatioLog10) / (4000990000000 - softcapStart);
+    const baseStartRatioLog10 = Math.log10(1.20);
+    const rate = Math.log(targetRatioLog10 / baseStartRatioLog10) / (4000990000000 - softcapStart);
     
     let lastCostLog10;
     if (lastLevel > softcapStart) {
