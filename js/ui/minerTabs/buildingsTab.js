@@ -105,11 +105,12 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
         let needsTwoLines = false;
         if (hasPlus) {
             badge.classList.add('can-buy');
-            let plusLevelStr = formatNumber(plusLevel);
-            let plainPlusStr = String(plusLevelStr || '').replace(/,/g, '');
-            let isInf = /∞|Infinity/i.test(plainPlusStr);
-            let numericPlus = parseFloat(plainPlusStr);
-            let over999 = Number.isFinite(numericPlus) ? numericPlus >= 1000 : (isInf || /^\d{4,}$/.test(plainPlusStr));
+            let over999 = false;
+            if (plusLevel && typeof plusLevel.cmp === 'function') {
+                over999 = plusLevel.cmp(BigNum.fromInt(999)) > 0;
+            } else if (typeof plusLevel === 'number') {
+                over999 = plusLevel > 999;
+            }
             needsTwoLines = over999;
         }
         
@@ -337,12 +338,15 @@ function updateBuildingGridBadges(gridEl) {
 
         let needsTwoLines = false;
         if (hasPlus) {
-            let plainPlusStr = String(plusLevelStr || '').replace(/,/g, '');
-            let isInf = /∞|Infinity/i.test(plainPlusStr);
-            let numericPlus = parseFloat(plainPlusStr);
-            let over999 = Number.isFinite(numericPlus) ? numericPlus >= 1000 : (isInf || /^\d{4,}$/.test(plainPlusStr));
+            let over999 = false;
+            if (plusLevelBn && typeof plusLevelBn.cmp === 'function') {
+                over999 = plusLevelBn.cmp(BigNum.fromInt(999)) > 0;
+            } else if (typeof plusLevelBn === 'number') {
+                over999 = plusLevelBn > 999;
+            }
             needsTwoLines = over999;
         }
+
 
         let badgeHtml = '';
         let badgePlain = '';
@@ -1025,11 +1029,7 @@ function handlePurchase(type) {
         }
     } else if (type === 'max' || type === 'cheap' || type === 'next') {
         // evaluateBulkPurchase returns { count, spent }
-        let evalWallet = walletBn;
-        if (type === 'cheap') evalWallet = walletBn.div(10);
-        
         const ratio = getBuildingRatio(id);
-        
         let deltaNum = 1e12;
         if (type === 'next') {
             const currentLevelNum = typeof startLevelBn.toNumber === 'function' ? startLevelBn.toNumber() : Number(startLevelBn.toString());
@@ -1042,20 +1042,77 @@ function handlePurchase(type) {
                 }
             }
             if (currentLevelNum >= 1000) {
-                 // if beyond 1000, fallback to max
+                 // fallback
             } else {
                  deltaNum = nextTarget - currentLevelNum;
             }
         }
         
-        const outcome = evaluateBuildingBulkPurchase(id, startLevelBn, evalWallet, deltaNum, ratio);
-        
-        let count = outcome.count;
-        if (typeof count === 'number') count = BigNum.fromAny(count);
-        
-        if (count.cmp(0) > 0) {
-            levelsToAdd = count;
-            costToDeduct = outcome.spent ?? BigNum.fromInt(0);
+        if (type === 'cheap') {
+            const maxEval = evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, 1e12, ratio);
+            let n = maxEval.count;
+            if (typeof n !== 'number') n = n.toNumber ? n.toNumber() : Number(n.toString());
+            if (n > 0) {
+                let bestK = 0;
+                let currentSpent = maxEval.spent;
+                let currentK = n;
+                const startLevelNum = levelBigNumToNumber(startLevelBn);
+                
+                if (n < 2000) {
+                    while (currentK > 0) {
+                        const lastLvlIdx = startLevelNum + currentK - 1;
+                        const lastCostLog10 = getBuildingCostLog10AtLevel(id, BigNum.fromAny(lastLvlIdx));
+                        const lastCost = bigNumFromLog10(lastCostLog10).floorToInteger();
+                        
+                        const prevSpent = currentSpent.sub(lastCost);
+                        const prevRem = walletBn.sub(prevSpent);
+                        
+                        const threshold = prevRem.div(10);
+                        if (lastCost.cmp(threshold) <= 0) {
+                            bestK = currentK;
+                            break;
+                        }
+                        
+                        currentSpent = prevSpent;
+                        currentK--;
+                    }
+                } else {
+                    let lo = 1;
+                    let hi = n;
+                    while (lo <= hi) {
+                        const mid = Math.floor((lo + hi) / 2);
+                        const spentMidLog10 = getBuildingTotalCostLog10(ratio, startLevelNum, mid - 1);
+                        const prevSpent = spentMidLog10 === Number.NEGATIVE_INFINITY ? BigNum.fromInt(0) : bigNumFromLog10(spentMidLog10);
+                        const prevRem = walletBn.sub(prevSpent);
+                        
+                        const lastCostLog10 = getBuildingCostLog10AtLevel(id, BigNum.fromAny(startLevelNum + mid - 1));
+                        const lastCost = bigNumFromLog10(lastCostLog10).floorToInteger();
+                        
+                        const threshold = prevRem.div(10);
+                        if (lastCost.cmp(threshold) <= 0) {
+                            bestK = mid;
+                            lo = mid + 1;
+                        } else {
+                            hi = mid - 1;
+                        }
+                    }
+                }
+                
+                if (bestK > 0) {
+                    levelsToAdd = BigNum.fromAny(bestK);
+                    const finalSpentLog10 = getBuildingTotalCostLog10(ratio, startLevelNum, bestK);
+                    costToDeduct = bigNumFromLog10(finalSpentLog10);
+                }
+            }
+        } else {
+            const outcome = evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, deltaNum, ratio);
+            let count = outcome.count;
+            if (typeof count === 'number') count = BigNum.fromAny(count);
+            
+            if (count.cmp(0) > 0) {
+                levelsToAdd = count;
+                costToDeduct = outcome.spent ?? BigNum.fromInt(0);
+            }
         }
     }
     
