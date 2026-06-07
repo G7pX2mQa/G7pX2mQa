@@ -135,7 +135,7 @@ export const MERCHANT_DIALOGUES = {
       m2b: { type: 'line', say: 'I dunno.', next: 'c2b' },
       m2c: { type: 'line', say: 'Because I dunno.', next: 'c2c' },
       m2d: { type: 'line', say: 'What?',    next: 'c2c' },
-      m2e: { type: 'line', say: 'I’ve already told you, so you can increase your Coin output.', next: 'c2d' },
+      m2e: { type: 'line', say: 'So you can increase your Coin output.', next: 'c2d' },
       m2f: { type: 'line', say: 'Are you sure you don’t want free Books?', next: 'c3a' },
 	  m2g: { type: 'line', say: 'What?', next: 'c2c' },
 
