@@ -797,7 +797,7 @@ export function createSpawner(config = {}) {
 
         const now = performance.now();
         
-        for (let i = 0; i < count; i++) {
+        for (let i = count - 1; i >= 0; i--) {
             const c = activeCoins[i]; if (!c) continue;
 
             if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
@@ -860,7 +860,7 @@ export function createSpawner(config = {}) {
         const crossLimit = radiusSq * lenSq;
         const now = performance.now();
 
-        for (let i = 0; i < count; i++) {
+        for (let i = count - 1; i >= 0; i--) {
             const c = activeCoins[i]; if (!c) continue;
 
             if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
@@ -925,7 +925,7 @@ export function createSpawner(config = {}) {
 
         const now = performance.now();
         
-        for (let i = 0; i < count; i++) {
+        for (let i = count - 1; i >= 0; i--) {
             const c = activeCoins[i]; if (!c) continue;
 
             if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
@@ -977,7 +977,7 @@ export function createSpawner(config = {}) {
         const crossLimit = radiusSq * lenSq;
         const now = performance.now();
 
-        for (let i = 0; i < count; i++) {
+        for (let i = count - 1; i >= 0; i--) {
             const c = activeCoins[i]; if (!c) continue;
 
             if (c.bMaxX < minX || c.bMinX > maxX || c.bMaxY < minY || c.bMinY > maxY) {
