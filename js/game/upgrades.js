@@ -1240,7 +1240,7 @@ const DEFAULT_SCALING_PRESETS = {
     if (evol > softcapStart) {
       const delta = evol - softcapStart;
       // Calibrated to hit BN Infinity around Level 4 Trillion (4e9 evolutions)
-      const rate = 1.6983145404738314e-7;
+      const rate = 1.6979e-7;
       const baseLog = 5;
       let startRatioLog10 = baseLog;
       if (harshness !== 1) {
