@@ -956,6 +956,7 @@ function closeBuildingDetailOverlay() {
 
 export function updateOverlayUi() {
     if (!currentBuildingId) return;
+    if (!document.getElementById('building-detail-level-text')) return;
     const id = currentBuildingId;
     
     const levelBn = getBuildingLevel(id);
