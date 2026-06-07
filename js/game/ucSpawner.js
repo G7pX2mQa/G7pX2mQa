@@ -103,7 +103,7 @@ export function createUcSpawner(config = {}) {
 
     const base = createBaseSpawner({
         playfieldSelector,
-        waterSelector: null,
+        waterSelector: '#water-background',
         itemsHostSelector: materialsHost,
         baseItemSize: baseSize,
         animationDurationMs,
@@ -408,7 +408,9 @@ export function createUcSpawner(config = {}) {
                                     else endX = clamp(spawnX + drift, minX, mx);
                                 }
 
-                                const effectiveWaterH = wRect ? Math.min(wRect.height, pfRect.height * 0.3) : pfRect.height * 0.3;
+                                const fallbackWaterH = pfRect.height * 0.35;
+                                const actualWaterH = (wRect && wRect.height > 0) ? wRect.height : fallbackWaterH;
+                                const effectiveWaterH = Math.min(actualWaterH, pfRect.height * 0.3);
                                 const minY = Math.max(effectiveWaterH + 80, 120);
                                 const maxY = Math.max(minY + 40, safeBottom - size - 6);
                                 const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
