@@ -55,7 +55,7 @@ export function createUcSpawner(config = {}) {
         animationDurationMs = 1500,
         materialsPerSecond = 0.2,
         perFrameBudget = 5,
-        maxActiveMaterials = IS_MOBILE ? 2500 : 10000,
+        maxActiveMaterials = IS_MOBILE ? 2500 : 5000,
         initialBurst = 0,
         materialTtlMs = 1e99,
         shouldAutoResume = () => true,
