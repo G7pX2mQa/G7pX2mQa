@@ -134,7 +134,7 @@ export function createBaseSpawner(config = {}) {
         animationDurationMs = 1500,
         itemsPerSecond = 1,
         perFrameBudget = 24,
-        maxActiveItems = IS_MOBILE ? MAX_ACTIVE_ITEMS_MOBILE : 10000,
+        maxActiveItems = IS_MOBILE ? MAX_ACTIVE_ITEMS_MOBILE : 5000,
         initialBurst = 0,
         itemTtlMs = 1e99,
         shouldAutoResume = () => true,
