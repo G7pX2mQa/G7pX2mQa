@@ -427,9 +427,6 @@ export function registerXpUpgradeEffects() {
     addExternalDpMultiplierProvider((mult) => {
       const { dpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
       let finalDpValue = dpValue;
-      if (typeof applyStatMultiplierOverride === 'function') {
-        finalDpValue = applyStatMultiplierOverride('dp', finalDpValue);
-      }
       if (!finalDpValue) return mult;
       return safeMultiplyBigNum(mult, finalDpValue);
     });
