@@ -204,15 +204,21 @@ export function renderBuildingsGrid(gridEl) {
                 openMysteriousBuildingOverlay(b.mysteriousText);
             });
         } else {
-            card.btn.title = 'Left-click: View Building • Right-click: Buy Max';
+            card.btn.title = 'Left-click: View Building • Right-click: Buy Max • Shift-click: Buy Cheap • Ctrl-click: Buy Next';
             card.btn.addEventListener('click', (e) => {
                 if (e.shiftKey) {
-                    handlePurchaseOuter(b.id, 'cheap');
-                } else if (e.ctrlKey) {
-                    handlePurchaseOuter(b.id, 'next');
-                } else {
-                    openBuildingDetailOverlay(b.id);
+                    currentBuildingId = b.id;
+                    handlePurchase('cheap');
+                    currentBuildingId = null;
+                    return;
                 }
+                if (e.ctrlKey) {
+                    currentBuildingId = b.id;
+                    handlePurchase('next');
+                    currentBuildingId = null;
+                    return;
+                }
+                openBuildingDetailOverlay(b.id); 
             });
             card.btn.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
@@ -951,7 +957,7 @@ export function updateOverlayUi() {
     const currentBonus = getBuildingBonus(id, levelBn);
     const nextBonus = getBuildingBonus(id, nextLevelBn);
     
-    const imgStr = `<img src="${BUILDING_CURRENCY_IMAGES[id]}" style="width: 1em; height: 1em; vertical-align: middle; transform: translateY(-4px);">`;
+    const imgStr = `<img src="${BUILDING_CURRENCY_IMAGES[id]}" style="width: 1em; height: 1em; vertical-align: middle; transform: translateY(-3px); margin-right: -0.1em;">`;
     
     const matName = RESOURCE_REGISTRY.find(r => r.key === currencyKey)?.singular || 'Stone';
 
