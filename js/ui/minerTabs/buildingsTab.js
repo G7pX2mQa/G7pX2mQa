@@ -563,8 +563,10 @@ export function getBuildingCostLog10AtLevel(id, levelBn) {
     
     if (levelNum > softcapStart) {
         const delta = levelNum - softcapStart;
-        const rate = 2.0665e-12;
         const startRatioLog10 = Math.log10(ratio);
+        const MAX_LOG10 = 1.7976931348623157e+308;
+        const targetRatioLog10 = MAX_LOG10 / 4000990000000;
+        const rate = Math.log(targetRatioLog10 / startRatioLog10) / (4000990000000 - softcapStart);
         const ratioLog10 = startRatioLog10 * Math.exp(rate * delta);
         return levelNum * ratioLog10; 
     }
@@ -630,27 +632,38 @@ function getBuildingTotalCostLog10(ratio, startLevel, count) {
     const lastLevel = startLevel + count - 1;
     
     const softcapStart = 1_000_000_000;
-    const rate = 2.0665e-12;
+    const startRatioLog10 = Math.log10(ratio);
+    const MAX_LOG10 = 1.7976931348623157e+308;
+    const targetRatioLog10 = MAX_LOG10 / 4000990000000;
+    const rate = Math.log(targetRatioLog10 / startRatioLog10) / (4000990000000 - softcapStart);
     
     let lastCostLog10;
     if (lastLevel > softcapStart) {
         const delta = lastLevel - softcapStart;
-        const startRatioLog10 = Math.log10(ratio);
         const ratioLog10 = startRatioLog10 * Math.exp(rate * delta);
         lastCostLog10 = lastLevel * ratioLog10; 
     } else {
-        lastCostLog10 = lastLevel * Math.log10(ratio);
+        lastCostLog10 = lastLevel * startRatioLog10;
     }
     
     const delta = Math.max(0, lastLevel - softcapStart);
-    const localRatioLog10 = Math.log10(ratio) * Math.exp(rate * delta);
-    const LN10 = Math.log(10);
-    const localRatioLn = localRatioLog10 * LN10;
+    let localRatioLog10;
+    if (delta > 0) {
+        localRatioLog10 = startRatioLog10 * Math.exp(rate * delta);
+    } else {
+        localRatioLog10 = startRatioLog10;
+    }
     
-    const negLocalRatioLn = -localRatioLn;
-    const denom = -Math.log1p(-Math.exp(negLocalRatioLn));
+    const r = Math.pow(10, localRatioLog10);
+    if (r <= 1) return lastCostLog10 + Math.log10(count);
+
+    const invR = 1 / r;
+    const term1 = Math.log1p(-Math.pow(invR, count));
+    const term2 = Math.log1p(-invR);
+    const LN10 = Math.LN10;
     
-    return lastCostLog10 + (denom / LN10);
+    const adjustment = (term1 - term2) / LN10;
+    return lastCostLog10 + adjustment;
 }
 
 function evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, maxLevels, ratio) {
