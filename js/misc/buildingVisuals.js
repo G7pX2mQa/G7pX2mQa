@@ -141,6 +141,7 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
 }
 
 function loop(currentTime) {
+    if (!activeCanvas) return;
     const dt = (currentTime - lastTime) / 1000;
     lastTime = currentTime;
     time += dt;
