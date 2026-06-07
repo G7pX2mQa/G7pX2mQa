@@ -3160,11 +3160,15 @@ function getUnlockRowDefinitions(slot) {
                 catch { return false; }
             },
             onEnable: () => {
-                try { setNodeLocked('coral', false); }
-                catch {}
+                try {
+                    setNodeLocked('coral', false);
+                    refreshNodesState();
+                    window.dispatchEvent(new Event('pinnedAreas:changed'));
+                    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'map:coral', slot } }));
+                } catch {}
             },
             onDisable: () => {
-                try { setNodeLocked('coral', true); }
+                try { setNodeLocked('coral', true); refreshNodesState(); window.dispatchEvent(new Event('pinnedAreas:changed')); }
                 catch {}
             },
             slot,
@@ -3177,11 +3181,15 @@ function getUnlockRowDefinitions(slot) {
                 catch { return false; }
             },
             onEnable: () => {
-                try { setNodeLocked('depths', false); }
-                catch {}
+                try {
+                    setNodeLocked('depths', false);
+                    refreshNodesState();
+                    window.dispatchEvent(new Event('pinnedAreas:changed'));
+                    window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'map:depths', slot } }));
+                } catch {}
             },
             onDisable: () => {
-                try { setNodeLocked('depths', true); }
+                try { setNodeLocked('depths', true); refreshNodesState(); window.dispatchEvent(new Event('pinnedAreas:changed')); }
                 catch {}
             },
             slot,
