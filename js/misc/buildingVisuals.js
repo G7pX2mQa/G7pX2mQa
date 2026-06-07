@@ -14,7 +14,7 @@ let levelUpAnimTime = 0;
 let tierUpAnimTime = 0;
 let previousTier = 0;
 
-const TIERS = [1, 10, 25, 50, 100, 200, 400, 800, 1000];
+const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
 
 const imageCache = {};
 let stonePattern = null;
@@ -133,7 +133,7 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
         tierUpAnimTime = 0;
     } else if (newTier > oldTier) {
         previousTier = oldTier;
-        if (newTier > 1) {
+        if (newTier >= 1) {
             tierUpAnimTime = 5.0; 
             playAudio('sounds/building_tier_up.ogg');
         }
