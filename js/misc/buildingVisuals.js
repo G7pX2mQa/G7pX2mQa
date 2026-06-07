@@ -560,8 +560,7 @@ function drawObelisk(ctx, t, tier) {
 }
 
 function drawFoundry(ctx, t, tier, prevTier, animProgress) {
-    // Base structure (Tier 1+)
-    
+    // Base structure (Tier 0+)
     if (!stonePattern && activeCtx) {
         initStonePattern(activeCtx);
     }
@@ -571,36 +570,30 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         ctx.fillStyle = '#544';
     }
     
-    // Draw base building
+    // Draw base building (rock oven)
     ctx.fillRect(-70, -100, 140, 100);
     
-    
-    // Tier 2: Chimney & Smoke
-    const showTier2 = (tier >= 2) ? 1 : 0;
-    const tier2Prog = (tier >= 2 && prevTier < 2) ? animProgress : showTier2;
-    if (tier2Prog > 0) {
+    // Tier 1: Taller blackened chimney & thick dark smoke
+    const showTier1 = (tier >= 1) ? 1 : 0;
+    const tier1Prog = (tier >= 1 && prevTier < 1) ? animProgress : showTier1;
+    if (tier1Prog > 0) {
         ctx.save();
-        ctx.globalAlpha = tier2Prog;
-        // Slide up from center/bottom
-        const yOffset = (1 - tier2Prog) * 50;
+        ctx.globalAlpha = tier1Prog;
+        const yOffset = (1 - tier1Prog) * 50;
         ctx.translate(30, yOffset);
         
-        if (stonePattern) {
-            ctx.fillStyle = stonePattern;
-        } else {
-            ctx.fillStyle = '#433';
-        }
-        ctx.fillRect(-15, -160, 30, 60);
+        ctx.fillStyle = '#222';
+        ctx.fillRect(-15, -180, 30, 80);
         
-        // Smoke particles if animation is mostly done or steady state
-        if (tier2Prog > 0.8) {
-            for (let i = 0; i < 3; i++) {
-                const smokeT = (t + i * 1.5) % 3; // 0 to 3 seconds
-                const smokeY = -160 - smokeT * 30;
-                const smokeX = Math.sin(smokeT * 3 + i) * 10;
-                const smokeSize = 10 + smokeT * 10;
-                const smokeAlpha = 1 - (smokeT / 3);
-                ctx.fillStyle = `rgba(100, 100, 100, ${smokeAlpha * 0.5})`;
+        // Smoke
+        if (tier1Prog > 0.8) {
+            for (let i = 0; i < 4; i++) {
+                const smokeT = (t + i * 1.0) % 4;
+                const smokeY = -180 - smokeT * 40;
+                const smokeX = Math.sin(smokeT * 3 + i) * 15;
+                const smokeSize = 10 + smokeT * 12;
+                const smokeAlpha = 1 - (smokeT / 4);
+                ctx.fillStyle = `rgba(40, 40, 40, ${smokeAlpha * 0.7})`;
                 ctx.beginPath();
                 ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
                 ctx.fill();
@@ -609,216 +602,200 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
     
-    // Tier 1+: Glowing hot furnace opening
-    const pulse = Math.abs(Math.sin(t * 5));
+    // Tier 2: Heavy dark metal plating, industrial rivets, chains
+    const showTier2 = (tier >= 2) ? 1 : 0;
+    const tier2Prog = (tier >= 2 && prevTier < 2) ? animProgress : showTier2;
+    if (tier2Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier2Prog;
+        const scaleT2 = 0.5 + tier2Prog * 0.5;
+        ctx.scale(scaleT2, scaleT2);
+        
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(-75, -105, 150, 10);
+        ctx.fillRect(-75, -10, 150, 10);
+        ctx.fillRect(-75, -105, 10, 105);
+        ctx.fillRect(65, -105, 10, 105);
+        
+        ctx.fillStyle = '#444';
+        for(let i=-60; i<=60; i+=20) {
+            ctx.fillRect(i, -102, 4, 4);
+            ctx.fillRect(i, -7, 4, 4);
+            if (i > -60 && i < 60 && i % 40 === 0) {
+                 ctx.fillRect(-72, i - 20, 4, 4);
+                 ctx.fillRect(68, i - 20, 4, 4);
+            }
+        }
+        ctx.restore();
+    }
     
-    // Tier 5: Furnace opening grows larger and glow intensifies
-    const showTier5 = (tier >= 5) ? 1 : 0;
-    const tier5Prog = (tier >= 5 && prevTier < 5) ? animProgress : showTier5;
-    
-    const doorWidth = 40 + tier5Prog * 20;
-    const doorHeight = 40 + tier5Prog * 20;
-    const glowIntensity = 1 + tier5Prog * 0.5;
-    
-    // Inner dark space of furnace
-    ctx.fillStyle = '#333';
-    ctx.fillRect(-doorWidth/2, -doorHeight, doorWidth, doorHeight);
-    
-    // The fire/glow inside
-    ctx.fillStyle = `rgba(255, ${100 + pulse * 50}, 0, ${glowIntensity})`;
-    ctx.fillRect(-doorWidth/2 + 5, -doorHeight + 5, doorWidth - 10, doorHeight - 5);
-    
-    // Light cast onto the ground
-    const castGlowRadius = 60 + tier5Prog * 40;
-    const groundGlow = ctx.createRadialGradient(0, -doorHeight/2, 10, 0, 0, castGlowRadius);
-    groundGlow.addColorStop(0, `rgba(255, ${150 + pulse * 50}, 0, ${0.3 * glowIntensity})`);
-    groundGlow.addColorStop(1, 'rgba(255, 100, 0, 0)');
-    ctx.fillStyle = groundGlow;
-    ctx.beginPath();
-    ctx.arc(0, 0, castGlowRadius, Math.PI, 0); // draw half circle on floor
-    ctx.fill();
-    
-    // Tier 3: External conveyor belt / gear system
+    // Tier 3: Glowing lava moats/channels
     const showTier3 = (tier >= 3) ? 1 : 0;
     const tier3Prog = (tier >= 3 && prevTier < 3) ? animProgress : showTier3;
     if (tier3Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier3Prog;
-        // Slide in from the left
-        const xOffset = (1 - tier3Prog) * 30;
-        ctx.translate(-70 + xOffset, -40);
         
-        // Gear 1
-        ctx.save();
-        ctx.translate(-30, 0);
-        ctx.rotate(t * 2);
-        drawGear(ctx, 15, '#777');
-        ctx.restore();
+        const lavaGrad = ctx.createLinearGradient(0, -100, 0, 0);
+        lavaGrad.addColorStop(0, '#f50');
+        lavaGrad.addColorStop(1, '#f90');
+        ctx.fillStyle = lavaGrad;
         
-        // Gear 2
-        ctx.save();
-        ctx.translate(-70, 0);
-        ctx.rotate(t * 2);
-        drawGear(ctx, 15, '#777');
-        ctx.restore();
+        ctx.fillRect(-85, -10, 170, 10);
+        ctx.fillRect(-55, -100, 12, 100);
+        ctx.fillRect(43, -100, 12, 100);
         
-        // Belt connecting them
-        ctx.strokeStyle = '#222';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(-70, -15);
-        ctx.lineTo(-30, -15);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(-70, 15);
-        ctx.lineTo(-30, 15);
-        ctx.stroke();
-        
-        // Materials on belt
-        const beltOffset = (t * 20) % 40;
-        ctx.fillStyle = '#a55';
-        for(let i=0; i<2; i++) {
-            ctx.fillRect(-70 + beltOffset - i*20, -20, 10, 10);
-        }
+        ctx.fillStyle = '#ff0';
+        const flow1 = (t * 20) % 100;
+        const flow2 = (t * 25 + 50) % 100;
+        ctx.fillRect(-55, -100 + flow1, 12, 5);
+        ctx.fillRect(43, -100 + flow2, 12, 5);
         ctx.restore();
     }
     
-    // Tier 4: Metal reinforcements / iron bars
+    // Tier 4: Massive blast doors pulsing with blinding white-hot light
     const showTier4 = (tier >= 4) ? 1 : 0;
     const tier4Prog = (tier >= 4 && prevTier < 4) ? animProgress : showTier4;
-    if (tier4Prog > 0) {
+    
+    // Draw furnace opening (starts simple, upgraded at tier 4)
+    const doorWidth = 40 + tier4Prog * 10;
+    const doorHeight = 40 + tier4Prog * 20;
+    const pulse = Math.abs(Math.sin(t * 5));
+    const glowIntensity = 0.5 + tier4Prog * 1.5;
+    
+    ctx.fillStyle = '#111';
+    ctx.fillRect(-doorWidth/2, -doorHeight, doorWidth, doorHeight);
+    
+    ctx.fillStyle = `rgba(255, ${100 + pulse * 100 * tier4Prog}, ${tier4Prog > 0 ? pulse * 200 : 0}, ${glowIntensity})`;
+    ctx.fillRect(-doorWidth/2 + 5, -doorHeight + 5, doorWidth - 10, doorHeight - 5);
+    
+    const castGlowRadius = 60 + tier4Prog * 60;
+    const groundGlow = ctx.createRadialGradient(0, -doorHeight/2, 10, 0, 0, castGlowRadius);
+    groundGlow.addColorStop(0, `rgba(255, ${150 + pulse * 50}, 0, ${0.4 * glowIntensity})`);
+    groundGlow.addColorStop(1, 'rgba(255, 100, 0, 0)');
+    ctx.fillStyle = groundGlow;
+    ctx.beginPath();
+    ctx.arc(0, 0, castGlowRadius, Math.PI, 0); 
+    ctx.fill();
+    
+    // Tier 5: Magma pumps & transparent pipes
+    const showTier5 = (tier >= 5) ? 1 : 0;
+    const tier5Prog = (tier >= 5 && prevTier < 5) ? animProgress : showTier5;
+    if (tier5Prog > 0) {
         ctx.save();
-        ctx.globalAlpha = tier4Prog;
-        // Grow from the center outwards
-        const scaleT4 = 0.5 + tier4Prog * 0.5;
-        ctx.scale(scaleT4, scaleT4);
+        ctx.globalAlpha = tier5Prog;
+        const xOffset = (1 - tier5Prog) * 20;
         
         ctx.fillStyle = '#222';
-        // Corners
-        ctx.fillRect(-75, -105, 15, 15);
-        ctx.fillRect(60, -105, 15, 15);
-        ctx.fillRect(-75, -15, 15, 15);
-        ctx.fillRect(60, -15, 15, 15);
+        ctx.fillRect(-100 + xOffset, -70, 20, 50);
+        ctx.fillRect(80 - xOffset, -70, 20, 50);
         
-        // Bands
-        ctx.fillRect(-75, -60, 150, 5);
-        ctx.fillRect(-40, -105, 5, 105);
-        ctx.fillRect(35, -105, 5, 105);
+        ctx.fillStyle = 'rgba(255, 150, 0, 0.8)';
+        const pumpH1 = 20 + Math.sin(t*8)*10;
+        const pumpH2 = 20 + Math.sin(t*8 + Math.PI)*10;
+        ctx.fillRect(-95 + xOffset, -20 - pumpH1, 10, pumpH1);
+        ctx.fillRect(85 - xOffset, -20 - pumpH2, 10, pumpH2);
         
-        // Rivets
-        ctx.fillStyle = '#555';
-        for(let i=-60; i<=60; i+=30) {
-            ctx.fillRect(i, -59, 2, 3);
-        }
+        ctx.strokeStyle = 'rgba(200, 200, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-95 + xOffset, -60, 10, 40);
+        ctx.strokeRect(85 - xOffset, -60, 10, 40);
+        
         ctx.restore();
     }
     
-    // Tier 6: Cooling pipes/vents
+    // Tier 6: Infernal exhaust vents blasting jets of fire
     const showTier6 = (tier >= 6) ? 1 : 0;
     const tier6Prog = (tier >= 6 && prevTier < 6) ? animProgress : showTier6;
     if (tier6Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier6Prog;
-        // Slide in from the sides
-        const xOffset = (1 - tier6Prog) * 20;
         
-        ctx.fillStyle = '#456';
-        // Left pipe
-        ctx.fillRect(-90 + xOffset, -80, 20, 60);
-        ctx.fillRect(-100 + xOffset, -70, 10, 40);
-        // Right pipe
-        ctx.fillRect(70 - xOffset, -80, 20, 60);
-        ctx.fillRect(90 - xOffset, -70, 10, 40);
+        ctx.fillStyle = '#111';
+        ctx.fillRect(-60, -115, 15, 15);
+        ctx.fillRect(45, -115, 15, 15);
         
-        // Steam
         if (tier6Prog > 0.8) {
-            ctx.fillStyle = `rgba(200, 200, 220, 0.3)`;
-            const steamH = 20 + Math.sin(t*10)*5;
-            ctx.fillRect(-95 + xOffset, -80 - steamH, 10, steamH);
-            ctx.fillRect(85 - xOffset, -80 - steamH, 10, steamH);
+            const firePulse = Math.abs(Math.sin(t * 12));
+            const fireH = 15 + firePulse * 20;
+            const fireGrad = ctx.createLinearGradient(0, -115, 0, -115 - fireH);
+            fireGrad.addColorStop(0, '#fff');
+            fireGrad.addColorStop(0.3, '#ff0');
+            fireGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            
+            ctx.fillStyle = fireGrad;
+            ctx.fillRect(-58, -115 - fireH, 11, fireH);
+            ctx.fillRect(47, -115 - fireH, 11, fireH);
         }
         ctx.restore();
     }
     
-    // Tier 7: Glowing lava channels
+    // Tier 7: Secondary and tertiary crucibles bubbling with white-hot metal
     const showTier7 = (tier >= 7) ? 1 : 0;
     const tier7Prog = (tier >= 7 && prevTier < 7) ? animProgress : showTier7;
     if (tier7Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier7Prog;
-        // Fade in
-        const lavaGrad = ctx.createLinearGradient(0, -100, 0, 0);
-        lavaGrad.addColorStop(0, '#f90');
-        lavaGrad.addColorStop(1, '#f30');
-        ctx.fillStyle = lavaGrad;
+        const yOffset = (1 - tier7Prog) * 30;
         
-        // Left channel
-        ctx.fillRect(-55, -100, 8, 100);
-        // Right channel
-        ctx.fillRect(47, -100, 8, 100);
+        const drawCrucible = (x) => {
+            ctx.save();
+            ctx.translate(x, yOffset);
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.moveTo(-15, 0);
+            ctx.lineTo(15, 0);
+            ctx.lineTo(20, -30);
+            ctx.lineTo(-20, -30);
+            ctx.fill();
+            
+            ctx.fillStyle = '#fff';
+            const brewY = Math.sin(t*15 + x)*3;
+            ctx.fillRect(-15, -30 + brewY, 30, 4);
+            ctx.restore();
+        };
         
-        // Lava sparks/flow
-        ctx.fillStyle = '#ff0';
-        const flow1 = (t * 20) % 100;
-        const flow2 = (t * 25 + 50) % 100;
-        ctx.fillRect(-55, -100 + flow1, 8, 4);
-        ctx.fillRect(47, -100 + flow2, 8, 4);
+        drawCrucible(-110);
+        drawCrucible(110);
         ctx.restore();
     }
     
-    // Tier 8: Secondary crucible
+    // Tier 8: Blazing artificial sun core tethered by chains
     const showTier8 = (tier >= 8) ? 1 : 0;
     const tier8Prog = (tier >= 8 && prevTier < 8) ? animProgress : showTier8;
     if (tier8Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier8Prog;
-        // Slide up from ground
-        const yOffset = (1 - tier8Prog) * 40;
-        ctx.translate(60, yOffset);
+        const yDrop = (1 - tier8Prog) * -50;
+        ctx.translate(30, -250 + yDrop);
         
-        ctx.fillStyle = '#333';
-        ctx.beginPath();
-        ctx.moveTo(10, 0);
-        ctx.lineTo(40, 0);
-        ctx.lineTo(45, -40);
-        ctx.lineTo(5, -40);
-        ctx.fill();
-        
-        ctx.fillStyle = '#f50';
-        ctx.fillRect(10, -40, 30, 5);
-        
-        ctx.fillStyle = '#fa0';
-        const brewY = Math.sin(t*8)*2;
-        ctx.fillRect(15, -40 + brewY, 20, 2);
-        ctx.restore();
-    }
-    
-    // Tier 9: Hovering energy core on chimney
-    const showTier9 = (tier >= 9) ? 1 : 0;
-    const tier9Prog = (tier >= 9 && prevTier < 9) ? animProgress : showTier9;
-    if (tier9Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier9Prog;
-        // Drop down from sky
-        const yOffset = (1 - tier9Prog) * -50;
-        ctx.translate(30, -200 + yOffset);
-        
-        const hover = Math.sin(t*3)*5;
+        const hover = Math.sin(t*4)*8;
         ctx.translate(0, hover);
         
-        const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 20);
-        coreGrad.addColorStop(0, '#fff');
-        coreGrad.addColorStop(0.3, '#f90');
-        coreGrad.addColorStop(1, 'rgba(255,0,0,0)');
-        ctx.fillStyle = coreGrad;
-        
+        // Chains
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(0, 0, 25, 0, Math.PI*2);
-        ctx.fill();
+        ctx.moveTo(-30, 0);
+        ctx.lineTo(-60, 100);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(30, 0);
+        ctx.lineTo(60, 100);
+        ctx.stroke();
         
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(-2, -15, 4, 30);
-        ctx.fillRect(-15, -2, 30, 4);
+        // Sun core
+        const r = 35 + Math.sin(t*10)*3;
+        const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+        coreGrad.addColorStop(0, '#fff');
+        coreGrad.addColorStop(0.2, '#fff');
+        coreGrad.addColorStop(0.5, '#ff5500');
+        coreGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+        
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI*2);
+        ctx.fill();
         
         ctx.restore();
     }
