@@ -659,40 +659,6 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
             }
         }
         
-        // Spinning Gears on sides
-        const drawGear = (x, y, radius, rotation) => {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(rotation);
-            ctx.fillStyle = '#333';
-            ctx.beginPath();
-            ctx.arc(0, 0, radius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = '#222';
-            ctx.stroke();
-            
-            // Teeth
-            ctx.fillStyle = '#333';
-            for (let j = 0; j < 8; j++) {
-                ctx.rotate(Math.PI / 4);
-                ctx.fillRect(-radius/4, -radius - 4, radius/2, 8);
-            }
-            
-            // Center hole
-            ctx.fillStyle = '#111';
-            ctx.beginPath();
-            ctx.arc(0, 0, radius/3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.restore();
-        };
-
-        const gearSpeed = t * 2;
-        drawGear(-70, -50, 12, gearSpeed);
-        drawGear(-70, -20, 15, -gearSpeed * 0.8);
-        drawGear(70, -50, 12, -gearSpeed);
-        drawGear(70, -20, 15, gearSpeed * 0.8);
 
         ctx.restore();
     }
@@ -888,17 +854,17 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
 
         // Draw vents embedded into the structure walls
         // 3 vents on each side, slightly adjusted to fit
-        drawVent(-48, -25, 16, 20); // Bottom left
-        drawVent(-48, -52, 16, 20); // Mid left
-        drawVent(-48, -79, 16, 20); // Top left
+        drawVent(-48, -27, 16, 20); // Bottom left
+        drawVent(-48, -54, 16, 20); // Mid left
+        drawVent(-48, -81, 16, 20); // Top left
         
-        drawVent(48, -25, 16, 20); // Bottom right
-        drawVent(48, -52, 16, 20); // Mid right
-        drawVent(48, -79, 16, 20); // Top right
+        drawVent(48, -27, 16, 20); // Bottom right
+        drawVent(48, -54, 16, 20); // Mid right
+        drawVent(48, -81, 16, 20); // Top right
         
         // Two vents on top instead of 1 large one
-        drawVent(-15, -85, 18, 16);
-        drawVent(15, -85, 18, 16);
+        drawVent(-15, -81, 16, 20);
+        drawVent(15, -81, 16, 20);
 
         ctx.restore();
     }
@@ -969,98 +935,81 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
             ctx.restore();
         };
 
-        drawTurbineExhaust(-75, true);
-        drawTurbineExhaust(75, false);
+        drawTurbineExhaust(-68, true);
+        drawTurbineExhaust(68, false);
         
         ctx.restore();
     }
     
-    // Tier 7: Heavy Hydraulic Presses - Massive presses stamping glowing metal
+    // Tier 7: High-Speed Centrifugal Casting Wheels - Heavy glowing wheels spinning at high speeds
     const showTier7 = (tier >= 7) ? 1 : 0;
     const tier7Prog = (tier >= 7 && prevTier < 7) ? animProgress : showTier7;
     if (tier7Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier7Prog;
-        const yOffset = (1 - tier7Prog) * 30;
         
-        const drawHydraulicPress = (x, timeOffset) => {
+        const drawCastingWheel = (x, isLeft) => {
             ctx.save();
-            ctx.translate(x, -20 + yOffset);
+            ctx.translate(x, -40);
             
-            // Press base/anvil
+            // Support structure
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(-15, 0, 30, 40);
             ctx.fillStyle = '#222';
-            ctx.fillRect(-30, 0, 60, 20);
+            ctx.fillRect(-20, 30, 40, 10);
             
-            // Glowing metal being pressed
-            const pressCycle = (t * 2 + timeOffset) % 1; // 0 to 1 cycle
-            let pressY = 0;
-            let strike = false;
-            
-            if (pressCycle < 0.2) {
-                // Moving down quickly
-                pressY = -40 * (1 - (pressCycle / 0.2));
-            } else if (pressCycle < 0.3) {
-                // Striking (impact)
-                pressY = 0;
-                strike = true;
-            } else {
-                // Moving up slowly and resting
-                pressY = -40 * ((pressCycle - 0.3) / 0.7);
-            }
-            
-            // Glowing hot metal on anvil
-            const metalGlow = strike ? 1.0 : Math.max(0.4, 1.0 - (pressCycle - 0.3) * 2);
-            ctx.fillStyle = `rgba(255, ${100 + metalGlow * 100}, 0, ${0.7 + metalGlow * 0.3})`;
-            ctx.fillRect(-15, -4, 30, 4);
-
-            // Sparks on strike
-            if (strike) {
-                ctx.fillStyle = '#fff';
-                for (let i = 0; i < 8; i++) {
-                    const sparkX = (Math.random() - 0.5) * 40;
-                    const sparkY = -4 - Math.random() * 20;
-                    ctx.fillRect(sparkX, sparkY, 2, 2);
-                }
-                
-                // Ground flash
-                ctx.fillStyle = `rgba(255, 200, 100, ${0.5 * tier7Prog})`;
-                ctx.beginPath();
-                ctx.arc(0, 0, 40, 0, Math.PI, true);
-                ctx.fill();
-            }
-
-            // Hydraulic press head
-            ctx.save();
-            ctx.translate(0, pressY);
-            
-            // Piston rod
-            ctx.fillStyle = '#555';
-            ctx.fillRect(-6, -60, 12, 60);
-            
-            // Press block
+            // Wheel Housing
             ctx.fillStyle = '#111';
-            ctx.fillRect(-25, -20, 50, 16);
-            ctx.fillStyle = '#333';
-            ctx.fillRect(-20, -4, 40, 4); // Striking surface
+            ctx.beginPath();
+            ctx.arc(0, 0, 35, 0, Math.PI * 2);
+            ctx.fill();
             
+            // The Spinning Wheel
+            ctx.save();
+            // Spin incredibly fast
+            ctx.rotate(t * (isLeft ? -15 : 15));
+            
+            // Outer wheel rim
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = '#333';
+            ctx.beginPath();
+            ctx.arc(0, 0, 30, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Glowing hot interior/spokes
+            const wheelGlow = 0.8 + 0.2 * Math.sin(t * 10);
+            ctx.fillStyle = `rgba(255, ${100 + wheelGlow * 100}, 0, 0.9)`;
+            for (let i = 0; i < 6; i++) {
+                ctx.rotate(Math.PI / 3);
+                ctx.fillRect(-4, 10, 8, 20);
+            }
+            
+            // White-hot center
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(0, 0, 12, 0, Math.PI * 2);
+            ctx.fill();
             ctx.restore();
             
-            // Support columns
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(-35, -80, 10, 100);
-            ctx.fillRect(25, -80, 10, 100);
-            
-            // Top housing
-            ctx.fillStyle = '#222';
-            ctx.fillRect(-40, -100, 80, 20);
-            ctx.fillStyle = '#111';
-            ctx.fillRect(-30, -90, 60, 10);
+            // Spark ejections
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i < 6; i++) {
+                const sparkT = (t * 5 + i * 1.5) % 1;
+                // Sparks fly outwards from the side
+                const sparkDir = isLeft ? -1 : 1;
+                const sparkX = sparkDir * (35 + sparkT * 40);
+                const sparkY = (Math.random() - 0.5) * 20 + sparkT * 30;
+                
+                ctx.globalAlpha = 1 - sparkT;
+                ctx.fillRect(sparkX, sparkY, 3, 3);
+                ctx.globalAlpha = 1.0;
+            }
             
             ctx.restore();
         };
         
-        drawHydraulicPress(-120, 0);
-        drawHydraulicPress(120, 0.5);
+        drawCastingWheel(-110, true);
+        drawCastingWheel(110, false);
         
         ctx.restore();
     }
@@ -1078,6 +1027,25 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         ctx.translate(0, -100); // Placed within the base furnace area instead of high up
         
+        const corePulse = Math.abs(Math.sin(t * 15));
+
+        // Exhaust magma beam firing upwards infinitely
+        const beamW = 30 + corePulse * 15;
+        const beamHeight = 1000; // Extend past top of viewport
+        
+        // Exhaust magma beam matching core colors (reddish-orange)
+        // Horizontal gradient for a constant vertical appearance
+        const beamGrad = ctx.createLinearGradient(-beamW/2, 0, beamW/2, 0);
+        
+        beamGrad.addColorStop(0, `rgba(255, 51, 0, ${0.9 * tier8Prog})`);       // Reddish-orange edge
+        beamGrad.addColorStop(0.2, `rgba(255, 102, 0, ${0.9 * tier8Prog})`);    // Fiery orange
+        beamGrad.addColorStop(0.5, `rgba(255, 204, 0, ${0.9 * tier8Prog})`);    // Yellowish center
+        beamGrad.addColorStop(0.8, `rgba(255, 102, 0, ${0.9 * tier8Prog})`);    // Fiery orange
+        beamGrad.addColorStop(1, `rgba(255, 51, 0, ${0.9 * tier8Prog})`);       // Reddish-orange edge
+        
+        ctx.fillStyle = beamGrad;
+        ctx.fillRect(-beamW/2, -beamHeight, beamW, beamHeight);
+
         // Core housing (integrated)
         ctx.fillStyle = '#0a0a0a';
         ctx.fillRect(-45, -30, 90, 60);
@@ -1087,7 +1055,6 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         ctx.strokeRect(-45, -30, 90, 60);
 
         // Glowing magma center
-        const corePulse = Math.abs(Math.sin(t * 15));
         const magmaGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 40);
         magmaGrad.addColorStop(0, '#ffffff');
         magmaGrad.addColorStop(0.2, '#ffcc00');
@@ -1104,27 +1071,6 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         for(let i = -30; i <= 30; i+= 15) {
              ctx.fillRect(i - 2, -25, 4, 50);
         }
-
-        // Exhaust magma beam firing upwards infinitely
-        const beamW = 30 + corePulse * 15;
-        const beamHeight = 1000; // Extend past top of viewport
-        
-        // More fiery orange/yellow
-        const beamGrad = ctx.createLinearGradient(0, -30, 0, -beamHeight);
-        beamGrad.addColorStop(0, `rgba(255, 255, 150, ${0.9 * tier8Prog})`);
-        beamGrad.addColorStop(0.2, `rgba(255, 200, 0, ${0.8 * tier8Prog})`);
-        beamGrad.addColorStop(0.6, `rgba(255, 100, 0, ${0.6 * tier8Prog})`);
-        beamGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
-        
-        ctx.fillStyle = beamGrad;
-        ctx.fillRect(-beamW/2, -beamHeight, beamW, beamHeight - 30);
-        
-        // Central white hot core of beam extending further
-        const coreBeamGrad = ctx.createLinearGradient(0, -30, 0, -beamHeight * 0.8);
-        coreBeamGrad.addColorStop(0, `rgba(255, 255, 255, ${0.9 * tier8Prog})`);
-        coreBeamGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        ctx.fillStyle = coreBeamGrad;
-        ctx.fillRect(-beamW/4, -beamHeight * 0.8, beamW/2, beamHeight * 0.8 - 30);
 
         ctx.restore();
         
