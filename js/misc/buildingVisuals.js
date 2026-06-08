@@ -624,7 +624,7 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
     
-    // Tier 2: Heavy dark metal plating with glowing orange seams and spinning gears
+    // Tier 2: Heavy dark metal plating with glowing orange seams
     const showTier2 = (tier >= 2) ? 1 : 0;
     const tier2Prog = (tier >= 2 && prevTier < 2) ? animProgress : showTier2;
     if (tier2Prog > 0) {
