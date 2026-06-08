@@ -151,7 +151,7 @@ export const SETTING_DEFINITIONS = {
         if (typeof isLabUnlocked === 'function' && isLabUnlocked()) {
             isLabUnlocked = true;
         } else {
-            isLabUnlocked = localStorage.getItem(`labUnlock:${slot}`) === '1';
+            isLabUnlocked = localStorage.getItem(`ccc:unlock:lab:${slot}`) === '1';
         }
         return isLabUnlocked && IS_MOBILE;
       } catch {
