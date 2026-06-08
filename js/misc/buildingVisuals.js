@@ -1065,7 +1065,7 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
     
-    // Tier 8: The World Forge - Geothermal magma engine with cracked ground
+    // Tier 8: The World Forge - Geothermal magma engine
     const showTier8 = (tier >= 8) ? 1 : 0;
     const tier8Prog = (tier >= 8 && prevTier < 8) ? animProgress : showTier8;
     if (tier8Prog > 0) {
