@@ -741,6 +741,56 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
     
+    // Tier 5: Heavy Industrial Vents - Glowing orange/red heat emitting from industrial vents
+    const showTier5 = (tier >= 5) ? 1 : 0;
+    const tier5Prog = (tier >= 5 && prevTier < 5) ? animProgress : showTier5;
+    if (tier5Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier5Prog;
+        
+        const heatGlow = 0.5 + 0.5 * Math.sin(t * 4);
+        
+        const drawVent = (x, y, w, h) => {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            // Vent casing
+            ctx.fillStyle = '#222';
+            ctx.fillRect(-w/2, -h/2, w, h);
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-w/2, -h/2, w, h);
+            
+            // Glowing interior
+            ctx.fillStyle = `rgba(255, ${100 + heatGlow * 50}, 0, ${0.6 + 0.4 * heatGlow})`;
+            ctx.fillRect(-w/2 + 2, -h/2 + 2, w - 4, h - 4);
+            
+            // Grates
+            ctx.fillStyle = '#000';
+            for (let i = -h/2 + 4; i < h/2 - 2; i += 4) {
+                ctx.fillRect(-w/2 + 2, i, w - 4, 2);
+            }
+            
+            ctx.restore();
+        };
+
+        // Draw vents embedded into the structure walls
+        // 3 vents on each side, slightly adjusted to fit
+        drawVent(-48, -27, 16, 20); // Bottom left
+        drawVent(-48, -54, 16, 20); // Mid left
+        drawVent(-48, -81, 16, 20); // Top left
+        
+        drawVent(48, -27, 16, 20); // Bottom right
+        drawVent(48, -54, 16, 20); // Mid right
+        drawVent(48, -81, 16, 20); // Top right
+        
+        // Two vents on top instead of 1 large one
+        drawVent(-16, -81, 16, 20);
+        drawVent(16, -81, 16, 20);
+
+        ctx.restore();
+    }
+    
     // Tier 4: The Core Unleashed - Blast doors open revealing intensely bright plasma core casting rays
     const showTier4 = (tier >= 4) ? 1 : 0;
     const tier4Prog = (tier >= 4 && prevTier < 4) ? animProgress : showTier4;
@@ -819,56 +869,6 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
     ctx.arc(0, 0, castGlowRadius, Math.PI, 0); 
     ctx.fill();
     
-    // Tier 5: Heavy Industrial Vents - Glowing orange/red heat emitting from industrial vents
-    const showTier5 = (tier >= 5) ? 1 : 0;
-    const tier5Prog = (tier >= 5 && prevTier < 5) ? animProgress : showTier5;
-    if (tier5Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier5Prog;
-        
-        const heatGlow = 0.5 + 0.5 * Math.sin(t * 4);
-        
-        const drawVent = (x, y, w, h) => {
-            ctx.save();
-            ctx.translate(x, y);
-            
-            // Vent casing
-            ctx.fillStyle = '#222';
-            ctx.fillRect(-w/2, -h/2, w, h);
-            ctx.strokeStyle = '#111';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(-w/2, -h/2, w, h);
-            
-            // Glowing interior
-            ctx.fillStyle = `rgba(255, ${100 + heatGlow * 50}, 0, ${0.6 + 0.4 * heatGlow})`;
-            ctx.fillRect(-w/2 + 2, -h/2 + 2, w - 4, h - 4);
-            
-            // Grates
-            ctx.fillStyle = '#000';
-            for (let i = -h/2 + 4; i < h/2 - 2; i += 4) {
-                ctx.fillRect(-w/2 + 2, i, w - 4, 2);
-            }
-            
-            ctx.restore();
-        };
-
-        // Draw vents embedded into the structure walls
-        // 3 vents on each side, slightly adjusted to fit
-        drawVent(-48, -27, 16, 20); // Bottom left
-        drawVent(-48, -54, 16, 20); // Mid left
-        drawVent(-48, -81, 16, 20); // Top left
-        
-        drawVent(48, -27, 16, 20); // Bottom right
-        drawVent(48, -54, 16, 20); // Mid right
-        drawVent(48, -81, 16, 20); // Top right
-        
-        // Two vents on top instead of 1 large one
-        drawVent(-15, -81, 16, 20);
-        drawVent(15, -81, 16, 20);
-
-        ctx.restore();
-    }
-    
     // Tier 6: Hyper-Accelerated Exhaust - Animated turbine fans blowing intense magma flame jets
     const showTier6 = (tier >= 6) ? 1 : 0;
     const tier6Prog = (tier >= 6 && prevTier < 6) ? animProgress : showTier6;
@@ -935,8 +935,8 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
             ctx.restore();
         };
 
-        drawTurbineExhaust(-68, true);
-        drawTurbineExhaust(68, false);
+        drawTurbineExhaust(-64, true);
+        drawTurbineExhaust(64, false);
         
         ctx.restore();
     }
