@@ -38,7 +38,7 @@ function ensureFpsWakeupEl() {
             opacity: '0.01',
             zIndex: '999999'
         });
-        fpsWakeupCtx = fpsWakeupEl.getContext('2d', { alpha: false, desynchronized: true });
+        fpsWakeupCtx = fpsWakeupEl.getContext('2d', { alpha: false });
         document.body.appendChild(fpsWakeupEl);
     }
 }
