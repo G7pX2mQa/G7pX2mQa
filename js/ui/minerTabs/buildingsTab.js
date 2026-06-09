@@ -205,7 +205,7 @@ export function renderBuildingsGrid(gridEl) {
                 openMysteriousBuildingOverlay(b.mysteriousText);
             });
         } else {
-            card.btn.title = 'Left-click: View Building • Right-click: Buy Max • Shift-click: Buy Cheap • Ctrl-click: Buy Next';
+            card.btn.title = 'Left-click: View Building • Right-click: Buy Max';
             card.btn.addEventListener('click', (e) => {
                 if (e.shiftKey) {
                     currentBuildingId = b.id;
@@ -469,6 +469,7 @@ function ensureMysteriousBuildingOverlay() {
     
     overlay.addEventListener('pointerdown', (e) => {
         if (e.target === overlay) {
+            if (Date.now() - lastMysteriousOpenTime < 300) return;
             closeMysteriousBuildingOverlay();
         }
     });
@@ -480,6 +481,9 @@ function ensureMysteriousBuildingOverlay() {
 }
 
 function openMysteriousBuildingOverlay(mysteriousText) {
+    const existingOverlay = document.getElementById('mysterious-building-overlay');
+    if (existingOverlay && existingOverlay.classList.contains('is-open')) return;
+    lastMysteriousOpenTime = Date.now();
     ensureMysteriousBuildingOverlay();
     const overlay = document.getElementById('mysterious-building-overlay');
     const sheet = overlay.querySelector('.upg-sheet');
@@ -623,6 +627,8 @@ export function getBuildingBonus(id, levelBn) {
 
 let overlayEl = null;
 let currentBuildingId = null;
+let lastBuildingOpenTime = 0;
+let lastMysteriousOpenTime = 0;
 
 export const BUILDING_NAMES = {
     core: 'Reactor', crystal: 'Obelisk', stone: 'Foundry', copper: 'Charger', iron: 'Refinery',
@@ -904,6 +910,7 @@ export function initBuildingOverlay() {
     
     overlayEl.addEventListener('pointerdown', (e) => {
         if (e.target === overlayEl) {
+            if (Date.now() - lastBuildingOpenTime < 300) return;
             closeBuildingDetailOverlay();
         }
     });
@@ -922,6 +929,8 @@ export function initBuildingOverlay() {
 }
 
 export function openBuildingDetailOverlay(id) {
+    if (overlayEl && overlayEl.classList.contains('is-open') && currentBuildingId === id) return;
+    lastBuildingOpenTime = Date.now();
     initBuildingOverlay();
     currentBuildingId = id;
     
