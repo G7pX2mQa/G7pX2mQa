@@ -907,7 +907,6 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   .xp-counter {
     --xp-plus-size: var(--coin-plus-size);
   }
-  .dp-plus,
   .xp-plus {
     transform: translateY(-50%);
     left: calc((var(--xp-bar-underlap) - 1) * var(--xp-plus-size));
