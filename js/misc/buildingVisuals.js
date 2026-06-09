@@ -935,8 +935,8 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
             ctx.restore();
         };
 
-        drawTurbineExhaust(-64, true);
-        drawTurbineExhaust(64, false);
+        drawTurbineExhaust(-65, true);
+        drawTurbineExhaust(65, false);
         
         ctx.restore();
     }
