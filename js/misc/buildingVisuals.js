@@ -116,6 +116,8 @@ export function triggerLevelUpAnimation() {
 }
 
 export function checkTierUp(id, oldLevelBn, newLevelBn) {
+    if (id !== currentBuildingId) return;
+
     const oldNum = levelBigNumToNumber(oldLevelBn);
     const newNum = levelBigNumToNumber(newLevelBn);
     currentLevelNum = newNum;
@@ -441,11 +443,6 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
     ctx.scale(scale, scale);
     
     let bounce = 0;
-    // Only certain buildings bounce
-    if (id === 'crystal' || id === 'prismatium') {
-        bounce = Math.sin(t * 2) * 5;
-        ctx.translate(0, bounce);
-    }
 
     let topY = 0;
     if (id === 'core') topY = -200;
@@ -463,7 +460,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
     else topY = -100;
     
     // Scale the topY
-    let finalHighestY = floorY + (bounce + topY) * scale;
+    let finalHighestY = floorY + topY * scale;
 
     ctx.save();
     const glowRadius = Math.abs(topY) * 0.8 + 40;
@@ -478,7 +475,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
 
     if (id === 'core') drawReactor(ctx, t, tier);
     else if (id === 'crystal') drawObelisk(ctx, t, tier);
-    else if (id === 'stone') drawFoundry(ctx, t, tier);
+    else if (id === 'stone') drawFoundry(ctx, t, tier, prevTier, animProgress);
     else if (id === 'copper') drawCharger(ctx, t, tier);
     else if (id === 'iron') drawRefinery(ctx, t, tier);
     else if (id === 'pure_gold') drawVault(ctx, t, tier);
@@ -550,12 +547,11 @@ function drawObelisk(ctx, t, tier) {
     ctx.fill();
     
     if (tier >= 3) {
-        const fly = Math.sin(t*2) * 10;
         ctx.fillStyle = '#f0f';
         ctx.beginPath();
-        ctx.moveTo(0, -30 - h + fly - 20);
-        ctx.lineTo(-10, -30 - h + fly);
-        ctx.lineTo(10, -30 - h + fly);
+        ctx.moveTo(0, -30 - h - 20);
+        ctx.lineTo(-10, -30 - h);
+        ctx.lineTo(10, -30 - h);
         ctx.fill();
     }
 }
@@ -580,8 +576,8 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
     if (tier1Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier1Prog;
-        const yOffset = (1 - tier1Prog) * 50;
-        ctx.translate(0, yOffset);
+        
+        
         
         const drawSmokestack = (x, y, w, h, timeOffset) => {
             ctx.fillStyle = '#222';
@@ -591,7 +587,7 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
             ctx.fillStyle = '#111';
             ctx.fillRect(x - w/2 - 2, y - h, w + 4, 5);
 
-            if (tier1Prog > 0.8) {
+            if (tier1Prog > 0) {
                 for (let i = 0; i < 5; i++) {
                     const smokeT = (t + i * 0.8 + timeOffset) % 4;
                     const smokeY = y - h - smokeT * 40;
@@ -630,8 +626,8 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
     if (tier2Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier2Prog;
-        const scaleT2 = 0.5 + tier2Prog * 0.5;
-        ctx.scale(scaleT2, scaleT2);
+        
+        
         
         // Base dark plating
         ctx.fillStyle = '#111';
@@ -915,7 +911,7 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
             ctx.restore();
 
             // Blue flame exhaust
-            if (tier6Prog > 0.8) {
+            if (tier6Prog > 0) {
                 const firePulse = Math.random() * 0.4;
                 const fireW = (40 + firePulse * 20) * (isLeft ? -1 : 1);
                 const fireGrad = ctx.createLinearGradient(isLeft ? -30 : 30, 0, isLeft ? -30 + fireW : 30 + fireW, 0);
