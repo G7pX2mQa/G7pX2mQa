@@ -941,63 +941,18 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
     
-// Tier 7: Lava Extruders - Pushing out animated, fiery metal beams from the lava pools
+// Tier 7: Lava Containers
     const showTier7 = (tier >= 7) ? 1 : 0;
     const tier7Prog = (tier >= 7 && prevTier < 7) ? animProgress : showTier7;
     if (tier7Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier7Prog;
         
-        const drawExtruder = (x, isLeft) => {
+        const drawLavaContainer = (x, isLeft) => {
             ctx.save();
             ctx.translate(x, -10); // Base of the building
             
-            // Extruded metal beam
-            const beamLength = 90;
-            const beamHeight = 16;
-            const beamDir = isLeft ? -1 : 1;
-            const startX = isLeft ? -20 : 20;
-            
-            // Animated texture on the beam
-            const scrollSpeed = 30; // pixels per second
-            let scrollOffset = (t * scrollSpeed) % 20; 
-            if (scrollOffset < 0) scrollOffset += 20;
-            
-            ctx.save();
-            ctx.beginPath();
-            if (isLeft) {
-                ctx.rect(startX - beamLength, -20, beamLength, beamHeight + 10);
-            } else {
-                ctx.rect(startX, -20, beamLength, beamHeight + 10);
-            }
-            ctx.clip();
-            
-            // Base fiery gradient for the beam
-            const beamGrad = ctx.createLinearGradient(startX, 0, startX + beamDir * beamLength, 0);
-            beamGrad.addColorStop(0, '#ffffff'); // white hot
-            beamGrad.addColorStop(0.1, '#ffeb66'); // bright yellow
-            beamGrad.addColorStop(0.4, '#ff6600'); // orange
-            beamGrad.addColorStop(0.8, '#cc2200'); // red
-            beamGrad.addColorStop(1, '#441100'); // cooling dark metal
-            
-            ctx.fillStyle = beamGrad;
-            ctx.fillRect(isLeft ? startX - beamLength : startX, -18, beamLength, beamHeight);
-            
-            // Add cooling ribs (stripes) moving outwards
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-            for (let i = -20; i < beamLength + 20; i += 20) {
-                const lineX = startX + beamDir * (i + scrollOffset);
-                ctx.fillRect(lineX - 3, -18, 6, beamHeight);
-            }
-            ctx.restore();
-            
-            // Extruder Housing (drawn after beam so beam goes under it)
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(-15, -30, 30, 40); 
-            ctx.fillStyle = '#222';
-            ctx.fillRect(-20, -25, 40, 30);
-            
-            // Pipe connection to the lava pool
+            // Pipe connection to the lava pool (KEEP)
             ctx.fillStyle = '#111';
             if (isLeft) {
                 ctx.fillRect(15, -20, 25, 15); // Connects to the right (towards the pool)
@@ -1005,7 +960,7 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
                 ctx.fillRect(-40, -20, 25, 15); // Connects to the left (towards the pool)
             }
             
-            // Glowing intake
+            // Glowing intake (KEEP)
             const heatPulse = 0.5 + 0.5 * Math.sin(t * 8);
             ctx.fillStyle = `rgba(255, ${100 + heatPulse * 100}, 0, 0.8)`;
             if (isLeft) {
@@ -1013,25 +968,78 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
             } else {
                 ctx.fillRect(-25, -15, 10, 5);
             }
+
+            // Lifted Silo parameters
+            const containerWidth = 30;
+            const containerHeight = 40;
+            const siloX = isLeft ? -15 : -15; // center of the silo relative to connection point
+            const siloY = -containerHeight; // lift it up slightly so it doesn't touch ground
+
+            // Silo Back wall (dark background inside)
+            ctx.fillStyle = '#1a0a00';
+            ctx.fillRect(siloX, siloY, containerWidth, containerHeight);
             
-            // Sparks at the extruder exit
-            for (let i = 0; i < 6; i++) {
-                const sparkT = (t * 5 + i * 1.3) % 1;
-                const sparkX = startX + beamDir * sparkT * 40;
-                const sparkY = -10 + (Math.random() - 0.5) * 20 * sparkT;
+            // Lava inside
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(siloX, siloY, containerWidth, containerHeight);
+            ctx.clip();
+            
+            // Lava level and motion
+            const lavaLevelBase = 0.7; // 70% full
+            const lavaLevelFluctuation = 0.05 * Math.sin(t * 2);
+            const currentLavaHeight = containerHeight * (lavaLevelBase + lavaLevelFluctuation);
+            const lavaY = siloY + containerHeight - currentLavaHeight;
+
+            // Lava gradient
+            const lavaGrad = ctx.createLinearGradient(0, lavaY, 0, siloY + containerHeight);
+            lavaGrad.addColorStop(0, '#ffcc00'); // top is hot/bright
+            lavaGrad.addColorStop(0.3, '#ff6600');
+            lavaGrad.addColorStop(1, '#cc2200'); // bottom is darker
+            
+            ctx.fillStyle = lavaGrad;
+            ctx.fillRect(siloX, lavaY, containerWidth, currentLavaHeight);
+
+            // Lava bubbles moving up
+            for (let i = 0; i < 8; i++) {
+                const bubbleT = (t * 0.5 + i * 0.43) % 1; // 0 to 1 cycle
+                const bubbleX = siloX + 5 + (i * 3) % (containerWidth - 10) + Math.sin(t * 3 + i) * 2;
+                const bubbleY = siloY + containerHeight - (bubbleT * currentLavaHeight);
+                const bubbleRadius = 1 + (i % 3);
                 
-                ctx.globalAlpha = 1 - sparkT;
-                ctx.fillStyle = (i % 2 === 0) ? '#fff' : '#ffcc00';
-                ctx.fillRect(sparkX, sparkY, 3, 3);
+                // only draw if below the surface
+                if (bubbleY > lavaY + bubbleRadius) {
+                    ctx.fillStyle = 'rgba(255, 200, 100, 0.7)';
+                    ctx.beginPath();
+                    ctx.arc(bubbleX, bubbleY, bubbleRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
-            ctx.globalAlpha = 1.0;
+            
+            ctx.restore();
+
+            // Glass reflection/shine
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.fillRect(siloX + 3, siloY + 2, 5, containerHeight - 4);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.fillRect(siloX + 8, siloY + 2, 3, containerHeight - 4);
+
+            // Metal caps (Top and Bottom of Silo)
+            ctx.fillStyle = '#222';
+            ctx.fillRect(siloX - 2, siloY - 5, containerWidth + 4, 5); // Top cap
+            ctx.fillRect(siloX - 2, siloY + containerHeight, containerWidth + 4, 5); // Bottom cap
+            
+            // Side supports/frame for the glass
+            ctx.fillStyle = '#111';
+            ctx.fillRect(siloX, siloY, 3, containerHeight); // Left frame
+            ctx.fillRect(siloX + containerWidth - 3, siloY, 3, containerHeight); // Right frame
             
             ctx.restore();
         };
 
         // Positioned at the outer edges of the cooling pools
-        drawExtruder(-105, true);
-        drawExtruder(105, false);
+        drawLavaContainer(-105, true);
+        drawLavaContainer(105, false);
         
         ctx.restore();
     }
