@@ -474,7 +474,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
     ctx.fill();
     ctx.restore();
 
-    if (id === 'core') drawReactor(ctx, t, tier);
+    if (id === 'core') drawBlackHole(ctx, t, tier, prevTier, animProgress);
     else if (id === 'crystal') drawObelisk(ctx, t, tier);
     else if (id === 'stone') drawFoundry(ctx, t, tier, prevTier, animProgress);
     else if (id === 'copper') drawCharger(ctx, t, tier);
@@ -509,27 +509,299 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
 
 // ----------------- Building Drawing Routines ----------------- //
 
-function drawReactor(ctx, t, tier) {
-    const r = 30 + (tier * 2);
-    ctx.fillStyle = '#222';
-    ctx.fillRect(-50, -20, 100, 20);
+function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
+    const cx = 0;
+    const cy = -80; // Main vertical center of the black hole
     
-    ctx.fillStyle = '#444';
-    ctx.fillRect(-10, -80, 20, 60);
-    
-    const pulse = Math.abs(Math.sin(t * 3));
-    ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + pulse * 0.5})`;
+    const showTier0 = 1;
+    const tier0Prog = (tier >= 0 && prevTier < 0) ? animProgress : showTier0;
+    const showTier1 = (tier >= 1) ? 1 : 0;
+    const tier1Prog = (tier >= 1 && prevTier < 1) ? animProgress : showTier1;
+    const showTier2 = (tier >= 2) ? 1 : 0;
+    const tier2Prog = (tier >= 2 && prevTier < 2) ? animProgress : showTier2;
+    const showTier3 = (tier >= 3) ? 1 : 0;
+    const tier3Prog = (tier >= 3 && prevTier < 3) ? animProgress : showTier3;
+    const showTier4 = (tier >= 4) ? 1 : 0;
+    const tier4Prog = (tier >= 4 && prevTier < 4) ? animProgress : showTier4;
+    const showTier5 = (tier >= 5) ? 1 : 0;
+    const tier5Prog = (tier >= 5 && prevTier < 5) ? animProgress : showTier5;
+    const showTier6 = (tier >= 6) ? 1 : 0;
+    const tier6Prog = (tier >= 6 && prevTier < 6) ? animProgress : showTier6;
+    const showTier7 = (tier >= 7) ? 1 : 0;
+    const tier7Prog = (tier >= 7 && prevTier < 7) ? animProgress : showTier7;
+    const showTier8 = (tier >= 8) ? 1 : 0;
+    const tier8Prog = (tier >= 8 && prevTier < 8) ? animProgress : showTier8;
+
+    // Base containment ring (Tier 0+) - Made much more visible
+    ctx.fillStyle = '#1a1a1a';
     ctx.beginPath();
-    ctx.arc(0, -90, r, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy + 80, 80, 25, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 6;
+    ctx.stroke();
+    
+    // Tier 0 extra detail: Inner glowing track
+    ctx.strokeStyle = '#220033';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 80, 60, 15, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Tier 7 & 8: Megastructure Shell (Back half)
+    if (tier7Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier7Prog;
+        
+        const shellRadius = 120 + 40 * tier8Prog;
+        ctx.strokeStyle = '#1a1a2e';
+        ctx.lineWidth = 8 + 8 * tier8Prog;
+        
+        ctx.beginPath();
+        ctx.arc(cx, cy, shellRadius, Math.PI, 0); // Top half
+        ctx.stroke();
+
+        // Structural ribs
+        ctx.lineWidth = 3 + 2 * tier8Prog;
+        ctx.strokeStyle = '#2a2a4e';
+        for(let i=1; i<5; i++) {
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, shellRadius, shellRadius * 0.3 * i/5, 0, Math.PI, 0);
+            ctx.stroke();
+        }
+        
+        // Tier 8: Intense energy fields on the back shell
+        if (tier8Prog > 0) {
+            ctx.strokeStyle = `rgba(0, 255, 255, ${0.3 + 0.3 * Math.sin(t * 6)})`;
+            ctx.lineWidth = 4;
+            for(let i=1; i<4; i++) {
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, shellRadius * 0.9, shellRadius * 0.25 * i/4, 0, Math.PI, 0);
+                ctx.stroke();
+            }
+        }
+        ctx.restore();
+    }
+
+    // Tier 5+: Relativistic Jets (Vertical Beams)
+    if (tier5Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier5Prog;
+        
+        const pulse = Math.abs(Math.sin(t * 8));
+        const jetWidth = 15 + 25 * tier8Prog + pulse * 10;
+        const jetHeight = 300 + 400 * tier8Prog;
+
+        const jetGrad = ctx.createLinearGradient(cx - jetWidth/2, 0, cx + jetWidth/2, 0);
+        jetGrad.addColorStop(0, `rgba(138, 43, 226, 0)`); // BlueViolet
+        jetGrad.addColorStop(0.2, `rgba(138, 43, 226, ${0.6 + 0.4 * tier8Prog})`);
+        jetGrad.addColorStop(0.5, `rgba(255, 255, 255, ${0.8 + 0.2 * tier8Prog})`);
+        jetGrad.addColorStop(0.8, `rgba(138, 43, 226, ${0.6 + 0.4 * tier8Prog})`);
+        jetGrad.addColorStop(1, `rgba(138, 43, 226, 0)`);
+
+        // Upward Jet
+        ctx.fillStyle = jetGrad;
+        ctx.fillRect(cx - jetWidth/2, cy - jetHeight, jetWidth, jetHeight);
+        
+        // Downward Jet
+        ctx.fillRect(cx - jetWidth/2, cy, jetWidth, jetHeight);
+        
+        // Tier 8: Core beam inside jet
+        if (tier8Prog > 0) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + 0.5 * Math.sin(t * 12)})`;
+            const coreWidth = 5 + pulse * 2;
+            ctx.fillRect(cx - coreWidth/2, cy - jetHeight * 1.2, coreWidth, jetHeight * 2.4);
+        }
+        
+        ctx.restore();
+    }
+
+    // Tier 2+: Accretion Disk Forms
+    if (tier2Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier2Prog;
+        
+        const diskRadius = 40 + 60 * tier3Prog + 50 * tier6Prog + 80 * tier8Prog;
+        const rotationT = t * (1 + tier6Prog * 2 + tier8Prog * 3);
+
+        ctx.translate(cx, cy);
+        
+        // Draw spinning dusty disk
+        for(let i=0; i<3; i++) {
+            ctx.save();
+            ctx.rotate(rotationT + i * Math.PI / 3);
+            ctx.scale(1, 0.25 - 0.1 * tier8Prog); // Flatten into a disk, flatter at higher tiers
+            
+            const diskGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, diskRadius);
+            const baseR = 100 + 100 * tier3Prog + 55 * tier8Prog;
+            const baseG = 100 + 50 * tier6Prog + 100 * tier8Prog;
+            const baseB = 100 + 155 * tier3Prog + 50 * tier8Prog;
+            
+            diskGrad.addColorStop(0, `rgba(${baseR}, ${baseG}, ${baseB}, 0.9)`);
+            diskGrad.addColorStop(0.5, `rgba(${baseR}, ${baseG}, ${baseB}, ${0.5 + 0.4 * tier6Prog})`);
+            diskGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            
+            ctx.fillStyle = diskGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, diskRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+        
+        // Tier 6+ orbital fragments
+        if (tier6Prog > 0) {
+            ctx.fillStyle = '#fff';
+            for(let i=0; i<8; i++) {
+                const angle = rotationT * 1.5 + i * Math.PI / 4;
+                const fragDist = diskRadius * 0.8 + Math.sin(t * 2 + i) * 10;
+                const fx = Math.cos(angle) * fragDist;
+                const fy = Math.sin(angle) * fragDist * 0.2;
+                
+                ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 5 + i);
+                ctx.beginPath();
+                ctx.arc(fx, fy, 1.5 + tier8Prog, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        ctx.restore();
+    }
+
+    // The Singularity (Tier 0+)
+    ctx.save();
+    
+    // Tier 1: Awakening (Pulsing waves)
+    if (tier1Prog > 0) {
+        const pulse = Math.sin(t * 3) * 0.5 + 0.5;
+        const waveRadius = 15 + pulse * 15 * tier1Prog;
+        
+        ctx.beginPath();
+        ctx.arc(cx, cy, waveRadius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(75, 0, 130, ${0.5 * (1 - pulse)})`; // Indigo
+        ctx.fill();
+    }
+
+    // Tier 3+: Event Horizon Deep Void
+    const baseRadius = 8; // Slightly larger base
+    const finalRadius = baseRadius + 15 * tier3Prog + 15 * tier6Prog + 25 * tier8Prog;
+    
+    // Space Warping / Glowing edge (Tier 6+)
+    if (tier6Prog > 0) {
+        const warpRadius = finalRadius + 10 + 15 * Math.sin(t * 10);
+        ctx.beginPath();
+        ctx.arc(cx, cy, warpRadius, 0, Math.PI * 2);
+        const warpGrad = ctx.createRadialGradient(cx, cy, finalRadius, cx, cy, warpRadius);
+        warpGrad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        warpGrad.addColorStop(0.5, 'rgba(0, 255, 255, 0.5)'); // Cyan warp
+        warpGrad.addColorStop(1, 'rgba(138, 43, 226, 0)');
+        ctx.fillStyle = warpGrad;
+        ctx.fill();
+    }
+
+    // The pure black hole
+    ctx.beginPath();
+    ctx.arc(cx, cy, finalRadius, 0, Math.PI * 2);
+    ctx.fillStyle = '#000000';
     ctx.fill();
     
-    if (tier >= 5) {
-        ctx.strokeStyle = '#0ff';
-        ctx.lineWidth = 2;
+    ctx.restore();
+
+    // Tier 4+: Containment Grid
+    if (tier4Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier4Prog;
+        
+        const pillarDist = 60 + 30 * tier7Prog;
+        const pillarHeight = 80 + 40 * tier7Prog;
+        const pulse = Math.abs(Math.sin(t * 5));
+        
+        for(let i=-1; i<=1; i+=2) {
+            const px = cx + pillarDist * i;
+            const py = cy + 50;
+            
+            // Pillar Base
+            ctx.fillStyle = '#111';
+            ctx.fillRect(px - 15, py - pillarHeight/2 + pillarHeight - 10, 30, 10);
+            
+            // Pillar
+            const pillarGrad = ctx.createLinearGradient(px - 10, 0, px + 10, 0);
+            pillarGrad.addColorStop(0, '#222');
+            pillarGrad.addColorStop(0.5, '#444');
+            pillarGrad.addColorStop(1, '#111');
+            ctx.fillStyle = pillarGrad;
+            ctx.fillRect(px - 10, py - pillarHeight/2, 20, pillarHeight - 10);
+            
+            // Glowing nodes on pillar
+            ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + 0.5 * pulse})`;
+            ctx.fillRect(px - 5, py - pillarHeight/2 + 10, 10, 5);
+            ctx.fillRect(px - 5, py - pillarHeight/2 + 30, 10, 5);
+            
+            // Tether Beam to center
+            ctx.beginPath();
+            ctx.moveTo(px, py - pillarHeight/2 + 20);
+            ctx.lineTo(cx, cy);
+            
+            ctx.strokeStyle = `rgba(0, 255, 255, ${0.6 + 0.4 * pulse})`;
+            ctx.lineWidth = 3 + 3 * tier8Prog;
+            ctx.stroke();
+            
+            // Tier 8 additional beams
+            if (tier8Prog > 0) {
+                ctx.beginPath();
+                ctx.moveTo(px, py - pillarHeight/2 + 40);
+                ctx.lineTo(cx, cy);
+                ctx.strokeStyle = `rgba(255, 0, 255, ${0.6 + 0.4 * Math.abs(Math.sin(t*7))})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+        ctx.restore();
+    }
+
+    // Tier 7 & 8: Megastructure Shell (Front half)
+    if (tier7Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier7Prog;
+        
+        const shellRadius = 120 + 40 * tier8Prog;
+        ctx.strokeStyle = '#1a1a2e';
+        ctx.lineWidth = 8 + 8 * tier8Prog;
+        
         ctx.beginPath();
-        ctx.moveTo(0, -90);
-        ctx.lineTo(0, -200);
+        ctx.arc(cx, cy, shellRadius, 0, Math.PI); // Bottom half
         ctx.stroke();
+
+        // Structural ribs (front)
+        ctx.lineWidth = 3 + 2 * tier8Prog;
+        ctx.strokeStyle = '#3a3a6e';
+        for(let i=1; i<5; i++) {
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, shellRadius, shellRadius * 0.3 * i/5, 0, 0, Math.PI);
+            ctx.stroke();
+        }
+        
+        // Energy veins
+        if (tier8Prog > 0) {
+            ctx.strokeStyle = `rgba(138, 43, 226, ${0.6 + 0.4 * Math.sin(t * 4)})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, shellRadius, shellRadius * 0.3 * 2/5, 0, 0, Math.PI);
+            ctx.stroke();
+            
+            // Pulsing nodes on the shell
+            ctx.fillStyle = '#0ff';
+            for(let i=0; i<=4; i++) {
+                const angle = i * Math.PI / 4;
+                const nx = cx + Math.cos(angle) * shellRadius;
+                const ny = cy + Math.sin(angle) * shellRadius;
+                ctx.beginPath();
+                ctx.arc(nx, ny, 4 + 2 * Math.sin(t*8+i), 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        ctx.restore();
     }
 }
 
