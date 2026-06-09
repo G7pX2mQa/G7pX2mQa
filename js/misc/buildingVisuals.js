@@ -941,75 +941,97 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
     
-    // Tier 7: High-Speed Centrifugal Casting Wheels - Heavy glowing wheels spinning at high speeds
+// Tier 7: Lava Extruders - Pushing out animated, fiery metal beams from the lava pools
     const showTier7 = (tier >= 7) ? 1 : 0;
     const tier7Prog = (tier >= 7 && prevTier < 7) ? animProgress : showTier7;
     if (tier7Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier7Prog;
         
-        const drawCastingWheel = (x, isLeft) => {
+        const drawExtruder = (x, isLeft) => {
             ctx.save();
-            ctx.translate(x, -40);
+            ctx.translate(x, -10); // Base of the building
             
-            // Support structure
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(-15, 0, 30, 40);
-            ctx.fillStyle = '#222';
-            ctx.fillRect(-20, 30, 40, 10);
+            // Extruded metal beam
+            const beamLength = 90;
+            const beamHeight = 16;
+            const beamDir = isLeft ? -1 : 1;
+            const startX = isLeft ? -20 : 20;
             
-            // Wheel Housing
-            ctx.fillStyle = '#111';
-            ctx.beginPath();
-            ctx.arc(0, 0, 35, 0, Math.PI * 2);
-            ctx.fill();
+            // Animated texture on the beam
+            const scrollSpeed = 30; // pixels per second
+            let scrollOffset = (t * scrollSpeed) % 20; 
+            if (scrollOffset < 0) scrollOffset += 20;
             
-            // The Spinning Wheel
             ctx.save();
-            // Spin incredibly fast
-            ctx.rotate(t * (isLeft ? -15 : 15));
-            
-            // Outer wheel rim
-            ctx.lineWidth = 8;
-            ctx.strokeStyle = '#333';
             ctx.beginPath();
-            ctx.arc(0, 0, 30, 0, Math.PI * 2);
-            ctx.stroke();
-            
-            // Glowing hot interior/spokes
-            const wheelGlow = 0.8 + 0.2 * Math.sin(t * 10);
-            ctx.fillStyle = `rgba(255, ${100 + wheelGlow * 100}, 0, 0.9)`;
-            for (let i = 0; i < 6; i++) {
-                ctx.rotate(Math.PI / 3);
-                ctx.fillRect(-4, 10, 8, 20);
+            if (isLeft) {
+                ctx.rect(startX - beamLength, -20, beamLength, beamHeight + 10);
+            } else {
+                ctx.rect(startX, -20, beamLength, beamHeight + 10);
             }
+            ctx.clip();
             
-            // White-hot center
-            ctx.fillStyle = '#fff';
-            ctx.beginPath();
-            ctx.arc(0, 0, 12, 0, Math.PI * 2);
-            ctx.fill();
+            // Base fiery gradient for the beam
+            const beamGrad = ctx.createLinearGradient(startX, 0, startX + beamDir * beamLength, 0);
+            beamGrad.addColorStop(0, '#ffffff'); // white hot
+            beamGrad.addColorStop(0.1, '#ffeb66'); // bright yellow
+            beamGrad.addColorStop(0.4, '#ff6600'); // orange
+            beamGrad.addColorStop(0.8, '#cc2200'); // red
+            beamGrad.addColorStop(1, '#441100'); // cooling dark metal
+            
+            ctx.fillStyle = beamGrad;
+            ctx.fillRect(isLeft ? startX - beamLength : startX, -18, beamLength, beamHeight);
+            
+            // Add cooling ribs (stripes) moving outwards
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            for (let i = -20; i < beamLength + 20; i += 20) {
+                const lineX = startX + beamDir * (i + scrollOffset);
+                ctx.fillRect(lineX - 3, -18, 6, beamHeight);
+            }
             ctx.restore();
             
-            // Spark ejections
-            ctx.fillStyle = '#fff';
+            // Extruder Housing (drawn after beam so beam goes under it)
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(-15, -30, 30, 40); 
+            ctx.fillStyle = '#222';
+            ctx.fillRect(-20, -25, 40, 30);
+            
+            // Pipe connection to the lava pool
+            ctx.fillStyle = '#111';
+            if (isLeft) {
+                ctx.fillRect(15, -20, 25, 15); // Connects to the right (towards the pool)
+            } else {
+                ctx.fillRect(-40, -20, 25, 15); // Connects to the left (towards the pool)
+            }
+            
+            // Glowing intake
+            const heatPulse = 0.5 + 0.5 * Math.sin(t * 8);
+            ctx.fillStyle = `rgba(255, ${100 + heatPulse * 100}, 0, 0.8)`;
+            if (isLeft) {
+                ctx.fillRect(15, -15, 10, 5);
+            } else {
+                ctx.fillRect(-25, -15, 10, 5);
+            }
+            
+            // Sparks at the extruder exit
             for (let i = 0; i < 6; i++) {
-                const sparkT = (t * 5 + i * 1.5) % 1;
-                // Sparks fly outwards from the side
-                const sparkDir = isLeft ? -1 : 1;
-                const sparkX = sparkDir * (35 + sparkT * 40);
-                const sparkY = (Math.random() - 0.5) * 20 + sparkT * 30;
+                const sparkT = (t * 5 + i * 1.3) % 1;
+                const sparkX = startX + beamDir * sparkT * 40;
+                const sparkY = -10 + (Math.random() - 0.5) * 20 * sparkT;
                 
                 ctx.globalAlpha = 1 - sparkT;
+                ctx.fillStyle = (i % 2 === 0) ? '#fff' : '#ffcc00';
                 ctx.fillRect(sparkX, sparkY, 3, 3);
-                ctx.globalAlpha = 1.0;
             }
+            ctx.globalAlpha = 1.0;
             
             ctx.restore();
         };
-        
-        drawCastingWheel(-110, true);
-        drawCastingWheel(110, false);
+
+        // Positioned at the outer edges of the cooling pools
+        drawExtruder(-105, true);
+        drawExtruder(105, false);
         
         ctx.restore();
     }
