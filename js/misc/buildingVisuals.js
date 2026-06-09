@@ -136,7 +136,7 @@ export function checkTierUp(id, oldLevelBn, newLevelBn) {
     } else if (newTier > oldTier) {
         previousTier = oldTier;
         if (newTier >= 1) {
-            tierUpAnimTime = 5.0; 
+            tierUpAnimTime = 6.0; 
             playAudio('sounds/building_tier_up.ogg');
         }
     }
@@ -172,7 +172,7 @@ function draw(ctx, width, height, t) {
     ctx.save();
     let shakeAlpha = 0;
     if (tierUpAnimTime > 0) {
-        shakeAlpha = tierUpAnimTime > 2.5 ? (5.0 - tierUpAnimTime) / 2.5 : tierUpAnimTime / 2.5;
+        shakeAlpha = tierUpAnimTime > 2.5 ? (6.0 - tierUpAnimTime) / 3.5 : tierUpAnimTime / 2.5;
         const shake = Math.sin(t * 50) * (shakeAlpha * 10);
         const shakeY = Math.cos(t * 40) * (shakeAlpha * 5);
         ctx.translate(shake, shakeY);
@@ -185,7 +185,8 @@ function draw(ctx, width, height, t) {
         let drawTier = currentTier;
         let animProgress = 1.0;
         if (tierUpAnimTime > 0) {
-            animProgress = 1.0 - (tierUpAnimTime / 5.0);
+            // Reaches 1.0 at 3.5 seconds into the 6.0 second animation (when tierUpAnimTime is 2.5)
+            animProgress = tierUpAnimTime > 2.5 ? 1.0 - ((tierUpAnimTime - 2.5) / 3.5) : 1.0;
             drawTier = currentTier;
         }
         drawBuilding(ctx, width, height, t, currentBuildingId, drawTier, previousTier, animProgress);
@@ -500,7 +501,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
         
         let shakeAlphaText = 0;
         if (tierUpAnimTime > 0) {
-            shakeAlphaText = tierUpAnimTime > 2.5 ? (5.0 - tierUpAnimTime) / 2.5 : tierUpAnimTime / 2.5;
+            shakeAlphaText = tierUpAnimTime > 2.5 ? (6.0 - tierUpAnimTime) / 3.5 : tierUpAnimTime / 2.5;
         }
         levelText.style.opacity = Math.max(0, 1 - shakeAlphaText);
     }
@@ -787,84 +788,6 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
     
-    // Tier 4: The Core Unleashed - Blast doors open revealing intensely bright plasma core casting rays
-    const showTier4 = (tier >= 4) ? 1 : 0;
-    const tier4Prog = (tier >= 4 && prevTier < 4) ? animProgress : showTier4;
-    
-    // Draw furnace opening
-    const doorWidth = 40 + tier4Prog * 20;
-    const doorHeight = 40 + tier4Prog * 20;
-    const pulse = Math.abs(Math.sin(t * 5));
-    const corePulse = 0.8 + 0.2 * Math.sin(t * 15);
-    
-    ctx.fillStyle = '#050505';
-    ctx.fillRect(-doorWidth/2, -doorHeight, doorWidth, doorHeight);
-
-    const showTier8ForCore = (tier >= 8) ? 1 : 0;
-    const tier8CoreProg = (tier >= 8 && prevTier < 8) ? animProgress : showTier8ForCore;
-    
-    if (tier4Prog > 0) {
-        // Plasma core
-        const tier8CoreMult = 1 + (tier8CoreProg * 1.5);
-        const coreRadius = (15 + pulse * 5) * tier4Prog * tier8CoreMult;
-        const coreGrad = ctx.createRadialGradient(0, -doorHeight/2, 0, 0, -doorHeight/2, coreRadius * 2);
-        coreGrad.addColorStop(0, '#ffffff');
-        coreGrad.addColorStop(0.2, '#ffcc00');
-        coreGrad.addColorStop(0.5, '#ff3300');
-        coreGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
-        
-        ctx.fillStyle = coreGrad;
-        ctx.beginPath();
-        ctx.arc(0, -doorHeight/2, coreRadius * 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Light rays casting outwards
-        ctx.save();
-        ctx.translate(0, -doorHeight/2);
-        for(let i=0; i<6; i++) {
-            const angle = (t * 2 + i * Math.PI / 3) % (Math.PI * 2);
-            ctx.rotate(angle);
-            
-            const rayLen = 80 * tier4Prog * corePulse * tier8CoreMult;
-            const rayGrad = ctx.createLinearGradient(0, 0, 0, rayLen);
-            const rayAlpha = Math.min(1.0, 0.4 * tier4Prog + 0.4 * tier8CoreProg);
-            rayGrad.addColorStop(0, `rgba(255, 200, 100, ${rayAlpha})`);
-            rayGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
-            
-            ctx.fillStyle = rayGrad;
-            ctx.beginPath();
-            ctx.moveTo(-2 * tier8CoreMult, 0);
-            ctx.lineTo(2 * tier8CoreMult, 0);
-            ctx.lineTo(10 * tier8CoreMult, rayLen);
-            ctx.lineTo(-10 * tier8CoreMult, rayLen);
-            ctx.fill();
-            ctx.rotate(-angle);
-        }
-        ctx.restore();
-
-        // Blast doors (opened) logic removed as per requirements
-
-    } else {
-        // Base tier opening (closed doors)
-        // Fiery orangish-red/yellow/orange glow
-        ctx.fillStyle = `rgba(255, ${50 + pulse * 100}, 0, 0.8)`;
-        ctx.fillRect(-doorWidth/2 + 5, -doorHeight + 5, doorWidth - 10, doorHeight - 5);
-    }
-    
-    const castGlowRadius = (60 + tier4Prog * 60) * (1 + (typeof tier8CoreProg !== 'undefined' ? tier8CoreProg : 0));
-    const groundGlow = ctx.createRadialGradient(0, -doorHeight/2, 10, 0, 0, castGlowRadius);
-    if (tier4Prog > 0) {
-        groundGlow.addColorStop(0, `rgba(255, 100, 0, ${0.4 * tier4Prog * corePulse})`);
-        groundGlow.addColorStop(1, 'rgba(255, 50, 0, 0)');
-    } else {
-        groundGlow.addColorStop(0, `rgba(255, ${150 + pulse * 50}, 0, 0.4)`);
-        groundGlow.addColorStop(1, 'rgba(255, 100, 0, 0)');
-    }
-    ctx.fillStyle = groundGlow;
-    ctx.beginPath();
-    ctx.arc(0, 0, castGlowRadius, Math.PI, 0); 
-    ctx.fill();
-    
     // Tier 6: Hyper-Accelerated Exhaust - Animated turbine fans blowing intense magma flame jets
     const showTier6 = (tier >= 6) ? 1 : 0;
     const tier6Prog = (tier >= 6 && prevTier < 6) ? animProgress : showTier6;
@@ -1039,6 +962,84 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         
         ctx.restore();
     }
+    
+    // Tier 4: The Core Unleashed - Blast doors open revealing intensely bright plasma core casting rays
+    const showTier4 = (tier >= 4) ? 1 : 0;
+    const tier4Prog = (tier >= 4 && prevTier < 4) ? animProgress : showTier4;
+    
+    // Draw furnace opening
+    const doorWidth = 40 + tier4Prog * 20;
+    const doorHeight = 40 + tier4Prog * 20;
+    const pulse = Math.abs(Math.sin(t * 5));
+    const corePulse = 0.8 + 0.2 * Math.sin(t * 15);
+    
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(-doorWidth/2, -doorHeight, doorWidth, doorHeight);
+
+    const showTier8ForCore = (tier >= 8) ? 1 : 0;
+    const tier8CoreProg = (tier >= 8 && prevTier < 8) ? animProgress : showTier8ForCore;
+    
+    if (tier4Prog > 0) {
+        // Plasma core
+        const tier8CoreMult = 1 + (tier8CoreProg * 1.5);
+        const coreRadius = (15 + pulse * 5) * tier4Prog * tier8CoreMult;
+        const coreGrad = ctx.createRadialGradient(0, -doorHeight/2, 0, 0, -doorHeight/2, coreRadius * 2);
+        coreGrad.addColorStop(0, '#ffffff');
+        coreGrad.addColorStop(0.2, '#ffcc00');
+        coreGrad.addColorStop(0.5, '#ff3300');
+        coreGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
+        
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath();
+        ctx.arc(0, -doorHeight/2, coreRadius * 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Light rays casting outwards
+        ctx.save();
+        ctx.translate(0, -doorHeight/2);
+        for(let i=0; i<6; i++) {
+            const angle = (t * 2 + i * Math.PI / 3) % (Math.PI * 2);
+            ctx.rotate(angle);
+            
+            const rayLen = 80 * tier4Prog * corePulse * tier8CoreMult;
+            const rayGrad = ctx.createLinearGradient(0, 0, 0, rayLen);
+            const rayAlpha = Math.min(1.0, 0.4 * tier4Prog + 0.4 * tier8CoreProg);
+            rayGrad.addColorStop(0, `rgba(255, 200, 100, ${rayAlpha})`);
+            rayGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
+            
+            ctx.fillStyle = rayGrad;
+            ctx.beginPath();
+            ctx.moveTo(-2 * tier8CoreMult, 0);
+            ctx.lineTo(2 * tier8CoreMult, 0);
+            ctx.lineTo(10 * tier8CoreMult, rayLen);
+            ctx.lineTo(-10 * tier8CoreMult, rayLen);
+            ctx.fill();
+            ctx.rotate(-angle);
+        }
+        ctx.restore();
+
+        // Blast doors (opened) logic removed as per requirements
+
+    } else {
+        // Base tier opening (closed doors)
+        // Fiery orangish-red/yellow/orange glow
+        ctx.fillStyle = `rgba(255, ${50 + pulse * 100}, 0, 0.8)`;
+        ctx.fillRect(-doorWidth/2 + 5, -doorHeight + 5, doorWidth - 10, doorHeight - 5);
+    }
+    
+    const castGlowRadius = (60 + tier4Prog * 60) * (1 + (typeof tier8CoreProg !== 'undefined' ? tier8CoreProg : 0));
+    const groundGlow = ctx.createRadialGradient(0, -doorHeight/2, 10, 0, 0, castGlowRadius);
+    if (tier4Prog > 0) {
+        groundGlow.addColorStop(0, `rgba(255, 100, 0, ${0.4 * tier4Prog * corePulse})`);
+        groundGlow.addColorStop(1, 'rgba(255, 50, 0, 0)');
+    } else {
+        groundGlow.addColorStop(0, `rgba(255, ${150 + pulse * 50}, 0, 0.4)`);
+        groundGlow.addColorStop(1, 'rgba(255, 100, 0, 0)');
+    }
+    ctx.fillStyle = groundGlow;
+    ctx.beginPath();
+    ctx.arc(0, 0, castGlowRadius, Math.PI, 0); 
+    ctx.fill();
     
 /* COMMENTING OUT ALL OF THIS CODE IN CASE I WANT TO REUSE IT FOR A SIMILAR THING ANOTHER TIME. DO NOT REMOVE THIS COMMENTED OUT CODE.
     // Tier 8: The World Forge - Geothermal magma engine
