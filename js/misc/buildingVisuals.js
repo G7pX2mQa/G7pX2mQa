@@ -1044,6 +1044,7 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
     
+/* COMMENTING OUT ALL OF THIS CODE IN CASE I WANT TO REUSE IT FOR A SIMILAR THING ANOTHER TIME. DO NOT REMOVE THIS COMMENTED OUT CODE.
     // Tier 8: The World Forge - Geothermal magma engine
     const showTier8 = (tier >= 8) ? 1 : 0;
     const tier8Prog = (tier >= 8 && prevTier < 8) ? animProgress : showTier8;
@@ -1106,6 +1107,7 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         
         ctx.restore();
     }
+*/
 }
 
 function drawGear(ctx, r, color) {
