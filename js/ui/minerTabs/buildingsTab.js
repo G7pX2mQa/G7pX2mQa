@@ -146,7 +146,7 @@ export function renderBuildingsGrid(gridEl) {
     if (!isBuildingUnlocked('core')) setBuildingUnlocked('core', true);
     buildings.push({
         id: 'core',
-        title: 'Core Building',
+        title: 'Black Hole',
         iconSrc: '',
         baseSrc: 'img/currencies/core/core_plus_base.webp',
         isLocked: false,
@@ -631,7 +631,7 @@ let lastBuildingOpenTime = 0;
 let lastMysteriousOpenTime = 0;
 
 export const BUILDING_NAMES = {
-    core: 'Reactor', crystal: 'Obelisk', stone: 'Foundry', copper: 'Charger', iron: 'Refinery',
+    core: 'Black Hole', crystal: 'Obelisk', stone: 'Foundry', copper: 'Charger', iron: 'Refinery',
     pure_gold: 'Vault', diamond: 'Oil Rig', emerald: 'Greenhouse', ruby: 'Radiator',
     sapphire: 'Centrifuge', unobtainium: 'Beacon', prismatium: 'Singularity Generator'
 };
