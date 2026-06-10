@@ -641,63 +641,73 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
-    // Tier 6: Swirling Mini-Vortices
+    // Tier 6: Orbiting Stars (Spaghettification)
     if (tier6Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier6Prog;
         ctx.translate(cx, cy);
         
-        const numVortices = 4;
-        for (let i = 0; i < numVortices; i++) {
-            const vortT = (t * 0.2 + i * (1.0 / numVortices)) % 1.0;
+        const numStars = 3;
+        for (let i = 0; i < numStars; i++) {
+            // cycle goes from 0.0 (far away) to 1.0 (entering event horizon)
+            const cycleT = (t * 0.3 + i * (1.0 / numStars)) % 1.0;
             
-            let alpha = 0;
-            if (vortT < 0.2) alpha = vortT / 0.2;
-            else if (vortT < 0.8) alpha = 1.0;
-            else alpha = 1.0 - ((vortT - 0.8) / 0.2);
+            const startDist = finalRadius + 150;
+            const currentDist = startDist * (1.0 - cycleT) + finalRadius * cycleT;
             
-            const angle = (i * Math.PI * 2 / numVortices) + t * 0.5;
-            const dist = finalRadius + 40 + Math.sin(t * 0.5 + i) * 15;
+            // Faster orbit as it gets closer
+            const angle = (i * Math.PI * 2 / numStars) + t * (1.0 + cycleT * 5.0);
             
-            const x = Math.cos(angle) * dist;
-            const y = Math.sin(angle) * dist * 0.3; // Accretion disk perspective
+            const x = Math.cos(angle) * currentDist;
+            const y = Math.sin(angle) * currentDist * 0.3; // Accretion disk perspective
+            
+            // Fade in at start, fade out at end
+            let alpha = 1.0;
+            if (cycleT < 0.1) alpha = cycleT / 0.1;
+            else if (cycleT > 0.9) alpha = (1.0 - cycleT) / 0.1;
             
             ctx.save();
             ctx.translate(x, y);
-            // Squish the vortex to match perspective
-            ctx.scale(1, 0.3);
-            ctx.rotate(t * 5 + i);
+            ctx.rotate(angle + Math.PI / 2); // Point trail along orbit path
             
-            // Draw a swirling galaxy-like vortex
-            const swirlRadius = 15 + Math.sin(t * 2 + i) * 5;
-            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, swirlRadius);
-            grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
-            grad.addColorStop(0.2, `rgba(100, 200, 255, ${alpha * 0.8})`);
-            grad.addColorStop(0.5, `rgba(50, 100, 255, ${alpha * 0.4})`);
-            grad.addColorStop(1, `rgba(0, 0, 0, 0)`);
+            // "Spaghettify" stretch as it gets close
+            const stretch = 1.0 + Math.pow(cycleT, 3) * 10.0;
+            ctx.scale(1.0 / Math.sqrt(stretch), stretch); 
+            
+            // Draw star core
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(0, 0, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw star glow/trail
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 15);
+            grad.addColorStop(0, `rgba(150, 200, 255, ${alpha * 0.8})`);
+            grad.addColorStop(1, `rgba(50, 100, 255, 0)`);
             
             ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.arc(0, 0, swirlRadius, 0, Math.PI * 2);
+            ctx.arc(0, 0, 15, 0, Math.PI * 2);
             ctx.fill();
             
-            // Draw some tiny spiral arms
-            ctx.strokeStyle = `rgba(150, 220, 255, ${alpha * 0.6})`;
-            ctx.lineWidth = 1.5;
-            for (let j = 0; j < 3; j++) {
-                ctx.beginPath();
-                for (let k = 0; k < 15; k++) {
-                    const armAngle = j * (Math.PI * 2 / 3) + k * 0.2;
-                    const r = k * (swirlRadius / 15);
-                    const ax = Math.cos(armAngle) * r;
-                    const ay = Math.sin(armAngle) * r;
-                    if (k === 0) ctx.moveTo(ax, ay);
-                    else ctx.lineTo(ax, ay);
-                }
-                ctx.stroke();
-            }
-            
             ctx.restore();
+            
+            // Draw a trailing streak behind the star
+            ctx.strokeStyle = `rgba(100, 150, 255, ${alpha * 0.5})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (let j = 0; j < 10; j++) {
+                const trailCycleT = Math.max(0, cycleT - (j * 0.01));
+                const trailDist = startDist * (1.0 - trailCycleT) + finalRadius * trailCycleT;
+                const trailAngle = (i * Math.PI * 2 / numStars) + (t - (j*0.03)) * (1.0 + trailCycleT * 5.0);
+                
+                const tx = Math.cos(trailAngle) * trailDist;
+                const ty = Math.sin(trailAngle) * trailDist * 0.3;
+                
+                if (j === 0) ctx.moveTo(tx, ty);
+                else ctx.lineTo(tx, ty);
+            }
+            ctx.stroke();
         }
         
         ctx.restore();
@@ -848,20 +858,44 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
     }
 
 
-    // Tier 3: Event Horizon Glow
+    // Tier 3: Pulsing Energy Ejections
     if (tier3Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier3Prog;
         ctx.translate(cx, cy);
         
-        // Draw an intense sharp rim of light perfectly at the edge of the black hole
-        ctx.beginPath();
-        ctx.arc(0, 0, finalRadius, 0, Math.PI * 2);
-        ctx.lineWidth = 2 + 1 * Math.sin(t * 8);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 + 0.3 * Math.sin(t * 10)})`;
-        ctx.shadowBlur = 8 + 4 * Math.sin(t * 5);
-        ctx.shadowColor = `rgba(255, 200, 200, 1)`;
-        ctx.stroke();
+        const numEjections = 8;
+        for (let i = 0; i < numEjections; i++) {
+            // Pseudo-random timing for each ejection based on its index
+            const ejectionT = (t * 2 + i * 1.37) % (Math.PI * 2);
+            
+            // Only draw when the burst is "active"
+            const burstIntensity = Math.max(0, Math.pow(Math.sin(ejectionT), 3));
+            if (burstIntensity > 0.05) {
+                const angle = i * (Math.PI * 2) / numEjections + (t * 0.5);
+                
+                ctx.save();
+                ctx.rotate(angle);
+                
+                // Burst goes outward from the event horizon
+                const burstLength = 20 + 30 * burstIntensity;
+                const burstWidth = 4 + 4 * burstIntensity;
+                
+                const burstGrad = ctx.createLinearGradient(finalRadius, 0, finalRadius + burstLength, 0);
+                burstGrad.addColorStop(0, `rgba(255, 255, 255, ${burstIntensity})`);
+                burstGrad.addColorStop(0.2, `rgba(200, 100, 255, ${burstIntensity * 0.8})`);
+                burstGrad.addColorStop(1, `rgba(100, 0, 255, 0)`);
+                
+                ctx.fillStyle = burstGrad;
+                ctx.beginPath();
+                ctx.moveTo(finalRadius, -burstWidth / 2);
+                ctx.lineTo(finalRadius + burstLength, 0);
+                ctx.lineTo(finalRadius, burstWidth / 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
         
         ctx.restore();
     }
