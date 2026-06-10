@@ -703,7 +703,7 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
-    // Tier 1: Fiery Photon Ring (was Tier 3) - Moved before black hole body
+    // Tier 1: Fiery Photon Ring
     if (tier1Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier1Prog;
