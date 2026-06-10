@@ -735,32 +735,27 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
-    // Tier 1: Photon Ring (solid, shifting between orange and yellow)
+    // Tier 1: Photon Ring (spinning conic gradient)
     if (tier1Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier1Prog;
         
-        // Create a shifting pulse between 0 and 1
-        // using sine wave for smooth transition
-        const pulse = Math.sin(t * 2) * 0.5 + 0.5;
+        // Base speed a lot faster
+        const rotationSpeed = 3.0 + (tier * 0.5) + (tier >= 8 ? 4.0 : 0);
+        const startAngle = t * rotationSpeed;
         
-        // Cycle colors between orange (255, 165, 0) and yellow (255, 255, 0)
-        const r1 = 255;
-        const g1 = Math.floor(165 + 90 * pulse); // shifts from 165 to 255
-        const b1 = 0;
+        const grad = ctx.createConicGradient(startAngle, cx, cy);
+        grad.addColorStop(0, 'rgb(200, 50, 0)');      // Deep orange
+        grad.addColorStop(0.33, 'rgb(255, 100, 0)');  // Orange
+        grad.addColorStop(0.66, 'rgb(255, 160, 0)');  // Light orange
+        grad.addColorStop(1, 'rgb(200, 50, 0)');      // Deep orange
         
-        // Outer glow
-        const r2 = 255;
-        const g2 = Math.floor(140 + 80 * pulse);  // darker shifting for glow
-        const b2 = 0;
-        
-        // Solid shifting circle
         ctx.beginPath();
         ctx.arc(cx, cy, finalRadius + 3, 0, Math.PI * 2);
         ctx.lineWidth = 4;
-        ctx.strokeStyle = `rgba(${r1}, ${g1}, ${b1}, 1)`;
+        ctx.strokeStyle = grad;
         ctx.shadowBlur = 15;
-        ctx.shadowColor = `rgba(${r2}, ${g2}, ${b2}, 0.8)`;
+        ctx.shadowColor = 'rgba(255, 100, 0, 0.8)';
         ctx.stroke();
         
         ctx.restore();
