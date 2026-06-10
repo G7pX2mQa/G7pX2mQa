@@ -581,37 +581,6 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
-    // Tier 8: Angled, pulsating beam (Underneath the photon ring)
-    if (tier8Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier8Prog;
-        
-        ctx.translate(cx, cy);
-        ctx.rotate(Math.PI / 4); // Angled to the right
-        
-        const beamW = 20 + 10 * Math.abs(Math.sin(t * 12));
-        const beamHeight = 600; // Extends way past viewport
-        
-        // Intense purple/white beam gradient
-        const beamGrad = ctx.createLinearGradient(-beamW/2, 0, beamW/2, 0);
-        beamGrad.addColorStop(0, `rgba(138, 43, 226, 0)`);
-        beamGrad.addColorStop(0.2, `rgba(180, 80, 255, ${0.8 * tier8Prog})`);
-        beamGrad.addColorStop(0.5, `rgba(255, 255, 255, ${1.0 * tier8Prog})`);
-        beamGrad.addColorStop(0.8, `rgba(180, 80, 255, ${0.8 * tier8Prog})`);
-        beamGrad.addColorStop(1, `rgba(138, 43, 226, 0)`);
-        
-        ctx.fillStyle = beamGrad;
-        // The beam goes straight through (top to bottom)
-        ctx.fillRect(-beamW/2, -beamHeight, beamW, beamHeight * 2);
-        
-        // Extra intense core line
-        ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + 0.5 * Math.sin(t * 20)})`;
-        const coreWidth = 4 + 2 * Math.abs(Math.sin(t * 12));
-        ctx.fillRect(-coreWidth/2, -beamHeight, coreWidth, beamHeight * 2);
-
-        ctx.restore();
-    }
-
     // Tier 4: Pseudo-3D Accretion Disk Particle System (was Tier 5)
     // Front/Back calculated here. Much more intense at Tier 8.
     const diskOuterRadius = 120 + 40 * tier8Prog;
@@ -734,13 +703,7 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
-    // The pure black hole body
-    ctx.beginPath();
-    ctx.arc(cx, cy, finalRadius, 0, Math.PI * 2);
-    ctx.fillStyle = '#000000';
-    ctx.fill();
-
-    // Tier 1: Fiery Photon Ring (was Tier 3)
+    // Tier 1: Fiery Photon Ring (was Tier 3) - Moved before black hole body
     if (tier1Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier1Prog;
@@ -767,6 +730,45 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         }
         ctx.restore();
     }
+
+    // Tier 8: Angled, pulsating beam (Underneath the black hole body, above photon ring)
+    if (tier8Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier8Prog;
+        
+        ctx.translate(cx, cy);
+        ctx.rotate(Math.PI / 4); // Angled to the right
+        
+        const beamW = 20 + 10 * Math.abs(Math.sin(t * 12));
+        const beamHeight = 600; // Extends way past viewport
+        
+        // Intense purple/white beam gradient
+        const beamGrad = ctx.createLinearGradient(-beamW/2, 0, beamW/2, 0);
+        beamGrad.addColorStop(0, `rgba(138, 43, 226, 0)`);
+        beamGrad.addColorStop(0.2, `rgba(180, 80, 255, ${0.8 * tier8Prog})`);
+        beamGrad.addColorStop(0.5, `rgba(255, 255, 255, ${1.0 * tier8Prog})`);
+        beamGrad.addColorStop(0.8, `rgba(180, 80, 255, ${0.8 * tier8Prog})`);
+        beamGrad.addColorStop(1, `rgba(138, 43, 226, 0)`);
+        
+        ctx.fillStyle = beamGrad;
+        // The beam goes straight through (top to bottom)
+        ctx.fillRect(-beamW/2, -beamHeight, beamW, beamHeight * 2);
+        
+        // Extra intense core line
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + 0.5 * Math.sin(t * 20)})`;
+        const coreWidth = 4 + 2 * Math.abs(Math.sin(t * 12));
+        ctx.fillRect(-coreWidth/2, -beamHeight, coreWidth, beamHeight * 2);
+
+        ctx.restore();
+    }
+
+    // The pure black hole body
+    ctx.beginPath();
+    ctx.arc(cx, cy, finalRadius, 0, Math.PI * 2);
+    ctx.fillStyle = '#000000';
+    ctx.fill();
+
+    
 
     // Tier 2: Slow moving subtle dark vortex ring
     if (tier2Prog > 0) {
