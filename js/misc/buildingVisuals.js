@@ -13,6 +13,7 @@ let currentLevelNum = 0;
 let levelUpAnimTime = 0;
 let tierUpAnimTime = 0;
 let previousTier = 0;
+let globalDiskAngle = 0; // Integrated angle for smooth accretion disk rotation
 
 const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
 
@@ -150,6 +151,22 @@ function loop(currentTime) {
     
     if (levelUpAnimTime > 0) levelUpAnimTime -= dt;
     if (tierUpAnimTime > 0) tierUpAnimTime -= dt;
+    
+    // Smoothly integrate global disk angle
+    // We calculate the speed multiplier here if it's the core building
+    let diskSpeedMult = 1.0;
+    if (currentBuildingId === 'core') {
+        let currentTier = getTier();
+        let drawTier = currentTier;
+        let animProgress = 1.0;
+        if (tierUpAnimTime > 0) {
+            animProgress = tierUpAnimTime > 2.5 ? 1.0 - ((tierUpAnimTime - 2.5) / 3.5) : 1.0;
+            drawTier = currentTier;
+        }
+        const tier8Prog = (drawTier >= 8 && previousTier < 8) ? animProgress : (drawTier >= 8 ? 1 : 0);
+        diskSpeedMult = 1.0 + 2.0 * tier8Prog;
+    }
+    globalDiskAngle += dt * diskSpeedMult;
     
     if (activeCanvas && activeCtx) {
         draw(activeCtx, activeCanvas.width, activeCanvas.height, time);
@@ -537,19 +554,36 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
     if (tier >= 1) finalRadius += 10 * tier1Prog;
     if (tier >= 2) finalRadius += 10 * tier2Prog;
 
-    // Tier 7: Eclipse Corona (Deep background)
+    // Tier 7: Interstellar Nebula (Deep background)
     if (tier7Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier7Prog;
-        const coronaRadius = finalRadius + 40 + 10 * Math.sin(t * 2);
-        const coronaGrad = ctx.createRadialGradient(cx, cy, finalRadius, cx, cy, coronaRadius);
-        coronaGrad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-        coronaGrad.addColorStop(0.2, 'rgba(150, 200, 255, 0.5)');
-        coronaGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = coronaGrad;
-        ctx.beginPath();
-        ctx.arc(cx, cy, coronaRadius, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.translate(cx, cy);
+        
+        // Draw multiple large, slow-moving nebulous clouds in the background
+        const numClouds = 5;
+        for (let i = 0; i < numClouds; i++) {
+            const angle = t * 0.1 + i * (Math.PI * 2 / numClouds);
+            const dist = finalRadius + 80 + Math.sin(t * 0.2 + i) * 20;
+            const size = 60 + Math.sin(t * 0.3 + i * 2) * 20;
+            
+            const cloudX = Math.cos(angle) * dist;
+            const cloudY = Math.sin(angle) * dist * 0.6; // slightly squished to match perspective
+            
+            // Nebula colors: shifting purples, blues, and magentas
+            const hue = (250 + i * 40 + Math.sin(t * 0.5) * 20) % 360;
+            
+            const cloudGrad = ctx.createRadialGradient(cloudX, cloudY, 0, cloudX, cloudY, size);
+            cloudGrad.addColorStop(0, `hsla(${hue}, 80%, 60%, 0.4)`);
+            cloudGrad.addColorStop(0.5, `hsla(${hue}, 70%, 40%, 0.15)`);
+            cloudGrad.addColorStop(1, `hsla(${hue}, 50%, 20%, 0)`);
+            
+            ctx.fillStyle = cloudGrad;
+            ctx.beginPath();
+            ctx.arc(cloudX, cloudY, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
         ctx.restore();
     }
 
@@ -595,11 +629,12 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         const radius = diskInnerRadius + (diskOuterRadius - diskInnerRadius) * Math.pow(hash1, 1.5);
         
         const normalizedR = (radius - diskInnerRadius) / (diskOuterRadius - diskInnerRadius);
-        const speedMultiplier = 1.0 + 2.0 * tier8Prog; // Faster at Tier 8
-        const speed = (1.0 + (1.0 - normalizedR) * 2.0) * speedMultiplier;
+        
+        // speed depends on distance, integrated using globalDiskAngle to avoid jumps
+        const baseSpeed = 1.0 + (1.0 - normalizedR) * 2.0;
         
         const baseAngle = hash2 * Math.PI * 2;
-        const angle = baseAngle + t * speed;
+        const angle = baseAngle + globalDiskAngle * baseSpeed;
         
         const rawX = Math.cos(angle) * radius;
         const rawY = Math.sin(angle) * radius;
@@ -641,93 +676,93 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
-    // Tier 6: Binary Star Consumption (Orbiting Star)
-    let starX = 0, starY = 0, isStarBack = false;
-    const drawStarTrail = () => {
-        const starOrbitRadius = 80 + 20 * Math.sin(t * 0.5);
-        const starOrbitSpeed = 1.5;
-        const starAngle = t * starOrbitSpeed;
-        
-        const sTilt = 0.3;
-        const sRot = -Math.PI / 6;
-        
-        const sRawX = Math.cos(starAngle) * starOrbitRadius;
-        const sRawY = Math.sin(starAngle) * starOrbitRadius;
-        
-        const sFlatX = sRawX;
-        const sFlatY = sRawY * sTilt;
-        
-        starX = cx + sFlatX * Math.cos(sRot) - sFlatY * Math.sin(sRot);
-        starY = cy + sFlatX * Math.sin(sRot) + sFlatY * Math.cos(sRot);
-        isStarBack = Math.sin(starAngle) < 0;
-
-        const starGlow = ctx.createRadialGradient(starX, starY, 2, starX, starY, 15);
-        starGlow.addColorStop(0, 'rgba(255, 255, 255, 1)');
-        starGlow.addColorStop(0.3, 'rgba(255, 200, 100, 0.8)');
-        starGlow.addColorStop(1, 'rgba(255, 100, 0, 0)');
-        ctx.fillStyle = starGlow;
-        ctx.beginPath();
-        ctx.arc(starX, starY, 15, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.lineWidth = 2;
-        for(let i=0; i<15; i++) {
-            const trailT = t - (i * 0.05);
-            const tAngle = trailT * starOrbitSpeed;
-            const tRadius = starOrbitRadius - (i * 3);
-            if (tRadius <= 0) break;
-            
-            const tRawX = Math.cos(tAngle) * tRadius;
-            const tRawY = Math.sin(tAngle) * tRadius;
-            const tFlatX = tRawX;
-            const tFlatY = tRawY * sTilt;
-            const tX = cx + tFlatX * Math.cos(sRot) - tFlatY * Math.sin(sRot);
-            const tY = cy + tFlatX * Math.sin(sRot) + tFlatY * Math.cos(sRot);
-            
-            ctx.fillStyle = `rgba(255, 150, 50, ${1 - i/15})`;
-            ctx.beginPath();
-            ctx.arc(tX, tY, 3 * (1 - i/15), 0, Math.PI * 2);
-            ctx.fill();
-        }
-    };
-
+    // Tier 6: Reality Fractures (Back half drawn later, actually fractures don't need back/front sorting as strongly, but let's draw them all here behind tier 1)
     if (tier6Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier6Prog;
-        // Calculate variables even if we don't draw
-        const starOrbitSpeed = 1.5;
-        const starAngle = t * starOrbitSpeed;
-        isStarBack = Math.sin(starAngle) < 0;
+        ctx.translate(cx, cy);
         
-        if (isStarBack) drawStarTrail();
+        const numFractures = 6;
+        for (let i = 0; i < numFractures; i++) {
+            // Pseudo-random timing based on index
+            const fracT = (t * 0.5 + i * 2.1) % 4.0; // 4 second cycle
+            
+            // Only visible for part of the cycle
+            if (fracT < 2.0) {
+                // Fade in, hold, fade out
+                let alpha = 0;
+                if (fracT < 0.2) alpha = fracT / 0.2;
+                else if (fracT < 1.0) alpha = 1.0;
+                else alpha = 1.0 - ((fracT - 1.0) / 1.0);
+                
+                // Base angle for this fracture
+                const angle = (i * Math.PI * 2 / numFractures) + Math.sin(t * 0.1 + i) * 0.5;
+                const distStart = finalRadius + 20 + Math.sin(i * 123) * 10;
+                
+                ctx.save();
+                ctx.rotate(angle);
+                
+                // Draw a lightning-like crack
+                ctx.beginPath();
+                ctx.moveTo(distStart, 0);
+                
+                let curX = distStart;
+                let curY = 0;
+                const segments = 4 + i % 3;
+                
+                for (let s = 0; s < segments; s++) {
+                    curX += 15 + Math.sin(i * s * 11) * 10;
+                    curY += (Math.sin(i * s * 17) - 0.5) * 20;
+                    ctx.lineTo(curX, curY);
+                }
+                
+                ctx.strokeStyle = `rgba(180, 220, 255, ${alpha * 0.8})`;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = 'rgba(100, 150, 255, 1)';
+                ctx.stroke();
+                
+                // Inner brighter core of the crack
+                ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.lineWidth = 1;
+                ctx.shadowBlur = 0;
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+        }
+        
         ctx.restore();
     }
 
-    // Tier 1: Fiery Photon Ring
+    // Tier 1: Photon Ring (solid, shifting between orange and yellow)
     if (tier1Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier1Prog;
         
-        // Base bright core ring
+        // Create a shifting pulse between 0 and 1
+        // using sine wave for smooth transition
+        const pulse = Math.sin(t * 2) * 0.5 + 0.5;
+        
+        // Cycle colors between orange (255, 165, 0) and yellow (255, 255, 0)
+        const r1 = 255;
+        const g1 = Math.floor(165 + 90 * pulse); // shifts from 165 to 255
+        const b1 = 0;
+        
+        // Outer glow
+        const r2 = 255;
+        const g2 = Math.floor(140 + 80 * pulse);  // darker shifting for glow
+        const b2 = 0;
+        
+        // Solid shifting circle
         ctx.beginPath();
-        ctx.arc(cx, cy, finalRadius + 2, 0, Math.PI * 2);
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = `rgba(255, 200, 100, ${0.8 + 0.2 * Math.sin(t * 15)})`;
+        ctx.arc(cx, cy, finalRadius + 3, 0, Math.PI * 2);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = `rgba(${r1}, ${g1}, ${b1}, 1)`;
         ctx.shadowBlur = 15;
-        ctx.shadowColor = '#ff6600';
+        ctx.shadowColor = `rgba(${r2}, ${g2}, ${b2}, 0.8)`;
         ctx.stroke();
         
-        // Outer fiery corona elements tightly hugging the ring
-        ctx.lineWidth = 1.5;
-        for (let i = 0; i < 5; i++) {
-            const fireT = t * (3 + i * 0.5) + i;
-            ctx.beginPath();
-            const angleStart = fireT % (Math.PI * 2);
-            const angleEnd = angleStart + Math.PI / (1.5 + i % 2);
-            ctx.arc(cx, cy, finalRadius + 2 + Math.random(), angleStart, angleEnd);
-            ctx.strokeStyle = `rgba(255, 100, 50, ${0.6 + 0.4 * Math.sin(t * 10 + i)})`;
-            ctx.stroke();
-        }
         ctx.restore();
     }
 
@@ -762,6 +797,65 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
+    // Tier 2: Magnetic Field Lines (Back half)
+    if (tier2Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier2Prog;
+        ctx.translate(cx, cy);
+        
+        ctx.lineWidth = 1;
+        const numLines = 12;
+        const poleDist = finalRadius * 1.5;
+        
+        for (let i = 0; i < numLines; i++) {
+            const angle = (i / numLines) * Math.PI * 2 + t * 0.5;
+            
+            // Back lines corresponds to Math.sin(angle) <= 0
+            if (Math.sin(angle) <= 0) {
+                const width = finalRadius * 2 + 10;
+                const projWidth = width * Math.abs(Math.cos(angle));
+                const pulse = 0.5 + 0.5 * Math.sin(t * 5 + i);
+                
+                // Dimmer for the back
+                ctx.strokeStyle = `rgba(100, 200, 255, ${0.1 + 0.2 * pulse})`;
+                
+                ctx.beginPath();
+                ctx.moveTo(0, -poleDist);
+                const cxOffset = projWidth * (Math.cos(angle) > 0 ? 1 : -1);
+                ctx.bezierCurveTo(cxOffset, -poleDist * 0.5, cxOffset, poleDist * 0.5, 0, poleDist);
+                ctx.stroke();
+            }
+        }
+        
+        ctx.restore();
+    }
+
+    // Tier 3: Dust Torus (Back half)
+    if (tier3Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier3Prog;
+        ctx.translate(cx, cy);
+        
+        // Tilt the torus slightly to match the accretion disk's general plane
+        const torusTilt = 0.25;
+        const angleRot = Math.PI / 8;
+        ctx.rotate(angleRot);
+        ctx.scale(1, torusTilt);
+        
+        const torusRadius = finalRadius + 60;
+        
+        // Draw the back half of the torus
+        ctx.beginPath();
+        ctx.arc(0, 0, torusRadius, Math.PI, Math.PI * 2);
+        ctx.lineWidth = 20;
+        ctx.strokeStyle = `rgba(80, 20, 20, ${0.4 + 0.1 * Math.sin(t * 2)})`;
+        ctx.lineCap = "round";
+        ctx.filter = "blur(10px)";
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+
     // The pure black hole body
     ctx.beginPath();
     ctx.arc(cx, cy, finalRadius, 0, Math.PI * 2);
@@ -770,66 +864,77 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
 
     
 
-    // Tier 2: Slow moving subtle dark vortex ring
+    // Tier 2: Magnetic Field Lines (Front half)
     if (tier2Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier2Prog;
         ctx.translate(cx, cy);
         
-        ctx.scale(1, 0.4);
-        ctx.rotate(t * 0.3); // Slow spin
+        ctx.lineWidth = 1;
+        const numLines = 12;
+        const poleDist = finalRadius * 1.5;
         
-        const vortexRadius = finalRadius + 20;
-        ctx.lineWidth = 8;
-        
-        const vortexGrad = ctx.createRadialGradient(0, 0, vortexRadius - 10, 0, 0, vortexRadius + 10);
-        vortexGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        vortexGrad.addColorStop(0.5, 'rgba(10, 5, 20, 0.6)');
-        vortexGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        
-        ctx.strokeStyle = vortexGrad;
-        ctx.beginPath();
-        ctx.arc(0, 0, vortexRadius, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        // Add faint darker streaks inside the vortex ring
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-        for(let i=0; i<6; i++) {
-            ctx.beginPath();
-            ctx.arc(0, 0, vortexRadius + Math.sin(i) * 5, (i*Math.PI/3), (i*Math.PI/3) + Math.PI/4);
-            ctx.stroke();
+        for (let i = 0; i < numLines; i++) {
+            // Distribute lines around the y-axis
+            const angle = (i / numLines) * Math.PI * 2 + t * 0.5;
+            
+            // Front lines (z > 0 in standard coords) corresponds to Math.sin(angle) > 0
+            // Draw only front lines here
+            if (Math.sin(angle) > 0) {
+                const width = finalRadius * 2 + 10;
+                // Project width using cosine
+                const projWidth = width * Math.abs(Math.cos(angle));
+                
+                // Color pulses based on angle and time
+                const pulse = 0.5 + 0.5 * Math.sin(t * 5 + i);
+                ctx.strokeStyle = `rgba(100, 200, 255, ${0.3 + 0.5 * pulse})`;
+                
+                ctx.beginPath();
+                ctx.moveTo(0, -poleDist);
+                // Bezier curve out to the side and back to bottom pole
+                // Control points bulge outwards
+                const cxOffset = projWidth * (Math.cos(angle) > 0 ? 1 : -1);
+                ctx.bezierCurveTo(cxOffset, -poleDist * 0.5, cxOffset, poleDist * 0.5, 0, poleDist);
+                ctx.stroke();
+            }
         }
         
         ctx.restore();
     }
 
-    // Tier 3: Hawking Radiation (particles from poles)
+    // Tier 3: Dust Torus (Front half)
     if (tier3Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier3Prog;
         ctx.translate(cx, cy);
         
-        ctx.rotate(Math.PI / 8); 
+        const torusTilt = 0.25;
+        const angleRot = Math.PI / 8;
+        ctx.rotate(angleRot);
+        ctx.scale(1, torusTilt);
         
-        const numRays = 10;
-        for(let i=0; i<numRays; i++) {
-            const rayT = (t * 2 + i * 1.5) % 3; // 0 to 3 life cycle
-            if(rayT < 0.1) continue;
+        const torusRadius = finalRadius + 60;
+        
+        // Draw the front half of the torus
+        ctx.beginPath();
+        ctx.arc(0, 0, torusRadius, 0, Math.PI);
+        ctx.lineWidth = 25;
+        ctx.strokeStyle = `rgba(100, 30, 20, ${0.5 + 0.1 * Math.sin(t * 2 + Math.PI)})`;
+        ctx.lineCap = "round";
+        ctx.filter = "blur(12px)";
+        ctx.stroke();
+        
+        // Add some bright ember spots inside the front torus
+        ctx.filter = "none";
+        for (let i = 0; i < 8; i++) {
+            const emberAngle = (t * 0.2 + i * Math.PI / 4) % Math.PI;
+            const emberX = Math.cos(emberAngle) * torusRadius;
+            const emberY = Math.sin(emberAngle) * torusRadius;
+            const emberSize = 2 + Math.sin(t * 5 + i);
             
-            const pSpeed = 40;
-            const dist = finalRadius + rayT * pSpeed;
-            const alpha = 1.0 - (rayT / 3);
-            
-            const scatterX = (Math.sin(i * 123) * 10) * (rayT / 3);
-            
-            ctx.fillStyle = `rgba(150, 200, 255, ${alpha * 0.8})`;
+            ctx.fillStyle = `rgba(255, 100, 50, ${0.6 + 0.4 * Math.sin(t * 3 + i)})`;
             ctx.beginPath();
-            ctx.arc(scatterX, -dist, 1.5, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.beginPath();
-            ctx.arc(scatterX, dist, 1.5, 0, Math.PI * 2);
+            ctx.arc(emberX, emberY, emberSize, 0, Math.PI * 2);
             ctx.fill();
         }
         
@@ -852,15 +957,6 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
-    // Tier 6: Front half of Binary Star
-    if (tier6Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier6Prog;
-        if (!isStarBack) {
-            drawStarTrail();
-        }
-        ctx.restore();
-    }
 }
 
 function drawObelisk(ctx, t, tier) {
