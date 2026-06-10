@@ -656,8 +656,8 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         grad.addColorStop(1, 'rgb(200, 50, 0)');      // Deep orange
         
         ctx.beginPath();
-        ctx.arc(cx, cy, finalRadius + 3, 0, Math.PI * 2);
-        ctx.lineWidth = 4;
+        ctx.arc(cx, cy, finalRadius + 2, 0, Math.PI * 2);
+        ctx.lineWidth = 6;
         ctx.strokeStyle = grad;
         ctx.shadowBlur = 15;
         ctx.shadowColor = 'rgba(255, 100, 0, 0.8)';
