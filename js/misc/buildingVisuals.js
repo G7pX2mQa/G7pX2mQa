@@ -641,6 +641,31 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
+    if (tier1Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier1Prog;
+        
+        // Base speed a lot faster
+        const rotationSpeed = 3.0 + (tier * 0.5) + (tier >= 8 ? 4.0 : 0);
+        const startAngle = t * rotationSpeed;
+        
+        const grad = ctx.createConicGradient(startAngle, cx, cy);
+        grad.addColorStop(0, 'rgb(200, 50, 0)');      // Deep orange
+        grad.addColorStop(0.33, 'rgb(255, 100, 0)');  // Orange
+        grad.addColorStop(0.66, 'rgb(255, 160, 0)');  // Light orange
+        grad.addColorStop(1, 'rgb(200, 50, 0)');      // Deep orange
+        
+        ctx.beginPath();
+        ctx.arc(cx, cy, finalRadius + 3, 0, Math.PI * 2);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = grad;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = 'rgba(255, 100, 0, 0.8)';
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+
     // Tier 6: Orbiting Stars (Spaghettification)
     if (tier6Prog > 0) {
         ctx.save();
@@ -709,31 +734,6 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
             }
             ctx.stroke();
         }
-        
-        ctx.restore();
-    }
-
-    if (tier1Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier1Prog;
-        
-        // Base speed a lot faster
-        const rotationSpeed = 3.0 + (tier * 0.5) + (tier >= 8 ? 4.0 : 0);
-        const startAngle = t * rotationSpeed;
-        
-        const grad = ctx.createConicGradient(startAngle, cx, cy);
-        grad.addColorStop(0, 'rgb(200, 50, 0)');      // Deep orange
-        grad.addColorStop(0.33, 'rgb(255, 100, 0)');  // Orange
-        grad.addColorStop(0.66, 'rgb(255, 160, 0)');  // Light orange
-        grad.addColorStop(1, 'rgb(200, 50, 0)');      // Deep orange
-        
-        ctx.beginPath();
-        ctx.arc(cx, cy, finalRadius + 3, 0, Math.PI * 2);
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = grad;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = 'rgba(255, 100, 0, 0.8)';
-        ctx.stroke();
         
         ctx.restore();
     }
