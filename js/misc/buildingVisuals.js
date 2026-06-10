@@ -532,91 +532,33 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
     const showTier8 = (tier >= 8) ? 1 : 0;
     const tier8Prog = (tier >= 8 && prevTier < 8) ? animProgress : showTier8;
 
-    // No base floor or containment ring anymore! The black hole stands on its own.
-    
-    // Tier 7 & 8: Massive Quasar Jets and Chaos (Back layers)
+    const baseRadius = 8;
+    let finalRadius = baseRadius;
+    if (tier >= 1) finalRadius += 10 * tier1Prog;
+    if (tier >= 2) finalRadius += 10 * tier2Prog;
+
+    // Tier 7: Eclipse Corona (Deep background)
     if (tier7Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier7Prog;
-        
-        // Massive quasar jets firing from the poles (top and bottom)
-        // Drawn BEFORE the black hole so they emerge from behind it
-        const jetWidth = 30 + 10 * Math.sin(t * 10);
-        const jetHeight = 400 + 100 * tier8Prog + 50 * Math.sin(t * 5);
-        
-        // The accretion disk is tilted Math.PI / 8, so the poles are tilted perpendicularly
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(Math.PI / 8); 
-        
-        // Top jet
-        const topJetGrad = ctx.createLinearGradient(0, 0, 0, -jetHeight);
-        topJetGrad.addColorStop(0, `rgba(255, 255, 255, ${0.8 + 0.2 * Math.sin(t * 20)})`);
-        topJetGrad.addColorStop(0.2, `rgba(0, 200, 255, ${0.6 + 0.2 * Math.sin(t * 15)})`);
-        topJetGrad.addColorStop(0.6, `rgba(100, 0, 255, ${0.4 * tier7Prog})`);
-        topJetGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        
-        ctx.fillStyle = topJetGrad;
+        const coronaRadius = finalRadius + 40 + 10 * Math.sin(t * 2);
+        const coronaGrad = ctx.createRadialGradient(cx, cy, finalRadius, cx, cy, coronaRadius);
+        coronaGrad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        coronaGrad.addColorStop(0.2, 'rgba(150, 200, 255, 0.5)');
+        coronaGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = coronaGrad;
         ctx.beginPath();
-        ctx.moveTo(-jetWidth / 2, 0);
-        ctx.lineTo(jetWidth / 2, 0);
-        ctx.lineTo(jetWidth, -jetHeight);
-        ctx.lineTo(-jetWidth, -jetHeight);
+        ctx.arc(cx, cy, coronaRadius, 0, Math.PI * 2);
         ctx.fill();
-        
-        // Bottom jet
-        const botJetGrad = ctx.createLinearGradient(0, 0, 0, jetHeight);
-        botJetGrad.addColorStop(0, `rgba(255, 255, 255, ${0.8 + 0.2 * Math.sin(t * 20)})`);
-        botJetGrad.addColorStop(0.2, `rgba(0, 200, 255, ${0.6 + 0.2 * Math.sin(t * 15)})`);
-        botJetGrad.addColorStop(0.6, `rgba(100, 0, 255, ${0.4 * tier7Prog})`);
-        botJetGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        
-        ctx.fillStyle = botJetGrad;
-        ctx.beginPath();
-        ctx.moveTo(-jetWidth / 2, 0);
-        ctx.lineTo(jetWidth / 2, 0);
-        ctx.lineTo(jetWidth, jetHeight);
-        ctx.lineTo(-jetWidth, jetHeight);
-        ctx.fill();
-        
-        // Add turbulent energy waves inside the jets
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 * tier7Prog})`;
-        for (let i = 0; i < 3; i++) {
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            const waveY = jetHeight * (0.3 + 0.3 * Math.random());
-            ctx.lineTo(Math.sin(t * 10 + i) * jetWidth, -waveY);
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(Math.sin(t * 12 + i) * jetWidth, waveY);
-            ctx.stroke();
-        }
-        
-        ctx.restore();
-        
-        // Huge deep chaotic glow around the whole thing
-        const glowRadius = 150 + 50 * tier8Prog + 20 * Math.sin(t * 5);
-        const intenseGlow = ctx.createRadialGradient(cx, cy, 20, cx, cy, glowRadius);
-        intenseGlow.addColorStop(0, 'rgba(0, 100, 255, 0.3)');
-        intenseGlow.addColorStop(0.5, 'rgba(100, 0, 255, 0.15)');
-        intenseGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = intenseGlow;
-        ctx.beginPath();
-        ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
-        ctx.fill();
-        
         ctx.restore();
     }
 
-    // Tier 4+: Dark matter mist / Energy corona (Swirling behind)
-    if (tier4Prog > 0) {
+    // Tier 5: Dark matter mist / Energy corona (was Tier 4)
+    if (tier5Prog > 0) {
         ctx.save();
-        ctx.globalAlpha = tier4Prog;
+        ctx.globalAlpha = tier5Prog;
         
-        const coronaRadius = 100 + 20 * tier5Prog + 30 * tier7Prog;
+        const coronaRadius = 100 + 30 * tier7Prog;
         const coronaT = t * 0.5;
         
         ctx.translate(cx, cy);
@@ -639,216 +581,7 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
-    // Tier 5+: Pseudo-3D Accretion Disk Particle System
-    // We compute positions on the fly. Particles with y < 0 are "behind" the black hole.
-    const diskOuterRadius = 120 + 30 * tier7Prog + 40 * tier8Prog;
-    const diskInnerRadius = 35 + 15 * tier7Prog;
-    const numParticles = 300;
-    
-    // We'll generate pseudo-random properties using sine functions based on index
-    // so the particles are deterministic per frame but look random.
-    const getParticle = (i) => {
-        const hash1 = Math.abs(Math.sin(i * 123.456));
-        const hash2 = Math.abs(Math.cos(i * 987.654));
-        const hash3 = Math.abs(Math.sin(i * 345.678));
-        
-        // Distribution biased towards inner radius
-        const radius = diskInnerRadius + (diskOuterRadius - diskInnerRadius) * Math.pow(hash1, 1.5);
-        
-        // Closer to event horizon = much faster orbit
-        // Base speed on the normalized distance rather than absolute distance to prevent rapid spinning during tier-ups
-        const normalizedR = (radius - diskInnerRadius) / (diskOuterRadius - diskInnerRadius);
-        const speed = 1.0 + (1.0 - normalizedR) * 2.0;
-        
-        // Base angle
-        const baseAngle = hash2 * Math.PI * 2;
-        
-        // Current angle
-        const angle = baseAngle + t * speed;
-        
-        // Pseudo-3D projection
-        // We will tilt it using standard isometric/tilt math
-        // Instead of canvas transform, we compute x,y manually
-        const rawX = Math.cos(angle) * radius;
-        const rawY = Math.sin(angle) * radius;
-        
-        // Apply tilt and rotation
-        const tilt = 0.25; // Flatten heavily
-        const angleRot = Math.PI / 8; // Rotate to the right
-        
-        // First flatten
-        const flatX = rawX;
-        const flatY = rawY * tilt;
-        
-        // Then rotate
-        const finalX = flatX * Math.cos(angleRot) - flatY * Math.sin(angleRot);
-        const finalY = flatX * Math.sin(angleRot) + flatY * Math.cos(angleRot);
-        
-        // Color based on radius
-        let color;
-        if (normalizedR < 0.1) color = 'rgba(255, 255, 255, 1.0)';
-        else if (normalizedR < 0.4) color = `rgba(255, ${150 + hash3*50}, 50, 0.9)`;
-        else color = `rgba(200, 50, 0, ${0.8 - normalizedR * 0.6})`;
-        
-        // Size based on radius and hash
-        const size = 1.5 + hash3 * 2;
-        
-        // rawY < 0 means it's on the back half of the disk before tilt
-        const isBack = Math.sin(angle) < 0; 
-        
-        return { x: cx + finalX, y: cy + finalY, color, size, isBack };
-    };
-
-    if (tier5Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier5Prog;
-        for(let i = 0; i < numParticles; i++) {
-            const p = getParticle(i);
-            if (p.isBack) {
-                ctx.fillStyle = p.color;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-        ctx.restore();
-    }
-
-    // The Singularity Base setup
-    ctx.save();
-    
-    // Size logic: Tiers 1 and 2 give decent increases, Tier 3+ does not increase size.
-    const baseRadius = 8;
-    // Decent increases for T1 and T2
-    let finalRadius = baseRadius;
-    if (tier >= 1) finalRadius += 10 * tier1Prog; // T1 size increase
-    if (tier >= 2) finalRadius += 10 * tier2Prog; // T2 size increase
-    
-    // Tier 6: Spiraling Galaxy Arms
-    if (tier6Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier6Prog;
-        ctx.translate(cx, cy);
-        ctx.rotate(t * 0.5); // Slow rotation of the entire galaxy
-        
-        const numArms = 3;
-        ctx.lineWidth = 1.5;
-        
-        for (let i = 0; i < numArms; i++) {
-            ctx.save();
-            ctx.rotate((i * Math.PI * 2) / numArms);
-            ctx.beginPath();
-            
-            // Draw a spiraling arm
-            // Draw from outer edge inwards to finalRadius
-            for (let r = 150; r >= finalRadius + 5; r -= 2) {
-                // Inward spiral equation
-                const spiralAngle = (150 - r) * 0.05 + t * 2 * (100 / r); // Rotates faster as it gets closer
-                const x = Math.cos(spiralAngle) * r;
-                const y = Math.sin(spiralAngle) * r;
-                
-                if (r === 150) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            }
-            
-            // Create a gradient for the stroke to fade it out at the edges
-            const armGrad = ctx.createRadialGradient(0, 0, finalRadius, 0, 0, 150);
-            armGrad.addColorStop(0, 'rgba(100, 255, 255, 0.8)');
-            armGrad.addColorStop(0.5, 'rgba(50, 150, 255, 0.4)');
-            armGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            
-            ctx.strokeStyle = armGrad;
-            ctx.stroke();
-            
-            // Add some scattered stars/particles along the arm
-            for (let j = 0; j < 10; j++) {
-                const rStar = 40 + Math.random() * 110;
-                const starSpiralAngle = (150 - rStar) * 0.05 + t * 2 * (100 / rStar);
-                
-                // Add some spread to the arm
-                const spreadAngle = starSpiralAngle + (Math.random() - 0.5) * 0.2;
-                const sx = Math.cos(spreadAngle) * rStar;
-                const sy = Math.sin(spreadAngle) * rStar;
-                
-                ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.8})`;
-                ctx.beginPath();
-                ctx.arc(sx, sy, Math.random() * 1.5, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.restore();
-        }
-        ctx.restore();
-    }
-
-    // Tier 1: Awakening (Pulsing waves)
-    if (tier1Prog > 0) {
-        const pulse = Math.sin(t * 3) * 0.5 + 0.5;
-        const waveRadius = finalRadius + 7 + pulse * 15 * tier1Prog;
-        
-        ctx.beginPath();
-        ctx.arc(cx, cy, waveRadius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(75, 0, 130, ${0.5 * (1 - pulse)})`; // Indigo
-        ctx.fill();
-    }
-
-    // Tier 2: Gravitational Lensing effect (distorting space / light bending arcs)
-    if (tier2Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier2Prog;
-        ctx.lineWidth = 1.5;
-        // Draw 3 distorted arcs that slowly orbit
-        for (let i = 0; i < 3; i++) {
-            const arcOffset = t * 0.4 + (i * Math.PI * 2) / 3;
-            const lensDist = finalRadius + 12 + 5 * Math.sin(t * 1.5 + i);
-            
-            ctx.beginPath();
-            ctx.arc(cx, cy, lensDist, arcOffset, arcOffset + Math.PI / 1.5);
-            
-            const lensAlpha = 0.3 + 0.3 * Math.sin(t * 2 + i * 2);
-            ctx.strokeStyle = `rgba(200, 220, 255, ${lensAlpha})`;
-            ctx.stroke();
-            
-            // Add a fainter inner arc for depth
-            ctx.beginPath();
-            ctx.arc(cx, cy, lensDist - 3, arcOffset + 0.2, arcOffset + Math.PI / 1.5 - 0.2);
-            ctx.strokeStyle = `rgba(150, 180, 255, ${lensAlpha * 0.5})`;
-            ctx.stroke();
-        }
-        ctx.restore();
-    }
-
-    // Tier 3: Fiery Photon Ring (intense, high-energy plasma)
-    if (tier3Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier3Prog;
-        
-        // Base bright core ring
-        ctx.beginPath();
-        ctx.arc(cx, cy, finalRadius + 2, 0, Math.PI * 2);
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = `rgba(255, 200, 100, ${0.8 + 0.2 * Math.sin(t * 15)})`;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#ff6600';
-        ctx.stroke();
-        
-        // Outer fiery corona elements tightly hugging the ring
-        ctx.lineWidth = 1.5;
-        for (let i = 0; i < 5; i++) {
-            const fireT = t * (3 + i * 0.5) + i;
-            ctx.beginPath();
-            const angleStart = fireT % (Math.PI * 2);
-            const angleEnd = angleStart + Math.PI / (1.5 + i % 2);
-            ctx.arc(cx, cy, finalRadius + 2 + Math.random(), angleStart, angleEnd);
-            ctx.strokeStyle = `rgba(255, 100, 50, ${0.6 + 0.4 * Math.sin(t * 10 + i)})`;
-            ctx.stroke();
-        }
-        ctx.restore();
-    }
-
-    // Tier 8: Angled, pulsating beam going straight through the black hole
+    // Tier 8: Angled, pulsating beam (Underneath the photon ring)
     if (tier8Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier8Prog;
@@ -879,18 +612,232 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
-    // The pure black hole
+    // Tier 4: Pseudo-3D Accretion Disk Particle System (was Tier 5)
+    // Front/Back calculated here. Much more intense at Tier 8.
+    const diskOuterRadius = 120 + 40 * tier8Prog;
+    const diskInnerRadius = 35;
+    const numParticles = 300 + Math.floor(600 * tier8Prog);
+    
+    const getParticle = (i) => {
+        const hash1 = Math.abs(Math.sin(i * 123.456));
+        const hash2 = Math.abs(Math.cos(i * 987.654));
+        const hash3 = Math.abs(Math.sin(i * 345.678));
+        
+        const radius = diskInnerRadius + (diskOuterRadius - diskInnerRadius) * Math.pow(hash1, 1.5);
+        
+        const normalizedR = (radius - diskInnerRadius) / (diskOuterRadius - diskInnerRadius);
+        const speedMultiplier = 1.0 + 2.0 * tier8Prog; // Faster at Tier 8
+        const speed = (1.0 + (1.0 - normalizedR) * 2.0) * speedMultiplier;
+        
+        const baseAngle = hash2 * Math.PI * 2;
+        const angle = baseAngle + t * speed;
+        
+        const rawX = Math.cos(angle) * radius;
+        const rawY = Math.sin(angle) * radius;
+        
+        const tilt = 0.25; 
+        const angleRot = Math.PI / 8; 
+        
+        const flatX = rawX;
+        const flatY = rawY * tilt;
+        
+        const finalX = flatX * Math.cos(angleRot) - flatY * Math.sin(angleRot);
+        const finalY = flatX * Math.sin(angleRot) + flatY * Math.cos(angleRot);
+        
+        let color;
+        if (normalizedR < 0.1) color = 'rgba(255, 255, 255, 1.0)';
+        else if (normalizedR < 0.4) color = `rgba(255, ${150 + hash3*50}, 50, 0.9)`;
+        else color = `rgba(200, 50, 0, ${0.8 - normalizedR * 0.6})`;
+        
+        const sizeMultiplier = 1.0 + 1.0 * tier8Prog;
+        const size = (1.5 + hash3 * 2) * sizeMultiplier;
+        
+        const isBack = Math.sin(angle) < 0; 
+        
+        return { x: cx + finalX, y: cy + finalY, color, size, isBack };
+    };
+
+    if (tier4Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier4Prog;
+        for(let i = 0; i < numParticles; i++) {
+            const p = getParticle(i);
+            if (p.isBack) {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        ctx.restore();
+    }
+
+    // Tier 6: Binary Star Consumption (Orbiting Star)
+    let starX = 0, starY = 0, isStarBack = false;
+    const drawStarTrail = () => {
+        const starOrbitRadius = 80 + 20 * Math.sin(t * 0.5);
+        const starOrbitSpeed = 1.5;
+        const starAngle = t * starOrbitSpeed;
+        
+        const sTilt = 0.3;
+        const sRot = -Math.PI / 6;
+        
+        const sRawX = Math.cos(starAngle) * starOrbitRadius;
+        const sRawY = Math.sin(starAngle) * starOrbitRadius;
+        
+        const sFlatX = sRawX;
+        const sFlatY = sRawY * sTilt;
+        
+        starX = cx + sFlatX * Math.cos(sRot) - sFlatY * Math.sin(sRot);
+        starY = cy + sFlatX * Math.sin(sRot) + sFlatY * Math.cos(sRot);
+        isStarBack = Math.sin(starAngle) < 0;
+
+        const starGlow = ctx.createRadialGradient(starX, starY, 2, starX, starY, 15);
+        starGlow.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        starGlow.addColorStop(0.3, 'rgba(255, 200, 100, 0.8)');
+        starGlow.addColorStop(1, 'rgba(255, 100, 0, 0)');
+        ctx.fillStyle = starGlow;
+        ctx.beginPath();
+        ctx.arc(starX, starY, 15, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.lineWidth = 2;
+        for(let i=0; i<15; i++) {
+            const trailT = t - (i * 0.05);
+            const tAngle = trailT * starOrbitSpeed;
+            const tRadius = starOrbitRadius - (i * 3);
+            if (tRadius <= 0) break;
+            
+            const tRawX = Math.cos(tAngle) * tRadius;
+            const tRawY = Math.sin(tAngle) * tRadius;
+            const tFlatX = tRawX;
+            const tFlatY = tRawY * sTilt;
+            const tX = cx + tFlatX * Math.cos(sRot) - tFlatY * Math.sin(sRot);
+            const tY = cy + tFlatX * Math.sin(sRot) + tFlatY * Math.cos(sRot);
+            
+            ctx.fillStyle = `rgba(255, 150, 50, ${1 - i/15})`;
+            ctx.beginPath();
+            ctx.arc(tX, tY, 3 * (1 - i/15), 0, Math.PI * 2);
+            ctx.fill();
+        }
+    };
+
+    if (tier6Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier6Prog;
+        // Calculate variables even if we don't draw
+        const starOrbitSpeed = 1.5;
+        const starAngle = t * starOrbitSpeed;
+        isStarBack = Math.sin(starAngle) < 0;
+        
+        if (isStarBack) drawStarTrail();
+        ctx.restore();
+    }
+
+    // The pure black hole body
     ctx.beginPath();
     ctx.arc(cx, cy, finalRadius, 0, Math.PI * 2);
     ctx.fillStyle = '#000000';
     ctx.fill();
-    
-    ctx.restore();
 
-    // Tier 5+: Pseudo-3D Accretion Disk (Front Half)
-    if (tier5Prog > 0) {
+    // Tier 1: Fiery Photon Ring (was Tier 3)
+    if (tier1Prog > 0) {
         ctx.save();
-        ctx.globalAlpha = tier5Prog;
+        ctx.globalAlpha = tier1Prog;
+        
+        // Base bright core ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, finalRadius + 2, 0, Math.PI * 2);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = `rgba(255, 200, 100, ${0.8 + 0.2 * Math.sin(t * 15)})`;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#ff6600';
+        ctx.stroke();
+        
+        // Outer fiery corona elements tightly hugging the ring
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 5; i++) {
+            const fireT = t * (3 + i * 0.5) + i;
+            ctx.beginPath();
+            const angleStart = fireT % (Math.PI * 2);
+            const angleEnd = angleStart + Math.PI / (1.5 + i % 2);
+            ctx.arc(cx, cy, finalRadius + 2 + Math.random(), angleStart, angleEnd);
+            ctx.strokeStyle = `rgba(255, 100, 50, ${0.6 + 0.4 * Math.sin(t * 10 + i)})`;
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    // Tier 2: Slow moving subtle dark vortex ring
+    if (tier2Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier2Prog;
+        ctx.translate(cx, cy);
+        
+        ctx.scale(1, 0.4);
+        ctx.rotate(t * 0.3); // Slow spin
+        
+        const vortexRadius = finalRadius + 20;
+        ctx.lineWidth = 8;
+        
+        const vortexGrad = ctx.createRadialGradient(0, 0, vortexRadius - 10, 0, 0, vortexRadius + 10);
+        vortexGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        vortexGrad.addColorStop(0.5, 'rgba(10, 5, 20, 0.6)');
+        vortexGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
+        ctx.strokeStyle = vortexGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, vortexRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Add faint darker streaks inside the vortex ring
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+        for(let i=0; i<6; i++) {
+            ctx.beginPath();
+            ctx.arc(0, 0, vortexRadius + Math.sin(i) * 5, (i*Math.PI/3), (i*Math.PI/3) + Math.PI/4);
+            ctx.stroke();
+        }
+        
+        ctx.restore();
+    }
+
+    // Tier 3: Hawking Radiation (particles from poles)
+    if (tier3Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier3Prog;
+        ctx.translate(cx, cy);
+        
+        ctx.rotate(Math.PI / 8); 
+        
+        const numRays = 10;
+        for(let i=0; i<numRays; i++) {
+            const rayT = (t * 2 + i * 1.5) % 3; // 0 to 3 life cycle
+            if(rayT < 0.1) continue;
+            
+            const pSpeed = 40;
+            const dist = finalRadius + rayT * pSpeed;
+            const alpha = 1.0 - (rayT / 3);
+            
+            const scatterX = (Math.sin(i * 123) * 10) * (rayT / 3);
+            
+            ctx.fillStyle = `rgba(150, 200, 255, ${alpha * 0.8})`;
+            ctx.beginPath();
+            ctx.arc(scatterX, -dist, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(scatterX, dist, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        ctx.restore();
+    }
+
+    // Tier 4: Pseudo-3D Accretion Disk (Front Half)
+    if (tier4Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier4Prog;
         for(let i = 0; i < numParticles; i++) {
             const p = getParticle(i);
             if (!p.isBack) {
@@ -903,7 +850,15 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
-    
+    // Tier 6: Front half of Binary Star
+    if (tier6Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier6Prog;
+        if (!isStarBack) {
+            drawStarTrail();
+        }
+        ctx.restore();
+    }
 }
 
 function drawObelisk(ctx, t, tier) {
