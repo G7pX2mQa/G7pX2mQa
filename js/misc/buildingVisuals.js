@@ -656,7 +656,7 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
             const currentDist = startDist * (1.0 - cycleT) + finalRadius * cycleT;
             
             // Faster orbit as it gets closer
-            const angle = (i * Math.PI * 2 / numStars) + t * (1.0 + cycleT * 5.0);
+            const angle = (i * Math.PI * 2 / numStars) + t * 10.0;
             
             const x = Math.cos(angle) * currentDist;
             const y = Math.sin(angle) * currentDist * 0.3; // Accretion disk perspective
@@ -699,7 +699,7 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
             for (let j = 0; j < 10; j++) {
                 const trailCycleT = Math.max(0, cycleT - (j * 0.01));
                 const trailDist = startDist * (1.0 - trailCycleT) + finalRadius * trailCycleT;
-                const trailAngle = (i * Math.PI * 2 / numStars) + (t - (j*0.03)) * (1.0 + trailCycleT * 5.0);
+                const trailAngle = (i * Math.PI * 2 / numStars) + (t - (j*0.03)) * 10.0;
                 
                 const tx = Math.cos(trailAngle) * trailDist;
                 const ty = Math.sin(trailAngle) * trailDist * 0.3;
