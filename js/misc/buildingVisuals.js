@@ -858,45 +858,51 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
     }
 
 
-    // Tier 3: Pulsing Energy Ejections
+    // Tier 3: Gravitational Lensing / Photon Ring
     if (tier3Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier3Prog;
         ctx.translate(cx, cy);
         
-        const numEjections = 8;
-        for (let i = 0; i < numEjections; i++) {
-            // Pseudo-random timing for each ejection based on its index
-            const ejectionT = (t * 2 + i * 1.37) % (Math.PI * 2);
+        const lensingRadius = finalRadius * 1.2;
+        const lensingThickness = 15;
+        
+        // Draw multiple overlapping rings for the lensing effect
+        for (let i = 0; i < 3; i++) {
+            ctx.save();
+            // Counter-rotating rings with different speeds
+            const spinDirection = i % 2 === 0 ? 1 : -1;
+            ctx.rotate(t * (0.2 + i * 0.1) * spinDirection);
             
-            // Only draw when the burst is "active"
-            const burstIntensity = Math.max(0, Math.pow(Math.sin(ejectionT), 3));
-            if (burstIntensity > 0.05) {
-                const angle = i * (Math.PI * 2) / numEjections + (t * 0.5);
-                
-                ctx.save();
-                ctx.rotate(angle);
-                
-                // Burst goes outward from the event horizon
-                const burstLength = 20 + 30 * burstIntensity;
-                const burstWidth = 4 + 4 * burstIntensity;
-                
-                const burstGrad = ctx.createLinearGradient(finalRadius, 0, finalRadius + burstLength, 0);
-                burstGrad.addColorStop(0, `rgba(255, 255, 255, ${burstIntensity})`);
-                burstGrad.addColorStop(0.2, `rgba(200, 100, 255, ${burstIntensity * 0.8})`);
-                burstGrad.addColorStop(1, `rgba(100, 0, 255, 0)`);
-                
-                ctx.fillStyle = burstGrad;
-                ctx.beginPath();
-                ctx.moveTo(finalRadius, -burstWidth / 2);
-                ctx.lineTo(finalRadius + burstLength, 0);
-                ctx.lineTo(finalRadius, burstWidth / 2);
-                ctx.fill();
-                
-                ctx.restore();
-            }
+            // Slight elliptical distortion
+            ctx.scale(1 + 0.05 * Math.sin(t * 1.5 + i), 1 - 0.05 * Math.sin(t * 1.5 + i));
+
+            const gradient = ctx.createRadialGradient(0, 0, finalRadius, 0, 0, lensingRadius + lensingThickness);
+            
+            // Subtle, shifting colors for light bending
+            const alpha1 = 0.4 + 0.2 * Math.sin(t * 2 + i * Math.PI);
+            const alpha2 = 0.1 + 0.1 * Math.cos(t * 3 + i);
+            
+            gradient.addColorStop(0, `rgba(255, 255, 255, 0)`);
+            gradient.addColorStop(0.3, `rgba(200, 220, 255, ${alpha1})`);
+            gradient.addColorStop(0.7, `rgba(150, 100, 255, ${alpha2})`);
+            gradient.addColorStop(1, `rgba(100, 50, 200, 0)`);
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, lensingRadius + lensingThickness, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            ctx.restore();
         }
         
+        // Add a thin, intense photon ring right near the event horizon
+        ctx.beginPath();
+        ctx.arc(0, 0, finalRadius * 1.05, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.6 + 0.3 * Math.sin(t * 5)})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
         ctx.restore();
     }
 
