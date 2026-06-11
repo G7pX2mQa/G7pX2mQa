@@ -1114,10 +1114,6 @@ export function initSurgeEffects() {
         log10Total += 15;
     }
     
-    // Surge 36: Multiply by 1e100 -> +100
-    if (isSurgeActive(200)) {
-        log10Total += 100;
-    }
     
     if (log10Total === 0) return baseMultiplier;
     
