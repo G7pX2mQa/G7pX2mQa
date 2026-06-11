@@ -1,3 +1,4 @@
+import { isSurgeUnlocked } from '../ui/merchantTabs/resetTab.js';
 import { MYSTERIOUS_UPGRADE_ICON_DATA_URL, LOCKED_UPGRADE_ICON_DATA_URL, HIDDEN_UPGRADE_TITLE, LOCKED_UPGRADE_TITLE, E } from './upgrades.js';
 import { BigNum } from '../util/bigNum.js';
 
@@ -160,13 +161,13 @@ const UPGRADE_DEFINITIONS = [
         
         if (isUnlocked) return { locked: false };
 
-        if (ctx.xpLevel < 201) {
+        if (!isSurgeUnlocked()) {
             return {
                 locked: true,
                 iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
                 titleOverride: LOCKED_UPGRADE_TITLE,
                 descOverride: 'Locked',
-                reason: 'Reach XP Level 201 to unlock',
+                reason: 'Unlock Surge to unlock',
                 hidden: false,
                 hideCost: true,
                 hideEffect: true,
@@ -219,13 +220,13 @@ const UPGRADE_DEFINITIONS = [
         
         if (isUnlocked) return { locked: false };
 
-        if (ctx.xpLevel < 201) {
+        if (!isSurgeUnlocked()) {
             return {
                 locked: true,
                 iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
                 titleOverride: LOCKED_UPGRADE_TITLE,
                 descOverride: 'Locked',
-                reason: 'Reach XP Level 201 to unlock',
+                reason: 'Unlock Surge to unlock',
                 hidden: false,
                 hideCost: true,
                 hideEffect: true,
