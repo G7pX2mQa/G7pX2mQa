@@ -2,7 +2,7 @@ import { unlockDpSystem, isDpSystemUnlocked, getDpState } from './dpSystem.js';
 import { AREA_KEYS, HM_EVOLUTION_INTERVAL, LOCKED_UPGRADE_ICON_DATA_URL, formatMultForUi, safeHasMetMiner, UPGRADE_TIES, LOCKED_UPGRADE_TITLE, computeDefaultUpgradeCost, costAtLevelUsingScaling, HIDDEN_UPGRADE_TITLE, MYSTERIOUS_UPGRADE_ICON_DATA_URL, getLevelNumber, E } from './upgrades.js';
 import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
 import { hasDoneCombineReset } from "../ui/minerTabs/resetTab.js";
-import { BigNum } from '../util/bigNum.js';
+import { BigNum, bigNumFromLog10 } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { isSellUnlocked, hasViewedSellTab } from '../ui/minerTabs/sellTab.js';
 
@@ -430,6 +430,69 @@ export const UC_REGISTRY = [
     effectMultiplier(level) {
       const normalizedLevel = Math.max(0, Number(level) || 0);
       return E.powPerLevel(2)(normalizedLevel);
+    },
+  },
+  {
+    area: UC_AREA_KEY,
+    id: 9,
+    tie: 'scrap_6',
+    title: "Advanced Researching",
+    desc: `Improves RP value by ${formatNumber(BigNum.fromAny("1e1000"))}x per level`,
+    lvlCap: 10,
+    baseCost: 1e9,
+    costType: 'scrap',
+    upgType: 'NM',
+    effectType: 'rp_value',
+    icon: 'img/uc_upg_icons/rp_val1.webp',
+    costAtLevel(level) {
+        const normalizedLevel = Math.max(0, Number(level) || 0);
+        const log10 = 2 * normalizedLevel;
+        const hundreds = bigNumFromLog10(log10);
+        return BigNum.fromAny(this.baseCost).mulBigNumInteger(hundreds);
+    },
+    nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
+    computeLockState() {
+      if (hasDoneCombineReset() || isBuildingsUnlocked()) {
+        return { locked: false };
+      }
+
+      let dp31 = false;
+      try {
+        const dpState = getDpState();
+        dp31 = Number(dpState.dpLevel.toString()) >= 31;
+      } catch {}
+      
+      if (!dp31) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Reach Depth: 31m to reveal this upgrade',
+          reason: 'Reach Depth: 31m to reveal this upgrade',
+        };
+      }
+
+      const revealText = 'Do a Combine reset to reveal this upgrade';
+      return {
+        locked: true,
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+        hidden: true,
+        hideCost: true,
+        hideEffect: true,
+        useLockedBase: true,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: revealText,
+        reason: revealText,
+      };
+    },
+    effectMultiplier(level) {
+      const normalizedLevel = Math.max(0, Number(level) || 0);
+      const log10 = 1000 * normalizedLevel;
+      return bigNumFromLog10(log10);
     },
   },
 ];
