@@ -444,6 +444,15 @@ export const UC_REGISTRY = [
     upgType: 'NM',
     effectType: 'rp_value',
     icon: 'img/uc_upg_icons/rp_val1.webp',
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `RP value bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier(level) {
+      const normalizedLevel = Math.max(0, Number(level) || 0);
+      const log10 = 1000 * normalizedLevel;
+      return bigNumFromLog10(log10);
+    },
     costAtLevel(level) {
         const normalizedLevel = Math.max(0, Number(level) || 0);
         const log10 = 2 * normalizedLevel;
@@ -488,11 +497,6 @@ export const UC_REGISTRY = [
         descOverride: revealText,
         reason: revealText,
       };
-    },
-    effectMultiplier(level) {
-      const normalizedLevel = Math.max(0, Number(level) || 0);
-      const log10 = 1000 * normalizedLevel;
-      return bigNumFromLog10(log10);
     },
   },
 ];
