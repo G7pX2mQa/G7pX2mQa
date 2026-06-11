@@ -21,7 +21,7 @@ import {
 } from '../../game/labNodes.js';
 import { setupDragToClose } from '../shopOverlay.js';
 import { settingsManager } from '../../game/settingsManager.js';
-import { formatMultForUi } from '../../game/upgrades.js';
+import { formatMultForUi, safeMultiplyBigNum } from '../../game/upgrades.js';
 import { getRpValueMultiplierBn } from '../../game/upgradeEffects.js';
 
 const CAM_MAX_COORD = 1e308;
@@ -303,7 +303,7 @@ export function getRpMult() {
     try {
         const rpValMult = getRpValueMultiplierBn();
         if (rpValMult && !rpValMult.isZero?.()) {
-            base = base.mulBigNum(rpValMult);
+            base = safeMultiplyBigNum(base, rpValMult);
         }
     } catch (e) {
         // Ignore
