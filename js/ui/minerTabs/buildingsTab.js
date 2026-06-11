@@ -156,7 +156,7 @@ export function renderBuildingsGrid(gridEl) {
     });
 
     // 2. Crystal Building
-    const crystalLocked = !isBuildingUnlocked('crystal');
+    const crystalLocked = false;
     buildings.push({
         id: 'crystal',
         title: 'Crystal Building',
@@ -738,7 +738,7 @@ function getAffordableBuildingLevels(id) {
 }
 
 const BUILDING_BONUS_TEXTS = {
-    core: "Next level's DP bonus", crystal: "Next level's Coin bonus", stone: "Next level's Scrap bonus",
+    core: "Next level's DP value bonus", crystal: "Next level's Coin value bonus", stone: "Next level's Scrap value bonus",
     copper: "Next level's Stone value bonus", iron: "Next level's Copper value bonus",
     pure_gold: "Next level's Iron value bonus", diamond: "Next level's Pure Gold value bonus",
     emerald: "Next level's Diamond value bonus", ruby: "Next level's Emerald value bonus",
@@ -756,7 +756,7 @@ const BUILDING_CURRENCY_IMAGES = {
 };
 
 const BUILDING_CURRENCY_KEYS = {
-    core: 'core', crystal: 'crystal', stone: 'stone', copper: 'copper', iron: 'iron',
+    core: 'cores', crystal: 'crystals', stone: 'stone', copper: 'copper', iron: 'iron',
     pure_gold: 'pure_gold', diamond: 'diamond', emerald: 'emerald', ruby: 'ruby',
     sapphire: 'sapphire', unobtainium: 'unobtainium', prismatium: 'prismatium'
 };
@@ -988,18 +988,20 @@ export function updateOverlayUi() {
     
     const imgStr = `<img src="${BUILDING_CURRENCY_IMAGES[id]}" style="width: 1em; height: 1em; vertical-align: middle; transform: translateY(-3px); margin-right: -0.1em;">`;
     
-    const matName = RESOURCE_REGISTRY.find(r => r.key === currencyKey)?.singular || 'Stone';
+    const resConfig = RESOURCE_REGISTRY.find(r => r.key === currencyKey);
 
     document.getElementById('building-detail-level-text').textContent = `Building Level ${formatNumber(levelBn)}`;
     
     document.getElementById('building-detail-bonus-row').innerHTML = 
         `${BUILDING_BONUS_TEXTS[id] || 'Bonus'}: ${formatMultForUi(currentBonus)}x &rarr; ${formatMultForUi(nextBonus)}x`;
         
+    const costMatName = (resConfig ? (costBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
     document.getElementById('building-detail-cost-row').innerHTML = 
-        `Cost: ${imgStr} ${formatNumber(costBn)} ${matName}`;
+        `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName}`;
         
+    const walletMatName = (resConfig ? (walletBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
     document.getElementById('building-detail-wallet-row').innerHTML = 
-        `You have: ${imgStr} ${formatNumber(walletBn)} ${matName}`;
+        `You have: ${imgStr} ${formatNumber(walletBn)} ${walletMatName}`;
         
     const btnBuy = document.getElementById('building-btn-buy');
     btnBuy.disabled = walletBn.cmp(costBn) < 0;
