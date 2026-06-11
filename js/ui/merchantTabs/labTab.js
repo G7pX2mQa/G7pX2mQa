@@ -22,6 +22,7 @@ import {
 import { setupDragToClose } from '../shopOverlay.js';
 import { settingsManager } from '../../game/settingsManager.js';
 import { formatMultForUi } from '../../game/upgrades.js';
+import { getRpValueMultiplierBn } from '../../game/upgradeEffects.js';
 
 const CAM_MAX_COORD = 1e308;
 const CAM_MAX_ZOOM = 1e300;
@@ -298,7 +299,15 @@ export function getRpMultBase() {
 }
 
 export function getRpMult() {
-    const base = getRpMultBase();
+    let base = getRpMultBase();
+    try {
+        const rpValMult = getRpValueMultiplierBn();
+        if (rpValMult && !rpValMult.isZero?.()) {
+            base = base.mulBigNum(rpValMult);
+        }
+    } catch (e) {
+        // Ignore
+    }
     if (typeof applyStatMultiplierOverride === 'function') {
         return applyStatMultiplierOverride('rp', base);
     }
