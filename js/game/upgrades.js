@@ -197,6 +197,7 @@ export const UPGRADE_TIES = {
   ENDLESS_FP: 'coin_5',
   ENDLESS_DP: 'scrap_4',
   ENDLESS_MATERIALS: 'scrap_5',
+  ADVANCED_RESEARCHING: 'scrap_6',
 };
 
 const HM_MILESTONES_STARTER_COVE = [
@@ -3144,6 +3145,7 @@ for (const upg of REGISTRY) {
         if (this.effectType === 'coin_value') label = "Coin value bonus";
         if (this.effectType === 'xp_value') label = "XP value bonus";
         if (this.effectType === 'dp_value') label = "DP value bonus";
+        if (this.effectType === 'rp_value') label = "RP value bonus";
         
         return `${label}: ${formatMultForUi(total)}x`;
       };
