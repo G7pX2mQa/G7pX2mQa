@@ -1101,6 +1101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	'img/uc_upg_icons/dp_val1.webp',
 	'img/uc_upg_icons/dp_val_hm.webp',
 	'img/uc_upg_icons/faster_materials.webp',
+	'img/uc_upg_icons/rp_val1.webp',
     'img/waterwheels/waterwheel_coin.webp',
     'img/waterwheels/waterwheel_gold.webp',
     'img/waterwheels/waterwheel_magic.webp',
