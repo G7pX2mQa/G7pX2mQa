@@ -10,10 +10,11 @@ import { settingsManager } from './settingsManager.js';
 import { getComboUiString } from './surgeEffects.js';
 import { formatNumber } from '../util/numFormat.js';
 import { UC_MATERIAL_DATA } from './ucSpawner.js';
+import { getLevelNumber } from './upgrades.js';
+import { AUTOMATION_AREA_KEY, MANUAL_MATERIAL_VALUE_ID } from './automationUpgrades.js';
 
 let ucPickup = null;
 const BASE_MATERIAL_VALUE = BigNum.fromInt(1);
-
 
 
 // Queue helpers moved to module scope
@@ -239,7 +240,9 @@ export function initUcPickup({
             const handle = bank[matType];
             if (handle) {
                 const mult = handle.mult.get();
-                const totalGain = BASE_MATERIAL_VALUE.mulBigNumInteger(BigNum.fromAny(count)).mulBigNumInteger(mult);
+                const manualValueLevel = getLevelNumber(AUTOMATION_AREA_KEY, MANUAL_MATERIAL_VALUE_ID);
+                const manualValueMultiplier = BigNum.fromInt(1 + manualValueLevel);
+                const totalGain = BASE_MATERIAL_VALUE.mulBigNumInteger(BigNum.fromAny(count)).mulBigNumInteger(mult).mulBigNumInteger(manualValueMultiplier);
                 queueMaterialGain(handle, totalGain);
             }
         }
