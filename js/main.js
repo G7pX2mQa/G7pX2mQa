@@ -1018,6 +1018,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     'img/misc/bomb.webp',
 	'img/misc/combine.webp',
 	'img/misc/combine_plus_base.webp',
+	'img/misc/compress.webp',
+	'img/misc/compress_plus_base.webp',
     'img/misc/evolve_achievement_icon.webp',
     'img/misc/evolve_ready.webp',
     'img/misc/experiment.webp',
