@@ -794,7 +794,7 @@ class ShopInstance {
 
                         const id = el.upgMeta.id;
                         const isHM = el.upgMeta.upgType === 'HM';
-                        const isExcludedCheap = [3, 4, 5, 6].includes(resolveUpgradeId(el.upgMeta));
+                        const isExcludedCheap = [3, 4, 5, 6, 9].includes(resolveUpgradeId(el.upgMeta));
 
                         // Shift + Click -> Buy Cheap
                         if (event.shiftKey) {
@@ -1985,7 +1985,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
               ensureButton('shop-delve btn-buy-max', 'Buy Max', performBuyMax, 2, !canAffordNext);
 
               // Exclude early upgrades (Ids 1, 3, 4, 5, 6)
-              const isExcluded = [3, 4, 5, 6].includes(resolveUpgradeId(model.upg));
+              const isExcluded = [3, 4, 5, 6, 9].includes(resolveUpgradeId(model.upg));
               if (!isHM && !isExcluded) {
                   const performBuyCheap = () => {
                       const fresh = adapter.getUiModel(upgDef.id);
