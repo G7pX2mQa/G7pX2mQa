@@ -381,7 +381,7 @@ export const UC_REGISTRY = [
     upgType: 'HM',
     effectType: 'all_materials_value',
     scalingPreset: 'HM',
-    scalingHarshness: 1e12,
+    scalingHarshness: 1e15,
     icon: 'img/uc_upg_icons/allmat_val_hm.webp',
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
     nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
