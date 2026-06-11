@@ -311,7 +311,6 @@ export const SURGE_MILESTONES = [
     surgeLevel: 200,
     affectedByTsunami: true,
     description: [
-      `Multiplies Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromAny('1e100'))}x</span>`,
       `Multiplies XP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromAny('1e100'))}x</span>`,
       `Divides FP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromAny('1e10'))}x</span>`
     ]
@@ -773,7 +772,6 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       const divVal = bigNumFromLog10(10 * effectiveExp);
 
       milestone.description = [
-        `Multiplies Coin value by <span style="color:#00e5ff">${formatNumber(multVal)}x</span>`,
         `Multiplies XP value by <span style="color:#00e5ff">${formatNumber(multVal)}x</span>`,
         `Divides FP value by <span style="color:#00e5ff">${formatNumber(divVal)}x</span>`
       ];
