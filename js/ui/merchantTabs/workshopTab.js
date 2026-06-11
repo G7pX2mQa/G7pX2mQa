@@ -30,6 +30,7 @@ const GENERATION_UPGRADE_BASE_COST_LOG = 12; // 1T = 1e12
 const LOG10_2 = 0.3010299956639812; 
 const LOG10_3 = 0.47712125471966244;
 const LOG10_4 = 0.6020599913279624;
+const LOG10_5 = 0.6989700043360188;
 
 // Scaling Thresholds & Constants
 const L1 = 1e6;
@@ -219,7 +220,7 @@ function getGearsPerSecond(level) {
   if (!(level instanceof BigNum)) {
       bnLevel = BigNum.fromAny(level);
   }
-  const logBase = isSurgeActive(11) ? LOG10_4 : (isSurgeActive(7) ? LOG10_3 : LOG10_2);
+  const logBase = isSurgeActive(150) ? LOG10_5 : (isSurgeActive(11) ? LOG10_4 : (isSurgeActive(7) ? LOG10_3 : LOG10_2));
 
   if (bnLevel.isZero()) {
     baseRate = BigNum.fromInt(1);
@@ -284,7 +285,7 @@ function onTick() {
   if (currentGenerationLevel.cmp(20) < 0) {
       // Safe to convert to number
       const lvlNum = Number(currentGenerationLevel.toPlainIntegerString());
-      const rateNum = Math.pow(isSurgeActive(11) ? 4 : (isSurgeActive(7) ? 3 : 2), lvlNum);
+      const rateNum = Math.pow(isSurgeActive(150) ? 5 : (isSurgeActive(11) ? 4 : (isSurgeActive(7) ? 3 : 2)), lvlNum);
       const perTickNum = rateNum / TICK_RATE;
       const wholeNum = Math.floor(perTickNum);
       const frac = perTickNum - wholeNum;
@@ -531,7 +532,7 @@ export function updateWorkshopTab() {
   if (!workshopEl) return;
   const verbEl = workshopEl.querySelector("[data-workshop=\"production-verb\"]");
   if (verbEl) {
-      const verb = isSurgeActive(11) ? "quadruple" : (isSurgeActive(7) ? "triple" : "double");
+      const verb = isSurgeActive(150) ? "quintuple" : (isSurgeActive(11) ? "quadruple" : (isSurgeActive(7) ? "triple" : "double"));
       if (verbEl.textContent !== verb) verbEl.textContent = verb;
   }
   const gearsAmountEl = workshopEl.querySelector('[data-workshop="gears-amount"]');
