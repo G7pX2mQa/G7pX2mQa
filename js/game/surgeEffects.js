@@ -1092,7 +1092,7 @@ export function initSurgeEffects() {
   });
   
   addExternalFpMultiplierProvider((baseMultiplier) => {
-    if (!isSurgeActive(36)) return baseMultiplier;
+    if (!isSurgeActive(200)) return baseMultiplier;
     let log10Total = 10;
     if (isSurgeActive(8)) {
         log10Total *= getTsunamiExponent();
@@ -1115,7 +1115,7 @@ export function initSurgeEffects() {
     }
     
     // Surge 36: Multiply by 1e100 -> +100
-    if (isSurgeActive(36)) {
+    if (isSurgeActive(200)) {
         log10Total += 100;
     }
     
@@ -1155,7 +1155,7 @@ export function initSurgeEffects() {
   });
   
   addExternalXpGainMultiplierProvider(({ baseGain }) => {
-    if (!isSurgeActive(36)) return baseGain;
+    if (!isSurgeActive(200)) return baseGain;
     
     let log10Total = 100;
     if (isSurgeActive(8)) {
@@ -1194,10 +1194,6 @@ export function getSurgeWaveMultiplier() {
         result = result.mulBigNumInteger(surge29Mult);
     }
     
-    // Surge 36: Multiply by 1e100 -> +100
-    if (isSurgeActive(36)) {
-        log10Total += 100;
-    }
 
     const surge35Mult = getSurge35Multiplier();
     if (surge35Mult.isInfinite?.()) {
