@@ -1090,6 +1090,15 @@ export function initSurgeEffects() {
     }
     return baseMultiplier;
   });
+  
+  addExternalFpMultiplierProvider((baseMultiplier) => {
+    if (!isSurgeActive(36)) return baseMultiplier;
+    let log10Total = 10;
+    if (isSurgeActive(8)) {
+        log10Total *= getTsunamiExponent();
+    }
+    return baseMultiplier.div(bigNumFromLog10(log10Total));
+  });
 
     // Surge 17 (Div 1e5), and Surge 18 (Mul 1e15) for Coins
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
@@ -1103,6 +1112,11 @@ export function initSurgeEffects() {
     // Surge 18: Multiply by 1e15 -> +15
     if (isSurgeActive(18)) {
         log10Total += 15;
+    }
+    
+    // Surge 36: Multiply by 1e100 -> +100
+    if (isSurgeActive(36)) {
+        log10Total += 100;
     }
     
     if (log10Total === 0) return baseMultiplier;
@@ -1140,6 +1154,16 @@ export function initSurgeEffects() {
     return baseGain;
   });
   
+  addExternalXpGainMultiplierProvider(({ baseGain }) => {
+    if (!isSurgeActive(36)) return baseGain;
+    
+    let log10Total = 100;
+    if (isSurgeActive(8)) {
+        log10Total *= getTsunamiExponent();
+    }
+    return baseGain.mulBigNumInteger(bigNumFromLog10(log10Total));
+  });
+  
   // Surge 3: Disable flat Book reward
   setExternalBookRewardProvider(({ baseReward }) => {
      if (isSurgeActive(3)) {
@@ -1168,6 +1192,11 @@ export function getSurgeWaveMultiplier() {
         result = BigNum.fromAny('Infinity');
     } else if (surge29Mult.cmp(1) > 0) {
         result = result.mulBigNumInteger(surge29Mult);
+    }
+    
+    // Surge 36: Multiply by 1e100 -> +100
+    if (isSurgeActive(36)) {
+        log10Total += 100;
     }
 
     const surge35Mult = getSurge35Multiplier();
