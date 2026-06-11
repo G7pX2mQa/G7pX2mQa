@@ -2044,6 +2044,8 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
   rerender();
   upgOverlayEl.classList.add('is-open');
   upgOverlayEl.classList.toggle('is-automation-upgrade', mode === 'automation');
+  upgOverlayEl.classList.toggle('is-effective-auto-collect', mode === 'automation' && upgDef.id === 1);
+  upgOverlayEl.classList.toggle('is-autobuy-coin-upgrades', mode === 'automation' && upgDef.id === 2);
   upgOverlayEl.style.pointerEvents = 'auto';
   blockInteraction(140);
   upgSheetEl.style.transition = 'none';
