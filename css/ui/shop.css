@@ -997,9 +997,16 @@
 
 /* Automation Upgrades */
 
+@media (max-height: 940px) and (hover: hover) and (pointer: fine) {
+  .upg-overlay.is-effective-auto-collect .upg-desc.centered,
+  .upg-overlay.is-effective-auto-collect .upg-line {
+    font-size: clamp(19px, 2.9vw, 31px);
+  }
+}
+
 @media (max-width: 1500px) and (hover: hover) and (pointer: fine) {
-  .upg-overlay.is-automation-upgrade .upg-desc.centered,
-  .upg-overlay.is-automation-upgrade .upg-line {
+  .upg-overlay.is-autobuy-coin-upgrades .upg-desc.centered,
+  .upg-overlay.is-autobuy-coin-upgrades .upg-line {
     font-size: clamp(19px, 2.9vw, 31px);
   }
 }
