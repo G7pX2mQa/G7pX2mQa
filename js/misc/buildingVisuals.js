@@ -21,7 +21,10 @@ const imageCache = {};
 let stonePattern = null;
 function getMaterialImage(matKey) {
   if (imageCache[matKey]) return imageCache[matKey];
-  const config = RESOURCE_REGISTRY.find(r => r.key === matKey);
+  let actualKey = matKey;
+  if (matKey === 'core') actualKey = 'cores';
+  if (matKey === 'crystal') actualKey = 'crystals';
+  const config = RESOURCE_REGISTRY.find(r => r.key === actualKey);
   if (config && config.icon) {
     const img = new Image();
     img.src = config.icon;
