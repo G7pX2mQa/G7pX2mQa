@@ -135,6 +135,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     fpValue: BigNum.fromInt(1),
     dpValue: BigNum.fromInt(1),
     allMaterialsValue: BigNum.fromInt(1),
+    rpValue: BigNum.fromInt(1),
     coinSpawn: 1.0,
     materialSpawn: 1.0,
     magnetRadius: 0,
@@ -207,6 +208,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.dpValue = safeMultiplyBigNum(acc.dpValue, baseEffect);
     } else if (upg.effectType === 'all_materials_value') {
       acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, baseEffect);
+    } else if (upg.effectType === 'rp_value') {
+      acc.rpValue = safeMultiplyBigNum(acc.rpValue, baseEffect);
     } else if (upg.effectType === 'magnet_radius') {
       let val = 0;
       if (baseEffect instanceof BigNum) {
@@ -249,6 +252,7 @@ export function computeUpgradeEffects(areaKey) {
     allMaterialsValueMultiplier: mults.allMaterialsValue,
     scrapValueMultiplier: mults.scrapValue,
     dpValueMultiplier: mults.dpValue,
+    rpValueMultiplier: mults.rpValue,
   };
 }
 
@@ -346,6 +350,15 @@ export function getMpValueMultiplierBn() {
   try {
     const { mpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
     return mpValue;
+  } catch {
+    return BigNum.fromInt(1);
+  }
+}
+
+export function getRpValueMultiplierBn() {
+  try {
+    const { rpValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+    return rpValue;
   } catch {
     return BigNum.fromInt(1);
   }
