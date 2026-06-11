@@ -305,6 +305,16 @@ export const SURGE_MILESTONES = [
     description: [
       "Unlocks new area: <span class=\"cavern-shimmer-wrapper\" data-text=\"Underwater Cavern\"><span class=\"cavern-shimmer-text\">Underwater Cavern</span></span>"
     ]
+  },
+  {
+    id: 36,
+    surgeLevel: 200,
+    affectedByTsunami: true,
+    description: [
+      `Multiplies Coin value by <span style="color:#00e5ff">${formatNumber(BigNum.fromAny('1e100'))}x</span>`,
+      `Multiplies XP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromAny('1e100'))}x</span>`,
+      `Divides FP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromAny('1e10'))}x</span>`
+    ]
   }
 ];
 
@@ -751,6 +761,22 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
         }
         milestone.description.push(`Current bonus: <span style="color:#00ff00">${formattedBonus}x</span>`);
       }
+    }
+
+    if (m.id === 36) {
+      if (milestone === m) {
+          milestone = { ...m, description: [...m.description] };
+      }
+
+      const effectiveExp = getTsunamiExponent();
+      const multVal = bigNumFromLog10(100 * effectiveExp);
+      const divVal = bigNumFromLog10(10 * effectiveExp);
+
+      milestone.description = [
+        `Multiplies Coin value by <span style="color:#00e5ff">${formatNumber(multVal)}x</span>`,
+        `Multiplies XP value by <span style="color:#00e5ff">${formatNumber(multVal)}x</span>`,
+        `Divides FP value by <span style="color:#00e5ff">${formatNumber(divVal)}x</span>`
+      ];
     }
 
     if (m.id === 31) {
