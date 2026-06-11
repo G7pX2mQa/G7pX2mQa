@@ -307,6 +307,15 @@ export const SURGE_MILESTONES = [
     ]
   },
   {
+    id: 35,
+    surgeLevel: 150,
+    affectedByTsunami: false,
+    description: [
+      "Unlocks four new automation upgrades",
+      "Makes each Workshop Level quintuple Gear production instead of quadrupling it"
+    ]
+  },
+  {
     id: 36,
     surgeLevel: 200,
     affectedByTsunami: true,
