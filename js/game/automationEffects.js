@@ -6,7 +6,10 @@ import {
   EFFECTIVE_AUTO_COLLECT_ID, 
   MASTER_AUTOBUY_IDS,
   AUTOBUY_WORKSHOP_LEVELS_ID,
-  AUTOBUY_EVOLVE_UPGRADES_ID
+  AUTOBUY_EVOLVE_UPGRADES_ID,
+  UNDERWATER_CAVERN_EAC_ID,
+  EFFECTIVE_AUTO_SELL_ID,
+  AUTOBUY_SCRAP_UPGRADES_ID
 } from './automationUpgrades.js';
 import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js';
 import { getActiveSlot } from '../util/storage.js';
