@@ -248,7 +248,9 @@ export function initUcPickup({
         }
         
         if (window.dpSystem && typeof window.dpSystem.addDp === 'function') {
-            window.dpSystem.addDp(collectedCount);
+            const manualValueLevel = getLevelNumber(AUTOMATION_AREA_KEY, MANUAL_MATERIAL_VALUE_ID);
+            const manualValueMultiplier = 1 + manualValueLevel;
+            window.dpSystem.addDp(collectedCount * manualValueMultiplier);
         }
 
         if (typeof window !== 'undefined' && typeof window.currentArea !== 'undefined' && window.currentArea === 2) {
