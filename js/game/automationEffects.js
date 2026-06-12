@@ -12,11 +12,14 @@ import {
   AUTOBUY_SCRAP_UPGRADES_ID
 } from './automationUpgrades.js';
 import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js';
-import { getActiveSlot } from '../util/storage.js';
+import { getActiveSlot, getCurrencyMultiplierScaledBN, CURRENCIES, bank, UC_MATERIALS } from '../util/storage.js';
+import { UC_MATERIAL_DATA, getUcMaterialAccumulators } from './ucSpawner.js';
+import { BigNum } from '../util/bigNum.js';
 import { isSurgeActive, getBaseTsunamiExponent } from './surgeEffects.js';
 import { settingsManager } from './settingsManager.js';
 
 let accumulator = 0;
+let ucEacAccumulator = 0;
 let workshopTicker = 0;
 
 let tsunamiBonusProvider = () => 0;
@@ -391,6 +394,11 @@ export function updateAutomation(dt) {
         }
         
         ucEacAccumulator -= ticks * ucInterval;
+        const now = Date.now();
+        if (now - lastUcEacSaveTime > 1000) {
+            saveUcEacAccumulator();
+            lastUcEacSaveTime = now;
+        }
       }
     }
   } else {
@@ -432,7 +440,31 @@ export function updateAutomation(dt) {
   }
 }
 
+
+let lastUcEacSaveTime = 0;
+export function saveUcEacAccumulator() {
+    try {
+        localStorage.setItem(`ccc:ucEacAccumulator:${getActiveSlot()}`, String(ucEacAccumulator));
+    } catch {}
+}
+
+export function loadUcEacAccumulator() {
+    try {
+        const stored = localStorage.getItem(`ccc:ucEacAccumulator:${getActiveSlot()}`);
+        ucEacAccumulator = stored ? Number(stored) : 0;
+        if (!Number.isFinite(ucEacAccumulator)) ucEacAccumulator = 0;
+    } catch {
+        ucEacAccumulator = 0;
+    }
+}
+
+export function resetUcEacAccumulator() {
+    ucEacAccumulator = 0;
+    saveUcEacAccumulator();
+}
+
 export function initAutomationEffects() {
+  loadUcEacAccumulator();
   registerTick(onTick);
   
   // Listen for save slot changes to clear cache
@@ -441,6 +473,7 @@ export function initAutomationEffects() {
         const newSlot = e.detail?.slot;
         if (newSlot !== undefined && newSlot !== cacheSlot) {
             autobuyerCache.clear();
+            loadUcEacAccumulator();
             cacheSlot = newSlot;
         }
     });
