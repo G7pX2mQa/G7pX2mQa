@@ -135,6 +135,14 @@ function resolveUpgradeId(upgLike) {
   return null;
 }
 
+function isBuyCheapExcluded(upgDef) {
+    if (!upgDef) return false;
+    const upgId = resolveUpgradeId(upgDef);
+    return (upgDef.area === 'starter_cove' && [3, 4, 5, 6].includes(upgId)) ||
+           (upgDef.area === 'underwater_cavern' && [5, 9].includes(upgId)) ||
+           (upgDef.area === 'automation' && [1, 10, 11, 12].includes(upgId));
+}
+
 function isForgeUnlockUpgrade(upgLike, mode) {
   return mode === 'standard' && resolveUpgradeId(upgLike) === FORGE_UNLOCK_UPGRADE_ID;
 }
@@ -794,7 +802,7 @@ class ShopInstance {
 
                         const id = el.upgMeta.id;
                         const isHM = el.upgMeta.upgType === 'HM';
-                        const isExcludedCheap = [3, 4, 5, 6, 9].includes(resolveUpgradeId(el.upgMeta));
+                        const isExcludedCheap = isBuyCheapExcluded(el.upgMeta);
 
                         // Shift + Click -> Buy Cheap
                         if (event.shiftKey) {
@@ -1984,8 +1992,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
               };
               ensureButton('shop-delve btn-buy-max', 'Buy Max', performBuyMax, 2, !canAffordNext);
 
-              // Exclude early upgrades (Ids 1, 3, 4, 5, 6)
-              const isExcluded = [3, 4, 5, 6, 9].includes(resolveUpgradeId(model.upg));
+              const isExcluded = isBuyCheapExcluded(upgDef);
               if (!isHM && !isExcluded) {
                   const performBuyCheap = () => {
                       const fresh = adapter.getUiModel(upgDef.id);
@@ -2046,6 +2053,9 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
   upgOverlayEl.classList.toggle('is-automation-upgrade', mode === 'automation');
   upgOverlayEl.classList.toggle('is-effective-auto-collect', mode === 'automation' && upgDef.id === 1);
   upgOverlayEl.classList.toggle('is-autobuy-coin-upgrades', mode === 'automation' && upgDef.id === 2);
+  upgOverlayEl.classList.toggle('is-underwater-cavern-eac', mode === 'automation' && upgDef.id === 10);
+  upgOverlayEl.classList.toggle('is-manual-material-value', mode === 'automation' && upgDef.id === 11);
+  upgOverlayEl.classList.toggle('is-effective-auto-sell', mode === 'automation' && upgDef.id === 12);
   upgOverlayEl.style.pointerEvents = 'auto';
   blockInteraction(140);
   upgSheetEl.style.transition = 'none';
