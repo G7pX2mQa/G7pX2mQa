@@ -457,7 +457,20 @@ function ensureMysteriousBuildingOverlay() {
     sheet.style.display = 'flex';
     sheet.style.flexDirection = 'column';
     
+
+    const grabber = document.createElement('div');
+    grabber.className = 'upg-grabber';
+    grabber.innerHTML = `<div class="grab-handle"></div>`;
+    grabber.style.zIndex = '1';
+    
+    const header = document.createElement('header');
+    header.className = 'upg-header';
+    header.style.zIndex = '1';
+    header.style.background = 'transparent';
+    header.style.borderBottom = 'none';
+    
     const content = document.createElement('div');
+
     content.className = 'upg-content';
     
     const actions = document.createElement('div');
@@ -506,7 +519,7 @@ function openMysteriousBuildingOverlay(mysteriousText) {
     const closeBtn = actions.querySelector('.shop-close');
     closeBtn.addEventListener('click', closeMysteriousBuildingOverlay);
 
-    openBuildingOverlaySheet(sheet);
+    openBuildingOverlaySheet(overlay, sheet);
 }
 
 function closeMysteriousBuildingOverlay() {
