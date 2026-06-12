@@ -183,6 +183,7 @@ export const UPGRADE_TIES = {
   UNLOCK_INFUSE: 'none_3',
   COIN_VALUE_III: 'magic_1',
   COIN_VALUE_IV: 'scrap_2',
+  XP_VALUE_IV: 'scrap_7',
   XP_VALUE_III: 'magic_2',
   MP_VALUE_II: 'magic_3',
   FASTER_COINS_III: 'magic_4',
