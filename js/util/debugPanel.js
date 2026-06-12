@@ -2208,7 +2208,7 @@ function buildAreaStats(container, area) {
         const dpStateVal = window.dpSystem ? window.dpSystem.getDpState() : { dpLevel: BigNum.fromInt(0), progress: BigNum.fromInt(0) };
 
         const dpLevelKey = DP_KEYS.level(slot);
-        const dpLevelRow = createInputRow('Depth Level', dpStateVal.dpLevel, (value, { setValue }) => {
+        const dpLevelRow = createInputRow('Depth', dpStateVal.dpLevel, (value, { setValue }) => {
             const prev = window.dpSystem.getDpState().dpLevel;
             let valToApply = value;
             if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
@@ -2383,7 +2383,7 @@ function buildAreaStats(container, area) {
     container.appendChild(xpProgressRow.row);
 
     const mpLevelKey = MUTATION_KEYS.level(slot);
-    const mpLevelRow = createInputRow('Mutation Level', mutation.level, (value, { setValue }) => {
+    const mpLevelRow = createInputRow('Mutation', mutation.level, (value, { setValue }) => {
         const prev = getMutationState().level;
         applyMutationState({ level: value });
         const latest = getMutationState();
@@ -2524,7 +2524,7 @@ function buildAreaStats(container, area) {
             currentSurgeLevel = BigNum.fromInt(0);
         }
 
-        const surgeLevelRow = createInputRow('Surge Level', currentSurgeLevel, (value, { setValue }) => {
+        const surgeLevelRow = createInputRow('Surge', currentSurgeLevel, (value, { setValue }) => {
             let valToStore = '0';
             let valForDisplay = 0;
 
@@ -3216,6 +3216,23 @@ function getUnlockRowDefinitions(slot) {
             slot,
         },
         {
+            labelText: 'Unlock Compress',
+            description: 'If true, unlocks the Compress reset',
+            isUnlocked: () => {
+                try { return window.resetSystem?.isCompressUnlocked?.(); }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setCompressUnlocked?.(true); window.resetSystem?.updateCompressPanelVisibility?.(document.querySelector('.merchant-sheet')); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setCompressUnlocked?.(false); window.resetSystem?.updateCompressPanelVisibility?.(document.querySelector('.merchant-sheet')); }
+                catch {}
+            },
+            slot,
+        },
+        {
             labelText: 'Unlock Buildings',
             description: 'If true, unlocks the Buildings tab',
             isUnlocked: () => {
@@ -3225,9 +3242,7 @@ function getUnlockRowDefinitions(slot) {
             onEnable: () => {
                 try { window.resetSystem?.setCombineResetCompleted?.(true); }
                 catch {}
-                try { setBuildingsUnlocked(true); }
-                catch {}
-                try { window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.miner-sheet')); }
+                try { window.dispatchEvent(new Event('ccc:buildings:changed')); }
                 catch {}
                 try { window.resetSystem?.updateCombineCard?.(); }
                 catch {}
@@ -3235,16 +3250,35 @@ function getUnlockRowDefinitions(slot) {
             onDisable: () => {
                 try { window.resetSystem?.setCombineResetCompleted?.(false); }
                 catch {}
-                try { setBuildingsUnlocked(false); }
+                try { window.dispatchEvent(new Event('ccc:buildings:changed')); }
                 catch {}
                 try { window.resetSystem?.updateCombineCard?.(); }
-                catch {}
-                try { window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.miner-sheet')); }
                 catch {}
             },
             slot,
         },
         {
+            labelText: 'Unlock Pressure',
+            description: 'If true, unlocks the Pressure system',
+            isUnlocked: () => {
+                try { return window.resetSystem?.hasDoneCompressReset?.() ?? false; }
+                catch { return false; }
+            },
+            onEnable: () => {
+                try { window.resetSystem?.setCompressResetCompleted?.(true); }
+                catch {}
+                try { window.resetSystem?.updateCompressCard?.(); }
+                catch {}
+            },
+            onDisable: () => {
+                try { window.resetSystem?.setCompressResetCompleted?.(false); }
+                catch {}
+                try { window.resetSystem?.updateCompressCard?.(); }
+                catch {}
+            },
+            slot,
+        },
+                {
             labelText: 'Unlock Sell',
             description: 'If true, unlocks the Sell tab in the Miner delve',
             isUnlocked: () => {
@@ -3365,8 +3399,8 @@ function getUnlockRowDefinitions(slot) {
             slot,
         },
 		{
-            labelText: 'Unlock MP',
-            description: 'If true, unlocks the MP system',
+            labelText: 'Unlock Mutations',
+            description: 'If true, unlocks the Mutation system',
             isUnlocked: () => {
                 try { return window.resetSystem?.hasDoneForgeReset?.() ?? false; }
                 catch { return false; }
@@ -4410,7 +4444,7 @@ function buildAreaCalculators(container) {
                 {
                     label: 'MP Requirement',
                     inputs: [
-                        { key: 'mpLevel', label: 'MP Level' },
+                        { key: 'mpLevel', label: 'Mutation' },
                     ],
                     compute: ({ mpLevel }) => computeMutationRequirementForLevel(mpLevel),
                 },
