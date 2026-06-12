@@ -293,13 +293,13 @@ function updateAutobuyers(dt) {
 }
 
 export function updateAutomation(dt) {
-  const eacEfficiency = settingsManager.get('eac_efficiency');
+  const eacEfficiency = settingsManager.get("eac_efficiency");
+  const efficiencyMult = eacEfficiency !== undefined ? (eacEfficiency / 100) : 1;
+
   if (eacEfficiency === 0) {
     accumulator = 0;
     ucEacAccumulator = 0;
-    return;
   }
-  const efficiencyMult = eacEfficiency !== undefined ? (eacEfficiency / 100) : 1;
 
   const level = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID);
   let rate = level; // Rate = level (coins/sec)
@@ -311,7 +311,7 @@ export function updateAutomation(dt) {
     } catch {}
   }
 
-  if (rate > 0) {
+  if (rate > 0 && eacEfficiency !== 0) {
     accumulator += dt;
     const interval = 1 / rate;
 
@@ -344,7 +344,7 @@ export function updateAutomation(dt) {
     } catch {}
   }
 
-  if (ucRate > 0) {
+  if (ucRate > 0 && eacEfficiency !== 0) {
     ucEacAccumulator += dt;
     const ucInterval = 1 / ucRate;
 
@@ -423,11 +423,15 @@ export function updateAutomation(dt) {
   const autoSellUpgDef = getUpgrade(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID);
   const autoSellIsLocked = autoSellUpgDef && autoSellUpgDef.requiredNodeId && isNodeLocked(autoSellUpgDef.requiredNodeId, true);
   if (!autoSellIsLocked && autoSellLevel > 0 && bank.scrap && !globalThis?.__cccLockedStorageKeys?.has?.('ccc:scrap')) {
+      const autoSellSetting = settingsManager.get("auto_sell_efficiency");
+      const autoSellMult = autoSellSetting !== undefined ? (autoSellSetting / 100) : 1;
+      if (autoSellMult === 0) return;
       let eff = 0;
       if (autoSellLevel === 1) eff = 0.000001; // 0.0001%
       else if (autoSellLevel === 2) eff = 0.0001; // 0.01%
       else if (autoSellLevel === 3) eff = 0.01; // 1%
-      else if (autoSellLevel >= 4) eff = 1.0; // 100%
+      else if (autoSellLevel >= 4) eff = 1.0;
+      eff *= autoSellMult; // 100%
       
       const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
       let totalScrapGain = BigNum.fromInt(0);
