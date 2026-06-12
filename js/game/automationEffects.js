@@ -17,10 +17,14 @@ import { UC_MATERIAL_DATA, getUcMaterialAccumulators } from './ucSpawner.js';
 import { BigNum } from '../util/bigNum.js';
 import { isSurgeActive, getBaseTsunamiExponent } from './surgeEffects.js';
 import { settingsManager } from './settingsManager.js';
+import { isNodeLocked } from '../ui/mapOverlay.js';
+import { getUpgrade } from './upgrades.js';
+import { getDpState } from './dpSystem.js';
 
 let accumulator = 0;
 let ucEacAccumulator = 0;
 let workshopTicker = 0;
+let scrapAutoSellAccumulator = BigNum.fromInt(0);
 
 let tsunamiBonusProvider = () => 0;
 
@@ -327,7 +331,11 @@ export function updateAutomation(dt) {
 
   // UC EAC Logic
   const ucEacLevel = getLevelNumber(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID);
-  let ucRate = ucEacLevel;
+  const ucEacUpgDef = getUpgrade(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID);
+  let ucRate = 0;
+  if (!ucEacUpgDef || !ucEacUpgDef.requiredNodeId || !isNodeLocked(ucEacUpgDef.requiredNodeId, true)) {
+    ucRate = ucEacLevel;
+  }
   
   for (const provider of externalEacProviders) {
     try {
@@ -407,11 +415,13 @@ export function updateAutomation(dt) {
 
   // Auto-Sell Logic
   const autoSellLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID);
-  if (autoSellLevel > 0 && bank.scrap && !globalThis?.__cccLockedStorageKeys?.has?.('ccc:scrap')) {
+  const autoSellUpgDef = getUpgrade(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID);
+  const autoSellIsLocked = autoSellUpgDef && autoSellUpgDef.requiredNodeId && isNodeLocked(autoSellUpgDef.requiredNodeId, true);
+  if (!autoSellIsLocked && autoSellLevel > 0 && bank.scrap && !globalThis?.__cccLockedStorageKeys?.has?.('ccc:scrap')) {
       let eff = 0;
-      if (autoSellLevel === 1) eff = 0.001; // 0.1%
-      else if (autoSellLevel === 2) eff = 0.01; // 1%
-      else if (autoSellLevel === 3) eff = 0.1; // 10%
+      if (autoSellLevel === 1) eff = 0.000001; // 0.0001%
+      else if (autoSellLevel === 2) eff = 0.0001; // 0.01%
+      else if (autoSellLevel === 3) eff = 0.01; // 1%
       else if (autoSellLevel >= 4) eff = 1.0; // 100%
       
       const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
@@ -429,13 +439,17 @@ export function updateAutomation(dt) {
               if (eff === 1.0) {
                   totalScrapGain = totalScrapGain.add(potentialScrap);
               } else {
-                  totalScrapGain = totalScrapGain.add(potentialScrap.mulDecimalFloor(eff));
+                  totalScrapGain = totalScrapGain.add(potentialScrap.mulDecimal(eff));
               }
           }
       }
 
-      if (totalScrapGain.cmp(0) > 0) {
-          bank.scrap.add(totalScrapGain);
+      scrapAutoSellAccumulator = scrapAutoSellAccumulator.add(totalScrapGain);
+      
+      const toAdd = scrapAutoSellAccumulator.floorToInteger();
+      if (toAdd.cmp(0) > 0) {
+          bank.scrap.add(toAdd);
+          scrapAutoSellAccumulator = scrapAutoSellAccumulator.sub(toAdd);
       }
   }
 }
