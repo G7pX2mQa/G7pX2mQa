@@ -401,6 +401,10 @@ export function updateAutomation(dt) {
             try { scheduleHudUpdate(); } catch {}
         }
         
+        if (window.dpSystem && typeof window.dpSystem.addDp === 'function') {
+            window.dpSystem.addDp(collectCount);
+        }
+        
         ucEacAccumulator -= ticks * ucInterval;
         const now = Date.now();
         if (now - lastUcEacSaveTime > 1000) {
