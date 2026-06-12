@@ -252,7 +252,7 @@ export const UC_REGISTRY = [
     id: 6,
     tie: 'none_7',
     title: "Unlock Combine",
-    desc: "Unlocks the Reset tab and the Combine reset in the Delve menu",
+    desc: "Unlocks the Reset tab and Combine reset in the Delve menu",
     descScale: 0.9,
 	ignoreDescScaleAt: 1500,
     lvlCap: 1,
