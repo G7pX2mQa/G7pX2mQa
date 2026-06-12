@@ -374,7 +374,7 @@ export const UC_REGISTRY = [
     id: 8,
     tie: 'scrap_5',
     title: "Endless Materials",
-    desc: "Multiplies the value of ALL Materials by 2x per level\nThis upgrade is very strong so it will scale just slightly faster than usual",
+    desc: "Doubles the value of ALL Materials per level\nThis upgrade is very strong so it will scale just slightly faster than usual",
     lvlCap: HM_EVOLUTION_INTERVAL,
     baseCost: 1e9,
     costType: 'scrap',
@@ -425,7 +425,7 @@ export const UC_REGISTRY = [
     },
     effectSummary(level) {
       const mult = this.effectMultiplier(level);
-      return `All Materials value bonus: ${formatMultForUi(mult)}x`;
+      return `Material value bonus: ${formatMultForUi(mult)}x`;
     },
     effectMultiplier(level) {
       const normalizedLevel = Math.max(0, Number(level) || 0);
