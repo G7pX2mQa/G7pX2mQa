@@ -24,6 +24,13 @@ export function resetUcMaterialAccumulators() {
     } catch {}
 }
 
+export function resetUcEacMaterialAccumulators() {
+    window._ucEacMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+    try {
+        localStorage.setItem(`ccc:ucEacMaterialAccumulators:${getActiveSlot()}`, JSON.stringify(window._ucEacMaterialAccumulators));
+    } catch {}
+}
+
 export function getUcMaterialAccumulators() {
     if (!window._ucMaterialAccumulators) {
         try {
@@ -39,6 +46,31 @@ export function getUcMaterialAccumulators() {
     }
 
     return window._ucMaterialAccumulators || new Array(UC_MATERIALS.length).fill(0);
+}
+
+export function getUcEacMaterialAccumulators() {
+    if (!window._ucEacMaterialAccumulators) {
+        try {
+            const stored = localStorage.getItem(`ccc:ucEacMaterialAccumulators:${getActiveSlot()}`);
+            if (stored) {
+                window._ucEacMaterialAccumulators = JSON.parse(stored);
+            } else {
+                window._ucEacMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+            }
+        } catch {
+            window._ucEacMaterialAccumulators = new Array(UC_MATERIALS.length).fill(0);
+        }
+    }
+
+    return window._ucEacMaterialAccumulators || new Array(UC_MATERIALS.length).fill(0);
+}
+
+export function saveUcEacMaterialAccumulators() {
+    try {
+        if (window._ucEacMaterialAccumulators) {
+            localStorage.setItem(`ccc:ucEacMaterialAccumulators:${getActiveSlot()}`, JSON.stringify(window._ucEacMaterialAccumulators));
+        }
+    } catch {}
 }
 
 export function createUcSpawner(config = {}) {
