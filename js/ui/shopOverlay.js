@@ -91,7 +91,8 @@ const COST_TYPE_TO_AUTO_ID = {
   books: AUTOBUY_BOOK_UPGRADES_ID,
   gold: AUTOBUY_GOLD_UPGRADES_ID,
   magic: AUTOBUY_MAGIC_UPGRADES_ID,
-  dna: AUTOBUY_DNA_UPGRADES_ID
+  dna: AUTOBUY_DNA_UPGRADES_ID,
+  scrap: AUTOBUY_SCRAP_UPGRADES_ID
 };
 
 function isUpgradeAutomated(upgDef) {
