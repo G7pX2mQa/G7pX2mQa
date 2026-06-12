@@ -1661,7 +1661,7 @@ function updateFlowVisuals() {
                     
                     const currentStr = formatNumber(flooredCurrent);
                     const reqStr = formatNumber(flooredReq);
-                    cache.tooltip.innerText = `Current progress: ${currentStr} / ${reqStr}`;
+                    cache.tooltip.innerText = `Current progress: ${currentStr} / ${reqStr} FP`;
                 }
             }
         }
