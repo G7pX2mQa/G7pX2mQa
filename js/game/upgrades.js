@@ -328,9 +328,15 @@ catch {
   },
 
   powPerLevel(base) {
-    const baseNum = Number(base);
-    const b = Number.isFinite(baseNum) ? baseNum : Number(toBn(base).toScientific(6));
-    const log10b = Math.log10(b);
+    let log10b;
+    const bnBase = toBn(base);
+    if (bnBase && bnBase.e !== undefined && bnBase.sig !== undefined) {
+        log10b = approxLog10BigNum(bnBase);
+    } else {
+        const baseNum = Number(base);
+        const b = Number.isFinite(baseNum) ? baseNum : Number(bnBase.toScientific(6));
+        log10b = Math.log10(b);
+    }
     const LOG10_INFINITY_TRIGGER = 1e305;
 
     return (level) => {
