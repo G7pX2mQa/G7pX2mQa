@@ -13,7 +13,7 @@ import {
 } from './automationUpgrades.js';
 import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js';
 import { getActiveSlot, getCurrencyMultiplierScaledBN, CURRENCIES, bank, UC_MATERIALS } from '../util/storage.js';
-import { UC_MATERIAL_DATA, getUcMaterialAccumulators } from './ucSpawner.js';
+import { UC_MATERIAL_DATA, getUcEacMaterialAccumulators, saveUcEacMaterialAccumulators } from './ucSpawner.js';
 import { BigNum } from '../util/bigNum.js';
 import { isSurgeActive, getBaseTsunamiExponent } from './surgeEffects.js';
 import { settingsManager } from './settingsManager.js';
@@ -363,7 +363,7 @@ export function updateAutomation(dt) {
            }
         } catch {}
 
-        const accs = getUcMaterialAccumulators();
+        const accs = getUcEacMaterialAccumulators();
         let anyGains = false;
         
         for (let t = 0; t < collectCount; t++) {
@@ -405,6 +405,7 @@ export function updateAutomation(dt) {
         const now = Date.now();
         if (now - lastUcEacSaveTime > 1000) {
             saveUcEacAccumulator();
+            saveUcEacMaterialAccumulators();
             lastUcEacSaveTime = now;
         }
       }
