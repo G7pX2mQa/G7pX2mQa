@@ -44,15 +44,9 @@ import {
 } from '../util/ghostTapGuard.js';
 import { 
   AUTOMATION_AREA_KEY, 
-  AUTOBUY_COIN_UPGRADES_ID,
-  AUTOBUY_BOOK_UPGRADES_ID,
-  AUTOBUY_GOLD_UPGRADES_ID,
-  AUTOBUY_MAGIC_UPGRADES_ID,
   AUTOBUY_WORKSHOP_LEVELS_ID,
-  AUTOBUY_DNA_UPGRADES_ID,
   AUTOBUY_EVOLVE_UPGRADES_ID,
-  MASTER_AUTOBUY_IDS,
-  AUTOBUY_SCRAP_UPGRADES_ID
+  MASTER_AUTOBUY_IDS
 } from '../game/automationUpgrades.js';
 import { getAutobuyerToggle, setAutobuyerToggle, setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../game/automationEffects.js';
 import { DNA_AREA_KEY } from '../game/dnaUpgrades.js';
@@ -87,18 +81,16 @@ const CURRENCY_ICON_SRC = {
 
 const FORGE_UNLOCK_UPGRADE_ID = 7;
 
-const COST_TYPE_TO_AUTO_ID = {
-  coins: AUTOBUY_COIN_UPGRADES_ID,
-  books: AUTOBUY_BOOK_UPGRADES_ID,
-  gold: AUTOBUY_GOLD_UPGRADES_ID,
-  magic: AUTOBUY_MAGIC_UPGRADES_ID,
-  dna: AUTOBUY_DNA_UPGRADES_ID,
-  scrap: AUTOBUY_SCRAP_UPGRADES_ID
-};
+// --- Automation Mappings ---
+// Maps standard cost types to the ID of the automation upgrade that unlocks autobuy for them.
+const COST_TYPE_TO_AUTOBUY_ID = {};
+for (const [autoId, costType] of Object.entries(MASTER_AUTOBUY_IDS)) {
+  COST_TYPE_TO_AUTOBUY_ID[costType] = Number(autoId);
+}
 
 function isUpgradeAutomated(upgDef) {
     if (!upgDef || !upgDef.costType) return false;
-    const autoId = COST_TYPE_TO_AUTO_ID[upgDef.costType];
+    const autoId = COST_TYPE_TO_AUTOBUY_ID[upgDef.costType];
     if (!autoId) return false;
     
     // Check if player has the automation upgrade
@@ -111,17 +103,6 @@ function isUpgradeAutomated(upgDef) {
     // Default is ON (if not '0')
     return val !== '0';
 }
-
-// --- Automation Mappings ---
-// Maps standard cost types to the ID of the automation upgrade that unlocks autobuy for them.
-const COST_TYPE_TO_AUTOBUY_ID = {
-  coins: AUTOBUY_COIN_UPGRADES_ID,
-  books: AUTOBUY_BOOK_UPGRADES_ID,
-  gold: AUTOBUY_GOLD_UPGRADES_ID,
-  magic: AUTOBUY_MAGIC_UPGRADES_ID,
-  dna: AUTOBUY_DNA_UPGRADES_ID,
-  scrap: AUTOBUY_SCRAP_UPGRADES_ID
-};
 
 
 
