@@ -798,7 +798,19 @@ function onTick(dt) {
       const perSec = pending.mulDecimal(rateMultiplier.toScientific());
       const amountToAdd = perSec.mulDecimal(String(dt), 18);
       
-      if (bank.gold) bank.gold.add(amountToAdd);
+      if (amountToAdd.cmp(1e9) > 0 || amountToAdd.isInfinite?.()) {
+          if (bank.gold) bank.gold.add(amountToAdd);
+      } else {
+          const rateNum = Number(amountToAdd.toScientific());
+          if (!window.__goldResidue) window.__goldResidue = 0;
+          window.__goldResidue += rateNum;
+
+          if (window.__goldResidue >= 1) {
+              const whole = Math.floor(window.__goldResidue);
+              window.__goldResidue -= whole;
+              if (bank.gold) bank.gold.add(BigNum.fromInt(whole));
+          }
+      }
   }
 
   if (isSurgeActive(16)) {
@@ -831,7 +843,19 @@ function onTick(dt) {
       const perSec = pending.mulDecimal(rateMultiplier.toScientific());
       const amountToAdd = perSec.mulDecimal(String(dt), 18);
       
-      if (bank.magic) bank.magic.add(amountToAdd);
+      if (amountToAdd.cmp(1e9) > 0 || amountToAdd.isInfinite?.()) {
+          if (bank.magic) bank.magic.add(amountToAdd);
+      } else {
+          const rateNum = Number(amountToAdd.toScientific());
+          if (!window.__magicResidue) window.__magicResidue = 0;
+          window.__magicResidue += rateNum;
+
+          if (window.__magicResidue >= 1) {
+              const whole = Math.floor(window.__magicResidue);
+              window.__magicResidue -= whole;
+              if (bank.magic) bank.magic.add(BigNum.fromInt(whole));
+          }
+      }
   }
 
   if (isSurgeActive(80)) {
@@ -855,7 +879,19 @@ function onTick(dt) {
           const perSec = pending.mulDecimal(rateMultiplier.toScientific());
           const amountToAddDna = perSec.mulDecimal(String(dt), 18);
           
-          if (bank.dna) bank.dna.add(amountToAddDna);
+          if (amountToAddDna.cmp(1e9) > 0 || amountToAddDna.isInfinite?.()) {
+              if (bank.dna) bank.dna.add(amountToAddDna);
+          } else {
+              const rateNum = Number(amountToAddDna.toScientific());
+              if (!window.__dnaResidue) window.__dnaResidue = 0;
+              window.__dnaResidue += rateNum;
+
+              if (window.__dnaResidue >= 1) {
+                  const whole = Math.floor(window.__dnaResidue);
+                  window.__dnaResidue -= whole;
+                  if (bank.dna) bank.dna.add(BigNum.fromInt(whole));
+              }
+          }
       }
   }
 }
