@@ -5,6 +5,7 @@ import { getDpState, isDpSystemUnlocked, resetDpProgress } from '../../game/dpSy
 import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../../util/bigNum.js';
 import { settingsManager } from '../../game/settingsManager.js';
 import { getUcMaterialAccumulators, resetUcMaterialAccumulators, UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
+import { resetUcEacAccumulator } from '../../game/automationEffects.js';
 import { getUpgradesForArea, AREA_KEYS, setLevel } from '../../game/upgrades.js';
 import { resetLab, RESEARCH_NODES } from '../../game/labNodes.js';
 import { applySurgeResetLogic } from '../merchantTabs/resetTab.js';
@@ -266,6 +267,7 @@ export function performCombineReset() {
         
         // Zero accumulators
         resetUcMaterialAccumulators();
+        resetUcEacAccumulator();
     } catch {}
     
     // Wipe DP/Depth
