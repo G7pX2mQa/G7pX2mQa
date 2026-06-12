@@ -1,3 +1,4 @@
+import { settingsManager } from "./settingsManager.js";
 import { isSurgeUnlocked } from '../ui/merchantTabs/resetTab.js';
 import { MYSTERIOUS_UPGRADE_ICON_DATA_URL, LOCKED_UPGRADE_ICON_DATA_URL, HIDDEN_UPGRADE_TITLE, LOCKED_UPGRADE_TITLE, E } from './upgrades.js';
 import { BigNum } from '../util/bigNum.js';
@@ -463,7 +464,14 @@ const UPGRADE_DEFINITIONS = [
       if (lvl === 1) eff = '0.0001%';
       else if (lvl === 2) eff = '0.01%';
       else if (lvl === 3) eff = '1%';
-      else if (lvl >= 4) eff = '100%';
+      else if (lvl >= 4) eff = "100%";
+      const autoSellSetting = settingsManager.get("auto_sell_efficiency");
+      if (autoSellSetting !== undefined && autoSellSetting < 100) {
+        if (autoSellSetting === 0) return `Auto-sell efficiency: 0% (nerfed by setting)`;
+        let numVal = parseFloat(eff);
+        let nerfedVal = numVal * (autoSellSetting / 100);
+        return `Auto-sell efficiency: ${nerfedVal}% (nerfed by setting)`;
+      }
       return `Auto-sell efficiency: ${eff}`;
     },
     computeLockState(ctx) {
