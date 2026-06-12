@@ -11,7 +11,7 @@ import { resetLab, RESEARCH_NODES } from '../../game/labNodes.js';
 import { applySurgeResetLogic } from '../merchantTabs/resetTab.js';
 import { isBuildingsUnlocked } from './buildingsTab.js';
 import { isSurgeActive } from '../../game/surgeEffects.js';
-import { WATERWHEEL_DEFS } from '../merchantTabs/flowTab.js';
+import { WATERWHEEL_DEFS, setWaterwheelLevel, setWaterwheelFp } from '../merchantTabs/flowTab.js';
 
 const COMBINE_UNLOCKED_KEY_BASE = 'ccc:combineUnlocked';
 const COMBINE_COMPLETED_KEY_BASE = 'ccc:combineCompleted';
@@ -247,11 +247,9 @@ export function performCombineReset() {
     
     // Wipe Waterwheels levels/fp to 0
     try {
-        if (typeof window !== 'undefined' && window.flowSystem) {
-           for (const id in WATERWHEEL_DEFS) {
-               if (window.flowSystem.setWaterwheelLevel) window.flowSystem.setWaterwheelLevel(id, BigNum.fromInt(0));
-               if (window.flowSystem.setWaterwheelFp) window.flowSystem.setWaterwheelFp(id, 0);
-           }
+        for (const id in WATERWHEEL_DEFS) {
+            setWaterwheelLevel(id, BigNum.fromInt(0));
+            setWaterwheelFp(id, 0);
         }
     } catch {}
 
