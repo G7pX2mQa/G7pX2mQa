@@ -593,6 +593,7 @@ export function addBuildingLevel(id, amountToAddBn) {
 }
 
 export function getBuildingRatio(id) {
+    if (id === 'core' || id === 'crystal') return 1.56;
     let idx = BUILDING_IDS.indexOf(id);
     if (idx <= 2) return 1.20;
     return 1.20 + ((idx - 2) * 0.04);
@@ -609,7 +610,7 @@ export function getBuildingCostLog10AtLevel(id, levelBn) {
         const startRatioLog10 = Math.log10(ratio);
         const MAX_LOG10 = 1.7976931348623157e+308;
         const targetRatioLog10 = MAX_LOG10 / 4000990000000;
-        const baseStartRatioLog10 = Math.log10(1.20);
+		const baseStartRatioLog10 = Math.log10(ratio);
         const rate = Math.log(targetRatioLog10 / baseStartRatioLog10) / (4000990000000 - softcapStart);
         const ratioLog10 = startRatioLog10 * Math.exp(rate * delta);
         return levelNum * ratioLog10; 
@@ -640,7 +641,7 @@ export function getBuildingBonus(id, levelBn) {
     const levelNum = levelBigNumToNumber(levelBn);
     
     if (id === 'crystal') {
-        return bigNumFromLog10(levelNum * Math.log10(3));
+        return bigNumFromLog10(levelNum); // because the bonus scales 10x which in log is exactly 1 (levelNum * 1 is redundant)
     }
     
     if (levelNum <= 100) {
@@ -681,7 +682,7 @@ function getBuildingTotalCostLog10(ratio, startLevel, count) {
     const startRatioLog10 = Math.log10(ratio);
     const MAX_LOG10 = 1.7976931348623157e+308;
     const targetRatioLog10 = MAX_LOG10 / 4000990000000;
-    const baseStartRatioLog10 = Math.log10(1.20);
+    const baseStartRatioLog10 = Math.log10(ratio);
     const rate = Math.log(targetRatioLog10 / baseStartRatioLog10) / (4000990000000 - softcapStart);
     
     let lastCostLog10;
