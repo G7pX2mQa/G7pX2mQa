@@ -5,6 +5,7 @@ import { hasDoneCombineReset } from "../ui/minerTabs/resetTab.js";
 import { BigNum, bigNumFromLog10 } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { isSellUnlocked, hasViewedSellTab } from '../ui/minerTabs/sellTab.js';
+import { getCurrentSurgeLevel } from '../ui/merchantTabs/resetTab.js';
 
 export const UC_AREA_KEY = 'underwater_cavern';
 
@@ -153,7 +154,6 @@ export const UC_REGISTRY = [
     upgType: 'NM',
     effectType: 'coin_value',
     icon: 'img/lab_icons/coin_val0.webp',
-    baseIconOverride: 'img/currencies/scrap/scrap_base.webp',
     costAtLevel(level) { return computeDefaultUpgradeCost(this.baseCost, level, this.upgType); },
     nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
     computeLockState() {
@@ -497,6 +497,77 @@ export const UC_REGISTRY = [
         descOverride: revealText,
         reason: revealText,
       };
+    },
+  },
+  {
+    area: UC_AREA_KEY,
+    id: 10,
+    tie: 'scrap_7',
+    title: "XP Value IV",
+    get desc() {
+      let text = `Multiplies XP value by ${formatNumber(BigNum.fromInt(1e10))}x`;
+      let sl = 0;
+      try {
+        sl = getCurrentSurgeLevel();
+      } catch (e) {}
+      if (sl < 200) {
+        text += "\nThis will make it easier to reach Surge 200";
+      }
+      return text;
+    },
+    lvlCap: 1,
+    baseCost: 1e30,
+    costType: 'scrap',
+    upgType: 'NM',
+    effectType: 'xp_value',
+    icon: 'img/sc_upg_icons/xp_val1.webp',
+    costAtLevel(level) { return BigNum.fromAny(this.baseCost); },
+    nextCostAfter(_, nextLevel) { return BigNum.fromAny(this.baseCost); },
+    computeLockState() {
+      if (hasDoneCombineReset() || isBuildingsUnlocked()) {
+        return { locked: false };
+      }
+
+      let dp31 = false;
+      try {
+        const dpState = getDpState();
+        dp31 = Number(dpState.dpLevel.toString()) >= 31;
+      } catch {}
+      
+      if (!dp31) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Reach Depth: 31m to reveal this upgrade',
+          reason: 'Reach Depth: 31m to reveal this upgrade',
+        };
+      }
+
+      const revealText = 'Do a Combine reset to reveal this upgrade';
+      return {
+        locked: true,
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+        hidden: true,
+        hideCost: true,
+        hideEffect: true,
+        useLockedBase: true,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: revealText,
+        reason: revealText,
+      };
+    },
+    effectSummary(level) {
+      const mult = this.effectMultiplier(level);
+      return `XP value bonus: ${formatMultForUi(mult)}x`;
+    },
+    effectMultiplier(level) {
+      const normalizedLevel = Math.max(0, Number(level) || 0);
+      return normalizedLevel > 0 ? 1e10 : 1;
     },
   },
 ];
