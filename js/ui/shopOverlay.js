@@ -1887,7 +1887,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
                      if (target === 'mp') text = `Level ${levelText}: Multiplies MP value by ${mult}x`;
                      if (target === 'scrap') text = `Level ${levelText}: Multiplies Scrap value by ${mult}x`;
                      if (target === 'dp') text = `Level ${levelText}: Multiplies DP value by ${mult}x`;
-                     if (target === 'allmaterials' || target === 'allMaterials') text = `Level ${levelText}: Multiplies ALL Material value by ${mult}x`;
+                     if (target === 'allmaterials' || target === 'allMaterials') text = `Level ${levelText}: Multiplies Material value by ${mult}x`;
                      return { text, achieved };
                  });
                  openHmMilestoneDialog(lines);
