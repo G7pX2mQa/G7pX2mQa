@@ -439,7 +439,7 @@ export const UC_REGISTRY = [
     title: "Advanced Researching",
     desc: `Improves RP value by ${formatNumber(BigNum.fromAny("1e1000"))}x per level`,
     lvlCap: 10,
-    baseCost: 1e9,
+    baseCost: 1e15,
     costType: 'scrap',
     upgType: 'NM',
     effectType: 'rp_value',
