@@ -318,6 +318,7 @@ const UPGRADE_DEFINITIONS = [
     title: 'Underwater Cavern EAC',
     desc: 'Generates the equivalent of a pickaxe strike\'s worth of Materials on an interval\nDependent on Depth, UC EAC has its own separate accumulators\nEach level of this upgrade will reduce the generation interval',
     icon: 'img/uc_upg_icons/eac_uc.webp',
+    requiredNodeId: 'cavern',
     lvlCap: 20,
     baseCost: '1e9999',
     costType: 'gears',
@@ -391,8 +392,10 @@ const UPGRADE_DEFINITIONS = [
       const lvl = Math.max(0, Math.floor(Number(level) || 0));
       return BigNum.fromAny('1e9999').mulBigNumInteger(E.powPerLevel(1e50)(lvl));
     },
-    effectSummary() {
-      return null;
+    effectSummary(level) {
+      const lvl = Math.max(0, Math.floor(Number(level) || 0));
+      if (lvl === 0) return `Manual Material value: 1x`;
+      return `Manual Material value: ${lvl + 1}x`;
     },
     computeLockState(ctx) {
         const sl = ctx.surgeLevel;
@@ -441,8 +444,9 @@ const UPGRADE_DEFINITIONS = [
     area: AUTOMATION_AREA_KEY,
     id: EFFECTIVE_AUTO_SELL_ID,
     title: 'Effective Auto-Sell',
-    desc: 'Every game tick, generates 0.1%/1%/10%/100% of potential Scrap from selling\n100% of all held Materials are considered regardless of manual sell preferences',
+    desc: 'Every game tick, generates 0.0001%/0.01%/1%/100% of potential Scrap from selling\n100% of all held Materials are considered regardless of manual sell preferences',
     icon: 'img/uc_upg_icons/effective_auto_sell.webp',
+    requiredNodeId: 'cavern',
     lvlCap: 4,
     baseCost: '1e9999',
     costType: 'gears',
@@ -456,9 +460,9 @@ const UPGRADE_DEFINITIONS = [
       const lvl = Math.max(0, Math.floor(Number(level) || 0));
       if (lvl === 0) return 'Auto-sell efficiency: 0%';
       let eff = '0%';
-      if (lvl === 1) eff = '0.1%';
-      else if (lvl === 2) eff = '1%';
-      else if (lvl === 3) eff = '10%';
+      if (lvl === 1) eff = '0.0001%';
+      else if (lvl === 2) eff = '0.01%';
+      else if (lvl === 3) eff = '1%';
       else if (lvl >= 4) eff = '100%';
       return `Auto-sell efficiency: ${eff}`;
     },
