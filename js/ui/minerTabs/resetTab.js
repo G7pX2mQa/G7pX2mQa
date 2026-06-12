@@ -4,8 +4,8 @@ import { formatNumber } from '../../util/numFormat.js';
 import { getDpState, isDpSystemUnlocked, resetDpProgress } from '../../game/dpSystem.js';
 import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../../util/bigNum.js';
 import { settingsManager } from '../../game/settingsManager.js';
-import { getUcMaterialAccumulators, resetUcMaterialAccumulators, UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
 import { resetUcEacAccumulator } from '../../game/automationEffects.js';
+import { resetUcMaterialAccumulators, resetUcEacMaterialAccumulators, UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
 import { getUpgradesForArea, AREA_KEYS, setLevel } from '../../game/upgrades.js';
 import { resetLab, RESEARCH_NODES } from '../../game/labNodes.js';
 import { applySurgeResetLogic } from '../merchantTabs/resetTab.js';
@@ -267,6 +267,7 @@ export function performCombineReset() {
         
         // Zero accumulators
         resetUcMaterialAccumulators();
+		resetUcEacMaterialAccumulators();
         resetUcEacAccumulator();
     } catch {}
     
