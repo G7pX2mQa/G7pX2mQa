@@ -492,6 +492,18 @@ function handleCurrencyUnlock(e) {
   }
 }
 
+function handleUpgradesChanged(e) {
+  if (!currenciesOverlay.isOpen) return;
+  const overlayEl = currenciesOverlay.overlayEl;
+  if (!overlayEl) return;
+  const rows = overlayEl.querySelectorAll(".currency-row");
+  rows.forEach(row => {
+    if (row._updateDropdownVisually) {
+      row._updateDropdownVisually();
+    }
+  });
+}
+
 function handleCurrencyChange(e) {
   if (e.detail && e.detail.ignoreOverlayRender) return;
   if (!currenciesOverlay.isOpen) return;
@@ -574,11 +586,13 @@ const currenciesOverlay = createSASOverlay({
     populateCurrenciesOverlay(overlayEl);
     window.addEventListener('currency:change', handleCurrencyChange);
     window.addEventListener('currency:unlock', handleCurrencyUnlock);
+    document.addEventListener('ccc:upgrades:changed', handleUpgradesChanged);
     document.addEventListener('click', handleOutsideClick);
   },
   onClose: () => {
     window.removeEventListener('currency:change', handleCurrencyChange);
     window.removeEventListener('currency:unlock', handleCurrencyUnlock);
+    document.removeEventListener('ccc:upgrades:changed', handleUpgradesChanged);
     document.removeEventListener('click', handleOutsideClick);
     // Cleanup dynamic dropdown listeners
     if (currenciesOverlay.overlayEl) {
