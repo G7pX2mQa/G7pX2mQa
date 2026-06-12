@@ -495,7 +495,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
     ctx.restore();
 
     if (id === 'core') drawBlackHole(ctx, t, tier, prevTier, animProgress);
-    else if (id === 'crystal') drawObelisk(ctx, t, tier);
+    else if (id === 'crystal') drawObelisk(ctx, t, tier, prevTier, animProgress);
     else if (id === 'stone') drawFoundry(ctx, t, tier, prevTier, animProgress);
     else if (id === 'copper') drawCharger(ctx, t, tier);
     else if (id === 'iron') drawRefinery(ctx, t, tier);
@@ -928,27 +928,308 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
 
 }
 
-function drawObelisk(ctx, t, tier) {
-    ctx.fillStyle = '#111';
-    ctx.fillRect(-30, -20, 60, 20);
+function drawObelisk(ctx, t, tier, prevTier, animProgress) {
+    const showTier1 = (tier >= 1) ? 1 : 0;
+    const tier1Prog = (tier >= 1 && prevTier < 1) ? animProgress : showTier1;
+    const showTier2 = (tier >= 2) ? 1 : 0;
+    const tier2Prog = (tier >= 2 && prevTier < 2) ? animProgress : showTier2;
+    const showTier3 = (tier >= 3) ? 1 : 0;
+    const tier3Prog = (tier >= 3 && prevTier < 3) ? animProgress : showTier3;
+    const showTier4 = (tier >= 4) ? 1 : 0;
+    const tier4Prog = (tier >= 4 && prevTier < 4) ? animProgress : showTier4;
+    const showTier5 = (tier >= 5) ? 1 : 0;
+    const tier5Prog = (tier >= 5 && prevTier < 5) ? animProgress : showTier5;
+    const showTier6 = (tier >= 6) ? 1 : 0;
+    const tier6Prog = (tier >= 6 && prevTier < 6) ? animProgress : showTier6;
+    const showTier7 = (tier >= 7) ? 1 : 0;
+    const tier7Prog = (tier >= 7 && prevTier < 7) ? animProgress : showTier7;
+    const showTier8 = (tier >= 8) ? 1 : 0;
+    const tier8Prog = (tier >= 8 && prevTier < 8) ? animProgress : showTier8;
+
+    // --- Base Animation & Variables ---
+    const pulse = Math.sin(t * 2);
+    const slowPulse = Math.sin(t * 0.5);
     
-    const h = 100 + (tier * 10);
-    const w = 40 + (tier * 2);
+    // --- Tier 8: Pedestal Fracture & Massive Core ---
+    if (tier8Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier8Prog;
+        
+        // Massive energy core glowing under the fractured pedestal
+        const coreGradient = ctx.createRadialGradient(0, -10, 0, 0, -10, 80);
+        coreGradient.addColorStop(0, '#ffffff');
+        coreGradient.addColorStop(0.3, '#ff66ff');
+        coreGradient.addColorStop(1, 'rgba(204, 0, 255, 0)');
+        ctx.fillStyle = coreGradient;
+        ctx.beginPath();
+        ctx.arc(0, -10, 80 + pulse * 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Fractured dark stone pedestal
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.moveTo(-45, -20); ctx.lineTo(-20, -5); ctx.lineTo(-50, 0); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(45, -20); ctx.lineTo(20, -5); ctx.lineTo(50, 0); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-15, -5); ctx.lineTo(15, -5); ctx.lineTo(0, 10); ctx.fill();
+        ctx.restore();
+        
+        ctx.save();
+        ctx.globalAlpha = 1 - tier8Prog;
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(-35, -20, 70, 20);
+        ctx.restore();
+    } else {
+        // Standard Pedestal (Tier 0-7)
+        ctx.fillStyle = '#1a1a1a';
+        // Base wide
+        ctx.beginPath();
+        ctx.moveTo(-40, 0);
+        ctx.lineTo(-30, -20);
+        ctx.lineTo(30, -20);
+        ctx.lineTo(40, 0);
+        ctx.fill();
+        
+        ctx.fillStyle = '#222';
+        ctx.fillRect(-35, -25, 70, 5);
+    }
     
-    ctx.fillStyle = '#c0f';
+    // --- Tier 6: Geometric Crystalline Aura ---
+    if (tier6Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier6Prog * 0.6;
+        ctx.translate(0, -50);
+        ctx.scale(1, 0.4); // perspective
+        ctx.rotate(t * 0.5);
+        ctx.strokeStyle = '#ff33ff';
+        ctx.lineWidth = 2;
+        
+        // Concentric geometric rings (hexagons/octagons)
+        for(let r = 0; r < 2; r++) {
+            const radius = 60 + r * 30 + pulse * 5;
+            const sides = 6 + r * 2;
+            ctx.beginPath();
+            for(let i=0; i<=sides; i++) {
+                const angle = i * (Math.PI * 2 / sides) + (r * t * 0.2);
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                if(i===0) ctx.moveTo(x,y);
+                else ctx.lineTo(x,y);
+            }
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    // --- Tier 5: Auxiliary Crystal Pylons ---
+    if (tier5Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier5Prog;
+        const pylonOffsets = [-50, 50, -70, 70];
+        const pylonHeights = [40, 40, 25, 25];
+        for(let i=0; i<4; i++) {
+            const px = pylonOffsets[i];
+            const py = (i < 2) ? -10 : -5;
+            const ph = pylonHeights[i] + Math.sin(t * 3 + i) * 5;
+            
+            // Pylon glow
+            ctx.fillStyle = `rgba(255, 100, 255, ${0.3 + 0.2 * pulse})`;
+            ctx.beginPath();
+            ctx.arc(px, py - ph/2, 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pylon crystal
+            ctx.fillStyle = '#cc33ff';
+            ctx.beginPath();
+            ctx.moveTo(px, py - ph);
+            ctx.lineTo(px - 6, py);
+            ctx.lineTo(px + 6, py);
+            ctx.fill();
+            
+            ctx.fillStyle = '#ee88ff';
+            ctx.beginPath();
+            ctx.moveTo(px, py - ph);
+            ctx.lineTo(px, py);
+            ctx.lineTo(px + 6, py);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    // --- Tier 4 & 8: Vertical Crystalline Energy Beams (Hard Light) ---
+    const t4_or_8 = Math.max(tier4Prog, tier8Prog);
+    if (t4_or_8 > 0) {
+        ctx.save();
+        ctx.globalAlpha = t4_or_8;
+        const numBeams = 6 + Math.floor(tier8Prog * 6); // More beams at tier 8
+        const beamRadius = 25 + tier8Prog * 25; // Wider spread at tier 8
+        const beamHeight = 120 + tier8Prog * 80; // Taller at tier 8
+        
+        ctx.globalCompositeOperation = 'screen';
+        for(let i=0; i<numBeams; i++) {
+            const angle = (i * Math.PI * 2 / numBeams) + t;
+            // Only draw beams that are "behind" if we want 3D, or just draw all.
+            const bx = Math.cos(angle) * beamRadius;
+            const by = Math.sin(angle) * beamRadius * 0.3; // tilt
+            
+            // The beams shoot up from the base
+            const bBaseY = -20 + by;
+            
+            const gradient = ctx.createLinearGradient(0, bBaseY, 0, bBaseY - beamHeight);
+            const intensity = 0.5 + 0.5 * Math.sin(t * 5 + i);
+            const alpha = 0.4 + 0.4 * tier8Prog;
+            gradient.addColorStop(0, `rgba(255, 150, 255, ${alpha * intensity})`);
+            gradient.addColorStop(1, 'rgba(255, 50, 255, 0)');
+            
+            ctx.fillStyle = gradient;
+            // Draw a shard-like beam
+            const bw = 4 + tier8Prog * 4;
+            ctx.beginPath();
+            ctx.moveTo(bx - bw, bBaseY);
+            ctx.lineTo(bx + bw, bBaseY);
+            ctx.lineTo(bx, bBaseY - beamHeight);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    // --- Main Crystal Variables ---
+    const baseH = 100;
+    const baseW = 30;
+    const crystalH = baseH + tier3Prog * 40 + tier8Prog * 60; // Grows taller
+    const crystalW = baseW + tier3Prog * 15 + tier8Prog * 20; // Grows wider
+    
+    // Floating animation
+    const hoverY = -25 - Math.sin(t) * 5; 
+
+    // --- Main Crystal Glow (Tier 0+) ---
+    const glowIntensity = 0.2 + 0.1 * pulse + 0.2 * tier3Prog + 0.3 * tier8Prog;
+    const glowGradient = ctx.createRadialGradient(0, hoverY - crystalH/2, 0, 0, hoverY - crystalH/2, crystalH * 0.8);
+    glowGradient.addColorStop(0, `rgba(255, 100, 255, ${glowIntensity})`);
+    glowGradient.addColorStop(1, 'rgba(255, 100, 255, 0)');
+    ctx.fillStyle = glowGradient;
     ctx.beginPath();
-    ctx.moveTo(0, -20 - h);
-    ctx.lineTo(-w/2, -20);
-    ctx.lineTo(w/2, -20);
+    ctx.arc(0, hoverY - crystalH/2, crystalH, 0, Math.PI * 2);
+    ctx.fill();
+
+    // --- Main Crystal Shape ---
+    ctx.save();
+    if (tier8Prog > 0) {
+        // Holographic projection effect for tier 8
+        ctx.globalAlpha = 0.8 + 0.2 * pulse;
+        ctx.globalCompositeOperation = 'lighter';
+    }
+
+    // Left side (Darker)
+    ctx.fillStyle = '#aa00dd';
+    ctx.beginPath();
+    ctx.moveTo(0, hoverY - crystalH);
+    ctx.lineTo(-crystalW/2, hoverY - crystalH * 0.2);
+    ctx.lineTo(0, hoverY);
     ctx.fill();
     
-    if (tier >= 3) {
-        ctx.fillStyle = '#f0f';
+    // Right side (Lighter)
+    ctx.fillStyle = '#ee55ff';
+    ctx.beginPath();
+    ctx.moveTo(0, hoverY - crystalH);
+    ctx.lineTo(crystalW/2, hoverY - crystalH * 0.2);
+    ctx.lineTo(0, hoverY);
+    ctx.fill();
+
+    // Center/Inner core (Tier 3+)
+    if (tier3Prog > 0) {
+        ctx.fillStyle = `rgba(255, 200, 255, ${0.7 + 0.3 * pulse})`;
         ctx.beginPath();
-        ctx.moveTo(0, -30 - h - 20);
-        ctx.lineTo(-10, -30 - h);
-        ctx.lineTo(10, -30 - h);
+        ctx.moveTo(0, hoverY - crystalH * 0.9);
+        ctx.lineTo(-crystalW/4, hoverY - crystalH * 0.3);
+        ctx.lineTo(0, hoverY - crystalH * 0.1);
+        ctx.lineTo(crystalW/4, hoverY - crystalH * 0.3);
         ctx.fill();
+    }
+    
+    ctx.restore();
+
+    // --- Tier 1: Glowing Pink Etchings/Runes ---
+    if (tier1Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier1Prog * (0.5 + 0.5 * slowPulse);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        // Draw a few abstract geometric lines on the crystal
+        ctx.beginPath();
+        ctx.moveTo(0, hoverY - crystalH * 0.8);
+        ctx.lineTo(-crystalW * 0.3, hoverY - crystalH * 0.5);
+        ctx.lineTo(0, hoverY - crystalH * 0.4);
+        ctx.lineTo(crystalW * 0.3, hoverY - crystalH * 0.6);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(0, hoverY - crystalH * 0.3);
+        ctx.lineTo(-crystalW * 0.2, hoverY - crystalH * 0.2);
+        ctx.lineTo(0, hoverY - crystalH * 0.1);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // --- Tier 2: Orbiting Crystal Shards ---
+    if (tier2Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier2Prog;
+        const numShards = 4 + Math.floor(tier8Prog * 4);
+        for(let i=0; i<numShards; i++) {
+            const angle = t * 1.5 + (i * Math.PI * 2 / numShards);
+            const r = crystalW * 0.8 + 10;
+            const sx = Math.cos(angle) * r;
+            const sy = hoverY - crystalH/2 + Math.sin(angle) * r * 0.3 + Math.sin(t * 3 + i) * 10;
+            
+            // Shard
+            const size = 5 + tier3Prog * 3;
+            ctx.fillStyle = '#ff88ff';
+            ctx.beginPath();
+            ctx.moveTo(sx, sy - size);
+            ctx.lineTo(sx - size/2, sy);
+            ctx.lineTo(sx + size/2, sy);
+            ctx.fill();
+            ctx.fillStyle = '#cc00ff';
+            ctx.beginPath();
+            ctx.moveTo(sx, sy + size);
+            ctx.lineTo(sx - size/2, sy);
+            ctx.lineTo(sx + size/2, sy);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    // --- Tier 7: Sharp Pink Energy Arcs ---
+    if (tier7Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier7Prog;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#ff00ff';
+        ctx.shadowBlur = 10;
+
+        // Draw random lightning arcs
+        // Sometimes draw from center to random point
+        if (Math.random() < 0.3) {
+            const startY = hoverY - crystalH/2;
+            const endX = (Math.random() - 0.5) * 80;
+            const endY = startY + (Math.random() - 0.5) * 80;
+            
+            ctx.beginPath();
+            ctx.moveTo(0, startY);
+            // Jagged line
+            let cx = 0;
+            let cy = startY;
+            for(let steps=1; steps<=3; steps++) {
+                const tx = cx + (endX - cx) * (steps/3) + (Math.random() - 0.5) * 20;
+                const ty = cy + (endY - cy) * (steps/3) + (Math.random() - 0.5) * 20;
+                ctx.lineTo(tx, ty);
+                cx = tx;
+                cy = ty;
+            }
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+        }
+        ctx.restore();
     }
 }
 
