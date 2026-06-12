@@ -299,10 +299,32 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
     }
   });
 
-  // Listen for depth changes and re-render the grid if the tab is currently active
+  // Listen for depth changes and check if any new building unlocks
   window.addEventListener('dp:change', () => {
     if (panel.classList.contains('is-active') && isBuildingsUnlocked()) {
-      renderBuildingsGrid(grid);
+      let highestDepth = 0;
+      try {
+        const hDp = getHighestDpLevel();
+        if (hDp) highestDepth = Number(hDp.toString());
+      } catch {}
+
+      let newlyUnlocked = false;
+
+      // Check materials for unlock
+      for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
+        const mat = UC_MATERIAL_DATA[i];
+        if (!isBuildingUnlocked(mat.name)) {
+          const conditionMet = mat.name === 'stone' ? true : highestDepth >= mat.start;
+          if (conditionMet) {
+            setBuildingUnlocked(mat.name, true);
+            newlyUnlocked = true;
+          }
+        }
+      }
+
+      if (newlyUnlocked) {
+        renderBuildingsGrid(grid);
+      }
     }
   });
 
