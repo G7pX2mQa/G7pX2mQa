@@ -51,7 +51,8 @@ import {
   AUTOBUY_WORKSHOP_LEVELS_ID,
   AUTOBUY_DNA_UPGRADES_ID,
   AUTOBUY_EVOLVE_UPGRADES_ID,
-  MASTER_AUTOBUY_IDS
+  MASTER_AUTOBUY_IDS,
+  AUTOBUY_SCRAP_UPGRADES_ID
 } from '../game/automationUpgrades.js';
 import { getAutobuyerToggle, setAutobuyerToggle, setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../game/automationEffects.js';
 import { DNA_AREA_KEY } from '../game/dnaUpgrades.js';
@@ -118,7 +119,8 @@ const COST_TYPE_TO_AUTOBUY_ID = {
   books: AUTOBUY_BOOK_UPGRADES_ID,
   gold: AUTOBUY_GOLD_UPGRADES_ID,
   magic: AUTOBUY_MAGIC_UPGRADES_ID,
-  dna: AUTOBUY_DNA_UPGRADES_ID
+  dna: AUTOBUY_DNA_UPGRADES_ID,
+  scrap: AUTOBUY_SCRAP_UPGRADES_ID
 };
 
 
@@ -662,30 +664,36 @@ export function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn
     try {
       if (typeof upg.costAtLevel === 'function') {
           const c0 = BigNum.fromAny(upg.costAtLevel(lvl));
-          const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1)); 
-          const farProbeLevel = Math.min(Number.isFinite(cap) ? cap : lvl + 32, lvl + 32);
-          const cFar = BigNum.fromAny(upg.costAtLevel(farProbeLevel));
-          const isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
+          
+          if (walletBn.cmp(c0) < 0) {
+              resultBn = BigNum.fromInt(0);
+              computed = true;
+          } else {
+              const c1 = BigNum.fromAny(upg.costAtLevel(lvl + 1)); 
+              const farProbeLevel = Math.min(Number.isFinite(cap) ? cap : lvl + 32, lvl + 32);
+              const cFar = BigNum.fromAny(upg.costAtLevel(farProbeLevel));
+              const isTrulyFlat = c0.cmp(c1) === 0 && c0.cmp(cFar) === 0;
 
-          if (isTrulyFlat) {
-            const remainingBn = levelsRemainingToCap(upg, lvlBn, lvl);
-            const room = Number.isFinite(upg.lvlCap) ? Math.min(Math.max(0, Math.floor(Number(remainingBn.toString()))), Number.MAX_SAFE_INTEGER - 2) : Number.MAX_SAFE_INTEGER;
-            let lo = 0, hi = Math.max(0, room);
-            while (lo < hi) {
-              const mid = Math.floor((lo + hi + 1) / 2);
-              const midBn = BigNum.fromInt(mid);
-              const total = typeof c0.mulBigNumInteger === 'function' ? c0.mulBigNumInteger(midBn) : BigNum.fromAny(c0 ?? 0).mulBigNumInteger(midBn);
-              if (total.cmp(walletBn) <= 0) lo = mid; else hi = mid - 1;
-            }
-            resultBn = BigNum.fromInt(lo);
-            computed = true;
+              if (isTrulyFlat) {
+                const remainingBn = levelsRemainingToCap(upg, lvlBn, lvl);
+                const room = Number.isFinite(upg.lvlCap) ? Math.min(Math.max(0, Math.floor(Number(remainingBn.toString()))), Number.MAX_SAFE_INTEGER - 2) : Number.MAX_SAFE_INTEGER;
+                let lo = 0, hi = Math.max(0, room);
+                while (lo < hi) {
+                  const mid = Math.floor((lo + hi + 1) / 2);
+                  const midBn = BigNum.fromInt(mid);
+                  const total = typeof c0.mulBigNumInteger === 'function' ? c0.mulBigNumInteger(midBn) : BigNum.fromAny(c0 ?? 0).mulBigNumInteger(midBn);
+                  if (total.cmp(walletBn) <= 0) lo = mid; else hi = mid - 1;
+                }
+                resultBn = BigNum.fromInt(lo);
+                computed = true;
+              }
           }
       }
     } catch {}
     
     if (!computed) {
       const room = Number.isFinite(cap) ? Math.max(0, cap - lvl) : undefined;
-      const { count } = evaluateBulkPurchase(upg, lvlBn, walletBn, room, { fastOnly: true });
+      const { count } = evaluateBulkPurchase(upg, lvlBn, walletBn, room, { fastOnly: false });
       resultBn = count ?? BigNum.fromInt(0);
     }
   }
@@ -944,7 +952,8 @@ class ShopInstance {
             const evolveReady = isHM && upg.hmReady && !upg.level?.isInfinite?.();
             btn.classList.toggle('hm-evolve-ready', evolveReady);
             
-            const canPlusBn = locked ? BigNum.fromInt(0) : computeAffordableLevels(upg.meta, upg.levelNumeric, upg.level);
+            const isAutomatedFlag = !locked && isUpgradeAutomated(upg.meta);
+            const canPlusBn = (locked || isAutomatedFlag) ? BigNum.fromInt(0) : computeAffordableLevels(upg.meta, upg.levelNumeric, upg.level);
             const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
             const levelHtml = formatNumber(upg.level);
             const levelPlain = stripTags(levelHtml);
@@ -1028,7 +1037,7 @@ class ShopInstance {
             }
             
             let maxedOverlay = tileEl.querySelector('.maxed-overlay');
-            const isAutomated = !locked && isUpgradeAutomated(upg.meta);
+            const isAutomated = isAutomatedFlag;
             const showMaxed = !locked && capReached;
             const showEvolveReady = !locked && evolveReady;
             const showAutomated = !locked && !capReached && !evolveReady && isAutomated;
@@ -1561,7 +1570,7 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
       const isAutomationMaster = !!masterCostType;
       
       // Check for Standard Upgrade logic in Standard Shop
-      const standardAutobuyId = (mode === 'standard' || mode === 'dna') ? COST_TYPE_TO_AUTOBUY_ID[upgDef.costType] : null;
+      const standardAutobuyId = (mode === 'standard' || mode === 'dna' || mode === 'delve') ? COST_TYPE_TO_AUTOBUY_ID[upgDef.costType] : null;
 
       let autobuyLevel = 0;
       if (standardAutobuyId) {
