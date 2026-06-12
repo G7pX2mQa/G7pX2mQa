@@ -1536,6 +1536,8 @@ export function openUpgradeOverlay(upgDef, mode = 'standard') {
 	  upgSheetEl.classList.toggle('is-endless-fp', isEndlessFp);
 	  upgSheetEl.classList.toggle('is-endless-materials', isEndlessMaterials);
       upgSheetEl.classList.toggle('is-magnet-upgrade', upgDef.tie === UPGRADE_TIES.MAGNET);
+      upgSheetEl.classList.toggle('is-coin-value-iv', upgDef.tie === UPGRADE_TIES.COIN_VALUE_IV);
+      upgSheetEl.classList.toggle('is-xp-value-iv', upgDef.tie === UPGRADE_TIES.XP_VALUE_IV);
 	  upgSheetEl.classList.toggle('is-no-effect', !model.effect);
 
             // --- Automation Toggle Logic ---
