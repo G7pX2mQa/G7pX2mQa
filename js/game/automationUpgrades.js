@@ -316,7 +316,7 @@ const UPGRADE_DEFINITIONS = [
     area: AUTOMATION_AREA_KEY,
     id: UNDERWATER_CAVERN_EAC_ID,
     title: 'Underwater Cavern EAC',
-    desc: 'Generates the equivalent of a pickaxe strike\'s worth of Materials on an interval\nDependent on Depth, UC EAC has its own separate accumulators\nEach level of this upgrade will reduce the generation interval',
+    desc: 'Generates the equivalent of whatever comes from a pickaxe strike on an interval\nDependent on Depth, UC EAC has its own separate accumulators\nEach level of this upgrade will reduce the generation interval',
     icon: 'img/uc_upg_icons/eac_uc.webp',
     requiredNodeId: 'cavern',
     lvlCap: 20,
@@ -380,9 +380,9 @@ const UPGRADE_DEFINITIONS = [
   {
     area: AUTOMATION_AREA_KEY,
     id: MANUAL_MATERIAL_VALUE_ID,
-    title: 'Manual Material Value',
-    desc: 'Increases the value of manually collected Materials by +100% per level',
-    icon: 'img/uc_upg_icons/manual_material_value.webp',
+    title: 'Manual Collect Value: UC',
+    desc: 'Increases the value of manual collects in UC by +100% per level',
+    icon: 'img/uc_upg_icons/manual_collect_value_uc.webp',
     lvlCap: 4,
     baseCost: '1e9999',
     costType: 'gears',
@@ -394,8 +394,8 @@ const UPGRADE_DEFINITIONS = [
     },
     effectSummary(level) {
       const lvl = Math.max(0, Math.floor(Number(level) || 0));
-      if (lvl === 0) return `Manual Material value: 1x`;
-      return `Manual Material value: ${lvl + 1}x`;
+      if (lvl === 0) return `Manual collect value: 1x`;
+      return `Manual collect value: ${lvl + 1}x`;
     },
     computeLockState(ctx) {
         const sl = ctx.surgeLevel;
