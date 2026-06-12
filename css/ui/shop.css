@@ -1012,10 +1012,13 @@
 }
 @media (max-width: 1919px), (max-height: 939px) {
   .upg-overlay.is-underwater-cavern-eac .upg-desc.centered,
-  .upg-overlay.is-underwater-cavern-eac .upg-line,
+  .upg-overlay.is-underwater-cavern-eac .upg-line {
+    font-size: clamp(20px, 2.9vw, 31px);
+  }
+  
   .upg-overlay.is-effective-auto-sell .upg-desc.centered,
   .upg-overlay.is-effective-auto-sell .upg-line {
-    font-size: clamp(20px, 2.9vw, 31px);
+    font-size: clamp(23px, 3.2vw, 36px);
   }
 
   .upg-overlay.is-manual-material-value .upg-desc.centered,
