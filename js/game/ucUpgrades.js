@@ -455,9 +455,9 @@ export const UC_REGISTRY = [
     },
     costAtLevel(level) {
         const normalizedLevel = Math.max(0, Number(level) || 0);
-        const log10 = 2 * normalizedLevel;
-        const hundreds = bigNumFromLog10(log10);
-        return BigNum.fromAny(this.baseCost).mulBigNumInteger(hundreds);
+        const log10 = 6 * normalizedLevel;
+        const millions = bigNumFromLog10(log10);
+        return BigNum.fromAny(this.baseCost).mulBigNumInteger(millions);
     },
     nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
     computeLockState() {
