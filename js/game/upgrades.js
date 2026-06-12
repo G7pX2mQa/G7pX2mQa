@@ -1804,6 +1804,35 @@ function calculateBulkPurchase(upg, startLevel, walletBn, maxLevels = MAX_LEVEL_
   const fastOnly = !!opts.fastOnly;
   walletBn = walletBn instanceof BigNum ? walletBn : BigNum.fromAny(walletBn ?? 0);
   if (!scaling) {
+    if (typeof upg.costAtLevel === 'function') {
+        const startLvlNum = Math.max(0, Math.floor(levelBigNumToNumber(startLevel)));
+        const firstPrice = BigNum.fromAny(upg.costAtLevel(startLvlNum));
+        if (walletBn.cmp(firstPrice) < 0) {
+            return { count: zero, spent: zero, nextPrice: firstPrice, numericCount: 0 };
+        }
+        
+        let capLimit = Number.isFinite(upg.lvlCap) ? Math.max(0, Math.floor(upg.lvlCap) - startLvlNum) : MAX_LEVEL_DELTA_LIMIT;
+        let roomLimit = typeof maxLevels === 'number' ? Math.floor(maxLevels) : Math.floor(levelBigNumToNumber(maxLevels));
+        if (!Number.isFinite(roomLimit)) roomLimit = MAX_LEVEL_DELTA_LIMIT;
+        let maxSearch = Math.min(capLimit, roomLimit, 100);
+        
+        let count = 0;
+        let currentLvl = startLvlNum;
+        let spent = BigNum.fromInt(0);
+        
+        while (count < maxSearch) {
+            const cost = BigNum.fromAny(upg.costAtLevel(currentLvl));
+            if (walletBn.cmp(spent.add(cost)) >= 0) {
+                spent = spent.add(cost);
+                count++;
+                currentLvl++;
+            } else {
+                break;
+            }
+        }
+        
+        return { count: BigNum.fromInt(count), spent: spent, nextPrice: BigNum.fromAny(upg.costAtLevel(currentLvl)), numericCount: count };
+    }
     return { count: zero, spent: zero, nextPrice: zero, numericCount: 0 };
   }
 
