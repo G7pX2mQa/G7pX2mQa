@@ -2570,7 +2570,7 @@ export const REGISTRY = [
     id: 7,
     tie: UPGRADE_TIES.UNLOCK_FORGE,
     title: "Unlock Forge",
-    desc: "Unlocks the Reset tab and the Forge reset in the Delve menu",
+    desc: "Unlocks the Reset tab and Forge reset in the Delve menu",
     lvlCap: 1,
     upgType: "NM",
     icon: "img/misc/forge.webp",
