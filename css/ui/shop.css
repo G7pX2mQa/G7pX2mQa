@@ -1000,16 +1000,30 @@
 @media (max-height: 940px) and (hover: hover) and (pointer: fine) {
   .upg-overlay.is-effective-auto-collect .upg-desc.centered,
   .upg-overlay.is-effective-auto-collect .upg-line {
-    font-size: clamp(19px, 2.9vw, 31px);
+    font-size: clamp(20px, 2.9vw, 31px);
   }
 }
 
 @media (max-width: 1500px) and (hover: hover) and (pointer: fine) {
   .upg-overlay.is-autobuy-coin-upgrades .upg-desc.centered,
   .upg-overlay.is-autobuy-coin-upgrades .upg-line {
-    font-size: clamp(19px, 2.9vw, 31px);
+    font-size: clamp(20px, 2.9vw, 31px);
   }
 }
+@media (max-width: 1919px), (max-height: 939px) {
+  .upg-overlay.is-underwater-cavern-eac .upg-desc.centered,
+  .upg-overlay.is-underwater-cavern-eac .upg-line,
+  .upg-overlay.is-effective-auto-sell .upg-desc.centered,
+  .upg-overlay.is-effective-auto-sell .upg-line {
+    font-size: clamp(20px, 2.9vw, 31px);
+  }
+
+  .upg-overlay.is-manual-material-value .upg-desc.centered,
+  .upg-overlay.is-manual-material-value .upg-line {
+    font-size: clamp(27px, 3.9vw, 42px);
+  }
+}
+
 
 @media (hover: none) and (pointer: coarse) {
   .upg-overlay.is-automation-upgrade .upg-desc.centered,
