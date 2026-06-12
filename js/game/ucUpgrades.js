@@ -439,7 +439,7 @@ export const UC_REGISTRY = [
     title: "Advanced Researching",
     desc: `Improves RP value by ${formatNumber(BigNum.fromAny("1e1000"))}x per level`,
     lvlCap: 10,
-    baseCost: 1e15,
+    baseCost: 1e21,
     costType: 'scrap',
     upgType: 'NM',
     effectType: 'rp_value',
@@ -455,9 +455,9 @@ export const UC_REGISTRY = [
     },
     costAtLevel(level) {
         const normalizedLevel = Math.max(0, Number(level) || 0);
-        const log10 = 6 * normalizedLevel;
-        const millions = bigNumFromLog10(log10);
-        return BigNum.fromAny(this.baseCost).mulBigNumInteger(millions);
+        const log10 = 3 * normalizedLevel;
+        const thousands = bigNumFromLog10(log10);
+        return BigNum.fromAny(this.baseCost).mulBigNumInteger(thousands);
     },
     nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
     computeLockState() {
