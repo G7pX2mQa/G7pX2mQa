@@ -6,7 +6,7 @@ import { getHighestMutationLevel } from './mutationSystem.js';
 import { setNumberNotation } from '../util/numFormat.js';
 import { IS_MOBILE } from '../main.js';
 import { getMagnetLevel, getLevelNumber } from './upgrades.js';
-import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
+import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID, UNDERWATER_CAVERN_EAC_ID, EFFECTIVE_AUTO_SELL_ID } from './automationUpgrades.js';
 import {
   hasDoneForgeReset,
   hasDoneInfuseReset,
@@ -234,7 +234,19 @@ export const SETTING_DEFINITIONS = {
     max: 100,
     step: 1,
     default: 100,
-    unlockCondition: () => getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) >= 1,
+    unlockCondition: () => getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) >= 1 || getLevelNumber(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID) >= 1,
+  },
+  auto_sell_efficiency: {
+    id: 'auto_sell_efficiency',
+    type: 'slider',
+    label: 'EAS Efficiency',
+    hasExtraInfo: true,
+    info: 'This slider represents the efficiency at which your Effective Auto-Sell will generate potential Scrap from selling. Leave the slider at 100 for normal gameplay, or adjust it to a different number to have EAS run at n% efficiency. Set this slider value to 0 to completely disable EAS earnings.',
+    min: 0,
+    max: 100,
+    step: 1,
+    default: 100,
+    unlockCondition: () => getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID) >= 1,
   },
   number_notation: {
     id: 'number_notation',
