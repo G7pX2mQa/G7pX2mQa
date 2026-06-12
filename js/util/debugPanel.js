@@ -340,6 +340,10 @@ function setupLiveBindingListeners() {
         const targetSlot = slot ?? getActiveSlot();
         refreshLiveBindings((binding) => binding.type === 'tsunami-nerf'
             && (binding.slot == null || binding.slot === targetSlot));
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && (binding.slot == null || binding.slot === targetSlot));
+        refreshLiveBindings((binding) => binding.type === 'currency-mult'
+            && (binding.slot == null || binding.slot === targetSlot));
     };
     window.addEventListener('surge:nerf:change', tsunamiHandler, { passive: true });
     addDebugPanelCleanup(() => window.removeEventListener('surge:nerf:change', tsunamiHandler));
