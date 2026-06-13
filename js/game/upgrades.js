@@ -598,7 +598,7 @@ export function determineLockState(ctx) {
   const area = ctx?.areaKey || AREA_KEYS.STARTER_COVE;
 
   if (!tieKey || !SPECIAL_LOCK_STATE_TIES.has(tieKey)) {
-    return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
+    return { state: 'locked' };
   }
 
   // If any level has already been bought, it’s unlocked.
@@ -607,7 +607,7 @@ export function determineLockState(ctx) {
     currentLevel = (upgRef && typeof upgRef.id !== 'undefined') ? getLevelNumber(area, upgRef.id) : 0;
   } catch {}
   if (currentLevel >= 1) {
-    return { locked: false, hidden: false, useLockedBase: false };
+    return { state: 'unlocked' };
   }
 
   // XPs unlocked?
@@ -620,32 +620,16 @@ export function determineLockState(ctx) {
 
   function determineUnlockXpLockState() {
     if (xpUnlocked) {
-      return { locked: false, hidden: false, useLockedBase: false };
+      return { state: 'unlocked' };
     }
     if (safeHasMetMerchant()) {
       // Merchant met -> upgrade is fully visible and purchasable
-      return {
-        locked: false,
-        hidden: false,
-        hideCost: false,
-        hideEffect: false,
-        useLockedBase: false,
-      };
+      return { state: 'unlocked' };
     }
 
     // Merchant not met -> mysterious placeholder
     const revealText = 'Explore the Delve menu to reveal this upgrade';
-    return {
-      locked: true,
-      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-      titleOverride: HIDDEN_UPGRADE_TITLE,
-      descOverride: revealText,
-      reason: revealText,
-      hidden: true,
-      hideCost: true,
-      hideEffect: true,
-      useLockedBase: true,
-    };
+    return { state: 'mysterious', unlockReqText: revealText };
   }
 
   // ==== Unlock XP ====
@@ -657,59 +641,31 @@ export function determineLockState(ctx) {
   if (tieKey === UPGRADE_TIES.UNLOCK_FORGE) {
     // No XP system -> LOCKED padlock
     if (!xpUnlocked) {
-      return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
+      return { state: 'locked' };
     }
     // Before 31 -> show same requirement text as mysterious, but without generic "hidden" line
     let xp31 = false;
     try { const xpBn = currentXpLevelBigNum(); xp31 = levelBigNumToNumber(xpBn) >= 31; } catch {}
     if (!xp31) {
       const revealText = (upgRef?.revealRequirement) || 'Reach XP Level 31 to reveal this upgrade';
-      return {
-        locked: true,
-        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-        hidden: true,
-        hideCost: true,
-        hideEffect: true,
-        useLockedBase: true,
-        titleOverride: HIDDEN_UPGRADE_TITLE,
-        descOverride: revealText,
-        reason: revealText,
-      };
+      return { state: 'mysterious', unlockReqText: revealText };
     }
     // XP ≥ 31 -> visible/unlocked
-    return { locked: false };
+    return { state: 'unlocked' };
   }
 
   // ==== Unlock Infuse ====
   if (tieKey === UPGRADE_TIES.UNLOCK_INFUSE) {
     let xp101 = false;
     try { const xpBn = currentXpLevelBigNum(); xp101 = levelBigNumToNumber(xpBn) >= 101; } catch {}
-    if (xp101) return { locked: false };
+    if (xp101) return { state: 'unlocked' };
 
     if (!hasDoneForgeReset()) {
-      return {
-        locked: true,
-        iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-        useLockedBase: true,
-        hidden: false,
-        hideCost: true,
-        hideEffect: true,
-        titleOverride: LOCKED_UPGRADE_TITLE,
-        descOverride: 'Do a Forge reset to reveal this upgrade',
-        reason: 'Do a Forge reset to reveal this upgrade',
-      };
+      return { state: 'locked', reason: 'Do a Forge reset to reveal this upgrade' };
     }
 
     const revealText = (upgRef?.revealRequirement) || 'Reach XP Level 101 to reveal this upgrade';
-    return {
-      locked: true,
-      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-      hidden: true,
-      hideCost: true, hideEffect: true, useLockedBase: true,
-      titleOverride: HIDDEN_UPGRADE_TITLE,
-      descOverride: revealText,
-      reason: revealText,
-    };
+    return { state: 'mysterious', unlockReqText: revealText };
   }
 
 
@@ -717,39 +673,21 @@ export function determineLockState(ctx) {
   if (tieKey === UPGRADE_TIES.UNLOCK_SURGE) {
     let xp201 = false;
     try { const xpBn = currentXpLevelBigNum(); xp201 = levelBigNumToNumber(xpBn) >= 201; } catch {}
-    if (xp201) return { locked: false };
+    if (xp201) return { state: 'unlocked' };
 
     if (!hasDoneInfuseReset()) {
-      return {
-        locked: true,
-        iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-        useLockedBase: true,
-        hidden: false,
-        hideCost: true,
-        hideEffect: true,
-        titleOverride: LOCKED_UPGRADE_TITLE,
-        descOverride: 'Do an Infuse reset to reveal this upgrade',
-        reason: 'Do an Infuse reset to reveal this upgrade',
-      };
+      return { state: 'locked', reason: 'Do an Infuse reset to reveal this upgrade' };
     }
 
     const revealText = (upgRef?.revealRequirement) || 'Reach XP Level 201 to reveal this upgrade';
-    return {
-      locked: true,
-      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-      hidden: true,
-      hideCost: true, hideEffect: true, useLockedBase: true,
-      titleOverride: HIDDEN_UPGRADE_TITLE,
-      descOverride: revealText,
-      reason: revealText,
-    };
+    return { state: 'mysterious', unlockReqText: revealText };
   }
 
   // ==== Infuse Placeholders ====
   if (INFUSE_PLACEHOLDER_TIES.has(tieKey)) {
     if (hasDoneInfuseReset() || isUpgradePermanentlyUnlocked(area, upgRef)) {
       try { markUpgradePermanentlyUnlocked(area, upgRef); } catch {}
-      return { locked: false, hidden: false, useLockedBase: false };
+      return { state: 'unlocked' };
     }
 
     let xp101 = false;
@@ -757,52 +695,28 @@ export function determineLockState(ctx) {
 
     // Before 101 -> hard LOCKED
     if (!xp101) {
-      return {
-        locked: true,
-        iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-        useLockedBase: true,
-        titleOverride: LOCKED_UPGRADE_TITLE,
-        descOverride: 'Locked',
-        reason: 'Locked',
-        hidden: false,
-        hideCost: false,
-        hideEffect: false,
-      };
+      return { state: 'locked', reason: 'Locked' };
     }
 
     // 101+ -> Mysterious
     const revealText = 'Do an Infuse reset to reveal this upgrade';
     try { markUpgradePermanentlyMysterious(area, upgRef); } catch {}
-    return {
-      locked: true,
-      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-      hidden: true, hideCost: true, hideEffect: true, useLockedBase: true,
-      titleOverride: HIDDEN_UPGRADE_TITLE,
-      descOverride: revealText,
-      reason: revealText,
-    };
+    return { state: 'mysterious', unlockReqText: revealText };
   }
 
   if (hasDoneForgeReset() || isUpgradePermanentlyUnlocked(area, upgRef)) {
     try { markUpgradePermanentlyUnlocked(area, upgRef); } catch {}
-    return { locked: false, hidden: false, useLockedBase: false };
+    return { state: 'unlocked' };
   }
 
   // No XP system -> LOCKED padlock
   if (!xpUnlocked) {
-    return { locked: true, iconOverride: LOCKED_UPGRADE_ICON_DATA_URL, useLockedBase: true };
+    return { state: 'locked' };
   }
 
   if (isUpgradePermanentlyMysterious(area, upgRef)) {
     const revealText = 'Do a Forge reset to reveal this upgrade';
-    return {
-      locked: true,
-      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-      hidden: true, hideCost: true, hideEffect: true, useLockedBase: true,
-      titleOverride: HIDDEN_UPGRADE_TITLE,
-      descOverride: revealText,
-      reason: revealText,
-    };
+    return { state: 'mysterious', unlockReqText: revealText };
   }
 
   // Compute XP ≥ 31 once (for the *first-time* reveal/burn)
@@ -812,26 +726,12 @@ export function determineLockState(ctx) {
 // Before 31 -> hard LOCKED (not mysterious, not clickable)
 if (!xp31) {
   const revealText = 'Do a Forge reset to reveal this upgrade';
-  return {
-    locked: true,
-    iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-    useLockedBase: true,
-    titleOverride: LOCKED_UPGRADE_TITLE,
-    descOverride: revealText,
-    reason: revealText,
-    hidden: false,
-    hideCost: false,
-    hideEffect: false,
-  };
+  return { state: 'locked', reason: revealText };
 }
 
   // First time hitting 31 -> burn perma-mysterious and show MYSTERIOUS
   try { markUpgradePermanentlyMysterious(area, upgRef); } catch {}
-  return {
-    locked: true,
-    iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-    hidden: true, hideCost: true, hideEffect: true, useLockedBase: true,
-  };
+  return { state: 'mysterious', unlockReqText: '' };
 }
 
 function snapshotUpgradeLockState(lockState) {
@@ -961,20 +861,44 @@ function getLinearBonusMultiplier(levelValue, amountPerLevel) {
 function mergeLockStates(base, override) {
   const merged = Object.assign({ locked: false }, base || {});
   if (!override || typeof override !== 'object') return merged;
-  const keys = [
-    'locked',
-    'iconOverride',
-    'titleOverride',
-    'descOverride',
-    'reason',
-    'hideCost',
-    'hideEffect',
-    'hidden',
-    'useLockedBase',
-  ];
-  for (const key of keys) {
-    if (override[key] !== undefined) merged[key] = override[key];
+
+  if (override.state) {
+    if (override.state === 'locked') {
+      merged.locked = true;
+      merged.hidden = false;
+      if (override.reason) {
+        merged.reason = override.reason;
+      }
+    } else if (override.state === 'mysterious') {
+      merged.locked = true;
+      merged.hidden = true;
+      if (override.unlockReqText) {
+        merged.reason = override.unlockReqText;
+      }
+    } else if (override.state === 'unlocked') {
+      merged.locked = false;
+      merged.hidden = false;
+    }
+    // Note: Do NOT erase legacy properties already populated from baseState!
+    // The previous implementation deleted legacy keys from `merged`, destroying the fallbacks.
+  } else {
+    // legacy merge
+    const keys = [
+      'locked',
+      'iconOverride',
+      'titleOverride',
+      'descOverride',
+      'reason',
+      'hideCost',
+      'hideEffect',
+      'hidden',
+      'useLockedBase',
+    ];
+    for (const key of keys) {
+      if (override[key] !== undefined) merged[key] = override[key];
+    }
   }
+
   return merged;
 }
 
@@ -2894,7 +2818,7 @@ export const REGISTRY = [
       }
       
       if (isUnlocked) {
-          return { locked: false };
+          return { state: 'unlocked' };
       }
       
       let xp201 = false;
@@ -2902,28 +2826,10 @@ export const REGISTRY = [
 
       if (xp201) {
           const revealText = "Reach Surge 3 to reveal this upgrade";
-          return {
-              locked: true,
-              iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-              titleOverride: HIDDEN_UPGRADE_TITLE,
-              descOverride: revealText,
-              reason: revealText,
-              hidden: true,
-              hideCost: true,
-              hideEffect: true,
-              useLockedBase: true,
-          };
+          return { state: 'mysterious', unlockReqText: revealText };
       }
       
-      return {
-          locked: true,
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: 'Locked',
-      };
+      return { state: 'locked' };
     },
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
@@ -2963,34 +2869,15 @@ export const REGISTRY = [
       }
 
       if (surge5) {
-          return { locked: false };
+          return { state: 'unlocked' };
       }
 
       if (ctx.xpLevel < 201) {
-          return {
-              locked: true,
-              hidden: false,
-              hideCost: true,
-              hideEffect: true,
-              useLockedBase: true,
-              titleOverride: LOCKED_UPGRADE_TITLE,
-              descOverride: 'Locked',
-              reason: 'Reach XP Level 201 to unlock',
-          };
+          return { state: 'locked', reason: 'Reach XP Level 201 to unlock' };
       }
 
       const revealText = "Reach Surge 5 to reveal this upgrade";
-      return {
-          locked: true,
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: revealText,
-          reason: revealText,
-          hidden: true,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-      };
+      return { state: 'mysterious', unlockReqText: revealText };
     },
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
@@ -3030,34 +2917,15 @@ export const REGISTRY = [
       }
 
       if (surge7) {
-          return { locked: false };
+          return { state: 'unlocked' };
       }
 
       if (ctx.xpLevel < 201) {
-          return {
-              locked: true,
-              hidden: false,
-              hideCost: true,
-              hideEffect: true,
-              useLockedBase: true,
-              titleOverride: LOCKED_UPGRADE_TITLE,
-              descOverride: 'Locked',
-              reason: 'Reach XP Level 201 to unlock',
-          };
+          return { state: 'locked', reason: 'Reach XP Level 201 to unlock' };
       }
 
       const revealText = "Reach Surge 7 to reveal this upgrade";
-      return {
-          locked: true,
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: revealText,
-          reason: revealText,
-          hidden: true,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-      };
+      return { state: 'mysterious', unlockReqText: revealText };
     },
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
@@ -3098,34 +2966,15 @@ export const REGISTRY = [
       }
 
       if (surge20) {
-          return { locked: false };
+          return { state: 'unlocked' };
       }
 
       if (ctx.xpLevel < 201) {
-          return {
-              locked: true,
-              hidden: false,
-              hideCost: true,
-              hideEffect: true,
-              useLockedBase: true,
-              titleOverride: LOCKED_UPGRADE_TITLE,
-              descOverride: 'Locked',
-              reason: 'Reach XP Level 201 to unlock',
-          };
+          return { state: 'locked', reason: 'Reach XP Level 201 to unlock' };
       }
 
       const revealText = "Reach Surge 20 to reveal this upgrade";
-      return {
-          locked: true,
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: revealText,
-          reason: revealText,
-          hidden: true,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-      };
+      return { state: 'mysterious', unlockReqText: revealText };
     },
     effectSummary(level) {
       const lvlBn = ensureLevelBigNum(level);
@@ -3761,7 +3610,7 @@ export function getHmEvolutions(areaKey, upgId) {
 
 
 function computeUpgradeLockStateFor(areaKey, upg) {
-  if (!upg) return { locked: false };
+  if (!upg) return { state: 'unlocked' };
 
   const xpUnlocked = safeIsXpUnlocked();
   const xpLevelBn = xpUnlocked ? currentXpLevelBigNum() : BigNum.fromInt(0);
@@ -3777,42 +3626,12 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
   if (isXpAdj) {
     if (!unlockXpVisible) {
       const meetText = 'Meet the Merchant to reveal "Unlock XP"';
-      baseState = {
-        locked: true,
-        iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-        titleOverride: LOCKED_UPGRADE_TITLE,
-        descOverride: meetText,
-        reason: meetText,
-        hidden: false,
-        hideCost: false,
-        hideEffect: false,
-        useLockedBase: true,
-      };
+      baseState = { state: 'locked', reason: meetText };
     } else {
-      baseState = {
-        locked: true,
-        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-        titleOverride: HIDDEN_UPGRADE_TITLE,
-        descOverride: xpRevealText,
-        reason: xpRevealText,
-        hidden: true,
-        hideCost: true,
-        hideEffect: true,
-        useLockedBase: true,
-      };
+      baseState = { state: 'mysterious', unlockReqText: xpRevealText };
     }
   } else {
-    baseState = {
-      locked: true,
-      iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-      titleOverride: LOCKED_UPGRADE_TITLE,
-      descOverride: xpRevealText,
-      reason: 'Purchase "Unlock XP" to reveal this upgrade',
-      hidden: false,
-      hideCost: false,
-      hideEffect: false,
-      useLockedBase: true,
-    };
+    baseState = { state: 'locked', reason: 'Purchase "Unlock XP" to reveal this upgrade' };
   }
 }
 
@@ -3857,12 +3676,17 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
 
   if (state.locked) {
     const hiddenState = !!state.hidden;
-    if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
-
+    
     if (hiddenState) {
+      if (!state.iconOverride) state.iconOverride = MYSTERIOUS_UPGRADE_ICON_DATA_URL;
       if (!state.titleOverride) state.titleOverride = HIDDEN_UPGRADE_TITLE;
-    } else if (!state.titleOverride) {
-      state.titleOverride = LOCKED_UPGRADE_TITLE;
+      if (state.hideCost == null) state.hideCost = true;
+      if (state.hideEffect == null) state.hideEffect = true;
+    } else {
+      if (!state.iconOverride) state.iconOverride = LOCKED_UPGRADE_ICON_DATA_URL;
+      if (!state.titleOverride) state.titleOverride = LOCKED_UPGRADE_TITLE;
+      if (state.hideCost == null) state.hideCost = true;
+      if (state.hideEffect == null) state.hideEffect = true;
     }
 
     if (state.useLockedBase == null) state.useLockedBase = true;
@@ -3875,6 +3699,8 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
         state.descOverride = upg.revealRequirement;
       } else if (hiddenState) {
         state.descOverride = 'This upgrade is currently hidden.';
+      } else {
+        state.descOverride = 'Locked';
       }
     }
   } else {
@@ -4027,22 +3853,11 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
       state.hidden = false;
       state.hideCost = false;
       state.hideEffect = false;
-    delete state.titleOverride;
-    delete state.iconOverride;
-    delete state.descOverride;
-    delete state.reason;
-      state.useLockedBase = false;
-
-      if (state.iconOverride === LOCKED_UPGRADE_ICON_DATA_URL ||
-          state.iconOverride === MYSTERIOUS_UPGRADE_ICON_DATA_URL) {
-        delete state.iconOverride;
-      }
-      if (state.titleOverride === HIDDEN_UPGRADE_TITLE ||
-          state.titleOverride === LOCKED_UPGRADE_TITLE) {
-        delete state.titleOverride;
-      }
+      delete state.titleOverride;
+      delete state.iconOverride;
       delete state.descOverride;
       delete state.reason;
+      state.useLockedBase = false;
 
       if (rec.status !== 'unlocked') {
         revealState.upgrades[revealKey] = { status: 'unlocked' };
