@@ -17,15 +17,27 @@ const COMBINE_UNLOCKED_KEY_BASE = 'ccc:combineUnlocked';
 const COMBINE_COMPLETED_KEY_BASE = 'ccc:combineCompleted';
 const COMBINE_ICON_SRC = 'img/currencies/core/core.webp';
 
+const COMPRESS_UNLOCKED_KEY_BASE = 'ccc:compressUnlocked';
+const COMPRESS_COMPLETED_KEY_BASE = 'ccc:compressCompleted';
+const COMPRESS_ICON_SRC = 'img/currencies/crystal/crystal.webp';
+
 let resetState = {
   slot: null,
   combineUnlocked: false,
   hasDoneCombineReset: false,
   pendingCores: BigNum.fromInt(0),
+  compressUnlocked: false,
+  hasDoneCompressReset: false,
+  pendingCrystals: BigNum.fromInt(0),
   flagsPrimed: false,
   panel: null,
   elements: {
     combine: {
+      card: null,
+      status: null,
+      btn: null,
+    },
+    compress: {
       card: null,
       status: null,
       btn: null,
@@ -89,6 +101,56 @@ export function setCombineResetCompleted(value, slot = getActiveSlot()) {
     } catch {}
   }
   resetState.hasDoneCombineReset = !!value;
+}
+
+
+export function isCompressUnlocked() {
+  ensurePersistentFlagsPrimed();
+  return !!resetState.compressUnlocked;
+}
+
+export function setCompressUnlocked(value, slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (typeof localStorage !== 'undefined') {
+    try {
+      if (value) {
+        localStorage.setItem(`${COMPRESS_UNLOCKED_KEY_BASE}:${slotKey}`, '1');
+      } else {
+        localStorage.removeItem(`${COMPRESS_UNLOCKED_KEY_BASE}:${slotKey}`);
+      }
+    } catch {}
+  }
+  resetState.compressUnlocked = !!value;
+}
+
+export function hasDoneCompressReset() {
+  ensurePersistentFlagsPrimed();
+  return !!resetState.hasDoneCompressReset;
+}
+
+export function setCompressResetCompleted(value, slot = getActiveSlot()) {
+  const slotKey = String(slot ?? 'default');
+  if (typeof localStorage !== 'undefined') {
+    try {
+      if (value) {
+        localStorage.setItem(`${COMPRESS_COMPLETED_KEY_BASE}:${slotKey}`, '1');
+      } else {
+        localStorage.removeItem(`${COMPRESS_COMPLETED_KEY_BASE}:${slotKey}`);
+      }
+    } catch {}
+  }
+  resetState.hasDoneCompressReset = !!value;
+}
+
+export function performCompressReset() {
+    if (!isCompressUnlocked()) return false;
+    
+    if (settingsManager.get('combine_confirmation')) { // using same setting for now or we could add another
+        if (!window.confirm("Are you sure you want to do a Compress reset?")) return false;
+    }
+    
+    // For now we just return false
+    return false;
 }
 
 function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn, isSurge = false) {
@@ -303,8 +365,7 @@ export function performCombineReset() {
     }
     
     setCombineResetCompleted(true);
-    
-    recomputePendingCores();
+    recomputePendingCoresAndCrystals();
     return true;
 }
 
@@ -356,7 +417,7 @@ function updateCombineCard() {
         return;
     }
     
-    if (el.card.style.display !== 'flex') el.card.style.display = 'flex';
+    if (!el.card.style.display || el.card.style.display === 'none') {} // Rely on tab system to set display
     
     el.card.classList.toggle('is-complete', !!hasDoneCombineReset());
     
@@ -382,13 +443,48 @@ function updateCombineCard() {
     updateResetButtonContent(el.btn, { disabled: false }, COMBINE_ICON_SRC, resetState.pendingCores);
 }
 
+
+function updateCompressCard() {
+    const el = resetState.elements.compress;
+    if (!el.card || !el.btn) return;
+    
+    ensurePersistentFlagsPrimed();
+    
+    if (!isCompressUnlocked()) {
+        if (el.card.style.display !== 'none') el.card.style.display = 'none';
+        return;
+    }
+    
+    if (!el.card.style.display || el.card.style.display === 'none') {} // Rely on tab system to set display
+    
+    el.card.classList.toggle('is-complete', !!hasDoneCompressReset());
+    
+    if (el.status) {
+        if (hasDoneCompressReset()) {
+            if (el.status.innerHTML !== '') el.status.innerHTML = '';
+        } else {
+            // First time completion msg if needed
+            if (el.status.innerHTML !== '') el.status.innerHTML = '';
+        }
+    }
+    
+    // Disable it for now since functionality is unimplemented
+    updateResetButtonContent(el.btn, { disabled: true, msg: 'Not enough resources to perform a Compress reset' });
+    
+    // updateResetButtonContent(el.btn, { disabled: false }, COMPRESS_ICON_SRC, resetState.pendingCrystals);
+}
+
 function initCombineTabUI(panel) {
   panel.innerHTML = `
     <div class="merchant-reset miner-reset">
       <aside class="merchant-reset__sidebar">
-        <button type="button" class="merchant-reset__layer" data-reset-layer="combine">
+        <button type="button" class="merchant-reset__layer is-active" data-reset-layer="combine">
           <img src="img/misc/combine.webp" alt="">
           <span>Combine</span>
+        </button>
+        <button type="button" class="merchant-reset__layer" data-reset-layer="compress">
+          <img src="img/misc/compress.webp" alt="">
+          <span>Compress</span>
         </button>
       </aside>
 
@@ -425,6 +521,38 @@ function initCombineTabUI(panel) {
         </div>
       </div>
       
+      
+        <!-- COMPRESS CARD -->
+        <div class="merchant-reset__card merchant-reset__main is-compress" id="reset-card-compress" style="display: none;">
+          <div class="merchant-reset__layout">
+            <header class="merchant-reset__header">
+              <div class="merchant-reset__titles">
+                <h3>Compress</h3>
+              </div>
+            </header>
+
+            <div class="merchant-reset__content">
+              <div class="merchant-reset__titles">
+                <p data-reset-desc="compress">
+                  Details about the Compress reset will go here.<br>
+                  Increase pending Crystal amount by gathering more resources.
+                </p>
+              </div>
+              <div class="merchant-reset__status" data-reset-status="compress"></div>
+            </div>
+            
+            <div class="merchant-reset__actions">
+              <button type="button" class="merchant-reset__action" data-reset-action="compress">
+                <span class="merchant-reset__action-plus">+</span>
+                <span class="merchant-reset__action-icon">
+                  <img src="${COMPRESS_ICON_SRC}" alt="">
+                </span>
+                <span class="merchant-reset__action-amount" data-reset-pending="compress">0</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
       <div class="merchant-reset__spacer"></div>
     </div>
   `;
@@ -448,9 +576,38 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
   resetState.elements.combine.status = panel.querySelector('[data-reset-status="combine"]');
   resetState.elements.combine.btn = panel.querySelector('[data-reset-action="combine"]');
   
+  
+  const combineLayerBtn = panel.querySelector('[data-reset-layer="combine"]');
+  const compressLayerBtn = panel.querySelector('[data-reset-layer="compress"]');
+  
+  if (combineLayerBtn && compressLayerBtn) {
+      combineLayerBtn.addEventListener('click', () => {
+          combineLayerBtn.classList.add('is-active');
+          compressLayerBtn.classList.remove('is-active');
+          if (resetState.elements.combine.card) resetState.elements.combine.card.style.display = 'flex';
+          if (resetState.elements.compress.card) resetState.elements.compress.card.style.display = 'none';
+      });
+      compressLayerBtn.addEventListener('click', () => {
+          compressLayerBtn.classList.add('is-active');
+          combineLayerBtn.classList.remove('is-active');
+          if (resetState.elements.compress.card) resetState.elements.compress.card.style.display = 'flex';
+          if (resetState.elements.combine.card) resetState.elements.combine.card.style.display = 'none';
+      });
+  }
+
+  resetState.elements.compress.card = panel.querySelector('#reset-card-compress');
+  resetState.elements.compress.status = panel.querySelector('[data-reset-status="compress"]');
+  resetState.elements.compress.btn = panel.querySelector('[data-reset-action="compress"]');
+  
+  resetState.elements.compress.btn.addEventListener('click', () => {
+     if (performCompressReset()) {
+         // recomputePendingCrystals();
+     }
+  });
+
   resetState.elements.combine.btn.addEventListener('click', () => {
      if (performCombineReset()) {
-         recomputePendingCores();
+         recomputePendingCoresAndCrystals();
      }
   });
   
@@ -464,27 +621,34 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
     allPanels.forEach(p => p.classList.remove('is-active'));
     tabBtn.classList.add('is-active');
     panel.classList.add('is-active');
-    recomputePendingCores();
+    
   });
   
   updateCombinePanelVisibility(minerSheetEl);
-  recomputePendingCores();
+  updateCompressPanelVisibility(minerSheetEl);
+  recomputePendingCoresAndCrystals();
   
   if (typeof window !== 'undefined') {
       window.addEventListener('currency:change', (e) => {
           if (e.detail?.key === 'scrap' || UC_MATERIALS.includes(e.detail?.key)) {
-              recomputePendingCores();
+              recomputePendingCoresAndCrystals();
           }
       });
       window.addEventListener('level:change', (e) => {
           if (e.detail?.prefix === 'dp') {
-              recomputePendingCores();
+              recomputePendingCoresAndCrystals();
           }
       });
       window.addEventListener('dp:change', (e) => {
-          recomputePendingCores();
+          
       });
   }
+}
+
+export function recomputePendingCoresAndCrystals() {
+    recomputePendingCores();
+    
+    updateCompressCard();
 }
 
 export function updateCombinePanelVisibility(minerSheetEl) {
@@ -510,6 +674,40 @@ export function updateCombinePanelVisibility(minerSheetEl) {
   }
 }
 
+
+
+function updateCompressPanelVisibility(minerSheetEl) {
+  const tabsEl = minerSheetEl.querySelector('.merchant-tabs');
+  if (!tabsEl) return;
+  const tabBtn = tabsEl.querySelector('[data-tab="reset"]');
+  if (!tabBtn) return;
+  
+  if (isCompressUnlocked() || isCombineUnlocked()) {
+    tabBtn.textContent = 'Reset';
+    tabBtn.title = 'Reset';
+    tabBtn.classList.remove('is-locked');
+    tabBtn.disabled = false;
+  }
+  
+  const panel = document.getElementById('miner-panel-reset');
+  if (panel) {
+      const compressLayerBtn = panel.querySelector('[data-reset-layer="compress"]');
+      if (compressLayerBtn) {
+          compressLayerBtn.style.display = isCompressUnlocked() ? 'flex' : 'none';
+      }
+  }
+}
+
+
+window.onCompressUpgradeUnlocked = function() {
+  setCompressUnlocked(true);
+  const minerSheetEl = document.querySelector('.merchant-sheet');
+  if (minerSheetEl) {
+      updateCombinePanelVisibility(minerSheetEl);
+      updateCompressPanelVisibility(minerSheetEl);
+  }
+};
+
 window.onCombineUpgradeUnlocked = function() {
   setCombineUnlocked(true);
   const minerSheetEl = document.querySelector('.merchant-sheet');
@@ -531,6 +729,13 @@ if (typeof window !== 'undefined') {
     computeCombineCores,
     getPotentialScrap,
     recomputePendingCores,
-    updateCombineCard
+    updateCombineCard,
+    isCompressUnlocked,
+    setCompressUnlocked,
+    hasDoneCompressReset,
+    setCompressResetCompleted,
+    performCompressReset,
+    updateCompressCard,
+    updateCompressPanelVisibility
   });
 }
