@@ -682,6 +682,10 @@ export function determineLockState(ctx) {
 
   // ==== Unlock Infuse ====
   if (tieKey === UPGRADE_TIES.UNLOCK_INFUSE) {
+    let xp101 = false;
+    try { const xpBn = currentXpLevelBigNum(); xp101 = levelBigNumToNumber(xpBn) >= 101; } catch {}
+    if (xp101) return { locked: false };
+
     if (!hasDoneForgeReset()) {
       return {
         locked: true,
@@ -696,26 +700,25 @@ export function determineLockState(ctx) {
       };
     }
 
-    let xp101 = false;
-    try { const xpBn = currentXpLevelBigNum(); xp101 = levelBigNumToNumber(xpBn) >= 101; } catch {}
-    if (!xp101) {
-      const revealText = (upgRef?.revealRequirement) || 'Reach XP Level 101 to reveal this upgrade';
-      return {
-        locked: true,
-        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-        hidden: true,
-        hideCost: true, hideEffect: true, useLockedBase: true,
-        titleOverride: HIDDEN_UPGRADE_TITLE,
-        descOverride: revealText,
-        reason: revealText,
-      };
-    }
-    return { locked: false };
+    const revealText = (upgRef?.revealRequirement) || 'Reach XP Level 101 to reveal this upgrade';
+    return {
+      locked: true,
+      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+      hidden: true,
+      hideCost: true, hideEffect: true, useLockedBase: true,
+      titleOverride: HIDDEN_UPGRADE_TITLE,
+      descOverride: revealText,
+      reason: revealText,
+    };
   }
 
 
   // ==== Unlock Surge ====
   if (tieKey === UPGRADE_TIES.UNLOCK_SURGE) {
+    let xp201 = false;
+    try { const xpBn = currentXpLevelBigNum(); xp201 = levelBigNumToNumber(xpBn) >= 201; } catch {}
+    if (xp201) return { locked: false };
+
     if (!hasDoneInfuseReset()) {
       return {
         locked: true,
@@ -730,21 +733,16 @@ export function determineLockState(ctx) {
       };
     }
 
-    let xp201 = false;
-    try { const xpBn = currentXpLevelBigNum(); xp201 = levelBigNumToNumber(xpBn) >= 201; } catch {}
-    if (!xp201) {
-      const revealText = (upgRef?.revealRequirement) || 'Reach XP Level 201 to reveal this upgrade';
-      return {
-        locked: true,
-        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-        hidden: true,
-        hideCost: true, hideEffect: true, useLockedBase: true,
-        titleOverride: HIDDEN_UPGRADE_TITLE,
-        descOverride: revealText,
-        reason: revealText,
-      };
-    }
-    return { locked: false };
+    const revealText = (upgRef?.revealRequirement) || 'Reach XP Level 201 to reveal this upgrade';
+    return {
+      locked: true,
+      iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+      hidden: true,
+      hideCost: true, hideEffect: true, useLockedBase: true,
+      titleOverride: HIDDEN_UPGRADE_TITLE,
+      descOverride: revealText,
+      reason: revealText,
+    };
   }
 
   // ==== Infuse Placeholders ====
