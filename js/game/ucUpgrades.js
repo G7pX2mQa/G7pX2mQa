@@ -236,7 +236,7 @@ export const UC_REGISTRY = [
         dp31 = Number(dpState.dpLevel.toString()) >= 31;
       } catch {}
 
-      if (hasDoneCombineReset() || isBuildingsUnlocked() || dp31) {
+      if (hasDoneCombineReset() || isBuildingsUnlocked()) {
         return { state: 'unlocked' };
       }
       
@@ -279,7 +279,7 @@ export const UC_REGISTRY = [
         dp31 = Number(dpState.dpLevel.toString()) >= 31;
       } catch {}
 
-      if (hasDoneCombineReset() || isBuildingsUnlocked() || dp31) {
+      if (hasDoneCombineReset() || isBuildingsUnlocked()) {
         return { state: 'unlocked' };
       }
       
@@ -334,7 +334,7 @@ export const UC_REGISTRY = [
         dp31 = Number(dpState.dpLevel.toString()) >= 31;
       } catch {}
 
-      if (hasDoneCombineReset() || isBuildingsUnlocked() || dp31) {
+      if (hasDoneCombineReset() || isBuildingsUnlocked()) {
         return { state: 'unlocked' };
       }
       
@@ -377,7 +377,7 @@ export const UC_REGISTRY = [
         dp31 = Number(dpState.dpLevel.toString()) >= 31;
       } catch {}
 
-      if (hasDoneCombineReset() || isBuildingsUnlocked() || dp31) {
+      if (hasDoneCombineReset() || isBuildingsUnlocked()) {
         return { state: 'unlocked' };
       }
       
