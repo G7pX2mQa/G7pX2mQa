@@ -118,6 +118,10 @@
     left: 1px;
 }
 
+.offline-icon[src*="materials"] {
+    top: 2px;
+}
+
 .offline-icon[src*="magic"] {
     transform: scale(1.05);
     /* Remove 2px spacing */
@@ -134,7 +138,7 @@
 }
 
 .text-dna, .offline-plus.text-dna {
-    background: repeating-linear-gradient(-45deg, #C00000, #C00000 38px, #00B0F0 38px, #00B0F0 76px);
+    background: repeating-linear-gradient(-45deg, #C00000, #C00000 28px, #00B0F0 28px, #00B0F0 56px);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -185,6 +189,9 @@
 @media (pointer: coarse) {
     .offline-icon {
         top: 0px;
+    }
+    .offline-icon[src*="materials"] {
+        top: 1px;
     }
 }
 
