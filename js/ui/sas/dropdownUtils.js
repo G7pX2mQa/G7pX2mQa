@@ -215,24 +215,18 @@ export function createDropdown(options) {
       const menuHeight = dropdownMenu.scrollHeight;
       const rect = dropdownBtn.getBoundingClientRect();
       
-      let scrollContainer = dropdownBtn.parentElement;
-      let containerRect = null;
-      while (scrollContainer && scrollContainer !== document.body) {
-        const style = window.getComputedStyle(scrollContainer);
-        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-          containerRect = scrollContainer.getBoundingClientRect();
-          break;
+      let clippingNode = dropdownBtn.parentElement;
+      let viewportBottom = window.innerHeight;
+      let viewportTop = 0;
+
+      while (clippingNode && clippingNode !== document.body) {
+        const style = window.getComputedStyle(clippingNode);
+        if (style.overflowY !== 'visible' && style.overflowY !== '') {
+          const crect = clippingNode.getBoundingClientRect();
+          viewportBottom = Math.min(viewportBottom, crect.bottom);
+          viewportTop = Math.max(viewportTop, crect.top);
         }
-        scrollContainer = scrollContainer.parentElement;
-      }
-      
-      let viewportBottom, viewportTop;
-      if (containerRect) {
-        viewportBottom = Math.min(window.innerHeight, containerRect.bottom);
-        viewportTop = Math.max(0, containerRect.top);
-      } else {
-        viewportBottom = window.innerHeight;
-        viewportTop = 0;
+        clippingNode = clippingNode.parentElement;
       }
       
       const spaceBelow = viewportBottom - rect.bottom - 10;
