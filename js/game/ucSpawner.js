@@ -569,6 +569,7 @@ export function createUcSpawner(config = {}) {
             }
             
             el.style.opacity = '1';
+            el.style.display = 'block';
         },
 
         onClearPlayfield: (activeItems, removeItem, resetType) => {
