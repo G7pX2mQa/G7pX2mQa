@@ -18,6 +18,7 @@ import {
     setResearchNodeRp
 } from './labNodes.js';
 import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID } from './automationUpgrades.js';
+import { passiveRegistry } from './passiveRegistry.js';
 import { getEacAmountMultiplier } from './automationEffects.js';
 import { settingsManager } from './settingsManager.js';
 import { getPassiveCoinReward } from './coinPickup.js';
@@ -27,6 +28,7 @@ import { getBookProductionRate, isSurgeActive, getTsunamiExponent } from './surg
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { computeForgeGoldFromInputs, computeInfuseMagicFromInputs, computePendingDnaFromInputs } from '../ui/merchantTabs/resetTab.js';
 import { getLabGoldMultiplier } from './labNodes.js';
+import { getUcEacMaterialAccumulators, saveUcEacMaterialAccumulators } from './ucSpawner.js';
 import { bigNumFromLog10 } from '../util/bigNum.js';
 import { calculateWaterwheelOffline, applyWaterwheelOffline, WATERWHEEL_DEFS } from '../ui/merchantTabs/flowTab.js';
 
@@ -351,7 +353,17 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
         // Amount
         const text = document.createElement('span');
         text.className = 'offline-text';
-        text.classList.add(`text-${key}`);
+        if (config.bgGradient) {
+            text.style.backgroundImage = config.bgGradient;
+            text.style.color = 'transparent';
+            text.style.backgroundClip = 'text';
+            text.style.webkitBackgroundClip = 'text';
+            text.classList.add('gradient-text');
+        } else if (config.color) {
+            text.style.color = config.color;
+        } else {
+            text.classList.add(`text-${key}`);
+        }
         
         // Grammar logic
         let isOne = false;
@@ -555,35 +567,47 @@ export function calculateOfflineRewards(seconds) {
         }
     }
 
-    const autoLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID) || 0;
-    if (autoLevel > 0) {
-        // Update: use BigNum to calculate totalPassives safely
-        const multiplier = getEacAmountMultiplier();
-
-        const totalPassives = BigNum.fromInt(autoLevel)
-            .mulBigNumInteger(secondsBn)
-            .mulDecimal(String(multiplier))
-            .floorToInteger();
-        
-        if (!totalPassives.isZero()) {
-            const singleReward = getPassiveCoinReward();
-            const coinsEarned = singleReward.coins.mulBigNumInteger(totalPassives);
-            const xpEarned = singleReward.xp.mulBigNumInteger(totalPassives);
-            const mpEarned = singleReward.mp.mulBigNumInteger(totalPassives);
-            
-            if (!coinsEarned.isZero()) {
-                if (!isCurrencyLocked('coins', slot)) {
-                    rewards.coins = coinsEarned;
-                }
-            }
-            if (!xpEarned.isZero()) {
-                if (!isStorageKeyLocked(`ccc:xp:progress:${slot}`)) {
-                    rewards.xp = xpEarned;
-                }
-            }
-            if (!mpEarned.isZero()) {
-                if (!isStorageKeyLocked(`ccc:mutation:progress:${slot}`)) {
-                    rewards.mp = mpEarned;
+        // Process all passive systems registered in passiveRegistry
+    const eacEfficiency = settingsManager.get("eac_efficiency");
+    const efficiencyMult = eacEfficiency !== undefined ? (eacEfficiency / 100) : 1;
+    
+    if (eacEfficiency !== 0) {
+        for (const sys of passiveRegistry) {
+            if (typeof sys.onOffline === 'function') {
+                const rate = sys.getRate();
+                if (rate > 0) {
+                    let totalPassivesSecs = secondsBn.mulDecimal(String(rate));
+                    
+                    if (sys.getAmountMultiplier) {
+                        totalPassivesSecs = totalPassivesSecs.mulDecimal(String(sys.getAmountMultiplier()));
+                    }
+                    totalPassivesSecs = totalPassivesSecs.mulDecimal(String(efficiencyMult));
+                    
+                    const totalPassives = totalPassivesSecs.floorToInteger();
+                    
+                    if (!totalPassives.isZero()) {
+                        const sysRewards = sys.onOffline(secondsBn, totalPassives);
+                        if (sysRewards) {
+                            for (const [key, val] of Object.entries(sysRewards)) {
+                                if (key === 'uc_eac_progress') {
+                                    rewards.uc_eac_progress = val;
+                                } else if (val instanceof BigNum) {
+                                    if (rewards[key] && rewards[key] instanceof BigNum) {
+                                        rewards[key] = rewards[key].add(val);
+                                    } else {
+                                        rewards[key] = val;
+                                    }
+                                } else {
+                                    // Handle non-BigNum additive properties if they exist
+                                    if (rewards[key]) {
+                                        rewards[key] += val;
+                                    } else {
+                                        rewards[key] = val;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -653,6 +677,17 @@ export function grantOfflineRewards(rewards) {
     // Handle Waterwheels
     if (rewards.waterwheel_progress) {
         applyWaterwheelOffline(rewards.waterwheel_progress);
+    }
+
+    // Handle UC EAC Material fractional progress
+    if (rewards.uc_eac_progress) {
+        try {
+            const accs = getUcEacMaterialAccumulators();
+            for (let i = 0; i < accs.length; i++) {
+                accs[i] = rewards.uc_eac_progress[i];
+            }
+            saveUcEacMaterialAccumulators();
+        } catch {}
     }
 
     // Handle standard currencies automatically
