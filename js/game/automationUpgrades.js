@@ -1,6 +1,6 @@
 import { settingsManager } from "./settingsManager.js";
 import { isSurgeUnlocked } from '../ui/merchantTabs/resetTab.js';
-import { MYSTERIOUS_UPGRADE_ICON_DATA_URL, LOCKED_UPGRADE_ICON_DATA_URL, HIDDEN_UPGRADE_TITLE, LOCKED_UPGRADE_TITLE, E } from './upgrades.js';
+import { E } from './upgrades.js';
 import { BigNum } from '../util/bigNum.js';
 
 export const AUTOMATION_AREA_KEY = 'automation';
@@ -165,34 +165,14 @@ const UPGRADE_DEFINITIONS = [
              isUnlocked = true;
         }
         
-        if (isUnlocked) return { locked: false };
+        if (isUnlocked) return { state: 'unlocked' };
 
         if (!isSurgeUnlocked()) {
-            return {
-                locked: true,
-                iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-                titleOverride: LOCKED_UPGRADE_TITLE,
-                descOverride: 'Locked',
-                reason: 'Unlock Surge to unlock',
-                hidden: false,
-                hideCost: true,
-                hideEffect: true,
-                useLockedBase: true
-            };
+            return { state: 'locked', reason: 'Unlock Surge to unlock' };
         }
         
         const revealText = "Reach Surge 11 to reveal this upgrade";
-        return {
-            locked: true,
-            iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-            titleOverride: HIDDEN_UPGRADE_TITLE,
-            descOverride: revealText,
-            reason: revealText,
-            hidden: true,
-            hideCost: true,
-            hideEffect: true,
-            useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: revealText };
     }
   },
   {
@@ -224,34 +204,14 @@ const UPGRADE_DEFINITIONS = [
              isUnlocked = true;
         }
         
-        if (isUnlocked) return { locked: false };
+        if (isUnlocked) return { state: 'unlocked' };
 
         if (!isSurgeUnlocked()) {
-            return {
-                locked: true,
-                iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-                titleOverride: LOCKED_UPGRADE_TITLE,
-                descOverride: 'Locked',
-                reason: 'Unlock Surge to unlock',
-                hidden: false,
-                hideCost: true,
-                hideEffect: true,
-                useLockedBase: true
-            };
+            return { state: 'locked', reason: 'Unlock Surge to unlock' };
         }
         
         const revealText = "Reach Surge 60 to reveal this upgrade";
-        return {
-            locked: true,
-            iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-            titleOverride: HIDDEN_UPGRADE_TITLE,
-            descOverride: revealText,
-            reason: revealText,
-            hidden: true,
-            hideCost: true,
-            hideEffect: true,
-            useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: revealText };
     }
   },
   {
@@ -283,34 +243,14 @@ const UPGRADE_DEFINITIONS = [
              isUnlocked = true;
         }
         
-        if (isUnlocked) return { locked: false };
+        if (isUnlocked) return { state: 'unlocked' };
 
         if (!isSurgeUnlocked()) {
-            return {
-                locked: true,
-                iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-                titleOverride: LOCKED_UPGRADE_TITLE,
-                descOverride: 'Locked',
-                reason: 'Unlock Surge to unlock',
-                hidden: false,
-                hideCost: true,
-                hideEffect: true,
-                useLockedBase: true
-            };
+            return { state: 'locked', reason: 'Unlock Surge to unlock' };
         }
         
         const revealText = "Reach Surge 150 to reveal this upgrade";
-        return {
-            locked: true,
-            iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-            titleOverride: HIDDEN_UPGRADE_TITLE,
-            descOverride: revealText,
-            reason: revealText,
-            hidden: true,
-            hideCost: true,
-            hideEffect: true,
-            useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: revealText };
     }
   },
   {
@@ -348,34 +288,14 @@ const UPGRADE_DEFINITIONS = [
              isUnlocked = true;
         }
         
-        if (isUnlocked) return { locked: false };
+        if (isUnlocked) return { state: 'unlocked' };
 
         if (!isSurgeUnlocked()) {
-            return {
-                locked: true,
-                iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-                titleOverride: LOCKED_UPGRADE_TITLE,
-                descOverride: 'Locked',
-                reason: 'Unlock Surge to unlock',
-                hidden: false,
-                hideCost: true,
-                hideEffect: true,
-                useLockedBase: true
-            };
+            return { state: 'locked', reason: 'Unlock Surge to unlock' };
         }
         
         const revealText = "Reach Surge 150 to reveal this upgrade";
-        return {
-            locked: true,
-            iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-            titleOverride: HIDDEN_UPGRADE_TITLE,
-            descOverride: revealText,
-            reason: revealText,
-            hidden: true,
-            hideCost: true,
-            hideEffect: true,
-            useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: revealText };
     }
   },
   {
@@ -411,34 +331,14 @@ const UPGRADE_DEFINITIONS = [
              isUnlocked = true;
         }
         
-        if (isUnlocked) return { locked: false };
+        if (isUnlocked) return { state: 'unlocked' };
 
         if (!isSurgeUnlocked()) {
-            return {
-                locked: true,
-                iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-                titleOverride: LOCKED_UPGRADE_TITLE,
-                descOverride: 'Locked',
-                reason: 'Unlock Surge to unlock',
-                hidden: false,
-                hideCost: true,
-                hideEffect: true,
-                useLockedBase: true
-            };
+            return { state: 'locked', reason: 'Unlock Surge to unlock' };
         }
         
         const revealText = "Reach Surge 150 to reveal this upgrade";
-        return {
-            locked: true,
-            iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-            titleOverride: HIDDEN_UPGRADE_TITLE,
-            descOverride: revealText,
-            reason: revealText,
-            hidden: true,
-            hideCost: true,
-            hideEffect: true,
-            useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: revealText };
     }
   },
   {
@@ -487,34 +387,14 @@ const UPGRADE_DEFINITIONS = [
              isUnlocked = true;
         }
         
-        if (isUnlocked) return { locked: false };
+        if (isUnlocked) return { state: 'unlocked' };
 
         if (!isSurgeUnlocked()) {
-            return {
-                locked: true,
-                iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-                titleOverride: LOCKED_UPGRADE_TITLE,
-                descOverride: 'Locked',
-                reason: 'Unlock Surge to unlock',
-                hidden: false,
-                hideCost: true,
-                hideEffect: true,
-                useLockedBase: true
-            };
+            return { state: 'locked', reason: 'Unlock Surge to unlock' };
         }
         
         const revealText = "Reach Surge 150 to reveal this upgrade";
-        return {
-            locked: true,
-            iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-            titleOverride: HIDDEN_UPGRADE_TITLE,
-            descOverride: revealText,
-            reason: revealText,
-            hidden: true,
-            hideCost: true,
-            hideEffect: true,
-            useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: revealText };
     }
   }
 ];
