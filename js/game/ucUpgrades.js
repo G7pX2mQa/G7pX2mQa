@@ -264,6 +264,16 @@ export const UC_REGISTRY = [
     costAtLevel() { return BigNum.fromInt(0); },
     nextCostAfter() { return BigNum.fromInt(0); },
     computeLockState() {
+      let dp31 = false;
+      try {
+        const dpState = getDpState();
+        dp31 = Number(dpState.dpLevel.toString()) >= 31;
+      } catch {}
+
+      if (dp31) {
+        return { locked: false };
+      }
+
       if (!isDpSystemUnlocked()) {
         return {
           locked: true,
@@ -277,28 +287,19 @@ export const UC_REGISTRY = [
           reason: 'Unlock the Depth system to reveal this upgrade',
         };
       }
-
-      let dp31 = false;
-      try {
-        const dpState = getDpState();
-        dp31 = Number(dpState.dpLevel.toString()) >= 31;
-      } catch {}
       
-      if (!dp31) {
-        const revealText = 'Reach Depth: 31m to reveal this upgrade';
-        return {
-          locked: true,
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hidden: true,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: revealText,
-          reason: revealText,
-        };
-      }
-      return { locked: false };
+      const revealText = 'Reach Depth: 31m to reveal this upgrade';
+      return {
+        locked: true,
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+        hidden: true,
+        hideCost: true,
+        hideEffect: true,
+        useLockedBase: true,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: revealText,
+        reason: revealText,
+      };
     },
     onLevelChange({ newLevel }) {
       if ((newLevel ?? 0) >= 1) {
@@ -323,15 +324,15 @@ export const UC_REGISTRY = [
     costAtLevel(level) { return computeDefaultUpgradeCost(this.baseCost, level, this.upgType); },
     nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
     computeLockState() {
-      if (hasDoneCombineReset() || isBuildingsUnlocked()) {
-        return { locked: false };
-      }
-
       let dp31 = false;
       try {
         const dpState = getDpState();
         dp31 = Number(dpState.dpLevel.toString()) >= 31;
       } catch {}
+
+      if (hasDoneCombineReset() || isBuildingsUnlocked() || dp31) {
+        return { locked: false };
+      }
       
       if (!dp31) {
         return {
@@ -386,15 +387,15 @@ export const UC_REGISTRY = [
     costAtLevel(level) { return costAtLevelUsingScaling(this, level); },
     nextCostAfter(_, nextLevel) { return costAtLevelUsingScaling(this, nextLevel); },
     computeLockState() {
-      if (hasDoneCombineReset() || isBuildingsUnlocked()) {
-        return { locked: false };
-      }
-
       let dp31 = false;
       try {
         const dpState = getDpState();
         dp31 = Number(dpState.dpLevel.toString()) >= 31;
       } catch {}
+
+      if (hasDoneCombineReset() || isBuildingsUnlocked() || dp31) {
+        return { locked: false };
+      }
       
       if (!dp31) {
         return {
@@ -461,15 +462,15 @@ export const UC_REGISTRY = [
     },
     nextCostAfter(_, nextLevel) { return this.costAtLevel(nextLevel); },
     computeLockState() {
-      if (hasDoneCombineReset() || isBuildingsUnlocked()) {
-        return { locked: false };
-      }
-
       let dp31 = false;
       try {
         const dpState = getDpState();
         dp31 = Number(dpState.dpLevel.toString()) >= 31;
       } catch {}
+
+      if (hasDoneCombineReset() || isBuildingsUnlocked() || dp31) {
+        return { locked: false };
+      }
       
       if (!dp31) {
         return {
@@ -524,15 +525,15 @@ export const UC_REGISTRY = [
     costAtLevel(level) { return BigNum.fromAny(this.baseCost); },
     nextCostAfter(_, nextLevel) { return BigNum.fromAny(this.baseCost); },
     computeLockState() {
-      if (hasDoneCombineReset() || isBuildingsUnlocked()) {
-        return { locked: false };
-      }
-
       let dp31 = false;
       try {
         const dpState = getDpState();
         dp31 = Number(dpState.dpLevel.toString()) >= 31;
       } catch {}
+
+      if (hasDoneCombineReset() || isBuildingsUnlocked() || dp31) {
+        return { locked: false };
+      }
       
       if (!dp31) {
         return {
@@ -585,39 +586,42 @@ export const UC_REGISTRY = [
     costAtLevel() { return BigNum.fromInt(0); },
     nextCostAfter() { return BigNum.fromInt(0); },
     computeLockState() {
-      if (!(hasDoneCombineReset() || isBuildingsUnlocked())) {
-          return {
-            locked: true,
-            hidden: false,
-            hideCost: true,
-            hideEffect: true,
-            useLockedBase: true,
-            titleOverride: LOCKED_UPGRADE_TITLE,
-            descOverride: 'Locked',
-          };
-      }
-
       let dp101 = false;
       try {
         const dpState = getDpState();
         dp101 = Number(dpState.dpLevel.toString()) >= 101;
       } catch {}
-      
-      if (!dp101) {
-        const revealText = 'Reach Depth: 101m to reveal this upgrade';
-        return {
-          locked: true,
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true,
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: revealText,
-          reason: revealText,
-        };
+
+      if (dp101) {
+        return { locked: false };
       }
-      return { locked: false };
+
+      if (!(hasDoneCombineReset() || isBuildingsUnlocked())) {
+          return {
+            locked: true,
+            iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+            hidden: false,
+            hideCost: true,
+            hideEffect: true,
+            useLockedBase: true,
+            titleOverride: LOCKED_UPGRADE_TITLE,
+            descOverride: 'Do a Combine reset to reveal this upgrade',
+            reason: 'Do a Combine reset to reveal this upgrade',
+          };
+      }
+
+      const revealText = 'Reach Depth: 101m to reveal this upgrade';
+      return {
+        locked: true,
+        iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+        hidden: false,
+        hideCost: true,
+        hideEffect: true,
+        useLockedBase: true,
+        titleOverride: HIDDEN_UPGRADE_TITLE,
+        descOverride: revealText,
+        reason: revealText,
+      };
     },
     onLevelChange({ newLevel }) {
       if ((newLevel ?? 0) >= 1) {
