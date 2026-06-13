@@ -661,7 +661,7 @@ export function updateSellPanelVisibility(minerSheetEl) {
 
 window.onSellUpgradeUnlocked = function() {
   setSellUnlocked(true);
-  const minerSheetEl = document.querySelector('.merchant-sheet');
+  const minerSheetEl = document.querySelector('.merchant-overlay.is-miner .merchant-sheet');
   if (minerSheetEl) {
       updateSellPanelVisibility(minerSheetEl);
   }
