@@ -1,6 +1,6 @@
 import { getMutationState } from './mutationSystem.js';
 import { IS_MOBILE } from '../main.js';
-import { levelBigNumToNumber, MYSTERIOUS_UPGRADE_ICON_DATA_URL, HIDDEN_UPGRADE_TITLE } from './upgrades.js';
+import { levelBigNumToNumber } from './upgrades.js';
 
 export const RAINBOW_GEM_AREA_KEY = 'rainbow_gem_shop';
 
@@ -55,19 +55,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 2) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 2 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: "Reach Mutation Level 2 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 2 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     },
   },
   {
@@ -84,19 +74,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 2) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 2 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: "Reach Mutation Level 2 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 2 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -113,19 +93,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 2) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 2 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: "Reach Mutation Level 2 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 2 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -142,19 +112,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 3) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 3 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: "Reach Mutation Level 3 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 3 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -171,19 +131,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 3) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 3 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: "Reach Mutation Level 3 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 3 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -200,19 +150,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 3) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 3 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: "Reach Mutation Level 3 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 3 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -229,19 +169,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 4) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 4 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: "Reach Mutation Level 4 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 4 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -258,19 +188,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 4) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 4 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: "Reach Mutation Level 4 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 4 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -287,19 +207,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 4) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 4 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: "Reach Mutation Level 4 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 4 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -316,19 +226,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 5) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 5 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: "Reach Mutation Level 5 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 5 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -345,19 +245,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 5) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 5 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: "Reach Mutation Level 5 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 5 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -374,19 +264,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 5) {
-        return {
-          locked: true,
-          hidden: true,
-          reason: "Reach Mutation Level 5 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE,
-          descOverride: "Reach Mutation Level 5 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hideCost: true,
-          hideEffect: true,
-          useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 5 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -403,14 +283,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 6) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 6 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 6 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 6 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -427,14 +302,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 6) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 6 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 6 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 6 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -451,14 +321,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 6) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 6 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 6 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 6 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -475,14 +340,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 7) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 7 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 7 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 7 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -499,14 +359,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 7) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 7 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 7 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 7 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -523,14 +378,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 7) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 7 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 7 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 7 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -547,14 +397,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 8) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 8 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 8 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 8 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -571,14 +416,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 8) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 8 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 8 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 8 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -595,14 +435,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 8) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 8 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 8 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 8 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -619,14 +454,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 9) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 9 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 9 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 9 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -643,14 +473,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 9) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 9 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 9 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 9 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -667,14 +492,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 9) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 9 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 9 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 9 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -691,14 +511,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 10) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 10 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 10 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 10 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -715,14 +530,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 10) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 10 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 10 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 10 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -739,14 +549,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 10) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 10 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 10 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 10 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -763,14 +568,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 11) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 11 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 11 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 11 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -787,14 +587,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 11) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 11 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 11 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 11 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -811,14 +606,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 11) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 11 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 11 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 11 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -835,14 +625,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 12) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 12 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 12 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 12 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -859,14 +644,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 12) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 12 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 12 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 12 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -883,14 +663,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 12) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 12 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 12 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 12 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -907,14 +682,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 13) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 13 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 13 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 13 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -931,14 +701,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 13) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 13 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 13 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 13 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -955,14 +720,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 13) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 13 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 13 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 13 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -979,14 +739,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 14) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 14 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 14 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 14 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1003,14 +758,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 14) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 14 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 14 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 14 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1027,14 +777,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 14) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 14 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 14 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 14 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1051,14 +796,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 15) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 15 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 15 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 15 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1075,14 +815,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 15) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 15 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 15 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 15 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1099,14 +834,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 15) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 15 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 15 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 15 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1123,14 +853,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 16) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 16 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 16 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 16 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1147,14 +872,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 16) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 16 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 16 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 16 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1171,14 +891,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 16) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 16 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 16 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 16 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1195,14 +910,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 17) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 17 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 17 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 17 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1219,14 +929,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 17) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 17 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 17 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 17 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1243,14 +948,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 17) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 17 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 17 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 17 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1267,14 +967,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 18) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 18 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 18 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 18 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1291,14 +986,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 18) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 18 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 18 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 18 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1315,14 +1005,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 18) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 18 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 18 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 18 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1339,14 +1024,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 19) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 19 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 19 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 19 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1363,14 +1043,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 19) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 19 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 19 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 19 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1387,14 +1062,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 19) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 19 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 19 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 19 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1411,14 +1081,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 20) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 20 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 20 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 20 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1435,14 +1100,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 20) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 20 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 20 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 20 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1459,14 +1119,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 20) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 20 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 20 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 20 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1483,14 +1138,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 21) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 21 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 21 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 21 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1507,14 +1157,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 21) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 21 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 21 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 21 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1531,14 +1176,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 21) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 21 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 21 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 21 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1555,14 +1195,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 22) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 22 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 22 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 22 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1579,14 +1214,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 22) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 22 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 22 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 22 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1603,14 +1233,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 22) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 22 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 22 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 22 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1627,14 +1252,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 23) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 23 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 23 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 23 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1651,14 +1271,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 23) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 23 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 23 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 23 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1675,14 +1290,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 23) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 23 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 23 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 23 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1699,14 +1309,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 24) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 24 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 24 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 24 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1723,14 +1328,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 24) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 24 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 24 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 24 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1747,14 +1347,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 24) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 24 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 24 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 24 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1771,14 +1366,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 25) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 25 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 25 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 25 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1795,14 +1385,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 25) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 25 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 25 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 25 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   },
   {
@@ -1819,14 +1404,9 @@ export const RAINBOW_GEM_UPGRADES = [
     computeLockState(ctx) {
       const mState = getMutationState();
       if (!mState.unlocked || levelBigNumToNumber(mState.level) < 25) {
-        return {
-          locked: true, hidden: true,
-          reason: "Reach Mutation Level 25 to reveal this upgrade",
-          titleOverride: HIDDEN_UPGRADE_TITLE, descOverride: "Reach Mutation Level 25 to reveal this upgrade",
-          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL, hideCost: true, hideEffect: true, useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: "Reach Mutation Level 25 to reveal this upgrade" };
       }
-      return { locked: false, hidden: false };
+      return { state: 'unlocked' };
     }
   }
 ];
