@@ -570,4 +570,76 @@ export const UC_REGISTRY = [
       return normalizedLevel > 0 ? 1e10 : 1;
     },
   },
+  {
+    area: UC_AREA_KEY,
+    id: 11,
+    tie: 'none_8',
+    title: "Unlock Compress",
+    desc: "Unlocks the Compress reset",
+    lvlCap: 1,
+    upgType: "NM",
+    icon: "",
+    baseIconOverride: "img/misc/compress_plus_base.webp",
+    revealRequirement: 'Reach Depth: 101m to reveal this upgrade',
+    unlockUpgrade: true,
+    costAtLevel() { return BigNum.fromInt(0); },
+    nextCostAfter() { return BigNum.fromInt(0); },
+    computeLockState() {
+      if (!isDpSystemUnlocked()) {
+        return {
+          locked: true,
+          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
+          useLockedBase: true,
+          hidden: false,
+          hideCost: true,
+          hideEffect: true,
+          titleOverride: LOCKED_UPGRADE_TITLE,
+          descOverride: 'Unlock the Depth system to reveal this upgrade',
+          reason: 'Unlock the Depth system to reveal this upgrade',
+        };
+      }
+
+      if (!(hasDoneCombineReset() || isBuildingsUnlocked())) {
+          return {
+            locked: true,
+            iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+            hidden: true,
+            hideCost: true,
+            hideEffect: true,
+            useLockedBase: true,
+            titleOverride: HIDDEN_UPGRADE_TITLE,
+            descOverride: 'Reach Depth: 101m to reveal this upgrade',
+            reason: 'Reach Depth: 101m to reveal this upgrade',
+          };
+      }
+
+      let dp101 = false;
+      try {
+        const dpState = getDpState();
+        dp101 = Number(dpState.dpLevel.toString()) >= 101;
+      } catch {}
+      
+      if (!dp101) {
+        const revealText = 'Reach Depth: 101m to reveal this upgrade';
+        return {
+          locked: true,
+          iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
+          hidden: true,
+          hideCost: true,
+          hideEffect: true,
+          useLockedBase: true,
+          titleOverride: HIDDEN_UPGRADE_TITLE,
+          descOverride: revealText,
+          reason: revealText,
+        };
+      }
+      return { locked: false };
+    },
+    onLevelChange({ newLevel }) {
+      if ((newLevel ?? 0) >= 1) {
+        try { if (typeof window.onCompressUpgradeUnlocked === 'function') window.onCompressUpgradeUnlocked(); } catch {}
+      }
+    },
+    effectSummary() { return ""; }
+  }
 ];
