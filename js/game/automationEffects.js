@@ -20,6 +20,9 @@ import { settingsManager } from './settingsManager.js';
 import { isNodeLocked } from '../ui/mapOverlay.js';
 import { getUpgrade } from './upgrades.js';
 import { getDpState } from './dpSystem.js';
+import { passiveRegistry, registerPassiveSystem } from './passiveRegistry.js';
+import { getPassiveCoinReward } from './coinPickup.js';
+import { isCurrencyLocked } from '../util/storage.js';
 
 let accumulator = 0;
 let ucEacAccumulator = 0;
@@ -297,125 +300,34 @@ export function updateAutomation(dt) {
   const efficiencyMult = eacEfficiency !== undefined ? (eacEfficiency / 100) : 1;
 
   if (eacEfficiency === 0) {
-    accumulator = 0;
-    ucEacAccumulator = 0;
-  }
-
-  const level = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID);
-  let rate = level; // Rate = level (coins/sec)
-
-  for (const provider of externalEacProviders) {
-    try {
-      const val = provider();
-      if (Number.isFinite(val)) rate *= val;
-    } catch {}
-  }
-
-  if (rate > 0 && eacEfficiency !== 0) {
-    accumulator += dt;
-    const interval = 1 / rate;
-
-    if (accumulator >= interval) {
-      const ticks = Math.floor(accumulator / interval);
-      if (ticks > 0) {
-        let collectCount = ticks;
-        collectCount *= getEacAmountMultiplier();
-        collectCount *= efficiencyMult;
-        triggerPassiveCollect(collectCount);
-        accumulator -= ticks * interval;
-      }
+    for (const sys of passiveRegistry) {
+      sys.accumulator = 0;
     }
   } else {
-    accumulator = 0;
-  }
-
-  // UC EAC Logic
-  const ucEacLevel = getLevelNumber(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID);
-  const ucEacUpgDef = getUpgrade(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID);
-  let ucRate = 0;
-  if (!ucEacUpgDef || !ucEacUpgDef.requiredNodeId || !isNodeLocked(ucEacUpgDef.requiredNodeId, true)) {
-    ucRate = ucEacLevel;
-  }
-  
-  for (const provider of externalEacProviders) {
-    try {
-      const val = provider();
-      if (Number.isFinite(val)) ucRate *= val;
-    } catch {}
-  }
-
-  if (ucRate > 0 && eacEfficiency !== 0) {
-    ucEacAccumulator += dt;
-    const ucInterval = 1 / ucRate;
-
-    if (ucEacAccumulator >= ucInterval) {
-      const ticks = Math.floor(ucEacAccumulator / ucInterval);
-      if (ticks > 0) {
-        let collectCount = ticks;
-        collectCount *= getEacAmountMultiplier();
-        collectCount *= efficiencyMult;
+    for (const sys of passiveRegistry) {
+      let rate = sys.getRate();
+      if (rate > 0) {
+        sys.accumulator += dt;
+        const interval = 1 / rate;
         
-        let dpLevelNum = 0;
-        try {
-           const dpState = getDpState();
-           if (dpState && dpState.dpLevel) {
-               dpLevelNum = Number(dpState.dpLevel.toString());
-           }
-        } catch {}
-
-        const accs = getUcEacMaterialAccumulators();
-        let anyGains = false;
-        
-        for (let t = 0; t < collectCount; t++) {
-            for (let j = 0; j < UC_MATERIALS.length; j++) {
-                const matData = UC_MATERIAL_DATA[j];
-                let gain = 0;
-                if (j === 0) {
-                    gain = 1.0;
-                } else {
-                    if (dpLevelNum >= matData.max) {
-                        gain = 1.0;
-                    } else if (dpLevelNum >= matData.start) {
-                        const progress = (dpLevelNum - matData.start) / (matData.max - matData.start);
-                        gain = 0.01 + 0.99 * Math.pow(progress, 1.5);
-                    }
-                }
-                
-                accs[j] += gain;
-                if (accs[j] > 1.99) accs[j] = 1.99;
-                
-                if (accs[j] >= 1.0) {
-                    accs[j] -= 1.0;
-                    const matKey = UC_MATERIALS[j];
-                    if (bank[matKey] && !globalThis?.__cccLockedStorageKeys?.has?.(`ccc:${matKey}`)) {
-                        const mult = bank[matKey].mult.get();
-                        const finalVal = BigNum.fromInt(1).mulBigNumInteger(mult);
-                        bank[matKey].add(finalVal);
-                        anyGains = true;
-                    }
-                }
+        if (sys.accumulator >= interval) {
+          const ticks = Math.floor(sys.accumulator / interval);
+          if (ticks > 0) {
+            let collectCount = ticks;
+            if (sys.getAmountMultiplier) {
+               collectCount *= sys.getAmountMultiplier();
             }
+            collectCount *= efficiencyMult;
+            
+            sys.onTick(collectCount, dt);
+            
+            sys.accumulator -= ticks * interval;
+          }
         }
-        
-        if (anyGains) {
-            try { scheduleHudUpdate(); } catch {}
-        }
-        
-        if (window.dpSystem && typeof window.dpSystem.addDp === 'function') {
-            window.dpSystem.addDp(collectCount);
-        }
-        
-        ucEacAccumulator -= ticks * ucInterval;
-        const now = Date.now();
-        if (now - lastUcEacSaveTime > 1000) {
-            saveUcEacAccumulator();
-            saveUcEacMaterialAccumulators();
-            lastUcEacSaveTime = now;
-        }
+      } else {
+        sys.accumulator = 0;
       }
     }
-  } else {
-    ucEacAccumulator = 0;
   }
 
   // Auto-Sell Logic
@@ -467,22 +379,29 @@ export function updateAutomation(dt) {
 let lastUcEacSaveTime = 0;
 export function saveUcEacAccumulator() {
     try {
-        localStorage.setItem(`ccc:ucEacAccumulator:${getActiveSlot()}`, String(ucEacAccumulator));
+        let acc = 0;
+        const sys = passiveRegistry.find(s => s.id === 'uc_eac');
+        if (sys) acc = sys.accumulator;
+        localStorage.setItem(`ccc:ucEacAccumulator:${getActiveSlot()}`, String(acc));
     } catch {}
 }
 
 export function loadUcEacAccumulator() {
     try {
         const stored = localStorage.getItem(`ccc:ucEacAccumulator:${getActiveSlot()}`);
-        ucEacAccumulator = stored ? Number(stored) : 0;
-        if (!Number.isFinite(ucEacAccumulator)) ucEacAccumulator = 0;
+        let acc = stored ? Number(stored) : 0;
+        if (!Number.isFinite(acc)) acc = 0;
+        const sys = passiveRegistry.find(s => s.id === 'uc_eac');
+        if (sys) sys.accumulator = acc;
     } catch {
-        ucEacAccumulator = 0;
+        const sys = passiveRegistry.find(s => s.id === 'uc_eac');
+        if (sys) sys.accumulator = 0;
     }
 }
 
 export function resetUcEacAccumulator() {
-    ucEacAccumulator = 0;
+    const sys = passiveRegistry.find(s => s.id === 'uc_eac');
+    if (sys) sys.accumulator = 0;
     saveUcEacAccumulator();
 }
 
@@ -502,3 +421,182 @@ export function initAutomationEffects() {
     });
   }
 }
+
+
+// Register Standard Auto Collect
+registerPassiveSystem({
+    id: 'standard_auto_collect',
+    getRate: () => {
+        const level = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID);
+        let rate = level || 0;
+        for (const provider of externalEacProviders) {
+            try {
+                const val = provider();
+                if (Number.isFinite(val)) rate *= val;
+            } catch {}
+        }
+        return rate;
+    },
+    getAmountMultiplier: getEacAmountMultiplier,
+    onTick: (collectCount, dt) => {
+        triggerPassiveCollect(collectCount);
+    },
+    onOffline: (secondsBn, totalPassives) => {
+        const rewards = {};
+        const slot = getActiveSlot();
+        const singleReward = getPassiveCoinReward();
+        const coinsEarned = singleReward.coins.mulBigNumInteger(totalPassives);
+        const xpEarned = singleReward.xp.mulBigNumInteger(totalPassives);
+        const mpEarned = singleReward.mp.mulBigNumInteger(totalPassives);
+        
+        if (!coinsEarned.isZero() && !isCurrencyLocked('coins', slot)) {
+            rewards.coins = coinsEarned;
+        }
+        if (!xpEarned.isZero() && !isCurrencyLocked('xp', slot)) {
+            rewards.xp = xpEarned;
+        }
+        if (!mpEarned.isZero() && !isCurrencyLocked('mutation', slot)) {
+            rewards.mp = mpEarned;
+        }
+        return rewards;
+    }
+});
+
+
+// Register Underwater Cavern EAC
+registerPassiveSystem({
+    id: 'uc_eac',
+    getRate: () => {
+        const ucEacLevel = getLevelNumber(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID) || 0;
+        const ucEacUpgDef = getUpgrade(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID);
+        let ucRate = 0;
+        if (!ucEacUpgDef || !ucEacUpgDef.requiredNodeId || !isNodeLocked(ucEacUpgDef.requiredNodeId, true)) {
+            ucRate = ucEacLevel;
+        }
+        
+        for (const provider of externalEacProviders) {
+            try {
+                const val = provider();
+                if (Number.isFinite(val)) ucRate *= val;
+            } catch {}
+        }
+        return ucRate;
+    },
+    getAmountMultiplier: getEacAmountMultiplier,
+    onTick: (collectCount, dt) => {
+        let dpLevelNum = 0;
+        try {
+           const dpState = getDpState();
+           if (dpState && dpState.dpLevel) {
+               dpLevelNum = Number(dpState.dpLevel.toString());
+           }
+        } catch {}
+
+        const accs = getUcEacMaterialAccumulators();
+        let anyGains = false;
+        
+        for (let t = 0; t < collectCount; t++) {
+            for (let j = 0; j < UC_MATERIALS.length; j++) {
+                const matData = UC_MATERIAL_DATA[j];
+                let gain = 0;
+                if (j === 0) {
+                    gain = 1.0;
+                } else {
+                    if (dpLevelNum >= matData.max) {
+                        gain = 1.0;
+                    } else if (dpLevelNum >= matData.start) {
+                        const progress = (dpLevelNum - matData.start) / (matData.max - matData.start);
+                        gain = 0.01 + 0.99 * Math.pow(progress, 1.5);
+                    }
+                }
+                
+                accs[j] += gain;
+                if (accs[j] > 1.99) accs[j] = 1.99;
+                
+                if (accs[j] >= 1.0) {
+                    accs[j] -= 1.0;
+                    const matKey = UC_MATERIALS[j];
+                    if (bank[matKey] && !globalThis?.__cccLockedStorageKeys?.has?.(`ccc:${matKey}`)) {
+                        const mult = bank[matKey].mult.get();
+                        const finalVal = BigNum.fromInt(1).mulBigNumInteger(mult);
+                        bank[matKey].add(finalVal);
+                        anyGains = true;
+                    }
+                }
+            }
+        }
+        
+        if (anyGains) {
+            try { scheduleHudUpdate(); } catch {}
+        }
+        
+        if (window.dpSystem && typeof window.dpSystem.addDp === 'function') {
+            window.dpSystem.addDp(collectCount);
+        }
+        
+        const now = Date.now();
+        if (now - lastUcEacSaveTime > 1000) {
+            saveUcEacAccumulator();
+            saveUcEacMaterialAccumulators();
+            lastUcEacSaveTime = now;
+        }
+    },
+    onOffline: (secondsBn, totalPassives) => {
+        const rewards = {};
+        const slot = getActiveSlot();
+        
+        let dpLevelNum = 0;
+        try {
+           const dpState = getDpState();
+           if (dpState && dpState.dpLevel) {
+               dpLevelNum = Number(dpState.dpLevel.toString());
+           }
+        } catch {}
+        
+        const accs = getUcEacMaterialAccumulators().slice();
+        const ucEacProgress = [...accs];
+        let anyGain = false;
+
+        for (let j = 0; j < UC_MATERIALS.length; j++) {
+            const matData = UC_MATERIAL_DATA[j];
+            let gain = 0;
+            if (j === 0) {
+                gain = 1.0;
+            } else {
+                if (dpLevelNum >= matData.max) {
+                    gain = 1.0;
+                } else if (dpLevelNum >= matData.start) {
+                    const progress = (dpLevelNum - matData.start) / (matData.max - matData.start);
+                    gain = 0.01 + 0.99 * Math.pow(progress, 1.5);
+                }
+            }
+            
+            if (gain > 0) {
+                const gainBn = totalPassives.mulDecimal(String(gain));
+                const totalGainBn = gainBn.add(BigNum.fromAny(accs[j]));
+                const integerGain = totalGainBn.floorToInteger();
+                const fractionalGain = parseFloat(totalGainBn.sub(integerGain).toScientific());
+                
+                ucEacProgress[j] = fractionalGain;
+                
+                if (!integerGain.isZero()) {
+                    const matKey = UC_MATERIALS[j];
+                    if (!isCurrencyLocked(matKey, slot)) {
+                        const finalVal = bank[matKey] && bank[matKey].mult ? 
+                            BigNum.fromInt(1).mulBigNumInteger(bank[matKey].mult.get()).mulBigNumInteger(integerGain) : 
+                            integerGain;
+                            
+                        rewards[matKey] = finalVal;
+                        anyGain = true;
+                    }
+                }
+            }
+        }
+        
+        if (anyGain) {
+            rewards.uc_eac_progress = ucEacProgress;
+            rewards.dp = totalPassives;
+        }
+        return rewards;
+    }
+});
