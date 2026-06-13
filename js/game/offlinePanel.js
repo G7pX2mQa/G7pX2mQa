@@ -341,7 +341,6 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
         // + Symbol
         const plus = document.createElement('span');
         plus.className = 'offline-plus';
-        plus.classList.add(`text-${key}`);
         plus.textContent = '+';
         
         // Icon
@@ -353,16 +352,36 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
         // Amount
         const text = document.createElement('span');
         text.className = 'offline-text';
-        if (config.bgGradient) {
-            text.style.backgroundImage = config.bgGradient;
-            text.style.color = 'transparent';
-            text.style.backgroundClip = 'text';
-            text.style.webkitBackgroundClip = 'text';
-            text.classList.add('gradient-text');
-        } else if (config.color) {
-            text.style.color = config.color;
+
+        // Infinity formatting logic - separate from text so we can selectively color
+        const infinityHtml = `<span class="infinity-symbol">&infin;</span>`;
+
+        // Styling for both plus and text
+        let displayStyle = null;
+
+        if (key === 'dna') {
+            plus.classList.add('text-dna');
+            text.classList.add('text-dna');
+        } else if (key === 'prismatium') {
+            plus.classList.add('text-prismatium');
+            text.classList.add('text-prismatium');
         } else {
-            text.classList.add(`text-${key}`);
+            if (config.bgGradient) {
+                const match = config.bgGradient.match(/(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))\s+50%/);
+                if (match) {
+                    displayStyle = match[1];
+                }
+            } else if (config.color) {
+                displayStyle = config.color;
+            }
+
+            if (displayStyle) {
+                plus.style.color = displayStyle;
+                text.style.color = displayStyle;
+            } else {
+                plus.classList.add(`text-${key}`);
+                text.classList.add(`text-${key}`);
+            }
         }
         
         // Grammar logic
@@ -375,10 +394,27 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
         
         const displayName = isOne ? config.singular : config.plural;
 
-        text.innerHTML = `${formatNumber(val)} ${displayName}`;
+        
+        let amountText = formatNumber(val);
+        let hasInfinity = false;
+        if (amountText === 'Infinity' || amountText === 'NaN') {
+            hasInfinity = true;
+        }
+
+        text.innerHTML = hasInfinity ? displayName : `${amountText} ${displayName}`;
         
         row.appendChild(plus);
         row.appendChild(icon);
+        
+        if (hasInfinity) {
+            const infSpan = document.createElement('span');
+            infSpan.className = 'infinity-symbol';
+            infSpan.innerHTML = '&infin;&nbsp;';
+            infSpan.style.color = '#ffff55';
+            infSpan.style.webkitTextFillColor = '#ffff55';
+            row.appendChild(infSpan);
+        }
+        
         row.appendChild(text);
         list.appendChild(row);
     });
