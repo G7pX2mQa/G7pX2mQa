@@ -82,6 +82,8 @@ export function setCombineUnlocked(value, slot = getActiveSlot()) {
     } catch {}
   }
   resetState.combineUnlocked = !!value;
+  updateCombineCard();
+  try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'combine', slot } })); } catch {}
 }
 
 export function hasDoneCombineReset() {
@@ -121,6 +123,8 @@ export function setCompressUnlocked(value, slot = getActiveSlot()) {
     } catch {}
   }
   resetState.compressUnlocked = !!value;
+  updateCompressCard();
+  try { window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'compress', slot } })); } catch {}
 }
 
 export function hasDoneCompressReset() {
@@ -389,6 +393,8 @@ function readPersistentFlags(slot) {
   if (slot == null) {
     resetState.combineUnlocked = false;
     resetState.hasDoneCombineReset = false;
+    resetState.compressUnlocked = false;
+    resetState.hasDoneCompressReset = false;
     resetState.flagsPrimed = false;
     return;
   }
@@ -401,6 +407,16 @@ function readPersistentFlags(slot) {
     resetState.hasDoneCombineReset = localStorage.getItem(`${COMBINE_COMPLETED_KEY_BASE}:${slot}`) === '1';
   } catch {
     resetState.hasDoneCombineReset = false;
+  }
+  try {
+    resetState.compressUnlocked = localStorage.getItem(`${COMPRESS_UNLOCKED_KEY_BASE}:${slot}`) === '1';
+  } catch {
+    resetState.compressUnlocked = false;
+  }
+  try {
+    resetState.hasDoneCompressReset = localStorage.getItem(`${COMPRESS_COMPLETED_KEY_BASE}:${slot}`) === '1';
+  } catch {
+    resetState.hasDoneCompressReset = false;
   }
   
   resetState.flagsPrimed = true;
@@ -487,7 +503,7 @@ function initCombineTabUI(panel) {
           <img src="img/misc/combine.webp" alt="">
           <span>Combine</span>
         </button>
-        <button type="button" class="merchant-reset__layer" data-reset-layer="compress">
+        <button type="button" class="merchant-reset__layer" data-reset-layer="compress" style="display: none;">
           <img src="img/misc/compress.webp" alt="">
           <span>Compress</span>
         </button>
@@ -707,7 +723,7 @@ function updateCompressPanelVisibility(minerSheetEl) {
 
 window.onCompressUpgradeUnlocked = function() {
   setCompressUnlocked(true);
-  const minerSheetEl = document.querySelector('.merchant-sheet');
+  const minerSheetEl = document.querySelector('.merchant-overlay.is-miner .merchant-sheet');
   if (minerSheetEl) {
       updateCombinePanelVisibility(minerSheetEl);
       updateCompressPanelVisibility(minerSheetEl);
@@ -716,7 +732,7 @@ window.onCompressUpgradeUnlocked = function() {
 
 window.onCombineUpgradeUnlocked = function() {
   setCombineUnlocked(true);
-  const minerSheetEl = document.querySelector('.merchant-sheet');
+  const minerSheetEl = document.querySelector('.merchant-overlay.is-miner .merchant-sheet');
   if (minerSheetEl) {
       updateCombinePanelVisibility(minerSheetEl);
   }
