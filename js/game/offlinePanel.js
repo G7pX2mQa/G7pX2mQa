@@ -171,7 +171,7 @@ export const RESOURCE_REGISTRY = [
             };
         }
     },
-    { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation Level', plural: 'Mutations', type: 'levelStat', color: '#ff9933' },
+    { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation', plural: 'Mutations', type: 'levelStat', color: '#ff9933' },
     { key: 'magic', bgGradient: 'linear-gradient(to bottom, #42138A 0%, #6A1ECF 15%, #9F30FF 50%, #6A1ECF 85%, #42138A 100%)',     icon: 'img/currencies/magic/magic.webp', baseIcon: 'img/currencies/magic/magic_plus_base.webp', singular: 'Magic',    plural: 'Magic', type: 'currency' },
     { key: 'gears', bgGradient: 'linear-gradient(to bottom, #5c5d61 0%, #8f9096 15%, #9d9fa6 50%, #8f9096 85%, #5c5d61 100%)',     icon: 'img/currencies/gear/gear.webp', baseIcon: 'img/currencies/gear/gear_plus_base.webp',   singular: 'Gear',     plural: 'Gears', type: 'currency' },
     { key: 'waves', bgGradient: 'linear-gradient(to bottom, #0286a1 0%, #02b1d4 15%, #00eded 50%, #02b1d4 85%, #0286a1 100%)',     icon: 'img/currencies/wave/wave.webp', baseIcon: 'img/currencies/wave/wave_plus_base.webp',   singular: 'Wave',     plural: 'Waves', type: 'currency' },
@@ -217,7 +217,7 @@ export const RESOURCE_REGISTRY = [
             };
         }
     },
-    { key: 'dp_levels', icon: 'img/stats/dp/dp.webp',            singular: 'Depth Level', plural: 'Depth Meters', type: 'levelStat', color: '#A98060' },
+    { key: 'dp_levels', icon: 'img/stats/dp/dp.webp',            singular: 'Depth Meter', plural: 'Depth Meters', type: 'levelStat', color: '#A98060' },
     { key: 'cores', bgGradient: 'linear-gradient(to bottom, #0a0a0a 0%, #1a1a1a 15%, #2a2a2a 50%, #1a1a1a 85%, #0a0a0a 100%)',      icon: 'img/currencies/core/core.webp', baseIcon: 'img/currencies/core/core_plus_base.webp',   singular: 'Core',     plural: 'Cores', type: 'currency' },
     { key: 'crystals', bgGradient: 'linear-gradient(to bottom, #943276 0%, #bd53a3 15%, #e979d0 50%, #bd53a3 85%, #943276 100%)',      icon: 'img/currencies/crystal/crystal.webp', baseIcon: 'img/currencies/crystal/crystal_plus_base.webp',   singular: 'Crystal',     plural: 'Crystals', type: 'currency' },
 ];
