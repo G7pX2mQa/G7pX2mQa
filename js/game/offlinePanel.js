@@ -115,7 +115,7 @@ export const RESOURCE_REGISTRY_EXTRAS = {
 export const RESOURCE_REGISTRY = [
     { key: 'voidGems', bgGradient: 'black', icon: 'img/currencies/void_gem.webp', baseIcon: 'img/currencies/void_gem.webp', noPlusBase: true, singular: 'Void Gem', plural: 'Void Gems', type: 'currency' },
     { key: 'rainbowGems', bgGradient: 'linear-gradient(to bottom in oklch, #ff0000, #ff8800, #ffff00, #00ff00, #00ffff, #0000ff, #a000ff, #ff00ff)', icon: 'img/currencies/rainbow_gem.webp', baseIcon: 'img/currencies/rainbow_gem.webp', noPlusBase: true, singular: 'Rainbow Gem', plural: 'Rainbow Gems', type: 'currency' },
-    { key: 'coins', bgGradient: 'linear-gradient(to bottom, #d1a008 0%, #e3b527 15%, #ffd34c 50%, #e3b527 85%, #d1a008 100%)',      icon: 'img/currencies/coin/coin.webp', baseIcon: 'img/currencies/coin/coin_plus_base.webp',   singular: 'Coin',     plural: 'Coins', type: 'currency' },
+    { key: 'coins', bgGradient: 'linear-gradient(to bottom, #d1a008 0%, #e3b527 15%, #ffeb3b 50%, #e3b527 85%, #d1a008 100%)',      icon: 'img/currencies/coin/coin.webp', baseIcon: 'img/currencies/coin/coin_plus_base.webp',   singular: 'Coin',     plural: 'Coins', type: 'currency' },
     { 
         key: 'xp', 
         icon: 'img/stats/xp/xp.webp', 
@@ -352,10 +352,7 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
         // Amount
         const text = document.createElement('span');
         text.className = 'offline-text';
-
-        // Infinity formatting logic - separate from text so we can selectively color
-        const infinityHtml = `<span class="infinity-symbol">&infin;</span>`;
-
+		
         // Styling for both plus and text
         let displayStyle = null;
 
@@ -395,25 +392,10 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
         const displayName = isOne ? config.singular : config.plural;
 
         
-        let amountText = formatNumber(val);
-        let hasInfinity = false;
-        if (amountText === 'Infinity' || amountText === 'NaN') {
-            hasInfinity = true;
-        }
-
-        text.innerHTML = hasInfinity ? displayName : `${amountText} ${displayName}`;
+        text.innerHTML = `${formatNumber(val)} ${displayName}`;
         
         row.appendChild(plus);
         row.appendChild(icon);
-        
-        if (hasInfinity) {
-            const infSpan = document.createElement('span');
-            infSpan.className = 'infinity-symbol';
-            infSpan.innerHTML = '&infin;&nbsp;';
-            infSpan.style.color = '#ffff55';
-            infSpan.style.webkitTextFillColor = '#ffff55';
-            row.appendChild(infSpan);
-        }
         
         row.appendChild(text);
         list.appendChild(row);
