@@ -201,7 +201,7 @@ export const UC_REGISTRY = [
       }
 
       if (!isDpSystemUnlocked()) {
-        return { state: 'locked', reason: 'Unlock the Depth system to reveal this upgrade' };
+        return { state: 'locked' };
       }
       
       const revealText = 'Reach Depth: 31m to reveal this upgrade';
@@ -241,7 +241,7 @@ export const UC_REGISTRY = [
       }
       
       if (!dp31) {
-        return { state: 'locked', reason: 'Reach Depth: 31m to reveal this upgrade' };
+        return { state: 'locked' };
       }
 
       const revealText = 'Do a Combine reset to reveal this upgrade';
@@ -284,7 +284,7 @@ export const UC_REGISTRY = [
       }
       
       if (!dp31) {
-        return { state: 'locked', reason: 'Reach Depth: 31m to reveal this upgrade' };
+        return { state: 'locked' };
       }
 
       const revealText = 'Do a Combine reset to reveal this upgrade';
@@ -339,7 +339,7 @@ export const UC_REGISTRY = [
       }
       
       if (!dp31) {
-        return { state: 'locked', reason: 'Reach Depth: 31m to reveal this upgrade' };
+        return { state: 'locked' };
       }
 
       const revealText = 'Do a Combine reset to reveal this upgrade';
@@ -382,7 +382,7 @@ export const UC_REGISTRY = [
       }
       
       if (!dp31) {
-        return { state: 'locked', reason: 'Reach Depth: 31m to reveal this upgrade' };
+        return { state: 'locked' };
       }
 
       const revealText = 'Do a Combine reset to reveal this upgrade';
@@ -423,7 +423,7 @@ export const UC_REGISTRY = [
       }
 
       if (!(hasDoneCombineReset() || isBuildingsUnlocked())) {
-          return { state: 'locked', reason: 'Do a Combine reset to reveal this upgrade' };
+          return { state: 'locked' };
       }
 
       const revealText = 'Reach Depth: 101m to reveal this upgrade';
