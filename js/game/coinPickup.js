@@ -629,6 +629,7 @@ export function initCoinPickup({
     let visualCount = 0;
 
     const coinGroups = {};
+    let needsSecretCheck = false;
 
     for (const item of items) {
       let el = item.el;
@@ -641,7 +642,7 @@ export function initCoinPickup({
       if (coinObj && coinObj.sizeIndex !== undefined) {
           if (coinObj.sizeIndex >= 4 && coinObj.sizeIndex <= 6) {
               incrementLifetimeSizeCoinsCollected(coinObj.sizeIndex);
-              checkSecretAchievements();
+              needsSecretCheck = true;
           }
       }
 
@@ -769,6 +770,10 @@ export function initCoinPickup({
         try { unlockShop(); } catch {}
         localStorage.setItem(SHOP_UNLOCK_KEY, '1');
       }
+    }
+
+    if (needsSecretCheck) {
+      checkSecretAchievements();
     }
   }
 
