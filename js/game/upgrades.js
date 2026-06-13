@@ -661,7 +661,7 @@ export function determineLockState(ctx) {
     if (xp101) return { state: 'unlocked' };
 
     if (!hasDoneForgeReset()) {
-      return { state: 'locked', reason: 'Do a Forge reset to reveal this upgrade' };
+      return { state: 'locked' };
     }
 
     const revealText = (upgRef?.revealRequirement) || 'Reach XP Level 101 to reveal this upgrade';
@@ -676,7 +676,7 @@ export function determineLockState(ctx) {
     if (xp201) return { state: 'unlocked' };
 
     if (!hasDoneInfuseReset()) {
-      return { state: 'locked', reason: 'Do an Infuse reset to reveal this upgrade' };
+      return { state: 'locked' };
     }
 
     const revealText = (upgRef?.revealRequirement) || 'Reach XP Level 201 to reveal this upgrade';
@@ -695,7 +695,7 @@ export function determineLockState(ctx) {
 
     // Before 101 -> hard LOCKED
     if (!xp101) {
-      return { state: 'locked', reason: 'Locked' };
+      return { state: 'locked' };
     }
 
     // 101+ -> Mysterious
@@ -726,7 +726,7 @@ export function determineLockState(ctx) {
 // Before 31 -> hard LOCKED (not mysterious, not clickable)
 if (!xp31) {
   const revealText = 'Do a Forge reset to reveal this upgrade';
-  return { state: 'locked', reason: revealText };
+  return { state: 'locked' };
 }
 
   // First time hitting 31 -> burn perma-mysterious and show MYSTERIOUS
@@ -866,9 +866,6 @@ function mergeLockStates(base, override) {
     if (override.state === 'locked') {
       merged.locked = true;
       merged.hidden = false;
-      if (override.reason) {
-        merged.reason = override.reason;
-      }
     } else if (override.state === 'mysterious') {
       merged.locked = true;
       merged.hidden = true;
@@ -2873,7 +2870,7 @@ export const REGISTRY = [
       }
 
       if (ctx.xpLevel < 201) {
-          return { state: 'locked', reason: 'Reach XP Level 201 to unlock' };
+          return { state: 'locked' };
       }
 
       const revealText = "Reach Surge 5 to reveal this upgrade";
@@ -2921,7 +2918,7 @@ export const REGISTRY = [
       }
 
       if (ctx.xpLevel < 201) {
-          return { state: 'locked', reason: 'Reach XP Level 201 to unlock' };
+          return { state: 'locked' };
       }
 
       const revealText = "Reach Surge 7 to reveal this upgrade";
@@ -2970,7 +2967,7 @@ export const REGISTRY = [
       }
 
       if (ctx.xpLevel < 201) {
-          return { state: 'locked', reason: 'Reach XP Level 201 to unlock' };
+          return { state: 'locked' };
       }
 
       const revealText = "Reach Surge 20 to reveal this upgrade";
@@ -3626,12 +3623,12 @@ if (upg.requiresUnlockXp && !xpUnlocked) {
   if (isXpAdj) {
     if (!unlockXpVisible) {
       const meetText = 'Meet the Merchant to reveal "Unlock XP"';
-      baseState = { state: 'locked', reason: meetText };
+      baseState = { state: 'locked' };
     } else {
       baseState = { state: 'mysterious', unlockReqText: xpRevealText };
     }
   } else {
-    baseState = { state: 'locked', reason: 'Purchase "Unlock XP" to reveal this upgrade' };
+    baseState = { state: 'locked' };
   }
 }
 
