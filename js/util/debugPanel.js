@@ -3206,11 +3206,11 @@ function getUnlockRowDefinitions(slot) {
                 catch { return false; }
             },
             onEnable: () => {
-                try { setCombineUnlocked(true); window.resetSystem?.updateCombinePanelVisibility?.(document.querySelector('.merchant-sheet')); }
+                try { setCombineUnlocked(true); window.resetSystem?.updateCombinePanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
                 catch {}
             },
             onDisable: () => {
-                try { setCombineUnlocked(false); window.resetSystem?.updateCombinePanelVisibility?.(document.querySelector('.merchant-sheet')); }
+                try { setCombineUnlocked(false); window.resetSystem?.updateCombinePanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
                 catch {}
             },
             slot,
@@ -3223,11 +3223,11 @@ function getUnlockRowDefinitions(slot) {
                 catch { return false; }
             },
             onEnable: () => {
-                try { window.resetSystem?.setCompressUnlocked?.(true); window.resetSystem?.updateCompressPanelVisibility?.(document.querySelector('.merchant-sheet')); }
+                try { window.resetSystem?.setCompressUnlocked?.(true); window.resetSystem?.updateCompressPanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
                 catch {}
             },
             onDisable: () => {
-                try { window.resetSystem?.setCompressUnlocked?.(false); window.resetSystem?.updateCompressPanelVisibility?.(document.querySelector('.merchant-sheet')); }
+                try { window.resetSystem?.setCompressUnlocked?.(false); window.resetSystem?.updateCompressPanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
                 catch {}
             },
             slot,
