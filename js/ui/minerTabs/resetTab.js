@@ -417,7 +417,7 @@ function updateCombineCard() {
         return;
     }
     
-    if (!el.card.style.display || el.card.style.display === 'none') {} // Rely on tab system to set display
+    if (!el.card.style.display || el.card.style.display === 'none') { el.card.style.display = 'flex'; }
     
     el.card.classList.toggle('is-complete', !!hasDoneCombineReset());
     
@@ -450,12 +450,17 @@ function updateCompressCard() {
     
     ensurePersistentFlagsPrimed();
     
+    const panel = document.getElementById('miner-panel-reset');
+    const compressLayerBtn = panel ? panel.querySelector('[data-reset-layer="compress"]') : null;
+    
     if (!isCompressUnlocked()) {
         if (el.card.style.display !== 'none') el.card.style.display = 'none';
+        if (compressLayerBtn && compressLayerBtn.style.display !== 'none') compressLayerBtn.style.display = 'none';
         return;
     }
     
-    if (!el.card.style.display || el.card.style.display === 'none') {} // Rely on tab system to set display
+    if (!el.card.style.display || el.card.style.display === 'none') { el.card.style.display = 'flex'; }
+    if (compressLayerBtn && compressLayerBtn.style.display !== 'flex') compressLayerBtn.style.display = 'flex';
     
     el.card.classList.toggle('is-complete', !!hasDoneCompressReset());
     
@@ -519,9 +524,6 @@ function initCombineTabUI(panel) {
             </div>
           </div>
         </div>
-      </div>
-      
-      
         <!-- COMPRESS CARD -->
         <div class="merchant-reset__card merchant-reset__main is-compress" id="reset-card-compress" style="display: none;">
           <div class="merchant-reset__layout">
@@ -552,7 +554,7 @@ function initCombineTabUI(panel) {
             </div>
           </div>
         </div>
-
+      </div>
       <div class="merchant-reset__spacer"></div>
     </div>
   `;
@@ -584,14 +586,18 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
       combineLayerBtn.addEventListener('click', () => {
           combineLayerBtn.classList.add('is-active');
           compressLayerBtn.classList.remove('is-active');
-          if (resetState.elements.combine.card) resetState.elements.combine.card.style.display = 'flex';
-          if (resetState.elements.compress.card) resetState.elements.compress.card.style.display = 'none';
+          if (resetState.elements.combine.card) {
+              const scrollContainer = resetState.elements.combine.card.closest('.miner-reset');
+              if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+              else resetState.elements.combine.card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
       });
       compressLayerBtn.addEventListener('click', () => {
           compressLayerBtn.classList.add('is-active');
           combineLayerBtn.classList.remove('is-active');
-          if (resetState.elements.compress.card) resetState.elements.compress.card.style.display = 'flex';
-          if (resetState.elements.combine.card) resetState.elements.combine.card.style.display = 'none';
+          if (resetState.elements.compress.card) {
+              resetState.elements.compress.card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
       });
   }
 
