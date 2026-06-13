@@ -807,6 +807,7 @@ export function enterArea(areaID) {
       if (currentArea === AREAS.STARTER_COVE && spawner) {
           if (typeof spawner.clearPlayfield === "function") spawner.clearPlayfield();
           spawner.start();
+          if (typeof spawner.playEntranceWave === "function") spawner.playEntranceWave();
       }
       if (ucSpawner) {
           ucSpawner.stop();
