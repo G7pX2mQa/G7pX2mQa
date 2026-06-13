@@ -26,14 +26,8 @@ function ensureFpsWakeupEl() {
     if (typeof document === 'undefined') return;
     if (!fpsWakeupEl) {
         fpsWakeupEl = document.createElement('canvas');
-        fpsWakeupEl.width = window.innerWidth;
-        fpsWakeupEl.height = window.innerHeight;
-        window.addEventListener("resize", () => {
-            if (fpsWakeupEl) {
-                fpsWakeupEl.width = window.innerWidth;
-                fpsWakeupEl.height = window.innerHeight;
-            }
-        });
+        fpsWakeupEl.width = 256;
+        fpsWakeupEl.height = 256;
         Object.assign(fpsWakeupEl.style, {
             position: 'fixed',
             top: '0',
@@ -58,7 +52,7 @@ function loop(timestamp) {
   if (fpsWakeupCtx && !paused) {
       fpsWakeupRot = (fpsWakeupRot + 1) % 2;
       fpsWakeupCtx.fillStyle = fpsWakeupRot === 0 ? '#000' : '#001';
-      fpsWakeupCtx.fillRect(0, 0, fpsWakeupEl.width, fpsWakeupEl.height);
+      fpsWakeupCtx.fillRect(0, 0, 256, 256);
   }
 
   if (paused) {
