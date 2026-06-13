@@ -70,6 +70,8 @@
 
 .currency-popup__amount { display: inline-block; min-width: 0; }
 
+.currency-popup__amount .infinity-symbol { top: -2px; }
+
 @media (pointer: fine) {
   .currency-popup__plus,
   .currency-popup__amount {
