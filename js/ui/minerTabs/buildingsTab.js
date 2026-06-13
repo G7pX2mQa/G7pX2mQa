@@ -426,7 +426,7 @@ export function updateBuildingsPanelVisibility(minerSheetEl) {
 
 window.onBuildingsUpgradeUnlocked = function() {
   setBuildingsUnlocked(true);
-  const minerSheetEl = document.querySelector('.merchant-sheet');
+  const minerSheetEl = document.querySelector('.merchant-overlay.is-miner .merchant-sheet');
   if (minerSheetEl) {
       updateBuildingsPanelVisibility(minerSheetEl);
   }
