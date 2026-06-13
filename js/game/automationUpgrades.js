@@ -168,7 +168,7 @@ const UPGRADE_DEFINITIONS = [
         if (isUnlocked) return { state: 'unlocked' };
 
         if (!isSurgeUnlocked()) {
-            return { state: 'locked', reason: 'Unlock Surge to unlock' };
+            return { state: 'locked' };
         }
         
         const revealText = "Reach Surge 11 to reveal this upgrade";
@@ -207,7 +207,7 @@ const UPGRADE_DEFINITIONS = [
         if (isUnlocked) return { state: 'unlocked' };
 
         if (!isSurgeUnlocked()) {
-            return { state: 'locked', reason: 'Unlock Surge to unlock' };
+            return { state: 'locked' };
         }
         
         const revealText = "Reach Surge 60 to reveal this upgrade";
@@ -246,7 +246,7 @@ const UPGRADE_DEFINITIONS = [
         if (isUnlocked) return { state: 'unlocked' };
 
         if (!isSurgeUnlocked()) {
-            return { state: 'locked', reason: 'Unlock Surge to unlock' };
+            return { state: 'locked' };
         }
         
         const revealText = "Reach Surge 150 to reveal this upgrade";
@@ -291,7 +291,7 @@ const UPGRADE_DEFINITIONS = [
         if (isUnlocked) return { state: 'unlocked' };
 
         if (!isSurgeUnlocked()) {
-            return { state: 'locked', reason: 'Unlock Surge to unlock' };
+            return { state: 'locked' };
         }
         
         const revealText = "Reach Surge 150 to reveal this upgrade";
@@ -334,7 +334,7 @@ const UPGRADE_DEFINITIONS = [
         if (isUnlocked) return { state: 'unlocked' };
 
         if (!isSurgeUnlocked()) {
-            return { state: 'locked', reason: 'Unlock Surge to unlock' };
+            return { state: 'locked' };
         }
         
         const revealText = "Reach Surge 150 to reveal this upgrade";
@@ -390,7 +390,7 @@ const UPGRADE_DEFINITIONS = [
         if (isUnlocked) return { state: 'unlocked' };
 
         if (!isSurgeUnlocked()) {
-            return { state: 'locked', reason: 'Unlock Surge to unlock' };
+            return { state: 'locked' };
         }
         
         const revealText = "Reach Surge 150 to reveal this upgrade";
