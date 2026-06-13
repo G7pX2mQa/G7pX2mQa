@@ -1,5 +1,5 @@
 import { formatMultForUi } from '../util/numFormat.js';
-import { MYSTERIOUS_UPGRADE_ICON_DATA_URL, HIDDEN_UPGRADE_TITLE } from './upgrades.js';
+
 
 export const DNA_AREA_KEY = 'dna';
 
@@ -68,20 +68,10 @@ export const REGISTRY = [
              isUnlocked = true;
         }
         
-        if (isUnlocked) return { locked: false };
+        if (isUnlocked) return { state: 'unlocked' };
         
         const revealText = "Reach Surge 10 to reveal this upgrade";
-        return {
-            locked: true,
-            iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-            titleOverride: HIDDEN_UPGRADE_TITLE,
-            descOverride: revealText,
-            reason: revealText,
-            hidden: true,
-            hideCost: true,
-            hideEffect: true,
-            useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: revealText };
     }
   },
   {
@@ -113,20 +103,10 @@ export const REGISTRY = [
              isUnlocked = true;
         }
         
-        if (isUnlocked) return { locked: false };
+        if (isUnlocked) return { state: 'unlocked' };
         
         const revealText = "Reach Surge 10 to reveal this upgrade";
-        return {
-            locked: true,
-            iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-            titleOverride: HIDDEN_UPGRADE_TITLE,
-            descOverride: revealText,
-            reason: revealText,
-            hidden: true,
-            hideCost: true,
-            hideEffect: true,
-            useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: revealText };
     }
   },
   {
@@ -158,20 +138,10 @@ export const REGISTRY = [
              isUnlocked = true;
         }
         
-        if (isUnlocked) return { locked: false };
+        if (isUnlocked) return { state: 'unlocked' };
         
         const revealText = "Reach Surge 19 to reveal this upgrade";
-        return {
-            locked: true,
-            iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-            titleOverride: HIDDEN_UPGRADE_TITLE,
-            descOverride: revealText,
-            reason: revealText,
-            hidden: true,
-            hideCost: true,
-            hideEffect: true,
-            useLockedBase: true
-        };
+        return { state: 'mysterious', unlockReqText: revealText };
     }
   }
 ];
