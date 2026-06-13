@@ -143,6 +143,16 @@
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
 }
 
+.text-prismatium, .offline-plus.text-prismatium {
+    background: linear-gradient(to right in oklch, #ff0000, #ff8800, #ffff00, #00ff00, #00ffff, #0000ff, #a000ff, #ff00ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    text-shadow: none;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+}
+
 .offline-actions {
     display: flex;
     justify-content: center;
