@@ -585,31 +585,15 @@ export const UC_REGISTRY = [
     costAtLevel() { return BigNum.fromInt(0); },
     nextCostAfter() { return BigNum.fromInt(0); },
     computeLockState() {
-      if (!isDpSystemUnlocked()) {
-        return {
-          locked: true,
-          iconOverride: LOCKED_UPGRADE_ICON_DATA_URL,
-          useLockedBase: true,
-          hidden: false,
-          hideCost: true,
-          hideEffect: true,
-          titleOverride: LOCKED_UPGRADE_TITLE,
-          descOverride: 'Unlock the Depth system to reveal this upgrade',
-          reason: 'Unlock the Depth system to reveal this upgrade',
-        };
-      }
-
       if (!(hasDoneCombineReset() || isBuildingsUnlocked())) {
           return {
             locked: true,
-            iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-            hidden: true,
+            hidden: false,
             hideCost: true,
             hideEffect: true,
             useLockedBase: true,
-            titleOverride: HIDDEN_UPGRADE_TITLE,
-            descOverride: 'Reach Depth: 101m to reveal this upgrade',
-            reason: 'Reach Depth: 101m to reveal this upgrade',
+            titleOverride: LOCKED_UPGRADE_TITLE,
+            descOverride: 'Locked',
           };
       }
 
@@ -624,7 +608,7 @@ export const UC_REGISTRY = [
         return {
           locked: true,
           iconOverride: MYSTERIOUS_UPGRADE_ICON_DATA_URL,
-          hidden: true,
+          hidden: false,
           hideCost: true,
           hideEffect: true,
           useLockedBase: true,
