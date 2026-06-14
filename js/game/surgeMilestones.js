@@ -320,8 +320,7 @@ export const SURGE_MILESTONES = [
     surgeLevel: 200,
     affectedByTsunami: true,
     description: [
-      `Multiplies XP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromAny('1e100'))}x</span>`,
-      `Divides FP value by <span style="color:#00e5ff">${formatNumber(BigNum.fromAny('1e10'))}x</span>`
+      "The key to a lock"
     ]
   }
 ];
