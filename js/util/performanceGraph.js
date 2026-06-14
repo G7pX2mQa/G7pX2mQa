@@ -19,6 +19,8 @@ export function initPerformanceGraph() {
   }
 
   const container = document.createElement('div');
+  const width = 150;
+  const height = 36;
   container.id = 'performance-graph-container';
   Object.assign(container.style, {
     background: 'rgba(0, 0, 0, 0.7)',
@@ -30,12 +32,12 @@ export function initPerformanceGraph() {
   });
 
   const canvas = document.createElement('canvas');
-  canvas.width = 150;
-  canvas.height = 36;
+  canvas.width = width;
+  canvas.height = height;
   Object.assign(canvas.style, {
     display: 'block',
-    width: '150px',
-    height: '36px',
+	width: `${width}px`,
+	height: `${height}px`
   });
   container.appendChild(canvas);
 
@@ -69,7 +71,7 @@ export function initPerformanceGraph() {
 
   const ctx = canvas.getContext('2d');
   
-  const HISTORY_SIZE = 200;
+  const HISTORY_SIZE = width;
   const fpsHistory = new Array(HISTORY_SIZE).fill(0);
   let historyIndex = 0;
 
