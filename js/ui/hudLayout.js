@@ -19,16 +19,22 @@ export function syncXpMpHudLayout() {
   }
 }
 
-export function syncDpHudLayout() {
+export function syncDpPpHudLayout() {
   if (typeof document === 'undefined') return;
   const hud = document.querySelector('.hud-top');
   if (!hud) return;
 
   const dpEl = document.querySelector('[data-dp-hud]');
+  const ppEl = document.querySelector('[data-pp-hud]');
   const gameRoot = document.getElementById('game-root');
   const isCavernHud = (gameRoot && gameRoot.classList.contains('area-cavern')) || !!hud.closest('.area-cavern');
   const dpVisible = isCavernHud && !!(dpEl && !dpEl.hasAttribute('hidden'));
+  const ppVisible = isCavernHud && !!(ppEl && !ppEl.hasAttribute('hidden'));
 
-  // If you need specific CSS classes for DP like XP/MP
-  hud.classList.toggle('hud-top--dp-only', dpVisible);
+  hud.classList.toggle('hud-top--dp-only', dpVisible && !ppVisible);
+  hud.classList.toggle('hud-top--dp-pp', dpVisible && ppVisible);
+
+  if (!dpVisible && !ppVisible) {
+    hud.classList.remove('hud-top--dp-only', 'hud-top--dp-pp');
+  }
 }
