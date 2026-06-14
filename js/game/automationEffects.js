@@ -370,7 +370,9 @@ export function updateAutomation(dt) {
       
       const toAdd = scrapAutoSellAccumulator.floorToInteger();
       if (toAdd.cmp(0) > 0) {
-          bank.scrap.add(toAdd);
+          if (!toAdd.isInfinite?.() || !bank.scrap.value.isInfinite?.()) {
+			  bank.scrap.add(toAdd);
+		  }
           scrapAutoSellAccumulator = scrapAutoSellAccumulator.sub(toAdd);
       }
   }
