@@ -522,6 +522,24 @@ function enterAreaFromSaveSlot(areaID) {
   delayAreaMusicForSaveSlotLoad = true;
   try {
     enterArea(areaID);
+	
+    // Dispatch a dummy mousemove event to wake the browser from power-saving / background throttling
+    // This resolves an issue where the browser permanently locks to 60fps after loading a save.
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                try {
+                    document.dispatchEvent(new MouseEvent('mousemove', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: 0,
+                        clientY: 0
+                    }));
+                } catch (e) {}
+            }, 100);
+        });
+    });
   } finally {
     delayAreaMusicForSaveSlotLoad = false;
   }
