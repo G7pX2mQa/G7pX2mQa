@@ -394,8 +394,8 @@ export function renderSettingsMenu(overlayEl, containerSelector, category, unsub
     "forge:completed",
     "infuse:completed",
     "surge:completed",
-    "experiment:completed",
-    "unlock:change"
+    "unlock:change",
+    "lab:node:change"
   ];
 
   updateEvents.forEach(evt => window.addEventListener(evt, updateUnlockConditions));
