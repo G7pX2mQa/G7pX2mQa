@@ -802,14 +802,8 @@ export function computeCompressCrystals(scrapBn, potentialScrapBn, surgeLevel) {
     if (surgeLevel > 200) {
         const surgeFactor = surgeLevel - 200;
         // multiply 1.5x compounding each Surge level after 200
-        // Use mulDecimalFloor for the multiplier
-        const surgePow = Math.pow(1.5, surgeFactor);
-        if (!Number.isFinite(surgePow)) {
-             const surgePowBn = bigNumFromLog10(surgeFactor * Math.log10(1.5));
-             total = total.mulBigNumInteger(surgePowBn);
-        } else {
-             total = total.mulDecimalFloor(surgePow);
-        }
+        const surgePowBn = bigNumFromLog10(surgeFactor * Math.log10(1.5));
+        total = total.mulBigNumInteger(surgePowBn);
     }
     
     const floored = total.floorToInteger();
