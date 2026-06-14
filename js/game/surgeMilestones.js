@@ -770,20 +770,6 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       }
     }
 
-    if (m.id === 36) {
-      if (milestone === m) {
-          milestone = { ...m, description: [...m.description] };
-      }
-
-      const effectiveExp = getTsunamiExponent();
-      const multVal = bigNumFromLog10(100 * effectiveExp);
-      const divVal = bigNumFromLog10(10 * effectiveExp);
-
-      milestone.description = [
-        `Multiplies XP value by <span style="color:#00e5ff">${formatNumber(multVal)}x</span>`,
-        `Divides FP value by <span style="color:#00e5ff">${formatNumber(divVal)}x</span>`
-      ];
-    }
 
     if (m.id === 31) {
       if (milestone === m) {
