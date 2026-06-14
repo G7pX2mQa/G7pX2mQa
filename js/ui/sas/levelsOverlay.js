@@ -132,7 +132,13 @@ function createLevelRow(container, isUniversal, levelConfig, progConfig, prefix)
 
       const levelDiv = document.createElement('div');
       levelDiv.className = 'level-row-bar__level';
-      levelDiv.innerHTML = `${levelConfig.singular}<span class="level-row-level-value" data-level-val>0</span>`;
+      if (levelConfig.barText) {
+          // Keep the original template formatting, but inject our own span data attributes.
+          // Since some barText's have their own classes (like xp-level-value), we just make sure we add our data-level-val.
+          levelDiv.innerHTML = levelConfig.barText.replace('{val}', '0').replace('<span ', '<span data-level-val ');
+      } else {
+          levelDiv.innerHTML = `${levelConfig.singular} <span class="level-row-level-value" data-level-val>0</span>`;
+      }
 
       const divider = document.createElement('div');
       divider.className = 'level-row-bar__divider';
@@ -372,7 +378,9 @@ function handleStatChange(e) {
 
       const levelVal = state.level || 0;
       const levelValEl = row.querySelector("[data-level-val]");
-      if (levelValEl) levelValEl.innerHTML = " " + formatNumber(levelVal);
+      if (levelValEl) {
+          levelValEl.innerHTML = formatNumber(levelVal);
+      }
 
       if (l.progConfig) {
           const progVal = state.progress || 0;
