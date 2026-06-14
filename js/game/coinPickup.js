@@ -460,6 +460,19 @@ export function initCoinPickup({
   const onSaveSlotChange = () => {
     coinsVal = bank.coins.value;
     scheduleHudUpdate();
+    
+    // Check if shop should be unlocked on slot change
+    const activeSlot = getActiveSlot();
+    if (activeSlot != null) {
+      const SHOP_UNLOCK_KEY   = `ccc:unlock:shop:${activeSlot}`;
+      const SHOP_PROGRESS_KEY = `ccc:unlock:shop:progress:${activeSlot}`;
+      const p = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10);
+      localStorage.setItem(SHOP_PROGRESS_KEY, String(p));
+      if (p >= 10 && localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
+        try { unlockShop(); } catch {}
+        localStorage.setItem(SHOP_UNLOCK_KEY, '1');
+      }
+    }
   };
   window.addEventListener('saveSlot:change', onSaveSlotChange);
 
@@ -484,25 +497,9 @@ export function initCoinPickup({
 
   // ----- Slot-scoped shop unlock/progress keys -----
   const slot = getActiveSlot();
-  if (slot == null) {
-    console.warn('[coinPickup] init called before a save slot is selected.');
-    return { destroy(){} };
-  }
-  const SHOP_UNLOCK_KEY   = `ccc:unlock:shop:${slot}`;
-  const SHOP_PROGRESS_KEY = `ccc:unlock:shop:progress:${slot}`;
-
-  const legacyP = localStorage.getItem('ccc:unlock:shop:progress');
-  const legacyU = localStorage.getItem('ccc:unlock:shop');
-  if (legacyP != null && localStorage.getItem(SHOP_PROGRESS_KEY) == null) {
-    localStorage.setItem(SHOP_PROGRESS_KEY, legacyP);
-  }
-  if (legacyU != null && localStorage.getItem(SHOP_UNLOCK_KEY) == null) {
-    localStorage.setItem(SHOP_UNLOCK_KEY, legacyU);
-  }
-  localStorage.removeItem('ccc:unlock:shop:progress');
-  localStorage.removeItem('ccc:unlock:shop');
-
-  {
+  if (slot != null) {
+    const SHOP_UNLOCK_KEY   = `ccc:unlock:shop:${slot}`;
+    const SHOP_PROGRESS_KEY = `ccc:unlock:shop:progress:${slot}`;
     const p = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10);
     localStorage.setItem(SHOP_PROGRESS_KEY, String(p));
     if (p >= 10 && localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
@@ -762,13 +759,18 @@ export function initCoinPickup({
       queueMutationGain(totalMp);
     }
 
-    if (localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
-      const current = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10);
-      const next = current + collectedCount;
-      localStorage.setItem(SHOP_PROGRESS_KEY, String(next));
-      if (next >= 10) {
-        try { unlockShop(); } catch {}
-        localStorage.setItem(SHOP_UNLOCK_KEY, '1');
+    const activeSlot = getActiveSlot();
+    if (activeSlot != null) {
+      const SHOP_UNLOCK_KEY   = `ccc:unlock:shop:${activeSlot}`;
+      const SHOP_PROGRESS_KEY = `ccc:unlock:shop:progress:${activeSlot}`;
+      if (localStorage.getItem(SHOP_UNLOCK_KEY) !== '1') {
+        const current = parseInt(localStorage.getItem(SHOP_PROGRESS_KEY) || '0', 10);
+        const next = current + collectedCount;
+        localStorage.setItem(SHOP_PROGRESS_KEY, String(next));
+        if (next >= 10) {
+          try { unlockShop(); } catch {}
+          localStorage.setItem(SHOP_UNLOCK_KEY, '1');
+        }
       }
     }
 
