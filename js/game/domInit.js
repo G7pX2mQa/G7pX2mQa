@@ -94,6 +94,27 @@ export function ensureGameDom(layerCount, startZ) {
             </div>
           </div>
         </div>
+
+        <div class="pp-counter" data-pp-hud hidden>
+          <img src="img/stats/pp/pp_plus_base.webp" alt="" class="pp-plus"/>
+
+          <div class="pp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0 / 10 PP">
+            <div class="pp-bar__fill" style="width: 0%"></div>
+
+            <div class="pp-bar__frame">
+              <div class="pp-bar__level">
+                ${RESOURCE_REGISTRY.find(c => c.key === 'pp_levels')?.barText?.replace('{val}', '0') || 'Pressure:<span class="pp-level-value">0</span>atm'}
+              </div>
+
+              <div class="pp-bar__divider" aria-hidden="true"></div>
+
+              <div class="pp-bar__progress" data-pp-progress>
+                0<span class="pp-progress-separator">/</span>10<span class="pp-progress-suffix">PP</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <section class="playfield" aria-label="Starter Cove Sand">
