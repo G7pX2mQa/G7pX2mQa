@@ -426,17 +426,23 @@ export function updateSellTab() {
        alwaysSpawnsStr = `Stone always spawns at: 0m`;
    }
 
-   if (isDpSystemUnlocked()) {
-       sellPanelDomCache.infoBox.innerHTML = `
-          <b>Sell materials for Scrap, use Scrap to buy upgrades</b><br>
-          Current Depth: ${formatNumber(BigNum.fromAny(dpLevelNum))}m<br>
-          ${alwaysSpawnsStr}<br>
-          ${nextUnlockStr}
-       `;
-   } else {
-       sellPanelDomCache.infoBox.innerHTML = `
-          <b>Sell materials for Scrap, use Scrap to buy upgrades</b>
-       `;
+
+   const isDpUnlocked = isDpSystemUnlocked();
+   if (lastInfoBoxDpLevel !== dpLevelNum || lastInfoBoxHighestMatIdx !== highestMatIdx) {
+       if (isDpUnlocked) {
+           sellPanelDomCache.infoBox.innerHTML = `
+              <b>Sell materials for Scrap, use Scrap to buy upgrades</b><br>
+              Current Depth: ${formatNumber(BigNum.fromAny(dpLevelNum))}m<br>
+              ${alwaysSpawnsStr}<br>
+              ${nextUnlockStr}
+           `;
+       } else {
+           sellPanelDomCache.infoBox.innerHTML = `
+              <b>Sell materials for Scrap, use Scrap to buy upgrades</b>
+           `;
+       }
+       lastInfoBoxDpLevel = dpLevelNum;
+       lastInfoBoxHighestMatIdx = highestMatIdx;
    }
 
    const accumulators = getUcMaterialAccumulators();
@@ -479,7 +485,8 @@ export function updateSellTab() {
        }
 
        const owned = bank[matKey]?.value || BigNum.fromInt(0);
-       rowCache.ownedEl.innerHTML = formatNumber(owned);
+       const ownedStr = formatNumber(owned);
+       if (rowCache.ownedEl.innerHTML !== ownedStr) rowCache.ownedEl.innerHTML = ownedStr;
        
        const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
        const materialValue = BigNum.fromAny(t.value || 0);
@@ -489,7 +496,8 @@ export function updateSellTab() {
        const theoreticalAmt = calculateTheoreticalSellAmount(owned, localAmountStr);
        const displayVal = theoreticalAmt.mulBigNumInteger(val);
 
-       rowCache.valEl.innerHTML = formatNumber(displayVal);
+       const valStr = formatNumber(displayVal);
+       if (rowCache.valEl.innerHTML !== valStr) rowCache.valEl.innerHTML = valStr;
        rowCache.currentVal = val;
        rowCache.currentOwned = owned;
    }
@@ -636,7 +644,12 @@ function createSellRow(matKey, index) {
    };
 }
 
+
+let lastInfoBoxDpLevel = null;
+let lastInfoBoxHighestMatIdx = null;
+
 export function updateSellPanelVisibility(minerSheetEl) {
+
   const tabsEl = minerSheetEl.querySelector('.merchant-tabs');
   if (!tabsEl) return;
   const tabBtn = tabsEl.querySelector('[data-tab="sell"]');
