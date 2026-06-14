@@ -209,8 +209,11 @@ export function typeText(el, full, msPerChar = 22, skipTargets = [], pauseMultip
     let skipping = false;
     let armed = false;
     let buffer = '';
-    let tickTimer = null;
+    let animFrame = null;
     let sfxTimer = null;
+    let lastTime = performance.now();
+    let timeAccumulator = 0;
+    let pauseTimeLeft = 0;
 
     __isTypingActive = true;
     __typeTextId++;
@@ -221,9 +224,9 @@ export function typeText(el, full, msPerChar = 22, skipTargets = [], pauseMultip
         if (!armed) return; 
         if (e) e.preventDefault(); 
         skipping = true;
-        if (tickTimer) clearTimeout(tickTimer);
+        if (animFrame) cancelAnimationFrame(animFrame);
         if (sfxTimer) clearTimeout(sfxTimer);
-        tick();
+        tick(performance.now());
     };
     const onKey = (e) => { if (!armed) return; if (e.key === 'Enter' || e.key === ' ') skip(); };
 
@@ -246,12 +249,88 @@ export function typeText(el, full, msPerChar = 22, skipTargets = [], pauseMultip
       __isTypingActive = false;
       };
 
-      const tick = () => {
+      const tick = (currentTime) => {
       if (skipping || !__isTypingActive || __typeTextId !== myId) {
           if (skipping) el.innerHTML = full;
           cleanup();
           resolve();
           return;
+      }
+
+      let dt = currentTime - lastTime;
+      lastTime = currentTime;
+      
+      // Limit dt in case of severe lag/tab backgrounding
+      if (dt > 100) dt = 100;
+      
+      if (pauseTimeLeft > 0) {
+          pauseTimeLeft -= dt;
+          if (pauseTimeLeft > 0) {
+              animFrame = requestAnimationFrame(tick);
+              return;
+          } else {
+              // Carry over remaining time
+              timeAccumulator += -pauseTimeLeft;
+              pauseTimeLeft = 0;
+              if (!skipping && __isTypingActive && __typeTextId === myId) {
+                  startTypingSfx();
+              }
+          }
+      } else {
+          timeAccumulator += dt;
+      }
+      
+      while ((timeAccumulator >= msPerChar || (segments[segIndex] && segments[segIndex].type === 'tag')) && !skipping) {
+          if (segIndex >= segments.length) {
+              cleanup();
+              resolve();
+              return;
+          }
+
+          const seg = segments[segIndex];
+          
+          if (seg.type === 'tag') {
+              buffer += seg.content;
+              el.innerHTML = buffer;
+              segIndex++;
+              // Tags process instantly, don't consume time
+          } else {
+              // Type text char by char
+              const charJustTyped = seg.content[charIndex];
+              buffer += charJustTyped;
+              el.innerHTML = buffer;
+              charIndex++;
+              timeAccumulator -= msPerChar;
+              
+              if (charIndex >= seg.content.length) {
+                  segIndex++;
+                  charIndex = 0;
+              }
+
+              if (charJustTyped === '.' || charJustTyped === ',' || charJustTyped === ':' || charJustTyped === '?') {
+                  let sIdx = segIndex;
+                  let cIdx = charIndex;
+                  let nextChar = null;
+                  
+                  while (sIdx < segments.length) {
+                      const s = segments[sIdx];
+                      if (s.type === 'text') {
+                          if (cIdx < s.content.length) {
+                              nextChar = s.content[cIdx];
+                              break;
+                          }
+                      }
+                      sIdx++;
+                      cIdx = 0;
+                  }
+                  
+                  if (nextChar !== null && nextChar !== '.' && nextChar !== ',' && nextChar !== ':' && nextChar !== '?' && nextChar !== '"') {
+                      pauseTimeLeft = msPerChar * pauseMultiplier;
+                      stopTypingSfx();
+                      break; // Break out of the while loop to handle the pause
+                  }
+              }
+          }
       }
       
       if (segIndex >= segments.length) {
@@ -260,58 +339,10 @@ export function typeText(el, full, msPerChar = 22, skipTargets = [], pauseMultip
           return;
       }
 
-      const seg = segments[segIndex];
-      
-      if (seg.type === 'tag') {
-          buffer += seg.content;
-          el.innerHTML = buffer;
-          segIndex++;
-          tickTimer = setTimeout(tick, 0);
-      } else {
-          // Type text char by char
-          const charJustTyped = seg.content[charIndex];
-          buffer += charJustTyped;
-          el.innerHTML = buffer;
-          charIndex++;
-          
-          if (charIndex >= seg.content.length) {
-              segIndex++;
-              charIndex = 0;
-          }
-
-          let delay = msPerChar;
-          if (charJustTyped === '.' || charJustTyped === ',' || charJustTyped === ':' || charJustTyped === '?') {
-              let sIdx = segIndex;
-              let cIdx = charIndex;
-              let nextChar = null;
-              
-              while (sIdx < segments.length) {
-                  const s = segments[sIdx];
-                  if (s.type === 'text') {
-                      if (cIdx < s.content.length) {
-                          nextChar = s.content[cIdx];
-                          break;
-                      }
-                  }
-                  sIdx++;
-                  cIdx = 0;
-              }
-              
-              if (nextChar !== null && nextChar !== '.' && nextChar !== ',' && nextChar !== ':' && nextChar !== '?' && nextChar !== '"') {
-                  delay = msPerChar * pauseMultiplier;
-                  stopTypingSfx();
-                  sfxTimer = setTimeout(() => {
-                      if (!skipping && __isTypingActive && __typeTextId === myId) {
-                          startTypingSfx();
-                      }
-                  }, delay - 5); // Resume SFX slightly before the next tick
-              }
-          }
-
-          tickTimer = setTimeout(tick, delay);
-      }
+      animFrame = requestAnimationFrame(tick);
       };
-      tick();
+      
+      animFrame = requestAnimationFrame(tick);
   });
 }
 
