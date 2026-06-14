@@ -318,7 +318,7 @@ export const SURGE_MILESTONES = [
   {
     id: 36,
     surgeLevel: 200,
-    affectedByTsunami: true,
+    affectedByTsunami: false,
     description: [
       "The key to a lock"
     ]
