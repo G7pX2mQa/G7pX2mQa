@@ -148,8 +148,8 @@ export function setCompressResetCompleted(value, slot = getActiveSlot()) {
 
 export function performCompressReset() {
     if (!isCompressUnlocked()) return false;
-    
-    if (settingsManager.get('combine_confirmation')) { // using same setting for now or we could add another
+
+    if (settingsManager.get('compress_confirmation')) {
         if (!window.confirm("Are you sure you want to do a Compress reset?")) return false;
     }
     
