@@ -12,6 +12,7 @@ import { formatNumber } from '../util/numFormat.js';
 import { UC_MATERIAL_DATA } from './ucSpawner.js';
 import { getLevelNumber } from './upgrades.js';
 import { AUTOMATION_AREA_KEY, MANUAL_MATERIAL_VALUE_ID } from './automationUpgrades.js';
+import { addPp, isPpSystemUnlocked } from './ppSystem.js';
 
 let ucPickup = null;
 const BASE_MATERIAL_VALUE = BigNum.fromInt(1);
@@ -254,6 +255,10 @@ export function initUcPickup({
             const manualValueLevel = getLevelNumber(AUTOMATION_AREA_KEY, MANUAL_MATERIAL_VALUE_ID);
             const manualValueMultiplier = 1 + manualValueLevel;
             window.dpSystem.addDp(collectedCount * manualValueMultiplier);
+
+            if (isPpSystemUnlocked()) {
+                 addPp(collectedCount * manualValueMultiplier);
+            }
         }
 
         if (typeof window !== 'undefined' && typeof window.currentArea !== 'undefined' && window.currentArea === 2) {
