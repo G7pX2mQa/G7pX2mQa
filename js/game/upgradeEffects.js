@@ -8,6 +8,7 @@ import { getSurgeMagicMultiplier, getSurgeWaveMultiplier } from './surgeEffects.
 import { addExternalFpMultiplierProvider, getWaterwheelGoldMultiplier, getWaterwheelMagicMultiplier, getWaterwheelScrapMultiplier } from '../ui/merchantTabs/flowTab.js';
 import { addExternalDpMultiplierProvider } from './dpSystem.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
+import { getPpState, isPpSystemUnlocked } from './ppSystem.js';
 
 import {
   addExternalCoinMultiplierProvider,
@@ -222,6 +223,26 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       }
     }
   }
+  // Pressure bonuses
+  try {
+      if (isPpSystemUnlocked()) {
+          const ppLevel = getPpState().ppLevel;
+          if (ppLevel && !ppLevel.isZero()) {
+              const ppLevelNum = Number(ppLevel.toString());
+              if (Number.isFinite(ppLevelNum)) {
+                   const powVal = Math.pow(2, ppLevelNum);
+                   if (!Number.isFinite(powVal)) {
+                        
+                        const ppFactor = bigNumFromLog10(ppLevelNum * Math.log10(2));
+                        acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, ppFactor);
+                   } else {
+                        acc.allMaterialsValue = acc.allMaterialsValue.mulDecimalFloor(powVal);
+                   }
+              }
+          }
+      }
+  } catch (e) { console.error(e); }
+
 
   for (const provider of externalSpawnRateProviders) {
     try {
