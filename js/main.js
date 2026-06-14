@@ -1486,10 +1486,6 @@ Normal gameplay is unaffected unless you choose to modify values.`);
 
       enterAreaFromSaveSlot(areaToLoad);
       setTimeout(() => {
-        if (areaToLoad === AREAS.STARTER_COVE && window.spawner && typeof window.spawner.playEntranceWave === 'function') {
-          window.spawner.playEntranceWave();
-        }
-        
         const slot = getActiveSlot();
         if (slot != null) {
           const welcomeKey = `ccc:welcome_shown:${slot}`;
