@@ -3,6 +3,7 @@
 import { settingsManager } from '../game/settingsManager.js';
 import { CURRENCIES, getCurrency } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
+import { BigNum } from '../util/bigNum.js';
 import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
 
 
@@ -281,6 +282,53 @@ window.addEventListener("level:change", (e) => {
     }
 });
 
+window.addEventListener('surge:level:change', (e) => {
+    // Treat a surge level change the same way we treat a wave currency change for pins
+    const config = RESOURCE_REGISTRY.find(c => c.key === 'waves');
+    if (config && typeof config.getState === 'function') {
+        const state = config.getState();
+        if (state) {
+            const detail = {
+                prefix: 'waves',
+                level: state.level,
+                progress: state.progress,
+                requirement: state.requirement,
+                isUnlocked: state.isUnlocked,
+                ratio: state.ratio
+            };
+            levelStateCache['waves'] = detail;
+            levelStateCache['waves_levels'] = detail;
+            refreshPinnedLevelsValues();
+            window.dispatchEvent(new CustomEvent('level:change', { detail }));
+        }
+    }
+});
+
+window.addEventListener('currency:change', (e) => {
+  if (e.detail && e.detail.key === 'waves') {
+    const config = RESOURCE_REGISTRY.find(c => c.key === 'waves');
+    if (config && typeof config.getState === 'function') {
+        const state = config.getState();
+        if (state) {
+            const detail = {
+                prefix: 'waves',
+                level: state.level,
+                progress: state.progress,
+                requirement: state.requirement,
+                isUnlocked: state.isUnlocked,
+                ratio: state.ratio
+            };
+            levelStateCache['waves'] = detail;
+            levelStateCache['waves_levels'] = detail;
+            refreshPinnedLevelsValues();
+            
+            // Also notify the levels overlay to update
+            window.dispatchEvent(new CustomEvent('level:change', { detail }));
+        }
+    }
+  }
+});
+
 function getLevelStatValue(prefix) {
     return levelStateCache[prefix]?.level || 0;
 }
@@ -491,7 +539,7 @@ function refreshPinnedLevelsValues() {
     if (config) {
         const span = el.querySelector('.pinned-level-value');
         if (span) {
-          span.innerHTML = formatNumber(getLevelStatValue(prefix));
+          span.innerHTML = formatNumber(BigNum.fromAny(getLevelStatValue(prefix)));
         }
         const bar = el.querySelector('.pinned-level');
         const fill = el.querySelector('.pinned-level-fill');
