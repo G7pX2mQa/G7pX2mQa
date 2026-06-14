@@ -1126,15 +1126,6 @@ export function initSurgeEffects() {
     }
     return baseMultiplier;
   });
-  
-  addExternalFpMultiplierProvider((baseMultiplier) => {
-    if (!isSurgeActive(200)) return baseMultiplier;
-    let log10Total = 10;
-    if (isSurgeActive(8)) {
-        log10Total *= getTsunamiExponent();
-    }
-    return baseMultiplier.div(bigNumFromLog10(log10Total));
-  });
 
     // Surge 17 (Div 1e5), and Surge 18 (Mul 1e15) for Coins
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
@@ -1185,17 +1176,6 @@ export function initSurgeEffects() {
     }
     return baseGain;
   });
-  
-  addExternalXpGainMultiplierProvider(({ baseGain }) => {
-    if (!isSurgeActive(200)) return baseGain;
-    
-    let log10Total = 100;
-    if (isSurgeActive(8)) {
-        log10Total *= getTsunamiExponent();
-    }
-    return baseGain.mulBigNumInteger(bigNumFromLog10(log10Total));
-  });
-  
   // Surge 3: Disable flat Book reward
   setExternalBookRewardProvider(({ baseReward }) => {
      if (isSurgeActive(3)) {
