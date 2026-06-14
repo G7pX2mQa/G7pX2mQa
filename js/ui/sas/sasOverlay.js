@@ -9,7 +9,7 @@ import { openMultipliersOverlay } from './multipliersOverlay.js';
 import { openAchievementsOverlay } from './achievementsOverlay.js';
 import { openDiscordOverlay } from './discordOverlay.js';
 import { openShortcutsOverlay } from './shortcutsOverlay.js';
-import { hasDoneForgeReset } from '../merchantTabs/resetTab.js';
+import { hasDoneForgeReset, isForgeUnlocked } from '../merchantTabs/resetTab.js';
 import { hasMetMerchant, MERCHANT_MET_EVENT } from '../merchantTabs/dlgTab.js';
 import { getXpState } from '../../game/xpSystem.js';
 import { IS_MOBILE } from '../../main.js';
@@ -56,13 +56,13 @@ function populateSasButtons(overlayEl) {
   confBtn.className = "sas-btn";
   confBtn.textContent = "Confirmations";
   confBtn.addEventListener("click", () => { openConfirmationsOverlay(); });
-  if (!hasDoneForgeReset()) {
+  if (!isForgeUnlocked()) {
     confBtn.style.display = 'none';
   }
   grid.appendChild(confBtn);
   // We add an event listener to unhide it.
   const updateConfBtnVisibility = () => {
-    if (hasDoneForgeReset()) {
+    if (isForgeUnlocked()) {
       confBtn.style.display = '';
     }
   };
@@ -121,7 +121,9 @@ function populateSasButtons(overlayEl) {
   };
 
   // Just subscribe to something or rely on global re-render, but better to add an event listener
-  window.addEventListener('forge:completed', updateConfBtnVisibility);
+  window.addEventListener('unlock:change', (e) => {
+    if (e.detail?.key === 'forge') updateConfBtnVisibility();
+  });
   window.addEventListener('forge:completed', updateAchievementsBtnVisibility);
 
   const backBtn = document.createElement("button");
