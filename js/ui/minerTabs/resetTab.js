@@ -8,7 +8,7 @@ import { resetUcEacAccumulator } from '../../game/automationEffects.js';
 import { resetUcMaterialAccumulators, resetUcEacMaterialAccumulators, UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
 import { getUpgradesForArea, AREA_KEYS, setLevel } from '../../game/upgrades.js';
 import { resetLab, RESEARCH_NODES } from '../../game/labNodes.js';
-import { applySurgeResetLogic } from '../merchantTabs/resetTab.js';
+import { applySurgeResetLogic, getCurrentSurgeLevel, getSurgeBarLevelKey } from '../merchantTabs/resetTab.js';
 import { isBuildingsUnlocked } from './buildingsTab.js';
 import { isSurgeActive } from '../../game/surgeEffects.js';
 import { WATERWHEEL_DEFS, setWaterwheelLevel, setWaterwheelFp } from '../merchantTabs/flowTab.js';
@@ -153,9 +153,102 @@ export function performCompressReset() {
         if (!window.confirm("Are you sure you want to do a Compress reset?")) return false;
     }
     
-    // For now we just return false
-    return false;
+    if (!checkCompressRequirements()) {
+        return false;
+    }
+    
+    if (resetState.pendingCrystals.isZero?.()) {
+        return false;
+    }
+    
+    const reward = resetState.pendingCrystals.clone?.() ?? resetState.pendingCrystals;
+    
+    // Add crystals
+    try {
+        if (typeof window !== 'undefined' && window.currencySystem && typeof window.currencySystem.addCurrency === 'function') {
+            window.currencySystem.addCurrency('crystals', reward, { silent: true });
+        }
+    } catch {}
+    
+    setCompressResetCompleted(true);
+    
+    // Resets everything Combine does
+    applyCombineResetLogic();
+    
+    // Reset all buildings except crystal
+    const slot = ensureResetSlot();
+    const isBuildingsUnl = isBuildingsUnlocked();
+    if (isBuildingsUnl) {
+        if (typeof localStorage !== 'undefined') {
+            const keys = Object.keys(localStorage);
+            const prefix = `ccc:buildingLevel:`;
+            for (const key of keys) {
+                if (key.startsWith(prefix) && key.endsWith(`:${slot}`)) {
+                    const buildingId = key.split(':')[2];
+                    if (buildingId !== 'crystal') {
+                        localStorage.removeItem(key);
+                    }
+                }
+            }
+        }
+    }
+    
+    // Set surge to 200
+    try {
+        const surgeKey = getSurgeBarLevelKey(slot);
+        localStorage.setItem(surgeKey, '200');
+    } catch {}
+    
+    try {
+        window.dispatchEvent(new CustomEvent('compress:reset', { detail: { slot } }));
+    } catch {}
+
+    return true;
 }
+
+function applyCombineResetLogic() {
+    // Reset Scrap
+    resetUcEacAccumulator();
+    resetUcMaterialAccumulators();
+    resetUcEacMaterialAccumulators();
+    const slot = ensureResetSlot();
+    try {
+        if (typeof window !== 'undefined' && window.currencySystem) {
+            window.currencySystem.resetCurrency('scrap');
+            for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
+                window.currencySystem.resetCurrency(UC_MATERIAL_DATA[i].name);
+            }
+        }
+    } catch {}
+    resetDpProgress();
+    
+    applySurgeResetLogic();
+    
+    // Reset Waterwheels
+    for (const def of WATERWHEEL_DEFS) {
+        setWaterwheelLevel(def.name, 0);
+    }
+    setWaterwheelFp(0);
+    
+    // Core upgrades reset
+    const keysToReset = [];
+    if (typeof localStorage !== 'undefined') {
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith(`ccc:upgrade:${AREA_KEYS.UNDERWATER_CAVERN}:`) && k.endsWith(`:${slot}`)) {
+                keysToReset.push(k);
+            }
+        }
+        for (const k of keysToReset) {
+            localStorage.removeItem(k);
+        }
+    }
+    const ucUpgrades = getUpgradesForArea(AREA_KEYS.UNDERWATER_CAVERN);
+    for (let j = 0; j < ucUpgrades.length; j++) {
+        setLevel(AREA_KEYS.UNDERWATER_CAVERN, ucUpgrades[j].id, BigNum.fromInt(0));
+    }
+}
+
 
 function updateResetButtonContent(btn, state, iconSrc, pendingAmountBn, isSurge = false) {
   if (!btn) return;
@@ -369,6 +462,7 @@ export function performCombineReset() {
     }
     
     setCombineResetCompleted(true);
+    applyCombineResetLogic();
     recomputePendingCoresAndCrystals();
     return true;
 }
@@ -484,15 +578,17 @@ function updateCompressCard() {
         if (hasDoneCompressReset()) {
             if (el.status.innerHTML !== '') el.status.innerHTML = '';
         } else {
-            // First time completion msg if needed
-            if (el.status.innerHTML !== '') el.status.innerHTML = '';
+            if (el.status.innerHTML !== 'Reaching Depth: 101m unlocked the Crystal building; you can preview it before you reset to see what it\'s like<br>Compressing for the first time will unlock new Shop upgrades and <span style=\"color:#ff66d9;\">Pressure</span>.<br>Collect Materials to get PP. Increasing Pressure will yield double DP and Material value per atm of Pressure.') {
+                el.status.innerHTML = 'Reaching Depth: 101m unlocked the Crystal building; you can preview it before you reset to see what it\'s like<br>Compressing for the first time will unlock new Shop upgrades and <span style=\"color:#ff66d9;\">Pressure</span>.<br>Collect Materials to get PP. Increasing Pressure will yield double DP and Material value per atm of Pressure.';
+            }
         }
     }
     
-    // Disable it for now since functionality is unimplemented
-    updateResetButtonContent(el.btn, { disabled: true, msg: 'Not enough resources to perform a Compress reset' });
-    
-    // updateResetButtonContent(el.btn, { disabled: false }, COMPRESS_ICON_SRC, resetState.pendingCrystals);
+    if (!checkCompressRequirements()) {
+        updateResetButtonContent(el.btn, { disabled: true, msg: 'Reach Depth: 101m and Surge 200 to perform a Compress reset' });
+    } else {
+        updateResetButtonContent(el.btn, { disabled: false }, COMPRESS_ICON_SRC, resetState.pendingCrystals);
+    }
 }
 
 function initCombineTabUI(panel) {
@@ -552,8 +648,8 @@ function initCombineTabUI(panel) {
             <div class="merchant-reset__content">
               <div class="merchant-reset__titles">
                 <p data-reset-desc="compress">
-                  Details about the Compress reset will go here.<br>
-                  Increase pending Crystal amount by gathering more resources.
+                  Resets everything Combine does as well as all Buildings (except Crystal's) and sets your Surge to 200 for Crystals<br>
+                  Increase pending Crystal amount by increasing Scrap or potential Scrap and Surge past 200
                 </p>
               </div>
               <div class="merchant-reset__status" data-reset-status="compress"></div>
@@ -623,7 +719,7 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
   
   resetState.elements.compress.btn.addEventListener('click', () => {
      if (performCompressReset()) {
-         // recomputePendingCrystals();
+         recomputePendingCrystals();
      }
   });
 
@@ -667,9 +763,73 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
   }
 }
 
+
+function checkCompressRequirements() {
+    let dpLevelNum = 0;
+    try {
+       const state = getDpState();
+       dpLevelNum = Number(state.dpLevel.toString());
+    } catch {}
+    
+    let surgeLevel = 0;
+    try {
+        surgeLevel = getCurrentSurgeLevel();
+    } catch {}
+    
+    return dpLevelNum >= 101 && surgeLevel >= 200;
+}
+
+export function computeCompressCrystals(scrapBn, potentialScrapBn, surgeLevel) {
+    const totalScrap = scrapBn.add(potentialScrapBn);
+    
+    // Scale start at 1e33 Scrap instead
+    const logScrap = approxLog10BigNum(totalScrap);
+    
+    if (!Number.isFinite(logScrap)) {
+        if (logScrap > 0) return BigNum.fromAny('Infinity');
+    }
+    
+    const logScaled = Math.max(0, logScrap - 33);
+    const pow2 = logScaled <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(logScaled * Math.log10(2));
+    
+    const floorLog = Math.floor(logScaled);
+    const pow115 = floorLog <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(floorLog * Math.log10(1.15));
+    
+    let total = BigNum.fromInt(10);
+    total = total.mulBigNumInteger(pow2);
+    total = total.mulBigNumInteger(pow115);
+    
+    if (surgeLevel > 200) {
+        const surgeFactor = surgeLevel - 200;
+        // multiply 1.5x compounding each Surge level after 200
+        // Use mulDecimalFloor for the multiplier
+        const surgePow = Math.pow(1.5, surgeFactor);
+        if (!Number.isFinite(surgePow)) {
+             const surgePowBn = bigNumFromLog10(surgeFactor * Math.log10(1.5));
+             total = total.mulBigNumInteger(surgePowBn);
+        } else {
+             total = total.mulDecimalFloor(surgePow);
+        }
+    }
+    
+    const floored = total.floorToInteger();
+    if (floored.cmp(BigNum.fromInt(10)) < 0) return BigNum.fromInt(10);
+    return floored;
+}
+
+export function recomputePendingCrystals() {
+    const scrap = bank.scrap?.value ?? BigNum.fromInt(0);
+    const potentialScrap = getPotentialScrap();
+    let surgeLevel = 0;
+    try {
+        surgeLevel = getCurrentSurgeLevel();
+    } catch {}
+    resetState.pendingCrystals = computeCompressCrystals(scrap, potentialScrap, surgeLevel);
+}
+
 export function recomputePendingCoresAndCrystals() {
     recomputePendingCores();
-    
+    recomputePendingCrystals();
     updateCompressCard();
 }
 
