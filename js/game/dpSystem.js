@@ -3,7 +3,7 @@ import { getBuildingLevel, getBuildingBonus } from '../ui/minerTabs/buildingsTab
 import { BigNum, approxLog10BigNum as approxLog10, bigNumFromLog10 } from '../util/bigNum.js';
 import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
-import { syncDpHudLayout } from '../ui/hudLayout.js';
+import { syncDpPpHudLayout } from '../ui/hudLayout.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { getPpState, isPpSystemUnlocked } from './ppSystem.js';
 import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
@@ -501,7 +501,7 @@ function updateHud() {
   const isCavern = gameRoot && gameRoot.classList.contains('area-cavern');
   if (!isCavern && !container.closest('.area-cavern')) {
     container.setAttribute('hidden', '');
-    syncDpHudLayout();
+    syncDpPpHudLayout();
     return;
   }
   if (!dpState.unlocked) {
@@ -520,7 +520,7 @@ function updateHud() {
       const reqPlain = stripHtml(formatNumber(requirementBn));
       bar.setAttribute('aria-valuetext', `0 / ${reqPlain || '10'} DP`);
     }
-    syncDpHudLayout();
+    syncDpPpHudLayout();
     return;
   }
 
@@ -546,7 +546,7 @@ function updateHud() {
     const reqPlain = stripHtml(formatNumber(requirement));
     bar.setAttribute('aria-valuetext', `${currPlain} / ${reqPlain} DP`);
   }
-  syncDpHudLayout();
+  syncDpPpHudLayout();
 }
 
 export function unlockDpSystem() {
