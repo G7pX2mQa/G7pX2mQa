@@ -156,14 +156,23 @@ export function renderBuildingsGrid(gridEl) {
     });
 
     // 2. Crystal Building
-    const crystalLocked = false;
+    let crystalLocked = true;
+    if (isBuildingUnlocked('crystal')) {
+        crystalLocked = false;
+    } else {
+        if (highestDepth >= 101) {
+            setBuildingUnlocked('crystal', true);
+            crystalLocked = false;
+        }
+    }
+    
     buildings.push({
         id: 'crystal',
         title: 'Crystal Building',
         iconSrc: '',
         baseSrc: 'img/currencies/crystal/crystal_plus_base.webp',
         isLocked: crystalLocked,
-        mysteriousText: 'Perform the ??? reset to reveal this Building',
+        mysteriousText: 'Reach Depth: 101m to reveal this Building',
         level: formatNumber(getBuildingLevel("crystal")),
         plusLevel: getAffordableBuildingLevels("crystal")
     });
@@ -320,6 +329,14 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
             newlyUnlocked = true;
           }
         }
+      }
+      
+      // Check crystal for unlock
+      if (!isBuildingUnlocked('crystal')) {
+          if (highestDepth >= 101) {
+              setBuildingUnlocked('crystal', true);
+              newlyUnlocked = true;
+          }
       }
 
       if (newlyUnlocked) {
