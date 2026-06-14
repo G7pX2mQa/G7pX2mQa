@@ -3236,11 +3236,15 @@ function getUnlockRowDefinitions(slot) {
             labelText: 'Unlock Buildings',
             description: 'If true, unlocks the Buildings tab',
             isUnlocked: () => {
-                try { return window.resetSystem?.hasDoneCombineReset?.() ?? false; }
+                try { return isBuildingsUnlocked(); }
                 catch { return false; }
             },
             onEnable: () => {
                 try { window.resetSystem?.setCombineResetCompleted?.(true); }
+                catch {}
+                try { setBuildingsUnlocked(true); }
+                catch {}
+                try { window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
                 catch {}
                 try { window.dispatchEvent(new Event('ccc:buildings:changed')); }
                 catch {}
@@ -3249,6 +3253,10 @@ function getUnlockRowDefinitions(slot) {
             },
             onDisable: () => {
                 try { window.resetSystem?.setCombineResetCompleted?.(false); }
+                catch {}
+                try { setBuildingsUnlocked(false); }
+                catch {}
+                try { window.resetSystem?.updateBuildingsPanelVisibility?.(document.querySelector('.merchant-overlay.is-miner .merchant-sheet')); }
                 catch {}
                 try { window.dispatchEvent(new Event('ccc:buildings:changed')); }
                 catch {}
