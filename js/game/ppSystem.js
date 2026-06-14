@@ -3,12 +3,188 @@ import { getBuildingLevel, getBuildingBonus } from '../ui/minerTabs/buildingsTab
 import { BigNum, approxLog10BigNum as approxLog10, bigNumFromLog10 } from '../util/bigNum.js';
 import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
-import { syncPpHudLayout } from '../ui/hudLayout.js';
+import { syncDpPpHudLayout } from '../ui/hudLayout.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 
 import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
 
 
+
+
+const KEY_UNLOCK = (slot) => `ccc:ppUnlocked:${slot}`;
+const KEY_PP_LEVEL = (slot) => `ccc:ppLevel:${slot}`;
+const KEY_PROGRESS = (slot) => `ccc:ppProgress:${slot}`;
+const KEY_HIGHEST_LEVEL = (slot) => `ccc:ppHighestLevel:${slot}`;
+
+const ppState = {
+  unlocked: false,
+  ppLevel: bnZero(),
+  progress: bnZero(),
+  highestLevel: bnZero()
+};
+
+let stateLoaded = false;
+let lastSlot = null;
+let requirementBn = bnZero();
+
+function bnZero() {
+  return BigNum.fromInt(0);
+}
+
+function bnOne() {
+  return BigNum.fromInt(1);
+}
+
+function ppRequirementForPpLevel(ppLevel) {
+  let targetLevel = 0;
+  try {
+      let l = BigNum.fromAny(ppLevel ?? 0);
+      targetLevel = Number(l.toString());
+  } catch {}
+  if (targetLevel <= 0) return BigNum.fromInt(10);
+  if (targetLevel < 200) {
+     return BigNum.fromAny(Math.floor(10 * Math.pow(1.5, targetLevel)));
+  }
+  return BigNum.fromAny(Math.floor(10 * Math.pow(1.5, 200)));
+}
+
+function updatePpRequirement() {
+  requirementBn = ppRequirementForPpLevel(ppState.ppLevel);
+}
+
+function resetLockedPpState() {
+  ppState.ppLevel = bnZero();
+  ppState.progress = bnZero();
+  updatePpRequirement();
+}
+
+function ensureStateLoaded(force = false) {
+  const slot = getActiveSlot();
+  if (slot == null) {
+    lastSlot = null;
+    stateLoaded = false;
+    ppState.unlocked = false;
+    resetLockedPpState();
+    return ppState;
+  }
+  if (!force && stateLoaded && slot === lastSlot) return ppState;
+  lastSlot = slot;
+  stateLoaded = true;
+  ppState.unlocked = false;
+  try {
+    const rawUnlocked = localStorage.getItem(KEY_UNLOCK(slot));
+    if (rawUnlocked === '1') ppState.unlocked = true;
+  } catch {}
+  try {
+    ppState.ppLevel = BigNum.fromAny(localStorage.getItem(KEY_PP_LEVEL(slot)) ?? '0');
+  } catch {
+    ppState.ppLevel = bnZero();
+  }
+  try {
+    ppState.highestLevel = BigNum.fromAny(localStorage.getItem(KEY_HIGHEST_LEVEL(slot)) ?? '0');
+  } catch {
+    ppState.highestLevel = bnZero();
+  }
+  if (isBuildingsUnlocked() && ppState.ppLevel.cmp?.(ppState.highestLevel) > 0) {
+    ppState.highestLevel = ppState.ppLevel.clone?.() ?? ppState.ppLevel;
+  }
+  try {
+    ppState.progress = BigNum.fromAny(localStorage.getItem(KEY_PROGRESS(slot)) ?? '0');
+  } catch {
+    ppState.progress = bnZero();
+  }
+
+  if (!ppState.unlocked) {
+    resetLockedPpState();
+    return ppState;
+  }
+
+  updatePpRequirement();
+  ensurePpStorageWatchers();
+  return ppState;
+}
+
+function persistState() {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+
+  const expected = {
+    [KEY_UNLOCK(slot)]: ppState.unlocked ? '1' : '0',
+    [KEY_PP_LEVEL(slot)]: ppState.ppLevel.toString(),
+    [KEY_PROGRESS(slot)]: ppState.progress.toString(),
+    [KEY_HIGHEST_LEVEL(slot)]: ppState.highestLevel.toString()
+  };
+
+  try {
+    for (const [key, value] of Object.entries(expected)) {
+      localStorage.setItem(key, value);
+    }
+  } catch {}
+}
+
+function ensurePpStorageWatchers() {}
+
+
+function notifyPpSubscribers(detail) {}
+
+function progressRatio(progress, requirement) { try { return progress.div(requirement).toNumber(); } catch { return 0; } }
+
+let hudRefs = {};
+
+function ensureHudRefs() {
+  if (hudRefs.container) return true;
+  if (typeof document === 'undefined') return false;
+  hudRefs = {
+    container: document.querySelector('.stat-container[data-pp]'),
+    bar: document.querySelector('[data-pp-bar]'),
+    fill: document.querySelector('[data-pp-fill]'),
+    ppLevelValue: document.querySelector('[data-pp-level-value]'),
+    progress: document.querySelector('[data-pp-progress]')
+  };
+  return !!hudRefs.container;
+}
+
+function updateHud() {
+  if (!ensureHudRefs()) return;
+  const { container, bar, fill, ppLevelValue, progress } = hudRefs;
+  if (!container) return;
+  
+  const gameRoot = document.getElementById('game-root');
+  const isCavern = gameRoot && gameRoot.classList.contains('area-cavern');
+  
+  if (!isCavern && !container.closest('.area-cavern')) {
+    container.setAttribute('hidden', '');
+    syncDpPpHudLayout();
+    return;
+  }
+  
+  if (!ppState.unlocked) {
+    container.setAttribute('hidden', '');
+    if (fill) {
+      fill.style.setProperty('--pp-fill', '0%');
+      fill.style.width = '0%';
+    }
+    if (ppLevelValue) ppLevelValue.textContent = '0';
+    if (progress) {
+      const reqHtml = formatNumber(requirementBn);
+      progress.innerHTML = `<span class="pp-progress-current">0</span><span class="pp-progress-separator">/</span><span class="pp-progress-required">${reqHtml}</span><span class="pp-progress-suffix">PP</span>`;
+    }
+    syncDpPpHudLayout();
+    return;
+  }
+  
+  container.removeAttribute('hidden');
+  const ratio = progressRatio(ppState.progress, requirementBn);
+  const pct = Math.min(100, Math.max(0, ratio * 100));
+  if (fill) {
+    fill.style.setProperty('--pp-fill', `${pct}%`);
+    fill.style.width = `${pct}%`;
+  }
+  if (ppLevelValue) {
+    ppLevelValue.textContent = formatNumber(ppState.ppLevel);
+  }
+  syncDpPpHudLayout();
+}
 
 const externalPpMultiplierProviders = [];
 export function addExternalPpMultiplierProvider(fn) {
@@ -286,6 +462,21 @@ export function isPpSystemUnlocked() {
 
 export function getPpRequirementForPpLevel(ppLevel) {
   return ppRequirementForPpLevel(ppLevel);
+}
+
+export function unlockPpSystem() {
+  ensureStateLoaded();
+  if (ppState.unlocked) {
+    updateHud();
+    return false;
+  }
+  resetLockedPpState();
+  ppState.unlocked = true;
+  persistState();
+  updateHud();
+  const detail = getPpState();
+  try { window.dispatchEvent(new CustomEvent('pp:unlock', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'pp', level: detail.ppLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getPpProgressRatio() } })); } catch {}
+  return true;
 }
 
 export function getHighestPpLevel() {
