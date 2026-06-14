@@ -2,13 +2,26 @@
 import { settingsManager } from '../game/settingsManager.js';
 
 export function initFpsTracker() {
+  let overlayContainer = document.getElementById('performance-overlay-container');
+  if (!overlayContainer) {
+      overlayContainer = document.createElement('div');
+      overlayContainer.id = 'performance-overlay-container';
+      Object.assign(overlayContainer.style, {
+          position: 'fixed',
+          top: '0',
+          left: '0',
+          zIndex: '2147483643',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          pointerEvents: 'none',
+      });
+      document.body.appendChild(overlayContainer);
+  }
+
   const fpsDiv = document.createElement('div');
   fpsDiv.id = 'fps-tracker';
   Object.assign(fpsDiv.style, {
-    position: 'fixed',
-    top: '0',
-    left: '0',
-    zIndex: '2147483643',
     background: '#000',
     color: '#fff',
     fontFamily: 'monospace',
@@ -17,7 +30,7 @@ export function initFpsTracker() {
     pointerEvents: 'none',
   });
   fpsDiv.style.display = 'none'; // start hidden
-  document.body.appendChild(fpsDiv);
+  overlayContainer.appendChild(fpsDiv);
 
 
   let frameCount = 0;
