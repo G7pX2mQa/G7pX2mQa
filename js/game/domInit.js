@@ -43,7 +43,7 @@ export function ensureGameDom(layerCount, startZ) {
 			
             <div class="xp-bar__frame">
               <div class="xp-bar__level">
-                Level<span class="xp-level-value">0</span>
+                ${RESOURCE_REGISTRY.find(c => c.key === 'xp_levels')?.barText?.replace('{val}', '0') || 'Level<span class="xp-level-value">0</span>'}
               </div>
 
               <div class="xp-bar__divider" aria-hidden="true"></div>
@@ -63,7 +63,7 @@ export function ensureGameDom(layerCount, startZ) {
 
             <div class="mp-bar__frame">
               <div class="mp-bar__level">
-                Mutation<span class="mp-level-value">0</span>
+                ${RESOURCE_REGISTRY.find(c => c.key === 'mp_levels')?.barText?.replace('{val}', '0') || 'Mutation<span class="mp-level-value">0</span>'}
               </div>
 
               <div class="mp-bar__divider" aria-hidden="true"></div>
@@ -83,7 +83,7 @@ export function ensureGameDom(layerCount, startZ) {
 
             <div class="dp-bar__frame">
               <div class="dp-bar__level">
-                Depth:<span class="dp-level-value">0</span>m
+                ${RESOURCE_REGISTRY.find(c => c.key === 'dp_levels')?.barText?.replace('{val}', '0') || 'Depth:<span class="dp-level-value">0</span>m'}
               </div>
 
               <div class="dp-bar__divider" aria-hidden="true"></div>
