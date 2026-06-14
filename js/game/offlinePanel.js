@@ -293,6 +293,39 @@ export const RESOURCE_REGISTRY = [
     { key: 'crystals', bgGradient: 'linear-gradient(to bottom, #943276 0%, #bd53a3 15%, #e979d0 50%, #bd53a3 85%, #943276 100%)',      icon: 'img/currencies/crystal/crystal.webp', baseIcon: 'img/currencies/crystal/crystal_plus_base.webp',   singular: 'Crystal',     plural: 'Crystals', type: 'currency' },
 ];
 
+
+function applyAutoColor(plusEl, textEl, colorKey, registryConfig) {
+    let displayStyle = null;
+    let fallbackClass = null;
+
+    if (colorKey === 'dna') {
+        fallbackClass = 'text-dna';
+    } else if (colorKey === 'prismatium') {
+        fallbackClass = 'text-prismatium';
+    } else {
+        if (registryConfig && registryConfig.bgGradient) {
+            const match = registryConfig.bgGradient.match(/(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))\s+50%/);
+            if (match) {
+                displayStyle = match[1];
+            }
+        } else if (registryConfig && registryConfig.color) {
+            displayStyle = registryConfig.color;
+        }
+        
+        if (!displayStyle) {
+            fallbackClass = `text-${colorKey}`;
+        }
+    }
+
+    if (displayStyle) {
+        plusEl.style.color = displayStyle;
+        textEl.style.color = displayStyle;
+    } else if (fallbackClass) {
+        plusEl.classList.add(fallbackClass);
+        textEl.classList.add(fallbackClass);
+    }
+}
+
 export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
     if (window.__tsunamiActive || window.__bossFightSequenceActive || window.__mapSequenceActive) return;
 
@@ -377,11 +410,9 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
                     row.className = 'offline-row';
                     
                     const def = WATERWHEEL_DEFS[item.id];
-                    const colorClass = def?.styleKey ? `text-${def.styleKey}` : 'text-coins';
 
                     const plus = document.createElement('span');
                     plus.className = 'offline-plus';
-                    plus.classList.add(colorClass); 
                     plus.textContent = '+';
                     
                     const icon = document.createElement('img');
@@ -391,7 +422,10 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
                     
                     const text = document.createElement('span');
                     text.className = 'offline-text';
-                    text.classList.add(colorClass);
+
+                    const styleKey = def?.styleKey || 'coins';
+                    const matchedConfig = RESOURCE_REGISTRY.find(r => r.key === styleKey);
+                    applyAutoColor(plus, text, styleKey, matchedConfig);
                     
                     const levelCount = BigNum.fromAny(item.levels);
                     const label = (levelCount.cmp(BigNum.fromInt(1)) === 0) ? 'Level' : 'Levels';
@@ -428,32 +462,7 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
         const infinityHtml = `<span class="infinity-symbol">&infin;</span>`;
 
         // Styling for both plus and text
-        let displayStyle = null;
-
-        if (key === 'dna') {
-            plus.classList.add('text-dna');
-            text.classList.add('text-dna');
-        } else if (key === 'prismatium') {
-            plus.classList.add('text-prismatium');
-            text.classList.add('text-prismatium');
-        } else {
-            if (config.bgGradient) {
-                const match = config.bgGradient.match(/(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))\s+50%/);
-                if (match) {
-                    displayStyle = match[1];
-                }
-            } else if (config.color) {
-                displayStyle = config.color;
-            }
-
-            if (displayStyle) {
-                plus.style.color = displayStyle;
-                text.style.color = displayStyle;
-            } else {
-                plus.classList.add(`text-${key}`);
-                text.classList.add(`text-${key}`);
-            }
-        }
+        applyAutoColor(plus, text, key, config);
         
         // Grammar logic
         let isOne = false;
