@@ -1,10 +1,11 @@
 import { safeMultiplyBigNum } from './upgrades.js';
 import { getBuildingLevel, getBuildingBonus } from '../ui/minerTabs/buildingsTab.js';
-import { BigNum, approxLog10BigNum as approxLog10 } from '../util/bigNum.js';
+import { BigNum, approxLog10BigNum as approxLog10, bigNumFromLog10 } from '../util/bigNum.js';
 import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
 import { syncDpHudLayout } from '../ui/hudLayout.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
+import { getPpState, isPpSystemUnlocked } from './ppSystem.js';
 import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
 import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
 
@@ -601,6 +602,25 @@ export function getDpMultiplier() {
     const coreBonus = getBuildingBonus('core', getBuildingLevel('core'));
     dpMult = safeMultiplyBigNum(dpMult, coreBonus);
   } catch (e) { console.error(e); }
+  
+  // Apply Pressure bonuses
+  try {
+      if (isPpSystemUnlocked()) {
+          const ppLevel = getPpState().ppLevel;
+          if (ppLevel && !ppLevel.isZero()) {
+              const ppLevelNum = Number(ppLevel.toString());
+              if (Number.isFinite(ppLevelNum)) {
+                   const powVal = Math.pow(2, ppLevelNum);
+                   if (!Number.isFinite(powVal)) {
+                        dpMult = dpMult.mulBigNumInteger(bigNumFromLog10(ppLevelNum * Math.log10(2)));
+                   } else {
+                        dpMult = dpMult.mulDecimalFloor(powVal);
+                   }
+              }
+          }
+      }
+  } catch (e) { console.error(e); }
+  
   for (const provider of externalDpMultiplierProviders) {
     try {
       const val = provider(dpMult);
