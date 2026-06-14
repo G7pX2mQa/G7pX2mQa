@@ -8,11 +8,13 @@ import { IS_MOBILE } from '../main.js';
 import { getMagnetLevel, getLevelNumber } from './upgrades.js';
 import { AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID, UNDERWATER_CAVERN_EAC_ID, EFFECTIVE_AUTO_SELL_ID } from './automationUpgrades.js';
 import {
-  hasDoneForgeReset,
-  hasDoneInfuseReset,
-  hasDoneSurgeReset,
-  hasDoneExperimentReset
+  isForgeUnlocked,
+  isInfuseUnlocked,
+  isSurgeUnlocked,
+  isExperimentUnlocked,
+  hasDoneSurgeReset
 } from '../ui/merchantTabs/resetTab.js';
+import { isCombineUnlocked, isCompressUnlocked } from '../ui/minerTabs/resetTab.js';
 import { maxRefreshRate } from '../util/refreshRate.js';
 
 const SETTINGS_KEY_PREFIX = 'ccc:setting:';
@@ -305,7 +307,7 @@ export const SETTING_DEFINITIONS = {
     hasExtraInfo: false,
     default: false,
     unlockCondition: () => {
-      try { return hasDoneForgeReset(); } catch { return false; }
+      try { return isForgeUnlocked(); } catch { return false; }
     },
   },
   infuse_confirmation: {
@@ -316,7 +318,7 @@ export const SETTING_DEFINITIONS = {
     hasExtraInfo: false,
     default: false,
     unlockCondition: () => {
-      try { return hasDoneInfuseReset(); } catch { return false; }
+      try { return isInfuseUnlocked(); } catch { return false; }
     },
   },
   surge_confirmation: {
@@ -327,7 +329,7 @@ export const SETTING_DEFINITIONS = {
     hasExtraInfo: false,
     default: false,
     unlockCondition: () => {
-      try { return hasDoneSurgeReset(); } catch { return false; }
+      try { return isSurgeUnlocked(); } catch { return false; }
     },
   },
   insufficient_waves_confirmation: {
@@ -339,7 +341,7 @@ export const SETTING_DEFINITIONS = {
     info: 'For the Surge reset, if you have insufficient Waves such that performing a Surge reset would not increase your Surge, this confirmation ensures that you are aware that performing a Surge reset would not benefit you immediately.',
     default: true,
     unlockCondition: () => {
-      try { return hasDoneSurgeReset(); } catch { return false; }
+      try { return isSurgeUnlocked(); } catch { return false; }
     },
   },
   experiment_confirmation: {
@@ -350,7 +352,29 @@ export const SETTING_DEFINITIONS = {
     hasExtraInfo: false,
     default: false,
     unlockCondition: () => {
-      try { return hasDoneExperimentReset(); } catch { return false; }
+      try { return isExperimentUnlocked(); } catch { return false; }
+    },
+  },
+  combine_confirmation: {
+    id: 'combine_confirmation',
+    type: 'toggle',
+    label: 'Combine Confirmation',
+    overlay: 'confirmations',
+    hasExtraInfo: false,
+    default: false,
+    unlockCondition: () => {
+      try { return isCombineUnlocked(); } catch { return false; }
+    },
+  },
+  compress_confirmation: {
+    id: 'compress_confirmation',
+    type: 'toggle',
+    label: 'Compress Confirmation',
+    overlay: 'confirmations',
+    hasExtraInfo: false,
+    default: false,
+    unlockCondition: () => {
+      try { return isCompressUnlocked(); } catch { return false; }
     },
   }
 };
