@@ -1660,7 +1660,7 @@ function getSafeLog10Number(bn) {
   return totalExp + sigLog;
 }
 
-function getSurgeRequirement(level) {
+export function getSurgeRequirement(level) {
   if (level === Infinity) return BigNum.fromAny('Infinity');
   let numLevel = Number(level);
   let logReq = numLevel + 1;
@@ -1774,6 +1774,8 @@ function updateWaveBar() {
       barLevel = result.level;
       try { localStorage.setItem(SURGE_BAR_LEVEL_KEY(slot), barLevel.toString()); } catch {}
       try { window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level: barLevel } })); } catch {}
+      try { window.dispatchEvent(new CustomEvent("level:change", { detail: { prefix: "waves", level: barLevel, isUnlocked: isSurgeUnlocked(), requirement: getSurgeRequirement(barLevel) } })); } catch {}
+      
       
       isUpdatingWaveBar = true;
       try {
