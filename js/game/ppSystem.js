@@ -1,0 +1,310 @@
+import { safeMultiplyBigNum } from './upgrades.js';
+import { getBuildingLevel, getBuildingBonus } from '../ui/minerTabs/buildingsTab.js';
+import { BigNum, approxLog10BigNum as approxLog10, bigNumFromLog10 } from '../util/bigNum.js';
+import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
+import { formatNumber } from '../util/numFormat.js';
+import { syncPpHudLayout } from '../ui/hudLayout.js';
+import { applyStatMultiplierOverride } from '../util/debugPanel.js';
+
+import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
+
+
+
+const externalPpMultiplierProviders = [];
+export function addExternalPpMultiplierProvider(fn) {
+  if (typeof fn === 'function') externalPpMultiplierProviders.push(fn);
+}
+
+export function initPpSystem(forceReload = false) {
+  ensureHudRefs();
+  ensureStateLoaded(forceReload);
+  updatePpRequirement();
+  updateHud();
+  ensurePpStorageWatchers();
+  return getPpState();
+}
+
+export function resetPpProgress({ keepUnlock = true } = {}) {
+  ensureStateLoaded();
+  const wasUnlocked = ppState.unlocked;
+  resetLockedPpState();
+  ppState.unlocked = keepUnlock ? (wasUnlocked || ppState.unlocked) : false;
+  if (isBuildingsUnlocked() && ppState.ppLevel.cmp?.(ppState.highestLevel) > 0) {
+    ppState.highestLevel = ppState.ppLevel.clone?.() ?? ppState.ppLevel;
+  }
+  persistState();
+  updateHud();
+  const detail = getPpState();
+  try {
+    window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'pp', level: detail.ppLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getPpProgressRatio() } }));
+  } catch {}
+  return detail;
+}
+
+export function getPpProgressRatio() {
+  ensureStateLoaded();
+  return progressRatio(ppState.progress, requirementBn);
+}
+
+export function getPpMultiplier() {
+  let ppMult = BigNum.fromInt(1);
+  try {
+    const coreBonus = getBuildingBonus('core', getBuildingLevel('core'));
+    ppMult = safeMultiplyBigNum(ppMult, coreBonus);
+  } catch (e) { console.error(e); }
+  for (const provider of externalPpMultiplierProviders) {
+    try {
+      const val = provider(ppMult);
+      if (val instanceof BigNum) {
+        ppMult = val;
+      } else if (val) {
+        ppMult = ppMult.mulBigNumInteger(BigNum.fromAny(val));
+      }
+    } catch {}
+  }
+  return ppMult;
+}
+
+export function addPp(amount, { silent = false } = {}) {
+  ensureStateLoaded();
+  const slot = lastSlot ?? getActiveSlot();
+
+  if (!ppState.unlocked) {
+    return {
+      unlocked: false,
+      ppLevelsGained: bnZero(),
+      ppAdded: bnZero(),
+      ppLevel: ppState.ppLevel,
+      requirement: requirementBn
+    };
+  }
+
+  let inc;
+  try {
+    if (amount instanceof BigNum) {
+      inc = amount.clone?.() ?? BigNum.fromAny(amount ?? 0);
+    } else {
+      inc = BigNum.fromAny(amount ?? 0);
+    }
+  } catch {
+    inc = bnZero();
+  }
+
+  const ppMult = getPpMultiplier();
+  
+  if (ppMult instanceof BigNum && !ppMult.isZero?.()) {
+      inc = inc.mulBigNumInteger ? inc.mulBigNumInteger(ppMult) : inc;
+  }
+
+  inc = applyStatMultiplierOverride('pp', inc);
+
+  if (inc.isZero?.() || (typeof inc.isZero === 'function' && inc.isZero())) {
+    updateHud();
+    return {
+      unlocked: true,
+      ppLevelsGained: bnZero(),
+      ppAdded: inc,
+      ppLevel: ppState.ppLevel,
+      requirement: requirementBn
+    };
+  }
+
+  ppState.progress = ppState.progress.add(inc);
+  updatePpRequirement();
+
+  const isInfinite = (bn) => !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
+
+  const progressIsInf = isInfinite(ppState.progress);
+  const levelIsInf = isInfinite(ppState.ppLevel);
+  const gainIsInf = isInfinite(inc);
+
+  if (progressIsInf || levelIsInf || gainIsInf) {
+    const inf = BigNum.fromAny('Infinity');
+    
+    ppState.ppLevel = inf.clone?.() ?? inf;
+    ppState.progress = inf.clone?.() ?? inf;
+    
+    updatePpRequirement();
+
+    if (isBuildingsUnlocked() && ppState.ppLevel.cmp?.(ppState.highestLevel) > 0) {
+      ppState.highestLevel = ppState.ppLevel.clone?.() ?? ppState.ppLevel;
+    }
+
+    persistState();
+    updateHud();
+
+    const detail = {
+      unlocked: true,
+      ppLevelsGained: bnZero(),
+      ppAdded: inc.clone?.() ?? inc,
+      ppLevel: ppState.ppLevel.clone?.() ?? ppState.ppLevel,
+      progress: ppState.progress.clone?.() ?? ppState.progress,
+      requirement: requirementBn.clone?.() ?? requirementBn,
+      slot,
+    };
+    notifyPpSubscribers(detail);
+    if (!silent && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('pp:change', { detail })); window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'pp', delta: detail.ppAdded, progress: detail.progress } })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'pp', level: detail.ppLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getPpProgressRatio() } })); } catch {}
+    }
+    return detail;
+  }
+
+  let ppLevelsGained = bnZero();
+
+  if (ppState.progress.cmp(requirementBn) < 0) {
+    persistState();
+    updateHud();
+    const detail = {
+      unlocked: true,
+      ppLevelsGained: bnZero(),
+      ppAdded: inc,
+      ppLevel: ppState.ppLevel,
+      progress: ppState.progress,
+      requirement: requirementBn,
+      slot,
+    };
+    notifyPpSubscribers(detail);
+    if (!silent && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('pp:change', { detail })); window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'pp', delta: detail.ppAdded, progress: detail.progress } })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'pp', level: detail.ppLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getPpProgressRatio() } })); } catch {}
+    }
+    return detail;
+  }
+
+  // Fast approximation if a large bulk was added
+  const currentProgressLog = approxLog10(ppState.progress);
+  const reqLog = approxLog10(requirementBn);
+  
+  if (currentProgressLog - reqLog > 2) {
+    let currentLevelNum;
+    try {
+      currentLevelNum = Number(ppState.ppLevel.toPlainIntegerString?.() ?? ppState.ppLevel.toString());
+    } catch {
+      currentLevelNum = 0;
+    }
+
+    if (Number.isFinite(currentLevelNum)) {
+      const getLogForLevel = (levelNum) => {
+        let l = levelNum;
+        if (l >= 4e12) {
+            const diff = l - 4e12;
+            l += Math.pow(diff, 1.5) / 1e4;
+        }
+        return 3 * (l + 1);
+      };
+
+      let minAdd = 0;
+      let maxAdd = 1000000;
+      let bestAdd = -1;
+
+      if (getLogForLevel(currentLevelNum + maxAdd) <= currentProgressLog) {
+        while (getLogForLevel(currentLevelNum + maxAdd) <= currentProgressLog) {
+            if (!Number.isFinite(getLogForLevel(currentLevelNum + maxAdd))) break;
+            minAdd = maxAdd;
+            maxAdd *= 2;
+        }
+      }
+
+      while (minAdd <= maxAdd) {
+        const mid = Math.floor((minAdd + maxAdd) / 2);
+        if (getLogForLevel(currentLevelNum + mid) <= currentProgressLog) {
+          bestAdd = mid;
+          minAdd = mid + 1;
+        } else {
+          maxAdd = mid - 1;
+        }
+      }
+
+      if (bestAdd > 0) {
+        const safeGainStr = bestAdd.toString();
+        let safeGainBn;
+        try { safeGainBn = BigNum.fromAny(safeGainStr); } catch { safeGainBn = null; }
+        if (safeGainBn) {
+          ppState.ppLevel = ppState.ppLevel.add(safeGainBn);
+          ppLevelsGained = ppLevelsGained.add(safeGainBn);
+          updatePpRequirement();
+        }
+      }
+    }
+  }
+
+  let guard = 0;
+  const limit = 500;
+  
+  while (ppState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
+    ppState.progress = ppState.progress.sub(requirementBn);
+    ppState.ppLevel = ppState.ppLevel.add(bnOne());
+    ppLevelsGained = ppLevelsGained.add(bnOne());
+    
+    updatePpRequirement();
+    
+    guard += 1;
+  }
+  
+  if (guard >= limit && ppState.progress.cmp(requirementBn) >= 0) {
+      updatePpRequirement();
+  }
+
+  if (isBuildingsUnlocked() && ppState.ppLevel.cmp?.(ppState.highestLevel) > 0) {
+    ppState.highestLevel = ppState.ppLevel.clone?.() ?? ppState.ppLevel;
+  }
+
+  persistState();
+  updateHud();
+
+  const detail = {
+    unlocked: true,
+    ppLevelsGained: ppLevelsGained.clone?.() ?? ppLevelsGained,
+    ppAdded: inc.clone?.() ?? inc,
+    ppLevel: ppState.ppLevel.clone?.() ?? ppState.ppLevel,
+    progress: ppState.progress.clone?.() ?? ppState.progress,
+    requirement: requirementBn.clone?.() ?? requirementBn,
+    slot,
+  };
+  
+  notifyPpSubscribers(detail);
+  if (!silent && typeof window !== 'undefined') {
+    try { window.dispatchEvent(new CustomEvent('pp:change', { detail })); window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'pp', delta: detail.ppAdded, progress: detail.progress } })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'pp', level: detail.ppLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getPpProgressRatio() } })); } catch {}
+  }
+  return detail;
+}
+
+export function getPpState() {
+  ensureStateLoaded();
+  return {
+    unlocked: ppState.unlocked,
+    ppLevel: ppState.ppLevel.clone?.() ?? ppState.ppLevel,
+    progress: ppState.progress.clone?.() ?? ppState.progress,
+    requirement: requirementBn.clone?.() ?? requirementBn,
+    highestLevel: ppState.highestLevel.clone?.() ?? ppState.highestLevel,
+  };
+}
+
+export function isPpSystemUnlocked() {
+  ensureStateLoaded();
+  return !!ppState.unlocked;
+}
+
+export function getPpRequirementForPpLevel(ppLevel) {
+  return ppRequirementForPpLevel(ppLevel);
+}
+
+export function getHighestPpLevel() {
+  ensureStateLoaded();
+  return ppState.highestLevel;
+}
+
+if (typeof window !== 'undefined') {
+  window.ppSystem = window.ppSystem || {};
+  Object.assign(window.ppSystem, {
+    addExternalPpMultiplierProvider,
+    initPpSystem,
+    unlockPpSystem,
+    addPp,
+    getPpState,
+    isPpSystemUnlocked,
+    getPpRequirementForPpLevel,
+    resetPpProgress,
+    getPpProgressRatio,
+    getHighestPpLevel
+  });
+}
