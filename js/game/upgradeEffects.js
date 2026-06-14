@@ -230,14 +230,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
           if (ppLevel && !ppLevel.isZero()) {
               const ppLevelNum = Number(ppLevel.toString());
               if (Number.isFinite(ppLevelNum)) {
-                   const powVal = Math.pow(2, ppLevelNum);
-                   if (!Number.isFinite(powVal)) {
-                        
-                        const ppFactor = bigNumFromLog10(ppLevelNum * Math.log10(2));
-                        acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, ppFactor);
-                   } else {
-                        acc.allMaterialsValue = acc.allMaterialsValue.mulDecimalFloor(powVal);
-                   }
+                   const ppFactor = bigNumFromLog10(ppLevelNum * Math.log10(2));
+                   acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, ppFactor);
               }
           }
       }
