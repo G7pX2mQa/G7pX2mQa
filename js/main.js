@@ -518,28 +518,32 @@ function startAreaMusic(areaID, src, volume = 1.0) {
   });
 }
 
+// Dispatch a dummy mousemove event to wake the browser from power-saving / background throttling
+// This resolves an issue where the browser permanently locks to 60fps after loading a save,
+// switching tabs, or opening window prompts.
+export function wakeBrowserThrottling() {
+  requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+          setTimeout(() => {
+              try {
+                  document.dispatchEvent(new MouseEvent('mousemove', {
+                      view: window,
+                      bubbles: true,
+                      cancelable: true,
+                      clientX: 0,
+                      clientY: 0
+                  }));
+              } catch (e) {}
+          }, 100);
+      });
+  });
+}
+
 function enterAreaFromSaveSlot(areaID) {
   delayAreaMusicForSaveSlotLoad = true;
   try {
     enterArea(areaID);
-	
-    // Dispatch a dummy mousemove event to wake the browser from power-saving / background throttling
-    // This resolves an issue where the browser permanently locks to 60fps after loading a save.
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            setTimeout(() => {
-                try {
-                    document.dispatchEvent(new MouseEvent('mousemove', {
-                        view: window,
-                        bubbles: true,
-                        cancelable: true,
-                        clientX: 0,
-                        clientY: 0
-                    }));
-                } catch (e) {}
-            }, 100);
-        });
-    });
+    wakeBrowserThrottling();
   } finally {
     delayAreaMusicForSaveSlotLoad = false;
   }
@@ -1322,6 +1326,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentMusic.element.play().catch(() => {});
       }
     }
+    if (!hidden) {
+      wakeBrowserThrottling();
+    }
+  });
+
+  window.addEventListener('focus', () => {
+    wakeBrowserThrottling();
   });
 
 
