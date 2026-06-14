@@ -260,7 +260,35 @@ export const RESOURCE_REGISTRY = [
             };
         }
     },
-    { key: 'dp_levels', icon: 'img/stats/dp/dp.webp',            singular: 'Meter of Depth', plural: 'Meters of Depth', type: 'levelStat', color: '#A98060', barText: 'Depth: <span class="dp-level-value">{val}</span>m', noTextGap: true },
+    { key: 'dp_levels', icon: 'img/stats/dp/dp.webp',            singular: 'meter of Depth', plural: 'meters of Depth', type: 'levelStat', color: '#A98060', barText: 'Depth: <span class="dp-level-value">{val}</span>m', noTextGap: true },
+    { 
+        key: 'pp', 
+        icon: 'img/stats/pp/pp.webp', 
+        singular: 'PP', 
+        plural: 'PP', 
+        type: 'levelProg', 
+        pinBgGradient: 'linear-gradient(180deg, rgba(38,15,31,1), rgba(46,18,37,1))', 
+        bgGradient: 'linear-gradient(to bottom, #d130a1 0%, #ff42c7 15%, #ff7de8 50%, #ff42c7 85%, #d130a1 100%)', 
+        fillGradient: 'linear-gradient(90deg, rgba(255,100,200,1) 0%, rgba(255,150,220,1) 50%, rgba(255,180,240,1) 100%)', 
+        barOutline: '3px', 
+        borderColor: '#1a0512', 
+        barBoxShadow: 'inset 0 6px 10px rgba(255,255,255,0.14), inset 0 -6px 14px rgba(0,0,0,0.45)', 
+        glassBg: 'linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0))', 
+        glassOpacity: '0.6',
+        getState: () => {
+            if (!window.ppSystem || typeof window.ppSystem.getPpState !== 'function') return null;
+            const state = window.ppSystem.getPpState();
+            return {
+                level: state.ppLevel,
+                progress: state.progress,
+                requirement: state.requirement,
+                isUnlocked: window.ppSystem.isPpSystemUnlocked ? window.ppSystem.isPpSystemUnlocked() : true,
+                ratio: window.ppSystem.getPpProgressRatio ? window.ppSystem.getPpProgressRatio() : 0
+            };
+        }
+    },
+    { key: 'pp_levels', icon: 'img/stats/pp/pp.webp', singular: 'atm of Pressure', plural: 'atms of Pressure', type: 'levelStat', color: '#ff66d9', barText: 'Pressure: <span class="pp-level-value">{val}</span> atm', noTextGap: true },
+
     { key: 'cores', bgGradient: 'linear-gradient(to bottom, #0a0a0a 0%, #1a1a1a 15%, #2a2a2a 50%, #1a1a1a 85%, #0a0a0a 100%)',      icon: 'img/currencies/core/core.webp', baseIcon: 'img/currencies/core/core_plus_base.webp',   singular: 'Core',     plural: 'Cores', type: 'currency' },
     { key: 'crystals', bgGradient: 'linear-gradient(to bottom, #943276 0%, #bd53a3 15%, #e979d0 50%, #bd53a3 85%, #943276 100%)',      icon: 'img/currencies/crystal/crystal.webp', baseIcon: 'img/currencies/crystal/crystal_plus_base.webp',   singular: 'Crystal',     plural: 'Crystals', type: 'currency' },
 ];
@@ -741,6 +769,22 @@ export function grantOfflineRewards(rewards) {
             }
         } catch {}
     }
+    if (rewards.pp) {
+        try {
+            if (window.ppSystem && typeof window.ppSystem.addPp === 'function') {
+                const ppResult = window.ppSystem.addPp(rewards.pp);
+                if (ppResult) {
+                    if (ppResult.ppLevelsGained && !ppResult.ppLevelsGained.isZero()) {
+                        rewards.pp_levels = ppResult.ppLevelsGained;
+                    }
+                    if (ppResult.ppAdded) {
+                        rewards.pp = ppResult.ppAdded;
+                    }
+                }
+            }
+        } catch {}
+    }
+
 
     // Handle Research
     if (rewards.research_progress) {
@@ -772,7 +816,7 @@ export function grantOfflineRewards(rewards) {
     // Handle standard currencies automatically
     for (const key of Object.keys(rewards)) {
         // Skip special keys handled above or created during handling
-        if (key === 'xp' || key === 'mp' || key === 'dp' || key === 'xp_levels' || key === 'mp_levels' || key === 'dp_levels') continue;
+        if (key === 'xp' || key === 'mp' || key === 'dp' || key === 'xp_levels' || key === 'mp_levels' || key === 'dp_levels' || key === 'pp' || key === 'pp_levels') continue;
         if (key === 'research_levels' || key === 'research_progress') continue;
         if (key === 'waterwheel_levels' || key === 'waterwheel_progress') continue;
         
