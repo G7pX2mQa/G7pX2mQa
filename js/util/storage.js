@@ -681,7 +681,7 @@ export function setCurrency(key, value, { delta = null, previous = null } = {}) 
     deltaBn = providedDelta;
   }
 
-  if (changed || deltaBn) {
+  if (changed || (deltaBn && !(effective.isInfinite?.() && deltaBn.isInfinite?.()))) {
     const detail = { key, value: effective, slot, delta: deltaBn ?? undefined };
     notifyCurrencySubscribers(detail);
     try { window.dispatchEvent(new CustomEvent('currency:change', { detail })); } catch {}
