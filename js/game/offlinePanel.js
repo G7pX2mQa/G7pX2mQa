@@ -26,7 +26,7 @@ import { addXp, getXpProgressRatio, getXpState } from './xpSystem.js';
 import { addMutationPower, getMutationState, getMutationProgressRatio, getTotalCumulativeMp } from './mutationSystem.js';
 import { getBookProductionRate, isSurgeActive, getTsunamiExponent } from './surgeEffects.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
-import { computeForgeGoldFromInputs, computeInfuseMagicFromInputs, computePendingDnaFromInputs } from '../ui/merchantTabs/resetTab.js';
+import { computeForgeGoldFromInputs, computeInfuseMagicFromInputs, computePendingDnaFromInputs, getCurrentSurgeLevel, getSurgeRequirement, isSurgeUnlocked } from '../ui/merchantTabs/resetTab.js';
 import { getLabGoldMultiplier } from './labNodes.js';
 import { getUcEacMaterialAccumulators, saveUcEacMaterialAccumulators } from './ucSpawner.js';
 import { bigNumFromLog10 } from '../util/bigNum.js';
@@ -131,6 +131,7 @@ export const RESOURCE_REGISTRY = [
         glassBg: 'linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0))', 
         glassOpacity: '0.6',
         getState: () => {
+
             const state = getXpState();
             if (!state) return null;
             return {
@@ -142,7 +143,7 @@ export const RESOURCE_REGISTRY = [
             };
         }
     },
-    { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels', type: 'levelStat', color: '#00c8fa' },
+    { key: 'xp_levels', icon: 'img/stats/xp/xp.webp',            singular: 'XP Level', plural: 'XP Levels', type: 'levelStat', color: '#00c8fa', barText: 'Level<span class="xp-level-value">{val}</span>' },
     { key: 'books', bgGradient: 'linear-gradient(to bottom, #82551b 0%, #94601e 15%, #AC6C1B 50%, #94601e 85%, #82551b 100%)',      icon: 'img/currencies/book/book.webp', baseIcon: 'img/currencies/book/book_plus_base.webp',   singular: 'Book',     plural: 'Books', type: 'currency' },
     { key: 'gold', bgGradient: 'linear-gradient(to bottom, #FF9801 0%, #FFAC15 15%, #FFC926 50%, #FFAC15 85%, #FF9801 100%)',       icon: 'img/currencies/gold/gold.webp', baseIcon: 'img/currencies/gold/gold_plus_base.webp',   singular: 'Gold',     plural: 'Gold', type: 'currency' },
     { 
@@ -171,13 +172,55 @@ export const RESOURCE_REGISTRY = [
             };
         }
     },
-    { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation', plural: 'Mutations', type: 'levelStat', color: '#ff9933' },
+    { key: 'mp_levels', icon: 'img/stats/mp/mp.webp',            singular: 'Mutation', plural: 'Mutations', type: 'levelStat', color: '#ff9933', barText: 'Mutation<span class="mp-level-value">{val}</span>' },
     { key: 'magic', bgGradient: 'linear-gradient(to bottom, #42138A 0%, #6A1ECF 15%, #9F30FF 50%, #6A1ECF 85%, #42138A 100%)',     icon: 'img/currencies/magic/magic.webp', baseIcon: 'img/currencies/magic/magic_plus_base.webp', singular: 'Magic',    plural: 'Magic', type: 'currency' },
     { key: 'gears', bgGradient: 'linear-gradient(to bottom, #5c5d61 0%, #8f9096 15%, #9d9fa6 50%, #8f9096 85%, #5c5d61 100%)',     icon: 'img/currencies/gear/gear.webp', baseIcon: 'img/currencies/gear/gear_plus_base.webp',   singular: 'Gear',     plural: 'Gears', type: 'currency' },
-    { key: 'waves', bgGradient: 'linear-gradient(to bottom, #0286a1 0%, #02b1d4 15%, #00eded 50%, #02b1d4 85%, #0286a1 100%)',     icon: 'img/currencies/wave/wave.webp', baseIcon: 'img/currencies/wave/wave_plus_base.webp',   singular: 'Wave',     plural: 'Waves', type: 'currency' },
+    { 
+        key: 'waves', 
+        icon: 'img/currencies/wave/wave.webp', 
+        baseIcon: 'img/currencies/wave/wave_plus_base.webp', 
+        singular: 'Waves', 
+        plural: 'Waves', 
+        type: 'levelProg', 
+        pinBgGradient: 'linear-gradient(180deg, rgba(10,30,40,1), rgba(15,40,55,1))', 
+        bgGradient: 'linear-gradient(to bottom, #0286a1 0%, #02b1d4 15%, #00eded 50%, #02b1d4 85%, #0286a1 100%)', 
+        fillGradient: 'linear-gradient(90deg, rgba(0,237,237,1) 0%, rgba(2,177,212,1) 50%, rgba(2,134,161,1) 100%)', 
+        barOutline: '3px', 
+        borderColor: '#023340', 
+        barBoxShadow: 'inset 0 6px 10px rgba(0,237,237,0.18), inset 0 -6px 14px rgba(0,0,0,0.52)', 
+        glassBg: 'linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0))', 
+        glassOpacity: '0.55',
+        getState: () => {
+            const level = getCurrentSurgeLevel();
+            const progress = bank?.waves?.value || BigNum.fromInt(0);
+            const req = getSurgeRequirement(level);
+            let isUnlocked = isSurgeUnlocked();
+            
+            let ratio = 0;
+            if (req.isInfinite?.()) {
+                ratio = 0;
+            } else if (progress.isInfinite?.()) {
+                ratio = 1;
+            } else if (!req.isZero?.()) {
+                const ratioBn = progress.div(req);
+                ratio = Number(ratioBn.toScientific?.() ?? '0');
+            }
+            
+            return {
+                level,
+                progress,
+                requirement: req,
+                isUnlocked,
+                ratio
+            };
+        }
+    },
+    { key: 'waves_levels', icon: 'img/misc/surge.webp', baseIcon: 'img/misc/surge_plus_base.webp', singular: 'Surge', plural: 'Surges', type: 'levelStat', color: '#00eded', barText: 'Surge <span class="waves-level-value">{val}</span>' },
     { key: 'dna', bgGradient: 'repeating-linear-gradient(-45deg, #C00000, #C00000 30.1px, #00B0F0 30.1px, #00B0F0 60.2px)',       icon: 'img/currencies/dna/dna.webp', baseIcon: 'img/currencies/dna/dna_plus_base.webp',     singular: 'DNA',      plural: 'DNA', type: 'currency' },
-    { key: 'research_levels', icon: 'img/stats/rp/rp.webp',      singular: 'Level',    plural: 'Levels', type: 'levelStat' },
-    { key: 'waterwheel_levels', icon: 'img/waterwheels/waterwheel_coin.webp', singular: 'Level', plural: 'Levels', type: 'levelStat' },
+    { key: 'research_levels', icon: 'img/stats/rp/rp.webp',      singular: 'Level',    plural: 'Levels', type: 'levelStat', barText: 'Level<span class="research-level-value">{val}</span>' },
+    { key: 'waterwheel_levels', icon: 'img/waterwheels/waterwheel_coin.webp', singular: 'Level', plural: 'Levels', type: 'levelStat', barText: 'Level<span class="waterwheel-level-value">{val}</span>' },
+
+
     { key: 'scrap', bgGradient: 'linear-gradient(to bottom, #666666 0%, #767676 15%, #8a8a8a 50%, #767676 85%, #666666 100%)', icon: 'img/currencies/scrap/scrap.webp', baseIcon: 'img/currencies/scrap/scrap_plus_base.webp', singular: 'Scrap', plural: 'Scrap', type: 'currency' },
     { key: 'stone', bgGradient: 'linear-gradient(to bottom, #666666 0%, #767676 15%, #8a8a8a 50%, #767676 85%, #666666 100%)', icon: 'img/materials/stone.webp', baseIcon: 'img/currencies/scrap/scrap_base.webp', noPlusBase: true, singular: 'Stone', plural: 'Stone', type: 'currency' },
     { key: 'copper', bgGradient: 'linear-gradient(to bottom, #b6673f 0%, #d1835c 15%, #e99f79 50%, #d1835c 85%, #b6673f 100%)', icon: 'img/materials/copper.webp', baseIcon: 'img/currencies/scrap/scrap_base.webp', noPlusBase: true, singular: 'Copper', plural: 'Copper', type: 'currency' },
@@ -217,7 +260,7 @@ export const RESOURCE_REGISTRY = [
             };
         }
     },
-    { key: 'dp_levels', icon: 'img/stats/dp/dp.webp',            singular: 'Depth Meter', plural: 'Depth Meters', type: 'levelStat', color: '#A98060' },
+    { key: 'dp_levels', icon: 'img/stats/dp/dp.webp',            singular: 'Meter of Depth', plural: 'Meters of Depth', type: 'levelStat', color: '#A98060', barText: 'Depth: <span class="dp-level-value">{val}</span>m' },
     { key: 'cores', bgGradient: 'linear-gradient(to bottom, #0a0a0a 0%, #1a1a1a 15%, #2a2a2a 50%, #1a1a1a 85%, #0a0a0a 100%)',      icon: 'img/currencies/core/core.webp', baseIcon: 'img/currencies/core/core_plus_base.webp',   singular: 'Core',     plural: 'Cores', type: 'currency' },
     { key: 'crystals', bgGradient: 'linear-gradient(to bottom, #943276 0%, #bd53a3 15%, #e979d0 50%, #bd53a3 85%, #943276 100%)',      icon: 'img/currencies/crystal/crystal.webp', baseIcon: 'img/currencies/crystal/crystal_plus_base.webp',   singular: 'Crystal',     plural: 'Crystals', type: 'currency' },
 ];
