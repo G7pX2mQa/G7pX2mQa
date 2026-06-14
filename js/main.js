@@ -953,6 +953,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./game/webgl/waterSystem.js'),
     import('./ui/merchantTabs/labTab.js'),
     import('./util/fpsTracker.js'),
+    import('./util/performanceGraph.js'),
     import('./ui/notifications.js'),
     import('./ui/merchantTabs/flowTab.js'),
     import('./ui/sas/mainSettingsOverlay.js'),
@@ -1216,6 +1217,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     waterSystemModule,
     labTabModule,
     fpsTrackerModule,
+    performanceGraphModule,
     notificationModule,
     flowTabModule,
     mainSettingsOverlayModule,
@@ -1251,6 +1253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ waterSystem } = waterSystemModule);
   const { initLabLogic } = labTabModule;
   const { initFpsTracker } = fpsTrackerModule;
+  const { initPerformanceGraph } = performanceGraphModule;
   const { initNotifications, unpauseNotifications: _unpause, pauseNotifications: _pause, showNotification, showWelcomePopup } = notificationModule;
   const { initFlowSystem } = flowTabModule;
   unpauseNotifications = _unpause;
@@ -1344,6 +1347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try { initSurgeEffects(); } catch(e) { console.error('Surge effects init failed', e); }
   try { initLabLogic(); } catch(e) { console.error('Lab system init failed', e); }
   try { initFpsTracker(); } catch(e) { console.error('FPS tracker init failed', e); }
+  try { initPerformanceGraph(); } catch(e) { console.error('Performance graph init failed', e); }
   try { initFlowSystem(); } catch(e) { console.error('Flow system init failed', e); }
   
   applyPendingSlotWipe();
