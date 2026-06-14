@@ -23,7 +23,8 @@ function startRefreshRateMonitor() {
     const elapsed = now - startTime;
     
     if (elapsed >= 1000) { // Measure for 1 second intervals
-      if (document.hidden || false) {
+      // Do not measure while loading game elements to prevent incorrectly locking to 60fps due to load hitching
+      if (document.hidden || document.documentElement.classList.contains('booting') || document.getElementById('boot-loader')) {
         frameCount = 0;
         startTime = now;
         rafId = requestAnimationFrame(loop);
