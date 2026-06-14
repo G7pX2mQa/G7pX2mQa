@@ -393,11 +393,17 @@ export function setResearchNodeLevel(id, level, suppressNotify = false) {
 
     const s = ensureNodeState(id);
     if (s.level === level) return true;
+    
+    const wasExperimentUnlocked = id === 4 && s.level >= 1;
     s.level = level;
+    const isExperimentUnlockedNow = id === 4 && level >= 1;
     
     try {
         localStorage.setItem(NODE_LEVEL_KEY(slot, id), level.toString());
         window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { id, level, suppressNotify } }));
+        if (!wasExperimentUnlocked && isExperimentUnlockedNow) {
+            window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'experiment', slot } }));
+        }
     } catch {}
     return true;
 }
