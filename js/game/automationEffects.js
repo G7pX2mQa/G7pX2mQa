@@ -20,6 +20,7 @@ import { settingsManager } from './settingsManager.js';
 import { isNodeLocked } from '../ui/mapOverlay.js';
 import { getUpgrade } from './upgrades.js';
 import { getDpState } from './dpSystem.js';
+import { addPp, isPpSystemUnlocked } from './ppSystem.js';
 import { passiveRegistry, registerPassiveSystem } from './passiveRegistry.js';
 import { getPassiveCoinReward } from './coinPickup.js';
 import { isCurrencyLocked } from '../util/storage.js';
@@ -533,6 +534,9 @@ registerPassiveSystem({
         if (window.dpSystem && typeof window.dpSystem.addDp === 'function') {
             window.dpSystem.addDp(collectCount);
         }
+        if (isPpSystemUnlocked()) {
+            addPp(collectCount);
+        }
         
         const now = Date.now();
         if (now - lastUcEacSaveTime > 1000) {
@@ -596,6 +600,9 @@ registerPassiveSystem({
         if (anyGain) {
             rewards.uc_eac_progress = ucEacProgress;
             rewards.dp = totalPassives;
+            if (isPpSystemUnlocked()) {
+                rewards.pp = totalPassives;
+            }
         }
         return rewards;
     }
