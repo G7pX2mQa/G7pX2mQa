@@ -314,10 +314,17 @@ function buildOverlay() {
   });
 }
 
+
+let lastRenderedEntryIds = '';
+let lastRenderedCurrentEntryId = null;
+let lastRenderedNerdMode = null;
+
 function renderHelpContent() {
+
   if (!overlayEl) return;
   const container = overlayEl.querySelector('.help-container');
   if (!container) return;
+
 
   // Filter entries to only show visible ones
   const visibleEntries = HELP_ENTRIES.filter(e => e.isVisible());
@@ -326,6 +333,20 @@ function renderHelpContent() {
   if (!visibleEntries.find(e => e.id === currentEntryId)) {
     currentEntryId = 1;
   }
+
+  const isNerdMode = settingsManager.get('nerd_mode');
+  const visibleIds = visibleEntries.map(e => e.id).join(',');
+
+  if (lastRenderedEntryIds === visibleIds && 
+      lastRenderedCurrentEntryId === currentEntryId && 
+      lastRenderedNerdMode === isNerdMode) {
+    return;
+  }
+
+  lastRenderedEntryIds = visibleIds;
+  lastRenderedCurrentEntryId = currentEntryId;
+  lastRenderedNerdMode = isNerdMode;
+
 
   const currentEntry = HELP_ENTRIES.find(e => e.id === currentEntryId) || HELP_ENTRIES[0];
 
@@ -353,7 +374,7 @@ function renderHelpContent() {
   }
 
   let paragraphContent = '';
-  const isNerdMode = settingsManager.get('nerd_mode');
+  // isNerdMode already checked above
   if (isNerdMode && currentEntry.nerdModeText) {
     currentThemeClass += " is-nerd-mode";
   }
