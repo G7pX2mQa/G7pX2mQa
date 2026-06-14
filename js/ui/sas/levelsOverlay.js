@@ -24,15 +24,16 @@ setInterval(() => {
 }, 100);
 
 function getStatIsUnlocked(prefix) {
-    if (levelStateCache[prefix]) {
-        return levelStateCache[prefix].isUnlocked;
-    }
     const progConfig = RESOURCE_REGISTRY.find(c => c.key === prefix);
     if (progConfig && typeof progConfig.getState === 'function') {
         const state = progConfig.getState();
         if (state && state.isUnlocked !== undefined) {
+            levelStateCache[prefix] = state; // update cache
             return state.isUnlocked;
         }
+    }
+    if (levelStateCache[prefix]) {
+        return levelStateCache[prefix].isUnlocked;
     }
     return true;
 }
@@ -135,7 +136,7 @@ function createLevelRow(container, isUniversal, levelConfig, progConfig, prefix)
       if (levelConfig.barText) {
           // Keep the original template formatting, but inject our own span data attributes.
           // Since some barText's have their own classes (like xp-level-value), we just make sure we add our data-level-val.
-          levelDiv.innerHTML = levelConfig.barText.replace('{val}', '0').replace('<span ', '<span data-level-val ');
+          levelDiv.innerHTML = levelConfig.barText.replace('{val}', formatNumber(0)).replace('<span ', '<span data-level-val ');
       } else {
           levelDiv.innerHTML = `${levelConfig.singular} <span class="level-row-level-value" data-level-val>0</span>`;
       }
@@ -146,7 +147,7 @@ function createLevelRow(container, isUniversal, levelConfig, progConfig, prefix)
 
       const progressDiv = document.createElement('div');
       progressDiv.className = 'level-row-bar__progress';
-      progressDiv.innerHTML = `<span data-prog-val>0</span><span class="level-row-progress-separator">/</span><span data-req-val>10</span><span class="level-row-progress-suffix">${progConfig ? progConfig.singular : ''}</span>`;
+      progressDiv.innerHTML = `<span data-prog-val>0</span><span class="level-row-progress-separator">/</span><span data-req-val>10</span><span class="level-row-progress-suffix">${progConfig ? (progConfig.plural ? progConfig.plural : progConfig.singular) : ''}</span>`;
 
       frame.appendChild(levelDiv);
       frame.appendChild(divider);
@@ -406,6 +407,13 @@ function handleStatChange(e) {
              }
           }
           
+          
+          const suffixEl = row.querySelector(".level-row-progress-suffix");
+          if (suffixEl && l.progConfig) {
+             let reqStr = reqVal.toString();
+             suffixEl.innerHTML = (l.progConfig.plural && reqStr !== "1") ? l.progConfig.plural : l.progConfig.singular;
+          }
+
           const fillEl = row.querySelector("[data-fill]");
           if (fillEl) fillEl.style.width = `${pct}%`;
       }
@@ -413,6 +421,12 @@ function handleStatChange(e) {
   });
 }
 
+
+function handleCurrencyChange(e) {
+  if (e && e.detail && e.detail.key === 'waves' && levelsOverlay && levelsOverlay.isOpen) {
+    handleStatChange(null);
+  }
+}
 
 const levelsOverlay = createSASOverlay({
   id: 'levels-overlay',
@@ -422,11 +436,13 @@ const levelsOverlay = createSASOverlay({
   onRender: (overlayEl) => {
     populateLevelsOverlay(overlayEl);
     window.addEventListener('level:change', handleStatChange);
+    window.addEventListener('currency:change', handleCurrencyChange);
     document.addEventListener('click', handleOutsideClick);
     handleStatChange();
   },
   onClose: () => {
     window.removeEventListener('level:change', handleStatChange);
+    window.removeEventListener('currency:change', handleCurrencyChange);
     document.removeEventListener('click', handleOutsideClick);
     if (levelsOverlay.overlayEl) {
       const rows = levelsOverlay.overlayEl.querySelectorAll('.currency-row');
