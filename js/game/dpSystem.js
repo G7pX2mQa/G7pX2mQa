@@ -31,17 +31,8 @@ function registerDpFpMultiplierProvider() {
           
           if (!Number.isFinite(levelNum) || levelNum === 0) return mult;
 
-          let powVal = Math.pow(1.1, levelNum);
-          
-          if (powVal >= 1e20 || !Number.isFinite(powVal)) {
-               const exponent = levelNum * Math.log10(1.1);
-               const mantissa = Math.pow(10, exponent % 1);
-               const intPart = Math.floor(exponent);
-               let nextMult = mult.mulDecimalFloor(mantissa);
-               return nextMult.mulBigNumInteger(BigNum.fromAny("1e" + intPart));
-          } else {
-               return mult.mulDecimalFloor(powVal);
-          }
+          const powValBn = bigNumFromLog10(levelNum * Math.log10(1.1));
+          return mult.mulBigNumInteger(powValBn);
       } catch {
           return mult;
       }
@@ -610,12 +601,8 @@ export function getDpMultiplier() {
           if (ppLevel && !ppLevel.isZero()) {
               const ppLevelNum = Number(ppLevel.toString());
               if (Number.isFinite(ppLevelNum)) {
-                   const powVal = Math.pow(2, ppLevelNum);
-                   if (!Number.isFinite(powVal)) {
-                        dpMult = dpMult.mulBigNumInteger(bigNumFromLog10(ppLevelNum * Math.log10(2)));
-                   } else {
-                        dpMult = dpMult.mulDecimalFloor(powVal);
-                   }
+                   const powValBn = bigNumFromLog10(ppLevelNum * Math.log10(2));
+                   dpMult = dpMult.mulBigNumInteger(powValBn);
               }
           }
       }
