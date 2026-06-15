@@ -257,7 +257,7 @@ export function initUcPickup({
             window.dpSystem.addDp(collectedCount * manualValueMultiplier);
 
             if (isPpSystemUnlocked()) {
-                 addPp(collectedCount * manualValueMultiplier);
+                 addPp(collectedCount);
             }
         }
 
