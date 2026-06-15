@@ -783,8 +783,8 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   height: var(--pp-bar-h);
   border: var(--bar-outline-w, var(--pp-bar-outline)) solid var(--bar-border-color, #000);
   border-radius: 0;
-  background: linear-gradient(180deg, #3a2a1b 0%, #24180d 100%);
-  box-shadow: var(--bar-box-shadow, inset 0 6px 10px rgba(255,192,128,0.18), inset 0 -6px 14px rgba(0,0,0,0.52));
+  background: linear-gradient(180deg, #3a1b30 0%, #240d1e 100%);
+  box-shadow: var(--bar-box-shadow, inset 0 6px 10px rgba(255,128,217,0.18), inset 0 -6px 14px rgba(0,0,0,0.52));
   overflow: hidden;
   pointer-events: none;
 }
@@ -793,7 +793,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   position: absolute;
   inset: 0;
   width: var(--pp-fill, 0%);
-  background: linear-gradient(180deg, #8f6842 0%, #6f4d2f 45%, #4d341f 100%);
+  background: linear-gradient(180deg, #bd4d9e 0%, #873671 45%, #59244a 100%);
 }
 
 .pp-bar__fill::after{
@@ -1113,8 +1113,8 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   height: var(--pp-bar-h);
   border: var(--bar-outline-w, var(--pp-bar-outline)) solid var(--bar-border-color, #000);
   border-radius: 0;
-  background: linear-gradient(180deg, #3a2a1b 0%, #24180d 100%);
-  box-shadow: var(--bar-box-shadow, inset 0 6px 10px rgba(255,192,128,0.18), inset 0 -6px 14px rgba(0,0,0,0.52));
+  background: linear-gradient(180deg, #3a1b30 0%, #240d1e 100%);
+  box-shadow: var(--bar-box-shadow, inset 0 6px 10px rgba(255,128,217,0.18), inset 0 -6px 14px rgba(0,0,0,0.52));
   overflow: hidden;
   pointer-events: none;
 }
@@ -1123,7 +1123,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   position: absolute;
   inset: 0;
   width: var(--pp-fill, 0%);
-  background: linear-gradient(180deg, #8f6842 0%, #6f4d2f 45%, #4d341f 100%);
+  background: linear-gradient(180deg, #bd4d9e 0%, #873671 45%, #59244a 100%);
 }
 
 .pp-bar__fill::after{
