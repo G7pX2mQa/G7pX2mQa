@@ -99,6 +99,7 @@ let syncCurrencyMultipliersFromUpgrades;
 let registerXpUpgradeEffects;
 let initXpSystem;
 let initDpSystem;
+let initPpSystem;
 let syncCoinMultiplierWithXpLevel;
 let onUpgradesChanged;
 let registerPreloadedAudio;
@@ -631,6 +632,7 @@ export function enterArea(areaID) {
       }
       if (typeof initDpSystem === 'function') {
         try { initDpSystem(); } catch {}
+        try { initPpSystem(); } catch {}
       }
       
       // Determine the correct playfield selector based on the active area
@@ -769,6 +771,7 @@ export function enterArea(areaID) {
       }
       if (typeof initDpSystem === 'function') {
         try { initDpSystem(); } catch {}
+        try { initPpSystem(); } catch {}
       }
 	  
       startAreaMusic(AREAS.STARTER_COVE, 'sounds/The_Cove.ogg');
@@ -856,6 +859,7 @@ export function enterArea(areaID) {
       }
       if (typeof initDpSystem === 'function') {
         try { initDpSystem(); } catch {}
+        try { initPpSystem(); } catch {}
       }
 	  syncXpMpHudLayout();
 	  
@@ -958,6 +962,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     import('./util/audioCache.js'),
     import('./game/xpSystem.js'),
     import('./game/dpSystem.js'),
+    import('./game/ppSystem.js'),
     import('./ui/merchantTabs/resetTab.js'),
     import('./game/mutationSystem.js'),
     import('./ui/popups.js'),
@@ -1222,6 +1227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     audioCacheModule,
     xpModule,
     dpModule,
+    ppModule,
     resetModule,
     mutationModule,
     popupModule,
@@ -1258,6 +1264,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ({ registerPreloadedAudio } = audioCacheModule);
   ({ initXpSystem, syncCoinMultiplierWithXpLevel } = xpModule);
   ({ initDpSystem } = dpModule);
+  ({ initPpSystem } = ppModule);
   ({ initResetSystem: initResetSystemGame } = resetModule);
   ({ initMutationSystem, getMutationCoinSprite, onMutationChange: onMutationChangeGame, getMutationState } = mutationModule);
   ({ initPopups } = popupModule);
