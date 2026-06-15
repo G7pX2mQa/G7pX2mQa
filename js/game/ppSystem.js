@@ -135,10 +135,10 @@ function ensureHudRefs() {
   if (hudRefs.container) return true;
   if (typeof document === 'undefined') return false;
   hudRefs = {
-    container: document.querySelector('.stat-container[data-pp]'),
-    bar: document.querySelector('[data-pp-bar]'),
-    fill: document.querySelector('[data-pp-fill]'),
-    ppLevelValue: document.querySelector('[data-pp-level-value]'),
+    container: document.querySelector('[data-pp-hud]'),
+    bar: document.querySelector('.pp-bar'),
+    fill: document.querySelector('.pp-bar__fill'),
+    ppLevelValue: document.querySelector('.pp-level-value'),
     progress: document.querySelector('[data-pp-progress]')
   };
   return !!hudRefs.container;
