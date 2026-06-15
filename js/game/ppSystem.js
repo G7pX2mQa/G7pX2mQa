@@ -41,11 +41,13 @@ function ppRequirementForPpLevel(ppLevel) {
       let l = BigNum.fromAny(ppLevel ?? 0);
       targetLevel = Number(l.toString());
   } catch {}
-  if (targetLevel <= 0) return BigNum.fromInt(10);
-  if (targetLevel < 200) {
-     return BigNum.fromAny(Math.floor(10 * Math.pow(1.5, targetLevel)));
+  if (targetLevel < 0) return BigNum.fromInt(1000);
+  let l = targetLevel;
+  if (l >= 4e12) {
+      const diff = l - 4e12;
+      l += Math.pow(diff, 1.5) / 1e4;
   }
-  return BigNum.fromAny(Math.floor(10 * Math.pow(1.5, 200)));
+  return bigNumFromLog10(3 * (l + 1));
 }
 
 function updatePpRequirement() {
@@ -169,6 +171,11 @@ function updateHud() {
       const reqHtml = formatNumber(requirementBn);
       progress.innerHTML = `<span class="pp-progress-current">0</span><span class="pp-progress-separator">/</span><span class="pp-progress-required">${reqHtml}</span><span class="pp-progress-suffix">PP</span>`;
     }
+    if (bar) {
+      bar.setAttribute('aria-valuenow', '0');
+      const reqPlain = requirementBn ? requirementBn.toString() : '10';
+      bar.setAttribute('aria-valuetext', `0 / ${reqPlain} PP`);
+    }
     syncDpPpHudLayout();
     return;
   }
@@ -182,6 +189,17 @@ function updateHud() {
   }
   if (ppLevelValue) {
     ppLevelValue.textContent = formatNumber(ppState.ppLevel);
+  }
+  if (progress) {
+    const currentHtml = formatNumber(ppState.progress);
+    const reqHtml = formatNumber(requirementBn);
+    progress.innerHTML = `<span class="pp-progress-current">${currentHtml}</span><span class="pp-progress-separator">/</span><span class="pp-progress-required">${reqHtml}</span><span class="pp-progress-suffix">PP</span>`;
+  }
+  if (bar) {
+    bar.setAttribute('aria-valuenow', pct.toString());
+    const currPlain = ppState.progress ? ppState.progress.toString() : '0';
+    const reqPlain = requirementBn ? requirementBn.toString() : '10';
+    bar.setAttribute('aria-valuetext', `${currPlain} / ${reqPlain} PP`);
   }
   syncDpPpHudLayout();
 }
@@ -224,10 +242,6 @@ export function getPpProgressRatio() {
 
 export function getPpMultiplier() {
   let ppMult = BigNum.fromInt(1);
-  try {
-    const coreBonus = getBuildingBonus('core', getBuildingLevel('core'));
-    ppMult = safeMultiplyBigNum(ppMult, coreBonus);
-  } catch (e) { console.error(e); }
   for (const provider of externalPpMultiplierProviders) {
     try {
       const val = provider(ppMult);
