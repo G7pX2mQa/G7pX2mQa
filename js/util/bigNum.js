@@ -1,40 +1,5 @@
 // js/util/bigNum.js
 
-function fastDigitCount(n) {
-  if (n < 1) {
-    if (n === 0) return 1;
-    return Math.floor(Math.log10(n)) + 1;
-  }
-  if (n < 1000000000) {
-    if (n < 10000) {
-      if (n < 100) return n < 10 ? 1 : 2;
-      return n < 1000 ? 3 : 4;
-    } else {
-      if (n < 1000000) return n < 100000 ? 5 : 6;
-      if (n < 100000000) return n < 10000000 ? 7 : 8;
-      return 9;
-    }
-  } else {
-    if (n < 100000000000000) {
-      if (n < 100000000000) return n < 10000000000 ? 10 : 11;
-      if (n < 10000000000000) return n < 1000000000000 ? 12 : 13;
-      return 14;
-    } else {
-      if (n < 100000000000000000) {
-        if (n < 1000000000000000) return 15;
-        if (n < 10000000000000000) return 16;
-        return 17;
-      } else {
-        if (n < 1000000000000000000) return 18;
-        if (n < 10000000000000000000) return 19;
-        if (n < 100000000000000000000) return 20;
-        if (n < 1000000000000000000000) return 21;
-        return Math.floor(Math.log10(n)) + 1;
-      }
-    }
-  }
-}
-
 export class BigNum {
   static DEFAULT_PRECISION = 18;
   static MAX_E = 1.7976931348623157e+308; // Number.MAX_VALUE
@@ -558,6 +523,41 @@ export class BigNum {
 }
 
 // --- BigNum Utilities ---
+
+function fastDigitCount(n) {
+  if (n < 1) {
+    if (n === 0) return 1;
+    return Math.floor(Math.log10(n)) + 1;
+  }
+  if (n < 1000000000) {
+    if (n < 10000) {
+      if (n < 100) return n < 10 ? 1 : 2;
+      return n < 1000 ? 3 : 4;
+    } else {
+      if (n < 1000000) return n < 100000 ? 5 : 6;
+      if (n < 100000000) return n < 10000000 ? 7 : 8;
+      return 9;
+    }
+  } else {
+    if (n < 100000000000000) {
+      if (n < 100000000000) return n < 10000000000 ? 10 : 11;
+      if (n < 10000000000000) return n < 1000000000000 ? 12 : 13;
+      return 14;
+    } else {
+      if (n < 100000000000000000) {
+        if (n < 1000000000000000) return 15;
+        if (n < 10000000000000000) return 16;
+        return 17;
+      } else {
+        if (n < 1000000000000000000) return 18;
+        if (n < 10000000000000000000) return 19;
+        if (n < 100000000000000000000) return 20;
+        if (n < 1000000000000000000000) return 21;
+        return Math.floor(Math.log10(n)) + 1;
+      }
+    }
+  }
+}
 
 export function approxLog10BigNum(value) {
   if (!(value instanceof BigNum)) {
