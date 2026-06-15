@@ -2,12 +2,6 @@
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 
-const PREFIX = 'ccc:';
-export const STORAGE_PREFIX = PREFIX;
-
-const SLOT_SIGNATURE_PREFIX = `${PREFIX}slotSig`;
-const SLOT_MODIFIED_PREFIX = `${PREFIX}slotMod`;
-
 const MULT_SCALE = 18;
 const MULT_SCALE_TAG = 'XM:';
 
@@ -26,13 +20,13 @@ function normalizeSlotValue(slot) {
 function slotSignatureKey(slot) {
   const normalized = normalizeSlotValue(slot);
   if (normalized == null) return null;
-  return `${SLOT_SIGNATURE_PREFIX}:${normalized}`;
+  return `ccc:slotSig:${normalized}`;
 }
 
 function slotModifiedKey(slot) {
   const normalized = normalizeSlotValue(slot);
   if (normalized == null) return null;
-  return `${SLOT_MODIFIED_PREFIX}:${normalized}`;
+  return `ccc:slotMod:${normalized}`;
 }
 
 function notifyCurrencySubscribers(detail = {}) {
@@ -289,7 +283,7 @@ export function notifyGameSessionStarted() {
 
 export function getLastSaveTimeKey(slot = getActiveSlot()) {
   if (slot == null) return null;
-  return `${PREFIX}lastSaveTime:${slot}`;
+  return `ccc:lastSaveTime:${slot}`;
 }
 
 export function updateLastSaveTime() {
@@ -346,9 +340,9 @@ initHeartbeat();
 
 // -------------------- KEYS --------------------
 export const KEYS = {
-  HAS_OPENED_SAVE_SLOT: `${PREFIX}hasOpenedSaveSlot`,
-  SAVE_SLOT:            `${PREFIX}saveSlot`,
-  CURRENT_AREA:         `${PREFIX}currentArea`,
+  HAS_OPENED_SAVE_SLOT: `ccc:hasOpenedSaveSlot`,
+  SAVE_SLOT:            `ccc:saveSlot`,
+  CURRENT_AREA:         `ccc:currentArea`,
   CURRENCY:   {},
   MULTIPLIER: {},
 };
@@ -525,10 +519,9 @@ export function markSaveSlotModified(slot = getActiveSlot()) {
   } catch {}
 }
 
-
 for (const key of Object.values(CURRENCIES)) {
-  KEYS.CURRENCY[key]   = `${PREFIX}${key}`;
-  KEYS.MULTIPLIER[key] = `${PREFIX}mult:${key}`; // one key only
+  KEYS.CURRENCY[key]   = `ccc:${key}`;
+  KEYS.MULTIPLIER[key] = `ccc:mult:${key}`; // one key only
 }
 
 initCurrencyStorageWatchers();
@@ -582,16 +575,15 @@ export function ensureMultiplierDefaults() {
   }
 }
 
-
 // -------------------- CURRENCY UNLOCK STATE --------------------
 export function isCurrencyUnlocked(key, slot = getActiveSlot()) {
   if (key === CURRENCIES.COINS) return true;
-  const k = `${PREFIX}currency_unlocked:${key}:${slot}`;
+  const k = `ccc:currency_unlocked:${key}:${slot}`;
   return localStorage.getItem(k) === 'true';
 }
 
 export function setCurrencyUnlocked(key, value, slot = getActiveSlot()) {
-  const k = `${PREFIX}currency_unlocked:${key}:${slot}`;
+  const k = `ccc:currency_unlocked:${key}:${slot}`;
   const isCurrentlyUnlocked = isCurrencyUnlocked(key, slot);
   const nextValue = !!value;
   if (isCurrentlyUnlocked === nextValue) return;
