@@ -6,7 +6,6 @@ import { formatNumber } from '../util/numFormat.js';
 import { syncDpPpHudLayout } from '../ui/hudLayout.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 
-import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
 
 
 
@@ -14,13 +13,11 @@ import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
 const KEY_UNLOCK = (slot) => `ccc:ppUnlocked:${slot}`;
 const KEY_PP_LEVEL = (slot) => `ccc:ppLevel:${slot}`;
 const KEY_PROGRESS = (slot) => `ccc:ppProgress:${slot}`;
-const KEY_HIGHEST_LEVEL = (slot) => `ccc:ppHighestLevel:${slot}`;
 
 const ppState = {
   unlocked: false,
   ppLevel: bnZero(),
   progress: bnZero(),
-  highestLevel: bnZero()
 };
 
 let stateLoaded = false;
@@ -83,12 +80,8 @@ function ensureStateLoaded(force = false) {
     ppState.ppLevel = bnZero();
   }
   try {
-    ppState.highestLevel = BigNum.fromAny(localStorage.getItem(KEY_HIGHEST_LEVEL(slot)) ?? '0');
   } catch {
-    ppState.highestLevel = bnZero();
   }
-  if (isBuildingsUnlocked() && ppState.ppLevel.cmp?.(ppState.highestLevel) > 0) {
-    ppState.highestLevel = ppState.ppLevel.clone?.() ?? ppState.ppLevel;
   }
   try {
     ppState.progress = BigNum.fromAny(localStorage.getItem(KEY_PROGRESS(slot)) ?? '0');
@@ -104,7 +97,6 @@ function ensureStateLoaded(force = false) {
   updatePpRequirement();
   ensurePpStorageWatchers();
   return ppState;
-}
 
 function persistState() {
   const slot = getActiveSlot();
@@ -114,7 +106,6 @@ function persistState() {
     [KEY_UNLOCK(slot)]: ppState.unlocked ? '1' : '0',
     [KEY_PP_LEVEL(slot)]: ppState.ppLevel.toString(),
     [KEY_PROGRESS(slot)]: ppState.progress.toString(),
-    [KEY_HIGHEST_LEVEL(slot)]: ppState.highestLevel.toString()
   };
 
   try {
@@ -223,8 +214,6 @@ export function resetPpProgress({ keepUnlock = true } = {}) {
   const wasUnlocked = ppState.unlocked;
   resetLockedPpState();
   ppState.unlocked = keepUnlock ? (wasUnlocked || ppState.unlocked) : false;
-  if (isBuildingsUnlocked() && ppState.ppLevel.cmp?.(ppState.highestLevel) > 0) {
-    ppState.highestLevel = ppState.ppLevel.clone?.() ?? ppState.ppLevel;
   }
   persistState();
   updateHud();
@@ -316,8 +305,6 @@ export function addPp(amount, { silent = false } = {}) {
     
     updatePpRequirement();
 
-    if (isBuildingsUnlocked() && ppState.ppLevel.cmp?.(ppState.highestLevel) > 0) {
-      ppState.highestLevel = ppState.ppLevel.clone?.() ?? ppState.ppLevel;
     }
 
     persistState();
@@ -434,8 +421,6 @@ export function addPp(amount, { silent = false } = {}) {
       updatePpRequirement();
   }
 
-  if (isBuildingsUnlocked() && ppState.ppLevel.cmp?.(ppState.highestLevel) > 0) {
-    ppState.highestLevel = ppState.ppLevel.clone?.() ?? ppState.ppLevel;
   }
 
   persistState();
@@ -465,7 +450,6 @@ export function getPpState() {
     ppLevel: ppState.ppLevel.clone?.() ?? ppState.ppLevel,
     progress: ppState.progress.clone?.() ?? ppState.progress,
     requirement: requirementBn.clone?.() ?? requirementBn,
-    highestLevel: ppState.highestLevel.clone?.() ?? ppState.highestLevel,
   };
 }
 
@@ -493,10 +477,6 @@ export function unlockPpSystem() {
   return true;
 }
 
-export function getHighestPpLevel() {
-  ensureStateLoaded();
-  return ppState.highestLevel;
-}
 
 if (typeof window !== 'undefined') {
   window.ppSystem = window.ppSystem || {};
@@ -509,7 +489,8 @@ if (typeof window !== 'undefined') {
     isPpSystemUnlocked,
     getPpRequirementForPpLevel,
     resetPpProgress,
-    getPpProgressRatio,
-    getHighestPpLevel
+    getPpProgressRatio
   });
+
+
 }
