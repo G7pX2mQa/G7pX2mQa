@@ -5,12 +5,12 @@ import { BigNum, bigNumFromLog10 } from '../../../util/bigNum.js';
 import { playAudio } from '../../../util/audioManager.js';
 import { settingsManager } from '../../../game/settingsManager.js';
 
-const VOID_LEVEL_KEY = 'ccc:voidLevel';
+const VOID_LEVEL_KEY = (slot) => `ccc:voidLevel:${slot}`;
 
 export function getVoidLevel(slot = getActiveSlot()) {
     const slotKey = String(slot ?? 'default');
     try {
-        const valStr = localStorage.getItem(`${VOID_LEVEL_KEY}:${slotKey}`);
+        const valStr = localStorage.getItem(VOID_LEVEL_KEY(slotKey));
         if (valStr !== null && valStr !== 'undefined') {
             try {
                 return BigNum.fromAny(valStr);
@@ -32,7 +32,7 @@ export function setVoidLevel(level, slot = getActiveSlot()) {
         valBn = BigNum.fromInt(0);
     }
     try {
-        localStorage.setItem(`${VOID_LEVEL_KEY}:${slotKey}`, valBn.toString());
+        localStorage.setItem(VOID_LEVEL_KEY(slotKey), valBn.toString());
         if (bank.rainbowGems && bank.rainbowGems.mult) {
             bank.rainbowGems.mult.set(getRainbowGemMultiplier());
         }
