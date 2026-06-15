@@ -453,6 +453,7 @@ if (typeof window !== 'undefined') {
   window.resetSystem = window.resetSystem || {};
   Object.assign(window.resetSystem, {
     updateBuildingsPanelVisibility,
+    updateBuildingsOverlayUi: updateOverlayUi,
   });
 }
 
