@@ -110,8 +110,6 @@ let storageLockPatched = false;
 let originalSetItem = null;
 let originalRemoveItem = null;
 
-const STAT_MULTIPLIER_STORAGE_PREFIX = 'ccc:debug:stat-mult';
-const ACTION_LOG_STORAGE_PREFIX = 'ccc:actionLog';
 const MAX_ACTION_LOG_ENTRIES = 100;
 const WARP_CHARGES_KEY = (slot) => `ccc:warp:charges:${slot}`;
 const MAX_WARPS = 24;
@@ -409,31 +407,23 @@ function setupLiveBindingListeners() {
     addDebugPanelCleanup(() => window.removeEventListener('flow:change', flowHandler));
 }
 
-
-
-
-
-
-const XP_KEY_PREFIX = 'ccc:xp';
 const XP_KEYS = {
-    unlock: (slot) => `${XP_KEY_PREFIX}:unlocked:${slot}`,
-    level:  (slot) => `${XP_KEY_PREFIX}:level:${slot}`,
-    progress: (slot) => `${XP_KEY_PREFIX}:progress:${slot}`,
+    unlock: (slot) => `ccc:xp:unlocked:${slot}`,
+    level:  (slot) => `ccc:xp:level:${slot}`,
+    progress: (slot) => `ccc:xp:progress:${slot}`,
 };
 
-const MUTATION_KEY_PREFIX = 'ccc:mutation';
 const MUTATION_KEYS = {
-    unlock: (slot) => `${MUTATION_KEY_PREFIX}:unlocked:${slot}`,
-    level:  (slot) => `${MUTATION_KEY_PREFIX}:level:${slot}`,
-    progress: (slot) => `${MUTATION_KEY_PREFIX}:progress:${slot}`,
+    unlock: (slot) => `ccc:mutation:unlocked:${slot}`,
+    level:  (slot) => `ccc:mutation:level:${slot}`,
+    progress: (slot) => `ccc:mutation:progress:${slot}`,
 };
 
-const DP_KEY_PREFIX = 'ccc:dp';
 const DP_KEYS = {
-    unlock: (slot) => `${DP_KEY_PREFIX}:unlocked:${slot}`,
-    level:  (slot) => `${DP_KEY_PREFIX}:level:${slot}`,
-    progress: (slot) => `${DP_KEY_PREFIX}:progress:${slot}`,
-    highest_level: (slot) => `${DP_KEY_PREFIX}:highest_level:${slot}`,
+    unlock: (slot) => `ccc:dp:unlocked:${slot}`,
+    level:  (slot) => `ccc:dp:level:${slot}`,
+    progress: (slot) => `ccc:dp:progress:${slot}`,
+    highest_level: (slot) => `ccc:dp:highest_level:${slot}`,
 };
 
 const STAT_MULTIPLIERS = [
@@ -488,7 +478,6 @@ function getAreas() {
         },
     ];
 }
-
 
 function ensureDebugPanelStyles() {
     if (document.getElementById(DEBUG_PANEL_STYLE_ID)) return;
@@ -776,7 +765,7 @@ function getStatMultiplierStorageKey(statKey, slot = getActiveSlot()) {
     if (!statKey) return null;
     const resolvedSlot = slot ?? getActiveSlot();
     if (resolvedSlot == null) return null;
-    return `${STAT_MULTIPLIER_STORAGE_PREFIX}:${statKey}:${resolvedSlot}`;
+    return `ccc:debug:stat-mult:${statKey}:${resolvedSlot}`;
 }
 
 function getGameStatMultiplier(statKey) {
@@ -958,7 +947,6 @@ export function setDebugCurrencyMultiplierOverride(currencyKey, value, slot = ge
     applyCurrencyOverrideForSlot(currencyKey, slot);
     return bn;
 }
-
 
 export function getDebugCurrencyMultiplierOverride(currencyKey, slot = getActiveSlot()) {
     if (!currencyKey || slot == null) return null;
@@ -1334,7 +1322,7 @@ function flagDebugUsage() {
 
 function getActionLogKey(slot = getActiveSlot()) {
     if (slot == null) return null;
-    return `${ACTION_LOG_STORAGE_PREFIX}:${slot}`;
+    return `ccc:actionLog:${slot}`;
 }
 
 function getCurrentActionLog(slot = getActiveSlot()) {
@@ -2059,7 +2047,6 @@ function buildAreaCurrencies(container, area) {
         return;
     }
 
-
     const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
 
     area.currencies.forEach((currency) => {
@@ -2139,7 +2126,6 @@ function buildAreaStats(container, area) {
 
         container.appendChild(voidLevelRow.row);
     }
-
 
     if (area.key === AREA_KEYS.UNDERWATER_CAVERN) {
         const materialSpawnRateKey = 'materialSpawnRate';
@@ -4307,7 +4293,6 @@ function buildFlowDebug(container) {
         container.appendChild(nodeContainer);
     });
 }
-
 
 function buildBuildingsDebug(container) {
     const slot = getActiveSlot();
