@@ -2,6 +2,7 @@ import { getActiveSlot, bank, CURRENCIES, UC_MATERIALS, getCurrencyMultiplierSca
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { formatNumber } from '../../util/numFormat.js';
 import { getDpState, isDpSystemUnlocked, resetDpProgress } from '../../game/dpSystem.js';
+import { unlockPpSystem } from '../../game/ppSystem.js';
 import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../../util/bigNum.js';
 import { settingsManager } from '../../game/settingsManager.js';
 import { resetUcEacAccumulator } from '../../game/automationEffects.js';
@@ -201,6 +202,10 @@ export function performCompressReset() {
     
     try {
         window.dispatchEvent(new CustomEvent('compress:reset', { detail: { slot } }));
+    } catch {}
+
+    try {
+        unlockPpSystem();
     } catch {}
 
     return true;
@@ -578,9 +583,14 @@ function updateCompressCard() {
         if (hasDoneCompressReset()) {
             if (el.status.innerHTML !== '') el.status.innerHTML = '';
         } else {
-            if (el.status.innerHTML !== 'Reaching Depth: 101m unlocked the Crystal building; you can preview it before you reset to see what it\'s like<br>Compressing for the first time will unlock new Shop upgrades and <span style=\"color:#ff66d9;\">Pressure</span>.<br>Collect Materials to get PP. Increasing Pressure will yield double DP and Material value per atm of Pressure.') {
-                el.status.innerHTML = 'Reaching Depth: 101m unlocked the Crystal building; you can preview it before you reset to see what it\'s like<br>Compressing for the first time will unlock new Shop upgrades and <span style=\"color:#ff66d9;\">Pressure</span>.<br>Collect Materials to get PP. Increasing Pressure will yield double DP and Material value per atm of Pressure.';
-            }
+            const expected = `
+              <span style="color:#02e815; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">
+                Reaching Depth: 101m unlocked the Crystal building; you can preview it before you reset to see what it's like<br>
+                Compressing for the first time will unlock new Shop upgrades and <strong style="color:#ff66d9; text-shadow: 0 3px 6px rgba(0,0,0,0.55);">Pressure</strong><br>
+                Collect Materials to get PP; increasing Pressure will yield double DP and Material value per atm of Pressure
+              </span>
+            `.trim();
+            if (!el.status.innerHTML.includes('Pressure')) el.status.innerHTML = expected;
         }
     }
     
