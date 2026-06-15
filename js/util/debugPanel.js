@@ -3068,6 +3068,7 @@ function setAllStatsToZero() {
     try {
         if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) {
             if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
+        if (window.ppSystem) window.ppSystem.resetPpProgress?.({ keepUnlock: true });
             touched += 1;
         }
     } catch {}
