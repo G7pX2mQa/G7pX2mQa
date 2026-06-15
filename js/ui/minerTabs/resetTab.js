@@ -173,8 +173,15 @@ export function performCompressReset() {
     
     setCompressResetCompleted(true);
     
+    // Play Compress reset sound
+    try {
+        const audio = new Audio('sounds/compress_reset.ogg');
+        audio.volume = settingsManager.get('sfx_volume') ?? 1;
+        audio.play().catch(() => {});
+    } catch {}
+
     // Resets everything Combine does
-    applyCombineResetLogic();
+    applyCombineResetLogic({ playSurgeEffects: false });
     
     // Reset all buildings except crystal
     const slot = ensureResetSlot();
@@ -192,12 +199,31 @@ export function performCompressReset() {
                 }
             }
         }
+        try {
+            if (typeof window !== 'undefined') {
+                if (window.resetSystem?.updateBuildingsPanelVisibility) {
+                    window.resetSystem.updateBuildingsPanelVisibility();
+                }
+                if (window.resetSystem?.updateBuildingsOverlayUi) {
+                    window.resetSystem.updateBuildingsOverlayUi();
+                }
+            }
+        } catch {}
     }
     
     // Set surge to 200
     try {
         const surgeKey = getSurgeBarLevelKey(slot);
         localStorage.setItem(surgeKey, '200');
+        window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level: 200 } }));
+        window.dispatchEvent(new CustomEvent("level:change", { detail: { prefix: "waves", level: 200, isUnlocked: true } }));
+    } catch {}
+    
+    // Reset waves to 0
+    try {
+        if (bank.waves?.set) {
+            bank.waves.set(0);
+        }
     } catch {}
     
     try {
@@ -211,47 +237,100 @@ export function performCompressReset() {
     return true;
 }
 
-function applyCombineResetLogic() {
-    // Reset Scrap
-    resetUcEacAccumulator();
-    resetUcMaterialAccumulators();
-    resetUcEacMaterialAccumulators();
+function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
     const slot = ensureResetSlot();
+    
+    // Wipe Experiment (also wipes Surge, Lab nodes)
+    try {
+        applySurgeResetLogic(BigNum.fromInt(0), { playEffects: playSurgeEffects });
+        // Wipe Lab
+        let labExceptions = [4];
+        if (isSurgeActive(100)) {
+            labExceptions = RESEARCH_NODES.map(n => n.id);
+        }
+        resetLab(labExceptions);
+    } catch {}
+
+    // Wipe DNA
+    try { bank.DNA.set(0); } catch {}
+    
+    // Wipe DNA Upgrades
+    try {
+        const upgrades = getUpgradesForArea('dna');
+        for (const upg of upgrades) {
+            if (!upg) continue;
+            setLevel('dna', upg.id, 0, true);
+        }
+    } catch {}
+
+    // Wipe Scrap
     try {
         if (typeof window !== 'undefined' && window.currencySystem) {
             window.currencySystem.resetCurrency('scrap');
+        }
+        if (bank.scrap) bank.scrap.set(0);
+    } catch {}
+    
+    // Wipe Materials
+    try {
+        if (typeof window !== 'undefined' && window.currencySystem) {
             for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
                 window.currencySystem.resetCurrency(UC_MATERIAL_DATA[i].name);
             }
         }
+        for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
+           const matKey = UC_MATERIAL_DATA[i].name;
+           if (bank[matKey]) bank[matKey].set(0);
+        }
+        
+        // Zero accumulators
+        resetUcMaterialAccumulators();
+		resetUcEacMaterialAccumulators();
+        resetUcEacAccumulator();
     } catch {}
-    resetDpProgress();
     
-    applySurgeResetLogic();
+    // Wipe DP/Depth
+    try {
+        resetDpProgress({ keepUnlock: true });
+        if (window.spawner && typeof window.spawner.clearPlayfield === 'function') {
+            window.spawner.clearPlayfield('underwater_cavern');
+        }
+    } catch {}
     
     // Reset Waterwheels
-    for (const def of WATERWHEEL_DEFS) {
-        setWaterwheelLevel(def.name, 0);
-    }
-    setWaterwheelFp(0);
+    try {
+        for (const def of WATERWHEEL_DEFS) {
+            setWaterwheelLevel(def.name, 0);
+            setWaterwheelFp(def.name, 0);
+        }
+        setWaterwheelFp(0);
+    } catch {}
     
-    // Core upgrades reset
-    const keysToReset = [];
-    if (typeof localStorage !== 'undefined') {
-        for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (k && k.startsWith(`ccc:upgrade:${AREA_KEYS.UNDERWATER_CAVERN}:`) && k.endsWith(`:${slot}`)) {
-                keysToReset.push(k);
+    // Core/Scrap upgrades reset
+    try {
+        const keysToReset = [];
+        if (typeof localStorage !== 'undefined') {
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(`ccc:upgrade:${AREA_KEYS.UNDERWATER_CAVERN}:`) && k.endsWith(`:${slot}`)) {
+                    keysToReset.push(k);
+                }
+            }
+            for (const k of keysToReset) {
+                localStorage.removeItem(k);
             }
         }
-        for (const k of keysToReset) {
-            localStorage.removeItem(k);
+        const ucUpgrades = getUpgradesForArea(AREA_KEYS.UNDERWATER_CAVERN);
+        for (let j = 0; j < ucUpgrades.length; j++) {
+            const upg = ucUpgrades[j];
+            if (!upg) continue;
+            if (upg.costType === 'scrap') {
+                setLevel(AREA_KEYS.UNDERWATER_CAVERN, upg.id, 0, true);
+            } else {
+                setLevel(AREA_KEYS.UNDERWATER_CAVERN, upg.id, BigNum.fromInt(0));
+            }
         }
-    }
-    const ucUpgrades = getUpgradesForArea(AREA_KEYS.UNDERWATER_CAVERN);
-    for (let j = 0; j < ucUpgrades.length; j++) {
-        setLevel(AREA_KEYS.UNDERWATER_CAVERN, ucUpgrades[j].id, BigNum.fromInt(0));
-    }
+    } catch {}
 }
 
 
@@ -386,73 +465,6 @@ export function performCombineReset() {
         }
     } catch {}
     
-    // Wipe Experiment (also wipes Surge, Lab nodes)
-    try {
-        applySurgeResetLogic(BigNum.fromInt(0), { playEffects: false });
-        // Wipe Lab
-        let labExceptions = [4];
-        if (isSurgeActive(100)) {
-            labExceptions = RESEARCH_NODES.map(n => n.id);
-        }
-        resetLab(labExceptions);
-    } catch {}
-
-    // Wipe DNA
-    try { bank.DNA.set(0); } catch {}
-    
-    // Wipe DNA Upgrades
-    try {
-        const upgrades = getUpgradesForArea('dna');
-        for (const upg of upgrades) {
-            if (!upg) continue;
-            setLevel('dna', upg.id, 0, true);
-        }
-    } catch {}
-    
-    // Wipe Waterwheels levels/fp to 0
-    try {
-        for (const id in WATERWHEEL_DEFS) {
-            setWaterwheelLevel(id, BigNum.fromInt(0));
-            setWaterwheelFp(id, 0);
-        }
-    } catch {}
-
-    // Wipe Scrap
-    try { bank.scrap.set(0); } catch {}
-    
-    // Wipe Materials
-    try {
-        for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
-           const matKey = UC_MATERIAL_DATA[i].name;
-           if (bank[matKey]) bank[matKey].set(0);
-        }
-        
-        // Zero accumulators
-        resetUcMaterialAccumulators();
-		resetUcEacMaterialAccumulators();
-        resetUcEacAccumulator();
-    } catch {}
-    
-    // Wipe DP/Depth
-    try {
-        resetDpProgress({ keepUnlock: true });
-        if (window.spawner && typeof window.spawner.clearPlayfield === 'function') {
-            window.spawner.clearPlayfield('underwater_cavern');
-        }
-    } catch {}
-    
-    // Wipe Scrap Upgrades
-    try {
-        const upgrades = getUpgradesForArea(AREA_KEYS.UNDERWATER_CAVERN);
-        for (const upg of upgrades) {
-            if (!upg) continue;
-            const tieKey = upg.tieKey || upg.tie;
-            // Exceptions: Don't wipe unlocks that cost DP or other currencies. Only scrap.
-            if (upg.costType === 'scrap') {
-                setLevel(AREA_KEYS.UNDERWATER_CAVERN, upg.id, 0, true);
-            }
-        }
-    } catch {}
     
     // Play sound
     if (typeof window !== 'undefined') {
@@ -467,7 +479,7 @@ export function performCombineReset() {
     }
     
     setCombineResetCompleted(true);
-    applyCombineResetLogic();
+    applyCombineResetLogic({ playSurgeEffects: false });
     recomputePendingCoresAndCrystals();
     return true;
 }
@@ -658,7 +670,7 @@ function initCombineTabUI(panel) {
             <div class="merchant-reset__content">
               <div class="merchant-reset__titles">
                 <p data-reset-desc="compress">
-                  Resets everything Combine does as well as all Buildings (except Crystal's) and sets your Surge to 200 for Crystals<br>
+                  Resets everything Combine does as well as all Buildings (except Crystal's) and sets your Surge to 200 (and Waves to 0) for Crystals<br>
                   Increase pending Crystal amount by increasing Scrap or potential Scrap and Surge past 200
                 </p>
               </div>
@@ -729,7 +741,7 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
   
   resetState.elements.compress.btn.addEventListener('click', () => {
      if (performCompressReset()) {
-         recomputePendingCrystals();
+         recomputePendingCoresAndCrystals();
      }
   });
 
