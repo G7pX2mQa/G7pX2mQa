@@ -12,6 +12,8 @@ import { resetLab, RESEARCH_NODES } from '../../game/labNodes.js';
 import { applySurgeResetLogic, getCurrentSurgeLevel, getSurgeBarLevelKey } from '../merchantTabs/resetTab.js';
 import { isBuildingsUnlocked } from './buildingsTab.js';
 import { isSurgeActive } from '../../game/surgeEffects.js';
+import { playAudio } from "../../util/audioManager.js";
+import { BUILDING_IDS } from "./buildingsTab.js";
 import { WATERWHEEL_DEFS, setWaterwheelLevel, setWaterwheelFp } from '../merchantTabs/flowTab.js';
 
 const COMBINE_UNLOCKED_KEY_BASE = 'ccc:combineUnlocked';
@@ -175,9 +177,9 @@ export function performCompressReset() {
     
     // Play Compress reset sound
     try {
-        const audio = new Audio('sounds/compress_reset.ogg');
-        audio.volume = settingsManager.get('sfx_volume') ?? 1;
-        audio.play().catch(() => {});
+        playAudio('sounds/compress_reset.ogg', { type: 'sfx' });
+        
+        
     } catch {}
 
     // Resets everything Combine does
@@ -188,14 +190,9 @@ export function performCompressReset() {
     const isBuildingsUnl = isBuildingsUnlocked();
     if (isBuildingsUnl) {
         if (typeof localStorage !== 'undefined') {
-            const keys = Object.keys(localStorage);
-            const prefix = `ccc:buildingLevel:`;
-            for (const key of keys) {
-                if (key.startsWith(prefix) && key.endsWith(`:${slot}`)) {
-                    const buildingId = key.split(':')[2];
-                    if (buildingId !== 'crystal') {
-                        localStorage.removeItem(key);
-                    }
+            for (const buildingId of BUILDING_IDS) {
+                if (buildingId !== 'crystal') {
+                    localStorage.removeItem(`ccc:buildingLevel:${buildingId}:${slot}`);
                 }
             }
         }
@@ -308,19 +305,14 @@ function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
     
     // Core/Scrap upgrades reset
     try {
-        const keysToReset = [];
+        const ucUpgrades = getUpgradesForArea(AREA_KEYS.UNDERWATER_CAVERN);
         if (typeof localStorage !== 'undefined') {
-            for (let i = 0; i < localStorage.length; i++) {
-                const k = localStorage.key(i);
-                if (k && k.startsWith(`ccc:upgrade:${AREA_KEYS.UNDERWATER_CAVERN}:`) && k.endsWith(`:${slot}`)) {
-                    keysToReset.push(k);
-                }
-            }
-            for (const k of keysToReset) {
-                localStorage.removeItem(k);
+            for (let j = 0; j < ucUpgrades.length; j++) {
+                const upg = ucUpgrades[j];
+                if (!upg) continue;
+                localStorage.removeItem(`ccc:upgrade:${AREA_KEYS.UNDERWATER_CAVERN}:${upg.id}:${slot}`);
             }
         }
-        const ucUpgrades = getUpgradesForArea(AREA_KEYS.UNDERWATER_CAVERN);
         for (let j = 0; j < ucUpgrades.length; j++) {
             const upg = ucUpgrades[j];
             if (!upg) continue;
@@ -468,8 +460,8 @@ export function performCombineReset() {
     
     // Play sound
     if (typeof window !== 'undefined') {
-        const audio = new Audio('sounds/combine_reset.ogg');
-        audio.play().catch(() => {});
+        playAudio('sounds/combine_reset.ogg', { type: 'sfx' });
+        
     }
     
     if (!isBuildingsUnlocked()) {
