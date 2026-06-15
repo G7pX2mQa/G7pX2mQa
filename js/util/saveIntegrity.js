@@ -4,7 +4,7 @@
 // Which I like to call the poop-shop of shame.
 // Used to detect cheaters.
 import {
-  STORAGE_PREFIX,
+  
   getActiveSlot,
   getSlotSignature,
   setSlotSignature,
@@ -78,7 +78,7 @@ function rebuildExpectedStateForSlot(slot) {
   try {
     for (let i = 0; i < localStorage.length; i += 1) {
       const key = localStorage.key(i);
-      if (!key || !key.startsWith(STORAGE_PREFIX)) continue;
+      if (!key || !key.startsWith('ccc:')) continue;
       const keySlot = parseSlotFromKey(key);
       if (keySlot == null || keySlot !== slot) continue;
       let value = '';
@@ -105,7 +105,7 @@ export function beforeSlotWrite(key) {
   if (integrityInternalWriteDepth > 0) return;
 
   const strKey = String(key);
-  if (!strKey.startsWith(STORAGE_PREFIX)) return;
+  if (!strKey.startsWith('ccc:')) return;
 
   const slot = parseSlotFromKey(strKey);
 
@@ -140,7 +140,7 @@ export function beforeSlotWrite(key) {
 
 export function afterSlotWrite(key, value) {
   const strKey = String(key);
-  if (!strKey.startsWith(STORAGE_PREFIX)) return;
+  if (!strKey.startsWith('ccc:')) return;
   const slot = parseSlotFromKey(strKey);
   if (slot == null) return;
 
@@ -166,7 +166,7 @@ function collectEntriesBySlot() {
   try {
     for (let i = 0; i < localStorage.length; i += 1) {
       const key = localStorage.key(i);
-      if (!key || !key.startsWith(STORAGE_PREFIX)) continue;
+      if (!key || !key.startsWith('ccc:')) continue;
       const slotMatch = key.match(/:(\d+)$/);
       if (!slotMatch) continue;
       const slot = parseInt(slotMatch[1], 10);
