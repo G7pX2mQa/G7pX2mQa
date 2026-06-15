@@ -456,7 +456,7 @@ export function performCombineReset() {
     
     // Play sound
     if (typeof window !== 'undefined') {
-        const audio = new Audio('sounds/combine.ogg');
+        const audio = new Audio('sounds/combine_reset.ogg');
         audio.play().catch(() => {});
     }
     
