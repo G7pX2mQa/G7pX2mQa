@@ -10,6 +10,16 @@ import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 
 
 
+function isKeyLocked(key) {
+  if (typeof window !== 'undefined' && window.__cccLockedStorageKeys) {
+    return window.__cccLockedStorageKeys.has(key);
+  }
+  return false;
+}
+
+// Ensure it's available earlier
+isKeyLocked.defined = true;
+
 const KEY_UNLOCK = (slot) => `ccc:ppUnlocked:${slot}`;
 const KEY_PP_LEVEL = (slot) => `ccc:ppLevel:${slot}`;
 const KEY_PROGRESS = (slot) => `ccc:ppProgress:${slot}`;
