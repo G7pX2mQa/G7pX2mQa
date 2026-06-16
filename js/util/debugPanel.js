@@ -1813,7 +1813,11 @@ function applyXpState({ level, progress }) {
   // If either field is being changed back to a finite value, but its partner
   // was still stuck at Infinity, zero it out so the XP system can resume
   // normal accumulation.
-  if ((level != null || progress != null) && zero) {
+  if (!levelIsFinite && progressIsFinite && level !== undefined) {
+      nextProgress = BigNum.fromAny('Infinity');
+  } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
+      nextLevel = BigNum.fromAny('Infinity');
+  } else if ((level != null || progress != null) && zero) {
     if (levelIsFinite && !progressIsFinite) {
       if (level != null) {
         nextProgress = zero.clone?.() ?? zero;
@@ -1966,7 +1970,11 @@ function applyDpState({ level, progress }) {
   const levelIsFinite = !(nextLevel?.isInfinite?.());
   const progressIsFinite = !(nextProgress?.isInfinite?.());
 
-  if ((level != null || progress != null) && zero) {
+  if (!levelIsFinite && progressIsFinite && level !== undefined) {
+      nextProgress = BigNum.fromAny('Infinity');
+  } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
+      nextLevel = BigNum.fromAny('Infinity');
+  } else if ((level != null || progress != null) && zero) {
     if (levelIsFinite && !progressIsFinite) {
       if (level != null) {
         nextProgress = zero.clone?.() ?? zero;
@@ -2043,7 +2051,11 @@ function applyMutationState({ level, progress }) {
   const levelIsFinite = !(nextLevel?.isInfinite?.());
   const progressIsFinite = !(nextProgress?.isInfinite?.());
 
-  if ((level != null || progress != null) && zero) {
+  if (!levelIsFinite && progressIsFinite && level !== undefined) {
+      nextProgress = BigNum.fromAny('Infinity');
+  } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
+      nextLevel = BigNum.fromAny('Infinity');
+  } else if ((level != null || progress != null) && zero) {
     if (levelIsFinite && !progressIsFinite) {
       nextProgress = zero.clone?.() ?? zero;
     } else if (progressIsFinite && !levelIsFinite) {
