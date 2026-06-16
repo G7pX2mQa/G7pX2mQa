@@ -117,7 +117,36 @@ function ensurePpStorageWatchers() {}
 
 function notifyPpSubscribers(detail) {}
 
-function progressRatio(progress, requirement) { try { return progress.div(requirement).toNumber(); } catch { return 0; } }
+function progressRatio(progressBn, requirement) {
+  if (!requirement || typeof requirement !== 'object') return 0;
+  if (!progressBn || typeof progressBn !== 'object') return 0;
+
+  const reqIsInf = !!(requirement.isInfinite?.() || (typeof requirement.isInfinite === 'function' && requirement.isInfinite()));
+  const progIsInf = !!(progressBn.isInfinite?.() || (typeof progressBn.isInfinite === 'function' && progressBn.isInfinite()));
+
+  if (reqIsInf) {
+    return progIsInf ? 1 : 0;
+  }
+
+  const reqIsZero = requirement.isZero?.() || (typeof requirement.isZero === 'function' && requirement.isZero());
+  if (reqIsZero) return 0;
+
+  const progIsZero = progressBn.isZero?.() || (typeof progressBn.isZero === 'function' && progressBn.isZero());
+  if (progIsZero) return 0;
+
+  if (progressBn.cmp(requirement) >= 0) return 1;
+
+  const logProg = approxLog10(progressBn);
+  const logReq  = approxLog10(requirement);
+  if (!Number.isFinite(logProg) || !Number.isFinite(logReq)) {
+    return 0;
+  }
+  if (logReq < -20) return 1;
+  const rawRatio = Math.pow(10, logProg - logReq);
+  
+  if (Number.isNaN(rawRatio)) return 0;
+  return Math.max(0, Math.min(1, rawRatio));
+}
 
 let hudRefs = {};
 
