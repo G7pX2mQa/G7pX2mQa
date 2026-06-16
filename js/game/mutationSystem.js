@@ -282,7 +282,15 @@ function ensureRequirement() {
     try {
       const inf = BigNum.fromAny('Infinity');
       mutationState.requirement = inf.clone?.() ?? inf;
-      mutationState.progress = inf.clone?.() ?? inf;
+      
+      // Do not set progress to Infinity if it is just a level requirement check
+      // However, if level is infinite, progress logically should be too, unless we lock things.
+      // We will only do this if it's not locked.
+      const slot = mutationState.slot ?? getActiveSlot();
+      const progressLocked = slot != null && isKeyLocked(KEY_PROGRESS(slot));
+      if (!progressLocked) {
+        mutationState.progress = inf.clone?.() ?? inf;
+      }
     } catch {
       if (!mutationState.requirement || typeof mutationState.requirement !== 'object') {
         mutationState.requirement = BigNum.fromInt(0);
@@ -496,11 +504,16 @@ function isKeyLocked(key) {
   return false;
 }
 
+// Ensure it's available earlier
+isKeyLocked.defined = true;
+
 function normalizeProgress() {
   if (!mutationState.unlocked) return;
 
   const slot = mutationState.slot ?? getActiveSlot();
-  if (slot != null && isKeyLocked(KEY_LEVEL(slot))) {
+  const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
+
+  if (levelLocked) {
     // Level locked: ensure requirement is current but do not consume progress to level up
     ensureRequirement();
     return;
@@ -547,7 +560,7 @@ function normalizeProgress() {
     mutationState.progress = bnZero();
   }
 
-  if (mutationState.level && typeof mutationState.level.cmp === 'function' && mutationState.level.cmp(4500000000000) >= 0) {
+  if (!levelLocked && mutationState.level && typeof mutationState.level.cmp === 'function' && mutationState.level.cmp(4500000000000) >= 0) {
     mutationState.level = BigNum.fromAny('Infinity');
     ensureRequirement();
   }
@@ -560,7 +573,11 @@ function normalizeProgress() {
 function applyState(newState, { skipPersist = false } = {}) {
   mutationState.unlocked = !!newState.unlocked;
   mutationState.level = cloneBigNum(newState.level);
-  if (mutationState.level && typeof mutationState.level.cmp === 'function' && mutationState.level.cmp(4500000000000) >= 0) {
+  
+  const slot = mutationState.slot ?? getActiveSlot();
+  const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
+
+  if (!levelLocked && mutationState.level && typeof mutationState.level.cmp === 'function' && mutationState.level.cmp(4500000000000) >= 0) {
     mutationState.level = BigNum.fromAny('Infinity');
   }
   mutationState.progress = cloneBigNum(newState.progress);
@@ -705,9 +722,16 @@ export function getMutationProgressRatio() {
 }
 
 export function getMutationState() {
-  if (mutationState.level && typeof mutationState.level.cmp === 'function' && mutationState.level.cmp(4500000000000) >= 0 && !mutationState.level.isInfinite?.()) {
+  const slot = mutationState.slot ?? getActiveSlot();
+  const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
+
+  if (!levelLocked && mutationState.level && typeof mutationState.level.cmp === 'function' && mutationState.level.cmp(4500000000000) >= 0 && !mutationState.level.isInfinite?.()) {
     mutationState.level = BigNum.fromAny('Infinity');
-    mutationState.progress = BigNum.fromAny('Infinity');
+    
+    const progressLocked = slot != null && isKeyLocked(KEY_PROGRESS(slot));
+    if (!progressLocked) {
+      mutationState.progress = BigNum.fromAny('Infinity');
+    }
     mutationState.requirement = BigNum.fromAny('Infinity');
     ensureRequirement();
   }
@@ -811,10 +835,13 @@ export function addMutationPower(amount) {
     }
 
     // Keep progress locked at Infinity once we reach mutation ∞
-    try {
-      mutationState.progress = BigNum.fromAny('Infinity');
-    } catch {
-      mutationState.progress = bnZero();
+    const progressLocked = slot != null && isKeyLocked(KEY_PROGRESS(slot));
+    if (!progressLocked) {
+      try {
+        mutationState.progress = BigNum.fromAny('Infinity');
+      } catch {
+        mutationState.progress = bnZero();
+      }
     }
 
     try {
