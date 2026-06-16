@@ -80,10 +80,6 @@ function ensureStateLoaded(force = false) {
     ppState.ppLevel = bnZero();
   }
   try {
-  } catch {
-  }
-  }
-  try {
     ppState.progress = BigNum.fromAny(localStorage.getItem(KEY_PROGRESS(slot)) ?? '0');
   } catch {
     ppState.progress = bnZero();
@@ -97,6 +93,7 @@ function ensureStateLoaded(force = false) {
   updatePpRequirement();
   ensurePpStorageWatchers();
   return ppState;
+}
 
 function persistState() {
   const slot = getActiveSlot();
@@ -214,7 +211,6 @@ export function resetPpProgress({ keepUnlock = true } = {}) {
   const wasUnlocked = ppState.unlocked;
   resetLockedPpState();
   ppState.unlocked = keepUnlock ? (wasUnlocked || ppState.unlocked) : false;
-  }
   persistState();
   updateHud();
   const detail = getPpState();
@@ -305,7 +301,6 @@ export function addPp(amount, { silent = false } = {}) {
     
     updatePpRequirement();
 
-    }
 
     persistState();
     updateHud();
@@ -421,7 +416,6 @@ export function addPp(amount, { silent = false } = {}) {
       updatePpRequirement();
   }
 
-  }
 
   persistState();
   updateHud();
@@ -491,6 +485,4 @@ if (typeof window !== 'undefined') {
     resetPpProgress,
     getPpProgressRatio
   });
-
-
 }
