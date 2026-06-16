@@ -598,6 +598,8 @@ export function createBaseSpawner(config = {}) {
         return;
       }
       computeMetrics();
+      // Ensure metrics are accurate once layout stabilizes
+      requestAnimationFrame(() => computeMetrics());
 
       if (initialBurst > 0 && rafId === null) {
         spawnBurst(initialBurst);
