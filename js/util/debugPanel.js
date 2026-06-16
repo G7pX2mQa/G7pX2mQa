@@ -284,6 +284,21 @@ function setupLiveBindingListeners() {
         }
     };
     window.addEventListener('dp:change', dpHandler, { passive: true });
+    const ppHandler = (event) => {
+        const { changeType, slot } = event?.detail ?? {};
+        const targetSlot = slot ?? getActiveSlot();
+        refreshLiveBindings((binding) => binding.type === 'pp'
+            && binding.slot === targetSlot);
+        refreshLiveBindings((binding) => binding.type === 'stat-mult'
+            && binding.key === 'pp'
+            && binding.slot === targetSlot);
+        if (changeType === 'unlock') {
+            refreshLiveBindings((binding) => binding.type === 'unlock'
+                && (binding.slot == null || binding.slot === targetSlot));
+        }
+    };
+    window.addEventListener('pp:change', ppHandler, { passive: true });
+    addDebugPanelCleanup(() => window.removeEventListener('pp:change', ppHandler));
     addDebugPanelCleanup(() => window.removeEventListener('dp:change', dpHandler));
 
     const upgradeHandler = () => {
@@ -1888,8 +1903,8 @@ function applyPpState({ level, progress }) {
   if (nextProgress == null) nextProgress = zero;
 
   try {
-      localStorage.setItem(PP_KEYS.level(slot), nextLevel.toString());
-      localStorage.setItem(PP_KEYS.progress(slot), nextProgress.toString());
+      const rawLevel = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage(); localStorage.setItem(PP_KEYS.level(slot), rawLevel); primeStorageWatcherSnapshot(PP_KEYS.level(slot), rawLevel);
+      const rawProgress = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage(); localStorage.setItem(PP_KEYS.progress(slot), rawProgress); primeStorageWatcherSnapshot(PP_KEYS.progress(slot), rawProgress);
   } catch {}
 
   try {
