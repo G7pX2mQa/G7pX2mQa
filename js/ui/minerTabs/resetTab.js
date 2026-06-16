@@ -168,8 +168,8 @@ export function performCompressReset() {
     
     // Add crystals
     try {
-        if (typeof window !== 'undefined' && window.currencySystem && typeof window.currencySystem.addCurrency === 'function') {
-            window.currencySystem.addCurrency('crystals', reward, { silent: true });
+        if (bank.CRYSTALS?.add) {
+            bank.CRYSTALS.add(reward);
         }
     } catch {}
     
@@ -262,19 +262,11 @@ function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
 
     // Wipe Scrap
     try {
-        if (typeof window !== 'undefined' && window.currencySystem) {
-            window.currencySystem.resetCurrency('scrap');
-        }
         if (bank.scrap) bank.scrap.set(0);
     } catch {}
     
     // Wipe Materials
     try {
-        if (typeof window !== 'undefined' && window.currencySystem) {
-            for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
-                window.currencySystem.resetCurrency(UC_MATERIAL_DATA[i].name);
-            }
-        }
         for (let i = 0; i < UC_MATERIAL_DATA.length; i++) {
            const matKey = UC_MATERIAL_DATA[i].name;
            if (bank[matKey]) bank[matKey].set(0);
