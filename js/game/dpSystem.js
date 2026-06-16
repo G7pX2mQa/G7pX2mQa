@@ -371,6 +371,7 @@ function dpRequirementForDpLevel(dpLevelInput) {
 }
 
 function updateDpRequirement() {
+  if (enforceDpInfinityInvariant()) return;
   requirementBn = dpRequirementForDpLevel(dpState.dpLevel);
 }
 
@@ -686,22 +687,9 @@ export function addDp(amount, { silent = false } = {}) {
   const levelLocked = slot != null && isKeyLocked(KEY_DP_LEVEL(slot));
 
   const justBecameInf = (levelIsInf && !wasLevelInf) || (progressIsInf && !wasProgInf);
-
+  
   if (justBecameInf) {
-    const inf = BigNum.fromAny('Infinity');
-    
-    if (!levelLocked) {
-      dpState.dpLevel = inf.clone?.() ?? inf;
-    }
-    
-    const progressLocked = slot != null && isKeyLocked(KEY_PROGRESS(slot));
-    if (!progressLocked) {
-      dpState.progress = inf.clone?.() ?? inf;
-    }
-    
-    updateDpRequirement();
-
-
+    enforceDpInfinityInvariant();
     persistState();
     updateHud();
 
@@ -837,8 +825,36 @@ export function addDp(amount, { silent = false } = {}) {
   return detail;
 }
 
+
+function enforceDpInfinityInvariant() {
+  const isInfinite = (bn) => !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
+  const levelIsInf = isInfinite(dpState.dpLevel);
+  const progIsInf = isInfinite(dpState.progress);
+  if (!levelIsInf && !progIsInf) return false;
+
+  const inf = BigNum.fromAny('Infinity');
+  const slot = dpState.slot ?? getActiveSlot();
+  const levelLocked = slot != null && isKeyLocked(KEY_DP_LEVEL(slot));
+  const progressLocked = slot != null && isKeyLocked(KEY_PROGRESS(slot));
+
+  if (!levelLocked) {
+    dpState.dpLevel = inf.clone?.() ?? inf;
+  }
+  if (!progressLocked) {
+    dpState.progress = inf.clone?.() ?? inf;
+  }
+  requirementBn = inf.clone?.() ?? inf;
+  return true;
+}
+
 export function getDpState() {
   ensureStateLoaded();
+  const slot = dpState.slot ?? getActiveSlot();
+  const levelLocked = slot != null && isKeyLocked(KEY_DP_LEVEL(slot));
+  if (!levelLocked && typeof dpState.dpLevel?.cmp === 'function' && dpState.dpLevel.cmp(4500000000000) >= 0 && !dpState.dpLevel.isInfinite?.()) {
+    dpState.dpLevel = BigNum.fromAny('Infinity');
+  }
+  enforceDpInfinityInvariant();
   return {
     unlocked: dpState.unlocked,
     dpLevel: dpState.dpLevel.clone?.() ?? dpState.dpLevel,
