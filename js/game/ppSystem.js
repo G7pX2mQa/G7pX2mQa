@@ -273,6 +273,21 @@ export function addPp(amount, { silent = false } = {}) {
   ensureStateLoaded();
   const slot = lastSlot ?? getActiveSlot();
 
+  const wasLevelInf = !!(ppState.ppLevel?.isInfinite?.() || (typeof ppState.ppLevel?.isInfinite === 'function' && ppState.ppLevel.isInfinite()));
+  const wasProgInf = !!(ppState.progress?.isInfinite?.() || (typeof ppState.progress?.isInfinite === 'function' && ppState.progress.isInfinite()));
+
+  if (wasLevelInf && wasProgInf) {
+    return {
+      unlocked: true,
+      ppLevelsGained: bnZero(),
+      ppAdded: bnZero(),
+      ppLevel: ppState.ppLevel,
+      progress: ppState.progress,
+      requirement: requirementBn,
+      slot
+    };
+  }
+
   if (!ppState.unlocked) {
     return {
       unlocked: false,
@@ -320,9 +335,10 @@ export function addPp(amount, { silent = false } = {}) {
 
   const progressIsInf = isInfinite(ppState.progress);
   const levelIsInf = isInfinite(ppState.ppLevel);
-  const gainIsInf = isInfinite(inc);
 
-  if (progressIsInf || levelIsInf || gainIsInf) {
+  const justBecameInf = (levelIsInf && !wasLevelInf) || (progressIsInf && !wasProgInf);
+
+  if (justBecameInf) {
     const inf = BigNum.fromAny('Infinity');
     
     ppState.ppLevel = inf.clone?.() ?? inf;
@@ -352,7 +368,7 @@ export function addPp(amount, { silent = false } = {}) {
 
   let ppLevelsGained = bnZero();
 
-  if (ppState.progress.cmp(requirementBn) < 0) {
+  if (isInfinite(requirementBn) || ppState.progress.cmp(requirementBn) < 0) {
     persistState();
     updateHud();
     const detail = {
