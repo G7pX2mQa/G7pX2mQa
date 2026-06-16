@@ -426,12 +426,18 @@ const DP_KEYS = {
     highest_level: (slot) => `ccc:dp:highest_level:${slot}`,
 };
 
+const PP_KEYS = {
+    level:  (slot) => `ccc:ppLevel:${slot}`,
+    progress: (slot) => `ccc:ppProgress:${slot}`,
+};
+
 const STAT_MULTIPLIERS = [
     { key: 'spawnRate', label: 'Spawn Rate' },
     { key: 'xp', label: 'XP' },
     { key: 'mutation', label: 'MP' },
     { key: 'allMaterials', label: 'All Materials' },
     { key: 'dp', label: 'DP' },
+    { key: 'pp', label: 'PP' },
     { key: 'rp', label: 'RP' },
     { key: 'fp', label: 'FP' },
 ];
@@ -474,7 +480,10 @@ function getAreas() {
             key: 'underwater_cavern', // use literal since AREA_KEYS is imported but might not be correctly exposed
             title: 'Underwater Cavern',
             currencies: cavernCurrencies,
-            stats: [],
+            stats: [
+                { key: 'dp', label: 'DP' },
+                { key: 'pp', label: 'PP' }
+            ],
         },
     ];
 }
@@ -811,6 +820,8 @@ function getGameStatMultiplier(statKey) {
             return getFpMultiplier();
         } else if (statKey === 'dp') {
             return getDpMultiplier();
+        } else if (statKey === 'pp') {
+            return window.ppSystem?.getPpMultiplier?.() ?? BigNum.fromInt(1);
         }
     } catch {}
 
@@ -1847,6 +1858,56 @@ function applyXpState({ level, progress }) {
     } catch {}
 }
 
+function applyPpState({ level, progress }) {
+  const slot = getActiveSlot();
+  if (slot == null) return;
+
+  const current = (() => {
+    try { return window.ppSystem.getPpState(); }
+    catch { return null; }
+  })();
+
+  const zero = (() => {
+    try { return BigNum.fromInt(0); }
+    catch { return null; }
+  })();
+
+  const toBnOrNull = (value) => {
+    if (value == null) return null;
+    if (value instanceof BigNum) return value;
+    try { return BigNum.fromAny(value); }
+    catch { return null; }
+  };
+
+  let nextLevel = toBnOrNull(level) ?? current?.ppLevel ?? null;
+  let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
+
+  if (nextLevel == null && nextProgress == null) return;
+
+  if (nextLevel == null) nextLevel = zero;
+  if (nextProgress == null) nextProgress = zero;
+
+  try {
+      localStorage.setItem(PP_KEYS.level(slot), nextLevel.toString());
+      localStorage.setItem(PP_KEYS.progress(slot), nextProgress.toString());
+  } catch {}
+
+  try {
+      window.ppSystem.initPpSystem({ forceReload: true });
+  } catch {}
+
+  try {
+      if (typeof window !== 'undefined' && window.showPopup) {
+          window.showPopup('pp', nextProgress, { overrideAmount: true });
+      }
+      window.dispatchEvent(new CustomEvent('pp:change', { detail: { changeType: 'debug-panel', slot, ppAdded: 0 } }));
+  } catch {}
+
+  try {
+      refreshLiveBindings();
+  } catch {}
+}
+
 function applyDpState({ level, progress, highestLevel }) {
   const slot = getActiveSlot();
   if (slot == null) return;
@@ -2251,6 +2312,61 @@ function buildAreaStats(container, area) {
             },
         });
         container.appendChild(dpProgressRow.row);
+
+        const ppStateVal = window.ppSystem ? window.ppSystem.getPpState() : { ppLevel: BigNum.fromInt(0), progress: BigNum.fromInt(0) };
+
+        const ppLevelKey = PP_KEYS.level(slot);
+        const ppLevelRow = createInputRow('Pressure Level', ppStateVal.ppLevel, (value, { setValue }) => {
+            const prev = window.ppSystem.getPpState().ppLevel;
+            let valToApply = value;
+            if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (typeof valToApply === 'number' && valToApply >= 4.5e12) {
+                valToApply = BigNum.fromAny('Infinity');
+            } else if (typeof valToApply === 'string' && Number(valToApply) >= 4.5e12) {
+                valToApply = BigNum.fromAny('Infinity');
+            }
+            applyPpState({ level: valToApply });
+            const latest = window.ppSystem.getPpState();
+            setValue(latest.ppLevel);
+            if (!bigNumEquals(prev, latest.ppLevel)) {
+                flagDebugUsage();
+                logAction(`Modified PP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.ppLevel)}`);
+            }
+        }, { storageKey: ppLevelKey });
+        registerLiveBinding({
+            type: 'pp',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                if (window.ppSystem) ppLevelRow.setValue(window.ppSystem.getPpState().ppLevel);
+            },
+        });
+        container.appendChild(ppLevelRow.row);
+
+        const ppProgressKey = PP_KEYS.progress(slot);
+        const ppProgressRow = createInputRow('PP', ppStateVal.progress, (value, { setValue }) => {
+            const prev = window.ppSystem.getPpState();
+            const prevLevel = prev?.ppLevel?.clone?.() ?? prev?.ppLevel;
+            const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
+            applyPpState({ progress: value });
+            const latest = window.ppSystem.getPpState();
+            setValue(latest.progress);
+            ppLevelRow.setValue(latest.ppLevel);
+            if (!bigNumEquals(prevProgress, latest.progress) || !bigNumEquals(prevLevel, latest.ppLevel)) {
+                flagDebugUsage();
+                logAction(`Modified PP Progress (${areaLabel}) ${formatNumber(prevProgress)} → ${formatNumber(latest.progress)}`);
+            }
+        }, { storageKey: ppProgressKey });
+        registerLiveBinding({
+            type: 'pp',
+            slot,
+            refresh: () => {
+                if (slot !== getActiveSlot()) return;
+                if (window.ppSystem) ppProgressRow.setValue(window.ppSystem.getPpState().progress);
+            },
+        });
+        container.appendChild(ppProgressRow.row);
     }
 
     if (area.key === AREA_KEYS.STARTER_COVE) {
@@ -3264,11 +3380,15 @@ function getUnlockRowDefinitions(slot) {
                 catch {}
                 try { window.resetSystem?.updateCompressCard?.(); }
                 catch {}
+                try { window.ppSystem?.unlockPpSystem?.(); }
+                catch {}
             },
             onDisable: () => {
                 try { window.resetSystem?.setCompressResetCompleted?.(false); }
                 catch {}
                 try { window.resetSystem?.updateCompressCard?.(); }
+                catch {}
+                try { window.ppSystem?.resetPpProgress?.({ keepUnlock: false }); }
                 catch {}
             },
             slot,
@@ -4015,8 +4135,8 @@ function buildAreaStatMultipliers(container, area) {
 
     STAT_MULTIPLIERS.forEach((stat) => {
         if (stat.key === 'spawnRate') return;
-        if (area.key === AREA_KEYS.UNDERWATER_CAVERN && stat.key !== 'dp' && stat.key !== 'allMaterials') return;
-        if (area.key === AREA_KEYS.STARTER_COVE && (stat.key === 'dp' || stat.key === 'allMaterials')) return;
+        if (area.key === AREA_KEYS.UNDERWATER_CAVERN && stat.key !== 'dp' && stat.key !== 'pp' && stat.key !== 'allMaterials') return;
+        if (area.key === AREA_KEYS.STARTER_COVE && (stat.key === 'dp' || stat.key === 'pp' || stat.key === 'allMaterials')) return;
         const storageKey = getStatMultiplierStorageKey(stat.key, slot);
         const row = createInputRow(
             `${stat.label} Multiplier`,
@@ -4364,202 +4484,6 @@ function buildBuildingsDebug(container) {
         });
         
         container.appendChild(row.row);
-    });
-}
-
-function buildAreaCalculators(container) {
-    const calculators = [
-        {
-            title: 'Currencies',
-            rows: [
-                {
-                    label: 'Pending Gold (Forge)',
-                    inputs: [
-                        { key: 'coins', label: 'Coins' },
-                        { key: 'xpLevel', label: 'XP Level' },
-                    ],
-                    compute: ({ coins, xpLevel }) => window.resetSystem?.computeForgeGoldFromInputs?.(coins, xpLevel),
-                },
-                {
-                    label: 'Pending Magic (Infuse)',
-                    inputs: [
-                        { key: 'coins', label: 'Coins' },
-                        { key: 'mp', label: 'Cumulative MP' },
-                    ],
-                    compute: ({ coins, mp }) => window.resetSystem?.computeInfuseMagicFromInputs?.(coins, mp),
-                },
-                {
-                    label: 'Pending Waves (Surge)',
-                    inputs: [
-                        { key: 'xpLevel', label: 'XP Level' },
-                        { key: 'coins', label: 'Coins' },
-                        { key: 'gold', label: 'Gold' },
-                        { key: 'magic', label: 'Magic' },
-                        { key: 'mp', label: 'Cumulative MP' },
-                    ],
-                    compute: ({ xpLevel, coins, gold, magic, mp }) => window.resetSystem?.computeSurgeWavesFromInputs?.(xpLevel, coins, gold, magic, mp),
-                },
-                {
-                    label: 'Pending DNA (Experiment)',
-                    inputs: [
-                        { key: 'labLevel', label: 'Lab Level' },
-                        { key: 'xpLevel', label: 'XP Level' },
-                        {
-                            key: 'isSurge9',
-                            type: 'select',
-                            defaultValue: 'No',
-                            options: [
-                                { value: 'No', label: 'Surge 9? No' },
-                                { value: 'Yes', label: 'Surge 9? Yes' },
-                            ],
-                        },
-                    ],
-                    compute: ({ labLevel, xpLevel, isSurge9 }) => window.resetSystem?.computePendingDnaFromInputs?.(labLevel, xpLevel, isSurge9 === 'Yes'),
-                },
-            ],
-        },
-        {
-            title: 'Stats',
-            rows: [
-                {
-                    label: 'XP Requirement',
-                    inputs: [
-                        { key: 'xpLevel', label: 'XP Level' },
-                    ],
-                    compute: ({ xpLevel }) => getXpRequirementForXpLevel(xpLevel),
-                },
-                {
-                    label: 'XP Level Coin Multiplier',
-                    inputs: [
-                        { key: 'xpLevel', label: 'XP Level' },
-                    ],
-                    compute: ({ xpLevel }) => computeCoinMultiplierForXpLevel(xpLevel),
-                },
-                {
-                    label: 'MP Requirement',
-                    inputs: [
-                        { key: 'mpLevel', label: 'Mutation' },
-                    ],
-                    compute: ({ mpLevel }) => computeMutationRequirementForLevel(mpLevel),
-                },
-                {
-                    label: 'MP Level Coin/XP Multiplier',
-                    inputs: [
-                        { key: 'mpLevel', label: 'MP Level' },
-                    ],
-                    compute: ({ mpLevel }) => computeMutationMultiplierForLevel(mpLevel),
-                },
-                {
-                    label: 'Workshop Level Cost',
-                    inputs: [
-                        { key: 'level', label: 'Level' },
-                    ],
-                    compute: ({ level }) => getGenerationUpgradeCost(level),
-                },
-                {
-                    label: 'Lab Level RP Boost',
-                    inputs: [
-                        { key: 'level', label: 'Lab Level' },
-                        {
-                            key: 'isSurge12',
-                            type: 'select',
-                            defaultValue: 'No',
-                            options: [
-                                { value: 'No', label: 'Surge 12? No' },
-                                { value: 'Yes', label: 'Surge 12? Yes' },
-                            ],
-                        },
-                    ],
-                    compute: ({ level, isSurge12 }) => {
-                        let lvlNum = 0;
-                        if (level instanceof BigNum) {
-                            if (level.isInfinite()) return BigNum.fromAny('Infinity');
-                            try {
-                                lvlNum = Number(level.toScientific(10));
-                            } catch { lvlNum = 0; }
-                        } else {
-                            lvlNum = Number(level);
-                        }
-                        
-                        if (!Number.isFinite(lvlNum)) return BigNum.fromInt(1);
-                        
-                        if (isSurge12 === 'Yes') {
-                            const effectiveNerf = getTsunamiExponent();
-                            const multLog10 = 5 * effectiveNerf;
-                            const base = 2 + (effectiveNerf / 2);
-                            const logBase = Math.log10(base);
-                            const totalLog = (lvlNum * logBase) + multLog10;
-                            return bigNumFromLog10(totalLog);
-                        }
-                        
-                        const logVal = lvlNum * Math.log10(2);
-                        return bigNumFromLog10(logVal);
-                    },
-                },
-            ],
-        },
-        {
-            title: 'Other',
-            rows: [
-                {
-                    label: 'Default Upgrade Level Cost',
-                    inputs: [
-                        { key: 'baseCost', label: 'Base Cost' },
-                        { key: 'level', label: 'Current Upgrade Level' },
-                        {
-                            key: 'mode',
-                            type: 'select',
-                            defaultValue: 'NM',
-                            options: [
-                                { value: 'NM', label: 'No Milestones' },
-                                { value: 'HM', label: 'Has Milestones' },
-                            ],
-                        },
-                    ],
-                    compute: ({ baseCost, level, mode }) => computeDefaultUpgradeCost(baseCost, level, mode),
-                },
-                {
-                    label: 'Currency Generation Percentage',
-                    inputs: [
-                        { key: 'tsunamiExp', label: 'Tsunami Exponent' },
-                    ],
-                    compute: ({ tsunamiExp }) => {
-                        let val = Number(tsunamiExp);
-                        if (tsunamiExp instanceof BigNum) {
-                            val = tsunamiExp.isInfinite() ? Infinity : Number(tsunamiExp.toScientific(10));
-                        }
-                        if (!Number.isFinite(val)) return '—';
-                        
-                        const mapped = val * 1.5 - 0.5;
-                        const pct = Math.pow(100, mapped);
-                        return formatMultForUi(pct) + '%';
-                    },
-                },
-            ],
-        },
-    ];
-
-    calculators.forEach((group) => {
-        const subsection = createSubsection(group.title, (sub) => {
-            if (!group.rows || group.rows.length === 0) {
-                const msg = document.createElement('div');
-                msg.className = 'debug-panel-empty';
-                msg.textContent = 'No calculators available yet.';
-                sub.appendChild(msg);
-                return;
-            }
-
-            group.rows.forEach((row) => {
-                const calculatorRow = createCalculatorRow({
-                    labelText: row.label,
-                    inputs: row.inputs,
-                    compute: row.compute,
-                });
-                sub.appendChild(calculatorRow);
-            });
-        });
-
-        container.appendChild(subsection);
     });
 }
 
