@@ -195,6 +195,22 @@ export function ensureGameDom(layerCount, startZ) {
           if (dpConfig.glassOpacity) dpFill.style.setProperty('--glass-opacity', dpConfig.glassOpacity);
       }
   }
+  const ppConfig = RESOURCE_REGISTRY.find(c => c.key === 'pp');
+  if (ppConfig) {
+      const ppBar = document.getElementById('game-root').querySelector('.pp-bar');
+      const ppFill = document.getElementById('game-root').querySelector('.pp-bar__fill');
+      if (ppBar) {
+          if (ppConfig.pinBgGradient) ppBar.style.background = ppConfig.pinBgGradient;
+          if (ppConfig.borderColor) ppBar.style.setProperty('--bar-border-color', ppConfig.borderColor);
+          if (ppConfig.barBoxShadow) ppBar.style.setProperty('--bar-box-shadow', ppConfig.barBoxShadow);
+      }
+      if (ppFill) {
+          if (ppConfig.fillGradient) ppFill.style.background = ppConfig.fillGradient;
+          if (ppConfig.glassBg) ppFill.style.setProperty('--glass-bg', ppConfig.glassBg);
+          if (ppConfig.glassOpacity) ppFill.style.setProperty('--glass-opacity', ppConfig.glassOpacity);
+      }
+  }
+
 
   // Apply rainbow gem upgrades effects on load
   const applyFontSetting = () => {
