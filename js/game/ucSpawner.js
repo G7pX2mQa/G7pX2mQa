@@ -150,7 +150,8 @@ export function createUcSpawner(config = {}) {
         onPlanSpawn: (M, activeItems, garbageCount, removeItem, maxActiveItems, batchLength = 0) => {
             const MATERIAL_MARGIN = 12;
             const pfW = M.pfW;
-            const waterToPfTop = M.wRect ? M.wRect.top - M.pfRect.top : 0;
+            const wRect = M.wRect && M.wRect.height > 0 ? M.wRect : { top: M.pfRect.top, left: M.pfRect.left, height: M.pfRect.height * 0.35 };
+            const waterToPfTop = wRect.top - M.pfRect.top;
             const spawnY = Math.max(0, waterToPfTop);
 
             const maxSize = baseSize * Math.pow(1.1, UC_MATERIALS.length - 1);
