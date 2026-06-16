@@ -2316,7 +2316,7 @@ function buildAreaStats(container, area) {
         const ppStateVal = window.ppSystem ? window.ppSystem.getPpState() : { ppLevel: BigNum.fromInt(0), progress: BigNum.fromInt(0) };
 
         const ppLevelKey = PP_KEYS.level(slot);
-        const ppLevelRow = createInputRow('Pressure Level', ppStateVal.ppLevel, (value, { setValue }) => {
+        const ppLevelRow = createInputRow('Pressure', ppStateVal.ppLevel, (value, { setValue }) => {
             const prev = window.ppSystem.getPpState().ppLevel;
             let valToApply = value;
             if (valToApply instanceof BigNum && valToApply.cmp(BigNum.fromAny(4.5e12)) >= 0) {
