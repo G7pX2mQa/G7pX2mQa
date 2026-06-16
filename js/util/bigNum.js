@@ -146,7 +146,7 @@ export class BigNum {
     b = BigNum.fromAny(b, this.p);
 
     if (this.inf) {
-      if (b.inf) return BigNum.zero(this.p);
+      if (b.inf) return this.clone();
       return this.clone();
     }
     if (b.isZero()) return this.clone();
