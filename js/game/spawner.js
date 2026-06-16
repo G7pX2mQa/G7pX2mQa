@@ -316,7 +316,8 @@ export function createSpawner(config = {}) {
             const COIN_MARGIN = 12;
 
             const pfW = M.pfW;
-            const waterToPfTop = M.wRect.top - M.pfRect.top;
+            const wRect = M.wRect && M.wRect.height > 0 ? M.wRect : { top: M.pfRect.top, left: M.pfRect.left, height: M.pfRect.height * 0.35 };
+            const waterToPfTop = wRect.top - M.pfRect.top;
             const spawnY = Math.max(0, waterToPfTop);
 
             let sizeIndex = 0;
@@ -352,7 +353,7 @@ export function createSpawner(config = {}) {
                  else endX = clamp(spawnX + drift, minX, mx);
             }
             
-            const effectiveWaterH = Math.min(M.wRect.height, M.pfRect.height * 0.3);
+            const effectiveWaterH = Math.min(wRect.height, M.pfRect.height * 0.3);
             const minY = Math.max(effectiveWaterH + 80, 120);
             const maxY = Math.max(minY + 40, M.safeBottom - size - 6);
             const endY = clamp(minY + Math.random() * (maxY - minY), minY, maxY);
@@ -364,7 +365,7 @@ export function createSpawner(config = {}) {
                 jitterMs
             };
 
-            const waterToPfLeft = M.pfRect.left - M.wRect.left;
+            const waterToPfLeft = M.pfRect.left - wRect.left;
             
             const def = WAVE_DEFS[sizeIndex];
             const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
