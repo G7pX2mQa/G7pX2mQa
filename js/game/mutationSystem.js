@@ -814,7 +814,7 @@ export function addMutationPower(amount) {
   const progInf = mutationState.progress.isInfinite?.();
   if (progInf) {
     
-    // Only set Mutation Level to infinity if it's not locked.
+    // Only set Mutation to infinity if it's not locked.
     if (!levelLocked) {
         try {
           mutationState.level = BigNum.fromAny('Infinity');
@@ -883,7 +883,7 @@ export function computeMutationMultiplierForLevel(levelValue) {
     catch { levelBn = bnZero(); }
   }
 
-  // If the stored mutation level itself is infinite, every multiplier that
+  // If the stored mutation itself is infinite, every multiplier that
   // depends on it becomes infinite as well.
   if (levelBn && levelBn.isInfinite?.()) {
     try { return BigNum.fromAny('Infinity'); }
@@ -1031,7 +1031,7 @@ export function getTotalCumulativeMp() {
 
   const currentLvlNum = levelToNumber(mutationState.level);
   
-  // If Mutation Level is > 100, do NOT sum previous tiers. Just use current progress.
+  // If Mutation is > 100, do NOT sum previous tiers. Just use current progress.
   // This is a safety cap to prevent freezing or imbalance for hacked/super-high levels.
   if (Number.isFinite(currentLvlNum) && currentLvlNum > 100) {
     return mutationState.progress.clone?.() ?? mutationState.progress;
