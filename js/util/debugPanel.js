@@ -2083,18 +2083,18 @@ function applyMutationState({ level, progress }) {
     try { localStorage.setItem(unlockKey, '1'); } catch {}
     primeStorageWatcherSnapshot(unlockKey, '1');
 
-    if (level != null) {
+    if (nextLevel != null) {
         try {
-            const raw = level.toStorage?.() ?? BigNum.fromAny(level).toStorage();
+            const raw = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage();
             const key = MUTATION_KEYS.level(slot);
             localStorage.setItem(key, raw);
             primeStorageWatcherSnapshot(key, raw);
         } catch {}
     }
 
-    if (progress != null) {
+    if (nextProgress != null) {
         try {
-            const raw = progress.toStorage?.() ?? BigNum.fromAny(progress).toStorage();
+            const raw = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage();
             const key = MUTATION_KEYS.progress(slot);
             localStorage.setItem(key, raw);
             primeStorageWatcherSnapshot(key, raw);
@@ -2176,8 +2176,7 @@ function buildAreaStats(container, area) {
     }
 	
 	    if (area.key === AREA_KEYS.STARTER_COVE) {
-        const currentVoidLevel = getVoidLevel(slot);
-        const voidLevelRow = createInputRow('Void Level', currentVoidLevel, (value, { setValue }) => {
+        const voidLevelRow = createInputRow('Void Level', getVoidLevel(slot), (value, { setValue }) => {
             let valBn;
             try {
                 valBn = value instanceof BigNum ? value : BigNum.fromAny(value);
@@ -2558,52 +2557,54 @@ function buildAreaStats(container, area) {
     // Workshop Level
     const genLevelKey = getGenerationLevelKey(slot);
     if (genLevelKey) {
-        let currentGenLevel = 0;
+        const getLevel = () => {
         try {
             const raw = localStorage.getItem(genLevelKey);
             const bn = BigNum.fromAny(raw || '0');
-            if (bn.isInfinite()) {
-                currentGenLevel = Infinity;
-            } else {
-                try {
-                    currentGenLevel = Number(bn.toScientific(20));
-                } catch {
-                    currentGenLevel = 0;
-                }
+            if (bn.isInfinite()) return Infinity;
+            try {
+                return Number(bn.toScientific(20));
+            } catch {
+                return 0;
+            }
+        } catch {
+            return 0;
+        }
+    };
+
+    const genLevelRow = createInputRow('Workshop Level', getLevel(), (value, { setValue }) => {
+        // Helper to get a finite number from input, which might be BigNum or string/number
+        let valNum = Number(value);
+
+        if (value instanceof BigNum) {
+             if (value.isInfinite()) {
+                 valNum = Infinity; 
+             } else {
+                 try {
+                    // Use a large enough precision for toScientific to preserve the exponent
+                    // toScientific(20) returns e.g. "1.000...e21"
+                    valNum = Number(value.toScientific(20));
+                 } catch {
+                    valNum = NaN;
+                 }
+             }
+        }
+
+        if (Number.isNaN(valNum) || valNum < 0) return;
+        if (valNum >= 4.5e12) valNum = Infinity;
+        const cleanVal = (valNum === Infinity) ? 'Infinity' : String(Math.floor(valNum));
+        
+        try {
+            const currentGenLevel = getLevel();
+            localStorage.setItem(genLevelKey, cleanVal);
+            flagDebugUsage();
+            if (currentGenLevel !== valNum) {
+                logAction(`Modified Workshop Level (The Cove) ${formatNumber(currentGenLevel)} → ${cleanVal}`);
             }
         } catch {}
-
-        const genLevelRow = createInputRow('Workshop Level', currentGenLevel, (value, { setValue }) => {
-            // Helper to get a finite number from input, which might be BigNum or string/number
-            let valNum = Number(value);
-
-            if (value instanceof BigNum) {
-                 if (value.isInfinite()) {
-                     valNum = Infinity; 
-                 } else {
-                     try {
-                        // Use a large enough precision for toScientific to preserve the exponent
-                        // toScientific(20) returns e.g. "1.000...e21"
-                        valNum = Number(value.toScientific(20));
-                     } catch {
-                        valNum = NaN;
-                     }
-                 }
-            }
-
-            if (Number.isNaN(valNum) || valNum < 0) return;
-            if (valNum >= 4.5e12) valNum = Infinity;
-            const cleanVal = (valNum === Infinity) ? 'Infinity' : String(Math.floor(valNum));
-            
-            try {
-                localStorage.setItem(genLevelKey, cleanVal);
-                flagDebugUsage();
-                logAction(`Modified Workshop Level (The Cove) ${formatNumber(currentGenLevel)} → ${cleanVal}`);
-                currentGenLevel = valNum;
-            } catch {}
-            
-            setValue(valNum);
-        }, {
+        
+        setValue(valNum);
+    }, {
             storageKey: genLevelKey,
             onLockChange: () => {
                 let newVal = 0;
@@ -2639,102 +2640,92 @@ function buildAreaStats(container, area) {
     // Surge Level
     const surgeLevelKey = getSurgeBarLevelKey(slot);
     if (surgeLevelKey) {
-        let currentSurgeLevel = 0;
+        const getSurgeLevel = () => {
         try {
             const raw = localStorage.getItem(surgeLevelKey);
-            if (raw === 'Infinity') {
-                currentSurgeLevel = Infinity;
-            } else {
-                currentSurgeLevel = BigNum.fromAny(raw || '0');
-            }
-        } catch {
-            currentSurgeLevel = BigNum.fromInt(0);
+            if (raw === 'Infinity') return Infinity;
+            return BigNum.fromAny(raw || '0');
+        } catch { return BigNum.fromInt(0); }
+    };
+
+    const surgeLevelRow = createInputRow('Surge', getSurgeLevel(), (value, { setValue }) => {
+        let valToStore = '0';
+        let valForDisplay = 0;
+
+        if (value instanceof BigNum) {
+             if (value.isInfinite()) {
+                 valToStore = 'Infinity';
+                 valForDisplay = Infinity;
+             } else {
+                 valToStore = value.toPlainIntegerString();
+                 valForDisplay = value;
+             }
+        } else if (value === Infinity || (typeof value === 'string' && /infinity/i.test(value))) {
+             valToStore = 'Infinity';
+             valForDisplay = Infinity;
+        } else {
+             valToStore = String(value);
+             valForDisplay = value;
         }
 
-        const surgeLevelRow = createInputRow('Surge', currentSurgeLevel, (value, { setValue }) => {
-            let valToStore = '0';
-            let valForDisplay = 0;
+        if (valForDisplay instanceof BigNum && valForDisplay.cmp(BigNum.fromAny(4.5e12)) >= 0) {
+             valToStore = 'Infinity';
+             valForDisplay = Infinity;
+        } else if (typeof valForDisplay === 'number' && valForDisplay >= 4.5e12) {
+             valToStore = 'Infinity';
+             valForDisplay = Infinity;
+        } else if (typeof valForDisplay === 'string' && Number(valForDisplay) >= 4.5e12) {
+             valToStore = 'Infinity';
+             valForDisplay = Infinity;
+        }
 
-            if (value instanceof BigNum) {
-                 if (value.isInfinite()) {
-                     valToStore = 'Infinity';
-                     valForDisplay = Infinity;
-                 } else {
-                     valToStore = value.toPlainIntegerString();
-                     valForDisplay = value;
-                 }
-            } else if (value === Infinity || (typeof value === 'string' && /infinity/i.test(value))) {
-                 valToStore = 'Infinity';
-                 valForDisplay = Infinity;
-            } else {
-                 valToStore = String(value);
-                 valForDisplay = value;
-            }
-
-            if (valForDisplay instanceof BigNum && valForDisplay.cmp(BigNum.fromAny(4.5e12)) >= 0) {
-                 valToStore = 'Infinity';
-                 valForDisplay = Infinity;
-            } else if (typeof valForDisplay === 'number' && valForDisplay >= 4.5e12) {
-                 valToStore = 'Infinity';
-                 valForDisplay = Infinity;
-            } else if (typeof valForDisplay === 'string' && Number(valForDisplay) >= 4.5e12) {
-                 valToStore = 'Infinity';
-                 valForDisplay = Infinity;
-            }
-
-            try {
-                localStorage.setItem(surgeLevelKey, valToStore);
-                flagDebugUsage();
-                
-                const displayStr = valForDisplay === Infinity ? 'Infinity' : formatNumber(valForDisplay);
-                const prevStr = (currentSurgeLevel === Infinity || (currentSurgeLevel instanceof BigNum && currentSurgeLevel.isInfinite())) 
-                                ? 'Infinity' 
-                                : formatNumber(currentSurgeLevel);
-                
-                logAction(`Modified Surge Level (The Cove) ${prevStr} → ${displayStr}`);
-                
-                if (valForDisplay === Infinity) {
-                    currentSurgeLevel = Infinity;
-                } else if (valForDisplay instanceof BigNum) {
-                    currentSurgeLevel = valForDisplay;
-                } else {
-                    currentSurgeLevel = BigNum.fromAny(valForDisplay);
-                }
-
-                // If setting level to >= 8, enforce Tsunami Nerf state immediately
-                let isSurge8 = false;
-                if (currentSurgeLevel === Infinity) {
-                    isSurge8 = true;
-                } else if (currentSurgeLevel instanceof BigNum) {
-                    // Check against 8
-                    if (typeof currentSurgeLevel.cmp === 'function' && currentSurgeLevel.cmp(8) >= 0) {
-                        isSurge8 = true;
-                    }
-                } else if (typeof currentSurgeLevel === 'number') {
-                    if (currentSurgeLevel >= 8) isSurge8 = true;
-                }
-
-                if (isSurge8) {
-                    setTsunamiNerf(0.00);
-                    if (!isLabUnlocked()) {
-                        setLabUnlocked(true);
-                        try { setTsunamiSequencePlayed(true); } catch {}
-                    }
-                }
-            } catch {}
+        try {
+            const currentSurgeLevel = getSurgeLevel();
+            localStorage.setItem(surgeLevelKey, valToStore);
+            flagDebugUsage();
             
-            setValue(valForDisplay);
-            try { window.resetSystem?.updateResetPanel?.(); } catch {}
-            try {
-                let eventLevel = currentSurgeLevel;
-                if (eventLevel !== Infinity && eventLevel instanceof BigNum) {
-                    try { eventLevel = Number(eventLevel.toPlainIntegerString()); } catch {}
+            const displayStr = valForDisplay === Infinity ? 'Infinity' : formatNumber(valForDisplay);
+            const prevStr = (currentSurgeLevel === Infinity || (currentSurgeLevel instanceof BigNum && currentSurgeLevel.isInfinite())) 
+                            ? 'Infinity' 
+                            : formatNumber(currentSurgeLevel);
+            
+            if (prevStr !== displayStr) {
+                logAction(`Modified Surge Level (The Cove) ${prevStr} → ${displayStr}`);
+            }
+            
+            let isSurge8 = false;
+            let currentLevelToCheck = valForDisplay === Infinity ? Infinity : BigNum.fromAny(valForDisplay);
+            if (currentLevelToCheck === Infinity) {
+                isSurge8 = true;
+            } else if (currentLevelToCheck instanceof BigNum) {
+                if (typeof currentLevelToCheck.cmp === 'function' && currentLevelToCheck.cmp(8) >= 0) {
+                    isSurge8 = true;
                 }
-                window.dispatchEvent(new CustomEvent('surge:level:change', {
-                    detail: { slot, level: eventLevel }
-                }));
-            } catch {}
-        }, {
+            } else if (typeof currentLevelToCheck === 'number') {
+                if (currentLevelToCheck >= 8) isSurge8 = true;
+            }
+
+            if (isSurge8) {
+                setTsunamiNerf(0.00);
+                if (!isLabUnlocked()) {
+                    setLabUnlocked(true);
+                    try { setTsunamiSequencePlayed(true); } catch {}
+                }
+            }
+        } catch {}
+        
+        setValue(valForDisplay);
+        try { window.resetSystem?.updateResetPanel?.(); } catch {}
+        try {
+            let eventLevel = valForDisplay === Infinity ? Infinity : BigNum.fromAny(valForDisplay);
+            if (eventLevel !== Infinity && eventLevel instanceof BigNum) {
+                try { eventLevel = Number(eventLevel.toPlainIntegerString()); } catch {}
+            }
+            window.dispatchEvent(new CustomEvent('surge:level:change', {
+                detail: { slot, level: eventLevel }
+            }));
+        } catch {}
+    }, {
             storageKey: surgeLevelKey,
             onLockChange: (locked) => {
                  let newVal = BigNum.fromInt(0);
