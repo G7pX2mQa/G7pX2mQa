@@ -5,7 +5,7 @@
 const DEFAULT_TIMEOUT_MS = 0;
 const ELEMENT_SKIP_PROP = Symbol('ccc:ghostTap:skipUntil');
 const GLOBAL_SKIP_PROP = '__cccGhostTapSkipUntil';
-const TARGET_SELECTOR = '[data-ghost-tap-target], button, [role="button"], [data-btn], .game-btn, .btn, .slot-card, a[href], input, select, textarea, summary';
+const TARGET_SELECTOR = '[data-ghost-tap-target], button, [role="button"], [data-btn], .game-btn, .btn, .slot-card, a[href], input, select, textarea, summary, label';
 const DEFAULT_LONG_PRESS_MS = 80;
 
 let guardInstalled = false;
@@ -278,7 +278,8 @@ function handleInstantClick(event) {
   // Mark it so we don't double-fire if the browser also sends a click later.
   // We use a long timeout (2000ms) for the element to prevent "hold" double-taps,
   // but a short global timeout (300ms) to avoid blocking other elements if the user taps rapidly.
-  markGhostTapTarget(buttonLike, 2000, 300);
+  const isInputOrLabel = buttonLike.tagName === "INPUT" || buttonLike.tagName === "LABEL";
+  markGhostTapTarget(buttonLike, isInputOrLabel ? 300 : 2000, 300);
 
   // We don't preventDefault() here because that might kill scrolling or other behaviors,
   // but since we excluded scrollable areas, we assume these are static HUD buttons.
@@ -324,7 +325,8 @@ function handleSwipeSafeEnd(event) {
 
   // If movement is very small, it's a tap, not a scroll
   if (dx < 10 && dy < 10) {
-    markGhostTapTarget(buttonLike, 2000, 300);
+    const isInputOrLabel = buttonLike.tagName === "INPUT" || buttonLike.tagName === "LABEL";
+    markGhostTapTarget(buttonLike, isInputOrLabel ? 300 : 2000, 300);
     if (event.cancelable) event.preventDefault();
     buttonLike.click();
   }
