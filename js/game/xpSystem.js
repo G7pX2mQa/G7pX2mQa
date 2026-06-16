@@ -12,6 +12,13 @@ const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
 const KEY_XP_LEVEL = (slot) => `${KEY_PREFIX}:level:${slot}`;
 const KEY_PROGRESS = (slot) => `${KEY_PREFIX}:progress:${slot}`;
 
+function isKeyLocked(key) {
+  if (typeof window !== 'undefined' && window.__cccLockedStorageKeys) {
+    return window.__cccLockedStorageKeys.has(key);
+  }
+  return false;
+}
+
 export function getXpLevelStorageKey(slot = getActiveSlot()) {
   const resolvedSlot = slot ?? getActiveSlot();
   return resolvedSlot == null ? null : KEY_XP_LEVEL(resolvedSlot);
@@ -203,8 +210,16 @@ function enforceXpInfinityInvariant() {
   if (!levelIsInf && !progIsInf) return false;
 
   const inf = infinityRequirementBn.clone?.() ?? infinityRequirementBn;
-  xpState.xpLevel = inf.clone?.() ?? inf;
-  xpState.progress = inf.clone?.() ?? inf;
+  const slot = getActiveSlot();
+  const levelLocked = slot != null && isKeyLocked(KEY_XP_LEVEL(slot));
+  const progressLocked = slot != null && isKeyLocked(KEY_PROGRESS(slot));
+
+  if (!levelLocked) {
+    xpState.xpLevel = inf.clone?.() ?? inf;
+  }
+  if (!progressLocked) {
+    xpState.progress = inf.clone?.() ?? inf;
+  }
   requirementBn = inf.clone?.() ?? inf;
 
   if (bank?.books) {
@@ -626,12 +641,6 @@ function resetLockedXpState() {
   syncCoinMultiplierWithXpLevel(true);
 }
 
-function isKeyLocked(key) {
-  if (typeof window !== 'undefined' && window.__cccLockedStorageKeys) {
-    return window.__cccLockedStorageKeys.has(key);
-  }
-  return false;
-}
 
 function normalizeProgress(applyRewards = false) {
   // If either level or progress is already ∞, enforce the invariant and bail.
@@ -1126,7 +1135,10 @@ export function addXp(amount, { silent = false } = {}) {
         xpState.xpLevel = inf.clone?.() ?? inf;
     }
     
-    xpState.progress = inf.clone?.() ?? inf;
+    const progressLocked = slot != null && isKeyLocked(KEY_PROGRESS(slot));
+    if (!progressLocked) {
+        xpState.progress = inf.clone?.() ?? inf;
+    }
     
     // Requirement becomes infinity if level is infinity, OR if we force it.
     // If level is finite but locked, requirement is finite.
