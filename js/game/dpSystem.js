@@ -43,7 +43,6 @@ const KEY_PREFIX = 'ccc:dp';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
 const KEY_DP_LEVEL = (slot) => `${KEY_PREFIX}:level:${slot}`;
 const KEY_PROGRESS = (slot) => `${KEY_PREFIX}:progress:${slot}`;
-const KEY_HIGHEST_LEVEL = (slot) => `${KEY_PREFIX}:highest_level:${slot}`;
 
 let lastSlot = null;
 let stateLoaded = false;
@@ -53,7 +52,6 @@ const dpState = {
   unlocked: false,
   dpLevel: BigNum.fromInt(0),
   progress: BigNum.fromInt(0),
-  highestLevel: BigNum.fromInt(0),
 };
 
 const dpChangeSubscribers = new Set();
@@ -395,14 +393,6 @@ function ensureStateLoaded(force = false) {
     dpState.dpLevel = bnZero();
   }
   try {
-    dpState.highestLevel = BigNum.fromAny(localStorage.getItem(KEY_HIGHEST_LEVEL(slot)) ?? '0');
-  } catch {
-    dpState.highestLevel = bnZero();
-  }
-  if (isBuildingsUnlocked() && dpState.dpLevel.cmp(dpState.highestLevel) > 0) {
-    dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
-  }
-  try {
     dpState.progress = BigNum.fromAny(localStorage.getItem(KEY_PROGRESS(slot)) ?? '0');
   } catch {
     dpState.progress = bnZero();
@@ -426,7 +416,6 @@ function persistState() {
     unlocked: dpState.unlocked ? '1' : '0',
     level: dpState.dpLevel.toStorage(),
     progress: dpState.progress.toStorage(),
-    highestLevel: dpState.highestLevel.toStorage(),
   };
 
   try { localStorage.setItem(KEY_UNLOCK(slot), expected.unlocked); }
@@ -435,14 +424,11 @@ function persistState() {
   catch {}
   try { localStorage.setItem(KEY_PROGRESS(slot), expected.progress); }
   catch {}
-  try { localStorage.setItem(KEY_HIGHEST_LEVEL(slot), expected.highestLevel); }
-  catch {}
 
   const persisted = (() => {
     let unlocked = dpState.unlocked;
     let level = dpState.dpLevel;
     let progress = dpState.progress;
-    let highestLevel = dpState.highestLevel;
     try { unlocked = localStorage.getItem(KEY_UNLOCK(slot)) !== '0'; }
     catch {}
     try {
@@ -453,32 +439,22 @@ function persistState() {
       const rawProgress = localStorage.getItem(KEY_PROGRESS(slot));
       if (rawProgress) progress = BigNum.fromAny(rawProgress);
     } catch {}
-    try {
-      const rawHighestLevel = localStorage.getItem(KEY_HIGHEST_LEVEL(slot));
-      if (rawHighestLevel) highestLevel = BigNum.fromAny(rawHighestLevel);
-    } catch {}
-    return { unlocked, level, progress, highestLevel };
+    return { unlocked, level, progress };
   })();
 
   primeStorageWatcherSnapshot(KEY_UNLOCK(slot), persisted.unlocked ? '1' : '0');
   primeStorageWatcherSnapshot(KEY_DP_LEVEL(slot), persisted.level?.toStorage?.() ?? expected.level);
   primeStorageWatcherSnapshot(KEY_PROGRESS(slot), persisted.progress?.toStorage?.() ?? expected.progress);
-  primeStorageWatcherSnapshot(KEY_HIGHEST_LEVEL(slot), persisted.highestLevel?.toStorage?.() ?? expected.highestLevel);
 
   const mismatch =
     persisted.unlocked !== dpState.unlocked ||
     (persisted.level?.toStorage?.() ?? null) !== expected.level ||
-    (persisted.progress?.toStorage?.() ?? null) !== expected.progress ||
-    (persisted.highestLevel?.toStorage?.() ?? null) !== expected.highestLevel;
+    (persisted.progress?.toStorage?.() ?? null) !== expected.progress;
 
   if (mismatch) {
     dpState.unlocked = persisted.unlocked;
     dpState.dpLevel = persisted.level;
     dpState.progress = persisted.progress;
-    dpState.highestLevel = persisted.highestLevel;
-    if (isBuildingsUnlocked() && dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
-        dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
-    }
     updateDpRequirement();
     updateHud();
   }
@@ -570,9 +546,6 @@ export function resetDpProgress({ keepUnlock = true } = {}) {
   const wasUnlocked = dpState.unlocked;
   resetLockedDpState();
   dpState.unlocked = keepUnlock ? (wasUnlocked || dpState.unlocked) : false;
-  if (isBuildingsUnlocked() && dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
-    dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
-  }
   persistState();
   updateHud();
   const detail = getDpState();
@@ -682,9 +655,6 @@ export function addDp(amount, { silent = false } = {}) {
     
     updateDpRequirement();
 
-    if (isBuildingsUnlocked() && dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
-      dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
-    }
 
     persistState();
     updateHud();
@@ -800,9 +770,6 @@ export function addDp(amount, { silent = false } = {}) {
       updateDpRequirement();
   }
 
-  if (isBuildingsUnlocked() && dpState.dpLevel.cmp?.(dpState.highestLevel) > 0) {
-    dpState.highestLevel = dpState.dpLevel.clone?.() ?? dpState.dpLevel;
-  }
 
   persistState();
   updateHud();
@@ -831,7 +798,6 @@ export function getDpState() {
     dpLevel: dpState.dpLevel.clone?.() ?? dpState.dpLevel,
     progress: dpState.progress.clone?.() ?? dpState.progress,
     requirement: requirementBn.clone?.() ?? requirementBn,
-    highestLevel: dpState.highestLevel.clone?.() ?? dpState.highestLevel,
   };
 }
 
@@ -842,11 +808,6 @@ export function isDpSystemUnlocked() {
 
 export function getDpRequirementForDpLevel(dpLevel) {
   return dpRequirementForDpLevel(dpLevel);
-}
-
-export function getHighestDpLevel() {
-  ensureStateLoaded();
-  return dpState.highestLevel;
 }
 
 if (typeof window !== 'undefined') {
@@ -861,6 +822,5 @@ if (typeof window !== 'undefined') {
     getDpRequirementForDpLevel,
     resetDpProgress,
     getDpProgressRatio,
-    getHighestDpLevel
   });
 }
