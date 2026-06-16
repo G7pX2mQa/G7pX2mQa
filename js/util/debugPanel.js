@@ -438,7 +438,6 @@ const DP_KEYS = {
     unlock: (slot) => `ccc:dp:unlocked:${slot}`,
     level:  (slot) => `ccc:dp:level:${slot}`,
     progress: (slot) => `ccc:dp:progress:${slot}`,
-    highest_level: (slot) => `ccc:dp:highest_level:${slot}`,
 };
 
 const PP_KEYS = {
@@ -1923,7 +1922,7 @@ function applyPpState({ level, progress }) {
   } catch {}
 }
 
-function applyDpState({ level, progress, highestLevel }) {
+function applyDpState({ level, progress }) {
   const slot = getActiveSlot();
   if (slot == null) return;
 
@@ -1945,7 +1944,6 @@ function applyDpState({ level, progress, highestLevel }) {
 
   let nextLevel = toBnOrNull(level) ?? current?.dpLevel ?? null;
   let nextProgress = toBnOrNull(progress) ?? current?.progress ?? null;
-  let nextHighestLevel = toBnOrNull(highestLevel) ?? current?.highestLevel ?? null;
 
   const levelIsFinite = !(nextLevel?.isInfinite?.());
   const progressIsFinite = !(nextProgress?.isInfinite?.());
@@ -1975,14 +1973,6 @@ function applyDpState({ level, progress, highestLevel }) {
     } catch {}
   }
 
-  if (nextHighestLevel != null) {
-    try {
-      const raw = nextHighestLevel.toStorage?.() ?? BigNum.fromAny(nextHighestLevel).toStorage();
-      const key = DP_KEYS.highest_level(slot);
-      localStorage.setItem(key, raw);
-      primeStorageWatcherSnapshot(key, raw);
-    } catch {}
-  }
 
   if (nextProgress != null) {
     try {
@@ -2281,12 +2271,6 @@ function buildAreaStats(container, area) {
                 valToApply = BigNum.fromAny('Infinity');
             }
             applyDpState({ level: valToApply });
-            if (window.dpSystem) {
-              const latest = window.dpSystem.getDpState();
-              if (latest.dpLevel.cmp(latest.highestLevel) > 0) {
-                 applyDpState({ highestLevel: latest.dpLevel });
-              }
-            }
             const latest = window.dpSystem.getDpState();
             setValue(latest.dpLevel);
             if (!bigNumEquals(prev, latest.dpLevel)) {
