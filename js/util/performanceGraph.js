@@ -219,6 +219,19 @@ export function initPerformanceGraph() {
     updateVisibility();
   });
 
+  window.addEventListener('saveSlot:change', (e) => {
+    if (e.detail && e.detail.slot !== null) {
+      fpsHistory.fill(0);
+      historyIndex = 0;
+      if (settingsManager.get('performance_graph') && !inMenu) {
+        drawGraph();
+        if (isHovered) {
+          updateTooltip();
+        }
+      }
+    }
+  });
+
   // initial setup
   updateVisibility();
 }
