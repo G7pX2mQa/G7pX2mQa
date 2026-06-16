@@ -766,7 +766,7 @@ export function performFreeGenerationUpgrade() {
 
 function buyMaxGenerationUpgrade() {
   if (bank.coins.value.isInfinite()) {
-      if (performFreeGenerationUpgrade()) {
+      if (currentGenerationLevel.isInfinite() || performFreeGenerationUpgrade()) {
           playPurchaseSfx();
       }
       return;
