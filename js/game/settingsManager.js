@@ -208,7 +208,7 @@ export const SETTING_DEFINITIONS = {
     label: 'Collectible Insta-Teleport',
     overlay: 'performance',
     hasExtraInfo: true,
-    info: 'Turning this setting ON will make it so that recently spawned collectibles will not calculate physics every frame as they approach their intended destination, and instead they will teleport to their intended destination instantly. These physics calculations are generally the most computationally expensive thing the game does constantly so you may want to turn this setting ON you use a lower-end device.',
+    info: 'Turning this setting ON will make it so that recently spawned collectibles will not calculate physics every frame as they approach their intended destination, and instead they will teleport to their intended destination instantly. These physics calculations are generally the most computationally expensive thing the game does constantly so you may want to turn this setting ON if using a lower-end device.',
     default: false,
     unlockCondition: () => true,
   },
