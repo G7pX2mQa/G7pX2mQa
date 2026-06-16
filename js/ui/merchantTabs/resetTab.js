@@ -1688,7 +1688,7 @@ function calculateSurgeLevelJump(startLevelNum, wavesBn) {
   const logCurrentNum = getSafeLog10Number(currentWaves);
   const logReqNum = getSafeLog10Number(req);
 
-  if (logCurrentNum != -1 && logReqNum != -1 && logCurrentNum > logReqNum + 5) {
+  if (logCurrentNum != -1 && logReqNum != -1 && logCurrentNum > logReqNum + 1) {
     try {
       // Binary search for the highest target level we can afford
       let low = Number(barLevel);
@@ -1718,7 +1718,8 @@ function calculateSurgeLevelJump(startLevelNum, wavesBn) {
       }
 
       let targetLevel = Number(best);
-      if (targetLevel > barLevel) {
+      let attempts = 0;
+      while (targetLevel > barLevel && attempts < 5) {
         const nextReq = getSurgeRequirement(targetLevel);
         const cost = nextReq.sub(req).div(BigNum.fromInt(9));
         if (currentWaves.cmp(cost) >= 0) {
@@ -1730,7 +1731,10 @@ function calculateSurgeLevelJump(startLevelNum, wavesBn) {
           }
           changed = true;
           if (barLevel !== Infinity) req = nextReq;
+          break;
         }
+        targetLevel--;
+        attempts++;
       }
     } catch {}
   }
@@ -1774,7 +1778,7 @@ function updateWaveBar() {
       barLevel = result.level;
       try { localStorage.setItem(SURGE_BAR_LEVEL_KEY(slot), barLevel.toString()); } catch {}
       try { window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level: barLevel } })); } catch {}
-      try { window.dispatchEvent(new CustomEvent("level:change", { detail: { prefix: "waves", level: barLevel, isUnlocked: isSurgeUnlocked(), requirement: getSurgeRequirement(barLevel) } })); } catch {}
+      try { window.dispatchEvent(new CustomEvent("level:change", { detail: { prefix: "waves", level: BigNum.fromAny(barLevel), isUnlocked: isSurgeUnlocked(), requirement: getSurgeRequirement(barLevel) } })); } catch {}
       
       
       isUpdatingWaveBar = true;
@@ -2346,7 +2350,7 @@ function updateInfuseCard() {
   }
 
   if (!meetsInfuseRequirement()) {
-    updateResetButtonContent(el.btn, { disabled: true, msg: 'Reach Mutation Level 7 to perform an Infuse reset' });
+    updateResetButtonContent(el.btn, { disabled: true, msg: 'Reach Mutation 7 to perform an Infuse reset' });
     return;
   }
   
