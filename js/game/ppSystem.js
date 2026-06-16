@@ -183,7 +183,7 @@ function updateHud() {
       fill.style.setProperty('--pp-fill', '0%');
       fill.style.width = '0%';
     }
-    if (ppLevelValue) ppLevelValue.textContent = '0';
+    if (ppLevelValue) ppLevelValue.innerHTML = '0';
     if (progress) {
       const reqHtml = formatNumber(requirementBn);
       progress.innerHTML = `<span class="pp-progress-current">0</span><span class="pp-progress-separator">/</span><span class="pp-progress-required">${reqHtml}</span><span class="pp-progress-suffix">PP</span>`;
@@ -205,7 +205,7 @@ function updateHud() {
     fill.style.width = `${pct}%`;
   }
   if (ppLevelValue) {
-    ppLevelValue.textContent = formatNumber(ppState.ppLevel);
+    ppLevelValue.innerHTML = formatNumber(ppState.ppLevel);
   }
   if (progress) {
     const currentHtml = formatNumber(ppState.progress);
