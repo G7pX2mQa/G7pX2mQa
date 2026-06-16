@@ -10,10 +10,10 @@ const PRIORITY_SELECTORS = [
   { sel: '.offline-overlay', btn: '.offline-close-btn' },
   { sel: '.hm-milestones-overlay', btn: '.hm-milestones-close' },
   { sel: '.merchant-firstchat.is-visible', btn: null, yield: true }, // Don't close parent if chat is open; chat handles itself
-  { sel: '.upg-overlay.is-open', btn: '.shop-close' }, // Upgrade details modal
+  { sel: '.upg-overlay.is-open', btn: '.upg-actions .shop-close' }, // Upgrade details modal
   // Automation Shop has both .shop-overlay and .automation-shop-overlay
   { sel: '.merchant-overlay.is-open', btn: '.merchant-close' },
-  { sel: '.shop-overlay.is-open', btn: '.shop-close', closeAll: true }, // Main Shop (and others like DNA/Automation)
+  { sel: '.shop-overlay.is-open', btn: '.shop-actions .shop-close', closeAll: true }, // Main Shop (and others like DNA/Automation)
   { sel: '.sas-overlay.is-open', btn: '.sas-close', closeAll: true },
 ];
 
