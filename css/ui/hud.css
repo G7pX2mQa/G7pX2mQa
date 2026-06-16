@@ -1230,6 +1230,11 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
 .is-mobile .goal-bar-text {
 	transform: translateY(0px);
 }
+@media (max-width: 600px) {
+  .is-mobile .goal-bar-text {
+  	transform: translateY(1px);
+  }
+}
 .scrap-bar {
   background: linear-gradient(180deg, #666666, #555555);
 }
