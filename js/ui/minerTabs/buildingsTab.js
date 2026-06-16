@@ -1,5 +1,5 @@
 import { getActiveSlot } from '../../util/storage.js';
-import { getHighestDpLevel } from '../../game/dpSystem.js';
+import { getDpState } from '../../game/dpSystem.js';
 import { UC_MATERIAL_DATA } from '../../game/ucSpawner.js';
 import { setupDragToClose } from '../shopOverlay.js';
 import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../../util/bigNum.js';
@@ -136,8 +136,8 @@ export function renderBuildingsGrid(gridEl) {
 
     let highestDepth = 0;
     try {
-        const hDp = getHighestDpLevel();
-        if (hDp) highestDepth = Number(hDp.toString());
+        const dpState = getDpState();
+        if (dpState && dpState.dpLevel) highestDepth = Number(dpState.dpLevel.toString());
     } catch {}
 
     const buildings = [];
@@ -313,8 +313,8 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
     if (panel.classList.contains('is-active') && isBuildingsUnlocked()) {
       let highestDepth = 0;
       try {
-        const hDp = getHighestDpLevel();
-        if (hDp) highestDepth = Number(hDp.toString());
+        const dpState = getDpState();
+        if (dpState && dpState.dpLevel) highestDepth = Number(dpState.dpLevel.toString());
       } catch {}
 
       let newlyUnlocked = false;
