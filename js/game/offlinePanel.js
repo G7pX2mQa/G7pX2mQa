@@ -685,24 +685,32 @@ export function calculateOfflineRewards(seconds) {
 
         // Process all passive systems registered in passiveRegistry
     const eacEfficiency = settingsManager.get("eac_efficiency");
-    const efficiencyMult = eacEfficiency !== undefined ? (eacEfficiency / 100) : 1;
+    const eacMult = eacEfficiency !== undefined ? (eacEfficiency / 100) : 1;
     
-    if (eacEfficiency !== 0) {
-        for (const sys of passiveRegistry) {
-            if (typeof sys.onOffline === 'function') {
-                const rate = sys.getRate();
-                if (rate > 0) {
-                    let totalPassivesSecs = secondsBn.mulDecimal(String(rate));
-                    
-                    if (sys.getAmountMultiplier) {
-                        totalPassivesSecs = totalPassivesSecs.mulDecimal(String(sys.getAmountMultiplier()));
-                    }
-                    totalPassivesSecs = totalPassivesSecs.mulDecimal(String(efficiencyMult));
-                    
-                    const totalPassives = totalPassivesSecs.floorToInteger();
-                    
-                    if (!totalPassives.isZero()) {
-                        const sysRewards = sys.onOffline(secondsBn, totalPassives);
+    for (const sys of passiveRegistry) {
+        let sysEfficiencyMult = 1;
+        if (sys.getEfficiencyMultiplier) {
+            sysEfficiencyMult = sys.getEfficiencyMultiplier();
+        } else {
+            sysEfficiencyMult = eacMult;
+        }
+        
+        if (sysEfficiencyMult === 0) continue;
+        
+        if (typeof sys.onOffline === 'function') {
+            const rate = sys.getRate();
+            if (rate > 0) {
+                let totalPassivesSecs = secondsBn.mulDecimal(String(rate));
+                
+                if (sys.getAmountMultiplier) {
+                    totalPassivesSecs = totalPassivesSecs.mulDecimal(String(sys.getAmountMultiplier()));
+                }
+                totalPassivesSecs = totalPassivesSecs.mulDecimal(String(sysEfficiencyMult));
+                
+                const totalPassives = totalPassivesSecs.floorToInteger();
+                
+                if (!totalPassives.isZero()) {
+                    const sysRewards = sys.onOffline(secondsBn, totalPassives);
                         if (sysRewards) {
                             for (const [key, val] of Object.entries(sysRewards)) {
                                 if (key === 'uc_eac_progress') {
@@ -727,7 +735,6 @@ export function calculateOfflineRewards(seconds) {
                 }
             }
         }
-    }
     return rewards;
 }
 
