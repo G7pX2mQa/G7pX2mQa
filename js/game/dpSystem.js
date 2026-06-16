@@ -598,6 +598,21 @@ export function addDp(amount, { silent = false } = {}) {
   ensureStateLoaded();
   const slot = lastSlot ?? getActiveSlot();
 
+  const wasLevelInf = !!(dpState.dpLevel?.isInfinite?.() || (typeof dpState.dpLevel?.isInfinite === 'function' && dpState.dpLevel.isInfinite()));
+  const wasProgInf = !!(dpState.progress?.isInfinite?.() || (typeof dpState.progress?.isInfinite === 'function' && dpState.progress.isInfinite()));
+
+  if (wasLevelInf && wasProgInf) {
+    return {
+      unlocked: true,
+      dpLevelsGained: bnZero(),
+      dpAdded: bnZero(),
+      dpLevel: dpState.dpLevel,
+      progress: dpState.progress,
+      requirement: requirementBn,
+      slot
+    };
+  }
+
   if (!dpState.unlocked) {
     return {
       unlocked: false,
@@ -645,9 +660,10 @@ export function addDp(amount, { silent = false } = {}) {
 
   const progressIsInf = isInfinite(dpState.progress);
   const levelIsInf = isInfinite(dpState.dpLevel);
-  const gainIsInf = isInfinite(inc);
 
-  if (progressIsInf || levelIsInf || gainIsInf) {
+  const justBecameInf = (levelIsInf && !wasLevelInf) || (progressIsInf && !wasProgInf);
+
+  if (justBecameInf) {
     const inf = BigNum.fromAny('Infinity');
     
     dpState.dpLevel = inf.clone?.() ?? inf;
@@ -677,7 +693,7 @@ export function addDp(amount, { silent = false } = {}) {
 
   let dpLevelsGained = bnZero();
 
-  if (dpState.progress.cmp(requirementBn) < 0) {
+  if (isInfinite(requirementBn) || dpState.progress.cmp(requirementBn) < 0) {
     persistState();
     updateHud();
     const detail = {
