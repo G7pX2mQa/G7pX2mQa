@@ -4559,9 +4559,6 @@ function buildAreasContent(content) {
                 waterwheelsSection = createSubsection('Waterwheels', (sub) => {
                     buildFlowDebug(sub);
                 });
-                calculators = createSubsection('Calculators', (sub) => {
-                    buildAreaCalculators(sub);
-                });
             }
 			
             areaContent.appendChild(currencies);
@@ -4590,7 +4587,6 @@ function buildAreasContent(content) {
             if (buildingsSection) {
                 areaContent.appendChild(buildingsSection);
             }
-if (calculators) areaContent.appendChild(calculators);
         });
         areaContainer.classList.add('debug-panel-area');
 
