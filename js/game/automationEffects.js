@@ -468,6 +468,7 @@ registerPassiveSystem({
 
         const accs = getUcEacMaterialAccumulators();
         let anyGains = false;
+        let totalMaterialsSpawned = 0;
         
         for (let t = 0; t < collectCount; t++) {
             for (let j = 0; j < UC_MATERIALS.length; j++) {
@@ -495,6 +496,7 @@ registerPassiveSystem({
                         const finalVal = BigNum.fromInt(1).mulBigNumInteger(mult);
                         bank[matKey].add(finalVal);
                         anyGains = true;
+                        totalMaterialsSpawned++;
                     }
                 }
             }
@@ -504,11 +506,13 @@ registerPassiveSystem({
             try { scheduleHudUpdate(); } catch {}
         }
         
-        if (window.dpSystem && typeof window.dpSystem.addDp === 'function') {
-            window.dpSystem.addDp(collectCount);
-        }
-        if (isPpSystemUnlocked()) {
-            addPp(collectCount);
+        if (totalMaterialsSpawned > 0) {
+            if (window.dpSystem && typeof window.dpSystem.addDp === 'function') {
+                window.dpSystem.addDp(totalMaterialsSpawned);
+            }
+            if (isPpSystemUnlocked()) {
+                addPp(totalMaterialsSpawned);
+            }
         }
         
         const now = Date.now();
@@ -533,6 +537,7 @@ registerPassiveSystem({
         const accs = getUcEacMaterialAccumulators().slice();
         const ucEacProgress = [...accs];
         let anyGain = false;
+        let totalMaterialsSpawned = BigNum.fromInt(0);
 
         for (let j = 0; j < UC_MATERIALS.length; j++) {
             const matData = UC_MATERIAL_DATA[j];
@@ -565,6 +570,7 @@ registerPassiveSystem({
                             
                         rewards[matKey] = finalVal;
                         anyGain = true;
+                        totalMaterialsSpawned = totalMaterialsSpawned.add(integerGain);
                     }
                 }
             }
@@ -572,9 +578,9 @@ registerPassiveSystem({
         
         if (anyGain) {
             rewards.uc_eac_progress = ucEacProgress;
-            rewards.dp = totalPassives;
+            rewards.dp = totalMaterialsSpawned;
             if (isPpSystemUnlocked()) {
-                rewards.pp = totalPassives;
+                rewards.pp = totalMaterialsSpawned;
             }
         }
         return rewards;
