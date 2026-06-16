@@ -1,4 +1,4 @@
-import { registerTick } from './gameLoop.js';
+import { registerTick, TICK_RATE } from './gameLoop.js';
 import { getLevelNumber, performFreeAutobuy, getUpgradesForArea, AREA_KEYS, evolveUpgrade, performFreeAutobuyEvolve, batchUpgradeOperations } from './upgrades.js';
 import { triggerPassiveCollect } from './coinPickup.js';
 import { 
@@ -298,85 +298,48 @@ function updateAutobuyers(dt) {
 
 export function updateAutomation(dt) {
   const eacEfficiency = settingsManager.get("eac_efficiency");
-  const efficiencyMult = eacEfficiency !== undefined ? (eacEfficiency / 100) : 1;
+  const eacMult = eacEfficiency !== undefined ? (eacEfficiency / 100) : 1;
 
-  if (eacEfficiency === 0) {
-    for (const sys of passiveRegistry) {
+  for (const sys of passiveRegistry) {
+    // Determine the system-specific efficiency multiplier
+    let sysEfficiencyMult = 1;
+    if (sys.getEfficiencyMultiplier) {
+        sysEfficiencyMult = sys.getEfficiencyMultiplier();
+    } else {
+        // Fallback to EAC efficiency for backward compatibility with older passive systems
+        sysEfficiencyMult = eacMult;
+    }
+    
+    if (sysEfficiencyMult === 0) {
+        sys.accumulator = 0;
+        continue;
+    }
+
+    let rate = sys.getRate();
+    if (rate > 0) {
+      sys.accumulator += dt;
+      const interval = 1 / rate;
+      
+      if (sys.accumulator >= interval) {
+        const ticks = Math.floor(sys.accumulator / interval);
+        if (ticks > 0) {
+          let collectCount = ticks;
+          if (sys.getAmountMultiplier) {
+             collectCount *= sys.getAmountMultiplier();
+          }
+          collectCount *= sysEfficiencyMult;
+          
+          sys.onTick(collectCount, dt);
+          
+          sys.accumulator -= ticks * interval;
+        }
+      }
+    } else {
       sys.accumulator = 0;
     }
-  } else {
-    for (const sys of passiveRegistry) {
-      let rate = sys.getRate();
-      if (rate > 0) {
-        sys.accumulator += dt;
-        const interval = 1 / rate;
-        
-        if (sys.accumulator >= interval) {
-          const ticks = Math.floor(sys.accumulator / interval);
-          if (ticks > 0) {
-            let collectCount = ticks;
-            if (sys.getAmountMultiplier) {
-               collectCount *= sys.getAmountMultiplier();
-            }
-            collectCount *= efficiencyMult;
-            
-            sys.onTick(collectCount, dt);
-            
-            sys.accumulator -= ticks * interval;
-          }
-        }
-      } else {
-        sys.accumulator = 0;
-      }
-    }
-  }
-
-  // Auto-Sell Logic
-  const autoSellLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID);
-  const autoSellUpgDef = getUpgrade(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID);
-  const autoSellIsLocked = autoSellUpgDef && autoSellUpgDef.requiredNodeId && isNodeLocked(autoSellUpgDef.requiredNodeId, true);
-  if (!autoSellIsLocked && autoSellLevel > 0 && bank.scrap && !globalThis?.__cccLockedStorageKeys?.has?.('ccc:scrap')) {
-      const autoSellSetting = settingsManager.get("auto_sell_efficiency");
-      const autoSellMult = autoSellSetting !== undefined ? (autoSellSetting / 100) : 1;
-      if (autoSellMult === 0) return;
-      let eff = 0;
-      if (autoSellLevel === 1) eff = 0.000001; // 0.0001%
-      else if (autoSellLevel === 2) eff = 0.0001; // 0.01%
-      else if (autoSellLevel === 3) eff = 0.01; // 1%
-      else if (autoSellLevel >= 4) eff = 1.0;
-      eff *= autoSellMult; // 100%
-      
-      const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
-      let totalScrapGain = BigNum.fromInt(0);
-
-      for (let j = 0; j < UC_MATERIALS.length; j++) {
-          const matKey = UC_MATERIALS[j];
-          const matData = UC_MATERIAL_DATA[j];
-          if (bank[matKey] && bank[matKey].value.cmp(0) > 0) {
-              const owned = bank[matKey].value;
-              const materialValue = BigNum.fromAny(matData.value || 0);
-              const valPerMaterial = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, 18);
-              const potentialScrap = owned.mulBigNumInteger(valPerMaterial);
-              
-              if (eff === 1.0) {
-                  totalScrapGain = totalScrapGain.add(potentialScrap);
-              } else {
-                  totalScrapGain = totalScrapGain.add(potentialScrap.mulDecimal(eff));
-              }
-          }
-      }
-
-      scrapAutoSellAccumulator = scrapAutoSellAccumulator.add(totalScrapGain);
-      
-      const toAdd = scrapAutoSellAccumulator.floorToInteger();
-      if (toAdd.cmp(0) > 0) {
-          if (!toAdd.isInfinite?.() || !bank.scrap.value.isInfinite?.()) {
-			  bank.scrap.add(toAdd);
-		  }
-          scrapAutoSellAccumulator = scrapAutoSellAccumulator.sub(toAdd);
-      }
   }
 }
+
 
 
 let lastUcEacSaveTime = 0;
@@ -429,6 +392,10 @@ export function initAutomationEffects() {
 // Register Standard Auto Collect
 registerPassiveSystem({
     id: 'standard_auto_collect',
+    getEfficiencyMultiplier: () => {
+        const eacEfficiency = settingsManager.get("eac_efficiency");
+        return eacEfficiency !== undefined ? (eacEfficiency / 100) : 1;
+    },
     getRate: () => {
         const level = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_COLLECT_ID);
         let rate = level || 0;
@@ -469,6 +436,10 @@ registerPassiveSystem({
 // Register Underwater Cavern EAC
 registerPassiveSystem({
     id: 'uc_eac',
+    getEfficiencyMultiplier: () => {
+        const eacEfficiency = settingsManager.get("eac_efficiency");
+        return eacEfficiency !== undefined ? (eacEfficiency / 100) : 1;
+    },
     getRate: () => {
         const ucEacLevel = getLevelNumber(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID) || 0;
         const ucEacUpgDef = getUpgrade(AUTOMATION_AREA_KEY, UNDERWATER_CAVERN_EAC_ID);
@@ -607,5 +578,109 @@ registerPassiveSystem({
             }
         }
         return rewards;
+    }
+});
+
+
+
+// Register Effective Auto-Sell
+registerPassiveSystem({
+    id: 'effective_auto_sell',
+    getEfficiencyMultiplier: () => {
+        const autoSellSetting = settingsManager.get("auto_sell_efficiency");
+        return autoSellSetting !== undefined ? (autoSellSetting / 100) : 1;
+    },
+    getRate: () => {
+        const autoSellLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID);
+        const autoSellUpgDef = getUpgrade(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID);
+        const autoSellIsLocked = autoSellUpgDef && autoSellUpgDef.requiredNodeId && isNodeLocked(autoSellUpgDef.requiredNodeId, true);
+        
+        if (autoSellIsLocked || autoSellLevel <= 0 || !bank.scrap || globalThis?.__cccLockedStorageKeys?.has?.('ccc:scrap')) return 0;
+        
+        const autoSellSetting = settingsManager.get("auto_sell_efficiency");
+        const autoSellMult = autoSellSetting !== undefined ? (autoSellSetting / 100) : 1;
+        if (autoSellMult === 0) return 0;
+        
+        return TICK_RATE;
+    },
+    getAmountMultiplier: () => 1,
+    onTick: (collectCount, dt) => {
+        const autoSellLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID);
+        
+        let eff = 0;
+        if (autoSellLevel === 1) eff = 0.000001; // 0.0001%
+        else if (autoSellLevel === 2) eff = 0.0001; // 0.01%
+        else if (autoSellLevel === 3) eff = 0.01; // 1%
+        else if (autoSellLevel >= 4) eff = 1.0;
+        // User efficiency mult is handled by system wrapper now
+        
+        const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
+        let totalScrapGain = BigNum.fromInt(0);
+
+        for (let j = 0; j < UC_MATERIALS.length; j++) {
+            const matKey = UC_MATERIALS[j];
+            const matData = UC_MATERIAL_DATA[j];
+            if (bank[matKey] && bank[matKey].value.cmp(0) > 0) {
+                const owned = bank[matKey].value;
+                const materialValue = BigNum.fromAny(matData.value || 0);
+                const valPerMaterial = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, 18);
+                const potentialScrap = owned.mulBigNumInteger(valPerMaterial);
+                
+                if (eff === 1.0) {
+                    totalScrapGain = totalScrapGain.add(potentialScrap);
+                } else {
+                    totalScrapGain = totalScrapGain.add(potentialScrap.mulDecimal(eff));
+                }
+            }
+        }
+
+        // Multiply by collectCount to account for ticks elapsed (and efficiency handled by updateAutomation wrapper)
+        totalScrapGain = totalScrapGain.mulBigNumInteger(BigNum.fromAny(collectCount));
+        scrapAutoSellAccumulator = scrapAutoSellAccumulator.add(totalScrapGain);
+        
+        const toAdd = scrapAutoSellAccumulator.floorToInteger();
+        if (toAdd.cmp(0) > 0) {
+            if (!toAdd.isInfinite?.() || !bank.scrap.value.isInfinite?.()) {
+                bank.scrap.add(toAdd);
+            }
+            scrapAutoSellAccumulator = scrapAutoSellAccumulator.sub(toAdd);
+        }
+    },
+    onOffline: (secondsBn, totalPassives) => {
+        const autoSellLevel = getLevelNumber(AUTOMATION_AREA_KEY, EFFECTIVE_AUTO_SELL_ID);
+        
+        let eff = 0;
+        if (autoSellLevel === 1) eff = 0.000001;
+        else if (autoSellLevel === 2) eff = 0.0001;
+        else if (autoSellLevel === 3) eff = 0.01;
+        else if (autoSellLevel >= 4) eff = 1.0;
+        // User efficiency mult is handled by system wrapper now
+        
+        const scrapMultiplier = getCurrencyMultiplierScaledBN(CURRENCIES.SCRAP);
+        let totalScrapGainPerTick = BigNum.fromInt(0);
+
+        for (let j = 0; j < UC_MATERIALS.length; j++) {
+            const matKey = UC_MATERIALS[j];
+            const matData = UC_MATERIAL_DATA[j];
+            if (bank[matKey] && bank[matKey].value.cmp(0) > 0) {
+                const owned = bank[matKey].value;
+                const materialValue = BigNum.fromAny(matData.value || 0);
+                const valPerMaterial = materialValue.mulBigNumInteger(scrapMultiplier).mulScaledIntFloor(1, 18);
+                const potentialScrap = owned.mulBigNumInteger(valPerMaterial);
+                
+                if (eff === 1.0) {
+                    totalScrapGainPerTick = totalScrapGainPerTick.add(potentialScrap);
+                } else {
+                    totalScrapGainPerTick = totalScrapGainPerTick.add(potentialScrap.mulDecimal(eff));
+                }
+            }
+        }
+
+        const totalOfflineScrap = totalScrapGainPerTick.mulBigNumInteger(BigNum.fromAny(totalPassives)).floorToInteger();
+        
+        if (totalOfflineScrap.cmp(0) > 0) {
+            return { scrap: totalOfflineScrap };
+        }
+        return {};
     }
 });
