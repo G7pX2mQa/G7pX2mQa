@@ -44,6 +44,16 @@ const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
 const KEY_DP_LEVEL = (slot) => `${KEY_PREFIX}:level:${slot}`;
 const KEY_PROGRESS = (slot) => `${KEY_PREFIX}:progress:${slot}`;
 
+function isKeyLocked(key) {
+  if (typeof window !== 'undefined' && window.__cccLockedStorageKeys) {
+    return window.__cccLockedStorageKeys.has(key);
+  }
+  return false;
+}
+
+// Ensure it's available earlier
+isKeyLocked.defined = true;
+
 let lastSlot = null;
 let stateLoaded = false;
 let requirementBn = BigNum.fromInt(10);
@@ -598,6 +608,18 @@ export function addDp(amount, { silent = false } = {}) {
   ensureStateLoaded();
   const slot = lastSlot ?? getActiveSlot();
 
+  if (slot != null && isKeyLocked(KEY_PROGRESS(slot))) {
+    return {
+      unlocked: dpState.unlocked,
+      dpLevelsGained: bnZero(),
+      dpAdded: bnZero(),
+      dpLevel: dpState.dpLevel,
+      progress: dpState.progress,
+      requirement: requirementBn,
+      slot
+    };
+  }
+
   const wasLevelInf = !!(dpState.dpLevel?.isInfinite?.() || (typeof dpState.dpLevel?.isInfinite === 'function' && dpState.dpLevel.isInfinite()));
   const wasProgInf = !!(dpState.progress?.isInfinite?.() || (typeof dpState.progress?.isInfinite === 'function' && dpState.progress.isInfinite()));
 
@@ -661,13 +683,21 @@ export function addDp(amount, { silent = false } = {}) {
   const progressIsInf = isInfinite(dpState.progress);
   const levelIsInf = isInfinite(dpState.dpLevel);
 
+  const levelLocked = slot != null && isKeyLocked(KEY_DP_LEVEL(slot));
+
   const justBecameInf = (levelIsInf && !wasLevelInf) || (progressIsInf && !wasProgInf);
 
   if (justBecameInf) {
     const inf = BigNum.fromAny('Infinity');
     
-    dpState.dpLevel = inf.clone?.() ?? inf;
-    dpState.progress = inf.clone?.() ?? inf;
+    if (!levelLocked) {
+      dpState.dpLevel = inf.clone?.() ?? inf;
+    }
+    
+    const progressLocked = slot != null && isKeyLocked(KEY_PROGRESS(slot));
+    if (!progressLocked) {
+      dpState.progress = inf.clone?.() ?? inf;
+    }
     
     updateDpRequirement();
 
