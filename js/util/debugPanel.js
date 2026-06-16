@@ -1901,6 +1901,24 @@ function applyPpState({ level, progress }) {
   if (nextLevel == null) nextLevel = zero;
   if (nextProgress == null) nextProgress = zero;
 
+  const levelIsFinite = !(nextLevel?.isInfinite?.());
+  const progressIsFinite = !(nextProgress?.isInfinite?.());
+  if (!levelIsFinite && progressIsFinite && level !== undefined) {
+      nextProgress = BigNum.fromAny('Infinity');
+  } else if (!progressIsFinite && levelIsFinite && progress !== undefined) {
+      nextLevel = BigNum.fromAny('Infinity');
+  } else if ((level != null || progress != null) && zero) {
+    if (levelIsFinite && !progressIsFinite) {
+      if (level != null) {
+        nextProgress = zero.clone?.() ?? zero;
+      }
+    } else if (progressIsFinite && !levelIsFinite) {
+      if (progress != null) {
+        nextLevel = zero.clone?.() ?? zero;
+      }
+    }
+  }
+
   try {
       const rawLevel = nextLevel.toStorage?.() ?? BigNum.fromAny(nextLevel).toStorage(); localStorage.setItem(PP_KEYS.level(slot), rawLevel); primeStorageWatcherSnapshot(PP_KEYS.level(slot), rawLevel);
       const rawProgress = nextProgress.toStorage?.() ?? BigNum.fromAny(nextProgress).toStorage(); localStorage.setItem(PP_KEYS.progress(slot), rawProgress); primeStorageWatcherSnapshot(PP_KEYS.progress(slot), rawProgress);
@@ -2259,6 +2277,7 @@ function buildAreaStats(container, area) {
 
         const dpStateVal = window.dpSystem ? window.dpSystem.getDpState() : { dpLevel: BigNum.fromInt(0), progress: BigNum.fromInt(0) };
 
+        let dpProgressRow;
         const dpLevelKey = DP_KEYS.level(slot);
         const dpLevelRow = createInputRow('Depth', dpStateVal.dpLevel, (value, { setValue }) => {
             const prev = window.dpSystem.getDpState().dpLevel;
@@ -2273,6 +2292,7 @@ function buildAreaStats(container, area) {
             applyDpState({ level: valToApply });
             const latest = window.dpSystem.getDpState();
             setValue(latest.dpLevel);
+            if (dpProgressRow) dpProgressRow.setValue(latest.progress);
             if (!bigNumEquals(prev, latest.dpLevel)) {
                 flagDebugUsage();
                 logAction(`Modified DP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.dpLevel)}`);
@@ -2289,7 +2309,7 @@ function buildAreaStats(container, area) {
         container.appendChild(dpLevelRow.row);
 
         const dpProgressKey = DP_KEYS.progress(slot);
-        const dpProgressRow = createInputRow('DP', dpStateVal.progress, (value, { setValue }) => {
+        dpProgressRow = createInputRow('DP', dpStateVal.progress, (value, { setValue }) => {
             const prev = window.dpSystem.getDpState();
             const prevLevel = prev?.dpLevel?.clone?.() ?? prev?.dpLevel;
             const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
@@ -2314,6 +2334,7 @@ function buildAreaStats(container, area) {
 
         const ppStateVal = window.ppSystem ? window.ppSystem.getPpState() : { ppLevel: BigNum.fromInt(0), progress: BigNum.fromInt(0) };
 
+        let ppProgressRow; // forward declaration
         const ppLevelKey = PP_KEYS.level(slot);
         const ppLevelRow = createInputRow('Pressure', ppStateVal.ppLevel, (value, { setValue }) => {
             const prev = window.ppSystem.getPpState().ppLevel;
@@ -2328,6 +2349,7 @@ function buildAreaStats(container, area) {
             applyPpState({ level: valToApply });
             const latest = window.ppSystem.getPpState();
             setValue(latest.ppLevel);
+            if (ppProgressRow) ppProgressRow.setValue(latest.progress);
             if (!bigNumEquals(prev, latest.ppLevel)) {
                 flagDebugUsage();
                 logAction(`Modified PP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.ppLevel)}`);
@@ -2344,7 +2366,7 @@ function buildAreaStats(container, area) {
         container.appendChild(ppLevelRow.row);
 
         const ppProgressKey = PP_KEYS.progress(slot);
-        const ppProgressRow = createInputRow('PP', ppStateVal.progress, (value, { setValue }) => {
+        ppProgressRow = createInputRow('PP', ppStateVal.progress, (value, { setValue }) => {
             const prev = window.ppSystem.getPpState();
             const prevLevel = prev?.ppLevel?.clone?.() ?? prev?.ppLevel;
             const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
@@ -2438,12 +2460,14 @@ function buildAreaStats(container, area) {
     const areaLabel = area?.title ?? area?.key ?? 'Unknown Area';
 
     if (area.key === AREA_KEYS.STARTER_COVE) {
+    let xpProgressRow;
     const xpLevelKey = XP_KEYS.level(slot);
     const xpLevelRow = createInputRow('XP Level', xp.xpLevel, (value, { setValue }) => {
         const prev = getXpState().xpLevel;
         applyXpState({ level: value });
         const latest = getXpState();
         setValue(latest.xpLevel);
+        if (xpProgressRow) xpProgressRow.setValue(latest.progress);
         if (!bigNumEquals(prev, latest.xpLevel)) {
             flagDebugUsage();
             logAction(`Modified XP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.xpLevel)}`);
@@ -2460,7 +2484,7 @@ function buildAreaStats(container, area) {
     container.appendChild(xpLevelRow.row);
 
     const xpProgressKey = XP_KEYS.progress(slot);
-    const xpProgressRow = createInputRow('XP', xp.progress, (value, { setValue }) => {
+    xpProgressRow = createInputRow('XP', xp.progress, (value, { setValue }) => {
         const prev = getXpState();
         const prevLevel = prev?.xpLevel?.clone?.() ?? prev?.xpLevel;
         const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
@@ -2483,12 +2507,14 @@ function buildAreaStats(container, area) {
     });
     container.appendChild(xpProgressRow.row);
 
+    let mpProgressRow;
     const mpLevelKey = MUTATION_KEYS.level(slot);
     const mpLevelRow = createInputRow('Mutation', mutation.level, (value, { setValue }) => {
         const prev = getMutationState().level;
         applyMutationState({ level: value });
         const latest = getMutationState();
         setValue(latest.level);
+        if (mpProgressRow) mpProgressRow.setValue(latest.progress);
         if (!bigNumEquals(prev, latest.level)) {
             flagDebugUsage();
             logAction(`Modified MP Level (${areaLabel}) ${formatNumber(prev)} → ${formatNumber(latest.level)}`);
@@ -2505,7 +2531,7 @@ function buildAreaStats(container, area) {
     container.appendChild(mpLevelRow.row);
 
     const mpProgressKey = MUTATION_KEYS.progress(slot);
-    const mpProgressRow = createInputRow('MP', mutation.progress, (value, { setValue }) => {
+    mpProgressRow = createInputRow('MP', mutation.progress, (value, { setValue }) => {
         const prev = getMutationState();
         const prevLevel = prev?.level?.clone?.() ?? prev?.level;
         const prevProgress = prev?.progress?.clone?.() ?? prev?.progress;
