@@ -1052,6 +1052,22 @@ export function addXp(amount, { silent = false } = {}) {
     inc = bnZero();
   }
 
+  const wasLevelInf = bigNumIsInfinite(xpState.xpLevel);
+  const wasProgInf = bigNumIsInfinite(xpState.progress);
+
+  // If both were already infinite, return early immediately.
+  if (wasLevelInf && wasProgInf) {
+    return {
+      unlocked: true,
+      xpLevelsGained: bnZero(),
+      xpAdded: bnZero(), // we won't even parse `amount` or run multipliers
+      xpLevel: xpState.xpLevel,
+      progress: xpState.progress,
+      requirement: requirementBn,
+      slot
+    };
+  }
+
   // 3. Apply Multipliers
   if (!inc.isZero?.()) {
     const providers = xpGainMultiplierProviders.size > 0
@@ -1098,9 +1114,10 @@ export function addXp(amount, { silent = false } = {}) {
   // 6. Handle Infinity (Early Exit)
   const progressIsInf = bigNumIsInfinite(xpState.progress);
   const levelIsInf = bigNumIsInfinite(xpState.xpLevel);
-  const gainIsInf = bigNumIsInfinite(inc);
 
-  if (progressIsInf || levelIsInf || gainIsInf) {
+  const justBecameInf = (levelIsInf && !wasLevelInf) || (progressIsInf && !wasProgInf);
+
+  if (justBecameInf) {
     const inf = infinityRequirementBn.clone?.() ?? infinityRequirementBn;
     
     // Only set XP Level to infinity if it's not locked.
