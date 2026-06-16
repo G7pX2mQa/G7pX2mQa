@@ -48,6 +48,7 @@ function ppRequirementForPpLevel(ppLevel) {
 }
 
 function updatePpRequirement() {
+  if (enforcePpInfinityInvariant()) return;
   requirementBn = ppRequirementForPpLevel(ppState.ppLevel);
 }
 
@@ -337,16 +338,9 @@ export function addPp(amount, { silent = false } = {}) {
   const levelIsInf = isInfinite(ppState.ppLevel);
 
   const justBecameInf = (levelIsInf && !wasLevelInf) || (progressIsInf && !wasProgInf);
-
+  
   if (justBecameInf) {
-    const inf = BigNum.fromAny('Infinity');
-    
-    ppState.ppLevel = inf.clone?.() ?? inf;
-    ppState.progress = inf.clone?.() ?? inf;
-    
-    updatePpRequirement();
-
-
+    enforcePpInfinityInvariant();
     persistState();
     updateHud();
 
@@ -421,7 +415,9 @@ export function addPp(amount, { silent = false } = {}) {
         }
       }
 
-      while (minAdd <= maxAdd) {
+      let loops = 0;
+      while (minAdd <= maxAdd && loops < 100) {
+        loops++;
         const mid = Math.floor((minAdd + maxAdd) / 2);
         if (getLogForLevel(currentLevelNum + mid) <= currentProgressLog) {
           bestAdd = mid;
@@ -482,8 +478,36 @@ export function addPp(amount, { silent = false } = {}) {
   return detail;
 }
 
+
+function enforcePpInfinityInvariant() {
+  const isInfinite = (bn) => !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
+  const levelIsInf = isInfinite(ppState.ppLevel);
+  const progIsInf = isInfinite(ppState.progress);
+  if (!levelIsInf && !progIsInf) return false;
+
+  const inf = BigNum.fromAny('Infinity');
+  const slot = ppState.slot ?? getActiveSlot();
+  const levelLocked = slot != null && isKeyLocked(KEY_PP_LEVEL(slot));
+  const progressLocked = slot != null && isKeyLocked(KEY_PROGRESS(slot));
+
+  if (!levelLocked) {
+    ppState.ppLevel = inf.clone?.() ?? inf;
+  }
+  if (!progressLocked) {
+    ppState.progress = inf.clone?.() ?? inf;
+  }
+  requirementBn = inf.clone?.() ?? inf;
+  return true;
+}
+
 export function getPpState() {
   ensureStateLoaded();
+  const slot = ppState.slot ?? getActiveSlot();
+  const levelLocked = slot != null && isKeyLocked(KEY_PP_LEVEL(slot));
+  if (!levelLocked && typeof ppState.ppLevel?.cmp === 'function' && ppState.ppLevel.cmp(4500000000000) >= 0 && !ppState.ppLevel.isInfinite?.()) {
+    ppState.ppLevel = BigNum.fromAny('Infinity');
+  }
+  enforcePpInfinityInvariant();
   return {
     unlocked: ppState.unlocked,
     ppLevel: ppState.ppLevel.clone?.() ?? ppState.ppLevel,
