@@ -757,38 +757,19 @@ export function addMutationPower(amount) {
 
   const levelLocked = slot != null && isKeyLocked(KEY_LEVEL(slot));
 
-  if (mutationState.level && mutationState.level.isInfinite?.()) {
-    const prevLevel = mutationState.level.clone?.() ?? mutationState.level;
-    const prevProgress = mutationState.progress.clone?.() ?? mutationState.progress;
+  const wasLevelInf = !!mutationState.level?.isInfinite?.();
+  const wasProgInf = !!mutationState.progress?.isInfinite?.();
 
-    if (!mutationState.progress?.isInfinite?.()) {
-      try { mutationState.progress = BigNum.fromAny('Infinity'); } catch {}
-    }
-    if (!mutationState.requirement?.isInfinite?.()) {
-      try { mutationState.requirement = BigNum.fromAny('Infinity'); } catch {}
-    }
-
-    let inc;
-    try {
-      inc = amount instanceof BN ? amount : BigNum.fromAny(amount ?? 0);
-    } catch {
-      inc = bnZero();
-    }
-
-    inc = applyMutationMultipliers(inc);
-    inc = applyStatMultiplierOverride('mutation', inc);
-
-    const detail = emitChange('progress', {
-      delta: inc.clone?.() ?? inc,
+  if (wasLevelInf && wasProgInf) {
+    return {
+      delta: bnZero(),
       levelsGained: bnZero(),
       level: mutationState.level.clone?.() ?? mutationState.level,
       progress: mutationState.progress.clone?.() ?? mutationState.progress,
       requirement: mutationState.requirement.clone?.() ?? mutationState.requirement,
-      previousLevel: prevLevel.clone?.() ?? prevLevel,
-      previousProgress: prevProgress.clone?.() ?? prevProgress,
-    });
-
-    return detail;
+      previousLevel: mutationState.level.clone?.() ?? mutationState.level,
+      previousProgress: mutationState.progress.clone?.() ?? mutationState.progress,
+    };
   }
 
   let inc;
@@ -811,8 +792,12 @@ export function addMutationPower(amount) {
   mutationState.progress = mutationState.progress.add(incClone);
 
   // If MP overflows to BigNum Infinity, treat that as reaching mutation Infinity.
-  const progInf = mutationState.progress.isInfinite?.();
-  if (progInf) {
+  const levelIsInf = !!mutationState.level?.isInfinite?.();
+  const progInf = !!mutationState.progress?.isInfinite?.();
+  
+  const justBecameInf = (levelIsInf && !wasLevelInf) || (progInf && !wasProgInf);
+  
+  if (justBecameInf) {
     
     // Only set Mutation to infinity if it's not locked.
     if (!levelLocked) {
