@@ -250,7 +250,8 @@ function handleInstantClick(event) {
     (buttonLike.closest('.merchant-dialogue-list') && !buttonLike.closest('.merchant-firstchat')) ||
     buttonLike.closest('.merchant-tabs') ||
     buttonLike.closest('.merchant-reset__sidebar') ||
-    buttonLike.closest('.help-sidebar');
+    buttonLike.closest('.help-sidebar') ||
+    buttonLike.closest('.sas-scroller');
   
   if (isScrollable) {
     if (buttonLike.dataset.noGhost === 'true') return;
