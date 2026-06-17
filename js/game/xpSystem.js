@@ -1066,10 +1066,25 @@ export function addXp(amount, { silent = false } = {}) {
 
   // If both were already infinite, return early immediately.
   if (wasLevelInf && wasProgInf) {
+    let inc;
+    try {
+      if (amount instanceof BigNum) {
+        inc = amount.clone?.() ?? BigNum.fromAny(amount ?? 0);
+      } else {
+        inc = BigNum.fromAny(amount ?? 0);
+      }
+    } catch {
+      inc = bnZero();
+    }
+    
+    if (!inc.isZero?.()) {
+      try { window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'xp', delta: inc, progress: xpState.progress } })); } catch {}
+    }
+
     return {
       unlocked: true,
       xpLevelsGained: bnZero(),
-      xpAdded: bnZero(), // we won't even parse `amount` or run multipliers
+      xpAdded: inc, // we won't even parse `amount` or run multipliers
       xpLevel: xpState.xpLevel,
       progress: xpState.progress,
       requirement: requirementBn,
