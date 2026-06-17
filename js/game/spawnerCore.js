@@ -643,7 +643,9 @@ export function createBaseSpawner(config = {}) {
         newlySettledBuffer.length = 0;
         dirtyRegions.length = 0;
         canvasDirty = false;
-        clearBacklog();
+        if (resetType !== 'underwater_cavern') {
+            clearBacklog();
+        }
     }
 
     function getItemTransform(el) {
