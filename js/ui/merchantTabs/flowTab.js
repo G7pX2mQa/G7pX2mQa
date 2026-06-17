@@ -1737,3 +1737,23 @@ export function getWaterwheelScrapMultiplier(baseValue) {
     }
     return val.mulBigNumInteger(mult);
 }
+
+
+export function stopAllWaterwheels() {
+    let changed = false;
+    for (const id in state.waterwheels) {
+        if (state.waterwheels[id].active) {
+            state.waterwheels[id].active = false;
+            changed = true;
+            if (state.visuals[id]) {
+                state.visuals[id].speed = 0;
+                state.visuals[id].isMax = false;
+            }
+        }
+    }
+    if (changed) {
+        saveState();
+        updateFlowTab();
+        window.dispatchEvent(new CustomEvent('flow:change', { detail: { id: 'all', type: 'active' } }));
+    }
+}
