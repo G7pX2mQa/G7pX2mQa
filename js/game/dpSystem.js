@@ -840,6 +840,25 @@ export function addDp(amount, { silent = false } = {}) {
       updateDpRequirement();
   }
 
+  if (enforceDpInfinityInvariant()) {
+    persistState();
+    updateHud();
+
+    const detail = {
+      unlocked: true,
+      dpLevelsGained: dpLevelsGained.clone?.() ?? dpLevelsGained,
+      dpAdded: inc.clone?.() ?? inc,
+      dpLevel: dpState.dpLevel.clone?.() ?? dpState.dpLevel,
+      progress: dpState.progress.clone?.() ?? dpState.progress,
+      requirement: requirementBn.clone?.() ?? requirementBn,
+      slot,
+    };
+    notifyDpSubscribers(detail);
+    if (!silent && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('dp:change', { detail })); window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'dp', delta: detail.dpAdded, progress: detail.progress } })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } })); } catch {}
+    }
+    return detail;
+  }
 
   persistState();
   updateHud();
