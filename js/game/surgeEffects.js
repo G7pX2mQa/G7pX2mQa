@@ -18,6 +18,7 @@ import { getComboRestorationFactor, updateCombo, initComboSystem } from './combo
 import { formatMultForUi } from '../util/numFormat.js';
 import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
 import { addExternalPpMultiplierProvider } from './ppSystem.js';
+import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 
 const BN = BigNum;
 const MULTIPLIER = 10;
@@ -736,6 +737,8 @@ export function getBookProductionRate() {
     const mult = bank.books.mult.get();
     baseRate = baseRate.mulBigNumInteger(mult);
   }
+  
+  baseRate = applyStatMultiplierOverride('books', baseRate);
 
   if (isSurgeActive(8)) {
     baseRate = applyTsunamiNerf(baseRate);
