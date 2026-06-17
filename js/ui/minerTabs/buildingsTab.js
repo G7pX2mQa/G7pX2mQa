@@ -685,7 +685,7 @@ let lastBuildingOpenTime = 0;
 let lastMysteriousOpenTime = 0;
 
 export const BUILDING_NAMES = {
-    core: 'Black Hole', crystal: 'Obelisk', stone: 'Foundry', copper: 'Charger', iron: 'Refinery',
+    core: 'Black Hole', crystal: 'Prism', stone: 'Foundry', copper: 'Charger', iron: 'Refinery',
     pure_gold: 'Vault', diamond: 'Oil Rig', emerald: 'Greenhouse', ruby: 'Radiator',
     sapphire: 'Centrifuge', unobtainium: 'Beacon', prismatium: 'Singularity Generator'
 };
