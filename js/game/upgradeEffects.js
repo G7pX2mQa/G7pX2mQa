@@ -229,9 +229,11 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
           const ppLevel = getPpState().ppLevel;
           if (ppLevel && !ppLevel.isZero()) {
               const ppLevelNum = Number(ppLevel.toString());
-              if (Number.isFinite(ppLevelNum)) {
-                   const ppFactor = bigNumFromLog10(ppLevelNum * Math.log10(2));
-                   acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, ppFactor);
+              if (!Number.isFinite(ppLevelNum) || ppLevelNum === Infinity) {
+                  acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, BigNum.fromAny('Infinity'));
+              } else {
+                  const ppFactor = bigNumFromLog10(ppLevelNum * Math.log10(2));
+                  acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, ppFactor);
               }
           }
       }
