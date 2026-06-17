@@ -102,7 +102,8 @@ export function syncBookCurrencyMultiplierFromUpgrade(levelOverride) {
   }
 
   try {
-    multHandle.set(multiplier.clone?.() ?? multiplier);
+    const finalBookValue = applyStatMultiplierOverride('books', multiplier.clone?.() ?? multiplier);
+    multHandle.set(finalBookValue);
   } catch {}
 }
 
