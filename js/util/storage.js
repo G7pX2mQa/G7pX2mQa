@@ -867,7 +867,11 @@ fn.sub = function sub(x) {
       return this.multiplyByDecimal(String(factor));
     },
     applyTo(amount) {
-      const mult = this.get();
+      let mult = this.get();
+      if (typeof window !== 'undefined' && window.getDebugCurrencyMultiplierOverride) {
+          const override = window.getDebugCurrencyMultiplierOverride(key);
+          if (override) mult = override;
+      }
       if (mult.isInfinite()) {
         return BigNum.fromAny('Infinity');
       }
