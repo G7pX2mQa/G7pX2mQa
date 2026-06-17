@@ -384,6 +384,11 @@ export function computeCombineCores(scrapBn, potentialScrapBn, dpLevelBn) {
     if (!Number.isFinite(logScrap)) {
         if (logScrap > 0) return BigNum.fromAny('Infinity');
     }
+
+    if (dpLevel === Infinity) {
+        if (logScrap >= 7) return BigNum.fromAny('Infinity');
+    }
+
     const logScaled = Math.max(0, logScrap - 7);
     const pow2 = logScaled <= 0 ? BigNum.fromInt(1) : bigNumFromLog10(logScaled * Math.log10(2));
     
@@ -764,7 +769,10 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
           }
       });
       window.addEventListener('dp:change', (e) => {
-          
+          recomputePendingCoresAndCrystals();
+      });
+      window.addEventListener('surge:level:change', (e) => {
+          recomputePendingCoresAndCrystals();
       });
   }
 }
@@ -793,6 +801,10 @@ export function computeCompressCrystals(scrapBn, potentialScrapBn, surgeLevel) {
     
     if (!Number.isFinite(logScrap)) {
         if (logScrap > 0) return BigNum.fromAny('Infinity');
+    }
+
+    if (surgeLevel === Infinity) {
+        if (logScrap >= 33) return BigNum.fromAny('Infinity');
     }
     
     const logScaled = Math.max(0, logScrap - 33);
