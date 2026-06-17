@@ -627,10 +627,25 @@ export function addDp(amount, { silent = false } = {}) {
   const wasProgInf = !!(dpState.progress?.isInfinite?.() || (typeof dpState.progress?.isInfinite === 'function' && dpState.progress.isInfinite()));
 
   if (wasLevelInf && wasProgInf) {
+    let inc;
+    try {
+      if (amount instanceof BigNum) {
+        inc = amount.clone?.() ?? BigNum.fromAny(amount ?? 0);
+      } else {
+        inc = BigNum.fromAny(amount ?? 0);
+      }
+    } catch {
+      inc = bnZero();
+    }
+    
+    if (!inc.isZero?.()) {
+      try { window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'dp', delta: inc, progress: dpState.progress } })); } catch {}
+    }
+
     return {
       unlocked: true,
       dpLevelsGained: bnZero(),
-      dpAdded: bnZero(),
+      dpAdded: inc,
       dpLevel: dpState.dpLevel,
       progress: dpState.progress,
       requirement: requirementBn,
