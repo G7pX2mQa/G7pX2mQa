@@ -283,7 +283,7 @@ function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
     try {
         resetDpProgress({ keepUnlock: true });
         if (window.ucSpawner && typeof window.ucSpawner.clearPlayfield === 'function') {
-            window.ucSpawner.clearPlayfield();
+            window.ucSpawner.clearPlayfield('underwater_cavern');
         }
     } catch {}
     
