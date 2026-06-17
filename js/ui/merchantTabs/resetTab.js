@@ -37,6 +37,7 @@ import {
 import { shouldSkipGhostTap } from '../../util/ghostTapGuard.js';
 import { clearPendingGains } from '../../game/coinPickup.js';
 import { getVisibleMilestones, NERFED_SURGE_MILESTONE_IDS } from '../../game/surgeMilestones.js';
+import { isPpSystemUnlocked } from '../../game/ppSystem.js';
 import { RESEARCH_NODES } from '../../game/labNodes.js';
 import { ensureCustomScrollbar, closeShop, openShop, isAnyMenuScrolling } from '../shopOverlay.js';
 import { playAudio } from '../../util/audioManager.js';
@@ -2486,7 +2487,7 @@ function updateSurgeCard() {
         const effectiveNerf = getTsunamiExponent();
 
         let isNerfed = false;
-        if (isReached && isSurge8 && effectiveNerf < 1 && NERFED_SURGE_MILESTONE_IDS.includes(m.id)) {
+        if (isReached && isSurge8 && effectiveNerf < 1 && (NERFED_SURGE_MILESTONE_IDS.includes(m.id) || (m.id === 36 && isPpSystemUnlocked()))) {
             isNerfed = true;
         }
         const nerfedClass = isNerfed ? ' is-nerfed' : '';
@@ -2525,7 +2526,7 @@ function updateSurgeCard() {
         if (arrowEl) {
              let shouldHaveArrow = false;
              if (isSurge8 && effectiveNerf < 1) {
-                if (NERFED_SURGE_MILESTONE_IDS.includes(m.id)) {
+                if (NERFED_SURGE_MILESTONE_IDS.includes(m.id) || (m.id === 36 && isPpSystemUnlocked())) {
                     shouldHaveArrow = true;
                 }
              }
