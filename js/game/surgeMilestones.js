@@ -17,6 +17,7 @@ import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
 import { getBaseTsunamiExponent, getTsunamiExponent, getSurge15Multiplier, getSurge15Divisor, getSurge21Multiplier, getSurge21BonusPercentage, getSurge23Multiplier, getSurge23BonusPercentage, getSurge25Multiplier, getSurge25BonusPercentage, getSurge27Multiplier, getSurge27BonusPercentage, getSurge29Multiplier, getSurge29BonusPercentage, getSurge31Multiplier, getSurge31BonusPercentage, getSurge33Multiplier, getSurge33BonusPercentage, getSurge35Multiplier, getSurge35BonusPercentage, getSurge40Multiplier, getSurge50Multiplier, getBookProductionRate, getSurge6WealthMultipliers} from "./surgeEffects.js";
 import { getTsunamiResearchBonus, getResearchNodeLevel } from './labNodes.js';
 import { getActiveSlot } from '../util/storage.js';
+import { isPpSystemUnlocked } from './ppSystem.js';
 
 export const SURGE_MILESTONES = [
   {
@@ -318,6 +319,14 @@ export const SURGE_MILESTONES = [
   {
     id: 36,
     surgeLevel: 200,
+    affectedByTsunami: false,
+    description: [
+      "The key to a lock"
+    ]
+  },
+  {
+    id: 37,
+    surgeLevel: 250,
     affectedByTsunami: false,
     description: [
       "The key to a lock"
@@ -704,7 +713,52 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
       }
     }
 
-        if (m.id === 32) {
+        if (m.id === 36) {
+      if (milestone === m) {
+          milestone = { ...m, description: [...m.description] };
+      }
+      
+      const ppUnlocked = isPpSystemUnlocked();
+      if (ppUnlocked) {
+          const effectiveNerf = getTsunamiExponent();
+          const baseMult = 1 + effectiveNerf;
+          let formattedBaseBonus = baseMult.toFixed(2);
+          if (formattedBaseBonus.endsWith('.00')) {
+             formattedBaseBonus = baseMult.toFixed(0);
+          }
+          milestone.description[0] = `Multiplies PP value by <span style="color:#00e5ff">${formattedBaseBonus}x</span> compounding per Surge after 200`;
+
+          if (currentLevel >= 200) {
+            let multBn = BigNum.fromInt(1);
+            if (currentLevelBN.isInfinite?.()) {
+                multBn = BigNum.fromAny('Infinity');
+            } else {
+                const diffBN = currentLevelBN.sub(BigNum.fromInt(200));
+                if (diffBN.cmp(0) > 0) {
+                   const logBase = Math.log10(baseMult);
+                   const exponent = Number(diffBN.toString());
+                   multBn = bigNumFromLog10(exponent * logBase);
+                }
+            }
+            
+            let formattedBonus = formatMultForUi(multBn);
+            if (multBn.isInfinite?.()) formattedBonus = 'Infinity';
+            milestone.description.push(`Current bonus: ${formattedBonus}x`);
+          }
+      }
+    }
+
+    if (m.id === 37) {
+      if (milestone === m) {
+          milestone = { ...m, description: [...m.description] };
+      }
+      const ppUnlocked = isPpSystemUnlocked();
+      if (!ppUnlocked) {
+          milestone.description = ["This milestone is hidden for now"];
+      }
+    }
+
+    if (m.id === 32) {
       if (milestone === m) {
           milestone = { ...m, description: [...m.description] };
       }
