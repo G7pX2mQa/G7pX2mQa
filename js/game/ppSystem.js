@@ -6,10 +6,6 @@ import { formatNumber } from '../util/numFormat.js';
 import { syncDpPpHudLayout } from '../ui/hudLayout.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 
-
-
-
-
 function isKeyLocked(key) {
   if (typeof window !== 'undefined' && window.__cccLockedStorageKeys) {
     return window.__cccLockedStorageKeys.has(key);
@@ -304,10 +300,25 @@ export function addPp(amount, { silent = false } = {}) {
   const wasProgInf = !!(ppState.progress?.isInfinite?.() || (typeof ppState.progress?.isInfinite === 'function' && ppState.progress.isInfinite()));
 
   if (wasLevelInf && wasProgInf) {
+    let inc;
+    try {
+      if (amount instanceof BigNum) {
+        inc = amount.clone?.() ?? BigNum.fromAny(amount ?? 0);
+      } else {
+        inc = BigNum.fromAny(amount ?? 0);
+      }
+    } catch {
+      inc = bnZero();
+    }
+    
+    if (!inc.isZero?.()) {
+      try { window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'pp', delta: inc, progress: ppState.progress } })); } catch {}
+    }
+
     return {
       unlocked: true,
       ppLevelsGained: bnZero(),
-      ppAdded: bnZero(),
+      ppAdded: inc,
       ppLevel: ppState.ppLevel,
       progress: ppState.progress,
       requirement: requirementBn,
