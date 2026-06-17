@@ -951,8 +951,8 @@ function ensureCurrencyOverrideListener() {
                             const ratio = nextBn.div(baselineBn);
                             const locked = isCurrencyMultiplierLocked(key, targetSlot);
                             
-                            // If it's an unlocked material and its baseline ACTUALLY changed, wipe its override.
-                            if (!locked && UC_MATERIALS.includes(key)) {
+                            // If it's an unlocked currency and its baseline ACTUALLY changed, wipe its override.
+                            if (!locked) {
                                 clearCurrencyMultiplierOverride(key, targetSlot);
                                 const storageKey = getCurrencyMultiplierStorageKey(key, targetSlot);
                                 if (storageKey) {
@@ -1280,6 +1280,15 @@ function createCompositeLockToggle(resolveKeys, { onToggle } = {}) {
 
 applyAllCurrencyOverridesForActiveSlot();
 ensureCurrencyOverrideListener();
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('surge:level:change', () => {
+        refreshLiveBindings((binding) => binding.type === 'stat-mult');
+    });
+    window.addEventListener('lab:node:change', () => {
+        refreshLiveBindings((binding) => binding.type === 'stat-mult');
+    });
+}
 
 function collapseAllDebugCategories() {
     const panel = document.getElementById(DEBUG_PANEL_ID);
