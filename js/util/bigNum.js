@@ -99,6 +99,9 @@ export class BigNum {
       if (parts[1] === 'infinite') {
         return new BigNum(1, { base: BigNum.MAX_E, inf: true }, p);
       }
+      if (parts[1] === 'zero') {
+        return new BigNum(0, { base: 0 }, p);
+      }
       const [, pStr, sigStr, eStr] = parts;
       const pp = parseInt(pStr, 10) || p;
       let eNum = Number(eStr);
@@ -129,6 +132,7 @@ export class BigNum {
   // ---------------------- PERSISTENCE ----------------------
   toStorage() {
     if (this.inf) return `BN:infinite`;
+    if (this.isZero()) return `BN:zero`;
     if (this.p === 0) return `BN:0::${this.e}`;
     return `BN:${this.p}:${this.sig.toString()}:${this.e}`;
   }
