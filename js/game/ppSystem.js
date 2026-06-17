@@ -492,6 +492,25 @@ export function addPp(amount, { silent = false } = {}) {
       updatePpRequirement();
   }
 
+  if (enforcePpInfinityInvariant()) {
+    persistState();
+    updateHud();
+
+    const detail = {
+      unlocked: true,
+      ppLevelsGained: ppLevelsGained.clone?.() ?? ppLevelsGained,
+      ppAdded: inc.clone?.() ?? inc,
+      ppLevel: ppState.ppLevel.clone?.() ?? ppState.ppLevel,
+      progress: ppState.progress.clone?.() ?? ppState.progress,
+      requirement: requirementBn.clone?.() ?? requirementBn,
+      slot,
+    };
+    notifyPpSubscribers(detail);
+    if (!silent && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('pp:change', { detail })); window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'pp', delta: detail.ppAdded, progress: detail.progress } })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'pp', level: detail.ppLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getPpProgressRatio() } })); } catch {}
+    }
+    return detail;
+  }
 
   persistState();
   updateHud();
@@ -588,6 +607,7 @@ if (typeof window !== 'undefined') {
   window.ppSystem = window.ppSystem || {};
   Object.assign(window.ppSystem, {
     addExternalPpMultiplierProvider,
+    getPpMultiplier,
     initPpSystem,
     unlockPpSystem,
     addPp,
