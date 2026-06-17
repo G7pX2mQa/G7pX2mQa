@@ -566,7 +566,7 @@ function updateCompressCard() {
     
     ensurePersistentFlagsPrimed();
     
-    const panel = document.getElementById('miner-panel-reset');
+    const panel = resetState.panel || document.getElementById('miner-panel-reset');
     const compressLayerBtn = panel ? panel.querySelector('[data-reset-layer="compress"]') : null;
     
     if (!isCompressUnlocked()) {
@@ -695,6 +695,7 @@ export function initCombinePanel(minerOverlayEl, minerSheetEl, tabsEl, panelsWra
   panel.className = 'merchant-panel reset-tab';
   panel.id = 'miner-panel-reset';
   
+  resetState.panel = panel;
   initCombineTabUI(panel);
   
   resetState.elements.combine.card = panel.querySelector('#reset-card-combine');
@@ -883,7 +884,7 @@ function updateCompressPanelVisibility(minerSheetEl) {
     tabBtn.disabled = false;
   }
   
-  const panel = document.getElementById('miner-panel-reset');
+  const panel = resetState.panel || document.getElementById('miner-panel-reset');
   if (panel) {
       const compressLayerBtn = panel.querySelector('[data-reset-layer="compress"]');
       if (compressLayerBtn) {
