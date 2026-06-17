@@ -1015,6 +1015,7 @@ export function setDebugCurrencyMultiplierOverride(currencyKey, value, slot = ge
     return bn;
 }
 
+if (typeof window !== 'undefined') window.getDebugCurrencyMultiplierOverride = getDebugCurrencyMultiplierOverride;
 export function getDebugCurrencyMultiplierOverride(currencyKey, slot = getActiveSlot()) {
     if (!currencyKey || slot == null) return null;
     return getCurrencyOverride(slot, currencyKey);
@@ -4307,6 +4308,19 @@ function buildAreaStatMultipliers(container, area) {
         if (stat.key === 'dp') {
             registerLiveBinding({
                 type: 'dp',
+                key: stat.key,
+                slot,
+                refresh: () => {
+                    if (slot !== getActiveSlot()) return;
+                    const latest = getStatMultiplierDisplayValue(stat.key, slot);
+                    row.setValue(latest);
+                },
+            });
+        }
+
+        if (stat.key === 'pp') {
+            registerLiveBinding({
+                type: 'pp',
                 key: stat.key,
                 slot,
                 refresh: () => {
