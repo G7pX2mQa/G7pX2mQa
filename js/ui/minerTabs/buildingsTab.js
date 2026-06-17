@@ -1058,9 +1058,22 @@ export function updateOverlayUi() {
     document.getElementById('building-detail-bonus-row').innerHTML = 
         `${BUILDING_BONUS_TEXTS[id] || 'Bonus'}: ${formatMultForUi(currentBonus)}x &rarr; ${formatMultForUi(nextBonus)}x`;
         
+    const btnBuy = document.getElementById('building-btn-buy');
+    const btnBuyMax = document.getElementById('building-btn-buy-max');
+    const btnBuyCheap = document.getElementById('building-btn-buy-cheap');
+
     if (levelBn.isInfinite && levelBn.isInfinite()) {
-        document.getElementById('building-detail-cost-row').innerHTML = '';
-        document.getElementById('building-detail-wallet-row').innerHTML = '';
+        const costRow = document.getElementById('building-detail-cost-row');
+        costRow.style.visibility = 'hidden';
+        costRow.innerHTML = `Cost: ${imgStr}`;
+        
+        const walletRow = document.getElementById('building-detail-wallet-row');
+        walletRow.style.visibility = 'hidden';
+        walletRow.innerHTML = `You have: ${imgStr}`;
+
+        btnBuy.style.display = 'none';
+        btnBuyMax.style.display = 'none';
+        btnBuyCheap.style.display = 'none';
     } else {
         const levelNum = typeof levelBn.toNumber === 'function' ? levelBn.toNumber() : Number(levelBn.toString());
         const next25Log10 = getBuildingTotalCostLog10(getBuildingRatio(id), levelNum, 25);
@@ -1068,17 +1081,25 @@ export function updateOverlayUi() {
         const next25CostMatName = (resConfig ? (next25CostBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
         
         const costMatName = (resConfig ? (costBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
-        document.getElementById('building-detail-cost-row').innerHTML = 
+        const costRow = document.getElementById('building-detail-cost-row');
+        costRow.style.visibility = '';
+        costRow.innerHTML = 
             `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName} <span style="font-size: 0.9em; opacity: 0.8;">(Next 25: ${imgStr} ${formatNumber(next25CostBn)} ${next25CostMatName})</span>`;
             
         const walletMatName = (resConfig ? (walletBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
-        document.getElementById('building-detail-wallet-row').innerHTML = 
+        const walletRow = document.getElementById('building-detail-wallet-row');
+        walletRow.style.visibility = '';
+        walletRow.innerHTML = 
             `You have: ${imgStr} ${formatNumber(walletBn)} ${walletMatName}`;
+
+        btnBuy.style.display = '';
+        btnBuyMax.style.display = '';
+        btnBuyCheap.style.display = '';
+        
+        btnBuy.disabled = walletBn.cmp(costBn) < 0;
+        btnBuyMax.disabled = walletBn.cmp(costBn) < 0;
+        btnBuyCheap.disabled = walletBn.cmp(costBn) < 0;
     }
-    const btnBuy = document.getElementById('building-btn-buy');
-    btnBuy.disabled = walletBn.cmp(costBn) < 0;
-    document.getElementById('building-btn-buy-max').disabled = walletBn.cmp(costBn) < 0;
-    document.getElementById('building-btn-buy-cheap').disabled = walletBn.cmp(costBn) < 0;
 }
 
 export function handlePurchaseOuter(id, type) {
