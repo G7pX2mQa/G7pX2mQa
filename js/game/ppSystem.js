@@ -49,12 +49,28 @@ function ppRequirementForPpLevel(ppLevel) {
       targetLevel = Number(l.toString());
   } catch {}
   if (targetLevel < 0) return BigNum.fromInt(1000);
-  let l = targetLevel;
-  if (l >= 4e12) {
-      const diff = l - 4e12;
-      l += Math.pow(diff, 1.5) / 1e4;
+  
+  const numLevel = targetLevel;
+  let totalLog10 = 3 * (numLevel + 1);
+
+  const softcapStart = 1e12; // 1 Trillion
+  if (numLevel > softcapStart) {
+      const softcapDeltaNum = numLevel - softcapStart;
+      const baseSoftcapLog = 5;
+      const rate = 2.36034e-10;
+      const penaltyLog10 = baseSoftcapLog * Math.exp(rate * softcapDeltaNum);
+      
+      if (!Number.isFinite(penaltyLog10) || penaltyLog10 >= 1.7976931348623157e+308) {
+          return BigNum.fromAny('Infinity');
+      }
+      totalLog10 += penaltyLog10;
+      
+      if (!Number.isFinite(totalLog10) || totalLog10 >= 1.7976931348623157e+308) {
+          return BigNum.fromAny('Infinity');
+      }
   }
-  return bigNumFromLog10(3 * (l + 1));
+
+  return bigNumFromLog10(totalLog10);
 }
 
 function updatePpRequirement() {
@@ -405,43 +421,41 @@ export function addPp(amount, { silent = false } = {}) {
 
     if (Number.isFinite(currentLevelNum)) {
       const getLogForLevel = (levelNum) => {
-        let l = levelNum;
-        if (l >= 4e12) {
-            const diff = l - 4e12;
-            l += Math.pow(diff, 1.5) / 1e4;
+        let totalLog10 = 3 * (levelNum + 1);
+        const softcapStart = 1e12; // 1 Trillion
+        if (levelNum > softcapStart) {
+          const softcapDeltaNum = levelNum - softcapStart;
+          const baseSoftcapLog = 5;
+          const rate = 2.36034e-10;
+          const penaltyLog10 = baseSoftcapLog * Math.exp(rate * softcapDeltaNum);
+          if (!Number.isFinite(penaltyLog10) || penaltyLog10 >= 1.7976931348623157e+308) {
+              return Number.POSITIVE_INFINITY;
+          }
+          totalLog10 += penaltyLog10;
         }
-        return 3 * (l + 1);
+        return totalLog10;
       };
 
-      let minAdd = 0;
-      let maxAdd = 1000000;
-      let bestAdd = -1;
+      let low = currentLevelNum;
+      let high = Math.max(currentLevelNum, 4500000000000);
+      let best = currentLevelNum;
 
-      if (getLogForLevel(currentLevelNum + maxAdd) <= currentProgressLog) {
-        while (getLogForLevel(currentLevelNum + maxAdd) <= currentProgressLog) {
-            if (!Number.isFinite(getLogForLevel(currentLevelNum + maxAdd))) break;
-            minAdd = maxAdd;
-            maxAdd *= 2;
-        }
-      }
-
-      let loops = 0;
-      while (minAdd <= maxAdd && loops < 100) {
-        loops++;
-        const mid = Math.floor((minAdd + maxAdd) / 2);
-        if (getLogForLevel(currentLevelNum + mid) <= currentProgressLog) {
-          bestAdd = mid;
-          minAdd = mid + 1;
+      for (let i = 0; i < 60; i++) {
+        const mid = Math.floor((low + high) / 2);
+        const midLog = getLogForLevel(mid);
+        if (midLog <= currentProgressLog) {
+            best = mid;
+            low = mid + 1;
         } else {
-          maxAdd = mid - 1;
+            high = mid - 1;
         }
       }
 
-      if (bestAdd > 0) {
-        const safeGainStr = bestAdd.toString();
-        let safeGainBn;
-        try { safeGainBn = BigNum.fromAny(safeGainStr); } catch { safeGainBn = null; }
-        if (safeGainBn) {
+      const estimatedGain = best - currentLevelNum;
+      if (estimatedGain > 10) {
+        const safeGain = Math.max(0, estimatedGain - 5);
+        if (safeGain > 0 && safeGain <= Number.MAX_SAFE_INTEGER) {
+          const safeGainBn = BigNum.fromAny(safeGain.toString());
           ppState.ppLevel = ppState.ppLevel.add(safeGainBn);
           ppLevelsGained = ppLevelsGained.add(safeGainBn);
           updatePpRequirement();
