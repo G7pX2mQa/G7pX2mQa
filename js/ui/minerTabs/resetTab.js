@@ -15,7 +15,7 @@ import { isBuildingsUnlocked } from './buildingsTab.js';
 import { isSurgeActive } from '../../game/surgeEffects.js';
 import { playAudio } from "../../util/audioManager.js";
 import { BUILDING_IDS } from "./buildingsTab.js";
-import { WATERWHEEL_DEFS, setWaterwheelLevel, setWaterwheelFp } from '../merchantTabs/flowTab.js';
+import { WATERWHEEL_DEFS, setWaterwheelLevel, setWaterwheelFp, stopAllWaterwheels } from '../merchantTabs/flowTab.js';
 
 const COMBINE_UNLOCKED_KEY_BASE = 'ccc:combineUnlocked';
 const COMBINE_COMPLETED_KEY_BASE = 'ccc:combineCompleted';
@@ -282,18 +282,19 @@ function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
     // Wipe DP/Depth
     try {
         resetDpProgress({ keepUnlock: true });
-        if (window.spawner && typeof window.spawner.clearPlayfield === 'function') {
-            window.spawner.clearPlayfield('underwater_cavern');
+        if (window.ucSpawner && typeof window.ucSpawner.clearPlayfield === 'function') {
+            window.ucSpawner.clearPlayfield();
         }
     } catch {}
     
     // Reset Waterwheels
     try {
-        for (const def of WATERWHEEL_DEFS) {
-            setWaterwheelLevel(def.name, 0);
-            setWaterwheelFp(def.name, 0);
+        for (const id in WATERWHEEL_DEFS) {
+            setWaterwheelLevel(id, 0);
+            setWaterwheelFp(id, 0);
         }
-        setWaterwheelFp(0);
+        
+        stopAllWaterwheels();
     } catch {}
     
     // Core/Scrap upgrades reset
