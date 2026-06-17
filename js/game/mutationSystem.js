@@ -782,8 +782,23 @@ export function addMutationPower(amount) {
   const wasProgInf = !!mutationState.progress?.isInfinite?.();
 
   if (wasLevelInf && wasProgInf) {
+    let inc;
+    try {
+      if (amount instanceof BigNum) {
+        inc = amount.clone?.() ?? BigNum.fromAny(amount ?? 0);
+      } else {
+        inc = BigNum.fromAny(amount ?? 0);
+      }
+    } catch {
+      inc = bnZero();
+    }
+    
+    if (!inc.isZero?.()) {
+      try { window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'mp', delta: inc, progress: mutationState.progress } })); } catch {}
+    }
+
     return {
-      delta: bnZero(),
+      delta: inc,
       levelsGained: bnZero(),
       level: mutationState.level.clone?.() ?? mutationState.level,
       progress: mutationState.progress.clone?.() ?? mutationState.progress,
