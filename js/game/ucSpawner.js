@@ -224,6 +224,7 @@ export function createUcSpawner(config = {}) {
                         const preAllocObj = {
                             el,
                             isHiddenPreAllocated: true,
+                            isPreAllocatedMaterial: true,
                             isRemoved: false,
                             settled: false,
                             dieAt: now + cycleMs * 2, // dies with placeholder if unused
@@ -576,6 +577,7 @@ export function createUcSpawner(config = {}) {
         onClearPlayfield: (activeItems, removeItem, resetType) => {
             for (let i = activeItems.length - 1; i >= 0; i--) {
                 const c = activeItems[i]; if (!c) continue;
+                if (resetType === 'underwater_cavern' && (c.isStrikePlaceholder || c.isPreAllocatedMaterial)) continue;
                 removeItem(activeItems[i], i);
             }
             const pickaxe = document.getElementById("uc-pickaxe");
