@@ -257,7 +257,7 @@ function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
         const upgrades = getUpgradesForArea('dna');
         for (const upg of upgrades) {
             if (!upg) continue;
-            setLevel('dna', upg.id, 0, true);
+            setLevel('dna', upg.id, 0, true, { resetHmEvolutions: true });
         }
     } catch {}
 
@@ -311,9 +311,9 @@ function applyCombineResetLogic({ playSurgeEffects = false } = {}) {
             const upg = ucUpgrades[j];
             if (!upg) continue;
             if (upg.costType === 'scrap') {
-                setLevel(AREA_KEYS.UNDERWATER_CAVERN, upg.id, 0, true);
+                setLevel(AREA_KEYS.UNDERWATER_CAVERN, upg.id, 0, true, { resetHmEvolutions: true });
             } else {
-                setLevel(AREA_KEYS.UNDERWATER_CAVERN, upg.id, BigNum.fromInt(0));
+                setLevel(AREA_KEYS.UNDERWATER_CAVERN, upg.id, BigNum.fromInt(0), true, { resetHmEvolutions: true });
             }
         }
     } catch {}
