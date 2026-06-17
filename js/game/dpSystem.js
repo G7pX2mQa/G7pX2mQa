@@ -651,7 +651,8 @@ export function addDp(amount, { silent = false } = {}) {
       try { window.dispatchEvent(new CustomEvent('stat:change', { detail: { key: 'dp', delta: inc, progress: dpState.progress } })); } catch {}
     }
 
-    return {
+    updateHud();
+    const detail = {
       unlocked: true,
       dpLevelsGained: bnZero(),
       dpAdded: inc,
@@ -660,6 +661,10 @@ export function addDp(amount, { silent = false } = {}) {
       requirement: requirementBn,
       slot
     };
+    if (!silent && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('dp:change', { detail })); window.dispatchEvent(new CustomEvent('level:change', { detail: { prefix: 'dp', level: detail.dpLevel, progress: detail.progress, requirement: detail.requirement, isUnlocked: detail.unlocked, ratio: getDpProgressRatio() } })); } catch {}
+    }
+    return detail;
   }
 
   if (!dpState.unlocked) {
