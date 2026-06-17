@@ -620,10 +620,11 @@ export function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn
   const cacheKey = upg.id;
   const lvlStr = lvlBn.toString();
   const walletStr = walletBn.toString();
+  const capStr = upg.lvlCap?.toString() ?? 'Infinity';
 
   if (cacheKey !== undefined) {
     const cached = affordableCache.get(cacheKey);
-    if (cached && cached.lvlStr === lvlStr && cached.walletStr === walletStr) {
+    if (cached && cached.lvlStr === lvlStr && cached.walletStr === walletStr && cached.capStr === capStr) {
       return cached.result;
     }
   }
@@ -680,7 +681,7 @@ export function computeAffordableLevels(upg, currentLevelNumeric, currentLevelBn
   }
 
   if (cacheKey !== undefined) {
-    affordableCache.set(cacheKey, { lvlStr, walletStr, result: resultBn });
+    affordableCache.set(cacheKey, { lvlStr, walletStr, capStr, result: resultBn });
   }
 
   return resultBn;
@@ -934,7 +935,7 @@ class ShopInstance {
             btn.classList.toggle('hm-evolve-ready', evolveReady);
             
             const isAutomatedFlag = !locked && isUpgradeAutomated(upg.meta);
-            const canPlusBn = (locked || isAutomatedFlag) ? BigNum.fromInt(0) : computeAffordableLevels(upg.meta, upg.levelNumeric, upg.level);
+            const canPlusBn = locked ? BigNum.fromInt(0) : computeAffordableLevels(upg.meta, upg.levelNumeric, upg.level);
             const plusBn = canPlusBn instanceof BigNum ? canPlusBn : BigNum.fromAny(canPlusBn);
             const levelHtml = formatNumber(upg.level);
             const levelPlain = stripTags(levelHtml);
