@@ -17,6 +17,7 @@ import { getTsunamiResearchBonus, getLabGoldMultiplier } from './labNodes.js';
 import { getComboRestorationFactor, updateCombo, initComboSystem } from './comboSystem.js';
 import { formatMultForUi } from '../util/numFormat.js';
 import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
+import { addExternalPpMultiplierProvider } from './ppSystem.js';
 
 const BN = BigNum;
 const MULTIPLIER = 10;
@@ -434,6 +435,35 @@ export function getSurge35Multiplier() {
   
   const diffBN = levelBN.sub(BigNum.fromInt(34));
   return BigNum.fromInt(1).add(diffBN.mulDecimal(bonusPct / 100));
+}
+
+export function getSurge200Multiplier() {
+  if (!isSurgeActive(200)) return BigNum.fromInt(1);
+  
+  if (cachedSurgeLevel === Infinity || (typeof cachedSurgeLevel === 'string' && cachedSurgeLevel === 'Infinity')) {
+    return BigNum.fromAny("Infinity");
+  }
+  
+  let levelBN;
+  try {
+    levelBN = BigNum.fromAny(cachedSurgeLevel.toString());
+  } catch (e) {
+    return BigNum.fromInt(1);
+  }
+
+  if (levelBN.isZero() || levelBN.cmp(BigNum.fromInt(200)) <= 0) return BigNum.fromInt(1);
+  
+  const effective = getTsunamiExponent();
+  const baseMult = 1 + effective;
+  
+  const diffBN = levelBN.sub(BigNum.fromInt(200));
+  
+  const logBase = Math.log10(baseMult);
+  const exponent = Number(diffBN.toString());
+  
+  if (logBase === 0) return BigNum.fromInt(1);
+
+  return bigNumFromLog10(exponent * logBase);
 }
 
 export function getSurge40Multiplier() {
@@ -1094,6 +1124,18 @@ export function initSurgeEffects() {
   addExternalCoinMultiplierProvider(({ baseMultiplier }) => {
     if (!isSurgeActive(35)) return baseMultiplier;
     const mult = getSurge35Multiplier();
+    if (mult.isInfinite?.()) {
+        return BigNum.fromAny("Infinity");
+    }
+    if (mult.cmp(BigNum.fromInt(1)) > 0) {
+        return baseMultiplier.mulBigNumInteger(mult);
+    }
+    return baseMultiplier;
+  });
+
+  addExternalPpMultiplierProvider((baseMultiplier) => {
+    if (!isSurgeActive(200)) return baseMultiplier;
+    const mult = getSurge200Multiplier();
     if (mult.isInfinite?.()) {
         return BigNum.fromAny("Infinity");
     }
