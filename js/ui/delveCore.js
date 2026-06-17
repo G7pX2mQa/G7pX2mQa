@@ -783,6 +783,7 @@ export function openDelveOverlay(overlayEl, sheetEl) {
             const allPanels = sheetEl.querySelectorAll('.merchant-panel');
             
             if (allTabs.length > 0) {
+                bindDelveTabHotkey(sheetEl);
                 // Bind saving to all tabs if not already bound
                 if (!sheetEl.__delveTabsBound) {
                     sheetEl.__delveTabsBound = true;
@@ -835,4 +836,41 @@ export function openDelveOverlay(overlayEl, sheetEl) {
             import('./shopOverlay.js').then(({ blockInteraction }) => blockInteraction(140));
         });
     });
+}
+
+
+export function bindDelveTabHotkey(sheetEl) {
+  if (!sheetEl || sheetEl.__delveHotkeyBound) return;
+  sheetEl.__delveHotkeyBound = true;
+
+  document.addEventListener('keydown', (e) => {
+    // Check if the overlay for this sheet is open
+    const overlayEl = sheetEl.closest('.merchant-overlay');
+    if (!overlayEl || !overlayEl.classList.contains('is-open')) return;
+    
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+
+    if (/^[0-9]$/.test(e.key)) {
+      const num = parseInt(e.key, 10);
+      const requestedIndex = (num === 0 ? 9 : num - 1);
+
+      // Gather tabs currently available and visible inside the sheet
+      const tabs = Array.from(sheetEl.querySelectorAll('.merchant-tabs > .merchant-tab'));
+      if (tabs.length === 0) return;
+
+      // Filter tabs that are not disabled and not locked
+      const unlockedTabs = tabs.filter(t => !t.disabled && !t.classList.contains('is-locked') && t.style.display !== 'none');
+
+      let targetIndex = requestedIndex;
+      if (targetIndex >= unlockedTabs.length) {
+        targetIndex = unlockedTabs.length - 1;
+      }
+      
+      if (targetIndex >= 0 && targetIndex < unlockedTabs.length) {
+        e.preventDefault();
+        // Trigger click on the target tab
+        unlockedTabs[targetIndex].click();
+      }
+    }
+  });
 }
