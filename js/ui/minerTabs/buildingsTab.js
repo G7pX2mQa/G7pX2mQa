@@ -1058,14 +1058,23 @@ export function updateOverlayUi() {
     document.getElementById('building-detail-bonus-row').innerHTML = 
         `${BUILDING_BONUS_TEXTS[id] || 'Bonus'}: ${formatMultForUi(currentBonus)}x &rarr; ${formatMultForUi(nextBonus)}x`;
         
-    const costMatName = (resConfig ? (costBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
-    document.getElementById('building-detail-cost-row').innerHTML = 
-        `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName}`;
+    if (levelBn.isInfinite && levelBn.isInfinite()) {
+        document.getElementById('building-detail-cost-row').innerHTML = '';
+        document.getElementById('building-detail-wallet-row').innerHTML = '';
+    } else {
+        const levelNum = typeof levelBn.toNumber === 'function' ? levelBn.toNumber() : Number(levelBn.toString());
+        const next25Log10 = getBuildingTotalCostLog10(getBuildingRatio(id), levelNum, 25);
+        const next25CostBn = bigNumFromLog10(next25Log10).floorToInteger();
+        const next25CostMatName = (resConfig ? (next25CostBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
         
-    const walletMatName = (resConfig ? (walletBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
-    document.getElementById('building-detail-wallet-row').innerHTML = 
-        `You have: ${imgStr} ${formatNumber(walletBn)} ${walletMatName}`;
-        
+        const costMatName = (resConfig ? (costBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
+        document.getElementById('building-detail-cost-row').innerHTML = 
+            `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName} <span style="font-size: 0.9em; opacity: 0.8;">(Next 25: ${imgStr} ${formatNumber(next25CostBn)} ${next25CostMatName})</span>`;
+            
+        const walletMatName = (resConfig ? (walletBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
+        document.getElementById('building-detail-wallet-row').innerHTML = 
+            `You have: ${imgStr} ${formatNumber(walletBn)} ${walletMatName}`;
+    }
     const btnBuy = document.getElementById('building-btn-buy');
     btnBuy.disabled = walletBn.cmp(costBn) < 0;
     document.getElementById('building-btn-buy-max').disabled = walletBn.cmp(costBn) < 0;
