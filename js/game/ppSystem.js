@@ -525,14 +525,22 @@ function enforcePpInfinityInvariant() {
   const levelLocked = slot != null && isKeyLocked(KEY_PP_LEVEL(slot));
   const progressLocked = slot != null && isKeyLocked(KEY_PROGRESS(slot));
 
+  let fullyInf = true;
+
   if (!levelLocked) {
     ppState.ppLevel = inf.clone?.() ?? inf;
+  } else if (!isInfinite(ppState.ppLevel)) {
+    fullyInf = false;
   }
+  
   if (!progressLocked) {
     ppState.progress = inf.clone?.() ?? inf;
   }
-  requirementBn = inf.clone?.() ?? inf;
-  return true;
+  
+  if (fullyInf) {
+    requirementBn = inf.clone?.() ?? inf;
+  }
+  return fullyInf;
 }
 
 export function getPpState() {
