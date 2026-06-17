@@ -714,8 +714,40 @@ function buildOverrideKey(slot, key) {
     return `${slot ?? 'null'}::${key}`;
 }
 
+function loadCurrencyMultiplierOverrideFromStorage(currencyKey, slot = getActiveSlot()) {
+    const storageKey = getCurrencyMultiplierStorageKey(currencyKey, slot);
+    if (!storageKey || typeof localStorage === 'undefined') return null;
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return null;
+    try { return BigNum.fromAny(raw); }
+    catch { return null; }
+}
+
+function storeCurrencyMultiplierOverride(currencyKey, slot, value) {
+    const storageKey = getCurrencyMultiplierStorageKey(currencyKey, slot);
+    if (!storageKey || typeof localStorage === 'undefined') return;
+    try {
+        const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 1);
+        const locked = isStorageKeyLocked(storageKey);
+        const setter = locked && originalSetItem ? originalSetItem : localStorage.setItem.bind(localStorage);
+        if (locked && !originalSetItem) unlockStorageKey(storageKey);
+        setter(storageKey, bn.toStorage?.() ?? String(bn));
+        if (locked && !originalSetItem) lockStorageKey(storageKey);
+    } catch {}
+}
+
 function getCurrencyOverride(slot, key) {
-    return currencyOverrides.get(buildOverrideKey(slot, key)) ?? null;
+    const cacheKey = buildOverrideKey(slot, key);
+    let cached = currencyOverrides.get(cacheKey);
+    if (cached) return cached;
+    
+    const fromStorage = loadCurrencyMultiplierOverrideFromStorage(key, slot);
+    if (fromStorage) {
+        currencyOverrides.set(cacheKey, fromStorage);
+        return fromStorage;
+    }
+    
+    return null;
 }
 
 function getCurrencyMultiplierStorageKey(currencyKey, slot = getActiveSlot()) {
@@ -732,6 +764,12 @@ function clearCurrencyMultiplierOverride(currencyKey, slot = getActiveSlot()) {
     const cacheKey = buildOverrideKey(slot, currencyKey);
     currencyOverrides.delete(cacheKey);
     currencyOverrideBaselines.delete(cacheKey);
+    const storageKey = getCurrencyMultiplierStorageKey(currencyKey, slot);
+    if (storageKey && typeof localStorage !== 'undefined') {
+        if (!isStorageKeyLocked(storageKey)) {
+            try { localStorage.removeItem(storageKey); } catch {}
+        }
+    }
     refreshLiveBindings((binding) => binding.type === 'currency-mult'
         && binding.key === currencyKey
         && binding.slot === slot);
@@ -836,6 +874,8 @@ function getGameStatMultiplier(statKey) {
             return getDpMultiplier();
         } else if (statKey === 'pp') {
             return window.ppSystem?.getPpMultiplier?.() ?? BigNum.fromInt(1);
+        } else if (statKey === 'books') {
+            return window.bank?.books?.mult?.get?.() ?? BigNum.fromInt(1);
         }
     } catch {}
 
@@ -924,6 +964,7 @@ function ensureCurrencyOverrideListener() {
                             if (shouldScale) {
                                 const scaledOverride = override.mulDecimal(ratio.toScientific(18), 18);
                                 currencyOverrides.set(cacheKey, scaledOverride);
+                                storeCurrencyMultiplierOverride(key, targetSlot, scaledOverride);
                             }
                         }
                     } catch (e) {
@@ -960,6 +1001,7 @@ export function setDebugCurrencyMultiplierOverride(currencyKey, value, slot = ge
     catch { bn = BigNum.fromInt(1); }
     const cacheKey = buildOverrideKey(slot, currencyKey);
     currencyOverrides.set(cacheKey, bn);
+    storeCurrencyMultiplierOverride(currencyKey, slot, bn);
     
     // Fix: Only set the baseline if it's not already set.
     // If we overwrite the baseline with the current bank value (which might be the OLD override),
@@ -1038,8 +1080,7 @@ export function applyStatMultiplierOverride(statKey, amount, slot = getActiveSlo
 
     const cacheKey = buildOverrideKey(slot, statKey);
     const baseline = statOverrideBaselines.get(cacheKey);
-    const multiplierForRatio =
-        (isStatMultiplierLocked(statKey, slot) && baseline) ? baseline : gameValue;
+    const multiplierForRatio = gameValue;
 
     // Fix: Use BigNum div instead of converting to finite numbers
     let ratio = null;
@@ -1079,7 +1120,26 @@ function getEffectiveStatMultiplierOverride(statKey, slot, gameValue) {
         statOverrideBaselines.set(cacheKey, gameValue);
     } else if (!bigNumEquals(baseline, gameValue)) {
         if (locked) {
+            // Update baseline but maintain the override correctly scaled
+            let ratio = null;
+            try {
+                const overrideBn = BigNum.fromAny(override);
+                const oldBaselineBn = BigNum.fromAny(baseline);
+                if (!oldBaselineBn.isZero()) {
+                    ratio = overrideBn.div(oldBaselineBn);
+                }
+            } catch {}
+            
             statOverrideBaselines.set(cacheKey, gameValue);
+            
+            if (ratio) {
+                try {
+                    const newOverride = BigNum.fromAny(gameValue).mulBigNumInteger(ratio);
+                    statOverrides.set(cacheKey, newOverride);
+                    storeStatMultiplierOverride(statKey, slot, newOverride);
+                    return newOverride;
+                } catch {}
+            }
             return override;
         }
         clearStatMultiplierOverride(statKey, slot);
