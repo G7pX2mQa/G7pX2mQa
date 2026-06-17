@@ -1261,14 +1261,13 @@ function formatBigNumForInput(value) {
         if (bn.isInfinite?.()) {
             return 'BN:infinite';
         }
+        if (bn.isZero?.()) {
+            return 'BN:zero';
+        }
         const storage = bn.toStorage?.();
         const [, pStr = `${BigNum.DEFAULT_PRECISION}`, sigPart = '', expPart = '0'] = (storage || '').split(':');
         let precision = Number.parseInt(pStr, 10);
         if (Number.isNaN(precision)) precision = BigNum.DEFAULT_PRECISION;
-        if (bn.isZero?.()) {
-            if (precision === 0) return `BN:0::${expPart}`;
-            return `BN:${precision}:${'0'.repeat(precision)}:-17`;
-        }
         if (precision === 0) {
             return `BN:0::${expPart}`;
         }
