@@ -739,6 +739,15 @@ function evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, maxLevels, rat
     let hi = typeof maxLevels === 'number' && isFinite(maxLevels) ? maxLevels : 1e12;
     let best = 0;
     
+    if (walletLog10 === Number.POSITIVE_INFINITY) {
+        // 1e12 is used as a sentinel for "unbounded" max purchase in many places.
+        // For "next", maxLevels will be a smaller number (like 10, 25, etc. up to 1000).
+        if (typeof maxLevels === 'number' && maxLevels !== 1e12 && isFinite(maxLevels)) {
+            return { count: BigNum.fromAny(maxLevels), spent: BigNum.fromInt(0) };
+        }
+        return { count: BigNum.fromAny('Infinity'), spent: BigNum.fromInt(0) };
+    }
+
     if (getBuildingCostLog10AtLevel(id, startLevelBn) > walletLog10) {
         return { count: BigNum.fromInt(0), spent: BigNum.fromInt(0) };
     }
@@ -1044,7 +1053,7 @@ export function updateOverlayUi() {
     
     const resConfig = RESOURCE_REGISTRY.find(r => r.key === currencyKey);
 
-    document.getElementById('building-detail-level-text').textContent = `Building Level ${formatNumber(levelBn)}`;
+    document.getElementById('building-detail-level-text').innerHTML = `Building Level ${formatNumber(levelBn)}`;
     
     document.getElementById('building-detail-bonus-row').innerHTML = 
         `${BUILDING_BONUS_TEXTS[id] || 'Bonus'}: ${formatMultForUi(currentBonus)}x &rarr; ${formatMultForUi(nextBonus)}x`;
@@ -1117,7 +1126,11 @@ function handlePurchase(type) {
             const maxEval = evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, 1e12, ratio);
             let n = maxEval.count;
             if (typeof n !== 'number') n = n.toNumber ? n.toNumber() : Number(n.toString());
-            if (n > 0) {
+            
+            if (n === Number.POSITIVE_INFINITY) {
+                levelsToAdd = BigNum.fromAny('Infinity');
+                costToDeduct = BigNum.fromInt(0);
+            } else if (n > 0) {
                 let bestK = 0;
                 let currentSpent = maxEval.spent;
                 let currentK = n;
@@ -1199,7 +1212,7 @@ function handlePurchase(type) {
         updateOverlayUi();
         
         const gridCardBadge = document.querySelector(`.shop-upgrade[data-building-id="${id}"] .level-badge`);
-        if (gridCardBadge) gridCardBadge.textContent = formatNumber(newLevel);
+        if (gridCardBadge) gridCardBadge.innerHTML = formatNumber(newLevel);
     }
 }
 
