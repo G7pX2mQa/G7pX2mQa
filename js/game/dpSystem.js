@@ -26,7 +26,14 @@ function registerDpFpMultiplierProvider() {
           if (!isDpSystemUnlocked()) return mult;
           
           const state = getDpState();
+          
+          if (state.dpLevel && state.dpLevel.isInfinite && state.dpLevel.isInfinite()) {
+              return BigNum.fromAny('Infinity');
+          }
+          
           const levelStr = state.dpLevel.toString();
+          if (levelStr === 'Infinity') return BigNum.fromAny('Infinity');
+          
           let levelNum = Number(levelStr);
           
           if (!Number.isFinite(levelNum) || levelNum === 0) return mult;
@@ -334,6 +341,7 @@ function dpRequirementForDpLevel(dpLevelInput) {
   
   const baseReq = BigNum.fromInt(10);
   if (targetLevel <= 0) return baseReq;
+  if (!Number.isFinite(targetLevel)) return BigNum.fromAny('Infinity');
 
   // 10 * 1.5^level
   // Since 1.5 = 15/10, we can use mulScaledIntFloor or similar if BigNum supports it well
@@ -344,6 +352,7 @@ function dpRequirementForDpLevel(dpLevelInput) {
   } else {
      // Use Math for calculating scientific directly if levels get huge
      let totalLog10 = 1 + (numLevel * Math.log10(1.5));
+     if (!Number.isFinite(totalLog10)) return BigNum.fromAny('Infinity');
      
      const softcapStart = 1e12; // 1 Trillion
      if (numLevel > softcapStart) {
@@ -761,6 +770,7 @@ export function addDp(amount, { silent = false } = {}) {
 
     if (Number.isFinite(currentLevelNum)) {
       const getLogForLevel = (levelNum) => {
+        if (!Number.isFinite(levelNum)) return Number.POSITIVE_INFINITY;
         let totalLog10 = 1 + (levelNum * Math.log10(1.5));
         const softcapStart = 1e12;
         if (levelNum > softcapStart) {
@@ -800,6 +810,14 @@ export function addDp(amount, { silent = false } = {}) {
           dpLevelsGained = dpLevelsGained.add(safeGainBn);
           updateDpRequirement();
         }
+      } else if (!Number.isFinite(estimatedGain)) {
+          dpState.dpLevel = BigNum.fromAny('Infinity');
+          dpLevelsGained = BigNum.fromAny('Infinity');
+          updateDpRequirement();
+      } else if (!Number.isFinite(estimatedGain)) {
+          dpState.dpLevel = BigNum.fromAny('Infinity');
+          dpLevelsGained = BigNum.fromAny('Infinity');
+          updateDpRequirement();
       }
     }
   }
@@ -808,6 +826,7 @@ export function addDp(amount, { silent = false } = {}) {
   const limit = 500;
   
   while (dpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
+    if (isInfinite(requirementBn)) break;
     dpState.progress = dpState.progress.sub(requirementBn);
     dpState.dpLevel = dpState.dpLevel.add(bnOne());
     dpLevelsGained = dpLevelsGained.add(bnOne());
@@ -817,7 +836,7 @@ export function addDp(amount, { silent = false } = {}) {
     guard += 1;
   }
   
-  if (guard >= limit && dpState.progress.cmp(requirementBn) >= 0) {
+  if (guard >= limit && dpState.progress.cmp?.(requirementBn) >= 0 && !isInfinite(requirementBn)) {
       updateDpRequirement();
   }
 
@@ -854,14 +873,23 @@ function enforceDpInfinityInvariant() {
   const levelLocked = slot != null && isKeyLocked(KEY_DP_LEVEL(slot));
   const progressLocked = slot != null && isKeyLocked(KEY_PROGRESS(slot));
 
+  let fullyInf = true;
+
   if (!levelLocked) {
     dpState.dpLevel = inf.clone?.() ?? inf;
+  } else if (!isInfinite(dpState.dpLevel)) {
+    fullyInf = false;
   }
+  
   if (!progressLocked) {
     dpState.progress = inf.clone?.() ?? inf;
   }
-  requirementBn = inf.clone?.() ?? inf;
-  return true;
+  
+  if (fullyInf) {
+    requirementBn = inf.clone?.() ?? inf;
+  }
+  
+  return fullyInf;
 }
 
 export function getDpState() {
