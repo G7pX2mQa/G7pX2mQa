@@ -579,7 +579,7 @@ export function createUcSpawner(config = {}) {
                 removeItem(activeItems[i], i);
             }
             const pickaxe = document.getElementById("uc-pickaxe");
-            if (pickaxe && pickaxe.parentNode) pickaxe.parentNode.removeChild(pickaxe);
+            if (pickaxe && pickaxe.parentNode && resetType !== 'underwater_cavern') pickaxe.parentNode.removeChild(pickaxe);
         }
     });
 
