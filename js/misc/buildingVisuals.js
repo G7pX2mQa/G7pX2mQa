@@ -961,7 +961,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     // Spinning only starts at tier 3+? Let's just make it spin slowly all the time, or based on tiers
     // "Also, the base cannot spin in a way that make it look like it's going through the floor. ... hover and only rotate horizontally"
     // So it spins around the Y axis
-    const rotY = t * 0.5 * (tier3Prog > 0 ? 1 : 0.2); // Slower when dormant
+    const rotY = t * 1.0 * (tier3Prog > 0 ? 1 : 0.2); // Slower when dormant
     const cosY = Math.cos(rotY);
     const sinY = Math.sin(rotY);
     
@@ -1009,7 +1009,19 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         {x: 0, y: -h, z: d}
     ];
 
-    const pts = vertices.map(v => project(v.x, v.y, v.z));
+    // Tier 7: Overload Shaking
+    let shakeX = 0;
+    let shakeY = 0;
+    if (tier7Prog > 0 && tier8Prog === 0) {
+        // Aggressive shaking that gets more intense with tier7Prog
+        shakeX = (Math.random() - 0.5) * 8 * tier7Prog;
+        shakeY = (Math.random() - 0.5) * 8 * tier7Prog;
+    }
+
+    const pts = vertices.map(v => {
+        const p = project(v.x, v.y, v.z);
+        return { x: p.x + shakeX, y: p.y + shakeY, z: p.z, scale: p.scale };
+    });
 
     // --- Tier 8/4 Rainbow Beam Calculations ---
     // If we draw beams *behind* the prism, we should do it before drawing faces.
@@ -1022,7 +1034,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.globalAlpha = tier3Prog;
         ctx.globalCompositeOperation = 'screen';
         
-        const vortexY = hoverY + 20; // below the prism
+        const vortexY = hoverY + 20 - (tier * 2); // Shift upward slightly as tier increases to prevent ground clipping
         
         for (let i = 0; i < 3; i++) {
             const ringScale = 1.0 + Math.sin(t * 2 + i * 2) * 0.2;
@@ -1072,8 +1084,8 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     if (tier2Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier2Prog;
-        const innerScale = 0.4 + 0.1 * Math.sin(t * 3);
-        const innerRotY = t * 2.0; // independent fast spin
+        const innerScale = 0.45;
+        const innerRotY = t * 1.0; // independent fast spin
         const innerCosY = Math.cos(innerRotY);
         const innerSinY = Math.sin(innerRotY);
         
@@ -1131,18 +1143,59 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
-    faces.forEach(f => {
-        const c = f.baseColor;
+    // Tier 6: Chromatic Aura (Ghostly RGB separated after-images)
+    if (tier6Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier6Prog * 0.5;
+        ctx.globalCompositeOperation = 'lighter';
+        
+        // Pulse controls how far they separate
+        const pulse = Math.max(0, Math.sin(t * 3) * 1.5 - 0.5); 
+        const offset = 8 * pulse;
+        
+        const channels = [
+            { color: 'rgba(255, 0, 0, 0.4)', dx: -offset, dy: 0 },
+            { color: 'rgba(0, 255, 0, 0.4)', dx: offset, dy: -offset },
+            { color: 'rgba(0, 0, 255, 0.4)', dx: 0, dy: offset }
+        ];
+        
+        channels.forEach(ch => {
+            ctx.save();
+            ctx.translate(ch.dx, ch.dy);
+            ctx.fillStyle = ch.color;
+            faces.forEach(f => {
+                ctx.beginPath();
+                ctx.moveTo(pts[f.pts[0]].x, pts[f.pts[0]].y);
+                for (let i = 1; i < f.pts.length; i++) {
+                    ctx.lineTo(pts[f.pts[i]].x, pts[f.pts[i]].y);
+                }
+                ctx.closePath();
+                ctx.fill();
+            });
+            ctx.restore();
+        });
+        
+        ctx.restore();
+    }
+
+    faces.forEach((f, idx) => {
+        let c = f.baseColor;
+        
+        // Tier 7: Chromatic Distortion & Strobing
+        if (tier7Prog > 0 && tier8Prog === 0) {
+            // Rapidly flash colors
+            const strobe = Math.random();
+            if (strobe > 0.8) {
+                c = [255, 255, 255]; // Flash white
+            } else if (strobe > 0.6) {
+                c = [255, 50, 50]; // Flash intense red/pink
+            } else if (strobe > 0.4) {
+                c = [50, 255, 255]; // Flash cyan/blue (chromatic glitch)
+            }
+        }
+        
         // Make it glassy
         ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${glassAlpha * f.alphaMult})`;
-        
-        // Tier 1: Pulsating bright edges
-        const edgePulse = 0.5 + 0.5 * Math.sin(t * 4);
-        const edgeBrightness = tier1Prog > 0 ? (150 + edgePulse * 105) : 200;
-        const edgeAlpha = tier1Prog > 0 ? (0.6 + 0.4 * edgePulse) : 0.5;
-        
-        ctx.strokeStyle = `rgba(255, ${edgeBrightness}, 255, ${edgeAlpha})`; // bright edges
-        ctx.lineWidth = 1 + tier1Prog * edgePulse * 2; // Thicker pulsating edges
         
         ctx.beginPath();
         ctx.moveTo(pts[f.pts[0]].x, pts[f.pts[0]].y);
@@ -1151,7 +1204,14 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         }
         ctx.closePath();
         ctx.fill();
-        ctx.stroke();
+        
+        // Only stroke the back faces now, front faces (the last 2-3 in sorted array) will be stroked after beams
+        const isBack = idx < 2; // the first 2 faces are in the back
+        if (isBack) {
+            ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
         
         // Add a highlight on front/top faces
         if (f.id === 'left' || f.id === 'front') {
@@ -1162,6 +1222,39 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
 
     // --- Post-Prism Light Effects ---
+    
+    // Tier 1: Pink Sparkles
+    if (tier1Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier1Prog;
+        ctx.globalCompositeOperation = 'lighter';
+        
+        const numSparkles = 15;
+        for (let i = 0; i < numSparkles; i++) {
+            const sparkleT = (t * 0.5 + i * (1 / numSparkles)) % 1; // 0 to 1
+            const sparkleY = hoverY - sparkleT * (h + 20);
+            
+            // Randomish but deterministic positions
+            const hash1 = Math.sin(i * 12.9898) * 43758.5453 % 1;
+            const hash2 = Math.cos(i * 78.233) * 43758.5453 % 1;
+            
+            const radius = w * 1.5 * Math.abs(hash1);
+            const angle = hash2 * Math.PI * 2 + t * 0.2; // Slow orbit
+            
+            const sx = Math.cos(angle) * radius;
+            const sz = Math.sin(angle) * radius;
+            
+            const sp = project(sx, sparkleY, sz);
+            
+            const sparkleAlpha = Math.sin(sparkleT * Math.PI); // Fade in and out
+            ctx.fillStyle = `rgba(255, 100, 200, ${sparkleAlpha * 0.8})`;
+            
+            ctx.beginPath();
+            ctx.arc(sp.x, sp.y, 2 * sp.scale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
     const center = project(0, -h/2, 0);
 
     // Tier 4: Incoming White Beam from top & Rainbow Beams shooting out horizontally
@@ -1240,11 +1333,11 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             
             const sp = project(sx, sy, sz);
             
-            // Tier 7 Light Trails for Shards
-            if (tier7Prog > 0 && tier8Prog === 0) {
+            // Tier 8 Light Trails for Shards (moved from Tier 7)
+            if (tier8Prog > 0) {
                 ctx.save();
                 ctx.globalCompositeOperation = 'lighter';
-                ctx.strokeStyle = `rgba(255, 100, 200, ${0.5 * tier7Prog})`;
+                ctx.strokeStyle = `rgba(255, 100, 200, ${0.5 * tier8Prog})`;
                 ctx.lineWidth = 3 * sp.scale;
                 ctx.beginPath();
                 for (let j = 0; j < 5; j++) {
@@ -1269,7 +1362,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
             ctx.lineWidth = 1;
             
-            const size = 6 * sp.scale;
+            const size = 12 * sp.scale;
             ctx.beginPath();
             ctx.moveTo(0, -size);
             ctx.lineTo(-size*0.6, 0);
@@ -1280,22 +1373,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             ctx.stroke();
             ctx.restore();
             
-            // Tier 6: Prismatic Halo connecting shards
-            if (tier6Prog > 0) {
-                const nextI = (i + 1) % numShards;
-                const orbitRotNext = t * 1.5 + (nextI * Math.PI * 2 / numShards);
-                const sxNext = Math.cos(orbitRotNext) * orbitRadius;
-                const szNext = Math.sin(orbitRotNext) * orbitRadius;
-                const syNext = -h/2 + Math.sin(t*3 + nextI)*5;
-                const spNext = project(sxNext, syNext, szNext);
-                
-                ctx.strokeStyle = `rgba(255, 100, 255, ${0.4 * tier6Prog})`;
-                ctx.lineWidth = 2 * sp.scale;
-                ctx.beginPath();
-                ctx.moveTo(sp.x, sp.y);
-                ctx.lineTo(spNext.x, spNext.y);
-                ctx.stroke();
-            }
+
         }
         ctx.restore();
     }
@@ -1374,6 +1452,24 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
 
         ctx.restore();
     }
+    
+    // Draw front face lines AFTER all beams so beams appear to be inside the prism
+    ctx.save();
+    faces.forEach((f, idx) => {
+        const isBack = idx < 2;
+        if (!isBack) {
+            ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(pts[f.pts[0]].x, pts[f.pts[0]].y);
+            for (let i = 1; i < f.pts.length; i++) {
+                ctx.lineTo(pts[f.pts[i]].x, pts[f.pts[i]].y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+    });
+    ctx.restore();
 }
 
 
