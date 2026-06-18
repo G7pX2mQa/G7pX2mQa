@@ -9,6 +9,7 @@ import { bigNumFromLog10, getLevelNumber, approxLog10BigNum } from '../../game/u
 import { IS_MOBILE } from '../../main.js';
 import { AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID } from '../../game/automationUpgrades.js';
 import { isSurgeActive } from "../../game/surgeEffects.js";
+import { clearCurrencyMultiplierOverride } from "../../util/debugPanel.js";
 
 const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
 const GEAR_HUD_ICON_SRC = 'img/currencies/gear/gear_plus_base.webp';
@@ -101,6 +102,7 @@ function loadGenerationLevel() {
 }
 
 function saveGenerationLevel(level) {
+  if (typeof clearCurrencyMultiplierOverride === 'function') clearCurrencyMultiplierOverride(CURRENCIES.GEARS, getActiveSlot());
   const slot = getActiveSlot();
   if (!slot) return false;
   const key = getGenerationLevelKey(slot);
