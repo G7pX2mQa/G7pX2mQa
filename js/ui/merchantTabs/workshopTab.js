@@ -273,7 +273,7 @@ function buyGenerationUpgrade() {
 
 function onTick() {
   if (!hasDoneInfuseReset()) return;
-  const rateBn = getGearsPerSecond(currentGenerationLevel);
+  const rateBn = getGearsProductionRate();
   const perTick = rateBn.mulDecimal(String(FIXED_STEP));
   const whole = perTick.floorToInteger();
   const hasWhole = !whole.isZero();
@@ -286,7 +286,10 @@ function onTick() {
       // Safe to convert to number
       const lvlNum = Number(currentGenerationLevel.toPlainIntegerString());
       const rateNum = Math.pow(isSurgeActive(150) ? 5 : (isSurgeActive(11) ? 4 : (isSurgeActive(7) ? 3 : 2)), lvlNum);
-      const perTickNum = rateNum / TICK_RATE;
+      const mult = bank.gears && typeof bank.gears.mult?.get === 'function' ? bank.gears.mult.get() : 1;
+      let multNum = 1;
+      try { multNum = Number(mult.toString()); } catch {}
+      const perTickNum = (rateNum * multNum) / TICK_RATE;
       const wholeNum = Math.floor(perTickNum);
       const frac = perTickNum - wholeNum;
       accumulatorBuffer += frac;
@@ -525,10 +528,6 @@ function buildWorkshopUI(container) {
 }
 
 export function updateWorkshopTab() {
-  if (bank.gears && typeof bank.gears.mult?.set === 'function') {
-      bank.gears.mult.set(getGearsPerSecond(currentGenerationLevel));
-  }
-
   if (!workshopEl) return;
   const verbEl = workshopEl.querySelector("[data-workshop=\"production-verb\"]");
   if (verbEl) {
@@ -539,7 +538,7 @@ export function updateWorkshopTab() {
   const gearsRateEl = workshopEl.querySelector('[data-workshop="gears-rate"]');
   const upgradeCostEl = workshopEl.querySelector('[data-workshop="upgrade-cost"]');
   const upgradeBtn = workshopEl.querySelector('[data-workshop="upgrade-gen"]');
-  const rateBn = getGearsPerSecond(currentGenerationLevel);
+  const rateBn = getGearsProductionRate();
   const cost = getGenerationUpgradeCost(currentGenerationLevel);
   if (gearsAmountEl) gearsAmountEl.innerHTML = bank.gears.fmt(bank.gears.value);
   if (gearsRateEl) gearsRateEl.innerHTML = formatNumber(rateBn);
@@ -700,7 +699,11 @@ export function initWorkshopTab(panelEl) {
 
 export function getGearsProductionRate() {
   const level = loadGenerationLevel();
-  return getGearsPerSecond(level);
+  let base = getGearsPerSecond(level);
+  if (bank.gears && typeof bank.gears.mult?.applyTo === 'function') {
+      base = bank.gears.mult.applyTo(base);
+  }
+  return base;
 }
 
 export function performFreeGenerationUpgrade() {
