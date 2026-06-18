@@ -950,7 +950,11 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     const pulse = Math.sin(t * 2);
     const slowPulse = Math.sin(t * 0.5);
     
-    // --- Tier 8: Pedestal Fracture & Massive Core ---
+    // Y-position for floating elements
+    const hoverY = -70 - Math.sin(t) * 10 * tier2Prog;
+
+    // --- Pedestal (Tier 0-8) ---
+    // Pedestal breaks at tier 8
     if (tier8Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier8Prog;
@@ -975,12 +979,12 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         ctx.globalAlpha = 1 - tier8Prog;
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(-35, -20, 70, 20);
+        ctx.beginPath(); ctx.moveTo(-40, 0); ctx.lineTo(-30, -20); ctx.lineTo(30, -20); ctx.lineTo(40, 0); ctx.fill();
+        ctx.fillStyle = '#222'; ctx.fillRect(-35, -25, 70, 5);
         ctx.restore();
     } else {
         // Standard Pedestal (Tier 0-7)
         ctx.fillStyle = '#1a1a1a';
-        // Base wide
         ctx.beginPath();
         ctx.moveTo(-40, 0);
         ctx.lineTo(-30, -20);
@@ -991,488 +995,382 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.fillStyle = '#222';
         ctx.fillRect(-35, -25, 70, 5);
     }
-    
-    // --- Tier 6: Geometric Mandala / Wireframe Field ---
-    if (tier6Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier6Prog * 0.6;
-        ctx.translate(0, -50);
-        ctx.scale(1, 0.4); // perspective
-        ctx.rotate(t * 0.5);
-        ctx.strokeStyle = '#ff33ff';
-        ctx.lineWidth = 2;
-        
-        // Concentric geometric rings (hexagons/octagons)
-        for(let r = 0; r < 2; r++) {
-            const radius = 60 + r * 30 + pulse * 5;
-            const sides = 6 + r * 2;
-            ctx.beginPath();
-            for(let i=0; i<=sides; i++) {
-                const angle = i * (Math.PI * 2 / sides) + (r * t * 0.2);
-                const x = Math.cos(angle) * radius;
-                const y = Math.sin(angle) * radius;
-                if(i===0) ctx.moveTo(x,y);
-                else ctx.lineTo(x,y);
+
+    // Hex to RGB helper
+    const hexToRgbStr = (hex) => {
+        const bigint = parseInt(hex.slice(1), 16);
+        return `${(bigint >> 16) & 255}, ${(bigint >> 8) & 255}, ${bigint & 255}`;
+    };
+
+    // Helper to draw crystalline shapes
             }
-            ctx.stroke();
         }
         ctx.restore();
-    }
+    };
 
-    // --- Tier 5: Auxiliary Crystal Pylons ---
-    if (tier5Prog > 0) {
+    // --- Tier 0: Raw Jagged Geode ---
+    if (1 - tier1Prog > 0) {
         ctx.save();
-        ctx.globalAlpha = tier5Prog;
-        const pylonOffsets = [-50, 50, -70, 70];
-        const pylonHeights = [40, 40, 25, 25];
-        for(let i=0; i<4; i++) {
-            const px = pylonOffsets[i];
-            const py = (i < 2) ? -10 : -5;
-            const ph = pylonHeights[i] + Math.sin(t * 3 + i) * 5;
-            
-            // Pylon glow
-            ctx.fillStyle = `rgba(255, 100, 255, ${0.3 + 0.2 * pulse})`;
-            ctx.beginPath();
-            ctx.arc(px, py - ph/2, 15, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Pylon crystal
-            ctx.fillStyle = '#cc33ff';
-            ctx.beginPath();
-            ctx.moveTo(px, py - ph);
-            ctx.lineTo(px - 6, py);
-            ctx.lineTo(px + 6, py);
-            ctx.fill();
-            
-            ctx.fillStyle = '#ee88ff';
-            ctx.beginPath();
-            ctx.moveTo(px, py - ph);
-            ctx.lineTo(px, py);
-            ctx.lineTo(px + 6, py);
-            ctx.fill();
-
-            // Containment beams (Tier 5 to Core)
-            ctx.strokeStyle = `rgba(255, 150, 255, ${0.4 + 0.2 * pulse})`;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(px, py - ph);
-            ctx.lineTo(0, -60); // Roughly pointing to the center of the shattered array
-            ctx.stroke();
-        }
-        ctx.restore();
-    }
-
-    // --- Tier 4 & 8: Vertical Crystalline Energy Beams (Hard Light) ---
-    const t4_or_8 = Math.max(tier4Prog, tier8Prog);
-    if (t4_or_8 > 0) {
-        ctx.save();
-        ctx.globalAlpha = t4_or_8;
-        const numBeams = 6 + Math.floor(tier8Prog * 6); // More beams at tier 8
-        const beamRadius = 25 + tier8Prog * 25; // Wider spread at tier 8
-        const beamHeight = 120 + tier8Prog * 200; // Taller at tier 8, shooting massive column
+        ctx.globalAlpha = 1 - tier1Prog;
+        // Rest on pedestal
+        const geodeY = -40;
         
-        ctx.globalCompositeOperation = 'screen';
-        for(let i=0; i<numBeams; i++) {
-            const angle = (i * Math.PI * 2 / numBeams) + t;
-            const bx = Math.cos(angle) * beamRadius;
-            const by = Math.sin(angle) * beamRadius * 0.3; // tilt
-            
-            // The beams shoot up from the base
-            const bBaseY = -20 + by;
-            
-            const gradient = ctx.createLinearGradient(0, bBaseY, 0, bBaseY - beamHeight);
-            const intensity = 0.5 + 0.5 * Math.sin(t * 5 + i);
-            let alpha = 0.4 + 0.4 * tier8Prog;
-            // Massive central column in tier 8
-            if (tier8Prog > 0 && i % 2 === 0) {
-               alpha = 0.8;
-            }
-            gradient.addColorStop(0, `rgba(255, 150, 255, ${alpha * intensity})`);
-            gradient.addColorStop(1, 'rgba(255, 50, 255, 0)');
-            
-            ctx.fillStyle = gradient;
-            // Draw a shard-like beam
-            const bw = 4 + tier8Prog * 8; // Wider beams in tier 8
-            ctx.beginPath();
-            ctx.moveTo(bx - bw, bBaseY);
-            ctx.lineTo(bx + bw, bBaseY);
-            ctx.lineTo(bx, bBaseY - beamHeight);
-            ctx.fill();
-        }
-
-        // Massive Central Beam for Tier 8
-        if (tier8Prog > 0) {
-            const centralBeamGrad = ctx.createLinearGradient(0, -20, 0, -400);
-            centralBeamGrad.addColorStop(0, `rgba(255, 255, 255, ${0.9 * tier8Prog})`);
-            centralBeamGrad.addColorStop(0.3, `rgba(255, 150, 255, ${0.7 * tier8Prog})`);
-            centralBeamGrad.addColorStop(1, `rgba(255, 50, 255, 0)`);
-            ctx.fillStyle = centralBeamGrad;
-            ctx.fillRect(-15, -400, 30, 380);
-        }
-
-        ctx.restore();
-    }
-
-    // --- Main Prism Variables ---
-    const baseSize = 45;
-    const crystalSize = baseSize + tier3Prog * 10 + tier8Prog * 20;
-    
-    // Floating animation
-    const hoverY = -70 - Math.sin(t) * 10; 
-
-    // --- Main Prism Glow (Tier 0+) ---
-    const glowIntensity = 0.2 + 0.1 * pulse + 0.2 * tier3Prog + 0.5 * tier8Prog;
-    const glowGradient = ctx.createRadialGradient(0, hoverY, 0, 0, hoverY, crystalSize * 2);
-    glowGradient.addColorStop(0, `rgba(255, 100, 255, ${glowIntensity})`);
-    glowGradient.addColorStop(1, 'rgba(255, 100, 255, 0)');
-    ctx.fillStyle = glowGradient;
-    ctx.beginPath();
-    ctx.arc(0, hoverY, crystalSize * 2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 3D Prism Drawing logic (Triangular Prism)
-    const drawPrismFace = (x1, y1, x2, y2, x3, y3, x4, y4, color) => {
-        ctx.fillStyle = color;
+        // Draw irregular rock shape
+        ctx.fillStyle = '#555';
         ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.lineTo(x3, y3);
-        if (x4 !== undefined && y4 !== undefined) {
-            ctx.lineTo(x4, y4);
-        }
+        ctx.moveTo(-20, geodeY);
+        ctx.lineTo(-15, geodeY - 20);
+        ctx.lineTo(0, geodeY - 30);
+        ctx.lineTo(18, geodeY - 22);
+        ctx.lineTo(25, geodeY - 5);
+        ctx.lineTo(15, geodeY + 15);
+        ctx.lineTo(-10, geodeY + 18);
+        ctx.closePath();
         ctx.fill();
-    };
+        
+        // Highlights/shadows on geode
+        ctx.fillStyle = '#666';
+        ctx.beginPath(); ctx.moveTo(0, geodeY - 30); ctx.lineTo(-15, geodeY - 20); ctx.lineTo(-5, geodeY - 5); ctx.fill();
+        ctx.fillStyle = '#444';
+        ctx.beginPath(); ctx.moveTo(25, geodeY - 5); ctx.lineTo(15, geodeY + 15); ctx.lineTo(5, geodeY); ctx.fill();
+        
+        ctx.restore();
+    }
 
-    const drawPrismShape = (cx, cy, size, rotY, alphaMult = 1) => {
+    // --- Tier 1: Cracked Geode with Pink Glow ---
+    if (tier1Prog > 0 && 1 - tier2Prog > 0) {
         ctx.save();
-        ctx.translate(cx, cy);
+        ctx.globalAlpha = Math.min(tier1Prog, 1 - tier2Prog);
+        const geodeY = -40;
         
-        // Classic triangular prism standing on its rectangular base
-        // Extruded along the Z axis (front to back)
+        // Left half of geode
+        ctx.fillStyle = '#555';
+        ctx.beginPath();
+        ctx.moveTo(-22 - pulse, geodeY); ctx.lineTo(-17 - pulse, geodeY - 20); ctx.lineTo(-2 - pulse, geodeY - 30);
+        ctx.lineTo(-5 - pulse, geodeY - 10); ctx.lineTo(-12 - pulse, geodeY + 18);
+        ctx.closePath(); ctx.fill();
+
+        // Right half of geode
+        ctx.fillStyle = '#4a4a4a';
+        ctx.beginPath();
+        ctx.moveTo(27 + pulse, geodeY - 5); ctx.lineTo(20 + pulse, geodeY - 22); ctx.lineTo(2 + pulse, geodeY - 30);
+        ctx.lineTo(5 + pulse, geodeY - 10); ctx.lineTo(17 + pulse, geodeY + 15);
+        ctx.closePath(); ctx.fill();
         
-        const length = size * 1.5; // depth (extrusion length)
+        // Inner glowing crystal exposed
+        ctx.fillStyle = `rgba(255, 150, 255, ${0.8 + 0.2 * pulse})`;
+        ctx.shadowColor = '#ff66ff';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.moveTo(0, geodeY - 25); ctx.lineTo(-10, geodeY - 5); ctx.lineTo(0, geodeY + 10); ctx.lineTo(10, geodeY - 5);
+        ctx.closePath(); ctx.fill();
         
-        // Triangle vertices (equilateral) in XY plane
-        const pTop = { x: 0, y: -size };
-        const pBotRight = { x: size * Math.cos(Math.PI/6), y: size * Math.sin(Math.PI/6) };
-        const pBotLeft = { x: -size * Math.cos(Math.PI/6), y: size * Math.sin(Math.PI/6) };
+        ctx.restore();
+    }
+
+    // --- Tier 2-3: Floating Exposed Crystal ---
+    if (tier2Prog > 0 && 1 - tier4Prog > 0) {
+        ctx.save();
+        // Cross-fade logic for the central crystal shape between T2 (rougher exposed) and T3 (perfect geometric)
+        ctx.globalAlpha = Math.min(tier2Prog, 1 - tier4Prog);
         
-        const halfDepth = length * 0.5;
-        
-        // 6 vertices
-        const points = [
-            // Front (0, 1, 2)
-            { x: pTop.x, y: pTop.y, z: halfDepth },
-            { x: pBotRight.x, y: pBotRight.y, z: halfDepth },
-            { x: pBotLeft.x, y: pBotLeft.y, z: halfDepth },
-            // Back (3, 4, 5)
-            { x: pTop.x, y: pTop.y, z: -halfDepth },
-            { x: pBotRight.x, y: pBotRight.y, z: -halfDepth },
-            { x: pBotLeft.x, y: pBotLeft.y, z: -halfDepth }
-        ];
+        // Base glow
+        const glowRadius = 50 + tier3Prog * 20;
+        const glowGrad = ctx.createRadialGradient(0, hoverY, 0, 0, hoverY, glowRadius);
+        glowGrad.addColorStop(0, `rgba(255, 100, 255, ${0.3 + 0.1*pulse})`);
+        glowGrad.addColorStop(1, 'rgba(255, 100, 255, 0)');
+        ctx.fillStyle = glowGrad;
+        ctx.beginPath(); ctx.arc(0, hoverY, glowRadius, 0, Math.PI * 2); ctx.fill();
 
-        // To keep the prism strictly flat on its base without clipping into the floor, 
-        // we use pure 3D rotation around Y but 0 rotation around X (tiltX = 0).
-        // This ensures the Y coordinates of the bottom vertices never dip below their flat plane.
-        // We will add a very slight isometric vertical offset for depth based on Z.
-        
-        const projected = points.map(p => {
-            // Rot Y
-            let rx = p.x * Math.cos(rotY) - p.z * Math.sin(rotY);
-            let rz = p.x * Math.sin(rotY) + p.z * Math.cos(rotY);
-            
-            // Isometric pseudo-tilt:
-            // Shift Y slightly up based on Z depth so the back looks further away,
-            // but the bottom edge stays exactly flat if we anchor it.
-            // Actually, simply using tiltX = 0 with perspective makes the bottom perfectly flat!
-            // Let's just use tiltX = 0.
-            let ry = p.y;
-            
-            // Perspective Projection
-            const fov = 400;
-            const zOff = rz + 150;
-            const scale = fov / zOff;
-            
-            return {
-                x: rx * scale,
-                y: ry * scale,
-                z: rz,
-                originalZ: p.z
-            };
-        });
-
-        // Colors
-        const baseColor = {r: 238, g: 85, b: 255}; // #ee55ff
-        const darkColor = {r: 170, g: 0, b: 221}; // #aa00dd
-        const lightColor = {r: 255, g: 200, b: 255}; // Core color
-
-        let coreBlend = tier3Prog * 0.6; // Mix in light color at tier 3
-
-        const getColor = (zDepth, highlight, darken) => {
-            const normZ = (zDepth + halfDepth) / (length); 
-            let r = darkColor.r + (baseColor.r - darkColor.r) * normZ;
-            let g = darkColor.g + (baseColor.g - darkColor.g) * normZ;
-            let b = darkColor.b + (baseColor.b - darkColor.b) * normZ;
-            
-            r = r * (1 - coreBlend) + lightColor.r * coreBlend;
-            g = g * (1 - coreBlend) + lightColor.g * coreBlend;
-            b = b * (1 - coreBlend) + lightColor.b * coreBlend;
-
-            if (highlight) { r*=1.3; g*=1.3; b*=1.3; }
-            if (darken) { r*=0.7; g*=0.7; b*=0.7; }
-
-            r = Math.min(255, Math.max(0, r));
-            g = Math.min(255, Math.max(0, g));
-            b = Math.min(255, Math.max(0, b));
-
-            return `rgba(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)}, ${0.85 * alphaMult})`;
-        };
-
-        // Determine face drawing order (Painter's algorithm: sort by avg Z)
-        const faces = [
-            { id: 'front', pts: [0, 1, 2], highlight: false, darken: false },
-            { id: 'back', pts: [3, 4, 5], highlight: false, darken: true },
-            { id: 'right', pts: [0, 1, 4, 3], highlight: true, darken: false },
-            { id: 'bottom', pts: [1, 2, 5, 4], highlight: false, darken: true },
-            { id: 'left', pts: [2, 0, 3, 5], highlight: false, darken: false }
-        ];
-
-        faces.forEach(f => {
-            let avgZ = 0;
-            f.pts.forEach(idx => avgZ += projected[idx].z);
-            f.avgZ = avgZ / f.pts.length;
-        });
-
-        // Sort descending (draw furthest back first)
-        faces.sort((a, b) => b.avgZ - a.avgZ);
-
-        // Draw faces
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 * alphaMult})`;
-        ctx.lineWidth = 1;
-        ctx.lineJoin = 'round';
-
-        faces.forEach(f => {
-            // Average original Z depth for shading
-            let origZAvg = 0;
-            f.pts.forEach(idx => origZAvg += projected[idx].originalZ);
-            origZAvg /= f.pts.length;
-
-            const color = getColor(origZAvg, f.highlight, f.darken);
-            
-            ctx.fillStyle = color;
+        // Tier 2: Rougher exposed crystal (blend out as Tier 3 blends in)
+        if (1 - tier3Prog > 0) {
+            ctx.globalAlpha = (1 - tier3Prog) * tier2Prog;
+            ctx.fillStyle = 'rgba(220, 250, 255, 0.9)'; // Cyan/ice white crystal body
             ctx.beginPath();
-            ctx.moveTo(projected[f.pts[0]].x, projected[f.pts[0]].y);
-            for (let i = 1; i < f.pts.length; i++) {
-                ctx.lineTo(projected[f.pts[i]].x, projected[f.pts[i]].y);
-            }
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-        });
-
-        // --- Tier 1: Glowing Pink Etchings/Runes ---
-        if (tier1Prog > 0) {
-            ctx.save();
-            ctx.globalAlpha = tier1Prog * (0.5 + 0.5 * slowPulse) * alphaMult;
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
+            ctx.moveTo(0, hoverY - 35); ctx.lineTo(-20, hoverY - 10); ctx.lineTo(-15, hoverY + 20);
+            ctx.lineTo(0, hoverY + 35); ctx.lineTo(15, hoverY + 20); ctx.lineTo(20, hoverY - 10);
+            ctx.closePath(); ctx.fill();
             
-            // Outline front triangle
-            ctx.beginPath();
-            ctx.moveTo(projected[0].x, projected[0].y);
-            ctx.lineTo(projected[1].x, projected[1].y);
-            ctx.lineTo(projected[2].x, projected[2].y);
-            ctx.closePath();
-            ctx.stroke();
-            
-            // Outline back triangle
-            ctx.beginPath();
-            ctx.moveTo(projected[3].x, projected[3].y);
-            ctx.lineTo(projected[4].x, projected[4].y);
-            ctx.lineTo(projected[5].x, projected[5].y);
-            ctx.closePath();
-            ctx.stroke();
-
-            ctx.restore();
+            // Pink internal facets
+            ctx.fillStyle = 'rgba(255, 150, 255, 0.6)';
+            ctx.beginPath(); ctx.moveTo(0, hoverY - 35); ctx.lineTo(-20, hoverY - 10); ctx.lineTo(0, hoverY); ctx.fill();
+            ctx.fillStyle = 'rgba(255, 100, 255, 0.4)';
+            ctx.beginPath(); ctx.moveTo(0, hoverY - 35); ctx.lineTo(20, hoverY - 10); ctx.lineTo(0, hoverY); ctx.fill();
         }
 
-        ctx.restore();
-    };
+        // Tier 3: Perfect geometric prism (cyan/white with pink accent)
+        if (tier3Prog > 0) {
+            ctx.globalAlpha = tier3Prog * Math.min(tier2Prog, 1 - tier4Prog);
+            const size = 45;
+            // Draw an isometric-like hexagonal prism
+            // Back faces
+            ctx.fillStyle = 'rgba(150, 220, 255, 0.8)';
+            ctx.beginPath(); ctx.moveTo(0, hoverY - size); ctx.lineTo(-size*0.866, hoverY - size/2); ctx.lineTo(0, hoverY); ctx.fill();
+            ctx.fillStyle = 'rgba(100, 200, 255, 0.6)';
+            ctx.beginPath(); ctx.moveTo(0, hoverY - size); ctx.lineTo(size*0.866, hoverY - size/2); ctx.lineTo(0, hoverY); ctx.fill();
+            
+            // Front faces
+            ctx.fillStyle = 'rgba(220, 250, 255, 0.9)'; // Very bright icy white/cyan
+            ctx.beginPath(); ctx.moveTo(0, hoverY + size); ctx.lineTo(-size*0.866, hoverY + size/2); ctx.lineTo(0, hoverY); ctx.fill();
+            ctx.fillStyle = 'rgba(180, 240, 255, 0.8)';
+            ctx.beginPath(); ctx.moveTo(0, hoverY + size); ctx.lineTo(size*0.866, hoverY + size/2); ctx.lineTo(0, hoverY); ctx.fill();
 
-    // --- Tier 4 & 8: Shattered Prism Array ---
+            // Inner pink glowing core inside the structured crystal
+            ctx.fillStyle = `rgba(255, 100, 255, ${0.5 + 0.2*pulse})`;
+            ctx.beginPath();
+            ctx.moveTo(0, hoverY - size/2); ctx.lineTo(-size*0.4, hoverY); ctx.lineTo(0, hoverY + size/2); ctx.lineTo(size*0.4, hoverY);
+            ctx.closePath(); ctx.fill();
+            
+            // Structured edges
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, hoverY - size); ctx.lineTo(-size*0.866, hoverY - size/2); ctx.lineTo(-size*0.866, hoverY + size/2); ctx.lineTo(0, hoverY + size);
+            ctx.lineTo(size*0.866, hoverY + size/2); ctx.lineTo(size*0.866, hoverY - size/2); ctx.closePath(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-size*0.866, hoverY - size/2); ctx.lineTo(0, hoverY); ctx.lineTo(size*0.866, hoverY - size/2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-size*0.866, hoverY + size/2); ctx.lineTo(0, hoverY); ctx.lineTo(size*0.866, hoverY + size/2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, hoverY - size); ctx.lineTo(0, hoverY + size); ctx.stroke();
+        }
+
+        // Tier 2 Orbiting Shards
+        const numShards = 4;
+        for(let i=0; i<numShards; i++) {
+            const angle = t * 1.5 + (i * Math.PI * 2 / numShards);
+            const r = 45 + tier3Prog * 15;
+            const sx = Math.cos(angle) * r;
+            const sy = hoverY + Math.sin(angle) * r * 0.3 + Math.sin(t * 3 + i) * 10;
+            
+            ctx.fillStyle = 'rgba(200, 240, 255, 0.8)';
+            ctx.beginPath();
+            ctx.moveTo(sx, sy - 10); ctx.lineTo(sx - 5, sy); ctx.lineTo(sx, sy + 10); ctx.lineTo(sx + 5, sy);
+            ctx.closePath(); ctx.fill();
+        }
+        
+        ctx.restore();
+    }
+
+    // --- Tier 4-8: The Split & Symmetrical Array ---
     if (tier4Prog > 0) {
-        // Core energy holding it together
+        ctx.save();
+        ctx.globalAlpha = tier4Prog;
+        
+        // Central Core
         ctx.fillStyle = `rgba(255, 255, 255, ${0.8 + 0.2 * pulse})`;
-        ctx.beginPath();
-        ctx.arc(0, hoverY, 10 + 20 * tier8Prog, 0, Math.PI * 2);
-        ctx.fill();
-
+        ctx.beginPath(); ctx.arc(0, hoverY, 15 + 10 * tier5Prog + 15 * tier8Prog, 0, Math.PI * 2); ctx.fill();
+        
         ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = `rgba(255, 100, 255, ${0.6 + 0.4 * pulse})`;
-        ctx.beginPath();
-        ctx.arc(0, hoverY, 20 + 40 * tier8Prog, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(0, hoverY, 30 + 20 * tier5Prog + 30 * tier8Prog, 0, Math.PI * 2); ctx.fill();
         ctx.globalCompositeOperation = 'source-over';
 
-        // Draw floating segments
-        const numSegments = 6 + Math.floor(tier8Prog * 12);
-        const arrayRadius = 30 + tier8Prog * 40 + Math.sin(t) * 10;
+        // Floating Shards Array (The Split)
+        const numSegments = 6 + Math.floor(tier5Prog * 6) + Math.floor(tier8Prog * 4); // Increases with tiers
+        const arrayRadius = 50 + tier5Prog * 30 + tier8Prog * 20;
         
         for (let i = 0; i < numSegments; i++) {
-            const angle = t * 0.5 + (i * Math.PI * 2 / numSegments);
-            const yOffset = Math.sin(t * 2 + i) * 15 * (1 + tier8Prog);
+            // In Tier 5+, the array spins smoothly like a mandala. In Tier 4 it just pulses.
+            const spin = tier5Prog > 0 ? t * 0.5 : 0;
+            const angle = spin + (i * Math.PI * 2 / numSegments);
             const px = Math.cos(angle) * arrayRadius;
-            const py = hoverY + yOffset;
             
-            // Segments spin individually
-            const segRot = t * 2 + i;
-            const segSize = crystalSize * 0.4 * (1 - tier8Prog * 0.3); // Smaller segments at tier 8
+            // In Tier 5+, the Y orbit is flatter (more mandala like). In Tier 4 it is bouncy.
+            const yOrbitScale = 1 - tier5Prog * 0.8; 
+            const py = hoverY + Math.sin(angle) * arrayRadius * yOrbitScale + Math.sin(t * 2 + i) * 10 * (1 - tier5Prog);
             
-            // Draw a piece of the prism
-            drawPrismShape(px, py, segSize, segRot, 0.8);
+            const segSize = 20 - tier5Prog * 5; 
             
-            // Energy connection to core
-            if (tier8Prog > 0) {
-                ctx.strokeStyle = `rgba(255, 150, 255, ${0.3 * tier8Prog})`;
-                ctx.lineWidth = 1;
+            // Draw a crystalline shard (cyan/white)
+            ctx.save();
+            ctx.translate(px, py);
+            // Orient shards outwards from center
+            ctx.rotate(angle + Math.PI/2);
+            
+            ctx.fillStyle = 'rgba(220, 250, 255, 0.9)';
+            ctx.beginPath();
+            ctx.moveTo(0, -segSize); ctx.lineTo(-segSize*0.5, 0); ctx.lineTo(0, segSize); ctx.lineTo(segSize*0.5, 0);
+            ctx.closePath(); ctx.fill();
+            
+            ctx.fillStyle = 'rgba(150, 220, 255, 0.7)';
+            ctx.beginPath(); ctx.moveTo(0, -segSize); ctx.lineTo(segSize*0.5, 0); ctx.lineTo(0, 0); ctx.fill();
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.restore();
+            
+            // Energy connection to core (Tier 5+)
+            if (tier5Prog > 0) {
+                ctx.strokeStyle = `rgba(255, 150, 255, ${0.4 * tier5Prog})`;
+                ctx.lineWidth = 1 + tier8Prog;
                 ctx.beginPath();
                 ctx.moveTo(px, py);
                 ctx.lineTo(0, hoverY);
                 ctx.stroke();
             }
         }
-    } else {
-        // Solid Prism (Tier 0-3)
-        // Global rotation. To keep it fully stable/flat, we barely rotate it or don't rotate it.
-        // Let's give it a very slow rotation, but we fixed the bottom logic inside drawPrismShape!
-        const prismRot = t * 0.5;
-        drawPrismShape(0, hoverY, crystalSize, prismRot);
+        ctx.restore();
     }
 
-    // --- Tier 2: Orbiting Crystal Shards ---
-    if (tier2Prog > 0 && tier4Prog === 0) { // Keep them in tier 2-3, but they blend into the shattered array in 4
+    // --- Tier 6: Concentric Energy Rings ---
+    if (tier6Prog > 0) {
         ctx.save();
-        ctx.globalAlpha = tier2Prog;
-        const numShards = 4;
-        for(let i=0; i<numShards; i++) {
-            const angle = t * 1.5 + (i * Math.PI * 2 / numShards);
-            const r = crystalSize * 0.8 + 20;
-            const sx = Math.cos(angle) * r;
-            const sy = hoverY + Math.sin(angle) * r * 0.3 + Math.sin(t * 3 + i) * 10;
+        ctx.globalAlpha = tier6Prog;
+        ctx.globalCompositeOperation = 'lighter';
+        
+        for (let i = 0; i < 3; i++) {
+            const ringScale = (t * 2 + i * 2) % 6; // Expanding out from 0 to 6
+            const radius = 20 + ringScale * 25;
+            const ringAlpha = 1 - (ringScale / 6); // Fade out as it expands
             
-            // Shard rotation
-            drawPrismShape(sx, sy, 10 + tier3Prog * 5, t * 3 + i);
+            ctx.save();
+            ctx.translate(0, hoverY);
+            ctx.scale(1, 0.3); // Flat perspective for the rings
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            // Alternate cyan and pink
+            if (i % 2 === 0) {
+                ctx.strokeStyle = `rgba(0, 255, 255, ${ringAlpha * 0.6})`;
+                ctx.shadowColor = '#00ffff';
+            } else {
+                ctx.strokeStyle = `rgba(255, 100, 255, ${ringAlpha * 0.6})`;
+                ctx.shadowColor = '#ff66ff';
+            }
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 10;
+            ctx.stroke();
+            ctx.restore();
         }
         ctx.restore();
     }
 
-    // --- Tier 7: Sharp Pink Energy Arcs ---
+    // --- Tier 7: Refraction Web ---
     if (tier7Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier7Prog;
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.shadowColor = '#ff00ff';
-        ctx.shadowBlur = 10;
-
-        // Draw random lightning arcs
-        if (Math.random() < 0.4) {
-            const startY = hoverY;
-            const endX = (Math.random() - 0.5) * 100 * (1 + tier8Prog);
-            const endY = startY + (Math.random() - 0.5) * 100 * (1 + tier8Prog);
+        ctx.lineWidth = 1.5;
+        ctx.shadowColor = '#00ffff';
+        ctx.shadowBlur = 8;
+        
+        // Draw erratic beams between shards or from core
+        if (Math.random() < 0.5) {
+            const numSegments = 12; // From tier 5+
+            const arrayRadius = 80;
+            
+            // Pick two random points on the mandala
+            const idx1 = Math.floor(Math.random() * numSegments);
+            const idx2 = (idx1 + Math.floor(Math.random() * (numSegments - 1)) + 1) % numSegments;
+            
+            const spin = t * 0.5;
+            const angle1 = spin + (idx1 * Math.PI * 2 / numSegments);
+            const angle2 = spin + (idx2 * Math.PI * 2 / numSegments);
+            
+            const x1 = Math.cos(angle1) * arrayRadius;
+            const y1 = hoverY + Math.sin(angle1) * arrayRadius * 0.2;
+            const x2 = Math.cos(angle2) * arrayRadius;
+            const y2 = hoverY + Math.sin(angle2) * arrayRadius * 0.2;
             
             ctx.beginPath();
-            ctx.moveTo(0, startY);
-            // Jagged line
-            let cx = 0;
-            let cy = startY;
-            for(let steps=1; steps<=3; steps++) {
-                const tx = cx + (endX - cx) * (steps/3) + (Math.random() - 0.5) * 20;
-                const ty = cy + (endY - cy) * (steps/3) + (Math.random() - 0.5) * 20;
-                ctx.lineTo(tx, ty);
-                cx = tx;
-                cy = ty;
-            }
-            ctx.lineTo(endX, endY);
+            ctx.moveTo(x1, y1);
+            // Zig zag slightly
+            const midX = (x1 + x2) / 2 + (Math.random() - 0.5) * 20;
+            const midY = (y1 + y2) / 2 + (Math.random() - 0.5) * 20;
+            ctx.lineTo(midX, midY);
+            ctx.lineTo(x2, y2);
             ctx.stroke();
         }
         ctx.restore();
     }
 
-    // --- Tier 8: Crazy Light Dispersion Beam ---
+    // --- Tier 8: Symmetrical Vertical Dispersion Beam ---
     if (tier8Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier8Prog;
         ctx.globalCompositeOperation = 'screen';
         
-        // Incoming massive white beam from top left
-        const beamW = 20 + Math.sin(t * 10) * 5;
-        const beamAngle = Math.PI / 4; // 45 degrees
-        
+        // Incoming massive white beam from STRAIGHT ABOVE
+        const beamW = 25 + Math.sin(t * 15) * 5;
         const hitX = 0;
         const hitY = hoverY;
         
-        const inGrad = ctx.createLinearGradient(
-            hitX - Math.cos(beamAngle) * 300, 
-            hitY - Math.sin(beamAngle) * 300, 
-            hitX, hitY
-        );
+        const inGrad = ctx.createLinearGradient(0, hitY - 400, 0, hitY);
         inGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
         inGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.9)');
         inGrad.addColorStop(1, 'rgba(255, 255, 255, 1)');
         
         ctx.fillStyle = inGrad;
         ctx.beginPath();
-        ctx.moveTo(hitX, hitY - beamW);
-        ctx.lineTo(hitX - Math.cos(beamAngle)*300 - beamW, hitY - Math.sin(beamAngle)*300 - beamW);
-        ctx.lineTo(hitX - Math.cos(beamAngle)*300 + beamW, hitY - Math.sin(beamAngle)*300 + beamW);
-        ctx.lineTo(hitX, hitY + beamW);
+        ctx.moveTo(-beamW, hitY - 400);
+        ctx.lineTo(beamW, hitY - 400);
+        ctx.lineTo(beamW/2, hitY);
+        ctx.lineTo(-beamW/2, hitY);
         ctx.fill();
 
-        // Dispersion effect: rainbow beams shooting out to the right
-        const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3'];
-        const numBeams = colors.length;
-        const spreadAngle = Math.PI / 3; 
-        
-        const hexToRgbStr = (hex) => {
-            const bigint = parseInt(hex.slice(1), 16);
-            return `${(bigint >> 16) & 255}, ${(bigint >> 8) & 255}, ${bigint & 255}`;
-        };
+        // Core explosion glow
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.beginPath();
+        ctx.arc(hitX, hitY, 20 + Math.random() * 10, 0, Math.PI * 2);
+        ctx.fill();
 
-        for (let i = 0; i < numBeams; i++) {
-            const fraction = i / (numBeams - 1);
-            const outAngle = -spreadAngle/2 + fraction * spreadAngle + Math.sin(t * 5 + i) * 0.05;
+        // SYMMETRICAL Dispersion effect: rainbow beams shooting out to the left and right
+        const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff'];
+        
+        // Draw right side
+        for (let i = 0; i < colors.length; i++) {
+            const fraction = i / (colors.length - 1);
+            // Spread between -30 deg and +30 deg relative to horizontal right
+            const spread = Math.PI / 3;
+            const baseAngleRight = 0; // Pointing right
+            const outAngleRight = baseAngleRight - spread/2 + fraction * spread + Math.sin(t * 5 + i) * 0.05;
             
-            const outGrad = ctx.createLinearGradient(
-                hitX, hitY,
-                hitX + Math.cos(outAngle) * 400,
-                hitY + Math.sin(outAngle) * 400
-            );
-            
+            const outGradR = ctx.createLinearGradient(hitX, hitY, hitX + Math.cos(outAngleRight) * 400, hitY + Math.sin(outAngleRight) * 400);
             const intensity = 0.6 + 0.4 * Math.sin(t * 8 + i * 2);
-            outGrad.addColorStop(0, colors[i]);
-            outGrad.addColorStop(0.5, `rgba(${hexToRgbStr(colors[i])}, ${intensity})`);
-            outGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            outGradR.addColorStop(0, colors[i]);
+            outGradR.addColorStop(0.5, `rgba(${hexToRgbStr(colors[i])}, ${intensity})`);
+            outGradR.addColorStop(1, 'rgba(0,0,0,0)');
             
-            ctx.fillStyle = outGrad;
-            
+            ctx.fillStyle = outGradR;
             const outW = 8 + Math.sin(t * 15 + i) * 3;
+            
             ctx.beginPath();
             ctx.moveTo(hitX, hitY - outW/2);
-            ctx.lineTo(hitX + Math.cos(outAngle)*400 - Math.sin(outAngle)*outW, hitY + Math.sin(outAngle)*400 + Math.cos(outAngle)*outW);
-            ctx.lineTo(hitX + Math.cos(outAngle)*400 + Math.sin(outAngle)*outW, hitY + Math.sin(outAngle)*400 - Math.cos(outAngle)*outW);
+            ctx.lineTo(hitX + Math.cos(outAngleRight)*400 - Math.sin(outAngleRight)*outW, hitY + Math.sin(outAngleRight)*400 + Math.cos(outAngleRight)*outW);
+            ctx.lineTo(hitX + Math.cos(outAngleRight)*400 + Math.sin(outAngleRight)*outW, hitY + Math.sin(outAngleRight)*400 - Math.cos(outAngleRight)*outW);
             ctx.lineTo(hitX, hitY + outW/2);
             ctx.fill();
         }
-        
-        ctx.fillStyle = 'white';
-        ctx.beginPath();
-        ctx.arc(hitX, hitY, 15 + Math.random() * 10, 0, Math.PI * 2);
-        ctx.fill();
+
+        // Draw left side (mirrored)
+        for (let i = 0; i < colors.length; i++) {
+            const fraction = i / (colors.length - 1);
+            const spread = Math.PI / 3;
+            const baseAngleLeft = Math.PI; // Pointing left
+            // Reverse the color order so it looks perfectly symmetrical
+            const revIdx = (colors.length - 1) - i;
+            const outAngleLeft = baseAngleLeft - spread/2 + fraction * spread + Math.sin(t * 5 + revIdx) * 0.05;
+            
+            const outGradL = ctx.createLinearGradient(hitX, hitY, hitX + Math.cos(outAngleLeft) * 400, hitY + Math.sin(outAngleLeft) * 400);
+            const intensity = 0.6 + 0.4 * Math.sin(t * 8 + revIdx * 2);
+            outGradL.addColorStop(0, colors[revIdx]);
+            outGradL.addColorStop(0.5, `rgba(${hexToRgbStr(colors[revIdx])}, ${intensity})`);
+            outGradL.addColorStop(1, 'rgba(0,0,0,0)');
+            
+            ctx.fillStyle = outGradL;
+            const outW = 8 + Math.sin(t * 15 + revIdx) * 3;
+            
+            ctx.beginPath();
+            ctx.moveTo(hitX, hitY - outW/2);
+            ctx.lineTo(hitX + Math.cos(outAngleLeft)*400 - Math.sin(outAngleLeft)*outW, hitY + Math.sin(outAngleLeft)*400 + Math.cos(outAngleLeft)*outW);
+            ctx.lineTo(hitX + Math.cos(outAngleLeft)*400 + Math.sin(outAngleLeft)*outW, hitY + Math.sin(outAngleLeft)*400 - Math.cos(outAngleLeft)*outW);
+            ctx.lineTo(hitX, hitY + outW/2);
+            ctx.fill();
+        }
 
         ctx.restore();
     }
 }
+
 
 
 function drawFoundry(ctx, t, tier, prevTier, animProgress) {
