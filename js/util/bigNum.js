@@ -8,6 +8,15 @@ export class BigNum {
   constructor(sig, e, p = BigNum.DEFAULT_PRECISION) {
     let effectiveE = 0;
     let inf = false;
+    this._isNaN = false;
+    if (Number.isNaN(sig)) {
+      this.sig = NaN;
+      this.e = 0;
+      this.inf = false;
+      this._isNaN = true;
+      this.p = p;
+      return;
+    }
 
     if (e && typeof e === 'object' && ('base' in e || 'inf' in e)) {
       const base = Number(e.base ?? 0);
@@ -95,7 +104,8 @@ export class BigNum {
     if (!str) return null;
     if (typeof str !== 'string') str = String(str);
     if (str.startsWith('BN:')) {
-      const parts = str.split(':');
+      const parts = str.split(":");
+      if (parts[1] === 'NaN') return new BigNum(NaN, 0, p);
       if (parts[1] === 'infinite') {
         return new BigNum(1, { base: BigNum.MAX_E, inf: true }, p);
       }
@@ -118,10 +128,12 @@ export class BigNum {
     if (typeof input === 'string') {
       const trimmed = input.trim();
       if (trimmed.startsWith('BN:')) return BigNum.fromStorage(trimmed, p);
+      if (/^NaN$/i.test(trimmed)) return new BigNum(NaN, 0, p);
       if (/^inf(?:inity)?$/i.test(trimmed)) return new BigNum(1, BigNum.MAX_E, p);
       if (/^[+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i.test(trimmed)) return BigNum.fromScientific(trimmed, p);
     }
     if (typeof input === 'number') {
+      if (Number.isNaN(input)) return new BigNum(NaN, 0, p);
       if (!Number.isFinite(input)) return new BigNum(1, BigNum.MAX_E, p);
       return BigNum.fromScientific(input.toString(), p);
     }
@@ -131,6 +143,7 @@ export class BigNum {
 
   // ---------------------- PERSISTENCE ----------------------
   toStorage() {
+    if (this._isNaN) return `BN:NaN`;
     if (this.inf) return `BN:infinite`;
     if (this.isZero()) return `BN:zero`;
     if (this.p === 0) return `BN:0::${this.e}`;
@@ -138,19 +151,22 @@ export class BigNum {
   }
 
   clone() {
+    if (this._isNaN) return new BigNum(NaN, 0, this.p);
     return new BigNum(this.sig, { base: this.e, inf: this.inf }, this.p);
   }
 
   // ---------------------- STATE QUERIES ----------------------
+  isNaN() { return !!this._isNaN; }
   isZero() { return !this.inf && this.sig === 0; }
   isInfinite() { return !!this.inf; }
   isNegative() { return false; }
 
   sub(b) {
     b = BigNum.fromAny(b, this.p);
+    if (this._isNaN || b._isNaN) return new BigNum(NaN, 0, this.p);
 
     if (this.inf) {
-      if (b.inf) return this.clone();
+      if (b.inf) return new BigNum(NaN, 0, this.p);
       return this.clone();
     }
     if (b.isZero()) return this.clone();
@@ -283,6 +299,7 @@ export class BigNum {
   // ---------------------- ARITHMETIC ----------------------
    add(b) {
     b = BigNum.fromAny(b, this.p);
+    if (this._isNaN || b._isNaN) return new BigNum(NaN, 0, this.p);
     if (this.inf || b.inf) {
       const out = this.clone(); out.inf = this.inf || b.inf; out.e = BigNum.MAX_E; return out;
     }
@@ -294,22 +311,25 @@ export class BigNum {
     return b.add(this);
   }
 
-  iadd(b) { const r = this.add(b); this.sig = r.sig; this.e = r.e; this.inf = r.inf; return this; }
+  iadd(b) { const r = this.add(b); this.sig = r.sig; this.e = r.e; this.inf = r.inf; this._isNaN = r._isNaN; return this; }
 
   mulSmall(k) {
+    if (this._isNaN || Number.isNaN(k)) return new BigNum(NaN, 0, this.p);
     if (k < 0) throw new Error('BigNum only supports non-negative values');
-    if (this.inf) return this.clone();
+    if (this.inf) return k === 0 ? new BigNum(NaN, 0, this.p) : this.clone();
     if (k === 0) return BigNum.zero(this.p);
     if (k === 1) return this.clone();
     const out = new BigNum(this.sig * Number(k), this.#expObj(), this.p);
     return out;
   }
 
-  imulSmall(k) { const r = this.mulSmall(k); this.sig = r.sig; this.e = r.e; this.inf = r.inf; return this; }
+  imulSmall(k) { const r = this.mulSmall(k); this.sig = r.sig; this.e = r.e; this.inf = r.inf; this._isNaN = r._isNaN; return this; }
 
   // Multiply by another non-negative integer BigNum (exact).
   mulBigNumInteger(other) {
     const b = BigNum.fromAny(other, this.p);
+    if (this._isNaN || b._isNaN) return new BigNum(NaN, 0, this.p);
+    if ((this.inf && b.isZero()) || (b.inf && this.isZero())) return new BigNum(NaN, 0, this.p);
     if (this.inf || b.inf) {
       const out = this.clone();
       out.inf = this.inf || b.inf;
@@ -322,7 +342,7 @@ export class BigNum {
 
   imulBigNumInteger(other) {
     const r = this.mulBigNumInteger(other);
-    this.sig = r.sig; this.e = r.e; this.inf = r.inf;
+    this.sig = r.sig; this.e = r.e; this.inf = r.inf; this._isNaN = r._isNaN;
     return this;
   }
 
@@ -332,7 +352,7 @@ export class BigNum {
     
     // Handle infinite cases
     if (this.inf) {
-        if (b.inf) return new BigNum(1, 0, this.p); // inf / inf -> 1 (or undefined, but 1 is safer for ratios)
+        if (b.inf) return new BigNum(NaN, 0, this.p);
         return this.clone(); // inf / finite -> inf
     }
     if (b.inf) {
@@ -341,6 +361,7 @@ export class BigNum {
     
     // Handle zero cases
     if (b.isZero()) {
+        if (this.isZero()) return new BigNum(NaN, 0, this.p);
         // finite / 0 -> infinity (mathematically undefined but useful here)
         return new BigNum(1, BigNum.MAX_E, this.p);
     }
@@ -377,6 +398,7 @@ export class BigNum {
 
   cmp(b) {
     b = BigNum.fromAny(b, this.p);
+    if (this._isNaN || b._isNaN) return NaN;
     if (this.inf || b.inf) return this.inf === b.inf ? 0 : this.inf ? 1 : -1;
     
     const thisIsZero = this.isZero();
@@ -434,6 +456,7 @@ export class BigNum {
 
   // Multiply by decimal multiplier given as number/string with up to 18 fractional digits (returns new BigNum).
   mulDecimal(mult, maxScale = BigNum.DEFAULT_PRECISION) {
+    if (this._isNaN || Number.isNaN(mult)) return new BigNum(NaN, 0, this.p);
     if (this.inf || this.isZero()) return this.clone();
     const { numer, scale } = BigNum._parseDecimalMultiplier(mult, maxScale);
     if (numer === 0) return BigNum.zero(this.p);
@@ -442,6 +465,7 @@ export class BigNum {
 
   // Floor to integer value by dropping fractional digits.
   floorToInteger() {
+    if (this._isNaN) return new BigNum(NaN, 0, this.p);
     if (this.inf) return this.clone();
     if (this.isZero()) return this.clone();
     const exp = this.#effectiveExponentNumber();
@@ -461,6 +485,7 @@ export class BigNum {
   }
 
   mulScaledInt(numer, scale) {
+    if (this._isNaN || Number.isNaN(numer)) return new BigNum(NaN, 0, this.p);
     const numerNum = numer;
     if (this.inf || this.isZero()) return this.clone();
     const nb = Number(numerNum);
@@ -482,6 +507,7 @@ export class BigNum {
   }
 
   toScientific(digits = 3) {
+    if (this._isNaN) return 'NaN';
     if (this.inf) return 'Infinity';
     if (this.isZero()) return '0';
     
@@ -504,6 +530,7 @@ export class BigNum {
   }
 
   toPlainIntegerString() {
+    if (this._isNaN) return 'NaN';
     if (this.inf) return 'Infinity';
     if (this.isZero()) return '0';
     const exp = this.#effectiveExponentNumber();
@@ -522,6 +549,7 @@ export class BigNum {
   }
 
   toString() {
+    if (this._isNaN) return 'NaN';
     return this.toPlainIntegerString();
   }
 }
@@ -573,6 +601,7 @@ export function approxLog10BigNum(value) {
   }
   if (!value) return Number.NEGATIVE_INFINITY;
   if (value.isZero?.()) return Number.NEGATIVE_INFINITY;
+  if (value.isNaN?.()) return NaN;
   if (value.isInfinite?.()) return Number.POSITIVE_INFINITY;
 
   if (typeof value.sig === 'number') {
@@ -614,6 +643,7 @@ export function approxLog10BigNum(value) {
 }
 
 export function bigNumFromLog10(log10Value, noFuzz = false) {
+  if (Number.isNaN(log10Value)) return new BigNum(NaN, 0);
   if (!Number.isFinite(log10Value)) {
     return log10Value > 0 ? BigNum.fromAny('Infinity') : BigNum.fromInt(0);
   }
@@ -636,6 +666,7 @@ export function bigNumFromLog10(log10Value, noFuzz = false) {
 const LN10 = Math.log(10);
 
 export function log10OnePlusPow10(exponent) {
+  if (Number.isNaN(exponent)) return NaN;
   if (!Number.isFinite(exponent)) {
     if (exponent > 0) return exponent;
     if (exponent === 0) return Math.log10(2);
