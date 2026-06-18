@@ -212,6 +212,37 @@ function draw(ctx, width, height, t) {
         drawBuilding(ctx, width, height, t, currentBuildingId, drawTier, previousTier, animProgress);
     }
     ctx.restore();
+    // Tier 6: Energy Rings (Front Half)
+    if (tier6Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier6Prog;
+        ctx.globalCompositeOperation = 'screen';
+        
+        const numRings = 3;
+        for (let i = 0; i < numRings; i++) {
+            const scanT = (t * 0.5 + i / numRings) % 1;
+            const yOffset = -h + (h * 2) * scanT;
+            const ringW = w * 1.8;
+            const ringH = d * 1.2;
+            const scanY = hoverY + yOffset * 0.5;
+
+            ctx.save();
+            ctx.translate(0, scanY);
+            ctx.scale(1, 0.4); 
+            
+            ctx.strokeStyle = `rgba(255, 100, 255, ${0.4 + 0.3 * Math.sin(scanT * Math.PI)})`;
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = 'rgba(255, 100, 255, 1)';
+            
+            ctx.beginPath();
+            ctx.ellipse(0, 0, ringW, ringH, 0, 0, Math.PI);
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+        ctx.restore();
+    }
     
     if (levelUpAnimTime > 0) {
         const alpha = Math.max(0, levelUpAnimTime);
@@ -991,6 +1022,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     const targetSizeMult = 1.0 + tier * 0.15;
     const prevSizeMult = 1.0 + prevTier * 0.15;
     const sizeMult = prevSizeMult + (targetSizeMult - prevSizeMult) * animProgress;
+    let ipts = null, ifaces = null;
     const w = 30 * sizeMult; // base half-width
     const h = 50 * sizeMult; // height (from bottom to peak)
     const d = 25 * sizeMult; // half-depth
@@ -1106,9 +1138,9 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             {x: -iw, y: -h/2 + ih/2, z: -id_}, {x: iw, y: -h/2 + ih/2, z: -id_}, {x: 0, y: -h/2 - ih/2, z: -id_},
             {x: -iw, y: -h/2 + ih/2, z: id_}, {x: iw, y: -h/2 + ih/2, z: id_}, {x: 0, y: -h/2 - ih/2, z: id_}
         ];
-        const ipts = iVertices.map(v => projectInner(v.x, v.y, v.z));
+        ipts = iVertices.map(v => projectInner(v.x, v.y, v.z));
         
-        const ifaces = [
+        ifaces = [
             { id: 'front',  pts: [0, 1, 2] },
             { id: 'back',   pts: [3, 5, 4] },
             { id: 'bottom', pts: [0, 3, 4, 1] },
@@ -1126,10 +1158,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             ctx.fillStyle = `rgba(255, 200, 255, 0.3)`;
             ctx.strokeStyle = `rgba(255, 255, 255, 0.9)`;
             ctx.lineWidth = 1;
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
             ctx.beginPath();
             ctx.moveTo(ipts[f.pts[0]].x, ipts[f.pts[0]].y);
             for (let i = 1; i < f.pts.length; i++) {
@@ -1143,7 +1171,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     }
 
     // Tier 6: Energy Rings (Back Half)
-    // We draw the back half of the rings here, so the faces draw over them.
     if (tier6Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier6Prog;
@@ -1152,22 +1179,20 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         const numRings = 3;
         for (let i = 0; i < numRings; i++) {
             const scanT = (t * 0.5 + i / numRings) % 1;
-            const yOffset = -h + (h * 2) * scanT; // Scan from top to bottom
+            const yOffset = -h + (h * 2) * scanT;
             const ringW = w * 1.8;
             const ringH = d * 1.2;
-            
-            const scanY = hoverY + yOffset * 0.5; // Scale height appropriately
+            const scanY = hoverY + yOffset * 0.5;
 
             ctx.save();
             ctx.translate(0, scanY);
-            ctx.scale(1, 0.4); // Fake 3D perspective
+            ctx.scale(1, 0.4);
             
             ctx.strokeStyle = `rgba(255, 100, 255, ${0.4 + 0.3 * Math.sin(scanT * Math.PI)})`;
             ctx.lineWidth = 4;
             ctx.shadowBlur = 10;
             ctx.shadowColor = 'rgba(255, 100, 255, 1)';
             
-            // Draw back half of the ellipse (from 0 to PI, negative Y visually)
             ctx.beginPath();
             ctx.ellipse(0, 0, ringW, ringH, 0, Math.PI, Math.PI * 2);
             ctx.stroke();
@@ -1175,17 +1200,17 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             ctx.restore();
         }
         ctx.restore();
-        
-        ctx.restore();
     }
 
     faces.forEach((f, idx) => {
         let c = f.baseColor;
         
+
         
         // Make it glassy
         ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${glassAlpha * f.alphaMult})`;
-        
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(pts[f.pts[0]].x, pts[f.pts[0]].y);
         for (let i = 1; i < f.pts.length; i++) {
@@ -1194,13 +1219,11 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.closePath();
         ctx.fill();
         
-        // Only stroke the back faces now, front faces (the last 2-3 in sorted array) will be stroked after beams
+        // Only stroke the back faces now, front faces will be stroked after beams.
         const isBack = idx < 2; // the first 2 faces are in the back
         if (isBack) {
             ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
             ctx.lineWidth = 1;
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
             ctx.stroke();
@@ -1219,15 +1242,13 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         ctx.globalAlpha = tier7Prog;
         
-        // Ground projection
-        const runeY = hoverY + 30; // Just below the prism
+        const runeY = hoverY + 30; 
         
         ctx.save();
         ctx.translate(0, runeY);
-        ctx.scale(1, 0.4); // Isometric perspective for ground
-        ctx.rotate(t * 0.5); // Spin slowly
+        ctx.scale(1, 0.4); 
+        ctx.rotate(t * 0.5); 
         
-        // Soft glowing pillar casting upwards
         const pGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 3);
         pGrad.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
         pGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
@@ -1236,18 +1257,15 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.arc(0, 0, w * 3, 0, Math.PI * 2);
         ctx.fill();
         
-        // Geometric Runes
         ctx.strokeStyle = `rgba(255, 255, 255, ${0.4 + 0.2 * Math.sin(t * 3)})`;
         ctx.lineWidth = 2;
         ctx.shadowBlur = 10;
         ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
         
-        // Draw outer ring
         ctx.beginPath();
         ctx.arc(0, 0, w * 2.5, 0, Math.PI * 2);
         ctx.stroke();
         
-        // Draw inner geometric star/polygon
         const points = 6;
         const outerR = w * 2.2;
         const innerR = w * 1.5;
@@ -1266,37 +1284,37 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
-    // Explicitly draw back edges AND the entire top line before beams, so beams overlap the top line
+    // Explicitly draw the top line (pts 2 and 5) BEFORE beams, so beams always overlap it
     ctx.save();
     ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
     ctx.lineWidth = 1;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
-    
-    // Back face (pts 3, 5, 4)
-    ctx.beginPath();
-    ctx.moveTo(pts[3].x, pts[3].y);
-    ctx.lineTo(pts[5].x, pts[5].y);
-    ctx.lineTo(pts[4].x, pts[4].y);
-    ctx.lineTo(pts[3].x, pts[3].y);
-    ctx.stroke();
-
-    // Bottom side edges
-    ctx.beginPath();
-    ctx.moveTo(pts[3].x, pts[3].y);
-    ctx.lineTo(pts[0].x, pts[0].y);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(pts[4].x, pts[4].y);
-    ctx.lineTo(pts[1].x, pts[1].y);
-    ctx.stroke();
-
-    // The entire top line should be BEHIND the light beam
     ctx.beginPath();
     ctx.moveTo(pts[5].x, pts[5].y);
     ctx.lineTo(pts[2].x, pts[2].y);
     ctx.stroke();
+    
+    // Check if the front triangular face is actually facing away.
+    const isFrontTriangleBackwards = pts[2].z > pts[5].z;
+    if (isFrontTriangleBackwards) {
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(pts[1].x, pts[1].y);
+        ctx.lineTo(pts[2].x, pts[2].y);
+        ctx.lineTo(pts[0].x, pts[0].y);
+        ctx.stroke();
+    }
+    
+    if (!isFrontTriangleBackwards) {
+        ctx.beginPath();
+        ctx.moveTo(pts[3].x, pts[3].y);
+        ctx.lineTo(pts[4].x, pts[4].y);
+        ctx.lineTo(pts[5].x, pts[5].y);
+        ctx.lineTo(pts[3].x, pts[3].y);
+        ctx.stroke();
+    }
+    
     ctx.restore();
 
     // --- Post-Prism Light Effects ---
@@ -1349,12 +1367,10 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         }
         ctx.restore();
     }
-        ctx.restore();
-    }
     const center = project(0, -h/2, 0);
 
     // Tier 4: Incoming White Beam from top & Rainbow Beams shooting out horizontally
-    if (tier4Prog > 0 && tier8Prog === 0) {
+    if (tier4Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier4Prog;
         ctx.globalCompositeOperation = 'screen';
@@ -1363,7 +1379,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         const inAngle = -Math.PI / 2; 
         
         // In Tier 7, the incoming beam gets much wider and intense
-        const t7WidthAdd = tier7Prog > 0 ? 15 + Math.sin(t * 10) * 10 : 0;
+        const t7WidthAdd = 0;
         const beamW = 6 + Math.sin(t*5)*2 + t7WidthAdd;
         
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
@@ -1382,8 +1398,8 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff'];
         
         // Tier 7 amplifies the spread and length
-        const spread = Math.PI / 4 + tier7Prog * (Math.PI / 8); 
-        const rayLen = 300 + tier7Prog * 100;
+        const spread = Math.PI / 4; 
+        const rayLen = 300;
         
         const drawHorizontalRainbow = (baseAngle, isReversed) => {
             for (let i = 0; i < colors.length; i++) {
@@ -1398,7 +1414,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
                 grad.addColorStop(1, 'rgba(0,0,0,0)');
                 
                 ctx.strokeStyle = grad;
-                ctx.lineWidth = 4 + tier7Prog * 4; // Thicker in tier 7
+                ctx.lineWidth = 4;
                 ctx.beginPath();
                 ctx.moveTo(center.x, center.y);
                 ctx.lineTo(center.x + Math.cos(outAngle)*rayLen, center.y + Math.sin(outAngle)*rayLen);
@@ -1452,15 +1468,11 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             // Draw shard
             ctx.save();
             ctx.translate(sp.x, sp.y);
-            ctx.rotate(t*2 + i);
+            
             
             ctx.fillStyle = 'rgba(255, 150, 220, 0.8)';
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
             ctx.lineWidth = 1;
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
             
             const size = 12 * sp.scale;
             ctx.beginPath();
@@ -1553,26 +1565,111 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
     
-    // Draw explicit front edges AFTER beams (excluding the top line, which was already drawn behind the beams)
+
+    // Draw FRONT faces of the inner prism AFTER the light beam impact point
+    if (tier2Prog > 0 && ipts && ifaces) {
+        ctx.save();
+        ctx.globalAlpha = tier2Prog;
+        ctx.globalCompositeOperation = 'lighter';
+        
+        ifaces.forEach((f, idx) => {
+            if (idx >= 2) {
+                ctx.fillStyle = `rgba(255, 200, 255, 0.3)`;
+                ctx.beginPath();
+                ctx.moveTo(ipts[f.pts[0]].x, ipts[f.pts[0]].y);
+                for (let i = 1; i < f.pts.length; i++) {
+                    ctx.lineTo(ipts[f.pts[i]].x, ipts[f.pts[i]].y);
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+        });
+        
+        ctx.strokeStyle = `rgba(255, 255, 255, 0.9)`;
+        ctx.lineWidth = 1;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        
+        const isInnerFrontBackwards = ipts[2].z > ipts[5].z;
+        if (!isInnerFrontBackwards) {
+            ctx.beginPath();
+            ctx.moveTo(ipts[0].x, ipts[0].y);
+            ctx.lineTo(ipts[1].x, ipts[1].y);
+            ctx.lineTo(ipts[2].x, ipts[2].y);
+            ctx.lineTo(ipts[0].x, ipts[0].y);
+            ctx.stroke();
+        } else {
+            ctx.beginPath();
+            ctx.moveTo(ipts[3].x, ipts[3].y);
+            ctx.lineTo(ipts[4].x, ipts[4].y);
+            ctx.lineTo(ipts[5].x, ipts[5].y);
+            ctx.lineTo(ipts[3].x, ipts[3].y);
+            ctx.stroke();
+        }
+        
+        ifaces.forEach((f) => {
+            if (f.z < 0) {
+                if (f.id === 'left') {
+                    ctx.beginPath();
+                    ctx.moveTo(ipts[0].x, ipts[0].y);
+                    ctx.lineTo(ipts[3].x, ipts[3].y);
+                    ctx.stroke();
+                }
+                if (f.id === 'right') {
+                    ctx.beginPath();
+                    ctx.moveTo(ipts[1].x, ipts[1].y);
+                    ctx.lineTo(ipts[4].x, ipts[4].y);
+                    ctx.stroke();
+                }
+            }
+        });
+        
+        ctx.restore();
+    }
+
+    // Draw front face lines AFTER all beams so beams appear to be inside the prism
     ctx.save();
     ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
     ctx.lineWidth = 1;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
+    
+    const frontIsBackwards = pts[2].z > pts[5].z;
+    if (!frontIsBackwards) {
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(pts[1].x, pts[1].y);
+        ctx.lineTo(pts[2].x, pts[2].y);
+        ctx.lineTo(pts[0].x, pts[0].y);
+        ctx.stroke();
+    } else {
+        ctx.beginPath();
+        ctx.moveTo(pts[3].x, pts[3].y);
+        ctx.lineTo(pts[4].x, pts[4].y);
+        ctx.lineTo(pts[5].x, pts[5].y);
+        ctx.lineTo(pts[3].x, pts[3].y);
+        ctx.stroke();
+    }
+    
+    faces.forEach((f) => {
+        if (f.z < 0) { 
+            if (f.id === 'left') {
+                ctx.beginPath();
+                ctx.moveTo(pts[0].x, pts[0].y);
+                ctx.lineTo(pts[3].x, pts[3].y);
+                ctx.stroke();
+            }
+            if (f.id === 'right') {
+                ctx.beginPath();
+                ctx.moveTo(pts[1].x, pts[1].y);
+                ctx.lineTo(pts[4].x, pts[4].y);
+                ctx.stroke();
+            }
+        }
+    });
 
-    // Front face (pts 0, 1, 2)
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    ctx.lineTo(pts[1].x, pts[1].y);
-    ctx.lineTo(pts[2].x, pts[2].y);
-    ctx.lineTo(pts[0].x, pts[0].y);
-    ctx.stroke();
-
-    // Top line is drawn entirely behind the light beam, so we skip it here.
     ctx.restore();
-
     // Tier 6: Energy Rings (Front Half)
-    // Drawn over everything else to complete the wrapping illusion.
     if (tier6Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier6Prog;
@@ -1584,7 +1681,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             const yOffset = -h + (h * 2) * scanT;
             const ringW = w * 1.8;
             const ringH = d * 1.2;
-            
             const scanY = hoverY + yOffset * 0.5;
 
             ctx.save();
@@ -1596,7 +1692,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             ctx.shadowBlur = 10;
             ctx.shadowColor = 'rgba(255, 100, 255, 1)';
             
-            // Draw front half of the ellipse (from 0 to PI, positive Y visually)
             ctx.beginPath();
             ctx.ellipse(0, 0, ringW, ringH, 0, 0, Math.PI);
             ctx.stroke();
@@ -1605,6 +1700,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         }
         ctx.restore();
     }
+}
 
 
 
@@ -2130,7 +2226,7 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
         ctx.fillRect(-45, -30, 90, 60);
         
         ctx.strokeStyle = '#222';
-        ctx.lineWidth = 4 + tier7Prog * 4;
+        ctx.lineWidth = 4;
         ctx.strokeRect(-45, -30, 90, 60);
 
         // Glowing magma center
@@ -2183,7 +2279,7 @@ function drawCharger(ctx, t, tier) {
     ctx.fillRect(-40, -60, 80, 60);
     
     ctx.strokeStyle = '#e99f79';
-    ctx.lineWidth = 4 + tier7Prog * 4;
+    ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(0, -60, 30, Math.PI, 0);
     ctx.stroke();
@@ -2226,7 +2322,7 @@ function drawVault(ctx, t, tier) {
     ctx.fill();
     
     ctx.strokeStyle = '#555';
-    ctx.lineWidth = 4 + tier7Prog * 4;
+    ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(-10, -30);
     ctx.lineTo(10, -30);
