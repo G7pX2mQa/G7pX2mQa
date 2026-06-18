@@ -36,6 +36,16 @@ let _cachedUpgradeMultipliers = {};
 let listeners = [];
 
 const externalSpawnRateProviders = [];
+const externalCoresMultiplierProviders = [];
+const externalCrystalsMultiplierProviders = [];
+
+export function addExternalCoresMultiplierProvider(provider) {
+    externalCoresMultiplierProviders.push(provider);
+}
+
+export function addExternalCrystalsMultiplierProvider(provider) {
+    externalCrystalsMultiplierProviders.push(provider);
+}
 
 export function addExternalSpawnRateMultiplierProvider(provider) {
   if (typeof provider === 'function') {
@@ -137,6 +147,8 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
     fpValue: BigNum.fromInt(1),
     dpValue: BigNum.fromInt(1),
     allMaterialsValue: BigNum.fromInt(1),
+    coresValue: BigNum.fromInt(1),
+    crystalsValue: BigNum.fromInt(1),
     rpValue: BigNum.fromInt(1),
     coinSpawn: 1.0,
     materialSpawn: 1.0,
@@ -168,6 +180,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.scrapValue = safeMultiplyBigNum(acc.scrapValue, scrapMult);
       acc.dpValue = safeMultiplyBigNum(acc.dpValue, dpMult);
       acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, allMaterialsMult);
+
       
       baseEffect = safeMultiplyBigNum(baseEffect, selfMult);
     }
@@ -210,6 +223,10 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       acc.dpValue = safeMultiplyBigNum(acc.dpValue, baseEffect);
     } else if (upg.effectType === 'all_materials_value') {
       acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, baseEffect);
+    } else if (upg.effectType === 'cores_value') {
+      acc.coresValue = safeMultiplyBigNum(acc.coresValue, baseEffect);
+    } else if (upg.effectType === 'crystals_value') {
+      acc.crystalsValue = safeMultiplyBigNum(acc.crystalsValue, baseEffect);
     } else if (upg.effectType === 'rp_value') {
       acc.rpValue = safeMultiplyBigNum(acc.rpValue, baseEffect);
     } else if (upg.effectType === 'magnet_radius') {
@@ -268,6 +285,8 @@ export function computeUpgradeEffects(areaKey) {
     magicValueMultiplier: mults.magicValue,
     dnaValueMultiplier: mults.dnaValue,
     allMaterialsValueMultiplier: mults.allMaterialsValue,
+    coresValueMultiplier: mults.coresValue,
+    crystalsValueMultiplier: mults.crystalsValue,
     scrapValueMultiplier: mults.scrapValue,
     dpValueMultiplier: mults.dpValue,
     rpValueMultiplier: mults.rpValue,
@@ -275,7 +294,7 @@ export function computeUpgradeEffects(areaKey) {
 }
 
 export function syncCurrencyMultipliersFromUpgrades() {
-  const { goldValue, magicValue, waveValue, dnaValue, allMaterialsValue, scrapValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
+  const { goldValue, magicValue, waveValue, dnaValue, allMaterialsValue, scrapValue, coresValue, crystalsValue } = calculateUpgradeMultipliers(AREA_KEYS.STARTER_COVE);
   
   try {
     if (bank.gold?.mult?.set) {
@@ -319,6 +338,40 @@ export function syncCurrencyMultipliersFromUpgrades() {
       bank.DNA.mult.set(dnaValue);
     } else if (bank.dna?.mult?.set) {
       bank.dna.mult.set(dnaValue);
+    }
+  } catch {}
+
+  try {
+    if (bank.cores?.mult?.set) {
+      let finalCoresValue = applyStatMultiplierOverride('cores', coresValue);
+      for (const provider of externalCoresMultiplierProviders) {
+        try {
+          const val = provider(finalCoresValue);
+          if (val instanceof BigNum) {
+            finalCoresValue = val;
+          } else if (val) {
+            finalCoresValue = finalCoresValue.mulBigNumInteger(BigNum.fromAny(val));
+          }
+        } catch {}
+      }
+      bank.cores.mult.set(finalCoresValue);
+    }
+  } catch {}
+
+  try {
+    if (bank.crystals?.mult?.set) {
+      let finalCrystalsValue = applyStatMultiplierOverride('crystals', crystalsValue);
+      for (const provider of externalCrystalsMultiplierProviders) {
+        try {
+          const val = provider(finalCrystalsValue);
+          if (val instanceof BigNum) {
+            finalCrystalsValue = val;
+          } else if (val) {
+            finalCrystalsValue = finalCrystalsValue.mulBigNumInteger(BigNum.fromAny(val));
+          }
+        } catch {}
+      }
+      bank.crystals.mult.set(finalCrystalsValue);
     }
   } catch {}
 
