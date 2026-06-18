@@ -406,7 +406,16 @@ export function computeCombineCores(scrapBn, potentialScrapBn, dpLevelBn) {
     total = total.mulBigNumInteger(pow14);
     total = total.mulBigNumInteger(pow115);
     
-    const floored = total.floorToInteger();
+    let finalTotal = total;
+    if (bank.cores && bank.cores.mult) {
+        try {
+            const mult = bank.cores.mult.get();
+            if (mult && !mult.isZero?.()) {
+                finalTotal = finalTotal.mulBigNumInteger ? finalTotal.mulBigNumInteger(mult) : finalTotal;
+            }
+        } catch(e){}
+    }
+    const floored = finalTotal.floorToInteger();
     if (floored.cmp(BigNum.fromInt(10)) < 0) return BigNum.fromInt(10);
     return floored;
 }
@@ -831,7 +840,16 @@ export function computeCompressCrystals(scrapBn, potentialScrapBn, surgeLevel) {
         total = total.mulBigNumInteger(surgePowBn);
     }
     
-    const floored = total.floorToInteger();
+    let finalTotal = total;
+    if (bank.crystals && bank.crystals.mult) {
+        try {
+            const mult = bank.crystals.mult.get();
+            if (mult && !mult.isZero?.()) {
+                finalTotal = finalTotal.mulBigNumInteger ? finalTotal.mulBigNumInteger(mult) : finalTotal;
+            }
+        } catch(e){}
+    }
+    const floored = finalTotal.floorToInteger();
     if (floored.cmp(BigNum.fromInt(10)) < 0) return BigNum.fromInt(10);
     return floored;
 }
