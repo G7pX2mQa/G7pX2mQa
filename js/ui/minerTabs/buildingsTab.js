@@ -1084,7 +1084,7 @@ export function updateOverlayUi() {
         const costRow = document.getElementById('building-detail-cost-row');
         costRow.style.visibility = '';
         costRow.innerHTML = 
-            `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName} <span style="font-size: 0.9em; opacity: 0.8;">(Next 25: ${imgStr} ${formatNumber(next25CostBn)} ${next25CostMatName})</span>`;
+            `Cost: ${imgStr} ${formatNumber(costBn)} ${costMatName} <span style="font-size: 0.67em;">(Next 25: ${imgStr} ${formatNumber(next25CostBn)} ${next25CostMatName})</span>`;
             
         const walletMatName = (resConfig ? (walletBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
         const walletRow = document.getElementById('building-detail-wallet-row');
