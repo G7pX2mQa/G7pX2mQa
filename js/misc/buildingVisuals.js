@@ -514,7 +514,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
         levelText.style.position = 'absolute';
         // Calculate top offset based on parent container offset (which might be causing the drift)
         // Adjust for padding or margins of the container
-        levelText.style.top = (finalHighestY - 180) + 'px'; // Magic number offset to fix clipping
+        levelText.style.top = Math.max(50, finalHighestY - 180) + 'px'; // Magic number offset to fix clipping
         levelText.style.left = '0';
         levelText.style.width = '100%';
         
