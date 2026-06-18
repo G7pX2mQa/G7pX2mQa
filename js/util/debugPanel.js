@@ -760,7 +760,7 @@ function isCurrencyMultiplierLocked(currencyKey, slot = getActiveSlot()) {
     return isStorageKeyLocked(getCurrencyMultiplierStorageKey(currencyKey, slot));
 }
 
-function clearCurrencyMultiplierOverride(currencyKey, slot = getActiveSlot()) {
+export function clearCurrencyMultiplierOverride(currencyKey, slot = getActiveSlot()) {
     const cacheKey = buildOverrideKey(slot, currencyKey);
     currencyOverrides.delete(cacheKey);
     currencyOverrideBaselines.delete(cacheKey);
@@ -1328,6 +1328,7 @@ function withTemporaryUnlock(keys, fn) {
 function formatBigNumForInput(value) {
     try {
         const bn = value instanceof BigNum ? value : BigNum.fromAny(value ?? 0);
+        if (bn.isNaN?.()) return 'BN:NaN';
         if (bn.isInfinite?.()) {
             return 'BN:infinite';
         }
@@ -1359,12 +1360,13 @@ function parseBigNumInput(raw) {
     }
 
     try {
+        if (/^nan$/i.test(trimmed)) return new BigNum(NaN, 0);
         if (/^inf(?:inity)?$/i.test(trimmed)) {
             return BigNum.fromAny('Infinity');
         }
         if (trimmed.startsWith('BN:')) {
             const parts = trimmed.split(':');
-            if (parts.length >= 4 && parts[1] !== 'infinite') {
+            if (parts.length >= 4 && parts[1] !== 'infinite' && parts[1] !== 'NaN') {
                 const sigPart = parts[2] || '';
                 let expPart = parts.slice(3).join(':');
                 if (!expPart) expPart = '0';
