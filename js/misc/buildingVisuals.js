@@ -212,38 +212,6 @@ function draw(ctx, width, height, t) {
         drawBuilding(ctx, width, height, t, currentBuildingId, drawTier, previousTier, animProgress);
     }
     ctx.restore();
-    // Tier 6: Energy Rings (Front Half)
-    if (tier6Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier6Prog;
-        ctx.globalCompositeOperation = 'screen';
-        
-        const numRings = 3;
-        for (let i = 0; i < numRings; i++) {
-            const scanT = (t * 0.5 + i / numRings) % 1;
-            const yOffset = -h + (h * 2) * scanT;
-            const ringW = w * 1.8;
-            const ringH = d * 1.2;
-            const scanY = hoverY + yOffset * 0.5;
-
-            ctx.save();
-            ctx.translate(0, scanY);
-            ctx.scale(1, 0.4); 
-            
-            ctx.strokeStyle = `rgba(255, 100, 255, ${0.4 + 0.3 * Math.sin(scanT * Math.PI)})`;
-            ctx.lineWidth = 4;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = 'rgba(255, 100, 255, 1)';
-            
-            ctx.beginPath();
-            ctx.ellipse(0, 0, ringW, ringH, 0, 0, Math.PI);
-            ctx.stroke();
-            
-            ctx.restore();
-        }
-        ctx.restore();
-    }
-    
     if (levelUpAnimTime > 0) {
         const alpha = Math.max(0, levelUpAnimTime);
         const grad = ctx.createLinearGradient(0, 0, 0, height);
