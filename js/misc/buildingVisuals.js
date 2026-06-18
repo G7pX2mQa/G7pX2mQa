@@ -1003,10 +1003,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     };
 
     // Helper to draw crystalline shapes
-            }
-        }
-        ctx.restore();
-    };
 
     // --- Tier 0: Raw Jagged Geode ---
     if (1 - tier1Prog > 0) {
