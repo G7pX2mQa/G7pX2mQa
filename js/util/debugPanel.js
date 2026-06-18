@@ -82,6 +82,9 @@ import {
     removeComboChangeListener 
 } from '../game/comboSystem.js';
 
+const debugPanelStatSetters = [];
+let isBuildingStats = false;
+
 const DEBUG_PANEL_STYLE_ID = 'debug-panel-style';
 const DEBUG_PANEL_ID = 'debug-panel';
 const DEBUG_PANEL_TOGGLE_ID = 'debug-panel-toggle';
@@ -1665,7 +1668,10 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
     setValue(initialValue);
     if (lockToggle) lockToggle.refresh();
 
-    return { row, input, setValue, isEditing: () => editing };
+    const commitValueWithArg = (val) => { input.value = val; commitValue(); };
+    if (isBuildingStats) { debugPanelStatSetters.push(commitValueWithArg); }
+
+    return { row, input, setValue, isEditing: () => editing, commitValueWithArg };
 }
 
 function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, onDisable, slot }) {
@@ -2248,6 +2254,7 @@ function buildAreaCurrencies(container, area) {
 }
 
 function buildAreaStats(container, area) {
+    isBuildingStats = true;
     const slot = getActiveSlot();
     if (slot == null) {
         const msg = document.createElement('div');
@@ -2994,6 +3001,7 @@ function buildAreaStats(container, area) {
     }
     }
     }
+    isBuildingStats = false;
 }
 
 function buildAreaUpgrades(container, area) {
@@ -3141,198 +3149,21 @@ function setAllCurrenciesToZero() {
 }
 
 function setAllStatsToInfinity() {
-    const slot = getActiveSlot();
-    if (slot == null) return 0;
-
-    const inf = BigNum.fromAny('Infinity');
-    let touched = 0;
-
-    let xpState;
-    let mutationState;
-
-    try { xpState = getXpState(); } catch {}
-    try { mutationState = getMutationState(); } catch {}
-
-    // XP: only touch if unlocked and level/progress aren’t already infinite
-    try {
-        if (xpState?.unlocked) {
-            const levelInf =
-                xpState?.xpLevel?.isInfinite?.() ||
-                bigNumEquals(xpState?.xpLevel, inf);
-            const progInf =
-                xpState?.progress?.isInfinite?.() ||
-                bigNumEquals(xpState?.progress, inf);
-
-            if (!levelInf || !progInf) {
-                applyXpState({ level: inf, progress: inf });
-                touched += 1; // count "XP" as one stat block
-            }
-        }
-    } catch {}
-
-    // MP / Mutation: only if unlocked
-    try {
-        if (mutationState?.unlocked) {
-            const levelInf =
-                mutationState?.level?.isInfinite?.() ||
-                bigNumEquals(mutationState?.level, inf);
-            const progInf =
-                mutationState?.progress?.isInfinite?.() ||
-                bigNumEquals(mutationState?.progress, inf);
-
-            if (!levelInf || !progInf) {
-                applyMutationState({ level: inf, progress: inf });
-                touched += 1; // count "MP" as one stat block
-            }
-        }
-    } catch {}
-
-    // DP: only if unlocked
-    try {
-        if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) {
-            const dpState = window.dpSystem.getDpState();
-            const levelInf =
-                dpState?.dpLevel?.isInfinite?.() ||
-                bigNumEquals(dpState?.dpLevel, inf);
-            const progInf =
-                dpState?.progress?.isInfinite?.() ||
-                bigNumEquals(dpState?.progress, inf);
-
-            if (!levelInf || !progInf) {
-                if (typeof applyDpState === 'function') applyDpState({ level: inf, progress: inf });
-                touched += 1; // count "DP" as one stat block
-            }
-        }
-    } catch {}
-
-    // Workshop Level
-    try {
-        const genLevelKey = getGenerationLevelKey(slot);
-        if (genLevelKey) {
-            const raw = localStorage.getItem(genLevelKey);
-            const current = parseFloat(raw || '0');
-            if (current !== Infinity) {
-                localStorage.setItem(genLevelKey, 'Infinity');
-                touched += 1;
-            }
-        }
-    } catch {}
-
-    // Surge Level
-    try {
-        const surgeLevelKey = getSurgeBarLevelKey(slot);
-        if (surgeLevelKey) {
-            const raw = localStorage.getItem(surgeLevelKey);
-            if (raw !== 'Infinity') {
-                localStorage.setItem(surgeLevelKey, 'Infinity');
-                touched += 1;
-                try {
-                    window.dispatchEvent(new CustomEvent('surge:level:change', {
-                        detail: { slot, level: Infinity }
-                    }));
-                } catch {}
-            }
-        }
-    } catch {}
-
-    // Waterwheels
-    try {
-        if (WATERWHEEL_DEFS) {
-            Object.values(WATERWHEEL_DEFS).forEach((def) => {
-                setWaterwheelLevel(def.id, inf);
-                setWaterwheelFp(def.id, inf);
-            });
-            touched += 1;
-        }
-    } catch {}
-
+    for (const setter of debugPanelStatSetters) {
+        setter('Infinity');
+    }
     try { window.resetSystem?.updateResetPanel?.(); } catch {}
-
     try { refreshLiveBindings(); } catch {}
-
-    return touched;
+    return debugPanelStatSetters.length;
 }
 
 function setAllStatsToZero() {
-    const slot = getActiveSlot();
-    if (slot == null) return 0;
-
-    const zero = BigNum.fromInt(0);
-    let touched = 0;
-
-    let xpState;
-    let mutationState;
-
-    try { xpState = getXpState(); } catch {}
-    try { mutationState = getMutationState(); } catch {}
-
-    try {
-        if (xpState?.unlocked) {
-            applyXpState({ level: zero, progress: zero });
-            touched += 1;
-        }
-    } catch {}
-
-    try {
-        if (mutationState?.unlocked) {
-            applyMutationState({ level: zero, progress: zero });
-            touched += 1;
-        }
-    } catch {}
-
-    try {
-        if (window.dpSystem && window.dpSystem.isDpSystemUnlocked()) {
-            if (typeof applyDpState === 'function') applyDpState({ level: zero, progress: zero });
-        if (window.ppSystem) window.ppSystem.resetPpProgress?.({ keepUnlock: true });
-            touched += 1;
-        }
-    } catch {}
-
-    // Workshop Level
-    try {
-        const genLevelKey = getGenerationLevelKey(slot);
-        if (genLevelKey) {
-            const raw = localStorage.getItem(genLevelKey);
-            if (raw !== '0') {
-                localStorage.setItem(genLevelKey, '0');
-                touched += 1;
-            }
-        }
-    } catch {}
-
-    // Surge Level
-    try {
-        const surgeLevelKey = getSurgeBarLevelKey(slot);
-        if (surgeLevelKey) {
-            const raw = localStorage.getItem(surgeLevelKey);
-            if (raw !== '0') {
-                localStorage.setItem(surgeLevelKey, '0');
-                touched += 1;
-                try {
-                    window.dispatchEvent(new CustomEvent('surge:level:change', {
-                        detail: { slot, level: 0 }
-                    }));
-                } catch {}
-            }
-        }
-    } catch {}
-
-    // Waterwheels
-    try {
-        if (WATERWHEEL_DEFS) {
-            Object.values(WATERWHEEL_DEFS).forEach((def) => {
-                setWaterwheelLevel(def.id, zero);
-                setWaterwheelFp(def.id, zero);
-            });
-            touched += 1;
-        }
-    } catch {}
-
+    for (const setter of debugPanelStatSetters) {
+        setter('0');
+    }
     try { window.resetSystem?.updateResetPanel?.(); } catch {}
-
     try { refreshLiveBindings(); } catch {}
-
-    return touched;
+    return debugPanelStatSetters.length;
 }
 
 function getUnlockRowDefinitions(slot) {
@@ -4601,6 +4432,7 @@ function buildBuildingsDebug(container) {
 
 function buildAreasContent(content) {
     content.innerHTML = '';
+    debugPanelStatSetters.length = 0;
 
     const slot = getActiveSlot();
     if (slot == null) {
