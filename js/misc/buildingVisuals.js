@@ -952,21 +952,10 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         return `${(bigint >> 16) & 255}, ${(bigint >> 8) & 255}, ${bigint & 255}`;
     };
 
-    // --- Base Pedestal (All Tiers) ---
-    ctx.save();
-    ctx.fillStyle = '#1a1a1a';
-    ctx.beginPath();
-    ctx.moveTo(-40, 0);
-    ctx.lineTo(-30, -20);
-    ctx.lineTo(30, -20);
-    ctx.lineTo(40, 0);
-    ctx.fill();
-    ctx.fillStyle = '#222';
-    ctx.fillRect(-35, -25, 70, 5);
-    ctx.restore();
-
+    // --- Base Pedestal ---
+    // Removed base pedestal for all tiers. The Prism just floats.
     // Hover logic
-    const hoverY = -25 - tier3Prog * 25 + Math.sin(t * 2) * 5 * tier3Prog;
+    const hoverY = -25 - 25 + Math.sin(t * 2) * 5;
 
     // --- 3D Projection Engine ---
     // Spinning only starts at tier 3+? Let's just make it spin slowly all the time, or based on tiers
@@ -999,9 +988,10 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     // Wait, typical light prism rests on its rectangular base. "like a typical light prism".
     // I'll make it rest on rectangular base. Triangular front/back, rectangular bottom/sides.
     // Width w, height h, depth d
-    const w = 30; // base half-width
-    const h = 50; // height (from bottom to peak)
-    const d = 25; // half-depth
+    const sizeMult = 1.0 + tier * 0.15;
+    const w = 30 * sizeMult; // base half-width
+    const h = 50 * sizeMult; // height (from bottom to peak)
+    const d = 25 * sizeMult; // half-depth
     
     // Vertices:
     // 0: front-bottom-left (-w, 0, -d)
@@ -1026,40 +1016,35 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     // We will draw all beams with globalCompositeOperation = 'screen' or 'lighter' later, but Z-order matters if it's solid.
     // For glassy light effects, drawing on top is usually fine.
     
-    // Core glow (Tier 1+)
-    if (tier1Prog > 0) {
+    // Tier 3: Energy vortex swirling below the prism
+    if (tier3Prog > 0) {
         ctx.save();
-        ctx.globalAlpha = tier1Prog;
-        ctx.globalCompositeOperation = 'lighter';
-        const pulse = 0.8 + 0.2 * Math.sin(t * 3);
-        const glowRad = 30 + 20 * tier3Prog + 30 * tier8Prog;
+        ctx.globalAlpha = tier3Prog;
+        ctx.globalCompositeOperation = 'screen';
         
-        // Use projected center
-        const center = project(0, -h/2, 0);
+        const vortexY = hoverY + 20; // below the prism
         
-        const grad = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, glowRad);
-        grad.addColorStop(0, `rgba(255, 150, 200, ${0.8 * pulse})`);
-        grad.addColorStop(1, 'rgba(255, 50, 150, 0)');
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(center.x, center.y, glowRad, 0, Math.PI * 2);
-        ctx.fill();
+        for (let i = 0; i < 3; i++) {
+            const ringScale = 1.0 + Math.sin(t * 2 + i * 2) * 0.2;
+            const ringRot = t * (1.5 + i * 0.5);
+            ctx.save();
+            ctx.translate(0, vortexY);
+            // Squish to fake 3D perspective
+            ctx.scale(1, 0.3);
+            ctx.rotate(ringRot);
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, (w * 1.5) * ringScale, 0, Math.PI * 2);
+            ctx.lineWidth = 3 - i;
+            ctx.strokeStyle = `rgba(255, 100, 200, ${0.4 + 0.2 * Math.sin(t * 4 + i)})`;
+            ctx.stroke();
+            ctx.restore();
+        }
+        
         ctx.restore();
     }
 
-    // Tier 2: Incoming faint beam
-    if (tier2Prog > 0 && tier4Prog === 0) {
-        ctx.save();
-        ctx.globalAlpha = tier2Prog;
-        const center = project(0, -h/2, 0);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(-100, center.y - 100);
-        ctx.lineTo(center.x, center.y);
-        ctx.stroke();
-        ctx.restore();
-    }
+    
 
     // --- Draw Prism Faces (Back-to-Front) ---
     // Faces and normal/lighting colors
@@ -1082,12 +1067,82 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     // In later tiers, it gets brighter and more transparent
     const glassAlpha = 0.8 - tier1Prog * 0.2 - tier4Prog * 0.2;
     
+    // Tier 2: Inner Heart Crystal (drawn before the outer faces, or mixed with them if we want to be fancy. We will just draw it before the front faces by drawing it first with high alpha)
+    // Actually, drawing it right before the faces loop is easiest.
+    if (tier2Prog > 0) {
+        ctx.save();
+        ctx.globalAlpha = tier2Prog;
+        const innerScale = 0.4 + 0.1 * Math.sin(t * 3);
+        const innerRotY = t * 2.0; // independent fast spin
+        const innerCosY = Math.cos(innerRotY);
+        const innerSinY = Math.sin(innerRotY);
+        
+        function projectInner(x, y, z) {
+            const nx = x * innerCosY - z * innerSinY;
+            const nz = x * innerSinY + z * innerCosY;
+            
+            const rotX = 0.3;
+            const cosX = Math.cos(rotX);
+            const sinX = Math.sin(rotX);
+            const ny = y * cosX - nz * sinX;
+            const nnz = y * sinX + nz * cosX;
+            
+            const fov = 300;
+            const scale = fov / (fov + nnz + 100);
+            return { x: nx * scale, y: hoverY + ny * scale, z: nnz, scale };
+        }
+        
+        const iw = w * innerScale;
+        const ih = h * innerScale;
+        const id_ = d * innerScale;
+        const iVertices = [
+            {x: -iw, y: -h/2 + ih/2, z: -id_}, {x: iw, y: -h/2 + ih/2, z: -id_}, {x: 0, y: -h/2 - ih/2, z: -id_},
+            {x: -iw, y: -h/2 + ih/2, z: id_}, {x: iw, y: -h/2 + ih/2, z: id_}, {x: 0, y: -h/2 - ih/2, z: id_}
+        ];
+        const ipts = iVertices.map(v => projectInner(v.x, v.y, v.z));
+        
+        const ifaces = [
+            { id: 'front',  pts: [0, 1, 2] },
+            { id: 'back',   pts: [3, 5, 4] },
+            { id: 'bottom', pts: [0, 3, 4, 1] },
+            { id: 'left',   pts: [0, 2, 5, 3] },
+            { id: 'right',  pts: [1, 4, 5, 2] }
+        ];
+        
+        ifaces.forEach(f => {
+            f.z = f.pts.reduce((sum, i) => sum + ipts[i].z, 0) / f.pts.length;
+        });
+        ifaces.sort((a, b) => b.z - a.z);
+        
+        ctx.globalCompositeOperation = 'lighter';
+        ifaces.forEach(f => {
+            ctx.fillStyle = `rgba(255, 200, 255, 0.7)`;
+            ctx.strokeStyle = `rgba(255, 255, 255, 0.9)`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(ipts[f.pts[0]].x, ipts[f.pts[0]].y);
+            for (let i = 1; i < f.pts.length; i++) {
+                ctx.lineTo(ipts[f.pts[i]].x, ipts[f.pts[i]].y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        });
+        ctx.restore();
+    }
+
     faces.forEach(f => {
         const c = f.baseColor;
         // Make it glassy
         ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${glassAlpha * f.alphaMult})`;
-        ctx.strokeStyle = `rgba(255, 200, 255, ${0.5 + 0.5 * tier1Prog})`; // bright edges
-        ctx.lineWidth = 1;
+        
+        // Tier 1: Pulsating bright edges
+        const edgePulse = 0.5 + 0.5 * Math.sin(t * 4);
+        const edgeBrightness = tier1Prog > 0 ? (150 + edgePulse * 105) : 200;
+        const edgeAlpha = tier1Prog > 0 ? (0.6 + 0.4 * edgePulse) : 0.5;
+        
+        ctx.strokeStyle = `rgba(255, ${edgeBrightness}, 255, ${edgeAlpha})`; // bright edges
+        ctx.lineWidth = 1 + tier1Prog * edgePulse * 2; // Thicker pulsating edges
         
         ctx.beginPath();
         ctx.moveTo(pts[f.pts[0]].x, pts[f.pts[0]].y);
@@ -1109,45 +1164,63 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     // --- Post-Prism Light Effects ---
     const center = project(0, -h/2, 0);
 
-    // Tier 4: Incoming White Beam & Single Refraction
+    // Tier 4: Incoming White Beam from top & Rainbow Beams shooting out horizontally
     if (tier4Prog > 0 && tier8Prog === 0) {
         ctx.save();
         ctx.globalAlpha = tier4Prog;
         ctx.globalCompositeOperation = 'screen';
         
-        // Incoming white beam (from top-left)
-        const inAngle = Math.PI * 1.2; 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.lineWidth = 6 + Math.sin(t*5)*2;
+        // Incoming white beam (from straight down/top)
+        const inAngle = -Math.PI / 2; 
+        
+        // In Tier 7, the incoming beam gets much wider and intense
+        const t7WidthAdd = tier7Prog > 0 ? 15 + Math.sin(t * 10) * 10 : 0;
+        const beamW = 6 + Math.sin(t*5)*2 + t7WidthAdd;
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.beginPath();
-        ctx.moveTo(center.x + Math.cos(inAngle)*300, center.y + Math.sin(inAngle)*300);
-        ctx.lineTo(center.x, center.y);
-        ctx.stroke();
+        ctx.moveTo(center.x - beamW, center.y - 400);
+        ctx.lineTo(center.x + beamW, center.y - 400);
+        ctx.lineTo(center.x + beamW/2, center.y);
+        ctx.lineTo(center.x - beamW/2, center.y);
+        ctx.fill();
         
         // Glowing impact point
         ctx.fillStyle = '#ffffff';
-        ctx.beginPath(); ctx.arc(center.x, center.y, 8, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(center.x, center.y, 8 + t7WidthAdd/2, 0, Math.PI*2); ctx.fill();
         
-        // Dispersed Rainbow Beam (exiting bottom-right)
+        // Dispersed Rainbow Beams (exiting horizontally left and right)
         const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff'];
-        const outBaseAngle = Math.PI * 0.15;
-        const spread = Math.PI / 4; // 45 degree spread
         
-        for (let i = 0; i < colors.length; i++) {
-            const fraction = i / (colors.length - 1);
-            const outAngle = outBaseAngle - spread/2 + fraction * spread;
-            
-            const grad = ctx.createLinearGradient(center.x, center.y, center.x + Math.cos(outAngle)*300, center.y + Math.sin(outAngle)*300);
-            grad.addColorStop(0, colors[i]);
-            grad.addColorStop(1, 'rgba(0,0,0,0)');
-            
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(center.x, center.y);
-            ctx.lineTo(center.x + Math.cos(outAngle)*300, center.y + Math.sin(outAngle)*300);
-            ctx.stroke();
-        }
+        // Tier 7 amplifies the spread and length
+        const spread = Math.PI / 4 + tier7Prog * (Math.PI / 8); 
+        const rayLen = 300 + tier7Prog * 100;
+        
+        const drawHorizontalRainbow = (baseAngle, isReversed) => {
+            for (let i = 0; i < colors.length; i++) {
+                const fraction = i / (colors.length - 1);
+                const angleOffset = -spread/2 + fraction * spread;
+                const outAngle = baseAngle + angleOffset;
+                
+                const colorIdx = isReversed ? (colors.length - 1 - i) : i;
+                
+                const grad = ctx.createLinearGradient(center.x, center.y, center.x + Math.cos(outAngle)*rayLen, center.y + Math.sin(outAngle)*rayLen);
+                grad.addColorStop(0, colors[colorIdx]);
+                grad.addColorStop(1, 'rgba(0,0,0,0)');
+                
+                ctx.strokeStyle = grad;
+                ctx.lineWidth = 4 + tier7Prog * 4; // Thicker in tier 7
+                ctx.beginPath();
+                ctx.moveTo(center.x, center.y);
+                ctx.lineTo(center.x + Math.cos(outAngle)*rayLen, center.y + Math.sin(outAngle)*rayLen);
+                ctx.stroke();
+            }
+        };
+
+        // Shoot left (PI) and right (0)
+        drawHorizontalRainbow(0, false);
+        drawHorizontalRainbow(Math.PI, true);
+        
         ctx.restore();
     }
 
@@ -1161,18 +1234,35 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         
         for (let i = 0; i < numShards; i++) {
             const orbitRot = t * 1.5 + (i * Math.PI * 2 / numShards);
-            // Project the orbit so it matches the 3D perspective
-            // Shards orbit in the XZ plane around the center
             const sx = Math.cos(orbitRot) * orbitRadius;
             const sz = Math.sin(orbitRot) * orbitRadius;
             const sy = -h/2 + Math.sin(t*3 + i)*5; // bobbing
             
             const sp = project(sx, sy, sz);
             
+            // Tier 7 Light Trails for Shards
+            if (tier7Prog > 0 && tier8Prog === 0) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.strokeStyle = `rgba(255, 100, 200, ${0.5 * tier7Prog})`;
+                ctx.lineWidth = 3 * sp.scale;
+                ctx.beginPath();
+                for (let j = 0; j < 5; j++) {
+                    const trailRot = orbitRot - j * 0.1;
+                    const trailSx = Math.cos(trailRot) * orbitRadius;
+                    const trailSz = Math.sin(trailRot) * orbitRadius;
+                    const trailSy = -h/2 + Math.sin((t - j*0.06)*3 + i)*5;
+                    const tsp = project(trailSx, trailSy, trailSz);
+                    if (j === 0) ctx.moveTo(tsp.x, tsp.y);
+                    else ctx.lineTo(tsp.x, tsp.y);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+            
             // Draw shard
             ctx.save();
             ctx.translate(sp.x, sp.y);
-            // Shard rotation
             ctx.rotate(t*2 + i);
             
             ctx.fillStyle = 'rgba(255, 150, 220, 0.8)';
@@ -1206,30 +1296,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
                 ctx.lineTo(spNext.x, spNext.y);
                 ctx.stroke();
             }
-        }
-        ctx.restore();
-    }
-
-    // Tier 7: Complex Refraction (Internal/External beams)
-    if (tier7Prog > 0 && tier8Prog === 0) {
-        ctx.save();
-        ctx.globalAlpha = tier7Prog;
-        ctx.globalCompositeOperation = 'screen';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.lineWidth = 1.5;
-        
-        // Random erratic beams shooting out
-        for(let i=0; i<3; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 100 + Math.random() * 100;
-            ctx.beginPath();
-            ctx.moveTo(center.x, center.y);
-            // Erratic path
-            const midX = center.x + Math.cos(angle)*dist/2 + (Math.random()-0.5)*30;
-            const midY = center.y + Math.sin(angle)*dist/2 + (Math.random()-0.5)*30;
-            ctx.lineTo(midX, midY);
-            ctx.lineTo(center.x + Math.cos(angle)*dist, center.y + Math.sin(angle)*dist);
-            ctx.stroke();
         }
         ctx.restore();
     }
