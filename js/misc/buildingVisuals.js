@@ -14,6 +14,7 @@ let levelUpAnimTime = 0;
 let tierUpAnimTime = 0;
 let previousTier = 0;
 let globalDiskAngle = 0; // Integrated angle for smooth accretion disk rotation
+let globalPrismAngle = 0; // Integrated angle for smooth prism rotation
 
 const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
 
@@ -170,6 +171,21 @@ function loop(currentTime) {
         diskSpeedMult = 1.0 + 2.0 * tier8Prog;
     }
     globalDiskAngle += dt * diskSpeedMult;
+
+    let prismSpeedMult = 1.0;
+    if (currentBuildingId === "crystal") {
+        let currentTier = getTier();
+        let drawTier = currentTier;
+        let animProgress = 1.0;
+        if (tierUpAnimTime > 0) {
+            animProgress = tierUpAnimTime > 2.5 ? 1.0 - ((tierUpAnimTime - 2.5) / 3.5) : 1.0;
+            drawTier = currentTier;
+        }
+        const showTier3 = (drawTier >= 3) ? 1 : 0;
+        const tier3Prog = (drawTier >= 3 && previousTier < 3) ? animProgress : showTier3;
+        prismSpeedMult = tier3Prog > 0 ? 1.0 : 0.4;
+        globalPrismAngle += dt * prismSpeedMult;
+    }
     
     if (activeCanvas && activeCtx) {
         draw(activeCtx, activeCanvas.width, activeCanvas.height, time);
@@ -960,7 +976,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     // Spinning only starts at tier 3+? Let's just make it spin slowly all the time, or based on tiers
     // "Also, the base cannot spin in a way that make it look like it's going through the floor. ... hover and only rotate horizontally"
     // So it spins around the Y axis
-    const rotY = t * 1.0 * (tier3Prog > 0 ? 1 : 0.4); // Slower when dormant
+    const rotY = globalPrismAngle;
     const cosY = Math.cos(rotY);
     const sinY = Math.sin(rotY);
     
@@ -987,8 +1003,8 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     // Wait, typical light prism rests on its rectangular base. "like a typical light prism".
     // I'll make it rest on rectangular base. Triangular front/back, rectangular bottom/sides.
     // Width w, height h, depth d
-    const targetSizeMult = 1.0 + tier * 0.15;
-    const prevSizeMult = 1.0 + prevTier * 0.15;
+    const targetSizeMult = 1.25 + tier * 0.125;
+    const prevSizeMult = 1.25 + prevTier * 0.125;
     const sizeMult = prevSizeMult + (targetSizeMult - prevSizeMult) * animProgress;
     let ipts = null, ifaces = null;
     const w = 30 * sizeMult; // base half-width
@@ -1080,7 +1096,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         ctx.globalAlpha = tier2Prog;
         const innerScale = 0.45;
-        const innerRotY = -t * 1.0; // independent fast spin
+        const innerRotY = -globalPrismAngle * 1.0; // independent fast spin, now tied to global angle
         const innerCosY = Math.cos(innerRotY);
         const innerSinY = Math.sin(innerRotY);
         
@@ -1121,11 +1137,12 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         });
         ifaces.sort((a, b) => b.z - a.z);
         
-        ctx.globalCompositeOperation = 'lighter';
+        
         ifaces.forEach(f => {
-            ctx.fillStyle = `rgba(255, 200, 255, 0.3)`;
+            ctx.fillStyle = `rgba(255, 255, 255, 0.3)`;
             ctx.strokeStyle = `rgba(255, 255, 255, 0.9)`;
             ctx.lineWidth = 1;
+            ctx.lineJoin = 'round';
             ctx.beginPath();
             ctx.moveTo(ipts[f.pts[0]].x, ipts[f.pts[0]].y);
             for (let i = 1; i < f.pts.length; i++) {
@@ -1138,35 +1155,85 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.restore();
     }
 
-    // Tier 6: Energy Rings (Back Half)
+    // Tier 6: Icosahedron Shell Initialization
+    let icoPts = null, icoFacesData = null;
     if (tier6Prog > 0) {
+        const icoVertices = [
+            {x: -1, y: 1.618033988749895, z: 0},
+            {x: 1, y: 1.618033988749895, z: 0},
+            {x: -1, y: -1.618033988749895, z: 0},
+            {x: 1, y: -1.618033988749895, z: 0},
+            {x: 0, y: -1, z: 1.618033988749895},
+            {x: 0, y: 1, z: 1.618033988749895},
+            {x: 0, y: -1, z: -1.618033988749895},
+            {x: 0, y: 1, z: -1.618033988749895},
+            {x: 1.618033988749895, y: 0, z: -1},
+            {x: 1.618033988749895, y: 0, z: 1},
+            {x: -1.618033988749895, y: 0, z: -1},
+            {x: -1.618033988749895, y: 0, z: 1},
+        ];
+        const icoFacesList = [
+            [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
+            [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+            [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
+            [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1],
+        ];
+
+        const shellScale = Math.max(w, h, d) * 1.5;
+        const shellRotY = t * 0.5;
+        const shellRotX = t * 0.3;
+        
+        const cy = Math.cos(shellRotY);
+        const sy = Math.sin(shellRotY);
+        const cx = Math.cos(shellRotX);
+        const sx = Math.sin(shellRotX);
+        
+        icoPts = icoVertices.map(v => {
+            // Apply rotation and scaling around center (0, -h/2, 0)
+            let x = v.x * shellScale;
+            let y = v.y * shellScale;
+            let z = v.z * shellScale;
+            
+            // Rotate X
+            let y1 = y * cx - z * sx;
+            let z1 = y * sx + z * cx;
+            
+            // Rotate Y
+            let x2 = x * cy - z1 * sy;
+            let z2 = x * sy + z1 * cy;
+            
+            // Offset to prism center
+            return project(x2, y1 - h/2, z2);
+        });
+        
+        icoFacesData = icoFacesList.map(pts => {
+            const z = pts.reduce((sum, i) => sum + icoPts[i].z, 0) / pts.length;
+            return { pts, z };
+        });
+        
+        // Tier 6: Pulsing Wireframe Shell (Back Half)
         ctx.save();
         ctx.globalAlpha = tier6Prog;
-        ctx.globalCompositeOperation = 'screen';
+        ctx.globalCompositeOperation = "screen";
         
-        const numRings = 3;
-        for (let i = 0; i < numRings; i++) {
-            const scanT = (t * 0.5 + i / numRings) % 1;
-            const yOffset = -h + (h * 2) * scanT;
-            const ringW = w * 1.8;
-            const ringH = d * 1.2;
-            const scanY = hoverY + yOffset * 0.5;
-
-            ctx.save();
-            ctx.translate(0, scanY);
-            ctx.scale(1, 0.4);
-            
-            ctx.strokeStyle = `rgba(255, 100, 255, ${0.4 + 0.3 * Math.sin(scanT * Math.PI)})`;
-            ctx.lineWidth = 4;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = 'rgba(255, 100, 255, 1)';
-            
-            ctx.beginPath();
-            ctx.ellipse(0, 0, ringW, ringH, 0, Math.PI, Math.PI * 2);
-            ctx.stroke();
-            
-            ctx.restore();
-        }
+        const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+        ctx.strokeStyle = `rgba(255, 150, 255, ${0.4 + 0.6 * pulse})`;
+        ctx.lineWidth = 2;
+        ctx.lineJoin = "round";
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "rgba(255, 150, 255, 1)";
+        
+        icoFacesData.forEach(f => {
+            if (f.z > 0) { // Back faces
+                ctx.beginPath();
+                ctx.moveTo(icoPts[f.pts[0]].x, icoPts[f.pts[0]].y);
+                for (let i = 1; i < f.pts.length; i++) {
+                    ctx.lineTo(icoPts[f.pts[i]].x, icoPts[f.pts[i]].y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+        });
         ctx.restore();
     }
 
@@ -1291,23 +1358,27 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     if (tier1Prog > 0) {
         ctx.save();
         ctx.globalAlpha = tier1Prog;
-        ctx.globalCompositeOperation = 'lighter';
+        
         
         const numSparkles = 15;
         for (let i = 0; i < numSparkles; i++) {
             const sparkleT = (t * 0.5 + i * (1 / numSparkles)) % 1; // 0 to 1
-            const sparkleY = hoverY - h / 2 + (Math.sin(sparkleT * Math.PI * 2) * 10); // stay generally middle
             
-            // Randomish but deterministic positions
             const hash1 = Math.sin(i * 12.9898) * 43758.5453 % 1;
             const hash2 = Math.cos(i * 78.233) * 43758.5453 % 1;
+            const hash3 = Math.sin(i * 45.123) * 43758.5453 % 1;
             
-            // Horizontal fly out
-            const radius = w * 1.5 + (sparkleT * w * 3 * Math.abs(hash1));
-            const angle = hash2 * Math.PI * 2 + t * 0.2; // Slow orbit
+            const angle = hash2 * Math.PI * 2;
+            const speed = 100 + 100 * Math.abs(hash1);
+            const distance = speed * sparkleT;
+            const sx = Math.cos(angle) * distance;
+            const sz = Math.sin(angle) * distance;
             
-            const sx = Math.cos(angle) * radius;
-            const sz = Math.sin(angle) * radius;
+            const initialVy = -150 - 50 * Math.abs(hash3);
+            const gravity = 400;
+            const dy = initialVy * sparkleT + 0.5 * gravity * sparkleT * sparkleT;
+            const sparkleY = hoverY - h / 2 + dy;
+
             
             const sp = project(sx, sparkleY, sz);
             
@@ -1416,7 +1487,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             // Tier 8 Light Trails for Shards (moved from Tier 7)
             if (tier8Prog > 0) {
                 ctx.save();
-                ctx.globalCompositeOperation = 'lighter';
+                
                 ctx.strokeStyle = `rgba(255, 100, 200, ${0.5 * tier8Prog})`;
                 ctx.lineWidth = 3 * sp.scale;
                 ctx.beginPath();
@@ -1538,11 +1609,11 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     if (tier2Prog > 0 && ipts && ifaces) {
         ctx.save();
         ctx.globalAlpha = tier2Prog;
-        ctx.globalCompositeOperation = 'lighter';
+        
         
         ifaces.forEach((f, idx) => {
             if (idx >= 2) {
-                ctx.fillStyle = `rgba(255, 200, 255, 0.3)`;
+                ctx.fillStyle = `rgba(255, 255, 255, 0.3)`;
                 ctx.beginPath();
                 ctx.moveTo(ipts[f.pts[0]].x, ipts[f.pts[0]].y);
                 for (let i = 1; i < f.pts.length; i++) {
@@ -1637,35 +1708,30 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     });
 
     ctx.restore();
-    // Tier 6: Energy Rings (Front Half)
-    if (tier6Prog > 0) {
+    // Tier 6: Pulsing Wireframe Shell (Front Half)
+    if (tier6Prog > 0 && icoPts && icoFacesData) {
         ctx.save();
         ctx.globalAlpha = tier6Prog;
-        ctx.globalCompositeOperation = 'screen';
+        ctx.globalCompositeOperation = "screen";
         
-        const numRings = 3;
-        for (let i = 0; i < numRings; i++) {
-            const scanT = (t * 0.5 + i / numRings) % 1;
-            const yOffset = -h + (h * 2) * scanT;
-            const ringW = w * 1.8;
-            const ringH = d * 1.2;
-            const scanY = hoverY + yOffset * 0.5;
-
-            ctx.save();
-            ctx.translate(0, scanY);
-            ctx.scale(1, 0.4); 
-            
-            ctx.strokeStyle = `rgba(255, 100, 255, ${0.4 + 0.3 * Math.sin(scanT * Math.PI)})`;
-            ctx.lineWidth = 4;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = 'rgba(255, 100, 255, 1)';
-            
-            ctx.beginPath();
-            ctx.ellipse(0, 0, ringW, ringH, 0, 0, Math.PI);
-            ctx.stroke();
-            
-            ctx.restore();
-        }
+        const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+        ctx.strokeStyle = `rgba(255, 150, 255, ${0.4 + 0.6 * pulse})`;
+        ctx.lineWidth = 2;
+        ctx.lineJoin = "round";
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "rgba(255, 150, 255, 1)";
+        
+        icoFacesData.forEach(f => {
+            if (f.z <= 0) { // Front faces
+                ctx.beginPath();
+                ctx.moveTo(icoPts[f.pts[0]].x, icoPts[f.pts[0]].y);
+                for (let i = 1; i < f.pts.length; i++) {
+                    ctx.lineTo(icoPts[f.pts[i]].x, icoPts[f.pts[i]].y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+        });
         ctx.restore();
     }
 }
