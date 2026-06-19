@@ -1096,40 +1096,32 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.save();
         ctx.globalAlpha = tier2Prog;
         const innerScale = 0.45;
-        const innerRotY = -globalPrismAngle * 1.0; // independent fast spin, now tied to global angle
-        const innerCosY = Math.cos(innerRotY);
-        const innerSinY = Math.sin(innerRotY);
-        
-        function projectInner(x, y, z) {
-            const nx = x * innerCosY - z * innerSinY;
-            const nz = x * innerSinY + z * innerCosY;
-            
-            const rotX = 0.3;
-            const cosX = Math.cos(rotX);
-            const sinX = Math.sin(rotX);
-            const ny = y * cosX - nz * sinX;
-            const nnz = y * sinX + nz * cosX;
-            
-            const fov = 300;
-            const scale = fov / (fov + nnz + 100);
-            return { x: nx * scale, y: hoverY + ny * scale, z: nnz, scale };
-        }
         
         const iw = w * innerScale;
         const ih = h * innerScale;
         const id_ = d * innerScale;
+        
+        // Use the exact same geometry approach as the outer prism, centered inside
+        // The outer prism vertices are defined relative to 0 being the bottom.
+        // We shift the y coordinate down by half the outer height, and up by half the inner height to center it vertically.
+        const centerOffsetY = -h/2 + ih/2;
         const iVertices = [
-            {x: -iw, y: -h/2 + ih/2, z: -id_}, {x: iw, y: -h/2 + ih/2, z: -id_}, {x: 0, y: -h/2 - ih/2, z: -id_},
-            {x: -iw, y: -h/2 + ih/2, z: id_}, {x: iw, y: -h/2 + ih/2, z: id_}, {x: 0, y: -h/2 - ih/2, z: id_}
+            {x: -iw, y: centerOffsetY, z: -id_},
+            {x: iw, y: centerOffsetY, z: -id_},
+            {x: 0, y: centerOffsetY - ih, z: -id_},
+            {x: -iw, y: centerOffsetY, z: id_},
+            {x: iw, y: centerOffsetY, z: id_},
+            {x: 0, y: centerOffsetY - ih, z: id_}
         ];
-        ipts = iVertices.map(v => projectInner(v.x, v.y, v.z));
+        // Use outer prism's project function
+        ipts = iVertices.map(v => project(v.x, v.y, v.z));
         
         ifaces = [
-            { id: 'front',  pts: [0, 1, 2] },
-            { id: 'back',   pts: [3, 5, 4] },
-            { id: 'bottom', pts: [0, 3, 4, 1] },
-            { id: 'left',   pts: [0, 2, 5, 3] },
-            { id: 'right',  pts: [1, 4, 5, 2] }
+            { id: 'front',  pts: [0, 1, 2],    baseColor: [255, 100, 150], alphaMult: 0.6 },
+            { id: 'back',   pts: [3, 5, 4],    baseColor: [255, 80, 130],  alphaMult: 0.5 },
+            { id: 'bottom', pts: [0, 3, 4, 1], baseColor: [255, 150, 200], alphaMult: 0.4 },
+            { id: 'left',   pts: [0, 2, 5, 3], baseColor: [255, 200, 220], alphaMult: 0.7 },
+            { id: 'right',  pts: [1, 4, 5, 2], baseColor: [255, 50, 100],  alphaMult: 0.5 }
         ];
         
         ifaces.forEach(f => {
@@ -1137,10 +1129,10 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         });
         ifaces.sort((a, b) => b.z - a.z);
         
-        
-        ifaces.forEach(f => {
-            ctx.fillStyle = `rgba(255, 255, 255, 0.3)`;
-            ctx.strokeStyle = `rgba(255, 255, 255, 0.9)`;
+        ifaces.forEach((f, idx) => {
+            let c = f.baseColor;
+            ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${glassAlpha * f.alphaMult * 0.5})`;
+            ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
             ctx.lineWidth = 1;
             ctx.lineJoin = 'round';
             ctx.beginPath();
@@ -1150,7 +1142,11 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             }
             ctx.closePath();
             ctx.fill();
-            ctx.stroke();
+            
+            const isBack = idx < 2;
+            if (isBack) {
+                ctx.stroke();
+            }
         });
         ctx.restore();
     }
@@ -1179,7 +1175,9 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1],
         ];
 
-        const shellScale = Math.max(w, h, d) * 1.5;
+        const shellScaleX = Math.max(w, d) * 0.7; // Width/depth
+        const shellScaleY = h * 0.45; // Significantly shrink height
+        
         const shellRotY = t * 0.5;
         const shellRotX = t * 0.3;
         
@@ -1190,9 +1188,9 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         
         icoPts = icoVertices.map(v => {
             // Apply rotation and scaling around center (0, -h/2, 0)
-            let x = v.x * shellScale;
-            let y = v.y * shellScale;
-            let z = v.z * shellScale;
+            let x = v.x * shellScaleX;
+            let y = v.y * shellScaleY;
+            let z = v.z * shellScaleX;
             
             // Rotate X
             let y1 = y * cx - z * sx;
@@ -1202,8 +1200,8 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             let x2 = x * cy - z1 * sy;
             let z2 = x * sy + z1 * cy;
             
-            // Offset to prism center
-            return project(x2, y1 - h/2, z2);
+            // Offset to prism center, slightly higher to prevent ground clipping
+            return project(x2, y1 - h/2 - 10, z2);
         });
         
         icoFacesData = icoFacesList.map(pts => {
@@ -1220,8 +1218,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.strokeStyle = `rgba(255, 150, 255, ${0.4 + 0.6 * pulse})`;
         ctx.lineWidth = 2;
         ctx.lineJoin = "round";
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = "rgba(255, 150, 255, 1)";
         
         icoFacesData.forEach(f => {
             if (f.z > 0) { // Back faces
@@ -1264,11 +1260,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             ctx.stroke();
         }
         
-        // Add a highlight on front/top faces
-        if (f.id === 'left' || f.id === 'front') {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-            ctx.fill();
-        }
+        // Add a highlight on front faces to keep brightness consistent
     });
     ctx.restore();
 
@@ -1362,7 +1354,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         
         const numSparkles = 15;
         for (let i = 0; i < numSparkles; i++) {
-            const sparkleT = (t * 0.5 + i * (1 / numSparkles)) % 1; // 0 to 1
+            const sparkleT = (t * 0.75 + i * (1 / numSparkles)) % 1; // 0 to 1
             
             const hash1 = Math.sin(i * 12.9898) * 43758.5453 % 1;
             const hash2 = Math.cos(i * 78.233) * 43758.5453 % 1;
@@ -1377,7 +1369,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             const initialVy = -150 - 50 * Math.abs(hash3);
             const gravity = 400;
             const dy = initialVy * sparkleT + 0.5 * gravity * sparkleT * sparkleT;
-            const sparkleY = hoverY - h / 2 + dy;
+            const sparkleY = -h / 2 + dy;
 
             
             const sp = project(sx, sparkleY, sz);
@@ -1389,8 +1381,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             ctx.translate(sp.x, sp.y);
             ctx.rotate(t + i);
             
-            ctx.shadowBlur = 5;
-            ctx.shadowColor = `rgba(255, 100, 200, ${sparkleAlpha})`;
             ctx.fillStyle = `rgba(255, 200, 255, ${sparkleAlpha * 0.9})`;
             
             // Draw a 4-pointed star
@@ -1613,7 +1603,8 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         
         ifaces.forEach((f, idx) => {
             if (idx >= 2) {
-                ctx.fillStyle = `rgba(255, 255, 255, 0.3)`;
+                let c = f.baseColor;
+                ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${glassAlpha * f.alphaMult * 0.5})`;
                 ctx.beginPath();
                 ctx.moveTo(ipts[f.pts[0]].x, ipts[f.pts[0]].y);
                 for (let i = 1; i < f.pts.length; i++) {
@@ -1624,42 +1615,21 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             }
         });
         
-        ctx.strokeStyle = `rgba(255, 255, 255, 0.9)`;
+        ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
         ctx.lineWidth = 1;
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
         
-        const isInnerFrontBackwards = ipts[2].z > ipts[5].z;
-        if (!isInnerFrontBackwards) {
-            ctx.beginPath();
-            ctx.moveTo(ipts[0].x, ipts[0].y);
-            ctx.lineTo(ipts[1].x, ipts[1].y);
-            ctx.lineTo(ipts[2].x, ipts[2].y);
-            ctx.lineTo(ipts[0].x, ipts[0].y);
-            ctx.stroke();
-        } else {
-            ctx.beginPath();
-            ctx.moveTo(ipts[3].x, ipts[3].y);
-            ctx.lineTo(ipts[4].x, ipts[4].y);
-            ctx.lineTo(ipts[5].x, ipts[5].y);
-            ctx.lineTo(ipts[3].x, ipts[3].y);
-            ctx.stroke();
-        }
-        
+        // Draw standard strokes uniformly around the inner front/left/right faces without arbitrary Z toggling
         ifaces.forEach((f) => {
-            if (f.z < 0) {
-                if (f.id === 'left') {
-                    ctx.beginPath();
-                    ctx.moveTo(ipts[0].x, ipts[0].y);
-                    ctx.lineTo(ipts[3].x, ipts[3].y);
-                    ctx.stroke();
+            if (f.id === 'front' || f.id === 'left' || f.id === 'right') {
+                ctx.beginPath();
+                ctx.moveTo(ipts[f.pts[0]].x, ipts[f.pts[0]].y);
+                for (let i = 1; i < f.pts.length; i++) {
+                    ctx.lineTo(ipts[f.pts[i]].x, ipts[f.pts[i]].y);
                 }
-                if (f.id === 'right') {
-                    ctx.beginPath();
-                    ctx.moveTo(ipts[1].x, ipts[1].y);
-                    ctx.lineTo(ipts[4].x, ipts[4].y);
-                    ctx.stroke();
-                }
+                ctx.closePath();
+                ctx.stroke();
             }
         });
         
@@ -1673,37 +1643,16 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     
-    const frontIsBackwards = pts[2].z > pts[5].z;
-    if (!frontIsBackwards) {
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        ctx.lineTo(pts[1].x, pts[1].y);
-        ctx.lineTo(pts[2].x, pts[2].y);
-        ctx.lineTo(pts[0].x, pts[0].y);
-        ctx.stroke();
-    } else {
-        ctx.beginPath();
-        ctx.moveTo(pts[3].x, pts[3].y);
-        ctx.lineTo(pts[4].x, pts[4].y);
-        ctx.lineTo(pts[5].x, pts[5].y);
-        ctx.lineTo(pts[3].x, pts[3].y);
-        ctx.stroke();
-    }
-    
+    // Draw standard strokes uniformly around the main front/left/right faces without arbitrary Z toggling
     faces.forEach((f) => {
-        if (f.z < 0) { 
-            if (f.id === 'left') {
-                ctx.beginPath();
-                ctx.moveTo(pts[0].x, pts[0].y);
-                ctx.lineTo(pts[3].x, pts[3].y);
-                ctx.stroke();
+        if (f.id === 'front' || f.id === 'left' || f.id === 'right') {
+            ctx.beginPath();
+            ctx.moveTo(pts[f.pts[0]].x, pts[f.pts[0]].y);
+            for (let i = 1; i < f.pts.length; i++) {
+                ctx.lineTo(pts[f.pts[i]].x, pts[f.pts[i]].y);
             }
-            if (f.id === 'right') {
-                ctx.beginPath();
-                ctx.moveTo(pts[1].x, pts[1].y);
-                ctx.lineTo(pts[4].x, pts[4].y);
-                ctx.stroke();
-            }
+            ctx.closePath();
+            ctx.stroke();
         }
     });
 
@@ -1718,8 +1667,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.strokeStyle = `rgba(255, 150, 255, ${0.4 + 0.6 * pulse})`;
         ctx.lineWidth = 2;
         ctx.lineJoin = "round";
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = "rgba(255, 150, 255, 1)";
         
         icoFacesData.forEach(f => {
             if (f.z <= 0) { // Front faces
