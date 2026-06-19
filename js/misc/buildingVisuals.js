@@ -1072,18 +1072,9 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   }
 
   function getLightIntensity(normal) {
-    // Light coming from top-front-left
-    const lx = -0.5,
-      ly = -0.8,
-      lz = -0.3;
-    const len = Math.sqrt(lx * lx + ly * ly + lz * lz);
-    const lnx = lx / len,
-      lny = ly / len,
-      lnz = lz / len;
-
-    let dot = normal.x * lnx + normal.y * lny + normal.z * lnz;
-    // Clamp and map to 0.4 - 1.0
-    return 0.5 + Math.max(0, dot) * 0.5;
+    // Light intensity is fixed so all sides have the same lighting
+    // regardless of the direction they are facing.
+    return 1.0;
   }
 
   // Prism geometry (standing on rectangular face)
@@ -1337,7 +1328,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     });
 
     // Draw back edges
-    ctx.strokeStyle = `rgba(255, 200, 255, 0.2)`;
+    ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
     ctx.lineWidth = 1;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
@@ -1404,8 +1395,10 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   });
 
   // Draw back edges of outer prism
-  ctx.strokeStyle = `rgba(255, 200, 255, 0.2)`;
+  ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
   ctx.lineWidth = 1;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
   ctx.beginPath();
   edges
     .filter((e) => !e.isFront)
