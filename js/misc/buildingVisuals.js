@@ -1180,6 +1180,41 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   ].map((e) => ({ pts: e, isFront: false }));
 
   edges.forEach((e) => {
+    // Top middle connecting line [2, 5] should always be considered 'back' so it renders before the beams
+    if (
+      (e.pts[0] === 2 && e.pts[1] === 5) ||
+      (e.pts[0] === 5 && e.pts[1] === 2)
+    ) {
+      e.isFront = false;
+      return;
+    }
+
+    // Determine front/back faces
+    const frontFace = faces.find((f) => f.id === "front");
+    const backFace = faces.find((f) => f.id === "back");
+
+    // If this edge belongs to the front face and the front face points away, it's NOT front
+    if (
+      frontFace &&
+      frontFace.normal.z > 0 &&
+      frontFace.pts.includes(e.pts[0]) &&
+      frontFace.pts.includes(e.pts[1])
+    ) {
+      e.isFront = false;
+      return;
+    }
+
+    // Same for back face: if it points away, it's NOT front
+    if (
+      backFace &&
+      backFace.normal.z > 0 &&
+      backFace.pts.includes(e.pts[0]) &&
+      backFace.pts.includes(e.pts[1])
+    ) {
+      e.isFront = false;
+      return;
+    }
+
     // An edge is in front if it belongs to any face pointing towards the camera (normal.z < 0)
     e.isFront = faces.some(
       (f) =>
@@ -1245,6 +1280,41 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ].map((e) => ({ pts: e, isFront: false }));
 
     iedges.forEach((e) => {
+      // Top middle connecting line [2, 5] should always be considered 'back' so it renders before the beams
+      if (
+        (e.pts[0] === 2 && e.pts[1] === 5) ||
+        (e.pts[0] === 5 && e.pts[1] === 2)
+      ) {
+        e.isFront = false;
+        return;
+      }
+
+      // Determine front/back faces
+      const iFrontFace = ifaces.find((f) => f.id === "front");
+      const iBackFace = ifaces.find((f) => f.id === "back");
+
+      // If this edge belongs to the front face and the front face points away, it's NOT front
+      if (
+        iFrontFace &&
+        iFrontFace.normal.z > 0 &&
+        iFrontFace.pts.includes(e.pts[0]) &&
+        iFrontFace.pts.includes(e.pts[1])
+      ) {
+        e.isFront = false;
+        return;
+      }
+
+      // Same for back face: if it points away, it's NOT front
+      if (
+        iBackFace &&
+        iBackFace.normal.z > 0 &&
+        iBackFace.pts.includes(e.pts[0]) &&
+        iBackFace.pts.includes(e.pts[1])
+      ) {
+        e.isFront = false;
+        return;
+      }
+
       e.isFront = ifaces.some(
         (f) =>
           f.normal.z < 0 &&
@@ -1287,59 +1357,34 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // Tier 6: Ground Mandala (Back Half / Full Mandala on ground)
+
+  // Tier 6: Pulsing Aura (centered behind the prism)
   if (tier6Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier6Prog;
     ctx.globalCompositeOperation = "screen";
 
-    const mandalaY = hoverY + 30; // on the ground
-    // Use project to put center on ground
-    const groundCenter = project(0, mandalaY, 0);
+    const centerP = project(0, -h / 2, 0);
 
-    // Since it's on the ground, drawing it as a 3D projected circle/pattern is best
-    // We will draw it manually using our project function.
-    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+    const pulse = 0.5 + 0.5 * Math.sin(t * 4);
+    const radius = w * 3 + pulse * w * 0.5;
 
-    ctx.strokeStyle = `rgba(255, 150, 255, ${0.4 + 0.6 * pulse})`;
-    ctx.lineWidth = 2;
-    ctx.lineJoin = "round";
+    const grad = ctx.createRadialGradient(
+      centerP.x,
+      centerP.y,
+      0,
+      centerP.x,
+      centerP.y,
+      radius
+    );
+    grad.addColorStop(0, `rgba(255, 150, 255, ${0.4 + 0.2 * pulse})`);
+    grad.addColorStop(0.5, `rgba(200, 100, 255, ${0.2 + 0.1 * pulse})`);
+    grad.addColorStop(1, "rgba(255, 100, 255, 0)");
 
-    const numPoints = 12;
-    const baseRadius = w * 2.5;
-
-    const drawMandalaRing = (radius, timeOffset, sides) => {
-      ctx.beginPath();
-      for (let i = 0; i <= sides; i++) {
-        const angle = (i * Math.PI * 2) / sides + timeOffset;
-        const mx = Math.cos(angle) * radius;
-        const mz = Math.sin(angle) * radius;
-        const mp = project(mx, mandalaY, mz);
-        if (i === 0) ctx.moveTo(mp.x, mp.y);
-        else ctx.lineTo(mp.x, mp.y);
-      }
-      ctx.stroke();
-    };
-
-    drawMandalaRing(baseRadius, t * 0.5, numPoints);
-    drawMandalaRing(baseRadius * 0.8, -t * 0.3, numPoints * 2);
-
-    // Draw connecting star pattern
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    for (let i = 0; i < numPoints; i++) {
-      const angle = (i * Math.PI * 2) / numPoints + t * 0.5;
-      const angleNext = ((i + 2) * Math.PI * 2) / numPoints + t * 0.5;
-      const mx = Math.cos(angle) * baseRadius;
-      const mz = Math.sin(angle) * baseRadius;
-      const nx = Math.cos(angleNext) * baseRadius;
-      const nz = Math.sin(angleNext) * baseRadius;
-
-      const mp1 = project(mx, mandalaY, mz);
-      const mp2 = project(nx, mandalaY, nz);
-      ctx.moveTo(mp1.x, mp1.y);
-      ctx.lineTo(mp2.x, mp2.y);
-    }
-    ctx.stroke();
+    ctx.arc(centerP.x, centerP.y, radius, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.restore();
   }
@@ -1372,63 +1417,56 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
 
   ctx.restore();
 
-  // Tier 7: Light Pillars
+  // Tier 7: Energy Lightning (Arcs between vertices)
   if (tier7Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier7Prog;
     ctx.globalCompositeOperation = "screen";
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = "round";
 
-    const pillarDist = w * 3.5;
-    const pillarHeight = h * 2.5;
-    const pillarY = hoverY + 30;
+    // Hash function for random-looking but deterministic arcs based on time
+    const hash = (n) => Math.abs(Math.sin(n * 12.9898) * 43758.5453) % 1;
 
-    // Draw 4 pillars around the prism
-    for (let i = 0; i < 4; i++) {
-      const angle = (i * Math.PI) / 2 + t * 0.2; // Slow rotation around the base
-      const px = Math.cos(angle) * pillarDist;
-      const pz = Math.sin(angle) * pillarDist;
+    const numArcs = 4;
+    for (let i = 0; i < numArcs; i++) {
+      // Create a rapid flicker effect by changing indices frequently
+      const timeIndex = Math.floor(t * 15 + i * 2);
+      
+      const idx1 = Math.floor(hash(timeIndex) * pts.length);
+      const idx2 = Math.floor(hash(timeIndex + 1) * pts.length);
+      
+      if (idx1 !== idx2) {
+        const p1 = pts[idx1];
+        const p2 = pts[idx2];
 
-      const pBottom = project(px, pillarY, pz);
-      const pTop = project(px, pillarY - pillarHeight, pz);
-
-      const pWidth = 8 * pBottom.scale;
-
-      // We'll draw them as glowing lines/polygons
-      const grad = ctx.createLinearGradient(0, pBottom.y, 0, pTop.y);
-      const pulse = 0.5 + 0.5 * Math.sin(t * 5 + i);
-      grad.addColorStop(0, `rgba(0, 200, 255, 0)`);
-      grad.addColorStop(0.2, `rgba(0, 200, 255, ${0.4 + 0.4 * pulse})`);
-      grad.addColorStop(0.8, `rgba(255, 255, 255, ${0.8 + 0.2 * pulse})`);
-      grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
-
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      // To give it width, we move perpendicularly in screen space
-      // Since it's a vertical pillar, we just offset X.
-      ctx.moveTo(pBottom.x - pWidth, pBottom.y);
-      ctx.lineTo(pBottom.x + pWidth, pBottom.y);
-      ctx.lineTo(pTop.x + pWidth * 0.2, pTop.y);
-      ctx.lineTo(pTop.x - pWidth * 0.2, pTop.y);
-      ctx.closePath();
-      ctx.fill();
-
-      // Base glow on ground
-      ctx.fillStyle = `rgba(0, 200, 255, ${0.5 * pulse})`;
-      ctx.beginPath();
-      ctx.ellipse(
-        pBottom.x,
-        pBottom.y,
-        pWidth * 3,
-        pWidth * 1.5,
-        0,
-        0,
-        Math.PI * 2,
-      );
-      ctx.fill();
+        // Draw jagged line
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        
+        const segments = 4;
+        for (let j = 1; j < segments; j++) {
+          const tPos = j / segments;
+          const baseX = p1.x + (p2.x - p1.x) * tPos;
+          const baseY = p1.y + (p2.y - p1.y) * tPos;
+          
+          // Add jitter perpendicular to the line
+          const jitterX = (hash(timeIndex + j * 0.1) - 0.5) * 15;
+          const jitterY = (hash(timeIndex + j * 0.2) - 0.5) * 15;
+          
+          ctx.lineTo(baseX + jitterX, baseY + jitterY);
+        }
+        ctx.lineTo(p2.x, p2.y);
+        
+        const flickerIntensity = 0.5 + 0.5 * hash(timeIndex + 0.5);
+        ctx.strokeStyle = `rgba(150, 255, 255, ${flickerIntensity})`;
+        ctx.stroke();
+      }
     }
 
     ctx.restore();
   }
+
 
   // --- Post-Prism Light Effects ---
 
@@ -1485,7 +1523,8 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   // Tier 4: Incoming White Beam from top & Rainbow Beams shooting out horizontally
   if (tier4Prog > 0) {
     ctx.save();
-    ctx.globalAlpha = tier4Prog;
+    // Hide tier 4 beam completely when tier 8 takes over to avoid gray blending
+    ctx.globalAlpha = tier4Prog * (1 - tier8Prog);
     ctx.globalCompositeOperation = "screen";
 
     // Incoming white beam (from straight down/top)
