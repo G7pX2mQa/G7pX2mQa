@@ -134,3 +134,22 @@
     font-size: clamp(16px, 4vw, 28px) !important;
   }
 }
+
+.buildings-tab .shop-upgrade {
+  pointer-events: none;
+}
+.buildings-tab .shop-tile img.base,
+.buildings-tab .shop-tile img.icon {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.buildings-tab .shop-tile {
+  border-radius: 50%;
+  pointer-events: none;
+}
+.buildings-tab .shop-tile img.base {
+  clip-path: circle(50% at 50% 50%);
+}
+.buildings-tab .shop-tile img.icon {
+  clip-path: circle(50% at 50% 50%);
+}
