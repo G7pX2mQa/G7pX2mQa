@@ -8,6 +8,7 @@ import { getSurgeMagicMultiplier, getSurgeWaveMultiplier } from './surgeEffects.
 import { addExternalFpMultiplierProvider, getWaterwheelGoldMultiplier, getWaterwheelMagicMultiplier, getWaterwheelScrapMultiplier } from '../ui/merchantTabs/flowTab.js';
 import { addExternalDpMultiplierProvider } from './dpSystem.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
+import { loadGenerationLevel, getGearsPerSecond } from "../ui/merchantTabs/workshopTab.js";
 import { getPpState, isPpSystemUnlocked } from './ppSystem.js';
 
 import {
@@ -376,6 +377,14 @@ export function syncCurrencyMultipliersFromUpgrades() {
   } catch {}
 
   try {
+  try {
+    if (bank.gears?.mult?.set) {
+      const level = loadGenerationLevel();
+      const gearsRate = getGearsPerSecond(level);
+      bank.gears.mult.set(gearsRate);
+    }
+  } catch {}
+
     for (const mat of UC_MATERIALS) {
       if (bank[mat]?.mult?.set) {
         // Individual material multipliers can be multiplied here in the future
@@ -529,6 +538,10 @@ export function registerXpUpgradeEffects() {
     window.addEventListener('surge:nerf:change', () => {
         try { syncCurrencyMultipliersFromUpgrades(); } catch {}
     });
+    window.addEventListener('workshop:change', () => {
+        try { syncCurrencyMultipliersFromUpgrades(); } catch {}
+    });
+
     window.addEventListener('lab:node:change', () => {
         try { syncCurrencyMultipliersFromUpgrades(); } catch {}
     });
