@@ -4245,19 +4245,19 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
     return { evolved: false };
   }
   
-  let lowEvol = currentEvolutions;
-  let highEvol = currentEvolutions + 1;
+  let lowEvol = currentEvolutions + 1;
+  let highEvol = currentEvolutions + 2;
   let step = 1;
 
   // Function to check if a specific evolution tier is affordable
   // We do this by calculating the cost of the *final* evolution interval
-  // leading up to the target cap using the scaling of targetEvol - 1.
+  // leading up to the target cap using the scaling of targetEvol.
   // The geometric progression dictates that the vast majority of the cumulative cost
   // comes from this final interval, making it a highly accurate proxy that prevents
   // overshooting caused by ignoring progressive scaling across thousands of evolutions.
   const canAffordEvol = (targetEvol) => {
     const origEvol = state.hmEvolutions;
-    state.hmEvolutions = targetEvol - 1; 
+    state.hmEvolutions = targetEvol; 
     applyHmEvolutionMeta(upg, state.hmEvolutions);
     ensureUpgradeScaling(upg);
 
