@@ -96,8 +96,16 @@ export class BigNum {
     }
 
     const digits = digitsRaw.replace(/^0+/, '') || '0';
-    const sig = Number(sign + digits);
-    return new BigNum(sig, exponent, p);
+    if (digits === '0') return new BigNum(0, 0, p);
+
+    // Do not coerce the full digit string with Number(...): plain save values
+    // can exceed Number.MAX_VALUE even though BigNum can represent them. Keep
+    // only the configured significant digits and move the rest into the
+    // decimal exponent.
+    const precision = Math.max(1, p | 0);
+    const sigDigits = digits.slice(0, precision);
+    const sig = Number(sign + sigDigits);
+    return new BigNum(sig, exponent + (digits.length - sigDigits.length), p);
   }
 
   static fromStorage(str, p = BigNum.DEFAULT_PRECISION) {
