@@ -2297,7 +2297,7 @@ function updateForgeCard({ goldMult = null } = {}) {
             Forging for the first time will unlock new Shop upgrades, a new Merchant dialogue, and
             <strong style="color:#ffb347; text-shadow: 0 3px 6px rgba(0,0,0,0.55);
             ">Mutations</strong><br>
-            Collect Coins to get MP. Mutation Coins yield more Coin and XP value than normal
+            Collect Coins to get MP; each Mutation doubles Coin and XP value
           </span>
         `.trim();
         // Simple length check or substring to avoid constant re-render
