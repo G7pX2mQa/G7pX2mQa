@@ -1175,7 +1175,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1],
         ];
 
-        const shellScaleX = Math.max(w, d) * 0.7; // Width/depth
+        const shellScaleX = Math.max(w, d) * 0.85; // Width/depth
         const shellScaleY = h * 0.45; // Significantly shrink height
         
         const shellRotY = t * 0.5;
@@ -1201,7 +1201,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             let z2 = x * sy + z1 * cy;
             
             // Offset to prism center, slightly higher to prevent ground clipping
-            return project(x2, y1 - h/2 - 10, z2);
+            return project(x2, y1 - h/2, z2);
         });
         
         icoFacesData = icoFacesList.map(pts => {
@@ -1655,6 +1655,17 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
             ctx.stroke();
         }
     });
+    // Explicitly draw the bottom line of the front and back faces to ensure they are always visible
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    ctx.lineTo(pts[1].x, pts[1].y);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(pts[3].x, pts[3].y);
+    ctx.lineTo(pts[4].x, pts[4].y);
+    ctx.stroke();
+
 
     ctx.restore();
     // Tier 6: Pulsing Wireframe Shell (Front Half)
