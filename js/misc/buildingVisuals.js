@@ -1287,53 +1287,61 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // Tier 6: Floating Orbs
+  // Tier 6: Ground Mandala (Back Half / Full Mandala on ground)
   if (tier6Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier6Prog;
     ctx.globalCompositeOperation = "screen";
 
-    const numOrbs = 4;
-    const orbRadius = w * 1.5;
+    const mandalaY = hoverY + 30; // on the ground
+    // Use project to put center on ground
+    const groundCenter = project(0, mandalaY, 0);
 
-    for (let i = 0; i < numOrbs; i++) {
-      const angle = (i * Math.PI * 2) / numOrbs + t * 0.8;
-      // Float up and down smoothly
-      const verticalOffset = hoverY - h / 2 + Math.sin(t * 2 + i) * h * 0.3;
-      
-      const ox = Math.cos(angle) * orbRadius;
-      const oz = Math.sin(angle) * orbRadius;
-      
-      const op = project(ox, verticalOffset, oz);
+    // Since it's on the ground, drawing it as a 3D projected circle/pattern is best
+    // We will draw it manually using our project function.
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
 
-      // Draw soft glowing orb
-      ctx.save();
-      ctx.translate(op.x, op.y);
-      
-      const orbPulse = 0.8 + 0.2 * Math.sin(t * 5 + i);
-      const orbSize = 10 * op.scale * orbPulse;
-      
-      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, orbSize);
-      grad.addColorStop(0, "rgba(255, 255, 255, 1)");
-      grad.addColorStop(0.2, "rgba(255, 150, 255, 0.8)");
-      grad.addColorStop(1, "rgba(255, 100, 200, 0)");
+    ctx.strokeStyle = `rgba(255, 150, 255, ${0.4 + 0.6 * pulse})`;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
 
-      ctx.fillStyle = grad;
+    const numPoints = 12;
+    const baseRadius = w * 2.5;
+
+    const drawMandalaRing = (radius, timeOffset, sides) => {
       ctx.beginPath();
-      ctx.arc(0, 0, orbSize, 0, Math.PI * 2);
-      ctx.fill();
+      for (let i = 0; i <= sides; i++) {
+        const angle = (i * Math.PI * 2) / sides + timeOffset;
+        const mx = Math.cos(angle) * radius;
+        const mz = Math.sin(angle) * radius;
+        const mp = project(mx, mandalaY, mz);
+        if (i === 0) ctx.moveTo(mp.x, mp.y);
+        else ctx.lineTo(mp.x, mp.y);
+      }
+      ctx.stroke();
+    };
 
-      // Inner bright core
-      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-      ctx.beginPath();
-      ctx.arc(0, 0, orbSize * 0.2, 0, Math.PI * 2);
-      ctx.fill();
+    drawMandalaRing(baseRadius, t * 0.5, numPoints);
+    drawMandalaRing(baseRadius * 0.8, -t * 0.3, numPoints * 2);
 
-      ctx.restore();
+    // Draw connecting star pattern
+    ctx.beginPath();
+    for (let i = 0; i < numPoints; i++) {
+      const angle = (i * Math.PI * 2) / numPoints + t * 0.5;
+      const angleNext = ((i + 2) * Math.PI * 2) / numPoints + t * 0.5;
+      const mx = Math.cos(angle) * baseRadius;
+      const mz = Math.sin(angle) * baseRadius;
+      const nx = Math.cos(angleNext) * baseRadius;
+      const nz = Math.sin(angleNext) * baseRadius;
+
+      const mp1 = project(mx, mandalaY, mz);
+      const mp2 = project(nx, mandalaY, nz);
+      ctx.moveTo(mp1.x, mp1.y);
+      ctx.lineTo(mp2.x, mp2.y);
     }
+    ctx.stroke();
 
     ctx.restore();
-  }
   }
 
   faces.forEach((f) => {
@@ -1364,45 +1372,59 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
 
   ctx.restore();
 
-  // Tier 7: Horizontal Energy Rings
+  // Tier 7: Light Pillars
   if (tier7Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier7Prog;
     ctx.globalCompositeOperation = "screen";
 
-    const numRings = 3;
-    const maxRadius = w * 4;
+    const pillarDist = w * 3.5;
+    const pillarHeight = h * 2.5;
+    const pillarY = hoverY + 30;
 
-    for (let i = 0; i < numRings; i++) {
-      // Each ring expands and fades out
-      const ringT = (t * 0.4 + i * (1 / numRings)) % 1;
-      const radius = ringT * maxRadius;
-      const alpha = Math.sin(ringT * Math.PI); // fade in and out smoothly
-      
-      const ringY = hoverY - h / 2; // Middle of the prism
+    // Draw 4 pillars around the prism
+    for (let i = 0; i < 4; i++) {
+      const angle = (i * Math.PI) / 2 + t * 0.2; // Slow rotation around the base
+      const px = Math.cos(angle) * pillarDist;
+      const pz = Math.sin(angle) * pillarDist;
 
-      ctx.save();
-      ctx.lineWidth = 3 + 2 * (1 - ringT);
-      ctx.strokeStyle = `rgba(150, 200, 255, ${alpha * 0.8})`;
+      const pBottom = project(px, pillarY, pz);
+      const pTop = project(px, pillarY - pillarHeight, pz);
 
+      const pWidth = 8 * pBottom.scale;
+
+      // We'll draw them as glowing lines/polygons
+      const grad = ctx.createLinearGradient(0, pBottom.y, 0, pTop.y);
+      const pulse = 0.5 + 0.5 * Math.sin(t * 5 + i);
+      grad.addColorStop(0, `rgba(0, 200, 255, 0)`);
+      grad.addColorStop(0.2, `rgba(0, 200, 255, ${0.4 + 0.4 * pulse})`);
+      grad.addColorStop(0.8, `rgba(255, 255, 255, ${0.8 + 0.2 * pulse})`);
+      grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+
+      ctx.fillStyle = grad;
       ctx.beginPath();
-      const segments = 32;
-      for (let s = 0; s <= segments; s++) {
-        const angle = (s * Math.PI * 2) / segments;
-        const rx = Math.cos(angle) * radius;
-        const rz = Math.sin(angle) * radius;
-        
-        const rp = project(rx, ringY, rz);
-        if (s === 0) ctx.moveTo(rp.x, rp.y);
-        else ctx.lineTo(rp.x, rp.y);
-      }
-      ctx.stroke();
-
-      // Soft fill for the inner glow
-      ctx.fillStyle = `rgba(150, 200, 255, ${alpha * 0.1})`;
+      // To give it width, we move perpendicularly in screen space
+      // Since it's a vertical pillar, we just offset X.
+      ctx.moveTo(pBottom.x - pWidth, pBottom.y);
+      ctx.lineTo(pBottom.x + pWidth, pBottom.y);
+      ctx.lineTo(pTop.x + pWidth * 0.2, pTop.y);
+      ctx.lineTo(pTop.x - pWidth * 0.2, pTop.y);
+      ctx.closePath();
       ctx.fill();
 
-      ctx.restore();
+      // Base glow on ground
+      ctx.fillStyle = `rgba(0, 200, 255, ${0.5 * pulse})`;
+      ctx.beginPath();
+      ctx.ellipse(
+        pBottom.x,
+        pBottom.y,
+        pWidth * 3,
+        pWidth * 1.5,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
     }
 
     ctx.restore();
@@ -1460,83 +1482,10 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   }
   const center = project(0, -h / 2, 0);
 
-  // Tier 5: Orbiting Crystal Shards
-  if (tier5Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier5Prog;
-
-    const numShards = 6;
-    const orbitRadius = 70 + tier6Prog * 20;
-
-    for (let i = 0; i < numShards; i++) {
-      const orbitRot = t * 1.5 + (i * Math.PI * 2) / numShards;
-      const sx = Math.cos(orbitRot) * orbitRadius;
-      const sz = Math.sin(orbitRot) * orbitRadius;
-      const sy = -h / 2;
-
-      const sp = project(sx, sy, sz);
-
-      // Draw shard
-      ctx.save();
-      ctx.translate(sp.x, sp.y);
-
-      ctx.fillStyle = "rgba(255, 150, 220, 0.8)";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-      ctx.lineWidth = 1;
-
-      const size = 12 * sp.scale;
-      ctx.beginPath();
-      ctx.moveTo(0, -size);
-      ctx.lineTo(-size * 0.6, 0);
-      ctx.lineTo(0, size);
-      ctx.lineTo(size * 0.6, 0);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-    }
-    ctx.restore();
-  }
-
-  // Draw FRONT edges of the inner prism
-  if (tier2Prog > 0 && ipts && ifaces && ifaces.iedges) {
-    ctx.save();
-    ctx.globalAlpha = tier2Prog;
-    ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
-    ctx.lineWidth = 1;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ifaces.iedges
-      .filter((e) => e.isFront)
-      .forEach((e) => {
-        ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
-        ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
-      });
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  // Draw FRONT edges of outer prism
-  ctx.save();
-  ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
-  ctx.lineWidth = 1;
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  edges
-    .filter((e) => e.isFront)
-    .forEach((e) => {
-      ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
-      ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
-    });
-  ctx.stroke();
-  ctx.restore();
   // Tier 4: Incoming White Beam from top & Rainbow Beams shooting out horizontally
-  const t4BeamProg = tier4Prog * (1 - tier8Prog);
-  if (t4BeamProg > 0) {
+  if (tier4Prog > 0) {
     ctx.save();
-    ctx.globalAlpha = t4BeamProg;
+    ctx.globalAlpha = tier4Prog;
     ctx.globalCompositeOperation = "screen";
 
     // Incoming white beam (from straight down/top)
@@ -1612,18 +1561,56 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
+  // Tier 5: Orbiting Crystal Shards
+  if (tier5Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier5Prog;
+
+    const numShards = 6;
+    const orbitRadius = 70 + tier6Prog * 20;
+
+    for (let i = 0; i < numShards; i++) {
+      const orbitRot = t * 1.5 + (i * Math.PI * 2) / numShards;
+      const sx = Math.cos(orbitRot) * orbitRadius;
+      const sz = Math.sin(orbitRot) * orbitRadius;
+      const sy = -h / 2;
+
+      const sp = project(sx, sy, sz);
+
+      // Draw shard
+      ctx.save();
+      ctx.translate(sp.x, sp.y);
+
+      ctx.fillStyle = "rgba(255, 150, 220, 0.8)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.lineWidth = 1;
+
+      const size = 12 * sp.scale;
+      ctx.beginPath();
+      ctx.moveTo(0, -size);
+      ctx.lineTo(-size * 0.6, 0);
+      ctx.lineTo(0, size);
+      ctx.lineTo(size * 0.6, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
   // --- Tier 8: Symmetrical Zenith ---
   if (tier8Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier8Prog;
-    ctx.globalCompositeOperation = "lighter";
+    ctx.globalCompositeOperation = "screen";
 
     // Incoming massive white beams from BOTH sides (top-left, top-right)
     // OR straight down. "massive white beams enter from both sides (or straight down)"
     // Let's do straight down splitting into two huge rainbows perfectly symmetric
 
     const inAngle = -Math.PI / 2; // straight up/down
-    ctx.fillStyle = "rgba(255, 255, 255, 1)";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
 
     // Draw incoming thick white beam
     const beamW = 15 + Math.sin(t * 10) * 5;
@@ -1677,7 +1664,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         );
         const intensity = 0.6 + 0.4 * Math.sin(t * 8 + i * 2);
         const rgbStr = hexToRgbStr(colors[colorIdx]);
-        grad.addColorStop(0, `rgba(${rgbStr}, 1)`);
+        grad.addColorStop(0, colors[colorIdx]);
         grad.addColorStop(0.5, `rgba(${rgbStr}, ${intensity})`);
         grad.addColorStop(1, `rgba(${rgbStr}, 0)`);
 
@@ -1712,6 +1699,41 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
+  // Draw FRONT edges of the inner prism
+  if (tier2Prog > 0 && ipts && ifaces && ifaces.iedges) {
+    ctx.save();
+    ctx.globalAlpha = tier2Prog;
+    ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
+    ctx.lineWidth = 1;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ifaces.iedges
+      .filter((e) => e.isFront)
+      .forEach((e) => {
+        ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
+        ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
+      });
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Draw FRONT edges of outer prism
+  ctx.save();
+  ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
+  ctx.lineWidth = 1;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  edges
+    .filter((e) => e.isFront)
+    .forEach((e) => {
+      ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
+      ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
+    });
+  ctx.stroke();
+  ctx.restore();
+}
 
 function drawFoundry(ctx, t, tier, prevTier, animProgress) {
   // Base structure (Tier 0+)
