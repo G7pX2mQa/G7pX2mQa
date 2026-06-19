@@ -9,7 +9,7 @@ import { waterSystem } from './webgl/waterSystem.js';
 import { shouldBlockBigCoins } from '../util/bigCoinManager.js';
 import { settingsManager } from './settingsManager.js';
 import { AREAS, currentArea } from '../main.js';
-import { createBaseSpawner, getCanvasSmoothingQuality, getImage, CUBIC_BEZIER, easeOutCubic, getPreRenderedCoin, getPreRenderedCoinUrl } from './spawnerCore.js';
+import { createBaseSpawner, getCanvasSmoothingQuality, getImage, CUBIC_BEZIER, easeOutCubic, getPreRenderedCoin, getPreRenderedCoinUrl, clearPreRenderedCoins } from './spawnerCore.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelSnapshot = 0;
@@ -94,8 +94,8 @@ export function createSpawner(config = {}) {
     let deps = { collectBatch: null, getMagnetUnit: null };
 
     settingsManager.subscribe('graphics_quality', () => {
-        if (typeof preRenderedCoins !== 'undefined') preRenderedCoins.clear();
-        if (typeof preRenderedUrls !== 'undefined') preRenderedUrls.clear();
+        clearPreRenderedCoins();
+
         const activeCoins = base.getActiveItems();
         for (let i = 0; i < activeCoins.length; i++) {
             const c = activeCoins[i];
