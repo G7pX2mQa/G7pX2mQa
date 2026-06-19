@@ -37,6 +37,11 @@ export function getImage(src) {
 const preRenderedCoins = new Map();
 const preRenderedUrls = new Map();
 
+
+export function clearPreRenderedCoins() {
+    preRenderedCoins.clear();
+    preRenderedUrls.clear();
+}
 export function getPreRenderedCoinUrl(src, size) {
     if (!src || typeof document === 'undefined') return src;
     
