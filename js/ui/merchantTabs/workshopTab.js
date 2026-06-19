@@ -80,7 +80,7 @@ const GEAR_ROTATION_VARIANCE = 67;
 export function getGenerationLevel() {
   return currentGenerationLevel;
 }
-function loadGenerationLevel() {
+export function loadGenerationLevel() {
   const slot = getActiveSlot();
   if (!slot) return BigNum.zero();
   const raw = localStorage.getItem(getGenerationLevelKey(slot));
@@ -216,7 +216,7 @@ export function getGenerationUpgradeCost(level) {
   return bigNumFromLog10(logCost, true);
 }
 
-function getGearsPerSecond(level) {
+export function getGearsPerSecond(level) {
   let baseRate;
   let bnLevel = level;
   if (!(level instanceof BigNum)) {
@@ -700,8 +700,7 @@ export function initWorkshopTab(panelEl) {
 }
 
 export function getGearsProductionRate() {
-  const level = loadGenerationLevel();
-  let base = getGearsPerSecond(level);
+  let base = BigNum.fromInt(1);
   if (bank.gears && typeof bank.gears.mult?.applyTo === 'function') {
       base = bank.gears.mult.applyTo(base);
   }
