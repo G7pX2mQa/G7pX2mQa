@@ -35,7 +35,7 @@ function ensureFpsWakeupEl() {
             width: '100vw',
             height: '100vh',
             pointerEvents: 'none',
-            opacity: '0.001',
+            opacity: '0.01',
             zIndex: '999999'
         });
         fpsWakeupCtx = fpsWakeupEl.getContext('2d', { alpha: false });
