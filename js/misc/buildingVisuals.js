@@ -1,6 +1,6 @@
-import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
-import { levelBigNumToNumber } from '../game/upgrades.js';
-import { playAudio } from '../util/audioManager.js';
+import { RESOURCE_REGISTRY } from "../game/offlinePanel.js";
+import { levelBigNumToNumber } from "../game/upgrades.js";
+import { playAudio } from "../util/audioManager.js";
 
 let activeCanvas = null;
 let activeCtx = null;
@@ -23,9 +23,9 @@ let stonePattern = null;
 function getMaterialImage(matKey) {
   if (imageCache[matKey]) return imageCache[matKey];
   let actualKey = matKey;
-  if (matKey === 'core') actualKey = 'cores';
-  if (matKey === 'crystal') actualKey = 'crystals';
-  const config = RESOURCE_REGISTRY.find(r => r.key === actualKey);
+  if (matKey === "core") actualKey = "cores";
+  if (matKey === "crystal") actualKey = "crystals";
+  const config = RESOURCE_REGISTRY.find((r) => r.key === actualKey);
   if (config && config.icon) {
     const img = new Image();
     img.src = config.icon;
@@ -36,2151 +36,2240 @@ function getMaterialImage(matKey) {
 }
 
 function initStonePattern(ctx) {
-    if (stonePattern) return;
-    
-    const patternCanvas = document.createElement('canvas');
-    patternCanvas.width = 64;
-    patternCanvas.height = 64;
-    const pCtx = patternCanvas.getContext('2d');
-    
-    // Base color darker to match user feedback and image analysis (#83817c)
-    pCtx.fillStyle = '#83817c';
-    pCtx.fillRect(0, 0, 64, 64);
-    
-    const imgData = pCtx.getImageData(0, 0, 64, 64);
-    const data = imgData.data;
-    for (let i = 0; i < data.length; i += 4) {
-        // Range based on std_dev of ~18
-        const noise = (Math.random() - 0.5) * 36;
-        data[i] = Math.max(0, Math.min(255, data[i] + noise));
-        data[i+1] = Math.max(0, Math.min(255, data[i+1] + noise));
-        data[i+2] = Math.max(0, Math.min(255, data[i+2] + noise));
+  if (stonePattern) return;
+
+  const patternCanvas = document.createElement("canvas");
+  patternCanvas.width = 64;
+  patternCanvas.height = 64;
+  const pCtx = patternCanvas.getContext("2d");
+
+  // Base color darker to match user feedback and image analysis (#83817c)
+  pCtx.fillStyle = "#83817c";
+  pCtx.fillRect(0, 0, 64, 64);
+
+  const imgData = pCtx.getImageData(0, 0, 64, 64);
+  const data = imgData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    // Range based on std_dev of ~18
+    const noise = (Math.random() - 0.5) * 36;
+    data[i] = Math.max(0, Math.min(255, data[i] + noise));
+    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise));
+    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise));
+  }
+  pCtx.putImageData(imgData, 0, 0);
+
+  const targetCtx = activeCtx || ctx;
+  if (targetCtx) {
+    try {
+      stonePattern = targetCtx.createPattern(patternCanvas, "repeat");
+    } catch (e) {
+      console.error("Failed to create stone pattern", e);
     }
-    pCtx.putImageData(imgData, 0, 0);
-    
-    const targetCtx = activeCtx || ctx;
-    if (targetCtx) {
-        try {
-            stonePattern = targetCtx.createPattern(patternCanvas, 'repeat');
-        } catch (e) {
-            console.error("Failed to create stone pattern", e);
-        }
-    }
+  }
 }
 
 export function startCanvasLoop(id, canvasEl) {
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    window.currentCavernLayout = null;
-    activeCanvas = canvasEl;
-    activeCtx = canvasEl.getContext('2d');
-    currentBuildingId = id;
-    lastTime = performance.now();
-    
-    initStonePattern(activeCtx);
+  if (animationFrameId) cancelAnimationFrame(animationFrameId);
+  window.currentCavernLayout = null;
+  activeCanvas = canvasEl;
+  activeCtx = canvasEl.getContext("2d");
+  currentBuildingId = id;
+  lastTime = performance.now();
 
-    const resizeObserver = new ResizeObserver(() => {
-        if (!activeCanvas) return;
-        const rect = activeCanvas.parentElement.getBoundingClientRect();
-        activeCanvas.width = rect.width;
-        activeCanvas.height = rect.height;
-    });
-    resizeObserver.observe(activeCanvas.parentElement);
-    
+  initStonePattern(activeCtx);
+
+  const resizeObserver = new ResizeObserver(() => {
+    if (!activeCanvas) return;
     const rect = activeCanvas.parentElement.getBoundingClientRect();
     activeCanvas.width = rect.width;
     activeCanvas.height = rect.height;
-    
-    // Using import for ES modules instead of require for local scope
-    import('../ui/minerTabs/buildingsTab.js').then(module => {
-        try {
-            currentLevelNum = levelBigNumToNumber(module.getBuildingLevel(id));
-            let currentTier = getTier();
-            previousTier = currentTier;
-            tierUpAnimTime = 0;
-        } catch {
-            currentLevelNum = 1;
-        }
-    }).catch(() => { currentLevelNum = 1; });
-    
-    loop(performance.now());
+  });
+  resizeObserver.observe(activeCanvas.parentElement);
+
+  const rect = activeCanvas.parentElement.getBoundingClientRect();
+  activeCanvas.width = rect.width;
+  activeCanvas.height = rect.height;
+
+  // Using import for ES modules instead of require for local scope
+  import("../ui/minerTabs/buildingsTab.js")
+    .then((module) => {
+      try {
+        currentLevelNum = levelBigNumToNumber(module.getBuildingLevel(id));
+        let currentTier = getTier();
+        previousTier = currentTier;
+        tierUpAnimTime = 0;
+      } catch {
+        currentLevelNum = 1;
+      }
+    })
+    .catch(() => {
+      currentLevelNum = 1;
+    });
+
+  loop(performance.now());
 }
 
 export function stopCanvasLoop() {
-    if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-    }
-    activeCanvas = null;
-    activeCtx = null;
-    currentBuildingId = null;
-    tierUpAnimTime = 0;
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  activeCanvas = null;
+  activeCtx = null;
+  currentBuildingId = null;
+  tierUpAnimTime = 0;
 }
 
 export function triggerLevelUpAnimation() {
-    levelUpAnimTime = 1.0;
+  levelUpAnimTime = 1.0;
 }
 
 export function checkTierUp(id, oldLevelBn, newLevelBn) {
-    if (id !== currentBuildingId) return;
+  if (id !== currentBuildingId) return;
 
-    const oldNum = levelBigNumToNumber(oldLevelBn);
-    const newNum = levelBigNumToNumber(newLevelBn);
-    currentLevelNum = newNum;
-    
-    let oldTier = 0;
-    let newTier = 0;
-    
-    for (let i = 0; i < TIERS.length; i++) {
-        if (oldNum >= TIERS[i]) oldTier = i + 1;
-        if (newNum >= TIERS[i]) newTier = i + 1;
+  const oldNum = levelBigNumToNumber(oldLevelBn);
+  const newNum = levelBigNumToNumber(newLevelBn);
+  currentLevelNum = newNum;
+
+  let oldTier = 0;
+  let newTier = 0;
+
+  for (let i = 0; i < TIERS.length; i++) {
+    if (oldNum >= TIERS[i]) oldTier = i + 1;
+    if (newNum >= TIERS[i]) newTier = i + 1;
+  }
+
+  if (newTier < oldTier) {
+    previousTier = newTier;
+    tierUpAnimTime = 0;
+  } else if (newTier > oldTier) {
+    previousTier = oldTier;
+    if (newTier >= 1) {
+      tierUpAnimTime = 6.0;
+      playAudio("sounds/building_tier_up.ogg");
     }
-    
-    if (newTier < oldTier) {
-        previousTier = newTier;
-        tierUpAnimTime = 0;
-    } else if (newTier > oldTier) {
-        previousTier = oldTier;
-        if (newTier >= 1) {
-            tierUpAnimTime = 6.0; 
-            playAudio('sounds/building_tier_up.ogg');
-        }
-    }
+  }
 }
 
 function loop(currentTime) {
-    if (!activeCanvas) return;
-    const dt = (currentTime - lastTime) / 1000;
-    lastTime = currentTime;
-    time += dt;
-    
-    if (levelUpAnimTime > 0) levelUpAnimTime -= dt;
-    if (tierUpAnimTime > 0) tierUpAnimTime -= dt;
-    
-    // Smoothly integrate global disk angle
-    // We calculate the speed multiplier here if it's the core building
-    let diskSpeedMult = 1.0;
-    if (currentBuildingId === 'core') {
-        let currentTier = getTier();
-        let drawTier = currentTier;
-        let animProgress = 1.0;
-        if (tierUpAnimTime > 0) {
-            animProgress = tierUpAnimTime > 2.5 ? 1.0 - ((tierUpAnimTime - 2.5) / 3.5) : 1.0;
-            drawTier = currentTier;
-        }
-        const tier8Prog = (drawTier >= 8 && previousTier < 8) ? animProgress : (drawTier >= 8 ? 1 : 0);
-        diskSpeedMult = 1.0 + 2.0 * tier8Prog;
-    }
-    globalDiskAngle += dt * diskSpeedMult;
+  if (!activeCanvas) return;
+  const dt = (currentTime - lastTime) / 1000;
+  lastTime = currentTime;
+  time += dt;
 
-    let prismSpeedMult = 1.0;
-    if (currentBuildingId === "crystal") {
-        let currentTier = getTier();
-        let drawTier = currentTier;
-        let animProgress = 1.0;
-        if (tierUpAnimTime > 0) {
-            animProgress = tierUpAnimTime > 2.5 ? 1.0 - ((tierUpAnimTime - 2.5) / 3.5) : 1.0;
-            drawTier = currentTier;
-        }
-        const showTier3 = (drawTier >= 3) ? 1 : 0;
-        const tier3Prog = (drawTier >= 3 && previousTier < 3) ? animProgress : showTier3;
-        prismSpeedMult = tier3Prog > 0 ? 1.0 : 0.4;
-        globalPrismAngle += dt * prismSpeedMult;
+  if (levelUpAnimTime > 0) levelUpAnimTime -= dt;
+  if (tierUpAnimTime > 0) tierUpAnimTime -= dt;
+
+  // Smoothly integrate global disk angle
+  // We calculate the speed multiplier here if it's the core building
+  let diskSpeedMult = 1.0;
+  if (currentBuildingId === "core") {
+    let currentTier = getTier();
+    let drawTier = currentTier;
+    let animProgress = 1.0;
+    if (tierUpAnimTime > 0) {
+      animProgress =
+        tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
+      drawTier = currentTier;
     }
-    
-    if (activeCanvas && activeCtx) {
-        draw(activeCtx, activeCanvas.width, activeCanvas.height, time);
+    const tier8Prog =
+      drawTier >= 8 && previousTier < 8 ? animProgress : drawTier >= 8 ? 1 : 0;
+    diskSpeedMult = 1.0 + 2.0 * tier8Prog;
+  }
+  globalDiskAngle += dt * diskSpeedMult;
+
+  let prismSpeedMult = 1.0;
+  if (currentBuildingId === "crystal") {
+    let currentTier = getTier();
+    let drawTier = currentTier;
+    let animProgress = 1.0;
+    if (tierUpAnimTime > 0) {
+      animProgress =
+        tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
+      drawTier = currentTier;
     }
-    
-    animationFrameId = requestAnimationFrame(loop);
+    const showTier3 = drawTier >= 3 ? 1 : 0;
+    const tier3Prog =
+      drawTier >= 3 && previousTier < 3 ? animProgress : showTier3;
+    prismSpeedMult = tier3Prog > 0 ? 1.0 : 0.4;
+    globalPrismAngle += dt * prismSpeedMult;
+  }
+
+  if (activeCanvas && activeCtx) {
+    draw(activeCtx, activeCanvas.width, activeCanvas.height, time);
+  }
+
+  animationFrameId = requestAnimationFrame(loop);
 }
 
 function getTier() {
-    let t = 0;
-    for (let i = 0; i < TIERS.length; i++) {
-        if (currentLevelNum >= TIERS[i]) t = i + 1;
-    }
-    return t; // 0 to 9
+  let t = 0;
+  for (let i = 0; i < TIERS.length; i++) {
+    if (currentLevelNum >= TIERS[i]) t = i + 1;
+  }
+  return t; // 0 to 9
 }
 
 function draw(ctx, width, height, t) {
-    ctx.clearRect(0, 0, width, height);
-    
-    ctx.save();
-    let shakeAlpha = 0;
+  ctx.clearRect(0, 0, width, height);
+
+  ctx.save();
+  let shakeAlpha = 0;
+  if (tierUpAnimTime > 0) {
+    shakeAlpha =
+      tierUpAnimTime > 2.5
+        ? (6.0 - tierUpAnimTime) / 3.5
+        : tierUpAnimTime / 2.5;
+    const shake = Math.sin(t * 50) * (shakeAlpha * 10);
+    const shakeY = Math.cos(t * 40) * (shakeAlpha * 5);
+    ctx.translate(shake, shakeY);
+  }
+
+  drawCavern(ctx, width, height, t);
+
+  if (currentBuildingId) {
+    let currentTier = getTier();
+    let drawTier = currentTier;
+    let animProgress = 1.0;
     if (tierUpAnimTime > 0) {
-        shakeAlpha = tierUpAnimTime > 2.5 ? (6.0 - tierUpAnimTime) / 3.5 : tierUpAnimTime / 2.5;
-        const shake = Math.sin(t * 50) * (shakeAlpha * 10);
-        const shakeY = Math.cos(t * 40) * (shakeAlpha * 5);
-        ctx.translate(shake, shakeY);
+      // Reaches 1.0 at 3.5 seconds into the 6.0 second animation (when tierUpAnimTime is 2.5)
+      animProgress =
+        tierUpAnimTime > 2.5 ? 1.0 - (tierUpAnimTime - 2.5) / 3.5 : 1.0;
+      drawTier = currentTier;
     }
-    
-    drawCavern(ctx, width, height, t);
-    
-    if (currentBuildingId) {
-        let currentTier = getTier();
-        let drawTier = currentTier;
-        let animProgress = 1.0;
-        if (tierUpAnimTime > 0) {
-            // Reaches 1.0 at 3.5 seconds into the 6.0 second animation (when tierUpAnimTime is 2.5)
-            animProgress = tierUpAnimTime > 2.5 ? 1.0 - ((tierUpAnimTime - 2.5) / 3.5) : 1.0;
-            drawTier = currentTier;
-        }
-        drawBuilding(ctx, width, height, t, currentBuildingId, drawTier, previousTier, animProgress);
-    }
-    ctx.restore();
-    if (levelUpAnimTime > 0) {
-        const alpha = Math.max(0, levelUpAnimTime);
-        const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, `rgba(255, 255, 255, 0)`);
-        grad.addColorStop(0.5, `rgba(255, 255, 255, ${alpha * 0.5})`);
-        grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
-    }
-    
-    if (tierUpAnimTime > 0) {
-        ctx.fillStyle = `rgba(255, 255, 255, ${shakeAlpha})`;
-        ctx.fillRect(0, 0, width, height);
-    }
+    drawBuilding(
+      ctx,
+      width,
+      height,
+      t,
+      currentBuildingId,
+      drawTier,
+      previousTier,
+      animProgress,
+    );
+  }
+  ctx.restore();
+  if (levelUpAnimTime > 0) {
+    const alpha = Math.max(0, levelUpAnimTime);
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, `rgba(255, 255, 255, 0)`);
+    grad.addColorStop(0.5, `rgba(255, 255, 255, ${alpha * 0.5})`);
+    grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  if (tierUpAnimTime > 0) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${shakeAlpha})`;
+    ctx.fillRect(0, 0, width, height);
+  }
 }
 
 function drawCavern(ctx, w, h, t) {
-    if (!window.currentCavernLayout) {
-        const numGems = 20 + Math.floor(Math.random() * 11);
-        const gems = [];
-        for (let i = 0; i < numGems; i++) {
-            gems.push({
-                xFrac: Math.random(),
-                yFrac: Math.random(),
-                gemType: Math.floor(Math.random() * 20) // 20 cached gemstone combinations
-            });
-        }
-        
-        const numStalactites = 8 + Math.floor(Math.random() * 8);
-        const stalactites = [];
-        for (let i = 0; i < numStalactites; i++) {
-            const length = 50 + Math.random() * 100;
-            const width = 20 + Math.random() * 40;
-            
-            // Generate bumpy paths for organic spikes, but keep them subtle so they look pointier
-            const leftPath = [];
-            const rightPath = [];
-            const segments = 5;
-            for (let s = 1; s < segments; s++) {
-                leftPath.push((Math.random() - 0.5) * 2); // smaller offsets
-                rightPath.push((Math.random() - 0.5) * 2);
-            }
-
-            let xFrac = Math.random();
-            let attempts = 0;
-            let valid = false;
-            while (attempts < 50) {
-                let tooClose = false;
-                for (const st of stalactites) {
-                    if (Math.abs(st.xFrac - xFrac) < 0.06) {
-                        tooClose = true;
-                        break;
-                    }
-                }
-                if (!tooClose) { valid = true; break; }
-                xFrac = Math.random();
-                attempts++;
-            }
-            if (!valid) continue;
-
-            stalactites.push({
-                xFrac: xFrac,
-                length: length,
-                width: width,
-                dropPhase: Math.random() * Math.PI * 2,
-                dropSpeed: 0.5 + Math.random() * 1.5,
-                leftPath: leftPath,
-                rightPath: rightPath
-            });
-        }
-        
-        const cracks = [];
-        const cols = 15;
-        const rows = 12;
-        for (let c = 0; c < cols; c++) {
-            for (let r = 0; r < rows; r++) {
-                if (Math.random() > 0.1) { // 90% chance to have a crack in this cell, smaller cells -> more cracks
-                    const points = [];
-                    const numPoints = 3 + Math.floor(Math.random() * 5);
-                    let cx = (c + Math.random()) / cols;
-                    let cy = (r + Math.random()) / rows;
-                    for (let p = 0; p < numPoints; p++) {
-                        points.push({ x: cx, y: cy });
-                        cx += (Math.random() - 0.5) * 0.05;
-                        cy += (Math.random() - 0.5) * 0.05;
-                    }
-                    cracks.push(points);
-                }
-            }
-        }
-        
-        window.currentCavernLayout = { gems, stalactites, cracks };
+  if (!window.currentCavernLayout) {
+    const numGems = 20 + Math.floor(Math.random() * 11);
+    const gems = [];
+    for (let i = 0; i < numGems; i++) {
+      gems.push({
+        xFrac: Math.random(),
+        yFrac: Math.random(),
+        gemType: Math.floor(Math.random() * 20), // 20 cached gemstone combinations
+      });
     }
 
-    const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, '#2e1c11');
-    grad.addColorStop(1, '#1a0d05');
-    
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, w, h);
-    
-    // Draw cracky crumbly background details
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
-    ctx.lineWidth = 3;
-    if (window.currentCavernLayout.cracks) {
-        for (const crack of window.currentCavernLayout.cracks) {
-            ctx.beginPath();
-            ctx.moveTo(crack[0].x * w, crack[0].y * h);
-            for (let i = 1; i < crack.length; i++) {
-                ctx.lineTo(crack[i].x * w, crack[i].y * h);
-            }
-            ctx.stroke();
+    const numStalactites = 8 + Math.floor(Math.random() * 8);
+    const stalactites = [];
+    for (let i = 0; i < numStalactites; i++) {
+      const length = 50 + Math.random() * 100;
+      const width = 20 + Math.random() * 40;
+
+      // Generate bumpy paths for organic spikes, but keep them subtle so they look pointier
+      const leftPath = [];
+      const rightPath = [];
+      const segments = 5;
+      for (let s = 1; s < segments; s++) {
+        leftPath.push((Math.random() - 0.5) * 2); // smaller offsets
+        rightPath.push((Math.random() - 0.5) * 2);
+      }
+
+      let xFrac = Math.random();
+      let attempts = 0;
+      let valid = false;
+      while (attempts < 50) {
+        let tooClose = false;
+        for (const st of stalactites) {
+          if (Math.abs(st.xFrac - xFrac) < 0.06) {
+            tooClose = true;
+            break;
+          }
         }
-    }
-    
-    for (const st of window.currentCavernLayout.stalactites) {
-        const sx = st.xFrac * w;
-        const tipX = sx + (Math.sin(st.dropPhase) * 10);
-        
-        const stalactiteGrad = ctx.createLinearGradient(sx, 0, sx, st.length);
-        stalactiteGrad.addColorStop(0, '#1c100a');
-        stalactiteGrad.addColorStop(1, '#402618');
-        ctx.fillStyle = stalactiteGrad;
-        
-        ctx.beginPath();
-        // perfect triangle
-        ctx.moveTo(sx - st.width / 2, 0);
-        ctx.lineTo(tipX, st.length); // The tip
-        ctx.lineTo(sx + st.width / 2, 0);
-        ctx.closePath();
-        ctx.fill();
-        
-        // draw water droplet
-        const dropT = (t * st.dropSpeed + st.dropPhase) % 6; // 6 seconds cycle
-        if (dropT < 1) { // Falling phase
-            const dropY = st.length + dropT * (h - st.length);
-            ctx.fillStyle = 'rgba(100, 200, 255, 0.4)';
-            ctx.beginPath();
-            ctx.arc(tipX, dropY, 2, 0, Math.PI * 2);
-            ctx.fill();
+        if (!tooClose) {
+          valid = true;
+          break;
         }
+        xFrac = Math.random();
+        attempts++;
+      }
+      if (!valid) continue;
+
+      stalactites.push({
+        xFrac: xFrac,
+        length: length,
+        width: width,
+        dropPhase: Math.random() * Math.PI * 2,
+        dropSpeed: 0.5 + Math.random() * 1.5,
+        leftPath: leftPath,
+        rightPath: rightPath,
+      });
     }
-    
-    const floorH = 260;
 
-    // Draw flat floor layers
-    ctx.fillStyle = "rgb(42, 30, 24)";
-    ctx.fillRect(0, h - floorH, w, floorH);
-
-    ctx.fillStyle = "rgb(28, 20, 16)";
-    ctx.fillRect(0, h - floorH * 0.8, w, floorH * 0.8);
-
-    ctx.fillStyle = "rgb(18, 12, 10)";
-    ctx.fillRect(0, h - floorH * 0.6, w, floorH * 0.6);
-    
-    // generate and draw clusters identically to sellTab.js
-    const colors = [
-        {r: 0, g: 255, b: 255}, // Bright Cyan
-        {r: 148, g: 0, b: 211}, // Deep Purple
-        {r: 235, g: 30, b: 50}, // Red (Ruby)
-        {r: 40, g: 220, b: 100} // Green (Emerald)
-    ];
-
-    if (!window.cachedGemstones) {
-        window.cachedGemstones = [];
-        for (let i = 0; i < 20; i++) {
-            const sharedColor = colors[i % colors.length];
-            const clusters = [];
-            const numPieces = 3 + Math.floor(Math.abs(Math.sin(i * 123.45)) * 3);
-            for(let p=0; p<numPieces; p++) {
-                const pSize = 4 + Math.abs(Math.sin(p * 456.78)) * 6;
-                const numVertices = 4 + Math.floor(Math.abs(Math.cos(p * 789.01)) * 4);
-                const facets = [];
-                for (let v = 0; v < numVertices; v++) {
-                     const angle = (v / numVertices) * Math.PI * 2;
-                     const rad = pSize * (0.6 + Math.abs(Math.sin(v * 12.34)) * 0.6);
-                     const shade = 0.6 + Math.abs(Math.cos(v * 56.78)) * 0.6;
-                     facets.push({ dx: Math.cos(angle) * rad, dy: Math.sin(angle) * rad, shade });
-                }
-                clusters.push({
-                    ox: (Math.abs(Math.sin(p * 90.12)) - 0.5) * 10,
-                    oy: (Math.abs(Math.cos(p * 34.56)) - 0.5) * 10,
-                    facets,
-                    size: pSize
-                });
-            }
-
-            let cachedImage;
-            if (typeof OffscreenCanvas !== 'undefined') {
-                cachedImage = new OffscreenCanvas(40, 40);
-            } else {
-                cachedImage = document.createElement('canvas');
-                cachedImage.width = 40;
-                cachedImage.height = 40;
-            }
-            const octx = cachedImage.getContext('2d');
-            octx.translate(20, 20); // Center drawing
-
-            for (const cl of clusters) {
-                const px = cl.ox;
-                const py = cl.oy;
-                if (cl.facets && cl.facets.length > 0) {
-                    for (let v = 0; v < cl.facets.length; v++) {
-                        const p1 = cl.facets[v];
-                        const p2 = cl.facets[(v + 1) % cl.facets.length];
-                        
-                        octx.beginPath();
-                        octx.moveTo(px, py); // center point
-                        octx.lineTo(px + p1.dx, py + p1.dy);
-                        octx.lineTo(px + p2.dx, py + p2.dy);
-                        octx.closePath();
-                        
-                        // Calculate shaded color for this facet
-                        const r = Math.min(255, sharedColor.r * p1.shade);
-                        const g = Math.min(255, sharedColor.g * p1.shade);
-                        const b = Math.min(255, sharedColor.b * p1.shade);
-                        octx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-                        octx.fill();
-                    }
-                }
-            }
-            window.cachedGemstones.push(cachedImage);
+    const cracks = [];
+    const cols = 15;
+    const rows = 12;
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        if (Math.random() > 0.1) {
+          // 90% chance to have a crack in this cell, smaller cells -> more cracks
+          const points = [];
+          const numPoints = 3 + Math.floor(Math.random() * 5);
+          let cx = (c + Math.random()) / cols;
+          let cy = (r + Math.random()) / rows;
+          for (let p = 0; p < numPoints; p++) {
+            points.push({ x: cx, y: cy });
+            cx += (Math.random() - 0.5) * 0.05;
+            cy += (Math.random() - 0.5) * 0.05;
+          }
+          cracks.push(points);
         }
+      }
     }
-    
-    for (const gem of window.currentCavernLayout.gems) {
-        let cx = gem.xFrac * w;
-        let cy = h - floorH * 0.7 + (floorH * 0.6) * gem.yFrac;
-        
-        const cachedImage = window.cachedGemstones[gem.gemType];
-        if (cachedImage) {
-            ctx.drawImage(cachedImage, cx - 20, cy - 20);
+
+    window.currentCavernLayout = { gems, stalactites, cracks };
+  }
+
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, "#2e1c11");
+  grad.addColorStop(1, "#1a0d05");
+
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Draw cracky crumbly background details
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
+  ctx.lineWidth = 3;
+  if (window.currentCavernLayout.cracks) {
+    for (const crack of window.currentCavernLayout.cracks) {
+      ctx.beginPath();
+      ctx.moveTo(crack[0].x * w, crack[0].y * h);
+      for (let i = 1; i < crack.length; i++) {
+        ctx.lineTo(crack[i].x * w, crack[i].y * h);
+      }
+      ctx.stroke();
+    }
+  }
+
+  for (const st of window.currentCavernLayout.stalactites) {
+    const sx = st.xFrac * w;
+    const tipX = sx + Math.sin(st.dropPhase) * 10;
+
+    const stalactiteGrad = ctx.createLinearGradient(sx, 0, sx, st.length);
+    stalactiteGrad.addColorStop(0, "#1c100a");
+    stalactiteGrad.addColorStop(1, "#402618");
+    ctx.fillStyle = stalactiteGrad;
+
+    ctx.beginPath();
+    // perfect triangle
+    ctx.moveTo(sx - st.width / 2, 0);
+    ctx.lineTo(tipX, st.length); // The tip
+    ctx.lineTo(sx + st.width / 2, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // draw water droplet
+    const dropT = (t * st.dropSpeed + st.dropPhase) % 6; // 6 seconds cycle
+    if (dropT < 1) {
+      // Falling phase
+      const dropY = st.length + dropT * (h - st.length);
+      ctx.fillStyle = "rgba(100, 200, 255, 0.4)";
+      ctx.beginPath();
+      ctx.arc(tipX, dropY, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  const floorH = 260;
+
+  // Draw flat floor layers
+  ctx.fillStyle = "rgb(42, 30, 24)";
+  ctx.fillRect(0, h - floorH, w, floorH);
+
+  ctx.fillStyle = "rgb(28, 20, 16)";
+  ctx.fillRect(0, h - floorH * 0.8, w, floorH * 0.8);
+
+  ctx.fillStyle = "rgb(18, 12, 10)";
+  ctx.fillRect(0, h - floorH * 0.6, w, floorH * 0.6);
+
+  // generate and draw clusters identically to sellTab.js
+  const colors = [
+    { r: 0, g: 255, b: 255 }, // Bright Cyan
+    { r: 148, g: 0, b: 211 }, // Deep Purple
+    { r: 235, g: 30, b: 50 }, // Red (Ruby)
+    { r: 40, g: 220, b: 100 }, // Green (Emerald)
+  ];
+
+  if (!window.cachedGemstones) {
+    window.cachedGemstones = [];
+    for (let i = 0; i < 20; i++) {
+      const sharedColor = colors[i % colors.length];
+      const clusters = [];
+      const numPieces = 3 + Math.floor(Math.abs(Math.sin(i * 123.45)) * 3);
+      for (let p = 0; p < numPieces; p++) {
+        const pSize = 4 + Math.abs(Math.sin(p * 456.78)) * 6;
+        const numVertices = 4 + Math.floor(Math.abs(Math.cos(p * 789.01)) * 4);
+        const facets = [];
+        for (let v = 0; v < numVertices; v++) {
+          const angle = (v / numVertices) * Math.PI * 2;
+          const rad = pSize * (0.6 + Math.abs(Math.sin(v * 12.34)) * 0.6);
+          const shade = 0.6 + Math.abs(Math.cos(v * 56.78)) * 0.6;
+          facets.push({
+            dx: Math.cos(angle) * rad,
+            dy: Math.sin(angle) * rad,
+            shade,
+          });
         }
+        clusters.push({
+          ox: (Math.abs(Math.sin(p * 90.12)) - 0.5) * 10,
+          oy: (Math.abs(Math.cos(p * 34.56)) - 0.5) * 10,
+          facets,
+          size: pSize,
+        });
+      }
+
+      let cachedImage;
+      if (typeof OffscreenCanvas !== "undefined") {
+        cachedImage = new OffscreenCanvas(40, 40);
+      } else {
+        cachedImage = document.createElement("canvas");
+        cachedImage.width = 40;
+        cachedImage.height = 40;
+      }
+      const octx = cachedImage.getContext("2d");
+      octx.translate(20, 20); // Center drawing
+
+      for (const cl of clusters) {
+        const px = cl.ox;
+        const py = cl.oy;
+        if (cl.facets && cl.facets.length > 0) {
+          for (let v = 0; v < cl.facets.length; v++) {
+            const p1 = cl.facets[v];
+            const p2 = cl.facets[(v + 1) % cl.facets.length];
+
+            octx.beginPath();
+            octx.moveTo(px, py); // center point
+            octx.lineTo(px + p1.dx, py + p1.dy);
+            octx.lineTo(px + p2.dx, py + p2.dy);
+            octx.closePath();
+
+            // Calculate shaded color for this facet
+            const r = Math.min(255, sharedColor.r * p1.shade);
+            const g = Math.min(255, sharedColor.g * p1.shade);
+            const b = Math.min(255, sharedColor.b * p1.shade);
+            octx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            octx.fill();
+          }
+        }
+      }
+      window.cachedGemstones.push(cachedImage);
     }
+  }
+
+  for (const gem of window.currentCavernLayout.gems) {
+    let cx = gem.xFrac * w;
+    let cy = h - floorH * 0.7 + floorH * 0.6 * gem.yFrac;
+
+    const cachedImage = window.cachedGemstones[gem.gemType];
+    if (cachedImage) {
+      ctx.drawImage(cachedImage, cx - 20, cy - 20);
+    }
+  }
 }
 
 function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
-    const floorY = h - 260; // Match new floor height
-    const cx = w / 2;
-    
-    let currentY = floorY;
-    
-    ctx.save();
-    ctx.translate(cx, floorY);
-    
-    const targetScale = 1.0 + (tier * 0.1);
-    const startScale = 1.0 + (prevTier * 0.1);
-    const scale = startScale + (targetScale - startScale) * animProgress;
-    ctx.scale(scale, scale);
-    
-    let bounce = 0;
+  const floorY = h - 260; // Match new floor height
+  const cx = w / 2;
 
-    let topY = 0;
-    if (id === 'core') topY = -200;
-    else if (id === 'crystal') topY = -(100 + (tier * 10)) - 30; // approx height of prism
-    else if (id === 'stone') topY = -140;
-    else if (id === 'copper') topY = -90;
-    else if (id === 'iron') topY = -100;
-    else if (id === 'pure_gold') topY = -60;
-    else if (id === 'diamond') topY = -120;
-    else if (id === 'emerald') topY = -130;
-    else if (id === 'ruby') topY = -100;
-    else if (id === 'sapphire') topY = -80;
-    else if (id === 'unobtainium') topY = -160;
-    else if (id === 'prismatium') topY = -150;
-    else topY = -100;
-    
-    // Scale the topY
-    let finalHighestY = floorY + topY * scale;
+  let currentY = floorY;
 
-    ctx.save();
-    const glowRadius = Math.abs(topY) * 0.8 + 40;
-    const glowGrad = ctx.createRadialGradient(0, topY / 2, 0, 0, topY / 2, glowRadius);
-    glowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
-    glowGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    ctx.fillStyle = glowGrad;
-    ctx.beginPath();
-    ctx.arc(0, topY / 2, glowRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+  ctx.save();
+  ctx.translate(cx, floorY);
 
-    if (id === 'core') drawBlackHole(ctx, t, tier, prevTier, animProgress);
-    else if (id === 'crystal') drawPrism(ctx, t, tier, prevTier, animProgress);
-    else if (id === 'stone') drawFoundry(ctx, t, tier, prevTier, animProgress);
-    else if (id === 'copper') drawCharger(ctx, t, tier);
-    else if (id === 'iron') drawRefinery(ctx, t, tier);
-    else if (id === 'pure_gold') drawVault(ctx, t, tier);
-    else if (id === 'diamond') drawOilRig(ctx, t, tier);
-    else if (id === 'emerald') drawGreenhouse(ctx, t, tier);
-    else if (id === 'ruby') drawRadiator(ctx, t, tier);
-    else if (id === 'sapphire') drawCentrifuge(ctx, t, tier);
-    else if (id === 'unobtainium') drawBeacon(ctx, t, tier);
-    else if (id === 'prismatium') drawSingularity(ctx, t, tier);
-    
-    ctx.restore();
-    
-    // Update HTML element position
-    const levelText = document.getElementById('building-detail-level-text');
-    if (levelText) {
-        levelText.style.position = 'absolute';
-        // Calculate top offset based on parent container offset (which might be causing the drift)
-        // Adjust for padding or margins of the container
-        levelText.style.top = Math.max(50, finalHighestY - 180) + 'px'; // Magic number offset to fix clipping
-        levelText.style.left = '0';
-        levelText.style.width = '100%';
-        
-        let shakeAlphaText = 0;
-        if (tierUpAnimTime > 0) {
-            shakeAlphaText = tierUpAnimTime > 2.5 ? (6.0 - tierUpAnimTime) / 3.5 : tierUpAnimTime / 2.5;
-        }
-        levelText.style.opacity = Math.max(0, 1 - shakeAlphaText);
+  const targetScale = 1.0 + tier * 0.1;
+  const startScale = 1.0 + prevTier * 0.1;
+  const scale = startScale + (targetScale - startScale) * animProgress;
+  ctx.scale(scale, scale);
+
+  let bounce = 0;
+
+  let topY = 0;
+  if (id === "core") topY = -200;
+  else if (id === "crystal")
+    topY = -(100 + tier * 10) - 30; // approx height of prism
+  else if (id === "stone") topY = -140;
+  else if (id === "copper") topY = -90;
+  else if (id === "iron") topY = -100;
+  else if (id === "pure_gold") topY = -60;
+  else if (id === "diamond") topY = -120;
+  else if (id === "emerald") topY = -130;
+  else if (id === "ruby") topY = -100;
+  else if (id === "sapphire") topY = -80;
+  else if (id === "unobtainium") topY = -160;
+  else if (id === "prismatium") topY = -150;
+  else topY = -100;
+
+  // Scale the topY
+  let finalHighestY = floorY + topY * scale;
+
+  ctx.save();
+  const glowRadius = Math.abs(topY) * 0.8 + 40;
+  const glowGrad = ctx.createRadialGradient(
+    0,
+    topY / 2,
+    0,
+    0,
+    topY / 2,
+    glowRadius,
+  );
+  glowGrad.addColorStop(0, "rgba(255, 255, 255, 0.15)");
+  glowGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = glowGrad;
+  ctx.beginPath();
+  ctx.arc(0, topY / 2, glowRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  if (id === "core") drawBlackHole(ctx, t, tier, prevTier, animProgress);
+  else if (id === "crystal") drawPrism(ctx, t, tier, prevTier, animProgress);
+  else if (id === "stone") drawFoundry(ctx, t, tier, prevTier, animProgress);
+  else if (id === "copper") drawCharger(ctx, t, tier);
+  else if (id === "iron") drawRefinery(ctx, t, tier);
+  else if (id === "pure_gold") drawVault(ctx, t, tier);
+  else if (id === "diamond") drawOilRig(ctx, t, tier);
+  else if (id === "emerald") drawGreenhouse(ctx, t, tier);
+  else if (id === "ruby") drawRadiator(ctx, t, tier);
+  else if (id === "sapphire") drawCentrifuge(ctx, t, tier);
+  else if (id === "unobtainium") drawBeacon(ctx, t, tier);
+  else if (id === "prismatium") drawSingularity(ctx, t, tier);
+
+  ctx.restore();
+
+  // Update HTML element position
+  const levelText = document.getElementById("building-detail-level-text");
+  if (levelText) {
+    levelText.style.position = "absolute";
+    // Calculate top offset based on parent container offset (which might be causing the drift)
+    // Adjust for padding or margins of the container
+    levelText.style.top = Math.max(50, finalHighestY - 180) + "px"; // Magic number offset to fix clipping
+    levelText.style.left = "0";
+    levelText.style.width = "100%";
+
+    let shakeAlphaText = 0;
+    if (tierUpAnimTime > 0) {
+      shakeAlphaText =
+        tierUpAnimTime > 2.5
+          ? (6.0 - tierUpAnimTime) / 3.5
+          : tierUpAnimTime / 2.5;
     }
+    levelText.style.opacity = Math.max(0, 1 - shakeAlphaText);
+  }
 }
 
 // ----------------- Building Drawing Routines ----------------- //
 
 function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
-    const cx = 0;
-    const cy = -80; // Main vertical center of the black hole
-    
-    const showTier0 = 1;
-    const tier0Prog = (tier >= 0 && prevTier < 0) ? animProgress : showTier0;
-    const showTier1 = (tier >= 1) ? 1 : 0;
-    const tier1Prog = (tier >= 1 && prevTier < 1) ? animProgress : showTier1;
-    const showTier2 = (tier >= 2) ? 1 : 0;
-    const tier2Prog = (tier >= 2 && prevTier < 2) ? animProgress : showTier2;
-    const showTier3 = (tier >= 3) ? 1 : 0;
-    const tier3Prog = (tier >= 3 && prevTier < 3) ? animProgress : showTier3;
-    const showTier4 = (tier >= 4) ? 1 : 0;
-    const tier4Prog = (tier >= 4 && prevTier < 4) ? animProgress : showTier4;
-    const showTier5 = (tier >= 5) ? 1 : 0;
-    const tier5Prog = (tier >= 5 && prevTier < 5) ? animProgress : showTier5;
-    const showTier6 = (tier >= 6) ? 1 : 0;
-    const tier6Prog = (tier >= 6 && prevTier < 6) ? animProgress : showTier6;
-    const showTier7 = (tier >= 7) ? 1 : 0;
-    const tier7Prog = (tier >= 7 && prevTier < 7) ? animProgress : showTier7;
-    const showTier8 = (tier >= 8) ? 1 : 0;
-    const tier8Prog = (tier >= 8 && prevTier < 8) ? animProgress : showTier8;
+  const cx = 0;
+  const cy = -80; // Main vertical center of the black hole
 
-    const baseRadius = 8;
-    let finalRadius = baseRadius;
-    if (tier >= 1) finalRadius += 10 * tier1Prog;
-    if (tier >= 2) finalRadius += 10 * tier2Prog;
+  const showTier0 = 1;
+  const tier0Prog = tier >= 0 && prevTier < 0 ? animProgress : showTier0;
+  const showTier1 = tier >= 1 ? 1 : 0;
+  const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
+  const showTier2 = tier >= 2 ? 1 : 0;
+  const tier2Prog = tier >= 2 && prevTier < 2 ? animProgress : showTier2;
+  const showTier3 = tier >= 3 ? 1 : 0;
+  const tier3Prog = tier >= 3 && prevTier < 3 ? animProgress : showTier3;
+  const showTier4 = tier >= 4 ? 1 : 0;
+  const tier4Prog = tier >= 4 && prevTier < 4 ? animProgress : showTier4;
+  const showTier5 = tier >= 5 ? 1 : 0;
+  const tier5Prog = tier >= 5 && prevTier < 5 ? animProgress : showTier5;
+  const showTier6 = tier >= 6 ? 1 : 0;
+  const tier6Prog = tier >= 6 && prevTier < 6 ? animProgress : showTier6;
+  const showTier7 = tier >= 7 ? 1 : 0;
+  const tier7Prog = tier >= 7 && prevTier < 7 ? animProgress : showTier7;
+  const showTier8 = tier >= 8 ? 1 : 0;
+  const tier8Prog = tier >= 8 && prevTier < 8 ? animProgress : showTier8;
 
-    if (tier5Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier5Prog;
-        
-        const coronaRadius = 100 + 30 * tier7Prog;
-        const coronaT = t * 0.5;
-        
-        ctx.translate(cx, cy);
-        for(let i=0; i<4; i++) {
-            ctx.save();
-            ctx.rotate(coronaT + i * Math.PI / 2);
-            ctx.scale(1, 0.8 + 0.2 * Math.sin(t * 2 + i));
-            
-            const mistGrad = ctx.createRadialGradient(0, 0, 20, 0, 0, coronaRadius);
-            mistGrad.addColorStop(0, 'rgba(30, 10, 50, 0.8)');
-            mistGrad.addColorStop(0.5, 'rgba(50, 20, 80, 0.4)');
-            mistGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            
-            ctx.fillStyle = mistGrad;
-            ctx.beginPath();
-            ctx.arc(0, 0, coronaRadius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
-        ctx.restore();
+  const baseRadius = 8;
+  let finalRadius = baseRadius;
+  if (tier >= 1) finalRadius += 10 * tier1Prog;
+  if (tier >= 2) finalRadius += 10 * tier2Prog;
+
+  if (tier5Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier5Prog;
+
+    const coronaRadius = 100 + 30 * tier7Prog;
+    const coronaT = t * 0.5;
+
+    ctx.translate(cx, cy);
+    for (let i = 0; i < 4; i++) {
+      ctx.save();
+      ctx.rotate(coronaT + (i * Math.PI) / 2);
+      ctx.scale(1, 0.8 + 0.2 * Math.sin(t * 2 + i));
+
+      const mistGrad = ctx.createRadialGradient(0, 0, 20, 0, 0, coronaRadius);
+      mistGrad.addColorStop(0, "rgba(30, 10, 50, 0.8)");
+      mistGrad.addColorStop(0.5, "rgba(50, 20, 80, 0.4)");
+      mistGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+      ctx.fillStyle = mistGrad;
+      ctx.beginPath();
+      ctx.arc(0, 0, coronaRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
-    // Tier 4: Pseudo-3D Accretion Disk Particle System (was Tier 5)
-    // Front/Back calculated here. Much more intense at Tier 8.
-    const diskOuterRadius = 120 + 40 * tier8Prog;
-    const diskInnerRadius = 35;
-    const numParticles = 300 + Math.floor(600 * tier8Prog);
-    
-    const getParticle = (i) => {
-        const hash1 = Math.abs(Math.sin(i * 123.456));
-        const hash2 = Math.abs(Math.cos(i * 987.654));
-        const hash3 = Math.abs(Math.sin(i * 345.678));
-        
-        const radius = diskInnerRadius + (diskOuterRadius - diskInnerRadius) * Math.pow(hash1, 1.5);
-        
-        const normalizedR = (radius - diskInnerRadius) / (diskOuterRadius - diskInnerRadius);
-        
-        // speed depends on distance, integrated using globalDiskAngle to avoid jumps
-        const baseSpeed = 1.0 + (1.0 - normalizedR) * 2.0;
-        
-        const baseAngle = hash2 * Math.PI * 2;
-        const angle = baseAngle + globalDiskAngle * baseSpeed;
-        
-        const rawX = Math.cos(angle) * radius;
-        const rawY = Math.sin(angle) * radius;
-        
-        const tilt = 0.25; 
-        const angleRot = Math.PI / 8; 
-        
-        const flatX = rawX;
-        const flatY = rawY * tilt;
-        
-        const finalX = flatX * Math.cos(angleRot) - flatY * Math.sin(angleRot);
-        const finalY = flatX * Math.sin(angleRot) + flatY * Math.cos(angleRot);
-        
-        let color;
-        if (normalizedR < 0.1) color = 'rgba(255, 255, 255, 1.0)';
-        else if (normalizedR < 0.4) color = `rgba(255, ${150 + hash3*50}, 50, 0.9)`;
-        else color = `rgba(200, 50, 0, ${0.8 - normalizedR * 0.6})`;
-        
-        const sizeMultiplier = 1.0 + 1.0 * tier8Prog;
-        const size = (1.5 + hash3 * 2) * sizeMultiplier;
-        
-        const isBack = Math.sin(angle) < 0; 
-        
-        return { x: cx + finalX, y: cy + finalY, color, size, isBack };
-    };
+    ctx.restore();
+  }
+  // Tier 4: Pseudo-3D Accretion Disk Particle System (was Tier 5)
+  // Front/Back calculated here. Much more intense at Tier 8.
+  const diskOuterRadius = 120 + 40 * tier8Prog;
+  const diskInnerRadius = 35;
+  const numParticles = 300 + Math.floor(600 * tier8Prog);
 
-    if (tier4Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier4Prog;
-        for(let i = 0; i < numParticles; i++) {
-            const p = getParticle(i);
-            if (p.isBack) {
-                ctx.fillStyle = p.color;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-        ctx.restore();
-    }
+  const getParticle = (i) => {
+    const hash1 = Math.abs(Math.sin(i * 123.456));
+    const hash2 = Math.abs(Math.cos(i * 987.654));
+    const hash3 = Math.abs(Math.sin(i * 345.678));
 
-    if (tier1Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier1Prog;
-        
-        // Base speed a lot faster
-        const rotationSpeed = 3.0 + (tier * 0.5) + (tier >= 8 ? 4.0 : 0);
-        const startAngle = t * rotationSpeed;
-        
-        const grad = ctx.createConicGradient(startAngle, cx, cy);
-        grad.addColorStop(0, 'rgb(200, 50, 0)');      // Deep orange
-        grad.addColorStop(0.33, 'rgb(255, 100, 0)');  // Orange
-        grad.addColorStop(0.66, 'rgb(255, 160, 0)');  // Light orange
-        grad.addColorStop(1, 'rgb(200, 50, 0)');      // Deep orange
-        
+    const radius =
+      diskInnerRadius +
+      (diskOuterRadius - diskInnerRadius) * Math.pow(hash1, 1.5);
+
+    const normalizedR =
+      (radius - diskInnerRadius) / (diskOuterRadius - diskInnerRadius);
+
+    // speed depends on distance, integrated using globalDiskAngle to avoid jumps
+    const baseSpeed = 1.0 + (1.0 - normalizedR) * 2.0;
+
+    const baseAngle = hash2 * Math.PI * 2;
+    const angle = baseAngle + globalDiskAngle * baseSpeed;
+
+    const rawX = Math.cos(angle) * radius;
+    const rawY = Math.sin(angle) * radius;
+
+    const tilt = 0.25;
+    const angleRot = Math.PI / 8;
+
+    const flatX = rawX;
+    const flatY = rawY * tilt;
+
+    const finalX = flatX * Math.cos(angleRot) - flatY * Math.sin(angleRot);
+    const finalY = flatX * Math.sin(angleRot) + flatY * Math.cos(angleRot);
+
+    let color;
+    if (normalizedR < 0.1) color = "rgba(255, 255, 255, 1.0)";
+    else if (normalizedR < 0.4)
+      color = `rgba(255, ${150 + hash3 * 50}, 50, 0.9)`;
+    else color = `rgba(200, 50, 0, ${0.8 - normalizedR * 0.6})`;
+
+    const sizeMultiplier = 1.0 + 1.0 * tier8Prog;
+    const size = (1.5 + hash3 * 2) * sizeMultiplier;
+
+    const isBack = Math.sin(angle) < 0;
+
+    return { x: cx + finalX, y: cy + finalY, color, size, isBack };
+  };
+
+  if (tier4Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier4Prog;
+    for (let i = 0; i < numParticles; i++) {
+      const p = getParticle(i);
+      if (p.isBack) {
+        ctx.fillStyle = p.color;
         ctx.beginPath();
-        ctx.arc(cx, cy, finalRadius + 2, 0, Math.PI * 2);
-        ctx.lineWidth = 6;
-        ctx.strokeStyle = grad;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = 'rgba(255, 100, 0, 0.8)';
-        ctx.stroke();
-        
-        ctx.restore();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
+    ctx.restore();
+  }
 
-    // Tier 6: Orbiting Stars (Spaghettification)
-    if (tier6Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier6Prog;
-        ctx.translate(cx, cy);
-        
-        const numStars = 3;
-        for (let i = 0; i < numStars; i++) {
-            // cycle goes from 0.0 (far away) to 1.0 (entering event horizon)
-            const cycleT = (t * 0.3 + i * (1.0 / numStars)) % 1.0;
-            
-            const startDist = finalRadius + 150;
-            const currentDist = startDist * (1.0 - cycleT) + finalRadius * cycleT;
-            
-            // Faster orbit as it gets closer
-            const angle = (i * Math.PI * 2 / numStars) + t * 10.0;
-            
-            const x = Math.cos(angle) * currentDist;
-            const y = Math.sin(angle) * currentDist * 0.3; // Accretion disk perspective
-            
-            // Fade in at start, fade out at end
-            let alpha = 1.0;
-            if (cycleT < 0.1) alpha = cycleT / 0.1;
-            else if (cycleT > 0.9) alpha = (1.0 - cycleT) / 0.1;
-            
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(angle + Math.PI / 2); // Point trail along orbit path
-            
-            // "Spaghettify" stretch as it gets close
-            const stretch = 1.0 + Math.pow(cycleT, 3) * 10.0;
-            ctx.scale(1.0 / Math.sqrt(stretch), stretch); 
-            
-            // Draw star core
-            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-            ctx.beginPath();
-            ctx.arc(0, 0, 3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Draw star glow/trail
-            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 15);
-            grad.addColorStop(0, `rgba(150, 200, 255, ${alpha * 0.8})`);
-            grad.addColorStop(1, `rgba(50, 100, 255, 0)`);
-            
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(0, 0, 15, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.restore();
-            
-            // Draw a trailing streak behind the star
-            ctx.strokeStyle = `rgba(100, 150, 255, ${alpha * 0.5})`;
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            for (let j = 0; j < 10; j++) {
-                const trailCycleT = Math.max(0, cycleT - (j * 0.01));
-                const trailDist = startDist * (1.0 - trailCycleT) + finalRadius * trailCycleT;
-                const trailAngle = (i * Math.PI * 2 / numStars) + (t - (j*0.03)) * 10.0;
-                
-                const tx = Math.cos(trailAngle) * trailDist;
-                const ty = Math.sin(trailAngle) * trailDist * 0.3;
-                
-                if (j === 0) ctx.moveTo(tx, ty);
-                else ctx.lineTo(tx, ty);
-            }
-            ctx.stroke();
-        }
-        
-        ctx.restore();
-    }
+  if (tier1Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier1Prog;
 
-    // Tier 7: Angled, pulsating beam (was Tier 8, Underneath the black hole body, above photon ring)
-    if (tier7Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier7Prog;
-        
-        ctx.translate(cx, cy);
-        ctx.rotate(Math.PI / 4); // Angled to the right
-        
-        const beamW = 20 + 10 * Math.abs(Math.sin(t * 12));
-        const beamHeight = 600; // Extends way past viewport
-        
-        // Intense purple/white beam gradient
-        const beamGrad = ctx.createLinearGradient(-beamW/2, 0, beamW/2, 0);
-        beamGrad.addColorStop(0, `rgba(138, 43, 226, 0)`);
-        beamGrad.addColorStop(0.2, `rgba(180, 80, 255, ${0.8 * tier7Prog})`);
-        beamGrad.addColorStop(0.5, `rgba(255, 255, 255, ${1.0 * tier7Prog})`);
-        beamGrad.addColorStop(0.8, `rgba(180, 80, 255, ${0.8 * tier7Prog})`);
-        beamGrad.addColorStop(1, `rgba(138, 43, 226, 0)`);
-        
-        ctx.fillStyle = beamGrad;
-        // The beam goes straight through (top to bottom)
-        ctx.fillRect(-beamW/2, -beamHeight, beamW, beamHeight * 2);
-        
-        // Extra intense core line
-        ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + 0.5 * Math.sin(t * 20)})`;
-        const coreWidth = 4 + 2 * Math.abs(Math.sin(t * 12));
-        ctx.fillRect(-coreWidth/2, -beamHeight, coreWidth, beamHeight * 2);
+    // Base speed a lot faster
+    const rotationSpeed = 3.0 + tier * 0.5 + (tier >= 8 ? 4.0 : 0);
+    const startAngle = t * rotationSpeed;
 
-        ctx.restore();
-    }
+    const grad = ctx.createConicGradient(startAngle, cx, cy);
+    grad.addColorStop(0, "rgb(200, 50, 0)"); // Deep orange
+    grad.addColorStop(0.33, "rgb(255, 100, 0)"); // Orange
+    grad.addColorStop(0.66, "rgb(255, 160, 0)"); // Light orange
+    grad.addColorStop(1, "rgb(200, 50, 0)"); // Deep orange
 
-
-    // Tier 2: Debris being sucked in (Back half)
-    if (tier2Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier2Prog;
-        ctx.translate(cx, cy);
-        
-        const numDebris = 15;
-        for (let i = 0; i < numDebris; i++) {
-            const debrisT = (t * 0.5 + i * (1.0 / numDebris)) % 1.0; // 0 to 1 cycle of falling in
-            const startDist = finalRadius + 100;
-            const currentDist = startDist * (1.0 - debrisT);
-            
-            // Spiral angle
-            const angle = i * Math.PI * 2 / numDebris + debrisT * Math.PI * 4;
-            
-            if (Math.sin(angle) <= 0 && currentDist > finalRadius) { // Back half
-                const size = 1.5 + Math.sin(i * 123) * 1.0;
-                const x = Math.cos(angle) * currentDist;
-                // Squish y to fit the disk perspective
-                const y = Math.sin(angle) * currentDist * 0.3;
-                
-                const alpha = Math.min(1.0, (startDist - currentDist) / 20) * Math.min(1.0, (currentDist - finalRadius) / 10);
-                
-                ctx.fillStyle = `rgba(180, 180, 180, ${alpha * 0.5})`; // Dimmer in back
-                ctx.beginPath();
-                ctx.arc(x, y, size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-        ctx.restore();
-    }
-
-
-
-
-    // The pure black hole body
     ctx.beginPath();
-    ctx.arc(cx, cy, finalRadius, 0, Math.PI * 2);
-    ctx.fillStyle = '#000000';
-    ctx.fill();
+    ctx.arc(cx, cy, finalRadius + 2, 0, Math.PI * 2);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = grad;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "rgba(255, 100, 0, 0.8)";
+    ctx.stroke();
 
-    
+    ctx.restore();
+  }
 
-    // Tier 2: Debris being sucked in (Front half)
-    if (tier2Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier2Prog;
-        ctx.translate(cx, cy);
-        
-        const numDebris = 15;
-        for (let i = 0; i < numDebris; i++) {
-            const debrisT = (t * 0.5 + i * (1.0 / numDebris)) % 1.0;
-            const startDist = finalRadius + 100;
-            const currentDist = startDist * (1.0 - debrisT);
-            
-            const angle = i * Math.PI * 2 / numDebris + debrisT * Math.PI * 4;
-            
-            if (Math.sin(angle) > 0 && currentDist > finalRadius) { // Front half
-                const size = 1.5 + Math.sin(i * 123) * 1.0;
-                const x = Math.cos(angle) * currentDist;
-                const y = Math.sin(angle) * currentDist * 0.3;
-                
-                // Fade out as it crosses the event horizon or starts
-                const alpha = Math.min(1.0, (startDist - currentDist) / 20) * Math.min(1.0, (currentDist - finalRadius) / 10);
-                
-                // Brighter in front
-                const heat = Math.max(0, 1.0 - (currentDist - finalRadius) / 30); // Heats up as it gets closer
-                const r = 180 + heat * 75;
-                const g = 180 - heat * 80;
-                const b = 180 - heat * 130;
-                
-                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-                ctx.beginPath();
-                ctx.arc(x, y, size, 0, Math.PI * 2);
-                ctx.fill();
-                
-                if (heat > 0.5) {
-                    ctx.shadowBlur = heat * 10;
-                    ctx.shadowColor = `rgba(255, 100, 50, ${heat})`;
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
-                }
-            }
-        }
-        ctx.restore();
+  // Tier 6: Orbiting Stars (Spaghettification)
+  if (tier6Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier6Prog;
+    ctx.translate(cx, cy);
+
+    const numStars = 3;
+    for (let i = 0; i < numStars; i++) {
+      // cycle goes from 0.0 (far away) to 1.0 (entering event horizon)
+      const cycleT = (t * 0.3 + i * (1.0 / numStars)) % 1.0;
+
+      const startDist = finalRadius + 150;
+      const currentDist = startDist * (1.0 - cycleT) + finalRadius * cycleT;
+
+      // Faster orbit as it gets closer
+      const angle = (i * Math.PI * 2) / numStars + t * 10.0;
+
+      const x = Math.cos(angle) * currentDist;
+      const y = Math.sin(angle) * currentDist * 0.3; // Accretion disk perspective
+
+      // Fade in at start, fade out at end
+      let alpha = 1.0;
+      if (cycleT < 0.1) alpha = cycleT / 0.1;
+      else if (cycleT > 0.9) alpha = (1.0 - cycleT) / 0.1;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle + Math.PI / 2); // Point trail along orbit path
+
+      // "Spaghettify" stretch as it gets close
+      const stretch = 1.0 + Math.pow(cycleT, 3) * 10.0;
+      ctx.scale(1.0 / Math.sqrt(stretch), stretch);
+
+      // Draw star core
+      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(0, 0, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw star glow/trail
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 15);
+      grad.addColorStop(0, `rgba(150, 200, 255, ${alpha * 0.8})`);
+      grad.addColorStop(1, `rgba(50, 100, 255, 0)`);
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, 15, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+
+      // Draw a trailing streak behind the star
+      ctx.strokeStyle = `rgba(100, 150, 255, ${alpha * 0.5})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let j = 0; j < 10; j++) {
+        const trailCycleT = Math.max(0, cycleT - j * 0.01);
+        const trailDist =
+          startDist * (1.0 - trailCycleT) + finalRadius * trailCycleT;
+        const trailAngle = (i * Math.PI * 2) / numStars + (t - j * 0.03) * 10.0;
+
+        const tx = Math.cos(trailAngle) * trailDist;
+        const ty = Math.sin(trailAngle) * trailDist * 0.3;
+
+        if (j === 0) ctx.moveTo(tx, ty);
+        else ctx.lineTo(tx, ty);
+      }
+      ctx.stroke();
     }
 
+    ctx.restore();
+  }
 
-    // Tier 3: Gravitational Lensing / Photon Ring
-    if (tier3Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier3Prog;
-        ctx.translate(cx, cy);
-        
-        const lensingRadius = finalRadius * 1.2;
-        const lensingThickness = 15;
-        
-        // Draw multiple overlapping rings for the lensing effect
-        for (let i = 0; i < 3; i++) {
-            ctx.save();
-            // Counter-rotating rings with different speeds
-            const spinDirection = i % 2 === 0 ? 1 : -1;
-            ctx.rotate(t * (0.2 + i * 0.1) * spinDirection);
-            
-            // Slight elliptical distortion
-            ctx.scale(1 + 0.05 * Math.sin(t * 1.5 + i), 1 - 0.05 * Math.sin(t * 1.5 + i));
+  // Tier 7: Angled, pulsating beam (was Tier 8, Underneath the black hole body, above photon ring)
+  if (tier7Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier7Prog;
 
-            const gradient = ctx.createRadialGradient(0, 0, finalRadius, 0, 0, lensingRadius + lensingThickness);
-            
-            // Subtle, shifting colors for light bending
-            const alpha1 = 0.4 + 0.2 * Math.sin(t * 2 + i * Math.PI);
-            const alpha2 = 0.1 + 0.1 * Math.cos(t * 3 + i);
-            
-            gradient.addColorStop(0, `rgba(255, 255, 255, 0)`);
-            gradient.addColorStop(0.3, `rgba(200, 220, 255, ${alpha1})`);
-            gradient.addColorStop(0.7, `rgba(150, 100, 255, ${alpha2})`);
-            gradient.addColorStop(1, `rgba(100, 50, 200, 0)`);
-            
-            ctx.beginPath();
-            ctx.arc(0, 0, lensingRadius + lensingThickness, 0, Math.PI * 2);
-            ctx.fillStyle = gradient;
-            ctx.fill();
-            
-            ctx.restore();
-        }
-        
-        // Add a thin, intense photon ring right near the event horizon
+    ctx.translate(cx, cy);
+    ctx.rotate(Math.PI / 4); // Angled to the right
+
+    const beamW = 20 + 10 * Math.abs(Math.sin(t * 12));
+    const beamHeight = 600; // Extends way past viewport
+
+    // Intense purple/white beam gradient
+    const beamGrad = ctx.createLinearGradient(-beamW / 2, 0, beamW / 2, 0);
+    beamGrad.addColorStop(0, `rgba(138, 43, 226, 0)`);
+    beamGrad.addColorStop(0.2, `rgba(180, 80, 255, ${0.8 * tier7Prog})`);
+    beamGrad.addColorStop(0.5, `rgba(255, 255, 255, ${1.0 * tier7Prog})`);
+    beamGrad.addColorStop(0.8, `rgba(180, 80, 255, ${0.8 * tier7Prog})`);
+    beamGrad.addColorStop(1, `rgba(138, 43, 226, 0)`);
+
+    ctx.fillStyle = beamGrad;
+    // The beam goes straight through (top to bottom)
+    ctx.fillRect(-beamW / 2, -beamHeight, beamW, beamHeight * 2);
+
+    // Extra intense core line
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + 0.5 * Math.sin(t * 20)})`;
+    const coreWidth = 4 + 2 * Math.abs(Math.sin(t * 12));
+    ctx.fillRect(-coreWidth / 2, -beamHeight, coreWidth, beamHeight * 2);
+
+    ctx.restore();
+  }
+
+  // Tier 2: Debris being sucked in (Back half)
+  if (tier2Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier2Prog;
+    ctx.translate(cx, cy);
+
+    const numDebris = 15;
+    for (let i = 0; i < numDebris; i++) {
+      const debrisT = (t * 0.5 + i * (1.0 / numDebris)) % 1.0; // 0 to 1 cycle of falling in
+      const startDist = finalRadius + 100;
+      const currentDist = startDist * (1.0 - debrisT);
+
+      // Spiral angle
+      const angle = (i * Math.PI * 2) / numDebris + debrisT * Math.PI * 4;
+
+      if (Math.sin(angle) <= 0 && currentDist > finalRadius) {
+        // Back half
+        const size = 1.5 + Math.sin(i * 123) * 1.0;
+        const x = Math.cos(angle) * currentDist;
+        // Squish y to fit the disk perspective
+        const y = Math.sin(angle) * currentDist * 0.3;
+
+        const alpha =
+          Math.min(1.0, (startDist - currentDist) / 20) *
+          Math.min(1.0, (currentDist - finalRadius) / 10);
+
+        ctx.fillStyle = `rgba(180, 180, 180, ${alpha * 0.5})`; // Dimmer in back
         ctx.beginPath();
-        ctx.arc(0, 0, finalRadius * 1.05, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.6 + 0.3 * Math.sin(t * 5)})`;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        ctx.restore();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
+    ctx.restore();
+  }
 
+  // The pure black hole body
+  ctx.beginPath();
+  ctx.arc(cx, cy, finalRadius, 0, Math.PI * 2);
+  ctx.fillStyle = "#000000";
+  ctx.fill();
 
-    // Tier 4: Pseudo-3D Accretion Disk (Front Half)
-    if (tier4Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier4Prog;
-        for(let i = 0; i < numParticles; i++) {
-            const p = getParticle(i);
-            if (!p.isBack) {
-                ctx.fillStyle = p.color;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
+  // Tier 2: Debris being sucked in (Front half)
+  if (tier2Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier2Prog;
+    ctx.translate(cx, cy);
+
+    const numDebris = 15;
+    for (let i = 0; i < numDebris; i++) {
+      const debrisT = (t * 0.5 + i * (1.0 / numDebris)) % 1.0;
+      const startDist = finalRadius + 100;
+      const currentDist = startDist * (1.0 - debrisT);
+
+      const angle = (i * Math.PI * 2) / numDebris + debrisT * Math.PI * 4;
+
+      if (Math.sin(angle) > 0 && currentDist > finalRadius) {
+        // Front half
+        const size = 1.5 + Math.sin(i * 123) * 1.0;
+        const x = Math.cos(angle) * currentDist;
+        const y = Math.sin(angle) * currentDist * 0.3;
+
+        // Fade out as it crosses the event horizon or starts
+        const alpha =
+          Math.min(1.0, (startDist - currentDist) / 20) *
+          Math.min(1.0, (currentDist - finalRadius) / 10);
+
+        // Brighter in front
+        const heat = Math.max(0, 1.0 - (currentDist - finalRadius) / 30); // Heats up as it gets closer
+        const r = 180 + heat * 75;
+        const g = 180 - heat * 80;
+        const b = 180 - heat * 130;
+
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (heat > 0.5) {
+          ctx.shadowBlur = heat * 10;
+          ctx.shadowColor = `rgba(255, 100, 50, ${heat})`;
+          ctx.fill();
+          ctx.shadowBlur = 0;
         }
-        ctx.restore();
+      }
+    }
+    ctx.restore();
+  }
+
+  // Tier 3: Gravitational Lensing / Photon Ring
+  if (tier3Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier3Prog;
+    ctx.translate(cx, cy);
+
+    const lensingRadius = finalRadius * 1.2;
+    const lensingThickness = 15;
+
+    // Draw multiple overlapping rings for the lensing effect
+    for (let i = 0; i < 3; i++) {
+      ctx.save();
+      // Counter-rotating rings with different speeds
+      const spinDirection = i % 2 === 0 ? 1 : -1;
+      ctx.rotate(t * (0.2 + i * 0.1) * spinDirection);
+
+      // Slight elliptical distortion
+      ctx.scale(
+        1 + 0.05 * Math.sin(t * 1.5 + i),
+        1 - 0.05 * Math.sin(t * 1.5 + i),
+      );
+
+      const gradient = ctx.createRadialGradient(
+        0,
+        0,
+        finalRadius,
+        0,
+        0,
+        lensingRadius + lensingThickness,
+      );
+
+      // Subtle, shifting colors for light bending
+      const alpha1 = 0.4 + 0.2 * Math.sin(t * 2 + i * Math.PI);
+      const alpha2 = 0.1 + 0.1 * Math.cos(t * 3 + i);
+
+      gradient.addColorStop(0, `rgba(255, 255, 255, 0)`);
+      gradient.addColorStop(0.3, `rgba(200, 220, 255, ${alpha1})`);
+      gradient.addColorStop(0.7, `rgba(150, 100, 255, ${alpha2})`);
+      gradient.addColorStop(1, `rgba(100, 50, 200, 0)`);
+
+      ctx.beginPath();
+      ctx.arc(0, 0, lensingRadius + lensingThickness, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      ctx.restore();
     }
 
+    // Add a thin, intense photon ring right near the event horizon
+    ctx.beginPath();
+    ctx.arc(0, 0, finalRadius * 1.05, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.6 + 0.3 * Math.sin(t * 5)})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // Tier 4: Pseudo-3D Accretion Disk (Front Half)
+  if (tier4Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier4Prog;
+    for (let i = 0; i < numParticles; i++) {
+      const p = getParticle(i);
+      if (!p.isBack) {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
 }
 
 function drawPrism(ctx, t, tier, prevTier, animProgress) {
-    const showTier1 = (tier >= 1) ? 1 : 0;
-    const tier1Prog = (tier >= 1 && prevTier < 1) ? animProgress : showTier1;
-    const showTier2 = (tier >= 2) ? 1 : 0;
-    const tier2Prog = (tier >= 2 && prevTier < 2) ? animProgress : showTier2;
-    const showTier3 = (tier >= 3) ? 1 : 0;
-    const tier3Prog = (tier >= 3 && prevTier < 3) ? animProgress : showTier3;
-    const showTier4 = (tier >= 4) ? 1 : 0;
-    const tier4Prog = (tier >= 4 && prevTier < 4) ? animProgress : showTier4;
-    const showTier5 = (tier >= 5) ? 1 : 0;
-    const tier5Prog = (tier >= 5 && prevTier < 5) ? animProgress : showTier5;
-    const showTier6 = (tier >= 6) ? 1 : 0;
-    const tier6Prog = (tier >= 6 && prevTier < 6) ? animProgress : showTier6;
-    const showTier7 = (tier >= 7) ? 1 : 0;
-    const tier7Prog = (tier >= 7 && prevTier < 7) ? animProgress : showTier7;
-    const showTier8 = (tier >= 8) ? 1 : 0;
-    const tier8Prog = (tier >= 8 && prevTier < 8) ? animProgress : showTier8;
+  const showTier1 = tier >= 1 ? 1 : 0;
+  const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
+  const showTier2 = tier >= 2 ? 1 : 0;
+  const tier2Prog = tier >= 2 && prevTier < 2 ? animProgress : showTier2;
+  const showTier3 = tier >= 3 ? 1 : 0;
+  const tier3Prog = tier >= 3 && prevTier < 3 ? animProgress : showTier3;
+  const showTier4 = tier >= 4 ? 1 : 0;
+  const tier4Prog = tier >= 4 && prevTier < 4 ? animProgress : showTier4;
+  const showTier5 = tier >= 5 ? 1 : 0;
+  const tier5Prog = tier >= 5 && prevTier < 5 ? animProgress : showTier5;
+  const showTier6 = tier >= 6 ? 1 : 0;
+  const tier6Prog = tier >= 6 && prevTier < 6 ? animProgress : showTier6;
+  const showTier7 = tier >= 7 ? 1 : 0;
+  const tier7Prog = tier >= 7 && prevTier < 7 ? animProgress : showTier7;
+  const showTier8 = tier >= 8 ? 1 : 0;
+  const tier8Prog = tier >= 8 && prevTier < 8 ? animProgress : showTier8;
 
-    // --- Hex to RGB helper ---
-    const hexToRgbStr = (hex) => {
-        const bigint = parseInt(hex.slice(1), 16);
-        return `${(bigint >> 16) & 255}, ${(bigint >> 8) & 255}, ${bigint & 255}`;
+  // --- Hex to RGB helper ---
+  const hexToRgbStr = (hex) => {
+    const bigint = parseInt(hex.slice(1), 16);
+    return `${(bigint >> 16) & 255}, ${(bigint >> 8) & 255}, ${bigint & 255}`;
+  };
+
+  // --- Base Pedestal ---
+  // Removed base pedestal for all tiers. The Prism just floats.
+  // Hover logic
+  const hoverY = -25 - 25 + Math.sin(t * 1) * 5;
+
+  // --- 3D Projection Engine ---
+  const rotY = globalPrismAngle;
+  const cosY = Math.cos(rotY);
+  const sinY = Math.sin(rotY);
+
+  // Slight isometric tilt (rotate X)
+  const rotX = 0.3; // tilt down
+  const cosX = Math.cos(rotX);
+  const sinX = Math.sin(rotX);
+
+  function getRotated(x, y, z) {
+    // Rotate around Y axis
+    const nx = x * cosY - z * sinY;
+    const nz = x * sinY + z * cosY;
+    return { x: nx, y: y, z: nz };
+  }
+
+  function projectRotated(rx, ry, rz) {
+    // Apply rotX
+    const ny = ry * cosX - rz * sinX;
+    const nnz = ry * sinX + rz * cosX;
+
+    // Perspective
+    const fov = 300;
+    const scale = fov / (fov + nnz + 100);
+    return { x: rx * scale, y: hoverY + ny * scale, z: nnz, scale };
+  }
+
+  function getNormal(p0, p1, p2) {
+    // Cross product of (p1 - p0) and (p2 - p0)
+    const v1x = p1.x - p0.x;
+    const v1y = p1.y - p0.y;
+    const v1z = p1.z - p0.z;
+    const v2x = p2.x - p0.x;
+    const v2y = p2.y - p0.y;
+    const v2z = p2.z - p0.z;
+
+    const nx = v1y * v2z - v1z * v2y;
+    const ny = v1z * v2x - v1x * v2z;
+    const nz = v1x * v2y - v1y * v2x;
+
+    const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+    if (len === 0) return { x: 0, y: 0, z: 1 };
+    return { x: nx / len, y: ny / len, z: nz / len };
+  }
+
+  function getLightIntensity(normal) {
+    // Light coming from top-front-left
+    const lx = -0.5,
+      ly = -0.8,
+      lz = -0.3;
+    const len = Math.sqrt(lx * lx + ly * ly + lz * lz);
+    const lnx = lx / len,
+      lny = ly / len,
+      lnz = lz / len;
+
+    let dot = normal.x * lnx + normal.y * lny + normal.z * lnz;
+    // Clamp and map to 0.4 - 1.0
+    return 0.5 + Math.max(0, dot) * 0.5;
+  }
+
+  // Prism geometry (standing on rectangular face)
+  const targetSizeMult = 1.25 + tier * 0.125;
+  const prevSizeMult = 1.25 + prevTier * 0.125;
+  const sizeMult =
+    prevSizeMult + (targetSizeMult - prevSizeMult) * animProgress;
+  let ipts = null,
+    ifaces = null,
+    irotPts = null;
+  const w = 30 * sizeMult; // base half-width
+  const h = 50 * sizeMult; // height (from bottom to peak)
+  const d = 25 * sizeMult; // half-depth
+
+  const vertices = [
+    { x: -w, y: 0, z: -d },
+    { x: w, y: 0, z: -d },
+    { x: 0, y: -h, z: -d },
+    { x: -w, y: 0, z: d },
+    { x: w, y: 0, z: d },
+    { x: 0, y: -h, z: d },
+  ];
+
+  const rotPts = vertices.map((v) => getRotated(v.x, v.y, v.z));
+  const pts = rotPts.map((rp) => projectRotated(rp.x, rp.y, rp.z));
+
+  function project(x, y, z) {
+    const rp = getRotated(x, y, z);
+    return projectRotated(rp.x, rp.y, rp.z);
+  }
+
+  // --- Tier 8/4 Rainbow Beam Calculations ---
+  // If we draw beams *behind* the prism, we should do it before drawing faces.
+  // We will draw all beams with globalCompositeOperation = 'screen' or 'lighter' later, but Z-order matters if it's solid.
+  // For glassy light effects, drawing on top is usually fine.
+
+  // Tier 3: Energy vortex swirling below the prism
+  if (tier3Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier3Prog;
+    ctx.globalCompositeOperation = "screen";
+
+    const vortexY = hoverY + 20 - tier * 2; // Shift upward slightly as tier increases to prevent ground clipping
+
+    for (let i = 0; i < 3; i++) {
+      const ringScale = 1.0 + Math.sin(t * 2 + i * 2) * 0.2;
+      const ringRot = t * (1.5 + i * 0.5);
+      ctx.save();
+      ctx.translate(0, vortexY);
+      // Squish to fake 3D perspective
+      ctx.scale(1, 0.3);
+      ctx.rotate(ringRot);
+
+      ctx.beginPath();
+      ctx.arc(0, 0, w * 1.5 * ringScale, 0, Math.PI * 2);
+      ctx.lineWidth = 3 - i;
+      ctx.strokeStyle = `rgba(255, 100, 200, ${0.4 + 0.2 * Math.sin(t * 4 + i)})`;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  // --- Draw Prism Faces (Back-to-Front) ---
+  // Faces and normal/lighting colors
+  // We want a glassy pink look
+  const faces = [
+    { id: "front", pts: [0, 1, 2], baseColor: [255, 100, 150] },
+    { id: "back", pts: [3, 5, 4], baseColor: [255, 100, 150] },
+    { id: "bottom", pts: [0, 3, 4, 1], baseColor: [255, 100, 150] },
+    { id: "left", pts: [0, 2, 5, 3], baseColor: [255, 100, 150] },
+    { id: "right", pts: [1, 4, 5, 2], baseColor: [255, 100, 150] },
+  ];
+
+  faces.forEach((f) => {
+    f.normal = getNormal(rotPts[f.pts[0]], rotPts[f.pts[1]], rotPts[f.pts[2]]);
+    f.light = getLightIntensity(f.normal);
+    f.z = f.pts.reduce((sum, i) => sum + pts[i].z, 0) / f.pts.length;
+  });
+  faces.sort((a, b) => b.z - a.z); // Sort descending (back faces first)
+
+  // Edges calculation
+  const edges = [
+    [0, 1],
+    [1, 2],
+    [2, 0], // front
+    [3, 4],
+    [4, 5],
+    [5, 3], // back
+    [0, 3],
+    [1, 4],
+    [2, 5], // connecting
+  ].map((e) => ({ pts: e, isFront: false }));
+
+  edges.forEach((e) => {
+    // An edge is in front if it belongs to any face pointing towards the camera (normal.z < 0)
+    e.isFront = faces.some(
+      (f) =>
+        f.normal.z < 0 && f.pts.includes(e.pts[0]) && f.pts.includes(e.pts[1]),
+    );
+  });
+
+  ctx.save();
+  // In later tiers, it gets brighter and more transparent
+  const glassAlpha = 0.8 - tier1Prog * 0.2 - tier4Prog * 0.2;
+
+  if (tier2Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier2Prog;
+    const innerScale = 0.45;
+
+    const iw = w * innerScale;
+    const ih = h * innerScale;
+    const id_ = d * innerScale;
+
+    const centerOffsetY = -h / 2 + ih / 2;
+    const iVertices = [
+      { x: -iw, y: centerOffsetY, z: -id_ },
+      { x: iw, y: centerOffsetY, z: -id_ },
+      { x: 0, y: centerOffsetY - ih, z: -id_ },
+      { x: -iw, y: centerOffsetY, z: id_ },
+      { x: iw, y: centerOffsetY, z: id_ },
+      { x: 0, y: centerOffsetY - ih, z: id_ },
+    ];
+
+    irotPts = iVertices.map((v) => getRotated(v.x, v.y, v.z));
+    ipts = irotPts.map((rp) => projectRotated(rp.x, rp.y, rp.z));
+
+    ifaces = [
+      { id: "front", pts: [0, 1, 2], baseColor: [255, 100, 150] },
+      { id: "back", pts: [3, 5, 4], baseColor: [255, 100, 150] },
+      { id: "bottom", pts: [0, 3, 4, 1], baseColor: [255, 100, 150] },
+      { id: "left", pts: [0, 2, 5, 3], baseColor: [255, 100, 150] },
+      { id: "right", pts: [1, 4, 5, 2], baseColor: [255, 100, 150] },
+    ];
+
+    ifaces.forEach((f) => {
+      f.normal = getNormal(
+        irotPts[f.pts[0]],
+        irotPts[f.pts[1]],
+        irotPts[f.pts[2]],
+      );
+      f.light = getLightIntensity(f.normal);
+      f.z = f.pts.reduce((sum, i) => sum + ipts[i].z, 0) / f.pts.length;
+    });
+    ifaces.sort((a, b) => b.z - a.z);
+
+    const iedges = [
+      [0, 1],
+      [1, 2],
+      [2, 0], // front
+      [3, 4],
+      [4, 5],
+      [5, 3], // back
+      [0, 3],
+      [1, 4],
+      [2, 5], // connecting
+    ].map((e) => ({ pts: e, isFront: false }));
+
+    iedges.forEach((e) => {
+      e.isFront = ifaces.some(
+        (f) =>
+          f.normal.z < 0 &&
+          f.pts.includes(e.pts[0]) &&
+          f.pts.includes(e.pts[1]),
+      );
+    });
+
+    // Draw all faces
+    ifaces.forEach((f) => {
+      let c = f.baseColor;
+      ctx.fillStyle = `rgba(${c[0] * f.light}, ${c[1] * f.light}, ${c[2] * f.light}, ${glassAlpha * 0.8})`;
+      ctx.beginPath();
+      ctx.moveTo(ipts[f.pts[0]].x, ipts[f.pts[0]].y);
+      for (let i = 1; i < f.pts.length; i++) {
+        ctx.lineTo(ipts[f.pts[i]].x, ipts[f.pts[i]].y);
+      }
+      ctx.closePath();
+      ctx.fill();
+    });
+
+    // Draw back edges
+    ctx.strokeStyle = `rgba(255, 200, 255, 0.2)`;
+    ctx.lineWidth = 1;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    iedges
+      .filter((e) => !e.isFront)
+      .forEach((e) => {
+        ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
+        ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
+      });
+    ctx.stroke();
+
+    // We will store ifaces and ipts and iedges to draw front edges later
+    // Hack: attach iedges to ifaces for access later
+    ifaces.iedges = iedges;
+
+    ctx.restore();
+  }
+
+  // Tier 6: Ground Mandala (Back Half / Full Mandala on ground)
+  if (tier6Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier6Prog;
+    ctx.globalCompositeOperation = "screen";
+
+    const mandalaY = hoverY + 30; // on the ground
+    // Use project to put center on ground
+    const groundCenter = project(0, mandalaY, 0);
+
+    // Since it's on the ground, drawing it as a 3D projected circle/pattern is best
+    // We will draw it manually using our project function.
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+
+    ctx.strokeStyle = `rgba(255, 150, 255, ${0.4 + 0.6 * pulse})`;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+
+    const numPoints = 12;
+    const baseRadius = w * 2.5;
+
+    const drawMandalaRing = (radius, timeOffset, sides) => {
+      ctx.beginPath();
+      for (let i = 0; i <= sides; i++) {
+        const angle = (i * Math.PI * 2) / sides + timeOffset;
+        const mx = Math.cos(angle) * radius;
+        const mz = Math.sin(angle) * radius;
+        const mp = project(mx, mandalaY, mz);
+        if (i === 0) ctx.moveTo(mp.x, mp.y);
+        else ctx.lineTo(mp.x, mp.y);
+      }
+      ctx.stroke();
     };
 
-    // --- Base Pedestal ---
-    // Removed base pedestal for all tiers. The Prism just floats.
-    // Hover logic
-    const hoverY = -25 - 25 + Math.sin(t * 1) * 5;
+    drawMandalaRing(baseRadius, t * 0.5, numPoints);
+    drawMandalaRing(baseRadius * 0.8, -t * 0.3, numPoints * 2);
 
-    // --- 3D Projection Engine ---
-    // Spinning only starts at tier 3+? Let's just make it spin slowly all the time, or based on tiers
-    // "Also, the base cannot spin in a way that make it look like it's going through the floor. ... hover and only rotate horizontally"
-    // So it spins around the Y axis
-    const rotY = globalPrismAngle;
-    const cosY = Math.cos(rotY);
-    const sinY = Math.sin(rotY);
-    
-    function project(x, y, z) {
-        // Rotate around Y axis
-        const nx = x * cosY - z * sinY;
-        const nz = x * sinY + z * cosY;
-        
-        // Slight isometric tilt (rotate X)
-        const rotX = 0.3; // tilt down
-        const cosX = Math.cos(rotX);
-        const sinX = Math.sin(rotX);
-        const ny = y * cosX - nz * sinX;
-        const nnz = y * sinX + nz * cosX;
-        
-        // Perspective
-        const fov = 300;
-        const scale = fov / (fov + nnz + 100);
-        return { x: nx * scale, y: hoverY + ny * scale, z: nnz, scale };
+    // Draw connecting star pattern
+    ctx.beginPath();
+    for (let i = 0; i < numPoints; i++) {
+      const angle = (i * Math.PI * 2) / numPoints + t * 0.5;
+      const angleNext = ((i + 2) * Math.PI * 2) / numPoints + t * 0.5;
+      const mx = Math.cos(angle) * baseRadius;
+      const mz = Math.sin(angle) * baseRadius;
+      const nx = Math.cos(angleNext) * baseRadius;
+      const nz = Math.sin(angleNext) * baseRadius;
+
+      const mp1 = project(mx, mandalaY, mz);
+      const mp2 = project(nx, mandalaY, nz);
+      ctx.moveTo(mp1.x, mp1.y);
+      ctx.lineTo(mp2.x, mp2.y);
+    }
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  faces.forEach((f) => {
+    let c = f.baseColor;
+    ctx.fillStyle = `rgba(${c[0] * f.light}, ${c[1] * f.light}, ${c[2] * f.light}, ${glassAlpha * 0.9})`;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(pts[f.pts[0]].x, pts[f.pts[0]].y);
+    for (let i = 1; i < f.pts.length; i++) {
+      ctx.lineTo(pts[f.pts[i]].x, pts[f.pts[i]].y);
+    }
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  // Draw back edges of outer prism
+  ctx.strokeStyle = `rgba(255, 200, 255, 0.2)`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  edges
+    .filter((e) => !e.isFront)
+    .forEach((e) => {
+      ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
+      ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
+    });
+  ctx.stroke();
+
+  ctx.restore();
+
+  // Tier 7: Light Pillars
+  if (tier7Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier7Prog;
+    ctx.globalCompositeOperation = "screen";
+
+    const pillarDist = w * 3.5;
+    const pillarHeight = h * 2.5;
+    const pillarY = hoverY + 30;
+
+    // Draw 4 pillars around the prism
+    for (let i = 0; i < 4; i++) {
+      const angle = (i * Math.PI) / 2 + t * 0.2; // Slow rotation around the base
+      const px = Math.cos(angle) * pillarDist;
+      const pz = Math.sin(angle) * pillarDist;
+
+      const pBottom = project(px, pillarY, pz);
+      const pTop = project(px, pillarY - pillarHeight, pz);
+
+      const pWidth = 8 * pBottom.scale;
+
+      // We'll draw them as glowing lines/polygons
+      const grad = ctx.createLinearGradient(0, pBottom.y, 0, pTop.y);
+      const pulse = 0.5 + 0.5 * Math.sin(t * 5 + i);
+      grad.addColorStop(0, `rgba(0, 200, 255, 0)`);
+      grad.addColorStop(0.2, `rgba(0, 200, 255, ${0.4 + 0.4 * pulse})`);
+      grad.addColorStop(0.8, `rgba(255, 255, 255, ${0.8 + 0.2 * pulse})`);
+      grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      // To give it width, we move perpendicularly in screen space
+      // Since it's a vertical pillar, we just offset X.
+      ctx.moveTo(pBottom.x - pWidth, pBottom.y);
+      ctx.lineTo(pBottom.x + pWidth, pBottom.y);
+      ctx.lineTo(pTop.x + pWidth * 0.2, pTop.y);
+      ctx.lineTo(pTop.x - pWidth * 0.2, pTop.y);
+      ctx.closePath();
+      ctx.fill();
+
+      // Base glow on ground
+      ctx.fillStyle = `rgba(0, 200, 255, ${0.5 * pulse})`;
+      ctx.beginPath();
+      ctx.ellipse(
+        pBottom.x,
+        pBottom.y,
+        pWidth * 3,
+        pWidth * 1.5,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
     }
 
-    // Prism geometry (standing on triangular face or rectangular face?)
-    // "standing upright on its triangular face?" -> I'll make it a 3D triangular prism standing up
-    // Wait, typical light prism rests on its rectangular base. "like a typical light prism".
-    // I'll make it rest on rectangular base. Triangular front/back, rectangular bottom/sides.
-    // Width w, height h, depth d
-    const targetSizeMult = 1.25 + tier * 0.125;
-    const prevSizeMult = 1.25 + prevTier * 0.125;
-    const sizeMult = prevSizeMult + (targetSizeMult - prevSizeMult) * animProgress;
-    let ipts = null, ifaces = null;
-    const w = 30 * sizeMult; // base half-width
-    const h = 50 * sizeMult; // height (from bottom to peak)
-    const d = 25 * sizeMult; // half-depth
-    
-    // Vertices:
-    // 0: front-bottom-left (-w, 0, -d)
-    // 1: front-bottom-right (w, 0, -d)
-    // 2: front-top (0, -h, -d)
-    // 3: back-bottom-left (-w, 0, d)
-    // 4: back-bottom-right (w, 0, d)
-    // 5: back-top (0, -h, d)
-    const vertices = [
-        {x: -w, y: 0, z: -d},
-        {x: w, y: 0, z: -d},
-        {x: 0, y: -h, z: -d},
-        {x: -w, y: 0, z: d},
-        {x: w, y: 0, z: d},
-        {x: 0, y: -h, z: d}
+    ctx.restore();
+  }
+
+  // --- Post-Prism Light Effects ---
+
+  // Tier 1: Pink Sparkles
+  if (tier1Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier1Prog;
+
+    const numSparkles = 15;
+    for (let i = 0; i < numSparkles; i++) {
+      const sparkleT = (t * 0.75 + i * (1 / numSparkles)) % 1; // 0 to 1
+
+      const hash1 = (Math.sin(i * 12.9898) * 43758.5453) % 1;
+      const hash2 = (Math.cos(i * 78.233) * 43758.5453) % 1;
+      const hash3 = (Math.sin(i * 45.123) * 43758.5453) % 1;
+
+      const angle = hash2 * Math.PI * 2;
+      const speed = 100 + 100 * Math.abs(hash1);
+      const distance = speed * sparkleT;
+      const sx = Math.cos(angle) * distance;
+      const sz = Math.sin(angle) * distance;
+
+      const initialVy = -150 - 50 * Math.abs(hash3);
+      const gravity = 400;
+      const dy = initialVy * sparkleT + 0.5 * gravity * sparkleT * sparkleT;
+      const sparkleY = -h / 2 + dy;
+
+      const sp = project(sx, sparkleY, sz);
+
+      const sparkleAlpha = Math.sin(sparkleT * Math.PI); // Fade in and out
+      const sparkleSize = 4 * sp.scale * sparkleAlpha;
+
+      ctx.save();
+      ctx.translate(sp.x, sp.y);
+      ctx.rotate(t + i);
+
+      ctx.fillStyle = `rgba(255, 200, 255, ${sparkleAlpha * 0.9})`;
+
+      // Draw a 4-pointed star
+      ctx.beginPath();
+      ctx.moveTo(0, -sparkleSize);
+      ctx.quadraticCurveTo(0, 0, sparkleSize, 0);
+      ctx.quadraticCurveTo(0, 0, 0, sparkleSize);
+      ctx.quadraticCurveTo(0, 0, -sparkleSize, 0);
+      ctx.quadraticCurveTo(0, 0, 0, -sparkleSize);
+      ctx.fill();
+
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+  const center = project(0, -h / 2, 0);
+
+  // Tier 4: Incoming White Beam from top & Rainbow Beams shooting out horizontally
+  if (tier4Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier4Prog;
+    ctx.globalCompositeOperation = "screen";
+
+    // Incoming white beam (from straight down/top)
+    const inAngle = -Math.PI / 2;
+
+    // In Tier 7, the incoming beam gets much wider and intense
+    const t7WidthAdd = 0;
+    const beamW = 6 + Math.sin(t * 5) * 2 + t7WidthAdd;
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.beginPath();
+    ctx.moveTo(center.x - beamW, center.y - 400);
+    ctx.lineTo(center.x + beamW, center.y - 400);
+    ctx.lineTo(center.x + beamW / 2, center.y);
+    ctx.lineTo(center.x - beamW / 2, center.y);
+    ctx.fill();
+
+    // Glowing impact point
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, 8 + t7WidthAdd / 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Dispersed Rainbow Beams (exiting horizontally left and right)
+    const colors = [
+      "#ff0000",
+      "#ff7f00",
+      "#ffff00",
+      "#00ff00",
+      "#00ffff",
+      "#0000ff",
+      "#ff00ff",
     ];
 
+    // Tier 7 amplifies the spread and length
+    const spread = Math.PI / 4;
+    const rayLen = 300;
 
+    const drawHorizontalRainbow = (baseAngle, isReversed) => {
+      for (let i = 0; i < colors.length; i++) {
+        const fraction = i / (colors.length - 1);
+        const angleOffset = -spread / 2 + fraction * spread;
+        const outAngle = baseAngle + angleOffset;
 
-    const pts = vertices.map(v => {
-        const p = project(v.x, v.y, v.z);
-        return { x: p.x, y: p.y, z: p.z, scale: p.scale };
-    });
+        const colorIdx = isReversed ? colors.length - 1 - i : i;
 
-    // --- Tier 8/4 Rainbow Beam Calculations ---
-    // If we draw beams *behind* the prism, we should do it before drawing faces.
-    // We will draw all beams with globalCompositeOperation = 'screen' or 'lighter' later, but Z-order matters if it's solid.
-    // For glassy light effects, drawing on top is usually fine.
-    
-    // Tier 3: Energy vortex swirling below the prism
-    if (tier3Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier3Prog;
-        ctx.globalCompositeOperation = 'screen';
-        
-        const vortexY = hoverY + 20 - (tier * 2); // Shift upward slightly as tier increases to prevent ground clipping
-        
-        for (let i = 0; i < 3; i++) {
-            const ringScale = 1.0 + Math.sin(t * 2 + i * 2) * 0.2;
-            const ringRot = t * (1.5 + i * 0.5);
-            ctx.save();
-            ctx.translate(0, vortexY);
-            // Squish to fake 3D perspective
-            ctx.scale(1, 0.3);
-            ctx.rotate(ringRot);
-            
-            ctx.beginPath();
-            ctx.arc(0, 0, (w * 1.5) * ringScale, 0, Math.PI * 2);
-            ctx.lineWidth = 3 - i;
-            ctx.strokeStyle = `rgba(255, 100, 200, ${0.4 + 0.2 * Math.sin(t * 4 + i)})`;
-            ctx.stroke();
-            ctx.restore();
-        }
-        
-        ctx.restore();
+        const grad = ctx.createLinearGradient(
+          center.x,
+          center.y,
+          center.x + Math.cos(outAngle) * rayLen,
+          center.y + Math.sin(outAngle) * rayLen,
+        );
+        const rgbStr = hexToRgbStr(colors[colorIdx]);
+        grad.addColorStop(0, colors[colorIdx]);
+        grad.addColorStop(1, `rgba(${rgbStr}, 0)`);
+
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(center.x, center.y);
+        ctx.lineTo(
+          center.x + Math.cos(outAngle) * rayLen,
+          center.y + Math.sin(outAngle) * rayLen,
+        );
+        ctx.stroke();
+      }
+    };
+
+    // Shoot left (PI) and right (0)
+    drawHorizontalRainbow(0, false);
+    drawHorizontalRainbow(Math.PI, true);
+
+    ctx.restore();
+  }
+
+  // Tier 5: Orbiting Crystal Shards
+  if (tier5Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier5Prog;
+
+    const numShards = 6;
+    const orbitRadius = 70 + tier6Prog * 20;
+
+    for (let i = 0; i < numShards; i++) {
+      const orbitRot = t * 1.5 + (i * Math.PI * 2) / numShards;
+      const sx = Math.cos(orbitRot) * orbitRadius;
+      const sz = Math.sin(orbitRot) * orbitRadius;
+      const sy = -h / 2;
+
+      const sp = project(sx, sy, sz);
+
+      // Draw shard
+      ctx.save();
+      ctx.translate(sp.x, sp.y);
+
+      ctx.fillStyle = "rgba(255, 150, 220, 0.8)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.lineWidth = 1;
+
+      const size = 12 * sp.scale;
+      ctx.beginPath();
+      ctx.moveTo(0, -size);
+      ctx.lineTo(-size * 0.6, 0);
+      ctx.lineTo(0, size);
+      ctx.lineTo(size * 0.6, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
     }
+    ctx.restore();
+  }
 
-    
+  // --- Tier 8: Symmetrical Zenith ---
+  if (tier8Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier8Prog;
+    ctx.globalCompositeOperation = "screen";
 
-    // --- Draw Prism Faces (Back-to-Front) ---
-    // Faces and normal/lighting colors
-    // We want a glassy pink look
-    const faces = [
-        { id: 'front',  pts: [0, 1, 2],    baseColor: [255, 100, 150], alphaMult: 0.6 },
-        { id: 'back',   pts: [3, 5, 4],    baseColor: [255, 80, 130],  alphaMult: 0.5 },
-        { id: 'bottom', pts: [0, 3, 4, 1], baseColor: [255, 150, 200], alphaMult: 0.4 },
-        { id: 'left',   pts: [0, 2, 5, 3], baseColor: [255, 200, 220], alphaMult: 0.7 },
-        { id: 'right',  pts: [1, 4, 5, 2], baseColor: [255, 50, 100],  alphaMult: 0.5 }
+    // Incoming massive white beams from BOTH sides (top-left, top-right)
+    // OR straight down. "massive white beams enter from both sides (or straight down)"
+    // Let's do straight down splitting into two huge rainbows perfectly symmetric
+
+    const inAngle = -Math.PI / 2; // straight up/down
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+
+    // Draw incoming thick white beam
+    const beamW = 15 + Math.sin(t * 10) * 5;
+    const beamGrad = ctx.createLinearGradient(0, center.y - 400, 0, center.y);
+    beamGrad.addColorStop(0, "rgba(255, 255, 255, 0)");
+    beamGrad.addColorStop(1, "rgba(255, 255, 255, 1)");
+    ctx.fillStyle = beamGrad;
+
+    ctx.beginPath();
+    ctx.moveTo(center.x - beamW, center.y - 400);
+    ctx.lineTo(center.x + beamW, center.y - 400);
+    ctx.lineTo(center.x + beamW / 2, center.y);
+    ctx.lineTo(center.x - beamW / 2, center.y);
+    ctx.fill();
+
+    // Explosive Core (smaller, pulsing)
+    ctx.fillStyle = "rgba(255, 255, 255, 1)";
+    ctx.beginPath();
+    // Inner prism size is about iw = w * 0.45 = 13.5 * sizeMult.
+    // We want the ball to be smaller than the inner prism width but still pulse erratically.
+    const corePulse = 6 + Math.random() * 6;
+    ctx.arc(center.x, center.y, corePulse, 0, Math.PI * 2);
+    ctx.fill();
+
+    // SYMMETRICAL Rainbow Beams (Left and Right)
+    const colors = [
+      "#ff0000",
+      "#ff7f00",
+      "#ffff00",
+      "#00ff00",
+      "#00ffff",
+      "#0000ff",
+      "#ff00ff",
     ];
+    const spread = Math.PI / 2; // 90 degree spread
 
-    faces.forEach(f => {
-        // Average Z of face points
-        f.z = f.pts.reduce((sum, i) => sum + pts[i].z, 0) / f.pts.length;
-    });
-    faces.sort((a, b) => b.z - a.z); // Sort descending (back faces first)
+    const drawRainbowSide = (baseAngle, isReversed) => {
+      for (let i = 0; i < colors.length; i++) {
+        const fraction = i / (colors.length - 1);
+        // Spread centered around baseAngle
+        const angleOffset = -spread / 2 + fraction * spread;
+        const outAngle = baseAngle + angleOffset + Math.sin(t * 5 + i) * 0.02; // subtle wave
 
-    ctx.save();
-    // In later tiers, it gets brighter and more transparent
-    const glassAlpha = 0.8 - tier1Prog * 0.2 - tier4Prog * 0.2;
-    
-    // Tier 2: Inner Heart Crystal (drawn before the outer faces, or mixed with them if we want to be fancy. We will just draw it before the front faces by drawing it first with high alpha)
-    // Actually, drawing it right before the faces loop is easiest.
-    if (tier2Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier2Prog;
-        const innerScale = 0.45;
-        
-        const iw = w * innerScale;
-        const ih = h * innerScale;
-        const id_ = d * innerScale;
-        
-        // Use the exact same geometry approach as the outer prism, centered inside
-        // The outer prism vertices are defined relative to 0 being the bottom.
-        // We shift the y coordinate down by half the outer height, and up by half the inner height to center it vertically.
-        const centerOffsetY = -h/2 + ih/2;
-        const iVertices = [
-            {x: -iw, y: centerOffsetY, z: -id_},
-            {x: iw, y: centerOffsetY, z: -id_},
-            {x: 0, y: centerOffsetY - ih, z: -id_},
-            {x: -iw, y: centerOffsetY, z: id_},
-            {x: iw, y: centerOffsetY, z: id_},
-            {x: 0, y: centerOffsetY - ih, z: id_}
-        ];
-        // Use outer prism's project function
-        ipts = iVertices.map(v => project(v.x, v.y, v.z));
-        
-        ifaces = [
-            { id: 'front',  pts: [0, 1, 2],    baseColor: [255, 100, 150], alphaMult: 0.6 },
-            { id: 'back',   pts: [3, 5, 4],    baseColor: [255, 80, 130],  alphaMult: 0.5 },
-            { id: 'bottom', pts: [0, 3, 4, 1], baseColor: [255, 150, 200], alphaMult: 0.4 },
-            { id: 'left',   pts: [0, 2, 5, 3], baseColor: [255, 200, 220], alphaMult: 0.7 },
-            { id: 'right',  pts: [1, 4, 5, 2], baseColor: [255, 50, 100],  alphaMult: 0.5 }
-        ];
-        
-        ifaces.forEach(f => {
-            f.z = f.pts.reduce((sum, i) => sum + ipts[i].z, 0) / f.pts.length;
-        });
-        ifaces.sort((a, b) => b.z - a.z);
-        
-        ifaces.forEach((f, idx) => {
-            let c = f.baseColor;
-            ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${glassAlpha * f.alphaMult * 0.5})`;
-            ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
-            ctx.lineWidth = 1;
-            ctx.lineJoin = 'round';
-            ctx.beginPath();
-            ctx.moveTo(ipts[f.pts[0]].x, ipts[f.pts[0]].y);
-            for (let i = 1; i < f.pts.length; i++) {
-                ctx.lineTo(ipts[f.pts[i]].x, ipts[f.pts[i]].y);
-            }
-            ctx.closePath();
-            ctx.fill();
-            
-            const isBack = idx < 2;
-            if (isBack) {
-                ctx.stroke();
-            }
-        });
-        ctx.restore();
-    }
+        const colorIdx = isReversed ? colors.length - 1 - i : i;
 
-    // Tier 6: Icosahedron Shell Initialization
-    let icoPts = null, icoFacesData = null;
-    if (tier6Prog > 0) {
-        const icoVertices = [
-            {x: -1, y: 1.618033988749895, z: 0},
-            {x: 1, y: 1.618033988749895, z: 0},
-            {x: -1, y: -1.618033988749895, z: 0},
-            {x: 1, y: -1.618033988749895, z: 0},
-            {x: 0, y: -1, z: 1.618033988749895},
-            {x: 0, y: 1, z: 1.618033988749895},
-            {x: 0, y: -1, z: -1.618033988749895},
-            {x: 0, y: 1, z: -1.618033988749895},
-            {x: 1.618033988749895, y: 0, z: -1},
-            {x: 1.618033988749895, y: 0, z: 1},
-            {x: -1.618033988749895, y: 0, z: -1},
-            {x: -1.618033988749895, y: 0, z: 1},
-        ];
-        const icoFacesList = [
-            [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
-            [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
-            [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
-            [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1],
-        ];
+        const grad = ctx.createLinearGradient(
+          center.x,
+          center.y,
+          center.x + Math.cos(outAngle) * 400,
+          center.y + Math.sin(outAngle) * 400,
+        );
+        const intensity = 0.6 + 0.4 * Math.sin(t * 8 + i * 2);
+        const rgbStr = hexToRgbStr(colors[colorIdx]);
+        grad.addColorStop(0, colors[colorIdx]);
+        grad.addColorStop(0.5, `rgba(${rgbStr}, ${intensity})`);
+        grad.addColorStop(1, `rgba(${rgbStr}, 0)`);
 
-        const shellScaleX = Math.max(w, d) * 0.85; // Width/depth
-        const shellScaleY = h * 0.45; // Significantly shrink height
-        
-        const shellRotY = t * 0.5;
-        const shellRotX = t * 0.3;
-        
-        const cy = Math.cos(shellRotY);
-        const sy = Math.sin(shellRotY);
-        const cx = Math.cos(shellRotX);
-        const sx = Math.sin(shellRotX);
-        
-        icoPts = icoVertices.map(v => {
-            // Apply rotation and scaling around center (0, -h/2, 0)
-            let x = v.x * shellScaleX;
-            let y = v.y * shellScaleY;
-            let z = v.z * shellScaleX;
-            
-            // Rotate X
-            let y1 = y * cx - z * sx;
-            let z1 = y * sx + z * cx;
-            
-            // Rotate Y
-            let x2 = x * cy - z1 * sy;
-            let z2 = x * sy + z1 * cy;
-            
-            // Offset to prism center, slightly higher to prevent ground clipping
-            return project(x2, y1 - h/2, z2);
-        });
-        
-        icoFacesData = icoFacesList.map(pts => {
-            const z = pts.reduce((sum, i) => sum + icoPts[i].z, 0) / pts.length;
-            return { pts, z };
-        });
-        
-        // Tier 6: Pulsing Wireframe Shell (Back Half)
-        ctx.save();
-        ctx.globalAlpha = tier6Prog;
-        ctx.globalCompositeOperation = "screen";
-        
-        const pulse = 0.5 + 0.5 * Math.sin(t * 3);
-        ctx.strokeStyle = `rgba(255, 150, 255, ${0.4 + 0.6 * pulse})`;
-        ctx.lineWidth = 2;
-        ctx.lineJoin = "round";
-        
-        icoFacesData.forEach(f => {
-            if (f.z > 0) { // Back faces
-                ctx.beginPath();
-                ctx.moveTo(icoPts[f.pts[0]].x, icoPts[f.pts[0]].y);
-                for (let i = 1; i < f.pts.length; i++) {
-                    ctx.lineTo(icoPts[f.pts[i]].x, icoPts[f.pts[i]].y);
-                }
-                ctx.closePath();
-                ctx.stroke();
-            }
-        });
-        ctx.restore();
-    }
+        ctx.fillStyle = grad;
+        const outW = 8 + Math.sin(t * 15 + i) * 3;
 
-    faces.forEach((f, idx) => {
-        let c = f.baseColor;
-        
-
-        
-        // Make it glassy
-        ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${glassAlpha * f.alphaMult})`;
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
+        // Draw thick polygon beam
         ctx.beginPath();
-        ctx.moveTo(pts[f.pts[0]].x, pts[f.pts[0]].y);
-        for (let i = 1; i < f.pts.length; i++) {
-            ctx.lineTo(pts[f.pts[i]].x, pts[f.pts[i]].y);
-        }
-        ctx.closePath();
+        // Move perpendicular to outAngle to create thickness
+        const px = Math.sin(outAngle) * outW;
+        const py = -Math.cos(outAngle) * outW;
+
+        ctx.moveTo(center.x - px / 2, center.y - py / 2);
+        ctx.lineTo(
+          center.x + Math.cos(outAngle) * 400 - px,
+          center.y + Math.sin(outAngle) * 400 - py,
+        );
+        ctx.lineTo(
+          center.x + Math.cos(outAngle) * 400 + px,
+          center.y + Math.sin(outAngle) * 400 + py,
+        );
+        ctx.lineTo(center.x + px / 2, center.y + py / 2);
         ctx.fill();
-        
-        // Only stroke the back faces now, front faces will be stroked after beams.
-        const isBack = idx < 2; // the first 2 faces are in the back
-        if (isBack) {
-            ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
-            ctx.lineWidth = 1;
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-            ctx.stroke();
-        }
-        
-        // Add a highlight on front faces to keep brightness consistent
-    });
+      }
+    };
+
+    // Right side (base angle 0)
+    drawRainbowSide(0, false);
+    // Left side (base angle PI, reverse colors for symmetry)
+    drawRainbowSide(Math.PI, true);
+
     ctx.restore();
+  }
 
-    // Tier 7: Runes of Power
-    if (tier7Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier7Prog;
-        
-        const runeY = hoverY + 30; 
-        
-        ctx.save();
-        ctx.translate(0, runeY);
-        ctx.scale(1, 0.4); 
-        ctx.rotate(t * 0.5); 
-        
-        const pGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 3);
-        pGrad.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
-        pGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        ctx.fillStyle = pGrad;
-        ctx.beginPath();
-        ctx.arc(0, 0, w * 3, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.4 + 0.2 * Math.sin(t * 3)})`;
-        ctx.lineWidth = 2;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-        
-        ctx.beginPath();
-        ctx.arc(0, 0, w * 2.5, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        const points = 6;
-        const outerR = w * 2.2;
-        const innerR = w * 1.5;
-        
-        ctx.beginPath();
-        for (let i = 0; i < points * 2; i++) {
-            const r = (i % 2 === 0) ? outerR : innerR;
-            const a = (i * Math.PI) / points;
-            if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-            else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-        }
-        ctx.closePath();
-        ctx.stroke();
-
-        ctx.restore();
-        ctx.restore();
-    }
-
-    // Explicitly draw the top line (pts 2 and 5) BEFORE beams, so beams always overlap it
+  // Draw FRONT edges of the inner prism
+  if (tier2Prog > 0 && ipts && ifaces && ifaces.iedges) {
     ctx.save();
+    ctx.globalAlpha = tier2Prog;
     ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
     ctx.lineWidth = 1;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.moveTo(pts[5].x, pts[5].y);
-    ctx.lineTo(pts[2].x, pts[2].y);
+    ifaces.iedges
+      .filter((e) => e.isFront)
+      .forEach((e) => {
+        ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
+        ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
+      });
     ctx.stroke();
-    
-    // Check if the front triangular face is actually facing away.
-    const isFrontTriangleBackwards = pts[2].z > pts[5].z;
-    if (isFrontTriangleBackwards) {
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        ctx.lineTo(pts[1].x, pts[1].y);
-        ctx.lineTo(pts[2].x, pts[2].y);
-        ctx.lineTo(pts[0].x, pts[0].y);
-        ctx.stroke();
-    }
-    
-    if (!isFrontTriangleBackwards) {
-        ctx.beginPath();
-        ctx.moveTo(pts[3].x, pts[3].y);
-        ctx.lineTo(pts[4].x, pts[4].y);
-        ctx.lineTo(pts[5].x, pts[5].y);
-        ctx.lineTo(pts[3].x, pts[3].y);
-        ctx.stroke();
-    }
-    
     ctx.restore();
+  }
 
-    // --- Post-Prism Light Effects ---
-    
-    // Tier 1: Pink Sparkles
-    if (tier1Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier1Prog;
-        
-        
-        const numSparkles = 15;
-        for (let i = 0; i < numSparkles; i++) {
-            const sparkleT = (t * 0.75 + i * (1 / numSparkles)) % 1; // 0 to 1
-            
-            const hash1 = Math.sin(i * 12.9898) * 43758.5453 % 1;
-            const hash2 = Math.cos(i * 78.233) * 43758.5453 % 1;
-            const hash3 = Math.sin(i * 45.123) * 43758.5453 % 1;
-            
-            const angle = hash2 * Math.PI * 2;
-            const speed = 100 + 100 * Math.abs(hash1);
-            const distance = speed * sparkleT;
-            const sx = Math.cos(angle) * distance;
-            const sz = Math.sin(angle) * distance;
-            
-            const initialVy = -150 - 50 * Math.abs(hash3);
-            const gravity = 400;
-            const dy = initialVy * sparkleT + 0.5 * gravity * sparkleT * sparkleT;
-            const sparkleY = -h / 2 + dy;
-
-            
-            const sp = project(sx, sparkleY, sz);
-            
-            const sparkleAlpha = Math.sin(sparkleT * Math.PI); // Fade in and out
-            const sparkleSize = 4 * sp.scale * sparkleAlpha;
-            
-            ctx.save();
-            ctx.translate(sp.x, sp.y);
-            ctx.rotate(t + i);
-            
-            ctx.fillStyle = `rgba(255, 200, 255, ${sparkleAlpha * 0.9})`;
-            
-            // Draw a 4-pointed star
-            ctx.beginPath();
-            ctx.moveTo(0, -sparkleSize);
-            ctx.quadraticCurveTo(0, 0, sparkleSize, 0);
-            ctx.quadraticCurveTo(0, 0, 0, sparkleSize);
-            ctx.quadraticCurveTo(0, 0, -sparkleSize, 0);
-            ctx.quadraticCurveTo(0, 0, 0, -sparkleSize);
-            ctx.fill();
-            
-            ctx.restore();
-        }
-        ctx.restore();
-    }
-    const center = project(0, -h/2, 0);
-
-    // Tier 4: Incoming White Beam from top & Rainbow Beams shooting out horizontally
-    if (tier4Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier4Prog;
-        ctx.globalCompositeOperation = 'screen';
-        
-        // Incoming white beam (from straight down/top)
-        const inAngle = -Math.PI / 2; 
-        
-        // In Tier 7, the incoming beam gets much wider and intense
-        const t7WidthAdd = 0;
-        const beamW = 6 + Math.sin(t*5)*2 + t7WidthAdd;
-        
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.beginPath();
-        ctx.moveTo(center.x - beamW, center.y - 400);
-        ctx.lineTo(center.x + beamW, center.y - 400);
-        ctx.lineTo(center.x + beamW/2, center.y);
-        ctx.lineTo(center.x - beamW/2, center.y);
-        ctx.fill();
-        
-        // Glowing impact point
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath(); ctx.arc(center.x, center.y, 8 + t7WidthAdd/2, 0, Math.PI*2); ctx.fill();
-        
-        // Dispersed Rainbow Beams (exiting horizontally left and right)
-        const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff'];
-        
-        // Tier 7 amplifies the spread and length
-        const spread = Math.PI / 4; 
-        const rayLen = 300;
-        
-        const drawHorizontalRainbow = (baseAngle, isReversed) => {
-            for (let i = 0; i < colors.length; i++) {
-                const fraction = i / (colors.length - 1);
-                const angleOffset = -spread/2 + fraction * spread;
-                const outAngle = baseAngle + angleOffset;
-                
-                const colorIdx = isReversed ? (colors.length - 1 - i) : i;
-                
-                const grad = ctx.createLinearGradient(center.x, center.y, center.x + Math.cos(outAngle)*rayLen, center.y + Math.sin(outAngle)*rayLen);
-                grad.addColorStop(0, colors[colorIdx]);
-                grad.addColorStop(1, 'rgba(0,0,0,0)');
-                
-                ctx.strokeStyle = grad;
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                ctx.moveTo(center.x, center.y);
-                ctx.lineTo(center.x + Math.cos(outAngle)*rayLen, center.y + Math.sin(outAngle)*rayLen);
-                ctx.stroke();
-            }
-        };
-
-        // Shoot left (PI) and right (0)
-        drawHorizontalRainbow(0, false);
-        drawHorizontalRainbow(Math.PI, true);
-        
-        ctx.restore();
-    }
-
-    // Tier 5: Orbiting Crystal Shards
-    if (tier5Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier5Prog;
-        
-        const numShards = 6 + Math.floor(tier8Prog * 6); // More shards in Tier 8
-        const orbitRadius = 70 + tier6Prog * 20 + tier8Prog * 30;
-        
-        for (let i = 0; i < numShards; i++) {
-            const orbitRot = t * 1.5 + (i * Math.PI * 2 / numShards);
-            const sx = Math.cos(orbitRot) * orbitRadius;
-            const sz = Math.sin(orbitRot) * orbitRadius;
-            const sy = -h/2;
-            
-            const sp = project(sx, sy, sz);
-            
-            // Tier 8 Light Trails for Shards (moved from Tier 7)
-            if (tier8Prog > 0) {
-                ctx.save();
-                
-                ctx.strokeStyle = `rgba(255, 100, 200, ${0.5 * tier8Prog})`;
-                ctx.lineWidth = 3 * sp.scale;
-                ctx.beginPath();
-                for (let j = 0; j < 5; j++) {
-                    const trailRot = orbitRot - j * 0.1;
-                    const trailSx = Math.cos(trailRot) * orbitRadius;
-                    const trailSz = Math.sin(trailRot) * orbitRadius;
-                    const trailSy = -h/2;
-                    const tsp = project(trailSx, trailSy, trailSz);
-                    if (j === 0) ctx.moveTo(tsp.x, tsp.y);
-                    else ctx.lineTo(tsp.x, tsp.y);
-                }
-                ctx.stroke();
-                ctx.restore();
-            }
-            
-            // Draw shard
-            ctx.save();
-            ctx.translate(sp.x, sp.y);
-            
-            
-            ctx.fillStyle = 'rgba(255, 150, 220, 0.8)';
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.lineWidth = 1;
-            
-            const size = 12 * sp.scale;
-            ctx.beginPath();
-            ctx.moveTo(0, -size);
-            ctx.lineTo(-size*0.6, 0);
-            ctx.lineTo(0, size);
-            ctx.lineTo(size*0.6, 0);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-            ctx.restore();
-            
-
-        }
-        ctx.restore();
-    }
-
-    // --- Tier 8: Symmetrical Zenith ---
-    if (tier8Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier8Prog;
-        ctx.globalCompositeOperation = 'screen';
-        
-        // Incoming massive white beams from BOTH sides (top-left, top-right)
-        // OR straight down. "massive white beams enter from both sides (or straight down)"
-        // Let's do straight down splitting into two huge rainbows perfectly symmetric
-        
-        const inAngle = -Math.PI / 2; // straight up/down
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        
-        // Draw incoming thick white beam
-        const beamW = 15 + Math.sin(t * 10) * 5;
-        const beamGrad = ctx.createLinearGradient(0, center.y - 400, 0, center.y);
-        beamGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-        beamGrad.addColorStop(1, 'rgba(255, 255, 255, 1)');
-        ctx.fillStyle = beamGrad;
-        
-        ctx.beginPath();
-        ctx.moveTo(center.x - beamW, center.y - 400);
-        ctx.lineTo(center.x + beamW, center.y - 400);
-        ctx.lineTo(center.x + beamW/2, center.y);
-        ctx.lineTo(center.x - beamW/2, center.y);
-        ctx.fill();
-
-        // Explosive Core
-        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-        ctx.beginPath(); ctx.arc(center.x, center.y, 15 + Math.random()*10, 0, Math.PI*2); ctx.fill();
-
-        // SYMMETRICAL Rainbow Beams (Left and Right)
-        const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff'];
-        const spread = Math.PI / 2; // 90 degree spread
-
-        const drawRainbowSide = (baseAngle, isReversed) => {
-            for (let i = 0; i < colors.length; i++) {
-                const fraction = i / (colors.length - 1);
-                // Spread centered around baseAngle
-                const angleOffset = -spread/2 + fraction * spread;
-                const outAngle = baseAngle + angleOffset + Math.sin(t*5 + i)*0.02; // subtle wave
-                
-                const colorIdx = isReversed ? (colors.length - 1 - i) : i;
-                
-                const grad = ctx.createLinearGradient(center.x, center.y, center.x + Math.cos(outAngle)*400, center.y + Math.sin(outAngle)*400);
-                const intensity = 0.6 + 0.4 * Math.sin(t * 8 + i * 2);
-                grad.addColorStop(0, colors[colorIdx]);
-                grad.addColorStop(0.5, `rgba(${hexToRgbStr(colors[colorIdx])}, ${intensity})`);
-                grad.addColorStop(1, 'rgba(0,0,0,0)');
-                
-                ctx.fillStyle = grad;
-                const outW = 8 + Math.sin(t * 15 + i) * 3;
-                
-                // Draw thick polygon beam
-                ctx.beginPath();
-                // Move perpendicular to outAngle to create thickness
-                const px = Math.sin(outAngle) * outW;
-                const py = -Math.cos(outAngle) * outW;
-                
-                ctx.moveTo(center.x - px/2, center.y - py/2);
-                ctx.lineTo(center.x + Math.cos(outAngle)*400 - px, center.y + Math.sin(outAngle)*400 - py);
-                ctx.lineTo(center.x + Math.cos(outAngle)*400 + px, center.y + Math.sin(outAngle)*400 + py);
-                ctx.lineTo(center.x + px/2, center.y + py/2);
-                ctx.fill();
-            }
-        };
-
-        // Right side (base angle 0)
-        drawRainbowSide(0, false);
-        // Left side (base angle PI, reverse colors for symmetry)
-        drawRainbowSide(Math.PI, true);
-
-        ctx.restore();
-    }
-    
-
-    // Draw FRONT faces of the inner prism AFTER the light beam impact point
-    if (tier2Prog > 0 && ipts && ifaces) {
-        ctx.save();
-        ctx.globalAlpha = tier2Prog;
-        
-        
-        ifaces.forEach((f, idx) => {
-            if (idx >= 2) {
-                let c = f.baseColor;
-                ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${glassAlpha * f.alphaMult * 0.5})`;
-                ctx.beginPath();
-                ctx.moveTo(ipts[f.pts[0]].x, ipts[f.pts[0]].y);
-                for (let i = 1; i < f.pts.length; i++) {
-                    ctx.lineTo(ipts[f.pts[i]].x, ipts[f.pts[i]].y);
-                }
-                ctx.closePath();
-                ctx.fill();
-            }
-        });
-        
-        ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
-        ctx.lineWidth = 1;
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        
-        // Draw standard strokes uniformly around the inner front/left/right faces without arbitrary Z toggling
-        ifaces.forEach((f) => {
-            if (f.id === 'front' || f.id === 'left' || f.id === 'right') {
-                ctx.beginPath();
-                ctx.moveTo(ipts[f.pts[0]].x, ipts[f.pts[0]].y);
-                for (let i = 1; i < f.pts.length; i++) {
-                    ctx.lineTo(ipts[f.pts[i]].x, ipts[f.pts[i]].y);
-                }
-                ctx.closePath();
-                ctx.stroke();
-            }
-        });
-        
-        ctx.restore();
-    }
-
-    // Draw front face lines AFTER all beams so beams appear to be inside the prism
-    ctx.save();
-    ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
-    ctx.lineWidth = 1;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    
-    // Draw standard strokes uniformly around the main front/left/right faces without arbitrary Z toggling
-    faces.forEach((f) => {
-        if (f.id === 'front' || f.id === 'left' || f.id === 'right') {
-            ctx.beginPath();
-            ctx.moveTo(pts[f.pts[0]].x, pts[f.pts[0]].y);
-            for (let i = 1; i < f.pts.length; i++) {
-                ctx.lineTo(pts[f.pts[i]].x, pts[f.pts[i]].y);
-            }
-            ctx.closePath();
-            ctx.stroke();
-        }
+  // Draw FRONT edges of outer prism
+  ctx.save();
+  ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
+  ctx.lineWidth = 1;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  edges
+    .filter((e) => e.isFront)
+    .forEach((e) => {
+      ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
+      ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
     });
-    // Explicitly draw the bottom line of the front and back faces to ensure they are always visible
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    ctx.lineTo(pts[1].x, pts[1].y);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(pts[3].x, pts[3].y);
-    ctx.lineTo(pts[4].x, pts[4].y);
-    ctx.stroke();
-
-
-    ctx.restore();
-    // Tier 6: Pulsing Wireframe Shell (Front Half)
-    if (tier6Prog > 0 && icoPts && icoFacesData) {
-        ctx.save();
-        ctx.globalAlpha = tier6Prog;
-        ctx.globalCompositeOperation = "screen";
-        
-        const pulse = 0.5 + 0.5 * Math.sin(t * 3);
-        ctx.strokeStyle = `rgba(255, 150, 255, ${0.4 + 0.6 * pulse})`;
-        ctx.lineWidth = 2;
-        ctx.lineJoin = "round";
-        
-        icoFacesData.forEach(f => {
-            if (f.z <= 0) { // Front faces
-                ctx.beginPath();
-                ctx.moveTo(icoPts[f.pts[0]].x, icoPts[f.pts[0]].y);
-                for (let i = 1; i < f.pts.length; i++) {
-                    ctx.lineTo(icoPts[f.pts[i]].x, icoPts[f.pts[i]].y);
-                }
-                ctx.closePath();
-                ctx.stroke();
-            }
-        });
-        ctx.restore();
-    }
+  ctx.stroke();
+  ctx.restore();
 }
 
-
-
 function drawFoundry(ctx, t, tier, prevTier, animProgress) {
-    // Base structure (Tier 0+)
-    if (!stonePattern && activeCtx) {
-        initStonePattern(activeCtx);
-    }
-    if (stonePattern) {
-        ctx.fillStyle = stonePattern;
-    } else {
-        ctx.fillStyle = '#544';
-    }
-    
-    // Draw base building (rock oven)
-    ctx.fillRect(-70, -100, 140, 100);
-    
-    // Tier 1: Multiple, staggered smokestacks emitting thick, animated smoke with glowing embers
-    const showTier1 = (tier >= 1) ? 1 : 0;
-    const tier1Prog = (tier >= 1 && prevTier < 1) ? animProgress : showTier1;
-    if (tier1Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier1Prog;
-        
-        
-        
-        const drawSmokestack = (x, y, w, h, timeOffset) => {
-            ctx.fillStyle = '#222';
-            ctx.fillRect(x - w/2, y - h, w, h);
-            
-            // Rim of smokestack
-            ctx.fillStyle = '#111';
-            ctx.fillRect(x - w/2 - 2, y - h, w + 4, 5);
+  // Base structure (Tier 0+)
+  if (!stonePattern && activeCtx) {
+    initStonePattern(activeCtx);
+  }
+  if (stonePattern) {
+    ctx.fillStyle = stonePattern;
+  } else {
+    ctx.fillStyle = "#544";
+  }
 
-            if (tier1Prog > 0) {
-                for (let i = 0; i < 5; i++) {
-                    const smokeT = (t + i * 0.8 + timeOffset) % 4;
-                    const smokeY = y - h - smokeT * 40;
-                    const smokeX = x + Math.sin(smokeT * 3 + i) * 15;
-                    const smokeSize = 10 + smokeT * 15;
-                    const smokeAlpha = 1 - (smokeT / 4);
-                    
-                    // Smoke
-                    ctx.fillStyle = `rgba(50, 50, 50, ${smokeAlpha * 0.8})`;
-                    ctx.beginPath();
-                    ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // Embers
-                    const emberX = smokeX + Math.sin(smokeT * 5 + i * 2) * smokeSize * 0.5;
-                    const emberY = smokeY + Math.cos(smokeT * 4 + i) * smokeSize * 0.5;
-                    const emberAlpha = smokeAlpha * (0.5 + 0.5 * Math.sin(t * 10 + i));
-                    ctx.fillStyle = `rgba(255, 100, 0, ${emberAlpha})`;
-                    ctx.beginPath();
-                    ctx.arc(emberX, emberY, 2 + Math.abs(Math.sin(i)) * 2, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-        };
+  // Draw base building (rock oven)
+  ctx.fillRect(-70, -100, 140, 100);
 
-        drawSmokestack(-35, -100, 20, 60, 0);
-        drawSmokestack(0, -100, 26, 80, 1.5);
-        drawSmokestack(35, -100, 20, 60, 2.5);
+  // Tier 1: Multiple, staggered smokestacks emitting thick, animated smoke with glowing embers
+  const showTier1 = tier >= 1 ? 1 : 0;
+  const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
+  if (tier1Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier1Prog;
 
-        ctx.restore();
-    }
-    
-    // Tier 2: Heavy dark metal plating with glowing orange seams
-    const showTier2 = (tier >= 2) ? 1 : 0;
-    const tier2Prog = (tier >= 2 && prevTier < 2) ? animProgress : showTier2;
-    if (tier2Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier2Prog;
-        
-        
-        
-        // Base dark plating
-        ctx.fillStyle = '#111';
-        ctx.fillRect(-75, -105, 150, 10);
-        ctx.fillRect(-75, -10, 150, 10);
-        ctx.fillRect(-75, -105, 10, 105);
-        ctx.fillRect(65, -105, 10, 105);
-        
-        // Glowing orange seams
-        const pulse = 0.5 + 0.5 * Math.sin(t * 3);
-        ctx.fillStyle = `rgba(255, ${100 + pulse * 100}, 0, ${0.7 + pulse * 0.3})`;
-        ctx.fillRect(-65, -103, 130, 2); // Top inner seam
-        ctx.fillRect(-65, -12, 130, 2);  // Bottom inner seam
-        ctx.fillRect(-73, -95, 2, 85);   // Left inner seam
-        ctx.fillRect(71, -95, 2, 85);    // Right inner seam
-        
-        // Rivets
-        ctx.fillStyle = '#555';
-        for(let i=-60; i<=60; i+=20) {
-            ctx.fillRect(i, -102, 4, 4);
-            ctx.fillRect(i, -7, 4, 4);
-            if (i > -60 && i < 60 && i % 40 === 0) {
-                 ctx.fillRect(-72, i - 20, 4, 4);
-                 ctx.fillRect(68, i - 20, 4, 4);
-            }
+    const drawSmokestack = (x, y, w, h, timeOffset) => {
+      ctx.fillStyle = "#222";
+      ctx.fillRect(x - w / 2, y - h, w, h);
+
+      // Rim of smokestack
+      ctx.fillStyle = "#111";
+      ctx.fillRect(x - w / 2 - 2, y - h, w + 4, 5);
+
+      if (tier1Prog > 0) {
+        for (let i = 0; i < 5; i++) {
+          const smokeT = (t + i * 0.8 + timeOffset) % 4;
+          const smokeY = y - h - smokeT * 40;
+          const smokeX = x + Math.sin(smokeT * 3 + i) * 15;
+          const smokeSize = 10 + smokeT * 15;
+          const smokeAlpha = 1 - smokeT / 4;
+
+          // Smoke
+          ctx.fillStyle = `rgba(50, 50, 50, ${smokeAlpha * 0.8})`;
+          ctx.beginPath();
+          ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Embers
+          const emberX =
+            smokeX + Math.sin(smokeT * 5 + i * 2) * smokeSize * 0.5;
+          const emberY = smokeY + Math.cos(smokeT * 4 + i) * smokeSize * 0.5;
+          const emberAlpha = smokeAlpha * (0.5 + 0.5 * Math.sin(t * 10 + i));
+          ctx.fillStyle = `rgba(255, 100, 0, ${emberAlpha})`;
+          ctx.beginPath();
+          ctx.arc(
+            emberX,
+            emberY,
+            2 + Math.abs(Math.sin(i)) * 2,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
         }
-        
+      }
+    };
 
-        ctx.restore();
+    drawSmokestack(-35, -100, 20, 60, 0);
+    drawSmokestack(0, -100, 26, 80, 1.5);
+    drawSmokestack(35, -100, 20, 60, 2.5);
+
+    ctx.restore();
+  }
+
+  // Tier 2: Heavy dark metal plating with glowing orange seams
+  const showTier2 = tier >= 2 ? 1 : 0;
+  const tier2Prog = tier >= 2 && prevTier < 2 ? animProgress : showTier2;
+  if (tier2Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier2Prog;
+
+    // Base dark plating
+    ctx.fillStyle = "#111";
+    ctx.fillRect(-75, -105, 150, 10);
+    ctx.fillRect(-75, -10, 150, 10);
+    ctx.fillRect(-75, -105, 10, 105);
+    ctx.fillRect(65, -105, 10, 105);
+
+    // Glowing orange seams
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+    ctx.fillStyle = `rgba(255, ${100 + pulse * 100}, 0, ${0.7 + pulse * 0.3})`;
+    ctx.fillRect(-65, -103, 130, 2); // Top inner seam
+    ctx.fillRect(-65, -12, 130, 2); // Bottom inner seam
+    ctx.fillRect(-73, -95, 2, 85); // Left inner seam
+    ctx.fillRect(71, -95, 2, 85); // Right inner seam
+
+    // Rivets
+    ctx.fillStyle = "#555";
+    for (let i = -60; i <= 60; i += 20) {
+      ctx.fillRect(i, -102, 4, 4);
+      ctx.fillRect(i, -7, 4, 4);
+      if (i > -60 && i < 60 && i % 40 === 0) {
+        ctx.fillRect(-72, i - 20, 4, 4);
+        ctx.fillRect(68, i - 20, 4, 4);
+      }
     }
-    
-    // Tier 3: Dynamic lava falls spilling into cooling pools
-    const showTier3 = (tier >= 3) ? 1 : 0;
-    const tier3Prog = (tier >= 3 && prevTier < 3) ? animProgress : showTier3;
-    if (tier3Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier3Prog;
-        
-        // Lava pools at base
-        const poolGrad = ctx.createLinearGradient(0, -10, 0, 0);
-        poolGrad.addColorStop(0, '#f90');
-        poolGrad.addColorStop(1, '#a20');
-        ctx.fillStyle = poolGrad;
-        ctx.fillRect(-95, -10, 40, 10);
-        ctx.fillRect(55, -10, 40, 10);
-        
-        // Cooling pools edges
-        ctx.fillStyle = '#222';
-        ctx.fillRect(-100, -15, 5, 15);
-        ctx.fillRect(-55, -15, 5, 15);
-        ctx.fillRect(50, -15, 5, 15);
-        ctx.fillRect(95, -15, 5, 15);
-        
-        // Dynamic Lava Falls
-        const drawLavaFall = (x) => {
-            let scrollOffset = (t * 2) % 1;
-            if (scrollOffset < 0) scrollOffset += 1;
-            const lavaFallGrad = ctx.createLinearGradient(0, -90, 0, -10);
-            
-            const stops = [
-                { offset: Math.max(0, Math.min(1, (0 + scrollOffset) % 1)), color: '#ff0' },
-                { offset: Math.max(0, Math.min(1, (0.33 + scrollOffset) % 1)), color: '#f50' },
-                { offset: Math.max(0, Math.min(1, (0.66 + scrollOffset) % 1)), color: '#a20' }
-            ];
-            
-            stops.sort((a, b) => a.offset - b.offset);
-            for (const s of stops) {
-                lavaFallGrad.addColorStop(s.offset, s.color);
-            }
-            
-            const firstStop = stops[0];
-            const lastStop = stops[stops.length - 1];
-            if (firstStop.offset > 0) lavaFallGrad.addColorStop(0, lastStop.color);
-            if (lastStop.offset < 1) lavaFallGrad.addColorStop(1, firstStop.color);
-            
-            // Just to be absolutely safe, avoid duplicate stops at 0 or 1. Actually the safest is just adding them if they aren't duplicate, but the clipping in math.max usually prevents exceptions. 
-            // The negative issue was due to modulo of negative numbers in JS (if t was negative), so our `if (scrollOffset < 0) scrollOffset += 1;` fixes the negative.
-            ctx.fillStyle = lavaFallGrad;
-            
-            // Straight lava stream
-            ctx.fillRect(x - 8, -90, 16, 80);
-            
-            // Spouts
-            ctx.fillStyle = '#333';
-            ctx.fillRect(x - 12, -100, 24, 10);
-            ctx.fillStyle = '#f90';
-            ctx.fillRect(x - 10, -95, 20, 5);
-            
-            // Steam from pool
-            if (tier3Prog > 0.8) {
-                for (let i = 0; i < 3; i++) {
-                    const steamT = (t + i * 1.5) % 3;
-                    const steamY = -10 - steamT * 20;
-                    const steamX = x + Math.sin(steamT * 4 + i) * 10;
-                    const steamAlpha = 1 - (steamT / 3);
-                    ctx.fillStyle = `rgba(200, 200, 200, ${steamAlpha * 0.4})`;
-                    ctx.beginPath();
-                    ctx.arc(steamX, steamY, 5 + steamT * 5, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-        };
-        
-        drawLavaFall(-75);
-        drawLavaFall(75);
-        
-        ctx.restore();
-    }
-    
-    // Tier 5: Heavy Industrial Vents - Glowing orange/red heat emitting from industrial vents
-    const showTier5 = (tier >= 5) ? 1 : 0;
-    const tier5Prog = (tier >= 5 && prevTier < 5) ? animProgress : showTier5;
-    if (tier5Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier5Prog;
-        
-        const heatGlow = 0.5 + 0.5 * Math.sin(t * 4);
-        
-        const drawVent = (x, y, w, h) => {
-            ctx.save();
-            ctx.translate(x, y);
-            
-            // Vent casing
-            ctx.fillStyle = '#222';
-            ctx.fillRect(-w/2, -h/2, w, h);
-            ctx.strokeStyle = '#111';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(-w/2, -h/2, w, h);
-            
-            // Glowing interior
-            ctx.fillStyle = `rgba(255, ${100 + heatGlow * 50}, 0, ${0.6 + 0.4 * heatGlow})`;
-            ctx.fillRect(-w/2 + 2, -h/2 + 2, w - 4, h - 4);
-            
-            // Grates
-            ctx.fillStyle = '#000';
-            for (let i = -h/2 + 4; i < h/2 - 2; i += 4) {
-                ctx.fillRect(-w/2 + 2, i, w - 4, 2);
-            }
-            
-            ctx.restore();
-        };
 
-        // Draw vents embedded into the structure walls
-        // 3 vents on each side, slightly adjusted to fit
-        drawVent(-48, -27, 16, 20); // Bottom left
-        drawVent(-48, -54, 16, 20); // Mid left
-        drawVent(-48, -81, 16, 20); // Top left
-        
-        drawVent(48, -27, 16, 20); // Bottom right
-        drawVent(48, -54, 16, 20); // Mid right
-        drawVent(48, -81, 16, 20); // Top right
-        
-        // Two vents on top instead of 1 large one
-        drawVent(-16, -81, 16, 20);
-        drawVent(16, -81, 16, 20);
+    ctx.restore();
+  }
 
-        ctx.restore();
-    }
-    
-    // Tier 6: Hyper-Accelerated Exhaust - Animated turbine fans blowing intense magma flame jets
-    const showTier6 = (tier >= 6) ? 1 : 0;
-    const tier6Prog = (tier >= 6 && prevTier < 6) ? animProgress : showTier6;
-    if (tier6Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier6Prog;
-        
-        const drawTurbineExhaust = (x, isLeft) => {
-            ctx.save();
-            ctx.translate(x, -80);
-            
-            // Housing
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(isLeft ? -30 : 0, -20, 30, 40);
-            
-            // Turbine casing details
-            ctx.fillStyle = '#333';
-            ctx.fillRect(isLeft ? -25 : 5, -15, 20, 30);
-            
-            // Glowing red-hot interior
-            const heatGlow = 0.5 + 0.5 * Math.sin(t * 8);
-            ctx.fillStyle = `rgba(255, ${50 + heatGlow * 100}, 0, 0.8)`;
-            ctx.fillRect(isLeft ? -22 : 8, -12, 14, 24);
+  // Tier 3: Dynamic lava falls spilling into cooling pools
+  const showTier3 = tier >= 3 ? 1 : 0;
+  const tier3Prog = tier >= 3 && prevTier < 3 ? animProgress : showTier3;
+  if (tier3Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier3Prog;
 
-            // Turbine Fan blades
-            ctx.save();
-            ctx.translate(isLeft ? -15 : 15, 0);
-            ctx.rotate(t * (isLeft ? -20 : 20)); // Spin very fast
-            ctx.fillStyle = '#111';
-            for (let i = 0; i < 4; i++) {
-                ctx.rotate(Math.PI / 2);
-                ctx.beginPath();
-                ctx.moveTo(-2, 0);
-                ctx.lineTo(-8, -10);
-                ctx.lineTo(8, -10);
-                ctx.lineTo(2, 0);
-                ctx.fill();
-            }
-            // Center spinner
-            ctx.fillStyle = '#444';
-            ctx.beginPath();
-            ctx.arc(0, 0, 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
+    // Lava pools at base
+    const poolGrad = ctx.createLinearGradient(0, -10, 0, 0);
+    poolGrad.addColorStop(0, "#f90");
+    poolGrad.addColorStop(1, "#a20");
+    ctx.fillStyle = poolGrad;
+    ctx.fillRect(-95, -10, 40, 10);
+    ctx.fillRect(55, -10, 40, 10);
 
-            // Blue flame exhaust
-            if (tier6Prog > 0) {
-                const firePulse = Math.random() * 0.4;
-                const fireW = (40 + firePulse * 20) * (isLeft ? -1 : 1);
-                const fireGrad = ctx.createLinearGradient(isLeft ? -30 : 30, 0, isLeft ? -30 + fireW : 30 + fireW, 0);
-                fireGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-                fireGrad.addColorStop(0.2, 'rgba(255, 200, 0, 0.8)');
-                fireGrad.addColorStop(0.5, 'rgba(255, 100, 0, 0.5)');
-                fireGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
-                
-                ctx.fillStyle = fireGrad;
-                ctx.beginPath();
-                ctx.moveTo(isLeft ? -30 : 30, -10);
-                ctx.lineTo(isLeft ? -30 + fireW : 30 + fireW, -5 - firePulse * 10);
-                ctx.lineTo(isLeft ? -30 + fireW : 30 + fireW, 5 + firePulse * 10);
-                ctx.lineTo(isLeft ? -30 : 30, 10);
-                ctx.fill();
-            }
-            ctx.restore();
-        };
+    // Cooling pools edges
+    ctx.fillStyle = "#222";
+    ctx.fillRect(-100, -15, 5, 15);
+    ctx.fillRect(-55, -15, 5, 15);
+    ctx.fillRect(50, -15, 5, 15);
+    ctx.fillRect(95, -15, 5, 15);
 
-        drawTurbineExhaust(-65, true);
-        drawTurbineExhaust(65, false);
-        
-        ctx.restore();
-    }
-    
-// Tier 7: Lava Containers
-    const showTier7 = (tier >= 7) ? 1 : 0;
-    const tier7Prog = (tier >= 7 && prevTier < 7) ? animProgress : showTier7;
-    if (tier7Prog > 0) {
-        ctx.save();
-        ctx.globalAlpha = tier7Prog;
-        
-        const drawLavaContainer = (x, isLeft) => {
-            ctx.save();
-            ctx.translate(x, -10); // Base of the building
-            
-            // Pipe connection to the lava pool (KEEP)
-            ctx.fillStyle = '#111';
-            if (isLeft) {
-                ctx.fillRect(15, -20, 25, 15); // Connects to the right (towards the pool)
-            } else {
-                ctx.fillRect(-40, -20, 25, 15); // Connects to the left (towards the pool)
-            }
-            
-            // Glowing intake (KEEP)
-            const heatPulse = 0.5 + 0.5 * Math.sin(t * 8);
-            ctx.fillStyle = `rgba(255, ${100 + heatPulse * 100}, 0, 0.8)`;
-            if (isLeft) {
-                ctx.fillRect(15, -15, 10, 5);
-            } else {
-                ctx.fillRect(-25, -15, 10, 5);
-            }
+    // Dynamic Lava Falls
+    const drawLavaFall = (x) => {
+      let scrollOffset = (t * 2) % 1;
+      if (scrollOffset < 0) scrollOffset += 1;
+      const lavaFallGrad = ctx.createLinearGradient(0, -90, 0, -10);
 
-            // Lifted Silo parameters
-            const containerWidth = 30;
-            const containerHeight = 40;
-            const siloX = isLeft ? -15 : -15; // center of the silo relative to connection point
-            const siloY = -containerHeight; // lift it up slightly so it doesn't touch ground
+      const stops = [
+        {
+          offset: Math.max(0, Math.min(1, (0 + scrollOffset) % 1)),
+          color: "#ff0",
+        },
+        {
+          offset: Math.max(0, Math.min(1, (0.33 + scrollOffset) % 1)),
+          color: "#f50",
+        },
+        {
+          offset: Math.max(0, Math.min(1, (0.66 + scrollOffset) % 1)),
+          color: "#a20",
+        },
+      ];
 
-            // Silo Back wall (dark background inside)
-            ctx.fillStyle = '#1a0a00';
-            ctx.fillRect(siloX, siloY, containerWidth, containerHeight);
-            
-            // Lava inside
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(siloX, siloY, containerWidth, containerHeight);
-            ctx.clip();
-            
-            // Lava level and motion
-            const lavaLevelBase = 0.7; // 70% full
-            const lavaLevelFluctuation = 0.05 * Math.sin(t * 2);
-            const currentLavaHeight = containerHeight * (lavaLevelBase + lavaLevelFluctuation);
-            const lavaY = siloY + containerHeight - currentLavaHeight;
+      stops.sort((a, b) => a.offset - b.offset);
+      for (const s of stops) {
+        lavaFallGrad.addColorStop(s.offset, s.color);
+      }
 
-            // Lava gradient
-            const lavaGrad = ctx.createLinearGradient(0, lavaY, 0, siloY + containerHeight);
-            lavaGrad.addColorStop(0, '#ffcc00'); // top is hot/bright
-            lavaGrad.addColorStop(0.3, '#ff6600');
-            lavaGrad.addColorStop(1, '#cc2200'); // bottom is darker
-            
-            ctx.fillStyle = lavaGrad;
-            ctx.fillRect(siloX, lavaY, containerWidth, currentLavaHeight);
+      const firstStop = stops[0];
+      const lastStop = stops[stops.length - 1];
+      if (firstStop.offset > 0) lavaFallGrad.addColorStop(0, lastStop.color);
+      if (lastStop.offset < 1) lavaFallGrad.addColorStop(1, firstStop.color);
 
-            // Lava bubbles moving up
-            for (let i = 0; i < 8; i++) {
-                const bubbleT = (t * 0.5 + i * 0.43) % 1; // 0 to 1 cycle
-                const bubbleX = siloX + 5 + (i * 3) % (containerWidth - 10) + Math.sin(t * 3 + i) * 2;
-                const bubbleY = siloY + containerHeight - (bubbleT * currentLavaHeight);
-                const bubbleRadius = 1 + (i % 3);
-                
-                // only draw if below the surface
-                if (bubbleY > lavaY + bubbleRadius) {
-                    ctx.fillStyle = 'rgba(255, 200, 100, 0.7)';
-                    ctx.beginPath();
-                    ctx.arc(bubbleX, bubbleY, bubbleRadius, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-            
-            ctx.restore();
+      // Just to be absolutely safe, avoid duplicate stops at 0 or 1. Actually the safest is just adding them if they aren't duplicate, but the clipping in math.max usually prevents exceptions.
+      // The negative issue was due to modulo of negative numbers in JS (if t was negative), so our `if (scrollOffset < 0) scrollOffset += 1;` fixes the negative.
+      ctx.fillStyle = lavaFallGrad;
 
-            // Glass reflection/shine
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-            ctx.fillRect(siloX + 3, siloY + 2, 5, containerHeight - 4);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-            ctx.fillRect(siloX + 8, siloY + 2, 3, containerHeight - 4);
+      // Straight lava stream
+      ctx.fillRect(x - 8, -90, 16, 80);
 
-            // Metal caps (Top and Bottom of Silo)
-            ctx.fillStyle = '#222';
-            ctx.fillRect(siloX - 2, siloY - 5, containerWidth + 4, 5); // Top cap
-            ctx.fillRect(siloX - 2, siloY + containerHeight, containerWidth + 4, 5); // Bottom cap
-            
-            // Side supports/frame for the glass
-            ctx.fillStyle = '#111';
-            ctx.fillRect(siloX, siloY, 3, containerHeight); // Left frame
-            ctx.fillRect(siloX + containerWidth - 3, siloY, 3, containerHeight); // Right frame
-            
-            ctx.restore();
-        };
+      // Spouts
+      ctx.fillStyle = "#333";
+      ctx.fillRect(x - 12, -100, 24, 10);
+      ctx.fillStyle = "#f90";
+      ctx.fillRect(x - 10, -95, 20, 5);
 
-        // Positioned at the outer edges of the cooling pools
-        drawLavaContainer(-105, true);
-        drawLavaContainer(105, false);
-        
-        ctx.restore();
-    }
-    
-    // Tier 4: The Core Unleashed - Blast doors open revealing intensely bright plasma core casting rays
-    const showTier4 = (tier >= 4) ? 1 : 0;
-    const tier4Prog = (tier >= 4 && prevTier < 4) ? animProgress : showTier4;
-    
-    // Draw furnace opening
-    const doorWidth = 40 + tier4Prog * 20;
-    const doorHeight = 40 + tier4Prog * 20;
-    const pulse = Math.abs(Math.sin(t * 5));
-    const corePulse = 0.8 + 0.2 * Math.sin(t * 15);
-    
-    ctx.fillStyle = '#050505';
-    ctx.fillRect(-doorWidth/2, -doorHeight, doorWidth, doorHeight);
+      // Steam from pool
+      if (tier3Prog > 0.8) {
+        for (let i = 0; i < 3; i++) {
+          const steamT = (t + i * 1.5) % 3;
+          const steamY = -10 - steamT * 20;
+          const steamX = x + Math.sin(steamT * 4 + i) * 10;
+          const steamAlpha = 1 - steamT / 3;
+          ctx.fillStyle = `rgba(200, 200, 200, ${steamAlpha * 0.4})`;
+          ctx.beginPath();
+          ctx.arc(steamX, steamY, 5 + steamT * 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    };
 
-    const showTier8ForCore = (tier >= 8) ? 1 : 0;
-    const tier8CoreProg = (tier >= 8 && prevTier < 8) ? animProgress : showTier8ForCore;
-    
-    if (tier4Prog > 0) {
-        // Plasma core
-        const tier8CoreMult = 1 + (tier8CoreProg * 1.5);
-        const coreRadius = (15 + pulse * 5) * tier4Prog * tier8CoreMult;
-        const coreGrad = ctx.createRadialGradient(0, -doorHeight/2, 0, 0, -doorHeight/2, coreRadius * 2);
-        coreGrad.addColorStop(0, '#ffffff');
-        coreGrad.addColorStop(0.2, '#ffcc00');
-        coreGrad.addColorStop(0.5, '#ff3300');
-        coreGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
-        
-        ctx.fillStyle = coreGrad;
+    drawLavaFall(-75);
+    drawLavaFall(75);
+
+    ctx.restore();
+  }
+
+  // Tier 5: Heavy Industrial Vents - Glowing orange/red heat emitting from industrial vents
+  const showTier5 = tier >= 5 ? 1 : 0;
+  const tier5Prog = tier >= 5 && prevTier < 5 ? animProgress : showTier5;
+  if (tier5Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier5Prog;
+
+    const heatGlow = 0.5 + 0.5 * Math.sin(t * 4);
+
+    const drawVent = (x, y, w, h) => {
+      ctx.save();
+      ctx.translate(x, y);
+
+      // Vent casing
+      ctx.fillStyle = "#222";
+      ctx.fillRect(-w / 2, -h / 2, w, h);
+      ctx.strokeStyle = "#111";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-w / 2, -h / 2, w, h);
+
+      // Glowing interior
+      ctx.fillStyle = `rgba(255, ${100 + heatGlow * 50}, 0, ${0.6 + 0.4 * heatGlow})`;
+      ctx.fillRect(-w / 2 + 2, -h / 2 + 2, w - 4, h - 4);
+
+      // Grates
+      ctx.fillStyle = "#000";
+      for (let i = -h / 2 + 4; i < h / 2 - 2; i += 4) {
+        ctx.fillRect(-w / 2 + 2, i, w - 4, 2);
+      }
+
+      ctx.restore();
+    };
+
+    // Draw vents embedded into the structure walls
+    // 3 vents on each side, slightly adjusted to fit
+    drawVent(-48, -27, 16, 20); // Bottom left
+    drawVent(-48, -54, 16, 20); // Mid left
+    drawVent(-48, -81, 16, 20); // Top left
+
+    drawVent(48, -27, 16, 20); // Bottom right
+    drawVent(48, -54, 16, 20); // Mid right
+    drawVent(48, -81, 16, 20); // Top right
+
+    // Two vents on top instead of 1 large one
+    drawVent(-16, -81, 16, 20);
+    drawVent(16, -81, 16, 20);
+
+    ctx.restore();
+  }
+
+  // Tier 6: Hyper-Accelerated Exhaust - Animated turbine fans blowing intense magma flame jets
+  const showTier6 = tier >= 6 ? 1 : 0;
+  const tier6Prog = tier >= 6 && prevTier < 6 ? animProgress : showTier6;
+  if (tier6Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier6Prog;
+
+    const drawTurbineExhaust = (x, isLeft) => {
+      ctx.save();
+      ctx.translate(x, -80);
+
+      // Housing
+      ctx.fillStyle = "#1a1a1a";
+      ctx.fillRect(isLeft ? -30 : 0, -20, 30, 40);
+
+      // Turbine casing details
+      ctx.fillStyle = "#333";
+      ctx.fillRect(isLeft ? -25 : 5, -15, 20, 30);
+
+      // Glowing red-hot interior
+      const heatGlow = 0.5 + 0.5 * Math.sin(t * 8);
+      ctx.fillStyle = `rgba(255, ${50 + heatGlow * 100}, 0, 0.8)`;
+      ctx.fillRect(isLeft ? -22 : 8, -12, 14, 24);
+
+      // Turbine Fan blades
+      ctx.save();
+      ctx.translate(isLeft ? -15 : 15, 0);
+      ctx.rotate(t * (isLeft ? -20 : 20)); // Spin very fast
+      ctx.fillStyle = "#111";
+      for (let i = 0; i < 4; i++) {
+        ctx.rotate(Math.PI / 2);
         ctx.beginPath();
-        ctx.arc(0, -doorHeight/2, coreRadius * 2, 0, Math.PI * 2);
+        ctx.moveTo(-2, 0);
+        ctx.lineTo(-8, -10);
+        ctx.lineTo(8, -10);
+        ctx.lineTo(2, 0);
         ctx.fill();
+      }
+      // Center spinner
+      ctx.fillStyle = "#444";
+      ctx.beginPath();
+      ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
 
-        // Light rays casting outwards
-        ctx.save();
-        ctx.translate(0, -doorHeight/2);
-        for(let i=0; i<6; i++) {
-            const angle = (t * 2 + i * Math.PI / 3) % (Math.PI * 2);
-            ctx.rotate(angle);
-            
-            const rayLen = 80 * tier4Prog * corePulse * tier8CoreMult;
-            const rayGrad = ctx.createLinearGradient(0, 0, 0, rayLen);
-            const rayAlpha = Math.min(1.0, 0.4 * tier4Prog + 0.4 * tier8CoreProg);
-            rayGrad.addColorStop(0, `rgba(255, 200, 100, ${rayAlpha})`);
-            rayGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
-            
-            ctx.fillStyle = rayGrad;
-            ctx.beginPath();
-            ctx.moveTo(-2 * tier8CoreMult, 0);
-            ctx.lineTo(2 * tier8CoreMult, 0);
-            ctx.lineTo(10 * tier8CoreMult, rayLen);
-            ctx.lineTo(-10 * tier8CoreMult, rayLen);
-            ctx.fill();
-            ctx.rotate(-angle);
+      // Blue flame exhaust
+      if (tier6Prog > 0) {
+        const firePulse = Math.random() * 0.4;
+        const fireW = (40 + firePulse * 20) * (isLeft ? -1 : 1);
+        const fireGrad = ctx.createLinearGradient(
+          isLeft ? -30 : 30,
+          0,
+          isLeft ? -30 + fireW : 30 + fireW,
+          0,
+        );
+        fireGrad.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+        fireGrad.addColorStop(0.2, "rgba(255, 200, 0, 0.8)");
+        fireGrad.addColorStop(0.5, "rgba(255, 100, 0, 0.5)");
+        fireGrad.addColorStop(1, "rgba(255, 0, 0, 0)");
+
+        ctx.fillStyle = fireGrad;
+        ctx.beginPath();
+        ctx.moveTo(isLeft ? -30 : 30, -10);
+        ctx.lineTo(isLeft ? -30 + fireW : 30 + fireW, -5 - firePulse * 10);
+        ctx.lineTo(isLeft ? -30 + fireW : 30 + fireW, 5 + firePulse * 10);
+        ctx.lineTo(isLeft ? -30 : 30, 10);
+        ctx.fill();
+      }
+      ctx.restore();
+    };
+
+    drawTurbineExhaust(-65, true);
+    drawTurbineExhaust(65, false);
+
+    ctx.restore();
+  }
+
+  // Tier 7: Lava Containers
+  const showTier7 = tier >= 7 ? 1 : 0;
+  const tier7Prog = tier >= 7 && prevTier < 7 ? animProgress : showTier7;
+  if (tier7Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier7Prog;
+
+    const drawLavaContainer = (x, isLeft) => {
+      ctx.save();
+      ctx.translate(x, -10); // Base of the building
+
+      // Pipe connection to the lava pool (KEEP)
+      ctx.fillStyle = "#111";
+      if (isLeft) {
+        ctx.fillRect(15, -20, 25, 15); // Connects to the right (towards the pool)
+      } else {
+        ctx.fillRect(-40, -20, 25, 15); // Connects to the left (towards the pool)
+      }
+
+      // Glowing intake (KEEP)
+      const heatPulse = 0.5 + 0.5 * Math.sin(t * 8);
+      ctx.fillStyle = `rgba(255, ${100 + heatPulse * 100}, 0, 0.8)`;
+      if (isLeft) {
+        ctx.fillRect(15, -15, 10, 5);
+      } else {
+        ctx.fillRect(-25, -15, 10, 5);
+      }
+
+      // Lifted Silo parameters
+      const containerWidth = 30;
+      const containerHeight = 40;
+      const siloX = isLeft ? -15 : -15; // center of the silo relative to connection point
+      const siloY = -containerHeight; // lift it up slightly so it doesn't touch ground
+
+      // Silo Back wall (dark background inside)
+      ctx.fillStyle = "#1a0a00";
+      ctx.fillRect(siloX, siloY, containerWidth, containerHeight);
+
+      // Lava inside
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(siloX, siloY, containerWidth, containerHeight);
+      ctx.clip();
+
+      // Lava level and motion
+      const lavaLevelBase = 0.7; // 70% full
+      const lavaLevelFluctuation = 0.05 * Math.sin(t * 2);
+      const currentLavaHeight =
+        containerHeight * (lavaLevelBase + lavaLevelFluctuation);
+      const lavaY = siloY + containerHeight - currentLavaHeight;
+
+      // Lava gradient
+      const lavaGrad = ctx.createLinearGradient(
+        0,
+        lavaY,
+        0,
+        siloY + containerHeight,
+      );
+      lavaGrad.addColorStop(0, "#ffcc00"); // top is hot/bright
+      lavaGrad.addColorStop(0.3, "#ff6600");
+      lavaGrad.addColorStop(1, "#cc2200"); // bottom is darker
+
+      ctx.fillStyle = lavaGrad;
+      ctx.fillRect(siloX, lavaY, containerWidth, currentLavaHeight);
+
+      // Lava bubbles moving up
+      for (let i = 0; i < 8; i++) {
+        const bubbleT = (t * 0.5 + i * 0.43) % 1; // 0 to 1 cycle
+        const bubbleX =
+          siloX +
+          5 +
+          ((i * 3) % (containerWidth - 10)) +
+          Math.sin(t * 3 + i) * 2;
+        const bubbleY = siloY + containerHeight - bubbleT * currentLavaHeight;
+        const bubbleRadius = 1 + (i % 3);
+
+        // only draw if below the surface
+        if (bubbleY > lavaY + bubbleRadius) {
+          ctx.fillStyle = "rgba(255, 200, 100, 0.7)";
+          ctx.beginPath();
+          ctx.arc(bubbleX, bubbleY, bubbleRadius, 0, Math.PI * 2);
+          ctx.fill();
         }
-        ctx.restore();
+      }
 
-        // Blast doors (opened) logic removed as per requirements
+      ctx.restore();
 
-    } else {
-        // Base tier opening (closed doors)
-        // Fiery orangish-red/yellow/orange glow
-        ctx.fillStyle = `rgba(255, ${50 + pulse * 100}, 0, 0.8)`;
-        ctx.fillRect(-doorWidth/2 + 5, -doorHeight + 5, doorWidth - 10, doorHeight - 5);
-    }
-    
-    const castGlowRadius = (60 + tier4Prog * 60) * (1 + (typeof tier8CoreProg !== 'undefined' ? tier8CoreProg : 0));
-    const groundGlow = ctx.createRadialGradient(0, -doorHeight/2, 10, 0, 0, castGlowRadius);
-    if (tier4Prog > 0) {
-        groundGlow.addColorStop(0, `rgba(255, 100, 0, ${0.4 * tier4Prog * corePulse})`);
-        groundGlow.addColorStop(1, 'rgba(255, 50, 0, 0)');
-    } else {
-        groundGlow.addColorStop(0, `rgba(255, ${150 + pulse * 50}, 0, 0.4)`);
-        groundGlow.addColorStop(1, 'rgba(255, 100, 0, 0)');
-    }
-    ctx.fillStyle = groundGlow;
+      // Glass reflection/shine
+      ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+      ctx.fillRect(siloX + 3, siloY + 2, 5, containerHeight - 4);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+      ctx.fillRect(siloX + 8, siloY + 2, 3, containerHeight - 4);
+
+      // Metal caps (Top and Bottom of Silo)
+      ctx.fillStyle = "#222";
+      ctx.fillRect(siloX - 2, siloY - 5, containerWidth + 4, 5); // Top cap
+      ctx.fillRect(siloX - 2, siloY + containerHeight, containerWidth + 4, 5); // Bottom cap
+
+      // Side supports/frame for the glass
+      ctx.fillStyle = "#111";
+      ctx.fillRect(siloX, siloY, 3, containerHeight); // Left frame
+      ctx.fillRect(siloX + containerWidth - 3, siloY, 3, containerHeight); // Right frame
+
+      ctx.restore();
+    };
+
+    // Positioned at the outer edges of the cooling pools
+    drawLavaContainer(-105, true);
+    drawLavaContainer(105, false);
+
+    ctx.restore();
+  }
+
+  // Tier 4: The Core Unleashed - Blast doors open revealing intensely bright plasma core casting rays
+  const showTier4 = tier >= 4 ? 1 : 0;
+  const tier4Prog = tier >= 4 && prevTier < 4 ? animProgress : showTier4;
+
+  // Draw furnace opening
+  const doorWidth = 40 + tier4Prog * 20;
+  const doorHeight = 40 + tier4Prog * 20;
+  const pulse = Math.abs(Math.sin(t * 5));
+  const corePulse = 0.8 + 0.2 * Math.sin(t * 15);
+
+  ctx.fillStyle = "#050505";
+  ctx.fillRect(-doorWidth / 2, -doorHeight, doorWidth, doorHeight);
+
+  const showTier8ForCore = tier >= 8 ? 1 : 0;
+  const tier8CoreProg =
+    tier >= 8 && prevTier < 8 ? animProgress : showTier8ForCore;
+
+  if (tier4Prog > 0) {
+    // Plasma core
+    const tier8CoreMult = 1 + tier8CoreProg * 1.5;
+    const coreRadius = (15 + pulse * 5) * tier4Prog * tier8CoreMult;
+    const coreGrad = ctx.createRadialGradient(
+      0,
+      -doorHeight / 2,
+      0,
+      0,
+      -doorHeight / 2,
+      coreRadius * 2,
+    );
+    coreGrad.addColorStop(0, "#ffffff");
+    coreGrad.addColorStop(0.2, "#ffcc00");
+    coreGrad.addColorStop(0.5, "#ff3300");
+    coreGrad.addColorStop(1, "rgba(255, 50, 0, 0)");
+
+    ctx.fillStyle = coreGrad;
     ctx.beginPath();
-    ctx.arc(0, 0, castGlowRadius, Math.PI, 0); 
+    ctx.arc(0, -doorHeight / 2, coreRadius * 2, 0, Math.PI * 2);
     ctx.fill();
-    
-/* COMMENTING OUT ALL OF THIS CODE IN CASE I WANT TO REUSE IT FOR A SIMILAR THING ANOTHER TIME. DO NOT REMOVE THIS COMMENTED OUT CODE.
+
+    // Light rays casting outwards
+    ctx.save();
+    ctx.translate(0, -doorHeight / 2);
+    for (let i = 0; i < 6; i++) {
+      const angle = (t * 2 + (i * Math.PI) / 3) % (Math.PI * 2);
+      ctx.rotate(angle);
+
+      const rayLen = 80 * tier4Prog * corePulse * tier8CoreMult;
+      const rayGrad = ctx.createLinearGradient(0, 0, 0, rayLen);
+      const rayAlpha = Math.min(1.0, 0.4 * tier4Prog + 0.4 * tier8CoreProg);
+      rayGrad.addColorStop(0, `rgba(255, 200, 100, ${rayAlpha})`);
+      rayGrad.addColorStop(1, "rgba(255, 50, 0, 0)");
+
+      ctx.fillStyle = rayGrad;
+      ctx.beginPath();
+      ctx.moveTo(-2 * tier8CoreMult, 0);
+      ctx.lineTo(2 * tier8CoreMult, 0);
+      ctx.lineTo(10 * tier8CoreMult, rayLen);
+      ctx.lineTo(-10 * tier8CoreMult, rayLen);
+      ctx.fill();
+      ctx.rotate(-angle);
+    }
+    ctx.restore();
+
+    // Blast doors (opened) logic removed as per requirements
+  } else {
+    // Base tier opening (closed doors)
+    // Fiery orangish-red/yellow/orange glow
+    ctx.fillStyle = `rgba(255, ${50 + pulse * 100}, 0, 0.8)`;
+    ctx.fillRect(
+      -doorWidth / 2 + 5,
+      -doorHeight + 5,
+      doorWidth - 10,
+      doorHeight - 5,
+    );
+  }
+
+  const castGlowRadius =
+    (60 + tier4Prog * 60) *
+    (1 + (typeof tier8CoreProg !== "undefined" ? tier8CoreProg : 0));
+  const groundGlow = ctx.createRadialGradient(
+    0,
+    -doorHeight / 2,
+    10,
+    0,
+    0,
+    castGlowRadius,
+  );
+  if (tier4Prog > 0) {
+    groundGlow.addColorStop(
+      0,
+      `rgba(255, 100, 0, ${0.4 * tier4Prog * corePulse})`,
+    );
+    groundGlow.addColorStop(1, "rgba(255, 50, 0, 0)");
+  } else {
+    groundGlow.addColorStop(0, `rgba(255, ${150 + pulse * 50}, 0, 0.4)`);
+    groundGlow.addColorStop(1, "rgba(255, 100, 0, 0)");
+  }
+  ctx.fillStyle = groundGlow;
+  ctx.beginPath();
+  ctx.arc(0, 0, castGlowRadius, Math.PI, 0);
+  ctx.fill();
+
+  /* COMMENTING OUT ALL OF THIS CODE IN CASE I WANT TO REUSE IT FOR A SIMILAR THING ANOTHER TIME. DO NOT REMOVE THIS COMMENTED OUT CODE.
     // Tier 8: The World Forge - Geothermal magma engine
     const showTier8 = (tier >= 8) ? 1 : 0;
     const tier8Prog = (tier >= 8 && prevTier < 8) ? animProgress : showTier8;
@@ -2247,215 +2336,221 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
 }
 
 function drawGear(ctx, r, color) {
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI*2);
-    ctx.fill();
-    
-    ctx.fillStyle = '#222';
-    ctx.beginPath();
-    ctx.arc(0, 0, r/2, 0, Math.PI*2);
-    ctx.fill();
-    
-    ctx.fillStyle = color;
-    for(let i=0; i<8; i++) {
-        ctx.save();
-        ctx.rotate((i/8)*Math.PI*2);
-        ctx.fillRect(-2, -r-3, 4, 6);
-        ctx.restore();
-    }
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#222";
+  ctx.beginPath();
+  ctx.arc(0, 0, r / 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = color;
+  for (let i = 0; i < 8; i++) {
+    ctx.save();
+    ctx.rotate((i / 8) * Math.PI * 2);
+    ctx.fillRect(-2, -r - 3, 4, 6);
+    ctx.restore();
+  }
 }
 
 function drawCharger(ctx, t, tier) {
-    ctx.fillStyle = '#b6673f'; 
-    ctx.fillRect(-40, -60, 80, 60);
-    
-    ctx.strokeStyle = '#e99f79';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(0, -60, 30, Math.PI, 0);
-    ctx.stroke();
-    
-    const arcT = (t * 5) % Math.PI;
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(Math.cos(arcT + Math.PI)*30, -60 - Math.sin(arcT)*30, 5, 0, Math.PI*2);
-    ctx.fill();
+  ctx.fillStyle = "#b6673f";
+  ctx.fillRect(-40, -60, 80, 60);
+
+  ctx.strokeStyle = "#e99f79";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(0, -60, 30, Math.PI, 0);
+  ctx.stroke();
+
+  const arcT = (t * 5) % Math.PI;
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(
+    Math.cos(arcT + Math.PI) * 30,
+    -60 - Math.sin(arcT) * 30,
+    5,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
 }
 
 function drawRefinery(ctx, t, tier) {
-    ctx.fillStyle = '#aab0b6'; 
-    ctx.fillRect(-50, -100, 100, 100);
-    
-    ctx.strokeStyle = '#555';
-    ctx.lineWidth = 10;
+  ctx.fillStyle = "#aab0b6";
+  ctx.fillRect(-50, -100, 100, 100);
+
+  ctx.strokeStyle = "#555";
+  ctx.lineWidth = 10;
+  ctx.beginPath();
+  ctx.moveTo(-50, -50);
+  ctx.lineTo(-80, -50);
+  ctx.lineTo(-80, 0);
+  ctx.stroke();
+
+  if (tier >= 2) {
     ctx.beginPath();
-    ctx.moveTo(-50, -50);
-    ctx.lineTo(-80, -50);
-    ctx.lineTo(-80, 0);
+    ctx.moveTo(50, -30);
+    ctx.lineTo(70, -30);
+    ctx.lineTo(70, 0);
     ctx.stroke();
-    
-    if (tier >= 2) {
-        ctx.beginPath();
-        ctx.moveTo(50, -30);
-        ctx.lineTo(70, -30);
-        ctx.lineTo(70, 0);
-        ctx.stroke();
-    }
+  }
 }
 
 function drawVault(ctx, t, tier) {
-    ctx.fillStyle = '#d4b22c'; 
-    ctx.fillRect(-60, -60, 120, 60);
-    
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(0, -30, 20, 0, Math.PI*2);
-    ctx.fill();
-    
-    ctx.strokeStyle = '#555';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(-10, -30);
-    ctx.lineTo(10, -30);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, -40);
-    ctx.lineTo(0, -20);
-    ctx.stroke();
+  ctx.fillStyle = "#d4b22c";
+  ctx.fillRect(-60, -60, 120, 60);
+
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(0, -30, 20, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "#555";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(-10, -30);
+  ctx.lineTo(10, -30);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, -40);
+  ctx.lineTo(0, -20);
+  ctx.stroke();
 }
 
 function drawOilRig(ctx, t, tier) {
-    ctx.fillStyle = '#50c3ca'; 
-    ctx.beginPath();
-    ctx.moveTo(-40, 0);
-    ctx.lineTo(-20, -120);
-    ctx.lineTo(20, -120);
-    ctx.lineTo(40, 0);
-    ctx.fill();
-    
-    const drillY = Math.sin(t*10) * 10;
-    ctx.fillStyle = '#111';
-    ctx.fillRect(-5, -120 + drillY, 10, 140);
+  ctx.fillStyle = "#50c3ca";
+  ctx.beginPath();
+  ctx.moveTo(-40, 0);
+  ctx.lineTo(-20, -120);
+  ctx.lineTo(20, -120);
+  ctx.lineTo(40, 0);
+  ctx.fill();
+
+  const drillY = Math.sin(t * 10) * 10;
+  ctx.fillStyle = "#111";
+  ctx.fillRect(-5, -120 + drillY, 10, 140);
 }
 
 function drawGreenhouse(ctx, t, tier) {
-    ctx.fillStyle = 'rgba(35, 171, 27, 0.3)'; 
-    ctx.fillRect(-70, -60, 140, 60);
-    ctx.beginPath();
-    ctx.arc(0, -60, 70, Math.PI, 0);
-    ctx.fill();
-    
-    ctx.fillStyle = '#47d13f';
-    ctx.beginPath();
-    ctx.moveTo(-30, 0);
-    ctx.lineTo(-20, -40);
-    ctx.lineTo(-10, 0);
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.moveTo(30, 0);
-    ctx.lineTo(20, -50 + Math.sin(t)*10);
-    ctx.lineTo(10, 0);
-    ctx.fill();
+  ctx.fillStyle = "rgba(35, 171, 27, 0.3)";
+  ctx.fillRect(-70, -60, 140, 60);
+  ctx.beginPath();
+  ctx.arc(0, -60, 70, Math.PI, 0);
+  ctx.fill();
+
+  ctx.fillStyle = "#47d13f";
+  ctx.beginPath();
+  ctx.moveTo(-30, 0);
+  ctx.lineTo(-20, -40);
+  ctx.lineTo(-10, 0);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(30, 0);
+  ctx.lineTo(20, -50 + Math.sin(t) * 10);
+  ctx.lineTo(10, 0);
+  ctx.fill();
 }
 
 function drawRadiator(ctx, t, tier) {
-    ctx.fillStyle = '#444';
-    ctx.fillRect(-40, -100, 80, 100);
-    
-    const glow = Math.abs(Math.sin(t*4));
-    ctx.fillStyle = `rgba(230, 69, 69, ${0.5 + glow * 0.5})`;
-    
-    for(let i=0; i<5; i++) {
-        ctx.fillRect(-30, -90 + (i*18), 60, 10);
-    }
+  ctx.fillStyle = "#444";
+  ctx.fillRect(-40, -100, 80, 100);
+
+  const glow = Math.abs(Math.sin(t * 4));
+  ctx.fillStyle = `rgba(230, 69, 69, ${0.5 + glow * 0.5})`;
+
+  for (let i = 0; i < 5; i++) {
+    ctx.fillRect(-30, -90 + i * 18, 60, 10);
+  }
 }
 
 function drawCentrifuge(ctx, t, tier) {
-    ctx.fillStyle = '#555';
-    ctx.fillRect(-20, -80, 40, 80);
-    
-    ctx.save();
-    ctx.translate(0, -40);
-    ctx.rotate(t * 5); 
-    
-    ctx.fillStyle = '#1c38d6'; 
-    ctx.fillRect(-60, -10, 120, 20);
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(-50, 0, 8, 0, Math.PI*2);
-    ctx.arc(50, 0, 8, 0, Math.PI*2);
-    ctx.fill();
-    
-    ctx.restore();
+  ctx.fillStyle = "#555";
+  ctx.fillRect(-20, -80, 40, 80);
+
+  ctx.save();
+  ctx.translate(0, -40);
+  ctx.rotate(t * 5);
+
+  ctx.fillStyle = "#1c38d6";
+  ctx.fillRect(-60, -10, 120, 20);
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(-50, 0, 8, 0, Math.PI * 2);
+  ctx.arc(50, 0, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
 }
 
 function drawBeacon(ctx, t, tier) {
-    ctx.fillStyle = '#330d58'; 
-    ctx.beginPath();
-    ctx.moveTo(-30, 0);
-    ctx.lineTo(-10, -150);
-    ctx.lineTo(10, -150);
-    ctx.lineTo(30, 0);
-    ctx.fill();
-    
-    ctx.save();
-    ctx.translate(0, -150);
-    ctx.rotate(t * 2);
-    
-    const grad = ctx.createLinearGradient(0, 0, 200, 0);
-    grad.addColorStop(0, 'rgba(147, 82, 216, 0.8)');
-    grad.addColorStop(1, 'rgba(147, 82, 216, 0)');
-    ctx.fillStyle = grad;
-    
-    ctx.beginPath();
-    ctx.moveTo(0, -10);
-    ctx.lineTo(200, -50);
-    ctx.lineTo(200, 30);
-    ctx.lineTo(0, 10);
-    ctx.fill();
-    
-    ctx.restore();
+  ctx.fillStyle = "#330d58";
+  ctx.beginPath();
+  ctx.moveTo(-30, 0);
+  ctx.lineTo(-10, -150);
+  ctx.lineTo(10, -150);
+  ctx.lineTo(30, 0);
+  ctx.fill();
+
+  ctx.save();
+  ctx.translate(0, -150);
+  ctx.rotate(t * 2);
+
+  const grad = ctx.createLinearGradient(0, 0, 200, 0);
+  grad.addColorStop(0, "rgba(147, 82, 216, 0.8)");
+  grad.addColorStop(1, "rgba(147, 82, 216, 0)");
+  ctx.fillStyle = grad;
+
+  ctx.beginPath();
+  ctx.moveTo(0, -10);
+  ctx.lineTo(200, -50);
+  ctx.lineTo(200, 30);
+  ctx.lineTo(0, 10);
+  ctx.fill();
+
+  ctx.restore();
 }
 
 function drawSingularity(ctx, t, tier) {
-    const fly = Math.sin(t) * 20;
-    ctx.save();
-    ctx.translate(0, -100 + fly);
-    
-    const r = 30 + tier * 2;
-    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-    grad.addColorStop(0, '#fff');
-    grad.addColorStop(0.2, '#00ffff');
-    grad.addColorStop(0.5, '#ff00ff');
-    grad.addColorStop(1, '#000');
-    
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI*2);
-    ctx.fill();
-    
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.save();
-    ctx.rotate(t);
-    ctx.scale(1, 0.3);
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 2, 0, Math.PI*2);
-    ctx.stroke();
-    ctx.restore();
-    
-    ctx.save();
-    ctx.rotate(-t * 1.5);
-    ctx.scale(0.3, 1);
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 2, 0, Math.PI*2);
-    ctx.stroke();
-    ctx.restore();
-    
-    ctx.restore();
-    
-    ctx.fillStyle = '#222';
-    ctx.fillRect(-50, -20, 100, 20);
+  const fly = Math.sin(t) * 20;
+  ctx.save();
+  ctx.translate(0, -100 + fly);
+
+  const r = 30 + tier * 2;
+  const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+  grad.addColorStop(0, "#fff");
+  grad.addColorStop(0.2, "#00ffff");
+  grad.addColorStop(0.5, "#ff00ff");
+  grad.addColorStop(1, "#000");
+
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 2;
+  ctx.save();
+  ctx.rotate(t);
+  ctx.scale(1, 0.3);
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.rotate(-t * 1.5);
+  ctx.scale(0.3, 1);
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.restore();
+
+  ctx.fillStyle = "#222";
+  ctx.fillRect(-50, -20, 100, 20);
 }
