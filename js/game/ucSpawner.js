@@ -1,4 +1,4 @@
-import { createBaseSpawner, CUBIC_BEZIER, getImage, getPreRenderedCoin, getPreRenderedCoinUrl } from './spawnerCore.js';
+import { createBaseSpawner, CUBIC_BEZIER, getImage, getPreRenderedCoin, getPreRenderedCoinUrl, clearPreRenderedCoins } from './spawnerCore.js';
 import { IS_MOBILE } from '../main.js';
 import { playAudio } from '../util/audioManager.js';
 import { getActiveSlot, UC_MATERIALS } from '../util/storage.js';
@@ -128,6 +128,22 @@ export function createUcSpawner(config = {}) {
         soundLastAt = now;
         playAudio(soundURL, { volume: getPickaxeSoundVolume(), type: 'sfx' });
     }
+
+    
+
+    settingsManager.subscribe('graphics_quality', () => {
+        clearPreRenderedCoins();
+        const activeCoins = base.getActiveItems();
+        for (let i = 0; i < activeCoins.length; i++) {
+            const c = activeCoins[i];
+            if (c && c.el && !c.settled && !c.isRemoved) {
+                if (c.el.firstChild) {
+                    c.el.firstChild.src = getPreRenderedCoinUrl(c.src, c.size || config.coinSize || 40);
+                }
+            }
+        }
+        base.forceCanvasRedraw();
+    });
 
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
