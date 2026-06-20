@@ -1115,7 +1115,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   if (tier3Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier3Prog;
-    ctx.globalCompositeOperation = "screen";
+    ctx.globalCompositeOperation = "lighter";
 
     const vortexY = hoverY + 20 - tier * 2; // Shift upward slightly as tier increases to prevent ground clipping
 
@@ -1335,33 +1335,29 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   }
 
 
-  // Tier 6: Pulsing Aura (centered behind the prism)
+  // Tier 6: Resonating Edges (rendered before faces, attached to back edges)
   if (tier6Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier6Prog;
-    ctx.globalCompositeOperation = "screen";
-
-    const centerP = project(0, -h / 2, 0);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
 
     const pulse = 0.5 + 0.5 * Math.sin(t * 4);
-    const radius = w * 3 + pulse * w * 0.5;
-
-    const grad = ctx.createRadialGradient(
-      centerP.x,
-      centerP.y,
-      0,
-      centerP.x,
-      centerP.y,
-      radius
-    );
-    grad.addColorStop(0, `rgba(220, 100, 255, ${0.4 + 0.2 * pulse})`);
-    grad.addColorStop(0.5, `rgba(180, 80, 255, ${0.2 + 0.1 * pulse})`);
-    grad.addColorStop(1, "rgba(200, 80, 255, 0)");
-
-    ctx.fillStyle = grad;
+    
+    // Draw resonating outer back edges
+    ctx.strokeStyle = `rgba(230, 150, 255, 1)`; // Same color as standard lines, but solid
+    ctx.lineWidth = 1 + 6 * pulse;
+    ctx.shadowBlur = 15 * pulse;
+    ctx.shadowColor = `rgba(230, 150, 255, 1)`;
     ctx.beginPath();
-    ctx.arc(centerP.x, centerP.y, radius, 0, Math.PI * 2);
-    ctx.fill();
+    edges
+      .filter((e) => !e.isFront)
+      .forEach((e) => {
+        ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
+        ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
+      });
+    ctx.stroke();
+    ctx.shadowBlur = 0;
 
     ctx.restore();
   }
@@ -1419,7 +1415,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   if (tier7Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier7Prog;
-    ctx.globalCompositeOperation = "screen";
+    ctx.globalCompositeOperation = "lighter";
     ctx.lineWidth = 1.5;
     ctx.lineJoin = "round";
 
@@ -1457,7 +1453,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.lineTo(p2.x, p2.y);
         
         const flickerIntensity = 0.5 + 0.5 * hash(timeIndex + 0.5);
-        ctx.strokeStyle = `rgba(150, 255, 255, ${flickerIntensity})`;
+        ctx.strokeStyle = `rgba(255, 182, 193, ${flickerIntensity})`;
         ctx.stroke();
       }
     }
@@ -1519,23 +1515,25 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   const center = project(0, -h / 2, 0);
 
   // Tier 4: Incoming White Beam from top & Rainbow Beams shooting out horizontally
-  if (tier4Prog > 0) {
+  if (tier4Prog > 0 && tier8Prog < 1) {
     ctx.save();
-    // Hide tier 4 beam completely when tier 8 takes over to avoid gray blending
+    // Smoothly fade out alpha during tier 8 transition
     ctx.globalAlpha = tier4Prog * (1 - tier8Prog);
-    ctx.globalCompositeOperation = "screen";
+    ctx.globalCompositeOperation = "lighter";
 
     // Incoming white beam (from straight down/top)
     const inAngle = -Math.PI / 2;
 
     // In Tier 7, the incoming beam gets much wider and intense
     const t7WidthAdd = 0;
-    const beamW = 6 + Math.sin(t * 5) * 2 + t7WidthAdd;
+    // Shrink the width as it fades into Tier 8 to give a shrinking "fade away" effect
+    const beamW = (6 + Math.sin(t * 5) * 2 + t7WidthAdd) * (1 - tier8Prog);
 
-    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.fillStyle = "rgba(255, 255, 255, 1)";
+    
     ctx.beginPath();
-    ctx.moveTo(center.x - beamW, center.y - 400);
-    ctx.lineTo(center.x + beamW, center.y - 400);
+    ctx.moveTo(center.x - beamW, center.y - 2000);
+    ctx.lineTo(center.x + beamW, center.y - 2000);
     ctx.lineTo(center.x + beamW / 2, center.y);
     ctx.lineTo(center.x - beamW / 2, center.y);
     ctx.fill();
@@ -1543,7 +1541,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     // Glowing impact point
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.arc(center.x, center.y, 8 + t7WidthAdd / 2, 0, Math.PI * 2);
+    ctx.arc(center.x, center.y, (8 + t7WidthAdd / 2) * (1 - tier8Prog), 0, Math.PI * 2);
     ctx.fill();
 
     // Dispersed Rainbow Beams (exiting horizontally left and right)
@@ -1559,7 +1557,8 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
 
     // Tier 7 amplifies the spread and length
     const spread = Math.PI / 4;
-    const rayLen = 300;
+    // Retract the ray length as it transitions to tier 8
+    const rayLen = 300 * (1 - tier8Prog);
 
     const drawHorizontalRainbow = (baseAngle, isReversed) => {
       for (let i = 0; i < colors.length; i++) {
@@ -1576,7 +1575,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
           center.y + Math.sin(outAngle) * rayLen,
         );
         const rgbStr = hexToRgbStr(colors[colorIdx]);
-        grad.addColorStop(0, colors[colorIdx]);
+        grad.addColorStop(0, `rgba(${rgbStr}, 1)`);
         grad.addColorStop(1, `rgba(${rgbStr}, 0)`);
 
         ctx.strokeStyle = grad;
@@ -1640,7 +1639,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   if (tier8Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier8Prog;
-    ctx.globalCompositeOperation = "screen";
+    ctx.globalCompositeOperation = "lighter";
 
     // Incoming massive white beams from BOTH sides (top-left, top-right)
     // OR straight down. "massive white beams enter from both sides (or straight down)"
@@ -1651,14 +1650,12 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
 
     // Draw incoming thick white beam
     const beamW = 15 + Math.sin(t * 10) * 5;
-    const beamGrad = ctx.createLinearGradient(0, center.y - 400, 0, center.y);
-    beamGrad.addColorStop(0, "rgba(255, 255, 255, 0)");
-    beamGrad.addColorStop(1, "rgba(255, 255, 255, 1)");
-    ctx.fillStyle = beamGrad;
+    // Fix: use center.x for gradient x coordinates to align with the beam!
+    ctx.fillStyle = "rgba(255, 255, 255, 1)";
 
     ctx.beginPath();
-    ctx.moveTo(center.x - beamW, center.y - 400);
-    ctx.lineTo(center.x + beamW, center.y - 400);
+    ctx.moveTo(center.x - beamW, center.y - 2000);
+    ctx.lineTo(center.x + beamW, center.y - 2000);
     ctx.lineTo(center.x + beamW / 2, center.y);
     ctx.lineTo(center.x - beamW / 2, center.y);
     ctx.fill();
@@ -1701,7 +1698,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         );
         const intensity = 0.6 + 0.4 * Math.sin(t * 8 + i * 2);
         const rgbStr = hexToRgbStr(colors[colorIdx]);
-        grad.addColorStop(0, colors[colorIdx]);
+        grad.addColorStop(0, `rgba(${rgbStr}, 1)`);
         grad.addColorStop(0.5, `rgba(${rgbStr}, ${intensity})`);
         grad.addColorStop(1, `rgba(${rgbStr}, 0)`);
 
@@ -1770,6 +1767,33 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     });
   ctx.stroke();
   ctx.restore();
+
+  // Tier 6: Resonating Edges (rendered after faces, attached to front edges)
+  if (tier6Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier6Prog;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    const pulse = 0.5 + 0.5 * Math.sin(t * 4);
+    
+    // Draw resonating outer front edges
+    ctx.strokeStyle = `rgba(230, 150, 255, 1)`; // Same color as standard lines, but solid
+    ctx.lineWidth = 1 + 6 * pulse;
+    ctx.shadowBlur = 15 * pulse;
+    ctx.shadowColor = `rgba(230, 150, 255, 1)`;
+    ctx.beginPath();
+    edges
+      .filter((e) => e.isFront)
+      .forEach((e) => {
+        ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
+        ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
+      });
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.restore();
+  }
 }
 
 function drawFoundry(ctx, t, tier, prevTier, animProgress) {
