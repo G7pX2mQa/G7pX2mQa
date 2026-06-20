@@ -1513,3 +1513,10 @@ if (typeof window !== 'undefined') {
     getXpProgressRatio
   });
 }
+
+if (typeof window !== 'undefined') {
+  window.xpSystem = window.xpSystem || {};
+  Object.assign(window.xpSystem, {
+    getXpMultiplier: getXpGainMultiplier
+  });
+}
