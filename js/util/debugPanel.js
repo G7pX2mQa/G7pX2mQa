@@ -918,10 +918,10 @@ function applyCurrencyOverrideForSlot(currencyKey, slot = getActiveSlot()) {
 
     currencyOverrideApplications.add(cacheKey);
     try {
-        const current = bank?.[currencyKey]?.mult?.get?.();
-        if (!bigNumEquals(current, override)) {
-            bank?.[currencyKey]?.mult?.set?.(override);
-        }
+        // Force the underlying game multiplier to update to the override value,
+        // even if get() returns the override (because it intercepts it).
+        // This ensures currency:multiplier is fired and the UI/game correctly synchronizes.
+        bank?.[currencyKey]?.mult?.set?.(override);
     } catch {} finally {
         currencyOverrideApplications.delete(cacheKey);
     }
@@ -1003,16 +1003,19 @@ export function setDebugCurrencyMultiplierOverride(currencyKey, value, slot = ge
     try { bn = value instanceof BigNum ? value.clone?.() ?? value : BigNum.fromAny(value ?? 1); }
     catch { bn = BigNum.fromInt(1); }
     const cacheKey = buildOverrideKey(slot, currencyKey);
-    currencyOverrides.set(cacheKey, bn);
-    storeCurrencyMultiplierOverride(currencyKey, slot, bn);
-    
+
     // Fix: Only set the baseline if it's not already set.
     // If we overwrite the baseline with the current bank value (which might be the OLD override),
     // we create a feedback loop that crushes the value when the game ticks.
+    // CRITICAL: We MUST read the baseline BEFORE setting currencyOverrides, otherwise
+    // bank.mult.get() will just return the newly set override!
     if (!currencyOverrideBaselines.has(cacheKey)) {
         const gameValue = bank?.[currencyKey]?.mult?.get?.();
         currencyOverrideBaselines.set(cacheKey, gameValue);
     }
+
+    currencyOverrides.set(cacheKey, bn);
+    storeCurrencyMultiplierOverride(currencyKey, slot, bn);
     
     applyCurrencyOverrideForSlot(currencyKey, slot);
     return bn;
