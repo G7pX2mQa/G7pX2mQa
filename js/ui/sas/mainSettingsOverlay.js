@@ -63,9 +63,9 @@ function applyUserInterfaceSetting(isUIEnabled) {
       text.style.fontSize = '1.2em';
 
       if (IS_MOBILE) {
-        text.innerHTML = 'Press the button in the bottom right corner or refresh the page to re-enable UI';
+        text.innerHTML = 'Press the button in the bottom right corner or refresh the tab to re-enable UI';
       } else {
-        text.innerHTML = 'Press "X" on your keyboard or refresh the page to re-enable UI';
+        text.innerHTML = 'Press "X" on your keyboard or refresh the tab to re-enable UI';
       }
       row.appendChild(text);
 
