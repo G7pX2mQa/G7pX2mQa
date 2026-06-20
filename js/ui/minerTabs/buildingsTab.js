@@ -505,6 +505,11 @@ function applyBuildingOnlyMode(enabled) {
             actions.style.setProperty('display', 'none', 'important');
         }
         
+        const grabHandle = overlay.querySelector('.grab-handle');
+        if (grabHandle) {
+            grabHandle.style.opacity = '0';
+        }
+        
         const onlyBuildingBtn = overlay.querySelector('.only-building-btn');
         if (onlyBuildingBtn) onlyBuildingBtn.style.display = 'none';
         
@@ -615,6 +620,11 @@ function applyBuildingOnlyMode(enabled) {
         }
         if (actions) {
             actions.style.removeProperty('display');
+        }
+        
+        const grabHandle = overlay.querySelector('.grab-handle');
+        if (grabHandle) {
+            grabHandle.style.opacity = '1';
         }
         
         const onlyBuildingBtn = overlay.querySelector('.only-building-btn');
