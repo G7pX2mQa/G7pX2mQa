@@ -513,7 +513,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
   let topY = 0;
   if (id === "core") topY = -200;
   else if (id === "crystal")
-    topY = -(100 + tier * 10) - 30; // approx height of prism
+    topY = -(100 + tier * 10) - 30;
   else if (id === "stone") topY = -140;
   else if (id === "copper") topY = -90;
   else if (id === "iron") topY = -100;
@@ -625,7 +625,7 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
     ctx.save();
     ctx.globalAlpha = tier5Prog;
 
-    const coronaRadius = 100 + 30 * tier7Prog;
+    const coronaRadius = 100 + 30 * tier8Prog;
     const coronaT = t * 0.5;
 
     ctx.translate(cx, cy);
