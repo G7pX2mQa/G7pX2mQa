@@ -20,6 +20,8 @@ const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
 
 const imageCache = {};
 let stonePattern = null;
+let copperPattern = null;
+
 function getMaterialImage(matKey) {
   if (imageCache[matKey]) return imageCache[matKey];
   let actualKey = matKey;
@@ -33,6 +35,37 @@ function getMaterialImage(matKey) {
     return img;
   }
   return null;
+}
+
+function initCopperPattern(ctx) {
+  if (copperPattern) return;
+
+  const patternCanvas = document.createElement("canvas");
+  patternCanvas.width = 64;
+  patternCanvas.height = 64;
+  const pCtx = patternCanvas.getContext("2d");
+
+  pCtx.fillStyle = "#c0744b";
+  pCtx.fillRect(0, 0, 64, 64);
+
+  const imgData = pCtx.getImageData(0, 0, 64, 64);
+  const data = imgData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const noise = (Math.random() - 0.5) * 40;
+    data[i] = Math.max(0, Math.min(255, data[i] + noise));
+    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise * 0.8));
+    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise * 0.6));
+  }
+  pCtx.putImageData(imgData, 0, 0);
+
+  const targetCtx = activeCtx || ctx;
+  if (targetCtx) {
+    try {
+      copperPattern = targetCtx.createPattern(patternCanvas, "repeat");
+    } catch (e) {
+      console.error("Failed to create copper pattern", e);
+    }
+  }
 }
 
 function initStonePattern(ctx) {
@@ -550,7 +583,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
   if (id === "core") drawBlackHole(ctx, t, tier, prevTier, animProgress);
   else if (id === "crystal") drawPrism(ctx, t, tier, prevTier, animProgress);
   else if (id === "stone") drawFoundry(ctx, t, tier, prevTier, animProgress);
-  else if (id === "copper") drawCharger(ctx, t, tier);
+  else if (id === "copper") drawCharger(ctx, t, tier, prevTier, animProgress);
   else if (id === "iron") drawRefinery(ctx, t, tier);
   else if (id === "pure_gold") drawVault(ctx, t, tier);
   else if (id === "diamond") drawOilRig(ctx, t, tier);
@@ -2464,27 +2497,433 @@ function drawGear(ctx, r, color) {
   }
 }
 
-function drawCharger(ctx, t, tier) {
-  ctx.fillStyle = "#b6673f";
-  ctx.fillRect(-40, -60, 80, 60);
+function drawCharger(ctx, t, tier, prevTier, animProgress) {
+  const showTier1 = tier >= 1 ? 1 : 0;
+  const tier1Prog = tier >= 1 && prevTier < 1 ? animProgress : showTier1;
+  const showTier2 = tier >= 2 ? 1 : 0;
+  const tier2Prog = tier >= 2 && prevTier < 2 ? animProgress : showTier2;
+  const showTier3 = tier >= 3 ? 1 : 0;
+  const tier3Prog = tier >= 3 && prevTier < 3 ? animProgress : showTier3;
+  const showTier4 = tier >= 4 ? 1 : 0;
+  const tier4Prog = tier >= 4 && prevTier < 4 ? animProgress : showTier4;
+  const showTier5 = tier >= 5 ? 1 : 0;
+  const tier5Prog = tier >= 5 && prevTier < 5 ? animProgress : showTier5;
+  const showTier6 = tier >= 6 ? 1 : 0;
+  const tier6Prog = tier >= 6 && prevTier < 6 ? animProgress : showTier6;
+  const showTier7 = tier >= 7 ? 1 : 0;
+  const tier7Prog = tier >= 7 && prevTier < 7 ? animProgress : showTier7;
+  const showTier8 = tier >= 8 ? 1 : 0;
+  const tier8Prog = tier >= 8 && prevTier < 8 ? animProgress : showTier8;
 
-  ctx.strokeStyle = "#e99f79";
-  ctx.lineWidth = 4;
+  // Tier 0 (Base Foundation)
+  if (!copperPattern && activeCtx) {
+    initCopperPattern(activeCtx);
+  }
+  if (copperPattern) {
+    ctx.fillStyle = copperPattern;
+  } else {
+    ctx.fillStyle = "#b6673f";
+  }
+
+  // Draw solid copper base
+  ctx.fillRect(-60, -80, 120, 80);
+
+  // Decorative plating lines
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(0, -60, 30, Math.PI, 0);
+  ctx.moveTo(-60, -20);
+  ctx.lineTo(60, -20);
+  ctx.moveTo(-60, -50);
+  ctx.lineTo(60, -50);
   ctx.stroke();
 
-  const arcT = (t * 5) % Math.PI;
-  ctx.fillStyle = "#fff";
-  ctx.beginPath();
-  ctx.arc(
-    Math.cos(arcT + Math.PI) * 30,
-    -60 - Math.sin(arcT) * 30,
-    5,
-    0,
-    Math.PI * 2,
-  );
-  ctx.fill();
+  // Tier 1 (Rotary Dynamos)
+  if (tier1Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier1Prog;
+    
+    const drawDynamo = (x, isLeft) => {
+      ctx.save();
+      ctx.translate(x, -40);
+      
+      // Housing
+      ctx.fillStyle = "#222";
+      ctx.fillRect(-15, -30, 30, 60);
+
+      // Rotating coils
+      ctx.save();
+      const coilSpeed = t * (4 + tier2Prog * 4 + tier4Prog * 8);
+      
+      for(let i = 0; i < 4; i++) {
+        const offsetT = (coilSpeed + i * Math.PI / 2) % (Math.PI * 2);
+        const yOffset = Math.sin(offsetT) * 20;
+        const scaleY = Math.cos(offsetT);
+        
+        ctx.fillStyle = "#e99f79"; // bright copper
+        ctx.fillRect(-10, yOffset - 5 * Math.abs(scaleY), 20, 10 * Math.abs(scaleY));
+        
+        ctx.strokeStyle = "#8b4513";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(-10, yOffset - 5 * Math.abs(scaleY), 20, 10 * Math.abs(scaleY));
+      }
+      ctx.restore();
+
+      ctx.restore();
+    };
+
+    drawDynamo(-75, true);
+    drawDynamo(75, false);
+    
+    ctx.restore();
+  }
+
+  // Tier 2 (Static Arcs)
+  if (tier2Prog > 0 && tier4Prog < 1) { // Stop drawing small arcs once sphere takes over
+    ctx.save();
+    ctx.globalAlpha = tier2Prog * (1 - tier4Prog); // Fade out as tier 4 takes over
+    
+    ctx.strokeStyle = "#88ccff";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    // Random electrical arcs between dynamos and base
+    const numArcs = 3 + Math.floor(Math.random() * 2);
+    for(let i=0; i<numArcs; i++) {
+        // Fast flashing
+        if (Math.random() > 0.3) continue;
+
+        const isLeft = Math.random() > 0.5;
+        const startX = isLeft ? -60 : 60;
+        const startY = -20 - Math.random() * 40;
+        
+        const endX = isLeft ? -40 : 40;
+        const endY = -20 - Math.random() * 40;
+
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        // Jagged line
+        const segments = 3;
+        for (let j = 1; j < segments; j++) {
+            const tPos = j / segments;
+            const px = startX + (endX - startX) * tPos + (Math.random() - 0.5) * 10;
+            const py = startY + (endY - startY) * tPos + (Math.random() - 0.5) * 10;
+            ctx.lineTo(px, py);
+        }
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Tier 3 (Capacitors)
+  if (tier3Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier3Prog;
+
+    const drawCapacitor = (x) => {
+      ctx.save();
+      ctx.translate(x, -40);
+
+      // Glass casing
+      ctx.fillStyle = "rgba(200, 255, 255, 0.2)";
+      ctx.fillRect(-8, -25, 16, 50);
+      ctx.strokeStyle = "rgba(200, 255, 255, 0.5)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-8, -25, 16, 50);
+
+      // Cyan Energy inside
+      const energyLevel = 0.5 + 0.5 * Math.sin(t * 3);
+      const h = 46 * energyLevel;
+      ctx.fillStyle = "rgba(0, 255, 255, 0.8)";
+      ctx.fillRect(-6, 23 - h, 12, h);
+
+      // Caps
+      ctx.fillStyle = "#333";
+      ctx.fillRect(-10, -30, 20, 5);
+      ctx.fillRect(-10, 25, 20, 5);
+
+      ctx.restore();
+    };
+
+    drawCapacitor(-40);
+    drawCapacitor(40);
+    
+    ctx.restore();
+  }
+
+  // Common function for drawing lightning bolts (used in T4, T7, T8)
+  const drawLightning = (sx, sy, ex, ey, segments, jitter, color, lineWidth) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    for (let j = 1; j < segments; j++) {
+        const tPos = j / segments;
+        const px = sx + (ex - sx) * tPos + (Math.random() - 0.5) * jitter;
+        const py = sy + (ey - sy) * tPos + (Math.random() - 0.5) * jitter;
+        ctx.lineTo(px, py);
+    }
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    
+    // Core (white)
+    ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.lineWidth = lineWidth * 0.4;
+    ctx.stroke();
+  };
+
+
+  // Tier 4 (The Induction Sphere)
+  if (tier4Prog > 0 && tier8Prog < 1) { // T8 replaces T4
+    ctx.save();
+    ctx.globalAlpha = tier4Prog * (1 - tier8Prog);
+    
+    // Support prongs
+    ctx.fillStyle = "#555";
+    ctx.beginPath();
+    ctx.moveTo(-30, -80); ctx.lineTo(-40, -120); ctx.lineTo(-20, -120); ctx.lineTo(-10, -80); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(30, -80); ctx.lineTo(40, -120); ctx.lineTo(20, -120); ctx.lineTo(10, -80); ctx.fill();
+
+    const sphereY = -140;
+    const sphereRadius = 35 + Math.sin(t*10)*2;
+
+    // The copper sphere
+    if (copperPattern) {
+      ctx.fillStyle = copperPattern;
+    } else {
+      ctx.fillStyle = "#b6673f";
+    }
+    ctx.beginPath();
+    ctx.arc(0, sphereY, sphereRadius, 0, Math.PI*2);
+    ctx.fill();
+
+    // Sphere glow / electrical field
+    const fieldRadius = sphereRadius + 15 + Math.sin(t*20)*5;
+    const fieldGrad = ctx.createRadialGradient(0, sphereY, sphereRadius, 0, sphereY, fieldRadius);
+    fieldGrad.addColorStop(0, "rgba(0, 200, 255, 0.6)");
+    fieldGrad.addColorStop(1, "rgba(0, 200, 255, 0)");
+    ctx.fillStyle = fieldGrad;
+    ctx.beginPath();
+    ctx.arc(0, sphereY, fieldRadius, 0, Math.PI*2);
+    ctx.fill();
+
+    // Strikes to the base
+    const numStrikes = 2 + Math.floor(Math.random() * 3);
+    for(let i=0; i<numStrikes; i++) {
+        if(Math.random() > 0.4) continue;
+        const angle = Math.PI/2 + (Math.random()-0.5)*Math.PI; // point downwards
+        const sx = Math.cos(angle)*sphereRadius;
+        const sy = sphereY + Math.sin(angle)*sphereRadius;
+        const ex = (Math.random()-0.5)*100;
+        const ey = -Math.random()*80; // strike the base
+
+        drawLightning(sx, sy, ex, ey, 5, 15, "rgba(0, 200, 255, 0.8)", 3);
+    }
+
+    // Tier 7 (Overcharge T4)
+    if (tier7Prog > 0) {
+      ctx.save();
+      ctx.globalAlpha = tier7Prog;
+      // Even thicker bolts chaining
+      const numOverStrikes = 4 + Math.floor(Math.random() * 4);
+      for(let i=0; i<numOverStrikes; i++) {
+          if(Math.random() > 0.6) continue;
+          const angle = Math.random() * Math.PI*2;
+          const sx = Math.cos(angle)*sphereRadius;
+          const sy = sphereY + Math.sin(angle)*sphereRadius;
+          
+          // strike ground or far away
+          const ex = (Math.random()-0.5)*200;
+          const ey = (Math.random() > 0.5) ? 0 : -80 - Math.random()*100;
+
+          drawLightning(sx, sy, ex, ey, 8, 25, "rgba(50, 150, 255, 0.9)", 5);
+      }
+      
+      // glowing heat trails on base from T7 overcharge
+      ctx.fillStyle = `rgba(255, 100, 0, ${0.3 + 0.3 * Math.sin(t*15)})`;
+      ctx.beginPath();
+      ctx.arc((Math.random()-0.5)*80, -Math.random()*80, 10 + Math.random()*10, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  // Tier 5 (Magnetic Containment Rings)
+  if (tier5Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier5Prog;
+    
+    // Y center depends if T8 or T4
+    const centerPosY = tier8Prog > 0 ? -180 : -140;
+
+    for (let i = 0; i < 3; i++) {
+      ctx.save();
+      ctx.translate(0, centerPosY);
+      
+      // Different rotation planes
+      ctx.rotate(t * (2 + i) + i * Math.PI/3);
+      ctx.scale(1, 0.3); // isometric squish
+      
+      const ringRot = t * 5;
+      
+      // Draw ring
+      ctx.beginPath();
+      ctx.arc(0, 0, 70 + i*10, 0, Math.PI * 2);
+      ctx.lineWidth = 4;
+      
+      // dashed/segmented look
+      ctx.setLineDash([20, 15]);
+      ctx.lineDashOffset = ringRot * 50;
+      
+      ctx.strokeStyle = `rgba(0, 255, 255, ${0.6 + 0.4*Math.sin(t*8+i)})`;
+      ctx.stroke();
+      
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  // Tier 6 (Ionized Vents)
+  if (tier6Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier6Prog;
+    
+    const drawVentPlasma = (x, y, angle) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+
+      // Vent hole
+      ctx.fillStyle = "#111";
+      ctx.fillRect(-10, -5, 20, 10);
+      
+      // Plasma jet
+      const pulse = Math.random() * 0.3;
+      const jetLen = 40 + pulse * 20;
+      
+      const jetGrad = ctx.createLinearGradient(0, 0, 0, -jetLen);
+      jetGrad.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+      jetGrad.addColorStop(0.2, "rgba(0, 255, 255, 0.8)");
+      jetGrad.addColorStop(0.6, "rgba(0, 100, 255, 0.5)");
+      jetGrad.addColorStop(1, "rgba(0, 0, 255, 0)");
+
+      ctx.fillStyle = jetGrad;
+      ctx.beginPath();
+      ctx.moveTo(-8, 0);
+      ctx.lineTo(0, -jetLen);
+      ctx.lineTo(8, 0);
+      ctx.fill();
+
+      ctx.restore();
+    };
+
+    // Vents angled outwards
+    drawVentPlasma(-50, -80, -Math.PI/4);
+    drawVentPlasma(50, -80, Math.PI/4);
+
+    ctx.restore();
+  }
+
+  // Tier 8 (The Electrical Tempest)
+  if (tier8Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier8Prog;
+    ctx.globalCompositeOperation = "lighter";
+
+    const tempestY = -180; // Floats higher than T4 sphere
+
+    // Floating blinding core
+    const corePulse = 1.0 + 0.2 * Math.sin(t * 30);
+    const coreRadius = 25 * corePulse;
+    
+    const coreGrad = ctx.createRadialGradient(0, tempestY, 0, 0, tempestY, coreRadius * 3);
+    coreGrad.addColorStop(0, "#ffffff");
+    coreGrad.addColorStop(0.2, "rgba(100, 255, 255, 1)");
+    coreGrad.addColorStop(0.5, "rgba(0, 150, 255, 0.5)");
+    coreGrad.addColorStop(1, "rgba(0, 0, 255, 0)");
+
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.arc(0, tempestY, coreRadius * 3, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(0, tempestY, coreRadius, 0, Math.PI*2);
+    ctx.fill();
+
+    // Tempest Lightning Storm
+    const numStormStrikes = 12 + Math.floor(Math.random() * 8); // lots of strikes
+    for(let i=0; i < numStormStrikes; i++) {
+        const angle = Math.random() * Math.PI*2;
+        
+        // Start from edge of core
+        const sx = Math.cos(angle)*coreRadius;
+        const sy = tempestY + Math.sin(angle)*coreRadius;
+        
+        // End points in a wide radius, biased downwards and horizontally
+        const dist = 100 + Math.random() * 250;
+        let ex = Math.cos(angle)*dist;
+        let ey = tempestY + Math.sin(angle)*dist;
+
+        // Force ground strikes occasionally
+        if (Math.random() > 0.7) {
+            ey = 0; // Ground level
+            ex = (Math.random() - 0.5) * 300;
+        }
+
+        // Violent jitter
+        const jitter = 30 + Math.random() * 20;
+        const segments = 6 + Math.floor(Math.random() * 4);
+
+        // Flashy colors
+        const colors = [
+            "rgba(100, 255, 255, 0.9)", // Cyan
+            "rgba(200, 255, 255, 0.9)", // Light Cyan
+            "rgba(50, 100, 255, 0.9)",  // Blue
+            "rgba(255, 255, 255, 0.9)"  // White
+        ];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const lineWidth = 3 + Math.random() * 4;
+
+        drawLightning(sx, sy, ex, ey, segments, jitter, color, lineWidth);
+    }
+
+    // Exploded copper shell fragments swirling
+    for (let i = 0; i < 8; i++) {
+      const fragmentT = t * 2 + (i * Math.PI * 2) / 8;
+      const fRad = 80 + Math.sin(t*5 + i)*20;
+      const fx = Math.cos(fragmentT) * fRad;
+      const fy = tempestY + Math.sin(fragmentT) * 40 * Math.cos(t*3); // complex orbit
+      
+      ctx.save();
+      ctx.translate(fx, fy);
+      ctx.rotate(t * 10 + i);
+      
+      if (copperPattern) {
+        ctx.fillStyle = copperPattern;
+      } else {
+        ctx.fillStyle = "#b6673f";
+      }
+      
+      ctx.beginPath();
+      ctx.moveTo(-10, -5); ctx.lineTo(10, 0); ctx.lineTo(-5, 10); ctx.fill();
+      
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
 }
 
 function drawRefinery(ctx, t, tier) {
