@@ -7,6 +7,8 @@ import { levelBigNumToNumber, evaluateBulkPurchase } from '../../game/upgrades.j
 import { formatMultForUi, formatNumber } from '../../util/numFormat.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
+import { IS_MOBILE } from '../../main.js';
+import { settingsManager } from '../../game/settingsManager.js';
 
 
 const BUILDINGS_UNLOCKED_KEY_BASE = 'ccc:buildingsUnlocked';
@@ -461,6 +463,214 @@ const BUILDING_OVERLAY_CLOSE_MS = 120;
 const BUILDING_OVERLAY_OPEN_TRANSITION = 'transform var(--shop-anim)';
 const BUILDING_OVERLAY_CLOSE_TRANSITION = `transform ${BUILDING_OVERLAY_CLOSE_MS}ms ease-out`;
 
+
+
+
+let onlyBuildingPopupEl = null;
+let onlyBuildingMobileBtn = null;
+
+let removedElements = {
+    header: null,
+    actions: null,
+    textContainer: null,
+    levelTextContainer: null,
+    desc: null
+};
+
+// We will check which overlay is open inside the subscriber
+function applyBuildingOnlyMode(enabled) {
+    let overlayType = null;
+    let overlay = document.getElementById('building-detail-overlay');
+    if (overlay && overlay.classList.contains('is-open')) overlayType = 'detail';
+    else {
+        overlay = document.getElementById('mysterious-building-overlay');
+        if (overlay && overlay.classList.contains('is-open')) overlayType = 'mysterious';
+    }
+    
+    // If we're toggling ON but no overlay is open, just skip
+    // BUT we need to handle toggling OFF even if overlay is closing
+    if (enabled && !overlayType) return;
+    
+    if (!overlay) {
+        // If neither is found in the DOM, just reset and return
+        if (onlyBuildingPopupEl) onlyBuildingPopupEl.style.display = 'none';
+        if (onlyBuildingMobileBtn) onlyBuildingMobileBtn.style.display = 'none';
+        return;
+    }
+
+    let sheet = overlay.querySelector('.upg-sheet');
+    let contentEl = overlay.querySelector('.upg-content');
+    
+    if (enabled) {
+        // Collect existing elements to remove and store
+        const header = overlay.querySelector('.upg-header');
+        const actions = overlay.querySelector('.upg-actions');
+        
+        if (header) {
+            removedElements.header = header;
+            header.remove();
+        }
+        if (actions) {
+            removedElements.actions = actions;
+            actions.remove();
+        }
+        
+        if (overlayType === 'detail') {
+            const textContainer = contentEl ? contentEl.querySelector('.upg-costs') : null;
+            const levelTextContainer = contentEl ? contentEl.querySelector('#building-detail-level-text') : null;
+            if (textContainer) {
+                removedElements.textContainer = textContainer;
+                textContainer.remove();
+            }
+            if (levelTextContainer) {
+                removedElements.levelTextContainer = levelTextContainer;
+                levelTextContainer.remove();
+            }
+        } else if (overlayType === 'mysterious') {
+            const desc = contentEl ? contentEl.querySelector('.upg-desc') : null;
+            if (desc) {
+                removedElements.desc = desc;
+                desc.remove();
+            }
+        }
+
+        if (!onlyBuildingPopupEl) {
+          onlyBuildingPopupEl = document.createElement('div');
+          onlyBuildingPopupEl.className = 'hide-ui-popup is-visible';
+          onlyBuildingPopupEl.style.zIndex = '999999';
+          onlyBuildingPopupEl.style.pointerEvents = 'auto';
+
+          const card = document.createElement('div');
+          card.className = 'hide-ui-popup__card';
+          card.setAttribute('role', 'dialog');
+          const row = document.createElement('div');
+          row.className = 'hide-ui-popup__row';
+          row.style.alignItems = 'center';
+          row.style.justifyContent = 'center';
+          row.style.padding = '24px 0';
+          row.style.minHeight = '200px';
+
+          const text = document.createElement('div');
+          text.className = 'hide-ui-popup__text';
+          text.style.textAlign = 'center';
+          text.style.width = '100%';
+          text.style.fontSize = '1.2em';
+
+          if (IS_MOBILE) {
+            text.innerHTML = 'Press the button in the bottom right corner or refresh the tab to unhide non-Building elements';
+          } else {
+            text.innerHTML = 'Press "B" on your keyboard or refresh the tab to unhide non-Building elements';
+          }
+          row.appendChild(text);
+
+          const popupActions = document.createElement('div');
+          popupActions.className = 'hide-ui-popup__choices sas-actions';
+          popupActions.style.display = 'flex';
+          popupActions.style.justifyContent = 'center';
+          popupActions.style.marginTop = '24px';
+          popupActions.style.padding = '0';
+          popupActions.style.border = 'none';
+          popupActions.style.background = 'transparent';
+          
+          const closeBtn = document.createElement('button');
+          closeBtn.className = 'sas-close';
+          closeBtn.textContent = 'Close';
+          closeBtn.type = 'button';
+          closeBtn.style.minWidth = '180px';
+          closeBtn.addEventListener('click', () => {
+            if (onlyBuildingPopupEl) onlyBuildingPopupEl.style.display = 'none';
+          });
+          
+          popupActions.appendChild(closeBtn);
+          
+          card.appendChild(row);
+          card.appendChild(popupActions);
+          onlyBuildingPopupEl.appendChild(card);
+          document.body.appendChild(onlyBuildingPopupEl);
+        }
+        onlyBuildingPopupEl.style.display = '';
+
+        if (IS_MOBILE) {
+          if (!onlyBuildingMobileBtn) {
+            onlyBuildingMobileBtn = document.createElement('button');
+            onlyBuildingMobileBtn.textContent = 'B';
+            onlyBuildingMobileBtn.style.position = 'fixed';
+            onlyBuildingMobileBtn.style.bottom = '20px';
+            onlyBuildingMobileBtn.style.right = '20px';
+            onlyBuildingMobileBtn.style.width = '50px';
+            onlyBuildingMobileBtn.style.height = '50px';
+            onlyBuildingMobileBtn.style.borderRadius = '50%';
+            onlyBuildingMobileBtn.style.backgroundColor = '#d9534f';
+            onlyBuildingMobileBtn.style.color = 'white';
+            onlyBuildingMobileBtn.style.fontSize = '24px';
+            onlyBuildingMobileBtn.style.fontWeight = 'bold';
+            onlyBuildingMobileBtn.style.border = '2px solid white';
+            onlyBuildingMobileBtn.style.zIndex = '999998';
+            onlyBuildingMobileBtn.addEventListener('click', () => {
+              settingsManager.set('only_show_building', false);
+            });
+            document.body.appendChild(onlyBuildingMobileBtn);
+          }
+          onlyBuildingMobileBtn.style.display = '';
+        }
+    } else {
+        // Restore elements
+        // Check which overlay we might have cached items for.
+        // It's possible the overlay changed, but usually it doesn't.
+        let restoreSheet = sheet;
+        let restoreContent = contentEl;
+        
+        if (removedElements.header && restoreSheet && restoreContent) {
+            restoreSheet.insertBefore(removedElements.header, restoreContent);
+            removedElements.header = null;
+        }
+        if (removedElements.actions && restoreSheet) {
+            restoreSheet.appendChild(removedElements.actions);
+            removedElements.actions = null;
+        }
+        
+        if (removedElements.textContainer && restoreContent) {
+            restoreContent.appendChild(removedElements.textContainer);
+            removedElements.textContainer = null;
+        }
+        if (removedElements.levelTextContainer && restoreContent) {
+            const buildingHitbox = restoreContent.querySelector('div[style*="height: 5px"]');
+            if (buildingHitbox) {
+                restoreContent.insertBefore(removedElements.levelTextContainer, buildingHitbox);
+            } else {
+                restoreContent.insertBefore(removedElements.levelTextContainer, restoreContent.firstChild);
+            }
+            removedElements.levelTextContainer = null;
+        }
+        if (removedElements.desc && restoreContent) {
+            restoreContent.appendChild(removedElements.desc);
+            removedElements.desc = null;
+        }
+        
+        if (onlyBuildingPopupEl) onlyBuildingPopupEl.style.display = 'none';
+        if (onlyBuildingMobileBtn) onlyBuildingMobileBtn.style.display = 'none';
+    }
+}
+
+// Subscribe
+// Delay initialization slightly so settingsManager is ready
+setTimeout(() => {
+    settingsManager.subscribe('only_show_building', applyBuildingOnlyMode);
+}, 100);
+
+window.addEventListener('keydown', (e) => {
+    if ((e.key === 'b' || e.key === 'B') && settingsManager.get('only_show_building')) {
+        const detailOverlay = document.getElementById('building-detail-overlay');
+        const mysteryOverlay = document.getElementById('mysterious-building-overlay');
+        if ((detailOverlay && detailOverlay.classList.contains('is-open')) ||
+            (mysteryOverlay && mysteryOverlay.classList.contains('is-open'))) {
+            settingsManager.set('only_show_building', false);
+        }
+    }
+});
+
+
+
 function applyBuildingOverlayTransition(sheet, transition = BUILDING_OVERLAY_OPEN_TRANSITION) {
     if (!sheet) return;
     sheet.style.transition = transition;
@@ -477,6 +687,10 @@ function openBuildingOverlaySheet(overlay, sheet) {
 }
 
 function finishBuildingOverlayClose(overlay, onClosed) {
+    if (settingsManager.get('only_show_building')) {
+        settingsManager.set('only_show_building', false);
+    }
+
     const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : BUILDING_OVERLAY_CLOSE_MS;
     setTimeout(() => {
         overlay.classList.remove('is-open');
@@ -497,6 +711,25 @@ function ensureMysteriousBuildingOverlay() {
     sheet.style.display = 'flex';
     sheet.style.flexDirection = 'column';
     
+
+    
+    const onlyBuildingBtn = document.createElement('button');
+    onlyBuildingBtn.textContent = 'Only show Building';
+    onlyBuildingBtn.style.position = 'absolute';
+    onlyBuildingBtn.style.top = '8px';
+    onlyBuildingBtn.style.right = '8px';
+    onlyBuildingBtn.style.zIndex = '99999';
+    onlyBuildingBtn.style.backgroundColor = '#808080';
+    onlyBuildingBtn.style.color = '#fff';
+    onlyBuildingBtn.style.border = '1px solid #555';
+    onlyBuildingBtn.style.padding = '4px 8px';
+    onlyBuildingBtn.style.borderRadius = '4px';
+    onlyBuildingBtn.style.cursor = 'pointer';
+    onlyBuildingBtn.style.fontSize = '12px';
+    onlyBuildingBtn.addEventListener('click', () => {
+        settingsManager.set('only_show_building', true);
+    });
+    sheet.appendChild(onlyBuildingBtn);
 
     const grabber = document.createElement('div');
     grabber.className = 'upg-grabber';
@@ -855,6 +1088,25 @@ export function initBuildingOverlay() {
     canvasContainer.appendChild(canvas);
     
     sheet.appendChild(canvasContainer);
+
+    
+    const onlyBuildingBtn = document.createElement('button');
+    onlyBuildingBtn.textContent = 'Only show Building';
+    onlyBuildingBtn.style.position = 'absolute';
+    onlyBuildingBtn.style.top = '8px';
+    onlyBuildingBtn.style.right = '8px';
+    onlyBuildingBtn.style.zIndex = '99999';
+    onlyBuildingBtn.style.backgroundColor = '#808080';
+    onlyBuildingBtn.style.color = '#fff';
+    onlyBuildingBtn.style.border = '1px solid #555';
+    onlyBuildingBtn.style.padding = '4px 8px';
+    onlyBuildingBtn.style.borderRadius = '4px';
+    onlyBuildingBtn.style.cursor = 'pointer';
+    onlyBuildingBtn.style.fontSize = '12px';
+    onlyBuildingBtn.addEventListener('click', () => {
+        settingsManager.set('only_show_building', true);
+    });
+    sheet.appendChild(onlyBuildingBtn);
 
     const grabber = document.createElement('div');
     grabber.className = 'upg-grabber';
