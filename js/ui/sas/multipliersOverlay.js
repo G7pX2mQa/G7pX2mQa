@@ -17,11 +17,25 @@ function isMultiplierGreaterThanOne(multiplier) {
   return false;
 }
 
+const _unlockedCache = new Set();
+let _lastSlot = null;
+
 function isMultiplierEverUnlocked(key) {
   const slot = getActiveSlot();
   if (slot == null) return false;
+  if (_lastSlot !== slot) {
+    _unlockedCache.clear();
+    _lastSlot = slot;
+  }
+  if (_unlockedCache.has(key)) {
+    return true;
+  }
   const k = `ccc:multiplier_unlocked:${key}:${slot}`;
-  return localStorage.getItem(k) === 'true';
+  const val = localStorage.getItem(k) === 'true';
+  if (val) {
+    _unlockedCache.add(key);
+  }
+  return val;
 }
 
 function setMultiplierEverUnlocked(key) {
@@ -29,6 +43,9 @@ function setMultiplierEverUnlocked(key) {
   if (slot == null) return;
   const k = `ccc:multiplier_unlocked:${key}:${slot}`;
   localStorage.setItem(k, 'true');
+  if (_lastSlot === slot) {
+    _unlockedCache.add(key);
+  }
 }
 
 
@@ -102,10 +119,126 @@ function getUnlockedCurrencies() {
   return Object.values(CURRENCIES).filter(c => c !== CURRENCIES.VOID_GEMS && isCurrencyUnlocked(c));
 }
 
-function populateMultipliersOverlay(overlayEl) {
+function processResourceRow(config, grid, initialized) {
+  let multiplier = 1;
+  let isCurrency = false;
+
+  if (config.key === 'voidGems') {
+    return;
+  }
+
+  if (config.type === 'currency') {
+    isCurrency = true;
+    if (bank[config.key] && bank[config.key].mult) {
+      try {
+        multiplier = bank[config.key].mult.get();
+      } catch (e) {
+        multiplier = 1;
+      }
+    }
+  } else {
+    let keyToUse = config.key;
+    if (config.type === 'levelStat' && config.key !== 'research_levels' && config.key !== 'waterwheel_levels') {
+        return;
+    }
+    
+    if (keyToUse === 'waves' || keyToUse === 'waves_levels') {
+        keyToUse = 'surge_wave'; // Maps to surgeWaveSystem.getSurgeWaveMultiplier()
+    }
+
+    const camelKey = keyToUse.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    const sysName = camelKey + 'System';
+    const methodName = 'get' + camelKey.charAt(0).toUpperCase() + camelKey.slice(1) + 'Multiplier';
+    
+    if (window[sysName] && typeof window[sysName][methodName] === 'function') {
+      multiplier = window[sysName][methodName]();
+    } else {
+      multiplier = 1;
+    }
+  }
+
+  let unlocked = isMultiplierEverUnlocked(config.key);
+  if (!unlocked && isMultiplierGreaterThanOne(multiplier)) {
+    setMultiplierEverUnlocked(config.key);
+    unlocked = true;
+  }
+
+  if (unlocked && UC_MATERIALS.includes(config.key)) {
+    if (!isBuildingUnlocked(config.key)) {
+      unlocked = false;
+    }
+  }
+
+  if (!initialized) {
+    // First pass: create all possible rows, but hide them initially
+    let iconSrc = config.icon || "img/misc/mysterious.webp";
+    let baseSrc = isCurrency ? config.baseIcon || "img/misc/locked.webp" : iconSrc;
+    
+    if (!isCurrency && iconSrc && iconSrc.endsWith('.webp')) {
+        const parts = iconSrc.split('/');
+        const filename = parts.pop();
+        const baseName = filename.replace('.webp', '');
+        baseSrc = parts.join('/') + '/' + baseName + '_plus_base.webp';
+    }
+    
+    let overrides = { ...config };
+    if (config.key === 'research_levels') overrides = { ...config, ...RESOURCE_REGISTRY_EXTRAS['research_levels'] };
+    if (config.key === 'waterwheel_levels') overrides = { ...config, ...RESOURCE_REGISTRY_EXTRAS['waterwheel_levels'] };
+    
+    // Update icon and base icon if changed by overrides
+    if (overrides.icon) {
+        iconSrc = overrides.icon;
+        baseSrc = isCurrency ? (overrides.baseIcon || "img/misc/locked.webp") : iconSrc;
+        if (!isCurrency && iconSrc && iconSrc.endsWith('.webp')) {
+            const parts = iconSrc.split('/');
+            const filename = parts.pop();
+            const baseName = filename.replace('.webp', '');
+            baseSrc = parts.join('/') + '/' + baseName + '_plus_base.webp';
+        }
+    }
+
+    const rowText = formatMultForUi(multiplier);
+    createMultiplierRow(grid, config.key, iconSrc, baseSrc, rowText, overrides);
+    const newRow = grid.lastElementChild;
+    
+    // Initially set innerHTML (as createMultiplierRow relies on it)
+    const amountDiv = newRow.querySelector('.multipliers-amount');
+    
+    grid._rows[config.key] = {
+      row: newRow,
+      amountDiv: amountDiv,
+      plural: overrides.plural || overrides.singular || config.key,
+      lastText: `${overrides.plural || overrides.singular || config.key}: ${rowText}x`
+    };
+    
+    if (!unlocked) {
+      newRow.style.display = 'none';
+    }
+  } else {
+    // Fast path update
+    const rowData = grid._rows[config.key];
+    if (rowData) {
+      if (unlocked) {
+        rowData.row.style.display = '';
+        const newText = `${rowData.plural}: ${formatMultForUi(multiplier)}x`;
+        if (rowData.lastText !== newText) {
+          rowData.lastText = newText;
+          if (newText.includes('<span')) {
+            rowData.amountDiv.innerHTML = newText;
+          } else {
+            rowData.amountDiv.textContent = newText;
+          }
+        }
+      } else {
+        rowData.row.style.display = 'none';
+      }
+    }
+  }
+}
+
+function populateMultipliersOverlay(overlayEl, keysToUpdate = null) {
   const grid = overlayEl.querySelector('.currencies-grid');
   if (!grid) return;
-  grid.innerHTML = "";
   
   let noteEl = overlayEl.querySelector('.multipliers-note');
   if (!noteEl) {
@@ -120,101 +253,55 @@ function populateMultipliersOverlay(overlayEl) {
   
   grid.setAttribute('role', 'grid');
 
-  const processResource = (config) => {
-    let multiplier = 1;
-    let isCurrency = false;
+  const initialized = grid.hasAttribute('data-initialized');
+  if (!initialized) {
+    grid.innerHTML = "";
+    grid._rows = {};
+  }
 
-    if (config.key === 'voidGems') {
-      return;
-    }
-
-    if (config.type === 'currency') {
-      isCurrency = true;
-      if (bank[config.key] && bank[config.key].mult) {
-        try {
-          multiplier = bank[config.key].mult.get();
-        } catch (e) {
-          multiplier = 1;
-        }
+  if (keysToUpdate && initialized) {
+    keysToUpdate.forEach(key => {
+      const config = RESOURCE_REGISTRY.find(c => c.key === key);
+      if (config) {
+        processResourceRow(config, grid, true);
       }
-    } else {
-      let keyToUse = config.key;
-      if (config.type === 'levelStat' && config.key !== 'research_levels' && config.key !== 'waterwheel_levels') {
-          return;
-      }
-      
-      if (keyToUse === 'waves' || keyToUse === 'waves_levels') {
-          keyToUse = 'surge_wave'; // Maps to surgeWaveSystem.getSurgeWaveMultiplier()
-      }
-
-      const camelKey = keyToUse.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-      const sysName = camelKey + 'System';
-      const methodName = 'get' + camelKey.charAt(0).toUpperCase() + camelKey.slice(1) + 'Multiplier';
-      
-      if (window[sysName] && typeof window[sysName][methodName] === 'function') {
-        multiplier = window[sysName][methodName]();
-      } else {
-        console.error(`Fatal Error: Multiplier method ${methodName} not found on ${sysName} for ${config.key}`);
-        throw new Error(`Fatal Error: Multiplier method ${methodName} not found on ${sysName} for ${config.key}`);
-      }
-    }
-
-    if (isMultiplierGreaterThanOne(multiplier)) {
-      setMultiplierEverUnlocked(config.key);
-    }
-    
-    let unlocked = isMultiplierEverUnlocked(config.key);
-
-    if (unlocked && UC_MATERIALS.includes(config.key)) {
-      if (!isBuildingUnlocked(config.key)) {
-        unlocked = false;
-      }
-    }
-
-    if (unlocked) {
-      let iconSrc = config.icon || "img/misc/mysterious.webp";
-      let baseSrc = isCurrency ? config.baseIcon || "img/misc/locked.webp" : iconSrc;
-      
-      if (!isCurrency && iconSrc && iconSrc.endsWith('.webp')) {
-          const parts = iconSrc.split('/');
-          const filename = parts.pop();
-          const baseName = filename.replace('.webp', '');
-          baseSrc = parts.join('/') + '/' + baseName + '_plus_base.webp';
-      }
-      
-
-      let overrides = { ...config };
-      if (config.key === 'research_levels') overrides = { ...config, ...RESOURCE_REGISTRY_EXTRAS['research_levels'] };
-      if (config.key === 'waterwheel_levels') overrides = { ...config, ...RESOURCE_REGISTRY_EXTRAS['waterwheel_levels'] };
-      
-      // Update icon and base icon if changed by overrides
-      if (overrides.icon) {
-          iconSrc = overrides.icon;
-          baseSrc = isCurrency ? (overrides.baseIcon || "img/misc/locked.webp") : iconSrc;
-          if (!isCurrency && iconSrc && iconSrc.endsWith('.webp')) {
-              const parts = iconSrc.split('/');
-              const filename = parts.pop();
-              const baseName = filename.replace('.webp', '');
-              baseSrc = parts.join('/') + '/' + baseName + '_plus_base.webp';
-          }
-      }
-
-
-      createMultiplierRow(grid, config.key, iconSrc, baseSrc, formatMultForUi(multiplier), overrides);
-    }
-  };
-
-  // We loop exactly over RESOURCE_REGISTRY to preserve the intertwined visual priority order.
-  RESOURCE_REGISTRY.forEach(config => {
-      processResource(config);
-  });
+    });
+  } else {
+    RESOURCE_REGISTRY.forEach(config => {
+      processResourceRow(config, grid, initialized);
+    });
+  }
+  
+  if (!initialized) {
+    grid.setAttribute('data-initialized', 'true');
+  }
 }
+
+let updatePending = false;
+let pendingKeys = new Set();
+let fullUpdatePending = false;
 
 function handleMultiplierChange(e) {
   if (!multipliersOverlay.isOpen) return;
   const overlayEl = multipliersOverlay.overlayEl;
   if (!overlayEl) return;
-  populateMultipliersOverlay(overlayEl);
+  
+  if (e && e.detail && e.detail.key) {
+    pendingKeys.add(e.detail.key);
+  } else {
+    fullUpdatePending = true;
+  }
+  
+  if (!updatePending) {
+    updatePending = true;
+    requestAnimationFrame(() => {
+      updatePending = false;
+      const keysToUpdate = fullUpdatePending ? null : Array.from(pendingKeys);
+      pendingKeys.clear();
+      fullUpdatePending = false;
+      populateMultipliersOverlay(overlayEl, keysToUpdate);
+    });
+  }
 }
 
 const multipliersOverlay = createSASOverlay({
