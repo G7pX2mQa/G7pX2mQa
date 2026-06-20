@@ -1131,7 +1131,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
       ctx.beginPath();
       ctx.arc(0, 0, w * 1.5 * ringScale, 0, Math.PI * 2);
       ctx.lineWidth = 3 - i;
-      ctx.strokeStyle = `rgba(255, 100, 200, ${0.4 + 0.2 * Math.sin(t * 4 + i)})`;
+      ctx.strokeStyle = `rgba(200, 80, 220, ${0.4 + 0.2 * Math.sin(t * 4 + i)})`;
       ctx.stroke();
       ctx.restore();
     }
@@ -1143,11 +1143,11 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   // Faces and normal/lighting colors
   // We want a glassy pink look
   const faces = [
-    { id: "front", pts: [0, 1, 2], baseColor: [255, 100, 150] },
-    { id: "back", pts: [3, 5, 4], baseColor: [255, 100, 150] },
-    { id: "bottom", pts: [0, 3, 4, 1], baseColor: [255, 100, 150] },
-    { id: "left", pts: [0, 2, 5, 3], baseColor: [255, 100, 150] },
-    { id: "right", pts: [1, 4, 5, 2], baseColor: [255, 100, 150] },
+    { id: "front", pts: [0, 1, 2], baseColor: [200, 100, 200] },
+    { id: "back", pts: [3, 5, 4], baseColor: [200, 100, 200] },
+    { id: "bottom", pts: [0, 3, 4, 1], baseColor: [200, 100, 200] },
+    { id: "left", pts: [0, 2, 5, 3], baseColor: [200, 100, 200] },
+    { id: "right", pts: [1, 4, 5, 2], baseColor: [200, 100, 200] },
   ];
 
   faces.forEach((f) => {
@@ -1240,11 +1240,11 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ipts = irotPts.map((rp) => projectRotated(rp.x, rp.y, rp.z));
 
     ifaces = [
-      { id: "front", pts: [0, 1, 2], baseColor: [255, 100, 150] },
-      { id: "back", pts: [3, 5, 4], baseColor: [255, 100, 150] },
-      { id: "bottom", pts: [0, 3, 4, 1], baseColor: [255, 100, 150] },
-      { id: "left", pts: [0, 2, 5, 3], baseColor: [255, 100, 150] },
-      { id: "right", pts: [1, 4, 5, 2], baseColor: [255, 100, 150] },
+      { id: "front", pts: [0, 1, 2], baseColor: [200, 100, 200] },
+      { id: "back", pts: [3, 5, 4], baseColor: [200, 100, 200] },
+      { id: "bottom", pts: [0, 3, 4, 1], baseColor: [200, 100, 200] },
+      { id: "left", pts: [0, 2, 5, 3], baseColor: [200, 100, 200] },
+      { id: "right", pts: [1, 4, 5, 2], baseColor: [200, 100, 200] },
     ];
 
     ifaces.forEach((f) => {
@@ -1354,9 +1354,9 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
       centerP.y,
       radius
     );
-    grad.addColorStop(0, `rgba(255, 150, 255, ${0.4 + 0.2 * pulse})`);
-    grad.addColorStop(0.5, `rgba(200, 100, 255, ${0.2 + 0.1 * pulse})`);
-    grad.addColorStop(1, "rgba(255, 100, 255, 0)");
+    grad.addColorStop(0, `rgba(220, 100, 255, ${0.4 + 0.2 * pulse})`);
+    grad.addColorStop(0.5, `rgba(180, 80, 255, ${0.2 + 0.1 * pulse})`);
+    grad.addColorStop(1, "rgba(200, 80, 255, 0)");
 
     ctx.fillStyle = grad;
     ctx.beginPath();
@@ -1384,7 +1384,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   if (tier2Prog > 0 && ipts && ifaces && ifaces.iedges) {
     ctx.save();
     ctx.globalAlpha = tier2Prog;
-    ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
+    ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
     ctx.lineWidth = 1;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
@@ -1400,7 +1400,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   }
 
   // Draw back edges of outer prism
-  ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
+  ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
   ctx.lineWidth = 1;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
@@ -1501,7 +1501,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
       ctx.translate(sp.x, sp.y);
       ctx.rotate(t + i);
 
-      ctx.fillStyle = `rgba(255, 200, 255, ${sparkleAlpha * 0.9})`;
+      ctx.fillStyle = `rgba(230, 150, 255, ${sparkleAlpha * 0.9})`;
 
       // Draw a 4-pointed star
       ctx.beginPath();
@@ -1618,7 +1618,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
       ctx.save();
       ctx.translate(sp.x, sp.y);
 
-      ctx.fillStyle = "rgba(255, 150, 220, 0.8)";
+      ctx.fillStyle = "rgba(220, 100, 255, 0.8)";
       ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
       ctx.lineWidth = 1;
 
@@ -1740,7 +1740,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   if (tier2Prog > 0 && ipts && ifaces && ifaces.iedges) {
     ctx.save();
     ctx.globalAlpha = tier2Prog;
-    ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
+    ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
     ctx.lineWidth = 1;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
@@ -1757,7 +1757,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
 
   // Draw FRONT edges of outer prism
   ctx.save();
-  ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
+  ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
   ctx.lineWidth = 1;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
