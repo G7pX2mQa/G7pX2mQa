@@ -1907,9 +1907,9 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
       }
     };
 
-    drawSmokestack(-35, -100, 20, 60, 0);
-    drawSmokestack(0, -100, 26, 80, 1.5);
-    drawSmokestack(35, -100, 20, 60, 2.5);
+    drawSmokestack(-35, -100, 20, 90, 0);
+    drawSmokestack(0, -100, 26, 100, 1.5);
+    drawSmokestack(35, -100, 20, 80, 2.5);
 
     ctx.restore();
   }
