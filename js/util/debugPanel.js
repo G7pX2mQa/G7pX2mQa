@@ -48,7 +48,7 @@ import { isSellUnlocked, setSellUnlocked } from '../ui/minerTabs/sellTab.js';
 import { isCombineUnlocked, setCombineUnlocked } from '../ui/minerTabs/resetTab.js';
 import { isBuildingsUnlocked, setBuildingsUnlocked, getBuildingLevel, setBuildingLevel, BUILDING_NAMES, BUILDING_IDS, isBuildingUnlocked, setBuildingUnlocked as setBuildingUnlockedById } from '../ui/minerTabs/buildingsTab.js';
 import { updateWarpTab } from '../ui/merchantTabs/warpTab.js';
-import { getLabLevel, setLabLevel, getLabLevelKey, getRpMultBase } from '../ui/merchantTabs/labTab.js';
+import { getLabLevel, setLabLevel, getLabLevelKey, getRpMult } from '../ui/merchantTabs/labTab.js';
 import { 
     getFlowUnlockState, 
     WATERWHEEL_DEFS, 
@@ -870,7 +870,7 @@ function getGameStatMultiplier(statKey) {
             }
             return BigNum.fromAny(0.2);
         } else if (statKey === 'rp') {
-            return getRpMultBase();
+            return getRpMult();
         } else if (statKey === 'fp') {
             return getFpMultiplier();
         } else if (statKey === 'dp') {
