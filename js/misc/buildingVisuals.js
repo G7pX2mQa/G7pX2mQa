@@ -565,10 +565,15 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
   // Update HTML element position
   const levelText = document.getElementById("building-detail-level-text");
   if (levelText) {
+    let offset = 180;
+    if (id === "crystal") {
+      offset = 180 - tier * 4;
+    }
+
     levelText.style.position = "absolute";
     // Calculate top offset based on parent container offset (which might be causing the drift)
     // Adjust for padding or margins of the container
-    levelText.style.top = Math.max(50, finalHighestY - 180) + "px"; // Magic number offset to fix clipping
+    levelText.style.top = Math.max(50, finalHighestY - offset) + "px"; // Magic number offset to fix clipping
     levelText.style.left = "0";
     levelText.style.width = "100%";
 
