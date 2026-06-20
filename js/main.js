@@ -5,6 +5,8 @@ import { createCursorTrail } from './game/cursorTrail.js';
 import { syncXpMpHudLayout } from './ui/hudLayout.js';
 import { initUcPickup } from './game/materialPickup.js';
 import { MAX_MUTATION_VISUAL } from "./game/settingsManager.js";
+import { RESOURCE_REGISTRY } from './game/offlinePanel.js';
+
 
 export const FONT_MAP = {
   1: 'font-tinos',
@@ -1476,6 +1478,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setLoaderProgress(loader, 0.2);
     await stepDelay();
     ensureMultiplierDefaults();
+    validateMultiplierMethods();
     
     refreshSurgeMultiplierCache();
     syncCurrencyMultipliersFromUpgrades();
@@ -1545,3 +1548,28 @@ Normal gameplay is unaffected unless you choose to modify values.`);
     } catch {}
   }
 });
+
+
+function validateMultiplierMethods() {
+  RESOURCE_REGISTRY.forEach(config => {
+    if (config.key === 'voidGems' || config.type === 'currency') return;
+    
+    let keyToUse = config.key;
+    if (config.type === 'levelStat' && config.key !== 'research_levels' && config.key !== 'waterwheel_levels') {
+        return;
+    }
+    
+    if (keyToUse === 'waves' || keyToUse === 'waves_levels') {
+        keyToUse = 'surge_wave'; // Maps to surgeWaveSystem.getSurgeWaveMultiplier()
+    }
+
+    const camelKey = keyToUse.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    const sysName = camelKey + 'System';
+    const methodName = 'get' + camelKey.charAt(0).toUpperCase() + camelKey.slice(1) + 'Multiplier';
+    
+    if (!window[sysName] || typeof window[sysName][methodName] !== 'function') {
+      console.error(`Fatal Error: Multiplier method ${methodName} not found on ${sysName} for ${config.key}`);
+      throw new Error(`Fatal Error: Multiplier method ${methodName} not found on ${sysName} for ${config.key}`);
+    }
+  });
+}
