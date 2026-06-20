@@ -2,10 +2,6 @@ import { createSASOverlay } from './sasOverlayBuilder.js';
 import { RESOURCE_REGISTRY, RESOURCE_REGISTRY_EXTRAS } from '../../game/offlinePanel.js';
 import { bank, CURRENCIES, isCurrencyUnlocked } from '../../util/storage.js';
 import { formatMultForUi } from '../../util/numFormat.js';
-import { getXpGainMultiplier } from '../../game/xpSystem.js';
-import { getMutationGainMultiplier } from '../../game/mutationSystem.js';
-import { getRpMult } from '../merchantTabs/labTab.js';
-import { getFpMultiplier } from '../merchantTabs/flowTab.js';
 import { createDropdown } from "./dropdownUtils.js";
 import { getActiveSlot } from '../../util/storage.js';
 import { isBuildingUnlocked } from '../minerTabs/buildingsTab.js';
@@ -128,15 +124,11 @@ function populateMultipliersOverlay(overlayEl) {
     let multiplier = 1;
     let isCurrency = false;
 
-    if (config.key === 'xp') {
-      multiplier = getXpGainMultiplier();
-    } else if (config.key === 'mp') {
-      multiplier = getMutationGainMultiplier();
-    } else if (config.key === 'research_levels') {
-      multiplier = getRpMult();
-    } else if (config.key === 'waterwheel_levels') {
-      multiplier = getFpMultiplier();
-    } else if (config.type === 'currency' && config.key !== 'voidGems') {
+    if (config.key === 'voidGems') {
+      return;
+    }
+
+    if (config.type === 'currency') {
       isCurrency = true;
       if (bank[config.key] && bank[config.key].mult) {
         try {
@@ -146,8 +138,25 @@ function populateMultipliersOverlay(overlayEl) {
         }
       }
     } else {
-      // Unhandled or explicitly ignored
-      return;
+      let keyToUse = config.key;
+      if (config.type === 'levelStat' && config.key !== 'research_levels' && config.key !== 'waterwheel_levels') {
+          return;
+      }
+      
+      if (keyToUse === 'waves' || keyToUse === 'waves_levels') {
+          keyToUse = 'surge_wave'; // Maps to surgeWaveSystem.getSurgeWaveMultiplier()
+      }
+
+      const camelKey = keyToUse.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+      const sysName = camelKey + 'System';
+      const methodName = 'get' + camelKey.charAt(0).toUpperCase() + camelKey.slice(1) + 'Multiplier';
+      
+      if (window[sysName] && typeof window[sysName][methodName] === 'function') {
+        multiplier = window[sysName][methodName]();
+      } else {
+        console.error(`Fatal Error: Multiplier method ${methodName} not found on ${sysName} for ${config.key}`);
+        throw new Error(`Fatal Error: Multiplier method ${methodName} not found on ${sysName} for ${config.key}`);
+      }
     }
 
     if (isMultiplierGreaterThanOne(multiplier)) {
