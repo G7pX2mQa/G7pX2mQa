@@ -1757,3 +1757,10 @@ export function stopAllWaterwheels() {
         window.dispatchEvent(new CustomEvent('flow:change', { detail: { id: 'all', type: 'active' } }));
     }
 }
+
+if (typeof window !== 'undefined') {
+  window.waterwheelLevelsSystem = window.waterwheelLevelsSystem || {};
+  Object.assign(window.waterwheelLevelsSystem, {
+    getWaterwheelLevelsMultiplier: getFpMultiplier
+  });
+}
