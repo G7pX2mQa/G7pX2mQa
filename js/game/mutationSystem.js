@@ -1060,3 +1060,10 @@ export function getTotalCumulativeMp() {
 export function getHighestMutationLevel() {
   return mutationState.highestLevel;
 }
+
+if (typeof window !== 'undefined') {
+  window.mpSystem = window.mpSystem || {};
+  Object.assign(window.mpSystem, {
+    getMpMultiplier: getMutationGainMultiplier
+  });
+}
