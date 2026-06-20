@@ -567,10 +567,7 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
   if (levelText) {
     let offset = 180;
     if (id === "core") {
-      offset = 180 - 30 + tier * 3;
-      const showTier8 = tier >= 8 ? 1 : 0;
-      const tier8Prog = tier >= 8 && prevTier < 8 ? animProgress : showTier8;
-      offset -= 5 * tier * (1 - tier8Prog);
+      offset = 150 - tier * 2;
     }
     if (id === "crystal") {
       offset = 180 - tier * 8;
