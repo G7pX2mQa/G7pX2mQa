@@ -914,7 +914,7 @@ function drawBlackHole(ctx, t, tier, prevTier, animProgress) {
           ctx.shadowBlur = heat * 10;
           ctx.shadowColor = `rgba(255, 100, 50, ${heat})`;
           ctx.fill();
-          ctx.shadowBlur = 0;
+          
         }
       }
     }
@@ -1335,53 +1335,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   }
 
 
-  // Tier 6: Resonating Edges (rendered before faces, attached to back edges)
-  if (tier6Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier6Prog;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-
-    const pulse = 0.5 + 0.5 * Math.sin(t * 4);
-    
-    // Draw resonating outer back edges
-    ctx.strokeStyle = `rgba(230, 150, 255, 1)`; // Same color as standard lines, but solid
-    ctx.lineWidth = 1 + 6 * pulse;
-    ctx.shadowBlur = 15 * pulse;
-    ctx.shadowColor = `rgba(230, 150, 255, 1)`;
-    ctx.beginPath();
-    edges
-      .filter((e) => !e.isFront)
-      .forEach((e) => {
-        ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
-        ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
-      });
-    ctx.stroke();
-
-    // Draw resonating inner back edges
-    if (tier2Prog > 0 && typeof ipts !== "undefined" && typeof ifaces !== "undefined" && ifaces && ifaces.iedges) {
-      ctx.save();
-      ctx.globalAlpha = tier6Prog * tier2Prog;
-      ctx.strokeStyle = `rgba(230, 150, 255, 1)`;
-      ctx.lineWidth = 1 + 6 * pulse;
-      ctx.shadowBlur = 15 * pulse;
-      ctx.shadowColor = `rgba(230, 150, 255, 1)`;
-      ctx.beginPath();
-      ifaces.iedges
-        .filter((e) => !e.isFront)
-        .forEach((e) => {
-          ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
-          ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
-        });
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    ctx.shadowBlur = 0;
-
-    ctx.restore();
-  }
-
   faces.forEach((f) => {
     let c = f.baseColor;
     ctx.fillStyle = `rgba(${c[0] * f.light}, ${c[1] * f.light}, ${c[2] * f.light}, ${glassAlpha * 0.9})`;
@@ -1429,6 +1382,53 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   ctx.stroke();
 
   ctx.restore();
+
+  // Tier 6: Resonating Edges (rendered before faces, attached to back edges)
+  if (tier6Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier6Prog;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    const pulse = 0.5 + 0.5 * Math.sin(t * 4);
+    
+    // Draw resonating outer back edges
+    ctx.strokeStyle = `rgba(230, 150, 255, 1)`; // Same color as standard lines, but solid
+    ctx.lineWidth = 1 + 6 * pulse;
+    
+    
+    ctx.beginPath();
+    edges
+      .filter((e) => !e.isFront)
+      .forEach((e) => {
+        ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
+        ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
+      });
+    ctx.stroke();
+
+    // Draw resonating inner back edges
+    if (tier2Prog > 0 && typeof ipts !== "undefined" && typeof ifaces !== "undefined" && ifaces && ifaces.iedges) {
+      ctx.save();
+      ctx.globalAlpha = tier6Prog * tier2Prog;
+      ctx.strokeStyle = `rgba(230, 150, 255, 1)`;
+      ctx.lineWidth = 1 + 6 * pulse;
+      
+      
+      ctx.beginPath();
+      ifaces.iedges
+        .filter((e) => !e.isFront)
+        .forEach((e) => {
+          ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
+          ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
+        });
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    
+
+    ctx.restore();
+  }
 
   // Tier 7: Energy Lightning (Arcs between vertices)
   if (tier7Prog > 0) {
@@ -1760,9 +1760,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   }
 
   // Draw FRONT edges of the inner prism
-  if (tier2Prog > 0 && ipts && ifaces && ifaces.iedges) {
-    ctx.save();
-  // Draw FRONT edges of the inner prism
   if (tier2Prog > 0 && typeof ipts !== "undefined" && typeof ifaces !== "undefined" && ifaces && ifaces.iedges) {
     ctx.save();
     ctx.globalAlpha = tier2Prog;
@@ -1808,21 +1805,21 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     // Draw resonating outer front edges
     ctx.strokeStyle = `rgba(230, 150, 255, 1)`; // Same color as standard lines, but solid
     ctx.lineWidth = 1 + 6 * pulse;
-    ctx.shadowBlur = 15 * pulse;
-    ctx.shadowColor = `rgba(230, 150, 255, 1)`;
     ctx.beginPath();
     edges
       .filter((e) => e.isFront)
       .forEach((e) => {
         ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
+        ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
+      });
+    ctx.stroke();
+
     // Draw resonating inner front edges
     if (tier2Prog > 0 && typeof ipts !== "undefined" && typeof ifaces !== "undefined" && ifaces && ifaces.iedges) {
       ctx.save();
       ctx.globalAlpha = tier6Prog * tier2Prog;
       ctx.strokeStyle = `rgba(230, 150, 255, 1)`;
       ctx.lineWidth = 1 + 6 * pulse;
-      ctx.shadowBlur = 15 * pulse;
-      ctx.shadowColor = `rgba(230, 150, 255, 1)`;
       ctx.beginPath();
       ifaces.iedges
         .filter((e) => e.isFront)
@@ -1833,12 +1830,8 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
       ctx.stroke();
       ctx.restore();
     }
-        });
-      ctx.stroke();
-      ctx.restore();
-    }
 
-    ctx.shadowBlur = 0;
+    
 
     ctx.restore();
   }
