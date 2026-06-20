@@ -1505,8 +1505,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
 
     const numSparkles = 15;
     for (let i = 0; i < numSparkles; i++) {
-      const sparkleT = (t * 0.75 + i * (1 / numSparkles)) % 1; // 0 to 1
-
+	  const sparkleT = (t + i * (1 / numSparkles)) % 1;
       const hash1 = (Math.sin(i * 12.9898) * 43758.5453) % 1;
       const hash2 = (Math.cos(i * 78.233) * 43758.5453) % 1;
       const hash3 = (Math.sin(i * 45.123) * 43758.5453) % 1;
