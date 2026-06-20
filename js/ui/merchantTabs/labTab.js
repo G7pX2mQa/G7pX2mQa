@@ -1444,3 +1444,10 @@ if (typeof window !== 'undefined') {
         }
     });
 }
+
+if (typeof window !== 'undefined') {
+  window.researchLevelsSystem = window.researchLevelsSystem || {};
+  Object.assign(window.researchLevelsSystem, {
+    getResearchLevelsMultiplier: getRpMult
+  });
+}
