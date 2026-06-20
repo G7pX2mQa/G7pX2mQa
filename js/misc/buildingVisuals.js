@@ -566,8 +566,11 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
   const levelText = document.getElementById("building-detail-level-text");
   if (levelText) {
     let offset = 180;
+    if (id === "core") {
+      offset = 180 - 30 + tier * 3;
+    }
     if (id === "crystal") {
-      offset = 180 - tier * 4;
+      offset = 180 - tier * 8;
     }
 
     levelText.style.position = "absolute";
