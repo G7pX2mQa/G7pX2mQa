@@ -191,7 +191,7 @@ function loop(currentTime) {
     const showTier3 = drawTier >= 3 ? 1 : 0;
     const tier3Prog =
       drawTier >= 3 && previousTier < 3 ? animProgress : showTier3;
-    prismSpeedMult = tier3Prog > 0 ? 1.0 : 0.4;
+    prismSpeedMult = 0.4 + 0.6 * tier3Prog;
     globalPrismAngle += dt * prismSpeedMult;
   }
 
@@ -1357,6 +1357,26 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
         ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
       });
     ctx.stroke();
+
+    // Draw resonating inner back edges
+    if (tier2Prog > 0 && typeof ipts !== "undefined" && typeof ifaces !== "undefined" && ifaces && ifaces.iedges) {
+      ctx.save();
+      ctx.globalAlpha = tier6Prog * tier2Prog;
+      ctx.strokeStyle = `rgba(230, 150, 255, 1)`;
+      ctx.lineWidth = 1 + 6 * pulse;
+      ctx.shadowBlur = 15 * pulse;
+      ctx.shadowColor = `rgba(230, 150, 255, 1)`;
+      ctx.beginPath();
+      ifaces.iedges
+        .filter((e) => !e.isFront)
+        .forEach((e) => {
+          ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
+          ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
+        });
+      ctx.stroke();
+      ctx.restore();
+    }
+
     ctx.shadowBlur = 0;
 
     ctx.restore();
@@ -1377,7 +1397,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   });
 
   // Draw back edges of inner prism
-  if (tier2Prog > 0 && ipts && ifaces && ifaces.iedges) {
+  if (tier2Prog > 0 && typeof ipts !== "undefined" && typeof ifaces !== "undefined" && ifaces && ifaces.iedges) {
     ctx.save();
     ctx.globalAlpha = tier2Prog;
     ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
@@ -1394,7 +1414,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.stroke();
     ctx.restore();
   }
-
   // Draw back edges of outer prism
   ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
   ctx.lineWidth = 1;
@@ -1422,40 +1441,47 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     // Hash function for random-looking but deterministic arcs based on time
     const hash = (n) => Math.abs(Math.sin(n * 12.9898) * 43758.5453) % 1;
 
-    const numArcs = 4;
-    for (let i = 0; i < numArcs; i++) {
-      // Create a rapid flicker effect by changing indices frequently
-      const timeIndex = Math.floor(t * 15 + i * 2);
-      
-      const idx1 = Math.floor(hash(timeIndex) * pts.length);
-      const idx2 = Math.floor(hash(timeIndex + 1) * pts.length);
-      
-      if (idx1 !== idx2) {
-        const p1 = pts[idx1];
-        const p2 = pts[idx2];
+    const drawLightningArcs = (points) => {
+      const numArcs = 4;
+      for (let i = 0; i < numArcs; i++) {
+        // Create a rapid flicker effect by changing indices frequently
+        const timeIndex = Math.floor(t * 15 + i * 2);
+        
+        const idx1 = Math.floor(hash(timeIndex) * points.length);
+        const idx2 = Math.floor(hash(timeIndex + 1) * points.length);
+        
+        if (idx1 !== idx2) {
+          const p1 = points[idx1];
+          const p2 = points[idx2];
 
-        // Draw jagged line
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        
-        const segments = 4;
-        for (let j = 1; j < segments; j++) {
-          const tPos = j / segments;
-          const baseX = p1.x + (p2.x - p1.x) * tPos;
-          const baseY = p1.y + (p2.y - p1.y) * tPos;
+          // Draw jagged line
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
           
-          // Add jitter perpendicular to the line
-          const jitterX = (hash(timeIndex + j * 0.1) - 0.5) * 15;
-          const jitterY = (hash(timeIndex + j * 0.2) - 0.5) * 15;
+          const segments = 4;
+          for (let j = 1; j < segments; j++) {
+            const tPos = j / segments;
+            const baseX = p1.x + (p2.x - p1.x) * tPos;
+            const baseY = p1.y + (p2.y - p1.y) * tPos;
+            
+            // Add jitter perpendicular to the line
+            const jitterX = (hash(timeIndex + j * 0.1) - 0.5) * 15;
+            const jitterY = (hash(timeIndex + j * 0.2) - 0.5) * 15;
+            
+            ctx.lineTo(baseX + jitterX, baseY + jitterY);
+          }
+          ctx.lineTo(p2.x, p2.y);
           
-          ctx.lineTo(baseX + jitterX, baseY + jitterY);
+          const flickerIntensity = 0.5 + 0.5 * hash(timeIndex + 0.5);
+          ctx.strokeStyle = `rgba(255, 182, 193, ${flickerIntensity})`;
+          ctx.stroke();
         }
-        ctx.lineTo(p2.x, p2.y);
-        
-        const flickerIntensity = 0.5 + 0.5 * hash(timeIndex + 0.5);
-        ctx.strokeStyle = `rgba(255, 182, 193, ${flickerIntensity})`;
-        ctx.stroke();
       }
+    };
+
+    drawLightningArcs(pts);
+    if (tier2Prog > 0 && ipts) {
+      drawLightningArcs(ipts);
     }
 
     ctx.restore();
@@ -1736,6 +1762,9 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
   // Draw FRONT edges of the inner prism
   if (tier2Prog > 0 && ipts && ifaces && ifaces.iedges) {
     ctx.save();
+  // Draw FRONT edges of the inner prism
+  if (tier2Prog > 0 && typeof ipts !== "undefined" && typeof ifaces !== "undefined" && ifaces && ifaces.iedges) {
+    ctx.save();
     ctx.globalAlpha = tier2Prog;
     ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
     ctx.lineWidth = 1;
@@ -1751,7 +1780,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.stroke();
     ctx.restore();
   }
-
   // Draw FRONT edges of outer prism
   ctx.save();
   ctx.strokeStyle = `rgba(230, 150, 255, 0.5)`;
@@ -1787,9 +1815,29 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
       .filter((e) => e.isFront)
       .forEach((e) => {
         ctx.moveTo(pts[e.pts[0]].x, pts[e.pts[0]].y);
-        ctx.lineTo(pts[e.pts[1]].x, pts[e.pts[1]].y);
-      });
-    ctx.stroke();
+    // Draw resonating inner front edges
+    if (tier2Prog > 0 && typeof ipts !== "undefined" && typeof ifaces !== "undefined" && ifaces && ifaces.iedges) {
+      ctx.save();
+      ctx.globalAlpha = tier6Prog * tier2Prog;
+      ctx.strokeStyle = `rgba(230, 150, 255, 1)`;
+      ctx.lineWidth = 1 + 6 * pulse;
+      ctx.shadowBlur = 15 * pulse;
+      ctx.shadowColor = `rgba(230, 150, 255, 1)`;
+      ctx.beginPath();
+      ifaces.iedges
+        .filter((e) => e.isFront)
+        .forEach((e) => {
+          ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
+          ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
+        });
+      ctx.stroke();
+      ctx.restore();
+    }
+        });
+      ctx.stroke();
+      ctx.restore();
+    }
+
     ctx.shadowBlur = 0;
 
     ctx.restore();
