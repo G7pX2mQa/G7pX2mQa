@@ -955,3 +955,10 @@ if (typeof window !== 'undefined') {
     getDpProgressRatio,
   });
 }
+
+if (typeof window !== 'undefined') {
+  window.dpSystem = window.dpSystem || {};
+  Object.assign(window.dpSystem, {
+    getDpMultiplier: getDpMultiplier
+  });
+}
