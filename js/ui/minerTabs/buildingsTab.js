@@ -483,10 +483,13 @@ function applyBuildingOnlyMode(enabled) {
     // BUT we need to handle toggling OFF even if overlay is closing
     if (enabled && !overlayType) return;
     
+    
+
     if (!overlay) {
-        // If neither is found in the DOM, just reset and return
-        if (onlyBuildingPopupEl) onlyBuildingPopupEl.style.display = 'none';
-        if (onlyBuildingMobileBtn) onlyBuildingMobileBtn.style.display = 'none';
+        if (!enabled) {
+            if (onlyBuildingPopupEl) onlyBuildingPopupEl.style.display = 'none';
+            if (onlyBuildingMobileBtn) onlyBuildingMobileBtn.style.display = 'none';
+        }
         return;
     }
 
