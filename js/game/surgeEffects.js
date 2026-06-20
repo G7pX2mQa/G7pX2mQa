@@ -1292,3 +1292,10 @@ export function getSurgeMagicMultiplier() {
     
     return result;
 }
+
+if (typeof window !== 'undefined') {
+  window.surgeWaveSystem = window.surgeWaveSystem || {};
+  Object.assign(window.surgeWaveSystem, {
+    getSurgeWaveMultiplier: getSurgeWaveMultiplier
+  });
+}
