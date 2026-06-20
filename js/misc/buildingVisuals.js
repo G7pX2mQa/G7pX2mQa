@@ -1327,21 +1327,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
       ctx.fill();
     });
 
-    // Draw back edges
-    ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
-    ctx.lineWidth = 1;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    iedges
-      .filter((e) => !e.isFront)
-      .forEach((e) => {
-        ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
-        ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
-      });
-    ctx.stroke();
-
-    // We will store ifaces and ipts and iedges to draw front edges later
+    // We will store ifaces and ipts and iedges to draw edges later
     // Hack: attach iedges to ifaces for access later
     ifaces.iedges = iedges;
 
@@ -1393,6 +1379,25 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.closePath();
     ctx.fill();
   });
+
+  // Draw back edges of inner prism
+  if (tier2Prog > 0 && ipts && ifaces && ifaces.iedges) {
+    ctx.save();
+    ctx.globalAlpha = tier2Prog;
+    ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
+    ctx.lineWidth = 1;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ifaces.iedges
+      .filter((e) => !e.isFront)
+      .forEach((e) => {
+        ctx.moveTo(ipts[e.pts[0]].x, ipts[e.pts[0]].y);
+        ctx.lineTo(ipts[e.pts[1]].x, ipts[e.pts[1]].y);
+      });
+    ctx.stroke();
+    ctx.restore();
+  }
 
   // Draw back edges of outer prism
   ctx.strokeStyle = `rgba(255, 200, 255, 0.5)`;
