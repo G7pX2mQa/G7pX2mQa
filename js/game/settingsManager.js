@@ -72,6 +72,14 @@ export const SETTING_DEFINITIONS = {
     default: true,
     unlockCondition: () => true,
   },
+  only_show_building: {
+    id: 'only_show_building',
+    type: 'toggle',
+    label: 'Only show Building',
+    hasExtraInfo: false,
+    default: false,
+    unlockCondition: () => false, // Hide from the main menu
+  },
   user_interface: {
     id: 'user_interface',
     type: 'toggle',
@@ -452,6 +460,14 @@ class SettingsManager {
       } else {
         this.settings[key] = typeof def.default === 'function' ? def.default() : def.default;
         this._isDefault[key] = true;
+      }
+	
+      // Always force only_show_building to be false on load
+      if (key === 'only_show_building' && this.settings[key] === true) {
+        this.settings[key] = false;
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(false));
+        } catch (e) {}
       }
 
       // Always force user_interface to be true on load 
