@@ -469,14 +469,6 @@ const BUILDING_OVERLAY_CLOSE_TRANSITION = `transform ${BUILDING_OVERLAY_CLOSE_MS
 let onlyBuildingPopupEl = null;
 let onlyBuildingMobileBtn = null;
 
-let removedElements = {
-    header: null,
-    actions: null,
-    textContainer: null,
-    levelTextContainer: null,
-    desc: null
-};
-
 // We will check which overlay is open inside the subscriber
 function applyBuildingOnlyMode(enabled) {
     let overlayType = null;
@@ -502,35 +494,35 @@ function applyBuildingOnlyMode(enabled) {
     let contentEl = overlay.querySelector('.upg-content');
     
     if (enabled) {
-        // Collect existing elements to remove and store
+        // Hide elements instead of removing them
         const header = overlay.querySelector('.upg-header');
         const actions = overlay.querySelector('.upg-actions');
         
         if (header) {
-            removedElements.header = header;
-            header.remove();
+            header.style.display = 'none';
         }
         if (actions) {
-            removedElements.actions = actions;
-            actions.remove();
+            actions.style.setProperty('display', 'none', 'important');
         }
+        
+        const onlyBuildingBtn = overlay.querySelector('.only-building-btn');
+        if (onlyBuildingBtn) onlyBuildingBtn.style.display = 'none';
+        
+        overlay.style.cursor = 'none';
         
         if (overlayType === 'detail') {
             const textContainer = contentEl ? contentEl.querySelector('.upg-costs') : null;
             const levelTextContainer = contentEl ? contentEl.querySelector('#building-detail-level-text') : null;
             if (textContainer) {
-                removedElements.textContainer = textContainer;
-                textContainer.remove();
+                textContainer.style.display = 'none';
             }
             if (levelTextContainer) {
-                removedElements.levelTextContainer = levelTextContainer;
-                levelTextContainer.remove();
+                levelTextContainer.style.display = 'none';
             }
         } else if (overlayType === 'mysterious') {
             const desc = contentEl ? contentEl.querySelector('.upg-desc') : null;
             if (desc) {
-                removedElements.desc = desc;
-                desc.remove();
+                desc.style.display = 'none';
             }
         }
 
@@ -593,7 +585,7 @@ function applyBuildingOnlyMode(enabled) {
         if (IS_MOBILE) {
           if (!onlyBuildingMobileBtn) {
             onlyBuildingMobileBtn = document.createElement('button');
-            onlyBuildingMobileBtn.textContent = 'B';
+            onlyBuildingMobileBtn.textContent = 'X';
             onlyBuildingMobileBtn.style.position = 'fixed';
             onlyBuildingMobileBtn.style.bottom = '20px';
             onlyBuildingMobileBtn.style.right = '20px';
@@ -615,36 +607,35 @@ function applyBuildingOnlyMode(enabled) {
         }
     } else {
         // Restore elements
-        // Check which overlay we might have cached items for.
-        // It's possible the overlay changed, but usually it doesn't.
-        let restoreSheet = sheet;
-        let restoreContent = contentEl;
+        const header = overlay.querySelector('.upg-header');
+        const actions = overlay.querySelector('.upg-actions');
         
-        if (removedElements.header && restoreSheet && restoreContent) {
-            restoreSheet.insertBefore(removedElements.header, restoreContent);
-            removedElements.header = null;
+        if (header) {
+            header.style.display = '';
         }
-        if (removedElements.actions && restoreSheet) {
-            restoreSheet.appendChild(removedElements.actions);
-            removedElements.actions = null;
+        if (actions) {
+            actions.style.removeProperty('display');
         }
         
-        if (removedElements.textContainer && restoreContent) {
-            restoreContent.appendChild(removedElements.textContainer);
-            removedElements.textContainer = null;
-        }
-        if (removedElements.levelTextContainer && restoreContent) {
-            const buildingHitbox = restoreContent.querySelector('div[style*="height: 5px"]');
-            if (buildingHitbox) {
-                restoreContent.insertBefore(removedElements.levelTextContainer, buildingHitbox);
-            } else {
-                restoreContent.insertBefore(removedElements.levelTextContainer, restoreContent.firstChild);
+        const onlyBuildingBtn = overlay.querySelector('.only-building-btn');
+        if (onlyBuildingBtn) onlyBuildingBtn.style.display = '';
+        
+        overlay.style.cursor = '';
+        
+        if (overlayType === 'detail') {
+            const textContainer = contentEl ? contentEl.querySelector('.upg-costs') : null;
+            const levelTextContainer = contentEl ? contentEl.querySelector('#building-detail-level-text') : null;
+            if (textContainer) {
+                textContainer.style.display = '';
             }
-            removedElements.levelTextContainer = null;
-        }
-        if (removedElements.desc && restoreContent) {
-            restoreContent.appendChild(removedElements.desc);
-            removedElements.desc = null;
+            if (levelTextContainer) {
+                levelTextContainer.style.display = '';
+            }
+        } else if (overlayType === 'mysterious') {
+            const desc = contentEl ? contentEl.querySelector('.upg-desc') : null;
+            if (desc) {
+                desc.style.display = '';
+            }
         }
         
         if (onlyBuildingPopupEl) onlyBuildingPopupEl.style.display = 'none';
@@ -687,10 +678,6 @@ function openBuildingOverlaySheet(overlay, sheet) {
 }
 
 function finishBuildingOverlayClose(overlay, onClosed) {
-    if (settingsManager.get('only_show_building')) {
-        settingsManager.set('only_show_building', false);
-    }
-
     const delay = document.body.classList.contains('no-overlay-transitions') ? 0 : BUILDING_OVERLAY_CLOSE_MS;
     setTimeout(() => {
         overlay.classList.remove('is-open');
@@ -711,25 +698,6 @@ function ensureMysteriousBuildingOverlay() {
     sheet.style.display = 'flex';
     sheet.style.flexDirection = 'column';
     
-
-    
-    const onlyBuildingBtn = document.createElement('button');
-    onlyBuildingBtn.textContent = 'Only show Building';
-    onlyBuildingBtn.style.position = 'absolute';
-    onlyBuildingBtn.style.top = '8px';
-    onlyBuildingBtn.style.right = '8px';
-    onlyBuildingBtn.style.zIndex = '99999';
-    onlyBuildingBtn.style.backgroundColor = '#808080';
-    onlyBuildingBtn.style.color = '#fff';
-    onlyBuildingBtn.style.border = '1px solid #555';
-    onlyBuildingBtn.style.padding = '4px 8px';
-    onlyBuildingBtn.style.borderRadius = '4px';
-    onlyBuildingBtn.style.cursor = 'pointer';
-    onlyBuildingBtn.style.fontSize = '12px';
-    onlyBuildingBtn.addEventListener('click', () => {
-        settingsManager.set('only_show_building', true);
-    });
-    sheet.appendChild(onlyBuildingBtn);
 
     const grabber = document.createElement('div');
     grabber.className = 'upg-grabber';
@@ -1091,6 +1059,7 @@ export function initBuildingOverlay() {
 
     
     const onlyBuildingBtn = document.createElement('button');
+    onlyBuildingBtn.className = 'only-building-btn';
     onlyBuildingBtn.textContent = 'Only show Building';
     onlyBuildingBtn.style.position = 'absolute';
     onlyBuildingBtn.style.top = '8px';
@@ -1098,7 +1067,7 @@ export function initBuildingOverlay() {
     onlyBuildingBtn.style.zIndex = '99999';
     onlyBuildingBtn.style.backgroundColor = '#808080';
     onlyBuildingBtn.style.color = '#fff';
-    onlyBuildingBtn.style.border = '1px solid #555';
+    onlyBuildingBtn.style.border = '2px solid black';
     onlyBuildingBtn.style.padding = '4px 8px';
     onlyBuildingBtn.style.borderRadius = '4px';
     onlyBuildingBtn.style.cursor = 'pointer';
