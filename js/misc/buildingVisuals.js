@@ -2746,6 +2746,61 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   }
 
   // Tier 4 (Cyan Stepped Pyramid with Floating Rings and Glowing Orb)
+
+    const drawT5Particles = (isFront) => {
+      if (tier5Prog <= 0) return;
+      ctx.save();
+      ctx.globalAlpha = tier5Prog;
+      
+      const numRings = 3;
+      const numParticles = 3;
+      const orbitSpeed = 4;
+
+      for (let r = 0; r < numRings; r++) {
+        const ringYOffset = -80 - r * 50;
+        const ringWidth = 120 - r * 20;
+        const ringHeight = 30; // Matches tier 4 squashed ring
+        
+        for (let i = 0; i < numParticles; i++) {
+          const dir = (r % 2 === 0) ? 1 : -1;
+          const angle = t * orbitSpeed * dir + (i * Math.PI * 2) / numParticles + (r * Math.PI / 3);
+          
+          const depth = Math.sin(angle);
+          
+          if (isFront && depth < 0) continue;
+          if (!isFront && depth >= 0) continue;
+          
+          const x = Math.cos(angle) * ringWidth;
+          const y = ringYOffset + depth * ringHeight;
+          
+          ctx.save();
+          ctx.translate(x, y);
+          
+          const pScale = 0.85 + depth * 0.35;
+          ctx.globalAlpha = tier5Prog;
+          ctx.scale(pScale, pScale);
+          
+          const sglow = ctx.createRadialGradient(0, 0, 0, 0, 0, 16);
+          sglow.addColorStop(0, "rgba(255, 255, 255, 1.0)");
+          sglow.addColorStop(0.3, "rgba(0, 255, 255, 0.9)");
+          sglow.addColorStop(1, "rgba(0, 150, 255, 0)");
+          ctx.fillStyle = sglow;
+          ctx.beginPath();
+          ctx.arc(0, 0, 16, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#fff";
+          ctx.beginPath();
+          ctx.arc(0, 0, 5, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.restore();
+        }
+      }
+      
+      ctx.restore();
+    };
+
   if (tier4Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier4Prog;
@@ -2780,6 +2835,8 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     }
     
+    drawT5Particles(false);
+
     // 2) Draw the Stepped Pyramid (covers the back half of the rings)
     for (let i = 0; i < steps; i++) {
       const y = -40 - i * stepHeight;
@@ -2858,70 +2915,8 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
     }
 
-    ctx.restore();
-  }
+    drawT5Particles(true);
 
-  // Tier 5 (Orbiting Cyan Particles on Tier 4 Rings)
-  if (tier5Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier5Prog;
-    
-    const numRings = 3;
-    const numParticles = 3;
-    const orbitSpeed = 4;
-
-    for (let r = 0; r < numRings; r++) {
-      const ringYOffset = -80 - r * 50;
-      const ringWidth = 120 - r * 20;
-      const ringHeight = 30; // Matches tier 4 squashed ring
-      
-      for (let i = 0; i < numParticles; i++) {
-        // Offset each particle and alternate direction slightly per ring
-        const dir = (r % 2 === 0) ? 1 : -1;
-        const angle = t * orbitSpeed * dir + (i * Math.PI * 2) / numParticles + (r * Math.PI / 3);
-        
-        const x = Math.cos(angle) * ringWidth;
-        const y = ringYOffset + Math.sin(angle) * ringHeight;
-        
-        // Continuous smooth pseudo-3D scale/z-index
-        // Using sin(angle) creates a smooth transition from -1 (back) to 1 (front)
-        const depth = Math.sin(angle);
-        
-        ctx.save();
-        ctx.translate(x, y);
-        
-        // Map depth (-1 to 1) to scale (0.5 to 1.2)
-        const pScale = 0.85 + depth * 0.35;
-        // Map depth (-1 to 1) to alpha. Only hide when very far back (depth < -0.85) to wait until it's visually behind the pyramid.
-        let pAlpha = 0;
-        if (depth > -0.85) {
-           // Smoothly ramp up from 0.4 to 1.0 based on depth
-           pAlpha = 0.4 + (depth + 0.85) * (0.6 / 1.85); 
-        }
-        
-        ctx.globalAlpha = tier5Prog * Math.min(1, Math.max(0, pAlpha));
-        ctx.scale(pScale, pScale);
-        
-        // Particle Glow
-        const sglow = ctx.createRadialGradient(0, 0, 0, 0, 0, 16);
-        sglow.addColorStop(0, "rgba(255, 255, 255, 1.0)");
-        sglow.addColorStop(0.3, "rgba(0, 255, 255, 0.9)");
-        sglow.addColorStop(1, "rgba(0, 150, 255, 0)");
-        ctx.fillStyle = sglow;
-        ctx.beginPath();
-        ctx.arc(0, 0, 16, 0, Math.PI * 2);
-        ctx.fill();
-
-        // White core
-        ctx.fillStyle = "#fff";
-        ctx.beginPath();
-        ctx.arc(0, 0, 5, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.restore();
-      }
-    }
-    
     ctx.restore();
   }
 
