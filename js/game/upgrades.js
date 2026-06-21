@@ -293,7 +293,7 @@ export const E = {
     return (level) => {
       const L = toBn(level);
       try {
-        const plain = L.toPlainIntegerString?.();
+        const plain = L.inf || L.e >= 15 ? 'Infinity' : L.toPlainIntegerString?.();
         if (plain && plain !== 'Infinity' && plain.length <= 15) {
           const lvl = Math.max(0, Number(plain));
           return 1 + pNum * lvl;
@@ -318,7 +318,7 @@ catch {
     return (level) => {
       const L = toBn(level);
       try {
-        const plain = L.toPlainIntegerString?.();
+        const plain = L.inf || L.e >= 15 ? 'Infinity' : L.toPlainIntegerString?.();
         if (plain && plain !== 'Infinity' && plain.length <= 15) {
           const lvl = Math.max(0, Number(plain));
           return 1 + xNum * lvl;
@@ -355,7 +355,7 @@ catch {
       }
 
       try {
-        const plain = L.toPlainIntegerString?.();
+        const plain = L.inf || L.e >= 15 ? 'Infinity' : L.toPlainIntegerString?.();
         if (plain && plain !== 'Infinity' && plain.length <= 7) {
           const lvl = Math.max(0, Number(plain));
           const log10 = log10b * lvl;
@@ -826,7 +826,7 @@ export function normalizedUpgradeLevel(levelValue) {
   }
   if (levelValue instanceof BigNum) {
     try {
-      const plain = levelValue.toPlainIntegerString?.();
+      const plain = levelValue.inf || levelValue.e >= 15 ? 'Infinity' : levelValue.toPlainIntegerString?.();
       if (plain && plain !== 'Infinity') {
         const parsed = Number.parseInt(plain, 10);
         if (Number.isFinite(parsed)) {
@@ -945,7 +945,7 @@ export function ensureLevelBigNum(value) {
     if (approxDigits + 1 > BigNum.MAX_PLAIN_DIGITS) return bn.clone?.() ?? bn;
     if (approxDigits > 32) return bn.clone?.() ?? bn;
 
-    const plain = bn.toPlainIntegerString?.();
+    const plain = bn.inf || bn.e >= 15 ? 'Infinity' : bn.toPlainIntegerString?.();
     if (plain === 'Infinity') return BigNum.fromAny('Infinity');
     if (!plain) return BigNum.fromInt(0);
     const normalized = plain.replace(/^0+(?=\d)/, '');
@@ -977,7 +977,7 @@ export function levelBigNumToNumber(value) {
   }
 
   try {
-    const plain = bn.toPlainIntegerString?.();
+    const plain = bn.inf || bn.e >= 15 ? 'Infinity' : bn.toPlainIntegerString?.();
     if (!plain || plain === 'Infinity') {
       return plain === 'Infinity' ? Number.MAX_VALUE : 0;
     }
@@ -1057,8 +1057,8 @@ function plainLevelDelta(nextLevelBn, prevLevelBn) {
       return BigNum.fromAny('Infinity');
     }
 
-    const nextPlain = next.toPlainIntegerString?.();
-    const prevPlain = prev.toPlainIntegerString?.();
+    const nextPlain = next.inf || next.e >= 15 ? 'Infinity' : next.toPlainIntegerString?.();
+    const prevPlain = prev.inf || prev.e >= 15 ? 'Infinity' : prev.toPlainIntegerString?.();
     if (!nextPlain || !prevPlain) return BigNum.fromInt(0);
     if (nextPlain === 'Infinity') return BigNum.fromAny('Infinity');
     if (prevPlain === 'Infinity') return BigNum.fromInt(0);
@@ -1210,7 +1210,7 @@ function hmMilestoneHits(levelBn, milestoneLevel) {
     return Math.max(0, Math.floor(delta / HM_EVOLUTION_INTERVAL) + 1);
   }
   try {
-    const plain = levelBn.toPlainIntegerString?.();
+    const plain = levelBn.inf || levelBn.e >= 15 ? 'Infinity' : levelBn.toPlainIntegerString?.();
     if (!plain || plain === 'Infinity') return 0;
     const lvl = Number(plain);
     const base = Number(Math.max(0, Math.floor(milestoneLevel)));
@@ -2209,8 +2209,8 @@ export function estimateFlatBulk(priceBn, walletBn, roomBn) {
   if (priceBn.isZero?.()) return { count: 0 };
   if (walletBn.isZero?.()) return { count: 0 };
 
-const wPlain = walletBn.toPlainIntegerString?.();
-const pPlain = priceBn.toPlainIntegerString?.();
+const wPlain = walletBn.inf || walletBn.e >= 15 ? 'Infinity' : walletBn.toPlainIntegerString?.();
+const pPlain = priceBn.inf || priceBn.e >= 15 ? 'Infinity' : priceBn.toPlainIntegerString?.();
 if (wPlain && wPlain !== 'Infinity' && pPlain && pPlain !== 'Infinity') {
   const q = Number(wPlain) / Number(pPlain);
   let countBn = BigNum.fromAny(q.toString());
@@ -2287,7 +2287,7 @@ function levelCapToNumber(bn) {
   if (!(bn instanceof BigNum)) return Infinity;
   if (bn.isInfinite?.()) return Infinity;
   try {
-    const plain = bn.toPlainIntegerString();
+    const plain = bn.inf || bn.e >= 15 ? 'Infinity' : bn.toPlainIntegerString();
     if (plain === 'Infinity') return Infinity;
     if (!plain) return 0;
     if (plain.length > 15) return Number.MAX_SAFE_INTEGER;
