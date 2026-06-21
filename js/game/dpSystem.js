@@ -8,6 +8,7 @@ import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { getPpState, isPpSystemUnlocked } from './ppSystem.js';
 import { addExternalFpMultiplierProvider } from '../ui/merchantTabs/flowTab.js';
 import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
+import { setHtmlOrText } from '../util/uiHelpers.js';
 
 
 
@@ -520,7 +521,7 @@ function updateHud() {
     fill.style.width = pct;
   }
   if (dpLevelValue) {
-    dpLevelValue.innerHTML = formatNumber(dpState.dpLevel);
+    setHtmlOrText(dpLevelValue, formatNumber(dpState.dpLevel));
   }
   if (progress) {
     const currentHtml = formatNumber(dpState.progress);
