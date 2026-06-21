@@ -571,7 +571,9 @@ export function calculateOfflineRewards(seconds) {
              let levelsGained = 0;
              const maxLevel = node.maxLevel;
 
-             while (tempLevel < maxLevel) {
+             let loopGuard = 0;
+             const MAX_LOOPS = 5000;
+             while (tempLevel < maxLevel && loopGuard < MAX_LOOPS) {
                  const req = getSimulatedReq(node, tempLevel);
                  if (req.isInfinite && req.isInfinite()) break;
                  if (tempRp.cmp(req) < 0) break;
@@ -579,6 +581,65 @@ export function calculateOfflineRewards(seconds) {
                  tempRp = tempRp.sub(req);
                  tempLevel++;
                  levelsGained++;
+                 loopGuard++;
+             }
+             if (loopGuard >= MAX_LOOPS) {
+                 const req = getSimulatedReq(node, tempLevel);
+                 if (tempRp.cmp(req) >= 0) {
+                     const scaleBn = BigNum.fromAny(node.scale);
+                     const scaleMinus1 = scaleBn.sub(1);
+                     let isLinear = false;
+                     if (scaleMinus1.isZero()) isLinear = true;
+                     else {
+                         const absDiff = Math.abs(Number(scaleBn.toScientific()) - 1.0);
+                         if (absDiff < 1e-9) isLinear = true;
+                     }
+                     
+                     if (isLinear) {
+                         const jumpBn = tempRp.div(req).floorToInteger();
+                         let jumpStr = jumpBn.toPlainIntegerString();
+                         if (jumpStr === 'Infinity' || jumpStr.length > 15) jumpStr = "9007199254740991";
+                         let jump = 0;
+                         try { jump = Number(jumpStr); } catch {}
+                         
+                         if (Number.isFinite(node.maxLevel)) {
+                             const rem = Number(node.maxLevel) - Number(tempLevel);
+                             if (jump > rem) jump = rem;
+                         }
+                         if (jump > 0) {
+                             const cost = req.mulScaledInt(jump, 0);
+                             tempRp = tempRp.sub(cost);
+                             tempLevel += jump;
+                             levelsGained += jump;
+                         }
+                     } else if (scaleMinus1.isZero() === false && (scaleMinus1.sig > 0 || scaleMinus1.isInfinite())) {
+                         const logRp = approxLog10BigNum(tempRp);
+                         const logReq = approxLog10BigNum(req);
+                         const logS = approxLog10BigNum(scaleBn);
+                         const logSMinus1 = approxLog10BigNum(scaleMinus1);
+                         
+                         const numerator = (logRp - logReq) + logSMinus1;
+                         const approxLevels = Math.floor(numerator / logS);
+                         
+                         if (approxLevels > 0) {
+                             let safeJump = approxLevels;
+                             if (Number.isFinite(node.maxLevel)) {
+                                 const rem = Number(node.maxLevel) - Number(tempLevel);
+                                 if (safeJump > rem) safeJump = rem;
+                             }
+                             if (safeJump > 0) {
+                                 const jump = safeJump;
+                                 const totalLog = Number(jump) * logS;
+                                 const sPowJump = bigNumFromLog10(totalLog);
+                                 const costFactor = sPowJump.sub(1).div(scaleMinus1);
+                                 const cost = req.mulBigNumInteger(costFactor);
+                                 tempRp = tempRp.sub(cost);
+                                 tempLevel += jump;
+                                 levelsGained += jump;
+                             }
+                         }
+                     }
+                 }
              }
              
              if (levelsGained > 0) {
