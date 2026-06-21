@@ -32,7 +32,7 @@ export function setVoidLevel(level, slot = getActiveSlot()) {
         valBn = BigNum.fromInt(0);
     }
     try {
-        localStorage.setItem(VOID_LEVEL_KEY(slotKey), valBn.toString());
+        localStorage.setItem(VOID_LEVEL_KEY(slotKey), valBn.toStorage?.() ?? valBn.toString());
         if (bank.rainbowGems && bank.rainbowGems.mult) {
             bank.rainbowGems.mult.set(getRainbowGemMultiplier());
         }
@@ -44,7 +44,7 @@ export function setVoidLevel(level, slot = getActiveSlot()) {
 
 export function getRainbowGemMultiplier() {
     const level = getVoidLevel();
-    const levelNum = Number(level.toString());
+    const levelNum = (level.inf ? Infinity : (level.sig * Math.pow(10, level.e)));
     if (levelNum < 300) {
         return BigNum.fromAny(Math.pow(1.1, levelNum));
     }
