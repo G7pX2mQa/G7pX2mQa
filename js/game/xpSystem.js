@@ -137,7 +137,7 @@ function bigNumPowerOf10(logBn) {
   // without causing flickering UI or breaking math stability.
   let intPartNum;
   try {
-      intPartNum = Number(integerPart.toPlainIntegerString?.() ?? integerPart.toString());
+      intPartNum = (integerPart.inf ? Infinity : (integerPart.sig * Math.pow(10, integerPart.e)));
   } catch {
       intPartNum = logBigNumToNumber(integerPart);
   }
@@ -158,7 +158,7 @@ function bigNumPowerOf10(logBn) {
 
   const sig = Number(Math.round(mantissa * Number(scaleFactor)));
 
-  const integerPartString = integerPart.toPlainIntegerString();
+  const integerPartString = integerPart.inf || integerPart.e >= 15 ? 'Infinity' : integerPart.toPlainIntegerString();
   if (integerPartString === 'Infinity') {
       return infinityRequirementBn.clone?.() ?? infinityRequirementBn;
   }
@@ -495,7 +495,7 @@ function approximateRequirementFromLevel(levelBn) {
     const softcapDeltaBn = levelBn.sub?.(softcapStartBn) ?? BigNum.fromInt(0);
     let softcapDeltaNum;
     try {
-        softcapDeltaNum = Number(softcapDeltaBn.toString());
+        softcapDeltaNum = (softcapDeltaBn.inf ? Infinity : (softcapDeltaBn.sig * Math.pow(10, softcapDeltaBn.e)));
     } catch {
         softcapDeltaNum = logBigNumToNumber(softcapDeltaBn);
     }
@@ -586,7 +586,7 @@ function xpRequirementForXpLevel(xpLevelInput) {
 
   let levelPlain = '0';
   try {
-    levelPlain = xpLvlBn.toPlainIntegerString?.() ?? xpLvlBn.toString?.() ?? '0';
+    levelPlain = xpLvlBn.inf || xpLvlBn.e >= 15 ? 'Infinity' : (xpLvlBn.toPlainIntegerString?.() ?? xpLvlBn.toString?.() ?? '0');
   } catch {
     levelPlain = '0';
   }
@@ -695,7 +695,7 @@ function xpLevelNumInfo(xpLevelValue) {
   }
   let plain = '0';
   try {
-    plain = xpLevelValue.toPlainIntegerString?.() ?? xpLevelValue.toString?.() ?? '0';
+    plain = xpLevelValue.inf || xpLevelValue.e >= 15 ? 'Infinity' : (xpLevelValue.toPlainIntegerString?.() ?? xpLevelValue.toString?.() ?? '0');
   } catch {
     plain = '0';
   }
@@ -1220,7 +1220,7 @@ export function addXp(amount, { silent = false } = {}) {
         const baseLevelBn = xpState.xpLevel;
         let currentLevelNum;
         try {
-          currentLevelNum = Number(baseLevelBn.toPlainIntegerString?.() ?? baseLevelBn.toString());
+          currentLevelNum = (baseLevelBn.inf ? Infinity : (baseLevelBn.sig * Math.pow(10, baseLevelBn.e)));
         } catch {
           currentLevelNum = 0;
         }
