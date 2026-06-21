@@ -400,7 +400,9 @@ export function setResearchNodeLevel(id, level, suppressNotify = false) {
     
     try {
         localStorage.setItem(NODE_LEVEL_KEY(slot, id), level.toString());
-        window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { id, level, suppressNotify } }));
+        if (!suppressNotify) {
+            window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { id, level, suppressNotify } }));
+        }
         if (!wasExperimentUnlocked && isExperimentUnlockedNow) {
             window.dispatchEvent(new CustomEvent('unlock:change', { detail: { key: 'experiment', slot } }));
         }
@@ -413,7 +415,7 @@ export function getResearchNodeRp(id) {
     return s.rp;
 }
 
-export function setResearchNodeRp(id, rp) {
+export function setResearchNodeRp(id, rp, suppressNotify = false) {
     const slot = getActiveSlot();
     if (slot != null && isStorageKeyLocked(NODE_RP_KEY(slot, id))) return;
 
@@ -422,7 +424,9 @@ export function setResearchNodeRp(id, rp) {
     s.rp = BigNum.fromAny(rp);
     
     try {
-        window.dispatchEvent(new CustomEvent('lab:node:rp', { detail: { id, rp: s.rp } }));
+        if (!suppressNotify) {
+            window.dispatchEvent(new CustomEvent('lab:node:rp', { detail: { id, rp: s.rp } }));
+        }
     } catch {}
 }
 
@@ -431,7 +435,7 @@ export function isResearchNodeActive(id) {
     return s.active;
 }
 
-export function setResearchNodeActive(id, active) {
+export function setResearchNodeActive(id, active, suppressNotify = false) {
     const slot = getActiveSlot();
     if (slot == null) return;
     
@@ -440,7 +444,7 @@ export function setResearchNodeActive(id, active) {
     if (shouldBeActive) {
         // Deactivate currently active node if it's different
         if (activeNodeId !== null && activeNodeId !== id) {
-             setResearchNodeActive(activeNodeId, false);
+             setResearchNodeActive(activeNodeId, false, suppressNotify);
         }
         activeNodeId = id;
     } else {
@@ -455,7 +459,9 @@ export function setResearchNodeActive(id, active) {
         s.active = shouldBeActive;
         try {
             localStorage.setItem(NODE_ACTIVE_KEY(slot, id), s.active ? '1' : '0');
-            window.dispatchEvent(new CustomEvent('lab:node:active', { detail: { id, active: s.active } }));
+            if (!suppressNotify) {
+                window.dispatchEvent(new CustomEvent('lab:node:active', { detail: { id, active: s.active } }));
+            }
         } catch {}
     }
 }
