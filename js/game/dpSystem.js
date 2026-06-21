@@ -317,7 +317,7 @@ function dpRequirementForDpLevel(dpLevelInput) {
   // DPLevel starts at 0, so DPLevel 0 -> req 10.
   let levelPlain = '0';
   try {
-    levelPlain = dpLvlBn.toPlainIntegerString?.() ?? dpLvlBn.toString?.() ?? '0';
+    levelPlain = dpLvlBn.inf || dpLvlBn.e >= 15 ? 'Infinity' : (dpLvlBn.toPlainIntegerString?.() ?? dpLvlBn.toString?.() ?? '0');
   } catch {
     levelPlain = '0';
   }
@@ -592,7 +592,7 @@ export function getDpMultiplier() {
       if (isPpSystemUnlocked()) {
           const ppLevel = getPpState().ppLevel;
           if (ppLevel && !ppLevel.isZero()) {
-              const ppLevelNum = Number(ppLevel.toString());
+              const ppLevelNum = (ppLevel.inf ? Infinity : (ppLevel.sig * Math.pow(10, ppLevel.e)));
               if (!Number.isFinite(ppLevelNum) || ppLevelNum === Infinity) {
                   dpMult = dpMult.mulBigNumInteger(BigNum.fromAny('Infinity'));
               } else {
@@ -768,7 +768,7 @@ export function addDp(amount, { silent = false } = {}) {
   if (currentProgressLog - reqLog > 2) {
     let currentLevelNum;
     try {
-      currentLevelNum = Number(dpState.dpLevel.toPlainIntegerString?.() ?? dpState.dpLevel.toString());
+      currentLevelNum = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
     } catch {
       currentLevelNum = 0;
     }
