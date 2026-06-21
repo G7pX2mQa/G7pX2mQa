@@ -462,7 +462,7 @@ registerPassiveSystem({
         try {
            const dpState = getDpState();
            if (dpState && dpState.dpLevel) {
-               dpLevelNum = Number(dpState.dpLevel.toString());
+               dpLevelNum = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
            }
         } catch {}
 
@@ -530,7 +530,7 @@ registerPassiveSystem({
         try {
            const dpState = getDpState();
            if (dpState && dpState.dpLevel) {
-               dpLevelNum = Number(dpState.dpLevel.toString());
+               dpLevelNum = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
            }
         } catch {}
         
