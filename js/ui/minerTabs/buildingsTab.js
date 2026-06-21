@@ -77,12 +77,14 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
     baseImg.className = 'base';
     baseImg.src = isLocked ? 'img/misc/mysterious_plus_base.webp' : baseSrc;
     baseImg.alt = '';
+    baseImg.draggable = false;
 
     const iconImg = document.createElement('img');
     iconImg.className = 'icon';
     // If it's locked, just no icon, because base covers it
     iconImg.src = isLocked ? '' : iconSrc;
     iconImg.alt = '';
+    iconImg.draggable = false;
     
     if (isLocked || !iconSrc) {
         iconImg.style.display = 'none';
