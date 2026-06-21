@@ -638,7 +638,7 @@ export function tickResearch(dt) {
             if (isLinear) {
                 // Linear scaling (Scale ≈ 1)
                 const jumpBn = nextRp.div(currentReq).floorToInteger();
-                let jumpStr = jumpBn.toPlainIntegerString();
+                let jumpStr = jumpBn.inf || jumpBn.e >= 15 ? 'Infinity' : jumpBn.toPlainIntegerString();
                 // Safety clamp to max safe integer
                 if (jumpStr === 'Infinity' || jumpStr.length > 15) {
                     jumpStr = "9007199254740991"; 
