@@ -1,3 +1,4 @@
+import { setHtmlOrText } from '../../util/uiHelpers.js';
 // js/ui/merchantTabs/resetTab.js
 import { BigNum } from '../../util/bigNum.js';
 import { IS_MOBILE } from '../../main.js';
@@ -2452,7 +2453,7 @@ function updateSurgeCard() {
     const sLevel = isInf ? '<span class="surge-infinity-symbol">∞</span>' : barLevel.toString();
     if (el.headerVal.innerHTML !== sLevel) el.headerVal.innerHTML = sLevel;
   }
-  if (el.barText) el.barText.innerHTML = `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}">${formatBn(currentWaves, true)} / <img src="${WAVES_ICON_SRC}">${formatBn(req, true)}</span>`;
+  if (el.barText) setHtmlOrText(el.barText, `<span class="wave-bar-nums"><img src="${WAVES_ICON_SRC}">${formatBn(currentWaves, true)} / <img src="${WAVES_ICON_SRC}">${formatBn(req, true)}</span>`);
 
   if (el.milestones) {
     const visible = getVisibleMilestones(barLevel, {
