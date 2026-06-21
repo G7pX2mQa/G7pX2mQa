@@ -5,6 +5,7 @@ import { setupDragToClose } from '../shopOverlay.js';
 import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../../util/bigNum.js';
 import { levelBigNumToNumber, evaluateBulkPurchase } from '../../game/upgrades.js';
 import { formatMultForUi, formatNumber } from '../../util/numFormat.js';
+import { setHtmlOrText } from '../../util/uiHelpers.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { playPurchaseSfx } from '../shopOverlay.js';
 import { IS_MOBILE } from '../../main.js';
@@ -1287,7 +1288,7 @@ export function updateOverlayUi() {
     
     const resConfig = RESOURCE_REGISTRY.find(r => r.key === currencyKey);
 
-    document.getElementById('building-detail-level-text').innerHTML = `Building Level ${formatNumber(levelBn)}`;
+    setHtmlOrText(document.getElementById('building-detail-level-text'), `Building Level ${formatNumber(levelBn)}`);
     
     document.getElementById('building-detail-bonus-row').innerHTML = 
         `${BUILDING_BONUS_TEXTS[id] || 'Bonus'}: ${formatMultForUi(currentBonus)}x &rarr; ${formatMultForUi(nextBonus)}x`;
@@ -1476,7 +1477,7 @@ function handlePurchase(type) {
         updateOverlayUi();
         
         const gridCardBadge = document.querySelector(`.shop-upgrade[data-building-id="${id}"] .level-badge`);
-        if (gridCardBadge) gridCardBadge.innerHTML = formatNumber(newLevel);
+        if (gridCardBadge) setHtmlOrText(gridCardBadge, formatNumber(newLevel));
     }
 }
 
