@@ -3,7 +3,8 @@
 export class BigNum {
   static DEFAULT_PRECISION = 18;
   static MAX_E = 1.7976931348623157e+308; // Number.MAX_VALUE
-  static MAX_PLAIN_DIGITS = 1_000_000;    // safety cap for plain integer strings
+  static MAX_PLAIN_DIGITS = 1000;    // safety cap for plain integer strings
+  static MAX_UI_DIGITS = 100;
 
   constructor(sig, e, p = BigNum.DEFAULT_PRECISION) {
     let effectiveE = 0;
