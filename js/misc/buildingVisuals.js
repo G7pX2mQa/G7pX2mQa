@@ -2635,76 +2635,65 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     drawLightning(-prongOffset, yPos, prongOffset, yPos, 4, 10, "rgba(0, 200, 255, 0.6)", 1.5);
   }
 
-  // Tier 2 (Floating Metallic Rings)
+  // Tier 2 (Harmonic Resonators)
   if (tier2Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier2Prog;
 
-    const drawFloatingRings = (x, isLeft) => {
+    const drawResonator = (x) => {
       ctx.save();
-      ctx.translate(x, -60); // Float slightly above the base level
-      
-      const pulse = 0.5 + 0.5 * Math.sin(t * 4 + x);
+      ctx.translate(x, -40); // Base level
 
-      // Base emitter on the ground
-      ctx.fillStyle = "#1a1a1a";
-      ctx.beginPath();
-      ctx.ellipse(0, 20, 20, 10, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#00ffff";
-      ctx.lineWidth = 1 + pulse;
-      ctx.stroke();
+      const hum = Math.sin(t * 10);
+      const auraPulse = 0.5 + 0.5 * Math.sin(t * 3 + x);
 
-      // Floating spinning rings
-      const numRings = 3;
-      for (let i = 0; i < numRings; i++) {
-        ctx.save();
-        const ringY = -15 + i * 15;
-        const spinT = t * 2 * (i % 2 === 0 ? 1 : -1) + i; // alternating spin direction
-        
-        // 3D-ish rotation using scale
-        const scaleX = 1;
-        const scaleY = 0.3 + 0.2 * Math.sin(spinT);
-        
-        ctx.translate(0, ringY);
-        ctx.scale(scaleX, scaleY);
-        
-        ctx.strokeStyle = "#88aacc"; // metallic ring color
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(0, 0, 18, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // Pulsing cyan force field / glow from the ring
-        ctx.fillStyle = `rgba(0, 255, 255, ${0.2 * pulse})`;
-        ctx.beginPath();
-        ctx.arc(0, 0, 16, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.restore();
+      // Base
+      if (copperPattern) {
+        ctx.fillStyle = copperPattern;
+      } else {
+        ctx.fillStyle = "#b6673f";
       }
+      ctx.fillRect(-10, -5, 20, 5);
 
-      // Energy beam connecting to central prong
-      ctx.strokeStyle = `rgba(0, 255, 255, ${0.5 + 0.5 * pulse})`;
-      ctx.lineWidth = 3;
-      ctx.setLineDash([5, 5]); // dashed beam
-      ctx.lineDashOffset = -t * 10;
+      // Tuning Fork Prongs
+      ctx.fillRect(-8, -30, 4, 25);
+      ctx.fillRect(4, -30, 4, 25);
+      ctx.fillRect(-8, -10, 16, 5);
+
+      // Vibration effect (slight blur/offset)
+      ctx.globalAlpha = 0.5 * auraPulse;
+      ctx.fillStyle = "#00ffff";
+      ctx.fillRect(-8 + hum * 1.5, -30, 4, 25);
+      ctx.fillRect(4 - hum * 1.5, -30, 4, 25);
+
+      // Soft Cyan Aura
+      const aura = ctx.createRadialGradient(0, -20, 0, 0, -20, 30 + auraPulse * 10);
+      aura.addColorStop(0, `rgba(0, 255, 255, ${0.4 * tier2Prog})`);
+      aura.addColorStop(1, "rgba(0, 255, 255, 0)");
+      ctx.fillStyle = aura;
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      const targetProngX = isLeft ? -prongOffset : prongOffset;
-      ctx.lineTo(targetProngX - x, 0); 
-      ctx.stroke();
-      ctx.setLineDash([]); // Reset dash
+      ctx.arc(0, -20, 40, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Gentle ripple waves radiating upwards/outwards
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 3; i++) {
+        const rippleT = (t * 2 + i / 3) % 1;
+        ctx.strokeStyle = `rgba(0, 255, 255, ${(1 - rippleT) * 0.3 * tier2Prog})`;
+        ctx.beginPath();
+        ctx.ellipse(0, -20, 20 + rippleT * 30, 10 + rippleT * 15, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
 
       ctx.restore();
     };
 
-    drawFloatingRings(-prongOffset - 35, true);
-    drawFloatingRings(prongOffset + 35, false);
+    drawResonator(-prongOffset - 30);
+    drawResonator(prongOffset + 30);
 
     ctx.restore();
   }
-  // Tier 3 (Orbiting Glowing Geometric Crystals)
+  // Tier 3 (Ethereal Vapor Rings)
   if (tier3Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier3Prog;
@@ -2721,78 +2710,36 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     ctx.arc(0, vortexY, 50, 0, Math.PI * 2);
     ctx.fill();
 
-    const numCrystals = 3;
-    const crystalOrbitRadius = 30 + prongOffset * 0.2; // orbit around the center between the prongs
-    
-    // Store crystal positions to draw lightning between them
-    const crystalPositions = [];
-
-    for (let i = 0; i < numCrystals; i++) {
+    // Draw Ethereal Vapor Rings drifting up
+    const numVaporRings = 4;
+    for (let i = 0; i < numVaporRings; i++) {
+        // Calculate progress of this ring from 0 to 1
+        const ringProg = (t * 0.5 + i / numVaporRings) % 1;
+        
+        const yOffset = vortexY + 30 - ringProg * 80;
+        const scaleX = 1 + ringProg * 0.5;
+        const scaleY = 0.3 + ringProg * 0.2;
+        
+        // Rings fade in at bottom, fade out at top
+        const alpha = Math.sin(ringProg * Math.PI) * 0.4 * tier3Prog;
+        
         ctx.save();
+        ctx.translate(0, yOffset);
+        ctx.scale(scaleX, scaleY);
         
-        // Calculate orbit position
-        const angle = t * 2 + (i * Math.PI * 2 / numCrystals);
-        
-        // 3D orbit effect
-        const scale = 0.7 + 0.3 * Math.sin(angle); // Closer = larger
-        const xPos = Math.cos(angle) * crystalOrbitRadius;
-        const yPos = vortexY + Math.sin(angle) * 15; // Tilted orbit
-        
-        crystalPositions.push({x: xPos, y: yPos, z: Math.sin(angle)});
-        
-        ctx.translate(xPos, yPos);
-        ctx.scale(scale, scale);
-        
-        // Slowly spin the crystal itself
-        ctx.rotate(t * 3 + i);
-
-        // Draw geometric crystal
-        ctx.fillStyle = `rgba(0, 255, 255, ${0.7 + 0.3 * pulse})`;
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2;
-        
+        ctx.strokeStyle = `rgba(0, 255, 255, ${alpha})`;
+        ctx.lineWidth = 4 + ringProg * 2;
         ctx.beginPath();
-        ctx.moveTo(0, -15);
-        ctx.lineTo(10, 0);
-        ctx.lineTo(0, 15);
-        ctx.lineTo(-10, 0);
-        ctx.closePath();
-        ctx.fill();
+        ctx.arc(0, 0, 25 + Math.sin(t*2+i)*5, 0, Math.PI * 2);
         ctx.stroke();
-
-        // Inner highlight
-        ctx.fillStyle = "#ffffff";
+        
+        // Inner faint plasma
+        ctx.fillStyle = `rgba(0, 255, 255, ${alpha * 0.5})`;
         ctx.beginPath();
-        ctx.moveTo(0, -10);
-        ctx.lineTo(5, 0);
-        ctx.lineTo(0, 10);
-        ctx.lineTo(-5, 0);
-        ctx.closePath();
+        ctx.arc(0, 0, 20 + Math.sin(t*2+i)*5, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.restore();
-    }
-    
-    // Zap energy between crystals occasionally
-    if (Math.random() > 0.4) {
-      // Pick two random crystals
-      const idx1 = Math.floor(Math.random() * numCrystals);
-      let idx2 = Math.floor(Math.random() * numCrystals);
-      while(idx1 === idx2) idx2 = Math.floor(Math.random() * numCrystals);
-      
-      const c1 = crystalPositions[idx1];
-      const c2 = crystalPositions[idx2];
-      
-      // Draw a thin cyan zap between them
-      drawLightning(c1.x, c1.y, c2.x, c2.y, 3, 5, "rgba(100, 255, 255, 0.8)", 1.5 + Math.random());
-    }
-
-    // Occasional zap to the prongs
-    if (Math.random() > 0.6) {
-      const idx = Math.floor(Math.random() * numCrystals);
-      const c = crystalPositions[idx];
-      const targetX = c.x > 0 ? prongOffset : -prongOffset;
-      drawLightning(c.x, c.y, targetX, vortexY + (Math.random() - 0.5) * 20, 4, 8, "rgba(200, 255, 255, 0.9)", 2);
     }
     ctx.restore();
   }
@@ -2982,7 +2929,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
 
     ctx.restore();
   }
-  // Tier 6 (Holographic Cyan Lotus)
+  // Tier 6 (Electric Vortex)
   if (tier6Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier6Prog;
@@ -2990,175 +2937,181 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     const steps = 8;
     const stepHeight = 20;
     const orbY = -40 - steps * stepHeight - 10;
-    
-    const bloom = 0.5 + 0.5 * Math.sin(t * 1.5);
-    const numPetals = 8;
-    const petalLength = 120 + 20 * bloom;
-    const petalWidth = 40 + 10 * bloom;
 
-    ctx.translate(0, orbY + 10); // Center around the orb
-
-    // Draw the lotus petals
-    for (let i = 0; i < numPetals; i++) {
+    // The vortex spirals around the upper pyramid and into the sky
+    const numSpirals = 4;
+    for (let s = 0; s < numSpirals; s++) {
         ctx.save();
-        
-        // Distribute petals in a 3D-ish circle around the orb
-        // Back petals drawn first, front later? Just simple composite is okay
-        // Or we can just sort them by Y roughly.
-        // Actually, simple overlapping with "lighter" works great for holograms.
-        
-        const angle = (i * Math.PI * 2) / numPetals + t * 0.5;
-        
-        // Elliptical rotation to fake 3D perspective around the orb
-        const xPos = Math.cos(angle) * 30;
-        const yPos = Math.sin(angle) * 10; 
-        
-        ctx.translate(xPos, yPos);
-        
-        // Petals pointing outwards and slightly upwards
-        // Calculate the rotation angle for the petal to point outward from center
-        let petalRot = Math.atan2(yPos, xPos);
-        
-        // Tilt them up
-        ctx.rotate(petalRot);
-        
-        // Fold effect
-        const fold = Math.sin(t * 2 + i) * 0.1;
-        ctx.scale(1, 0.4 + fold); // Perspective squash
-        
-        const petalGrad = ctx.createLinearGradient(0, 0, petalLength, 0);
-        petalGrad.addColorStop(0, "rgba(0, 255, 255, 0.8)");
-        petalGrad.addColorStop(0.5, "rgba(0, 200, 255, 0.4)");
-        petalGrad.addColorStop(1, "rgba(0, 100, 255, 0)");
-        
-        ctx.fillStyle = petalGrad;
-        
         ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(petalLength * 0.5, petalWidth, petalLength, 0);
-        ctx.quadraticCurveTo(petalLength * 0.5, -petalWidth, 0, 0);
-        ctx.fill();
         
-        // Glowing edges
-        ctx.strokeStyle = "rgba(100, 255, 255, 0.6)";
-        ctx.lineWidth = 2;
+        const spiralSpeed = t * 3 + (s * Math.PI * 2) / numSpirals;
+        
+        // Draw one spiral strand
+        for (let i = 0; i < 40; i++) {
+            const prog = i / 40;
+            // The spiral gets wider as it goes up
+            const radius = 20 + prog * 100;
+            
+            // Rotates as it goes up
+            const angle = spiralSpeed + prog * Math.PI * 4;
+            
+            const xPos = Math.cos(angle) * radius;
+            // Squashed perspective
+            const zPos = Math.sin(angle) * radius * 0.3;
+            
+            // Starts near the middle of the pyramid, goes up past the orb
+            const yPos = -100 - prog * 200 + zPos;
+            
+            if (i === 0) {
+                ctx.moveTo(xPos, yPos);
+            } else {
+                ctx.lineTo(xPos, yPos);
+            }
+        }
+        
+        ctx.strokeStyle = "rgba(0, 255, 255, 0.5)";
+        ctx.lineWidth = 10;
+        ctx.lineCap = "round";
         ctx.stroke();
-
+        
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        
         ctx.restore();
     }
-    
-    // Rising energy particles from the lotus
+
+    // Ethereal copper dust swirling in the vortex
     ctx.globalCompositeOperation = "lighter";
-    const numParticles = 10;
-    for (let i = 0; i < numParticles; i++) {
-        // Pseudo-random based on time and index
-        const pT = (t * 0.5 + i * 0.3) % 1; 
-        const pAngle = (i * Math.PI * 2) / numParticles + t;
+    const numDust = 30;
+    for (let i = 0; i < numDust; i++) {
+        // Dust particle life cycle (0 to 1)
+        const pT = (t * 0.8 + i * 0.13) % 1;
         
-        const px = Math.cos(pAngle) * (20 + pT * 50);
-        const py = Math.sin(pAngle) * 10 - pT * 100; // Rise up
+        // Radius expands as it goes up
+        const pRadius = 20 + pT * 120;
+        const pAngle = t * 4 + i * (Math.PI * 2 / 7) + pT * Math.PI * 4;
         
-        const pAlpha = (1 - pT) * tier6Prog;
+        const px = Math.cos(pAngle) * pRadius;
+        const pz = Math.sin(pAngle) * pRadius * 0.3;
+        const py = -100 - pT * 250 + pz;
         
-        ctx.fillStyle = `rgba(0, 255, 255, ${pAlpha})`;
+        // Fades in and out
+        const pAlpha = Math.sin(pT * Math.PI) * tier6Prog;
+        
+        ctx.fillStyle = `rgba(255, 150, 50, ${pAlpha})`; // copper dust color
         ctx.beginPath();
-        ctx.arc(px, py, 2 + Math.sin(t * 5 + i) * 1, 0, Math.PI * 2);
+        ctx.arc(px, py, 2 + Math.random() * 2, 0, Math.PI * 2);
         ctx.fill();
+        
+        // Occasional lightning spark between dust particles and the core
+        if (pT > 0.3 && pT < 0.7 && Math.random() > 0.95) {
+            drawLightning(px, py, 0, orbY, 2, 5, `rgba(0, 255, 255, ${pAlpha})`, 1);
+        }
     }
     
     ctx.restore();
   }
 
-  // Tier 7 (Twin Energy Serpents)
+  // Tier 7 (Spectral Stabilizer Arms)
   if (tier7Prog > 0) {
     ctx.save();
-    // Fade slightly out when tier 8 is maxed, but keep them visible
     ctx.globalAlpha = tier7Prog * (1.0 - 0.5 * tier8Prog);
     
     const steps = 8;
     const stepHeight = 20;
     const orbY = -40 - steps * stepHeight - 10;
     
-    const drawSerpent = (isLeft) => {
-      ctx.save();
-      const dir = isLeft ? -1 : 1;
-      
-      const numSegments = 20;
-      
-      // Calculate a path that spirals up and around
-      ctx.beginPath();
-      for (let i = 0; i <= numSegments; i++) {
-         // Progress along serpent body
-         const prog = i / numSegments;
-         
-         // Animate the serpent moving along the path
-         const serpentT = t * 2 - prog * 5;
-         
-         // Spiral math
-         const radius = 60 * (1 - prog * 0.5); // Narrows as it goes up
-         const height = -40 + prog * (orbY + 20); // Climbs from base to orb
-         
-         // Add some sine wave for slithering motion
-         const xOffset = Math.sin(serpentT) * radius * dir;
-         const yOffset = height + Math.cos(serpentT * 0.8) * 10;
-         
-         if (i === 0) {
-            ctx.moveTo(xOffset, yOffset);
-         } else {
-            ctx.lineTo(xOffset, yOffset);
-         }
-      }
-      
-      // Draw the serpent body
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      
-      // Outer glow
-      ctx.strokeStyle = "rgba(0, 200, 255, 0.4)";
-      ctx.lineWidth = 15;
-      ctx.stroke();
-      
-      // Mid glow
-      ctx.strokeStyle = "rgba(100, 255, 255, 0.8)";
-      ctx.lineWidth = 8;
-      ctx.stroke();
-      
-      // Inner core
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 3;
-      ctx.stroke();
-      
-      // Draw the "Head"
-      const headProg = 1.0;
-      const headT = t * 2 - headProg * 5;
-      const headRadius = 60 * (1 - headProg * 0.5);
-      const headHeight = -40 + headProg * (orbY + 20);
-      const headX = Math.sin(headT) * headRadius * dir;
-      const headY = headHeight + Math.cos(headT * 0.8) * 10;
-      
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(headX, headY, 6, 0, Math.PI*2);
-      ctx.fill();
-      
-      const headGlow = ctx.createRadialGradient(headX, headY, 0, headX, headY, 20);
-      headGlow.addColorStop(0, "rgba(0, 255, 255, 1)");
-      headGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
-      ctx.fillStyle = headGlow;
-      ctx.beginPath();
-      ctx.arc(headX, headY, 20, 0, Math.PI*2);
-      ctx.fill();
-      
-      // Lightning from head to orb occasionally
-      if (Math.random() > 0.5) {
-         drawLightning(headX, headY, 0, orbY, 3, 10, "rgba(200, 255, 255, 0.9)", 2);
-      }
-      
-      ctx.restore();
+    const drawSpectralArm = (angleOffset) => {
+        ctx.save();
+        
+        // 3D positioning
+        const angle = angleOffset + t * 0.5;
+        const radius = 120;
+        const xPos = Math.cos(angle) * radius;
+        const zPos = Math.sin(angle) * radius;
+        
+        // Sort of fake depth - draw smaller if behind
+        const scale = 0.8 + (zPos + radius) / (2 * radius) * 0.4;
+        const yPos = -80 + zPos * 0.2;
+        
+        ctx.translate(xPos, yPos);
+        ctx.scale(scale, scale);
+        
+        // Hovering motion
+        const hover = Math.sin(t * 3 + angleOffset) * 10;
+        ctx.translate(0, hover);
+        
+        // Draw the spectral copper arm
+        ctx.fillStyle = `rgba(182, 103, 63, ${0.4 * tier7Prog})`; // Ghostly copper
+        ctx.strokeStyle = `rgba(0, 255, 255, ${0.8 * tier7Prog})`; // Cyan outline
+        ctx.lineWidth = 2;
+        
+        ctx.beginPath();
+        ctx.moveTo(-20, 0);
+        ctx.lineTo(20, 0);
+        ctx.lineTo(15, -60);
+        ctx.lineTo(-15, -60);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        
+        // Inner glowing machinery details
+        ctx.fillStyle = `rgba(0, 255, 255, ${0.3 * tier7Prog})`;
+        ctx.fillRect(-10, -50, 20, 10);
+        ctx.fillRect(-10, -30, 20, 10);
+        
+        // The emitter tip
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(0, -65, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Cyan glow at the tip
+        const tipGlow = ctx.createRadialGradient(0, -65, 0, 0, -65, 30);
+        tipGlow.addColorStop(0, `rgba(0, 255, 255, ${0.8 * tier7Prog})`);
+        tipGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
+        ctx.fillStyle = tipGlow;
+        ctx.beginPath();
+        ctx.arc(0, -65, 30, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Channeling electricity from the arm to the central orb
+        // Need to calculate global pos for the tip to connect to orbY
+        // Since we are in local space, the orb is at (-xPos, orbY - yPos - hover)
+        const targetX = -xPos;
+        const targetY = orbY - yPos - hover;
+        
+        ctx.globalCompositeOperation = "lighter";
+        // Continuous thick beam
+        ctx.strokeStyle = `rgba(0, 255, 255, ${0.5 * tier7Prog})`;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(0, -65);
+        ctx.lineTo(targetX, targetY);
+        ctx.stroke();
+        
+        // Sizzling inner beam
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.8 * tier7Prog})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -65);
+        ctx.lineTo(targetX, targetY);
+        ctx.stroke();
+        
+        // Occasional intense lightning wrap around the beam
+        if (Math.random() > 0.4) {
+            drawLightning(0, -65, targetX, targetY, 4, 10, "rgba(150, 255, 255, 0.9)", 2);
+        }
+        
+        ctx.restore();
     };
 
-    drawSerpent(true);
-    drawSerpent(false);
+    const numArms = 4;
+    // Draw arms. Technically should sort by Z, but simply drawing them is okay for the spectral look.
+    for (let i = 0; i < numArms; i++) {
+        drawSpectralArm((i * Math.PI * 2) / numArms);
+    }
 
     ctx.restore();
   }
@@ -3206,35 +3159,46 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
        drawLightning(40, -60, 100 + Math.random()*40, -60 + (Math.random()-0.5)*40, 4, 15, "rgba(100, 255, 255, 0.7)", 2);
     }
     
-    // Crazy electricity hitting the floating rings AND shooting outwards
-    const numRings = 3;
-    for (let r = 0; r < numRings; r++) {
-       const ringYOffset = -80 - r * 50;
-       const ringWidth = 120 - r * 20;
-       
-       // Lightning from orb to ring
-       if (Math.random() > 0.3) {
-          const ringAngle = Math.random() * Math.PI * 2;
-          const hitX = Math.cos(ringAngle) * ringWidth;
-          const hitY = ringYOffset + Math.sin(ringAngle) * 15;
-          drawLightning(0, orbY, hitX, hitY, 5, 20, "rgba(150, 255, 255, 0.8)", 2 + Math.random()*2);
-       }
-       
-       // Added Tier 8 requirement: Lightning shooting OUTWARDS from each ring
-       const numOutwardBolts = 2 + Math.floor(Math.random() * 3);
-       for(let b = 0; b < numOutwardBolts; b++) {
-          const outAngle = Math.random() * Math.PI * 2;
-          const startX = Math.cos(outAngle) * ringWidth;
-          const startY = ringYOffset + Math.sin(outAngle) * 15;
+    // Calculate and shoot lightning from orb to Tier 5 particles, and outwards from them
+    if (tier5Prog > 0) {
+      const numRings = 3;
+      const numParticles = 3;
+      const orbitSpeed = 4;
+
+      for (let r = 0; r < numRings; r++) {
+        const ringYOffset = -80 - r * 50;
+        const ringWidth = 120 - r * 20;
+        const ringHeight = 30;
+        
+        for (let i = 0; i < numParticles; i++) {
+          // Only occasionally strike a particle
+          if (Math.random() > 0.85) continue;
+
+          const dir = (r % 2 === 0) ? 1 : -1;
+          const angle = t * orbitSpeed * dir + (i * Math.PI * 2) / numParticles + (r * Math.PI / 3);
           
-          // Shoot outwards 80-150px
-          const dist = 80 + Math.random() * 70;
-          const endX = startX + Math.cos(outAngle) * dist;
-          const endY = startY + Math.sin(outAngle) * dist;
+          const depth = Math.sin(angle);
+          const x = Math.cos(angle) * ringWidth;
+          const y = ringYOffset + depth * ringHeight;
           
-          drawLightning(startX, startY, endX, endY, 4, 15, "rgba(200, 255, 255, 0.9)", 1.5 + Math.random()*2);
-       }
+          // Strike from orb to particle
+          drawLightning(0, orbY, x, y, 4, 15, "rgba(150, 255, 255, 0.9)", 2 + Math.random());
+          
+          // Strike from particle outwards
+          const numOutwardBolts = 1 + Math.floor(Math.random() * 2);
+          for(let b = 0; b < numOutwardBolts; b++) {
+             // Add random spread to the angle outward
+             const outAngle = angle + (Math.random() - 0.5);
+             const dist = 60 + Math.random() * 100;
+             const endX = x + Math.cos(outAngle) * dist;
+             const endY = y + Math.sin(outAngle) * dist;
+             
+             drawLightning(x, y, endX, endY, 4, 15, "rgba(200, 255, 255, 0.9)", 1.5 + Math.random()*1.5);
+          }
+        }
+      }
     }
+
 
     ctx.restore();
   }
