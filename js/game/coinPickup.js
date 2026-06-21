@@ -40,7 +40,7 @@ export function updateMutationSnapshot(state) {
   mutationUnlockedSnapshot = !!state.unlocked;
   mutationLevelIsInfiniteSnapshot = !!state.level?.isInfinite?.();
   try {
-    mutationCurrentLevelStr = state.level?.toPlainIntegerString?.() ?? '0';
+    mutationCurrentLevelStr = state.level?.inf || state.level?.e >= 15 ? 'Infinity' : (state.level?.toPlainIntegerString?.() ?? '0');
   } catch {
     mutationCurrentLevelStr = '0';
   }
