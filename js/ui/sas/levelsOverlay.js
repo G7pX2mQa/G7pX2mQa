@@ -405,8 +405,8 @@ function handleStatChange(e) {
              if (state.ratio !== undefined) {
                  pct = Math.min(100, Math.max(0, state.ratio * 100));
              } else if (reqVal && progVal !== null && progVal !== undefined) {
-                 const reqNum = Number(reqVal.toString());
-                 const progNum = Number(progVal.toString());
+                 const reqNum = (reqVal.inf ? Infinity : (reqVal.sig * Math.pow(10, reqVal.e)));
+                 const progNum = (progVal.inf ? Infinity : (progVal.sig * Math.pow(10, progVal.e)));
                  if (reqNum > 0) pct = Math.min(100, Math.max(0, (progNum / reqNum) * 100));
              }
           }
