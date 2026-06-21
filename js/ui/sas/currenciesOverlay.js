@@ -13,6 +13,7 @@ import { getLevelNumber } from '../../game/upgrades.js';
 import { setAllAutobuyersForCostType, getCollectiveAutobuyerState } from '../../game/automationEffects.js';
 import { RESOURCE_REGISTRY } from '../../game/offlinePanel.js';
 import { BigNum } from '../../util/bigNum.js';
+import { setHtmlOrText } from '../../util/uiHelpers.js';
 
 
 // Returns a key like "currency_coins_popups"
@@ -537,14 +538,14 @@ function handleCurrencyChange(e) {
         if (currencyId === 'scrap') {
             const textContainer = amountEl.querySelector('.currency-amount-text');
             if (textContainer) {
-               textContainer.innerHTML = formatNumber(val) + ' ' + displayName;
+               setHtmlOrText(textContainer, formatNumber(val) + ' ' + displayName);
             } else {
                // Fallback: If no textContainer found, rebuild the layout
                amountEl.innerHTML = '';
                const textContainer = document.createElement('div');
                textContainer.className = 'currency-amount-text';
                textContainer.style.display = 'inline-block';
-               textContainer.innerHTML = formatNumber(val) + ' ' + displayName;
+               setHtmlOrText(textContainer, formatNumber(val) + ' ' + displayName);
                amountEl.appendChild(textContainer);
 
                const scrapTextDiv = document.createElement('div');
@@ -563,7 +564,7 @@ function handleCurrencyChange(e) {
                amountEl.style.justifyContent = 'center';
             }
         } else {
-            amountEl.innerHTML = formatNumber(val) + ' ' + displayName;
+            setHtmlOrText(amountEl, formatNumber(val) + ' ' + displayName);
         }
       }
     }
