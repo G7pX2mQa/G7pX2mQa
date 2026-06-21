@@ -8,6 +8,7 @@ import { bank } from "../../util/storage.js";
 import { settingsManager } from "../../game/settingsManager.js";
 import { createDropdown } from "./dropdownUtils.js";
 import { createPaintbrush } from "./paintbrushUtils.js";
+import { setHtmlOrText } from '../../util/uiHelpers.js';
 
 const levelStateCache = {};
 
@@ -384,7 +385,7 @@ function handleStatChange(e) {
       const levelVal = state.level || 0;
       const levelValEl = row.querySelector("[data-level-val]");
       if (levelValEl) {
-          levelValEl.innerHTML = formatNumber(levelVal);
+          setHtmlOrText(levelValEl, formatNumber(levelVal));
       }
 
       if (l.progConfig) {
