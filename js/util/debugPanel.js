@@ -2775,7 +2775,7 @@ function buildAreaStats(container, area) {
                  valToStore = 'Infinity';
                  valForDisplay = Infinity;
              } else {
-                 valToStore = value.toPlainIntegerString();
+                 valToStore = value.inf || value.e >= 15 ? 'Infinity' : value.toPlainIntegerString();
                  valForDisplay = value;
              }
         } else if (value === Infinity || (typeof value === 'string' && /infinity/i.test(value))) {
@@ -2837,7 +2837,7 @@ function buildAreaStats(container, area) {
         try {
             let eventLevel = valForDisplay === Infinity ? Infinity : BigNum.fromAny(valForDisplay);
             if (eventLevel !== Infinity && eventLevel instanceof BigNum) {
-                try { eventLevel = Number(eventLevel.toPlainIntegerString()); } catch {}
+                try { eventLevel = eventLevel.inf || eventLevel.e >= 15 ? Infinity : Number(eventLevel.toPlainIntegerString()); } catch {}
             }
             window.dispatchEvent(new CustomEvent('surge:level:change', {
                 detail: { slot, level: eventLevel }
