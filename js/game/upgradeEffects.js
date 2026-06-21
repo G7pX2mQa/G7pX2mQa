@@ -72,7 +72,7 @@ export function onUpgradesChanged(cb) {
 export function bookValueMultiplierBn(level) {
   const L = ensureLevelBigNum(level);
   try {
-    const plain = L.toPlainIntegerString?.();
+    const plain = L?.inf || L?.e >= 15 ? 'Infinity' : L?.toPlainIntegerString?.();
     if (plain && plain !== 'Infinity' && plain.length <= 15) {
       const lvl = Math.max(0, Number(plain));
       return bigNumFromLog10(lvl * Math.log10(2)).floorToInteger();
@@ -247,7 +247,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       if (isPpSystemUnlocked()) {
           const ppLevel = getPpState().ppLevel;
           if (ppLevel && !ppLevel.isZero()) {
-              const ppLevelNum = Number(ppLevel.toString());
+              const ppLevelNum = (ppLevel.inf ? Infinity : (ppLevel.sig * Math.pow(10, ppLevel.e)));
               if (!Number.isFinite(ppLevelNum) || ppLevelNum === Infinity) {
                   acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, BigNum.fromAny('Infinity'));
               } else {
