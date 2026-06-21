@@ -298,7 +298,7 @@ export const SETTING_DEFINITIONS = {
       try {
         const hLevel = getHighestMutationLevel();
         if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
-          const s = hLevel.toPlainIntegerString();
+          const s = hLevel.inf || hLevel.e >= 15 ? 'Infinity' : hLevel.toPlainIntegerString();
           if (s !== 'Infinity') {
             highest = parseInt(s, 10);
           } else {
