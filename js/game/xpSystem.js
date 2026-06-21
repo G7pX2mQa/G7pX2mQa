@@ -6,6 +6,7 @@ import { registerTick } from './gameLoop.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { formatNumber } from '../util/numFormat.js';
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
+import { setHtmlOrText } from '../util/uiHelpers.js';
 
 const KEY_PREFIX = 'ccc:xp';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
@@ -954,7 +955,7 @@ function updateHud() {
     fill.style.width = pct;
   }
   if (xpLevelValue) {
-    xpLevelValue.innerHTML = formatNumber(xpState.xpLevel);
+    setHtmlOrText(xpLevelValue, formatNumber(xpState.xpLevel));
   }
   if (progress) {
     const currentHtml = formatNumber(xpState.progress);
