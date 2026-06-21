@@ -1,3 +1,4 @@
+import { setHtmlOrText } from '../../util/uiHelpers.js';
 import { createSASOverlay } from './sasOverlayBuilder.js';
 import { RESOURCE_REGISTRY, RESOURCE_REGISTRY_EXTRAS } from '../../game/offlinePanel.js';
 import { bank, CURRENCIES, isCurrencyUnlocked } from '../../util/storage.js';
@@ -88,7 +89,7 @@ function createMultiplierRow(container, key, iconSrc, baseSrc, multiplierText, c
   amountDiv.classList.add('currency-amount');
   amountDiv.style.flex = 'none';
   amountDiv.style.marginLeft = '10px';
-  amountDiv.innerHTML = `${config?.plural || config?.singular || key}: ${multiplierText}x`;
+  setHtmlOrText(amountDiv, `${config?.plural || config?.singular || key}: ${multiplierText}x`);
 
   info.appendChild(iconWrapper);
   info.appendChild(amountDiv);
