@@ -426,7 +426,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
     if (currentLevel >= 8) isSurge8 = true;
   } else if (currentSurgeLevel && typeof currentSurgeLevel.toString === 'function') {
       try {
-          const val = Number(currentSurgeLevel.toString());
+          const val = (currentSurgeLevel.inf ? Infinity : (currentSurgeLevel.sig * Math.pow(10, currentSurgeLevel.e)));
           currentLevelBN = BigNum.fromAny(currentSurgeLevel.toString());
           if (!isNaN(val)) currentLevel = val;
           if (currentSurgeLevel === 'Infinity' || val === Infinity) {
@@ -736,7 +736,7 @@ export function getVisibleMilestones(currentSurgeLevel, pendingVals = {}) {
                 const diffBN = currentLevelBN.sub(BigNum.fromInt(200));
                 if (diffBN.cmp(0) > 0) {
                    const logBase = Math.log10(baseMult);
-                   const exponent = Number(diffBN.toString());
+                   const exponent = (diffBN.inf ? Infinity : (diffBN.sig * Math.pow(10, diffBN.e)));
                    multBn = bigNumFromLog10(exponent * logBase);
                 }
             }
