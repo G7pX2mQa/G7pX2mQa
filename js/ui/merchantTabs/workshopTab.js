@@ -9,6 +9,7 @@ import { bigNumFromLog10, getLevelNumber, approxLog10BigNum } from '../../game/u
 import { IS_MOBILE } from '../../main.js';
 import { AUTOMATION_AREA_KEY, AUTOBUY_WORKSHOP_LEVELS_ID } from '../../game/automationUpgrades.js';
 import { isSurgeActive } from "../../game/surgeEffects.js";
+import { setHtmlOrText } from '../../util/uiHelpers.js';
 
 const GEAR_ICON_SRC = 'img/currencies/gear/gear.webp';
 const GEAR_HUD_ICON_SRC = 'img/currencies/gear/gear_plus_base.webp';
@@ -548,7 +549,7 @@ export function updateWorkshopTab() {
           const isOne = !cost.isInfinite() && cost.cmp(1) === 0;
           label = isOne ? 'Coin' : 'Coins';
       } catch {}
-      upgradeCostEl.innerHTML = `${formatNumber(cost)} ${label}`;
+      setHtmlOrText(upgradeCostEl, `${formatNumber(cost)} ${label}`);
   }
   if (upgradeBtn) {
     const canAfford = bank.coins.value.cmp(cost) >= 0;
