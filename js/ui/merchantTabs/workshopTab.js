@@ -138,7 +138,7 @@ function calculateWorkshopCostLog(level) {
     // Convert to number for internal calc
     let lvlNum = 0;
     try {
-        const str = level.toPlainIntegerString();
+        const str = level.inf || level.e >= 15 ? 'Infinity' : level.toPlainIntegerString();
         lvlNum = parseFloat(str);
     } catch {
         return Infinity;
@@ -230,7 +230,7 @@ export function getGearsPerSecond(level) {
     const logValue = bnLevel.mulDecimal(logBase);
     
     if (bnLevel.cmp(9e15) <= 0) {
-        const lvlNum = Number(bnLevel.toString());
+        const lvlNum = (bnLevel.inf ? Infinity : (bnLevel.sig * Math.pow(10, bnLevel.e)));
         const logVal = lvlNum * logBase;
         baseRate = bigNumFromLog10(logVal);
     } else {
@@ -284,11 +284,11 @@ function onTick() {
   // Accumulator logic only for small levels < 20
   if (currentGenerationLevel.cmp(20) < 0) {
       // Safe to convert to number
-      const lvlNum = Number(currentGenerationLevel.toPlainIntegerString());
+      const lvlNum = currentGenerationLevel.inf || currentGenerationLevel.e >= 15 ? Infinity : Number(currentGenerationLevel.toPlainIntegerString());
       const rateNum = Math.pow(isSurgeActive(150) ? 5 : (isSurgeActive(11) ? 4 : (isSurgeActive(7) ? 3 : 2)), lvlNum);
       const mult = bank.gears && typeof bank.gears.mult?.get === 'function' ? bank.gears.mult.get() : 1;
       let multNum = 1;
-      try { multNum = Number(mult.toString()); } catch {}
+      try { multNum = (mult.inf ? Infinity : (mult.sig * Math.pow(10, mult.e))); } catch {}
       const perTickNum = (rateNum * multNum) / TICK_RATE;
       const wholeNum = Math.floor(perTickNum);
       const frac = perTickNum - wholeNum;
@@ -376,7 +376,7 @@ function syncGearDecorations(container) {
   if (currentGenerationLevel.cmp(MAX_GEAR_DECORATIONS) > 0) {
       lvlNum = MAX_GEAR_DECORATIONS;
   } else {
-      lvlNum = Number(currentGenerationLevel.toPlainIntegerString());
+      lvlNum = currentGenerationLevel.inf || currentGenerationLevel.e >= 15 ? Infinity : Number(currentGenerationLevel.toPlainIntegerString());
   }
 
   const targetCount = Math.min(Math.floor(lvlNum), MAX_GEAR_DECORATIONS);
@@ -736,7 +736,7 @@ export function performFreeGenerationUpgrade() {
   
   if (currentGenerationLevel.cmp(9e15) > 0) return false; // Too big for normal logic, handled by Infinity check above
   
-  let low = Number(currentGenerationLevel.toPlainIntegerString());
+  let low = currentGenerationLevel.inf || currentGenerationLevel.e >= 15 ? Infinity : Number(currentGenerationLevel.toPlainIntegerString());
   let high = 9e15; 
   if (coinsLog === Infinity) high = 9e15; 
 
@@ -783,7 +783,7 @@ function buyMaxGenerationUpgrade() {
   
   if (currentGenerationLevel.cmp(9e15) > 0) return; 
 
-  let low = Number(currentGenerationLevel.toPlainIntegerString());
+  let low = currentGenerationLevel.inf || currentGenerationLevel.e >= 15 ? Infinity : Number(currentGenerationLevel.toPlainIntegerString());
   let high = 9e15; 
   if (coinsLog === Infinity) high = 9e15; 
 
@@ -799,7 +799,7 @@ function buyMaxGenerationUpgrade() {
   }
   
   let targetLevelVal = best + 1;
-  let currentVal = Number(currentGenerationLevel.toPlainIntegerString());
+  let currentVal = currentGenerationLevel.inf || currentGenerationLevel.e >= 15 ? Infinity : Number(currentGenerationLevel.toPlainIntegerString());
   
   let startL = Math.max(currentVal, targetLevelVal - 100);
   
