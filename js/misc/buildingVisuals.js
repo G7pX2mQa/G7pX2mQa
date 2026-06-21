@@ -2566,341 +2566,475 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   
   // Unpowered prongs/nodes for Tier 0
   ctx.fillStyle = "#111";
-  ctx.fillRect(-45, -55, 10, 15);
-  ctx.fillRect(35, -55, 10, 15);
+  const prongHeight = 15 + tier1Prog * 65; // Much taller in Tier 1
+  ctx.fillRect(-45, -40 - prongHeight, 10, prongHeight);
+  ctx.fillRect(35, -40 - prongHeight, 10, prongHeight);
   ctx.fillStyle = copperPattern ? copperPattern : "#b6673f";
   ctx.beginPath();
-  ctx.arc(-40, -55, 6, 0, Math.PI * 2);
-  ctx.arc(40, -55, 6, 0, Math.PI * 2);
+  ctx.arc(-40, -40 - prongHeight, 6, 0, Math.PI * 2);
+  ctx.arc(40, -40 - prongHeight, 6, 0, Math.PI * 2);
   ctx.fill();
 
-  // Tier 1 (Small Coils & Glow)
+  // Tier 0 Occasional Lightning Spark to center
+  if (Math.random() > 0.95) {
+    const startY = -40 - Math.random() * prongHeight;
+    const destX = (Math.random() - 0.5) * 20;
+    const destY = -20 - prongHeight/2 + (Math.random() - 0.5) * 20;
+    // Spark from left prong
+    drawLightning(-40, startY, destX, destY, 3, 10, "rgba(0, 200, 255, 0.6)", 1.5);
+  }
+  if (Math.random() > 0.95) {
+    const startY = -40 - Math.random() * prongHeight;
+    const destX = (Math.random() - 0.5) * 20;
+    const destY = -20 - prongHeight/2 + (Math.random() - 0.5) * 20;
+    // Spark from right prong
+    drawLightning(40, startY, destX, destY, 3, 10, "rgba(0, 200, 255, 0.6)", 1.5);
+  }
+
+  // Tier 1 (Tall Coils & Glow)
   if (tier1Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier1Prog;
     
-    // Small copper coils wrapping around the prongs
+    // Large copper coils wrapping around the tall prongs
     ctx.strokeStyle = "#e99f79"; // bright copper
     ctx.lineWidth = 2;
-    for(let i=0; i<4; i++) {
+    const numCoils = 4 + Math.floor(16 * tier1Prog); // More coils as it gets taller
+    const coilSpacing = prongHeight / numCoils;
+    for(let i=0; i<numCoils; i++) {
       ctx.beginPath();
-      ctx.moveTo(-48, -50 + i*4);
-      ctx.lineTo(-32, -48 + i*4);
+      ctx.moveTo(-48, -40 - prongHeight + 5 + i*coilSpacing);
+      ctx.lineTo(-32, -40 - prongHeight + 7 + i*coilSpacing);
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.moveTo(32, -50 + i*4);
-      ctx.lineTo(48, -48 + i*4);
+      ctx.moveTo(32, -40 - prongHeight + 5 + i*coilSpacing);
+      ctx.lineTo(48, -40 - prongHeight + 7 + i*coilSpacing);
       ctx.stroke();
     }
 
     // Faint glow
     const pulse = 0.5 + 0.5 * Math.sin(t * 3);
-    const glowRad = ctx.createRadialGradient(-40, -55, 0, -40, -55, 20);
+    const topY = -40 - prongHeight;
+    const glowRad = ctx.createRadialGradient(-40, topY, 0, -40, topY, 20 + 10*tier1Prog);
     glowRad.addColorStop(0, `rgba(0, 200, 255, ${0.4 * pulse})`);
     glowRad.addColorStop(1, "rgba(0, 200, 255, 0)");
     ctx.fillStyle = glowRad;
-    ctx.beginPath(); ctx.arc(-40, -55, 20, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-40, topY, 20 + 10*tier1Prog, 0, Math.PI*2); ctx.fill();
     
-    const glowRad2 = ctx.createRadialGradient(40, -55, 0, 40, -55, 20);
+    const glowRad2 = ctx.createRadialGradient(40, topY, 0, 40, topY, 20 + 10*tier1Prog);
     glowRad2.addColorStop(0, `rgba(0, 200, 255, ${0.4 * pulse})`);
     glowRad2.addColorStop(1, "rgba(0, 200, 255, 0)");
     ctx.fillStyle = glowRad2;
-    ctx.beginPath(); ctx.arc(40, -55, 20, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(40, topY, 20 + 10*tier1Prog, 0, Math.PI*2); ctx.fill();
 
     // Occasional static spark
     if (Math.random() > 0.9) {
-      drawLightning(-40, -55, -40 + (Math.random()-0.5)*20, -55 - Math.random()*20, 2, 5, "rgba(100, 200, 255, 0.6)", 1);
+      drawLightning(-40, topY, -40 + (Math.random()-0.5)*20, topY - Math.random()*20, 2, 5, "rgba(100, 200, 255, 0.6)", 1);
     }
     if (Math.random() > 0.9) {
-      drawLightning(40, -55, 40 + (Math.random()-0.5)*20, -55 - Math.random()*20, 2, 5, "rgba(100, 200, 255, 0.6)", 1);
+      drawLightning(40, topY, 40 + (Math.random()-0.5)*20, topY - Math.random()*20, 2, 5, "rgba(100, 200, 255, 0.6)", 1);
     }
 
     ctx.restore();
   }
 
-  // Tier 2 (Leyden Capacitors)
+  // Tier 2 (Floating Cyan Energy Crystals)
   if (tier2Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier2Prog;
 
-    const drawLeydenJar = (x) => {
+    const drawCrystal = (x) => {
       ctx.save();
-      ctx.translate(x, -30);
+      // Bobbing motion
+      const bob = Math.sin(t * 3 + x) * 10;
+      ctx.translate(x, -70 + bob);
       
-      // Glass jar
-      ctx.fillStyle = "rgba(150, 200, 220, 0.3)";
-      ctx.fillRect(-15, -40, 30, 40);
-      
-      // Cyan energy pulsating inside
-      const energyPulse = 0.5 + 0.5 * Math.sin(t * 5 + x);
-      ctx.fillStyle = `rgba(0, 255, 255, ${0.4 + 0.4 * energyPulse})`;
-      ctx.fillRect(-12, -35, 24, 35 * (0.8 + 0.2*energyPulse));
-      
-      // Copper inner lining and cap
-      ctx.fillStyle = copperPattern ? copperPattern : "#b6673f";
-      ctx.fillRect(-12, -15, 24, 15);
-      
-      // Top cap & rod
-      ctx.fillStyle = "#333";
-      ctx.fillRect(-18, -45, 36, 5);
-      ctx.fillStyle = copperPattern ? copperPattern : "#b6673f";
-      ctx.fillRect(-3, -55, 6, 10);
+      // Outer glow
+      const glowRad = ctx.createRadialGradient(0, 0, 0, 0, 0, 30);
+      const pulse = 0.5 + 0.5 * Math.sin(t * 5 + x);
+      glowRad.addColorStop(0, `rgba(0, 255, 255, ${0.4 + 0.3 * pulse})`);
+      glowRad.addColorStop(1, "rgba(0, 255, 255, 0)");
+      ctx.fillStyle = glowRad;
+      ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI*2); ctx.fill();
+
+      // Crystal shape (diamond)
+      ctx.fillStyle = `rgba(150, 255, 255, ${0.8 + 0.2 * pulse})`;
       ctx.beginPath();
-      ctx.arc(0, -58, 5, 0, Math.PI*2);
+      ctx.moveTo(0, -20);
+      ctx.lineTo(10, 0);
+      ctx.lineTo(0, 20);
+      ctx.lineTo(-10, 0);
+      ctx.fill();
+      
+      // Inner core highlight
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.moveTo(0, -10);
+      ctx.lineTo(4, 0);
+      ctx.lineTo(0, 10);
+      ctx.lineTo(-4, 0);
       ctx.fill();
 
       ctx.restore();
     };
 
-    drawLeydenJar(-90);
-    drawLeydenJar(90);
+    drawCrystal(-90);
+    drawCrystal(90);
 
     ctx.restore();
   }
 
-  // Tier 3 (Spinning Magnetic Rings / Rotary Dynamos)
+  // Tier 3 (Tesla Coils generating constant static field)
   if (tier3Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier3Prog;
 
-    const drawDynamo = (x) => {
-      ctx.save();
-      ctx.translate(x, -60);
-      
-      ctx.fillStyle = "#222";
-      ctx.fillRect(-10, -20, 20, 40);
-      
-      // Spinning rings
-      const spin = t * 6 + x;
-      for(let i=0; i<3; i++) {
-        const offset = (spin + i * Math.PI*2/3) % (Math.PI*2);
-        const yPos = Math.sin(offset) * 20;
-        const scaleY = Math.abs(Math.cos(offset));
-        
-        ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + 0.5*scaleY})`;
-        ctx.fillRect(-15, yPos - 3*scaleY, 30, 6*scaleY);
-      }
-      ctx.restore();
-    };
-
-    drawDynamo(-60);
-    drawDynamo(60);
-
-    ctx.restore();
-  }
-
-  // Tier 4 & Tier 8 (Tesla Coil & Apex Tesla Coil)
-  if (tier4Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier4Prog;
-    
-    // Central tower
-    ctx.fillStyle = "#111";
-    ctx.beginPath();
-    ctx.moveTo(-30, -40);
-    ctx.lineTo(-20, -140);
-    ctx.lineTo(20, -140);
-    ctx.lineTo(30, -40);
-    ctx.fill();
-
-    // Thick copper windings
-    ctx.lineWidth = 4 + tier8Prog * 2;
-    for (let y = -45; y > -135; y -= 8) {
-      // Widen at the bottom, narrow at the top
-      const frac = (-40 - y) / 100; // 0 at bottom, 1 at top
-      const w = 28 - frac * 10;
-      
-      if (tier8Prog > 0) {
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 + 0.3*Math.sin(t*15+y)})`; // White hot
-      } else {
-        ctx.strokeStyle = "#e99f79"; // Copper
-      }
-      
-      ctx.beginPath();
-      ctx.moveTo(-w, y);
-      ctx.lineTo(w, y - 3);
-      ctx.stroke();
-    }
-
-    if (tier8Prog > 0) {
-      // Apex Tesla Coil: Blinding plasma sphere
-      const pulse = 0.5 + 0.5 * Math.sin(t * 12);
-      
-      // Inner sphere
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(0, -150, 25 + pulse * 5, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Outer glow
-      const glowGrad = ctx.createRadialGradient(0, -150, 20, 0, -150, 80 + pulse * 20);
-      glowGrad.addColorStop(0, "rgba(255, 255, 255, 0.9)");
-      glowGrad.addColorStop(0.3, "rgba(100, 200, 255, 0.6)");
-      glowGrad.addColorStop(1, "rgba(0, 100, 255, 0)");
-      ctx.fillStyle = glowGrad;
-      ctx.beginPath();
-      ctx.arc(0, -150, 100, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Additional resonating coils
-      const drawResonator = (rx, ry) => {
-        ctx.fillStyle = "#222";
-        ctx.fillRect(rx - 8, ry, 16, 40);
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = 2;
-        for(let i=0; i<4; i++) {
-           ctx.beginPath();
-           ctx.moveTo(rx - 10, ry + 5 + i*10);
-           ctx.lineTo(rx + 10, ry + 3 + i*10);
-           ctx.stroke();
-        }
-        ctx.fillStyle = "#fff";
-        ctx.beginPath();
-        ctx.arc(rx, ry - 5, 8, 0, Math.PI*2);
-        ctx.fill();
-      };
-      drawResonator(-45, -100);
-      drawResonator(45, -100);
-
-      // Chaotic white-hot lightning grounding out
-      const numBolts = 3 + Math.floor(Math.random() * 3);
-      for(let i=0; i<numBolts; i++) {
-        const destX = (Math.random() - 0.5) * 200;
-        const destY = -20 + (Math.random() - 0.5) * 40;
-        drawLightning(0, -150, destX, destY, 6, 25, "rgba(200, 255, 255, 0.9)", 3 + Math.random()*2);
-      }
-
-    } else {
-      // Tier 4: Large Toroid
-      ctx.fillStyle = "#444";
-      ctx.beginPath();
-      ctx.ellipse(0, -145, 35, 12, 0, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Toroid highlights
-      ctx.strokeStyle = "#666";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.ellipse(0, -145, 30, 8, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      // Steady focused electrical arcs
-      if (Math.random() > 0.3) {
-        drawLightning(0, -145, -60, -180 - Math.random()*30, 4, 15, "rgba(50, 200, 255, 0.8)", 2);
-      }
-      if (Math.random() > 0.3) {
-        drawLightning(0, -145, 60, -180 - Math.random()*30, 4, 15, "rgba(50, 200, 255, 0.8)", 2);
-      }
-    }
-
-    ctx.restore();
-  }
-
-  // Tier 5 (Plasma Containment Fields)
-  if (tier5Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier5Prog;
-    
-    // Glowing energetic shields envelop the Tesla coil
-    const shieldPulse = 0.5 + 0.5 * Math.sin(t * 8);
-    ctx.strokeStyle = `rgba(0, 255, 255, ${0.3 + 0.3 * shieldPulse})`;
-    ctx.lineWidth = 2 + shieldPulse * 2;
-    
-    ctx.beginPath();
-    ctx.moveTo(-35, -35);
-    ctx.quadraticCurveTo(-50, -90, -25, -150);
-    ctx.quadraticCurveTo(0, -180, 25, -150);
-    ctx.quadraticCurveTo(50, -90, 35, -35);
-    ctx.stroke();
-
-    // Horizontal scanning line
-    const scanY = -150 + ((t * 50) % 115);
-    const scanWidth = 35 + Math.sin(scanY * 0.05) * 10;
-    ctx.fillStyle = `rgba(0, 255, 255, ${0.4 + 0.2*shieldPulse})`;
-    ctx.fillRect(-scanWidth/2, scanY, scanWidth, 3);
-
-    ctx.restore();
-  }
-
-  // Tier 6 (Resonance Transformers)
-  if (tier6Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier6Prog;
-    
-    const drawTransformer = (x) => {
+    const drawCoil = (x) => {
       ctx.save();
       ctx.translate(x, -20);
       
       // Base
-      ctx.fillStyle = "#1a1a1a";
-      ctx.fillRect(-15, -20, 30, 20);
-      
-      // Coils
       ctx.fillStyle = "#333";
-      ctx.fillRect(-10, -50, 20, 30);
+      ctx.fillRect(-15, 0, 30, -10);
+      
+      // Inductor
+      ctx.fillStyle = "#111";
+      ctx.fillRect(-10, -10, 20, -30);
+      
       ctx.strokeStyle = "#0ff";
-      ctx.lineWidth = 1;
-      for(let i=0; i<5; i++) {
-        ctx.beginPath();
-        ctx.moveTo(-10, -45 + i*5);
-        ctx.lineTo(10, -45 + i*5);
-        ctx.stroke();
+      ctx.lineWidth = 2;
+      for (let i=0; i<5; i++) {
+         ctx.beginPath();
+         ctx.moveTo(-10, -15 - i*5);
+         ctx.lineTo(10, -15 - i*5);
+         ctx.stroke();
       }
       
-      // Top nodes
-      ctx.fillStyle = "#fff";
+      // Top Toroid
+      ctx.fillStyle = "#777";
       ctx.beginPath();
-      ctx.arc(-5, -55, 4, 0, Math.PI*2);
-      ctx.arc(5, -55, 4, 0, Math.PI*2);
+      ctx.ellipse(0, -45, 15, 5, 0, 0, Math.PI*2);
       ctx.fill();
       
       ctx.restore();
+      
+      // Arcs connecting the coils or jumping around
+      if (Math.random() > 0.5) {
+         drawLightning(x, -65, x + (Math.random()-0.5)*40, -65 - Math.random()*30, 3, 10, "rgba(0, 255, 255, 0.7)", 1.5);
+      }
     };
 
-    drawTransformer(-110);
-    drawTransformer(110);
+    drawCoil(-60);
+    drawCoil(60);
     
-    // Chained arcs between transformers and central coil
-    if (Math.random() > 0.3) {
-      drawLightning(-110, -75, -20, -120 + Math.random()*40, 5, 10, "rgba(50, 255, 255, 0.8)", 2);
-    }
-    if (Math.random() > 0.3) {
-      drawLightning(110, -75, 20, -120 + Math.random()*40, 5, 10, "rgba(50, 255, 255, 0.8)", 2);
+    // Constant arc between the two coils
+    if (Math.random() > 0.2) {
+       drawLightning(-60, -65, 60, -65, 5, 15, "rgba(0, 255, 255, 0.5)", 2);
     }
 
     ctx.restore();
   }
 
-  // Tier 7 (Unstable Energy Storm)
-  if (tier7Prog > 0 && tier8Prog < 1) {
+  // Tier 4 (Cyan Stepped Pyramid with Floating Rings and Glowing Orb)
+  if (tier4Prog > 0) {
     ctx.save();
-    ctx.globalAlpha = tier7Prog * (1 - tier8Prog);
+    ctx.globalAlpha = tier4Prog;
     
-    // Continuous erratic lightning storm chaining across all components
-    const points = [
-      {x: -110, y: -75}, // Transformer L
-      {x: -90, y: -88},  // Jar L
-      {x: -60, y: -80},  // Dynamo L
-      {x: -40, y: -55},  // Prong L
-      {x: 0, y: -145},   // Coil Top
-      {x: 40, y: -55},   // Prong R
-      {x: 60, y: -80},   // Dynamo R
-      {x: 90, y: -88},   // Jar R
-      {x: 110, y: -75}   // Transformer R
-    ];
-
-    for(let i=0; i<3; i++) {
-      const idx1 = Math.floor(Math.random() * points.length);
-      const idx2 = Math.floor(Math.random() * points.length);
-      if(idx1 !== idx2) {
-        drawLightning(points[idx1].x, points[idx1].y, points[idx2].x, points[idx2].y, 4, 15, "rgba(0, 255, 255, 0.9)", 2 + Math.random());
-      }
+    const steps = 8;
+    const stepHeight = 20;
+    const baseWidth = 80;
+    const numRings = 3;
+    
+    // 1) Draw the BACK HALF of the Floating Rings first (so they are behind the pyramid)
+    ctx.lineWidth = 6;
+    for (let r = 0; r < numRings; r++) {
+      ctx.save();
+      const ringYOffset = -80 - r * 50;
+      ctx.translate(0, ringYOffset);
+      const ringWidth = 120 - r * 20;
+      const ringHeight = 30; // perspective squash
+      
+      // Draw back half of the ring with full brightness
+      ctx.strokeStyle = `rgba(0, 255, 255, ${0.9 * tier4Prog})`;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, ringWidth, ringHeight, 0, Math.PI, 0); // top half (back)
+      ctx.stroke();
+      
+      // Add a pure white core to the back part of the ring for intense electric look
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 * tier4Prog})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, ringWidth, ringHeight, 0, Math.PI, 0); // top half (back)
+      ctx.stroke();
+      
+      ctx.restore();
     }
     
-    // Occasional giant arcs into the sky
-    if (Math.random() > 0.7) {
-      drawLightning(0, -145, (Math.random()-0.5)*200, -250 - Math.random()*50, 6, 20, "rgba(100, 255, 255, 0.8)", 3);
+    // 2) Draw the Stepped Pyramid (covers the back half of the rings)
+    for (let i = 0; i < steps; i++) {
+      const y = -40 - i * stepHeight;
+      const width = baseWidth - i * 8; // Gets narrower at the top
+      
+      // Color gradient to give it depth and a slight metallic/electric feel
+      const gradient = ctx.createLinearGradient(-width/2, y, width/2, y - stepHeight);
+      gradient.addColorStop(0, "#2a3b4c"); // dark blueish grey
+      gradient.addColorStop(0.5, "#3e5771"); // lighter
+      gradient.addColorStop(1, "#1a2530"); // very dark edge
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(-width/2, y - stepHeight, width, stepHeight);
+      
+      // Highlight edges for stepped look
+      ctx.strokeStyle = "#00ffff"; // Cyan edges
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = tier4Prog * 0.3; // subtle
+      ctx.strokeRect(-width/2, y - stepHeight, width, stepHeight);
+      ctx.globalAlpha = tier4Prog;
+    }
+
+    // 3) The Glowing Orb at the top
+    const orbY = -40 - steps * stepHeight - 10;
+    const orbRadius = 25;
+    
+    const pulse = 0.5 + 0.5 * Math.sin(t * 4);
+    
+    // Outer glow for Orb
+    const orbGlow = ctx.createRadialGradient(0, orbY, 10, 0, orbY, 60 + pulse * 20);
+    orbGlow.addColorStop(0, `rgba(0, 255, 255, ${0.8 * tier4Prog})`);
+    orbGlow.addColorStop(0.5, `rgba(0, 150, 255, ${0.4 * tier4Prog})`);
+    orbGlow.addColorStop(1, "rgba(0, 0, 255, 0)");
+    ctx.fillStyle = orbGlow;
+    ctx.beginPath();
+    ctx.arc(0, orbY, 80, 0, Math.PI * 2);
+    ctx.fill();
+
+    // The Orb itself
+    ctx.fillStyle = "#ffffff"; // pure white center
+    ctx.beginPath();
+    ctx.arc(0, orbY, orbRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Cyan inner shadow/gradient on Orb
+    const orbInner = ctx.createRadialGradient(0, orbY, 0, 0, orbY, orbRadius);
+    orbInner.addColorStop(0, "rgba(255,255,255,1)");
+    orbInner.addColorStop(0.7, "rgba(0,255,255,1)");
+    orbInner.addColorStop(1, "rgba(0,100,255,1)");
+    ctx.fillStyle = orbInner;
+    ctx.beginPath();
+    ctx.arc(0, orbY, orbRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4) Draw the FRONT HALF of the Floating Rings (covers the pyramid)
+    ctx.lineWidth = 6;
+    for (let r = 0; r < numRings; r++) {
+      ctx.save();
+      const ringYOffset = -80 - r * 50;
+      ctx.translate(0, ringYOffset);
+      const ringWidth = 120 - r * 20;
+      const ringHeight = 30; // perspective squash
+      
+      // Draw front half of the ring
+      ctx.strokeStyle = `rgba(0, 255, 255, ${0.9 * tier4Prog})`;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, ringWidth, ringHeight, 0, 0, Math.PI); // bottom half (front)
+      ctx.stroke();
+      
+      // Add a pure white core to the front part of the ring for intense electric look
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 * tier4Prog})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, ringWidth, ringHeight, 0, 0, Math.PI); // bottom half (front)
+      ctx.stroke();
+      
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  // Tier 5 (Orbital Plasma Spheres)
+  if (tier5Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier5Prog;
+    
+    const steps = 8;
+    const stepHeight = 20;
+    const orbY = -40 - steps * stepHeight - 10;
+    const orbitRadius = 90;
+    const numSpheres = 4;
+    const orbitSpeed = 4;
+
+    for (let i = 0; i < numSpheres; i++) {
+      const angle = t * orbitSpeed + (i * Math.PI * 2) / numSpheres;
+      const x = Math.cos(angle) * orbitRadius;
+      // Elliptical orbit to match the squashed rings
+      const yOffset = Math.sin(angle) * orbitRadius * 0.25; 
+      // They orbit roughly around the middle/top of the pyramid
+      const y = -120 + yOffset;
+      
+      const scale = 0.5 + 0.5 * Math.sin(angle + Math.PI/2); // pseudo-3D scale
+      
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      
+      // Plasma Sphere glow
+      const sglow = ctx.createRadialGradient(0, 0, 0, 0, 0, 15);
+      sglow.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+      sglow.addColorStop(0.4, "rgba(0, 255, 255, 0.8)");
+      sglow.addColorStop(1, "rgba(0, 150, 255, 0)");
+      ctx.fillStyle = sglow;
+      ctx.beginPath();
+      ctx.arc(0, 0, 15, 0, Math.PI * 2);
+      ctx.fill();
+
+      // White core
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.restore();
+    }
+    
+    ctx.restore();
+  }
+
+  // Tier 6 (Massive Zenith Energy Beam)
+  if (tier6Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier6Prog;
+    
+    const steps = 8;
+    const stepHeight = 20;
+    const orbY = -40 - steps * stepHeight - 10;
+    
+    // The massive beam shooting straight up
+    const beamWidth = 20 + Math.sin(t * 15) * 5; // pulsing width
+    
+    const beamGrad = ctx.createLinearGradient(-beamWidth/2, orbY, beamWidth/2, orbY);
+    beamGrad.addColorStop(0, "rgba(0, 200, 255, 0)");
+    beamGrad.addColorStop(0.2, `rgba(0, 255, 255, ${0.8 * tier6Prog})`);
+    beamGrad.addColorStop(0.5, `rgba(255, 255, 255, ${1.0 * tier6Prog})`);
+    beamGrad.addColorStop(0.8, `rgba(0, 255, 255, ${0.8 * tier6Prog})`);
+    beamGrad.addColorStop(1, "rgba(0, 200, 255, 0)");
+    
+    ctx.fillStyle = beamGrad;
+    // Draw the beam going infinitely upwards
+    ctx.fillRect(-beamWidth/2, -500, beamWidth, 500 + orbY);
+
+    // subtle wave/ripple effect running up the beam
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.4 * tier6Prog})`;
+    const waveY = -500 + ((-t * 200) % 500); // moving upwards
+    if (waveY < orbY) {
+      ctx.fillRect(-beamWidth/2, waveY, beamWidth, 30);
+    }
+
+    ctx.restore();
+  }
+
+  // Tier 7 (Holographic Containment Grid)
+  if (tier7Prog > 0 && tier8Prog < 1) { // Fade out when tier 8 unleashes
+    ctx.save();
+    // Flash intensity
+    const gridAlpha = tier7Prog * (0.3 + 0.2 * Math.sin(t * 10));
+    ctx.globalAlpha = gridAlpha * (1 - tier8Prog);
+    
+    ctx.strokeStyle = "#00ffff";
+    ctx.lineWidth = 1.5;
+    
+    const domeRadiusX = 140;
+    const domeRadiusY = 180;
+    const domeCenterY = -80;
+
+    // Dome outline
+    ctx.beginPath();
+    ctx.ellipse(0, domeCenterY, domeRadiusX, domeRadiusY, 0, Math.PI, 0);
+    ctx.stroke();
+
+    // Horizontal grid lines
+    for (let i = 1; i < 5; i++) {
+       const yOffset = domeCenterY - (i * domeRadiusY) / 5;
+       // Calculate width of ellipse at this height using equation (x^2/a^2) + (y^2/b^2) = 1
+       const relY = yOffset - domeCenterY;
+       const widthAtY = domeRadiusX * Math.sqrt(1 - (relY * relY) / (domeRadiusY * domeRadiusY));
+       
+       ctx.beginPath();
+       ctx.ellipse(0, yOffset, widthAtY, 15, 0, 0, Math.PI);
+       ctx.stroke();
+    }
+
+    // Vertical grid lines
+    for (let i = -3; i <= 3; i++) {
+        const xOffset = i * (domeRadiusX / 3.5);
+        ctx.beginPath();
+        ctx.moveTo(xOffset, domeCenterY);
+        // Bezier curve to top center
+        ctx.quadraticCurveTo(xOffset, domeCenterY - domeRadiusY * 0.8, 0, domeCenterY - domeRadiusY);
+        ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // Tier 8 (Apex Unbound Energy)
+  if (tier8Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier8Prog;
+    
+    const steps = 8;
+    const stepHeight = 20;
+    const orbY = -40 - steps * stepHeight - 10;
+    
+    // Blinding plasma sphere enveloping the orb
+    const pulse = 0.5 + 0.5 * Math.sin(t * 12);
+    
+    const glowRad = ctx.createRadialGradient(0, orbY, 20, 0, orbY, 100 + pulse * 40);
+    glowRad.addColorStop(0, "rgba(255, 255, 255, 1.0)");
+    glowRad.addColorStop(0.3, "rgba(0, 255, 255, 0.8)");
+    glowRad.addColorStop(1, "rgba(0, 100, 255, 0)");
+    ctx.fillStyle = glowRad;
+    ctx.beginPath();
+    ctx.arc(0, orbY, 150, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Chaotic white-hot lightning firing OUT in ALL directions (360 degrees)
+    const numBolts = 4 + Math.floor(Math.random() * 4);
+    for(let i=0; i<numBolts; i++) {
+      // Random angle in 360 degrees
+      const angle = Math.random() * Math.PI * 2;
+      // Random distance outwards
+      const dist = 100 + Math.random() * 150;
+      
+      const destX = Math.cos(angle) * dist;
+      const destY = orbY + Math.sin(angle) * dist;
+      
+      drawLightning(0, orbY, destX, destY, 6, 20, "rgba(200, 255, 255, 0.9)", 3 + Math.random()*3);
+    }
+    
+    // Small occasional side arcs from the pyramid base
+    if (Math.random() > 0.5) {
+       drawLightning(-40, -60, -100 - Math.random()*40, -60 + (Math.random()-0.5)*40, 4, 15, "rgba(100, 255, 255, 0.7)", 2);
+    }
+    if (Math.random() > 0.5) {
+       drawLightning(40, -60, 100 + Math.random()*40, -60 + (Math.random()-0.5)*40, 4, 15, "rgba(100, 255, 255, 0.7)", 2);
+    }
+    
+    // Crazy electricity hitting the floating rings
+    const numRings = 3;
+    for (let r = 0; r < numRings; r++) {
+       if (Math.random() > 0.3) {
+          const ringYOffset = -80 - r * 50;
+          const ringWidth = 120 - r * 20;
+          
+          // Pick a random spot along the ring
+          const ringAngle = Math.random() * Math.PI * 2;
+          const hitX = Math.cos(ringAngle) * ringWidth;
+          const hitY = ringYOffset + Math.sin(ringAngle) * 15; // perspective squash approximation
+          
+          drawLightning(0, orbY, hitX, hitY, 5, 20, "rgba(150, 255, 255, 0.8)", 2 + Math.random()*2);
+       }
     }
 
     ctx.restore();
