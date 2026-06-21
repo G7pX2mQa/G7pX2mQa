@@ -485,15 +485,14 @@ export function getSurge40Multiplier() {
   
   const diffBN = levelBN.sub(BigNum.fromInt(39));
   
-  const diffNumStr = diffBN.toString();
-  if (diffNumStr.length > 15) {
+  if (diffBN.cmp(1e15) > 0) {
      const logTotalBN = diffBN.mulDecimal(Math.log10(2).toString());
-     const logTotalNum = Number(logTotalBN.toString());
+     const logTotalNum = Number(logTotalBN.toScientific());
      return bigNumFromLog10(logTotalNum).floorToInteger();
   } else {
-     const diffNum = Number(diffNumStr); 
+     const diffNum = Number(diffBN.toScientific()); 
      if (diffNum <= 1024) {
-         return BigNum.fromAny((2 ** Number(diffNum)).toString());
+         return BigNum.fromAny((2 ** diffNum).toString());
      } else {
          const logTotal = diffNum * Math.log10(2);
          return bigNumFromLog10(logTotal).floorToInteger();
@@ -520,15 +519,14 @@ export function getSurge50Multiplier() {
   
   const diffBN = levelBN.sub(BigNum.fromInt(49));
   
-  const diffNumStr = diffBN.toString();
-  if (diffNumStr.length > 15) {
+  if (diffBN.cmp(1e15) > 0) {
      const logTotalBN = diffBN.mulDecimal(Math.log10(2).toString());
-     const logTotalNum = Number(logTotalBN.toString());
+     const logTotalNum = Number(logTotalBN.toScientific());
      return bigNumFromLog10(logTotalNum).floorToInteger();
   } else {
-     const diffNum = Number(diffNumStr); 
+     const diffNum = Number(diffBN.toScientific()); 
      if (diffNum <= 1024) {
-         return BigNum.fromAny((2 ** Number(diffNum)).toString());
+         return BigNum.fromAny((2 ** diffNum).toString());
      } else {
          const logTotal = diffNum * Math.log10(2);
          return bigNumFromLog10(logTotal).floorToInteger();
