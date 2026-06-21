@@ -381,7 +381,7 @@ export function computeCombineCores(scrapBn, potentialScrapBn, dpLevelBn) {
     const logScrap = approxLog10BigNum(totalScrap);
     
     // DP Level base threshold: 31
-    const dpLevel = Math.max(0, Number(dpLevelBn.toString()));
+    const dpLevel = Math.max(0, (dpLevelBn.inf ? Infinity : (dpLevelBn.sig * Math.pow(10, dpLevelBn.e))));
     
     if (!Number.isFinite(logScrap)) {
         if (logScrap > 0) return BigNum.fromAny('Infinity');
@@ -797,7 +797,7 @@ function checkCompressRequirements() {
     let dpLevelNum = 0;
     try {
        const state = getDpState();
-       dpLevelNum = Number(state.dpLevel.toString());
+       dpLevelNum = (state.dpLevel.inf ? Infinity : (state.dpLevel.sig * Math.pow(10, state.dpLevel.e)));
     } catch {}
     
     let surgeLevel = 0;
