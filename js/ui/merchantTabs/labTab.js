@@ -23,6 +23,7 @@ import { setupDragToClose } from '../shopOverlay.js';
 import { settingsManager } from '../../game/settingsManager.js';
 import { formatMultForUi, safeMultiplyBigNum } from '../../game/upgrades.js';
 import { getRpValueMultiplierBn } from '../../game/upgradeEffects.js';
+import { setHtmlOrText } from '../../util/uiHelpers.js';
 
 const CAM_MAX_COORD = 1e308;
 const CAM_MAX_ZOOM = 1e300;
@@ -399,7 +400,7 @@ class LabSystem {
 
         // Lab Level Bar
         this.levelBar = document.createElement('div');
-        this.levelBar.innerHTML = `Lab Level: ${formatNumber(getLabLevel())}`;
+        setHtmlOrText(this.levelBar, `Lab Level: ${formatNumber(getLabLevel())}`);
         this.levelBar.classList.add('lab-bar-text', 'lab-level-bar');
         applyBarStyle(this.levelBar);
         applyTextStyle(this.levelBar, '26px', '1px');
@@ -641,8 +642,8 @@ class LabSystem {
         if (effectiveNerf > 1) effectiveNerf = 1;
         
         if (!this.lastRenderedLevel || currentLevel.cmp(this.lastRenderedLevel) !== 0 || !this.lastCost || cost.cmp(this.lastCost) !== 0) {
-            this.levelBar.innerHTML = `Lab Level: ${formatNumber(currentLevel)}`;
-            this.coinsBar.innerHTML = `Coins needed to increment Lab Level: ${formatNumber(cost)}`; 
+            setHtmlOrText(this.levelBar, `Lab Level: ${formatNumber(currentLevel)}`);
+            setHtmlOrText(this.coinsBar, `Coins needed to increment Lab Level: ${formatNumber(cost)}`);
             this.lastRenderedLevel = currentLevel;
             this.lastCost = cost;
         }
@@ -1195,12 +1196,12 @@ class LabSystem {
         
         if (isMaxed) {
              const statusText = '(MAXED)';
-             this.overlayLevel.innerHTML = `Level ${formatNumber(BigNum.fromAny(level))} / ${formatNumber(BigNum.fromAny(node.maxLevel))} ${statusText}`;
+             setHtmlOrText(this.overlayLevel, `Level ${formatNumber(BigNum.fromAny(level))} / ${formatNumber(BigNum.fromAny(node.maxLevel))} ${statusText}`);
              this.overlayActiveStatus.style.display = 'none';
              this.overlayProgress.style.display = 'none';
              if (this.overlayToggleBtn) this.overlayToggleBtn.style.display = 'none';
         } else {
-             this.overlayLevel.innerHTML = `Level ${formatNumber(BigNum.fromAny(level))} / ${formatNumber(BigNum.fromAny(node.maxLevel))}`;
+             setHtmlOrText(this.overlayLevel, `Level ${formatNumber(BigNum.fromAny(level))} / ${formatNumber(BigNum.fromAny(node.maxLevel))}`);
              this.overlayActiveStatus.style.display = '';
              this.overlayProgress.style.display = '';
              if (this.overlayToggleBtn) this.overlayToggleBtn.style.display = '';
@@ -1226,7 +1227,7 @@ class LabSystem {
             const rpFmt = rp.cmp(1e9) > 0 ? formatNumber(rp) : rp.toString();
             const reqFmt = req.isInfinite?.() ? 'Infinity' : (req.cmp(1e9) > 0 ? formatNumber(req) : req.toString());
             
-            this.overlayProgress.innerHTML = `RP to next level: ${formatNumber(rp)} / ${formatNumber(req)}`;
+            setHtmlOrText(this.overlayProgress, `RP to next level: ${formatNumber(rp)} / ${formatNumber(req)}`);
         }
     }
 
