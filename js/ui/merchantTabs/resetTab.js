@@ -354,7 +354,7 @@ function levelToNumber(levelBn) {
   if (!levelBn || typeof levelBn !== 'object') return 0;
   if (levelBn.isInfinite?.()) return Number.POSITIVE_INFINITY;
   try {
-    const plain = levelBn.toPlainIntegerString?.();
+    const plain = levelBn.inf || levelBn.e >= 15 ? 'Infinity' : levelBn.toPlainIntegerString?.();
     if (plain && plain !== 'Infinity' && plain.length <= 15) {
       const num = Number(plain);
       if (Number.isFinite(num)) return num;
@@ -1777,7 +1777,7 @@ function updateWaveBar() {
   
   if (result.changed) {
       barLevel = result.level;
-      try { localStorage.setItem(SURGE_BAR_LEVEL_KEY(slot), barLevel.toString()); } catch {}
+      try { localStorage.setItem(SURGE_BAR_LEVEL_KEY(slot), barLevel.toStorage?.() ?? barLevel.toString()); } catch {}
       try { window.dispatchEvent(new CustomEvent("surge:level:change", { detail: { slot, level: barLevel } })); } catch {}
       try { window.dispatchEvent(new CustomEvent("level:change", { detail: { prefix: "waves", level: BigNum.fromAny(barLevel), isUnlocked: isSurgeUnlocked(), requirement: getSurgeRequirement(barLevel) } })); } catch {}
       
