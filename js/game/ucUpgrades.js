@@ -193,7 +193,7 @@ export const UC_REGISTRY = [
       let dp31 = false;
       try {
         const dpState = getDpState();
-        dp31 = Number(dpState.dpLevel.toString()) >= 31;
+        dp31 = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
       } catch {}
 
       if (dp31) {
@@ -233,7 +233,7 @@ export const UC_REGISTRY = [
       let dp31 = false;
       try {
         const dpState = getDpState();
-        dp31 = Number(dpState.dpLevel.toString()) >= 31;
+        dp31 = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
       } catch {}
 
       if (hasDoneCombineReset() || isBuildingsUnlocked()) {
@@ -276,7 +276,7 @@ export const UC_REGISTRY = [
       let dp31 = false;
       try {
         const dpState = getDpState();
-        dp31 = Number(dpState.dpLevel.toString()) >= 31;
+        dp31 = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
       } catch {}
 
       if (hasDoneCombineReset() || isBuildingsUnlocked()) {
@@ -331,7 +331,7 @@ export const UC_REGISTRY = [
       let dp31 = false;
       try {
         const dpState = getDpState();
-        dp31 = Number(dpState.dpLevel.toString()) >= 31;
+        dp31 = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
       } catch {}
 
       if (hasDoneCombineReset() || isBuildingsUnlocked()) {
@@ -374,7 +374,7 @@ export const UC_REGISTRY = [
       let dp31 = false;
       try {
         const dpState = getDpState();
-        dp31 = Number(dpState.dpLevel.toString()) >= 31;
+        dp31 = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
       } catch {}
 
       if (hasDoneCombineReset() || isBuildingsUnlocked()) {
@@ -415,7 +415,7 @@ export const UC_REGISTRY = [
       let dp101 = false;
       try {
         const dpState = getDpState();
-        dp101 = Number(dpState.dpLevel.toString()) >= 101;
+        dp101 = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 101;
       } catch {}
 
       if (dp101) {
