@@ -376,7 +376,7 @@ pointer-events: none;
 position: relative;
 width: var(--coin-bar-w);
 height: max(var(--coin-plus-size), var(--coin-h));
-pointer-events: auto;
+pointer-events: none;
 }
 
 .coin-plus, .scrap-plus{
@@ -984,7 +984,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   .xp-counter,
   .xp-bar,
   .xp-bar__frame {
-    pointer-events: auto;
+    pointer-events: none;
   }
 
   .dp-bar__frame,
@@ -1056,7 +1056,7 @@ padding-right: max(env(safe-area-inset-right), var(--pp-reserve));
   .mp-counter,
   .mp-bar,
   .mp-bar__frame {
-    pointer-events: auto;
+    pointer-events: none;
   }
 
   .mp-bar__frame,
