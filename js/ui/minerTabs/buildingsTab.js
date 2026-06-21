@@ -139,7 +139,7 @@ export function renderBuildingsGrid(gridEl) {
     let highestDepth = 0;
     try {
         const dpState = getDpState();
-        if (dpState && dpState.dpLevel) highestDepth = Number(dpState.dpLevel.toString());
+        if (dpState && dpState.dpLevel) highestDepth = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
     } catch {}
 
     const buildings = [];
@@ -316,7 +316,7 @@ export function initBuildingsPanel(minerOverlayEl, minerSheetEl, tabsEl, panelsW
       let highestDepth = 0;
       try {
         const dpState = getDpState();
-        if (dpState && dpState.dpLevel) highestDepth = Number(dpState.dpLevel.toString());
+        if (dpState && dpState.dpLevel) highestDepth = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
       } catch {}
 
       let newlyUnlocked = false;
@@ -1309,7 +1309,7 @@ export function updateOverlayUi() {
         btnBuyMax.style.display = 'none';
         btnBuyCheap.style.display = 'none';
     } else {
-        const levelNum = typeof levelBn.toNumber === 'function' ? levelBn.toNumber() : Number(levelBn.toString());
+        const levelNum = typeof levelBn.toNumber === 'function' ? levelBn.toNumber() : (levelBn.inf ? Infinity : (levelBn.sig * Math.pow(10, levelBn.e)));
         const next25Log10 = getBuildingTotalCostLog10(getBuildingRatio(id), levelNum, 25);
         const next25CostBn = bigNumFromLog10(next25Log10).floorToInteger();
         const next25CostMatName = (resConfig ? (next25CostBn.cmp(BigNum.fromInt(1)) === 0 ? resConfig.singular : resConfig.plural) : 'Stone');
@@ -1370,7 +1370,7 @@ function handlePurchase(type) {
         const ratio = getBuildingRatio(id);
         let deltaNum = 1e12;
         if (type === 'next') {
-            const currentLevelNum = typeof startLevelBn.toNumber === 'function' ? startLevelBn.toNumber() : Number(startLevelBn.toString());
+            const currentLevelNum = typeof startLevelBn.toNumber === 'function' ? startLevelBn.toNumber() : (startLevelBn.inf ? Infinity : (startLevelBn.sig * Math.pow(10, startLevelBn.e)));
             const TIERS = [10, 25, 50, 100, 200, 400, 800, 1000];
             let nextTarget = 10;
             for (let t of TIERS) {
@@ -1389,7 +1389,7 @@ function handlePurchase(type) {
         if (type === 'cheap') {
             const maxEval = evaluateBuildingBulkPurchase(id, startLevelBn, walletBn, 1e12, ratio);
             let n = maxEval.count;
-            if (typeof n !== 'number') n = n.toNumber ? n.toNumber() : Number(n.toString());
+            if (typeof n !== 'number') n = n.toNumber ? n.toNumber() : (n.inf ? Infinity : (n.sig * Math.pow(10, n.e)));
             
             if (n === Number.POSITIVE_INFINITY) {
                 levelsToAdd = BigNum.fromAny('Infinity');
