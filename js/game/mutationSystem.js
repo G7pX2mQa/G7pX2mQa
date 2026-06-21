@@ -7,6 +7,7 @@ import { formatNumber } from '../util/numFormat.js';
 import { approxLog10BigNum, bigNumFromLog10 } from '../util/bigNum.js';
 import { settingsManager, MAX_MUTATION_VISUAL } from "./settingsManager.js";
 import { syncXpMpHudLayout } from '../ui/hudLayout.js';
+import { setHtmlOrText } from '../util/uiHelpers.js';
 
 const KEY_PREFIX = 'ccc:mutation';
 const KEY_UNLOCK = (slot) => `${KEY_PREFIX}:unlocked:${slot}`;
@@ -380,7 +381,7 @@ function updateHud() {
     fill.style.width = pct;
   }
   if (levelValue) {
-    levelValue.innerHTML = formatBn(mutationState.level);
+    setHtmlOrText(levelValue, formatBn(mutationState.level));
   }
   if (progress) {
     const currentHtml = formatBn(mutationState.progress);
