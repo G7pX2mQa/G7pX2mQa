@@ -1,16 +1,3 @@
-export const getSurge9Description = (slot) => {
-  const state = getSurge9State(slot);
-  if (state === 0) return "This milestone is hidden for now";
-  if (state === 1) return "This milestone is hidden until you research Lab Node 4";
-  return "Significantly boosts DNA gained from the Experiment reset";
-};
-
-export const getSurge10Description = (slot) => {
-  const state = getSurge10State(slot);
-  if (state === 0) return "This milestone is hidden until you research Lab Node 4";
-  return "Unlocks new DNA upgrades";
-};
-
 import { formatNumber, formatMultForUi } from '../util/numFormat.js';
 import { BigNum } from '../util/bigNum.js';
 import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
@@ -342,6 +329,19 @@ const SURGE_9_STATE_KEY = (slot) => `ccc:surge:milestone9:state:${slot}`;
 const SURGE_10_STATE_KEY = (slot) => `ccc:surge:milestone10:state:${slot}`;
 const SURGE_14_STATE_KEY = (slot) => `ccc:surge:milestone14:state:${slot}`;
 const SURGE_15_STATE_KEY = (slot) => `ccc:surge:milestone15:state:${slot}`;
+
+export const getSurge9Description = (slot) => {
+  const state = getSurge9State(slot);
+  if (state === 0) return "This milestone is hidden for now";
+  if (state === 1) return "This milestone is hidden until you research Lab Node 4";
+  return "Significantly boosts DNA gained from the Experiment reset";
+};
+
+export const getSurge10Description = (slot) => {
+  const state = getSurge10State(slot);
+  if (state === 0) return "This milestone is hidden until you research Lab Node 4";
+  return "Unlocks new DNA upgrades";
+};
 
 function getSurge9State(slot) {
     if (slot == null) return 0;
