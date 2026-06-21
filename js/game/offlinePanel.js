@@ -62,7 +62,7 @@ export function formatTimeCompact(ms) {
         let days = 0;
         try {
             const daysBn = remainingMs.div(BigNum.fromInt(ONE_DAY)).floorToInteger();
-            days = Number(daysBn.toPlainIntegerString());
+            days = daysBn.inf || daysBn.e >= 15 ? Infinity : Number(daysBn.toPlainIntegerString());
         } catch {
             days = 0;
         }
@@ -74,7 +74,7 @@ export function formatTimeCompact(ms) {
     // Convert BigNum to number if safe, otherwise it would have been caught above (unless negative/zero)
     let s_val = 0;
     try {
-        if (ms instanceof BigNum) s_val = Number(ms.toPlainIntegerString()) / 1000;
+        if (ms instanceof BigNum) s_val = ms.inf || ms.e >= 15 ? Infinity : (Number(ms.toPlainIntegerString()) / 1000);
         else s_val = Number(ms) / 1000;
     } catch {
         s_val = 0;
@@ -597,7 +597,7 @@ export function calculateOfflineRewards(seconds) {
                      
                      if (isLinear) {
                          const jumpBn = tempRp.div(req).floorToInteger();
-                         let jumpStr = jumpBn.toPlainIntegerString();
+                         let jumpStr = jumpBn.inf || jumpBn.e >= 15 ? 'Infinity' : jumpBn.toPlainIntegerString();
                          if (jumpStr === 'Infinity' || jumpStr.length > 15) jumpStr = "9007199254740991";
                          let jump = 0;
                          try { jump = Number(jumpStr); } catch {}
