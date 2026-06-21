@@ -29,7 +29,7 @@ import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { computeForgeGoldFromInputs, computeInfuseMagicFromInputs, computePendingDnaFromInputs, getCurrentSurgeLevel, getSurgeRequirement, isSurgeUnlocked } from '../ui/merchantTabs/resetTab.js';
 import { getLabGoldMultiplier } from './labNodes.js';
 import { getUcEacMaterialAccumulators, saveUcEacMaterialAccumulators } from './ucSpawner.js';
-import { bigNumFromLog10 } from '../util/bigNum.js';
+import { bigNumFromLog10, approxLog10BigNum } from '../util/bigNum.js';
 import { calculateWaterwheelOffline, applyWaterwheelOffline, WATERWHEEL_DEFS } from '../ui/merchantTabs/flowTab.js';
 
 let initialized = false;
@@ -540,13 +540,12 @@ export function showOfflinePanel(rewards, offlineMs, isPreAutomation = false) {
 // Helper to calculate research cost locally to avoid state dependency issues during simulation
 function getSimulatedReq(node, level) {
     if (level >= node.maxLevel) return BigNum.fromAny('Infinity');
-    const log10Scale = Math.log10(node.scale); 
-    const log10Base = Math.log10(node.baseRpReq);
+    const scaleBn = BigNum.fromAny(node.scale);
+    const log10Scale = approxLog10BigNum(scaleBn); 
+    const baseBn = BigNum.fromAny(node.baseRpReq);
+    const log10Base = approxLog10BigNum(baseBn);
     const totalLog10 = log10Base + (level * log10Scale);
-    const intPart = Math.floor(totalLog10);
-    const fracPart = totalLog10 - intPart;
-    const mantissa = Math.pow(10, fracPart);
-    return new BigNum(Number(Math.round(mantissa * 1e14)), { base: intPart - 14 });
+    return bigNumFromLog10(totalLog10);
 }
 
 export function calculateOfflineRewards(seconds) {
