@@ -8,6 +8,7 @@ import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
 
 
 import { bank, UC_MATERIALS } from '../util/storage.js';
+import { setHtmlOrText } from '../util/uiHelpers.js';
 
 let pinnedContainer = null;
 let currencySubscriptions = {};
@@ -151,7 +152,7 @@ export function refreshPinnedCurrencies() {
     // Update value and subscribe to changes
     const updateVal = () => {
       const amount = getCurrency(id);
-      textSpan.innerHTML = formatNumber(amount);
+      setHtmlOrText(textSpan, formatNumber(amount));
     };
     
     updateVal();
@@ -265,7 +266,7 @@ function refreshPinnedCurrenciesValues() {
     const id = el.id.replace('pinned-currency-', '');
     const span = el.querySelector('.pinned-currency-value');
     if (span) {
-      span.innerHTML = formatNumber(getCurrency(id));
+      setHtmlOrText(span, formatNumber(getCurrency(id)));
     }
   });
 }
@@ -450,7 +451,7 @@ export function refreshPinnedLevels() {
 
     const updateValAndProg = () => {
       const amount = getLevelStatValue(prefix);
-      textSpan.innerHTML = formatNumber(amount);
+      setHtmlOrText(textSpan, formatNumber(amount));
       const ratio = getLevelProgRatio(prefix);
       fill.style.setProperty('--progress', `${(ratio * 100).toFixed(2)}%`);
     };
@@ -539,7 +540,7 @@ function refreshPinnedLevelsValues() {
     if (config) {
         const span = el.querySelector('.pinned-level-value');
         if (span) {
-          span.innerHTML = formatNumber(BigNum.fromAny(getLevelStatValue(prefix)));
+          setHtmlOrText(span, formatNumber(BigNum.fromAny(getLevelStatValue(prefix))));
         }
         const bar = el.querySelector('.pinned-level');
         const fill = el.querySelector('.pinned-level-fill');
