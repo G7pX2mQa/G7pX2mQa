@@ -42,7 +42,7 @@ function ppRequirementForPpLevel(ppLevel) {
   let targetLevel = 0;
   try {
       let l = BigNum.fromAny(ppLevel ?? 0);
-      targetLevel = Number(l.toString());
+      targetLevel = l.inf ? Infinity : (l.sig * Math.pow(10, l.e));
   } catch {}
   if (targetLevel < 0) return BigNum.fromInt(1000);
   
@@ -124,8 +124,8 @@ function persistState() {
 
   const expected = {
     [KEY_UNLOCK(slot)]: ppState.unlocked ? '1' : '0',
-    [KEY_PP_LEVEL(slot)]: ppState.ppLevel.toString(),
-    [KEY_PROGRESS(slot)]: ppState.progress.toString(),
+    [KEY_PP_LEVEL(slot)]: ppState.ppLevel.toStorage?.() ?? ppState.ppLevel.toString(),
+    [KEY_PROGRESS(slot)]: ppState.progress.toStorage?.() ?? ppState.progress.toString(),
   };
 
   try {
@@ -425,7 +425,7 @@ export function addPp(amount, { silent = false } = {}) {
   if (currentProgressLog - reqLog > 2) {
     let currentLevelNum;
     try {
-      currentLevelNum = Number(ppState.ppLevel.toPlainIntegerString?.() ?? ppState.ppLevel.toString());
+      currentLevelNum = ppState.ppLevel.inf ? Infinity : (ppState.ppLevel.sig * Math.pow(10, ppState.ppLevel.e));
     } catch {
       currentLevelNum = 0;
     }
