@@ -258,7 +258,7 @@ function bigNumToSafeInteger(value) {
   if (value && typeof value === 'object') {
     if (typeof value.toPlainIntegerString === 'function') {
       try {
-        const plain = value.toPlainIntegerString();
+        const plain = value.inf || value.e >= 15 ? 'Infinity' : value.toPlainIntegerString();
         if (plain != null) {
           const parsed = Number.parseInt(plain, 10);
           if (Number.isFinite(parsed)) return parsed;
