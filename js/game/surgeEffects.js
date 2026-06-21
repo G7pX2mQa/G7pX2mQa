@@ -460,7 +460,7 @@ export function getSurge200Multiplier() {
   const diffBN = levelBN.sub(BigNum.fromInt(200));
   
   const logBase = Math.log10(baseMult);
-  const exponent = Number(diffBN.toString());
+  const exponent = (diffBN.inf ? Infinity : (diffBN.sig * Math.pow(10, diffBN.e)));
   
   if (logBase === 0) return BigNum.fromInt(1);
 
@@ -633,7 +633,7 @@ export function getSurge6WealthMultipliers() {
          }
       } else if (log10Bn < 15 && residue > 0) {
          try {
-             const val = Number(amount.toPlainIntegerString());
+             const val = amount.inf || amount.e >= 15 ? Infinity : Number(amount.toPlainIntegerString());
              if (Number.isFinite(val)) {
                  const total = val + residue;
                  if (total > 0) {
@@ -721,7 +721,7 @@ export function getBookProductionRate() {
              }
          }
      } else {
-         const lvlNum = Number(xpLevelBn.toPlainIntegerString());
+         const lvlNum = xpLevelBn.inf || xpLevelBn.e >= 15 ? Infinity : Number(xpLevelBn.toPlainIntegerString());
          const logVal = lvlNum * LOG10_EXP_0_2;
          baseRate = bigNumFromLog10(logVal);
      }
