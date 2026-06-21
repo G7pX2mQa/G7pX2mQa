@@ -375,7 +375,7 @@ export function updateSellTab() {
    try {
        const dpState = getDpState();
        if (dpState && dpState.dpLevel) {
-           dpLevelNum = Number(dpState.dpLevel.toString());
+           dpLevelNum = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
        }
    } catch {}
 
@@ -611,7 +611,7 @@ function createSellRow(matKey, index) {
            parsedNum = 5;
        } else {
            try {
-               parsedNum = Number(amt.toPlainIntegerString());
+               parsedNum = amt.inf || amt.e >= 15 ? Infinity : Number(amt.toPlainIntegerString());
            } catch (e) {
                parsedNum = 5;
            }
