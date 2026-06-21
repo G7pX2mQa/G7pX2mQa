@@ -5,6 +5,7 @@ import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../
 import { formatNumber } from '../util/numFormat.js';
 import { syncDpPpHudLayout } from '../ui/hudLayout.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
+import { setHtmlOrText } from '../util/uiHelpers.js';
 
 function isKeyLocked(key) {
   if (typeof window !== 'undefined' && window.__cccLockedStorageKeys) {
@@ -228,7 +229,7 @@ function updateHud() {
     fill.style.width = `${pct}%`;
   }
   if (ppLevelValue) {
-    ppLevelValue.innerHTML = formatNumber(ppState.ppLevel);
+    setHtmlOrText(ppLevelValue, formatNumber(ppState.ppLevel));
   }
   if (progress) {
     const currentHtml = formatNumber(ppState.progress);
