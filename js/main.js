@@ -6,6 +6,7 @@ import { syncXpMpHudLayout } from './ui/hudLayout.js';
 import { initUcPickup } from './game/materialPickup.js';
 import { MAX_MUTATION_VISUAL } from "./game/settingsManager.js";
 import { RESOURCE_REGISTRY } from './game/offlinePanel.js';
+import { setHtmlOrText } from './util/uiHelpers.js';
 
 
 export const FONT_MAP = {
@@ -123,11 +124,7 @@ function updateScrapHudCounter() {
   } catch {}
 
   amountEls.forEach(amountEl => {
-    if (String(formatted).includes('<span')) {
-      amountEl.innerHTML = formatted;
-    } else {
-      amountEl.textContent = formatted;
-    }
+    setHtmlOrText(amountEl, formatted);
   });
 }
 function initScrapHudCounter() {
