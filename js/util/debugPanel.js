@@ -194,12 +194,20 @@ function applyDebugPanelExpansionState(panel) {
     });
 }
 
+let pendingBindings = new Set();
+let refreshRafId = null;
+
 function cleanupDebugPanelResources() {
     debugPanelCleanups.forEach((fn) => {
         try { fn?.(); } catch {}
     });
     debugPanelCleanups = [];
     liveBindings.length = 0;
+    pendingBindings.clear();
+    if (typeof window !== 'undefined' && refreshRafId !== null) {
+        window.cancelAnimationFrame(refreshRafId);
+        refreshRafId = null;
+    }
 }
 
 function registerLiveBinding(binding) {
@@ -210,8 +218,25 @@ function registerLiveBinding(binding) {
 function refreshLiveBindings(predicate) {
     liveBindings.forEach((binding) => {
         if (typeof predicate === 'function' && !predicate(binding)) return;
-        try { binding.refresh(); } catch {}
+        pendingBindings.add(binding);
     });
+
+    if (refreshRafId === null && typeof window !== 'undefined') {
+        refreshRafId = window.requestAnimationFrame(() => {
+            refreshRafId = null;
+            const toProcess = pendingBindings;
+            pendingBindings = new Set();
+            toProcess.forEach(binding => {
+                try { binding.refresh(); } catch {}
+            });
+        });
+    } else if (typeof window === 'undefined') {
+        const toProcess = pendingBindings;
+        pendingBindings = new Set();
+        toProcess.forEach(binding => {
+            try { binding.refresh(); } catch {}
+        });
+    }
 }
 
 function setupLiveBindingListeners() {
@@ -4788,6 +4813,7 @@ function buildMiscContent(content) {
                        count++;
                    }
                 });
+                window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { suppressNotify: false } }));
                 flagDebugUsage();
                 logAction(`Maxed ${count} Lab Nodes.`);
             },
@@ -4797,13 +4823,16 @@ function buildMiscContent(content) {
             onClick: () => {
                 let count = 0;
                 RESEARCH_NODES.forEach((node) => {
-                    setResearchNodeLevel(node.id, 0);
-                    setResearchNodeRp(node.id, 0);
+                    setResearchNodeLevel(node.id, 0, true);
+                    setResearchNodeRp(node.id, 0, true);
                     if (isResearchNodeActive(node.id)) {
-                        setResearchNodeActive(node.id, false);
+                        setResearchNodeActive(node.id, false, true);
                     }
                     count++;
                 });
+                window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { suppressNotify: false } }));
+                window.dispatchEvent(new CustomEvent('lab:node:rp', { detail: { suppressNotify: false } }));
+                window.dispatchEvent(new CustomEvent('lab:node:active', { detail: { suppressNotify: false } }));
                 flagDebugUsage();
                 logAction(`Reset ${count} Lab Nodes to 0 (Level & RP).`);
             },
@@ -4826,6 +4855,7 @@ function buildMiscContent(content) {
                         }
                     }
                 });
+                window.dispatchEvent(new CustomEvent('lab:node:change', { detail: { suppressNotify: false } }));
                 flagDebugUsage();
                 logAction(`Maxed ${count} Lab Nodes up to node ${limit}.`);
             },
