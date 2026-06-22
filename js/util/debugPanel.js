@@ -1425,11 +1425,15 @@ function parseBigNumInput(raw) {
                 if (isZeroSig && expPart !== '0' && expPart !== '') {
                     let p = parseInt(parts[1], 10);
                     if (Number.isNaN(p)) p = BigNum.DEFAULT_PRECISION;
-                    return BigNum.fromStorage(`BN:${p}:1:${expPart}`);
+                    const parsed2 = BigNum.fromStorage(`BN:${p}:1:${expPart}`);
+                    if (parsed2 && parsed2.isNegative()) return null;
+                    return parsed2;
                 }
             }
         }
-        return BigNum.fromAny(trimmed);
+        const parsed = BigNum.fromAny(trimmed);
+        if (parsed && parsed.isNegative()) return null;
+        return parsed;
     } catch {
         return null;
     }
