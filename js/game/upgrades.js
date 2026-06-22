@@ -2459,7 +2459,8 @@ export const REGISTRY = [
     costAtLevel() { return this.baseCostBn?.clone?.() ?? BigNum.fromInt(1); },
     nextCostAfter() { return this.costAtLevel(); },
     effectSummary(level) {
-      return `Book value bonus: 2x`;
+      const mult = this.effectMultiplier(level);
+      return `Book value bonus: ${formatMultForUi(mult)}x`;
     },
     effectMultiplier: (lvl) => normalizedUpgradeLevel(lvl) > 0 ? 2 : 1,
     onLevelChange({ newLevel }) { syncBookCurrencyMultiplierFromUpgrade(newLevel); },
