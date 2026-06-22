@@ -2606,6 +2606,49 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
+  // Tier 2 (Small Capacitor Nodes - drawn behind base)
+  if (tier2Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier2Prog;
+
+    const drawCapacitor = (x, y, index) => {
+      ctx.save();
+      ctx.translate(x, y);
+
+      // Capacitor body
+      ctx.fillStyle = "#333";
+      ctx.fillRect(-6, -12, 12, 12);
+      ctx.fillStyle = "#555";
+      ctx.fillRect(-4, -14, 8, 2);
+
+      // Dim glow
+      const pulse = 0.5 + 0.5 * Math.sin(t * 3 - index * (Math.PI / 2));
+      ctx.fillStyle = `rgba(0, 200, 255, ${0.3 * pulse})`;
+      ctx.beginPath();
+      ctx.arc(0, -14, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tiny spark
+      if (Math.random() > 0.95) {
+        ctx.strokeStyle = "rgba(100, 255, 255, 0.8)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, -14);
+        ctx.lineTo((Math.random() - 0.5) * 10, -14 - Math.random() * 10);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    };
+
+    drawCapacitor(-74 - extraBaseWidth, -20, 0);
+    drawCapacitor(74 + extraBaseWidth, -20, 1);
+    drawCapacitor(-54 - extraBaseWidth, -40, 2);
+    drawCapacitor(54 + extraBaseWidth, -40, 3);
+
+    ctx.restore();
+  }
+
   // Draw heavy metallic base / charging pad
   if (copperPattern) {
     ctx.fillStyle = copperPattern;
@@ -2633,49 +2676,6 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   if (Math.random() > 0.90) {
     const yPos = -40 - prongHeight; // Top of the prongs
     drawLightning(-prongOffset, yPos, prongOffset, yPos, 4, 10, "rgba(0, 200, 255, 0.6)", 1.5);
-  }
-
-  // Tier 2 (Small Capacitor Nodes)
-  if (tier2Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier2Prog;
-
-    const drawCapacitor = (x, y) => {
-      ctx.save();
-      ctx.translate(x, y);
-
-      // Capacitor body
-      ctx.fillStyle = "#333";
-      ctx.fillRect(-6, -12, 12, 12);
-      ctx.fillStyle = "#555";
-      ctx.fillRect(-4, -14, 8, 2);
-
-      // Dim glow
-      const pulse = 0.5 + 0.5 * Math.sin(t * 3 + x);
-      ctx.fillStyle = `rgba(0, 200, 255, ${0.3 * pulse})`;
-      ctx.beginPath();
-      ctx.arc(0, -14, 8, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Tiny spark
-      if (Math.random() > 0.95) {
-        ctx.strokeStyle = "rgba(100, 255, 255, 0.8)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(0, -14);
-        ctx.lineTo((Math.random() - 0.5) * 10, -14 - Math.random() * 10);
-        ctx.stroke();
-      }
-
-      ctx.restore();
-    };
-
-    drawCapacitor(-75 - extraBaseWidth, -20);
-    drawCapacitor(75 + extraBaseWidth, -20);
-    drawCapacitor(-55 - extraBaseWidth, -40);
-    drawCapacitor(55 + extraBaseWidth, -40);
-
-    ctx.restore();
   }
   // Tier 3 (Low-level Surface Arcs)
   if (tier3Prog > 0) {
