@@ -3126,8 +3126,8 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
             ctx.beginPath();
             
             // Calculate where the pulse is
-            const targetIdx = Math.floor(energyT * (pts.length - 1));
-            if (targetIdx < pts.length - 1) {
+			const targetIdx = Math.floor(energyT * (pts.length - 1));
+			if (targetIdx >= 0 && targetIdx < pts.length - 1) {
                 const fraction = (energyT * (pts.length - 1)) % 1;
                 const p1 = pts[targetIdx];
                 const p2 = pts[targetIdx + 1];
