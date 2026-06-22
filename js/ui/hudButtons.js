@@ -135,16 +135,13 @@ export function applyHudLayout() {
     const per = Math.max(180, Math.floor((cw - 3 * gap) / 4));
 
     if (visible.length === 2) {
-      hud.style.gridTemplateColumns = `1fr ${per}px ${per}px 1fr`;
-      visible[0].style.gridColumn = '2';
-      visible[1].style.gridColumn = '3';
+      hud.style.gridTemplateColumns = `repeat(2, ${per}px)`;
+      hud.style.justifyContent = 'center';
       return;
     }
     if (visible.length === 3) {
-      hud.style.gridTemplateColumns = `1fr ${per}px ${per}px ${per}px 1fr`;
-      visible[0].style.gridColumn = '2';
-      visible[1].style.gridColumn = '3';
-      visible[2].style.gridColumn = '4';
+      hud.style.gridTemplateColumns = `repeat(3, ${per}px)`;
+      hud.style.justifyContent = 'center';
       return;
     }
   }
