@@ -2616,7 +2616,11 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       ctx.translate(x, y);
 
       // Capacitor body
-      ctx.fillStyle = "#333";
+      if (copperPattern) {
+        ctx.fillStyle = copperPattern;
+      } else {
+        ctx.fillStyle = "#b6673f";
+      }
       ctx.fillRect(-6, -12, 12, 12);
       ctx.fillStyle = "#555";
       ctx.fillRect(-4, -14, 8, 2);
