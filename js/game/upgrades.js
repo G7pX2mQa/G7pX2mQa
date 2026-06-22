@@ -4308,7 +4308,8 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
   }
 
   // Binary search to find exact max affordable evolution
-  let bestEvol = lowEvol;
+  // We guarantee at least one evolution tier to match manual evolution behavior
+  let bestEvol = currentEvolutions + 1;
   while (lowEvol <= highEvol) {
       const midEvol = Math.floor((lowEvol + highEvol) / 2);
       if (canAffordEvol(midEvol)) {
