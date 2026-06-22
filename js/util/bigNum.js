@@ -168,7 +168,7 @@ export class BigNum {
   isNaN() { return !!this._isNaN; }
   isZero() { return !this.inf && this.sig === 0; }
   isInfinite() { return !!this.inf; }
-  isNegative() { return false; }
+  isNegative() { return !this._isNaN && this.sig < 0; }
 
   sub(b) {
     b = BigNum.fromAny(b, this.p);
