@@ -2635,172 +2635,81 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     drawLightning(-prongOffset, yPos, prongOffset, yPos, 4, 10, "rgba(0, 200, 255, 0.6)", 1.5);
   }
 
-  // Tier 2 (Copper Filament Mesh)
+  // Tier 2 (Small Capacitor Nodes)
   if (tier2Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier2Prog;
 
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    const pulse = 0.5 + 0.5 * Math.sin(t * 2);
-
-    const drawCircuitrySide = (isLeft) => {
+    const drawCapacitor = (x, y) => {
       ctx.save();
-      if (isLeft) {
-        ctx.scale(-1, 1);
-      }
+      ctx.translate(x, y);
 
-      const sparkT = (t * 0.5) % 1;
+      // Capacitor body
+      ctx.fillStyle = "#333";
+      ctx.fillRect(-6, -12, 12, 12);
+      ctx.fillStyle = "#555";
+      ctx.fillRect(-4, -14, 8, 2);
 
-      const drawPath = (pts, sparkOffset) => {
-        // Base etched path
-        ctx.strokeStyle = `rgba(0, 150, 200, ${0.4 * tier2Prog})`;
+      // Dim glow
+      const pulse = 0.5 + 0.5 * Math.sin(t * 3 + x);
+      ctx.fillStyle = `rgba(0, 200, 255, ${0.3 * pulse})`;
+      ctx.beginPath();
+      ctx.arc(0, -14, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tiny spark
+      if (Math.random() > 0.95) {
+        ctx.strokeStyle = "rgba(100, 255, 255, 0.8)";
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) {
-          ctx.lineTo(pts[i].x, pts[i].y);
-        }
+        ctx.moveTo(0, -14);
+        ctx.lineTo((Math.random() - 0.5) * 10, -14 - Math.random() * 10);
         ctx.stroke();
-
-        // Glowing overlay
-        ctx.strokeStyle = `rgba(0, 255, 255, ${(0.2 + pulse * 0.4) * tier2Prog})`;
-        ctx.stroke();
-
-        // Spark flowing along path
-        let totalLen = 0;
-        const segLens = [];
-        for (let i = 0; i < pts.length - 1; i++) {
-          const dx = pts[i + 1].x - pts[i].x;
-          const dy = pts[i + 1].y - pts[i].y;
-          const len = Math.sqrt(dx * dx + dy * dy);
-          segLens.push(len);
-          totalLen += len;
-        }
-
-        if (totalLen > 0) {
-          const currentT = (sparkT + sparkOffset) % 1;
-          const targetLen = totalLen * currentT;
-          let curLen = 0;
-          let sparkX = pts[0].x;
-          let sparkY = pts[0].y;
-
-          for (let i = 0; i < pts.length - 1; i++) {
-            if (curLen + segLens[i] >= targetLen) {
-              const fraction = (targetLen - curLen) / segLens[i];
-              sparkX = pts[i].x + (pts[i + 1].x - pts[i].x) * fraction;
-              sparkY = pts[i].y + (pts[i + 1].y - pts[i].y) * fraction;
-              break;
-            }
-            curLen += segLens[i];
-          }
-
-          // Draw spark
-          ctx.fillStyle = `rgba(200, 255, 255, ${0.9 * tier2Prog})`;
-          ctx.beginPath();
-          ctx.arc(sparkX, sparkY, 2.5, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.shadowColor = "rgba(0, 255, 255, 1)";
-          ctx.shadowBlur = 6;
-          ctx.fill();
-          ctx.shadowBlur = 0;
-        }
-      };
-
-      const path1 = [
-        { x: 10, y: -15 },
-        { x: 25, y: -15 },
-        { x: 35, y: -5 },
-        { x: 60, y: -5 },
-        { x: 70, y: -15 },
-        { x: 85, y: -15 }
-      ];
-
-      const path2 = [
-        { x: 15, y: -30 },
-        { x: 30, y: -30 },
-        { x: 40, y: -35 },
-        { x: 65, y: -35 },
-        { x: 75, y: -25 }
-      ];
-
-      const path3 = [
-        { x: 5, y: -25 },
-        { x: 20, y: -25 },
-        { x: 30, y: -15 },
-        { x: 45, y: -15 },
-        { x: 55, y: -25 },
-        { x: 70, y: -25 }
-      ];
-
-      drawPath(path1, 0.1);
-      drawPath(path2, 0.4);
-      drawPath(path3, 0.7);
+      }
 
       ctx.restore();
     };
 
-    drawCircuitrySide(false);
-    drawCircuitrySide(true);
+    drawCapacitor(-75 - extraBaseWidth, -20);
+    drawCapacitor(75 + extraBaseWidth, -20);
+    drawCapacitor(-55 - extraBaseWidth, -40);
+    drawCapacitor(55 + extraBaseWidth, -40);
 
     ctx.restore();
   }
-  // Tier 3 (Ionized Air Plumes)
+  // Tier 3 (Low-level Surface Arcs)
   if (tier3Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier3Prog;
 
-    const drawPlume = (baseX) => {
-      ctx.save();
-      ctx.translate(baseX, -20); // Starting near the base
-
-      const numPlumes = 5;
-      for (let i = 0; i < numPlumes; i++) {
-        // Progression from 0 to 1
-        const plumeT = (t * 0.3 + i / numPlumes) % 1;
-        
-        // Plumes drift up and sway
-        const yOffset = -plumeT * 60;
-        const xOffset = Math.sin(t + i) * 10 * plumeT;
-        
-        // Fades in at start, out at end
-        const alpha = Math.sin(plumeT * Math.PI) * 0.6 * tier3Prog;
-        
-        // Gets wider as it goes up
-        const plumeRadius = 5 + plumeT * 15;
-
-        // Draw small grate at base
-        if (i === 0) {
-            ctx.fillStyle = "#111";
-            ctx.fillRect(-8, -2, 16, 4);
-            ctx.fillStyle = "#0ff";
-            ctx.globalAlpha = 0.5 * tier3Prog * (0.5 + 0.5 * Math.sin(t * 3));
-            ctx.fillRect(-6, -1, 12, 2);
-            ctx.globalAlpha = 1; // reset for actual plumes
-        }
-
-        ctx.translate(xOffset, yOffset);
-        
-        const plumeGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, plumeRadius);
-        plumeGrad.addColorStop(0, `rgba(0, 255, 255, ${alpha})`);
-        plumeGrad.addColorStop(1, "rgba(0, 255, 255, 0)");
-        
-        ctx.fillStyle = plumeGrad;
+    // Faint, slow-crawling static electricity arcs that hug the surface of the base
+    const numArcs = 8;
+    for (let i = 0; i < numArcs; i++) {
+      const arcT = (t * 0.2 + i / numArcs) % 1;
+      const side = i % 2 === 0 ? 1 : -1;
+      
+      // Move along the base
+      const baseX = side * (20 + arcT * 50);
+      const baseY = -20 - Math.sin(arcT * Math.PI) * 5;
+      
+      // Only show arcs randomly
+      if (Math.sin(t * 5 + i * 2) > 0.5) {
+        ctx.strokeStyle = `rgba(0, 255, 255, ${0.4 * tier3Prog * (1 - arcT)})`;
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(0, 0, plumeRadius, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(baseX, baseY);
         
-        ctx.translate(-xOffset, -yOffset); // restore local
+        // Jittery path
+        let curX = baseX;
+        let curY = baseY;
+        for (let j = 0; j < 3; j++) {
+          curX += side * (2 + Math.random() * 5);
+          curY += (Math.random() - 0.5) * 4;
+          ctx.lineTo(curX, curY);
+        }
+        ctx.stroke();
       }
-      ctx.restore();
-    };
-
-    drawPlume(-prongOffset - 20);
-    drawPlume(-prongOffset + 20);
-    drawPlume(prongOffset - 20);
-    drawPlume(prongOffset + 20);
+    }
 
     ctx.restore();
   }
@@ -2990,77 +2899,46 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
 
     ctx.restore();
   }
-  // Tier 6 (Ground-Level Plasma Ring)
+  // Tier 6 (Hovering Ground Satellites)
   if (tier6Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier6Prog;
-    ctx.globalCompositeOperation = "lighter";
     
-    const ringY = -15; // Just slightly above the base pad
-    const ringRadiusX = 140;
-    const ringRadiusY = 40; // Perspective squash
-    const ringThickness = 12;
+    const ringY = -10;
+    const ringRadiusX = 160;
+    const ringRadiusY = 50;
+    const numSatellites = 4;
+    const orbitSpeed = 2;
 
-    const pulse = 0.5 + 0.5 * Math.sin(t * 8);
-
-    // Render the ring in two halves (back and front) to give proper depth if we wanted, 
-    // but since it's an overlay effect, just drawing it as a full ellipse is usually fine,
-    // though spinning elements on it look better sorted.
-    
-    // Base glowing ring
-    ctx.lineWidth = ringThickness;
-    ctx.strokeStyle = `rgba(0, 255, 255, ${0.4 * tier6Prog})`;
-    ctx.beginPath();
-    ctx.ellipse(0, ringY, ringRadiusX, ringRadiusY, 0, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.lineWidth = ringThickness * 0.4;
-    ctx.strokeStyle = `rgba(255, 255, 255, ${0.8 * tier6Prog})`;
-    ctx.beginPath();
-    ctx.ellipse(0, ringY, ringRadiusX, ringRadiusY, 0, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Spinning plasma nodes on the ring
-    const numNodes = 6;
-    for (let i = 0; i < numNodes; i++) {
-        const angle = t * 5 + (i * Math.PI * 2) / numNodes;
-        
+    for (let i = 0; i < numSatellites; i++) {
+        const angle = t * orbitSpeed + (i * Math.PI * 2) / numSatellites;
         const px = Math.cos(angle) * ringRadiusX;
         const py = ringY + Math.sin(angle) * ringRadiusY;
-        const depth = Math.sin(angle); // -1 is back, 1 is front
+        const depth = Math.sin(angle);
         
-        const nodeScale = 0.8 + depth * 0.4; // Slightly bigger in front
+        // Satellites orbiting far below Tier 4 rings
+        const scale = 0.8 + depth * 0.4;
         
         ctx.save();
         ctx.translate(px, py);
-        ctx.scale(nodeScale, nodeScale);
+        ctx.scale(scale, scale * 0.3); // Flat discs
         
-        // Intense glow
-        const nodeGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 25);
-        nodeGlow.addColorStop(0, `rgba(255, 255, 255, ${1.0 * tier6Prog})`);
-        nodeGlow.addColorStop(0.3, `rgba(0, 255, 255, ${0.8 * tier6Prog})`);
-        nodeGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
-        
-        ctx.fillStyle = nodeGlow;
+        // Base structure of satellite
+        ctx.fillStyle = "#222";
         ctx.beginPath();
-        ctx.arc(0, 0, 25, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Core
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        ctx.arc(0, 0, 15, 0, Math.PI * 2);
         ctx.fill();
         
-        // Occasional horizontal spark to next node
-        if (Math.random() > 0.8) {
-            const nextAngle = angle + (Math.PI * 2) / numNodes;
-            const nx = Math.cos(nextAngle) * ringRadiusX - px;
-            const ny = ringY + Math.sin(nextAngle) * ringRadiusY - py;
-            
-            // Draw relative to this node
-            drawLightning(0, 0, nx, ny, 3, 8, "rgba(0, 255, 255, 0.7)", 2);
-        }
+        // Glow on top
+        const satGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 20);
+        satGlow.addColorStop(0, `rgba(255, 255, 255, ${0.8 * tier6Prog})`);
+        satGlow.addColorStop(0.4, `rgba(0, 255, 255, ${0.6 * tier6Prog})`);
+        satGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
+        
+        ctx.fillStyle = satGlow;
+        ctx.beginPath();
+        ctx.arc(0, 0, 20, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.restore();
     }
@@ -3068,108 +2946,57 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // Tier 7 (Underground Lightning Roots)
+    // Tier 7 (Wide Energy Floor/Aura)
   if (tier7Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier7Prog * (1.0 - 0.5 * tier8Prog);
+    ctx.globalCompositeOperation = "lighter";
     
-    // We draw beneath the base (which is mostly at y=0 or y=-20)
-    // The roots spread outwards and downwards
+    const auraY = -10;
+    const auraRadius = 250;
     
-    const numRoots = 12;
-    for (let i = 0; i < numRoots; i++) {
-        ctx.save();
-        
-        const angle = (i * Math.PI * 2) / numRoots + Math.sin(t * 0.5 + i) * 0.2;
-        const speed = t * 2 + i * 1.5;
-        
-        // Pulse energy traveling along the root
-        const energyT = speed % 1;
-        
-        // Path generation
-        const pts = [{x: 0, y: -10}]; // Start near center base
-        
-        let cx = Math.cos(angle) * 40;
-        let cy = -10 + Math.sin(angle) * 10; // slightly elliptical perspective
-        
-        pts.push({x: cx, y: cy});
-        
-        let branchLen = 20 + Math.random() * 20;
-        let currentAngle = angle;
-        
-        for (let j = 0; j < 4; j++) {
-            currentAngle += (Math.random() - 0.5) * 1.5;
-            // Go outwards and "downwards" into the earth
-            cx += Math.cos(currentAngle) * branchLen;
-            cy += Math.abs(Math.sin(currentAngle)) * branchLen * 0.3 + 10;
-            
-            pts.push({x: cx, y: cy});
-            branchLen *= 0.8;
-        }
-
-        // Draw the root glowing crack
-        ctx.strokeStyle = `rgba(0, 150, 200, ${0.4 * tier7Prog})`;
-        ctx.lineWidth = 4;
-        ctx.lineJoin = "round";
-        ctx.lineCap = "round";
+    ctx.save();
+    ctx.translate(0, auraY);
+    ctx.scale(1, 0.35); // Perspective
+    ctx.rotate(t * 0.5); // Rotate slowly
+    
+    // Create complex rotating aura
+    const gradient = ctx.createRadialGradient(0, 0, 50, 0, 0, auraRadius);
+    gradient.addColorStop(0, `rgba(0, 255, 255, ${0.6 * tier7Prog})`);
+    gradient.addColorStop(0.5, `rgba(0, 150, 255, ${0.3 * tier7Prog})`);
+    gradient.addColorStop(1, "rgba(0, 50, 150, 0)");
+    
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, auraRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Add rings and runes
+    ctx.strokeStyle = `rgba(0, 255, 255, ${0.4 * tier7Prog})`;
+    ctx.lineWidth = 2;
+    
+    // Inner ring
+    ctx.beginPath();
+    ctx.arc(0, 0, auraRadius * 0.4, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Outer dashed ring
+    ctx.setLineDash([15, 20]);
+    ctx.beginPath();
+    ctx.arc(0, 0, auraRadius * 0.8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Rotating geometric lines
+    const numLines = 12;
+    for (let i = 0; i < numLines; i++) {
+        const angle = (i * Math.PI * 2) / numLines;
         ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for(let j=1; j<pts.length; j++) {
-            ctx.lineTo(pts[j].x, pts[j].y);
-        }
+        ctx.moveTo(Math.cos(angle) * auraRadius * 0.4, Math.sin(angle) * auraRadius * 0.4);
+        ctx.lineTo(Math.cos(angle) * auraRadius * 0.75, Math.sin(angle) * auraRadius * 0.75);
         ctx.stroke();
-
-        // Draw the surging energy pulse
-        if (pts.length > 2) {
-            ctx.strokeStyle = `rgba(0, 255, 255, ${0.8 * tier7Prog * (1 - energyT)})`;
-            ctx.lineWidth = 6 * (1 - energyT);
-            ctx.beginPath();
-            
-            // Calculate where the pulse is
-			const targetIdx = Math.floor(energyT * (pts.length - 1));
-			if (targetIdx >= 0 && targetIdx < pts.length - 1) {
-                const fraction = (energyT * (pts.length - 1)) % 1;
-                const p1 = pts[targetIdx];
-                const p2 = pts[targetIdx + 1];
-                
-                const px = p1.x + (p2.x - p1.x) * fraction;
-                const py = p1.y + (p2.y - p1.y) * fraction;
-                
-                // Draw a short segment for the pulse
-                ctx.moveTo(p1.x, p1.y);
-                ctx.lineTo(px, py);
-                ctx.stroke();
-                
-                // Add a bright node at the head of the pulse
-                ctx.fillStyle = `rgba(255, 255, 255, ${0.9 * tier7Prog})`;
-                ctx.beginPath();
-                ctx.arc(px, py, 3, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.shadowColor = "rgba(0, 255, 255, 1)";
-                ctx.shadowBlur = 10;
-                ctx.fill();
-                ctx.shadowBlur = 0;
-            }
-        }
-        
-        ctx.restore();
     }
     
-    // Add a subtle glowing crater/aura underneath the whole structure
-    const groundGlow = ctx.createRadialGradient(0, -10, 0, 0, -10, 150);
-    const groundPulse = 0.5 + 0.5 * Math.sin(t * 4);
-    groundGlow.addColorStop(0, `rgba(0, 255, 255, ${(0.1 + groundPulse * 0.1) * tier7Prog})`);
-    groundGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
-    
-    ctx.fillStyle = groundGlow;
-    // Drawn as a squashed ellipse for perspective
-    ctx.save();
-    ctx.translate(0, -10);
-    ctx.scale(1, 0.3);
-    ctx.beginPath();
-    ctx.arc(0, 0, 200, 0, Math.PI * 2);
-    ctx.fill();
     ctx.restore();
 
     ctx.restore();
