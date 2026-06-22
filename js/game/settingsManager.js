@@ -501,11 +501,19 @@ class SettingsManager {
     // Check currencies
     Object.values(CURRENCIES).forEach(cKey => {
         dynamicKeysToCheck.push(`currency_${cKey}`);
+        dynamicKeysToCheck.push(`currency_${cKey}_popups`);
+        dynamicKeysToCheck.push(`currency_${cKey}_automated`);
+        dynamicKeysToCheck.push(`currency_${cKey}_pinned`);
+        dynamicKeysToCheck.push(`currency_${cKey}_materials_dropdown_open`);
     });
 
     // Check resource levels
     RESOURCE_REGISTRY.forEach(config => {
         dynamicKeysToCheck.push(`level_${config.key}`);
+        const prefix = config.key.replace('_levels', '');
+        dynamicKeysToCheck.push(`level_${prefix}_pinned`);
+        dynamicKeysToCheck.push(`level_${prefix}_popups`);
+        dynamicKeysToCheck.push(`level_${prefix}_automated`);
     });
 
     // Check pinned areas
