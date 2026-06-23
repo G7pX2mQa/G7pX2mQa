@@ -10,7 +10,7 @@ let lastTime = 0;
 let time = 0;
 
 let currentLevelNum = 0;
-let levelUpAnimTime = 0;
+let levelUpAnimTimes = {};
 let tierUpAnimTime = 0;
 let previousTier = 0;
 let globalDiskAngle = 0; // Integrated angle for smooth accretion disk rotation
@@ -153,8 +153,8 @@ export function stopCanvasLoop() {
   tierUpAnimTime = 0;
 }
 
-export function triggerLevelUpAnimation() {
-  levelUpAnimTime = 1.0;
+export function triggerLevelUpAnimation(id) {
+  levelUpAnimTimes[id] = 1.0;
 }
 
 export function checkTierUp(id, oldLevelBn, newLevelBn) {
@@ -190,7 +190,11 @@ function loop(currentTime) {
   lastTime = currentTime;
   time += dt;
 
-  if (levelUpAnimTime > 0) levelUpAnimTime -= dt;
+  for (const id in levelUpAnimTimes) {
+    if (levelUpAnimTimes[id] > 0) {
+      levelUpAnimTimes[id] -= dt;
+    }
+  }
   if (tierUpAnimTime > 0) tierUpAnimTime -= dt;
 
   // Smoothly integrate global disk angle
@@ -282,8 +286,9 @@ function draw(ctx, width, height, t) {
     );
   }
   ctx.restore();
-  if (levelUpAnimTime > 0) {
-    const alpha = Math.max(0, levelUpAnimTime);
+  const currentBuildingFlashAlpha = levelUpAnimTimes[currentBuildingId] || 0;
+  if (currentBuildingFlashAlpha > 0) {
+    const alpha = Math.max(0, currentBuildingFlashAlpha);
     const grad = ctx.createLinearGradient(0, 0, 0, height);
     grad.addColorStop(0, `rgba(255, 255, 255, 0)`);
     grad.addColorStop(0.5, `rgba(255, 255, 255, ${alpha * 0.5})`);
@@ -2796,39 +2801,30 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
           const r21 = sinY * sinZ + cosY * sinX * cosZ;
           
           // Apply the exact affine transform for the 2D projection
-          ctx.transform(r00, r10, r01, r11, 0, 0);
-          
-          // Z = r20 * cos(a) + r21 * sin(a)
-          // We want to find the angles where Z = 0 (the split between front and back)
-          // Z = 0 => r20 * cos(a) + r21 * sin(a) = 0 => tan(a) = -r20 / r21
-          const theta0 = Math.atan2(-r20, r21);
-          
-          // Check Z at mid-point (theta0 + PI/2)
-          const zAtMid = r20 * Math.cos(theta0 + Math.PI/2) + r21 * Math.sin(theta0 + Math.PI/2);
-          const isMidFront = zAtMid >= 0;
-          
-          let startAngle, endAngle;
-          if (isFrontPass) {
-            startAngle = isMidFront ? theta0 : theta0 + Math.PI;
-            endAngle = startAngle + Math.PI;
-          } else {
-            startAngle = isMidFront ? theta0 + Math.PI : theta0;
-            endAngle = startAngle + Math.PI;
-          }
-          
+          let safeR00 = r00;
+
+          if (Math.abs(safeR00) < 0.0001) safeR00 = safeR00 < 0 ? -0.0001 : 0.0001;
+
+          ctx.save();
+
+          // Apply the exact affine transform for the 2D projection
+          ctx.transform(safeR00, r10, r01, r11, 0, 0);
+
           // Draw the ring
           ctx.strokeStyle = `rgba(0, 255, 255, ${0.8 * tier7Prog})`;
-          ctx.lineWidth = 4;
+          ctx.lineWidth = 8;
           ctx.beginPath();
           ctx.arc(0, 0, ringRadius, startAngle, endAngle);
           ctx.stroke();
 
           // Inner core of the ring
           ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * tier7Prog})`;
-          ctx.lineWidth = 1.5;
+          ctx.lineWidth = 3;
           ctx.beginPath();
           ctx.arc(0, 0, ringRadius, startAngle, endAngle);
           ctx.stroke();
+          
+          ctx.restore(); // Restore so we draw nodes outside of the 3D transform
 
           // Add energy nodes on the ring
           const numNodes = 3;
@@ -2855,24 +2851,36 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
                   const nx = Math.cos(nodeAngle) * ringRadius;
                   const ny = Math.sin(nodeAngle) * ringRadius;
                   
-                  ctx.fillStyle = "#ffffff";
+                  // Project mathematically using the exact same matrix we used for the arc
+                  const projX = safeR00 * nx + r01 * ny;
+                  const projY = r10 * nx + r11 * ny;
+                  
+                  // Same depth scaling technique as Tier 5
+                  const pScale = 0.85 + nz * 0.35;
+                  
+                  ctx.save();
+                  ctx.translate(projX, projY);
+                  ctx.scale(pScale, pScale);
+                  
+                  // Glow for nodes matching Tier 5 particles
+                  const sglow = ctx.createRadialGradient(0, 0, 0, 0, 0, 16);
+                  sglow.addColorStop(0, "rgba(255, 255, 255, 1.0)");
+                  sglow.addColorStop(0.3, "rgba(0, 255, 255, 0.9)");
+                  sglow.addColorStop(1, "rgba(0, 150, 255, 0)");
+                  ctx.fillStyle = sglow;
                   ctx.beginPath();
-                  ctx.arc(nx, ny, 4, 0, Math.PI * 2);
+                  ctx.arc(0, 0, 16, 0, Math.PI * 2);
                   ctx.fill();
 
-                  // Glow for nodes
-                  const nodeGlow = ctx.createRadialGradient(nx, ny, 0, nx, ny, 15);
-                  nodeGlow.addColorStop(0, `rgba(255, 255, 255, ${0.8 * tier7Prog})`);
-                  nodeGlow.addColorStop(0.5, `rgba(0, 255, 255, ${0.5 * tier7Prog})`);
-                  nodeGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
-                  ctx.fillStyle = nodeGlow;
+                  // Inner core
+                  ctx.fillStyle = "#fff";
                   ctx.beginPath();
-                  ctx.arc(nx, ny, 15, 0, Math.PI * 2);
+                  ctx.arc(0, 0, 5, 0, Math.PI * 2);
                   ctx.fill();
+                  
+                  ctx.restore();
               }
           }
-          
-          ctx.restore();
       }
       
       ctx.restore();
