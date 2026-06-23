@@ -1685,80 +1685,47 @@ function calculateSurgeLevelJump(startLevelNum, wavesBn) {
   let barLevel = startLevelNum;
   let req = getSurgeRequirement(barLevel);
   let changed = false;
-
-  // Optimization for massive waves: jump to the approximate level
-  const logCurrentNum = getSafeLog10Number(currentWaves);
-  const logReqNum = getSafeLog10Number(req);
-
-  if (logCurrentNum != -1 && logReqNum != -1 && logCurrentNum > logReqNum + 1) {
-    try {
-      // Binary search for the highest target level we can afford
-      let low = Number(barLevel);
-      let high = 4500000000000;
-      let best = low;
-      
-      const logCurrentNumber = Number(logCurrentNum);
-      
-      const getLogReqForLevel = (lvl) => {
-        let logVal = lvl;
-        if (lvl > 1e12) {
-          logVal += 5 * Math.exp(2.36034e-10 * (lvl - 1e12));
-        }
-        return logVal;
-      };
-
-      for (let i = 0; i < 60; i++) {
-        const mid = Math.floor((low + high) / 2);
-        const midLog = getLogReqForLevel(mid);
-        // Cost is approximately 10^(mid+1) / 9, which is ~10^mid. We check if midLog <= logCurrentNumber
-        if (midLog <= logCurrentNumber) {
-          best = mid;
-          low = mid + 1;
-        } else {
-          high = mid - 1;
-        }
-      }
-
-      let targetLevel = Number(best);
-      let attempts = 0;
-      while (targetLevel > barLevel && attempts < 5) {
-        const nextReq = getSurgeRequirement(targetLevel);
-        const cost = nextReq.sub(req).div(BigNum.fromInt(9));
-        if (currentWaves.cmp(cost) >= 0) {
-          currentWaves = currentWaves.sub(cost);
-          barLevel = targetLevel;
-          if (barLevel >= 4500000000000) {
-            barLevel = Infinity;
-            req = BigNum.fromAny('Infinity');
-          }
-          changed = true;
-          if (barLevel !== Infinity) req = nextReq;
-          break;
-        }
-        targetLevel--;
-        attempts++;
-      }
-    } catch {}
-  }
-
   let safety = 0;
+  const MAX_ITERATIONS = 5000;
 
-  while (safety < 100) {
+  while (true) {
     if (currentWaves.cmp(req) < 0) break;
 
+    const logCurrentNum = getSafeLog10Number(currentWaves);
+    const logReqNum = getSafeLog10Number(req);
+    
+    if (logCurrentNum != -1 && logReqNum != -1 && logCurrentNum - logReqNum > 2 && barLevel < 1e12) {
+        let approxLevels = Math.floor(logCurrentNum - logReqNum);
+        let safeJump = Math.max(1, approxLevels - 2);
+        
+        let targetLevel = barLevel + safeJump;
+        if (targetLevel > 1e12) targetLevel = 1e12;
+        
+        const nextReq = getSurgeRequirement(targetLevel);
+        const cost = nextReq.sub(req).div(BigNum.fromInt(9));
+        
+        if (currentWaves.cmp(cost) >= 0) {
+            currentWaves = currentWaves.sub(cost);
+            barLevel = targetLevel;
+            req = nextReq;
+            changed = true;
+            continue;
+        }
+    }
+    
     currentWaves = currentWaves.sub(req);
-
     barLevel += 1;
     if (barLevel >= 4500000000000) {
       barLevel = Infinity;
       break;
     }
     changed = true;
-
     req = getSurgeRequirement(barLevel);
+    
     safety++;
+    if (safety >= MAX_ITERATIONS) break;
   }
-  
+
   return { level: barLevel, remainingWaves: currentWaves, changed, safety };
 }
 
@@ -1792,9 +1759,6 @@ function updateWaveBar() {
 
       updateResetPanel();
 
-      if (result.safety >= 100) {
-        setTimeout(updateWaveBar, 0);
-      }
   }
   updateBlockBigCoinsStatus();
 }
