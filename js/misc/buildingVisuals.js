@@ -153,7 +153,7 @@ export function stopCanvasLoop() {
   tierUpAnimTime = 0;
 }
 
-xport function triggerLevelUpAnimation(id) {
+export function triggerLevelUpAnimation(id) {
   levelUpAnimTimes[id] = 1.0;
 }
 
@@ -2777,7 +2777,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
           ctx.save();
           
           // Rings have different, nested radii
-          const ringRadius = 70 + i * 20;
+          const ringRadius = 90 + i * 25;
           
           // Constrain angles for 3D rotation so they don't clip into the upright Tier 4 Tesla Coil
           // We restrict angleX (tilt) to a small range (e.g., -PI/8 to PI/8)
@@ -2793,12 +2793,17 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
           const sinZ = Math.sin(angleZ), cosZ = Math.cos(angleZ);
           
           // Elements of the combined rotation matrix R = Ry * Rx * Rz
-          const r00 = cosY * cosZ + sinY * sinX * sinZ;
+          let r00 = cosY * cosZ + sinY * sinX * sinZ;
           const r01 = -cosY * sinZ + sinY * sinX * cosZ;
           const r10 = cosX * sinZ;
           const r11 = cosX * cosZ;
           const r20 = -sinY * cosZ + cosY * sinX * sinZ;
           const r21 = sinY * sinZ + cosY * sinX * cosZ;
+          
+          // Apply minimum width to prevent poofing
+          if (Math.abs(r00) < 0.01) {
+            r00 = r00 < 0 ? -0.01 : 0.01;
+          }
           
           // Apply the exact affine transform for the 2D projection
           ctx.transform(r00, r10, r01, r11, 0, 0);
@@ -2835,6 +2840,8 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
           ctx.arc(0, 0, ringRadius, startAngle, endAngle);
           ctx.stroke();
 
+          ctx.restore(); // Restore here so nodes aren't squashed
+
           // Add energy nodes on the ring
           const numNodes = 3;
           for (let j = 0; j < numNodes; j++) {
@@ -2843,12 +2850,6 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
               // Normalize nodeAngle to [0, 2PI]
               let normNodeAngle = nodeAngle % (Math.PI * 2);
               if (normNodeAngle < 0) normNodeAngle += Math.PI * 2;
-              
-              let normStart = startAngle % (Math.PI * 2);
-              if (normStart < 0) normStart += Math.PI * 2;
-              
-              let normEnd = endAngle % (Math.PI * 2);
-              if (normEnd < 0) normEnd += Math.PI * 2;
 
               let nodeIsFront = false;
               
@@ -2860,24 +2861,32 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
                   const nx = Math.cos(nodeAngle) * ringRadius;
                   const ny = Math.sin(nodeAngle) * ringRadius;
                   
-                  ctx.fillStyle = "#ffffff";
+                  const px = r00 * nx + r01 * ny;
+                  const py = r10 * nx + r11 * ny;
+                  
+                  ctx.save();
+                  ctx.translate(px, py);
+                  
+                  const pScale = 0.85 + nz * 0.35;
+                  ctx.scale(pScale, pScale);
+                  
+                  const sglow = ctx.createRadialGradient(0, 0, 0, 0, 0, 16);
+                  sglow.addColorStop(0, "rgba(255, 255, 255, 1.0)");
+                  sglow.addColorStop(0.3, "rgba(0, 255, 255, 0.9)");
+                  sglow.addColorStop(1, "rgba(0, 150, 255, 0)");
+                  ctx.fillStyle = sglow;
                   ctx.beginPath();
-                  ctx.arc(nx, ny, 4, 0, Math.PI * 2);
+                  ctx.arc(0, 0, 16, 0, Math.PI * 2);
                   ctx.fill();
 
-                  // Glow for nodes
-                  const nodeGlow = ctx.createRadialGradient(nx, ny, 0, nx, ny, 15);
-                  nodeGlow.addColorStop(0, `rgba(255, 255, 255, ${0.8 * tier7Prog})`);
-                  nodeGlow.addColorStop(0.5, `rgba(0, 255, 255, ${0.5 * tier7Prog})`);
-                  nodeGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
-                  ctx.fillStyle = nodeGlow;
+                  ctx.fillStyle = "#fff";
                   ctx.beginPath();
-                  ctx.arc(nx, ny, 15, 0, Math.PI * 2);
+                  ctx.arc(0, 0, 5, 0, Math.PI * 2);
                   ctx.fill();
+                  
+                  ctx.restore();
               }
           }
-          
-          ctx.restore();
       }
       
       ctx.restore();
