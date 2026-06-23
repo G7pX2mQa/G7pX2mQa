@@ -309,9 +309,6 @@ export function getRpMult() {
     } catch (e) {
         // Ignore
     }
-    if (typeof applyStatMultiplierOverride === 'function') {
-        return applyStatMultiplierOverride('rp', base);
-    }
     return base;
 }
 
