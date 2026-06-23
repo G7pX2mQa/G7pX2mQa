@@ -2,6 +2,7 @@ import { BigNum, approxLog10BigNum, bigNumFromLog10 } from '../util/bigNum.js';
 import { getActiveSlot, isStorageKeyLocked } from '../util/storage.js';
 import { getLabLevel, setLabLevel, getRpMult } from '../ui/merchantTabs/labTab.js';
 import { formatMultForUi, formatNumber } from '../util/numFormat.js';
+import { applyStatMultiplierOverride } from '../util/debugPanel.js';
 import { 
     addExternalCoinMultiplierProvider, 
     addExternalXpGainMultiplierProvider
@@ -601,7 +602,10 @@ export function tickResearch(dt) {
         return;
     }
 
-    const mult = getRpMult();
+    let mult = getRpMult();
+    if (typeof applyStatMultiplierOverride === 'function') {
+        mult = applyStatMultiplierOverride('rp', mult);
+    }
     if (mult.isZero?.()) return;
 
     // RP per second = 1 * Multiplier
