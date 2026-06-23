@@ -557,7 +557,10 @@ export function calculateOfflineRewards(seconds) {
     const rewards = {};
 
     // --- Research Lab Progress ---
-    const rpMult = getRpMult ? getRpMult() : BigNum.fromInt(0);
+    let rpMult = getRpMult ? getRpMult() : BigNum.fromInt(0);
+    if (typeof applyStatMultiplierOverride === 'function') {
+        rpMult = applyStatMultiplierOverride('rp', rpMult);
+    }
     if (rpMult && !rpMult.isZero()) {
         const totalRp = rpMult.mulBigNumInteger(secondsBn);
         
