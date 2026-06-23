@@ -1472,7 +1472,7 @@ function handlePurchase(type) {
         document.dispatchEvent(new CustomEvent('ccc:buildings:changed'));
         
         import('../../misc/buildingVisuals.js').then(module => {
-            module.triggerLevelUpAnimation();
+            module.triggerLevelUpAnimation(id);
             module.checkTierUp(id, oldLevel, newLevel);
         });
         
