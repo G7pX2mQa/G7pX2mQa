@@ -4290,6 +4290,10 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
     applyHmEvolutionMeta(upg, origEvol);
     ensureUpgradeScaling(upg);
 
+    // If targetEvol is exactly 1 tier above current, we always allow it since evolving is free
+    // and we are already ready to evolve.
+    if (targetEvol <= currentEvolutions + 1) return true;
+
     const affordable = outcome.count instanceof BigNum ? outcome.count : BigNum.fromAny(outcome.count ?? 0);
     return affordable.cmp(levelsToEvaluate) >= 0;
   };
