@@ -4,6 +4,7 @@ import { getActiveSlot, CURRENCIES } from '../util/storage.js';
 import { isLabUnlocked } from './surgeEffects.js';
 import { RESOURCE_REGISTRY } from './offlinePanel.js';
 import { AREA_KEYS } from './upgrades.js';
+import { MAP_NODES } from './mapNodesData.js';
 import { getHighestMutationLevel } from './mutationSystem.js';
 import { setNumberNotation } from '../util/numFormat.js';
 import { IS_MOBILE } from '../main.js';
@@ -517,8 +518,8 @@ class SettingsManager {
     });
 
     // Check pinned areas
-    Object.values(AREA_KEYS).forEach(areaKey => {
-        dynamicKeysToCheck.push(`area_pinned_${areaKey}`);
+    MAP_NODES.forEach(node => {
+        dynamicKeysToCheck.push(`area_pinned_${node.id}`);
     });
 
     dynamicKeysToCheck.forEach(key => {
