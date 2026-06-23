@@ -610,6 +610,9 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
     if (id === "crystal") {
       offset = 180 - tier * 8;
     }
+    if (id === "copper") {
+      offset = 180 + tier * 8;
+    }
 
     levelText.style.position = "absolute";
     // Calculate top offset based on parent container offset (which might be causing the drift)
