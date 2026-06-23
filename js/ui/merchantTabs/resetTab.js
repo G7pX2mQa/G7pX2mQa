@@ -605,6 +605,7 @@ function computeSurgeWaves(xpLevelBn, coinsBn, goldBn, magicBn, mpBn) {
   if (!Number.isFinite(logTotal)) return BigNum.fromAny("Infinity");
   
   let baseWaves = bigNumFromLog10(logTotal).floorToInteger();
+  if (baseWaves.cmp(BN.fromInt(10)) < 0) return BN.fromInt(10);
   return bank.waves?.mult?.applyTo?.(baseWaves) ?? baseWaves;
 }
 
@@ -1526,7 +1527,6 @@ export function performSurgeReset() {
   if (getXpLevelNumber() < 201) return false;
   
   const reward = resetState.pendingWaves.clone?.() ?? resetState.pendingWaves;
-  if (reward.isZero?.()) return false;
 
   const slot = ensureResetSlot();
   
@@ -2601,10 +2601,6 @@ function updateSurgeCard() {
     return;
   }
   
-  if (resetState.pendingWaves.isZero?.()) {
-    updateResetButtonContent(el.btn, { disabled: true, msg: 'Collect more coins/resources to earn Waves from a Surge reset' });
-    return;
-  }
   
   updateResetButtonContent(el.btn, { disabled: false }, WAVES_ICON_SRC, resetState.pendingWaves, true);
 }
