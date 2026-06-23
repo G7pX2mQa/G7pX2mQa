@@ -603,16 +603,16 @@ function drawBuilding(ctx, w, h, t, id, tier, prevTier, animProgress) {
   // Update HTML element position
   const levelText = document.getElementById("building-detail-level-text");
   if (levelText) {
-    let offset = 180;
-    if (id === "core") {
-      offset = 150 - tier * 2;
-    }
-    if (id === "crystal") {
-      offset = 180 - tier * 8;
-    }
-    if (id === "copper") {
-      offset = 180 + tier * 8;
-    }
+    const getOffset = (bId, bTier) => {
+      if (bId === "core") return 150 - bTier * 2;
+      if (bId === "crystal") return 180 - bTier * 8;
+      if (bId === "copper") return 180 + bTier * 8;
+      return 180;
+    };
+
+    const targetOffset = getOffset(id, tier);
+    const startOffset = prevTier >= 0 ? getOffset(id, prevTier) : getOffset(id, 0);
+    const offset = startOffset + (targetOffset - startOffset) * animProgress;
 
     levelText.style.position = "absolute";
     // Calculate top offset based on parent container offset (which might be causing the drift)
