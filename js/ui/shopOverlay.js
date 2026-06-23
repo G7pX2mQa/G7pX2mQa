@@ -122,7 +122,7 @@ function resolveUpgradeId(upgLike) {
 function isBuyCheapExcluded(upgDef) {
     if (!upgDef) return false;
     const upgId = resolveUpgradeId(upgDef);
-    return (upgDef.area === 'starter_cove' && [3, 4, 5, 6].includes(upgId)) ||
+    return (upgDef.area === 'starter_cove' && [1, 3, 4, 5, 6].includes(upgId)) ||
            (upgDef.area === 'underwater_cavern' && [5, 9].includes(upgId)) ||
            (upgDef.area === 'automation' && [1, 10, 11, 12].includes(upgId));
 }
