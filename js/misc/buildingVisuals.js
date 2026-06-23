@@ -2681,38 +2681,60 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     const yPos = -40 - prongHeight; // Top of the prongs
     drawLightning(-prongOffset, yPos, prongOffset, yPos, 4, 10, "rgba(0, 200, 255, 0.6)", 1.5);
   }
-  // Tier 3 (Low-level Surface Arcs)
+  // Tier 3 (Hovering Energy Crystals)
   if (tier3Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier3Prog;
 
-    // Faint, slow-crawling static electricity arcs that hug the surface of the base
-    const numArcs = 8;
-    for (let i = 0; i < numArcs; i++) {
-      const arcT = (t * 0.2 + i / numArcs) % 1;
-      const side = i % 2 === 0 ? 1 : -1;
+    const numCrystals = 5;
+    const orbitRadius = 60;
+    const orbitSpeed = 1.5;
+    const centerY = -100; // Hovering high above the prongs and base
+
+    for (let i = 0; i < numCrystals; i++) {
+      const angle = t * orbitSpeed + (i * Math.PI * 2) / numCrystals;
+      const px = Math.cos(angle) * orbitRadius;
+      // Slight vertical bobbing
+      const py = centerY + Math.sin(t * 2 + i) * 15;
+      const depth = Math.sin(angle);
       
-      // Move along the base
-      const baseX = side * (20 + arcT * 50);
-      const baseY = -20 - Math.sin(arcT * Math.PI) * 5;
-      
-      // Only show arcs randomly
-      if (Math.sin(t * 5 + i * 2) > 0.5) {
-        ctx.strokeStyle = `rgba(0, 255, 255, ${0.4 * tier3Prog * (1 - arcT)})`;
+      // Pseudo-3D scale based on depth
+      const scale = 0.8 + depth * 0.4;
+
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.scale(scale, scale);
+
+      // Glow behind the crystal
+      const crystalGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 15);
+      crystalGlow.addColorStop(0, `rgba(0, 255, 255, ${0.8 * tier3Prog})`);
+      crystalGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
+      ctx.fillStyle = crystalGlow;
+      ctx.beginPath();
+      ctx.arc(0, 0, 15, 0, Math.PI * 2);
+      ctx.fill();
+
+      // The crystal shape (diamond)
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.moveTo(0, -8);
+      ctx.lineTo(6, 0);
+      ctx.lineTo(0, 8);
+      ctx.lineTo(-6, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      // Occasional small arcs from crystal to center or outward
+      if (Math.random() > 0.95) {
+        ctx.strokeStyle = "rgba(100, 255, 255, 0.6)";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(baseX, baseY);
-        
-        // Jittery path
-        let curX = baseX;
-        let curY = baseY;
-        for (let j = 0; j < 3; j++) {
-          curX += side * (2 + Math.random() * 5);
-          curY += (Math.random() - 0.5) * 4;
-          ctx.lineTo(curX, curY);
-        }
+        ctx.moveTo(0, 0);
+        ctx.lineTo((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
         ctx.stroke();
       }
+
+      ctx.restore();
     }
 
     ctx.restore();
@@ -2903,46 +2925,57 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
 
     ctx.restore();
   }
-  // Tier 6 (Hovering Ground Satellites)
+  // Tier 6 (Plasma Crown)
   if (tier6Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier6Prog;
     
-    const ringY = -10;
-    const ringRadiusX = 160;
-    const ringRadiusY = 50;
-    const numSatellites = 4;
-    const orbitSpeed = 2;
+    const orbY = -40 - 8 * 20 - 10; // orb is at y = -210
+    const ringRadiusX = 70;
+    const ringRadiusY = 20;
+    const numSatellites = 6;
+    const orbitSpeed = 3;
 
     for (let i = 0; i < numSatellites; i++) {
         const angle = t * orbitSpeed + (i * Math.PI * 2) / numSatellites;
         const px = Math.cos(angle) * ringRadiusX;
-        const py = ringY + Math.sin(angle) * ringRadiusY;
+        // Orbiting around the top orb
+        const py = orbY + Math.sin(angle) * ringRadiusY + Math.sin(t * 5 + i) * 10;
         const depth = Math.sin(angle);
         
-        // Satellites orbiting far below Tier 4 rings
-        const scale = 0.8 + depth * 0.4;
+        // Pseudo-3D scale
+        const scale = 0.6 + depth * 0.4;
         
         ctx.save();
         ctx.translate(px, py);
-        ctx.scale(scale, scale * 0.3); // Flat discs
+        ctx.scale(scale, scale); 
         
-        // Base structure of satellite
-        ctx.fillStyle = "#222";
+        // Crown node glow
+        const nodeGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 25);
+        nodeGlow.addColorStop(0, `rgba(255, 255, 255, ${1.0 * tier6Prog})`);
+        nodeGlow.addColorStop(0.4, `rgba(0, 255, 255, ${0.8 * tier6Prog})`);
+        nodeGlow.addColorStop(1, "rgba(0, 200, 255, 0)");
+        
+        ctx.fillStyle = nodeGlow;
         ctx.beginPath();
-        ctx.arc(0, 0, 15, 0, Math.PI * 2);
+        ctx.arc(0, 0, 25, 0, Math.PI * 2);
         ctx.fill();
-        
-        // Glow on top
-        const satGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 20);
-        satGlow.addColorStop(0, `rgba(255, 255, 255, ${0.8 * tier6Prog})`);
-        satGlow.addColorStop(0.4, `rgba(0, 255, 255, ${0.6 * tier6Prog})`);
-        satGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
-        
-        ctx.fillStyle = satGlow;
+
+        // Node core
+        ctx.fillStyle = "#ffffff";
         ctx.beginPath();
-        ctx.arc(0, 0, 20, 0, Math.PI * 2);
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
         ctx.fill();
+
+        // Connect nodes to the orb with arcs
+        if (Math.random() > 0.8) {
+          ctx.strokeStyle = `rgba(150, 255, 255, ${0.5 * tier6Prog})`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(-px + (Math.random() - 0.5) * 10, orbY - py + (Math.random() - 0.5) * 10);
+          ctx.stroke();
+        }
 
         ctx.restore();
     }
@@ -2950,55 +2983,65 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-    // Tier 7 (Wide Energy Floor/Aura)
+  // Tier 7 (Airborne Forcefield Dome)
   if (tier7Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier7Prog * (1.0 - 0.5 * tier8Prog);
     ctx.globalCompositeOperation = "lighter";
     
-    const auraY = -10;
-    const auraRadius = 250;
+    const domeY = -150; // High above the base
+    const domeRadius = 120;
     
     ctx.save();
-    ctx.translate(0, auraY);
-    ctx.scale(1, 0.35); // Perspective
-    ctx.rotate(t * 0.5); // Rotate slowly
+    ctx.translate(0, domeY);
     
-    // Create complex rotating aura
-    const gradient = ctx.createRadialGradient(0, 0, 50, 0, 0, auraRadius);
-    gradient.addColorStop(0, `rgba(0, 255, 255, ${0.6 * tier7Prog})`);
-    gradient.addColorStop(0.5, `rgba(0, 150, 255, ${0.3 * tier7Prog})`);
+    // Base glowing sphere
+    const gradient = ctx.createRadialGradient(0, 0, domeRadius * 0.2, 0, 0, domeRadius);
+    gradient.addColorStop(0, `rgba(0, 255, 255, ${0.2 * tier7Prog})`);
+    gradient.addColorStop(0.8, `rgba(0, 150, 255, ${0.4 * tier7Prog})`);
     gradient.addColorStop(1, "rgba(0, 50, 150, 0)");
     
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(0, 0, auraRadius, 0, Math.PI * 2);
+    ctx.arc(0, 0, domeRadius, 0, Math.PI * 2);
     ctx.fill();
     
-    // Add rings and runes
-    ctx.strokeStyle = `rgba(0, 255, 255, ${0.4 * tier7Prog})`;
-    ctx.lineWidth = 2;
+    // Latitude and Longitude energy lines
+    ctx.strokeStyle = `rgba(0, 255, 255, ${0.6 * tier7Prog})`;
+    ctx.lineWidth = 1.5;
     
-    // Inner ring
-    ctx.beginPath();
-    ctx.arc(0, 0, auraRadius * 0.4, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Outer dashed ring
-    ctx.setLineDash([15, 20]);
-    ctx.beginPath();
-    ctx.arc(0, 0, auraRadius * 0.8, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    
-    // Rotating geometric lines
-    const numLines = 12;
-    for (let i = 0; i < numLines; i++) {
-        const angle = (i * Math.PI * 2) / numLines;
+    // Equator / Latitude rings with rotation
+    const numLatitudes = 5;
+    for (let i = 1; i < numLatitudes; i++) {
+        const latT = (i / numLatitudes) * Math.PI - Math.PI / 2;
+        const currentRadius = Math.cos(latT) * domeRadius;
+        const currentY = Math.sin(latT) * domeRadius;
+        
+        ctx.save();
+        ctx.translate(0, currentY);
+        ctx.scale(1, 0.3); // Perspective squash
+        ctx.rotate(t * 0.5 + i); // Rotate slowly
+        
         ctx.beginPath();
-        ctx.moveTo(Math.cos(angle) * auraRadius * 0.4, Math.sin(angle) * auraRadius * 0.4);
-        ctx.lineTo(Math.cos(angle) * auraRadius * 0.75, Math.sin(angle) * auraRadius * 0.75);
+        ctx.arc(0, 0, currentRadius, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.restore();
+    }
+    
+    // Longitude arches
+    const numLongitudes = 6;
+    for (let i = 0; i < numLongitudes; i++) {
+        const angle = t * 0.8 + (i * Math.PI) / numLongitudes;
+        
+        ctx.save();
+        // We squish it horizontally based on the view angle to create a 3D spinning sphere effect
+        ctx.scale(Math.cos(angle), 1);
+        
+        ctx.beginPath();
+        ctx.arc(0, 0, domeRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.restore();
     }
     
     ctx.restore();
