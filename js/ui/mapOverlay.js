@@ -5,6 +5,7 @@ import { checkAchievements, showDelayedAchievementNotifications } from '../game/
 import { showDelayedGoalNotifications } from './gameProgressBar.js';
 import { IS_MOBILE, currentArea, AREAS, enterArea } from '../main.js';
 import { getCurrentSurgeLevel } from './merchantTabs/resetTab.js';
+import { MAP_NODES } from '../game/mapNodesData.js';
 
 const MAP_NODE_LOCKED_KEY = (id, slot) => `ccc:map:locked:${id}:${slot}`;
 
@@ -23,12 +24,10 @@ export function setNodeLocked(id, locked) {
 }
 
 export function getMapNodes() {
-    return [
-        { id: 'cove', areaId: AREAS.STARTER_COVE, name: 'The Cove', icon: 'img/currencies/coin/coin_plus_base.webp', top: '21%', left: '50%', defaultLocked: false },
-        { id: 'cavern', areaId: AREAS.UNDERWATER_CAVERN, name: 'Underwater Cavern', icon: 'img/currencies/scrap/scrap_plus_base.webp', top: '36%', left: '75%', defaultLocked: true, previousNodeId: 'cove' },
-        { id: 'coral', areaId: null, name: 'Coral Reef', icon: 'img/misc/mysterious_plus_base.webp', top: '51%', left: '25%', defaultLocked: true },
-        { id: 'depths', areaId: null, name: 'Deep Depths', icon: 'img/misc/mysterious_plus_base.webp', top: '85%', left: '50%', defaultLocked: true }
-    ];
+    return MAP_NODES.map(node => ({
+        ...node,
+        areaId: node.areaKey ? AREAS[node.areaKey] : null
+    }));
 }
 
 let isMapOverlayOpen = false;
