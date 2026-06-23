@@ -1,4 +1,3 @@
-import { setHtmlOrText } from '../../util/uiHelpers.js';
 // js/ui/merchantTabs/resetTab.js
 import { BigNum } from '../../util/bigNum.js';
 import { IS_MOBILE } from '../../main.js';
@@ -11,6 +10,7 @@ import {
   CURRENCIES,
 } from '../../util/storage.js';
 import { formatNumber } from '../../util/numFormat.js';
+import { setHtmlOrText } from '../../util/uiHelpers.js';
 import {
   getXpState,
   resetXpProgress,
