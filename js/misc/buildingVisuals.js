@@ -2681,60 +2681,74 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     const yPos = -40 - prongHeight; // Top of the prongs
     drawLightning(-prongOffset, yPos, prongOffset, yPos, 4, 10, "rgba(0, 200, 255, 0.6)", 1.5);
   }
-  // Tier 3 (Hovering Energy Crystals)
+  // Tier 3 (Tesla Nodes)
   if (tier3Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier3Prog;
 
-    const numCrystals = 5;
-    const orbitRadius = 60;
-    const orbitSpeed = 1.5;
-    const centerY = -100; // Hovering high above the prongs and base
-
-    for (let i = 0; i < numCrystals; i++) {
-      const angle = t * orbitSpeed + (i * Math.PI * 2) / numCrystals;
-      const px = Math.cos(angle) * orbitRadius;
-      // Slight vertical bobbing
-      const py = centerY + Math.sin(t * 2 + i) * 15;
-      const depth = Math.sin(angle);
-      
-      // Pseudo-3D scale based on depth
-      const scale = 0.8 + depth * 0.4;
-
+    const drawTeslaNode = (x, y, index) => {
       ctx.save();
-      ctx.translate(px, py);
-      ctx.scale(scale, scale);
+      // Slight vertical bobbing
+      const bobbingY = y + Math.sin(t * 2 + index) * 5;
+      ctx.translate(x, bobbingY);
 
-      // Glow behind the crystal
-      const crystalGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 15);
-      crystalGlow.addColorStop(0, `rgba(0, 255, 255, ${0.8 * tier3Prog})`);
-      crystalGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
-      ctx.fillStyle = crystalGlow;
+      // Outer Glow
+      const glowRad = ctx.createRadialGradient(0, 0, 0, 0, 0, 18);
+      glowRad.addColorStop(0, `rgba(0, 255, 255, ${0.6 * tier3Prog})`);
+      glowRad.addColorStop(1, "rgba(0, 255, 255, 0)");
+      ctx.fillStyle = glowRad;
       ctx.beginPath();
-      ctx.arc(0, 0, 15, 0, Math.PI * 2);
+      ctx.arc(0, 0, 18, 0, Math.PI * 2);
       ctx.fill();
 
-      // The crystal shape (diamond)
-      ctx.fillStyle = "#ffffff";
+      // Inner bright sphere
+      ctx.fillStyle = "#e0ffff";
       ctx.beginPath();
-      ctx.moveTo(0, -8);
-      ctx.lineTo(6, 0);
-      ctx.lineTo(0, 8);
-      ctx.lineTo(-6, 0);
-      ctx.closePath();
+      ctx.arc(0, 0, 6, 0, Math.PI * 2);
       ctx.fill();
 
-      // Occasional small arcs from crystal to center or outward
-      if (Math.random() > 0.95) {
-        ctx.strokeStyle = "rgba(100, 255, 255, 0.6)";
-        ctx.lineWidth = 1;
+      // Lightning arcs extending outwards from nodes
+      if (Math.random() > 0.9) {
+        ctx.strokeStyle = "rgba(150, 255, 255, 0.8)";
+        ctx.lineWidth = 1.5;
+        const angle = Math.random() * Math.PI * 2;
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
+        ctx.lineTo(Math.cos(angle) * 15, Math.sin(angle) * 15);
         ctx.stroke();
       }
 
       ctx.restore();
+    };
+
+    // Positioned hovering slightly above and corresponding to the Tier 2 capacitors
+    const nodePositions = [
+      { x: -74 - extraBaseWidth, y: -45 },
+      { x: 74 + extraBaseWidth, y: -45 },
+      { x: -54 - extraBaseWidth, y: -65 },
+      { x: 54 + extraBaseWidth, y: -65 }
+    ];
+
+    for (let i = 0; i < nodePositions.length; i++) {
+      drawTeslaNode(nodePositions[i].x, nodePositions[i].y, i);
+    }
+    
+    // Connect left nodes (0 and 2) to avoid crossing the center
+    if (Math.random() > 0.95) {
+      const p1 = nodePositions[0];
+      const p2 = nodePositions[2];
+      const bobY1 = p1.y + Math.sin(t * 2 + 0) * 5;
+      const bobY2 = p2.y + Math.sin(t * 2 + 2) * 5;
+      drawLightning(p1.x, bobY1, p2.x, bobY2, 4, 8, "rgba(100, 255, 255, 0.5)", 1.5);
+    }
+    
+    // Connect right nodes (1 and 3) to avoid crossing the center
+    if (Math.random() > 0.95) {
+      const p1 = nodePositions[1];
+      const p2 = nodePositions[3];
+      const bobY1 = p1.y + Math.sin(t * 2 + 1) * 5;
+      const bobY2 = p2.y + Math.sin(t * 2 + 3) * 5;
+      drawLightning(p1.x, bobY1, p2.x, bobY2, 4, 8, "rgba(100, 255, 255, 0.5)", 1.5);
     }
 
     ctx.restore();
@@ -2983,63 +2997,68 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // Tier 7 (Airborne Forcefield Dome)
+  // Tier 7 (Plasma Rings)
   if (tier7Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier7Prog * (1.0 - 0.5 * tier8Prog);
     ctx.globalCompositeOperation = "lighter";
     
-    const domeY = -150; // High above the base
-    const domeRadius = 120;
+    const ringCenterY = -150; // Orbiting high above to prevent ground clipping
     
     ctx.save();
-    ctx.translate(0, domeY);
+    ctx.translate(0, ringCenterY);
     
-    // Base glowing sphere
-    const gradient = ctx.createRadialGradient(0, 0, domeRadius * 0.2, 0, 0, domeRadius);
-    gradient.addColorStop(0, `rgba(0, 255, 255, ${0.2 * tier7Prog})`);
-    gradient.addColorStop(0.8, `rgba(0, 150, 255, ${0.4 * tier7Prog})`);
-    gradient.addColorStop(1, "rgba(0, 50, 150, 0)");
-    
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(0, 0, domeRadius, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Latitude and Longitude energy lines
-    ctx.strokeStyle = `rgba(0, 255, 255, ${0.6 * tier7Prog})`;
-    ctx.lineWidth = 1.5;
-    
-    // Equator / Latitude rings with rotation
-    const numLatitudes = 5;
-    for (let i = 1; i < numLatitudes; i++) {
-        const latT = (i / numLatitudes) * Math.PI - Math.PI / 2;
-        const currentRadius = Math.cos(latT) * domeRadius;
-        const currentY = Math.sin(latT) * domeRadius;
-        
+    const numRings = 4;
+    for (let i = 0; i < numRings; i++) {
         ctx.save();
-        ctx.translate(0, currentY);
-        ctx.scale(1, 0.3); // Perspective squash
-        ctx.rotate(t * 0.5 + i); // Rotate slowly
         
+        // Complex rotation to make rings orbit at different, intersecting angles
+        const angleX = Math.sin(t * 0.5 + i) * Math.PI / 4;
+        const angleY = t * 1.5 + (i * Math.PI) / (numRings / 2);
+        const angleZ = Math.cos(t * 0.3 + i) * Math.PI / 6;
+
+        ctx.rotate(angleZ);
+        // Fake 3D rotation by squashing and skewing based on angleX and angleY
+        ctx.scale(Math.cos(angleY), Math.cos(angleX));
+        
+        const ringRadius = 110 + Math.sin(t * 2 + i) * 10; // Pulsing radius, bounded
+        
+        // Draw the ring
+        ctx.strokeStyle = `rgba(0, 255, 255, ${0.8 * tier7Prog})`;
+        ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.arc(0, 0, currentRadius, 0, Math.PI * 2);
+        ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.restore();
-    }
-    
-    // Longitude arches
-    const numLongitudes = 6;
-    for (let i = 0; i < numLongitudes; i++) {
-        const angle = t * 0.8 + (i * Math.PI) / numLongitudes;
-        
-        ctx.save();
-        // We squish it horizontally based on the view angle to create a 3D spinning sphere effect
-        ctx.scale(Math.cos(angle), 1);
-        
+
+        // Inner core of the ring
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * tier7Prog})`;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(0, 0, domeRadius, 0, Math.PI * 2);
+        ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
         ctx.stroke();
+
+        // Add energy nodes on the ring
+        const numNodes = 3;
+        for (let j = 0; j < numNodes; j++) {
+            const nodeAngle = t * 3 + (j * Math.PI * 2) / numNodes;
+            const nx = Math.cos(nodeAngle) * ringRadius;
+            const ny = Math.sin(nodeAngle) * ringRadius;
+
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(nx, ny, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Glow for nodes
+            const nodeGlow = ctx.createRadialGradient(nx, ny, 0, nx, ny, 15);
+            nodeGlow.addColorStop(0, `rgba(255, 255, 255, ${0.8 * tier7Prog})`);
+            nodeGlow.addColorStop(0.5, `rgba(0, 255, 255, ${0.5 * tier7Prog})`);
+            nodeGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
+            ctx.fillStyle = nodeGlow;
+            ctx.beginPath();
+            ctx.arc(nx, ny, 15, 0, Math.PI * 2);
+            ctx.fill();
+        }
         
         ctx.restore();
     }
