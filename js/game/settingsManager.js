@@ -1,9 +1,7 @@
 // js/game/settingsManager.js
 
-import { getActiveSlot, CURRENCIES } from '../util/storage.js';
+import { getActiveSlot } from '../util/storage.js';
 import { isLabUnlocked } from './surgeEffects.js';
-import { RESOURCE_REGISTRY } from './offlinePanel.js';
-import { AREA_KEYS } from './upgrades.js';
 import { getHighestMutationLevel } from './mutationSystem.js';
 import { setNumberNotation } from '../util/numFormat.js';
 import { IS_MOBILE } from '../main.js';
@@ -495,45 +493,19 @@ class SettingsManager {
     // Load dynamic currency settings
     const slot = getActiveSlot();
     const suffix = slot != null ? `:${slot}` : "";
-
-    const dynamicKeysToCheck = [];
-
-    // Check currencies
-    Object.values(CURRENCIES).forEach(cKey => {
-        dynamicKeysToCheck.push(`currency_${cKey}`);
-        dynamicKeysToCheck.push(`currency_${cKey}_popups`);
-        dynamicKeysToCheck.push(`currency_${cKey}_automated`);
-        dynamicKeysToCheck.push(`currency_${cKey}_pinned`);
-        dynamicKeysToCheck.push(`currency_${cKey}_materials_dropdown_open`);
-    });
-
-    // Check resource levels
-    RESOURCE_REGISTRY.forEach(config => {
-        dynamicKeysToCheck.push(`level_${config.key}`);
-        const prefix = config.key.replace('_levels', '');
-        dynamicKeysToCheck.push(`level_${prefix}_pinned`);
-        dynamicKeysToCheck.push(`level_${prefix}_popups`);
-        dynamicKeysToCheck.push(`level_${prefix}_automated`);
-    });
-
-    // Check pinned areas
-    Object.values(AREA_KEYS).forEach(areaKey => {
-        dynamicKeysToCheck.push(`area_pinned_${areaKey}`);
-    });
-
-    dynamicKeysToCheck.forEach(key => {
-        const storageKey = `${SETTINGS_KEY_PREFIX}${key}${suffix}`;
-        const raw = localStorage.getItem(storageKey);
-        if (raw !== null) {
-            try {
-                this.settings[key] = JSON.parse(raw);
-                this._isDefault[key] = false;
-                this.notify(key, this.settings[key]);
-            } catch (e) {
-                console.error("Failed to parse dynamic setting", key, e);
-            }
+    for (let i = 0; i < localStorage.length; i++) {
+      const storageKey = localStorage.key(i);
+      if (storageKey && (storageKey.startsWith(SETTINGS_KEY_PREFIX + "currency_") || storageKey.startsWith(SETTINGS_KEY_PREFIX + "level_") || storageKey.startsWith(SETTINGS_KEY_PREFIX + "area_pinned_")) && storageKey.endsWith(suffix)) {
+        const key = storageKey.substring(SETTINGS_KEY_PREFIX.length, storageKey.length - suffix.length);
+        try {
+          this.settings[key] = JSON.parse(localStorage.getItem(storageKey));
+          this._isDefault[key] = false;
+          this.notify(key, this.settings[key]);
+        } catch (e) {
+          console.error("Failed to parse currency setting", key, e);
         }
-    });
+      }
+    }
 
     setNumberNotation(this.settings['number_notation'] || 'Standard');
   }
