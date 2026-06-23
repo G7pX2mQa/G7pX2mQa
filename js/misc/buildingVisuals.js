@@ -2789,21 +2789,18 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
 
           // 3x3 Rotation matrix to calculate true 2D projection and Z-depth
           const sinX = Math.sin(angleX), cosX = Math.cos(angleX);
-          const sinY = Math.sin(angleY), cosY = Math.cos(angleY);
+          const sinY = Math.sin(angleY);
+          const cosY = Math.cos(angleY);
+
           const sinZ = Math.sin(angleZ), cosZ = Math.cos(angleZ);
           
           // Elements of the combined rotation matrix R = Ry * Rx * Rz
-          let r00 = cosY * cosZ + sinY * sinX * sinZ;
+          const r00 = cosY * cosZ + sinY * sinX * sinZ;
           const r01 = -cosY * sinZ + sinY * sinX * cosZ;
           const r10 = cosX * sinZ;
           const r11 = cosX * cosZ;
           const r20 = -sinY * cosZ + cosY * sinX * sinZ;
           const r21 = sinY * sinZ + cosY * sinX * cosZ;
-          
-          // Apply minimum width to prevent poofing
-          if (Math.abs(r00) < 0.01) {
-            r00 = r00 < 0 ? -0.01 : 0.01;
-          }
           
           // Apply the exact affine transform for the 2D projection
           ctx.transform(r00, r10, r01, r11, 0, 0);
@@ -2826,21 +2823,20 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
             endAngle = startAngle + Math.PI;
           }
           
-          // Draw the ring
-          ctx.strokeStyle = `rgba(0, 255, 255, ${0.8 * tier7Prog})`;
-          ctx.lineWidth = 4;
+          // Draw the ring path
           ctx.beginPath();
           ctx.arc(0, 0, ringRadius, startAngle, endAngle);
+          
+          ctx.restore(); // Restore here so strokes and nodes aren't squashed
+
+          ctx.strokeStyle = `rgba(0, 255, 255, ${0.8 * tier7Prog})`;
+          ctx.lineWidth = 4;
           ctx.stroke();
 
           // Inner core of the ring
           ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * tier7Prog})`;
           ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.arc(0, 0, ringRadius, startAngle, endAngle);
           ctx.stroke();
-
-          ctx.restore(); // Restore here so nodes aren't squashed
 
           // Add energy nodes on the ring
           const numNodes = 3;
