@@ -2771,52 +2771,40 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
       for (let i = 0; i < numRings; i++) {
           ctx.save();
           
-          // Complex rotation to make rings orbit at different, intersecting angles
-          const angleX = Math.sin(t * 0.5 + i) * Math.PI / 4;
-          const angleY = t * 1.5 + (i * Math.PI) / (numRings / 2);
-          const angleZ = Math.cos(t * 0.3 + i) * Math.PI / 6;
+          // Rings have different, nested radii
+          const ringRadius = 70 + i * 20;
+          
+          // Constrain angles for 3D rotation so they don't clip into the upright Tier 4 Tesla Coil
+          // We restrict angleX (tilt) to a small range (e.g., -PI/8 to PI/8)
+          // The Rings can spin freely around Y, but with limited tilt in X and Z.
+          // Rings act like a gyroscope: fixed tilt per ring, spinning around Y.
+          const angleX = Math.PI / 3; // Tilt them so they look like rings (fixed)
+          const angleY = t * 1.5 + (i * Math.PI) / (numRings / 2); // Orbit over time, offset per ring
+          const angleZ = 0; // Not needed, Z rotation on an XY circle is invisible
 
-          ctx.rotate(angleZ);
-          // Fake 3D rotation by squashing and skewing based on angleX and angleY
-          ctx.scale(Math.cos(angleY), Math.cos(angleX));
+          // 3x3 Rotation matrix to calculate true 2D projection and Z-depth
+          const sinX = Math.sin(angleX), cosX = Math.cos(angleX);
+          const sinY = Math.sin(angleY), cosY = Math.cos(angleY);
+          const sinZ = Math.sin(angleZ), cosZ = Math.cos(angleZ);
           
-          const ringRadius = 110 + Math.sin(t * 2 + i) * 10; // Pulsing radius, bounded
+          // Elements of the combined rotation matrix R = Ry * Rx * Rz
+          const r00 = cosY * cosZ + sinY * sinX * sinZ;
+          const r01 = -cosY * sinZ + sinY * sinX * cosZ;
+          const r10 = cosX * sinZ;
+          const r11 = cosX * cosZ;
+          const r20 = -sinY * cosZ + cosY * sinX * sinZ;
+          const r21 = sinY * sinZ + cosY * sinX * cosZ;
           
-          // We need to calculate the actual Z depth for the ring to correctly split front/back halves.
-          // Since it's rotated by angleZ then scaled by (cos(angleY), cos(angleX)),
-          // The normal vector before projection gets affected.
-          // In an actual 3D space this would be Euler angles Z, then scale (which acts like X/Y rot projection).
-          // The Z depth depends primarily on the y-coordinate after Z-rotation.
-          // By rotating by angleZ, the local y axis is sin(angleZ)x + cos(angleZ)y.
-          // A point on the unscaled circle is (cos A, sin A).
-          // Z depth in 3D would be derived from the rotations.
-          // To simplify, `angleX` simulates rotation around X axis (tilting into Z),
-          // `angleY` simulates rotation around Y axis.
-          // A full 3D to 2D projection handles this better, but we can approximate the front/back split 
-          // boundary by finding where the simulated Z-depth crosses 0.
+          // Apply the exact affine transform for the 2D projection
+          ctx.transform(r00, r10, r01, r11, 0, 0);
           
-          // Using a 3x3 rotation matrix equivalent to (rot Y) * (rot X) * (rot Z)
-          // The canvas transform applies rotZ, then scale(cosY, cosX).
-          // Scale(cosY, cosX) is the orthographic projection of a rotation by angleX around X and angleY around Y.
-          // The perceived Z-depth (going into the screen) of a point (cos(a), sin(a)) on the unrotated ring is:
-          // z = x_orig * (-cosZ*sinY + sinZ*sinX*cosY) + y_orig * (sinZ*sinY + cosZ*sinX*cosY)
+          // Z = r20 * cos(a) + r21 * sin(a)
+          // We want to find the angles where Z = 0 (the split between front and back)
+          // Z = 0 => r20 * cos(a) + r21 * sin(a) = 0 => tan(a) = -r20 / r21
+          const theta0 = Math.atan2(-r20, r21);
           
-          const sinX = Math.sin(angleX);
-          const cosX = Math.cos(angleX);
-          const sinY = Math.sin(angleY);
-          const cosY = Math.cos(angleY);
-          const sinZ = Math.sin(angleZ);
-          const cosZ = Math.cos(angleZ);
-          
-          const coeffX = -cosZ * sinY + sinZ * sinX * cosY;
-          const coeffY =  sinZ * sinY + cosZ * sinX * cosY;
-          
-          // The angle theta0 where z = 0 (the split between front and back):
-          // z = cos(theta)*coeffX + sin(theta)*coeffY = 0  => tan(theta) = -coeffX / coeffY
-          const theta0 = Math.atan2(-coeffX, coeffY);
-          
-          // At theta0 + PI/2, the Z depth is maximized. Let's check if it's positive (front) or negative (back).
-          const zAtMid = Math.cos(theta0 + Math.PI/2) * coeffX + Math.sin(theta0 + Math.PI/2) * coeffY;
+          // Check Z at mid-point (theta0 + PI/2)
+          const zAtMid = r20 * Math.cos(theta0 + Math.PI/2) + r21 * Math.sin(theta0 + Math.PI/2);
           const isMidFront = zAtMid >= 0;
           
           let startAngle, endAngle;
@@ -2860,7 +2848,7 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
               let nodeIsFront = false;
               
               // Calculate continuous z-depth to ensure node logic exactly matches arc logic
-              const nz = Math.cos(nodeAngle) * coeffX + Math.sin(nodeAngle) * coeffY;
+              const nz = r20 * Math.cos(nodeAngle) + r21 * Math.sin(nodeAngle);
               nodeIsFront = nz >= 0;
 
               if (nodeIsFront === isFrontPass) {
