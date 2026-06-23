@@ -2661,10 +2661,10 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
   }
   ctx.fillRect(-80 - extraBaseWidth, -20, 160 + extraBaseWidth * 2, 20);
   ctx.beginPath();
-  ctx.moveTo(-70 - extraBaseWidth, -20);
+  ctx.moveTo(-70.5 - extraBaseWidth, -19);
   ctx.lineTo(-60 - extraBaseWidth, -40);
   ctx.lineTo(60 + extraBaseWidth, -40);
-  ctx.lineTo(70 + extraBaseWidth, -20);
+  ctx.lineTo(70.5 + extraBaseWidth, -19);
   ctx.fill();
 
   if (copperPattern) {
@@ -2756,6 +2756,141 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
 
   // Tier 4 (Cyan Stepped Pyramid with Floating Rings and Glowing Orb)
 
+    const drawTier7Rings = (isFrontPass) => {
+      if (tier7Prog <= 0) return;
+      ctx.save();
+      ctx.globalAlpha = tier7Prog * (1.0 - 0.5 * tier8Prog);
+      ctx.globalCompositeOperation = "lighter";
+      
+      const ringCenterY = -150; // Orbiting high above to prevent ground clipping
+      
+      ctx.save();
+      ctx.translate(0, ringCenterY);
+      
+      const numRings = 4;
+      for (let i = 0; i < numRings; i++) {
+          ctx.save();
+          
+          // Complex rotation to make rings orbit at different, intersecting angles
+          const angleX = Math.sin(t * 0.5 + i) * Math.PI / 4;
+          const angleY = t * 1.5 + (i * Math.PI) / (numRings / 2);
+          const angleZ = Math.cos(t * 0.3 + i) * Math.PI / 6;
+
+          ctx.rotate(angleZ);
+          // Fake 3D rotation by squashing and skewing based on angleX and angleY
+          ctx.scale(Math.cos(angleY), Math.cos(angleX));
+          
+          const ringRadius = 110 + Math.sin(t * 2 + i) * 10; // Pulsing radius, bounded
+          
+          // We need to calculate the actual Z depth for the ring to correctly split front/back halves.
+          // Since it's rotated by angleZ then scaled by (cos(angleY), cos(angleX)),
+          // The normal vector before projection gets affected.
+          // In an actual 3D space this would be Euler angles Z, then scale (which acts like X/Y rot projection).
+          // The Z depth depends primarily on the y-coordinate after Z-rotation.
+          // By rotating by angleZ, the local y axis is sin(angleZ)x + cos(angleZ)y.
+          // A point on the unscaled circle is (cos A, sin A).
+          // Z depth in 3D would be derived from the rotations.
+          // To simplify, `angleX` simulates rotation around X axis (tilting into Z),
+          // `angleY` simulates rotation around Y axis.
+          // A full 3D to 2D projection handles this better, but we can approximate the front/back split 
+          // boundary by finding where the simulated Z-depth crosses 0.
+          
+          // Using a 3x3 rotation matrix equivalent to (rot Y) * (rot X) * (rot Z)
+          // The canvas transform applies rotZ, then scale(cosY, cosX).
+          // Scale(cosY, cosX) is the orthographic projection of a rotation by angleX around X and angleY around Y.
+          // The perceived Z-depth (going into the screen) of a point (cos(a), sin(a)) on the unrotated ring is:
+          // z = x_orig * (-cosZ*sinY + sinZ*sinX*cosY) + y_orig * (sinZ*sinY + cosZ*sinX*cosY)
+          
+          const sinX = Math.sin(angleX);
+          const cosX = Math.cos(angleX);
+          const sinY = Math.sin(angleY);
+          const cosY = Math.cos(angleY);
+          const sinZ = Math.sin(angleZ);
+          const cosZ = Math.cos(angleZ);
+          
+          const coeffX = -cosZ * sinY + sinZ * sinX * cosY;
+          const coeffY =  sinZ * sinY + cosZ * sinX * cosY;
+          
+          // The angle theta0 where z = 0 (the split between front and back):
+          // z = cos(theta)*coeffX + sin(theta)*coeffY = 0  => tan(theta) = -coeffX / coeffY
+          const theta0 = Math.atan2(-coeffX, coeffY);
+          
+          // At theta0 + PI/2, the Z depth is maximized. Let's check if it's positive (front) or negative (back).
+          const zAtMid = Math.cos(theta0 + Math.PI/2) * coeffX + Math.sin(theta0 + Math.PI/2) * coeffY;
+          const isMidFront = zAtMid >= 0;
+          
+          let startAngle, endAngle;
+          if (isFrontPass) {
+            startAngle = isMidFront ? theta0 : theta0 + Math.PI;
+            endAngle = startAngle + Math.PI;
+          } else {
+            startAngle = isMidFront ? theta0 + Math.PI : theta0;
+            endAngle = startAngle + Math.PI;
+          }
+          
+          // Draw the ring
+          ctx.strokeStyle = `rgba(0, 255, 255, ${0.8 * tier7Prog})`;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(0, 0, ringRadius, startAngle, endAngle);
+          ctx.stroke();
+
+          // Inner core of the ring
+          ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * tier7Prog})`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(0, 0, ringRadius, startAngle, endAngle);
+          ctx.stroke();
+
+          // Add energy nodes on the ring
+          const numNodes = 3;
+          for (let j = 0; j < numNodes; j++) {
+              const nodeAngle = t * 3 + (j * Math.PI * 2) / numNodes;
+              
+              // Normalize nodeAngle to [0, 2PI]
+              let normNodeAngle = nodeAngle % (Math.PI * 2);
+              if (normNodeAngle < 0) normNodeAngle += Math.PI * 2;
+              
+              let normStart = startAngle % (Math.PI * 2);
+              if (normStart < 0) normStart += Math.PI * 2;
+              
+              let normEnd = endAngle % (Math.PI * 2);
+              if (normEnd < 0) normEnd += Math.PI * 2;
+
+              let nodeIsFront = false;
+              
+              // Calculate continuous z-depth to ensure node logic exactly matches arc logic
+              const nz = Math.cos(nodeAngle) * coeffX + Math.sin(nodeAngle) * coeffY;
+              nodeIsFront = nz >= 0;
+
+              if (nodeIsFront === isFrontPass) {
+                  const nx = Math.cos(nodeAngle) * ringRadius;
+                  const ny = Math.sin(nodeAngle) * ringRadius;
+                  
+                  ctx.fillStyle = "#ffffff";
+                  ctx.beginPath();
+                  ctx.arc(nx, ny, 4, 0, Math.PI * 2);
+                  ctx.fill();
+
+                  // Glow for nodes
+                  const nodeGlow = ctx.createRadialGradient(nx, ny, 0, nx, ny, 15);
+                  nodeGlow.addColorStop(0, `rgba(255, 255, 255, ${0.8 * tier7Prog})`);
+                  nodeGlow.addColorStop(0.5, `rgba(0, 255, 255, ${0.5 * tier7Prog})`);
+                  nodeGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
+                  ctx.fillStyle = nodeGlow;
+                  ctx.beginPath();
+                  ctx.arc(nx, ny, 15, 0, Math.PI * 2);
+                  ctx.fill();
+              }
+          }
+          
+          ctx.restore();
+      }
+      
+      ctx.restore();
+      ctx.restore();
+    };
+
     const drawT5Particles = (isFront) => {
       if (tier5Prog <= 0) return;
       ctx.save();
@@ -2819,6 +2954,8 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
     const baseWidth = 80;
     const numRings = 3;
     
+    drawTier7Rings(false);
+
     // 1) Draw the BACK HALF of the Floating Rings first (so they are behind the pyramid)
     ctx.lineWidth = 6;
     const pulse = 0.5 + 0.5 * Math.sin(t * 4); // Shared pulse with the orb
@@ -2937,6 +3074,8 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
 
     drawT5Particles(true);
 
+    drawTier7Rings(true);
+
     ctx.restore();
   }
   // Tier 6 (Plasma Crown)
@@ -2993,77 +3132,6 @@ function drawCharger(ctx, t, tier, prevTier, animProgress) {
 
         ctx.restore();
     }
-
-    ctx.restore();
-  }
-
-  // Tier 7 (Plasma Rings)
-  if (tier7Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier7Prog * (1.0 - 0.5 * tier8Prog);
-    ctx.globalCompositeOperation = "lighter";
-    
-    const ringCenterY = -150; // Orbiting high above to prevent ground clipping
-    
-    ctx.save();
-    ctx.translate(0, ringCenterY);
-    
-    const numRings = 4;
-    for (let i = 0; i < numRings; i++) {
-        ctx.save();
-        
-        // Complex rotation to make rings orbit at different, intersecting angles
-        const angleX = Math.sin(t * 0.5 + i) * Math.PI / 4;
-        const angleY = t * 1.5 + (i * Math.PI) / (numRings / 2);
-        const angleZ = Math.cos(t * 0.3 + i) * Math.PI / 6;
-
-        ctx.rotate(angleZ);
-        // Fake 3D rotation by squashing and skewing based on angleX and angleY
-        ctx.scale(Math.cos(angleY), Math.cos(angleX));
-        
-        const ringRadius = 110 + Math.sin(t * 2 + i) * 10; // Pulsing radius, bounded
-        
-        // Draw the ring
-        ctx.strokeStyle = `rgba(0, 255, 255, ${0.8 * tier7Prog})`;
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // Inner core of the ring
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * tier7Prog})`;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // Add energy nodes on the ring
-        const numNodes = 3;
-        for (let j = 0; j < numNodes; j++) {
-            const nodeAngle = t * 3 + (j * Math.PI * 2) / numNodes;
-            const nx = Math.cos(nodeAngle) * ringRadius;
-            const ny = Math.sin(nodeAngle) * ringRadius;
-
-            ctx.fillStyle = "#ffffff";
-            ctx.beginPath();
-            ctx.arc(nx, ny, 4, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Glow for nodes
-            const nodeGlow = ctx.createRadialGradient(nx, ny, 0, nx, ny, 15);
-            nodeGlow.addColorStop(0, `rgba(255, 255, 255, ${0.8 * tier7Prog})`);
-            nodeGlow.addColorStop(0.5, `rgba(0, 255, 255, ${0.5 * tier7Prog})`);
-            nodeGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
-            ctx.fillStyle = nodeGlow;
-            ctx.beginPath();
-            ctx.arc(nx, ny, 15, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        
-        ctx.restore();
-    }
-    
-    ctx.restore();
 
     ctx.restore();
   }
