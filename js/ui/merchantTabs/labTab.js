@@ -1271,6 +1271,7 @@ class LabSystem {
             return;
         }
         if (e.button !== 0) return;
+        e.preventDefault(); // Prevent native drag-and-drop of the canvas
         this.isDragging = true;
         this.dragStart = { x: e.clientX, y: e.clientY };
         this.lastMouse = { x: e.clientX, y: e.clientY };
