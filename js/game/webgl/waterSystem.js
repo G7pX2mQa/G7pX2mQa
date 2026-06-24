@@ -161,7 +161,7 @@ export class WaterSystem {
                     this.bgCanvas.getContext('experimental-webgl');
 
         if (!this.glBg) {
-            console.error('WaterSystem: WebGL not supported for BG');
+            if (!settingsManager.get("disable_webgl")) { console.error('WaterSystem: WebGL not supported for BG'); }
             return;
         }
 
@@ -171,7 +171,7 @@ export class WaterSystem {
                     this.fgCanvas.getContext('experimental-webgl');
         
         if (!this.glFg) {
-            console.error('WaterSystem: WebGL not supported for FG');
+            if (!settingsManager.get("disable_webgl")) { console.error('WaterSystem: WebGL not supported for FG'); }
             return;
         }
 
@@ -461,6 +461,14 @@ export class WaterSystem {
     }
 
     render(totalTime, dt) {
+        if (settingsManager.get("disable_webgl")) {
+            this.clearSimulations();
+            return;
+        }
+        if (!this.glBg && this.bgCanvas && this.fgCanvas) {
+            this.init(this.bgCanvas.id, this.fgCanvas.id, this._baseNumLayers);
+            if (this.glBg) this.resize();
+        }
         if (!this.glBg) return;
         
         // Optimization: Skip rendering entirely when Delve is open
