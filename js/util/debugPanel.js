@@ -1152,26 +1152,7 @@ function getEffectiveStatMultiplierOverride(statKey, slot, gameValue) {
         statOverrideBaselines.set(cacheKey, gameValue);
     } else if (!bigNumEquals(baseline, gameValue)) {
         if (locked) {
-            // Update baseline but maintain the override correctly scaled
-            let ratio = null;
-            try {
-                const overrideBn = BigNum.fromAny(override);
-                const oldBaselineBn = BigNum.fromAny(baseline);
-                if (!oldBaselineBn.isZero()) {
-                    ratio = overrideBn.div(oldBaselineBn);
-                }
-            } catch {}
-            
             statOverrideBaselines.set(cacheKey, gameValue);
-            
-            if (ratio) {
-                try {
-                    const newOverride = BigNum.fromAny(gameValue).mulBigNumInteger(ratio);
-                    statOverrides.set(cacheKey, newOverride);
-                    storeStatMultiplierOverride(statKey, slot, newOverride);
-                    return newOverride;
-                } catch {}
-            }
             return override;
         }
         clearStatMultiplierOverride(statKey, slot);
@@ -5217,7 +5198,7 @@ function openDebugPanel() {
     buildDebugPanel();
 }
 
-function closeDebugPanel({ preserveExpansionState = false } = {}) {
+export function closeDebugPanel({ preserveExpansionState = false } = {}) {
     debugPanelExpansionState = preserveExpansionState
         ? captureDebugPanelExpansionState()
         : createEmptyExpansionState();
