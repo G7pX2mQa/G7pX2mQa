@@ -37,7 +37,7 @@ export const HAS_POINTER_EVENTS = typeof window !== 'undefined' && 'PointerEvent
 export const HAS_TOUCH_EVENTS = !HAS_POINTER_EVENTS && typeof window !== 'undefined' && 'ontouchstart' in window;
 
 export class DialogueEngine {
-  constructor({ textEl, choicesEl, skipTargets, onEnd, onChoice, pauseMultiplier = 20 }) {
+  constructor({ textEl, choicesEl, skipTargets, onEnd, onChoice, pauseMultiplier = 14 }) {
       this.textEl = textEl;
       this.choicesEl = choicesEl;
       this.skipTargets = skipTargets;
@@ -80,7 +80,7 @@ export class DialogueEngine {
         this._hideChoices();
       }
 
-      await typeText(this.textEl, node.say, node.msPerChar ?? 22, this.skipTargets, this.pauseMultiplier);
+      await typeText(this.textEl, node.say, node.msPerChar ?? 30, this.skipTargets, this.pauseMultiplier);
 
       if (nextNode && nextNode.type === 'choice') {
         this.current = node.next;
@@ -175,7 +175,7 @@ export class DialogueEngine {
   }
 }
 
-export function typeText(el, full, msPerChar = 22, skipTargets = [], pauseMultiplier = 20) {
+export function typeText(el, full, msPerChar = 30, skipTargets = [], pauseMultiplier = 14) {
   return new Promise((resolve) => {
     // Basic HTML parser for typewriter
     const segments = [];
