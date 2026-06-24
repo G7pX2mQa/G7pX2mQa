@@ -958,7 +958,7 @@ export function getMutationCoinSprite() {
       try {
         const hLevel = getHighestMutationLevel();
         if (hLevel && typeof hLevel.toPlainIntegerString === 'function') {
-          const s = hLevel.toPlainIntegerString();
+          const s = (hLevel === 'Infinity' || hLevel.inf || hLevel.e >= 15 || (typeof hLevel.isInfinite === 'function' && hLevel.isInfinite())) ? 'Infinity' : hLevel.toPlainIntegerString();
           if (s !== 'Infinity') {
             highest = parseInt(s, 10);
           } else {
