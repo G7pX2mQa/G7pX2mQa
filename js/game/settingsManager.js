@@ -223,6 +223,16 @@ export const SETTING_DEFINITIONS = {
     default: false,
     unlockCondition: () => true,
   },
+  disable_webgl: {
+    id: 'disable_webgl',
+    type: 'toggle',
+    label: 'Reduced GPU Usage Mode',
+    overlay: 'performance',
+    hasExtraInfo: true,
+    info: 'Disables all features that use WebGL graphics; reduces GPU usage.',
+    default: false,
+    unlockCondition: () => true,
+  },
   graphics_quality: {
     id: 'graphics_quality',
     type: 'slider',
