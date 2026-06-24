@@ -311,10 +311,6 @@
   color: #fff; font-weight: 600; letter-spacing: .2px; cursor: pointer;
 }
 
-/* Make the text feel interactive while it’s typing (tap/click to skip) */
-.merchant-firstchat__text.is-typing {
-  cursor: pointer;
-}
 
 .merchant-firstchat__choices {
   display: grid;
