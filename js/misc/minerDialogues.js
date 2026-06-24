@@ -2,7 +2,7 @@ export const MINER_DIALOGUES = {
   0: {
     start: 'n0',
     nodes: {
-      n0: { type: 'line', say: 'Who... Are... You...?', next: 'c0' },
+      n0: { type: 'line', say: 'Who... Are you...?', next: 'c0' },
 
       c0: {
         type: 'choice',
