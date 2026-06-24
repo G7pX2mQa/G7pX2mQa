@@ -3437,7 +3437,8 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
 
       // Steam venting
-      const ventCycle = (t * 2 + x * 0.1) % 4; // Use x as an offset
+      let ventCycle = (t * 2 + x * 0.1) % 4; // Use x as an offset
+      if (ventCycle < 0) ventCycle += 4;
       if (ventCycle < 1) { // Vent steam 25% of the time
         ctx.save();
         ctx.translate(x, y);
@@ -3508,7 +3509,8 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       
       // Animate bubbles in solvent
       for (let i = 0; i < 8; i++) {
-        const bubbleT = (t * 1.2 + i * 0.3 + x * 0.05) % 1;
+        let bubbleT = (t * 1.2 + i * 0.3 + x * 0.05) % 1;
+        if (bubbleT < 0) bubbleT += 1;
         const bY = gy + gh - bubbleT * gh;
         const bX = x - gw/2 + 6 + (i * 7) % (gw - 12) + Math.sin(t * 5 + i) * 3;
         
@@ -3794,7 +3796,8 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
       
       // Exhaust fumes (Multi-colored)
-      const fumeCycle = (t * 2 + x * 0.1) % 1; // 0 to 1
+      let fumeCycle = (t * 2 + x * 0.1) % 1; // 0 to 1
+      if (fumeCycle < 0) fumeCycle += 1;
       const numPuffs = 5;
       for (let i = 0; i < numPuffs; i++) {
           const pt = (fumeCycle + i / numPuffs) % 1;
@@ -3872,7 +3875,8 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
 
         // Magnetic impurities being extracted (dark particles flying away)
         for (let i = 0; i < 5; i++) {
-            const pT = (t * 2 + i * 0.2 + x * 0.05) % 1;
+            let pT = (t * 2 + i * 0.2 + x * 0.05) % 1;
+            if (pT < 0) pT += 1;
             const startAngle = (i * Math.PI * 2 / 5) + t;
             
             // Particles start at the ring edge and fly outwards
@@ -3948,7 +3952,8 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
         ctx.fillRect(-sW/2 + 5, -sH + 80, sW - 10, 2);
 
         // Occasional Shockwave venting
-        const shockCycle = (t * 0.5 + x * 0.05) % 1;
+        let shockCycle = (t * 0.5 + x * 0.05) % 1;
+        if (shockCycle < 0) shockCycle += 1;
         if (shockCycle > 0.9) { // Trigger near end of cycle
             const shockRadius = (shockCycle - 0.9) * 10 * 80;
             const shockAlpha = 1 - (shockCycle - 0.9) * 10;
