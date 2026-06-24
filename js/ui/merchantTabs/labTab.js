@@ -335,6 +335,7 @@ export function updateLabTab() {
   setLabVisited(true);
   if (labSystem) {
       labSystem.resize();
+      labSystem.start();
   }
 }
 
