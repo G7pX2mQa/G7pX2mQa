@@ -3386,8 +3386,6 @@ function getUnlockRowDefinitions(slot) {
             onDisable: () => {
                 try { resetXpProgress({ keepUnlock: false }); }
                 catch {}
-                try { window.resetSystem?.setForgeDebugOverride?.(false); }
-                catch {}
                 try { window.resetSystem?.updateResetPanel?.(); }
                 catch {}
             },
