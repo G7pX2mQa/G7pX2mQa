@@ -16,6 +16,7 @@ import { IS_MOBILE } from '../../main.js';
 import { disableGlobalOverlayEsc } from '../../util/globalOverlayEsc.js';
 import { clearActiveSlot } from '../../util/storage.js';
 import { enterArea, AREAS } from '../../main.js';
+import { closeDebugPanel } from '../../util/debugPanel.js';
 
 function populateSasButtons(overlayEl) {
   const grid = overlayEl.querySelector('.sas-grid');
@@ -173,6 +174,7 @@ function populateSasButtons(overlayEl) {
     
     // Switch the area which handles stopping spawner, game elements etc
     enterArea(AREAS.MENU);
+    closeDebugPanel();
     
     // Remove the class added above just in case
     setTimeout(() => {
