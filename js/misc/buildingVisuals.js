@@ -3284,8 +3284,10 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   const showTier8 = tier >= 8 ? 1 : 0;
   const tier8Prog = tier >= 8 && prevTier < 8 ? animProgress : showTier8;
 
-  if (!ironPattern && activeCtx) {
+  if (!ironPattern && typeof activeCtx !== 'undefined' && activeCtx) {
     initIronPattern(activeCtx);
+  } else if (!ironPattern) {
+    initIronPattern(ctx);
   }
 
   // Common Constants
@@ -3293,214 +3295,64 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   const baseHeight = 20;
   const baseY = -baseHeight;
 
-  // --- Tier 0: Foundation & Simple Flare Stack ---
-  // A solitary, thick iron distillation column wrapped in a basic spiral ladder.
-  // Fades out partially or completely if replaced by T4 array, but let's just draw it.
-  // Actually, T4 REPLACES the single column with a cluster.
-  
+  // Cylinder helper to apply gradient + pattern overlay
+  const drawCylinder = (x, y, w, h, heatProg = 0) => {
+    ctx.save();
+    
+    // 3D Volume Gradient
+    const grad = ctx.createLinearGradient(x - w/2, 0, x + w/2, 0);
+    grad.addColorStop(0, "#2c3e50"); // Dark Gray
+    grad.addColorStop(0.3, "#95a5a6"); // Light Iron
+    grad.addColorStop(0.7, "#7f8c8d"); // Iron
+    grad.addColorStop(1, "#2c3e50"); // Dark Gray
+    
+    ctx.fillStyle = grad;
+    ctx.fillRect(x - w/2, y, w, h);
+    
+    // Pattern overlay with multiply
+    if (ironPattern) {
+        ctx.save();
+        ctx.globalCompositeOperation = "multiply";
+        ctx.fillStyle = ironPattern;
+        // reduce opacity slightly so it's not too dark
+        ctx.globalAlpha *= 0.5;
+        ctx.fillRect(x - w/2, y, w, h);
+        ctx.restore();
+    }
+    
+    if (heatProg > 0) {
+        ctx.fillStyle = `rgba(${200 + 55*heatProg}, ${100 + 100*heatProg}, 0, 0.8)`;
+        ctx.fillRect(x - w/2, y + h * 0.2, w, 5);
+        ctx.fillRect(x - w/2, y + h * 0.8, w, 5);
+    }
+    
+    ctx.restore();
+  };
+
+  // Base platform (always drawn)
   ctx.save();
-  // Draw base platform
   ctx.fillStyle = ironPattern ? ironPattern : "#ced2d6";
   ctx.fillRect(-baseWidth/2, baseY, baseWidth, baseHeight);
-  // Base trims
   ctx.fillStyle = "#4a4d50";
   ctx.fillRect(-baseWidth/2, baseY, baseWidth, 4);
   ctx.fillRect(-baseWidth/2, baseY + baseHeight - 4, baseWidth, 4);
-  
-  // Single input pipe at base
-  ctx.fillStyle = "#3a3d40";
-  ctx.fillRect(-baseWidth/2 - 20, baseY - 10, 20, 10);
-  ctx.fillStyle = "#1a1c1e";
-  ctx.fillRect(-baseWidth/2 - 20, baseY - 8, 20, 6);
-
-  // The solitary column (fade out if T4 is active)
-  const columnAlpha = 1.0 - tier4Prog;
-  if (columnAlpha > 0) {
-    ctx.save();
-    ctx.globalAlpha = columnAlpha;
-    const colW = 40;
-    const colH = 150;
-    const colY = baseY - colH;
-    
-    // Column body
-    ctx.fillStyle = ironPattern ? ironPattern : "#8b9094";
-    ctx.fillRect(-colW/2, colY, colW, colH);
-    
-    // Curved shading
-    const colGrad = ctx.createLinearGradient(-colW/2, 0, colW/2, 0);
-    colGrad.addColorStop(0, "rgba(0,0,0,0.6)");
-    colGrad.addColorStop(0.2, "rgba(255,255,255,0.2)");
-    colGrad.addColorStop(0.8, "rgba(0,0,0,0.1)");
-    colGrad.addColorStop(1, "rgba(0,0,0,0.7)");
-    ctx.fillStyle = colGrad;
-    ctx.fillRect(-colW/2, colY, colW, colH);
-    
-    // Spiral ladder
-    ctx.strokeStyle = "#1a1c1e";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let i = 0; i < colH; i += 5) {
-      const y = baseY - i;
-      // create a spiral effect using sin/cos based on height
-      const angle = (i * 0.1);
-      const x = Math.sin(angle) * (colW/2 + 2);
-      if (Math.cos(angle) > 0) {
-        // front
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      } else {
-        // back, just jump to next front point to avoid drawing across
-        ctx.moveTo(x, y);
-      }
-    }
-    ctx.stroke();
-
-    // Rhythmic flame at the top
-    ctx.save();
-    ctx.translate(0, colY);
-    const flameSize = 10 + Math.sin(t * 10) * 2;
-    ctx.fillStyle = `rgba(255, 100, 0, ${0.8 + 0.2 * Math.sin(t * 15)})`;
-    ctx.beginPath();
-    ctx.moveTo(0, -flameSize * 1.5);
-    ctx.quadraticCurveTo(flameSize, 0, 0, flameSize/2);
-    ctx.quadraticCurveTo(-flameSize, 0, 0, -flameSize * 1.5);
-    ctx.fill();
-    // Inner flame
-    ctx.fillStyle = `rgba(255, 200, 0, 0.9)`;
-    ctx.beginPath();
-    ctx.moveTo(0, -flameSize);
-    ctx.quadraticCurveTo(flameSize/2, 0, 0, flameSize/4);
-    ctx.quadraticCurveTo(-flameSize/2, 0, 0, -flameSize);
-    ctx.fill();
-    ctx.restore();
-    
-    ctx.restore();
-  }
   ctx.restore();
 
-  // --- Tier 1: The Outflow Dock ---
-  if (tier1Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier1Prog;
-    
-    const dockW = 60;
-    const dockH = 10;
-    const dockX = baseWidth/2; // Attached to the right
-    const dockY = baseY - 20;
+  // Tier 4 setup
+  const spires = [
+      {x: -30, h: 160, w: 20},
+      {x: -10, h: 190, w: 25},
+      {x: 15, h: 140, w: 18},
+      {x: 35, h: 170, w: 22}
+  ];
+  const maxSpireHeight = 190;
 
-    // Platform
-    ctx.fillStyle = ironPattern ? ironPattern : "#6b7075";
-    ctx.fillRect(dockX, dockY, dockW, dockH);
-    ctx.fillStyle = "#3a3d40"; // Supports
-    ctx.fillRect(dockX + 10, dockY + dockH, 5, baseY - dockY - dockH);
-    ctx.fillRect(dockX + dockW - 15, dockY + dockH, 5, baseY - dockY - dockH);
-
-    // Single-track conveyor
-    ctx.fillStyle = "#1a1c1e";
-    ctx.fillRect(dockX + 5, dockY - 5, dockW - 10, 5);
-    // Conveyor dots moving
-    ctx.fillStyle = "#8b9094";
-    for(let i = 0; i < dockW - 10; i+= 10) {
-      const offset = (t * 20) % 10;
-      let dotX = dockX + 5 + i + offset;
-      if (dotX < dockX + dockW - 5) {
-        ctx.fillRect(dotX, dockY - 5, 2, 5);
-      }
-    }
-
-    // Crate moving
-    const crateProg = (t * 0.5) % 1;
-    const crateX = dockX + 5 + crateProg * (dockW - 20);
-    ctx.fillStyle = "#8c5b35"; // Wood/rusty barrel color
-    ctx.fillRect(crateX, dockY - 15, 10, 10);
-
-    // Automated crane arm
-    ctx.save();
-    ctx.translate(dockX + dockW/2, dockY - 20);
-    ctx.rotate(Math.sin(t * 2) * 0.5); // Arm swinging
-    ctx.fillStyle = "#d35400"; // Orange crane
-    ctx.fillRect(-2, -30, 4, 30);
-    ctx.fillRect(-10, -30, 20, 6);
-    // Crane line dropping
-    ctx.strokeStyle = "#1a1c1e";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, -30);
-    ctx.lineTo(0, 0 + Math.sin(t*2)*10);
-    ctx.stroke();
-    // Claw
-    ctx.fillStyle = "#4a4d50";
-    ctx.fillRect(-5, 0 + Math.sin(t*2)*10, 10, 4);
-    ctx.restore();
-
-    ctx.restore();
-  }
-
-  // --- Tier 2: The Pressure Recirculator ---
-  if (tier2Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier2Prog * (1.0 - tier4Prog); // Also hide if T4 replaces the single column setup
-    // Or maybe just keep it beside the T4 array? Let's just fade it if T4 replaces everything, or keep it as part of the structure.
-    // The prompt says "T4: The single column is replaced by a cluster of four interconnected iron-clad fractioning spires". 
-    // It doesn't explicitly remove the T2 vessel, but maybe the cluster replaces the whole core. Let's keep T2 visible but re-positioned or just kept next to the cluster.
-    // We will leave its alpha as tier2Prog, so it stays.
-
-    const vesselW = 50;
-    const vesselH = 30;
-    const vesselX = -baseWidth/2 - vesselW + 10; // Left side
-    const vesselY = baseY - 60;
-
-    // Horizontal vessel
-    ctx.fillStyle = ironPattern ? ironPattern : "#8b9094";
-    ctx.fillRect(vesselX, vesselY, vesselW, vesselH);
-    ctx.fillStyle = "rgba(0,0,0,0.4)";
-    ctx.fillRect(vesselX, vesselY + vesselH/2, vesselW, vesselH/2); // shading
-    
-    // End caps
-    ctx.fillStyle = "#4a4d50";
-    ctx.beginPath();
-    ctx.arc(vesselX, vesselY + vesselH/2, vesselH/2, Math.PI/2, Math.PI*1.5);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(vesselX + vesselW, vesselY + vesselH/2, vesselH/2, -Math.PI/2, Math.PI/2);
-    ctx.fill();
-
-    // Thick insulated pipes bridging to the main column (or center area)
-    ctx.strokeStyle = "#5a5c5f";
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(vesselX + vesselW, vesselY + 10);
-    ctx.lineTo(-20, vesselY + 10);
-    ctx.stroke();
-    ctx.strokeStyle = "#3a3d40"; // Pipe shading
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(vesselX + vesselW, vesselY + 12);
-    ctx.lineTo(-20, vesselY + 12);
-    ctx.stroke();
-
-    // Steam/Exhaust particle animations
-    let steamCycle = (t * 2) % 1;
-    for(let i=0; i<3; i++) {
-        let st = (steamCycle + i*0.33) % 1;
-        let sY = vesselY - st * 30;
-        let sX = vesselX + vesselW/2 + Math.sin(st*Math.PI*2)*5;
-        let sAlpha = 1 - st;
-        ctx.fillStyle = `rgba(200, 200, 200, ${sAlpha * 0.5})`;
-        ctx.beginPath();
-        ctx.arc(sX, sY, 3 + st*8, 0, Math.PI*2);
-        ctx.fill();
-    }
-
-    ctx.restore();
-  }
-
-  // --- Tier 3: The Lattice Gantry ---
+  // ================= LAYER 1: BACKGROUND =================
+  // Tier 3: Scaffolding Background
   if (tier3Prog > 0) {
     ctx.save();
     ctx.globalAlpha = tier3Prog;
-
-    // Heavy crisscrossing lattice
+    
     ctx.strokeStyle = "#2c3e50"; // Dark heavy iron
     ctx.lineWidth = 3;
     
@@ -3513,7 +3365,6 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.beginPath();
     ctx.moveTo(gX, baseY); ctx.lineTo(gX, gY);
     ctx.moveTo(gX + gantryW, baseY); ctx.lineTo(gX + gantryW, gY);
-    // Inner pillars
     ctx.moveTo(gX + 20, baseY); ctx.lineTo(gX + 20, gY);
     ctx.moveTo(gX + gantryW - 20, baseY); ctx.lineTo(gX + gantryW - 20, gY);
     ctx.stroke();
@@ -3524,16 +3375,14 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     for(let i=0; i<gantryH; i+=30) {
         let y1 = baseY - i;
         let y2 = baseY - i - 30;
-        // Left section
         ctx.moveTo(gX, y1); ctx.lineTo(gX + 20, y2);
         ctx.moveTo(gX, y2); ctx.lineTo(gX + 20, y1);
-        // Right section
         ctx.moveTo(gX + gantryW - 20, y1); ctx.lineTo(gX + gantryW, y2);
         ctx.moveTo(gX + gantryW - 20, y2); ctx.lineTo(gX + gantryW, y1);
     }
     ctx.stroke();
 
-    // Elevated walkways with bright yellow safety railings
+    // Walkways
     ctx.fillStyle = "#34495e";
     const walkY1 = baseY - 60;
     const walkY2 = baseY - 120;
@@ -3553,301 +3402,554 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     };
     drawRailing(walkY1);
     drawRailing(walkY2);
-
     ctx.restore();
   }
 
-  // --- Tier 4: Multi-Stage Fractioning Spire Array ---
-  if (tier4Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier4Prog;
-    
-    // Cluster of four interconnected spires
-    const spires = [
-        {x: -30, h: 160, w: 20},
-        {x: -10, h: 190, w: 25},
-        {x: 15, h: 140, w: 18},
-        {x: 35, h: 170, w: 22}
-    ];
-
-    spires.forEach(sp => {
-        let sY = baseY - sp.h;
-        ctx.fillStyle = ironPattern ? ironPattern : "#7f8c8d";
-        ctx.fillRect(sp.x - sp.w/2, sY, sp.w, sp.h);
-        
-        // Shading
-        let grad = ctx.createLinearGradient(sp.x - sp.w/2, 0, sp.x + sp.w/2, 0);
-        grad.addColorStop(0, "rgba(0,0,0,0.6)");
-        grad.addColorStop(0.3, "rgba(255,255,255,0.3)");
-        grad.addColorStop(1, "rgba(0,0,0,0.5)");
-        ctx.fillStyle = grad;
-        ctx.fillRect(sp.x - sp.w/2, sY, sp.w, sp.h);
-
-        // Colored bands/heat indicators
-        let heatProg = (Math.sin(t * 3 + sp.x) + 1) / 2; // 0 to 1
-        ctx.fillStyle = `rgba(${200 + 55*heatProg}, ${100 + 100*heatProg}, 0, 0.8)`;
-        ctx.fillRect(sp.x - sp.w/2, sY + 20, sp.w, 5);
-        ctx.fillRect(sp.x - sp.w/2, sY + sp.h/2, sp.w, 5);
-    });
-
-    // Dense web of pipelines weaving between them
-    ctx.strokeStyle = "#e67e22"; // Copper-ish hot pipes
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-30, baseY - 50); ctx.quadraticCurveTo(-20, baseY - 70, -10, baseY - 60);
-    ctx.moveTo(-10, baseY - 100); ctx.quadraticCurveTo(5, baseY - 80, 15, baseY - 110);
-    ctx.moveTo(15, baseY - 80); ctx.quadraticCurveTo(25, baseY - 60, 35, baseY - 90);
-    ctx.stroke();
-
-    ctx.strokeStyle = "#3498db"; // Cold pipes
-    ctx.beginPath();
-    ctx.moveTo(-30, baseY - 120); ctx.quadraticCurveTo(-20, baseY - 100, -10, baseY - 130);
-    ctx.moveTo(-10, baseY - 40); ctx.quadraticCurveTo(5, baseY - 60, 15, baseY - 30);
-    ctx.moveTo(15, baseY - 120); ctx.quadraticCurveTo(25, baseY - 140, 35, baseY - 110);
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  // --- Tier 5: The Logistics Terminus ---
-  if (tier5Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier5Prog;
-
-    const termX = baseWidth/2 + 40; // Eastern flank (right side)
-    const termY = baseY;
-
-    // Multi-lane heavy transport loop (elevated track)
-    ctx.fillStyle = "#2c3e50";
-    ctx.fillRect(termX, termY - 40, 80, 10); // Upper track
-    ctx.fillRect(termX, termY - 15, 80, 10); // Lower track
-
-    // Supports
-    ctx.fillStyle = "#1a1c1e";
-    ctx.fillRect(termX + 20, termY - 40, 8, 40);
-    ctx.fillRect(termX + 60, termY - 40, 8, 40);
-
-    // Arriving transport container (animated)
-    let contX = termX + ((t * 40) % 100) - 10;
-    if (contX > termX && contX < termX + 80) {
-        ctx.fillStyle = "#2980b9"; // Blue container
-        ctx.fillRect(contX, termY - 55, 20, 15);
-        ctx.fillStyle = "#34495e";
-        ctx.fillRect(contX + 2, termY - 53, 16, 11);
-    }
-
-    // Lower container moving opposite direction
-    let contX2 = termX + 80 - ((t * 30) % 100);
-    if (contX2 > termX && contX2 < termX + 80) {
-        ctx.fillStyle = "#c0392b"; // Red container
-        ctx.fillRect(contX2, termY - 30, 20, 15);
-        ctx.fillStyle = "#34495e";
-        ctx.fillRect(contX2 + 2, termY - 28, 16, 11);
-    }
-
-    // Automated overhead loading chutes
-    ctx.fillStyle = "#7f8c8d";
-    ctx.fillRect(termX + 30, termY - 80, 10, 40); // Drops down to upper track
-    
-    // Material dropping
-    let dropProg = (t * 3) % 1;
-    ctx.fillStyle = "#f1c40f";
-    ctx.fillRect(termX + 32, termY - 80 + dropProg * 30, 6, 6);
-
-    ctx.restore();
-  }
-
-  // --- Tier 6: Catalytic Pressure Spheres ---
+  // Tier 6: Scaffolding Baskets
   if (tier6Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier6Prog;
-
-    const drawSphere = (x, y) => {
-        ctx.save();
-        ctx.translate(x, y);
-
-        // Hover/hum animation
-        let humY = Math.sin(t * 8 + x) * 2;
-        ctx.translate(0, humY);
-
-        const r = 20;
-
-        // Base sphere
-        let grad = ctx.createRadialGradient(-5, -5, 2, 0, 0, r);
-        grad.addColorStop(0, "#ecf0f1"); // bright reflection
-        grad.addColorStop(0.5, "#95a5a6"); // iron
-        grad.addColorStop(1, "#2c3e50"); // dark shadow
-        
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI*2);
-        ctx.fill();
-
-        // Glowing catalytic seams
-        ctx.strokeStyle = `rgba(155, 89, 182, ${0.5 + 0.5 * Math.sin(t*5)})`; // Purple glow
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI*2);
-        ctx.stroke();
-        
-        // Internal glowing ring
-        ctx.beginPath();
-        ctx.ellipse(0, 0, r, r*0.3, t, 0, Math.PI*2);
-        ctx.stroke();
-
-        ctx.restore();
-    };
-
-    // Suspend massive spheres within upper gantry matrix
-    drawSphere(-baseWidth/2 - 20, baseY - 150);
-    drawSphere(baseWidth/2 + 20, baseY - 130);
-
-    ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = tier6Prog;
+      const drawBasket = (x, y) => {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.strokeStyle = "#2c3e50";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          // Basket shape
+          ctx.moveTo(-25, 10); ctx.lineTo(25, 10);
+          ctx.lineTo(30, -10); ctx.lineTo(-30, -10);
+          ctx.closePath();
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.moveTo(-20, 10); ctx.lineTo(-25, 30);
+          ctx.moveTo(20, 10); ctx.lineTo(25, 30);
+          ctx.stroke();
+          ctx.restore();
+      };
+      drawBasket(-baseWidth/2 - 20, baseY - 150);
+      drawBasket(baseWidth/2 + 20, baseY - 130);
+      ctx.restore();
   }
 
-  // --- Tier 7: The Perimeter Solar Grid ---
-  if (tier7Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier7Prog;
+  // Tier 4 Background Pipes
+  if (tier4Prog > 0) {
+      ctx.save();
+      ctx.globalAlpha = tier4Prog;
+      ctx.strokeStyle = "#3498db"; // Cold pipes behind
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-30, baseY - 120); ctx.quadraticCurveTo(-20, baseY - 100, -10, baseY - 130);
+      ctx.moveTo(-10, baseY - 40); ctx.quadraticCurveTo(5, baseY - 60, 15, baseY - 30);
+      ctx.moveTo(15, baseY - 120); ctx.quadraticCurveTo(25, baseY - 140, 35, baseY - 110);
+      ctx.stroke();
+      ctx.restore();
+  }
 
-    // Angled banks of dark solar panels
-    const drawPanel = (x, y, isRight) => {
-        ctx.save();
-        ctx.translate(x, y);
-        
-        // Iron framing
-        ctx.strokeStyle = "#34495e";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(isRight ? -20 : 20, 20); // Connect to base structure
-        ctx.stroke();
 
-        // Rotate for angled panel
-        ctx.rotate(isRight ? -Math.PI/6 : Math.PI/6);
+  // ================= LAYER 2: MIDDLE (MAIN CYLINDERS) =================
+  // Tier 2: Recirculator Tank (Left Side)
+  if (tier2Prog > 0) {
+      ctx.save();
+      ctx.globalAlpha = tier2Prog;
+      const vesselW = 50;
+      const vesselH = 30;
+      const vesselX = -baseWidth/2 - vesselW + 10;
+      const vesselY = baseY - 60;
+      
+      const vGrad = ctx.createLinearGradient(0, vesselY, 0, vesselY + vesselH);
+      vGrad.addColorStop(0, "#2c3e50");
+      vGrad.addColorStop(0.3, "#95a5a6");
+      vGrad.addColorStop(0.7, "#7f8c8d");
+      vGrad.addColorStop(1, "#2c3e50");
 
-        // Panel base
-        ctx.fillStyle = "#2c3e50";
-        ctx.fillRect(-25, -5, 50, 10);
-        
-        // Dark blue PV cells
-        ctx.fillStyle = "#1abc9c"; // Slight reflection
-        ctx.fillRect(-24, -4, 48, 8);
-        ctx.fillStyle = "#16a085";
-        
-        // Grid lines
-        ctx.strokeStyle = "rgba(255,255,255,0.2)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for(let i = -20; i <= 20; i+= 10) {
-            ctx.moveTo(i, -4); ctx.lineTo(i, 4);
+      ctx.fillStyle = vGrad;
+      ctx.fillRect(vesselX, vesselY, vesselW, vesselH);
+      
+      if (ironPattern) {
+          ctx.save();
+          ctx.globalCompositeOperation = "multiply";
+          ctx.fillStyle = ironPattern;
+          ctx.globalAlpha *= 0.5;
+          ctx.fillRect(vesselX, vesselY, vesselW, vesselH);
+          ctx.restore();
+      }
+      
+      ctx.fillStyle = "#4a4d50";
+      ctx.beginPath();
+      ctx.arc(vesselX, vesselY + vesselH/2, vesselH/2, Math.PI/2, Math.PI*1.5);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(vesselX + vesselW, vesselY + vesselH/2, vesselH/2, -Math.PI/2, Math.PI/2);
+      ctx.fill();
+
+      // Exhaust particles
+      let steamCycle = (t * 2) % 1;
+      for(let i=0; i<3; i++) {
+          let st = (steamCycle + i*0.33) % 1;
+          let sY = vesselY - st * 30;
+          let sX = vesselX + vesselW/2 + Math.sin(st*Math.PI*2)*5;
+          let sAlpha = 1 - st;
+          ctx.fillStyle = `rgba(200, 200, 200, ${sAlpha * 0.5})`;
+          ctx.beginPath();
+          ctx.arc(sX, sY, 3 + st*8, 0, Math.PI*2);
+          ctx.fill();
+      }
+      ctx.restore();
+  }
+
+  // Core Cylinders: Tier 0 vs Tier 4
+  const columnAlpha = 1.0 - tier4Prog;
+  
+  // Single pipe at base for T0/T4
+  ctx.save();
+  ctx.fillStyle = "#3a3d40";
+  ctx.fillRect(-baseWidth/2 - 20, baseY - 10, 20, 10);
+  ctx.fillStyle = "#1a1c1e";
+  ctx.fillRect(-baseWidth/2 - 20, baseY - 8, 20, 6);
+  ctx.restore();
+
+  if (columnAlpha > 0) {
+      // Tier 0 Core Cylinder
+      ctx.save();
+      ctx.globalAlpha = columnAlpha;
+      const colW = 40;
+      const colH = 150;
+      const colY = baseY - colH;
+      
+      drawCylinder(0, colY, colW, colH);
+
+      // Spiral ladder
+      ctx.strokeStyle = "#1a1c1e";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < colH; i += 5) {
+        const y = baseY - i;
+        const angle = (i * 0.1);
+        const x = Math.sin(angle) * (colW/2 + 2);
+        if (Math.cos(angle) > 0) {
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        } else {
+          ctx.moveTo(x, y);
         }
-        ctx.moveTo(-24, 0); ctx.lineTo(24, 0);
-        ctx.stroke();
+      }
+      ctx.stroke();
 
-        // Specular highlight moving across
-        let hlProg = (t * 0.5 + (isRight ? 0.5 : 0)) % 1;
-        let hlX = -25 + hlProg * 50;
-        let hlGrad = ctx.createLinearGradient(hlX - 5, 0, hlX + 5, 0);
-        hlGrad.addColorStop(0, "rgba(255,255,255,0)");
-        hlGrad.addColorStop(0.5, "rgba(255,255,255,0.6)");
-        hlGrad.addColorStop(1, "rgba(255,255,255,0)");
-        ctx.fillStyle = hlGrad;
-        ctx.fillRect(-24, -4, 48, 8);
+      // Flame
+      ctx.save();
+      ctx.translate(0, colY);
+      const flameSize = 10 + Math.sin(t * 10) * 2;
+      ctx.fillStyle = `rgba(255, 100, 0, ${0.8 + 0.2 * Math.sin(t * 15)})`;
+      ctx.beginPath();
+      ctx.moveTo(0, -flameSize * 1.5);
+      ctx.quadraticCurveTo(flameSize, 0, 0, flameSize/2);
+      ctx.quadraticCurveTo(-flameSize, 0, 0, -flameSize * 1.5);
+      ctx.fill();
+      
+      ctx.fillStyle = `rgba(255, 200, 0, 0.9)`;
+      ctx.beginPath();
+      ctx.moveTo(0, -flameSize);
+      ctx.quadraticCurveTo(flameSize/2, 0, 0, flameSize/4);
+      ctx.quadraticCurveTo(-flameSize/2, 0, 0, -flameSize);
+      ctx.fill();
+      ctx.restore();
+      ctx.restore();
+  }
+  
+  if (tier4Prog > 0) {
+      // Tier 4 Multi-Stage Spires
+      ctx.save();
+      ctx.globalAlpha = tier4Prog;
+      spires.forEach(sp => {
+          let sY = baseY - sp.h;
+          let heatProg = (Math.sin(t * 3 + sp.x) + 1) / 2;
+          drawCylinder(sp.x, sY, sp.w, sp.h, heatProg);
 
-        ctx.restore();
-    };
-
-    // Place panels high up on outer edges
-    drawPanel(-baseWidth/2 - 40, baseY - 180, false);
-    drawPanel(-baseWidth/2 - 60, baseY - 140, false);
-    
-    drawPanel(baseWidth/2 + 40, baseY - 180, true);
-    drawPanel(baseWidth/2 + 60, baseY - 140, true);
-
-    ctx.restore();
+          // Glass "Sight Tubes" with neon cyan gradient & ticks
+          const tubeW = sp.w * 0.3;
+          const tubeH = sp.h * 0.6;
+          const tubeX = sp.x - tubeW/2;
+          const tubeY = sY + sp.h * 0.2;
+          
+          let tGrad = ctx.createLinearGradient(0, tubeY, 0, tubeY + tubeH);
+          tGrad.addColorStop(0, "rgba(0, 255, 255, 0.9)");
+          tGrad.addColorStop(1, "rgba(0, 150, 255, 0.6)");
+          
+          ctx.fillStyle = tGrad;
+          ctx.fillRect(tubeX, tubeY, tubeW, tubeH);
+          
+          // Tube highlights
+          ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+          ctx.fillRect(tubeX, tubeY, tubeW * 0.2, tubeH);
+          
+          // Tick marks
+          ctx.strokeStyle = "#1a1a1a";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for(let i=0; i<tubeH; i+=5) {
+              ctx.moveTo(tubeX + tubeW - 2, tubeY + i);
+              ctx.lineTo(tubeX + tubeW, tubeY + i);
+          }
+          ctx.stroke();
+      });
+      ctx.restore();
   }
 
-  // --- Tier 8: Neural Command Overpass ---
+  // Tier 6: Nested Spheres & Conduits
+  if (tier6Prog > 0) {
+      ctx.save();
+      ctx.globalAlpha = tier6Prog;
+      
+      const drawSphereAndConduits = (x, y, isRight) => {
+          ctx.save();
+          ctx.translate(x, y);
+          let humY = Math.sin(t * 8 + x) * 2;
+          ctx.translate(0, humY);
+
+          // Massive curved iron conduits to central array
+          ctx.strokeStyle = "#4a4d50";
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          let cTargetX = isRight ? -40 : 40;
+          ctx.moveTo(0, -15);
+          ctx.quadraticCurveTo(cTargetX/2, -40, cTargetX, -20);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(0, 15);
+          ctx.quadraticCurveTo(cTargetX/2, 40, cTargetX, 20);
+          ctx.stroke();
+
+          // Sphere
+          const r = 20;
+          let grad = ctx.createRadialGradient(-5, -5, 2, 0, 0, r);
+          grad.addColorStop(0, "#ecf0f1");
+          grad.addColorStop(0.5, "#9b59b6"); // Purple catalyst
+          grad.addColorStop(1, "#2c3e50");
+          
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI*2);
+          ctx.fill();
+
+          ctx.strokeStyle = `rgba(155, 89, 182, ${0.5 + 0.5 * Math.sin(t*5)})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI*2);
+          ctx.stroke();
+          
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r, r*0.3, t, 0, Math.PI*2);
+          ctx.stroke();
+
+          ctx.restore();
+      };
+      
+      drawSphereAndConduits(-baseWidth/2 - 20, baseY - 150, false);
+      drawSphereAndConduits(baseWidth/2 + 20, baseY - 130, true);
+      ctx.restore();
+  }
+
+  // ================= LAYER 3: FOREGROUND =================
+  // Tier 2: Front Pipe
+  if (tier2Prog > 0) {
+      ctx.save();
+      ctx.globalAlpha = tier2Prog;
+      const vesselW = 50;
+      const vesselX = -baseWidth/2 - vesselW + 10;
+      const vesselY = baseY - 60;
+      
+      ctx.strokeStyle = "#5a5c5f";
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      // crosses in front of main cylinder
+      ctx.moveTo(vesselX + vesselW, vesselY + 10);
+      ctx.lineTo(20, vesselY + 10);
+      ctx.stroke();
+      
+      ctx.strokeStyle = "#3a3d40"; // Pipe shading
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(vesselX + vesselW, vesselY + 12);
+      ctx.lineTo(20, vesselY + 12);
+      ctx.stroke();
+      ctx.restore();
+  }
+
+  // Tier 4: Foreground Weaving Pipes
+  if (tier4Prog > 0) {
+      ctx.save();
+      ctx.globalAlpha = tier4Prog;
+      ctx.strokeStyle = "#e67e22"; // Copper hot pipes
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-30, baseY - 50); ctx.quadraticCurveTo(-20, baseY - 70, -10, baseY - 60);
+      ctx.moveTo(-10, baseY - 100); ctx.quadraticCurveTo(5, baseY - 80, 15, baseY - 110);
+      ctx.moveTo(15, baseY - 80); ctx.quadraticCurveTo(25, baseY - 60, 35, baseY - 90);
+      ctx.stroke();
+      ctx.restore();
+  }
+
+  // Tier 1: Outflow Dock
+  if (tier1Prog > 0) {
+      ctx.save();
+      ctx.globalAlpha = tier1Prog;
+      const dockW = 60;
+      const dockH = 10;
+      const dockX = baseWidth/2;
+      const dockY = baseY - 20;
+
+      ctx.fillStyle = ironPattern ? ironPattern : "#6b7075";
+      ctx.fillRect(dockX, dockY, dockW, dockH);
+      ctx.fillStyle = "#3a3d40";
+      ctx.fillRect(dockX + 10, dockY + dockH, 5, baseY - dockY - dockH);
+      ctx.fillRect(dockX + dockW - 15, dockY + dockH, 5, baseY - dockY - dockH);
+
+      ctx.fillStyle = "#1a1c1e";
+      ctx.fillRect(dockX + 5, dockY - 5, dockW - 10, 5);
+      
+      ctx.fillStyle = "#8b9094";
+      for(let i = 0; i < dockW - 10; i+= 10) {
+          const offset = (t * 20) % 10;
+          let dotX = dockX + 5 + i + offset;
+          if (dotX < dockX + dockW - 5) {
+              ctx.fillRect(dotX, dockY - 5, 2, 5);
+          }
+      }
+
+      const crateProg = (t * 0.5) % 1;
+      const crateX = dockX + 5 + crateProg * (dockW - 20);
+      ctx.fillStyle = "#8c5b35";
+      ctx.fillRect(crateX, dockY - 15, 10, 10);
+
+      ctx.save();
+      ctx.translate(dockX + dockW/2, dockY - 20);
+      ctx.rotate(Math.sin(t * 2) * 0.5);
+      ctx.fillStyle = "#d35400";
+      ctx.fillRect(-2, -30, 4, 30);
+      ctx.fillRect(-10, -30, 20, 6);
+      ctx.strokeStyle = "#1a1c1e";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, -30);
+      ctx.lineTo(0, 0 + Math.sin(t*2)*10);
+      ctx.stroke();
+      ctx.fillStyle = "#4a4d50";
+      ctx.fillRect(-5, 0 + Math.sin(t*2)*10, 10, 4);
+      ctx.restore();
+      ctx.restore();
+  }
+
+  // Tier 5: Logistics Terminus
+  if (tier5Prog > 0) {
+      ctx.save();
+      ctx.globalAlpha = tier5Prog;
+      const termX = baseWidth/2 + 40;
+      const termY = baseY;
+
+      ctx.fillStyle = "#2c3e50";
+      ctx.fillRect(termX, termY - 40, 80, 10);
+      ctx.fillRect(termX, termY - 15, 80, 10);
+
+      ctx.fillStyle = "#1a1c1e";
+      ctx.fillRect(termX + 20, termY - 40, 8, 40);
+      ctx.fillRect(termX + 60, termY - 40, 8, 40);
+
+      let contX = termX + ((t * 40) % 100) - 10;
+      if (contX > termX && contX < termX + 80) {
+          ctx.fillStyle = "#2980b9";
+          ctx.fillRect(contX, termY - 55, 20, 15);
+          ctx.fillStyle = "#34495e";
+          ctx.fillRect(contX + 2, termY - 53, 16, 11);
+      }
+
+      let contX2 = termX + 80 - ((t * 30) % 100);
+      if (contX2 > termX && contX2 < termX + 80) {
+          ctx.fillStyle = "#c0392b";
+          ctx.fillRect(contX2, termY - 30, 20, 15);
+          ctx.fillStyle = "#34495e";
+          ctx.fillRect(contX2 + 2, termY - 28, 16, 11);
+      }
+
+      // Angled delivery chute from T3 scaffolding to T5 loop
+      ctx.strokeStyle = "#7f8c8d";
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(termX - 20, baseY - 80); // Connects to T3 lattice
+      ctx.lineTo(termX + 40, termY - 40); // Drops onto loop
+      ctx.stroke();
+      
+      // Moving materials in chute
+      let dropProg = (t * 2) % 1;
+      let dx = (termX + 40) - (termX - 20);
+      let dy = (termY - 40) - (baseY - 80);
+      ctx.fillStyle = "#f1c40f";
+      ctx.fillRect((termX - 20) + dx * dropProg - 3, (baseY - 80) + dy * dropProg - 3, 6, 6);
+
+      ctx.restore();
+  }
+
+  // ================= LAYER 4: EFFECTS & CAPS =================
+  // Tier 7: Perimeter Solar Grid & Lighting & Steam
+  if (tier7Prog > 0) {
+      ctx.save();
+      ctx.globalAlpha = tier7Prog;
+
+      // Solar Panels
+      const drawPanel = (x, y, isRight) => {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.strokeStyle = "#34495e";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(isRight ? -20 : 20, 20);
+          ctx.stroke();
+          ctx.rotate(isRight ? -Math.PI/6 : Math.PI/6);
+          ctx.fillStyle = "#2c3e50";
+          ctx.fillRect(-25, -5, 50, 10);
+          ctx.fillStyle = "#1abc9c";
+          ctx.fillRect(-24, -4, 48, 8);
+          ctx.strokeStyle = "rgba(255,255,255,0.2)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for(let i = -20; i <= 20; i+= 10) {
+              ctx.moveTo(i, -4); ctx.lineTo(i, 4);
+          }
+          ctx.moveTo(-24, 0); ctx.lineTo(24, 0);
+          ctx.stroke();
+          let hlProg = (t * 0.5 + (isRight ? 0.5 : 0)) % 1;
+          let hlX = -25 + hlProg * 50;
+          let hlGrad = ctx.createLinearGradient(hlX - 5, 0, hlX + 5, 0);
+          hlGrad.addColorStop(0, "rgba(255,255,255,0)");
+          hlGrad.addColorStop(0.5, "rgba(255,255,255,0.6)");
+          hlGrad.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = hlGrad;
+          ctx.fillRect(-24, -4, 48, 8);
+          ctx.restore();
+      };
+
+      drawPanel(-baseWidth/2 - 40, baseY - 180, false);
+      drawPanel(-baseWidth/2 - 60, baseY - 140, false);
+      drawPanel(baseWidth/2 + 40, baseY - 180, true);
+      drawPanel(baseWidth/2 + 60, baseY - 140, true);
+
+      // Green Volumetric Spotlights
+      ctx.globalCompositeOperation = "screen";
+      const drawLight = (x, y, targetX, targetY) => {
+          let lightGrad = ctx.createLinearGradient(x, y, targetX, targetY);
+          lightGrad.addColorStop(0, "rgba(46, 204, 113, 0.6)");
+          lightGrad.addColorStop(1, "rgba(46, 204, 113, 0)");
+          ctx.fillStyle = lightGrad;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(targetX - 20, targetY);
+          ctx.lineTo(targetX + 20, targetY);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Lens flare
+          let flareGrad = ctx.createRadialGradient(x, y, 0, x, y, 10);
+          flareGrad.addColorStop(0, "rgba(255, 255, 255, 1)");
+          flareGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+          ctx.fillStyle = flareGrad;
+          ctx.beginPath();
+          ctx.arc(x, y, 10, 0, Math.PI*2);
+          ctx.fill();
+      };
+      
+      // Light from scaffolding down to spires
+      drawLight(-baseWidth/2, baseY - 180, -20, baseY - 100);
+      drawLight(baseWidth/2, baseY - 180, 20, baseY - 100);
+      ctx.globalCompositeOperation = "source-over";
+
+      // Semi-transparent steam clouds from spires
+      if (tier4Prog > 0) {
+          spires.forEach((sp, i) => {
+             let steamT = (t + i * 0.3) % 1;
+             let sX = sp.x + (i % 2 === 0 ? sp.w/2 : -sp.w/2);
+             let sY = baseY - sp.h * 0.8;
+             let sAlpha = (1 - steamT) * 0.5;
+             ctx.fillStyle = `rgba(255, 255, 255, ${sAlpha})`;
+             ctx.beginPath();
+             ctx.arc(sX + (i % 2 === 0 ? steamT*15 : -steamT*15), sY - steamT*5, 3 + steamT*8, 0, Math.PI*2);
+             ctx.fill();
+          });
+      }
+
+      ctx.restore();
+  }
+
+  // Tier 8: Neural Command Overpass
   if (tier8Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier8Prog;
+      ctx.save();
+      ctx.globalAlpha = tier8Prog;
 
-    const overpassY = baseY - 220; // High above everything
-    const overpassW = baseWidth + 120;
+      const overpassY = baseY - maxSpireHeight; // Flush with highest spire
+      const overpassW = baseWidth + 80;
 
-    // Heavy structural columns lifting the overpass
-    ctx.fillStyle = ironPattern ? ironPattern : "#34495e";
-    ctx.fillRect(-overpassW/2 + 10, overpassY, 15, baseY - overpassY);
-    ctx.fillRect(overpassW/2 - 25, overpassY, 15, baseY - overpassY);
+      // Heavy structural columns (side supports)
+      ctx.fillStyle = ironPattern ? ironPattern : "#34495e";
+      ctx.fillRect(-overpassW/2, overpassY, 20, baseY - overpassY);
+      ctx.fillRect(overpassW/2 - 20, overpassY, 20, baseY - overpassY);
 
-    // Arching overpass base
-    ctx.beginPath();
-    ctx.moveTo(-overpassW/2, overpassY);
-    ctx.quadraticCurveTo(0, overpassY - 30, overpassW/2, overpassY);
-    ctx.lineTo(overpassW/2, overpassY - 40);
-    ctx.quadraticCurveTo(0, overpassY - 70, -overpassW/2, overpassY - 40);
-    ctx.closePath();
-    ctx.fill();
+      // Massive heavy-duty cap
+      ctx.fillStyle = ironPattern ? ironPattern : "#2c3e50";
+      ctx.fillRect(-overpassW/2, overpassY - 40, overpassW, 40);
+      
+      // Shading on cap
+      let capGrad = ctx.createLinearGradient(0, overpassY - 40, 0, overpassY);
+      capGrad.addColorStop(0, "rgba(255,255,255,0.1)");
+      capGrad.addColorStop(1, "rgba(0,0,0,0.4)");
+      ctx.fillStyle = capGrad;
+      ctx.fillRect(-overpassW/2, overpassY - 40, overpassW, 40);
+      
+      // Lower rim
+      ctx.fillStyle = "#1a1c1e";
+      ctx.fillRect(-overpassW/2 - 5, overpassY - 5, overpassW + 10, 5);
+      
+      // Sleek angled glowing windows
+      ctx.save();
+      ctx.translate(0, overpassY - 20);
+      let winW = 80;
+      let winH = 20;
+      
+      // Window container
+      ctx.fillStyle = "#111";
+      ctx.beginPath();
+      ctx.moveTo(-winW/2, -winH/2);
+      ctx.lineTo(winW/2, -winH/2);
+      ctx.lineTo(winW/2 - 10, winH/2);
+      ctx.lineTo(-winW/2 + 10, winH/2);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Window glow (cyan/neon yellow gradient)
+      let wGrad = ctx.createLinearGradient(-winW/2, 0, winW/2, 0);
+      wGrad.addColorStop(0, "#00ffff");
+      wGrad.addColorStop(0.5, "#d4ff00");
+      wGrad.addColorStop(1, "#00ffff");
+      
+      ctx.fillStyle = wGrad;
+      ctx.beginPath();
+      ctx.moveTo(-winW/2 + 2, -winH/2 + 2);
+      ctx.lineTo(winW/2 - 2, -winH/2 + 2);
+      ctx.lineTo(winW/2 - 10, winH/2 - 2);
+      ctx.lineTo(-winW/2 + 10, winH/2 - 2);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Geometric silhouettes (consoles/monitors)
+      ctx.fillStyle = "#000";
+      ctx.fillRect(-20, 2, 8, 8);
+      ctx.fillRect(-5, 0, 10, 10);
+      ctx.fillRect(10, 4, 15, 6);
+      
+      ctx.restore();
 
-    // Outward-facing windows
-    ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-    ctx.beginPath();
-    ctx.moveTo(-overpassW/2 + 10, overpassY - 10);
-    ctx.quadraticCurveTo(0, overpassY - 35, overpassW/2 - 10, overpassY - 10);
-    ctx.lineTo(overpassW/2 - 15, overpassY - 30);
-    ctx.quadraticCurveTo(0, overpassY - 55, -overpassW/2 + 15, overpassY - 30);
-    ctx.closePath();
-    ctx.fill();
-
-    // Automated diagnostic terminals (sweeping beams looking down)
-    ctx.save();
-    ctx.globalCompositeOperation = "screen";
-    let sweepAngle = Math.sin(t * 1.5) * 0.5; // Sweep back and forth
-    
-    const drawScanner = (x, y) => {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(Math.PI/2 + sweepAngle); // Pointing down
-        
-        // The beam
-        let beamGrad = ctx.createLinearGradient(0, 0, 150, 0);
-        beamGrad.addColorStop(0, "rgba(46, 204, 113, 0.8)"); // Bright green
-        beamGrad.addColorStop(1, "rgba(46, 204, 113, 0)");
-        
-        ctx.fillStyle = beamGrad;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(150, 30);
-        ctx.lineTo(150, -30);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.restore();
-    };
-
-    drawScanner(-40, overpassY - 20);
-    drawScanner(40, overpassY - 20);
-    ctx.restore();
-
-    // Optimization sparks/math symbols on the spires
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    for(let i=0; i<5; i++) {
-        let pT = (t + i*0.2) % 1;
-        let pX = -30 + Math.random() * 80;
-        let pY = baseY - 100 - pT * 80; // Floating up from spires
-        
-        ctx.fillStyle = `rgba(46, 204, 113, ${1-pT})`;
-        ctx.font = "10px monospace";
-        ctx.fillText("1", pX, pY);
-    }
-    ctx.restore();
-
-    ctx.restore();
+      ctx.restore();
   }
 }
-
 
 function drawVault(ctx, t, tier) {
   ctx.fillStyle = "#d4b22c";
