@@ -897,43 +897,16 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                 userSelect: 'none',
                 cursor: 'none'
             });
-            teleportOverlay.textContent = 'Teleporting to The Cove...';
+            teleportOverlay.textContent = '';
             document.body.appendChild(teleportOverlay);
             if (explosionContainer) explosionContainer.remove();
             lostContainer.remove();
             cleanup();
             
-            // Invisible framerate warming pulse
-            const pulseDiv = document.createElement('div');
-            Object.assign(pulseDiv.style, {
-                position: 'fixed',
-                top: '0',
-                left: '0',
-                width: '1px',
-                height: '1px',
-                opacity: '0.01',
-                pointerEvents: 'none',
-                zIndex: '-9999'
-            });
-            document.body.appendChild(pulseDiv);
-
-            let start = performance.now();
-            function pulseFrame(now) {
-                if (now - start < 450) {
-                    pulseDiv.style.opacity = Math.random() > 0.5 ? '0.01' : '0.02';
-                    teleportOverlay.style.opacity = Math.random() > 0.5 ? '0.99' : '1';
-                    requestAnimationFrame(pulseFrame);
-                } else {
-                    if (onComplete) onComplete({ beaten: false });
-                    if (teleportOverlay.parentNode) {
-                        teleportOverlay.parentNode.removeChild(teleportOverlay);
-                    }
-                    if (pulseDiv.parentNode) {
-                        pulseDiv.parentNode.removeChild(pulseDiv);
-                    }
-                }
+            if (onComplete) onComplete({ beaten: false });
+            if (teleportOverlay.parentNode) {
+                teleportOverlay.parentNode.removeChild(teleportOverlay);
             }
-            requestAnimationFrame(pulseFrame);
         });
 
         btnAttempt.addEventListener('click', () => {
@@ -1522,7 +1495,7 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                                     userSelect: 'none',
                                     cursor: 'none'
                                 });
-                                teleportOverlay.textContent = 'Teleporting to The Cove...';
+                                teleportOverlay.textContent = '';
                                 document.body.appendChild(teleportOverlay);
                                 
                                 // Clean up the boss fight immediately so the DOM clears out
@@ -1530,47 +1503,12 @@ export function playSecretDlgBossFightSequence(container, onComplete, options = 
                                 setLifetimeBossBeaten();
                                 cleanup();
                                 
-                                // Invisible framerate warming pulse
-                                const pulseDiv = document.createElement('div');
-                                Object.assign(pulseDiv.style, {
-                                    position: 'fixed',
-                                    top: '0',
-                                    left: '0',
-                                    width: '1px',
-                                    height: '1px',
-                                    opacity: '0.01',
-                                    pointerEvents: 'none',
-                                    zIndex: '-9999'
-                                });
-                                document.body.appendChild(pulseDiv);
-
-                                // Run a short requestAnimationFrame pulse loop for 450ms
-                                // to keep the browser's refresh rate active during the transition.
-                                let start = performance.now();
-                                function pulseFrame(now) {
-                                    if (now - start < 450) {
-                                        pulseDiv.style.opacity = Math.random() > 0.5 ? '0.01' : '0.02';
-                                        // Randomize text content slightly to force layout/paint
-                                        // and ensure the browser compositor stays awake at max fps
-                                        if (Math.random() > 0.5) {
-                                            teleportOverlay.style.opacity = '0.99';
-                                        } else {
-                                            teleportOverlay.style.opacity = '1';
-                                        }
-                                        requestAnimationFrame(pulseFrame);
-                                    } else {
-										checkSecretAchievements();
-                                        if (onComplete) onComplete();
-                                        
-                                        if (teleportOverlay.parentNode) {
-                                            teleportOverlay.parentNode.removeChild(teleportOverlay);
-                                        }
-                                        if (pulseDiv.parentNode) {
-                                            pulseDiv.parentNode.removeChild(pulseDiv);
-                                        }
-                                    }
+                                checkSecretAchievements();
+                                if (onComplete) onComplete();
+                                
+                                if (teleportOverlay.parentNode) {
+                                    teleportOverlay.parentNode.removeChild(teleportOverlay);
                                 }
-                                requestAnimationFrame(pulseFrame);
                             });
                             
                             victoryContainer.appendChild(title);
