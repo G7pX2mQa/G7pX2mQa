@@ -121,11 +121,13 @@ export class BigNum {
       if (parts[1] === 'zero') {
         return new BigNum(0, { base: 0 }, p);
       }
+      if (parts.length < 4) return null;
       const [, pStr, sigStr, eStr] = parts;
       const pp = parseInt(pStr, 10) || p;
       let eNum = Number(eStr);
-      if (!Number.isFinite(eNum)) eNum = BigNum.MAX_E;
+      if (!Number.isFinite(eNum)) return null;
       const parsedSig = sigStr ? Number(sigStr) : 1;
+      if (!Number.isFinite(parsedSig)) return null;
       return new BigNum(parsedSig, { base: eNum }, pp);
     }
     return BigNum.fromScientific(str, p);
