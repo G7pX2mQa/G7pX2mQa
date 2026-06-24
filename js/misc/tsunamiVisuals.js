@@ -265,6 +265,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
     resize();
     
     const startTime = Date.now();
+    let lastTime = startTime;
     let isRunning = true;
     let animationFrameId;
     let visualsFinished = false;
@@ -310,7 +311,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
     let finalFadeStart = 0;
     let finalFadeDuration = 5000;
     let finalExplosionTriggered = false;
-    let flashWhite = 0;
+    let flashWhiteTime = 0;
 
     const waves = [];
     const layerCount = 6;
@@ -542,9 +543,9 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         });
     }
 
-    function drawBeacons(ctx, width, height, intensity = 0.5, allowSpawn = true) {
+    function drawBeacons(ctx, width, height, intensity = 0.5, allowSpawn = true, dt = 16.6) {
         // Dynamic spawn chance based on intensity
-        const chance = 0.1 + (intensity * 0.7);
+        const chance = (0.1 + (intensity * 0.7)) * (dt / 16.666);
         const spawnCount = Math.floor(1 + intensity * 4); 
 
         if (allowSpawn && !finalExplosionTriggered) {
@@ -561,9 +562,9 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
 
         for (let i = beacons.length - 1; i >= 0; i--) {
             const b = beacons[i];
-            b.radius += b.speed;
-            b.opacity -= 0.015; // Slightly faster fade
-            b.life -= 0.015;
+            b.radius += b.speed * (dt / 16.666);
+            b.opacity -= 0.015 * (dt / 16.666); // Slightly faster fade
+            b.life -= 0.015 * (dt / 16.666);
 
             if (b.opacity <= 0 || b.radius > b.maxRadius) {
                 beacons.splice(i, 1);
@@ -595,6 +596,8 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         if (!isRunning) return;
 
         const now = Date.now();
+        const dt = now - lastTime;
+        lastTime = now;
         const elapsed = now - startTime;
         const progress = Math.min(elapsed / durationMs, 1.0);
 
@@ -663,8 +666,8 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         if (stormFactor > 0.5 || finalExplosionTriggered) {
             let shakeMag = (stormFactor - 0.5) * 2 * 5 + (impactFactor * 25);
             
-            // Extra chaos during explosion (flashWhite is counting down from 60)
-            if (flashWhite > 0) {
+            // Extra chaos during explosion
+            if (flashWhiteTime > 0) {
                  shakeMag += 50; 
             }
             
@@ -760,7 +763,8 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
 
             // Add particles
             if (rainParticles.length < rainCount) {
-                for(let i=0; i<10; i++) {
+                const spawnRate = Math.max(1, Math.floor(10 * (dt / 16.666)));
+                for(let i=0; i<spawnRate; i++) {
                     rainParticles.push({
                         x: Math.random() * width * 1.5, // Wide spawn for angle
                         y: cloudBaseY,
@@ -774,8 +778,8 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
 
             for (let i = 0; i < rainParticles.length; i++) {
                 const p = rainParticles[i];
-                p.y += p.speed;
-                p.x -= wind;
+                p.y += p.speed * (dt / 16.666);
+                p.x -= wind * (dt / 16.666);
 
                 fgCtx.moveTo(p.x, p.y);
                 fgCtx.lineTo(p.x - wind * 0.5, p.y + p.len);
@@ -921,7 +925,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
                     finalExplosionTriggered = true;
                     // Spawn huge explosion center screen
                     spawnBeacon(fgCtx, width, height, 25.0); // Larger visual impact
-                    flashWhite = 60; // Extended flash frames (approx 1 sec at 60fps)
+                    flashWhiteTime = 2000;
                     
                     if (!explosionAudioTriggered) {
                         explosionAudioTriggered = true;
@@ -938,7 +942,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
                 allowSpawn = false;
             }
             
-            drawBeacons(fgCtx, width, height, intensity, allowSpawn);
+            drawBeacons(fgCtx, width, height, intensity, allowSpawn, dt);
         }
 
         // 13. Final Blackout Fade Out (FG) - Manual Trigger
@@ -950,19 +954,15 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         }
 
         // 14. Flash White (Boom)
-        if (flashWhite > 0) {
-            // Smooth fade out: 60 frames max. 
+        if (flashWhiteTime > 0) {
+            // Smooth fade out: 2000ms max. 
             // Normalized 0 to 1.
-            const t = flashWhite / 60; 
-            // Ease out cubic (starts fast, slows down) or simple linear?
-            // User requested "fades out smoothly". 
-            // Linear opacity: t. 
-            // Let's use a curve to keep it bright longer then fade.
+            const t = flashWhiteTime / 2000; 
             const alpha = t * t; 
             
             fgCtx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
             fgCtx.fillRect(-50, -50, width + 100, height + 100);
-            flashWhite--;
+            flashWhiteTime = Math.max(0, flashWhiteTime - dt);
         }
 
         bgCtx.restore();
@@ -990,7 +990,7 @@ export function playTsunamiSequence(container, durationMs, onComplete, options =
         beaconsActive = true;
         beaconStartTime = Date.now();
         finalExplosionTriggered = false;
-        flashWhite = 0;
+        flashWhiteTime = 0;
         
         // Audio: Hum Loop
         if (!humAudio) {
