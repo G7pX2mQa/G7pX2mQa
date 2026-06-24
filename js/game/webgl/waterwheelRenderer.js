@@ -142,7 +142,7 @@ export class WaterwheelRenderer {
                    this.offscreenCanvas.getContext('experimental-webgl');
         
         if (!gl) {
-            console.error('WebGL not supported for waterwheel');
+            if (!settingsManager.get("disable_webgl")) { console.error('WebGL not supported for waterwheel'); }
             return;
         }
         
@@ -227,6 +227,18 @@ export class WaterwheelRenderer {
     }
 
     render(dt) {
+        if (settingsManager.get("disable_webgl")) {
+            for (const inst of this.instances) {
+                inst.ctx.clearRect(0, 0, inst.canvas.width, inst.canvas.height);
+            }
+            return;
+        }
+        if (!this.gl) {
+            this._setupOffscreenWebGL();
+            if (this.image && this.image.complete && !this.texture) {
+                this.uploadTexture(this.image);
+            }
+        }
         if (!this.gl || !this.texture || this.instances.length === 0) return;
 
         this._updateQualitySetting();
