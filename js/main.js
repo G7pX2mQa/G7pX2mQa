@@ -7,7 +7,7 @@ import { initUcPickup } from './game/materialPickup.js';
 import { MAX_MUTATION_VISUAL } from "./game/settingsManager.js";
 import { RESOURCE_REGISTRY } from './game/offlinePanel.js';
 import { setHtmlOrText } from './util/uiHelpers.js';
-
+import { settingsManager } from "./game/settingsManager.js";
 
 export const FONT_MAP = {
   1: 'font-tinos',
@@ -39,6 +39,8 @@ export const FONT_MAP = {
 
 export const ALL_FONT_CLASSES = Object.values(FONT_MAP);
 
+export const DEBUG_PANEL_ACCESS = true; // I will change this to false for prod so the readme makes sense
+
 // Intercept innerHTML on Elements to prevent unnecessary updates
 const originalInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
 Object.defineProperty(Element.prototype, 'innerHTML', {
@@ -51,9 +53,21 @@ Object.defineProperty(Element.prototype, 'innerHTML', {
   }
 });
 
+const originalGetContext = HTMLCanvasElement.prototype.getContext;
+HTMLCanvasElement.prototype.getContext = function(contextType, contextAttributes) {
+  if (contextType === "webgl" || contextType === "experimental-webgl") {
+    let isDisabled = false;
+    try {
+      isDisabled = settingsManager.get("disable_webgl");
+    } catch (e) {
+    }
+    if (isDisabled) {
+      return null;
+    }
+  }
+  return originalGetContext.call(this, contextType, contextAttributes);
+};
 
-
-export const DEBUG_PANEL_ACCESS = true; // I will change this to false for prod so the readme makes sense
 export const IS_MOBILE = (() => {
   if (typeof window === 'undefined') return false;
 
