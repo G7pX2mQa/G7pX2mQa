@@ -410,7 +410,7 @@ export function createUcSpawner(config = {}) {
                             const dpState = window.dpSystem.getDpState();
                             if (dpState && dpState.dpLevel) {
                                 try {
-                                    dpLevelNum = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
+                                    dpLevelNum = (bigNumIsInfinite(dpState.dpLevel) ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
                                 } catch {}
                             }
                         }
