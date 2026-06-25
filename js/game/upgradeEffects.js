@@ -1,5 +1,5 @@
 import { getBuildingLevel, getBuildingBonus } from '../ui/minerTabs/buildingsTab.js';
-import { BigNum } from '../util/bigNum.js';
+import { BigNum, bigNumIsInfinite } from '../util/bigNum.js';
 import { bank, UC_MATERIALS } from '../util/storage.js';
 import { initResetSystem } from '../ui/merchantTabs/resetTab.js';
 import { getLabWaveMultiplier } from './labNodes.js';
@@ -247,7 +247,7 @@ export function calculateUpgradeMultipliers(areaKey = AREA_KEYS.STARTER_COVE) {
       if (isPpSystemUnlocked()) {
           const ppLevel = getPpState().ppLevel;
           if (ppLevel && !ppLevel.isZero()) {
-              const ppLevelNum = (ppLevel.inf ? Infinity : (ppLevel.sig * Math.pow(10, ppLevel.e)));
+              const ppLevelNum = (bigNumIsInfinite(ppLevel) ? Infinity : (ppLevel.sig * Math.pow(10, ppLevel.e)));
               if (!Number.isFinite(ppLevelNum) || ppLevelNum === Infinity) {
                   acc.allMaterialsValue = safeMultiplyBigNum(acc.allMaterialsValue, BigNum.fromAny('Infinity'));
               } else {
