@@ -4217,7 +4217,6 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
     ? walletValue.clone?.() ?? BigNum.fromAny(walletValue)
     : BigNum.fromAny(walletValue ?? 0);
 
-  if (wallet.isZero?.()) return { evolved: false };
 
   const currentEvolutions = normalizeHmEvolutionCount(state.hmEvolutions);
 
