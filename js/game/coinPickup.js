@@ -541,9 +541,10 @@ export function initCoinPickup({
   }
 
   function animateAndRemove(el, opts = {}){
+    const coinObj = el && el._coinObj;
     // Notify spawner that this coin is "taken" so physics stops
     if (spawner && typeof spawner.detachCoin === 'function') {
-        spawner.detachCoin(el);
+        spawner.detachCoin(opts.coin || coinObj || el);
     }
 
     const recycle = () => {
@@ -663,7 +664,7 @@ export function initCoinPickup({
            if (coinObj && spawner && spawner.removeCoinTarget) {
                spawner.removeCoinTarget(coinObj);
            } else if (el) {
-               if (spawner && spawner.detachCoin) spawner.detachCoin(el);
+               if (spawner && spawner.detachCoin) spawner.detachCoin(coinObj || el);
                if (spawner && spawner.recycleCoin) spawner.recycleCoin(el);
                else el.remove();
            }
