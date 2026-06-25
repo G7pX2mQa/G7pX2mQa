@@ -95,10 +95,10 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
                  for (let i = 0; i < candidates.length; i++) {
                      const c = candidates[i];
                      const item = { coin: c }; // Support both "coin" nomenclature internally mapped
-                     if (c.el && spawner.getItemTransform) {
-                         item.opts = { transform: spawner.getItemTransform(c.el) };
-                     } else if (c.el && spawner.getCoinTransform) {
-                         item.opts = { transform: spawner.getCoinTransform(c.el) };
+                     if (spawner.getItemTransform) {
+                         item.opts = { transform: spawner.getItemTransform(c.el || c) };
+                     } else if (spawner.getCoinTransform) {
+                         item.opts = { transform: spawner.getCoinTransform(c.el || c) };
                      }
                      items.push(item);
                  }
@@ -106,11 +106,8 @@ export function createMagnetController({ playfield, itemsLayer, itemSelector, co
             } else {
                 for (let i = 0; i < candidates.length; i++) {
                     const c = candidates[i];
-                    const el = (spawner.ensureItemVisual ? spawner.ensureItemVisual(c) : (spawner.ensureCoinVisual ? spawner.ensureCoinVisual(c) : c.el));
-                    if (el) {
-                        const t = spawner.getItemTransform ? spawner.getItemTransform(el) : (spawner.getCoinTransform ? spawner.getCoinTransform(el) : (el.style.transform || ''));
-                        collectFn(el, { transform: t });
-                    }
+                    const t = spawner.getItemTransform ? spawner.getItemTransform(c.el || c) : (spawner.getCoinTransform ? spawner.getCoinTransform(c.el || c) : '');
+                    collectFn(c.el || c, { transform: t });
                 }
             }
         }
@@ -379,10 +376,10 @@ export function initInteractionBrush({ playfield, itemsLayer, itemSelector, isIt
             for (let i = 0; i < candidates.length; i++) {
                 const c = candidates[i];
                 const item = { coin: c };
-                if (c.el && spawner.getItemTransform) {
-                    item.opts = { transform: spawner.getItemTransform(c.el) };
-                } else if (c.el && spawner.getCoinTransform) {
-                    item.opts = { transform: spawner.getCoinTransform(c.el) };
+                if (spawner.getItemTransform) {
+                    item.opts = { transform: spawner.getItemTransform(c.el || c) };
+                } else if (spawner.getCoinTransform) {
+                    item.opts = { transform: spawner.getCoinTransform(c.el || c) };
                 }
                 items.push(item);
             }
