@@ -67,29 +67,18 @@ body.menu-bg {
   isolation: isolate;
 }
 
-@supports (background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'></svg>")) {
-  body.menu-bg::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    background-repeat: repeat;
-    background-size: var(--coin-step) var(--coin-step);
-    will-change: background-position;
-
-    background-image:
-	  url("data:image/svg+xml;utf8,\
-	    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>\
-		<circle cx='32' cy='32' r='14' fill='none' stroke='%23a0a6ac' stroke-width='1.2' opacity='0.75'/>\
-		<circle cx='32' cy='32' r='10.8' fill='none' stroke='%23a0a6ac' stroke-width='0.9' opacity='0.85'/>\
-	  </svg>");
-    /* subtle darken so gray reads on all displays */
-    filter: brightness(0.5);
-
-    animation: ccc-drift var(--coin-speed) linear infinite;
-  }
+body.menu-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-repeat: repeat;
+  /* Default placeholder until canvas generates */
+  will-change: background-position;
+  animation: ccc-drift var(--coin-speed) linear infinite;
 }
+
 
 
 /* Diagonal up-right drift (x increases, y decreases) */
