@@ -441,21 +441,24 @@ export function createSpawner(config = {}) {
                 }
                 const forceDom = sizeIndex >= 4;
 
-                const el = getItem();
-                el.style.width = `${size}px`;
-                el.style.height = `${size}px`;
-                el.className = `coin coin--size-${sizeIndex}`;
-                if (el.firstChild) {
-                     el.firstChild.src = getPreRenderedCoinUrl(currentCoinSrc, size);
-                }
-                
-                el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
-                el.style.opacity = '0'; 
+                let el = null;
+                if (forceDom) {
+                    el = getItem();
+                    el.style.width = `${size}px`;
+                    el.style.height = `${size}px`;
+                    el.className = `coin coin--size-${sizeIndex}`;
+                    if (el.firstChild) {
+                         el.firstChild.src = getPreRenderedCoinUrl(currentCoinSrc, size);
+                    }
+                    
+                    el.style.transform = `translate3d(${coin.x0}px, ${coin.y0}px, 0) rotate(-10deg) scale(0.96)`;
+                    el.style.opacity = '0'; 
 
-                if (mutationUnlockedSnapshot) {
-                  el.dataset.mutationLevel = mutationLevelSnapshot.toString();
-                } else {
-                  el.dataset.mutationLevel = '0';
+                    if (mutationUnlockedSnapshot) {
+                      el.dataset.mutationLevel = mutationLevelSnapshot.toString();
+                    } else {
+                      el.dataset.mutationLevel = '0';
+                    }
                 }
                 
                 const coinObj = {
@@ -487,31 +490,35 @@ export function createSpawner(config = {}) {
                     bMaxY: Math.max(coin.y0, coin.y1) + size
                 };
                 
-                el._coinObj = coinObj;
+                if (el) {
+                    el._coinObj = coinObj;
+                    coinsFrag.appendChild(el);
+                }
                 coinObj.index = activeItems.length;
                 activeItems.push(coinObj);
                 newCoins.push(coinObj);
-                
-                coinsFrag.appendChild(el);
             }
 
             refs.c.appendChild(coinsFrag);
 
             if (newCoins.length > 0) {
-                if (newCoins[0].el) void newCoins[0].el.offsetHeight;
+                const domCoins = newCoins.filter(c => c.el);
+                if (domCoins.length > 0) {
+                    void domCoins[0].el.offsetHeight;
 
-                requestAnimationFrame(() => {
-                  for (const c of newCoins) {
-                      if (!c.el) continue;
-                      if (settingsManager.get('insta_teleport')) {
-                          c.el.style.transition = 'none';
-                      } else {
-                          c.el.style.transition = `transform ${animationDurationMs}ms ${CUBIC_BEZIER} ${c.jitterMs}ms`;
+                    requestAnimationFrame(() => {
+                      for (const c of domCoins) {
+                          if (!c.el) continue;
+                          if (settingsManager.get('insta_teleport')) {
+                              c.el.style.transition = 'none';
+                          } else {
+                              c.el.style.transition = `transform ${animationDurationMs}ms ${CUBIC_BEZIER} ${c.jitterMs}ms`;
+                          }
+                          c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
+                          c.el.style.opacity = '1';
                       }
-                      c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
-                      c.el.style.opacity = '1';
-                  }
-                });
+                    });
+                }
             }
 
             if (hasWaves) {
@@ -626,11 +633,11 @@ export function createSpawner(config = {}) {
                     if (c.el && !c.forceDom) {
                         releaseItem(c.el);
                         c.el = null;
-                        newlySettledBuffer.push(c);
                     } else if (c.el) {
                         c.el.style.transition = 'none';
                         c.el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) rotate(0deg) scale(1)`;
                     }
+                    if (!c.el) newlySettledBuffer.push(c);
                     continue;
                 }
             }
@@ -640,10 +647,22 @@ export function createSpawner(config = {}) {
             const size = c.size || baseCoinSize;
             const renderable = getPreRenderedCoin(c.src, size);
             if (renderable) {
+                const draw = (img) => {
+                    if (c.rot || c.scale !== 1) {
+                        ctx.save();
+                        ctx.translate(c.x + size / 2, c.y + size / 2);
+                        if (c.rot) ctx.rotate(c.rot * Math.PI / 180);
+                        if (c.scale !== 1) ctx.scale(c.scale, c.scale);
+                        ctx.drawImage(img, -size / 2, -size / 2, size, size);
+                        ctx.restore();
+                    } else {
+                        ctx.drawImage(img, c.x, c.y, size, size);
+                    }
+                };
                 if (renderable instanceof HTMLCanvasElement) {
-                    ctx.drawImage(renderable, c.x, c.y, size, size);
+                    draw(renderable);
                 } else if (renderable.complete && renderable.naturalWidth > 0) {
-                    ctx.drawImage(renderable, c.x, c.y, size, size);
+                    draw(renderable);
                 }
             }
         },
@@ -952,10 +971,7 @@ export function createSpawner(config = {}) {
             const dy = cy - centerY;
             
             if ((dx*dx + dy*dy) <= radiusSq) {
-                if (!c.el && !c.isRemoved) {
-                     base.ensureItemVisual(c);
-                }
-                if (c.el) candidates.push(c.el);
+                candidates.push(c);
             }
         }
         return candidates;
@@ -1018,10 +1034,7 @@ export function createSpawner(config = {}) {
             }
             
             if (hit) {
-                if (!c.el && !c.isRemoved) {
-                     base.ensureItemVisual(c);
-                }
-                if (c.el) candidates.push(c.el);
+                candidates.push(c);
             }
         }
         return candidates;
