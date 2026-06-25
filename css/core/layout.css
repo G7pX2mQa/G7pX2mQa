@@ -13,16 +13,6 @@
   z-index: 0;
   pointer-events: none;
 
-  /* Inline SVG coin ring pattern */
-  --coin-svg: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'>\
-  <g fill='none' stroke='%23ffffff' stroke-width='2'>\
-    <circle cx='32' cy='32' r='18'/>\
-    <circle cx='32' cy='32' r='14'/>\
-  </g>\
-</svg>");
-
-  background-image: var(--coin-svg);
   background-repeat: repeat;
   background-size: var(--coin-pattern-size) var(--coin-pattern-size);
   opacity: var(--coin-pattern-opacity);
