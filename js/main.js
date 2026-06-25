@@ -1343,6 +1343,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.addEventListener('visibilitychange', () => {
     const hidden = document.hidden;
+    
+    if (hidden) {
+      document.body.classList.add('is-hidden');
+    } else {
+      document.body.classList.remove('is-hidden');
+    }
+
     setAudioSuspended(hidden);
     if (currentMusic && currentMusic.element) {
       if (hidden) {
@@ -1598,82 +1605,99 @@ function generateMenuBackground(manifest) {
   const ctx = canvas.getContext('2d');
   
   const gridCells = 4;
+  const totalCells = gridCells * gridCells;
   const cellSize = canvas.width / gridCells;
   
-  const loadedImgs = [];
-  let loadedCount = 0;
+  // Pre-generate layout
+  let shuffledImages = [...images];
+  // Shuffle images so each currency has a fair chance to be in the pool
+  for (let i = shuffledImages.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledImages[i], shuffledImages[j]] = [shuffledImages[j], shuffledImages[i]];
+  }
+
+  let pool = [];
+  while (pool.length < totalCells) {
+    pool = pool.concat(shuffledImages);
+  }
+  pool = pool.slice(0, totalCells);
   
+  let bestGrid = null;
+  let bestScore = Infinity;
+  
+  for (let attempt = 0; attempt < 50; attempt++) {
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    
+    let score = 0;
+    for (let y = 0; y < gridCells; y++) {
+      for (let x = 0; x < gridCells; x++) {
+        const idx = y * gridCells + x;
+        const src = pool[idx];
+        
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = (x + dx + gridCells) % gridCells;
+            const ny = (y + dy + gridCells) % gridCells;
+            const nidx = ny * gridCells + nx;
+            if (pool[nidx] === src) score++;
+          }
+        }
+      }
+    }
+    
+    if (score < bestScore) {
+      bestScore = score;
+      bestGrid = [...pool];
+      if (score === 0) break;
+    }
+  }
+
+  const loadedImgsMap = new Map();
+  let styleEl = null;
+
   images.forEach(src => {
     const img = new Image();
     img.src = src;
     img.onload = () => {
-      loadedCount++;
-      loadedImgs.push({src, img});
-      if (loadedCount === images.length) {
-        drawPattern();
-      }
-    };
-    img.onerror = () => {
-      loadedCount++;
-      if (loadedCount === images.length) {
-        drawPattern();
-      }
+      loadedImgsMap.set(src, img);
+      drawPattern();
     };
   });
 
   function drawPattern() {
-    if (loadedImgs.length === 0) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Create a 2D array to keep track of placed currencies
-    const grid = Array.from({length: gridCells}, () => Array(gridCells).fill(null));
-
     for (let y = 0; y < gridCells; y++) {
       for (let x = 0; x < gridCells; x++) {
-        let attempts = 0;
-        let selectedImg;
+        const idx = y * gridCells + x;
+        const src = bestGrid[idx];
+        const img = loadedImgsMap.get(src);
         
-        while (attempts < 50) {
-          selectedImg = loadedImgs[Math.floor(Math.random() * loadedImgs.length)];
+        if (img) {
+          const drawSize = cellSize * 0.5;
+          const cx = x * cellSize + cellSize/2;
+          const cy = y * cellSize + cellSize/2;
           
-          let hasAdjacent = false;
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              if (dx === 0 && dy === 0) continue;
-              
-              const nx = (x + dx + gridCells) % gridCells;
-              const ny = (y + dy + gridCells) % gridCells;
-              
-              if (grid[ny][nx] === selectedImg.src) {
-                hasAdjacent = true;
-                break;
-              }
-            }
-            if (hasAdjacent) break;
-          }
-          
-          if (!hasAdjacent) break;
-          attempts++;
+          ctx.filter = 'grayscale(100%) brightness(0.4) contrast(1.2) opacity(0.5)';
+          ctx.drawImage(img, cx - drawSize/2, cy - drawSize/2, drawSize, drawSize);
         }
-        
-        grid[y][x] = selectedImg.src;
-
-        const drawSize = cellSize * 0.5;
-        const cx = x * cellSize + cellSize/2;
-        const cy = y * cellSize + cellSize/2;
-        
-        ctx.filter = 'grayscale(100%) brightness(0.6) contrast(1.2) opacity(0.5)';
-        ctx.drawImage(selectedImg.img, cx - drawSize/2, cy - drawSize/2, drawSize, drawSize);
       }
     }
     
     const dataUrl = canvas.toDataURL();
-    const style = document.createElement('style');
-    style.textContent = `
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = `
       body.menu-bg::before {
         background-image: url("${dataUrl}") !important;
         background-size: var(--coin-step) var(--coin-step) !important;
       }
     `;
-    document.head.appendChild(style);
   }
 }
