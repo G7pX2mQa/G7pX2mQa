@@ -303,7 +303,7 @@ export class WaterSystem {
     }
 
     resize() {
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = Math.max(Math.min(window.devicePixelRatio || 1, 1.5), 1); // Cap DPR to 1.5 to save massive amounts of GPU memory
 
         if (this.bgCanvas && this.glBg) {
             const rect = this.bgCanvas.getBoundingClientRect();
