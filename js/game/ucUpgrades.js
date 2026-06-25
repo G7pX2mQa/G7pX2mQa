@@ -2,7 +2,7 @@ import { unlockDpSystem, isDpSystemUnlocked, getDpState } from './dpSystem.js';
 import { AREA_KEYS, HM_EVOLUTION_INTERVAL, formatMultForUi, safeHasMetMiner, UPGRADE_TIES, computeDefaultUpgradeCost, costAtLevelUsingScaling, getLevelNumber, E } from './upgrades.js';
 import { isBuildingsUnlocked } from '../ui/minerTabs/buildingsTab.js';
 import { hasDoneCombineReset } from "../ui/minerTabs/resetTab.js";
-import { BigNum, bigNumFromLog10 } from '../util/bigNum.js';
+import { BigNum, bigNumIsInfinite, bigNumFromLog10 } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { isSellUnlocked, hasViewedSellTab } from '../ui/minerTabs/sellTab.js';
 import { getCurrentSurgeLevel } from '../ui/merchantTabs/resetTab.js';
@@ -193,7 +193,7 @@ export const UC_REGISTRY = [
       let dp31 = false;
       try {
         const dpState = getDpState();
-        dp31 = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
+        dp31 = (bigNumIsInfinite(dpState.dpLevel) ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
       } catch {}
 
       if (dp31) {
@@ -233,7 +233,7 @@ export const UC_REGISTRY = [
       let dp31 = false;
       try {
         const dpState = getDpState();
-        dp31 = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
+        dp31 = (bigNumIsInfinite(dpState.dpLevel) ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
       } catch {}
 
       if (hasDoneCombineReset() || isBuildingsUnlocked()) {
@@ -276,7 +276,7 @@ export const UC_REGISTRY = [
       let dp31 = false;
       try {
         const dpState = getDpState();
-        dp31 = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
+        dp31 = (bigNumIsInfinite(dpState.dpLevel) ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
       } catch {}
 
       if (hasDoneCombineReset() || isBuildingsUnlocked()) {
@@ -331,7 +331,7 @@ export const UC_REGISTRY = [
       let dp31 = false;
       try {
         const dpState = getDpState();
-        dp31 = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
+        dp31 = (bigNumIsInfinite(dpState.dpLevel) ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
       } catch {}
 
       if (hasDoneCombineReset() || isBuildingsUnlocked()) {
@@ -374,7 +374,7 @@ export const UC_REGISTRY = [
       let dp31 = false;
       try {
         const dpState = getDpState();
-        dp31 = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
+        dp31 = (bigNumIsInfinite(dpState.dpLevel) ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 31;
       } catch {}
 
       if (hasDoneCombineReset() || isBuildingsUnlocked()) {
@@ -415,7 +415,7 @@ export const UC_REGISTRY = [
       let dp101 = false;
       try {
         const dpState = getDpState();
-        dp101 = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 101;
+        dp101 = (bigNumIsInfinite(dpState.dpLevel) ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e))) >= 101;
       } catch {}
 
       if (dp101) {
