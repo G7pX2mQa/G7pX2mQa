@@ -107,10 +107,10 @@ export function getPreRenderedCoin(src, size) {
         
         let dpr;
         if (isMaxQuality) {
-            const baseDpr = Math.max(window.devicePixelRatio || 1, 3);
+            const baseDpr = Math.max(Math.min(window.devicePixelRatio || 1, 2), 1);
             dpr = baseDpr * resolutionScale;
         } else {
-            const baseDpr = Math.max(window.devicePixelRatio || 1, 2);
+            const baseDpr = Math.max(Math.min(window.devicePixelRatio || 1, 1.5), 1);
             dpr = baseDpr * resolutionScale;
         }
         
@@ -179,18 +179,18 @@ export function createBaseSpawner(config = {}) {
     let canvasDirty = false;
 
     if (refs.c) {
-        for (let i = 0; i < numLayers; i++) {
-            const canvas = document.createElement('canvas');
-            canvas.style.position = 'absolute';
-            canvas.style.inset = '0';
-            canvas.style.pointerEvents = 'none';
-            canvas.style.zIndex = `${10 + (i * 10)}`; 
-            refs.c.appendChild(canvas);
-            
-            const ctx = canvas.getContext('2d', { alpha: true });
-            canvases.push(canvas);
-            contexts.push(ctx);
-        }
+        // We only create ONE canvas, but we'll still keep it in `canvases[0]` and `contexts[0]`
+        // and when rendering, we'll sort the settled items by their `sizeIndex` so they appear layered.
+        const canvas = document.createElement('canvas');
+        canvas.style.position = 'absolute';
+        canvas.style.inset = '0';
+        canvas.style.pointerEvents = 'none';
+        canvas.style.zIndex = '10'; // Unified z-index base
+        refs.c.appendChild(canvas);
+        
+        const ctx = canvas.getContext('2d', { alpha: true });
+        canvases.push(canvas);
+        contexts.push(ctx);
     }
 
     let fxCanvas = null;
@@ -225,15 +225,13 @@ export function createBaseSpawner(config = {}) {
             pfW: pfRect.width
         };
 
-        let dpr = window.devicePixelRatio || 1;
+        let dpr = Math.max(Math.min(window.devicePixelRatio || 1, 2.0), 1); // HARD CAP DPR to 2.0 to save VRAM
         if (typeof settingsManager !== "undefined") {
             const quality = settingsManager.get("graphics_quality") ?? 10;
-            if (quality === 10) {
-                dpr = Math.max(dpr, 3);
-            } else if (quality < 4) {
+            if (quality < 4) {
                 dpr = Math.max(0.5, dpr * 0.5);
             } else if (quality < 8) {
-                dpr = Math.max(1, dpr * 0.75);
+                dpr = Math.max(0.75, dpr * 0.75);
             }
         }
         
@@ -421,63 +419,70 @@ export function createBaseSpawner(config = {}) {
     }
 
     function drawSettledItems() {
-        if (!contexts.length) return;
-        
-        if (canvasDirty) {
-            contexts.forEach((ctx, i) => {
-                if (canvases[i]) {
-                    ctx.save();
-                    ctx.setTransform(1, 0, 0, 1, 0, 0);
-                    ctx.clearRect(0, 0, canvases[i].width, canvases[i].height);
-                    ctx.restore();
+        if (newlySettledBuffer.length > 0) {
+            for (let i = 0; i < newlySettledBuffer.length; i++) {
+                const c = newlySettledBuffer[i];
+                if (!c.isRemoved && c.settled && !c.el) {
+                    dirtyRegions.push({
+                        layer: c.sizeIndex || 0,
+                        x: c.x,
+                        y: c.y,
+                        size: c.size || baseItemSize
+                    });
                 }
-            });
+            }
+            newlySettledBuffer.length = 0;
+        }
 
+        if (!canvasDirty && dirtyRegions.length === 0) return;
+        
+        const ctx = contexts[0];
+        if (!ctx) return;
+
+        if (canvasDirty) {
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvases[0].width, canvases[0].height);
+            ctx.restore();
+
+            // Collect all settled items
+            const toDraw = [];
             const count = activeItems.length;
             for (let i = 0; i < count; i++) {
-                const c = activeItems[i]; if (!c) continue;
+                const c = activeItems[i];
                 if (c && c.settled && !c.isRemoved && !c.el) {
-                    const layerIdx = Math.min(c.sizeIndex || 0, numLayers - 1);
-                    if (contexts[layerIdx]) {
-                        onDrawSingleSettledItem(contexts[layerIdx], c);
-                    }
+                    toDraw.push(c);
                 }
+            }
+            
+            // Sort by sizeIndex (Z-index layer)
+            toDraw.sort((a, b) => (a.sizeIndex || 0) - (b.sizeIndex || 0));
+            
+            for (let i = 0; i < toDraw.length; i++) {
+                onDrawSingleSettledItem(ctx, toDraw[i]);
             }
 
             canvasDirty = false;
-            newlySettledBuffer.length = 0;
             dirtyRegions.length = 0;
         } else {
             if (dirtyRegions.length > 0) {
-                const count = activeItems.length;
-                
-                // Group dirty regions by layer
-                const layerRegions = [];
-                for (let i = 0; i < numLayers; i++) layerRegions.push([]);
-                
+                // Group all dirty regions into one list
+                const regions = [];
                 for (let i = 0; i < dirtyRegions.length; i++) {
                     const r = dirtyRegions[i];
-                    const layerIdx = Math.min(r.layer, numLayers - 1);
-                    
                     const pad = 8;
                     const cx = r.x - pad;
                     const cy = r.y - pad;
                     const cSize = r.size + (pad * 2);
                     
-                    layerRegions[layerIdx].push({
+                    regions.push({
                         minX: cx, maxX: cx + cSize,
                         minY: cy, maxY: cy + cSize,
                         cx, cy, cSize
                     });
                 }
                 
-                for (let layerIdx = 0; layerIdx < numLayers; layerIdx++) {
-                    const regions = layerRegions[layerIdx];
-                    if (regions.length === 0) continue;
-                    
-                    const ctx = contexts[layerIdx];
-                    if (!ctx) continue;
-                    
+                if (regions.length > 0) {
                     ctx.save();
                     ctx.beginPath();
                     for (let rIdx = 0; rIdx < regions.length; rIdx++) {
@@ -490,10 +495,12 @@ export function createBaseSpawner(config = {}) {
                         ctx.clearRect(r.cx, r.cy, r.cSize, r.cSize);
                     }
                     
+                    // Collect items intersecting with regions
+                    const toDraw = [];
+                    const count = activeItems.length;
                     for (let j = 0; j < count; j++) {
                         const c = activeItems[j];
                         if (!c || !c.settled || c.isRemoved || c.el) continue;
-                        if (Math.min(c.sizeIndex || 0, numLayers - 1) !== layerIdx) continue;
                         
                         const cSize2 = c.size || baseItemSize;
                         const cMinX = c.x, cMaxX = c.x + cSize2, cMinY = c.y, cMaxY = c.y + cSize2;
@@ -508,25 +515,20 @@ export function createBaseSpawner(config = {}) {
                         }
                         
                         if (intersects) {
-                             onDrawSingleSettledItem(ctx, c);
+                             toDraw.push(c);
                         }
                     }
+                    
+                    // Sort intersecting items by layer index
+                    toDraw.sort((a, b) => (a.sizeIndex || 0) - (b.sizeIndex || 0));
+                    
+                    for (let i = 0; i < toDraw.length; i++) {
+                        onDrawSingleSettledItem(ctx, toDraw[i]);
+                    }
+                    
                     ctx.restore();
                 }
                 dirtyRegions.length = 0;
-            }
-
-            if (newlySettledBuffer.length > 0) {
-                for (let i = 0; i < newlySettledBuffer.length; i++) {
-                    const c = newlySettledBuffer[i];
-                    if (!c.isRemoved && c.settled && !c.el) {
-                        const layerIdx = Math.min(c.sizeIndex || 0, numLayers - 1);
-                        if (contexts[layerIdx]) {
-                            onDrawSingleSettledItem(contexts[layerIdx], c);
-                        }
-                    }
-                }
-                newlySettledBuffer.length = 0;
             }
         }
     }
