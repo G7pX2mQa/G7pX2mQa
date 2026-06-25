@@ -4211,7 +4211,7 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
   const upg = state.upg;
   if (!upg || upg.upgType !== 'HM') return { evolved: false };
 
-  const lvlBn = state.lvlBn ?? ensureLevelBigNum(state.lvl);
+  let lvlBn = state.lvlBn ?? ensureLevelBigNum(state.lvl);
   
   const walletHandle = bank[upg.costType];
   const walletValue = walletHandle?.value;
@@ -4328,6 +4328,20 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
       state.hmEvolutions = bestEvol;
       applyHmEvolutionMeta(upg, bestEvol);
       ensureUpgradeScaling(upg);
+
+      // Fast-forward the level to the start of the final interval 
+      // because retroactively applying the steep scaling of bestEvol 
+      // to the thousands of bypassed early levels would artificially 
+      // inflate their cost and cause performFreeAutobuy to fail.
+      if (upg.lvlCapBn) {
+          const maxLevelsInFinalInterval = BigNum.fromAny(HM_EVOLUTION_INTERVAL);
+          const guaranteedLevelBn = upg.lvlCapBn.sub(maxLevelsInFinalInterval);
+          if (guaranteedLevelBn.cmp(lvlBn) > 0) {
+              state.lvlBn = guaranteedLevelBn.clone?.() ?? guaranteedLevelBn;
+              state.lvl = levelBigNumToNumber(state.lvlBn);
+              lvlBn = state.lvlBn;
+          }
+      }
 
       try { state.nextCostBn = BigNum.fromAny(upg.costAtLevel(state.lvl)); }
       catch { state.nextCostBn = BigNum.fromAny('Infinity'); }
