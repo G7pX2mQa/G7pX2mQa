@@ -1,6 +1,6 @@
 // js/game/xpSystem.js
 
-import { BigNum, approxLog10BigNum as approxLog10, bigNumFromLog10 } from '../util/bigNum.js';
+import { BigNum, approxLog10BigNum as approxLog10, bigNumFromLog10, bigNumIsInfinite } from '../util/bigNum.js';
 import { bank, getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { registerTick } from './gameLoop.js';
 import { applyStatMultiplierOverride } from '../util/debugPanel.js';
@@ -62,9 +62,7 @@ function numToFloatApprox(value) {
   return Number.isFinite(scaled) ? scaled : Number.POSITIVE_INFINITY;
 }
 
-function bigNumIsInfinite(bn) {
-  return !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
-}
+
 
 function bigNumIsZero(bn) {
   return !bn || typeof bn !== 'object' || (bn.isZero?.() || (typeof bn.isZero === 'function' && bn.isZero()));
@@ -138,7 +136,7 @@ function bigNumPowerOf10(logBn) {
   // without causing flickering UI or breaking math stability.
   let intPartNum;
   try {
-      intPartNum = (integerPart.inf ? Infinity : (integerPart.sig * Math.pow(10, integerPart.e)));
+      intPartNum = (bigNumIsInfinite(integerPart) ? Infinity : (integerPart.sig * Math.pow(10, integerPart.e)));
   } catch {
       intPartNum = logBigNumToNumber(integerPart);
   }
@@ -496,7 +494,7 @@ function approximateRequirementFromLevel(levelBn) {
     const softcapDeltaBn = levelBn.sub?.(softcapStartBn) ?? BigNum.fromInt(0);
     let softcapDeltaNum;
     try {
-        softcapDeltaNum = (softcapDeltaBn.inf ? Infinity : (softcapDeltaBn.sig * Math.pow(10, softcapDeltaBn.e)));
+        softcapDeltaNum = (bigNumIsInfinite(softcapDeltaBn) ? Infinity : (softcapDeltaBn.sig * Math.pow(10, softcapDeltaBn.e)));
     } catch {
         softcapDeltaNum = logBigNumToNumber(softcapDeltaBn);
     }
@@ -666,6 +664,7 @@ function normalizeProgress(applyRewards = false) {
   let guard = 0;
   const limit = 10000;
   while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
+    if (bigNumIsInfinite(requirementBn) || bigNumIsInfinite(xpState.progress)) break;
     try { xpState.progress = xpState.progress.sub(requirementBn); }
     catch { xpState.progress = bnZero(); }
 
@@ -1221,7 +1220,7 @@ export function addXp(amount, { silent = false } = {}) {
         const baseLevelBn = xpState.xpLevel;
         let currentLevelNum;
         try {
-          currentLevelNum = (baseLevelBn.inf ? Infinity : (baseLevelBn.sig * Math.pow(10, baseLevelBn.e)));
+          currentLevelNum = (bigNumIsInfinite(baseLevelBn) ? Infinity : (baseLevelBn.sig * Math.pow(10, baseLevelBn.e)));
         } catch {
           currentLevelNum = 0;
         }
@@ -1245,15 +1244,16 @@ export function addXp(amount, { silent = false } = {}) {
             let best = currentLevelNum;
 
             for (let i = 0; i < 60; i++) {
-                const mid = Math.floor((low + high) / 2);
-                const midLog = getLogForLevel(mid);
-                if (midLog <= currentProgressLog) {
-                    best = mid;
-                    low = mid + 1;
-                } else {
-                    high = mid - 1;
-                }
-            }
+        const mid = Math.floor((low + high) / 2);
+        const midLog = getLogForLevel(mid);
+        if (midLog <= currentProgressLog) {
+            best = mid;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+        if (midLog === Number.POSITIVE_INFINITY) break;
+      }
 
             const estimatedGain = best - currentLevelNum;
             if (estimatedGain > 10) {
@@ -1283,6 +1283,7 @@ export function addXp(amount, { silent = false } = {}) {
       const limit = 500; // Hard limit to prevent freezes if approximation fails
       
       while (xpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
+    if (bigNumIsInfinite(requirementBn) || bigNumIsInfinite(xpState.progress)) break;
         xpState.progress = xpState.progress.sub(requirementBn);
         xpState.xpLevel = xpState.xpLevel.add(bnOne());
         xpLevelsGained = xpLevelsGained.add(bnOne());
