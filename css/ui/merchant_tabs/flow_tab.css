@@ -405,8 +405,8 @@
     justify-self: center;
   }
   
-  .flow-level-val::before { content: "Level: "; color: #aaa; font-size: 0.8rem; font-weight: 400; }
-  .flow-effect-val::before { content: "Effect: "; color: #aaa; font-size: 0.8rem; font-weight: 400; }
+  .flow-level-val::before { content: "Level:"; margin-right: 4px; color: #aaa; font-size: 0.8rem; font-weight: 400; transform: translateY(1px); }
+  .flow-effect-val::before { content: "Effect:"; margin-right: 4px; color: #aaa; font-size: 0.8rem; font-weight: 400; transform: translateY(1px); }
   
   .flow-level-val { grid-area: lvl; justify-self: center; align-self: center; text-align: center; }
   .flow-effect-val { grid-area: effect; justify-self: center; align-self: center; font-size: 1rem; text-align: center; }
