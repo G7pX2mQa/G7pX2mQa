@@ -1,6 +1,6 @@
 import { safeMultiplyBigNum } from './upgrades.js';
 import { getBuildingLevel, getBuildingBonus } from '../ui/minerTabs/buildingsTab.js';
-import { BigNum, approxLog10BigNum as approxLog10, bigNumFromLog10 } from '../util/bigNum.js';
+import { BigNum, bigNumIsInfinite, approxLog10BigNum as approxLog10, bigNumFromLog10 } from '../util/bigNum.js';
 import { getActiveSlot, watchStorageKey, primeStorageWatcherSnapshot } from '../util/storage.js';
 import { formatNumber } from '../util/numFormat.js';
 import { syncDpPpHudLayout } from '../ui/hudLayout.js';
@@ -593,7 +593,7 @@ export function getDpMultiplier() {
       if (isPpSystemUnlocked()) {
           const ppLevel = getPpState().ppLevel;
           if (ppLevel && !ppLevel.isZero()) {
-              const ppLevelNum = (ppLevel.inf ? Infinity : (ppLevel.sig * Math.pow(10, ppLevel.e)));
+              const ppLevelNum = (bigNumIsInfinite(ppLevel) ? Infinity : (ppLevel.sig * Math.pow(10, ppLevel.e)));
               if (!Number.isFinite(ppLevelNum) || ppLevelNum === Infinity) {
                   dpMult = dpMult.mulBigNumInteger(BigNum.fromAny('Infinity'));
               } else {
@@ -769,7 +769,7 @@ export function addDp(amount, { silent = false } = {}) {
   if (currentProgressLog - reqLog > 2) {
     let currentLevelNum;
     try {
-      currentLevelNum = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
+      currentLevelNum = (bigNumIsInfinite(dpState.dpLevel) ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
     } catch {
       currentLevelNum = 0;
     }
@@ -805,6 +805,7 @@ export function addDp(amount, { silent = false } = {}) {
         } else {
             high = mid - 1;
         }
+        if (midLog === Number.POSITIVE_INFINITY) break;
       }
 
       const estimatedGain = best - currentLevelNum;
@@ -832,6 +833,7 @@ export function addDp(amount, { silent = false } = {}) {
   const limit = 500;
   
   while (dpState.progress.cmp?.(requirementBn) >= 0 && guard < limit) {
+    if (isInfinite(requirementBn) || isInfinite(dpState.progress)) break;
     if (isInfinite(requirementBn)) break;
     dpState.progress = dpState.progress.sub(requirementBn);
     dpState.dpLevel = dpState.dpLevel.add(bnOne());
