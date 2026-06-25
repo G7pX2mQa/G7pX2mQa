@@ -361,8 +361,8 @@ export function createBaseSpawner(config = {}) {
         onRemoveItem(itemObj);
     }
     
-    function detachItem(itemEl) {
-        const itemObj = itemEl._coinObj;
+    function detachItem(itemElOrObj) {
+        const itemObj = itemElOrObj._coinObj || itemElOrObj;
         if (itemObj) {
             let idx = -1;
             if (itemObj.index !== undefined && activeItems[itemObj.index] === itemObj) {
@@ -375,7 +375,7 @@ export function createBaseSpawner(config = {}) {
                 activeItems[idx] = null;
                 garbageCount++;
             }
-            itemEl._coinObj = null;
+            if (itemElOrObj._coinObj) itemElOrObj._coinObj = null;
         }
     }
 
@@ -418,7 +418,7 @@ export function createBaseSpawner(config = {}) {
         return { x, y, rot, scale };
     }
 
-    function drawSettledItems() {
+    function drawItems(now) {
         if (newlySettledBuffer.length > 0) {
             for (let i = 0; i < newlySettledBuffer.length; i++) {
                 const c = newlySettledBuffer[i];
@@ -434,6 +434,19 @@ export function createBaseSpawner(config = {}) {
             newlySettledBuffer.length = 0;
         }
 
+        let hasMovingItems = false;
+        for (let i = 0; i < activeItems.length; i++) {
+            const c = activeItems[i];
+            if (c && !c.settled && !c.isRemoved && !c.el) {
+                hasMovingItems = true;
+                break;
+            }
+        }
+        
+        if (hasMovingItems) {
+            canvasDirty = true;
+        }
+
         if (!canvasDirty && dirtyRegions.length === 0) return;
         
         const ctx = contexts[0];
@@ -445,12 +458,12 @@ export function createBaseSpawner(config = {}) {
             ctx.clearRect(0, 0, canvases[0].width, canvases[0].height);
             ctx.restore();
 
-            // Collect all settled items
+            // Collect all items
             const toDraw = [];
             const count = activeItems.length;
             for (let i = 0; i < count; i++) {
                 const c = activeItems[i];
-                if (c && c.settled && !c.isRemoved && !c.el) {
+                if (c && !c.isRemoved && !c.el && !c.isHiddenPreAllocated && !c.isStrikePlaceholder) {
                     toDraw.push(c);
                 }
             }
@@ -459,7 +472,13 @@ export function createBaseSpawner(config = {}) {
             toDraw.sort((a, b) => (a.sizeIndex || 0) - (b.sizeIndex || 0));
             
             for (let i = 0; i < toDraw.length; i++) {
-                onDrawSingleSettledItem(ctx, toDraw[i]);
+                const c = toDraw[i];
+                if (!c.settled) {
+                    const state = getItemState(c, now);
+                    onDrawSingleSettledItem(ctx, { ...c, x: state.x, y: state.y, rot: state.rot, scale: state.scale });
+                } else {
+                    onDrawSingleSettledItem(ctx, c);
+                }
             }
 
             canvasDirty = false;
@@ -500,10 +519,18 @@ export function createBaseSpawner(config = {}) {
                     const count = activeItems.length;
                     for (let j = 0; j < count; j++) {
                         const c = activeItems[j];
-                        if (!c || !c.settled || c.isRemoved || c.el) continue;
+                        if (!c || c.isRemoved || c.el || c.isHiddenPreAllocated || c.isStrikePlaceholder) continue;
                         
                         const cSize2 = c.size || baseItemSize;
-                        const cMinX = c.x, cMaxX = c.x + cSize2, cMinY = c.y, cMaxY = c.y + cSize2;
+                        let cMinX = c.x, cMaxX = c.x + cSize2, cMinY = c.y, cMaxY = c.y + cSize2;
+                        
+                        if (!c.settled) {
+                            const state = getItemState(c, now);
+                            cMinX = state.x;
+                            cMaxX = state.x + cSize2;
+                            cMinY = state.y;
+                            cMaxY = state.y + cSize2;
+                        }
                         
                         let intersects = false;
                         for (let rIdx = 0; rIdx < regions.length; rIdx++) {
@@ -523,7 +550,13 @@ export function createBaseSpawner(config = {}) {
                     toDraw.sort((a, b) => (a.sizeIndex || 0) - (b.sizeIndex || 0));
                     
                     for (let i = 0; i < toDraw.length; i++) {
-                        onDrawSingleSettledItem(ctx, toDraw[i]);
+                        const c = toDraw[i];
+                        if (!c.settled) {
+                            const state = getItemState(c, now);
+                            onDrawSingleSettledItem(ctx, { ...c, x: state.x, y: state.y, rot: state.rot, scale: state.scale });
+                        } else {
+                            onDrawSingleSettledItem(ctx, c);
+                        }
                     }
                     
                     ctx.restore();
@@ -576,7 +609,7 @@ export function createBaseSpawner(config = {}) {
           }
       }
 
-      drawSettledItems();
+      drawItems(now);
       if (garbageCount > 50) {
           onGarbageCollect(activeItems);
           let w = 0;
@@ -655,9 +688,9 @@ export function createBaseSpawner(config = {}) {
         }
     }
 
-    function getItemTransform(el) {
-        const c = el._coinObj;
-        if (!c) return el.style.transform || 'translate3d(0,0,0)';
+    function getItemTransform(elOrObj) {
+        const c = elOrObj._coinObj || elOrObj;
+        if (!c) return (elOrObj.style && elOrObj.style.transform) || 'translate3d(0,0,0)';
         const { x, y, rot, scale } = getItemState(c, performance.now());
         return `translate3d(${x}px, ${y}px, 0) rotate(${rot}deg) scale(${scale})`;
     }
