@@ -143,8 +143,9 @@ export function initUcPickup({
   ml.querySelectorAll(materialSelector).forEach(ensureInteractive);
 
   function animateAndRemove(el, opts = {}){
+    const coinObj = el && el._coinObj;
     if (spawner && typeof spawner.detachItem === 'function') {
-        spawner.detachItem(el);
+        spawner.detachItem(opts.coin || coinObj || el);
     }
 
     const recycle = () => {
@@ -218,7 +219,7 @@ export function initUcPickup({
            if (cObj && spawner && spawner.removeItemTarget) {
                spawner.removeItemTarget(cObj);
            } else if (el) {
-               if (spawner && spawner.detachItem) spawner.detachItem(el);
+               if (spawner && spawner.detachItem) spawner.detachItem(cObj || el);
                if (spawner && spawner.recycleItem) spawner.recycleItem(el);
                else el.remove();
            }
