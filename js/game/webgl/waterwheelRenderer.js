@@ -116,7 +116,7 @@ export class WaterwheelRenderer {
         
         this.rotation = Math.PI / 2;
         this.speed = 1.0;
-        this._dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+        this._dpr = typeof window !== 'undefined' ? Math.max(Math.min(window.devicePixelRatio || 1, 1.5), 1) : 1; // Cap DPR to 1.5 to save GPU memory
 
         this._setupOffscreenWebGL();
     }
