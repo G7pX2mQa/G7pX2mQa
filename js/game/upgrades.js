@@ -2094,6 +2094,7 @@ if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
     spent = totalCostBigNum(upg, startLevelNum, count);
     let guard = 0;
     while (spent.cmp(walletBn) > 0 && count > 0 && guard < MAX_TUNE_STEPS) {
+      if (walletBn.isInfinite?.() || spent.isInfinite?.()) break;
       const decremented = safeDecrementCount(count);
       if (!(decremented < count)) break;
       count = decremented;
@@ -2106,6 +2107,7 @@ if (!(ratioLog10 > 0) || !(ratioMinus1 > 0)) {
 
     if (count < limit && guard < MAX_TUNE_STEPS) {
       while (count < limit && guard < MAX_TUNE_STEPS) {
+        if (walletBn.isInfinite?.()) break;
         const nextLevel = startLevelNum + count;
         let nextCost;
 
@@ -4216,7 +4218,6 @@ export function performFreeAutobuyEvolve(areaKey, upgId) {
   const wallet = walletValue instanceof BigNum
     ? walletValue.clone?.() ?? BigNum.fromAny(walletValue)
     : BigNum.fromAny(walletValue ?? 0);
-
 
   const currentEvolutions = normalizeHmEvolutionCount(state.hmEvolutions);
 
