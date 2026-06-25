@@ -1218,6 +1218,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   ]
 };
 
+  if (document.body.classList.contains("menu-bg")) {
+    generateMenuBackground(ASSET_MANIFEST);
+  }
+
   let progress = 0;
   const assetsPromise = preloadAssetsWithProgress(ASSET_MANIFEST, f => {
     progress = f;
@@ -1583,4 +1587,93 @@ function validateMultiplierMethods() {
       throw new Error(`Fatal Error: Multiplier method ${methodName} not found on ${sysName} for ${config.key}`);
     }
   });
+}
+function generateMenuBackground(manifest) {
+  const images = manifest.images.filter(src => src.startsWith('img/currencies/') && !src.endsWith('_base.webp') && !src.endsWith('_plus_base.webp'));
+  if (!images || images.length === 0) return;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 1024;
+  const ctx = canvas.getContext('2d');
+  
+  const gridCells = 4;
+  const cellSize = canvas.width / gridCells;
+  
+  const loadedImgs = [];
+  let loadedCount = 0;
+  
+  images.forEach(src => {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      loadedCount++;
+      loadedImgs.push({src, img});
+      if (loadedCount === images.length) {
+        drawPattern();
+      }
+    };
+    img.onerror = () => {
+      loadedCount++;
+      if (loadedCount === images.length) {
+        drawPattern();
+      }
+    };
+  });
+
+  function drawPattern() {
+    if (loadedImgs.length === 0) return;
+    
+    // Create a 2D array to keep track of placed currencies
+    const grid = Array.from({length: gridCells}, () => Array(gridCells).fill(null));
+
+    for (let y = 0; y < gridCells; y++) {
+      for (let x = 0; x < gridCells; x++) {
+        let attempts = 0;
+        let selectedImg;
+        
+        while (attempts < 50) {
+          selectedImg = loadedImgs[Math.floor(Math.random() * loadedImgs.length)];
+          
+          let hasAdjacent = false;
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              if (dx === 0 && dy === 0) continue;
+              
+              const nx = (x + dx + gridCells) % gridCells;
+              const ny = (y + dy + gridCells) % gridCells;
+              
+              if (grid[ny][nx] === selectedImg.src) {
+                hasAdjacent = true;
+                break;
+              }
+            }
+            if (hasAdjacent) break;
+          }
+          
+          if (!hasAdjacent) break;
+          attempts++;
+        }
+        
+        grid[y][x] = selectedImg.src;
+
+        const drawSize = cellSize * 0.5;
+        const cx = x * cellSize + cellSize/2;
+        const cy = y * cellSize + cellSize/2;
+        
+        ctx.filter = 'grayscale(100%) brightness(0.6) contrast(1.2) opacity(0.5)';
+        ctx.drawImage(selectedImg.img, cx - drawSize/2, cy - drawSize/2, drawSize, drawSize);
+      }
+    }
+    
+    const dataUrl = canvas.toDataURL();
+    const style = document.createElement('style');
+    style.textContent = `
+      body.menu-bg::before {
+        background-image: url("${dataUrl}") !important;
+        background-size: var(--coin-step) var(--coin-step) !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
 }
