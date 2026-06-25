@@ -537,6 +537,7 @@ function normalizeProgress() {
   const limit = 100000;
 
   while (mutationState.progress.cmp?.(currentReq) >= 0 && guard < limit) {
+    if (currentReq.isInfinite?.() || mutationState.progress.isInfinite?.()) break;
     // Spend MP to gain a level
     mutationState.progress = mutationState.progress.sub(currentReq);
     mutationState.level = mutationState.level.add(bnOne());
