@@ -692,3 +692,7 @@ export function log10OnePlusPow10(exponent) {
   if (!Number.isFinite(pow)) return exponent > 0 ? exponent : 0;
   return Math.log1p(pow) / LN10;
 }
+
+export function bigNumIsInfinite(bn) {
+  return !!(bn && typeof bn === 'object' && (bn.isInfinite?.() || (typeof bn.isInfinite === 'function' && bn.isInfinite())));
+}
