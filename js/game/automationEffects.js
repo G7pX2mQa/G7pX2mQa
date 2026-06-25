@@ -14,7 +14,7 @@ import {
 import { performFreeGenerationUpgrade } from '../ui/merchantTabs/workshopTab.js';
 import { getActiveSlot, getCurrencyMultiplierScaledBN, CURRENCIES, bank, UC_MATERIALS } from '../util/storage.js';
 import { UC_MATERIAL_DATA, getUcEacMaterialAccumulators, saveUcEacMaterialAccumulators } from './ucSpawner.js';
-import { BigNum } from '../util/bigNum.js';
+import { BigNum, bigNumIsInfinite } from '../util/bigNum.js';
 import { isSurgeActive, getBaseTsunamiExponent } from './surgeEffects.js';
 import { settingsManager } from './settingsManager.js';
 import { isNodeLocked } from '../ui/mapOverlay.js';
@@ -462,7 +462,7 @@ registerPassiveSystem({
         try {
            const dpState = getDpState();
            if (dpState && dpState.dpLevel) {
-               dpLevelNum = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
+               dpLevelNum = (bigNumIsInfinite(dpState.dpLevel) ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
            }
         } catch {}
 
@@ -530,7 +530,7 @@ registerPassiveSystem({
         try {
            const dpState = getDpState();
            if (dpState && dpState.dpLevel) {
-               dpLevelNum = (dpState.dpLevel.inf ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
+               dpLevelNum = (bigNumIsInfinite(dpState.dpLevel) ? Infinity : (dpState.dpLevel.sig * Math.pow(10, dpState.dpLevel.e)));
            }
         } catch {}
         
