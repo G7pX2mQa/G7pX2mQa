@@ -226,19 +226,8 @@ export function createUcSpawner(config = {}) {
 
                     // Pre-allocate items for all potential drops to properly use spawnerCore's object pool
                     for (let j = 0; j < UC_MATERIALS.length; j++) {
-                        const el = getItem();
-                        // Reset everything so it is completely hidden
-                        el.style.width = '0px';
-                        el.style.height = '0px';
-                        el.className = 'coin material';
-                        if (el.firstChild) el.firstChild.src = '';
-                        el.style.transform = `translate3d(-9999px, -9999px, 0)`;
-                        el.style.opacity = '0';
-                        el.style.transition = 'none';
-                        el.style.display = 'none';
-
                         const preAllocObj = {
-                            el,
+                            el: null,
                             isHiddenPreAllocated: true,
                             isPreAllocatedMaterial: true,
                             isRemoved: false,
@@ -246,12 +235,10 @@ export function createUcSpawner(config = {}) {
                             dieAt: now + cycleMs * 2, // dies with placeholder if unused
                             startTime: now + cycleMs * 2
                         };
-                        el._coinObj = preAllocObj;
                         preAllocObj.index = activeItems.length;
                         activeItems.push(preAllocObj);
                         
                         strikeObj.preAllocatedItems.push(preAllocObj);
-                        frag.appendChild(el);
                     }
                 }
             }
@@ -490,21 +477,8 @@ export function createUcSpawner(config = {}) {
                                     preAlloc.bMinY = Math.min(c.startY, endY) - size;
                                     preAlloc.bMaxY = Math.max(c.startY, endY) + size;
 
-                                    if (preAlloc.el) {
-                                        preAlloc.el.style.display = 'block';
-                                        preAlloc.el.style.width = `${size}px`;
-                                        preAlloc.el.style.height = `${size}px`;
-                                        preAlloc.el.className = `material material--${UC_MATERIALS[j]}`;
-                                        if (preAlloc.el.firstChild) {
-                                            preAlloc.el.firstChild.src = getPreRenderedCoinUrl(preAlloc.src, size);
-                                        }
-                                        preAlloc.el.style.transform = `translate3d(${spawnX}px, ${c.startY}px, 0) rotate(-10deg) scale(0.96)`;
-                                        preAlloc.el.style.opacity = '1';
-                                        preAlloc.el.style.zIndex = `${10 + (j * 10)}`;
-                                        
-                                        // Need reflow to restart transition
-                                        activeItemsToActivate.push(preAlloc);
-                                    }
+                                    // No DOM element needed, handled by spawnerCore canvas rendering
+                                    activeItemsToActivate.push(preAlloc);
                                 }
                             }
                         }
@@ -540,26 +514,29 @@ export function createUcSpawner(config = {}) {
                     if (c.el) {
                         releaseItem(c.el);
                         c.el = null;
-                        newlySettledBuffer.push(c);
                     }
+                    newlySettledBuffer.push(c);
                     continue;
                 }
             }
 
             if (activeItemsToActivate.length > 0) {
-                if (activeItemsToActivate[0].el) void activeItemsToActivate[0].el.offsetHeight; // reflow
+                const domItems = activeItemsToActivate.filter(c => c.el);
+                if (domItems.length > 0) {
+                    void domItems[0].el.offsetHeight;
 
-                requestAnimationFrame(() => {
-                    for (const c of activeItemsToActivate) {
-                        if (!c.el) continue;
-                        if (settingsManager.get('insta_teleport')) {
-                            c.el.style.transition = 'none';
-                        } else {
-                            c.el.style.transition = `transform ${animationDurationMs}ms ${CUBIC_BEZIER} 0ms`;
+                    requestAnimationFrame(() => {
+                        for (const c of domItems) {
+                            if (!c.el) continue;
+                            if (settingsManager.get('insta_teleport')) {
+                                c.el.style.transition = 'none';
+                            } else {
+                                c.el.style.transition = `transform ${animationDurationMs}ms ${CUBIC_BEZIER} 0ms`;
+                            }
+                            c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
                         }
-                        c.el.style.transform = `translate3d(${c.endX}px, ${c.endY}px, 0) rotate(0deg) scale(1)`;
-                    }
-                });
+                    });
+                }
             }
         },
 
@@ -568,7 +545,16 @@ export function createUcSpawner(config = {}) {
             if (c.src) {
                 const renderable = getPreRenderedCoin(c.src, size);
                 if (renderable) {
-                    ctx.drawImage(renderable, c.x, c.y, size, size);
+                    if (c.rot || c.scale !== 1) {
+                        ctx.save();
+                        ctx.translate(c.x + size / 2, c.y + size / 2);
+                        if (c.rot) ctx.rotate(c.rot * Math.PI / 180);
+                        if (c.scale !== 1) ctx.scale(c.scale, c.scale);
+                        ctx.drawImage(renderable, -size / 2, -size / 2, size, size);
+                        ctx.restore();
+                    } else {
+                        ctx.drawImage(renderable, c.x, c.y, size, size);
+                    }
                 }
             }
         },
