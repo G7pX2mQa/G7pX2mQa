@@ -15,8 +15,8 @@
   --bg-3: hsl(188 60% 50%);
 
   /* Density & speed */
-  --coin-step: clamp(72px, 6.5vw, 120px); /* spacing: bigger = fewer tiles */
-  --coin-speed: 3s;
+  --coin-step: clamp(432px, 39vw, 720px); /* spacing: bigger = fewer tiles */
+  --coin-speed: 15s;
 
   /* Sizing & spacing */
   --radius-lg: 18px;
