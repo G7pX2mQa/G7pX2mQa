@@ -2,7 +2,7 @@
 
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
-
+import { setHtmlOrText } from '../util/uiHelpers.js';
 import { settingsManager } from '../game/settingsManager.js';
 import { CURRENCIES, isCurrencyLocked, isStorageKeyLocked, getActiveSlot, getCurrency } from '../util/storage.js';
 import { RESOURCE_REGISTRY } from '../game/offlinePanel.js';
@@ -56,7 +56,7 @@ function updateEntry(entry) {
   if (!entry) return;
   const { amountEl, amount, meta } = entry;
   const formatted = meta.formatAmount ? meta.formatAmount(amount) : formatNumber(amount);
-  if (amountEl) amountEl.innerHTML = formatted;
+  if (amountEl) setHtmlOrText(amountEl, formatted);
 }
 
 function scheduleRemoval(entry, duration = DEFAULT_DURATION) {
