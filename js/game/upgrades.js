@@ -3465,6 +3465,11 @@ function ensureUpgradeState(areaKey, upgId) {
     hmEvolutions = normalizeHmEvolutionCount(
       rec.hmEvolutions ?? rec.evolutions ?? rec.evol ?? upg.numUpgEvolutions
     );
+    if (rec.lvl === 'Infinity' && hmEvolutions === 0) {
+      hmEvolutions = Infinity;
+      rec.hmEvolutions = 'Infinity';
+      recNeedsSave = true;
+    }
     applyHmEvolutionMeta(upg, hmEvolutions);
   }
 
@@ -3587,7 +3592,8 @@ try {
   }
 
   if (state.hmEvolutions != null) {
-    rec.hmEvolutions = normalizeHmEvolutionCount(state.hmEvolutions);
+    const norm = normalizeHmEvolutionCount(state.hmEvolutions);
+    rec.hmEvolutions = norm === Infinity ? 'Infinity' : norm;
   }
 
   saveUpgradeState(areaKey, normalizedId, rec, slot, options);
