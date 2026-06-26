@@ -541,8 +541,8 @@ export function updateWorkshopTab() {
   const upgradeBtn = workshopEl.querySelector('[data-workshop="upgrade-gen"]');
   const rateBn = getGearsProductionRate();
   const cost = getGenerationUpgradeCost(currentGenerationLevel);
-  if (gearsAmountEl) gearsAmountEl.innerHTML = bank.gears.fmt(bank.gears.value);
-  if (gearsRateEl) gearsRateEl.innerHTML = formatNumber(rateBn);
+  if (gearsAmountEl) setHtmlOrText(gearsAmountEl, bank.gears.fmt(bank.gears.value));
+  if (gearsRateEl) setHtmlOrText(gearsRateEl, formatNumber(rateBn));
   if (upgradeCostEl) {
       let label = 'Coins';
       try {
@@ -613,7 +613,7 @@ function startRenderLoop() {
     if (workshopEl && workshopEl.isConnected) {
         const gearsAmountEl = workshopEl.querySelector('[data-workshop="gears-amount"]');
         if (gearsAmountEl && !isAnyMenuScrolling()) {
-             gearsAmountEl.innerHTML = bank.gears.fmt(bank.gears.value);
+             setHtmlOrText(gearsAmountEl, bank.gears.fmt(bank.gears.value));
         }
         if (!lastRenderTime) lastRenderTime = timestamp;
         let dt = (timestamp - lastRenderTime) / 1000;
