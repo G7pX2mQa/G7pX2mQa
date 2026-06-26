@@ -96,17 +96,30 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
     tile.appendChild(baseImg);
     tile.appendChild(iconImg);
 
+    const levelBn = getBuildingLevel(id);
+    const isInfiniteLevel = levelBn && levelBn.isInfinite && levelBn.isInfinite();
+
+    if (isInfiniteLevel) {
+        const maxedOverlay = document.createElement('img');
+        maxedOverlay.className = 'maxed-overlay';
+        maxedOverlay.src = 'img/misc/maxed.webp';
+        maxedOverlay.alt = '';
+        maxedOverlay.draggable = false;
+        tile.appendChild(maxedOverlay);
+    }
+
     if (!isLocked && level !== undefined) {
         const badge = document.createElement('div');
         badge.className = 'level-badge';
         
         let hasPlus = false;
-        if (plusLevel && typeof plusLevel.isZero === 'function') {
-             hasPlus = !plusLevel.isZero();
-        } else if (plusLevel) {
-             hasPlus = true;
+        if (!isInfiniteLevel) {
+            if (plusLevel && typeof plusLevel.isZero === 'function') {
+                 hasPlus = !plusLevel.isZero();
+            } else if (plusLevel) {
+                 hasPlus = true;
+            }
         }
-
         let needsTwoLines = false;
         if (hasPlus) {
             badge.classList.add('can-buy');
@@ -119,13 +132,17 @@ function createBuildingCard(id, title, iconSrc, baseSrc, isLocked, mysteriousTex
             needsTwoLines = over999;
         }
         
-        if (needsTwoLines) {
-            badge.classList.add('two-line');
-            badge.innerHTML = `<span class="badge-lvl">${level}</span><span class="badge-plus">(+${formatNumber(plusLevel)})</span>`;
-        } else if (hasPlus) {
-            badge.textContent = `${level} (+${formatNumber(plusLevel)})`;
+        if (isInfiniteLevel) {
+            setHtmlOrText(badge, formatNumber(levelBn));
         } else {
-            badge.textContent = level;
+            if (needsTwoLines) {
+                badge.classList.add('two-line');
+                badge.innerHTML = `<span class="badge-lvl">${level}</span><span class="badge-plus">(+${formatNumber(plusLevel)})</span>`;
+            } else if (hasPlus) {
+                badge.textContent = `${level} (+${formatNumber(plusLevel)})`;
+            } else {
+                badge.textContent = level;
+            }
         }
         
         tile.appendChild(badge);
@@ -370,14 +387,38 @@ function updateBuildingGridBadges(gridEl) {
         const levelBn = getBuildingLevel(id);
         const plusLevelBn = getAffordableBuildingLevels(id);
         
+
         let levelStr = formatNumber(levelBn);
         let plusLevelStr = formatNumber(plusLevelBn);
         
+        const isInfiniteLevel = levelBn && levelBn.isInfinite && levelBn.isInfinite();
+
+        const tile = card.querySelector('.shop-tile');
+        if (tile) {
+            let maxedOverlay = tile.querySelector('.maxed-overlay');
+            if (isInfiniteLevel) {
+                if (!maxedOverlay) {
+                    maxedOverlay = document.createElement('img');
+                    maxedOverlay.className = 'maxed-overlay';
+                    maxedOverlay.src = 'img/misc/maxed.webp';
+                    maxedOverlay.alt = '';
+                    maxedOverlay.draggable = false;
+                    tile.appendChild(maxedOverlay);
+                }
+            } else {
+                if (maxedOverlay) {
+                    maxedOverlay.remove();
+                }
+            }
+        }
+
         let hasPlus = false;
-        if (plusLevelBn && typeof plusLevelBn.isZero === 'function') {
-             hasPlus = !plusLevelBn.isZero();
-        } else if (plusLevelBn) {
-             hasPlus = true;
+        if (!isInfiniteLevel) {
+            if (plusLevelBn && typeof plusLevelBn.isZero === 'function') {
+                 hasPlus = !plusLevelBn.isZero();
+            } else if (plusLevelBn) {
+                 hasPlus = true;
+            }
         }
 
         let needsTwoLines = false;
@@ -392,17 +433,6 @@ function updateBuildingGridBadges(gridEl) {
         }
 
 
-        let badgeHtml = '';
-        let badgePlain = '';
-
-        if (needsTwoLines) {
-            badgeHtml = `<span class="badge-lvl">${levelStr}</span><span class="badge-plus">(+${plusLevelStr})</span>`;
-        } else if (hasPlus) {
-            badgePlain = `${levelStr} (+${plusLevelStr})`;
-        } else {
-            badgePlain = levelStr;
-        }
-        
         let badge = card.querySelector('.level-badge');
         if (!badge) {
             badge = document.createElement('div');
@@ -414,11 +444,17 @@ function updateBuildingGridBadges(gridEl) {
         badge.className = 'level-badge'; // reset class
         if (needsTwoLines) badge.classList.add('two-line');
         if (hasPlus) badge.classList.add('can-buy');
-        
-        if (badgeHtml) {
-            if (badge.innerHTML !== badgeHtml) badge.innerHTML = badgeHtml;
+
+        if (isInfiniteLevel) {
+            setHtmlOrText(badge, levelStr);
         } else {
-            if (badge.textContent !== badgePlain) badge.textContent = badgePlain;
+            if (needsTwoLines) {
+                setHtmlOrText(badge, `<span class="badge-lvl">${levelStr}</span><span class="badge-plus">(+${plusLevelStr})</span>`);
+            } else if (hasPlus) {
+                setHtmlOrText(badge, `${levelStr} (+${plusLevelStr})`);
+            } else {
+                setHtmlOrText(badge, levelStr);
+            }
         }
     });
 }
