@@ -3289,7 +3289,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   ctx.save();
   ctx.fillStyle = ironPattern ? ironPattern : "#ced2d6";
   ctx.fillRect(-baseWidth/2, baseY, baseWidth, 20);
-  ctx.fillStyle = "#4a4d50";
+  ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
   ctx.fillRect(-baseWidth/2, baseY, baseWidth, 4);
   ctx.fillRect(-baseWidth/2, baseY + 16, baseWidth, 4);
   ctx.restore();
@@ -3303,7 +3303,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.lineCap = "round";
       
       // Outer pipe
-      ctx.strokeStyle = "#5a6a75";
+      ctx.strokeStyle = ironPattern ? ironPattern : "#5a6a75";
       ctx.lineWidth = width;
       ctx.beginPath();
       ctx.moveTo(pts[0].x, pts[0].y);
@@ -3358,7 +3358,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.translate(x, y);
 
       // Back frame
-      ctx.fillStyle = "#2c3e50";
+      ctx.fillStyle = ironPattern ? ironPattern : "#2c3e50";
       ctx.fillRect(-w/2, -h, w, h);
 
       // Fluid
@@ -3386,7 +3386,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.fillRect(-w/2 + 4, -h + 2, w*0.3, h - 4);
 
       // Metal Caps
-      ctx.fillStyle = "#4a4d50";
+      ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
       ctx.fillRect(-w/2 - 2, -h - 4, w + 4, 6);
       ctx.fillRect(-w/2 - 2, -2, w + 4, 6);
 
@@ -3396,9 +3396,60 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   // ----------------------------------------------------
   // Tier 0: Simple Base Boiler & Pipes
   // ----------------------------------------------------
-  drawTank(0, baseY, 40, 50, null, 0, 1.0 - t1); // Replaced by T1 tank
-  drawFluidPipe([{x: -30, y: baseY}, {x: -30, y: baseY - 30}, {x: -20, y: baseY - 30}], 8, null, 0, 1.0 - t2);
-  drawFluidPipe([{x: 30, y: baseY}, {x: 30, y: baseY - 40}, {x: 10, y: baseY - 40}], 8, null, 0, 1.0 - t2);
+  ctx.save();
+  ctx.globalAlpha = 1.0 - t1;
+  // Simple, solid iron base tank block
+  const t0W = 80;
+  const t0H = 60;
+  ctx.fillStyle = ironPattern ? ironPattern : "#8a929a";
+  ctx.fillRect(-t0W/2, baseY - t0H, t0W, t0H);
+  
+  // Simple dark iron trim
+  ctx.fillStyle = ironPattern ? ironPattern : "#2c3e50";
+  ctx.fillRect(-t0W/2 - 2, baseY - t0H - 5, t0W + 4, 10); // top rim
+  ctx.fillRect(-t0W/2 - 2, baseY - 5, t0W + 4, 5); // bottom rim
+  
+  // Glowing Fluid Viewport
+  const portRadius = 15;
+  const portY = baseY - t0H/2;
+  
+  // Inner dark rim
+  ctx.fillStyle = "#1a252f";
+  ctx.beginPath();
+  ctx.arc(0, portY, portRadius + 3, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Fluid inside viewport
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(0, portY, portRadius, 0, Math.PI*2);
+  ctx.clip();
+  
+  // Animated liquid level inside port
+  const fillLvl = 0.5 + 0.1 * Math.sin(t * 2);
+  const fluidY = portY + portRadius - (portRadius * 2 * fillLvl);
+  ctx.fillStyle = "rgba(0, 255, 200, 1)";
+  ctx.fillRect(-portRadius, fluidY, portRadius*2, portRadius*2);
+  
+  // Simple bubble animation inside port
+  ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+  for(let i=0; i<2; i++) {
+      let bY = (t * 15 + i*20) % (portRadius*2 * fillLvl);
+      let bX = -portRadius + 4 + (i * 12) % (portRadius*2 - 8);
+      ctx.beginPath(); ctx.arc(bX, portY + portRadius - bY, 2, 0, Math.PI*2); ctx.fill();
+  }
+  
+  // Glass reflection
+  ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+  ctx.beginPath();
+  ctx.arc(-5, portY - 5, portRadius * 0.4, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // Small output pipe with pulsing fluid to show connection
+  drawFluidPipe([{x: t0W/2, y: portY}, {x: t0W/2 + 20, y: portY}, {x: t0W/2 + 20, y: baseY}], 8, "rgba(0, 255, 200, 1)", 2, 1.0 - t1);
+  
+  ctx.restore();
 
   // ----------------------------------------------------
   // Tier 1: Chemical Tank (Cyan)
@@ -3423,7 +3474,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   if (t3 > 0) {
       ctx.save();
       ctx.globalAlpha = t3;
-      ctx.strokeStyle = "#2c3e50";
+      ctx.strokeStyle = ironPattern ? ironPattern : "#2c3e50";
       ctx.lineWidth = 4;
       // Main supports
       ctx.beginPath();
@@ -3508,7 +3559,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.fillRect(-colW/2 + 5, colY - colH + 4, colW * 0.2, colH - 8);
 
       // Nexus Metal Casing Rings
-      ctx.strokeStyle = "#34495e";
+      ctx.strokeStyle = ironPattern ? ironPattern : "#34495e";
       ctx.lineWidth = 6;
       for(let y = colY - 30; y > colY - colH; y -= 40) {
           ctx.beginPath(); ctx.moveTo(-colW/2 - 5, y); ctx.lineTo(colW/2 + 5, y); ctx.stroke();
@@ -3518,7 +3569,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       }
       
       // Top Cap
-      ctx.fillStyle = "#4a4d50";
+      ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
       ctx.fillRect(-colW/2 - 10, colY - colH - 10, colW + 20, 15);
       
       ctx.restore();
@@ -3535,7 +3586,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       const drawVent = (x, isLeft) => {
           ctx.save();
           ctx.translate(x, ventY);
-          ctx.fillStyle = "#34495e";
+          ctx.fillStyle = ironPattern ? ironPattern : "#34495e";
           ctx.beginPath();
           ctx.moveTo(0, 0); ctx.lineTo(isLeft ? -20 : 20, -10); ctx.lineTo(isLeft ? -20 : 20, 10); ctx.fill();
           
@@ -3615,9 +3666,9 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       const wh = "rgba(255, 255, 255, 1)";
 
       // Top pressure manifold structure (widened)
-      ctx.fillStyle = "#2c3e50";
+      ctx.fillStyle = ironPattern ? ironPattern : "#2c3e50";
       ctx.fillRect(-70, baseY - 230, 140, 20);
-      ctx.fillStyle = "#4a4d50";
+      ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
       ctx.fillRect(-75, baseY - 230, 150, 5);
       
       // Labyrinth of pipes (dense and chaotic but geometric)
