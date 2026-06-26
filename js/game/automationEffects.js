@@ -470,33 +470,36 @@ registerPassiveSystem({
         let anyGains = false;
         let totalMaterialsSpawned = 0;
         
-        for (let t = 0; t < collectCount; t++) {
-            for (let j = 0; j < UC_MATERIALS.length; j++) {
-                const matData = UC_MATERIAL_DATA[j];
-                let gain = 0;
-                if (j === 0) {
+        for (let j = 0; j < UC_MATERIALS.length; j++) {
+            const matData = UC_MATERIAL_DATA[j];
+            let gain = 0;
+            if (j === 0) {
+                gain = 1.0;
+            } else {
+                if (dpLevelNum >= matData.max) {
                     gain = 1.0;
-                } else {
-                    if (dpLevelNum >= matData.max) {
-                        gain = 1.0;
-                    } else if (dpLevelNum >= matData.start) {
-                        const progress = (dpLevelNum - matData.start) / (matData.max - matData.start);
-                        gain = 0.01 + 0.99 * Math.pow(progress, 1.5);
-                    }
+                } else if (dpLevelNum >= matData.start) {
+                    const progress = (dpLevelNum - matData.start) / (matData.max - matData.start);
+                    gain = 0.01 + 0.99 * Math.pow(progress, 1.5);
                 }
+            }
+            
+            if (gain > 0) {
+                const totalGain = gain * collectCount;
+                const newAcc = accs[j] + totalGain;
+                const integerGain = Math.floor(newAcc);
+                accs[j] = newAcc - integerGain;
                 
-                accs[j] += gain;
                 if (accs[j] > 1.99) accs[j] = 1.99;
-                
-                if (accs[j] >= 1.0) {
-                    accs[j] -= 1.0;
+
+                if (integerGain > 0) {
                     const matKey = UC_MATERIALS[j];
                     if (bank[matKey] && !globalThis?.__cccLockedStorageKeys?.has?.(`ccc:${matKey}`)) {
                         const mult = bank[matKey].mult.get();
-                        const finalVal = BigNum.fromInt(1).mulBigNumInteger(mult);
+                        const finalVal = BigNum.fromInt(1).mulBigNumInteger(mult).mulBigNumInteger(BigNum.fromAny(integerGain));
                         bank[matKey].add(finalVal);
                         anyGains = true;
-                        totalMaterialsSpawned++;
+                        totalMaterialsSpawned += integerGain;
                     }
                 }
             }
