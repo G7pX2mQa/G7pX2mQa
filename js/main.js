@@ -1682,7 +1682,7 @@ function generateMenuBackground(manifest) {
           const cx = x * cellSize + cellSize/2;
           const cy = y * cellSize + cellSize/2;
           
-          ctx.filter = 'grayscale(100%) brightness(0.4) contrast(1.2) opacity(0.5)';
+          ctx.filter = 'grayscale(100%) brightness(0.125) contrast(1) opacity(0.5)';
           ctx.drawImage(img, cx - drawSize/2, cy - drawSize/2, drawSize, drawSize);
         }
       }
