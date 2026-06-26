@@ -81,6 +81,7 @@ import {
     addComboChangeListener, 
     removeComboChangeListener 
 } from '../game/comboSystem.js';
+import { setHtmlOrText } from './uiHelpers.js';
 
 const debugPanelStatSetters = [];
 let isBuildingStats = false;
@@ -1826,7 +1827,7 @@ function createCalculatorRow({ labelText, inputs = [], compute }) {
 
         try {
             const result = compute(values);
-            output.innerHTML = formatCalculatorResult(result);
+            setHtmlOrText(output, formatCalculatorResult(result));
         } catch {
             output.textContent = '—';
         }
