@@ -92,6 +92,10 @@ body.menu-bg::before {
   body.menu-bg::before { animation: none; }
 }
 
+body.is-hidden.menu-bg::before {
+  animation-play-state: paused;
+}
+
 /* Keep UI above background */
 .menu-root,
 .menu-header,
