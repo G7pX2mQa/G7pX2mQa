@@ -393,16 +393,16 @@ function handleStatChange(e) {
           const reqVal = state.requirement || 0;
           
           const progValEl = row.querySelector("[data-prog-val]");
-          if (progValEl) progValEl.innerHTML = formatNumber(progVal);
+          if (progValEl) setHtmlOrText(progValEl, formatNumber(progVal));
           
           const reqValEl = row.querySelector("[data-req-val]");
           
           let pct = 0;
           if (reqVal === Infinity || (typeof reqVal === "string" && reqVal === "Infinity") || (reqVal && typeof reqVal.isInfinite === "function" && reqVal.isInfinite())) {
-             if (reqValEl) reqValEl.innerHTML = "<span class=\"infinity-symbol\">∞</span>";
+             if (reqValEl) setHtmlOrText(reqValEl, "<span class=\"infinity-symbol\">∞</span>");
              pct = 100;
           } else {
-             if (reqValEl) reqValEl.innerHTML = formatNumber(reqVal);
+             if (reqValEl) setHtmlOrText(reqValEl, formatNumber(reqVal));
              if (state.ratio !== undefined) {
                  pct = Math.min(100, Math.max(0, state.ratio * 100));
              } else if (reqVal && progVal !== null && progVal !== undefined) {
@@ -416,7 +416,7 @@ function handleStatChange(e) {
           const suffixEl = row.querySelector(".level-row-progress-suffix");
           if (suffixEl && l.progConfig) {
              let reqStr = reqVal.toString();
-             suffixEl.innerHTML = (l.progConfig.plural && reqStr !== "1") ? l.progConfig.plural : l.progConfig.singular;
+             setHtmlOrText(suffixEl, (l.progConfig.plural && reqStr !== "1") ? l.progConfig.plural : l.progConfig.singular);
           }
 
           const fillEl = row.querySelector("[data-fill]");
