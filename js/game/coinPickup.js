@@ -2,7 +2,6 @@
 
 import { bank, CURRENCIES, getActiveSlot, isCurrencyLocked } from '../util/storage.js';
 import { incrementLifetimeSizeCoinsCollected, checkSecretAchievements } from './secretAchievements.js';
-
 import { BigNum } from '../util/bigNum.js';
 import { formatNumber } from '../util/numFormat.js';
 import { unlockShop } from '../ui/hudButtons.js';
@@ -22,6 +21,7 @@ import { onCoinCollected } from './comboSystem.js';
 import { getComboUiString } from './surgeEffects.js';
 import { settingsManager } from './settingsManager.js';
 import { createMagnetController, initInteractionBrush, computeMagnetUnitPx } from './collectionCore.js';
+import { setHtmlOrText } from '../util/uiHelpers.js';
 
 let mutationUnlockedSnapshot = false;
 let mutationLevelIsInfiniteSnapshot = false;
@@ -438,11 +438,7 @@ export function initCoinPickup({
     const comboStr = getComboUiString();
     const fullText = formatted + comboStr;
 
-    if (fullText.includes('<span')) {
-      amt.innerHTML = fullText;
-    } else {
-      amt.textContent = fullText;
-    }
+    setHtmlOrText(amt, fullText);
   };
   
   refreshCoinMultiplierCache();
