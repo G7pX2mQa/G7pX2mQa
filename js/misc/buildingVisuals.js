@@ -3313,14 +3313,6 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   };
 
-  // Base platform (Tier 0)
-  ctx.save();
-  ctx.fillStyle = ironPattern ? ironPattern : "#ced2d6";
-  ctx.fillRect(-baseWidth/2, baseY, baseWidth, 20);
-  ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
-  ctx.fillRect(-baseWidth/2, baseY, baseWidth, 4);
-  ctx.fillRect(-baseWidth/2, baseY + 16, baseWidth, 4);
-  ctx.restore();
 
   // Helper to draw fluid pipes
   const drawFluidPipe = (pts, width, fluidColor, flowSpeed, alpha = 1) => {
@@ -3423,7 +3415,7 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   drawFluidPipe([{x: 0, y: baseY - tankH + 10}, {x: 0, y: baseY - tankH - 15}, {x: 60, y: baseY - tankH - 15}, {x: 60, y: baseY}], 8, oilColor, 2.5, 1.0 - t1);
 
   // Central Small Tank sitting directly on the base platform
-  drawTank(0, baseY, tankW, tankH, oilColor, 0.7 + 0.05 * Math.sin(t * 1.5), 1.0 - t1);
+  drawTank(0, baseY - 4, tankW, tankH, oilColor, 0.7 + 0.1 * Math.sin(t * 1.5), 1.0 - t1);
   
   ctx.restore();
 
@@ -3431,9 +3423,9 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   // Tier 1: Enhanced Tanks and More Electrical Output
   // ----------------------------------------------------
   if (t1 > 0) {
-      const fillLvl = 0.5 + 0.1 * Math.sin(t * 2);
+      const fillLvl = 0.5 + 0.2 * Math.sin(t * 2);
       // Central black oil tank
-      drawTank(0, baseY, 60, 80, oilColor, fillLvl, t1);
+      drawTank(0, baseY - 4, 60, 80, oilColor, fillLvl, t1);
       
       if (Math.random() > 0.9) {
           drawLightning(-20, baseY - 40, 20, baseY - 40 + (Math.random()-0.5)*10, 3, 5, sparkColor, 1.5);
@@ -3622,8 +3614,8 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       const green = "rgba(0, 255, 50, 1)";
       
       // Side Tanks further out (Chemical Processing)
-      drawTank(-100, baseY - 20, 30, 40, purple, 0.7 + 0.1 * Math.sin(t*3), t6);
-      drawTank(100, baseY - 20, 30, 40, green, 0.7 + 0.1 * Math.cos(t*3), t6);
+      drawTank(-100, baseY - 20, 30, 40, purple, 0.7 + 0.2 * Math.sin(t*3), t6);
+      drawTank(100, baseY - 20, 30, 40, green, 0.7 + 0.2 * Math.cos(t*3), t6);
 
       // Purple Routing (mixed with oil color where they meet if we want, but distinct pipes here)
       drawFluidPipe([{x: -30, y: baseY - 120}, {x: -100, y: baseY - 120}, {x: -100, y: baseY - 60}], 10, purple, 4, t6);
@@ -3718,6 +3710,14 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
 
       ctx.restore();
   }
+  // Base platform (Tier 0)
+  ctx.save();
+  ctx.fillStyle = ironPattern ? ironPattern : "#ced2d6";
+  ctx.fillRect(-baseWidth/2, baseY, baseWidth, 20);
+  ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
+  ctx.fillRect(-baseWidth/2, baseY, baseWidth, 4);
+  ctx.fillRect(-baseWidth/2, baseY + 16, baseWidth, 4);
+  ctx.restore();
 }
 
 
