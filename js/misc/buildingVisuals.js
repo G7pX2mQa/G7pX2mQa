@@ -1896,7 +1896,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.beginPath();
     // Inner prism size is about iw = w * 0.45 = 13.5 * sizeMult.
     // We want the ball to be smaller than the inner prism width but still pulse erratically.
-    const corePulse = 6 + Math.random() * 6;
+    const corePulse = 8 + Math.random() * 6;
     ctx.arc(center.x, center.y, corePulse, 0, Math.PI * 2);
     ctx.fill();
 
