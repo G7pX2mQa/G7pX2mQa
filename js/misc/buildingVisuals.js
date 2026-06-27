@@ -2290,7 +2290,7 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
 
       // Lava level and motion
       const lavaLevelBase = 0.7; // 70% full
-      const lavaLevelFluctuation = 0.05 * Math.sin(t * 2);
+      const lavaLevelFluctuation = 0.1 * Math.sin(t * 2);
       const currentLavaHeight =
         containerHeight * (lavaLevelBase + lavaLevelFluctuation);
       const lavaY = siloY + containerHeight - currentLavaHeight;
@@ -2332,10 +2332,17 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
       ctx.restore();
 
       // Glass reflection/shine
-      ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-      ctx.fillRect(siloX + 3, siloY + 2, 5, containerHeight - 4);
-      ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
-      ctx.fillRect(siloX + 8, siloY + 2, 3, containerHeight - 4);
+      if (isLeft) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.fillRect(siloX + 3, siloY + 2, 5, containerHeight - 4);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+        ctx.fillRect(siloX + 8, siloY + 2, 3, containerHeight - 4);
+      } else {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.fillRect(siloX + containerWidth - 8, siloY + 2, 5, containerHeight - 4);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+        ctx.fillRect(siloX + containerWidth - 11, siloY + 2, 3, containerHeight - 4);
+      }
 
       // Metal caps (Top and Bottom of Silo)
       ctx.fillStyle = "#222";
