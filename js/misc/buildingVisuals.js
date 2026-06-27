@@ -1195,6 +1195,53 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     return projectRotated(rp.x, rp.y, rp.z);
   }
 
+  // Tier 5 Orbiting Crystals helper function
+  const drawTier5Shards = (isFront) => {
+    if (tier5Prog <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = tier5Prog;
+
+    const numShards = 6;
+    const orbitRadius = 70 + tier6Prog * 20;
+
+    for (let i = 0; i < numShards; i++) {
+      const orbitRot = t * 1.5 + (i * Math.PI * 2) / numShards;
+      const sx = Math.cos(orbitRot) * orbitRadius;
+      const sz = Math.sin(orbitRot) * orbitRadius;
+      
+      // Determine if this shard is front or back based on its Z position
+      // For getRotated, since it rotates around Y, the final Z determines depth.
+      const rp = getRotated(sx, 0, sz);
+      const isShardFront = rp.z <= 0;
+      
+      if (isFront !== isShardFront) continue;
+
+      const sy = -h / 2;
+      const sp = project(sx, sy, sz);
+
+      // Draw shard
+      ctx.save();
+      ctx.translate(sp.x, sp.y);
+
+      ctx.fillStyle = "rgba(220, 100, 255, 0.8)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.lineWidth = 1;
+
+      const size = 12 * sp.scale;
+      ctx.beginPath();
+      ctx.moveTo(0, -size);
+      ctx.lineTo(-size * 0.6, 0);
+      ctx.lineTo(0, size);
+      ctx.lineTo(size * 0.6, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  };
+
+
   // --- Tier 8/4 Rainbow Beam Calculations ---
   // If we draw beams *behind* the prism, we should do it before drawing faces.
   // We will draw all beams with globalCompositeOperation = 'screen' or 'lighter' later, but Z-order matters if it's solid.
@@ -1267,7 +1314,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
       "#00ff00",
       "#00ffff",
       "#0000ff",
-      "#a020f0",
+      "#7000ff",
     ];
 
     // Tier 7 amplifies the spread and length
@@ -1325,7 +1372,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
       "#00ff00",
       "#00ffff",
       "#0000ff",
-      "#a020f0",
+      "#7000ff",
     ];
     const spread = Math.PI / 2; // 90 degree spread
 
@@ -1380,6 +1427,9 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
 
     ctx.restore();
   }
+
+  // Draw back tier 5 crystals here
+  drawTier5Shards(false);
 
   // --- Draw Prism Faces (Back-to-Front) ---
   // Faces and normal/lighting colors
@@ -1814,43 +1864,7 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
-  // Tier 5: Orbiting Crystal Shards
-  if (tier5Prog > 0) {
-    ctx.save();
-    ctx.globalAlpha = tier5Prog;
 
-    const numShards = 6;
-    const orbitRadius = 70 + tier6Prog * 20;
-
-    for (let i = 0; i < numShards; i++) {
-      const orbitRot = t * 1.5 + (i * Math.PI * 2) / numShards;
-      const sx = Math.cos(orbitRot) * orbitRadius;
-      const sz = Math.sin(orbitRot) * orbitRadius;
-      const sy = -h / 2;
-
-      const sp = project(sx, sy, sz);
-
-      // Draw shard
-      ctx.save();
-      ctx.translate(sp.x, sp.y);
-
-      ctx.fillStyle = "rgba(220, 100, 255, 0.8)";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-      ctx.lineWidth = 1;
-
-      const size = 12 * sp.scale;
-      ctx.beginPath();
-      ctx.moveTo(0, -size);
-      ctx.lineTo(-size * 0.6, 0);
-      ctx.lineTo(0, size);
-      ctx.lineTo(size * 0.6, 0);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-    }
-    ctx.restore();
-  }
 
   // --- Tier 8: Symmetrical Zenith ---
   if (tier8Prog > 0) {
@@ -1966,6 +1980,8 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
 
     ctx.restore();
   }
+  // Draw front tier 5 crystals here
+  drawTier5Shards(true);
 }
 
 function drawFoundry(ctx, t, tier, prevTier, animProgress) {
@@ -2332,7 +2348,7 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
       ctx.clip();
 
       // Lava level and motion
-      const fillLvl = 0.7 + 0.1 * Math.sin(t * 1.5);
+      const fillLvl = 0.7 + 0.2 * Math.sin(t * 1);
       const currentLavaHeight = containerHeight * fillLvl;
       const lavaY = siloY + containerHeight - currentLavaHeight;
 
