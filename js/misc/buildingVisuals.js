@@ -2289,10 +2289,8 @@ function drawFoundry(ctx, t, tier, prevTier, animProgress) {
       ctx.clip();
 
       // Lava level and motion
-      const lavaLevelBase = 0.7; // 70% full
-      const lavaLevelFluctuation = 0.1 * Math.sin(t * 2);
-      const currentLavaHeight =
-        containerHeight * (lavaLevelBase + lavaLevelFluctuation);
+      const fillLvl = 0.7 + 0.1 * Math.sin(t * 1.5);
+      const currentLavaHeight = containerHeight * fillLvl;
       const lavaY = siloY + containerHeight - currentLavaHeight;
 
       // Lava gradient
