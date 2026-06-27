@@ -418,7 +418,7 @@ function finishAndHideLoader(loaderEl, onFadeStart, finishedText, dwellMs = 500)
       loaderEl.__label.textContent = finishedText;
     } else {
       loaderEl.__label.textContent = loaderEl.__skipped
-        ? 'Loading Skipped'
+        ? 'Loading skipped'
         : 'Finished loading assets';
     }
   }
