@@ -3284,6 +3284,34 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
 
   const baseY = -20;
   const baseWidth = 240; // Widened from 160
+  const oilColor = "rgba(20, 20, 20, 1)";
+  const sparkColor = "rgba(255, 255, 0, 0.9)"; // Bright yellow
+
+  // Common function for drawing lightning bolts
+  const drawLightning = (sx, sy, ex, ey, segments, jitter, color, lineWidth) => {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    for (let j = 1; j < segments; j++) {
+        const tPos = j / segments;
+        const px = sx + (ex - sx) * tPos + (Math.random() - 0.5) * jitter;
+        const py = sy + (ey - sy) * tPos + (Math.random() - 0.5) * jitter;
+        ctx.lineTo(px, py);
+    }
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    
+    // Core (white)
+    ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.lineWidth = lineWidth * 0.4;
+    ctx.stroke();
+    ctx.restore();
+  };
 
   // Base platform (Tier 0)
   ctx.save();
@@ -3366,24 +3394,12 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
           const fHeight = h * fillLevel;
           const yOff = -fHeight;
           const grad = ctx.createLinearGradient(0, yOff, 0, 0);
-          grad.addColorStop(0, "rgba(255,255,255,0.8)");
+          grad.addColorStop(0, "rgba(255,255,255,0.3)"); // Lighter top reflection
           grad.addColorStop(0.2, fluidColor);
-          grad.addColorStop(1, "rgba(0,0,0,0.8)");
+          grad.addColorStop(1, "rgba(0,0,0,0.8)"); // Darker bottom
           ctx.fillStyle = grad;
           ctx.fillRect(-w/2 + 2, yOff, w - 4, fHeight);
-          
-          // Bubbles
-          ctx.fillStyle = "rgba(255,255,255,0.4)";
-          for(let i=0; i<3; i++) {
-              let bY = (t * 15 + i*20) % fHeight;
-              let bX = -w/2 + 4 + (i * 10) % (w - 8);
-              ctx.beginPath(); ctx.arc(bX, -bY, 2, 0, Math.PI*2); ctx.fill();
-          }
       }
-
-      // Glass reflection
-      ctx.fillStyle = "rgba(255,255,255,0.15)";
-      ctx.fillRect(-w/2 + 4, -h + 2, w*0.3, h - 4);
 
       // Metal Caps
       ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
@@ -3394,78 +3410,48 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   };
 
   // ----------------------------------------------------
-  // Tier 0: Simple Base Boiler & Pipes
+  // Tier 0: Small Container
   // ----------------------------------------------------
   ctx.save();
   ctx.globalAlpha = 1.0 - t1;
-  // Simple, solid iron base tank block
-  const t0W = 80;
-  const t0H = 60;
-  ctx.fillStyle = ironPattern ? ironPattern : "#8a929a";
-  ctx.fillRect(-t0W/2, baseY - t0H, t0W, t0H);
   
-  // Simple dark iron trim
-  ctx.fillStyle = ironPattern ? ironPattern : "#2c3e50";
-  ctx.fillRect(-t0W/2 - 2, baseY - t0H - 5, t0W + 4, 10); // top rim
-  ctx.fillRect(-t0W/2 - 2, baseY - 5, t0W + 4, 5); // bottom rim
+  const tankW = 50;
+  const tankH = 60;
   
-  // Glowing Fluid Viewport
-  const portRadius = 15;
-  const portY = baseY - t0H/2;
-  
-  // Inner dark rim
-  ctx.fillStyle = "#1a252f";
-  ctx.beginPath();
-  ctx.arc(0, portY, portRadius + 3, 0, Math.PI*2);
-  ctx.fill();
-  
-  // Fluid inside viewport
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(0, portY, portRadius, 0, Math.PI*2);
-  ctx.clip();
-  
-  // Animated liquid level inside port
-  const fillLvl = 0.5 + 0.1 * Math.sin(t * 2);
-  const fluidY = portY + portRadius - (portRadius * 2 * fillLvl);
-  ctx.fillStyle = "rgba(0, 255, 200, 1)";
-  ctx.fillRect(-portRadius, fluidY, portRadius*2, portRadius*2);
-  
-  // Simple bubble animation inside port
-  ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-  for(let i=0; i<2; i++) {
-      let bY = (t * 15 + i*20) % (portRadius*2 * fillLvl);
-      let bX = -portRadius + 4 + (i * 12) % (portRadius*2 - 8);
-      ctx.beginPath(); ctx.arc(bX, portY + portRadius - bY, 2, 0, Math.PI*2); ctx.fill();
-  }
-  
-  // Glass reflection
-  ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-  ctx.beginPath();
-  ctx.arc(-5, portY - 5, portRadius * 0.4, 0, Math.PI*2);
-  ctx.fill();
-  ctx.restore();
+  // Draw pipe first so it sits behind the tank
+  // Simplified single pipe leading out
+  drawFluidPipe([{x: 0, y: baseY - tankH + 10}, {x: 0, y: baseY - tankH - 15}, {x: 60, y: baseY - tankH - 15}, {x: 60, y: baseY}], 8, oilColor, 2.5, 1.0 - t1);
 
-  // Small output pipe with pulsing fluid to show connection
-  drawFluidPipe([{x: t0W/2, y: portY}, {x: t0W/2 + 20, y: portY}, {x: t0W/2 + 20, y: baseY}], 8, "rgba(0, 255, 200, 1)", 2, 1.0 - t1);
+  // Central Small Tank sitting directly on the base platform
+  drawTank(0, baseY, tankW, tankH, oilColor, 0.7 + 0.05 * Math.sin(t * 1.5), 1.0 - t1);
   
   ctx.restore();
 
   // ----------------------------------------------------
-  // Tier 1: Chemical Tank (Cyan)
+  // Tier 1: Enhanced Tanks and More Electrical Output
   // ----------------------------------------------------
   if (t1 > 0) {
       const fillLvl = 0.5 + 0.1 * Math.sin(t * 2);
-      drawTank(0, baseY, 44, 60, "rgba(0, 255, 200, 1)", fillLvl, t1);
+      // Central black oil tank
+      drawTank(0, baseY, 60, 80, oilColor, fillLvl, t1);
+      
+      if (Math.random() > 0.9) {
+          drawLightning(-20, baseY - 40, 20, baseY - 40 + (Math.random()-0.5)*10, 3, 5, sparkColor, 1.5);
+      }
   }
 
   // ----------------------------------------------------
   // Tier 2: Complex Manifold & Fluid Pipes (Widened)
   // ----------------------------------------------------
   if (t2 > 0) {
-      const cyan = "rgba(0, 255, 200, 1)";
-      drawFluidPipe([{x: -22, y: baseY - 10}, {x: -60, y: baseY - 10}, {x: -60, y: baseY - 70}, {x: -10, y: baseY - 70}, {x: -10, y: baseY - 60}], 10, cyan, 2, t2);
-      drawFluidPipe([{x: 22, y: baseY - 20}, {x: 70, y: baseY - 20}, {x: 70, y: baseY - 80}, {x: 10, y: baseY - 80}, {x: 10, y: baseY - 60}], 12, cyan, 2.5, t2);
+      drawFluidPipe([{x: -30, y: baseY - 10}, {x: -70, y: baseY - 10}, {x: -70, y: baseY - 70}, {x: -15, y: baseY - 70}, {x: -15, y: baseY - 60}], 10, oilColor, 2, t2);
+      drawFluidPipe([{x: 30, y: baseY - 20}, {x: 80, y: baseY - 20}, {x: 80, y: baseY - 80}, {x: 15, y: baseY - 80}, {x: 15, y: baseY - 60}], 12, oilColor, 2.5, t2);
+      
+      // Electrical arcs along pipes
+      if (Math.random() > 0.8) {
+         let side = Math.random() > 0.5 ? 1 : -1;
+         drawLightning(side*70, baseY - 40, side*70, baseY - 10, 3, 8, sparkColor, 2);
+      }
   }
 
   // ----------------------------------------------------
@@ -3478,20 +3464,28 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.lineWidth = 4;
       // Main supports
       ctx.beginPath();
-      ctx.moveTo(-100, baseY); ctx.lineTo(-100, baseY - 120);
-      ctx.moveTo(100, baseY); ctx.lineTo(100, baseY - 120);
+      ctx.moveTo(-110, baseY); ctx.lineTo(-110, baseY - 120);
+      ctx.moveTo(110, baseY); ctx.lineTo(110, baseY - 120);
       ctx.stroke();
       
       ctx.lineWidth = 2;
       for(let y = baseY - 20; y > baseY - 120; y -= 20) {
-          ctx.beginPath(); ctx.moveTo(-100, y); ctx.lineTo(100, y); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(-100, y); ctx.lineTo(-80, y - 20); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(100, y); ctx.lineTo(80, y - 20); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-110, y); ctx.lineTo(110, y); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-110, y); ctx.lineTo(-90, y - 20); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(110, y); ctx.lineTo(90, y - 20); ctx.stroke();
       }
 
-      // Vertical feed lines
-      drawFluidPipe([{x: -90, y: baseY}, {x: -90, y: baseY - 130}], 8, "rgba(0, 255, 200, 1)", 3, t3);
-      drawFluidPipe([{x: 90, y: baseY}, {x: 90, y: baseY - 140}], 8, "rgba(0, 255, 200, 1)", 3.2, t3);
+      // Vertical feed lines (black oil)
+      drawFluidPipe([{x: -100, y: baseY}, {x: -100, y: baseY - 130}], 8, oilColor, 3, t3);
+      drawFluidPipe([{x: 100, y: baseY}, {x: 100, y: baseY - 140}], 8, oilColor, 3.2, t3);
+      
+      // Electricity running up the scaffolding
+      if (Math.random() > 0.7) {
+         let sx = (Math.random() > 0.5) ? -110 : 110;
+         let sy = baseY - Math.random()*120;
+         drawLightning(sx, sy, sx + (Math.random()-0.5)*20, sy - 20, 3, 5, sparkColor, 1.5);
+      }
+      
       ctx.restore();
   }
 
@@ -3511,16 +3505,16 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.fillStyle = "#1a252f";
       ctx.fillRect(-colW/2, colY - colH, colW, colH);
 
-      // Fluid Vortex
+      // Fluid Vortex (Black oil mixed with yellow energy)
       const vGrad = ctx.createLinearGradient(-colW/2, 0, colW/2, 0);
       if (t8 > 0) {
-          vGrad.addColorStop(0, "rgba(0, 255, 255, 0.8)");
-          vGrad.addColorStop(0.5, "rgba(255, 255, 255, 1)");
-          vGrad.addColorStop(1, "rgba(0, 255, 255, 0.8)");
+          vGrad.addColorStop(0, "rgba(255, 255, 0, 0.8)"); // Bright yellow edge
+          vGrad.addColorStop(0.5, "rgba(255, 255, 255, 1)"); // White hot core
+          vGrad.addColorStop(1, "rgba(255, 255, 0, 0.8)"); // Bright yellow edge
       } else {
-          vGrad.addColorStop(0, "rgba(0, 200, 150, 0.6)");
-          vGrad.addColorStop(0.5, "rgba(0, 255, 200, 0.9)");
-          vGrad.addColorStop(1, "rgba(0, 200, 150, 0.6)");
+          vGrad.addColorStop(0, "rgba(20, 20, 20, 0.9)"); // Dark oil
+          vGrad.addColorStop(0.5, "rgba(255, 255, 0, 0.7)"); // Glowing electrical core
+          vGrad.addColorStop(1, "rgba(20, 20, 20, 0.9)"); // Dark oil
       }
       ctx.fillStyle = vGrad;
       ctx.fillRect(-colW/2 + 2, colY - colH + 4, colW - 4, colH - 8);
@@ -3542,6 +3536,13 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
           ctx.stroke();
       }
       
+      // Intense electrical sparks inside the core
+      for(let i=0; i<3; i++) {
+          if (Math.random() > 0.8) {
+              drawLightning((Math.random()-0.5)*colW, colY - colH + Math.random()*colH, (Math.random()-0.5)*colW, colY - colH + Math.random()*colH, 3, 5, sparkColor, 1);
+          }
+      }
+
       if (t8 > 0) {
           // Intense bubbling / hyper-pressurized look
           ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
@@ -3563,8 +3564,8 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.lineWidth = 6;
       for(let y = colY - 30; y > colY - colH; y -= 40) {
           ctx.beginPath(); ctx.moveTo(-colW/2 - 5, y); ctx.lineTo(colW/2 + 5, y); ctx.stroke();
-          // Glow vents
-          ctx.fillStyle = "rgba(0, 255, 200, 0.8)";
+          // Glow vents (Yellow power)
+          ctx.fillStyle = "rgba(255, 255, 0, 0.8)";
           ctx.fillRect(-colW/4, y - 2, colW/2, 4);
       }
       
@@ -3590,11 +3591,11 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
           ctx.beginPath();
           ctx.moveTo(0, 0); ctx.lineTo(isLeft ? -20 : 20, -10); ctx.lineTo(isLeft ? -20 : 20, 10); ctx.fill();
           
-          // Vapor Jet
+          // Vapor Jet (Chemical Greenish-Yellow Gas)
           const jetAlpha = 0.5 + 0.5 * Math.sin(t * 10);
           const jetGrad = ctx.createLinearGradient(isLeft ? -20 : 20, 0, isLeft ? -70 : 70, 0);
-          jetGrad.addColorStop(0, `rgba(200, 255, 255, ${jetAlpha})`);
-          jetGrad.addColorStop(1, "rgba(200, 255, 255, 0)");
+          jetGrad.addColorStop(0, `rgba(150, 255, 50, ${jetAlpha})`); // Chemical green
+          jetGrad.addColorStop(1, "rgba(150, 255, 50, 0)");
           ctx.fillStyle = jetGrad;
           ctx.beginPath();
           ctx.moveTo(isLeft ? -20 : 20, -8);
@@ -3620,14 +3621,20 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       const purple = "rgba(180, 0, 255, 1)";
       const green = "rgba(0, 255, 50, 1)";
       
-      // Side Tanks further out
+      // Side Tanks further out (Chemical Processing)
       drawTank(-100, baseY - 20, 30, 40, purple, 0.7 + 0.1 * Math.sin(t*3), t6);
       drawTank(100, baseY - 20, 30, 40, green, 0.7 + 0.1 * Math.cos(t*3), t6);
 
-      // Purple Routing
+      // Purple Routing (mixed with oil color where they meet if we want, but distinct pipes here)
       drawFluidPipe([{x: -30, y: baseY - 120}, {x: -100, y: baseY - 120}, {x: -100, y: baseY - 60}], 10, purple, 4, t6);
       // Green Routing
       drawFluidPipe([{x: 30, y: baseY - 100}, {x: 100, y: baseY - 100}, {x: 100, y: baseY - 60}], 10, green, 4.5, t6);
+      
+      // Electrical jumps from chemical tanks
+      if (Math.random() > 0.8) {
+          drawLightning(-100, baseY - 60, -70, baseY - 80, 2, 5, sparkColor, 1.5);
+          drawLightning(100, baseY - 60, 70, baseY - 80, 2, 5, sparkColor, 1.5);
+      }
       ctx.restore();
   }
 
@@ -3637,17 +3644,16 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   if (t7 > 0) {
       ctx.save();
       ctx.globalAlpha = t7;
-      const blue = "rgba(0, 100, 255, 1)";
       
-      // Coolant loops weaving in the foreground further out
-      drawFluidPipe([{x: -40, y: baseY}, {x: -110, y: baseY - 40}, {x: -110, y: baseY - 140}, {x: -20, y: baseY - 170}], 6, blue, 6, t7);
-      drawFluidPipe([{x: 40, y: baseY}, {x: 110, y: baseY - 30}, {x: 110, y: baseY - 130}, {x: 20, y: baseY - 160}], 6, blue, 6.5, t7);
+      // Coolant loops weaving in the foreground further out (Yellow energy coolant)
+      drawFluidPipe([{x: -40, y: baseY}, {x: -110, y: baseY - 40}, {x: -110, y: baseY - 140}, {x: -20, y: baseY - 170}], 6, sparkColor, 6, t7);
+      drawFluidPipe([{x: 40, y: baseY}, {x: 110, y: baseY - 30}, {x: 110, y: baseY - 130}, {x: 20, y: baseY - 160}], 6, sparkColor, 6.5, t7);
       
-      // Atmospheric chilling mist sinking down (Wider spread)
+      // Atmospheric toxic/chemical mist sinking down (Wider spread, Greenish/Purple hue)
       const mistGrad = ctx.createLinearGradient(0, baseY - 200, 0, baseY);
-      mistGrad.addColorStop(0, "rgba(100, 150, 255, 0)");
-      mistGrad.addColorStop(0.5, `rgba(100, 200, 255, ${0.15 + 0.05 * Math.sin(t*2)})`);
-      mistGrad.addColorStop(1, "rgba(100, 150, 255, 0)");
+      mistGrad.addColorStop(0, "rgba(100, 255, 100, 0)");
+      mistGrad.addColorStop(0.5, `rgba(150, 50, 255, ${0.15 + 0.05 * Math.sin(t*2)})`);
+      mistGrad.addColorStop(1, "rgba(100, 255, 100, 0)");
       ctx.fillStyle = mistGrad;
       ctx.fillRect(-120, baseY - 200, 240, 200);
       
@@ -3661,9 +3667,9 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       ctx.save();
       ctx.globalAlpha = t8;
       
-      const cy = "rgba(0, 255, 255, 1)";
-      const mg = "rgba(255, 0, 255, 1)";
-      const wh = "rgba(255, 255, 255, 1)";
+      const cy = "rgba(255, 255, 0, 1)"; // Electric Yellow
+      const mg = "rgba(150, 50, 255, 1)"; // Purple Chemical
+      const wh = "rgba(50, 255, 100, 1)"; // Green Chemical
 
       // Top pressure manifold structure (widened)
       ctx.fillStyle = ironPattern ? ironPattern : "#2c3e50";
@@ -3684,17 +3690,17 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
       drawComplexPipe([{x: 0, y: baseY-210}, {x: 0, y: baseY-180}, {x: -80, y: baseY-150}, {x: -80, y: baseY-70}, {x: -35, y: baseY-30}], 10, cy, 12);
       drawComplexPipe([{x: 10, y: baseY-210}, {x: 30, y: baseY-190}, {x: 90, y: baseY-140}, {x: 60, y: baseY-60}, {x: 35, y: baseY-30}], 10, wh, 11);
 
-      // Extreme top flare/glow
+      // Extreme top flare/glow (Yellow/Electric)
       const apexGlow = ctx.createRadialGradient(0, baseY - 220, 0, 0, baseY - 220, 100);
-      apexGlow.addColorStop(0, "rgba(0, 255, 255, 0.8)");
+      apexGlow.addColorStop(0, "rgba(255, 255, 0, 0.8)");
       apexGlow.addColorStop(0.5, "rgba(255, 255, 255, 0.2)");
-      apexGlow.addColorStop(1, "rgba(0, 255, 255, 0)");
+      apexGlow.addColorStop(1, "rgba(255, 255, 0, 0)");
       ctx.fillStyle = apexGlow;
       ctx.beginPath(); ctx.arc(0, baseY - 220, 100, 0, Math.PI*2); ctx.fill();
 
       // Neon Lightning arcs between pipes in the labyrinth (widened range)
-      if (Math.random() > 0.7) {
-         ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 + Math.random()*0.5})`;
+      if (Math.random() > 0.5) {
+         ctx.strokeStyle = `rgba(255, 255, 0, ${0.5 + Math.random()*0.5})`;
          ctx.lineWidth = 2;
          ctx.beginPath();
          let sx = (Math.random() - 0.5) * 160;
@@ -3712,7 +3718,6 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
 
       ctx.restore();
   }
-
 }
 
 
