@@ -3388,14 +3388,31 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
 
       // Fluid
       if (fluidColor) {
-          const fHeight = h * fillLevel;
+          const fHeight = h;
           const yOff = -fHeight;
-          const grad = ctx.createLinearGradient(0, yOff, 0, 0);
-          grad.addColorStop(0, "rgba(255,255,255,0.3)"); // Lighter top reflection
-          grad.addColorStop(0.2, fluidColor);
-          grad.addColorStop(1, "rgba(0,0,0,0.8)"); // Darker bottom
-          ctx.fillStyle = grad;
+          ctx.fillStyle = fluidColor;
           ctx.fillRect(-w/2 + 2, yOff, w - 4, fHeight);
+
+          // Bubbles
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(-w/2 + 2, yOff, w - 4, fHeight);
+          ctx.clip();
+          
+          for (let i = 0; i < 8; i++) {
+              const bubbleT = (t * 0.5 + i * 0.43) % 1; // 0 to 1 cycle
+              const bubbleX = -w/2 + 4 + ((i * 5) % (w - 8)) + Math.sin(t * 3 + i) * 2;
+              const bubbleY = -bubbleT * fHeight;
+              const bubbleRadius = 1 + (i % 3);
+              
+              if (bubbleY > yOff + bubbleRadius) {
+                  ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+                  ctx.beginPath();
+                  ctx.arc(bubbleX, bubbleY, bubbleRadius, 0, Math.PI * 2);
+                  ctx.fill();
+              }
+          }
+          ctx.restore();
       }
 
       // Metal Caps
