@@ -1228,6 +1228,159 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.restore();
   }
 
+
+
+  // --- Tier 8/4 Rainbow Beam (drawn under prism faces) ---
+  if (tier4Prog > 0 && tier8Prog < 1) {
+    ctx.save();
+    ctx.globalAlpha = tier4Prog * (1 - tier8Prog);
+    ctx.globalCompositeOperation = "lighter";
+
+
+    ctx.restore();
+  }
+
+  if (tier8Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier8Prog;
+    ctx.globalCompositeOperation = "lighter";
+
+
+    ctx.restore();
+  }
+
+
+  // Ensure center is calculated early so we can draw the beams
+  const center = project(0, -h / 2, 0);
+
+  // --- Tier 8/4 Rainbow Beam (drawn under prism faces) ---
+  if (tier4Prog > 0 && tier8Prog < 1) {
+    ctx.save();
+    ctx.globalAlpha = tier4Prog * (1 - tier8Prog);
+    ctx.globalCompositeOperation = "lighter";
+
+    // Dispersed Rainbow Beams (exiting horizontally left and right)
+    const colors = [
+      "#ff0000",
+      "#ff7f00",
+      "#ffff00",
+      "#00ff00",
+      "#00ffff",
+      "#0000ff",
+      "#a020f0",
+    ];
+
+    // Tier 7 amplifies the spread and length
+    const spread = Math.PI / 4;
+    // Retract the ray length as it transitions to tier 8
+    const rayLen = 300 * (1 - tier8Prog);
+
+    const drawHorizontalRainbow = (baseAngle, isReversed) => {
+      for (let i = 0; i < colors.length; i++) {
+        const fraction = i / (colors.length - 1);
+        const angleOffset = -spread / 2 + fraction * spread;
+        const outAngle = baseAngle + angleOffset;
+
+        const colorIdx = isReversed ? colors.length - 1 - i : i;
+
+        const grad = ctx.createLinearGradient(
+          center.x,
+          center.y,
+          center.x + Math.cos(outAngle) * rayLen,
+          center.y + Math.sin(outAngle) * rayLen,
+        );
+        const rgbStr = hexToRgbStr(colors[colorIdx]);
+        grad.addColorStop(0, `rgba(${rgbStr}, 1)`);
+        grad.addColorStop(1, `rgba(${rgbStr}, 0)`);
+
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(center.x, center.y);
+        ctx.lineTo(
+          center.x + Math.cos(outAngle) * rayLen,
+          center.y + Math.sin(outAngle) * rayLen,
+        );
+        ctx.stroke();
+      }
+    };
+
+    // Shoot left (PI) and right (0)
+    drawHorizontalRainbow(0, false);
+    drawHorizontalRainbow(Math.PI, true);
+
+    ctx.restore();
+  }
+
+  if (tier8Prog > 0) {
+    ctx.save();
+    ctx.globalAlpha = tier8Prog;
+    ctx.globalCompositeOperation = "lighter";
+
+    // SYMMETRICAL Rainbow Beams (Left and Right)
+    const colors = [
+      "#ff0000",
+      "#ff7f00",
+      "#ffff00",
+      "#00ff00",
+      "#00ffff",
+      "#0000ff",
+      "#a020f0",
+    ];
+    const spread = Math.PI / 2; // 90 degree spread
+
+    const drawRainbowSide = (baseAngle, isReversed) => {
+      for (let i = 0; i < colors.length; i++) {
+        const fraction = i / (colors.length - 1);
+        // Spread centered around baseAngle
+        const angleOffset = -spread / 2 + fraction * spread;
+        const outAngle = baseAngle + angleOffset + Math.sin(t * 5 + i) * 0.02; // subtle wave
+
+        const colorIdx = isReversed ? colors.length - 1 - i : i;
+
+        const grad = ctx.createLinearGradient(
+          center.x,
+          center.y,
+          center.x + Math.cos(outAngle) * 400,
+          center.y + Math.sin(outAngle) * 400,
+        );
+        const intensity = 0.6 + 0.4 * Math.sin(t * 8 + i * 2);
+        const rgbStr = hexToRgbStr(colors[colorIdx]);
+        grad.addColorStop(0, `rgba(${rgbStr}, 1)`);
+        grad.addColorStop(0.5, `rgba(${rgbStr}, ${intensity})`);
+        grad.addColorStop(1, `rgba(${rgbStr}, 0)`);
+
+        ctx.fillStyle = grad;
+        const outW = 8 + Math.sin(t * 15 + i) * 3;
+
+        // Draw thick polygon beam
+        ctx.beginPath();
+        // Move perpendicular to outAngle to create thickness
+        const px = Math.sin(outAngle) * outW;
+        const py = -Math.cos(outAngle) * outW;
+
+        ctx.moveTo(center.x - px / 2, center.y - py / 2);
+        ctx.lineTo(
+          center.x + Math.cos(outAngle) * 400 - px,
+          center.y + Math.sin(outAngle) * 400 - py,
+        );
+        ctx.lineTo(
+          center.x + Math.cos(outAngle) * 400 + px,
+          center.y + Math.sin(outAngle) * 400 + py,
+        );
+        ctx.lineTo(center.x + px / 2, center.y + py / 2);
+        ctx.fill();
+      }
+    };
+
+    // Right side (base angle 0)
+    drawRainbowSide(0, false);
+    // Left side (base angle PI, reverse colors for symmetry)
+    drawRainbowSide(Math.PI, true);
+
+    ctx.restore();
+  }
+
   // --- Draw Prism Faces (Back-to-Front) ---
   // Faces and normal/lighting colors
   // We want a glassy pink look
@@ -1626,7 +1779,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     }
     ctx.restore();
   }
-  const center = project(0, -h / 2, 0);
 
   // Tier 4: Incoming White Beam from top & Rainbow Beams shooting out horizontally
   if (tier4Prog > 0 && tier8Prog < 1) {
@@ -1658,55 +1810,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.arc(center.x, center.y, (8 + t7WidthAdd / 2) * (1 - tier8Prog), 0, Math.PI * 2);
     ctx.fill();
 
-    // Dispersed Rainbow Beams (exiting horizontally left and right)
-    const colors = [
-      "#ff0000",
-      "#ff7f00",
-      "#ffff00",
-      "#00ff00",
-      "#00ffff",
-      "#0000ff",
-      "#ff00ff",
-    ];
-
-    // Tier 7 amplifies the spread and length
-    const spread = Math.PI / 4;
-    // Retract the ray length as it transitions to tier 8
-    const rayLen = 300 * (1 - tier8Prog);
-
-    const drawHorizontalRainbow = (baseAngle, isReversed) => {
-      for (let i = 0; i < colors.length; i++) {
-        const fraction = i / (colors.length - 1);
-        const angleOffset = -spread / 2 + fraction * spread;
-        const outAngle = baseAngle + angleOffset;
-
-        const colorIdx = isReversed ? colors.length - 1 - i : i;
-
-        const grad = ctx.createLinearGradient(
-          center.x,
-          center.y,
-          center.x + Math.cos(outAngle) * rayLen,
-          center.y + Math.sin(outAngle) * rayLen,
-        );
-        const rgbStr = hexToRgbStr(colors[colorIdx]);
-        grad.addColorStop(0, `rgba(${rgbStr}, 1)`);
-        grad.addColorStop(1, `rgba(${rgbStr}, 0)`);
-
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(center.x, center.y);
-        ctx.lineTo(
-          center.x + Math.cos(outAngle) * rayLen,
-          center.y + Math.sin(outAngle) * rayLen,
-        );
-        ctx.stroke();
-      }
-    };
-
-    // Shoot left (PI) and right (0)
-    drawHorizontalRainbow(0, false);
-    drawHorizontalRainbow(Math.PI, true);
 
     ctx.restore();
   }
@@ -1783,66 +1886,6 @@ function drawPrism(ctx, t, tier, prevTier, animProgress) {
     ctx.arc(center.x, center.y, corePulse, 0, Math.PI * 2);
     ctx.fill();
 
-    // SYMMETRICAL Rainbow Beams (Left and Right)
-    const colors = [
-      "#ff0000",
-      "#ff7f00",
-      "#ffff00",
-      "#00ff00",
-      "#00ffff",
-      "#0000ff",
-      "#ff00ff",
-    ];
-    const spread = Math.PI / 2; // 90 degree spread
-
-    const drawRainbowSide = (baseAngle, isReversed) => {
-      for (let i = 0; i < colors.length; i++) {
-        const fraction = i / (colors.length - 1);
-        // Spread centered around baseAngle
-        const angleOffset = -spread / 2 + fraction * spread;
-        const outAngle = baseAngle + angleOffset + Math.sin(t * 5 + i) * 0.02; // subtle wave
-
-        const colorIdx = isReversed ? colors.length - 1 - i : i;
-
-        const grad = ctx.createLinearGradient(
-          center.x,
-          center.y,
-          center.x + Math.cos(outAngle) * 400,
-          center.y + Math.sin(outAngle) * 400,
-        );
-        const intensity = 0.6 + 0.4 * Math.sin(t * 8 + i * 2);
-        const rgbStr = hexToRgbStr(colors[colorIdx]);
-        grad.addColorStop(0, `rgba(${rgbStr}, 1)`);
-        grad.addColorStop(0.5, `rgba(${rgbStr}, ${intensity})`);
-        grad.addColorStop(1, `rgba(${rgbStr}, 0)`);
-
-        ctx.fillStyle = grad;
-        const outW = 8 + Math.sin(t * 15 + i) * 3;
-
-        // Draw thick polygon beam
-        ctx.beginPath();
-        // Move perpendicular to outAngle to create thickness
-        const px = Math.sin(outAngle) * outW;
-        const py = -Math.cos(outAngle) * outW;
-
-        ctx.moveTo(center.x - px / 2, center.y - py / 2);
-        ctx.lineTo(
-          center.x + Math.cos(outAngle) * 400 - px,
-          center.y + Math.sin(outAngle) * 400 - py,
-        );
-        ctx.lineTo(
-          center.x + Math.cos(outAngle) * 400 + px,
-          center.y + Math.sin(outAngle) * 400 + py,
-        );
-        ctx.lineTo(center.x + px / 2, center.y + py / 2);
-        ctx.fill();
-      }
-    };
-
-    // Right side (base angle 0)
-    drawRainbowSide(0, false);
-    // Left side (base angle PI, reverse colors for symmetry)
-    drawRainbowSide(Math.PI, true);
 
     ctx.restore();
   }
