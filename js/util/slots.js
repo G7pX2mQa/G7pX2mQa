@@ -86,8 +86,11 @@ export function initSlots(onSelect) {
     const slotNum = idx + 1;
 
     const activate = (ev) => {
+      if (window.__duplicateInstanceDetected) return;
+
       // Switch to this slot and seed its defaults the first time it’s opened
       setActiveSlot(slotNum);
+      if (window.__duplicateInstanceDetected) return;
 
       let creationTime = localStorage.getItem(`ccc:creationTime:${slotNum}`);
       if (!creationTime) {
