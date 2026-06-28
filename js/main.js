@@ -270,6 +270,7 @@ export const AREAS = {
   MENU: 0,
   STARTER_COVE: 1,
   UNDERWATER_CAVERN: 2,
+  JAIL: 666,
 };
 
 export let currentArea = AREAS.MENU;
@@ -556,6 +557,7 @@ export function wakeBrowserThrottling() {
 }
 
 function enterAreaFromSaveSlot(areaID) {
+  if (areaID === AREAS.JAIL) areaID = AREAS.STARTER_COVE;
   delayAreaMusicForSaveSlotLoad = true;
   try {
     enterArea(areaID);
@@ -568,7 +570,7 @@ function enterAreaFromSaveSlot(areaID) {
 export function enterArea(areaID) {
   if (currentArea === areaID) return;
 
-  if (areaID === AREAS.MENU) {
+  if (areaID === AREAS.MENU || areaID === AREAS.JAIL) {
     if (typeof pauseGameLoop === 'function') pauseGameLoop();
   } else {
     if (typeof resumeGameLoop === 'function') resumeGameLoop();
@@ -607,7 +609,8 @@ export function enterArea(areaID) {
 
   currentArea = areaID;
   window.currentArea = currentArea;
-  if (typeof setSavedArea === 'function') {
+  if (areaID === AREAS.JAIL) { if (typeof stopGameLoop === 'function') stopGameLoop(); }
+  if (typeof setSavedArea === 'function' && areaID !== AREAS.JAIL && areaID !== AREAS.MENU) {
     setSavedArea(areaID);
   }
   if (typeof refreshButtonVisibility === "function") {
@@ -1071,6 +1074,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	'img/misc/combine_plus_base.webp',
 	'img/misc/compress.webp',
 	'img/misc/compress_plus_base.webp',
+	'img/misc/evil_merchant.webp',
     'img/misc/evolve_achievement_icon.webp',
     'img/misc/evolve_ready.webp',
     'img/misc/experiment.webp',
@@ -1350,6 +1354,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
   document.addEventListener('visibilitychange', () => {
+    if (window.__duplicateInstanceDetected) return;
     const hidden = document.hidden;
     
     if (hidden) {
@@ -1372,6 +1377,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   window.addEventListener('focus', () => {
+    if (window.__duplicateInstanceDetected) return;
     wakeBrowserThrottling();
   });
 
@@ -1709,6 +1715,7 @@ function generateMenuBackground(manifest) {
 // -------------------- DUPLICATE INSTANCE DETECTION --------------------
 window.__duplicateInstanceDetected = false;
 window.addEventListener('duplicateInstanceDetected', () => {
+    if (typeof enterArea === 'function') enterArea(AREAS.JAIL);
     window.__duplicateInstanceDetected = true;
     if (typeof stopGameLoop === 'function') {
         stopGameLoop();
