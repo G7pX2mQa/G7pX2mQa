@@ -629,6 +629,45 @@ export function enterArea(areaID) {
   currentArea = areaID;
   window.currentArea = currentArea;
   if (areaID === AREAS.JAIL) { if (typeof stopGameLoop === 'function') stopGameLoop(); }
+
+  if (areaID === AREAS.JAIL) {
+      // Hide everything else in the body
+      Array.from(document.body.children).forEach(child => {
+          if (child.id !== 'jail-screen' && child.tagName !== 'SCRIPT' && !child.classList.contains('debug-panel') && child.id !== 'debug-panel-toggle-button' && child.className !== 'debug-panel-toggle-button') {
+              child.style.display = 'none';
+          }
+      });
+      
+      let jailScreen = document.getElementById('jail-screen');
+      if (!jailScreen) {
+          jailScreen = document.createElement('div');
+          jailScreen.id = 'jail-screen';
+          Object.assign(jailScreen.style, {
+              position: 'fixed',
+              inset: '0',
+              background: '#000',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: '2147483645' // below debug panel
+          });
+          
+          const img = document.createElement('img');
+          img.src = 'img/misc/evil_merchant.webp';
+          Object.assign(img.style, {
+              width: '100vw',
+              height: '100vh',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              objectFit: 'contain'
+          });
+          
+          jailScreen.appendChild(img);
+          document.body.appendChild(jailScreen);
+      }
+      jailScreen.style.display = 'flex';
+      return;
+  }
   if (typeof setSavedArea === 'function' && areaID !== AREAS.JAIL && areaID !== AREAS.MENU) {
     setSavedArea(areaID);
   }
@@ -1776,3 +1815,4 @@ window.addEventListener('duplicateInstanceDetected', () => {
     }
     dupScreen.style.display = 'grid';
 });
+window.enterArea = enterArea;
