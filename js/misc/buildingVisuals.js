@@ -3486,311 +3486,245 @@ function drawRefinery(ctx, t, tier, prevTier, animProgress) {
   // Tier 0: Small Container
   // ----------------------------------------------------
   ctx.save();
-  ctx.globalAlpha = 1.0 - t1;
+  ctx.globalAlpha = 1.0;
   
   const tankW = 50;
   const tankH = 60;
   
   // Draw pipe first so it sits behind the tank
   // Simplified single pipe leading out
-  drawFluidPipe([{x: 0, y: baseY - tankH + 10}, {x: 0, y: baseY - tankH - 15}, {x: 60, y: baseY - tankH - 15}, {x: 60, y: baseY}], 8, oilColor, 2.5, 1.0 - t1);
+  drawFluidPipe([{x: 0, y: baseY - tankH + 10}, {x: 0, y: baseY - tankH - 15}, {x: 60, y: baseY - tankH - 15}, {x: 60, y: baseY}], 8, oilColor, 2.5, 1.0);
 
   // Central Small Tank sitting directly on the base platform
-  drawTank(0, baseY - 4, tankW, tankH, oilColor, 0.7 + 0.1 * Math.sin(t * 1.5), 1.0 - t1);
+  drawTank(0, baseY - 4, tankW, tankH, oilColor, 0.7 + 0.1 * Math.sin(t * 1.5), 1.0);
   
   ctx.restore();
 
   // ----------------------------------------------------
-  // Tier 1: Enhanced Tanks and More Electrical Output
+  // Tier 1: Auxiliary Tanks & Piping
   // ----------------------------------------------------
   if (t1 > 0) {
-      const fillLvl = 0.5 + 0.2 * Math.sin(t * 2);
-      // Central black oil tank
-      drawTank(0, baseY - 4, 60, 80, oilColor, fillLvl, t1);
+      // Flanking black oil tanks with static fills
+      drawTank(-40, baseY - 20, 30, 50, oilColor, 0.6, t1);
+      drawTank(40, baseY - 20, 30, 50, oilColor, 0.8, t1);
       
-      if (Math.random() > 0.9) {
-          drawLightning(-20, baseY - 40, 20, baseY - 40 + (Math.random()-0.5)*10, 3, 5, sparkColor, 1.5);
-      }
+      // Short piping connecting flanking tanks to central tank area
+      drawFluidPipe([{x: -25, y: baseY - 30}, {x: -15, y: baseY - 30}, {x: -15, y: baseY - 40}], 6, oilColor, 2, t1);
+      drawFluidPipe([{x: 25, y: baseY - 30}, {x: 15, y: baseY - 30}, {x: 15, y: baseY - 40}], 6, oilColor, 2.5, t1);
   }
 
   // ----------------------------------------------------
-  // Tier 2: Complex Manifold & Fluid Pipes (Widened)
+  // Tier 2: Enhanced Processing Units
   // ----------------------------------------------------
   if (t2 > 0) {
-      drawFluidPipe([{x: -30, y: baseY - 10}, {x: -70, y: baseY - 10}, {x: -70, y: baseY - 70}, {x: -15, y: baseY - 70}, {x: -15, y: baseY - 60}], 10, oilColor, 2, t2);
-      drawFluidPipe([{x: 30, y: baseY - 20}, {x: 80, y: baseY - 20}, {x: 80, y: baseY - 80}, {x: 15, y: baseY - 80}, {x: 15, y: baseY - 60}], 12, oilColor, 2.5, t2);
+      // Add pressure gauges / vents on top of the flanking tanks
+      ctx.save();
+      ctx.globalAlpha = t2;
+      ctx.fillStyle = "#888";
+      ctx.fillRect(-45, baseY - 55, 10, 10);
+      ctx.fillRect(35, baseY - 55, 10, 10);
       
-      // Electrical arcs along pipes
-      if (Math.random() > 0.8) {
-         let side = Math.random() > 0.5 ? 1 : -1;
-         drawLightning(side*70, baseY - 40, side*70, baseY - 10, 3, 8, sparkColor, 2);
-      }
+      ctx.fillStyle = "#ffaa00";
+      ctx.beginPath();
+      ctx.arc(-40, baseY - 50, 3, 0, Math.PI * 2);
+      ctx.arc(40, baseY - 50, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Additional secondary pipeline network
+      drawFluidPipe([{x: -55, y: baseY - 10}, {x: -70, y: baseY - 10}, {x: -70, y: baseY - 60}, {x: -10, y: baseY - 60}], 4, oilColor, 1.5, t2);
   }
 
   // ----------------------------------------------------
-  // Tier 3: Expanding Scaffolding & Vertical Pipes (Widened)
+  // Tier 3: Advanced Refinement Stages
   // ----------------------------------------------------
   if (t3 > 0) {
-      ctx.save();
-      ctx.globalAlpha = t3;
-      ctx.strokeStyle = ironPattern ? ironPattern : "#2c3e50";
-      ctx.lineWidth = 4;
-      // Main supports
-      ctx.beginPath();
-      ctx.moveTo(-110, baseY); ctx.lineTo(-110, baseY - 120);
-      ctx.moveTo(110, baseY); ctx.lineTo(110, baseY - 120);
-      ctx.stroke();
-      
-      ctx.lineWidth = 2;
-      for(let y = baseY - 20; y > baseY - 120; y -= 20) {
-          ctx.beginPath(); ctx.moveTo(-110, y); ctx.lineTo(110, y); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(-110, y); ctx.lineTo(-90, y - 20); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(110, y); ctx.lineTo(90, y - 20); ctx.stroke();
-      }
+      // Large background refinement silos
+      drawTank(-80, baseY - 20, 40, 80, "#444", 0.75, t3);
+      drawTank(80, baseY - 20, 40, 80, "#444", 0.4, t3);
 
-      // Vertical feed lines (black oil)
-      drawFluidPipe([{x: -100, y: baseY}, {x: -100, y: baseY - 130}], 8, oilColor, 3, t3);
-      drawFluidPipe([{x: 100, y: baseY}, {x: 100, y: baseY - 140}], 8, oilColor, 3.2, t3);
-      
-      // Electricity running up the scaffolding
-      if (Math.random() > 0.7) {
-         let sx = (Math.random() > 0.5) ? -110 : 110;
-         let sy = baseY - Math.random()*120;
-         drawLightning(sx, sy, sx + (Math.random()-0.5)*20, sy - 20, 3, 5, sparkColor, 1.5);
-      }
-      
-      ctx.restore();
+      // Connecting heavy pipelines
+      drawFluidPipe([{x: -60, y: baseY - 40}, {x: -20, y: baseY - 40}, {x: -20, y: baseY - 50}], 10, oilColor, 3, t3);
+      drawFluidPipe([{x: 60, y: baseY - 40}, {x: 20, y: baseY - 40}, {x: 20, y: baseY - 50}], 10, oilColor, 3, t3);
   }
 
   // ----------------------------------------------------
-  // Tier 4: The Core Feature (Nexus)
+  // Tier 4: The Central Electrical Core
   // ----------------------------------------------------
   if (t4 > 0) {
       ctx.save();
       ctx.globalAlpha = t4;
       
-      // Central transparent column overrides T1 tank
-      // Draw background of column
-      const colW = 60 + 20 * t8; // gets wider in T8
-      const colH = 150 + 50 * t8;
-      const colY = baseY;
-
-      ctx.fillStyle = "#1a252f";
-      ctx.fillRect(-colW/2, colY - colH, colW, colH);
-
-      // Fluid Vortex (Black oil mixed with yellow energy)
-      const vGrad = ctx.createLinearGradient(-colW/2, 0, colW/2, 0);
-      if (t8 > 0) {
-          vGrad.addColorStop(0, "rgba(255, 255, 0, 0.8)"); // Bright yellow edge
-          vGrad.addColorStop(0.5, "rgba(255, 255, 255, 1)"); // White hot core
-          vGrad.addColorStop(1, "rgba(255, 255, 0, 0.8)"); // Bright yellow edge
-      } else {
-          vGrad.addColorStop(0, "rgba(20, 20, 20, 0.9)"); // Dark oil
-          vGrad.addColorStop(0.5, "rgba(255, 255, 0, 0.7)"); // Glowing electrical core
-          vGrad.addColorStop(1, "rgba(20, 20, 20, 0.9)"); // Dark oil
-      }
-      ctx.fillStyle = vGrad;
-      ctx.fillRect(-colW/2 + 2, colY - colH + 4, colW - 4, colH - 8);
-
-      // Graceful sine wave fluid lines inside the Nexus
-      ctx.save();
-      ctx.beginPath(); ctx.rect(-colW/2 + 2, colY - colH + 4, colW - 4, colH - 8); ctx.clip();
+      // Floating glowing electrical core above the central tank
+      const coreY = baseY - 110 + Math.sin(t * 2) * 5;
       
-      const waveSpeed = t * (t8 > 0 ? 10 : 3);
-      for(let i=0; i<5; i++) {
-          ctx.strokeStyle = `rgba(255, 255, 255, ${0.2 + 0.1 * i})`;
-          ctx.lineWidth = 2 + (t8 > 0 ? 2 : 0);
-          ctx.beginPath();
-          for(let y=0; y<=colH; y+=5) {
-              const x = Math.sin(y * 0.05 + waveSpeed + i) * (colW/3) * (t8 > 0 ? 1.5 : 1);
-              if (y===0) ctx.moveTo(x, colY - colH + y);
-              else ctx.lineTo(x, colY - colH + y);
-          }
-          ctx.stroke();
-      }
+      // Core base / cradle
+      ctx.fillStyle = "#333";
+      ctx.fillRect(-15, coreY + 15, 30, 10);
       
-      // Intense electrical sparks inside the core
-      for(let i=0; i<3; i++) {
-          if (Math.random() > 0.8) {
-              drawLightning((Math.random()-0.5)*colW, colY - colH + Math.random()*colH, (Math.random()-0.5)*colW, colY - colH + Math.random()*colH, 3, 5, sparkColor, 1);
-          }
-      }
-
-      if (t8 > 0) {
-          // Intense bubbling / hyper-pressurized look
-          ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-          for(let i=0; i<20; i++) {
-              let bY = (t * 40 + i*17) % colH;
-              let bX = (Math.sin(t*5 + i) * colW/2 * 0.8);
-              ctx.beginPath(); ctx.arc(bX, colY - bY, 2 + Math.random()*2, 0, Math.PI*2); ctx.fill();
-          }
-      }
-
-      ctx.restore();
-
-      // Glass front
-      ctx.fillStyle = "rgba(255,255,255,0.1)";
-      ctx.fillRect(-colW/2 + 5, colY - colH + 4, colW * 0.2, colH - 8);
-
-      // Nexus Metal Casing Rings
-      ctx.strokeStyle = ironPattern ? ironPattern : "#34495e";
-      ctx.lineWidth = 6;
-      for(let y = colY - 30; y > colY - colH; y -= 40) {
-          ctx.beginPath(); ctx.moveTo(-colW/2 - 5, y); ctx.lineTo(colW/2 + 5, y); ctx.stroke();
-          // Glow vents (Yellow power)
-          ctx.fillStyle = "rgba(255, 255, 0, 0.8)";
-          ctx.fillRect(-colW/4, y - 2, colW/2, 4);
-      }
+      // The Core itself
+      const gradient = ctx.createRadialGradient(0, coreY, 0, 0, coreY, 20);
+      gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
+      gradient.addColorStop(0.3, "rgba(0, 200, 255, 0.9)");
+      gradient.addColorStop(1, "rgba(0, 100, 255, 0)");
       
-      // Top Cap
-      ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
-      ctx.fillRect(-colW/2 - 10, colY - colH - 10, colW + 20, 15);
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(0, coreY, 25, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Core stabilizing rings
+      ctx.strokeStyle = "rgba(0, 200, 255, 0.8)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, coreY, 30, 8, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(0, coreY, 30, 8, Math.PI/4, 0, Math.PI * 2);
+      ctx.stroke();
       
       ctx.restore();
   }
 
   // ----------------------------------------------------
-  // Tier 5: High-velocity Vapor Vents (Widened)
+  // Tier 5: Energized Fluid Paths
   // ----------------------------------------------------
   if (t5 > 0) {
+      // Electrified blue coolant/energy lines feeding into the core cradle
+      const energyColor = "rgba(0, 255, 255, 0.9)";
+      drawFluidPipe([{x: -80, y: baseY - 84}, {x: -80, y: baseY - 100}, {x: -20, y: baseY - 100}], 6, energyColor, 0, t5);
+      drawFluidPipe([{x: 80, y: baseY - 84}, {x: 80, y: baseY - 100}, {x: 20, y: baseY - 100}], 6, energyColor, 0, t5);
+
+      // Energy pulsing nodes along the lines
       ctx.save();
-      ctx.globalAlpha = t5;
-      const ventY = baseY - 150;
-      
-      const drawVent = (x, isLeft) => {
-          ctx.save();
-          ctx.translate(x, ventY);
-          ctx.fillStyle = ironPattern ? ironPattern : "#34495e";
-          ctx.beginPath();
-          ctx.moveTo(0, 0); ctx.lineTo(isLeft ? -20 : 20, -10); ctx.lineTo(isLeft ? -20 : 20, 10); ctx.fill();
-          
-          // Vapor Jet (Chemical Greenish-Yellow Gas)
-          const jetAlpha = 0.5 + 0.5 * Math.sin(t * 10);
-          const jetGrad = ctx.createLinearGradient(isLeft ? -20 : 20, 0, isLeft ? -70 : 70, 0);
-          jetGrad.addColorStop(0, `rgba(150, 255, 50, ${jetAlpha})`); // Chemical green
-          jetGrad.addColorStop(1, "rgba(150, 255, 50, 0)");
-          ctx.fillStyle = jetGrad;
-          ctx.beginPath();
-          ctx.moveTo(isLeft ? -20 : 20, -8);
-          ctx.lineTo(isLeft ? -70 : 70, -20);
-          ctx.lineTo(isLeft ? -70 : 70, 20);
-          ctx.lineTo(isLeft ? -20 : 20, 8);
-          ctx.fill();
-          
-          ctx.restore();
-      };
-      
-      drawVent(-50, true);
-      drawVent(50, false);
+      ctx.globalAlpha = t5 * (0.5 + 0.5 * Math.abs(Math.sin(t * 3)));
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(-50, baseY - 100, 4, 0, Math.PI * 2);
+      ctx.arc(50, baseY - 100, 4, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
   }
 
   // ----------------------------------------------------
-  // Tier 6: Multi-colored distinct streams & side tanks (Widened)
+  // Tier 6: High-Capacity Overdrive Silos
   // ----------------------------------------------------
   if (t6 > 0) {
+      // Massive outer background silos for super-refined output
+      drawTank(-130, baseY - 20, 45, 110, "#222", 0.9, t6);
+      drawTank(130, baseY - 20, 45, 110, "#222", 0.85, t6);
+      
+      // Neon accent strips on the new silos
       ctx.save();
       ctx.globalAlpha = t6;
-      const purple = "rgba(180, 0, 255, 1)";
-      const green = "rgba(0, 255, 50, 1)";
-      
-      // Side Tanks further out (Chemical Processing)
-      drawTank(-100, baseY - 20, 30, 40, purple, 0.7 + 0.2 * Math.sin(t*3), t6);
-      drawTank(100, baseY - 20, 30, 40, green, 0.7 + 0.2 * Math.cos(t*3), t6);
-
-      // Purple Routing (mixed with oil color where they meet if we want, but distinct pipes here)
-      drawFluidPipe([{x: -30, y: baseY - 120}, {x: -100, y: baseY - 120}, {x: -100, y: baseY - 60}], 10, purple, 4, t6);
-      // Green Routing
-      drawFluidPipe([{x: 30, y: baseY - 100}, {x: 100, y: baseY - 100}, {x: 100, y: baseY - 60}], 10, green, 4.5, t6);
-      
-      // Electrical jumps from chemical tanks
-      if (Math.random() > 0.8) {
-          drawLightning(-100, baseY - 60, -70, baseY - 80, 2, 5, sparkColor, 1.5);
-          drawLightning(100, baseY - 60, 70, baseY - 80, 2, 5, sparkColor, 1.5);
-      }
+      ctx.fillStyle = "rgba(0, 200, 255, 0.6)";
+      ctx.fillRect(-125, baseY - 100, 4, 80);
+      ctx.fillRect(121, baseY - 100, 4, 80);
       ctx.restore();
   }
 
   // ----------------------------------------------------
-  // Tier 7: Coolant lines & atmospheric mist (Widened)
+  // Tier 7: Structural Reinforcements & Complex Manifolds
   // ----------------------------------------------------
   if (t7 > 0) {
+      // Cross-bracing and dense piping manifolds
       ctx.save();
       ctx.globalAlpha = t7;
+      ctx.strokeStyle = "#555";
+      ctx.lineWidth = 4;
       
-      // Coolant loops weaving in the foreground further out (Yellow energy coolant)
-      drawFluidPipe([{x: -40, y: baseY}, {x: -110, y: baseY - 40}, {x: -110, y: baseY - 140}, {x: -20, y: baseY - 170}], 6, sparkColor, 6, t7);
-      drawFluidPipe([{x: 40, y: baseY}, {x: 110, y: baseY - 30}, {x: 110, y: baseY - 130}, {x: 20, y: baseY - 160}], 6, sparkColor, 6.5, t7);
-      
-      // Atmospheric toxic/chemical mist sinking down (Wider spread, Greenish/Purple hue)
-      const mistGrad = ctx.createLinearGradient(0, baseY - 200, 0, baseY);
-      mistGrad.addColorStop(0, "rgba(100, 255, 100, 0)");
-      mistGrad.addColorStop(0.5, `rgba(150, 50, 255, ${0.15 + 0.05 * Math.sin(t*2)})`);
-      mistGrad.addColorStop(1, "rgba(100, 255, 100, 0)");
-      ctx.fillStyle = mistGrad;
-      ctx.fillRect(-120, baseY - 200, 240, 200);
+      // Trusses
+      ctx.beginPath();
+      ctx.moveTo(-107, baseY - 110);
+      ctx.lineTo(-60, baseY - 84);
+      ctx.moveTo(107, baseY - 110);
+      ctx.lineTo(60, baseY - 84);
+      ctx.stroke();
       
       ctx.restore();
+
+      // Additional complex multi-colored pipelines wrapping the structure
+      drawFluidPipe([{x: -110, y: baseY - 20}, {x: -90, y: baseY - 20}, {x: -90, y: baseY - 10}, {x: -70, y: baseY - 10}], 5, "#ff3300", 1, t7);
+      drawFluidPipe([{x: 110, y: baseY - 20}, {x: 90, y: baseY - 20}, {x: 90, y: baseY - 10}, {x: 70, y: baseY - 10}], 5, "#ff3300", 1, t7);
   }
 
   // ----------------------------------------------------
-  // Tier 8: The Apex Labyrinth (Widened spread)
+  // Tier 8: Chaotic Climax - The Nexus Reactor
   // ----------------------------------------------------
   if (t8 > 0) {
       ctx.save();
       ctx.globalAlpha = t8;
-      
-      const cy = "rgba(255, 255, 0, 1)"; // Electric Yellow
-      const mg = "rgba(150, 50, 255, 1)"; // Purple Chemical
-      const wh = "rgba(50, 255, 100, 1)"; // Green Chemical
 
-      // Top pressure manifold structure (widened)
-      ctx.fillStyle = ironPattern ? ironPattern : "#2c3e50";
-      ctx.fillRect(-70, baseY - 230, 140, 20);
-      ctx.fillStyle = ironPattern ? ironPattern : "#4a4d50";
-      ctx.fillRect(-75, baseY - 230, 150, 5);
+      // The core goes into absolute overdrive (larger, brighter, chaotic)
+      const coreY = baseY - 110 + Math.sin(t * 2) * 5;
       
-      // Labyrinth of pipes (dense and chaotic but geometric)
-      const drawComplexPipe = (path, w, color, speed) => drawFluidPipe(path, w, color, speed, t8);
+      // Intense Aura
+      const aura = ctx.createRadialGradient(0, coreY, 10, 0, coreY, 70);
+      aura.addColorStop(0, "rgba(255, 255, 255, 0.8)");
+      aura.addColorStop(0.2, "rgba(0, 255, 255, 0.6)");
+      aura.addColorStop(0.6, "rgba(0, 100, 255, 0.2)");
+      aura.addColorStop(1, "rgba(0, 0, 255, 0)");
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(0, coreY, 70, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Chaotic Lightning Arcs from the Core to various tanks
+      ctx.strokeStyle = "rgba(150, 255, 255, 0.9)";
+      ctx.lineWidth = 2;
       
-      // Back layer wider
-      drawComplexPipe([{x: -70, y: baseY-210}, {x: -120, y: baseY-180}, {x: -120, y: baseY-100}, {x: -45, y: baseY-80}], 8, mg, 8);
-      drawComplexPipe([{x: 70, y: baseY-210}, {x: 120, y: baseY-170}, {x: 120, y: baseY-110}, {x: 45, y: baseY-90}], 8, mg, 8.5);
+      const drawLightning = (startX, startY, endX, endY) => {
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          
+          const steps = 4;
+          let currX = startX;
+          let currY = startY;
+          
+          for (let i = 1; i <= steps; i++) {
+              const tStep = i / steps;
+              const targetX = startX + (endX - startX) * tStep;
+              const targetY = startY + (endY - startY) * tStep;
+              
+              // Add chaotic jitter
+              currX = targetX + (Math.random() - 0.5) * 20;
+              currY = targetY + (Math.random() - 0.5) * 20;
+              
+              if (i === steps) {
+                  currX = endX;
+                  currY = endY;
+              }
+              
+              ctx.lineTo(currX, currY);
+          }
+          ctx.stroke();
+      };
+
+      // Arc every few frames to create a flickering effect
+      if (Math.random() > 0.3) drawLightning(0, coreY, -80, baseY - 84);
+      if (Math.random() > 0.3) drawLightning(0, coreY, 80, baseY - 84);
+      if (Math.random() > 0.5) drawLightning(0, coreY, -130, baseY - 110);
+      if (Math.random() > 0.5) drawLightning(0, coreY, 130, baseY - 110);
+
+      // Overdrive rings
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.lineWidth = 3;
       
-      // Front intricate weave wider
-      drawComplexPipe([{x: -30, y: baseY-210}, {x: -50, y: baseY-160}, {x: 10, y: baseY-140}, {x: -20, y: baseY-100}, {x: -40, y: baseY-60}], 6, wh, 10);
-      drawComplexPipe([{x: 30, y: baseY-210}, {x: 50, y: baseY-150}, {x: -10, y: baseY-130}, {x: 40, y: baseY-90}, {x: 20, y: baseY-50}], 6, cy, 9.5);
-      drawComplexPipe([{x: 0, y: baseY-210}, {x: 0, y: baseY-180}, {x: -80, y: baseY-150}, {x: -80, y: baseY-70}, {x: -35, y: baseY-30}], 10, cy, 12);
-      drawComplexPipe([{x: 10, y: baseY-210}, {x: 30, y: baseY-190}, {x: 90, y: baseY-140}, {x: 60, y: baseY-60}, {x: 35, y: baseY-30}], 10, wh, 11);
+      const ringAngle1 = t * 3;
+      const ringAngle2 = -t * 2.5;
 
-      // Extreme top flare/glow (Yellow/Electric)
-      const apexGlow = ctx.createRadialGradient(0, baseY - 220, 0, 0, baseY - 220, 100);
-      apexGlow.addColorStop(0, "rgba(255, 255, 0, 0.8)");
-      apexGlow.addColorStop(0.5, "rgba(255, 255, 255, 0.2)");
-      apexGlow.addColorStop(1, "rgba(255, 255, 0, 0)");
-      ctx.fillStyle = apexGlow;
-      ctx.beginPath(); ctx.arc(0, baseY - 220, 100, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(0, coreY, 45, 12, ringAngle1, 0, Math.PI * 2);
+      ctx.stroke();
 
-      // Neon Lightning arcs between pipes in the labyrinth (widened range)
-      if (Math.random() > 0.5) {
-         ctx.strokeStyle = `rgba(255, 255, 0, ${0.5 + Math.random()*0.5})`;
-         ctx.lineWidth = 2;
-         ctx.beginPath();
-         let sx = (Math.random() - 0.5) * 160;
-         let sy = baseY - 80 - Math.random() * 120;
-         let ex = sx + (Math.random() - 0.5) * 40;
-         let ey = sy + (Math.random() - 0.5) * 40;
-         
-         ctx.moveTo(sx, sy);
-         for(let i=1; i<4; i++) {
-             ctx.lineTo(sx + (ex-sx)*(i/4) + (Math.random()-0.5)*10, sy + (ey-sy)*(i/4) + (Math.random()-0.5)*10);
-         }
-         ctx.lineTo(ex, ey);
-         ctx.stroke();
-      }
-
+      ctx.beginPath();
+      ctx.ellipse(0, coreY, 50, 8, ringAngle2, 0, Math.PI * 2);
+      ctx.stroke();
+      
       ctx.restore();
   }
+
   // Base platform (Tier 0)
   ctx.save();
   ctx.fillStyle = ironPattern ? ironPattern : "#ced2d6";
