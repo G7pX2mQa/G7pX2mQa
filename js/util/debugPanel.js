@@ -1496,20 +1496,25 @@ function updateActionLogDisplay() {
         actionLogContainer.innerHTML = '';
         const msg = document.createElement('div');
         msg.className = 'action-log-empty';
-        msg.textContent = 'Actions you perform in the Debug Panel will be logged permanently in this action log.';
+        msg.textContent = window.currentArea === 666 ? 'You are in Jail' : 'Actions you perform in the Debug Panel will be logged permanently in this action log.';
         actionLogContainer.appendChild(msg);
         return;
     }
 
     actionLogContainer.innerHTML = actionLog.map((entry) => {
-        const formattedTime = String(entry.time ?? '').replace(/^0(\d)/, '$1');
+        let formattedTime = String(entry.time ?? '').replace(/^0(\d)/, '$1');
         let formattedMessage = entry.message?.replace?.(/\[GOLD\](.*?)\[\/GOLD\]/g, '<span class="action-log-gold">$1</span>') ?? '';
         formattedMessage = formattedMessage.replace(/\b(?:Level|Lv)\s?(\d+)\b/g, '<span class="action-log-level">Lv$1</span>');
         formattedMessage = formattedMessage.replace(/(\d[\d,.]*(?:e[+-]?\d+)*(?:[KMBTQa-zA-Z]*))/g, (match) => /\d/.test(match) ? `<span class="action-log-number">${match}</span>` : match);
         formattedMessage = formattedMessage.replace(/<span[^>]*class="[^"]*infinity-symbol[^"]*"[^>]*>\u221E<\/span>/g, '<span class="action-log-number">inf</span>');
         formattedMessage = formattedMessage.replace(/\u221E/g, '<span class="action-log-number">inf</span>');
 
-        return `<div class="action-log-entry"><span class="action-log-time">${formattedTime}:</span><span class="action-log-message">${formattedMessage}</span></div>`;
+        if (window.currentArea === 666) {
+            formattedTime = 'You are in Jail:';
+            formattedMessage = 'You are in Jail';
+        }
+
+        return `<div class="action-log-entry"><span class="action-log-time">${formattedTime}${window.currentArea === 666 ? '' : ':'}</span><span class="action-log-message">${formattedMessage}</span></div>`;
     }).join('');
 }
 
@@ -5051,6 +5056,22 @@ wipeSlotBtn.addEventListener('click', () => {
 actionLogRow.appendChild(wipeSlotBtn);
 
     content.appendChild(actionLogRow);
+
+    if (window.currentArea !== 666) {
+        const jailRow = document.createElement('div');
+        jailRow.className = 'debug-panel-row';
+        const jailBtn = document.createElement('button');
+        jailBtn.type = 'button';
+        jailBtn.className = 'debug-panel-toggle debug-danger-button';
+        jailBtn.textContent = 'Go to Jail';
+        jailBtn.style.backgroundColor = '#aa0000';
+        jailBtn.style.color = 'white';
+        jailBtn.addEventListener('click', () => {
+            window.enterArea(666);
+        });
+        jailRow.appendChild(jailBtn);
+        content.appendChild(jailRow);
+    }
 }
 
 function buildUnlocksContent(content) {
@@ -5178,6 +5199,70 @@ function buildDebugPanel() {
     applyDebugPanelExpansionState(panel);
 
     document.body.appendChild(panel);
+    
+    if (window.currentArea === 666) {
+        panel.classList.add('is-jailed');
+        
+        // Update info lines
+        const infoLinesElements = panel.querySelectorAll('.debug-panel-info-line');
+        infoLinesElements.forEach((line, index) => {
+			line.textContent = 'You are in Jail';
+        });
+        
+        // Update section titles
+        const sectionToggles = panel.querySelectorAll('.debug-panel-section-toggle');
+        sectionToggles.forEach(toggle => {
+            toggle.textContent = 'Jail: You are in Jail';
+        });
+        
+        // Update all text nodes and inputs
+        const walker = document.createTreeWalker(
+            panel,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+        
+        let node;
+        const nodesToUpdate = [];
+        while ((node = walker.nextNode())) {
+            // Check if parent is one of the headers/info we already changed, or action log title
+            if (node.parentElement && 
+               !node.parentElement.classList.contains('debug-panel-info-line') &&
+               !node.parentElement.classList.contains('debug-panel-section-toggle') &&
+               !node.parentElement.classList.contains('debug-panel-close') &&
+               !node.parentElement.classList.contains('debug-panel-title')) {
+                if (node.nodeValue.trim().length > 0) {
+                    nodesToUpdate.push(node);
+                }
+            }
+        }
+        
+        nodesToUpdate.forEach(n => {
+            n.nodeValue = 'You are in Jail';
+        });
+        
+        // Update inputs
+        const inputs = panel.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.disabled = true;
+            if (input.tagName === 'INPUT' && input.type !== 'checkbox' && input.type !== 'radio') {
+                input.value = 'You are in Jail';
+            }
+        });
+        
+        // Update buttons
+        const buttons = panel.querySelectorAll('button');
+        buttons.forEach(button => {
+            if (!button.classList.contains('debug-panel-close') && 
+                !button.classList.contains('debug-panel-section-toggle') &&
+                !button.classList.contains('debug-panel-subsection-toggle')) {
+                button.disabled = true;
+                // Don't replace close buttons texts
+                button.textContent = 'You are in Jail';
+            }
+        });
+    }
 
     if (debugPanelScrollTop > 0) {
         try { panel.scrollTop = debugPanelScrollTop; }
