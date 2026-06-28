@@ -594,54 +594,10 @@
 }
 
 /* Jail Styles */
-.debug-panel.is-jailed .debug-panel-toggle {
-    background: #470e0e;
-    color: #f7a8a8;
-    border-color: #f7a8a8;
-}
-
-.debug-panel.is-jailed .debug-panel-toggle:hover {
-    background: #6a1313;
-}
-
-.debug-panel.is-jailed .flag-toggle {
-    background: #470e0e !important;
-    border-color: #f7a8a8 !important;
-}
-
-.debug-panel.is-jailed .flag-toggle::after {
-    left: 20px !important;
-    background: #f7a8a8 !important;
-}
-
-.debug-panel.is-jailed .debug-misc-button {
-    background: #470e0e;
-    color: #f7a8a8;
-    border-color: #f7a8a8;
-}
-
-.debug-panel.is-jailed .debug-misc-button:hover {
-    background: #6a1313;
-}
-
-.debug-panel.is-jailed .debug-panel-input {
-    background: #470e0e;
-    color: #f7a8a8;
-    border-color: #f7a8a8;
-}
-
-.debug-panel.is-jailed .debug-danger-button {
-    background: #7a1515;
-    color: #fff;
-}\n
 /* Force toggle visually on and evil red in jail */
 .debug-panel.is-jailed .flag-slider {
     background-color: #aa0000 !important;
 }
 .debug-panel.is-jailed .flag-slider:before {
     transform: translateX(26px) !important;
-    background-color: #ffaaaa !important;
-}
-.debug-panel.is-jailed .debug-panel-toggle {
-    background-color: #aa0000 !important;
 }
