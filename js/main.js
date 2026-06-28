@@ -291,7 +291,22 @@ export const AREAS = {
 };
 
 export let currentArea = AREAS.MENU;
-window.currentArea = currentArea;
+
+// Define a property on window to prevent modifying currentArea if it's 666
+Object.defineProperty(window, 'currentArea', {
+  get: function() {
+    return currentArea;
+  },
+  set: function(val) {
+    if (currentArea === AREAS.JAIL) {
+      return; // Ignore attempts to escape jail
+    }
+    currentArea = val;
+  },
+  configurable: true,
+  enumerable: true
+});
+
 let globalCursorTrail = null;
 
 
@@ -586,6 +601,7 @@ function enterAreaFromSaveSlot(areaID) {
 
 export function enterArea(areaID) {
   if (currentArea === areaID) return;
+  if (currentArea === AREAS.JAIL) return;
 
   if (areaID === AREAS.MENU || areaID === AREAS.JAIL) {
     if (typeof pauseGameLoop === 'function') pauseGameLoop();
@@ -624,7 +640,11 @@ export function enterArea(areaID) {
     currentMusic = null;
   }
 
-  currentArea = areaID;
+  // Only change if not in jail, or if actually entering jail.
+  if (currentArea !== AREAS.JAIL || areaID === AREAS.JAIL) {
+    currentArea = areaID;
+  }
+  // The setter on window.currentArea will handle preventing escape
   window.currentArea = currentArea;
   if (areaID === AREAS.JAIL) { if (typeof stopGameLoop === 'function') stopGameLoop(); }
 
@@ -652,6 +672,7 @@ export function enterArea(areaID) {
           
           const img = document.createElement('img');
           img.src = 'img/misc/evil_merchant.webp';
+          img.draggable = false;
           Object.assign(img.style, {
               width: '100vw',
               height: '100vh',
