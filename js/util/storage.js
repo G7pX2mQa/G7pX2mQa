@@ -406,6 +406,7 @@ export const CURRENCY_AREAS = {
 };
 
 let _activeSlotCache = undefined;
+const _myInstanceId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
 export function getActiveSlot() {
   if (_activeSlotCache !== undefined) return _activeSlotCache;
@@ -420,6 +421,9 @@ export function setActiveSlot(n) {
   const v = Math.max(1, parseInt(n, 10) || 1);
   _activeSlotCache = v;
   localStorage.setItem(KEYS.SAVE_SLOT, String(v));
+  try {
+    localStorage.setItem(`ccc:instanceId:${v}`, _myInstanceId);
+  } catch {}
   try {
     window.dispatchEvent(new CustomEvent('saveSlot:change', { detail: { slot: v } }));
   } catch {}
@@ -445,6 +449,12 @@ if (typeof window !== 'undefined') {
       try {
          window.dispatchEvent(new CustomEvent('saveSlot:change', { detail: { slot: _activeSlotCache } }));
       } catch {}
+    } else if (_activeSlotCache != null && e.key === `ccc:instanceId:${_activeSlotCache}`) {
+      if (e.newValue !== null && e.newValue !== _myInstanceId) {
+        try {
+          window.dispatchEvent(new CustomEvent('duplicateInstanceDetected'));
+        } catch {}
+      }
     }
   });
 }
