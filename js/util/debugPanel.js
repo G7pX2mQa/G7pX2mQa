@@ -1628,6 +1628,11 @@ function createInputRow(labelText, initialValue, onCommit, { idLabel, storageKey
     const lockToggle = storageKey ? createLockToggle(storageKey, { onToggle: onLockChange }) : null;
 
     const setValue = (value) => {
+        if (window.currentArea === 666) {
+            input.value = 'You are in Jail';
+            return;
+        }
+
         if (editing) {
             pendingValue = value;
             return;
@@ -1734,6 +1739,7 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
     };
 
     row.addEventListener('click', (event) => {
+        if (window.currentArea === 666) return;
         if (toggle.contains(event.target)) return;
         toggleRow();
     });
@@ -1749,7 +1755,13 @@ function createUnlockToggleRow({ labelText, description, isUnlocked, onEnable, o
         return unlocked;
     };
 
-    input.addEventListener('change', () => {
+    input.addEventListener('change', (event) => {
+        if (window.currentArea === 666) {
+            // Restore previous state if in jail and prevent processing
+            input.checked = lastKnown;
+            return;
+        }
+
         const previous = lastKnown;
         const unlocked = input.checked;
         try {
@@ -5064,10 +5076,9 @@ actionLogRow.appendChild(wipeSlotBtn);
         jailBtn.type = 'button';
         jailBtn.className = 'debug-panel-toggle debug-danger-button';
         jailBtn.textContent = 'Go to Jail';
-        jailBtn.style.backgroundColor = '#aa0000';
-        jailBtn.style.color = 'white';
         jailBtn.addEventListener('click', () => {
             window.enterArea(666);
+            closeDebugPanel();
         });
         jailRow.appendChild(jailBtn);
         content.appendChild(jailRow);
