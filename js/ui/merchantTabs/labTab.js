@@ -369,7 +369,6 @@ class LabSystem {
         this.statsContainer.classList.add('lab-stats-container');
 
         const applyTextStyle = (el, fontSize, strokeWidth = '1px') => {
-            el.style.fontFamily = 'var(--font-ui), system-ui, sans-serif';
             el.style.fontWeight = '900';
             el.style.color = '#fff';
             el.style.fontSize = fontSize;
@@ -466,7 +465,6 @@ class LabSystem {
         this.helpText.style.left = '12px';
         this.helpText.style.pointerEvents = 'none';
         this.helpText.style.zIndex = '10';
-        this.helpText.style.fontFamily = 'var(--font-ui), system-ui, sans-serif';
         this.helpText.style.fontSize = '14px';
         this.helpText.style.lineHeight = '1.5';
         this.helpText.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
